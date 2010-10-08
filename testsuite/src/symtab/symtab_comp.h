@@ -40,10 +40,10 @@
 #include "Symtab.h"
 
 class COMPLIB_DLL_EXPORT SymtabMutator : public TestMutator {
-	protected:
-		int useAttach;
-		std::string mutatee;
-		std::string compiler;
+  protected:
+   create_mode_t createmode;
+   std::string mutatee;
+   std::string compiler;
  public:
    Dyninst::SymtabAPI::Symtab *symtab;
    SymtabMutator();

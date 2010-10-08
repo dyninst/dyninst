@@ -44,6 +44,7 @@ public:
   TESTLIB_DLL_EXPORT virtual test_results_t teardown();
   TESTLIB_DLL_EXPORT virtual ~TestMutator();
 };
+
 extern "C" {
 TESTLIB_DLL_EXPORT TestMutator *TestMutator_factory();
 }

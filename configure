@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS CXXCPP EGREP LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC BUILD_XLC GNU_DEMANGLER USE_LIBERTY LINK_LIBERTY LIBIBERTY_LIB_DIR LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBDWARF_HAS_SET_FRAME LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS CXXCPP EGREP LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC BUILD_XLC GNU_DEMANGLER USE_LIBERTY LINK_LIBERTY LIBIBERTY_LIB_DIR LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBDWARF_HAS_SET_FRAME LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LAUNCHMON_INC_DIR LAUNCHMON_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -870,6 +870,8 @@ Optional Packages:
   --with-libxml2-libdir   LIBXML2 library directory
   --with-libunwind-incdir LIBUNWIND include directory
   --with-libunwind-libdir LIBUNWIND library directory
+  --with-launchmon-incdir Launchmon include directory
+  --with-launchmon-libdir Launchmon library directory
   --with-libflex-libdir   Absolute path to flex library
 
 Some influential environment variables:
@@ -5089,6 +5091,21 @@ fi
 
 
 
+# Check whether --with-launchmon-incdir or --without-launchmon-incdir was given.
+if test "${with_launchmon_incdir+set}" = set; then
+  withval="$with_launchmon_incdir"
+  LAUNCHMON_INC_DIR="${withval}";
+fi;
+
+# Check whether --with-launchmon-libdir or --without-launchmon-libdir was given.
+if test "${with_launchmon_libdir+set}" = set; then
+  withval="$with_launchmon_libdir"
+  LAUNCHMON_LIB_DIR="${withval}";
+fi;
+
+
+
+
 # Check whether --with-libflex-libdir or --without-libflex-libdir was given.
 if test "${with_libflex_libdir+set}" = set; then
   withval="$with_libflex_libdir"
@@ -6205,6 +6222,8 @@ s,@LIBXML2_INC_DIR@,$LIBXML2_INC_DIR,;t t
 s,@LIBXML2_LIB_DIR@,$LIBXML2_LIB_DIR,;t t
 s,@LIBUNWIND_INC_DIR@,$LIBUNWIND_INC_DIR,;t t
 s,@LIBUNWIND_LIB_DIR@,$LIBUNWIND_LIB_DIR,;t t
+s,@LAUNCHMON_INC_DIR@,$LAUNCHMON_INC_DIR,;t t
+s,@LAUNCHMON_LIB_DIR@,$LAUNCHMON_LIB_DIR,;t t
 s,@LIBFLEX_LIB_DIR@,$LIBFLEX_LIB_DIR,;t t
 s,@NASM@,$NASM,;t t
 s,@STACKPROT@,$STACKPROT,;t t

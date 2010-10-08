@@ -33,6 +33,7 @@
 #include "communication.h"
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include <errno.h>
 
 thread_t threads[MAX_POSSIBLE_THREADS];
@@ -90,10 +91,13 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
       if ((strcmp(gargv[i], "-mt") == 0) && init_func) {
          is_mt = 1;
          num_threads = atoi(gargv[i+1]);
+         if (!num_threads) {
+            num_threads = DEFAULT_NUM_THREADS;
+         }
          break;
       }
    }
-
+   
    if (is_mt) {
       initLock(&thread_startup_lock);
       testLock(&thread_startup_lock);
@@ -108,12 +112,17 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
    return 0;
 }
 
+volatile int expected_pid;
 int handshakeWithServer()
 {
    int result;
    send_pid spid;
    spid.code = SEND_PID_CODE;
+#if defined(os_bg_test)
+   spid.pid = expected_pid;
+#else
    spid.pid = getpid();
+#endif
 
    result = send_message((unsigned char *) &spid, sizeof(send_pid));
    if (result == -1) {
@@ -156,25 +165,22 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
       fprintf(stderr, "Error initializing threads\n");
       return -1;
    }
-
+   getSocketInfo();
    result = initMutatorConnection();
    if (result != 0) {
       fprintf(stderr, "Error initializing connection to mutator\n");
       return -1;
    }
-   
    result = handshakeWithServer();
    if (result != 0) {
       fprintf(stderr, "Could not handshake with server\n");
       return -1;
    }
-
    result = releaseThreads();
    if (result != 0) {
       fprintf(stderr, "Could not release threads\n");
       return -1;
    }
-
    return 0;
 }
 
@@ -203,38 +209,47 @@ int finiProcControlTest(int expected_ret_code)
 #include <sys/socket.h>
 #include <sys/un.h>
 
+static char MutatorSocket[4096];
+static char *socket_type = NULL;
+static char *socket_name = NULL;
+
+void getSocketInfo()
+{
+   int count = 0;
+   while (MutatorSocket[0] == '\0') {
+      sleep(1);
+      count++;
+      if (count == 30) {
+         fprintf(stderr, "Mutatee timeout\n");
+         exit(-1);
+      }
+   }
+   socket_type = MutatorSocket;
+   char *space = strchr(MutatorSocket, ' ');
+   socket_name = space+1;
+   *space = '\0';
+}
+
 int initMutatorConnection()
 {
    int result;
-   char *un_socket = NULL;
-   int i;
 
-   for (i = 0; i < gargc; i++) {
-      if (strcmp(gargv[i], "-un_socket") == 0) {
-         un_socket = gargv[i+1];
-         break;
-      }
-   }
-   
-   if (un_socket) {
+   if (strcmp(socket_type, "un_socket") == 0) {
       sockfd = socket(PF_UNIX, SOCK_STREAM, 0);
       if (sockfd == -1) {
          perror("Failed to create socket");
          return -1;
       }
-      
       struct sockaddr_un server_addr;
       memset(&server_addr, 0, sizeof(struct sockaddr_un));
       server_addr.sun_family = PF_UNIX;
-      strncpy(server_addr.sun_path, un_socket, sizeof(server_addr.sun_path));
-
+      strncpy(server_addr.sun_path, socket_name, 108);
       result = connect(sockfd, (struct sockaddr *) &server_addr, sizeof(struct sockaddr_un));
       if (result != 0) {
          perror("Failed to connect to server");
          return -1;
       }
    }
-
    return 0;
 }
 

@@ -169,7 +169,7 @@ bool int_process::attachThreads()
       vector<Dyninst::LWP> lwps;
       bool result = getThreadLWPs(lwps);
       if (!result) {
-         perr_printf("Failed to get thread LWPs for %d\n", pid);
+         pthrd_printf("Failed to get thread LWPs for %d\n", pid);
          return false;
       }
       
@@ -210,9 +210,7 @@ bool int_process::attach()
 
    result = attachThreads();
    if (!result) {
-      pthrd_printf("Failed to attach to threads in %d\n", pid);
-      setLastError(err_internal, "Could not attach to process' threads");
-      goto error;
+      pthrd_printf("Failed to attach to threads in %d--will try again\n", pid);
    }
 
    ProcPool()->condvar()->broadcast();
@@ -226,6 +224,14 @@ bool int_process::attach()
       setLastError(err_internal, "Process failed to startup");
       goto error;
    }
+
+   result = attachThreads();
+   if (!result) {
+      pthrd_printf("Failed to attach to threads in %d--now an error\n", pid);
+      setLastError(err_internal, "Could not get threads during attach\n");
+      goto error;
+   }
+
 
    result = post_attach();
    if (!result) {
@@ -288,6 +294,12 @@ bool int_process::execed()
 
    return result;
 }
+
+bool int_process::plat_execed()
+{
+   return true;
+}
+
 
 bool int_process::forked()
 {
@@ -403,11 +415,12 @@ void int_process::setState(int_process::State s)
                 stateName(state), stateName(s), pid);
    state = s;
 
+
    int_thread::State new_thr_state = int_thread::errorstate;
    switch (s) {
       case neonatal: new_thr_state = int_thread::neonatal; break;
       case neonatal_intermediate: new_thr_state = int_thread::neonatal_intermediate; break;
-      case running: new_thr_state = int_thread::stopped; break;
+      case running: new_thr_state = threadpool->initialThread()->getHandlerState(); break;
       case exited: new_thr_state = int_thread::exited; break;
       case errorstate: new_thr_state = int_thread::errorstate; break;
    }
@@ -456,26 +469,12 @@ Process::ptr int_process::proc() const
    return up_proc;
 }
 
-struct syncRunStateRet_t {
-   bool hasRunningThread;
-   bool hasSyncRPC;
-   bool hasStopPending;
-   bool hasClearingBP;
-   bool hasProcStopRPC;
-   bool hasAsyncEvent;
-   std::vector<int_process *> readyProcStoppers;
-   syncRunStateRet_t() :
-      hasRunningThread(false),
-      hasSyncRPC(false),
-      hasStopPending(false),
-      hasClearingBP(false),
-      hasProcStopRPC(false),
-      hasAsyncEvent(false)
-   {
-   }
-};
-
 // Used by HybridLWPControl
+bool int_process::plat_contProcess()
+{
+   return true;
+}
+
 bool int_process::continueProcess() {
     bool foundResumedThread = false;
     bool foundHandlerRunning = false;
@@ -506,6 +505,26 @@ bool int_process::continueProcess() {
 
     return true;
 }
+
+
+struct syncRunStateRet_t {
+   bool hasRunningThread;
+   bool hasSyncRPC;
+   bool hasStopPending;
+   bool hasClearingBP;
+   bool hasProcStopRPC;
+   bool hasAsyncEvent;
+   std::vector<int_process *> readyProcStoppers;
+   syncRunStateRet_t() :
+      hasRunningThread(false),
+      hasSyncRPC(false),
+      hasStopPending(false),
+      hasClearingBP(false),
+      hasProcStopRPC(false),
+      hasAsyncEvent(false)
+   {
+   }
+};
 
 bool syncRunState(int_process *p, void *r)
 {
@@ -631,7 +650,7 @@ bool syncRunState(int_process *p, void *r)
       }
    }
 
-   if( useHybridLWPControl() ) {
+   if (p->useHybridLWPControl(false)) {
        return p->continueProcess();
    }
 
@@ -875,14 +894,36 @@ bool int_process::detach(bool &should_delete)
 
    ProcPool()->condvar()->lock();
 
-   result = plat_detach();
+   bool needs_sync;
+   result = plat_detach(needs_sync);
    if (!result) {
       pthrd_printf("Error performing lowlevel detach\n");
       goto done;
    }
+   
+   if (needs_sync) 
+   {
+      ProcPool()->condvar()->signal();
+      ProcPool()->condvar()->unlock();
 
-   setState(int_process::exited);
-   ProcPool()->rmProcess(this);
+      setForceGeneratorBlock(true);
+      bool proc_exited = false;
+      while (!proc_exited) 
+      {
+         bool result = int_process::waitAndHandleForProc(true, this, proc_exited);
+         if (!result) {
+            perr_printf("Error waiting for events after detach on %d\n", proc()->getPid());
+            return false;
+         }
+      }
+      should_delete = false;
+      return true;
+   }
+   else 
+   {
+      setState(int_process::exited);
+      ProcPool()->rmProcess(this);
+   }
 
    had_error = false;
   done:
@@ -1021,6 +1062,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result)
          getResponses().addResponse(result, this);
       }
       getResponses().unlock();
+      getResponses().noteResponse();
    }
    return bresult;      
 }
@@ -1057,8 +1099,14 @@ bool int_process::writeMem(void *local, Dyninst::Address remote, size_t size, re
          getResponses().addResponse(result, this);
       }
       getResponses().unlock();
+      getResponses().noteResponse();
    }
    return bresult;
+}
+
+unsigned int_process::plat_getRecommendedReadSize()
+{
+   return getTargetPageSize();
 }
 
 Dyninst::Address int_process::mallocExecMemory(unsigned size)
@@ -1471,7 +1519,7 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
          int_thread::State old_state = gen ? thrd->getGeneratorState() : thrd->getHandlerState();
          if (old_state == int_thread::exited) {
             //Silly, linux.  Giving us events on processes that have exited.
-            pthrd_printf("Recieved events for exited thread, not chaning thread state\n");
+            pthrd_printf("Recieved events for exited thread, not changing thread state\n");
             break;
          }
          pthrd_printf("Event %s is thread synchronous, marking thread %d stopped\n", 
@@ -1608,7 +1656,7 @@ bool int_threadPool::cont(bool user_cont)
    bool had_error = false;
    bool cont_something = false;
 
-   if( useHybridLWPControl(this) && user_cont && !allStopped() ) {
+   if( useHybridLWPControl() && user_cont && !allStopped() ) {
        // This thread control mode requires that all threads are stopped before
        // continuing a single thread. To peform these stops while still 
        // maintaining the internal state, each thread's internal state is
@@ -1715,7 +1763,8 @@ bool int_thread::cont(bool user_cont)
       return true;
    }
 
-   if ( int_process::getThreadControlMode() == int_process::NoLWPControl ) {
+/*
+   if ( llproc()->plat_getThreadControlMode() == int_process::NoLWPControl ) {
       pthrd_printf("%s continuing entire process %d on thread operation on %d\n",
                    user_cont ? "User" : "Int", llproc()->getPid(), getLWP());
       if (user_cont) {
@@ -1725,8 +1774,8 @@ bool int_thread::cont(bool user_cont)
          return llproc()->threadPool()->intCont();
       }
    }
-
-   if( useHybridLWPControl(llproc()) && user_cont && 
+*/
+   if( llproc()->useHybridLWPControl() && user_cont && 
        !llproc()->threadPool()->allStopped() )
    {
        // This thread control mode requires that all threads are stopped before
@@ -1782,7 +1831,7 @@ bool int_thread::cont(bool user_cont)
       }
    }
 
-   if( useHybridLWPControl() ) {
+   if( useHybridLWPControl(false) ) {
         if( user_cont && ret != sc_error ) {
             if( !llproc()->plat_contProcess() ) {
                perr_printf("Failed to continue whole process\n");
@@ -1836,7 +1885,7 @@ int_thread::stopcont_ret_t int_thread::cont(bool user_cont, bool have_proc_lock)
 
    bool result = plat_cont();
    if (result) {
-      if( !useHybridLWPControl() ) {
+      if( !useHybridLWPControl(false) ) {
           setInternalState(running);
           setHandlerState(running);
           setGeneratorState(running);
@@ -1877,7 +1926,7 @@ bool int_threadPool::stop(bool user_stop, bool sync)
    unsigned numThreadsBefore = size();
    bool finished = true;
 
-   do{
+   do {
        for (iterator i = begin(); i != end(); i++) {
           int_thread *thr = *i;
 
@@ -1917,11 +1966,11 @@ bool int_threadPool::stop(bool user_stop, bool sync)
               numThreadsBefore = size();
               finished = false;
               break;
-          }else{
+          } else {
               finished = true;
           }
        }
-   }while( !finished );
+   } while( !finished );
 
    if (had_error) {
       pthrd_printf("Error while stopping threads on %d\n", proc()->getPid());
@@ -2016,7 +2065,8 @@ int_thread::stopcont_ret_t int_thread::stop(bool user_stop)
 
 bool int_thread::stop(bool user_stop, bool sync)
 {
-   if ( int_process::getThreadControlMode() == int_process::NoLWPControl ) {
+/*
+   if (llproc()->plat_getThreadControlMode() == int_process::NoLWPControl) {
       if (user_stop) {
          pthrd_printf("User stopping entire process %d on thread operation on %d\n",
                       llproc()->getPid(), getLWP());
@@ -2028,7 +2078,7 @@ bool int_thread::stop(bool user_stop, bool sync)
          return llproc()->threadPool()->intStop();
       }
    }
-
+*/
    pthrd_printf("%s stopping single thread %d/%d\n", user_stop ? "User" : "Int",
                 llproc()->getPid(), getLWP());
 
@@ -2355,11 +2405,12 @@ int_thread *int_thread::createThread(int_process *proc,
       pthrd_printf("Failed to attach to new thread %d/%d\n", proc->getPid(), lwp_id);
       return NULL;
    }
-   newthr->setUserState(neonatal_intermediate);
-   newthr->setInternalState(neonatal_intermediate);
-   newthr->setHandlerState(neonatal_intermediate);
-   newthr->setGeneratorState(neonatal_intermediate);
-
+   if (newthr->getUserState() == neonatal) {
+      newthr->setUserState(neonatal_intermediate);
+      newthr->setInternalState(neonatal_intermediate);
+      newthr->setHandlerState(neonatal_intermediate);
+      newthr->setGeneratorState(neonatal_intermediate);
+   }
    return newthr;
 }
 
@@ -2419,6 +2470,7 @@ bool int_thread::getAllRegisters(allreg_response::ptr response)
          getResponses().addResponse(response, llproc());
       }
       getResponses().unlock();
+      getResponses().noteResponse();
       if (!result) {
          pthrd_printf("plat_getAllRegistersAsync returned error on %d\n", getLWP());
          goto done;
@@ -2457,6 +2509,7 @@ bool int_thread::setAllRegisters(int_registerPool &pool, result_response::ptr re
          getResponses().addResponse(response, llproc());
       }
       getResponses().unlock();
+      getResponses().noteResponse();
       if (!result) {
          pthrd_printf("Error async setting registers on %d\n", getLWP());
          goto done;
@@ -2521,6 +2574,7 @@ bool int_thread::getRegister(Dyninst::MachRegister reg, reg_response::ptr respon
          getResponses().addResponse(response, llproc());
       }
       getResponses().unlock();
+      getResponses().noteResponse();
       if (!result) {
          pthrd_printf("Error getting async register for thread %d\n", getLWP());
          goto done;
@@ -2589,6 +2643,7 @@ bool int_thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal
          getResponses().addResponse(response, llproc());
       }
       getResponses().unlock();
+      getResponses().noteResponse();
       if (!result) {
          pthrd_printf("Error setting async register for thread %d\n", getLWP());
          goto done;
@@ -3667,6 +3722,7 @@ size_t LibraryPool::size() const
 
 Library::ptr LibraryPool::getLibraryByName(std::string s)
 {
+   MTLock lock_this_func;
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
       return NULL;
@@ -3675,10 +3731,21 @@ Library::ptr LibraryPool::getLibraryByName(std::string s)
 
 Library::ptr LibraryPool::getLibraryByName(std::string s) const
 {
+   MTLock lock_this_func;
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
       return NULL;
    return int_lib->up_lib;
+}
+
+Library::ptr LibraryPool::getExecutable()
+{
+   return getLibraryByName(proc->getExecutable());
+}
+
+const Library::ptr LibraryPool::getExecutable() const
+{
+   return getLibraryByName(proc->getExecutable());
 }
 
 LibraryPool::iterator::iterator()
@@ -4430,6 +4497,18 @@ bool Process::rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
    
    return true;
    
+}
+
+SymbolReaderFactory *Process::getDefaultSymbolReader()
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getDefaultSymbolReader on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+
+   return llproc()->plat_defaultSymReader();
 }
 
 Thread::Thread() :
@@ -5216,21 +5295,20 @@ void MTManager::endWork()
    work_lock.unlock();
 }
 
-bool useHybridLWPControl(int_threadPool *tp) {
-    return (   int_process::getThreadControlMode() == int_process::HybridLWPControl 
-            && tp->size() > 1 );
+bool int_threadPool::useHybridLWPControl(bool check_mt) const
+{
+   return proc_->useHybridLWPControl(check_mt);
 }
 
-bool useHybridLWPControl(int_process *p) {
-    return (   int_process::getThreadControlMode() == int_process::HybridLWPControl 
-            && p->threadPool()->size() > 1 );
+bool int_process::useHybridLWPControl(bool check_mt) const 
+{
+   return (plat_getThreadControlMode() == int_process::HybridLWPControl && 
+           (!check_mt || (threadPool()->size() > 1)));
 }
 
-bool useHybridLWPControl(int_thread *thrd) {
-    return (   int_process::getThreadControlMode() == int_process::HybridLWPControl 
-            && thrd->llproc()->threadPool()->size() > 1 );
+bool int_thread::useHybridLWPControl(bool check_mt) const
+{
+   return proc_->useHybridLWPControl(check_mt);
 }
 
-bool useHybridLWPControl() {
-    return ( int_process::getThreadControlMode() == int_process::HybridLWPControl );
-}
+

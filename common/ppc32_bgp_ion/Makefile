@@ -16,6 +16,8 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 
+MYFLAGS += -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS
+
 CXXFLAGS        += $(MYFLAGS)
 CXXFLAGS    += -I/bgsys/drivers/ppcfloor/arch/include
 

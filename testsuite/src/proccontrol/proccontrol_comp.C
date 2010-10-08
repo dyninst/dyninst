@@ -1,10 +1,17 @@
 #include "ParameterDict.h"
 #include "proccontrol_comp.h"
 #include "communication.h"
-
+#include "MutateeStart.h"
+#include "SymReader.h"
+#include "PCErrors.h"
 #include <cstdio>
 #include <cerrno>
 #include <cstring>
+
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 TEST_DLL_EXPORT ComponentTester *componentTesterFactory()
 {
@@ -41,6 +48,8 @@ static Process::cb_ret_t eventCounterFunction(Event::const_ptr ev)
    return Process::cbDefault;
 }
 
+static int signaled_received = 0;
+
 bool ProcControlComponent::registerEventCounter(EventType et)
 {
    pccomp = this;
@@ -53,96 +62,39 @@ bool ProcControlComponent::checkThread(const Thread &thread)
 }
 
 #define MAX_ARGS 128
-Process::ptr ProcControlComponent::launchMutatee(RunGroup *group, ParameterDict &params)
+Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &params)
 {
-   char *logfilename = params["logfilename"]->getString();
-   char *humanlogname = params["humanlogname"]->getString();
-   bool verboseFormat = (bool) params["verbose"]->getInt();
-   char thread_num_str[128];
-
-   const char *args[MAX_ARGS];
-   unsigned n=0;
-   args[n++] = group->mutatee;
-   if (logfilename) {
-      args[n++] = "-log";
-      args[n++] = logfilename;
-   }
-   if (humanlogname) {
-      args[n++] = "-humanlog";
-      args[n++] = humanlogname;
-   }
-   if (!verboseFormat) {
-      args[n++] = "-q";
-   }
-   args[n++] = "-un_socket";
-   args[n++] = sockname;
-
-   if (group->threadmode == SingleThreaded) {
-      args[n++] = "-st";
-   }
-   else if (group->threadmode == MultiThreaded) {
-      args[n++] = "-mt";
-      snprintf(thread_num_str, 128, "%d", DEFAULT_NUM_THREADS);
-      args[n++] = thread_num_str;
-   }
-   if (group->procmode == SingleProcess) {
-      args[n++] = "-sp";
-   }
-   else if (group->procmode == MultiProcess) {
-      args[n++] = "-mp";
-   }
-
-   bool printed_run = false;
-   for (std::vector<TestInfo *>::iterator i = group->tests.begin(); i != group->tests.end(); i++)
-   {
-      if (shouldRunTest(group, *i)) {
-         if (!printed_run) {
-            args[n++] = "-run";
-            printed_run = true;
-         }
-         args[n++] = (*i)->name;
-      }
-   }
-   args[n] = NULL;
-   assert(n < MAX_ARGS-1);
+   std::vector<std::string> vargs;
+   std::string exec_name;   
+   getMutateeParams(group, params, exec_name, vargs);
 
    Process::ptr proc = Process::ptr();
-   if (group->useAttach == CREATE) {
-      std::vector<std::string> vargs;
-      for (unsigned i=0; i<n; i++) {
-         vargs.push_back(std::string(args[i]));
-      }
-      proc = Process::createProcess(std::string(group->mutatee), vargs);
+   if (group->createmode == CREATE) {
+      proc = Process::createProcess(exec_name, vargs);
       if (!proc) {
          logerror("Failed to execute new mutatee\n");
          return Process::ptr();
       }
    }
-   else if (group->useAttach == USEATTACH) {
-      Dyninst::PID pid = fork_mutatee();
+   else if (group->createmode == USEATTACH) {
+      Dyninst::PID pid = getMutateePid(group);
       if (!pid) {
-         //Child
-         execv(group->mutatee, (char * const *)args);
-         char buffer[2048];
-         snprintf(buffer, 2048, "execv for attach failed on %s: %s\n", 
-                  group->mutatee, 
-                  strerror(errno));
-         logerror(buffer);
-         exit(-1);
+         std::string mutateeString = launchMutatee(exec_name, vargs, group, params);
+         if (mutateeString == std::string("")) {
+            logerror("Error creating attach process\n");
+            return Process::ptr();
+         }
+         registerMutatee(mutateeString);
+         pid = getMutateePid(group);
       }
-      int sockfd;
-      bool result = acceptConnections(1, &sockfd);
-      if (!result) {
-         logerror("Unable to accept attach connection\n");
-         return Process::ptr();
-      }
-      
+      assert(pid);
+
       proc = Process::attachProcess(pid, group->mutatee);
       if (!proc) {
          logerror("Failed to attach to new mutatee\n");
          return Process::ptr();
       }
-      process_socks[proc] = sockfd;
+
    }
    else {
       return Process::ptr();
@@ -155,45 +107,111 @@ Process::ptr ProcControlComponent::launchMutatee(RunGroup *group, ParameterDict 
    return proc;
 }
 
-bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
+bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 {
    bool error = false;
-   bool result = setupServerSocket();
-   if (!result) {
-      logerror("Failed to setup server side socket\n");
-      return FAILED;
-   }
    
    num_processes = 0;
    if (group->procmode == MultiProcess)
       num_processes = NUM_PARALLEL_PROCS;
    else
       num_processes = 1;
+
+   bool result = setupServerSocket(param);
+   if (!result) {
+      logerror("Failed to setup server side socket");
+      return false;
+   }
    
+   SymbolReaderFactory *factory = NULL;
    for (unsigned i=0; i<num_processes; i++) {
-      Process::ptr proc = launchMutatee(group, param);
+      Process::ptr proc = startMutatee(group, param);
       if (proc == NULL) {
          error = true;
          continue;
+      }
+      if (!factory) factory = proc->getDefaultSymbolReader();
+   }
+
+   {
+      /**
+       * Set the socket name in each process
+       **/
+      assert(factory);
+      SymReader *reader = NULL;
+      Dyninst::Offset sym_offset = 0, pid_sym_offset = 0;
+      char socket_buffer[4096];
+      memset(socket_buffer, 0, 4096);
+      snprintf(socket_buffer, 4095, "%s %s", param["socket_type"]->getString(), 
+               param["socket_name"]->getString());
+      int socket_buffer_len = strlen(socket_buffer);
+      std::string exec_name;
+      Dyninst::Offset exec_addr = 0;
+      for (std::vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) 
+      {
+         Process::ptr proc = *j;
+         Library::ptr lib = proc->libraries().getExecutable();
+         if (!reader) {
+            if (lib == Library::ptr()) {
+               exec_name = group->mutatee;
+               exec_addr = 0;
+            }
+            else {
+               exec_name = lib->getName();
+               exec_addr = lib->getLoadAddress();
+            }
+            reader = factory->openSymbolReader(exec_name);
+            if (!reader) {
+               logerror("Could not open executable\n");
+               error = true;
+               continue;
+            }
+            Symbol_t sym = reader->getSymbolByName(std::string("MutatorSocket"));
+            if (!reader->isValidSymbol(sym))
+            {
+               logerror("Could not find MutatorSocket symbol in executable\n");
+               error = true;
+               continue;
+            }
+            sym_offset = reader->getSymbolOffset(sym);
+
+            sym = reader->getSymbolByName(std::string("expected_pid"));
+            if (reader->isValidSymbol(sym))
+            {
+               pid_sym_offset = reader->getSymbolOffset(sym);
+            }
+         }
+         Dyninst::Address addr = exec_addr + sym_offset;
+         proc->writeMemory(addr, socket_buffer, socket_buffer_len+1);            
+         if (pid_sym_offset) {
+            int expected_pid = (int) proc->getPid();
+            proc->writeMemory(exec_addr + pid_sym_offset, &expected_pid, sizeof(int));
+         }
       }
    }
 
    EventType thread_create(EventType::None, EventType::ThreadCreate);
    registerEventCounter(thread_create);
 
-   num_threads = group->threadmode == MultiThreaded ? DEFAULT_NUM_THREADS : 0;
-   if (group->useAttach == CREATE)
-   {
-      int num_procs = 0;
-      for (std::vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
-         bool result = (*j)->continueProc();
-         num_procs++;
-         if (!result) {
-            error = true;
-            continue;
-         }
+   int num_procs = 0;
+   for (std::vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
+      bool result = (*j)->continueProc();
+      num_procs++;
+      if (!result) {
+         error = true;
+         continue;
       }
+   }   
+   num_threads = group->threadmode == MultiThreaded ? DEFAULT_NUM_THREADS : 0;
+
+   result = acceptConnections(num_procs, NULL);
+   if (!result) {
+      logerror("Failed to accept connections from new mutatees\n");
+      error = true;
+   }
    
+   if (group->createmode == CREATE)
+   {
       while (eventsRecieved[thread_create].size() < num_procs*num_threads) {
          bool result = Process::handleEvents(true);
          if (!result) {
@@ -201,46 +219,32 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
             error = true;
          }
       }
-
-      result = acceptConnections(num_procs, NULL);
-      if (!result) {
-         logerror("Failed to accept connections from new mutatees\n");
-         error = true;
-      }
-
-      if (group->state == STOPPED) {
-         std::map<Process::ptr, int>::iterator i;
-         for (i = process_socks.begin(); i != process_socks.end(); i++) {
-            bool result = i->first->stopProc();
-            if (!result) {
-               logerror("Failed to stop process\n");
-               error = true;
-            }
-         }
-      }
    }
-   else if (group->useAttach == USEATTACH)
+   else if (group->createmode == USEATTACH)
    {
       for (std::vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
          Process::ptr proc = *j;
+#if !defined(os_bg_test)
          if (proc->threads().size() != num_threads+1) {
             logerror("Process has incorrect number of threads");
             error = true;
          }
+#else
+         if (proc->threads().size() < num_threads+1) {
+            logerror("Process has incorrect number of threads");
+            error = true;
+         }
+#endif
       }
-      if (eventsRecieved[thread_create].size()) {
-         logerror("Recieved unexpected thread creation events on process\n");
-         error = true;
-      }
+   }
 
-      if (group->state == RUNNING) {
-         std::map<Process::ptr, int>::iterator i;
-         for (i = process_socks.begin(); i != process_socks.end(); i++) {
-            bool result = i->first->continueProc();
-            if (!result) {
-               logerror("Failed to continue process");
-               error = true;
-            }
+   if (group->state != RUNNING) {
+      std::map<Process::ptr, int>::iterator i;
+      for (i = process_socks.begin(); i != process_socks.end(); i++) {
+         bool result = i->first->stopProc();
+         if (!result) {
+            logerror("Failed to stop process\n");
+            error = true;
          }
       }
    }
@@ -264,6 +268,7 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
 
 test_results_t ProcControlComponent::program_setup(ParameterDict &params)
 {
+   Dyninst::ProcControlAPI::setDebug(true);
    return PASSED;
 }
 
@@ -285,7 +290,7 @@ test_results_t ProcControlComponent::group_setup(RunGroup *group, ParameterDict 
    me.setPtr(this);
    params["ProcControlComponent"] = &me;
 
-   bool result = launchMutatees(group, params);
+   bool result = startMutatees(group, params);
    if (!result) {
       logerror("Failed to launch mutatees\n");
       return FAILED;
@@ -372,42 +377,38 @@ ProcControlComponent::~ProcControlComponent()
 {
 }
 
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-
-bool ProcControlComponent::setupServerSocket()
+bool ProcControlComponent::setupServerSocket(ParameterDict &param)
 {
-   int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-   if (fd == -1) {
-      char error_str[1024];
-      snprintf(error_str, 1024, "Unable to create socket: %s\n", strerror(errno));
-      logerror(error_str);
+   sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
+   if (sockfd == -1) {
+      fprintf(stderr, "Unable to create socket: %s\n", strerror(errno));
       return false;
    }
    struct sockaddr_un addr;
    memset(&addr, 0, sizeof(struct sockaddr_un));
    addr.sun_family = AF_UNIX;
-   snprintf(addr.sun_path, sizeof(addr.sun_path)-1, "/tmp/pct%d", getpid());
+   snprintf(addr.sun_path, sizeof(addr.sun_path)-1, "/tmp/tsc%d", getpid());
    
-   int result = bind(fd, (struct sockaddr *) &addr, sizeof(struct sockaddr_un));
+   int result = bind(sockfd, (struct sockaddr *) &addr, sizeof(struct sockaddr_un));
    if (result != 0){
-      char error_str[1024];
-      snprintf(error_str, 1024, "Unable to bind socket: %s\n", strerror(errno));
-      logerror(error_str);
-   }
-
-   result = listen(fd, 512);
-   if (result == -1) {
-      char error_str[1024];
-      snprintf(error_str, 1024, "Unable to listen on socket: %s\n", strerror(errno));
-      logerror(error_str);
+      fprintf(stderr, "Unable to bind socket: %s\n", strerror(errno));
       return false;
    }
 
-   sockfd = fd;   
+   result = listen(sockfd, 512);
+   if (result == -1) {
+      fprintf(stderr, "Unable to listen on socket: %s\n", strerror(errno));
+      return false;
+   }
+   char *socket_type_str = "un_socket";
    sockname = strdup(addr.sun_path);
+
+   ParamString *socket_type = new ParamString(socket_type_str);
+   ParamString *socket_name = new ParamString(sockname);
+   ParamInt *socket_num = new ParamInt(sockfd);
+   param["socket_type"] = socket_type;
+   param["socket_name"] = socket_name;
+   param["socketfd"] = socket_num;
 
    return true;
 }
@@ -479,7 +480,7 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
             *attach_sock = socks[i];
             return true;
          }
-         logerror("Recieved unexpected PID in handshake message\n");
+         logerror("Recieved unexpected PID (%d) in handshake message\n", msg.pid);
          return false;
       }
       process_socks[j->second] = socks[i];

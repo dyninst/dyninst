@@ -95,63 +95,10 @@ void test_thread_7_Mutator::instr_func(BPatch_function *func,
 }
 
 BPatch_process *test_thread_7_Mutator::getProcess() {
-  int n = 0;
-  args[n++] = filename;
-
-  args[n++] = "-run";
-  args[n++] = "test_thread_7";
-
-  // Set up log file!
-  args[n++] = "-log";
-  args[n++] = const_cast<char*>(getOutputLogFilename());
-
-  args[n] = NULL;
-
-   BPatch_process *proc = NULL;
-   if (create_proc) {
-      proc = bpatch->processCreate(filename, (const char **) args);
-      if(proc == NULL) {
-         logerror("%s[%d]: processCreate(%s) failed\n", 
-                 __FILE__, __LINE__, filename);
-         return NULL;
-      }
-      registerPID(proc->getPid()); // Register for cleanup
-   }
-   else
-   {
-      dprintf(stderr, "%s[%d]: starting process for attach\n", __FILE__, __LINE__);
-      int pid = startNewProcessForAttach(filename, (const char **) args,
-                                         getOutputLog(), getErrorLog(), true);
-      if (pid < 0) {
-	 int errnum = errno;
-	 errno = 0;
-	 char *errstr = strerror(errnum);
-	 logerror("%s couldn't be started: %s\n", filename,
-		  errno ? "<unknown error>" : errstr);
-         return NULL;
-      } else if (pid > 0) {
-	registerPID(pid); // Register for cleanup
-      }
-#if defined(os_windows_test)
-      P_sleep(1);
-#endif
-      dprintf(stderr, "%s[%d]: started process, now attaching\n", __FILE__, __LINE__);
-      proc = bpatch->processAttach(filename, pid);  
-      if(proc == NULL) {
-         logerror("%s[%d]: processAttach(%s, %d) failed\n", 
-		  __FILE__, __LINE__, filename, pid);
-         return NULL;
-      }
-      dprintf(stderr, "%s[%d]: attached to process\n", __FILE__, __LINE__);
-      BPatch_image *appimg = proc->getImage();
-      signalAttached(appimg);
-   }
-   return proc;
+   return appProc;
 }
 
 test_results_t test_thread_7_Mutator::executeTest() {
-  memset(args, 0, sizeof (args));
-
    proc = getProcess();
    if (!proc) {
      return FAILED;
@@ -211,7 +158,7 @@ test_results_t test_thread_7_Mutator::setup(ParameterDict &param) {
    bpatch = (BPatch *)(param["bpatch"]->getPtr());
    filename = param["pathname"]->getString();
 
-   if ( param["useAttach"]->getInt() != 0 )
+   if ( param["createmode"]->getInt() != CREATE )
    {
       create_proc = false;
    }

@@ -201,11 +201,9 @@ COMPLIB_DLL_EXPORT bool getVar(BPatch_image *appImage, const char *vname, void *
 //           or test_lib_dllExecution.C
 
 // Function in MutateeStart.C
-COMPLIB_DLL_EXPORT BPatch_process *startMutateeTestGeneric(BPatch *bpatch, const char *pathname, const char **child_argv, bool
-useAttach);
+COMPLIB_DLL_EXPORT BPatch_process *startMutateeTestGeneric(BPatch *bpatch, const char *pathname, const char **child_argv, bool createmode);
 
-COMPLIB_DLL_EXPORT BPatch_process *startMutateeTest(BPatch *bpatch, const char *mutatee, const char *testname, bool useAttach,
-char *logfilename, char *humanlogname);
+COMPLIB_DLL_EXPORT BPatch_process *startMutateeTest(BPatch *bpatch, const char *mutatee, const char *testname, bool createmode, char *logfilename, char *humanlogname);
 
 COMPLIB_DLL_EXPORT BPatch_process *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool
 verboseFormat, bool printLabels, int debugPrint, char *pidfilename, char *mutatee_resumelog, int unique);
@@ -215,25 +213,16 @@ verboseFormat, bool printLabels, int debugPrint, char *pidfilename, char *mutate
 
 COMPLIB_DLL_EXPORT BPatch_binaryEdit *startBinaryTest(BPatch *bpatch, RunGroup *group);
 
-COMPLIB_DLL_EXPORT bool runBinaryTest(BPatch *bpatch, RunGroup *group,
-                                      BPatch_binaryEdit *binEdit,
-                                      char *logfilename, char *humanlogname,
-                                      bool verboseFormat, bool printLabels,
-                                      int debugPrint, 
-                                      char *pidfilename,
-                                      char *mutatee_resumelog,
-                                      int unique_id,
-                                      bool noClean,
-                                      test_results_t &test_result);
+COMPLIB_DLL_EXPORT bool runBinaryTest(RunGroup *group, ParameterDict &params, test_results_t &test_result);
 
 // COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTestSet(BPatch *bpatch, char *pathname, 
 // 				   test_data_t tests[],
 // 				   int first_test, int last_test,
-// 				   bool useAttach, ProcessList &procList,
+// 				   bool createmode, ProcessList &procList,
 // 				   char *logfilename, bool runAllTests,
 // 				   std::vector<char *> test_list);
 
-// COMPLIB_DLL_EXPORT BPatch_thread *startMutateeEnabledTests(BPatch *bpatch, char *pathname, bool useAttach, test_data_t tests[], unsigned int num_tests, int oldtest, char *logfilename);
+// COMPLIB_DLL_EXPORT BPatch_thread *startMutateeEnabledTests(BPatch *bpatch, char *pathname, bool createmode, test_data_t tests[], unsigned int num_tests, int oldtest, char *logfilename);
 
 COMPLIB_DLL_EXPORT void killMutatee(BPatch_process *appThread);
 

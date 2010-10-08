@@ -79,7 +79,6 @@ int test_fork_12_mutatee() {
     test_fork_12_func1();
     dprintf("Child: done with tests, exiting\n");
   } else if(pid > 0) {
-    registerPID(pid); /* Register for cleanup */
     dprintf("Parent: starting tests\n");
     test_fork_12_func1();
     dprintf("Parent: done with tests, exiting\n");

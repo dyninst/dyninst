@@ -104,7 +104,8 @@ public:
    virtual Address getLibraryTrapAddrSysV();
 
    AddressTranslateSysV(int pid, ProcessReader *reader_, 
-                        SymbolReaderFactory *reader_fact);
+                        SymbolReaderFactory *reader_fact,
+                        std::string exe_name);
    AddressTranslateSysV();
 
 private:
@@ -120,8 +121,6 @@ private:
    Address r_debug_addr;
    Address trap_addr;
    Address getTrapAddrFromRdebug();
-
-   std::string exec_name;   // access this through getExecName()
 
    LoadedLib *getLoadedLibByNameAddr(Address addr, std::string name);
    typedef std::map<std::pair<Address, std::string>, LoadedLib *, LibCmp> sorted_libs_t;

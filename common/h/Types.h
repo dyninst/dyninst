@@ -138,15 +138,6 @@ typedef long double double128_t;
 
 #elif defined(os_bg)
 #include <stdint.h>
-#if !defined(INT64_C)
-#define INT64_C(c) ((signed long long) (c))
-#endif
-#if !defined(UINT64_C)
-#define UINT64_C(c) ((unsigned long long) (c))
-#endif
-#if !defined(INT64_MAX)
-#define INT64_MAX 0xfffffffffffffffll
-#endif
 
 #elif defined(os_freebsd)
 #if !defined(__STDC_CONSTANT_MACROS)

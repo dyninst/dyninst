@@ -47,11 +47,11 @@ using namespace ProcControlAPI;
 class ProcControlComponent : public ComponentTester
 {
 private:
-   bool setupServerSocket();
+   bool setupServerSocket(ParameterDict &param);
    bool acceptConnections(int num, int *attach_sock);
    bool cleanSocket();
-   Process::ptr launchMutatee(RunGroup *group, ParameterDict &param);
-   bool launchMutatees(RunGroup *group, ParameterDict &param);
+   Process::ptr startMutatee(RunGroup *group, ParameterDict &param);
+   bool startMutatees(RunGroup *group, ParameterDict &param);
 
 public:
    int sockfd;

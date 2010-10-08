@@ -34,6 +34,7 @@
 #include "proccontrol/src/response.h"
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/int_handler.h"
+#include "proccontrol/src/procpool.h"
 
 #include <cstring>
 
@@ -206,15 +207,20 @@ bool responses_pending::waitFor(response::ptr resp)
    return true;
 }
 
-bool responses_pending::hasAsyncPending()
+bool responses_pending::hasAsyncPending(bool ev_only)
 {
    bool ret = false;
    cvar.lock();
-   map<unsigned, response::ptr>::const_iterator i;
-   for (i = pending.begin(); i != pending.end(); i++) {
-      if (i->second->getEvent()) {
-         ret = true;
-         break;
+   if (!ev_only) {
+      ret = !pending.empty();
+   }
+   else {
+      map<unsigned, response::ptr>::const_iterator i;
+      for (i = pending.begin(); i != pending.end(); i++) {
+         if (i->second->getEvent()) {
+            ret = true;
+            break;
+         }
       }
    }
    cvar.unlock();
@@ -257,7 +263,15 @@ void responses_pending::addResponse(response::ptr r, int_process *proc)
 
    r->setEvent(ev);
    r->markPosted();
+
    pending[r->getID()] = r;
+}
+
+void responses_pending::noteResponse()
+{
+   ProcPool()->condvar()->lock();
+   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->unlock();
 }
 
 responses_pending &getResponses()

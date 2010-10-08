@@ -75,7 +75,7 @@ class linux_process : public sysv_process, public unix_process, public x86_proce
    virtual bool plat_attach();   
    virtual bool plat_forked();
    virtual bool plat_execed();
-   virtual bool plat_detach();
+   virtual bool plat_detach(bool &needs_sync);
    virtual bool plat_terminate(bool &needs_sync);
 
 
@@ -97,8 +97,8 @@ class linux_process : public sysv_process, public unix_process, public x86_proce
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
    virtual Dyninst::Architecture getTargetArch();
    virtual bool plat_individualRegAccess();
-   virtual bool plat_contProcess() { return true; }
-   virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
+   virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
+   virtual ThreadControlMode plat_getThreadControlMode() const;
 };
 
 class linux_thread : public int_thread

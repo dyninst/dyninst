@@ -160,8 +160,6 @@ extern void log_testrun(char *testname);
 extern void log_testresult(int passed);
 
 /* Mutatee cleanup: PID registration */
-extern void setPIDFilename(char *pfn);
-extern char *getPIDFilename();
 extern void registerPID(int pid);
 
 
@@ -214,6 +212,8 @@ extern void test_passes(const char *testname);
 extern void test_fails(const char *testname);
 extern int verifyScalarValue(const char *name, int a, int value,
 			     const char *testName, const char *testDesc);
+
+extern void handleAttach();
 
 #if !defined(P_sleep)
 #if defined(os_windows_test)

@@ -39,15 +39,17 @@ enum start_state_t {
    STOPPED,
    // Start up the mutatee and start it before passing it to the test
    RUNNING,
+   // Start mutatee stopped normally, but do not trigger attach ack
+   SELFATTACH,
    // Allow the test to setup the mutatee itself
-   SELFSTART,
+   SELFSTART
 };
 
 enum create_mode_t {
    CREATE = 0,
    USEATTACH,
    DISK,
-   DESERIALIZE
+   DESERIALIZE //Keep deserialize last to maintain proper sort
 };
 
 enum cleanup_mode_t {

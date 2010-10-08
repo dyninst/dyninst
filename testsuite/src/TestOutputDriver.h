@@ -52,6 +52,8 @@ typedef enum {
 } TestOutputStream;
 
 class TestOutputDriver {
+protected:
+   bool needs_header;
 public:
    TESTLIB_DLL_EXPORT static bool getAttributesMap(TestInfo *test, 
                         RunGroup *group, std::map<std::string, std::string> &attrs);
@@ -78,6 +80,7 @@ public:
   virtual void vlog(TestOutputStream stream, const char *fmt, va_list args) = 0;
   virtual void finalizeOutput() = 0;
 
+  void setNeedsHeader(bool h);
   // Returns arguments to pass to the mutatee driver that cause it to invoke
   // its support for this output driver
   TESTLIB_DLL_EXPORT virtual void getMutateeArgs(std::vector<std::string> &args);

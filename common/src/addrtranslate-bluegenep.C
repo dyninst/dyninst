@@ -29,10 +29,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "symtabAPI/src/addrtranslate.h"
-#include "symtabAPI/src/addrtranslate-sysv.h"
+#include "common/h/addrtranslate.h"
+#include "common/src/addrtranslate-sysv.h"
 #include "common/h/linuxKludges.h"
-#include "debug.h"
 
 #include <linux/limits.h>
 
@@ -47,7 +46,6 @@
 using namespace std;
 
 using namespace Dyninst;
-using namespace SymtabAPI;
 
 #if defined(os_bg_ion) && defined(os_bgp)
 #include "external/bluegene/bgp-debugger-interface.h"
@@ -80,22 +78,14 @@ string AddressTranslateSysV::getExecName()
 {
   if (exec_name.empty())
   {
-    if (!reader->executable.empty()) {
-      exec_name = deref_link(reader->executable.c_str());
-      translate_printf("[%s:%u] - Using using user-supplied executable path: '%s'\n", 
-                       __FILE__, __LINE__, exec_name.c_str());
-    } 
-    else 
-    {
-      ostringstream linkstream;
-      linkstream << "/jobs/" << getenv("BG_JOBID") << "/exe";
-
-      string linkname(linkstream.str());
-      exec_name = deref_link(linkname.c_str());
-
-      translate_printf("[%s:%u] - Got excutable path from %s: '%s'\n",
-                       __FILE__, __LINE__, linkname.c_str(), exec_name.c_str());
-    }
+     ostringstream linkstream;
+     linkstream << "/jobs/" << getenv("BG_JOBID") << "/exe";
+     
+     string linkname(linkstream.str());
+     exec_name = deref_link(linkname.c_str());
+     
+     translate_printf("[%s:%u] - Got excutable path from %s: '%s'\n",
+                      __FILE__, __LINE__, linkname.c_str(), exec_name.c_str());
   }
   return exec_name;  
 }
@@ -110,7 +100,7 @@ LoadedLib *AddressTranslateSysV::getAOut()
 bool AddressTranslateSysV::setInterpreter() 
 {
   const char *fullpath = getExecName().c_str();
-  FCNode *exe = files.getNode(fullpath);
+  FCNode *exe = files.getNode(fullpath, symfactory);
   if (!exe) {
     translate_printf("[%s:%u] - Unable to get FCNode: '%s'\n", __FILE__, __LINE__, fullpath);
     return false;
@@ -119,7 +109,7 @@ bool AddressTranslateSysV::setInterpreter()
   translate_printf("[%s:%u] - About to set interpreter.\n", __FILE__, __LINE__);
   string interp_name = exe->getInterpreter();
 
-  interpreter = files.getNode(interp_name);
+  interpreter = files.getNode(interp_name, symfactory);
   if (interpreter)
      interpreter->markInterpreter();
   translate_printf("[%s:%u] - Set interpreter name: '%s'\n", __FILE__, __LINE__, interp_name.c_str());

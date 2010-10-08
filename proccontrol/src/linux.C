@@ -736,7 +736,7 @@ bool linux_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
    return findProcLWPs(pid, lwps);
 }
 
-int_process::ThreadControlMode int_process::getThreadControlMode() {
+int_process::ThreadControlMode linux_process::plat_getThreadControlMode() const {
     return int_process::IndependentLWPControl;
 }
 
@@ -775,7 +775,7 @@ bool linux_thread::plat_cont()
       setLastError(err_internal, "Low-level continue failed\n");
       return false;
    }
-
+   continueSig_ = 0;
    return true;
 }
 
@@ -947,9 +947,10 @@ bool linux_process::plat_individualRegAccess()
    return true;
 }
 
-bool linux_process::plat_detach()
+bool linux_process::plat_detach(bool &needs_sync)
 {
    //ProcPool lock should be held.
+   needs_sync = false;
    int_threadPool *tp = threadPool();
    bool had_error = false;
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {

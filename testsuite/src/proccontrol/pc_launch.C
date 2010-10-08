@@ -14,6 +14,7 @@ test_results_t pc_launchMutator::executeTest()
 {
    std::vector<Process::ptr>::iterator i;
    bool error = false;
+
    for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
       Process::ptr proc = *i;
       bool result = proc->continueProc();

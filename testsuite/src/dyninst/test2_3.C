@@ -83,8 +83,8 @@ test_results_t test2_3_Mutator::executeTest() {
 
 // extern "C" TEST_DLL_EXPORT int test2_3_mutatorMAIN(ParameterDict &param)
 test_results_t test2_3_Mutator::setup(ParameterDict &param) {
-  int useAttach = param["useAttach"]->getInt();
-  bpatch = (BPatch *)(param["bpatch"]->getPtr());
+   bool useAttach = ((create_mode_t) param["createmode"]->getInt()) == USEATTACH;
+   bpatch = (BPatch *)(param["bpatch"]->getPtr());
   
   // Get log file pointers
 //   FILE * outlog = (FILE *)(param["outlog"]->getPtr());
@@ -92,17 +92,12 @@ test_results_t test2_3_Mutator::setup(ParameterDict &param) {
 //   setOutputLog(outlog);
 //   setErrorLog(errlog);
 
-#if defined(sparc_sun_sunos4_1_3_test)
-    logerror("Skipping test #3 (attach to an invalid pid)\n");
-    logerror("    attach is not supported on this platform\n");
-    return SKIPPED;
-#else
-    if ( !useAttach ) {
-      logerror("Skipping test #3 (attach to an invalid pid)\n");
-      logerror("    test only makes sense in attach mode\n");
-      return SKIPPED;
-    }
-#endif
+  if ( !useAttach ) {
+     logerror("Skipping test #3 (attach to an invalid pid)\n");
+     logerror("    test only makes sense in attach mode\n");
+     return SKIPPED;
+  }
+
   return PASSED;
 
 }

@@ -249,68 +249,7 @@ static unsigned num_args = 0;
 // handle for it
 BPatch_process *test_thread_6_Mutator::getProcess()
 {
-  int n = 0;
-   args[n++] = filename;
-
-   if (NULL == logfilename) {
-     args[n++] = "-log";
-     args[n++] = "-";
-   } else  {
-     args[n++] = "-log";
-     args[n++] = logfilename;
-   }
-
-   args[n++] = "-run";
-   args[n++] = "test_thread_6";
-
-   BPatch_process *proc;
-   if (create_proc) {
-      args[n++] = create_arg; // I don't think this does anything.
-      args[n] = NULL;
-      proc = bpatch->processCreate(filename, (const char **) args);
-      if(proc == NULL) {
-         logerror("%s[%d]: processCreate(%s) failed\n", 
-                 __FILE__, __LINE__, filename);
-         return NULL;
-      }
-      // FIXME(?) Is this call thread-safe?
-      registerPID(proc->getPid()); // Register for cleanup
-   }
-   else
-     { // useAttach
-      dprintf(stderr, "%s[%d]: starting process for attach\n",
-	      __FILE__, __LINE__);
-      args[n] = NULL;
-      // FIXME figure out what to put for outlog & errlog..
-      int pid = startNewProcessForAttach(filename, (const char **) args,
-                                         getOutputLog(),
-                                         getErrorLog(), true);
-      if (pid < 0) {
-	logerror("%s couldn't be started\n", filename);
-         fprintf(stderr, "%s ", filename);
-         fprintf(stderr, "couldn't be started");
-         return NULL;
-      } else if (pid > 0) {
-	registerPID(pid); // Register for cleanup
-      }
-
-#if defined(os_windows_test)
-      P_sleep(1);
-#endif
-
-      dprintf(stderr, "%s[%d]: started process, now attaching\n", __FILE__, __LINE__);
-      fflush(stderr);
-
-      proc = bpatch->processAttach(filename, pid);  
-      if(proc == NULL) {
-         logerror("%s[%d]: processAttach(%s, %d) failed\n", 
-                 __FILE__, __LINE__, filename, pid);
-         return NULL;
-      }
-      BPatch_image *appimg = proc->getImage();
-      signalAttached(appimg);
-   }
-   return proc;
+   return appProc;
 }
 
 test_results_t test_thread_6_Mutator::mutatorTest(BPatch *bpatch)
@@ -332,6 +271,8 @@ test_results_t test_thread_6_Mutator::mutatorTest(BPatch *bpatch)
       return FAILED;
 
    proc->continueExecution();
+
+   newthr(appProc, appThread);
 
    // Wait for NUM_THREADS new thread callbacks to run
    while (thread_count < NUM_THREADS) {
@@ -454,10 +395,11 @@ test_results_t test_thread_6_Mutator::setup(ParameterDict &param) {
    filename = param["pathname"]->getString();
    logfilename = param["logfilename"]->getString();
    
-   if ( param["useAttach"]->getInt() != 0 )
+   if ( param["createmode"]->getInt() != CREATE )
    {
       create_proc = false;
    }
+
    
-   return PASSED;
+   return DyninstMutator::setup(param);
 }

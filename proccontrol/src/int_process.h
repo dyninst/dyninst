@@ -109,7 +109,7 @@ class int_process
    void setContSignal(int sig);
    int getContSignal() const;
    bool continueProcess();
-   virtual bool plat_contProcess() = 0;
+   virtual bool plat_contProcess();
 
    bool forked();
   protected:
@@ -119,8 +119,8 @@ class int_process
   public:
    bool execed();
   protected:
-   virtual bool plat_execed() = 0;
-   virtual bool plat_detach() = 0;
+   virtual bool plat_execed();
+   virtual bool plat_detach(bool &needs_sync) = 0;
    virtual bool plat_terminate(bool &needs_sync) = 0;
 
    virtual bool needIndividualThreadAttach() = 0;
@@ -154,6 +154,7 @@ class int_process
    void updateSyncState(Event::ptr ev, bool gen);
    virtual Dyninst::Architecture getTargetArch() = 0;
    virtual unsigned getTargetPageSize() = 0;
+   virtual unsigned plat_getRecommendedReadSize();
    virtual Dyninst::Address mallocExecMemory(unsigned size);
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size) = 0;
    virtual void freeExecMemory(Dyninst::Address addr);
@@ -222,7 +223,8 @@ class int_process
        HybridLWPControl, // see below for a description of these modes
        IndependentLWPControl
    } ThreadControlMode;
-   static ThreadControlMode getThreadControlMode();
+   virtual ThreadControlMode plat_getThreadControlMode() const = 0;
+
    static bool isInCB();
    static void setInCB(bool b);
 
@@ -242,6 +244,7 @@ class int_process
    
    std::string getExecutable() const;
    static bool isInCallback();
+   bool useHybridLWPControl(bool check_mt = true) const;
 
    static int_process *in_waitHandleProc;
  protected:
@@ -289,13 +292,6 @@ class int_process
  * IndependentLWPControl is currently the mode on Linux. This mode implies that
  * operations can be performed on LWPs independent of each other's state.
  */
-
-// For improved readability
-bool useHybridLWPControl(int_threadPool *tp);
-bool useHybridLWPControl(int_thread *thrd);
-bool useHybridLWPControl(int_process *p);
-bool useHybridLWPControl();
-
 class int_registerPool
 {
  public:
@@ -499,7 +495,7 @@ class int_thread
    //Misc
    virtual bool attach() = 0;
    Thread::ptr thread();
-
+   bool useHybridLWPControl(bool check_mt = true) const;
    virtual ~int_thread();
    static const char *stateStr(int_thread::State s);
  protected:
@@ -584,6 +580,8 @@ class int_threadPool {
    bool userStop();
    bool intStop(bool sync = true);
    bool intCont();
+
+   bool useHybridLWPControl(bool check_mt = true) const;
  private:
    bool cont(bool user_cont);
    bool stop(bool user_stop, bool sync);

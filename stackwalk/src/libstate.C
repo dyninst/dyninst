@@ -62,10 +62,10 @@ TrackLibState::TrackLibState(ProcessState *parent, std::string executable_) :
       symfactory = getDefaultSymbolReader();
 
    if (procstate->isFirstParty()) {
-      translate = AddressTranslate::createAddressTranslator(&procreader, symfactory);
+      translate = AddressTranslate::createAddressTranslator(&procreader, symfactory, executable_);
    }
    else {
-      translate = AddressTranslate::createAddressTranslator(pid, &procreader, symfactory);
+      translate = AddressTranslate::createAddressTranslator(pid, &procreader, symfactory, INVALID_HANDLE_VALUE, executable_);
    }
    if (!translate) {
       sw_printf("[%s:%u] - Creation of AddressTranslate failed "

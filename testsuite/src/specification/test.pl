@@ -145,6 +145,7 @@ mutator_tuple(Name, Sources, Libraries, Platform, Compiler) :-
     mutator_requires_libs(Name, Explicit_libs),
     all_mutators_require_libs(Implicit_libs),
 	tests_module(Name, Modules),
+   platform_module(Platform, Modules),
 	module_requires_libs(Modules, Module_libs),
     findall(L, (member(L, Explicit_libs); member(L, Implicit_libs); member(L, Module_libs)), All_libs),
     % BUG(?) This doesn't maintain order of libraries, if link order matters..
@@ -173,6 +174,7 @@ mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
     test_platform(TestName, Platform),
     test_platform_abi(TestName, Platform, ABI),
     tests_module(TestName, Module),
+    platform_module(Platform, Module),
     % This mutatee is groupable if any of the tests that use it are groupable
     % FIXME This is assuming a one-to-one relation between mutators and
     % mutatees.  This should still work as long as the mutatee is only used
@@ -190,6 +192,7 @@ mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
     mutatee_requires_libs(Name, Libraries),
     compiler_for_mutatee(Name, Compiler),
     compiler_platform(Compiler, Platform),
+    \+ mutatee_compiler_platform_exclude(Compiler, Platform),
     compiler_pic(Compiler, PIC),
     (
         \+ optimization_for_mutatee(Name, _, _) ->
@@ -207,6 +210,7 @@ mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
     mutatee_peer(M1, Name),
     mutatee(Name, PreprocessedSources, RS1),
     tests_module(TestName, Module),
+    platform_module(Platform, Module),
     forall_mutatees(RS2),
     append(RS1, RS2, RS3),
     sort(RS3, RawSources),
@@ -215,6 +219,7 @@ mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
     mutatee_format(Name, Format),
     compiler_format(Compiler, Format),
     compiler_platform(Compiler, Platform),
+    \+ mutatee_compiler_platform_exclude(Compiler, Platform),
     compiler_pic(Compiler, PIC),
     (
         \+ optimization_for_mutatee(Name, _, _) ->
@@ -246,11 +251,13 @@ test_tuple(Name, Mutator, Mutatee, Platform, Groupable, Module) :-
     test(Name, Mutator, Mutatee),
     test_platform(Name, Platform),
     (groupable_test(Name) -> Groupable = true; Groupable = false),
-	tests_module(Name, Module).
+	tests_module(Name, Module),
+   platform_module(Platform, Module).
 
 % Provide tuples for run groups
 rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
-               Groupable, Tests, Platform, ABI, ThreadMode, ProcessMode, Format, PIC) :-
+              Groupable, Tests, Platform, ABI, ThreadMode, ProcessMode, Format,
+              MutatorStart, MutateeStart, MutateeLaunchtime, PIC) :-
     mutatee(Mutatee, _, _),
     compiler_for_mutatee(Mutatee, Compiler),
     compiler_platform(Compiler, Platform),
@@ -266,13 +273,15 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
     format_runmode(Platform, RunMode, Format),
     platform_format(Platform, Format),
     compiler_format(Compiler, Format),
+    \+ mutatee_compiler_platform_exclude(Compiler, Platform),
     mutatee_format(Mutatee, Format),
     compiler_pic(Compiler, PIC),
     % Enumerate / verify values for run-time options
     runmode(RunMode),
+    runmode_launch_params(RunMode, Platform, MutatorStart, MutateeStart, MutateeLaunchtime),
     threadmode(ThreadMode),
     processmode(ProcessMode),
-    member(StartState, ['stopped', 'running', 'selfstart']),
+    member(StartState, ['stopped', 'running', 'selfstart', 'selfattach']),
     member(Groupable, ['true', 'false']),
     (
         % Rungroups for the 'none' mutatee should only contain a single test
@@ -280,6 +289,8 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
             (
                 test(T, _, Mutatee),
                 test_platform(T, Platform),
+                tests_module(T, Module),
+                platform_module(Platform, Module),
                 test_platform_abi(T, Platform, ABI),
                 test_runmode(T, RunMode),
                 \+ test_exclude_format(T, Format),
@@ -293,6 +304,8 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
         % Rungroups for other mutatees may contain a number of tests
         findall(T, (test(T, _, Mutatee),
                     test_platform(T, Platform),
+                    tests_module(T, Module),
+                    platform_module(Platform, Module),
                     test_platform_abi(T, Platform, ABI),
                     test_runmode(T, RunMode), test_start_state(T, StartState),
                     \+ test_exclude_format(T, Format),
@@ -369,8 +382,8 @@ write_tuples(Filename, Platform) :-
             Tests),
     write_term(Stream, Tests, [quoted(true)]),
     write(Stream, '\n'),
-    findall([M, C, O, R, S, G, T, A, H, P, F, PIC],
-            rungroup_tuple(M, C, O, R, S, G, T, Platform, A, H, P, F, PIC),
+    findall([M, C, O, R, S, G, T, A, H, P, F, Smr, Sme, Mrt, PIC],
+            rungroup_tuple(M, C, O, R, S, G, T, Platform, A, H, P, F, Smr, Sme, Mrt, PIC),
             RunGroups),
     write_term(Stream, RunGroups, [quoted(true)]),
     write(Stream, '\n'),

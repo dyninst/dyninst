@@ -93,7 +93,7 @@ test_results_t test2_1_Mutator::executeTest() {
 
 // extern "C" TEST_DLL_EXPORT int test2_1_mutatorMAIN(ParameterDict &param)
 test_results_t test2_1_Mutator::setup(ParameterDict &param) {
-  useAttach = param["useAttach"]->getInt();
+   useAttach = ((create_mode_t) param["createmode"]->getInt()) == USEATTACH;
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
 
   if (useAttach) {

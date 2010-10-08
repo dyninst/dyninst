@@ -146,9 +146,18 @@ static bool allStopped(int_process *proc, void *)
    return true;
 }
 
+bool Generator::plat_skipGeneratorBlock()
+{
+   //Default, do nothing.  May be over-written
+   return false;
+}
+
 bool Generator::hasLiveProc()
 {
    ProcessPool *procpool = ProcPool();
+   if (plat_skipGeneratorBlock()) {
+      return true;
+   }
    return !procpool->for_each(allStopped, NULL);
 }
 

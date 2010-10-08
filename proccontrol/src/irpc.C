@@ -85,7 +85,7 @@ bool int_iRPC::isRPCPrepped()
    if (state == Prepped)
       return true;
    assert(state == Prepping);
-   if (needsProcStop || useHybridLWPControl(thrd) ) {
+   if (needsProcStop || thrd->useHybridLWPControl() ) {
       isStopped = thrd->llproc()->threadPool()->allStopped();
    }else{
       isStopped = thrd->getInternalState() == int_thread::stopped;
@@ -775,7 +775,7 @@ bool int_iRPC::runIRPC(bool block)
 
    if (needsToDesync() && !isProcStopRPC()) {
       setNeedsDesync(false);
-      if (useHybridLWPControl(thrd)) {
+      if (thrd->useHybridLWPControl()) {
          thrd->llproc()->threadPool()->restoreInternalState(block);
       }
       else {
@@ -852,7 +852,7 @@ bool iRPCMgr::prepNextRPC(int_thread *thr, bool sync_prep, bool &user_error)
       thr->llproc()->threadPool()->desyncInternalState();
    }
    else {
-      if( useHybridLWPControl(thr) ) {
+      if(thr->useHybridLWPControl() ) {
         pthrd_printf("iRPC %lu needs a process stop on %d\n", rpc->id(),
                 thr->llproc()->getPid());
         isStopped = thr->llproc()->threadPool()->allStopped();
@@ -876,7 +876,7 @@ bool iRPCMgr::prepNextRPC(int_thread *thr, bool sync_prep, bool &user_error)
       result = stopNeededThreads(thr->llproc(), sync_prep);
    }
    else {
-      if( useHybridLWPControl(thr) ) {
+      if(thr->useHybridLWPControl() ) {
           pthrd_printf("Stopping process %d for iRPC setup on %d/%d\n",
                   thr->llproc()->getPid(), thr->llproc()->getPid(),
                   thr->getLWP());
@@ -1026,7 +1026,7 @@ bool iRPCMgr::checkIfNeedsProcStop(int_process *p)
       int_thread *thr = *i;
       if (thr->getInternalState() != int_thread::running)
          continue;
-      if( !useHybridLWPControl() ) {
+      if( !p->useHybridLWPControl(false) ) {
           int_iRPC::ptr running = thr->runningRPC();
           if (running && running->isProcStopRPC())
              continue;
@@ -1046,7 +1046,7 @@ bool iRPCMgr::stopNeededThreads(int_process *p, bool sync)
       int_thread *thr = *i;
       if (thr->getInternalState() != int_thread::running)
          continue;
-      if( !useHybridLWPControl() ) {
+      if (!p->useHybridLWPControl(false)) {
           int_iRPC::ptr running = thr->runningRPC();
           if (running && running->isProcStopRPC())
              continue;

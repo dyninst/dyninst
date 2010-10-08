@@ -161,9 +161,6 @@ void *init_func(void *arg)
 int test_thread_8_mutatee() {
    unsigned i;
    int startedall = 0;
-#ifndef os_windows_test
-   char c = 'T';
-#endif
 
    thr_exits = 0;
 
@@ -186,6 +183,8 @@ int test_thread_8_mutatee() {
          }
       }
    }
+
+   handleAttach();
 
    /* give time for workers to run thr_loop */
    while(thr_exits == 0)
