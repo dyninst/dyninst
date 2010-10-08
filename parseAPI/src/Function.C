@@ -172,8 +172,19 @@ Function::blocks_int()
             }
         } 
         if(link_return) {
-            delayed_link_return(_obj,cur);
-            _return_blocks.push_back(cur);
+            bool is_linked = false;
+            for(unsigned bit = 0; 
+                !is_linked && bit < _return_blocks.size(); 
+                bit++) 
+            {
+                if (cur == _return_blocks[bit]) {
+                    is_linked = true;
+                }
+            }
+            if (!is_linked) {
+                _return_blocks.push_back(cur);
+                delayed_link_return(_obj,cur);
+            }
         }
     }
 
@@ -369,7 +380,7 @@ Function::tampersStack(bool recalculate)
     Function::blocklist::iterator bit;
     for (bit = retblks.begin(); retblks.end() != bit; ++bit) {
         Address retnAddr = (*bit)->lastInsnAddr();
-        InstructionDecoder retdec(this->isrc()->getPtrToInstruction( retnAddr ), 
+        InstructionDecoder retdec(this->isrc()->getPtrToInstruction(retnAddr), 
                                   InstructionDecoder::maxInstructionLength, 
                                   this->region()->getArch() );
         Instruction::Ptr retn = retdec.decode();
@@ -419,7 +430,7 @@ Function::tampersStack(bool recalculate)
         StackTamperVisitor vis(Absloc(-1 * isrc()->getAddressWidth(), 0, this));
         Address curTamperAddr=0;
         StackTamper curtamper = vis.tampersStack(sliceAtRet, curTamperAddr);
-        if (TAMPER_UNSET == _tamper || 
+        if (TAMPER_UNSET == _tamper || TAMPER_NONE == _tamper ||
             (TAMPER_NONZERO == _tamper && 
              TAMPER_NONE != curtamper))
         {

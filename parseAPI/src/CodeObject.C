@@ -182,8 +182,10 @@ CodeObject::parseNewEdges( vector<Block*> & sources,
                            vector<Address> & targets,
                            vector<EdgeTypeEnum> & edge_types )
 {
-    map< Function * , FuncReturnStatus > modfuncs;
+    // XXX if we're adding a new edge to an existing block, I think we could
+    // use add_edge instead
 
+    map< Function * , FuncReturnStatus > modfuncs;
     vector< ParseWorkElem * > work_elems;
     for (unsigned idx=0; idx < sources.size(); idx++) {
         ParseWorkBundle *bundle = new ParseWorkBundle();
@@ -194,17 +196,32 @@ CodeObject::parseNewEdges( vector<Block*> & sources,
               true,
               false ));
         work_elems.push_back(elem);
-
-        if (defensiveMode()) {
-            vector< Function * > funcs;
-            sources[idx]->getFuncs(funcs);
-            for (unsigned fidx=0; fidx < funcs.size(); fidx++) {
-                modfuncs[funcs[fidx]] = funcs[fidx]->retstatus();
-            }
-        }
     }
 
     parser->parse_edges( work_elems );
+
+    if (defensiveMode()) {
+        // track modified funcs and update tampersStack for those funcs
+        for (unsigned idx=0; idx < targets.size(); idx++) {
+            set<CodeRegion*> tregs;
+            set<Function*> tfuncs;
+            _cs->findRegions(targets[idx],tregs);
+            for (set<CodeRegion*>::iterator rit = tregs.begin(); 
+                 rit != tregs.end(); 
+                 rit++ ) 
+            {
+                findFuncs(*rit, targets[idx], tfuncs);
+            }
+            for (set<Function*>::iterator fit = tfuncs.begin();
+                 fit != tfuncs.end();
+                 fit++) 
+            {
+                Function *tfunc = *fit;
+                tfunc->tampersStack(true);
+                modfuncs[tfunc] = tfunc->retstatus();
+            }
+        }
+    }
 
     return true;
 }
