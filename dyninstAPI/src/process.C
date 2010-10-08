@@ -1112,14 +1112,13 @@ bool process::initTrampGuard()
 	// Don't write directly into trampGuardBase_ as a buffer,
 	//   in case we're on a big endian architechture.
       unsigned int value;
-      readDataSpace((void *)vars[0]->getAddress(), 4, &value, true);
+      readDataWord((void *)vars[0]->getAddress(), 4, &value, true);
       allocedTrampAddr = value;
 
     } else if (getAddressWidth() == 8) {
-	readDataSpace((void *)vars[0]->getAddress(), 8, &allocedTrampAddr, true);
-	
+	readDataWord((void *)vars[0]->getAddress(), 8, &allocedTrampAddr, true);
     } else assert(0 && "Incompatible mutatee address width");
-    
+
     trampGuardBase_ = getAOut()->getDefaultModule()->createVariable("DYNINST_tramp_guard", allocedTrampAddr, getAddressWidth());
 
     return true;
@@ -1130,7 +1129,13 @@ bool process::initTrampGuard()
 // dynamic inferior heap stuff
 //
 #if defined(cap_dynamic_heap)
+
+#if defined(os_vxworks)
+#include "vxworks.h"
+#define HEAP_DYN_BUF_SIZE (0x4000)
+#else
 #define HEAP_DYN_BUF_SIZE (0x100000)
+#endif
 // "imd_rpc_ret" = Inferior Malloc Dynamic RPC RETurn structure
 typedef struct {
   bool ready;
@@ -1345,12 +1350,12 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	  break;
 	case 2: // allocate new segment (1MB, constrained)
             infmalloc_printf("%s[%d]: inferiorMallocDynamic for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
-                             FILE__, __LINE__, HEAP_DYN_BUF_SIZE, lo, hi);
+                             FILE__, __LINE__, HEAP_DYN_BUF_SIZE, HEAP_DYN_BUF_SIZE, lo, hi);
             inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
             break;
 	case 3: // allocate new segment (sized, constrained)
             infmalloc_printf("%s[%d]: inferiorMallocDynamic for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
-                             FILE__, __LINE__, size, lo, hi);
+                             FILE__, __LINE__, size, size, lo, hi);
 	   inferiorMallocDynamic(size, lo, hi);
 	   break;
 	case 4: // remove range constraints
@@ -1365,12 +1370,12 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	   break;
 	case 5: // allocate new segment (1MB, unconstrained)
             infmalloc_printf("%s[%d]: inferiorMallocDynamic for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
-                             FILE__, __LINE__, HEAP_DYN_BUF_SIZE, lo, hi);
+                             FILE__, __LINE__, HEAP_DYN_BUF_SIZE, HEAP_DYN_BUF_SIZE, lo, hi);
 	   inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
 	   break;
 	case 6: // allocate new segment (sized, unconstrained)
             infmalloc_printf("%s[%d]: inferiorMallocDynamic for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
-                             FILE__, __LINE__, size, lo, hi);
+                             FILE__, __LINE__, size, size, lo, hi);
 	   inferiorMallocDynamic(size, lo, hi);
 	   break;
 	case 7: // deferred free, compact free blocks
@@ -2077,8 +2082,10 @@ bool process::setMainFunction()
 
 bool process::setupGeneral() 
 {
-    // Need to have a.out at this point
+#if !defined(os_vxworks)
+    // Need to have a.out at this point, except on vxWorks.
     assert(mapped_objects.size() > 0);
+#endif
 
     if (reachedBootstrapState(bootstrapped_bs)) 
         return true;
@@ -2663,24 +2670,24 @@ bool process::setDyninstLibInitParams()
             
             assert(0 && "Could not find necessary internal variable");
    assert(vars.size() == 1);
-   if (!writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *)&cause))
-      fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+   if (!writeDataWord((void*)vars[0]->getAddress(), sizeof(int), (void *)&cause))
+      fprintf(stderr, "%s[%d]:  writeDataWord failed\n", FILE__, __LINE__);
    vars.clear();
    
    if (!findVarsByAll("libdyninstAPI_RT_init_localPid", vars))
       if (!findVarsByAll("_libdyninstAPI_RT_init_localPid", vars))
          assert(0 && "Could not find necessary internal variable");
    assert(vars.size() == 1);
-   if (!writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *)&pid))
-      fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+   if (!writeDataWord((void*)vars[0]->getAddress(), sizeof(int), (void *)&pid))
+      fprintf(stderr, "%s[%d]:  writeDataWord failed\n", FILE__, __LINE__);
    vars.clear();   
    
    if (!findVarsByAll("libdyninstAPI_RT_init_maxthreads", vars))
       if (!findVarsByAll("_libdyninstAPI_RT_init_maxthreads", vars))
          assert(0 && "Could not find necessary internal variable");
    assert(vars.size() == 1);
-   if (!writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *) &max_number_of_threads))
-      fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+   if (!writeDataWord((void*)vars[0]->getAddress(), sizeof(int), (void *) &max_number_of_threads))
+      fprintf(stderr, "%s[%d]:  writeDataWord failed\n", FILE__, __LINE__);
    vars.clear();   
    
    extern int dyn_debug_rtlib;
@@ -2688,8 +2695,8 @@ bool process::setDyninstLibInitParams()
        if (!findVarsByAll("_libdyninstAPI_RT_init_debug_flag", vars))
            assert(0 && "Could not find necessary internal variable");
    assert(vars.size() == 1);
-   if (!writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *) &dyn_debug_rtlib))
-     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+   if (!writeDataWord((void*)vars[0]->getAddress(), sizeof(int), (void *) &dyn_debug_rtlib))
+     fprintf(stderr, "%s[%d]:  writeDataWord failed\n", FILE__, __LINE__);
    vars.clear();   
    if (dyn_debug_rtlib) {
       fprintf(stderr, "%s[%d]:  set var in RTlib for debug...\n", FILE__, __LINE__);
@@ -3862,13 +3869,9 @@ check_rtinst(process *proc, mapped_object *so)
      if (vars->size() == 0) return 0;
      
      unsigned int val;
-     if (! proc->readDataSpace((void*)((*vars)[0]->getAddress()), sizeof(val), (void*)&val, true)) {
+     if (! proc->readDataWord((void*)((*vars)[0]->getAddress()), sizeof(val), (void*)&val, true)) {
          return 0;
      }
-
-#if defined(endian_mismatch)
-     val = swapBytesIfNeeded(val);
-#endif
 
      if (val == 0) {
          /* The library has been loaded, but not initialized */

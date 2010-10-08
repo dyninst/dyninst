@@ -21,12 +21,16 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-SRCS =          ../src/Object-elf.C \
+SRCS =		../src/Object-elf.C \
 		../src/Archive.C \
 		../src/Archive-elf.C \
 		../src/parseDwarf.C \
 		../src/parseStab.C \
-		../src/emitElf.C
+		../src/LinkMap.C \
+		../src/emitElf.C \
+		../src/emitElfStatic.C \
+		../src/emitElfStatic-stub.C \
+		../src/relocationEntry-stub.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG

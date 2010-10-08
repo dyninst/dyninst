@@ -1,10 +1,10 @@
 #
-# $Id: Makefile,v 1.3 2008/09/15 18:37:49 jaw Exp $
+# $Id: Makefile,v 1.3 2008/09/04 21:06:52 bill Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
-#DEBUG_FLAG = -g
+# DEBUG_FLAG = -g
 AUTO_TEMPLATES= true
 #NO_IMPLICIT_TEMPLATES = true
 USES_BOOST = true
@@ -15,28 +15,20 @@ USES_BOOST = true
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 
-TO_CORE = ../..
-
-include $(TO_CORE)/make.config 
+include ../../make.config 
 
 # Now make any necessary architecture specific changes to variables:
-MYFLAGS         += -I$(WIND_FOUNDATION_PATH)/include -DHOST
-MYFLAGS         += -g
+
+SRCS = ../src/InstructionDecoder-x86.C
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
-
-# FIXME I don't know whether vxworks is InstrucIter or IAPI
-
-SRCS =  ../src/InstructionSource-power.C \
-        ../src/IA_IAPI.C \
-        ../src/IA_power.C
 
 LIBS    += -lgcc
 
 AS		= /usr/bin/as
 
-TARGET = libparseAPI.so
+TARGET = libinstructionAPI.so
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 
@@ -46,3 +38,4 @@ include ../make.module.tmpl
 # common targets like "clean", "install", etc.
 
 include ../../make.library.tmpl
+

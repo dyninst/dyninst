@@ -1275,11 +1275,16 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
 {
    clearError();
 
+    if (!OS_isConnected()) {
+        reportError(BPatchFatal, 68, "Attempted to create process before connected to target server\n");
+        return NULL;
+    }
+
    if ( path == NULL ) { return NULL; }
 
 #if !defined (os_windows)
-   //  This might be ok on windows...  not 100%sure and it takes to long to build for
-   //  the moment.
+   //  This might be ok on windows...  not 100% sure and it takes
+   //  to long to build for the moment.
 
    //  just a sanity check for the exitence of <path>
    struct stat statbuf;
@@ -1298,8 +1303,9 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
       return NULL;
    }
 
-   //  and ensure its executable (does not check permissions):
 #if !defined(os_vxworks) // Not necessary for VxWorks modules
+
+   //  and ensure its executable (does not check permissions):
    if (! ( (statbuf.st_mode & S_IXUSR)
             || (statbuf.st_mode & S_IXGRP)
             || (statbuf.st_mode & S_IXOTH) )) {
@@ -1308,8 +1314,9 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
       reportError(BPatchFatal, 68, ebuf);
       return NULL;
    }
-#endif // VxWorks
-#endif
+
+#endif // !VxWorks
+#endif // !Windows
 
    BPatch_process *ret = 
       new BPatch_process(path, argv, mode, envp, stdin_fd,stdout_fd,stderr_fd);
@@ -1352,7 +1359,12 @@ BPatch_process *BPatch::processAttachInt
 (const char *path, int pid, BPatch_hybridMode mode)
 {
    clearError();
-   
+
+    if (!OS_isConnected()) {
+        reportError(BPatchFatal, 68, "Error: Attempted to attach to process before connected to target server.");
+        return NULL;
+    }
+
    if (info->procsByPid.defines(pid)) {
       char msg[256];
       sprintf(msg, "attachProcess failed.  Dyninst is already attached to %d.",
@@ -2186,3 +2198,53 @@ bool BPatch::getInstrStackFramesInt()
 {
    return instrFrames;
 }
+
+bool BPatch::isConnectedInt()
+{
+    return OS_isConnected();
+}
+
+// -----------------------------------------------------------
+// Undocumented public remote debugging interface.
+// See comments in BPatch.h about the future of these methods.
+bool BPatch::remoteConnectInt(BPatch_remoteHost &remote)
+{
+    if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
+        fprintf(stderr, "Unknown remote debugging protocol %d\n", remote.type);
+        return false;
+    }
+
+    return OS_connect(remote);
+}
+
+bool BPatch::getPidListInt(BPatch_remoteHost &remote, BPatch_Vector<unsigned int> &pidlist)
+{
+    if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
+        fprintf(stderr, "Unknown remote debugging protocol %d\n", remote.type);
+        return false;
+    }
+
+    return OS_getPidList(remote, pidlist);
+}
+
+bool BPatch::getPidInfoInt(BPatch_remoteHost &remote, unsigned int pid,
+                           std::string &pidInfo)
+{
+    if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
+        fprintf(stderr, "Unknown remote debugging protocol %d\n", remote.type);
+        return false;
+    }
+
+    return OS_getPidInfo(remote, pid, pidInfo);
+}
+
+bool BPatch::remoteDisconnectInt(BPatch_remoteHost &remote)
+{
+    if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
+        fprintf(stderr, "Unknown remote debugging protocol %d\n", remote.type);
+        return false;
+    }
+
+    return OS_disconnect(remote);
+}
+// -----------------------------------------------------------

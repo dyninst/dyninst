@@ -386,7 +386,7 @@ class Symtab : public LookupInterface,
  public:
    //Only valid on ELF formats
    SYMTAB_EXPORT Offset getElfDynamicOffset();
-   
+
  private:
    void createDefaultModule();
 
@@ -562,7 +562,6 @@ class Symtab : public LookupInterface,
    bool hasRelaplt_;
 
    bool isStaticBinary_;
-
 
    //Don't use obj_private, use getObject() instead.
  public:

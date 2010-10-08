@@ -192,7 +192,7 @@ namespace Dyninst
         cout.width(8);
         cout.fill('0');
         cout << hex << insn << "\t";
-#endif        
+#endif
         mainDecode();
         b.start += 4;
         return make_shared(insn_in_progress);

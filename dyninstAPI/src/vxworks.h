@@ -74,7 +74,10 @@ typedef int handleT; // a /proc file descriptor
 #endif
 
 #include "unix.h"
-
+#include "dyninstAPI/h/BPatch.h"
+//--------------------------------------------------------------------------
+// Exported functions
+//--------------------------------------------------------------------------
 class mapped_object;
 void launch_task(const std::string &filename, mapped_object *obj);
 #include "symtabAPI/h/Symtab.h"
@@ -82,6 +85,10 @@ bool fixup_offsets(const std::string &filename, Dyninst::SymtabAPI::Symtab *link
 void addBreakpoint(Address bp);
 bool wtxFindFunction(const char *name, Address &addr);
 bool relocationTarget(const Address addr, Address *target);
+void cleanupVxWorks();
+bool doNotParseList(const std::vector<std::string> &name);
+void disasAddress(const Address addr);
+//--------------------------------------------------------------------------
 
 #ifndef WNOWAIT
 #define WNOWAIT WNOHANG

@@ -538,4 +538,33 @@ terminateProcStatus_t process::terminateProc_() {
     return terminateFailed;
 }
 
+// Temporary remote debugger interface.
+// I assume these will be removed when procControlAPI is complete.
+bool OS_isConnected(void)
+{
+    return true;  // We're always connected to the child on this platform.
+}
+
+bool OS_connect(BPatch_remoteHost &/*remote*/)
+{
+    return true;  // We're always connected to the child on this platform.
+}
+
+bool OS_getPidList(BPatch_remoteHost &/*remote*/,
+                   BPatch_Vector<unsigned int> &/*tlist*/)
+{
+    return false;  // Not implemented.
+}
+
+bool OS_getPidInfo(BPatch_remoteHost &/*remote*/,
+                   unsigned int /*pid*/, std::string &/*pidStr*/)
+{
+    return false;  // Not implemented.
+}
+
+bool OS_disconnect(BPatch_remoteHost &/*remote*/)
+{
+    return true;
+}
+
 /* END unimplemented functions */

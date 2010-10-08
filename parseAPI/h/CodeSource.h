@@ -102,7 +102,7 @@ class CodeSource : public Dyninst::InstructionSource {
     /*
      * Named external linkage table (e.g. PLT on ELF). Optional.
      */
-    std::map<Address, std::string> _linkage;
+    mutable std::map<Address, std::string> _linkage;
 
     /*
      * Table of Contents for position independent references. Optional.
@@ -146,7 +146,7 @@ class CodeSource : public Dyninst::InstructionSource {
     PARSER_EXPORT virtual Address baseAddress() const { return 0; }
     PARSER_EXPORT virtual Address loadAddress() const { return 0; }
 
-    PARSER_EXPORT std::map< Address, std::string > const& linkage() const { return _linkage; }
+    PARSER_EXPORT std::map< Address, std::string > & linkage() const { return _linkage; }
     PARSER_EXPORT std::vector< Hint > const& hints() const { return _hints; } 
     PARSER_EXPORT std::vector<CodeRegion *> const& regions() const { return _regions; }
     PARSER_EXPORT int findRegions(Address addr, set<CodeRegion *> & ret) const;

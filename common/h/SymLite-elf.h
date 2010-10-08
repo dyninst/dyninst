@@ -417,7 +417,7 @@ inline void SymElf::createSymCache()
       }
    }
    cache_size = cur_sym;
-   cache = (SymCacheEntry *) realloc(cache, cur_sym * cache_size); //Size reduction
+   cache = (SymCacheEntry *) realloc(cache, cur_sym  * sizeof(SymCacheEntry)); //Size reduction
 
    qsort(cache, cache_size, sizeof(SymCacheEntry), symcache_cmp);
 }

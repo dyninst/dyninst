@@ -868,11 +868,11 @@ bool InstrucIter::isRealCall(InstructionSource * isrc,
     if(!isADynamicCallInstruction()) {
         Address callTarget = getBranchTargetAddress();
         if(!callTarget) 
-            return false;
+            return true;
 
         if(!isrc->isValidAddress(callTarget)) {
             validTarget = false;
-            return false;
+            return true;
         }
 
         // Test for call->return combo (getpc) 

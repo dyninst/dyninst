@@ -52,6 +52,7 @@
 using namespace Dyninst::ParseAPI;
 
 bool image_func::writesFPRs(unsigned level) {
+    
     using namespace Dyninst::InstructionAPI;
     // Oh, we should be parsed by now...
     if (!parsed()) image_->analyzeIfNeeded();
@@ -97,6 +98,14 @@ bool image_func::writesFPRs(unsigned level) {
         static RegisterAST::Ptr st5(new RegisterAST(x86::st5));
         static RegisterAST::Ptr st6(new RegisterAST(x86::st6));
         static RegisterAST::Ptr st7(new RegisterAST(x86::st7));
+        static RegisterAST::Ptr xmm0(new RegisterAST(x86::xmm0));
+        static RegisterAST::Ptr xmm1(new RegisterAST(x86::xmm1));
+        static RegisterAST::Ptr xmm2(new RegisterAST(x86::xmm2));
+        static RegisterAST::Ptr xmm3(new RegisterAST(x86::xmm3));
+        static RegisterAST::Ptr xmm4(new RegisterAST(x86::xmm4));
+        static RegisterAST::Ptr xmm5(new RegisterAST(x86::xmm5));
+        static RegisterAST::Ptr xmm6(new RegisterAST(x86::xmm6));
+        static RegisterAST::Ptr xmm7(new RegisterAST(x86::xmm7));
 
         vector<FuncExtent *>::const_iterator eit = extents().begin();
         for( ; eit != extents().end(); ++eit) {
@@ -122,8 +131,16 @@ bool image_func::writesFPRs(unsigned level) {
                     i->isWritten(st4) ||
                     i->isWritten(st5) ||
                     i->isWritten(st6) ||
-                    i->isWritten(st7)
-                   )
+                    i->isWritten(st7) ||
+                   i->isWritten(xmm0) ||
+                   i->isWritten(xmm1) ||
+                   i->isWritten(xmm2) ||
+                   i->isWritten(xmm3) ||
+                   i->isWritten(xmm4) ||
+                   i->isWritten(xmm5) ||
+                   i->isWritten(xmm6) ||
+                   i->isWritten(xmm7)
+                  )
                 {
                     containsFPRWrites_ = used;
                     return true;

@@ -22,6 +22,7 @@ include ../../make.config
 # Now make any necessary architecture specific changes to variables:
 
 SRCS =		../../common/src/linuxKludges.C \
+		../../common/src/wtxKludges.C \
 		../../common/src/timing-linux.C \
 		../../common/src/parseauxv.C \
 		../../common/src/addrtranslate-linux.C \
@@ -39,6 +40,7 @@ SRCS =		../../common/src/linuxKludges.C \
 #MYFLAGS	+= -DASTDEBUG
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
 
+MYFLAGS         += -I$(WIND_FOUNDATION_PATH)/include -DHOST
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
 TFLAGS          += $(MYFLAGS)
@@ -47,6 +49,7 @@ TFLAGS          += $(MYFLAGS)
 #TFLAGS		+= -g
 
 LIBS    += -ldl
+LIBS    += -L$(WIND_FOUNDATION_PATH)/$(WIND_HOST_TYPE)/lib -lwtxapi41
 
 AS		= /usr/bin/as
 

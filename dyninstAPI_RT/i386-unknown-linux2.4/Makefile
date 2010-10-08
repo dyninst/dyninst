@@ -41,7 +41,6 @@ SRCS		+= ../src/RTposix.c \
 			../src/RTthread-index.c \
 			../src/RTthread-x86.c \
 			../src/RTspace.S \
-			../src/RTsignal-x86.S \
 			../src/RTtlsgetaddr-x86.S \
 			../src/RTstatic_ctors_dtors-x86.c
 #		   ../src/RTmutatedBinary.c \

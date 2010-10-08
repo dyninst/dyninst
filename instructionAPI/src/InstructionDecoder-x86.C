@@ -31,6 +31,7 @@
 
 #define INSIDE_INSTRUCTION_API
 
+#include "common/h/Types.h"
 #include "InstructionDecoder-x86.h"
 #include "Expression.h"
 #include "common/h/arch-x86.h"
@@ -405,6 +406,7 @@ namespace Dyninst
         b_segment,
         b_64bit,
         b_xmm,
+        b_xmmhigh,
         b_mm,
         b_cr,
         b_dr,
@@ -431,6 +433,9 @@ namespace Dyninst
         },
         {
             x86::xmm0, x86::xmm1, x86::xmm2, x86::xmm3, x86::xmm4, x86::xmm5, x86::xmm6, x86::xmm7
+        },
+        {
+            x86_64::xmm8, x86_64::xmm9, x86_64::xmm10, x86_64::xmm11, x86_64::xmm12, x86_64::xmm13, x86_64::xmm14, x86_64::xmm15
         },
         {
             x86::mm0, x86::mm1, x86::mm2, x86::mm3, x86::mm4, x86::mm5, x86::mm6, x86::mm7
@@ -473,6 +478,9 @@ namespace Dyninst
         },
         {
             x86_64::xmm0, x86_64::xmm1, x86_64::xmm2, x86_64::xmm3, x86_64::xmm4, x86_64::xmm5, x86_64::xmm6, x86_64::xmm7
+        },
+        {
+            x86_64::xmm8, x86_64::xmm9, x86_64::xmm10, x86_64::xmm11, x86_64::xmm12, x86_64::xmm13, x86_64::xmm14, x86_64::xmm15
         },
         {
             x86_64::mm0, x86_64::mm1, x86_64::mm2, x86_64::mm3, x86_64::mm4, x86_64::mm5, x86_64::mm6, x86_64::mm7
@@ -835,8 +843,10 @@ namespace Dyninst
                                                        isRead, isWritten);
                         break;
                     case am_V:
-                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,b_xmm,locs->modrm_reg)),
-                                                       isRead, isWritten);
+                       
+                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
+                                (locs->rex_r == 1 )? b_xmmhigh : b_xmm,locs->modrm_reg)),
+                                    isRead, isWritten);
                         break;
                     case am_W:
                         switch(locs->modrm_mod)
@@ -851,8 +861,9 @@ namespace Dyninst
                             case 0x03:
                             // use of actual register
                             {
-                                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,b_xmm,locs->modrm_rm)),
-                                                               isRead, isWritten);
+                                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
+                                        (locs->rex_b == 1) ? b_xmmhigh : b_xmm, locs->modrm_rm)),
+                                        isRead, isWritten);
                                 break;
                             }
                             default:
