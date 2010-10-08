@@ -30,9 +30,24 @@
  */
 
 #include "proccontrol/h/Event.h"
+#include "proccontrol/h/Handler.h"
+#include "proccontrol/h/Mailbox.h"
+
 #include "proccontrol/src/bluegene.h"
 #include "proccontrol/src/int_event.h"
+#include "proccontrol/src/int_handler.h"
 
+#include "common/h/SymLite-elf.h"
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/select.h>
+#include <sys/stat.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 #include <signal.h>
 #include <poll.h>
 
@@ -43,9 +58,17 @@ using namespace std;
 
 static BG_GPR_Num_t DynToBGGPRReg(Dyninst::MachRegister reg);
 static Dyninst::MachRegister BGGPRToDynReg(BG_GPR_Num_t bg_regnum);
-#define NUM_GPRS 41
-
+static bool BGSend(BG_Debugger_Msg &msg);
 static bool bg_fdHasData(int fd);
+
+static void register_for_crash(int pid);
+static void remove_for_crash(int pid);
+static void on_crash(int sig);
+
+#define EXIT_TYPE_EXIT 0
+#define EXIT_TYPE_SIGNAL 1
+
+#define NUM_GPRS 41
 
 ArchEventBlueGene::ArchEventBlueGene(BG_Debugger_Msg *m) :
    msg(m)
@@ -66,8 +89,14 @@ BG_Debugger_Msg *ArchEventBlueGene::getMsg() const
 }
 
 GeneratorBlueGene::GeneratorBlueGene() :
-   GeneratorMT(std::string("BlueGene Generator"))
+   GeneratorMT(std::string("BlueGene Generator")),
+   dpr(NULL)
 {
+   if (dyninst_debug_proccontrol) {
+      pthrd_printf("Creating debug port reader\n");
+      dpr = new DebugPortReader();
+   }
+
    decoders.insert(new DecoderBlueGene());
 }
 
@@ -77,12 +106,24 @@ GeneratorBlueGene::~GeneratorBlueGene()
 
 bool GeneratorBlueGene::initialize()
 {
+   int prot, phys, virt;
+   pthrd_printf("Initializing GeneratorBlueGene\n");
+   bg_process::getVersionInfo(prot, phys, virt);
    return true;
 }
 
 bool GeneratorBlueGene::canFastHandle()
 {
    return false;
+}
+
+bool GeneratorBlueGene::plat_skipGeneratorBlock()
+{
+   bool result = getResponses().hasAsyncPending(false);
+   if (result) {
+      pthrd_printf("Async events pending, skipping generator block\n");
+   }
+   return result;
 }
 
 ArchEvent *GeneratorBlueGene::getEvent(bool block)
@@ -109,6 +150,9 @@ ArchEvent *GeneratorBlueGene::getEvent(bool block)
    int returnCode = msg->header.returnCode;
    pthrd_printf("Received debug event %s from pid %d, tid %d, rc %d\n",
              BG_Debugger_Msg::getMessageName(msg->header.messageType), pid, tid, returnCode);
+   if (dyninst_debug_proccontrol) {
+      BG_Debugger_Msg::dump(*msg, pctrl_err_out);
+   }
    
    if (returnCode > 0) {
       // Print out a message if we get a return code we don't expect.  Consult the debugger header
@@ -152,12 +196,10 @@ bool DecoderBlueGene::getProcAndThread(ArchEventBlueGene *archbg, bg_process* &p
    int_process *proc = NULL;
    int_thread *thread = NULL;
 
-   ProcPool()->condvar()->lock();
    proc = ProcPool()->findProcByPid(archbg->getMsg()->header.nodeNumber);
    if (proc) {
-      thread->llproc()->threadPool()->findThreadByLWP(archbg->getMsg()->header.thread);
+      thread = proc->threadPool()->findThreadByLWP(archbg->getMsg()->header.thread);
    }
-   ProcPool()->condvar()->unlock();
 
    proc_out = dynamic_cast<bg_process *>(proc);
    thread_out = static_cast<bg_thread *>(thread);
@@ -289,8 +331,9 @@ Event::ptr DecoderBlueGene::decodeAsyncAck(response::ptr resp)
 
 bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
 {
+   pthrd_printf("Decoding event\n");
    assert(archE);
-   ArchEventBlueGene *archbg = static_cast<ArchEventBlueGene *>(archbg);
+   ArchEventBlueGene *archbg = static_cast<ArchEventBlueGene *>(archE);
    Event::ptr event = Event::ptr();
 
    BG_Debugger_Msg *msg = archbg->getMsg();
@@ -300,6 +343,8 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
    bool result = getProcAndThread(archbg, proc, thread);
    if (!result)
       return false;
+   if (!thread) 
+      thread = static_cast<bg_thread *>(proc->threadPool()->initialThread());
    
    Event::ptr new_event;
    switch (msg->header.messageType) {
@@ -316,14 +361,8 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
       case SET_MEM_ACK:
          new_event = decodeResultAck(msg);
          break;
-      case SET_FLOAT_REG_ACK:
-      case GET_FLOAT_REG_ACK:
-      case GET_ALL_FLOAT_REGS_ACK:
-         assert(0); //TODO
-         break;
       case SINGLE_STEP_ACK:
          pthrd_printf("Decoded SINGLE_STEP_ACK, dropping...\n");
-         assert(thread->singleStepMode());
          break;
       case CONTINUE_ACK:
          pthrd_printf("Decoded CONTINUE_ACK, dropping...\n");
@@ -334,31 +373,99 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
       case ATTACH_ACK:
          pthrd_printf("Decoded ATTACH_ACK, creating bootstrap event\n");
          assert(proc->getState() == int_process::neonatal_intermediate);
-         new_event = EventBootstrap::ptr(new EventBootstrap());         
-         new_event->setSyncType(Event::sync_process);
+         new_event = EventIntBootstrap::ptr(new EventIntBootstrap());         
+         new_event->setSyncType(Event::async);
          break;
       case DETACH_ACK:
          pthrd_printf("Decoded DETACH_ACK, creating Detached event\n");
          new_event = EventDetached::ptr(new EventDetached());
          new_event->setSyncType(Event::sync_process);
          break;
-      case PROGRAM_EXITED:
+      case PROGRAM_EXITED: {
+         int code = msg->dataArea.PROGRAM_EXITED.type;
+         int rc = msg->dataArea.PROGRAM_EXITED.rc;
+         pthrd_printf("Decoded PROGRAM_EXITED, type = %d, rc = %d\n", code, rc);
+                      
+         if (code == EXIT_TYPE_EXIT) {
+            new_event = EventExit::ptr(new EventExit(EventType::Post, rc));
+         }
+         else if (msg->dataArea.PROGRAM_EXITED.type == EXIT_TYPE_SIGNAL) {
+            new_event = EventCrash::ptr(new EventCrash(rc));
+         }
+         else {
+            perr_printf("Unknown exit type %d\n", code);
+            break;
+         }
+         new_event->setSyncType(Event::sync_process);
+         remove_for_crash(proc->getPid());
+         break;
+      }
+      case SIGNAL_ENCOUNTERED: {
+         int signo = msg->dataArea.SIGNAL_ENCOUNTERED.signal;
+         int thrd_id = msg->header.thread;
+         pthrd_printf("Decoded SIGNAL_ENCOUNTERED, signal = %d\n", signo);
+
+         if (proc->getState() == int_process::neonatal_intermediate) {
+            if (signo != SIGSTOP) {
+               //The process is still running after an attach, and we got
+               // an unexpected signal before we could stop and prep ourselves.
+               // we're in no situation to handle this signal, just continue it
+               // and wait for our SIGSTOP.
+               pthrd_printf("Recieved unexpected signal %d on %d/%d during attach process, continue and ignore\n",
+                            signo, proc->getPid(), thrd_id);
+               BG_Debugger_Msg cmsg(CONTINUE, proc->getPid(), msg->header.thread, 0, 0);
+               cmsg.header.dataLength = sizeof(msg->dataArea.CONTINUE);
+               cmsg.dataArea.CONTINUE.signal = signo;
+               BGSend(cmsg);
+               break;
+            }
+            pthrd_printf("Decoded SIGSTOP for process bootstrap\n");
+            assert(proc->bootstrap_state == bg_process::bg_stop_pending);
+            new_event = EventIntBootstrap::ptr(new EventIntBootstrap());         
+            new_event->setSyncType(Event::sync_process);
+            break;
+         }
+         break;
+      }
       case VERSION_MSG_ACK:
-      case SIGNAL_ENCOUNTERED:
-         assert(0); //TODO
+         pthrd_printf("Dropping VERSION_MSG_ACK\n");
+         break;
+      case THREAD_ALIVE_ACK:
+         if (proc->getState() == int_process::neonatal_intermediate) {
+            thrd_alive_ack_t *thrd_alive = (thrd_alive_ack_t *) malloc(sizeof(thrd_alive_ack_t));
+            thrd_alive->lwp_id = msg->header.thread;
+            thrd_alive->alive = (msg->header.returnCode != RC_NO_ERROR);
+            new_event = EventIntBootstrap::ptr(new EventIntBootstrap(thrd_alive)); 
+            new_event->setSyncType(Event::async);
+            pthrd_printf("Decoded THREAD_ALIVE_ACK for %d/%d: alive %d\n",
+                         proc->getPid(), thrd_alive->lwp_id, (int) thrd_alive->alive);
+         }
+         break;
+      case GET_PROCESS_DATA_ACK:
+         if (proc->getState() == int_process::neonatal_intermediate) {
+            pthrd_printf("Decoded GET_PROCESS_DATA_ACK for %d/%d\n",
+                         proc->getPid(), thread->getLWP());
+            BG_Debugger_Msg::DataArea *data;
+            data = (BG_Debugger_Msg::DataArea *) malloc(sizeof(BG_Debugger_Msg::DataArea));
+            *data = msg->dataArea;
+            
+            new_event = EventIntBootstrap::ptr(new EventIntBootstrap(data));
+            new_event->setSyncType(Event::async);
+         }
          break;
       case SET_THREAD_OPS_ACK:
       case GET_REGS_AND_FLOATS_ACK:
       case GET_THREAD_ID_ACK:
-      case THREAD_ALIVE_ACK:
       case SET_DEBUG_REGS_ACK:
       case GET_DEBUG_REGS_ACK:
       case GET_THREAD_INFO_ACK:
       case GET_AUX_VECTORS_ACK:
       case GET_STACK_TRACE_ACK:
-      case GET_PROCESS_DATA_ACK:
       case END_DEBUG_ACK:
       case GET_THREAD_DATA_ACK:
+      case SET_FLOAT_REG_ACK:
+      case GET_FLOAT_REG_ACK:
+      case GET_ALL_FLOAT_REGS_ACK:
          assert(0); //TODO
          break;
       case GET_REG:
@@ -397,7 +504,7 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
    }
 
    if (!new_event) {
-      pthrd_printf("No new event created, droping\n");
+      pthrd_printf("No new event created, dropping\n");
       return true;
    }
 
@@ -429,6 +536,10 @@ int_process *int_process::createProcess(Dyninst::PID, int_process *)
    return NULL;
 }
 
+int bg_process::protocol_version = -1;
+int bg_process::phys_procs = -1;
+int bg_process::virt_procs = -1;
+
 bg_process::bg_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f) :
    int_process(p, e, a, f),
    sysv_process(p, e, a, f),
@@ -439,7 +550,8 @@ bg_process::bg_process(Dyninst::PID p, std::string e, std::vector<std::string> a
 bg_process::bg_process(Dyninst::PID pid_, int_process *proc_) :
    int_process(pid_, proc_),
    sysv_process(pid_, proc_),
-   ppc_process(pid_, proc_)
+   ppc_process(pid_, proc_),
+   bootstrap_state(bg_init)
 {
    assert(0); //No fork
 }
@@ -468,14 +580,15 @@ bool bg_process::plat_attach()
    msg.header.dataLength = sizeof(msg.dataArea.ATTACH);
    
    pthrd_printf("Sending ATTACH message to %d\n", getPid());
-   bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
+   register_for_crash(getPid());
+   bool result = BGSend(msg);
    if (!result) {
       pthrd_printf("Error sending ATTACH message\n");
       return false;
    }
    return true;
 }
-
+   
 bool bg_process::plat_forked()
 {
    pthrd_printf("Attempted to handle unsupported fork on BlueGene\n");
@@ -505,7 +618,7 @@ bool bg_process::plat_detach(bool &needs_sync)
    msg.header.dataLength = sizeof(msg.dataArea.DETACH);
    
    pthrd_printf("Sending DETACH message to %d\n", getPid());
-   result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
+   result = BGSend(msg);
    if (!result) {
       pthrd_printf("Error sending DETACH message\n");
       return false;
@@ -522,7 +635,7 @@ bool bg_process::plat_terminate(bool &needs_sync)
    msg.header.dataLength = sizeof(msg.dataArea.KILL);
    
    pthrd_printf("Sending KILL-9 message to %d\n", getPid());
-   bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
+   bool result = BGSend(msg);
    if (!result) {
       pthrd_printf("Error sending KILL message\n");
       return false;
@@ -548,7 +661,7 @@ bool bg_process::plat_readMemAsync(int_thread *, Dyninst::Address addr,
    msg.dataArea.GET_MEM.len = resp->getSize();
    msg.header.dataLength = sizeof(msg.dataArea.GET_MEM);
    
-   bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
+   bool result = BGSend(msg);
    if (!result) {
       pthrd_printf("Error sending GET_MEM message\n");
       return false;
@@ -569,7 +682,7 @@ bool bg_process::plat_writeMemAsync(int_thread *, void *local, Dyninst::Address 
    memcpy(msg.dataArea.SET_MEM.data, local, size);
    msg.header.dataLength = sizeof(msg.dataArea.SET_MEM);
    
-   bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
+   bool result = BGSend(msg);
    if (!result) {
       pthrd_printf("Error sending SET_MEM message\n");
       return false;
@@ -591,7 +704,20 @@ bool bg_process::plat_writeMem(int_thread *, void *, Dyninst::Address, size_t)
 
 bool bg_process::needIndividualThreadAttach()
 {
-   return false;
+   return true;
+}
+
+bool bg_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
+{
+   if (bootstrap_state != bg_done)
+      return false;
+
+   for (std::set<int>::iterator i = initial_lwps.begin(); i != initial_lwps.end(); i++)
+   {
+      lwps.push_back((Dyninst::LWP) *i);
+   }
+   initial_lwps.clear();
+   return true;
 }
 
 Dyninst::Architecture bg_process::getTargetArch()
@@ -601,7 +727,7 @@ Dyninst::Architecture bg_process::getTargetArch()
 
 unsigned bg_process::getTargetPageSize()
 {
-   return 4092;
+   return 0x1000;
 }
 
 Dyninst::Address bg_process::plat_mallocExecMemory(Dyninst::Address addr, unsigned size)
@@ -632,9 +758,72 @@ bool bg_process::plat_collectAllocationResult(int_thread *thr, reg_response::ptr
    return false;
 }
 
+void bg_process::getVersionInfo(int &protocol, int &phys, int &virt)
+{
+   pthrd_printf("Call to getVersionInfo, protocol = %d, phys = %d, virt = %d\n",
+                protocol_version, phys_procs, virt_procs);
+   if (protocol_version != -1) {
+      protocol = protocol_version;
+      phys = phys_procs;
+      virt = virt_procs;
+      return;
+   }
+
+   //This is called during generator initialization, so it
+   // should always be uninitialized on the generator thread.
+   pthrd_printf("Sending VERSION_MSG\n");
+   assert(strcmp(thrdName(), "G") == 0);
+   BG_Debugger_Msg msg(VERSION_MSG, 0, 0, 0, 0);
+   msg.header.dataLength = sizeof(msg.dataArea.VERSION_MSG);
+   
+   bool result = BGSend(msg);
+   if (!result) {
+      perr_printf("Error sending VERSION message\n");
+      return;
+   }
+
+   Generator *gen = Generator::getDefaultGenerator();
+   GeneratorBlueGene *gen_bg = static_cast<GeneratorBlueGene *>(gen);
+
+   pthrd_printf("Waiting for VERSION_MSG_ACK\n");
+   BG_Debugger_Msg *ack_msg = NULL;
+   ArchEvent *ae = NULL;
+   
+   ae = gen_bg->getEvent(true);
+   ack_msg = static_cast<ArchEventBlueGene *>(ae)->getMsg();
+   assert(ack_msg->header.messageType == VERSION_MSG_ACK);
+
+   protocol_version = (int) ack_msg->dataArea.VERSION_MSG_ACK.protocolVersion;
+   phys_procs = (int) ack_msg->dataArea.VERSION_MSG_ACK.numPhysicalProcessors;
+   virt_procs = (int) ack_msg->dataArea.VERSION_MSG_ACK.numLogicalProcessors;
+   
+   pthrd_printf("Debug interface version = %d, phys_procs = %d, virt_procs = %d",
+                protocol_version, phys_procs, virt_procs);
+   protocol = protocol_version;
+   phys = phys_procs;
+   virt = virt_procs;
+
+   delete ae;
+}
+
 int_process::ThreadControlMode bg_process::plat_getThreadControlMode() const
 {
    return int_process::NoLWPControl;
+}
+
+SymbolReaderFactory *bg_process::plat_defaultSymReader()
+{
+  static SymbolReaderFactory *symreader_factory = NULL;
+  if (symreader_factory)
+    return symreader_factory;
+
+  symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
+  return symreader_factory;
+}
+
+unsigned bg_process::plat_getRecommendedReadSize()
+{
+   return 2048;
 }
 
 bool ProcessPool::LWPIDsAreUnique()
@@ -663,14 +852,61 @@ bg_thread::~bg_thread()
 
 bool bg_thread::plat_cont()
 {
-   assert(0); //No individual thread control
-   return false;
+   /*int_threadPool *tp = llproc()->threadPool();
+   if (tp->initialThread() != this) {
+      pthrd_printf("Not continuing non-initial thread\n");
+      return true;
+      }*/
+   
+   Dyninst::LWP lwp_to_cont = getLWP();
+   int sig_to_cont = 0;
+
+/*   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
+      bg_thread *thr = static_cast<bg_thread *>(*i);
+      if (thr->continueSig_) {
+         lwp_to_cont = thr->getLWP();
+         sig_to_cont = thr->continueSig_;
+         thr->continueSig_ = 0;
+         break;
+      }
+      }*/
+   lwp_to_cont = getLWP();
+   sig_to_cont = continueSig_;
+   continueSig_ = 0;
+   
+   pthrd_printf("Sending CONTINUE with signal %d to %d/%d\n", 
+                sig_to_cont, llproc()->getPid(), lwp_to_cont);
+   BG_Debugger_Msg msg(CONTINUE, llproc()->getPid(), lwp_to_cont, continueSig_, 0);
+   msg.dataArea.CONTINUE.signal = continueSig_;
+   msg.header.dataLength = sizeof(msg.dataArea.CONTINUE);
+   
+   bool result = BGSend(msg);
+   if (!result) {
+      perr_printf("Error sending CONTINUE message\n");
+      return false;
+   }
+
+   return true;
 }
 
 bool bg_thread::plat_stop()
 {
-   assert(0); //No individual thread control
-   return false;
+/*   if (llproc()->threadPool()->initialThread() != this) {
+      pthrd_printf("Not stopping non-initial thread\n");
+      return true;
+      }*/
+
+   BG_Debugger_Msg msg(KILL, llproc()->getPid(), getLWP(), 0, 0);
+   msg.dataArea.KILL.signal = SIGSTOP;
+   msg.header.dataLength = sizeof(msg.dataArea.KILL);
+   
+   pthrd_printf("Sending sigstop KILL msg to %d/%d\n", llproc()->getPid(), getLWP());
+   bool result = BGSend(msg);
+   if (!result) {
+      perr_printf("Error sending STOP message\n");
+      return false;
+   }
+   return true;
 }
 
 bool bg_thread::plat_getAllRegisters(int_registerPool &)
@@ -699,10 +935,221 @@ bool bg_thread::plat_setRegister(Dyninst::MachRegister, Dyninst::MachRegisterVal
 
 bool bg_thread::attach()
 {
-   assert(0);
-   return false;
+   pthrd_printf("Setting states for %d/%d to stopped\n", llproc()->getPid(), getLWP());
+   setGeneratorState(stopped);
+   setHandlerState(stopped);
+   setInternalState(stopped);
+   setUserState(stopped);
+   return true;
 }
 
+HandleBGAttached::HandleBGAttached() : 
+   Handler("BGAttach")
+{
+}
+
+HandleBGAttached::~HandleBGAttached()
+{
+}
+
+void HandleBGAttached::getEventTypesHandled(vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::Any, EventType::IntBootstrap));
+   etypes.push_back(EventType(EventType::Any, EventType::Bootstrap));
+}
+
+int HandleBGAttached::getPriority() const
+{
+   return Handler::PrePlatformPriority;
+}
+
+/**
+ * This handler takes a lot of different types of events: GET_PROCESS_DATA_ACK,
+ * THREAD_ALIVE_ACK, SIGNAL_ENCOUNTERED (as IntBootstrap) and Bootstrap.  For
+ * each event it walks the process through its initialization.  This could
+ * have been many different handlers,  but I thought things would be clearer
+ * in one bigger initialization object.
+ * 
+ * Logic during bootstrap is as follows:
+ *  1. ATTACH_ACK triggers a KILL with SIGSTOP
+ *  2. SIGNAL_ENCOUNTERED triggers either:
+ *    protocol < 2: ready state
+ *    protocol == 2 || protocol == 3: THREAD_ALIVE to each thread
+ *    protocol >= 4: GET_PROCESS_DATA
+ *  3. All ACKs from stage 2 triggers ready state
+ *  4. Ready state triggers Bootstrap event
+ *  5. Bootstrap event removes generator block
+ *
+ * Having the generator block on keeps us recieving events while the process
+ * is stopped after stage 2.
+ **/
+Handler::handler_ret_t HandleBGAttached::handleEvent(Event::ptr ev)
+{
+   int_process *p = ev->getProcess()->llproc();
+   bg_process *proc = dynamic_cast<bg_process *>(p);
+
+   int protocol, phys, virt;
+   bg_process::getVersionInfo(protocol, phys, virt);
+
+   if (proc->bootstrap_state == bg_process::bg_init) {
+      pthrd_printf("Process %d ATTACHED, forcing gen block\n", 
+                   proc->getPid());
+      ProcPool()->condvar()->lock();
+      //Keep the generator blocking on this process through-out the
+      //init process.
+      proc->setForceGeneratorBlock(true);
+      ProcPool()->condvar()->signal();
+      ProcPool()->condvar()->unlock();
+
+      pthrd_printf("Sending SIGSTOP to %d as part of init\n", proc->getPid());
+      bg_thread *thrd = static_cast<bg_thread *>(proc->threadPool()->initialThread());
+      thrd->plat_stop();
+      
+      proc->bootstrap_state = bg_process::bg_stop_pending;
+   }
+   else if (proc->bootstrap_state == bg_process::bg_stop_pending) {
+      pthrd_printf("Recieved SIGSTOP ack during process initialization\n");
+      proc->bootstrap_state = bg_process::bg_stopped;
+   }
+   if (proc->bootstrap_state == bg_process::bg_stopped) {
+      pthrd_printf("Handling thread query during attach\n");
+      
+      if (protocol < 2) {
+         //BGL, no threads so skip messages.
+         pthrd_printf("Moving process to ready state on BG/L\n");
+         proc->bootstrap_state = bg_process::bg_ready;
+      }
+      else if (protocol == 2 || protocol == 3) {
+         for (unsigned i=1; i<=8; i++) {
+            //Iterate over the max number of threads, and check which of them
+            // are alive.  
+            BG_Debugger_Msg msg(THREAD_ALIVE, proc->getPid(), i, 0, 0);
+            msg.dataArea.THREAD_ALIVE.tid = i;
+            msg.header.dataLength = sizeof(msg.dataArea.THREAD_ALIVE);
+            
+            pthrd_printf("Sending THREAD_ALIVE msg to %d/%d\n", proc->getPid(), i);
+            bool result = BGSend(msg);
+            if (!result) {
+               perr_printf("Error sending THREAD_ALIVE message\n");
+               return Handler::ret_error;
+            }
+            proc->pending_thread_alives++;
+         }
+         proc->bootstrap_state = bg_process::bg_thread_pending;
+      }
+      else if (protocol >= 4) {
+         //Protocol 4 made things a little easier with a simple command
+         // to get all threads.
+         BG_Debugger_Msg msg(GET_PROCESS_DATA, proc->getPid(), 0, 0, 0);
+         msg.header.dataLength = sizeof(msg.dataArea.GET_PROCESS_DATA);
+         
+         pthrd_printf("Sending GET_PROCESS_DATA msg to %d/%d\n", proc->getPid(), 0);
+         bool result = BGSend(msg);
+         if (!result) {
+            perr_printf("Error sending GET_PROCESS_DATA message\n");
+            return Handler::ret_error;
+         }
+         proc->bootstrap_state = bg_process::bg_thread_pending;
+      }
+   }
+   else if (proc->bootstrap_state == bg_process::bg_thread_pending) {
+      EventIntBootstrap::ptr evib = ev->getEventIntBootstrap();
+      assert(protocol >= 2);
+      if (protocol == 2 || protocol == 3) {
+         //Collect all THREAD_ALIVE_ACKS to see how many threads exist.  No
+         // mmoving on until we've found all the threads.
+         thrd_alive_ack_t *thread_status = (thrd_alive_ack_t *) evib->getData();
+         pthrd_printf("Recieved THREAD_ALIVE_ACK.  %d/%d is %s\n", proc->getPid(),
+                      thread_status->lwp_id, thread_status->alive ? "alive" : "dead");
+         proc->pending_thread_alives--;
+         assert(proc->pending_thread_alives >= 0);
+         if (thread_status->alive) {
+            proc->initial_lwps.insert(thread_status->lwp_id);
+         }
+         if (!proc->pending_thread_alives) {
+            pthrd_printf("Recieved last THREAD_ALIVE_ACK, moving bootstrap state\n");
+            proc->bootstrap_state = bg_process::bg_ready;
+         }
+         else {
+            pthrd_printf("Still have %d THREAD_ALIVE_ACK messages\n", 
+                         proc->pending_thread_alives);
+         }
+      }
+      else if (protocol >= 4) {
+         //We got the PROCESS_DATA_ACK, which contains all the threads.
+         pthrd_printf("Got PROCESS_DATA_ACK on %d\n", proc->getPid());
+         BG_Debugger_Msg::DataArea *proc_data_ack = (BG_Debugger_Msg::DataArea *) evib->getData();
+         proc->has_procdata = true;
+         proc->procdata = proc_data_ack->GET_PROCESS_DATA_ACK.processData;
+         for (unsigned i=0; i<proc_data_ack->GET_PROCESS_DATA_ACK.numThreads; i++) {
+            int lwp_id = proc_data_ack->GET_PROCESS_DATA_ACK.threadIDS[i];
+            pthrd_printf("Adding %d/%d to pending LWPs\n", proc->getPid(), lwp_id); 
+            proc->initial_lwps.insert(lwp_id);
+         }
+         proc->bootstrap_state = bg_process::bg_ready;
+      }
+      if (evib->getData()) {
+         free(evib->getData());
+         evib->setData(NULL);
+      }
+   }
+   if (proc->bootstrap_state == bg_process::bg_ready) {
+      pthrd_printf("Process %d is ready, faking bootstrap event\n", proc->getPid());
+
+      //Create and enqueue the faked bootstrap event
+      int_thread *thrd = proc->threadPool()->initialThread();
+      EventBootstrap::ptr new_ev = EventBootstrap::ptr(new EventBootstrap());
+      new_ev->setProcess(proc->proc());
+      new_ev->setThread(thrd->thread());
+      new_ev->setSyncType(Event::async);
+      
+      mbox()->enqueue(new_ev, true);
+      proc->bootstrap_state = bg_process::bg_bootstrapped;
+   }
+   else if (proc->bootstrap_state == bg_process::bg_bootstrapped)
+   {
+      pthrd_printf("Handling BG level bootstrap event on %d--removing generator block\n",
+                   proc->getPid());
+
+      ProcPool()->condvar()->lock();
+      //No longer need to keep the generator blocked on this process
+      proc->setForceGeneratorBlock(false);
+      ProcPool()->condvar()->signal();
+      ProcPool()->condvar()->unlock();
+
+      proc->bootstrap_state = bg_process::bg_done;
+   }
+
+   return Handler::ret_success;
+}
+
+HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
+{
+   static bool initialized = false;
+   static HandleBGAttached *bg_attach = NULL;
+   if (!initialized) {
+      bg_attach = new HandleBGAttached();
+      initialized = true;
+   }
+   hpool->addHandler(bg_attach);
+   return hpool;
+}
+
+static bool BGSend(BG_Debugger_Msg &msg)
+{
+   static Mutex send_lock;
+   pthrd_printf("Sending message to CIOD\n");
+   if (dyninst_debug_proccontrol) {
+      BG_Debugger_Msg::dump(msg, pctrl_err_out);
+   }
+   send_lock.lock();
+   bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
+   send_lock.unlock();
+   if (!result) {
+      perr_printf("Failure sending message on BG pipe\n");
+   }
+   return result;
+}
 
 static bool bg_fdHasData(int fd) {
    int result;
@@ -768,8 +1215,217 @@ static Dyninst::MachRegister BGGPRToDynReg(BG_GPR_Num_t bg_regnum)
    }
 }
 
-HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
+static std::set<int> live_pids;
+
+static void register_for_crash(int pid)
 {
-   return hpool;
+   static bool init = false;
+   pthrd_printf("registering %d for crash handling\n", pid);
+   if (!init) {
+      //signal(SIGSEGV, on_crash);
+      //signal(SIGBUS, on_crash);
+      //signal(SIGABRT, on_crash);
+      init = true;
+   }
+   
+   live_pids.insert(pid);
 }
 
+static void remove_for_crash(int pid)
+{
+   std::set<int>::iterator i = live_pids.find(pid);
+   if (i != live_pids.end())
+      live_pids.erase(i);
+}
+
+static void on_crash(int sig)
+{
+   pthrd_printf("Crashed with %d... Trying to detach and clean\n", sig);
+   for (std::set<int>::iterator i = live_pids.begin(); i != live_pids.end(); i++) 
+   {
+      BG_Debugger_Msg cont_msg(CONTINUE, *i, 0, 0, 0);
+      cont_msg.dataArea.CONTINUE.signal = 0;
+      cont_msg.header.dataLength = sizeof(cont_msg.dataArea.CONTINUE);
+      BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, cont_msg);
+   }
+   for (std::set<int>::iterator i = live_pids.begin(); i != live_pids.end(); i++) 
+   {
+      BG_Debugger_Msg detach_msg(DETACH, *i, 0, 0, 0);
+      detach_msg.header.dataLength = sizeof(detach_msg.dataArea.DETACH);
+      BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, detach_msg);
+   }
+   if (bg_process::protocol_version >= 3) {
+      BG_Debugger_Msg end_msg(END_DEBUG, 0, 0, 0, 0);
+      end_msg.header.dataLength = sizeof(end_msg.dataArea.END_DEBUG);
+      BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, end_msg);
+   }
+
+   //signal(SIGSEGV, SIG_DFL);
+   //signal(SIGBUS, SIG_DFL);
+   //signal(SIGABRT, SIG_DFL);
+
+   *((int *) 0x0) = 0x0; //Crash here
+}
+
+DebugPortReader *DebugPortReader::me = NULL;
+DebugPortReader::DebugPortReader() :
+   shutdown(false),
+   initialized(false),
+   fd(-1)
+{
+   init_lock.lock();
+   pfd[0] = -1;
+   pfd[1] = -1;
+   assert(!me);
+   me = this;
+   debug_port_thread.spawn(mainLoopWrapper, NULL);
+   while (!initialized && !shutdown) {
+      init_lock.wait();
+   }
+}
+
+DebugPortReader::~DebugPortReader()
+{
+   if (initialized && !shutdown) {
+      char c = 'x';
+      shutdown = true;
+      write(pfd[1], &c, 1);
+      debug_port_thread.join();
+   }
+   if (fd != -1)
+      close(fd);
+   if (pfd[0] != -1) {
+      close(pfd[0]);
+   }   
+   if (pfd[1] != -1) {
+      close(pfd[1]);
+   }
+}
+
+void DebugPortReader::mainLoopWrapper(void *)
+{
+   me->mainLoop();
+}
+
+extern void setXThread(long t);
+
+bool DebugPortReader::init()
+{
+   bool ret = false;
+   int result;
+   struct sockaddr_in addr;
+   struct in_addr iaddr;
+
+   init_lock.lock();
+
+   setXThread(DThread::self());
+
+   result = pipe(pfd);
+   if (result == -1) {
+      pthrd_printf("Error creating shutdown pipe: %s\n", strerror(errno));
+      goto done;
+   }
+
+   fd = socket(PF_INET, SOCK_STREAM, 0);
+   if (fd == -1) {
+      pthrd_printf("Unable to create client for debug port: %s\n", strerror(errno));
+      goto done;
+   }
+
+   inet_aton("127.0.0.1", &iaddr);
+   bzero(&addr, sizeof(addr));
+   addr.sin_family = AF_INET;
+   addr.sin_port = htons(port_num);
+   addr.sin_addr = iaddr;
+
+   pthrd_printf("Connecting to CIOD port\n");
+   result = connect(fd, (struct sockaddr *) &addr, sizeof(addr));
+   if (result == -1) {
+      pthrd_printf("Error connection to CIOD port: %s\n", strerror(errno));
+      goto done;
+   }
+
+   ret = true;
+  done:
+   initialized = true;
+
+   init_lock.broadcast();
+   init_lock.unlock();
+   return ret;
+}
+
+void DebugPortReader::mainLoop()
+{
+   char buffer[4097];
+   bool bresult = init();
+   if (!bresult) {
+      pthrd_printf("Could not read from CIOD port\n");
+      fd = -1;
+   }
+
+   while (!shutdown) {
+      fd_set readfds;
+      FD_ZERO(&readfds);
+      int nfds = 0;
+      if (fd != -1) {
+         FD_SET(fd, &readfds);
+         nfds = fd;
+      }
+      if (pfd[0] != -1) {
+         FD_SET(pfd[0], &readfds);
+         if (pfd[0] > nfds)
+            nfds = pfd[0];
+      }
+      nfds++;
+
+      struct timeval timeout;
+      timeout.tv_sec = 10;
+      timeout.tv_usec = 0;
+
+      int result = select(nfds, &readfds, NULL, NULL, &timeout);
+      if (result == -1) {
+         int error = errno;
+         if (error == EINTR)
+            continue;
+         perr_printf("Error calling select: %s\n", strerror(error));
+         shutdown = true;
+         break;
+      }
+
+      struct stat buf;
+      int sresult = stat("/g/g22/legendre/pc_force_shutdown", &buf);
+      if (sresult == 0) {
+         pthrd_printf("Forcing shutdown\n");
+         on_crash(0);
+      }
+      if (fd == -1 || !FD_ISSET(fd, &readfds)) {
+         continue;
+      }
+      ssize_t r = recv(fd, buffer, 4096, MSG_DONTWAIT);
+      if (r == -1) {
+         int error = errno;
+         if (error == EINTR)
+            continue;
+         perr_printf("Error calling recv on CIOD fd: %s\n", strerror(error));
+         break;
+      }
+      if (r == 0) {
+         perr_printf("CIOD shutdown the debug port\n");
+         break;
+      }
+      buffer[r] = '\0';
+      unsigned start = 0;
+      for (unsigned i=0; i< (unsigned) r; i++) {
+         if (buffer[i] == '\n') {
+            buffer[i] = '\0';
+            pclean_printf("[CIOD] - %s\n", buffer+start);
+            start = i+1;
+         }
+         else if (buffer[i] == '\0') {
+            pclean_printf("[CIOD] - %s...\n", buffer+start);
+            start = i+1;
+         }
+      }
+   }
+   shutdown = true;
+}

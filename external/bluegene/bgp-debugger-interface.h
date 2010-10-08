@@ -1017,7 +1017,7 @@ class BG_Debugger_Msg {
 
     static void dump( BG_Debugger_Msg &msg, FILE *outfile )
     {
-       fprintf( outfile, "\n" );
+       //fprintf( outfile, "\n" );
 
        fprintf( outfile, "Type: %s from node: %d, return code: %d\n",
                 getMessageName(msg.header.messageType),

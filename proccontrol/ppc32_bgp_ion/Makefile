@@ -9,7 +9,9 @@
 
 include ../../make.config 
 
-TARGET = libpcontrol.so
+STATIC_COMPS = true
+
+TARGET = libpcontrol.a
 
 LDFLAGS     += $(LIBDIR) -lcommon
 

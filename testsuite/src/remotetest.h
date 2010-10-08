@@ -44,6 +44,7 @@ class RemoteComponentFE : public ComponentTester {
    RemoteComponentFE(std::string n, Connection *c);
   public:
    static RemoteComponentFE *createRemoteComponentFE(std::string n, Connection *c);
+   static bool setenv_on_remote(std::string var, std::string str, Connection *c);
    virtual ~RemoteComponentFE();
 
    virtual test_results_t program_setup(ParameterDict &params);
@@ -53,6 +54,7 @@ class RemoteComponentFE : public ComponentTester {
    virtual test_results_t test_setup(TestInfo *test, ParameterDict &params);
    virtual test_results_t test_teardown(TestInfo *test, ParameterDict &params);
    virtual std::string getLastErrorMsg();
+
 };
 
 class RemoteTestFE : public TestMutator {
@@ -89,6 +91,7 @@ class RemoteBE {
 
    void loadTest(char *message);
    void loadModule(char *message);
+   void setenv_on_local(char *message);
   public:
    RemoteBE(std::vector<RunGroup *> &g, Connection *c);
    virtual ~RemoteBE();

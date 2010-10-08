@@ -68,6 +68,7 @@ class Generator
    virtual bool initialize() = 0;
    virtual bool canFastHandle() = 0;
    virtual ArchEvent *getEvent(bool block) = 0;
+   virtual bool plat_skipGeneratorBlock();
    //  Implemented by MT or ST
    virtual bool processWait(bool block) = 0;
 };

@@ -88,6 +88,7 @@ sysv_process::~sysv_process()
 
 PCProcReader::PCProcReader(sysv_process *proc_) :
    proc(proc_),
+   async_read_align(proc->plat_getRecommendedReadSize()),
    pending_addr(0)
 {
 }
@@ -221,7 +222,7 @@ bool PCProcReader::ReadMemAsync(Address addr, void *buffer, unsigned size)
              end_offset - start_offset);
    }
    //All reads completed succfully.  Phew.
-   pthrd_printf("Returning success from read\n");
+   //pthrd_printf("Returning success from read at %lx, size %u\n", addr, size);
    static_cast<sysv_process *>(proc)->translator->setReadAbort(false);
    return true;
 }

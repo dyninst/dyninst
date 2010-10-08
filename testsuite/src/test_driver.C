@@ -77,6 +77,7 @@ int testsRun = 0;
 FILE *outlog = NULL;
 FILE *errlog = NULL;
 char *logfilename;
+FILE *debug_log;
 
 int gargc;
 char **gargv;
@@ -397,7 +398,7 @@ bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
    driver_args.push_back("--tool=memcheck");
    driver_args.push_back("testdriver_be");
 #else
-   string driver_exec = "testdriver_be";
+   string driver_exec = "/g/g22/legendre/pc_bluegene/dyninst/testsuite/ppc32_bgp_ion/testdriver_be";
 #endif
    char port_s[32];
    snprintf(port_s, 32, "%d", port);
@@ -522,6 +523,7 @@ void executeGroup(RunGroup *group,
    for (int i = 0; i < group->tests.size(); i++) {
       reportTestResult(group, group->tests[i]);
    }
+
 }
 
 void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups, 
@@ -630,6 +632,10 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
             break;
          }
       }
+
+      
+      fprintf(stderr, "[%s:%u] - Remove here\n", __FILE__, __LINE__);
+      break;
    }
 
    unsigned final_group = i;
@@ -782,6 +788,8 @@ bool testsRemain(std::vector<RunGroup *> &groups)
 int main(int argc, char *argv[]) {
    updateSearchPaths(argv[0]);
    setOutput(new StdOutputDriver(NULL));
+
+   debug_log = stderr;
 
    ParameterDict params;
    int result = parseArgs(argc, argv, params);

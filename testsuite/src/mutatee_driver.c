@@ -49,6 +49,11 @@
 #include <sys/time.h>
 #endif
 
+#define os_bluegene_test
+#if defined(os_bluegene_test)
+#include <mpi.h>
+#endif
+
 #ifdef __cplusplus
 int mutateeCplusplus = 1;
 #else
@@ -165,7 +170,10 @@ static int useAttach = FALSE;
 void handleAttach()
 {
    char ch = 'T';
-#if !defined(os_windows_test)
+#if defined(os_bluegene_test)
+   return;
+   struct timeval start_time;
+#elif !defined(os_windows_test)
    struct timeval start_time;
    if (!useAttach) return;
    if (write(pfd, &ch, sizeof(char)) != sizeof(char)) {
@@ -223,9 +231,6 @@ void handleAttach()
 
    flushOutputLog();
 
-   fprintf(stderr, "[%s:%u] - Bad here\n", __FILE__, __LINE__);
-   return;
-   
    while (!checkIfAttached()) {
 #if !defined(os_windows_test)
       struct timeval present_time;
@@ -257,6 +262,11 @@ int main(int iargc, char *argv[])
    int print_labels = FALSE;
    int has_pidfile = 0;
 
+   fprintf(stderr, "Mutatee args: ");
+   for (i=0; i<iargc; i++) {
+      fprintf(stderr, "%s ", argv[i]);
+   }
+   fprintf(stderr, "\n");
 
    gargc = argc;
    gargv = argv;
@@ -374,7 +384,6 @@ int main(int iargc, char *argv[])
       outlog = stdout;
       errlog = stderr;
    }
-
    if ((argc==1) || debugPrint)
       logstatus("Mutatee %s [%s]:\"%s\"\n", argv[0],
                 mutateeCplusplus ? "C++" : "C", Builder_id);
@@ -386,7 +395,6 @@ int main(int iargc, char *argv[])
    } else {
       setUseAttach(FALSE);
    }
-
    /* 
     * Run the tests and keep track of return values in case of test failure
     */
@@ -411,7 +419,6 @@ int main(int iargc, char *argv[])
       flushOutputLog();
       flushErrorLog();
    }
-
    if (allTestsPassed) {
       logstatus("All tests passed.\n");
       retval = 0;
@@ -433,6 +440,5 @@ int main(int iargc, char *argv[])
    if ((outlog != NULL) && (outlog != stdout)) {
       fclose(outlog);
    }
-
    exit( retval);
 }

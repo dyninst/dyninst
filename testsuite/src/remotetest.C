@@ -39,8 +39,8 @@
 
 using namespace std;
 
-//#define debug_printf(format, args...) fprintf(stderr, format, ## args)
-#define debug_printf(format, args...) 
+extern FILE *debug_log;
+#define debug_printf(str, args...) do { if (debug_log) { fprintf(debug_log, str, args); fflush(debug_log); } } while (0)
 
 #define PARAMETER_ARG "PARAMETER"
 #define TESTRESULT_ARG "TESTRESULT"
@@ -70,7 +70,21 @@ using namespace std;
 #define LOG "LOG"
 #define EXIT_MSG "EXIT"
 
+#define SETENV "SETENV"
+
 static char *my_strtok(char *str, const char *delim);
+
+#define my_assert(bval) do { if (!(bval)) { if (debug_log) { fprintf(debug_log, "[%s:%u] - Failed my_assert: %s\n", __FILE__, __LINE__, #bval); fflush(debug_log); } *((int *) 0x0) = 0x0; } } while (0)
+static void crash_ifnot()
+{
+   *((int *) 0x0) = 0x0;
+}
+
+static void crash_ifnot(bool b)
+{
+   if (!b)
+      *((int *) 0x0) = 0x0;
+}
 
 class MessageBuffer
 {
@@ -163,7 +177,7 @@ static char *decodeParams(ParameterDict &params, char *buffer)
 {
    params.clear();
    char *cur = my_strtok(buffer, ":");
-   assert(strcmp(cur, PARAMETER_ARG) == 0);
+   my_assert(strcmp(cur, PARAMETER_ARG) == 0);
    
    for (;;) {
       cur = my_strtok(NULL, ":");
@@ -198,7 +212,7 @@ static char *decodeParams(ParameterDict &params, char *buffer)
             break;
          }
          default:
-            assert(0);
+            my_assert(0);
       }
       free(key);
       free(type);
@@ -218,7 +232,7 @@ static void encodeTestResult(test_results_t res, MessageBuffer &buf)
 static char *decodeTestResult(test_results_t &res, char *buffer)
 {
    char *cur = my_strtok(buffer, ":;");
-   assert(strcmp(cur, TESTRESULT_ARG) == 0);
+   my_assert(strcmp(cur, TESTRESULT_ARG) == 0);
    cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", (int *) &res);
    return strchr(buffer, ';')+1;
@@ -234,7 +248,7 @@ static void encodeInt(int i, MessageBuffer &buf)
 static char *decodeInt(int i, char *buffer)
 {
    char *cur = my_strtok(buffer, ":;");
-   assert(strcmp(cur, INT_ARG) == 0);
+   my_assert(strcmp(cur, INT_ARG) == 0);
    cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", (int *) &i);
    return strchr(buffer, ';')+1;
@@ -253,14 +267,14 @@ static void encodeString(std::string str, MessageBuffer &buf)
 
 static char *decodeString(std::string &str, char *buffer)
 {
-   assert(strncmp(buffer, STRING_ARG, strlen(STRING_ARG)) == 0);
+   my_assert(strncmp(buffer, STRING_ARG, strlen(STRING_ARG)) == 0);
    char *cur = my_strtok(buffer, ";");
    cur += strlen(STRING_ARG)+1;
    if (strncmp(cur, "<EMPTY>", strlen("<EMPTY>")) == 0)
       str = std::string();
    else
       str = std::string(cur);
-   return strchr(cur, ';')+1;
+   return strchr(buffer, ';')+1;
 }
 
 static void encodeBool(bool b, MessageBuffer &buf)
@@ -275,7 +289,7 @@ static void encodeBool(bool b, MessageBuffer &buf)
 static char *decodeBool(bool &b, char *buffer)
 {
    char *cur = my_strtok(buffer, ":;");
-   assert(strcmp(cur, BOOL_ARG) == 0);
+   my_assert(strcmp(cur, BOOL_ARG) == 0);
    cur = my_strtok(NULL, ":;");
    string str = std::string(cur);
    if (str == "true") {
@@ -285,7 +299,7 @@ static char *decodeBool(bool &b, char *buffer)
       b = false;
    }
    else {
-      assert(0);
+      my_assert(0);
    }
    return strchr(buffer, ';')+1;
 }
@@ -300,11 +314,11 @@ static void encodeGroup(RunGroup *group, MessageBuffer &buf)
 static char *decodeGroup(RunGroup* &group, vector<RunGroup *> &groups, char *buffer)
 {
    char *cur = my_strtok(buffer, ":;");
-   assert(strcmp(cur, GROUP_ARG) == 0);
+   my_assert(strcmp(cur, GROUP_ARG) == 0);
    int group_index;
    cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", &group_index);
-   assert(group_index >= 0 && group_index < groups.size());
+   my_assert(group_index >= 0 && group_index < groups.size());
    group = groups[group_index];
    return strchr(buffer, ';')+1;
 }
@@ -319,17 +333,17 @@ static void encodeTest(TestInfo *test, MessageBuffer &buf)
 static char *decodeTest(TestInfo* &test, vector<RunGroup *> &groups, char *buffer)
 {
    char *cur = my_strtok(buffer, ":;");
-   assert(strcmp(cur, TESTINFO_ARG) == 0);
+   my_assert(strcmp(cur, TESTINFO_ARG) == 0);
    int group_index, test_index;
 
    cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", &group_index);
-   assert(group_index >= 0 && group_index < groups.size());
+   my_assert(group_index >= 0 && group_index < groups.size());
    RunGroup *group = groups[group_index];
 
    cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", &test_index);
-   assert(test_index >= 0 && test_index < group->tests.size());
+   my_assert(test_index >= 0 && test_index < group->tests.size());
    
    test = group->tests[test_index];
 
@@ -519,6 +533,11 @@ RemoteComponentFE::~RemoteComponentFE()
 
 RemoteComponentFE *RemoteComponentFE::createRemoteComponentFE(std::string n, Connection *c)
 {
+   char *libpath = getenv("LD_LIBRARY_PATH");
+   if (libpath) {
+      setenv_on_remote(std::string("LD_LIBRARY_PATH"), std::string(libpath), c);
+   }
+      
    MessageBuffer buf;
    load_header(buf, LOAD_COMPONENT);
 
@@ -535,6 +554,23 @@ RemoteComponentFE *RemoteComponentFE::createRemoteComponentFE(std::string n, Con
    
    RemoteComponentFE *cmp = new RemoteComponentFE(n, c);
    return cmp;
+}
+
+bool RemoteComponentFE::setenv_on_remote(std::string var, std::string str, Connection *c)
+{
+   MessageBuffer buf;
+   load_header(buf, SETENV);
+   
+   encodeString(var, buf);
+   encodeString(str, buf);
+
+   c->send_message(buf);
+   char *result_msg;
+   c->recv_return(result_msg);
+   
+   bool result;
+   decodeBool(result, result_msg);
+   return result;
 }
 
 bool RemoteTestFE::hasCustomExecutionPath()
@@ -668,7 +704,8 @@ void RemoteBE::dispatch(char *message)
       dispatchExit(message_begin);
    }
    else {
-      assert(0);
+      debug_printf("Failed to dispatch message %s\n", message);
+      my_assert(0);
    }
 }
 
@@ -680,8 +717,11 @@ void RemoteBE::dispatchLoad(char *message)
    else if (strncmp(message, LOAD_COMPONENT, strlen(LOAD_COMPONENT)) == 0) {
       loadModule(message);
    }
+   else if (strncmp(message, SETENV, strlen(SETENV)) == 0) {
+      setenv_on_local(message);
+   }
    else {
-      assert(0);
+      my_assert(0);
    }
 }
 
@@ -727,7 +767,7 @@ void RemoteBE::dispatchTest(char *message)
       encodeTestResult(res, buffer);
    }
    else 
-      assert(0);
+      my_assert(0);
 
    connection->send_message(buffer);
 
@@ -744,7 +784,7 @@ void RemoteBE::dispatchComp(char *message)
    args = strchr(args, ';')+1;
    
    ComponentTester *compbe = getComponentBE(name);
-   assert(compbe);
+   my_assert(compbe);
 
    MessageBuffer buffer;
    return_header(buffer);
@@ -797,6 +837,25 @@ void RemoteBE::dispatchComp(char *message)
    free(name);
 }
 
+void RemoteBE::setenv_on_local(char *message)
+{
+   my_assert(strncmp(message, SETENV, strlen(SETENV)) == 0);
+   char *args = strchr(message, ';')+1;
+
+   std::string var, str;
+   args = decodeString(var, args);
+   args = decodeString(str, args);
+   
+   debug_printf("Setting local environment %s = %s\n", var.c_str(), str.c_str());
+   int result = setenv(var.c_str(), str.c_str(), 1);
+   
+   bool bresult = (result == 0);
+   MessageBuffer buffer;
+   return_header(buffer);
+   encodeBool(bresult, buffer);
+   connection->send_message(buffer);
+}
+
 void RemoteBE::dispatchExit(char *message)
 {
    exit(0);
@@ -815,7 +874,7 @@ static std::string getLocalComponentName(std::string modname)
 ComponentTester *RemoteBE::getComponentBE(std::string name)
 {
    map<string, ComponentTester *>::iterator i = nameToComponent.find(getLocalComponentName(name));
-   assert(i != nameToComponent.end());
+   my_assert(i != nameToComponent.end());
    return i->second;
 }
 
@@ -823,12 +882,12 @@ TestMutator *RemoteBE::getTestBE(int group_index, int test_index)
 {
    map<pair<int, int>, TestMutator *>::iterator i;
    i = testToMutator.find(pair<int, int>(group_index, test_index));
-   assert(i != testToMutator.end());
+   my_assert(i != testToMutator.end());
    return i->second;
 }
 
 void RemoteBE::loadModule(char *message) {
-   assert(strncmp(message, LOAD_COMPONENT, strlen(LOAD_COMPONENT)) == 0);
+   my_assert(strncmp(message, LOAD_COMPONENT, strlen(LOAD_COMPONENT)) == 0);
    char *args = strchr(message, ';')+1;
 
    bool error = false;
@@ -852,7 +911,7 @@ void RemoteBE::loadModule(char *message) {
             }
             if (!comp)
                comp = group->mod->tester;
-            assert(comp == group->mod->tester);
+            my_assert(comp == group->mod->tester);
          }
       }
       nameToComponent[modname] = comp;
@@ -866,7 +925,7 @@ void RemoteBE::loadModule(char *message) {
 }
 
 void RemoteBE::loadTest(char *message) {
-   assert(strncmp(message, LOAD_TEST, strlen(LOAD_TEST)) == 0);
+   my_assert(strncmp(message, LOAD_TEST, strlen(LOAD_TEST)) == 0);
    char *args = strchr(message, ';')+1;
    
    TestInfo *test;
@@ -900,22 +959,22 @@ void RemoteBE::loadTest(char *message) {
 
 void RemoteOutputDriver::startNewTest(std::map<std::string, std::string> &, TestInfo *, RunGroup *)
 {
-   assert(0); //Not expected to be called from BE
+   my_assert(0); //Not expected to be called from BE
 }
 
 void RemoteOutputDriver::redirectStream(TestOutputStream stream, const char * filename)
 {
-   assert(0); //Not expected to be called from BE   
+   my_assert(0); //Not expected to be called from BE   
 }
 
 void RemoteOutputDriver::logResult(test_results_t result, int stage)
 {
-   assert(0); //Not expected to be called from BE
+   my_assert(0); //Not expected to be called from BE
 }
 
 void RemoteOutputDriver::logCrash(std::string testname)
 {
-   assert(0); //Not expected to be called from BE
+   my_assert(0); //Not expected to be called from BE
 }
 
 void RemoteOutputDriver::log(TestOutputStream stream, const char *fmt, ...)
@@ -942,7 +1001,7 @@ void RemoteOutputDriver::vlog(TestOutputStream stream, const char *fmt, va_list 
 
 void RemoteOutputDriver::finalizeOutput()
 {
-   assert(0); //Not expected to be called from BE
+   my_assert(0); //Not expected to be called from BE
 }
 
 RemoteOutputDriver::RemoteOutputDriver(Connection *c) :
@@ -1029,12 +1088,12 @@ bool Connection::send_message(MessageBuffer &buffer)
    buffer.add("\0", 1);
 
    uint32_t msg_size_unenc = buffer.get_buffer_size();
-   assert(msg_size_unenc == strlen(buffer.get_buffer())+1);
+   my_assert(msg_size_unenc == strlen(buffer.get_buffer())+1);
    uint32_t msg_size = htonl(msg_size_unenc);
 
    ssize_t result = send(fd, &msg_size, sizeof(uint32_t), 0);
    if (result == -1) {
-      debug_printf("Error sending data count on socket\n");
+      debug_printf("[%s:%u] - Error sending data count on socket\n", __FILE__, __LINE__);
       return false;
    }
    debug_printf("[%d] - Send size of %lu, (encoded 0x%lx)\n", 
@@ -1042,7 +1101,7 @@ bool Connection::send_message(MessageBuffer &buffer)
    
    result = send(fd, buffer.get_buffer(), msg_size_unenc, 0);
    if (result == -1) {
-     debug_printf("Error sending raw data on socket\n");
+     debug_printf("[%s:%u] - Error sending raw data on socket\n", __FILE__, __LINE__);
       return false;
    }
   debug_printf("[%d] - Sent buffer %s\n", getpid(), buffer.get_buffer());
@@ -1077,7 +1136,7 @@ bool Connection::recv_message(char* &buffer)
    debug_printf("[%d] - Recv size of %lu, (encoded 0x%lx, result = %d)\n", 
                 getpid(), (unsigned long) msg_size, enc_msg_size, (int) result);
 
-   assert(msg_size < (1024*1024)); //No message over 1MB--should be plenty
+   my_assert(msg_size < (1024*1024)); //No message over 1MB--should be plenty
    
    if (msg_size == 0) {
       //Other side hung up.
@@ -1097,7 +1156,7 @@ bool Connection::recv_message(char* &buffer)
 
    result = recv(fd, cur_buffer, msg_size, MSG_WAITALL);
    if (result == -1) {
-     debug_printf("Error receiving data on socket\n");
+     debug_printf("[%s:%u] - Error receiving data on socket\n", __FILE__, __LINE__);
       return false;
    }
 
@@ -1128,11 +1187,11 @@ bool Connection::waitForAvailData(int sock, int timeout_s, bool &sock_error)
       if (result == -1 && errno == EINTR) 
          continue;
       else if (result == -1) {
-        debug_printf("Error selecting to accept connections\n");
+         debug_printf("[%s:%u] - Error selecting to accept connections\n", __FILE__, __LINE__);
          return false;
       }
       else if (result == 0) {
-        debug_printf("Timeout accepting connections\n");
+        debug_printf("[%s:%u] - Timeout accepting connections\n", __FILE__, __LINE__);
          return false;
       }
       else if (result >= 1) {
@@ -1147,10 +1206,10 @@ bool Connection::waitForAvailData(int sock, int timeout_s, bool &sock_error)
             sock_error = true;
             return false;
          }
-         assert(0);
+         my_assert(0);
       }      
       else {
-         assert(0);
+         my_assert(0);
       }
    }
 }
@@ -1164,11 +1223,11 @@ bool Connection::server_accept()
    if (!waitForAvailData(sockfd, accept_timeout, sock_error))
       return false;
        
-   assert(fd == -1); //One connection at a time.
+   my_assert(fd == -1); //One connection at a time.
 
    fd = accept(sockfd, (sockaddr *) &addr, &socklen);
    if (fd == -1) {
-     debug_printf("Error accepting connection\n");
+     debug_printf("[%s:%u] - Error accepting connection\n", __FILE__, __LINE__);
       return false;
    }
    
@@ -1177,38 +1236,52 @@ bool Connection::server_accept()
 
 bool Connection::client_connect()
 {
-   assert(has_hostport);
+   debug_printf("Trying client_connect to %s:%d\n", hostname.c_str(), port);
+
+   my_assert(has_hostport);
    fd = socket(PF_INET, SOCK_STREAM, 0);
    if (fd == -1) {
-     debug_printf("Unable to create client socket: %s\n", strerror(errno));
+      debug_printf("Unable to create client socket: %s\n", strerror(errno));
       return false;
    }
 
+   debug_printf("Trying to get hostname for %s\n", hostname.c_str());
    struct hostent *host = gethostbyname2(hostname.c_str(), AF_INET);
    if (!host) {
-     debug_printf("Error looking up hostname %s\n", hostname.c_str());
+      debug_printf("Error looking up hostname %s\n", hostname.c_str());
       return false;
    }
-   assert(host->h_addrtype = AF_INET);
+   my_assert(host->h_addrtype = AF_INET);
 
+   debug_printf("Got an %d addresses for hostname %s\n", host->h_length, hostname.c_str());
    if (host->h_length == 0) {
-     debug_printf("No addresses with hostname %s\n", hostname.c_str());
+      debug_printf("No addresses with hostname %s\n", hostname.c_str());
       return false;
-   }
-   
+   } 
 
    struct sockaddr_in addr;
+   struct in_addr iaddr;
+   bzero(&addr, sizeof(addr));
    socklen_t socklen = sizeof(struct sockaddr_in);
    addr.sin_family = AF_INET;
-   addr.sin_port = port;
-   addr.sin_addr.s_addr = *(u_int32_t *) (host->h_addr_list[0]);
+   addr.sin_port = htons(port); 
+   //iaddr.s_addr = htonl(*((int *) host->h_addr_list[0]));
+   inet_aton("172.16.126.164", &iaddr);
+   addr.sin_addr = iaddr;
+   debug_printf("Connecting to %d.%d.%d.%d:%d\n", 
+                (int) (((char *) &addr.sin_addr)[0]),
+                (int) (((char *) &addr.sin_addr)[1]),
+                (int) (((char *) &addr.sin_addr)[2]),
+                (int) (((char *) &addr.sin_addr)[3]),
+                (int) addr.sin_port);
 
    int result = connect(fd, (struct sockaddr *) &addr, socklen);
    if (result == -1) {
-     debug_printf("Error connecting to server\n");
+      debug_printf("[%s:%u] - Error connecting to server\n", __FILE__, __LINE__);
       return false;
    }
 
+   debug_printf("Successfully connected to %s\n", hostname.c_str());
    return true;
 }
 
@@ -1217,7 +1290,7 @@ bool Connection::server_setup(string &hostname_, int &port_)
    if (has_hostport) {
       hostname_ = hostname;
       port_ = port;
-      assert(sockfd != -1);
+      my_assert(sockfd != -1);
       return true;
    }
 
@@ -1249,14 +1322,14 @@ bool Connection::server_setup(string &hostname_, int &port_)
 
    result = getsockname(sockfd, (sockaddr *) &addr, &socklen);
    if (result != 0) {
-     debug_printf("Unable to getsockname on socket\n");
+      debug_printf("[%s:%u] - Unable to getsockname on socket\n", __FILE__, __LINE__);
       return false;
    }
 
    char name_buffer[1024];
    result = gethostname(name_buffer, 1024);
    if (result != 0) {
-     debug_printf("Unable to get hostname\n");
+     debug_printf("[%s:%u] - Unable to get hostname\n", __FILE__, __LINE__);
       return false;
    }
 

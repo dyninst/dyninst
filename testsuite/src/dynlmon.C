@@ -141,6 +141,20 @@ static char **getLaunchParams(char *executable, char *args[], const char *num)
       new_args[3+i] = args[i];
    return new_args;
 }
+#elif defined(os_bg_test)
+static char **getLaunchParams(char *executable, char *args[], const char *num)
+{
+   
+   int count = 0;
+   for (char **counter = args; *counter; counter++, count++);
+   char **new_args = (char **) malloc(sizeof(char *) * (count+5));
+   new_args[0] = "mpirun";
+   new_args[1] = "-np";
+   new_args[2] = const_cast<char *>(num);
+   for (unsigned i=0; i<=count; i++)
+      new_args[3+i] = args[i];
+   return new_args;
+}
 #endif
 
 #else

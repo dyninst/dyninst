@@ -3,6 +3,7 @@
 #include "communication.h"
 #include "MutateeStart.h"
 #include "SymReader.h"
+#include "PCErrors.h"
 #include <cstdio>
 #include <cerrno>
 #include <cstring>
@@ -138,7 +139,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
        **/
       assert(factory);
       SymReader *reader = NULL;
-      Dyninst::Offset sym_offset = 0;
+      Dyninst::Offset sym_offset = 0, pid_sym_offset = 0;
       char socket_buffer[4096];
       memset(socket_buffer, 0, 4096);
       snprintf(socket_buffer, 4095, "%s %s", param["socket_type"]->getString(), 
@@ -173,9 +174,19 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
                continue;
             }
             sym_offset = reader->getSymbolOffset(sym);
+
+            sym = reader->getSymbolByName(std::string("expected_pid"));
+            if (reader->isValidSymbol(sym))
+            {
+               pid_sym_offset = reader->getSymbolOffset(sym);
+            }
          }
          Dyninst::Address addr = exec_addr + sym_offset;
          proc->writeMemory(addr, socket_buffer, socket_buffer_len+1);            
+         if (pid_sym_offset) {
+            int expected_pid = (int) proc->getPid();
+            proc->writeMemory(exec_addr + pid_sym_offset, &expected_pid, sizeof(int));
+         }
       }
    }
 
@@ -213,14 +224,21 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
    {
       for (std::vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
          Process::ptr proc = *j;
+#if !defined(os_bg_test)
          if (proc->threads().size() != num_threads+1) {
             logerror("Process has incorrect number of threads");
             error = true;
          }
+#else
+         if (proc->threads().size() < num_threads+1) {
+            logerror("Process has incorrect number of threads");
+            error = true;
+         }
+#endif
       }
    }
 
-   if (group->state == STOPPED) {
+   if (group->state != RUNNING) {
       std::map<Process::ptr, int>::iterator i;
       for (i = process_socks.begin(); i != process_socks.end(); i++) {
          bool result = i->first->stopProc();
@@ -250,6 +268,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 
 test_results_t ProcControlComponent::program_setup(ParameterDict &params)
 {
+   Dyninst::ProcControlAPI::setDebug(true);
    return PASSED;
 }
 
@@ -461,7 +480,7 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
             *attach_sock = socks[i];
             return true;
          }
-         logerror("Recieved unexpected PID in handshake message\n");
+         logerror("Recieved unexpected PID (%d) in handshake message\n", msg.pid);
          return false;
       }
       process_socks[j->second] = socks[i];

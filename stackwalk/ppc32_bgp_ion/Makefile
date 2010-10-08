@@ -29,6 +29,15 @@ CFLAGS  += -m32 $(MYFLAGS)
 CXXFLAGS += -m32 $(MYFLAGS)
 AS             = as
 
+ifdef LIBELF_INC
+MYFLAGS += -I$(LIBELF_INC)
+endif
+ifdef LIBELF_LIB
+LDFLAGS += -L$(LIBELF_LIB) -lelf
+else
+LDFLAGS += -lelf
+endif
+
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 

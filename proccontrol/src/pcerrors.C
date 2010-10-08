@@ -12,6 +12,7 @@ static err_t last_error;
 static const char *last_error_msg;
 static signed long gen_thrd_id;
 static signed long handler_thrd_id;
+static signed long x_thrd_id;
 
 FILE *pctrl_err_out;
 bool dyninst_debug_proccontrol = false;
@@ -23,6 +24,8 @@ const char *thrdName()
       return "G";
    else if (self == handler_thrd_id) 
       return "H";
+   else if (self == x_thrd_id)
+      return "X";
    else
       return "U";
 }
@@ -35,6 +38,11 @@ void setGeneratorThread(long t)
 void setHandlerThread(long t)
 {
    handler_thrd_id = t;
+}
+
+void setXThread(long t)
+{
+   x_thrd_id = t;
 }
 
 bool isGeneratorThread() {
@@ -88,3 +96,4 @@ public:
    }
 };
 static init_debug_channel idc;
+
