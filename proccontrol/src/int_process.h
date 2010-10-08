@@ -154,6 +154,7 @@ class int_process
    void updateSyncState(Event::ptr ev, bool gen);
    virtual Dyninst::Architecture getTargetArch() = 0;
    virtual unsigned getTargetPageSize() = 0;
+   virtual unsigned plat_getRecommendedReadSize();
    virtual Dyninst::Address mallocExecMemory(unsigned size);
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size) = 0;
    virtual void freeExecMemory(Dyninst::Address addr);

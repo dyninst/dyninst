@@ -172,6 +172,7 @@ std::string EventType::name() const
       STR_CASE(Async);
       STR_CASE(ChangePCStop);
       STR_CASE(Detached);
+      STR_CASE(IntBootstrap);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -595,6 +596,26 @@ EventDetached::~EventDetached()
 {
 }
 
+EventIntBootstrap::EventIntBootstrap(void *d) :
+   Event(EventType(EventType::None, EventType::IntBootstrap)),
+   data(d)
+{
+}
+
+EventIntBootstrap::~EventIntBootstrap()
+{
+}
+
+void *EventIntBootstrap::getData() const
+{
+   return data;
+}
+
+void EventIntBootstrap::setData(void *d)
+{
+   data = d;
+}
+
 #define DEFN_EVENT_CAST(NAME, TYPE) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE) return NAME::ptr();  \
@@ -634,3 +655,4 @@ DEFN_EVENT_CAST(EventRPCInternal, RPCInternal)
 DEFN_EVENT_CAST(EventAsync, Async)
 DEFN_EVENT_CAST(EventChangePCStop, ChangePCStop)
 DEFN_EVENT_CAST(EventDetached, Detached)
+DEFN_EVENT_CAST(EventIntBootstrap, IntBootstrap)

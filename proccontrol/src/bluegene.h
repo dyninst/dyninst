@@ -49,7 +49,29 @@
 
 class bg_process : public sysv_process, public ppc_process
 {
+   friend class HandleBGAttached;
+   friend class DecoderBlueGene;
+  private:
+   enum {
+      bg_init,
+      bg_stop_pending,
+      bg_stopped,
+      bg_thread_pending,
+      bg_ready,
+      bg_bootstrapped,
+      bg_done
+   } bootstrap_state;
+
+   bool has_procdata;
+   DebuggerInterface::BG_Process_Data_t procdata;
+   
+   signed int pending_thread_alives;
+   std::set<int> initial_lwps;
   public:
+   static int protocol_version;
+   static int phys_procs;
+   static int virt_procs;
+
    bg_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f);
    bg_process(Dyninst::PID pid_, int_process *proc_);
 
@@ -74,6 +96,7 @@ class bg_process : public sysv_process, public ppc_process
                               Dyninst::Address remote, size_t size);
 
    virtual bool needIndividualThreadAttach();
+   virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
    virtual Dyninst::Architecture getTargetArch();
    virtual unsigned getTargetPageSize();
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
@@ -87,6 +110,10 @@ class bg_process : public sysv_process, public ppc_process
    virtual bool plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp);
 
    int_process::ThreadControlMode plat_getThreadControlMode() const;
+   virtual SymbolReaderFactory *plat_defaultSymReader();
+   unsigned plat_getRecommendedReadSize();
+
+   static void getVersionInfo(int &protocol, int &phys, int &virt);
 };
 
 class bg_thread : public int_thread
@@ -117,8 +144,29 @@ class ArchEventBlueGene : public ArchEvent
    DebuggerInterface::BG_Debugger_Msg *getMsg() const;
 };
 
+class DebugPortReader
+{
+  private:
+   static const int port_num = 7201;
+   DThread debug_port_thread;
+   static DebugPortReader *me;
+   bool shutdown;
+   bool initialized;
+   int fd;
+   int pfd[2];
+   CondVar init_lock;
+   bool init();
+  public:
+   DebugPortReader();
+   ~DebugPortReader();
+   static void mainLoopWrapper(void *);
+   void mainLoop();
+};
+
 class GeneratorBlueGene : public GeneratorMT
 {
+  private:
+   DebugPortReader *dpr;
   public:
    GeneratorBlueGene();
    virtual ~GeneratorBlueGene();
@@ -126,6 +174,7 @@ class GeneratorBlueGene : public GeneratorMT
    virtual bool initialize();
    virtual bool canFastHandle();
    virtual ArchEvent *getEvent(bool block);
+   virtual bool plat_skipGeneratorBlock();
 };
 
 class DecoderBlueGene : public Decoder
@@ -147,4 +196,20 @@ class DecoderBlueGene : public Decoder
    Event::ptr decodeAsyncAck(response::ptr resp);
 };
 
+
+class HandleBGAttached : public Handler
+{
+  public:
+   HandleBGAttached();
+   ~HandleBGAttached();
+
+   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual int getPriority() const;
+};
+
+struct thrd_alive_ack_t {
+   int lwp_id;
+   bool alive;
+};
 #endif

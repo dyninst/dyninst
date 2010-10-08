@@ -57,7 +57,7 @@ private:
    bool handleAsyncCompletion();
    void clearBuffers();
 
-   static const unsigned long async_read_align = 0x1000;
+   unsigned long async_read_align;
    std::map<Dyninst::Address, char *> async_read_buffers;
    mem_response::ptr memresult;
    Dyninst::Address pending_addr;

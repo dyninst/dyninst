@@ -775,7 +775,7 @@ bool linux_thread::plat_cont()
       setLastError(err_internal, "Low-level continue failed\n");
       return false;
    }
-
+   continueSig_ = 0;
    return true;
 }
 

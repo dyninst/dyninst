@@ -119,7 +119,8 @@ class responses_pending {
    response::ptr getResponse(unsigned int id);
    bool waitFor(response::ptr resp);
    void addResponse(response::ptr r, int_process *proc);
-   bool hasAsyncPending();
+   void noteResponse();
+   bool hasAsyncPending(bool ev_only = true);
 
    void lock();
    void unlock();

@@ -69,12 +69,56 @@ LIBS_LIBTESTSUITE = -ldl
 
 STRIP_SO = strip -g
 
-LAUNCHMON_FE_LINK = -L$(LAUNCHMON_LIB) -lmonfeapi
+MYLINK_FLAGS += -Wl,-E
+ifdef LIBDWARF_STATIC
+ifdef LIBDWARF_LIB
+MYLINK_FLAGS += -L$(LIBDWARF_LIB) -Wl,-rpath -Wl,$(LIBDWARF_LIB)
+endif
+MYLINK_FLAGS += -Wl,--whole-archive -ldwarf -Wl,--no-whole-archive
+endif
+
+ifdef LIBELF_STATIC
+ifdef LIBELF_LIB
+MYLINK_FLAGS += -L$(LIBELF_LIB)
+endif
+MYLINK_FLAGS += -Wl,--whole-archive -lelf -Wl,--no-whole-archive
+else
+ifdef LIBELF_LIB
+MYLINK_FLAGS += -L$(LIBELF_LIB)
+endif
+ifdef LIBDWARF_STATIC
+MYLINK_FLAGS += -lelf
+endif
+endif
+
+ifdef USE_LIBERTY
+MYLINK_FLAGS += -Wl,--whole-archive -liberty -Wl,--no-whole-archive
+endif
+
+MYLINK_FLAGS += -Wl,-rpath -Wl,$(LIBRARY_DEST)
+
+ifdef LAUNCHMON_LIB
+LAUNCHMON_FE_LINK = -L$(LAUNCHMON_LIB) -lmonfeapi $(MYLINK_FLAGS)
+LAUNCHMON_BE_LINK = -Wl,-rpath -Wl,$(LAUNCHMON_LIB) -L$(LAUNCHMON_LIB) -lmonbeapi $(MYLINK_FLAGS)
+else
+LAUNCHMON_FE_LINK = -lmonfeapi
+LAUNCHMON_BE_LINK = -lmonbeapi
+endif
+ifdef LAUNCHMON_INC
 LAUNCHMON_FE_CFLAGS = -I$(LAUNCHMON_INC) -Dcap_launchmon
-LAUNCHMON_BE_LINK = -L$(LAUNCHMON_LIB) -lmonbeapi
 LAUNCHMON_BE_CFLAGS = -I$(LAUNCHMON_INC) -Dcap_launchmon
+else
+LAUNCHMON_FE_CFLAGS = -Dcap_launchmon
+LAUNCHMON_BE_CFLAGS = -Dcap_launchmon
+endif
+
+proccontrol_MUTATOR_FLAGS += -Wl,-rpath -Wl,$(PWD)
 
 include ../make.module.tmpl
+
+libtestproccontrol.so: $(LIBRARY_DEST)/libpcontrol.a $(LIBRARY_DEST)/libstackwalk.a
+
+TESTLIB_CC = powerpc-bgp-linux-gcc
 
 CFLAGS   += -D_XOPEN_SOURCE=600
 CXXFLAGS += -D_XOPEN_SOURCE=600

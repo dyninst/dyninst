@@ -395,6 +395,7 @@ void HandleBootstrap::getEventTypesHandled(std::vector<EventType> &etypes)
 Handler::handler_ret_t HandleBootstrap::handleEvent(Event::ptr ev)
 {
    int_process *p = ev->getProcess()->llproc();
+
    assert(p);
    pthrd_printf("Handling bootstrap for %d\n", p->getPid());
 
