@@ -1802,15 +1802,13 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
 bool AddressSpace::patchCode(CodeMover::Ptr cm,
 			     SpringboardBuilder::Ptr spb) {
 
-  const SpringboardMap &p = cm->sBoardMap(this);
+   SpringboardMap &p = cm->sBoardMap(this);
   
   // A SpringboardMap has three priority sets: Required, Suggested, and
   // NotRequired. We care about:
   // Required: all
   // Suggested: function entries
   // NotRequired: none
-
-
 
   std::list<codeGen> patches;
 

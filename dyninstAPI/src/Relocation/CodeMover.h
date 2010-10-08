@@ -114,7 +114,8 @@ class CodeMover {
   // so they can refer to blocks other than those
   // they are transforming.
   const TraceMap &blockMap() const { return blockMap_; }
-  const SpringboardMap &sBoardMap(AddressSpace *as);
+  // Not const so we can add others to it. 
+  SpringboardMap &sBoardMap(AddressSpace *as);
   // Not const so that Transformers can modify it...
   PriorityMap &priorityMap();
 

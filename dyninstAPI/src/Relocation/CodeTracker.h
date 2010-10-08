@@ -60,7 +60,7 @@ class TrackerElement {
     instrumentation
   } type_t;
   TrackerElement(Address o, int_function *f) :
-  orig_(o), reloc_(0), size_(0), func_(f) {assert(o);};
+  orig_(o), reloc_(0), size_(0), func_(f) {assert(o); assert(f);};
   virtual ~TrackerElement() {};
 
   virtual Address relocToOrig(Address reloc) const = 0;

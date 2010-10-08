@@ -62,8 +62,19 @@ bool PCSensitiveTransformer::postprocess(TraceList &) {
 int DEBUG_hi = -1;
 int DEBUG_lo = -1;
 
+bool PCSensitiveTransformer::analysisRequired(TraceList::iterator &b_iter) {
+   if ( (*b_iter)->func()->obj()->parse_img()->codeObject()->defensiveMode())
+      return true;
+   return false;
+}
+
 bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
-  const bblInstance *bbl = (*b_iter)->bbl();
+   if (!analysisRequired(b_iter)) {
+      return adhoc.processTrace(b_iter);
+   }
+
+
+   const bblInstance *bbl = (*b_iter)->bbl();
   
   // Can be true if we see an instrumentation block...
   if (!bbl) return true;
@@ -142,27 +153,34 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
 
     if (exceptionSensitive(addr+insn->size(), bbl)) {
       extSens = true;
-      //cerr << "Sensitive by exception @ " << hex << addr << dec << endl;
+      cerr << "Sensitive by exception @ " << hex << addr << dec << endl;
     }
 
     for (AssignList::iterator a_iter = sensitiveAssignments.begin();
 	 a_iter != sensitiveAssignments.end(); ++a_iter) {
-      //cerr << "Forward slice from " << (*a_iter)->format() << " in func " << bbl->func()->prettyName() << endl;
+
+       cerr << "Forward slice from " << (*a_iter)->format() << " in func " << bbl->func()->prettyName() << endl;
       
       Graph::Ptr slice = forwardSlice(*a_iter,
 				      bbl->block()->llb(),
 				      bbl->func()->ifunc());
       if (!slice) {
-	// Safe assumption, as always
+         // Safe assumption, as always
+         cerr << "\t slice failed!" << endl;
 	extSens = true;
 	intSens = true;
       }
       else {
 	if (!determineSensitivity(slice, intSens, extSens)) {
 	  // Analysis failed for some reason... go conservative
+           cerr << "\t sensitivity analysis failed!" << endl;
 	  intSens = true;
 	  extSens = true;
 	}
+        else {
+           cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / " 
+                << (extSens ? "extSens" : "") << endl;
+        }
       }
 
       if (intSens && extSens) {

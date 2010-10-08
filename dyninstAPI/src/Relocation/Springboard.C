@@ -67,8 +67,36 @@ SpringboardBuilder::Ptr SpringboardBuilder::createFunc(FuncSet::const_iterator b
   return ret;
 }
 
+bool SpringboardBuilder::generateInt(std::list<codeGen> &springboards,
+                                     SpringboardMap &input,
+                                     Priority p) {
+   for (SpringboardMap::iterator iter = input.begin(p); 
+        iter != input.end(p); ++iter) {
+      const SpringboardReq &req = iter->second;
+      
+      switch (generateSpringboard(springboards, req)) {
+         case Failed:
+            if (p == Required) {
+               return false;
+            }
+            // Otherwise we didn't need it anyway.
+            break;
+         case MultiNeeded:
+            // We want to try some multi-step jump to get to the relocated code. 
+            // We have to wait until all the primaries are done first; effectively
+            // a greedy algorithm of largest first.
+            multis_.push_back(req);
+            break;
+         case Succeeded:
+            // Good!
+            break;
+      }
+   }
+   return true;
+}
+
 bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
-				  const SpringboardMap &input) {
+				  SpringboardMap &input) {
   // The SpringboardMap gives us a, well, mapping of desired
   // from: addresses and to: addresses. Our job is to create a series
   // of branches (and traps) that will take care of that. 
@@ -76,40 +104,26 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
   // Currently we use a greedy algorithm rather than some sort of scheduling thing.
   // It's a heck of a lot easier that way. 
 
-  for (SpringboardMap::const_iterator iter = input.begin(); 
-       iter != input.end(); ++iter) {
-    const SpringboardReq &req = iter->second;
-
-    switch (generateSpringboard(springboards, req)) {
-    case Failed:
+   //cerr << "Generating required springboards" << endl;
+   if (!generateInt(springboards, input, Required))
       return false;
-      break;
-    case MultiNeeded:
-      // We want to try some multi-step jump to get to the relocated code. 
-      // We have to wait until all the primaries are done first; effectively
-      // a greedy algorithm of largest first.
-      multis_.push_back(req);
-      break;
-    case Succeeded:
-      // Good!
-      break;
-    }
-  }
+   //cerr << "Generating suggested springboards" << endl;
+   if (!generateInt(springboards, input, Suggested))
+      return false;
 
-  bool ret = true;
-
-  for (std::list<SpringboardReq>::iterator iter = multis_.begin();
-       iter != multis_.end(); ++iter) {
-    if (!generateMultiSpringboard(springboards, *iter)) {
-      if (iter->priority == Required) {
-	cerr << "Failed required springboard @ " << hex << iter->from << endl;
-	ret = false;
+   bool ret = true;
+   
+   for (std::list<SpringboardReq>::iterator iter = multis_.begin();
+        iter != multis_.end(); ++iter) {
+      if (!generateMultiSpringboard(springboards, *iter)) {
+         if (iter->priority == Required) {
+            //cerr << "Failed required springboard @ " << hex << iter->from << endl;
+            ret = false;
+         }
+         // Otherwise it was a suggested, no worries.
       }
-      // Otherwise it was a suggested, no worries.
-    }
-  }
-  
-  return ret;
+   }
+   return ret;
 }
 
 template <typename TraceIter>
@@ -139,11 +153,11 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
     // Errr...
     // Fine. Let's do the trap thing. 
     usedTrap = true;
+    //cerr << "Generating trap from " << hex << r.from << " to " << r.to << dec << endl;
     generateTrap(r.from, r.to, gen);
     if (conflict(r.from, r.from + gen.used())) {
-      cerr << "Error: conflict in range " << hex << r.from << ".." << r.from+gen.used() << dec << endl;
-      debugRanges();
-      assert(0);
+       // Someone could already be there; omit the trap. 
+       return Failed;
     }
   }
 
@@ -232,59 +246,56 @@ bool SpringboardBuilder::conflict(Address start, Address end) {
   // Technically, end can be the start of another range; therefore
   // we search for (end-1).
 
-  Address startLB, startUB, endLB, endUB;
-  int tmp1, tmp2;
-
-
-  if (!validRanges_.find(start, startLB, startUB, tmp1)) {
-     relocation_cerr << "\t Conflict: unable to find entry for start" << endl;
-    return true;
-  }
-  if (!validRanges_.find(end-1, endLB, endUB, tmp2)) {
-     relocation_cerr << "\t Conflict: unable to find entry for end" << endl;
-    return true;
-  }
-  
-  if (tmp1 == Allocated) {
-     relocation_cerr << "\t Conflict: start is allocated" << endl;
-    return true;
-  }
-  if (tmp2 == Allocated) {
-     relocation_cerr << "\t Conflict: end is allocated" << endl;
-    return true;
-  }
-  if (startLB != endLB) {
-     relocation_cerr << "\t Possible conflict: span of multiple blocks" << endl;
-    return true;
-  }
-  return false;
+   Address working = start;
+   Address LB, UB;
+   int state;
+   //cerr << "Conflict called for " << hex << start << "->" << end << dec << endl;
+   
+   while (end > working) {
+      if (!validRanges_.find(working, LB, UB, state)) {
+         //cerr << "\t Conflict: unable to find entry for " << hex << working << dec << endl;
+         return true;
+      }
+      
+      if (state == Allocated) {
+         //cerr << "\t Starting range already allocated, ret conflict" << endl;
+         return true;
+      }
+      working = UB;
+   }
+   //cerr << "\t No conflict, we're good" << endl;
+   return false;
 }
 
 
 void SpringboardBuilder::registerBranch(Address start, Address end) {
-  // We require branches to be smaller than their containing block.
-  // Let's get the validRange containing this branch, split it, and
-  // put it back in.
-  int tmp;
-  Address lb, ub;
-  if (!validRanges_.find(start, lb, ub, tmp)) {
-     assert(0);
-  }
+   // Remove the valid ranges for everything between start and end, using much the 
+   // same logic as above.
+   Address working = start;
+   Address LB = 0, UB = 0;
+   Address lb, ub;
 
-  assert(tmp != Allocated);
+   while (end > working) {
+      int state;
+      validRanges_.find(working, lb, ub, state);
+      validRanges_.remove(lb);
+      
+      if (LB == 0) LB = lb;
+      working = ub;
+   }
+   if (UB == 0) UB = ub;
 
-  validRanges_.remove(lb);
-  // Add three ranges:
-  // [lb..start] as true
-  // [start..end] as false
-  // [end..ub] as true
-  if (lb < start) {
-    validRanges_.insert(lb, start, curRange_++);
-  }
-  validRanges_.insert(start, end, Allocated);
-  if (ub > end) {
-    validRanges_.insert(end, ub, curRange_++);
-  }
+   // Add three ranges:
+   // [lb..start] as true
+   // [start..end] as false
+   // [end..ub] as true
+   if (LB < start) {
+      validRanges_.insert(LB, start, curRange_++);
+   }
+   validRanges_.insert(start, end, Allocated);
+   if (UB > end) {
+      validRanges_.insert(end, UB, curRange_++);
+   }
 }
 
 void SpringboardBuilder::debugRanges() {
@@ -292,7 +303,7 @@ void SpringboardBuilder::debugRanges() {
   validRanges_.elements(elements);
   cerr << "Range debug: " << endl;
   for (unsigned i = 0; i < elements.size(); ++i) {
-    cerr << "\t" << hex << elements[i].first.first
+     cerr << "\t" << hex << elements[i].first.first
 	 << ".." << elements[i].first.second << dec
 	 << " -> " << elements[i].second << endl;
   }
