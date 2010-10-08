@@ -1472,7 +1472,11 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
             assert(0);
         }
         // advance to the next block
-        cur = cObj->findNextBlock(parseReg,cur->end());
+        Address prevEnd = cur->end();
+        cur = cObj->findBlockByEntry(parseReg,prevEnd);
+        if (!cur) {
+            cur = cObj->findNextBlock(parseReg,prevEnd);
+        }
     }
 
     if (reg->isDirty()) {
@@ -1625,7 +1629,7 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
 
             // advance cur to last adjacent block and set prevEndAddr 
             prevEndAddr = cur->end();
-            Block *ftBlock = cObj->findBlockByEntry(parseReg,cur->end());
+            Block *ftBlock = cObj->findBlockByEntry(parseReg,prevEndAddr);
             while (ftBlock) {
                 cur = ftBlock;
                 prevEndAddr = cur->end();
@@ -1647,62 +1651,6 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
             assert(0);// read failed
         }
     }
-
-#if 0
-    codeRange *range=NULL;
-    for(unsigned rIdx=0; rIdx < regions.size(); rIdx++) {
-        Region *curReg = regions[rIdx];
-        void *mappedPtr = curReg->getPtrToRawData();
-        Address regStart = base + curReg->getRegionAddr();
-
-        // find the first code range in the region
-        if ( ! codeRangesByAddr_.find(regStart,range) &&
-             ! codeRangesByAddr_.successor(regStart,range) ) 
-        {
-            range = NULL;
-        }
-        Address prevEndAddr = regStart;
-        while ( range != NULL && 
-                range->get_address() < regStart + curReg->getDiskSize() )
-        {
-            // if there's a gap between previous and current range
-            if (prevEndAddr < range->get_address()) {
-                // update the mapped file
-                if (!proc()->readDataSpace(
-                        (void*)(prevEndAddr), 
-                        range->get_address() - prevEndAddr, 
-                        (void*)((Address)mappedPtr 
-                            + prevEndAddr 
-                            - regStart), 
-                        true)) 
-                {
-                    assert(0);//read failed
-                }
-            }
-            // set prevEndOffset
-            prevEndAddr = range->get_address() + range->get_size();
-            // advance to the next region
-            if ( ! codeRangesByAddr_.successor(prevEndAddr, 
-                                               range) ) 
-            {
-               range = NULL;
-            }
-        }
-        // read in from prevEndAddr to the end of the region
-		// (will read in whole region if there are no ranges in the region)
-        if (prevEndAddr < regStart + curReg->getDiskSize() &&
-            !proc()->readDataSpace(
-                (void*)prevEndAddr, 
-                regStart + curReg->getDiskSize() - prevEndAddr, 
-                (void*)((Address)mappedPtr 
-                    + prevEndAddr 
-                    - regStart), 
-                true)) 
-        {
-            assert(0);// read failed
-        }
-    }
-#endif
 }
 
 // checks if update is needed by looking in the gap between the previous 
