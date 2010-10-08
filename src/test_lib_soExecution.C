@@ -71,28 +71,38 @@ TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data)
   return retval;
 }
 
+extern FILE *debug_log;
+
+#include <link.h>
+
 static void* openSO(const char *soname)
 {
-   char *fullSoPath;
+   char *fullSoPath = NULL;
 #if defined(os_aix_test)
    fullSoPath = searchPath(getenv("LIBPATH"), soname);
 #else
    fullSoPath = searchPath(getenv("LD_LIBRARY_PATH"), soname);
 #endif
+   if (debug_log) {
+      fprintf(debug_log, "openSO: search path is %s\n", fullSoPath ? fullSoPath : "NULL");
+   }
    
    if (!fullSoPath) {
-      return NULL; // Error
+      fullSoPath = strdup(soname);
    }
    void *handle = dlopen(fullSoPath, RTLD_NOW);
    ::free(fullSoPath);
    if (!handle) {
-       fprintf(stderr, "Error opening lib: %s\n", soname);
-      fprintf(stderr, "%s\n", dlerror());
+      fprintf(stderr, "Error opening lib: %s\n", soname);
+      char *errmsg = dlerror();
+      fprintf(stderr, "%s\n", errmsg);
+      if (debug_log) {
+         fprintf(debug_log, "Error calling dlopen: %s\n", errmsg ? errmsg : "NULL");
+      }
       return NULL; //Error
    }
    return handle;
 }
-
 int setupMutatorsForRunGroup(RunGroup *group)
 {
   int tests_found = 0;

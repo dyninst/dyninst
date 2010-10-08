@@ -112,12 +112,17 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
    return 0;
 }
 
+volatile int expected_pid;
 int handshakeWithServer()
 {
    int result;
    send_pid spid;
    spid.code = SEND_PID_CODE;
+#if defined(os_bg_test)
+   spid.pid = expected_pid;
+#else
    spid.pid = getpid();
+#endif
 
    result = send_message((unsigned char *) &spid, sizeof(send_pid));
    if (result == -1) {
@@ -210,8 +215,14 @@ static char *socket_name = NULL;
 
 void getSocketInfo()
 {
+   int count = 0;
    while (MutatorSocket[0] == '\0') {
-      sched_yield();      
+      sleep(1);
+      count++;
+      if (count == 30) {
+         fprintf(stderr, "Mutatee timeout\n");
+         exit(-1);
+      }
    }
    socket_type = MutatorSocket;
    char *space = strchr(MutatorSocket, ' ');

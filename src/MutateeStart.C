@@ -358,6 +358,27 @@ bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_
    return true;
 }
 
+#if defined(os_bg_test)
+#include <set>
+
+static std::set<int> spawned_mutatees;
+void registerMutatee(std::string mutatee_string)
+{
+   int pid;
+   sscanf(mutatee_string.c_str(), "%d", &pid);
+   assert(pid != -1);
+   spawned_mutatees.insert(pid);
+}
+
+int getMutateePid(RunGroup *)
+{
+   std::set<int>::iterator i = spawned_mutatees.begin();
+   assert(i != spawned_mutatees.end());
+   int pid = *i;
+   spawned_mutatees.erase(i);
+   return pid;
+}
+#else
 static std::map<int, std::string> spawned_mutatees;
 void registerMutatee(std::string mutatee_string)
 {
@@ -371,17 +392,23 @@ void registerMutatee(std::string mutatee_string)
 int getMutateePid(RunGroup *group)
 {
    std::map<int, std::string>::iterator i = spawned_mutatees.find(group->index);
+   if (i == spawned_mutatees.end()) {
+      i = spawned_mutatees.find(-1);
+      if (i != spawned_mutatees.end()) {
+         spawned_mutatees.erase(i);
+      }
+   }
    if (i == spawned_mutatees.end())
       return 0;
 
    std::string mutatee_string = i->second;
    int group_id;
    int pid;
-   sscanf(mutatee_string.c_str(), "%d:%d", &group_id, &pid);
-   assert(group->index == group_id);
+
+   assert(group->index == group_id || group_id == -1);
 
    return pid;
 }
-
+#endif
 
    

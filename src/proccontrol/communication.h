@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#if defined(os_linux_test)
+#if defined(os_linux_test) || defined(os_bg)
 #include <stdint.h>
 #endif
 
