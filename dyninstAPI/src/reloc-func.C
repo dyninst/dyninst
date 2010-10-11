@@ -34,7 +34,6 @@
 #include "common/h/Types.h"
 
 #include "function.h"
-#include "process.h"
 
 #include "debug.h"
 #include "codeRange.h"
@@ -49,6 +48,8 @@
 #endif
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/patch.h"
+#include "dyninstAPI/src/addressSpace.h"
+#include "dyninstAPI/src/pcProcess.h"
 
 #include "arch-forward-decl.h" // instruction
 

@@ -38,7 +38,6 @@
 #include <string.h>
 #include <string>
 
-#include "process.h"
 #include "instPoint.h"
 #include "instP.h"
 #include "function.h"
@@ -53,8 +52,10 @@
 #include "BPatch_libInfo.h"
 #include "BPatch_statement.h"
 #include "BPatch_function.h" 
+#include "debug.h"
 
 #include "addressSpace.h"
+#include "pcProcess.h"
 
 #include "parseAPI/h/CodeSource.h"
 

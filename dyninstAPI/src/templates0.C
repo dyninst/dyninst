@@ -84,8 +84,8 @@ template class  pdvector<pdvector<std::string> >;
 template class  pdvector<unsigned>;
 template class  pdvector<long>;
 
-class dyn_thread;
-template class  pdvector<dyn_thread *>;
+class PCThread;
+template class  pdvector<PCThread *>;
 
 #include "ast.h"
 template class  pdvector<AstNodePtr>;
@@ -137,8 +137,8 @@ class bblInstance;
 template class  pdvector<bblInstance *>;
 
 
-class process;
-template class  pdvector<process*>;
+class PCProcess;
+template class  pdvector<PCProcess*>;
 
 #include "infHeap.h"
 template class  pdvector<disabledItem>;

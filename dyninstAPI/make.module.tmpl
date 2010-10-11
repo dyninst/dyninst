@@ -76,7 +76,7 @@ SRCS	     +=	../src/BPatch.C \
 		../src/BPatch_function.C \
 		../src/BPatch_snippet.C \
 		../src/BPatch_thread.C \
-              ../src/BPatch_process.C \
+                ../src/BPatch_process.C \
 		../src/BPatch_type.C \
 		../src/BPatch_module.C \
                 ../src/BPatch_point.C \
@@ -104,22 +104,10 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/baseTramp.C \
                 ../src/miniTramp.C \
                 ../src/replacedInstruction.C \
-                ../src/dyn_thread.C \
                 ../src/addressSpace.C \
-                ../src/process.C \
                 ../src/binaryEdit.C \
                 ../src/infHeap.C \
-                ../src/dyn_lwp.C \
                 ../src/frame.C \
-                ../src/signalhandler.C \
-                ../src/signalgenerator.C \
-                                ../src/eventgate.C \
-                ../src/callbacks.C \
-                ../src/mailbox.C \
-                ../src/EventHandler.C \
-                ../src/rpcMgr.C \
-                ../src/rpcMgr-lwp.C \
-                ../src/rpcMgr-thr.C \
                 ../src/codeRange.C \
                 ../src/symtab.C \
                 ../src/dominator.C \
@@ -131,7 +119,6 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/variable.C \
 		../src/util.C \
                 ../src/BPatch_instruction.C \
-                ../src/BPatch_asyncEventHandler.C \
                 ../src/BPatch_eventLock.C \
                 ../src/parRegion.C \
                 ../src/liveness.C \
@@ -140,7 +127,27 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/Parsing-arch.C \
                 ../src/hybridInstrumentation.C \
                 ../src/hybridOverwrites.C \
-                ../src/hybridCallbacks.C
+                ../src/hybridCallbacks.C \
+                ../src/pcProcess.C \
+                ../src/pcThread.C \
+                ../src/pcEventHandler.C \
+                ../src/eventLock.C
+                
+
+                #../src/dyn_thread.C \
+                #../src/BPatch_asyncEventHandler.C \
+                #../src/signalhandler.C \
+                #../src/signalgenerator.C \
+                #../src/eventgate.C \
+                #../src/callbacks.C \
+                #../src/mailbox.C \
+                #../src/EventHandler.C \
+                #../src/rpcMgr.C \
+                #../src/rpcMgr-lwp.C \
+                #../src/rpcMgr-thr.C \
+                #../src/process.C \
+                #../src/dyn_lwp.C \
+
 TO_INC   = ../h
 PUBLIC_H = BPatch_addressSpace.h \
            BPatch_basicBlock.h \

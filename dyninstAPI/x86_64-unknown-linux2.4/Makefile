@@ -25,21 +25,22 @@ include ../../make.config
 
 SRCS =          ../src/linux.C \
 		../src/linux-x86.C \
-		../src/linuxDL.C \
-		../src/dynamiclinking.C \
-		../src/linuxMT.C \
                 ../src/inst-linux.C \
                 ../src/inst-x86.C \
 		../src/emit-x86.C \
                 ../src/codegen-x86.C \
                 ../src/unix.C \
-	      ../src/stackwalk-x86.C \
+	        ../src/stackwalk-x86.C \
 		../src/image-x86.C \
 		../src/syscall-linux.C \
 		../src/frameChecker.C \
 		../src/RegisterConversion-x86.C \
 		../src/BPatch_memoryAccessAdapter.C \
 		../src/IAPI_to_AST.C 
+
+		#../src/linuxDL.C \
+		#../src/linuxMT.C \
+		#../src/dynamiclinking.C \
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG

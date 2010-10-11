@@ -129,7 +129,7 @@ class mapped_object : public codeRange {
                                              bool parseGaps = true);
 
     // Copy constructor: for forks
-    mapped_object(const mapped_object *par_obj, process *child);
+    mapped_object(const mapped_object *par_obj, AddressSpace *child);
 
     // Will delete all int_functions which were originally part of this object; including 
     // any that were relocated (we can always follow the "I was relocated" pointer).

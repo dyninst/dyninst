@@ -35,14 +35,13 @@
 #include "BPatch.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_function.h"
-#include "process.h"
-#include "signalgenerator.h"
-#include "mailbox.h"
-#include "dyn_thread.h"
-#include "dyn_lwp.h"
 #include "BPatch_libInfo.h"
 #include "function.h"
 #include "BPatch_statement.h"
+
+#include "pcThread.h"
+#include "pcProcess.h"
+#include "debug.h"
 
 #if defined(IBM_BPATCH_COMPAT)
 #include <algorithm>
@@ -171,53 +170,22 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthr
 {
    proc = parent;
    legacy_destructor = true;
-   updated = false;
-   reported_to_user = false;
    index = (unsigned) -1; // is this safe ??  might want index = -1??
    is_deleted = false;
-   doa_tid = (dynthread_t) -1;
-   dyn_lwp *lwp = NULL;
-
-   llthread = proc->llproc->getThread(async_tid);
-#if defined(os_windows)
-  //On Windows the initial LWP has two possible handles, one associated
-  // with the thread and one associated with the process.  We use the
-  // process handle in Dyninst, so we don't want to use the thread-based
-  // lwp_id that got passed in.
-  if (!ind)
-      lwp = proc->llproc->getInitialLwp();
-#endif
-   if (llthread && llthread->get_lwp())
-      lwp = llthread->get_lwp();
-   else if (!lwp)
-      lwp = proc->llproc->getLWP(lwp_id);
-
-   if (lwp == NULL) {
-     doa = true;
-   } 
-   else if (lwp->is_dead()) {
-     doa = true;
-   }
-   else doa = false;
-
    doa_tid = async_tid;
-   if (doa) {
-      is_deleted = true;
-      llthread = NULL;
-      return;
+
+   llthread = PCThread::createPCThread(proc->llproc, ind, lwp_id,
+           async_tid);
+   if( llthread == NULL ) {
+       doa = true;
+       is_deleted = true;
+       return;
    }
 
-   if (!llthread)
-       llthread = new dyn_thread(proc->llproc, ind, lwp);
-
-   if (llthread->get_index() == -1 && ind != -1)
-       proc->llproc->updateThreadIndex(llthread, ind);
-
-   index = llthread->get_index();
-
+   index = llthread->getIndex();
 }
 
-BPatch_thread::BPatch_thread(BPatch_process *parent, dyn_thread *dthr) :
+BPatch_thread::BPatch_thread(BPatch_process *parent, PCThread *thr) :
     deleted_callback_made(false)
 {
    doa = false;
@@ -225,64 +193,8 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, dyn_thread *dthr) :
    is_deleted = false;
    index = 0;
    proc = parent;
-   llthread = dthr;
+   llthread = thr;
    legacy_destructor = true;
-   updated = false;
-   reported_to_user = false;
-}
-
-void BPatch_thread::updateValues(dynthread_t tid, unsigned long stack_start,
-                                 BPatch_function *initial_func, int lwp_id)
-{
-   dyn_lwp *lwp = NULL;
-   if (updated) {
-     //fprintf(stderr, "%s[%d]:  thread already updated\n", FILE__, __LINE__);
-     return;
-   }
-
-#if defined(os_windows)
-  //On Windows the initial LWP has two possible handles, one associated
-  // with the thread and one associated with the process.  We use the
-  // process handle in Dyninst, so we don't want to use the thread-based
-  // lwp_id that got passed in.
-  if (!index)
-      lwp = proc->llproc->getInitialLwp();
-#endif
-#if !defined(cap_proc_fd)
-   if (llthread && llthread->get_lwp())
-       lwp = llthread->get_lwp();
-#endif
-   // For solaris-style /proc we _always_ use the process-grabbed
-   // LWP. Thread 1 is created with the representative LWP initially,
-   // and then needs to be updated.
-   if (!lwp)
-       lwp = proc->llproc->getLWP(lwp_id);
-
-   updated = true;
-   if (stack_start && !llthread->get_stack_addr())
-       llthread->update_stack_addr(stack_start);
-   if (lwp && 
-       ((llthread->get_lwp() == NULL) ||
-        (llthread->get_lwp() == proc->llproc->getRepresentativeLWP())))
-       llthread->update_lwp(lwp);
-
-   if (!llthread->get_tid()) {
-       if (tid == -1) {
-           //Expensive... uses an iRPC to get it from the RT library
-           tid = proc->llproc->mapIndexToTid(index);   
-       }
-       llthread->update_tid(tid);
-   }
-   
-   //If initial_func or stack_start aren't provided then
-   // we can update them with a stack walk
-   // We delay this to speed initialization -- the main thread
-   // never comes in with info, which triggers a.out parsing.
-
-   if (initial_func && !llthread->get_start_func())
-   {
-      llthread->update_start_func(initial_func->func);
-   }
 }
 
 unsigned BPatch_thread::getBPatchIDInt()
@@ -300,7 +212,7 @@ dynthread_t BPatch_thread::getTidInt()
    if (doa || is_deleted) {
       return doa_tid/*(dynthread_t) -1*/;
    }
-   return llthread->get_tid();
+   return llthread->getTid();
 }
 
 int BPatch_thread::getLWPInt()
@@ -308,7 +220,7 @@ int BPatch_thread::getLWPInt()
    if (doa || is_deleted) {
       return (int) -1;
    }
-   return llthread->get_lwp()->get_lwp_id();
+   return llthread->getLWPId();
 }
 
 BPatch_function *BPatch_thread::getInitialFuncInt()
@@ -316,20 +228,20 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
    if (doa || is_deleted) {
       return NULL;
    }
-   int_function *ifunc = llthread->get_start_func();
+   int_function *ifunc = llthread->getStartFunc();
 
-   if (!ifunc && llthread->get_indirect_start_addr())
+   if (!ifunc && llthread->getIndirectStartAddr())
    {
       //Currently should only be true on IA-64
-      process *llproc = getProcess()->llproc;
-      Address func_struct = llthread->get_indirect_start_addr();
+      PCProcess *llproc = getProcess()->llproc;
+      Address func_struct = llthread->getIndirectStartAddr();
       Address functionEntry = 0;
       bool readDataSpace = llproc->readDataSpace((void *) func_struct, 
                                                  sizeof(Address), 
                                                  &functionEntry, false);
       if( readDataSpace ) {
          ifunc = llproc->findFuncByAddr(functionEntry);
-         llthread->update_start_func(ifunc);
+         llthread->updateStartFunc(ifunc);
       }
    }
 
@@ -388,15 +300,15 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
        }
 #endif
 
-       if (!llthread->get_stack_addr())
-           llthread->update_stack_addr(stack_start);
+       if (!llthread->getStackAddr())
+           llthread->updateStackAddr(stack_start);
        if (initial_func)
-           llthread->update_start_func(initial_func->func);
+           llthread->updateStartFunc(initial_func->func);
    }
 
    // Try again...
-   ifunc = llthread->get_start_func();
-   ifunc = llthread->map_initial_func(ifunc);
+   ifunc = llthread->getStartFunc();
+   ifunc = llthread->mapInitialFunc(ifunc);
 
    if (!ifunc) return NULL;
 
@@ -408,7 +320,7 @@ unsigned long BPatch_thread::getStackTopAddrInt()
    if (doa || is_deleted) {
       return (unsigned long) -1;
    }
-   if (llthread->get_stack_addr() == 0) {
+   if (llthread->getStackAddr() == 0) {
        BPatch_Vector<BPatch_frame> stackWalk;
 
        getCallStackInt(stackWalk);
@@ -431,12 +343,12 @@ unsigned long BPatch_thread::getStackTopAddrInt()
            }
            pos--;
        }
-       llthread->update_stack_addr(stack_start);
+       llthread->updateStackAddr(stack_start);
        if (initial_func)
-           llthread->update_start_func(initial_func->func);
+           llthread->updateStartFunc(initial_func->func);
    }
    
-   return llthread->get_stack_addr();
+   return llthread->getStackAddr();
 }
 
 
@@ -482,34 +394,10 @@ void BPatch_thread::BPatch_thread_dtor()
   else
   {
     if (llthread) {
-      dynthread_t thr  = getTid();
-      if (thr == 0) {
-	fprintf(stderr, "%s[%d]:  about to deleteThread(0)\n", FILE__, __LINE__);
-      }
-      proc->llproc->deleteThread(thr);
+      delete llthread;
+      llthread = NULL;
     }
   }
-}
-
-void BPatch_thread::deleteThread(bool cleanup) 
-{
-   removeThreadFromProc();
-
-   dynthread_t thr = getTid();
-   if (thr == 0) {
-      signal_printf("%s[%d]:  WARN:  skipping deleteThread(0)\n", FILE__, __LINE__);
-   }
-   else if (cleanup)
-     proc->llproc->deleteThread(thr);
-   llthread = NULL;
-   is_deleted = true;
-
-   //We're intentionally hanging onto thread objects rather than
-   // deleting them, in order to allow the user to still have a handle
-   // for deleted threads.  If we change our mind on this, uncomment the
-   // following two lines:
-   //legacy_destructor = true;
-   //delete this;
 }
 
 /**
@@ -529,7 +417,7 @@ unsigned long BPatch_thread::os_handleInt()
     assert(0);
     return -1UL; // keep compiler happy
 #else
-    return (unsigned long) llthread->get_lwp()->get_fd();
+    return (unsigned long) llthread->getFd();
 #endif
 }
 
@@ -641,26 +529,10 @@ bool BPatch_thread::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
    if (is_deleted)
      return false;
    proc->oneTimeCodeInternal(expr, this, userData, cb, false, NULL);
-   return true;   
+   return true; // TODO what if oneTimeCodeInternal fails
 }
 
 bool BPatch_thread::isDeadOnArrivalInt() 
 {
    return doa;
-}
-   
-void BPatch_thread::setDynThread(dyn_thread *thr)
-{
-  llthread = thr;
-  updated = false;
-}
-
-bool BPatch_thread::isVisiblyStopped()
-{
-   return proc->isVisiblyStopped;
-}
-
-void BPatch_thread::markVisiblyStopped(bool new_state)
-{
-   proc->isVisiblyStopped = new_state;
 }

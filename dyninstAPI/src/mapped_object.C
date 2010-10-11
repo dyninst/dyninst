@@ -38,8 +38,9 @@
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/addressSpace.h"
+#include "dyninstAPI/src/pcProcess.h"
 #include "symtabAPI/h/Symtab.h"
-#include "process.h"
 #include "InstructionDecoder.h"
 #include "Parsing.h"
 #include "instPoint.h"
@@ -252,7 +253,7 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
    return obj;
 }
 
-mapped_object::mapped_object(const mapped_object *s, process *child) :
+mapped_object::mapped_object(const mapped_object *s, AddressSpace *child) :
    codeRange(),
    desc_(s->desc_),
    fullName_(s->fullName_),

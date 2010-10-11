@@ -35,8 +35,10 @@
 #include "baseTramp.h"
 #include "miniTramp.h"
 #include "instPoint.h"
-#include "process.h"
 #include "function.h"
+#include "addressSpace.h"
+#include "debug.h"
+#include "pcProcess.h"
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/InstructionDecoder.h"
 #else
@@ -805,7 +807,7 @@ multiTramp::multiTramp(multiTramp *oM) :
 }
 
 // Fork constructor.
-multiTramp::multiTramp(const multiTramp *parMulti, process *child) :
+multiTramp::multiTramp(const multiTramp *parMulti, AddressSpace *child) :
     generatedCodeObject(parMulti, child),
     id_(parMulti->id_),
     instAddr_(parMulti->instAddr_),
@@ -1895,7 +1897,7 @@ generatedCodeObject *generatedCFG_t::copy_int(generatedCodeObject *obj,
 generatedCodeObject *generatedCFG_t::fork_int(const generatedCodeObject *parObj, 
                                               generatedCodeObject *childPrev,
                                               multiTramp *childMulti,
-                                              process *child) {
+                                              AddressSpace *child) {
     // Since you can't do a virtual constructor...
     // Could add a fork() method to everyone, but I like the consistency of the
     // constructor(..., AddressSpace *) model.
@@ -1985,7 +1987,7 @@ generatedCodeObject *generatedCFG_t::fork_int(const generatedCodeObject *parObj,
 
 generatedCFG_t::generatedCFG_t(const generatedCFG_t &parCFG,
                                multiTramp *cMT,
-                               process *child) {
+                               AddressSpace *child) {
     start_ = fork_int(parCFG.start_,
                       NULL,
                       cMT,
@@ -2124,7 +2126,7 @@ bool multiTramp::hasChanged() {
 
 relocatedInstruction::relocatedInstruction(const relocatedInstruction *parRI,
                                            multiTramp *cMT,
-                                           process *child) :
+                                           AddressSpace *child) :
     relocatedCode(parRI, child),
     origAddr_(parRI->origAddr_),
     fromAddr_(parRI->fromAddr_),
@@ -2166,7 +2168,7 @@ relocatedInstruction::~relocatedInstruction() {
 
 trampEnd::trampEnd(const trampEnd *parEnd,
                    multiTramp *cMT,
-                   process *child) :
+                   AddressSpace *child) :
     generatedCodeObject(parEnd, child),
     multi_(cMT),
     target_(parEnd->target_)

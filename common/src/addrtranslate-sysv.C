@@ -757,7 +757,7 @@ bool AddressTranslateSysV::refresh()
       unsigned maps_size;
       if (obj_name == "") { //Augment using maps
          if (!maps)
-            maps = getLinuxMaps(pid, maps_size);
+            maps = getVMMaps(pid, maps_size);
          for (unsigned i=0; maps && i<maps_size; i++) {
             if (text == maps[i].start) {
                obj_name = maps[i].path;

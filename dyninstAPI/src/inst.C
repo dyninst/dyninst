@@ -35,7 +35,6 @@
 
 #include <assert.h>
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
@@ -48,7 +47,7 @@
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/image-func.h"
 #include "dyninstAPI/src/codegen.h"
-
+#include "dyninstAPI/src/addressSpace.h"
 
 /*
  * return the time required to execute the passed primitive.
@@ -189,7 +188,7 @@ bool trampEnd::generateCode(codeGen &gen,
 }
 
 instMapping::instMapping(const instMapping *parIM,
-                         process *child) :
+                         AddressSpace *child) :
     func(parIM->func),
     inst(parIM->inst),
     where(parIM->where),

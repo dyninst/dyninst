@@ -69,6 +69,7 @@ class int_symbol;
 
 class Dyn_Symbol;
 class BinaryEdit;
+class PCProcess;
 class trampTrapMappings;
 
 // This file serves to define an "address space", a set of routines that 
@@ -89,7 +90,7 @@ class AddressSpace : public InstructionSource {
  public:
     
     // Down-conversion functions
-    process *proc();
+    PCProcess *proc();
     BinaryEdit *edit();
 
     // Read/write
@@ -372,7 +373,7 @@ class AddressSpace : public InstructionSource {
     // Clear things out (e.g., deleteProcess)
     void deleteAddressSpace();
     // Fork psuedo-constructor
-    void copyAddressSpace(process *parent);
+    void copyAddressSpace(AddressSpace *parent);
 
     // Aaand constructor/destructor
     AddressSpace();

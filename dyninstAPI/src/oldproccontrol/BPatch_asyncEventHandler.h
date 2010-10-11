@@ -49,7 +49,7 @@ typedef struct {
   PDSOCKET sock;
 } process_record;
 
-const char *asyncEventType2Str(BPatch_asyncEventType evtype); 
+const char *asyncEventType2Str(BPatch_asyncEventType evtype);
 
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME

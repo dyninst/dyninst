@@ -40,7 +40,7 @@
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/rpcMgr.h"
+#include "dyninstAPI/src/pcProcess.h"
 
 multiTramp *codeRange::is_multitramp() {
     if (dynamic_cast<multiTramp *>(this))

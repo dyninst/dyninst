@@ -39,15 +39,15 @@
 #include "common/h/headers.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/syscallNotification.h"
-#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/pcProcess.h"
 #include "dyninstAPI/src/ast.h"
 
 extern bool getInheritedMiniTramp(const miniTramp *parentMT,
                                   miniTramp *&childMT,
-                                  process *childProc);
+                                  PCProcess *childProc);
 
 syscallNotification::syscallNotification(syscallNotification *parentSN,
-                                         process *child) : preForkInst(NULL),
+                                         PCProcess *child) : preForkInst(NULL),
                                                            postForkInst(NULL),
                                                            preExecInst(NULL),
                                                            postExecInst(NULL),
@@ -176,7 +176,7 @@ bool syscallNotification::installPreLwpExit() {
 /////// Remove pre-fork instrumentation
 
 bool syscallNotification::removePreFork() {
-    if (!proc->isAttached() || proc->execing()) {
+    if (!proc->isAttached() || proc->isExecing()) {
         delete preForkInst;
         preForkInst = NULL;
         return true;
@@ -208,7 +208,7 @@ bool syscallNotification::removePostFork() {
 
     if (!postForkInst) return false;
 
-    if (!proc->isAttached() || proc->execing()) {
+    if (!proc->isAttached() || proc->isExecing()) {
         delete postForkInst;
         postForkInst = NULL;
         return true;
@@ -237,7 +237,7 @@ bool syscallNotification::removePostFork() {
 bool syscallNotification::removePreExec() {
     if (!preExecInst) return false;
 
-    if (!proc->isAttached() || proc->execing()) {
+    if (!proc->isAttached() || proc->isExecing()) {
         delete preExecInst;
         preExecInst = NULL;
         return true;
@@ -269,7 +269,7 @@ bool syscallNotification::removePostExec() {
 /////// Remove pre-exit instrumentation
 
 bool syscallNotification::removePreExit() {
-    if (!proc->isAttached() || proc->execing()) {
+    if (!proc->isAttached() || proc->isExecing()) {
         delete preExitInst;
         preExitInst = NULL;
         return true;

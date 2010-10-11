@@ -39,7 +39,6 @@
 #include "BPatch_Set.h"
 
 class InstrucIter;
-class process;
 class instPoint;
 class miniTramp;
 class BPatch_thread;
@@ -140,7 +139,6 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     friend class BPatch_basicBlockLoop;
     friend class BPatch_flowGraph; // Access to setLoop
     friend class BPatch_asyncEventHandler;
-    friend class process;
     friend class BPatch_edge;
     friend class BPatch_snippet;
     

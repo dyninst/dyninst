@@ -35,18 +35,16 @@
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/addressSpace.h"
+#include "dyninstAPI/src/pcThread.h"
 #include "dyninstAPI/src/binaryEdit.h"
-#include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/h/BPatch.h"
-#include "debug.h"
-#include "process.h"
+#include "dyninstAPI/src/debug.h"
 
 #if defined(os_aix)
-  extern void resetBRL(process *p, Address loc, unsigned val); //inst-power.C
-  extern void resetBR( process *p, Address loc);               //inst-power.C
+  extern void resetBRL(AddressSpace *p, Address loc, unsigned val); //inst-power.C
+  extern void resetBR(AddressSpace *p, Address loc);               //inst-power.C
 #endif
 
 // Normal constructor
@@ -80,7 +78,7 @@ baseTrampInstance::baseTrampInstance(baseTramp *tramp,
 baseTrampInstance::baseTrampInstance(const baseTrampInstance *parBTI,
                                      baseTramp *cBT,
                                      multiTramp *cMT,
-                                     process *child) :
+                                     AddressSpace *child) :
     generatedCodeObject(parBTI, child),
     trampAddr_(parBTI->trampAddr_),
     trampPostOffset(parBTI->trampPostOffset),
@@ -199,7 +197,6 @@ baseTramp::baseTramp(instPoint *iP, callWhen when) :
     baseTrampRegion( NULL ),
 #endif /* defined( cap_unwind ) */
     instP_(iP),
-    rpcMgr_(NULL),
     firstMini(NULL),
     lastMini(NULL),
     valid(false),
@@ -209,7 +206,9 @@ baseTramp::baseTramp(instPoint *iP, callWhen when) :
     savedFlagSize(0), 
     createFrame_(true),
     instVersion_(),
-    when_(when)
+    when_(when),
+    isIRPCTramp_(false),
+    rpcProc_(NULL)
 {
 }
 
@@ -259,7 +258,7 @@ unw_dyn_region_info_t * duplicateRegionList( unw_dyn_region_info_t * head ) {
 	} /* end duplicateRegionList() */
 #endif /* defined( cap_unwind ) */
 
-baseTramp::baseTramp(const baseTramp *pt, process *child) :
+baseTramp::baseTramp(const baseTramp *pt, AddressSpace *child) :
     instP_(NULL),
     firstMini(NULL),
     lastMini(NULL),
@@ -296,9 +295,9 @@ baseTramp::baseTramp(const baseTramp *pt, process *child) :
     }
     lastMini = childMini;
 
-    rpcMgr_ = NULL;
-    if (pt->rpcMgr_) {
-        rpcMgr_ = child->getRpcMgr();
+    isIRPCTramp_ = pt->isIRPCTramp_;
+    if( isIRPCTramp_ ) {
+        rpcProc_ = child;
     }
 }
 
@@ -457,7 +456,7 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
         else if (gen.thread()) {
             // Constant override...
             threadIndex = AstNode::operandNode(AstNode::Constant,
-                                               (void *)(long)gen.thread()->get_index());
+                                               (void *)(long)gen.thread()->getIndex());
         }
         else {
             // TODO: we can get clever with this, and have the generation of
@@ -610,9 +609,7 @@ bool baseTrampInstance::installCode() {
 AddressSpace *baseTramp::proc() const { 
   if (instP_)
     return instP_->proc();
-  if (rpcMgr_)
-    return rpcMgr_->proc();
-  return NULL;
+  return rpcProc_;
 }
 
 Address baseTramp::origInstAddr() {
@@ -624,7 +621,7 @@ Address baseTramp::origInstAddr() {
   // TODO: a post tramp _should_ return the next addr, but hey...
 
   if (!instP_) {
-    assert(rpcMgr_ != NULL);
+    assert( isIRPCTramp_ );
     return 0;
   }
   
@@ -765,11 +762,8 @@ bool baseTramp::isConservative() {
     {
         return true;
     }
-  if (rpcMgr_)
-  {
-      return true;
-  }
-  return false;
+
+  return isIRPCTramp_;
 }
 
 bool baseTramp::isCallsite() {

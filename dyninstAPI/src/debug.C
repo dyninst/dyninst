@@ -40,7 +40,7 @@
 #include "util.h"
 #include "BPatch.h"
 #include "dyninstAPI/src/debug.h"
-#include "EventHandler.h"
+#include "eventLock.h"
 
 // Make a lock.
 

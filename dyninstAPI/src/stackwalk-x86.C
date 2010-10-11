@@ -29,14 +29,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/pcProcess.h"
 #include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
-#include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/mapped_object.h"
+#include "dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/os.h"
 
 #include "dyninstAPI/src/frameChecker.h"
 #include <ctype.h>
@@ -78,7 +79,7 @@ typedef enum frameStatus_t {
 #define SIG_HANDLER_PC_OFFSET_64 168
 #define SIG_HANDLER_FRAME_SIZE_64 576
 
-static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_height)
+static frameStatus_t getFrameStatus(PCProcess *p, unsigned long pc, int &extra_height)
 {
    codeRange *range;
 
@@ -145,7 +146,7 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
 // The code is very different version for defensiveMode as the parsing
 // often assumes calls not to return, which makes determining whether the 
 // previous instruction is a call much more difficult.
-static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
+static bool isPrevInstrACall(Address addr, PCProcess *proc, int_function **callee)
 {
     if (BPatch_defensiveMode != proc->getHybridMode()) {
         codeRange *range = proc->findOrigByAddr(addr);
@@ -275,7 +276,7 @@ static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
  * walk.  This function returns true in this case.  offset is the distance
  * from the top of the stack to the return value for the caller.
  **/
-static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
+static bool hasAllocatedFrame(Address addr, PCProcess *proc, int &offset)
 {
     codeRange *range = proc->findOrigByAddr(addr);
 
@@ -331,10 +332,10 @@ static bool isInEntryExitInstrumentation(Frame f)
 class DyninstMemRegReader : public Dyninst::SymtabAPI::MemRegReader
 {
  private:
-   process *proc;
+   PCProcess *proc;
    Frame *orig_frame;
  public:
-   DyninstMemRegReader(process *p, Frame *f) { 
+   DyninstMemRegReader(PCProcess *p, Frame *f) { 
       proc = p; 
       orig_frame = f;
    }
@@ -678,11 +679,11 @@ Frame Frame::getCallerFrame()
       }
       else if (getProc()->multithread_capable() && 
                thread_ != NULL &&
-               thread_->get_stack_addr() != 0)
+               thread_->getStackAddr() != 0)
       {
-         int stack_diff = thread_->get_stack_addr() - sp_;
+         int stack_diff = thread_->getStackAddr() - sp_;
          if (stack_diff < MAX_STACK_FRAME_SIZE && stack_diff > 0)
-            stack_top = thread_->get_stack_addr();
+            stack_top = thread_->getStackAddr();
       }
       if (stack_top == 0)
          stack_top = sp_ + MAX_STACK_FRAME_SIZE;

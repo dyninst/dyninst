@@ -39,8 +39,6 @@
 #include "common/h/headers.h"
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
@@ -58,12 +56,11 @@
 
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/binaryEdit.h"
+#include "dyninstAPI/src/pcProcess.h"
 
 #include "dyninstAPI/src/registerSpace.h"
 
 #include "dyninstAPI/src/instP.h" // class returnInstance
-#include "dyninstAPI/src/rpcMgr.h"
-#include "dyninstAPI/src/dyn_thread.h"
 #include "mapped_module.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "IAPI_to_AST.h"
@@ -74,8 +71,6 @@
 
 class ExpandInstruction;
 class InsertNops;
-
-extern bool relocateFunction(process *proc, instPoint *&location);
 
 extern "C" int cpuidCall();
 
@@ -688,7 +683,7 @@ int tramp_pre_frame_size_32 = 36; //Stack space allocated by 'pushf; pusha'
 int tramp_pre_frame_size_64 = 8 + 16 * 8 + STACK_PAD_CONSTANT; // stack space allocated by pushing flags and 16 GPRs
                                                 // and skipping the 128-byte red zone
 
-bool can_do_relocation(process *proc,
+bool can_do_relocation(PCProcess *proc,
                        const pdvector<pdvector<Frame> > &stackWalks,
                        int_function *instrumented_func)
 {
@@ -2289,7 +2284,7 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/, bool
        int disp = addr - (gen.currAddr()+5);
        emitJump(disp, gen);
     }
-    else if (dynamic_cast<process *>(gen.addrSpace())) {
+    else if (dynamic_cast<PCProcess *>(gen.addrSpace())) {
        //Dynamic instrumentation, emit an absolute jump (push/ret combo)
        cfjRet_t tmp = gen.bti()->hasFuncJump();
        gen.bti()->setHasFuncJump(cfj_jump);
@@ -2433,7 +2428,7 @@ bool int_function::setReturnValue(int val)
     return proc()->writeTextSpace((void *) addr, gen.used(), gen.start_ptr());
 }
 
-unsigned saveRestoreRegistersInBaseTramp(process * /*proc*/, 
+unsigned saveRestoreRegistersInBaseTramp(AddressSpace * /*proc*/, 
                                          baseTramp * /*bt*/,
                                          registerSpace * /*rs*/)
 {

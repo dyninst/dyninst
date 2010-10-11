@@ -36,7 +36,6 @@
 #include <string.h>
 #include <string>
 #include "function.h"
-#include "process.h"
 #include "instPoint.h"
 #include "ast.h"
 
@@ -52,6 +51,8 @@
 #include "BPatch_statement.h"
 #include "mapped_module.h"
 #include "mapped_object.h"
+#include "addressSpace.h"
+#include "debug.h"
 
 #include "common/h/Types.h"
 #if !defined(cap_instruction_api)

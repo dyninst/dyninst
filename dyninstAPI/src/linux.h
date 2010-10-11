@@ -35,11 +35,10 @@
 #error "invalid architecture-os inclusion"
 #endif
 
+class PCProcess;
 
 #ifndef LINUX_PD_HDR
 #define LINUX_PD_HDR
-
-class process;
 
 #include <sys/param.h>
 #include <pthread.h>
@@ -74,7 +73,7 @@ class process;
 
 Address getRegValueAtFrame(void *ehf, Address pc, int reg, 
                            Address *reg_map,
-                           process *p, bool *error);
+                           PCProcess *p, bool *error);
 #endif
 
 typedef int handleT; // a /proc file descriptor
@@ -90,11 +89,9 @@ typedef int handleT; // a /proc file descriptor
 
 #include "unix.h"
 
-class process;
-
 /* For linux.C */
 void printRegs( void * save );
-Address findFunctionToHijack( process * p );
+Address findFunctionToHijack(PCProcess * p );
 
 #ifndef WNOWAIT
 #define WNOWAIT WNOHANG
@@ -104,7 +101,7 @@ bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers);
 
 bool attachToChild(int pid);
 
-void calcVSyscallFrame(process *p);
+void calcVSyscallFrame(PCProcess *p);
 struct maps_entries *getLinuxMaps(int pid, unsigned &maps_size);
 
 //  no /proc, dummy function

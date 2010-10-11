@@ -35,7 +35,6 @@
 
 #include <assert.h>
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
@@ -45,6 +44,8 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
+#include "dyninstAPI/src/addressSpace.h"
+#include "dyninstAPI/src/pcThread.h"
 
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/InstructionDecoder.h"
@@ -70,8 +71,8 @@ unsigned int instPointBase::id_ctr = 1;
 dictionary_hash <std::string, unsigned> primitiveCosts(::Dyninst::stringhash);
 
 #if defined(rs6000_ibm_aix4_1)
-  extern void resetBRL(process *p, Address loc, unsigned val); //inst-power.C
-  extern void resetBR( process *p, Address loc);               //inst-power.C
+  extern void resetBRL(AddressSpace *p, Address loc, unsigned val); //inst-power.C
+  extern void resetBR(AddressSpace *p, Address loc);               //inst-power.C
 #endif
 
 miniTramp *instPoint::addInst(AstNodePtr ast,
@@ -739,7 +740,7 @@ instPoint::instPoint(AddressSpace *proc,
 // Copying over from fork
 instPoint::instPoint(instPoint *parP,
                      int_basicBlock *child,
-                     process *childP) :
+                     AddressSpace *childP) :
         instPointBase(parP->insn(),
                   parP->getPointType(),
                   parP->id()),
@@ -818,7 +819,7 @@ instPoint *instPoint::createParsePoint(int_function *func,
 
 instPoint *instPoint::createForkedPoint(instPoint *parP,
                                         int_basicBlock *childB,
-                                        process *childP) {
+                                        AddressSpace *childP) {
     int_function *func = childB->func();
     instPoint *existingInstP = func->findInstPByAddr(parP->addr());
     if (existingInstP) {
@@ -931,7 +932,7 @@ bool instPoint::instrSideEffect(Frame &frame)
             if (!frame.setPC(newPC)) {
                 mal_printf("setting active frame's PC from %lx to %lx %s[%d]\n", 
                            frame.getPC(), newPC, FILE__,__LINE__);
-                frame.getLWP()->changePC(newPC,NULL);
+                frame.getThread()->changePC(newPC,NULL);
             }
             if (frame.setPC(newPC)) 
                 modified = true;

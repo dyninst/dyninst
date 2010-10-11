@@ -38,9 +38,8 @@
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
 
-class dyn_thread;
-class process;
-class dyn_lwp;
+class PCThread;
+class PCProcess;
 class codeRange;
 class instPoint;
 class miniTramp;
@@ -49,8 +48,6 @@ class int_function;
 typedef enum { FRAME_unset, FRAME_instrumentation, FRAME_signalhandler, FRAME_normal, FRAME_syscall, FRAME_iRPC, FRAME_unknown } frameType_t;
 
 class Frame {
-  friend class dyn_lwp;
-  friend class dyn_thread;
  public:
   
   // default ctor (zero frame)
@@ -60,8 +57,8 @@ class Frame {
   // Option 2 would be to have the constructor look up this info,
   // but getCallerFrame works as is.
   Frame(Address pc, Address fp, Address sp,
-	unsigned pid, process *proc, 
-	dyn_thread *thread, dyn_lwp *lwp, 
+	unsigned pid, PCProcess *proc, 
+	PCThread *thread,
 	bool uppermost,
 	Address pcAddr = 0 );
 
@@ -80,7 +77,6 @@ class Frame {
       pid_(f.pid_),
       proc_(f.proc_),
       thread_(f.thread_),
-      lwp_(f.lwp_),
       range_(f.range_),
       pcAddr_(f.pcAddr_) {};
 
@@ -93,7 +89,6 @@ class Frame {
       pid_ = f.pid_;
       proc_ = f.proc_;
       thread_ = f.thread_;
-      lwp_ = f.lwp_;
       range_ = f.range_;
       pcAddr_ = f.pcAddr_;
       return *this;
@@ -106,8 +101,7 @@ class Frame {
 	    (sp_      == F.sp_) &&	    
 	    (pid_     == F.pid_) &&
 	    (proc_    == F.proc_) &&
-	    (thread_  == F.thread_) &&
-	    (lwp_     == F.lwp_));
+	    (thread_  == F.thread_));
   }
 
   Address  getPC() const { return pc_; }
@@ -116,9 +110,8 @@ class Frame {
   Address  getFP() const { return fp_; }
   Address  getSP() const { return sp_; }
   unsigned getPID() const { return pid_; }
-  process *getProc() const { return proc_; }
-  dyn_thread *getThread() const { return thread_; }
-  dyn_lwp  *getLWP() const { return lwp_;}
+  PCProcess *getProc() const { return proc_; }
+  PCThread *getThread() const { return thread_; }
   bool     isUppermost() const { return uppermost_; }
   bool	   isSignalFrame();
   bool 	   isInstrumentation();
@@ -156,9 +149,8 @@ class Frame {
   Address		fp_;
   Address		sp_;				// NOTE: this is not always populated
   int			pid_;				// Process id 
-  process *		proc_;				// We're only valid for a single process anyway
-  dyn_thread *	thread_;			// user-level thread
-  dyn_lwp *		lwp_;				// kernel-level thread (LWP)
+  PCProcess *		proc_;				// We're only valid for a single process anyway
+  PCThread *            thread_;                // User-level thread
   codeRange *	range_;				// If we've done a by-address lookup, keep it here
 
   Address		pcAddr_;

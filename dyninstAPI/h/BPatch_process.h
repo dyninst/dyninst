@@ -48,9 +48,9 @@
 #include <stdio.h>
 #include <signal.h>
 
-class process;
+class PCProcess;
 class AddressSpace;
-class dyn_thread;
+class PCThread;
 class miniTrampHandle;
 class miniTramp;
 class BPatch;
@@ -90,8 +90,6 @@ typedef struct {
   BPatch_thread *thread;
 } BPatch_catchupInfo;
 
-class EventRecord;
-class OneTimeCodeCallback;
 /*
  * class OneTimeCodeInfo
  *
@@ -102,11 +100,11 @@ class OneTimeCodeInfo {
    bool synchronous;
    bool completed;
    void *userData;
-   OneTimeCodeCallback *cb;
+   BPatchOneTimeCodeCallback cb;
    void *returnValue;
    unsigned thrID;
 public:
-   OneTimeCodeInfo(bool _synchronous, void *_userData, OneTimeCodeCallback *_cb, unsigned _thrID) :
+   OneTimeCodeInfo(bool _synchronous, void *_userData, BPatchOneTimeCodeCallback _cb, unsigned _thrID) :
       synchronous(_synchronous), completed(false), userData(_userData), cb(_cb),
       thrID(_thrID) { };
 
@@ -122,7 +120,7 @@ public:
 
    unsigned getThreadID() { return thrID; }
 
-   OneTimeCodeCallback *getCallback() { return cb;}
+   BPatchOneTimeCodeCallback getCallback() { return cb;}
    
 };
 
@@ -150,18 +148,9 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     friend class BPatch_eventMailbox;
     friend class BPatch_instruction;
     friend class BPatch_addressSpace;
-    friend class process;
-    friend class SignalHandler;
-    friend int handleSignal(EventRecord &ev);
-    friend void threadDeleteWrapper(BPatch_process *, BPatch_thread *); 
-    friend bool pollForStatusChange();
-    friend class AsyncThreadEventCallback;
     friend class AstNode; // AST needs to translate instPoint to
     friend class AstOperatorNode;
     friend class AstMemoryNode;
-    friend class rpcMgr;
-    friend class EventRecord;
-    friend bool handleThreadCreate(process *, EventRecord &, unsigned, int, dynthread_t, unsigned long, unsigned long);
 
     protected:
     void getAS(std::vector<AddressSpace *> &as);
@@ -171,16 +160,9 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     private:
 
     //References to lower level objects
-    process *llproc;
+    PCProcess *llproc;
 
     BPatch_Vector<BPatch_thread *> threads;
-
-    // Due to interactions of internal events and signal handling,
-    // we need to keep an internal variable of whether the user
-    // should observe us as stopped. This is set by internal 
-    // code if a "stop" is a real stop. 
-    bool isVisiblyStopped;
-    bool isAttemptingAStop;
 
     int lastSignal;
     int exitCode;
@@ -191,22 +173,11 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     bool createdViaAttach;
     bool detached;
 
-    bool unreportedStop;
-    bool unreportedTermination;
-
     // BPatch-level; once the callbacks are sent by the llproc, we're terminated
     // Used because callbacks go (and can clean up user code) before the low-level process
     // sets flags.
     bool terminated; 
     bool reportedExit;
-
-    //When an async RPC is posted on a stopped process we post it, but haven't 
-    // yet launched it.  The next process level continue should start the RPC 
-    // going.  unstarteRPC is true if we have a posted but not launced RPC.
-    bool unstartedRPC;
-
-    void setUnreportedStop(bool new_value) { unreportedStop = new_value; }
-    void setUnreportedTermination(bool new_value) {unreportedTermination = new_value;}
 
     void setExitedNormally();
     void setExitedViaSignal(int signalnumber);
@@ -214,10 +185,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     void setExitCode(int exitcode) { exitCode = exitcode; }
     void setExitSignal(int exitsignal) { exitSignal = exitsignal; }
 
-    bool pendingUnreportedStop() { return unreportedStop;}
-    bool pendingUnreportedTermination() { return unreportedTermination; }
-
-    bool statusIsStopped();
     bool statusIsTerminated();
 
     bool getType();
@@ -229,7 +196,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
 
     HybridAnalysis *hybridAnalysis_;
 
-    static int oneTimeCodeCallbackDispatch(process *theProc,
+    static int oneTimeCodeCallbackDispatch(PCProcess *theProc,
                                            unsigned /* rpcid */, 
                                            void *userData,
                                            void *returnValue);
@@ -251,25 +218,22 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     BPatch_process(const char *path, int pid, BPatch_hybridMode mode);	
 
     // for forking
-    BPatch_process(process *proc);
+    BPatch_process(PCProcess *proc);
 
     // Create a new thread in this proc
     BPatch_thread *createOrUpdateBPThread(int lwp, dynthread_t tid, unsigned index, 
                                           unsigned long stack_start, 
                                           unsigned long start_addr);
     BPatch_thread *handleThreadCreate(unsigned index, int lwpid, dynthread_t threadid, 
-                            unsigned long stack_top, unsigned long start_pc, process *proc = NULL);
+                            unsigned long stack_top, unsigned long start_pc, PCProcess *proc = NULL);
     void deleteBPThread(BPatch_thread *thrd);
 
-    bool updateThreadInfo();
-
-        
     public:
 
     // Begin internal functions, DO NOT USE
     //
     // this function should go away as soon as Paradyn links against Dyninst
-    process *lowlevel_process() { return llproc; }
+    PCProcess *lowlevel_process() { return llproc; }
     // These internal funcs trigger callbacks registered to matching events
     bool triggerStopThread(instPoint *intPoint, int_function *intFunc, 
                             int cb_ID, void *retVal);

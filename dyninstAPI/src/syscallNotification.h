@@ -37,8 +37,8 @@
 // Non-NULL for platforms where we don't need the instMapping
 #define SYSCALL_INSTALLED ((instMapping *)1)
 
-class process;
 class instMapping;
+class PCProcess;
 
 class syscallNotification {
   private:
@@ -49,7 +49,7 @@ class syscallNotification {
     instMapping *postExecInst;
     instMapping *preExitInst;
     instMapping *preLwpExitInst;
-    process *proc;
+    PCProcess *proc;
     
   public:
     syscallNotification() :
@@ -58,17 +58,17 @@ class syscallNotification {
     preExitInst(NULL), preLwpExitInst(NULL)
        { assert(0 && "ILLEGAL USE OF DEFAULT CONSTRUCTOR"); }
 
-    syscallNotification(process *p) :
+    syscallNotification(PCProcess *p) :
     preForkInst(NULL), postForkInst(NULL),
     preExecInst(NULL), postExecInst(NULL),
     preExitInst(NULL), preLwpExitInst(NULL), proc(p) {};
 
     // fork constructor
     syscallNotification(syscallNotification *parentSN,
-                        process *p);
+                        PCProcess *p);
     
     ~syscallNotification() {
-        // These must check if the process is exited before doing anything
+        // These must check if the PCProcess is exited before doing anything
         // dangerous
         if (preForkInst) removePreFork();
         if (postForkInst) removePostFork();

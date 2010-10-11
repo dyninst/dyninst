@@ -28,47 +28,71 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#ifndef __EVENT_LOCK_H__
+#define __EVENT_LOCK_H__
+#include "os.h"
+#include "common/h/Vector.h"
+#include "common/h/Dictionary.h"
 
-/* $Id: syscalltrap.h,v 1.5 2006/03/29 21:35:04 bernat Exp $
- */
+class BPatch_eventLock;
 
-#ifndef _SYSCALL_TRAP_H_
-#define _SYSCALL_TRAP_H_
+unsigned long getExecThreadID();
+const char *getThreadStr(unsigned long tid);
 
-#include "common/h/Types.h"
+class eventLock {
+  friend class BPatch_eventLock;
 
-/*
- * This file provides prototypes for the data structures which track
- * traps inserted at the exit of system calls. These are primarily
- * used to signal when it is possible to modify the state of the program.
- *
- */
+  public:
 
-/*
- * This is the process-wide version: per system call how many are waiting,
- * etc.
- */
-struct syscallTrap {
-    // Reference count (for MT)
-    unsigned refcount;
-    // Syscall ID
-    Address syscall_id;
-    // /proc setting
-    int orig_setting;
-    // Address/trap tracking
-    char saved_insn[32];
-    // Handle for further info
-    void *saved_data;
-    // AIX use
-    Address origLR;
-    Address trapAddr;
+  eventLock();
+  virtual ~eventLock();
+
+  public:
+  unsigned int depth() {return lock_depth;}
+  int _Lock(const char *__file__, unsigned int __line__);
+  int _Trylock(const char *__file__, unsigned int __line__);
+  int _Unlock(const char *__file__, unsigned int __line__);
+  int _Broadcast(const char *__file__, unsigned int __line__);
+  int _WaitForSignal(const char *__file__, unsigned int __line__);
+
+  void printLockStack();
+
+  private:
+
+  EventLock_t mutex;
+  EventCond_t cond;
+
+  unsigned int lock_depth;
+
+  typedef struct {
+    const char *file;
+    unsigned int line;
+  } lock_stack_elem;
+
+  inline lock_stack_elem popLockStack() {
+    lock_stack_elem el = lock_stack[lock_stack.size() -1];
+    lock_stack.pop_back();
+    lock_depth--;
+    return el;
+  }
+
+  inline void pushLockStack(lock_stack_elem elm) {
+    lock_stack.push_back(elm);
+    lock_depth++;
+  }
+
+  pdvector<lock_stack_elem> lock_stack;
+  unsigned long owner_id;
+
+#if defined (os_windows)
+  EventLock_t waiter_lock;
+  int num_waiters;
+
+  int generation_num;
+  int release_num;
+#endif
 };
 
-/*
- * Per thread or LWP: a callback to be made when the
- * system call exits
- */
+extern eventLock *global_mutex;
 
-typedef bool (*syscallTrapCallbackLWP_t)(PCThread *thread, void *data);
-
-#endif /*_SYSCALL_TRAP_H_*/
+#endif

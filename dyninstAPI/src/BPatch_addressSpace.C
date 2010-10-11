@@ -31,28 +31,23 @@
 
 #define BPATCH_FILE
 
-#include "process.h"
 #include "binaryEdit.h"
-#include "EventHandler.h"
-#include "mailbox.h"
-#include "signalgenerator.h"
 #include "inst.h"
 #include "instP.h"
 #include "instPoint.h"
 #include "function.h" // int_function
 #include "codeRange.h"
-#include "dyn_thread.h"
 #include "miniTramp.h"
 #include "addressSpace.h"
+#include "pcProcess.h"
+#include "debug.h"
 
 #include "mapped_module.h"
 
 #include "BPatch_libInfo.h"
-#include "BPatch_asyncEventHandler.h"
 #include "BPatch.h"
 #include "BPatch_thread.h"
 #include "BPatch_function.h"
-#include "callbacks.h"
 
 #include "BPatch_private.h"
 
@@ -219,6 +214,15 @@ BPatch_Vector<BPatch_thread *> &BPatchSnippetHandle::getCatchupThreadsInt()
    return catchup_threads;
 }
 
+// Return true if any sub-minitramp uses a trap? Other option
+// is "if all"...
+bool BPatchSnippetHandle::usesTrapInt() {
+    for (unsigned i = 0; i < mtHandles_.size(); i++) {
+        if (mtHandles_[i]->instrumentedViaTrap())
+            return true;
+    }
+    return false;
+}
 
 BPatch_image * BPatch_addressSpace::getImageInt()
 {

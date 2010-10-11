@@ -51,7 +51,6 @@ class instPointInstance;
 class baseTramp;
 class miniTramp;
 class codeRange;
-class process;
 class int_function;
 class multiTramp;
 class AddressSpace; // process superclass
@@ -226,7 +225,7 @@ class trampEnd : public generatedCodeObject {
  public:
     // Must always give target
     trampEnd(multiTramp *multi, Address target);
-    trampEnd(const trampEnd *parEnd, multiTramp *cMT, process *child);
+    trampEnd(const trampEnd *parEnd, multiTramp *cMT, AddressSpace *child);
 
     bool generateCode(codeGen &gen,
                       Address baseInMutatee,
@@ -281,7 +280,7 @@ class relocatedInstruction : public relocatedCode {
     relocatedInstruction(relocatedInstruction *prev, multiTramp *m);
     relocatedInstruction(const relocatedInstruction *parRI,
                          multiTramp *cMT,
-                         process *child);
+                         AddressSpace *child);
     // Like the first constructor (with an instruction argument), but filling it in
     // from the original address.  We're smart, we can do that.
 #if defined(cap_instruction_api)
@@ -358,7 +357,7 @@ class replacedInstruction : public relocatedCode {
     // Fork constructor
     replacedInstruction(const replacedInstruction *parRI,
                         multiTramp *cMT,
-                        process *child);
+                        AddressSpace *child);
 
     ~replacedInstruction();
 
@@ -414,7 +413,7 @@ class generatedCFG_t {
     generatedCodeObject *fork_int(const generatedCodeObject *parObj,
                                   generatedCodeObject *childPrev,
                                   multiTramp *childMulti,
-                                  process *child);
+                                  AddressSpace *child);
 
  public:
     class iterator {
@@ -435,7 +434,7 @@ class generatedCFG_t {
     // FORK!
     generatedCFG_t(const generatedCFG_t &par, 
                    multiTramp *cMT,
-                   process *child);
+                   AddressSpace *child);
 
     ~generatedCFG_t() {};
 
@@ -525,7 +524,7 @@ class multiTramp : public generatedCodeObject {
   static bool replaceMultiTramp(multiTramp *oldMulti, bool &deleteReplaced);
 
   // Fork constructor. Must copy over all sub-objects as well.
-  multiTramp(const multiTramp *parentMulti, process *child);
+  multiTramp(const multiTramp *parentMulti, AddressSpace *child);
 
   // Error codes!
   typedef enum { mtSuccess, mtAllocFailed, mtTryRelocation, mtError } mtErrorCode_t;

@@ -39,7 +39,6 @@
 #include "BPatch_flowGraph.h"
 #include "BPatch_collections.h"
 #include "BPatch_basicBlock.h"
-#include "process.h"
 #include "function.h"
 #if !defined(cap_instruction_api)
 #include "parseAPI/src/InstrucIter.h"
@@ -50,6 +49,8 @@
 #include "BPatch_libInfo.h"
 #include "BPatch_edge.h"
 #include "instPoint.h"
+#include "addressSpace.h"
+#include "symtab.h"
 
 int bpatch_basicBlock_count = 0;
 

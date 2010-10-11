@@ -34,7 +34,7 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/pcProcess.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
@@ -106,7 +106,7 @@ void initPrimitiveCost()
 
 // hasBeenBound: returns false
 // dynamic linking not implemented on this platform
-bool process::hasBeenBound(const SymtabAPI::relocationEntry &,int_function *&, Address ) {
+bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &,int_function *&, Address ) {
     return false;
 }
 

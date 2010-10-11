@@ -32,9 +32,11 @@
 // $Id: function.C,v 1.10 2005/03/02 19:44:45 bernat Exp 
 
 #include "function.h"
-#include "process.h"
 #include "instPoint.h"
 #include "multiTramp.h"
+#include "debug.h"
+#include "addressSpace.h"
+#include "pcProcess.h"
 
 #include "mapped_object.h"
 #include "mapped_module.h"
@@ -105,7 +107,7 @@ int_function::int_function(image_func *f,
 
 int_function::int_function(const int_function *parFunc,
                            mapped_module *childMod,
-                           process *childP) :
+                           AddressSpace *childP) :
     addr_(parFunc->addr_),
     ptrAddr_(parFunc->ptrAddr_),
     ifunc_(parFunc->ifunc_),

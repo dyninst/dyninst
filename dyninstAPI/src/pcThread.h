@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2010 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -29,46 +29,55 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* $Id: syscalltrap.h,v 1.5 2006/03/29 21:35:04 bernat Exp $
- */
+#ifndef PCTHREAD_H
+#define PCTHREAD_H
 
-#ifndef _SYSCALL_TRAP_H_
-#define _SYSCALL_TRAP_H_
+#include "frame.h"
 
-#include "common/h/Types.h"
+#include "proccontrol/h/Process.h"
 
 /*
- * This file provides prototypes for the data structures which track
- * traps inserted at the exit of system calls. These are primarily
- * used to signal when it is possible to modify the state of the program.
+ * pcThread.h
  *
+ * A class that encapsulates a ProcControlAPI thread. This class is meant
+ * to be a replacement for the old dyn_thread class.
  */
 
-/*
- * This is the process-wide version: per system call how many are waiting,
- * etc.
- */
-struct syscallTrap {
-    // Reference count (for MT)
-    unsigned refcount;
-    // Syscall ID
-    Address syscall_id;
-    // /proc setting
-    int orig_setting;
-    // Address/trap tracking
-    char saved_insn[32];
-    // Handle for further info
-    void *saved_data;
-    // AIX use
-    Address origLR;
-    Address trapAddr;
+class PCProcess;
+typedef long dynthread_t;
+
+class PCThread {
+public:
+    static PCThread *createPCThread(PCProcess *parent, int index,
+                                    int lwpId, dynthread_t async_tid);
+
+    // Stackwalking interface
+    bool walkStack(pdvector<Frame> &stackWalk);
+    bool getRegisters(struct dyn_saved_regs *regs, bool includeFP = false);
+    bool changePC(Address, struct dyn_saved_regs *) { return false; }
+
+    // Field accessors
+    dynthread_t getTid() const;
+    int getIndex() const;
+    int getLWPId() const;
+    int_function *getStartFunc() const;
+    Address getIndirectStartAddr() const;
+    Address getStackAddr() const;
+    int getFD() const;
+    PCProcess *getProc() const;
+
+    // Field mutators
+    void updateStartFunc(int_function *ifunc);
+    void updateStackAddr(Address stackStart);
+
+    int_function *mapInitialFunc(int_function *ifunc);
+
+    // Architecture-specific
+    Frame getActiveFrame();
+
+protected:
+    PCProcess *proc_;
+    ProcControlAPI::Thread::ptr pcThr_;
 };
 
-/*
- * Per thread or LWP: a callback to be made when the
- * system call exits
- */
-
-typedef bool (*syscallTrapCallbackLWP_t)(PCThread *thread, void *data);
-
-#endif /*_SYSCALL_TRAP_H_*/
+#endif

@@ -45,7 +45,7 @@ class BPatch_typeCollection;
 class BPatch_libInfo;
 class BPatch_module;
 class int_function;
-class process;
+class PCProcess;
 
 //Keep old versions defined, that way someone can test if we're more
 // at or more recent than version 5.1 with '#if defined(DYNINST_5_1)'
@@ -82,8 +82,6 @@ typedef struct {
 } BPatch_stats;
 
 
-class EventRecord;
-
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
@@ -92,11 +90,8 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     friend class BPatch_thread;
     friend class BPatch_process;
     friend class BPatch_point;
-    friend class process;
+    friend class BPatch_stopThreadExpr; // Registers a callback
     friend class int_function;
-    friend class SignalHandler;
-    friend class BPatch_asyncEventHandler;
-    friend bool handleSigStopNInt(EventRecord &ev);
 
     BPatch_libInfo *info; 
 
@@ -148,16 +143,34 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
         // callbacks may delete BPatch objects. 
         void continueIfExists(int pid);
 
-    /* flag that is set when a mutatee's runnning status changes,
-       for use with pollForStatusChange */
+   /* flag that is set when a mutatee's runnning status changes,
+      for use with pollForStatusChange */
    bool mutateeStatusChange;
-   bool waitingForStatusChange;
 
    /* Internal notification file descriptor - a pipe */
    int notificationFDOutput_;
    int notificationFDInput_;
    // Easier than non-blocking reads... there is either 1 byte in the pipe or 0.
    bool FDneedsPolling_;
+
+   // Callbacks //
+   BPatchErrorCallback errorCallback;
+   BPatchForkCallback preForkCallback;
+   BPatchForkCallback postForkCallback;
+   BPatchExecCallback execCallback;
+   BPatchExitCallback exitCallback;
+   BPatchOneTimeCodeCallback oneTimeCodeCallback;
+   BPatchDynLibraryCallback dynLibraryCallback;
+   BPatchAsyncThreadEventCallback threadCreateCallback;
+   BPatchAsyncThreadEventCallback threadDestroyCallback;
+   BPatchDynamicCallSiteCallback dynamicCallSiteCallback;
+   InternalSignalHandlerCallback signalHandlerCallback;
+   BPatch_Set<long> *callbackSignals;
+   InternalCodeOverwriteCallback codeOverwriteCallback;
+   
+   BPatch_Vector<BPatchUserEventCallback> userEventCallbacks;
+   BPatch_Vector<BPatchStopThreadCallback> stopThreadCallbacks;
+   
    public:  
    /* And auxiliary functions for the above */
    /* These are NOT part of the API, do not use externally */
@@ -178,16 +191,16 @@ public:
     // The following are only to be called by the library:
     //  These functions are not locked.
     void registerProvisionalThread(int pid);
-    void registerForkedProcess(process *parentProc, process *childProc);
-    void registerForkingProcess(int forkingPid, process *proc);
+    void registerForkedProcess(PCProcess *parentProc, PCProcess *childProc);
+    void registerForkingProcess(int forkingPid, PCProcess *proc);
 
-    void registerExecExit(process *proc);
-    void registerExecCleanup(process *proc, char *arg0);
+    void registerExecExit(PCProcess *proc);
+    void registerExecCleanup(PCProcess *proc, char *arg0);
 
-    void registerNormalExit(process *proc, int exitcode);
-    void registerSignalExit(process *proc, int signalnum);
+    void registerNormalExit(PCProcess *proc, int exitcode);
+    void registerSignalExit(PCProcess *proc, int signalnum);
 
-    void registerThreadExit(process *proc, long tid, bool exiting);
+    void registerThreadExit(PCProcess *proc, long tid, bool exiting);
     bool registerThreadCreate(BPatch_process *proc, BPatch_thread *newthr);
 
     void registerProcess(BPatch_process *process, int pid=0);
@@ -195,8 +208,8 @@ public:
 
     void launchDeferredOneTimeCode();
 
-    void registerLoadedModule(process *process, mapped_module *mod);
-    void registerUnloadedModule(process *process, mapped_module *mod);
+    void registerLoadedModule(PCProcess *process, mapped_module *mod);
+    void registerUnloadedModule(PCProcess *process, mapped_module *mod);
 
     BPatch_thread *getThreadByPid(int pid, bool *exists = NULL);
     BPatch_process *getProcessByPid(int pid, bool *exists = NULL);

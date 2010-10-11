@@ -34,14 +34,13 @@
 #include <stdio.h>
 #include <iostream>
 #include "frame.h"
-#include "process.h"
-#include "dyn_thread.h"
-#include "dyn_lwp.h"
+#include "pcProcess.h"
+#include "pcThread.h"
 #include "function.h"
 #include "instPoint.h"
 #include "baseTramp.h"
 #include "miniTramp.h"
-
+#include "debug.h"
 
 Frame::Frame() : 
   frameType_(FRAME_unset), 
@@ -52,7 +51,6 @@ Frame::Frame() :
   pid_(0), 
   proc_(NULL), 
   thread_(NULL), 
-  lwp_(NULL), 
   range_(0), 
   pcAddr_(0) {
     stackwalk_cerr << "*** Null frame ***" << endl;
@@ -60,14 +58,14 @@ Frame::Frame() :
 
 
 Frame::Frame(Address pc, Address fp, Address sp,
-	     unsigned pid, process *proc, 
-	     dyn_thread *thread, dyn_lwp *lwp, 
+	     unsigned pid, PCProcess *proc, 
+	     PCThread *thread,
 	     bool uppermost,
 	     Address pcAddr ) :
   frameType_(FRAME_unset),
   uppermost_(uppermost),
   pc_(pc), fp_(fp), sp_(sp),
-  pid_(pid), proc_(proc), thread_(thread), lwp_(lwp), 
+  pid_(pid), proc_(proc), thread_(thread),
   range_(0), 
   pcAddr_(pcAddr) {
   stackwalk_cerr << "Base frame:   " << (*this) << endl;
@@ -80,7 +78,7 @@ Frame::Frame(Address pc, Address fp, Address sp,
   pc_(pc), fp_(fp), 
   sp_(sp),
   pid_(f->pid_), proc_(f->proc_),
-  thread_(f->thread_), lwp_(f->lwp_),
+  thread_(f->thread_),
   range_(0), 
 pcAddr_(pcAddr) {
   stackwalk_cerr << "Called frame: " << (*this) << endl;
@@ -112,7 +110,7 @@ bool Frame::isLastFrame() const
 }
 
 #if defined(os_linux) && defined(arch_x86)
-extern void calcVSyscallFrame(process *p);
+extern void calcVSyscallFrame(PCProcess *p);
 #endif
 
 void Frame::calcFrameType()
@@ -332,11 +330,9 @@ ostream & operator << ( ostream & s, Frame & f ) {
 	}
 	s << " FP: 0x" << std::hex << f.getFP() << " SP: 0x" << f.getSP() << " PID: " << std::dec << f.getPID() << " "; 
 	if( f.getThread() ) {
-   		s << "TID: " << f.getThread()->get_tid() << " ";
-   		}
-   	if( f.getLWP() ) {
-   		s << "LWP: " << f.getLWP()->get_lwp_id() << " ";
-   		}
+   		s << "TID: " << f.getThread()->getTid() << " ";
+                s << "LWP: " << f.getThread()->getLWPId() << " ";
+        }
 	
 	return s;
 	}

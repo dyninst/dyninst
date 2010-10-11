@@ -34,7 +34,7 @@
 #include "BPatch_function.h"
 #include "BPatch_edge.h"
 #include "BPatch_module.h"
-#include "process.h"
+#include "pcProcess.h"
 #include "function.h"
 #include "debug.h"
 

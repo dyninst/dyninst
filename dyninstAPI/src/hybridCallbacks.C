@@ -36,7 +36,9 @@
 #include "BPatch_module.h"
 #include "instPoint.h"
 #include "function.h"
-
+#include "addressSpace.h"
+#include "pcProcess.h"
+#include "eventLock.h"
 
 void newCodeCB(std::vector<BPatch_function*> &newFuncs, 
                std::vector<BPatch_function*> &modFuncs)

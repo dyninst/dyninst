@@ -513,7 +513,7 @@ bool AuxvParser::readAuxvInfo()
    **/
   unsigned num_maps;
   map_entries *secondary_match = NULL;
-  map_entries *maps = getLinuxMaps(pid, num_maps);
+  map_entries *maps = getVMMaps(pid, num_maps);
   for (unsigned i=0; i<guessed_addrs.size(); i++) {
      Address addr = guessed_addrs[i];
      for (unsigned j=0; j<num_maps; j++) {
@@ -922,7 +922,7 @@ void *AuxvParser::readAuxvFromProc() {
 
 
 #define LINE_LEN 1024
-map_entries *getLinuxMaps(int pid, unsigned &maps_size) {
+map_entries *getVMMaps(int pid, unsigned &maps_size) {
    char line[LINE_LEN], prems[16], *s;
    int result;
    int fd = -1;

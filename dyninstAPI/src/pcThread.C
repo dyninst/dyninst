@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2010 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -29,46 +29,61 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* $Id: syscalltrap.h,v 1.5 2006/03/29 21:35:04 bernat Exp $
- */
+#include "pcThread.h"
 
-#ifndef _SYSCALL_TRAP_H_
-#define _SYSCALL_TRAP_H_
+PCThread *PCThread::createPCThread(PCProcess *parent, int index,
+                                int lwpId, dynthread_t async_tid)
+{
+    return NULL;
+}
 
-#include "common/h/Types.h"
+bool PCThread::walkStack(pdvector<Frame> &stackWalk) {
+    return false;
+}
 
-/*
- * This file provides prototypes for the data structures which track
- * traps inserted at the exit of system calls. These are primarily
- * used to signal when it is possible to modify the state of the program.
- *
- */
+bool PCThread::getRegisters(struct dyn_saved_regs *regs, bool includeFP) {
+    return false;
+}
 
-/*
- * This is the process-wide version: per system call how many are waiting,
- * etc.
- */
-struct syscallTrap {
-    // Reference count (for MT)
-    unsigned refcount;
-    // Syscall ID
-    Address syscall_id;
-    // /proc setting
-    int orig_setting;
-    // Address/trap tracking
-    char saved_insn[32];
-    // Handle for further info
-    void *saved_data;
-    // AIX use
-    Address origLR;
-    Address trapAddr;
-};
+dynthread_t PCThread::getTid() const {
+    dynthread_t ret;
+    return ret;
+}
 
-/*
- * Per thread or LWP: a callback to be made when the
- * system call exits
- */
+int PCThread::getIndex() const {
+    return 0;
+}
 
-typedef bool (*syscallTrapCallbackLWP_t)(PCThread *thread, void *data);
+int PCThread::getLWPId() const {
+    return 0;
+}
 
-#endif /*_SYSCALL_TRAP_H_*/
+int_function *PCThread::getStartFunc() const {
+    return 0;
+}
+
+Address PCThread::getIndirectStartAddr() const {
+    return 0;
+}
+
+Address PCThread::getStackAddr() const {
+    return 0;
+}
+
+int PCThread::getFD() const {
+    return 0;
+}
+
+void PCThread::updateStartFunc(int_function *ifunc) {
+}
+
+void PCThread::updateStackAddr(Address stackStart) {
+}
+
+int_function *PCThread::mapInitialFunc(int_function *ifunc) {
+    return NULL;
+}
+
+PCProcess *PCThread::getProc() const {
+    return NULL;
+}
