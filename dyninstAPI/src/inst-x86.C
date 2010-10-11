@@ -510,6 +510,46 @@ void registerSpace::initialize64() {
 					 true,
 					 registerSlot::liveAlways,
 					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM8,
+                        "XMM8",
+                        true,
+                        registerSlot::liveAlways,
+                        registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM9,
+                        "XMM9",
+                        true,
+                        registerSlot::liveAlways,
+                        registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM10,
+                        "XMM10",
+                        true,
+                        registerSlot::liveAlways,
+                        registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM11,
+                        "XMM11",
+                        true,
+                        registerSlot::liveAlways,
+                        registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM12,
+                        "XMM12",
+                        true,
+                        registerSlot::liveAlways,
+                        registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM13,
+                        "XMM13",
+                        true,
+                        registerSlot::liveAlways,
+                        registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM14,
+                        "XMM14",
+                        true,
+                        registerSlot::liveAlways,
+                        registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM15,
+                        "XMM15",
+                        true,
+                        registerSlot::liveAlways,
+                        registerSlot::FPR));
 
 
 

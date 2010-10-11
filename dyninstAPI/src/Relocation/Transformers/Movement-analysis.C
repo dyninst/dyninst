@@ -62,8 +62,19 @@ bool PCSensitiveTransformer::postprocess(TraceList &) {
 int DEBUG_hi = -1;
 int DEBUG_lo = -1;
 
+bool PCSensitiveTransformer::analysisRequired(TraceList::iterator &b_iter) {
+   if ( (*b_iter)->func()->obj()->parse_img()->codeObject()->defensiveMode())
+      return true;
+   return false;
+}
+
 bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
-  const bblInstance *bbl = (*b_iter)->bbl();
+   if (!analysisRequired(b_iter)) {
+      return adhoc.processTrace(b_iter);
+   }
+
+
+   const bblInstance *bbl = (*b_iter)->bbl();
   
   // Can be true if we see an instrumentation block...
   if (!bbl) return true;
@@ -142,28 +153,34 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
 
     if (exceptionSensitive(addr+insn->size(), bbl)) {
       extSens = true;
-      //cerr << "Sensitive by exception @ " << hex << addr << dec << endl;
+      cerr << "Sensitive by exception @ " << hex << addr << dec << endl;
     }
 
     for (AssignList::iterator a_iter = sensitiveAssignments.begin();
 	 a_iter != sensitiveAssignments.end(); ++a_iter) {
-      //cerr << "Forward slice from " << (*a_iter)->format() << " in func " << bbl->func()->prettyName() << endl;
+
+       cerr << "Forward slice from " << (*a_iter)->format() << " in func " << bbl->func()->prettyName() << endl;
       
       Graph::Ptr slice = forwardSlice(*a_iter,
 				      bbl->block()->llb(),
 				      bbl->func()->ifunc());
       if (!slice) {
-	cerr << "\t slice failed, returning ext. sens." << endl;
-	// Safe assumption, as always
+         // Safe assumption, as always
+         cerr << "\t slice failed!" << endl;
 	extSens = true;
 	intSens = true;
       }
       else {
 	if (!determineSensitivity(slice, intSens, extSens)) {
 	  // Analysis failed for some reason... go conservative
+           cerr << "\t sensitivity analysis failed!" << endl;
 	  intSens = true;
 	  extSens = true;
 	}
+        else {
+           cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / " 
+                << (extSens ? "extSens" : "") << endl;
+        }
       }
 
       if (intSens && extSens) {
@@ -402,12 +419,9 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
 
   Address target = res.convert<Address>();
 
-  cerr << "Checking for thunk: CFT from " << hex << addr << " to " << target << dec << endl;
-
   // Check for a call to a thunk function
   if (target == (addr + insn->size())) {
     destination = Absloc(0, 0, NULL);
-    cerr << "      ... call next insn, ret true" << endl;
     return true;
   }
   
@@ -459,9 +473,6 @@ void PCSensitiveTransformer::handleThunkCall(TraceList::iterator &b_iter,
 					     Trace::AtomList::iterator &iter,
 					     Absloc &destination) {
 
-  cerr << "Handling thunk call at " << hex << (*iter)->addr() << dec << endl;
-  cerr << "\t from insn " << (*iter)->insn()->format() << endl;
-
   Atom::Ptr replacement = GetPC::create((*iter)->insn(),
 					   (*iter)->addr(),
 					   destination);
@@ -495,6 +506,7 @@ void PCSensitiveTransformer::handleThunkCall(TraceList::iterator &b_iter,
     }
     if (dest != cf->destMap_.end()) {
       CFAtom::Ptr newCF = CFAtom::create((*b_iter)->bbl());
+      newCF->updateAddr(cf->addr());
       // Explicitly do _NOT_ reuse old information - this is just a branch
       
       newCF->destMap_[CFAtom::Fallthrough] = dest->second;
@@ -557,6 +569,7 @@ void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
     // Indirect, we put in a push/jump <reg> combination.
 
     CFAtom::Ptr newCF = CFAtom::create((*b_iter)->bbl());
+    newCF->updateAddr(cf->addr());
 
     CFAtom::DestinationMap::iterator dest = cf->destMap_.find(CFAtom::Taken);
     if (dest != cf->destMap_.end()) {

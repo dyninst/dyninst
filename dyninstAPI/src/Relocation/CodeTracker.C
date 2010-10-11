@@ -78,7 +78,7 @@ void CodeTracker::addTracker(TrackerElement *e) {
   // If that happens, the assumption origToReloc makes that we can
   // get away without an IntervalTree will be violated and a lot
   // of code will need to be rewritten.
-   relocation_cerr << "Adding tracker " << *e << endl;
+   assert(e->func());
   trackers_.push_back(e);
 }
 

@@ -525,7 +525,6 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
 
 #endif
 
-extern void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoint);
 extern unsigned long dyninstTrapTableUsed;
 extern unsigned long dyninstTrapTableVersion;
 extern trapMapping_t *dyninstTrapTable;
@@ -553,32 +552,16 @@ extern unsigned long dyninstTrapTableIsSorted;
  *      do a popf/ret to restore flags and go to instrumentation.  The 'retPoint'
  *      parameter is the address in dyninstTrapHandler the popf/ret can be found.
  **/
-void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoint)
+
+void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
 {
-   ucontext_t newcontext;
-   unsigned i;
-   unsigned long *orig_sp;
    void *orig_ip;
    void *trap_to;
 
-   getcontext(&newcontext);
-   
-   //Set up the 'context' parameter so that when we restore 'context' control
-   // will get transfered to our instrumentation.
-   for (i=0; i<MAX_REG; i++) {
-      newcontext.uc_mcontext.gregs[i] = context->uc_mcontext.gregs[i];
-   }
-
-   orig_sp = (unsigned long *) context->uc_mcontext.gregs[REG_SP];
    orig_ip = (void *) context->uc_mcontext.gregs[REG_IP];
-
    assert(orig_ip);
 
-   //Set up the PC to go to the 'ret_point' in RTsignal-x86.s
-   newcontext.uc_mcontext.gregs[REG_IP] = (unsigned long) retPoint;
-
-   //simulate a "push" of the flags and instrumentation entry points onto
-   // the stack.
+   // Find the new IP we're going to and substitute. Leave everything else untouched.
    if (DYNINSTstaticMode) {
       unsigned long zero = 0;
       unsigned long one = 1;
@@ -599,22 +582,7 @@ void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoin
                                      &dyninstTrapTableIsSorted);
                                      
    }
-   *(orig_sp - 1) = (unsigned long) trap_to;
-   *(orig_sp - 2) = flags;
-   unsigned shift = 2;
-#if defined(arch_x86_64) && !defined(MUTATEE_32)
-   *(orig_sp - 3) = context->uc_mcontext.gregs[REG_R11];
-   *(orig_sp - 4) = context->uc_mcontext.gregs[REG_R10];
-   *(orig_sp - 5) = context->uc_mcontext.gregs[REG_RAX];
-   shift = 5;
-#endif
-   newcontext.uc_mcontext.gregs[REG_SP] = (unsigned long) (orig_sp - shift);
-
-   //Restore the context.  This will move all the register values of 
-   // context into the actual registers and transfer control away from
-   // this function.  This function shouldn't actually return.
-   setcontext(&newcontext);
-   assert(0);
+   context->uc_mcontext.gregs[REG_IP] = (long) trap_to;
 }
 
 #if defined(cap_binary_rewriter)

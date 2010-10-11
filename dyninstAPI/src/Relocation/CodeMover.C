@@ -199,7 +199,7 @@ PriorityMap &CodeMover::priorityMap() {
 
 ///////////////////////
 
-const SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
+SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
    // Take the current PriorityMap, digest it,
    // and return a sorted list of where we need 
    // patches (from and to)

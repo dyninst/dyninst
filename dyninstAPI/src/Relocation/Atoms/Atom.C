@@ -115,14 +115,14 @@ Trace::Ptr Trace::create(baseTramp *base) {
   if (!inst) return Ptr();
   inst->addBaseTramp(base);
 
-  Ptr newTrace = Ptr(new Trace(inst, base->instP()->addr()));
+  Ptr newTrace = Ptr(new Trace(inst, base->instP()->addr(), base->instP()->func()));
 
   return newTrace;
 }
   
-Trace::Ptr Trace::create(Atom::Ptr a, Address addr) {
+Trace::Ptr Trace::create(Atom::Ptr a, Address addr, int_function *f) {
   if (!a) return Ptr();
-  Ptr newTrace = Ptr(new Trace(a, addr));
+  Ptr newTrace = Ptr(new Trace(a, addr, f));
   return newTrace;
 }
 
