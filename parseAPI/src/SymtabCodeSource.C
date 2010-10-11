@@ -299,12 +299,12 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
             continue;
         }
 
-#if defined(os_vxworks)
+	//#if defined(os_vxworks)
         if(0 == (*rit)->getMemSize()) {
             parsing_printf(" [skipped null region]\n");
             continue;
         }
-#endif
+	//#endif
         parsing_printf("\n");
 
         if(HASHDEF(rmap,*rit)) {

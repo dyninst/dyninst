@@ -148,7 +148,7 @@ bool instruction::isCondBranch() const {
 }
 
 unsigned instruction::jumpSize(Address from, Address to, unsigned addr_width) {
-    Address disp = (to - from);
+    Address disp = ABS((long)(to - from));
     return jumpSize(disp, addr_width);
 }
 

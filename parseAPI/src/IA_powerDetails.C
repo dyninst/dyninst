@@ -116,7 +116,10 @@ bool IA_powerDetails::findTableAddrNoTOC(const IA_IAPI* blockToCheck)
         {
             break;
         }
-        if(patternIter->second->getOperation().getID() == power_op_addi)
+	parsing_printf("\tchecking insn %s at 0x%lx\n", patternIter->second->format().c_str(),
+		       patternIter->first);
+        if((patternIter->second->getOperation().getID() == power_op_addi) ||
+	   (patternIter->second->getOperation().getID() == power_op_si))
         {
             regs.clear();
             patternIter->second->getReadSet(regs);
@@ -163,7 +166,8 @@ bool IA_powerDetails::findTableAddrNoTOC(const IA_IAPI* blockToCheck)
             tableStartAddress &= 0xFFFF0000;
             patternIter--;
             if(patternIter->second &&
-               (patternIter->second->getOperation().getID() == power_op_addi) &&
+               ((patternIter->second->getOperation().getID() == power_op_addi) ||
+		(patternIter->second->getOperation().getID() == power_op_si)) &&
                patternIter->second->isWritten(*(regs.begin())))
             {
                 parsing_printf("\tfound 0x%lx: %s, setting tableStartAddress\n",
