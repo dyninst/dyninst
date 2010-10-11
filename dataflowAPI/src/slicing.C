@@ -875,7 +875,11 @@ void Slicer::findMatches(Element &current, Assignment::Ptr &assign, Direction di
   else {
     assert(dir == backward);
     const AbsRegion &oReg = assign->out();
+    slicing_cerr << "\t\t\t\t\tComparing current " 
+                 << current.reg.format() << " to candidate "
+                 << oReg.format() << endl;
     if (current.reg.contains(oReg)) {
+       slicing_cerr << "\t\t\t\t\t\tMatch!" << endl;
       current.ptr = assign;
       current.usedIndex = index;
       succ.push(current);
