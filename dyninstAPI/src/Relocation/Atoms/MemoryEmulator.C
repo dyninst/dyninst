@@ -75,9 +75,17 @@ TrackerElement *MemEmulator::tracker(int_function *f) const {
   return e;
 }
 
-bool MemEmulator::generate(const codeGen &,
+bool MemEmulator::generate(const codeGen &templ,
                            const Trace *t,
                            CodeBuffer &buffer) {
+   // We need a BPatch_something to do the memory handling. If that's 
+   // not present, assume we don't need to emulate this piece of
+   // memory.
+   if (!templ.addrSpace()->up_ptr()) {
+      buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t->bbl()->func()));
+      return true;
+   }
+
    codeGen prepatch(128);
 
   // We want to ensure that a memory operation produces its
@@ -250,7 +258,10 @@ bool MemEmulator::calcWriteSet(pdvector<Register> &excluded, bool writesRAX) {
 
 
 bool MemEmulator::computeEffectiveAddress(codeGen &gen) {
+  assert(gen.addrSpace());
   BPatch_addressSpace *bproc = (BPatch_addressSpace *)gen.addrSpace()->up_ptr();
+  assert(bproc);
+  assert(gen.point());
   BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point(), BPatch_locInstruction);
   if (bpoint == NULL) {
     fprintf(stderr, "ERROR: Unable to find BPatch point for internal point %p/0x%lx\n",
@@ -402,11 +413,12 @@ TrackerElement *MemEmulatorTranslator::tracker() const {
    return e;
 }
 
-bool MemEmulatorTranslator::generate(const codeGen &,
+bool MemEmulatorTranslator::generate(const codeGen &templ,
                                      const Trace *,
                                      CodeBuffer &buffer) {
   DecisionTree dt(reg_);
   codeGen gen;
+  gen.applyTemplate(templ);
 
   dt.generate(gen);
 
