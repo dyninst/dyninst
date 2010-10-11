@@ -40,6 +40,7 @@
 
 #include "dynutil/h/Graph.h" // PC-sensitive transformer
 #include "dataflowAPI/h/SymEval.h" // Variable class
+#include "Movement-adhoc.h"
 
 namespace Dyninst {
 
@@ -70,6 +71,8 @@ class ExtPCSensVisitor : public ASTVisitor {
   virtual ASTVisitor::ASTPtr visit(StpAST *x) { return ASTVisitor::visit(x); }
   virtual ASTVisitor::ASTPtr visit(YicesAST *x) { return ASTVisitor::visit(x); }
   virtual ASTVisitor::ASTPtr visit(SemanticsAST *x) { return ASTVisitor::visit(x); }
+
+
   virtual ~ExtPCSensVisitor() {};
   
   bool isExtSens(AST::Ptr a);
@@ -89,14 +92,16 @@ class PCSensitiveTransformer : public Transformer {
 
  public:
   virtual bool processTrace(TraceList::iterator &);
- PCSensitiveTransformer(AddressSpace *as, PriorityMap &p) : 
-  aConverter(false), addrSpace(as), priMap(p),
-    Sens_(0), extSens_(0), intSens_(0) {};
+     PCSensitiveTransformer(AddressSpace *as, PriorityMap &p) 
+        : aConverter(false), addrSpace(as), priMap(p),
+     Sens_(0), extSens_(0), intSens_(0), adhoc(as) {};
   virtual ~PCSensitiveTransformer() {};
 
   virtual bool postprocess(TraceList &);
 
  private:
+  bool analysisRequired(TraceList::iterator &);
+
   bool isPCSensitive(InstructionAPI::Instruction::Ptr insn,
 		     Address addr,
 		     int_function *func,
@@ -134,6 +139,9 @@ class PCSensitiveTransformer : public Transformer {
   long extSens_;
   long intSens_;
 
+  // And for times we don't want the overhead - if non-defensive or
+  // system libraries
+  adhocMovementTransformer adhoc;
 };
 
 };

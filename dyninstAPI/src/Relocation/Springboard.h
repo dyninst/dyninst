@@ -66,9 +66,11 @@ struct SpringboardReq {
    friend class CodeMover;
  public:
 
-   typedef std::map<Address, SpringboardReq> Springboards;
-   typedef Springboards::iterator iterator;
-   typedef Springboards::const_iterator const_iterator;
+   
+   typedef std::map<Address, SpringboardReq> SpringboardsAtPriority;
+   typedef std::map<Priority, SpringboardsAtPriority> Springboards;
+   typedef SpringboardsAtPriority::iterator iterator;
+   typedef SpringboardsAtPriority::const_iterator const_iterator;
 
    bool empty() const { 
      return sBoardMap_.empty();
@@ -77,16 +79,15 @@ struct SpringboardReq {
    void add(Address from, Address to, 
             Priority p, bblInstance *bbl, 
             bool checkConflicts, bool includeAllCopies) {
-      sBoardMap_[from] = SpringboardReq(from, to,
-                                        p, bbl,
-                                        checkConflicts, includeAllCopies);
+      sBoardMap_[p][from] = SpringboardReq(from, to,
+                                           p, bbl,
+                                           checkConflicts, includeAllCopies);
    }
 
-   const_iterator begin() const { return sBoardMap_.begin(); };
-   const_iterator end() const { return sBoardMap_.end(); };
-   iterator begin() { return sBoardMap_.begin(); };
-   iterator end() { return sBoardMap_.end(); };
+   iterator begin(Priority p) { return sBoardMap_[p].begin(); };
+   iterator end(Priority p) { return sBoardMap_[p].end(); };
 
+#if 0
    bool conflict(Address orig, Address current) const {
      // We have a conflict if there is an entry in the sBoardMap_ 
      // for current that is _not_ orig. 
@@ -103,6 +104,7 @@ struct SpringboardReq {
      --iter;
      return (iter->first != orig);
    }
+#endif
 
  private:
    Springboards sBoardMap_;
@@ -123,7 +125,7 @@ class SpringboardBuilder {
   static Ptr createFunc(FuncSet::const_iterator begin, FuncSet::const_iterator end, AddressSpace *addrSpace);
 
   bool generate(std::list<codeGen> &springboards,
-		const SpringboardMap &input);
+		SpringboardMap &input);
 
  private:
 
@@ -133,6 +135,10 @@ class SpringboardBuilder {
  SpringboardBuilder(AddressSpace *a) : addrSpace_(a), curRange_(UnallocatedStart) {};
   template <typename TraceIter> 
     bool addTraces(TraceIter begin, TraceIter end);
+
+  bool generateInt(std::list<codeGen> &springboards,
+                   SpringboardMap &input,
+                   Priority p);
 
   generateResult_t generateSpringboard(std::list<codeGen> &input,
 				       const SpringboardReq &p);
