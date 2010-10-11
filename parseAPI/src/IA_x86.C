@@ -193,7 +193,7 @@ bool IA_IAPI::simulateJump() const
 }
 #endif
 
-bool IA_IAPI::isTailCall(Function * /*context*/,unsigned int) const
+bool IA_IAPI::isTailCall(Function * context,unsigned int) const
 {
     if(tailCall.first) {
         parsing_printf("\tReturning cached tail call check result: %d\n", tailCall.second);
@@ -207,6 +207,18 @@ bool IA_IAPI::isTailCall(Function * /*context*/,unsigned int) const
         parsing_printf("\tjump to 0x%lx, TAIL CALL\n", getCFT());
         tailCall.second = true;
         return tailCall.second;
+    }
+
+    if (curInsn()->getCategory() == c_BranchInsn) {
+        std::set<CodeRegion*> tregs;
+        _obj->cs()->findRegions(getCFT(),tregs);
+        if (tregs.size() && tregs.end() == tregs.find(context->region())) {
+            tailCall.second = true;
+            parsing_printf("\tjump to new region parsed as tail call\n");
+            mal_printf("\tjump to %lx in new region parsed as tail call\n", 
+                       getCFT());
+            return tailCall.second;
+        }
     }
 
     if(allInsns.size() < 2) {
@@ -426,14 +438,34 @@ bool IA_IAPI::isFakeCall() const
                 //KEVIN: unhandled case, but not essential for correct analysis
                 return false;
                 break;
-            case e_add: 
-                fprintf(stderr,"WARNING: in isFakeCall, add ins'n "
-                        "at %lx (in first block of function at "
-                        "%lx) modifies the sp. "
-                        "%s[%d]\n", ah->getAddr(), entry, 
-                        FILE__, __LINE__);
-                return true;
+            case e_add: {
+                mal_printf("in isFakeCall, add ins'n "
+                           "at %lx (in first block of function at "
+                           "%lx) modifies the sp. %s[%d]\n", 
+                           ah->getAddr(), entry, FILE__, __LINE__);
+                std::vector<Operand> opers;
+                insn->getOperands(opers);
+                // if the insn uses a register (other than sp, which it writes)
+                // we won't be able to get a result out of the instruction
+                for (unsigned oidx = 0; oidx < opers.size(); oidx++) {
+                    if (!opers[oidx].isWritten()) {
+                        Expression::Ptr expr = opers[oidx].getValue();
+                        if (Arch_x86 == _isrc->getArch() || 
+                            Arch_ppc32 == _isrc->getArch()) 
+                        {
+                            expr->bind(theStackPtr.get(),Result(s32,0));
+                        } else {
+                            expr->bind(theStackPtr.get(),Result(s64,0));
+                        }
+                        Result val = expr->eval();
+                        if (val.defined) {
+                            stackDelta += val.convert<Address>();
+                            break;
+                        }
+                    }
+                }
                 break; 
+            }
             default: {
                 //KEVINTODO: remove this assert
                 fprintf(stderr,"WARNING: in isFakeCall non-push/pop "

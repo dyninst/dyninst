@@ -712,8 +712,8 @@ public:
   // synch modified mapped objects with current memory contents
   mapped_object *createObjectNoFile(Address addr);
   void updateCodeBytes
-      ( std::map<Dyninst::Address,unsigned char*>& owPages,
-        std::map<Address,Address> owRegions );
+      ( const std::map<Dyninst::Address,unsigned char*>& owPages,
+        const std::map<Address,Address> &owRegions );
 
   // misc
   bool hideDebugger();

@@ -637,3 +637,18 @@ void image_func::getUnreachableBlocks
         }
     }
 }
+
+void image_func::setinit_retstatus(ParseAPI::FuncReturnStatus rs)
+{
+    init_retstatus_ = rs;
+    if (rs > retstatus()) {
+        set_retstatus(rs);
+    }
+}
+ParseAPI::FuncReturnStatus image_func::init_retstatus() const
+{
+    if (init_retstatus_ > retstatus()) {
+        return retstatus();
+    }
+    return init_retstatus_;
+}

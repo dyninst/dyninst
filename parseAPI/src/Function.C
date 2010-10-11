@@ -416,8 +416,8 @@ Function::tampersStack(bool recalculate)
                 DataflowAPI::SymEval::expand(slGraph,slRes);
                 sliceAtRet = slRes[*ait];
                 if (dyn_debug_malware && sliceAtRet != NULL) {
-                    //cout << "assignment " << (*ait)->format() << " is "
-                    //     << sliceAtRet->format() << "\n";
+                    cout << "assignment " << (*ait)->format() << " is "
+                         << sliceAtRet->format() << "\n";
                 }
                 break;
             }

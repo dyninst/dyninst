@@ -1587,9 +1587,9 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   // Create a CodeMover covering these functions
   //cerr << "Creating a CodeMover" << endl;
   
+  // Attempting to reduce copies...
   CodeTracker t;
   relocatedCode_.push_back(t);
-  // Attempting to reduce copies...
   CodeMover::Ptr cm = CodeMover::create(relocatedCode_.back());
   if (!cm->addFunctions(begin, end)) return false;
 
@@ -1637,8 +1637,10 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   // Now handle patching; AKA linking
   relocation_cerr << "  Patching in jumps to generated code" << endl;
 
-  if (!patchCode(cm, spb))
+  if (!patchCode(cm, spb)) {
+      cerr << "Error: patching in jumps failed, ret false!" << endl;
     return false;
+  }
 
   // Build the address mapping index
   relocatedCode_.back().createIndices();
@@ -1813,6 +1815,7 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
   std::list<codeGen> patches;
 
   if (!spb->generate(patches, p)) {
+      cerr << "Failed springboard generation, ret false" << endl;
     return false;
   }
 
@@ -1820,9 +1823,11 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
        iter != patches.end(); ++iter) {
     if (!writeTextSpace((void *)iter->startAddr(),
 			iter->used(),
-			iter->start_ptr()))
-      return false;
-  }
+            iter->start_ptr())) {
+        cerr << "Failed writing a springboard branch, ret false" << endl;
+            return false;
+    }
+    }
 
 
   return true;

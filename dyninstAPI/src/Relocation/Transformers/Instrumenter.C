@@ -70,7 +70,6 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
 
   for (AtomList::iterator e_iter = elements.begin();
        e_iter != elements.end(); ++e_iter) {
-    assert(pre == NULL);
 
     // We're inserting an Inst element before us (if there is a baseTramp
     // with something interesting, that is). 
@@ -85,14 +84,18 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
     relocation_cerr << "  Checking for point at " << std::hex << addr << std::dec << endl;
 
     point = (*iter)->bbl()->func()->findInstPByAddr(addr);
-    if (!point) continue;
 
-    pre = point->preBaseTramp();
+    if (point) {
+        pre = point->preBaseTramp();
+    }
+    else {
+        pre = NULL;
+    }
 
     relocation_cerr << "   Found instrumentation at addr " 
 		    << std::hex << addr << std::dec
-		    << ((post && !post->empty()) ? "<POST CARRYOVER>" : "")
-		    << ((pre && !pre->empty()) ? "<PRE>" : "") << endl;
+            << (post ? (post->empty() ? "<POST EMPTY>" : "<POST>") : "<NO POST>")
+            << (pre ? (pre->empty() ? "<PRE EMPTY>" : "<PRE>") : "<NO PRE>") << endl;
     
     Inst::Ptr inst = Inst::create();
     inst->addBaseTramp(post);
@@ -103,8 +106,12 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
       elements.insert(e_iter, inst);
     // Otherwise it silently disappears...
 
-    post = point->postBaseTramp();
-    pre = NULL;
+    if (point) {
+        post = point->postBaseTramp();
+    }
+    else {
+        post = NULL;
+    }
   }
 
   // Edge instrumentation time

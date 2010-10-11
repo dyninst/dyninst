@@ -287,7 +287,7 @@ void Parser::ProcessCFInsn(
                 // and if so, create a new instruction adapter
                 if ( (   CALL == curEdge->second
                       || DIRECT == curEdge->second
-                      || COND_TAKEN != curEdge->second )
+                      || COND_TAKEN == curEdge->second )
                     && _pcb.updateCodeBytes(curEdge->first))
                 {
                     Address curAddr = ah->getAddr();

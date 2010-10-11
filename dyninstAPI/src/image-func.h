@@ -310,8 +310,8 @@ class image_func : public ParseAPI::Function
 
    static void getUnreachableBlocks( std::set<image_basicBlock*> &deadBlocks, 
                                      std::set<image_basicBlock*> &unreachable );
-   ParseAPI::FuncReturnStatus init_retstatus() { return init_retstatus_; }
-   void setinit_retstatus(ParseAPI::FuncReturnStatus rs) { init_retstatus_ = rs; }
+   ParseAPI::FuncReturnStatus init_retstatus() const;
+   void setinit_retstatus(ParseAPI::FuncReturnStatus rs); //also sets retstatus
 
    // ----------------------------------------------------------------------
 

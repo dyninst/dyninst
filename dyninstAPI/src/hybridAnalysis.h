@@ -161,7 +161,8 @@ public:
         void instrumentOverwriteLoop(Dyninst::Address writeInsnAddr, 
                                      std::set<BPatch_point*> &unresExits);
 
-        void instrumentOneWrite(Dyninst::Address writeInsnAddr);
+        void instrumentOneWrite(Dyninst::Address writeInsnAddr, 
+                                BPatch_function *writeFunc);
 
         /*1. initialize necessary variables
           2. create bounds array for all blocks in the loop

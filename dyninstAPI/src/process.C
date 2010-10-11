@@ -4891,27 +4891,29 @@ bool process::getOverwrittenBlocks
 }
 
 // distribute the work to mapped_objects
-// currently asserts if there are overwrites to multiple objects
 void process::updateCodeBytes
-    ( std::map<Dyninst::Address,unsigned char*>& owPages, //input
-      std::map<Address,Address> owRanges )
+    ( const std::map<Dyninst::Address,unsigned char*>& owPages, //input
+      const std::map<Address,Address> &owRanges ) //input
 {
-    std::map<Dyninst::Address,unsigned char*>::iterator pIter = owPages.begin();
-    assert( owPages.end() != pIter );
-
-    mapped_object *curObj = findObject((*pIter).first);
-
-    std::map<Address,Address> objRanges;
-    for(; pIter != owPages.end(); pIter++) {
-        assert ( curObj == findObject((*pIter).first) );
-        std::map<Address,Address>::iterator rIter = owRanges.begin();
-        for (; rIter != owRanges.end(); rIter++) {
-            objRanges[(*rIter).first] = (*rIter).second;
+    std::map<mapped_object *,std::map<Address,Address> *> objRanges;
+    std::map<Address,Address>::const_iterator rIter = owRanges.begin();
+    for (; rIter != owRanges.end(); rIter++) {
+        mapped_object *obj = findObject((*rIter).first);
+        if (!objRanges[obj]) {
+            objRanges[obj] = new map<Address,Address>();
         }
+        (*objRanges[obj])[(*rIter).first] = (*rIter).second;
     }
 
-    curObj->updateCodeBytes(objRanges);
-    objRanges.clear();
+    std::map<mapped_object *,std::map<Address,Address> *>::iterator oIter = 
+        objRanges.begin();
+    for (; oIter != objRanges.end(); oIter++) {
+
+        (*oIter).first->updateCodeBytes( *((*oIter).second) );
+
+        delete ((*oIter).second);
+    }
+    assert(objRanges.size() == 1); //o/w analysis code may not be prepared for other cases
 }
 
 

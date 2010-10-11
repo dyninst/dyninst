@@ -365,7 +365,8 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop
 }
 
 
-void HybridAnalysisOW::owLoop::instrumentOneWrite(Address writeInsnAddr)
+void HybridAnalysisOW::owLoop::instrumentOneWrite(Address writeInsnAddr, 
+                                                  BPatch_function *writeFunc)
 {
     assert(1 == blocks.size());
 
@@ -373,7 +374,7 @@ void HybridAnalysisOW::owLoop::instrumentOneWrite(Address writeInsnAddr)
 
     // create instrumentation points
     BPatch_point * writePoint = hybridow_->proc()->getImage()->
-        createInstPointAtAddr((void*)writeInsnAddr);
+        createInstPointAtAddr((void*)writeInsnAddr, NULL, writeFunc);
 
     // create the stopthread expression
     BPatch_stopThreadExpr stopForAnalysis
@@ -1154,7 +1155,7 @@ void HybridAnalysisOW::overwriteSignalCB
                     } else {
                         // this loop is unsafe to instrument, go back to 
                         // single block instrumentation
-                        loop->instrumentOneWrite(faultInsnAddr);
+                        loop->instrumentOneWrite(faultInsnAddr,faultFunc);
                         fprintf(stderr,"failed to expand to loop-based "
                                 "instrumentation %s[%d]\n",
                                 FILE__,__LINE__);
@@ -1167,7 +1168,7 @@ void HybridAnalysisOW::overwriteSignalCB
                      loop->writeInsns.find(faultInsnAddr))
             {
                 loop->writeInsns.insert(faultInsnAddr);
-                loop->instrumentOneWrite(faultInsnAddr);
+                loop->instrumentOneWrite(faultInsnAddr,faultFunc);
             } 
         }
 
@@ -1290,7 +1291,7 @@ void HybridAnalysisOW::overwriteSignalCB
         assert(blockToLoop.find(faultBlock->getStartAddress()) == blockToLoop.end());
         loop->blocks.insert(faultBlock);
         blockToLoop[faultBlock->getStartAddress()] = loop->getID();
-        loop->instrumentOneWrite(faultInsnAddr);
+        loop->instrumentOneWrite(faultInsnAddr,faultFunc);
         // we're only going to write to one spot, set write target and writeInsns
     }
 
