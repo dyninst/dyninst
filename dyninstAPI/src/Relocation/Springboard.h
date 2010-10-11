@@ -71,6 +71,7 @@ struct SpringboardReq {
    typedef std::map<Priority, SpringboardsAtPriority> Springboards;
    typedef SpringboardsAtPriority::iterator iterator;
    typedef SpringboardsAtPriority::const_iterator const_iterator;
+   typedef SpringboardsAtPriority::reverse_iterator reverse_iterator;
 
    bool empty() const { 
      return sBoardMap_.empty();
@@ -86,6 +87,9 @@ struct SpringboardReq {
 
    iterator begin(Priority p) { return sBoardMap_[p].begin(); };
    iterator end(Priority p) { return sBoardMap_[p].end(); };
+
+   reverse_iterator rbegin(Priority p) { return sBoardMap_[p].rbegin(); };
+   reverse_iterator rend(Priority p) { return sBoardMap_[p].rend(); };
 
 #if 0
    bool conflict(Address orig, Address current) const {

@@ -70,8 +70,12 @@ SpringboardBuilder::Ptr SpringboardBuilder::createFunc(FuncSet::const_iterator b
 bool SpringboardBuilder::generateInt(std::list<codeGen> &springboards,
                                      SpringboardMap &input,
                                      Priority p) {
-   for (SpringboardMap::iterator iter = input.begin(p); 
-        iter != input.end(p); ++iter) {
+   // We want to do a reverse iteration so that we don't have a situation
+   // where an earlier springboard overlaps a later one.
+   //
+
+   for (SpringboardMap::reverse_iterator iter = input.rbegin(p); 
+        iter != input.rend(p); ++iter) {
       const SpringboardReq &req = iter->second;
       
       switch (generateSpringboard(springboards, req)) {
@@ -273,7 +277,7 @@ void SpringboardBuilder::registerBranch(Address start, Address end) {
    // same logic as above.
    Address working = start;
    Address LB = 0, UB = 0;
-   Address lb, ub;
+   Address lb = 0, ub = 0;
 
    while (end > working) {
       int state;

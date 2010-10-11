@@ -221,9 +221,7 @@ class Slicer {
   // that specifies both context and what to search for
   // in that context
   struct Element {
-      Element() {
-          usedIndex = -1;
-      };
+  Element() : usedIndex(-1), valid(true) {};
     Location loc;
     Context con;
     AbsRegion reg;
@@ -231,6 +229,7 @@ class Slicer {
     // steps. OTOH, I'm being a bit lazy...
     Assignment::Ptr ptr;
     unsigned usedIndex;
+     bool valid;
     Address addr() const { return loc.addr(); }
   };
 
