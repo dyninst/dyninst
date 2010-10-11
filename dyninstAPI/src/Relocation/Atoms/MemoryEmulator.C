@@ -87,6 +87,7 @@ bool MemEmulator::generate(const codeGen &templ,
    }
 
    codeGen prepatch(128);
+   prepatch.applyTemplate(templ);
 
   // We want to ensure that a memory operation produces its
   // original result in the face of overwriting the text
