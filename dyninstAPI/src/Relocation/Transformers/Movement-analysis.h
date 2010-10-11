@@ -69,6 +69,7 @@ class ExtPCSensVisitor : public ASTVisitor {
   virtual ASTVisitor::ASTPtr visit(ReferenceAST *x) { return ASTVisitor::visit(x); }
   virtual ASTVisitor::ASTPtr visit(StpAST *x) { return ASTVisitor::visit(x); }
   virtual ASTVisitor::ASTPtr visit(YicesAST *x) { return ASTVisitor::visit(x); }
+  virtual ASTVisitor::ASTPtr visit(SemanticsAST *x) { return ASTVisitor::visit(x); }
   virtual ~ExtPCSensVisitor() {};
   
   bool isExtSens(AST::Ptr a);
