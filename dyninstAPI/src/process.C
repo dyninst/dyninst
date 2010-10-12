@@ -5022,19 +5022,17 @@ bool process::getDeadCodeFuncs
     {
         bool inEntryBlock = false;
         int_function *deadFunc = findFuncByInternalFunc(*fIter);
-        int_basicBlock *entryBlock = deadFunc->findBlockByAddr
-            ((*fIter)->entryBlock()->firstInsnOffset() 
-             + (*fIter)->img()->desc().loadAddr());
+        ParseAPI::Block *entryBlock = deadFunc->ifunc()->entry();
+        Address base = deadFunc->getAddress() - deadFunc->ifunc()->addr();
 
         // see if we're executing in the entryBlock
         for (unsigned pcI = 0; !inEntryBlock && pcI < pcs.size(); pcI++) {
-            Address func_pc = pcs[pcI];
-            int_basicBlock *pcblock = findBasicBlockByAddr(func_pc);
-            if (!pcblock) {
-                pcblock = findBasicBlockByAddr
-                    (findMultiTrampByAddr(func_pc)->instToUninstAddr(func_pc));
-            }
-            if (pcblock == entryBlock) {
+            Address pcOrig=0;
+            vector<int_function*> pcFuncs;
+            baseTrampInstance *bti=NULL;
+            getAddrInfo(pcs[pcI], pcOrig, pcFuncs, bti);
+            pcOrig -= base;
+            if (entryBlock->start() <= pcOrig && pcOrig < entryBlock->end()) {
                 inEntryBlock = true;
             }
         }

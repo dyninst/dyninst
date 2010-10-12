@@ -1535,18 +1535,18 @@ void mapped_object::updateCodeBytes( std::map<Address,Address> owRanges )
         }
     }
     // expand and update regions
-    std::vector<Region *> allregions;
-    parse_img()->getObject()->getCodeRegions(allregions);
     for (set<Region*>::iterator regIter = expandRegs.begin();
          regIter != expandRegs.end(); regIter++) 
     {
         expandCodeBytes(*regIter);
     }
+    std::vector<Region *> allregions;
+    parse_img()->getObject()->getCodeRegions(allregions);
     for (unsigned int ridx=0; ridx < allregions.size(); ridx++) 
     {
         Region *curreg = allregions[ridx];
         if (expandRegs.end() == expandRegs.find(curreg)) {
-            updateCodeBytes(curreg);
+            updateCodeBytes(curreg); // KEVINTODO: major overkill here, only update regions that have changes in them
         }
     }
 

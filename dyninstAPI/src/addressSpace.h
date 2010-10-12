@@ -421,7 +421,8 @@ class AddressSpace : public InstructionSource {
                        std::list<Address> &relocs,
                        bool getInstrumentationAddrs) const;
 
-    bool getAddrInfo(Address relocAddr,
+
+    bool getAddrInfo(Address relocAddr,//input
 		      Address &origAddr,
               std::vector<int_function *> &origFuncs,
 		      baseTrampInstance *&baseTramp);

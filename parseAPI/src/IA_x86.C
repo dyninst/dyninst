@@ -208,19 +208,22 @@ bool IA_IAPI::isTailCall(Function * context,unsigned int) const
         tailCall.second = true;
         return tailCall.second;
     }
-
-    if (curInsn()->getCategory() == c_BranchInsn) {
+#if 0
+    if (_obj->defensiveMode() && 
+        curInsn()->getCategory() == c_BranchInsn &&
+        getCFT()) 
+    {
         std::set<CodeRegion*> tregs;
         _obj->cs()->findRegions(getCFT(),tregs);
         if (tregs.size() && tregs.end() == tregs.find(context->region())) {
             tailCall.second = true;
+            return tailCall.second;
             parsing_printf("\tjump to new region parsed as tail call\n");
             mal_printf("\tjump to %lx in new region parsed as tail call\n", 
                        getCFT());
-            return tailCall.second;
         }
     }
-
+#endif
     if(allInsns.size() < 2) {
         tailCall.second = false;
         parsing_printf("\ttoo few insns to detect tail call\n");

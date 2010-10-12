@@ -1763,12 +1763,11 @@ void BPatch_process::overwriteAnalysisUpdate
 
     /*2. update the analysis */
 
-    //llproc->updateActiveMultis();
-
     //2. update the mapped data for the overwritten ranges
     llproc->updateCodeBytes(owPages,owRegions);
 
-    //2. create stub list
+    //2. create stub list, being careful not to add dead source blocks 
+
     std::vector<image_basicBlock*> stubSourceBlocks;
     std::vector<Address> stubTargets;
     std::vector<EdgeTypeEnum> stubEdgeTypes;
@@ -1776,7 +1775,6 @@ void BPatch_process::overwriteAnalysisUpdate
     for (;deadIter != owBBIs.end(); deadIter++) 
     {
         using namespace ParseAPI;
-        
         SingleContext epred_((*deadIter)->func()->ifunc(),true,true);
         Intraproc epred(&epred_);
         image_basicBlock *curImgBlock = (*deadIter)->block()->llb();
@@ -1785,8 +1783,6 @@ void BPatch_process::overwriteAnalysisUpdate
 
         Address baseAddr = (*deadIter)->firstInsnAddr() 
             - curImgBlock->firstInsnOffset();
-
-        // being careful not to add the source block if it is also dead
         for( ; eit != sourceEdges.end(); ++eit) {
             image_basicBlock *sourceBlock = 
                 dynamic_cast<image_basicBlock*>((*eit)->src());
@@ -1798,6 +1794,7 @@ void BPatch_process::overwriteAnalysisUpdate
                 stubEdgeTypes.push_back((*eit)->type());
             }
         }
+        // detach BPatch_basicBlocks from internal blocks
         if ((*deadIter)->block()->getHighLevelBlock()) {
             ((BPatch_basicBlock*)(*deadIter)->block()->getHighLevelBlock())
                 ->setlowlevel_block(NULL);

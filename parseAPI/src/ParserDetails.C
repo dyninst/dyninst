@@ -283,16 +283,12 @@ void Parser::ProcessCFInsn(
             frame.pushWork(we);
 
             if (unlikely(_obj.defensiveMode())) {
-                // see if we need to update the underlying code bytes, 
-                // and if so, create a new instruction adapter
-                if ( (   CALL == curEdge->second
+                // update the underlying code bytes for CF targets
+                if (  CALL == curEdge->second
                       || DIRECT == curEdge->second
                       || COND_TAKEN == curEdge->second )
-                    && _pcb.updateCodeBytes(curEdge->first))
                 {
-                    Address curAddr = ah->getAddr();
-                    delete(ah);
-                    ah = getNewAdapter(frame.func, curAddr);
+                    _pcb.updateCodeBytes(curEdge->first);
                 }
                 mal_printf("new block at %lx\n", we->target());
             }

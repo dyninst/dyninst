@@ -1306,14 +1306,6 @@ void HybridAnalysisOW::overwriteSignalCB
     // make a shadow page and restore write privileges to the page
     makeShadow_setRights(writeTarget, loop);
     loop->setActive(true);
-
-    // KEVINTODO: remove this eventually, it's a check to make sure we're not 
-    // writing to the entry point of faultFunc
-    set<BPatch_function*> writtenFuncs;
-    proc()->findFuncsByRange(pageAddress, pageAddress+pageSize, writtenFuncs);
-    if (writtenFuncs.find(faultFunc) != writtenFuncs.end()) {
-        assert(writeTarget != (Address)faultFunc->getBaseAddr());
-    }
 }
 
 bool HybridAnalysisOW::registerCodeOverwriteCallbacks

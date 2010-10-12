@@ -149,7 +149,7 @@ template <>
 class Target<Address> : public TargetInt {
  public:
    //Address addr() const { return t_; }
-  Target(Address t) : t_(t) {assert(0);}
+  Target(Address t) : t_(t) {}
   ~Target() {}
   const Address &t() const { return t_; }
 
