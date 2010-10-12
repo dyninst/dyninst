@@ -4918,17 +4918,17 @@ void process::updateCodeBytes
 
 
 /* Summary
- * If the entry point of a function is overwritten, purge the overwritten part 
- * of that function, taking care to account for currently executing code. 
- * Given a list of dead functions, find the affected blocks.
+ * Given a list of overwritten blocks, find blocks that are unreachable,
+ * functions that have been overwritten at their entry points and can go away,
+ * and function entry points from which we will create 
  */
 bool process::getDeadCodeFuncs
-( std::set<bblInstance *> &deadBlocks, // we add unreachable blocks to this
-  std::set<int_function*> &affectedFuncs, //output
-  std::set<int_function*> &deadFuncs) //output
+( const std::set<bblInstance *> &owBlocks, // input
+  std::map<int_function*,set<bblInstance*>*> &deadBlocks, //output
+  std::set<int_function*> &deadFuncs, //output
+  std::set<bblInstance*> &newFuncsEntries) //output
 {
-
-    // do a stackwalk to see if this function is currently executing
+    // do a stackwalk to see which functions are currently executing
     pdvector<pdvector<Frame> >  stacks;
     pdvector<Address> pcs;
     if (!walkStacks(stacks)) {
@@ -4942,82 +4942,89 @@ bool process::getDeadCodeFuncs
         }
     }
 
-    // set affected functions
-    for (set<bblInstance *>::iterator bIter=deadBlocks.begin();
-         bIter != deadBlocks.end(); 
+    // group blocks by function
+    for (set<bblInstance*>::const_iterator bIter=owBlocks.begin();
+         bIter != owBlocks.end(); 
          bIter++) 
     {
-        affectedFuncs.insert((*bIter)->func());
+        if ( !deadBlocks[(*bIter)->func()] ) {
+            deadBlocks[(*bIter)->func()] = new set<bblInstance*>();
+        }
+        deadBlocks[(*bIter)->func()]->insert(*bIter);
     }
 
-    // get unreachable image blocks, identify functions with 
-    // overwritten entry points
-    image *blockImg = (*deadBlocks.begin())->func()->ifunc()->img();
-    set<image_basicBlock*> deadImgBs;
-    set<image_func*> deadImgFuncs; 
-    for (set<bblInstance *>::iterator bIter=deadBlocks.begin();
-         bIter != deadBlocks.end();
+    // get image blocks, identify functions with overwritten entry points
+    set<image_basicBlock*> owImgBs;
+    set<image_func*> owImgFuncs; 
+    for (set<bblInstance*>::const_iterator bIter=owBlocks.begin();
+         bIter != owBlocks.end();
          bIter++) 
     {
         image_basicBlock *imgB = (*bIter)->block()->llb();
         if ( imgB->getEntryFunc() ) {
-            deadImgFuncs.insert( imgB->getEntryFunc() );
+            owImgFuncs.insert( imgB->getEntryFunc() );
         } 
         if ( !imgB->getEntryFunc() || imgB->isShared() ) {
-            deadImgBs.insert(imgB);
+            owImgBs.insert(imgB);
         }
-        assert(blockImg == (*bIter)->func()->ifunc()->img());
     }
 
     set<image_basicBlock*> unreachableImgBs;
     vector<bblInstance*> unreachableBlocks;
-    image_func::getUnreachableBlocks(deadImgBs, unreachableImgBs);
-    
-    // if we're executing in a block that's been marked as unreachable, don't 
-    // eliminate the unreachable blocks
-    bool inUnreachable = false;
-    vector<ParseAPI::Function *> blockfuncs;
-    for (set<image_basicBlock *>::iterator bIter=unreachableImgBs.begin();
-         !inUnreachable && bIter != unreachableImgBs.end();
-         bIter++) 
+    set<image_basicBlock*> reach_ow;
+    for (map<int_function*,set<bblInstance*>*>::iterator fit = deadBlocks.begin();
+         fit != deadBlocks.end(); 
+         fit++) 
     {
-        (*bIter)->getFuncs(blockfuncs);
-        image_func *bfunc = dynamic_cast<image_func*>(blockfuncs[0]);
-        int_basicBlock *unreachBlock = 
-            findFuncByInternalFunc(bfunc)->findBlockByAddr
-                ( (*bIter)->firstInsnOffset() + 
-                  bfunc->img()->desc().loadAddr() );
-        blockfuncs.clear();
-        unreachableBlocks.push_back(unreachBlock->origInstance());
-        for (unsigned pcI = 0; !inUnreachable && pcI < pcs.size(); pcI++) {
-            Address pc = pcs[pcI];
-            int_basicBlock *pcblock = findBasicBlockByAddr(pc);
-            if (!pcblock) {
-                pcblock = findBasicBlockByAddr
-                    (findMultiTrampByAddr(pc)->instToUninstAddr(pc));
-            }
-            if (pcblock == unreachBlock) {
-                mal_printf("WARNING: executing in block[%lx %lx] that "
-                        "is only reachable from overwritten blocks, so "
-                        "will not delete any of the blocks that fit this "
-                        "description %s[%d]\n", 
-                        unreachBlock->origInstance()->firstInsnAddr(), 
-                        unreachBlock->origInstance()->endAddr(), 
-                        FILE__,__LINE__);
-                inUnreachable = true;
+        fit->first->ifunc()->getReachableBlocks(owImgBs, reach_ow);
+    
+        // if we're executing in a block that's been marked as unreachable, don't 
+        // eliminate the unreachable blocks
+        bool inUnreachable = false;
+        vector<ParseAPI::Function *> blockfuncs;
+        for (set<image_basicBlock *>::iterator bIter=unreachableImgBs.begin();
+             !inUnreachable && bIter != unreachableImgBs.end();
+             bIter++) 
+        {
+            (*bIter)->getFuncs(blockfuncs);
+            image_func *bfunc = dynamic_cast<image_func*>(blockfuncs[0]);
+            int_basicBlock *unreachBlock = 
+                findFuncByInternalFunc(bfunc)->findBlockByAddr
+                    ( (*bIter)->firstInsnOffset() + 
+                      bfunc->img()->desc().loadAddr() );
+            blockfuncs.clear();
+            unreachableBlocks.push_back(unreachBlock->origInstance());
+            for (unsigned pcI = 0; !inUnreachable && pcI < pcs.size(); pcI++) {
+                Address pc = pcs[pcI];
+                int_basicBlock *pcblock = findBasicBlockByAddr(pc);
+                if (!pcblock) {
+                    pcblock = findBasicBlockByAddr
+                        (findMultiTrampByAddr(pc)->instToUninstAddr(pc));
+                }
+                if (pcblock == unreachBlock) {
+                    mal_printf("WARNING: executing in block[%lx %lx] that "
+                            "is only reachable from overwritten blocks, so "
+                            "will not delete any of the blocks that fit this "
+                            "description %s[%d]\n", 
+                            unreachBlock->origInstance()->firstInsnAddr(), 
+                            unreachBlock->origInstance()->endAddr(), 
+                            FILE__,__LINE__);
+                    inUnreachable = true;
+                }
             }
         }
-    }
-    if (!inUnreachable) {
-        deadBlocks.insert(unreachableBlocks.begin(), unreachableBlocks.end());
+        if (!inUnreachable) {
+            deadBlocks[fit->first]->insert(unreachableBlocks.begin(), 
+                                     unreachableBlocks.end());
+        }
     }
 
     // Lots of special case code for the limited instance in which a block
     // is overwritten that is at the start of a function, in which case the
     // whole function can go away.
     // If we're executing the entry block though, re-parse the function
-    for (set<image_func *>::iterator fIter=deadImgFuncs.begin();
-         fIter != deadImgFuncs.end();
+    for (set<image_func *>::iterator fIter=owImgFuncs.begin();
+         fIter != owImgFuncs.end();
          fIter++) 
     {
         bool inEntryBlock = false;
@@ -5043,14 +5050,14 @@ bool process::getDeadCodeFuncs
         std::set<int_basicBlock*,int_basicBlock::compare>::iterator
             fbIter = fblocks.begin();
         while (fbIter != fblocks.end()) {
-            deadBlocks.insert((*fbIter)->origInstance());
+            deadBlocks[deadFunc]->insert((*fbIter)->origInstance());
             fbIter++;
         }
 
         if (!inEntryBlock) {
             // mark func dead 
             deadFuncs.insert(deadFunc);
-            affectedFuncs.erase(affectedFuncs.find(deadFunc));
+            deadFuncs.erase(deadFuncs.find(deadFunc));
         }
     }// for all dead image funcs
 

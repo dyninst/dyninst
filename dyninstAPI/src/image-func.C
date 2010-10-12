@@ -556,6 +556,55 @@ void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::In
  * Find the blocks that would become unreachable if we were to delete
  * the dead blocks.
  */
+void image_func::getReachableBlocks
+(const std::set<image_basicBlock*> &startBlocks,
+ std::set<image_basicBlock*> &reachable)
+{
+    using namespace ParseAPI;
+    mal_printf("reachable blocks for func %lx from %d start blocks\n",
+               addr(), startBlocks.size());
+
+    // add function entry blocks to the worklist and the reachable set
+    std::list<image_basicBlock*> worklist;
+    reachable.insert(startBlocks.begin(), startBlocks.end());
+    for (set<image_basicBlock*>::const_iterator sit = startBlocks.begin();
+         sit != startBlocks.end();
+         sit++) 
+    {
+        worklist.push_back(*sit);
+    }
+        
+
+    // iterate through worklist, adding all blocks (except for
+    // startBlocks) that are reachable through target edges to the
+    // reachable set
+    while(worklist.size()) {
+        image_basicBlock *curBlock = worklist.front();
+        Block::edgelist & outEdges = curBlock->targets();
+        Block::edgelist::iterator tIter = outEdges.begin();
+        for (; tIter != outEdges.end(); tIter++) {
+            image_basicBlock *targB = (image_basicBlock*) (*tIter)->trg();
+            if ( CALL != (*tIter)->type() &&
+                 startBlocks.end() == startBlocks.find(targB) && 
+                 reachable.end() == reachable.find(targB) )
+            {   
+                worklist.push_back(targB);
+                reachable.insert(targB);
+                mal_printf("block [%lx %lx] is reachable\n",
+                           targB->firstInsnOffset(),
+                           targB->endOffset());
+            }
+        }
+        worklist.pop_front();
+    } 
+}
+
+#if 0
+/* This function is static.
+ *
+ * Find the blocks that would become unreachable if we were to delete
+ * the dead blocks.
+ */
 void image_func::getUnreachableBlocks
 ( std::set<image_basicBlock*> &deadBlocks,  // input
   std::set<image_basicBlock*> &unreachable )// output
@@ -637,6 +686,7 @@ void image_func::getUnreachableBlocks
         }
     }
 }
+#endif
 
 void image_func::setinit_retstatus(ParseAPI::FuncReturnStatus rs)
 {

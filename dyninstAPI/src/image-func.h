@@ -308,8 +308,10 @@ class image_func : public ParseAPI::Function
    // Mutable function code, used for hybrid analysis
    ///////////////////////////////////////////////////
 
-   static void getUnreachableBlocks( std::set<image_basicBlock*> &deadBlocks, 
-                                     std::set<image_basicBlock*> &unreachable );
+   
+   void getReachableBlocks
+   ( const std::set<image_basicBlock*> &startBlocks, // input
+     std::set<image_basicBlock*> &reachableBlocks ); // output
    ParseAPI::FuncReturnStatus init_retstatus() const;
    void setinit_retstatus(ParseAPI::FuncReturnStatus rs); //also sets retstatus
 

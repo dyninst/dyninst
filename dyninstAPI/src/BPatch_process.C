@@ -1749,8 +1749,9 @@ void BPatch_process::overwriteAnalysisUpdate
 {
     std::map<Address,Address> owRegions;
     std::set<bblInstance *>   owBBIs;
-    std::set<int_function*>   owIntFuncs;
+    std::map<int_function*,set<bblInstance*>*> owIntFuncs;
     std::set<int_function*>   deadFuncs;
+    std::set<bblInstance*> newFuncEntries;
 
     //1.  get the overwritten blocks and regions
     llproc->getOverwrittenBlocks(owPages, owRegions, owBBIs);
@@ -1761,9 +1762,34 @@ void BPatch_process::overwriteAnalysisUpdate
         return;
     }
 
-    /*2. update the analysis */
+    /*2. remove dead code from the analysis */
 
-    //2. update the mapped data for the overwritten ranges
+    // update the mapped data for the overwritten ranges
+    // detach overwritten BPatch_basicBlocks from internal blocks
+    // traverse function to identify dead blocks
+    // remove instrumentation from affected funcs
+    // create stub list, being careful not to add dead source blocks 
+    // remove dead blocks
+    // remove dead functions (overwritten entry block and not executing in func)
+    // foreach dead func
+        // grab callers
+        //remove instrumentation and the function itself
+        // only add to deadBlockAddrs if the dead function is not reachable, 
+        // i.e., it's the entry point of the a.out, and we've already
+        // executed it
+            // the function is still reachable, reparse it
+                // add function to output vector
+                // re-instate call edges to the function
+                // the function really is dead
+    //3. parse new code, one overwritten function at a time
+        // find subset of stubs that correspond to this function
+        // parse new edges in the function
+        // else, this is the entry point of the function, do nothing, 
+        // we'll parse this anyway through recursive traversal if there's
+        // code at this address
+
+        // add curFunc to owFuncs, and clear the function's BPatch_flowGraph
+
     llproc->updateCodeBytes(owPages,owRegions);
 
     //2. create stub list, being careful not to add dead source blocks 
@@ -1802,12 +1828,15 @@ void BPatch_process::overwriteAnalysisUpdate
     }
 
     //2. identify the dead code 
-    llproc->getDeadCodeFuncs(owBBIs,owIntFuncs,deadFuncs); // initializes owIntFuncs
+    llproc->getDeadCodeFuncs(owBBIs,owIntFuncs,deadFuncs,newFuncEntries); 
 
     // remove instrumentation from affected funcs
-    std::set<int_function*>::iterator fIter = owIntFuncs.begin();
-    for(; fIter != owIntFuncs.end(); fIter++) {
-        BPatch_function *bpfunc = findOrCreateBPFunc(*fIter,NULL);
+    
+    for(std::map<int_function*,set<bblInstance*>*>::iterator fIter = owIntFuncs.begin();
+        fIter != owIntFuncs.end(); 
+        fIter++) 
+    {
+        BPatch_function *bpfunc = findOrCreateBPFunc(fIter->first,NULL);
         bpfunc->removeInstrumentation();
     }
 
@@ -1946,8 +1975,10 @@ void BPatch_process::overwriteAnalysisUpdate
     }
 
 
-    for(fIter = deadFuncs.begin(); fIter != deadFuncs.end(); fIter++) {
-
+    for(std::set<int_function*>::iterator fIter = deadFuncs.begin(); 
+        fIter != deadFuncs.end(); 
+        fIter++) 
+    {
         using namespace ParseAPI;
         Address funcAddr = (*fIter)->getAddress();
 
@@ -2016,10 +2047,13 @@ void BPatch_process::overwriteAnalysisUpdate
         }
     }
 
-    //2. parse new code, one overwritten function at a time
-    for(fIter = owIntFuncs.begin(); fIter != owIntFuncs.end(); fIter++) {
+    //3. parse new code, one overwritten function at a time
+    for(std::map<int_function*,set<bblInstance*>*>::iterator fIter = owIntFuncs.begin();
+        fIter != owIntFuncs.end(); 
+        fIter++) 
+    {
         // find subset of stubs that correspond to this function
-        int_function *curFunc = *fIter;
+        int_function *curFunc = fIter->first;
         std::vector<ParseAPI::Block*> cur_ssb;
         std::vector<Address> cur_st;
         std::vector<EdgeTypeEnum> cur_set;

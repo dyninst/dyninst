@@ -704,9 +704,10 @@ public:
         std::map<Address,Address>& overwrittenRegions,//output
         std::set<bblInstance *> &writtenBBIs);//output
   bool getDeadCodeFuncs
-  ( std::set<bblInstance *> &deadBlocks, // input
-    std::set<int_function*> &affectedFuncs, //output
-    std::set<int_function*> &deadFuncs); //output
+  ( const std::set<bblInstance *> &owBlocks, // input
+    std::map<int_function*,set<bblInstance*>*> &deadBlocks, //output
+    std::set<int_function*> &deadFuncs, // output
+    std::set<bblInstance*> &newFuncEntries ); //output
   unsigned getMemoryPageSize() const { return memoryPageSize_; }
 
   // synch modified mapped objects with current memory contents
