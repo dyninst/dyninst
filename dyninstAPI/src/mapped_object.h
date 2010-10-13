@@ -207,7 +207,7 @@ class mapped_object : public codeRange {
     bool splitIntLayer();
     void findBBIsByRange(Address startAddr,
                           Address endAddr,
-                          std::vector<bblInstance*> &pageBlocks);
+                          std::list<bblInstance*> &pageBlocks);
     void findFuncsByRange(Address startAddr,
                           Address endAddr,
                           std::set<int_function*> &pageFuncs);

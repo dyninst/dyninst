@@ -702,12 +702,13 @@ public:
   bool getOverwrittenBlocks
       ( std::map<Address, unsigned char *>& overwrittenPages,//input
         std::map<Address,Address>& overwrittenRegions,//output
-        std::set<bblInstance *> &writtenBBIs);//output
-  bool getDeadCodeFuncs
-  ( const std::set<bblInstance *> &owBlocks, // input
-    std::map<int_function*,set<bblInstance*>*> &deadBlocks, //output
-    std::set<int_function*> &deadFuncs, // output
-    std::set<bblInstance*> &newFuncEntries ); //output
+        std::list<bblInstance *> &writtenBBIs);//output
+  bool process::getDeadCode
+    ( const std::list<bblInstance*> &owBlocks, // input
+      std::set<bblInstance*> &delBlocks, //output: Del(for all f)
+      std::map<int_function*,set<bblInstance*>> &elimMap, //output: elimF
+      std::list<int_function*> &deadFuncs, //output: DeadF
+      std::list<bblInstance*> &newFuncEntries); //output: newF
   unsigned getMemoryPageSize() const { return memoryPageSize_; }
 
   // synch modified mapped objects with current memory contents

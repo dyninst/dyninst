@@ -564,7 +564,9 @@ class int_function : public patchTarget {
          Address endAddr, 
          std::vector<Address> &deadBlockAddrs, // output
          int_basicBlock *&entryBlock);         // output
-
+   void getReachableBlocks(const std::set<bblInstance*> &exceptBlocks,
+                           const std::list<bblInstance*> &seedBlocks,
+                           std::set<bblInstance*> &reachBlocks);//output
 
    // A top-level function; for each instPoint, see if we need to 
    // relocate the function.
@@ -606,11 +608,10 @@ class int_function : public patchTarget {
    pdvector<instPoint*> exitPoints_;	/* return point(s). */
    pdvector<instPoint*> callPoints_;	/* pointer to the calls */
    pdvector<instPoint*> arbitraryPoints_;  /* arbitrary points */
-   std::set<instPoint*> unresolvedPoints_; /* statically unresolved control flow */
-   std::set<instPoint*> abruptEnds_; /* block endpoints that end abruptly by running up
-                                      against the end of valid memory region or by reaching
-                                      an invalid instruction (i.e. 
-                                      false == archIsValidInsn(insnIter.peekNext) ) */
+   std::set<instPoint*> unresolvedPoints_; /* statically unresolved ctrl flow */
+   std::set<instPoint*> abruptEnds_; /* block endpoints that end abruptly by 
+                                      running to the end of valid memory or by 
+                                      reaching an invalid instruction */
 
    Address handlerFaultAddr_; /* if this is a signal handler, faultAddr_ is 
                                  set to -1, or to the address of the fault 

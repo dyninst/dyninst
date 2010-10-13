@@ -4805,7 +4805,7 @@ bool process::handleStopThread(EventRecord &ev)
 bool process::getOverwrittenBlocks
 ( std::map<Address, unsigned char *>& overwrittenPages,//input
   std::map<Address,Address>& overwrittenRanges,//output
-  std::set<bblInstance *> &writtenBBIs)//output
+  std::list<bblInstance *> &writtenBBIs)//output
 {
     const unsigned MEM_PAGE_SIZE = getMemoryPageSize();
     unsigned char * memVersion = (unsigned char *) ::malloc(MEM_PAGE_SIZE);
@@ -4848,7 +4848,7 @@ bool process::getOverwrittenBlocks
     }
 
     std::map<Address,Address>::iterator rIter = overwrittenRanges.begin();
-    std::vector<bblInstance*> curBBIs;
+    std::list<bblInstance*> curBBIs;
     while (rIter != overwrittenRanges.end()) {
         mapped_object *curObject = findObject((*rIter).first);
 
@@ -4857,26 +4857,27 @@ bool process::getOverwrittenBlocks
         if (curBBIs.size()) {
             mal_printf("overwrote %d blocks in range %lx %lx \n",
                        curBBIs.size(),(*rIter).first,(*rIter).second);
-            writtenBBIs.insert(curBBIs.begin(),curBBIs.end());
+            writtenBBIs.merge(curBBIs);
         }
 
-        // 4. determine if the last of the blocks has an abrupt end, in which 
-        //    case, mark it as overwritten
-        if (    curBBIs.size() 
-             && ! curObject->proc()->isCode((*rIter).second - 1) )
-        {
-            bblInstance *lastBBI = curBBIs.back();
-            int_function *lastFunc = lastBBI->func();
-            const set<instPoint*> abruptEnds = lastFunc->funcAbruptEnds();
-            set<instPoint*>::const_iterator aIter = abruptEnds.begin();
-            while (aIter != abruptEnds.end()) {
-                if (lastBBI->block() == (*aIter)->block()) {
-                    writtenBBIs.insert(lastBBI);
-                    break;
-                }
-                aIter++;
-            }
-        }
+        // KEVIN: we already marked the block as overwritten, following code is NOP
+        //// 4. determine if the last of the blocks has an abrupt end, in which 
+        ////    case, mark it as overwritten
+        //if (    curBBIs.size() 
+        //     && ! curObject->proc()->isCode((*rIter).second - 1) )
+        //{
+        //    bblInstance *lastBBI = curBBIs.back();
+        //    int_function *lastFunc = lastBBI->func();
+        //    const set<instPoint*> abruptEnds = lastFunc->funcAbruptEnds();
+        //    set<instPoint*>::const_iterator aIter = abruptEnds.begin();
+        //    while (aIter != abruptEnds.end()) {
+        //        if (lastBBI->block() == (*aIter)->block()) {
+        //            writtenBBIs.push_back(lastBBI);
+        //            break;
+        //        }
+        //        aIter++;
+        //    }
+        //}
 
         curBBIs.clear();
         rIter++;
@@ -4920,13 +4921,38 @@ void process::updateCodeBytes
 /* Summary
  * Given a list of overwritten blocks, find blocks that are unreachable,
  * functions that have been overwritten at their entry points and can go away,
- * and function entry points from which we will create 
+ * and new function entry for functions that are being overwritten while still
+ * executing
+ *
+ * variables
+ * f:  the overwritten function
+ * ow: the set of overwritten blocks
+ * ex: the set of blocks that are executing on the call stack
+ * 
+ * primitives
+ * R(b,s): yields set of reachable blocks for collection of blocks b, starting
+ *         at seed blocks s.
+ * B(f):   the blocks pertaining to function f
+ * EP(f):  the entry point of function f
+ * 
+ * calculations
+ * Elim(f): the set of blocks to eliminate from function f.
+ *          Elim(f) = B(f) - R( B(f)-ow , EP(f) )
+ * New(f):  new function entry candidates for f's surviving blocks
+ *          all blocks e such that ( e in ex AND e in Elim(f) )
+ *          Eliminate New(f) elements that have ancestors in New(f)
+ * Del(f):  Blocks that can be deleted altogether
+ *          F - R( B(f) - ow , EP(f) U New(f) )
+ * DeadF:   the set of functions that have no executing blocks 
+ *          and were overwritten at their entry points
+ *          EP(f) in ow(f) AND ex(f) is empty
  */
-bool process::getDeadCodeFuncs
-( const std::set<bblInstance *> &owBlocks, // input
-  std::map<int_function*,set<bblInstance*>*> &deadBlocks, //output
-  std::set<int_function*> &deadFuncs, //output
-  std::set<bblInstance*> &newFuncsEntries) //output
+bool process::getDeadCode
+( const std::list<bblInstance*> &owBlocks, // input
+  std::set<bblInstance*> &delBlocks, //output: Del(for all f)
+  std::map<int_function*,set<bblInstance*>> &elimMap, //output: elimF
+  std::list<int_function*> &deadFuncs, //output: DeadF
+  std::list<bblInstance*> &newFuncEntries) //output: newF
 {
     // do a stackwalk to see which functions are currently executing
     pdvector<pdvector<Frame> >  stacks;
@@ -4938,97 +4964,94 @@ bool process::getDeadCodeFuncs
     for (unsigned i = 0; i < stacks.size(); ++i) {
         pdvector<Frame> &stack = stacks[i];
         for (unsigned int j = 0; j < stack.size(); ++j) {
-            pcs.push_back( (Address) stack[j].getPC());
+            Address origPC = 0;
+            vector<int_function*> dontcare1;
+            baseTrampInstance *dontcare2 = NULL;
+            getAddrInfo(stack[j].getPC(), origPC, dontcare1, dontcare2);
+            pcs.push_back( origPC );
         }
     }
 
     // group blocks by function
-    for (set<bblInstance*>::const_iterator bIter=owBlocks.begin();
+    std::map<int_function*,set<bblInstance*>> deadMap;
+    for (list<bblInstance*>::const_iterator bIter=owBlocks.begin();
          bIter != owBlocks.end(); 
          bIter++) 
     {
-        if ( !deadBlocks[(*bIter)->func()] ) {
-            deadBlocks[(*bIter)->func()] = new set<bblInstance*>();
-        }
-        deadBlocks[(*bIter)->func()]->insert(*bIter);
+        deadMap[(*bIter)->func()].insert(*bIter);
     }
 
-    // get image blocks, identify functions with overwritten entry points
-    set<image_basicBlock*> owImgBs;
-    set<image_func*> owImgFuncs; 
-    for (set<bblInstance*>::const_iterator bIter=owBlocks.begin();
-         bIter != owBlocks.end();
-         bIter++) 
-    {
-        image_basicBlock *imgB = (*bIter)->block()->llb();
-        if ( imgB->getEntryFunc() ) {
-            owImgFuncs.insert( imgB->getEntryFunc() );
-        } 
-        if ( !imgB->getEntryFunc() || imgB->isShared() ) {
-            owImgBs.insert(imgB);
-        }
-    }
-
-    set<image_basicBlock*> unreachableImgBs;
-    vector<bblInstance*> unreachableBlocks;
-    set<image_basicBlock*> reach_ow;
-    for (map<int_function*,set<bblInstance*>*>::iterator fit = deadBlocks.begin();
-         fit != deadBlocks.end(); 
+    // for each modified function, calculate ex, ElimF, NewF, DelF
+    for (map<int_function*,set<bblInstance*>>::iterator fit = deadMap.begin();
+         fit != deadMap.end(); 
          fit++) 
     {
-        fit->first->ifunc()->getReachableBlocks(owImgBs, reach_ow);
-    
-        // if we're executing in a block that's been marked as unreachable, don't 
-        // eliminate the unreachable blocks
-        bool inUnreachable = false;
-        vector<ParseAPI::Function *> blockfuncs;
-        for (set<image_basicBlock *>::iterator bIter=unreachableImgBs.begin();
-             !inUnreachable && bIter != unreachableImgBs.end();
-             bIter++) 
-        {
-            (*bIter)->getFuncs(blockfuncs);
-            image_func *bfunc = dynamic_cast<image_func*>(blockfuncs[0]);
-            int_basicBlock *unreachBlock = 
-                findFuncByInternalFunc(bfunc)->findBlockByAddr
-                    ( (*bIter)->firstInsnOffset() + 
-                      bfunc->img()->desc().loadAddr() );
-            blockfuncs.clear();
-            unreachableBlocks.push_back(unreachBlock->origInstance());
-            for (unsigned pcI = 0; !inUnreachable && pcI < pcs.size(); pcI++) {
-                Address pc = pcs[pcI];
-                int_basicBlock *pcblock = findBasicBlockByAddr(pc);
-                if (!pcblock) {
-                    pcblock = findBasicBlockByAddr
-                        (findMultiTrampByAddr(pc)->instToUninstAddr(pc));
-                }
-                if (pcblock == unreachBlock) {
-                    mal_printf("WARNING: executing in block[%lx %lx] that "
-                            "is only reachable from overwritten blocks, so "
-                            "will not delete any of the blocks that fit this "
-                            "description %s[%d]\n", 
-                            unreachBlock->origInstance()->firstInsnAddr(), 
-                            unreachBlock->origInstance()->endAddr(), 
-                            FILE__,__LINE__);
-                    inUnreachable = true;
-                }
+
+        // calculate ex
+        list<bblInstance*> execBlocks;
+        for (unsigned pidx=0; pidx < pcs.size(); pidx++) {
+            bblInstance *exB = fit->first->findBlockInstanceByAddr(pcs[pidx]);
+            if (exB) {
+                execBlocks.push_back(exB);
             }
         }
-        if (!inUnreachable) {
-            deadBlocks[fit->first]->insert(unreachableBlocks.begin(), 
-                                     unreachableBlocks.end());
+
+        // calculate DeadF
+        if ( 0 == execBlocks.size() ) {
+            set<bblInstance*>::iterator eb = fit->second.find(
+                fit->first->entryBlock()->origInstance());
+            if (eb != fit->second.end()) {
+                deadFuncs.push_back(fit->first);
+                continue;// treated specially, don't need elimF, NewF or DelF
+            }
+        } 
+
+        // calculate elimF
+        set<bblInstance*> keepF;
+        list<bblInstance*> seedBs;
+        seedBs.push_back(fit->first->entryBlock()->origInstance());
+        fit->first->getReachableBlocks(fit->second, seedBs, keepF);
+
+        set<bblInstance*> elimF;
+        const set<int_basicBlock*,int_basicBlock::compare> &allBlocks = 
+            fit->first->blocks();
+        for (set<int_basicBlock*,int_basicBlock::compare>::const_iterator bit =
+             allBlocks.begin();
+             bit != allBlocks.end(); 
+             bit++) 
+        {
+            elimF.insert((*bit)->origInstance());
         }
+
+        elimF.erase(keepF.begin(),keepF.end());
+        elimMap[fit->first] = elimF;
+
+        // calculate NewF
+        for (list<bblInstance*>::iterator bit = execBlocks.begin();
+             bit != execBlocks.end(); 
+             bit++) 
+        {
+            if (elimF.end() != elimF.find(*bit)) {
+                newFuncEntries.push_back(*bit);
+            }
+        }
+
+        // calculate Del(f)
+        seedBs.merge(newFuncEntries);
+        fit->first->getReachableBlocks(fit->second, seedBs, delBlocks);
+        
     }
 
     // Lots of special case code for the limited instance in which a block
     // is overwritten that is at the start of a function, in which case the
     // whole function can go away.
     // If we're executing the entry block though, re-parse the function
-    for (set<image_func *>::iterator fIter=owImgFuncs.begin();
-         fIter != owImgFuncs.end();
+    for (list<int_function*>::iterator fIter=deadFuncs.begin();
+         fIter != deadFuncs.end();
          fIter++) 
     {
         bool inEntryBlock = false;
-        int_function *deadFunc = findFuncByInternalFunc(*fIter);
+        int_function *deadFunc = *fIter;
         ParseAPI::Block *entryBlock = deadFunc->ifunc()->entry();
         Address base = deadFunc->getAddress() - deadFunc->ifunc()->addr();
 
@@ -5044,21 +5067,16 @@ bool process::getDeadCodeFuncs
             }
         }
 
-        // add all function blocks to deadBlocks
+        // add all function blocks to deadMap
         std::set< int_basicBlock* , int_basicBlock::compare >
             fblocks = deadFunc->blocks();
         std::set<int_basicBlock*,int_basicBlock::compare>::iterator
             fbIter = fblocks.begin();
         while (fbIter != fblocks.end()) {
-            deadBlocks[deadFunc]->insert((*fbIter)->origInstance());
+            deadMap[deadFunc].insert((*fbIter)->origInstance());
             fbIter++;
         }
 
-        if (!inEntryBlock) {
-            // mark func dead 
-            deadFuncs.insert(deadFunc);
-            deadFuncs.erase(deadFuncs.find(deadFunc));
-        }
     }// for all dead image funcs
 
     return true;

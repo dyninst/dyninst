@@ -1259,31 +1259,34 @@ bool mapped_object::splitIntLayer()
 #endif
 }
 
-
+// Grabs all bblInstances corresponding to the region, taking special care 
+// to get ALL bblInstances corresponding to an address if it is shared 
+// between multiple functions
 void mapped_object::findBBIsByRange(Address startAddr,
                                     Address endAddr,
-                                    std::vector<bblInstance*> &pageBlocks)
+                                    list<bblInstance*> &pageBlocks)//output
 {
     codeRange *range=NULL;
-    if ( ! codeRangesByAddr_.find(startAddr,range) &&
-         ! codeRangesByAddr_.successor(startAddr,range) ) 
-    {
-        range = NULL;
-    }
-    while (range != NULL && 
-           range->get_address() < endAddr)
-    {
-        bblInstance* bbi = range->is_basicBlockInstance();
-        assert(bbi);
-        pageBlocks.push_back(bbi);
-        // advance to the next region
-        if ( ! codeRangesByAddr_.successor(
-                    range->get_address() + range->get_size(), 
-                    range) ) 
-        {
-           range = NULL;
+    Address nextAddr = startAddr;
+
+    do {
+        // add bblInstance range to output
+        if (range != NULL) {
+            bblInstance* bbi = range->is_basicBlockInstance();
+            assert(bbi);
+            pageBlocks.push_back(bbi);
         }
-    }
+
+        // advance to the next region
+        if ( ! codeRangesByAddr_.find(nextAddr, range) &&
+             ! codeRangesByAddr_.successor(nextAddr, range) ) 
+        {
+            range = NULL;
+        }
+        nextAddr = range->get_address() + range->get_size();
+
+    } while (range != NULL && range->get_address() < endAddr);
+
 }
 
 void mapped_object::findFuncsByRange(Address startAddr,

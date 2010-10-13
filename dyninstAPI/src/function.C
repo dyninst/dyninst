@@ -1110,6 +1110,39 @@ instPoint *int_function::findInstPByAddr(Address addr) {
     return NULL;
 }
 
+void int_function::getReachableBlocks(const set<bblInstance*> &exceptBlocks,
+                                      const list<bblInstance*> &seedBlocks,
+                                      set<bblInstance*> &reachBlocks)//output
+{
+    list<image_basicBlock*> imgSeeds;
+    for (list<bblInstance*>::const_iterator sit = seedBlocks.begin();
+         sit != seedBlocks.end(); 
+         sit++) 
+    {
+        imgSeeds.push_back((*sit)->block()->llb());
+    }
+    set<image_basicBlock*> imgExcept;
+    for (set<bblInstance*>::const_iterator eit = exceptBlocks.begin();
+         eit != exceptBlocks.end(); 
+         eit++) 
+    {
+        imgExcept.insert((*eit)->block()->llb());
+    }
+
+    // image-level function does the work
+    set<image_basicBlock*> imgReach;
+    ifunc()->getReachableBlocks(imgExcept,imgSeeds,imgReach);
+
+    Address base = getAddress() - ifunc()->addr();
+    for (set<image_basicBlock*>::iterator rit = imgReach.begin();
+         rit != imgReach.end(); 
+         rit++) 
+    {
+        reachBlocks.insert( findBlockInstanceByAddr(base + (*rit)->start()) );
+    }
+}
+
+
 void int_function::registerInstPointAddr(Address addr, instPoint *inst) {
     instPoint *oldInstP = findInstPByAddr(addr);
     if (oldInstP) assert(inst == oldInstP);

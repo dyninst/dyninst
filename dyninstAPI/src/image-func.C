@@ -553,31 +553,39 @@ void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::In
 
 /* This function is static.
  *
- * Find the blocks that would become unreachable if we were to delete
- * the dead blocks.
+ * Find the blocks that are reachable from the seed blocks 
+ * if the except blocks are not part of the CFG
  */
 void image_func::getReachableBlocks
-(const std::set<image_basicBlock*> &startBlocks,
- std::set<image_basicBlock*> &reachable)
+(const std::set<image_basicBlock*> &exceptBlocks,
+ const std::list<image_basicBlock*> &seedBlocks,
+ std::set<image_basicBlock*> &reachBlocks)
 {
     using namespace ParseAPI;
     mal_printf("reachable blocks for func %lx from %d start blocks\n",
-               addr(), startBlocks.size());
+               addr(), seedBlocks.size());
 
-    // add function entry blocks to the worklist and the reachable set
+    // init visited set with seed and except blocks
+    std::set<image_basicBlock*> visited;
+    visited.insert(exceptBlocks.begin(), exceptBlocks.end());
+    visited.insert(seedBlocks.begin(), seedBlocks.end());
+
+    // add seed blocks to the worklist (unless the seed is in exceptBlocks)
     std::list<image_basicBlock*> worklist;
-    reachable.insert(startBlocks.begin(), startBlocks.end());
-    for (set<image_basicBlock*>::const_iterator sit = startBlocks.begin();
-         sit != startBlocks.end();
+    reachBlocks.insert(seedBlocks.begin(), seedBlocks.end());
+    for (list<image_basicBlock*>::const_iterator sit = seedBlocks.begin();
+         sit != seedBlocks.end();
          sit++) 
     {
-        worklist.push_back(*sit);
+        visited.insert(*sit);
+        if (exceptBlocks.end() == exceptBlocks.find(*sit)) {
+            worklist.push_back(*sit);
+        }
     }
         
-
     // iterate through worklist, adding all blocks (except for
-    // startBlocks) that are reachable through target edges to the
-    // reachable set
+    // seedBlocks) that are reachable through target edges to the
+    // reachBlocks set
     while(worklist.size()) {
         image_basicBlock *curBlock = worklist.front();
         Block::edgelist & outEdges = curBlock->targets();
@@ -585,11 +593,14 @@ void image_func::getReachableBlocks
         for (; tIter != outEdges.end(); tIter++) {
             image_basicBlock *targB = (image_basicBlock*) (*tIter)->trg();
             if ( CALL != (*tIter)->type() &&
-                 startBlocks.end() == startBlocks.find(targB) && 
-                 reachable.end() == reachable.find(targB) )
+                 visited.end() == visited.find(targB) )
+                 //reachBlocks.end() == reachBlocks.find(targB) &&
+                 //exceptBlocks.end() == exceptBlocks.find(targB) &&
+                 //seedBlocks.end() == seedBlocks.find(targB) )
             {   
                 worklist.push_back(targB);
-                reachable.insert(targB);
+                reachBlocks.insert(targB);
+                visited.insert(targB);
                 mal_printf("block [%lx %lx] is reachable\n",
                            targB->firstInsnOffset(),
                            targB->endOffset());

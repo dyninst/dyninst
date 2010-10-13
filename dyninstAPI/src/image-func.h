@@ -310,7 +310,8 @@ class image_func : public ParseAPI::Function
 
    
    void getReachableBlocks
-   ( const std::set<image_basicBlock*> &startBlocks, // input
+   ( const std::set<image_basicBlock*> &exceptBlocks, // input
+     const std::list<image_basicBlock*> &seedBlocks, // input
      std::set<image_basicBlock*> &reachableBlocks ); // output
    ParseAPI::FuncReturnStatus init_retstatus() const;
    void setinit_retstatus(ParseAPI::FuncReturnStatus rs); //also sets retstatus
