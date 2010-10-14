@@ -91,7 +91,10 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallback & pcb) :
     }
 
     if(obj.cs()->regions().empty()) {
-        fprintf(stderr,"Error, CodeSource fails to provide CodeRegions\n");
+        parsing_printf("[%s:%d] CodeSource provides no CodeRegions"
+                       " -- unparesable\n",
+            FILE__,__LINE__);
+        _parse_state = UNPARSEABLE;
         return;
     }
 
@@ -150,6 +153,9 @@ Parser::parse()
 {
     parsing_printf("[%s:%d] parse() called on Parser with state %d\n",
         FILE__,__LINE__,_parse_state);
+
+    if(_parse_state == UNPARSEABLE)
+        return;
 
     assert(!_in_parse);
     _in_parse = true;
@@ -222,6 +228,9 @@ Parser::parse_at(Address target, bool recursive, FuncSource src)
 
     parsing_printf("[%s:%d] entered parse_at(%lx)\n",FILE__,__LINE__,target);
 
+    if(_parse_state == UNPARSEABLE)
+        return;
+
     StandardParseData * spd = dynamic_cast<StandardParseData *>(_parse_data);
     if(!spd) {
         parsing_printf("   parse_at is invalid on overlapping regions\n");
@@ -278,6 +287,9 @@ Parser::parse_vanilla()
 void
 Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
 {
+    if(_parse_state == UNPARSEABLE)
+        return;
+
     for (unsigned idx=0; idx < work_elems.size(); idx++) {
 
         ParseWorkElem *elem = work_elems[idx];
