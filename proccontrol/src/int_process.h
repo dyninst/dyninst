@@ -200,11 +200,11 @@ class int_process
    bool infFree(Dyninst::Address addr);
 
    bool readMem(Dyninst::Address remote, mem_response::ptr result);
-   bool writeMem(void *local, Dyninst::Address remote, size_t size, result_response::ptr result);
+   bool writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result);
 
    virtual bool plat_readMem(int_thread *thr, void *local, 
                              Dyninst::Address remote, size_t size) = 0;
-   virtual bool plat_writeMem(int_thread *thr, void *local, 
+   virtual bool plat_writeMem(int_thread *thr, const void *local, 
                               Dyninst::Address remote, size_t size) = 0;
 
    //For a platform, if plat_needsAsyncIO returns true then the async
@@ -214,7 +214,7 @@ class int_process
    virtual bool plat_needsAsyncIO() const;
    virtual bool plat_readMemAsync(int_thread *thr, Dyninst::Address addr, 
                                   mem_response::ptr result);
-   virtual bool plat_writeMemAsync(int_thread *thr, void *local, Dyninst::Address addr,
+   virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
                                    size_t size, result_response::ptr result);
    
    typedef enum {

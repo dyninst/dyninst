@@ -1025,7 +1025,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result)
    return bresult;      
 }
 
-bool int_process::writeMem(void *local, Dyninst::Address remote, size_t size, result_response::ptr result)
+bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result)
 {
    int_thread *thr = findStoppedThread();
    if (!thr) {
@@ -1448,7 +1448,7 @@ bool int_process::plat_readMemAsync(int_thread *, Dyninst::Address,
    return false;
 }
 
-bool int_process::plat_writeMemAsync(int_thread *, void *, Dyninst::Address,
+bool int_process::plat_writeMemAsync(int_thread *, const void *, Dyninst::Address,
                                      size_t, result_response::ptr )
 {
    assert(0);
@@ -4325,7 +4325,7 @@ bool Process::freeMemory(Dyninst::Address addr)
    return llproc_->infFree(addr);
 }
 
-bool Process::writeMemory(Dyninst::Address addr, void *buffer, size_t size) const
+bool Process::writeMemory(Dyninst::Address addr, const void *buffer, size_t size) const
 {
    MTLock lock_this_func;
    if (!llproc_) {

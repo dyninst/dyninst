@@ -289,7 +289,7 @@ class Process
    Dyninst::Address mallocMemory(size_t size);
    Dyninst::Address mallocMemory(size_t size, Dyninst::Address addr);
    bool freeMemory(Dyninst::Address addr);
-   bool writeMemory(Dyninst::Address addr, void *buffer, size_t size) const;
+   bool writeMemory(Dyninst::Address addr, const void *buffer, size_t size) const;
    bool readMemory(void *buffer, Dyninst::Address addr, size_t size) const;
 
    /**

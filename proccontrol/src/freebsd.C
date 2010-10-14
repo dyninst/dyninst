@@ -911,7 +911,7 @@ bool freebsd_process::plat_readProcMem(void *local,
     return PtraceBulkRead(remote, size, local, getPid());
 }
 
-bool freebsd_process::plat_writeMem(int_thread *thr, void *local, 
+bool freebsd_process::plat_writeMem(int_thread *thr, const void *local, 
                           Dyninst::Address remote, size_t size) 
 {
     return PtraceBulkWrite(remote, size, local, thr->llproc()->getPid());

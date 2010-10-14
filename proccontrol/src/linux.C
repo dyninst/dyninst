@@ -612,7 +612,7 @@ bool linux_process::plat_readMem(int_thread *thr, void *local,
    return LinuxPtrace::getPtracer()->ptrace_read(remote, size, local, thr->getLWP());
 }
 
-bool linux_process::plat_writeMem(int_thread *thr, void *local, 
+bool linux_process::plat_writeMem(int_thread *thr, const void *local, 
                                   Dyninst::Address remote, size_t size)
 {
    return LinuxPtrace::getPtracer()->ptrace_write(remote, size, local, thr->getLWP());
@@ -711,7 +711,7 @@ bool linux_process::plat_readMemAsync(int_thread *thr, Dyninst::Address addr, me
    return true;
 }
 
-bool linux_process::plat_writeMemAsync(int_thread *thr, void *local, Dyninst::Address addr, size_t size, 
+bool linux_process::plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr, size_t size, 
                                        result_response::ptr result)
 {
    bool b = plat_writeMem(thr, local, addr, size);
@@ -1634,12 +1634,12 @@ bool LinuxPtrace::ptrace_read(Dyninst::Address inTrace, unsigned size_,
 }
 
 bool LinuxPtrace::ptrace_write(Dyninst::Address inTrace, unsigned size_, 
-                               void *inSelf, int pid_)
+                               const void *inSelf, int pid_)
 {
    start_request();
    ptrace_request = ptrace_bulkwrite;
    remote_addr = inTrace;
-   data = inSelf;
+   data = const_cast<void *>(inSelf);
    pid = pid_;
    size = size_;
    waitfor_ret();

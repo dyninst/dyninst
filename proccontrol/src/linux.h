@@ -85,12 +85,12 @@ class linux_process : public sysv_process, public unix_process, public x86_proce
    virtual bool plat_needsAsyncIO() const;
    virtual bool plat_readMemAsync(int_thread *thr, Dyninst::Address addr, 
                                   mem_response::ptr result);
-   virtual bool plat_writeMemAsync(int_thread *thr, void *local, Dyninst::Address addr,
+   virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
                                    size_t size, result_response::ptr result);
 
    virtual bool plat_readMem(int_thread *thr, void *local, 
                              Dyninst::Address remote, size_t size);
-   virtual bool plat_writeMem(int_thread *thr, void *local, 
+   virtual bool plat_writeMem(int_thread *thr, const void *local, 
                               Dyninst::Address remote, size_t size);
    virtual SymbolReaderFactory *plat_defaultSymReader();
    virtual bool needIndividualThreadAttach();
@@ -177,7 +177,7 @@ public:
    void main();
    long ptrace_int(pt_req request_, pid_t pid_, void *addr_, void *data_);
    bool ptrace_read(Dyninst::Address inTrace, unsigned size_, void *inSelf, int pid_);
-   bool ptrace_write(Dyninst::Address inTrace, unsigned size_, void *inSelf, int pid_);
+   bool ptrace_write(Dyninst::Address inTrace, unsigned size_, const void *inSelf, int pid_);
 
    bool plat_create(linux_process *p);
 };
