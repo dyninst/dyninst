@@ -341,14 +341,10 @@ bool BPatch_function::parseNewEdge(Dyninst::Address source,
     // set up arguments to lower level parseNewEdges and call it
     int_basicBlock *sblock = lladdSpace->findBasicBlockByAddr(source);
     assert(sblock);
-    vector<ParseAPI::Block*> sblocks;
-    vector<Address> targets;
-    sblocks.push_back(sblock->llb());
-    targets.push_back(target);
-    std::vector<EdgeTypeEnum> edgeTypes;
-    edgeTypes.push_back(ParseAPI::NOEDGE);//we don't know edge type yet
-
-    func->parseNewEdges(sblocks,targets,edgeTypes);
+    vector<int_function::edgeStub> stubs;
+    stubs.push_back(int_function::edgeStub(
+        sblock->origInstance(), target, ParseAPI::NOEDGE));
+    func->parseNewEdges(stubs);
 
 /* 2. Correct missing elements in BPatch-level datastructures */
     //   wipe out the BPatch_flowGraph CFG, we'll re-generate it

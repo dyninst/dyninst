@@ -1783,15 +1783,8 @@ void BPatch_process::overwriteAnalysisUpdate
     // create stub edge set which is: all edges such that: 
     //     e->trg() in owBBIs and
     //     while e->src() in delBlocks try e->src()->sources()
-    struct stub {
-        stub(bblInstance *s, Address t, EdgeTypeEnum y) 
-        { src = s; trg = t; type = y; }
-        bblInstance* src;
-        Address trg;
-        EdgeTypeEnum type;
-    };
-    std::map<int_function*,vector<stub>> stubs;
-    std::list<stub> deadStubs;
+    std::map<int_function*,vector<int_function::edgeStub>> stubs;
+    std::list<int_function::edgeStub> deadStubs;
     
     for (list<bblInstance*>::iterator deadIter = owBBIs.begin();
          deadIter != owBBIs.end(); 
@@ -1812,7 +1805,7 @@ void BPatch_process::overwriteAnalysisUpdate
                 static_cast<image_basicBlock*>((*eit)->src());
             int_basicBlock *sourceIntB = llproc->findBasicBlockByAddr
                 ( baseAddr + sourceBlock->start() );
-            stub st(sourceIntB->origInstance(), 
+            int_function::edgeStub st(sourceIntB->origInstance(), 
                     curImgBlock->start() + baseAddr, 
                     (*eit)->type());
             if (delBBIs.end() == delBBIs.find(sourceIntB->origInstance()) ) {
@@ -1822,7 +1815,7 @@ void BPatch_process::overwriteAnalysisUpdate
             }
         }
 
-        for (list<stub>::iterator sit = deadStubs.begin(); 
+        for (list<int_function::edgeStub>::iterator sit = deadStubs.begin(); 
              sit != deadStubs.end(); 
              sit++) 
         {
@@ -1830,7 +1823,7 @@ void BPatch_process::overwriteAnalysisUpdate
         // the stub source was overwritten, choose a non-overwritten source
         // block on a non-call edge as the new stub with which to replace it
         image_basicBlock *deadStub = (*sit).src->block()->llb();
-        SingleContext epred_(deadStub->func(),true,true);
+        SingleContext epred_((*sit).src->func()->ifunc(),true,true);
         Intraproc epred(&epred_);
         Block::edgelist inEdges = deadStub->sources();
         bool foundNewStub = false;
@@ -1845,7 +1838,7 @@ void BPatch_process::overwriteAnalysisUpdate
             bblInstance *bbisrc = llproc->findBasicBlockByAddr(
                 imgsrc->start()+baseAddr )->origInstance();
             if (delBBIs.end() == delBBIs.find(bbisrc)) {
-                stubs[bbisrc->func()].push_back(stub(
+                stubs[bbisrc->func()].push_back(int_function::edgeStub(
                     bbisrc, (*sit).src->firstInsnAddr(), (*eit)->type()));
                 foundNewStub = true;
             }
@@ -1858,12 +1851,15 @@ void BPatch_process::overwriteAnalysisUpdate
             visitedBlocks.insert(deadStub);
             std::queue<Edge*> worklist;
             Block::edgelist & inEdges = deadStub->sources();
-            for(eit=inEdges.begin(&epred); eit != inEdges.end(); ++eit) {
-                if (CALL != (*eit)->type() && 
+            for(Block::edgelist::iterator iit=inEdges.begin(&epred); 
+                iit != inEdges.end(); 
+                ++iit) 
+            {
+                if (CALL != (*iit)->type() && 
                     visitedBlocks.end() == visitedBlocks.find(
-                      static_cast<image_basicBlock*>((*eit)->src())))
+                      static_cast<image_basicBlock*>((*iit)->src())))
                 {
-                    worklist.push(*eit);
+                    worklist.push(*iit);
                 }
             }
             while (worklist.size()) {
@@ -1877,19 +1873,22 @@ void BPatch_process::overwriteAnalysisUpdate
                 assert(srcBBI);
                 if (delBBIs.end() == delBBIs.find(srcBBI)) {
                     // found a valid stub block
-                    stubs[srcBBI->func()].push_back( stub(
+                    stubs[srcBBI->func()].push_back( int_function::edgeStub(
                         srcBBI, (*sit).src->firstInsnAddr(), curEdge->type()));
                     foundNewStub = true;
                     break;
                 }
                 else if (visitedBlocks.end() == visitedBlocks.find(srcBlock)) {
                     Block::edgelist & edges = srcBlock->sources();
-                    for(eit=edges.begin(&epred); eit != edges.end(); ++eit) {
-                        if (CALL != (*eit)->type() && 
+                    for(Block::edgelist::iterator iit=edges.begin(&epred); 
+                        iit != edges.end(); 
+                        ++iit) 
+                    {
+                        if (CALL != (*iit)->type() && 
                             visitedBlocks.end() == visitedBlocks.find(
-                              static_cast<image_basicBlock*>((*eit)->src())))
+                              static_cast<image_basicBlock*>((*iit)->src())))
                         {
-                            worklist.push(*eit);
+                            worklist.push(*iit);
                         }
                     }
                 }
@@ -1910,15 +1909,15 @@ void BPatch_process::overwriteAnalysisUpdate
 
     // now traverse stub lists to remove any duplicates that were introduced 
     // by overwritten stub replacement
-    for(std::map<int_function*,vector<stub>>::iterator fit= stubs.begin();
+    for(std::map<int_function*,vector<int_function::edgeStub>>::iterator fit= stubs.begin();
         fit != stubs.end();
         fit++) 
     {
-        for(unsigned i=0; i < (*fit).size(); j++) {
-            for(unsigned j=i+1; j < (*fit).size(); j++) {
-                if ((*fit)[i].src == (*fit)[j].src) {
-                    (*fit)[j] = (*fit)[(*fit).size()-1];
-                    (*fit).pop_back();
+        for(unsigned i=0; i < fit->second.size(); i++) {
+            for(unsigned j=i+1; j < fit->second.size(); j++) {
+                if (fit->second[i].src == fit->second[j].src) {
+                    fit->second[j] = fit->second[fit->second.size()-1];
+                    fit->second.pop_back();
                 }
             }
         }
@@ -1935,7 +1934,8 @@ void BPatch_process::overwriteAnalysisUpdate
         }
         deadBlockAddrs.push_back((*bit)->firstInsnAddr());
         (*bit)->func()->deleteBlock((*bit)->block());
-        vector<ParseAPI::Block*> bSet((*bit)->block()->llb());
+        vector<ParseAPI::Block*> bSet; 
+        bSet.push_back((*bit)->block()->llb());
         (*bit)->func()->ifunc()->deleteBlocks(bSet,NULL);
     }
 
@@ -1968,7 +1968,7 @@ void BPatch_process::overwriteAnalysisUpdate
         // blocks to deadBlockAddrs 
         if ((*fit)->obj()->parse_img()->isAOut() && 
             (*fit)->ifunc()->addr() == 
-            (*fit)->obj()->parse_img()->linkedFile()->getEntryOffset()) 
+            (*fit)->obj()->parse_img()->getObject()->getEntryOffset()) 
         {
             const set< int_basicBlock* , int_basicBlock::compare >& 
                 deadBlocks = (*fit)->blocks();
@@ -2017,51 +2017,44 @@ void BPatch_process::overwriteAnalysisUpdate
     }
 
     // set new entry points for functions with NewF blocks
-    todo;
+    for (list<bblInstance*>::iterator nit = newFuncEntries.begin();
+         nit != newFuncEntries.end();
+         nit++)
+    {
+        int_basicBlock *entry = NULL;
+        (*nit)->func()->setNewEntryPoint(entry);
+        if (entry && entry->origInstance() != *nit) {
+            mal_printf("For overwritten executing func chose entry "
+                       "block %lx rather than active block %lx %s %d\n",
+                       entry->origInstance()->firstInsnAddr(), 
+                       (*nit)->firstInsnAddr(),FILE__,__LINE__);
+        }
+    }
 
     //3. parse new code, one overwritten function at a time
-    std::map<int_function*,vector<stub>> stubs;
     for(std::map<int_function*,set<bblInstance*>>::iterator 
         fit = elimMap.begin();
         fit != elimMap.end();
         fit++) 
     {
-        // find subset of stubs that correspond to this function
-        int_function *curFunc = fit->first;
-        std::vector<ParseAPI::Block*> cur_ssb;
-        std::vector<Address> cur_st;
-        std::vector<EdgeTypeEnum> cur_set;
-        for(unsigned idx=0; idx < stubSrcs.size(); idx++) {
-            image_basicBlock *curblock = stubSrcs[idx];
-            vector<ParseAPI::Function *> sharefuncs;
-            curblock->getFuncs(sharefuncs);
-            for (vector<ParseAPI::Function*>::iterator fit= sharefuncs.begin();
-                 sharefuncs.end() != fit;
-                 fit++) 
-            {
-                if ((*fit) == curFunc->ifunc()) {
-                    cur_ssb.push_back(curblock);
-                    cur_st.push_back(stubTrgs[idx]);
-                    cur_set.push_back(stubTypes[idx]);
-                }
-            }
-        }
-
         // parse new edges in the function
-        if (cur_ssb.size()) {
-            curFunc->parseNewEdges(cur_ssb,cur_st,cur_set);
+        if (stubs[fit->first].size()) {
+            fit->first->parseNewEdges(stubs[fit->first]);
         } else {
-            cur_ssb.push_back(NULL);
-            cur_st.push_back(curFunc->ifunc()->getOffset());
-            cur_set.push_back(ParseAPI::NOEDGE);
-		    curFunc->parseNewEdges(cur_ssb,cur_st,cur_set);
+            mal_printf("WARNING: didn't have any stub edges for overwritten "
+                       "func %lx\n", fit->first->getAddress());
+            vector<int_function::edgeStub> svec;
+            svec.push_back(int_function::edgeStub(
+                NULL, fit->first->getAddress(), ParseAPI::NOEDGE));
+		    fit->first->parseNewEdges(svec);
+            assert(0);
         }
         // else, this is the entry point of the function, do nothing, 
         // we'll parse this anyway through recursive traversal if there's
         // code at this address
 
         // add curFunc to owFuncs, and clear the function's BPatch_flowGraph
-        BPatch_function *bpfunc = findOrCreateBPFunc(curFunc,NULL);
+        BPatch_function *bpfunc = findOrCreateBPFunc(fit->first,NULL);
         bpfunc->removeCFG();
         owFuncs.push_back(bpfunc);
     }

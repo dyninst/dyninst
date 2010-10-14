@@ -670,27 +670,29 @@ Address int_function::setNewEntryPoint(int_basicBlock *& newEntry)
  * 4. fix up mapping of split blocks with points
  * 5. Add image points, as instPoints 
 */
-bool int_function::parseNewEdges( std::vector<ParseAPI::Block*> &sources, 
-                                  std::vector<Address> &targets, 
-                                  std::vector<EdgeTypeEnum> &edgeTypes)
+bool int_function::parseNewEdges(const std::vector<edgeStub> &stubs )
 {
     using namespace SymtabAPI;
     using namespace ParseAPI;
 
+    vector<ParseAPI::Block*> sources;
+    vector<Address> targets;
+    vector<EdgeTypeEnum> edgeTypes;
+    for (unsigned sidx = 0; sidx < stubs.size(); sidx++) {
+        sources.push_back(stubs[sidx].src->block()->llb());
+        targets.push_back(stubs[sidx].trg);
+        edgeTypes.push_back(stubs[sidx].type);
+    }
+
 /* 0. The target and source must be in the same mapped region, make sure memory
       for the target is up to date */
 
-    // Update set of active multiTramps before parsing 
-    //if (NULL != proc()->proc()) {// if it's a process and not a binEdit
-    //    proc()->proc()->updateActiveMultis();
-    //}
-
     // Do various checks and set edge types, if necessary
     Address loadAddr = getAddress() - ifunc()->getOffset();
-    for (unsigned idx=0; idx < targets.size(); idx++) {
+    for (unsigned idx=0; idx < stubs.size(); idx++) {
         Region *targetRegion = ifunc()->img()->getObject()->
-            findEnclosingRegion( targets[idx]-loadAddr );
-        ParseAPI::Block *cursrc = sources[idx];
+            findEnclosingRegion( stubs[idx].trg-loadAddr );
+        ParseAPI::Block *cursrc = stubs[idx].src->block()->llb();
 
         // same region check
         if (NULL != cursrc) {
@@ -701,20 +703,20 @@ bool int_function::parseNewEdges( std::vector<ParseAPI::Block*> &sources,
         }
         // update target region if needed
         if (BPatch_defensiveMode == obj()->hybridMode()) {
-            obj()->updateCodeBytesIfNeeded(targets[idx]);
+            obj()->updateCodeBytesIfNeeded(stubs[idx].trg);
         }
 
         // translate targets to memory offsets rather than absolute addrs
         targets[idx] -= loadAddr;
 
         // figure out edge types if they have not been set yet
-        if (ParseAPI::NOEDGE == edgeTypes[idx]) {
+        if (ParseAPI::NOEDGE == stubs[idx].type) {
             ParseAPI::Block::edgelist & edges = cursrc->targets();
             ParseAPI::Block::edgelist::iterator eit = edges.begin();
             bool isIndirJmp = false;
             bool isCondl = false;
             for (; eit != edges.end(); eit++) {
-                if ((*eit)->trg()->start() == targets[idx]) {
+                if ((*eit)->trg()->start() == stubs[idx].trg) {
                     edgeTypes[idx] = (*eit)->type();
                     break;
                 } 
@@ -725,14 +727,15 @@ bool int_function::parseNewEdges( std::vector<ParseAPI::Block*> &sources,
                     isCondl = true;
                 }
             }
-            if (ParseAPI::NOEDGE == edgeTypes[idx]) {
+            if (ParseAPI::NOEDGE == stubs[idx].type) {
                 bool isCall = false;
                 funcCalls();
-                instPoint *pt = findInstPByAddr(cursrc->lastInsnAddr()+loadAddr);
+                instPoint *pt = findInstPByAddr(
+                    cursrc->lastInsnAddr()+loadAddr);
                 if (pt && callSite == pt->getPointType()) {
                     isCall = true;
                 }
-                if (cursrc->end() == targets[idx]) {
+                if (cursrc->end() == stubs[idx].trg) {
                     if (isCall) {
                         edgeTypes[idx] = CALL_FT;
                     } else if (isCondl) {
@@ -752,7 +755,7 @@ bool int_function::parseNewEdges( std::vector<ParseAPI::Block*> &sources,
             }
         }
     }
-
+ 
 /* 1. Parse from target address, add new edge at image layer  */
     assert( !ifunc()->img()->hasSplitBlocks() && 
             !ifunc()->img()->hasNewBlocks());

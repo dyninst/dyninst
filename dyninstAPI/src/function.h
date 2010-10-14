@@ -377,6 +377,14 @@ class int_function : public patchTarget {
      }
    };
 
+    struct edgeStub {
+        edgeStub(bblInstance *s, Address t, EdgeTypeEnum y) 
+        { src = s; trg = t; type = y; }
+        bblInstance* src;
+        Address trg;
+        EdgeTypeEnum type;
+    };
+
    // extra debuggering info....
    ostream & operator<<(ostream &s) const;
    friend ostream &operator<<(ostream &os, int_function &f);
@@ -434,9 +442,7 @@ class int_function : public patchTarget {
    const std::set<instPoint*> &funcAbruptEnds();
    bool setPointResolved(instPoint* resolvedPt);
 
-   bool parseNewEdges( std::vector<ParseAPI::Block*>& sources, 
-                       std::vector<Address>& targets, 
-                       std::vector<EdgeTypeEnum>& edgeTypes);
+   bool parseNewEdges(const std::vector<edgeStub>& sources);
 
    bool isSignalHandler() {return handlerFaultAddr_ != 0;}
    Address getHandlerFaultAddr() {return handlerFaultAddr_;}

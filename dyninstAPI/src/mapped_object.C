@@ -1275,18 +1275,28 @@ void mapped_object::findBBIsByRange(Address startAddr,
             bblInstance* bbi = range->is_basicBlockInstance();
             assert(bbi);
             pageBlocks.push_back(bbi);
+            if (bbi->block()->llb()->isShared()) {
+                vector<ParseAPI::Function*> ifuncs;
+                bbi->block()->llb()->getFuncs(ifuncs);
+                for (unsigned fidx=0; fidx < ifuncs.size(); fidx++) {
+                    pageBlocks.push_back(proc()->
+                        findFuncByInternalFunc((image_func*)ifuncs[fidx])->
+                        findBlockInstanceByAddr(bbi->firstInsnAddr()));
+                }
+            }
         }
 
-        // advance to the next region
-        if ( ! codeRangesByAddr_.find(nextAddr, range) &&
-             ! codeRangesByAddr_.successor(nextAddr, range) ) 
-        {
-            range = NULL;
+        // advance to the next range
+        if ( ! codeRangesByAddr_.find(nextAddr, range) ) {
+            if ( ! codeRangesByAddr_.successor(nextAddr, range) ) {
+                range = NULL;
+            }
         }
-        nextAddr = range->get_address() + range->get_size();
+        if (range) {
+            nextAddr = range->get_address() + range->get_size();
+        }
 
     } while (range != NULL && range->get_address() < endAddr);
-
 }
 
 void mapped_object::findFuncsByRange(Address startAddr,
