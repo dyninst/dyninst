@@ -61,7 +61,6 @@ class ParseCallback {
     size_t isize;
     bool isbranch;
   };
-  virtual void abruptEnd_cf(Address,default_details*) { }
 
   /*
    * Notify for interprocedural control transfers
@@ -122,6 +121,7 @@ class ParseCallback {
   virtual void block_split(Block *, Block *) { }
   virtual void patch_nop_jump(Address) { }
   virtual bool updateCodeBytes(Address) { return false; }
+  virtual void abruptEnd_cf(Address,default_details*) { }
 };
 
 }

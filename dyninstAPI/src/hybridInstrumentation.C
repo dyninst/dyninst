@@ -734,76 +734,80 @@ void HybridAnalysis::parseNewEdgeInFunction(BPatch_point *sourcePoint, Address t
 
     // 1. if the target is in the same section as the source func, 
     //    remove instrumentation from the source function 
-    if ( proc()->lowlevel_process()->sameRegion
-           ( (Address)sourcePoint->getAddress() , target ) ) 
+
+    //if ( proc()->lowlevel_process()->sameRegion
+    //       ( (Address)sourcePoint->getAddress() , target ) ) 
+    //{
+
+    // remove loop instrumentation, if any
+    std::set<HybridAnalysisOW::owLoop*> loops;
+    if (hybridOW() && 
+        hybridOW()->hasLoopInstrumentation(false, *sourceFunc, &loops)) 
     {
-        // remove loop instrumentation, if any
-        std::set<HybridAnalysisOW::owLoop*> loops;
-        if (hybridOW() && 
-            hybridOW()->hasLoopInstrumentation(false, *sourceFunc, &loops)) 
+        std::set<HybridAnalysisOW::owLoop*>::iterator lIter= loops.begin();
+        while (lIter != loops.end())
         {
-            std::set<HybridAnalysisOW::owLoop*>::iterator lIter= loops.begin();
-            while (lIter != loops.end())
-            {
-                hybridOW()->deleteLoop(*lIter);
-                lIter++;
-            }
-        } 
-
-        // remove the function's instrumentation (and from shared funcs)
-        removeInstrumentation(sourceFunc);
-        set<BPatch_function*> sharedFuncs;
-        if (sourceFunc->getSharedFuncs(sharedFuncs)) {
-            set<BPatch_function*>::iterator fit;
-            for (fit = sharedFuncs.begin(); fit != sharedFuncs.end(); fit++) {
-                if ( *fit != sourceFunc) {
-                    removeInstrumentation(*fit);
-                }
-            }
+            hybridOW()->deleteLoop(*lIter);
+            lIter++;
         }
-
-        // 2. parse the new edge
-        if ( ! sourceFunc->parseNewEdge( (Address)sourcePoint->getAddress() , 
-                                         target ) ) 
-        {
-            assert(0);//this case should be ruled out by the call to sameRegion
-        }
-
-        // inform the mutator of the new code
-        if (bpatchCodeDiscoveryCB) {
-            std::vector<BPatch_function *> newfuncs;
-            std::vector<BPatch_function *> modfuncs;
-            proc()->getImage()->getNewCodeRegions(newfuncs,modfuncs);
-            // add sourceFunc to modfuncs, since we removed its instrumentation
-            bool foundSrcFunc = false;
-            for(unsigned midx=0; midx < modfuncs.size(); midx++) {
-                if (sourceFunc == modfuncs[midx]) {
-                    foundSrcFunc =true;
-                    break;
-                }
-            }
-            if (newfuncs.size() || modfuncs.size()) {
-                if (hybridow_ && modfuncs.size()) {
-                    hybridow_->codeChangeCB(modfuncs);
-                }
-                if (BPatch_defensiveMode == mode_) {
-                    proc()->protectAnalyzedCode();
-                }
-            }
-            // if the code didn't change, add sourceFunc to modfuncs, since
-            // we removed its instrumentation and the user has to re-instrument
-            if (!foundSrcFunc) {
-                modfuncs.push_back(sourceFunc);
-            }
-            // invoke callback
-            bpatchCodeDiscoveryCB(newfuncs,modfuncs);
-        }
-        proc()->getImage()->clearNewCodeRegions();
     } 
-	// 2. parse the new edge
-    else {
-        analyzeNewFunction( target , false );
+
+    // remove the function's instrumentation (and from shared funcs)
+    removeInstrumentation(sourceFunc);
+    set<BPatch_function*> sharedFuncs;
+    if (sourceFunc->getSharedFuncs(sharedFuncs)) {
+        set<BPatch_function*>::iterator fit;
+        for (fit = sharedFuncs.begin(); fit != sharedFuncs.end(); fit++) {
+            if ( *fit != sourceFunc) {
+                removeInstrumentation(*fit);
+            }
+        }
     }
+
+    // 2. parse the new edge
+    if ( ! sourceFunc->parseNewEdge( (Address)sourcePoint->getAddress() , 
+                                     target ) ) 
+    {
+        assert(0);//this case should be ruled out by the call to sameRegion
+    }
+
+    // inform the mutator of the new code
+    if (bpatchCodeDiscoveryCB) {
+        std::vector<BPatch_function *> newfuncs;
+        std::vector<BPatch_function *> modfuncs;
+        proc()->getImage()->getNewCodeRegions(newfuncs,modfuncs);
+        // add sourceFunc to modfuncs, since we removed its instrumentation
+        bool foundSrcFunc = false;
+        for(unsigned midx=0; midx < modfuncs.size(); midx++) {
+            if (sourceFunc == modfuncs[midx]) {
+                foundSrcFunc =true;
+                break;
+            }
+        }
+        if (newfuncs.size() || modfuncs.size()) {
+            if (hybridow_ && modfuncs.size()) {
+                hybridow_->codeChangeCB(modfuncs);
+            }
+            if (BPatch_defensiveMode == mode_) {
+                proc()->protectAnalyzedCode();
+            }
+        }
+        // if the code didn't change, add sourceFunc to modfuncs, since
+        // we removed its instrumentation and the user has to re-instrument
+        if (!foundSrcFunc) {
+            modfuncs.push_back(sourceFunc);
+        }
+        // invoke callback
+        bpatchCodeDiscoveryCB(newfuncs,modfuncs);
+    }
+
+    proc()->getImage()->clearNewCodeRegions();
+
+//   } 
+	//// 2. parse the new edge
+ //   else {
+ //       analyzeNewFunction( target , false );
+ //   }
 }
 
 bool HybridAnalysis::blockcmp::operator () (const BPatch_basicBlock *b1, 

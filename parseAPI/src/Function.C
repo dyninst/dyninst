@@ -277,6 +277,10 @@ Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
             assert(0);
         }
 
+        if (dead == _entry) {
+            assert(0 && "have to specify new entry if deleting entry block");
+        }
+
         // remove dead block from _return_blocks and its call edges from vector
         Block::edgelist & outs = dead->targets();
         found = false;
@@ -316,26 +320,25 @@ Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
         // remove dead block from block map
         _bmap.erase(dead->start());
 
-        // disconnect dead block from CFG
-        if (1 < dead->containingFuncs()) {
+        // disconnect dead block from CFG (if not shared by other funcs)
+        if (1 == dead->containingFuncs()) {
             for (unsigned sidx=0; sidx < dead->_sources.size(); sidx++) {
                 Edge *edge = dead->_sources[sidx];
                 edge->src()->removeTarget( edge );
+                obj()->fact()->free_edge(edge);
             }
             for (unsigned tidx=0; tidx < dead->_targets.size(); tidx++) {
                 Edge *edge = dead->_targets[tidx];
                 edge->trg()->removeSource( edge );
+                obj()->fact()->free_edge(edge);
             }
         }
     }
 
-    // call finalize, fixes extents
-    obj()->parser->finalize(this);
-
     // delete the blocks
     for (unsigned didx=0; didx < dead_blocks.size(); didx++) {
         Block *dead = dead_blocks[didx];
-        if (1 <= dead->containingFuncs()) {
+        if (1 < dead->containingFuncs()) {
             dead->removeFunc(this);
             mal_printf("WARNING: removing shared block [%lx %lx] rather "
                        "than deleting it %s[%d]\n", dead->start(), 
@@ -344,6 +347,9 @@ Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
             obj()->fact()->free_block(dead);
         }
     }
+
+    // call finalize, fixes extents
+    obj()->parser->finalize(this);
 }
 
 class ST_Predicates : public Slicer::Predicates {};

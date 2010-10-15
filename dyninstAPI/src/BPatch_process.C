@@ -1768,7 +1768,7 @@ void BPatch_process::overwriteAnalysisUpdate
     std::set<bblInstance*> delBBIs;
     std::map<int_function*,set<bblInstance*>> elimMap;
     std::list<int_function*> deadFuncs;
-    std::list<bblInstance*> newFuncEntries;
+    std::map<int_function*,bblInstance*> newFuncEntries;
     llproc->getDeadCode(owBBIs,delBBIs,elimMap,deadFuncs,newFuncEntries); 
 
     // remove instrumentation from affected funcs
@@ -1928,17 +1928,21 @@ void BPatch_process::overwriteAnalysisUpdate
         bit != delBBIs.end();
         bit++) 
     {
+        int_function *bFunc = (*bit)->func();
         if ((*bit)->block()->getHighLevelBlock()) {
             ((BPatch_basicBlock*)(*bit)->block()->getHighLevelBlock())
                 ->setlowlevel_block(NULL);
         }
         deadBlockAddrs.push_back((*bit)->firstInsnAddr());
-        (*bit)->func()->deleteBlock((*bit)->block());
         vector<ParseAPI::Block*> bSet; 
         bSet.push_back((*bit)->block()->llb());
-        (*bit)->func()->ifunc()->deleteBlocks(bSet,NULL);
+        bFunc->deleteBlock((*bit)->block());
+        ParseAPI::Block *newEntry = NULL;
+        if (newFuncEntries[bFunc]) {
+            newEntry = newFuncEntries[bFunc]->block()->llb();
+        }
+        bFunc->ifunc()->deleteBlocks(bSet,newEntry); //KEVINTODO: doing this one by one is highly inefficient
     }
-
 
     // delete completely dead functions
     for(std::list<int_function*>::iterator fit = deadFuncs.begin(); 
@@ -2017,17 +2021,16 @@ void BPatch_process::overwriteAnalysisUpdate
     }
 
     // set new entry points for functions with NewF blocks
-    for (list<bblInstance*>::iterator nit = newFuncEntries.begin();
+    for (std::map<int_function*,bblInstance*>::iterator nit = newFuncEntries.begin();
          nit != newFuncEntries.end();
          nit++)
     {
-        int_basicBlock *entry = NULL;
-        (*nit)->func()->setNewEntryPoint(entry);
-        if (entry && entry->origInstance() != *nit) {
+        int_basicBlock *entry = nit->first->setNewEntryPoint();
+        if (entry->origInstance() != nit->second) {
             mal_printf("For overwritten executing func chose entry "
                        "block %lx rather than active block %lx %s %d\n",
                        entry->origInstance()->firstInsnAddr(), 
-                       (*nit)->firstInsnAddr(),FILE__,__LINE__);
+                       nit->second->firstInsnAddr(),FILE__,__LINE__);
         }
     }
 

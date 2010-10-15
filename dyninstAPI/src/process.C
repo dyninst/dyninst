@@ -4860,25 +4860,6 @@ bool process::getOverwrittenBlocks
             writtenBBIs.merge(curBBIs);
         }
 
-        // KEVIN: we already marked the block as overwritten, following code is NOP
-        //// 4. determine if the last of the blocks has an abrupt end, in which 
-        ////    case, mark it as overwritten
-        //if (    curBBIs.size() 
-        //     && ! curObject->proc()->isCode((*rIter).second - 1) )
-        //{
-        //    bblInstance *lastBBI = curBBIs.back();
-        //    int_function *lastFunc = lastBBI->func();
-        //    const set<instPoint*> abruptEnds = lastFunc->funcAbruptEnds();
-        //    set<instPoint*>::const_iterator aIter = abruptEnds.begin();
-        //    while (aIter != abruptEnds.end()) {
-        //        if (lastBBI->block() == (*aIter)->block()) {
-        //            writtenBBIs.push_back(lastBBI);
-        //            break;
-        //        }
-        //        aIter++;
-        //    }
-        //}
-
         curBBIs.clear();
         rIter++;
     }
@@ -4918,6 +4899,24 @@ void process::updateCodeBytes
 }
 
 
+static void otherFuncBlocks(int_function *func, 
+                            const set<bblInstance*> &blks, 
+                            set<bblInstance*> &otherBlks)
+{
+    const set<int_basicBlock*,int_basicBlock::compare> &allBlocks = 
+        func->blocks();
+    for (set<int_basicBlock*,int_basicBlock::compare>::const_iterator bit =
+         allBlocks.begin();
+         bit != allBlocks.end(); 
+         bit++) 
+    {
+        if (blks.end() == blks.find((*bit)->origInstance())) {
+            otherBlks.insert((*bit)->origInstance());
+        }
+    }
+}
+
+
 /* Summary
  * Given a list of overwritten blocks, find blocks that are unreachable,
  * functions that have been overwritten at their entry points and can go away,
@@ -4952,7 +4951,7 @@ bool process::getDeadCode
   std::set<bblInstance*> &delBlocks, //output: Del(for all f)
   std::map<int_function*,set<bblInstance*>> &elimMap, //output: elimF
   std::list<int_function*> &deadFuncs, //output: DeadF
-  std::list<bblInstance*> &newFuncEntries) //output: newF
+  std::map<int_function*,bblInstance*> &newFuncEntries) //output: newF
 {
     // do a stackwalk to see which functions are currently executing
     pdvector<pdvector<Frame> >  stacks;
@@ -4987,7 +4986,7 @@ bool process::getDeadCode
          fit++) 
     {
 
-        // calculate ex
+        // calculate ex(f)
         list<bblInstance*> execBlocks;
         for (unsigned pidx=0; pidx < pcs.size(); pidx++) {
             bblInstance *exB = fit->first->findBlockInstanceByAddr(pcs[pidx]);
@@ -5011,34 +5010,25 @@ bool process::getDeadCode
         list<bblInstance*> seedBs;
         seedBs.push_back(fit->first->entryBlock()->origInstance());
         fit->first->getReachableBlocks(fit->second, seedBs, keepF);
-
-        set<bblInstance*> elimF;
-        const set<int_basicBlock*,int_basicBlock::compare> &allBlocks = 
-            fit->first->blocks();
-        for (set<int_basicBlock*,int_basicBlock::compare>::const_iterator bit =
-             allBlocks.begin();
-             bit != allBlocks.end(); 
-             bit++) 
-        {
-            elimF.insert((*bit)->origInstance());
-        }
-
-        elimF.erase(keepF.begin(),keepF.end());
-        elimMap[fit->first] = elimF;
+        otherFuncBlocks(fit->first, keepF, elimMap[fit->first]);
 
         // calculate NewF
         for (list<bblInstance*>::iterator bit = execBlocks.begin();
              bit != execBlocks.end(); 
              bit++) 
         {
-            if (elimF.end() != elimF.find(*bit)) {
-                newFuncEntries.push_back(*bit);
+            if (elimMap[fit->first].end() != elimMap[fit->first].find(*bit)) {
+                newFuncEntries[fit->first] = *bit;
             }
         }
 
         // calculate Del(f)
-        seedBs.merge(newFuncEntries);
-        fit->first->getReachableBlocks(fit->second, seedBs, delBlocks);
+        if (newFuncEntries[fit->first]) {
+            seedBs.push_back(newFuncEntries[fit->first]);
+        }
+        keepF.clear();
+        fit->first->getReachableBlocks(fit->second, seedBs, keepF);
+        otherFuncBlocks(fit->first, keepF, delBlocks);
         
     }
 

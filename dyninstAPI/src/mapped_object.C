@@ -1559,7 +1559,7 @@ void mapped_object::updateCodeBytes( std::map<Address,Address> owRanges )
     {
         Region *curreg = allregions[ridx];
         if (expandRegs.end() == expandRegs.find(curreg)) {
-            updateCodeBytes(curreg); // KEVINTODO: major overkill here, only update regions that have changes in them
+            updateCodeBytes(curreg); // KEVINTODO: major overkill here, only update regions that had unprotected pages
         }
     }
 
@@ -1906,8 +1906,9 @@ void mapped_object::removeFunction(int_function *func) {
 // remove an element from range, these are always original bblInstance's
 void mapped_object::removeRange(codeRange *range) {
     codeRange *foundrange = NULL;
-    codeRangesByAddr_.find(range->get_address(), foundrange);
-    if (range == foundrange) {
+    if (codeRangesByAddr_.find(range->get_address(), foundrange) && 
+        range == foundrange) 
+    {
         codeRangesByAddr_.remove(range->get_address());
     }
 }

@@ -597,9 +597,9 @@ bool int_function::setPointResolved(instPoint *point)
 }
 
 // finds new entry point, sets the argument to the new 
-Address int_function::setNewEntryPoint(int_basicBlock *& newEntry)
+int_basicBlock * int_function::setNewEntryPoint()
 {
-    newEntry = NULL;
+    int_basicBlock *newEntry = NULL;
 
     // find block with no intraprocedural entry edges
     assert(blockList.size());
@@ -616,7 +616,7 @@ Address int_function::setNewEntryPoint(int_basicBlock *& newEntry)
                 newEntry = *bIter;
             }
         }
-    if( ! newEntry) {
+    if( ! newEntry ) {
         newEntry = *blockList.begin();
     }
 
@@ -659,7 +659,7 @@ Address int_function::setNewEntryPoint(int_basicBlock *& newEntry)
 
     // change function base address
     addr_ = newEntry->origInstance()->firstInsnAddr();
-    return newEntry->origInstance()->firstInsnAddr();
+    return newEntry;
 }
 
 /* 0. The target and source must be in the same mapped region, make sure memory
@@ -690,17 +690,17 @@ bool int_function::parseNewEdges(const std::vector<edgeStub> &stubs )
     // Do various checks and set edge types, if necessary
     Address loadAddr = getAddress() - ifunc()->getOffset();
     for (unsigned idx=0; idx < stubs.size(); idx++) {
-        Region *targetRegion = ifunc()->img()->getObject()->
-            findEnclosingRegion( stubs[idx].trg-loadAddr );
+        //Region *targetRegion = ifunc()->img()->getObject()->
+        //    findEnclosingRegion( stubs[idx].trg-loadAddr );
         ParseAPI::Block *cursrc = stubs[idx].src->block()->llb();
 
-        // same region check
-        if (NULL != cursrc) {
-            Region *sourceRegion = ifunc()->img()->getObject()->
-                findEnclosingRegion( cursrc->start() );
-            assert(targetRegion == sourceRegion );
+        //// same region check
+        //if (NULL != cursrc) {
+        //    Region *sourceRegion = ifunc()->img()->getObject()->
+        //        findEnclosingRegion( cursrc->start() );
+        //    assert(targetRegion == sourceRegion );
 
-        }
+        //}
         // update target region if needed
         if (BPatch_defensiveMode == obj()->hybridMode()) {
             obj()->updateCodeBytesIfNeeded(stubs[idx].trg);
@@ -727,7 +727,7 @@ bool int_function::parseNewEdges(const std::vector<edgeStub> &stubs )
                     isCondl = true;
                 }
             }
-            if (ParseAPI::NOEDGE == stubs[idx].type) {
+            if (ParseAPI::NOEDGE == edgeTypes[idx]) {
                 bool isCall = false;
                 funcCalls();
                 instPoint *pt = findInstPByAddr(
@@ -735,7 +735,7 @@ bool int_function::parseNewEdges(const std::vector<edgeStub> &stubs )
                 if (pt && callSite == pt->getPointType()) {
                     isCall = true;
                 }
-                if (cursrc->end() == stubs[idx].trg) {
+                if (cursrc->end() == targets[idx]) {
                     if (isCall) {
                         edgeTypes[idx] = CALL_FT;
                     } else if (isCondl) {
@@ -871,25 +871,24 @@ void int_function::deleteBlock(int_basicBlock* block)
             addMissingBlocks();
             point = findInstPByAddr( imgPt->offset() + baseAddr );
         }
-        point->removeMultiTramps();
         removePoint( point );
     }
 
 
     // Remove block from int-level datastructures 
     pdvector<bblInstance*> bbis = block->instances();
+    obj()->removeRange(bbis[0]);
     for (unsigned bIdx = 1; bIdx < bbis.size(); bIdx++) 
     {   // the original instance is not in the process range
         proc()->removeOrigRange(bbis[bIdx]);
     }
-    for (unsigned bidx=0; bidx < block->instances_.size(); bidx++) {
-        deleteBBLInstance(block->instances_[bidx]);
+    for (unsigned bIdx=0; bIdx < block->instances_.size(); bIdx++) {
+        blocksByAddr_.remove(bbis[bIdx]->firstInsnAddr());
     }
     blockList.erase(block);
-    obj()->removeRange(block->origInstance());
     
-    // delete block? 
-    delete(block);
+    // delete block?
+    //delete(block);
 }
 
 // Remove funcs from:
@@ -1450,11 +1449,6 @@ void int_function::addBBLInstance(bblInstance *instance) {
     blocksByAddr_.insert(instance);
 }
 
-void int_function::deleteBBLInstance(bblInstance *instance) {
-    assert(instance);
-    blocksByAddr_.remove(instance->firstInsnAddr());
-}
-
 image_func *int_function::ifunc() {
     return ifunc_;
 }
@@ -1611,6 +1605,7 @@ bblInstance::bblInstance(const bblInstance *parent, int_basicBlock *block) :
 }
 
 bblInstance::~bblInstance() {
+    mal_printf("deleting bblInstance at %lx\n", firstInsnAddr());
 #if defined(cap_relocation)
    if (reloc_info)
       delete reloc_info;
@@ -2535,7 +2530,7 @@ bool int_function::removeFunctionSubRange(
     }
     
     // set new entry point 
-    setNewEntryPoint( entryBlock );
+    entryBlock = setNewEntryPoint();
 
     // remove dead image_basicBlocks and int_basicBlocks
     ifunc()->deleteBlocks( papiDeadBlocks, entryBlock->llb() );
