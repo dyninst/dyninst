@@ -447,7 +447,7 @@ test_description('init_fini_callback', 'Adds callbacks for rewritten module on l
     test_platform('init_fini_callback', Platform) :-
     platform(Arch, OS, _, Platform),
     member(OS, ['linux', 'freebsd']),
-    member(Arch, ['i386', 'x86_64']).
+    member(Arch, ['i386', 'x86_64', 'power']).
 mutator('init_fini_callback', ['init_fini_callback.C']).
 mutatee('init_fini_callback', ['init_fini_callback_mutatee.c']).
 mutatee_requires_libs('init_fini_callback', Libs) :-
@@ -515,7 +515,7 @@ test_description('test1_28', 'User Defined Fields').
 test_runs_everywhere('test1_28').
 groupable_test('test1_28').
 mutator('test1_28', ['test1_28.C']).
-test_runmode('test1_28', 'dynamic').
+test_runmode('test1_28', 'staticdynamic').
 test_start_state('test1_28', 'stopped').
 tests_module('test1_28', 'dyninst').
 
@@ -565,7 +565,7 @@ test_description('test1_33', 'Control Flow Graphs').
 test_runs_everywhere('test1_33').
 groupable_test('test1_33').
 mutator('test1_33', ['test1_33.C']).
-test_runmode('test1_33', 'dynamic').
+test_runmode('test1_33', 'staticdynamic').
 test_start_state('test1_33', 'stopped').
 tests_module('test1_33', 'dyninst').
 
@@ -574,7 +574,7 @@ test_description('test1_34', 'Loop Information').
 test_runs_everywhere('test1_34').
 groupable_test('test1_34').
 mutator('test1_34', ['test1_34.C']).
-test_runmode('test1_34', 'dynamic').
+test_runmode('test1_34', 'staticdynamic').
 test_start_state('test1_34', 'stopped').
 tests_module('test1_34', 'dyninst').
 
