@@ -439,35 +439,35 @@ int launch_mutator()
 
             sendMsg(config.outfd, ID_INST_FUNC, VERB1, ID_TEST, buf);
 
-            if (config.inst_level >= INST_FUNC_ENTRY) {
+            if (config.inst_level == INST_FUNC_ENTRY) {
                if (!instrumentFunctionEntry(dh, (*appFunctions)[j]))
                   ++func_warn_cnt;
                else
                   ++func_pass_cnt;
             }
 
-            if (config.inst_level >= INST_FUNC_EXIT) {
+            if (config.inst_level == INST_FUNC_EXIT) {
                if (!instrumentFunctionExit(dh, (*appFunctions)[j]))
                   ++func_warn_cnt;
                else
                   ++func_pass_cnt;
             }
 
-            if (config.inst_level >= INST_BASIC_BLOCK) {
+            if (config.inst_level == INST_BASIC_BLOCK) {
                if (!instrumentBasicBlocks(dh, (*appFunctions)[j]))
                   ++func_warn_cnt;
                else
                   ++func_pass_cnt;
             }
 
-            if (config.inst_level >= INST_MEMORY_READ) {
+            if (config.inst_level == INST_MEMORY_READ) {
                if (!instrumentMemoryReads(dh, (*appFunctions)[j]))
                   ++func_warn_cnt;
                else
                   ++func_pass_cnt;
             }
 
-            if (config.inst_level >= INST_MEMORY_WRITE) {
+            if (config.inst_level == INST_MEMORY_WRITE) {
                if (!instrumentMemoryWrites(dh, (*appFunctions)[j]))
                   ++func_warn_cnt;
                else

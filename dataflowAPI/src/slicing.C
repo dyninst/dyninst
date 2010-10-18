@@ -168,8 +168,13 @@ Graph::Ptr Slicer::sliceInternal(Direction dir,
 
     while (!found.empty()) {
       Element target = found.front(); found.pop();
-      insertPair(ret, dir, current, target);
-      worklist.push(target);
+      if (target.valid) {
+         insertPair(ret, dir, current, target);
+         worklist.push(target);
+      }
+      else {
+         widen(ret, dir, current);
+      }
     }
   }
 
@@ -418,8 +423,6 @@ bool Slicer::getSuccessors(Element &current,
     succ.push(newElement);
 
     slicing_cerr << "\t\t\t\t Adding intra-block successor " << newElement.reg.format() << endl;
-    slicing_cerr << "\t\t\t\t\t Current region is " <<
-      current.reg.format() << endl;
 
     return true;
   }
@@ -463,13 +466,20 @@ bool Slicer::getSuccessors(Element &current,
     Block::edgelist::iterator eit = targets.begin();
     for (; eit != targets.end(); ++eit) {
       Element newElement;
-      if (handleDefault(*eit,
-                        forward,
-			current,
-			newElement,
-			p,
-			err)) {
-	succ.push(newElement);
+      if ((*eit)->sinkEdge()) {
+         newElement.valid = false;
+         succ.push(newElement);
+      }
+      else if (handleDefault(*eit,
+                             forward,
+                             current,
+                             newElement,
+                             p,
+                             err)) {
+         succ.push(newElement);
+      }
+      else {
+         cerr << " failed handleDefault, err " << err << endl;
       }
     }
   }
@@ -795,6 +805,12 @@ bool Slicer::search(Element &initial,
     Element current = worklist.front();
     worklist.pop();
 
+    if (!current.valid) {
+       // This marks a widen spot
+       succ.push(current);
+       continue;
+    }
+
     if (visited.find(current.addr()) != visited.end()) {
       continue;
     }
@@ -865,7 +881,11 @@ void Slicer::findMatches(Element &current, Assignment::Ptr &assign, Direction di
   else {
     assert(dir == backward);
     const AbsRegion &oReg = assign->out();
+    slicing_cerr << "\t\t\t\t\tComparing current " 
+                 << current.reg.format() << " to candidate "
+                 << oReg.format() << endl;
     if (current.reg.contains(oReg)) {
+       slicing_cerr << "\t\t\t\t\t\tMatch!" << endl;
       current.ptr = assign;
       current.usedIndex = index;
       succ.push(current);
