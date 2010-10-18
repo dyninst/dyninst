@@ -42,14 +42,6 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/rpcMgr.h"
 
-multiTramp *codeRange::is_multitramp() {
-    if (dynamic_cast<multiTramp *>(this))
-        return dynamic_cast<multiTramp *>(this);
-    else if (dynamic_cast<instArea *>(this))
-        return (dynamic_cast<instArea *>(this))->multi;
-    return NULL;
-}
-
 inferiorRPCinProgress * codeRange::is_inferior_rpc() {
 	return dynamic_cast< inferiorRPCinProgress * >( this );
 	}
@@ -57,14 +49,6 @@ inferiorRPCinProgress * codeRange::is_inferior_rpc() {
 // This is a special case... the multitramp is the thing in the
 // codeRange tree, but people think of baseTramps.
 // So this is dangerous to use, actually.
-baseTrampInstance *codeRange::is_basetramp_multi() {
-   return dynamic_cast<baseTrampInstance *>(this);
-}
-
-miniTrampInstance *codeRange::is_minitramp() {
-   return dynamic_cast<miniTrampInstance *>(this);
-}
-
 bblInstance *codeRange::is_basicBlockInstance() {
     return dynamic_cast<bblInstance *>(this);
 }
@@ -90,15 +74,6 @@ image_func *codeRange::is_image_func() {
 image_basicBlock *codeRange::is_image_basicBlock() {
     return dynamic_cast<image_basicBlock *>(this);
 }
-
-replacedFunctionCall *codeRange::is_replaced_call() {
-    return dynamic_cast<replacedFunctionCall *>(this);
-}
-
-functionReplacement *codeRange::is_function_replacement() {
-    return dynamic_cast<functionReplacement *>(this);
-}
-
 
 image *codeRange::is_image() {
    return dynamic_cast<image *>(this);
@@ -526,10 +501,7 @@ void codeRange::print_range(Address addr) {
    image *img_ptr = is_image();
    mapped_object *mapped_ptr = is_mapped_object();
 	int_function *func_ptr = is_function();
-   functionReplacement *reloc_ptr = is_function_replacement();
-   multiTramp *multi_ptr = is_multitramp();
    baseTrampInstance *base_ptr = NULL;
-	miniTrampInstance *mini_ptr = is_minitramp();
    inferiorRPCinProgress *rpc_ptr = is_inferior_rpc();
 
    /**
@@ -537,16 +509,8 @@ void codeRange::print_range(Address addr) {
     * (i.e the fact we have a function pointer, doesn't mean we have a 
     * mapped_object pointer).  Build up more information from what we have
     **/
-   if (mini_ptr && !base_ptr) 
-      base_ptr = mini_ptr->baseTI;
-   if (base_ptr && !multi_ptr)
-      multi_ptr = base_ptr->multiT;
-   if (multi_ptr && !func_ptr) 
-      func_ptr = multi_ptr->func();
-   if (multi_ptr && !base_ptr && addr) 
-      base_ptr = multi_ptr->getBaseTrampInstanceByAddr(addr);
-   if (reloc_ptr && !func_ptr)
-      func_ptr = reloc_ptr->source()->func();
+   if (base_ptr && !func_ptr) 
+      func_ptr = base_ptr->func();
    if (func_ptr && !mapped_ptr)
       mapped_ptr = func_ptr->obj();
    if (mapped_ptr && !img_ptr)
@@ -566,25 +530,9 @@ void codeRange::print_range(Address addr) {
       PRINT_COMMA;
       fprintf(stderr, "func:%s", func_ptr->prettyName().c_str());
    }
-   if (reloc_ptr) {
-      PRINT_COMMA;
-      fprintf(stderr, "reloc:%x", 
-              reloc_ptr->targetVersion());
-   }
-   if (multi_ptr) {
-      PRINT_COMMA;
-      fprintf(stderr, "multi:%p->%p+%u", (void *)multi_ptr->instAddr(), 
-              (void *)multi_ptr->get_address(), multi_ptr->get_size());
-   }
    if (base_ptr) {
       PRINT_COMMA;
-      fprintf(stderr, "base:%p+%u", (void *)multi_ptr->get_address(),
-              multi_ptr->get_size());
-   }
-   if (mini_ptr) {
-      PRINT_COMMA;
-      fprintf(stderr, "mini:%p+%u", (void *)multi_ptr->get_address(),
-              multi_ptr->get_size());
+      fprintf(stderr, "base"); 
    }
    if (rpc_ptr) {
       PRINT_COMMA;

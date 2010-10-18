@@ -192,9 +192,3 @@ template class pdvector<fileOpener *>;
 class funcMod;
 template class pdvector<funcMod *>;
 
-// Clean this up...
-#if defined(cap_relocation)
-#include "dyninstAPI/src/function.h"
-template class pdvector<bblInstance::reloc_info_t::relocInsn *>;
-#endif
-

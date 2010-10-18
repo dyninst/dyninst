@@ -1247,8 +1247,8 @@ bool mapped_object::splitIntLayer()
             }
             if (bbi != (*pIter)->block()->origInstance()) {
                 mal_printf("updating block (which was split) for arbitrary"
-                        " point %lx with %d instances %s[%d]\n",(*pIter)->addr(),
-                        (int)(*pIter)->instances.size(), FILE__,__LINE__);
+                           " point %lx; %s[%d]\n",(*pIter)->addr(),
+                           FILE__,__LINE__);
                 (*pIter)->setBlock(bbi->block());
             }
         }

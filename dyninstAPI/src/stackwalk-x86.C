@@ -32,7 +32,6 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/baseTramp.h"
-#include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/function.h"

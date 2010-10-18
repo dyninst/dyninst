@@ -119,12 +119,8 @@ using namespace Dyninst;
 //using namespace Dyninst::SymtabAPI;
 
 class instPoint;
-class multiTramp;
 class baseTramp;
 class miniTramp;
-class generatedCodeObject;
-class replacedFunctionCall;
-class functionReplacement;
 
 class dyn_thread;
 class dyn_lwp;
@@ -159,7 +155,6 @@ class process : public AddressSpace {
     friend class dyn_thread;
     friend class dyn_lwp;
     friend Address loadDyninstDll(process *, char Buffer[]);
-    friend class multiTramp;
     friend class SignalGenerator;
     friend class SignalGeneratorCommon;
 
@@ -703,10 +698,10 @@ public:
       ( std::map<Address, unsigned char *>& overwrittenPages,//input
         std::map<Address,Address>& overwrittenRegions,//output
         std::list<bblInstance *> &writtenBBIs);//output
-  bool process::getDeadCode
+  bool getDeadCode
     ( const std::list<bblInstance*> &owBlocks, // input
       std::set<bblInstance*> &delBlocks, //output: Del(for all f)
-      std::map<int_function*,set<bblInstance*>> &elimMap, //output: elimF
+      std::map<int_function*,set<bblInstance*> > &elimMap, //output: elimF
       std::list<int_function*> &deadFuncs, //output: DeadF
       std::list<bblInstance*> &newFuncEntries); //output: newF
   unsigned getMemoryPageSize() const { return memoryPageSize_; }
@@ -736,7 +731,6 @@ public:
 
   //// active instrumentation tracking
   //bool isAMcacheValid;
-  //std::set<multiTramp*> activeMultis;
   //std::map<bblInstance*,Address> activeBBIs;
   //std::map<int_function*,std::set<Address>*> am_funcRelocs;
 
@@ -920,9 +914,10 @@ private:
 
    // garbage collect instrumentation
 
-   void deleteGeneratedCode(generatedCodeObject *del);
+#if defined(cap_garbage_collection)
    void gcInstrumentation();
    void gcInstrumentation(pdvector<pdvector<Frame> >&stackWalks);
+#endif
 
    virtual bool needsPIC();
   ///////////////////////////////////////////////////

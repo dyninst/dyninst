@@ -50,7 +50,7 @@ void Inst::addBaseTramp(baseTramp *b) {
     // We should make this an on-the-fly operation.
     b->doOptimizations();
     
-    baseTrampInstance *bti = new baseTrampInstance(b, NULL);
+    baseTrampInstance *bti = new baseTrampInstance(b);
     assert(bti->baseT);
     baseTramps_.push_back(bti);
   }
@@ -125,7 +125,7 @@ bool InstPatch::apply(codeGen &gen, CodeBuffer *) {
 
   gen.registerInstrumentation(base->baseT, gen.currAddr());
 
-  return base->generateCode(gen, gen.currAddr(), NULL);
+  return base->generateCode(gen, gen.currAddr());
 
 }
 

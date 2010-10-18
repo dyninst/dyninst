@@ -35,7 +35,6 @@
 
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 

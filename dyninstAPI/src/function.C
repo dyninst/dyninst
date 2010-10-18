@@ -34,16 +34,11 @@
 #include "function.h"
 #include "process.h"
 #include "instPoint.h"
-#include "multiTramp.h"
 
 #include "mapped_object.h"
 #include "mapped_module.h"
 #include "InstructionDecoder.h"
 #include "parseAPI/src/InstrucIter.h"
-
-#if defined(cap_relocation)
-#include "reloc-func.h"
-#endif
 
 //std::string int_function::emptyString("");
 
@@ -66,11 +61,6 @@ int_function::int_function(image_func *f,
     handlerFaultAddrAddr_(0), 
     isBeingInstrumented_(false),
     instPsByAddr_(addrHash4),
-#if defined(cap_relocation)
-    generatedVersion_(0),
-    installedVersion_(0),
-    linkedVersion_(0),
-#endif
     version_(0)
 #if defined(os_windows) 
    , callingConv(unknown_call)
@@ -115,11 +105,6 @@ int_function::int_function(const int_function *parFunc,
     handlerFaultAddrAddr_(0), 
     isBeingInstrumented_(parFunc->isBeingInstrumented_),
     instPsByAddr_(addrHash4),
-#if defined(cap_relocation)
-    generatedVersion_(parFunc->generatedVersion_),
-    installedVersion_(parFunc->installedVersion_),
-    linkedVersion_(parFunc->linkedVersion_),
-#endif
     version_(parFunc->version_)
  {
      unsigned i; // Windows hates "multiple definitions"
@@ -233,16 +218,6 @@ int_function::~int_function() {
         delete *bIter;
     }
 
-#if defined(cap_relocation)
-    for (unsigned i = 0; i < enlargeMods_.size(); i++)
-        delete enlargeMods_[i];
-#if defined (cap_use_pdvector)
-    enlargeMods_.zap();
-#else
-    enlargeMods_.clear();
-#endif
-#endif
-    
     for (unsigned i = 0; i < parallelRegions_.size(); i++)
       delete parallelRegions_[i];
       
@@ -832,8 +807,11 @@ void int_function::fixHandlerReturnAddr(Address faultAddr)
     bblInstance *bbi = proc()->findOrigByAddr(faultAddr)->
         is_basicBlockInstance();
     if (bbi) {
+       assert(0);
+#if 0        
         // get relocated PC address
         Address newPC = bbi->equivAddr(bbi->func()->version(), faultAddr);
+
         multiTramp *multi = proc()->findMultiTrampByAddr(newPC);
         if (multi) {
             newPC = multi->uninstToInstAddr(newPC);
@@ -845,6 +823,7 @@ void int_function::fixHandlerReturnAddr(Address faultAddr)
                                            sizeof(Address), 
                                            (void*)&newPC) );
         }
+#endif
     }
 }
 
@@ -871,7 +850,6 @@ void int_function::deleteBlock(int_basicBlock* block)
             addMissingBlocks();
             point = findInstPByAddr( imgPt->offset() + baseAddr );
         }
-        point->removeMultiTramps();
         removePoint( point );
     }
 
@@ -1551,9 +1529,6 @@ const pdvector<bblInstance *> &int_basicBlock::instances() const {
 int bblInstance_count = 0;
 
 bblInstance::bblInstance(Address start, Address last, Address end, int_basicBlock *parent, int version) : 
-#if defined(cap_relocation)
-    reloc_info(NULL),
-#endif
     firstInsnAddr_(start),
     lastInsnAddr_(last),
     blockEndAddr_(end),
@@ -1573,9 +1548,6 @@ bblInstance::bblInstance(Address start, Address last, Address end, int_basicBloc
 };
 
 bblInstance::bblInstance(int_basicBlock *parent, int version) : 
-#if defined(cap_relocation)
-    reloc_info(NULL),
-#endif
     firstInsnAddr_(0),
     lastInsnAddr_(0),
     blockEndAddr_(0),
@@ -1587,19 +1559,11 @@ bblInstance::bblInstance(int_basicBlock *parent, int version) :
 };
 
 bblInstance::bblInstance(const bblInstance *parent, int_basicBlock *block) :
-#if defined(cap_relocation)
-    reloc_info(NULL),
-#endif
     firstInsnAddr_(parent->firstInsnAddr_),
     lastInsnAddr_(parent->lastInsnAddr_),
     blockEndAddr_(parent->blockEndAddr_),
     block_(block),
     version_(parent->version_) {
-#if defined(cap_relocation)
-   if (parent->reloc_info) {
-      reloc_info = new reloc_info_t(parent->reloc_info, block);
-   }
-#endif
 
     // If the bblInstance is the original version, add to the mapped_object
     // code range; if it is the product of relocation, add it to the
@@ -1611,10 +1575,6 @@ bblInstance::bblInstance(const bblInstance *parent, int_basicBlock *block) :
 }
 
 bblInstance::~bblInstance() {
-#if defined(cap_relocation)
-   if (reloc_info)
-      delete reloc_info;
-#endif
 }
 
 int_basicBlock *bblInstance::block() const {
@@ -1656,22 +1616,13 @@ AddressSpace *bblInstance::proc() const {
 }
 
 
-static Address relocLookup
-(const pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> relocs, Address addr)
-{
-    for (unsigned i = 0; i < relocs.size(); i++) {
-        if (relocs[i]->origAddr == addr)
-	        return relocs[i]->relocAddr;
-        if (relocs[i]->relocAddr == addr)
-            return relocs[i]->origAddr;
-    }
-    return 0;
-}
 
 // addr can correspond to the new block or to the "this" block, unless
 // neither of the versions is an origInstance, in which case addr should 
 // correspond to the "this" block
 Address bblInstance::equivAddr(int newVersion, Address addr) const {
+   return addr;
+#if 0
 
     Address translAddr = 0;
 
@@ -1679,8 +1630,6 @@ Address bblInstance::equivAddr(int newVersion, Address addr) const {
         translAddr = addr;
         return translAddr;
     }
-
-#if defined(cap_relocation)
 
     // account for possible prior deletion of the int_basicBlock in 
     // exploratory mode
@@ -1719,7 +1668,6 @@ Address bblInstance::equivAddr(int newVersion, Address addr) const {
                                                         equivAddr(0,addr));
     }
 
-#endif
 
     if (!translAddr) {
         fprintf(stderr,"ERROR: returning 0 in equivAddr, called on bblInstance"
@@ -1729,248 +1677,24 @@ Address bblInstance::equivAddr(int newVersion, Address addr) const {
         return 0;
     }
     return translAddr;
+#endif
 }
 
 void *bblInstance::getPtrToInstruction(Address addr) const {
     if (addr < firstInsnAddr_) return NULL;
     if (addr >= blockEndAddr_) return NULL;
 
-#if defined(cap_relocation)
-    if (version_ > 0) {
-      // We might be relocated...
-      if (getGeneratedBlock() != NULL) {
-        addr -= firstInsnAddr();
-        return getGeneratedBlock().get_ptr(addr);
-      }
-    }
-#endif
-    
     return func()->obj()->getPtrToInstruction(addr);
 
 }
 
 void *bblInstance::get_local_ptr() const {
-#if defined(cap_relocation)
-    if (!reloc_info) return NULL; 
-    return reloc_info->generatedBlock_.start_ptr();
-#else
     return NULL;
-#endif
 }
 
 int bblInstance::version() const 
 {
    return version_;
-}
-
-#if defined(cap_relocation)
-
-const void *bblInstance::getPtrToOrigInstruction(Address addr) const {
-  if (version_ > 0) {
-    for (unsigned i = 0; i < get_relocs().size(); i++) {
-      if (get_relocs()[i]->relocAddr == addr) {
-         return (const void *) get_relocs()[i]->origPtr;
-      }
-    }
-    assert(0);
-    return NULL;
-  }
-
-  return getPtrToInstruction(addr);
-}
-
-unsigned bblInstance::getRelocInsnSize(Address addr) const {
-  if (version_ > 0) {
-    for (unsigned i = 0; i < get_relocs().size()-1; i++) {
-      if (get_relocs()[i]->relocAddr == addr)
-	return get_relocs()[i+1]->relocAddr - get_relocs()[i]->relocAddr;
-    }
-    if (get_relocs()[get_relocs().size()-1]->relocAddr == addr) {
-      return blockEndAddr_ - get_relocs()[get_relocs().size()-1]->relocAddr;
-    }
-    assert(0);
-    return 0;
-  }
-  // ... uhh...
-  // This needs to get handled by the caller
-
-  return 0;
-}
-
-void bblInstance::getOrigInstructionInfo(Address addr, const void *&ptr, 
-                                         Address &origAddr, 
-                                         unsigned &origSize) const 
-{
-   if (version_ > 0) {
-      fprintf(stderr, "getPtrToOrigInstruction 0x%lx, version %d\n",
-              addr, version_);
-      for (unsigned i = 0; i < get_relocs().size(); i++) {
-         if (get_relocs()[i]->relocAddr == addr) {
-            fprintf(stderr, "... returning 0x%lx off entry %d\n",
-                    get_relocs()[i]->origAddr,i);
-            ptr = get_relocs()[i]->origPtr;
-            origAddr = get_relocs()[i]->origAddr;
-            if (i == (get_relocs().size()-1)) {
-               origSize = blockEndAddr_ - get_relocs()[i]->relocAddr;
-            }
-            else
-               origSize = get_relocs()[i+1]->relocAddr - get_relocs()[i]->relocAddr;
-            return;
-         }
-      }
-      assert(0);
-      return;
-   }
-   
-   // Must be handled by caller
-   ptr = NULL;
-   origAddr = 0;
-   origSize = 0;
-   return;
-}
-
-unsigned &bblInstance::maxSize() {
-   if (!reloc_info)
-      reloc_info = new reloc_info_t();
-   return reloc_info->maxSize_;
-}
-
-unsigned &bblInstance::minSize() {
-   if (!reloc_info)
-      reloc_info = new reloc_info_t();
-   return reloc_info->minSize_;
-}
-
-bblInstance *&bblInstance::origInstance() {
-   if (!reloc_info) {
-      reloc_info = new reloc_info_t();
-      reloc_info->origInstance_ = block_->origInstance();
-   }
-   return reloc_info->origInstance_;
-}
-
-pdvector<funcMod *> &bblInstance::appliedMods() {
-   if (!reloc_info)
-      reloc_info = new reloc_info_t();
-   return reloc_info->appliedMods_;
-}
-
-codeGen &bblInstance::generatedBlock() {
-  if (!reloc_info)
-      reloc_info = new reloc_info_t();
-  return reloc_info->generatedBlock_;
-}
-
-functionReplacement *&bblInstance::jumpToBlock() {
-  if (!reloc_info)
-      reloc_info = new reloc_info_t();
-  return reloc_info->jumpToBlock_;
-}
-
-pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> &bblInstance::get_relocs() const {
-  assert(reloc_info);
-  return reloc_info->relocs_;
-}
-
-pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> &bblInstance::relocs() {
-  if (!reloc_info)
-    reloc_info = new reloc_info_t();
-  return get_relocs();
-}
-
-unsigned bblInstance::getMaxSize() const {
-   if (!reloc_info)
-      return 0;
-   return reloc_info->maxSize_;
-}
-
-bblInstance *bblInstance::getOrigInstance() const {
-   if (!reloc_info)
-      return NULL;
-   return reloc_info->origInstance_;
-}
-
-pdvector<funcMod *> &bblInstance::getAppliedMods() const {
-   assert(reloc_info);
-   return reloc_info->appliedMods_;
-}
-
-codeGen &bblInstance::getGeneratedBlock() const {
-   assert(reloc_info);
-   return reloc_info->generatedBlock_;
-}
-
-functionReplacement *bblInstance::getJumpToBlock() const {
-   if (!reloc_info)
-      return NULL;
-   return reloc_info->jumpToBlock_;
-}
-
-
-bblInstance::reloc_info_t::reloc_info_t() : 
-   maxSize_(0), 
-   minSize_(0), 
-   origInstance_(NULL), 
-   jumpToBlock_(NULL),
-   funcRelocBase_(0)
-{};
-
-bblInstance::reloc_info_t::reloc_info_t(reloc_info_t *parent, 
-                                        int_basicBlock *block)  :
-   maxSize_(0),
-   minSize_(0),
-   funcRelocBase_(0)
-{
-   if (parent->origInstance_)
-      origInstance_ = block->instVer(parent->origInstance_->version());
-   else
-      origInstance_ = NULL;
-
-   if (parent->jumpToBlock_)
-       jumpToBlock_ = new functionReplacement(*(parent->jumpToBlock_));
-   else
-       jumpToBlock_ = NULL;
-
-   for (unsigned i = 0; i < parent->relocs_.size(); i++) {
-     relocs_.push_back( parent->relocs_[i] );
-   }
-
-}
-
-bblInstance::reloc_info_t::~reloc_info_t() {
-  // XXX this wasn't safe, as copies of bblInstances
-  //     reference the same relocInsns.
-  //     relocs_ now holds shared_ptrs
-  //for (unsigned i = 0; i < relocs_.size(); i++) {
-  //  delete relocs_[i];
-  //}
-
-#if defined (cap_use_pdvector)
-  relocs_.zap();
-#else
-  relocs_.clear();
-#endif
-
-   // appliedMods is deleted by the function....
-   // jumpToBlock is deleted by the process....
-};
-
-#endif
-
-int_basicBlock *functionReplacement::source() { 
-   return sourceBlock_; 
-}
-
-int_basicBlock *functionReplacement::target() { 
-   return targetBlock_; 
-}
-
-unsigned functionReplacement::sourceVersion() { 
-   return sourceVersion_; 
-}
-
-unsigned functionReplacement::targetVersion() { 
-   return targetVersion_; 
 }
 
 
@@ -2036,17 +1760,7 @@ bool int_function::getOverlappingFuncs(pdvector<int_function *> &funcs) {
 
 Address int_function::get_address() const 
 {
-#if !defined(cap_relocation)
    return getAddress();
-#else
-   if (!entryPoints_.size())
-      return getAddress();
-   
-   instPoint *entryPoint = entryPoints_[0];
-   int_basicBlock *block = entryPoint->block();
-   bblInstance *inst = block->instVer(installedVersion_);
-   return inst->firstInsnAddr();
-#endif 
 }
 
 unsigned int_function::get_size() const 
@@ -2101,7 +1815,7 @@ bblInstance * bblInstance::getTargetBBL() {
 }
 
 bblInstance * bblInstance::getFallthroughBBL() {
-
+#if 0
     if (func()->obj()->isExploratoryModeOn()) {
         // if this bblInstance has been invalidated, see if block splitting has
         // happened, in which case, get the latter of the two blocks and 
@@ -2110,10 +1824,11 @@ bblInstance * bblInstance::getFallthroughBBL() {
              this != block_->instVer(version_) ) 
         {
             bblInstance *origInst = func()->findBlockInstanceByAddr
-                (get_relocs().back()->origAddr);
+               (get_relocs().back()->origAddr);
             return origInst->getFallthroughBBL();
         }
     }
+#endif
 
     // Check to see if we need to fix up the target....
     pdvector<int_basicBlock *> targets;
@@ -2155,163 +1870,6 @@ bblInstance * bblInstance::getFallthroughBBL() {
 }
 
 
-bool int_function::performInstrumentation(bool stopOnFailure,
-                                          pdvector<instPoint *> &failedInstPoints) {
-
-  if (symTabName() == "__i686.get_pc_thunk.bx") {
-    cerr << "Skipping thunk! Maybe" << endl;
-    return true;
-  }
-
-    // We have the following possible side-effects:
-    // 
-    // 1) Generating an instPoint (e.g., creating the multiTramp and its code)
-    //    may determine the function is too small to fit the instrumentation,
-    //    requiring relocation.
-    // 2) Instrumenting a shared block may also trigger relocation as a 
-    //    mechanism to unwind the sharing. 
-    //
-    // 3) Relocation will add additional instPoint instances.
-    //
-
-    // Thus, we have the following order of events:
-    //
-    // 1) Generate all instPoints that actually have instrumentation. 
-    //    This will identify whether the function requires relocation.
-    // 2) If relocation is necessary:
-    // 2a) Generate relocation; this will create the function copy and update 
-    //     function-local data structures.
-    // 2b) Install relocation; this will update process-level data structures and
-    //     copy the relocated function into the address space.
-    // 2c) Generate instPoints again to handle any new instPointInstances that
-    //     have showed up. This should _not_ result in required relocation.
-    // 3) Install instPoints
-    // 4) Link (relocated copy of the function) and instPoints.
-
-    // Assumptions: 
-    // 1) calling generate/install/link on "empty" instPoints has no effect.
-    // 2) Generate/install/link operations are idempotent.
-
-    // Let's avoid a lot of work and collect up all instPoints that have
-    // something interesting going on; that is, that have instrumentation
-    // added since the last time something came up. 
-
-#if defined(arch_x86_64)
-  if(proc()->getAddressWidth() == 8)
-  {
-    ia32_set_mode_64(true);
-  }
-  else
-  {
-    ia32_set_mode_64(false);
-  }
-#endif  
-
-  if (isBeingInstrumented_) return false;
-  isBeingInstrumented_ = true;
-
-    std::set<instPoint *> newInstrumentation;
-    std::set<instPoint *> anyInstrumentation;
-
-    getNewInstrumentation(newInstrumentation);
-    getAnyInstrumentation(anyInstrumentation);
-
-    // Quickie correctness assert: newInstrumentation \subseteq anyInstrumentation
-    assert(newInstrumentation.size() <= anyInstrumentation.size()); 
-
-    bool relocationRequired = false;
-
-    // Step 1: Generate all new instrumentation
-    generateInstrumentation(newInstrumentation, failedInstPoints, relocationRequired); 
-    
-    if (failedInstPoints.size() && stopOnFailure) {
-      isBeingInstrumented_ = false;
-      return false;
-    }
-
-#if defined(cap_relocation)
-    // Step 2: is relocation necessary?
-    if (relocationRequired) {
-        // Yar.
-        // This will calculate the sizes required for our basic blocks.
-        expandForInstrumentation();
-        
-        // And keep a list of other functions that need relocation due to
-        // sharing.
-        pdvector<int_function *> need_reloc;
-
-        // Generate the relocated copy of the function.
-        relocationGenerate(enlargeMods(), 0, need_reloc);
-        
-        // Install the relocated copy of the function.
-        relocationInstall();
-
-        // Aaaand link it. 
-        pdvector<codeRange *> overwritten_objs;
-        relocationLink(overwritten_objs);
-
-        // We've added a new version of the function; therefore, we need
-        // to update _everything_ that's been instrumented. 
-        // We do this in two ways. First, we call generate on all
-        // instPoints to get them in the right place.
-        // Second, we replace newInstrumentation with anyInstrumentation,
-        // then call install/link as normal.
-
-        // Clear the failedInstPoints vector first; we'll re-generate
-        // it in any case.
-        failedInstPoints.clear();
-        relocationRequired = false;
-
-        // Update instPoint instances to include the new function
-        for (std::set<instPoint*>::iterator iter = anyInstrumentation.begin();
-             iter != anyInstrumentation.end(); 
-             iter++) 
-        {
-            (*iter)->updateInstancesBatch();
-        }
-        // We _explicitly_ don't call the corresponding updateInstancesFinalize,
-        // as the only purpose of that function is to regenerate instrumentation;
-        // we do that explicitly below.
-
-        generateInstrumentation(anyInstrumentation,
-                                failedInstPoints,
-                                relocationRequired);
-        // I'm commenting this out; I originally thought it would be the case,
-        // but on further thought the original instPoint will _still_ be asking
-        // for relocation. 
-        //assert(relocationRequired == false);
-
-        newInstrumentation = anyInstrumentation;
-
-	// If there are any other functions that we need to relocate
-	// due to this relocation, handle it now. We don't care if they
-	// fail to install instrumentation though.
-	pdvector<instPoint *> dontcare;
-	for (unsigned i = 0; i < need_reloc.size(); i++) {
-	  need_reloc[i]->performInstrumentation(false, dontcare);
-	}
-
-        mal_printf("%s[%d] relocating function at %lx\n", 
-                   __FILE__,__LINE__,getAddress());
-    }
-#endif
-
-    // Okay, back to what we were doing...
-    
-    installInstrumentation(newInstrumentation,
-                           failedInstPoints);
-    linkInstrumentation(newInstrumentation,
-                        failedInstPoints);
-
-    if (obj()->isSharedLib()) {
-        //printf("===> Instrumenting function in shared library: %s [%s]\n",
-                //prettyName().c_str(), obj()->fileName().c_str());
-        obj()->setDirty();
-    }
-
-    isBeingInstrumented_ = false;
-    return (failedInstPoints.size() == 0);
-}
 
 void int_function::getNewInstrumentation(std::set<instPoint *> &ret) {
     for (unsigned i = 0; i < entryPoints_.size(); i++) {
@@ -2384,72 +1942,6 @@ void int_function::getAnyInstrumentation(std::set<instPoint *> &ret) {
             ret.insert( *pIter );
         }
         pIter++;
-    }
-}
-
-void int_function::generateInstrumentation(std::set<instPoint *> &input,
-                                           pdvector<instPoint *> &failed,
-                                           bool &relocationRequired) {
-    for (std::set<instPoint*>::iterator iter = input.begin();
-         iter != input.end(); 
-         iter++) 
-    {
-        switch ((*iter)->generateInst()) {
-        case instPoint::tryRelocation:
-            relocationRequired = true;
-            break;
-        case instPoint::generateSucceeded:
-            break;
-        case instPoint::generateFailed:
-            failed.push_back(*iter);
-            break;
-        default:
-            assert(0);
-            break;
-        }
-    }
-}
-
-void int_function::installInstrumentation(std::set<instPoint *> &input,
-                                          pdvector<instPoint *> &failed) {
-    for (std::set<instPoint*>::iterator iter = input.begin();
-         iter != input.end(); 
-         iter++) 
-    {
-        switch ((*iter)->installInst()) {
-        case instPoint::wasntGenerated:
-            break;
-        case instPoint::installSucceeded:
-            break;
-        case instPoint::installFailed:
-            failed.push_back(*iter);
-            break;
-        default:
-            assert(0);
-            break;
-        }
-    }
-}
-
-
-void int_function::linkInstrumentation(std::set<instPoint *> &input,
-                                       pdvector<instPoint *> &failed) {
-    for (std::set<instPoint*>::iterator iter = input.begin();
-         iter != input.end(); 
-         iter++) 
-    {
-        switch ((*iter)->linkInst()) {
-        case instPoint::wasntInstalled:
-            break;
-        case instPoint::linkSucceeded:
-            break;
-        case instPoint::linkFailed:
-            failed.push_back(*iter);
-            break;
-        default:
-            assert(0);
-            break;
-        }
     }
 }
 

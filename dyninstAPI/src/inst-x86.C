@@ -96,9 +96,6 @@ extern "C" int cpuidCall();
  * Worst-case scenario for how much room it will take to relocate
  * an instruction -- used for allocating the new area
  */
-unsigned relocatedInstruction::maxSizeRequired() {
-    return insn->spaceToRelocate();
-}
 
 void registerSpace::initialize32() {
     static bool done = false;
@@ -1406,13 +1403,14 @@ Register EmitterIA32::emitCall(opCode op,
                                const pdvector<AstNodePtr> &operands, 
                                bool noCost, int_function *callee) {
     bool inInstrumentation = true;
+#if 0
     if (gen.obj() &&
         dynamic_cast<replacedInstruction *>(gen.obj())) {
         // We're replacing an instruction - so don't do anything
         // that requires a base tramp.
         inInstrumentation = false;
     }
-
+#endif
 
     if (op != callOp) {
       cerr << "ERROR: emitCall with op == " << op << endl;
@@ -2272,13 +2270,16 @@ int getInsnCost(opCode op)
 int instPoint::getPointCost()
 {
   unsigned worstCost = 0;
+  assert(0);
+#if 0
+
   for (unsigned i = 0; i < instances.size(); i++) {
       if (instances[i]->multi()) {
-          if (instances[i]->multi()->usesTrap()) {
-              // Stop right here
-              // Actually, probably don't want this if the "always
-              // delivered" instrumentation happens
-              return 9000; // Estimated trap cost
+         if (instances[i]->multi()->usesTrap()) {
+            // Stop right here
+            // Actually, probably don't want this if the "always
+            // delivered" instrumentation happens
+            return 9000; // Estimated trap cost
           }
           else {
               // Base tramp cost if we're first at point, otherwise
@@ -2292,6 +2293,7 @@ int instPoint::getPointCost()
           // No multiTramp, so still free (we're not instrumenting here).
       }
   }
+#endif
   return worstCost;
 }
 
@@ -2352,12 +2354,16 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/, bool
 
        //Create a patch to fill in the end of the baseTramp to the above
        // instruction when it becomes known.
-       generatedCodeObject *nextobj = gen.bti()->nextObj()->nextObj();
+       // NEEDS TO BE REIMPLEMENTED!
+       assert(0);
+#if 0
+       generatedCodeObject *nextobj = NULL;
        assert(nextobj);
        int offset = ((unsigned long) patch_start) - ((unsigned long) gen.start_ptr());
        relocPatch newPatch(patch_loc, nextobj, relocPatch::pcrel, &gen, 
                            offset, sizeof(int));
        gen.addPatch(newPatch);
+#endif
     }
 
     if (f->proc() == gen.addrSpace() &&

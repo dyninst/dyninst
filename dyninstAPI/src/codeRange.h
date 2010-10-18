@@ -63,9 +63,7 @@ class int_basicBlock;
 class bblInstance;
 class image;
 class mapped_object;
-class multiTramp;
 class baseTrampInstance;
-class miniTrampInstance;
 class image_func;
 class signal_handler_location;
 class functionReplacement;
@@ -95,13 +93,6 @@ class codeRange : public patchTarget {
     // so some people who don't like dynamic_cast don't have to be troubled
     // by it's use
     
-    // Don't use this; baseTramps aren't top-level members in the
-    //process codeRangeByAddr tree. Instead, use multiTramp and
-    //getBaseTrampInstance.
-    baseTrampInstance *is_basetramp_multi();
-    
-    miniTrampInstance *is_minitramp();
-
     // This is actually a fake; we don't have int_functions as
     // code ranges. However, there are many times we want to know
     // if we're in a function, and this suffices. We actually do a
@@ -112,11 +103,8 @@ class codeRange : public patchTarget {
 
     image *is_image();
     mapped_object *is_mapped_object();
-    multiTramp *is_multitramp();
     image_func *is_image_func();
     image_basicBlock *is_image_basicBlock();
-    replacedFunctionCall *is_replaced_call();
-    functionReplacement *is_function_replacement();
     signal_handler_location *is_signal_handler_location();
     inferiorRPCinProgress *is_inferior_rpc();
 

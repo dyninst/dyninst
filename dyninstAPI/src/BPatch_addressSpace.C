@@ -62,6 +62,8 @@
 
 #include "BPatch_instruction.h"
 
+#include "mapped_object.h"
+
 #include <sstream>
 
 BPatch_addressSpace::BPatch_addressSpace() :

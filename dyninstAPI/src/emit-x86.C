@@ -1485,13 +1485,14 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
    pdvector <Register> srcs;
    
    bool inInstrumentation = true;
+#if 0
    if (gen.obj() &&
        dynamic_cast<replacedInstruction *>(gen.obj())) {
       // We're replacing an instruction - so don't do anything
       // that requires a base tramp.
       inInstrumentation = false;
    }
-   
+#endif   
    
    //  Sanity check for NULL address arg
    if (!callee) {
@@ -1810,12 +1811,15 @@ void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, boo
 
        //Create a patch to fill in the end of the baseTramp to the above
        // instruction when it becomes known.
+       assert(0);
+#if 0
        generatedCodeObject *nextobj = gen.bti()->nextObj()->nextObj();
        assert(nextobj);
        int offset = ((unsigned long) patch_start) - ((unsigned long) gen.start_ptr());
        relocPatch newPatch(patch_loc, nextobj, relocPatch::pcrel, &gen, 
                            offset, sizeof(int));
        gen.addPatch(newPatch);
+#endif
     }
 
    if (f->proc() == gen.addrSpace() &&

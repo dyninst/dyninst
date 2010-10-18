@@ -58,7 +58,6 @@
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/inst-power.h" // Tramp constants
-#include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/function.h"
 

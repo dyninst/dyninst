@@ -1347,7 +1347,9 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	case 1: // compact free blocks
             infmalloc_printf("%s[%d]: garbage collecting and compacting\n",
                              FILE__, __LINE__);
+#if defined(cap_garbage_collection)
             gcInstrumentation();
+#endif
             inferiorFreeCompact();
 	  break;
 	case 2: // allocate new segment (1MB, constrained)
@@ -1386,7 +1388,9 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	   break;
 #else /* !(cap_dynamic_heap) */
       case 1: // deferred free, compact free blocks
+#if defined(cap_garbage_collection)
 	  gcInstrumentation();
+#endif
           inferiorFreeCompact();
           break;
 #endif /* cap_dynamic_heap */
@@ -1515,15 +1519,6 @@ void process::deleteProcess()
 
   dyninstlib_brk_addr = 0;
   main_brk_addr = 0;
-  
-  // By definition, these are dangling.
-  for (iter = 0; iter < pendingGCInstrumentation.size(); iter++) {
-      if(pendingGCInstrumentation[iter] != NULL) {
-          delete pendingGCInstrumentation[iter];
-          pendingGCInstrumentation[iter] = NULL;
-      }
-  }
-  pendingGCInstrumentation.clear();
 
   inInferiorMallocDynamic = false;
 
@@ -1961,11 +1956,6 @@ bool process::setupFork()
 
     if (!recognize_threads(parent))
         return false;
-
-    // Tag the garbage collection list...
-    for (unsigned ii = 0; ii < parent->pendingGCInstrumentation.size(); ii++) {
-        // TODO. For now we'll just "leak"
-    }
 
     // Now that we have instPoints, we can create the (possibly) instrumentation-
     // based tracing code
@@ -4950,7 +4940,7 @@ void process::updateCodeBytes
 bool process::getDeadCode
 ( const std::list<bblInstance*> &owBlocks, // input
   std::set<bblInstance*> &delBlocks, //output: Del(for all f)
-  std::map<int_function*,set<bblInstance*>> &elimMap, //output: elimF
+  std::map<int_function*,set<bblInstance*> > &elimMap, //output: elimF
   std::list<int_function*> &deadFuncs, //output: DeadF
   std::list<bblInstance*> &newFuncEntries) //output: newF
 {
@@ -4973,7 +4963,7 @@ bool process::getDeadCode
     }
 
     // group blocks by function
-    std::map<int_function*,set<bblInstance*>> deadMap;
+    std::map<int_function*,set<bblInstance*> > deadMap;
     for (list<bblInstance*>::const_iterator bIter=owBlocks.begin();
          bIter != owBlocks.end(); 
          bIter++) 
@@ -4982,7 +4972,7 @@ bool process::getDeadCode
     }
 
     // for each modified function, calculate ex, ElimF, NewF, DelF
-    for (map<int_function*,set<bblInstance*>>::iterator fit = deadMap.begin();
+    for (map<int_function*,set<bblInstance*> >::iterator fit = deadMap.begin();
          fit != deadMap.end(); 
          fit++) 
     {
@@ -5628,39 +5618,7 @@ pdvector<int_function *> process::pcsToFuncs(pdvector<Frame> stackWalk) {
     return ret;
 }
 
-// Add it at the bottom...
-void process::deleteGeneratedCode(generatedCodeObject *delInst)
-{
-  // Add to the list and deal with it later.
-  // The question is then, when to GC. I'd suggest
-  // when we try to allocate memory, and leave
-  // it a public member that can be called when
-  // necessary
-
-#if 0
-    fprintf(stderr, "Deleting generated code %p, which is a:\n",
-            delInst);
-    if (dynamic_cast<multiTramp *>(delInst)) {
-        fprintf(stderr, "   multiTramp\n");
-    }
-    else if (dynamic_cast<baseTrampInstance *>(delInst)) {
-        fprintf(stderr, "   baseTramp\n");
-    } 
-    else if (dynamic_cast<miniTrampInstance *>(delInst)) {
-        fprintf(stderr, "   miniTramp\n");
-    }
-    else {
-        fprintf(stderr, "   unknown\n");
-    }
-#endif    
-    // Make sure we don't double-add
-    for (unsigned i = 0; i < pendingGCInstrumentation.size(); i++)
-        if (pendingGCInstrumentation[i] == delInst)
-            return;
-
-    pendingGCInstrumentation.push_back(delInst);
-}
-
+#if defined(cap_garbage_collection)
 
 // garbage collect instrumentation
 void process::gcInstrumentation()
@@ -5773,6 +5731,8 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &)
   }
 #endif
 }
+
+#endif
 
 dyn_thread *process::createInitialThread() 
 {
