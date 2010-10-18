@@ -95,9 +95,10 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
 					  addr_));
     case AST::V_StackAST: {
       StackAST::Ptr s = StackAST::convert(newKids[0]);
-      if (s->val() == StackAnalysis::Height::bottom) 
+      if (s->val() == StackAnalysis::Height::bottom) { 
 	return VariableAST::create(Variable(AbsRegion(Absloc::Stack), 
 					    addr_));
+      }
       else 
 	return VariableAST::create(Variable(AbsRegion(Absloc(s->val().height(),
 							     s->val().region()->name(),
