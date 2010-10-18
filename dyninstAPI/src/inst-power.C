@@ -1783,6 +1783,10 @@ Register EmitterPOWER::emitCall(opCode ocode,
     if (!inInstrumentation && setTOC) {
         // Need to reset the TOC
         emitVload(loadConstOp, caller_toc, 2, 2, gen, false);
+
+        // Also store toc_orig [r2] into the TOC save area [40(r1)].
+        // Subsequent code will look for it there.
+        saveRegisterAtOffset(gen, 2, 40);
     }        
 
     /*
