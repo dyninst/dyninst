@@ -611,14 +611,24 @@ int_basicBlock * int_function::setNewEntryPoint()
             SingleContext epred(ifunc(),true,true);
             Block::edgelist & ib_ins = (*bIter)->llb()->sources();
             Block::edgelist::iterator eit = ib_ins.begin(&epred);
-            if (eit != ib_ins.end()) {
-                assert(!newEntry);
-                newEntry = *bIter;
+            if (eit == ib_ins.end()) {
+                if (NULL != newEntry) {
+                    fprintf(stderr,"ERROR: multiple blocks in function %lx "
+                        "have no incoming edges: [%lx %lx) and [%lx %lx)\n",
+                        getAddress(), newEntry->llb()->start(),
+                        newEntry->llb()->start() + newEntry->llb()->end(),
+                        (*bIter)->llb()->start(),
+                        (*bIter)->llb()->start() + (*bIter)->llb()->end());
+                } else {
+                    newEntry = *bIter;
+                }
             }
         }
     if( ! newEntry ) {
         newEntry = *blockList.begin();
     }
+    ifunc()->setEntryBlock(newEntry->llb());
+    this->addr_ = newEntry->origInstance()->firstInsnAddr();
 
     assert(!newEntry->llb()->isShared()); //KEVINTODO: unimplemented case
 
@@ -2497,46 +2507,3 @@ int_basicBlock *int_function::findBlockByImage(image_basicBlock *block) {
 }
 
 
-/* removes all function blocks in the specified range
- */
-bool int_function::removeFunctionSubRange(
-                   Address startAddr, 
-                   Address endAddr, 
-                   std::vector<Address> &deadBlockAddrs,
-                   int_basicBlock *&entryBlock)
-{
-    std::vector<int_basicBlock *> deadBlocks;
-    std::vector<ParseAPI::Block *> papiDeadBlocks;
-
-    findBlocksByRange(deadBlocks,startAddr,endAddr);
-
-    // warning if blocks are instrumented
-    vector<int_basicBlock *>::iterator biter = deadBlocks.begin();
-    for (; biter != deadBlocks.end(); biter++) {
-        assert( (*biter)->func() == this );
-        codeRange* range = proc()->findModByAddr
-            ((*biter)->origInstance()->firstInsnAddr());
-        if (range) {
-            fprintf(stderr,"WARNING: mod range %lx %lx for purged block "
-                    "%lx %lx %s[%d]\n", range->get_address(), 
-                    range->get_address()+range->get_size(),
-                    (*biter)->origInstance()->firstInsnAddr(),
-                    (*biter)->origInstance()->endAddr(),FILE__,__LINE__);
-            proc()->removeModifiedRange(range);
-            return false;
-        }
-        deadBlockAddrs.push_back((*biter)->origInstance()->firstInsnAddr());
-        papiDeadBlocks.push_back((*biter)->llb());
-    }
-    
-    // set new entry point 
-    entryBlock = setNewEntryPoint();
-
-    // remove dead image_basicBlocks and int_basicBlocks
-    ifunc()->deleteBlocks( papiDeadBlocks, entryBlock->llb() );
-    for (biter = deadBlocks.begin(); biter != deadBlocks.end(); biter++) {
-        deleteBlock(*biter);
-    }
-
-    return true;
-}

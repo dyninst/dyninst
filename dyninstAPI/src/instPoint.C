@@ -804,14 +804,13 @@ instPoint *instPoint::createParsePoint(int_function *func,
                 offsetInFunc,
                 absAddr);
     
-    int_basicBlock *block = func->findBlockByAddr(absAddr);
-    if (!block) return NULL; // Not in the function...
-    assert(block);
+    bblInstance *bbi = func->findBlockInstanceByAddr(absAddr);
+    if (!bbi) return NULL; // Not in the function...
 
     newIP = new instPoint(func->proc(),
                           img_p,
                           absAddr,
-                          block);
+                          bbi->block());
     
     if (!commonIPCreation(newIP)) {
         delete newIP;
@@ -1302,9 +1301,9 @@ bool instPoint::isReturnInstruction()
     if (ipType_ != functionExit) {
         return false;
     }
-    if ( ! instances.size() ) {
-        updateInstances();
-    }
+    //if ( ! instances.size() ) {
+    //    updateInstances();
+    //}
 
 #if defined(cap_instruction_api)
     using namespace InstructionAPI;

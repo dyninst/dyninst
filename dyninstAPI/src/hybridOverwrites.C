@@ -1203,31 +1203,6 @@ void HybridAnalysisOW::overwriteSignalCB
                            "code pages %x=>%x %s[%d]\n",
                            faultFunc->getBaseAddr(), faultInsnAddr, 
                            writeTarget, FILE__,__LINE__);
-                if (writeTarget == (Address)faultFunc->getBaseAddr()) {
-                    deleteLoop(loop,false);
-                    loop = NULL;
-                    hybrid_->removeInstrumentation(faultFunc);
-                    mal_printf("overwriteSignal overwrote the entry of one of its functions\n");
-                    vector<Address> deadBlockAddrs;
-                    proc()->removeFunctionSubRange
-                        (*faultFunc,pageAddress,pageAddress+pageSize,deadBlockAddrs);
-                    // invoke the callback
-                    vector<BPatch_function*> owFuncs;
-                    vector<BPatch_function*> newFuncs;
-                    vector<BPatch_function*> modFuncs;
-                    modFuncs.push_back(faultFunc);
-                    bpatchEndCB(deadBlockAddrs, owFuncs, modFuncs, newFuncs); 
-                    // clean up loop datastructures for dead blocks
-                    vector<Address>::iterator bIter= deadBlockAddrs.begin();
-                    for (;bIter != deadBlockAddrs.end(); bIter++) {
-                        blockToLoop.erase(*bIter);
-                    }
-                    //re-instrument faultFunc
-                    hybrid()->instrumentFunction(faultFunc,true);
-                    // now that the loop is gone, handle the exception again
-                    overwriteSignalCB(faultInsnAddr, writeTarget);
-                    return;
-                }
             }
         }
 

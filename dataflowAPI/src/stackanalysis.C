@@ -836,27 +836,28 @@ void StackAnalysis::debug() {
 }
 
 std::string StackAnalysis::InsnTransferFunc::format() const {
-    char buf[256];
+    const int BUFLEN = 256;
+    char buf[BUFLEN];
 
     if (*this == bottom) {
-        sprintf(buf, "<BOTTOM>");
+        snprintf(buf, BUFLEN, "<BOTTOM>");
         return buf;
     }
     if (*this == top) {
-        sprintf(buf, "<TOP>");
+        snprintf(buf, BUFLEN, "<TOP>");
         return buf;
     }
 
     if (range_ == defaultRange) {
         if (!abs_) {
-	  sprintf(buf, "<%ld>", delta_);
+	  snprintf(buf, BUFLEN, "<%ld>", delta_);
         }
         else {
-	  sprintf(buf, "Abs: %ld", delta_);
+	  snprintf(buf, BUFLEN, "Abs: %ld", delta_);
         }
     }
     else {
-        sprintf(buf, "%s", range_.format().c_str());
+        snprintf(buf, BUFLEN, "%s", range_.format().c_str());
     }
     return buf;
 }

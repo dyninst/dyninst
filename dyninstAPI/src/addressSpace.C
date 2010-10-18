@@ -1419,60 +1419,37 @@ void trampTrapMappings::allocateTable()
    }
 }
 
-bool AddressSpace::findFuncsByAddr(Address addr, std::vector<int_function *> &funcs)
+// only works for unrelocated addresses
+bool AddressSpace::findFuncsByAddr(Address addr, vector<int_function*> &funcs)
 {
    codeRange *range = findOrigByAddr(addr);
    if (!range)
       return false;
 
-   bblInstance *bblInst = NULL;
-   int_basicBlock *int_block = NULL;
-   int_function *int_func = NULL;
-   image_basicBlock *img_block = NULL;
-
-   bblInst = range->is_basicBlockInstance();
-   if (bblInst) {
-      int_block = bblInst->block();
-      if (int_block->origInstance() != bblInst) {
-         //If we're not the original instance of a block, then this
-         // is a relocated copy.  Since we un-share when relocating
-         // we only have one function to return.
-         int_func = int_block->func();
-         funcs.push_back(int_func);
-         return true;
-      }
+   bblInstance *bblInst = range->is_basicBlockInstance();
+   if (!bblInst) {
+       return false;
    }
-
-   if (!int_block)
-      int_block = range->is_basicBlock();
-   if (int_block) 
-   {
-      //int_basicBlocks are unique to a function and don't contain
-      // sharing information.  Move down to the image_basicBlock and
-      // use that in the next if statement to look up sharing.
-      img_block = int_block->llb();
-   }
-
-   if (!img_block) 
-      img_block = range->is_image_basicBlock();
-   if (img_block)
-   {
-      //Get the multiple functions from the image block, convert to
-      // int_functions and return them.
-      vector<ParseAPI::Function *> img_funcs;
-      img_block->getFuncs(img_funcs);
-      assert(img_funcs.size());
-      vector<ParseAPI::Function *>::iterator fit = img_funcs.begin();
-      for( ; fit != img_funcs.end(); ++fit) {
-         int_func = findFuncByInternalFunc(static_cast<image_func*>(*fit));
-         funcs.push_back(int_func);
-      }
-      return true;
-   }
-
-   assert(!range->is_function());
-   return false;
    
+   if (!bblInst->block()->llb()->isShared()) {
+       funcs.push_back(bblInst->func());
+       return true;
+   }
+
+
+   // the function is shared, get the multiple functions from the image block, 
+   // convert to int_functions and return them.
+   image_basicBlock *img_block = bblInst->block()->llb();
+   vector<ParseAPI::Function *> img_funcs;
+   img_block->getFuncs(img_funcs);
+   assert(img_funcs.size());
+   vector<ParseAPI::Function *>::iterator fit = img_funcs.begin();
+   for( ; fit != img_funcs.end(); ++fit) {
+       int_function *int_func = findFuncByInternalFunc((image_func*)(*fit));
+       funcs.push_back(int_func);
+   }
+
+   return true;
 }
 
 bool AddressSpace::canUseTraps()

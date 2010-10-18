@@ -564,11 +564,6 @@ class int_function : public patchTarget {
    void deleteBlock(int_basicBlock* block);
    void removeFromAll();
    int_basicBlock * setNewEntryPoint();
-   bool removeFunctionSubRange
-       ( Address startAddr, 
-         Address endAddr, 
-         std::vector<Address> &deadBlockAddrs, // output
-         int_basicBlock *&entryBlock);         // output
    void getReachableBlocks(const std::set<bblInstance*> &exceptBlocks,
                            const std::list<bblInstance*> &seedBlocks,
                            std::set<bblInstance*> &reachBlocks);//output

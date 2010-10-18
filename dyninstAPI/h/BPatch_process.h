@@ -285,12 +285,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
           std::vector<Dyninst::Address>& deadBlockAddrs, //output
           std::vector<BPatch_function*>& owFuncs,     //output
           bool &changedPages, bool &changedCode ); //output
-    // take a function and split off the blocks that correspond to the range
-    bool removeFunctionSubRange
-        (BPatch_function &curFunc, 
-         Dyninst::Address startAddr, 
-         Dyninst::Address endAddr, 
-         std::vector<Dyninst::Address> &blockAddrs);
     HybridAnalysis *getHybridAnalysis() { return hybridAnalysis_; }
     bool protectAnalyzedCode();
     // DO NOT USE

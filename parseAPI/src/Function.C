@@ -246,14 +246,17 @@ Function::contains(Block *b)
     return HASHDEF(_bmap,b->start());
 }
 
+void Function::setEntryBlock(Block *new_entry)
+{
+    obj()->parser->move_func(this, new_entry->start(), new_entry->region());
+    _start = new_entry->start();
+    _entry = new_entry;
+}
+
 void 
-Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
+Function::deleteBlocks(vector<Block*> &dead_blocks)
 {
     _cache_valid = false;
-    if (new_entry) {
-        _start = new_entry->start();
-        _entry = new_entry;
-    }
 
     for (unsigned didx=0; didx < dead_blocks.size(); didx++) {
         bool found = false;
@@ -277,9 +280,7 @@ Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
             assert(0);
         }
 
-        if (dead == _entry) {
-            assert(0 && "have to specify new entry if deleting entry block");
-        }
+        assert(dead != _entry && "specify new entry prior to deleting entry block");
 
         // remove dead block from _return_blocks and its call edges from vector
         Block::edgelist & outs = dead->targets();

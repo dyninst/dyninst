@@ -430,9 +430,9 @@ class Function : public allocatable, public AnnotatableSparse {
     PARSER_EXPORT bool cleansOwnStack() const { return _cleans_stack; }
 
     /* Parse updates and obfuscation */
+    PARSER_EXPORT void setEntryBlock(Block *new_entry);
     PARSER_EXPORT void set_retstatus(FuncReturnStatus rs) { _rs = rs; }
-    PARSER_EXPORT void deleteBlocks( vector<Block*> & dead_funcs,
-                                     Block * new_entry );
+    PARSER_EXPORT void deleteBlocks( vector<Block*> & dead_funcs );
     PARSER_EXPORT StackTamper tampersStack(bool recalculate=false);
 
     struct less
