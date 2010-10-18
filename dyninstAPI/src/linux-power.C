@@ -41,7 +41,6 @@
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst-power.h"
-#include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/signalgenerator.h"

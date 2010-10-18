@@ -90,24 +90,12 @@ bool miniTramp::uninstrument() {
     stats_instru.incrementCounter(INST_REMOVE_COUNTER);
 
     deleteInProgress = true;
-    
-    // We do next so that it's definitely fixed before we call
-    // correctBTJumps below.
-    if (next) {
-        next->prev = prev;
-    }
-    else {
-        // Like above, except last
-        baseT->lastMini = prev;
-    }
-    
-    if (prev) {
-        prev->next = next; 
-    }
-    else {
-        // We're first, so clean up the base tramp
-        baseT->firstMini = next;
-        // Correcting of jumps will be handled by removeCode calls
+
+    for (baseTramp::iterator iter = baseT->begin(); iter != baseT->end(); ++iter) {
+       if ((*iter) == this) {
+          baseT->miniTramps_.erase(iter);
+          break;
+       }
     }
     
     // DON'T delete the miniTramp. When it is deleted, the callback
@@ -121,19 +109,6 @@ bool miniTramp::uninstrument() {
     stats_instru.stopTimer(INST_REMOVE_TIMER);
     return true;
 }
-
-void miniTramp::deleteMTI(miniTrampInstance *mti) {
-    for (unsigned i = 0; i < instances.size(); i++)
-        if (instances[i] == mti) {
-            instances[i] = instances.back();
-            instances.pop_back();               
-        }
-    if (deleteInProgress && !topDownDelete_ && !instances.size())
-        delete this;
-}
-
-// Defined in multiTramp.C, dinky "get the debugger to stop here" function.
-extern void debugBreakpoint();
 
 bool miniTramp::generateMT(registerSpace *rs) 
 {
@@ -154,222 +129,13 @@ bool miniTramp::generateMT(registerSpace *rs)
     size_ = miniTrampCode_.used();
     miniTrampCode_.finalize();
 
-    debugBreakpoint();
-    
     return true;
 }
 
 bool miniTramp::correctMTJumps() {
-    for (unsigned i = 0; i < instances.size(); i++) {
-        instances[i]->linkCode();
-    }
     return true;
 }
 
-miniTrampInstance *miniTramp::getMTInstanceByBTI(baseTrampInstance *bti,
-                                                 bool create_if_not_found) {
-    for (unsigned i = 0; i < instances.size(); i++) {
-        if (instances[i]->baseTI == bti)
-            return instances[i];
-    }
-
-    if(create_if_not_found) {
-       // Didn't find it... add it if the miniTramp->baseTramp mapping
-       // is correct
-       assert(baseT == bti->baseT);
-
-       miniTrampInstance *mtInst = new miniTrampInstance(this, bti);
-
-       instances.push_back(mtInst);
-       return mtInst;
-    }
-    return NULL;
-}
-
-miniTrampInstance::~miniTrampInstance() {
-    mini->deleteMTI(this);
-}
-
-
-unsigned miniTrampInstance::maxSizeRequired() {
-    // Estimate...
-    // Test1 has this enormous miniTramp that basically
-    // screws it up for everyone else :)
-    return mini->ast_->getTreeSize()*512;
-}
-
-
-// This must write the "top-level" code for the minitramp;
-// that is, for inlined minitramps the entire body, and
-// for out-of-line minitramps a set of code that will
-// reach the (allocated and installed) minitramp.
-
-// Right now we only do out-of-line, so the first miniTramp
-// reserves space for a jump (filled with noops for now),
-// and the rest just return.
-
-/* Note that out-of-line minitramps imply that they only
-   add their /inline/ regions (jumps) to the unwindInformation
-   chain, and register their /out-of-line/ regions on their own. */
-bool miniTrampInstance::generateCode(codeGen &gen,
-                                     Address baseInMutatee,
-                                     UNW_INFO_TYPE ** /* unwindInformation */ )
-{
-    inst_printf("miniTrampInstance(%p)::generateCode(%p, 0x%x, %d)\n",
-                this, gen.start_ptr(), baseInMutatee, gen.used());
-    assert(mini);
-    
-    if (!mini->generateMT(gen.rs()))
-        return false;
-
-    // Copy code into the buffer
-    gen.copy(mini->miniTrampCode_);
-    // TODO unwind information
-    
-    generated_ = true;
-    hasChanged_ = false;
-    //inst_printf("Done with MT code generation\n");
-    return true;
-}
-
-bool miniTrampInstance::installCode() {
-    installed_ = true;
-    return true;
-}
-
-bool miniTrampInstance::safeToFree(codeRange *range) {
-    // TODO: in-line...
-
-    if (dynamic_cast<miniTrampInstance *>(range) == this) {
-        return false;
-    }
-    else {
-        // Out-of-line miniTramps are independent; if we're not
-        // inside one, we can safely nuke.
-        return true;
-    }
-}
-
-void miniTrampInstance::removeCode(generatedCodeObject *subObject) {
-
-    baseTrampInstance *delBTI = dynamic_cast<baseTrampInstance *>(subObject);
-    assert((subObject == NULL) || delBTI);
-
-    // removeCode can be called in one of two directions: from a child
-    // (with NULL as the argument) or a parent. We differ in 
-    // behavior depending on the type.
-
-    if (subObject == NULL) {
-	// Make sure our previous guy jumps to the next guy
-        if (mini->prev) {
-            miniTrampInstance *prevI = mini->prev->getMTInstanceByBTI(baseTI, false);
-            if(prevI != NULL)
-                prevI->linkCode();
-        }
-
-        baseTI->removeCode(this);
-        
-	delete this;
-
-    }
-    else {
-        assert(delBTI);
-        // Base tramp went away; but me may have been reattached to
-        // a different instance. If so, we're cool. If not, clean 
-        // up and go away.
-        if (delBTI == baseTI) {
-            delete this;
-        }
-    }
-}
-
-void miniTrampInstance::freeCode() {
-    // TODO: in-line
-
-    // baseTrampInstance is deleted by the multiTramp...
-    // baseTI->deleteMTI(this);
-
-    mini->deleteMTI(this);
-    proc()->inferiorFree(trampBase);
-    delete this;
-}
-
-AddressSpace *miniTrampInstance::proc() const {
-    return mini->proc();
-}
-
-bool miniTrampInstance::linkCode() {
-    linked_ = true;
-    return true;
-}
-
-void miniTrampInstance::invalidateCode() {
-    assert(!linked_);
-
-    if (trampBase)
-        proc()->inferiorFree(trampBase);
-    trampBase = 0;
-    
-    generated_ = false;
-    installed_ = false;
-}
-
-unsigned miniTrampInstance::cost() {
-    if (!mini->noCost_)
-        return mini->cost;
-    return 0;
-}
-
-generatedCodeObject *miniTrampInstance::replaceCode(generatedCodeObject *newParent) {
-    baseTrampInstance *newBTI = dynamic_cast<baseTrampInstance *>(newParent);
-    assert(newBTI);
-    assert(this);
-
-    baseTI->deleteMTI(this);
-
-    if (!generated_) {
-        baseTI = newBTI;
-        return this;
-    }
-    // We replace ourselves...
-    miniTrampInstance *newMTI = new miniTrampInstance(this, newBTI);
-    assert(newMTI);
-    return dynamic_cast<generatedCodeObject *>(newMTI);
-}
-
-bool miniTrampInstance::hasChanged() {
-    return hasChanged_;
-}
- 
-unsigned miniTrampInstance::get_size() const { 
-     return mini->size_;
-}
-
-miniTrampInstance::miniTrampInstance(const miniTrampInstance *parMTI,
-                                     baseTrampInstance *cBTI,
-                                     miniTramp *cMT,
-                                     process *child) :
-    generatedCodeObject(parMTI, child),
-    baseTI(cBTI),
-    mini(cMT),
-    trampBase(parMTI->trampBase),
-    deleted(parMTI->deleted) 
-{
-    mini->instances.push_back(this);
-}
-
-miniTrampInstance::miniTrampInstance(const miniTrampInstance *origMTI,
-                                     baseTrampInstance *parBTI) :
-    generatedCodeObject(origMTI, origMTI->proc()),
-    baseTI(parBTI),
-    mini(origMTI->mini),
-    trampBase(0),
-    deleted(false)
-{
-    mini->instances.push_back(this);
-}
-
-   
 miniTramp::miniTramp(callWhen when_,
                      AstNodePtr ast,
                      baseTramp *base,
@@ -436,21 +202,13 @@ miniTramp *miniTramp::getInheritedMiniTramp(process *childProc) {
     instPoint *childP = childF->findInstPByAddr(instP()->addr());
     
     baseTramp *childB = childP->getBaseTramp(when);
-    miniTramp *mt = childB->firstMini;
-    
-    while (mt) {
-        if (mt->ID == ID) {
-            return mt;
-        }
-        mt = mt->next;
-    }
-    
-    return NULL;
-}
 
-Address miniTrampInstance::uninstrumentedAddr() const {
-    // We're "in" the baseTramp, so it knows what's going on
-    return baseTI->uninstrumentedAddr();
+    for (baseTramp::iterator iter = childB->begin(); iter != childB->end(); ++iter) {
+       if ((*iter)->ID == ID)
+          return *iter;
+    }
+
+    return NULL;
 }
 
 // Returns true if the "current" is after the "new". Currently does not
@@ -477,15 +235,6 @@ bool miniTramp::catchupRequired(miniTramp *curMT, miniTramp *newMT, bool)
     return false;
 }
 
-void *miniTrampInstance::getPtrToInstruction(Address addr) const {
-    if (!installed_) return NULL;
-    if (addr < trampBase) return NULL;
-    if (addr >= (trampBase + mini->returnOffset)) return NULL;
-
-    addr -= trampBase;
-    assert(mini->miniTrampCode_ != NULL);
-    return mini->miniTrampCode_.get_ptr(addr);
-}
 
 instPoint *miniTramp::instP() const {
     return baseT->instP();
@@ -496,9 +245,6 @@ int_function *miniTramp::func() const {
 }
 
 bool miniTramp::instrumentedViaTrap() const {
-    for (unsigned i = 0; i < instances.size(); i++) {
-        if (!instances[i]->baseTI->multiT->usesTrap())
-            return false;
-    }
-    return true;
+   assert(0);
+   return false;
 }

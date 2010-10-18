@@ -50,6 +50,7 @@
 #include "miniTramp.h"
 
 #include "mapped_module.h"
+#include "mapped_object.h"
 
 #include "BPatch_libInfo.h"
 #include "BPatch_asyncEventHandler.h"
@@ -1766,13 +1767,13 @@ void BPatch_process::overwriteAnalysisUpdate
 
     // identify the dead code 
     std::set<bblInstance*> delBBIs;
-    std::map<int_function*,set<bblInstance*>> elimMap;
+    std::map<int_function*,set<bblInstance*> > elimMap;
     std::list<int_function*> deadFuncs;
     std::map<int_function*,bblInstance*> newFuncEntries;
     llproc->getDeadCode(owBBIs,delBBIs,elimMap,deadFuncs,newFuncEntries); 
 
     // remove instrumentation from affected funcs
-    for(std::map<int_function*,set<bblInstance*>>::iterator fIter = elimMap.begin();
+    for(std::map<int_function*,set<bblInstance*> >::iterator fIter = elimMap.begin();
         fIter != elimMap.end(); 
         fIter++) 
     {
@@ -1783,7 +1784,7 @@ void BPatch_process::overwriteAnalysisUpdate
     // create stub edge set which is: all edges such that: 
     //     e->trg() in owBBIs and
     //     while e->src() in delBlocks try e->src()->sources()
-    std::map<int_function*,vector<int_function::edgeStub>> stubs;
+    std::map<int_function*,vector<int_function::edgeStub> > stubs;
     std::list<int_function::edgeStub> deadStubs;
     
     for (list<bblInstance*>::iterator deadIter = owBBIs.begin();
@@ -1909,7 +1910,7 @@ void BPatch_process::overwriteAnalysisUpdate
 
     // now traverse stub lists to remove any duplicates that were introduced 
     // by overwritten stub replacement
-    for(std::map<int_function*,vector<int_function::edgeStub>>::iterator fit= stubs.begin();
+    for(std::map<int_function*,vector<int_function::edgeStub> >::iterator fit= stubs.begin();
         fit != stubs.end();
         fit++) 
     {
@@ -2035,7 +2036,7 @@ void BPatch_process::overwriteAnalysisUpdate
     }
 
     //3. parse new code, one overwritten function at a time
-    for(std::map<int_function*,set<bblInstance*>>::iterator 
+    for(std::map<int_function*,set<bblInstance*> >::iterator 
         fit = elimMap.begin();
         fit != elimMap.end();
         fit++) 

@@ -64,6 +64,7 @@
 #include "ast.h"
 
 #include "sys/stat.h"
+#include "mapped_object.h"
 
 /*
  * BPatch_binaryEdit::BPatch_binaryEdit

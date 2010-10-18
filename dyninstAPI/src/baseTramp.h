@@ -41,12 +41,11 @@
 #include "dyninstAPI/src/codeRange.h"
 #include "instPoint.h"
 //#include "arch.h"
-#include "multiTramp.h" // generatedCodeObject
 #include "ast.h"
 
-class multiTramp;
+#include <list>
+
 class miniTramp;
-class miniTrampInstance;
 class baseTramp;
 class instPointInstance;
 class rpcMgr;
@@ -61,15 +60,14 @@ class generatedCodeObject;
 // baseTramp. This allows us to minimize the confusion of the
 // necessary many:many mappings.
 
-class baseTrampInstance : public generatedCodeObject { 
+class baseTrampInstance { 
     friend class baseTramp;
  public:
-    baseTrampInstance(baseTramp *tramp,
-                      multiTramp *multi);
+    baseTrampInstance(baseTramp *tramp);
+
     // FORK!
     baseTrampInstance(const baseTrampInstance *pI,
                       baseTramp *cBT,
-                      multiTramp *cMT,
                       process *child);
 
 
@@ -85,7 +83,6 @@ class baseTrampInstance : public generatedCodeObject {
     //bool empty;
     
     baseTramp *baseT;
-    multiTramp *multiT;
 
     bool isInInstance(Address pc);
     bool isInInstru(Address pc);
@@ -94,7 +91,7 @@ class baseTrampInstance : public generatedCodeObject {
     Address get_address() const;
     unsigned get_size() const; 
     void *getPtrToInstruction(Address addr) const;
-    virtual std::string getTypeString() const;
+    std::string getTypeString() const;
     
 
     Address uninstrumentedAddr() const;
@@ -106,42 +103,12 @@ class baseTrampInstance : public generatedCodeObject {
     bool shouldGenerate();
 
     bool generateCode(codeGen &gen,
-                      Address baseInMutatee,
-                      UNW_INFO_TYPE * * unwindInformation);
+                      Address baseInMutatee);
 
     bool generateCodeInlined(codeGen &gen,
-                             Address baseInMutatee,
-                             UNW_INFO_TYPE **unwindInformation);
-
-    bool installCode();
-
-    // Displacement is platform-independent; from start
-    // of branch insn to start of target insn.
-    bool finalizeGuardBranch(codeGen &gen,
-                             int displacement);
-
-    
-    void invalidateCode();
-    
-    // Patch in jumps
-    bool linkCode();
-
-    generatedCodeObject *replaceCode(generatedCodeObject *newParent);
-
-    // The subObject wants to be gone, do we delete us as well?
-    void removeCode(generatedCodeObject *subObject);
-
-    // Given the current range, can we safely clean up this
-    // area?
-    bool safeToFree(codeRange *range);
-
-    // Update the list of miniTrampInstances
-    void updateMTInstances();
+                             Address baseInMutatee);
 
     cfjRet_t checkForFuncJumps();
-
-    // Null out an MTI pointer
-    void deleteMTI(miniTrampInstance *mti);
 
     ~baseTrampInstance();
 
@@ -157,12 +124,6 @@ class baseTrampInstance : public generatedCodeObject {
     bool shouldRegenBaseTramp(registerSpace *rs);
 
     unsigned genVersion;
-
-    pdvector<miniTrampInstance *> mtis;
-
-    // We need to keep these around to tell whether it's
-    // safe to delete yet.
-    pdvector<miniTrampInstance *> deletedMTIs;
 
     // We may remove ourselves from the baseTramp's list of instances
     // either directly (via removeCode) or during deletion -- but
@@ -202,14 +163,21 @@ class baseTrampInstance : public generatedCodeObject {
     void setHasFuncJump(cfjRet_t v) { hasFuncJump_ = v; }
     void setTrampStackHeight(int v) { trampStackHeight_ = v; }
     int funcJumpSlotSize();
+
+    int_function *func() const;
 };
 
 class baseTramp {
     friend class baseTrampInstance;
+    friend class miniTramp;
  public:
-#if defined( cap_unwind )
-   unw_dyn_region_info_t * baseTrampRegion;
-#endif
+    typedef std::list<miniTramp *>::iterator iterator;
+    typedef std::list<miniTramp *>::const_iterator const_iterator;
+    iterator begin() { return miniTramps_.begin(); };
+    iterator end() { return miniTramps_.end(); };
+    const_iterator begin() const { return miniTramps_.begin(); };
+    const_iterator end() const { return miniTramps_.end(); };
+
     Address origInstAddr(); // For faking an in-function address
 
     // Our instPoint
@@ -221,6 +189,7 @@ class baseTramp {
     rpcMgr *rpcMgr_;
 
     AddressSpace *proc() const;
+    int_function *func() const;
 
     void invalidateBT() { valid = false; };
 
@@ -244,10 +213,8 @@ class baseTramp {
     bool inBasetramp( Address addr );
     bool inSavedRegion( Address addr );
 
-    miniTramp *firstMini;
-    miniTramp *lastMini;
 
-    bool empty() const { return firstMini == NULL; };
+    bool empty() const { return miniTramps_.empty(); };
 
     bool wasNonEmpty() const { return wasNonEmpty_; };
 
@@ -276,10 +243,6 @@ class baseTramp {
 
     // If all our minitramps are gone, clean up
     void deleteIfEmpty();
-
-    // Get an instance (takes a multiTramp, looks up 
-    // or makes a new one);
-    baseTrampInstance *findOrCreateInstance(multiTramp *multi);
 
     // Remove an instance
     void unregisterInstance(baseTrampInstance *inst);
@@ -314,9 +277,10 @@ class baseTramp {
  private:
     
     bool createFrame_;
-    unsigned instVersion_;
     callWhen when_;
     bool wasNonEmpty_; 
+
+    std::list<miniTramp *> miniTramps_;
 };
 
 extern baseTramp baseTemplate;

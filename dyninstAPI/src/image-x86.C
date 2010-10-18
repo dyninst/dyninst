@@ -38,6 +38,7 @@
 #include "common/h/Vector.h"
 #include "image-func.h"
 #include "instPoint.h"
+#include "mapped_object.h"
 #include "symtab.h"
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "debug.h"

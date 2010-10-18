@@ -55,7 +55,6 @@
 #include "common/h/debugOstream.h"
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/baseTramp.h"
-#include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_collections.h"
