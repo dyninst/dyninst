@@ -36,7 +36,7 @@
 #include "binaryEdit.h"
 #include "miniTramp.h"
 #include "baseTramp.h"
-#include "multiTramp.h" // multiTramp and instArea
+
 #include "instPoint.h"
 
 // Two-level codeRange structure
@@ -60,7 +60,6 @@
 AddressSpace::AddressSpace () :
     trapMapping(this),
     useTraps_(true),
-    multiTrampsById_(intHash),
     trampGuardBase_(NULL),
     up_ptr_(NULL),
     costAddr_(0)
@@ -111,10 +110,6 @@ void AddressSpace::copyAddressSpace(process *parent) {
     heapInitialized_ = parent->heapInitialized_;
 
     /////////////////////////
-    // Instrumentation (multiTramps on down)
-    /////////////////////////
-
-    /////////////////////////
     // Trap mappings
     /////////////////////////
     trapMapping.copyTrapMappings(& (parent->trapMapping));
@@ -128,7 +123,6 @@ void AddressSpace::deleteAddressSpace() {
     // inferiorHeap heap_
     // codeRangeTree textRanges_
     // codeRangeTree modifiedCodeRanges_
-    // dictionary_hash multiTrampsById_
 
     heapInitialized_ = false;
     heap_.clear();
@@ -155,8 +149,6 @@ void AddressSpace::deleteAddressSpace() {
         // Either way, we can nuke 'em.
         delete ranges[i];
     }
-
-    multiTrampsById_.clear();
 
     for (unsigned i = 0; i < mapped_objects.size(); i++) 
         delete mapped_objects[i];
@@ -256,37 +248,6 @@ bool AddressSpace::getSymbolInfo( const std::string &name, int_symbol &ret )
 bool AddressSpace::getOrigRanges(pdvector<codeRange *> &ranges) {
     textRanges_.elements(ranges);
     return true;
-}
-
-multiTramp *AddressSpace::findMultiTrampByAddr(Address addr) {    
-    codeRange *range = findModByAddr(addr);
-    if (range) {
-        instArea *area = dynamic_cast<instArea *>(range);
-        
-        if (area)
-            return area->multi;
-    }
-    range = findOrigByAddr(addr);
-
-    multiTramp *multi = dynamic_cast<multiTramp *>(range);
-    return multi;
-}
-
-multiTramp *AddressSpace::findMultiTrampById(unsigned int id) {
-    multiTramp *multi = NULL;
-    multiTrampsById_.find(id, multi);
-
-    return multi;
-}
-
-// Check to see if we're replacing an earlier multiTramp,
-// add to the unmodifiedAreas list
-void AddressSpace::addMultiTramp(multiTramp *) {
-  // TODO remove me
-}
-
-void AddressSpace::removeMultiTramp(multiTramp *) {
-  // TODO remove me
 }
 
 bool heapItemLessByAddr(const heapItem *a, const heapItem *b)
@@ -856,18 +817,10 @@ int_function *AddressSpace::findFuncByAddr(Address addr) {
     if (!range) return NULL;
     
     int_function *func_ptr = range->is_function();
-    multiTramp *multi = range->is_multitramp();
-    miniTrampInstance *mti = range->is_minitramp();
     mapped_object *obj = range->is_mapped_object();
 
     if(func_ptr) {
        return func_ptr;
-    }
-    else if (multi) {
-        return multi->func();
-    }
-    else if (mti) {
-        return mti->baseTI->multiT->func();
     }
     else if (obj) {
         if ( ! obj->isAnalyzed() ) {
@@ -886,20 +839,12 @@ int_basicBlock *AddressSpace::findBasicBlockByAddr(Address addr) {
 
     int_basicBlock *b = range->is_basicBlock();
     int_function *f = range->is_function();
-    multiTramp *mt = range->is_multitramp();
-    miniTrampInstance *mti = range->is_minitramp();
 
     if(b) {
         return b;
     }
     else if(f) {
         return f->findBlockByAddr(addr);
-    }
-    else if(mt) {
-        return mt->func()->findBlockByAddr(addr);
-    }
-    else if(mti) {
-        return mti->baseTI->multiT->func()->findBlockByAddr(addr);
     }
     else
         return NULL;
@@ -1048,11 +993,6 @@ AstNodePtr AddressSpace::trampGuardAST() {
     return trampGuardAST_;
 }
 
-// Add it at the bottom...
-void AddressSpace::deleteGeneratedCode(generatedCodeObject *delInst)
-{
-    delete delInst;
-}
 
 trampTrapMappings::trampTrapMappings(AddressSpace *a) :
    needs_updating(false),

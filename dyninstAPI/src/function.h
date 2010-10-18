@@ -64,8 +64,6 @@ class instPoint;
 
 class Frame;
 
-class functionReplacement;
-
 class int_function;
 class int_basicBlock;
 class funcMod;
@@ -83,7 +81,6 @@ typedef enum callType {
 class bblInstance : public codeRange {
     friend class int_basicBlock;
     friend class int_function;
-    friend class multiTramp;
 
     // "We'll set things up later" constructor. Private because only int_basicBlock
     // should be playing in here
@@ -131,91 +128,9 @@ class bblInstance : public codeRange {
     int version() const;
 
 
-#if defined(cap_relocation)
-    // Get the most space necessary to relocate this basic block,
-    // using worst-case analysis.
-    bool relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods);
-    
-    //Re-initialize the block so that it can be regenerated at a new address,
-    // meant for use by fixpoint block regeneration.
-    bool reset();
-
-    unsigned sizeRequired(bblInstance *nextBBL);
-    // Pin a block to a particular address; in theory, we can only
-    // do these for blocks that can be entered via jumps, but for now
-    // we do it all the time.
-    void setStartAddr(Address addr);
-
-    // And generate a moved copy into ze basic block
-    bool generate(bblInstance *nextBBL);
-    // And write the block into the addr space
-    bool install();
-    // Check for safety...
-    bool check(pdvector<Address> &checkPCs);
-    // Link things up
-    bool link(pdvector<codeRange *> &overwrittenObjs);
-
-    unsigned &maxSize();
-    unsigned &minSize();
-    Address getFuncRelocBase() { return reloc_info->funcRelocBase_; }
-    void setFuncRelocBase(Address frb) { reloc_info->funcRelocBase_ = frb; }
-#endif
-
 #if defined(cap_instruction_api)
     void getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >&instances) const;
     void disassemble() const;
-#endif
-
-#if defined(cap_relocation)
-    class reloc_info_t {
-    public:       
-       unsigned maxSize_;
-       unsigned minSize_;
-       bblInstance *origInstance_;
-       pdvector<funcMod *> appliedMods_;
-       codeGen generatedBlock_; // Kept so we can quickly iterate over the block
-       // in the future.
-       functionReplacement *jumpToBlock_; // Kept here between generate->link
-       Address funcRelocBase_;
-
-       struct relocInsn {
-          // Where we ended up; can derive size from next - this one
-          Address origAddr;
-          Address relocAddr;
-          instruction *origInsn;
-          const void *origPtr;
-          Address relocTarget;
-          unsigned relocSize;
-
-          typedef dyn_detail::boost::shared_ptr<relocInsn> Ptr;
-       };
-       
-       pdvector<relocInsn::Ptr> relocs_;
-
-       reloc_info_t();
-       reloc_info_t(reloc_info_t *parent, int_basicBlock *block);
-       ~reloc_info_t();
-    };
-
- private:
-
-    //Setter functions for relocation information
-    pdvector<reloc_info_t::relocInsn::Ptr> &relocs();
-    bblInstance *&origInstance();
-    pdvector<funcMod *> &appliedMods();
-    codeGen &generatedBlock();
-    functionReplacement *&jumpToBlock();
-
-
-    pdvector<reloc_info_t::relocInsn::Ptr> &get_relocs() const;
-
-    unsigned getMaxSize() const;
-    bblInstance *getOrigInstance() const;
-    pdvector<funcMod *> &getAppliedMods() const;
-    codeGen &getGeneratedBlock() const;
-    functionReplacement *getJumpToBlock() const;
-
-    reloc_info_t *reloc_info;
 #endif
 
     Address firstInsnAddr_;
@@ -294,6 +209,7 @@ class int_basicBlock {
 
     void setHighLevelBlock(void *newb);
     void *getHighLevelBlock() const;
+
 
  private:
     void *highlevel_block; //Should point to a BPatch_basicBlock, if they've
@@ -462,16 +378,6 @@ class int_function : public patchTarget {
 
    bool isInstrumentable() const { return ifunc_->isInstrumentable(); }
 
-   ////////////////////////////////////////////////////////////////////
-   // Instrumentation of the above instPoints
-   ////////////////////////////////////////////////////////////////////
-   
-   // Takes the instrumentation (specified by instPoint::addInst) in this
-   // function and actually generates it. 
-   bool performInstrumentation(bool stopOnFailure,
-                               pdvector<instPoint *> &failedInstPoints);
-
-
    Address get_address() const;
    unsigned get_size() const;
    std::string get_name() const;
@@ -538,50 +444,23 @@ class int_function : public patchTarget {
 
    void updateForFork(process *childProcess, const process *parentProcess);
 
-#if defined(cap_relocation)
-   // These are defined in reloc-func.C to keep large chunks of
-   // functionality separate!
-
-   // Deceptively simple... take a list of requested changes,
-   // and make a copy of the function somewhere out in space.
-   // Defaults to the first version of the function = 0
-   bool relocationGenerate(pdvector<funcMod *> &mods, 
-                           int version,
-                           pdvector<int_function *> &needReloc);
-   // The above gives us a set of basic blocks that have little
-   // code segments. Install them in the address space....
-   bool relocationInstall();
-   // Check whether we can overwrite...
-   bool relocationCheck(pdvector<Address> &checkPCs);
-   // And overwrite code with jumps to the relocated version
-   bool relocationLink(pdvector<codeRange *> &overwritten_objs);
-
-   // Cleanup code: remove (back to) the latest installed version...
-   bool relocationInvalidate();
-   // Invalidates all relocated versions for the program
-   bool relocationInvalidateAll();
-   bool removePoint(instPoint*);
-   void deleteBlock(int_basicBlock* block);
-   void removeFromAll();
-   int_basicBlock * setNewEntryPoint();
-   void getReachableBlocks(const std::set<bblInstance*> &exceptBlocks,
-                           const std::list<bblInstance*> &seedBlocks,
-                           std::set<bblInstance*> &reachBlocks);//output
-
-   // A top-level function; for each instPoint, see if we need to 
-   // relocate the function.
-   bool expandForInstrumentation();
-
-   pdvector<funcMod *> &enlargeMods() { return enlargeMods_; }
-
-#endif
-
 #if defined(os_windows) 
    //Calling convention for this function
    callType int_function::getCallingConvention();
    int getParamSize() { return paramSize; }
    void setParamSize(int s) { paramSize = s; }
 #endif
+
+
+    bool removePoint(instPoint *point);
+    void deleteBlock(int_basicBlock *block);
+    void removeFromAll();
+    int_basicBlock *setNewEntryPoint();
+    void getReachableBlocks(const std::set<bblInstance*> &exceptBlocks,
+                            const std::list<bblInstance*> &seedBlocks,
+                            std::set<bblInstance*> &reachBlocks);//output
+   
+
 
  private:
 
@@ -625,27 +504,6 @@ class int_function : public patchTarget {
    //////////////////////////  Parallel Regions 
    pdvector<int_parRegion*> parallelRegions_; /* pointer to the parallel regions */
 
-#if defined(cap_relocation)
-   // Status tracking variables
-   int generatedVersion_;
-   int installedVersion_;
-   int linkedVersion_;
-
-
-   // We want to keep around expansions for instrumentation
-   pdvector<funcMod *> enlargeMods_;
-
-   //Perform inferior malloc
-   Address allocRelocation(unsigned size_required);
-
-   //relocate all individual blocks
-   bool relocBlocks(Address baseInMutatee, pdvector<bblInstance *> &newInstances);
-
-   // The actual relocation workhorse (the public method is just a facade)
-   bool relocationGenerateInt(pdvector<funcMod *> &mods, 
-                              int version,
-                              pdvector<int_function *> &needReloc);
-#endif
 
    // Used to sync with instPoints
    int version_;
@@ -666,65 +524,7 @@ class int_function : public patchTarget {
     // Local instrumentation-based auxiliary functions
     void getNewInstrumentation(std::set<instPoint *> &);
     void getAnyInstrumentation(std::set<instPoint *> &);
-    void generateInstrumentation(std::set<instPoint *> &input,
-                                 pdvector<instPoint *> &failed,
-                                 bool &relocationRequired);
-    void installInstrumentation(std::set<instPoint *> &input,
-                                pdvector<instPoint *> &failed);
-    void linkInstrumentation(std::set<instPoint *> &input,
-                             pdvector<instPoint *> &failed);
 
-};
-
-// All-purpose; use for function relocation, actual function
-// replacement, etc.
-class functionReplacement : public codeRange {
-
- public:
-    functionReplacement(int_basicBlock *sourceBlock,
-                        int_basicBlock *targetBlock,
-                        unsigned sourceVersion = 0,
-                        unsigned targetVersion = 0);
-    ~functionReplacement() {};
-
-    unsigned maxSizeRequired();
-
-    bool generateFuncRepJump(pdvector<int_function *> &needReloc);
-    bool generateFuncRepTrap(pdvector<int_function *> &needReloc);
-    bool installFuncRep();
-    bool checkFuncRep(pdvector<Address> &checkPCs);
-    bool linkFuncRep(pdvector<codeRange *> &overwrittenObjs);
-    void removeFuncRep();
-    
-    bool overwritesMultipleBlocks();
-
-    int_basicBlock *source();
-    int_basicBlock *target();
-    unsigned sourceVersion();
-    unsigned targetVersion();
-
-    Address get_address() const;
-    unsigned get_size() const;
-    void *get_local_ptr() const { return jumpToRelocated.start_ptr(); }
-
-    AddressSpace *proc() const;
-
- private:
-    codeGen jumpToRelocated;
-    codeGen origInsns;
-
-    int_basicBlock *sourceBlock_;
-    int_basicBlock *targetBlock_;
-
-    // If no relocation, these will be zero.
-    unsigned sourceVersion_;
-    unsigned targetVersion_;
-
-    // We may need more room than there is in a block;
-    // this makes things "interesting".
-    bool overwritesMultipleBlocks_; 
-
-    bool usesTrap_;
 };
 
 

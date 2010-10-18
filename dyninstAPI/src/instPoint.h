@@ -66,16 +66,6 @@ typedef enum {
   otherPoint
 } instPointType_t;
 
-// We now maintain two data structures, the instPoint and the
-// multiTramp. These were obtained by splitting the old instPoint
-// class into its logical component parts. An instPoint is the
-// user-visible layer, and describes the instrumentation of a single
-// logical (e.g. function entry or edge) or physical (e.g. single
-// instruction) location in the program. The multipoint describes the
-// implementation (which instructions are overwritten) and provides a
-// mapping from instPoints to base tramps.
-
-class multiTramp;
 class instPoint;
 
 
@@ -280,75 +270,9 @@ public:
 #endif
 };
 
-// The actual instPoint is a little more interesting. It wraps the
-// abstract view of an instrumentation point. In reality, it may map
-// to multiple addresses (if the function it targets was relocated),
-// and so may use multiple multiTramps. So we have a 1:many
-// mapping. This is taken care of by keeping a vector of iPTarget
-// structures.
-
-class instPointInstance {
-
-    friend class instPoint;
-    friend class multiTramp;
-    
- public:
-    typedef enum {
-        noMultiTramp,
-        instOfSharedBlock,
-        mTrampTooBig,
-        pointPreviouslyModified,
-        generateFailed,
-        generateSucceeded,
-        installFailed,
-        installSucceeded,
-        linkFailed,
-        linkSucceeded
-    } result_t;
-
- private:
-    instPointInstance() { assert(0); }
-    instPointInstance(Address a, bblInstance *b, instPoint *ip) :
-        addr_(a), block_(b), multiID_(0), point(ip), disabled(false) {
-    }
-
-    // No end of trouble if this is a subclass..
-    Address addr_; // Address of this particular version
-    bblInstance *block_; // And the block instance we're attached to.
-
-    unsigned multiID_;
-
-    instPoint *point; // Backchain pointer
-
-    result_t generateInst();
-    result_t installInst();
-    result_t linkInst();
-
-    bool disabled;
-
- public:
-    // If we re-generate code we toss the old
-    // multiTramp and make a new one; we then need
-    // to update everyone with a handle to the multi.
-
-    AddressSpace *proc() const;
-    int_function *func() const;
-    
-    void updateMulti(unsigned multi);
-
-    multiTramp *multi() const;
-    unsigned multiID() const { return multiID_; } // We need this to handle backtracing
-    Address addr() const { return addr_; }
-    bblInstance *block() const { return block_; }
-
-    void updateVersion();
-    
-};
-
 class instPoint : public instPointBase {
     friend class instPointInstance;
     friend class baseTramp;
-    friend class multiTramp;
     friend class int_basicBlock;
     friend void initRegisters();
     friend class registerSpace; // Liveness
@@ -393,23 +317,6 @@ class instPoint : public instPointBase {
     // platforms. Windows is b0rken...
 
  public:
-    bool updateInstances();
-    // We sometimes need to split the work that updateInstances does.
-    // We can have a large number of points per block; if we 
-    // call updateInstances, we'll generate the multiTramp an excessive
-    // number of times. 
-    // This is a workaround; we may want to revisit the entire structure
-    // later.
-    // Do no code generation; unsafe to call individually
-    bool updateInstancesBatch();
-    bool updateInstancesFinalize();
-
-    pdvector<instPointInstance *> instances;
-
-    // Adding instances is expensive; if the function
-    // hasn't changed, we can avoid doing so.
-    int funcVersion;
-
     bool hasNewInstrumentation() { return hasNewInstrumentation_; }
     bool hasAnyInstrumentation() { return hasAnyInstrumentation_; }
 
@@ -426,13 +333,6 @@ class instPoint : public instPointBase {
   static int liveRegSize();
 
   ~instPoint();
-
-  // Get the correct multitramp for a given function (or address)
-  multiTramp *getMulti(int_function *func);
-  multiTramp *getMulti(Address addr);
-
-  // Get the instPointInstance at this addr
-  instPointInstance *getInstInstance(Address addr);
 
   // Get the appropriate first (or last) miniTramp for the given callWhen
   miniTramp *getFirstMini(callWhen when);
@@ -492,7 +392,6 @@ class instPoint : public instPointBase {
   void setSavedTarget(Address st_);
   // returns false if it was already resolved
   bool setResolved();
-  void removeMultiTramps();
   // needed for blocks that are split after the initial parse
   void setBlock( int_basicBlock* newBlock );
 
@@ -573,30 +472,6 @@ class instPoint : public instPointBase {
 
   int getPointCost();
 
-  class iterator {
-      instPoint *point;
-      unsigned index;
-      iterator();
-  public:
-      iterator(instPoint *point) :
-          point(point), index(0) {
-          point->updateInstances();
-      }
-      instPointInstance *operator*() {
-          if (index < point->instances.size())
-              return point->instances[index];
-          else
-              return NULL;
-      }
-      instPointInstance *operator++(int) {
-          if (index < point->instances.size()) {
-              instPointInstance *inst = point->instances[index];
-              index++;
-              return inst;
-          }
-          return NULL;
-      }
-  };
 
   baseTramp *preBaseTramp() const { return preBaseTramp_; }
   baseTramp *postBaseTramp() const { return postBaseTramp_; }
@@ -619,14 +494,6 @@ class instPoint : public instPointBase {
   // The block we're attached to.
   int_basicBlock *block_;
   Address addr_;
-
-  // We used to decide whether to generate/install/link new instances
-  // based on whether the first instance was G/I/L, as appropriate. However,
-  // function relocation can remove that first multiTramp, leaving us
-  // with no information. Instead, we keep it here.
-  bool shouldGenerateNewInstances_;
-  bool shouldInstallNewInstances_;
-  bool shouldLinkNewInstances_;
 
  public:
   // RegisterSpace-only methods; all data in here is
@@ -654,7 +521,5 @@ class instPoint : public instPointBase {
   Address savedTarget_;
 
 };
-
-typedef instPoint::iterator instPointIter;
 
 #endif /* _INST_POINT_H_ */

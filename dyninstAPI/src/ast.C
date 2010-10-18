@@ -78,6 +78,7 @@ extern int tramp_pre_frame_size_64;
 #include "mapped_module.h"
 
 #include "legacy-instruction.h"
+#include "mapped_object.h"
 
 using namespace Dyninst;
 

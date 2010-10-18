@@ -68,6 +68,8 @@
 #include "Instruction.h"
 #include "InstructionDecoder.h"
 
+#include "mapped_object.h"
+
 /*
  * Private constructor, insn
  */
@@ -98,37 +100,26 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
     // internal, BPatch-internal (dynamic monitoring), or user-added.
 
     baseTramp *bt = point->getBaseTramp(callPreInsn);
-    miniTramp *mt = NULL;
-
-    if (bt) mt = bt->firstMini;
-
-    while (mt) {
-        if (mt->instP() == point)
-            mts.push_back(mt);
-        mt = mt->next;
+    if (bt) {
+       for (baseTramp::iterator iter = bt->begin(); 
+            iter != bt->end(); ++iter) {
+          if ((*iter)->instP() == point) {
+             BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
+             handle->addMiniTramp(*iter);
+             preSnippets.push_back(handle);
+          }
+       }
     }
-
-    for(unsigned i=0; i<mts.size(); i++) {
-        BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
-        handle->addMiniTramp(mts[i]);
-        preSnippets.push_back(handle);
-    }
-    // And now post.
-    mts.clear();
-    mt = NULL;
-    
-    bt = point->getBaseTramp(callPostInsn);
-    if (bt) mt = bt->firstMini;
-    
-    while (mt) {
-        if (mt->instP() == point)
-            mts.push_back(mt);
-        mt = mt->next;
-    }
-    for(unsigned ii=0; ii<mts.size(); ii++) {
-        BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
-        handle->addMiniTramp(mts[ii]);
-        postSnippets.push_back(handle);
+    bt = point->getBaseTramp(callPostInsn); 
+    if (bt) {
+       for (baseTramp::iterator iter = bt->begin(); 
+            iter != bt->end(); ++iter) {
+          if ((*iter)->instP() == point) {
+             BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
+             handle->addMiniTramp(*iter);
+             postSnippets.push_back(handle);
+          }
+       }
     }
 }
 
@@ -157,22 +148,15 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
   // Preinsn
   
   baseTramp *bt = point->getBaseTramp(callPreInsn);
-  miniTramp *mt = NULL;
-  if (bt) mt = bt->firstMini;
-
-  while (mt) {
-      if (mt->instP() == point)
-          mts.push_back(mt);
-      mt = mt->next;
-  }
-  
-  for(unsigned i=0; i<mts.size(); i++) {
-      BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
-      handle->addMiniTramp(mts[i]);
-      preSnippets.push_back(handle);
+  for (baseTramp::iterator iter = bt->begin(); 
+       iter != bt->end(); ++iter) {
+     if ((*iter)->instP() == point) {
+        BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
+        handle->addMiniTramp(*iter);
+        preSnippets.push_back(handle);
+     }
   }
   // No post-insn
-
 }
 
 /*

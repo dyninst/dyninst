@@ -133,7 +133,6 @@ class BinaryEdit : public AddressSpace {
 
     // Should be easy if the process isn't _executing_ where
     // we're deleting...
-    virtual void deleteGeneratedCode(generatedCodeObject *del);
 
     bool needsPIC();
 

@@ -183,10 +183,6 @@ int_function *Frame::getFunc() {
   
   if (range->is_function())
     return range->is_function();
-  else if (range->is_multitramp())
-    return range->is_multitramp()->func();
-  else if (range->is_minitramp())
-    return range->is_minitramp()->mini->baseT->instP()->func();
   else if (BPatch_defensiveMode == getProc()->getHybridMode() && 
 	   range->is_mapped_object()) {
     // in defensive mode, return the function at getPC-1, since
@@ -197,10 +193,6 @@ int_function *Frame::getFunc() {
       return NULL;
     if (range->is_function())
       return range->is_function();
-    else if (range->is_multitramp())
-      return range->is_multitramp()->func();
-    else if (range->is_minitramp())
-      return range->is_minitramp()->baseTI->multiT->func();
   }
   
   return NULL;

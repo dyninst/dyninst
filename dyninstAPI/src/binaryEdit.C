@@ -35,7 +35,6 @@
 #include "common/h/headers.h"
 #include "mapped_object.h"
 #include "mapped_module.h"
-#include "multiTramp.h"
 #include "debug.h"
 #include "os.h"
 #include "instPoint.h"
@@ -271,16 +270,6 @@ bool BinaryEdit::multithread_capable(bool) {
 
 bool BinaryEdit::multithread_ready(bool) {
     return multithread_capable();
-}
-
-void BinaryEdit::deleteGeneratedCode(generatedCodeObject *del) {
-  // This can happen - say that someone writes a file (which generates), 
-  // then goes around uninstrumenting... yeah, it can happen.
-
-  // Or a failed atomic insert.
-
-    // No reason to delay deletion.
-    delete del;
 }
 
 BinaryEdit::BinaryEdit() : 
@@ -801,23 +790,13 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
     unsigned size = 0;
 
     for (unsigned i = 0; i < ranges.size(); i++) {
-        multiTramp *multi = ranges[i]->is_multitramp();
         bblInstance *bbl = ranges[i]->is_basicBlockInstance();
 
         bool finishCurrentRegion = false;
         bool startNewRegion = false;
         bool extendCurrentRegion = false;
 
-        if (multi) {
-            if (multi->func() != currFunc) {
-                finishCurrentRegion = true;
-                startNewRegion = true;
-            }
-            else {
-                extendCurrentRegion = true;
-            }
-        }
-        else if (bbl) {
+        if (bbl) {
             if (bbl->func() != currFunc) {
                 finishCurrentRegion = true;
                 startNewRegion = true;
@@ -852,7 +831,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
         if (startNewRegion) {
             assert(currFunc == NULL);
             
-            currFunc = (multi != NULL) ? (multi->func()) : (bbl->func());
+            currFunc = bbl->func();
             assert(currFunc != NULL);
             startRange = ranges[i];
             startAddr = ranges[i]->get_address();

@@ -37,8 +37,6 @@
 #include "common/h/Types.h"
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/inst.h" // callOrder and callWhen
-#include "dyninstAPI/src/instPoint.h" // generatedCodeObject
-#include "dyninstAPI/src/multiTramp.h" // generatedCodeObject
 #include "dyninstAPI/src/ast.h"
 
 // This is a serious problem: our code generation has no way to check
@@ -54,79 +52,7 @@ class AddressSpace;
 
 typedef void (*miniTrampFreeCallback)(void *, miniTramp *);
 
-// The new miniTramp class -- description of a particular minitramp.
-// mini tramps are kind of annoying... there can be multiple copies of
-// a single minitramp depending on whether a function has been cloned
-// or not. So we need a single miniTramp structure that can handle
-// multiple instantiations of actual code.
-
-class miniTrampInstance : public generatedCodeObject {
-    friend class miniTramp;
- public:
-
-  miniTrampInstance(miniTramp *mini,
-                    baseTrampInstance *bti) :
-      generatedCodeObject(),
-      baseTI(bti),
-      mini(mini),
-      trampBase(0),
-      deleted(false) {
-  }
-
-  // FORK!
-  miniTrampInstance(const miniTrampInstance *parMini,
-                    baseTrampInstance *cBTI,
-                    miniTramp *cMT,
-                    process *child);
-
-  // Inline replacing of code
-  miniTrampInstance(const miniTrampInstance *origMTI,
-                    baseTrampInstance *newParent);
-  
-  // Need to have a destructor, so we can track when each instance goes away. 
-  ~miniTrampInstance();
-
-  baseTrampInstance *baseTI;
-  miniTramp *mini;
-  Address trampBase;
-  bool deleted;
-
-  Address get_address() const { return trampBase; }
-  unsigned get_size() const; // needs miniTramp and is so defined
-                                // in .C file
-  void *getPtrToInstruction(Address addr) const;
-
-  Address uninstrumentedAddr() const;
-  
-  unsigned maxSizeRequired();
-
-  bool hasChanged();
-
-  bool generateCode(codeGen &gen,
-                    Address baseInMutatee,
-                    UNW_INFO_TYPE * * unwindInformation);
-  bool installCode();
-  
-  void invalidateCode();
-
-  bool linkCode();
-
-  void removeCode(generatedCodeObject *subObject);
-
-  generatedCodeObject *replaceCode(generatedCodeObject *newParent);
-
-  bool safeToFree(codeRange *range);
-
-  void freeCode();
-
-  unsigned cost();
-
-  AddressSpace *proc() const;
-
-};
-
 class miniTramp {
-    friend class miniTrampInstance;
   friend class instPoint;
     // Global numbering of minitramps
   static int _id;
@@ -186,9 +112,6 @@ class miniTramp {
   // Returns true if all's well.
   bool checkMTStatus();
 
-  miniTrampInstance *getMTInstanceByBTI(baseTrampInstance *instance,
-                                        bool create_if_not_found = true);
-
   int ID;                    // used to match up miniTramps in forked procs
   Address returnOffset;      // Offset from base to the return addr
   unsigned size_;
@@ -207,8 +130,6 @@ class miniTramp {
 
   AddressSpace *proc() const { return proc_; }
 
-  void deleteMTI(miniTrampInstance *);
-
   // This is nice for back-tracking.
   callWhen when; /* Pre or post */
 
@@ -223,9 +144,6 @@ class miniTramp {
    * instrumentation and the minitramp instance should not delete it's minitramp.
    **/
   bool topDownDelete_; 
-
-  pdvector<miniTrampInstance *> instances;
-  pdvector<miniTrampInstance *> deletedMTIs;
 
   // Make sure all jumps are consistent...
   bool correctMTJumps();

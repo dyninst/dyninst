@@ -46,9 +46,7 @@
 #include "Relocation/CodeTracker.h"
 
 class codeRange;
-class multiTramp;
 class replacedFunctionCall;
-class functionReplacement;
 
 class int_function;
 class int_variable;
@@ -184,17 +182,6 @@ class AddressSpace : public InstructionSource {
     // Should return iterators
     bool getOrigRanges(pdvector<codeRange *> &);
 
-    // Deprecated
-    functionReplacement *findFuncReplacement(Address) { return NULL; }
-    void removeFuncReplacement(functionReplacement *) {};
-    void addFuncReplacement(functionReplacement *) {};
-
-    // Multitramp convenience functions
-    multiTramp *findMultiTrampByAddr(Address addr);
-    multiTramp *findMultiTrampById(unsigned int id);
-    void addMultiTramp(multiTramp *multi);
-    void removeMultiTramp(multiTramp *multi);
-
 
     //////////////////////////////////////////////////////////////
     // Function/variable lookup code
@@ -328,10 +315,6 @@ class AddressSpace : public InstructionSource {
 
     // Get the current code generator (or emitter)
     Emitter *getEmitter();
-
-    // Should be easy if the process isn't _executing_ where
-    // we're deleting...
-    virtual void deleteGeneratedCode(generatedCodeObject *del);
 
     //True if any reference to this address space needs PIC
     virtual bool needsPIC() = 0;
@@ -471,9 +454,6 @@ class AddressSpace : public InstructionSource {
     codeRangeTree textRanges_;
     // Data sections
     codeRangeTree dataRanges_;
-
-    // We label multiTramps by ID
-    dictionary_hash<int, multiTramp *> multiTrampsById_;
 
     // Loaded mapped objects (may be just 1)
     pdvector<mapped_object *> mapped_objects;
