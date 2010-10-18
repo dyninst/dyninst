@@ -221,12 +221,12 @@ namespace Dyninst {
                             {
                                 insn_in_progress->getOperation().mnemonic.insert(where, "a");
                                 return Immediate::makeImmediate(Result(u32,
-                                        sign_extend<(highBit - lowBit)>(field<lowBit, highBit>(insn)) << 2));
+                                        sign_extend<(highBit - lowBit + 1)>(field<lowBit, highBit>(insn)) << 2));
                             }
                             else
                             {
                                 Expression::Ptr displacement = Immediate::makeImmediate(Result(s32,
-                                        sign_extend<(highBit - lowBit)>(field<lowBit, highBit>(insn)) << 2));
+                                        sign_extend<(highBit - lowBit + 1)>(field<lowBit, highBit>(insn)) << 2));
                                 return makeAddExpression(makeRegisterExpression(ppc32::pc), displacement, s32);
                             }
                         }
