@@ -195,7 +195,7 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
 
     Result res = exp->eval();
 
-    if (isFrame) {
+    if (isFrame && stackAnalysisEnabled_) {
       if (res.defined && frameDefined) {
 	return AbsRegion(Absloc(res.convert<Address>(),
 				fpRegion,
@@ -206,7 +206,7 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
       }
     }
 
-    if (isStack) {
+    if (isStack && stackAnalysisEnabled_) {
       if (res.defined && stackDefined) {
 	return AbsRegion(Absloc(res.convert<Address>(),
 				spRegion,

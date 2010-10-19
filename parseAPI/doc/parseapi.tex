@@ -39,64 +39,100 @@
         {\fontsize{24}{36}\selectfont Paradyn Parallel Performance Tools};
 
     % Document Title
-    \matrix (Title) [%
-        matrix of nodes,%
-        nodes={font=\sffamily,right},%
-        matrix anchor=west,%
-        row sep=12pt
-        ] at ($(origin)+(0.75in,-3.0in)$)
-    {
-        \fontsize{48}{56}\selectfont ParseAPI \\
-        \fontsize{44}{56}\selectfont Programmer's Guide \\
-    };
+% older versions of pgf have a bug for matrices in overlay mode;
+% have to specify positions manually
+%    \matrix (Title) [%
+%        matrix of nodes,%
+%        nodes={font=\sffamily,right},%
+%        matrix anchor=west,%
+%        row sep=12pt
+%        ] at ($(origin)+(0.75in,-3.0in)$)
+%    {
+%        \fontsize{48}{56}\selectfont ParseAPI \\
+%        \fontsize{44}{56}\selectfont Programmer's Guide \\
+%    };
 
+    \node [anchor=west,font=\sffamily] (title1) at ($(origin)+(0.75in,-3.0in)$)
+        {\fontsize{48}{56}\selectfont ParseAPI};
+    \node [anchor=west,font=\sffamily] (title2) at ($(title1.west)+(0in,-56pt)$)
+        {\fontsize{48}{56}\selectfont Programmer's Guide};
 
     % Release information
-    \matrix (Releaseinfo) [%
-        matrix of nodes,%
-        nodes={font=\sffamily,right},%
-        matrix anchor=west,%
-        row sep=8pt
-        ] at ($(origin)+(0.75in,-5.0in)$)
-    {
-        %\fontsize{24}{32}\selectfont Release 0.1 \\
-        \fontsize{24}{32}\selectfont Beta Release \\
-        \fontsize{24}{32}\selectfont Oct 2010 \\
-    };
+%    \matrix (Releaseinfo) [%
+%        matrix of nodes,%
+%        nodes={font=\sffamily,right},%
+%        matrix anchor=west,%
+%        row sep=8pt
+%        ] at ($(origin)+(0.75in,-5.0in)$)
+%    {
+%        %\fontsize{24}{32}\selectfont Release 0.1 \\
+%        \fontsize{24}{32}\selectfont Beta Release \\
+%        \fontsize{24}{32}\selectfont Oct 2010 \\
+%    };
+
+    \node [anchor=west,font=\sffamily] (rel1) at ($(origin)+(0.75in,-5.0in)$)
+        {\fontsize{24}{32}\selectfont Beta Release};
+    \node [anchor=west,font=\sffamily] (rel2) at ($(rel1.west)+(0in,-32pt)$)
+        {\fontsize{24}{32}\selectfont Oct 2010};
 
     % Contact information
-    \matrix (UWaddress) [%
-        matrix of nodes,%
-        nodes={font=\sffamily\large,right},%
-        matrix anchor=north west
-        ] at ($(origin)+(0.75in,-7in)$)
-    {
-        Computer Science Department \\
-        University of Wisconsin--Madison \\
-        Madison, WI 53711 \\
-    };
-    \matrix (UMDaddress) [%
-        matrix of nodes,%
-        nodes={font=\sffamily\large,right},%
-        matrix anchor=north west,
-        below=1em of UWaddress.south west
-        ]
-    {
-        Computer Science Department \\
-        University of Maryland \\
-        College Park, MD 20742 \\
-    };
-    \matrix (Emails) [%
-        matrix of nodes,%
-        nodes={font=\sffamily,right},%
-        matrix anchor=north west,%
-        below=1em of UMDaddress.south west,%
-        anchor=base
-        ]
-    {
-        Email & \texttt{bugs@dyninst.org} \\
-        Web & \texttt{www.dyninst.org} \\
-    };
+%    \matrix (UWaddress) [%
+%        matrix of nodes,%
+%        nodes={font=\sffamily\large,right},%
+%        matrix anchor=north west
+%        ] at ($(origin)+(0.75in,-7in)$)
+%    {
+%        Computer Science Department \\
+%        University of Wisconsin--Madison \\
+%        Madison, WI 53711 \\
+%    };
+
+    \node [anchor=west,font=\sffamily\large] (uw1) at ($(origin)+(0.75in,-7.0in)$)
+        {Computer Science Department};
+    \node [anchor=west,font=\sffamily\large] (uw2) at ($(uw1.west)+(0in,-20pt)$)
+        {University of Wisconsin--Madison};
+    \node [anchor=west,font=\sffamily\large] (uw3) at ($(uw2.west)+(0in,-20pt)$)
+        {Madison, WI 53711};
+
+
+%    \matrix (UMDaddress) [%
+%        matrix of nodes,%
+%        nodes={font=\sffamily\large,right},%
+%        matrix anchor=north west,
+%        below=1em of UWaddress.south west
+%        ]
+%    {
+%        Computer Science Department \\
+%        University of Maryland \\
+%        College Park, MD 20742 \\
+%    };
+
+    \node [anchor=west,font=\sffamily\large] (umd1) at ($(uw3.south west)+(0in,-2.5em)$)
+        {Computer Science Department};
+    \node [anchor=west,font=\sffamily\large] (umd2) at ($(umd1.west)+(0in,-20pt)$)
+        {University of Maryland};
+    \node [anchor=west,font=\sffamily\large] (umd3) at ($(umd2.west)+(0in,-20pt)$)
+        {College Park, MD 20742};
+
+%    \matrix (Emails) [%
+%        matrix of nodes,%
+%        nodes={font=\sffamily,right},%
+%        matrix anchor=north west,%
+%        below=1em of UMDaddress.south west,%
+%        anchor=base
+%        ]
+%    {
+%        Email & \texttt{bugs@dyninst.org} \\
+%        Web & \texttt{www.dyninst.org} \\
+%    };
+
+    \node [anchor=west,font=\sffamily] (email1) at ($(umd3.south west)+(-0.5em,-2.5em)$)
+        %{Email \texttt{bugs@dyninst.org}};
+        {\begin{tabular}{ll}%
+         Email & \texttt{bugs@dyninst.org} \\
+         Web & \texttt{www.dyinst.org} \\
+        \end{tabular}};
+        
 
     % Logo
     \path 
@@ -141,7 +177,7 @@ program structure as described below.
 \label{sec:abstractions}
 
 The basic representation of code in this API is the control flow
-graph. Binary code objects are represented as regions of contiguous bytes that, when parsed, form the nodes and edges of this graph. The following abstractions make up this CFG-oriented representation of binary code:
+graph (CFG). Binary code objects are represented as regions of contiguous bytes that, when parsed, form the nodes and edges of this graph. The following abstractions make up this CFG-oriented representation of binary code:
 
 % CFG representation abastractions
 %
@@ -162,7 +198,7 @@ edges can cross the boundaries of the higher level abstractions like
 \emph{functions}.
 }
 
-{\item {\scshape function}: The \emph{function} is the primary semantic grouping of code in the binary, mirroring the familiar abstraction of procedural languages like C. Functions represent the set of all basic blocks reachable from a \emph{function entry point} through intraprocedural control flow only (that is, no calls or returns). The entry points of functions are determiend in a variety of ways, such as hints from debugging symbols and recursive traversal along call edges.
+{\item {\scshape function}: The \emph{function} is the primary semantic grouping of code in the binary, mirroring the familiar abstraction of procedural languages like C. Functions represent the set of all basic blocks reachable from a \emph{function entry point} through intraprocedural control flow only (that is, no calls or returns). Function entry points are determined in a variety of ways, such as hints from debugging symbols and recursive traversal along call edges.
 }
 
 \end{itemize}
@@ -175,17 +211,18 @@ edges can cross the boundaries of the higher level abstractions like
 {\item {\scshape code object}: A collection of distinct code regions are represented as a single code object, such as an executable or library. Code objects can normally be thought of as a single, discontiguous unique address space. However, the ParseAPI supports code objects in which the different regions have overlapping address spaces, such as UNIX archive files containing unlinked code.
 }% end code object
 
-{\item {\scshape code source}: The code source implements the instruction source interface, exporting methods that can access the underlying bytes of the binary code for parsing. It also exports a number of additional helper methods, such as the location of structured exception handling routines and function symbols. Code sources are tailored to particular binary types; the ParseAPI provides a SymtabAPI-based code source that understands ELF, COFF and PE file formats.
-}% end code source
-
 {\item {\scshape instruction source}: An instruction source describes a backing store containing binary code. A binary file, a library, a memory dump or a process's executing memory image can all be described as an instruction source, allowing parsing of a variety of binary code objects.
 }% end instruction source
+
+{\item {\scshape code source}: The code source implements the instruction source interface, exporting methods that can access the underlying bytes of the binary code for parsing. It also exports a number of additional helper methods that do things such as returning the location of structured exception handling routines and function symbols. Code sources are tailored to particular binary types; the ParseAPI provides a SymtabAPI-based code source that understands ELF, COFF and PE file formats.
+}% end code source
+
 \end{itemize}
 
 \section{A simple example}
 \label{sec:example}
 
-The following complete example shows uses the ParseAPI to parse a binary and dump its control flow graph in the Graphviz file format.
+The following complete example uses the ParseAPI to parse a binary and dump its control flow graph in the Graphviz file format.
 
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left, numberstyle=\tiny, stepnumber=5, numbersep=5pt}
@@ -217,26 +254,26 @@ optional object factory and callback handlers. Any parsing hints provided
 by the CodeSource are processed, but the binary is not parsed when this
 constructor returns.
 
-\medskip\noindent The \texttt{defensivemode}
+\medskip\noindent The \texttt{defensiveMode}
 parameter optionally trades off coverage for safety; this mode is not
 recommended for most applications as it makes very conservative assumptions
-about control flow transfer instructions.}
+about control flow transfer instructions (see Section \ref{sec:defmode}.}
 
 \begin{apient}
 void parse()
 \end{apient}
-\apidesc{Recursively arses the binary represented by this CodeObject from all
-known starting positions (hints).}
+\apidesc{Recursively parses the binary represented by this CodeObject from all
+known function entry points (i.e., the hints provided by the CodeSource).}
 
 \begin{apient}
 void parse(Address target, bool recursive)
 \end{apient}
-\apidesc{Parses the binary starting with the instruction at the provided address. If \texttt{recursive} is {\scshape true}, recursive traversal parsing is used as in the default \texttt{parse()} method; otherwise only instructions reachable through intraprocedural control flow are visited.}
+\apidesc{Parses the binary starting with the instruction at the provided target address. If \texttt{recursive} is {\scshape true}, recursive traversal parsing is used as in the default \texttt{parse()} method; otherwise only instructions reachable through intraprocedural control flow are visited.}
 
 \begin{apient}
 void parseGaps(CodeRegion *cr)
 \end{apient}
-\apidesc{Speculatively parse the indicated region of the binary using pattern matching to find likely function entry points. Not enabled on all platforms.}
+\apidesc{Speculatively parse the indicated region of the binary using pattern matching to find likely function entry points. Only enabled on the x86 32-bit platform.}
 
 \begin{apient}
 Function * findFuncByEntry(CodeRegion * cr, Address entry)
@@ -246,7 +283,7 @@ Function * findFuncByEntry(CodeRegion * cr, Address entry)
 \begin{apient}
 int findFuncs(CodeRegion * cr, Address addr, std::set<Function*> & funcs)
 \end{apient}
-\apidesc{Finds all functions spanning \texttt{addr} in the code region, adding each to \texttt{funcs}. The number of results of this \emph{stabbing query} are returned.}
+\apidesc{Finds all functions spanning \texttt{addr} in the code region, adding each to \texttt{funcs}. The number of results of this stabbing query are returned.}
 
 \begin{apient}
 funclist & funcs()
@@ -261,12 +298,12 @@ Block * findBlockByEntry(CodeRegion * cr, Address entry)
 \begin{apient}
 int findBlocks(CodeRegion * cr, Address addr, std::set<Block*> & blocks)
 \end{apient}
-\apidesc{Finds all blocks spanning \texttt{addr} in the code region, adding each to \texttt{blocks}. Multiple blocks can be returned only on platforms with variable-length instruction sets (such as IA32); at most one block will be returned on all other platforms.}
+\apidesc{Finds all blocks spanning \texttt{addr} in the code region, adding each to \texttt{blocks}. Multiple blocks can be returned only on platforms with variable-length instruction sets (such as IA32) for which overlapping instructions are possible; at most one block will be returned on all other platforms.}
 
 \begin{apient}
 void finalize()
 \end{apient}
-\apidesc{Force completion of delayed on-demand parsing operations for this code object, if any remain.}
+\apidesc{Force complete parsing of the CodeObject; parsing operations are otherwise completed only as needed to answer queries.}
 
 \begin{apient}
 CodeSource * cs()
@@ -281,13 +318,11 @@ CFGFactory * fact()
 \subsection{Class CodeSource}
 \label{sec:codesource}
 
-The CodeSource interface is used by the ParseAPI to retrieve binary code from an executabl, library, or other binary code object; it also can provide hints of function locations (such as those derived from debugging symbols) to seed the parser. The ParseAPI provides a default implementation based on the SymtabAPI that supports many common binary formats. For details on implementing a custom CodeSource, see Appendix \ref{sec:extend}.
+The CodeSource interface is used by the ParseAPI to retrieve binary code from an executable, library, or other binary code object; it also can provide hints of function entry points (such as those derived from debugging symbols) to seed the parser. The ParseAPI provides a default implementation based on the SymtabAPI that supports many common binary formats. For details on implementing a custom CodeSource, see Appendix \ref{sec:extend}.
 
 \begin{apient}
 virtual bool nonReturning(Address func_entry)
-\end{apient}
-\begin{apient}
-virtual bool nonReturning(std::string func_name )
+virtual bool nonReturning(std::string func_name)
 \end{apient}
 \apidesc{Looks up whether a function returns (by name or location). This information may be statically known for some code sources, and can lead to better parsing accuracy.}
 
@@ -364,6 +399,8 @@ ONDEMAND & dynamically discovered at runtime \\
 \end{tabular}
 \end{center}
 
+\apidesc{Return type of function \texttt{src()} see description below.}
+
 \begin{center}
 \begin{tabular}{ll}
 \toprule
@@ -377,20 +414,13 @@ RETURN & may return \\
 \end{tabular}
 \end{center}
 
+\apidesc{Return type of function \texttt{retstatus()}, see description below.}
+
 \begin{apient}
 typedef ContainerWrapper<vector<Block*>,Block*,Block*> blocklist
 typedef ContainerWrapper<vector<Edge*>,Edge*,Edge*> edgelist
 \end{apient}
-\apidesc{Containers for block and edge access. Refer to Section \ref{sec:containers} for details. Library users \emph{must not} rely on the underlying container type of ContainerWrapper lists, as it is subject to change.}
-
-\begin{apient}
-Function(Address addr, 
-    string name, 
-    CodeObject * obj,
-    CodeRegion * region, 
-    InstructionSource * isource)
-\end{apient}
-\apidesc{Constructor for a Function object located at \texttt{addr}, with a given \texttt{name} and the specified CodeObject, CodeRegion and InstructionSource. ParseAPI library users should never instantiate Functions manually, but instead use the \texttt{mkfunc()} routine provided by the CFGFactory associated with the containing CodeObject. Refer to Section \ref{sec:factories} for more details.}
+\apidesc{Containers for block and edge access. Refer to Section \ref{sec:containers} for details on \texttt{ContainerWrapper}. Library users \emph{must not} rely on the underlying container type of ContainerWrapper lists, as it is subject to change.}
 
 \begin{apient}
 const string & name()
@@ -400,7 +430,7 @@ const string & name()
 \begin{apient}
 CodeRegion * region()
 \end{apient}
-\apidesc{Returns the CodeRegion that contains this function.}
+\apidesc{Returns the CodeRegion that contains this function's entry point (functions can span multiple regions).}
 
 \begin{apient}
 InstructionSource * isrc()
@@ -415,7 +445,7 @@ CodeObject * obj()
 \begin{apient}
 FuncSource src()
 \end{apient}
-\apidesc{Returns the origin of this function.}
+\apidesc{Returns the type of hint that identified this function's entry point.}
 
 \begin{apient}
 FuncReturnStatus retstatus()
@@ -490,22 +520,13 @@ Address end()
 
 \subsection{Class Block}
 
-A Block represents a basic block, and is the lowest level representation of code in the CFG.
+A Block represents a basic block as defined in Section \ref{sec:abstractions}, and is the lowest level representation of code in the CFG.
 
 \begin{apient}
 typedef ContainerWrapper<vector<Edge*>,Edge*,Edge*> edgelist
 \end{apient}
 \apidesc{Container for edge access. Refer to Section \ref{sec:containers} for details. Library users \emph{must not} rely on the underlying container type of ContainerWrapper lists, as it is subject to change.}
 
-
-\begin{apient}
-Block(CodeObject * o, CodeRegion * r, Address start)
-\end{apient}
-\apidesc{Constructor for a block at the given address (the end of the block is
-set by the parser). ParseAPI library users should never instantiate Blocks
-manually, but instead use the \texttt{mkblock()} routine provided by the
-CFGFactory associated with the containing CodeObject if necessary. Refer to
-Section \ref{sec:factories} for more details.}
 
 \begin{apient}
 Address start()
@@ -555,7 +576,7 @@ edgelist & targets()
 \begin{apient}
 bool consistent(Address addr, Address & prev_insn)
 \end{apient}
-\apidesc{Check whether the given address is \emph{consistent} with this basic block. An address is consistent if it is the boundary between two instructions in the block. As long as \texttt{addr} is within the range of the block, \texttt{prev\_insn} will contain the address of the previous instruction boundary before \texttt{addr}, regardless of whether \texttt{addr} is consistent or not.}
+\apidesc{Check whether address \texttt{addr} is \emph{consistent} with this basic block. An address is consistent if it is the boundary between two instructions in the block. As long as \texttt{addr} is within the range of the block, \texttt{prev\_insn} will contain the address of the previous instruction boundary before \texttt{addr}, regardless of whether \texttt{addr} is consistent or not.}
 
 \begin{apient}
 int containingFuncs()
@@ -569,11 +590,11 @@ void getFuncs(std::vector<Function *> & funcs)
 
 \subsection{Class Edge}
 
-Typed Edges join blocks in the CFG, indicating the type of control flow
-transfer instruction that joins two blocks together. Edges may not correspond
+Typed Edges join two blocks in the CFG, indicating the type of control flow
+transfer instruction that joins the blocks to each other. Edges may not correspond
 to a control flow transfer instruction at all, as in the case of the {\scshape
 fallthrough} edge that indicates where straight-line control flow is split by
-incomming transfers from another location, such as a branch. While not all
+incoming transfers from another location, such as a branch. While not all
 blocks end in a control transfer instruction, all control transfer instructions
 end basic blocks and have outgoing edges; in the case of unresolvable control
 flow, the edge will target a special ``sink'' block (see \texttt{sinkEdge()},
@@ -596,15 +617,6 @@ RET & return \\
 \bottomrule
 \end{tabular}
 \end{center}
-
-\begin{apient}
-Edge(Block * source, Block * target, EdgeTypeEnum type)
-\end{apient}
-\apidesc{Constructor for an edge of type \texttt{type} between the provided
-blocks.  ParseAPI library users should never instantiate Edges manually, but
-instead use the \texttt{mkedge()} routine provided by the CFGFactory associated
-with the containing CodeObject if necessary. Refer to Section
-\ref{sec:factories} for more details.}
 
 \begin{apient}
 Block * src()
@@ -637,7 +649,11 @@ bool interproc()
 Edge predicates control iteration over edges. For example, the provided
 \texttt{Intraproc} edge predicate can be passed to an edge iterator
 constructor, ensuring that only intraprocedural edges are visited during
-iteration. The following code traverses all of the basic blocks within a
+iteration. Two other implementations of EdgePredicate are provided: 
+\texttt{SingleContext} only visits edges that stay in a single
+function context, and \texttt{NoSinkPredicate} does not visit edges to 
+the \emph{sink} block.  The following code traverses 
+all of the basic blocks within a
 function:
 
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
@@ -685,15 +701,6 @@ during parsing. For most users this notification is unnecessary, and an
 instantiation of the default ParseCallback can be passed to the CodeObject during initialization. Users who wish to be notified must implement a class that inherits from ParseCallback, and implement one or more of the methods described below to receive notification of those events.
 
 \begin{apient}
-void unresolved_cf(Function *,Address,default_details*)
-\end{apient}
-\apidesc{Invoked when an unresolved control flow transfer is discovered. The Function and Address arguments indicate the location of the control flow transfer instruction; the third argument provides details about the instruction.}
-\begin{apient}
-void abruptEnd_cf(Address,default_details*) 
-\end{apient}
-\apidesc{Invoked when parsing terminates due to running out of valid linear address range, such as running into the end of a CodeRegion.}
-
-\begin{apient}
 struct default_details {
     default_details(unsigned char*b,size_t s, bool ib) : ibuf(b), isize(s), isbranch(ib) { }
     unsigned char * ibuf;
@@ -703,7 +710,6 @@ struct default_details {
 \end{apient}
 \apidesc{Details used in the \texttt{unresolved\_cf} and \texttt{abruptEnd\_cf}
 callbacks.}
-
 
 \begin{apient}
 virtual void instruction_cb(Function*,Address,insn_details*)
@@ -755,7 +761,7 @@ Several of the ParseAPI data structures export containers of CFG objects; the
 CodeObject provides a list of functions in the binary, for example, while
 functions provide lists of blocks and so on. To avoid tying the internal
 storage for these structures to any particular container type, ParseAPI objects
-export a ContainerWrapper that provides an iterator interface to the underlying
+export a ContainerWrapper that provides an iterator interface to the internal
 containers. These wrappers and predicate interfaces are designed to add minimal
 overhead while protecting ParseAPI users from exposure to internal container
 storage details. Users \emph{must not} rely on properties of the underlying
@@ -769,7 +775,7 @@ ContainerWrapper containers export the following interface (\texttt{iterator} ty
 iterator begin()
 iterator begin(predicate *)
 \end{apient}
-\apidesc{Return an iterator over the container, with or without a filtering predicate implementation (see Section \ref{sec:pred} for details).}
+\apidesc{Return an iterator pointing to the beginning of the container, with or without a filtering predicate implementation (see Section \ref{sec:pred} for details on filter predicates).}
 
 \begin{apient}
 iterator const& end()
@@ -934,9 +940,19 @@ virtual void free_block(Block * b)
 virtual void free_edge(Edge * e)
 virtual void free_all()
 \end{apient}
+\apidesc{CFG objects should be freed using these functions, rather than delete, to avoid leaking memory.}
 
 \section{Defensive Mode Parsing}
+\label{sec:defmode}
 
-Incomplete
+Binary code that defends itself against analysis may violate the
+assumptions made by the the ParseAPI's standard parsing algorithm.
+Enabling defensive mode parsing activates more conservative
+assumptions that substantially reduce the percentage of code that is
+analyzed by the ParseAPI.  For this reason, defensive mode parsing is
+best-suited for use of ParseAPI in conjunction with dynamic analysis
+techniques that can compensate for its limited coverage of the binary
+code.  This mode of parsing will be brought to full functionality in 
+an upcoming release.  
 
 \end{document}

@@ -168,6 +168,9 @@ struct Config {
     // Reflects current state of execution.
     RunState state;
 
+   // True if parseThat/mutatee exited abnormally
+   bool abnormal_exit;
+
     // Mutators register their dBPatch_thread object here for
     // efficient process clean-up in the face of signals.
     dynHandle *dynlib;

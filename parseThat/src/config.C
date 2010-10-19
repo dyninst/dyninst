@@ -83,6 +83,7 @@ void configInit()
     config.time_limit = 0;
 
     config.state = NORMAL;
+    config.abnormal_exit = false;
 
     config.dynlib = NULL;
 
