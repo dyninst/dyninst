@@ -249,6 +249,7 @@ Function::contains(Block *b)
 void Function::setEntryBlock(Block *new_entry)
 {
     obj()->parser->move_func(this, new_entry->start(), new_entry->region());
+    _region = new_entry->region();
     _start = new_entry->start();
     _entry = new_entry;
 }
