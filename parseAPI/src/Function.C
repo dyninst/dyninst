@@ -258,6 +258,7 @@ void
 Function::deleteBlocks(vector<Block*> &dead_blocks)
 {
     _cache_valid = false;
+    bool deleteAll = (dead_blocks.size() == _blocks.size());
 
     for (unsigned didx=0; didx < dead_blocks.size(); didx++) {
         bool found = false;
@@ -281,7 +282,9 @@ Function::deleteBlocks(vector<Block*> &dead_blocks)
             assert(0);
         }
 
-        assert(dead != _entry && "specify new entry prior to deleting entry block");
+        // specify replacement entry prior to deleting entry block, unless 
+        // deleting all blocks
+        assert(deleteAll || dead != _entry);
 
         // remove dead block from _return_blocks and its call edges from vector
         Block::edgelist & outs = dead->targets();
@@ -305,15 +308,11 @@ Function::deleteBlocks(vector<Block*> &dead_blocks)
                     assert(found);
                     break;
                 case RET:
-                    for (vector<Block*>::iterator rit = _return_blocks.begin();
-                         !found && _return_blocks.end() != rit; 
-                         rit++) 
-                    {
-                        if ((*oit)->trg() == *rit) {
-                            found = true;
-                            _return_blocks.erase(rit);
-                        }
-                    }
+                    _return_blocks.erase(std::remove(_return_blocks.begin(),
+                                                     _return_blocks.end(),
+                                                     dead),
+                                         _return_blocks.end());
+                    found = true;
                     break;
                 default:
                     break;
@@ -351,7 +350,9 @@ Function::deleteBlocks(vector<Block*> &dead_blocks)
     }
 
     // call finalize, fixes extents
-    obj()->parser->finalize(this);
+    if (!deleteAll) {
+        obj()->parser->finalize(this);
+    }
 }
 
 class ST_Predicates : public Slicer::Predicates {};

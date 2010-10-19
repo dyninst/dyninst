@@ -1039,7 +1039,7 @@ void image::deleteFunc(image_func *func)
     }
     // Remove the function's entry point whether it is shared or not
     image_instPoint *p = getInstPoint(func->getOffset());
-    if (p) 
+    if (p && functionEntry == p->getPointType()) 
         removeInstPoint(p);
 
     // remove the function from symtabAPI

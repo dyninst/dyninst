@@ -180,7 +180,7 @@ bool HybridAnalysisOW::isInLoop(Address blockAddr, bool activeOnly)
  *    protections for the loop's pages
  * return true if the loop was active
  */ 
-bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool checkForChanges)
+bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool useInsertionSet, bool checkForChanges)
 {
     bool isLoopActive = loop->isActive();
     mal_printf("deleteLoop: loopID =%d active=%d %s[%d]\n",
@@ -204,7 +204,9 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool checkForChanges)
     }
 
     // remove loop instrumentation
-    proc()->beginInsertionSet();
+    if (useInsertionSet) {
+        proc()->beginInsertionSet();
+    }
     std::set<BPatchSnippetHandle*>::iterator sIter = loop->snippets.begin();
     for (; sIter != loop->snippets.end(); sIter++) {
         proc()->deleteSnippet(*sIter);
@@ -229,7 +231,9 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool checkForChanges)
     idToLoop.erase(idToLoop.find(loop->getID()));
     delete loop;
 
-    proc()->finalizeInsertionSet(true);
+    if (useInsertionSet) {
+        proc()->finalizeInsertionSet(false);
+    }
     return isLoopActive;
 }
 
@@ -344,7 +348,6 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop
         mal_printf(" instr unresolved: 0x%x in func at 0x%lx\n", 
                   uAddr, (*uIter)->getFunction()->getBaseAddr());
         if ((*uIter)->isDynamic()) {
-            //printf("revbug uAddr=%lx %d\n",uAddr,__LINE__);
             long st = (*uIter)->getSavedTarget();
             BPatch_constExpr stSnip(st);
             BPatch_ifExpr stopIfNewTarg
@@ -658,10 +661,7 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
                           "resolved indirect transfer at %lx savedtarg %lx "
                           "%s[%d]\n", loop->getID(), (*fIter)->getBaseAddr(), 
                           (*pIter)->getAddress(), curTarg, FILE__,__LINE__);
-            } else /*buggy*/ { 
-                if (0 != curTarg) {
-                    mal_printf("revbug %x %d\n",curTarg,__LINE__);
-                }
+            } else {
                 exitPoints.insert(*pIter);
             }
         }
@@ -919,8 +919,6 @@ void HybridAnalysisOW::makeShadow_setRights
 void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 {
     Address pointAddr = (Address) point->getAddress();
-    /*printf("\noverwriteAnalysis(trigger=%lx, loopID=%d)\n", 
-		      point->getAddress(),(long)loopID_);*/
     mal_printf("\noverwriteAnalysis(trigger=%lx, loopID=%d)\n", 
 		      pointAddr,(long)loopID_);
 
@@ -946,7 +944,6 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
     }
 
     owLoop *loop = idToLoop[loopID];
-    loop->setActive(false);
 
     // find the loop corresponding to the loopID, and if there is none, it
     // means we tried to delete the instrumentation earlier, but failed
@@ -959,6 +956,9 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
         return; 
     }
 
+    loop->setActive(false);
+
+
 /* 1. Identify overwritten blocks and update the analysis */
     // if writeTarget is non-zero, only one byte was overwritten
     proc()->overwriteAnalysisUpdate(loop->shadowMap, 
@@ -966,6 +966,8 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
                                     owFuncs, 
                                     changedPages,
                                     changedCode);
+
+    proc()->beginInsertionSet();
 
 /* 2. if the code changed, remove loop & overwritten instrumentation, 
       then re-instrument */
@@ -1002,7 +1004,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
         for(;fIter != owFuncs.end(); fIter++) {   
             // this will already have happened internally, here we clear out 
             // our instrumentation datastructures
-            hybrid_->removeInstrumentation( *fIter );
+            hybrid_->removeInstrumentation( *fIter,false );
         }
 
         // re-instate code discovery instrumentation
@@ -1010,7 +1012,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
             mIter != mods.end(); 
             mIter++) 
         {
-            hybrid_->instrumentModule(*mIter,true);
+            hybrid_->instrumentModule(*mIter,false);
         }
 
         // call user-level callback, but first set up its arguments
@@ -1034,45 +1036,49 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
         bpatchEndCB(deadBlockAddrs, owFuncs, modFuncs, newFuncs); 
         hybrid_->proc()->getImage()->clearNewCodeRegions();
 
-        return;
     } 
+    else { // no changes to the code
 
-    // if this is a dynamic point whose target we will have resolved, 
-    // remove the loop instrumentation and return, as next time we 
-    // may be able to build a more complete loop
-    // 
-    // Also remove single block loops since we instrument right after
-    // the fault instruction and not at the end of the block, meaning
-    // that two faults in the block will cause us to treat the 2nd
-    // as occurring in the existing inactive loop
-    if (point->isDynamic() || 1 == loop->blocks.size()) {
-        deleteLoop(loop,false);
-        return;
+        // if this is a dynamic point whose target we will have resolved, 
+        // remove the loop instrumentation and return, as next time we 
+        // may be able to build a more complete loop
+        // 
+        // Also remove single block loops since we instrument right after
+        // the fault instruction and not at the end of the block, meaning
+        // that two faults in the block will cause us to treat the 2nd
+        // as occurring in the existing inactive loop
+        if (point->isDynamic() || 1 == loop->blocks.size()) {
+            deleteLoop(loop,false);
+        }
+
+        else {
+        /* 4. Free shadow pages */
+	        std::map<Address, unsigned char *>::iterator spIter = 
+                loop->shadowMap.begin();
+	        while (spIter != loop->shadowMap.end()) {
+
+                // overwriteSignalCB will renew the shadow pages.
+                // free the page now, but leave an entry for it
+                unsigned char *oldShadow = (*spIter).second;
+                ::free(oldShadow);
+                (*spIter).second = NULL;
+
+		        // . Re-instate write protections for the written pages,
+                //   if they still contain code
+    	        proc()->setMemoryAccessRights(
+                    (*spIter).first, 1, PAGE_EXECUTE_READ);
+    	        spIter++;
+	        }
+            loop->shadowMap.clear();
+
+            // reset some fields for this inactive loop in case we want to re-use it
+            // hasn't written to its own page... yet.
+            loop->setWritesOwnPage(false);
+            // clear loopWriteTarget so it can be reset
+            loop->setWriteTarget(0);
+        }
     }
-
-/* 4. Free shadow pages */
-	std::map<Address, unsigned char *>::iterator spIter = loop->shadowMap.begin();
-	while (spIter != loop->shadowMap.end()) {
-
-        // overwriteSignalCB will renew the shadow pages.
-        // free the page now, but leave an entry for it
-        unsigned char *oldShadow = (*spIter).second;
-        ::free(oldShadow);
-        (*spIter).second = NULL;
-
-		// . Re-instate write protections for the written pages,
-        //   if they still contain code
-    	proc()->setMemoryAccessRights((*spIter).first, 1, PAGE_EXECUTE_READ);
-    	spIter++;
-	}
-    loop->shadowMap.clear();
-
-    // reset some fields for this inactive loop in case we want to re-use it
-    // hasn't written to its own page... yet.
-    loop->setWritesOwnPage(false);
-    // clear loopWriteTarget so it can be reset
-    loop->setWriteTarget(0);
-
+    proc()->finalizeInsertionSet(false);
 }
 #endif
 

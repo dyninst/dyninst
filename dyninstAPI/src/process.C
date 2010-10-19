@@ -4985,7 +4985,7 @@ bool process::getDeadCode
             }
         }
 
-        // calculate DeadF
+        // calculate DeadF: EP(f) in ow and EP(f) not in ex
         if ( 0 == execBlocks.size() ) {
             set<bblInstance*>::iterator eb = fit->second.find(
                 fit->first->entryBlock()->origInstance());
@@ -5021,43 +5021,6 @@ bool process::getDeadCode
         otherFuncBlocks(fit->first, keepF, delBlocks);
         
     }
-
-    // Lots of special case code for the limited instance in which a block
-    // is overwritten that is at the start of a function, in which case the
-    // whole function can go away.
-    // If we're executing the entry block though, re-parse the function
-    for (list<int_function*>::iterator fIter=deadFuncs.begin();
-         fIter != deadFuncs.end();
-         fIter++) 
-    {
-        bool inEntryBlock = false;
-        int_function *deadFunc = *fIter;
-        ParseAPI::Block *entryBlock = deadFunc->ifunc()->entry();
-        Address base = deadFunc->getAddress() - deadFunc->ifunc()->addr();
-
-        // see if we're executing in the entryBlock
-        for (unsigned pcI = 0; !inEntryBlock && pcI < pcs.size(); pcI++) {
-            Address pcOrig=0;
-            vector<int_function*> pcFuncs;
-            baseTrampInstance *bti=NULL;
-            getAddrInfo(pcs[pcI], pcOrig, pcFuncs, bti);
-            pcOrig -= base;
-            if (entryBlock->start() <= pcOrig && pcOrig < entryBlock->end()) {
-                inEntryBlock = true;
-            }
-        }
-
-        // add all function blocks to deadMap
-        std::set< int_basicBlock* , int_basicBlock::compare >
-            fblocks = deadFunc->blocks();
-        std::set<int_basicBlock*,int_basicBlock::compare>::iterator
-            fbIter = fblocks.begin();
-        while (fbIter != fblocks.end()) {
-            deadMap[deadFunc].insert((*fbIter)->origInstance());
-            fbIter++;
-        }
-
-    }// for all dead image funcs
 
     return true;
 }

@@ -1843,16 +1843,15 @@ void mapped_object::removeFunction(int_function *func) {
     pdvector<int_function *> *funcsByName = NULL;
     for (unsigned pretty_iter = 0; 
          pretty_iter < func->prettyNameVector().size();
-         pretty_iter++) {
+         pretty_iter++) 
+    {
         allFunctionsByPrettyName.find
             (func->prettyNameVector()[pretty_iter], funcsByName);
         if (funcsByName) {
             for (unsigned fIdx=0; fIdx < funcsByName->size(); fIdx++) {
                 if (func == (*funcsByName)[fIdx]) {
                     unsigned lastIdx = funcsByName->size() -1;
-                    if (fIdx != lastIdx) {
-                        (*funcsByName)[fIdx] = (*funcsByName)[lastIdx];
-                    }
+                    (*funcsByName)[fIdx] = (*funcsByName)[lastIdx];
                     funcsByName->pop_back();
                     if (funcsByName->size() == 0) {
                         allFunctionsByPrettyName.undef
@@ -1865,16 +1864,15 @@ void mapped_object::removeFunction(int_function *func) {
     // remove typed names
     for (unsigned typed_iter = 0; 
          typed_iter < func->typedNameVector().size();
-         typed_iter++) {
+         typed_iter++) 
+    {
         allFunctionsByPrettyName.find
             (func->typedNameVector()[typed_iter], funcsByName);
         if (funcsByName) {
             for (unsigned fIdx=0; fIdx < funcsByName->size(); fIdx++) {
                 if (func == (*funcsByName)[fIdx]) {
                     unsigned lastIdx = funcsByName->size() -1;
-                    if (fIdx != lastIdx) {
-                        (*funcsByName)[fIdx] = (*funcsByName)[lastIdx];
-                    }
+                    (*funcsByName)[fIdx] = (*funcsByName)[lastIdx];
                     funcsByName->pop_back();
                     if (funcsByName->size() == 0) {
                         allFunctionsByPrettyName.undef
@@ -1887,16 +1885,15 @@ void mapped_object::removeFunction(int_function *func) {
     // remove symtab names
     for (unsigned symtab_iter = 0; 
          symtab_iter < func->symTabNameVector().size();
-         symtab_iter++) {
+         symtab_iter++) 
+    {
         allFunctionsByMangledName.find
             (func->symTabNameVector()[symtab_iter], funcsByName);
         if (funcsByName) {
             for (unsigned fIdx=0; fIdx < funcsByName->size(); fIdx++) {
                 if (func == (*funcsByName)[fIdx]) {
                     unsigned lastIdx = funcsByName->size() -1;
-                    if (fIdx != lastIdx) {
-                        (*funcsByName)[fIdx] = (*funcsByName)[lastIdx];
-                    }
+                    (*funcsByName)[fIdx] = (*funcsByName)[lastIdx];
                     funcsByName->pop_back();
                     if (funcsByName->size() == 0) {
                         allFunctionsByMangledName.undef

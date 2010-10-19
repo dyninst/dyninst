@@ -918,6 +918,7 @@ void int_function::removeFromAll()
 
     // remove func & blocks from image, ParseAPI, & SymtabAPI datastructures
     ifunc()->img()->deleteFunc(ifunc());
+    delete(this);
 }
 
 void int_function::addMissingBlock(image_basicBlock & missingB)

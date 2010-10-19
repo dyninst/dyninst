@@ -1965,27 +1965,34 @@ void BPatch_process::overwriteAnalysisUpdate
             }
         }
 
+
+        // if the function is not reachable, add blocks to deadBlockAddrs 
+        bool hasCalls = false;
+        Block::edgelist entryEdges = (*fit)->ifunc()->entry()->sources();
+        for (Block::edgelist::iterator eit = entryEdges.begin();
+             !hasCalls && eit != entryEdges.end(); 
+             eit++) 
+        {
+            if ((*eit)->type() == ParseAPI::CALL) {
+                hasCalls = true;
+            }
+        }
+        vector<Address> bAddrs;
+        const set< int_basicBlock* , int_basicBlock::compare >& 
+            deadBlocks = (*fit)->blocks();
+        set<int_basicBlock* ,int_basicBlock::compare>::const_iterator
+                bIter= deadBlocks.begin();
+        for (; bIter != deadBlocks.end(); bIter++) {
+            bAddrs.push_back((*bIter)->origInstance()->firstInsnAddr());
+        }
+
         //remove instrumentation and the function itself
         BPatch_function *bpfunc = findOrCreateBPFunc(*fit,NULL);
         bpfunc->removeInstrumentation();
+        Address base = funcAddr - (*fit)->ifunc()->getOffset();
         (*fit)->removeFromAll();
 
-        // if we're in the entry function, which is not reachable, add 
-        // blocks to deadBlockAddrs 
-        if ((*fit)->obj()->parse_img()->isAOut() && 
-            (*fit)->ifunc()->addr() == 
-            (*fit)->obj()->parse_img()->getObject()->getEntryOffset()) 
-        {
-            const set< int_basicBlock* , int_basicBlock::compare >& 
-                deadBlocks = (*fit)->blocks();
-            set<int_basicBlock* ,int_basicBlock::compare>::const_iterator
-                    bIter= deadBlocks.begin();
-            for (; bIter != deadBlocks.end(); bIter++) {
-                deadBlockAddrs.push_back
-                    ((*bIter)->origInstance()->firstInsnAddr());
-            }
-        }
-        else {
+        if (hasCalls) {
             // the function is still reachable, reparse it
             vector<BPatch_module*> dontcare; 
             vector<Address> targVec; 
@@ -2006,19 +2013,16 @@ void BPatch_process::overwriteAnalysisUpdate
                 }
             } 
             else {
-                // couldn't reparse, add blocks to deadBlockAddrs
+                // couldn't reparse
+                hasCalls = false;
                 mal_printf("WARNING: Couldn't re-parse overwritten function "
                            "at %x %s[%d]\n", funcAddr, FILE__,__LINE__);
-                const set< int_basicBlock* , int_basicBlock::compare >& 
-                    deadBlocks = (*fit)->blocks();
-                for (set<int_basicBlock* ,int_basicBlock::compare>::
-                     const_iterator bIter= deadBlocks.begin();
-                     bIter != deadBlocks.end(); bIter++) 
-                {
-                    deadBlockAddrs.push_back
-                        ((*bIter)->origInstance()->firstInsnAddr());
-                }
             }
+        }
+        if (!hasCalls) {
+            deadBlockAddrs.insert(deadBlockAddrs.end(), 
+                                  bAddrs.begin(), 
+                                  bAddrs.end());
         }
     }
 
