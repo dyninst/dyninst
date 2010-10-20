@@ -242,12 +242,15 @@ TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
       case TargetInt::TraceTarget: {
          Target<Trace::Ptr> *targ = static_cast<Target<Trace::Ptr> *>(dest);
          destFunc = targ->t()->func();
+         assert(destFunc);
          break;
       }
       case TargetInt::BlockTarget:
          destFunc = (static_cast<Target<bblInstance *> *>(dest))->t()->func();
+         assert(destFunc);
          break;
       default:
+         assert(0);
          break;
    }
    EmulatorTracker *e = new EmulatorTracker(dest->origAddr(), destFunc);

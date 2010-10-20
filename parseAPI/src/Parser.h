@@ -176,7 +176,9 @@ class Parser {
 
     void parse_frames(std::vector<ParseFrame *> &, bool);
     void parse_frame(ParseFrame & frame,bool);
-    void getTamperFrames(Function *input, std::vector<ParseFrame*> & output);
+    void getTamperFrames(Function *input, 
+                         std::vector<ParseFrame*> & output, 
+                         Edge *ftEdge);
 
     /* implementation of the parsing loop */
     void ProcessCallInsn(
