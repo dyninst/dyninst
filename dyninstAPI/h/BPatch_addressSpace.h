@@ -305,15 +305,15 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     //  
     //  Allocate memory for a new variable in the mutatee process
 
-    API_EXPORT(Int, (n),
-    BPatch_variableExpr *,malloc,(int n));
+    API_EXPORT(Int, (n, name),
+               BPatch_variableExpr *,malloc,(int n, std::string name = ""));
 
     //  BPatch_addressSpace::malloc
     //  
     //  Allocate memory for a new variable in the mutatee process
 
-    API_EXPORT(ByType, (type),
-    BPatch_variableExpr *,malloc,(const BPatch_type &type));
+    API_EXPORT(ByType, (type, name),
+               BPatch_variableExpr *,malloc,(const BPatch_type &type, std::string name = ""));
 
     API_EXPORT(Int, (at_addr, type, var_name, in_module),
     BPatch_variableExpr *, createVariable,(Dyninst::Address at_addr, 

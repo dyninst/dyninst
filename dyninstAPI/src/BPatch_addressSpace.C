@@ -468,7 +468,7 @@ bool BPatch_addressSpace::getSourceLinesInt( unsigned long addr,
  * happens in the original object.
  */
 
-BPatch_variableExpr *BPatch_addressSpace::mallocInt(int n)
+BPatch_variableExpr *BPatch_addressSpace::mallocInt(int n, std::string name)
 {
    std::vector<AddressSpace *> as;
    assert(BPatch::bpatch != NULL);
@@ -476,10 +476,11 @@ BPatch_variableExpr *BPatch_addressSpace::mallocInt(int n)
    assert(as.size());
    void *ptr = (void *) as[0]->inferiorMalloc(n, dataHeap);
    if (!ptr) return NULL;
-   std::stringstream namestr;
-   namestr << "dyn_malloc_0x" << std::hex << ptr << "_" << n << "_bytes";
-   std::string name = namestr.str();
-   
+   if(name.empty()){
+      std::stringstream namestr;
+      namestr << "dyn_malloc_0x" << std::hex << ptr << "_" << n << "_bytes";
+      name = namestr.str();
+   }
    BPatch_type *type = BPatch::bpatch->createScalar(name.c_str(), n);
 
    return BPatch_variableExpr::makeVariableExpr(this, as[0], name, ptr,
@@ -503,7 +504,7 @@ BPatch_variableExpr *BPatch_addressSpace::mallocInt(int n)
  *     is not currently possible.
  */
 
-BPatch_variableExpr *BPatch_addressSpace::mallocByType(const BPatch_type &type)
+BPatch_variableExpr *BPatch_addressSpace::mallocByType(const BPatch_type &type, std::string name)
 {
    std::vector<AddressSpace *> as;
    assert(BPatch::bpatch != NULL);
@@ -512,9 +513,11 @@ BPatch_variableExpr *BPatch_addressSpace::mallocByType(const BPatch_type &type)
    BPatch_type &t = const_cast<BPatch_type &>(type);
    void *mem = (void *) as[0]->inferiorMalloc(t.getSize(), dataHeap);
    if (!mem) return NULL;
-   std::stringstream namestr;
-   namestr << "dyn_malloc_0x" << std::hex << mem << "_" << type.getName();
-   std::string name = namestr.str();
+   if(name.empty()){
+      std::stringstream namestr;
+      namestr << "dyn_malloc_0x" << std::hex << mem << "_" << type.getName();
+      name = namestr.str();
+   }
    BPatch_variableExpr *varExpr = BPatch_variableExpr::makeVariableExpr(this, as[0], name, mem, &t);
    return varExpr;
 }
