@@ -226,7 +226,7 @@ public:
      */ 
     bool deleteLoop(HybridAnalysisOW::owLoop *loop, 
                     bool useInsertionSet,
-                    bool checkForChanges=true);
+                    BPatch_point *writePoint=NULL);
 
     /* Informs the mutator that an instruction will write to a page
     ` * that contains analyzed code.  
@@ -267,6 +267,8 @@ private:
     void makeShadow_setRights(Dyninst::Address pageAddr,
                               owLoop *loop);
 
+    bool HybridAnalysisOW::isRealStore(Dyninst::Address insnAddr, 
+                                       BPatch_function *func);
     // variables
 
     HybridAnalysis *hybrid_;
