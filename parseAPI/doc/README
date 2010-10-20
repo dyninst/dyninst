@@ -4,3 +4,5 @@ http://www.ctan.org/tex-archive/help/Catalogue/entries/pgf.html
 
 It will look best if the Bera and Helvetica fonts are installed with your 
 LaTeX distribution.
+
+For Wisconsin users, use /s/texlive-2008/bin/pdflatex
