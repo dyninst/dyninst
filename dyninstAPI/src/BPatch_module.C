@@ -732,6 +732,13 @@ unsigned long BPatch_module::getSizeInt()
    return (unsigned long) mod->obj()->imageSize();
 }
 
+Dyninst::ParseAPI::CodeObject *
+BPatch_module::getCodeObjectInt()
+{
+    if(!mod) return NULL;
+    return mod->obj()->parse_img()->codeObject();
+}
+
 
 bool BPatch_module::isNativeCompilerInt()
 {
