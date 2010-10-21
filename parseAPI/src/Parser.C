@@ -621,6 +621,9 @@ Parser::init_frame(ParseFrame & frame)
                 FILE__);
             return;
         }
+        if (split) {
+            _pcb.block_split(split,b);
+        }
     }
 
     // FIXME these operations should move into the actual parsing

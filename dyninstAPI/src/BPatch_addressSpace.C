@@ -53,6 +53,7 @@
 #include "BPatch_thread.h"
 #include "BPatch_function.h"
 #include "callbacks.h"
+#include "hybridAnalysis.h"
 
 #include "BPatch_private.h"
 
@@ -253,11 +254,20 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
 
    // if this is a process, check to see if the instrumentation is
    // executing on the call stack
-   if ( handle->getProcess() ) {
-     //handle->getProcess()->lowlevel_process()->updateActiveMultis();
-     if (handle->mtHandles_.size() > 1) {
-       mal_printf("ERROR: Removing snippet that is installed in "
-		  "multiple miniTramps %s[%d]\n",FILE__,__LINE__);
+   if ( handle->getProcess() && handle->mtHandles_.size() > 0 && 
+       BPatch_normalMode != 
+       handle->mtHandles_[0]->instP()->func()->obj()->hybridMode())
+   {
+       BPatch_function *bpfunc = this->findOrCreateBPFunc(
+           handle->mtHandles_[0]->instP()->func(), NULL);
+       if (handle->getProcess()->getHybridAnalysis()->hybridOW()->
+           hasLoopInstrumentation(true,*bpfunc))
+       {
+           return false;
+       }
+       if (handle->mtHandles_.size() > 1) {
+           mal_printf("ERROR: Removing snippet that is installed in "
+	            	  "multiple miniTramps %s[%d]\n",FILE__,__LINE__);
      }
    }
    
