@@ -50,10 +50,6 @@
   extern void resetBR( process *p, Address loc);               //inst-power.C
 #endif
 
-int_function *baseTramp::func() const { 
-   return instP()->func();
-}
-
 // Normal constructor
 baseTrampInstance::baseTrampInstance(baseTramp *tramp) :
     trampAddr_(0), // Unallocated
@@ -234,10 +230,6 @@ baseTramp::baseTramp(const baseTramp *pt, process *child) :
 }
 
 baseTramp::~baseTramp() {
-}
-
-int_function *baseTrampInstance::func() const {
-   return baseT->func();
 }
 
 unsigned baseTrampInstance::get_size() const { 
