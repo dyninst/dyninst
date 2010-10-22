@@ -503,8 +503,8 @@ void codeRange::print_range(Address addr) {
     * (i.e the fact we have a function pointer, doesn't mean we have a 
     * mapped_object pointer).  Build up more information from what we have
     **/
-   if (base_ptr && !func_ptr) 
-      func_ptr = base_ptr->func();
+   //if (base_ptr && !func_ptr) 
+   //   func_ptr = base_ptr->func();
    if (func_ptr && !mapped_ptr)
       mapped_ptr = func_ptr->obj();
    if (mapped_ptr && !img_ptr)
