@@ -4847,11 +4847,12 @@ static void otherFuncBlocks(int_function *func,
  * calculations
  * Elim(f): the set of blocks to eliminate from function f.
  *          Elim(f) = B(f) - R( B(f)-ow , EP(f) )
- * New(f):  new function entry candidates for f's surviving blocks
- *          all blocks e such that ( e in ex AND e in Elim(f) )
+ * New(f):  new function entry candidates for f's surviving blocks.
+ *          If EB(f) not in ow(f), empty set
+ *          Else, all blocks e such that ( e in ex AND e in Elim(f) )
  *          Eliminate New(f) elements that have ancestors in New(f)
  * Del(f):  Blocks that can be deleted altogether
- *          F - R( B(f) - ow , EP(f) U New(f) )
+ *          F - R( B(f) - ow , New(f) U (EP(f) \ ow(f)) U (ex(f) intersect Elim(f)) )
  * DeadF:   the set of functions that have no executing blocks 
  *          and were overwritten at their entry points
  *          EP(f) in ow(f) AND ex(f) is empty
@@ -4883,11 +4884,15 @@ bool process::getDeadCode
 
     // group blocks by function
     std::map<int_function*,set<bblInstance*> > deadMap;
+    std::set<int_function*> deadEntryFuncs;
     for (list<bblInstance*>::const_iterator bIter=owBlocks.begin();
          bIter != owBlocks.end(); 
          bIter++) 
     {
         deadMap[(*bIter)->func()].insert(*bIter);
+        if ((*bIter)->block()->llb() == (*bIter)->func()->ifunc()->entry()) {
+            deadEntryFuncs.insert((*bIter)->func());
+        }
     }
 
     // for each modified function, calculate ex, ElimF, NewF, DelF
@@ -4897,11 +4902,11 @@ bool process::getDeadCode
     {
 
         // calculate ex(f)
-        list<bblInstance*> execBlocks;
+        set<bblInstance*> execBlocks;
         for (unsigned pidx=0; pidx < pcs.size(); pidx++) {
             bblInstance *exB = fit->first->findBlockInstanceByAddr(pcs[pidx]);
             if (exB) {
-                execBlocks.push_back(exB);
+                execBlocks.insert(exB);
             }
         }
 
@@ -4923,18 +4928,35 @@ bool process::getDeadCode
         otherFuncBlocks(fit->first, keepF, elimMap[fit->first]);
 
         // calculate NewF
-        for (list<bblInstance*>::iterator bit = execBlocks.begin();
-             bit != execBlocks.end(); 
-             bit++) 
-        {
-            if (elimMap[fit->first].end() != elimMap[fit->first].find(*bit)) {
-                newFuncEntries[fit->first] = *bit;
+        if (deadEntryFuncs.end() != deadEntryFuncs.find(fit->first)) {
+            for (set<bblInstance*>::iterator bit = execBlocks.begin();
+                 bit != execBlocks.end();
+                 bit++) 
+            {
+                if (elimMap[fit->first].end() != 
+                    elimMap[fit->first].find(*bit)) 
+                {
+                    newFuncEntries[fit->first] = *bit;
+                    break; // just need one candidate
+                }
             }
         }
 
         // calculate Del(f)
-        if (newFuncEntries[fit->first]) {
+        seedBs.clear();
+        if (deadEntryFuncs.end() == deadEntryFuncs.find(fit->first)) {
+            seedBs.push_back(fit->first->entryBlock()->origInstance());
+        }
+        else if (newFuncEntries.end() != newFuncEntries.find(fit->first)) {
             seedBs.push_back(newFuncEntries[fit->first]);
+        }
+        for (set<bblInstance*>::iterator xit = execBlocks.begin();
+             xit != execBlocks.end();
+             xit++) 
+        {
+            if (elimMap[fit->first].end() != elimMap[fit->first].find(*xit)) {
+                seedBs.push_back(*xit);
+            }
         }
         keepF.clear();
         fit->first->getReachableBlocks(fit->second, seedBs, keepF);

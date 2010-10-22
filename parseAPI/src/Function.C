@@ -289,20 +289,21 @@ Function::deleteBlocks(vector<Block*> &dead_blocks)
         // remove dead block from _return_blocks and its call edges from vector
         Block::edgelist & outs = dead->targets();
         found = false;
-        
         for (Block::edgelist::iterator oit = outs.begin();
              !found && outs.end() != oit; 
              oit++ ) 
         {
             switch((*oit)->type()) {
                 case CALL:
-                    for (vector<Edge*>::iterator cit = _call_edges.begin(); 
-                         !found && _call_edges.end() != cit; 
-                         cit++) 
+                    for (unsigned cidx = 0; 
+                         !found && cidx < _call_edges.size();
+                         cidx++) 
                     {
-                        if (*oit == *cit) {
+                        if (*oit == _call_edges[cidx]) {
                             found = true;
-                            _call_edges.erase(cit);
+                            _call_edges[cidx] = 
+                                _call_edges[_call_edges.size()-1];
+                            _call_edges.pop_back();
                         }
                     }
                     assert(found);
@@ -334,6 +335,8 @@ Function::deleteBlocks(vector<Block*> &dead_blocks)
                 obj()->fact()->free_edge(edge);
             }
         }
+        // remove from internal parsing datastructures
+        obj()->parser->remove_block(dead);
     }
 
     // delete the blocks
@@ -408,9 +411,12 @@ Function::tampersStack(bool recalculate)
                     in_iter != (*ait)->inputs().end(); ++in_iter) {
                     if (in_iter->type() != Absloc::Unknown) {
                         _tamper = TAMPER_NONZERO;
-                        _tamper_addr = 0;
+                        _tamper_addr = 0; 
+                        mal_printf("Stack tamper analysis for ret block at "
+                               "%lx found unresolved stack slot or heap "
+                               "addr, marking as TAMPER_NONZERO\n", retnAddr);
                         return _tamper;
-                    }     
+                    }
                 }
 
                 Slicer slicer(*ait,*bit,this);

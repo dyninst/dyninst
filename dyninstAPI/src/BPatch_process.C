@@ -1773,13 +1773,15 @@ void BPatch_process::overwriteAnalysisUpdate
     llproc->getDeadCode(owBBIs,delBBIs,elimMap,deadFuncs,newFuncEntries); 
 
     // remove instrumentation from affected funcs
+    beginInsertionSet();
     for(std::map<int_function*,set<bblInstance*> >::iterator fIter = elimMap.begin();
         fIter != elimMap.end(); 
         fIter++) 
     {
         BPatch_function *bpfunc = findOrCreateBPFunc(fIter->first,NULL);
-        bpfunc->removeInstrumentation();
+        bpfunc->removeInstrumentation(false);
     }
+    finalizeInsertionSet(false);
 
     // create stub edge set which is: all edges such that: 
     //     e->trg() in owBBIs and
@@ -1938,7 +1940,7 @@ void BPatch_process::overwriteAnalysisUpdate
         bSet.push_back((*bit)->block()->llb());
         bFunc->deleteBlock((*bit)->block());
         ParseAPI::Block *newEntry = NULL;
-        if (newFuncEntries[bFunc]) {
+        if (newFuncEntries.end() != newFuncEntries.find(bFunc)) {
             newEntry = newFuncEntries[bFunc]->block()->llb();
             bFunc->ifunc()->setEntryBlock(newEntry);
         }
@@ -1987,7 +1989,7 @@ void BPatch_process::overwriteAnalysisUpdate
 
         //remove instrumentation and the function itself
         BPatch_function *bpfunc = findOrCreateBPFunc(*fit,NULL);
-        bpfunc->removeInstrumentation();
+        bpfunc->removeInstrumentation(true);
         Address base = funcAddr - (*fit)->ifunc()->getOffset();
         (*fit)->removeFromAll();
 

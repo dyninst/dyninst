@@ -358,9 +358,12 @@ bool BPatch_function::parseNewEdge(Dyninst::Address source,
 // Removes all instrumentation and relocation from the function and 
 // restores the original version
 // Also flushes the runtime library address cache, if present
-bool BPatch_function::removeInstrumentation()
+bool BPatch_function::removeInstrumentation(bool useInsertionSet)
 {
     bool removedAll = true;
+    if (useInsertionSet) {
+        addSpace->beginInsertionSet();
+    }
 
     // remove instrumentation, point by point
     std::vector<BPatch_point*> points;
@@ -376,9 +379,12 @@ bool BPatch_function::removeInstrumentation()
         } 
     }
 
-    // invalidate relocations
-    //bool invalidationOK = func->relocationInvalidateAll(); 
-
+    if (useInsertionSet) {
+        bool dontcare=false;
+        if (!addSpace->finalizeInsertionSet(false,&dontcare)) {
+            removedAll = false;
+        }
+    }
     return removedAll;
 }
 

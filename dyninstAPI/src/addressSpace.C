@@ -1616,12 +1616,12 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   CFAtomCreator c;
   cm->transform(c);
 
-  //cerr << "Applying PCSens transformer" << endl;
-  //PCSensitiveTransformer v(this, cm->priorityMap());
-  //cm->transform(v);
+  sensitivity_cerr << "Applying PCSens transformer" << endl;
+  PCSensitiveTransformer v(this, cm->priorityMap());
+  cm->transform(v);
 
-  adhocMovementTransformer a(this);
-  cm->transform(a);
+  //adhocMovementTransformer a(this);
+  //cm->transform(a);
 
   //cerr << "Memory emulator" << endl;
   //MemEmulatorTransformer m;

@@ -135,7 +135,7 @@ public:
     void getAllPoints(BPatch_Vector<BPatch_point*>& allPoints);
     bool setHandlerFaultAddrAddr(Dyninst::Address addr, bool set);
     void fixHandlerReturnAddr(Dyninst::Address addr);
-    bool removeInstrumentation();
+    bool removeInstrumentation(bool useInsertionSet);
     bool parseNewEdge(Dyninst::Address source, Dyninst::Address target);
     void relocateFunction();
     bool getSharedFuncs(std::set<BPatch_function*> &funcs);
