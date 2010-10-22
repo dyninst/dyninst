@@ -108,6 +108,9 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
   // Currently we use a greedy algorithm rather than some sort of scheduling thing.
   // It's a heck of a lot easier that way. 
 
+   createRelocSpringboards(Suggested, input);
+   createRelocSpringboards(Required, input);
+
    //cerr << "Generating required springboards" << endl;
    if (!generateInt(springboards, input, Required))
       return false;
@@ -167,110 +170,116 @@ bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end) {
 SpringboardBuilder::generateResult_t 
 SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 					const SpringboardReq &r) {
-  codeGen gen;
+   codeGen gen;
+   
+   bool usedTrap = false;
+   
+   generateBranch(r.from, r.to, gen);
+   
+   if (conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
+      //return MultiNeeded;
+      
+      // Errr...
+      // Fine. Let's do the trap thing. 
+      usedTrap = true;
+      generateTrap(r.from, r.to, gen);
+      if (conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
+         // Someone could already be there; omit the trap. 
+         return Failed;
+      }
+   }
 
-  bool usedTrap = false;
 
-  generateBranch(r.from, r.to, gen);
-
-  if (r.checkConflicts && conflict(r.from, r.from + gen.used())) {
-    //return MultiNeeded;
-
-    // Errr...
-    // Fine. Let's do the trap thing. 
-    usedTrap = true;
-    //cerr << "Generating trap from " << hex << r.from << " to " << r.to << dec << endl;
-    generateTrap(r.from, r.to, gen);
-    if (conflict(r.from, r.from + gen.used())) {
-       // Someone could already be there; omit the trap. 
-       return Failed;
-    }
-  }
-
-  if (r.checkConflicts) 
-     registerBranch(r.from, r.from + gen.used());
+  registerBranch(r.from, r.from + gen.used(), r.fromRelocatedCode);
   springboards.push_back(gen);
 
-  if (r.includeAllVersions) {
+#if 0
+  // Now explicitly included
+  if (r.includeRelocatedCopies) {
     // Now catch all the previously relocated copies.
     generateReplacements(springboards, r, usedTrap);
   }
+#endif
 
   return Succeeded;
 }
 
-bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &input,
-						  const SpringboardReq &r) {
-  //debugRanges();
-  //cerr << "Request to generate multi-branch springboard skipped @ " << hex << r.from << dec << endl;
-  // For now we give up and hope it all works out for the best. 
-  return true;
+bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &,
+						  const SpringboardReq &) {
+   //debugRanges();
+   //cerr << "Request to generate multi-branch springboard skipped @ " << hex << r.from << dec << endl;
+   // For now we give up and hope it all works out for the best. 
+   return true;
 
-  // Much like the above, except try to do it in multiple steps. This works 
-  // well on x86 where we have 2-byte dinky jumps. Less so on fixed-length
-  // architectures...
+#if 0
+   // Much like the above, except try to do it in multiple steps. This works 
+   // well on x86 where we have 2-byte dinky jumps. Less so on fixed-length
+   // architectures...
   
-  // Let's assume that r.from is not really available. Let's find somewhere that
-  // is.
-  // Let's try walking forward first. 
-  Address tramp = r.from;
-  bool done = false;
-  codeGen gen;
-  do {
-    generateBranch(tramp, r.to, gen);
-    if (!conflict(tramp, tramp+gen.used())) {
-      // Cool
-      done = true;
-    }
-    else {
-      // FIXME POWER
-      // What happened to the "legal offset for the platform" function?
-      tramp++;
-    }
-    if (!isLegalShortBranch(r.from, tramp)) {
-      // Start at -offset
-      tramp = shortBranchBack(r.from);
-    }
-    if (tramp == (r.from - 1)) {
-      break;
-    }
-  } while (!done);
+   // Let's assume that r.from is not really available. Let's find somewhere that
+   // is.
+   // Let's try walking forward first. 
+   Address tramp = r.from;
+   bool done = false;
+   codeGen gen;
+   do {
+      generateBranch(tramp, r.to, gen);
+      if (!conflict(tramp, tramp+gen.used())) {
+         // Cool
+         done = true;
+      }
+      else {
+         // FIXME POWER
+         // What happened to the "legal offset for the platform" function?
+         tramp++;
+      }
+      if (!isLegalShortBranch(r.from, tramp)) {
+         // Start at -offset
+         tramp = shortBranchBack(r.from);
+      }
+      if (tramp == (r.from - 1)) {
+         break;
+      }
+   } while (!done);
   
-  if (!done) return false; 
+   if (!done) return false; 
 
-  // Okay, we've got a branch there. 
-  input.push_back(gen);
-  registerBranch(tramp, tramp + gen.used());
+   // Okay, we've got a branch there. 
+   input.push_back(gen);
+   registerBranch(tramp, tramp + gen.used());
   
-  // And catch its relocated copies. Argh.
-  SpringboardReq tmp(tramp, r.to, r.priority, r.bbl, false, true);
-  generateReplacements(input, tmp, false);
+   // And catch its relocated copies. Argh.
+   SpringboardReq tmp(tramp, r.to, r.priority, r.bbl, false, true);
+   generateReplacements(input, tmp, false);
 
-  // Okay. Now we need to get _to_ the tramp jump.
-  codeGen shortie;
-  generateBranch(r.from, tramp, shortie);
-  if (conflict(r.from, r.from + shortie.used())) {
-    // Sucks to be us
-    return false;
-  }
+   // Okay. Now we need to get _to_ the tramp jump.
+   codeGen shortie;
+   generateBranch(r.from, tramp, shortie);
+   if (conflict(r.from, r.from + shortie.used())) {
+      // Sucks to be us
+      return false;
+   }
   
-  input.push_back(shortie);
-  registerBranch(r.from, r.from + shortie.used());
+   input.push_back(shortie);
+   registerBranch(r.from, r.from + shortie.used());
 
-  SpringboardReq tmp2(r.from, tramp, r.priority, r.bbl, false, true);
-  generateReplacements(input, tmp2, false);
+   SpringboardReq tmp2(r.from, tramp, r.priority, r.bbl, false, true);
+   generateReplacements(input, tmp2, false);
 
-  return true;
+   return true;
+#endif
 }
 
-bool SpringboardBuilder::conflict(Address start, Address end) {
-  // We require springboards to stay within a particular block
-  // so that we don't have issues with jumping into the middle
-  // of a branch (... ew). Therefore, there is a conflict if
-  // the end address lies within a different range than the start.
-  //
-  // Technically, end can be the start of another range; therefore
-  // we search for (end-1).
+bool SpringboardBuilder::conflict(Address start, Address end, bool inRelocated) {
+   if (inRelocated) return conflictInRelocated(start, end);
+
+   // We require springboards to stay within a particular block
+   // so that we don't have issues with jumping into the middle
+   // of a branch (... ew). Therefore, there is a conflict if
+   // the end address lies within a different range than the start.
+   //
+   // Technically, end can be the start of another range; therefore
+   // we search for (end-1).
 
    Address working = start;
    Address LB, UB;
@@ -293,10 +302,26 @@ bool SpringboardBuilder::conflict(Address start, Address end) {
    return false;
 }
 
+bool SpringboardBuilder::conflictInRelocated(Address start, Address end) {
+   // Much simpler case: do we overlap something already in the range set.
+   for (Address i = start; i < end; ++i) {
+      Address lb, ub;
+      bool val;
+      if (overwrittenRelocatedCode_.find(i, lb, ub, val)) {
+         // oops!
+         return true;
+      }
+   }
+   return false;
+}
 
-void SpringboardBuilder::registerBranch(Address start, Address end) {
+void SpringboardBuilder::registerBranch(Address start, Address end, bool inRelocated) {
    // Remove the valid ranges for everything between start and end, using much the 
    // same logic as above.
+   if (inRelocated) {
+      return registerBranchInRelocated(start, end);
+   }
+
    Address working = start;
    Address LB = 0, UB = 0;
    Address lb = 0, ub = 0;
@@ -323,6 +348,11 @@ void SpringboardBuilder::registerBranch(Address start, Address end) {
       validRanges_.insert(end, UB, curRange_++);
    }
 }
+
+void SpringboardBuilder::registerBranchInRelocated(Address start, Address end) {
+   overwrittenRelocatedCode_.insert(start, end, true);
+}
+
 
 void SpringboardBuilder::debugRanges() {
   std::vector<std::pair<std::pair<Address, Address>, int> > elements;
@@ -357,10 +387,31 @@ void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
   insnCodeGen::generateTrap(gen);
 }
 
+bool SpringboardBuilder::createRelocSpringboards(Priority p, SpringboardMap &input) {
+   for (SpringboardMap::iterator iter = input.begin(p);
+        iter != input.end(p); ++iter) {
+      const SpringboardReq &req = iter->second;
+      if (req.fromRelocatedCode) continue;
+      assert(req.bbl);
+
+      std::list<Address> relocAddrs;
+      addrSpace_->getRelocAddrs(req.from, req.bbl->func(), relocAddrs, true);
+      for (std::list<Address>::const_iterator addr = relocAddrs.begin(); 
+           addr != relocAddrs.end(); ++addr) {
+         if (*addr == req.to) continue;
+         input.addRaw(*addr, req.to, 
+                      p, req.bbl,
+                      req.checkConflicts, 
+                      false, true);
+      }
+   }
+   return true;
+}
+
 bool SpringboardBuilder::generateReplacements(std::list<codeGen> &springboards,
 					      const SpringboardReq &r, 
 					      bool useTrap) {
-   if (!r.includeAllVersions) return true;
+   if (!r.includeRelocatedCopies) return true;
 
   bool ret = true;
   std::list<Address> relocAddrs;
@@ -374,12 +425,24 @@ bool SpringboardBuilder::generateReplacements(std::list<codeGen> &springboards,
     assert(*iter != r.to);
 
     codeGen gen;
-    if (useTrap) {
-      generateTrap(*iter, r.to, gen);
+    switch (useTrap) {
+       case false:
+          generateBranch(*iter, r.to, gen);
+          if (!conflict(*iter, (*iter) + gen.used(), true)) {
+             break;
+          }
+       case true:
+          // Or fallthrough from a conflict
+          gen.setIndex(0);
+          generateTrap(*iter, r.to, gen);
+          if (conflict(*iter, (*iter) + gen.used(), true)) {
+             // SUUUUCKTASTIC
+             ret = false;
+             continue;
+          }
     }
-    else {
-      generateBranch(*iter, r.to, gen);
-    }
+    registerBranch(*iter, (*iter) + gen.used(), true);
+
     springboards.push_back(gen);
   }
   return ret;

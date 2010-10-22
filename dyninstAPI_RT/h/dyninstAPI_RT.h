@@ -198,5 +198,53 @@ struct trap_mapping_header {
    trapMapping_t traps[]; //Don't change this to a pointer, despite any compiler warnings
 };
 
+#define MAX_MEMORY_MAPPER_ELEMENTS 1024
+
+typedef struct {
+   unsigned long lo;
+   unsigned long hi;
+   long shift;
+} MemoryMapperElement;
+
+struct MemoryMapper {
+   int guard1;
+   int guard2;
+   int size;
+   int padding;
+   MemoryMapperElement elements[MAX_MEMORY_MAPPER_ELEMENTS];
+};
+
+/* 32/64 bit versions for the mutator */
+
+typedef struct {
+   uint32_t lo;
+   uint32_t hi;
+   uint32_t shift;
+} MemoryMapperElement32;
+
+typedef struct {
+   uint64_t lo;
+   uint64_t hi;
+   uint64_t shift;
+} MemoryMapperElement64;
+
+struct MemoryMapper32 {
+   int guard1;
+   int guard2;
+   int size;
+   int padding;
+   MemoryMapperElement32 elements[MAX_MEMORY_MAPPER_ELEMENTS];
+};
+
+struct MemoryMapper64 {
+   int guard1;
+   int guard2;
+   int size;
+   int padding;
+   MemoryMapperElement64 elements[MAX_MEMORY_MAPPER_ELEMENTS];
+};
+
+extern struct MemoryMapper RTmemoryMapper;
+
 #include "dyninstRTExport.h"
 #endif /* _DYNINSTAPI_RT_H */

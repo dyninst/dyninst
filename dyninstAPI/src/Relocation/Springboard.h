@@ -49,18 +49,27 @@ struct SpringboardReq {
    Priority priority;
    bblInstance *bbl;
    bool checkConflicts;
-   bool includeAllVersions;
+   bool includeRelocatedCopies;
+   bool fromRelocatedCode;
    SpringboardReq(const Address a, const Address b, 
-                  const Priority c, bblInstance *d, bool e, bool f)
+                  const Priority c, bblInstance *d, 
+                  bool e, 
+                  bool f, 
+                  bool g)
    : from(a), to(b), 
       priority(c), 
-      bbl(d), checkConflicts(e), 
-      includeAllVersions(f) {};
+      bbl(d), 
+      checkConflicts(e), 
+      includeRelocatedCopies(f),
+      fromRelocatedCode(g) {};
    SpringboardReq() 
    : from(0), to(0), priority(NotRequired), 
       bbl(NULL),
-      includeAllVersions(false) {};
+      includeRelocatedCopies(false),
+      fromRelocatedCode(false) {};
 };
+
+class SpringboardBuilder;
 
  class SpringboardMap {
    friend class CodeMover;
@@ -77,13 +86,43 @@ struct SpringboardReq {
      return sBoardMap_.empty();
    }
 
-   void add(Address from, Address to, 
-            Priority p, bblInstance *bbl, 
-            bool checkConflicts, bool includeAllCopies) {
+   void addFromOrigCode(Address from, Address to, 
+                        Priority p, bblInstance *bbl) {
       sBoardMap_[p][from] = SpringboardReq(from, to,
                                            p, bbl,
-                                           checkConflicts, includeAllCopies);
+                                           true, true,
+                                           false);
    }
+
+   void addFromRelocatedCode(Address from, Address to,
+                             Priority p) {
+      sBoardMap_[p][from] = SpringboardReq(from, to,
+                                           p,
+                                           NULL,
+                                           true, 
+                                           false,
+                                           true);
+   };
+   
+   void addRaw(Address from, Address to, Priority p, bblInstance *bbl,
+               bool checkConflicts, bool includeRelocatedCopies, bool fromRelocatedCode) {
+      sBoardMap_[p][from] = SpringboardReq(from, to, p, bbl,
+                                           checkConflicts, includeRelocatedCopies,
+                                           fromRelocatedCode);
+   }
+
+#if 0
+   void add(Address from, Address to, 
+            Priority p, bblInstance *bbl, 
+            bool checkConflicts, bool includeRelocatedCopies, 
+            bool fromRelocatedCode) {
+      sBoardMap_[p][from] = SpringboardReq(from, to,
+                                           p, bbl,
+                                           checkConflicts, 
+                                           includeRelocatedCopies,
+                                           fromRelocatedCode);
+   }
+#endif
 
    iterator begin(Priority p) { return sBoardMap_[p].begin(); };
    iterator end(Priority p) { return sBoardMap_[p].end(); };
@@ -152,6 +191,8 @@ class SpringboardBuilder {
 
   // Find all previous instrumentations and also overwrite 
   // them. 
+  bool createRelocSpringboards(Priority p, SpringboardMap &input);
+
   bool generateReplacements(std::list<codeGen> &input,
 			    const SpringboardReq &p,
 			    bool useTrap);
@@ -161,8 +202,11 @@ class SpringboardBuilder {
 				Address to);
 #endif
 
-  bool conflict(Address start, Address end);
-  void registerBranch(Address start, Address end);
+  bool conflict(Address start, Address end, bool inRelocatedCode);
+  bool conflictInRelocated(Address start, Address end);
+
+  void registerBranch(Address start, Address end, bool inRelocatedCode);
+  void registerBranchInRelocated(Address start, Address end);
 
   void addMultiNeeded(const SpringboardReq &p);
 
@@ -183,6 +227,12 @@ class SpringboardBuilder {
   // Map this to an int because IntervalTree collapses similar ranges. Punks.
   IntervalTree<Address, int> validRanges_;
   int curRange_;
+
+  // Like the previous, but for branches we put in relocated code. We
+  // assume anything marked as "in relocated code" is a valid thing to write
+  // to, since relocation size is >= original size. However, we still don't
+  // want overlapping branches. 
+  IntervalTree<Address, bool> overwrittenRelocatedCode_;
 
   std::list<SpringboardReq> multis_;
 

@@ -33,6 +33,7 @@
 #define _R_E_MEM_EMULATOR_H_
 
 #include "Atom.h"
+class registerSlot;
 
 
 namespace Dyninst {
@@ -117,9 +118,15 @@ class MemEmulator : public Atom {
 
    bool saveFlags(codeGen &gen);
 
-
    bool restoreFlags(codeGen &gen);
 
+   bool preCallSave(codeGen &gen);
+   bool emitCallToTranslator(CodeBuffer &buffer);
+   bool postCallRestore(codeGen &gen);
+   bool pushRegIfLive(registerSlot *reg, codeGen &gen);
+   bool popRegIfSaved(registerSlot *reg, codeGen &gen);
+   Address getTranslatorAddr(codeGen &gen);
+   
    bool generateOrigAccess(codeGen &gen); 
 
    /*
@@ -146,6 +153,8 @@ class MemEmulator : public Atom {
 
    Register flagSave_;
 
+   static Address translatorAddr_;
+
    static TranslatorMap translators_;
 };
 
@@ -169,6 +178,19 @@ class MemEmulatorTranslator : public Atom {
     Register reg_;
 };
 
+struct MemEmulatorPatch : public Patch {
+   // Put in a call to the RTtranslateMemory
+   // function
+   MemEmulatorPatch(Register r,
+                    Address d)
+      : reg_(r), dest_(d) {};
+   virtual bool apply(codeGen &gen, CodeBuffer *buf);
+   virtual unsigned estimate(codeGen &templ) { return 7; };
+   virtual ~MemEmulatorPatch() {};
+
+   Register reg_;
+   Address dest_;
+};
 
 };
 };

@@ -425,13 +425,9 @@ class AddressSpace : public InstructionSource {
 					     std::set<Address>::iterator &e);
     void addInstrumentationInstance(baseTramp *bt, Address addr);
 
-
-    Address heapBase() const { return 0x8050000; }
-    Address instBase() const { return 0x804a000; }
-    Address dataBase() const { return 0x8048608; }
-    Address textBase() const { return 0x8048000; }
-
     void addModifiedFunction(int_function *func);
+
+    void updateMemEmulator();
     
  protected:
 
@@ -494,6 +490,15 @@ class AddressSpace : public InstructionSource {
     FuncReplaceMap functionReplacements_;
     typedef std::set<instPoint *> CallRemovalSet;
     CallRemovalSet callRemovals_;
+
+    // Track what the address space looks like for defensive mode. 
+    typedef IntervalTree<Address, long> MemoryMapTree;
+    MemoryMapTree memoryMapTree;
+
+    void addAllocatedRegion(Address start, unsigned size);
+    void addModifiedRegion(mapped_object *obj);
+
+    Address createShadowCopy(mapped_object *obj);
 };
 
 

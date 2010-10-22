@@ -1016,7 +1016,8 @@ bool insnCodeGen::generateMem(codeGen &gen,
       return false; //Can only do one memory replace per instruction now
    }
    else if (loadExpr == Null_Register && storeExpr == Null_Register)  {
-     cerr << "error 2" << endl;
+      cerr << "Error in generateMem: loadExpr " << loadExpr << ", storeExpr " << storeExpr << endl;
+      assert(0);
      return false; //None specified
    }
    else if (loadExpr != Null_Register && storeExpr == Null_Register) 
