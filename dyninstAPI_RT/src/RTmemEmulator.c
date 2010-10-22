@@ -47,8 +47,7 @@ unsigned long RTtranslateMemory(unsigned long input) {
    int min;
    int max;
    volatile int guard2;
-   return input;
-   fprintf(stderr, "RTtransMem for 0x%lx\n", input);
+//   fprintf(stderr, "RTtranslateMemory(0x%lx)\n", input);
    do {
       guard2 = RTmemoryMapper.guard2;
       min = 0;
@@ -71,22 +70,18 @@ unsigned long RTtranslateMemory(unsigned long input) {
       } while (min <= max);
    } while (guard2 != RTmemoryMapper.guard1);
 
-   return input;
-
    if (min <= max) {
-      fprintf(stderr, "Found match, shift 0x%lx\n", 
-              RTmemoryMapper.elements[index].shift);
       if (RTmemoryMapper.elements[index].shift == -1) {
-         fprintf(stderr, "... returning (should be) segv!\n");
+//         fprintf(stderr, "... returning (should be) segv!\n");
          return 0;
       }
       else {
-         fprintf(stderr, "... returning shift\n");
+//         fprintf(stderr, "... returning shift\n");
          return input + RTmemoryMapper.elements[index].shift;
       }
    }
    else {
-      fprintf(stderr, "... returning untouched\n");
+//      fprintf(stderr, "\t min %d, max %d, index %d, returning no change\n", min, max, index);
       return input;
    }
 }

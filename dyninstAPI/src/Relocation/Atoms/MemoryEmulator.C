@@ -662,6 +662,13 @@ bool MemEmulatorPatch::apply(codeGen &gen,
    Address src = gen.currAddr() + 5;
    relocation_cerr << "\tCall " << hex << dest_ << ", offset " << dest_ - src << dec << endl;
    emitCallRel32(dest_ - src, gen);
+   
+   // Problem: this is not a self-cleaning call. So we have an extra <BLARGH> on the stack.
+   // And we need to get rid of it. 
+   // FIXME <4>
+   emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 4, 
+           RealRegister(REGNUM_ESP), gen);
+
    // Step 3: mov eax -> effAddr_
    relocation_cerr << "\tPop reg " << reg_ << endl;
    ::emitMovRegToReg(RealRegister(reg_), RealRegister(REGNUM_EAX), gen);

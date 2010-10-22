@@ -816,7 +816,3 @@ int baseTrampInstance::funcJumpSlotSize()
    return 0;
 }
 
-int_function *baseTrampInstance::func() const
-{
-    return baseT->instP()->func();
-}
