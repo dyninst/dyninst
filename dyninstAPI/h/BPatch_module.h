@@ -110,6 +110,7 @@ public:
     bool isExploratoryModeOn();// true if exploratory or defensive mode is on
     bool protectAnalyzedCode();// pages that have analyzed code become read-only
     bool isSystemLib();
+    bool removeFunction(BPatch_function*);
     // End functions for internal use only
   
     // BPatch_module::getName

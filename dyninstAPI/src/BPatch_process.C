@@ -1990,6 +1990,7 @@ void BPatch_process::overwriteAnalysisUpdate
         //remove instrumentation and the function itself
         BPatch_function *bpfunc = findOrCreateBPFunc(*fit,NULL);
         bpfunc->removeInstrumentation(true);
+        bpfunc->getModule()->removeFunction(bpfunc);
         Address base = funcAddr - (*fit)->ifunc()->getOffset();
         (*fit)->removeFromAll();
 

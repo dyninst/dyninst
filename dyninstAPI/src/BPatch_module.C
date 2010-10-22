@@ -571,6 +571,14 @@ bool BPatch_module::dumpMangledInt(char * prefix)
    return true;
 }
 
+BPatch_module::removeFunction(BPatch_function *func)
+{
+    BPatch_funcMap::iterator fit = func_map.find(func->lowlevel_func());
+    if (func_map.end() != fit) {
+        func_map.erase(fit);
+    }
+}
+
 void BPatch_module::parseTypes() 
 {
    mod->pmod()->mod()->exec()->parseTypesNow();
