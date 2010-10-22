@@ -311,7 +311,8 @@ void instPoint::calcLiveness() {
    
    const unsigned char* insnBuffer = 
       reinterpret_cast<const unsigned char*>(block()->origInstance()->getPtrToInstruction(blockBegin));
-    
+   assert(insnBuffer);
+
    InstructionDecoder decoder(insnBuffer,block()->origInstance()->getSize(),
         func()->ifunc()->isrc()->getArch());
    Address curInsnAddr = blockBegin;
@@ -320,9 +321,9 @@ void instPoint::calcLiveness() {
      ReadWriteInfo rw;
      if(!block()->llb()->cachedLivenessInfo.getLivenessInfo(curInsnAddr, func()->ifunc(), rw))
      {
-       Instruction::Ptr tmp = decoder.decode(insnBuffer);
-       rw = calcRWSets(tmp, block()->llb(), width, curInsnAddr);
-       block()->llb()->cachedLivenessInfo.insertInstructionInfo(curInsnAddr, rw, func()->ifunc());
+        Instruction::Ptr tmp = decoder.decode(insnBuffer);
+        rw = calcRWSets(tmp, block()->llb(), width, curInsnAddr);
+        block()->llb()->cachedLivenessInfo.insertInstructionInfo(curInsnAddr, rw, func()->ifunc());
      }
      blockAddrs.push_back(curInsnAddr);
      curInsnAddr += rw.insnSize;

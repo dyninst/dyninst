@@ -209,20 +209,20 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
    if (sboardMap_.empty()) {
       for (PriorityMap::const_iterator iter = priorityMap_.begin();
            iter != priorityMap_.end(); ++iter) {
-         bblInstance *from = iter->first;
+         bblInstance *bbl = iter->first;
          const Priority &p = iter->second;
 
          // the priority map may include things not in the block
          // map...
-         TraceMap::const_iterator b_iter = blockMap_.find(from);
+         TraceMap::const_iterator b_iter = blockMap_.find(bbl);
          if (b_iter != blockMap_.end()) {
             TracePtr trace = b_iter->second;
             int labelID = trace->getLabel();
             Address to = buffer_.getLabelAddr(labelID);
-
-            sboardMap_.add(from->firstInsnAddr(), to, p, from, true, true);
+            
+            sboardMap_.addFromOrigCode(bbl->firstInsnAddr(), to, p, bbl);
             relocation_cerr << "Added map " << hex
-                            << from->firstInsnAddr() << " -> " 
+                            << bbl->firstInsnAddr() << " -> " 
                             << to << ", " << p << dec << endl;
          }
       }
@@ -261,12 +261,7 @@ void CodeMover::createInstrumentationSpringboards(AddressSpace *as) {
       std::set<Address>::iterator begin, end;
       as->getPreviousInstrumentationInstances(iter->first, begin, end);
       for (; begin != end; ++begin) {
-         sboardMap_.add(*begin,
-                        iter->second,
-                        Suggested,
-                        NULL,
-                        false, 
-                        false);
+         sboardMap_.addFromRelocatedCode(*begin, iter->second, Required);
          relocation_cerr << "\t Added inst SB " << hex
                          << *begin << " -> " << iter->second << dec << endl;
       }
@@ -278,12 +273,7 @@ void CodeMover::createInstrumentationSpringboards(AddressSpace *as) {
       std::set<Address>::iterator begin, end;
       as->getPreviousInstrumentationInstances(iter->first, begin, end);
       for (; begin != end; ++begin) {
-         sboardMap_.add(*begin,
-                        iter->second,
-                        Suggested,
-                        NULL,
-                        false, 
-                        false);
+         sboardMap_.addFromRelocatedCode(*begin, iter->second, Required);
          relocation_cerr << "\t Added inst SB " << hex
                          << *begin << " -> " << iter->second << dec << endl;
       }

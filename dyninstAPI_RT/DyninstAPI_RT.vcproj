@@ -279,6 +279,19 @@
 					/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath=".\src\RTmemEmulator.c"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
+						CompileAs="1"
+					/>
+				</FileConfiguration>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
