@@ -1681,11 +1681,16 @@ Address bblInstance::equivAddr(int newVersion, Address addr) const {
 }
 
 void *bblInstance::getPtrToInstruction(Address addr) const {
-    if (addr < firstInsnAddr_) return NULL;
-    if (addr >= blockEndAddr_) return NULL;
+   if (addr < firstInsnAddr_) {
+      assert(0);
+      return NULL;
+   }
+   if (addr >= blockEndAddr_) {
+      assert(0);
+      return NULL;
+   }
 
-    return func()->obj()->getPtrToInstruction(addr);
-
+   return func()->obj()->getPtrToInstruction(addr);
 }
 
 void *bblInstance::get_local_ptr() const {

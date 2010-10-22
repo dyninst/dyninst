@@ -29,7 +29,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "MemoryEmulator.h"
 
 #include "Atom.h"
 #include "Target.h"
@@ -51,6 +50,8 @@
 #include "dyninstAPI/src/registerSpace.h"
 
 #include "../CodeBuffer.h"
+
+#include "MemoryEmulator.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -127,25 +128,27 @@ bool MemEmulator::generate(const codeGen &templ,
 		  << std::hex << addr_
 		  << std::dec << endl;
 
-  if (!initialize(prepatch)) return false;
+  if (!initialize(prepatch)) {
+     relocation_cerr << "\tInitialize failed, ret false" << endl;
+     return false;
+  }
 
-  if (!checkLiveFlags(prepatch)) return false;
-
+  if (!checkLiveFlags(prepatch)) {
+     relocation_cerr << "\tFlag check failed, ret false" << endl;
+     return false;
+  }
   if (!allocRegisters(prepatch)) {
-    /*
-    cerr << "Warning: failed to emulate memory insn @ " 
-	 << std::hex << addr_ << std::dec
-	 << ", no dead registers" << endl;
-    */
+     relocation_cerr << "\tRegAlloc failed, ret false" << endl;
      buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t->bbl()->func()));
      return true;
   }
     
   if (!computeEffectiveAddress(prepatch)) {
-    cerr << "Error: failed to compute eff. addr. of memory operation!" << endl;
+     relocation_cerr << "\tFailed to compute eff. addr. of memory operation!" << endl;
     return false;
   }
-  
+
+#if defined(do_it_in_assembly)  
   if (!saveFlags(prepatch)) { 
      cerr << "Error failed to save live flags!" << endl;
   }
@@ -154,6 +157,21 @@ bool MemEmulator::generate(const codeGen &templ,
   dt.generate(prepatch);
   
   restoreFlags(prepatch);
+#else
+  prepatch.fill(5, codeGen::cgNOP);
+  // push/pop time!
+  if (!preCallSave(prepatch))
+     return false;
+  buffer.addPIC(prepatch, tracker(t->bbl()->func()));
+  prepatch.setIndex(0);
+  
+  buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch)), tracker(t->bbl()->func()));
+
+  if (!postCallRestore(prepatch))
+     return false;
+  prepatch.fill(5, codeGen::cgNOP);
+#endif
+
 
   generateOrigAccess(prepatch);
 
@@ -400,7 +418,73 @@ string MemEmulator::format() const {
   return ret.str();
 }
 
+bool MemEmulator::pushRegIfLive(registerSlot *reg, codeGen &gen) {
+   if (reg->encoding() == effAddr_) {
+      // Don't save it, as we're overwriting it anyway.
+      return true;
+   }
 
+   if (reg->liveState == registerSlot::live) {
+      ::emitPush(RealRegister(reg->encoding()), gen);
+      reg->liveState = registerSlot::spilled;
+   }
+   return true;
+}
+
+bool MemEmulator::popRegIfSaved(registerSlot *reg, codeGen &gen) {
+   if (reg->liveState == registerSlot::spilled) {
+      ::emitPop(RealRegister(reg->encoding()), gen);
+      reg->liveState = registerSlot::live;
+   }
+   return true;
+}
+
+bool MemEmulator::preCallSave(codeGen &gen) {
+   // Push registers eax, ecx, edx if live
+   registerSlot *eax = (*(gen.rs()))[REGNUM_EAX];
+   registerSlot *ecx = (*(gen.rs()))[REGNUM_ECX];
+   registerSlot *edx = (*(gen.rs()))[REGNUM_EDX];
+   pushRegIfLive(eax, gen);
+   pushRegIfLive(ecx, gen);
+   pushRegIfLive(edx, gen);
+
+   saveRAX_ = false;
+   if (!saveFlags(gen))
+      return false;
+   return true;
+}
+
+bool MemEmulator::postCallRestore(codeGen &gen) {
+   if (!restoreFlags(gen)) return false;
+
+   registerSlot *eax = (*(gen.rs()))[REGNUM_EAX];
+   registerSlot *ecx = (*(gen.rs()))[REGNUM_ECX];
+   registerSlot *edx = (*(gen.rs()))[REGNUM_EDX];
+
+   popRegIfSaved(edx, gen);
+   popRegIfSaved(ecx, gen);
+   popRegIfSaved(eax, gen);
+
+   return true;
+}
+
+bool MemEmulator::emitCallToTranslator(CodeBuffer &bu) {
+   return true;
+}
+   
+Address MemEmulator::translatorAddr_ = 0;
+Address MemEmulator::getTranslatorAddr(codeGen &gen) {
+   if (translatorAddr_ != 0) {
+      return translatorAddr_;
+   }
+   // Function lookup time
+   int_function *func = gen.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
+   // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
+   if (!func) return 0;
+   // assert(func);
+   translatorAddr_ = func->getAddress();
+   return translatorAddr_;
+}
 
 //////////////////////////////////////////////////////////
 
@@ -449,11 +533,14 @@ bool DecisionTree::generate(codeGen &gen) {
   vector<codeBufIndex_t> textPatches;
   vector<codeBufIndex_t> instPatches;
 
+/*
   origPatches.push_back(generateCompare(gen, gen.addrSpace()->heapBase()));
   instPatches.push_back(generateCompare(gen, gen.addrSpace()->instBase()));
   origPatches.push_back(generateCompare(gen, gen.addrSpace()->dataBase()));
   textPatches.push_back(generateCompare(gen, gen.addrSpace()->textBase()));
+*/
   origPatches.push_back(generateSkip(gen));
+
 
   codeBufIndex_t instShift = generateInst(gen);
   origPatches.push_back(generateSkip(gen));
@@ -563,3 +650,20 @@ void DecisionTree::generateJCC(codeGen &gen,
   generateJumps(gen, target, sources);
 }
 
+bool MemEmulatorPatch::apply(codeGen &gen,
+                             CodeBuffer *buf) {
+   // Step 1: push effAddr_ so that we can
+   // access it as an argument.
+   relocation_cerr << "MemEmulatorPatch::apply @ " << hex << gen.currAddr() << dec << endl;
+   relocation_cerr << "\tPush reg " << reg_ << endl;
+   ::emitPush(RealRegister(reg_), gen);
+   // Step 2: call the translator, using a direct
+   // call
+   Address src = gen.currAddr() + 5;
+   relocation_cerr << "\tCall " << hex << dest_ << ", offset " << dest_ - src << dec << endl;
+   emitCallRel32(dest_ - src, gen);
+   // Step 3: mov eax -> effAddr_
+   relocation_cerr << "\tPop reg " << reg_ << endl;
+   ::emitMovRegToReg(RealRegister(reg_), RealRegister(REGNUM_EAX), gen);
+   return true;
+}

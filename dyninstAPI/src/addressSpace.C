@@ -359,6 +359,10 @@ void AddressSpace::addHeap(heapItem *h) {
     h2->status = HEAPfree;
     heap_.heapFree.push_back(h2);
     heap_.totalFreeMemAvailable += h2->length;
+
+    if (h->dynamic) {
+       addAllocatedRegion(h->addr, h->length);
+    }
 }
 
 void AddressSpace::initializeHeap() {
@@ -1513,7 +1517,11 @@ bool AddressSpace::relocate() {
     if (!relocateInt(iter->second.begin(), iter->second.end(), iter->first->codeAbs())) {
       ret = false;
     }
+    addModifiedRegion(iter->first);
   }
+
+  updateMemEmulator();
+
   modifiedFunctions_.clear();
   return ret;
 }
@@ -1878,4 +1886,132 @@ void AddressSpace::getPreviousInstrumentationInstances(baseTramp *bt,
 void AddressSpace::addInstrumentationInstance(baseTramp *bt,
 					      Address a) {
   instrumentationInstances_[bt].insert(a);
+}
+
+void AddressSpace::updateMemEmulator() {
+   return;
+   // 1) Create shadow copies for any MappedObject we
+   // have modified.
+   // 2) Update the runtime's MemoryMapper structure
+   // to correspond to this.
+
+   std::vector<int_variable *> memoryMapperTable;
+   if (!findVarsByAll("RTmemoryMapper", memoryMapperTable)) {
+      //assert(0);
+      return; // For testing with static rewriter
+   }
+
+   // First step: nonblocking synchro.
+   int guardValue;
+   readDataSpace((void *)memoryMapperTable[0]->getAddress(),
+                 sizeof(int),
+                 &guardValue,
+                 false);
+   guardValue++;
+   writeDataSpace((void *)memoryMapperTable[0]->getAddress(),
+                  sizeof(int),
+                  &guardValue);
+   
+   cerr << "UpdateMemEmulator: writing guard value " << guardValue << endl;
+
+   // 64->32 bit is annoying...
+   if (getAddressWidth() == 4) {
+      struct MemoryMapper32 newMapper;
+      
+      readDataSpace((void *)memoryMapperTable[0]->getAddress(),
+                    sizeof(newMapper),
+                    &newMapper,
+                    false);
+
+      // First step: 
+      newMapper.guard1 = guardValue;
+      newMapper.guard2 = guardValue;
+      newMapper.size = memoryMapTree.size();
+      cerr << "\t new values: " << newMapper.guard1 << "/" << newMapper.guard2 << "/" << newMapper.size << endl;
+      std::vector<MemoryMapTree::Entry> elements;
+      memoryMapTree.elements(elements);
+      for (unsigned i = 0; i < elements.size(); ++i) {
+         newMapper.elements[i].lo = elements[i].first.first;
+         newMapper.elements[i].hi = elements[i].first.second;
+         assert(newMapper.elements[i].hi > newMapper.elements[i].lo);
+         newMapper.elements[i].shift = elements[i].second;
+         cerr << "\t\t Element: " << hex << newMapper.elements[i].lo << "->" << newMapper.elements[i].hi << ": " << newMapper.elements[i].shift << dec << endl;
+      }
+      writeDataSpace((void *)memoryMapperTable[0]->getAddress(),
+                     sizeof(newMapper),
+                     &newMapper);
+   }
+   else {
+      // TODO copy
+      //assert(0);
+   }
+}
+
+void AddressSpace::addAllocatedRegion(Address start, unsigned size) {
+   if (size == 0) return;
+
+   Address end = start + size;
+   assert(end > start);
+
+   // Okay. For efficiency, we want to merge this if possible with an existing
+   // range. We do this because our allocation tends to be contiguous.
+   // Two options: we're immediately above an existing range or we're immediately
+   // below. Check both. 
+
+   Address lb, ub;
+   long val;
+   if (memoryMapTree.find(start, lb, ub, val)) {
+      // Check to see if it's another allocated range
+      if (val != -1) {
+         // Not an allocated range (we use -1 to indicate that),
+         // so insert and finish
+         memoryMapTree.insert(start, end, -1);
+         return;
+      }
+
+      if (start == ub) {
+         memoryMapTree.remove(lb);
+         memoryMapTree.insert(lb, end, -1);
+         return;
+      }
+
+      // Otherwise start is within the range. Oops.
+      assert(0);
+   }
+   if (memoryMapTree.find(end, lb, ub, val)) {
+      if (val != -1) {
+         memoryMapTree.insert(start, end, -1);
+         return;
+      }
+      if (end == lb) {
+         memoryMapTree.remove(lb);
+         memoryMapTree.insert(start, ub, -1);
+         return;
+      }
+      assert(0);
+   }
+
+   memoryMapTree.insert(start, end, -1);
+   return;
+}
+
+void AddressSpace::addModifiedRegion(mapped_object *obj) {
+
+   // We just add mapped objects, so if we've already added this one then nifty.
+   Address lb, ub;
+   long val;
+   if (memoryMapTree.find(obj->codeAbs(), lb, ub, val)) {
+      // Done
+      return;
+   }
+   Address base = createShadowCopy(obj);
+   memoryMapTree.insert(obj->codeAbs(),
+                        obj->codeAbs() + obj->imageSize(),
+                        obj->codeAbs() - base);
+   return;
+}
+
+Address AddressSpace::createShadowCopy(mapped_object *obj) {
+   // TODO
+   return obj->codeAbs();
 }

@@ -1054,9 +1054,11 @@ void mapped_object::getInferiorHeaps(vector<pair<string, Address> > &foundHeaps)
 void *mapped_object::getPtrToInstruction(Address addr) const 
 {
    if (addr < codeAbs()) {
+      assert(0);
        return NULL;
    }
    if (addr >= (codeAbs() + imageSize())) {
+      assert(0);
        return NULL;
    }
 

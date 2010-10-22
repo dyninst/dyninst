@@ -3948,6 +3948,12 @@ bool process::addASharedObject(mapped_object *new_obj)
         fprintf(stderr, "%s[%d]:  FATAL, failing to init dyninst lib\n", FILE__, __LINE__);
         assert(0);
       }
+      // Clean this up some...
+      addAllocatedRegion(new_obj->codeAbs(),
+                         new_obj->imageSize());
+      addAllocatedRegion(new_obj->dataAbs(),
+                         new_obj->dataSize());
+
     }
 
 #if !defined(i386_unknown_nt4_0) \
