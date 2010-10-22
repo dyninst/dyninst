@@ -713,6 +713,12 @@ void StackAnalysis::computeInsnEffects(Block *block,
         iFunc.delta() = -1*word_size;
         stackanalysis_printf("\t\t\t Stack height reset by leave: %s\n", iFunc.format().c_str());
         return;
+    case e_pushfd:
+        sign = -1;
+    case e_popfd:
+        iFunc.delta() = sign * word_size;
+        stackanalysis_printf("\t\t\t Stack height changed by flag push/pop: %s\n", iFunc.format().c_str());
+        return;
     case power_op_si:
         sign = -1;
     case power_op_addi:

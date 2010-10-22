@@ -4459,42 +4459,8 @@ Address process::stopThreadCtrlTransfer
     if ( intPoint->isReturnInstruction() && 
          ! intPoint->func()->isSignalHandler() ) 
     {
-#if 0
-        Address returnAddrAddr=target + intPoint->preBaseTramp()->savedFlagSize;
-        //assert (getAddressWidth() == // otherwise the RTLIB cache value is wrong
-        //        intPoint->preBaseTramp()->savedFlagSize); 
-        if (!readDataSpace((void *)returnAddrAddr, 
-                           getAddressWidth(), &target, false)) 
-        {
-            fprintf(stderr, "%s[%d] WARNING: reading from the stopthread "
-                    "return addr addr %lx failed\n",FILE__,__LINE__,target);
-            assert(0);
-        }
-#endif
         mal_printf("%s[%d]: return address is %lx\n", FILE__,
                     __LINE__,target);
-#if 0
-        if (dyn_debug_malware) {
-            const int BUFSIZE = 0x40;
-            unsigned char *buf= (unsigned char*) malloc(BUFSIZE);
-            printf("STOPTHREAD HANDLING point=%lx target=%lx\n", pointAddress, 
-                   (Address)returnAddrAddr);
-            if (!readDataSpace((void *)(returnAddrAddr), 
-                                     BUFSIZE, buf, true)) {
-                fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
-                return false;
-            }
-            for (unsigned bidx=0; bidx < BUFSIZE; bidx+=4) {
-                printf("0x%x:  ", returnAddrAddr+bidx);
-                printf("%02hhx", buf[bidx+3]);
-                printf("%02hhx", buf[bidx+2]);
-                printf("%02hhx", buf[bidx+1]);
-                printf("%02hhx", buf[bidx]);
-                printf("\n");
-            }
-        }
-
-#endif
     }
 
     Address unrelocTarget = target;
@@ -4553,52 +4519,6 @@ Address process::stopThreadCtrlTransfer
                     tampered = true;
                 }
             }
-#if 0
-            if (!tampered) {
-                // see if we're in case 1c by checking that 
-                // we hadn't tampered with the stack. targBBI should 
-                // contain a call and it should call the return's function 
-                // or have an indirect call, in which case we can't tell
-                if (!callPt->isDynamic()) {
-                    // make sure we call the function that the ret is in
-                    tampered = true; // presume tampered until we find a matching call edge
-                    ParseAPI::Block::edgelist & edges = callBBI->block()->llb()->targets();
-                    ParseAPI::Block::edgelist::iterator eit = edges.begin();
-                    for (; eit != edges.end(); eit++) {
-                        if (ParseAPI::CALL == (*eit)->type()) {
-                            if ((*eit)->trg() == pointfunc->ifunc()->entry()) {
-                                tampered = false;
-                            }
-                            break; // found the call edge, break whether it matches or not
-                        }
-                    }
-                }
-                    ParseAPI::Block::edgelist & edges = targBBI->block()->llb()->sources();
-                    ParseAPI::Block::edgelist::iterator eit = edges.begin();
-                    for (; eit != edges.end(); eit++) {
-                        if (ParseAPI::CALL_FT == (*eit)->type()) {
-                            callBBI = targBBI->func()->findBlockInstanceByAddr
-                                ((*eit)->src()->start() + targBBI->func()->obj()->codeBase());
-                            callPt = targBBI->func()->findInstPByAddr(callBBI->lastInsnAddr());
-                            if (!callPt) {
-                                targBBI->func()->funcCalls();
-                                callPt = targBBI->func()->findInstPByAddr(callBBI->lastInsnAddr());
-                            }
-                            break;
-                        }
-                    }
-                    if (!callBBI) {
-                        callBBI = targBBI->func()->findBlockInstanceByAddr(targBBI->firstInsnAddr()-1);
-                        if (callBBI) {
-                            ParseAPI::Edge ftEdge(callBBI->block()->llb(), 
-                                                  targBBI->block()->llb(),
-                                                  ParseAPI::CALL_FT);
-                            callBBI->block()->llb()->addTarget(ftEdge);
-                        }
-                        tampered = true;
-                    }
-                }
-#endif
             if (!tampered) {
                 unrelocTarget = callBBI->endAddr();
             } 

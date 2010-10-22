@@ -1574,8 +1574,9 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   cm->extractDefensivePads(this);
 
   if (proc() && BPatch_defensiveMode == proc()->getHybridMode()) {
-      // adjust PC if active frame is in a modified function,
-      // this is an important case for code overwrites
+      // adjust PC if active frame is in a modified function, this 
+      // forces the instrumented version of the code to execute right 
+      // away and is needed for code overwrites
       vector<dyn_thread*>::const_iterator titer;
       for (titer=proc()->threads.begin();
            titer != proc()->threads.end(); 
@@ -1586,7 +1587,9 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           Address pcOrig=0;
           vector<int_function *> origFuncs;
           baseTrampInstance *bti=NULL;
-          if (! getAddrInfo(tframe.getPC(), pcOrig, origFuncs, bti)) {
+          if (! getAddrInfo(tframe.getPC(), pcOrig, origFuncs, bti) ||
+              pcOrig == tframe.getPC()) 
+          {
               continue;
           }
           int_function *origFunc;

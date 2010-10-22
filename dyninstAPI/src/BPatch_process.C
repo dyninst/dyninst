@@ -1896,13 +1896,12 @@ void BPatch_process::overwriteAnalysisUpdate
                 visitedBlocks.insert(srcBlock);
             }
             if (!foundNewStub) {
-                fprintf(stderr,"WARNING: failed to find stub to replace "
+                mal_printf("WARNING: failed to find stub to replace "
                         "the overwritten stub [%lx %lx] for overwritten "
                         "block at %lx %s[%d]\n",
                         (*sit).src->firstInsnAddr(), 
                         (*sit).src->endAddr(), 
                         (*sit).trg,FILE__,__LINE__);
-                assert(0); // the whole function should be gone in this case
             }
         }
         }

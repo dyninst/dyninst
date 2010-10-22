@@ -37,6 +37,10 @@
 #include "process.h"
 #include "function.h"
 #include "debug.h"
+#include "Absloc.h"
+#include "AbslocInterface.h"
+#include "InstructionDecoder.h"
+#include "instPoint.h"
 
 using namespace Dyninst;
 
@@ -180,7 +184,7 @@ bool HybridAnalysisOW::isInLoop(Address blockAddr, bool activeOnly)
  *    protections for the loop's pages
  * return true if the loop was active
  */ 
-bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool useInsertionSet, bool checkForChanges)
+bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool useInsertionSet, BPatch_point *writePoint)
 {
     bool isLoopActive = loop->isActive();
     mal_printf("deleteLoop: loopID =%d active=%d %s[%d]\n",
@@ -192,14 +196,16 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool useInsertionSet, bool check
         bool changedCode = false;
         std::vector<Address> deadBlockAddrs;
         std::vector<BPatch_function*> modFuncs;
-        if (checkForChanges) {
+        if (writePoint) {
+            overwriteAnalysis(writePoint,(void*)loop->getID());
+        } else {
     	    proc()->overwriteAnalysisUpdate(loop->shadowMap,
                                             deadBlockAddrs,
                                             modFuncs,
                                             changedPages,
                                             changedCode);
-            assert(!changedCode);//KEVINTODO: if this assertion fails, I'll 
-                                 //have to update the analysis immediately
+            assert(!changedCode && "bug, overwrite loops should not contain "
+                   "instructions that could trigger analysis update callbacks");
         }
     }
 
@@ -419,8 +425,8 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
     assert(blocks.size());
 
     // build the set that describes the type of accesses we're looking for
-    BPatch_Set<BPatch_opCode> axs;
-    axs.insert(BPatch_opStore);
+    BPatch_Set<BPatch_opCode> insnTypes;
+    insnTypes.insert(BPatch_opStore);
 
     // 2. create bounds array for all blocks in the loop
     int array_length = 2 * blocks.size(); // entries (not bytes) in array
@@ -429,37 +435,50 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
     // for each block
     std::vector<BPatch_point*> loopWrites;
     std::set<BPatch_basicBlock*,HybridAnalysis::blockcmp>::iterator bIter = blocks.begin();
-    unsigned bIdx=0; 
+    unsigned boundsIdx=0; 
     while (bIter != blocks.end()) {
         // create instrumentation points
-        //mal_printf("block [%lx %lx]\n", (*bIter)->getStartAddress(), 
-        //          (*bIter)->getEndAddress());
-        std::vector<BPatch_point*>* blockWrites = (*bIter)->findPoint(axs);
+        std::vector<BPatch_point*>* blockWrites = (*bIter)->findPoint(insnTypes);
+        for (unsigned widx = 0; widx < (*blockWrites).size(); widx++) {
+            if (BPatch_locSubroutine == (*blockWrites)[widx]->getPointType() ||
+                !hybridow_->isRealStore(
+                    (Address)(*blockWrites)[widx]->getAddress(),
+                    (*blockWrites)[widx]->getFunction())) 
+            {
+                (*blockWrites)[widx] = (*blockWrites)[blockWrites->size()-1];
+                blockWrites->pop_back();
+            }
+            //if ((*bIter)->getLastInsnAddress() == 
+            //    (Address)blockWrites[wit]->getPointAddress()) 
+            //{ // check to see if it's a call
+            //     for ((*bIter)-
+            //}
+        }
         loopWrites.insert(loopWrites.end(), 
                           blockWrites->begin(), 
                           blockWrites->end());
         // store block bounds or alter previous entry if blocks are contiguous
-        if (boundsArray[bIdx-1] == (*bIter)->getStartAddress()) {
-            boundsArray[bIdx-1] = (*bIter)->getEndAddress();
+        if (boundsArray[boundsIdx-1] == (*bIter)->getStartAddress()) {
+            boundsArray[boundsIdx-1] = (*bIter)->getEndAddress();
         } else {
-            if (bIdx > 0) {
-                mal_printf("BA[%d] = [%lx %lx]\n", bIdx-2, 
-                           boundsArray[bIdx-2],boundsArray[bIdx-1]);
+            if (boundsIdx > 0) {
+                mal_printf("BA[%d] = [%lx %lx]\n", boundsIdx-2, 
+                           boundsArray[boundsIdx-2],boundsArray[boundsIdx-1]);
             }
-            boundsArray[bIdx]   = (*bIter)->getStartAddress();
-            boundsArray[bIdx+1] = (*bIter)->getEndAddress();
-            bIdx+=2;
+            boundsArray[boundsIdx]   = (*bIter)->getStartAddress();
+            boundsArray[boundsIdx+1] = (*bIter)->getEndAddress();
+            boundsIdx+=2;
         }
         bIter++; 
     }
-    if (bIdx > 0) {
+    if (boundsIdx > 0) {
         mal_printf("BA[%d] = [%lx %lx]\n", 
-                   bIdx-2, boundsArray[bIdx-2], boundsArray[bIdx-1]);
+                   boundsIdx-2, boundsArray[boundsIdx-2], boundsArray[boundsIdx-1]);
     }
     mal_printf("instrumenting %d store instructions in loop %d %s[%d]\n",
                loopWrites.size(),loopID_,FILE__,__LINE__);
     // array length is now probably smaller than earlier worst case value
-    array_length = bIdx;
+    array_length = boundsIdx;
     // create and initialize the snippet for the array of bounds
     BPatch_variableExpr *varBA = hybridow_->proc()->malloc
         (array_length *sizeof(Address));
@@ -1083,6 +1102,32 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 #endif
 
 
+bool HybridAnalysisOW::isRealStore(Address insnAddr, 
+                                   BPatch_function *func) 
+{
+    using namespace InstructionAPI;
+    const unsigned char* buf = reinterpret_cast<const unsigned char*>
+        (proc()->lowlevel_process()->getPtrToInstruction(insnAddr));
+    InstructionDecoder decoder(buf,
+			                   InstructionDecoder::maxInstructionLength,
+            			       proc()->lowlevel_process()->getArch());
+    Instruction::Ptr insn;
+    image_func *imgfunc = func->lowlevel_func()->ifunc(); 
+    Address image_addr = func->lowlevel_func()->addrToOffset(insnAddr);
+
+    std::vector<Assignment::Ptr> assignments;
+    AssignmentConverter aConverter(false);
+    aConverter.convert(insn, image_addr, imgfunc, assignments);
+
+    for (std::vector<Assignment::Ptr>::const_iterator a_iter = assignments.begin();
+         a_iter != assignments.end(); ++a_iter) 
+    {
+        if ((*a_iter)->out().contains(Absloc::Heap)) {
+            return true;
+        }
+    }
+    return false;
+}
 
 
 /* Informs the mutator that an instruction will write to a page
@@ -1187,28 +1232,27 @@ void HybridAnalysisOW::overwriteSignalCB
         {
             loop->setWritesOwnPage(true);
             if (loop->blocks.size() > 1) {
-                loop->instrumentLoopWritesWithBoundsCheck();
-            }
-        }
-
-        // if the faulting function has code on the overwritten page, check
-        // that it's not overwriting itself, because if it is, we'll have to
-        // tear the function in two, purge the unreachable parts, and 
-        // re-instrument the function
-        if ( loop->writesOwnPage() ) {
-            set<BPatch_function*> writtenFuncs;
-            proc()->findFuncsByRange(pageAddress, pageAddress+pageSize, writtenFuncs);
-            if (writtenFuncs.find(faultFunc) != writtenFuncs.end()) {
-                // KEVINTODO: need more general test here to see if the 
-                //            program will overwrite loop code. The 
-                //            code to purge should really be determined by 
-                //            analysis of the function's control-flow 
-                // if the function is overwriting its entry point, 
-                // remove the unreachable code
-                mal_printf("overwrite function [%x] is writing to one of its "
-                           "code pages %x=>%x %s[%d]\n",
-                           faultFunc->getBaseAddr(), faultInsnAddr, 
-                           writeTarget, FILE__,__LINE__);
+                int_function *llfunc = faultFunc->lowlevel_func();
+                instPoint *pt = llfunc->findInstPByAddr(faultInsnAddr);
+                if (!pt) {
+                    llfunc->funcCalls();
+                    llfunc->funcEntries();
+                    llfunc->funcExits();
+                    llfunc->funcUnresolvedControlFlow();
+                    pt = llfunc->findInstPByAddr(faultInsnAddr);
+                    if (!pt) {
+                        pt = instPoint::createArbitraryInstPoint(
+                            faultInsnAddr, proc()->lowlevel_process(), llfunc);
+                    }
+                }
+                assert(pt);
+                BPatch_point *writePoint = proc()->findOrCreateBPPoint(
+                    faultFunc, 
+                    pt, 
+                    BPatch_point::convertInstPointType_t(pt->getPointType()));
+                deleteLoop(loop, true, writePoint);
+                overwriteSignalCB(faultInsnAddr, writeTarget);
+                return;
             }
         }
 

@@ -271,9 +271,12 @@ bool CFAtomCreator::unparsedFallthrough(const bblInstance *inst) {
     if ((*iter)->type() == ParseAPI::CALL) {
       seen_call = true;
     }
+    if ((*iter)->type() == ParseAPI::CALL_FT) {
+      seen_ft = true;
+    }
   }
   
-  if (seen_call && !inst->func()->findBlockInstanceByAddr(inst->endAddr())) {
+  if (seen_call && !seen_ft) {//!inst->func()->findBlockInstanceByAddr(inst->endAddr())) {
     return true;
   }
   else {

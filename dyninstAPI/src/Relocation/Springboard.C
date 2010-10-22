@@ -367,8 +367,6 @@ void SpringboardBuilder::debugRanges() {
 }
 
 void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) {
-  assert (from != 0x3124c7);
-
   gen.invalidate();
   gen.allocate(16);
 
@@ -376,6 +374,7 @@ void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) 
   gen.setAddr(from);
 
   insnCodeGen::generateBranch(gen, from, to);
+  cerr << "Springboard branch " << hex << from << "->" << to << dec << endl;
 }
 
 void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {

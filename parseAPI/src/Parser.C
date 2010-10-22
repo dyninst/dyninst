@@ -420,7 +420,46 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
                               TAMPER_NONZERO != pf->func->tampersStack() ))
                 {   // add a fallthrough / tamper-target edge if there is one
                     vector<ParseFrame*> tamperFrames;
-                    getTamperFrames(pf->func, tamperFrames);
+                    for (unsigned widx = 0; 
+                         pf->func->tampersStack() == TAMPER_REL && 
+                         widx < work.size(); 
+                         widx++) 
+                    {
+                        if (work[widx]->status() == ParseFrame::CALL_BLOCKED &&
+                            pf->func == work[widx]->call_target) 
+                        {
+                            for (unsigned bidx=0 ; 
+                                 bidx < work[widx]->work_bundles.size(); 
+                                 bidx++) 
+                            {
+                                const vector<ParseWorkElem*> &elems = 
+                                    work[widx]->work_bundles[bidx]->elems();
+                                bool rightBundle = false;
+                                Edge *ftEdge = NULL;
+                                for (unsigned eix=0; eix < elems.size(); eix++)
+                                {
+                                    if (elems[eix]->edge()->type() == CALL &&
+                                        elems[eix]->target()==pf->func->addr())
+                                    {
+                                        rightBundle = true;
+                                    }
+                                    else if (elems[eix]->edge()->type() == 
+                                             CALL_FT)
+                                    {
+                                        ftEdge = elems[eix]->edge();
+                                    }
+                                }
+                                if (rightBundle && ftEdge) {
+                                    getTamperFrames(pf->func, 
+                                                    tamperFrames, 
+                                                    ftEdge);
+                                }
+                            }
+                        }
+                    }
+                    if (pf->func->tampersStack() == TAMPER_ABS) {
+                        getTamperFrames(pf->func, tamperFrames, NULL);
+                    }
                     for (unsigned tidx=0; tidx < tamperFrames.size(); tidx++) {
                         ParseFrame *tf = tamperFrames[tidx];
                         if( ! _parse_data->findFrame(tf->func->region(),
@@ -581,6 +620,9 @@ Parser::init_frame(ParseFrame & frame)
             parsing_printf("[%s] failed to initialize parsing frame\n",
                 FILE__);
             return;
+        }
+        if (split) {
+            _pcb.block_split(split,b);
         }
     }
 
@@ -1513,56 +1555,14 @@ void Parser::move_func(Function *func, Address new_entry, CodeRegion *new_reg)
     };
 
 void 
-Parser::getTamperFrames(Function *func, std::vector<ParseFrame*> & frames)
+Parser::getTamperFrames(Function *func, 
+                        std::vector<ParseFrame*> & frames, 
+                        Edge *ftEdge)
 {
 
     vector<frame_info*> finfo;
     switch (func->tampersStack()) {
     case (TAMPER_NONE): 
-#if 0 // do nothing, the edge is already there
-        {
-        // find calling blocks by following call edges up from the func's 
-        // entry block, creating a frame for the fallthrough edge, if the
-        // block has not been parse already
-        Block *entry = func->entry();
-        assert(entry);
-        Block::edgelist calls = entry->sources();
-        for (Block::edgelist::iterator cit = calls.begin(); 
-             cit != calls.end(); cit++) 
-        {
-            if (CALL != (*cit)->type()) {
-                continue;
-            }
-
-            bool hasFallthrough = false;
-            Block *caller = (*cit)->src();
-            Block::edgelist outs = caller->targets();
-            for (Block::edgelist::iterator oit = outs.begin(); 
-                 oit != outs.end(); oit++) 
-            {
-                if (CALL_FT == (*oit)->type()) {
-                    hasFallthrough = true;
-                    break;
-                }
-            }
-
-            if (!hasFallthrough) { 
-                // there is no fallthrough edge, but the fallthrough block
-                // may exist.  I hope I'm not causing problems in that case
-                // by creating a parse frame
-                Edge *tedge = link_tempsink(caller,CALL_FT);
-                Function *tfunc = _parse_data->findFunc(caller->region(), 
-                                                        caller->start());
-                finfo.push_back( 
-                    new frame_info(
-                        tfunc->addr(), 
-                        tedge, 
-                        tfunc )
-                    );
-            }
-        }
-        }
-#endif
         break;
     case (TAMPER_ABS): {
         Function * tfunc = NULL;
@@ -1595,7 +1595,6 @@ Parser::getTamperFrames(Function *func, std::vector<ParseFrame*> & frames)
                 continue;
             }
             Address targ = (*eit)->src()->end() + func->_tamper_addr;
-            Edge *tedge = link_tempsink((*eit)->src(),CALL_FT);
             Function * tfunc = _parse_data->get_func(
                   func->region(), 
                   targ, 
@@ -1603,7 +1602,7 @@ Parser::getTamperFrames(Function *func, std::vector<ParseFrame*> & frames)
             finfo.push_back( 
                 new frame_info(
                     targ, 
-                    tedge, 
+                    ftEdge, 
                     tfunc )
                 );
         }
