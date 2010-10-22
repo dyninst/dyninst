@@ -1866,7 +1866,6 @@ void AddressSpace::addInstrumentationInstance(baseTramp *bt,
 }
 
 void AddressSpace::updateMemEmulator() {
-   return;
    // 1) Create shadow copies for any MappedObject we
    // have modified.
    // 2) Update the runtime's MemoryMapper structure
