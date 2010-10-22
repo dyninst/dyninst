@@ -1769,7 +1769,7 @@ void BPatch_process::overwriteAnalysisUpdate
     std::set<bblInstance*> delBBIs;
     std::map<int_function*,set<bblInstance*> > elimMap;
     std::list<int_function*> deadFuncs;
-    std::list<bblInstance*> newFuncEntries;
+    std::map<int_function*,bblInstance*> newFuncEntries;
     llproc->getDeadCode(owBBIs,delBBIs,elimMap,deadFuncs,newFuncEntries); 
 
     // remove instrumentation from affected funcs
@@ -1924,22 +1924,27 @@ void BPatch_process::overwriteAnalysisUpdate
         }
     }
 
-    // delete delBlocks 
+    // delete delBlocks (remove from elimMap)
     for(set<bblInstance*>::iterator bit = delBBIs.begin(); 
         bit != delBBIs.end();
         bit++) 
     {
+        int_function *bFunc = (*bit)->func();
         if ((*bit)->block()->getHighLevelBlock()) {
             ((BPatch_basicBlock*)(*bit)->block()->getHighLevelBlock())
                 ->setlowlevel_block(NULL);
         }
         deadBlockAddrs.push_back((*bit)->firstInsnAddr());
-        (*bit)->func()->deleteBlock((*bit)->block());
         vector<ParseAPI::Block*> bSet; 
         bSet.push_back((*bit)->block()->llb());
-        (*bit)->func()->ifunc()->deleteBlocks(bSet,NULL);
+        bFunc->deleteBlock((*bit)->block());
+        ParseAPI::Block *newEntry = NULL;
+        if (newFuncEntries[bFunc]) {
+            newEntry = newFuncEntries[bFunc]->block()->llb();
+            bFunc->ifunc()->setEntryBlock(newEntry);
+        }
+        bFunc->ifunc()->deleteBlocks(bSet); //KEVINTODO: doing this one by one is highly inefficient
     }
-
 
     // delete completely dead functions
     for(std::list<int_function*>::iterator fit = deadFuncs.begin(); 
@@ -1960,27 +1965,34 @@ void BPatch_process::overwriteAnalysisUpdate
             }
         }
 
+
+        // if the function is not reachable, add blocks to deadBlockAddrs 
+        bool hasCalls = false;
+        Block::edgelist entryEdges = (*fit)->ifunc()->entry()->sources();
+        for (Block::edgelist::iterator eit = entryEdges.begin();
+             !hasCalls && eit != entryEdges.end(); 
+             eit++) 
+        {
+            if ((*eit)->type() == ParseAPI::CALL) {
+                hasCalls = true;
+            }
+        }
+        vector<Address> bAddrs;
+        const set< int_basicBlock* , int_basicBlock::compare >& 
+            deadBlocks = (*fit)->blocks();
+        set<int_basicBlock* ,int_basicBlock::compare>::const_iterator
+                bIter= deadBlocks.begin();
+        for (; bIter != deadBlocks.end(); bIter++) {
+            bAddrs.push_back((*bIter)->origInstance()->firstInsnAddr());
+        }
+
         //remove instrumentation and the function itself
         BPatch_function *bpfunc = findOrCreateBPFunc(*fit,NULL);
         bpfunc->removeInstrumentation();
+        Address base = funcAddr - (*fit)->ifunc()->getOffset();
         (*fit)->removeFromAll();
 
-        // if we're in the entry function, which is not reachable, add 
-        // blocks to deadBlockAddrs 
-        if ((*fit)->obj()->parse_img()->isAOut() && 
-            (*fit)->ifunc()->addr() == 
-            (*fit)->obj()->parse_img()->getObject()->getEntryOffset()) 
-        {
-            const set< int_basicBlock* , int_basicBlock::compare >& 
-                deadBlocks = (*fit)->blocks();
-            set<int_basicBlock* ,int_basicBlock::compare>::const_iterator
-                    bIter= deadBlocks.begin();
-            for (; bIter != deadBlocks.end(); bIter++) {
-                deadBlockAddrs.push_back
-                    ((*bIter)->origInstance()->firstInsnAddr());
-            }
-        }
-        else {
+        if (hasCalls) {
             // the function is still reachable, reparse it
             vector<BPatch_module*> dontcare; 
             vector<Address> targVec; 
@@ -2001,34 +2013,30 @@ void BPatch_process::overwriteAnalysisUpdate
                 }
             } 
             else {
-                // couldn't reparse, add blocks to deadBlockAddrs
+                // couldn't reparse
+                hasCalls = false;
                 mal_printf("WARNING: Couldn't re-parse overwritten function "
                            "at %x %s[%d]\n", funcAddr, FILE__,__LINE__);
-                const set< int_basicBlock* , int_basicBlock::compare >& 
-                    deadBlocks = (*fit)->blocks();
-                for (set<int_basicBlock* ,int_basicBlock::compare>::
-                     const_iterator bIter= deadBlocks.begin();
-                     bIter != deadBlocks.end(); bIter++) 
-                {
-                    deadBlockAddrs.push_back
-                        ((*bIter)->origInstance()->firstInsnAddr());
-                }
             }
+        }
+        if (!hasCalls) {
+            deadBlockAddrs.insert(deadBlockAddrs.end(), 
+                                  bAddrs.begin(), 
+                                  bAddrs.end());
         }
     }
 
     // set new entry points for functions with NewF blocks
-    for (list<bblInstance*>::iterator nit = newFuncEntries.begin();
+    for (std::map<int_function*,bblInstance*>::iterator nit = newFuncEntries.begin();
          nit != newFuncEntries.end();
          nit++)
     {
-        int_basicBlock *entry = NULL;
-        (*nit)->func()->setNewEntryPoint(entry);
-        if (entry && entry->origInstance() != *nit) {
+        int_basicBlock *entry = nit->first->setNewEntryPoint();
+        if (entry->origInstance() != nit->second) {
             mal_printf("For overwritten executing func chose entry "
                        "block %lx rather than active block %lx %s %d\n",
                        entry->origInstance()->firstInsnAddr(), 
-                       (*nit)->firstInsnAddr(),FILE__,__LINE__);
+                       nit->second->firstInsnAddr(),FILE__,__LINE__);
         }
     }
 
@@ -2041,7 +2049,8 @@ void BPatch_process::overwriteAnalysisUpdate
         // parse new edges in the function
         if (stubs[fit->first].size()) {
             fit->first->parseNewEdges(stubs[fit->first]);
-        } else {
+        } 
+        else if (newFuncEntries.end() == newFuncEntries.find(fit->first)) {
             mal_printf("WARNING: didn't have any stub edges for overwritten "
                        "func %lx\n", fit->first->getAddress());
             vector<int_function::edgeStub> svec;
@@ -2059,384 +2068,6 @@ void BPatch_process::overwriteAnalysisUpdate
         bpfunc->removeCFG();
         owFuncs.push_back(bpfunc);
     }
-}
-
-#if 0
-// return true if the analysis changed
-// 
-void BPatch_process::overwriteAnalysisUpdate
-    ( std::map<Dyninst::Address,unsigned char*>& owPages, //input
-      std::vector<Dyninst::Address>& deadBlockAddrs, //output
-      std::vector<BPatch_function*>& owFuncs, //output: overwritten & modified
-      bool &changedPages, bool &changedCode) //output
-{
-    std::map<Address,Address> owRegions;
-    std::list<bblInstance *>   owBBIs;
-    std::map<int_function*,set<bblInstance*>*> owIntFuncs;
-    std::set<int_function*>   deadFuncs;
-    std::set<bblInstance*> newFuncEntries;
-
-    //1.  get the overwritten blocks and regions
-    llproc->getOverwrittenBlocks(owPages, owRegions, owBBIs);
-    changedPages = (bool) owRegions.size();
-    changedCode = (bool) owBBIs.size();
-
-    if ( !changedCode ) {
-        return;
-    }
-
-    /*2. remove dead code from the analysis */
-
-    // update the mapped data for the overwritten ranges
-    // detach overwritten BPatch_basicBlocks from internal blocks
-    // traverse function to identify dead blocks
-    // remove instrumentation from affected funcs
-    // create stub list, being careful not to add dead source blocks 
-    // remove dead blocks
-    // remove dead functions (overwritten entry block and not executing in func)
-    // foreach dead func
-        // grab callers
-        //remove instrumentation and the function itself
-        // only add to deadBlockAddrs if the dead function is not reachable, 
-        // i.e., it's the entry point of the a.out, and we've already
-        // executed it
-            // the function is still reachable, reparse it
-                // add function to output vector
-                // re-instate call edges to the function
-                // the function really is dead
-    //3. parse new code, one overwritten function at a time
-        // find subset of stubs that correspond to this function
-        // parse new edges in the function
-        // else, this is the entry point of the function, do nothing, 
-        // we'll parse this anyway through recursive traversal if there's
-        // code at this address
-
-        // add curFunc to owFuncs, and clear the function's BPatch_flowGraph
-
-    llproc->updateCodeBytes(owPages,owRegions);
-
-    //2. create stub list, being careful not to add dead source blocks 
-
-    std::vector<image_basicBlock*> stubSrcs;
-    std::vector<Address> stubTrgs;
-    std::vector<EdgeTypeEnum> stubTypes;
-    std::list<bblInstance*>::iterator deadIter = owBBIs.begin();
-    for (;deadIter != owBBIs.end(); deadIter++) 
-    {
-        using namespace ParseAPI;
-        SingleContext epred_((*deadIter)->func()->ifunc(),true,true);
-        Intraproc epred(&epred_);
-        image_basicBlock *curImgBlock = (*deadIter)->block()->llb();
-        Block::edgelist & sourceEdges = curImgBlock->sources();
-        Block::edgelist::iterator eit = sourceEdges.begin(&epred);
-
-        Address baseAddr = (*deadIter)->firstInsnAddr() 
-            - curImgBlock->firstInsnOffset();
-        for( ; eit != sourceEdges.end(); ++eit) {
-            image_basicBlock *sourceBlock = 
-                dynamic_cast<image_basicBlock*>((*eit)->src());
-            int_basicBlock *sourceIntB = llproc->findBasicBlockByAddr
-                ( baseAddr + sourceBlock->firstInsnOffset() );
-            if (owBBIs.end() == owBBIs.find(sourceIntB->origInstance()) ) {
-                stubSrcs.push_back(sourceBlock);
-                stubTrgs.push_back(curImgBlock->firstInsnOffset()+baseAddr);
-                stubTypes.push_back((*eit)->type());
-            }
-        }
-        // detach BPatch_basicBlocks from internal blocks
-        if ((*deadIter)->block()->getHighLevelBlock()) {
-            ((BPatch_basicBlock*)(*deadIter)->block()->getHighLevelBlock())
-                ->setlowlevel_block(NULL);
-        }
-    }
-
-    //2. identify the dead code 
-    std::set<bblInstance*> delBBIs;
-    std::map<int_function*,set<bblInstance*>*> elimMap;
-    llproc->getDeadCode(owBBIs,delBBIs,elimMap,deadFuncs,newFuncEntries); 
-
-    // remove instrumentation from affected funcs
-    
-    for(std::map<int_function*,set<bblInstance*>*>::iterator fIter = owIntFuncs.begin();
-        fIter != owIntFuncs.end(); 
-        fIter++) 
-    {
-        BPatch_function *bpfunc = findOrCreateBPFunc(fIter->first,NULL);
-        bpfunc->removeInstrumentation();
-    }
-
-    // if stubSrcsBlocks and owBBIs overlap, replace overwritten stub  
-    // blocks with ones that haven't been overwritten 
-    unsigned sidx=0; 
-    vector<ParseAPI::Function *> stubfuncs;
-    while(sidx < stubSrcs.size()) {
-
-        // find the stub's bblInstance and function
-        using namespace ParseAPI;
-        stubSrcs[sidx]->getFuncs(stubfuncs);
-        image_func *stubfunc = (image_func*)stubfuncs[0];
-        stubfuncs.clear();
-        Address baseAddr = stubfunc->img()->desc().loadAddr();
-        bblInstance *curBBI = llproc->findOrigByAddr
-            (stubSrcs[sidx]->firstInsnOffset() + baseAddr)->
-             is_basicBlockInstance();
-        assert(curBBI);
-
-        // continue if the block hasn't been overwritten
-        if (owBBIs.end() == owBBIs.find(curBBI)) {
-            sidx++;
-            continue;
-        }
-
-        // the stub's been overwritten, choose a non-overwritten source
-        // block on a non-call edge as the new stub with which to replace it
-        SingleContext epred_(stubfunc,true,true);
-        Intraproc epred(&epred_);
-        Block::edgelist inEdges = stubSrcs[sidx]->sources();
-        Block::edgelist::iterator eit = inEdges.begin(&epred);
-        bool foundNewStub = false;
-
-        for( ; !foundNewStub && eit != inEdges.end(); ++eit) 
-        {
-            if (CALL == (*eit)->type()) {
-                continue;
-            }
-            bblInstance *srcBBI = llproc->findOrigByAddr
-                (stubSrcs[sidx]->firstInsnOffset() + baseAddr)->
-                is_basicBlockInstance();
-            if (owBBIs.end() == owBBIs.find(srcBBI)) {
-                stubSrcs[sidx] = 
-                    dynamic_cast<image_basicBlock*>((*eit)->src());
-                stubTrgs[sidx] = stubSrcs[sidx]->firstInsnOffset()
-                    + baseAddr;
-                stubTypes[sidx] = (*eit)->type();
-                foundNewStub = true;
-            }
-        }
-        if (!foundNewStub) {
-            // all input blocks are dead. Search backwards through whole 
-            // function for a non-call edge we haven't tried
-            set<image_basicBlock*> visitedBlocks;
-            std::queue<Edge*> worklist;
-            visitedBlocks.insert(stubSrcs[sidx]);
-            Block::edgelist & inEdges = stubSrcs[sidx]->sources();
-            for(eit=inEdges.begin(&epred); eit != inEdges.end(); ++eit) {
-                if (CALL != (*eit)->type() && 
-                    visitedBlocks.end() == 
-                    visitedBlocks.find
-                      (static_cast<image_basicBlock*>((*eit)->src())))
-                {
-                    worklist.push(*eit);
-                }
-            }
-            while (worklist.size()) {
-                Edge *curEdge = worklist.front();
-                worklist.pop();
-                image_basicBlock *srcBlock = 
-                    static_cast<image_basicBlock*>(curEdge->src());
-                bblInstance *srcBBI = llproc->findOrigByAddr
-                    ( srcBlock->firstInsnOffset() + baseAddr )->
-                    is_basicBlockInstance();
-                assert(srcBBI);
-                if (owBBIs.end() == owBBIs.find(srcBBI)) {
-                    // found a valid stub block
-                    stubSrcs[sidx] = srcBlock;
-                    stubTrgs[sidx] = srcBBI->firstInsnAddr();
-                    stubTypes[sidx] = curEdge->type();
-                    foundNewStub = true;
-                    break;
-                }
-                else if (visitedBlocks.end() == visitedBlocks.find(srcBlock)) {
-                    Block::edgelist & edges = srcBlock->sources();
-                    for(eit=edges.begin(&epred); eit != edges.end(); ++eit) {
-                        if (CALL != (*eit)->type() && 
-                            visitedBlocks.end() == 
-                            visitedBlocks.find
-                              (static_cast<image_basicBlock*>((*eit)->src())))
-                        {
-                            worklist.push(*eit);
-                        }
-                    }
-                }
-                visitedBlocks.insert(srcBlock);
-            }
-            if (!foundNewStub) {
-                fprintf(stderr,"WARNING: failed to find stub to replace "
-                        "the overwritten stub [%lx %lx] for overwritten "
-                        "block at %lx %s[%d]\n",
-                        stubSrcs[sidx]->firstInsnOffset(), 
-                        stubSrcs[sidx]->endOffset(), 
-                        stubTrgs[sidx],FILE__,__LINE__);
-                assert(0); // the whole function should be gone in this case
-            }
-        }
-        sidx++;
-    }
-
-    // now traverse stub lists to remove any duplicates that were introduced by 
-    // overwritten stub replacement
-    for(unsigned i=0; i < stubSrcs.size()-1; i++) {
-        for(unsigned j=i+1; j < stubSrcs.size(); j++) {
-            if (stubSrcs[i] == stubSrcs[j]) {
-                if (j < stubSrcs.size()-1) {
-                    stubSrcs[j] = 
-                        stubSrcs[stubSrcs.size()-1];
-                }
-                stubSrcs.pop_back();
-            }
-        }
-    }
-
-    // remove dead blocks belonging to affected funcs, but not dead funcs
-    std::set<bblInstance*>::iterator bIter = owBBIs.begin();
-    vector<ParseAPI::Block*> owImgBs;
-    for (; bIter != owBBIs.end(); bIter++) {
-        if (deadFuncs.end() == deadFuncs.find((*bIter)->func())) {
-            (*bIter)->func()->deleteBlock((*bIter)->block());
-            owImgBs.push_back((*bIter)->block()->llb());
-            (*bIter)->func()->ifunc()->deleteBlocks(owImgBs,NULL);
-            owImgBs.clear();
-        }
-    }
-
-
-    for(std::set<int_function*>::iterator fIter = deadFuncs.begin(); 
-        fIter != deadFuncs.end(); 
-        fIter++) 
-    {
-        using namespace ParseAPI;
-        Address funcAddr = (*fIter)->getAddress();
-
-        // grab callers
-        vector<image_basicBlock*> callBlocks; 
-        Block::edgelist & callEdges = (*fIter)->ifunc()->entryBlock()->sources();
-        Block::edgelist::iterator eit = callEdges.begin();
-        for( ; eit != callEdges.end(); ++eit) {
-            if (CALL == (*eit)->type()) {
-                callBlocks.push_back
-                    (dynamic_cast<image_basicBlock*>((*eit)->src()));
-            }
-        }
-
-        //remove instrumentation and the function itself
-        BPatch_function *bpfunc = findOrCreateBPFunc(*fIter,NULL);
-        bpfunc->removeInstrumentation();
-        (*fIter)->removeFromAll();
-
-        // only add to deadBlockAddrs if the dead function is not reachable, 
-        // i.e., it's the entry point of the a.out, and we've already
-        // executed it
-        if ((*fIter)->obj()->parse_img()->isAOut() && 
-            0 == strncmp("main",(*fIter)->symTabName().c_str(),5)) 
-        {
-            const std::set< int_basicBlock* , int_basicBlock::compare >& 
-                deadBlocks = (*fIter)->blocks();
-            std::set<int_basicBlock* ,int_basicBlock::compare>::const_iterator
-                    bIter= deadBlocks.begin();
-            for (; bIter != deadBlocks.end(); bIter++) {
-                deadBlockAddrs.push_back
-                    ((*bIter)->origInstance()->firstInsnAddr());
-            }
-        }
-        else {
-
-            // the function is still reachable, reparse it
-            vector<BPatch_module*> dontcare; 
-            vector<Address> targVec; 
-            targVec.push_back(funcAddr);
-            if (getImage()->parseNewFunctions(dontcare, targVec)) {
-                // add function to output vector
-                bpfunc = findFunctionByEntry(funcAddr);
-                assert(bpfunc);
-                owFuncs.push_back(bpfunc);
-                // re-instate call edges to the function
-                for (unsigned bidx=0; bidx < callBlocks.size(); bidx++) {
-                    ParseAPI::Block *src = callBlocks[bidx];
-                    ParseAPI::Block *trg = 
-                        bpfunc->lowlevel_func()->ifunc()->entryBlock();
-                    ParseAPI::Edge *callEdge = new Edge
-                        (src, trg, ParseAPI::CALL);
-                    callEdge->install();
-                }
-            } else {
-                // the function really is dead
-                const std::set< int_basicBlock* , int_basicBlock::compare >& 
-                    deadBlocks = (*fIter)->blocks();
-                std::set<int_basicBlock* ,int_basicBlock::compare>::const_iterator
-                        bIter= deadBlocks.begin();
-                for (; bIter != deadBlocks.end(); bIter++) {
-                    deadBlockAddrs.push_back
-                        ((*bIter)->origInstance()->firstInsnAddr());
-                }
-            }
-        }
-    }
-
-    //3. parse new code, one overwritten function at a time
-    for(std::map<int_function*,set<bblInstance*>*>::iterator fIter = owIntFuncs.begin();
-        fIter != owIntFuncs.end(); 
-        fIter++) 
-    {
-        // find subset of stubs that correspond to this function
-        int_function *curFunc = fIter->first;
-        std::vector<ParseAPI::Block*> cur_ssb;
-        std::vector<Address> cur_st;
-        std::vector<EdgeTypeEnum> cur_set;
-        for(unsigned idx=0; idx < stubSrcs.size(); idx++) {
-            image_basicBlock *curblock = stubSrcs[idx];
-            vector<ParseAPI::Function *> sharefuncs;
-            curblock->getFuncs(sharefuncs);
-            for (vector<ParseAPI::Function *>::iterator fit= sharefuncs.begin();
-                 sharefuncs.end() != fit;
-                 fit++) 
-            {
-                if ((*fit) == curFunc->ifunc()) {
-                    cur_ssb.push_back(curblock);
-                    cur_st.push_back(stubTrgs[idx]);
-                    cur_set.push_back(stubTypes[idx]);
-                }
-            }
-        }
-
-        // parse new edges in the function
-        if (cur_ssb.size()) {
-            curFunc->parseNewEdges(cur_ssb,cur_st,cur_set);
-        } else {
-            cur_ssb.push_back(NULL);
-            cur_st.push_back(curFunc->ifunc()->getOffset());
-            cur_set.push_back(ParseAPI::NOEDGE);
-		    curFunc->parseNewEdges(cur_ssb,cur_st,cur_set);
-        }
-        // else, this is the entry point of the function, do nothing, 
-        // we'll parse this anyway through recursive traversal if there's
-        // code at this address
-
-        // add curFunc to owFuncs, and clear the function's BPatch_flowGraph
-        BPatch_function *bpfunc = findOrCreateBPFunc(curFunc,NULL);
-        bpfunc->removeCFG();
-        owFuncs.push_back(bpfunc);
-    }
-}
-#endif
-
-bool BPatch_process::removeFunctionSubRange
-                 ( BPatch_function &func, 
-                   Dyninst::Address startAddr, 
-                   Dyninst::Address endAddr, 
-                   std::vector<Dyninst::Address> &deadBlockAddrs )
-{
-    int_basicBlock *newEntryBlock = NULL;
-
-    bool success = func.lowlevel_func()->removeFunctionSubRange(
-                                                  startAddr, 
-                                                  endAddr, 
-                                                  deadBlockAddrs,
-                                                  newEntryBlock);
-    if (success) {
-        func.cfg->invalidate();
-    }
-
-    return success;
 }
 
 

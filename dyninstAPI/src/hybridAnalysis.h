@@ -98,22 +98,26 @@ public:
 private:
 
     // instrumentation functions 
-    bool instrumentModules(bool useInsertionSet = true); 
-    bool instrumentModule(BPatch_module *mod, bool useInsertionSet = true); 
+    bool instrumentModules(bool useInsertionSet); 
+    bool instrumentModule(BPatch_module *mod, bool useInsertionSet); 
     bool instrumentFunction(BPatch_function *func, 
                             bool useInsertionSet, 
                             bool instrumentReturns=false);
     bool parseAfterCallAndInstrument(BPatch_point *callPoint, 
                         Dyninst::Address calledAddr, 
                         BPatch_function *calledFunc) ;
-    void removeInstrumentation(BPatch_function *func);
+    void removeInstrumentation(BPatch_function *func, bool useInsertionSet);
     int saveInstrumentationHandle(BPatch_point *point, 
                                   BPatchSnippetHandle *handle);
     bool hasEdge(BPatch_point *sourcePoint, Dyninst::Address target);
 
     // parsing
-    void parseNewEdgeInFunction(BPatch_point *sourcePoint, Dyninst::Address target);
-    bool analyzeNewFunction( Dyninst::Address target , bool doInstrumentation );
+    void parseNewEdgeInFunction(BPatch_point *sourcePoint, 
+                                Dyninst::Address target,
+                                bool useInsertionSet);
+    bool analyzeNewFunction( Dyninst::Address target , 
+                             bool doInstrumentation , 
+                             bool useInsertionSet );
 
     // variables
     std::map<Dyninst::Address,Dyninst::Address> handlerFunctions; 
@@ -221,7 +225,8 @@ public:
      * return true if the loop was active
      */ 
     bool deleteLoop(HybridAnalysisOW::owLoop *loop, 
-                                   bool checkForChanges=true);
+                    bool useInsertionSet,
+                    bool checkForChanges=true);
 
     /* Informs the mutator that an instruction will write to a page
     ` * that contains analyzed code.  

@@ -172,7 +172,7 @@ CodeObject::deleteFunc(Function *func)
 {
     assert(func->_cache_valid);
     parser->remove_func(func);
-    func->deleteBlocks(func->_blocks, NULL);
+    func->deleteBlocks(func->_blocks);
     fact()->free_func(func);
 }
 

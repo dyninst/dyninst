@@ -246,14 +246,19 @@ Function::contains(Block *b)
     return HASHDEF(_bmap,b->start());
 }
 
+void Function::setEntryBlock(Block *new_entry)
+{
+    obj()->parser->move_func(this, new_entry->start(), new_entry->region());
+    _region = new_entry->region();
+    _start = new_entry->start();
+    _entry = new_entry;
+}
+
 void 
-Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
+Function::deleteBlocks(vector<Block*> &dead_blocks)
 {
     _cache_valid = false;
-    if (new_entry) {
-        _start = new_entry->start();
-        _entry = new_entry;
-    }
+    bool deleteAll = (dead_blocks.size() == _blocks.size());
 
     for (unsigned didx=0; didx < dead_blocks.size(); didx++) {
         bool found = false;
@@ -277,6 +282,10 @@ Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
             assert(0);
         }
 
+        // specify replacement entry prior to deleting entry block, unless 
+        // deleting all blocks
+        assert(deleteAll || dead != _entry);
+
         // remove dead block from _return_blocks and its call edges from vector
         Block::edgelist & outs = dead->targets();
         found = false;
@@ -299,15 +308,11 @@ Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
                     assert(found);
                     break;
                 case RET:
-                    for (vector<Block*>::iterator rit = _return_blocks.begin();
-                         !found && _return_blocks.end() != rit; 
-                         rit++) 
-                    {
-                        if ((*oit)->trg() == *rit) {
-                            found = true;
-                            _return_blocks.erase(rit);
-                        }
-                    }
+                    _return_blocks.erase(std::remove(_return_blocks.begin(),
+                                                     _return_blocks.end(),
+                                                     dead),
+                                         _return_blocks.end());
+                    found = true;
                     break;
                 default:
                     break;
@@ -316,26 +321,25 @@ Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
         // remove dead block from block map
         _bmap.erase(dead->start());
 
-        // disconnect dead block from CFG
-        if (1 < dead->containingFuncs()) {
+        // disconnect dead block from CFG (if not shared by other funcs)
+        if (1 == dead->containingFuncs()) {
             for (unsigned sidx=0; sidx < dead->_sources.size(); sidx++) {
                 Edge *edge = dead->_sources[sidx];
                 edge->src()->removeTarget( edge );
+                obj()->fact()->free_edge(edge);
             }
             for (unsigned tidx=0; tidx < dead->_targets.size(); tidx++) {
                 Edge *edge = dead->_targets[tidx];
                 edge->trg()->removeSource( edge );
+                obj()->fact()->free_edge(edge);
             }
         }
     }
 
-    // call finalize, fixes extents
-    obj()->parser->finalize(this);
-
     // delete the blocks
     for (unsigned didx=0; didx < dead_blocks.size(); didx++) {
         Block *dead = dead_blocks[didx];
-        if (1 <= dead->containingFuncs()) {
+        if (1 < dead->containingFuncs()) {
             dead->removeFunc(this);
             mal_printf("WARNING: removing shared block [%lx %lx] rather "
                        "than deleting it %s[%d]\n", dead->start(), 
@@ -343,6 +347,11 @@ Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
         } else {
             obj()->fact()->free_block(dead);
         }
+    }
+
+    // call finalize, fixes extents
+    if (!deleteAll) {
+        obj()->parser->finalize(this);
     }
 }
 

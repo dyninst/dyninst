@@ -138,8 +138,30 @@ bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end) {
   // TODO: map these addresses to relocated blocks as well so we 
   // can do our thang.
   for (; begin != end; ++begin) {
+    bool useBlock = true;
     bblInstance *bbl = (*begin)->origInstance();
-    validRanges_.insert(bbl->firstInsnAddr(), bbl->endAddr(), curRange_++);
+    // don't add block if it's shared and the entry point of another function
+    if (bbl->block()->llb()->isShared()) {
+        using namespace ParseAPI;
+        Block *llb = bbl->block()->llb();
+        Address base = bbl->firstInsnAddr() - llb->start();
+        std::vector<Function*> funcs;
+        llb->getFuncs(funcs);
+        for (vector<Function*>::iterator fit = funcs.begin();
+             useBlock && fit != funcs.end();
+             fit++) 
+        {
+            if ((*fit)->entry() == llb && 
+                bbl->func() != addrSpace_->findFuncByInternalFunc(
+                    static_cast<image_func*>(*fit)))
+            {
+                useBlock = false;
+            }
+        }
+    }
+    if (useBlock) {
+        validRanges_.insert(bbl->firstInsnAddr(), bbl->endAddr(), curRange_++);
+    }
   }
   return true;
 }

@@ -671,6 +671,11 @@ codeRange *mapped_object::findCodeRangeByAddress(const Address &addr)  {
 
     codeRange *range = NULL;
     if (codeRangesByAddr_.find(addr, range)) {
+        if (range->is_basicBlockInstance()->block()->llb()->isShared()) {
+            mal_printf("WARNING: mapped_obj lookup by addr returning shared "
+                       "block [%lx %lx)\n", range->get_address(), 
+                       range->get_address() + range->get_size());
+        }
         return range;
     }
     // reset range, which may have been modified
@@ -1561,7 +1566,7 @@ void mapped_object::updateCodeBytes( std::map<Address,Address> owRanges )
     {
         Region *curreg = allregions[ridx];
         if (expandRegs.end() == expandRegs.find(curreg)) {
-            updateCodeBytes(curreg); // KEVINTODO: major overkill here, only update regions that have changes in them
+            updateCodeBytes(curreg); // KEVINTODO: major overkill here, only update regions that had unprotected pages
         }
     }
 
@@ -1840,16 +1845,15 @@ void mapped_object::removeFunction(int_function *func) {
     pdvector<int_function *> *funcsByName = NULL;
     for (unsigned pretty_iter = 0; 
          pretty_iter < func->prettyNameVector().size();
-         pretty_iter++) {
+         pretty_iter++) 
+    {
         allFunctionsByPrettyName.find
             (func->prettyNameVector()[pretty_iter], funcsByName);
         if (funcsByName) {
             for (unsigned fIdx=0; fIdx < funcsByName->size(); fIdx++) {
                 if (func == (*funcsByName)[fIdx]) {
                     unsigned lastIdx = funcsByName->size() -1;
-                    if (fIdx != lastIdx) {
-                        (*funcsByName)[fIdx] = (*funcsByName)[lastIdx];
-                    }
+                    (*funcsByName)[fIdx] = (*funcsByName)[lastIdx];
                     funcsByName->pop_back();
                     if (funcsByName->size() == 0) {
                         allFunctionsByPrettyName.undef
@@ -1862,16 +1866,15 @@ void mapped_object::removeFunction(int_function *func) {
     // remove typed names
     for (unsigned typed_iter = 0; 
          typed_iter < func->typedNameVector().size();
-         typed_iter++) {
+         typed_iter++) 
+    {
         allFunctionsByPrettyName.find
             (func->typedNameVector()[typed_iter], funcsByName);
         if (funcsByName) {
             for (unsigned fIdx=0; fIdx < funcsByName->size(); fIdx++) {
                 if (func == (*funcsByName)[fIdx]) {
                     unsigned lastIdx = funcsByName->size() -1;
-                    if (fIdx != lastIdx) {
-                        (*funcsByName)[fIdx] = (*funcsByName)[lastIdx];
-                    }
+                    (*funcsByName)[fIdx] = (*funcsByName)[lastIdx];
                     funcsByName->pop_back();
                     if (funcsByName->size() == 0) {
                         allFunctionsByPrettyName.undef
@@ -1884,16 +1887,15 @@ void mapped_object::removeFunction(int_function *func) {
     // remove symtab names
     for (unsigned symtab_iter = 0; 
          symtab_iter < func->symTabNameVector().size();
-         symtab_iter++) {
+         symtab_iter++) 
+    {
         allFunctionsByMangledName.find
             (func->symTabNameVector()[symtab_iter], funcsByName);
         if (funcsByName) {
             for (unsigned fIdx=0; fIdx < funcsByName->size(); fIdx++) {
                 if (func == (*funcsByName)[fIdx]) {
                     unsigned lastIdx = funcsByName->size() -1;
-                    if (fIdx != lastIdx) {
-                        (*funcsByName)[fIdx] = (*funcsByName)[lastIdx];
-                    }
+                    (*funcsByName)[fIdx] = (*funcsByName)[lastIdx];
                     funcsByName->pop_back();
                     if (funcsByName->size() == 0) {
                         allFunctionsByMangledName.undef
@@ -1908,8 +1910,9 @@ void mapped_object::removeFunction(int_function *func) {
 // remove an element from range, these are always original bblInstance's
 void mapped_object::removeRange(codeRange *range) {
     codeRange *foundrange = NULL;
-    codeRangesByAddr_.find(range->get_address(), foundrange);
-    if (range == foundrange) {
+    if (codeRangesByAddr_.find(range->get_address(), foundrange) && 
+        range == foundrange) 
+    {
         codeRangesByAddr_.remove(range->get_address());
     }
 }

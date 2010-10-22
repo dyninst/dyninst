@@ -115,11 +115,13 @@ class CodeObject {
     void process_hints();
     void add_edge(Block *src, Block *trg, EdgeTypeEnum et);
     // allows Function to (re-)finalize
-    friend void Function::deleteBlocks(vector<Block*> &, Block *);
+    friend void Function::deleteBlocks(vector<Block*> &);
     // allows Functions to link up return edges after-the-fact
     friend void Function::delayed_link_return(CodeObject *,Block*);
     // allows Functions to finalize (need Parser access)
     friend void Function::finalize();
+    // allows Function entry blocks to be moved to new regions
+    friend void Function::setEntryBlock(Block *);
 
  private:
     CodeSource * _cs;

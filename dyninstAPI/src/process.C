@@ -4856,25 +4856,6 @@ bool process::getOverwrittenBlocks
             writtenBBIs.merge(curBBIs);
         }
 
-        // KEVIN: we already marked the block as overwritten, following code is NOP
-        //// 4. determine if the last of the blocks has an abrupt end, in which 
-        ////    case, mark it as overwritten
-        //if (    curBBIs.size() 
-        //     && ! curObject->proc()->isCode((*rIter).second - 1) )
-        //{
-        //    bblInstance *lastBBI = curBBIs.back();
-        //    int_function *lastFunc = lastBBI->func();
-        //    const set<instPoint*> abruptEnds = lastFunc->funcAbruptEnds();
-        //    set<instPoint*>::const_iterator aIter = abruptEnds.begin();
-        //    while (aIter != abruptEnds.end()) {
-        //        if (lastBBI->block() == (*aIter)->block()) {
-        //            writtenBBIs.push_back(lastBBI);
-        //            break;
-        //        }
-        //        aIter++;
-        //    }
-        //}
-
         curBBIs.clear();
         rIter++;
     }
@@ -4914,6 +4895,24 @@ void process::updateCodeBytes
 }
 
 
+static void otherFuncBlocks(int_function *func, 
+                            const set<bblInstance*> &blks, 
+                            set<bblInstance*> &otherBlks)
+{
+    const set<int_basicBlock*,int_basicBlock::compare> &allBlocks = 
+        func->blocks();
+    for (set<int_basicBlock*,int_basicBlock::compare>::const_iterator bit =
+         allBlocks.begin();
+         bit != allBlocks.end(); 
+         bit++) 
+    {
+        if (blks.end() == blks.find((*bit)->origInstance())) {
+            otherBlks.insert((*bit)->origInstance());
+        }
+    }
+}
+
+
 /* Summary
  * Given a list of overwritten blocks, find blocks that are unreachable,
  * functions that have been overwritten at their entry points and can go away,
@@ -4948,7 +4947,7 @@ bool process::getDeadCode
   std::set<bblInstance*> &delBlocks, //output: Del(for all f)
   std::map<int_function*,set<bblInstance*> > &elimMap, //output: elimF
   std::list<int_function*> &deadFuncs, //output: DeadF
-  std::list<bblInstance*> &newFuncEntries) //output: newF
+  std::map<int_function*,bblInstance*> &newFuncEntries) //output: newF
 {
     // do a stackwalk to see which functions are currently executing
     pdvector<pdvector<Frame> >  stacks;
@@ -4983,7 +4982,7 @@ bool process::getDeadCode
          fit++) 
     {
 
-        // calculate ex
+        // calculate ex(f)
         list<bblInstance*> execBlocks;
         for (unsigned pidx=0; pidx < pcs.size(); pidx++) {
             bblInstance *exB = fit->first->findBlockInstanceByAddr(pcs[pidx]);
@@ -4992,7 +4991,7 @@ bool process::getDeadCode
             }
         }
 
-        // calculate DeadF
+        // calculate DeadF: EP(f) in ow and EP(f) not in ex
         if ( 0 == execBlocks.size() ) {
             set<bblInstance*>::iterator eb = fit->second.find(
                 fit->first->entryBlock()->origInstance());
@@ -5007,73 +5006,27 @@ bool process::getDeadCode
         list<bblInstance*> seedBs;
         seedBs.push_back(fit->first->entryBlock()->origInstance());
         fit->first->getReachableBlocks(fit->second, seedBs, keepF);
-
-        set<bblInstance*> elimF;
-        const set<int_basicBlock*,int_basicBlock::compare> &allBlocks = 
-            fit->first->blocks();
-        for (set<int_basicBlock*,int_basicBlock::compare>::const_iterator bit =
-             allBlocks.begin();
-             bit != allBlocks.end(); 
-             bit++) 
-        {
-            elimF.insert((*bit)->origInstance());
-        }
-
-        elimF.erase(keepF.begin(),keepF.end());
-        elimMap[fit->first] = elimF;
+        otherFuncBlocks(fit->first, keepF, elimMap[fit->first]);
 
         // calculate NewF
         for (list<bblInstance*>::iterator bit = execBlocks.begin();
              bit != execBlocks.end(); 
              bit++) 
         {
-            if (elimF.end() != elimF.find(*bit)) {
-                newFuncEntries.push_back(*bit);
+            if (elimMap[fit->first].end() != elimMap[fit->first].find(*bit)) {
+                newFuncEntries[fit->first] = *bit;
             }
         }
 
         // calculate Del(f)
-        seedBs.merge(newFuncEntries);
-        fit->first->getReachableBlocks(fit->second, seedBs, delBlocks);
+        if (newFuncEntries[fit->first]) {
+            seedBs.push_back(newFuncEntries[fit->first]);
+        }
+        keepF.clear();
+        fit->first->getReachableBlocks(fit->second, seedBs, keepF);
+        otherFuncBlocks(fit->first, keepF, delBlocks);
         
     }
-
-    // Lots of special case code for the limited instance in which a block
-    // is overwritten that is at the start of a function, in which case the
-    // whole function can go away.
-    // If we're executing the entry block though, re-parse the function
-    for (list<int_function*>::iterator fIter=deadFuncs.begin();
-         fIter != deadFuncs.end();
-         fIter++) 
-    {
-        bool inEntryBlock = false;
-        int_function *deadFunc = *fIter;
-        ParseAPI::Block *entryBlock = deadFunc->ifunc()->entry();
-        Address base = deadFunc->getAddress() - deadFunc->ifunc()->addr();
-
-        // see if we're executing in the entryBlock
-        for (unsigned pcI = 0; !inEntryBlock && pcI < pcs.size(); pcI++) {
-            Address pcOrig=0;
-            vector<int_function*> pcFuncs;
-            baseTrampInstance *bti=NULL;
-            getAddrInfo(pcs[pcI], pcOrig, pcFuncs, bti);
-            pcOrig -= base;
-            if (entryBlock->start() <= pcOrig && pcOrig < entryBlock->end()) {
-                inEntryBlock = true;
-            }
-        }
-
-        // add all function blocks to deadMap
-        std::set< int_basicBlock* , int_basicBlock::compare >
-            fblocks = deadFunc->blocks();
-        std::set<int_basicBlock*,int_basicBlock::compare>::iterator
-            fbIter = fblocks.begin();
-        while (fbIter != fblocks.end()) {
-            deadMap[deadFunc].insert((*fbIter)->origInstance());
-            fbIter++;
-        }
-
-    }// for all dead image funcs
 
     return true;
 }

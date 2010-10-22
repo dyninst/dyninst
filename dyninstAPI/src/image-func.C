@@ -572,7 +572,6 @@ void image_func::getReachableBlocks
 
     // add seed blocks to the worklist (unless the seed is in exceptBlocks)
     std::list<image_basicBlock*> worklist;
-    reachBlocks.insert(seedBlocks.begin(), seedBlocks.end());
     for (list<image_basicBlock*>::const_iterator sit = seedBlocks.begin();
          sit != seedBlocks.end();
          sit++) 
@@ -580,6 +579,7 @@ void image_func::getReachableBlocks
         visited.insert(*sit);
         if (exceptBlocks.end() == exceptBlocks.find(*sit)) {
             worklist.push_back(*sit);
+            reachBlocks.insert(*sit);
         }
     }
         
@@ -593,11 +593,12 @@ void image_func::getReachableBlocks
         for (; tIter != outEdges.end(); tIter++) {
             image_basicBlock *targB = (image_basicBlock*) (*tIter)->trg();
             if ( CALL != (*tIter)->type() &&
+                 false == (*tIter)->sinkEdge() &&
                  visited.end() == visited.find(targB) )
                  //reachBlocks.end() == reachBlocks.find(targB) &&
                  //exceptBlocks.end() == exceptBlocks.find(targB) &&
                  //seedBlocks.end() == seedBlocks.find(targB) )
-            {   
+            {
                 worklist.push_back(targB);
                 reachBlocks.insert(targB);
                 visited.insert(targB);

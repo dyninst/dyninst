@@ -426,7 +426,6 @@ class int_function : public patchTarget {
    const pdvector< int_parRegion* > &parRegions();
 
    bool containsSharedBlocks() const { return ifunc_->containsSharedBlocks(); }
-   void deleteBBLInstance(bblInstance *instance);
    unsigned getNumDynamicCalls();
 
     // Fill the <callers> vector with pointers to the statically-determined
@@ -453,17 +452,13 @@ class int_function : public patchTarget {
 #endif
 
 
+    bool removePoint(instPoint *point);
     void deleteBlock(int_basicBlock *block);
     void removeFromAll();
-    Address setNewEntryPoint(int_basicBlock * &newEntry);
-    bool removeFunctionSubRange(Address startAddr, 
-                                Address endAddr, 
-                                std::vector<Address> &deadBlockAddrs,
-                                int_basicBlock *&entryBlock);
-    void getReachableBlocks(const set<bblInstance*> &exceptBlocks,
-                            const list<bblInstance*> &seedBlocks,
-                            set<bblInstance*> &reachBlocks);
-    bool removePoint(instPoint *point);
+    int_basicBlock *setNewEntryPoint();
+    void getReachableBlocks(const std::set<bblInstance*> &exceptBlocks,
+                            const std::list<bblInstance*> &seedBlocks,
+                            std::set<bblInstance*> &reachBlocks);//output
    
 
 

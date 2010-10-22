@@ -189,7 +189,7 @@ void codeRangeTree::deleteFixup(entry* x){
 	x->color = TREE_BLACK;
 }
 
-
+// fails if the node key is already in the tree, happen for shared code
 codeRangeTree::entry *codeRangeTree::treeInsert(Address key, codeRange *value)
 {
 	entry* y = NULL;
@@ -201,15 +201,7 @@ codeRangeTree::entry *codeRangeTree::treeInsert(Address key, codeRange *value)
                 else if(key > x->key)
                     x = x->right;
                 else {
-                    if(!(x->value) && !(x->value->get_size()))
-                    {
-                        return NULL;
-                    }
-                    else
-                    {
-                        x->value = value;
-                        return x;
-                    }
+                    return NULL;
                 }
 	}
 	entry* z = new entry(key, value, nil);
@@ -290,8 +282,8 @@ void codeRangeTree::insert(codeRange *value) {
     //assert(value->get_size());
  	entry* x = treeInsert(value->get_address(), value);
 	if(!x) {
-            entry* x = find_internal(value->get_address());
-            assert(value->get_size() == x->value->get_size());
+         entry* x = find_internal(value->get_address());
+         assert(value->get_size() == x->value->get_size());
          // We're done.
          return;
     }
@@ -341,8 +333,8 @@ void codeRangeTree::insert(codeRange *value) {
 	entry* z = find_internal(key);
 	if(!z)
             return;
-        if (z->key != key)
-            return;
+    if (z->key != key)
+        return;
 
 	entry* y=((z->left == nil)||(z->right == nil)) ? z : treeSuccessor(z);
 	entry* x=(y->left != nil) ? y->left : y->right;
@@ -358,8 +350,10 @@ void codeRangeTree::insert(codeRange *value) {
 		z->value = y->value;
         z->key = y->key;
     }
-	if(y->color == TREE_BLACK)
+
+    if(y->color == TREE_BLACK) {
 		deleteFixup(x);
+    }
 	setSize--;
 	delete y;
 }

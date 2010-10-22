@@ -703,7 +703,7 @@ public:
       std::set<bblInstance*> &delBlocks, //output: Del(for all f)
       std::map<int_function*,set<bblInstance*> > &elimMap, //output: elimF
       std::list<int_function*> &deadFuncs, //output: DeadF
-      std::list<bblInstance*> &newFuncEntries); //output: newF
+      std::map<int_function*,bblInstance*> &newFuncEntries); //output: newF
   unsigned getMemoryPageSize() const { return memoryPageSize_; }
 
   // synch modified mapped objects with current memory contents

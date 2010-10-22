@@ -1485,6 +1485,16 @@ Parser::remove_block(Dyninst::ParseAPI::Block *block)
     _parse_data->remove_block(block);
 }
 
+void Parser::move_func(Function *func, Address new_entry, CodeRegion *new_reg)
+{
+    region_data *reg_data = _parse_data->findRegion(func->region());
+    reg_data->funcsByAddr.erase(func->addr());
+
+    reg_data = _parse_data->findRegion(new_reg);
+    reg_data->funcsByAddr[new_entry] = func;
+}
+
+
 /* called in defensive mode to create parseFrames at tampered addresses 
    for functions that return TAMPER_REL and TAMPER_ABS.  Normal fallthrough
    edges have been added already and will be disallowed if the function 

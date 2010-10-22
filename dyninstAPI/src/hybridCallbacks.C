@@ -103,7 +103,7 @@ void HybridAnalysis::signalHandlerExitCB(BPatch_point *point, void *returnAddr)
     vector<BPatch_function *> funcs;
     proc()->findFunctionsByAddr((Address)returnAddr,funcs);
     if (0 == funcs.size()) {
-        analyzeNewFunction((Address)returnAddr, true);
+        analyzeNewFunction((Address)returnAddr, true, true);
     }
     point->getFunction()->fixHandlerReturnAddr((Address)returnAddr);
     mal_printf("Exception handler exiting at %lx will resume execution at "
@@ -133,7 +133,7 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
                point->getAddress(), signum, handlers.size());
     bool onlySysHandlers = true;
     std::vector<Address> handlerAddrs;
- 
+    proc()->beginInsertionSet();
     // eliminate any handlers in system libraries, and handlers that have 
     // already been parsed, add new handlers to handler function list
     std::vector<Address>::iterator it=handlers.begin();
@@ -155,7 +155,7 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
         // parse and instrument handler
         mal_printf("found handler at %x %s[%d]\n", *it,FILE__,__LINE__);
         onlySysHandlers = false;
-        analyzeNewFunction(*it,true);
+        analyzeNewFunction(*it,true,false);
         handlerFunc = proc()->findFunctionByEntry(*it);
         assert(handlerFunc);
         handlerAddrs.push_back(*it);
@@ -188,6 +188,7 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
         proc()->finalizeInsertionSet(false);
         it++;
     }
+    proc()->finalizeInsertionSet(false);
 
     // trigger the signal-handler callback
     if (bpatchSignalHandlerCB) {
@@ -210,15 +211,17 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     nextInsn = (*targets)[0];
     delete(targets);
 
+    proc()->beginInsertionSet();
     // add the new edge to the program, parseNewEdgeInFunction will figure
     // out whether to extend the current function or parse as a new one. 
-    parseNewEdgeInFunction(point, nextInsn);
+    parseNewEdgeInFunction(point, nextInsn,false);
 
     //make sure we don't re-instrument
     point->setResolved();
 
     // re-instrument the module 
-    instrumentModules();
+    instrumentModules(false);
+    proc()->finalizeInsertionSet(false);
 }
 
 
@@ -319,13 +322,14 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                 // Instrument the return instructions of the system library 
                 // function so we can find the code at the call instruction's
                 // fallthrough address
-				analyzeNewFunction(target,false);
+                proc()->beginInsertionSet();
 				BPatch_function *targFunc = proc()->findFunctionByEntry(target);
                 if (!targFunc) {
-                    analyzeNewFunction(target,false);
+                    analyzeNewFunction(target,false,false);
                     targFunc = proc()->findFunctionByEntry(target);
                 }
-				instrumentFunction(targFunc, true, true);
+				instrumentFunction(targFunc, false, true);
+                proc()->finalizeInsertionSet(false);
                 return;
             }
         }
@@ -352,6 +356,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
 // 2. the point is a call: 
     if (point->getPointType() == BPatch_subroutine) {
 
+        proc()->beginInsertionSet();
         // if the target is in the body of an existing function we'll split 
         // the function and wind up with two or more functions that share
         // the target address, so make sure we're not in the middle of an
@@ -374,7 +379,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                     std::set<HybridAnalysisOW::owLoop*>::iterator lIter = 
                         loops.begin();
                     while (lIter != loops.end()) {
-                        hybridOW()->deleteLoop(*lIter);
+                        hybridOW()->deleteLoop(*lIter,false);
                         lIter++;
                     }
                 }
@@ -386,7 +391,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             mal_printf("stopThread instrumentation found call %lx=>%lx, "
                       "parsing at call target %s[%d]\n",
                      (long)point->getAddress(), target,FILE__,__LINE__);
-            if (!analyzeNewFunction( target,true )) {
+            if (!analyzeNewFunction( target,true,false )) {
                 //this happens for some single-instruction functions
                 mal_printf("WARNING: parse of call target %lx=>%lx failed %s[%d]\n",
                          (long)point->getAddress(), target, FILE__,__LINE__);
@@ -403,9 +408,9 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             //         (long)point->getAddress(), target);
             parseAfterCallAndInstrument(point, target, targFunc);
         } else {
-            instrumentModules();
+            instrumentModules(false);
         }
-
+        proc()->finalizeInsertionSet(false);
         // 2. return
         return;
     }
@@ -465,7 +470,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                         "instruction semantics for insn at %lx target %lx\n",
                         __LINE__, point->getAddress(), returnAddr);
             }
-            analyzeNewFunction( returnAddr, true );
+            analyzeNewFunction( returnAddr, true , true );
         }
 
         // 3. return
@@ -473,7 +478,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     }
 
 // 4. else case: the point is a jump/branch 
-
+    proc()->beginInsertionSet();
     // 4.1 if the point is a direct branch, remove any instrumentation
     vector<Address> *targets = new vector<Address>;
     if ( point->getCFTargets(*targets) ) {
@@ -509,7 +514,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
 
     // add the new edge to the program, parseNewEdgeInFunction will figure
     // out whether to extend the current function or parse as a new one. 
-    parseNewEdgeInFunction(point, target);
+    parseNewEdgeInFunction(point, target, false);
     if (0 == targFuncs.size()) {
         proc()->findFunctionsByAddr( target, targFuncs );
     }
@@ -521,15 +526,16 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         FuncReturnStatus initStatus = imgfunc->init_retstatus();
         if (ParseAPI::RETURN == initStatus) {
             imgfunc->setinit_retstatus(ParseAPI::UNKNOWN);
-            removeInstrumentation(targFuncs[tidx]);
-            instrumentFunction(targFuncs[tidx],true,true);
+            removeInstrumentation(targFuncs[tidx],false);
+            instrumentFunction(targFuncs[tidx],false,true);
         } 
     }
 
     // re-instrument the function or the whole module, as needed
     if (newParsing) {
-        instrumentModules();
+        instrumentModules(false);
     }
+    proc()->finalizeInsertionSet(false);
 
 } // end badTransferCB
 

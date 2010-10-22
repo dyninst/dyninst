@@ -588,27 +588,31 @@ BPatch_function * BPatch_basicBlock::getCallTarget()
     }
     Address baseAddr = iblock->func()->ifunc()->img()->desc().loadAddr();
     Address targetAddr = imgPt->callTarget() + baseAddr;
-    Address pointAddr =  imgPt->offset() + baseAddr;
-    int_function *targFunc = 
-        flowGraph->getllAddSpace()->findFuncByAddr(targetAddr);
+
+    BPatch_module *targMod = flowGraph->addSpace->findModuleByAddr(targetAddr);
+    if (!targMod) {
+        return NULL;
+    }
+
+    BPatch_function * targFunc = targMod->findFunctionByEntry(targetAddr);
 
     if (!targFunc && imgPt->isDynamic()) { 
         // if this is an indirect call, use its saved target
+        Address pointAddr =  imgPt->offset() + baseAddr;
         instPoint *intCallPoint = iblock->func()->findInstPByAddr(pointAddr);
         if (!intCallPoint) {
             iblock->func()->funcCalls();
             intCallPoint = iblock->func()->findInstPByAddr(pointAddr);
         }
         assert(intCallPoint);
-        targFunc = iblock->func()->proc()->findFuncByAddr
-            ( intCallPoint->getSavedTarget() );
+        if ( 0 != intCallPoint->getSavedTarget() &&
+            -1 != intCallPoint->getSavedTarget()   ) 
+        {
+            targFunc = flowGraph->addSpace->findFunctionByEntry(
+                intCallPoint->getSavedTarget() );
+        }
     }
-    if (!targFunc) {
-        return NULL;
-    }
-    BPatch_function * bpfunc = 
-        flowGraph->getAddSpace()->findOrCreateBPFunc(targFunc,NULL);
-    return bpfunc;
+    return targFunc;
 }
 
 

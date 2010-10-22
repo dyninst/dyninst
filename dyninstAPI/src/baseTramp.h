@@ -189,7 +189,6 @@ class baseTramp {
     rpcMgr *rpcMgr_;
 
     AddressSpace *proc() const;
-    int_function *func() const;
 
     void invalidateBT() { valid = false; };
 
