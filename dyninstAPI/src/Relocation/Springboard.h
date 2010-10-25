@@ -43,6 +43,22 @@ class AddressSpace;
 namespace Dyninst {
 namespace Relocation {
 
+typedef enum {
+   MIN_PRIORITY,
+   RELOC_MIN_PRIORITY,
+   RelocNotRequired,
+   RelocSuggested,
+   RelocRequired,
+   RelocOffLimits,
+   RELOC_MAX_PRIORITY,
+   ORIG_MIN_PRIORITY,
+   NotRequired,
+   Suggested,
+   Required,
+   OffLimits,
+   ORIG_MAX_PRIORITY,
+   MAX_PRIORITY } Priority;
+
 struct SpringboardReq {
    Address from;
    Address to;
@@ -51,17 +67,20 @@ struct SpringboardReq {
    bool checkConflicts;
    bool includeRelocatedCopies;
    bool fromRelocatedCode;
+   bool useTrap;
    SpringboardReq(const Address a, const Address b, 
                   const Priority c, bblInstance *d, 
                   bool e, 
                   bool f, 
-                  bool g)
+                  bool g,
+                  bool i)
    : from(a), to(b), 
       priority(c), 
       bbl(d), 
       checkConflicts(e), 
       includeRelocatedCopies(f),
-      fromRelocatedCode(g) {};
+      fromRelocatedCode(g),
+      useTrap(i) {};
    SpringboardReq() 
    : from(0), to(0), priority(NotRequired), 
       bbl(NULL),
@@ -91,24 +110,26 @@ class SpringboardBuilder;
       sBoardMap_[p][from] = SpringboardReq(from, to,
                                            p, bbl,
                                            true, true,
-                                           false);
+                                           false, false);
    }
 
    void addFromRelocatedCode(Address from, Address to,
                              Priority p) {
+      assert(p < RELOC_MAX_PRIORITY);
       sBoardMap_[p][from] = SpringboardReq(from, to,
                                            p,
                                            NULL,
                                            true, 
                                            false,
-                                           true);
+                                           true, false);
    };
    
    void addRaw(Address from, Address to, Priority p, bblInstance *bbl,
-               bool checkConflicts, bool includeRelocatedCopies, bool fromRelocatedCode) {
+               bool checkConflicts, bool includeRelocatedCopies, bool fromRelocatedCode,
+               bool useTrap) {
       sBoardMap_[p][from] = SpringboardReq(from, to, p, bbl,
                                            checkConflicts, includeRelocatedCopies,
-                                           fromRelocatedCode);
+                                           fromRelocatedCode, useTrap);
    }
 
 #if 0
@@ -184,23 +205,19 @@ class SpringboardBuilder {
                    Priority p);
 
   generateResult_t generateSpringboard(std::list<codeGen> &input,
-				       const SpringboardReq &p);
+				       const SpringboardReq &p,
+                                       SpringboardMap &input);
 
   bool generateMultiSpringboard(std::list<codeGen> &input,
 				const SpringboardReq &p);
 
   // Find all previous instrumentations and also overwrite 
   // them. 
-  bool createRelocSpringboards(Priority p, SpringboardMap &input);
+  bool createRelocSpringboards(const SpringboardReq &r, bool useTrap, SpringboardMap &input);
 
   bool generateReplacements(std::list<codeGen> &input,
 			    const SpringboardReq &p,
 			    bool useTrap);
-#if 0
-  bool generateReplacementPairs(std::list<codeGen> &input,
-				Address from,
-				Address to);
-#endif
 
   bool conflict(Address start, Address end, bool inRelocatedCode);
   bool conflictInRelocated(Address start, Address end);

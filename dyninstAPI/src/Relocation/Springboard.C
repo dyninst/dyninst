@@ -78,7 +78,7 @@ bool SpringboardBuilder::generateInt(std::list<codeGen> &springboards,
         iter != input.rend(p); ++iter) {
       const SpringboardReq &req = iter->second;
       
-      switch (generateSpringboard(springboards, req)) {
+      switch (generateSpringboard(springboards, req, input)) {
          case Failed:
             if (p == Required) {
                return false;
@@ -108,9 +108,6 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
   // Currently we use a greedy algorithm rather than some sort of scheduling thing.
   // It's a heck of a lot easier that way. 
 
-   createRelocSpringboards(Suggested, input);
-   createRelocSpringboards(Required, input);
-
    //cerr << "Generating required springboards" << endl;
    if (!generateInt(springboards, input, Required))
       return false;
@@ -118,19 +115,13 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
    if (!generateInt(springboards, input, Suggested))
       return false;
 
-   bool ret = true;
-   
-   for (std::list<SpringboardReq>::iterator iter = multis_.begin();
-        iter != multis_.end(); ++iter) {
-      if (!generateMultiSpringboard(springboards, *iter)) {
-         if (iter->priority == Required) {
-            //cerr << "Failed required springboard @ " << hex << iter->from << endl;
-            ret = false;
-         }
-         // Otherwise it was a suggested, no worries.
-      }
-   }
-   return ret;
+   // Catch up with instrumentation
+   if (!generateInt(springboards, input, RelocRequired)) 
+      return false;
+   if (!generateInt(springboards, input, RelocSuggested))
+      return false;
+
+   return true;
 }
 
 template <typename TraceIter>
@@ -144,7 +135,7 @@ bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end) {
     if (bbl->block()->llb()->isShared()) {
         using namespace ParseAPI;
         Block *llb = bbl->block()->llb();
-        Address base = bbl->firstInsnAddr() - llb->start();
+
         std::vector<Function*> funcs;
         llb->getFuncs(funcs);
         for (vector<Function*>::iterator fit = funcs.begin();
@@ -169,16 +160,15 @@ bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end) {
 
 SpringboardBuilder::generateResult_t 
 SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
-					const SpringboardReq &r) {
+					const SpringboardReq &r,
+                                        SpringboardMap &input) {
    codeGen gen;
    
    bool usedTrap = false;
    
    generateBranch(r.from, r.to, gen);
    
-   if (conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
-      //return MultiNeeded;
-      
+   if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
       // Errr...
       // Fine. Let's do the trap thing. 
       usedTrap = true;
@@ -189,17 +179,12 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
       }
    }
 
+   if (r.includeRelocatedCopies) {
+      createRelocSpringboards(r, usedTrap, input);
+   }
 
   registerBranch(r.from, r.from + gen.used(), r.fromRelocatedCode);
   springboards.push_back(gen);
-
-#if 0
-  // Now explicitly included
-  if (r.includeRelocatedCopies) {
-    // Now catch all the previously relocated copies.
-    generateReplacements(springboards, r, usedTrap);
-  }
-#endif
 
   return Succeeded;
 }
@@ -210,64 +195,6 @@ bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &,
    //cerr << "Request to generate multi-branch springboard skipped @ " << hex << r.from << dec << endl;
    // For now we give up and hope it all works out for the best. 
    return true;
-
-#if 0
-   // Much like the above, except try to do it in multiple steps. This works 
-   // well on x86 where we have 2-byte dinky jumps. Less so on fixed-length
-   // architectures...
-  
-   // Let's assume that r.from is not really available. Let's find somewhere that
-   // is.
-   // Let's try walking forward first. 
-   Address tramp = r.from;
-   bool done = false;
-   codeGen gen;
-   do {
-      generateBranch(tramp, r.to, gen);
-      if (!conflict(tramp, tramp+gen.used())) {
-         // Cool
-         done = true;
-      }
-      else {
-         // FIXME POWER
-         // What happened to the "legal offset for the platform" function?
-         tramp++;
-      }
-      if (!isLegalShortBranch(r.from, tramp)) {
-         // Start at -offset
-         tramp = shortBranchBack(r.from);
-      }
-      if (tramp == (r.from - 1)) {
-         break;
-      }
-   } while (!done);
-  
-   if (!done) return false; 
-
-   // Okay, we've got a branch there. 
-   input.push_back(gen);
-   registerBranch(tramp, tramp + gen.used());
-  
-   // And catch its relocated copies. Argh.
-   SpringboardReq tmp(tramp, r.to, r.priority, r.bbl, false, true);
-   generateReplacements(input, tmp, false);
-
-   // Okay. Now we need to get _to_ the tramp jump.
-   codeGen shortie;
-   generateBranch(r.from, tramp, shortie);
-   if (conflict(r.from, r.from + shortie.used())) {
-      // Sucks to be us
-      return false;
-   }
-  
-   input.push_back(shortie);
-   registerBranch(r.from, r.from + shortie.used());
-
-   SpringboardReq tmp2(r.from, tramp, r.priority, r.bbl, false, true);
-   generateReplacements(input, tmp2, false);
-
-   return true;
-#endif
 }
 
 bool SpringboardBuilder::conflict(Address start, Address end, bool inRelocated) {
@@ -374,7 +301,7 @@ void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) 
   gen.setAddr(from);
 
   insnCodeGen::generateBranch(gen, from, to);
-  cerr << "Springboard branch " << hex << from << "->" << to << dec << endl;
+  //cerr << "Springboard branch " << hex << from << "->" << to << dec << endl;
 }
 
 void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
@@ -387,65 +314,34 @@ void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
   insnCodeGen::generateTrap(gen);
 }
 
-bool SpringboardBuilder::createRelocSpringboards(Priority p, SpringboardMap &input) {
-   for (SpringboardMap::iterator iter = input.begin(p);
-        iter != input.end(p); ++iter) {
-      const SpringboardReq &req = iter->second;
-      if (req.fromRelocatedCode) continue;
-      assert(req.bbl);
-
-      std::list<Address> relocAddrs;
-      addrSpace_->getRelocAddrs(req.from, req.bbl->func(), relocAddrs, true);
-      for (std::list<Address>::const_iterator addr = relocAddrs.begin(); 
-           addr != relocAddrs.end(); ++addr) {
-         if (*addr == req.to) continue;
-         input.addRaw(*addr, req.to, 
-                      p, req.bbl,
-                      req.checkConflicts, 
-                      false, true);
+bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool useTrap, SpringboardMap &input) {
+   assert(!req.fromRelocatedCode);
+   // Just the requests for now.
+   
+   std::list<Address> relocAddrs;
+   addrSpace_->getRelocAddrs(req.from, req.bbl->func(), relocAddrs, true);
+   for (std::list<Address>::const_iterator addr = relocAddrs.begin(); 
+        addr != relocAddrs.end(); ++addr) {
+      if (*addr == req.to) continue;
+      Priority newPriority;
+      switch(req.priority) {
+         case Suggested:
+            newPriority = RelocSuggested;
+            break;
+         case Required:
+            newPriority = RelocRequired;
+            break;
+         default:
+            assert(0);
+            break;
       }
+      
+      input.addRaw(*addr, req.to, 
+                   newPriority, req.bbl,
+                   req.checkConflicts, 
+                   false, true, useTrap);
    }
    return true;
-}
-
-bool SpringboardBuilder::generateReplacements(std::list<codeGen> &springboards,
-					      const SpringboardReq &r, 
-					      bool useTrap) {
-   if (!r.includeRelocatedCopies) return true;
-
-  bool ret = true;
-  std::list<Address> relocAddrs;
-  addrSpace_->getRelocAddrs(r.from, r.bbl->func(), relocAddrs, true);
-  for (std::list<Address>::const_iterator iter = relocAddrs.begin();
-       iter != relocAddrs.end(); ++iter) {
-    if (*iter == r.to) {
-      // Been here before
-      continue;
-    }
-    assert(*iter != r.to);
-
-    codeGen gen;
-    switch (useTrap) {
-       case false:
-          generateBranch(*iter, r.to, gen);
-          if (!conflict(*iter, (*iter) + gen.used(), true)) {
-             break;
-          }
-       case true:
-          // Or fallthrough from a conflict
-          gen.setIndex(0);
-          generateTrap(*iter, r.to, gen);
-          if (conflict(*iter, (*iter) + gen.used(), true)) {
-             // SUUUUCKTASTIC
-             ret = false;
-             continue;
-          }
-    }
-    registerBranch(*iter, (*iter) + gen.used(), true);
-
-    springboards.push_back(gen);
-  }
-  return ret;
 }
 
 #if 0

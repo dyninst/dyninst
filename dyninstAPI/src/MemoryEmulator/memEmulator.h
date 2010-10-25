@@ -29,60 +29,37 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(_R_T_BASE_H_)
-#define _R_T_BASE_H_
+#if !defined(_MEMORY_EMULATOR_H_)
+#define _MEMORY_EMULATOR_H_
 
-#include "dyn_detail/boost/shared_ptr.hpp" // shared_ptr
-#include "common/h/Types.h" // Address
-#include <list>
-#include <map>
-#include <stack>
-
-#include "dyninstAPI/src/image-func.h" // EdgeTypeEnum
-
-class bblInstance;
-class baseTramp;
+class AddressSpace;
+class mapped_object;
+class int_variable;
 
 namespace Dyninst {
 
-namespace Relocation {
+class MemoryEmulator {
+  public:
+   MemoryEmulator(AddressSpace *addrSpace)
+      : aS_(addrSpace), mutateeBase_(0) {};
+   ~MemoryEmulator() {};
 
-class Atom;
-class Trace;
-class TargetInt;
-class CFAtom;
-class RelocInsn;
+   void addAllocatedRegion(Address start, unsigned size);
+   void addRegion(mapped_object *obj);
+   void update();
+   
+  private:
+   void addRegion(Address start, unsigned size, unsigned long shift);
+   bool findMutateeTable();
+   unsigned addrWidth();
 
-// One of the things a Transformer 'returns' (modifies, really) is 
-// a list of where we require patches (branches from original code
-// to new code). This list is prioritized - Required, 
-// Suggested, and Not Required. Required means we have proof
-// that a patch is necessary for correct control flow. Suggested means
-// that, assuming correct parsing, no patch is necessary. Not Required
-// means that even with incorrect parsing no patch is necessary.
-// ... not sure how we can have that, but hey, we might as well
-// design it in.
-//
-// OffLimits indicates areas that we cannot overwrite with a branch
+   AddressSpace *aS_;
 
- 
-class Transformer {
- public:
-  typedef dyn_detail::boost::shared_ptr<Atom> AtomPtr;
-  typedef std::list<AtomPtr> AtomList;
-  typedef dyn_detail::boost::shared_ptr<Trace> TracePtr;
-  typedef std::list<TracePtr> TraceList;
+   // Track what the address space looks like for defensive mode. 
+   typedef IntervalTree<Address, unsigned long> MemoryMapTree;
+   MemoryMapTree memoryMap_;
 
-  virtual bool preprocess(TraceList &) { return true;}
-  virtual bool postprocess(TraceList &) { return true; }
-
-  virtual bool processTrace(TraceList::iterator &) { return true; }
-    
-
-
-  virtual ~Transformer() {};
-};
-
+   Address mutateeBase_;
 };
 };
 

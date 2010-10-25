@@ -72,6 +72,9 @@ class Dyn_Symbol;
 class BinaryEdit;
 class trampTrapMappings;
 
+namespace Dyninst {
+   class MemoryEmulator;
+};
 
 // This file serves to define an "address space", a set of routines that 
 // code generation and instrumentation rely on to perform their duties. 
@@ -491,14 +494,11 @@ class AddressSpace : public InstructionSource {
     typedef std::set<instPoint *> CallRemovalSet;
     CallRemovalSet callRemovals_;
 
-    // Track what the address space looks like for defensive mode. 
-    typedef IntervalTree<Address, long> MemoryMapTree;
-    MemoryMapTree memoryMapTree;
 
     void addAllocatedRegion(Address start, unsigned size);
     void addModifiedRegion(mapped_object *obj);
 
-    Address createShadowCopy(mapped_object *obj);
+    MemoryEmulator *memEmulator_;
 };
 
 
