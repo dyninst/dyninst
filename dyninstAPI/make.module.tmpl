@@ -62,6 +62,8 @@ VPATH += ../src/Relocation/Atoms
 VPATH += ../src/Relocation/Transformers
 
 
+VPATH += ../src/MemoryEmulator
+
 ifdef AUTO_TEMPLATES
 CFLAGS += -DAUTO_TEMPLATES
 CXXFLAGS += -DAUTO_TEMPLATES
@@ -96,7 +98,7 @@ SRCS	     +=	../src/BPatch.C \
 		../src/BPatch_statement.C \
 		../src/BPatch_addressSpace.C \
 		../src/BPatch_binaryEdit.C \
-                ../src/MemoryAccess.C \
+                ../src/BPatch_memoryAccess.C \
                 ../src/dummy.C \
                 ../src/debug.C \
                 ../src/ast.C \
@@ -150,13 +152,11 @@ SRCS	     +=	../src/BPatch.C \
 		../src/Relocation/Atoms/CopyInsn.C \
 		../src/Relocation/Atoms/GetPC.C \
 		../src/Relocation/Atoms/Instrumentation.C \
-		../src/Relocation/Atoms/MemoryEmulator.C \
 		../src/Relocation/Atoms/Padding.C \
 		../src/Relocation/Atoms/RelData.C \
 		../src/Relocation/Transformers/CF_Localization.C \
 		../src/Relocation/Transformers/ControlFlow.C \
 		../src/Relocation/Transformers/Defensive.C \
-		../src/Relocation/Transformers/EmulateMemory.C \
 		../src/Relocation/Transformers/Fallthroughs.C \
 		../src/Relocation/Transformers/Instrumenter.C \
 		../src/Relocation/Transformers/Modification.C \
@@ -164,7 +164,10 @@ SRCS	     +=	../src/BPatch.C \
 		../src/Relocation/Transformers/Movement-analysis.C \
 		../src/Relocation/AddressMapper.C \
 		../src/Relocation/CodeTracker.C \
-                ../src/Relocation/CodeBuffer.C
+                ../src/Relocation/CodeBuffer.C \
+                ../src/MemoryEmulator/memEmulator.C \
+                ../src/MemoryEmulator/memEmulatorAtom.C \
+                ../src/MemoryEmulator/memEmulatorTransformer.C 
 
 TO_INC   = ../h
 PUBLIC_H = BPatch_addressSpace.h \

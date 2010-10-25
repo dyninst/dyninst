@@ -32,7 +32,7 @@
 #if !defined (_R_E_MEM_EMULATOR_H_)
 #define _R_E_MEM_EMULATOR_H_
 
-#include "Atom.h"
+#include "dyninstAPI/src/Relocation/Atoms/Atom.h"
 class registerSlot;
 
 

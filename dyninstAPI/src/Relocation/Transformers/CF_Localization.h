@@ -33,6 +33,7 @@
 #define _R_T_CF_LOCALIZATION_H_
 
 #include "Transformer.h"
+#include "../CodeMover.h"
 
 class int_function;
 class bblInstance; 

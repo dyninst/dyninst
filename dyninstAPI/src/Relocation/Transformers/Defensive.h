@@ -33,17 +33,19 @@
 #define _R_T_DEFENSIVE_H_
 
 #include "Transformer.h"
+#include "../CodeMover.h"
 
 namespace Dyninst {
 namespace Relocation {
 
 class Defensive : public Transformer {
  public:
-  virtual bool processTrace(TraceList::iterator &);
-
-
-  Defensive(PriorityMap &p) : pMap_(p) {};
-
+      virtual bool processTrace(TraceList::iterator &);
+      
+  
+     Defensive(PriorityMap &p) 
+        : pMap_(p) {};
+  
   virtual ~Defensive() {};
 
  private:

@@ -30,9 +30,9 @@
  */
 
 
-#include "Atom.h"
-#include "Target.h"
-#include "CFAtom.h" // CFPatch
+#include "dyninstAPI/src/Relocation/Atoms/Atom.h"
+#include "dyninstAPI/src/Relocation/Atoms/Target.h"
+#include "dyninstAPI/src/Relocation/Atoms/CFAtom.h" // CFPatch
 
 // For our horribly horked memory effective address system
 // Which I'm not fixing here. 
@@ -49,9 +49,9 @@
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/registerSpace.h"
 
-#include "../CodeBuffer.h"
+#include "dyninstAPI/src/Relocation/CodeBuffer.h"
 
-#include "MemoryEmulator.h"
+#include "memEmulatorAtom.h"
 
 using namespace Dyninst;
 using namespace Relocation;

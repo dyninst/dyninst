@@ -138,7 +138,7 @@ void CodeTracker::debug() {
 std::ostream &operator<<(std::ostream &os, const Dyninst::Relocation::TrackerElement &e) {
   os << "Tracker(" << hex
      << e.orig() << "," << e.reloc() 
-     << "," << e.size();
+     << "," << dec << e.size();
   switch(e.type()) {
   case TrackerElement::original:
     os << ",o";

@@ -41,6 +41,7 @@
 #include "dynutil/h/Graph.h" // PC-sensitive transformer
 #include "dataflowAPI/h/SymEval.h" // Variable class
 #include "Movement-adhoc.h"
+#include "../CodeMover.h"
 
 namespace Dyninst {
 

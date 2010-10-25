@@ -36,7 +36,6 @@
 #include "ControlFlow.h"
 #include "Instrumenter.h"
 #include "CF_Localization.h"
-#include "EmulateMemory.h"
 #include "Movement-analysis.h"
 #include "Fallthroughs.h"
 #include "Modification.h"

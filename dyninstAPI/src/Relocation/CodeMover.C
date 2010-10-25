@@ -261,7 +261,7 @@ void CodeMover::createInstrumentationSpringboards(AddressSpace *as) {
       std::set<Address>::iterator begin, end;
       as->getPreviousInstrumentationInstances(iter->first, begin, end);
       for (; begin != end; ++begin) {
-         sboardMap_.addFromRelocatedCode(*begin, iter->second, Required);
+         sboardMap_.addFromRelocatedCode(*begin, iter->second, RelocSuggested);
          relocation_cerr << "\t Added inst SB " << hex
                          << *begin << " -> " << iter->second << dec << endl;
       }
@@ -273,7 +273,7 @@ void CodeMover::createInstrumentationSpringboards(AddressSpace *as) {
       std::set<Address>::iterator begin, end;
       as->getPreviousInstrumentationInstances(iter->first, begin, end);
       for (; begin != end; ++begin) {
-         sboardMap_.addFromRelocatedCode(*begin, iter->second, Required);
+         sboardMap_.addFromRelocatedCode(*begin, iter->second, RelocSuggested);
          relocation_cerr << "\t Added inst SB " << hex
                          << *begin << " -> " << iter->second << dec << endl;
       }

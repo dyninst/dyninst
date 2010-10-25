@@ -43,6 +43,7 @@
 
 #include "Springboard.h"
 #include "CodeBuffer.h"
+#include "Springboard.h"
 
 class int_function;
 class int_basicTrace;
@@ -58,6 +59,7 @@ class Transformer;
 class CodeMover;
   class CodeTracker;
 
+  typedef std::map<bblInstance *, Priority> PriorityMap;
 
 class CodeMover {
  public:
