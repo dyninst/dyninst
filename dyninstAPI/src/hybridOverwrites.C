@@ -222,9 +222,9 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool useInsertionSet, BPatch_poi
     std::set<BPatch_basicBlock*,HybridAnalysis::blockcmp>::iterator bIter 
 	    = loop->blocks.begin();
     for (; bIter != loop->blocks.end(); bIter++) {
-        if ( !(*bIter)->getStartAddress()) {
-            mal_printf("WARNING: Not going to be able to delete this block, "
-                       "it's been overwritten and now I can't ascertain its "
+        if ( !(*bIter)->lowlevel_block() ) {
+            mal_printf("WARNING: Can't remove overwritten loop block, the "
+                       "internal block was deleted so we can't ascertain its "
                        "address: loopID %d block %lx %s[%d]\n", 
                        loop->getID(), *bIter,FILE__,__LINE__);
         } else {

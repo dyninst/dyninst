@@ -301,7 +301,7 @@ void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) 
   gen.setAddr(from);
 
   insnCodeGen::generateBranch(gen, from, to);
-  //cerr << "Springboard branch " << hex << from << "->" << to << dec << endl;
+  relocation_cerr << "Springboard branch " << hex << from << "->" << to << dec << endl;
 }
 
 void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {

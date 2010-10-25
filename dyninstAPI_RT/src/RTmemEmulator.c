@@ -34,7 +34,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
-#include <unistd.h>
+//#include <unistd.h>
 
 /* Code to assist in remapping memory operations that were affected
  * by our instrumentation */

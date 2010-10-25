@@ -63,6 +63,7 @@ extern int dyn_debug_proccontrol;
 extern int dyn_debug_stackwalk;
 extern int dyn_debug_inst;
 extern int dyn_debug_reloc;
+extern int dyn_debug_sensitivity;
 extern int dyn_debug_dyn_unw;
 extern int dyn_debug_dyn_dbi;
 extern int dyn_debug_mutex;
@@ -123,6 +124,7 @@ extern StatContainer stats_codegen;
 #define proccontrol_cerr  if (dyn_debug_proccontrol) cerr
 #define stackwalk_cerr    if (dyn_debug_stackwalk) cerr
 #define relocation_cerr   if (dyn_debug_reloc) cerr
+#define sensitivity_cerr  if (dyn_debug_sensitivity) cerr
 #define dyn_unw_cerr      if (dyn_debug_dyn_unw) cerr
 #define thread_cerr       if (dyn_debug_thread) cerr
 #define liveness_cerr     if (dyn_debug_liveness) cerr

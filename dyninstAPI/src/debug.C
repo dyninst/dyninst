@@ -219,6 +219,7 @@ int dyn_debug_stackwalk = 0;
 int dyn_debug_dbi = 0;
 int dyn_debug_inst = 0;
 int dyn_debug_reloc = 0;
+int dyn_debug_sensitivity = 0;
 int dyn_debug_dyn_unw = 0;
 int dyn_debug_dyn_dbi = 0;
 int dyn_debug_mutex = 0;
@@ -300,6 +301,10 @@ bool init_debug() {
   }
   if ( (p=getenv("DYNINST_DEBUG_RELOCATION"))) {
     fprintf(stderr, "Enabling DyninstAPI relocation debug\n");
+    dyn_debug_reloc = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_SENSITIVITY"))) {
+    fprintf(stderr, "Enabling DyninstAPI sensitivity debug\n");
     dyn_debug_reloc = 1;
   }
   if ( (p=getenv("DYNINST_DEBUG_DYN_UNW"))) {

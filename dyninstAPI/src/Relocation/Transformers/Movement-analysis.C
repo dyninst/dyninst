@@ -153,32 +153,32 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
 
     if (exceptionSensitive(addr+insn->size(), bbl)) {
       extSens = true;
-      cerr << "Sensitive by exception @ " << hex << addr << dec << endl;
+      sensitivity_cerr << "Sensitive by exception @ " << hex << addr << dec << endl;
     }
 
     for (AssignList::iterator a_iter = sensitiveAssignments.begin();
 	 a_iter != sensitiveAssignments.end(); ++a_iter) {
 
-       cerr << "Forward slice from " << (*a_iter)->format() << " in func " << bbl->func()->prettyName() << endl;
+       sensitivity_cerr << "Forward slice from " << (*a_iter)->format() << " in func " << bbl->func()->prettyName() << endl;
       
       Graph::Ptr slice = forwardSlice(*a_iter,
 				      bbl->block()->llb(),
 				      bbl->func()->ifunc());
       if (!slice) {
          // Safe assumption, as always
-         cerr << "\t slice failed!" << endl;
+         sensitivity_cerr << "\t slice failed!" << endl;
 	extSens = true;
 	intSens = true;
       }
       else {
 	if (!determineSensitivity(slice, intSens, extSens)) {
 	  // Analysis failed for some reason... go conservative
-           cerr << "\t sensitivity analysis failed!" << endl;
+           sensitivity_cerr << "\t sensitivity analysis failed!" << endl;
 	  intSens = true;
 	  extSens = true;
 	}
         else {
-           cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / " 
+           sensitivity_cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / " 
                 << (extSens ? "extSens" : "") << endl;
         }
       }

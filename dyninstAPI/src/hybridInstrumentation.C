@@ -463,7 +463,7 @@ void HybridAnalysis::removeInstrumentation(BPatch_function *func,
     }
 
 // 2. Relegate actual work to BPatch_function::removeInstrumentation()
-    func->removeInstrumentation();
+    func->removeInstrumentation(false);
     if (useInsertionSet) {
         proc()->finalizeInsertionSet(false);
     }

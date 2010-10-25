@@ -483,9 +483,7 @@ bool int_function::removePoint(instPoint *point)
     case functionEntry:
         for (unsigned i = 0; !foundPoint && i < entryPoints_.size(); i++) {
             if (entryPoints_[i] == point) {
-                if (i < entryPoints_.size()-1) {
-                    entryPoints_[i] = entryPoints_[entryPoints_.size()-1];
-                }
+                entryPoints_[i] = entryPoints_[entryPoints_.size()-1];
                 entryPoints_.pop_back();
                 foundPoint = true;
             }
@@ -494,9 +492,7 @@ bool int_function::removePoint(instPoint *point)
     case functionExit:
         for (unsigned i = 0; !foundPoint && i < exitPoints_.size(); i++) {
             if (exitPoints_[i]->addr() == point->addr()) {
-                if (i < exitPoints_.size()-1) {
-                    exitPoints_[i] = exitPoints_[exitPoints_.size()-1];
-                }
+                exitPoints_[i] = exitPoints_[exitPoints_.size()-1];
                 exitPoints_.pop_back();
                 foundPoint = true;
             }
@@ -505,9 +501,7 @@ bool int_function::removePoint(instPoint *point)
     case callSite:
         for (unsigned i = 0; !foundPoint && i < callPoints_.size(); i++) {
             if (callPoints_[i] == point) {
-                if (i < callPoints_.size()-1) {
-                    callPoints_[i] = callPoints_[callPoints_.size()-1];
-                }
+                callPoints_[i] = callPoints_[callPoints_.size()-1];
                 callPoints_.pop_back();
                 foundPoint = true;
             }
@@ -516,9 +510,7 @@ bool int_function::removePoint(instPoint *point)
     case otherPoint:
         for (unsigned i = 0; !foundPoint && i < arbitraryPoints_.size(); i++) {
             if (arbitraryPoints_[i] == point) {
-                if (i < arbitraryPoints_.size()-1) {
-                    arbitraryPoints_[i] = arbitraryPoints_[arbitraryPoints_.size()-1];
-                }
+                arbitraryPoints_[i] = arbitraryPoints_[arbitraryPoints_.size()-1];
                 arbitraryPoints_.pop_back();
                 foundPoint = true;
             }
@@ -679,13 +671,6 @@ bool int_function::parseNewEdges(const std::vector<edgeStub> &stubs )
         //    findEnclosingRegion( stubs[idx].trg-loadAddr );
         ParseAPI::Block *cursrc = stubs[idx].src->block()->llb();
 
-        //// same region check
-        //if (NULL != cursrc) {
-        //    Region *sourceRegion = ifunc()->img()->getObject()->
-        //        findEnclosingRegion( cursrc->start() );
-        //    assert(targetRegion == sourceRegion );
-
-        //}
         // update target region if needed
         if (BPatch_defensiveMode == obj()->hybridMode()) {
             obj()->updateCodeBytesIfNeeded(stubs[idx].trg);
@@ -850,8 +835,8 @@ void int_function::deleteBlock(int_basicBlock* block)
 
     // remove points
     pdvector<image_instPoint*> imgPoints;
-    ifunc()->img()->getInstPoints( origbbi->firstInsnAddr(), 
-                                   origbbi->endAddr(), 
+    ifunc()->img()->getInstPoints( origbbi->firstInsnAddr()-baseAddr, 
+                                   origbbi->endAddr()-baseAddr, 
                                    imgPoints );
     for (unsigned pidx=0; pidx < imgPoints.size(); pidx++) {
         image_instPoint *imgPt = imgPoints[pidx];
@@ -877,7 +862,7 @@ void int_function::deleteBlock(int_basicBlock* block)
     blockList.erase(block);
     
     // delete block?
-    //delete(block);
+    delete(block);
 }
 
 // Remove funcs from:
