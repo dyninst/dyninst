@@ -89,6 +89,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
     if (!insn) continue;
     Address addr = (*iter)->addr();
 
+
     // We want to identify all PC-sensitive instructions and 
     // determine whether they are externally sensitive; that is, 
     // whether they will misbehave (heh) given the new structure

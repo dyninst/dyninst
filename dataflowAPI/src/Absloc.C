@@ -90,7 +90,10 @@ std::string Absloc::format() const {
     ret << reg_.name();
     break;
   case Stack: {
-    ret << "S[" << func_->name() << "," << off_ << "," << region_ << "]";
+    if (func_)
+        ret << "S[" << func_->name() << "," << off_ << "," << region_ << "]";
+    else 
+        ret << "S[NULL_FUNC" << "," << off_ << "," << region_ << "]";
     break;
   }
   case Heap:

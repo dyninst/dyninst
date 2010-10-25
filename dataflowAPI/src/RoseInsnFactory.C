@@ -160,6 +160,9 @@ void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr 
   case e_lodsw:
       operands.clear();
       break;
+  case e_pushad:
+      operands.clear();
+      break;
   default:
     break;
   }
