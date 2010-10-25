@@ -112,10 +112,11 @@ Graph::Ptr Slicer::sliceInternal(Direction dir,
   //     constructInitialElementBackward(initial);
 
   AssignNode::Ptr aP = createNode(initial);
-  if (dir == forward)
+  if (dir == forward) {
       slicing_cerr << "Inserting entry node " << aP << "/" << aP->format() << endl;
-  else
+  } else {
       slicing_cerr << "Inserting exit node " << aP << "/" << aP->format() << endl;
+    }
 
   insertInitialNode(ret, dir, aP);
 
@@ -202,7 +203,7 @@ bool Slicer::getMatchingElements(Element &current,
     assert(dir == backward);
 
     // Find everyone who defines what this instruction uses
-    vector<AbsRegion> inputs = current.ptr->inputs();
+    std::vector<AbsRegion> inputs = current.ptr->inputs();
 
     for (unsigned int k = 0; k < inputs.size(); ++k) {
       // Do processing on each input
@@ -385,7 +386,6 @@ bool Slicer::handleCallDetailsBackward(AbsRegion &reg,
                                         ParseAPI::Block * callBlock,
                                         ParseAPI::Function *caller) {
 
-    ParseAPI::Function * callee = context.front().func;
     Address callBlockLastInsn = callBlock->lastInsnAddr();
 
     long stack_depth;
@@ -688,10 +688,10 @@ bool Slicer::handleCallBackward(ParseAPI::Edge *edge,
 
     /* We don't know which function the caller block belongs to,
      * follow each possibility */
-    vector<Function *> funcs;
+    std::vector<ParseAPI::Function *> funcs;
     newElement.loc.block->getFuncs(funcs);
-    vector<Function *> funcsToFollow = followCallBackward(&funcs, backward, current, p);
-    vector<Function *>::iterator fit;
+    std::vector<ParseAPI::Function *> funcsToFollow = followCallBackward(&funcs, backward, current, p);
+    std::vector<ParseAPI::Function *>::iterator fit;
     for (fit = funcsToFollow.begin(); fit != funcsToFollow.end(); ++fit) {
         Element curElement = newElement;
         curElement.con.push_back(ContextElement(*fit));
@@ -1114,7 +1114,7 @@ bool Slicer::followCall(ParseAPI::Block *target, Direction dir, Element &current
   return p.followCall(callee, callStack, current.reg);
 }
 
-vector<Function *> Slicer::followCallBackward(vector<Function *> * callers,
+std::vector<ParseAPI::Function *> Slicer::followCallBackward(std::vector<ParseAPI::Function *> * callers,
         Direction dir,
         Element &current,
         Predicates &p) {
@@ -1126,7 +1126,7 @@ vector<Function *> Slicer::followCallBackward(vector<Function *> * callers,
             calls != current.con.rend();
             ++calls) {
         if (calls->func) {
-            callStack.push(std::make_pair<Function *, int>(calls->func, calls->stackDepth));
+            callStack.push(std::make_pair<ParseAPI::Function *, int>(calls->func, calls->stackDepth));
         }
     }
     return p.followCallBackward(callers, callStack, current.reg);
