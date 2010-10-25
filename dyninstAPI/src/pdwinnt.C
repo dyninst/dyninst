@@ -541,6 +541,21 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
                        ev.address, origAddr, violationAddr,__LINE__);
             // detach so we can see what's going on 
             //ev.proc->detachProcess(true);
+            pdvector<pdvector<Frame> >  stacks;
+            if (!ev.proc->walkStacks(stacks)) {
+                mal_printf("%s[%d]:  walkStacks failed\n", FILE__, __LINE__);
+                return false;
+            }
+            for (unsigned i = 0; i < stacks.size(); ++i) {
+                pdvector<Frame> &stack = stacks[i];
+                for (unsigned int j = 0; j < stack.size(); ++j) {
+                    Address origPC = 0;
+                    vector<int_function*> dontcare1;
+                    baseTrampInstance *dontcare2 = NULL;
+                    ev.proc->getAddrInfo(stack[j].getPC(), origPC, dontcare1, dontcare2);
+                    mal_printf("frame %d: %lx[%lx]\n", j, stack[j].getPC(), origPC);
+                }
+            }
         }
         break;
 

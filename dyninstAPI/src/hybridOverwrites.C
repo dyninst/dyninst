@@ -438,6 +438,11 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
     unsigned boundsIdx=0; 
     while (bIter != blocks.end()) {
         // create instrumentation points
+        Address blockAddr = (*bIter)->getStartAddress();
+        ParseAPI::Block *blk = (*bIter)->lowlevel_block()->llb();
+        Address base = blockAddr - blk->start();
+        assert(blockAddr == base+blk->start() && 
+               (*bIter)->getEndAddress() == base+blk->end());
         std::vector<BPatch_point*>* blockWrites = (*bIter)->findPoint(insnTypes);
         for (unsigned widx = 0; widx < (*blockWrites).size(); widx++) {
             if (BPatch_locSubroutine == (*blockWrites)[widx]->getPointType() ||

@@ -206,7 +206,7 @@ class SpringboardBuilder {
 
   generateResult_t generateSpringboard(std::list<codeGen> &input,
 				       const SpringboardReq &p,
-                                       SpringboardMap &input);
+                                       SpringboardMap &);
 
   bool generateMultiSpringboard(std::list<codeGen> &input,
 				const SpringboardReq &p);

@@ -513,21 +513,30 @@ RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_,
     int idx = (int)arrayLen / 4 * 2; 
     int lowIdx = 0;
     int highIdx = (int)arrayLen;
+    printf("D_bc@%p: boundsArray=%p target=%lx idx=%d arrayLen=%d [%d]\n", (void*)DYNINST_boundsCheck, boundsArray_, writeTarget_, idx, arrayLen, __LINE__);
     while (lowIdx < highIdx) 
     {
+        printf("in loop [%d]\n", __LINE__);
+        if (idx > arrayLen || idx < 0)
+            printf("ERROR: out of bounds idx=%d, arrayLen = %d [%d]\n", idx, arrayLen, __LINE__);
+        printf("D_bc: low=%d high=%d arr[%d]=%lx [%d]\n", lowIdx, highIdx, idx, boundsArray[idx], __LINE__);
         if (writeTarget < boundsArray[idx]) {
+            printf("D_bc: [%d]\n", __LINE__);
             highIdx = idx;
             idx = (highIdx - lowIdx) / 4 * 2 + lowIdx;
         } 
         else if (boundsArray[idx+1] <= writeTarget) {
+            printf("D_bc: [%d]\n", __LINE__);
             lowIdx = idx+2;
             idx = (highIdx - lowIdx) / 4 * 2 + lowIdx;
         } 
         else {
+            printf("D_bc: callST=true [%d]\n", __LINE__);
             callStopThread = RT_TRUE;
             break;
         }
     }
+    printf("D_bc: ret=%d [%d]\n", callStopThread, __LINE__);
     return callStopThread;
 }
 

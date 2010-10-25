@@ -309,7 +309,7 @@ void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
   gen.allocate(4);
   gen.setAddrSpace(addrSpace_);
   gen.setAddr(from);
-
+  relocation_cerr << "YUCK! Springboard trap at: "<< hex << from << "->" << to << dec << endl;
   addrSpace_->trapMapping.addTrapMapping(from, to, true);
   insnCodeGen::generateTrap(gen);
 }
