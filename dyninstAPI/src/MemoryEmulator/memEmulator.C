@@ -110,7 +110,7 @@ void MemoryEmulator::addAllocatedRegion(Address start, unsigned size) {
 void MemoryEmulator::addRegion(mapped_object *obj) {
    addRegion(obj->codeAbs(),
              obj->imageSize() + obj->codeAbs(),
-             0);
+             getBase(obj));
 }
 
 void MemoryEmulator::addRegion(Address start, unsigned size, unsigned long shift) {
@@ -173,4 +173,21 @@ void MemoryEmulator::addRegion(Address start, unsigned size, unsigned long shift
 
 unsigned MemoryEmulator::addrWidth() {
    return aS_->getAddressWidth();
+}
+
+Address MemoryEmulator::getBase(mapped_object *obj) {
+   ObjectShadow::iterator iter = objectShadow.find(obj);
+   if (iter != objectShadow.end()) return iter->second;
+
+   Address newBase = aS_->inferiorMalloc(obj->imageSize());
+   assert(newBase);
+
+   objectShadow[obj] = newBase;
+   /// BIIIIIG ol' write
+   assert(obj->getPtrToInstruction(obj->codeAbs()));
+   aS_->writeDataSpace(obj->getPtrToInstruction(obj->codeAbs()),
+                       obj->imageSize(),
+                       (void *)newBase);
+
+   return newBase;
 }
