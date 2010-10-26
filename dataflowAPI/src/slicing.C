@@ -112,10 +112,11 @@ Graph::Ptr Slicer::sliceInternal(Direction dir,
   //     constructInitialElementBackward(initial);
 
   AssignNode::Ptr aP = createNode(initial);
-  if (dir == forward)
+  if (dir == forward) {
       slicing_cerr << "Inserting entry node " << aP << "/" << aP->format() << endl;
-  else
+  } else {
       slicing_cerr << "Inserting exit node " << aP << "/" << aP->format() << endl;
+    }
 
   insertInitialNode(ret, dir, aP);
 
@@ -202,7 +203,7 @@ bool Slicer::getMatchingElements(Element &current,
     assert(dir == backward);
 
     // Find everyone who defines what this instruction uses
-    vector<AbsRegion> inputs = current.ptr->inputs();
+    std::vector<AbsRegion> inputs = current.ptr->inputs();
 
     for (unsigned int k = 0; k < inputs.size(); ++k) {
       // Do processing on each input
@@ -380,10 +381,18 @@ bool Slicer::handleReturnDetailsBackward(AbsRegion &reg,
     return true;
 }
 
-void Slicer::handleCallDetailsBackward(AbsRegion &reg,
-                                        Context &context) {
-    long stack_depth = context.front().stackDepth;
+bool Slicer::handleCallDetailsBackward(AbsRegion &reg,
+                                        Context &context,
+                                        ParseAPI::Block * callBlock,
+                                        ParseAPI::Function *caller) {
 
+    Address callBlockLastInsn = callBlock->lastInsnAddr();
+
+    long stack_depth;
+    if (!getStackDepth(caller, callBlockLastInsn, stack_depth)) {
+        return false;
+    }
+    
     popContext(context);
 
     assert(!context.empty());
@@ -395,9 +404,11 @@ void Slicer::handleCallDetailsBackward(AbsRegion &reg,
     AbsRegion newRegion;
     shiftAbsRegion(reg, newRegion,
             -1*stack_depth,
-            context.front().func);
+            caller);
 
     reg = newRegion;
+    
+    return true;
 }
 
 // Given a <location> this function returns a list of successors.
@@ -505,14 +516,16 @@ bool Slicer::getPredecessors(Element &current,
         // Also, AbsRegion
         // But update the Location
         newElement.loc.rcurrent = prev;
-        pred.push(newElement);
 
-        slicing_cerr << "\t\t\t\t Adding intra-block predecessor " 
-            << std::hex << newElement.loc.addr() << " "  
-            << newElement.reg.format() << endl;
-        slicing_cerr << "\t\t\t\t Current region is " << current.reg.format() 
-            << endl;
+        if (p.addPredecessor(newElement.reg)) {
+            pred.push(newElement);
 
+            slicing_cerr << "\t\t\t\t Adding intra-block predecessor " 
+                << std::hex << newElement.loc.addr() << " "  
+                << newElement.reg.format() << endl;
+            slicing_cerr << "\t\t\t\t Current region is " << current.reg.format() 
+                << endl;
+        }
         return true;
     }
     
@@ -521,7 +534,9 @@ bool Slicer::getPredecessors(Element &current,
 
     Element newElement;
     Elements newElements;
-    SingleContext epred(current.loc.func, true, true);
+    //SingleContext epredSC(current.loc.func, true, true);
+    //Interproc epred;
+    SingleContextOrInterproc epred(current.loc.func, true, true);
 
     const Block::edgelist &sources = current.loc.block->sources();
     Block::edgelist::iterator eit = sources.begin(&epred);
@@ -664,36 +679,33 @@ bool Slicer::handleCall(ParseAPI::Block *block,
 bool Slicer::handleCallBackward(ParseAPI::Edge *edge,
         Element &current,
         Elements &newElements,
-        Predicates &,
+        Predicates &p,
         bool &)
 {
     Element newElement = current;
-
-    // Find the predecessor block...
-    Context callerCon = newElement.con;
-    callerCon.pop_front();
-
-    if (callerCon.empty()) {
-        return false;
-    }
 
     newElement.loc.block = edge->src();
 
     /* We don't know which function the caller block belongs to,
      * follow each possibility */
-    vector<Function *> funcs;
+    std::vector<ParseAPI::Function *> funcs;
     newElement.loc.block->getFuncs(funcs);
-    vector<Function *>::iterator fit;
-    for (fit = funcs.begin(); fit != funcs.end(); ++fit) {
+    std::vector<ParseAPI::Function *> funcsToFollow = followCallBackward(&funcs, backward, current, p);
+    std::vector<ParseAPI::Function *>::iterator fit;
+    for (fit = funcsToFollow.begin(); fit != funcsToFollow.end(); ++fit) {
         Element curElement = newElement;
+        curElement.con.push_back(ContextElement(*fit));
 
         // Pop AbsRegion and Context
-        handleCallDetailsBackward(newElement.reg,
-                newElement.con);
+        if (!handleCallDetailsBackward(curElement.reg,
+                    curElement.con,
+                    curElement.loc.block,
+                    *fit)) {
+            return false;
+        }
 
         curElement.loc.func = *fit;
         getInsnsBackward(curElement.loc);
-
         newElements.push(curElement);
     }
 
@@ -1100,6 +1112,24 @@ bool Slicer::followCall(ParseAPI::Block *target, Direction dir, Element &current
   // FIXME: assuming that this is not a PLT function, since I have no idea at present.
   // -- BW, April 2010
   return p.followCall(callee, callStack, current.reg);
+}
+
+std::vector<ParseAPI::Function *> Slicer::followCallBackward(std::vector<ParseAPI::Function *> * callers,
+        Direction dir,
+        Element &current,
+        Predicates &p) {
+    assert(dir == backward);
+
+    // Create the call stack
+    std::stack<std::pair<ParseAPI::Function *, int> > callStack;
+    for (Context::reverse_iterator calls = current.con.rbegin();
+            calls != current.con.rend();
+            ++calls) {
+        if (calls->func) {
+            callStack.push(std::make_pair<ParseAPI::Function *, int>(calls->func, calls->stackDepth));
+        }
+    }
+    return p.followCallBackward(callers, callStack, current.reg);
 }
 
 bool Slicer::followReturn(ParseAPI::Block *source,

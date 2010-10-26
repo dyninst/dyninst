@@ -203,6 +203,15 @@ class Intraproc : public EdgePredicate {
     PARSER_EXPORT bool pred_impl(Edge *) const;
 };
 
+/* follow interprocedural edges */
+class Interproc : public EdgePredicate {
+    public:
+        PARSER_EXPORT Interproc() {}
+        PARSER_EXPORT Interproc(EdgePredicate * next) : EdgePredicate(next) { }
+        PARSER_EXPORT ~Interproc() { }
+        PARSER_EXPORT bool pred_impl(Edge *) const;
+};
+
 /*
  * For proper ostritch-like denial of 
  * unresolved control flow edges
@@ -233,6 +242,22 @@ class SingleContext : public EdgePredicate {
         _backward(backward) { }
     PARSER_EXPORT ~SingleContext() { }
     PARSER_EXPORT bool pred_impl(Edge *) const;
+};
+
+/* Doesn't follow branches into the function if there is shared code. 
+ * Will follow interprocedural call/return edges */
+class SingleContextOrInterproc : public EdgePredicate {
+    private:
+        Function * _context;
+        bool _forward;
+        bool _backward;
+    public:
+        PARSER_EXPORT SingleContextOrInterproc(Function * f, bool forward, bool backward) :
+            _context(f),
+            _forward(forward),
+            _backward(backward) { }
+        PARSER_EXPORT ~SingleContextOrInterproc() { }
+        PARSER_EXPORT bool pred_impl(Edge *) const;
 };
 
 class CodeObject;

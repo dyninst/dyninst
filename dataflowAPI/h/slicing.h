@@ -109,6 +109,16 @@ class Slicer {
                                            AbsRegion /*argument*/) { 
        return false; 
     }
+    DATAFLOW_EXPORT virtual std::vector<ParseAPI::Function *> 
+        followCallBackward(std::vector<ParseAPI::Function *> * /*callers*/,
+            CallStack_t & /*cs*/,
+            AbsRegion /*argument*/) {
+            std::vector<ParseAPI::Function *> vec;
+            return vec;
+        }
+    DATAFLOW_EXPORT virtual bool addPredecessor(AbsRegion reg) {
+        return true;
+    }
     DATAFLOW_EXPORT virtual bool widenAtAssignment(const AbsRegion & /*in*/,
                                                   const AbsRegion & /*out*/) { 
        return false; 
@@ -190,8 +200,10 @@ class Slicer {
 			 ParseAPI::Block *callerBlock,
 			 ParseAPI::Function *callee);
 
-  void handleCallDetailsBackward(AbsRegion &reg,
-                                Context &context);
+  bool handleCallDetailsBackward(AbsRegion &reg,
+                                Context &context,
+                                ParseAPI::Block * callBlock,
+                                ParseAPI::Function * caller);
 
   // Where we are in a particular search...
   struct Location {
@@ -253,6 +265,12 @@ class Slicer {
 		  Direction d,
 		  Element &current,
 		  Predicates &p);
+  
+  std::vector<ParseAPI::Function *> 
+      followCallBackward(std::vector<ParseAPI::Function *> * callers,
+              Direction d,
+              Element &current,
+              Predicates &p);
 
   bool followReturn(ParseAPI::Block *b,
                     Direction d,
