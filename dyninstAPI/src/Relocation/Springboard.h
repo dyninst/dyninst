@@ -204,7 +204,7 @@ class SpringboardBuilder {
                    SpringboardMap &input,
                    Priority p);
 
-  generateResult_t generateSpringboard(std::list<codeGen> &input,
+  generateResult_t generateSpringboard(std::list<codeGen> &gens,
 				       const SpringboardReq &p,
                                        SpringboardMap &);
 

@@ -52,6 +52,7 @@ class MemoryEmulator {
    void addRegion(Address start, unsigned size, unsigned long shift);
    bool findMutateeTable();
    unsigned addrWidth();
+   Address getBase(mapped_object *);
 
    AddressSpace *aS_;
 
@@ -60,6 +61,10 @@ class MemoryEmulator {
    MemoryMapTree memoryMap_;
 
    Address mutateeBase_;
+
+   typedef std::map<mapped_object *, Address> ObjectShadow;
+   ObjectShadow objectShadow;
+
 };
 };
 
