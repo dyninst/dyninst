@@ -556,6 +556,12 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
                     mal_printf("frame %d: %lx[%lx]\n", j, stack[j].getPC(), origPC);
                 }
             }
+            dyn_saved_regs regs;
+            ev.lwp->getRegisters(&regs,false);
+            printf("\neax=%lx \necx=%lx \nedx=%lx \nebx=%lx \nesp=%lx \nebp=%lx \nesi=%lx "
+                   "\nedi=%lx\n",regs.cont.Eax, regs.cont.Ecx, regs.cont.Edx, 
+                   regs.cont.Ebx, regs.cont.Esp, regs.cont.Ebp, 
+                   regs.cont.Esi, regs.cont.Edi);
         }
         break;
 
@@ -2458,9 +2464,14 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     {
         int_function *hfunc = ev.proc->findFuncByAddr(*hIter);
         if (hfunc) {
+            using namespace ParseAPI;
             hfunc->setHandlerFaultAddr(point->addr());
-            //add the handlers to process::signalHandlerLocations
-            //ev.proc->addSignalHandler(*hIter,hfunc->ifunc()->get_size());
+            Address base = hfunc->getAddress() - hfunc->ifunc()->addr();
+            const vector<FuncExtent*> &exts = hfunc->ifunc()->extents();
+            for (unsigned eix=0; eix < exts.size(); eix++) {
+                ev.proc->addSignalHandler(base + exts[eix]->start(),
+                                          exts[eix]->end()-exts[eix]->start());
+            }
         } else {
             fprintf(stderr, "WARNING: failed to parse handler at %lx for "
                     "exception at %lx %s[%d]\n", *hIter, point->addr(), 

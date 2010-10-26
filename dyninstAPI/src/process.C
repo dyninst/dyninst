@@ -4106,9 +4106,12 @@ bool process::dumpMemory(void * addr, unsigned nbytes)
 }
 
 void process::addSignalHandler(Address addr, unsigned size) {
-    signal_handler_location *newSig = new signal_handler_location(addr, 
-                                                                  size);
-    signalHandlerLocations_.insert(newSig);
+    codeRange *handlerLoc;
+    if (signalHandlerLocations_.find(addr, handlerLoc)) {
+        return; // we're already tracking this location
+    }
+    handlerLoc = new signal_handler_location(addr, size);
+    signalHandlerLocations_.insert((signal_handler_location*)handlerLoc);
 }
 
 // We keep a vector of all signal handler locations
@@ -4891,11 +4894,13 @@ bool process::getDeadCode
     // group blocks by function
     std::map<int_function*,set<bblInstance*> > deadMap;
     std::set<int_function*> deadEntryFuncs;
+    std::set<Address> owBlockAddrs;
     for (list<bblInstance*>::const_iterator bIter=owBlocks.begin();
          bIter != owBlocks.end(); 
          bIter++) 
     {
         deadMap[(*bIter)->func()].insert(*bIter);
+        owBlockAddrs.insert((*bIter)->firstInsnAddr());
         if ((*bIter)->block()->llb() == (*bIter)->func()->ifunc()->entry()) {
             deadEntryFuncs.insert((*bIter)->func());
         }
@@ -4911,7 +4916,9 @@ bool process::getDeadCode
         set<bblInstance*> execBlocks;
         for (unsigned pidx=0; pidx < pcs.size(); pidx++) {
             bblInstance *exB = fit->first->findBlockInstanceByAddr(pcs[pidx]);
-            if (exB) {
+            if (exB && owBlockAddrs.end() == owBlockAddrs.find(
+                                                    exB->firstInsnAddr())) 
+            {
                 execBlocks.insert(exB);
             }
         }

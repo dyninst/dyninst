@@ -282,7 +282,8 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
        bPoint->removeSnippet(handle);
      }
    
-   delete handle;
+   //delete handle; //KEVINTODO: fix this, add instrumentation-removal callback
+   handle->mtHandles_.clear();
    
    if (pendingInsertions == NULL) {
      // Trigger it now
