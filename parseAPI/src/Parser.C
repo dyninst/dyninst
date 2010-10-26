@@ -647,17 +647,16 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 return;
             }
             else if(ct && work->tailcall()) {
-               if (ct->_rs == UNSET) {
-                  // Ah helll....
-                frame.call_target = ct;
-                frame.set_status(ParseFrame::CALL_BLOCKED);
-                // need to re-visit this edge
-                frame.pushWork(work);
-                return;
-               }                  
-
-                if(func->_rs != RETURN && ct->_rs > NORETURN)
-                    func->_rs = ct->_rs;
+                // XXX The target has been or is currently being parsed (else
+                //     the previous conditional would have been taken),
+                //     so if its return status is unset then this
+                //     function has to take UNKNOWN
+                if(func->_rs != RETURN) {
+                    if(ct->_rs > NORETURN)
+                        func->_rs = ct->_rs;
+                    else if(ct->_rs == UNSET)
+                        func->_rs = UNKNOWN;
+                }
             }
 
             // check for catch blocks after non-returning calls
