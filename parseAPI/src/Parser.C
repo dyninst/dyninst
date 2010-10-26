@@ -757,7 +757,16 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             parsing_printf("[%s] deferring parse of shared block %lx\n",
                 FILE__,cur->start());
             if (func->_rs < UNKNOWN) {
-                func->_rs = UNKNOWN;
+                // we've parsed into another function, if we've parsed
+                // into it's entry point, set retstatus to match it
+                Function * other_func = _parse_data->findFunc(
+                    func->region(), cur->start());
+                if (other_func && other_func->retstatus() > UNKNOWN) {
+                    func->_rs = other_func->retstatus();
+                }
+                else {
+                    func->_rs = UNKNOWN;
+                }
             }
             continue;
         }
