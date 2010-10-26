@@ -149,6 +149,8 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     //   If a non-stack register is used:
     //     Create a generic MemLoc.
 
+  cerr << "Converting " << exp->format() << endl;
+
     long spHeight = 0;
     int spRegion = 0;
     bool stackDefined = getCurrentStackHeight(func,
@@ -165,26 +167,33 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     bool isStack = false;
     bool isFrame = false;
 
+
     static Expression::Ptr theStackPtr(new RegisterAST(MachRegister::getStackPointer(Arch_x86)));
     static Expression::Ptr theStackPtr64(new RegisterAST(MachRegister::getStackPointer(Arch_x86_64)));
+    static Expression::Ptr theStackPtrPPC(new RegisterAST(MachRegister::getStackPointer(Arch_ppc32)));
     
     static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
     static Expression::Ptr theFramePtr64(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
 
     static Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(Arch_x86)));
     static Expression::Ptr thePC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
+    static Expression::Ptr thePCPPC(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
     
     // We currently have to try and bind _every_ _single_ _alias_
     // of the stack pointer...
     if (stackDefined) {
+      cerr << "Binding the stack pointer... " << theStackPtrPPC->format() << " into " << exp->format() << endl;
       if (exp->bind(theStackPtr.get(), Result(s32, spHeight)) ||
-	  exp->bind(theStackPtr64.get(), Result(s64, spHeight))) {
+	  exp->bind(theStackPtr64.get(), Result(s64, spHeight)) ||
+	  exp->bind(theStackPtrPPC.get(), Result(s32, spHeight))) {
+	cerr << "\tBound the SP" << endl;
 	isStack = true;
       }
     }
     if (frameDefined) {
       if (exp->bind(theFramePtr.get(), Result(s32, fpHeight)) ||
 	  exp->bind(theFramePtr64.get(), Result(s64, fpHeight))) {
+	cerr << "\t Bound the FP" << endl;
 	isFrame = true;
       }
     }
@@ -192,6 +201,7 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     // Bind the IP, why not...
     exp->bind(thePC.get(), Result(u32, addr));
     exp->bind(thePC64.get(), Result(u64, addr));
+    exp->bind(thePCPPC.get(), Result(u32, addr));
 
     Result res = exp->eval();
 
@@ -560,6 +570,50 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     assignments.push_back(b);
     break;
   }
+
+  case power_op_stwu: {
+    std::vector<Operand> operands;
+    I->getOperands(operands);
+
+    // stwu <a>, <b>, <c>
+    // <a> = R1
+    // <b> = -16(R1)
+    // <c> = R1
+
+    // From this, R1 <= R1 - 16; -16(R1) <= R1
+    // So a <= b (without a deref)
+    // deref(b) <= c
+
+    std::set<Expression::Ptr> writes;
+    I->getMemoryWriteOperands(writes);
+    assert(writes.size() == 1);
+
+    Expression::Ptr tmp = *(writes.begin());
+    AbsRegion effAddr = aConverter.convert(tmp,
+					   addr, 
+					   func);
+    std::vector<AbsRegion> regions;
+    aConverter.convertAll(operands[0].getValue(), addr, func, regions);
+    AbsRegion RS = regions[0];
+    regions.clear();
+    aConverter.convertAll(operands[2].getValue(), addr, func, regions);
+    AbsRegion RA = regions[0];
+
+    Assignment::Ptr mem = Assignment::Ptr(new Assignment(I, 
+							 addr,
+							 func,
+							 effAddr));
+    mem->addInput(RS);
+    
+    Assignment::Ptr ra = Assignment::Ptr(new Assignment(I,
+							addr,
+							func,
+							RA));
+    ra->addInput(RS);
+    assignments.push_back(mem);
+    assignments.push_back(ra);
+    break;
+  }      
         
   default:
     // Assume full intra-dependence of non-flag and non-pc registers. 

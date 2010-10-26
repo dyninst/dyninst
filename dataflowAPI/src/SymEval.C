@@ -90,7 +90,9 @@ void SymEval::expand(Result_t &res, bool applyVisitors) {
     for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
       if (!i->second) continue;
       AST::Ptr tmp = simplifyStack(i->second, i->first->addr(), i->first->func());
-      i->second = tmp;
+      BooleanVisitor b;
+      AST::Ptr tmp2 = tmp->accept(&b);
+      i->second = tmp2;
     }
   }
 }

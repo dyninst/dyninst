@@ -72,6 +72,28 @@ class StackVisitor : public ASTVisitor {
   StackAnalysis::Height frame_;
 };
 
+  // Simplify boolean expressions for PPC
+class BooleanVisitor : public ASTVisitor {
+ public:
+    BooleanVisitor() {};
+
+    DATAFLOW_EXPORT virtual AST::Ptr visit(AST *);
+    DATAFLOW_EXPORT virtual AST::Ptr visit(BottomAST *);
+    DATAFLOW_EXPORT virtual AST::Ptr visit(ConstantAST *);
+    DATAFLOW_EXPORT virtual AST::Ptr visit(VariableAST *);
+    DATAFLOW_EXPORT virtual AST::Ptr visit(RoseAST *);
+    DATAFLOW_EXPORT virtual AST::Ptr visit(StackAST *);
+    DATAFLOW_EXPORT virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();};
+    DATAFLOW_EXPORT virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();};
+    DATAFLOW_EXPORT virtual ASTPtr visit(StpAST *) {return AST::Ptr();};
+    DATAFLOW_EXPORT virtual ASTPtr visit(YicesAST *) {return AST::Ptr();};
+
+  
+    DATAFLOW_EXPORT virtual ~BooleanVisitor() {};
+    
+  private:
+};
+
 };
 };
 
