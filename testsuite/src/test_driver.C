@@ -284,13 +284,9 @@ void setupProcessGroup()
 
 #else
 
-void measureStart()
+class testMetrics
 {
-}
-
-void measureEnd()
-{
-}
+};
 
 void setupProcessGroup()
 {
@@ -453,6 +449,7 @@ void executeTest(ComponentTester *tester,
                  ParameterDict param)
 {
     if(!shouldRunTest(group, test)) return;
+    
     testMetrics m(getOutput());
     std::map<std::string, std::string> attrs;
    TestOutputDriver::getAttributesMap(test, group, attrs);
