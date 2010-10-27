@@ -692,7 +692,7 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
       code_ptr_ = (char*)mapAddr;
       code_off_ = 0;
       HANDLE hFile = mf->getFileHandle();
-      code_len_ = (Offset) GetFileSize(hFile, NULL);
+      code_len_ = mf->size();
       is_aout_ = false;
       fprintf(stderr,"Adding Symtab object with no program header, will " 
               "designate it as code, code_ptr_=%lx code_len_=%lx\n",

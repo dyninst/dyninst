@@ -185,9 +185,9 @@ Address MemoryEmulator::getBase(mapped_object *obj) {
    objectShadow[obj] = newBase;
    /// BIIIIIG ol' write
    assert(obj->getPtrToInstruction(obj->codeAbs()));
-   aS_->writeDataSpace(obj->getPtrToInstruction(obj->codeAbs()),
-                       obj->imageSize(),
-                       (void *)newBase);
+   //aS_->writeDataSpace(obj->getPtrToInstruction(obj->codeAbs()),
+   //                    obj->imageSize(),
+   //                    (void *)newBase);
 
    return newBase;
 }

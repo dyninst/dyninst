@@ -2719,6 +2719,8 @@ mapped_object *process::createObjectNoFile(Address addr)
         if (obj != NULL) {
             mapped_objects.push_back(obj);
             addOrigRange(obj);
+            obj->parse_img()->getOrCreateModule(
+                obj->parse_img()->getObject()->getDefaultModule());
             return obj;
         }
     }
