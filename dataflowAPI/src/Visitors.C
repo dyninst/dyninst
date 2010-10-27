@@ -112,7 +112,6 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
 	mask |= 1 << i;
       }
 
-      cerr << hex << "Simplifying extractOp /w/ mask " << mask << dec << endl;
       return ConstantAST::create(Constant(val->val().val & mask, to->val().val - from->val().val));
     }
     return RoseAST::create(r->val(), newKids);
@@ -121,7 +120,6 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
   }
   case ROSEOperation::derefOp: {
     // We may have a conditional dereference; that's awkward...
-    cerr << "deref /w/ " << r->numChildren() << " kids" << endl;
     if (r->numChildren() > 1) {
       // Let's see if that second is "true"...
       if (newKids[1]->getID() != AST::V_ConstantAST) {
@@ -137,15 +135,12 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
       return VariableAST::create(Variable(AbsRegion(Absloc(ConstantAST::convert(newKids[0])->val().val)),
 					  addr_));
     case AST::V_StackAST: {
-      cerr << "\t... stack AST" << endl;
       StackAST::Ptr s = StackAST::convert(newKids[0]);
       if (s->val() == StackAnalysis::Height::bottom) { 
-	cerr << "\t... bottom" << endl;
 	return VariableAST::create(Variable(AbsRegion(Absloc::Stack), 
 					    addr_));
       }
       else {
-	cerr << " stack absregion" << endl;
 	return VariableAST::create(Variable(AbsRegion(Absloc(s->val().height(),
 							     s->val().region()->name(),
 							     func_)),
@@ -179,8 +174,6 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
       // NewKids[0] is a constant; is the newKids[1] something we can add?
       switch (newKids[1]->getID()) {
       case AST::V_ConstantAST: {
-	cerr << "Caught stackAST + constAST: " << StackAST::convert(newKids[0])->val() << " + " 
-	     << ConstantAST::convert(newKids[1])->val().val << endl;
 	return StackAST::create(StackAST::convert(newKids[0])->val() +
 				ConstantAST::convert(newKids[1])->val().val);
       }
@@ -236,13 +229,11 @@ AST::Ptr BooleanVisitor::visit(RoseAST *r) {
     }
     break;
   case ROSEOperation::ifOp:
-    cerr << "Processing ifOp" << endl;
     // Our "true" is a constAST of 1
     if (newKids[0]->getID() == AST::V_ConstantAST) {
       ConstantAST::Ptr c = ConstantAST::convert(newKids[0]);
       cerr << "\t 0 was const, val " << c->val() << endl;
       if (c->val().val != 0) {
-	cerr << "Match!" << endl;
 	return newKids[1];
       }
     }
