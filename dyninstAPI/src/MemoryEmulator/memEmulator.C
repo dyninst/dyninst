@@ -31,7 +31,7 @@
 
 #include "dyninstAPI/src/addressSpace.h"
 #include "memEmulator.h"
-#include "mapped_object.h"
+#include "dyninstAPI/src/mapped_object.h"
 
 bool MemoryEmulator::findMutateeTable() {
    if (mutateeBase_ != 0) return true;

@@ -1920,6 +1920,7 @@ void BPatch_process::overwriteAnalysisUpdate
                 if (fit->second[i].src == fit->second[j].src) {
                     fit->second[j] = fit->second[fit->second.size()-1];
                     fit->second.pop_back();
+                    j--;
                 }
             }
         }

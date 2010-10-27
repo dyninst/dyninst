@@ -541,28 +541,36 @@ Frame Frame::getCallerFrame()
          pc_offset = SIG_HANDLER_PC_OFFSET_64;
          frame_size = SIG_HANDLER_FRAME_SIZE_64;
       }
-      
+          
       if (!getProc()->readDataSpace((caddr_t)(sp_+fp_offset), addr_size,
                                     &addrs.fp, true)) {
-	stackwalk_printf("%s[%d]: Failed to read memory at sp_+fp_offset 0x%lx\n", FILE__, __LINE__,sp_+fp_offset);
+         stackwalk_printf("%s[%d]: Failed to read memory at sp_+fp_offset 0x%lx\n", FILE__, __LINE__,sp_+fp_offset);
          return Frame();
       }
-      if (!getProc()->readDataSpace((caddr_t)(sp_+pc_offset), addr_size,
-                                    &addrs.rtn, true)) {
-	stackwalk_printf("%s[%d]: Failed to read memory at sp_+pc_offset 0x%lx\n", FILE__, __LINE__,sp_+pc_offset);
-         return Frame();
+
+      if (!getFunc()->getHandlerFaultAddr()) {
+          if (!getProc()->readDataSpace((caddr_t)(sp_+pc_offset), addr_size,
+                                        &addrs.rtn, true)) {
+             stackwalk_printf("%s[%d]: Failed to read memory at sp_+pc_offset 0x%lx\n", FILE__, __LINE__,sp_+pc_offset);
+             return Frame();
+          }
+
+          /**
+           * If the current frame is for the signal handler function, then we need 
+           * to read the information about the next frame from the data saved by 
+           * the signal handling mechanism.
+           **/
+          newPC = addrs.rtn;
+          pcLoc = sp_ + pc_offset;
       }
-      
-      
-      /**
-       * If the current frame is for the signal handler function, then we need 
-       * to read the information about the next frame from the data saved by 
-       * the signal handling mechanism.
-       **/
+      else {
+          newPC = getFunc()->getHandlerFaultAddr();
+          pcLoc = getFunc()->getHandlerFaultAddrAddr();
+      }
+
       newFP = addrs.fp;
-      newPC = addrs.rtn;
       newSP = sp_ + frame_size;
-      pcLoc = sp_ + pc_offset;
+      
       goto done;
    }   
    else if (status == frame_allocates_frame || status == frame_tramp)

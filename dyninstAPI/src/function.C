@@ -752,7 +752,7 @@ bool int_function::parseNewEdges(const std::vector<edgeStub> &stubs )
 
 void int_function::setHandlerFaultAddr(Address fa) 
 { 
-    handlerFaultAddr_ = fa; 
+    handlerFaultAddr_ = fa;
 }
 
 // Sets the address in the structure at which the fault instruction's
@@ -833,7 +833,7 @@ void int_function::deleteBlock(int_basicBlock* block)
     assert( ! imgBlock->isShared() ); //KEVINTODO: unimplemented case
     Address baseAddr = ifunc()->img()->desc().loadAddr();
 
-    // remove points
+    // remove parse points
     pdvector<image_instPoint*> imgPoints;
     ifunc()->img()->getInstPoints( origbbi->firstInsnAddr()-baseAddr, 
                                    origbbi->endAddr()-baseAddr, 
@@ -846,6 +846,16 @@ void int_function::deleteBlock(int_basicBlock* block)
             point = findInstPByAddr( imgPt->offset() + baseAddr );
         }
         removePoint( point );
+    }
+
+    // remove arbitrary points
+    for (unsigned pidx=0; pidx < arbitraryPoints_.size(); pidx++) {
+        if (origbbi->firstInsnAddr() <= arbitraryPoints_[pidx]->addr() &&
+            origbbi->endAddr() > arbitraryPoints_[pidx]->addr()) 
+        {
+            removePoint(arbitraryPoints_[pidx]); // removes point from the vector
+            pidx--;
+        }
     }
 
 

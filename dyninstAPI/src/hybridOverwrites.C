@@ -438,6 +438,11 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
     unsigned boundsIdx=0; 
     while (bIter != blocks.end()) {
         // create instrumentation points
+        Address blockAddr = (*bIter)->getStartAddress();
+        ParseAPI::Block *blk = (*bIter)->lowlevel_block()->llb();
+        Address base = blockAddr - blk->start();
+        assert(blockAddr == base+blk->start() && 
+               (*bIter)->getEndAddress() == base+blk->end());
         std::vector<BPatch_point*>* blockWrites = (*bIter)->findPoint(insnTypes);
         for (unsigned widx = 0; widx < (*blockWrites).size(); widx++) {
             if (BPatch_locSubroutine == (*blockWrites)[widx]->getPointType() ||
@@ -447,12 +452,8 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
             {
                 (*blockWrites)[widx] = (*blockWrites)[blockWrites->size()-1];
                 blockWrites->pop_back();
+                widx--; // there's an unexamined point at this vector location
             }
-            //if ((*bIter)->getLastInsnAddress() == 
-            //    (Address)blockWrites[wit]->getPointAddress()) 
-            //{ // check to see if it's a call
-            //     for ((*bIter)-
-            //}
         }
         loopWrites.insert(loopWrites.end(), 
                           blockWrites->begin(), 
@@ -796,7 +797,7 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
                       (*bIter)->getLastInsnAddress(), targFunc->getBaseAddr());
             loopFuncs.insert(targFunc);
         } else if (targFunc) {
-            mal_printf("revbug non-mal-func:%lx %d\n",targFunc->getBaseAddr(), __LINE__);
+            mal_printf("loop calls non-mal-func:%lx [%d]\n",targFunc->getBaseAddr(), __LINE__);
         }
     }
     //recursively add blocks in called functions to the loop
@@ -1111,7 +1112,8 @@ bool HybridAnalysisOW::isRealStore(Address insnAddr,
     InstructionDecoder decoder(buf,
 			                   InstructionDecoder::maxInstructionLength,
             			       proc()->lowlevel_process()->getArch());
-    Instruction::Ptr insn;
+    Instruction::Ptr insn = decoder.decode();
+    assert(insn != NULL);
     image_func *imgfunc = func->lowlevel_func()->ifunc(); 
     Address image_addr = func->lowlevel_func()->addrToOffset(insnAddr);
 

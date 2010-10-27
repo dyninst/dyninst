@@ -668,6 +668,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\BPatch_memoryAccess.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\BPatch_memoryAccessAdapter.C"
 				>
 				<FileConfiguration
@@ -1239,18 +1251,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Transformers\EmulateMemory.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\eventgate.C"
 				>
 				<FileConfiguration
@@ -1750,7 +1750,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\MemoryAccess.C"
+				RelativePath=".\src\MemoryEmulator\memEmulator.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1760,18 +1760,21 @@
 						CompileAs="2"
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\MemoryEmulator\memEmulatorAtom.C"
+				>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\MemoryEmulator.C"
+				RelativePath=".\src\MemoryEmulator\memEmulatorTransformer.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -2533,10 +2536,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Transformers\EmulateMemory.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\eventgate.h"
 				>
 			</File>
@@ -2649,7 +2648,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\MemoryEmulator.h"
+				RelativePath=".\src\MemoryEmulator\memEmulator.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\MemoryEmulator\memEmulatorAtom.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\MemoryEmulator\memEmulatorTransformer.h"
 				>
 			</File>
 			<File

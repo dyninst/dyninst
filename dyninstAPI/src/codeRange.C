@@ -201,6 +201,7 @@ codeRangeTree::entry *codeRangeTree::treeInsert(Address key, codeRange *value)
                 else if(key > x->key)
                     x = x->right;
                 else {
+                    x->value = value;
                     return NULL;
                 }
 	}

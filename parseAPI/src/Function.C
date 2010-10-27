@@ -255,7 +255,7 @@ void Function::setEntryBlock(Block *new_entry)
 }
 
 void 
-Function::deleteBlocks(vector<Block*> &dead_blocks)
+Function::deleteBlocks(vector<Block*> dead_blocks)
 {
     _cache_valid = false;
     bool deleteAll = (dead_blocks.size() == _blocks.size());
