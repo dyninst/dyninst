@@ -149,8 +149,6 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     //   If a non-stack register is used:
     //     Create a generic MemLoc.
 
-  cerr << "Converting " << exp->format() << endl;
-
     long spHeight = 0;
     int spRegion = 0;
     bool stackDefined = getCurrentStackHeight(func,

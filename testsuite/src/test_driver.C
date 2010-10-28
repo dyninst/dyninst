@@ -286,6 +286,8 @@ void setupProcessGroup()
 
 class testMetrics
 {
+    public:
+        testMetrics(TestOutputDriver*) {}
 };
 
 void setupProcessGroup()
