@@ -1688,7 +1688,12 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
       dest_r = *dest_to_use;
    }
    else {
-     dest = gen.rs()->getScratchRegister(gen, false, true);
+      if (gen.bti()) {
+         dest = gen.rs()->getScratchRegister(gen, false, true);
+      }
+      else {
+         dest = gen.rs()->getScratchRegister(gen);
+      }
    }
    
    if (reg.reg() == REGNUM_EBP) {
