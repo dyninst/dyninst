@@ -61,6 +61,7 @@ class StackVisitor : public ASTVisitor {
     DATAFLOW_EXPORT virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();};
     DATAFLOW_EXPORT virtual ASTPtr visit(StpAST *) {return AST::Ptr();};
     DATAFLOW_EXPORT virtual ASTPtr visit(YicesAST *) {return AST::Ptr();};
+    DATAFLOW_EXPORT virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();};
 
   
   DATAFLOW_EXPORT virtual ~StackVisitor() {};
@@ -87,6 +88,7 @@ class BooleanVisitor : public ASTVisitor {
     DATAFLOW_EXPORT virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();};
     DATAFLOW_EXPORT virtual ASTPtr visit(StpAST *) {return AST::Ptr();};
     DATAFLOW_EXPORT virtual ASTPtr visit(YicesAST *) {return AST::Ptr();};
+    DATAFLOW_EXPORT virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();};
 
   
     DATAFLOW_EXPORT virtual ~BooleanVisitor() {};

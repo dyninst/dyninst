@@ -15,6 +15,7 @@
 
 #include "util.h"
 #include "Node.h"
+#include "Edge.h"
 
 #include "AbslocInterface.h"
 
@@ -40,14 +41,14 @@ typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPt
 // Used in temp slicer; should probably
 // replace OperationNodes when we fix up
 // the DDG code.
-class AssignNode : public Node {
+class SliceNode : public Node {
  public:
-  typedef dyn_detail::boost::shared_ptr<AssignNode> Ptr;
+  typedef dyn_detail::boost::shared_ptr<SliceNode> Ptr;
       
-  DATAFLOW_EXPORT static AssignNode::Ptr create(AssignmentPtr ptr,
+  DATAFLOW_EXPORT static SliceNode::Ptr create(AssignmentPtr ptr,
 				ParseAPI::Block *block,
 				ParseAPI::Function *func) {
-    return Ptr(new AssignNode(ptr, block, func));
+    return Ptr(new SliceNode(ptr, block, func));
   }
       
   DATAFLOW_EXPORT ParseAPI::Block *block() const { return b_; };
@@ -60,19 +61,11 @@ class AssignNode : public Node {
       
   DATAFLOW_EXPORT std::string format() const;
       
-  DATAFLOW_EXPORT virtual ~AssignNode() {};
-      
-  DATAFLOW_EXPORT void addAssignment(AssignNode::Ptr p, unsigned u) {
-    assignMap_[p] = u;
-  }
-      
-  DATAFLOW_EXPORT unsigned getAssignmentIndex(AssignNode::Ptr p) {
-    return assignMap_[p];
-  }
+  DATAFLOW_EXPORT virtual ~SliceNode() {};
       
  private:
       
- AssignNode(AssignmentPtr ptr,
+ SliceNode(AssignmentPtr ptr,
 	    ParseAPI::Block *block,
 	    ParseAPI::Function *func) : 
   a_(ptr), b_(block), f_(func) {};
@@ -83,7 +76,27 @@ class AssignNode : public Node {
       
   // This is ugly and should be cleaned up once we've figured
   // out how to move forward on edge classes
-  std::map<AssignNode::Ptr, unsigned> assignMap_;
+  std::map<SliceNode::Ptr, unsigned> assignMap_;
+};
+
+class SliceEdge : public Edge {
+  public:
+   typedef dyn_detail::boost::shared_ptr<SliceEdge> Ptr;
+
+   DATAFLOW_EXPORT static SliceEdge::Ptr create(SliceNode::Ptr source,
+                                                SliceNode::Ptr target,
+                                                AbsRegion &data) {
+      return Ptr(new SliceEdge(source, target, data)); 
+   }
+
+   const AbsRegion &data() const { return data_; };
+
+  private:
+   SliceEdge(const SliceNode::Ptr source, 
+             const SliceNode::Ptr target,
+             AbsRegion data) 
+      : Edge(source, target), data_(data) {};
+   AbsRegion data_;
 };
 
 class Slicer {
@@ -233,14 +246,14 @@ class Slicer {
   // that specifies both context and what to search for
   // in that context
   struct Element {
-  Element() : usedIndex(-1), valid(true) {};
+  Element() : valid(true) {};
     Location loc;
     Context con;
     AbsRegion reg;
     // This is for returns, and not for the intermediate
     // steps. OTOH, I'm being a bit lazy...
     Assignment::Ptr ptr;
-    unsigned usedIndex;
+     AbsRegion inputRegion;
      bool valid;
     Address addr() const { return loc.addr(); }
   };
@@ -257,7 +270,7 @@ class Slicer {
 			 Predicates &p, Direction dir);
 
   void findMatches(Element &current, Assignment::Ptr &assign, 
-		   Direction dir, int index, Elements &succ); 
+		   Direction dir,  Elements &succ); 
 
   bool kills(Element &current, Assignment::Ptr &assign);
 
@@ -327,7 +340,6 @@ class Slicer {
   bool search(Element &current,
 	      Elements &foundList,
 	      Predicates &p,
-	      int index,
 	      Direction dir);
 
   void widen(GraphPtr graph, Direction dir, Element &source);
@@ -346,7 +358,7 @@ class Slicer {
 
   void fastBackward(Location &loc, Address addr);
 
-  AssignNode::Ptr widenNode();
+  SliceNode::Ptr widenNode();
 
   void markAsEndNode(GraphPtr ret, Direction dir, Element &current);
   
@@ -360,7 +372,7 @@ class Slicer {
 
   void setAliases(Assignment::Ptr, Element &);
 
-  AssignNode::Ptr createNode(Element &);
+  SliceNode::Ptr createNode(Element &);
 
   void cleanGraph(GraphPtr g);
 
@@ -369,7 +381,7 @@ class Slicer {
   
   void constructInitialElement(Element &initial, Direction dir);
 
-  void insertInitialNode(GraphPtr ret, Direction dir, AssignNode::Ptr aP);
+  void insertInitialNode(GraphPtr ret, Direction dir, SliceNode::Ptr aP);
 
   InsnCache insnCache_;
 
@@ -377,12 +389,12 @@ class Slicer {
   ParseAPI::Block *b_;
   ParseAPI::Function *f_;
 
-  std::set<AssignNode::Ptr> visited_;
-  std::map<AssignmentPtr, AssignNode::Ptr> created_;
+  std::set<SliceNode::Ptr> visited_;
+  std::map<AssignmentPtr, SliceNode::Ptr> created_;
 
   AssignmentConverter converter;
 
-  AssignNode::Ptr widen_;
+  SliceNode::Ptr widen_;
 };
 };
 

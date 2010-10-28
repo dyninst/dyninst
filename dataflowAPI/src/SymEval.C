@@ -50,7 +50,7 @@
 
 #include "../h/Absloc.h"
 
-#include "../h/slicing.h" // AssignNode
+#include "../h/slicing.h" // SliceNode
 
 #include "debug_dataflow.h"
 
@@ -97,32 +97,40 @@ void SymEval::expand(Result_t &res, bool applyVisitors) {
   }
 }
 
-void dfs(Node::Ptr source, Node::Ptr node,
-        set<Node::Ptr> & dfs_nodes,
-        map<Node::Ptr, unsigned> & cycles) {
-    // If we've already encountered this node, we've found a loop!
-    // Mark as a circularity and break
-    if (dfs_nodes.find(node) != dfs_nodes.end()) {
-        expand_cerr << "Found cycle at " << node->format()
-            << ", marking node as not for substitution" << endl;
+static const int UNLABELED = 0;
+static const int VISITING = 1;
+static const int VISITED = 2;
 
-        AssignNode::Ptr in = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(source);
-        Assignment::Ptr assign = in->assign();
-        AssignNode::Ptr cur_node = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(node);
-        
-        unsigned index = cur_node->getAssignmentIndex(in);
-        cycles.insert(make_pair(node, index));
-        return;
-    } else {
-        dfs_nodes.insert(node);
-    }   
+void dfs(Node::Ptr source,
+         std::map<Node::Ptr, int> &state,
+         std::set<Edge::Ptr> &skipEdges) {
 
-    // Continue DFS by following out-edges
-    NodeIterator gbegin, gend;
-    node->outs(gbegin, gend);
-    for (; gbegin != gend; ++gbegin) {
-        dfs(node, *gbegin, dfs_nodes, cycles);
-    }
+   // DFS from the node given by source
+   // If we meet a node twice without having to backtrack first,
+   // insert that incoming edge into skipEdges.
+   //
+   // Rough idea:
+   // Let preVisit be when a node is first visited
+   // Let postVisit be after all of a node's children were visited
+   // At preVisit set a node to be VISITING
+   // At postVisit set a node to be VISITED
+   // If a node is in VISITING at preVisit we have a cycle
+
+   EdgeIterator b, e;
+   source->outs(b, e);
+   for (; b != e; ++b) {
+      Edge::Ptr edge = *b;
+      Node::Ptr cur = edge->target();
+      
+      if (state[cur] == VISITING) {
+         skipEdges.insert(edge);
+      }
+      else {
+         state[cur] = VISITING;
+         dfs(cur, state, skipEdges);
+         state[cur] = VISITED;
+      }
+   }
 }
 
 // Do the previous, but use a Graph as a guide for
@@ -143,19 +151,15 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
 
     /* First, we'll do DFS to check for circularities in the graph;
      * if so, mark them so we don't do infinite substitution */
-    set<Node::Ptr> dfs_nodes;
-    map<Node::Ptr, unsigned> cycles;
+    std::set<Edge::Ptr> skipEdges;
+
     while (!dfs_worklist.empty()) {
-        Node::Ptr ptr = dfs_worklist.front(); dfs_worklist.pop();
-
-        NodeIterator nbegin, nend;
-        ptr->outs(nbegin, nend);
-
-        for (; nbegin != nend; ++nbegin) {
-            dfs(ptr, *nbegin, dfs_nodes, cycles);
-        }
+       Node::Ptr ptr = dfs_worklist.front(); dfs_worklist.pop();
+       std::map<Node::Ptr, int> state;
+       state[ptr] = VISITING;
+       dfs(ptr, state, skipEdges);
     }
-
+    
     /* have a list
      * for each node, process
      * if processessing succeeded, remove the element
@@ -163,8 +167,8 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
 
     while (!worklist.empty()) {
       Node::Ptr ptr = worklist.front(); worklist.pop();
-      AssignNode::Ptr aNode = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(ptr);
-      if (!aNode) continue; // They need to be AssignNodes
+      SliceNode::Ptr aNode = dyn_detail::boost::static_pointer_cast<SliceNode>(ptr);
+      if (!aNode) continue; // They need to be SliceNodes
       
       if (!aNode->assign()) continue; // Could be a widen point
       
@@ -172,7 +176,7 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
 
       AST::Ptr prev = res[aNode->assign()];
       
-      process(aNode, res, cycles); 
+      process(aNode, res, skipEdges); 
     
       AST::Ptr post = res[aNode->assign()];
 
@@ -223,44 +227,45 @@ void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 }
 
 
-bool SymEval::process(AssignNode::Ptr ptr,
+bool SymEval::process(SliceNode::Ptr ptr,
 		      Result_t &dbase,
-                      map<Node::Ptr, unsigned> & cycles) {
+                      std::set<Edge::Ptr> &skipEdges) {
     bool ret = false;
     
-    std::map<unsigned, Assignment::Ptr> inputMap;
+    std::map<AbsRegion, Assignment::Ptr> inputMap;
 
     expand_cerr << "Calling process on " << ptr->format() << endl;
 
     // Don't try an expansion of a widen node...
     if (!ptr->assign()) return ret;
 
-    NodeIterator begin, end;
+    EdgeIterator begin, end;
     ptr->ins(begin, end);
 
     for (; begin != end; ++begin) {
-        AssignNode::Ptr in = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*begin);
-        if (!in) continue;
+       SliceEdge::Ptr edge = dyn_detail::boost::static_pointer_cast<SliceEdge>(*begin);
+       SliceNode::Ptr source = dyn_detail::boost::static_pointer_cast<SliceNode>(edge->source());
 
-        Assignment::Ptr assign = in->assign();
-
-        if (!assign) continue;
-
-        // Find which input this assignNode maps to
-        unsigned index = ptr->getAssignmentIndex(in);
-        expand_cerr << "Assigning input " << index << " from assignment " << assign->format() << endl;
-        if (inputMap.find(index) == inputMap.end()) {
-            inputMap[index] = assign;
-        }
-        else {
-            // Need join operator!
-            expand_cerr << "\t Overlap in inputs, setting to null assignment pointer" << endl;
-            inputMap[index] = Assignment::Ptr(); // Null equivalent
-        }
+       // Skip this one to break a cycle.
+       if (skipEdges.find(edge) != skipEdges.end()) continue;
+       
+       Assignment::Ptr assign = source->assign();
+       if (!assign) continue; // widen node
+       
+       expand_cerr << "Assigning input " << edge->data().format() 
+                   << " from assignment " << assign->format() << endl;
+       if (inputMap.find(edge->data()) == inputMap.end()) {
+          inputMap[edge->data()] = assign;
+       }
+       else {
+          // Need join operator!
+          expand_cerr << "\t Overlap in inputs, setting to null assignment pointer" << endl;
+          inputMap[edge->data()] = Assignment::Ptr(); // Null equivalent
+       }
     }
-
+    
     expand_cerr << "\t Input map has size " << inputMap.size() << endl;
-
+    
     // All of the expanded inputs are in the parameter dbase
     // If not (like this one), add it
 
@@ -268,50 +273,40 @@ bool SymEval::process(AssignNode::Ptr ptr,
     //expand_cerr << "\t ... resulting in " << dbase.format() << endl;
 
     // We have an AST. Now substitute in all of its predecessors.
-    for (std::map<unsigned, Assignment::Ptr>::iterator iter = inputMap.begin();
-            iter != inputMap.end(); ++iter) {
-        if (!iter->second) {
-            // Colliding definitions; skip.
-            //cerr << "Skipping subsitution for input " << iter->first << endl;
-            continue;
-        }
-        expand_cerr << "Substituting input " << iter->first << " with assignment " << iter->second->format() << endl;
-        // The region used by the current assignment...
-        const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
-
-        // Create an AST around this one
-        VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));
-
-        // And substitute whatever we have in the database for that AST
-        AST::Ptr definition = dbase[iter->second];
-
-        if (!definition) {
-            // Can happen if we're expanding out of order, and is generally harmless.
-            continue;
-        }
-
-        expand_cerr << "Before substitution: " << (ast ? ast->format() : "<NULL AST>") << endl;
-
-        if (!ast) {
-            expand_cerr << "Skipping substitution because of null AST" << endl;
-        } else {
-            // Check if we have a circular dependency here; if yes, don't substitute
-            map<Node::Ptr, unsigned>::iterator cit;
-            cit = cycles.find(ptr);
-            if (cit != cycles.end()) {
-                if (cit->second == iter->first) {
-                    expand_cerr << "Found in-edge that's a cycle, skipping substitution" << endl;
-                    break;
-                }
-            }
-
-            ast = AST::substitute(ast, use, definition);
-            ret = true;
-        }	
-        //expand_cerr << "\t result is " << res->format() << endl;
+    for (std::map<AbsRegion, Assignment::Ptr>::iterator iter = inputMap.begin();
+         iter != inputMap.end(); ++iter) {
+       if (!iter->second) {
+          // Colliding definitions; skip.
+          //cerr << "Skipping subsitution for input " << iter->first << endl;
+          continue;
+       }
+       expand_cerr << "Substituting input " << iter->first << " with assignment " << iter->second->format() << endl;
+       // The region used by the current assignment...
+       const AbsRegion &reg = iter->first;
+       
+       // Create an AST around this one
+       VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));
+       
+       // And substitute whatever we have in the database for that AST
+       AST::Ptr definition = dbase[iter->second];
+       
+       if (!definition) {
+          // Can happen if we're expanding out of order, and is generally harmless.
+          continue;
+       }
+       
+       expand_cerr << "Before substitution: " << (ast ? ast->format() : "<NULL AST>") << endl;
+       
+       if (!ast) {
+          expand_cerr << "Skipping substitution because of null AST" << endl;
+       } else {
+          ast = AST::substitute(ast, use, definition);
+          ret = true;
+       }	
+       //expand_cerr << "\t result is " << res->format() << endl;
     }
     expand_cerr << "Result of substitution: " << ptr->assign()->format() << " == " << (ast ? ast->format() : "<NULL AST>") << endl;
-
+    
     // And attempt simplification again
     ast = simplifyStack(ast, ptr->addr(), ptr->func());
     expand_cerr << "Result of post-substitution simplification: " << ptr->assign()->format() << " == " 

@@ -26,7 +26,7 @@ using namespace InstructionAPI;
 using namespace std;
 using namespace ParseAPI;
 
-Address AssignNode::addr() const { 
+Address SliceNode::addr() const { 
   if (a_)
     return a_->addr();
   return 0;
@@ -111,7 +111,7 @@ Graph::Ptr Slicer::sliceInternal(Direction dir,
   constructInitialElement(initial, dir);
   //     constructInitialElementBackward(initial);
 
-  AssignNode::Ptr aP = createNode(initial);
+  SliceNode::Ptr aP = createNode(initial);
   if (dir == forward) {
       slicing_cerr << "Inserting entry node " << aP << "/" << aP->format() << endl;
   } else {
@@ -193,7 +193,7 @@ bool Slicer::getMatchingElements(Element &current,
     // Find everyone who uses what this ptr defines
     current.reg = current.ptr->out();
     
-    if (!search(current, found, p, 0, // Index doesn't matter as
+    if (!search(current, found, p, 
 		// it's set when we find a match
 		forward)) {
       ret = false;
@@ -209,7 +209,7 @@ bool Slicer::getMatchingElements(Element &current,
       // Do processing on each input
       current.reg = inputs[k];
 
-      if (!search(current, found, p, k, backward)) {
+      if (!search(current, found, p, backward)) {
 	slicing_cerr << "\t\t... backward search failed" << endl;
 	ret = false;
       }
@@ -791,7 +791,6 @@ bool Slicer::handleReturnBackward(ParseAPI::Edge *edge,
 bool Slicer::search(Element &initial,
 		    Elements &succ,
 		    Predicates &p,
-		    int index,
 		    Direction dir) {
   bool ret = true;
   
@@ -850,7 +849,7 @@ bool Slicer::search(Element &initial,
 	 iter != assignments.end(); ++iter) {
       Assignment::Ptr &assign = *iter;
 
-      findMatches(current, assign, dir, index, succ);
+      findMatches(current, assign, dir, succ);
 
       if (kills(current, assign)) {
 	keepGoing = false;
@@ -875,7 +874,7 @@ bool Slicer::getNextCandidates(Element &current, Elements &worklist,
   }
 }
 
-void Slicer::findMatches(Element &current, Assignment::Ptr &assign, Direction dir, int index, Elements &succ) {
+void Slicer::findMatches(Element &current, Assignment::Ptr &assign, Direction dir, Elements &succ) {
   if (dir == forward) {
     // We compare the AbsRegion in current to the inputs
     // of assign
@@ -885,7 +884,7 @@ void Slicer::findMatches(Element &current, Assignment::Ptr &assign, Direction di
       if (current.reg.contains(uReg)) {
 	// We make a copy of each Element for each Assignment...
 	current.ptr = assign;
-	current.usedIndex = k;
+        current.inputRegion = uReg;
 	succ.push(current);
       }
     }
@@ -899,7 +898,7 @@ void Slicer::findMatches(Element &current, Assignment::Ptr &assign, Direction di
     if (current.reg.contains(oReg)) {
        slicing_cerr << "\t\t\t\t\t\tMatch!" << endl;
       current.ptr = assign;
-      current.usedIndex = index;
+      current.inputRegion = current.reg;
       succ.push(current);
     }
   }
@@ -919,16 +918,16 @@ bool Slicer::kills(Element &current, Assignment::Ptr &assign) {
   return current.reg.contains(assign->out());
 }
 
-AssignNode::Ptr Slicer::createNode(Element &elem) {
+SliceNode::Ptr Slicer::createNode(Element &elem) {
   if (created_.find(elem.ptr) != created_.end()) {
     return created_[elem.ptr];
   }
-  AssignNode::Ptr newNode = AssignNode::create(elem.ptr, elem.loc.block, elem.loc.func);
+  SliceNode::Ptr newNode = SliceNode::create(elem.ptr, elem.loc.block, elem.loc.func);
   created_[elem.ptr] = newNode;
   return newNode;
 }
 
-std::string AssignNode::format() const {
+std::string SliceNode::format() const {
   if (!a_) {
     return "<NULL>";
   }
@@ -975,19 +974,15 @@ void Slicer::insertPair(Graph::Ptr ret,
 			Direction dir,
 			Element &source,
 			Element &target) {
-  AssignNode::Ptr s = createNode(source);
-  AssignNode::Ptr t = createNode(target);
+  SliceNode::Ptr s = createNode(source);
+  SliceNode::Ptr t = createNode(target);
 
   if (dir == forward) {
-      ret->insertPair(s, t);
-
-      // Also record which input to t is defined by s
-      slicing_cerr << "adding assignment with usedIndex = " << target.usedIndex << endl;
-      t->addAssignment(s, target.usedIndex);
+     SliceEdge::Ptr e = SliceEdge::create(s, t, target.inputRegion);
+     ret->insertPair(s, t, e);
   } else {
-      ret->insertPair(t, s);
-      slicing_cerr << "adding assignment with usedIndex = " << target.usedIndex << endl;
-      s->addAssignment(t, target.usedIndex);
+     SliceEdge::Ptr e = SliceEdge::create(t, s, target.inputRegion);
+     ret->insertPair(t, s, e);
   }
 }
 
@@ -1005,12 +1000,12 @@ void Slicer::widen(Graph::Ptr ret,
   }
 }
 
-AssignNode::Ptr Slicer::widenNode() {
+SliceNode::Ptr Slicer::widenNode() {
   if (widen_) {
     return widen_;
   }
 
-  widen_ = AssignNode::create(Assignment::Ptr(),
+  widen_ = SliceNode::create(Assignment::Ptr(),
 			      NULL, NULL);
   return widen_;
 }
@@ -1059,8 +1054,8 @@ void Slicer::cleanGraph(Graph::Ptr ret) {
   std::list<Node::Ptr> toDelete;
   
   for (; nbegin != nend; ++nbegin) {
-    AssignNode::Ptr foozle =
-      dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*nbegin);
+    SliceNode::Ptr foozle =
+      dyn_detail::boost::dynamic_pointer_cast<SliceNode>(*nbegin);
     //cerr << "Checking " << foozle << "/" << foozle->format() << endl;
     if ((*nbegin)->hasOutEdges()) {
       //cerr << "\t has out edges, leaving in" << endl;
@@ -1157,14 +1152,14 @@ ParseAPI::Block *Slicer::getBlock(ParseAPI::Edge *e,
 }
 
 bool Slicer::isWidenNode(Node::Ptr n) {
-  AssignNode::Ptr foozle =
-    dyn_detail::boost::dynamic_pointer_cast<AssignNode>(n);
+  SliceNode::Ptr foozle =
+    dyn_detail::boost::dynamic_pointer_cast<SliceNode>(n);
   if (!foozle) return false;
   if (!foozle->assign()) return true;
   return false;
 }
 
-void Slicer::insertInitialNode(GraphPtr ret, Direction dir, AssignNode::Ptr aP) {
+void Slicer::insertInitialNode(GraphPtr ret, Direction dir, SliceNode::Ptr aP) {
   if (dir == forward) {
     // Entry node
     ret->insertEntryNode(aP);
