@@ -32,6 +32,12 @@
 #include "dyninstAPI/src/addressSpace.h"
 #include "memEmulator.h"
 #include "dyninstAPI/src/mapped_object.h"
+#include "dyninstAPI/src/symtab.h"
+#include "symtabAPI/h/Symtab.h"
+#include "symtabAPI/h/Region.h"
+
+using namespace Dyninst;
+using namespace SymtabAPI;
 
 bool MemoryEmulator::findMutateeTable() {
    if (mutateeBase_ != 0) return true;
@@ -68,9 +74,8 @@ void MemoryEmulator::update() {
                        sizeof(int),
                        &guardValue);
    
-   // cerr << "UpdateMemEmulator: writing guard value " << guardValue << endl;
-   
-   // 64->32 bit is annoying...
+    cerr << "UpdateMemEmulator: writing guard value " << guardValue << endl;
+      // 64->32 bit is annoying...
    if (addrWidth() == 4) {
       struct MemoryMapper32 newMapper;
       
@@ -83,7 +88,7 @@ void MemoryEmulator::update() {
       newMapper.guard1 = guardValue;
       newMapper.guard2 = guardValue;
       newMapper.size = memoryMap_.size();
-      //cerr << "\t new values: " << newMapper.guard1 << "/" << newMapper.guard2 << "/" << newMapper.size << endl;
+      cerr << "\t new values: " << newMapper.guard1 << "/" << newMapper.guard2 << "/" << newMapper.size << endl;
       std::vector<MemoryMapTree::Entry> elements;
       memoryMap_.elements(elements);
       for (unsigned i = 0; i < elements.size(); ++i) {
@@ -91,7 +96,7 @@ void MemoryEmulator::update() {
          newMapper.elements[i].hi = elements[i].first.second;
          assert(newMapper.elements[i].hi > newMapper.elements[i].lo);
          newMapper.elements[i].shift = elements[i].second;
-         //cerr << "\t\t Element: " << hex << newMapper.elements[i].lo << "->" << newMapper.elements[i].hi << ": " << newMapper.elements[i].shift << dec << endl;
+         cerr << "\t\t Element: " << hex << newMapper.elements[i].lo << "->" << newMapper.elements[i].hi << ": " << newMapper.elements[i].shift << dec << endl;
       }
       aS_->writeDataSpace((void *)mutateeBase_,
                           sizeof(newMapper),
@@ -108,14 +113,39 @@ void MemoryEmulator::addAllocatedRegion(Address start, unsigned size) {
 }
 
 void MemoryEmulator::addRegion(mapped_object *obj) {
-   addRegion(obj->codeAbs(),
-             obj->imageSize() + obj->codeAbs(),
-             getBase(obj));
+   if (addedObjs_.find(obj) != addedObjs_.end())
+      return;
+   addedObjs_.insert(obj);
+
+   cerr << "addRegion for " << obj->fileName() << endl;
+
+   // Add each code region
+   std::vector<Region *> codeRegions;
+   obj->parse_img()->getObject()->getCodeRegions(codeRegions);
+
+   for (unsigned i = 0; i < codeRegions.size(); ++i) {
+      cerr << "\t\t Region " << i << ": " << hex
+           << codeRegions[i]->getMemOffset() + obj->codeBase() << " -> " 
+           << codeRegions[i]->getMemOffset() + codeRegions[i]->getMemSize() + obj->codeBase() << endl;
+      
+      char *buffer = (char *)malloc(codeRegions[i]->getMemSize());
+      memset(buffer, 0, codeRegions[i]->getMemSize());
+      memcpy(buffer, codeRegions[i]->getPtrToRawData(), codeRegions[i]->getMemSize());
+      
+      Address mutateeBase = aS_->inferiorMalloc(codeRegions[i]->getMemSize());
+      assert(mutateeBase);
+      aS_->writeDataSpace((void *)mutateeBase,
+                          codeRegions[i]->getMemSize(),
+                          (void *)buffer);
+      
+      addRegion(obj->codeBase() + codeRegions[i]->getMemOffset(),
+                codeRegions[i]->getMemSize(),
+                mutateeBase);
+   }         
 }
 
 void MemoryEmulator::addRegion(Address start, unsigned size, unsigned long shift) {
    if (size == 0) return;
-   return;
 
    Address end = start + size;
    assert(end > start);
@@ -175,19 +205,3 @@ unsigned MemoryEmulator::addrWidth() {
    return aS_->getAddressWidth();
 }
 
-Address MemoryEmulator::getBase(mapped_object *obj) {
-   ObjectShadow::iterator iter = objectShadow.find(obj);
-   if (iter != objectShadow.end()) return iter->second;
-
-   Address newBase = aS_->inferiorMalloc(obj->imageSize());
-   assert(newBase);
-
-   objectShadow[obj] = newBase;
-   /// BIIIIIG ol' write
-   assert(obj->getPtrToInstruction(obj->codeAbs()));
-   aS_->writeDataSpace(obj->getPtrToInstruction(obj->codeAbs()),
-                       obj->imageSize(),
-                       (void *)newBase);
-
-   return newBase;
-}
