@@ -483,6 +483,12 @@ std::string CFAtom::format() const {
   return ret.str();
 }
 
+unsigned CFAtom::size() const
+{ 
+    if (insn_ != NULL) 
+        return insn_->size(); 
+    return 0;
+}
 
 /////////////////////////
 // Patching!
@@ -560,3 +566,4 @@ bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
 unsigned PaddingPatch::estimate(codeGen &) {
    return 10;
 }
+

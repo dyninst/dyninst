@@ -442,13 +442,15 @@ bool IA_IAPI::isFakeCall() const
                 if(delta.defined) {
                     int delta_int = sign * (int)delta.convert<char>();
                     stackDelta += delta_int;
+                } else if (sign == -1) {
+                    return false;
                 } else {
-                    mal_printf("ERROR: in isFakeCall, add/sub ins'n "
+                    mal_printf("ERROR: in isFakeCall, add ins'n "
                                "at %lx (in first block of function at "
                                "%lx) modifies the sp but failed to evaluate "
                                "its arguments %s[%d]\n", 
                                ah->getAddr(), entry, FILE__, __LINE__);
-                    assert(0);
+                    return true;
                 }
                 break;
             }
