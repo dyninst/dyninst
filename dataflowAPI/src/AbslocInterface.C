@@ -182,18 +182,15 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     // We currently have to try and bind _every_ _single_ _alias_
     // of the stack pointer...
     if (stackDefined) {
-      cerr << "Binding the stack pointer... " << theStackPtrPPC->format() << " into " << exp->format() << endl;
       if (exp->bind(theStackPtr.get(), Result(s32, spHeight)) ||
 	  exp->bind(theStackPtr64.get(), Result(s64, spHeight)) ||
 	  exp->bind(theStackPtrPPC.get(), Result(s32, spHeight))) {
-	cerr << "\tBound the SP" << endl;
 	isStack = true;
       }
     }
     if (frameDefined) {
       if (exp->bind(theFramePtr.get(), Result(s32, fpHeight)) ||
 	  exp->bind(theFramePtr64.get(), Result(s64, fpHeight))) {
-	cerr << "\t Bound the FP" << endl;
 	isFrame = true;
       }
     }

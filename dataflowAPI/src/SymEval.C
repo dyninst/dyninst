@@ -232,7 +232,7 @@ bool SymEval::process(SliceNode::Ptr ptr,
                       std::set<Edge::Ptr> &skipEdges) {
     bool ret = false;
     
-    std::map<AbsRegion, Assignment::Ptr> inputMap;
+    std::map<AbsRegion, std::set<Assignment::Ptr> > inputMap;
 
     expand_cerr << "Calling process on " << ptr->format() << endl;
 
@@ -247,21 +247,18 @@ bool SymEval::process(SliceNode::Ptr ptr,
        SliceNode::Ptr source = dyn_detail::boost::static_pointer_cast<SliceNode>(edge->source());
 
        // Skip this one to break a cycle.
-       if (skipEdges.find(edge) != skipEdges.end()) continue;
+       if (skipEdges.find(edge) != skipEdges.end()) {
+	 expand_cerr << "In process, skipping edge from " 
+		     << source->format() << endl;
+	 continue;
+       }
        
        Assignment::Ptr assign = source->assign();
        if (!assign) continue; // widen node
        
        expand_cerr << "Assigning input " << edge->data().format() 
                    << " from assignment " << assign->format() << endl;
-       if (inputMap.find(edge->data()) == inputMap.end()) {
-          inputMap[edge->data()] = assign;
-       }
-       else {
-          // Need join operator!
-          expand_cerr << "\t Overlap in inputs, setting to null assignment pointer" << endl;
-          inputMap[edge->data()] = Assignment::Ptr(); // Null equivalent
-       }
+       inputMap[edge->data()].insert(assign);
     }
     
     expand_cerr << "\t Input map has size " << inputMap.size() << endl;
@@ -273,37 +270,51 @@ bool SymEval::process(SliceNode::Ptr ptr,
     //expand_cerr << "\t ... resulting in " << dbase.format() << endl;
 
     // We have an AST. Now substitute in all of its predecessors.
-    for (std::map<AbsRegion, Assignment::Ptr>::iterator iter = inputMap.begin();
+    for (std::map<AbsRegion, std::set<Assignment::Ptr> >::iterator iter = inputMap.begin();
          iter != inputMap.end(); ++iter) {
-       if (!iter->second) {
-          // Colliding definitions; skip.
-          //cerr << "Skipping subsitution for input " << iter->first << endl;
-          continue;
-       }
-       expand_cerr << "Substituting input " << iter->first << " with assignment " << iter->second->format() << endl;
-       // The region used by the current assignment...
-       const AbsRegion &reg = iter->first;
-       
-       // Create an AST around this one
-       VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));
-       
-       // And substitute whatever we have in the database for that AST
-       AST::Ptr definition = dbase[iter->second];
-       
-       if (!definition) {
-          // Can happen if we're expanding out of order, and is generally harmless.
-          continue;
-       }
-       
-       expand_cerr << "Before substitution: " << (ast ? ast->format() : "<NULL AST>") << endl;
-       
-       if (!ast) {
-          expand_cerr << "Skipping substitution because of null AST" << endl;
-       } else {
-          ast = AST::substitute(ast, use, definition);
-          ret = true;
-       }	
-       //expand_cerr << "\t result is " << res->format() << endl;
+      // If we have multiple secondary definitions, we:
+      //   if all definitions are equal, use the first
+      //   otherwise, use nothing
+      AST::Ptr definition;
+
+      for (std::set<Assignment::Ptr>::iterator iter2 = iter->second.begin(); 
+	   iter2 != iter->second.end(); ++iter2) {
+	AST::Ptr newDef = dbase[*iter2];
+	if (!definition) {
+	  definition = newDef;
+	  continue;
+	}
+	else if (definition->equals(newDef)) {
+	  continue;
+	}
+	else {
+	  // Not equal
+	  definition = AST::Ptr(); 
+	  break;
+	}
+      }
+
+      
+      // The region used by the current assignment...
+      const AbsRegion &reg = iter->first;
+      
+      // Create an AST around this one
+      VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));
+      
+      if (!definition) {
+	// Can happen if we're expanding out of order, and is generally harmless.
+	continue;
+      }
+      
+      expand_cerr << "Before substitution: " << (ast ? ast->format() : "<NULL AST>") << endl;
+      
+      if (!ast) {
+	expand_cerr << "Skipping substitution because of null AST" << endl;
+      } else {
+	ast = AST::substitute(ast, use, definition);
+	ret = true;
+      }	
+      //expand_cerr << "\t result is " << res->format() << endl;
     }
     expand_cerr << "Result of substitution: " << ptr->assign()->format() << " == " << (ast ? ast->format() : "<NULL AST>") << endl;
     
