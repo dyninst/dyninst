@@ -331,6 +331,11 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
             vector<Function*> funcs;
             src->getFuncs(funcs);
             frame = new ParseFrame(*funcs.begin(),_parse_data);
+            for (unsigned fix=1; fix < funcs.size(); fix++) {
+                // if the block is shared, all of its funcs need
+                // to add the new edge
+                funcs[fix]->_cache_valid = false;
+            }
             isNewFrame = true;
         }
 

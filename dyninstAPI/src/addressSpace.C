@@ -1593,8 +1593,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           Address pcOrig=0;
           vector<int_function *> origFuncs;
           baseTrampInstance *bti=NULL;
-          if (! getAddrInfo(tframe.getPC(), pcOrig, origFuncs, bti) ||
-              pcOrig == tframe.getPC()) 
+          if (! getAddrInfo(tframe.getPC(), pcOrig, origFuncs, bti)) 
           {
               continue;
           }
@@ -1612,11 +1611,13 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
               if ((*fit)->findBlockInstanceByAddr(pcOrig)) {
                   list<Address> relocPCs;
                   getRelocAddrs(pcOrig, origFunc, relocPCs, false);
-                  (*titer)->get_lwp()->changePC(relocPCs.back(),NULL);
-                  mal_printf("Pulling active frame PC into newest relocation "
-                             "orig[%lx]cur[%lx]new[%lx] %s[%d]\n", pcOrig, 
-                             tframe.getPC(), relocPCs.back(),FILE__,__LINE__);
-                  break;
+                  if (relocPCs.size()) {
+                      (*titer)->get_lwp()->changePC(relocPCs.back(),NULL);
+                      mal_printf("Pulling active frame PC into newest relocation "
+                                 "orig[%lx]cur[%lx]new[%lx] %s[%d]\n", pcOrig, 
+                                 tframe.getPC(), relocPCs.back(),FILE__,__LINE__);
+                      break;
+                      }
               }
           }
       }

@@ -254,7 +254,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             vector<Address> targets;
             if (!curPoint->getCFTargets(targets)) {
                 mal_printf("ERROR: Could not get target for static point[%d] "
-                       "[%lx] => [?]\n", pidx, (long)curPoint->getAddress());
+                       "[%lx] -> [?]\n", pidx, (long)curPoint->getAddress());
                 continue;
             }
 

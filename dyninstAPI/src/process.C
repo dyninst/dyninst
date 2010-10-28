@@ -5191,13 +5191,15 @@ bool process::generateRequiredPatches(instPoint *callPt,
     Address to = (reloc.instrumentation ? reloc.instrumentation : reloc.instruction);
 
     // 2) 
-    set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[callPt].begin();
-    for (; d_iter != forwardDefensiveMap_[callPt].end(); ++d_iter) 
-    {
-      Address jumpAddr = d_iter->first;
-      patchAreas.insert(std::make_pair(jumpAddr, to));
-      mal_printf("patching post-call pad for %lx[%lx] with %lx %s[%d]\n",
-                 callbbi->lastInsnAddr(), jumpAddr, to, FILE__,__LINE__);
+    if (forwardDefensiveMap_.end() != forwardDefensiveMap_.find(callPt)) {
+        set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[callPt].begin();
+        for (; d_iter != forwardDefensiveMap_[callPt].end(); ++d_iter) 
+        {
+          Address jumpAddr = d_iter->first;
+          patchAreas.insert(std::make_pair(jumpAddr, to));
+          mal_printf("patching post-call pad for %lx[%lx] with %lx %s[%d]\n",
+                     callbbi->lastInsnAddr(), jumpAddr, to, FILE__,__LINE__);
+        }
     }
     if (!patchAreas.size()) {
         mal_printf("no relocs to patch for call at %lx\n", callPt->addr());

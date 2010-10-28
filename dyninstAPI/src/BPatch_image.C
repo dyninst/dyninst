@@ -1395,6 +1395,11 @@ void BPatch_image::clearNewCodeRegions()
     getAddressSpace()->getAS(asv);
     AddressSpace *as = asv[0];
     assert(as);
-    as->getAOut()->parse_img()->clearNewBlocks();
+    vector<mapped_object*> objs = as->mappedObjects();
+    for (unsigned oix=0; oix < objs.size(); oix++) {
+        if (BPatch_normalMode != objs[oix]->hybridMode()) {
+            objs[oix]->parse_img()->clearNewBlocks();
+        }
+    }
 }
 
