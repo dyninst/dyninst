@@ -450,35 +450,45 @@ void executeTest(ComponentTester *tester,
                  RunGroup *group, TestInfo *test, 
                  ParameterDict param)
 {
-    if(!shouldRunTest(group, test)) return;
-    
-    testMetrics m(getOutput());
     std::map<std::string, std::string> attrs;
-   TestOutputDriver::getAttributesMap(test, group, attrs);
+    TestOutputDriver::getAttributesMap(test, group, attrs);
 
-   std::vector<ParamString*> new_params;
-   int group_num = group->index;
-   int test_num = test->index;
+    std::vector<ParamString*> new_params;
+    int group_num = group->index;
+    int test_num = test->index;
 
-   std::map<std::string, std::string>::iterator i = attrs.begin();
-   for (; i != attrs.end(); i++)
-   {
-      ParamString *pstr = new ParamString((*i).second.c_str());
-      param[(*i).first] = pstr;
-      new_params.push_back(pstr);
-   }
+    std::map<std::string, std::string>::iterator i = attrs.begin();
+    for (; i != attrs.end(); i++)
+    {
+        ParamString *pstr = new ParamString((*i).second.c_str());
+        param[(*i).first] = pstr;
+        new_params.push_back(pstr);
+    }
 
-    log_teststart(group_num, test_num, test_setup_rs);
-    test->results[test_setup_rs] = tester->test_setup(test, param);
-    log_testresult(test->results[test_setup_rs]);
+    {
+        testMetrics m(getOutput());
+
+        if(shouldRunTest(group, test))
+        {
+            log_teststart(group_num, test_num, test_setup_rs);
+            test->results[test_setup_rs] = tester->test_setup(test, param);
+            log_testresult(test->results[test_setup_rs]);
+        }
+        if(shouldRunTest(group, test))
+        {
+            log_teststart(group_num, test_num, test_execute_rs);
+            test->results[test_execute_rs] = test->mutator->executeTest();
+            log_testresult(test->results[test_execute_rs]);
+        }
+        if(shouldRunTest(group, test))
+        {
+            log_teststart(group_num, test_num, test_teardown_rs);
+            test->results[test_teardown_rs] = tester->test_teardown(test, param);
+            log_testresult(test->results[test_teardown_rs]);
+        }
+    }
+        
     
-    log_teststart(group_num, test_num, test_execute_rs);
-    test->results[test_execute_rs] = test->mutator->executeTest();
-    log_testresult(test->results[test_execute_rs]);
-    
-    log_teststart(group_num, test_num, test_teardown_rs);
-    test->results[test_teardown_rs] = tester->test_teardown(test, param);
-    log_testresult(test->results[test_teardown_rs]);
 
    for (unsigned j=0; j<new_params.size(); j++)
       delete new_params[j];
