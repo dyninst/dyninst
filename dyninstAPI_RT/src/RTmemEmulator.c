@@ -47,7 +47,7 @@ unsigned long RTtranslateMemory(unsigned long input) {
    int min;
    int max;
    volatile int guard2;
-//   fprintf(stderr, "RTtranslateMemory(0x%lx)\n", input);
+   fprintf(stderr, "RTtranslateMemory(0x%lx)\n", input);
    do {
       guard2 = RTmemoryMapper.guard2;
       min = 0;

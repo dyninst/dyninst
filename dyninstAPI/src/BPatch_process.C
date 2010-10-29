@@ -1968,7 +1968,7 @@ void BPatch_process::overwriteAnalysisUpdate
         }
 
 
-        // if the function is not reachable, add blocks to deadBlockAddrs 
+        // add blocks to deadBlockAddrs 
         bool hasCalls = false;
         Block::edgelist entryEdges = (*fit)->ifunc()->entry()->sources();
         for (Block::edgelist::iterator eit = entryEdges.begin();

@@ -74,7 +74,7 @@ void MemoryEmulator::update() {
                        sizeof(int),
                        &guardValue);
    
-    cerr << "UpdateMemEmulator: writing guard value " << guardValue << endl;
+    //cerr << "UpdateMemEmulator: writing guard value " << guardValue << endl;
       // 64->32 bit is annoying...
    if (addrWidth() == 4) {
       struct MemoryMapper32 newMapper;
@@ -88,7 +88,7 @@ void MemoryEmulator::update() {
       newMapper.guard1 = guardValue;
       newMapper.guard2 = guardValue;
       newMapper.size = memoryMap_.size();
-      cerr << "\t new values: " << newMapper.guard1 << "/" << newMapper.guard2 << "/" << newMapper.size << endl;
+      //cerr << "\t new values: " << newMapper.guard1 << "/" << newMapper.guard2 << "/" << newMapper.size << endl;
       std::vector<MemoryMapTree::Entry> elements;
       memoryMap_.elements(elements);
       for (unsigned i = 0; i < elements.size(); ++i) {
@@ -96,7 +96,7 @@ void MemoryEmulator::update() {
          newMapper.elements[i].hi = elements[i].first.second;
          assert(newMapper.elements[i].hi > newMapper.elements[i].lo);
          newMapper.elements[i].shift = elements[i].second;
-         cerr << "\t\t Element: " << hex << newMapper.elements[i].lo << "->" << newMapper.elements[i].hi << ": " << newMapper.elements[i].shift << dec << endl;
+         //cerr << "\t\t Element: " << hex << newMapper.elements[i].lo << "->" << newMapper.elements[i].hi << ": " << newMapper.elements[i].shift << dec << endl;
       }
       aS_->writeDataSpace((void *)mutateeBase_,
                           sizeof(newMapper),
@@ -130,7 +130,7 @@ void MemoryEmulator::addRegion(mapped_object *obj) {
       
       char *buffer = (char *)malloc(codeRegions[i]->getMemSize());
       memset(buffer, 0, codeRegions[i]->getMemSize());
-      memcpy(buffer, codeRegions[i]->getPtrToRawData(), codeRegions[i]->getMemSize());
+      memcpy(buffer, codeRegions[i]->getPtrToRawData(), codeRegions[i]->getDiskSize());
       
       Address mutateeBase = aS_->inferiorMalloc(codeRegions[i]->getMemSize());
       assert(mutateeBase);

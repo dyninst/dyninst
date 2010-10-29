@@ -165,7 +165,7 @@ bool MemEmulator::generate(const codeGen &templ,
   buffer.addPIC(prepatch, tracker(t->bbl()->func()));
   prepatch.setIndex(0);
   
-  buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch)), tracker(t->bbl()->func()));
+  buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch),point_), tracker(t->bbl()->func()));
 
   if (!postCallRestore(prepatch))
      return false;
@@ -656,6 +656,9 @@ bool MemEmulatorPatch::apply(codeGen &gen,
    // access it as an argument.
    relocation_cerr << "MemEmulatorPatch::apply @ " << hex << gen.currAddr() << dec << endl;
    relocation_cerr << "\tPush reg " << reg_ << endl;
+   registerSpace *aS = registerSpace::actualRegSpace(point, callPreInsn);
+   gen.setRegisterSpace(aS);
+
    ::emitPush(RealRegister(reg_), gen);
    // Step 2: call the translator, using a direct
    // call

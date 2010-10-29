@@ -182,12 +182,14 @@ struct MemEmulatorPatch : public Patch {
    // Put in a call to the RTtranslateMemory
    // function
    MemEmulatorPatch(Register r,
-                    Address d)
-      : reg_(r), dest_(d) {};
+                    Address d,
+                    instPoint *p)
+      : point(p), reg_(r), dest_(d) {};
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
    virtual unsigned estimate(codeGen &templ) { return 7; };
    virtual ~MemEmulatorPatch() {};
 
+   instPoint *point;
    Register reg_;
    Address dest_;
 };
