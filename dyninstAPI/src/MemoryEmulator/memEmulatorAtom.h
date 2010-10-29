@@ -85,6 +85,7 @@ class MemEmulator : public Atom {
 
    virtual Address addr() const { return addr_; }
    virtual unsigned size() const { return insn_->size(); }
+   virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
 
    Register effAddr() const { return effAddr_; }
 
@@ -185,7 +186,7 @@ struct MemEmulatorPatch : public Patch {
                     Address d)
       : reg_(r), dest_(d) {};
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
-   virtual unsigned estimate(codeGen &templ) { return 7; };
+   virtual unsigned estimate(codeGen &) { return 7; };
    virtual ~MemEmulatorPatch() {};
 
    Register reg_;

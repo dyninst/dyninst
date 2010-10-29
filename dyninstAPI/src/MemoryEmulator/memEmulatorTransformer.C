@@ -61,7 +61,7 @@ bool MemEmulatorTransformer::preprocess(TraceList &t) {
 // location with an emulation sequence
 bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
   if (!((*iter)->bbl())) return true;
-
+  
   // AssignmentConverter is written in terms of image_func,
   // so translate
   int_function *func = (*iter)->bbl()->func();

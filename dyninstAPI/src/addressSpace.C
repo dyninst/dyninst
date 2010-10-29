@@ -1632,15 +1632,15 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   cm->transform(c);
 
   sensitivity_cerr << "Applying PCSens transformer" << endl;
-  PCSensitiveTransformer v(this, cm->priorityMap());
-  cm->transform(v);
+  //PCSensitiveTransformer v(this, cm->priorityMap());
+  //cm->transform(v);
 
-  //adhocMovementTransformer a(this);
-  //cm->transform(a);
+  adhocMovementTransformer a(this);
+  cm->transform(a);
 
   //cerr << "Memory emulator" << endl;
-  //MemEmulatorTransformer m;
-  //cm->transform(m);
+  MemEmulatorTransformer m;
+  cm->transform(m);
 
   // Insert whatever binary modifications are desired
   // Right now needs to go before Instrumenters because we use

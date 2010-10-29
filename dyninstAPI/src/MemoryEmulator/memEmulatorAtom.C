@@ -158,7 +158,6 @@ bool MemEmulator::generate(const codeGen &templ,
   
   restoreFlags(prepatch);
 #else
-  prepatch.fill(5, codeGen::cgNOP);
   // push/pop time!
   if (!preCallSave(prepatch))
      return false;
@@ -169,7 +168,6 @@ bool MemEmulator::generate(const codeGen &templ,
 
   if (!postCallRestore(prepatch))
      return false;
-  prepatch.fill(5, codeGen::cgNOP);
 #endif
 
 
@@ -188,7 +186,7 @@ bool MemEmulator::initialize(codeGen &gen) {
   saveRAX_ = false;
   RAXWritten_ = false;
   RAXSave_ = Null_Register;
-
+  
   // This is copied from ast.C
   gen.setPoint(point_);
   registerSpace *rs = registerSpace::actualRegSpace(point_, callPreInsn);
@@ -468,7 +466,7 @@ bool MemEmulator::postCallRestore(codeGen &gen) {
    return true;
 }
 
-bool MemEmulator::emitCallToTranslator(CodeBuffer &bu) {
+bool MemEmulator::emitCallToTranslator(CodeBuffer &) {
    return true;
 }
    
@@ -651,9 +649,10 @@ void DecisionTree::generateJCC(codeGen &gen,
 }
 
 bool MemEmulatorPatch::apply(codeGen &gen,
-                             CodeBuffer *buf) {
+                             CodeBuffer *) {
    // Step 1: push effAddr_ so that we can
    // access it as an argument.
+
    relocation_cerr << "MemEmulatorPatch::apply @ " << hex << gen.currAddr() << dec << endl;
    relocation_cerr << "\tPush reg " << reg_ << endl;
    ::emitPush(RealRegister(reg_), gen);
