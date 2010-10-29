@@ -130,7 +130,7 @@ void MemoryEmulator::addRegion(mapped_object *obj) {
       
       char *buffer = (char *)malloc(codeRegions[i]->getMemSize());
       memset(buffer, 0, codeRegions[i]->getMemSize());
-      memcpy(buffer, codeRegions[i]->getPtrToRawData(), codeRegions[i]->getMemSize());
+      memcpy(buffer, codeRegions[i]->getPtrToRawData(), codeRegions[i]->getDiskSize());
       
       Address mutateeBase = aS_->inferiorMalloc(codeRegions[i]->getMemSize());
       assert(mutateeBase);
