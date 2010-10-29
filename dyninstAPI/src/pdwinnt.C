@@ -2557,7 +2557,7 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
     int_function *writeFunc;
     if (writeFuncs.size() == 1) {
         writeFunc = writeFuncs[0];
-    } else {
+    } else { 
         writeFunc = ev.proc->findActiveFuncByAddr(ev.address);
     }
     instPoint *writePoint = writeFunc->findInstPByAddr(origWrite);
