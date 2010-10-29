@@ -2449,7 +2449,9 @@ bool emitPush(RealRegister reg, codeGen &gen) {
     *insn++ = static_cast<unsigned char>(0x50 + r); // 0x50 is push EAX, and it increases from there.
 
     SET_PTR(insn, gen);
-    gen.rs()->incStack(4);
+    if (gen.bti()) {
+       gen.rs()->incStack(4);
+    }
     return true;
 }
 
@@ -2459,7 +2461,9 @@ bool emitPop(RealRegister reg, codeGen &gen) {
     assert(r < 8);
     *insn++ = static_cast<unsigned char>(0x58 + r);    
     SET_PTR(insn, gen);
-    gen.rs()->incStack(-4);
+    if (gen.bti()) {
+       gen.rs()->incStack(-4);
+    }
     return true;
 }
 

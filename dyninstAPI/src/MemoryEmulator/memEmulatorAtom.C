@@ -162,10 +162,10 @@ bool MemEmulator::generate(const codeGen &templ,
   if (!preCallSave(prepatch))
      return false;
   buffer.addPIC(prepatch, tracker(t->bbl()->func()));
-  prepatch.setIndex(0);
   
   buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch),point_), tracker(t->bbl()->func()));
 
+  prepatch.setIndex(0);
   if (!postCallRestore(prepatch))
      return false;
 #endif
@@ -422,7 +422,7 @@ bool MemEmulator::pushRegIfLive(registerSlot *reg, codeGen &gen) {
       return true;
    }
 
-   if (reg->liveState == registerSlot::live) {
+   if (reg->liveState == registerSlot::live || 1) {
       ::emitPush(RealRegister(reg->encoding()), gen);
       reg->liveState = registerSlot::spilled;
    }
@@ -470,18 +470,14 @@ bool MemEmulator::emitCallToTranslator(CodeBuffer &) {
    return true;
 }
    
-Address MemEmulator::translatorAddr_ = 0;
 Address MemEmulator::getTranslatorAddr(codeGen &gen) {
-   if (translatorAddr_ != 0) {
-      return translatorAddr_;
-   }
+
    // Function lookup time
    int_function *func = gen.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
    // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
    if (!func) return 0;
    // assert(func);
-   translatorAddr_ = func->getAddress();
-   return translatorAddr_;
+   return func->getAddress();
 }
 
 //////////////////////////////////////////////////////////
@@ -650,29 +646,28 @@ void DecisionTree::generateJCC(codeGen &gen,
 
 bool MemEmulatorPatch::apply(codeGen &gen,
                              CodeBuffer *) {
-   // Step 1: push effAddr_ so that we can
-   // access it as an argument.
-
    relocation_cerr << "MemEmulatorPatch::apply @ " << hex << gen.currAddr() << dec << endl;
    relocation_cerr << "\tPush reg " << reg_ << endl;
    registerSpace *aS = registerSpace::actualRegSpace(point, callPreInsn);
    gen.setRegisterSpace(aS);
+   assert(!gen.bti());
 
-   ::emitPush(RealRegister(reg_), gen);
-   // Step 2: call the translator, using a direct
-   // call
+   // Step 1: move the argument into ECX
+   if (reg_ != REGNUM_ECX) {
+      ::emitMovRegToReg(RealRegister(REGNUM_ECX), 
+                        RealRegister(reg_),
+                        gen);
+   }
+
+   // Step 2: call the translator
    Address src = gen.currAddr() + 5;
    relocation_cerr << "\tCall " << hex << dest_ << ", offset " << dest_ - src << dec << endl;
+   assert(dest_);
    emitCallRel32(dest_ - src, gen);
-   
-   // Problem: this is not a self-cleaning call. So we have an extra <BLARGH> on the stack.
-   // And we need to get rid of it. 
-   // FIXME <4>
-   emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 4, 
-           RealRegister(REGNUM_ESP), gen);
 
-   // Step 3: mov eax -> effAddr_
-   relocation_cerr << "\tPop reg " << reg_ << endl;
-   ::emitMovRegToReg(RealRegister(reg_), RealRegister(REGNUM_EAX), gen);
+   // Step 3: move the result from EAX into the target reg
+   if (reg_ != REGNUM_EAX) {
+      ::emitMovRegToReg(RealRegister(reg_), RealRegister(REGNUM_EAX), gen);
+   }
    return true;
 }

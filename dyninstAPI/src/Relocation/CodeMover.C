@@ -256,7 +256,9 @@ void CodeMover::extractDefensivePads(AddressSpace *AS) {
 }
 
 void CodeMover::createInstrumentationSpringboards(AddressSpace *as) {
-   for (std::map<baseTramp *, Address>::iterator iter = gen().getInstrumentation().begin();
+   return;
+
+  for (std::map<baseTramp *, Address>::iterator iter = gen().getInstrumentation().begin();
         iter != gen().getInstrumentation().end(); ++iter) {
       std::set<Address>::iterator begin, end;
       as->getPreviousInstrumentationInstances(iter->first, begin, end);

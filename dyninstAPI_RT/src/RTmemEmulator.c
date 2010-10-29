@@ -41,13 +41,13 @@
 
 struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0};
 
-unsigned long RTtranslateMemory(unsigned long input) {
+unsigned long __attribute__((fastcall)) RTtranslateMemory(unsigned long input) {
    /* Standard nonblocking synchronization construct */
    int index;
    int min;
    int max;
    volatile int guard2;
-   fprintf(stderr, "RTtranslateMemory(0x%lx)\n", input);
+   //fprintf(stderr, "RTtranslateMemory(0x%lx)\n", input);
    do {
       guard2 = RTmemoryMapper.guard2;
       min = 0;
@@ -72,16 +72,16 @@ unsigned long RTtranslateMemory(unsigned long input) {
 
    if (min <= max) {
       if (RTmemoryMapper.elements[index].shift == -1) {
-//         fprintf(stderr, "... returning (should be) segv!\n");
+         //fprintf(stderr, "... returning (should be) segv!\n");
          return 0;
       }
       else {
-//         fprintf(stderr, "... returning shift\n");
+         //fprintf(stderr, "... returning shift\n");
          return input + RTmemoryMapper.elements[index].shift;
       }
    }
    else {
-//      fprintf(stderr, "\t min %d, max %d, index %d, returning no change\n", min, max, index);
+      //fprintf(stderr, "\t min %d, max %d, index %d, returning no change\n", min, max, index);
       return input;
    }
 }
