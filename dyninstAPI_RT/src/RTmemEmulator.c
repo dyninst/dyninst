@@ -35,11 +35,11 @@
 #include <stdio.h>
 #include <errno.h>
 
-#if defined(os_linux)
+#if defined (__GNUC__)
 #include <unistd.h>
 #define FAST_CALL __attribute__((fastcall)) 
-#else
-#define FAST_CALL
+#elif defined (os_windows)
+#define FAST_CALL __fastcall
 #endif
 
 /* Code to assist in remapping memory operations that were affected
@@ -47,7 +47,7 @@
 
 struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0};
 
-unsigned long FAST_CALL RTtranslateMemory(unsigned long input) {
+unsigned long RTtranslateMemory(unsigned long input) {
    /* Standard nonblocking synchronization construct */
    int index;
    int min;

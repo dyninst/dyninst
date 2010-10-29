@@ -652,6 +652,18 @@ bool MemEmulatorPatch::apply(codeGen &gen,
    gen.setRegisterSpace(aS);
    assert(!gen.bti());
 
+   ::emitPush(RealRegister(reg_), gen);
+
+   // Step 2: call the translator
+   Address src = gen.currAddr() + 5;
+   relocation_cerr << "\tCall " << hex << dest_ << ", offset " << dest_ - src << dec << endl;
+   assert(dest_);
+   emitCallRel32(dest_ - src, gen);
+
+   ::emitMovRegToReg(RealRegister(reg_), RealRegister(REGNUM_EAX), gen);
+   ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 4, RealRegister(REGNUM_ESP), gen);
+
+#if 0
    // Step 1: move the argument into ECX
    if (reg_ != REGNUM_ECX) {
       ::emitMovRegToReg(RealRegister(REGNUM_ECX), 
@@ -669,5 +681,6 @@ bool MemEmulatorPatch::apply(codeGen &gen,
    if (reg_ != REGNUM_EAX) {
       ::emitMovRegToReg(RealRegister(reg_), RealRegister(REGNUM_EAX), gen);
    }
+#endif
    return true;
 }
