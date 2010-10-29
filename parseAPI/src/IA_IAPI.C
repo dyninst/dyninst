@@ -89,7 +89,7 @@ IA_IAPI::IA_IAPI(InstructionDecoder &dec_,
     InstructionAdapter(where_, o, r, isrc), 
     dec(dec_),
     validCFT(false), 
-    cachedCFT(0),
+    cachedCFT(std::make_pair(false, 0)),
     validLinkerStubState(false)
 {
     hascftstatus.first = false;
@@ -216,11 +216,13 @@ bool IA_IAPI::isDynamicCall() const
     Instruction::Ptr ci = curInsn();
     if(ci && (ci->getCategory() == c_CallInsn))
     {
-        if(getCFT() == 0)
-        {
-            parsing_printf("... Call 0x%lx is indirect\n", current);
-            return true;
-        }
+       Address addr;
+       bool success;
+       boost::tie(success, addr) = getCFT();
+       if (!success) {
+          parsing_printf("... Call 0x%lx is indirect\n", current);
+          return true;
+       }
     }
     return false;
 }
@@ -295,10 +297,12 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
     // Only call this on control flow instructions!
     if(ci->getCategory() == c_CallInsn)
     {
-        Address target = getCFT();
+       bool success; 
+       Address target;
+       boost::tie(success, target) = getCFT();
         bool callEdge = true;
         bool ftEdge = true;
-        if( ! isDynamicCall() )
+        if( success && !isDynamicCall() )
         {
             if ( ! isRealCall() )
                 callEdge = false;
@@ -313,7 +317,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
 
         if ( unlikely(_obj->defensiveMode()) )
         {
-            if (isDynamicCall()) 
+            if (!success || isDynamicCall()) 
             {
                 if ( ! isIATcall() )
                     ftEdge = false;
@@ -332,16 +336,18 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
     }
     else if(ci->getCategory() == c_BranchInsn)
     {
-        Address target;
         if(ci->allowsFallThrough())
         {
-            outEdges.push_back(std::make_pair(getCFT(),
-                               COND_TAKEN));
+            outEdges.push_back(std::make_pair(getCFT().second,
+                                              COND_TAKEN));
             outEdges.push_back(std::make_pair(getNextAddr(), COND_NOT_TAKEN));
             return;
         }
+        bool valid;
+        Address target;
+        boost::tie(valid, target) = getCFT(); 
         // Direct jump
-        else if((target = getCFT()) != 0)
+        if (valid) 
         {
             Address catchStart;
             if(_cr->findCatchBlock(getNextAddr(),catchStart))
@@ -416,17 +422,20 @@ bool IA_IAPI::isIPRelativeBranch() const
 #endif
     Instruction::Ptr ci = curInsn();
 
+    bool valid;
+    Address target;
+    boost::tie(valid, target) = getCFT();
+    
     if(ci->getCategory() == c_BranchInsn &&
-        !getCFT())
-{
-    Expression::Ptr cft = ci->getControlFlowTarget();
-    if(cft->isUsed(thePC[_isrc->getArch()]))
-    {
-        parsing_printf("\tIP-relative indirect jump to %s at 0x%lx\n",
-                       cft->format().c_str(), current);
-        return true;
+       !valid) {
+       Expression::Ptr cft = ci->getControlFlowTarget();
+       if(cft->isUsed(thePC[_isrc->getArch()]))
+       {
+          parsing_printf("\tIP-relative indirect jump to %s at 0x%lx\n",
+                         cft->format().c_str(), current);
+          return true;
+       }
     }
-}
     return false;
     
 }
@@ -458,15 +467,18 @@ Instruction::Ptr IA_IAPI::getInstruction()
 bool IA_IAPI::isRealCall() const
 {
   // Obviated by simulateJump
-    if(getCFT() == getNextAddr())
-    {
-        parsing_printf("... getting PC\n");
-        return false;
-    }
-    if(isThunk()) {
-        return false;
-    }
-    return true;
+   bool success;
+   Address addr;
+   boost::tie(success, addr) = getCFT();
+   if (success &&
+       (addr == getNextAddr())) {
+      parsing_printf("... getting PC\n");
+      return false;
+   }
+   if(isThunk()) {
+      return false;
+   }
+   return true;
 }
 
 std::map<Address, bool> IA_IAPI::thunkAtTarget;
@@ -489,9 +501,9 @@ bool IA_IAPI::simulateJump() const
     return false;
 }
 
-Address IA_IAPI::getCFT() const
+std::pair<bool, Address> IA_IAPI::getCFT() const
 {
-    if(validCFT) return cachedCFT;
+   if(validCFT) return cachedCFT;
     Expression::Ptr callTarget = curInsn()->getControlFlowTarget();
         // FIXME: templated bind(),dammit!
     callTarget->bind(thePC[_isrc->getArch()].get(), Result(s64, current));
@@ -550,20 +562,20 @@ Address IA_IAPI::getCFT() const
 
     if(actualTarget.defined)
     {
-        cachedCFT = actualTarget.convert<Address>();
-        parsing_printf("SUCCESS (CFT=0x%x)\n", cachedCFT);
+       cachedCFT = std::make_pair(true, actualTarget.convert<Address>());
+       parsing_printf("SUCCESS (CFT=0x%x)\n", cachedCFT.second);
     }
     else
     {
-        cachedCFT = 0;
+       cachedCFT = std::make_pair(false, 0); 
         parsing_printf("FAIL (CFT=0x%x), callTarget exp: %s\n",
-                       cachedCFT,callTarget->format().c_str());
+                       cachedCFT.second,callTarget->format().c_str());
     }
     validCFT = true;
 
     if(isLinkerStub()) {
         parsing_printf("Linker stub detected: Correcting CFT.  (CFT=0x%x)\n",
-                       cachedCFT);
+                       cachedCFT.second);
     }
 
     return cachedCFT;
@@ -576,10 +588,13 @@ bool IA_IAPI::isRelocatable(InstrumentableLevel lvl) const
     {
         if(!isDynamicCall())
         {
-            if(!_isrc->isValidAddress(getCFT()))
-            {
-                parsing_printf("... Call to 0x%lx is invalid (outside code or data)\n",
-                               getCFT());
+           bool valid; Address addr;
+           boost::tie(valid, addr) = getCFT();
+           assert(valid);
+           if(!_isrc->isValidAddress(addr))
+           {
+              parsing_printf("... Call to 0x%lx is invalid (outside code or data)\n",
+                             addr);
                 return false;
             }
         }
