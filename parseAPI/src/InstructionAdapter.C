@@ -35,6 +35,7 @@
 #include "debug_parse.h"
 
 #include "parseAPI/h/CodeObject.h"
+#include "external/boost/tuple/tuple.hpp"
 
 using namespace Dyninst;
 using namespace Dyninst::InsnAdapter;
@@ -90,8 +91,9 @@ FuncReturnStatus InstructionAdapter::getReturnStatus(Function * context ,
 {
     // Branch that's not resolvable by binding IP,
     // therefore indirect...
-    if(isBranch() &&
-       getCFT() == 0)
+   bool valid; Address addr;
+   boost::tie(valid, addr) = getCFT();
+   if(isBranch() && !valid)
     {
         if(num_insns == 2)
         {
@@ -138,8 +140,9 @@ bool InstructionAdapter::hasUnresolvedControlFlow(Function* context, unsigned in
 
 InstrumentableLevel InstructionAdapter::getInstLevel(Function * context, unsigned int num_insns) const
 {
-    if(isBranch() &&
-       getCFT() == 0)
+   bool valid; Address target;
+   boost::tie(valid, target) = getCFT();
+   if(isBranch() && !valid)
     {
         if(num_insns == 2)
         {

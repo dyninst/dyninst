@@ -91,7 +91,7 @@ const;
     virtual Address getAddr() const;
     virtual Address getPrevAddr() const;
     virtual Address getNextAddr() const;
-    virtual Address getCFT() const = 0;
+    virtual std::pair<bool, Address>  getCFT() const = 0;
     virtual bool isStackFramePreamble() const = 0;
     virtual bool savesFP() const = 0;
     virtual bool cleansStack() const = 0;

@@ -83,7 +83,7 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isDelaySlot() const;
         virtual bool isRelocatable(InstrumentableLevel lvl) const;
         virtual bool isTailCall(Dyninst::ParseAPI::Function *,unsigned int) const;
-        virtual Address getCFT() const;
+        virtual std::pair<bool, Address> getCFT() const;
         virtual bool isStackFramePreamble() const;
         virtual bool savesFP() const;
         virtual bool cleansStack() const;
@@ -113,7 +113,7 @@ private:
         Dyninst::InstructionAPI::Instruction::Ptr curInsn() const;
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::iterator curInsnIter;
         mutable bool validCFT;
-        mutable Address cachedCFT;
+        mutable std::pair<bool, Address> cachedCFT;
         mutable bool validLinkerStubState;
         mutable bool cachedLinkerStubState;
         mutable std::pair<bool, bool> hascftstatus;
