@@ -34,14 +34,20 @@
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
-//#include <unistd.h>
+
+#if defined(os_linux)
+#include <unistd.h>
+#define FAST_CALL __attribute__((fastcall)) 
+#else
+#define FAST_CALL
+#endif
 
 /* Code to assist in remapping memory operations that were affected
  * by our instrumentation */
 
 struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0};
 
-unsigned long __attribute__((fastcall)) RTtranslateMemory(unsigned long input) {
+unsigned long FAST_CALL RTtranslateMemory(unsigned long input) {
    /* Standard nonblocking synchronization construct */
    int index;
    int min;

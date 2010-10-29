@@ -547,9 +547,12 @@ const char* IA_IAPI::isIATcall() const
 bool IA_IAPI::isNopJump() const
 {
     InsnCategory cat = curInsn()->getCategory();
+    if (c_BranchInsn != cat) {
+        return false;
+    }
     bool valid; Address addr;
     boost::tie(valid, addr) = getCFT();
-    if(valid && c_BranchInsn == cat && current+1 == addr) {
+    if(valid && current+1 == addr) {
         return true;
     }
     return false;
