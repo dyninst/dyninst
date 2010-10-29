@@ -315,7 +315,7 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop
             if ( blocks.end() == 
                  blocks.find(outEdges[eIdx]->getTarget()) ) 
             {
-                mal_printf("instrumenting loop out edge %lx => %lx\n", 
+                mal_printf("instrumenting loop out edge %lx -> %lx\n", 
                        (*bIter)->getLastInsnAddress(),
                        outEdges[eIdx]->getTarget()->getStartAddress());
                 instEdges.insert(outEdges[eIdx]);
@@ -337,7 +337,7 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop
     BPatchSnippetHandle *snippetHandle = NULL;
     while (eIter != instEdges.end()) {
         BPatch_point *edgePoint = (*eIter)->getPoint();
-        mal_printf(" instr edge: 0x%x => 0x%x\n", 
+        mal_printf(" instr edge: 0x%x -> 0x%x\n", 
             (*eIter)->getSource()->getLastInsnAddress(),
             (*eIter)->getTarget()->getStartAddress());
         snippetHandle = hybridow_->proc()->insertSnippet
@@ -793,7 +793,7 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
         // if the block has a call, add it to the list of called funcs
         BPatch_function *targFunc = (*bIter)->getCallTarget();
         if ( targFunc && targFunc->getModule()->isExploratoryModeOn()) { 
-            mal_printf("loop has a function call %lx=>%lx\n", 
+            mal_printf("loop has a function call %lx->%lx\n", 
                       (*bIter)->getLastInsnAddress(), targFunc->getBaseAddr());
             loopFuncs.insert(targFunc);
         } else if (targFunc) {

@@ -113,7 +113,9 @@ MappedFile::MappedFile(void *loc, unsigned long size_, bool &ok) :
   ok = open_file(loc, size_);
 #if defined(os_windows)  
   if (!ok) return;
-  ok = map_file();
+  //ok = map_file();
+  map_addr = loc;
+  this->file_size = size_;
 #endif
 }
 

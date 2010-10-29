@@ -669,7 +669,7 @@ bool int_function::parseNewEdges(const std::vector<edgeStub> &stubs )
     for (unsigned idx=0; idx < stubs.size(); idx++) {
         //Region *targetRegion = ifunc()->img()->getObject()->
         //    findEnclosingRegion( stubs[idx].trg-loadAddr );
-        ParseAPI::Block *cursrc = stubs[idx].src->block()->llb();
+        Block *cursrc = stubs[idx].src->block()->llb();
 
         // update target region if needed
         if (BPatch_defensiveMode == obj()->hybridMode()) {
@@ -681,8 +681,8 @@ bool int_function::parseNewEdges(const std::vector<edgeStub> &stubs )
 
         // figure out edge types if they have not been set yet
         if (ParseAPI::NOEDGE == stubs[idx].type) {
-            ParseAPI::Block::edgelist & edges = cursrc->targets();
-            ParseAPI::Block::edgelist::iterator eit = edges.begin();
+            Block::edgelist & edges = cursrc->targets();
+            Block::edgelist::iterator eit = edges.begin();
             bool isIndirJmp = false;
             bool isCondl = false;
             for (; eit != edges.end(); eit++) {
@@ -734,13 +734,23 @@ bool int_function::parseNewEdges(const std::vector<edgeStub> &stubs )
 /* 2. Register all newly created image_funcs as a result of new edge parsing */
     obj()->registerNewFunctions();
 
+    for(unsigned sidx=0; sidx < sources.size(); sidx++) {
+        vector<ParseAPI::Function*> funcs;
+        sources[sidx]->getFuncs(funcs);
+        for (unsigned fidx=0; fidx < funcs.size(); fidx++) 
+        {
+            int_function *func = proc()->findFuncByInternalFunc(
+                static_cast<image_func*>(funcs[fidx]));
+
 /* 3. Add img-level blocks to int-level datastructures */
-    addMissingBlocks();
+            func->addMissingBlocks();
 
-/* 5. Add image points to int-level datastructures */
-    addMissingPoints();
+/* 4. Add image points to int-level datastructures */
+            func->addMissingPoints();
+        }
+    }
 
-/* 4. fix mapping of split blocks that have points */
+/* 5. fix mapping of split blocks that have points */
     if (ifunc()->img()->hasSplitBlocks()) {
         obj()->splitIntLayer();
         ifunc()->img()->clearSplitBlocks();

@@ -284,7 +284,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         // 1.1 if targMod is a system library don't parse at target.  However, if the 
         //     transfer into the targMod is an unresolved indirect call, parse at the 
         //     call's fallthrough addr and return.
-        if (targMod->isSystemLib()) 
+        if (targMod->isSystemLib() && BPatch_normalMode == targMod->getHybridMode()) 
         {
             if (point->getPointType() == BPatch_subroutine) {
                 if (0 == strncmp(funcName,"ExitProcess",32) && 

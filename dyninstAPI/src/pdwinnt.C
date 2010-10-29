@@ -558,7 +558,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             }
             dyn_saved_regs regs;
             ev.lwp->getRegisters(&regs,false);
-            printf("\neax=%lx \necx=%lx \nedx=%lx \nebx=%lx \nesp=%lx \nebp=%lx \nesi=%lx "
+            printf("REGISTER STATE:\neax=%lx \necx=%lx \nedx=%lx \nebx=%lx \nesp=%lx \nebp=%lx \nesi=%lx "
                    "\nedi=%lx\n",regs.cont.Eax, regs.cont.Ecx, regs.cont.Edx, 
                    regs.cont.Ebx, regs.cont.Esp, regs.cont.Ebp, 
                    regs.cont.Esi, regs.cont.Edi);
@@ -583,6 +583,12 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
                         "contained in any range, writing to %lx \n",
                         __FILE__,__LINE__, ev.address, violationAddr);
             }
+            dyn_saved_regs regs;
+            ev.lwp->getRegisters(&regs,false);
+            printf("REGISTER STATE:\neax=%lx \necx=%lx \nedx=%lx \nebx=%lx \nesp=%lx \nebp=%lx \nesi=%lx "
+                   "\nedi=%lx\n",regs.cont.Eax, regs.cont.Ecx, regs.cont.Edx, 
+                   regs.cont.Ebx, regs.cont.Esp, regs.cont.Ebp, 
+                   regs.cont.Esi, regs.cont.Edi);
         }
 
         // it's a write to a page containing write-protected code if region
@@ -2719,6 +2725,8 @@ mapped_object *process::createObjectNoFile(Address addr)
         if (obj != NULL) {
             mapped_objects.push_back(obj);
             addOrigRange(obj);
+            obj->parse_img()->getOrCreateModule(
+                obj->parse_img()->getObject()->getDefaultModule());
             return obj;
         }
     }

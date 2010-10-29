@@ -380,6 +380,27 @@ bool IA_IAPI::isFakeCall() const
                 // we didn't end in a return instruction
                 break;
             case e_sub:
+                sign = -1;
+            case e_add: {
+                Operand arg = insn->getOperand(1);
+                Result delta = arg.getValue()->eval();
+                if(delta.defined) {
+                    int delta_int = sign * (int)delta.convert<char>();
+                    stackDelta += delta_int;
+                } else if (sign == -1) {
+                    return false;
+                } else {
+                    mal_printf("ERROR: in isFakeCall, add ins'n "
+                               "at %lx (in first block of function at "
+                               "%lx) modifies the sp but failed to evaluate "
+                               "its arguments %s[%d]\n", 
+                               ah->getAddr(), entry, FILE__, __LINE__);
+                    return true;
+                }
+                break;
+            }
+#if 0
+            case e_sub:
                 //mal_printf("Saw subtract from stack ptr at %lx in "
                 //           "isFakeCall, quitting early, assuming not fake "
                 //           "%s[%d]\n",curAddr, FILE__,__LINE__);
@@ -414,6 +435,7 @@ bool IA_IAPI::isFakeCall() const
                 }
                 break; 
             }
+#endif
             default: {
                 //KEVINTODO: remove this assert
                 fprintf(stderr,"WARNING: in isFakeCall non-push/pop "

@@ -571,6 +571,8 @@ void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
 
     CFAtom::Ptr newCF = CFAtom::create((*b_iter)->bbl());
     newCF->updateAddr(cf->addr());
+    if (cf->needsFTPadding())
+        newCF->setNeedsFTPadding();
 
     CFAtom::DestinationMap::iterator dest = cf->destMap_.find(CFAtom::Taken);
     if (dest != cf->destMap_.end()) {

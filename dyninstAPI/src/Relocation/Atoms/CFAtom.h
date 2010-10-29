@@ -87,8 +87,9 @@ class CFAtom : public Atom {
 
   virtual Address addr() const { return addr_; }
   virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
-  virtual unsigned size() const { return insn_->size(); }
+  virtual unsigned size() const;
   bblInstance *block() const { return block_; }
+  bool needsFTPadding() const { return padded_; };
   
  private:
   CFAtom(bblInstance *block) :
