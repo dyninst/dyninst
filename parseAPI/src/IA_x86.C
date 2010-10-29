@@ -106,15 +106,17 @@ bool IA_IAPI::isNop() const
 
 bool IA_IAPI::isThunk() const {
   // Before we go a-wandering, check the target
-    if (!_isrc->isValidAddress(getCFT()))
-    {
+   bool valid; Address addr;
+   boost::tie(valid, addr) = getCFT();
+   if (!valid ||
+       !_isrc->isValidAddress(addr)) {
         parsing_printf("... Call to 0x%lx is invalid (outside code or data)\n",
-                       getCFT());
+                       addr);
         return false;
     }
 
     const unsigned char *target =
-            (const unsigned char *)_isrc->getPtrToInstruction(getCFT());
+            (const unsigned char *)_isrc->getPtrToInstruction(addr);
   // We're decoding two instructions: possible move and possible return.
   // Check for move from the stack pointer followed by a return.
     InstructionDecoder targetChecker(target, 
@@ -144,55 +146,6 @@ bool IA_IAPI::isThunk() const {
     return false;
 }
 
-#if 0
-// Replaced by Kevin's version in IA_IAPI.C
-bool IA_IAPI::simulateJump() const
-{
-  // We conclude that a call is a jump if the basic block it targets
-  // contains a pop of the return address. 
-  // 
-  // For example: 
-  // 2958:       83 ec 04                sub    $0x4,%esp
-  // 295b:       e8 00 00 00 00          call   2960 <_fini+0xc>
-  // 2960:       5b                      pop    %ebx
-  // 2961:       81 c3 ac 07 00 00       add    $0x7ac,%ebx
-  // 2967:       e8 a4 e5 ff ff          call   f10 <exit@plt+0x40>
-
-  // The first call (call 0) is considered a jump because its immediate target
-  // is a pop.
-  
-  if (!_isrc->isValidAddress(getCFT())) {
-    return false;
-  }
-
-  const unsigned char *target =
-    (const unsigned char *)_isrc->getPtrToInstruction(getCFT());
-
-  // Arbitrarily try four instructions. 
-  int maxInsns = 4;
-
-  InstructionDecoder targetChecker(target, 
-				   maxInsns*InstructionDecoder::maxInstructionLength, _isrc->getArch());
-  bool isGetPC = false;
-  for (int i = 0; i < maxInsns; ++i) {
-    Instruction::Ptr insn = targetChecker.decode();
-    if (!insn) break;
-
-    if (insn->getOperation().getID() == e_pop) {
-      // Nifty...
-      isGetPC = true;
-      break;
-    }
-    // Any other write of the stack pointer == baaaaad
-    if (insn->isWritten(stackPtr[_isrc->getArch()])) {
-      break;
-    }
-  }
-
-  return isGetPC;
-}
-#endif
-
 bool IA_IAPI::isTailCall(Function * context,unsigned int) const
 {
     if(tailCall.first) {
@@ -201,29 +154,17 @@ bool IA_IAPI::isTailCall(Function * context,unsigned int) const
     }
     tailCall.first = true;
 
+    bool valid; Address addr;
+    boost::tie(valid, addr) = getCFT();
     if(curInsn()->getCategory() == c_BranchInsn &&
-       _obj->findFuncByEntry(_cr,getCFT()))
+       valid &&
+       _obj->findFuncByEntry(_cr,addr))
     {
-        parsing_printf("\tjump to 0x%lx, TAIL CALL\n", getCFT());
+       parsing_printf("\tjump to 0x%lx, TAIL CALL\n", addr);
         tailCall.second = true;
         return tailCall.second;
     }
-#if 0
-    if (_obj->defensiveMode() && 
-        curInsn()->getCategory() == c_BranchInsn &&
-        getCFT()) 
-    {
-        std::set<CodeRegion*> tregs;
-        _obj->cs()->findRegions(getCFT(),tregs);
-        if (tregs.size() && tregs.end() == tregs.find(context->region())) {
-            tailCall.second = true;
-            return tailCall.second;
-            parsing_printf("\tjump to new region parsed as tail call\n");
-            mal_printf("\tjump to %lx in new region parsed as tail call\n", 
-                       getCFT());
-        }
-    }
-#endif
+
     if(allInsns.size() < 2) {
         tailCall.second = false;
         parsing_printf("\ttoo few insns to detect tail call\n");
@@ -314,9 +255,13 @@ bool IA_IAPI::isFakeCall() const
 
     // get func entry
     bool tampers = false;
-    Address entry = getCFT();
-    if ( ! _cr->contains(entry) ) {
-        return false;
+    bool valid; Address entry;
+    boost::tie(valid, entry) = getCFT();
+
+    if (!valid) return false;
+
+    if (! _cr->contains(entry) ) {
+       return false;
     }
 
     if ( ! _isrc->isCode(entry) ) {
@@ -341,13 +286,13 @@ bool IA_IAPI::isFakeCall() const
     while (insn->getCategory() == c_CallInsn ||
            insn->getCategory() == c_BranchInsn) 
     {
-        entry = ah->getCFT();
-        if ( ! _cr->contains(entry) || ! _isrc->isCode(entry) ) {
-            mal_printf("WARNING: found call to function at %lx that "
-                       "leaves to %lx, out of the code region %s[%d]\n", 
-                       current, entry, FILE__,__LINE__);
-            return false;
-        }
+       boost::tie(valid, entry) = ah->getCFT();
+       if ( !valid || ! _cr->contains(entry) || ! _isrc->isCode(entry) ) {
+          mal_printf("WARNING: found call to function at %lx that "
+                     "leaves to %lx, out of the code region %s[%d]\n", 
+                     current, entry, FILE__,__LINE__);
+          return false;
+       }
         bufPtr = (const unsigned char *)(_cr->getPtrToInstruction(entry));
         entryOff = entry - _cr->offset();
         newdec = InstructionDecoder(bufPtr, 
@@ -580,7 +525,9 @@ const char* IA_IAPI::isIATcall() const
 bool IA_IAPI::isNopJump() const
 {
     InsnCategory cat = curInsn()->getCategory();
-    if(c_BranchInsn == cat && current+1 == getCFT()) {
+    bool valid; Address addr;
+    boost::tie(valid, addr) = getCFT();
+    if(valid && c_BranchInsn == cat && current+1 == addr) {
         return true;
     }
     return false;

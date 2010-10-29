@@ -308,7 +308,9 @@ void Parser::ProcessCFInsn(
             if (-1 == det.data.unres.target) {
                 det.data.unres.target = 0;
             }
-            if (0 == ah->getCFT()) {
+            bool valid; Address addr;
+            boost::tie(valid, addr) = ah->getCFT();
+            if (!valid) {
                 det.data.unres.dynamic = true;
                 det.data.unres.absolute_address = true;
             } else {
