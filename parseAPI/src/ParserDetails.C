@@ -209,18 +209,6 @@ void Parser::ProcessCFInsn(
     // and later on is set set to true for transfers to bad addresses
     bool has_unres = ah->hasUnresolvedControlFlow(frame.func,frame.num_insns);
 
-    // for unresolved indirect calls in defensive binaries we don't parse 
-    // after unresolved calls, but put the fallthrough edge back in 
-    // if the the fallthrough block has already been parsed
-    if (unlikely( has_unres && 
-                  _obj.defensiveMode() && 
-                  edges_out.size() == 1 &&
-                  edges_out.front().second == NOEDGE &&
-                  _parse_data->findBlock(cur->region(),cur->end()) ))
-    {
-        edges_out.push_back(std::make_pair(cur->end(), CALL_FT));
-    }
-
     parsing_printf("\t\t%d edges:\n",edges_out.size());
     for(Edges_t::iterator curEdge = edges_out.begin();
         curEdge != edges_out.end(); ++curEdge)
@@ -302,7 +290,7 @@ void Parser::ProcessCFInsn(
                 {
                     _pcb.updateCodeBytes(curEdge->first);
                 }
-                mal_printf("new block at %lx\n", we->target());
+                //mal_printf("new block at %lx\n", we->target());
             }
         } 
         else if( unlikely(_obj.defensiveMode() && has_unres) )

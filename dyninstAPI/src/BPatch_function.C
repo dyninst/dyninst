@@ -310,30 +310,15 @@ BPatch_type *BPatch_function::getReturnTypeInt()
     return retType;
 }
 
-/* 
- * 1. First test to see if this is possible, if the target and source are not
- *    in the same mapped region we want to parse them as separate functions 
- * 2. Correct missing elements in BPatch-level datastructures
+/* Update code bytes if necessary (defensive mode), 
+ * Parse new edge, 
+ * Correct missing elements in BPatch-level datastructures
 */
 bool BPatch_function::parseNewEdge(Dyninst::Address source, 
                                    Dyninst::Address target)
 {
-/* 1. First test to see if this is possible, if the target and source are not
-      in the same mapped region, they must be parsed as separate functions  */
-    Address loadAddr = func->getAddress() - func->ifunc()->getOffset();
-    SymtabAPI::Region *targetRegion = func->ifunc()->img()->getObject()->
-        findEnclosingRegion( target-loadAddr );
-    if (func->ifunc()->img()->getObject()->findEnclosingRegion( source-loadAddr ) 
-        != targetRegion) 
-    {
-        fprintf(stderr,"%s[%d] Returning FALSE, parseNewEdge is being called for "
-                "source %lx and target %lx that are not in the same "
-                "section or module\n",__FILE__,__LINE__,source,target);
-        return false;
-    }
-
-    // do it here and not in int_function, as that would cause double effort
-    // for overwrites, which also call func->parseNewEdges
+    // update code bytes here (not in int_function, as it would happen 
+    // twice for overwrites, which also call int_func->parseNewEdges
     if (BPatch_defensiveMode == func->obj()->hybridMode()) {
         func->obj()->setCodeBytesUpdated(false);
     }
@@ -346,8 +331,8 @@ bool BPatch_function::parseNewEdge(Dyninst::Address source,
         sblock->origInstance(), target, ParseAPI::NOEDGE));
     func->parseNewEdges(stubs);
 
-/* 2. Correct missing elements in BPatch-level datastructures */
-    //   wipe out the BPatch_flowGraph CFG, we'll re-generate it
+    // Correct missing elements in BPatch-level datastructures
+    // i.e., wipe out the BPatch_flowGraph CFG, we'll re-generate it
     if ( cfg ) {
         cfg->invalidate();
     }

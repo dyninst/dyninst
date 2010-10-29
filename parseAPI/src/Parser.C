@@ -561,9 +561,28 @@ Parser::finalize(Function *f)
 
     f->_cache_valid = true;
 
-    if (unlikely( f->obj()->defensiveMode() && firstParse )) {
-        f->tampersStack();
-        _pcb.newfunction_retstatus( f );
+    if (unlikely( f->obj()->defensiveMode())) {
+        // add fallthrough edges for calls assumed not to be returning
+        // whose fallthrough blocks we parsed anyway (this happens if 
+        // the FT block is also a branch target)
+        Function::edgelist & edges = f->_call_edge_list;
+        for (Function::edgelist::iterator eit = edges.begin();
+             eit != edges.end(); 
+             eit++)
+        {
+            if (2 > (*eit)->src()->targets().size()) {
+                Block *ft = _parse_data->findBlock((*eit)->src()->region(),
+                                                   (*eit)->src()->end());
+                if (ft) {
+                    link((*eit)->src(),ft,CALL_FT,false);
+                }
+            }
+        }
+        // check for stack tampering
+        if ( firstParse ) {
+            f->tampersStack();
+            _pcb.newfunction_retstatus( f );
+        }
     }
 }
 
