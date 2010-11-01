@@ -65,6 +65,8 @@ bool LocalizeCF::processTrace(TraceList::iterator &iter) {
   
   if (!cf) return true;
 
+  if (cf->needsFTPadding()) return true;
+
   // If this CFAtom contains a Target that is a bblInstance
   // in our map, replace it with a Target to that block.
 
