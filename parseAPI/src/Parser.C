@@ -960,6 +960,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
        }
        else
           frame.func->_rs = UNKNOWN; 
+
+       // Convenience -- adopt PLT name
+       frame.func->_name = plt_entries[frame.func->addr()];
     }
     else if(frame.func->_rs == UNSET) {
         frame.func->_rs = NORETURN;
