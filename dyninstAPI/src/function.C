@@ -661,14 +661,12 @@ bool int_function::parseNewEdges(const std::vector<edgeStub> &stubs )
         edgeTypes.push_back(stubs[sidx].type);
     }
 
-/* 0. The target and source must be in the same mapped region, make sure memory
-      for the target is up to date */
+/* 0. Make sure memory for the target is up to date */
 
     // Do various checks and set edge types, if necessary
     Address loadAddr = getAddress() - ifunc()->getOffset();
     for (unsigned idx=0; idx < stubs.size(); idx++) {
-        //Region *targetRegion = ifunc()->img()->getObject()->
-        //    findEnclosingRegion( stubs[idx].trg-loadAddr );
+
         Block *cursrc = stubs[idx].src->block()->llb();
 
         // update target region if needed
@@ -742,11 +740,12 @@ bool int_function::parseNewEdges(const std::vector<edgeStub> &stubs )
             int_function *func = proc()->findFuncByInternalFunc(
                 static_cast<image_func*>(funcs[fidx]));
 
-/* 3. Add img-level blocks to int-level datastructures */
+/* 3. Add img-level blocks and points to int-level datastructures */
             func->addMissingBlocks();
-
-/* 4. Add image points to int-level datastructures */
             func->addMissingPoints();
+
+            // invalidate liveness calculations
+            func->ifunc()->invalidateLiveness();
         }
     }
 

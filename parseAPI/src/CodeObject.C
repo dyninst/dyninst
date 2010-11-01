@@ -185,7 +185,6 @@ CodeObject::parseNewEdges( vector<Block*> & sources,
     // XXX if we're adding a new edge to an existing block, I think we could
     // use add_edge instead
 
-    map< Function * , FuncReturnStatus > modfuncs;
     vector< ParseWorkElem * > work_elems;
     for (unsigned idx=0; idx < sources.size(); idx++) {
         ParseWorkBundle *bundle = new ParseWorkBundle();
@@ -201,24 +200,25 @@ CodeObject::parseNewEdges( vector<Block*> & sources,
     parser->parse_edges( work_elems );
 
     if (defensiveMode()) {
-        // track modified funcs and update tampersStack for those funcs
+        // update tampersStack for modified funcs and invalidate liveness info
         for (unsigned idx=0; idx < targets.size(); idx++) {
             set<CodeRegion*> tregs;
             set<Function*> tfuncs;
             _cs->findRegions(targets[idx],tregs);
+
             for (set<CodeRegion*>::iterator rit = tregs.begin(); 
                  rit != tregs.end(); 
                  rit++ ) 
             {
                 findFuncs(*rit, targets[idx], tfuncs);
             }
+
             for (set<Function*>::iterator fit = tfuncs.begin();
                  fit != tfuncs.end();
                  fit++) 
             {
                 Function *tfunc = *fit;
                 tfunc->tampersStack(true);
-                modfuncs[tfunc] = tfunc->retstatus();
             }
         }
     }

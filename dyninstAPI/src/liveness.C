@@ -114,12 +114,13 @@ const bitArray &image_basicBlock::getLivenessIn(image_func * context) {
     // Calculate if it hasn't been done already
     if (in.size() == 0)
         summarizeBlockLivenessInfo(context);
+    assert(in.size());
     return in;
 }
 
 const bitArray image_basicBlock::getLivenessOut(image_func * context) {
     bitArray out(in.size());
-
+    assert(out.size());
     // ignore call, return edges
     Intraproc epred;
 

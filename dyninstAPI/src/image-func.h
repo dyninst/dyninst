@@ -368,6 +368,8 @@ class image_func : public ParseAPI::Function
    bool writesFPRs(unsigned level = 0);
    bool writesSPRs(unsigned level = 0);
 
+   void invalidateLiveness() { livenessCalculated_ = false; }
+
 #if defined(cap_liveness)
    void calcBlockLevelLiveness();
 #endif
