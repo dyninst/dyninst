@@ -242,6 +242,12 @@ void registerSpace::initialize32() {
     syscallRead_ = getBitArray().set();
     syscallWritten_ = syscallRead_;
 
+#if defined(os_windows)
+    // VERY conservative, but it's safe wrt the ABI.
+    callRead_ = syscallRead_;
+    callWritten_ = syscallWritten_;
+#endif
+
     allRegs_ = getBitArray().set();
 #endif
 }
