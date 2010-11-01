@@ -107,7 +107,7 @@ template <>
   
   virtual string format() const { 
      stringstream ret;
-     ret << "B{" << t_->id() << "" << (necessary() ? "T" : "S") << "}";
+     ret << "B{" << t_->id() << "/" << (necessary() ? "+" : "-") << "}";
      return ret.str();
   }
   
@@ -134,7 +134,7 @@ class Target<bblInstance *> : public TargetInt {
   
   virtual string format() const { 
     stringstream ret;
-    ret << "O{" << std::hex << t_->firstInsnAddr() << std::dec << "}";
+    ret << "O{" << std::hex << t_->firstInsnAddr() << "/" << (necessary() ? "+" : "-") << std::dec << "}";
     return ret.str();
   }
 
@@ -159,7 +159,7 @@ class Target<Address> : public TargetInt {
 
   virtual string format() const {
     stringstream ret;
-    ret << "A{" << std::hex << t_ << std::dec << "}";
+    ret << "A{" << std::hex << t_ << "/" << (necessary() ? "+" : "-") <<  std::dec << "}";
     return ret.str();
   }
 
