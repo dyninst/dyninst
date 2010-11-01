@@ -297,11 +297,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                 mal_printf("stopThread instrumentation found call %lx=>%lx, "
                           "target is in module %s, parsing at fallthrough %s[%d]\n",
                           (long)point->getAddress(), target, modName,FILE__,__LINE__);
-                if (targFunc) {
-                    parseAfterCallAndInstrument(point, target, targFunc);
-                } else {
-                    parseAfterCallAndInstrument(point, target, NULL);
-                }
+                parseAfterCallAndInstrument(point, targFunc);
                 return;
 			} else if (point->getPointType() == BPatch_exit) {
 				mal_printf("WARNING: stopThread instrumentation found return %lx=>%lx, "
@@ -406,7 +402,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             //mal_printf("stopThread instrumentation found returning call %lx=>%lx, "
             //          "parsing after call site\n",
             //         (long)point->getAddress(), target);
-            parseAfterCallAndInstrument(point, target, targFunc);
+            parseAfterCallAndInstrument(point, targFunc);
         } else {
             instrumentModules(false);
         }
@@ -457,7 +453,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                       "parsing return addr %lx as fallthrough of call "
                       "instruction at %lx %s[%d]\n", (long)point->getAddress(), 
                       target,callPoint->getAddress(),FILE__,__LINE__);
-            parseAfterCallAndInstrument( callPoint, returnAddr, point->getFunction() );
+            parseAfterCallAndInstrument( callPoint, point->getFunction() );
         }
 
         // 3.2.2 else parse the return addr as a new function

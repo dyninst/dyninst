@@ -670,7 +670,7 @@ codeRange *mapped_object::findCodeRangeByAddress(const Address &addr)  {
     }
 
     codeRange *range = NULL;
-    if (codeRangesByAddr_.find(addr, range)) {
+    if (hybridMode() != BPatch_normalMode && codeRangesByAddr_.find(addr, range)) {
         if (range->is_basicBlockInstance()->block()->llb()->isShared()) {
             mal_printf("WARNING: mapped_obj lookup by addr %lx returning shared "
                        "block [%lx %lx)\n", addr, range->get_address(), 

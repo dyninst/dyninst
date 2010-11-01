@@ -1639,8 +1639,8 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   //cm->transform(a);
 
   //cerr << "Memory emulator" << endl;
-  MemEmulatorTransformer m;
-  cm->transform(m);
+  //MemEmulatorTransformer m;
+  //cm->transform(m);
 
   // Insert whatever binary modifications are desired
   // Right now needs to go before Instrumenters because we use

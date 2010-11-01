@@ -104,7 +104,6 @@ private:
                             bool useInsertionSet, 
                             bool instrumentReturns=false);
     bool parseAfterCallAndInstrument(BPatch_point *callPoint, 
-                        Dyninst::Address calledAddr, 
                         BPatch_function *calledFunc) ;
     void removeInstrumentation(BPatch_function *func, bool useInsertionSet);
     int saveInstrumentationHandle(BPatch_point *point, 

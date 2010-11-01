@@ -544,8 +544,7 @@ bool HybridAnalysis::instrumentModules(bool useInsertionSet)
  * Return true if instrumentation of new or modified functions occurs
  */ 
 bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint, 
-                    Address calledAddr, 
-                    BPatch_function *calledFunc) 
+                                                 BPatch_function *calledFunc)
 {
     assert(callPoint);
     std::set<BPatch_module*> callerMods; 
@@ -566,9 +565,9 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
             if ( ! hasEdge(*cIter, curFallThroughAddr) &&
                 dupFuncCheck.find((*cIter)->getFunction()) == dupFuncCheck.end())
             {
-                mal_printf("%s[%d] Function call 0x%lx is returning, adding edge "
+                mal_printf("%s[%d] Function call at 0x%lx is returning, adding edge "
                           "after calls to the function at %lx\n", __FILE__,__LINE__,
-                          calledAddr,(long)(*cIter)->getAddress());
+                          callPoint->getAddress(), (long)(*cIter)->getAddress());
                 assert(0);// KEVINTEST, this case has never executed
 
                 parseNewEdgeInFunction( *cIter , curFallThroughAddr , false );
@@ -593,9 +592,10 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
     proc()->findFunctionsByAddr(fallThroughAddr,fallThroughFuncs);
 
     if (! parsedAfterCallPoint && !hasEdge(callPoint, fallThroughAddr)) {
-        mal_printf("New function target addr at 0x%lx is returning, "
-                    "adding edge after call at 0x%lx %s[%d]\n", calledAddr,
-                    (long)callPoint->getAddress(), FILE__, __LINE__);
+        mal_printf("Function call at 0x%lx is returning, "
+                    "adding edge to fallthrough at %lx %s[%d]\n", 
+                    callPoint->getAddress(), fallThroughAddr, 
+                    FILE__, __LINE__);
 
         parseNewEdgeInFunction( callPoint , fallThroughAddr , false );
         parsedAfterCallPoint = true;

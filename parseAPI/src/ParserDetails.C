@@ -293,7 +293,7 @@ void Parser::ProcessCFInsn(
                 //mal_printf("new block at %lx\n", we->target());
             }
         } 
-        else if( unlikely(_obj.defensiveMode() && has_unres) )
+        else if( unlikely(_obj.defensiveMode()) )
         {   
             // invoke callback for: 
             // unresolved indirect branches and direct ctrl transfers 
