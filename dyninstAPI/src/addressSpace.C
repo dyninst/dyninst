@@ -1631,15 +1631,9 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   CFAtomCreator c;
   cm->transform(c);
 
-    cerr << "POST CF ATOM CREATION" << endl;
-    cerr << cm->format()  << endl;
-
   sensitivity_cerr << "Applying PCSens transformer" << endl;
   PCSensitiveTransformer v(this, cm->priorityMap());
   cm->transform(v);
-
-    cerr << "POST SENSITIVITY ANALYSIS" << endl;
-    cerr << cm->format() << endl;
 
   //adhocMovementTransformer a(this);
   //cm->transform(a);
@@ -1659,9 +1653,6 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   LocalizeCF t(cm->blockMap(), 
 	       cm->priorityMap());
   cm->transform(t);
-
-cerr << "CF LOCALIZATION" << endl;
-cerr << cm->format() << endl;
 
   // Add instrumentation
   // For ease of edge instrumentation this should occur post-LocalCFTransformer-age

@@ -385,7 +385,24 @@ bool IA_IAPI::isFakeCall() const
                 Operand arg = insn->getOperand(1);
                 Result delta = arg.getValue()->eval();
                 if(delta.defined) {
-                    int delta_int = sign * (int)delta.convert<char>();
+                    int delta_int = sign;
+                    switch (delta.type) {
+                    case u8:
+                    case s8:
+                        delta_int *= (int)delta.convert<char>();
+                        break;
+                    case u16:
+                    case s16:
+                        delta_int *= (int)delta.convert<short>();
+                        break;
+                    case u32:
+                    case s32:
+                        delta_int *= delta.convert<int>();
+                        break;
+                    default:
+                        assert(0 && "got add/sub operand of unusual size");
+                        break;
+                    }
                     stackDelta += delta_int;
                 } else if (sign == -1) {
                     return false;
