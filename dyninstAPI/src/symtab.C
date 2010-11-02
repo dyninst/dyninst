@@ -158,15 +158,271 @@ extern unsigned enable_pd_sharedobj_debug;
 
 int codeBytesSeen = 0;
 
+#if defined(ppc32_linux)
+
+#include <dataflowAPI/h/slicing.h>
+#include <dataflowAPI/h/SymEval.h>
+#include <dataflowAPI/h/AbslocInterface.h>
+#include <dataflowAPI/h/Absloc.h>
+#include <dynutil/h/AST.h>
+
+namespace {
+    /* On PPC GLIBC (32 & 64 bit) the address of main is in a structure
+       located in either .data or .rodata, depending on whether the 
+       binary is PIC. The structure has the following format:
+
+        struct 
+        {
+            void * // "small data area base"
+            main   // pointer to main
+            init   // pointer to init
+            fini   // pointer to fini
+        }
+
+        This structure is passed in GR8 as an argument to libc_start_main.
+
+        Annoyingly, the value in GR8 is computed in several different ways,
+        depending on how GLIBC was compiled.
+
+        This code follows the i386 linux version closely otherwise.
+    */
+
+    class Default_Predicates : public Slicer::Predicates {};
+
+    /* This visitor is capable of simplifying constant value computations
+       that involve additions and concatenations (lis instruction). This
+       is sufficient to handle the startup struct address calculation in
+       GLIBC that we have seen; if additional variants are introduced
+       (refer to start.S in glibc or equivalently to the compiled library)
+       this visitor should be expanded to handle any new operations */
+        
+    class SimpleArithVisitor : public ASTVisitor {
+
+        using ASTVisitor::visit;
+
+        virtual ASTPtr visit(AST * a) {return a->ptr();};
+        virtual ASTPtr visit(DataflowAPI::BottomAST *a) {return a->ptr(); };
+        virtual ASTPtr visit(DataflowAPI::ConstantAST *c) {return c->ptr();};
+        virtual ASTPtr visit(DataflowAPI::VariableAST *v) {return v->ptr();};
+
+        virtual AST::Ptr visit(DataflowAPI::RoseAST * r) {
+            using namespace DataflowAPI;
+
+            AST::Children newKids;
+            for(unsigned i=0;i<r->numChildren();++i) {
+                newKids.push_back(r->child(i)->accept(this));
+            }
+
+            switch(r->val().op) {
+                case ROSEOperation::addOp:
+                    assert(newKids.size() == 2);
+                    if(newKids[0]->getID() == AST::V_ConstantAST &&
+                       newKids[1]->getID() == AST::V_ConstantAST)
+                    {
+                        ConstantAST::Ptr c1 = ConstantAST::convert(newKids[0]);
+                        ConstantAST::Ptr c2 = ConstantAST::convert(newKids[1]);
+                        return ConstantAST::create(
+                            Constant(c1->val().val+c2->val().val));
+                    }
+                    break;
+                case ROSEOperation::concatOp:
+                    assert(newKids.size() == 2);
+                    if(newKids[0]->getID() == AST::V_ConstantAST &&
+                       newKids[1]->getID() == AST::V_ConstantAST)
+                    {
+                        ConstantAST::Ptr c1 = ConstantAST::convert(newKids[0]);
+                        ConstantAST::Ptr c2 = ConstantAST::convert(newKids[1]);
+                        unsigned long result = c1->val().val;
+                        result |= (c2->val().val << c2->val().size);
+                        return ConstantAST::create(result);
+                    }
+                    break;
+                default:
+                    startup_printf("%s[%d] unhandled operation in simplification\n",FILE__,__LINE__);
+            }
+        
+            return RoseAST::create(r->val(), newKids);
+        }
+    };
+
+    struct libc_startup_info {
+        void * sda;
+        void * main_addr;
+        void * init_addr;
+        void * fini_addr;
+    };
+
+    /*
+     * b ends with a call to libc_start_main. We are looking for the
+     * value in GR8, which is the address of a structure that contains
+     * the address to main
+     */
+    Address evaluate_main_address(Symtab * linkedFile, Function * f, Block *b)
+    {
+        using namespace DataflowAPI;
+        using namespace InstructionAPI;
+        // looking for the *last* instruction in the block
+        // that defines GR8
+    
+        Instruction::Ptr r8_def;
+        Address r8_def_addr;
+    
+        InstructionDecoder dec(
+            b->region()->getPtrToInstruction(b->start()),
+            b->end()-b->start(),
+            b->region()->getArch());
+
+        RegisterAST::Ptr r8( new RegisterAST(ppc32::r8) );
+
+        Address cur_addr = b->start();
+        while(Instruction::Ptr cur = dec.decode()) {
+            if(cur->isWritten(r8)) {
+                r8_def = cur;
+                r8_def_addr = cur_addr;  
+            }
+            cur_addr += cur->size();
+        }
+        if(!r8_def)
+            return 0;
+
+        // Get all of the assignments that happen in this instruction
+        AssignmentConverter conv(true);
+        vector<Assignment::Ptr> assigns;
+        conv.convert(r8_def,r8_def_addr,f,assigns);
+
+        // find the one we care about (r8)
+        vector<Assignment::Ptr>::iterator ait = assigns.begin();
+        for( ; ait != assigns.end(); ++ait) {
+            AbsRegion & outReg = (*ait)->out();
+            Absloc const& loc = outReg.absloc();
+            if(loc.reg() == r8->getID())
+                break;
+        }
+        if(ait == assigns.end()) {
+            return 0;
+        }
+
+        // Slice back to the definition of R8, and, if possible, simplify
+        // to a constant
+        Slicer slc(*ait,b,f);
+        Default_Predicates preds;
+        Graph::Ptr slg = slc.backwardSlice(preds);
+        SymEval::Result_t sl_res;
+        SymEval::expand(slg,sl_res);
+        AST::Ptr calculation = sl_res[*ait];
+        SimpleArithVisitor visit; 
+        AST::Ptr simplified = calculation->accept(&visit);
+        //printf("after simplification:\n%s\n",simplified->format().c_str());
+        if(simplified->getID() == AST::V_ConstantAST) { 
+            ConstantAST::Ptr cp = ConstantAST::convert(simplified);
+            Address ss_addr = cp->val().val;
+
+            // need a pointer to the image data
+            SymtabAPI::Region * dreg = linkedFile->findEnclosingRegion(ss_addr);
+        
+            if(dreg) {
+                struct libc_startup_info * si =
+                    (struct libc_startup_info *)(
+                        ((Address)dreg->getPtrToRawData()) + 
+                        ss_addr - (Address)dreg->getRegionAddr());
+                return (Address)si->main_addr;
+            }
+        }
+
+        return 0;
+    }
+}
+#endif
+
 /* 
  * Search for the Main Symbols in the list of symbols, Only in case
  * if the file is a shared object. If not present add them to the
  * list
  */
-
 void image::findMain()
 {
-#if defined(i386_unknown_linux2_0) \
+#if defined(ppc32_linux)
+    using namespace Dyninst::InstructionAPI;
+
+    if(!desc_.isSharedObject())
+    {
+    	bool foundMain = false;
+    	bool foundStart = false;
+    	bool foundFini = false;
+    	//check if 'main' is in allsymbols
+        vector <SymtabAPI::Function *> funcs;
+        if (linkedFile->findFunctionsByName(funcs, "main") ||
+            linkedFile->findFunctionsByName(funcs, "_main"))
+            foundMain = true;
+        else if (linkedFile->findFunctionsByName(funcs, "_start"))
+            foundStart = true;
+        else if (linkedFile->findFunctionsByName(funcs, "_fini"))
+            foundFini = true;
+    
+    	Region *textsec = NULL;
+    	bool foundText = linkedFile->findRegion(textsec, ".text");
+        if (foundText == false) {
+            return;
+        }
+	
+    	if( !foundMain )
+    	{
+            logLine("No main symbol found: attempting to create symbol for main\n");
+            const unsigned char* p;
+            p = (( const unsigned char * ) textsec->getPtrToRawData());
+
+            Address mainAddress = 0;
+
+	        bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
+	        SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
+            CodeObject tco(&scs,NULL,NULL,false);
+
+            tco.parse(textsec->getRegionAddr(),false);
+            set<CodeRegion *> regions;
+            scs.findRegions(textsec->getRegionAddr(),regions);
+            if(regions.empty()) {
+                // express puzzlement
+                return;
+            }
+            SymtabCodeRegion * reg = 
+                static_cast<SymtabCodeRegion*>(*regions.begin());
+            Function * func = 
+                tco.findFuncByEntry(reg,textsec->getRegionAddr());
+            if(!func) {
+                // again, puzzlement
+                return;
+            }
+
+            Function::edgelist & calls = func->callEdges();
+            if(calls.size() != 1) {
+                startup_printf("%s[%d] _start has unexpected number (%d) of"
+                               " call edges, bailing on findMain()\n",
+                    FILE__,__LINE__,calls.size());
+                return; 
+            }
+            Function::edgelist::iterator cit = calls.begin();
+            Block * b = (*cit)->src();
+
+            mainAddress = evaluate_main_address(linkedFile,func,b);
+            if(0 == mainAddress || !scs.isValidAddress(mainAddress)) {
+                startup_printf("%s[%d] failed to find main\n",FILE__,__LINE__);
+                return;
+            } else {
+                startup_printf("%s[%d] found main at %lx\n",
+                    FILE__,__LINE__,mainAddress);
+            }
+           	Symbol *newSym= new Symbol( "main", 
+                                            Symbol::ST_FUNCTION,
+                                            Symbol::SL_GLOBAL, 
+                                            Symbol::SV_DEFAULT, 
+                                            mainAddress,
+                                            linkedFile->getDefaultModule(),
+                                            textsec, 
+                                            0 );
+	        linkedFile->addSymbol(newSym);		
+        }
+    }
+#elif defined(i386_unknown_linux2_0) \
 || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
 || defined(i386_unknown_solaris2_5) \
 || (defined(os_freebsd) \

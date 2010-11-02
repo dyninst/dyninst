@@ -59,7 +59,10 @@ class COMMON_EXPORT Edge : public AnnotatableSparse {
     NodeSharedPtr source() const { return source_.lock(); }
     NodeSharedPtr target() const { return target_.lock(); }
     
- private:
+    void setSource(NodeSharedPtr source) { source_ = NodePtr(source); }
+    void setTarget(NodeSharedPtr target) { target_ = NodePtr(target); }
+
+  protected:
     Edge(const NodePtr source, const NodePtr target); 
     Edge();
     

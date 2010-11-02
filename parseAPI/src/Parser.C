@@ -91,7 +91,10 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallback & pcb) :
     }
 
     if(obj.cs()->regions().empty()) {
-        fprintf(stderr,"Error, CodeSource fails to provide CodeRegions\n");
+        parsing_printf("[%s:%d] CodeSource provides no CodeRegions"
+                       " -- unparesable\n",
+            FILE__,__LINE__);
+        _parse_state = UNPARSEABLE;
         return;
     }
 
@@ -150,6 +153,9 @@ Parser::parse()
 {
     parsing_printf("[%s:%d] parse() called on Parser with state %d\n",
         FILE__,__LINE__,_parse_state);
+
+    if(_parse_state == UNPARSEABLE)
+        return;
 
     assert(!_in_parse);
     _in_parse = true;
@@ -222,6 +228,9 @@ Parser::parse_at(Address target, bool recursive, FuncSource src)
 
     parsing_printf("[%s:%d] entered parse_at(%lx)\n",FILE__,__LINE__,target);
 
+    if(_parse_state == UNPARSEABLE)
+        return;
+
     StandardParseData * spd = dynamic_cast<StandardParseData *>(_parse_data);
     if(!spd) {
         parsing_printf("   parse_at is invalid on overlapping regions\n");
@@ -278,9 +287,13 @@ Parser::parse_vanilla()
 void
 Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
 {
+    if(_parse_state == UNPARSEABLE)
+        return;
+
     // build up set of needed parse frames and load them with work elements
     set<ParseFrame*> frameset; // for dup checking
     vector<ParseFrame*> frames;
+
     for (unsigned idx=0; idx < work_elems.size(); idx++) {
 
         ParseWorkElem *elem = work_elems[idx];
@@ -783,17 +796,16 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 return;
             }
             else if(ct && work->tailcall()) {
-               if (ct->_rs == UNSET) {
-                  // Ah helll....
-                frame.call_target = ct;
-                frame.set_status(ParseFrame::CALL_BLOCKED);
-                // need to re-visit this edge
-                frame.pushWork(work);
-                return;
-               }                  
-
-                if(func->_rs != RETURN && ct->_rs > NORETURN)
-                    func->_rs = ct->_rs;
+                // XXX The target has been or is currently being parsed (else
+                //     the previous conditional would have been taken),
+                //     so if its return status is unset then this
+                //     function has to take UNKNOWN
+                if(func->_rs != RETURN) {
+                    if(ct->_rs > NORETURN)
+                        func->_rs = ct->_rs;
+                    else if(ct->_rs == UNSET)
+                        func->_rs = UNKNOWN;
+                }
             }
 
             // check for catch blocks after non-returning calls
@@ -1155,6 +1167,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
        }
        else
           frame.func->_rs = UNKNOWN; 
+
+       // Convenience -- adopt PLT name
+       frame.func->_name = plt_entries[frame.func->addr()];
     }
     else if(frame.func->_rs == UNSET) {
         frame.func->_rs = NORETURN;
@@ -1275,7 +1290,7 @@ Parser::add_edge(
     Block * split = NULL;
     Block * ret = NULL;
     Edge * newedge = NULL;
-    pair<Block *, Edge *> retpair(NULL,NULL);
+    pair<Block *, Edge *> retpair((Block *) NULL, (Edge *) NULL);
 
     if(!is_code(owner,dst)) {
         parsing_printf("[%s] target address %lx rejected by isCode()\n",dst);
@@ -1386,7 +1401,7 @@ Parser::bind_call(ParseFrame & frame, Address target, Block * cur, Edge * exist)
     if(!tfunc) {
         parsing_printf("[%s:%d] can't bind call to %lx\n",
             FILE__,__LINE__,target);
-        return pair<Function*,Edge*>(NULL,exist);
+        return pair<Function*,Edge*>((Function *) NULL,exist);
     }
 
     // add an edge
@@ -1395,7 +1410,7 @@ Parser::bind_call(ParseFrame & frame, Address target, Block * cur, Edge * exist)
     if(!tblock) {
         parsing_printf("[%s:%d] can't bind call to %lx\n",
             FILE__,__LINE__,target);
-        return pair<Function*,Edge*>(NULL,exist);
+        return pair<Function*,Edge*>((Function *) NULL,exist);
     }
 
     return pair<Function*,Edge*>(tfunc,ret.second);

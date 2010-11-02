@@ -159,6 +159,7 @@ public:
 
     // For users of the library:
 
+    API_EXPORT(Str, (), std::string, getName, ());
 
     //  BPatch_function::getName
     //  Returns <demangled> name of function

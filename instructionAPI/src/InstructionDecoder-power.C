@@ -504,8 +504,11 @@ namespace Dyninst
         }
         if(current->op == power_op_bclr)
         {
+	  // blrl is in practice a return-and-link, not a call-through-LR
+	  // so we'll treat it as such
             insn_in_progress->addSuccessor(makeRegisterExpression(ppc32::lr),
-                                           field<31,31>(insn) == 1, true, bcIsConditional, false);
+                                           /*field<31,31>(insn) == 1*/ false, true, 
+					   bcIsConditional, false);
             if(bcIsConditional)
             {
                 insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);

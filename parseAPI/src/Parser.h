@@ -98,7 +98,8 @@ class Parser {
         UNPARSED,       // raw state
         PARTIAL,        // parsing has started
         COMPLETE,       // full parsing -- range queries are invalid
-        FINALIZED
+        FINALIZED,
+        UNPARSEABLE     // error condition
     };
     ParseState _parse_state;
     // XXX sanity checking

@@ -4874,6 +4874,16 @@ ThreadPool::iterator ThreadPool::end()
    return i;
 }
 
+ThreadPool::iterator ThreadPool::find(Dyninst::LWP lwp)
+{
+    MTLock lock_this_func;
+    ThreadPool::iterator i = begin();
+    for(; i != end(); ++i) {
+        if( (*i)->getLWP() == lwp ) break;
+    }
+    return i;
+}
+
 ThreadPool::const_iterator::const_iterator()
 {
    curp = NULL;
@@ -4955,6 +4965,16 @@ ThreadPool::const_iterator ThreadPool::end() const
    i.curi = (int) threadpool->hl_threads.size();
    i.curh = Thread::ptr();
    return i;
+}
+
+ThreadPool::const_iterator ThreadPool::find(Dyninst::LWP lwp) const
+{
+    MTLock lock_this_func;
+    ThreadPool::const_iterator i = begin();
+    for(; i != end(); ++i) {
+        if( (*i)->getLWP() == lwp ) break;
+    }
+    return i;
 }
 
 const Process::ptr ThreadPool::getProcess() const

@@ -265,9 +265,9 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 #undef PIMPL_NAME
 
 //BottomOfStackStepper defined here
-#define OVERLOAD_NEWLIBRARY
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_bg)
 #include "stackwalk/src/linux-swk.h"
+#define OVERLOAD_NEWLIBRARY
 #define PIMPL_IMPL_CLASS BottomOfStackStepperImpl
 #endif
 #define PIMPL_CLASS BottomOfStackStepper

@@ -256,8 +256,10 @@ bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode,
 
 void RoseInsnPPCFactory::massageOperands(const InstructionAPI::Instruction::Ptr &insn, 
 					 std::vector<InstructionAPI::Operand> &operands) {
+  /*
   if(insn->writesMemory())
     std::swap(operands[0], operands[1]);
+  */
   entryID opcode = insn->getOperation().getID();
   // Anything that's writing RA, ROSE expects in RA, RS, RB/immediates form.
   // Any store, however, ROSE expects in RS, RA, RB/displacement form.  Very confusing,

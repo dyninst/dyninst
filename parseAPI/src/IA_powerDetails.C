@@ -109,15 +109,22 @@ bool IA_powerDetails::findTableAddrNoTOC(const IA_IAPI* blockToCheck)
     tableStartAddress = 0;
     std::set<RegisterAST::Ptr> regs;
     toc_visitor->clear();
+    bool foundAddis = false;
+    bool foundAddi = false;
     while(patternIter != blockToCheck->allInsns.begin())
     {
         patternIter--;
-        if(patternIter == blockToCheck->allInsns.begin())
+	parsing_printf("\tchecking insn %s at 0x%lx\n", patternIter->second->format().c_str(),
+		       patternIter->first);
+        if(!foundAddis && 
+	   (patternIter->second->getOperation().getID() == power_op_addi || 
+	    patternIter->second->getOperation().getID() == power_op_si))
         {
-            break;
-        }
-        if(patternIter->second->getOperation().getID() == power_op_addi)
-        {
+    	    std::set<RegisterAST::Ptr> tmpregs;
+            patternIter->second->getReadSet(tmpregs);
+            if(tmpregs.size() != 1) {
+                continue;
+            }
             regs.clear();
             patternIter->second->getReadSet(regs);
             if(regs.size() != 1) {
@@ -126,14 +133,39 @@ bool IA_powerDetails::findTableAddrNoTOC(const IA_IAPI* blockToCheck)
             parsing_printf("\tfound 0x%lx: %s, checking for addis previous\n",
                            patternIter->first,
                            patternIter->second->format().c_str());
+	    foundAddi = true;
             toc_visitor->clear();
             patternIter->second->getOperand(2).getValue()->apply(toc_visitor.get());
             tableStartAddress = toc_visitor->result;
-            patternIter--;
-            if(patternIter->second &&
+	 }
+         else if(!foundAddi && patternIter->second->getOperation().getID() == power_op_addis)
+         {
+    	    std::set<RegisterAST::Ptr> tmpregs;
+            patternIter->second->getReadSet(tmpregs);
+            if(tmpregs.size() != 1) {
+                continue;
+            }
+            regs.clear();
+            patternIter->second->getReadSet(regs);
+            if(regs.size() != 1) {
+                continue;
+            }
+            parsing_printf("\tfound 0x%lx: %s, checking for addi previous\n",
+                           patternIter->first,
+                           patternIter->second->format().c_str());
+	    foundAddis = true;
+            toc_visitor->clear();
+            patternIter->second->getOperand(2).getValue()->apply(toc_visitor.get());
+            tableStartAddress = toc_visitor->result;
+            tableStartAddress *= 10000;
+            tableStartAddress &= 0xFFFF0000;
+           
+         } else if( foundAddi &&
+		patternIter->second &&
                (patternIter->second->getOperation().getID() == power_op_addis) &&
                patternIter->second->isWritten(*(regs.begin())))
             {
+	    	foundAddis = true;
                 parsing_printf("\tfound 0x%lx: %s, setting tableStartAddress\n",
                                patternIter->first,
                                patternIter->second->format().c_str());
@@ -143,29 +175,13 @@ bool IA_powerDetails::findTableAddrNoTOC(const IA_IAPI* blockToCheck)
                 parsing_printf("\ttableStartAddress = 0x%lx\n",
                                tableStartAddress);
                 break;
-            }
-            tableStartAddress = 0;
-        }
-        else if(patternIter->second->getOperation().getID() == power_op_addis)
-        {
-            regs.clear();
-            patternIter->second->getReadSet(regs);
-            if(regs.size() != 1) {
-                continue;
-            }
-            parsing_printf("\tfound 0x%lx: %s, checking for addi previous\n",
-                           patternIter->first,
-                           patternIter->second->format().c_str());
-            toc_visitor->clear();
-            patternIter->second->getOperand(2).getValue()->apply(toc_visitor.get());
-            tableStartAddress = toc_visitor->result;
-            tableStartAddress *= 10000;
-            tableStartAddress &= 0xFFFF0000;
-            patternIter--;
-            if(patternIter->second &&
-               (patternIter->second->getOperation().getID() == power_op_addi) &&
+	 } else if( foundAddis && 
+		patternIter->second &&
+               ((patternIter->second->getOperation().getID() == power_op_addi) ||
+		(patternIter->second->getOperation().getID() == power_op_si)) &&
                patternIter->second->isWritten(*(regs.begin())))
             {
+	        foundAddi = true;
                 parsing_printf("\tfound 0x%lx: %s, setting tableStartAddress\n",
                                patternIter->first,
                                patternIter->second->format().c_str());
@@ -175,9 +191,9 @@ bool IA_powerDetails::findTableAddrNoTOC(const IA_IAPI* blockToCheck)
                 parsing_printf("\ttableStartAddress = 0x%lx\n", tableStartAddress);
                 break;
             }
-            tableStartAddress = 0;
-        }
     }
+    if (!foundAddi || !foundAddis)
+	    	tableStartAddress = 0;
     // If we've found an addi/addis combination and it's a relative table, look for a mfspr/thunk combination that
     // feeds that...
     if(tableStartAddress && tableIsRelative)
@@ -229,6 +245,7 @@ bool IA_powerDetails::findTableAddrNoTOC(const IA_IAPI* blockToCheck)
 
 bool IA_powerDetails::parseRelativeTableIdiom()
 {
+    bool foundAddress = false;
     while(patternIter != currentBlock->allInsns.begin())
     {
         patternIter--;
@@ -242,16 +259,24 @@ bool IA_powerDetails::parseRelativeTableIdiom()
             parsing_printf("%s[%d]: setting jumpStartAddress to 0x%lx, insn %s, TOC 0x%lx\n", FILE__, __LINE__,
                            toc_visitor->result, patternIter->second->format().c_str(), toc_visitor->toc_contents);
             jumpStartAddress = toc_visitor->result;
+	    foundAddress = true;
+	    tableStartAddress = jumpStartAddress;
+	    adjustEntry = 0;
             break;
         }
     }
     if(patternIter == currentBlock->allInsns.begin())
     {
+	if (foundAddress) {
+		return true;
+	} else {
+
             // If we've already backed up to the beginning, we're not going to find a legit table
             // start address; bail now.
-        parsing_printf("%s[%d]: jumpStartAddress insn was first in block w/relative table, ret false\n",
+        	parsing_printf("%s[%d]: jumpStartAddress insn was first in block w/relative table, ret false\n",
                        FILE__, __LINE__);
-        return false;
+        	return false;
+	}	
     }
         // Anyone know what this does?
     patternIter--;
@@ -287,6 +312,7 @@ bool IA_powerDetails::parseRelativeTableIdiom()
 bool IA_powerDetails::parseJumpTable(Block* currBlk,
                              std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges)
 {
+
     Address initialAddress = currentBlock->current;
     toc_reg.reset(new RegisterAST(ppc32::r2));
 
@@ -322,6 +348,8 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
             return false;
         }
         jumpAddrReg = *(regs.begin());
+        parsing_printf("%s[%d]: mtspr at prev insn %s \n", FILE__, __LINE__,
+                       patternIter->second->format().c_str());
     }
     else
     {
@@ -356,8 +384,59 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
 
     if(!TOC_address)
     {
-        findTableAddrNoTOC(currentBlock);
-        jumpStartAddress = tableStartAddress;
+    	// Find addi-addis instructions to determine the jump table start address.
+	// These instructions can be anywhere in the function before the 
+	// indirect jump.Hence parse through the current block and previous block
+	// till we reach the function entry.
+        Block* worklistBlock = currBlk;
+        std::set <Block*> visited;
+        std::deque<Block*> worklist;
+        worklist.insert(worklist.begin(), worklistBlock);
+	visited.insert(worklistBlock);
+	Intraproc epred;
+
+        while(!worklist.empty())
+        {
+		worklistBlock= worklist.front();
+	        worklist.pop_front();
+    		parsing_printf("\tAddress low 0x%lx high 0x%lx current block 0x%lx low 0x%lx high 0x%lx \n", worklistBlock->low(), worklistBlock->high(), currentBlock->current, currBlk->low(), currBlk->high());
+		Address blockStart = worklistBlock->start();
+            	const unsigned char* b = (const unsigned char*)(currentBlock->_isrc->getPtrToInstruction(blockStart));
+		parsing_printf(" Block start 0x%lx \n", blockStart);
+            	InstructionDecoder dec(b, worklistBlock->size(), currentBlock->_isrc->getArch());
+                IA_IAPI IABlock(dec, blockStart, currentBlock->_obj, currentBlock->_cr, currentBlock->_isrc);
+
+                while(IABlock.getInstruction() && !IABlock.hasCFT()) {
+                	IABlock.advance();
+                }
+
+	        patternIter = IABlock.curInsnIter;
+	        findTableAddrNoTOC(&IABlock);
+                if(!jumpStartAddress)
+                {
+                	jumpStartAddress = tableStartAddress;
+                }
+	        if (tableStartAddress != 0) {
+		 jumpStartAddress = tableStartAddress;
+		 parsing_printf("\t\tjumpStartAddress 0x%lx \n", jumpStartAddress);
+		 break;
+		}
+	        Block::edgelist::iterator sit = worklistBlock->sources().begin(&epred);
+        	for( ; sit != worklistBlock->sources().end(); ++sit) {
+			parsing_printf("\t\t\tIterating \n");
+	          	ParseAPI::Edge *e = *sit;
+
+	            // FIXME debugging assert
+	         	assert(e->type() != CALL);
+
+        	    // FIXME check this algorithm... O(log n) lookup in visited
+			if((visited.find(e->src()) == visited.end()))
+            		{
+                		worklist.push_back(e->src());
+                		visited.insert(e->src());
+            		}
+        	}
+        }
     }
     else if (tableIsRelative) {
         if(!parseRelativeTableIdiom())
@@ -404,30 +483,9 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
     
     // We could also set this = jumpStartAddress...
     if (tableStartAddress == 0)  {
-        if(!TOC_address)
-        {
-            Block* sourceBlock = (*sourceEdges.begin())->src();
-            Address blockStart = sourceBlock->start();
-            const unsigned char* b = (const unsigned char*)(currentBlock->_isrc->getPtrToInstruction(blockStart));
-            InstructionDecoder dec(b, sourceBlock->size(), currentBlock->_isrc->getArch());
-            IA_IAPI prevBlock(dec, blockStart,currentBlock->_obj,currentBlock->_cr,currentBlock->_isrc);
-            while(!prevBlock.hasCFT() && prevBlock.getInstruction()) {
-                prevBlock.advance();
-            }
-
-            parsing_printf("%s[%d]: checking previous block for table addr\n", FILE__, __LINE__);
-            patternIter = prevBlock.curInsnIter;
-            findTableAddrNoTOC(&prevBlock);
-            if(!jumpStartAddress)
-            {
-                jumpStartAddress = tableStartAddress;
-            }
-        }
-        if(tableStartAddress == 0)
-        {
-            parsing_printf("%s[%d]: couldn't find table start addr, ret false\n", FILE__, __LINE__);
+           parsing_printf("%s[%d]: couldn't find table start addr, ret false\n", FILE__, __LINE__);
             return false;
-        }
+        
     }
     
     parsing_printf("%s[%d]: table start addr is 0x%x\n", FILE__, __LINE__, tableStartAddress);
@@ -443,34 +501,25 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
     }
 
     parsing_printf("%s[%d]: checking for max switch...\n", FILE__, __LINE__);
-    patternIter = prevBlock.curInsnIter;
+    bool foundBranch = false;
+    std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::reverse_iterator iter;
+    for(iter = prevBlock.allInsns.rbegin(); iter != prevBlock.allInsns.rend(); iter++)
 
-    while( patternIter != prevBlock.allInsns.begin() ) {
-        parsing_printf("\t\tchecking insn 0x%x: %s for cond branch\n", patternIter->first,
-                       patternIter->second->format().c_str());
-        if(patternIter->second->getOperation().getID() == power_op_bc) // make this a true cond. branch check
+    {
+        parsing_printf("\t\tchecking insn 0x%x: %s for cond branch + compare\n", iter->first,
+                       iter->second->format().c_str());
+        if(iter->second->getOperation().getID() == power_op_bc) // make this a true cond. branch check
         {
-            if(patternIter != prevBlock.allInsns.begin())
-            {
-                patternIter--;
-                parsing_printf("\t\tchecking insn 0x%x: %s for compare\n", patternIter->first,
-                               patternIter->second->format().c_str());
-                if(patternIter->second->getOperation().getID() == power_op_cmpi ||
-                   patternIter->second->getOperation().getID() == power_op_cmpli)
-                {
-                    maxSwitch = patternIter->second->getOperand(2).getValue()->eval().convert<int>() + 1;
+		foundBranch = true;
+	} else if(foundBranch && 
+		 (iter->second->getOperation().getID() == power_op_cmpi ||
+                   iter->second->getOperation().getID() == power_op_cmpli))
+        {
+                    maxSwitch = iter->second->getOperand(2).getValue()->eval().convert<int>() + 1;
                     break;
-                }
-            }
-            else
-            {
-                parsing_printf("\t\t ******** prevBlock.allInsns begins with cond branch!\n");
-                break;
-            }
+                
         }
-        if(patternIter != prevBlock.allInsns.begin())
-            patternIter--;
-    }
+   } 
 
     parsing_printf("%s[%d]: After checking: max switch %d\n", FILE__, __LINE__, maxSwitch);
     if(!maxSwitch){
@@ -540,6 +589,7 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
     {
         jumpStart = jumpStartAddress;
         tableStart = tableStartAddress;
+	parsing_printf(" jumpStartaddress 0x%lx tableStartAddress 0x%lx \n", jumpStartAddress, tableStartAddress);
         if(toc_visitor->toc_contents)
         {
             void* tmp = NULL;
@@ -570,6 +620,43 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
                 }
             }
         }
+	if (jumpStart == 0) {
+		// Shared library GOT section is filled by loader
+		// Find the relocation entry for this address
+
+    		Block* sourceBlock = (*sourceEdges.begin())->src();
+    		Address blockStart = sourceBlock->start();
+    		const unsigned char* b = (const unsigned char*)(currentBlock->_isrc->getPtrToInstruction(blockStart));
+    		InstructionDecoder dec(b, sourceBlock->size(), currentBlock->_isrc->getArch());
+    		IA_IAPI IABlock(dec, blockStart,currentBlock->_obj,currentBlock->_cr,currentBlock->_isrc);
+
+		SymtabCodeSource *scs = dynamic_cast<SymtabCodeSource *>(IABlock._obj->cs());
+		SymtabAPI::Symtab * symtab = scs->getSymtabObject();
+		std::vector<SymtabAPI::Region *> regions;
+		symtab->getAllRegions(regions);
+	 	for (unsigned index = 0 ; index < regions.size(); index++) {
+			if (regions[index]->getRegionType() == SymtabAPI::Region::RT_RELA || 
+			regions[index]->getRegionType() == SymtabAPI::Region::RT_REL) {
+            			std::vector<SymtabAPI::relocationEntry> relocs =
+				regions[index]->getRelocations();	
+				parsing_printf(" \t\trelocation size %d looking for 0x%lx\n", relocs.size(), jumpStartAddress);
+	            		for (unsigned i = 0; i < relocs.size(); ++i) {
+					parsing_printf(" \t 0x%lx => 0x%lx addend 0x%lx \n", relocs[i].rel_addr(),relocs[i].target_addr(), relocs[i].addend());
+                			if (relocs[i].rel_addr() == jumpStartAddress) {
+                        			jumpStart = relocs[i].addend();
+                    				break;
+					}
+				}
+				break;
+				}
+		}
+	
+	
+	}
+        if (tableStart == 0) tableStart = jumpStart;
+
+	parsing_printf(" jumpStartaddress 0x%lx tableStartAddress 0x%lx \n", jumpStart, tableStart);
+
         int entriesAdded = 0;
         for(int i = 0; i < maxSwitch; i++)
         {

@@ -32,6 +32,7 @@
 #define _PARSER_CFG_H_
 
 #include <vector>
+#include <set>
 #include <map>
 #include <string>
 
@@ -203,6 +204,15 @@ class Intraproc : public EdgePredicate {
     PARSER_EXPORT bool pred_impl(Edge *) const;
 };
 
+/* follow interprocedural edges */
+class Interproc : public EdgePredicate {
+    public:
+        PARSER_EXPORT Interproc() {}
+        PARSER_EXPORT Interproc(EdgePredicate * next) : EdgePredicate(next) { }
+        PARSER_EXPORT ~Interproc() { }
+        PARSER_EXPORT bool pred_impl(Edge *) const;
+};
+
 /*
  * For proper ostritch-like denial of 
  * unresolved control flow edges
@@ -235,13 +245,29 @@ class SingleContext : public EdgePredicate {
     PARSER_EXPORT bool pred_impl(Edge *) const;
 };
 
+/* Doesn't follow branches into the function if there is shared code. 
+ * Will follow interprocedural call/return edges */
+class SingleContextOrInterproc : public EdgePredicate {
+    private:
+        Function * _context;
+        bool _forward;
+        bool _backward;
+    public:
+        PARSER_EXPORT SingleContextOrInterproc(Function * f, bool forward, bool backward) :
+            _context(f),
+            _forward(forward),
+            _backward(backward) { }
+        PARSER_EXPORT ~SingleContextOrInterproc() { }
+        PARSER_EXPORT bool pred_impl(Edge *) const;
+};
+
 class CodeObject;
 class CodeRegion;
 class Block : public Dyninst::interval<Address>, 
               public allocatable {
  public:
     typedef ContainerWrapper<
-        vector<Edge*>,
+        std::vector<Edge*>,
         Edge*,
         Edge*,
         EdgePredicate
@@ -267,7 +293,7 @@ class Block : public Dyninst::interval<Address>,
     PARSER_EXPORT bool consistent(Address addr, Address & prev_insn) const;
 
     PARSER_EXPORT int  containingFuncs() const;
-    PARSER_EXPORT void getFuncs(vector<Function *> & funcs);
+    PARSER_EXPORT void getFuncs(std::vector<Function *> & funcs);
 
     /* interval implementation */
     Address low() const { return start(); }
@@ -304,8 +330,8 @@ class Block : public Dyninst::interval<Address>,
     Address _end;
     Address _lastInsn;
 
-    vector<Edge *> _sources;
-    vector<Edge *> _targets;
+    std::vector<Edge *> _sources;
+    std::vector<Edge *> _targets;
 
     edgelist _srclist;
     edgelist _trglist;
@@ -393,12 +419,12 @@ class Function : public allocatable, public AnnotatableSparse {
     PARSER_EXPORT Function(); 
  public:
     typedef ContainerWrapper<
-        vector<Block*>,
+        std::vector<Block*>,
         Block*,
         Block*
     > blocklist;
     typedef ContainerWrapper<
-        vector<Edge*>,
+        std::set<Edge*>,
         Edge*,
         Edge*
     > edgelist;
@@ -463,7 +489,7 @@ class Function : public allocatable, public AnnotatableSparse {
     blockmap _bmap;
 
     /* rapid lookup for interprocedural queries */
-    std::vector<Edge *> _call_edges;
+    std::set<Edge *> _call_edges;
     edgelist _call_edge_list;
     std::vector<Block *> _return_blocks;
     blocklist _retBL;

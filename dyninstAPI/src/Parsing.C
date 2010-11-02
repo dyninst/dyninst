@@ -56,37 +56,39 @@ using namespace Dyninst::InstructionAPI;
 #undef max
 
 #if defined(VERBOSE_CFG_FACTORY)
-#define record_func_alloc(x) do { __record_func_alloc(x) } while(0)
-#define record_edge_alloc(x,s) do { __record_edge_alloc(x,s) } while(0)
-#define record_block_alloc(s) do { __record_block_alloc(s) } while(0)
+#define record_func_alloc(x) do { _record_func_alloc(x); } while(0)
+#define record_edge_alloc(x,s) do { _record_edge_alloc(x,s); } while(0)
+#define record_block_alloc(s) do { _record_block_alloc(s); } while(0)
 #else
 #define record_func_alloc(x) do { } while(0)
 #define record_edge_alloc(x,s) do { } while(0)
 #define record_block_alloc(s) do { } while(0)
 #endif
 
-#if defined(VERBOSE_CFG_FACTORY)
-    void DynCFGFactory::dump_stats()
-    {
-        fprintf(stderr,"===DynCFGFactory for image %p===\n");
-        fprintf(stderr,"   Functions:\n");
-        fprinff(stderr,"   %-12s src\n","cnt");
-        for(int i=0;i<__funcsource_end__;++i) {
-            printf(stderr,"   %-12d %3d\n",__func_allocs[i],i);
-        }
-        fprintf(stderr,"   Edges:\n");
-        fprinff(stderr,"   %-12s type\n","cnt");
-        for(int i=0;i<__edgetype_end__;++i) {
-            printf(stderr,"   %-12d %4d\n",__edge_allocs[i],i);
-        }
-        fprintf(stderr,"   Blocks:\n");
-        fprintf(stderr,"   %-12d total\n",__block_allocs);
-        fprintf(stderr,"   %-12d sink\n",__sink_block_allocs);
+void DynCFGFactory::dump_stats()
+{
+    fprintf(stderr,"===DynCFGFactory for image %p===\n",_img);
+    fprintf(stderr,"   Functions:\n");
+    fprintf(stderr,"   %-12s src\n","cnt");
+    for(int i=0;i<_funcsource_end_;++i) {
+        fprintf(stderr,"   %-12d %3d\n",_func_allocs[i],i);
     }
-#endif
+    fprintf(stderr,"   Edges:\n");
+    fprintf(stderr,"   %-12s type\n","cnt");
+    for(int i=0;i<_edgetype_end_;++i) {
+        fprintf(stderr,"   %-12d %4d\n",_edge_allocs[i],i);
+    }
+    fprintf(stderr,"   Blocks:\n");
+    fprintf(stderr,"   %-12d total\n",_block_allocs);
+    fprintf(stderr,"   %-12d sink\n",_sink_block_allocs);
+}
 
 DynCFGFactory::DynCFGFactory(image * im) :
-    _img(im)
+    _img(im),
+    _func_allocs(_funcsource_end_),
+    _edge_allocs(_edgetype_end_),
+    _block_allocs(0),
+    _sink_block_allocs(0)
 {
 
 }

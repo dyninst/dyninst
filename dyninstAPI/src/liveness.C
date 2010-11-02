@@ -176,6 +176,8 @@ void image_basicBlock::summarizeBlockLivenessInfo(image_func *context)
    while(curInsn)
    {
      ReadWriteInfo curInsnRW;
+     liveness_printf("%s[%d] After instruction %s at address 0x%lx:\n",
+                     FILE__, __LINE__, curInsn->format().c_str(), current);
      if(!cachedLivenessInfo.getLivenessInfo(current, context, curInsnRW))
      {
        curInsnRW = calcRWSets(curInsn, this, width, current);
@@ -188,8 +190,6 @@ void image_basicBlock::summarizeBlockLivenessInfo(image_func *context)
       
      liveness_printf("%s[%d] After instruction at address 0x%lx:\n",
                      FILE__, __LINE__, current);
-     liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
-     liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
      liveness_cerr << "Read    " << curInsnRW.read << endl;
      liveness_cerr << "Written " << curInsnRW.written << endl;
      liveness_cerr << "Used    " << use << endl;

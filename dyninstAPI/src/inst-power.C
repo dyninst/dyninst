@@ -362,8 +362,11 @@ void registerSpace::initialize32() {
         callWritten_[i] = true;
 
     // Syscall - assume the same as call
-    syscallRead_ = getBitArray().set();
-    syscallWritten_ = getBitArray().set();
+    //syscallRead_ = getBitArray().set();
+    //syscallWritten_ = getBitArray().set();
+    syscallRead_ = callRead_;
+    syscallRead_[r0] = true;
+    syscallWritten_ = callWritten_;
 
     allRegs_ = getBitArray().set();
 #endif
@@ -1779,6 +1782,10 @@ Register EmitterPOWER::emitCall(opCode ocode,
     if (!inInstrumentation && setTOC) {
         // Need to reset the TOC
         emitVload(loadConstOp, caller_toc, 2, 2, gen, false);
+
+        // Also store toc_orig [r2] into the TOC save area [40(r1)].
+        // Subsequent code will look for it there.
+        saveRegisterAtOffset(gen, 2, 40);
     }        
 
     /*

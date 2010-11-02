@@ -514,10 +514,7 @@ bool IA_IAPI::isLinkerStub() const
         break;
 
       case STUB_PLT_CALL:
-        CodeSource *_csrc = dynamic_cast<CodeSource *>(_isrc);
-        assert(_csrc);
-
-        cachedCFT = _csrc->getTOC(current) + off;
+        cachedCFT = _obj->cs()->getTOC(current) + off;
         break;
     }
 

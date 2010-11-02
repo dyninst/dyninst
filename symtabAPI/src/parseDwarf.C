@@ -1567,7 +1567,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       /* Sanity check: typedefs should not have children. */
       Dwarf_Die childDwarf;
       status = dwarf_child( dieEntry, & childDwarf, NULL );
-      assert( status == DW_DLV_NO_ENTRY );
+      //assert( status == DW_DLV_NO_ENTRY );
 
       dwarf_dealloc( dbg, definedName, DW_DLA_STRING );
     } break;
