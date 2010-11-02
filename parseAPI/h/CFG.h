@@ -32,6 +32,7 @@
 #define _PARSER_CFG_H_
 
 #include <vector>
+#include <set>
 #include <map>
 #include <string>
 
@@ -266,7 +267,7 @@ class Block : public Dyninst::interval<Address>,
               public allocatable {
  public:
     typedef ContainerWrapper<
-        vector<Edge*>,
+        std::vector<Edge*>,
         Edge*,
         Edge*,
         EdgePredicate
@@ -292,7 +293,7 @@ class Block : public Dyninst::interval<Address>,
     PARSER_EXPORT bool consistent(Address addr, Address & prev_insn) const;
 
     PARSER_EXPORT int  containingFuncs() const;
-    PARSER_EXPORT void getFuncs(vector<Function *> & funcs);
+    PARSER_EXPORT void getFuncs(std::vector<Function *> & funcs);
 
     /* interval implementation */
     Address low() const { return start(); }
@@ -329,8 +330,8 @@ class Block : public Dyninst::interval<Address>,
     Address _end;
     Address _lastInsn;
 
-    vector<Edge *> _sources;
-    vector<Edge *> _targets;
+    std::vector<Edge *> _sources;
+    std::vector<Edge *> _targets;
 
     edgelist _srclist;
     edgelist _trglist;
@@ -418,12 +419,12 @@ class Function : public allocatable, public AnnotatableSparse {
     PARSER_EXPORT Function(); 
  public:
     typedef ContainerWrapper<
-        vector<Block*>,
+        std::vector<Block*>,
         Block*,
         Block*
     > blocklist;
     typedef ContainerWrapper<
-        vector<Edge*>,
+        std::set<Edge*>,
         Edge*,
         Edge*
     > edgelist;
@@ -488,7 +489,7 @@ class Function : public allocatable, public AnnotatableSparse {
     blockmap _bmap;
 
     /* rapid lookup for interprocedural queries */
-    std::vector<Edge *> _call_edges;
+    std::set<Edge *> _call_edges;
     edgelist _call_edge_list;
     std::vector<Block *> _return_blocks;
     blocklist _retBL;
