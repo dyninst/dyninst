@@ -167,11 +167,6 @@ public:
 
     char *,getName,(char *s, int len));
 
-    // And a modern equivalent of getName
-    API_EXPORT(Int, (),
-               const std::string &, getNameStr, ());
-
-
 
     //  BPatch_function::getMangledName
     //  Returns mangled name of function, same as getName for non-c++ mutatees

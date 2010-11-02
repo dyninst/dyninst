@@ -312,11 +312,9 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
                          !found && _call_edges.end() != cit; 
                          cit++) 
                     {
-                        if (*oit == _call_edges[cidx]) {
+                        if (*oit == *cit) {
                             found = true;
-                            _call_edges[cidx] = 
-                                _call_edges[_call_edges.size()-1];
-                            _call_edges.pop_back();
+                            cit = _call_edges.erase(cit);
                         }
                     }
                     assert(found);

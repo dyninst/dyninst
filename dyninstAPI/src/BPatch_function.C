@@ -375,6 +375,7 @@ bool BPatch_function::removeInstrumentation(bool useInsertionSet)
             removedAll = false;
         }
     }
+    mal_printf("removed instrumentation from func %lx\n", getBaseAddr());
     return removedAll;
 }
 
