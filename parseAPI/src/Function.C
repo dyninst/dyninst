@@ -353,7 +353,7 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
     // delete the blocks
     for (unsigned didx=0; didx < dead_blocks.size(); didx++) {
         Block *dead = dead_blocks[didx];
-        if (1 < dead->containingFuncs()) {
+        if (dead->_func_cnt >= 2) {
             dead->removeFunc(this);
             mal_printf("WARNING: removing shared block [%lx %lx] rather "
                        "than deleting it %s[%d]\n", dead->start(), 

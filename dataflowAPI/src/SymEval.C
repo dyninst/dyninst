@@ -232,7 +232,7 @@ bool SymEval::process(SliceNode::Ptr ptr,
                       std::set<Edge::Ptr> &skipEdges) {
     bool ret = false;
     
-    std::map<AbsRegion, std::set<Assignment::Ptr> > inputMap;
+    std::map<const AbsRegion*, std::set<Assignment::Ptr> > inputMap;
 
     expand_cerr << "Calling process on " << ptr->format() << endl;
 
@@ -258,7 +258,7 @@ bool SymEval::process(SliceNode::Ptr ptr,
        
        expand_cerr << "Assigning input " << edge->data().format() 
                    << " from assignment " << assign->format() << endl;
-       inputMap[edge->data()].insert(assign);
+       inputMap[&edge->data()].insert(assign);
     }
     
     expand_cerr << "\t Input map has size " << inputMap.size() << endl;
@@ -270,7 +270,7 @@ bool SymEval::process(SliceNode::Ptr ptr,
     //expand_cerr << "\t ... resulting in " << dbase.format() << endl;
 
     // We have an AST. Now substitute in all of its predecessors.
-    for (std::map<AbsRegion, std::set<Assignment::Ptr> >::iterator iter = inputMap.begin();
+    for (std::map<const AbsRegion*, std::set<Assignment::Ptr> >::iterator iter = inputMap.begin();
          iter != inputMap.end(); ++iter) {
       // If we have multiple secondary definitions, we:
       //   if all definitions are equal, use the first
@@ -296,7 +296,7 @@ bool SymEval::process(SliceNode::Ptr ptr,
 
       
       // The region used by the current assignment...
-      const AbsRegion &reg = iter->first;
+      const AbsRegion &reg = *iter->first;
       
       // Create an AST around this one
       VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));

@@ -1072,10 +1072,6 @@ ParseAPI::Function * BPatch_function::getParseAPIFuncInt() {
   return func->ifunc();
 }
 
-const std::string &BPatch_function::getNameStrInt() {
-  return func->symTabName();
-}
-
 void BPatch_function::relocateFunction()
 {
      lowlevel_func()->proc()->addModifiedFunction(lowlevel_func());

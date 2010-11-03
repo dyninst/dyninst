@@ -357,7 +357,7 @@ bool PCSensitiveTransformer::determineSensitivity(Graph::Ptr slice,
   slice->exitNodes(exitBegin, exitEnd);
 
   for (; exitBegin != exitEnd; ++exitBegin) {
-    AssignNode::Ptr aNode = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*exitBegin);
+    SliceNode::Ptr aNode = dyn_detail::boost::dynamic_pointer_cast<SliceNode>(*exitBegin);
     assert(aNode);
 
     // By definition, a widen point is potentially behavior changing.
