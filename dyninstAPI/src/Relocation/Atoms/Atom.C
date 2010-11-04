@@ -79,7 +79,9 @@ Trace::Ptr Trace::create(bblInstance *bbl) {
   if (!bbl) return Trace::Ptr();
 
   relocation_cerr << "Creating new Trace" << endl;
-
+  if (bbl->firstInsnAddr() == 0x40e21f) {
+      printf("creating trace 40e21f\n");
+  }
 
   Ptr newTrace = Ptr(new Trace(bbl));  
 

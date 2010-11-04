@@ -1467,6 +1467,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
                 __FILE__, __LINE__, (long)regStart+codeBase(), copySize);
         assert(0);
     }
+    printf("EX: copied to [%lx %lx)\n", codeBase()+regStart, codeBase()+regStart+copySize);
 
     // find the first block in the region
     set<ParseAPI::Block*> analyzedBlocks;
@@ -1487,6 +1488,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
         {
             assert(0);
         }
+        printf("EX: uncopy [%lx %lx)\n", codeBase()+cur->start(),codeBase()+cur->end());
         // advance to the next block
         Address prevEnd = cur->end();
         cur = cObj->findBlockByEntry(parseReg,prevEnd);
@@ -1536,7 +1538,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
 // 1. use other update functions to update non-code areas of mapped files, 
 //    expanding them if we overwrote into unmapped areas
 // 2. copy overwritten regions into the mapped objects
-void mapped_object::updateCodeBytes( std::map<Address,Address> owRanges )
+void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges)
 {
 // 1. use other update functions to update non-code areas of mapped files, 
 //    expanding them if we wrote in un-initialized memory
@@ -1545,7 +1547,7 @@ void mapped_object::updateCodeBytes( std::map<Address,Address> owRanges )
     Address baseAddress = parse_img()->desc().loadAddr();
 
     // figure out which regions need expansion and which need updating
-    std::map<Address,Address>::iterator rIter = owRanges.begin();
+    list<pair<Address,Address> >::const_iterator rIter = owRanges.begin();
     for(; rIter != owRanges.end(); rIter++) {
         Address lastChangeOffset = (*rIter).second -1 -baseAddress;
         Region *curReg = parse_img()->getObject()->findEnclosingRegion
@@ -1576,12 +1578,17 @@ void mapped_object::updateCodeBytes( std::map<Address,Address> owRanges )
         Region *reg = parse_img()->getObject()->findEnclosingRegion
             ( (*rIter).first - baseAddress );
         unsigned char* regPtr = (unsigned char*)reg->getPtrToRawData() 
-            + (*rIter).first - baseAddress - reg->getRegionAddr();
+            + (*rIter).first - baseAddress - reg->getMemOffset();
 
         assert ( proc()->readDataSpace((void*)(*rIter).first, 
                                      (*rIter).second - (*rIter).first, 
                                      regPtr, 
                                      true) );
+        printf("OW: copied to [%lx %lx): ", rIter->first,rIter->second);
+        for (unsigned idx=0; idx < rIter->second - rIter->first; idx++) {
+            printf("%2x ", (unsigned) regPtr[idx]);
+        }
+        printf("\n");
     }
     pagesUpdated_ = true;
 }
@@ -1641,6 +1648,7 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
                 {
                     assert(0);//read failed
                 }
+                printf("UP: copied to [%lx %lx)\n", prevEndAddr+base,cur->start()+base);
             }
 
             // advance cur to last adjacent block and set prevEndAddr 
@@ -1666,6 +1674,7 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
         {
             assert(0);// read failed
         }
+        printf("UP: copied to [%lx %lx)\n", prevEndAddr+base, base+symReg->getDiskSize());
     }
 }
 

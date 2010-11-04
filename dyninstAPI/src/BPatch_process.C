@@ -1750,7 +1750,7 @@ void BPatch_process::overwriteAnalysisUpdate
 {
 
     //1.  get the overwritten blocks and regions
-    std::map<Address,Address> owRegions;
+    std::list<std::pair<Address,Address> > owRegions;
     std::list<bblInstance *> owBBIs;
     llproc->getOverwrittenBlocks(owPages, owRegions, owBBIs);
     changedPages = ! owRegions.empty();

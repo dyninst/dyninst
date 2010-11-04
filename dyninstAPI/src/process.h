@@ -696,7 +696,7 @@ public:
   // code overwrites 
   bool getOverwrittenBlocks
       ( std::map<Address, unsigned char *>& overwrittenPages,//input
-        std::map<Address,Address>& overwrittenRegions,//output
+        std::list<std::pair<Address,Address> >& overwrittenRegions,//output
         std::list<bblInstance *> &writtenBBIs);//output
   bool getDeadCode
     ( const std::list<bblInstance*> &owBlocks, // input
@@ -710,7 +710,7 @@ public:
   mapped_object *createObjectNoFile(Address addr);
   void updateCodeBytes
       ( const std::map<Dyninst::Address,unsigned char*>& owPages,
-        const std::map<Address,Address> &owRegions );
+        const std::list<std::pair<Address,Address> >&owRegions );
 
   // misc
   bool hideDebugger();

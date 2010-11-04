@@ -785,23 +785,30 @@ int IBSTree<ITYPE>::find(ITYPE * I, set<ITYPE *> &out) const
 template<class ITYPE>
 void IBSTree<ITYPE>::successor(interval_type X, set<ITYPE *> &out) const
 {
+    list<IBSNode<ITYPE>*> stack;
     IBSNode<ITYPE> *n = root;
-    IBSNode<ITYPE> *last = nil;
+
     while(n != nil) {
         if(X >= n->value()) {
             n = n->right;
         }
         else {
-            last = n;
+            stack.push_back(n);
             n = n->left;
         }
     }
     /* last holds the node immediately greater than X */
-    if(last != nil) {
-        typename set<ITYPE *>::iterator sit = last->equal.begin();
-        for( ; sit != last->equal.end(); ++sit) {
-            if((*sit)->low() == last->value()) out.insert(*sit);
+    while (stack.size() && out.empty()) {
+
+        ibsNode<ITYPE> *last = stack.pop_back();
+
+        if(last != nil) {
+            typename set<ITYPE *>::iterator sit = last->equal.begin();
+            for( ; sit != last->equal.end(); ++sit) {
+                if((*sit)->low() == last->value()) out.insert(*sit);
+            }
         }
+
     }
 }
 
