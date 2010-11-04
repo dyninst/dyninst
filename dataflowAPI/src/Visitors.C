@@ -187,6 +187,8 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
   default:
     return RoseAST::create(r->val(), newKids);
   }
+  assert(0);
+  return r->ptr();
 }
 
 AST::Ptr BooleanVisitor::visit(AST *t) {
