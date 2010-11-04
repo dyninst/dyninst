@@ -113,10 +113,6 @@ void MemoryEmulator::addAllocatedRegion(Address start, unsigned size) {
 }
 
 void MemoryEmulator::addRegion(mapped_object *obj) {
-   if (addedObjs_.find(obj) != addedObjs_.end())
-      return;
-   addedObjs_.insert(obj);
-
    //cerr << "addRegion for " << obj->fileName() << endl;
 
    // Add each code region
@@ -124,23 +120,28 @@ void MemoryEmulator::addRegion(mapped_object *obj) {
    obj->parse_img()->getObject()->getCodeRegions(codeRegions);
 
    for (unsigned i = 0; i < codeRegions.size(); ++i) {
+      Region *reg = codeRegions[i];
       //cerr << "\t\t Region " << i << ": " << hex
       //<< codeRegions[i]->getMemOffset() + obj->codeBase() << " -> " 
       //<< codeRegions[i]->getMemOffset() + codeRegions[i]->getMemSize() + obj->codeBase() << endl;
+
+      if (addedRegions_.find(reg) != addedRegions_.end()) continue;
       
-      char *buffer = (char *)malloc(codeRegions[i]->getMemSize());
-      memset(buffer, 0, codeRegions[i]->getMemSize());
-      memcpy(buffer, codeRegions[i]->getPtrToRawData(), codeRegions[i]->getDiskSize());
+      char *buffer = (char *)malloc(reg->getMemSize());
+      memset(buffer, 0, reg->getMemSize());
+      memcpy(buffer, reg->getPtrToRawData(), reg->getDiskSize());
       
-      Address mutateeBase = aS_->inferiorMalloc(codeRegions[i]->getMemSize());
+      Address mutateeBase = aS_->inferiorMalloc(reg->getMemSize());
       assert(mutateeBase);
       aS_->writeDataSpace((void *)mutateeBase,
-                          codeRegions[i]->getMemSize(),
+                          reg->getMemSize(),
                           (void *)buffer);
       
-      addRegion(obj->codeBase() + codeRegions[i]->getMemOffset(),
-                codeRegions[i]->getMemSize(),
+      addRegion(obj->codeBase() + reg->getMemOffset(),
+                reg->getMemSize(),
                 mutateeBase);
+
+      addedRegions_[reg] = mutateeBase;
    }         
 }
 
@@ -204,4 +205,15 @@ void MemoryEmulator::addRegion(Address start, unsigned size, unsigned long shift
 unsigned MemoryEmulator::addrWidth() {
    return aS_->getAddressWidth();
 }
+
+std::pair<bool, Address> MemoryEmulator::translate(Region *reg, unsigned long offset) {
+   if (offset >= reg->getMemSize()) { return std::make_pair(false, 0); }
+
+   RegionMap::const_iterator iter = addedRegions_.find(reg);
+   if (iter == addedRegions_.end()) {
+      return std::make_pair(false, 0);
+   }
+   return std::make_pair(true, iter->second + offset);
+}
+
 
