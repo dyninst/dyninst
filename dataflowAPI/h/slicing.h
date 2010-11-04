@@ -109,10 +109,10 @@ class Slicer {
                                            AbsRegion /*argument*/) { 
        return false; 
     }
-    DATAFLOW_EXPORT virtual std::vector<ParseAPI::Function *> 
-        followCallBackward(std::vector<ParseAPI::Function *> * /*callers*/,
-            CallStack_t & /*cs*/,
-            AbsRegion /*argument*/) {
+    DATAFLOW_EXPORT virtual std::vector<ParseAPI::Function *>
+        followCallBackward(ParseAPI::Block * /*callerBlock*/,
+                CallStack_t & /*cs*/,
+                AbsRegion /* argument */) {
             std::vector<ParseAPI::Function *> vec;
             return vec;
         }
@@ -267,7 +267,7 @@ class Slicer {
 		  Predicates &p);
   
   std::vector<ParseAPI::Function *> 
-      followCallBackward(std::vector<ParseAPI::Function *> * callers,
+      followCallBackward(/*std::vector<ParseAPI::Function *> * callers,*/ ParseAPI::Block * callerBlock,
               Direction d,
               Element &current,
               Predicates &p);
