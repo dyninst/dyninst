@@ -77,16 +77,21 @@ Graph::Ptr Graph::createGraph() {
     return Graph::Ptr(new Graph());
 }
 
-void Graph::insertPair(NodePtr source, NodePtr target) {
+void Graph::insertPair(NodePtr source, NodePtr target, EdgePtr e) {
     // TODO handle parameter edge types.
-
-    Edge::Ptr e = Edge::createEdge(source, target);
-    
-    source->addOutEdge(e);
-    target->addInEdge(e);
-
-    addNode(source);
-    addNode(target);
+   if (!e) {
+      e = Edge::createEdge(source, target);
+   }
+   else {
+      e->setSource(source);
+      e->setTarget(target);
+   }
+   
+   source->addOutEdge(e);
+   target->addInEdge(e);
+   
+   addNode(source);
+   addNode(target);
 }
 
 void Graph::insertEntryNode(NodePtr entry) {

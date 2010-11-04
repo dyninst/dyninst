@@ -501,25 +501,24 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
     }
 
     parsing_printf("%s[%d]: checking for max switch...\n", FILE__, __LINE__);
-    patternIter = prevBlock.curInsnIter;
     bool foundBranch = false;
+    std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::reverse_iterator iter;
+    for(iter = prevBlock.allInsns.rbegin(); iter != prevBlock.allInsns.rend(); iter++)
 
-    while( patternIter->first >= prevBlock.allInsns.begin()->first ) 
     {
-        parsing_printf("\t\tchecking insn 0x%x: %s for cond branch + compare\n", patternIter->first,
-                       patternIter->second->format().c_str());
-        if(patternIter->second->getOperation().getID() == power_op_bc) // make this a true cond. branch check
+        parsing_printf("\t\tchecking insn 0x%x: %s for cond branch + compare\n", iter->first,
+                       iter->second->format().c_str());
+        if(iter->second->getOperation().getID() == power_op_bc) // make this a true cond. branch check
         {
 		foundBranch = true;
 	} else if(foundBranch && 
-		 (patternIter->second->getOperation().getID() == power_op_cmpi ||
-                   patternIter->second->getOperation().getID() == power_op_cmpli))
+		 (iter->second->getOperation().getID() == power_op_cmpi ||
+                   iter->second->getOperation().getID() == power_op_cmpli))
         {
-                    maxSwitch = patternIter->second->getOperand(2).getValue()->eval().convert<int>() + 1;
+                    maxSwitch = iter->second->getOperand(2).getValue()->eval().convert<int>() + 1;
                     break;
                 
         }
-        patternIter--;
    } 
 
     parsing_printf("%s[%d]: After checking: max switch %d\n", FILE__, __LINE__, maxSwitch);

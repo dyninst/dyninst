@@ -84,10 +84,51 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
   }
 
   switch (r->val().op) {
+  case ROSEOperation::signExtendOp: {
+    if (newKids[0]->getID() == AST::V_ConstantAST) {
+      assert(newKids[1]->getID() == AST::V_ConstantAST);
+
+      ConstantAST::Ptr size = ConstantAST::convert(newKids[1]);
+      ConstantAST::Ptr val = ConstantAST::convert(newKids[0]);
+      return ConstantAST::create(Constant(val->val().val, size->val().val));
+    }
+      
+
+    return RoseAST::create(r->val(), newKids);
+  }
+  case ROSEOperation::extractOp: {
+    if (newKids[0]->getID() == AST::V_ConstantAST) {
+      assert(newKids[1]->getID() == AST::V_ConstantAST);
+      assert(newKids[2]->getID() == AST::V_ConstantAST);
+      
+      // Let's fix this...
+      // newKids[1] is the "from", and newKids[2] is the "to". As in "mask from 0 to 16".
+      ConstantAST::Ptr from = ConstantAST::convert(newKids[1]);
+      ConstantAST::Ptr to = ConstantAST::convert(newKids[2]);
+      ConstantAST::Ptr val = ConstantAST::convert(newKids[0]);
+      
+      unsigned long mask = 0;
+      for (unsigned i = from->val().val; i <= to->val().val; ++i) {
+	mask |= 1 << i;
+      }
+
+      return ConstantAST::create(Constant(val->val().val & mask, to->val().val - from->val().val));
+    }
+    return RoseAST::create(r->val(), newKids);
+
+    break;
+  }
   case ROSEOperation::derefOp: {
     // We may have a conditional dereference; that's awkward...
-    if (r->numChildren() > 1)
-      return RoseAST::create(r->val(), newKids);
+    if (r->numChildren() > 1) {
+      // Let's see if that second is "true"...
+      if (newKids[1]->getID() != AST::V_ConstantAST) {
+	return RoseAST::create(r->val(), newKids);
+      }
+      ConstantAST::Ptr cond = ConstantAST::convert(newKids[1]);
+      assert(cond->val().val != 0); // Why put in a conditional of 0...
+    }
+    
     // Simplify the operand
     switch(newKids[0]->getID()) {
     case AST::V_ConstantAST:
@@ -99,11 +140,12 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
 	return VariableAST::create(Variable(AbsRegion(Absloc::Stack), 
 					    addr_));
       }
-      else 
+      else {
 	return VariableAST::create(Variable(AbsRegion(Absloc(s->val().height(),
 							     s->val().region()->name(),
 							     func_)),
 					    addr_));
+      }
     }
     default:
       return RoseAST::create(r->val(), newKids);
@@ -132,8 +174,6 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
       // NewKids[0] is a constant; is the newKids[1] something we can add?
       switch (newKids[1]->getID()) {
       case AST::V_ConstantAST: {
-	cerr << "Caught stackAST + constAST: " << StackAST::convert(newKids[0])->val() << " + " 
-	     << ConstantAST::convert(newKids[1])->val().val << endl;
 	return StackAST::create(StackAST::convert(newKids[0])->val() +
 				ConstantAST::convert(newKids[1])->val().val);
       }
@@ -149,3 +189,57 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
   }
 }
 
+AST::Ptr BooleanVisitor::visit(AST *t) {
+  return t->ptr();
+}
+
+AST::Ptr BooleanVisitor::visit(BottomAST *b) {
+  return b->ptr();
+}
+
+AST::Ptr BooleanVisitor::visit(ConstantAST *c) {
+  return c->ptr();
+}
+
+AST::Ptr BooleanVisitor::visit(StackAST *s) {
+  return s->ptr();
+}
+
+AST::Ptr BooleanVisitor::visit(VariableAST *v) {
+  return v->ptr();
+}
+
+AST::Ptr BooleanVisitor::visit(RoseAST *r) {
+  // Okay. We want to handle the following:
+  // or(x,x) -> x
+  // and(x, x) -> x
+  // if (true, x) -> x
+  // because PPC has these operations _all over the place_. 
+  AST::Children newKids;
+  for (unsigned i = 0; i < r->numChildren(); ++i) {
+    newKids.push_back(r->child(i)->accept(this));
+  }
+
+  switch(r->val().op) {
+  case ROSEOperation::andOp:
+  case ROSEOperation::orOp:
+    assert(newKids.size() == 2);
+    if (newKids[0]->equals(newKids[1])) {
+      return newKids[0];
+    }
+    break;
+  case ROSEOperation::ifOp:
+    // Our "true" is a constAST of 1
+    if (newKids[0]->getID() == AST::V_ConstantAST) {
+      ConstantAST::Ptr c = ConstantAST::convert(newKids[0]);
+      cerr << "\t 0 was const, val " << c->val() << endl;
+      if (c->val().val != 0) {
+	return newKids[1];
+      }
+    }
+    break;
+  default:
+    break;
+  }
+  return RoseAST::create(r->val(), newKids);
+}
