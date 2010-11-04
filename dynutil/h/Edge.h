@@ -62,10 +62,13 @@ class COMMON_EXPORT Edge : public AnnotatableSparse {
     void setSource(NodeSharedPtr source) { source_ = NodePtr(source); }
     void setTarget(NodeSharedPtr target) { target_ = NodePtr(target); }
 
+    virtual ~Edge() {};
+
   protected:
     Edge(const NodePtr source, const NodePtr target); 
     Edge();
     
+
     NodePtr source_;
     NodePtr target_;
 };
@@ -96,7 +99,7 @@ class COMMON_EXPORT EdgeIterator {
 
     EdgeIterator(const EdgeIterator &rhs);
 
-    ~EdgeIterator();   
+    virtual ~EdgeIterator();   
 
     EdgeIterator(EdgeIteratorImpl *iter) : iter_(iter) {};
 

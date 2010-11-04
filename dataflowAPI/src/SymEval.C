@@ -97,10 +97,6 @@ void SymEval::expand(Result_t &res, bool applyVisitors) {
   }
 }
 
-static const int UNLABELED = 0;
-static const int VISITING = 1;
-static const int VISITED = 2;
-
 void dfs(Node::Ptr source,
          std::map<Node::Ptr, int> &state,
          std::set<Edge::Ptr> &skipEdges) {
@@ -109,26 +105,33 @@ void dfs(Node::Ptr source,
    // If we meet a node twice without having to backtrack first,
    // insert that incoming edge into skipEdges.
    //
-   // Rough idea:
-   // Let preVisit be when a node is first visited
-   // Let postVisit be after all of a node's children were visited
-   // At preVisit set a node to be VISITING
-   // At postVisit set a node to be VISITED
-   // If a node is in VISITING at preVisit we have a cycle
+   // A node n has state[n] > 0 if it is on the path currently
+   // being explored. Incrementing and decrementing a counter
+   // for visited nodes (as opposed to setting a "PROGRESS" or "DONE"
+   // flag) avoids a corner case with the first node in the search.
 
    EdgeIterator b, e;
    source->outs(b, e);
+
+   // Because this is a non-simple graph---in particular because it has
+   // multiple edges between nodes---one must be careful not to repeatedly
+   // visit nodes to avoid exponential blowup.
+   std::set<Node::Ptr> done;
+
    for (; b != e; ++b) {
       Edge::Ptr edge = *b;
       Node::Ptr cur = edge->target();
-      
-      if (state[cur] == VISITING) {
+      if (state[cur] > 0) { 
          skipEdges.insert(edge);
       }
       else {
-         state[cur] = VISITING;
-         dfs(cur, state, skipEdges);
-         state[cur] = VISITED;
+         if(done.find(cur) != done.end()) {
+            done.insert(cur);
+
+            state[cur]++;
+            dfs(cur, state, skipEdges);
+            state[cur]--;
+        }
       }
    }
 }
@@ -156,7 +159,7 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
     while (!dfs_worklist.empty()) {
        Node::Ptr ptr = dfs_worklist.front(); dfs_worklist.pop();
        std::map<Node::Ptr, int> state;
-       state[ptr] = VISITING;
+       state[ptr] = 1;
        dfs(ptr, state, skipEdges);
     }
     
