@@ -2,7 +2,7 @@
 #ifndef BOOST_MPL_FOR_EACH_HPP_INCLUDED
 #define BOOST_MPL_FOR_EACH_HPP_INCLUDED
 
-// Copyright Aleksey Gurtovoy 2000-2004
+// Copyright Aleksey Gurtovoy 2000-2008
 //
 // Distributed under the Boost Software License, Version 1.0. 
 // (See accompanying file LICENSE_1_0.txt or copy at 
@@ -10,16 +10,18 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /cvsroot/boost/boost/boost/mpl/for_each.hpp,v $
-// $Date: 2004/09/04 01:33:46 $
-// $Revision: 1.9 $
+// $Id: for_each.hpp 49267 2008-10-11 06:19:02Z agurtovoy $
+// $Date: 2008-10-11 02:19:02 -0400 (Sat, 11 Oct 2008) $
+// $Revision: 49267 $
 
+#include <boost/mpl/is_sequence.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mpl/apply.hpp>
 #include <boost/mpl/bool.hpp>
 #include <boost/mpl/next_prior.hpp>
 #include <boost/mpl/deref.hpp>
 #include <boost/mpl/identity.hpp>
+#include <boost/mpl/assert.hpp>
 #include <boost/mpl/aux_/unwrap.hpp>
 
 #include <boost/type_traits/is_same.hpp>
@@ -90,6 +92,8 @@ template<
 inline
 void for_each(F f, Sequence* = 0, TransformOp* = 0)
 {
+    BOOST_MPL_ASSERT(( is_sequence<Sequence> ));
+
     typedef typename begin<Sequence>::type first;
     typedef typename end<Sequence>::type last;
 

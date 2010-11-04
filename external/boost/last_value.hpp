@@ -11,6 +11,7 @@
 #define BOOST_LAST_VALUE_HPP
 
 #include <cassert>
+#include <boost/config.hpp>
 
 namespace boost {
   template<typename T>
@@ -30,10 +31,15 @@ namespace boost {
 
   template<>
   struct last_value<void> {
+#ifdef BOOST_NO_VOID_RETURNS
     struct unusable {};
 
   public:
     typedef unusable result_type;
+#else
+  public:
+    typedef void result_type;
+#endif // BOOST_NO_VOID_RETURNS
 
     template<typename InputIterator>
     result_type

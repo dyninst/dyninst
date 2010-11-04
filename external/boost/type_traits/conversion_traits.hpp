@@ -1,7 +1,7 @@
 
 // Copyright 2000 John Maddock (john@johnmaddock.co.uk)
 // Copyright 2000 Jeremy Siek (jsiek@lsc.nd.edu)
-// Copyright 1999, 2000 Jaakko J„rvi (jaakko.jarvi@cs.utu.fi)
+// Copyright 1999, 2000 Jaakko Jarvi (jaakko.jarvi@cs.utu.fi)
 //
 //  Use, modification and distribution are subject to the Boost Software License,
 //  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
@@ -12,6 +12,6 @@
 #ifndef BOOST_TT_CONVERSION_TRAITS_HPP_INCLUDED
 #define BOOST_TT_CONVERSION_TRAITS_HPP_INCLUDED
 
-#include "boost/type_traits/is_convertible.hpp"
+#include <boost/type_traits/is_convertible.hpp>
 
 #endif // BOOST_TT_CONVERSION_TRAITS_HPP_INCLUDED

@@ -25,7 +25,8 @@
 //
 
 #include <boost/detail/interlocked.hpp>
-#include <typeinfo>
+#include <boost/detail/workaround.hpp>
+#include <boost/detail/sp_typeinfo.hpp>
 
 namespace boost
 {
@@ -65,7 +66,7 @@ public:
         delete this;
     }
 
-    virtual void * get_deleter( std::type_info const & ti ) = 0;
+    virtual void * get_deleter( sp_typeinfo const & ti ) = 0;
 
     void add_ref_copy()
     {
@@ -78,7 +79,19 @@ public:
         {
             long tmp = static_cast< long const volatile& >( use_count_ );
             if( tmp == 0 ) return false;
+
+#if defined( BOOST_MSVC ) && BOOST_WORKAROUND( BOOST_MSVC, == 1200 )
+
+            // work around a code generation bug
+
+            long tmp2 = tmp + 1;
+            if( BOOST_INTERLOCKED_COMPARE_EXCHANGE( &use_count_, tmp2, tmp ) == tmp2 - 1 ) return true;
+
+#else
+
             if( BOOST_INTERLOCKED_COMPARE_EXCHANGE( &use_count_, tmp + 1, tmp ) == tmp ) return true;
+
+#endif
         }
     }
 

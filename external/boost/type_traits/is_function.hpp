@@ -11,19 +11,19 @@
 #ifndef BOOST_TT_IS_FUNCTION_HPP_INCLUDED
 #define BOOST_TT_IS_FUNCTION_HPP_INCLUDED
 
-#include "boost/type_traits/is_reference.hpp"
-#include "boost/type_traits/detail/false_result.hpp"
-#include "boost/config.hpp"
+#include <boost/type_traits/is_reference.hpp>
+#include <boost/type_traits/detail/false_result.hpp>
+#include <boost/config.hpp>
 
 #if !defined(BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION) && !defined(BOOST_TT_TEST_MS_FUNC_SIGS)
-#   include "boost/type_traits/detail/is_function_ptr_helper.hpp"
+#   include <boost/type_traits/detail/is_function_ptr_helper.hpp>
 #else
-#   include "boost/type_traits/detail/is_function_ptr_tester.hpp"
-#   include "boost/type_traits/detail/yes_no_type.hpp"
+#   include <boost/type_traits/detail/is_function_ptr_tester.hpp>
+#   include <boost/type_traits/detail/yes_no_type.hpp>
 #endif
 
 // should be the last #include
-#include "boost/type_traits/detail/bool_trait_def.hpp"
+#include <boost/type_traits/detail/bool_trait_def.hpp>
 
 // is a type a function?
 // Please note that this implementation is unnecessarily complex:
@@ -32,6 +32,9 @@
 // function pointers to void*.
 
 namespace boost {
+
+#if !defined( __CODEGEARC__ )
+
 namespace detail {
 
 #if !defined(BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION) && !defined(BOOST_TT_TEST_MS_FUNC_SIGS)
@@ -62,11 +65,18 @@ struct is_function_impl
 template <typename T>
 struct is_function_impl
 {
+#if BOOST_WORKAROUND(_MSC_FULL_VER, >= 140050000)
+#pragma warning(push)
+#pragma warning(disable:6334)
+#endif
     static T* t;
     BOOST_STATIC_CONSTANT(
         bool, value = sizeof(::boost::type_traits::is_function_ptr_tester(t))
         == sizeof(::boost::type_traits::yes_type)
         );
+#if BOOST_WORKAROUND(_MSC_FULL_VER, >= 140050000)
+#pragma warning(pop)
+#endif
 };
 
 #if !defined(BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION)
@@ -79,10 +89,15 @@ struct is_function_impl<T&> : public false_type
 
 } // namespace detail
 
-BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_function,T,::boost::detail::is_function_impl<T>::value)
+#endif // !defined( __CODEGEARC__ )
 
+#if defined( __CODEGEARC__ )
+BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_function,T,__is_function(T))
+#else
+BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_function,T,::boost::detail::is_function_impl<T>::value)
+#endif
 } // namespace boost
 
-#include "boost/type_traits/detail/bool_trait_undef.hpp"
+#include <boost/type_traits/detail/bool_trait_undef.hpp>
 
 #endif // BOOST_TT_IS_FUNCTION_HPP_INCLUDED

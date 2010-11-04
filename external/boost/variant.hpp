@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // boost variant.hpp header file
-// See http://www.boost.org for updates, documentation, and revision history.
+// See http://www.boost.org/libs/variant for documentation.
 //-----------------------------------------------------------------------------
 //
 // Copyright (c) 2003

@@ -1,6 +1,6 @@
 // tuple_io.hpp --------------------------------------------------------------
 
-// Copyright (C) 2001 Jaakko Järvi (jaakko.jarvi@cs.utu.fi)
+// Copyright (C) 2001 Jaakko Jarvi (jaakko.jarvi@cs.utu.fi)
 //               2001 Gary Powell (gary.powell@sierra.com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See
@@ -349,7 +349,7 @@ extract_and_check_delimiter(
   char c;
   if (is_delimiter) { 
     is >> c; 
-    if (c!=d) {
+    if (is.good() && c!=d) {
       is.setstate(std::ios::failbit);
     } 
   }
@@ -443,7 +443,7 @@ extract_and_check_delimiter(
   CharType c;
   if (is_delimiter) { 
     is >> c;
-    if (c!=d) { 
+    if (is.good() && c!=d) { 
       is.setstate(std::ios::failbit);
     }
   }

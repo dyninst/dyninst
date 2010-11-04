@@ -16,7 +16,7 @@
 # pragma once
 #endif
 
-#include <boost/assign/assignment_exception.hpp>
+#include <boost/assign/list_of.hpp>
 #include <boost/type_traits/remove_const.hpp>
 #include <boost/type_traits/remove_reference.hpp>
 #include <boost/type_traits/is_reference.hpp>
@@ -37,28 +37,13 @@ namespace boost
 namespace assign_detail
 {
     /////////////////////////////////////////////////////////////////////////
-    // Part 0: common conversion code
-    /////////////////////////////////////////////////////////////////////////
-
-    template< class T >
-    struct assign_decay
-    {
-        //
-        // Add constness to array parameters
-        // to support string literals properly
-        //
-        typedef BOOST_DEDUCED_TYPENAME mpl::eval_if<
-            ::boost::is_array<T>,
-            ::boost::decay<const T>,
-            ::boost::decay<T> >::type type;
-    };
-    
-    /////////////////////////////////////////////////////////////////////////
     // Part 1: flexible and efficient interface
     /////////////////////////////////////////////////////////////////////////    
 
     template< class T > 
-    class generic_ptr_list       
+    class generic_ptr_list : 
+        public converter< generic_ptr_list<T>,
+                          BOOST_DEDUCED_TYPENAME boost::ptr_vector<T>::iterator >      
     {
     protected:
         typedef boost::ptr_vector<T>       impl_type;
@@ -67,7 +52,7 @@ namespace assign_detail
         
     public:
         typedef BOOST_DEDUCED_TYPENAME impl_type::iterator         iterator;
-        typedef BOOST_DEDUCED_TYPENAME impl_type::const_iterator   const_iterator;
+        typedef iterator                                           const_iterator;
         typedef BOOST_DEDUCED_TYPENAME impl_type::value_type       value_type;
         typedef BOOST_DEDUCED_TYPENAME impl_type::size_type        size_type;
         typedef BOOST_DEDUCED_TYPENAME impl_type::difference_type  difference_type;
@@ -75,11 +60,6 @@ namespace assign_detail
         generic_ptr_list() : values_( 32u )
         { }
 
-        generic_ptr_list( const generic_ptr_list& r )
-        {
-            values_.swap(r.values_);
-        }
-        
         generic_ptr_list( release_type r ) : values_(r)
         { }
 
@@ -96,11 +76,19 @@ namespace assign_detail
 
     public:
 
-        template< class PtrContainer >
-        operator std::auto_ptr<PtrContainer>() const 
+        operator impl_type() const
         {
-            PtrContainer* type = 0;
-            return convert( type );
+            return values_;        
+        }
+ 
+        template< template<class,class,class> class Seq, class U,
+                  class CA, class A > 
+        operator Seq<U,CA,A>() const 
+        {
+            Seq<U,CA,A> result;
+            result.transfer( result.end(), values_ );
+            BOOST_ASSERT( empty() );
+            return result;
         }
 
         template< class PtrContainer >

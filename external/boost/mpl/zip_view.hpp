@@ -11,9 +11,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /cvsroot/boost/boost/boost/mpl/zip_view.hpp,v $
-// $Date: 2004/09/02 15:40:42 $
-// $Revision: 1.3 $
+// $Id: zip_view.hpp 49267 2008-10-11 06:19:02Z agurtovoy $
+// $Date: 2008-10-11 02:19:02 -0400 (Sat, 11 Oct 2008) $
+// $Revision: 49267 $
 
 #include <boost/mpl/transform.hpp>
 #include <boost/mpl/begin_end.hpp>
@@ -37,7 +37,7 @@ struct zip_iterator
     typedef zip_iterator<
           typename transform1<
                 IteratorSeq
-              , next<_1>
+              , mpl::next<_1>
             >::type
         > next;
 };
@@ -48,8 +48,8 @@ template<
 struct zip_view
 {
  private:
-    typedef typename transform1< Sequences, begin<_1> >::type first_ones_;
-    typedef typename transform1< Sequences, end<_1> >::type last_ones_;
+    typedef typename transform1< Sequences, mpl::begin<_1> >::type first_ones_;
+    typedef typename transform1< Sequences, mpl::end<_1> >::type last_ones_;
     
  public:
     typedef nested_begin_end_tag tag;

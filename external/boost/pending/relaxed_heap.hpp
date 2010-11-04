@@ -13,6 +13,8 @@
 #include <boost/property_map.hpp>
 #include <boost/optional.hpp>
 #include <vector>
+#include <climits> // for CHAR_BIT
+#include <boost/none.hpp>
 
 #ifdef BOOST_RELAXED_HEAP_DEBUG
 #  include <iostream>
@@ -86,7 +88,7 @@ private:
     group**               children;
   };
 
-  size_type log2(size_type n)
+  size_type log_base_2(size_type n) // log2 is a macro on some platforms
   {
     size_type leading_zeroes = 0;
     do {
@@ -112,12 +114,11 @@ public:
       return;
     }
 
-    log_n = log2(n);
-
+    log_n = log_base_2(n);
     if (log_n == 0) log_n = 1;
     size_type g = n / log_n;
     if (n % log_n > 0) ++g;
-    size_type log_g = log2(g);
+    size_type log_g = log_base_2(g);
     size_type r = log_g;
 
     // Reserve an appropriate amount of space for data structures, so
@@ -134,7 +135,7 @@ public:
       root.children[r] = &index_to_group[idx];
       idx = build_tree(root, idx, r, log_g + 1);
       if (idx != g)
-        r = static_cast<size_type>(log2(g-idx));
+        r = static_cast<size_type>(log_base_2(g-idx));
     }
   }
 
@@ -173,14 +174,14 @@ public:
   value_type& top()
   {
     find_smallest();
-    assert(smallest_value->value != 0);
+    assert(smallest_value->value != none);
     return *smallest_value->value;
   }
 
   const value_type& top() const
   {
     find_smallest();
-    assert(smallest_value->value != 0);
+    assert(smallest_value->value != none);
     return *smallest_value->value;
   }
 
@@ -203,7 +204,7 @@ public:
     rank_type r = x->rank;
     group* p = x->parent;
     {
-      assert(x->value != 0);
+      assert(x->value != none);
 
       // Find x's group
       size_type start = get(id, *x->value) - get(id, *x->value) % log_n;
@@ -629,7 +630,7 @@ private:
    */
   mutable group* smallest_value;
 
-  /// Cached value log2(n)
+  /// Cached value log_base_2(n)
   size_type log_n;
 };
 

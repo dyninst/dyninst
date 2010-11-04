@@ -10,9 +10,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /cvsroot/boost/boost/boost/mpl/aux_/has_rebind.hpp,v $
-// $Date: 2004/11/28 01:33:58 $
-// $Revision: 1.13 $
+// $Id: has_rebind.hpp 49267 2008-10-11 06:19:02Z agurtovoy $
+// $Date: 2008-10-11 02:19:02 -0400 (Sat, 11 Oct 2008) $
+// $Revision: 49267 $
 
 #include <boost/mpl/aux_/config/msvc.hpp>
 #include <boost/mpl/aux_/config/intel.hpp>
@@ -20,12 +20,12 @@
 
 #if BOOST_WORKAROUND(__EDG_VERSION__, <= 244) && !defined(BOOST_INTEL_CXX_VERSION)
 #   include <boost/mpl/has_xxx.hpp>
-#elif BOOST_WORKAROUND(BOOST_MSVC, <= 1200)
+#elif BOOST_WORKAROUND(BOOST_MSVC, < 1300)
 #   include <boost/mpl/has_xxx.hpp>
 #   include <boost/mpl/if.hpp>
 #   include <boost/mpl/bool.hpp>
 #   include <boost/mpl/aux_/msvc_is_class.hpp>
-#elif BOOST_WORKAROUND(__BORLANDC__, < 0x600)
+#elif BOOST_WORKAROUND(__BORLANDC__, BOOST_TESTED_AT(0x610))
 #   include <boost/mpl/if.hpp>
 #   include <boost/mpl/bool.hpp>
 #   include <boost/mpl/aux_/yes_no.hpp>
@@ -43,7 +43,7 @@ namespace boost { namespace mpl { namespace aux {
 
 BOOST_MPL_HAS_XXX_TRAIT_NAMED_DEF(has_rebind, rebind, false)
 
-#elif BOOST_WORKAROUND(BOOST_MSVC, <= 1200)
+#elif BOOST_WORKAROUND(BOOST_MSVC, < 1300)
 
 BOOST_MPL_HAS_XXX_TRAIT_NAMED_DEF(has_rebind_impl, rebind, false)
 
@@ -62,7 +62,7 @@ struct has_rebind
 template< typename T > struct has_rebind_tag {};
 no_tag operator|(has_rebind_tag<int>, void const volatile*);
 
-#   if !BOOST_WORKAROUND(__BORLANDC__, < 0x600)
+#   if !BOOST_WORKAROUND(__BORLANDC__, BOOST_TESTED_AT(0x610))
 template< typename T >
 struct has_rebind
 {

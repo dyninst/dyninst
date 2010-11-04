@@ -9,10 +9,10 @@
 #ifndef BOOST_TT_HAS_NOTHROW_COPY_HPP_INCLUDED
 #define BOOST_TT_HAS_NOTHROW_COPY_HPP_INCLUDED
 
-#include "boost/type_traits/has_trivial_copy.hpp"
+#include <boost/type_traits/has_trivial_copy.hpp>
 
 // should be the last #include
-#include "boost/type_traits/detail/bool_trait_def.hpp"
+#include <boost/type_traits/detail/bool_trait_def.hpp>
 
 namespace boost {
 
@@ -30,9 +30,10 @@ struct has_nothrow_copy_imp{
 }
 
 BOOST_TT_AUX_BOOL_TRAIT_DEF1(has_nothrow_copy,T,::boost::detail::has_nothrow_copy_imp<T>::value)
+BOOST_TT_AUX_BOOL_TRAIT_DEF1(has_nothrow_copy_constructor,T,::boost::detail::has_nothrow_copy_imp<T>::value)
 
 } // namespace boost
 
-#include "boost/type_traits/detail/bool_trait_undef.hpp"
+#include <boost/type_traits/detail/bool_trait_undef.hpp>
 
 #endif // BOOST_TT_HAS_NOTHROW_COPY_HPP_INCLUDED

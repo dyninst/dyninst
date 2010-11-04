@@ -21,29 +21,39 @@
 #ifndef BOOST_TT_IS_VOLATILE_HPP_INCLUDED
 #define BOOST_TT_IS_VOLATILE_HPP_INCLUDED
 
-#include "boost/config.hpp"
+#include <boost/config.hpp>
+#include <boost/detail/workaround.hpp>
 
 #ifndef BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION
-#   include "boost/type_traits/detail/cv_traits_impl.hpp"
+#   include <boost/type_traits/detail/cv_traits_impl.hpp>
+#   if BOOST_WORKAROUND(BOOST_MSVC, < 1400)
+#       include <boost/type_traits/remove_bounds.hpp>
+#   endif
 #else
-#   include "boost/type_traits/is_reference.hpp"
-#   include "boost/type_traits/is_array.hpp"
-#   include "boost/type_traits/detail/yes_no_type.hpp"
-#   include "boost/type_traits/detail/false_result.hpp"
+#   include <boost/type_traits/is_reference.hpp>
+#   include <boost/type_traits/is_array.hpp>
+#   include <boost/type_traits/detail/yes_no_type.hpp>
+#   include <boost/type_traits/detail/false_result.hpp>
 #endif
 
 // should be the last #include
-#include "boost/type_traits/detail/bool_trait_def.hpp"
+#include <boost/type_traits/detail/bool_trait_def.hpp>
 
 namespace boost {
 
-#ifndef BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION
+#if defined( __CODEGEARC__ )
+BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_volatile,T,__is_volatile(T))
+#elif !defined(BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION)
 
 //* is a type T declared volatile - is_volatile<T>
-BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_volatile,T,::boost::detail::cv_traits_imp<T*>::is_volatile)
+#if BOOST_WORKAROUND(BOOST_MSVC, < 1400)
+   BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_volatile,T,::boost::detail::cv_traits_imp<typename boost::remove_bounds<T>::type*>::is_volatile)
+#else
+   BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_volatile,T,::boost::detail::cv_traits_imp<T*>::is_volatile)
+#endif
 BOOST_TT_AUX_BOOL_TRAIT_PARTIAL_SPEC1_1(typename T,is_volatile,T&,false)
 
-#if defined(__BORLANDC__) && (__BORLANDC__ < 0x600)
+#if  defined(BOOST_ILLEGAL_CV_REFERENCES)
 // these are illegal specialisations; cv-qualifies applied to
 // references have no effect according to [8.3.2p1],
 // C++ Builder requires them though as it treats cv-qualified
@@ -118,6 +128,6 @@ BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_volatile,T,::boost::detail::is_volatile_impl<T>:
 
 } // namespace boost
 
-#include "boost/type_traits/detail/bool_trait_undef.hpp"
+#include <boost/type_traits/detail/bool_trait_undef.hpp>
 
 #endif // BOOST_TT_IS_VOLATILE_HPP_INCLUDED

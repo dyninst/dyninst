@@ -9,22 +9,27 @@
 #ifndef BOOST_TT_IS_BASE_AND_DERIVED_HPP_INCLUDED
 #define BOOST_TT_IS_BASE_AND_DERIVED_HPP_INCLUDED
 
-#include "boost/type_traits/is_class.hpp"
-#include "boost/type_traits/is_same.hpp"
-#include "boost/type_traits/is_convertible.hpp"
-#include "boost/type_traits/detail/ice_and.hpp"
-#include "boost/type_traits/remove_cv.hpp"
-#include "boost/config.hpp"
+#include <boost/type_traits/intrinsics.hpp>
+#ifndef BOOST_IS_BASE_OF
+#include <boost/type_traits/is_class.hpp>
+#include <boost/type_traits/is_same.hpp>
+#include <boost/type_traits/is_convertible.hpp>
+#include <boost/type_traits/detail/ice_and.hpp>
+#include <boost/type_traits/remove_cv.hpp>
+#include <boost/config.hpp>
+#include <boost/static_assert.hpp>
+#endif
 
 // should be the last #include
-#include "boost/type_traits/detail/bool_trait_def.hpp"
+#include <boost/type_traits/detail/bool_trait_def.hpp>
 
 namespace boost {
 
 namespace detail {
 
-#if !BOOST_WORKAROUND(__BORLANDC__, <= 0x570) \
- && !BOOST_WORKAROUND(__SUNPRO_CC , BOOST_TESTED_AT(0x540)) \
+#ifndef BOOST_IS_BASE_OF
+#if !BOOST_WORKAROUND(__BORLANDC__, BOOST_TESTED_AT(0x581)) \
+ && !BOOST_WORKAROUND(__SUNPRO_CC , <= 0x540) \
  && !BOOST_WORKAROUND(__EDG_VERSION__, <= 243) \
  && !BOOST_WORKAROUND(__DMC__, BOOST_TESTED_AT(0x840))
 
@@ -37,7 +42,7 @@ namespace detail {
 This version detects ambiguous base classes and private base classes
 correctly, and was devised by Rani Sharoni.
 
-Explanation by Terje Slettebø and Rani Sharoni.
+Explanation by Terje Slettebo and Rani Sharoni.
 
 Let's take the multiple base class below as an example, and the following
 will also show why there's not a problem with private or ambiguous base
@@ -128,6 +133,17 @@ struct bd_helper
 template<typename B, typename D>
 struct is_base_and_derived_impl2
 {
+#if BOOST_WORKAROUND(_MSC_FULL_VER, >= 140050000)
+#pragma warning(push)
+#pragma warning(disable:6334)
+#endif
+    //
+    // May silently do the wrong thing with incomplete types
+    // unless we trap them here:
+    //
+    BOOST_STATIC_ASSERT(sizeof(B) != 0);
+    BOOST_STATIC_ASSERT(sizeof(D) != 0);
+
     struct Host
     {
 #if !BOOST_WORKAROUND(BOOST_MSVC, == 1310)
@@ -140,6 +156,9 @@ struct is_base_and_derived_impl2
 
     BOOST_STATIC_CONSTANT(bool, value =
         sizeof(bd_helper<B,D>::check_sig(Host(), 0)) == sizeof(type_traits::yes_type));
+#if BOOST_WORKAROUND(_MSC_FULL_VER, >= 140050000)
+#pragma warning(pop)
+#endif
 };
 
 #else
@@ -199,7 +218,13 @@ struct is_base_and_derived_impl
 
     BOOST_STATIC_CONSTANT(bool, value = bound_type::value);
 };
-
+#else
+template <typename B, typename D>
+struct is_base_and_derived_impl
+{
+    BOOST_STATIC_CONSTANT(bool, value = BOOST_IS_BASE_OF(B,D));
+};
+#endif
 } // namespace detail
 
 BOOST_TT_AUX_BOOL_TRAIT_DEF2(
@@ -215,8 +240,12 @@ BOOST_TT_AUX_BOOL_TRAIT_PARTIAL_SPEC2_2(typename Base,typename Derived,is_base_a
 BOOST_TT_AUX_BOOL_TRAIT_PARTIAL_SPEC2_2(typename Base,typename Derived,is_base_and_derived,Base&,Derived&,false)
 #endif
 
+#if BOOST_WORKAROUND(__CODEGEARC__, BOOST_TESTED_AT(0x610))
+BOOST_TT_AUX_BOOL_TRAIT_PARTIAL_SPEC2_1(typename Base,is_base_and_derived,Base,Base,false)
+#endif
+
 } // namespace boost
 
-#include "boost/type_traits/detail/bool_trait_undef.hpp"
+#include <boost/type_traits/detail/bool_trait_undef.hpp>
 
 #endif // BOOST_TT_IS_BASE_AND_DERIVED_HPP_INCLUDED

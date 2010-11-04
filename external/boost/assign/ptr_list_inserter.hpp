@@ -98,6 +98,18 @@ namespace assign
         return make_ptr_list_inserter<BOOST_DEDUCED_TYPENAME C::reference>
                    ( assign_detail::call_push_back<C>( c ) ); 
     }
+
+#ifndef BOOST_NO_FUNCTION_TEMPLATE_ORDERING
+
+    template< class T, class C >
+    inline ptr_list_inserter< assign_detail::call_push_back<C>, T >
+    ptr_push_back( C& c )
+    {
+        return make_ptr_list_inserter<T>( 
+                    assign_detail::call_push_back<C>( c ) );
+    }
+
+#endif
     
     template< class C >
     inline ptr_list_inserter< assign_detail::call_push_front<C>,
@@ -108,6 +120,18 @@ namespace assign
                  ( assign_detail::call_push_front<C>( c ) );
     }
 
+#ifndef BOOST_NO_FUNCTION_TEMPLATE_ORDERING
+
+    template< class T, class C >
+    inline ptr_list_inserter< assign_detail::call_push_front<C>, T >
+    ptr_push_front( C& c )
+    {
+        return make_ptr_list_inserter<T>( 
+                    assign_detail::call_push_front<C>( c ) );
+    }
+
+#endif
+    
     template< class C >
     inline ptr_list_inserter< assign_detail::call_insert<C>, 
                           BOOST_DEDUCED_TYPENAME C::reference>
@@ -116,6 +140,18 @@ namespace assign
         return make_ptr_list_inserter<BOOST_DEDUCED_TYPENAME C::reference>
                     ( assign_detail::call_insert<C>( c ) );
     }
+
+#ifndef BOOST_NO_FUNCTION_TEMPLATE_ORDERING
+
+    template< class T, class C >
+    inline ptr_list_inserter< assign_detail::call_insert<C>, T >
+    ptr_insert( C& c )
+    {
+        return make_ptr_list_inserter<T>( assign_detail::call_insert<C>( c ) );
+    }
+
+#endif
+    
     
 } // namespace 'assign'
 } // namespace 'boost'

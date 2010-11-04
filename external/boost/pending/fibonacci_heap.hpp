@@ -8,7 +8,7 @@
 #if defined(__sgi) && !defined(__GNUC__)
 # include <math.h>
 #else
-# include <cmath>
+# include <boost/config/no_tr1/cmath.hpp>
 #endif
 #include <iosfwd>
 #include <vector>
@@ -120,12 +120,14 @@ public:
       new_roots[r] = nil();
       if (_compare(_key[u], _key[v])) {
         _degree[v] = r;
+        _mark[v] = false;
         std::swap(u, v);
       }
       make_child(u, v, r);
       ++r;
     }
     _degree[v] = r;
+    _mark[v] = false;
   }
   // 40
   void make_child(size_type u, size_type v, size_type r) {
@@ -140,6 +142,7 @@ public:
       _right[t] = u;
       _left[_right[u]] = u;
     }
+    _p[u] = v;
   }
   // 41
   inline void rebuild_root_list(LinkIter new_roots, int& h)
@@ -177,7 +180,7 @@ public:
     if (p == nil()) {
       if (_compare(d, _key[_root]))
         _root = v;
-    } else if (_compare(d, _key[_root]))
+    } else if (_compare(d, _key[p]))
       while (1) {
         size_type r = _degree[p];
         if (r >= 2)
@@ -190,6 +193,7 @@ public:
         }
         if (_mark[p] == false) {
           _mark[p] = true;
+	  --_degree[p];
           break;
         } else
           --_degree[p];
@@ -236,7 +240,7 @@ protected:
   void print_recur(size_type x, std::ostream& os) {
     if (x != nil()) {
       os << x;
-      if (_child[x] != nil()) {
+      if (_degree[x] > 0) {
         os << "(";
         size_type i = _child[x];
         do {

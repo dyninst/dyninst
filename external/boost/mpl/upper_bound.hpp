@@ -10,16 +10,16 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /cvsroot/boost/boost/boost/mpl/upper_bound.hpp,v $
-// $Date: 2004/09/02 15:40:42 $
-// $Revision: 1.8 $
+// $Id: upper_bound.hpp 49267 2008-10-11 06:19:02Z agurtovoy $
+// $Date: 2008-10-11 02:19:02 -0400 (Sat, 11 Oct 2008) $
+// $Revision: 49267 $
 
 #include <boost/mpl/less.hpp>
 #include <boost/mpl/lambda.hpp>
 #include <boost/mpl/aux_/na_spec.hpp>
 #include <boost/mpl/aux_/config/workaround.hpp>
 
-#if BOOST_WORKAROUND(__BORLANDC__, < 0x600)
+#if BOOST_WORKAROUND(__BORLANDC__, BOOST_TESTED_AT(0x610))
 #   define BOOST_MPL_CFG_STRIPPED_DOWN_UPPER_BOUND_IMPL
 #endif
 

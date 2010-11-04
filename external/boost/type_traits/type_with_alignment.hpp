@@ -8,19 +8,19 @@
 #ifndef BOOST_TT_TYPE_WITH_ALIGNMENT_INCLUDED
 #define BOOST_TT_TYPE_WITH_ALIGNMENT_INCLUDED
 
-#include "boost/mpl/if.hpp"
-#include "boost/preprocessor/list/for_each_i.hpp"
-#include "boost/preprocessor/tuple/to_list.hpp"
-#include "boost/preprocessor/cat.hpp"
-#include "boost/preprocessor/list/transform.hpp"
-#include "boost/preprocessor/list/append.hpp"
-#include "boost/type_traits/alignment_of.hpp"
-#include "boost/type_traits/is_pod.hpp"
-#include "boost/static_assert.hpp"
-#include "boost/config.hpp"
+#include <boost/mpl/if.hpp>
+#include <boost/preprocessor/list/for_each_i.hpp>
+#include <boost/preprocessor/tuple/to_list.hpp>
+#include <boost/preprocessor/cat.hpp>
+#include <boost/preprocessor/list/transform.hpp>
+#include <boost/preprocessor/list/append.hpp>
+#include <boost/type_traits/alignment_of.hpp>
+#include <boost/type_traits/is_pod.hpp>
+#include <boost/static_assert.hpp>
+#include <boost/config.hpp>
 
 // should be the last #include
-#include "boost/type_traits/detail/bool_trait_def.hpp"
+#include <boost/type_traits/detail/bool_trait_def.hpp>
 
 #include <cstddef>
 
@@ -189,14 +189,16 @@ struct is_pod< ::boost::detail::lower_alignment<Align> >
 
 // This alignment method originally due to Brian Parker, implemented by David
 // Abrahams, and then ported here by Doug Gregor.
+namespace detail{
+
 template <std::size_t Align>
-class type_with_alignment
+class type_with_alignment_imp
 {
-    typedef detail::lower_alignment<Align> t1;
+    typedef ::boost::detail::lower_alignment<Align> t1;
     typedef typename mpl::if_c<
           ::boost::detail::is_aligned< ::boost::alignment_of<t1>::value,Align >::value
         , t1
-        , detail::max_align
+        , ::boost::detail::max_align
         >::type align_t;
 
     BOOST_STATIC_CONSTANT(std::size_t, found = alignment_of<align_t>::value);
@@ -206,6 +208,14 @@ class type_with_alignment
 
  public:
     typedef align_t type;
+};
+
+}
+
+template <std::size_t Align>
+class type_with_alignment 
+  : public ::boost::detail::type_with_alignment_imp<Align>
+{
 };
 
 #if defined(__GNUC__)
@@ -232,6 +242,99 @@ BOOST_TT_AUX_BOOL_TRAIT_IMPL_SPEC1(is_pod,::boost::align::a16,true)
 BOOST_TT_AUX_BOOL_TRAIT_IMPL_SPEC1(is_pod,::boost::align::a32,true)
 }
 #endif
+#if (defined(BOOST_MSVC) || (defined(BOOST_INTEL) && defined(_MSC_VER))) && _MSC_VER >= 1300
+//
+// MSVC supports types which have alignments greater than the normal
+// maximum: these are used for example in the types __m64 and __m128
+// to provide types with alignment requirements which match the SSE
+// registers.  Therefore we extend type_with_alignment<> to support
+// such types, however, we have to be careful to use a builtin type
+// whenever possible otherwise we break previously working code:
+// see http://article.gmane.org/gmane.comp.lib.boost.devel/173011
+// for an example and test case.  Thus types like a8 below will
+// be used *only* if the existing implementation can't provide a type
+// with suitable alignment.  This does mean however, that type_with_alignment<>
+// may return a type which cannot be passed through a function call
+// by value (and neither can any type containing such a type like
+// Boost.Optional).  However, this only happens when we have no choice 
+// in the matter because no other "ordinary" type is available.
+//
+namespace align {
+struct __declspec(align(8)) a8 { 
+   char m[8]; 
+   typedef a8 type;
+};
+struct __declspec(align(16)) a16 { 
+   char m[16]; 
+   typedef a16 type;
+};
+struct __declspec(align(32)) a32 { 
+   char m[32]; 
+   typedef a32 type;
+};
+struct __declspec(align(64)) a64 
+{ 
+   char m[64]; 
+   typedef a64 type;
+};
+struct __declspec(align(128)) a128 { 
+   char m[128]; 
+   typedef a128 type;
+};
+}
+
+template<> class type_with_alignment<8>  
+{ 
+   typedef mpl::if_c<
+      ::boost::alignment_of<detail::max_align>::value < 8,
+      align::a8,
+      detail::type_with_alignment_imp<8> >::type t1; 
+public: 
+   typedef t1::type type;
+};
+template<> class type_with_alignment<16> 
+{ 
+   typedef mpl::if_c<
+      ::boost::alignment_of<detail::max_align>::value < 16,
+      align::a16,
+      detail::type_with_alignment_imp<16> >::type t1; 
+public: 
+   typedef t1::type type;
+};
+template<> class type_with_alignment<32> 
+{ 
+   typedef mpl::if_c<
+      ::boost::alignment_of<detail::max_align>::value < 32,
+      align::a32,
+      detail::type_with_alignment_imp<32> >::type t1; 
+public: 
+   typedef t1::type type;
+};
+template<> class type_with_alignment<64> {
+   typedef mpl::if_c<
+      ::boost::alignment_of<detail::max_align>::value < 64,
+      align::a64,
+      detail::type_with_alignment_imp<64> >::type t1; 
+public: 
+   typedef t1::type type;
+};
+template<> class type_with_alignment<128> {
+   typedef mpl::if_c<
+      ::boost::alignment_of<detail::max_align>::value < 128,
+      align::a128,
+      detail::type_with_alignment_imp<128> >::type t1; 
+public: 
+   typedef t1::type type;
+};
+
+namespace detail {
+BOOST_TT_AUX_BOOL_TRAIT_IMPL_SPEC1(is_pod,::boost::align::a8,true)
+BOOST_TT_AUX_BOOL_TRAIT_IMPL_SPEC1(is_pod,::boost::align::a16,true)
+BOOST_TT_AUX_BOOL_TRAIT_IMPL_SPEC1(is_pod,::boost::align::a32,true)
+BOOST_TT_AUX_BOOL_TRAIT_IMPL_SPEC1(is_pod,::boost::align::a64,true)
+BOOST_TT_AUX_BOOL_TRAIT_IMPL_SPEC1(is_pod,::boost::align::a128,true)
+}
+#endif
 
 #else
 
@@ -254,10 +357,12 @@ namespace detail {
 
 typedef ::boost::align::a16 max_align;
 
+//#if ! BOOST_WORKAROUND(__CODEGEARC__, BOOST_TESTED_AT(0x610))
 BOOST_TT_AUX_BOOL_TRAIT_IMPL_SPEC1(is_pod,::boost::align::a2,true)
 BOOST_TT_AUX_BOOL_TRAIT_IMPL_SPEC1(is_pod,::boost::align::a4,true)
 BOOST_TT_AUX_BOOL_TRAIT_IMPL_SPEC1(is_pod,::boost::align::a8,true)
 BOOST_TT_AUX_BOOL_TRAIT_IMPL_SPEC1(is_pod,::boost::align::a16,true)
+//#endif
 }
 
 template <std::size_t N> struct type_with_alignment
@@ -281,7 +386,7 @@ template <> struct type_with_alignment<16>{ typedef align::a16 type; };
 #   pragma warning(pop)
 #endif
 
-#include "boost/type_traits/detail/bool_trait_undef.hpp"
+#include <boost/type_traits/detail/bool_trait_undef.hpp>
 
 #endif // BOOST_TT_TYPE_WITH_ALIGNMENT_INCLUDED
 
