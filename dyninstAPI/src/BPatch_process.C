@@ -64,6 +64,7 @@
 #include "parseAPI/h/CFG.h"
 #include "ast.h"
 #include "debug.h"
+#include <boost/tuple/tuple.hpp>
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -1730,12 +1731,18 @@ bool BPatch_process::setMemoryAccessRights
     return true;
 }
 
-unsigned char * BPatch_process::makeShadowPage(Dyninst::Address pageAddress)
+unsigned char * BPatch_process::makeShadowPage(Dyninst::Address pageAddr)
 {
     unsigned pagesize = llproc->getMemoryPageSize();
+    pageAddr = (pageAddr / pagesize) * pagesize;
+    bool valid;
+    Address shadowAddr;
+    boost::tie/*assigns to pair*/
+        (valid, shadowAddr) = llproc->memEmTranslate(pageAddr);
+    assert(valid);
+
     unsigned char* buf = (unsigned char*) ::malloc(pagesize);
-    pageAddress = (pageAddress / pagesize) * pagesize;
-    llproc->readDataSpace((void*)pageAddress, pagesize, buf,true);
+    llproc->readDataSpace((void*)shadowAddr, pagesize, buf, true);
     return buf;
 }
 

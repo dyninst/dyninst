@@ -917,17 +917,11 @@ void HybridAnalysisOW::makeShadow_setRights
      owLoop *loop)
 {
 
-    process * proc = proc()->lowlevel_process();
-    image *img = proc->findObject(pageAddr)->parse_img();
-    SymtabAPI::Region * reg = img->getObject()->findEnclosingRegion(pageAddr - img->desc().loadAddr());
-    const unsigned int pageSize = proc->getMemoryPageSize();
+    const unsigned int pageSize = proc()->lowlevel_process()->getMemoryPageSize();
     pageAddr = (pageAddr / pageSize ) * pageSize;
 
     // . Make a shadow copy of the block that is about to be overwritten
-    MemEmulator *memE = proc->memEmulator();
-    boost::tie(valid, shadowAddr) = memE->translate(reg, pageAddr);
-    assert(valid);
-	loop->shadowMap[pageAddr] = shadowAddr;
+    loop->shadowMap[pageAddr] = proc()->makeShadowPage(pageAddr);
 
 	// Restore write permissions to the written page
     proc()->setMemoryAccessRights(pageAddr, 1, PAGE_EXECUTE_READWRITE);
