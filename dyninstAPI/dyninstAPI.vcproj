@@ -668,6 +668,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\BPatch_memoryAccess.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\BPatch_memoryAccessAdapter.C"
 				>
 				<FileConfiguration
@@ -930,6 +942,18 @@
 			</File>
 			<File
 				RelativePath=".\src\Relocation\Atoms\CFAtom.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\CodeBuffer.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1634,6 +1658,18 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\liveness.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
