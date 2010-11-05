@@ -785,30 +785,45 @@ int IBSTree<ITYPE>::find(ITYPE * I, set<ITYPE *> &out) const
 template<class ITYPE>
 void IBSTree<ITYPE>::successor(interval_type X, set<ITYPE *> &out) const
 {
-    list<IBSNode<ITYPE>*> stack;
     IBSNode<ITYPE> *n = root;
+    IBSNode<ITYPE> *last = nil;
 
-    while(n != nil) {
+    std::vector< IBSNode<ITYPE>* > stack;
+
+    /* last will hold the node immediately greater than X */
+    while(1) {
+        if(n == nil) {
+            if(last != nil) {
+                typename set<ITYPE *>::iterator sit = last->equal.begin();
+                for( ; sit != last->equal.end(); ++sit) {
+                   if((*sit)->low() == last->value()) out.insert(*sit);
+                }
+                if(!out.empty())
+                    break;
+                else {
+                    // have missed out. pop back up to the last node where
+                    // we went left and then advance down its right path
+                    n = last->right;
+                    if(!stack.empty()) {
+                        last = stack.back();
+                        stack.pop_back();
+                    } else {
+                        last = nil;
+                    }
+                    continue;
+                } 
+            } else 
+                break;
+        }
+
         if(X >= n->value()) {
             n = n->right;
-        }
-        else {
-            stack.push_back(n);
+        } else {
+            if(last != nil)
+                stack.push_back(last);
+            last = n;
             n = n->left;
         }
-    }
-    /* last holds the node immediately greater than X */
-    while (stack.size() && out.empty()) {
-
-        ibsNode<ITYPE> *last = stack.pop_back();
-
-        if(last != nil) {
-            typename set<ITYPE *>::iterator sit = last->equal.begin();
-            for( ; sit != last->equal.end(); ++sit) {
-                if((*sit)->low() == last->value()) out.insert(*sit);
-            }
-        }
-
     }
 }
 
