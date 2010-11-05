@@ -1695,10 +1695,10 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
    }
    else {
       if (gen.bti()) {
-         dest = gen.rs()->getScratchRegister(gen, false, true);
+         dest = gen.rs()->getScratchRegister(gen);
       }
       else {
-         dest = gen.rs()->getScratchRegister(gen);
+         dest = gen.rs()->getScratchRegister(gen, false, true);
       }
    }
    

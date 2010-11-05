@@ -56,6 +56,8 @@ class GetPC : public Atom {
    virtual ~GetPC() {};
    virtual std::string format() const;
    virtual unsigned size() const { return insn_->size(); }
+   virtual Address addr() const { return addr_; }
+   virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
 
  private:
    GetPC(InstructionAPI::Instruction::Ptr insn,

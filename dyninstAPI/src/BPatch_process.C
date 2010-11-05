@@ -1735,10 +1735,10 @@ unsigned char * BPatch_process::makeShadowPage(Dyninst::Address pageAddr)
 {
     unsigned pagesize = llproc->getMemoryPageSize();
     pageAddr = (pageAddr / pagesize) * pagesize;
-    bool valid;
-    Address shadowAddr;
-    boost::tie/*assigns to pair*/
-        (valid, shadowAddr) = llproc->memEmTranslate(pageAddr);
+    bool valid = true;
+    Address shadowAddr=pageAddr;
+    //boost::tie/*assigns to pair*/
+    //    (valid, shadowAddr) = llproc->memEmTranslate(pageAddr);
     assert(valid);
 
     unsigned char* buf = (unsigned char*) ::malloc(pagesize);

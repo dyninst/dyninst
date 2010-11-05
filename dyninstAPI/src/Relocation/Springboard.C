@@ -166,10 +166,10 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    
    bool usedTrap = false;
    
-   if (r.from == 0x402ed6) {
-      mal_printf("springboard branch: %lx=>%lx\n", r.from,r.to);
-      return Succeeded;
-   }
+   //if (r.from == 0x402ed6) {
+   //   mal_printf("springboard branch: %lx=>%lx\n", r.from,r.to);
+   //   return Succeeded;
+   //}
 
    generateBranch(r.from, r.to, gen);
    

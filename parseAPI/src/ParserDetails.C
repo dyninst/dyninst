@@ -293,7 +293,6 @@ void Parser::ProcessCFInsn(
                 {
                     _pcb.updateCodeBytes(curEdge->first);
                 }
-                mal_printf("possible block at %lx\n", we->target());
             }
         } 
         else if( unlikely(_obj.defensiveMode()) )

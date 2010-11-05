@@ -1648,7 +1648,7 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
                 {
                     assert(0);//read failed
                 }
-                printf("UP: copied to [%lx %lx)\n", prevEndAddr+base,cur->start()+base);
+                mal_printf("UP: copied to [%lx %lx)\n", prevEndAddr+base,cur->start()+base);
             }
 
             // advance cur to last adjacent block and set prevEndAddr 
@@ -1674,7 +1674,7 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
         {
             assert(0);// read failed
         }
-        printf("UP: copied to [%lx %lx)\n", prevEndAddr+base, base+symReg->getDiskSize());
+        mal_printf("UP: copied to [%lx %lx)\n", prevEndAddr+base, base+symReg->getDiskSize());
     }
 }
 
