@@ -1887,3 +1887,11 @@ void AddressSpace::addModifiedRegion(mapped_object *obj) {
 void AddressSpace::updateMemEmulator() {
    memEmulator_->update();
 }
+
+std::pair<bool,Address> AddressSpace::memEmTranslate(Address orig) 
+{
+    image *img = findObject(orig)->parse_img();
+    SymtabAPI::Region *reg = img->getObject()->findEnclosingRegion(
+        orig - img->desc().loadAddr() );
+    return memEmulator_->translate(reg, orig);
+}

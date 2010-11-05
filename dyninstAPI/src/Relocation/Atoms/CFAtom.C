@@ -264,6 +264,9 @@ TrackerElement *CFAtom::addrTracker(Address addr) const {
 
 void CFAtom::addDestination(Address index, TargetInt *dest) {
   // Annoying required copy... 
+  if (!dest) {
+      printf("adding bad dest\n");
+  }
   destMap_[index] = dest;
 }
 

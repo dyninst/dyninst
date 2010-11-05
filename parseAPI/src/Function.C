@@ -309,12 +309,13 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
             switch((*oit)->type()) {
                 case CALL:
                     for (set<Edge*>::iterator cit = _call_edges.begin(); 
-                         !found && _call_edges.end() != cit; 
+                         _call_edges.end() != cit; 
                          cit++) 
                     {
                         if (*oit == *cit) {
                             found = true;
                             _call_edges.erase(cit);
+                            break;
                         }
                     }
                     assert(found);

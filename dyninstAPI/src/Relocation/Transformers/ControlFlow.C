@@ -186,7 +186,11 @@ void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
               bbl->getInsnInstances(insns);
               InstructionAPI::Instruction::Ptr insn = insns.back().first;
               Expression::Ptr exp = insn->getControlFlowTarget();
-              assert(exp);
+              if (!exp) {
+                  relocation_cerr << "WARNING: Null expr for CFT of sink edge for insn at " 
+                      << hex << bbl->lastInsnAddr() << endl;
+                  break;
+              }
               static Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(Arch_x86)));
               static Expression::Ptr thePC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
               exp->bind(thePC.get(), Result(u32, insns.back().second));

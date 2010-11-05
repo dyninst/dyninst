@@ -199,7 +199,7 @@ class mapped_object : public codeRange {
     bool parseNewFunctions(std::vector<Address> &funcEntryAddrs);
     void registerNewFunctions(); // register funcs found by recursive parsing
     bool updateCodeBytesIfNeeded(Address entryAddr); // ret true if was needed
-    void updateCodeBytes( std::map<Address,Address> owRanges );
+    void updateCodeBytes(const std::list<std::pair<Address,Address> > &owRanges );
     void setCodeBytesUpdated(bool);
     void addProtectedPage(Address pageAddr); // adds to protPages_
     void removeProtectedPage(Address pageAddr);

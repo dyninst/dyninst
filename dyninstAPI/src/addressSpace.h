@@ -431,6 +431,7 @@ class AddressSpace : public InstructionSource {
     void addModifiedFunction(int_function *func);
 
     void updateMemEmulator();
+    std::pair<bool,Address> memEmTranslate(Address);
     
  protected:
 

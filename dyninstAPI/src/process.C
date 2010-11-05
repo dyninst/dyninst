@@ -4729,7 +4729,7 @@ bool process::handleStopThread(EventRecord &ev)
  */
 bool process::getOverwrittenBlocks
 ( std::map<Address, unsigned char *>& overwrittenPages,//input
-  std::map<Address,Address>& overwrittenRanges,//output
+  std::list<pair<Address,Address> >& overwrittenRanges,//output
   std::list<bblInstance *> &writtenBBIs)//output
 {
     const unsigned MEM_PAGE_SIZE = getMemoryPageSize();
@@ -4763,16 +4763,18 @@ bool process::getOverwrittenBlocks
                 regionStart = curPageAddr+mIdx;
             } else if (foundStart && curShadow[mIdx] == memVersion[mIdx]) {
                 foundStart = false;
-                overwrittenRanges[regionStart] = curPageAddr+mIdx;
+                overwrittenRanges.push_back(
+                    pair<Address,Address>(regionStart,curPageAddr+mIdx));
             }
         }
         if (foundStart) {
             foundStart = false;
-            overwrittenRanges[regionStart] = curPageAddr+MEM_PAGE_SIZE;
+            overwrittenRanges.push_back(
+                pair<Address,Address>(regionStart,curPageAddr+MEM_PAGE_SIZE));
         }
     }
 
-    std::map<Address,Address>::iterator rIter = overwrittenRanges.begin();
+    list<pair<Address,Address> >::const_iterator rIter = overwrittenRanges.begin();
     std::list<bblInstance*> curBBIs;
     while (rIter != overwrittenRanges.end()) {
         mapped_object *curObject = findObject((*rIter).first);
@@ -4799,26 +4801,25 @@ bool process::getOverwrittenBlocks
 
 // distribute the work to mapped_objects
 void process::updateCodeBytes
-    ( const std::map<Dyninst::Address,unsigned char*>& owPages, //input
-      const std::map<Address,Address> &owRanges ) //input
+    ( const map<Dyninst::Address,unsigned char*>& owPages, //input
+      const list<pair<Address,Address> >&owRanges ) //input
 {
-    std::map<mapped_object *,std::map<Address,Address> *> objRanges;
-    std::map<Address,Address>::const_iterator rIter = owRanges.begin();
+    std::map<mapped_object *,list<pair<Address,Address> >*> objRanges;
+    list<pair<Address,Address> >::const_iterator rIter = owRanges.begin();
     for (; rIter != owRanges.end(); rIter++) {
         mapped_object *obj = findObject((*rIter).first);
         if (!objRanges[obj]) {
-            objRanges[obj] = new map<Address,Address>();
+            objRanges[obj] = new list<pair<Address,Address> >();
         }
-        (*objRanges[obj])[(*rIter).first] = (*rIter).second;
+        objRanges[obj]->push_back(pair<Address,Address>(rIter->first, rIter->second));
     }
 
-    std::map<mapped_object *,std::map<Address,Address> *>::iterator oIter = 
+    std::map<mapped_object *,list<pair<Address,Address> > *>::iterator oIter = 
         objRanges.begin();
-    for (; oIter != objRanges.end(); oIter++) {
-
-        (*oIter).first->updateCodeBytes( *((*oIter).second) );
-
-        delete ((*oIter).second);
+    for (; oIter != objRanges.end(); oIter++) 
+    {
+        oIter->first->updateCodeBytes( *(oIter->second) );
+        delete (oIter->second);
     }
     assert(objRanges.size() == 1); //o/w analysis code may not be prepared for other cases
 }

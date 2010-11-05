@@ -223,6 +223,9 @@ void Parser::ProcessCFInsn(
             if(curEdge->second != NOEDGE || !dynamic_call) {
                 has_unres = true;
                 resolvable_edge = false;
+                if (curEdge->second != -1 && _obj.defensiveMode()) 
+                    mal_printf("bad edge target at %lx type %d\n",
+                               curEdge->first, curEdge->second);
             }
         }
         
@@ -290,7 +293,6 @@ void Parser::ProcessCFInsn(
                 {
                     _pcb.updateCodeBytes(curEdge->first);
                 }
-                //mal_printf("new block at %lx\n", we->target());
             }
         } 
         else if( unlikely(_obj.defensiveMode()) )

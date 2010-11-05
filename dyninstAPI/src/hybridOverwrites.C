@@ -919,13 +919,12 @@ void HybridAnalysisOW::makeShadow_setRights
 
     const unsigned int pageSize = proc()->lowlevel_process()->getMemoryPageSize();
     pageAddr = (pageAddr / pageSize ) * pageSize;
-	// . Make a shadow copy of the block that is about to be overwritten
-	unsigned char *shadowPage = proc()->makeShadowPage(pageAddr);
-	loop->shadowMap[pageAddr] = shadowPage;
+
+    // . Make a shadow copy of the block that is about to be overwritten
+    loop->shadowMap[pageAddr] = proc()->makeShadowPage(pageAddr);
 
 	// Restore write permissions to the written page
     proc()->setMemoryAccessRights(pageAddr, 1, PAGE_EXECUTE_READWRITE);
-
 }
 
 

@@ -440,21 +440,34 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
                          void *flags, void *calculation)
 {
     RT_Boolean isInCache = RT_FALSE;
+    //unsigned char *stackBase = (unsigned char *)0x12fee0;
+    //unsigned bidx=0;
 
     tc_lock_lock(&DYNINST_trace_lock);
     rtdebug_printf("pt[%lx] flags[%lx] calc[%lx] ", 
                    (long)pointAddr, (long)flags, (long)calculation);
+
+    //if ((unsigned long)calculation == 0x40dc4a) {
+    //    fprintf(stderr,"at 1fd instrumentation\n");
+    //    for (bidx=0; bidx < 0x100; bidx+=4) {
+    //        fprintf(stderr,"0x%x:  ", (int)stackBase+bidx);
+    //        fprintf(stderr,"%02hhx", stackBase[bidx+3]);
+    //        fprintf(stderr,"%02hhx", stackBase[bidx+2]);
+    //        fprintf(stderr,"%02hhx", stackBase[bidx+1]);
+    //        fprintf(stderr,"%02hhx", stackBase[bidx]);
+    //        fprintf(stderr,"\n");
+    //    }
+    //}
+    //if (0x402ed6 == *(unsigned long*)0x12ffc0) {
+    //    fprintf(stderr,"`");
+    //}else {
+    //    fprintf(stderr,"Stomped on stack OEP slot %lx\n", *(unsigned long*)0x12ffc0);
+    //}
+
+
     if ((((long)flags) & 0x04) ) { 
         rtdebug_printf("ret-addr stopThread yields %lx", (long)calculation);
-        //unsigned bidx=0;
-        //for (bidx=0; bidx < 0x80; bidx+=4) {
-        //    printf("0x%x:  ", (int)calculation+bidx);
-        //    printf("%02hhx", *(unsigned char*)(unsigned)calculation+bidx+3);
-        //    printf("%02hhx", *(unsigned char*)calculation+bidx+2);
-        //    printf("%02hhx", *(unsigned char*)calculation+bidx+1);
-        //    printf("%02hhx", *(unsigned char*)calculation+bidx+0);
-        //    printf("\n");
-        //}
+        //fprintf(stderr,"[$0x%lx]\n", (long)calculation);
     }
 
     if (0 != (((long)flags) & 0x03)) {
@@ -515,7 +528,7 @@ RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_,
     int highIdx = (int)arrayLen;
     rtdebug_printf("D_bc@%p: boundsArray=%p target=%lx idx=%d arrayLen=%d [%d]\n", (void*)DYNINST_boundsCheck, boundsArray_, writeTarget_, idx, arrayLen, __LINE__);
     if ((unsigned long)boundsArray < 0x10000000) {
-        printf("D_bc: boundsArray_ = NULL, returning false\n");
+        printf("D_bc: boundsArray_ = %lx, returning false\n",(unsigned long) boundsArray);
         return RT_FALSE;
     }
     while (lowIdx < highIdx) 
