@@ -7,7 +7,7 @@
  *
  * See http://www.boost.org/libs/random for documentation.
  *
- * $Id: random.hpp,v 1.18 2004/07/27 03:43:27 dgregor Exp $
+ * $Id: random.hpp 24096 2004-07-27 03:43:34Z dgregor $
  *
  * Revision history
  *  2000-02-18  portability fixes (thanks to Beman Dawes)

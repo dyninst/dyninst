@@ -1,6 +1,6 @@
 // - tuple_basic_no_partial_spec.hpp -----------------------------------------
 
-// Copyright (C) 1999, 2000 Jaakko Järvi (jaakko.jarvi@cs.utu.fi)
+// Copyright (C) 1999, 2000 Jaakko Jarvi (jaakko.jarvi@cs.utu.fi)
 // Copyright (C) 2001 Douglas Gregor (gregod@rpi.edu)
 // Copyright (C) 2001 Gary Powell (gary.powell@sierra.com)
 //
@@ -105,7 +105,7 @@ namespace tuples {
         // Each of vc6 and vc7 seem to require a different formulation
         // of this return type
         template <class H, class T>
-#if BOOST_WORKAROUND(BOOST_MSVC, == 1200)
+#if BOOST_WORKAROUND(BOOST_MSVC, < 1300)
         static typename add_reference<typename add_const<T>::type>::type
 #else
         static typename add_const_reference<T>::type

@@ -1,8 +1,6 @@
-// (C) Copyright Jeremy Siek 2001. Permission to copy, use, modify,
-// sell and distribute this software is granted provided this
-// copyright notice appears in all copies. This software is provided
-// "as is" without express or implied warranty, and with no claim as
-// to its suitability for any purpose.
+// (C) Copyright Jeremy Siek 2001.
+// Distributed under the Boost Software License, Version 1.0. (See accompany-
+// ing file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 /*
  *
@@ -154,39 +152,14 @@ namespace boost {
   }
 
   template <typename InputIterator, typename T>
-  bool contains(InputIterator first, InputIterator last, T value)
+  bool container_contains(InputIterator first, InputIterator last, T value)
   {
     return std::find(first, last, value) != last;
   }
   template <typename Container, typename T>
-  bool contains(const Container& c, const T& value)
+  bool container_contains(const Container& c, const T& value)
   {
-    return contains(begin(c), end(c), value);
-  }
-
-  template <typename InputIterator, typename Predicate>
-  bool all(InputIterator first, InputIterator last, Predicate p)
-  {
-    for (; first != last; ++first)
-      if (!p(*first))
-        return false;
-    return true;
-  }
-  template <typename Container, typename Predicate>
-  bool all(const Container& c, Predicate p)
-  {
-    return all(begin(c), end(c), p);
-  }
-
-  template <typename InputIterator, typename Predicate>
-  bool none(InputIterator first, InputIterator last, Predicate p)
-  {
-    return std::find_if(first, last, p) == last;
-  }
-  template <typename Container, typename Predicate>
-  bool none(const Container& c, Predicate p)
-  {
-    return none(begin(c), end(c), p);
+    return container_contains(begin(c), end(c), value);
   }
 
   template <typename Container, typename T>

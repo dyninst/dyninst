@@ -109,10 +109,16 @@ BOOST_LIB_VERSION:    The Boost version, in the form x_y, for Boost version x.y.
 // select toolset if not defined already:
 //
 #ifndef BOOST_LIB_TOOLSET
-#if defined(BOOST_MSVC) && (BOOST_MSVC == 1200)
+// Note: no compilers before 1200 are supported
+#if defined(BOOST_MSVC) && (BOOST_MSVC < 1300)
 
-   // vc6:
-#  define BOOST_LIB_TOOLSET "vc6"
+#  ifdef UNDER_CE
+     // vc6:
+#    define BOOST_LIB_TOOLSET "evc4"
+#  else
+     // vc6:
+#    define BOOST_LIB_TOOLSET "vc6"
+#  endif
 
 #elif defined(BOOST_MSVC) && (BOOST_MSVC == 1300)
 
@@ -124,10 +130,15 @@ BOOST_LIB_VERSION:    The Boost version, in the form x_y, for Boost version x.y.
    // vc71:
 #  define BOOST_LIB_TOOLSET "vc71"
 
-#elif defined(BOOST_MSVC) && (BOOST_MSVC >= 1400)
+#elif defined(BOOST_MSVC) && (BOOST_MSVC == 1400)
 
    // vc80:
 #  define BOOST_LIB_TOOLSET "vc80"
+
+#elif defined(BOOST_MSVC) && (BOOST_MSVC >= 1500)
+
+   // vc90:
+#  define BOOST_LIB_TOOLSET "vc90"
 
 #elif defined(__BORLANDC__)
 

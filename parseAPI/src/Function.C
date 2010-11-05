@@ -314,7 +314,7 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
                     {
                         if (*oit == *cit) {
                             found = true;
-                            cit = _call_edges.erase(cit);
+                            _call_edges.erase(cit);
                         }
                     }
                     assert(found);

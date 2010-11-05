@@ -217,10 +217,18 @@ bool AbsRegion::operator!=(const AbsRegion &rhs) const {
 
 
 bool AbsRegion::operator<(const AbsRegion &rhs) const {
-  if (absloc_ < rhs.absloc_) return true;
-  if (rhs.absloc_ < absloc_) return false;
+   // Anything with a valid AbsLoc is less than anything with an 
+   // invalid AbsLoc. 
+   
 
-  return type() < rhs.type();
+   if (absloc_ < rhs.absloc_) {
+      return true;
+   }
+   if (rhs.absloc_ < absloc_) {
+      return false;
+   }
+
+   return type() < rhs.type();
 }
 
 /*

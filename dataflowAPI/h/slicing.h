@@ -280,7 +280,7 @@ class Slicer {
 		  Predicates &p);
   
   std::vector<ParseAPI::Function *> 
-      followCallBackward(ParseAPI::Block *callerB,
+      followCallBackward(ParseAPI::Block * callerBlock,
               Direction d,
               Element &current,
               Predicates &p);

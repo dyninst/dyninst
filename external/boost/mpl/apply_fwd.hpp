@@ -14,9 +14,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /cvsroot/boost/boost/boost/mpl/apply_fwd.hpp,v $
-// $Date: 2004/09/02 15:40:41 $
-// $Revision: 1.2 $
+// $Id: apply_fwd.hpp 49267 2008-10-11 06:19:02Z agurtovoy $
+// $Date: 2008-10-11 02:19:02 -0400 (Sat, 11 Oct 2008) $
+// $Revision: 49267 $
 
 #if !defined(BOOST_MPL_PREPROCESSING_MODE)
 #   include <boost/mpl/aux_/na.hpp>
@@ -44,7 +44,7 @@
 
 // agurt, 15/jan/02: top-level 'apply' template gives an ICE on MSVC
 // (for known reasons)
-#if BOOST_WORKAROUND(BOOST_MSVC, <= 1200)
+#if BOOST_WORKAROUND(BOOST_MSVC, < 1300)
 #   define BOOST_MPL_CFG_NO_APPLY_TEMPLATE
 #endif
 

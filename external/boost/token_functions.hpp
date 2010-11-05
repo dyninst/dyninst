@@ -6,10 +6,10 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
-// See http://www.boost.org/libs/tokenizer for documentation.
+// See http://www.boost.org/libs/tokenizer/ for documentation.
 
 // Revision History:
-// 01 Oct 2004   Joaquín M López Muñoz
+// 01 Oct 2004   Joaquin M Lopez Munoz
 //      Workaround for a problem with string::assign in msvc-stlport
 // 06 Apr 2004   John Bandela
 //      Fixed a bug involving using char_delimiter with a true input iterator
@@ -33,11 +33,11 @@
 
 #include <vector>
 #include <stdexcept>
-#include <cassert>
 #include <string>
 #include <cctype>
 #include <algorithm> // for find_if
 #include <boost/config.hpp>
+#include <boost/assert.hpp>
 #include <boost/detail/workaround.hpp>
 #include <boost/mpl/if.hpp>
 
@@ -74,7 +74,7 @@ namespace boost{
   // character (backslash \), can be assigned to other characters.
 
   struct escaped_list_error : public std::runtime_error{
-    escaped_list_error(const std::string& what):std::runtime_error(what) { }
+    escaped_list_error(const std::string& what_arg):std::runtime_error(what_arg) { }
   };
   
 
@@ -212,7 +212,7 @@ namespace boost{
     template<class Iterator, class Token>
     static void assign(Iterator b, Iterator e, Token &t) {
 
-#if BOOST_WORKAROUND(BOOST_MSVC, == 1200) &&\
+#if BOOST_WORKAROUND(BOOST_MSVC, < 1300) &&\
     BOOST_WORKAROUND(__SGI_STL_PORT, < 0x500) &&\
     defined(_STLP_DEBUG) &&\
     (defined(_STLP_USE_DYNAMIC_LIB) || defined(_DLL))
@@ -327,7 +327,7 @@ namespace boost{
         InputIterator>::iterator_category> assigner;
 
 
-      assert(!offsets_.empty());
+      BOOST_ASSERT(!offsets_.empty());
     
       assigner::clear(tok);
       InputIterator start(next);
@@ -336,10 +336,12 @@ namespace boost{
         return false;
 
       if (current_offset_ == offsets_.size())
+      {
         if (wrap_offsets_)
           current_offset_=0;
         else
           return false;
+      }
       
       int c = offsets_[current_offset_];
       int i = 0;
@@ -449,12 +451,16 @@ namespace boost{
         
         // Handle empty token at the end
         if (next == end)
-          if (m_output_done == false) {
+        {
+          if (m_output_done == false) 
+          {
             m_output_done = true;
             assigner::assign(start,next,tok);
             return true;
-          } else
+          } 
+          else
             return false;
+        }
         
         if (is_kept(*next)) {
           if (m_output_done == false)

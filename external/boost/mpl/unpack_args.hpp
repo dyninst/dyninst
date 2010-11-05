@@ -14,9 +14,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /cvsroot/boost/boost/boost/mpl/unpack_args.hpp,v $
-// $Date: 2004/09/02 15:40:42 $
-// $Revision: 1.2 $
+// $Id: unpack_args.hpp 49267 2008-10-11 06:19:02Z agurtovoy $
+// $Date: 2008-10-11 02:19:02 -0400 (Sat, 11 Oct 2008) $
+// $Revision: 49267 $
 
 #if !defined(BOOST_MPL_PREPROCESSING_MODE)
 #   include <boost/mpl/apply.hpp>
@@ -111,7 +111,10 @@ BOOST_MPL_AUX_PASS_THROUGH_LAMBDA_SPEC(1, unpack_args)
 
 ///// iteration, depth == 1
 
-#elif BOOST_PP_ITERATION_DEPTH() == 1
+// For gcc 4.4 compatability, we must include the
+// BOOST_PP_ITERATION_DEPTH test inside an #else clause.
+#else // BOOST_PP_IS_ITERATING
+#if BOOST_PP_ITERATION_DEPTH() == 1
 
 #   define i_ BOOST_PP_FRAME_ITERATION(1)
 
@@ -143,4 +146,5 @@ template<> struct unpack_args_impl<i_>
 
 #   undef i_
 
+#endif // BOOST_PP_ITERATION_DEPTH()
 #endif // BOOST_PP_IS_ITERATING

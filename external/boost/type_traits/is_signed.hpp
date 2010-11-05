@@ -10,14 +10,17 @@
 #ifndef BOOST_TT_IS_SIGNED_HPP_INCLUDED
 #define BOOST_TT_IS_SIGNED_HPP_INCLUDED
 
-#include "boost/type_traits/is_integral.hpp"
-#include "boost/type_traits/is_enum.hpp"
-#include "boost/type_traits/detail/ice_or.hpp"
+#include <boost/type_traits/is_integral.hpp>
+#include <boost/type_traits/remove_cv.hpp>
+#include <boost/type_traits/is_enum.hpp>
+#include <boost/type_traits/detail/ice_or.hpp>
 
 // should be the last #include
-#include "boost/type_traits/detail/bool_trait_def.hpp"
+#include <boost/type_traits/detail/bool_trait_def.hpp>
 
 namespace boost {
+
+#if !defined( __CODEGEARC__ )
 
 namespace detail{
 
@@ -26,7 +29,8 @@ namespace detail{
 template <class T>
 struct is_signed_helper
 {
-   BOOST_STATIC_CONSTANT(bool, value = (static_cast<T>(-1) < 0));
+   typedef typename remove_cv<T>::type no_cv_t;
+   BOOST_STATIC_CONSTANT(bool, value = (static_cast<no_cv_t>(-1) < 0));
 };
 
 template <bool integral_type>
@@ -59,7 +63,7 @@ struct is_signed_imp
    > selector;
    typedef typename selector::template rebind<T> binder;
    typedef typename binder::type type;
-#if defined(BOOST_MSVC) && (BOOST_MSVC <= 1200)
+#if defined(BOOST_MSVC) && (BOOST_MSVC < 1300)
    BOOST_STATIC_CONSTANT(bool, value = is_signed_imp<T>::type::value);
 #else
    BOOST_STATIC_CONSTANT(bool, value = type::value);
@@ -108,10 +112,16 @@ template <> struct is_signed_imp<const volatile wchar_t> : public true_type{};
 
 }
 
+#endif // !defined( __CODEGEARC__ )
+
+#if defined( __CODEGEARC__ )
+BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_signed,T,__is_signed(T))
+#else
 BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_signed,T,::boost::detail::is_signed_imp<T>::value)
+#endif
 
 } // namespace boost
 
-#include "boost/type_traits/detail/bool_trait_undef.hpp"
+#include <boost/type_traits/detail/bool_trait_undef.hpp>
 
 #endif // BOOST_TT_IS_MEMBER_FUNCTION_POINTER_HPP_INCLUDED

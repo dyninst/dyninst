@@ -541,7 +541,7 @@ void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
    void *orig_ip;
    void *trap_to;
 
-   orig_ip = UC_PC(context);
+   orig_ip = (void *) UC_PC(context);
    assert(orig_ip);
 
    // Find the new IP we're going to and substitute. Leave everything else untouched.

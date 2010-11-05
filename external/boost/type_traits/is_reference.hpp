@@ -21,24 +21,26 @@
 #ifndef BOOST_TT_IS_REFERENCE_HPP_INCLUDED
 #define BOOST_TT_IS_REFERENCE_HPP_INCLUDED
 
-#include "boost/type_traits/config.hpp"
+#include <boost/type_traits/config.hpp>
 
 #ifdef BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION
-#   include "boost/type_traits/detail/yes_no_type.hpp"
-#   include "boost/type_traits/detail/wrap.hpp"
+#   include <boost/type_traits/detail/yes_no_type.hpp>
+#   include <boost/type_traits/detail/wrap.hpp>
 #endif
 
 // should be the last #include
-#include "boost/type_traits/detail/bool_trait_def.hpp"
+#include <boost/type_traits/detail/bool_trait_def.hpp>
 
 namespace boost {
 
-#ifndef BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION
+#if defined( __CODEGEARC__ )
+BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_reference,T,__is_reference(T))
+#elif !defined(BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION)
 
 BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_reference,T,false)
 BOOST_TT_AUX_BOOL_TRAIT_PARTIAL_SPEC1_1(typename T,is_reference,T&,true)
 
-#if defined(__BORLANDC__) && !defined(__COMO__) && (__BORLANDC__ < 0x600)
+#if  defined(BOOST_ILLEGAL_CV_REFERENCES)
 // these are illegal specialisations; cv-qualifies applied to
 // references have no effect according to [8.3.2p1],
 // C++ Builder requires them though as it treats cv-qualified
@@ -66,7 +68,7 @@ BOOST_TT_AUX_BOOL_TRAIT_PARTIAL_SPEC1_2(typename T,unsigned long N,is_reference,
 
 #ifdef BOOST_MSVC
 #   pragma warning(push)
-#   pragma warning(disable: 4181)
+#   pragma warning(disable: 4181 4097)
 #endif
 
 namespace detail {
@@ -110,7 +112,7 @@ BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_reference,T,::boost::detail::is_reference_impl<T
 
 } // namespace boost
 
-#include "boost/type_traits/detail/bool_trait_undef.hpp"
+#include <boost/type_traits/detail/bool_trait_undef.hpp>
 
 #endif // BOOST_TT_IS_REFERENCE_HPP_INCLUDED
 

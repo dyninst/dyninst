@@ -37,6 +37,9 @@ class mapped_object;
 class int_variable;
 
 namespace Dyninst {
+   namespace SymtabAPI {
+      class Region;
+   };
 
 class MemoryEmulator {
   public:
@@ -47,6 +50,9 @@ class MemoryEmulator {
    void addAllocatedRegion(Address start, unsigned size);
    void addRegion(mapped_object *obj);
    void update();
+
+   std::pair<bool, Address> translate(SymtabAPI::Region *reg, unsigned long offset);
+//   Address translate(mapped_object *obj, unsigned long offset);
    
   private:
    void addRegion(Address start, unsigned size, unsigned long shift);
@@ -61,8 +67,8 @@ class MemoryEmulator {
 
    Address mutateeBase_;
 
-   std::set<mapped_object *> addedObjs_;
-
+   typedef std::map<SymtabAPI::Region *, Address> RegionMap;
+   RegionMap addedRegions_;
 };
 };
 

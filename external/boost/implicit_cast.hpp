@@ -23,13 +23,7 @@ inline T implicit_cast (typename mpl::identity<T>::type x) {
 //template <typename T>
 //void implicit_cast (...);
 
-// Macro for when you need a constant expression (Gennaro Prota)
-#define BOOST_IMPLICIT_CAST(dst_type, expr)           \
-          ( sizeof( implicit_cast<dst_type>(expr) )   \
-                     ,                                \
-            static_cast<dst_type>(expr)               \
-          )
-
 } // namespace boost
+
 
 #endif // IMPLICIT_CAST_DWA200356_HPP

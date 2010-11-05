@@ -356,7 +356,15 @@ get(const std::string& name, const dynamic_properties& dp, const Key& key)
   throw dynamic_get_failure(name);
 }
 
-
+// The easy way to ignore properties.
+inline
+std::auto_ptr<boost::dynamic_property_map> 
+ignore_other_properties(const std::string&,
+                        const boost::any&,
+                        const boost::any&) {
+  return std::auto_ptr<boost::dynamic_property_map>(0);
 }
+
+} // namespace boost
 
 #endif // DYNAMIC_PROPERTY_MAP_RG09302004_HPP

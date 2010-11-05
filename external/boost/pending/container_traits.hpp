@@ -17,12 +17,32 @@
 #include <list>
 #include <map>
 #include <set>
-#ifndef BOOST_NO_SLIST
-#  include <slist>
+
+#if !defined BOOST_NO_HASH
+#  ifdef BOOST_HASH_SET_HEADER
+#    include BOOST_HASH_SET_HEADER
+#  else
+#    include <hash_set>
+#  endif
+#  ifdef BOOST_HASH_MAP_HEADER
+#    include BOOST_HASH_MAP_HEADER
+#  else
+#    include <hash_map>
+#  endif
 #endif
-#ifndef BOOST_NO_HASH
-#  include <hash_map>
-#  include <hash_set>
+
+#if !defined BOOST_NO_SLIST
+#  ifdef BOOST_SLIST_HEADER
+#    include BOOST_SLIST_HEADER
+#  else
+#    include <slist>
+#  endif
+#endif
+
+#if BOOST_WORKAROUND(BOOST_MSVC, < 1300)
+// Stay out of the way of concept checking class templates
+# define Container Container_
+# define AssociativeContainer AssociativeContainer_
 #endif
 
 // The content of this file is in 'graph_detail' because otherwise
@@ -395,5 +415,11 @@ namespace boost { namespace graph_detail {
   }
 
 }} // namespace boost::graph_detail
+
+#if BOOST_WORKAROUND(BOOST_MSVC, < 1300)
+// Stay out of the way of concept checking class templates
+# undef Container
+# undef AssociativeContainer
+#endif
 
 #endif // BOOST_GRAPH_DETAIL_CONTAINER_TRAITS_H

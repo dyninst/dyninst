@@ -10,6 +10,8 @@
 // William Kempf, Jesse Jones and Karl Nelson were all very helpful in the
 // design of this library.
 
+#include <functional> // unary_function, binary_function
+
 #include <boost/preprocessor/iterate.hpp>
 #include <boost/detail/workaround.hpp>
 

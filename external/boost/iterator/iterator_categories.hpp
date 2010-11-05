@@ -97,7 +97,7 @@ namespace detail
       >
   {};
 
-# if BOOST_WORKAROUND(BOOST_MSVC, == 1200)
+# if BOOST_WORKAROUND(BOOST_MSVC, < 1300)
   template <>
   struct old_category_to_traversal<int>
   {
@@ -131,7 +131,7 @@ namespace detail
   {
   };
   
-# if BOOST_WORKAROUND(BOOST_MSVC, == 1200)
+# if BOOST_WORKAROUND(BOOST_MSVC, < 1300)
   template <>
   struct pure_traversal_tag<int>
   {
@@ -150,7 +150,7 @@ struct iterator_category_to_traversal
   : mpl::eval_if< // if already convertible to a traversal tag, we're done.
         is_convertible<Cat,incrementable_traversal_tag>
       , mpl::identity<Cat>
-      , detail::old_category_to_traversal<Cat>
+      , boost::detail::old_category_to_traversal<Cat>
     >
 {};
 

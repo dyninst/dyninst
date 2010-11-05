@@ -1,72 +1,27 @@
 /*=============================================================================
-    Copyright (c) 1998-2003 Joel de Guzman
-    Copyright (c) 2001-2003 Daniel Nuffer
-    Copyright (c) 2001-2003 Hartmut Kaiser
-    Copyright (c) 2002-2003 Martin Wille
-    Copyright (c) 2002 Juan Carlos Arevalo-Baeza
-    Copyright (c) 2002 Raghavendra Satish
-    Copyright (c) 2002 Jeff Westfahl
-    Copyright (c) 2001 Bruce Florman
-    Copyright (c) 2003 Giovanni Bajo
-    Copyright (c) 2003 Vaclav Vesely
-    Copyright (c) 2003 Jonathan de Halleux
-    http://spirit.sourceforge.net/
+  Copyright (c) 2001-2008 Joel de Guzman
+  Copyright (c) 2001-2008 Hartmut Kaiser
+  http://spirit.sourceforge.net/
 
-    Use, modification and distribution is subject to the Boost Software
-    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
-    http://www.boost.org/LICENSE_1_0.txt)
+  Distributed under the Boost Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
-#if !defined(SPIRIT_HPP)
-#define SPIRIT_HPP
+#ifndef BOOST_SPIRIT_DEPRECATED_INCLUDE_SPIRIT
+#define BOOST_SPIRIT_DEPRECATED_INCLUDE_SPIRIT
 
-///////////////////////////////////////////////////////////////////////////////
-//
-//  If BOOST_SPIRIT_DEBUG is defined, the following header includes the
-//  Spirit.Debug layer, otherwise the non-debug Spirit.Core is included.
-//
-///////////////////////////////////////////////////////////////////////////////
-#include <boost/spirit/core.hpp>
+#include <boost/version.hpp>
 
-///////////////////////////////////////////////////////////////////////////////
-//
-//  Spirit.Meta
-//
-///////////////////////////////////////////////////////////////////////////////
-#include <boost/spirit/meta.hpp>
+#if BOOST_VERSION >= 103800
+#if defined(_MSC_VER) || defined(__BORLANDC__) || defined(__DMC__)
+#  pragma message ("Warning: This header is deprecated. Please use: boost/spirit/include/classic.hpp")
+#elif defined(__GNUC__) || defined(__HP_aCC) || defined(__SUNPRO_CC) || defined(__IBMCPP__)
+#  warning "This header is deprecated. Please use: boost/spirit/include/classic.hpp"
+#endif
+#endif
 
-///////////////////////////////////////////////////////////////////////////////
-//
-//  Spirit.ErrorHandling
-//
-///////////////////////////////////////////////////////////////////////////////
-#include <boost/spirit/error_handling.hpp>
+#if !defined(BOOST_SPIRIT_USE_OLD_NAMESPACE)
+#define BOOST_SPIRIT_USE_OLD_NAMESPACE
+#endif
+#include <boost/spirit/include/classic.hpp>
 
-///////////////////////////////////////////////////////////////////////////////
-//
-//  Spirit.Iterators
-//
-///////////////////////////////////////////////////////////////////////////////
-#include <boost/spirit/iterator.hpp>
-
-///////////////////////////////////////////////////////////////////////////////
-//
-//  Spirit.Symbols
-//
-///////////////////////////////////////////////////////////////////////////////
-#include <boost/spirit/symbols.hpp>
-
-///////////////////////////////////////////////////////////////////////////////
-//
-//  Spirit.Utilities
-//
-///////////////////////////////////////////////////////////////////////////////
-#include <boost/spirit/utility.hpp>
-
-///////////////////////////////////////////////////////////////////////////////
-//
-//  Spirit.Attributes
-//
-///////////////////////////////////////////////////////////////////////////////
-#include <boost/spirit/attribute.hpp>
-
-#endif // !defined(SPIRIT_HPP)
+#endif

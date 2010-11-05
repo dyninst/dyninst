@@ -10,9 +10,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /cvsroot/boost/boost/boost/mpl/single_view.hpp,v $
-// $Date: 2004/11/28 01:58:03 $
-// $Revision: 1.4 $
+// $Id: single_view.hpp 49267 2008-10-11 06:19:02Z agurtovoy $
+// $Date: 2008-10-11 02:19:02 -0400 (Sat, 11 Oct 2008) $
+// $Revision: 49267 $
 
 #include <boost/mpl/aux_/single_element_iter.hpp>
 #include <boost/mpl/iterator_range.hpp>

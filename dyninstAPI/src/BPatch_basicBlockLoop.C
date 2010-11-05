@@ -103,7 +103,7 @@ void BPatch_basicBlockLoop::addBackEdges
 
 bool 
 BPatch_basicBlockLoop::hasAncestorInt(BPatch_basicBlockLoop* l) {
-    return l->containedLoops.contains(this);
+    return l->containedLoops.contains(this); 
 }
 
 

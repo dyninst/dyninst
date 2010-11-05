@@ -19,8 +19,11 @@
 #endif
 
 #include <boost/assign/list_inserter.hpp>
-#include <boost/config.hpp>
-#include <slist>
+#ifdef BOOST_SLIST_HEADER
+# include BOOST_SLIST_HEADER
+#else
+# include <slist>
+#endif
 
 namespace boost
 {

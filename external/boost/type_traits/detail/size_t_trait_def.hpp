@@ -7,9 +7,9 @@
 // (See accompanying file LICENSE_1_0.txt or copy at 
 // http://www.boost.org/LICENSE_1_0.txt)
 
-// $Source: /cvsroot/boost/boost/boost/type_traits/detail/size_t_trait_def.hpp,v $
-// $Date: 2005/01/30 15:47:45 $
-// $Revision: 1.8 $
+// $Source$
+// $Date: 2005-08-25 12:27:28 -0400 (Thu, 25 Aug 2005) $
+// $Revision: 30670 $
 
 #include <boost/type_traits/detail/template_arity_spec.hpp>
 #include <boost/type_traits/integral_constant.hpp>
@@ -18,7 +18,7 @@
 
 #include <cstddef>
 
-#if !defined(BOOST_MSVC) || BOOST_MSVC > 1200
+#if !defined(BOOST_MSVC) || BOOST_MSVC >= 1300
 #   define BOOST_TT_AUX_SIZE_T_BASE(C) ::boost::integral_constant<std::size_t,C>
 #   define BOOST_TT_AUX_SIZE_T_TRAIT_VALUE_DECL(C) /**/
 #else

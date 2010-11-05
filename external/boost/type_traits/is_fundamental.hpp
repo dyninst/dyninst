@@ -9,12 +9,12 @@
 #ifndef BOOST_TT_IS_FUNDAMENTAL_HPP_INCLUDED
 #define BOOST_TT_IS_FUNDAMENTAL_HPP_INCLUDED
 
-#include "boost/type_traits/is_arithmetic.hpp"
-#include "boost/type_traits/is_void.hpp"
-#include "boost/type_traits/detail/ice_or.hpp"
+#include <boost/type_traits/is_arithmetic.hpp>
+#include <boost/type_traits/is_void.hpp>
+#include <boost/type_traits/detail/ice_or.hpp>
 
 // should be the last #include
-#include "boost/type_traits/detail/bool_trait_def.hpp"
+#include <boost/type_traits/detail/bool_trait_def.hpp>
 
 namespace boost {
 
@@ -32,10 +32,14 @@ struct is_fundamental_impl
 } // namespace detail
 
 //* is a type T a fundamental type described in the standard (3.9.1)
+#if defined( __CODEGEARC__ )
+BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_fundamental,T,__is_fundamental(T))
+#else
 BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_fundamental,T,::boost::detail::is_fundamental_impl<T>::value)
+#endif
 
 } // namespace boost
 
-#include "boost/type_traits/detail/bool_trait_undef.hpp"
+#include <boost/type_traits/detail/bool_trait_undef.hpp>
 
 #endif // BOOST_TT_IS_FUNDAMENTAL_HPP_INCLUDED

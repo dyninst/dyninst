@@ -687,8 +687,8 @@ bool Slicer::handleCallBackward(ParseAPI::Edge *edge,
 
     /* We don't know which function the caller block belongs to,
      * follow each possibility */
-    std::vector<ParseAPI::Function *> funcsToFollow = followCallBackward(
-        newElement.loc.block, backward, current, p);
+    std::vector<ParseAPI::Function *> funcsToFollow = followCallBackward(newElement.loc.block, backward, current, p);
+
     std::vector<ParseAPI::Function *>::iterator fit;
     for (fit = funcsToFollow.begin(); fit != funcsToFollow.end(); ++fit) {
         Element curElement = newElement;
@@ -1121,7 +1121,7 @@ bool Slicer::followCall(ParseAPI::Block *target, Direction dir, Element &current
   return p.followCall(callee, callStack, current.reg);
 }
 
-std::vector<ParseAPI::Function *> Slicer::followCallBackward(ParseAPI::Block *callerB,
+std::vector<ParseAPI::Function *> Slicer::followCallBackward(ParseAPI::Block * callerBlock,
         Direction dir,
         Element &current,
         Predicates &p) {
@@ -1136,7 +1136,7 @@ std::vector<ParseAPI::Function *> Slicer::followCallBackward(ParseAPI::Block *ca
             callStack.push(std::make_pair<ParseAPI::Function *, int>(calls->func, calls->stackDepth));
         }
     }
-    return p.followCallBackward(callerB, callStack, current.reg);
+    return p.followCallBackward(callerBlock, callStack, current.reg);
 }
 
 bool Slicer::followReturn(ParseAPI::Block *source,
