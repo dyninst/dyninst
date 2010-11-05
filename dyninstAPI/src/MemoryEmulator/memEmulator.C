@@ -157,6 +157,7 @@ void MemoryEmulator::addRegion(mapped_object *obj) {
                 mutateeBase);
 
       addedRegions_[reg] = mutateeBase;
+      free(buffer);
    }         
 }
 

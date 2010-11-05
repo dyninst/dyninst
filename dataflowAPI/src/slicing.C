@@ -87,6 +87,7 @@ Slicer::Slicer(Assignment::Ptr a,
 };
 
 Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {
+   cerr << "Forward slice..." << endl;
   return sliceInternal(forward, predicates);
 }
 
@@ -847,16 +848,16 @@ bool Slicer::search(Element &initial,
     else
         insn = current.loc.rcurrent->first;
     convertInstruction(insn,
-            current.addr(),
-            current.loc.func,
-            assignments);
+                       current.addr(),
+                       current.loc.func,
+                       assignments);
     bool keepGoing = true;
 
     for (std::vector<Assignment::Ptr>::iterator iter = assignments.begin();
 	 iter != assignments.end(); ++iter) {
       Assignment::Ptr &assign = *iter;
 
-      findMatches(current, assign, dir, succ);
+      findMatches(current, assign, dir, p, succ);
 
       if (kills(current, assign)) {
 	keepGoing = false;
@@ -881,18 +882,27 @@ bool Slicer::getNextCandidates(Element &current, Elements &worklist,
   }
 }
 
-void Slicer::findMatches(Element &current, Assignment::Ptr &assign, Direction dir, Elements &succ) {
+bool Slicer::findMatches(Element &current, Assignment::Ptr &assign, Direction dir, Predicates &p, Elements &succ) {
   if (dir == forward) {
     // We compare the AbsRegion in current to the inputs
     // of assign
     for (unsigned k = 0; k < assign->inputs().size(); ++k) {
       const AbsRegion &uReg = assign->inputs()[k];
+      slicing_cerr << "\t\t\t\t\tComparing current " 
+                   << current.reg.format() << " to candidate "
+                   << uReg.format() << endl;
       if (current.reg.contains(uReg)) {
-	// We make a copy of each Element for each Assignment...
-	current.ptr = assign;
-        current.inputRegion = uReg;
-	succ.push(current);
-      }
+         if (uReg.isImprecise() && !p.allowImprecision()) {
+            // Consider this to be a widen...
+            current.valid = false;
+         }
+         slicing_cerr << "\t\t\t\t\t\tMatch!, adding " << assign->format() << endl;
+         // We make a copy of each Element for each Assignment...
+         current.ptr = assign;
+         current.inputRegion = uReg;
+         succ.push(current);
+         return true;
+     }
     }
   }
   else {
@@ -902,12 +912,17 @@ void Slicer::findMatches(Element &current, Assignment::Ptr &assign, Direction di
                  << current.reg.format() << " to candidate "
                  << oReg.format() << endl;
     if (current.reg.contains(oReg)) {
+       if (oReg.isImprecise() && !p.allowImprecision()) {
+          current.valid = false;
+       }
        slicing_cerr << "\t\t\t\t\t\tMatch!" << endl;
       current.ptr = assign;
       current.inputRegion = current.reg;
       succ.push(current);
+      return true;
     }
   }
+  return false;
 }
 
 bool Slicer::kills(Element &current, Assignment::Ptr &assign) {

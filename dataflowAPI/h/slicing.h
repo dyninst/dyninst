@@ -115,6 +115,7 @@ class Slicer {
     typedef std::pair<ParseAPI::Function *, int> StackDepth_t;
     typedef std::stack<StackDepth_t> CallStack_t;
 
+    DATAFLOW_EXPORT virtual bool allowImprecision() { return false; }
     DATAFLOW_EXPORT virtual bool widenAtPoint(AssignmentPtr) { return false; }
     DATAFLOW_EXPORT virtual bool endAtPoint(AssignmentPtr) { return false; }
     DATAFLOW_EXPORT virtual bool followCall(ParseAPI::Function * /*callee*/,
@@ -269,8 +270,8 @@ class Slicer {
   bool getNextCandidates(Element &initial, Elements &worklist,
 			 Predicates &p, Direction dir);
 
-  void findMatches(Element &current, Assignment::Ptr &assign, 
-		   Direction dir,  Elements &succ); 
+  bool findMatches(Element &current, Assignment::Ptr &assign, 
+		   Direction dir,  Predicates &p, Elements &succ); 
 
   bool kills(Element &current, Assignment::Ptr &assign);
 

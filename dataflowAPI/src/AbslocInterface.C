@@ -620,12 +620,11 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 			  func,
 			  used,
 			  defined);
-    
     for (std::vector<AbsRegion>::const_iterator i = defined.begin();
 	 i != defined.end(); ++i) {
-      Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, func, *i));
-      a->addInputs(used);
-      assignments.push_back(a);
+       Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, func, *i));
+       a->addInputs(used);
+       assignments.push_back(a);
     }
     break;
   }

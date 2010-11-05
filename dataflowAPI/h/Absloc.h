@@ -50,7 +50,7 @@
 #endif
 
 #include "Instruction.h"
-#include "dynutil/h/AST.h"
+#include "AST.h"
 
 namespace Dyninst {
 
@@ -249,6 +249,8 @@ class AbsRegion {
   DATAFLOW_EXPORT Absloc::Type type() const { return type_; }
   DATAFLOW_EXPORT size_t size() const { return size_; }
   DATAFLOW_EXPORT AST::Ptr generator() const { return generator_; }
+
+  DATAFLOW_EXPORT bool isImprecise() const { return type_ != Absloc::Unknown; }
 
  private:
   // Type is for "we're on the stack but we don't know where".

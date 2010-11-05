@@ -117,8 +117,9 @@ bool AbsRegion::contains(const Absloc &loc) const {
   if (type_ != Absloc::Unknown) {
     // If we're a typed region we contain any absloc
     // with our type
-    return (type_ == loc.type());
+     return (type_ == loc.type());
   }
+
   //if (loc.type() != Absloc::Unknown) {
   //return (type() == loc.type());
   //}
@@ -145,7 +146,8 @@ bool AbsRegion::contains(const AbsRegion &rhs) const {
   }
 
   if (rhs.type() != Absloc::Unknown) {
-    if (absloc_.type() == rhs.type()) return true;
+     if (absloc_.type() == rhs.type()) return true;
+     return false;
   }
 
   if (absloc_ == rhs.absloc_) return true;

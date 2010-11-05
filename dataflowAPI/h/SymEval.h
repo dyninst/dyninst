@@ -40,7 +40,7 @@
 #include "AST.h"
 
 #include "Graph.h"
-#include "dynutil/h/util.h"
+#include "util.h"
 #include "Node.h"
 #include "Edge.h"
 
