@@ -231,7 +231,7 @@ class AbsRegion {
       size_(0) {}
 
 
-	DATAFLOW_EXPORT void setGenerator(AST::Ptr generator) {
+  DATAFLOW_EXPORT void setGenerator(AST::Ptr generator) {
       generator_ = generator;
   }
 

@@ -1929,26 +1929,8 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
                   REGNUM_ESP, 
                   retReg, 
                   gen, noCost);
-#elif defined (arch_x86_64) // KEVINTODO: untested
-        emitVload(loadRegRelativeOp, 
-                  (Address) sizeof(Address), 
-                  REGNUM_RSP, 
-                  retReg, 
-                  gen, noCost);
-#elif defined (arch_sparc) // KEVINTODO: untested
-        emitVload(loadRegRelativeOp, 
-                  (Address) sizeof(Address), 
-                  REG_SPTR, 
-                  retReg, 
-                  gen, noCost);
-#elif defined (arch_power) // KEVINTODO: untested
-        emitVload(loadRegRelativeOp, 
-                  (Address) sizeof(Address), 
-                  REG_SP,
-                  retReg, 
-                  gen, noCost);
-#else
-        assert(0);
+#else 
+        assert(0); //TODO: unimplemented
 #endif
         return true;
     }

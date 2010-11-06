@@ -161,6 +161,7 @@ void
 StandardParseData::remove_func(Function *f)
 {
     remove_extents(f->extents());
+    _rdata.frame_status.erase(f->addr());
     _rdata.funcsByAddr.erase(f->addr());
 }
 void

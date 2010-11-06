@@ -49,6 +49,7 @@
 #include "parseAPI/src/InstrucIter.h"
 #endif //defined(cap_instruction_api)
 
+#include "dynutil/h/AST.h"
 #include "Relocation/CodeMover.h"
 #include "Relocation/Springboard.h"
 #include "Relocation/Transformers/Include.h"

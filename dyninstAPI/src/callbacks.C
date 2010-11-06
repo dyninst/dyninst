@@ -187,23 +187,6 @@ bool SyncCallback::do_it()
          enableDelete();
    }
 
-#if 0 //KEVINTODO: delete
-   // invoke trampEnd and return address fixup after any callback
-   // that could update the analysis of the code
-   if ( synchronous && getProcess() && 
-        ( dynamic_cast<StopThreadCallback*>(this) ||
-          dynamic_cast<DynLibraryCallback*>(this) ||
-          dynamic_cast<ForkCallback*>(this) ||
-          dynamic_cast<ExecCallback*>(this) ||
-          dynamic_cast<SignalCallback*>(this) ||
-          dynamic_cast<SignalHandlerCallback*>(this) ||
-          dynamic_cast<CodeOverwriteCallback*>(this) ||
-          dynamic_cast<AsyncThreadEventCallback*>(this) ) )
-   {
-       getProcess()->fixupActiveStackTargets();
-   }
-#endif
-
    return true;
 }
 

@@ -37,6 +37,7 @@
 #include "process.h"
 #include "function.h"
 #include "debug.h"
+#include "dynutil/h/AST.h"
 #include "Absloc.h"
 #include "AbslocInterface.h"
 #include "InstructionDecoder.h"
@@ -955,10 +956,6 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
     //if this is the exit of a bounds check exit:
     if (loopID < 0) {
         loopID *= -1;
-        //KEVINTODO: in the case of a loop overwriting itself, I don't have 
-        //a satisfactory solution.  I'd have to allow the write to happen, 
-        //ensure that the instrumentation takes place after the write has 
-        //occurred, and update the analysis accordingly, which could be tricky.
         assert(0 && "KEVINTODO: test this, overwrite loop modified itself, triggering bounds check instrumentation");
     }
 

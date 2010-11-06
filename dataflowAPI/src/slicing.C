@@ -87,7 +87,6 @@ Slicer::Slicer(Assignment::Ptr a,
 };
 
 Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {
-   cerr << "Forward slice..." << endl;
   return sliceInternal(forward, predicates);
 }
 
