@@ -81,8 +81,8 @@ bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
     }
     
     if (!canRewriteMemInsn(reloc, func)) {
-      //cerr << "\t\t Can't rewrite " << reloc->insn()->format() << endl;
-      continue;
+       cerr << "\t\t Can't rewrite " << reloc->insn()->format() << " @ " << hex << reloc->addr() << endl;
+       continue;
     }
 
     Atom::Ptr replacement = createReplacement(reloc, func);

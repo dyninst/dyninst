@@ -138,7 +138,7 @@ bool MemEmulator::generate(const codeGen &templ,
      return false;
   }
   if (!allocRegisters(prepatch)) {
-     relocation_cerr << "\tRegAlloc failed, ret false" << endl;
+     cerr << " FAILED TO ALLOC REGISTERS for insn @ " << hex << addr() << dec << endl;
      buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t->bbl()->func()));
      return true;
   }
