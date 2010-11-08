@@ -122,43 +122,49 @@ void MemoryEmulator::addRegion(mapped_object *obj) {
 
    for (unsigned i = 0; i < codeRegions.size(); ++i) {
       Region *reg = codeRegions[i];
-      //cerr << "\t\t Region " << i << ": " << hex
-      //<< codeRegions[i]->getMemOffset() + obj->codeBase() << " -> " 
-      //<< codeRegions[i]->getMemOffset() + codeRegions[i]->getMemSize() + obj->codeBase() << endl;
 
-      if (addedRegions_.find(reg) != addedRegions_.end()) continue;
-      
-      char *buffer = (char *)malloc(reg->getMemSize());
-      memset(buffer, 0, reg->getMemSize());
-      memcpy(buffer, reg->getPtrToRawData(), reg->getDiskSize());
-
-      unsigned long allocSize = reg->getMemSize();
-      process *proc = dynamic_cast<process *>(aS_);
-      if (proc) {
-         allocSize += proc->getMemoryPageSize();
-      }
-      
-      Address mutateeBase = aS_->inferiorMalloc(allocSize);
-      assert(mutateeBase);
-
-      // "Upcast" it to align with a page boundary - Kevin's request
-      if (proc) {         
-         mutateeBase += proc->getMemoryPageSize();
-         mutateeBase -= mutateeBase % proc->getMemoryPageSize();
-      }
-
-
-      aS_->writeDataSpace((void *)mutateeBase,
-                          reg->getMemSize(),
-                          (void *)buffer);
-      
-      addRegion(obj->codeBase() + reg->getMemOffset(),
-                reg->getMemSize(),
-                mutateeBase);
-
-      addedRegions_[reg] = mutateeBase;
-      free(buffer);
+      addRegion(reg, obj->codeBase());
    }         
+}
+
+void MemoryEmulator::addRegion(Region *reg, Address base) {
+   
+   //cerr << "\t\t Region " << i << ": " << hex
+   //<< codeRegions[i]->getMemOffset() + obj->codeBase() << " -> " 
+   //<< codeRegions[i]->getMemOffset() + codeRegions[i]->getMemSize() + obj->codeBase() << endl;
+   
+   if (addedRegions_.find(reg) != addedRegions_.end()) return;
+      
+   char *buffer = (char *)malloc(reg->getMemSize());
+   memset(buffer, 0, reg->getMemSize());
+   memcpy(buffer, reg->getPtrToRawData(), reg->getDiskSize());
+   
+   unsigned long allocSize = reg->getMemSize();
+   process *proc = dynamic_cast<process *>(aS_);
+   if (proc) {
+      allocSize += proc->getMemoryPageSize();
+   }
+   
+   Address mutateeBase = aS_->inferiorMalloc(allocSize);
+   assert(mutateeBase);
+   
+   // "Upcast" it to align with a page boundary - Kevin's request
+   if (proc) {         
+      mutateeBase += proc->getMemoryPageSize();
+      mutateeBase -= mutateeBase % proc->getMemoryPageSize();
+   }
+   
+   
+   aS_->writeDataSpace((void *)mutateeBase,
+                       reg->getMemSize(),
+                       (void *)buffer);
+   
+   addRegion(base + reg->getMemOffset(),
+             reg->getMemSize(),
+             mutateeBase);
+   
+   addedRegions_[reg] = mutateeBase;
+   free(buffer);
 }
 
 void MemoryEmulator::addRegion(Address start, unsigned size, unsigned long shift) {

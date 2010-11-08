@@ -2045,6 +2045,7 @@ bool process::setAOut(fileDescriptor &desc)
     }
     
     mapped_objects.push_back(aout);
+
    startup_printf("%s[%d]:  setAOut: adding range\n", FILE__, __LINE__);
     addOrigRange(aout);
 
