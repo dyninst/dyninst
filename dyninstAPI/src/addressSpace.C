@@ -1504,6 +1504,7 @@ bool AddressSpace::relocate() {
     if (!relocateInt(iter->second.begin(), iter->second.end(), iter->first->codeAbs())) {
       ret = false;
     }
+    addModifiedRegion(iter->first);
   }
 
   updateMemEmulator();
