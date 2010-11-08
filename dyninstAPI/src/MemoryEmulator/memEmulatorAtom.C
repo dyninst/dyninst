@@ -449,15 +449,20 @@ bool MemEmulator::preCallSave(codeGen &gen) {
    saveRAX_ = false;
    if (!saveFlags(gen))
       return false;
+   // And push EAX again
+   ::emitPush(RealRegister(eax->encoding()), gen);
+   
    return true;
 }
 
 bool MemEmulator::postCallRestore(codeGen &gen) {
-   if (!restoreFlags(gen)) return false;
-
    registerSlot *eax = (*(gen.rs()))[REGNUM_EAX];
    registerSlot *ecx = (*(gen.rs()))[REGNUM_ECX];
    registerSlot *edx = (*(gen.rs()))[REGNUM_EDX];
+
+   ::emitPop(RealRegister(eax->encoding()), gen);
+   if (!restoreFlags(gen)) return false;
+
 
    popRegIfSaved(edx, gen);
    popRegIfSaved(ecx, gen);
