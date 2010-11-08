@@ -876,7 +876,10 @@ int dyn_lwp::changeMemoryProtections(Address addr, Offset size, unsigned rights)
         {
             return -1;
         }
-        assert(shadowRights == oldRights);
+        if (shadowRights != oldRights) {
+            mal_printf("WARNING: shadow page[%lx] rights did not match orig-page"
+                       "[%lx] rights\n",shadowAddr,addr);
+        }
     }
     return oldRights;
 }
