@@ -56,6 +56,7 @@
 #include "Relocation/CodeTracker.h"
 #include "MemoryEmulator/memEmulatorTransformer.h"
 #include "MemoryEmulator/memEmulator.h"
+#include <boost/tuple/tuple.hpp>
 
 // Implementations of non-virtual functions in the address space
 // class.
@@ -65,7 +66,9 @@ AddressSpace::AddressSpace () :
     useTraps_(true),
     trampGuardBase_(NULL),
     up_ptr_(NULL),
-    costAddr_(0)
+    costAddr_(0),
+    emulateMem_(false),
+    emulatePC_(true)
 {
    memEmulator_ = new MemoryEmulator(this);
 }
@@ -1632,16 +1635,20 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   CFAtomCreator c;
   cm->transform(c);
 
-  sensitivity_cerr << "Applying PCSens transformer" << endl;
-  PCSensitiveTransformer v(this, cm->priorityMap());
-  cm->transform(v);
+  if (emulatePC_) {
+      sensitivity_cerr << "Applying PCSens transformer" << endl;
+      PCSensitiveTransformer v(this, cm->priorityMap());
+      cm->transform(v);
+  } else {
+      adhocMovementTransformer a(this);
+      cm->transform(a);
+  }
 
-  //adhocMovementTransformer a(this);
-  //cm->transform(a);
-
-  //cerr << "Memory emulator" << endl;
-  //MemEmulatorTransformer m;
-  //cm->transform(m);
+  if (emulateMem_) {
+      cerr << "Memory emulator" << endl;
+      MemEmulatorTransformer m;
+      cm->transform(m);
+  }
 
   // Insert whatever binary modifications are desired
   // Right now needs to go before Instrumenters because we use
@@ -1891,8 +1898,16 @@ void AddressSpace::updateMemEmulator() {
 
 std::pair<bool,Address> AddressSpace::memEmTranslate(Address orig) 
 {
+    assert(isMemoryEmulated());
     image *img = findObject(orig)->parse_img();
     SymtabAPI::Region *reg = img->getObject()->findEnclosingRegion(
         orig - img->desc().loadAddr() );
-    return memEmulator_->translate(reg, orig);
+    Address regAddr = img->desc().loadAddr() + reg->getMemOffset();
+
+    pair<bool,Address> translation = memEmulator_->translate(reg, 
+                                                             orig - regAddr);
+    if (translation.first) {
+        translation.second += regAddr;
+    }
+    return translation;
 }

@@ -45,6 +45,7 @@
 #include "InstructionDecoder.h"
 #include "Parsing.h"
 #include "instPoint.h"
+#include <boost/tuple/tuple.hpp>
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -1439,7 +1440,11 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
     return reparsedObject;
 }
 
-
+/* 1. Copy the entire region in from the mutatee, 
+ * 2. if memory emulation is not on, copy blocks back in from the
+ * mapped file, since we don't want to copy instrumentation into
+ * the mutatee. 
+ */
 void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
 {
     assert(reg);
@@ -1457,8 +1462,14 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
     parseReg = * parseRegs.begin();
     parseRegs.clear();
 
-    // copy memory into regBuf
-    if (!proc()->readDataSpace((void*)(regStart+codeBase()), 
+    // 1. copy memory into regBuf
+    Address readAddr = regStart + codeBase();
+    if (proc()->isMemoryEmulated()) {
+        bool valid = false;
+        boost::tie(valid, readAddr) = proc()->memEmTranslate(readAddr);
+        assert(valid);
+    }
+    if (!proc()->readDataSpace((void*)readAddr, 
                                copySize, 
                                regBuf, 
                                true)) 
@@ -1467,7 +1478,15 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
                 __FILE__, __LINE__, (long)regStart+codeBase(), copySize);
         assert(0);
     }
-    printf("EX: copied to [%lx %lx)\n", codeBase()+regStart, codeBase()+regStart+copySize);
+    mal_printf("EX: copied to [%lx %lx)\n", codeBase()+regStart, codeBase()+regStart+copySize);
+
+    if (proc()->isMemoryEmulated()) {
+        mal_printf("Expand region: no blocks copied back into mapped file, memEm is on\n");
+        return; // instrumentation is not a problem 
+    }
+
+    // 2. copy code bytes back into the regBuf before setting it as raw 
+    //    data for region
 
     // find the first block in the region
     set<ParseAPI::Block*> analyzedBlocks;
@@ -1488,7 +1507,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
         {
             assert(0);
         }
-        printf("EX: uncopy [%lx %lx)\n", codeBase()+cur->start(),codeBase()+cur->end());
+        mal_printf("EX: uncopy [%lx %lx)\n", codeBase()+cur->start(),codeBase()+cur->end());
         // advance to the next block
         Address prevEnd = cur->end();
         cur = cObj->findBlockByEntry(parseReg,prevEnd);
@@ -1521,6 +1540,8 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
                                      - codeAbs() );
         proc()->addOrigRange(this);
     }
+    mal_printf("Expand region: %lx blocks copied back into mapped file\n", 
+               analyzedBlocks.size());
 
     // KEVINTODO: what?  why is this necessary?, I've killed it for now, delete if no failures
     // 
@@ -1540,6 +1561,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
 // 2. copy overwritten regions into the mapped objects
 void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges)
 {
+    bool memEmulation = proc()->isMemoryEmulated();
 // 1. use other update functions to update non-code areas of mapped files, 
 //    expanding them if we wrote in un-initialized memory
     using namespace SymtabAPI;
@@ -1575,20 +1597,30 @@ void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges
 // 2. copy overwritten regions into the mapped objects
     for(rIter = owRanges.begin(); rIter != owRanges.end(); rIter++) 
     {
+        Address readAddr = rIter->first;
+        if (memEmulation) {
+            bool valid = false;
+            boost::tie(valid, readAddr) = proc()->memEmTranslate(readAddr);
+            assert(valid);
+        }
+
         Region *reg = parse_img()->getObject()->findEnclosingRegion
             ( (*rIter).first - baseAddress );
         unsigned char* regPtr = (unsigned char*)reg->getPtrToRawData() 
             + (*rIter).first - baseAddress - reg->getMemOffset();
 
-        assert ( proc()->readDataSpace((void*)(*rIter).first, 
-                                     (*rIter).second - (*rIter).first, 
-                                     regPtr, 
-                                     true) );
-        printf("OW: copied to [%lx %lx): ", rIter->first,rIter->second);
-        for (unsigned idx=0; idx < rIter->second - rIter->first; idx++) {
-            printf("%2x ", (unsigned) regPtr[idx]);
+        if (!proc()->readDataSpace((void*)readAddr, 
+                                   (*rIter).second - (*rIter).first, 
+                                   regPtr, 
+                                   true) )
+        {
+            assert(0);
         }
-        printf("\n");
+        mal_printf("OW: copied to [%lx %lx): ", rIter->first,rIter->second);
+        for (unsigned idx=0; idx < rIter->second - rIter->first; idx++) {
+            mal_printf("%2x ", (unsigned) regPtr[idx]);
+        }
+        mal_printf("\n");
     }
     pagesUpdated_ = true;
 }
@@ -1611,7 +1643,7 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
         regions.push_back(reg);
     }
 
-    Block *cur = NULL;
+    Block *curB = NULL;
     set<ParseAPI::Block *> analyzedBlocks;
     set<ParseAPI::CodeRegion*> parseRegs;
     for(unsigned rIdx=0; rIdx < regions.size(); rIdx++) {
@@ -1627,54 +1659,68 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
         // find the first block in the region
         cObj->findBlocks(parseReg, regStart, analyzedBlocks);
         if (analyzedBlocks.size()) {
-            cur = * analyzedBlocks.begin();
+            curB = * analyzedBlocks.begin();
             analyzedBlocks.clear();
         } else {
-            cur = cObj->findNextBlock(parseReg, regStart);
+            curB = cObj->findNextBlock(parseReg, regStart);
         }
 
         Address prevEndAddr = regStart;
-        while ( cur != NULL && 
-                cur->start() < regStart + symReg->getDiskSize() )
+        while ( curB != NULL && 
+                curB->start() < regStart + symReg->getDiskSize() )
         {
-            // if there's a gap between previous and current range
-            if (prevEndAddr < cur->start()) {
+            // if there's a gap between previous and current block
+            if (prevEndAddr < curB->start()) {
                 // update the mapped file
+                Address readAddr = prevEndAddr + base;
+                if (proc()->isMemoryEmulated()) {
+                    bool valid = false;
+                    boost::tie(valid, readAddr) = proc()->memEmTranslate(readAddr);
+                    assert(valid);
+                }
                 if (!proc()->readDataSpace(
-                        (void*)(prevEndAddr + base), 
-                        cur->start() - prevEndAddr, 
+                        (void*)readAddr, 
+                        curB->start() - prevEndAddr, 
                         (void*)((Address)mappedPtr + prevEndAddr - regStart),
                         true)) 
                 {
                     assert(0);//read failed
                 }
-                mal_printf("UP: copied to [%lx %lx)\n", prevEndAddr+base,cur->start()+base);
+                mal_printf("UP: copied to [%lx %lx)\n", prevEndAddr+base,curB->start()+base);
             }
 
-            // advance cur to last adjacent block and set prevEndAddr 
-            prevEndAddr = cur->end();
+            // advance curB to last adjacent block and set prevEndAddr 
+            prevEndAddr = curB->end();
             Block *ftBlock = cObj->findBlockByEntry(parseReg,prevEndAddr);
             while (ftBlock) {
-                cur = ftBlock;
-                prevEndAddr = cur->end();
+                curB = ftBlock;
+                prevEndAddr = curB->end();
                 ftBlock = cObj->findBlockByEntry(parseReg,prevEndAddr);
             }
 
-            cur = cObj->findNextBlock(parseReg, prevEndAddr);
+            curB = cObj->findNextBlock(parseReg, prevEndAddr);
 
         }
         // read in from prevEndAddr to the end of the region
-		// (will read in whole region if there are no ranges in the region)
-        if (prevEndAddr < regStart + symReg->getDiskSize() &&
-            !proc()->readDataSpace(
-                (void*)(prevEndAddr + base), 
-                regStart + symReg->getDiskSize() - prevEndAddr, 
-                (void*)((Address)mappedPtr + prevEndAddr - regStart), 
-                true)) 
-        {
-            assert(0);// read failed
+    	// (will read in whole region if there are no ranges in the region)
+        if (prevEndAddr < regStart + symReg->getDiskSize()) {
+            Address readAddr = prevEndAddr + base;
+            if (proc()->isMemoryEmulated()) {
+                bool valid = false;
+                boost::tie(valid, readAddr) = proc()->memEmTranslate(readAddr);
+                assert(valid);
+            }
+            if (!proc()->readDataSpace(
+                    (void*)readAddr, 
+                    regStart + symReg->getDiskSize() - prevEndAddr, 
+                    (void*)((Address)mappedPtr + prevEndAddr - regStart), 
+                    true)) 
+            {
+                assert(0);// read failed
+            }
         }
-        mal_printf("UP: copied to [%lx %lx)\n", prevEndAddr+base, base+symReg->getDiskSize());
+        mal_printf("UP: copied to [%lx %lx)\n", prevEndAddr+base, 
+                   base+symReg->getDiskSize());
     }
 }
 
@@ -1682,7 +1728,8 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
 // and next block for changes to the underlying bytes 
 //
 // should only be called if we've already checked that we're not on an
-// analyzed page that's been protected from overwrites
+// analyzed page that's been protected from overwrites, as this
+// check would not be needed
 bool mapped_object::isUpdateNeeded(Address entry)
 {
     using namespace ParseAPI;
@@ -1704,7 +1751,6 @@ bool mapped_object::isUpdateNeeded(Address entry)
     SymtabCodeRegion *creg = static_cast<SymtabCodeRegion*>( * cregs.begin() );
 
     // update the range tree, if necessary
-
     set<ParseAPI::Block *> analyzedBlocks;
     if (parse_img()->findBlocksByAddr(entry-base, analyzedBlocks)) {
         return false; // don't need to update if target is in analyzed code
@@ -1724,21 +1770,29 @@ bool mapped_object::isUpdateNeeded(Address entry)
             - ( (entry - base) - creg->symRegion()->getRegionAddr() );
     }
 
+    // read until first difference, then see if the difference is to known
+    // in which case the difference is due to instrumentation, as we would 
+    // have otherwise detected the overwrite
     Address page_size = proc()->proc()->getMemoryPageSize();
     comparison_size = ( comparison_size <  page_size) 
                       ? comparison_size : page_size;
     regBuf = malloc(comparison_size);
+    Address readAddr = entry;
+    if (proc()->isMemoryEmulated()) {
+        bool valid = false;
+        boost::tie(valid, readAddr) = proc()->memEmTranslate(readAddr);
+        assert(valid);
+    }
+
     mal_printf("%s[%d] Comparing %lx bytes starting at %lx\n",
             FILE__,__LINE__,comparison_size,entry);
-    if (!proc()->readDataSpace((void*)entry, comparison_size, regBuf, true)) {
+    if (!proc()->readDataSpace((void*)readAddr, comparison_size, regBuf, true)) {
         assert(0); 
     }
-    // read until first difference, then see if the difference is to known
-    // in which case the difference is due to instrumentation, as we would 
-    // have otherwise detected the overwrite
     void *mappedPtr = (void*)
                       ((Address)creg->symRegion()->getPtrToRawData() +
                         (entry - base - creg->symRegion()->getRegionAddr()) );
+    //compare 
     if (0 != memcmp(mappedPtr,regBuf,comparison_size) ) {
         updateNeeded = true;
     }
@@ -1767,12 +1821,17 @@ bool mapped_object::isExpansionNeeded(Address entry)
         expansionCheckedRegions_.find(reg)) {
         return false;
     }
-
     expansionCheckedRegions_.insert(reg);
+
     // if there is uninitialized space in the region, 
     // see if the first few bytes have been updated
     Address compareStart = 
         base + reg->getRegionAddr() + reg->getDiskSize();
+    if (proc()->isMemoryEmulated()) {
+        bool valid = false;
+        boost::tie(valid, compareStart) = proc()->memEmTranslate(compareStart);
+        assert(valid);
+    }
 #if defined(cap_instruction_api)
     unsigned compareSize = InstructionAPI::InstructionDecoder::maxInstructionLength;
 #else

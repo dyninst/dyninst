@@ -431,6 +431,8 @@ class AddressSpace : public InstructionSource {
     void addModifiedFunction(int_function *func);
 
     void updateMemEmulator();
+    bool isMemoryEmulated() { return emulateMem_; }
+    bool emulatingPC() { return emulatePC_; }
     std::pair<bool,Address> memEmTranslate(Address);
     
  protected:
@@ -500,6 +502,8 @@ class AddressSpace : public InstructionSource {
     void addModifiedRegion(mapped_object *obj);
 
     MemoryEmulator *memEmulator_;
+    bool emulateMem_;
+    bool emulatePC_;
 };
 
 

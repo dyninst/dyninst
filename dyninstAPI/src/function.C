@@ -779,8 +779,11 @@ void int_function::setHandlerFaultAddrAddr(Address faa, bool set)
     assert(proc()->proc());
     assert(sizeof(Address) == proc()->getAddressWidth());
     Address faultAddr=0;
-    assert (proc()->readDataSpace
-        ((void*)faa, proc()->getAddressWidth(), (void*)&faultAddr, true));
+    if (!proc()->readDataSpace
+        ((void*)faa, proc()->getAddressWidth(), (void*)&faultAddr, true)) 
+    {
+        assert(0);
+    }
 
     // translate the faultAddr back to an original address, and if
     // that translation was necessary, save it to the faultAddrAddr in the 
@@ -823,9 +826,12 @@ void int_function::fixHandlerReturnAddr(Address faultAddr)
         assert(newPC);
         assert(proc()->proc()->getAddressWidth() == sizeof(Address));
         if (newPC != faultAddr) {
-            assert( proc()->writeDataSpace((void*)handlerFaultAddrAddr_, 
+            if(!proc()->writeDataSpace((void*)handlerFaultAddrAddr_, 
                                            sizeof(Address), 
-                                           (void*)&newPC) );
+                                           (void*)&newPC) ))
+            {
+                assert(0);
+            }
         }
 #endif
     }

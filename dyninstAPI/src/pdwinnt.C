@@ -54,6 +54,7 @@
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "symtab.h"
+#include <boost/tuple/tuple.hpp>
 
 #include "dyninstAPI/src/ast.h"
 
@@ -856,10 +857,28 @@ int dyn_lwp::changeMemoryProtections(Address addr, Offset size, unsigned rights)
             mapped_object *obj = proc_->findObject(addr);
             obj->removeProtectedPage(addr -(addr %proc_->getMemoryPageSize()));
         }
-        return oldRights;
     } else {
         return -1;
     }
+
+    if (proc()->isMemoryEmulated()) {
+        Address shadowAddr = addr;
+        int shadowRights=0;
+        bool valid = false;
+        boost::tie(valid, shadowAddr) = proc()->memEmTranslate(addr);
+        if (!valid) {
+            fprintf(stderr, "ERROR: set access rights on page %lx that has "
+                    "no shadow %s[%d]\n",addr,FILE__,__LINE__);
+            return -1;
+        }
+        if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(shadowAddr), 
+                             (SIZE_T)size, (DWORD)rights, (PDWORD)&shadowRights)) 
+        {
+            return -1;
+        }
+        assert(shadowRights == oldRights);
+    }
+    return oldRights;
 }
 
 
@@ -2504,6 +2523,14 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
     Address writtenAddr = 
         ev.info.u.Exception.ExceptionRecord.ExceptionInformation[1];
     SymtabAPI::Region *reg = (SymtabAPI::Region*) ev.info2;
+    if (ev.proc->isMemoryEmulated()) {
+        Address shadowAddr = writtenAddr;
+        int shadowRights=0;
+        bool valid = false;
+        boost::tie(valid, shadowAddr) = ev.proc->memEmTranslate(writtenAddr);
+        assert(valid && shadowAddr != writtenAddr);
+        writtenAddr = shadowAddr;
+    }
 
     // 2. Flush the runtime cache if we overwrote any code
     // Produce warning message if we've overwritten weird types of code: 
@@ -2704,8 +2731,11 @@ mapped_object *process::createObjectNoFile(Address addr)
         // read region into this process
         unsigned char* rawRegion = (unsigned char*) 
             ::LocalAlloc(LMEM_FIXED, meminfo.RegionSize);
-        assert( proc()->readDataSpace(meminfo.AllocationBase,
-                                    regionSize, rawRegion, true) );
+        if (! proc()->readDataSpace(meminfo.AllocationBase,
+                                    regionSize, rawRegion, true) )
+        { 
+            assert(0);
+        }
         // set up file descriptor
         char regname[64];
         snprintf(regname,63,"mmap_buffer_%lx_%lx",

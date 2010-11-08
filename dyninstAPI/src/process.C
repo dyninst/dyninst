@@ -65,6 +65,7 @@
 #include "dyninstAPI/src/debuggerinterface.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "dyninstAPI/src/ast.h"
+#include <boost/tuple/tuple.hpp>
 
 // #include "paradynd/src/mdld.h"
 #include "common/h/Timer.h"
@@ -4721,7 +4722,7 @@ bool process::handleStopThread(EventRecord &ev)
 /* returns true if blocks were overwritten, initializes overwritten
  * blocks and ranges by contrasting shadow pages with current memory
  * contents
- * 1. reads shadow pages in from memory
+ * 1. reads page in from memory
  * 2. constructs overwritten region list
  * 3. constructs overwrittn basic block list
  * 4. determines if the last of the blocks has an abrupt end, in which 
@@ -4754,9 +4755,15 @@ bool process::getOverwrittenBlocks
         }
 
         // 1. Read the modified page in from memory
-        readTextSpace((void*)curPageAddr, MEM_PAGE_SIZE, memVersion);
+        Address readAddr = curPageAddr;
+        if (isMemoryEmulated()) {
+            bool valid = false;
+            boost::tie(valid,readAddr) = memEmTranslate(curPageAddr);
+            assert(valid);
+        }
+        readTextSpace((void*)readAddr, MEM_PAGE_SIZE, memVersion);
 
-        // 2. Compare modified page to shadow copy, construct overwritten region list
+        // 2. build overwritten region list by comparing shadow, memory
         for (unsigned mIdx = 0; mIdx < MEM_PAGE_SIZE; mIdx++) {
             if ( ! foundStart && curShadow[mIdx] != memVersion[mIdx] ) {
                 foundStart = true;
@@ -4774,12 +4781,12 @@ bool process::getOverwrittenBlocks
         }
     }
 
+    // 3. Determine which basic blocks have been overwritten
     list<pair<Address,Address> >::const_iterator rIter = overwrittenRanges.begin();
     std::list<bblInstance*> curBBIs;
     while (rIter != overwrittenRanges.end()) {
         mapped_object *curObject = findObject((*rIter).first);
 
-        // 3. Determine which basic blocks have been overwritten
         curObject->findBBIsByRange((*rIter).first,(*rIter).second,curBBIs);
         if (curBBIs.size()) {
             mal_printf("overwrote %d blocks in range %lx %lx \n",

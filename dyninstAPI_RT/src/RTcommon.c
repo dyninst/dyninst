@@ -446,6 +446,7 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
     tc_lock_lock(&DYNINST_trace_lock);
     rtdebug_printf("pt[%lx] flags[%lx] calc[%lx] ", 
                    (long)pointAddr, (long)flags, (long)calculation);
+    rtdebug_printf("RT_st: %lx(%lx)\n", (long)pointAddr,&(unsigned) calculation);
 
     //if ((unsigned long)calculation == 0x40dc4a) {
     //    fprintf(stderr,"at 1fd instrumentation\n");
