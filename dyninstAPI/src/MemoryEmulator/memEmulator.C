@@ -123,11 +123,11 @@ void MemoryEmulator::addRegion(mapped_object *obj) {
    for (unsigned i = 0; i < codeRegions.size(); ++i) {
       Region *reg = codeRegions[i];
 
-      addRegion(reg);
+      addRegion(reg, obj->codeBase());
    }         
 }
 
-void MemoryEmulator::addRegion(Region *reg) {
+void MemoryEmulator::addRegion(Region *reg, Address base) {
    
    //cerr << "\t\t Region " << i << ": " << hex
    //<< codeRegions[i]->getMemOffset() + obj->codeBase() << " -> " 
@@ -159,7 +159,7 @@ void MemoryEmulator::addRegion(Region *reg) {
                        reg->getMemSize(),
                        (void *)buffer);
    
-   addRegion(obj->codeBase() + reg->getMemOffset(),
+   addRegion(base + reg->getMemOffset(),
              reg->getMemSize(),
              mutateeBase);
    
@@ -233,9 +233,6 @@ std::pair<bool, Address> MemoryEmulator::translate(Region *reg, unsigned long of
 
    RegionMap::const_iterator iter = addedRegions_.find(reg);
    if (iter == addedRegions_.end()) {
-      // Oops. Go ahead and add it
-      addRegion(reg);
-      iter = addedRegions_.find(reg);
       return std::make_pair(false, 0);
    }
    return std::make_pair(true, iter->second + offset);

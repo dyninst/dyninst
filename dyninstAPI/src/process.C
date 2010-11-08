@@ -2045,6 +2045,8 @@ bool process::setAOut(fileDescriptor &desc)
     }
     
     mapped_objects.push_back(aout);
+    addModifiedRegion(aout);
+
    startup_printf("%s[%d]:  setAOut: adding range\n", FILE__, __LINE__);
     addOrigRange(aout);
 
@@ -3895,6 +3897,7 @@ bool process::addASharedObject(mapped_object *new_obj)
     // Make library callback (will trigger BPatch adding the lib)
     // Perform platform-specific lookups (e.g., signal handler)
     mapped_objects.push_back(new_obj);
+    addModifiedRegion(new_obj);
     addOrigRange(new_obj);
 
     findSignalHandler(new_obj);

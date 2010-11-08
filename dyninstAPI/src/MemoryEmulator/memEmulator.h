@@ -49,7 +49,7 @@ class MemoryEmulator {
 
    void addAllocatedRegion(Address start, unsigned size);
    void addRegion(mapped_object *obj);
-   void addRegion(Region *reg);
+   void addRegion(SymtabAPI::Region *reg, Address base);
    void update();
 
    std::pair<bool, Address> translate(SymtabAPI::Region *reg, unsigned long offset);
