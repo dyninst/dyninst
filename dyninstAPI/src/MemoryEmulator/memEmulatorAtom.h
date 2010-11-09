@@ -88,24 +88,27 @@ class MemEmulator : public Atom {
    virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
 
    Register effAddr() const { return effAddr_; }
-
+   
  private:
    // TODO the compare should be a functor of some sort
    MemEmulator(InstructionAPI::Instruction::Ptr insn,
 	       Address addr,
-	       instPoint *point) :
-   insn_(insn), 
-     addr_(addr),
-     point_(point),
-     effAddr_(Null_Register),
-     saveFlags_(false),
-     saveOF_(false),
-     saveOthers_(false),
-     saveRAX_(false),
-     RAXWritten_(false),
-     RAXSave_(Null_Register),
-     flagSave_(Null_Register)
+	       instPoint *point)
+      : insn_(insn), 
+      addr_(addr),
+      point_(point),
+      effAddr_(Null_Register),
+      saveFlags_(false),
+      saveOF_(false),
+      saveOthers_(false),
+      saveRAX_(false),
+      RAXWritten_(false),
+      RAXSave_(Null_Register),
+      flagSave_(Null_Register)
      {};
+
+   bool generateViaModRM(const codeGen &gen, const Trace *, CodeBuffer &buffer);
+   bool generateViaOverride(const codeGen &gen, const Trace *, CodeBuffer &buffer);
 
    bool initialize(codeGen &gen);
 
@@ -140,6 +143,9 @@ class MemEmulator : public Atom {
    bool destroyStackFrame(codeGen &gen);
    bool moveRegister(Register from, Register to, codeGen &gen);
 
+   bool generateSCAS(const codeGen &templ, CodeBuffer &buffer);
+   bool generateLODS(const codeGen &templ, CodeBuffer &buffer);
+
    InstructionAPI::Instruction::Ptr insn_;
    Address addr_;
    instPoint *point_;
@@ -158,6 +164,8 @@ class MemEmulator : public Atom {
 
    static TranslatorMap translators_;
 };
+
+
 
 // A utility class that packages up the stream of compare/branch/arithmetic
 // used above. This lets us outline the code.

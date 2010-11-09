@@ -52,6 +52,8 @@ class MemoryEmulator {
    void addRegion(SymtabAPI::Region *reg, Address base);
    void update();
 
+   void reprocess(mapped_object *obj);
+
    std::pair<bool, Address> translate(SymtabAPI::Region *reg, unsigned long offset);
 //   Address translate(mapped_object *obj, unsigned long offset);
    

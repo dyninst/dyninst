@@ -68,6 +68,8 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
 
   AtomList &elements = (*iter)->elements();
 
+  Address prevAddr = (Address) -1;
+
   for (AtomList::iterator e_iter = elements.begin();
        e_iter != elements.end(); ++e_iter) {
 
@@ -80,6 +82,17 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
        relocation_cerr << "Skipping Atom with address 0" << endl;
        continue;
     }
+    if (addr == prevAddr) {
+       // This is a hack - we can split a single instruction into a sequence
+       // of Atoms that should be treated as one WRT instrumentation. 
+       // Otherwise we get multiple copies of each instPoint for each new
+       // Atom. We _really_ should have a "group" Atom, or a 1:1 restriction,
+       // but I don't have time to fix that now.
+       relocation_cerr << "Skipping Atom with same addr as previous" << endl;
+       continue;
+    }
+    prevAddr = addr;
+
     // CFAtoms can have an address even if they were invented.
     // We need a "virtual" boolean... but for now just check whether
     // there's an instruction there. 
