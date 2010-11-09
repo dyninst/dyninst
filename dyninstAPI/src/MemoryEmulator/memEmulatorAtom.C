@@ -524,6 +524,8 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
    }      
    // And clean up
    if (!trailingTeardown(prepatch)) return false;
+
+   buffer.addPIC(prepatch, tracker(t->bbl()->func()));
    
    return true;
 }
@@ -542,7 +544,8 @@ bool MemEmulator::stealEffectiveAddr(Register &ret, codeGen &gen) {
       translated.insert(convertRegID(*i, whocares));
    }
    unsigned candidate;
-   for (candidate = REGNUM_EAX; candidate <= REGNUM_EDI; ++candidate) {
+   // Don't use EAX since we require it for flag saves
+   for (candidate = REGNUM_ECX; candidate <= REGNUM_EDI; ++candidate) {
       if (candidate == REGNUM_ESP) continue;
       if (translated.find(candidate) == translated.end()) {
          ret = candidate;
@@ -757,7 +760,7 @@ bool MemEmulatorPatch::apply(codeGen &gen,
    gen.setRegisterSpace(aS);
    assert(!gen.bti());
 
-   ::emitPushImm(point_->addr(), gen);
+   ::emitPushImm(point->addr(), gen);
    ::emitPush(RealRegister(reg_), gen);
 
    // Step 2: call the translator
