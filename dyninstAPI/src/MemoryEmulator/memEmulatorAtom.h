@@ -33,6 +33,7 @@
 #define _R_E_MEM_EMULATOR_H_
 
 #include "dyninstAPI/src/Relocation/Atoms/Atom.h"
+#include <stack>
 class registerSlot;
 
 
@@ -98,21 +99,17 @@ class MemEmulator : public Atom {
       addr_(addr),
       point_(point),
       effAddr_(Null_Register),
+      effAddr2_(Null_Register),
       saveFlags_(false),
-      saveOF_(false),
-      saveOthers_(false),
-      saveRAX_(false),
-      RAXWritten_(false),
-      RAXSave_(Null_Register),
-      flagSave_(Null_Register)
-     {};
+      saveRAX_(false)
+      {};
 
    bool generateViaModRM(const codeGen &gen, const Trace *, CodeBuffer &buffer);
    bool generateViaOverride(const codeGen &gen, const Trace *, CodeBuffer &buffer);
 
    bool initialize(codeGen &gen);
    bool checkLiveness(codeGen &gen);   
-   bool setupFrame(codeGen &gen);
+   bool setupFrame(bool, codeGen &gen);
    bool computeEffectiveAddress(codeGen &gen);
    bool teardownFrame(codeGen &gen);
    bool trailingTeardown(codeGen &gen);
@@ -128,11 +125,13 @@ class MemEmulator : public Atom {
 
    bool pushRegIfLive(registerSlot *reg, codeGen &gen);
    bool popRegIfSaved(registerSlot *reg, codeGen &gen);
-   Address getTranslatorAddr(codeGen &gen);
+   Address getTranslatorAddr(codeGen &gen, bool wantShift);
    
    bool generateOrigAccess(codeGen &gen); 
 
-   bool stealEffectiveAddr(codeGen &gen);
+   bool stealEffectiveAddr(Register &ret, codeGen &gen);
+
+   std::pair<bool, bool> getImplicitRegs(codeGen &gen);
 
    /*
    bool generateJA(codeGen &gen,
@@ -140,30 +139,18 @@ class MemEmulator : public Atom {
 		  codeBufIndex_t to);
    */
 
-   bool createStackFrame(codeGen &gen);
-   bool destroyStackFrame(codeGen &gen);
-   bool moveRegister(Register from, Register to, codeGen &gen);
-
-   bool generateSCAS(const codeGen &templ, const Trace *t, CodeBuffer &buffer);
-   bool generateLODS(const codeGen &templ, const Trace *t, CodeBuffer &buffer);
+   bool generateImplicit(const codeGen &templ, const Trace *t, CodeBuffer &buffer);
 
    InstructionAPI::Instruction::Ptr insn_;
    Address addr_;
    instPoint *point_;
 
    Register effAddr_;
+   Register effAddr2_;
    bool saveFlags_;
-   bool saveOF_;
-   bool saveOthers_;
    bool saveRAX_;
-   bool RAXWritten_;
-   Register RAXSave_;
-
-   Register flagSave_;
-
-   bool restoreEffAddr_;
-
-   static Address translatorAddr_;
+   
+   std::stack<Register> externalSaved_;
 
    static TranslatorMap translators_;
 };

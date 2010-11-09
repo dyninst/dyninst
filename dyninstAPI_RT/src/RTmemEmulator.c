@@ -47,7 +47,7 @@
 
 struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0};
 
-unsigned long RTtranslateMemory(unsigned long input) {
+unsigned long RTtranslateMemory(unsigned long input, unsigned long addr) {
    /* Standard nonblocking synchronization construct */
    int index;
    int min;
@@ -98,6 +98,50 @@ unsigned long RTtranslateMemory(unsigned long input) {
    else {
       fprintf(stderr, "\t min %d, max %d, index %d, returning no change\n", min, max, index);
       return input;
+   }
+}
+
+unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long addr) {
+   /* Standard nonblocking synchronization construct */
+   int index;
+   int min;
+   int max;
+   volatile int guard2;
+   //fprintf(stderr, "RTtranslateMemory(0x%lx)\n", input);
+   do {
+      guard2 = RTmemoryMapper.guard2;
+      min = 0;
+      max = (RTmemoryMapper.size - 1);
+      do {
+         index = min + ((max - min) / 2);
+         if (input >= RTmemoryMapper.elements[index].lo) {
+            /* Either correct or too low */
+            if (input < RTmemoryMapper.elements[index].hi) {
+               break;
+            }
+            else {
+               min = index + 1;
+            }
+         }
+         else {
+            /* Too high */
+            max = index - 1;
+         }
+      } while (min <= max);
+   } while (guard2 != RTmemoryMapper.guard1);
+
+   if (min <= max) {
+      if (RTmemoryMapper.elements[index].shift == -1) {
+         return -1 * input;
+      }
+      else {
+         //fprintf(stderr, "... returning shift\n");
+         return RTmemoryMapper.elements[index].shift;
+      }
+   }
+   else {
+      //fprintf(stderr, "\t min %d, max %d, index %d, returning no change\n", min, max, index);
+      return 0;
    }
 }
 
