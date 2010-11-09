@@ -867,16 +867,22 @@ int dyn_lwp::changeMemoryProtections(Address addr, Offset size, unsigned rights)
         bool valid = false;
         boost::tie(valid, shadowAddr) = proc()->memEmTranslate(addr);
         if (!valid) {
-            fprintf(stderr, "ERROR: set access rights on page %lx that has "
+            fprintf(stderr, "WARNING: set access rights on page %lx that has "
                     "no shadow %s[%d]\n",addr,FILE__,__LINE__);
-            return -1;
+            return oldRights;
         }
         if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(shadowAddr), 
                              (SIZE_T)size, (DWORD)rights, (PDWORD)&shadowRights)) 
         {
+            fprintf(stderr, "ERROR: set access rights found shadow page %lx "
+                    "for page %lx but failed to set its rights %s[%d]\n",
+                    shadowAddr, addr, FILE__, __LINE__);
             return -1;
         }
-        assert(shadowRights == oldRights);
+        if (shadowRights != oldRights) {
+            mal_printf("WARNING: shadow page[%lx] rights did not match orig-page"
+                       "[%lx] rights\n",shadowAddr,addr);
+        }
     }
     return oldRights;
 }

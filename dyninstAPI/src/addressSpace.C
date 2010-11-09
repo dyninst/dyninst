@@ -71,6 +71,10 @@ AddressSpace::AddressSpace () :
     emulatePC_(true)
 {
    memEmulator_ = new MemoryEmulator(this);
+   if ( getenv("DYNINST_EMULATE_MEMORY") ) {
+       printf("emulating memory\n");
+       emulateMem_ = true;
+   }
 }
 
 AddressSpace::~AddressSpace() {

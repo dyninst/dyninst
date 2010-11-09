@@ -72,16 +72,18 @@ bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
   for (AtomList::iterator e_iter = elements.begin();
        e_iter != elements.end(); ++e_iter) {
     // If we're not an instruction then skip...
-
     CopyInsn::Ptr reloc = dyn_detail::boost::dynamic_pointer_cast<CopyInsn>(*e_iter);
     if (!reloc) continue;
 
+    relocation_cerr << "Memory emulation considering addr " << hex << reloc->addr() << dec << endl;
+
     if (!isSensitive(reloc, func)) {
-      continue;
+        relocation_cerr << "\t Not sensitive, skipping" << endl;
+        continue;
     }
 
     if (!canRewriteMemInsn(reloc, func)) {
-       cerr << "\t\t Can't rewrite " << reloc->insn()->format() << " @ " << hex << reloc->addr() << endl;
+       cerr << "\t Can't rewrite " << reloc->insn()->format() << " @ " << hex << reloc->addr() << endl;
        continue;
     }
 
@@ -186,14 +188,15 @@ bool MemEmulatorTransformer::isSensitive(CopyInsn::Ptr reloc,
     const std::vector<AbsRegion> &ins = (*a_iter)->inputs();
     for (std::vector<AbsRegion>::const_iterator i = ins.begin();
 	 i != ins.end(); ++i) {
+      relocation_cerr << "\t\t Input: " << i->format() << endl;
       if (i->contains(Absloc::Heap)) {
-	return true;
+	    return true;
       }
-      
-      // Writes too
-      if ((*a_iter)->out().contains(Absloc::Heap)) {
-	return true;
-      }
+    }
+    // Writes too
+    relocation_cerr << "\t\t Output: " << (*a_iter)->out().format() << endl;      
+    if ((*a_iter)->out().contains(Absloc::Heap)) {
+	  return true;
     }
   }
 

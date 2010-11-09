@@ -1052,11 +1052,11 @@ bool insnCodeGen::generateMem(codeGen &gen,
       return false; 
    }
 
-   if (loc.address_size == 1) {
-     //Don't support 16-bit instructions yet
-     cerr << "Error: insn is 16-bit" << endl;
-     return false;
-   }
+   //if (loc.address_size == 1) {
+   //  //Don't support 16-bit instructions yet
+   //  cerr << "Error: insn is 16-bit" << endl;
+   //  return false;
+   //}
 
    if (loc.modrm_reg == 4 && !loc.rex_r) {
       cerr << "Error: insn uses esp/rsp" << endl;

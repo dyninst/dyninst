@@ -47,10 +47,15 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
 				    ParseAPI::Function *func,
 				    std::vector<AbsRegion> &used,
 				    std::vector<AbsRegion> &defined) {
-  if (!usedCache(addr, func, used)) {
+                        if (addr == 0x0f0cb) {
+                            cerr << "Hi!" << endl;
+                        }
+                        
+                        if (!usedCache(addr, func, used)) {
     std::set<RegisterAST::Ptr> regsRead;
     insn->getReadSet(regsRead);
-    
+
+
     for (std::set<RegisterAST::Ptr>::const_iterator i = regsRead.begin();
 	 i != regsRead.end(); ++i) {
       used.push_back(AbsRegionConverter::convert(*i));

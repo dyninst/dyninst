@@ -78,10 +78,6 @@ bool HybridAnalysis::init()
     bool ret = true;
 
     proc()->hideDebugger();
-    if (BPatch_defensiveMode == mode_) {
-        proc()->protectAnalyzedCode();
-    }
-
     //mal_printf("   pre-inst  "); proc()->printKTimer();
 
     // instrument a.out module & protect analyzed code
@@ -122,6 +118,10 @@ bool HybridAnalysis::init()
     proc()->getImage()->clearNewCodeRegions();
     if (BPatch_defensiveMode == mode_) {
         hybridow_ = new HybridAnalysisOW(this);
+    }
+
+    if (BPatch_defensiveMode == mode_) {
+        proc()->protectAnalyzedCode();
     }
 
     return ret;
@@ -199,7 +199,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     BPatch_dynamicTargetExpr dynTarget;
     for (unsigned pidx=0; pidx < points.size(); pidx++) {
         BPatch_point *curPoint = points[pidx];
-        BPatchSnippetHandle *handle;
+        BPatchSnippetHandle *handle = NULL;
 
         // check that we don't instrument the same point multiple times
         if ( (*instrumentedFuncs)[func]->end() != 
@@ -289,8 +289,9 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             handle = proc()->insertSnippet
                 (staticTransferSnippet, *curPoint, BPatch_lastSnippet);
         }
-
-        pointCount += saveInstrumentationHandle(curPoint, handle);
+        if (handle != NULL) {
+            pointCount += saveInstrumentationHandle(curPoint, handle);
+        }
 
     } // end point loop
     points.clear();
@@ -502,13 +503,13 @@ bool HybridAnalysis::instrumentModule(BPatch_module *mod, bool useInsertionSet)
         }
     }
     
+    if (useInsertionSet) {
+        proc()->finalizeInsertionSet(false);
+    }
+
     // protect the code in the module
     if (BPatch_defensiveMode == mod->getHybridMode()) {
         mod->protectAnalyzedCode();
-    }
-
-    if (useInsertionSet) {
-        proc()->finalizeInsertionSet(false);
     }
 
     return didInstrument;

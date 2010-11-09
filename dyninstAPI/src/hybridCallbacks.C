@@ -169,21 +169,25 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
         Address excAddrPosition = (Address)(&(tmpRec->ExceptionAddress)) - (Address)tmpRec;
         Address eipPosition     = (Address)(&(tmpCtxt->Eip))             - (Address)tmpCtxt;
 
+        // instrument handler entry with callback that delivers the fault addr
         BPatch_paramExpr contextAddr(2);
         BPatch_arithExpr contextPCaddr
             (BPatch_plus, contextAddr, BPatch_constExpr(eipPosition));
         BPatch_stopThreadExpr sThread1
             (signalHandlerEntryCB_wrapper,contextPCaddr,false,BPatch_noInterp);
-        proc()->insertSnippet(sThread1, 
-                               *(*handlerFunc->findPoint(BPatch_entry))[0]);
-
+        BPatch_point *entryPt =  (*handlerFunc->findPoint(BPatch_entry))[0];
+        BPatchSnippetHandle *handle = proc()->insertSnippet(sThread1, *entryPt);
+        saveInstrumentationHandle(entryPt,handle);
+        
+        // instrument handler entry with callback that will deliver the stack 
+        // address at which the fault addr is stored
         BPatch_paramExpr excRecAddr(0);
         BPatch_arithExpr excSrcAddr
             (BPatch_plus, excRecAddr, BPatch_constExpr(excAddrPosition));
         BPatch_stopThreadExpr sThread2
             (signalHandlerEntryCB_wrapper,excSrcAddr,false,BPatch_noInterp);
-        proc()->insertSnippet(sThread2, 
-                               *(*handlerFunc->findPoint(BPatch_entry))[0]);
+        handle = proc()->insertSnippet(sThread2, *entryPt);
+        saveInstrumentationHandle(entryPt,handle);
 
         proc()->finalizeInsertionSet(false);
         it++;
@@ -258,7 +262,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     time( &tstruct );
     tmstruct = localtime( &tstruct );
     strftime(timeStr, 64, "%X", tmstruct);
-    mal_printf("badTransferCB %lx=>%lx %s\n\n", point->getAddress(), target, timeStr);
+    printf("badTransferCB %lx=>%lx %s\n\n", point->getAddress(), target, timeStr);
 
     // 1. the target address is in a shared library
     BPatch_module * targMod = proc()->findModuleByAddr(target);

@@ -55,7 +55,7 @@ using namespace SymtabAPI;
 using namespace DataflowAPI;
 
 bool PCSensitiveTransformer::postprocess(TraceList &) {
-   cerr << dec << "Sensitive count: " << Sens_ << ", failed " << overApprox_ << ", ext " << extSens_ << ", int " << intSens_ << ", thunk " << thunk_ << endl;
+   sensitivity_cerr << dec << "Sensitive count: " << Sens_ << ", failed " << overApprox_ << ", ext " << extSens_ << ", int " << intSens_ << ", thunk " << thunk_ << endl;
   return true;
 }
 
@@ -150,7 +150,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
     for (AssignList::iterator a_iter = sensitiveAssignments.begin();
 	 a_iter != sensitiveAssignments.end(); ++a_iter) {
 
-       cerr << "Forward slice from " << (*a_iter)->format() << " in func " << bbl->func()->prettyName() << endl;
+       sensitivity_cerr << "Forward slice from " << (*a_iter)->format() << " in func " << bbl->func()->prettyName() << endl;
 
       Graph::Ptr slice = forwardSlice(*a_iter,
 				      bbl->block()->llb(),

@@ -766,7 +766,7 @@ bool Slicer::handleReturn(ParseAPI::Block *,
     return false;
   }
 
-  cerr << "\t Handling return, going to block @ " << hex << retBlock->start() << endl;
+  slicing_cerr << "\t Handling return, going to block @ " << hex << retBlock->start() << endl;
 
   // Pops absregion and context
   handleReturnDetails(newElement.reg,
@@ -1125,7 +1125,7 @@ void Slicer::cleanGraph(Graph::Ptr ret) {
 	 toDelete.begin(); tmp != toDelete.end(); ++tmp) {
     ret->deleteNode(*tmp);
   }
-  cerr << "\t Slice has " << numNodes << " nodes" << endl;
+  slicing_cerr << "\t Slice has " << numNodes << " nodes" << endl;
 
 }
 
