@@ -87,9 +87,10 @@ unsigned long RTtranslateMemory(unsigned long input) {
                 RTmemoryMapper.elements[index].lo,
                 RTmemoryMapper.elements[index].hi,
                 RTmemoryMapper.elements[index].shift);
-        fprintf(stderr, "Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x\n",
+        fprintf(stderr, "Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ",
                 input, * (int *) input, (input + RTmemoryMapper.elements[index].shift),
                 * (int *)(input + RTmemoryMapper.elements[index].shift));
+        fprintf(stderr, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
 #endif
 
         return input + RTmemoryMapper.elements[index].shift;

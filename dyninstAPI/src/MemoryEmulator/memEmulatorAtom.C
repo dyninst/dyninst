@@ -266,6 +266,7 @@ bool MemEmulator::setupFrame(codeGen &gen) {
    // Goals:
    // To free a register for the modified effective address
    // To save flags (if live)
+   gen.rs()->allocateSpecificRegister(gen, REGNUM_EAX, true);
 
    effAddr_ = gen.rs()->allocateRegister(gen, false, true);
    if (effAddr_ == Null_Register) {

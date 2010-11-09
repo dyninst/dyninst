@@ -161,7 +161,7 @@ void MemoryEmulator::addRegion(Region *reg, Address base) {
    
     Address regionBase = base + reg->getMemOffset();
 
-    cerr << hex << " Adding region with base " << base << " and mem offset " << reg->getMemOffset()
+    sensitivity_cerr << hex << " Adding region with base " << base << " and mem offset " << reg->getMemOffset()
         << ", allocated buffer base " << mutateeBase << " and so shift " << mutateeBase - regionBase << dec << endl;
 
    addRegion(regionBase,
