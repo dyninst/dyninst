@@ -47,7 +47,7 @@
 
 struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0};
 
-unsigned long RTtranslateMemory(unsigned long input) {
+unsigned long RTtranslateMemory(unsigned long input, unsigned long addr) {
    /* Standard nonblocking synchronization construct */
    int index;
    int min;
@@ -92,7 +92,7 @@ unsigned long RTtranslateMemory(unsigned long input) {
    }
 }
 
-unsigned long RTtranslateMemoryShift(unsigned long input) {
+unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long addr) {
    /* Standard nonblocking synchronization construct */
    int index;
    int min;

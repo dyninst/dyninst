@@ -192,7 +192,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
      return false;
   buffer.addPIC(prepatch, tracker(t->bbl()->func()));
   
-  buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch, false),point_), tracker(t->bbl()->func()));
+  buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch, false), point_), tracker(t->bbl()->func()));
   
   prepatch.setIndex(0);
   if (!postCallRestore(prepatch))
@@ -757,6 +757,7 @@ bool MemEmulatorPatch::apply(codeGen &gen,
    gen.setRegisterSpace(aS);
    assert(!gen.bti());
 
+   ::emitPushImm(point_->addr(), gen);
    ::emitPush(RealRegister(reg_), gen);
 
    // Step 2: call the translator
@@ -766,7 +767,7 @@ bool MemEmulatorPatch::apply(codeGen &gen,
    emitCallRel32(dest_ - src, gen);
 
    ::emitMovRegToReg(RealRegister(reg_), RealRegister(REGNUM_EAX), gen);
-   ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 4, RealRegister(REGNUM_ESP), gen);
+   ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 8, RealRegister(REGNUM_ESP), gen);
 
    return true;
 }
