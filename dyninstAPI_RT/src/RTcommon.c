@@ -436,35 +436,35 @@ RT_Boolean cacheLookup(void *calculation)
  * bit 1: true if interpAsTarget
  * bit 2: true if interpAsReturnAddr
  **/     
+#define STACKDUMP
 void DYNINST_stopThread (void * pointAddr, void *callBackID, 
                          void *flags, void *calculation)
 {
     RT_Boolean isInCache = RT_FALSE;
-    //unsigned char *stackBase = (unsigned char *)0x12fee0;
-    //unsigned bidx=0;
+#if defined STACKDUMP
+    unsigned char *stackBase = (unsigned char*) & pointAddr;
+    unsigned bidx=0;
+#endif
 
     tc_lock_lock(&DYNINST_trace_lock);
     rtdebug_printf("pt[%lx] flags[%lx] calc[%lx] ", 
                    (long)pointAddr, (long)flags, (long)calculation);
-    rtdebug_printf("RT_st: %lx(%lx)\n", (long)pointAddr,&calculation);
 
-    //if ((unsigned long)calculation == 0x40dc4a) {
-    //    fprintf(stderr,"at 1fd instrumentation\n");
-    //    for (bidx=0; bidx < 0x100; bidx+=4) {
-    //        fprintf(stderr,"0x%x:  ", (int)stackBase+bidx);
-    //        fprintf(stderr,"%02hhx", stackBase[bidx+3]);
-    //        fprintf(stderr,"%02hhx", stackBase[bidx+2]);
-    //        fprintf(stderr,"%02hhx", stackBase[bidx+1]);
-    //        fprintf(stderr,"%02hhx", stackBase[bidx]);
-    //        fprintf(stderr,"\n");
-    //    }
-    //}
-    //if (0x402ed6 == *(unsigned long*)0x12ffc0) {
-    //    fprintf(stderr,"`");
-    //}else {
-    //    fprintf(stderr,"Stomped on stack OEP slot %lx\n", *(unsigned long*)0x12ffc0);
-    //}
-
+#if defined STACKDUMP
+    if ((unsigned long)calculation == 0x7c801d7b) {
+        fprintf(stderr,"RT_st: %lx(%lx)\n", (long)pointAddr,&calculation);
+        fprintf(stderr,"at instr w/ targ=%lx\n",(long)calculation);
+        for (bidx=0; bidx < 0x120; bidx+=4) {
+            fprintf(stderr,"0x%x:  ", (int)stackBase+bidx);
+            fprintf(stderr,"%02hhx", stackBase[bidx+3]);
+            fprintf(stderr,"%02hhx", stackBase[bidx+2]);
+            fprintf(stderr,"%02hhx", stackBase[bidx+1]);
+            fprintf(stderr,"%02hhx", stackBase[bidx]);
+            fprintf(stderr,"\n");
+        }
+    }
+    // fsg: read from 40a4aa, how did it become 40a380? 
+#endif
 
     if ((((long)flags) & 0x04) ) { 
         rtdebug_printf("ret-addr stopThread yields %lx", (long)calculation);

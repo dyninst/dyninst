@@ -1041,30 +1041,33 @@ bool insnCodeGen::generateMem(codeGen &gen,
                insn_ptr, orig_instr);
    entry = orig_instr.getEntry();
 
-   if (orig_instr.getPrefix()->getPrefix(1) != 0)
+   if (orig_instr.getPrefix()->getPrefix(1) != 0) {
       //The instruction accesses memory via segment registers.  Disallow.
-     //cerr << "Error: insn uses segment regs" << endl;
+     cerr << "Error: insn uses segment regs" << endl;
      return false;
+   }
    if (loc.modrm_position == -1) {
       //Only supporting MOD/RM instructions now
-      return false; 
+       cerr << "Error: no MOD/RM (1)" << endl;
+       return false; 
    }
 
-   if (loc.address_size == 1) {
-     //Don't support 16-bit instructions yet
-     //cerr << "Error: insn is 16-bit" << endl;
-     return false;
-   }
+   //TODO:
+   //if (loc.address_size == 1) {
+   //  //Don't support 16-bit instructions yet
+   //  cerr << "Error: insn is 16-bit" << endl;
+   //  return false;
+   //}
 
    if (loc.modrm_reg == 4 && !loc.rex_r) {
-     //cerr << "Error: insn uses esp/rsp" << endl;
+     cerr << "Error: insn uses esp/rsp" << endl;
       //The non-memory access register is %rsp/%esp, we can't work with
       // this register due to our register saving techniques.
       return false;
    }
 
    if (loc.modrm_mod == 3) {
-     //cerr << "Error: insn doesn't use MOD/RM (2)" <<  endl;
+     cerr << "Error: insn doesn't use MOD/RM (2)" <<  endl;
       //This instruction doesn't use the MOD/RM to access memory
       return false;
    }

@@ -199,7 +199,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     BPatch_dynamicTargetExpr dynTarget;
     for (unsigned pidx=0; pidx < points.size(); pidx++) {
         BPatch_point *curPoint = points[pidx];
-        BPatchSnippetHandle *handle;
+        BPatchSnippetHandle *handle = NULL;
 
         // check that we don't instrument the same point multiple times
         if ( (*instrumentedFuncs)[func]->end() != 
@@ -289,8 +289,9 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             handle = proc()->insertSnippet
                 (staticTransferSnippet, *curPoint, BPatch_lastSnippet);
         }
-
-        pointCount += saveInstrumentationHandle(curPoint, handle);
+        if (handle != NULL) {
+            pointCount += saveInstrumentationHandle(curPoint, handle);
+        }
 
     } // end point loop
     points.clear();
