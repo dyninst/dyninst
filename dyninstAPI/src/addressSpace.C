@@ -1497,9 +1497,15 @@ using namespace Relocation;
 bool AddressSpace::relocate() {
   relocation_cerr << "ADDRSPACE::Relocate called!" << endl;
   bool ret = true;
-  for (std::map<mapped_object *, FuncSet>::const_iterator iter = modifiedFunctions_.begin();
+  for (std::map<mapped_object *, FuncSet>::iterator iter = modifiedFunctions_.begin();
        iter != modifiedFunctions_.end(); ++iter) {
     assert(iter->first);
+
+    std::set<int_function *> overlappingFuncs;
+    for (FuncSet::iterator iter2 = iter->second.begin(); iter2 != iter->second.end(); ++iter2) {
+       (*iter2)->getOverlappingFuncs(overlappingFuncs);
+    }
+    iter->second.insert(overlappingFuncs.begin(), overlappingFuncs.end());
 
     if (!relocateInt(iter->second.begin(), iter->second.end(), iter->first->codeAbs())) {
       ret = false;

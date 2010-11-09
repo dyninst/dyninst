@@ -1724,7 +1724,7 @@ int bblInstance::version() const
 // that share it, and map up to int-level functions and add them
 // to the funcs list.
 bool int_function::getSharingFuncs(int_basicBlock *b,
-                                   pdvector< int_function *> & funcs)
+                                   std::set<int_function *> & funcs)
 {
     bool ret = false;
     if(!b->hasSharedBase())
@@ -1740,18 +1740,8 @@ bool int_function::getSharingFuncs(int_basicBlock *b,
 
         if (hl_func == this) continue;
 
-        // Let's see if we've already got it...
-        bool found = false;
-        for (unsigned j = 0; j < funcs.size(); j++) {
-            if (funcs[j] == hl_func) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            ret = true;
-            funcs.push_back(hl_func);
-        }
+        if (funcs.find(hl_func) == funcs.end()) ret = true;
+        funcs.insert(hl_func);
     }
 
     return ret;
@@ -1761,20 +1751,18 @@ bool int_function::getSharingFuncs(int_basicBlock *b,
 // able to check only exit points; but we definitely need to check _all_
 // exits so for now we're checking everything.
 
-bool int_function::getOverlappingFuncs(pdvector<int_function *> &funcs) {
+bool int_function::getOverlappingFuncs(std::set<int_function *> &funcs) {
     bool ret = false;
-
-    funcs.clear();
 
     // Create the block list.
     blocks();
-
+    
     set< int_basicBlock* , int_basicBlock::compare >::iterator bIter;
     for (bIter = blockList.begin(); 
          bIter != blockList.end(); 
          bIter++) {
-        if (getSharingFuncs(*bIter,funcs))
-            ret = true;
+       if (getSharingFuncs(*bIter,funcs))
+          ret = true;
     }
 
     return ret;
