@@ -153,14 +153,14 @@
 \section{Introduction}
 \label{sec:intro}
 
-A binary code parser converts the machine code representation of a
-program, library, or code snippet to an abstraction of the instructions, basic
+A binary code parser converts the machine code representation of a program,
+library, or code snippet to abstractions such as the instructions, basic
 blocks, and functions that the binary code represents. The ParseAPI is a
 multi-platform library for creating such abstractions from binary code sources.
-The current incarnation uses SymtabAPI as the default binary code source; all
-platforms and architectures handled by SymtabAPI are supported. The ParseAPI is
-designed to be easily extensible to other binary code sources. Support for
-parsing binary code in memory dumps or other formats requires only
+The current incarnation uses the Dyninst SymtabAPI as the default binary code
+source; all platforms and architectures handled by the SymtabAPI are supported.
+The ParseAPI is designed to be easily extensible to other binary code sources.
+Support for parsing binary code in memory dumps or other formats requires only
 implementation of a small interface as described in this document.
 
 This API provides the user with a control flow-oriented view of a binary code
@@ -168,10 +168,12 @@ source. Each code object such as a program binary or library is represented as
 a top-level collection containing the functions, basic blocks, and edges that
 represent the control flow graph. A simple query interface is provided for
 retrieving lower level objects like functions and basic blocks through address
-or other attribute lookup. These objects can be used to navigate the
-program structure as described below.
+or other attribute lookups. These objects can be used to navigate the program
+structure as described below.
 
-\emph{The ParseAPI is currently released as a public beta. The interfaces described in this manual are subject to change in future versions. Feedback and comments are welcome; please email bugs@dyninst.org.}
+\emph{The ParseAPI is currently released as a public beta. The interfaces
+described in this manual are subject to change in future versions. Feedback and
+comments are welcome; please email bugs@dyninst.org.}
 
 \section{Abstractions}
 \label{sec:abstractions}
@@ -226,6 +228,7 @@ The following complete example uses the ParseAPI to parse a binary and dump its 
 
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left, numberstyle=\tiny, stepnumber=5, numbersep=5pt}
+\lstset{showstringspaces=false}
 \lstinputlisting{example.cc}
 
 \section{The Parsing API}
@@ -263,7 +266,9 @@ about control flow transfer instructions (see Section \ref{sec:defmode}.}
 void parse()
 \end{apient}
 \apidesc{Recursively parses the binary represented by this CodeObject from all
-known function entry points (i.e., the hints provided by the CodeSource).}
+known function entry points (i.e., the hints provided by the CodeSource). This
+method and the following parsing methods may safely be invoked repeatedly if
+new information about function locations is provided through the CodeSource.}
 
 \begin{apient}
 void parse(Address target, bool recursive)
@@ -318,7 +323,12 @@ CFGFactory * fact()
 \subsection{Class CodeSource}
 \label{sec:codesource}
 
-The CodeSource interface is used by the ParseAPI to retrieve binary code from an executable, library, or other binary code object; it also can provide hints of function entry points (such as those derived from debugging symbols) to seed the parser. The ParseAPI provides a default implementation based on the SymtabAPI that supports many common binary formats. For details on implementing a custom CodeSource, see Appendix \ref{sec:extend}.
+The CodeSource interface is used by the ParseAPI to retrieve binary code from
+an executable, library, or other binary code object; it also can provide hints
+of function entry points (such as those derived from debugging symbols) to seed
+the parser. The ParseAPI provides a default implementation based on the
+SymtabAPI that supports many common binary formats. For details on implementing
+a custom CodeSource, see Appendix \ref{sec:extend}.
 
 \begin{apient}
 virtual bool nonReturning(Address func_entry)
@@ -399,7 +409,7 @@ ONDEMAND & dynamically discovered at runtime \\
 \end{tabular}
 \end{center}
 
-\apidesc{Return type of function \typett{src()} see description below.}
+\apidesc{Return type of function \texttt{src()} see description below.}
 
 \begin{center}
 \begin{tabular}{ll}
@@ -520,7 +530,7 @@ Address end()
 
 \subsection{Class Block}
 
-A Block represents a basic block as defined in Section \ref{abstractions}, and is the lowest level representation of code in the CFG.
+A Block represents a basic block as defined in Section \ref{sec:abstractions}, and is the lowest level representation of code in the CFG.
 
 \begin{apient}
 typedef ContainerWrapper<vector<Edge*>,Edge*,Edge*> edgelist
@@ -531,12 +541,13 @@ typedef ContainerWrapper<vector<Edge*>,Edge*,Edge*> edgelist
 \begin{apient}
 Address start()
 \end{apient}
-\apidesc{Returns the lower bound of this block.}
+\apidesc{Returns the lower bound of this block (the address of the first instruction).}
 
 \begin{apient}
 Address end()
 \end{apient}
-\apidesc{Returns the upper bound of this block.}
+\apidesc{Returns the upper bound (open) of this block (the address immediately
+following the last byte in the last instruction). }
 
 \begin{apient}
 Address lastInsnAddr()

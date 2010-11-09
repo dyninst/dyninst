@@ -83,21 +83,33 @@ class Absloc {
     reg_(),
     off_(-1),
     region_(-1),
+     func_(NULL),
     addr_(-1) {};
  DATAFLOW_EXPORT Absloc(MachRegister reg) :
   type_(Register),
-    reg_(reg) {};
+     reg_(reg),
+     off_(-1),
+     region_(-1),
+     func_(NULL),
+     addr_(-1)
+     {};
     
  DATAFLOW_EXPORT Absloc(Address addr) :
   type_(Heap),
+     reg_(),
+     off_(-1),
+     region_(-1),
+     func_(NULL),
     addr_(addr) {};
  DATAFLOW_EXPORT Absloc(int o,
 			int r,
 			ParseAPI::Function *f) :
     type_(Stack),
+       reg_(),
       off_(o),
       region_(r),
-      func_(f) {};
+       func_(f),
+       addr_(-1) {};
     
   DATAFLOW_EXPORT std::string format() const;
 
@@ -126,9 +138,11 @@ class Absloc {
       return func_ < rhs.func_;
     case Heap:
       return addr_ < rhs.addr_;
-    default:
-      return true;
+    case Unknown:
+       return false; // everything is less than an unknown
     }
+    assert(0);
+    return true;
   }
 
   DATAFLOW_EXPORT bool operator==(const Absloc &rhs) const {

@@ -1817,6 +1817,12 @@ bool process::prepareExec(fileDescriptor &desc)
     // Revert the bootstrap state
     bootstrapState = attached_bs;
 
+    // Reset whether this process is multithread capable -- it may have changed
+    cached_result = not_cached;
+
+    // The tramp guard ast cannot be reused for the new process image
+    trampGuardAST_ = AstNodePtr();
+
     // First, duplicate constructor.
 
     assert(theRpcMgr == NULL);

@@ -155,7 +155,7 @@ Function::blocks_int()
             Block * t = e->trg();
 
             if(e->type() == CALL) {
-                _call_edges.push_back(e);
+                _call_edges.insert(e);
                 continue;
             }
 
@@ -292,7 +292,7 @@ Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
         {
             switch((*oit)->type()) {
                 case CALL:
-                    for (vector<Edge*>::iterator cit = _call_edges.begin(); 
+                    for (set<Edge*>::iterator cit = _call_edges.begin(); 
                          !found && _call_edges.end() != cit; 
                          cit++) 
                     {

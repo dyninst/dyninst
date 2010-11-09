@@ -224,6 +224,7 @@ class SymtabCodeSource : public CodeSource {
     PARSER_EXPORT Address baseAddress() const;
     PARSER_EXPORT Address loadAddress() const;
     PARSER_EXPORT Address getTOC(Address addr) const;
+    PARSER_EXPORT SymtabAPI::Symtab * getSymtabObject() {return _symtab;} 
 
     /** InstructionSource implementation **/
     PARSER_EXPORT bool isValidAddress(const Address) const;

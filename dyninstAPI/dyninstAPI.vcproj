@@ -44,7 +44,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="./h;..;../external;../dynutil/h;../symtabAPI/h;../instructionAPI/h;&quot;$(VSInstallDir)DIA SDK\include\&quot;"
-				PreprocessorDefinitions="_CRT_SECURE_NO_WARNINGS;WIN32;os_windows;arch_x86;cap_instruction_api;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;DLL_BUILD;snprintf=_snprintf"
+				PreprocessorDefinitions="_CRT_SECURE_NO_WARNINGS;WIN32;os_windows;arch_x86;cap_instruction_api;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;DLL_BUILD;snprintf=_snprintf;cap_liveness"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
@@ -127,7 +127,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="./h;..;../external;../dynutil/h;../symtabAPI/h;../instructionAPI/h"
-				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_instruction_api;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf"
+				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_instruction_api;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf;cap_liveness"
 				MinimalRebuild="false"
 				RuntimeLibrary="0"
 				WarningLevel="3"
@@ -1465,6 +1465,26 @@
 			</File>
 			<File
 				RelativePath="..\common\src\List.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\liveness.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
