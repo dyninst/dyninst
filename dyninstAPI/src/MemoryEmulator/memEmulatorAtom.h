@@ -111,14 +111,11 @@ class MemEmulator : public Atom {
    bool generateViaOverride(const codeGen &gen, const Trace *, CodeBuffer &buffer);
 
    bool initialize(codeGen &gen);
-
-   bool checkLiveFlags(codeGen &gen);
-   
-   bool allocRegisters(codeGen &gen);
-
-   bool calcWriteSet(pdvector<Register> &excluded, bool);
-   
+   bool checkLiveness(codeGen &gen);   
+   bool setupFrame(codeGen &gen);
    bool computeEffectiveAddress(codeGen &gen);
+   bool teardownFrame(codeGen &gen);
+   bool trailingTeardown(codeGen &gen);
 
    bool saveFlags(codeGen &gen);
 
@@ -127,11 +124,15 @@ class MemEmulator : public Atom {
    bool preCallSave(codeGen &gen);
    bool emitCallToTranslator(CodeBuffer &buffer);
    bool postCallRestore(codeGen &gen);
+
+
    bool pushRegIfLive(registerSlot *reg, codeGen &gen);
    bool popRegIfSaved(registerSlot *reg, codeGen &gen);
    Address getTranslatorAddr(codeGen &gen);
    
    bool generateOrigAccess(codeGen &gen); 
+
+   bool stealEffectiveAddr(codeGen &gen);
 
    /*
    bool generateJA(codeGen &gen,
@@ -143,8 +144,8 @@ class MemEmulator : public Atom {
    bool destroyStackFrame(codeGen &gen);
    bool moveRegister(Register from, Register to, codeGen &gen);
 
-   bool generateSCAS(const codeGen &templ, CodeBuffer &buffer);
-   bool generateLODS(const codeGen &templ, CodeBuffer &buffer);
+   bool generateSCAS(const codeGen &templ, const Trace *t, CodeBuffer &buffer);
+   bool generateLODS(const codeGen &templ, const Trace *t, CodeBuffer &buffer);
 
    InstructionAPI::Instruction::Ptr insn_;
    Address addr_;
@@ -159,6 +160,8 @@ class MemEmulator : public Atom {
    Register RAXSave_;
 
    Register flagSave_;
+
+   bool restoreEffAddr_;
 
    static Address translatorAddr_;
 
