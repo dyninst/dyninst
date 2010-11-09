@@ -176,22 +176,21 @@ namespace Dyninst
     
     const Operation::registerSet&  Operation::implicitReads() const
     {
-      if(!doneOtherSetup) SetUpNonOperandData(true);
+      SetUpNonOperandData(true);
       
       return otherRead;
     }
     const Operation::registerSet&  Operation::implicitWrites() const
     {
-      if(!doneOtherSetup) SetUpNonOperandData(true);
+      SetUpNonOperandData(true);
 
       return otherWritten;
     }
     bool Operation::isRead(Expression::Ptr candidate) const
     {
-      if(!doneOtherSetup)
-      {
+     
 	SetUpNonOperandData(candidate->isFlag());
-      }
+     
       for(registerSet::const_iterator r = otherRead.begin();
 	  r != otherRead.end();
 	  ++r)
@@ -214,21 +213,20 @@ namespace Dyninst
     }
     const Operation::VCSet& Operation::getImplicitMemReads() const
     {
-      if(!doneOtherSetup) SetUpNonOperandData(true);
+      SetUpNonOperandData(true);
       return otherEffAddrsRead;
     }
     const Operation::VCSet& Operation::getImplicitMemWrites() const
     {
-      if(!doneOtherSetup) SetUpNonOperandData(true);
+      SetUpNonOperandData(true);
       return otherEffAddrsWritten;
     }
 
     bool Operation::isWritten(Expression::Ptr candidate) const
     {
-      if(!doneOtherSetup)
-      {
+     
 	SetUpNonOperandData(candidate->isFlag());
-      }
+      
       for(registerSet::const_iterator r = otherWritten.begin();
 	  r != otherWritten.end();
 	  ++r)

@@ -53,7 +53,7 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long addr) {
    int min;
    int max;
    volatile int guard2;
-   fprintf(stderr, "RTtranslateMemory(0x%lx)\n", input);
+   //fprintf(stderr, "RTtranslateMemory(0x%lx: 0x%lx)\n", addr, input);
    do {
       guard2 = RTmemoryMapper.guard2;
       min = 0;
@@ -82,12 +82,12 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long addr) {
          return 0;
       }
       else {
-#if 1
+#if 0
         fprintf(stderr, "... returning shadow copy as index is within range 0x%lx to 0x%lx, shift 0x%lx\n",
                 RTmemoryMapper.elements[index].lo,
                 RTmemoryMapper.elements[index].hi,
                 RTmemoryMapper.elements[index].shift);
-        fprintf(stderr, "Insn 0x%lx: Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ", addr,
+        fprintf(stderr, "Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ", 
                 input, * (int *) input, (input + RTmemoryMapper.elements[index].shift),
                 * (int *)(input + RTmemoryMapper.elements[index].shift));
         fprintf(stderr, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));

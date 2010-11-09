@@ -494,13 +494,13 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
    if (usesEDI) {
       ::emitLEA(RealRegister(REGNUM_EDI),
                 RealRegister(effAddr_),
-                1, 0, 
+                0, 0, 
                 RealRegister(REGNUM_EDI), prepatch);
    }
    if (usesESI) {
       ::emitLEA(RealRegister(REGNUM_ESI),
                 RealRegister((usesTwo ? effAddr2_ : effAddr_)),
-                1, 0, 
+                0, 0, 
                 RealRegister(REGNUM_ESI), prepatch);
    }
 
@@ -524,7 +524,8 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
    }      
    // And clean up
    if (!trailingTeardown(prepatch)) return false;
-   
+   buffer.addPIC(prepatch, tracker(t->bbl()->func()));
+
    return true;
 }
 
@@ -542,7 +543,7 @@ bool MemEmulator::stealEffectiveAddr(Register &ret, codeGen &gen) {
       translated.insert(convertRegID(*i, whocares));
    }
    unsigned candidate;
-   for (candidate = REGNUM_EAX; candidate <= REGNUM_EDI; ++candidate) {
+   for (candidate = REGNUM_ECX; candidate <= REGNUM_EDI; ++candidate) {
       if (candidate == REGNUM_ESP) continue;
       if (translated.find(candidate) == translated.end()) {
          ret = candidate;
