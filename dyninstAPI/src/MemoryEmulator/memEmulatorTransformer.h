@@ -68,6 +68,8 @@ class MemEmulatorTransformer : public Transformer {
 
   void createTranslator(Register r);
 
+  bool override(CopyInsnPtr reloc);
+
   TranslatorMap translators_;
 
   AssignmentConverter aConverter;

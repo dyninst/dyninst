@@ -212,6 +212,7 @@ class Slicer {
   bool handleCallDetails(AbsRegion &reg,
 			 Context &context,
 			 ParseAPI::Block *callerBlock,
+                         ParseAPI::Block *returnBlock,
 			 ParseAPI::Function *callee);
 
   bool handleCallDetailsBackward(AbsRegion &reg,
