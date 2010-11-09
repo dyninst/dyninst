@@ -902,7 +902,8 @@ bool BPatch_addressSpace::getRegistersInt(std::vector<BPatch_register> &regs, bo
    return true;
 }
 #else
-bool BPatch_addressSpace::getRegistersInt(std::vector<BPatch_register> &) {
+bool BPatch_addressSpace::getRegistersInt(std::vector<BPatch_register> &,
+                                          bool includeSPRs) {
     // Empty vector since we're not supporting register objects on
     // these platforms (yet)
    return false;
