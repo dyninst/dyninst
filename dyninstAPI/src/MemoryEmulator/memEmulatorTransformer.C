@@ -135,6 +135,9 @@ bool MemEmulatorTransformer::override(CopyInsn::Ptr reloc) {
       case e_lodsb:
       case e_lodsd:
       case e_lodsw:
+      case e_movsb:
+      case e_movsd:
+      case e_movsw:
          return true;
       default:
          break;

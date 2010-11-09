@@ -55,6 +55,8 @@
 
 #include "dyninstAPI/src/RegisterConversion-x86.h"
 
+#include "boost/tuple/tuple.hpp"
+
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
@@ -97,12 +99,13 @@ bool MemEmulator::generateViaOverride(const codeGen &templ,
       case e_scasb:
       case e_scasd:
       case e_scasw:
-         return generateSCAS(templ, t, buffer);
-         break;
       case e_lodsb:
       case e_lodsd:
       case e_lodsw:
-         return generateLODS(templ, t, buffer);
+      case e_movsb:
+      case e_movsd:
+      case e_movsw:
+         return generateImplicit(templ, t, buffer);
          break;
       default:
          // WTF?
@@ -173,7 +176,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
      return false;
   }
 
-  if (!setupFrame(prepatch)) {
+  if (!setupFrame(false, prepatch)) {
      cerr << " FAILED TO ALLOC REGISTERS for insn @ " << hex << addr() << dec << endl;
      buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t->bbl()->func()));
      return false;
@@ -189,7 +192,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
      return false;
   buffer.addPIC(prepatch, tracker(t->bbl()->func()));
   
-  buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch),point_), tracker(t->bbl()->func()));
+  buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch, false),point_), tracker(t->bbl()->func()));
   
   prepatch.setIndex(0);
   if (!postCallRestore(prepatch))
@@ -211,68 +214,59 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
 
 bool MemEmulator::initialize(codeGen &gen) {
   effAddr_ = Null_Register;
+  effAddr2_ = Null_Register;
   saveFlags_ = false;
-  saveOF_ = false;
-  saveOthers_ = false;
   saveRAX_ = false;
-  RAXWritten_ = false;
-  RAXSave_ = Null_Register;
-  restoreEffAddr_ = false;
 
   // This is copied from ast.C
   gen.setPoint(point_);
   registerSpace *rs = registerSpace::actualRegSpace(point_, callPreInsn);
   gen.setRegisterSpace(rs);
 
+  while (!externalSaved_.empty()) externalSaved_.pop();
+
   return true;
 }
 
 bool MemEmulator::checkLiveness(codeGen &gen) {
-  if (gen.addrSpace()->getAddressWidth() == 8) {
-    if ((*(gen.rs()))[REGNUM_OF]->liveState == registerSlot::live) {
-      saveOF_ = true;
-    }
-    
-    for (unsigned i = REGNUM_SF; i <= REGNUM_RF; i++) {
-      if ((*(gen.rs()))[i]->liveState == registerSlot::live) {
-	saveOthers_ = true;
-	break;
-      }
-    }
-    if (saveOF_ || saveOthers_) {
-       saveFlags_ = true;
-    }
-  }
-  else {
-     // ARGH
-     if ((*(gen.rs()))[IA32_FLAG_VIRTUAL_REGISTER]->liveState == registerSlot::live) {
-        saveOthers_ = true;
-        saveOF_ = true;
-        saveFlags_ = true;
-        //cerr << "Flags are live; RAX is " << (saveRAX_ ? "live" : "dead") << endl;
-     }
-  }
+   if ((*(gen.rs()))[IA32_FLAG_VIRTUAL_REGISTER]->liveState == registerSlot::live) {
+      saveFlags_ = true;
+      //cerr << "Flags are live; RAX is " << (saveRAX_ ? "live" : "dead") << endl;
+   }
   
-  // We need to use RAX to save flaggage
-  if ((*(gen.rs()))[REGNUM_RAX]->liveState == registerSlot::live) {
-     saveRAX_ = true;
-  }
+   // We need to use RAX to save flaggage
+   if ((*(gen.rs()))[REGNUM_RAX]->liveState == registerSlot::live) {
+      saveRAX_ = true;
+   }
 
   return true;
 }
 
 
-bool MemEmulator::setupFrame(codeGen &gen) {
+bool MemEmulator::setupFrame(bool needTwo, codeGen &gen) {
    // Goals:
    // To free a register for the modified effective address
    // To save flags (if live)
-
+   
+   // Ensure that the RS doesn't give us EAX, 
+   // since we _really_ need to use it for flag saves
+   gen.rs()->allocateSpecificRegister(gen, REGNUM_EAX, true);
+   
    effAddr_ = gen.rs()->allocateRegister(gen, false, true);
    if (effAddr_ == Null_Register) {
-      if (!stealEffectiveAddr(gen)) {
+      if (!stealEffectiveAddr(effAddr_, gen)) {
          return false;
       }
    }      
+   if (needTwo) {
+      effAddr2_ = gen.rs()->allocateRegister(gen, false, true);
+      if (effAddr2_ == Null_Register) {
+         if (!stealEffectiveAddr(effAddr2_, gen)) {
+            return false;
+         }
+      }
+   }
+
 
    if (saveRAX_) {
       ::emitPush(RealRegister(REGNUM_EAX), gen);
@@ -321,8 +315,9 @@ bool MemEmulator::teardownFrame(codeGen &gen) {
 }
    
 bool MemEmulator::trailingTeardown(codeGen &gen) {
-   if (restoreEffAddr_) {
-      ::emitPop(RealRegister(effAddr_), gen);
+   while (!externalSaved_.empty()) {
+      Register pop = externalSaved_.top(); externalSaved_.pop();
+      ::emitPop(RealRegister(pop), gen);
    }
    return true;
 }
@@ -331,13 +326,9 @@ bool MemEmulator::saveFlags(codeGen &gen) {
   if (saveFlags_ == false) return true;
   
   // If others are live, emit an SAHF
-  if (saveOthers_) {
-    emitSimpleInsn(0x9f, gen);
-  }
-  // If OF is live, save it
-  if (saveOF_) {
-    emitSaveO(gen);
-  }
+  emitSimpleInsn(0x9f, gen);
+  
+  emitSaveO(gen);
 
   // Get 'em out of here
   ::emitPush(RealRegister(REGNUM_EAX), gen);
@@ -350,11 +341,9 @@ bool MemEmulator::restoreFlags(codeGen &gen) {
 
   ::emitPop(RealRegister(REGNUM_EAX), gen);
 
-  if (saveOF_)
-    emitRestoreO(gen);
-  if (saveOthers_)
-    emitSimpleInsn(0x9E, gen);
-
+  emitRestoreO(gen);
+  emitSimpleInsn(0x9E, gen);
+  
   return true;
 }
 
@@ -375,44 +364,6 @@ bool MemEmulator::generateOrigAccess(codeGen &gen) {
   return true;
 }
 
-bool MemEmulator::createStackFrame(codeGen &gen) {
-  if (gen.addrSpace()->getAddressWidth() == 8) {
-#if defined(arch_x86_64)
-    emitLEA64(REGNUM_RSP, Null_Register, 0, -1*STACK_PAD_CONSTANT, REGNUM_RSP, true, gen);
-#endif
-  }
-  else {
-    emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
-	    -1*STACK_PAD_CONSTANT, RealRegister(REGNUM_ESP), gen);
-  }    
-  return true;
-}
-
-bool MemEmulator::destroyStackFrame(codeGen &gen) {
-  if (gen.addrSpace()->getAddressWidth() == 8) {
-#if defined(arch_x86_64)
-    emitLEA64(REGNUM_RSP, Null_Register, 0, STACK_PAD_CONSTANT, REGNUM_RSP, true, gen);
-#endif
-  }
-  else {
-    emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
-	    STACK_PAD_CONSTANT, RealRegister(REGNUM_ESP), gen);
-  }    
-  return true;
-}
-
-bool MemEmulator::moveRegister(Register from, Register to, codeGen &gen) {
-  if (gen.addrSpace()->getAddressWidth() == 8) {
-#if defined(arch_x86_64)
-	emitMovRegToReg64(to, from, true, gen);
-#endif
-  }
-  else {
-    emitMovRegToReg(RealRegister(to), RealRegister(from), gen);
-  }
-  return true;
-}
-
 string MemEmulator::format() const {
   stringstream ret;
   ret << "MemE(" << insn_->format()
@@ -423,7 +374,8 @@ string MemEmulator::format() const {
 }
 
 bool MemEmulator::pushRegIfLive(registerSlot *reg, codeGen &gen) {
-   if (reg->encoding() == effAddr_) {
+   if ((reg->encoding() == effAddr_) ||
+       (reg->encoding() == effAddr2_)) {
       // Don't save it, as we're overwriting it anyway.
       return true;
    }
@@ -471,18 +423,43 @@ bool MemEmulator::emitCallToTranslator(CodeBuffer &) {
    return true;
 }
    
-Address MemEmulator::getTranslatorAddr(codeGen &gen) {
-
-   // Function lookup time
-   int_function *func = gen.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
-   // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
-   if (!func) return 0;
-   // assert(func);
-   return func->getAddress();
+Address MemEmulator::getTranslatorAddr(codeGen &gen, bool wantShift) {
+   if (wantShift) {
+      // Function lookup time
+      int_function *func = gen.addrSpace()->findOnlyOneFunction("RTtranslateMemoryShift");
+      // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
+      if (!func) return 0;
+      // assert(func);
+      return func->getAddress();
+   }
+   else {
+      // Function lookup time
+      int_function *func = gen.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
+      // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
+      if (!func) return 0;
+      // assert(func);
+      return func->getAddress();
+   }
 }
 
-bool MemEmulator::generateSCAS(const codeGen &templ, const Trace *t, CodeBuffer &buffer) {
-   cerr << "GENERATING SCAS FORM @ " << hex << addr_ << dec << endl;
+bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuffer &buffer) {
+   cerr << "GENERATING IMPLICIT FORM @ " << hex << addr_ << dec << endl;
+
+   codeGen prepatch(128);
+   prepatch.applyTemplate(templ);
+
+   // This is an implicit use of ESI, EDI, or both. The both? Sucks. 
+
+   bool usesEDI = false;
+   bool usesESI = false;
+   bool usesTwo = false;
+   
+   boost::tie(usesEDI, usesESI) = getImplicitRegs(prepatch);
+   if (usesEDI && usesESI) usesTwo = true;
+
+   // We need to calculate one shift value for each implict reg that we use. 
+
+
    // This is an implicit use of... EDI. We're derefing EDI (hence the
    // memory access) and comparing it to EAX. OR EDI/AX, EDI/AL... you
    // get the idea. In any case, since it's an implicit operand we can't
@@ -492,41 +469,66 @@ bool MemEmulator::generateSCAS(const codeGen &templ, const Trace *t, CodeBuffer 
    // flags, translate the addr, run the SCAS-equivalent, restore flags, 
    // pop the old value. 
 
-   codeGen prepatch(128);
-   prepatch.applyTemplate(templ);
    
    if (!initialize(prepatch)) return false;
    if (!checkLiveness(prepatch)) return false;
-   if (!setupFrame(prepatch)) return false;
-   if (!computeEffectiveAddress(prepatch)) return false;
+   if (!setupFrame(usesTwo, prepatch)) return false;
    if (!preCallSave(prepatch)) return false;
-   
    buffer.addPIC(prepatch, tracker(t->bbl()->func()));
-   buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch), point_),
+
+   buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch, true), point_),
                    tracker(t->bbl()->func()));
+   if (usesTwo) {
+      buffer.addPatch(new MemEmulatorPatch(effAddr2_, getTranslatorAddr(prepatch, true), point_),
+                   tracker(t->bbl()->func()));
+   }
+
    prepatch.setIndex(0);
 
    if (!postCallRestore(prepatch)) return false;
    if (!teardownFrame(prepatch)) return false;
 
-   // Okay, effAddr_ now holds the translated EDI. 
-   ::emitPush(RealRegister(REGNUM_EDI), prepatch);
-   emitMovRegToReg(RealRegister(REGNUM_EDI), RealRegister(effAddr_), prepatch);
-   // EDI now holds the translated addr
+   // Okay, effAddr_ now holds the _shift value_ for the first operand,
+   // and effAddr2_ for the second (if necessary)
+
+   if (usesEDI) {
+      ::emitLEA(RealRegister(REGNUM_EDI),
+                RealRegister(effAddr_),
+                1, 0, 
+                RealRegister(REGNUM_EDI), prepatch);
+   }
+   if (usesESI) {
+      ::emitLEA(RealRegister(REGNUM_ESI),
+                RealRegister((usesTwo ? effAddr2_ : effAddr_)),
+                1, 0, 
+                RealRegister(REGNUM_ESI), prepatch);
+   }
+
+   // We've translated, so execute the instruction
    prepatch.copy(insn_->ptr(), insn_->size());
+
    // And we performed the operation. Restore EDI.
-   ::emitPop(RealRegister(REGNUM_EDI), prepatch);
+   // But it might have been changed by the operation, 
+   // so instead subtract the shift
+   if (usesEDI) {
+      ::emitLEA(RealRegister(REGNUM_EDI),
+                RealRegister(effAddr_),
+                -1, 0, 
+                RealRegister(REGNUM_EDI), prepatch);
+   }
+   if (usesESI) {
+      ::emitLEA(RealRegister(REGNUM_ESI),
+                RealRegister((usesTwo ? effAddr2_ : effAddr_)),
+                -1, 0, 
+                RealRegister(REGNUM_ESI), prepatch);
+   }      
    // And clean up
    if (!trailingTeardown(prepatch)) return false;
-
+   
    return true;
 }
 
-bool MemEmulator::generateLODS(const codeGen &gen, const Trace *t, CodeBuffer &buffer) {
-   return true;
-}
-
-bool MemEmulator::stealEffectiveAddr(codeGen &gen) {
+bool MemEmulator::stealEffectiveAddr(Register &ret, codeGen &gen) {
    cerr << "STEALING EFFECTIVE ADDR REGISTER @ " << hex << addr_ << dec << endl;
    // This sucks. Find a register not used by this instruction
    // and push/pop it around the whole mess.
@@ -534,21 +536,53 @@ bool MemEmulator::stealEffectiveAddr(codeGen &gen) {
    insn_->getReadSet(regs);
    insn_->getWriteSet(regs);
    std::set<Register> translated;
+   translated.insert(effAddr_);
    for (std::set<RegisterAST::Ptr>::iterator i = regs.begin(); i != regs.end(); ++i) {
       bool whocares;
       translated.insert(convertRegID(*i, whocares));
    }
-   for (unsigned candidate = REGNUM_EAX; candidate <= REGNUM_EDI; ++candidate) {
+   unsigned candidate;
+   for (candidate = REGNUM_EAX; candidate <= REGNUM_EDI; ++candidate) {
       if (candidate == REGNUM_ESP) continue;
       if (translated.find(candidate) == translated.end()) {
-         effAddr_ = candidate;
+         ret = candidate;
          break;
       }
    }
+   if (candidate == Null_Register) return false;
+
    // Okay, so we stole a reg that wasn't used by the instruction
-   ::emitPush(RealRegister(effAddr_), gen);
-   restoreEffAddr_ = true;
+   ::emitPush(RealRegister(ret), gen);
+   externalSaved_.push(ret);
    return true;
+}
+
+std::pair<bool, bool> MemEmulator::getImplicitRegs(codeGen &gen) {
+   // Could go through IAPI, but I'm laaaazy
+   const InstructionAPI::Operation &op = insn_->getOperation();
+
+   switch(op.getID()) {
+      case e_scasb:
+      case e_scasd:
+      case e_scasw:
+         return std::make_pair(true, false);
+         break;
+      case e_lodsb:
+      case e_lodsd:
+      case e_lodsw:
+         return std::make_pair(false, true);
+         break;
+      case e_movsb:
+      case e_movsd:
+      case e_movsw:
+         return std::make_pair(true, true);
+         break;
+      default:
+         assert(0);
+         return std::make_pair(false, false);
+   }
+   assert(0);
+   return std::make_pair(false, false);
 }
 
 //////////////////////////////////////////////////////////
@@ -734,24 +768,5 @@ bool MemEmulatorPatch::apply(codeGen &gen,
    ::emitMovRegToReg(RealRegister(reg_), RealRegister(REGNUM_EAX), gen);
    ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 4, RealRegister(REGNUM_ESP), gen);
 
-#if 0
-   // Step 1: move the argument into ECX
-   if (reg_ != REGNUM_ECX) {
-      ::emitMovRegToReg(RealRegister(REGNUM_ECX), 
-                        RealRegister(reg_),
-                        gen);
-   }
-
-   // Step 2: call the translator
-   Address src = gen.currAddr() + 5;
-   relocation_cerr << "\tCall " << hex << dest_ << ", offset " << dest_ - src << dec << endl;
-   assert(dest_);
-   emitCallRel32(dest_ - src, gen);
-
-   // Step 3: move the result from EAX into the target reg
-   if (reg_ != REGNUM_EAX) {
-      ::emitMovRegToReg(RealRegister(reg_), RealRegister(REGNUM_EAX), gen);
-   }
-#endif
    return true;
 }
