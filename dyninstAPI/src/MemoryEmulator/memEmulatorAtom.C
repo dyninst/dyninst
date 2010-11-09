@@ -79,6 +79,39 @@ TrackerElement *MemEmulator::tracker(int_function *f) const {
 bool MemEmulator::generate(const codeGen &templ,
                            const Trace *t,
                            CodeBuffer &buffer) {
+   if (generateViaOverride(templ, t, buffer))
+      return true;
+   if (generateViaModRM(templ, t, buffer))
+      return true;
+   return false;
+}
+
+bool MemEmulator::generateViaOverride(const codeGen &templ,
+                                      const Trace *t,
+                                      CodeBuffer &buffer) {
+   const InstructionAPI::Operation &op = insn_->getOperation();
+
+   switch(op.getID()) {
+      case e_scasb:
+      case e_scasd:
+      case e_scasw:
+         return generateSCAS(templ, buffer);
+         break;
+      case e_lodsb:
+      case e_lodsd:
+      case e_lodsw:
+         return generateLODS(templ, buffer);
+         break;
+      default:
+         // WTF?
+         break;
+   }
+   return false;
+}
+
+bool MemEmulator::generateViaModRM(const codeGen &templ,
+                                   const Trace *t, 
+                                   CodeBuffer &buffer) {
    // We need a BPatch_something to do the memory handling. If that's 
    // not present, assume we don't need to emulate this piece of
    // memory.
@@ -484,6 +517,15 @@ Address MemEmulator::getTranslatorAddr(codeGen &gen) {
    // assert(func);
    return func->getAddress();
 }
+
+bool MemEmulator::generateSCAS(const codeGen &gen, CodeBuffer &buffer) {
+   return true;
+}
+
+bool MemEmulator::generateLODS(const codeGen &gen, CodeBuffer &buffer) {
+   return true;
+}
+
 
 //////////////////////////////////////////////////////////
 

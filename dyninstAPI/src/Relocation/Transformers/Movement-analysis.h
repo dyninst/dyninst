@@ -95,7 +95,7 @@ class PCSensitiveTransformer : public Transformer {
   virtual bool processTrace(TraceList::iterator &);
      PCSensitiveTransformer(AddressSpace *as, PriorityMap &p) 
         : aConverter(false), addrSpace(as), priMap(p),
-     Sens_(0), extSens_(0), intSens_(0), adhoc(as) {};
+     Sens_(0), extSens_(0), intSens_(0), thunk_(0), overApprox_(0), adhoc(as) {};
   virtual ~PCSensitiveTransformer() {};
 
   virtual bool postprocess(TraceList &);
@@ -139,6 +139,8 @@ class PCSensitiveTransformer : public Transformer {
   long Sens_;
   long extSens_;
   long intSens_;
+  long thunk_;
+  long overApprox_;
 
   // And for times we don't want the overhead - if non-defensive or
   // system libraries

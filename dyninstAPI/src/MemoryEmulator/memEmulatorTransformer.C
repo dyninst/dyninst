@@ -79,7 +79,7 @@ bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
     if (!isSensitive(reloc, func)) {
       continue;
     }
-    
+
     if (!canRewriteMemInsn(reloc, func)) {
        cerr << "\t\t Can't rewrite " << reloc->insn()->format() << " @ " << hex << reloc->addr() << endl;
        continue;
@@ -97,6 +97,9 @@ bool MemEmulatorTransformer::canRewriteMemInsn(CopyInsn::Ptr reloc,
 					       int_function *func) {
   // Let's see if this is an instruction we can rewrite;
   // otherwise complain but let it through (for testing purposes)
+
+   if (override(reloc))
+      return true;
   
   codeGen tmpGen(1024);
   tmpGen.setAddrSpace(func->proc()); // needed by insn::generateMem
@@ -118,6 +121,25 @@ bool MemEmulatorTransformer::canRewriteMemInsn(CopyInsn::Ptr reloc,
     return false;
   }
   return true;
+}
+
+bool MemEmulatorTransformer::override(CopyInsn::Ptr reloc) {
+   const InstructionAPI::Instruction::Ptr &insn = reloc->insn();
+
+   const InstructionAPI::Operation &op = insn->getOperation();
+
+   switch(op.getID()) {
+      case e_scasb:
+      case e_scasd:
+      case e_scasw:
+      case e_lodsb:
+      case e_lodsd:
+      case e_lodsw:
+         return true;
+      default:
+         break;
+   }
+   return false;
 }
 
 Atom::Ptr MemEmulatorTransformer::createReplacement(CopyInsn::Ptr reloc,

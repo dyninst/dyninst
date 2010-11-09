@@ -84,6 +84,14 @@ Slicer::Slicer(Assignment::Ptr a,
   f_(func),
   converter(true) {
   df_init_debug();
+
+  if (a_->addr() == 0xc10d52) {
+     df_debug_slicing = true;
+  }
+  else {
+     df_debug_slicing = false;
+  }
+
 };
 
 Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {
@@ -241,11 +249,11 @@ bool Slicer::getStackDepth(ParseAPI::Function *func, Address callAddr, long &hei
 
 void Slicer::pushContext(Context &context,
 			 ParseAPI::Function *callee,
-			 ParseAPI::Block *callBlock,
+			 ParseAPI::Block *returnBlock,
 			 long stackDepth) {
   slicing_cerr << "pushContext with " << context.size() << " elements" << endl;
   assert(context.front().block == NULL);
-  context.front().block = callBlock;
+  context.front().block = returnBlock;
 
   //cerr << "Saving block @ " << hex << callBlock->end() << dec << " as call block" << endl;
 
@@ -299,9 +307,10 @@ void Slicer::shiftAbsRegion(AbsRegion &callerReg,
 }
 
 bool Slicer::handleCallDetails(AbsRegion &reg,
-			Context &context,
-			ParseAPI::Block *callerBlock,
-			ParseAPI::Function *callee) {
+                               Context &context,
+                               ParseAPI::Block *callerBlock,
+                               ParseAPI::Block *returnBlock,
+                               ParseAPI::Function *callee) {
   ParseAPI::Function *caller = context.front().func;
   AbsRegion newReg = reg;
 
@@ -314,7 +323,7 @@ bool Slicer::handleCallDetails(AbsRegion &reg,
   // so we take the pre-call stack height and run with it. 
 
   // Increment the context
-  pushContext(context, callee, callerBlock, stack_depth);
+  pushContext(context, callee, returnBlock, stack_depth);
 
   // Translate the AbsRegion from caller to callee
   shiftAbsRegion(reg,
@@ -644,10 +653,17 @@ bool Slicer::handleCall(ParseAPI::Block *block,
     assert(newElement.loc.func);
     getInsns(newElement.loc);
     
+    if (!funlink) {
+       // We can't return...
+       return false;
+    }
+    
+
     // HandleCall updates both an AbsRegion and a context...
     if (!handleCallDetails(newElement.reg,
 			   newElement.con,
 			   current.loc.block,
+                           funlink->trg(),
 			   newElement.loc.func)) {
       slicing_cerr << "Handle of call details failed!" << endl;
       err = true;
@@ -743,11 +759,14 @@ bool Slicer::handleReturn(ParseAPI::Block *,
     }
   }
 #endif
+
   retBlock = callerCon.front().block;
   if (!retBlock) {
     err = true;
     return false;
   }
+
+  cerr << "\t Handling return, going to block @ " << hex << retBlock->start() << endl;
 
   // Pops absregion and context
   handleReturnDetails(newElement.reg,
@@ -1073,8 +1092,9 @@ void Slicer::cleanGraph(Graph::Ptr ret) {
   ret->allNodes(nbegin, nend);
   
   std::list<Node::Ptr> toDelete;
-  
+  unsigned numNodes = 0;
   for (; nbegin != nend; ++nbegin) {
+     numNodes++;
     SliceNode::Ptr foozle =
       dyn_detail::boost::dynamic_pointer_cast<SliceNode>(*nbegin);
     //cerr << "Checking " << foozle << "/" << foozle->format() << endl;
@@ -1105,6 +1125,8 @@ void Slicer::cleanGraph(Graph::Ptr ret) {
 	 toDelete.begin(); tmp != toDelete.end(); ++tmp) {
     ret->deleteNode(*tmp);
   }
+  cerr << "\t Slice has " << numNodes << " nodes" << endl;
+
 }
 
 bool Slicer::followCall(ParseAPI::Block *target, Direction dir, Element &current, Predicates &p)

@@ -161,7 +161,7 @@ void MemoryEmulator::addRegion(Region *reg, Address base) {
    
    addRegion(base + reg->getMemOffset(),
              reg->getMemSize(),
-             mutateeBase);
+             mutateeBase - (base + reg->getMemOffset()));
    
    addedRegions_[reg] = mutateeBase;
    free(buffer);

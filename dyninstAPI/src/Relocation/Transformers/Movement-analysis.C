@@ -55,7 +55,7 @@ using namespace SymtabAPI;
 using namespace DataflowAPI;
 
 bool PCSensitiveTransformer::postprocess(TraceList &) {
-  //cerr << "Sensitive count: " << Sens_ << ", ext " << extSens_ << ", int " << intSens_ << endl;
+   cerr << dec << "Sensitive count: " << Sens_ << ", failed " << overApprox_ << ", ext " << extSens_ << ", int " << intSens_ << ", thunk " << thunk_ << endl;
   return true;
 }
 
@@ -69,10 +69,11 @@ bool PCSensitiveTransformer::analysisRequired(TraceList::iterator &b_iter) {
 }
 
 bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
+#if 0
    if (!analysisRequired(b_iter)) {
       return adhoc.processTrace(b_iter);
    }
-
+#endif
 
    const bblInstance *bbl = (*b_iter)->bbl();
   
@@ -122,35 +123,24 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
       continue;
     }
 
+    Sens_++;
+
+    sensitivity_cerr << "Instruction is sensitive @ " << hex << addr << dec << endl;
+
     // Optimization: before we do some heavyweight analysis, see if we can shortcut
     bool intSens = false;
     bool extSens = false;
+    bool approx = false;
     Absloc dest;
 
     if (insnIsThunkCall(insn, addr, dest)) {
       relocation_cerr << "Thunk @ " << hex << addr << dec << endl;
       handleThunkCall(b_iter, iter, dest);
+      intSens_++;
+      extSens_++;
+      thunk_++;
       continue;
     }
-
-#if 0
-    static int count = 0;
-  
-    if (DEBUG_hi != -1) {
-      if ((count >= DEBUG_lo) &&
-	  (count < DEBUG_hi)) {
-	//cerr << "Setting int and ext sens @ " << hex << addr << dec << endl;
-	intSens = true;
-	extSens = true;
-      }
-      else {
-	//cerr << "Setting int only @ " << hex << addr << ", count " << count << dec << endl;
-	intSens = true;
-      }
-    }
-    
-    count++;
-#endif
 
     if (exceptionSensitive(addr+insn->size(), bbl)) {
       extSens = true;
@@ -160,23 +150,21 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
     for (AssignList::iterator a_iter = sensitiveAssignments.begin();
 	 a_iter != sensitiveAssignments.end(); ++a_iter) {
 
-       sensitivity_cerr << "Forward slice from " << (*a_iter)->format() << " in func " << bbl->func()->prettyName() << endl;
-      
+       cerr << "Forward slice from " << (*a_iter)->format() << " in func " << bbl->func()->prettyName() << endl;
+
       Graph::Ptr slice = forwardSlice(*a_iter,
 				      bbl->block()->llb(),
 				      bbl->func()->ifunc());
       if (!slice) {
          // Safe assumption, as always
          sensitivity_cerr << "\t slice failed!" << endl;
-	extSens = true;
-	intSens = true;
+        approx = true;
       }
       else {
 	if (!determineSensitivity(slice, intSens, extSens)) {
 	  // Analysis failed for some reason... go conservative
            sensitivity_cerr << "\t sensitivity analysis failed!" << endl;
-	  intSens = true;
-	  extSens = true;
+          approx = true;
 	}
         else {
            sensitivity_cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / " 
@@ -184,17 +172,24 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
         }
       }
 
-      if (intSens && extSens) {
+      if (approx || (intSens && extSens)) {
 	break; 
       }
     }
 
-    if (extSens)
-      extSens_++;
-    if (intSens)
-      intSens_++;
-
-    Sens_++;
+    if (approx) {
+       overApprox_++;
+       intSens = true;
+       extSens = true;
+    }
+    else {
+       if (extSens) {
+          extSens_++;
+       }
+       if (intSens) {
+          intSens_++;
+       }
+    }
   
 
     if (extSens) {
@@ -308,8 +303,6 @@ public:
       return false;
     }
     
-    // We need to know when we hit a plt func. Thing is, I can't
-    // figure out how to do that directly. So we'll workaround...
     image_func *f = static_cast<image_func *>(func);
     if (f && f->isPLTFunction()) {
       // Don't bother following
@@ -320,9 +313,7 @@ public:
     // to not worry about going into a grandparent stack frame...
     if (cs.size() > 1) {
       if (a.absloc().type() == Absloc::Stack) {
-	if (a.absloc().off() >= cs.top().second) {
-	  return false;
-	}
+         return false;
       }
     }
     return true;
