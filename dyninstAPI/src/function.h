@@ -408,14 +408,14 @@ class int_function : public patchTarget {
    // Returns true if such functions exist.
 
    bool getSharingFuncs(int_basicBlock *b,
-                        pdvector<int_function *> &funcs);
+                        std::set<int_function *> &funcs);
 
    // The same, but for any function that overlaps with any of
    // our basic blocks.
    // OPTIMIZATION: we're not checking all blocks, only an exit
    // point; this _should_ work :) but needs to change if we
    // ever do flow-sensitive parsing
-   bool getOverlappingFuncs(pdvector<int_function *> &funcs);
+   bool getOverlappingFuncs(std::set<int_function *> &funcs);
 
 
    ////////////////////////////////////////////////

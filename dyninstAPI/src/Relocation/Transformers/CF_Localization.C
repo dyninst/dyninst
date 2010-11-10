@@ -65,7 +65,9 @@ bool LocalizeCF::processTrace(TraceList::iterator &iter) {
   
   if (!cf) return true;
 
-  if (cf->needsFTPadding()) return true;
+  // I don't think we want this. I _really_ don't think we want this. But it's a change,
+  // so getting commented out instead of replaced. 
+  // if (cf->needsPostCallPadding()) return true;
 
   // If this CFAtom contains a Target that is a bblInstance
   // in our map, replace it with a Target to that block.
