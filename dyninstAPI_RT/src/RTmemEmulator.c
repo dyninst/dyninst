@@ -97,7 +97,7 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long addr) {
       }
    }
    else {
-      fprintf(stderr, "\t min %d, max %d, index %d, returning no change\n", min, max, index);
+      //fprintf(stderr, "\t min %d, max %d, index %d, returning no change\n", min, max, index);
       return input;
    }
 }

@@ -177,7 +177,7 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
             (signalHandlerEntryCB_wrapper,contextPCaddr,false,BPatch_noInterp);
         BPatch_point *entryPt =  (*handlerFunc->findPoint(BPatch_entry))[0];
         BPatchSnippetHandle *handle = proc()->insertSnippet(sThread1, *entryPt);
-        saveInstrumentationHandle(entryPt,handle);
+        //saveInstrumentationHandle(entryPt,handle);
         
         // instrument handler entry with callback that will deliver the stack 
         // address at which the fault addr is stored
@@ -187,7 +187,7 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
         BPatch_stopThreadExpr sThread2
             (signalHandlerEntryCB_wrapper,excSrcAddr,false,BPatch_noInterp);
         handle = proc()->insertSnippet(sThread2, *entryPt);
-        saveInstrumentationHandle(entryPt,handle);
+        //saveInstrumentationHandle(entryPt,handle);
 
         proc()->finalizeInsertionSet(false);
         it++;
