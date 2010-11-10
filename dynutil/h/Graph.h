@@ -129,6 +129,8 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
     bool isEntryNode(NodePtr node);
     bool isExitNode(NodePtr node);
 
+    unsigned size() const;
+
  protected:
      
     static const Address INITIAL_ADDR;
