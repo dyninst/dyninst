@@ -275,15 +275,6 @@ bool MemEmulator::setupFrame(bool needTwo, codeGen &gen) {
       }
    }
 
-
-   if (saveRAX_) {
-      ::emitPush(RealRegister(REGNUM_EAX), gen);
-   }
-
-   if (saveFlags_) {
-      if (!saveFlags(gen)) return false;
-   }
-  
    return true;
 }
 
@@ -301,6 +292,10 @@ bool MemEmulator::computeEffectiveAddress(codeGen &gen) {
   const BPatch_memoryAccess *ma = bpoint->getMemoryAccess();
   
   const BPatch_addrSpec_NP *start = ma->getStartAddr(0); // Guessing on 0, here...
+  
+  // If we use RAX for the effective address calculation, we need to restore it, since
+  // we just st0mped the flags. 
+
   emitASload(start, effAddr_, gen, true);
 
   return true;
@@ -312,9 +307,6 @@ bool MemEmulator::teardownFrame(codeGen &gen) {
    // 2) Restore RAX if saveRAX
    // 3) DO NOT restore the effAddr if we stole it; that happens
    //    after the memory access
-   if (saveFlags_) {
-      if (!restoreFlags(gen)) return false;
-   }
 
    if (saveRAX_) {
       ::emitPop(RealRegister(REGNUM_EAX), gen);
@@ -500,10 +492,16 @@ bool MemEmulator::preCallSave(codeGen &gen) {
    registerSlot *eax = (*(gen.rs()))[REGNUM_EAX];
    registerSlot *ecx = (*(gen.rs()))[REGNUM_ECX];
    registerSlot *edx = (*(gen.rs()))[REGNUM_EDX];
+
+
    pushRegIfLive(eax, gen);
    pushRegIfLive(ecx, gen);
    pushRegIfLive(edx, gen);
    
+   if (saveFlags_) {
+      if (!saveFlags(gen)) return false;
+   }
+
    return true;
 }
 
@@ -512,6 +510,10 @@ bool MemEmulator::postCallRestore(codeGen &gen) {
    registerSlot *ecx = (*(gen.rs()))[REGNUM_ECX];
    registerSlot *edx = (*(gen.rs()))[REGNUM_EDX];
 
+   if (saveFlags_) {
+      if (!restoreFlags(gen)) return false;
+   }
+   
    popRegIfSaved(edx, gen);
    popRegIfSaved(ecx, gen);
    popRegIfSaved(eax, gen);
@@ -628,6 +630,7 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
                       RealRegister((usesTwo ? effAddr2_ : effAddr_)),
                       prepatch);
    }
+
    if (saveFlags_) {
       if (!restoreFlags(prepatch)) return false;
    }
@@ -674,7 +677,7 @@ bool MemEmulator::stealEffectiveAddr(Register &ret, codeGen &gen) {
    return true;
 }
 
-std::pair<bool, bool> MemEmulator::getImplicitRegs(codeGen &gen) {
+std::pair<bool, bool> MemEmulator::getImplicitRegs(codeGen &) {
    // Could go through IAPI, but I'm laaaazy
    const InstructionAPI::Operation &op = insn_->getOperation();
 
