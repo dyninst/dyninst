@@ -97,7 +97,7 @@ class interval {
     typedef T type;
 };
 
-class SimpleInterval : interval<int> {
+class SimpleInterval : public interval<int> {
   public:
     SimpleInterval( interval<int> & i, void * id ) {
         low_ = i.low();
@@ -109,7 +109,10 @@ class SimpleInterval : interval<int> {
         high_ = high;
         id_ = id;
     }
-        
+
+    virtual int low() const { return low_; }
+    virtual int high() const { return high_; }
+
   private:
     int low_;
     int high_;

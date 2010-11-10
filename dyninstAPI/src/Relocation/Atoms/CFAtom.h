@@ -73,10 +73,14 @@ class CFAtom : public Atom {
   void updateInsn(InstructionAPI::Instruction::Ptr insn);
   void updateAddr(Address addr);
 
+  void updateInfo(CFAtom::Ptr old);
+
   void setCall() { isCall_ = true; };
   void setConditional() { isConditional_ = true; };
   void setIndirect() { isIndirect_ = true; };
-  void setNeedsFTPadding() { padded_ = true; };
+  void setNeedsUnknownCallPadding() { postCallPadding_ = (unsigned) -1; }
+  void setNeedsPostCallPadding(unsigned size) { postCallPadding_ = size; }
+
 
   virtual ~CFAtom();
 
@@ -89,21 +93,22 @@ class CFAtom : public Atom {
   virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
   virtual unsigned size() const;
   bblInstance *block() const { return block_; }
-  bool needsFTPadding() const { return padded_; };
-  
+  bool needsPostCallPadding() const { return postCallPadding_ != 0; }
+
  private:
-  CFAtom(bblInstance *block) :
-  isCall_(false),
-    isConditional_(false),
-    isIndirect_(false),
-    padded_(false),
-    addr_(0),
-    block_(block) {};
+  CFAtom(bblInstance *block)
+     : isCall_(false),
+     isConditional_(false),
+     isIndirect_(false),
+     postCallPadding_(0),
+     addr_(0),
+     block_(block) {};
 
   bool isCall_;
   bool isConditional_;
   bool isIndirect_;
-  bool padded_;
+
+  unsigned postCallPadding_;
 
   InstructionAPI::Instruction::Ptr insn_;
   Address addr_;
@@ -191,11 +196,14 @@ struct PaddingPatch : public Patch {
   // do statically, but the second requires a patch so that
   // we get notified of address finickiness.
 
- PaddingPatch(bblInstance *b) : block_(b) {};
+  PaddingPatch(unsigned size, bool registerDefensive, bblInstance *b) 
+     : size_(size), registerDefensive_(registerDefensive), block_(b) {};
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
    virtual unsigned estimate(codeGen &templ);
    virtual ~PaddingPatch() {};
    
+   unsigned size_;
+   bool registerDefensive_;
    bblInstance *block_;
 };
 

@@ -244,7 +244,11 @@ void registerSpace::initialize32() {
 
 #if defined(os_windows)
     // VERY conservative, but it's safe wrt the ABI.
+    // Let's set everything and unset flags
     callRead_ = syscallRead_;
+    for (unsigned i = REGNUM_OF; i <= REGNUM_RF; ++i) {
+       callRead_[i] = false;
+    }
     callWritten_ = syscallWritten_;
 #endif
 

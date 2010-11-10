@@ -510,22 +510,37 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
    // And we performed the operation. Restore EDI.
    // But it might have been changed by the operation, 
    // so instead subtract the shift
+   if (saveRAX_) {
+      ::emitPush(RealRegister(REGNUM_EAX), prepatch);
+   }
+   if (saveFlags_) {
+      if (!saveFlags(prepatch)) return false;
+   }
+
+
    if (usesEDI) {
-      ::emitLEA(RealRegister(REGNUM_EDI),
-                RealRegister(effAddr_),
-                -1, 0, 
-                RealRegister(REGNUM_EDI), prepatch);
+      ::emitSubRegReg(RealRegister(REGNUM_EDI),
+                      RealRegister(effAddr_),
+                      prepatch);
    }
    if (usesESI) {
-      ::emitLEA(RealRegister(REGNUM_ESI),
-                RealRegister((usesTwo ? effAddr2_ : effAddr_)),
-                -1, 0, 
-                RealRegister(REGNUM_ESI), prepatch);
-   }      
+      ::emitSubRegReg(RealRegister(REGNUM_ESI),
+                      RealRegister((usesTwo ? effAddr2_ : effAddr_)),
+                      prepatch);
+   }
+   if (saveFlags_) {
+      if (!restoreFlags(prepatch)) return false;
+   }
+
+   if (saveRAX_) {
+      ::emitPop(RealRegister(REGNUM_EAX), prepatch);
+   }
+
    // And clean up
    if (!trailingTeardown(prepatch)) return false;
-   buffer.addPIC(prepatch, tracker(t->bbl()->func()));
 
+   buffer.addPIC(prepatch, tracker(t->bbl()->func()));
+   
    return true;
 }
 
@@ -543,6 +558,7 @@ bool MemEmulator::stealEffectiveAddr(Register &ret, codeGen &gen) {
       translated.insert(convertRegID(*i, whocares));
    }
    unsigned candidate;
+   // Don't use EAX since we require it for flag saves
    for (candidate = REGNUM_ECX; candidate <= REGNUM_EDI; ++candidate) {
       if (candidate == REGNUM_ESP) continue;
       if (translated.find(candidate) == translated.end()) {
@@ -562,6 +578,8 @@ std::pair<bool, bool> MemEmulator::getImplicitRegs(codeGen &gen) {
    // Could go through IAPI, but I'm laaaazy
    const InstructionAPI::Operation &op = insn_->getOperation();
 
+   // EDI, ESI
+
    switch(op.getID()) {
       case e_scasb:
       case e_scasd:
@@ -578,6 +596,10 @@ std::pair<bool, bool> MemEmulator::getImplicitRegs(codeGen &gen) {
       case e_movsw:
          return std::make_pair(true, true);
          break;
+      case e_stosb:
+      case e_stosd:
+      case e_stosw:
+         return std::make_pair(true, false);
       default:
          assert(0);
          return std::make_pair(false, false);

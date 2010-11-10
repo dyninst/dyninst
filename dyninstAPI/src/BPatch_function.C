@@ -1051,16 +1051,17 @@ bool BPatch_function::findOverlappingInt(BPatch_Vector<BPatch_function *> &funcs
     assert(func);
     assert(addSpace);
 
-    pdvector<int_function *> overlappingIntFuncs;
+    std::set<int_function *> overlappingIntFuncs;
     if (!func->getOverlappingFuncs(overlappingIntFuncs)) {
         // No overlapping functions
         return false;
     }
 
     // We now need to map from int_functions to BPatch_functions
-    for (unsigned i = 0; i < overlappingIntFuncs.size(); i++) {
-        funcs.push_back(addSpace->findOrCreateBPFunc(overlappingIntFuncs[i],
-                                                 mod));
+    for (std::set<int_function *>::iterator iter = overlappingIntFuncs.begin();
+         iter != overlappingIntFuncs.end(); ++iter) {
+       funcs.push_back(addSpace->findOrCreateBPFunc(*iter,
+                                                     mod));
     }
 
     return true;

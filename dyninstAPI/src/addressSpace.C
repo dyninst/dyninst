@@ -1453,13 +1453,13 @@ bool AddressSpace::sameRegion(Address addr1, Address addr2)
     if (!mobj || mobj != findObject(addr2)) {
         return false;
     }
-    Address loadAddr = mobj->parse_img()->desc().loadAddr();
+    Address baseAddr = mobj->codeBase();
 
     SymtabAPI::Region *reg1 = 
-        mobj->parse_img()->getObject()->findEnclosingRegion( addr1 - loadAddr );
+        mobj->parse_img()->getObject()->findEnclosingRegion( addr1 - baseAddr );
 
     if (!reg1 || reg1 != mobj->parse_img()->getObject()->
-                         findEnclosingRegion( addr2 - loadAddr )) {
+                         findEnclosingRegion( addr2 - baseAddr )) {
         return false;
     }
     return true;
@@ -1501,9 +1501,15 @@ using namespace Relocation;
 bool AddressSpace::relocate() {
   relocation_cerr << "ADDRSPACE::Relocate called!" << endl;
   bool ret = true;
-  for (std::map<mapped_object *, FuncSet>::const_iterator iter = modifiedFunctions_.begin();
+  for (std::map<mapped_object *, FuncSet>::iterator iter = modifiedFunctions_.begin();
        iter != modifiedFunctions_.end(); ++iter) {
     assert(iter->first);
+
+    std::set<int_function *> overlappingFuncs;
+    for (FuncSet::iterator iter2 = iter->second.begin(); iter2 != iter->second.end(); ++iter2) {
+       (*iter2)->getOverlappingFuncs(overlappingFuncs);
+    }
+    iter->second.insert(overlappingFuncs.begin(), overlappingFuncs.end());
 
     if (!relocateInt(iter->second.begin(), iter->second.end(), iter->first->codeAbs())) {
       ret = false;
@@ -1903,10 +1909,11 @@ void AddressSpace::updateMemEmulator() {
 std::pair<bool,Address> AddressSpace::memEmTranslate(Address orig) 
 {
     assert(isMemoryEmulated());
-    image *img = findObject(orig)->parse_img();
+    mapped_object *obj = findObject(orig);
+    image *img = obj->parse_img();
     SymtabAPI::Region *reg = img->getObject()->findEnclosingRegion(
-        orig - img->desc().loadAddr() );
-    Address regAddr = img->desc().loadAddr() + reg->getMemOffset();
+        orig - obj->codeBase() );
+    Address regAddr = obj->codeBase() + reg->getMemOffset();
 
     pair<bool,Address> translation = memEmulator_->translate(reg, 
                                                              orig - regAddr);
