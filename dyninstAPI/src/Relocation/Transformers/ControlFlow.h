@@ -65,7 +65,7 @@ class CFAtomCreator : public Transformer {
   static void getInterproceduralSuccessors(const bblInstance *inst,
 					   SuccVec &succ);
 
-  static bool unparsedFallthrough(const bblInstance *inst);
+  static std::pair<bool,unsigned> modifiedCallFallthrough(const bblInstance *inst);
 };
 
 };

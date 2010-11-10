@@ -206,8 +206,17 @@ bool CFAtom::generate(const codeGen &,
   default:
     assert(0);
   }
-  if (padded_) {
-     buffer.addPatch(new PaddingPatch(block_), addrTracker(addr_ + size()));
+  if (postCallPadding_ != 0) {
+     if (postCallPadding_ == (unsigned) -1) {
+        // We don't know what the callee does to the return addr,
+        // so we'll catch it at runtime. 
+        // The "10" is arbitrary.
+        buffer.addPatch(new PaddingPatch(10, true, block_), addrTracker(addr_ + size()));
+     }
+     else {
+        // Make up for stack tampering
+        buffer.addPatch(new PaddingPatch(postCallPadding_, false, block_), addrTracker(addr_ + size()));
+     }
   }
   
   return true;
@@ -320,6 +329,17 @@ void CFAtom::updateInsn(Instruction::Ptr insn) {
 void CFAtom::updateAddr(Address addr) {
   assert(addr != 1);
   addr_ = addr;
+}
+
+void CFAtom::updateInfo(CFAtom::Ptr old) {
+   // Pull all misc. info out
+   // Don't pull insn, as we often want to override
+   addr_ = old->addr_;
+   // Don't pull destMap...
+   block_ = old->block_;
+   postCallPadding_ = old->postCallPadding_;
+
+   // Don't copy isCall/isConditional/isIndirect
 }
 
 bool CFAtom::generateBranch(CodeBuffer &buffer,
@@ -560,13 +580,16 @@ unsigned CFPatch::estimate(codeGen &) {
 }
 
 bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
-   gen.registerDefensivePad(block_, gen.currAddr(), 10);
-   gen.fill(10, codeGen::cgIllegal);
+   if (registerDefensive_) {
+      assert(block_);
+      gen.registerDefensivePad(block_, gen.currAddr(), 10);
+   }
+   gen.fill(size_, codeGen::cgIllegal);
    //gen.fill(10, codeGen::cgNOP);
    return true;
 }
 
 unsigned PaddingPatch::estimate(codeGen &) {
-   return 10;
+   return size_;;
 }
 
