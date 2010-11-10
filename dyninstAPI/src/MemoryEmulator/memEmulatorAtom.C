@@ -244,6 +244,14 @@ bool MemEmulator::checkLiveness(codeGen &gen) {
 
 
 bool MemEmulator::setupFrame(bool needTwo, codeGen &gen) {
+   // If we're emulating a push, we need to create a stack
+   // slot where this value is going _before_ we do anything
+   // else. 
+   if (insn_->getOperation().getID() == e_push) {
+      // Value doesn't matter
+      ::emitPush(RealRegister(REGNUM_EAX), gen);
+   }
+
    // Goals:
    // To free a register for the modified effective address
    // To save flags (if live)
@@ -376,8 +384,37 @@ bool MemEmulator::emulateCommon(codeGen &gen) {
   return true;
 }
 
-bool MemEmulator::emulatePush(codeGen &) {
-   return false;
+bool MemEmulator::emulatePush(codeGen &gen) {
+   // A lot like emulatePop, except instead of
+   // slurping an extra word off the stack we've
+   // got one sitting there waiting to be filled.
+   Register toUse = REGNUM_EAX;
+   if (effAddr_ == REGNUM_EAX) {
+      toUse = REGNUM_EBX;
+   }
+
+   // We have to push, since we _know_ we have no free
+   // registers
+   ::emitPush(RealRegister(toUse), gen);
+
+   // Pull from memory into our spare register
+   ::emitMovRMToReg(RealRegister(toUse),
+                    RealRegister(effAddr_),
+                    0,
+                    gen);
+   
+   // Push (move) it onto the stack
+   ::emitMovRegToRM(RealRegister(REGNUM_ESP),
+                    4 + 4*externalSaved_.size(), 
+                    RealRegister(toUse),
+                    gen);
+   // Restore toUse
+   ::emitPop(RealRegister(toUse), gen);
+   // Restore the externalSaved stack
+   if (!trailingTeardown(gen)) return false;
+
+   return true;
+
 }
 
 bool MemEmulator::emulatePop(codeGen &gen) {
