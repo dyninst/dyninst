@@ -161,15 +161,19 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
         approx = true;
       }
       else {
-	if (!determineSensitivity(slice, intSens, extSens)) {
+         if (slice->size() > 10) {
+// HACK around a problem with slice sizes
+            approx = true;
+         }
+         else if (!determineSensitivity(slice, intSens, extSens)) {
 	  // Analysis failed for some reason... go conservative
-           sensitivity_cerr << "\t sensitivity analysis failed!" << endl;
-          approx = true;
-	}
-        else {
-           sensitivity_cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / " 
-                << (extSens ? "extSens" : "") << endl;
-        }
+            sensitivity_cerr << "\t sensitivity analysis failed!" << endl;
+            approx = true;
+         }
+         else {
+            sensitivity_cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / " 
+                             << (extSens ? "extSens" : "") << endl;
+         }
       }
 
       if (approx || (intSens && extSens)) {
@@ -339,6 +343,7 @@ Graph::Ptr PCSensitiveTransformer::forwardSlice(Assignment::Ptr ptr,
 bool PCSensitiveTransformer::determineSensitivity(Graph::Ptr slice,
 						  bool &internal,
 						  bool &external) {
+
   // Step 1: get a symbolic expansion of each node in the slice
   DataflowAPI::Result_t results;
   DataflowAPI::SymEval::expand(slice, results);

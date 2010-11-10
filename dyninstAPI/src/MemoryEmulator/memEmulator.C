@@ -172,7 +172,7 @@ void MemoryEmulator::addRegion(Region *reg, Address base) {
    free(buffer);
 }
 
-void MemoryEmulator::addRegion(Address start, unsigned size, unsigned long shift) {
+void MemoryEmulator::addRegion(Address start, unsigned size, Address shift) {
    if (size == 0) return;
 
    Address end = start + size;
@@ -182,6 +182,7 @@ void MemoryEmulator::addRegion(Address start, unsigned size, unsigned long shift
    // range. We do this because our allocation tends to be contiguous.
    // Two options: we're immediately above an existing range or we're immediately
    // below. Check both. 
+
 
    Address lb, ub;
    unsigned long val;
@@ -205,9 +206,8 @@ void MemoryEmulator::addRegion(Address start, unsigned size, unsigned long shift
       else {
          memoryMap_.insert(start, end, shift);
       }
-      return;
    }
-   if (memoryMap_.find(end, lb, ub, val)) {
+   else if (memoryMap_.find(end, lb, ub, val)) {
       // See the above
       if (end != ub) {
          fprintf(stderr, "ERROR: adding range 0x%lx -> 0x%lx (0x%lx), found range 0x%lx -> 0x%lx (0x%lx)\n",
@@ -222,25 +222,20 @@ void MemoryEmulator::addRegion(Address start, unsigned size, unsigned long shift
       else {
          memoryMap_.insert(start, end, shift);
       }
-      return;
+   }
+   else {
+      memoryMap_.insert(start, end, shift);
    }
 
-   memoryMap_.insert(start, end, shift);
+   if (shift != (unsigned long) -1) {
+      reverseMemoryMap_.insert(start + shift, end + shift, shift);
+   }
+
    return;   
 }
 
 unsigned MemoryEmulator::addrWidth() {
    return aS_->getAddressWidth();
-}
-
-std::pair<bool, Address> MemoryEmulator::translate(Region *reg, unsigned long offset) {
-   if (offset >= reg->getMemSize()) { return std::make_pair(false, 0); }
-
-   RegionMap::const_iterator iter = addedRegions_.find(reg);
-   if (iter == addedRegions_.end()) {
-      return std::make_pair(false, 0);
-   }
-   return std::make_pair(true, offset + iter->second);
 }
 
 std::pair<bool, Address> MemoryEmulator::translate(Address orig) {
@@ -254,4 +249,17 @@ std::pair<bool, Address> MemoryEmulator::translate(Address orig) {
       return std::make_pair(true, orig);
    }
    return std::make_pair(true, orig + val);
+}
+
+std::pair<bool, Address> MemoryEmulator::translateBackwards(Address addr) {
+   // Mimic the translation performed in the RT library
+   Address lb, ub;
+   unsigned long val;
+   if (!reverseMemoryMap_.find(addr, lb, ub, val)) {
+      return std::make_pair(false, 0);
+   }
+   if (val == (unsigned long) -1) {
+      return std::make_pair(true, addr);
+   }
+   return std::make_pair(true, addr - val);
 }

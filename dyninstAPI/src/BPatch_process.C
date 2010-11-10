@@ -64,6 +64,7 @@
 #include "parseAPI/h/CFG.h"
 #include "ast.h"
 #include "debug.h"
+#include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
 
 using namespace Dyninst;
@@ -1740,7 +1741,7 @@ unsigned char * BPatch_process::makeShadowPage(Dyninst::Address pageAddr)
     if (llproc->isMemoryEmulated()) {
         int shadowRights=0;
         bool valid = false;
-        boost::tie(valid, shadowAddr) = llproc->memEmTranslate(pageAddr);
+        boost::tie(valid, shadowAddr) = llproc->getMemEm()->translate(pageAddr);
         assert(valid);
     }
 

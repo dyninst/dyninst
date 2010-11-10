@@ -1906,19 +1906,6 @@ void AddressSpace::updateMemEmulator() {
    memEmulator_->update();
 }
 
-std::pair<bool,Address> AddressSpace::memEmTranslate(Address orig) 
-{
-    assert(isMemoryEmulated());
-    mapped_object *obj = findObject(orig);
-    image *img = obj->parse_img();
-    SymtabAPI::Region *reg = img->getObject()->findEnclosingRegion(
-        orig - obj->codeBase() );
-    Address regAddr = obj->codeBase() + reg->getMemOffset();
-
-    pair<bool,Address> translation = memEmulator_->translate(reg, 
-                                                             orig - regAddr);
-    if (translation.first) {
-        translation.second += regAddr;
-    }
-    return translation;
+MemoryEmulator * AddressSpace::getMemEm() {
+    return memEmulator_;
 }

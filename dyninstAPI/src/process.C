@@ -65,6 +65,7 @@
 #include "dyninstAPI/src/debuggerinterface.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "dyninstAPI/src/ast.h"
+#include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
 
 // #include "paradynd/src/mdld.h"
@@ -4759,7 +4760,7 @@ bool process::getOverwrittenBlocks
         Address readAddr = curPageAddr;
         if (isMemoryEmulated()) {
             bool valid = false;
-            boost::tie(valid,readAddr) = memEmTranslate(curPageAddr);
+            boost::tie(valid,readAddr) = getMemEm()->translate(curPageAddr);
             assert(valid);
         }
         readTextSpace((void*)readAddr, MEM_PAGE_SIZE, memVersion);

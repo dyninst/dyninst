@@ -813,6 +813,10 @@
 				RelativePath=".\src\util.h"
 				>
 			</File>
+			<File
+				RelativePath="..\dataflowAPI\rose\x86InstructionSemantics.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
