@@ -47,9 +47,6 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
 				    ParseAPI::Function *func,
 				    std::vector<AbsRegion> &used,
 				    std::vector<AbsRegion> &defined) {
-                        if (addr == 0x0f0cb) {
-                            cerr << "Hi!" << endl;
-                        }
                         
                         if (!usedCache(addr, func, used)) {
     std::set<RegisterAST::Ptr> regsRead;

@@ -50,6 +50,7 @@
 #include "BPatch_libInfo.h"
 #include "BPatch_edge.h"
 #include "instPoint.h"
+#include "mapped_object.h"
 
 int bpatch_basicBlock_count = 0;
 
@@ -586,7 +587,7 @@ BPatch_function * BPatch_basicBlock::getCallTarget()
     if ( ! imgPt || callSite != imgPt->getPointType() ) {
         return NULL;
     }
-    Address baseAddr = iblock->func()->ifunc()->img()->desc().loadAddr();
+    Address baseAddr = iblock->func()->obj()->codeBase();
     Address targetAddr = imgPt->callTarget() + baseAddr;
 
     BPatch_module *targMod = flowGraph->addSpace->findModuleByAddr(targetAddr);

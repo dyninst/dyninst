@@ -1156,7 +1156,7 @@ bool mapped_object::splitIntLayer()
     // not implemented (or needed, for now) on non-instruction API platforms
     return false;
 #else
-    Address baseAddr = this->parse_img()->desc().loadAddr();
+    Address baseAddr = codeBase();
     using namespace InstructionAPI;
     // iterates through the blocks that were created during block splitting
     std::set< image_basicBlock* > splits = parse_img()->getSplitBlocks();
@@ -1228,7 +1228,7 @@ bool mapped_object::splitIntLayer()
     }
 
     // check arbitrary points in functions whose block boundaries may have changed 
-    Address baseAddress = parse_img()->desc().loadAddr();
+    Address baseAddress = codeBase();
     for (std::set<image_func*>::iterator fIter = splitfuncs.begin();
             fIter != splitfuncs.end(); 
             fIter++) 
@@ -1363,7 +1363,7 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
 {
 
     bool reparsedObject = false;
-    Address baseAddress = parse_img()->desc().loadAddr();
+    Address baseAddress = codeBase();
     SymtabAPI::Region *reg;
     std::set<SymtabAPI::Region*> visitedRegions;
 
@@ -1566,7 +1566,7 @@ void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges
 //    expanding them if we wrote in un-initialized memory
     using namespace SymtabAPI;
     std::set<Region *> expandRegs;// so we don't update regions more than once
-    Address baseAddress = parse_img()->desc().loadAddr();
+    Address baseAddress = codeBase();
 
     // figure out which regions need expansion and which need updating
     list<pair<Address,Address> >::const_iterator rIter = owRanges.begin();
@@ -1806,7 +1806,7 @@ bool mapped_object::isUpdateNeeded(Address entry)
 bool mapped_object::isExpansionNeeded(Address entry) 
 {
     using namespace SymtabAPI;
-    Address base = parse_img()->desc().loadAddr();
+    Address base = codeBase();
     Region * reg = parse_img()->getObject()->findEnclosingRegion(entry - base);
     
     if (reg->getMemSize() <= reg->getDiskSize()) {
@@ -1889,7 +1889,7 @@ bool mapped_object::updateCodeBytesIfNeeded(Address entry)
     }
 
     SymtabAPI::Region * reg = parse_img()->getObject()->findEnclosingRegion
-        (entry - parse_img()->desc().loadAddr());
+        (entry - codeBase());
     mal_printf("%s[%d] updating region [%lx %lx] for entry point %lx\n", 
                FILE__,__LINE__,
                reg->getRegionAddr(), 

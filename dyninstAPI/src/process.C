@@ -5146,11 +5146,11 @@ int_function *process::findActiveFuncByAddr(Address addr)
                     instPoint *callPt = callerBBI->func()->findInstPByAddr
                         (callerBBI->block()->origInstance()->endAddr());
                     if (callPt && callPt->callTarget()) {
-                        image *img = callPt->func()->obj()->parse_img();
+                        mapped_object *obj = callPt->func()->obj();
                         frameFunc = findFuncByInternalFunc(
-                            img->findFuncByEntry(
+                            obj->parse_img()->findFuncByEntry(
                                 callPt->callTarget() 
-                                - img->desc().loadAddr()));
+                                - obj->codeBase()));
                     }
                 }
             }

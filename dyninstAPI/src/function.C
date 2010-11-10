@@ -846,7 +846,7 @@ void int_function::deleteBlock(int_basicBlock* block)
     bblInstance *origbbi = block->origInstance();
     image_basicBlock *imgBlock = block->llb();
     assert( ! imgBlock->isShared() ); //KEVINTODO: unimplemented case
-    Address baseAddr = ifunc()->img()->desc().loadAddr();
+    Address baseAddr = obj()->codeBase();
 
     // remove parse points
     pdvector<image_instPoint*> imgPoints;
