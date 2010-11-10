@@ -55,9 +55,10 @@ class MemoryEmulator {
    void reprocess(mapped_object *obj);
 
    std::pair<bool, Address> translate(Address addr);
+   std::pair<bool, Address> translateBackwards(Address addr);
    
   private:
-   void addRegion(Address start, unsigned size, unsigned long shift);
+   void addRegion(Address start, unsigned size, Address newBase);
    bool findMutateeTable();
    unsigned addrWidth();
 
@@ -66,6 +67,7 @@ class MemoryEmulator {
    // Track what the address space looks like for defensive mode. 
    typedef IntervalTree<Address, unsigned long> MemoryMapTree;
    MemoryMapTree memoryMap_;
+   MemoryMapTree reverseMemoryMap_;
 
    Address mutateeBase_;
 
