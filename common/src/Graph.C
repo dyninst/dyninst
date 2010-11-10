@@ -183,3 +183,6 @@ bool Graph::isExitNode(NodePtr node) {
   return (exitNodes_.find(node) != exitNodes_.end());
 }
 
+unsigned Graph::size() const {
+   return nodes_.size();
+}
