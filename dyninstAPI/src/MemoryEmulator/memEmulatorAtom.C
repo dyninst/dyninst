@@ -223,7 +223,7 @@ bool MemEmulator::initialize(codeGen &gen) {
   registerSpace *rs = registerSpace::actualRegSpace(point_, callPreInsn);
   gen.setRegisterSpace(rs);
 
-  while (!externalSaved_.empty()) externalSaved_.pop();
+  externalSaved_.clear();
 
   return true;
 }
@@ -316,7 +316,7 @@ bool MemEmulator::teardownFrame(codeGen &gen) {
    
 bool MemEmulator::trailingTeardown(codeGen &gen) {
    while (!externalSaved_.empty()) {
-      Register pop = externalSaved_.top(); externalSaved_.pop();
+      Register pop = externalSaved_.front(); externalSaved_.pop_front();
       ::emitPop(RealRegister(pop), gen);
    }
    return true;
@@ -352,6 +352,18 @@ bool MemEmulator::generateOrigAccess(codeGen &gen) {
   // Okay, theoretically effAddr_ holds the memory address.
   // Should do a compare here; for now, just drop out the instruction
   // and see what happens.
+
+   if (insn_->getOperation().getID() == e_push) {
+      return emulatePush(gen);
+   }
+   if (insn_->getOperation().getID() == e_pop) {
+      return emulatePop(gen);
+   }
+
+   return emulateCommon(gen);
+}
+
+bool MemEmulator::emulateCommon(codeGen &gen) {
   instruction ugly_insn(insn_->ptr());
 
   if (!insnCodeGen::generateMem(gen,
@@ -362,6 +374,57 @@ bool MemEmulator::generateOrigAccess(codeGen &gen) {
 				Null_Register))
     return false;
   return true;
+}
+
+bool MemEmulator::emulatePush(codeGen &) {
+   return false;
+}
+
+bool MemEmulator::emulatePop(codeGen &gen) {
+   // What we're starting with: pop [R1]
+   // And the stack looks like:
+   // <external saved stack>
+   // <val>
+   //
+   // So we need to get at val.
+   if (externalSaved_.empty()) {
+      // Easy!
+      return emulateCommon(gen);
+   }
+
+   // So the stack looks like so:
+   // 
+   // <external saved n>
+   // ...
+   // <external saved 1> 
+   // <val>
+   // 
+   // Save another register to use as a temporary. 
+   Register toUse = REGNUM_EAX;
+   if (effAddr_ == REGNUM_EAX) {
+      toUse = REGNUM_EBX;
+   }
+   // We have to push, since we _know_ we have no free
+   // registers
+   ::emitPush(RealRegister(toUse), gen);
+   // Load the value off the stack. We want an offset of
+   // 4 + 4*(sizeof externalSaved)
+   ::emitMovRMToReg(RealRegister(toUse),
+                    RealRegister(REGNUM_ESP),
+                    4 + 4*externalSaved_.size(),
+                    gen);
+   // Save it to wherever it's going
+   ::emitMovRegToRM(RealRegister(effAddr_),
+                    0, 
+                    RealRegister(toUse),
+                    gen);
+   // Restore toUse
+   ::emitPop(RealRegister(toUse), gen);
+   // Restore the externalSaved stack
+   if (!trailingTeardown(gen)) return false;
+   // And now LEA to clear the dead value
+   ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 4, RealRegister(REGNUM_ESP), gen);
+   return true;
 }
 
 string MemEmulator::format() const {
@@ -570,7 +633,7 @@ bool MemEmulator::stealEffectiveAddr(Register &ret, codeGen &gen) {
 
    // Okay, so we stole a reg that wasn't used by the instruction
    ::emitPush(RealRegister(ret), gen);
-   externalSaved_.push(ret);
+   externalSaved_.push_front(ret);
    return true;
 }
 
