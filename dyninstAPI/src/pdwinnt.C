@@ -599,9 +599,10 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
         if (!obj && ev.proc->isMemoryEmulated()) {
             bool valid=false;
             Address orig=0;
-            boost::tie(valid,orig) = ev.proc->getMemEm()->translate(violationAddr);
+            boost::tie(valid,orig) = ev.proc->getMemEm()->translateBackwards(violationAddr);
             if (valid) {
                 violationAddr = orig;
+                ev.info.u.Exception.ExceptionRecord.ExceptionInformation[1] = orig;
                 obj = ev.proc->findObject(violationAddr);
             }
         }
