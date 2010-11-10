@@ -433,7 +433,7 @@ class AddressSpace : public InstructionSource {
     void updateMemEmulator();
     bool isMemoryEmulated() { return emulateMem_; }
     bool emulatingPC() { return emulatePC_; }
-    std::pair<bool,Address> memEmTranslate(Address);
+    MemoryEmulator *getMemEm();
     
  protected:
 
