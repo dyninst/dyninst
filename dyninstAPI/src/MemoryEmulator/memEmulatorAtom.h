@@ -132,6 +132,9 @@ class MemEmulator : public Atom {
    bool stealEffectiveAddr(Register &ret, codeGen &gen);
 
    std::pair<bool, bool> getImplicitRegs(codeGen &gen);
+   bool emulateCommon(codeGen &gen);
+   bool emulatePush(codeGen &gen);
+   bool emulatePop(codeGen &gen);
 
    /*
    bool generateJA(codeGen &gen,
@@ -150,7 +153,7 @@ class MemEmulator : public Atom {
    bool saveFlags_;
    bool saveRAX_;
    
-   std::stack<Register> externalSaved_;
+   std::deque<Register> externalSaved_;
 
    static TranslatorMap translators_;
 };
