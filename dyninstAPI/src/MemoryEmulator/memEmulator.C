@@ -233,16 +233,6 @@ unsigned MemoryEmulator::addrWidth() {
    return aS_->getAddressWidth();
 }
 
-std::pair<bool, Address> MemoryEmulator::translate(Region *reg, unsigned long offset) {
-   if (offset >= reg->getMemSize()) { return std::make_pair(false, 0); }
-
-   RegionMap::const_iterator iter = addedRegions_.find(reg);
-   if (iter == addedRegions_.end()) {
-      return std::make_pair(false, 0);
-   }
-   return std::make_pair(true, offset + iter->second);
-}
-
 std::pair<bool, Address> MemoryEmulator::translate(Address orig) {
    // Mimic the translation performed in the RT library
    Address lb, ub;

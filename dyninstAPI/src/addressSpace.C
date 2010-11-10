@@ -1906,3 +1906,6 @@ void AddressSpace::updateMemEmulator() {
    memEmulator_->update();
 }
 
+MemoryEmulator * AddressSpace::getMemEm() {
+    return memEmulator_;
+}

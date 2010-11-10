@@ -82,7 +82,7 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long addr) {
          return 0;
       }
       else {
-#if 0
+#if 1
         fprintf(stderr, "... returning shadow copy as index is within range 0x%lx to 0x%lx, shift 0x%lx\n",
                 RTmemoryMapper.elements[index].lo,
                 RTmemoryMapper.elements[index].hi,
@@ -97,7 +97,7 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long addr) {
       }
    }
    else {
-      //fprintf(stderr, "\t min %d, max %d, index %d, returning no change\n", min, max, index);
+      fprintf(stderr, "\t min %d, max %d, index %d, returning no change\n", min, max, index);
       return input;
    }
 }
@@ -108,7 +108,7 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long addr) {
    int min;
    int max;
    volatile int guard2;
-   //fprintf(stderr, "RTtranslateMemory(0x%lx)\n", input);
+   fprintf(stderr, "RTtranslateMemory(0x%lx)\n", input);
    do {
       guard2 = RTmemoryMapper.guard2;
       min = 0;
@@ -136,12 +136,12 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long addr) {
          return -1 * input;
       }
       else {
-         //fprintf(stderr, "... returning shift\n");
+         fprintf(stderr, "... returning shift\n");
          return RTmemoryMapper.elements[index].shift;
       }
    }
    else {
-      //fprintf(stderr, "\t min %d, max %d, index %d, returning no change\n", min, max, index);
+      fprintf(stderr, "\t min %d, max %d, index %d, returning no change\n", min, max, index);
       return 0;
    }
 }

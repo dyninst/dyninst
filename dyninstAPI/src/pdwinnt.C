@@ -596,6 +596,15 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
         // it's a write to a page containing write-protected code if region
         // permissions don't match the current permissions of the written page
         obj = ev.proc->findObject(violationAddr);
+        if (!obj && ev.proc->isMemoryEmulated()) {
+            bool valid=false;
+            Address orig=0;
+            boost::tie(valid,orig) = ev.proc->getMemEm()->translate(violationAddr);
+            if (valid) {
+                violationAddr = orig;
+                obj = ev.proc->findObject(violationAddr);
+            }
+        }
         if (obj) {
             using namespace SymtabAPI;
             Region *reg = obj->parse_img()->getObject()->
