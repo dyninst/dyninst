@@ -339,6 +339,7 @@ Graph::Ptr PCSensitiveTransformer::forwardSlice(Assignment::Ptr ptr,
 bool PCSensitiveTransformer::determineSensitivity(Graph::Ptr slice,
 						  bool &internal,
 						  bool &external) {
+
   // Step 1: get a symbolic expansion of each node in the slice
   DataflowAPI::Result_t results;
   DataflowAPI::SymEval::expand(slice, results);

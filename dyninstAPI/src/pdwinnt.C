@@ -602,7 +602,6 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             boost::tie(valid,orig) = ev.proc->getMemEm()->translateBackwards(violationAddr);
             if (valid) {
                 violationAddr = orig;
-                ev.info.u.Exception.ExceptionRecord.ExceptionInformation[1] = orig;
                 obj = ev.proc->findObject(violationAddr);
             }
         }
@@ -2544,7 +2543,7 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
         Address shadowAddr = writtenAddr;
         int shadowRights=0;
         bool valid = false;
-        boost::tie(valid, shadowAddr) = ev.proc->getMemEm()->translate(writtenAddr);
+        boost::tie(valid, shadowAddr) = ev.proc->getMemEm()->translateBackwards(writtenAddr);
         assert(valid && shadowAddr != writtenAddr);
         writtenAddr = shadowAddr;
     }
