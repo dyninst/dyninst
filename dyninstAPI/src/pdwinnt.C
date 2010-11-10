@@ -54,6 +54,7 @@
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "symtab.h"
+#include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
 
 #include "dyninstAPI/src/ast.h"
@@ -865,7 +866,7 @@ int dyn_lwp::changeMemoryProtections(Address addr, Offset size, unsigned rights)
         Address shadowAddr = addr;
         int shadowRights=0;
         bool valid = false;
-        boost::tie(valid, shadowAddr) = proc()->memEmTranslate(addr);
+        boost::tie(valid, shadowAddr) = proc()->getMemEm()->translate(addr);
         if (!valid) {
             fprintf(stderr, "WARNING: set access rights on page %lx that has "
                     "no shadow %s[%d]\n",addr,FILE__,__LINE__);
@@ -2533,7 +2534,7 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
         Address shadowAddr = writtenAddr;
         int shadowRights=0;
         bool valid = false;
-        boost::tie(valid, shadowAddr) = ev.proc->memEmTranslate(writtenAddr);
+        boost::tie(valid, shadowAddr) = ev.proc->getMemEm()->translate(writtenAddr);
         assert(valid && shadowAddr != writtenAddr);
         writtenAddr = shadowAddr;
     }

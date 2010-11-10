@@ -45,6 +45,7 @@
 #include "InstructionDecoder.h"
 #include "Parsing.h"
 #include "instPoint.h"
+#include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
 
 using namespace Dyninst;
@@ -1466,7 +1467,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
     Address readAddr = regStart + codeBase();
     if (proc()->isMemoryEmulated()) {
         bool valid = false;
-        boost::tie(valid, readAddr) = proc()->memEmTranslate(readAddr);
+        boost::tie(valid, readAddr) = proc()->getMemEm()->translate(readAddr);
         assert(valid);
     }
     if (!proc()->readDataSpace((void*)readAddr, 
@@ -1600,7 +1601,7 @@ void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges
         Address readAddr = rIter->first;
         if (memEmulation) {
             bool valid = false;
-            boost::tie(valid, readAddr) = proc()->memEmTranslate(readAddr);
+            boost::tie(valid, readAddr) = proc()->getMemEm()->translate(readAddr);
             assert(valid);
         }
 
@@ -1675,7 +1676,7 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
                 Address readAddr = prevEndAddr + base;
                 if (proc()->isMemoryEmulated()) {
                     bool valid = false;
-                    boost::tie(valid, readAddr) = proc()->memEmTranslate(readAddr);
+                    boost::tie(valid, readAddr) = proc()->getMemEm()->translate(readAddr);
                     assert(valid);
                 }
                 if (!proc()->readDataSpace(
@@ -1707,7 +1708,7 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
             Address readAddr = prevEndAddr + base;
             if (proc()->isMemoryEmulated()) {
                 bool valid = false;
-                boost::tie(valid, readAddr) = proc()->memEmTranslate(readAddr);
+                boost::tie(valid, readAddr) = proc()->getMemEm()->translate(readAddr);
                 assert(valid);
             }
             if (!proc()->readDataSpace(
@@ -1780,7 +1781,7 @@ bool mapped_object::isUpdateNeeded(Address entry)
     Address readAddr = entry;
     if (proc()->isMemoryEmulated()) {
         bool valid = false;
-        boost::tie(valid, readAddr) = proc()->memEmTranslate(readAddr);
+        boost::tie(valid, readAddr) = proc()->getMemEm()->translate(readAddr);
         assert(valid);
     }
 
@@ -1829,7 +1830,7 @@ bool mapped_object::isExpansionNeeded(Address entry)
         base + reg->getRegionAddr() + reg->getDiskSize();
     if (proc()->isMemoryEmulated()) {
         bool valid = false;
-        boost::tie(valid, compareStart) = proc()->memEmTranslate(compareStart);
+        boost::tie(valid, compareStart) = proc()->getMemEm()->translate(compareStart);
         assert(valid);
     }
 #if defined(cap_instruction_api)

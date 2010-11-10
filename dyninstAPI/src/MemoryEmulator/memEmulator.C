@@ -243,4 +243,15 @@ std::pair<bool, Address> MemoryEmulator::translate(Region *reg, unsigned long of
    return std::make_pair(true, offset + iter->second);
 }
 
-
+std::pair<bool, Address> MemoryEmulator::translate(Address orig) {
+   // Mimic the translation performed in the RT library
+   Address lb, ub;
+   unsigned long val;
+   if (!memoryMap_.find(orig, lb, ub, val)) {
+      return std::make_pair(false, 0);
+   }
+   if (val == (unsigned long) -1) {
+      return std::make_pair(true, orig);
+   }
+   return std::make_pair(true, orig + val);
+}
