@@ -490,6 +490,36 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
   return ret;
 }
 
+static void decodeHandlerCallback(EventRecord &ev)
+{
+    ev.address = (eventAddress_t) 
+       ev.info.u.Exception.ExceptionRecord.ExceptionAddress;
+
+    // see if a signalhandler callback is registered
+    pdvector<CallbackBase *> callbacks;
+    SignalHandlerCallback *sigHandlerCB = NULL;
+    if (getCBManager()->dispenseCallbacksMatching(evtSignalHandlerCB, callbacks)
+       && ev.address != ((SignalHandlerCallback*)callbacks[0])->getLastSigAddr()
+       && ((SignalHandlerCallback*)callbacks[0])->handlesSignal(ev.what)) 
+    {
+       ev.type = evtSignalHandlerCB;
+    }
+    else {// no handler is registered, return to signal to program 
+
+       if ( EXCEPTION_ILLEGAL_INSTRUCTION == ev.what || 
+            EXCEPTION_ACCESS_VIOLATION    == ev.what    ) 
+       {
+           Frame af = ev.lwp->getActiveFrame();
+           signal_printf
+               ("DECODE CRITICAL -- ILLEGAL INSN OR ACCESS VIOLATION\n");
+           ev.type = evtCritical;
+       }
+       else {
+           ev.type = evtSignalled;
+       }
+    }
+}
+
 bool SignalGenerator::decodeBreakpoint(EventRecord &ev) 
 {
   char buf[128];
@@ -510,8 +540,13 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
   else if (decodeRTSignal(ev)) {
       ret = true;
   }
+  else if (BPatch_defensiveMode == ev.proc->getHybridMode()) {
+     requested_wait_until_active = true;//i.e., return exception to mutatee
+     decodeHandlerCallback(ev);
+     ret = true;
+  }
   else {
-     ev.type = evtProcessStop;
+     ev.type = evtCritical;
      ret = true;
   }
 
@@ -678,37 +713,9 @@ bool SignalGenerator::decodeException(EventRecord &ev)
    // trigger callback if we haven't resolved the signal and a 
    // signalHandlerCallback is registered
    if (!ret) {
-
-       ev.address = (eventAddress_t) 
-           ev.info.u.Exception.ExceptionRecord.ExceptionAddress;
        requested_wait_until_active = true;//i.e., return exception to mutatee
-
-       // see if a signalhandler callback is registered
-       pdvector<CallbackBase *> callbacks;
-       SignalHandlerCallback *sigHandlerCB = NULL;
-       if (getCBManager()->dispenseCallbacksMatching(evtSignalHandlerCB, callbacks)
-           && ev.address != ((SignalHandlerCallback*)callbacks[0])->getLastSigAddr()
-           && ((SignalHandlerCallback*)callbacks[0])->handlesSignal(ev.what)) 
-       {
-           ev.type = evtSignalHandlerCB;
-           ret = true;
-       }
-       else {// no handler is registered, return to signal to program 
-
-           if ( EXCEPTION_ILLEGAL_INSTRUCTION == ev.what || 
-                EXCEPTION_ACCESS_VIOLATION    == ev.what    ) 
-           {
-               Frame af = ev.lwp->getActiveFrame();
-               signal_printf
-                   ("DECODE CRITICAL -- ILLEGAL INSN OR ACCESS VIOLATION\n");
-               ev.type = evtCritical;
-           }
-           else {
-               ev.type = evtSignalled;
-           }
-
-           ret = true;
-       }
+       decodeHandlerCallback(ev);
+       ret = true;
    }
 
    return ret;
