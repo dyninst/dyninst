@@ -308,9 +308,6 @@ bool MemEmulator::teardownFrame(codeGen &gen) {
    // 3) DO NOT restore the effAddr if we stole it; that happens
    //    after the memory access
 
-   if (saveRAX_) {
-      ::emitPop(RealRegister(REGNUM_EAX), gen);
-   }
    return true;
 }
    
