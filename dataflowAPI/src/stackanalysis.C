@@ -1089,6 +1089,11 @@ StackAnalysis::Height StackAnalysis::findFP(Address addr) {
   assert(fp_intervals_);
 
   fp_intervals_->find(addr, ret);
+  if (ret.isTop()) {
+     // FIXME for overlapping intervals
+     return Height::bottom;
+  }
+
   return ret;
 }
 
