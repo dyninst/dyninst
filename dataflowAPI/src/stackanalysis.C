@@ -658,6 +658,13 @@ void StackAnalysis::computeInsnEffects(Block *block,
 #endif
     int sign = 1;
     switch(what) {
+       case e_dec:
+          sign = -1;
+       case e_inc:
+          iFunc.delta() = sign * 1;
+          stackanalysis_printf("\t\t\t Stack height changed by inc/dec: %s\n", iFunc.format().c_str());
+          return;
+
     case e_push:
         sign = -1;
     case e_pop: {
