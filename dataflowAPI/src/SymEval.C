@@ -168,12 +168,16 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
      * if processessing succeeded, remove the element
      * if the size of the list has changed, continue */
 
+    map<Node::Ptr, int> vcnt;
+
     while (!worklist.empty()) {
       Node::Ptr ptr = worklist.front(); worklist.pop();
       SliceNode::Ptr aNode = dyn_detail::boost::static_pointer_cast<SliceNode>(ptr);
       if (!aNode) continue; // They need to be SliceNodes
       
       if (!aNode->assign()) continue; // Could be a widen point
+
+      vcnt[ptr]++;
       
       expand_cerr << "Visiting node " << aNode->assign()->format() << endl;
 
@@ -196,6 +200,18 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
 	}
       }
     }
+
+    fprintf(stderr,"Visitations:\n");
+    map<Node::Ptr, int>::iterator vit = vcnt.begin();
+    int total = 0;
+    for( ; vit != vcnt.end(); ++vit) {
+        Node::Ptr p = (*vit).first;
+        SliceNode::Ptr sp = dyn_detail::boost::static_pointer_cast<SliceNode>(p);
+        fprintf(stderr,"  %10d %s\n",(*vit).second,
+            sp->assign()->format().c_str());
+        total += (*vit).second;
+    }
+    fprintf(stderr,"   %ld nodes, total: %d\n",vcnt.size(),total);
 }
 
 void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,

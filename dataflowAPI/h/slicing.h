@@ -73,10 +73,6 @@ class SliceNode : public Node {
   AssignmentPtr a_;
   ParseAPI::Block *b_;
   ParseAPI::Function *f_;
-      
-  // This is ugly and should be cleaned up once we've figured
-  // out how to move forward on edge classes
-  std::map<SliceNode::Ptr, unsigned> assignMap_;
 };
 
 class SliceEdge : public Edge {
@@ -85,7 +81,7 @@ class SliceEdge : public Edge {
 
    DATAFLOW_EXPORT static SliceEdge::Ptr create(SliceNode::Ptr source,
                                                 SliceNode::Ptr target,
-                                                AbsRegion &data) {
+                                                AbsRegion const&data) {
       return Ptr(new SliceEdge(source, target, data)); 
    }
 
@@ -94,7 +90,7 @@ class SliceEdge : public Edge {
   private:
    SliceEdge(const SliceNode::Ptr source, 
              const SliceNode::Ptr target,
-             AbsRegion data) 
+             AbsRegion const& data) 
       : Edge(source, target), data_(data) {};
    AbsRegion data_;
 };
@@ -129,7 +125,7 @@ class Slicer {
             std::vector<ParseAPI::Function *> vec;
             return vec;
         }
-    DATAFLOW_EXPORT virtual bool addPredecessor(AbsRegion reg) {
+    DATAFLOW_EXPORT virtual bool addPredecessor(AbsRegion /*reg*/) {
         return true;
     }
     DATAFLOW_EXPORT virtual bool widenAtAssignment(const AbsRegion & /*in*/,
@@ -197,27 +193,6 @@ class Slicer {
   // And remove it as appropriate
   void popContext(Context &context);
 
-  // Shift an abs region by a given stack offset
-  void shiftAbsRegion(AbsRegion &callerReg,
-		      AbsRegion &calleeReg,
-		      long stack_depth,
-		      ParseAPI::Function *callee);
-
-  // Handling a call does two things:
-  // 1) Translates the given AbsRegion into the callee-side
-  //	view; this just means adjusting stack locations. 
-  // 2) Increases the given context
-  // Returns false if we didn't translate the absregion correctly
-  bool handleCallDetails(AbsRegion &reg,
-			 Context &context,
-			 ParseAPI::Block *callerBlock,
-			 ParseAPI::Function *callee);
-
-  bool handleCallDetailsBackward(AbsRegion &reg,
-                                Context &context,
-                                ParseAPI::Block * callBlock,
-                                ParseAPI::Function * caller);
-
   // Where we are in a particular search...
   struct Location {
     // The block we're looking through
@@ -241,113 +216,332 @@ class Slicer {
   };
     
   typedef std::queue<Location> LocList;
-  
-  // And the tuple of (context, AbsRegion, Location)
-  // that specifies both context and what to search for
-  // in that context
+ 
+  // Describes an abstract region, a minimal context
+  // (block and function), and the assignment that
+  // relates to that region (uses or defines it, 
+  // depending on slice direction)
+  //
+  // A slice is composed of Elements; SliceFrames 
+  // keep a list of the currently active elements
+  // that are at the `leading edge' of the 
+  // under-construction slice
   struct Element {
-  Element() : valid(true) {};
+    Element(ParseAPI::Block * b,
+        ParseAPI::Function * f,
+        AbsRegion const& r,
+        Assignment::Ptr p)
+      : block(b),
+        func(f),
+        reg(r),
+        ptr(p)
+    { }
+
+    ParseAPI::Block * block;
+    ParseAPI::Function * func;
+
+    AbsRegion reg;
+    Assignment::Ptr ptr;
+  };
+
+  // State for recursive slicing is a context, location pair
+  // and a list of AbsRegions that are being searched for.
+  struct SliceFrame {
+    SliceFrame(
+        Location const& l,
+        Context const& c)
+      : loc(l),
+        con(c),
+        valid(true)
+    { }
+    SliceFrame() : valid(true) { }
+    SliceFrame(bool v) : valid(v) { }
+
+    // Active slice nodes -- describe regions
+    // that are currently under scrutiny
+    std::map<AbsRegion, std::vector<Element> > active;
+    typedef std::map<AbsRegion, std::vector<Element> > ActiveMap;
+
     Location loc;
     Context con;
-    AbsRegion reg;
-    // This is for returns, and not for the intermediate
-    // steps. OTOH, I'm being a bit lazy...
-    Assignment::Ptr ptr;
-     AbsRegion inputRegion;
-     bool valid;
+    bool valid;
+
     Address addr() const { return loc.addr(); }
   };
 
-  typedef std::queue<Element> Elements;
+  // Used for keeping track of visited edges in the
+  // slicing search
+  struct CacheEdge {
+    CacheEdge(Address src, Address trg) : s(src), t(trg) { }
+    Address s;
+    Address t;
 
-  GraphPtr sliceInternal(Direction dir,
-			 Predicates &predicates);
+    bool operator<(CacheEdge const& o) const {
+        if(s < o.s)
+            return true;
+        else if(o.s < s)
+            return false;
+        else if(t < o.t)
+            return true;
+        else
+            return false;
+    }
+  };
+
+    /* 
+     * An element that is a slicing `def' (where
+     * def means `definition' in the backward case
+     * and `use' in the forward case, along with
+     * the associated AbsRegion that labels the slicing
+     * edge.
+     *
+     * These two pieces of information, along with an 
+     * element describing the other end of the dependency,
+     * are what you need to create a slice edge.
+     */
+    struct Def {
+      Def(Element const& e, AbsRegion const& r) : ele(e), data(r) { } 
+      Element ele;
+      AbsRegion data;
   
-  bool getMatchingElements(Element &initial, Elements &worklist,
-			   Predicates &p, Direction dir);
+      // only the Assignment::Ptr of an Element matters
+      // for comparison
+      bool operator<(Def const& o) const {
+          if(ele.ptr < o.ele.ptr)
+              return true;
+          else if(o.ele.ptr < ele.ptr)
+              return false;
+          else if(data < o.data)
+              return true;
+          else 
+              return false;
+      }
+    };
+ 
+    /*
+     * A cache from AbsRegions -> Defs.
+     *
+     * Each node that has been visited in the search
+     * has a DefCache that reflects the resolution of
+     * any AbsRegions down-slice. If the node is visited
+     * again through a different search path (if the graph
+     * has fork-join structure), this caching prevents
+     * expensive recursion
+     */
+    class DefCache {
+      public:
+        DefCache() { }
+        ~DefCache() { }
+
+        // add the values from another defcache
+        void merge(DefCache const& o);
+   
+        // replace mappings in this cache with those
+        // from another 
+        void replace(DefCache const& o);
+
+        std::set<Def> & get(AbsRegion const& r) { 
+            return defmap[r];
+        }
+        bool defines(AbsRegion const& r) const {
+            return defmap.find(r) != defmap.end();
+        }
+
+        void print() const;
+
+      private:
+        std::map< AbsRegion, std::set<Def> > defmap;
+    
+    };
+
+    // For preventing insertion of duplicate edges
+    // into the slice graph
+    struct EdgeTuple {
+        EdgeTuple(SliceNode::Ptr src, SliceNode::Ptr dst, AbsRegion const& reg)
+          : s(src), d(dst), r(reg) { }
+        bool operator<(EdgeTuple const& o) const {
+            if(s < o.s)
+                return true;
+            else if(o.s < s)
+                return false;
+            else if(d < o.d)
+                return true;
+            else if(o.d < d)
+                return false;
+            else if(r < o.r)
+                return true;
+            else
+                return false;
+        }
+        SliceNode::Ptr s;
+        SliceNode::Ptr d;
+        AbsRegion r;
+    };
+
+  // Shift an abs region by a given stack offset
+  void shiftAbsRegion(AbsRegion const&callerReg,
+		      AbsRegion &calleeReg,
+		      long stack_depth,
+		      ParseAPI::Function *callee);
+
+    // Shift all of the abstract regions active in the current frame
+    void shiftAllAbsRegions(
+        SliceFrame & cur,
+        long stack_depth,
+        ParseAPI::Function *callee);
+
+  /*
+   * Internal slicing support routines follow. See the
+   * implementation file for descriptions of what these
+   * routines actually do to implement slicing.
+   */
+    GraphPtr sliceInternal(Direction dir,
+            Predicates &predicates);
+    void sliceInternalAux(
+            GraphPtr g,
+            Direction dir,
+            Predicates &p,
+            SliceFrame cand,
+            bool skip,
+            std::map<CacheEdge, std::set<AbsRegion> > & visited,
+            std::map<Address,DefCache> & cache);
+
+    bool updateAndLink(
+            GraphPtr g,
+            Direction dir,
+            SliceFrame & cand,
+            DefCache & cache);
+
+    void updateAndLinkFromCache(
+            GraphPtr g,
+            Direction dir,
+            SliceFrame & f,
+            DefCache & cache);
+
+    void removeBlocked(
+            SliceFrame & f,
+            std::set<AbsRegion> const& block);
+
+    void markVisited(
+            std::map<CacheEdge, std::set<AbsRegion> > & visited,
+            CacheEdge const& e,
+            SliceFrame::ActiveMap const& active);
+
+    void cachePotential(
+            Direction dir,
+            Assignment::Ptr assn,
+            DefCache & cache);
+
+    void findMatch(
+            GraphPtr g,
+            Direction dir,
+            SliceFrame const& cand,
+            AbsRegion const& cur,
+            Assignment::Ptr assn,
+            std::vector<Element> & matches,
+            DefCache & cache);
+
+    bool getNextCandidates(
+            Direction dir,
+            Predicates & p,
+            SliceFrame const& cand,
+            std::vector<SliceFrame> & newCands);
+
+    /* forward slicing */
+
+    bool getSuccessors(
+            Predicates &p,
+            SliceFrame const& cand,
+            std::vector<SliceFrame> & newCands);
+
+
+    bool handleCall(
+            Predicates & p,
+            SliceFrame & cur,
+            bool & err);
+
+    bool followCall(
+            Predicates & p,
+            ParseAPI::Block * target,
+            SliceFrame & cur);
+
+    bool handleCallDetails(
+            SliceFrame & cur,
+            ParseAPI::Block * caller_block);
+
+    bool handleReturn(
+            Predicates & p,
+            SliceFrame & cur,
+            bool & err);
+
+    void handleReturnDetails(
+            SliceFrame & cur);
+
+    bool handleDefault(
+            Direction dir,
+            Predicates & p,
+            ParseAPI::Edge * e,
+            SliceFrame & cur,
+            bool & err);
+
+    /* backwards slicing */
+
+    bool getPredecessors(
+            Predicates &p,
+            SliceFrame const& cand,
+            std::vector<SliceFrame> & newCands);
+
+    bool handleCallBackward(
+            Predicates & p,
+            SliceFrame const& cand,
+            std::vector<SliceFrame> & newCands,
+            ParseAPI::Edge * e,
+            bool & err);
+
+    std::vector<ParseAPI::Function *> followCallBackward(
+            Predicates & p,
+            SliceFrame const& cand,
+            AbsRegion const& reg,
+            ParseAPI::Block * caller_block);
+
+    bool handleCallDetailsBackward(
+            SliceFrame & cur);
+
+    bool handleReturnBackward(
+            Predicates & p,
+            SliceFrame const& cand,
+            SliceFrame & newCand,
+            ParseAPI::Edge * e,
+            bool & err);
+
+    bool handleReturnDetailsBackward(
+            SliceFrame & cur,
+            ParseAPI::Block * caller_block);
+
+    bool followReturn(
+            Predicates & p,
+            SliceFrame const& cand,
+            ParseAPI::Block * source);
+
+    /* general slicing support */
   
-  bool getNextCandidates(Element &initial, Elements &worklist,
-			 Predicates &p, Direction dir);
-
-  void findMatches(Element &current, Assignment::Ptr &assign, 
-		   Direction dir,  Elements &succ); 
-
-  bool kills(Element &current, Assignment::Ptr &assign);
-
-  bool followCall(ParseAPI::Block *b,
-		  Direction d,
-		  Element &current,
-		  Predicates &p);
+    Element constructInitialElement();
+    void constructInitialFrame(
+            Direction dir, 
+            Element const& init,
+            SliceFrame & initFrame);
+    
+    void widenAll(GraphPtr graph, Direction dir, SliceFrame const& frame);
   
-  std::vector<ParseAPI::Function *> 
-      followCallBackward(ParseAPI::Block * callerBlock,
-              Direction d,
-              Element &current,
-              Predicates &p);
+  bool kills(AbsRegion const& reg, Assignment::Ptr &assign);
 
-  bool followReturn(ParseAPI::Block *b,
-                    Direction d,
-                    Element &current,
-                    Predicates &p);
-
-  bool handleDefault(ParseAPI::Edge *e,
-                     Direction dir,
-		     Element &current,
-		     Element &newElement,
-		     Predicates &p,
-		     bool &err);
-                
-  bool handleCall(ParseAPI::Block *block,
-		  Element &current,
-		  Element &newElement,
-		  Predicates &p,
-		  bool &err);
-
-  bool handleCallBackward(ParseAPI::Edge *e,
-                          Element &current,
-                          Elements &newElements,
-                          Predicates &p,
-                          bool &err);
-
-  bool handleReturn(ParseAPI::Block *b,
-		    Element &current,
-		    Element &newElement,
-		    Predicates &p,
-		    bool &err);
-
-  bool handleReturnBackward(ParseAPI::Edge *e,
-                            Element &current,
-                            Element &newElement,
-                            Predicates &p,
-                            bool &err);
-
-  void handleReturnDetails(AbsRegion &reg,
-			   Context &context);
-
-  bool handleReturnDetailsBackward(AbsRegion &reg,
-                                    Context &context,
-                                    ParseAPI::Block *callBlock,
-                                    ParseAPI::Function *callee);
-
-  bool getSuccessors(Element &current,
-		     Elements &worklist,
-		     Predicates &p);
-
-  bool getPredecessors(Element &current,
-		       Elements &worklist,
-		       Predicates &p);
-
-  bool search(Element &current,
-	      Elements &foundList,
-	      Predicates &p,
-	      Direction dir);
-
-  void widen(GraphPtr graph, Direction dir, Element &source);
+  void widen(GraphPtr graph, Direction dir, Element const&source);
 
   void insertPair(GraphPtr graph,
 		  Direction dir,
-		  Element &source,
-		  Element &target);
+		  Element const&source,
+		  Element const&target,
+          AbsRegion const& data);
 
   void convertInstruction(InstructionPtr,
 			  Address,
@@ -372,14 +566,13 @@ class Slicer {
 
   void setAliases(Assignment::Ptr, Element &);
 
-  SliceNode::Ptr createNode(Element &);
+  SliceNode::Ptr createNode(Element const&);
 
   void cleanGraph(GraphPtr g);
 
   ParseAPI::Block *getBlock(ParseAPI::Edge *e,
 			    Direction dir);
   
-  void constructInitialElement(Element &initial, Direction dir);
 
   void insertInitialNode(GraphPtr ret, Direction dir, SliceNode::Ptr aP);
 
@@ -389,13 +582,17 @@ class Slicer {
   ParseAPI::Block *b_;
   ParseAPI::Function *f_;
 
-  std::set<SliceNode::Ptr> visited_;
+  // Assignments map to unique slice nodes
   std::map<AssignmentPtr, SliceNode::Ptr> created_;
+
+  // cache to prevent edge duplication
+  std::map<EdgeTuple, int> unique_edges_;
 
   AssignmentConverter converter;
 
   SliceNode::Ptr widen_;
 };
-};
+
+}
 
 #endif
