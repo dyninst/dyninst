@@ -85,12 +85,15 @@ void CodeTracker::addTracker(TrackerElement *e) {
       if (e->orig() == last->orig() &&
           e->type() == last->type()) {
          cerr << "OVERLAPPING TRACKERS, combining...." << endl;
+		 cerr << "\t Current: " << *last << endl;
+		 cerr << "\t New: " << *e << endl;
          assert(e->reloc() == (last->reloc() + last->size()));
          last->setSize(last->size() + e->size());
          return;
       }
    }
-   
+   cerr << "Adding tracker: " << *e << endl;
+
    trackers_.push_back(e);
 }
 

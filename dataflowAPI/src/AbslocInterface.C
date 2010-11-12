@@ -567,31 +567,6 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     assignments.push_back(b);
     break;
   }
-     case e_loopn: {
-        // e_loopn uses df, ecx, eip, ecx (again?), and zf
-        // and defines eip, ecx, and eip (again?)
-        // What we want is:
-        // def(ecx) using (ecx)
-        // def(eip) using (ecx, eip, zf)
-        // Direction flag is _not_ used
-        std::vector<AbsRegion> used;
-        std::vector<AbsRegion> defined;
-        
-        aConverter.convertAll(I,
-                              addr,
-                              func,
-                              used,
-                              defined);
-        Assignment::Ptr ecx = Assignment::Ptr(new Assignment(I, addr, func, defined[1]));
-        ecx->addInput(used[1]);
-        Assignment::Ptr eip = Assignment::Ptr(new Assignment(I, addr, func, defined[0]));
-        eip->addInput(used[1]);
-        eip->addInput(used[2]);
-        eip->addInput(used[4]);
-        assignments.push_back(ecx);
-        assignments.push_back(eip);
-        break;
-     }
 
 
   case power_op_stwu: {

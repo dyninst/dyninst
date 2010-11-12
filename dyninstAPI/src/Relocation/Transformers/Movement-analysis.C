@@ -237,7 +237,8 @@ bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
 					   Address addr,
 					   int_function *func,
 					   AssignList &sensitiveAssignments) {
-   // FIXME for loopnz instruction
+  if (!insn->getOperation().getID() == e_call) return false;
+						   // FIXME for loopnz instruction
   Absloc pc = Absloc::makePC(func->ifunc()->isrc()->getArch());
 
   // Crack open the instruction and see who uses PC...

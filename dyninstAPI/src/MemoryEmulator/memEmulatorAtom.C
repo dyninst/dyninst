@@ -890,7 +890,7 @@ bool MemEmulatorPatch::apply(codeGen &gen,
    gen.setRegisterSpace(aS);
    assert(!gen.bti());
 
-   ::emitPush(RealRegister(REGNUM_ESP), gen);
+   ::emitPushImm(gen.currAddr(), gen);
    ::emitPushImm(point->addr(), gen);
    ::emitPush(RealRegister(reg_), gen);
    if (debug_) {

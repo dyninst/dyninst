@@ -75,6 +75,7 @@ class TrackerElement {
   void setReloc(Address reloc) { reloc_ = reloc; };
   void setSize(unsigned size) { size_ = size; }
 
+
  protected:
   TrackerElement() {};
   Address orig_;
