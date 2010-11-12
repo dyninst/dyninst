@@ -1354,7 +1354,7 @@ void image::analyzeImage() {
     struct timeval starttime;
     gettimeofday(&starttime, NULL);
 #endif
-
+    mal_printf("parsing %s\n", name().c_str());
     stats_parse.startTimer(PARSE_ANALYZE_TIMER);
 
 // FIXME necessary?
