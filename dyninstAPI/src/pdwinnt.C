@@ -521,33 +521,40 @@ static void decodeHandlerCallback(EventRecord &ev)
     }
 }
 
+extern std::set<Address> suicideAddrs;
+
 bool SignalGenerator::decodeBreakpoint(EventRecord &ev) 
 {
   char buf[128];
   bool ret = false;
   process *proc = ev.proc;
-
   if (decodeIfDueToProcessStartup(ev)) {
-     ret = true;
+	  ret = true;
   }
   else if (proc->getRpcMgr()->decodeEventIfDueToIRPC(ev)) {
      signal_printf("%s[%d]:  BREAKPOINT due to RPC\n", FILE__, __LINE__);
-     ret = true;
+	 ret = true;
   }
   else if (proc->trapMapping.definesTrapMapping(ev.address)) {
      ev.type = evtInstPointTrap;
-     ret = true;
+	 ret = true;
   }
   else if (decodeRTSignal(ev)) {
-      ret = true;
+	  ret = true;
   }
   else if (BPatch_defensiveMode == ev.proc->getHybridMode()) {
-     requested_wait_until_active = true;//i.e., return exception to mutatee
-     decodeHandlerCallback(ev);
-     ret = true;
+//     requested_wait_until_active = true;//i.e., return exception to mutatee
+//     decodeHandlerCallback(ev);
+	requested_wait_until_active = false;
+	  ret = true;
+	Frame activeFrame = ev.lwp->getActiveFrame();
+	static int breakpoints = 0;
+	breakpoints++;
+	cerr << "BREAKPOINT FRAME: " << hex << activeFrame.getPC() << " / " << activeFrame.getSP() << dec << endl;
+	ev.type = evtIgnore;
   }
   else {
-     ev.type = evtCritical;
+	  ev.type = evtCritical;
      ret = true;
   }
 

@@ -567,6 +567,8 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     assignments.push_back(b);
     break;
   }
+
+
   case power_op_stwu: {
     std::vector<Operand> operands;
     I->getOperands(operands);

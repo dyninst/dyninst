@@ -185,8 +185,9 @@ struct MemEmulatorPatch : public Patch {
    // function
    MemEmulatorPatch(Register r,
                     Address d,
-                    instPoint *p)
-      : point(p), reg_(r), dest_(d) {};
+                    instPoint *p, 
+					bool debug)
+      : point(p), reg_(r), dest_(d), debug_(debug) {};
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
    virtual unsigned estimate(codeGen &) { return 7; };
    virtual ~MemEmulatorPatch() {};
@@ -194,6 +195,7 @@ struct MemEmulatorPatch : public Patch {
    instPoint *point;
    Register reg_;
    Address dest_;
+   bool debug_;
 };
 
 };

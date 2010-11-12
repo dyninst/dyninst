@@ -128,6 +128,11 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
    codeGen prepatch(128);
    prepatch.applyTemplate(templ);
 
+	 bool debug = false;
+  if (addr_ == 0x40d201 ||
+	  addr_ == 0x40d24c) debug = true;
+ 
+
   // We want to ensure that a memory operation produces its
   // original result in the face of overwriting the text
   // segment.
@@ -166,6 +171,8 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
 		  << std::hex << addr_
 		  << std::dec << endl;
 
+  if (debug) prepatch.fill(1, codeGen::cgTrap);
+
   if (!initialize(prepatch)) {
      relocation_cerr << "\tInitialize failed, ret false" << endl;
      return false;
@@ -191,8 +198,8 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
   if (!preCallSave(prepatch))
      return false;
   buffer.addPIC(prepatch, tracker(t->bbl()->func()));
-  
-  buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch, false), point_), tracker(t->bbl()->func()));
+
+  buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch, false), point_, debug), tracker(t->bbl()->func()));
   
   prepatch.setIndex(0);
   if (!postCallRestore(prepatch))
@@ -207,6 +214,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
      return false;
   }
 
+  if (debug) prepatch.fill(1, codeGen::cgTrap);
   buffer.addPIC(prepatch, tracker(t->bbl()->func()));
 
   return true;
@@ -575,10 +583,10 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
    if (!preCallSave(prepatch)) return false;
    buffer.addPIC(prepatch, tracker(t->bbl()->func()));
 
-   buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch, true), point_),
+   buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch, true), point_, false),
                    tracker(t->bbl()->func()));
    if (usesTwo) {
-      buffer.addPatch(new MemEmulatorPatch(effAddr2_, getTranslatorAddr(prepatch, true), point_),
+      buffer.addPatch(new MemEmulatorPatch(effAddr2_, getTranslatorAddr(prepatch, true), point_, false),
                    tracker(t->bbl()->func()));
    }
 
@@ -645,7 +653,7 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
 }
 
 bool MemEmulator::stealEffectiveAddr(Register &ret, codeGen &gen) {
-   cerr << "STEALING EFFECTIVE ADDR REGISTER @ " << hex << addr_ << dec << endl;
+   //cerr << "STEALING EFFECTIVE ADDR REGISTER @ " << hex << addr_ << dec << endl;
    // This sucks. Find a register not used by this instruction
    // and push/pop it around the whole mess.
    std::set<RegisterAST::Ptr> regs;
@@ -872,6 +880,8 @@ void DecisionTree::generateJCC(codeGen &gen,
   generateJumps(gen, target, sources);
 }
 
+std::set<Address> suicideAddrs;
+
 bool MemEmulatorPatch::apply(codeGen &gen,
                              CodeBuffer *) {
    relocation_cerr << "MemEmulatorPatch::apply @ " << hex << gen.currAddr() << dec << endl;
@@ -880,17 +890,23 @@ bool MemEmulatorPatch::apply(codeGen &gen,
    gen.setRegisterSpace(aS);
    assert(!gen.bti());
 
+   ::emitPushImm(gen.currAddr(), gen);
    ::emitPushImm(point->addr(), gen);
    ::emitPush(RealRegister(reg_), gen);
-
-   // Step 2: call the translator
+   if (debug_) {
+		suicideAddrs.insert(gen.currAddr());
+	   gen.fill(1, codeGen::cgTrap);
+		suicideAddrs.insert(gen.currAddr());
+		cerr << " Suicide addr is " << hex << gen.currAddr() << endl;
+   }
+// Step 2: call the translator
    Address src = gen.currAddr() + 5;
    relocation_cerr << "\tCall " << hex << dest_ << ", offset " << dest_ - src << dec << endl;
    assert(dest_);
    emitCallRel32(dest_ - src, gen);
 
    ::emitMovRegToReg(RealRegister(reg_), RealRegister(REGNUM_EAX), gen);
-   ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 8, RealRegister(REGNUM_ESP), gen);
+   ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 12, RealRegister(REGNUM_ESP), gen);
 
    return true;
 }
