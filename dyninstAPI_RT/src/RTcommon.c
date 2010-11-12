@@ -436,7 +436,7 @@ RT_Boolean cacheLookup(void *calculation)
  * bit 1: true if interpAsTarget
  * bit 2: true if interpAsReturnAddr
  **/     
-//#define STACKDUMP
+#define STACKDUMP
 void DYNINST_stopThread (void * pointAddr, void *callBackID, 
                          void *flags, void *calculation)
 {
@@ -447,6 +447,8 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
 #endif
 
     tc_lock_lock(&DYNINST_trace_lock);
+    fprintf(stderr,"RT_stopThread: pt[%lx] flags[%lx] calc[%lx]\n", 
+                   (long)pointAddr, (long)flags, (long)calculation);
     rtdebug_printf("pt[%lx] flags[%lx] calc[%lx] ", 
                    (long)pointAddr, (long)flags, (long)calculation);
 
@@ -527,7 +529,8 @@ RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_,
     int idx = (int)arrayLen / 4 * 2; 
     int lowIdx = 0;
     int highIdx = (int)arrayLen;
-    rtdebug_printf("D_bc@%p: boundsArray=%p target=%lx idx=%d arrayLen=%d [%d]\n", (void*)DYNINST_boundsCheck, boundsArray_, writeTarget_, idx, arrayLen, __LINE__);
+    fprintf(stderr,"D_bc@%p: boundsArray=%p target=%lx idx=%d arrayLen=%d [%d]\n", (void*)DYNINST_boundsCheck, boundsArray_, writeTarget_, idx, arrayLen, __LINE__);
+    //rtdebug_printf("D_bc@%p: boundsArray=%p target=%lx idx=%d arrayLen=%d [%d]\n", (void*)DYNINST_boundsCheck, boundsArray_, writeTarget_, idx, arrayLen, __LINE__);
     if ((unsigned long)boundsArray < 0x10000000) {
         printf("D_bc: boundsArray_ = %lx, returning false\n",(unsigned long) boundsArray);
         return RT_FALSE;

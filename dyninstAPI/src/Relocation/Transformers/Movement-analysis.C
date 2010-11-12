@@ -90,7 +90,6 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
     if (!insn) continue;
     Address addr = (*iter)->addr();
 
-
     // We want to identify all PC-sensitive instructions and 
     // determine whether they are externally sensitive; that is, 
     // whether they will misbehave (heh) given the new structure
@@ -155,6 +154,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
       Graph::Ptr slice = forwardSlice(*a_iter,
 				      bbl->block()->llb(),
 				      bbl->func()->ifunc());
+
       if (!slice) {
          // Safe assumption, as always
          sensitivity_cerr << "\t slice failed!" << endl;
@@ -238,9 +238,9 @@ bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
 					   Address addr,
 					   int_function *func,
 					   AssignList &sensitiveAssignments) {
-   // FIXME for loopnz instruction
-   return (insn->getOperation().getID() == e_call);
-
+  if (!insn->getOperation().getID() == e_call) return false;
+                           
+                           // FIXME for loopnz instruction
   Absloc pc = Absloc::makePC(func->ifunc()->isrc()->getArch());
 
   // Crack open the instruction and see who uses PC...
