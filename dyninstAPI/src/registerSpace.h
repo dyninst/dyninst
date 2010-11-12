@@ -378,6 +378,8 @@ class registerSpace {
     int pc_rel_use_count;
     int& pc_rel_offset();
     void incStack(int val);
+    int getInstFrameSize();
+    void setInstFrameSize(int val);
     int getStackHeight();
     void setStackHeight(int val);
 
@@ -385,6 +387,9 @@ class registerSpace {
     void pushNewRegState();
 
  private:
+    int instFrameSize_;  // How much stack space we allocate for
+                         // instrumentation before a frame is set up.
+
     std::vector<regState_t *> regStateStack;
     int cur_register_state;
 
