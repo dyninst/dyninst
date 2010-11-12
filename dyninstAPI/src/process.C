@@ -4793,7 +4793,7 @@ bool process::getOverwrittenBlocks
         if (curBBIs.size()) {
             mal_printf("overwrote %d blocks in range %lx %lx \n",
                        curBBIs.size(),(*rIter).first,(*rIter).second);
-            writtenBBIs.merge(curBBIs);
+            writtenBBIs.splice(writtenBBIs.end(),curBBIs);
         }
 
         curBBIs.clear();

@@ -59,8 +59,8 @@ unsigned char *stackBase = (unsigned char*)&input;
    fprintf(stderr, "0x40da0c -> %lx (*%lx) = %lx \n", 
            0x40da0c + RTmemoryMapper.elements[4].shift,
            0x40da0c + RTmemoryMapper.elements[4].shift,
-           *(int*) (0x40da0c + RTmemoryMapper.elements[4].shift));
-
+           *(int*) (0x40da0c+ RTmemoryMapper.elements[4].shift));
+#if 0
 for (bidx=0; bidx < 0x120; bidx+=4) {
    fprintf(stderr,"0x%x:  ", (int)stackBase+bidx);
     fprintf(stderr,"%02hhx", stackBase[bidx+3]);
@@ -69,6 +69,7 @@ for (bidx=0; bidx < 0x120; bidx+=4) {
     fprintf(stderr,"%02hhx", stackBase[bidx]);
     fprintf(stderr,"\n");
 }
+#endif
    do {
       guard2 = RTmemoryMapper.guard2;
       min = 0;
