@@ -135,12 +135,19 @@ void MemoryEmulator::addRegion(Region *reg, Address base) {
    
    if (addedRegions_.find(reg) != addedRegions_.end()) return;
       
+   process *proc = dynamic_cast<process *>(aS_);
    char *buffer = (char *)malloc(reg->getMemSize());
-   memset(buffer, 0, reg->getMemSize());
-   memcpy(buffer, reg->getPtrToRawData(), reg->getDiskSize());
+   if (proc) {
+       if (!proc->readDataSpace((void*)(base + reg->getMemOffset()), 
+                               reg->getMemSize(), buffer, false)) {
+           assert(0);
+       }
+   } else {
+       memset(buffer, 0, reg->getMemSize());
+       memcpy(buffer, reg->getPtrToRawData(), reg->getDiskSize());
+   }
    
    unsigned long allocSize = reg->getMemSize();
-   process *proc = dynamic_cast<process *>(aS_);
    if (proc) {
       allocSize += proc->getMemoryPageSize();
    }
