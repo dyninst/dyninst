@@ -489,7 +489,9 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &ge
     // be smart enough to generate a stack alignment sequence only when
     // necessary.  For now, we'll always align the stack for correctness.
     //
-    emitStackAlign(funcJumpSlotSize, gen);
+#if defined(RAY_STACK_ALIGN)
+    emitStackAlign(funcJumpSlesotSize, gen);
+#endif
 
     bool flags_saved = gen.rs()->saveVolatileRegisters(gen);
     bool useFPRs = gen.rs()->anyLiveFPRsAtEntry() && 
@@ -685,9 +687,10 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen 
 
     //popa or pop each register, plus optional popf
     emitBTRegRestores32(bti, gen);
-
+#if defined(RAY_STACK_ROUND)
     // Restore the (possibly unaligned) stack pointer.
     emitMovRMToReg(RealRegister(REGNUM_ESP), RealRegister(REGNUM_ESP), 0, gen);
+#endif
 
     return true;
 }
