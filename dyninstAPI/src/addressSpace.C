@@ -67,7 +67,7 @@ AddressSpace::AddressSpace () :
     trampGuardBase_(NULL),
     up_ptr_(NULL),
     costAddr_(0),
-    emulateMem_(false),
+    emulateMem_(true),
     emulatePC_(true)
 {
    memEmulator_ = new MemoryEmulator(this);
@@ -1511,7 +1511,7 @@ bool AddressSpace::relocate() {
     }
     iter->second.insert(overlappingFuncs.begin(), overlappingFuncs.end());
 
-    addModifiedRegion(iter->first);
+	addModifiedRegion(iter->first);
 
     if (!relocateInt(iter->second.begin(), iter->second.end(), iter->first->codeAbs())) {
       ret = false;

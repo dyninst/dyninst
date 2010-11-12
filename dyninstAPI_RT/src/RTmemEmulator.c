@@ -47,20 +47,15 @@
 
 struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0};
 
-unsigned long RTtranslateMemory(unsigned long input, unsigned long addr) {
+unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, unsigned long curAddr) {
    /* Standard nonblocking synchronization construct */
    int index;
    int min;
    int max;
    volatile int guard2;
-int bidx;
-unsigned char *stackBase = (unsigned char*)&input;
-   fprintf(stderr, "RTtranslateMemory(0x%lx: 0x%lx)\n", addr, input);
-   fprintf(stderr, "0x40da0c -> %lx (*%lx) = %lx \n", 
-           0x40da0c + RTmemoryMapper.elements[4].shift,
-           0x40da0c + RTmemoryMapper.elements[4].shift,
-           *(int*) (0x40da0c+ RTmemoryMapper.elements[4].shift));
+
 #if 0
+int bidx;
 for (bidx=0; bidx < 0x120; bidx+=4) {
    fprintf(stderr,"0x%x:  ", (int)stackBase+bidx);
     fprintf(stderr,"%02hhx", stackBase[bidx+3]);
@@ -70,6 +65,8 @@ for (bidx=0; bidx < 0x120; bidx+=4) {
     fprintf(stderr,"\n");
 }
 #endif
+
+   fprintf(stderr, "RTtranslateMemory(ptr 0x%lx, origAddr 0x%lx, curAddr 0x%lx)\n", input, origAddr, curAddr);
    do {
       guard2 = RTmemoryMapper.guard2;
       min = 0;
