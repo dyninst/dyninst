@@ -168,15 +168,15 @@ bool IA_IAPI::hasCFT() const
     {
         hascftstatus.second = true;
     }
-    if(c == c_CallInsn)
+    else if(c == c_CallInsn)
     {
         if(isRealCall()) {
             hascftstatus.second = true;
         }
-        if(isDynamicCall()) {
+        else if(isDynamicCall()) {
             hascftstatus.second = true;
         }
-        if(simulateJump()) {
+        else if(simulateJump()) {
             hascftstatus.second = true;
         }
     }

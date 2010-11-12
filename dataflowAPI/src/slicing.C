@@ -158,7 +158,7 @@ Slicer::sliceInternalAux(
     Graph::Ptr g,
     Direction dir,
     Predicates &p,
-    SliceFrame cand,
+    SliceFrame &cand,
     bool skip,              // skip linking this frame; for bootstrapping
     map<CacheEdge,set<AbsRegion> > & visited,
     map<Address,DefCache> & cache)

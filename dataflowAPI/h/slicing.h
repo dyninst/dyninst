@@ -401,7 +401,7 @@ class Slicer {
             GraphPtr g,
             Direction dir,
             Predicates &p,
-            SliceFrame cand,
+            SliceFrame &cand,
             bool skip,
             std::map<CacheEdge, std::set<AbsRegion> > & visited,
             std::map<Address,DefCache> & cache);
