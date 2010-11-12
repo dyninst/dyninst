@@ -79,7 +79,19 @@ void CodeTracker::addTracker(TrackerElement *e) {
   // get away without an IntervalTree will be violated and a lot
   // of code will need to be rewritten.
    assert(e->func());
-  trackers_.push_back(e);
+
+   if (!trackers_.empty()) {
+      TrackerElement *last = trackers_.back();
+      if (e->orig() == last->orig() &&
+          e->type() == last->type()) {
+         cerr << "OVERLAPPING TRACKERS, combining...." << endl;
+         assert(e->reloc() == (last->reloc() + last->size()));
+         last->setSize(last->size() + e->size());
+         return;
+      }
+   }
+   
+   trackers_.push_back(e);
 }
 
 void CodeTracker::createIndices() {
