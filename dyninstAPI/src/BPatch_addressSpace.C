@@ -898,29 +898,43 @@ bool BPatch_addressSpace::isStaticExecutableInt() {
 #include "registerSpace.h"
 
 #if defined(cap_registers)
-bool BPatch_addressSpace::getRegistersInt(std::vector<BPatch_register> &regs) {
-   if (registers_.size()) {
-       regs = registers_;
-       return true;
-   }
-
+bool BPatch_addressSpace::getRegistersInt(std::vector<BPatch_register> &regs, bool includeSPRs) {
    std::vector<AddressSpace *> as;
 
    getAS(as);
    assert(as.size());
           
    registerSpace *rs = registerSpace::getRegisterSpace(as[0]);
-   
+
+   unsigned rsize = rs->realRegs().size();
+   if (includeSPRs) {
+       rsize += rs->SPRs().size();
+   }
+   if (registers_.size() == rsize) {
+       // return cached vector if sizes match
+       regs = registers_;
+       return true;
+   }
+
+   registers_.clear();
    for (unsigned i = 0; i < rs->realRegs().size(); i++) {
-       // Let's do just GPRs for now
+       // always include GPRs
        registerSlot *regslot = rs->realRegs()[i];
        registers_.push_back(BPatch_register(regslot->name, regslot->number));
+   }
+   if (includeSPRs) {
+       for (unsigned i = 0; i < rs->SPRs().size(); i++) {
+           // include SPRs if desired
+           registerSlot *regslot = rs->SPRs()[i];
+           registers_.push_back(BPatch_register(regslot->name, regslot->number));
+       }
    }
    regs = registers_;
    return true;
 }
 #else
-bool BPatch_addressSpace::getRegistersInt(std::vector<BPatch_register> &) {
+bool BPatch_addressSpace::getRegistersInt(std::vector<BPatch_register> &,
+                                          bool includeSPRs) {
     // Empty vector since we're not supporting register objects on
     // these platforms (yet)
    return false;
