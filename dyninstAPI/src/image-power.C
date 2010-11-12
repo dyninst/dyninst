@@ -495,7 +495,7 @@ void image_func::calcUsedRegs()
        ++curReg)
     {
         MachRegister r = (*curReg)->getID();
-        if((r & ppc32::GPR) && (r <= ppc32::r12))
+        if((r & ppc32::GPR) && (r <= ppc32::r13))
         {
             usedRegisters->generalPurposeRegisters.insert(r & 0xFFFF);
         }

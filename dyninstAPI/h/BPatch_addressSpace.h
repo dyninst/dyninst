@@ -348,8 +348,8 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
                BPatch_variableExpr *, createVariable, 
                (std::string name, Dyninst::Address addr, BPatch_type *type = NULL));
 
-    API_EXPORT(Int, (regs, includeSPRs),
-               bool, getRegisters, (std::vector<BPatch_register> &regs, bool includeSPRs = false));
+    API_EXPORT(Int, (regs),
+               bool, getRegisters, (std::vector<BPatch_register> &regs));
 
     API_EXPORT(Int, (regName, reg),
     bool, createRegister_NP, (std::string regName, BPatch_register &reg)); 
