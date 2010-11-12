@@ -5161,7 +5161,16 @@ int_function *process::findActiveFuncByAddr(Address addr)
             }
         }
     }
-    assert(foundFrame);
+    if (!foundFrame) {
+        vector<ParseAPI::Function*> funcs;
+        activeBBI->block()->llb()->getFuncs(funcs);
+        activeFunc = findFuncByInternalFunc(static_cast<image_func*>(funcs[0]));
+        fprintf(stderr,"ERROR: Stackwalk couldn't figure out which of the %d "
+                "functions corresponding to addr %lx is on the call-stack, "
+                "choosing func w/ entry %lx at random %s[%d]\n", funcs.size(),
+                addr, activeFunc->getAddress(), FILE__,__LINE__);
+    }
+                
     return activeFunc;
 }
 

@@ -131,6 +131,7 @@ unsigned int MachRegister::size() const {
             case x86::BIT:
                return 0;
             default:
+               return 0;//KEVINTODO: removed sanity-check assert for fuzz testing
                assert(0);
          }
       case Arch_x86_64:
