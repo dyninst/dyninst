@@ -2360,7 +2360,7 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/,
        // NEEDS TO BE REIMPLEMENTED!
        assert(0);
        generatedCodeObject *nextobj = NULL;
-#if 0
+
        assert(nextobj);
        int offset = ((unsigned long) patch_start) -
                     ((unsigned long) gen.start_ptr());
