@@ -2303,7 +2303,9 @@ bool EmitterIA32::emitCallCleanup(codeGen &gen, int_function *target,
     if ((call_conv == unknown_call || call_conv == cdecl_call) && frame_size)
     {
         //Caller clean-up
-        emitOpRegImm(0, RealRegister(REGNUM_ESP), frame_size, gen); // add esp, frame_size        
+	// This effectively adds frame_size to %esp, without affecting %eflags
+	emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
+		frame_size, RealRegister(REGNUM_ESP), gen);
     }
     gen.rs()->incStack(-1 * frame_size);
 

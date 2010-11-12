@@ -107,6 +107,7 @@ public:
     void emitPushFlags(codeGen &gen);
     void emitRestoreFlags(codeGen &gen, unsigned offset);
     void emitRestoreFlagsFromStackSlot(codeGen &gen);
+    void emitStackAlign(int offset, codeGen &gen);
     bool emitBTSaves(baseTramp* bt, baseTrampInstance *, codeGen &gen);
     bool emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen &gen);
     void emitLoadEffectiveAddress(Register base, Register index, unsigned int scale, int disp,
@@ -216,6 +217,7 @@ public:
     void emitPushFlags(codeGen &gen);
     void emitRestoreFlags(codeGen &gen, unsigned offset);
     void emitRestoreFlagsFromStackSlot(codeGen &gen);
+    void emitStackAlign(int offset, codeGen &gen);
     bool emitBTSaves(baseTramp* bt, baseTrampInstance *, codeGen &gen);
     bool emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen &gen);
     void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);

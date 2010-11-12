@@ -32,6 +32,7 @@
 #if !defined(DWARF_SW_H_)
 #define DWARF_SW_H_
 
+#include <stdint.h>
 #include "libdwarf.h"
 
 typedef struct {
