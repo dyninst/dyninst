@@ -53,7 +53,22 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long addr) {
    int min;
    int max;
    volatile int guard2;
+int bidx;
+unsigned char *stackBase = (unsigned char*)&input;
    fprintf(stderr, "RTtranslateMemory(0x%lx: 0x%lx)\n", addr, input);
+   fprintf(stderr, "0x40da0c -> %lx (*%lx) = %lx \n", 
+           0x40da0c + RTmemoryMapper.elements[4].shift,
+           0x40da0c + RTmemoryMapper.elements[4].shift,
+           *(int*) (0x40da0c + RTmemoryMapper.elements[4].shift));
+
+for (bidx=0; bidx < 0x120; bidx+=4) {
+   fprintf(stderr,"0x%x:  ", (int)stackBase+bidx);
+    fprintf(stderr,"%02hhx", stackBase[bidx+3]);
+    fprintf(stderr,"%02hhx", stackBase[bidx+2]);
+    fprintf(stderr,"%02hhx", stackBase[bidx+1]);
+    fprintf(stderr,"%02hhx", stackBase[bidx]);
+    fprintf(stderr,"\n");
+}
    do {
       guard2 = RTmemoryMapper.guard2;
       min = 0;

@@ -485,11 +485,16 @@ Function::tampersStack(bool recalculate)
         _tamper = TAMPER_NONZERO;
     }
 
-    if (TAMPER_ABS == _tamper && ! obj()->cs()->isCode(_tamper_addr)) {
-        mal_printf("WARNING: function at %lx tampers its stack to point at "
-                   "invalid address 0x%lx %s[%d]\n", _start, _tamper_addr,
-                   FILE__,__LINE__);
-        _tamper = TAMPER_NONZERO;
+    if (TAMPER_ABS == _tamper) {
+        if (_tamper_addr >= obj()->cs()->loadAddress()) {
+            _tamper_addr -= obj()->cs()->loadAddress();
+        }
+        if (! obj()->cs()->isCode(_tamper_addr)) {
+            mal_printf("WARNING: function at %lx tampers its stack to point at "
+                       "invalid address 0x%lx %s[%d]\n", _start, _tamper_addr,
+                       FILE__,__LINE__);
+            _tamper = TAMPER_NONZERO;
+        }
     }
     if ( TAMPER_NONE != _tamper && RETURN == _rs ) {
         _rs = NORETURN;

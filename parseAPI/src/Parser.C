@@ -456,6 +456,9 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
                                 Edge *ftEdge = NULL;
                                 for (unsigned eix=0; eix < elems.size(); eix++)
                                 {
+                                    if (NULL == elems[eix]->edge()) {
+                                        continue;
+                                    }
                                     if (elems[eix]->edge()->type() == CALL &&
                                         elems[eix]->target()==pf->func->addr())
                                     {
@@ -1624,6 +1627,14 @@ Parser::getTamperFrames(Function *func,
                  target, 
                  func->src());
         }
+        if (!tfunc) {
+            tfunc = _parse_data->get_func(func->region(),target,RT);
+            if(!tfunc) {
+                mal_printf("ERROR: could not create function at tamper "
+                           "addr %lx\n",target);
+                return;
+            }
+        }
         finfo.push_back( 
             new frame_info(
                 target, 
@@ -1659,17 +1670,26 @@ Parser::getTamperFrames(Function *func,
     default:
         assert(0);
     }
+
     for (unsigned fidx=0; fidx < finfo.size(); fidx++) {
-        if(NULL == finfo[fidx]->tfunc) {
-            mal_printf("couldn't create function at tamper(%d) addr %lx "
-                       "%s[%d]\n", func->tampersStack(), finfo[fidx]->target,
-                       FILE__,__LINE__);
-            delete finfo[fidx];
-            continue;
+        CodeRegion *reg;
+        if(NULL != finfo[fidx]->tfunc) {
+            reg = finfo[fidx]->tfunc->region();
+        } else {
+            set<CodeRegion*> regs;
+            func->obj()->cs()->findRegions(finfo[fidx]->target, regs);
+            if (regs.empty()) {
+                mal_printf("couldn't create function at tamper(%d) addr %lx "
+                           "%s[%d]\n", func->tampersStack(), finfo[fidx]->target,
+                           FILE__,__LINE__);
+                delete finfo[fidx];
+                continue;
+            }
+            reg = * regs.begin();
         }
 
         ParseFrame::Status exist = _parse_data->frameStatus(
-            finfo[fidx]->tfunc->region(), finfo[fidx]->target);
+            reg, finfo[fidx]->target);
         ParseFrame * pf = NULL;
         switch(exist) {
             case ParseFrame::FRAME_ERROR:
@@ -1683,8 +1703,7 @@ Parser::getTamperFrames(Function *func,
                 break;
             case ParseFrame::BAD_LOOKUP:
                 // create new frame
-                pf = _parse_data->findFrame(finfo[fidx]->tfunc->region(),
-                                            finfo[fidx]->target);
+                pf = _parse_data->findFrame(reg, finfo[fidx]->target);
                 if ( !pf ) {
                     pf = new ParseFrame(finfo[fidx]->tfunc,_parse_data);
                     frames.push_back(pf);
@@ -1696,12 +1715,12 @@ Parser::getTamperFrames(Function *func,
                 break;
             case ParseFrame::UNPARSED:
             case ParseFrame::CALL_BLOCKED:
-                pf = _parse_data->findFrame(finfo[fidx]->tfunc->region(),
-                                            finfo[fidx]->target);
+                pf = _parse_data->findFrame(reg, finfo[fidx]->target);
                 if ( !pf ) {
                     fprintf(stderr,"ERROR: no function frame at %lx for frame "
                             "that should exist, can't add edge; status=%d\n",
                             finfo[fidx]->target, exist);
+                    continue;
                 }
                 break;
             default:
