@@ -799,14 +799,9 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
         registerSlot *frame = registers_[framePointer()];
         assert(frame);
 
-        // When this register was saved we stored its offset from the base
-        // pointer.  Use that to load it.
-        int addrWidth = gen.addrSpace()->getAddressWidth();
-        gen.codeEmitter()->emitStoreRelative(source,
-                                             addrWidth * dest->saveOffset,
-                                             framePointer(),
-                                             addrWidth,
-                                             gen);
+        // When this register was saved we stored its offset from the base pointer.
+        // Use that to load it. 
+        gen.codeEmitter()->emitStoreRelative(source, dest->saveOffset, framePointer(), gen.addrSpace()->getAddressWidth(), gen);
         return true;
         break;
     }
@@ -1435,15 +1430,6 @@ int registerSpace::getStackHeight()
       initRealRegSpace();
    return regStateStack[regStateStack.size()-1]->stack_height;
 }
-
-void registerSpace::setInstFrameSize(int val) {
-    instFrameSize_ = val;
-}
-
-int registerSpace::getInstFrameSize() {
-    return instFrameSize_;
-}
-
 #endif
 
 #if !defined(arch_x86) && !defined(arch_x86_64)
@@ -1501,14 +1487,4 @@ int registerSpace::getStackHeight()
 {
    return 0;
 }
-
-void registerSpace::setInstFrameSize(int) {
-    assert(0 && "Not implemented for this platform!");
-}
-
-int registerSpace::getInstFrameSize() {
-    assert(0 && "Not implemented for this platform!");
-    return 0;
-}
-
 #endif
