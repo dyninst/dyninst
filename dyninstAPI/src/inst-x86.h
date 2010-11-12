@@ -73,10 +73,11 @@
 // Undefine REG_MT_POS, basically
 #define REG_MT_POS NUM_VIRTUAL_REGISTERS
 
-#define IA32_STACK_ALIGNMENT     16
-#define AMD64_STACK_ALIGNMENT    32  // This is extremely conservative.
-                                     // 16 may be enough.
-#define AMD64_RED_ZONE         0x80
+#if defined(arch_x86_64)
+#define STACK_PAD_CONSTANT 0x80
+#else
+#define STACK_PAD_CONSTANT 0
+#endif
 
 /*
    Function arguments are in the stack and are addressed with a displacement

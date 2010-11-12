@@ -939,44 +939,51 @@ void int_function::addMissingBlock(image_basicBlock & missingB)
 
     if ( bbi && &missingB != bbi->block()->llb() ) 
     {
-        // the block was split during parsing, (or there's real block 
-        // overlapping), adjust the end and lastInsn fields of both 
-        // bblInstances 
         image_basicBlock *imgB = bbi->block()->llb();
-        Address blockBaseAddr = bbi->firstInsnAddr() - 
-            imgB->firstInsnOffset();
-        assert(baseAddr == blockBaseAddr);
-        mal_printf("adjusting boundaries of split block %lx (split at %lx)\n",
-                   imgB->start(), missingB.start());
-        bbi->setEndAddr( imgB->endOffset() + blockBaseAddr );
-        bbi->setLastInsnAddr( imgB->lastInsnOffset() + blockBaseAddr );
-        // instance 2
-        bblInstance *otherInst = findBlockInstanceByAddr
-                        (missingB.firstInsnOffset() + blockBaseAddr);
-        if (otherInst && otherInst != bbi) {
-            bbi = otherInst;
-            imgB = bbi->block()->llb();
-            blockBaseAddr = bbi->firstInsnAddr() - 
+        if (missingB.end() >     imgB->start() 
+            ||  imgB->end() > missingB.start()) 
+        {
+            // blocks overlap, add block (could checked needsRelocation_ flag)
+            bbi = NULL;
+        }
+        else {
+            // the block was split during parsing, adjust the end and lastInsn 
+            // fields of both bblInstances 
+            Address blockBaseAddr = bbi->firstInsnAddr() - 
                 imgB->firstInsnOffset();
             assert(baseAddr == blockBaseAddr);
+            mal_printf("adjusting boundaries of split block %lx (split at %lx)\n",
+                       imgB->start(), missingB.start());
             bbi->setEndAddr( imgB->endOffset() + blockBaseAddr );
-            bbi->setLastInsnAddr(imgB->lastInsnOffset() + blockBaseAddr);
-        }
+            bbi->setLastInsnAddr( imgB->lastInsnOffset() + blockBaseAddr );
+            // instance 2
+            bblInstance *otherInst = findBlockInstanceByAddr
+                            (missingB.firstInsnOffset() + blockBaseAddr);
+            if (otherInst && otherInst != bbi) {
+                bbi = otherInst;
+                imgB = bbi->block()->llb();
+                blockBaseAddr = bbi->firstInsnAddr() - 
+                    imgB->firstInsnOffset();
+                assert(baseAddr == blockBaseAddr);
+                bbi->setEndAddr( imgB->endOffset() + blockBaseAddr );
+                bbi->setLastInsnAddr(imgB->lastInsnOffset() + blockBaseAddr);
+            }
 
-        // now try and find the block again
-        bblInstance *newbbi = findBlockInstanceByAddr( 
-            missingB.firstInsnOffset() + blockBaseAddr );
-        if (bbi == newbbi) {
-            // there's real overlapping going on
-            mal_printf("WARNING: overlapping blocks, major obfuscation or "
-                    "bad parse [%lx %lx] [%lx %lx] %s[%d]\n",
-                    bbi->firstInsnAddr(), 
-                    bbi->endAddr(), 
-                    baseAddr + missingB.firstInsnOffset(), 
-                    baseAddr + missingB.endOffset(), 
-                    FILE__,__LINE__);
+            // now try and find the block again
+            bblInstance *newbbi = findBlockInstanceByAddr( 
+                missingB.firstInsnOffset() + blockBaseAddr );
+            if (bbi == newbbi) {
+                // there's real overlapping going on
+                mal_printf("WARNING: overlapping blocks, major obfuscation or "
+                        "bad parse [%lx %lx] [%lx %lx] %s[%d]\n",
+                        bbi->firstInsnAddr(), 
+                        bbi->endAddr(), 
+                        baseAddr + missingB.firstInsnOffset(), 
+                        baseAddr + missingB.endOffset(), 
+                        FILE__,__LINE__);
+            }
+            bbi = newbbi;
         }
-        bbi = newbbi;
     }
 
     if ( ! bbi ) {
@@ -1019,8 +1026,12 @@ void int_function::addMissingBlocks()
             ifunc()->img()->getNewBlocks();
         vector<image_basicBlock*>::const_iterator nit = nblocks.begin();
         for( ; nit != nblocks.end(); ++nit) {
+            mal_printf("nblock [%lx %lx)", (*nit)->start(), (*nit)->end());
             if ( ifunc()->contains( *nit ) ) {
                 addMissingBlock( **nit );
+                mal_printf(" was missing\n");
+            } else {
+                mal_printf(" not missing\n");
             }
         }
     }

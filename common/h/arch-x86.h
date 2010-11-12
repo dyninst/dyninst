@@ -766,9 +766,6 @@ COMMON_EXPORT Address get_target(const unsigned char *instr, unsigned type, unsi
 #define EXTENDED_0x81_XOR 6
 #define EXTENDED_0x81_CMP 7
 
-#define EXTENDED_0x83_ADD 0
-#define EXTENDED_0x83_AND 4
-#define EXTENDED_0x83_SUB 5
 
 
 class instruction {
