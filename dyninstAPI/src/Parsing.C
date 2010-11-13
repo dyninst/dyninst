@@ -195,7 +195,6 @@ DynCFGFactory::mkblock(Function * f, CodeRegion *r, Address addr) {
 
     if ( _img->trackNewBlocks_ ) 
     {
-        mal_printf("image:newBlock(%lx)\n", addr);
         _img->newBlocks_.push_back(ret);
     }
     return ret;

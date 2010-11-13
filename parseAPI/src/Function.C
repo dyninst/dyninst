@@ -496,7 +496,7 @@ Function::tampersStack(bool recalculate)
             _tamper = TAMPER_NONZERO;
         }
     }
-    if ( TAMPER_NONE != _tamper && RETURN == _rs ) {
+    if ( TAMPER_NONE != _tamper && TAMPER_REL != _tamper && RETURN == _rs ) {
         _rs = NORETURN;
     }
     return _tamper;

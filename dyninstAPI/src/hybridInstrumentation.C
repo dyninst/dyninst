@@ -185,6 +185,9 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     Address funcAddr = (Address) func->getBaseAddr();
     vector<BPatch_function*>dontcare;
     mal_printf("instfunc at %lx\n", funcAddr);
+    if (proc()->lowlevel_process()->isMemoryEmulated()) {
+        proc()->lowlevel_process()->addModifiedFunction(func->lowlevel_func());
+    }
     int pointCount = 0;
 
     if (!(*instrumentedFuncs)[func]) {
@@ -422,7 +425,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     }
     
     // close insertion set
-    if (pointCount) {
+    if (proc()->lowlevel_process()->isMemoryEmulated() || pointCount) {
         mal_printf("instrumented %d points in function at %lx\n", 
                     pointCount,func->getBaseAddr());
         if (useInsertionSet) {

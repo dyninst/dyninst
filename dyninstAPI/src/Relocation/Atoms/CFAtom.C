@@ -584,7 +584,11 @@ bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
       assert(block_);
       gen.registerDefensivePad(block_, gen.currAddr(), 10);
    }
-   gen.fill(size_, codeGen::cgIllegal);
+   if ( 0 == (size_ % 2) ) {
+       gen.fill(size_, codeGen::cgIllegal);
+   } else {
+       gen.fill(size_, codeGen::cgTrap);
+   }
    //gen.fill(10, codeGen::cgNOP);
    return true;
 }
