@@ -56,7 +56,7 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
 
 #if 1
 int bidx;
-char *stackBase = (char*)0x12ff00;
+unsigned char *stackBase = (char*)0x12ff00;
 for (bidx=0; origAddr == 0x40d75e && bidx < 0x100; bidx+=4) {
     fprintf(stderr,"0x%x:  ", (int)stackBase+bidx);
     fprintf(stderr,"%02hhx", stackBase[bidx+3]);

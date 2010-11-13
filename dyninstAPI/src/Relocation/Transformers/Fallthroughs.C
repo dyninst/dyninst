@@ -83,7 +83,7 @@ bool Fallthroughs::process(TraceList::iterator &iter, TracePtr next) {
 
     TargetInt *target = d_iter->second;
 
-    if (target->matches(next)) {
+    if (target->matches(next) && !cf->needsPostCallPadding() ) {
       relocation_cerr << "\t " << d_iter->first << ": target " << target->format()
 		      << " and next block " << next->id() << ", setting branch not required" << endl;
       target->setNecessary(false);
