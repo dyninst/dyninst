@@ -54,10 +54,11 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
    int max;
    volatile int guard2;
 
-#if 0
+#if 1
 int bidx;
-for (bidx=0; bidx < 0x120; bidx+=4) {
-   fprintf(stderr,"0x%x:  ", (int)stackBase+bidx);
+char *stackBase = (char*)0x12ff00;
+for (bidx=0; origAddr == 0x40d75e && bidx < 0x100; bidx+=4) {
+    fprintf(stderr,"0x%x:  ", (int)stackBase+bidx);
     fprintf(stderr,"%02hhx", stackBase[bidx+3]);
     fprintf(stderr,"%02hhx", stackBase[bidx+2]);
     fprintf(stderr,"%02hhx", stackBase[bidx+1]);
@@ -66,7 +67,8 @@ for (bidx=0; bidx < 0x120; bidx+=4) {
 }
 #endif
 
-   fprintf(stderr, "RTtranslateMemory(ptr 0x%lx, origAddr 0x%lx, curAddr 0x%lx)\n", input, origAddr, curAddr);
+   fprintf(stderr, "RTtranslateMemory(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx &(input par) = 0x%lx)\n", 
+           input, origAddr, curAddr, &input);
    do {
       guard2 = RTmemoryMapper.guard2;
       min = 0;
@@ -121,7 +123,7 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long addr) {
    int min;
    int max;
    volatile int guard2;
-   fprintf(stderr, "RTtranslateMemory(0x%lx)\n", input);
+   fprintf(stderr, "RTtranslateMemoryShift(insn 0x%lx: %lx)\n", addr, input);
    do {
       guard2 = RTmemoryMapper.guard2;
       min = 0;
@@ -149,7 +151,14 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long addr) {
          return -1 * input;
       }
       else {
-         fprintf(stderr, "... returning shift\n");
+         fprintf(stderr, "... returning shadow copy as index is within range 0x%lx to 0x%lx, shift 0x%lx\n",
+                 RTmemoryMapper.elements[index].lo,
+                 RTmemoryMapper.elements[index].hi,
+                 RTmemoryMapper.elements[index].shift);
+         fprintf(stderr, "Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ", 
+                 input, * (int *) input, (input + RTmemoryMapper.elements[index].shift),
+                 * (int *)(input + RTmemoryMapper.elements[index].shift));
+         fprintf(stderr, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
          return RTmemoryMapper.elements[index].shift;
       }
    }
