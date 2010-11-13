@@ -617,6 +617,7 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen 
     
     //popa or pop each register, plus optional popf
     emitBTRegRestores32(bti, gen);
+
     
     // Red zone skip - see comment in emitBTsaves
     /*if (STACK_PAD_CONSTANT)
