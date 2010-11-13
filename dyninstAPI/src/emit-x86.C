@@ -617,12 +617,7 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen 
     
     //popa or pop each register, plus optional popf
     emitBTRegRestores32(bti, gen);
-<<<<<<< HEAD:dyninstAPI/src/emit-x86.C
-#if defined(RAY_STACK_ROUND)
-    // Restore the (possibly unaligned) stack pointer.
-    emitMovRMToReg(RealRegister(REGNUM_ESP), RealRegister(REGNUM_ESP), 0, gen);
-#endif
-=======
+
     
     // Red zone skip - see comment in emitBTsaves
     /*if (STACK_PAD_CONSTANT)
@@ -637,7 +632,6 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen 
        emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
                funcJumpSlotSize, RealRegister(REGNUM_ESP), gen);
     }
->>>>>>> 372c7e8... Merge branch 'Kevin-Drew' of brie.cs.wisc.edu:/p/paradyn/development/bernat/builds/dyninst into Kevin-Drew:dyninstAPI/src/emit-x86.C
 
     return true;
 }

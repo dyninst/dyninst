@@ -108,6 +108,12 @@ bool MemEmulator::generateViaOverride(const codeGen &templ,
       case e_cmpsb:
       case e_cmpsd:
       case e_cmpsw:
+      case e_insb:
+      case e_insd:
+      case e_insw:
+      case e_outsb:
+      case e_outsd:
+      case e_outsw:
          return generateImplicit(templ, t, buffer);
          break;
       default:
@@ -706,6 +712,9 @@ std::pair<bool, bool> MemEmulator::getImplicitRegs(codeGen &) {
       case e_lodsb:
       case e_lodsd:
       case e_lodsw:
+      case e_outsb:
+      case e_outsd:
+      case e_outsw:
          return std::make_pair(false, true);
          break;
       case e_movsb:
