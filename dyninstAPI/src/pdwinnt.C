@@ -550,7 +550,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 	Frame activeFrame = ev.lwp->getActiveFrame();
 	static int breakpoints = 0;
 	breakpoints++;
-	cerr << "BREAKPOINT FRAME: " << hex << activeFrame.getPC() << " / " << activeFrame.getSP() << dec << endl;
+	cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() << dec << endl;
 	ev.type = evtIgnore;
   }
   else {

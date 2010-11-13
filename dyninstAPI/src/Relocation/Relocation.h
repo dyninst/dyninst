@@ -47,7 +47,7 @@ namespace Relocation {
 
 class CodeMover;
 class SpringboardMap;
-class SpringboardReq;
+struct SpringboardReq;
 class SpringboardBuilder;
 
 typedef dyn_detail::boost::shared_ptr<Dyninst::Relocation::CodeMover> CodeMoverPtr;

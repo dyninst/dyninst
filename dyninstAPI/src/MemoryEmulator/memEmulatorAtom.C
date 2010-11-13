@@ -137,7 +137,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
    codeGen prepatch(128);
    prepatch.applyTemplate(templ);
 
-	 bool debug = false;
+	 bool debug = true;
   //if (addr_ == 0x40d201 ||
 	 // addr_ == 0x40d24c) debug = true;
  

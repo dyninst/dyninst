@@ -56,7 +56,7 @@ class Inst;
 class CFAtom;
 class Trace;
 
-class Patch;
+struct Patch;
 class TrackerElement;
 class CodeTracker;
 class CodeBuffer;
