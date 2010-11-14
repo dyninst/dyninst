@@ -115,13 +115,14 @@ for (bidx=0; bidx < 0x120; bidx+=4) {
    }
 }
 
-unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long addr) {
+unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr, unsigned long curAddr) {
    /* Standard nonblocking synchronization construct */
    int index;
    int min;
    int max;
    volatile int guard2;
-   fprintf(stderr, "RTtranslateMemory(0x%lx)\n", input);
+
+   fprintf(stderr, "RTtranslateMemoryShift(ptr 0x%lx, origAddr 0x%lx, curAddr 0x%lx)\n", input, origAddr, curAddr);
    do {
       guard2 = RTmemoryMapper.guard2;
       min = 0;
@@ -149,7 +150,7 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long addr) {
          return -1 * input;
       }
       else {
-         fprintf(stderr, "... returning shift\n");
+         fprintf(stderr, "... returning shift of 0x%lx\n", RTmemoryMapper.elements[index].shift);
          return RTmemoryMapper.elements[index].shift;
       }
    }

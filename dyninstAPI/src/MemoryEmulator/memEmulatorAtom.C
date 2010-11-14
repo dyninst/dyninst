@@ -565,6 +565,10 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
    prepatch.applyTemplate(templ);
 
    // This is an implicit use of ESI, EDI, or both. The both? Sucks. 
+bool debug = true;
+if (debug) {
+	prepatch.fill(1, codeGen::cgTrap);
+}
 
    bool usesEDI = false;
    bool usesESI = false;
@@ -589,13 +593,22 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
    if (!initialize(prepatch)) return false;
    if (!checkLiveness(prepatch)) return false;
    if (!setupFrame(usesTwo, prepatch)) return false;
+
+   // Move EDI/ESI into our effective address temporaries
+   if (usesEDI) {
+	   ::emitMovRegToReg(RealRegister(effAddr_), RealRegister(REGNUM_EDI), prepatch);
+   }
+   if (usesESI) {
+	   ::emitMovRegToReg(RealRegister((usesEDI ? effAddr2_ : effAddr_)), RealRegister(REGNUM_ESI), prepatch);
+   }
+
    if (!preCallSave(prepatch)) return false;
    buffer.addPIC(prepatch, tracker(t->bbl()->func()));
 
-   buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch, true), point_, false),
+   buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch, true), point_, debug),
                    tracker(t->bbl()->func()));
    if (usesTwo) {
-      buffer.addPatch(new MemEmulatorPatch(effAddr2_, getTranslatorAddr(prepatch, true), point_, false),
+      buffer.addPatch(new MemEmulatorPatch(effAddr2_, getTranslatorAddr(prepatch, true), point_, debug),
                    tracker(t->bbl()->func()));
    }
 
@@ -655,7 +668,9 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
 
    // And clean up
    if (!trailingTeardown(prepatch)) return false;
-
+if (debug) {
+	prepatch.fill(1, codeGen::cgTrap);
+}
    buffer.addPIC(prepatch, tracker(t->bbl()->func()));
    
    return true;
