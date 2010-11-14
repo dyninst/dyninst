@@ -939,7 +939,7 @@ Frame dyn_lwp::getActiveFrame()
 		Frame frame(pc, fp, sp, proc_->getPid(), proc_, NULL, this, true);
 		frame.esi = cont.Esi;
 		frame.edi = cont.Edi;
-#if 0
+//#if 0
 		cerr << "CONTEXT DUMP IN GETACTIVEFRAME: " << hex
 			<< " EIP: "  << cont.Eip
 			<< " ESP: " << cont.Esp
@@ -950,7 +950,7 @@ Frame dyn_lwp::getActiveFrame()
 			<< " EBP: " << cont.Ebp
 			<< " ESI: " << cont.Esi
 			<< " EDI: " << cont.Edi << dec << endl;
-#endif
+//#endif
 
 		return frame;
 	}

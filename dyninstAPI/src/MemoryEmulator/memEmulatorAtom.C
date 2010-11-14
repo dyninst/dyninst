@@ -277,15 +277,15 @@ bool MemEmulator::setupFrame(bool needTwo, codeGen &gen) {
    // since we _really_ need to use it for flag saves
    gen.rs()->allocateSpecificRegister(gen, REGNUM_EAX, true);
    
-   effAddr_ = gen.rs()->allocateRegister(gen, false, true);
-   if (effAddr_ == Null_Register) {
+//   effAddr_ = gen.rs()->allocateRegister(gen, false, true);
+   if (true || effAddr_ == Null_Register) {
       if (!stealEffectiveAddr(effAddr_, gen)) {
          return false;
       }
    }      
    if (needTwo) {
-      effAddr2_ = gen.rs()->allocateRegister(gen, false, true);
-      if (effAddr2_ == Null_Register) {
+//      effAddr2_ = gen.rs()->allocateRegister(gen, false, true);
+      if (true || effAddr2_ == Null_Register) {
          if (!stealEffectiveAddr(effAddr2_, gen)) {
             return false;
          }
@@ -486,7 +486,7 @@ bool MemEmulator::pushRegIfLive(registerSlot *reg, codeGen &gen) {
       return true;
    }
 
-   if (reg->liveState == registerSlot::live || 1) {
+   if (true || reg->liveState == registerSlot::live) {
       ::emitPush(RealRegister(reg->encoding()), gen);
       reg->liveState = registerSlot::spilled;
    }
