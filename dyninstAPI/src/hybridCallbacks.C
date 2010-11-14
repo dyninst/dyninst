@@ -140,7 +140,7 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
     while (it < handlers.end())
     {
         BPatch_module *mod = proc()->findModuleByAddr(*it);
-        if (mod->isSystemLib()) {
+        if (!mod || mod->isSystemLib()) {
             it = handlers.erase(it);
             continue;
         } 

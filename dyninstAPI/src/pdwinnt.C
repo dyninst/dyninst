@@ -543,8 +543,10 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 	  ret = true;
   }
   else if (BPatch_defensiveMode == ev.proc->getHybridMode()) {
-//     requested_wait_until_active = true;//i.e., return exception to mutatee
-//     decodeHandlerCallback(ev);
+#if 1
+     requested_wait_until_active = true;//i.e., return exception to mutatee
+     decodeHandlerCallback(ev);
+#else 
 	requested_wait_until_active = false;
 	  ret = true;
 	Frame activeFrame = ev.lwp->getActiveFrame();
@@ -553,6 +555,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 	cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
 		<< " (DEBUG: ESI " << activeFrame.esi << ", EDI " << activeFrame.edi << ")" << dec << endl;
 	ev.type = evtIgnore;
+#endif
   }
   else {
 	  ev.type = evtCritical;

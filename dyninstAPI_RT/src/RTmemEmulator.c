@@ -54,10 +54,11 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
    int max;
    volatile int guard2;
 
-#if 0
+#if 1
 int bidx;
-for (bidx=0; bidx < 0x120; bidx+=4) {
-   fprintf(stderr,"0x%x:  ", (int)stackBase+bidx);
+unsigned char *stackBase = (char*)0x12ff00;
+for (bidx=0; origAddr == 0x40d75e && bidx < 0x100; bidx+=4) {
+    fprintf(stderr,"0x%x:  ", (int)stackBase+bidx);
     fprintf(stderr,"%02hhx", stackBase[bidx+3]);
     fprintf(stderr,"%02hhx", stackBase[bidx+2]);
     fprintf(stderr,"%02hhx", stackBase[bidx+1]);
@@ -66,7 +67,8 @@ for (bidx=0; bidx < 0x120; bidx+=4) {
 }
 #endif
 
-   fprintf(stderr, "RTtranslateMemory(ptr 0x%lx, origAddr 0x%lx, curAddr 0x%lx)\n", input, origAddr, curAddr);
+   fprintf(stderr, "RTtranslateMemory(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx &(input par) = 0x%lx)\n", 
+           input, origAddr, curAddr, &input);
    do {
       guard2 = RTmemoryMapper.guard2;
       min = 0;
@@ -121,7 +123,6 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
    int min;
    int max;
    volatile int guard2;
-
    fprintf(stderr, "RTtranslateMemoryShift(ptr 0x%lx, origAddr 0x%lx, curAddr 0x%lx)\n", input, origAddr, curAddr);
    do {
       guard2 = RTmemoryMapper.guard2;

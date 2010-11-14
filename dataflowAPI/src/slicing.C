@@ -85,13 +85,6 @@ Slicer::Slicer(Assignment::Ptr a,
   converter(true) {
   df_init_debug();
 
-  if (a_->addr() == 0xc10d52) {
-     df_debug_slicing = true;
-  }
-  else {
-     df_debug_slicing = false;
-  }
-
 };
 
 Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {
@@ -463,6 +456,9 @@ bool Slicer::getSuccessors(Element &current,
 		   err)) {
       slicing_cerr << " succeeded, err " << err << endl;
       succ.push(newElement);
+    }
+    else {
+        ret = false;
     }
   }
   else if (containsRet(current.loc.block)) {
@@ -858,6 +854,8 @@ bool Slicer::search(Element &initial,
     // After this point we treat current as a scratch space to scribble in
     // and return...
 
+    // If we're an int3, assume we need to widen the slice
+
     // Split the instruction up
     std::vector<Assignment::Ptr> assignments;
     Instruction::Ptr insn;
@@ -865,6 +863,12 @@ bool Slicer::search(Element &initial,
         insn = current.loc.current->first;
     else
         insn = current.loc.rcurrent->first;
+
+    if (e_int3 == insn->getOperation().getID()) {
+        ret = false;
+        continue;
+    }
+
     convertInstruction(insn,
                        current.addr(),
                        current.loc.func,
