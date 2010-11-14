@@ -410,14 +410,16 @@ class AddressSpace : public InstructionSource {
 
     bool getAddrInfo(Address relocAddr,//input
 		      Address &origAddr,
-              std::vector<int_function *> &origFuncs,
-		      baseTrampInstance *&baseTramp);
+                     std::vector<int_function *> &origFuncs,
+                     baseTrampInstance *&baseTramp);
 
     bool getRelocInfo(Address relocAddr,
 		      Address &origAddr,
 		      int_function *&origFunc,
 		      baseTrampInstance *&baseTramp);
-			   
+		
+    // Debugging method
+    bool inEmulatedCode(Address addr);
 
     void causeTemplateInstantiations();
 

@@ -89,8 +89,14 @@ class Frame {
       thread_(f.thread_),
       lwp_(f.lwp_),
       pcAddr_(f.pcAddr_),
-	esi(f.esi),
-  edi(f.edi) {};
+     eax(f.eax),
+     ebx(f.ebx),
+     ecx(f.ecx),
+     edx(f.edx),
+     esp(f.esp),
+     ebp(f.ebp),
+     esi(f.esi),
+     edi(f.edi) {};
 
   const Frame &operator=(const Frame &f) {
       frameType_ = f.frameType_;
@@ -103,8 +109,14 @@ class Frame {
       thread_ = f.thread_;
       lwp_ = f.lwp_;
       pcAddr_ = f.pcAddr_;
-	  esi = f.esi;
-	  edi = f.edi;
+      eax = f.eax;
+      ebx = f.ebx;
+      ecx = f.ecx;
+      edx = f.edx;
+      esp = f.esp;
+      ebp = f.ebp;
+      esi = f.esi;
+      edi = f.edi;
 	  return *this;
   }
   
@@ -154,8 +166,14 @@ class Frame {
   // Set the frameType_ member
   void calcFrameType();
   
-	Address esi;
-	Address edi;
+  Address eax;
+  Address ebx;
+  Address ecx;
+  Address edx;
+  Address esp;
+  Address ebp;
+  Address esi;
+  Address edi;
 
  private:
   bool			uppermost_;
