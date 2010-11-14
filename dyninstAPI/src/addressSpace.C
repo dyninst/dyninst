@@ -1633,7 +1633,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
                                  "orig[%lx]cur[%lx]new[%lx] %s[%d]\n", pcOrig, 
                                  tframe.getPC(), relocPCs.back(),FILE__,__LINE__);
                       break;
-                      }
+                  }
               }
           }
       }

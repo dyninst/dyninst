@@ -123,7 +123,7 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long addr) {
    int min;
    int max;
    volatile int guard2;
-   fprintf(stderr, "RTtranslateMemoryShift(insn 0x%lx: %lx)\n", addr, input);
+   fprintf(stderr, "RTtranslateMemoryShift(insn 0x%lx: %lx &(arg1)=%lx)\n", addr, input, &input);
    do {
       guard2 = RTmemoryMapper.guard2;
       min = 0;

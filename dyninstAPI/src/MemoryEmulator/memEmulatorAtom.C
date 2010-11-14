@@ -102,6 +102,9 @@ bool MemEmulator::generateViaOverride(const codeGen &templ,
       case e_lodsb:
       case e_lodsd:
       case e_lodsw:
+      case e_stosb:
+      case e_stosd:
+      case e_stosw:
       case e_movsb:
       case e_movsd:
       case e_movsw:
@@ -590,7 +593,20 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
    if (!initialize(prepatch)) return false;
    if (!checkLiveness(prepatch)) return false;
    if (!setupFrame(usesTwo, prepatch)) return false;
+
+   if (usesEDI) {
+       ::emitMovRegToReg(RealRegister(effAddr_), 
+                         RealRegister(REGNUM_EDI),
+                         prepatch);
+   }
+   if (usesESI) {
+       ::emitMovRegToReg(RealRegister(usesTwo ? effAddr2_ : effAddr_), 
+                         RealRegister(REGNUM_ESI),
+                         prepatch);
+   }
+
    if (!preCallSave(prepatch)) return false;
+
    buffer.addPIC(prepatch, tracker(t->bbl()->func()));
 
    buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch, true), point_, false),
