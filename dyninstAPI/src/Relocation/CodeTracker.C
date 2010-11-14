@@ -71,6 +71,13 @@ bool CodeTracker::relocToOrig(Address relocAddr,
   return true;
 }
 
+TrackerElement *CodeTracker::findByReloc(Address addr) const {
+  TrackerElement *e = NULL;
+  if (!relocToOrig_.find(addr, e))
+    return NULL;
+  return e;
+}
+
 void CodeTracker::addTracker(TrackerElement *e) {
   // We should look into being more efficient by collapsing ranges
   // of relocated code into a single OriginalTracker
