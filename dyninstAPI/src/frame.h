@@ -88,7 +88,9 @@ class Frame {
       proc_(f.proc_),
       thread_(f.thread_),
       lwp_(f.lwp_),
-      pcAddr_(f.pcAddr_) {};
+      pcAddr_(f.pcAddr_),
+	esi(f.esi),
+  edi(f.edi) {};
 
   const Frame &operator=(const Frame &f) {
       frameType_ = f.frameType_;
@@ -101,7 +103,9 @@ class Frame {
       thread_ = f.thread_;
       lwp_ = f.lwp_;
       pcAddr_ = f.pcAddr_;
-      return *this;
+	  esi = f.esi;
+	  edi = f.edi;
+	  return *this;
   }
   
   bool operator==(const Frame &F) {
@@ -150,6 +154,9 @@ class Frame {
   // Set the frameType_ member
   void calcFrameType();
   
+	Address esi;
+	Address edi;
+
  private:
   bool			uppermost_;
   Address		pc_;

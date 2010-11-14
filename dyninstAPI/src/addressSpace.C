@@ -1606,6 +1606,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       {
           // translate thread's active PC to orig addr
           Frame tframe = (*titer)->getActiveFrame();
+          Address relocAddr = tframe.getPC();
           Address pcOrig=0;
           vector<int_function *> origFuncs;
           baseTrampInstance *bti=NULL;
@@ -1625,15 +1626,30 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           // if the PC matches a modified function, change the PC
           for (FuncSet::const_iterator fit = begin; fit != end; fit++) {
               if ((*fit)->findBlockInstanceByAddr(pcOrig)) {
-                  list<Address> relocPCs;
-                  getRelocAddrs(pcOrig, origFunc, relocPCs, false);
-                  if (relocPCs.size()) {
-                      (*titer)->get_lwp()->changePC(relocPCs.back(),NULL);
-                      mal_printf("Pulling active frame PC into newest relocation "
-                                 "orig[%lx]cur[%lx]new[%lx] %s[%d]\n", pcOrig, 
-                                 tframe.getPC(), relocPCs.back(),FILE__,__LINE__);
-                      break;
-                  }
+                 // HACK: if we're in the middle of an emulation block, add that
+                 // offset to where we transfer to. 
+                 TrackerElement *te = NULL;
+                 for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
+                      iter != relocatedCode_.end(); ++iter) {
+                    te = iter->findByReloc(relocAddr);
+                    if (te) break;
+                 }
+                 Address offset = 0;
+                 if (te && te->type() == TrackerElement::emulated) {
+                    offset = relocAddr - te->reloc();
+                    assert(offset < te->size());
+                 }
+
+                 list<Address> relocPCs;
+                 getRelocAddrs(pcOrig, origFunc, relocPCs, false);
+                 if (relocPCs.size()) {
+                    (*titer)->get_lwp()->changePC(relocPCs.back() + offset,NULL);
+                    mal_printf("Pulling active frame PC into newest relocation "
+                               "orig[%lx], cur[%lx], new[%lx (0x%lx + 0x%lx)] %s[%d]\n", pcOrig, 
+                               tframe.getPC(), relocPCs.back() + offset, relocPCs.back(), offset,
+                               FILE__,__LINE__);
+                    break;
+                 }
               }
           }
       }

@@ -117,13 +117,13 @@ for (bidx=0; origAddr == 0x40d75e && bidx < 0x100; bidx+=4) {
    }
 }
 
-unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long addr) {
+unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr, unsigned long curAddr) {
    /* Standard nonblocking synchronization construct */
    int index;
    int min;
    int max;
    volatile int guard2;
-   fprintf(stderr, "RTtranslateMemoryShift(insn 0x%lx: %lx &(arg1)=%lx)\n", addr, input, &input);
+   fprintf(stderr, "RTtranslateMemoryShift(ptr 0x%lx, origAddr 0x%lx, curAddr 0x%lx)\n", input, origAddr, curAddr);
    do {
       guard2 = RTmemoryMapper.guard2;
       min = 0;
@@ -151,14 +151,7 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long addr) {
          return -1 * input;
       }
       else {
-         fprintf(stderr, "... returning shadow copy as index is within range 0x%lx to 0x%lx, shift 0x%lx\n",
-                 RTmemoryMapper.elements[index].lo,
-                 RTmemoryMapper.elements[index].hi,
-                 RTmemoryMapper.elements[index].shift);
-         fprintf(stderr, "Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ", 
-                 input, * (int *) input, (input + RTmemoryMapper.elements[index].shift),
-                 * (int *)(input + RTmemoryMapper.elements[index].shift));
-         fprintf(stderr, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
+         fprintf(stderr, "... returning shift of 0x%lx\n", RTmemoryMapper.elements[index].shift);
          return RTmemoryMapper.elements[index].shift;
       }
    }

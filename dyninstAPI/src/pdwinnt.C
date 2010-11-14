@@ -552,8 +552,9 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 	Frame activeFrame = ev.lwp->getActiveFrame();
 	static int breakpoints = 0;
 	breakpoints++;
-	cerr << "BREAKPOINT FRAME: " << hex << activeFrame.getPC() << " / " << activeFrame.getSP() << dec << endl;
-    ev.type = evtIgnore;
+	cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
+		<< " (DEBUG: ESI " << activeFrame.esi << ", EDI " << activeFrame.edi << ")" << dec << endl;
+	ev.type = evtIgnore;
 #endif
   }
   else {
@@ -925,46 +926,62 @@ bool process::waitUntilStopped() {
 
 Frame dyn_lwp::getActiveFrame()
 {
-  w32CONTEXT cont; //ccw 27 july 2000 : 29 mar 2001
-  
-  Address pc = 0, fp = 0, sp = 0;
-  
-  // we must set ContextFlags to indicate the registers we want returned,
-  // in this case, the control registers.
-  // The values for ContextFlags are defined in winnt.h
-  cont.ContextFlags = CONTEXT_CONTROL;
-  if (GetThreadContext((HANDLE)get_fd(), &cont))
-  {
-     fp = cont.Ebp;
-     pc = cont.Eip;
-     sp = cont.Esp;
-     return Frame(pc, fp, sp, proc_->getPid(), proc_, NULL, this, true);
-  }
-  printSysError(GetLastError());
-  return Frame();
+	w32CONTEXT cont; //ccw 27 july 2000 : 29 mar 2001
+
+	Address pc = 0, fp = 0, sp = 0;
+
+	// we must set ContextFlags to indicate the registers we want returned,
+	// in this case, the control registers.
+	// The values for ContextFlags are defined in winnt.h
+	cont.ContextFlags = CONTEXT_FULL;
+	if (GetThreadContext((HANDLE)get_fd(), &cont))
+	{
+		fp = cont.Ebp;
+		pc = cont.Eip;
+		sp = cont.Esp;
+		Frame frame(pc, fp, sp, proc_->getPid(), proc_, NULL, this, true);
+		frame.esi = cont.Esi;
+		frame.edi = cont.Edi;
+#if 0
+		cerr << "CONTEXT DUMP IN GETACTIVEFRAME: " << hex
+			<< " EIP: "  << cont.Eip
+			<< " ESP: " << cont.Esp
+			<< " EAX: " << cont.Eax
+			<< " EBX: " << cont.Ebx
+			<< " ECX: " << cont.Ecx
+			<< " EDX: " << cont.Edx
+			<< " EBP: " << cont.Ebp
+			<< " ESI: " << cont.Esi
+			<< " EDI: " << cont.Edi << dec << endl;
+#endif
+
+		return frame;
+	}
+	printSysError(GetLastError());
+	return Frame();
 }
 
 // sets PC for stack frames other than the active stack frame
 bool Frame::setPC(Address newpc) {
 
-  if (!pcAddr_) {
-      // if pcAddr isn't set it's because the stackwalk isn't getting the 
-      // frames right
-      fprintf(stderr,"WARNING: unable to change stack frame PC from %lx to %lx "
-              "because we don't know where the PC is on the stack %s[%d]\n",
-              pc_,newpc,FILE__,__LINE__);
-      return false;
-  }
+	if (!pcAddr_) {
+		// if pcAddr isn't set it's because the stackwalk isn't getting the 
+		// frames right
+		fprintf(stderr,"WARNING: unable to change stack frame PC from %lx to %lx "
+			"because we don't know where the PC is on the stack %s[%d]\n",
+			pc_,newpc,FILE__,__LINE__);
+		return false;
+	}
 
-  if (getProc()->writeDataSpace( (void*)pcAddr_, 
-                                 getProc()->getAddressWidth(), 
-                                 &newpc) ) 
-  {
-      this->pc_ = newpc;
-      return true;
-  }
+	if (getProc()->writeDataSpace( (void*)pcAddr_, 
+		getProc()->getAddressWidth(), 
+		&newpc) ) 
+	{
+		this->pc_ = newpc;
+		return true;
+	}
 
-  return false;
+	return false;
 }
 
 bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {

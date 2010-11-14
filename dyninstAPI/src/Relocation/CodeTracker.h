@@ -175,6 +175,8 @@ class CodeTracker {
   bool origToReloc(Address origAddr, int_function *func, RelocatedElements &relocs) const;
   bool relocToOrig(Address relocAddr, Address &orig, int_function *&func, baseTrampInstance *&baseT) const;
 
+  TrackerElement *findByReloc(Address relocAddr) const;
+
   Address lowOrigAddr() const;
   Address highOrigAddr() const;
   Address lowRelocAddr() const;
@@ -185,7 +187,6 @@ class CodeTracker {
   void createIndices();
 
   void debug();
-
 
  private:
 

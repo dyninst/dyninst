@@ -72,7 +72,7 @@ namespace Relocation {
 // since there is a 1:1 relationship between each element (PIC, nonPIC) and a tracker. 
         
 class TrackerElement;
-class Patch;
+struct Patch;
 class CodeTracker;
 class CodeMover;
 
