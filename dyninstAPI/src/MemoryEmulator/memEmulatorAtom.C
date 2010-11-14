@@ -102,6 +102,9 @@ bool MemEmulator::generateViaOverride(const codeGen &templ,
       case e_lodsb:
       case e_lodsd:
       case e_lodsw:
+      case e_stosb:
+      case e_stosd:
+      case e_stosw:
       case e_movsb:
       case e_movsd:
       case e_movsw:
@@ -604,6 +607,7 @@ if (debug) {
    }
 
    if (!preCallSave(prepatch)) return false;
+
    buffer.addPIC(prepatch, tracker(t->bbl()->func()));
 
    buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch, true), point_, debug),
