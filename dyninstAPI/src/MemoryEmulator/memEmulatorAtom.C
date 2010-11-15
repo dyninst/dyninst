@@ -565,7 +565,7 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
    prepatch.applyTemplate(templ);
 
    // This is an implicit use of ESI, EDI, or both. The both? Sucks. 
-bool debug = true;
+bool debug = false;
 if (debug) {
 	prepatch.fill(1, codeGen::cgTrap);
 }

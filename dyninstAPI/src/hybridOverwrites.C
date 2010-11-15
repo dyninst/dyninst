@@ -1292,12 +1292,13 @@ void HybridAnalysisOW::overwriteSignalCB
     BPatch_basicBlockLoop *bblLoop = getWriteLoop(*faultFuncs[0],faultInsnAddr);
     set<BPatch_point*> unresExits;
 
-    if ( bblLoop && 1 == faultFuncs.size()) 
+    if ( bblLoop) 
     { 
         // set loop blocks, returns false if there's indirect control flow in the loop, 
         // in which case we default to immediate instrumentation
         set<int> overlappingLoops;
-        if (setLoopBlocks(loop, bblLoop, unresExits, overlappingLoops) &&
+        if (1 == faultFuncs.size() &&
+            setLoopBlocks(loop, bblLoop, unresExits, overlappingLoops) &&
             ( 0 == overlappingLoops.size() || 
             removeOverlappingLoops(loop,overlappingLoops))) 
         {

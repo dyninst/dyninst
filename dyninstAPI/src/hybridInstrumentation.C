@@ -662,6 +662,19 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
 
     bool success = false;
     if (didSomeParsing) { // called parseNewEdge
+        if (callPoint->llpoint()->block()->llb()->isShared()) {
+            vector<ParseAPI::Function*> imgFuncs;
+            callPoint->llpoint()->block()->llb()->getFuncs(imgFuncs);
+            for (unsigned fidx=0; fidx < imgFuncs.size(); fidx++) {
+                BPatch_function *func = proc()->findOrCreateBPFunc(
+                    proc()->lowlevel_process()->findFuncByInternalFunc((image_func*)imgFuncs[fidx]),
+                    NULL);
+                if (func != callPoint->getFunction()) {
+                    removeInstrumentation(func, false);
+                    func->getCFG()->invalidate();
+                }
+            }
+        }
         // Ensure we relocate the re-parsed function
         proc()->beginInsertionSet();
         callPoint->getFunction()->relocateFunction();
