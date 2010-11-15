@@ -1042,10 +1042,13 @@ bool insnCodeGen::generateMem(codeGen &gen,
    entry = orig_instr.getEntry();
 
    if (orig_instr.getPrefix()->getPrefix(1) != 0) {
-      //The instruction accesses memory via segment registers.  Disallow.
-      cerr << "Error: insn uses segment regs" << endl;
-      return false;
-   }
+	   //The instruction accesses memory via segment registers.  Disallow.
+	// That just takes all the fun out of it. Don't disallow, but still skip FS
+	   if (orig_instr.getPrefix()->getPrefix(1) == 0x64) {
+		   cerr << "Error: insn uses segment regs: " << hex << (int) orig_instr.getPrefix()->getPrefix(1) << endl;
+		  return false;
+		   }
+	   }
    if (loc.modrm_position == -1) {
       //Only supporting MOD/RM instructions now
       cerr << "Error: insn doesn't use MOD/RM" << endl;
