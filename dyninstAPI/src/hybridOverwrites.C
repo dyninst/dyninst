@@ -208,6 +208,7 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool useInsertionSet, BPatch_poi
             assert(!changedCode && "bug, overwrite loops should not contain "
                    "instructions that could trigger analysis update callbacks");
         }
+        proc()->protectAnalyzedCode();
     }
 
     // remove loop instrumentation
@@ -1097,6 +1098,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
         }
     }
     proc()->finalizeInsertionSet(false);
+    proc()->protectAnalyzedCode();
 }
 #endif
 

@@ -543,7 +543,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 	  ret = true;
   }
   else if (BPatch_defensiveMode == ev.proc->getHybridMode()) {
-#if 1
+#if 0
      requested_wait_until_active = true;//i.e., return exception to mutatee
      decodeHandlerCallback(ev);
 #else 
