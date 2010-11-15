@@ -1873,6 +1873,21 @@ bool AddressSpace::getRelocInfo(Address relocAddr,
   return false;
 }
 
+bool AddressSpace::inEmulatedCode(Address addr) {
+  // address is relocated (or bad), check relocation maps
+  for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
+       iter != relocatedCode_.end(); ++iter)  {
+     TrackerElement *te = iter->findByReloc(addr);
+     if (te) {
+        if (te->type() == TrackerElement::emulated ||
+            te->type() == TrackerElement::instrumentation) {
+           return true;
+        }
+     }
+  }
+  return false;
+}
+
 void AddressSpace::addModifiedFunction(int_function *func) {
   assert(func->obj());
 

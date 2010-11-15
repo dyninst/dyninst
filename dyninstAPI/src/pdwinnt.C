@@ -543,19 +543,26 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 	  ret = true;
   }
   else if (BPatch_defensiveMode == ev.proc->getHybridMode()) {
-#if 0
-     requested_wait_until_active = true;//i.e., return exception to mutatee
-     decodeHandlerCallback(ev);
-#else 
-	requested_wait_until_active = false;
-	  ret = true;
-	Frame activeFrame = ev.lwp->getActiveFrame();
-	static int breakpoints = 0;
-	breakpoints++;
-	cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
-		<< " (DEBUG: ESI " << activeFrame.esi << ", EDI " << activeFrame.edi << ")" << dec << endl;
-	ev.type = evtIgnore;
-#endif
+     Frame activeFrame = ev.lwp->getActiveFrame();
+     if (!ev.proc->inEmulatedCode(activeFrame.getPC() - 1)) {
+        requested_wait_until_active = true;//i.e., return exception to mutatee
+        decodeHandlerCallback(ev);
+     }
+     else {
+	    requested_wait_until_active = false;
+            ret = true;
+	    cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
+                 << " (DEBUG:" 
+                 << "EAX: " << activeFrame.eax
+                 << ", ECX: " << activeFrame.ecx
+                 << ", EDX: " << activeFrame.edx
+                 << ", EBX: " << activeFrame.ebx
+                 << ", ESP: " << activeFrame.esp
+                 << ", EBP: " << activeFrame.ebp
+                 << ", ESI: " << activeFrame.esi 
+                 << ", EDI " << activeFrame.edi << ")" << dec << endl;
+	    ev.type = evtIgnore;
+     }
   }
   else {
 	  ev.type = evtCritical;
@@ -940,20 +947,14 @@ Frame dyn_lwp::getActiveFrame()
 		pc = cont.Eip;
 		sp = cont.Esp;
 		Frame frame(pc, fp, sp, proc_->getPid(), proc_, NULL, this, true);
+                frame.eax = cont.Eax;
+                frame.ebx = cont.Ebx;
+                frame.ecx = cont.Ecx;
+                frame.edx = cont.Edx;
+                frame.esp = cont.Esp;
+                frame.ebp = cont.Ebp;
 		frame.esi = cont.Esi;
 		frame.edi = cont.Edi;
-//#if 0
-		cerr << "CONTEXT DUMP IN GETACTIVEFRAME: " << hex
-			<< " EIP: "  << cont.Eip
-			<< " ESP: " << cont.Esp
-			<< " EAX: " << cont.Eax
-			<< " EBX: " << cont.Ebx
-			<< " ECX: " << cont.Ecx
-			<< " EDX: " << cont.Edx
-			<< " EBP: " << cont.Ebp
-			<< " ESI: " << cont.Esi
-			<< " EDI: " << cont.Edi << dec << endl;
-//#endif
 
 		return frame;
 	}
