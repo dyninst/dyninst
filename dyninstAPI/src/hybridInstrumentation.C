@@ -57,6 +57,12 @@ static void signalHandlerCB_wrapper
     dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
         getHybridAnalysis()->signalHandlerCB(point,snum,handlers); 
 }
+static void signalHandlerExitCB_wrapper(BPatch_point *point, void *returnAddr) 
+{ 
+    dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
+        getHybridAnalysis()->signalHandlerExitCB(point,returnAddr); 
+}
+
 InternalSignalHandlerCallback HybridAnalysis::getSignalHandlerCB()
 { return signalHandlerCB_wrapper; }
 
@@ -365,6 +371,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             BPatch_stopThreadExpr *returnSnippet;
             BPatch_snippet * calcSnippet = NULL;
             BPatch_stInterpret interp;
+            bool isHandler = false;
             if (handlerFunctions.end() != 
                 handlerFunctions.find((Address)func->getBaseAddr()) &&
                 0 != handlerFunctions[(Address)func->getBaseAddr()])
@@ -379,6 +386,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 calcSnippet = new BPatch_arithExpr
                     ( BPatch_deref, BPatch_constExpr(contextPCaddr) );
                 interp = BPatch_interpAsTarget;
+                isHandler = true;
             }
             else if (curPoint->isReturnInstruction()) {
                 // case 1: the point is at a return instruction
@@ -408,8 +416,13 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 continue;
             }
 
-            returnSnippet = new BPatch_stopThreadExpr
-                ( badTransferCB_wrapper, *calcSnippet, true, interp ); 
+            if (!isHandler) {
+                returnSnippet = new BPatch_stopThreadExpr
+                    ( badTransferCB_wrapper, *calcSnippet, true, interp ); 
+            } else {
+                returnSnippet = new BPatch_stopThreadExpr
+                    ( signalHandlerExitCB_wrapper, *calcSnippet, true, interp ); 
+            }
 
             // insert the instrumentation
             handle = proc()->insertSnippet
