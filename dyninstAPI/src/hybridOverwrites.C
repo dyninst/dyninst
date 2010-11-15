@@ -528,12 +528,10 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
         mal_printf("BoundsCheck Call at %lx\n",loopWrites[wIdx]->getAddress());
         // create the if expression
         BPatch_ifExpr ifBoundsThenStop(condition, stopForAnalysis);
-#if 0
         // insert the snippet 
         BPatchSnippetHandle *handle = hybridow_->proc()->insertSnippet
             (ifBoundsThenStop, *loopWrites[wIdx], BPatch_callAfter);
         snippets.insert(handle);
-#endif
     }
     hybridow_->proc()->finalizeInsertionSet(false);
 }
@@ -955,11 +953,11 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
     const unsigned int pageSize = proc()->lowlevel_process()->getMemoryPageSize();
 	Address pageAddress = (((Address)pointAddr) / pageSize) * pageSize;
     long loopID = (long)loopID_;
+    bool overwroteLoop = false;
 
     //if this is the exit of a bounds check exit:
     if (loopID < 0) {
         loopID *= -1;
-        assert(0 && "KEVINTODO: test this, overwrite loop modified itself, triggering bounds check instrumentation");
     }
 
     owLoop *loop = idToLoop[loopID];
@@ -977,6 +975,15 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 
     loop->setActive(false);
 
+    if (overwroteLoop) {
+        proc()->beginInsertionSet();
+        std::set<BPatchSnippetHandle*>::iterator sIter = loop->snippets.begin();
+        for (; sIter != loop->snippets.end(); sIter++) {
+            proc()->deleteSnippet(*sIter);
+        }
+        loop->snippets.clear();
+        proc()->finalizeInsertionSet(false);
+    }
 
 /* 1. Identify overwritten blocks and update the analysis */
     // if writeTarget is non-zero, only one byte was overwritten
