@@ -263,9 +263,6 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     tmstruct = localtime( &tstruct );
     strftime(timeStr, 64, "%X", tmstruct);
     printf("badTransferCB %lx=>%lx %s\n\n", point->getAddress(), target, timeStr);
-    if (pointAddr == 0x0 && target == 0x0) {
-        proc()->debugSuicide();
-    }
 
     // 1. the target address is in a shared library
     BPatch_module * targMod = proc()->findModuleByAddr(target);

@@ -145,9 +145,10 @@ public:
                Dyninst::Address writeTarg);
         ~owLoop();
         static int getNextLoopId() { return ++IDcounter_; };
-        bool isActive() { return activeStatus_; };
-        bool writesOwnPage() { return writesOwnPage_; }
-        int getID() { return loopID_; }
+        bool isActive() const { return activeStatus_; };
+        bool writesOwnPage() const { return writesOwnPage_; }
+        bool isRealLoop() const { return realLoop_; }
+        int getID() const { return loopID_; }
         Dyninst::Address getWriteTarget() { return writeTarget_; }
         void setWriteTarget(Dyninst::Address targ);
         void setWritesOwnPage(bool wop);
@@ -165,7 +166,7 @@ public:
                                      std::set<BPatch_point*> &unresExits);
 
         void instrumentOneWrite(Dyninst::Address writeInsnAddr, 
-                                BPatch_function *writeFunc);
+                                std::vector<BPatch_function*> writeFuncs);
 
         /*1. initialize necessary variables
           2. create bounds array for all blocks in the loop
@@ -192,6 +193,10 @@ public:
         bool activeStatus_;
         //loop writes own page
         bool writesOwnPage_;
+        // real loop if we're instrumenting loop exit edges, not immediately 
+        // after the write instruction
+        bool realLoop_;
+
         HybridAnalysisOW *hybridow_;
 
         int loopID_;

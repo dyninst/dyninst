@@ -1065,6 +1065,10 @@ AddressSpace *BPatch_flowGraph::getllAddSpace() const
    return func_->lladdSpace; 
 }
 
-void BPatch_flowGraph::invalidate() { isValid_ = false; }
+void BPatch_flowGraph::invalidate() 
+{ 
+    isValid_ = false; 
+}
+
 bool BPatch_flowGraph::isValidInt() { return isValid_; }
  

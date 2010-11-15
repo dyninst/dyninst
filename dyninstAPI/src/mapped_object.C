@@ -1273,7 +1273,7 @@ bool mapped_object::splitIntLayer()
 // between multiple functions
 void mapped_object::findBBIsByRange(Address startAddr,
                                     Address endAddr,
-                                    list<bblInstance*> &pageBlocks)//output
+                                    list<bblInstance*> &rangeBlocks)//output
 {
     codeRange *range=NULL;
     Address nextAddr = startAddr;
@@ -1283,12 +1283,12 @@ void mapped_object::findBBIsByRange(Address startAddr,
         if (range != NULL) {
             bblInstance* bbi = range->is_basicBlockInstance();
             assert(bbi);
-            pageBlocks.push_back(bbi);
+            rangeBlocks.push_back(bbi);
             if (bbi->block()->llb()->isShared()) {
                 vector<ParseAPI::Function*> ifuncs;
                 bbi->block()->llb()->getFuncs(ifuncs);
                 for (unsigned fidx=0; fidx < ifuncs.size(); fidx++) {
-                    pageBlocks.push_back(proc()->
+                    rangeBlocks.push_back(proc()->
                         findFuncByInternalFunc((image_func*)ifuncs[fidx])->
                         findBlockInstanceByAddr(bbi->firstInsnAddr()));
                 }
