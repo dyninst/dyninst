@@ -811,31 +811,29 @@ void int_function::fixHandlerReturnAddr(Address faultAddr)
         assert(0);
         return;
     }
-    bblInstance *bbi = proc()->findOrigByAddr(faultAddr)->
-        is_basicBlockInstance();
-    if (bbi) {
-       assert(0);
-#if 0        
-        // get relocated PC address
-        Address newPC = bbi->equivAddr(bbi->func()->version(), faultAddr);
 
-        multiTramp *multi = proc()->findMultiTrampByAddr(newPC);
-        if (multi) {
-            newPC = multi->uninstToInstAddr(newPC);
-        }
-        assert(newPC);
-        assert(proc()->proc()->getAddressWidth() == sizeof(Address));
-        if (newPC != faultAddr) {
+	// Do a straightfoward forward map of faultAddr
+	// First, get the original address
+	int_function *func; baseTrampInstance *ignored;
+	Address origAddr;
+	if (!proc()->getRelocInfo(faultAddr, origAddr, func, ignored)) {
+		func = dynamic_cast<process *>(proc())->findActiveFuncByAddr(faultAddr);
+		origAddr = faultAddr;
+		}
+	std::list<Address> relocAddrs;
+	proc()->getRelocAddrs(origAddr, this, relocAddrs, true);
+	Address newPC = (!relocAddrs.empty() ? relocAddrs.back() : origAddr);
+
+	if (newPC != faultAddr) {
             if(!proc()->writeDataSpace((void*)handlerFaultAddrAddr_, 
                                            sizeof(Address), 
-                                           (void*)&newPC) ))
+                                           (void*)&newPC))
             {
                 assert(0);
-            }
-        }
-#endif
-    }
-}
+				}
+		}
+	}
+
 
 // doesn't delete the ParseAPI::Block's, those are removed in a batch
 // call to the parseAPI
