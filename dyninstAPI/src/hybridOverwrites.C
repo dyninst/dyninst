@@ -528,12 +528,10 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
         mal_printf("BoundsCheck Call at %lx\n",loopWrites[wIdx]->getAddress());
         // create the if expression
         BPatch_ifExpr ifBoundsThenStop(condition, stopForAnalysis);
-#if 0
         // insert the snippet 
         BPatchSnippetHandle *handle = hybridow_->proc()->insertSnippet
             (ifBoundsThenStop, *loopWrites[wIdx], BPatch_callAfter);
         snippets.insert(handle);
-#endif
     }
     hybridow_->proc()->finalizeInsertionSet(false);
 }
@@ -959,7 +957,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
     //if this is the exit of a bounds check exit:
     if (loopID < 0) {
         loopID *= -1;
-        assert(0 && "KEVINTODO: test this, overwrite loop modified itself, triggering bounds check instrumentation");
+//        assert(0 && "KEVINTODO: test this, overwrite loop modified itself, triggering bounds check instrumentation");
     }
 
     owLoop *loop = idToLoop[loopID];
