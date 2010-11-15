@@ -140,7 +140,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
    codeGen prepatch(128);
    prepatch.applyTemplate(templ);
 
-   bool debug = false;
+   bool debug = true;
 
   // We want to ensure that a memory operation produces its
   // original result in the face of overwriting the text
@@ -223,7 +223,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
      return false;
   }
 
-  if (debug) prepatch.fill(1, codeGen::cgTrap);
+//  if (debug) prepatch.fill(1, codeGen::cgTrap);
   buffer.addPIC(prepatch, tracker(t->bbl()->func()));
 
   return true;
@@ -669,9 +669,11 @@ if (debug) {
 
    // And clean up
    if (!trailingTeardown(prepatch)) return false;
-if (debug) {
+#if 0
+   if (debug) {
 	prepatch.fill(1, codeGen::cgTrap);
 }
+#endif
    buffer.addPIC(prepatch, tracker(t->bbl()->func()));
    
    return true;
@@ -926,13 +928,15 @@ bool MemEmulatorPatch::apply(codeGen &gen,
    ::emitPushImm(gen.currAddr(), gen);
    ::emitPushImm(point->addr(), gen);
    ::emitPush(RealRegister(reg_), gen);
+#if 0
    if (debug_) {
 		suicideAddrs.insert(gen.currAddr());
 	   gen.fill(1, codeGen::cgTrap);
 		suicideAddrs.insert(gen.currAddr());
 		cerr << " Suicide addr is " << hex << gen.currAddr() << endl;
    }
-// Step 2: call the translator
+#endif
+   // Step 2: call the translator
    Address src = gen.currAddr() + 5;
    relocation_cerr << "\tCall " << hex << dest_ << ", offset " << dest_ - src << dec << endl;
    assert(dest_);

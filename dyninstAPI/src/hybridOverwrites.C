@@ -953,14 +953,16 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
     const unsigned int pageSize = proc()->lowlevel_process()->getMemoryPageSize();
 	Address pageAddress = (((Address)pointAddr) / pageSize) * pageSize;
     long loopID = (long)loopID_;
+    bool overwroteLoop = false;
 
     //if this is the exit of a bounds check exit:
     if (loopID < 0) {
         loopID *= -1;
+		overwroteLoop = true;
 //        assert(0 && "KEVINTODO: test this, overwrite loop modified itself, triggering bounds check instrumentation");
     }
 
-    owLoop *loop = idToLoop[loopID];
+    owLoop *loop = idToLoop[loopID]; 
 
     // find the loop corresponding to the loopID, and if there is none, it
     // means we tried to delete the instrumentation earlier, but failed
@@ -975,6 +977,15 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 
     loop->setActive(false);
 
+    if (overwroteLoop) {
+        proc()->beginInsertionSet();
+        std::set<BPatchSnippetHandle*>::iterator sIter = loop->snippets.begin();
+        for (; sIter != loop->snippets.end(); sIter++) {
+            proc()->deleteSnippet(*sIter);
+        }
+        loop->snippets.clear();
+        proc()->finalizeInsertionSet(false);
+    }
 
 /* 1. Identify overwritten blocks and update the analysis */
     // if writeTarget is non-zero, only one byte was overwritten
