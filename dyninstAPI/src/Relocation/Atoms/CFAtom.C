@@ -531,6 +531,7 @@ codeGen patch(128);
 	// Step 3: save flags
 	emitSimpleInsn(0x9f, patch);
 	emitSaveO(patch);
+	::emitPush(RealRegister(REGNUM_EAX), patch);
 	// Step 4: LEA this sucker into EAX.
 	const BPatch_addrSpec_NP *start = acc->getStartAddr(0);
 	emitASload(start, REGNUM_EAX, patch, true);
@@ -555,10 +556,12 @@ codeGen patch(128);
 	emitPop(RealRegister(REGNUM_EDX), patch);
 	emitPop(RealRegister(REGNUM_ECX), patch);
 	// EAX now holds the pointer to the destination...
+	patch.fill(1, codeGen::cgTrap);
 	::emitMovRMToReg(RealRegister(REGNUM_EAX),
                      RealRegister(REGNUM_EAX),
                      0,
                      patch);
+	patch.fill(1, codeGen::cgTrap);
 	// EAX now holds the _actual_ destination, so move it on to the stack. 
 	// We've currently got flags and old EAX saved, so move it to 
 	// ESP + 2*regsize
@@ -574,6 +577,7 @@ codeGen patch(128);
 	// And tell our people to use the top of the stack
 	// for their work.
 	// TODO: trust liveness and leave this in a register. 
+	patch.fill(1, codeGen::cgTrap);
 	buffer.addPIC(patch, tracker());
 	reg = REGNUM_ESP;
 	return true;
