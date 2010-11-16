@@ -1009,6 +1009,8 @@ void dyn_lwp::dumpRegisters()
 
 bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 {    
+cerr << "CHANGEPC to addr " << hex << addr << dec << endl;
+cerr << "Currently at: " << getActiveFrame();
   w32CONTEXT cont;//ccw 27 july 2000
   if (!regs) {
       cont.ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001

@@ -162,7 +162,10 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
       }
       else {
 #ifdef DEBUG_MEM_EM
-         fprintf(stderr, "... returning shift of 0x%lx\n", RTmemoryMapper.elements[index].shift);
+         fprintf(stderr, "Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ", 
+                 input, * (int *) input, (input + RTmemoryMapper.elements[index].shift),
+                 * (int *)(input + RTmemoryMapper.elements[index].shift));
+         fprintf(stderr, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
 #endif
          return RTmemoryMapper.elements[index].shift;
       }

@@ -152,17 +152,17 @@ void HybridAnalysisOW::owLoop::setActive(bool act)
 HybridAnalysisOW::owLoop *HybridAnalysisOW::findLoop(Address blockStart)
 {
     if (blockToLoop.find(blockStart) != blockToLoop.end()) {
-        owLoop *loop = idToLoop[blockToLoop[blockStart]];
-        // because of blocks being overwritten, sometimes we can't tear blocks
-        // out because the internal blocks have been purged and we can't figure
-        // out the block address.  Eventually, if the block is reconstituted 
-        // we may be able to find it here with a reference to a defunct loop,
-        // make sure that this is not the case, if it is, tear the block out
-        if (NULL == loop) {
+		std::map<int, owLoop*>::iterator iter = idToLoop.find(blockToLoop[blockStart]);
+		if (iter == idToLoop.end()) {
+	        // because of blocks being overwritten, sometimes we can't tear blocks
+		    // out because the internal blocks have been purged and we can't figure
+			// out the block address.  Eventually, if the block is reconstituted 
+			// we may be able to find it here with a reference to a defunct loop,
+			// make sure that this is not the case, if it is, tear the block out
             blockToLoop.erase(blockStart);
-            loop = NULL;
+            return NULL;
         }
-        return loop;
+		return iter->second;
     }
     return NULL;
 }
@@ -199,6 +199,8 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool useInsertionSet, BPatch_poi
         std::vector<Address> deadBlockAddrs;
         std::vector<BPatch_function*> modFuncs;
         if (writePoint) {
+
+			cerr << "Calling overwriteAnalysis with point @ " << hex << writePoint->getAddress() << dec << endl;
             overwriteAnalysis(writePoint,(void*)loop->getID());
         } else {
     	    proc()->overwriteAnalysisUpdate(loop->shadowMap,
@@ -966,9 +968,11 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
     //if this is the exit of a bounds check exit:
     if (loopID < 0) {
         loopID *= -1;
+		overwroteLoop = true;
+//        assert(0 && "KEVINTODO: test this, overwrite loop modified itself, triggering bounds check instrumentation");
     }
 
-    owLoop *loop = idToLoop[loopID];
+    owLoop *loop = idToLoop[loopID]; 
 
     // find the loop corresponding to the loopID, and if there is none, it
     // means we tried to delete the instrumentation earlier, but failed

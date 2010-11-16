@@ -3856,9 +3856,17 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
   }
   if((gotit.id == e_call) && mac)
   {
-      mac[0].set(mESP, -2 * addrSzAttr, addrSzAttr);
-      mac[0].size = type2size(op_v, addrSzAttr);
-      mac[0].write = true;
+	int index = 0;
+	while((mac[index].regs[0] != -1) ||
+		  (mac[index].regs[1] != -1) ||
+		  (mac[index].scale != 0) ||
+		  (mac[index].imm != 0)) {
+		index++;
+		assert(index < 3);
+	}
+	mac[index].set(mESP, -2 * addrSzAttr, addrSzAttr);
+      mac[index].size = type2size(op_v, addrSzAttr);
+      mac[index].write = true;
             
   }
   

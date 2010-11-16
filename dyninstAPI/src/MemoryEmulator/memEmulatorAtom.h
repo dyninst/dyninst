@@ -131,6 +131,9 @@ class MemEmulator : public Atom {
 
    bool stealEffectiveAddr(Register &ret, codeGen &gen);
 
+   bool usesESP();
+   bool emulateESPUse(codeGen &gen);
+
    std::pair<bool, bool> getImplicitRegs(codeGen &gen);
    bool emulateCommon(codeGen &gen);
    bool emulatePush(codeGen &gen);
@@ -184,18 +187,16 @@ struct MemEmulatorPatch : public Patch {
    // Put in a call to the RTtranslateMemory
    // function
    MemEmulatorPatch(Register r,
-                    Address d,
-                    instPoint *p, 
-					bool debug)
-      : point(p), reg_(r), dest_(d), debug_(debug) {};
+					Address o,
+                    Address d)
+		: reg_(r), orig_(o), dest_(d) {};
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
    virtual unsigned estimate(codeGen &) { return 7; };
    virtual ~MemEmulatorPatch() {};
 
-   instPoint *point;
    Register reg_;
+   Address orig_;
    Address dest_;
-   bool debug_;
 };
 
 };

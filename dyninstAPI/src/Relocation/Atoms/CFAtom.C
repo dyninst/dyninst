@@ -40,6 +40,13 @@
 #include "../CodeTracker.h"
 #include "../CodeBuffer.h"
 
+
+#include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
+#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
+
+#include "dyninstAPI/src/MemoryEmulator/memEmulatorAtom.h"
+#include "dyninstAPI/src/inst-x86.h"
+#include "dyninstAPI/src/addressSpace.h"
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
@@ -51,7 +58,7 @@ using namespace InstructionAPI;
 const Address CFAtom::Fallthrough(1);
 const Address CFAtom::Taken(2);
 
-bool CFAtom::generate(const codeGen &,
+bool CFAtom::generate(const codeGen &templ,
                       const Trace *,
                       CodeBuffer &buffer) {
   // We need to create jumps to wherever our successors are
@@ -164,7 +171,6 @@ bool CFAtom::generate(const codeGen &,
     break;
   }
   case Indirect: {
-    bool requireTranslation = false;
 /*
   for (DestinationMap::iterator iter = destMap_.begin();
   iter != destMap_.end(); ++iter) {
@@ -174,32 +180,32 @@ bool CFAtom::generate(const codeGen &,
   }
   }
 */
-    Register reg = 0; /* = originalRegister... */
-    if (requireTranslation) {
-       if (!generateAddressTranslator(buffer, reg))
+    Register reg = Null_Register; /* = originalRegister... */
+	// Originally for use in helping with jump tables, I'm taking
+	// this for the memory emulation effort. Huzzah!
+	if (!generateAddressTranslator(buffer, templ, reg))
           return false;
-    }
     if (isCall_) {
        if (!generateIndirectCall(buffer, 
                                  reg, 
                                  insn_, 
                                  addr_)) 
-	return false;
-      // We may be putting another block in between this
-      // one and its fallthrough due to edge instrumentation
-      // So if there's the possibility for a return put in
-      // a fallthrough branch
-      if (destMap_.find(Fallthrough) != destMap_.end()) {
-	if (!generateBranch(buffer,
-			    destMap_[Fallthrough],
-			    Instruction::Ptr(),
-			    true)) 
-	  return false;
-      }
-    }
+			return false;
+        // We may be putting another block in between this
+        // one and its fallthrough due to edge instrumentation
+        // So if there's the possibility for a return put in
+        // a fallthrough branch
+        if (destMap_.find(Fallthrough) != destMap_.end()) {
+			if (!generateBranch(buffer,
+					    destMap_[Fallthrough],
+					    Instruction::Ptr(),
+					    true)) 
+			  return false;
+			}
+		}
     else {
-      if (!generateIndirect(buffer, reg, insn_))
-	return false;
+		if (!generateIndirect(buffer, reg, insn_))
+			return false;
     }
     break;
   }
@@ -395,12 +401,24 @@ bool CFAtom::generateConditionalBranch(CodeBuffer &buffer,
 }
 
 bool CFAtom::generateIndirect(CodeBuffer &buffer,
-				 Register,
-			      Instruction::Ptr insn) {
+							  Register reg,
+							  Instruction::Ptr insn) {
   // Two possibilities here: either copying an indirect jump w/o
   // changes, or turning an indirect call into an indirect jump because
   // we've had the isCall_ flag overridden.
 
+  if (reg != Null_Register) {
+	  // Whatever was there doesn't matter.
+	  // Only thing we can handle right now is a "we left the destination
+	  // at the top of the stack, go get 'er Tiger!"
+	  assert(reg == REGNUM_ESP);
+	  codeGen gen(1);
+	  GET_PTR(insn, gen);
+      *insn++ = 0xC3; // RET
+      SET_PTR(insn, gen);
+	  buffer.addPIC(gen, tracker());
+	  return true;
+  }
   instruction ugly_insn(insn->ptr());
   ia32_locations loc;
   ia32_memacc memacc[3];
@@ -453,9 +471,13 @@ bool CFAtom::generateIndirect(CodeBuffer &buffer,
 }
 
 bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
-                                  Register,
+                                  Register reg,
                                   Instruction::Ptr insn,
-				  Address /*origAddr*/) {
+				  Address /*origAddr*/) 
+{
+	// I'm pretty sure that anything that can get translated will be
+	// turned into a push/jump combo already. 
+	assert(reg == Null_Register);
   // Check this to see if it's RIP-relative
   instruction ugly_insn(insn->ptr());
   if (ugly_insn.type() & REL_D_DATA) {
@@ -472,10 +494,89 @@ bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
   return true;
 }
 
-bool CFAtom::generateAddressTranslator(CodeBuffer &,
-                                       Register &) {
-  // Do nothing...
-  return true;
+bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
+									   const codeGen &templ,
+									   Register &reg) 
+{
+	if (insn_->getOperation().getID() == e_ret_near ||
+		insn_->getOperation().getID() == e_ret_far) {
+		// Oops!
+		return true;
+	}
+	if (!insn_->readsMemory()) {
+		return true;
+		}
+	if (addr_ == 0x40e4ca)	{
+		cerr << "Got it!" << endl;
+	}
+
+BPatch_memoryAccessAdapter converter;
+	BPatch_memoryAccess *acc = converter.convert(insn_, addr_, false);
+	if (!acc) {
+		reg = Null_Register;
+		return true;
+		}
+
+cerr << "Generating translator, insn " << insn_->format() << " @ " << hex << addr_ << dec << endl;
+codeGen patch(128);
+	patch.applyTemplate(templ);
+
+	patch.fill(3, codeGen::cgTrap);
+
+	// step 1: create space on the stack. 
+	::emitPush(RealRegister(REGNUM_EAX), patch);
+											   
+	// step 2: save actual EAX
+	::emitPush(RealRegister(REGNUM_EAX), patch);
+	// Step 3: save flags
+	emitSimpleInsn(0x9f, patch);
+	emitSaveO(patch);
+	// Step 4: LEA this sucker into EAX.
+	const BPatch_addrSpec_NP *start = acc->getStartAddr(0);
+	emitASload(start, REGNUM_EAX, patch, true);
+
+	// This might look a lot like a memEmulatorAtom. That's, well, because it
+	// is. 
+	emitPush(RealRegister(REGNUM_ECX), patch);
+	emitPush(RealRegister(REGNUM_EDX), patch);
+	buffer.addPIC(patch, tracker());
+
+	// Where are we going?
+      int_function *func = templ.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
+      // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
+	assert(func);
+
+	// Now we start stealing from memEmulatorAtom. We need to call our translation function,
+	// which means a non-PIC patch to the CodeBuffer. I don't feel like rewriting everything,
+	// so there we go.
+	buffer.addPatch(new MemEmulatorPatch(REGNUM_EAX, addr_, func->getAddress()),
+					tracker());
+	patch.setIndex(0);
+	emitPop(RealRegister(REGNUM_EDX), patch);
+	emitPop(RealRegister(REGNUM_ECX), patch);
+	// EAX now holds the pointer to the destination...
+	::emitMovRMToReg(RealRegister(REGNUM_EAX),
+                     RealRegister(REGNUM_EAX),
+                     0,
+                     patch);
+	// EAX now holds the _actual_ destination, so move it on to the stack. 
+	// We've currently got flags and old EAX saved, so move it to 
+	// ESP + 2*regsize
+	::emitMovRegToRM(RealRegister(REGNUM_ESP),
+                     2*4, 
+                     RealRegister(REGNUM_EAX),
+                     patch);
+	// Restore flags and EAX
+	::emitPop(RealRegister(REGNUM_EAX), patch);
+    emitRestoreO(patch);
+    emitSimpleInsn(0x9E, patch);
+	::emitPop(RealRegister(REGNUM_EAX), patch);
+	// And tell our people to use the top of the stack
+	// for their work.
+	// TODO: trust liveness and leave this in a register. 
+	buffer.addPIC(patch, tracker());
+	reg = REGNUM_ESP;
+	return true;
 }
 
 std::string CFAtom::format() const {
