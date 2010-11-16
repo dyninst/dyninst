@@ -159,6 +159,7 @@ class CFAtom : public Atom {
 			    Address origAddr);
   
   bool generateAddressTranslator(CodeBuffer &buffer,
+	  const codeGen &templ,
 				 Register &reg);  
 };
 
