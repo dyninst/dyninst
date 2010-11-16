@@ -443,7 +443,19 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                     break;
                 }
             }
-            assert(callPoint);
+			if (!callPoint) {
+				// It's possible that this was an entry point that overlapped with
+				// the call site. Dyninst doesn't handle that well...
+				vector<BPatch_point *> *entryPoints = callFuncs[0]->findPoint(BPatch_entry);
+				for (int pIdx = entryPoints->size() - 1; pIdx >= 0; pIdx--) {
+					if ((*entryPoints)[pIdx]->getCallFallThroughAddr() == returnAddr) {
+						callPoint = (*entryPoints)[pIdx];
+						break;
+						}
+					}
+				}
+
+			assert(callPoint);
             if (callFuncs.size() > 1) {
                 //KEVINTODO: implement this case
                 mal_printf("callPoint %lx is shared, test this case\n",
