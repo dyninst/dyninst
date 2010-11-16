@@ -92,7 +92,9 @@ int test4_2_mutatee() {
                test4_2_global1);
        
 #if defined(rs6000_ibm_aix4_1_test)
-       if( pid == 0){
+       if( pid > 0){
+          dprintf("%d waiting for child\n", getpid());
+
           /* On AIX the child dies when the parent exits, so wait */
           /* apparently the parent needs to wake up occasionally to keep Dyninst happy */
           dprintf("%d SLEEPING\n",getpid());
