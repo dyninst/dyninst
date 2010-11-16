@@ -1062,10 +1062,10 @@ bool insnCodeGen::generateMem(codeGen &gen,
    //}
 
    if (loc.modrm_reg == 4 && !loc.rex_r && loc.address_size != 1) {
-      cerr << "Error: insn uses esp/rsp" << endl;
+      //cerr << "Error: insn uses esp/rsp" << endl;
       //The non-memory access register is %rsp/%esp, we can't work with
       // this register due to our register saving techniques.
-      return false;
+      //return false;
    }
 
    if (loc.modrm_mod == 3) {

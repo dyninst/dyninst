@@ -140,7 +140,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
    codeGen prepatch(128);
    prepatch.applyTemplate(templ);
 
-   bool debug = true;
+   bool debug = false;
 
   // We want to ensure that a memory operation produces its
   // original result in the face of overwriting the text
@@ -191,7 +191,6 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
      relocation_cerr << "\tFlag check failed, ret false" << endl;
      return false;
   }
-
   if (!setupFrame(false, prepatch)) {
      cerr << " FAILED TO ALLOC REGISTERS for insn @ " << hex << addr() << dec << endl;
      buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t->bbl()->func()));
@@ -208,7 +207,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
      return false;
   buffer.addPIC(prepatch, tracker(t->bbl()->func()));
 
-  buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch, false), point_, debug), tracker(t->bbl()->func()));
+  buffer.addPatch(new MemEmulatorPatch(effAddr_, addr_, getTranslatorAddr(prepatch, false)), tracker(t->bbl()->func()));
   
   prepatch.setIndex(0);
   if (!postCallRestore(prepatch))
@@ -367,15 +366,63 @@ bool MemEmulator::generateOrigAccess(codeGen &gen) {
   // Should do a compare here; for now, just drop out the instruction
   // and see what happens.
 
+
    if (insn_->getOperation().getID() == e_push) {
       return emulatePush(gen);
    }
    if (insn_->getOperation().getID() == e_pop) {
       return emulatePop(gen);
    }
+   if (usesESP()) {
+	   return emulateESPUse(gen);
+   }
 
    return emulateCommon(gen);
 }
+
+bool MemEmulator::usesESP() {
+	std::set<InstructionAPI::RegisterAST::Ptr> regs;
+	insn_->getReadSet(regs);
+    std::set<Register> translated;
+   for (std::set<RegisterAST::Ptr>::iterator i = regs.begin(); i != regs.end(); ++i) {
+      bool whocares;
+      translated.insert(convertRegID(*i, whocares));
+   }
+	bool usesESP = false;
+	for (std::set<Register>::iterator iter = translated.begin(); 
+		iter != translated.end(); ++iter) {
+			if (*iter == REGNUM_ESP) {
+				usesESP = true;
+				break;
+				}
+		}
+
+	return usesESP;
+	}
+
+bool MemEmulator::emulateESPUse(codeGen &gen) {
+	// The only tricky bit here is that we've changed
+	// ESP, and so we can't just directly stash it. 
+	// Instead, we need to fake it (again).
+	// So we LEA esp up to where it was, run the insn,
+	// and LEA it back down.
+	if (externalSaved_.empty()) {
+		// ESP is where it should be
+		return emulateCommon(gen);
+	}
+	::emitLEA(RealRegister(REGNUM_ESP),
+			RealRegister(Null_Register),
+			0,
+			4*externalSaved_.size(),
+			RealRegister(REGNUM_ESP), gen);
+	if (!emulateCommon(gen)) return false;
+	::emitLEA(RealRegister(REGNUM_ESP),
+			RealRegister(Null_Register),
+			0,
+			-4*(externalSaved_.size()),
+			RealRegister(REGNUM_ESP), gen);
+	return true;
+	}
 
 bool MemEmulator::emulateCommon(codeGen &gen) {
   instruction ugly_insn(insn_->ptr());
@@ -565,7 +612,7 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
    prepatch.applyTemplate(templ);
 
    // This is an implicit use of ESI, EDI, or both. The both? Sucks. 
-bool debug = true;
+bool debug = false;
 if (debug) {
 	prepatch.fill(1, codeGen::cgTrap);
 }
@@ -606,10 +653,10 @@ if (debug) {
 
    buffer.addPIC(prepatch, tracker(t->bbl()->func()));
 
-   buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch, true), point_, debug),
+   buffer.addPatch(new MemEmulatorPatch(effAddr_, addr_, getTranslatorAddr(prepatch, true)),
                    tracker(t->bbl()->func()));
    if (usesTwo) {
-      buffer.addPatch(new MemEmulatorPatch(effAddr2_, getTranslatorAddr(prepatch, true), point_, debug),
+      buffer.addPatch(new MemEmulatorPatch(effAddr2_, addr_, getTranslatorAddr(prepatch, true)),
                    tracker(t->bbl()->func()));
    }
 
@@ -921,28 +968,22 @@ bool MemEmulatorPatch::apply(codeGen &gen,
                              CodeBuffer *) {
    relocation_cerr << "MemEmulatorPatch::apply @ " << hex << gen.currAddr() << dec << endl;
    relocation_cerr << "\tPush reg " << reg_ << endl;
-   registerSpace *aS = registerSpace::actualRegSpace(point, callPreInsn);
-   gen.setRegisterSpace(aS);
    assert(!gen.bti());
 
+   // Two debugging assists
    ::emitPushImm(gen.currAddr(), gen);
-   ::emitPushImm(point->addr(), gen);
+   ::emitPushImm(orig_, gen);
+	// And our argument
    ::emitPush(RealRegister(reg_), gen);
-#if 0
-   if (debug_) {
-		suicideAddrs.insert(gen.currAddr());
-	   gen.fill(1, codeGen::cgTrap);
-		suicideAddrs.insert(gen.currAddr());
-		cerr << " Suicide addr is " << hex << gen.currAddr() << endl;
-   }
-#endif
+
    // Step 2: call the translator
    Address src = gen.currAddr() + 5;
    relocation_cerr << "\tCall " << hex << dest_ << ", offset " << dest_ - src << dec << endl;
    assert(dest_);
    emitCallRel32(dest_ - src, gen);
-
-   ::emitMovRegToReg(RealRegister(reg_), RealRegister(REGNUM_EAX), gen);
+   if (reg_ != REGNUM_EAX) {
+	   ::emitMovRegToReg(RealRegister(reg_), RealRegister(REGNUM_EAX), gen);
+	   }
    ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 12, RealRegister(REGNUM_ESP), gen);
 
    return true;
