@@ -268,9 +268,6 @@ bool CodeBuffer::generate(Address baseAddr) {
    shift_ = 0;
    size_ = gen_.used();
 
-   relocation_cerr << "Dumping generated code:" << endl;
-   if (dyn_debug_reloc)
-      disassemble();
 
    generated_ = true;
    return true;

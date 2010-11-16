@@ -304,6 +304,7 @@ void EmitterIA32::emitLoadOrigRegister(Address register_num, Register dest, code
 {
    RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
    restoreGPRtoGPR(RealRegister(register_num), dest_r, gen);
+   gen.fill(1, codeGen::cgTrap);
 }
 
 void EmitterIA32::emitStoreOrigRegister(Address register_num, Register src, codeGen &gen) {
