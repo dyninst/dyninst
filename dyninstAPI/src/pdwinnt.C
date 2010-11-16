@@ -561,6 +561,9 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
                  << ", EBP: " << activeFrame.ebp
                  << ", ESI: " << activeFrame.esi 
                  << ", EDI " << activeFrame.edi << ")" << dec << endl;
+        Address stackTOPVAL =0;
+        ev.proc->readDataSpace((void *) activeFrame.esp, sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
+        cerr << "STACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
 	    ev.type = evtIgnore;
      }
   }
