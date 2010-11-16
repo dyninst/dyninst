@@ -1941,8 +1941,11 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
             (const_cast<instPoint*>(gen.point()),args)) {
             return false;
         }
-        return args[0]->generateCode_phase2(gen, noCost, retAddr, retReg);
-    }
+		if (!args[0]->generateCode_phase2(gen, noCost, retAddr, retReg)) {
+			return false;
+			}
+		return true;			
+	}
 }
 
 
