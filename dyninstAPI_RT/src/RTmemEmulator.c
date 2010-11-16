@@ -54,7 +54,7 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
    int max;
    volatile int guard2;
 
-#if 1
+#if 0
 int bidx;
 unsigned char *stackBase = (char*)0x12ff00;
 for (bidx=0; origAddr == 0x40d75e && bidx < 0x100; bidx+=4) {
@@ -151,7 +151,12 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
          return -1 * input;
       }
       else {
-         fprintf(stderr, "... returning shift of 0x%lx\n", RTmemoryMapper.elements[index].shift);
+
+         fprintf(stderr, "Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ", 
+                 input, * (int *) input, (input + RTmemoryMapper.elements[index].shift),
+                 * (int *)(input + RTmemoryMapper.elements[index].shift));
+         fprintf(stderr, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
+         //fprintf(stderr, "... returning shift of 0x%lx\n", RTmemoryMapper.elements[index].shift);
          return RTmemoryMapper.elements[index].shift;
       }
    }

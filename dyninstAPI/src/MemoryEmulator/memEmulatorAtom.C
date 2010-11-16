@@ -565,7 +565,7 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
    prepatch.applyTemplate(templ);
 
    // This is an implicit use of ESI, EDI, or both. The both? Sucks. 
-bool debug = false;
+bool debug = true;
 if (debug) {
 	prepatch.fill(1, codeGen::cgTrap);
 }
@@ -604,16 +604,24 @@ if (debug) {
 
    if (!preCallSave(prepatch)) return false;
 
+   if (usesTwo) {
+       ::emitPush(RealRegister(effAddr2_), prepatch);
+   }
    buffer.addPIC(prepatch, tracker(t->bbl()->func()));
 
    buffer.addPatch(new MemEmulatorPatch(effAddr_, getTranslatorAddr(prepatch, true), point_, debug),
                    tracker(t->bbl()->func()));
+
+       prepatch.setIndex(0);
    if (usesTwo) {
+      ::emitPop(RealRegister(effAddr2_), prepatch);
+      ::emitPush(RealRegister(effAddr_), prepatch);
+      buffer.addPIC(prepatch, tracker(t->bbl()->func()));
       buffer.addPatch(new MemEmulatorPatch(effAddr2_, getTranslatorAddr(prepatch, true), point_, debug),
                    tracker(t->bbl()->func()));
+      prepatch.setIndex(0);
+      ::emitPop(RealRegister(effAddr_), prepatch);
    }
-
-   prepatch.setIndex(0);
 
    if (!postCallRestore(prepatch)) return false;
    if (!teardownFrame(prepatch)) return false;
@@ -640,13 +648,11 @@ if (debug) {
    // And we performed the operation. Restore EDI.
    // But it might have been changed by the operation, 
    // so instead subtract the shift
-   if (saveRAX_) {
-      ::emitPush(RealRegister(REGNUM_EAX), prepatch);
-   }
+   ::emitPush(RealRegister(REGNUM_EAX), prepatch);
+
    if (saveFlags_) {
       if (!saveFlags(prepatch)) return false;
    }
-
 
    if (usesEDI) {
       ::emitSubRegReg(RealRegister(REGNUM_EDI),
@@ -663,9 +669,7 @@ if (debug) {
       if (!restoreFlags(prepatch)) return false;
    }
 
-   if (saveRAX_) {
-      ::emitPop(RealRegister(REGNUM_EAX), prepatch);
-   }
+   ::emitPop(RealRegister(REGNUM_EAX), prepatch);
 
    // And clean up
    if (!trailingTeardown(prepatch)) return false;
@@ -713,7 +717,7 @@ std::pair<bool, bool> MemEmulator::getImplicitRegs(codeGen &) {
    // Could go through IAPI, but I'm laaaazy
    const InstructionAPI::Operation &op = insn_->getOperation();
 
-   // EDI, ESI
+   // EDI, ESI (EAX is also possible, but we save it regardless) 
 
    switch(op.getID()) {
       case e_scasb:
