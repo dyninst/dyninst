@@ -59,7 +59,7 @@ include ../make.module.tmpl
 # 32-bit runtime library
 ASM_SRCS_32  = ../src/RTspace.S ../src/RTtlsgetaddr-x86.S
 
-TARGET_32_SO = libdyninstAPI_RT_m32.so.1
+TARGET_32_SO = libdyninstAPI_RT_m32.so
 XTARGET_32   = $(basename $(basename $(TARGET_32_SO)))
 VOUCHER_32   = V_$(XTARGET_32)
 OBJS_32      = $(patsubst %.c, %_m32.o, $(filter %.c,$(notdir $(SRCS))))
@@ -88,7 +88,8 @@ RTspace.o: ../src/RTspace.S
 	$(HIDE_COMP)$(CC) $(CFLAGS) -c $< -o $@
 
 $(DEST)/$(TARGET_32_SO): $(TARGET_32_SO)
-	-$(CP) $(TARGET_32_SO) $(DEST)
+	-$(CP) $(TARGET_32_SO) $(DEST)/$(TARGET_32_SO).$(RELEASE_NUM)
+	-$(LN) $(DEST)/$(TARGET_32_SO).$(RELEASE_NUM) $(DEST)/$(TARGET_32_SO)
 
 # 32-bit static runtime library
 

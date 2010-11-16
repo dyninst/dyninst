@@ -1250,8 +1250,11 @@ bool AddressSpace::getDyninstRTLibName() {
         suffix = ".a";
     }else{
         if( P_strncmp(suffix, ".a", 2) == 0 ) {
-            // This will be incorrect if the RT library's version changes
-            suffix = ".so.1";
+	  // Add symlinks in makefiles as follows:
+	  // (lib).so => lib.so.(major)
+	  // lib.so.major => lib.so.major.minor
+	  // lib.so.major.minor => lib.so.major.minor.maintenance
+	  suffix = ".so";
         }
     }
 
