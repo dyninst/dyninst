@@ -70,11 +70,19 @@ static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig)
        point->getFunction()->getAddSpace());
     int_function *func = point->llpoint()->func();
 
-    // sync shadow and orig
-    proc->lowlevel_process()->getMemEm()->synchShadowOrig(func->obj(), (bool) toOrig);
+    if (!toOrig) {
+        // sync shadow and orig before we make any instrumentation changes
+        proc->lowlevel_process()->getMemEm()->synchShadowOrig(func->obj(), (bool) toOrig);
+    }
 
     // remove the callback snippet
     proc->getHybridAnalysis()->deleteSynchSnippet(point);
+
+    if (toOrig) {
+        proc->finalizeInsertionSet(false); // just in case
+        // sync shadow and orig after we're done instrumenting
+        proc->lowlevel_process()->getMemEm()->synchShadowOrig(func->obj(), (bool) toOrig);
+    }
 
     if (true == ((bool)toOrig)) {
         // drop in a callback after the call to synch shadow and original memory 
@@ -310,12 +318,12 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                         mod->lowlevel_mod()->obj() != 
                         curPoint->llpoint()->func()->obj() ))
                 {
-                    BPatchSnippetHandle *memHandle = proc()->insertSnippet
-                        (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(1)), 
-                         *curPoint, 
-                         BPatch_lastSnippet);
-                    memHandles[curPoint] = memHandle;
-                    pointCount++;
+                    //BPatchSnippetHandle *memHandle = proc()->insertSnippet
+                    //    (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(1)), 
+                    //     *curPoint, 
+                    //     BPatch_lastSnippet);
+                    //memHandles[curPoint] = memHandle;
+                    //pointCount++;
                 }
             }
         } 

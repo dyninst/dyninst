@@ -809,7 +809,7 @@ bool AddressSpace::isValidAddress(const Address addr) const{
         return true;
 
     return false;
-}        
+}
 
 mapped_object *AddressSpace::findObject(Address addr) {
     for (unsigned i=0; i<mapped_objects.size(); i++)

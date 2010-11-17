@@ -274,6 +274,8 @@ std::pair<bool, Address> MemoryEmulator::translateBackwards(Address addr) {
 
 void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig) 
 {
+    if (toOrig) malware_cerr << "Syncing shadow to orig for obj " << obj->fileName() << endl;
+    else        malware_cerr << "Syncing orig to shadow for obj " << obj->fileName() << endl;
     using namespace SymtabAPI;
     vector<Region*> regs;
     obj->parse_img()->getObject()->getCodeRegions(regs);
@@ -325,23 +327,23 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
 }
 
 
-void MemoryEmulator::addSpringboard(Region *reg, Address addr, int size) 
+void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size) 
 {
     // DEBUGGING
-    map<Address,int>::iterator sit = springboards_[reg].begin();
-    for (; sit != springboards_[reg].end(); ++sit) {
-        if (sit->first == addr) continue;
-        if (sit->first + sit->second <= addr) continue;
-        if (sit->first >= addr + size) break;
-        assert(0);
-    }
+    //map<Address,int>::iterator sit = springboards_[reg].begin();
+    //for (; sit != springboards_[reg].end(); ++sit) {
+    //    if (sit->first == offset) continue;
+    //    if (sit->first + sit->second <= offset) continue;
+    //    if (sit->first >= offset + size) break;
+    //    assert(0);
+    //}
 
-    springboards_[reg][addr] = size;
+    springboards_[reg][offset] = size;
 }
 
 void MemoryEmulator::removeSpringboards(int_function * func) 
 {
-    cerr << "deleting springboards from deadfunc " << hex << func->getAddress() << dec << endl;
+    malware_cerr << "untracking springboards from deadfunc " << hex << func->getAddress() << dec << endl;
 
     const set<int_basicBlock*,int_basicBlock::compare> & blocks = func->blocks();
     set<int_basicBlock*,int_basicBlock::compare>::const_iterator bit = blocks.begin();
@@ -352,7 +354,7 @@ void MemoryEmulator::removeSpringboards(int_function * func)
 
 void MemoryEmulator::removeSpringboards(const bblInstance *bbi) 
 {
-    cerr << "  deleting springboards from deadblock [" << hex 
+    malware_cerr << "  untracking springboards from deadblock [" << hex 
          << bbi->firstInsnAddr() << " " << bbi->endAddr() << ")" << dec <<endl;
     SymtabAPI::Region * reg = 
         ((ParseAPI::SymtabCodeRegion*)bbi->func()->ifunc()->region())->symRegion();
@@ -366,7 +368,7 @@ void MemoryEmulator::removeSpringboards(const bblInstance *bbi)
         }
     }
     for (unsigned i = 0; i < toDelete.size(); ++i) {
-       cerr << "\tdeleting springboard at " << hex << toDelete[i] << dec << endl;
+       malware_cerr << "\tdeleting springboard at " << hex << toDelete[i] << dec << endl;
        springboards_[reg].erase(toDelete[i]);
     }
     if (springboards_[reg].empty()) springboards_.erase(reg);

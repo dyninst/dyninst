@@ -110,8 +110,10 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
   // Currently we use a greedy algorithm rather than some sort of scheduling thing.
   // It's a heck of a lot easier that way. 
 
-                      cerr << "SPRINGBOARD GENERATION" << endl;
-                       debugRanges();
+  if (dyn_debug_reloc) {
+      cerr << "SPRINGBOARD GENERATION" << endl;
+      debugRanges();
+   }
 
 
    cerr << "Generating required springboards" << endl;

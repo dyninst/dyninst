@@ -1004,6 +1004,46 @@ void int_function::addMissingBlock(image_basicBlock & missingB)
         blockList.insert(intBlock);
         blockIDmap[missingB.id()] = blockIDmap.size();
     } 
+
+    // see if the new block falls through into a function that
+    // was already parsed
+    Block::edgelist & edges = missingB.targets();
+    SingleContext epred(ifunc(),true,true);
+    Function *parsedInto=NULL;
+    vector<Function*> funcs;
+    missingB.getFuncs(funcs);
+    for (Block::edgelist::iterator eit = edges.begin(&epred);
+         !parsedInto && eit != edges.end();
+         eit++)
+    {
+        vector<Function*> tfuncs;
+        (*eit)->trg()->getFuncs(tfuncs);
+        if (tfuncs.size() > funcs.size()) {
+            // we fell through into another function and need to add all of
+            // its blocks to our function
+            vector<Function*>::iterator ait = funcs.begin();
+            vector<Function*>::iterator bit = tfuncs.begin();
+            for (;ait != funcs.end() && bit != tfuncs.end(); ait++,bit++) {
+                if ((*ait) != (*bit)) {
+                    parsedInto = *bit;
+                    break;
+                }
+            }
+            if (!parsedInto) {
+                assert(bit != tfuncs.end());
+                parsedInto = *bit;
+            }
+        }
+    }
+    if (parsedInto) {
+        Function::blocklist & blocks = parsedInto->blocks();
+        for (Function::blocklist::iterator bit = blocks.begin();
+            bit != blocks.end(); 
+            bit++)
+        {
+            addMissingBlock(*static_cast<image_basicBlock*>(*bit));
+        }
+    }
 }
 
 
