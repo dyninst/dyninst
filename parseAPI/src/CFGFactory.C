@@ -32,6 +32,7 @@
 
 #include "CFGFactory.h"
 #include "CFG.h"
+#include <iostream>
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -41,6 +42,15 @@ using namespace Dyninst::ParseAPI;
     override the default CFG interfaces, or might
     use pooled allocators, etc.
  */
+
+Edge::Edge(Block *source, Block *target, EdgeTypeEnum type)
+: _source(source),
+  _target(target),
+  _type(type,false) { 
+    if (source->end() == 0x647 || target->start() == 0x647) {
+      std::cerr << "DEBUG BREAKPOINT!" << endl;
+        }
+    }
 
 CFGFactory::~CFGFactory()
 {
@@ -83,6 +93,12 @@ CFGFactory::free_block(Block *b) {
 
 Edge *
 CFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
+    if((src->end() & 0xFFF) == 0x647) {
+        std::cerr << "DEBUG BREAKPOINT!" << endl;
+        }
+    if (trg->start() == 0x647) {
+        std::cerr << "DEBUG BREAKPOINT" << endl;
+        }
     Edge * ret = new Edge(src,trg,type);
     edges_.add(*ret);
     return ret;

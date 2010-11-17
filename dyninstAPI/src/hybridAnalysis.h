@@ -108,7 +108,7 @@ private:
     void removeInstrumentation(BPatch_function *func, bool useInsertionSet);
     int saveInstrumentationHandle(BPatch_point *point, 
                                   BPatchSnippetHandle *handle);
-    bool hasEdge(BPatch_point *sourcePoint, Dyninst::Address target);
+    bool hasEdge(BPatch_function *func, Dyninst::Address source, Dyninst::Address target);
 
     // parsing
     void parseNewEdgeInFunction(BPatch_point *sourcePoint, 

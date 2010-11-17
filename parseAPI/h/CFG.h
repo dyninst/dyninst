@@ -43,7 +43,7 @@
 #include "ParseContainers.h"
 
 #include "Annotatable.h"
-
+#include <iostream>
 namespace Dyninst {
 namespace ParseAPI {
 
@@ -152,12 +152,8 @@ class Edge : public allocatable {
  public:
     PARSER_EXPORT Edge(Block * source,
          Block * target,
-         EdgeTypeEnum type) :
-        _source(source),
-        _target(target),
-        _type(type,false) { }
-
-    PARSER_EXPORT virtual ~Edge() { }
+         EdgeTypeEnum type);
+     PARSER_EXPORT virtual ~Edge() { }
 
     PARSER_EXPORT virtual Block * src() const { return _source; }
     PARSER_EXPORT virtual Block * trg() const { return _target; }

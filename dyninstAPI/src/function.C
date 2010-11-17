@@ -849,6 +849,14 @@ void int_function::deleteBlock(int_basicBlock* block)
 		imgBlock->getFuncs(funcs);
 		for (unsigned i = 0; i < funcs.size(); ++i) {
 			cerr << "\t" << i << ": func @ " << hex << funcs[i]->entry()->start() << dec << endl;
+			const ParseAPI::Function::blocklist &blocks = funcs[i]->blocks();
+			for (ParseAPI::Function::blocklist::iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
+				cerr << "\t\t Block: " << hex << (*iter)->start() << " -> " << (*iter)->end() << endl;
+				const ParseAPI::Block::edgelist &edges = (*iter)->targets();
+				for (ParseAPI::Block::edgelist::iterator e_iter = edges.begin(); e_iter != edges.end(); ++e_iter) {
+					cerr << "\t\t\t Edge to: " << hex << (*e_iter)->trg()->start() << dec << endl;
+					}
+				}
 			}
 		}
 
@@ -1575,6 +1583,15 @@ bblInstance::bblInstance(Address start, Address last, Address end, int_basicBloc
         fprintf(stderr, "bblInstance_count: %d (%d)\n",
                 bblInstance_count, bblInstance_count*sizeof(bblInstance));
 #endif
+	if (start >= 0x933000 &&
+		start <= 0x1000000) {
+		cerr << hex << block_->func() << " : " << start << " -> " << last << dec << endl;
+		std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >instances;
+		getInsnInstances(instances);
+		for (int i = 0; i < instances.size(); ++i) {
+			cerr << "\t" << hex << instances[i].second << " : " << instances[i].first->format() << dec << endl;
+			}
+		}
 
 
     // And add to the mapped_object code range
