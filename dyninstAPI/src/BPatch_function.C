@@ -322,8 +322,7 @@ BPatch_type *BPatch_function::getReturnTypeInt()
 bool BPatch_function::parseNewEdge(Dyninst::Address source, 
                                    Dyninst::Address target)
 {
-    // update code bytes here (not in int_function, as it would happen 
-    // twice for overwrites, which also call int_func->parseNewEdges
+    // mark code bytes as needing an update
     if (BPatch_defensiveMode == func->obj()->hybridMode()) {
         func->obj()->setCodeBytesUpdated(false);
     }

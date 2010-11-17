@@ -62,6 +62,11 @@ static void signalHandlerExitCB_wrapper(BPatch_point *point, void *returnAddr)
     dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
         getHybridAnalysis()->signalHandlerExitCB(point,returnAddr); 
 }
+static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig) 
+{
+    SymtabAPI::Region* reg = ((ParseAPI::SymtabCodeRegion*)func->ifunc()->region())->symRegion();
+    point->llpoint()->proc()->getMemEm()->synchShadowOrig(reg,(bool)toOrig);
+}
 
 InternalSignalHandlerCallback HybridAnalysis::getSignalHandlerCB()
 { return signalHandlerCB_wrapper; }
@@ -253,6 +258,23 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 BPatch_ifExpr ifSmallThenStop(condition, *dynamicTransferSnippet);
                 handle = proc()->insertSnippet
                     (ifSmallThenStop, *curPoint, BPatch_lastSnippet);
+            }
+
+            // if memory is emulated, and we don't know that it doesn't go to 
+            // a non-instrumented library, add a callback to synchShadowOrig_wrapper
+            if (proc()->lowlevel_process()->isMemoryEmulated()) {
+                BPatch_module *mod = proc()->findModuleByAddr(curPoint->getSavedTarget());
+                if (!mod || 
+                    mod->lowlevel_mod()->obj() != 
+                    curPoint->llpoint()->func()->obj())
+                {
+                    BPatchSnippetHandle *memHandle = proc()->insertSnippet
+                        (BPatch_stopThreadExpr(synchShadowOrig_wrapper, BPatch_constExpr(1)), 
+                         *curPoint, 
+                         BPatch_lastSnippet);
+                    memHandles[curPoint] = memHandle;
+                    pointCount++;
+                }
             }
         } 
         
@@ -678,6 +700,19 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         // Ensure we relocate the re-parsed function
         proc()->beginInsertionSet();
         callPoint->getFunction()->relocateFunction();
+
+        // if we're emulating memory, drop in a callback to synch shadow 
+        // and original memory
+        if (-1 == callPoint->getSavedTarget() || 
+            callPoint->llpoint()->func()->obj() != 
+            proc()->findModuleByAddr(callPoint->getSavedTarget())->lowlevel_mod()->obj())
+        {
+            BPatchSnippetHandle *memHandle = proc()->insertSnippet
+                (BPatch_stopThreadExpr(synchShadowOrig_wrapper, BPatch_constExpr(0)), 
+                 *curPoint, 
+                 BPatch_lastSnippet);
+            memHandles[curPoint] = memHandle;
+        }
 
         // instrument all modules that have modified functions
         success = instrumentModules(false);
