@@ -451,6 +451,7 @@ bool IA_IAPI::isRealCall() const
         return false;
     }
     if(isThunk()) {
+        parsing_printf("... getting PC (thunk call)\n");
         return false;
     }
     return true;

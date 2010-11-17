@@ -100,9 +100,39 @@ bool IA_IAPI::isNop() const
     return false;
 }
 
+/*
+ * A `thunk' is a function composed of the following pair of instructions:
+ 
+ thunk:
+    mov (%esp), <some register>
+    ret
+ 
+ * It has the effect of putting the address following a call to `thunk' into
+ * the register, and is used in position independent code.
+ */
+namespace {
+    class ThunkVisitor : public InstructionAPI::Visitor {
+     public:
+        ThunkVisitor() : offset_(0) { }
+        virtual void visit(BinaryFunction *) {
+            return;
+        }
+        virtual void visit(Immediate *i) {
+            offset_ = i->eval().convert<Address>();
+        }
+        virtual void visit(RegisterAST*) {
+            return;
+        }
+        virtual void visit(Dereference*) {
+            return;
+        }
+        Address offset() const { return offset_; }
 
+     private:
+        Address offset_;
+    };
+}
 bool IA_IAPI::isThunk() const {
-  // Before we go a-wandering, check the target
     if (!_isrc->isValidAddress(getCFT()))
     {
         parsing_printf("... Call to 0x%lx is invalid (outside code or data)\n",
@@ -112,32 +142,25 @@ bool IA_IAPI::isThunk() const {
 
     const unsigned char *target =
             (const unsigned char *)_isrc->getPtrToInstruction(getCFT());
-  // We're decoding two instructions: possible move and possible return.
-  // Check for move from the stack pointer followed by a return.
-    InstructionDecoder targetChecker(target, 
+    InstructionDecoder targetChecker(target,
             2*InstructionDecoder::maxInstructionLength, _isrc->getArch());
     Instruction::Ptr thunkFirst = targetChecker.decode();
     Instruction::Ptr thunkSecond = targetChecker.decode();
-    parsing_printf("... checking call target for thunk, insns are %s, %s\n", thunkFirst->format().c_str(),
-                   thunkSecond->format().c_str());
-    if(thunkFirst && (thunkFirst->getOperation().getID() == e_mov))
+    if(thunkFirst && thunkSecond && 
+        (thunkFirst->getOperation().getID() == e_mov) &&
+        (thunkSecond->getCategory() == c_ReturnInsn))
     {
         if(thunkFirst->isRead(stackPtr[_isrc->getArch()]))
         {
-            parsing_printf("... checking second insn\n");
-            if(!thunkSecond) {
-                parsing_printf("...no second insn\n");
-                return false;
-            }
-            if(thunkSecond->getCategory() != c_ReturnInsn)
-            {
-                parsing_printf("...insn %s not a return\n", thunkSecond->format().c_str());
-                return false;
-            }
-            return true;
+            // it is not enough that the stack pointer is read; it must
+            // be a zero-offset read from the stack pointer
+            ThunkVisitor tv;
+            Operand op = thunkFirst->getOperand(1);
+            op.getValue()->apply(&tv); 
+    
+            return tv.offset() == 0; 
         }
     }
-    parsing_printf("... real call found\n");
     return false;
 }
 
