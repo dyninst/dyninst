@@ -228,7 +228,6 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     proc()->finalizeInsertionSet(false);
 }
 
-
 /* CASES (sub-numbering are cases too)
  * 1. the target address is in a shared library
  * 1.1 if it's a system library don't parse at the target, but if the point was marked 

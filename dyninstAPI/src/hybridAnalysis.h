@@ -122,6 +122,7 @@ private:
     std::map<Dyninst::Address,Dyninst::Address> handlerFunctions; 
     std::map < BPatch_function*, 
                std::map<BPatch_point*,BPatchSnippetHandle*> *> * instrumentedFuncs;
+    std::map < BPatch_point*,BPatchSnippetHandle*> *> * memHandles;
     BPatch_module *sharedlib_runtime;
     BPatch_hybridMode mode_;
     BPatch_process *proc_;

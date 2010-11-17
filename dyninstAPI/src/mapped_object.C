@@ -2071,3 +2071,4 @@ int_function *mapped_object::findGlobalDestructorFunc(const std::string &) {
     return NULL;
 }
 #endif
+

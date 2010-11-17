@@ -212,7 +212,6 @@ class mapped_object : public codeRange {
     void findFuncsByRange(Address startAddr,
                           Address endAddr,
                           std::set<int_function*> &pageFuncs);
-
 private:
     // helper functions
     void updateCodeBytes(SymtabAPI::Region *reg = NULL);

@@ -57,6 +57,13 @@ class MemoryEmulator {
    std::pair<bool, Address> translate(Address addr);
    std::pair<bool, Address> translateBackwards(Address addr);
    
+    const std::map<Address,int> & getSpringboards(SymtabAPI::Region*) const;
+    void removeSpringboards(const int_function* deadfunc);
+    void addSpringboard(SymtabAPI::Region*, 
+                        Address offset,/*from start of region*/
+                        int size);
+    void synchShadowOrig(mapped_object*,bool toOrig);
+
   private:
    void addRegion(Address start, unsigned size, Address newBase);
    bool findMutateeTable();
@@ -70,6 +77,8 @@ class MemoryEmulator {
    MemoryMapTree reverseMemoryMap_;
 
    Address mutateeBase_;
+
+   std::map<SymtabAPI::Region*, std::map<Address,int> > springboards_;
 
    typedef std::map<SymtabAPI::Region *, Address> RegionMap;
    RegionMap addedRegions_;

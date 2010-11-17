@@ -1793,12 +1793,22 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
   for (std::list<codeGen>::iterator iter = patches.begin();
        iter != patches.end(); ++iter) {
     if (!writeTextSpace((void *)iter->startAddr(),
-			iter->used(),
-            iter->start_ptr())) {
+                        iter->used(),
+                        iter->start_ptr())) {
         cerr << "Failed writing a springboard branch, ret false" << endl;
-            return false;
+        return false;
     }
+    mapped_object *obj = findObject(iter->startAddr());
+    if (obj && runtime_lib.end() == runtime_lib.find(obj)) {
+        Address objBase = obj->codeBase();
+        SymtabAPI::Region * reg = obj->parse_img()->getObject()->
+            findEnclosingRegion(iter->startAddr() - objBase);
+        getMemEm()->addSpringboard(
+                         reg, 
+                         iter->startAddr() - objBase - reg->getMemOffset(),
+                         iter->used());
     }
+  }
 
 
   return true;
