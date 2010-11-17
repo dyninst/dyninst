@@ -69,52 +69,7 @@ static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig)
     BPatch_process *proc = dynamic_cast<BPatch_process*>(
        point->getFunction()->getAddSpace());
     int_function *func = point->llpoint()->func();
-
-    if (!toOrig) {
-        // sync shadow and orig before we make any instrumentation changes
-        proc->lowlevel_process()->getMemEm()->synchShadowOrig(func->obj(), (bool) toOrig);
-    }
-
-    // remove the callback snippet
-    proc->getHybridAnalysis()->deleteSynchSnippet(point);
-
-    if (toOrig) {
-        proc->finalizeInsertionSet(false); // just in case
-        // sync shadow and orig after we're done instrumenting
-        proc->lowlevel_process()->getMemEm()->synchShadowOrig(func->obj(), (bool) toOrig);
-    }
-
-    if (true == ((bool)toOrig)) {
-        // drop in a callback after the call to synch shadow and original memory 
-        // in the other direction
-        int_basicBlock *ftblock = point->llpoint()->block()->getFallthrough();
-        Address ftAddr = ftblock->origInstance()->firstInsnAddr();
-        instPoint *ftpt = func->findInstPByAddr(ftAddr);
-        if (!ftpt) {
-            func->funcCalls();
-            func->funcEntries();
-            func->funcExits();
-            func->funcUnresolvedControlFlow();
-            ftpt = func->findInstPByAddr(ftAddr);
-            if (!ftpt) {
-                ftpt = instPoint::createArbitraryInstPoint(
-                            ftAddr, 
-                            proc->lowlevel_process(), 
-                            func);
-            }
-        }
-        assert(ftpt);
-        BPatch_point *bpPoint = proc->findOrCreateBPPoint(
-            point->getFunction(),
-            ftpt, 
-            BPatch_point::convertInstPointType_t(ftpt->getPointType()));
-        BPatch_stopThreadExpr snip(synchShadowOrigCB_wrapper,
-                                   BPatch_constExpr(0));
-        BPatchSnippetHandle *memHandle = 
-            proc->insertSnippet(snip, *bpPoint, BPatch_lastSnippet);
-        assert(memHandle);
-        proc->getHybridAnalysis()->addSynchSnippet(bpPoint, memHandle);
-    }
+    proc->lowlevel_process()->getMemEm()->synchShadowOrig(func->obj(), (bool) toOrig);
 }
 
 InternalSignalHandlerCallback HybridAnalysis::getSignalHandlerCB()
@@ -318,11 +273,17 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                         mod->lowlevel_mod()->obj() != 
                         curPoint->llpoint()->func()->obj() ))
                 {
-                    BPatchSnippetHandle *memHandle = proc()->insertSnippet
+                    std::pair<BPatchSnippetHandle*,BPatchSnippetHandle*> handles;
+                    handles.first = proc()->insertSnippet
                         (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(1)), 
                          *curPoint, 
                          BPatch_lastSnippet);
-                    memHandles[curPoint] = memHandle;
+                    handles.second = proc()->insertSnippet
+                        (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(0)), 
+                         *curPoint,
+                         BPatch_callAfter, 
+                         BPatch_lastSnippet);
+                    memHandles[curPoint] = handles;
                     pointCount++;
                 }
             }
@@ -774,22 +735,6 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         proc()->beginInsertionSet();
         callPoint->getFunction()->relocateFunction();
 
-        // if we're emulating memory, drop in a callback to synch shadow 
-        // and original memory
-        if ((0 == callPoint->getSavedTarget()) ||
-			(-1 == callPoint->getSavedTarget()) || 
-            callPoint->llpoint()->func()->obj() != 
-            proc()->findModuleByAddr(callPoint->getSavedTarget())->lowlevel_mod()->obj())
-        {
-           BPatch_snippet snip = BPatch_stopThreadExpr(synchShadowOrigCB_wrapper,
-                                                       BPatch_constExpr(0));
-                                                       
-		   BPatchSnippetHandle *memHandle = proc()->insertSnippet(snip,
-                                                                  *callPoint, 
-                                                                  BPatch_lastSnippet);
-		   memHandles[callPoint] = memHandle;
-        }
-
         // instrument all modules that have modified functions
         success = instrumentModules(false);
     }
@@ -977,13 +922,8 @@ bool HybridAnalysis::blockcmp::operator () (const BPatch_basicBlock *b1,
 void HybridAnalysis::deleteSynchSnippet(BPatch_point *point)
 {
     assert(memHandles.end() != memHandles.find(point));
-    proc()->deleteSnippet(memHandles[point]);
+    proc()->deleteSnippet(memHandles[point].first);
+    proc()->deleteSnippet(memHandles[point].second);
     memHandles.erase(point);
 }
 
-bool HybridAnalysis::addSynchSnippet(BPatch_point *point, BPatchSnippetHandle *handle)
-{
-    if (memHandles.end() != memHandles.find(point)) 
-        return false;
-    memHandles[point] = handle;
-}
