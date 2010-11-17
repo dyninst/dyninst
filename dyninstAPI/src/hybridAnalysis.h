@@ -68,6 +68,8 @@ public:
     BPatch_process *proc() { return proc_; };
     static InternalSignalHandlerCallback getSignalHandlerCB();
     BPatch_module *getRuntimeLib() { return sharedlib_runtime; }
+    bool addSynchSnippet(BPatch_point *, BPatchSnippetHandle *);
+    void deleteSynchSnippet(BPatch_point*);
 
     // callbacks
     bool isInLoop(Dyninst::Address blockAddr, bool activeOnly);

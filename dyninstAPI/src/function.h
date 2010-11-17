@@ -225,6 +225,14 @@ class int_basicBlock {
     pdvector<bblInstance *> instances_;
 };
 
+struct edgeStub {
+    edgeStub(bblInstance *s, Address t, EdgeTypeEnum y) 
+    { src = s; trg = t; type = y; }
+    bblInstance* src;
+    Address trg;
+    EdgeTypeEnum type;
+};
+
 class int_function : public patchTarget {
   friend class bblInstance;
   friend class int_basicBlock;
@@ -292,14 +300,6 @@ class int_function : public patchTarget {
 	 return 0;
      }
    };
-
-    struct edgeStub {
-        edgeStub(bblInstance *s, Address t, EdgeTypeEnum y) 
-        { src = s; trg = t; type = y; }
-        bblInstance* src;
-        Address trg;
-        EdgeTypeEnum type;
-    };
 
    // extra debuggering info....
    ostream & operator<<(ostream &s) const;

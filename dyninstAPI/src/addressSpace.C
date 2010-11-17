@@ -1952,3 +1952,152 @@ void AddressSpace::updateMemEmulator() {
 MemoryEmulator * AddressSpace::getMemEm() {
     return memEmulator_;
 }
+
+// create stub edge set which is: all edges such that: 
+//     e->trg() in owBBIs and
+//     while e->src() in delBlocks try e->src()->sources()
+std::map<int_function*,vector<edgeStub> > 
+AddressSpace::getStubs(const std::list<bblInstance *> &owBBIs,
+                       const std::set<bblInstance*> &delBBIs)
+{
+    std::map<int_function*,vector<edgeStub> > stubs;
+    std::list<edgeStub> deadStubs;
+    
+    for (list<bblInstance*>::const_iterator deadIter = owBBIs.begin();
+         deadIter != owBBIs.end(); 
+         deadIter++) 
+    {
+        using namespace ParseAPI;
+        SingleContext epred_((*deadIter)->func()->ifunc(),true,true);
+        Intraproc epred(&epred_);
+        image_basicBlock *curImgBlock = (*deadIter)->block()->llb();
+        Block::edgelist & sourceEdges = curImgBlock->sources();
+        Block::edgelist::iterator eit = sourceEdges.begin(&epred);
+        Address baseAddr = (*deadIter)->firstInsnAddr() 
+            - curImgBlock->firstInsnOffset();
+
+        // find all stub blocks for this edge
+        for( ; eit != sourceEdges.end(); ++eit) {
+            image_basicBlock *sourceBlock = 
+                static_cast<image_basicBlock*>((*eit)->src());
+            int_basicBlock *sourceIntB = findBasicBlockByAddr
+                ( baseAddr + sourceBlock->start() );
+            edgeStub st(sourceIntB->origInstance(), 
+                    curImgBlock->start() + baseAddr, 
+                    (*eit)->type());
+            if (delBBIs.end() == delBBIs.find(sourceIntB->origInstance()) ) {
+                stubs[sourceIntB->func()].push_back(st);
+            } else {
+                deadStubs.push_back(st);
+            }
+        }
+
+        for (list<edgeStub>::iterator sit = deadStubs.begin(); 
+             sit != deadStubs.end(); 
+             sit++) 
+        {
+
+        // the stub source was overwritten, choose a non-overwritten source
+        // block on a non-call edge as the new stub with which to replace it
+        image_basicBlock *deadStub = (*sit).src->block()->llb();
+        SingleContext epred_((*sit).src->func()->ifunc(),true,true);
+        Intraproc epred(&epred_);
+        Block::edgelist inEdges = deadStub->sources();
+        bool foundNewStub = false;
+        for(Block::edgelist::iterator eit = inEdges.begin(&epred); 
+            !foundNewStub && eit != inEdges.end(); 
+            ++eit) 
+        {
+            if (CALL == (*eit)->type()) {
+                continue;
+            }
+            image_basicBlock *imgsrc = (image_basicBlock*)(*eit)->src();
+            bblInstance *bbisrc = findBasicBlockByAddr(
+                imgsrc->start()+baseAddr )->origInstance();
+            if (delBBIs.end() == delBBIs.find(bbisrc)) {
+                stubs[bbisrc->func()].push_back(edgeStub(
+                    bbisrc, (*sit).src->firstInsnAddr(), (*eit)->type()));
+                foundNewStub = true;
+            }
+        }
+        if (!foundNewStub) {
+            // all input blocks are dead. Search backwards through whole 
+            // function for a non-call edge we haven't tried
+            image_basicBlock *deadStub = (*sit).src->block()->llb();
+            set<image_basicBlock*> visitedBlocks;
+            visitedBlocks.insert(deadStub);
+            std::queue<ParseAPI::Edge*> worklist;
+            Block::edgelist & inEdges = deadStub->sources();
+            for(Block::edgelist::iterator iit=inEdges.begin(&epred); 
+                iit != inEdges.end(); 
+                ++iit) 
+            {
+                if (CALL != (*iit)->type() && 
+                    visitedBlocks.end() == visitedBlocks.find(
+                      static_cast<image_basicBlock*>((*iit)->src())))
+                {
+                    worklist.push(*iit);
+                }
+            }
+            while (worklist.size()) {
+                ParseAPI::Edge *curEdge = worklist.front();
+                worklist.pop();
+                image_basicBlock *srcBlock = 
+                    static_cast<image_basicBlock*>(curEdge->src());
+                bblInstance *srcBBI = findOrigByAddr
+                    ( srcBlock->firstInsnOffset() + baseAddr )->
+                    is_basicBlockInstance();
+                assert(srcBBI);
+                if (delBBIs.end() == delBBIs.find(srcBBI)) {
+                    // found a valid stub block
+                    stubs[srcBBI->func()].push_back( edgeStub(
+                        srcBBI, (*sit).src->firstInsnAddr(), curEdge->type()));
+                    foundNewStub = true;
+                    break;
+                }
+                else if (visitedBlocks.end() == visitedBlocks.find(srcBlock)) {
+                    Block::edgelist & edges = srcBlock->sources();
+                    for(Block::edgelist::iterator iit=edges.begin(&epred); 
+                        iit != edges.end(); 
+                        ++iit) 
+                    {
+                        if (CALL != (*iit)->type() && 
+                            visitedBlocks.end() == visitedBlocks.find(
+                              static_cast<image_basicBlock*>((*iit)->src())))
+                        {
+                            worklist.push(*iit);
+                        }
+                    }
+                }
+                visitedBlocks.insert(srcBlock);
+            }
+            if (!foundNewStub) {
+                mal_printf("WARNING: failed to find stub to replace "
+                        "the overwritten stub [%lx %lx] for overwritten "
+                        "block at %lx %s[%d]\n",
+                        (*sit).src->firstInsnAddr(), 
+                        (*sit).src->endAddr(), 
+                        (*sit).trg,FILE__,__LINE__);
+            }
+        }
+        }
+    }
+
+    // now traverse stub lists to remove any duplicates that were introduced 
+    // by overwritten stub replacement
+    for(std::map<int_function*,vector<edgeStub> >::iterator fit= stubs.begin();
+        fit != stubs.end();
+        fit++) 
+    {
+        for(unsigned i=0; i < fit->second.size(); i++) {
+            for(unsigned j=i+1; j < fit->second.size(); j++) {
+                if (fit->second[i].src == fit->second[j].src) {
+                    fit->second[j] = fit->second[fit->second.size()-1];
+                    fit->second.pop_back();
+                    j--;
+                }
+            }
+        }
+    }
+    return stubs;
+}

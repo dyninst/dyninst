@@ -330,8 +330,8 @@ bool BPatch_function::parseNewEdge(Dyninst::Address source,
     // set up arguments to lower level parseNewEdges and call it
     int_basicBlock *sblock = func->findBlockByAddr(source);
     assert(sblock);
-    vector<int_function::edgeStub> stubs;
-    stubs.push_back(int_function::edgeStub(
+    vector<edgeStub> stubs;
+    stubs.push_back(edgeStub(
         sblock->origInstance(), target, ParseAPI::NOEDGE));
     func->parseNewEdges(stubs);
 

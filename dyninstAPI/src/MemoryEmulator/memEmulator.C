@@ -302,6 +302,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
             toBase = addedRegions_[reg];
         }
         for (; sit != springboards_[reg].end(); sit++) {
+            assert(cp_start <= sit->first);
             int cp_size = sit->first - cp_start;
             if (cp_size &&
                 !aS_->writeDataSpace((void *)(toBase + cp_start),
@@ -319,27 +320,53 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         {
             assert(0);
         }
+        free(regbuf);
     }
 }
 
 
 void MemoryEmulator::addSpringboard(Region *reg, Address addr, int size) 
 {
+    // DEBUGGING
+    map<Address,int>::iterator sit = springboards_[reg].begin();
+    for (; sit != springboards_[reg].end(); ++sit) {
+        if (sit->first == addr) continue;
+        if (sit->first + sit->second <= addr) continue;
+        if (sit->first >= addr + size) break;
+        assert(0);
+    }
+
     springboards_[reg][addr] = size;
 }
 
 void MemoryEmulator::removeSpringboards(int_function * func) 
 {
+    cerr << "deleting springboards from deadfunc " << hex << func->getAddress() << dec << endl;
+
+    const set<int_basicBlock*,int_basicBlock::compare> & blocks = func->blocks();
+    set<int_basicBlock*,int_basicBlock::compare>::const_iterator bit = blocks.begin();
+    for (; bit != blocks.end(); bit++) {
+        removeSpringboards((*bit)->origInstance());
+    }
+}
+
+void MemoryEmulator::removeSpringboards(const bblInstance *bbi) 
+{
+    cerr << "  deleting springboards from deadblock [" << hex 
+         << bbi->firstInsnAddr() << " " << bbi->endAddr() << ")" << dec <<endl;
     SymtabAPI::Region * reg = 
-        ((ParseAPI::SymtabCodeRegion*)func->ifunc()->region())->symRegion();
+        ((ParseAPI::SymtabCodeRegion*)bbi->func()->ifunc()->region())->symRegion();
+    Address base = bbi->func()->obj()->codeBase();
+    Address regBase = reg->getMemOffset();
     map<Address,int>::iterator sit = springboards_[reg].begin();
     std::vector<Address> toDelete;
     for(; sit != springboards_[reg].end(); sit++) {
-        if (func == aS_->findFuncByAddr(sit->first)) {
+        if (bbi->func() == aS_->findFuncByAddr(base + regBase + sit->first)) {
            toDelete.push_back(sit->first);
         }
     }
     for (unsigned i = 0; i < toDelete.size(); ++i) {
+       cerr << "\tdeleting springboard at " << hex << toDelete[i] << dec << endl;
        springboards_[reg].erase(toDelete[i]);
     }
     if (springboards_[reg].empty()) springboards_.erase(reg);
