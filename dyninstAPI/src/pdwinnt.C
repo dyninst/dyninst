@@ -2792,9 +2792,7 @@ mapped_object *process::createObjectNoFile(Address addr)
         // to the end, NOT from meminfo.AllocationBase, which is what we want.
         // BaseAddress is the start address of the page of the address parameter
         // that is sent to VirtualQueryEx as a parameter
-        Address regionSize = (Address)meminfo.BaseAddress 
-            - (Address)meminfo.AllocationBase
-            + (Address)meminfo.RegionSize;
+        Address regionSize = (Address)meminfo.RegionSize;
         mal_printf("[%lx %lx] is valid region containing %lx and corresponding "
                "to no object, closest is object ending at %lx %s[%d]\n", 
                meminfo.AllocationBase, 
