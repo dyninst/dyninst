@@ -529,7 +529,7 @@ RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_,
     int idx = (int)arrayLen / 4 * 2; 
     int lowIdx = 0;
     int highIdx = (int)arrayLen;
-    fprintf(stderr,"D_bc@%p: boundsArray=%p target=%lx idx=%d arrayLen=%d [%d]\n", (void*)DYNINST_boundsCheck, boundsArray_, writeTarget_, idx, arrayLen, __LINE__);
+    //fprintf(stderr,"D_bc@%p: boundsArray=%p target=%lx idx=%d arrayLen=%d [%d]\n", (void*)DYNINST_boundsCheck, boundsArray_, writeTarget_, idx, arrayLen, __LINE__);
     //rtdebug_printf("D_bc@%p: boundsArray=%p target=%lx idx=%d arrayLen=%d [%d]\n", (void*)DYNINST_boundsCheck, boundsArray_, writeTarget_, idx, arrayLen, __LINE__);
     if ((unsigned long)boundsArray < 0x10000000) {
         printf("D_bc: boundsArray_ = %lx, returning false\n",(unsigned long) boundsArray);

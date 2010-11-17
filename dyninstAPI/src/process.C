@@ -4556,7 +4556,7 @@ Address process::stopThreadCtrlTransfer
             // the source instruction
             unrelocTarget = resolveJumpIntoRuntimeLib(intPoint, target);
             if (0 == unrelocTarget) {
-                mal_printf("%s[%d] WARNING: stopThread caught an indirect "
+                mal_printf("WARNING: stopThread caught an indirect "
                         "call or jump whose target is an unresolved "
                         "runtime library heap address %lx=>%lx %s[%d]\n",
                         pointAddr, target, FILE__, __LINE__);

@@ -140,7 +140,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
    codeGen prepatch(128);
    prepatch.applyTemplate(templ);
 
-   bool debug = false;
+   bool debug = true;
 
   // We want to ensure that a memory operation produces its
   // original result in the face of overwriting the text

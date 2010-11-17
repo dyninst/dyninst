@@ -52,8 +52,8 @@ bool LocalizeCF::processTrace(TraceList::iterator &iter) {
 
   const Trace::AtomList &elements = (*iter)->elements();
 
-  relocation_cerr << "localCFTransformer going to work on block " 
-		  << std::hex << (*iter)->origAddr() << std::dec << endl;
+  //relocation_cerr << "localCFTransformer going to work on block " 
+//		  << std::hex << (*iter)->origAddr() << std::dec << endl;
 
   // We don't need to iterate over all the elements; by definition
   // the only one we care about is the last one. 
@@ -88,7 +88,7 @@ bool LocalizeCF::processTrace(TraceList::iterator &iter) {
 
     TraceMap::const_iterator found = bMap_.find(bbl);
     if (found != bMap_.end()) {
-      relocation_cerr << "      found matching block " << found->second.get() << endl;
+      //relocation_cerr << "      found matching block " << found->second.get() << endl;
 
       // First, record the bblInstance we removed an edge from. We will check
       // later to see if we removed all the incoming edges from this instance...
@@ -101,8 +101,8 @@ bool LocalizeCF::processTrace(TraceList::iterator &iter) {
       Target<Trace::Ptr> *t = new Target<Trace::Ptr>(found->second);
       d_iter->second = t;
 
-      relocation_cerr << "        Incrementing removed edge count for " 
-		      << std::hex << found->first << std::dec << endl;
+      //relocation_cerr << "        Incrementing removed edge count for " 
+//		      << std::hex << found->first << std::dec << endl;
       replacedCount_[found->first]++;
     }
   }
@@ -112,7 +112,7 @@ bool LocalizeCF::processTrace(TraceList::iterator &iter) {
 // Count up how many incoming edges we still have
 // to see if we need to branch in to this block
 bool LocalizeCF::postprocess(TraceList &) {
-  relocation_cerr << "Postprocessing LocalizeCF" << endl;
+  //relocation_cerr << "Postprocessing LocalizeCF" << endl;
   for (std::map<bblInstance *, int>::iterator iter = replacedCount_.begin();
        iter != replacedCount_.end(); ++iter) {
     bblInstance *bbl = iter->first;
@@ -122,11 +122,11 @@ bool LocalizeCF::postprocess(TraceList &) {
     // see if this block has any incoming edges that we didn't remove
     int incomingEdges = incomingCount_[bbl];
 
-    relocation_cerr << "   Considering block at " 
-		    << std::hex << bbl->firstInsnAddr() << std::dec
-		    << ": incoming " << incomingEdges 
-		    << " and removed " << removedEdges
-		    << endl;
+    //relocation_cerr << "   Considering block at " 
+//		    << std::hex << bbl->firstInsnAddr() << std::dec
+	//	    << ": incoming " << incomingEdges 
+//<< " and removed " << removedEdges
+	//	    << endl;
 
     
     if (removedEdges > incomingEdges) {
@@ -144,8 +144,8 @@ bool LocalizeCF::postprocess(TraceList &) {
 }
 
 int LocalizeCF::getInEdgeCount(const bblInstance *bbl) {
-  relocation_cerr << "   ... getting number of in edges for block at "
-		  << std::hex << bbl->firstInsnAddr() << std::dec << endl;
+  //relocation_cerr << "   ... getting number of in edges for block at "
+//		  << std::hex << bbl->firstInsnAddr() << std::dec << endl;
 
   // Need to duck to internals to get interprocedural counts
   return bbl->block()->llb()->sources().size();

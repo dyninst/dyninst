@@ -127,7 +127,7 @@ bool CodeBuffer::BufferElement::generate(CodeBuffer *buf,
       gen.fill(size_ - newSize, codeGen::cgNOP);
    }
 
-   relocation_cerr << "BufferElement::generate, new size " << size_ << endl;
+   //relocation_cerr << "BufferElement::generate, new size " << size_ << endl;
 
    return true;
 }
@@ -136,23 +136,23 @@ bool CodeBuffer::BufferElement::extractTrackers(CodeTracker &t) {
    // Update tracker information (address, size) and add it to the
    // CodeTracker we were handed in.
 
-   relocation_cerr << "*** Begin tracker extraction from BufferElement" << endl;
+   //relocation_cerr << "*** Begin tracker extraction from BufferElement" << endl;
 
    for (Trackers::iterator iter = trackers_.begin();
         iter != trackers_.end(); ++iter) {
       TrackerElement *e = iter->second; assert(e);
-      relocation_cerr << "\t Tracker element: " << *e << endl;
+      //relocation_cerr << "\t Tracker element: " << *e << endl;
       unsigned size = 0;
       Trackers::iterator next = iter; ++next;
       if (next != trackers_.end()) {
-         relocation_cerr << "\t\t\t Size calc: " << next->first << " - " << iter->first << endl;
+         //relocation_cerr << "\t\t\t Size calc: " << next->first << " - " << iter->first << endl;
          size = next->first - iter->first;
       }
       else {
-         relocation_cerr << "\t\t\t Size calc: " << size_ << " - " << iter->first << endl;
+         //relocation_cerr << "\t\t\t Size calc: " << size_ << " - " << iter->first << endl;
          size = size_ - iter->first;
       }
-      relocation_cerr << "\t\t Calculated size: " << size << endl;
+      //relocation_cerr << "\t\t Calculated size: " << size << endl;
       if (!size) continue;
       
       Address relocAddr = iter->first + addr_;
@@ -161,7 +161,7 @@ bool CodeBuffer::BufferElement::extractTrackers(CodeTracker &t) {
       t.addTracker(e);
    }
 
-   relocation_cerr << "*** End tracker extraction from BufferElement" << endl;
+   //relocation_cerr << "*** End tracker extraction from BufferElement" << endl;
    return true;
 }
 
@@ -302,11 +302,11 @@ void CodeBuffer::updateLabel(int id, Address offset, bool &regenerate) {
       while(1);
    }
 
-   relocation_cerr << "\t Updating label " << id 
-                   << " -> " << hex << offset << dec << endl;
+   //relocation_cerr << "\t Updating label " << id 
+//                   << " -> " << hex << offset << dec << endl;
    if (iter->second.addr != offset) {
-      relocation_cerr << "\t\t Old value " << hex << labels_[id].addr
-                      << ", regenerating!" << dec << endl;
+      //relocation_cerr << "\t\t Old value " << hex << labels_[id].addr
+//                      << ", regenerating!" << dec << endl;
       regenerate = true;
    }
    iter->second.addr = offset;
@@ -327,16 +327,16 @@ Address CodeBuffer::predictedAddr(int id) {
    Label &label = iter->second;
    switch(label.type) {
       case Label::Absolute:
-         relocation_cerr << "\t\t Requested predicted addr for " << id
-                         << ", label is absolute, ret " << hex << label.addr << dec << endl;
+         //relocation_cerr << "\t\t Requested predicted addr for " << id
+//                         << ", label is absolute, ret " << hex << label.addr << dec << endl;
          return label.addr;
       case Label::Relative:
          assert(gen_.startAddr());
          assert(gen_.startAddr() != (Address) -1);
-         relocation_cerr << "\t\t Requested predicted addr for " << id
-                         << ", label is relative, ret " << hex << label.addr + gen_.startAddr()
-                         << " = " << label.addr << " + " << gen_.startAddr()
-                         << dec << endl;
+         //relocation_cerr << "\t\t Requested predicted addr for " << id
+//                         << ", label is relative, ret " << hex << label.addr + gen_.startAddr()
+//                         << " = " << label.addr << " + " << gen_.startAddr()
+            //             << dec << endl;
          return label.addr + gen_.startAddr();
       case Label::Estimate: {
          // In this case we want to adjust the address by 
@@ -348,12 +348,12 @@ Address CodeBuffer::predictedAddr(int id) {
          Address ret = label.addr + gen_.startAddr();
          if (label.iteration < curIteration_)
             ret += shift_;
-         relocation_cerr << "\t\t Requested predicted addr for " << id
-                         << ", label is relative, ret " << hex << ret
-                         << " = " << label.addr << " + " << gen_.startAddr()
-                         << " + (" << label.iteration << " < " 
-                         << curIteration_ << ") ? " << shift_ 
-                         << " : 0" << dec << endl;
+         //relocation_cerr << "\t\t Requested predicted addr for " << id
+//                         << ", label is relative, ret " << hex << ret
+    //                     << " = " << label.addr << " + " << gen_.startAddr()
+   //                      << " + (" << label.iteration << " < " 
+   //                      << curIteration_ << ") ? " << shift_ 
+   //                      << " : 0" << dec << endl;
          return ret;
       }
       default:

@@ -48,8 +48,8 @@ using namespace InstructionAPI;
 
 
 bool Instrumenter::processTrace(TraceList::iterator &iter) {
-  relocation_cerr << "Instrumenter, processing block " 
-		  << std::hex << (*iter)->origAddr() << std::dec << endl;
+  //relocation_cerr << "Instrumenter, processing block " 
+		  //<< std::hex << (*iter)->origAddr() << std::dec << endl;
   
   if ((*iter)->bbl() == NULL)
     return true;
@@ -79,7 +79,7 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
     // Assertion: we have no Inst elements already
     Address addr = (*e_iter)->addr();
     if (addr == 0) {
-       relocation_cerr << "Skipping Atom with address 0" << endl;
+       //relocation_cerr << "Skipping Atom with address 0" << endl;
        continue;
     }
     if (addr == prevAddr) {
@@ -88,7 +88,7 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
        // Otherwise we get multiple copies of each instPoint for each new
        // Atom. We _really_ should have a "group" Atom, or a 1:1 restriction,
        // but I don't have time to fix that now.
-       relocation_cerr << "Skipping Atom with same addr as previous" << endl;
+       //relocation_cerr << "Skipping Atom with same addr as previous" << endl;
        continue;
     }
     prevAddr = addr;
@@ -97,10 +97,10 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
     // We need a "virtual" boolean... but for now just check whether
     // there's an instruction there. 
     if (!(*e_iter)->insn()) {
-       relocation_cerr << "Skipping Atom with no insn" << endl;
+       //relocation_cerr << "Skipping Atom with no insn" << endl;
        continue;
     }
-    relocation_cerr << "  Checking for point at " << std::hex << addr << std::dec << endl;
+    //relocation_cerr << "  Checking for point at " << std::hex << addr << std::dec << endl;
 
     point = (*iter)->bbl()->func()->findInstPByAddr(addr);
 
@@ -111,10 +111,10 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
         pre = NULL;
     }
 
-    relocation_cerr << "   Found instrumentation at addr " 
-		    << std::hex << addr << std::dec
-            << (post ? (post->empty() ? "<POST EMPTY>" : "<POST>") : "<NO POST>")
-            << (pre ? (pre->empty() ? "<PRE EMPTY>" : "<PRE>") : "<NO PRE>") << endl;
+    //relocation_cerr << "   Found instrumentation at addr " 
+		   // << std::hex << addr << std::dec
+           // << (post ? (post->empty() ? "<POST EMPTY>" : "<POST>") : "<NO POST>")
+           // << (pre ? (pre->empty() ? "<PRE EMPTY>" : "<PRE>") : "<NO PRE>") << endl;
     
     Inst::Ptr inst = Inst::create();
     inst->addBaseTramp(post);
@@ -139,12 +139,12 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
   // or a targetBaseTramp (for taken edges)
 
   if (point) {
-    relocation_cerr << "   Trailing <point>, checking edge instrumentation" << endl;
+    //relocation_cerr << "   Trailing <point>, checking edge instrumentation" << endl;
     baseTramp *target = point->targetBaseTramp();
     // post is still assigned from above
     if (!target &&
 	!post) {
-      relocation_cerr << "   ... neither target nor post, no edge" << endl;
+      //relocation_cerr << "   ... neither target nor post, no edge" << endl;
       return true;
     }
 
@@ -153,7 +153,7 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
     assert(cf);
 
     if (post) {
-      relocation_cerr << "   ... fallthrough inst, adding" << endl;
+      //relocation_cerr << "   ... fallthrough inst, adding" << endl;
       if (!addEdgeInstrumentation(post,
 				  cf,
 				  CFAtom::Fallthrough,
@@ -161,7 +161,7 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
 	return false;
     }
     if (target) {
-      relocation_cerr << "   ... target inst, adding" << endl;
+      //relocation_cerr << "   ... target inst, adding" << endl;
       if (!addEdgeInstrumentation(target,
 				  cf,
 				  CFAtom::Taken,
@@ -175,26 +175,26 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
 bool Instrumenter::postprocess(TraceList &bl) {
   // Yuck iteration... anyone have a better idea?
 
-  relocation_cerr << "Instrumenter: postProcess" << endl;
+  //relocation_cerr << "Instrumenter: postProcess" << endl;
   
   if (edgeTraces_.empty()) {
-    relocation_cerr << "  ... nothing to do, returning" << endl;
+    //relocation_cerr << "  ... nothing to do, returning" << endl;
     return true;
   }
 
   for (TraceList::iterator iter = bl.begin();
        iter != bl.end(); ++iter) {
-    relocation_cerr << "   Testing block " << iter->get() << endl;
+    //relocation_cerr << "   Testing block " << iter->get() << endl;
     // Try pre-insertion
     EdgeTraces::iterator pre = edgeTraces_.find(std::make_pair(*iter, Before));
     if (pre != edgeTraces_.end()) {
-      relocation_cerr << "     Inserting " << pre->second.size() << " pre blocks" << endl;
+      //relocation_cerr << "     Inserting " << pre->second.size() << " pre blocks" << endl;
       bl.insert(iter, pre->second.begin(), pre->second.end());
     }
     // And post-insertion?
     EdgeTraces::iterator post = edgeTraces_.find(std::make_pair(*iter, After));
     if (post != edgeTraces_.end()) {
-      relocation_cerr << "    Inserting " << post->second.size() << " post blocks" << endl;
+      //relocation_cerr << "    Inserting " << post->second.size() << " post blocks" << endl;
       // Game the main iterator here...
       ++iter; // To get successor
       bl.insert(iter, post->second.begin(), post->second.end());

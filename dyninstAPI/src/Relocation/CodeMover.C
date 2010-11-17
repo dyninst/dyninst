@@ -82,17 +82,17 @@ template <typename TraceIter>
 bool CodeMover::addTraces(TraceIter begin, TraceIter end) {
    for (; begin != end; ++begin) {
       bblInstance *bbl = (*begin)->origInstance();
-      relocation_cerr << "Creating Trace for bbl at " 
-                      << std::hex << bbl->firstInsnAddr() << std::dec
-                      << endl;
+      //relocation_cerr << "Creating Trace for bbl at " 
+//                      << std::hex << bbl->firstInsnAddr() << std::dec
+      //                << endl;
       Trace::Ptr block = Trace::create(bbl);
       if (!block)
          return false;
       blocks_.push_back(block);
       blockMap_[bbl] = block;
-      relocation_cerr << "  Updated block map: " 
-                      << std::hex << bbl->firstInsnAddr() << std::dec
-                      << "->" << block.get() << endl;
+      //relocation_cerr << "  Updated block map: " 
+//                      << std::hex << bbl->firstInsnAddr() << std::dec
+        //              << "->" << block.get() << endl;
 
       priorityMap_[bbl] = Suggested;
    }
@@ -100,17 +100,17 @@ bool CodeMover::addTraces(TraceIter begin, TraceIter end) {
 }
 
 bool CodeMover::addTrace(bblInstance *bbl) {
-   relocation_cerr << "Creating Trace for bbl at " 
-                   << std::hex << bbl->firstInsnAddr() << std::dec
-                   << endl;
+   //relocation_cerr << "Creating Trace for bbl at " 
+//                   << std::hex << bbl->firstInsnAddr() << std::dec
+//                   << endl;
    Trace::Ptr block = Trace::create(bbl);
    if (!block)
       return false;
    blocks_.push_back(block);
    blockMap_[bbl] = block;
-   relocation_cerr << "  Updated block map: " 
-                   << std::hex << bbl->firstInsnAddr() << std::dec
-                   << "->" << block.get() << endl;
+   //relocation_cerr << "  Updated block map: " 
+//                   << std::hex << bbl->firstInsnAddr() << std::dec
+            //       << "->" << block.get() << endl;
   
    return true;
 }
@@ -204,7 +204,7 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
    // and return a sorted list of where we need 
    // patches (from and to)
 
-   relocation_cerr << "Creating springboard request map" << endl;
+   //relocation_cerr << "Creating springboard request map" << endl;
 
    if (sboardMap_.empty()) {
       for (PriorityMap::const_iterator iter = priorityMap_.begin();
@@ -221,9 +221,9 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
             Address to = buffer_.getLabelAddr(labelID);
             
             sboardMap_.addFromOrigCode(bbl->firstInsnAddr(), to, p, bbl);
-            relocation_cerr << "Added map " << hex
-                            << bbl->firstInsnAddr() << " -> " 
-                            << to << ", " << p << dec << endl;
+            //relocation_cerr << "Added map " << hex
+//                            << bbl->firstInsnAddr() << " -> " 
+//                            << to << ", " << p << dec << endl;
          }
       }
 
@@ -264,8 +264,8 @@ void CodeMover::createInstrumentationSpringboards(AddressSpace *as) {
       as->getPreviousInstrumentationInstances(iter->first, begin, end);
       for (; begin != end; ++begin) {
          sboardMap_.addFromRelocatedCode(*begin, iter->second, RelocSuggested);
-         relocation_cerr << "\t Added inst SB " << hex
-                         << *begin << " -> " << iter->second << dec << endl;
+         //relocation_cerr << "\t Added inst SB " << hex
+//                         << *begin << " -> " << iter->second << dec << endl;
       }
       as->addInstrumentationInstance(iter->first, iter->second);
    }
@@ -276,8 +276,8 @@ void CodeMover::createInstrumentationSpringboards(AddressSpace *as) {
       as->getPreviousInstrumentationInstances(iter->first, begin, end);
       for (; begin != end; ++begin) {
          sboardMap_.addFromRelocatedCode(*begin, iter->second, RelocSuggested);
-         relocation_cerr << "\t Added inst SB " << hex
-                         << *begin << " -> " << iter->second << dec << endl;
+         //relocation_cerr << "\t Added inst SB " << hex
+//                         << *begin << " -> " << iter->second << dec << endl;
       }
    }
 }

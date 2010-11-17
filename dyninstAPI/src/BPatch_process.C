@@ -1764,17 +1764,21 @@ void BPatch_process::overwriteAnalysisUpdate
     std::list<std::pair<Address,Address> > owRegions;
     std::list<bblInstance *> owBBIs;
     llproc->getOverwrittenBlocks(owPages, owRegions, owBBIs);
-    changedPages = ! owRegions.empty();
+	for (std::list<std::pair<Address, Address> >::iterator iter = owRegions.begin(); iter != owRegions.end(); ++iter) {
+		mal_printf("%s[%d]: overwritten region 0x%lx -> 0x%lx\n",
+			__FILE__, __LINE__, iter->first, iter->second);
+		}
+	changedPages = ! owRegions.empty();
     changedCode = ! owBBIs.empty();
-
-    if ( !changedCode ) {
-        return;
-    }
 
     /*2. remove dead code from the analysis */
 
     // update the mapped data for the overwritten ranges
     llproc->updateCodeBytes(owPages,owRegions);
+	
+    if ( !changedCode ) {
+        return;
+    }
 
     // identify the dead code 
     std::set<bblInstance*> delBBIs;

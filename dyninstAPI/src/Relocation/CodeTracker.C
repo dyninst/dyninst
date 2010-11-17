@@ -91,15 +91,15 @@ void CodeTracker::addTracker(TrackerElement *e) {
       TrackerElement *last = trackers_.back();
       if (e->orig() == last->orig() &&
           e->type() == last->type()) {
-         relocation_cerr << "OVERLAPPING TRACKERS, combining...." << endl;
-		 relocation_cerr << "\t Current: " << *last << endl;
-		 relocation_cerr << "\t New: " << *e << endl;
+         if (false) relocation_cerr << "OVERLAPPING TRACKERS, combining...." << endl;
+		 if (false) relocation_cerr << "\t Current: " << *last << endl;
+		 if (false) relocation_cerr << "\t New: " << *e << endl;
          assert(e->reloc() == (last->reloc() + last->size()));
          last->setSize(last->size() + e->size());
          return;
       }
    }
-   relocation_cerr << "Adding tracker: " << *e << endl;
+   if (false) relocation_cerr << "Adding tracker: " << *e << endl;
 
    trackers_.push_back(e);
 }

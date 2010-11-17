@@ -66,8 +66,8 @@ bool CFAtomCreator::processTrace(TraceList::iterator &iter) {
   // ET_FUNLINK(succ) : [Fallthrough] -> Target(succ)
   // ET_NOEDGE : wtf?
 
-  relocation_cerr << "Creating block ender for block @ "
-		  << std::hex << (*iter)->origAddr() << std::dec << endl;
+  //relocation_cerr << "Creating block ender for block @ "
+//		  << std::hex << (*iter)->origAddr() << std::dec << endl;
 
   SuccVec successors;
 
@@ -91,30 +91,30 @@ bool CFAtomCreator::processTrace(TraceList::iterator &iter) {
     Address addr = successors[i].addr;
     switch(type) {
     case INDIRECT: {
-      relocation_cerr << "Adding indirect destination: "
-		      << std::hex << addr << std::dec << endl;
+      //relocation_cerr << "Adding indirect destination: "
+//		      << std::hex << addr << std::dec << endl;
       ender->addDestination(addr, targ);
       break;
     }
     case CALL:
     case DIRECT:
     case COND_TAKEN:
-      relocation_cerr << "Adding taken destination: "
-		      << std::hex << addr << std::dec << endl;
+      //relocation_cerr << "Adding taken destination: "
+//		      << std::hex << addr << std::dec << endl;
       ender->addDestination(CFAtom::Taken, targ);
       break;
     case COND_NOT_TAKEN:
     case FALLTHROUGH:
     case CALL_FT:
-      relocation_cerr << "Adding fallthrough destination: "
-		      << std::hex << addr << std::dec << endl;
+      //relocation_cerr << "Adding fallthrough destination: "
+//		      << std::hex << addr << std::dec << endl;
       ender->addDestination(CFAtom::Fallthrough, targ);
       break;
     case NOEDGE:
     case CATCH:
     case RET: // I think...?
     default:
-      relocation_cerr << "Ignoring destination type " << type << endl;
+      //relocation_cerr << "Ignoring destination type " << type << endl;
       // Ignore...
       break;
     }
@@ -194,8 +194,8 @@ void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
               InstructionAPI::Instruction::Ptr insn = insns.back().first;
               Expression::Ptr exp = insn->getControlFlowTarget();
               if (!exp) {
-                  relocation_cerr << "WARNING: Null expr for CFT of sink edge for insn at " 
-                      << hex << bbl->lastInsnAddr() << endl;
+                  //relocation_cerr << "WARNING: Null expr for CFT of sink edge for insn at " 
+//                      << hex << bbl->lastInsnAddr() << endl;
                   break;
               }
               static Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(Arch_x86)));

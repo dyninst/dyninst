@@ -133,7 +133,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
     Absloc dest;
 
     if (insnIsThunkCall(insn, addr, dest)) {
-      relocation_cerr << "Thunk @ " << hex << addr << dec << endl;
+      //relocation_cerr << "Thunk @ " << hex << addr << dec << endl;
       handleThunkCall(b_iter, iter, dest);
       intSens_++;
       extSens_++;
@@ -259,7 +259,7 @@ bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
     for (std::vector<AbsRegion>::const_iterator i = ins.begin();
 	 i != ins.end(); ++i) {
       if (i->contains(pc)) {
-	relocation_cerr << insn->format() << " @" << hex << addr << dec << " is PCsens" << endl;
+	//relocation_cerr << insn->format() << " @" << hex << addr << dec << " is PCsens" << endl;
 	sensitiveAssignments.push_back(*a_iter);
       }
     }
@@ -412,7 +412,7 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
   Result res = CFT->eval();
 
   if (!res.defined) {
-    relocation_cerr << "      ... CFT not evallable, ret false from isGetPC" << endl;
+    //relocation_cerr << "      ... CFT not evallable, ret false from isGetPC" << endl;
     return false;
   }
 
@@ -436,9 +436,9 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
 
     Instruction::Ptr firstInsn = decoder.decode();
     Instruction::Ptr secondInsn = decoder.decode();
-    relocation_cerr << "      ... decoded target insns "
-		    << firstInsn->format() << ", " 
-		    << secondInsn->format() << endl;
+    //relocation_cerr << "      ... decoded target insns "
+		    //<< firstInsn->format() << ", " 
+		    //<< secondInsn->format() << endl;
 
     if(firstInsn && firstInsn->getOperation().getID() == e_mov
        && firstInsn->readsMemory() && !firstInsn->writesMemory()
@@ -812,7 +812,7 @@ bool PCSensitiveTransformer::isSyscall(InstructionAPI::Instruction::Ptr insn, Ad
   static Expression::Ptr x86_gs(new RegisterAST(x86::gs));
 
   if (insn->isRead(x86_gs)) {
-    relocation_cerr << "Skipping syscall " << insn->format() << hex << "@ " << addr << dec << endl;
+    //relocation_cerr << "Skipping syscall " << insn->format() << hex << "@ " << addr << dec << endl;
     return true;
   }
   return false;

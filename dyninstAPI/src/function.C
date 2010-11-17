@@ -843,7 +843,16 @@ void int_function::deleteBlock(int_basicBlock* block)
     assert(block && this == block->func());
     bblInstance *origbbi = block->origInstance();
     image_basicBlock *imgBlock = block->llb();
-    assert( ! imgBlock->isShared() ); //KEVINTODO: unimplemented case
+	if (imgBlock->isShared()) {
+		cerr << "BAD CASE : block is shared" << endl;
+		std::vector<ParseAPI::Function *> funcs;
+		imgBlock->getFuncs(funcs);
+		for (unsigned i = 0; i < funcs.size(); ++i) {
+			cerr << "\t" << i << ": func @ " << hex << funcs[i]->entry()->start() << dec << endl;
+			}
+		}
+
+	assert( ! imgBlock->isShared() ); //KEVINTODO: unimplemented case
     Address baseAddr = obj()->codeBase();
 
     // remove parse points

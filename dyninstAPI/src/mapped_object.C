@@ -1781,9 +1781,10 @@ bool mapped_object::isUpdateNeeded(Address entry)
     Address readAddr = entry;
     if (proc()->isMemoryEmulated()) {
         bool valid = false;
-        boost::tie(valid, readAddr) = proc()->getMemEm()->translate(readAddr);
-        assert(valid);
-    }
+		Address translated = 0;
+		boost::tie(valid, translated) = proc()->getMemEm()->translate(readAddr);
+		if (valid) readAddr = translated;
+	}
 
     mal_printf("%s[%d] Comparing %lx bytes starting at %lx\n",
             FILE__,__LINE__,comparison_size,entry);
