@@ -281,7 +281,7 @@ void SpringboardBuilder::registerBranch(Address start, Address end, bool inReloc
    Address working = start;
    Address LB = 0, UB = 0;
    Address lb = 0, ub = 0;
-   cerr << "Adding branch: " << hex << start << " -> " << end << dec << endl;
+   relocation_cerr << "Adding branch: " << hex << start << " -> " << end << dec << endl;
    int idToUse = -1;
    while (end > working) {
       int state;
@@ -301,13 +301,13 @@ void SpringboardBuilder::registerBranch(Address start, Address end, bool inReloc
    // [start..end] as false
    // [end..ub] as true
    if (LB < start) {
-        cerr << "\tInserting prior space " << hex << LB << " -> " << start << " /w/ range " << idToUse << dec << endl;
+        relocation_cerr << "\tInserting prior space " << hex << LB << " -> " << start << " /w/ range " << idToUse << dec << endl;
        validRanges_.insert(LB, start, idToUse);
    }
-    cerr << "\t Inserting taken space " << hex << start << " -> " << end << " /w/ range " << Allocated << dec << endl;
+    relocation_cerr << "\t Inserting taken space " << hex << start << " -> " << end << " /w/ range " << Allocated << dec << endl;
    validRanges_.insert(start, end, Allocated);
    if (UB > end) {
-        cerr << "\tInserting post space " << hex << end << " -> " << UB << " /w/ range " << idToUse << dec << endl;
+        relocation_cerr << "\tInserting post space " << hex << end << " -> " << UB << " /w/ range " << idToUse << dec << endl;
       validRanges_.insert(end, UB, idToUse);
    }
 }

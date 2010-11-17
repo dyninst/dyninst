@@ -907,7 +907,9 @@ int dyn_lwp::changeMemoryProtections(Address addr, Offset size, unsigned rights)
     {
         if (PAGE_EXECUTE_READWRITE == rights || PAGE_READWRITE == rights) {
             mapped_object *obj = proc_->findObject(addr);
-            obj->removeProtectedPage(addr -(addr %proc_->getMemoryPageSize()));
+            if (obj) {
+                obj->removeProtectedPage(addr -(addr %proc_->getMemoryPageSize()));
+            }
         }
     } else {
         return -1;
