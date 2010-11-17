@@ -38,6 +38,8 @@
 #include "instPoint.h"
 #include "debug.h"
 #include "process.h"
+#include "MemoryEmulator/memEmulator.h"
+#include "mapped_module.h"
 
 using namespace Dyninst;
 
@@ -64,8 +66,10 @@ static void signalHandlerExitCB_wrapper(BPatch_point *point, void *returnAddr)
 }
 static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig) 
 {
-    SymtabAPI::Region* reg = ((ParseAPI::SymtabCodeRegion*)func->ifunc()->region())->symRegion();
-    point->llpoint()->proc()->getMemEm()->synchShadowOrig(reg,(bool)toOrig);
+   int_function *func = point->llpoint()->func();
+   point->llpoint()->proc()->getMemEm()->synchShadowOrig(func->obj(), (bool) toOrig);
+   //SymtabAPI::Region* reg = ((ParseAPI::SymtabCodeRegion*)func->ifunc()->region())->symRegion();
+   //point->llpoint()->proc()->getMemEm()->synchShadowOrig(reg,(bool)toOrig);
 }
 
 InternalSignalHandlerCallback HybridAnalysis::getSignalHandlerCB()
@@ -193,7 +197,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 						bool useInsertionSet, 
 						bool instrumentReturns) 
 {
-    Address funcAddr = (Address) func->getBaseAddr();
+   Address funcAddr = (Address) func->getBaseAddr();
     vector<BPatch_function*>dontcare;
     mal_printf("instfunc at %lx\n", funcAddr);
     if (proc()->lowlevel_process()->isMemoryEmulated()) {
@@ -269,7 +273,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                     curPoint->llpoint()->func()->obj())
                 {
                     BPatchSnippetHandle *memHandle = proc()->insertSnippet
-                        (BPatch_stopThreadExpr(synchShadowOrig_wrapper, BPatch_constExpr(1)), 
+                        (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(1)), 
                          *curPoint, 
                          BPatch_lastSnippet);
                     memHandles[curPoint] = memHandle;
@@ -707,11 +711,13 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
             callPoint->llpoint()->func()->obj() != 
             proc()->findModuleByAddr(callPoint->getSavedTarget())->lowlevel_mod()->obj())
         {
-            BPatchSnippetHandle *memHandle = proc()->insertSnippet
-                (BPatch_stopThreadExpr(synchShadowOrig_wrapper, BPatch_constExpr(0)), 
-                 *curPoint, 
-                 BPatch_lastSnippet);
-            memHandles[curPoint] = memHandle;
+           BPatch_snippet snip = BPatch_stopThreadExpr(synchShadowOrigCB_wrapper,
+                                                       BPatch_constExpr(0));
+                                                       
+           BPatchSnippetHandle *memHandle = proc()->insertSnippet(snip,
+                                                                  *callPoint, 
+                                                                  BPatch_lastSnippet);
+           memHandles[callPoint] = memHandle;
         }
 
         // instrument all modules that have modified functions

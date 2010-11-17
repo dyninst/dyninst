@@ -517,6 +517,7 @@ BPatch_memoryAccessAdapter converter;
 		return true;
 		}
 
+cerr << "Generating translator, insn " << insn_->format() << " @ " << hex << addr_ << dec << endl;
 codeGen patch(128);
 	patch.applyTemplate(templ);
 

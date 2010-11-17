@@ -80,15 +80,6 @@ class Frame {
 
  Frame(const Frame &f) :
   frameType_(f.frameType_),
-  uppermost_(f.uppermost_),
-      pc_(f.pc_),
-      fp_(f.fp_),
-      sp_(f.sp_),
-      pid_(f.pid_),
-      proc_(f.proc_),
-      thread_(f.thread_),
-      lwp_(f.lwp_),
-      pcAddr_(f.pcAddr_),
      eax(f.eax),
      ebx(f.ebx),
      ecx(f.ecx),
@@ -96,10 +87,27 @@ class Frame {
      esp(f.esp),
      ebp(f.ebp),
      esi(f.esi),
-     edi(f.edi) {};
+     edi(f.edi),
+     uppermost_(f.uppermost_),
+      pc_(f.pc_),
+      fp_(f.fp_),
+      sp_(f.sp_),
+      pid_(f.pid_),
+      proc_(f.proc_),
+      thread_(f.thread_),
+      lwp_(f.lwp_),
+     pcAddr_(f.pcAddr_) {};
 
   const Frame &operator=(const Frame &f) {
       frameType_ = f.frameType_;
+      eax = f.eax;
+      ebx = f.ebx;
+      ecx = f.ecx;
+      edx = f.edx;
+      esp = f.esp;
+      ebp = f.ebp;
+      esi = f.esi;
+      edi = f.edi;
       uppermost_ = f.uppermost_;
       pc_ = f.pc_;
       fp_ = f.fp_;
@@ -109,14 +117,6 @@ class Frame {
       thread_ = f.thread_;
       lwp_ = f.lwp_;
       pcAddr_ = f.pcAddr_;
-      eax = f.eax;
-      ebx = f.ebx;
-      ecx = f.ecx;
-      edx = f.edx;
-      esp = f.esp;
-      ebp = f.ebp;
-      esi = f.esi;
-      edi = f.edi;
 	  return *this;
   }
   

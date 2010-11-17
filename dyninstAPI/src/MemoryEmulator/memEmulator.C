@@ -36,6 +36,7 @@
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Region.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/function.h"
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -285,7 +286,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         } else {
             from = obj->codeBase() + reg->getMemOffset();
         }
-        if (!aS_->readDataSpace(from,
+        if (!aS_->readDataSpace((void *)from,
                                 reg->getMemSize(),
                                 regbuf,
                                 false)) 
@@ -303,7 +304,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         for (; sit != springboards_[reg].end(); sit++) {
             int cp_size = sit->first - cp_start;
             if (cp_size &&
-                !aS_->writeDataSpace(toBase + cp_start,
+                !aS_->writeDataSpace((void *)(toBase + cp_start),
                                      cp_size,
                                      regbuf))
             {
@@ -312,7 +313,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
             cp_start = sit->first + sit->second;
         }
         if (cp_start < reg->getMemSize() &&
-            !aS_->writeDataSpace(toBase + cp_start,
+            !aS_->writeDataSpace((void *)(toBase + cp_start),
                                  reg->getMemSize() - cp_start,
                                  regbuf))
         {
@@ -321,9 +322,6 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
     }
 }
 
-void MemoryEmulator::copyOrigToShadowCB(mapped_object *obj) 
-{
-}
 
 void MemoryEmulator::addSpringboard(Region *reg, Address addr, int size) 
 {
@@ -335,9 +333,14 @@ void MemoryEmulator::removeSpringboards(int_function * func)
     SymtabAPI::Region * reg = 
         ((ParseAPI::SymtabCodeRegion*)func->ifunc()->region())->symRegion();
     map<Address,int>::iterator sit = springboards_[reg].begin();
+    std::vector<Address> toDelete;
     for(; sit != springboards_[reg].end(); sit++) {
-        if (func == findFuncByAddr(sit->first)) {
-            sit = springboards_.erase(sit);
+        if (func == aS_->findFuncByAddr(sit->first)) {
+           toDelete.push_back(sit->first);
         }
     }
+    for (unsigned i = 0; i < toDelete.size(); ++i) {
+       springboards_[reg].erase(toDelete[i]);
+    }
+    if (springboards_[reg].empty()) springboards_.erase(reg);
 }

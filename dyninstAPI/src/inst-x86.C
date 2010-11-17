@@ -2520,7 +2520,6 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
 {
    using namespace Dyninst::InstructionAPI;        
    Expression::Ptr cft = callSite->insn()->getControlFlowTarget();
-
    ASTFactory f;
    cft->apply(&f);
    assert(f.m_stack.size() == 1);
