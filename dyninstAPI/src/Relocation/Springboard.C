@@ -49,18 +49,20 @@ SpringboardBuilder::Ptr SpringboardBuilder::create(TraceIter begin,
   Ptr ret = Ptr(new SpringboardBuilder(as));
   if (!ret) return ret;
 
-  if (!ret->addTraces(begin, end)) return Ptr();
+  if (!ret->addTraces(begin, end, UnallocatedStart)) return Ptr();
   return ret;
 }
 
 SpringboardBuilder::Ptr SpringboardBuilder::createFunc(FuncSet::const_iterator begin,
 						       FuncSet::const_iterator end,
-						       AddressSpace *as) {
+						       AddressSpace *as) 
+{
   Ptr ret = Ptr(new SpringboardBuilder(as));
   if (!ret) return ret;
+  int id = UnallocatedStart;
   for (; begin != end; ++begin) {
     int_function *func = *begin;
-    if (!ret->addTraces(func->blocks().begin(), func->blocks().end())) {
+    if (!ret->addTraces(func->blocks().begin(), func->blocks().end(), id++)) {
       return Ptr();
     }
   }
@@ -73,7 +75,7 @@ bool SpringboardBuilder::generateInt(std::list<codeGen> &springboards,
    // We want to do a reverse iteration so that we don't have a situation
    // where an earlier springboard overlaps a later one.
    //
-
+   
    for (SpringboardMap::reverse_iterator iter = input.rbegin(p); 
         iter != input.rend(p); ++iter) {
       const SpringboardReq &req = iter->second;
@@ -108,16 +110,22 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
   // Currently we use a greedy algorithm rather than some sort of scheduling thing.
   // It's a heck of a lot easier that way. 
 
-   //cerr << "Generating required springboards" << endl;
+                      if (false) cerr << "SPRINGBOARD GENERATION" << endl;
+                       debugRanges();
+
+
+   if (false) cerr << "Generating required springboards" << endl;
    if (!generateInt(springboards, input, Required))
       return false;
-   //cerr << "Generating suggested springboards" << endl;
+   if (false) cerr << "Generating suggested springboards" << endl;
    if (!generateInt(springboards, input, Suggested))
       return false;
 
    // Catch up with instrumentation
+   if (false) cerr << "Generating instrumentation required springboards" << endl;
    if (!generateInt(springboards, input, RelocRequired)) 
       return false;
+    if (false) cerr << "Generating instrumentation suggested springboards" << endl;
    if (!generateInt(springboards, input, RelocSuggested))
       return false;
 
@@ -125,7 +133,7 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
 }
 
 template <typename TraceIter>
-bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end) {
+bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end, int funcID) {
   // TODO: map these addresses to relocated blocks as well so we 
   // can do our thang.
   for (; begin != end; ++begin) {
@@ -151,7 +159,17 @@ bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end) {
         }
     }
     if (useBlock) {
-        validRanges_.insert(bbl->firstInsnAddr(), bbl->endAddr(), curRange_++);
+        // Check for overlapping blocks. Lovely.
+        Address LB, UB; int id;
+        if (validRanges_.find(bbl->firstInsnAddr(), LB, UB, id)) {
+            // SUCK monkey
+            if (UB < bbl->endAddr()) {
+                validRanges_.insert(UB, bbl->endAddr(), funcID);
+            }
+        }
+        else {
+            validRanges_.insert(bbl->firstInsnAddr(), bbl->endAddr(), funcID);
+        }
     }
   }
   return true;
@@ -168,7 +186,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    
    generateBranch(r.from, r.to, gen);
    
-   if (1 || r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
+   if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
       // Errr...
       // Fine. Let's do the trap thing. 
       usedTrap = true;
@@ -192,7 +210,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &,
 						  const SpringboardReq &) {
    //debugRanges();
-   //cerr << "Request to generate multi-branch springboard skipped @ " << hex << r.from << dec << endl;
+   //if (false) cerr << "Request to generate multi-branch springboard skipped @ " << hex << r.from << dec << endl;
    // For now we give up and hope it all works out for the best. 
    return true;
 }
@@ -208,24 +226,35 @@ bool SpringboardBuilder::conflict(Address start, Address end, bool inRelocated) 
    // Technically, end can be the start of another range; therefore
    // we search for (end-1).
 
+    // We also don't want to start in one function's dead space and cross
+   // into another's. So check to see if state suddenly changes.
+
    Address working = start;
    Address LB, UB;
-   int state;
-   //cerr << "Conflict called for " << hex << start << "->" << end << dec << endl;
+   int state = -1;
+   int lastState = state;
+   relocation_cerr << "Conflict called for " << hex << start << "->" << end << dec << endl;
    
    while (end > working) {
-      if (!validRanges_.find(working, LB, UB, state)) {
-         //cerr << "\t Conflict: unable to find entry for " << hex << working << dec << endl;
+        relocation_cerr << "\t looking for " << hex << working << dec << endl;
+       if (!validRanges_.find(working, LB, UB, state)) {
+         relocation_cerr << "\t Conflict: unable to find entry for " << hex << working << dec << endl;
          return true;
       }
-      
+      relocation_cerr << "\t\t Found " << hex << LB << " -> " << UB << " /w/ state " << state << dec << endl;
       if (state == Allocated) {
-         //cerr << "\t Starting range already allocated, ret conflict" << endl;
+         relocation_cerr << "\t Starting range already allocated, ret conflict" << endl;
          return true;
+      }
+      if (lastState != -1 &&
+          state != lastState) {
+          relocation_cerr << "\t Crossed into a different function, ret conflict" << endl;
+          return true;
       }
       working = UB;
+      lastState = state;
    }
-   //cerr << "\t No conflict, we're good" << endl;
+   relocation_cerr << "\t No conflict, we're good" << endl;
    return false;
 }
 
@@ -252,12 +281,16 @@ void SpringboardBuilder::registerBranch(Address start, Address end, bool inReloc
    Address working = start;
    Address LB = 0, UB = 0;
    Address lb = 0, ub = 0;
-
+   relocation_cerr << "Adding branch: " << hex << start << " -> " << end << dec << endl;
+   int idToUse = -1;
    while (end > working) {
       int state;
       validRanges_.find(working, lb, ub, state);
       validRanges_.remove(lb);
-      
+
+      if (idToUse == -1) idToUse = state;
+        else assert(idToUse = state);
+
       if (LB == 0) LB = lb;
       working = ub;
    }
@@ -268,11 +301,14 @@ void SpringboardBuilder::registerBranch(Address start, Address end, bool inReloc
    // [start..end] as false
    // [end..ub] as true
    if (LB < start) {
-      validRanges_.insert(LB, start, curRange_++);
+        relocation_cerr << "\tInserting prior space " << hex << LB << " -> " << start << " /w/ range " << idToUse << dec << endl;
+       validRanges_.insert(LB, start, idToUse);
    }
+    relocation_cerr << "\t Inserting taken space " << hex << start << " -> " << end << " /w/ range " << Allocated << dec << endl;
    validRanges_.insert(start, end, Allocated);
    if (UB > end) {
-      validRanges_.insert(end, UB, curRange_++);
+        relocation_cerr << "\tInserting post space " << hex << end << " -> " << UB << " /w/ range " << idToUse << dec << endl;
+      validRanges_.insert(end, UB, idToUse);
    }
 }
 
@@ -284,13 +320,13 @@ void SpringboardBuilder::registerBranchInRelocated(Address start, Address end) {
 void SpringboardBuilder::debugRanges() {
   std::vector<std::pair<std::pair<Address, Address>, int> > elements;
   validRanges_.elements(elements);
-  cerr << "Range debug: " << endl;
+  if (false) cerr << "Range debug: " << endl;
   for (unsigned i = 0; i < elements.size(); ++i) {
-     cerr << "\t" << hex << elements[i].first.first
+     if (false) cerr << "\t" << hex << elements[i].first.first
 	 << ".." << elements[i].first.second << dec
 	 << " -> " << elements[i].second << endl;
   }
-  cerr << "-------------" << endl;
+  if (false) cerr << "-------------" << endl;
 }
 
 void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) {

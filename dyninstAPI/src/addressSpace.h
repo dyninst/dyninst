@@ -49,6 +49,7 @@ class codeRange;
 class replacedFunctionCall;
 
 class int_function;
+struct edgeStub;
 class int_variable;
 class mapped_module;
 class mapped_object;
@@ -418,10 +419,16 @@ class AddressSpace : public InstructionSource {
 		      int_function *&origFunc,
 		      baseTrampInstance *&baseTramp);
 		
+    // defensive mode code // 
+
+    void causeTemplateInstantiations();
+
     // Debugging method
     bool inEmulatedCode(Address addr);
 
-    void causeTemplateInstantiations();
+    std::map<int_function*,std::vector<edgeStub> > 
+    getStubs(const std::list<bblInstance *> &owBBIs,
+             const std::set<bblInstance*> &delBBIs);
 
     void addDefensivePad(bblInstance *callBlock, Address padStart, unsigned size);
 
@@ -483,7 +490,7 @@ class AddressSpace : public InstructionSource {
 
     bool relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address near);
 
-    // Kevin code
+    // defensive mode code
     typedef std::pair<Address, unsigned> DefensivePad;
     std::map<instPoint *, std::set<DefensivePad> > forwardDefensiveMap_;
     IntervalTree<Address, instPoint *> reverseDefensiveMap_;
