@@ -200,8 +200,15 @@ bool IA_IAPI::isAbortOrInvalidInsn() const
     if(e == e_No_Entry)
     {
         parsing_printf("...WARNING: un-decoded instruction at 0x%x\n", current);
-    }
-    return e == e_No_Entry ||
+
+	}
+	// GARBAGE PARSING HEURISTIC
+	if (unlikely(_obj->defensiveMode())) {
+		cerr << "REACHED AN ARPL, COUNTING AS INVALID" << endl;
+		if (e == e_arpl) return true;
+		}
+	
+	return e == e_No_Entry ||
             e == e_int3 ||
             e == e_hlt;
 }

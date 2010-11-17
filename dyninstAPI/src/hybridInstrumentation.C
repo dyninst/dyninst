@@ -318,12 +318,12 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                         mod->lowlevel_mod()->obj() != 
                         curPoint->llpoint()->func()->obj() ))
                 {
-                    //BPatchSnippetHandle *memHandle = proc()->insertSnippet
-                    //    (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(1)), 
-                    //     *curPoint, 
-                    //     BPatch_lastSnippet);
-                    //memHandles[curPoint] = memHandle;
-                    //pointCount++;
+                    BPatchSnippetHandle *memHandle = proc()->insertSnippet
+                        (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(1)), 
+                         *curPoint, 
+                         BPatch_lastSnippet);
+                    memHandles[curPoint] = memHandle;
+                    pointCount++;
                 }
             }
         } 
@@ -651,7 +651,9 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         while (cIter != callerPoints.end()) 
         {
             Address curFallThroughAddr = (*cIter)->getCallFallThroughAddr();
-            if ( ! hasEdge(*cIter, curFallThroughAddr) &&
+            if ( ! hasEdge((*cIter)->getFunction(), 
+                           (Address)((*cIter)->getAddress()), 
+                           curFallThroughAddr) &&
                 dupFuncCheck.find((*cIter)->getFunction()) == dupFuncCheck.end())
             {
                 mal_printf("%s[%d] Function call at 0x%lx is returning, adding edge "
@@ -677,10 +679,17 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
 
     // make sure that the edge hasn't already been parsed 
     Address fallThroughAddr = callPoint->getCallFallThroughAddr();
+    if (fallThroughAddr == 0x933647) {
+        cerr << "DEBUG BREAKPOINT" << endl;
+        }
     vector<BPatch_function *> fallThroughFuncs;
     proc()->findFunctionsByAddr(fallThroughAddr,fallThroughFuncs);
 
-    if (! parsedAfterCallPoint && !hasEdge(callPoint, fallThroughAddr)) {
+    if (! parsedAfterCallPoint && 
+        ! hasEdge(callPoint->getFunction(), 
+                  (Address)callPoint->getAddress(), 
+                  fallThroughAddr)) 
+    {
         mal_printf("Function call at 0x%lx is returning, "
                     "adding edge to fallthrough at %lx %s[%d]\n", 
                     callPoint->getAddress(), fallThroughAddr, 
@@ -737,19 +746,49 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         if (callPoint->llpoint()->block()->llb()->isShared()) {
             vector<ParseAPI::Function*> imgFuncs;
             callPoint->llpoint()->block()->llb()->getFuncs(imgFuncs);
-            for (unsigned fidx=0; fidx < imgFuncs.size(); fidx++) {
+            for (unsigned fidx=0; fidx < imgFuncs.size(); fidx++) 
+            {
                 BPatch_function *func = proc()->findOrCreateBPFunc(
                     proc()->lowlevel_process()->findFuncByInternalFunc((image_func*)imgFuncs[fidx]),
                     NULL);
-                if (func != callPoint->getFunction()) {
-                    removeInstrumentation(func, false);
-                    func->getCFG()->invalidate();
+                removeInstrumentation(func, false);
+                func->getCFG()->invalidate();
+
+                if (func != callPoint->getFunction() &&
+                    !hasEdge(func,(Address)callPoint->getAddress(),fallThroughAddr))
+                {
+                    BPatch_point *sharedCallPoint = NULL;
+                    std::vector<BPatch_point *> *points = func->findPoint(BPatch_subroutine);
+                    for (unsigned i = 0; i < points->size(); ++i) {
+                        if ((*points)[i]->getAddress() == callPoint->getAddress()) {
+                            sharedCallPoint = (*points)[i];
+                            break;
+                        }
+                    }
+                    assert(sharedCallPoint);
+                    parseNewEdgeInFunction(sharedCallPoint, fallThroughAddr, false);
                 }
             }
         }
         // Ensure we relocate the re-parsed function
         proc()->beginInsertionSet();
         callPoint->getFunction()->relocateFunction();
+
+        // if we're emulating memory, drop in a callback to synch shadow 
+        // and original memory
+        if ((0 == callPoint->getSavedTarget()) ||
+			(-1 == callPoint->getSavedTarget()) || 
+            callPoint->llpoint()->func()->obj() != 
+            proc()->findModuleByAddr(callPoint->getSavedTarget())->lowlevel_mod()->obj())
+        {
+           BPatch_snippet snip = BPatch_stopThreadExpr(synchShadowOrigCB_wrapper,
+                                                       BPatch_constExpr(0));
+                                                       
+		   BPatchSnippetHandle *memHandle = proc()->insertSnippet(snip,
+                                                                  *callPoint, 
+                                                                  BPatch_lastSnippet);
+		   memHandles[callPoint] = memHandle;
+        }
 
         // instrument all modules that have modified functions
         success = instrumentModules(false);
@@ -808,12 +847,13 @@ bool HybridAnalysis::analyzeNewFunction( Address target ,
 }
 
 
-bool HybridAnalysis::hasEdge(BPatch_point * sourcePoint, Address target)
+bool HybridAnalysis::hasEdge(BPatch_function *func, Address source, Address target)
 {
-    // 0. first see if the edge needs to be parsed
-    BPatch_function *sourceFunc = sourcePoint->getFunction();
-    int_basicBlock *block = sourceFunc->lowlevel_func()->
-        findBlockByAddr((Address)sourcePoint->getAddress());
+if (target == 0x933647) {
+    cerr << "TEMP BREAKPOINT" << endl;
+    }
+// 0. first see if the edge needs to be parsed
+    int_basicBlock *block = func->lowlevel_func()->findBlockByAddr(source);
     pdvector<int_basicBlock *> targBlocks; 
     block->getTargets(targBlocks);
     for (unsigned bidx=0; bidx < targBlocks.size(); bidx++) {
@@ -837,7 +877,10 @@ void HybridAnalysis::parseNewEdgeInFunction(BPatch_point *sourcePoint,
                                             bool useInsertionSet)
 {
     // 0. first see if the edge needs to be parsed
-    if (hasEdge(sourcePoint,target)) {
+    if (hasEdge(sourcePoint->getFunction(),
+                (Address)sourcePoint->getAddress(),
+                target)) 
+    {
         return;
     }
 

@@ -60,7 +60,8 @@ const Address CFAtom::Taken(2);
 
 bool CFAtom::generate(const codeGen &templ,
                       const Trace *,
-                      CodeBuffer &buffer) {
+                      CodeBuffer &buffer)
+{
   // We need to create jumps to wherever our successors are
   // We can assume the addresses returned by our Targets
   // are valid, since we'll fixpoint until those stabilize. 
@@ -82,7 +83,17 @@ bool CFAtom::generate(const codeGen &templ,
   
   // First check: if we're not an indirect branch
   // and we have no known successors return immediately.
-  if (!isIndirect_ && destMap_.empty()) return true;
+
+						  
+  if (!isIndirect_ && destMap_.empty()) {
+	  // DEFENSIVE MODE: drop in an illegal instruction
+	  // so that we're sure to notice this. We may have stopped
+	  // early due to a believed garbage parse.
+	  codeGen gen(10);
+	  gen.fill(10, codeGen::cgIllegal);
+	  buffer.addPIC(gen, tracker());
+      return true;
+	  }
 
 
   // TODO: address translation on an indirect branch...
@@ -517,7 +528,6 @@ BPatch_memoryAccessAdapter converter;
 		return true;
 		}
 
-cerr << "Generating translator, insn " << insn_->format() << " @ " << hex << addr_ << dec << endl;
 codeGen patch(128);
 	patch.applyTemplate(templ);
 

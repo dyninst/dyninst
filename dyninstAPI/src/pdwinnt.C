@@ -538,7 +538,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
   else if (proc->trapMapping.definesTrapMapping(ev.address)) {
      ev.type = evtInstPointTrap;
      Frame activeFrame = ev.lwp->getActiveFrame();
-	 if (0) cerr << "SPRINGBOARD FRAME: " << hex << activeFrame.getPC() << " / " <<activeFrame.getSP() 
+	 if (1) cerr << "SPRINGBOARD FRAME: " << hex << activeFrame.getPC() << " / " <<activeFrame.getSP() 
                  << " (DEBUG:" 
                  << "EAX: " << activeFrame.eax
                  << ", ECX: " << activeFrame.ecx
@@ -563,7 +563,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
      else {
 	    requested_wait_until_active = false;
             ret = true;
-	    if (0) cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
+	    if (1) cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
                  << " (DEBUG:" 
                  << "EAX: " << activeFrame.eax
                  << ", ECX: " << activeFrame.ecx

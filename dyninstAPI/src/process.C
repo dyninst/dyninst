@@ -4817,7 +4817,7 @@ void process::updateCodeBytes
     list<pair<Address,Address> >::const_iterator rIter = owRanges.begin();
     for (; rIter != owRanges.end(); rIter++) {
         mapped_object *obj = findObject((*rIter).first);
-        if (!objRanges[obj]) {
+        if (objRanges.find(obj) == objRanges.end()) {
             objRanges[obj] = new list<pair<Address,Address> >();
         }
         objRanges[obj]->push_back(pair<Address,Address>(rIter->first, rIter->second));
@@ -4830,7 +4830,7 @@ void process::updateCodeBytes
         oIter->first->updateCodeBytes( *(oIter->second) );
         delete (oIter->second);
     }
-    assert(objRanges.size() == 1); //o/w analysis code may not be prepared for other cases
+    assert(objRanges.size() <= 1); //o/w analysis code may not be prepared for other cases
 }
 
 

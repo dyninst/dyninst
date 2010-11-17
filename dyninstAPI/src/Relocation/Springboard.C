@@ -116,18 +116,18 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
    }
 
 
-   cerr << "Generating required springboards" << endl;
+   if (false) cerr << "Generating required springboards" << endl;
    if (!generateInt(springboards, input, Required))
       return false;
-   cerr << "Generating suggested springboards" << endl;
+   if (false) cerr << "Generating suggested springboards" << endl;
    if (!generateInt(springboards, input, Suggested))
       return false;
 
    // Catch up with instrumentation
-   cerr << "Generating instrumentation required springboards" << endl;
+   if (false) cerr << "Generating instrumentation required springboards" << endl;
    if (!generateInt(springboards, input, RelocRequired)) 
       return false;
-    cerr << "Generating instrumentation suggested springboards" << endl;
+    if (false) cerr << "Generating instrumentation suggested springboards" << endl;
    if (!generateInt(springboards, input, RelocSuggested))
       return false;
 
@@ -212,7 +212,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &,
 						  const SpringboardReq &) {
    //debugRanges();
-   //cerr << "Request to generate multi-branch springboard skipped @ " << hex << r.from << dec << endl;
+   //if (false) cerr << "Request to generate multi-branch springboard skipped @ " << hex << r.from << dec << endl;
    // For now we give up and hope it all works out for the best. 
    return true;
 }
@@ -322,13 +322,13 @@ void SpringboardBuilder::registerBranchInRelocated(Address start, Address end) {
 void SpringboardBuilder::debugRanges() {
   std::vector<std::pair<std::pair<Address, Address>, int> > elements;
   validRanges_.elements(elements);
-  cerr << "Range debug: " << endl;
+  if (false) cerr << "Range debug: " << endl;
   for (unsigned i = 0; i < elements.size(); ++i) {
-     cerr << "\t" << hex << elements[i].first.first
+     if (false) cerr << "\t" << hex << elements[i].first.first
 	 << ".." << elements[i].first.second << dec
 	 << " -> " << elements[i].second << endl;
   }
-  cerr << "-------------" << endl;
+  if (false) cerr << "-------------" << endl;
 }
 
 void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) {
