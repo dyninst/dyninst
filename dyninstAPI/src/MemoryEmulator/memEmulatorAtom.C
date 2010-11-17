@@ -606,7 +606,6 @@ Address MemEmulator::getTranslatorAddr(codeGen &gen, bool wantShift) {
 }
 
 bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuffer &buffer) {
-   cerr << "GENERATING IMPLICIT FORM @ " << hex << addr_ << dec << endl;
 
    codeGen prepatch(128);
    prepatch.applyTemplate(templ);
