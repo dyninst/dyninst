@@ -270,3 +270,74 @@ std::pair<bool, Address> MemoryEmulator::translateBackwards(Address addr) {
    }
    return std::make_pair(true, addr - val);
 }
+
+void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig) 
+{
+    using namespace SymtabAPI;
+    vector<Region*> regs;
+    obj->parse_img()->getObject()->getCodeRegions(regs);
+    for (unsigned idx=0; idx < regs.size(); idx++) {
+        Region * reg = regs[idx];
+        unsigned char* regbuf = (unsigned char*) malloc(reg->getMemSize());
+        Address from = 0;
+        if (toOrig) {
+            from = addedRegions_[reg];
+        } else {
+            from = obj->codeBase() + reg->getMemOffset();
+        }
+        if (!aS_->readDataSpace(from,
+                                reg->getMemSize(),
+                                regbuf,
+                                false)) 
+        {
+            assert(0);
+        }
+        std::map<Address,int>::const_iterator sit = springboards_[reg].begin();
+        Address cp_start = 0;
+        Address toBase;
+        if (toOrig) {
+            toBase = obj->codeBase() + reg->getMemOffset();
+        } else {
+            toBase = addedRegions_[reg];
+        }
+        for (; sit != springboards_[reg].end(); sit++) {
+            int cp_size = sit->first - cp_start;
+            if (cp_size &&
+                !aS_->writeDataSpace(toBase + cp_start,
+                                     cp_size,
+                                     regbuf))
+            {
+                assert(0);
+            }
+            cp_start = sit->first + sit->second;
+        }
+        if (cp_start < reg->getMemSize() &&
+            !aS_->writeDataSpace(toBase + cp_start,
+                                 reg->getMemSize() - cp_start,
+                                 regbuf))
+        {
+            assert(0);
+        }
+    }
+}
+
+void MemoryEmulator::copyOrigToShadowCB(mapped_object *obj) 
+{
+}
+
+void MemoryEmulator::addSpringboard(Region *reg, Address addr, int size) 
+{
+    springboards_[reg][addr] = size;
+}
+
+void MemoryEmulator::removeSpringboards(int_function * func) 
+{
+    SymtabAPI::Region * reg = 
+        ((ParseAPI::SymtabCodeRegion*)func->ifunc()->region())->symRegion();
+    map<Address,int>::iterator sit = springboards_[reg].begin();
+    for(; sit != springboards_[reg].end(); sit++) {
+        if (func == findFuncByAddr(sit->first)) {
+            sit = springboards_.erase(sit);
+        }
+    }
+}
