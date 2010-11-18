@@ -323,6 +323,7 @@ class int_function : public patchTarget {
    int_basicBlock *findBlockByOffsetInFunc(Address offset) { return findBlockByAddr(offset + getAddress()); }
    bblInstance *findBlockInstanceByAddr(Address addr);
    int_basicBlock *findBlockByImage(image_basicBlock *block);
+   bblInstance *findBlockInstanceByEntry(Address addr);
 
    int_basicBlock *entryBlock();
 
@@ -509,6 +510,7 @@ class int_function : public patchTarget {
    int version_;
 
    codeRangeTree blocksByAddr_;
+   std::map<Address, bblInstance *> blocksByEntry_;
    void addBBLInstance(bblInstance *instance);
 
 #if defined(os_windows) 

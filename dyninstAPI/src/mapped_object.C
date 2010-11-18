@@ -1275,63 +1275,43 @@ void mapped_object::findBBIsByRange(Address startAddr,
                                     Address endAddr,
                                     list<bblInstance*> &rangeBlocks)//output
 {
-    codeRange *range=NULL;
-    Address nextAddr = startAddr;
+   std::set<ParseAPI::Block *> papiBlocks;
+   for (Address cur = startAddr; cur <= endAddr; ++cur) {
+      Address papiCur = cur - codeBase();
+      parse_img()->codeObject()->findBlocks(NULL, papiCur, papiBlocks);
+   }
+   cerr << "ParseAPI reported " << papiBlocks.size() << " unique blocks in the range "
+        << hex << startAddr << " -> " << endAddr << dec << endl;
 
-    do {
-        // add bblInstance range to output
-        if (range != NULL) {
-            bblInstance* bbi = range->is_basicBlockInstance();
-            assert(bbi);
-            rangeBlocks.push_back(bbi);
-            if (bbi->block()->llb()->isShared()) {
-                vector<ParseAPI::Function*> ifuncs;
-                bbi->block()->llb()->getFuncs(ifuncs);
-                for (unsigned fidx=0; fidx < ifuncs.size(); fidx++) {
-                    rangeBlocks.push_back(proc()->
-                        findFuncByInternalFunc((image_func*)ifuncs[fidx])->
-                        findBlockInstanceByAddr(bbi->firstInsnAddr()));
-                }
-            }
-        }
+   for (std::set<ParseAPI::Block *>::iterator iter = papiBlocks.begin();
+        iter != papiBlocks.end(); ++iter) {
+      // For each parseAPI block, up-map it to a set of bblInstances
+      ParseAPI::Block *pB = *iter;
+      
+      std::vector<ParseAPI::Function *> funcs = pB->getFuncs(funcs);
+      for (std::vector<ParseAPI::Function *> f_iter = funcs.begin();
+           f_iter != funcs.end(); ++f_iter) {
+         image_func *ifunc = static_cast<image_func *>(*f_iter);
+         int_function *func = findFunction(ifunc);
+         assert(func);
 
-        // advance to the next range
-        if ( ! codeRangesByAddr_.find(nextAddr, range) ) {
-            if ( ! codeRangesByAddr_.successor(nextAddr, range) ) {
-                range = NULL;
-            }
-        }
-        if (range) {
-            nextAddr = range->get_address() + range->get_size();
-        }
-
-    } while (range != NULL && range->get_address() < endAddr);
+         bblInstance *bbl = func->findBlockInstanceByAddr(pB->start() + codeBase());
+         assert(bbl);
+         rangeBlocks.push_back(bbl);
+      }
+   }
 }
 
 void mapped_object::findFuncsByRange(Address startAddr,
                                       Address endAddr,
                                       std::set<int_function*> &pageFuncs)
 {
-    codeRange *range=NULL;
-    if ( ! codeRangesByAddr_.find(startAddr,range) &&
-         ! codeRangesByAddr_.successor(startAddr,range) ) 
-    {
-        range = NULL;
-    }
-    while (range != NULL && 
-           range->get_address() < endAddr)
-    {
-        bblInstance* bbi = range->is_basicBlockInstance();
-        assert(bbi);
-        pageFuncs.insert(bbi->func());
-        // advance to the next region
-        if ( ! codeRangesByAddr_.successor(
-                    range->get_address() + range->get_size(), 
-                    range) ) 
-        {
-           range = NULL;
-        }
-    }
+   std::list<bblInstance *> bbls;
+   findBBIsByRange(bbls);
+   for (std::list<bblInstance *>::iterator iter = bbls.begin();
+        iter != bbls.end(); ++iter) {
+      pageFuncs.insert((*iter)->block()->func());
+   }
 }
 
 // register functions found by recursive traversal parsing from 
