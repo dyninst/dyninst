@@ -355,14 +355,15 @@ void image_instPoint::mergePoint(image_instPoint *otherP)
 {
     isUnres_ = isUnres_ || otherP->isUnresolved();
     isDynamic_ = isDynamic_ || otherP->isDynamic();
-    targetIsAbsolute_ = targetIsAbsolute_ || otherP->targetIsAbsolute();
 
     if (!getCallee() && otherP->getCallee()) {
         setCallee(otherP->getCallee());
         setCalleeName(otherP->getCalleeName());
     }
     if (!callTarget() && otherP->callTarget()) {
+        ipType_ = otherP->getPointType();
         callTarget_ = otherP->callTarget();
+        targetIsAbsolute_ = otherP->targetIsAbsolute();
     }
 }
 

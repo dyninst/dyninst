@@ -941,7 +941,7 @@ void int_function::addMissingBlock(image_basicBlock & missingB)
         Address lowerEnd = (missingB.end() < imgB->end()) ? missingB.end() : imgB->end();
         if (lowerEnd > higherStart)
         {
-            // blocks overlap, add block (could checked needsRelocation_ flag)
+            // blocks have misaligned parses, add block (could checked needsRelocation_ flag)
             bbi = NULL;
         }
         else {
@@ -1027,6 +1027,7 @@ void int_function::addMissingBlock(image_basicBlock & missingB)
         }
     }
     if (parsedInto) {
+        malware_cerr << "PARSED INTO SHARED FUNC" << endl;
         Function::blocklist & blocks = parsedInto->blocks();
         for (Function::blocklist::iterator bit = blocks.begin();
             bit != blocks.end(); 

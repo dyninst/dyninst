@@ -263,7 +263,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 handle = proc()->insertSnippet
                     (ifSmallThenStop, *curPoint, BPatch_lastSnippet);
             }
-
+#if 0
             // if memory is emulated, and we don't know that it doesn't go to 
             // a non-instrumented library, add a callback to synchShadowOrig_wrapper
             if (proc()->lowlevel_process()->isMemoryEmulated()) {
@@ -282,13 +282,13 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                         (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(0)), 
                          *curPoint,
                          BPatch_callAfter, 
-                         BPatch_lastSnippet);
+                         BPatch_firstSnippet);
                     memHandles[curPoint] = handles;
                     pointCount++;
                 }
             }
+#endif   
         } 
-        
         else { // static ctrl flow
 
             // IAT entries wind up as static points but have no target, we 

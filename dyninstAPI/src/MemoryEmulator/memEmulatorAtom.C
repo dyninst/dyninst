@@ -144,10 +144,6 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
    if (addr_ == 0x9335ab ||
        addr_ == 0x9335a2) {
        debug = true;
-       GLOBAL_DISASSEMBLY = true;
-       }
-   else {
-       GLOBAL_DISASSEMBLY = false;
        }
 
   // We want to ensure that a memory operation produces its
