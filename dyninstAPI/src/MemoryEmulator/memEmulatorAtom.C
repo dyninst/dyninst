@@ -141,7 +141,6 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
    prepatch.applyTemplate(templ);
 
    bool debug = false;
-   if (addr_ > 0x900000) debug = true;
 
   // We want to ensure that a memory operation produces its
   // original result in the face of overwriting the text

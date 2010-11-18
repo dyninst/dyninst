@@ -295,7 +295,7 @@ void Parser::ProcessCFInsn(
                 }
             }
         } 
-        else if( unlikely(_obj.defensiveMode()) )
+        else if( unlikely(_obj.defensiveMode() && NOEDGE != curEdge->second) )
         {   
             // invoke callback for: 
             // unresolved indirect branches and direct ctrl transfers 

@@ -1769,10 +1769,9 @@ void BPatch_process::overwriteAnalysisUpdate
 
     /*2. remove dead code from the analysis */
 
-    // update the mapped data for the overwritten ranges
-    llproc->updateCodeBytes(owPages,owRegions);
-
     if ( !changedCode ) {
+        // update the mapped data for the overwritten ranges
+        llproc->updateCodeBytes(owPages,owRegions);
         return;
     }
 
@@ -1792,6 +1791,19 @@ void BPatch_process::overwriteAnalysisUpdate
         BPatch_function *bpfunc = findOrCreateBPFunc(fIter->first,NULL);
         bpfunc->removeInstrumentation(false);
     }
+
+    //remove instrumentation from dead functions
+    for(std::list<int_function*>::iterator fit = deadFuncs.begin(); 
+        fit != deadFuncs.end(); 
+        fit++) 
+    {
+        // remove instrumentation 
+        findOrCreateBPFunc(*fit,NULL)->removeInstrumentation(true);
+    }
+
+    // update the mapped data for the overwritten ranges
+    llproc->updateCodeBytes(owPages,owRegions);
+
     finalizeInsertionSet(false);
 
     // create stub edge set which is: all edges such that: 
@@ -1811,6 +1823,8 @@ void BPatch_process::overwriteAnalysisUpdate
         fit != deadFuncs.end();
         fit++) 
     {
+        malware_cerr << "Removing instrumentation from dead func at " 
+            << (*fit)->getAddress() << endl;
         llproc->getMemEm()->removeSpringboards(*fit);
     }
 
@@ -1837,6 +1851,7 @@ void BPatch_process::overwriteAnalysisUpdate
     }
 
     // delete completely dead functions
+    map<bblInstance*,Address> deadFuncCallers; // build up list of live callers
     for(std::list<int_function*>::iterator fit = deadFuncs.begin(); 
         fit != deadFuncs.end(); 
         fit++) 
@@ -1844,28 +1859,41 @@ void BPatch_process::overwriteAnalysisUpdate
         using namespace ParseAPI;
         Address funcAddr = (*fit)->getAddress();
 
-        // grab callers
-        vector<image_basicBlock*> callBlocks; 
+        // grab callers that aren't also dead
         Block::edgelist &callEdges = (*fit)->ifunc()->entryBlock()->sources();
         Block::edgelist::iterator eit = callEdges.begin();
         for( ; eit != callEdges.end(); ++eit) {
             if (CALL == (*eit)->type()) {// includes tail calls
-                callBlocks.push_back
-                    (dynamic_cast<image_basicBlock*>((*eit)->src()));
+                image_basicBlock *cBlk = (image_basicBlock*)((*eit)->src());
+                vector<ParseAPI::Function*> cFuncs;
+                cBlk->getFuncs(cFuncs);
+                for (unsigned fix=0; fix < cFuncs.size(); fix++) {
+                    int_function *cfunc = llproc->findFuncByInternalFunc(
+                        (image_func*)(cFuncs[fix]));
+                    bblInstance *cbbi = cfunc->findBlockByAddr(
+                        cBlk->start() + cfunc->obj()->codeBase())->origInstance();
+                    if (delBBIs.end() != delBBIs.find(cbbi)) {
+                        continue;
+                    }
+                    bool isFuncDead = false;
+                    for (std::list<int_function*>::iterator dfit = deadFuncs.begin();
+                         dfit != deadFuncs.end(); 
+                         dfit++) 
+                    {
+                        if (cfunc == *dfit) {
+                            isFuncDead = true;
+                            break;
+                        }
+                    }
+                    if (isFuncDead) {
+                        continue;
+                    }
+                    deadFuncCallers[cbbi] = funcAddr;
+                }
             }
         }
-
+ 
         // add blocks to deadBlockAddrs 
-        bool hasCalls = false;
-        Block::edgelist entryEdges = (*fit)->ifunc()->entry()->sources();
-        for (Block::edgelist::iterator eit = entryEdges.begin();
-             !hasCalls && eit != entryEdges.end(); 
-             eit++) 
-        {
-            if ((*eit)->type() == ParseAPI::CALL) {
-                hasCalls = true;
-            }
-        }
         vector<Address> bAddrs;
         const set< int_basicBlock* , int_basicBlock::compare >& 
             deadBlocks = (*fit)->blocks();
@@ -1874,46 +1902,52 @@ void BPatch_process::overwriteAnalysisUpdate
         for (; bIter != deadBlocks.end(); bIter++) {
             bAddrs.push_back((*bIter)->origInstance()->firstInsnAddr());
         }
+        deadBlockAddrs.insert(deadBlockAddrs.end(), 
+                              bAddrs.begin(), 
+                              bAddrs.end());
+    }
 
-        //remove instrumentation and the function itself
+    //remove dead functions
+    for(std::list<int_function*>::iterator fit = deadFuncs.begin(); 
+        fit != deadFuncs.end(); 
+        fit++) 
+    {
         BPatch_function *bpfunc = findOrCreateBPFunc(*fit,NULL);
-        bpfunc->removeInstrumentation(true);
         bpfunc->getModule()->removeFunction(bpfunc);
-        Address base = funcAddr - (*fit)->ifunc()->getOffset();
         (*fit)->removeFromAll();
+    }
 
-        if (hasCalls) {
-            // the function is still reachable, reparse it
+    // reparse dead function entries that still have valid call edges
+    set<Address> reParsedFuncs;
+    for (map<bblInstance*,Address>::iterator bit = deadFuncCallers.begin();
+         bit != deadFuncCallers.end();
+         bit++) 
+    {
+        // the function is still reachable, reparse it
+        if (reParsedFuncs.end() == reParsedFuncs.find(bit->second)) {
             vector<BPatch_module*> dontcare; 
             vector<Address> targVec; 
-            targVec.push_back(funcAddr);
+            targVec.push_back(bit->second);
             if (getImage()->parseNewFunctions(dontcare, targVec)) {
                 // add function to output vector
-                bpfunc = findFunctionByEntry(funcAddr);
+                BPatch_function *bpfunc = findFunctionByEntry(bit->second);
                 assert(bpfunc);
                 owFuncs.push_back(bpfunc);
-                // re-instate call edges to the function
-                for (unsigned bidx=0; bidx < callBlocks.size(); bidx++) {
-                    ParseAPI::Block *src = callBlocks[bidx];
-                    ParseAPI::Block *trg = 
-                        bpfunc->lowlevel_func()->ifunc()->entryBlock();
-                    ParseAPI::Edge *callEdge = src->obj()->fact()->mkedge(
-                        src, trg, ParseAPI::CALL);
-                    callEdge->install();
-                }
-            } 
-            else {
+            } else {
                 // couldn't reparse
-                hasCalls = false;
                 mal_printf("WARNING: Couldn't re-parse overwritten function "
-                           "at %x %s[%d]\n", funcAddr, FILE__,__LINE__);
+                           "at %x %s[%d]\n", bit->second, FILE__,__LINE__);
             }
         }
-        if (!hasCalls) {
-            deadBlockAddrs.insert(deadBlockAddrs.end(), 
-                                  bAddrs.begin(), 
-                                  bAddrs.end());
-        }
+        // re-instate call edges to the function
+        
+        vector<ParseAPI::Block*>  srcs; 
+        vector<Address> trgs; 
+        vector<EdgeTypeEnum> etypes; 
+        srcs.push_back(bit->first->block()->llb());
+        trgs.push_back(bit->second);
+        etypes.push_back(ParseAPI::CALL);
+        bit->first->func()->ifunc()->img()->codeObject()->parseNewEdges(srcs,trgs,etypes);
     }
 
     // set new entry points for functions with NewF blocks

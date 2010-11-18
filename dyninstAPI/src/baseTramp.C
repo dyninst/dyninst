@@ -307,7 +307,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
 bool baseTrampInstance::generateCodeInlined(codeGen &gen,
                                             Address) {
 
-												// Experiment: use AST-based code generation....
+                                                // Experiment: use AST-based code generation....
 
     // We're generating something like so:
     //
