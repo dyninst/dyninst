@@ -47,7 +47,6 @@
 
 struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0};
 
-#define DEBUG_MEM_EM
 
 unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, unsigned long curAddr) {
    /* Standard nonblocking synchronization construct */
@@ -98,7 +97,7 @@ for (bidx=0; origAddr == 0x40d75e && bidx < 0x100; bidx+=4) {
 
    if (min <= max) {
       if (RTmemoryMapper.elements[index].shift == -1) {
-         fprintf(stderr, "... returning (should be) segv!\n");
+         //fprintf(stderr, "... returning (should be) segv!\n");
          return 0;
       }
       else {

@@ -1767,14 +1767,14 @@ void BPatch_process::overwriteAnalysisUpdate
     changedPages = ! owRegions.empty();
     changedCode = ! owBBIs.empty();
 
-    if ( !changedCode ) {
-        return;
-    }
-
     /*2. remove dead code from the analysis */
 
     // update the mapped data for the overwritten ranges
     llproc->updateCodeBytes(owPages,owRegions);
+
+    if ( !changedCode ) {
+        return;
+    }
 
     // identify the dead code 
     std::set<bblInstance*> delBBIs;

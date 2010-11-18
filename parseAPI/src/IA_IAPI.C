@@ -204,7 +204,7 @@ bool IA_IAPI::isAbortOrInvalidInsn() const
 	}
 	// GARBAGE PARSING HEURISTIC
 	if (unlikely(_obj->defensiveMode())) {
-		cerr << "REACHED AN ARPL, COUNTING AS INVALID" << endl;
+		//cerr << "REACHED AN ARPL, COUNTING AS INVALID" << endl;
 		if (e == e_arpl) return true;
 		}
 	

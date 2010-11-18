@@ -955,8 +955,12 @@ void int_function::addMissingBlock(image_basicBlock & missingB)
     if ( bbi && &missingB != bbi->block()->llb() ) 
     {
         image_basicBlock *imgB = bbi->block()->llb();
-        if (missingB.end() >     imgB->start() 
-            ||  imgB->end() > missingB.start()) 
+        // Check to see if missingB and imgB overlap
+        // If that's the case, missingB's end must lie within imgB's range
+        // or vice versa
+        Address higherStart = (missingB.start() > imgB->start()) ? missingB.start() : imgB->start();
+        Address lowerEnd = (missingB.end() < imgB->end()) ? missingB.end() : imgB->end();
+        if (lowerEnd > higherStart)
         {
             // blocks overlap, add block (could checked needsRelocation_ flag)
             bbi = NULL;
@@ -1623,16 +1627,9 @@ bblInstance::bblInstance(Address start, Address last, Address end, int_basicBloc
         fprintf(stderr, "bblInstance_count: %d (%d)\n",
                 bblInstance_count, bblInstance_count*sizeof(bblInstance));
 #endif
-	if (start >= 0x933000 &&
-		start <= 0x1000000) {
-		cerr << hex << block_->func() << " : " << start << " -> " << last << dec << endl;
-		std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >instances;
-		getInsnInstances(instances);
-		for (int i = 0; i < instances.size(); ++i) {
-			cerr << "\t" << hex << instances[i].second << " : " << instances[i].first->format() << dec << endl;
-			}
-		}
-
+    if (firstInsnAddr_ == 0x9334c7) {
+            cerr << "DEBUG BREAKPOINT!" << endl;
+        }
 
     // And add to the mapped_object code range
     block_->func()->obj()->codeRangesByAddr_.insert(this);
