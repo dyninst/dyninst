@@ -1067,7 +1067,7 @@ StackAnalysis::Height StackAnalysis::findSP(Address addr) {
   }
   sp_intervals_->find(addr, ret);
   if (ret.isTop()) {
-    cerr << "Error: address " << hex << addr << dec << " was not analyzed!" << endl;
+    //cerr << "Error: address " << hex << addr << dec << " was not analyzed!" << endl;
     return Height::bottom;
   }
   return ret;

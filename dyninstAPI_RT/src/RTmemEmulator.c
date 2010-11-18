@@ -98,7 +98,7 @@ for (bidx=0; origAddr == 0x40d75e && bidx < 0x100; bidx+=4) {
 
    if (min <= max) {
       if (RTmemoryMapper.elements[index].shift == -1) {
-         fprintf(stderr, "... returning (should be) segv!\n");
+         //fprintf(stderr, "... returning (should be) segv!\n");
          return 0;
       }
       else {

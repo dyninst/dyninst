@@ -2788,24 +2788,37 @@ mapped_object *process::createObjectNoFile(Address addr)
                                      (LPCVOID)addr, &meminfo, 
                                      sizeof(MEMORY_BASIC_INFORMATION));
         assert(meminfo.State == MEM_COMMIT);
+        Address objStart = (Address) meminfo.AllocationBase;
+        Address probeAddr = (Address) meminfo.BaseAddress +  (Address) meminfo.RegionSize;
+        Address objEnd = probeAddr;
+        MEMORY_BASIC_INFORMATION probe;
+        memset(&probe, 0, sizeof(MEMORY_BASIC_INFORMATION));
+        do {
+            objEnd = probeAddr;
+            SIZE_T size2 = VirtualQueryEx(proc()->processHandle_,
+                                          (LPCVOID) ((Address)meminfo.BaseAddress + meminfo.RegionSize),
+                                          &probe,
+                                          sizeof(MEMORY_BASIC_INFORMATION));
+            probeAddr = (Address) probe.BaseAddress + (Address) probe.RegionSize;
+            } while (probe.AllocationBase == meminfo.AllocationBase);
+
+
         // The size of the region returned by VirtualQueryEx is from BaseAddress
         // to the end, NOT from meminfo.AllocationBase, which is what we want.
         // BaseAddress is the start address of the page of the address parameter
         // that is sent to VirtualQueryEx as a parameter
-        Address regionSize = (Address)meminfo.BaseAddress 
-            - (Address)meminfo.AllocationBase
-            + (Address)meminfo.RegionSize;
+        Address regionSize = objEnd - objStart;
         mal_printf("[%lx %lx] is valid region containing %lx and corresponding "
                "to no object, closest is object ending at %lx %s[%d]\n", 
-               meminfo.AllocationBase, 
-               ((Address)meminfo.AllocationBase) + regionSize,
+               objStart, 
+               objEnd,
                addr, closestObjEnd, FILE__,__LINE__);
         // read region into this process
         unsigned char* rawRegion = (unsigned char*) 
-            ::LocalAlloc(LMEM_FIXED, meminfo.RegionSize);
-		if (!proc()->readDataSpace(meminfo.BaseAddress,
-									meminfo.RegionSize,
-									rawRegion, true)) assert(0);
+            ::LocalAlloc(LMEM_FIXED, regionSize);
+		if (!proc()->readDataSpace((void *)objStart,
+								   regionSize,
+								   rawRegion, true)) assert(0);
 #if 0
 		if (! proc()->readDataSpace(meminfo.AllocationBase,
                                     regionSize, rawRegion, true) )
@@ -2816,16 +2829,14 @@ mapped_object *process::createObjectNoFile(Address addr)
 		// set up file descriptor
         char regname[64];
         snprintf(regname,63,"mmap_buffer_%lx_%lx",
-                 ((Address)meminfo.BaseAddress),
-                 ((Address)meminfo.BaseAddress) + regionSize);
-
+                    objStart, objEnd);
         fileDescriptor desc(string(regname), 
                             0, 
                             (HANDLE)0, 
                             (HANDLE)0, 
                             true, 
-                            (Address)meminfo.BaseAddress,
-                            (Address)meminfo.RegionSize,
+                            (Address)objStart,
+                            (Address)regionSize,
                             rawRegion);
         mapped_object *obj = mapped_object::createMappedObject
             (desc,this,proc()->getHybridMode(),false);
