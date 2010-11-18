@@ -1085,6 +1085,16 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             {
                 // 4. Invalid or `abort-causing' instructions
                 end_block(cur,*ah);
+
+                if (unlikely(func->obj()->defensiveMode())) {
+                    // add instrumentation at this addr so we can
+                    // extend the function if this really executes
+                    ParseCallback::default_details det(
+                        (unsigned char*) cur->region()->getPtrToInstruction(cur->lastInsnAddr()),
+                        cur->end() - cur->lastInsnAddr(),
+                        true);
+                    _pcb.abruptEnd_cf(cur->lastInsnAddr(),&det);
+                }
                 break; 
             }
             else if( ah->isInterruptOrSyscall() )
