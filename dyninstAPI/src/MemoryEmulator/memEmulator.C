@@ -309,7 +309,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
             if (cp_size &&
                 !aS_->writeDataSpace((void *)(toBase + cp_start),
                                      cp_size,
-                                     regbuf))
+                                     regbuf + cp_start))
             {
                 assert(0);
             }
@@ -318,7 +318,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         if (cp_start < reg->getMemSize() &&
             !aS_->writeDataSpace((void *)(toBase + cp_start),
                                  reg->getMemSize() - cp_start,
-                                 regbuf))
+                                 regbuf + cp_start))
         {
             assert(0);
         }

@@ -1148,6 +1148,7 @@ mapped_module* mapped_object::getDefaultModule()
 // splits int-layer blocks in response to block-splitting at the image-layer,
 // adds the split image-layer blocks that are newly created, 
 // and adjusts point->block pointers accordingly 
+// (original block halves are resized in addMissingBlock)
 //
 // KEVINTODO: this would be much cheaper if we stored pairs of split blocks, 
 bool mapped_object::splitIntLayer()

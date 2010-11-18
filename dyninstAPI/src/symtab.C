@@ -1010,11 +1010,8 @@ image::addInstPoint(image_instPoint *newP)
         // call at a function entry or exit
         parsing_printf("  attempt to add duplicate instpoint at %lx\n",
             newP->offset());
-        image_instPoint *oldP = inst_pts_.find(newP->offset())->second;
-        if (codeObject()->defensiveMode() && 
-            newP->getPointType() != oldP->getPointType() && 
-            newP->getPointType() != otherPoint) 
-        {
+        if (codeObject()->defensiveMode()) {
+            image_instPoint *oldP = inst_pts_.find(newP->offset())->second;
             mal_printf("WARNING: merging imgPoint info at %lx, new point type "
                     "is %d, existing point has type %d %s[%d]\n", 
                     newP->offset(), newP->getPointType(), 

@@ -140,7 +140,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
    codeGen prepatch(128);
    prepatch.applyTemplate(templ);
 
-   bool debug = true;
+   bool debug = false;
 
   // We want to ensure that a memory operation produces its
   // original result in the face of overwriting the text
@@ -612,7 +612,7 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
    prepatch.applyTemplate(templ);
 
    // This is an implicit use of ESI, EDI, or both. The both? Sucks. 
-bool debug = true;
+bool debug = false;
 if (debug) {
 	prepatch.fill(1, codeGen::cgTrap);
 }
