@@ -1281,7 +1281,7 @@ void mapped_object::findBBIsByRange(Address startAddr,
             cerr << "BREAKPOINT!" << endl;
         }
    std::set<ParseAPI::Block *> papiBlocks;
-   for (Address cur = startAddr; cur <= endAddr; ++cur) {
+   for (Address cur = startAddr; cur < endAddr; ++cur) {
       Address papiCur = cur - codeBase();
       parse_img()->codeObject()->findBlocks(NULL, papiCur, papiBlocks);
    }
@@ -1293,14 +1293,15 @@ void mapped_object::findBBIsByRange(Address startAddr,
       // For each parseAPI block, up-map it to a set of bblInstances
       ParseAPI::Block *pB = *iter;
       
-      std::vector<ParseAPI::Function *> funcs = pB->getFuncs(funcs);
-      for (std::vector<ParseAPI::Function *> f_iter = funcs.begin();
+      std::vector<ParseAPI::Function *> funcs;
+      pB->getFuncs(funcs);
+      for (std::vector<ParseAPI::Function *>::iterator f_iter = funcs.begin();
            f_iter != funcs.end(); ++f_iter) {
          image_func *ifunc = static_cast<image_func *>(*f_iter);
          int_function *func = findFunction(ifunc);
          assert(func);
 
-         bblInstance *bbl = func->findBlockInstanceByAddr(pB->start() + codeBase());
+         bblInstance *bbl = func->findBlockInstanceByEntry(pB->start() + codeBase());
          assert(bbl);
          rangeBlocks.push_back(bbl);
       }
@@ -1312,7 +1313,7 @@ void mapped_object::findFuncsByRange(Address startAddr,
                                       std::set<int_function*> &pageFuncs)
 {
    std::list<bblInstance *> bbls;
-   findBBIsByRange(bbls);
+   findBBIsByRange(startAddr, endAddr, bbls);
    for (std::list<bblInstance *>::iterator iter = bbls.begin();
         iter != bbls.end(); ++iter) {
       pageFuncs.insert((*iter)->block()->func());

@@ -1610,13 +1610,19 @@ Parser::getTamperAbsFrame(Function *tamperFunc)
 
     // for the target to be valid, it must be greater than the binary's 
     // load addr, which should be subtracted from it
-    if (tamperFunc->_tamper_addr > tamperFunc->obj()->cs()->loadAddress()) {
-        target -= tamperFunc->obj()->cs()->loadAddress();
-        targFunc = _parse_data->get_func
-            (tamperFunc->region(), 
-             target, 
-             tamperFunc->src());
+
+    if (target == 0x0) {
+        return NULL;
     }
+
+    if (tamperFunc->_tamper_addr < tamperFunc->obj()->cs()->loadAddress()) {
+        return NULL;
+    }
+    target -= tamperFunc->obj()->cs()->loadAddress();
+    targFunc = _parse_data->get_func
+        (tamperFunc->region(), 
+         target, 
+         tamperFunc->src());
 
     if (!targFunc) {
         targFunc = _parse_data->get_func(tamperFunc->region(),target,RT);
@@ -1637,10 +1643,12 @@ Parser::getTamperAbsFrame(Function *tamperFunc)
     case ParseFrame::PROGRESS:
         fprintf(stderr,"ERROR: function frame at %lx in bad state, can't "
                 "add edge; status=%d\n",target, exist);
+        return NULL;
         break;
     case ParseFrame::PARSED:
         fprintf(stderr,"ERROR: function frame at %lx already parsed, can't "
                 "add edge; status=%d\n",target, exist);
+        return NULL;
         break;
     case ParseFrame::BAD_LOOKUP:
         // create new frame

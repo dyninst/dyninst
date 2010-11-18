@@ -263,7 +263,6 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 handle = proc()->insertSnippet
                     (ifSmallThenStop, *curPoint, BPatch_lastSnippet);
             }
-#if 0
             // if memory is emulated, and we don't know that it doesn't go to 
             // a non-instrumented library, add a callback to synchShadowOrig_wrapper
             if (proc()->lowlevel_process()->isMemoryEmulated()) {
@@ -287,7 +286,6 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                     pointCount++;
                 }
             }
-#endif   
         } 
         else { // static ctrl flow
 
