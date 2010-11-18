@@ -1525,6 +1525,7 @@ bool AddressSpace::relocate() {
   return ret;
 }
 
+extern bool GLOBAL_DISASSEMBLY;
 // iter is some sort of functions
 bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address nearTo) {
   if (begin == end) {

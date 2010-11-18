@@ -274,8 +274,12 @@ DynParseCallback::newfunction_retstatus(Function *func)
 }
 
 void
-DynParseCallback::block_split(Block * /*first_*/, Block *second_)
+DynParseCallback::block_split(Block *first, Block *second_)
 {
+    if (first->start() == 0x334b7 ||
+        second_->start() == 0x334b7) {
+            cerr << "DEBUG BREAKPOINT!" << endl;
+        }
     if (BPatch_normalMode != _img->hybridMode()) {
         image_basicBlock *second = (image_basicBlock*) second_;
         _img->addSplitBlock(second);

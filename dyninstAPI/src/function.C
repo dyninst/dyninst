@@ -1627,7 +1627,7 @@ bblInstance::bblInstance(Address start, Address last, Address end, int_basicBloc
         fprintf(stderr, "bblInstance_count: %d (%d)\n",
                 bblInstance_count, bblInstance_count*sizeof(bblInstance));
 #endif
-    if (firstInsnAddr_ == 0x9334c7) {
+    if (firstInsnAddr_ == 0x9335ab) {
             cerr << "DEBUG BREAKPOINT!" << endl;
         }
 
@@ -1663,6 +1663,9 @@ bblInstance::bblInstance(const bblInstance *parent, int_basicBlock *block) :
 }
 
 bblInstance::~bblInstance() {
+    if (firstInsnAddr()  == 0x9335a1) {
+        cerr << "DEBUG BREAKPOINT!";
+        }
     mal_printf("deleting bblInstance at %lx\n", firstInsnAddr());
 }
 

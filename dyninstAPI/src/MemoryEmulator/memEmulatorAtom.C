@@ -125,7 +125,7 @@ bool MemEmulator::generateViaOverride(const codeGen &templ,
    }
    return false;
 }
-
+bool GLOBAL_DISASSEMBLY = false;
 bool MemEmulator::generateViaModRM(const codeGen &templ,
                                    const Trace *t, 
                                    CodeBuffer &buffer) {
@@ -141,7 +141,14 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
    prepatch.applyTemplate(templ);
 
    bool debug = false;
-   if (addr_ > 0x900000) debug = true;
+   if (addr_ == 0x9335ab ||
+       addr_ == 0x9335a2) {
+       debug = true;
+       GLOBAL_DISASSEMBLY = true;
+       }
+   else {
+       GLOBAL_DISASSEMBLY = false;
+       }
 
   // We want to ensure that a memory operation produces its
   // original result in the face of overwriting the text

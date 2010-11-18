@@ -1278,6 +1278,11 @@ void mapped_object::findBBIsByRange(Address startAddr,
     codeRange *range=NULL;
     Address nextAddr = startAddr;
 
+    if (startAddr <= 0x9335a1 &&
+        endAddr >= 0x9335ad) {
+            cerr << "BREAKPOINT!" << endl;
+        }
+
     do {
         // add bblInstance range to output
         if (range != NULL) {
