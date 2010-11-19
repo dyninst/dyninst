@@ -579,10 +579,6 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 			//cerr << "STACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
 			ev.type = evtIgnore;
             }
-        if (activeFrame.getUninstAddr() == 0x9335a2) {
-            exit(0);
-            }
-
          }
   }
   else {

@@ -1672,10 +1672,12 @@ bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
 bool BPatch_process::hideDebuggerInt()
 {
     bool retval = llproc->hideDebugger();
-    // disable API calls
 
-    // blockInput
-    BPatch_module *user = image->findModule("user32.dll");
+    // disable API calls //
+    beginInsertionSet();
+
+    // BlockInput
+    BPatch_module *user = image->findModule("user32.dll",true);
     if (user) {
         vector<BPatch_function*> funcs;
         user->findFunction(
@@ -1692,7 +1694,7 @@ bool BPatch_process::hideDebuggerInt()
         funcs.clear();
     }
 
-    BPatch_module *kern = image->findModule("kernel32.dll");
+    BPatch_module *kern = image->findModule("kernel32.dll",true);
     if (kern) { // should only succeed on windows
         // CheckRemoteDebuggerPresent
         vector<BPatch_function*> funcs;
@@ -1713,23 +1715,24 @@ bool BPatch_process::hideDebuggerInt()
             funcs, false, false, true);
         assert(funcs.size());
         vector<BPatch_function*> sle_funcs;
-        kern->findFunction("SetLastErrorEx", sle_funcs, 
-                           false, false, false, true);
-        if ( sle_funcs.size() ) {
-            // KEVINTODO: I'm not finding this function, so I'm not safe from 
-            // the anti-debug tactic
-            vector<BPatch_snippet*> args;
-            BPatch_constExpr lasterr(1);
-            args.push_back(&lasterr);
-            BPatch_funcCallExpr callSLE (*(sle_funcs[0]), args);
-            vector<BPatch_point*> *exitPoints = sle_funcs[0]->findPoint(BPatch_exit);
-            beginInsertionSet();
-            for (unsigned i=0; i < exitPoints->size(); i++) {
-                insertSnippet( callSLE, *((*exitPoints)[i]) );
-            }
-            finalizeInsertionSet(false);
+        user->findFunction("SetLastErrorEx", sle_funcs, 
+                           false, false, true, true);
+        assert(!sle_funcs.empty());
+        vector<BPatch_snippet*> args;
+        BPatch_constExpr lasterr(1);
+        args.push_back(&lasterr);
+        args.push_back(&lasterr); // need a second parameter, but it goes unused by windows
+        BPatch_funcCallExpr callSLE (*(sle_funcs[0]), args);
+        vector<BPatch_point*> *exitPoints = sle_funcs[0]->findPoint(BPatch_exit);
+        for (unsigned i=0; i < exitPoints->size(); i++) {
+            insertSnippet( callSLE, *((*exitPoints)[i]) );
         }
+        finalizeInsertionSet(false);
     } 
+
+    if (!user || !kern) {
+        retval = false;
+    }
     return retval;
 }
 
