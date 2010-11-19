@@ -879,7 +879,7 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
         // from the page, remove them and try again
 
         int oldRights = changeMemoryProtections((Address)inTraced, amount, 
-                                                PAGE_EXECUTE_READWRITE);
+                                                PAGE_EXECUTE_READWRITE,true);
         if (oldRights == PAGE_EXECUTE_READ || oldRights == PAGE_READONLY) {
             res = WriteProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
                                      (LPVOID)inSelf, (DWORD)amount, &nbytes);
@@ -887,7 +887,7 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
             assert(0 && "failure in writeDataSpace");
         }
         if (oldRights != -1) { // set the rights back to what they were
-            changeMemoryProtections((Address)inTraced, amount, oldRights);
+            changeMemoryProtections((Address)inTraced, amount, oldRights,true);
         }
     }
 
@@ -903,7 +903,8 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf) {
     return res && (nbytes == amount);
 }
 
-int dyn_lwp::changeMemoryProtections(Address addr, Offset size, unsigned rights)
+int dyn_lwp::changeMemoryProtections
+(Address addr, Offset size, unsigned rights, bool setShadow)
 {
     int oldRights=0;
     if (VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(addr), 
@@ -919,7 +920,7 @@ int dyn_lwp::changeMemoryProtections(Address addr, Offset size, unsigned rights)
         return -1;
     }
 
-    if (proc()->isMemoryEmulated()) {
+    if (proc()->isMemoryEmulated() && setShadow) {
         Address shadowAddr = addr;
         int shadowRights=0;
         bool valid = false;

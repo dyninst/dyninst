@@ -2004,6 +2004,8 @@ bool mapped_object::isSystemLib(const std::string &objname)
       return true;
    if (std::string::npos != lowname.find("user32.dll"))
       return true;
+   if (std::string::npos != lowname.find("advapi32.dll"))
+      return true;
    if (std::string::npos != lowname.find("ntdll.dll"))
       return true;
    if (std::string::npos != lowname.find("msvcrt") && 

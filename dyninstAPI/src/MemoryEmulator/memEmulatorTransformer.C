@@ -38,6 +38,8 @@
 #include "dyninstAPI/src/Relocation/Atoms/CopyInsn.h"
 #include "memEmulatorAtom.h"
 #include "dyninstAPI/src/instPoint.h" // Memory insn modelling requirement.
+#include "dyninstAPI/src/mapped_object.h"
+#include "dyninstAPI/h/BPatch_hybridAnalysis.h"
 #include <iomanip>
 using namespace std;
 using namespace Dyninst;
@@ -77,7 +79,7 @@ bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
 
     relocation_cerr << "Memory emulation considering addr " << hex << reloc->addr() << dec << endl;
 
-    if (!isSensitive(reloc, func)) {
+    if (!isSensitive(reloc, func) || BPatch_defensiveMode != func->obj()->hybridMode()) {
         relocation_cerr << "\t Not sensitive, skipping" << endl;
         continue;
     }

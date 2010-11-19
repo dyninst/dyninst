@@ -804,14 +804,14 @@ bool BPatch_module::isExploratoryModeOn()
  * actually wind up protecting anything, doesn't trigger analysis
  * in the module
  */ 
-bool BPatch_module::protectAnalyzedCode()
+bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
 {
     // only implemented for processes and only needed for defensive 
     // BPatch_modules
     if ( !getAS()->proc() || BPatch_defensiveMode != getHybridMode() ) {
-        bperr("%s[%d]: ignoring request to protect analyzed code in module "
+        bperr("Ignoring request to protect analyzed code in module "
               "%s that is either not in a live process or whose code is "
-              "not defensive\n", mod->fileName().c_str(), FILE__, __LINE__);
+              "not defensive %s[%d]\n", mod->fileName().c_str(), FILE__, __LINE__);
         return false;
     }
 
@@ -881,8 +881,13 @@ bool BPatch_module::protectAnalyzedCode()
         } 
 
 #if defined(os_windows)
-        stoppedlwp->changeMemoryProtections(start, end - start, 
-                                            PAGE_EXECUTE_READ);
+        int newRights = PAGE_EXECUTE_READ;
+        if (writeable) {
+            newRights = PAGE_EXECUTE_READWRITE;
+        }
+        stoppedlwp->changeMemoryProtections(start, end - start, newRights, true);
+#else
+        assert(0 && "unimplemented!");
 #endif
 
     }

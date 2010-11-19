@@ -38,6 +38,7 @@
 #include "instPoint.h"
 #include "debug.h"
 #include "process.h"
+#include "mapped_object.h"
 #include "MemoryEmulator/memEmulator.h"
 #include "mapped_module.h"
 
@@ -70,6 +71,11 @@ static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig)
        point->getFunction()->getAddSpace());
     int_function *func = point->llpoint()->func();
     proc->lowlevel_process()->getMemEm()->synchShadowOrig(func->obj(), (bool) toOrig);
+    if (toOrig) {
+        point->getFunction()->getModule()->setAnalyzedCodeWriteable(true);
+    } else {
+        point->getFunction()->getModule()->setAnalyzedCodeWriteable(false);
+    }
 }
 
 InternalSignalHandlerCallback HybridAnalysis::getSignalHandlerCB()
@@ -200,7 +206,9 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
    Address funcAddr = (Address) func->getBaseAddr();
     vector<BPatch_function*>dontcare;
     mal_printf("instfunc at %lx\n", funcAddr);
-    if (proc()->lowlevel_process()->isMemoryEmulated()) {
+    if (proc()->lowlevel_process()->isMemoryEmulated() && 
+        BPatch_defensiveMode == func->lowlevel_func()->obj()->hybridMode()) 
+    {
         proc()->lowlevel_process()->addModifiedFunction(func->lowlevel_func());
     }
     int pointCount = 0;
@@ -264,7 +272,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                     (ifSmallThenStop, *curPoint, BPatch_lastSnippet);
             }
             // if memory is emulated, and we don't know that it doesn't go to 
-            // a non-instrumented library, add a callback to synchShadowOrig_wrapper
+            // a non-instrumented library, add a callback to synchShadowOrigCB_wrapper
             if (proc()->lowlevel_process()->isMemoryEmulated()) {
                 BPatch_module *mod = proc()->findModuleByAddr(curPoint->getSavedTarget());
                 if (memHandles.end() == memHandles.find(curPoint) &&
@@ -556,7 +564,7 @@ bool HybridAnalysis::instrumentModule(BPatch_module *mod, bool useInsertionSet)
 
     // protect the code in the module
     if (BPatch_defensiveMode == mod->getHybridMode()) {
-        mod->protectAnalyzedCode();
+        mod->setAnalyzedCodeWriteable(false);
     }
 
     return didInstrument;
@@ -783,7 +791,7 @@ bool HybridAnalysis::analyzeNewFunction( Address target ,
             instrumentModule(affectedMods[i],useInsertionSet);//also protects the code
         }
         else if (BPatch_defensiveMode == affectedMods[i]->getHybridMode()) {
-            affectedMods[i]->protectAnalyzedCode(); 
+            affectedMods[i]->setAnalyzedCodeWriteable(false); 
         }
     }
     return parsed;

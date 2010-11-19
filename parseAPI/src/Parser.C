@@ -1089,11 +1089,12 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 if (unlikely(func->obj()->defensiveMode())) {
                     // add instrumentation at this addr so we can
                     // extend the function if this really executes
-                    ParseCallback::default_details det(
-                        (unsigned char*) cur->region()->getPtrToInstruction(cur->lastInsnAddr()),
-                        cur->end() - cur->lastInsnAddr(),
-                        true);
-                    _pcb.abruptEnd_cf(cur->lastInsnAddr(),&det);
+                    // KEVINTODO: this should not happen for int3 instructions 
+                    //ParseCallback::default_details det(
+                    //    (unsigned char*) cur->region()->getPtrToInstruction(cur->lastInsnAddr()),
+                    //    cur->end() - cur->lastInsnAddr(),
+                    //    true);
+                    //_pcb.abruptEnd_cf(cur->lastInsnAddr(),&det);
                 }
                 break; 
             }
