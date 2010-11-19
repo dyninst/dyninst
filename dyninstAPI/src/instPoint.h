@@ -204,7 +204,7 @@ class image_instPoint : public instPointBase {
 
   Address offset_;
   Address offset() const { return offset_; }
-
+  std::set<instPoint *> owners;
   // For call-site points:
 private:
   image * image_;

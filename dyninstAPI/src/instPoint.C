@@ -315,6 +315,7 @@ instPoint::instPoint(AddressSpace *proc,
         fprintf(stderr, "instPoint_count: %d (%d)\n",
                 instPoint_count, instPoint_count*sizeof(instPoint));
 #endif
+    img_p->owners.insert(this);
 }
 
 // Copying over from fork

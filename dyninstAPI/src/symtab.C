@@ -1267,13 +1267,17 @@ int image::destroy() {
     return refCount; 
 }
 
-void image::removeInstPoint(image_instPoint *p)
+void image::removeInstPoint(image_instPoint *p, instPoint *ip)
 {
     instp_map_t::iterator iit = inst_pts_.find(p->offset());
-    if(iit != inst_pts_.end())
-        inst_pts_.erase(iit);
+    if(iit != inst_pts_.end()) {
+        if (ip) {
+            iit->second->owners.erase(ip);
+        if ((ip == NULL) || iit->second->owners.empty())
+            inst_pts_.erase(iit);
+        }
+    }
 }
-
 void image::deleteFunc(image_func *func)
 {
     // Remove the function's points, but not points that are shared
@@ -1288,14 +1292,14 @@ void image::deleteFunc(image_func *func)
             image_instPoint *p = pts[i];
             findFuncs(p->offset(), pt_funcs);
             if ( 1 == pt_funcs.size() )
-                removeInstPoint(p);
+                removeInstPoint(p, NULL);
             pt_funcs.clear();
         }
     }
     // Remove the function's entry point whether it is shared or not
     image_instPoint *p = getInstPoint(func->getOffset());
     if (p && functionEntry == p->getPointType()) 
-        removeInstPoint(p);
+        removeInstPoint(p, NULL);
 
     // remove the function from symtabAPI
     SymtabAPI::Function *sym_func =NULL;

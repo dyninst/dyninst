@@ -376,7 +376,7 @@ class image : public codeRange {
    //-----------DEFENSIVE-MODE CODE------------//
    BPatch_hybridMode hybridMode() const { return mode_; }
    // element removal
-   void removeInstPoint(image_instPoint *p);
+   void removeInstPoint(image_instPoint *p, instPoint *ip);
    void deleteFunc(image_func *func);
    void addSplitBlock(image_basicBlock *blk) { splitBlocks_.insert(blk); }
    const set<image_basicBlock*> & getSplitBlocks() const;

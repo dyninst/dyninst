@@ -487,6 +487,7 @@ bool int_function::removePoint(instPoint *point)
         }
         break;
     case otherPoint:
+    case abruptEnd:
         for (unsigned i = 0; !foundPoint && i < arbitraryPoints_.size(); i++) {
             if (arbitraryPoints_[i] == point) {
                 arbitraryPoints_[i] = arbitraryPoints_[arbitraryPoints_.size()-1];
@@ -507,7 +508,7 @@ bool int_function::removePoint(instPoint *point)
         foundPoint = true;
     }
     if (point->imgPt()) {
-        ifunc()->img()->removeInstPoint(point->imgPt());
+        ifunc()->img()->removeInstPoint(point->imgPt(), point);
     }
     assert(foundPoint);
     return foundPoint;
@@ -704,8 +705,7 @@ bool int_function::parseNewEdges(const std::vector<edgeStub> &stubs )
     }
  
 /* 1. Parse from target address, add new edge at image layer  */
-    assert( !ifunc()->img()->hasSplitBlocks() && 
-            !ifunc()->img()->hasNewBlocks());
+    assert( !ifunc()->img()->hasSplitBlocks());
     ifunc()->img()->codeObject()->parseNewEdges(sources, targets, edgeTypes);
 
 /* 2. Register all newly created image_funcs as a result of new edge parsing */
@@ -839,7 +839,10 @@ void int_function::deleteBlock(int_basicBlock* block)
 			}
 		}
 
-	assert( ! imgBlock->isShared() ); //KEVINTODO: unimplemented case
+//	assert( ! imgBlock->isShared() ); //KEVINTODO: unimplemented case
+    if (imgBlock->isShared()) {
+        cerr << "DEBUG: untested case" << endl;
+    }
     Address baseAddr = obj()->codeBase();
 
     // remove parse points
@@ -877,6 +880,7 @@ void int_function::deleteBlock(int_basicBlock* block)
     }
     for (unsigned bIdx=0; bIdx < block->instances_.size(); bIdx++) {
         blocksByAddr_.remove(bbis[bIdx]->firstInsnAddr());
+        blocksByEntry_.erase(bbis[bIdx]->firstInsnAddr());
     }
     blockList.erase(block);
     
@@ -905,7 +909,7 @@ void int_function::removeFromAll()
          bIter != blockList.end();
          bIter = blockList.begin()) 
     {
-        deleteBlock(*bIter);// removes block from blockList too
+        deleteBlock(*bIter);// removfes block from blockList too
     }
     // remove from mapped_object & mapped_module datastructures
     obj()->removeFunction(this);
@@ -928,59 +932,67 @@ void int_function::removeFromAll()
 void int_function::addMissingBlock(image_basicBlock & missingB)
 {
     Address baseAddr = getAddress() - ifunc()->getOffset();
-    bblInstance *bbi = findBlockInstanceByAddr( 
-        missingB.firstInsnOffset() + baseAddr );
+    bblInstance *bbi = findBlockInstanceByAddr( missingB.firstInsnOffset() + baseAddr );
 
-    if ( bbi && &missingB != bbi->block()->llb() ) 
-    {
-        image_basicBlock *imgB = bbi->block()->llb();
-        // Check to see if missingB and imgB overlap
-        // If that's the case, missingB's end must lie within imgB's range
-        // or vice versa
-        Address higherStart = (missingB.start() > imgB->start()) ? missingB.start() : imgB->start();
-        Address lowerEnd = (missingB.end() < imgB->end()) ? missingB.end() : imgB->end();
-        if (lowerEnd > higherStart)
-        {
-            // blocks have misaligned parses, add block (could checked needsRelocation_ flag)
-            bbi = NULL;
+    if (bbi) {
+        if (&missingB == bbi->block()->llb()) {
+            // Make sure our boundaries are correct
+            assert(bbi->firstInsnAddr() == (baseAddr + bbi->block()->llb()->start()));
+            bbi->setEndAddr(baseAddr + bbi->block()->llb()->end());
+            bbi->setLastInsnAddr(baseAddr + bbi->block()->llb()->lastInsnAddr());
+            return;
         }
-        else {
-            // the block was split during parsing, adjust the end and lastInsn 
-            // fields of both bblInstances 
-            Address blockBaseAddr = bbi->firstInsnAddr() - 
-                imgB->firstInsnOffset();
-            assert(baseAddr == blockBaseAddr);
-            mal_printf("adjusting boundaries of split block %lx (split at %lx)\n",
-                       imgB->start(), missingB.start());
-            bbi->setEndAddr( imgB->endOffset() + blockBaseAddr );
-            bbi->setLastInsnAddr( imgB->lastInsnOffset() + blockBaseAddr );
-            // instance 2
-            bblInstance *otherInst = findBlockInstanceByAddr
-                            (missingB.firstInsnOffset() + blockBaseAddr);
-            if (otherInst && otherInst != bbi) {
-                bbi = otherInst;
-                imgB = bbi->block()->llb();
-                blockBaseAddr = bbi->firstInsnAddr() - 
+        else
+        {
+            image_basicBlock *imgB = bbi->block()->llb();
+            // Check to see if missingB and imgB overlap
+            // If that's the case, missingB's end must lie within imgB's range
+            // or vice versa
+            Address higherStart = (missingB.start() > imgB->start()) ? missingB.start() : imgB->start();
+            Address lowerEnd = (missingB.end() < imgB->end()) ? missingB.end() : imgB->end();
+            if (lowerEnd > higherStart)
+            {
+                // blocks have misaligned parses, add block (could checked needsRelocation_ flag)
+                bbi = NULL;
+            }
+            else {
+                // the block was split during parsing, adjust the end and lastInsn 
+                // fields of both bblInstances 
+                Address blockBaseAddr = bbi->firstInsnAddr() - 
                     imgB->firstInsnOffset();
                 assert(baseAddr == blockBaseAddr);
+                mal_printf("adjusting boundaries of split block %lx (split at %lx)\n",
+                           imgB->start(), missingB.start());
                 bbi->setEndAddr( imgB->endOffset() + blockBaseAddr );
-                bbi->setLastInsnAddr(imgB->lastInsnOffset() + blockBaseAddr);
-            }
+                bbi->setLastInsnAddr( imgB->lastInsnOffset() + blockBaseAddr );
+                // instance 2
+                bblInstance *otherInst = findBlockInstanceByAddr
+                                (missingB.firstInsnOffset() + blockBaseAddr);
+                if (otherInst && otherInst != bbi) {
+                    bbi = otherInst;
+                    imgB = bbi->block()->llb();
+                    blockBaseAddr = bbi->firstInsnAddr() - 
+                        imgB->firstInsnOffset();
+                    assert(baseAddr == blockBaseAddr);
+                    bbi->setEndAddr( imgB->endOffset() + blockBaseAddr );
+                    bbi->setLastInsnAddr(imgB->lastInsnOffset() + blockBaseAddr);
+                }
 
-            // now try and find the block again
-            bblInstance *newbbi = findBlockInstanceByAddr( 
-                missingB.firstInsnOffset() + blockBaseAddr );
-            if (bbi == newbbi) {
-                // there's real overlapping going on
-                mal_printf("WARNING: overlapping blocks, major obfuscation or "
-                        "bad parse [%lx %lx] [%lx %lx] %s[%d]\n",
-                        bbi->firstInsnAddr(), 
-                        bbi->endAddr(), 
-                        baseAddr + missingB.firstInsnOffset(), 
-                        baseAddr + missingB.endOffset(), 
-                        FILE__,__LINE__);
+                // now try and find the block again
+                bblInstance *newbbi = findBlockInstanceByAddr( 
+                    missingB.firstInsnOffset() + blockBaseAddr );
+                if (bbi == newbbi) {
+                    // there's real overlapping going on
+                    mal_printf("WARNING: overlapping blocks, major obfuscation or "
+                            "bad parse [%lx %lx] [%lx %lx] %s[%d]\n",
+                            bbi->firstInsnAddr(), 
+                            bbi->endAddr(), 
+                            baseAddr + missingB.firstInsnOffset(), 
+                            baseAddr + missingB.endOffset(), 
+                            FILE__,__LINE__);
+                }
+                bbi = newbbi;
             }
-            bbi = newbbi;
         }
     }
 
@@ -995,7 +1007,6 @@ void int_function::addMissingBlock(image_basicBlock & missingB)
         blockList.insert(intBlock);
         blockIDmap[missingB.id()] = blockIDmap.size();
     } 
-
     // see if the new block falls through into a function that
     // was already parsed
     Block::edgelist & edges = missingB.targets();
@@ -1047,6 +1058,7 @@ void int_function::addMissingBlock(image_basicBlock & missingB)
                 bit != reachableBs.end(); 
                 bit++)
             {
+                
                 addMissingBlock(*static_cast<image_basicBlock*>(*bit));
             }
         }
@@ -1064,7 +1076,6 @@ void int_function::addMissingBlock(image_basicBlock & missingB)
  */
 void int_function::addMissingBlocks()
 {
-    if ( blockList.empty() ) 
         blocks();
     
     // iterate through whichever of blockList and img->newBlocks_ is smaller
