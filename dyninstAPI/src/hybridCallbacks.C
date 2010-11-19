@@ -218,7 +218,8 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     proc()->beginInsertionSet();
     // add the new edge to the program, parseNewEdgeInFunction will figure
     // out whether to extend the current function or parse as a new one. 
-    parseNewEdgeInFunction(point, nextInsn,false);
+    assert(0 && "KEVINTODO: turn on non-existent parsing flag to force parsing of overlapping blocks and weird instructions");
+    parseNewEdgeInFunction(point, nextInsn, false);
 
     //make sure we don't re-instrument
     point->setResolved();

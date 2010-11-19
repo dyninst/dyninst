@@ -100,6 +100,27 @@ verbose_log(Address currAddr, Edges_t::iterator & curEdge)
 }
 } // anonymous namespace
 
+void getBlockInsns(Block &blk, std::set<Address> &addrs)
+{
+    unsigned bufSize = blk.size();
+#if defined(cap_instruction_api)
+    using namespace InstructionAPI;
+    const unsigned char* bufferBegin = (const unsigned char *)
+        (blk.obj()->cs()->getPtrToInstruction(blk.start()));
+    InstructionDecoder dec = InstructionDecoder
+        (bufferBegin, bufSize, blk.region()->getArch());
+    InstructionAdapter_t ah = InstructionAdapter_t
+        (dec, blk.start(), blk.obj(), blk.region(), blk.obj()->cs());
+#else        
+    InstrucIter iter(blk.start(), bufSize, blk.obj()->cs());
+    InstructionAdapter_t ah(iter, 
+        blk.obj(), blk.region(), obj()->cs());
+#endif
+    for (; ah.getAddr() < blk.end(); ah.advance()) {
+        addrs.insert(ah.getAddr());
+    } 
+}
+
 /*
  * Extra handling of return instructions
  */
@@ -137,8 +158,8 @@ InstructionAdapter_t * getNewAdapter(Function *func, Address addr)
     InstructionAdapter_t * ah = new InstructionAdapter_t
         (*dec, addr, func->obj(), func->region(), func->isrc());
 #else        
-    InstrucIter iter(addr, bufSize, func->isrc());
-    InstructionAdapter_t ah(iter, 
+    InstrucIter *iter = new InstrucIter(addr, bufSize, func->isrc());
+    InstructionAdapter_t *ah = new InstructionAdapter_t(*iter, 
         func->obj(), func->region(), func->isrc());
 #endif
     return ah;
@@ -192,7 +213,57 @@ void Parser::ProcessCFInsn(
     
     // Instruction adapter provides edge estimates from an instruction
     ah->getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries); 
-    
+
+    if (unlikely(_obj.defensiveMode() && !ah->isCall() && edges_out.size())) {
+        // only parse branch edges that align with existing blocks
+        bool hasUnalignedEdge = false;
+        set<CodeRegion*> tregs;
+        set<Block*> tblocks;
+        set<Address> insns_cur;
+        for(Edges_t::iterator curEdge = edges_out.begin();
+            !hasUnalignedEdge && curEdge != edges_out.end(); 
+            ++curEdge)
+        {
+            if (cur->end() <= curEdge->first) {
+                continue;
+            }
+            _obj.cs()->findRegions(curEdge->first,tregs);
+            if (!tregs.empty()) {
+                _parse_data->findBlocks(*tregs.begin(),curEdge->first, tblocks);
+                for (set<Block*>::iterator bit= tblocks.begin(); 
+                     !hasUnalignedEdge && bit != tblocks.end(); 
+                     bit++) 
+                {
+                    if ((*bit)->end() <= cur->start() ||
+                        (*bit) == cur) 
+                    {
+                        continue;
+                    }
+                    set<Address> insns_tblk;
+                    getBlockInsns(**bit,insns_tblk);
+                    if (insns_cur.empty()) {
+                        getBlockInsns(*cur,insns_cur);
+                    }
+                    if ((*bit)->start() < cur->start()) {
+                        if (insns_tblk.end() == insns_tblk.find(cur->start())) {
+                            hasUnalignedEdge = true;
+                        } 
+                    } else if (insns_cur.end() == insns_cur.find((*bit)->start())) {
+                        hasUnalignedEdge = true;
+                    }
+                }
+            }
+        }
+        if (true == hasUnalignedEdge) {
+            edges_out.clear();
+            ParseCallback::default_details det(
+                (unsigned char*) cur->region()->getPtrToInstruction(cur->lastInsnAddr()),
+                cur->end() - cur->lastInsnAddr(),
+                true);
+            _pcb.abruptEnd_cf(cur->lastInsnAddr(),&det);
+        }
+    }
+
     insn_ret = ah->getReturnStatus(frame.func,frame.num_insns); 
 
     // Update function return status if possible
@@ -228,7 +299,7 @@ void Parser::ProcessCFInsn(
                                curEdge->first, curEdge->second);
             }
         }
-        
+
         /*
          * Call case 
          */ 
