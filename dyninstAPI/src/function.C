@@ -452,27 +452,6 @@ const set<instPoint*> &int_function::funcAbruptEnds()
     return abruptEnds_;
 }
 
-void int_function::findBlocksByRange(std::vector<int_basicBlock*> &rangeBlocks, 
-                                     Address start, Address end)
-{
-    std::set< int_basicBlock* , int_basicBlock::compare >::iterator biter;
-    biter = blockList.begin();
-    while (biter != blockList.end()) 
-    {
-        Address bstart = (*biter)->origInstance()->firstInsnAddr();
-        if (start <= bstart && bstart < end) 
-        {
-           rangeBlocks.push_back(*biter);
-        }
-        biter++;
-    }
-    if (rangeBlocks.size() == 0 ) {
-        //make sure we got an un-relocated range, haven't implemented this
-        // for relocated ranges
-        assert ( obj()->codeBase() <= start && 
-                 start < obj()->codeBase() + obj()->get_size() );
-    }
-}
 
 bool int_function::removePoint(instPoint *point) 
 {
@@ -1273,6 +1252,12 @@ bblInstance *int_function::findBlockInstanceByAddr(Address addr) {
     return NULL;
 }
 
+bblInstance *int_function::findBlockInstanceByEntry(Address addr) {
+   std::map<Address, bblInstance *>::iterator iter = blocksByEntry_.find(addr);
+   if (iter == blocksByEntry_.end()) return NULL;
+   return iter->second;
+}
+
 int_basicBlock *int_function::findBlockByAddr(Address addr) {
     bblInstance *inst = findBlockInstanceByAddr(addr);
     if (inst)
@@ -1643,12 +1628,13 @@ bblInstance::bblInstance(Address start, Address last, Address end, int_basicBloc
         fprintf(stderr, "bblInstance_count: %d (%d)\n",
                 bblInstance_count, bblInstance_count*sizeof(bblInstance));
 #endif
-    if (firstInsnAddr_ == 0x9334c7) {
+    if (firstInsnAddr_ == 0x9335ab) {
             cerr << "DEBUG BREAKPOINT!" << endl;
         }
 
     // And add to the mapped_object code range
     block_->func()->obj()->codeRangesByAddr_.insert(this);
+    block_->func()->blocksByEntry_[firstInsnAddr()] = this;
 };
 
 bblInstance::bblInstance(int_basicBlock *parent, int version) : 
@@ -1660,6 +1646,8 @@ bblInstance::bblInstance(int_basicBlock *parent, int version) :
 {
     // And add to the mapped_object code range
     //block_->func()->obj()->codeRangesByAddr_.insert(this);
+
+    block_->func()->blocksByEntry_[firstInsnAddr()] = this;
 };
 
 bblInstance::bblInstance(const bblInstance *parent, int_basicBlock *block) :
@@ -1679,6 +1667,9 @@ bblInstance::bblInstance(const bblInstance *parent, int_basicBlock *block) :
 }
 
 bblInstance::~bblInstance() {
+    if (firstInsnAddr()  == 0x9335a1) {
+        cerr << "DEBUG BREAKPOINT!";
+        }
     mal_printf("deleting bblInstance at %lx\n", firstInsnAddr());
 }
 

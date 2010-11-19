@@ -65,6 +65,9 @@ Function::Function(Address addr, string name, CodeObject * obj,
 {
     if (obj->defensiveMode()) {
         mal_printf("new funct at %lx\n",addr);
+        if (addr == 0x0) {
+            cerr << "BREAKPOINT" << endl;
+            }
     }
 }
 
@@ -486,14 +489,17 @@ Function::tampersStack(bool recalculate)
     }
 
     if (TAMPER_ABS == _tamper) {
-        if (_tamper_addr >= obj()->cs()->loadAddress()) {
-            _tamper_addr -= obj()->cs()->loadAddress();
-        }
-        if (! obj()->cs()->isCode(_tamper_addr)) {
-            mal_printf("WARNING: function at %lx tampers its stack to point at "
-                       "invalid address 0x%lx %s[%d]\n", _start, _tamper_addr,
-                       FILE__,__LINE__);
+        if (_tamper_addr <  obj()->cs()->loadAddress()) {
             _tamper = TAMPER_NONZERO;
+        }
+        else {
+            _tamper_addr -= obj()->cs()->loadAddress();
+            if (! obj()->cs()->isCode(_tamper_addr)) {
+                mal_printf("WARNING: function at %lx tampers its stack to point at "
+                           "invalid address 0x%lx %s[%d]\n", _start, _tamper_addr,
+                           FILE__,__LINE__);
+                _tamper = TAMPER_NONZERO;
+            }
         }
     }
     if ( TAMPER_NONE != _tamper && TAMPER_REL != _tamper && RETURN == _rs ) {

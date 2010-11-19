@@ -578,8 +578,12 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 		    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
 			//cerr << "STACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
 			ev.type = evtIgnore;
-			}
-		}
+            }
+        if (activeFrame.getUninstAddr() == 0x9335a2) {
+            exit(0);
+            }
+
+         }
   }
   else {
 	  ev.type = evtCritical;
