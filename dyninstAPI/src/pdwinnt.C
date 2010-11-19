@@ -2633,7 +2633,7 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
             fprintf(stderr, "WARNING: overwrote shared code, we may not "
                     "handle this correctly %lx->%lx[%lx] %s[%d]\n",
                     ev.address, writtenAddr, origWritten, FILE__,__LINE__);
-            assert(0 && "overwrote shared code"); //KEVINTODO: test this case
+            //assert(0 && "overwrote shared code"); //KEVINTODO: test this case
         }
     }
 
