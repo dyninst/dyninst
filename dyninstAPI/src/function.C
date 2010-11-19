@@ -1031,30 +1031,45 @@ void int_function::addMissingBlock(image_basicBlock & missingB)
         vector<Function*> tfuncs;
         (*eit)->trg()->getFuncs(tfuncs);
         if (tfuncs.size() > funcs.size()) {
-            // we fell through into another function and need to add all of
+            // we fell through into another function and need to add some of
             // its blocks to our function
-            vector<Function*>::iterator ait = funcs.begin();
-            vector<Function*>::iterator bit = tfuncs.begin();
-            for (;ait != funcs.end() && bit != tfuncs.end(); ait++,bit++) {
-                if ((*ait) != (*bit)) {
-                    parsedInto = *bit;
+            image_func *tfunc = NULL;
+            for (vector<Function*>::iterator tit = tfuncs.begin();
+                 tit != tfuncs.end();
+                 tit++) 
+            {
+                bool foundit = false;
+                for (vector<Function*>::iterator fit = funcs.begin();
+                     fit != funcs.end();
+                     fit++) 
+                {
+                    if ((*tit) == (*fit)) {
+                        foundit = true;
+                        break;
+                    }
+                }
+                if (!foundit) {
+                    tfunc = static_cast<image_func*>(*tit);
                     break;
                 }
             }
-            if (!parsedInto) {
-                assert(bit != tfuncs.end());
-                parsedInto = *bit;
+            assert(tfunc);
+            malware_cerr << "FUNC 0x" << hex << getAddress() 
+                << " PARSED INTO SHARED FUNC 0x" 
+                << tfunc->addr() + obj()->codeBase()
+                << " AT 0x" << missingB.start() + obj()->codeBase() 
+                << dec << endl;
+            set<image_basicBlock*> emptyset;
+            list<image_basicBlock*> seedBs;
+            seedBs.push_back(&missingB);
+            set<image_basicBlock*> reachableBs;
+            tfunc->getReachableBlocks(emptyset,seedBs,reachableBs);
+            for (set<image_basicBlock*>::iterator bit = reachableBs.begin();
+                bit != reachableBs.end(); 
+                bit++)
+            {
+                addMissingBlock(*static_cast<image_basicBlock*>(*bit));
             }
-        }
-    }
-    if (parsedInto) {
-        malware_cerr << "PARSED INTO SHARED FUNC" << endl;
-        Function::blocklist & blocks = parsedInto->blocks();
-        for (Function::blocklist::iterator bit = blocks.begin();
-            bit != blocks.end(); 
-            bit++)
-        {
-            addMissingBlock(*static_cast<image_basicBlock*>(*bit));
         }
     }
 }
