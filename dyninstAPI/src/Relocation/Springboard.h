@@ -63,7 +63,7 @@ struct SpringboardReq {
    Address from;
    Address to;
    Priority priority;
-   bblInstance *bbl;
+   std::set<bblInstance *> bbls;
    bool checkConflicts;
    bool includeRelocatedCopies;
    bool fromRelocatedCode;
@@ -76,16 +76,46 @@ struct SpringboardReq {
                   bool i)
    : from(a), to(b), 
       priority(c), 
-      bbl(d), 
       checkConflicts(e), 
       includeRelocatedCopies(f),
       fromRelocatedCode(g),
-      useTrap(i) {};
+      useTrap(i) 
+   {
+       bbls.insert(d);
+   }
    SpringboardReq() 
    : from(0), to(0), priority(NotRequired), 
-      bbl(NULL),
+      checkConflicts(false),
       includeRelocatedCopies(false),
-      fromRelocatedCode(false) {};
+      fromRelocatedCode(false),
+      useTrap(false) {};
+    void addReq (const Address a, const Address b,
+                        const Priority c, bblInstance *d,
+                        bool e, bool f, bool g, bool i) 
+    {
+        // This mechanism handles overlapping functions, where
+        // we might see springboards from the same address to
+        // different targets. In this case only one can win,
+        // but we want to track the different bbls so that
+        // we can do the right thing with includeRelocatedCopies.
+        if (from == 0) {
+            // New version version
+            assert(to == 0);
+            from = a;
+            to = b;
+            priority = c;
+            bbls.insert(d);
+            checkConflicts = e;
+            includeRelocatedCopies = f;
+            fromRelocatedCode = g;
+            useTrap = i;
+        }
+        else {
+            assert(from == a);
+            // Ignore everything else but the bbl
+            bbls.insert(d);
+        }
+    }
 };
 
 class SpringboardBuilder;
@@ -107,10 +137,8 @@ class SpringboardBuilder;
 
    void addFromOrigCode(Address from, Address to, 
                         Priority p, bblInstance *bbl) {
-      sBoardMap_[p][from] = SpringboardReq(from, to,
-                                           p, bbl,
-                                           true, true,
-                                           false, false);
+// This uses the default constructor if it isn't already there.
+      sBoardMap_[p][from].addReq(from, to, p, bbl, true, true, false, false);
    }
 
    void addFromRelocatedCode(Address from, Address to,
@@ -132,43 +160,12 @@ class SpringboardBuilder;
                                            fromRelocatedCode, useTrap);
    }
 
-#if 0
-   void add(Address from, Address to, 
-            Priority p, bblInstance *bbl, 
-            bool checkConflicts, bool includeRelocatedCopies, 
-            bool fromRelocatedCode) {
-      sBoardMap_[p][from] = SpringboardReq(from, to,
-                                           p, bbl,
-                                           checkConflicts, 
-                                           includeRelocatedCopies,
-                                           fromRelocatedCode);
-   }
-#endif
-
    iterator begin(Priority p) { return sBoardMap_[p].begin(); };
    iterator end(Priority p) { return sBoardMap_[p].end(); };
 
    reverse_iterator rbegin(Priority p) { return sBoardMap_[p].rbegin(); };
    reverse_iterator rend(Priority p) { return sBoardMap_[p].rend(); };
 
-#if 0
-   bool conflict(Address orig, Address current) const {
-     // We have a conflict if there is an entry in the sBoardMap_ 
-     // for current that is _not_ orig. 
-     // Since we don't really want to walk backwards looking for matches,
-     // we do it the std::map black magic way. Yeah!
-     const_iterator iter = sBoardMap_.lower_bound(current);
-     if (iter == sBoardMap_.end()) { return false; } // Huh?
-     if (iter->first == orig) return false; // Easy money...
-     if (iter->first == current) return false; // This is okay; the input current
-     // is the ending address.
-
-     // Step iter back one and see if we found something
-     assert (iter != sBoardMap_.begin());
-     --iter;
-     return (iter->first != orig);
-   }
-#endif
 
  private:
    Springboards sBoardMap_;

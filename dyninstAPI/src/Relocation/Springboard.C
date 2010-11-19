@@ -357,27 +357,30 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool
    // Just the requests for now.
    
    std::list<Address> relocAddrs;
-   addrSpace_->getRelocAddrs(req.from, req.bbl->func(), relocAddrs, true);
-   for (std::list<Address>::const_iterator addr = relocAddrs.begin(); 
-        addr != relocAddrs.end(); ++addr) {
-      if (*addr == req.to) continue;
-      Priority newPriority;
-      switch(req.priority) {
-         case Suggested:
-            newPriority = RelocSuggested;
-            break;
-         case Required:
-            newPriority = RelocRequired;
-            break;
-         default:
-            assert(0);
-            break;
-      }
-      
-      input.addRaw(*addr, req.to, 
-                   newPriority, req.bbl,
-                   req.checkConflicts, 
-                   false, true, useTrap);
+   for (std::set<bblInstance *>::const_iterator b_iter = req.bbls.begin(); 
+           b_iter != req.bbls.end(); ++b_iter) {
+       addrSpace_->getRelocAddrs(req.from, (*b_iter)->func(), relocAddrs, true);
+       for (std::list<Address>::const_iterator addr = relocAddrs.begin(); 
+            addr != relocAddrs.end(); ++addr) {
+          if (*addr == req.to) continue;
+          Priority newPriority;
+          switch(req.priority) {
+             case Suggested:
+                newPriority = RelocSuggested;
+                break;
+             case Required:
+                newPriority = RelocRequired;
+                break;
+             default:
+                assert(0);
+                break;
+          }
+          
+          input.addRaw(*addr, req.to, 
+                       newPriority, *b_iter,
+                       req.checkConflicts, 
+                       false, true, useTrap);
+       }
    }
    return true;
 }
