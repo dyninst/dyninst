@@ -100,7 +100,8 @@ verbose_log(Address currAddr, Edges_t::iterator & curEdge)
 }
 } // anonymous namespace
 
-void getBlockInsns(Block &blk, std::set<Address> &addrs)
+static void 
+getBlockInsns(Block &blk, std::set<Address> &addrs)
 {
     unsigned bufSize = blk.size();
 #if defined(cap_instruction_api)
@@ -250,6 +251,11 @@ void Parser::ProcessCFInsn(
                         } 
                     } else if (insns_cur.end() == insns_cur.find((*bit)->start())) {
                         hasUnalignedEdge = true;
+                    }
+                    if (hasUnalignedEdge) {
+                        mal_printf("Found unaligned blocks [%lx %lx) [%lx %lx), adding abruptEnd "
+                                   "point and killing out edges\n", cur->start(), cur->end(), 
+                                   (*bit)->start(), (*bit)->end());
                     }
                 }
             }

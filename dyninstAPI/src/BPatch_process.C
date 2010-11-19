@@ -1673,6 +1673,25 @@ bool BPatch_process::hideDebuggerInt()
 {
     bool retval = llproc->hideDebugger();
     // disable API calls
+
+    // blockInput
+    BPatch_module *user = image->findModule("user32.dll");
+    if (user) {
+        vector<BPatch_function*> funcs;
+        user->findFunction(
+            "BlockInput",
+            funcs, false, false, false, true);
+        assert (funcs.size());
+        Address entry = (Address)funcs[0]->getBaseAddr();
+        unsigned char patch[4];
+        patch[0] = 0x33; // xor eax,eax
+        patch[1] = 0xc0;
+        patch[2] = 0x40; // inc eax
+        patch[3] = 0xc3; // retn
+        llproc->writeDataSpace((void*)entry,4,&patch);
+        funcs.clear();
+    }
+
     BPatch_module *kern = image->findModule("kernel32.dll");
     if (kern) { // should only succeed on windows
         // CheckRemoteDebuggerPresent
@@ -1694,9 +1713,8 @@ bool BPatch_process::hideDebuggerInt()
             funcs, false, false, true);
         assert(funcs.size());
         vector<BPatch_function*> sle_funcs;
-        kern->findFunction(
-            "SetLastError",
-            sle_funcs, false, false, true);
+        kern->findFunction("SetLastErrorEx", sle_funcs, 
+                           false, false, false, true);
         if ( sle_funcs.size() ) {
             // KEVINTODO: I'm not finding this function, so I'm not safe from 
             // the anti-debug tactic
@@ -1728,7 +1746,7 @@ bool BPatch_process::setMemoryAccessRights
         return false;
         }
     }
-    stoppedlwp->changeMemoryProtections(start, size, rights);
+    stoppedlwp->changeMemoryProtections(start, size, rights,true);
     return true;
 }
 
@@ -2009,7 +2027,7 @@ bool BPatch_process::protectAnalyzedCode()
            || curMod->obj()->isSharedLib()) {
           continue; // don't trigger analysis and don't protect shared libraries
        }
-       ret = (*bpMods)[midx]->protectAnalyzedCode() && ret;
+       ret = (*bpMods)[midx]->setAnalyzedCodeWriteable(false) && ret;
     }
     return false;
 }

@@ -495,15 +495,17 @@ bool int_function::removePoint(instPoint *point)
             }
         }
         break;
+    case abruptEnd:
+        if (abruptEnds_.find(point) != abruptEnds_.end()) {
+            abruptEnds_.erase(point);
+            foundPoint = true;
+        }
+        break;
     default: // includes noneType
         assert(0); // unhandled case!
     }
     if (unresolvedPoints_.find(point) != unresolvedPoints_.end()) {
         unresolvedPoints_.erase(point);
-        foundPoint = true;
-    }
-    if (abruptEnds_.find(point) != abruptEnds_.end()) {
-        abruptEnds_.erase(point);
         foundPoint = true;
     }
     if (point->imgPt()) {
@@ -704,8 +706,7 @@ bool int_function::parseNewEdges(const std::vector<edgeStub> &stubs )
     }
  
 /* 1. Parse from target address, add new edge at image layer  */
-    assert( !ifunc()->img()->hasSplitBlocks() && 
-            !ifunc()->img()->hasNewBlocks());
+    assert( !ifunc()->img()->hasSplitBlocks() );
     ifunc()->img()->codeObject()->parseNewEdges(sources, targets, edgeTypes);
 
 /* 2. Register all newly created image_funcs as a result of new edge parsing */
@@ -834,12 +835,15 @@ void int_function::deleteBlock(int_basicBlock* block)
 				const ParseAPI::Block::edgelist &edges = (*iter)->targets();
 				for (ParseAPI::Block::edgelist::iterator e_iter = edges.begin(); e_iter != edges.end(); ++e_iter) {
 					cerr << "\t\t\t Edge to: " << hex << (*e_iter)->trg()->start() << dec << endl;
-					}
 				}
 			}
 		}
+	}
 
-	assert( ! imgBlock->isShared() ); //KEVINTODO: unimplemented case
+	//assert( ! imgBlock->isShared() ); //KEVINTODO: unimplemented case
+    mal_printf("WARNING: deleting shared block [%lx %lx)\n", 
+               block->origInstance()->firstInsnAddr(), 
+               block->origInstance()->endAddr());
     Address baseAddr = obj()->codeBase();
 
     // remove parse points
@@ -930,6 +934,10 @@ void int_function::addMissingBlock(image_basicBlock & missingB)
     Address baseAddr = getAddress() - ifunc()->getOffset();
     bblInstance *bbi = findBlockInstanceByAddr( 
         missingB.firstInsnOffset() + baseAddr );
+
+    if (bbi && &missingB == bbi->block()->llb()) {
+        return;
+    }
 
     if ( bbi && &missingB != bbi->block()->llb() ) 
     {
@@ -1047,7 +1055,9 @@ void int_function::addMissingBlock(image_basicBlock & missingB)
                 bit != reachableBs.end(); 
                 bit++)
             {
-                addMissingBlock(*static_cast<image_basicBlock*>(*bit));
+                if ((*bit) != &missingB) {
+                    addMissingBlock(*static_cast<image_basicBlock*>(*bit));
+                }
             }
         }
     }
