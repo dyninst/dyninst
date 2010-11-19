@@ -131,6 +131,15 @@ bool MemEmulatorTransformer::canRewriteMemInsn(CopyInsn::Ptr reloc,
 }
 
 bool MemEmulatorTransformer::override(CopyInsn::Ptr reloc) {
+    unsigned char *buf = (unsigned char *)reloc->insn()->ptr();
+    if (reloc->addr() == 0x905574) {
+        cerr << "DEBUG BREAKPOINT!" << endl;
+    }
+    if (buf[0] == (unsigned char) 0xa1 ||
+        buf[0] == (unsigned char) 0xa3) { 
+            // Read/write with addr specified in an operand
+            return true;
+    }
    const InstructionAPI::Instruction::Ptr &insn = reloc->insn();
 
    const InstructionAPI::Operation &op = insn->getOperation();
@@ -206,11 +215,17 @@ bool MemEmulatorTransformer::isSensitive(CopyInsn::Ptr reloc,
       if (i->contains(Absloc::Heap)) {
 	    return true;
       }
+      if (i->absloc().type() == Absloc::Heap) {
+          return true;
+      }
     }
     // Writes too
     relocation_cerr << "\t\t Output: " << (*a_iter)->out().format() << endl;      
     if ((*a_iter)->out().contains(Absloc::Heap)) {
 	  return true;
+    }
+    if ((*a_iter)->out().absloc().type() == Absloc::Heap) {
+        return true;
     }
   }
 

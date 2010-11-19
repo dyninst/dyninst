@@ -56,7 +56,7 @@
 #include "dyninstAPI/src/RegisterConversion-x86.h"
 
 #include "boost/tuple/tuple.hpp"
-
+#include "memEmulator.h"
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
@@ -92,9 +92,16 @@ bool MemEmulator::generate(const codeGen &templ,
 
 bool MemEmulator::generateViaOverride(const codeGen &templ,
                                       const Trace *t,
-                                      CodeBuffer &buffer) {
+                                      CodeBuffer &buffer) 
+{
+    // Watch for a1/a2/a3 moves 
+    char *buf = (char *)insn_->ptr();
+    if (buf[0] == 0xa1 ||
+        buf[0] == 0xa3) {
+            return generateEAXMove(buf[0], templ, t, buffer);
+    }
+                                          
    const InstructionAPI::Operation &op = insn_->getOperation();
-
    switch(op.getID()) {
       case e_scasb:
       case e_scasd:
@@ -125,6 +132,54 @@ bool MemEmulator::generateViaOverride(const codeGen &templ,
    }
    return false;
 }
+
+bool MemEmulator::generateEAXMove(int opcode, 
+                                  const codeGen &templ,
+                                  const Trace *t,
+                                  CodeBuffer &buffer) 
+{
+    // mov [offset], eax
+    // We hates them.
+    codeGen patch(128);
+    patch.applyTemplate(templ);
+
+    Address origTarget;
+    if (opcode == 0xa1) {
+        // read from memory
+        std::set<Expression::Ptr> reads;
+        insn_->getMemoryReadOperands(reads);
+        assert(reads.size() == 1);
+        Result res = (*(reads.begin()))->eval();
+        assert(res.defined);
+        origTarget = res.convert<Address>();
+    }
+    else {
+        assert(opcode == 0xa3);
+        // write
+        std::set<Expression::Ptr> writes;
+        insn_->getMemoryWriteOperands(writes);
+        assert(writes.size() == 1);
+        Result res = (*(writes.begin()))->eval();
+        assert(res.defined);
+        origTarget = res.convert<Address>();
+    }
+    // Map it to the new location
+    bool valid; Address target;
+    boost::tie(valid, target) = patch.addrSpace()->getMemEm()->translate(origTarget);
+    if (!valid) target = origTarget;
+    cerr << "Handling mov EAX, [offset]: opcode " << hex << opcode << ", orig dest " << origTarget << " and translated " << target << dec << endl;
+    // And emit the insn
+    assert(insn_->size() == 5);
+    GET_PTR(buf, patch);
+    *buf = (char) opcode; buf++;
+    int *tmp = (int *)buf;
+    *tmp = target; tmp++;
+    buf = (codeBuf_t *)tmp;
+    SET_PTR(buf, patch);
+    buffer.addPIC(patch, tracker(t->bbl()->func()));
+    return true;
+}
+
 bool GLOBAL_DISASSEMBLY = false;
 bool MemEmulator::generateViaModRM(const codeGen &templ,
                                    const Trace *t, 
@@ -141,10 +196,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
    prepatch.applyTemplate(templ);
 
    bool debug = false;
-   if (addr_ == 0x9335ab ||
-       addr_ == 0x9335a2) {
-       debug = true;
-       }
+
 
   // We want to ensure that a memory operation produces its
   // original result in the face of overwriting the text

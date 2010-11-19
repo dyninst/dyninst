@@ -288,7 +288,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         } else {
             from = obj->codeBase() + reg->getMemOffset();
         }
-        cerr << "SYNC READ FROM " << hex << from << " -> " << from + reg->getMemSize() << dec << endl;
+        //cerr << "SYNC READ FROM " << hex << from << " -> " << from + reg->getMemSize() << dec << endl;
         if (!aS_->readDataSpace((void *)from,
                                 reg->getMemSize(),
                                 regbuf,
@@ -304,11 +304,11 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         } else {
             toBase = addedRegions_[reg];
         }
-        cerr << "SYNC WRITE TO " << hex << toBase << dec << endl;
+        //cerr << "SYNC WRITE TO " << hex << toBase << dec << endl;
         for (; sit != springboards_[reg].end(); sit++) {
             assert(cp_start <= sit->first);
             int cp_size = sit->first - cp_start;
-            cerr << "\t Write " << hex << toBase + cp_start << "..." << toBase + cp_start + cp_size << dec << endl;
+            //cerr << "\t Write " << hex << toBase + cp_start << "..." << toBase + cp_start + cp_size << dec << endl;
             if (cp_size &&
                 !aS_->writeDataSpace((void *)(toBase + cp_start),
                                      cp_size,
@@ -318,7 +318,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
             }
             cp_start = sit->first + sit->second;
         }
-        cerr << "\t Finishing write " << hex << toBase + cp_start << " -> " << toBase + cp_start + reg->getMemSize() - cp_start << dec << endl;
+        //cerr << "\t Finishing write " << hex << toBase + cp_start << " -> " << toBase + cp_start + reg->getMemSize() - cp_start << dec << endl;
 
         if (cp_start < reg->getMemSize() &&
             !aS_->writeDataSpace((void *)(toBase + cp_start),
@@ -342,6 +342,10 @@ void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size)
     //    if (sit->first >= offset + size) break;
     //    assert(0);
     //}
+
+    for (Address tmp = offset; tmp < offset + size; ++tmp) {
+        springboards_[reg].erase(tmp);
+    }
 
     springboards_[reg][offset] = size;
 }

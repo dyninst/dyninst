@@ -146,6 +146,7 @@ class MemEmulator : public Atom {
    */
 
    bool generateImplicit(const codeGen &templ, const Trace *t, CodeBuffer &buffer);
+   bool generateEAXMove(int opcode, const codeGen &templ, const Trace *t, CodeBuffer &buffer);
 
    InstructionAPI::Instruction::Ptr insn_;
    Address addr_;
