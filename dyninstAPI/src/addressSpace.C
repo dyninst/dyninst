@@ -56,6 +56,7 @@
 #include "Relocation/CodeTracker.h"
 #include "MemoryEmulator/memEmulatorTransformer.h"
 #include "MemoryEmulator/memEmulator.h"
+#include "parseAPI/h/CodeObject.h"
 #include <boost/tuple/tuple.hpp>
 
 // Implementations of non-virtual functions in the address space
@@ -828,6 +829,11 @@ mapped_object *AddressSpace::findObject(Address addr) {
         }
     }
     return NULL;
+}
+
+mapped_object *AddressSpace::findObject(ParseAPI::CodeObject *co) {
+    return findObject(static_cast<ParseAPI::SymtabCodeSource*>(co->cs())->
+            getSymtabObject()->name());
 }
 
 int_function *AddressSpace::findFuncByAddr(Address addr) {

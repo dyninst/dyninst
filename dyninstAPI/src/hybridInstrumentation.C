@@ -69,6 +69,12 @@ static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig)
 {
     BPatch_process *proc = dynamic_cast<BPatch_process*>(
        point->getFunction()->getAddSpace());
+    BPatch_module *targMod = proc->findModuleByAddr(point->getSavedTargets(targs));
+    assert(targMod); //oops, we don't know where this call goes, if it's not to
+                     //another module, we really don't want to synch
+    if (targMod == point->getFunction()->getModule()) {
+        return; // synch only if we leave the module
+    }
     int_function *func = point->llpoint()->func();
     proc->lowlevel_process()->getMemEm()->synchShadowOrig(func->obj(), (bool) toOrig);
     if (toOrig) {
@@ -276,7 +282,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             // if memory is emulated, and we don't know that it doesn't go to 
             // a non-instrumented library, add a callback to synchShadowOrigCB_wrapper
             if (proc()->lowlevel_process()->isMemoryEmulated()) {
-                BPatch_module *mod = proc()->findModuleByAddr(curPoint->getSavedTarget());
+                BPatch_module *mod = proc()->findModuleByAddr(curPoint->getSavedTargets(targs));
                 if (memHandles.end() == memHandles.find(curPoint) &&
                      ( !mod || 
                         mod->lowlevel_mod()->obj() != 

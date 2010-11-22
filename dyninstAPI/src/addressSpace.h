@@ -58,6 +58,7 @@ class instPoint;
 class BPatch_process;
 class BPatch_function;
 class BPatch_point;
+class ParseAPI::CodeObject;
 
 class Emitter;
 class generatedCodeObject;
@@ -262,6 +263,7 @@ class AddressSpace : public InstructionSource {
     mapped_object *findObject(const std::string &obj_name, bool wildcard = false);
     mapped_object *findObject(Address addr);
     mapped_object *findObject(fileDescriptor desc);
+    mapped_object *findObject(ParseAPI::CodeObject *co);
 
     mapped_object *getAOut() { assert(mapped_objects.size()); return mapped_objects[0];}
     

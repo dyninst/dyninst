@@ -217,7 +217,7 @@ public:
     bool getCFTargets(BPatch_Vector<Dyninst::Address> &targets);
     Dyninst::Address getCallFallThroughAddr();
     void setResolved();
-    Dyninst::Address getSavedTarget();
+    bool getSavedTargets(std::set<Address> & targs);
     bool patchPostCallArea();
     // End internal functions
 

@@ -337,7 +337,6 @@ instPoint::instPoint(instPoint *parP,
     addr_(parP->addr()),
     hasNewInstrumentation_(parP->hasNewInstrumentation_),
     hasAnyInstrumentation_(parP->hasAnyInstrumentation_),
-    savedTarget_(parP->savedTarget_)
 {
 }
                   
@@ -622,48 +621,22 @@ void instPoint::setBlock( int_basicBlock* newBlock )
     block_ = newBlock;
 }
 
-Address instPoint::getSavedTarget()
+bool instPoint::getSavedTargets(set<Address> & targs)
 {
-    if (0 == savedTarget_) { 
-        // if the target is not set, see if there's a point at this
-        // address in another function whose target has been saved,
-        // retrieve that
-        vector<ParseAPI::Function *> allfuncs;
-        image_basicBlock *imgBlock = func()->findBlockByAddr(addr())->llb();
-        imgBlock->getFuncs(allfuncs);
-        if (allfuncs.size() > 1) {
-            for(vector<ParseAPI::Function*>::iterator fIter = allfuncs.begin();
-                fIter != allfuncs.end(); 
-                fIter++) 
-            {
-                instPoint *curPoint = proc()->
-                    findFuncByInternalFunc(dynamic_cast<image_func*>(*fIter))->
-                    findInstPByAddr(addr());
-                if (savedTarget_ !=0 && curPoint != NULL &&
-                    savedTarget_ != curPoint->savedTarget_) 
-                {
-                    savedTarget_ = (Address) -1;
-                }
-                else if (curPoint != NULL) { 
-                    savedTarget_ = curPoint->savedTarget_;
-                }
-            }
+    using namespace ParseAPI;
+    Block::edgelist & trgs = block()->llb()->targets();
+    for (Block::edgelist::iterator eit = trgs.begin();
+         eit != trgs.end();
+         eit++)
+    {
+        if ( !(*eit)->sinkEdge() ) {
+            Block *trg = (*eit)->trg();
+            
+            targs.insert(trg->start());
+            
         }
     }
-    return savedTarget_;
-}
-
-void instPoint::setSavedTarget(Address st_)
-{
-    Address newVal = st_;
-    // savedTarget_ == 0 means it hasn't been set yet
-    if (0 != savedTarget_ && savedTarget_ != st_) {
-        mal_printf("WARNING!!! instPoint at %lx resolves to more than "
-                "one target, %lx and now %lx, setting target to -1 %s[%d]\n", 
-                addr_, savedTarget_, st_, FILE__,__LINE__);
-        newVal = (Address)-1;
-    }
-    savedTarget_ = newVal;
+    return ! targs.empty();
 }
 
 bool instPoint::isReturnInstruction()

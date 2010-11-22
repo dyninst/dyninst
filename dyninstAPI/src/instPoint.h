@@ -386,10 +386,9 @@ class instPoint : public instPointBase {
 
   Address callTarget() const;
 
-  // the saved target for the point, kept in sync with other
-  // points at this address if there's function sharing
-  Address getSavedTarget();
-  void setSavedTarget(Address st_);
+  // returns the saved targets for the point, returning
+  // false if there are none.  
+  bool getSavedTargets(std::set<Address> &targs);
   // returns false if it was already resolved
   bool setResolved();
   // needed for blocks that are split after the initial parse
@@ -517,8 +516,6 @@ class instPoint : public instPointBase {
 
   bool hasNewInstrumentation_;
   bool hasAnyInstrumentation_;
-
-  Address savedTarget_;
 
 };
 

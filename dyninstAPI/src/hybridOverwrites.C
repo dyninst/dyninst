@@ -359,7 +359,7 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop
         mal_printf(" instr unresolved: 0x%x in func at 0x%lx\n", 
                   uAddr, (*uIter)->getFunction()->getBaseAddr());
         if ((*uIter)->isDynamic()) {
-            long st = (*uIter)->getSavedTarget();
+            long st = (*uIter)->getSavedTargets(targs);
             BPatch_constExpr stSnip(st);
             BPatch_ifExpr stopIfNewTarg
                 ( BPatch_boolExpr(BPatch_ne, dynTarg, stSnip),
@@ -587,12 +587,12 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop(BPatch_function &func, Add
                     pIter++) 
                 {
                     if ((*pIter)->isDynamic()) {
-                        if (0 == (*pIter)->getSavedTarget()) {
+                        if (0 == (*pIter)->getSavedTargets(targs)) {
                             // for now, warn, but allow to proceed
                             mal_printf("loop has an unresolved indirect transfer at %lx\n", 
                                     (*pIter)->getAddress());
                             hasIndirect = true;
-                        } else if (-1 == (long)(*pIter)->getSavedTarget()) {
+                        } else if (-1 == (long)(*pIter)->getSavedTargets(targs)) {
                             mal_printf("loop has an ambiguously resolved indirect transfer at %lx\n", 
                                     (*pIter)->getAddress());
                             hasIndirect = true;
@@ -686,7 +686,7 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
             pIter != unresolvedCF.end(); 
             pIter++) 
         {
-            Address curTarg = (*pIter)->getSavedTarget();
+            Address curTarg = (*pIter)->getSavedTargets(targs);
             if (-1 == (long)curTarg) {
                 hasUnresolved = true;
                 mal_printf("loop %d calls func %lx which has an ambiguously "
@@ -771,7 +771,7 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
             pIter++) 
         {
             if ((*pIter)->isDynamic()) {
-                Address target = (*pIter)->getSavedTarget();
+                Address target = (*pIter)->getSavedTargets(targs);
                 if (-1 == (long)target) {
                     // if the transfer's target is not uniquely resolved, 
                     // we won't use this loop

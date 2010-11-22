@@ -4592,7 +4592,32 @@ Address process::stopThreadCtrlTransfer
 
     // save the targets of indirect control transfers, save them in the point
     if (intPoint->isDynamic() && ! intPoint->isReturnInstruction()) {
-        intPoint->setSavedTarget(unrelocTarget);
+        // if necessary, add the target edge
+        using namespace ParseAPI;
+        Block::edgelist &edges = intPoint->block()->llb()->targets();
+        Block::edgelist::iterator eit = edges.begin();
+        for (; eit != edges.end(); eit++)
+            if (CALL == (*eit)->type() || INDIRECT == (*eit)->type())
+                break;
+        if (eit == edges.end()) {
+            // add edge
+            vector<Block*>  srcs; 
+            vector<Address> trgs;
+            vector<EdgeTypeEnum> etypes;
+            srcs.push_back(intPoint->block()->llb());
+            trgs.push_back(target);
+            mal_printf("Adding indirect edge %lx->%lx", pointAddr, target);
+            if (callSite == intPoint->getPointType()) {
+                etypes.push_back(CALL);
+                mal_printf("of type CALL\n");
+            } else {
+                etypes.push_back(INDIRECT);
+                mal_printf("of type INDIRECT\n");
+            }
+            intPoint->func()->ifunc()->img()->codeObject()->
+                parseNewEdges(srcs,trgs,etypes);
+        }
+        //intPoint->setSavedTarget(unrelocTarget);
     }
     else if ( ! intPoint->isDynamic() && 
               functionExit != intPoint->getPointType()) 
