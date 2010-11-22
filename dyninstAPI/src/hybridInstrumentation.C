@@ -44,6 +44,31 @@
 
 using namespace Dyninst;
 
+// underestimates the likelihood that an indirect control flow instruction is 
+// intramodular
+static bool isIntraMod(BPatch_point *point)
+{
+    set<Address> targs;
+    point->getSavedTargets(targs);
+
+    if (targs.empty()) {
+        return false;
+    }
+
+    for (set<Address>::iterator tit= targs.begin();
+         tit != targs.end(); 
+         tit++) 
+    {
+        BPatch_module *targMod = proc->findModuleByAddr(*tit);
+        if (targMod != point->getFunction()->getModule()) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/* Callback wrapper funcs */
 static void badTransferCB_wrapper(BPatch_point *point, void *calc) 
 { 
     dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
@@ -67,20 +92,20 @@ static void signalHandlerExitCB_wrapper(BPatch_point *point, void *returnAddr)
 }
 static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig) 
 {
+    if ( isIntraMod(point) ) {
+        return;
+    }
+
     BPatch_process *proc = dynamic_cast<BPatch_process*>(
        point->getFunction()->getAddSpace());
-    BPatch_module *targMod = proc->findModuleByAddr(point->getSavedTargets(targs));
-    assert(targMod); //oops, we don't know where this call goes, if it's not to
-                     //another module, we really don't want to synch
-    if (targMod == point->getFunction()->getModule()) {
-        return; // synch only if we leave the module
-    }
-    int_function *func = point->llpoint()->func();
-    proc->lowlevel_process()->getMemEm()->synchShadowOrig(func->obj(), (bool) toOrig);
+    BPatch_function *pfunc = point->getFunction();
+    proc->lowlevel_process()->getMemEm()->synchShadowOrig
+        ( pfunc->lowlevel_func()->obj(), 
+          (bool) toOrig);
     if (toOrig) {
-        point->getFunction()->getModule()->setAnalyzedCodeWriteable(true);
+        pfunc->getModule()->setAnalyzedCodeWriteable(true);
     } else {
-        point->getFunction()->getModule()->setAnalyzedCodeWriteable(false);
+        pfunc->getModule()->setAnalyzedCodeWriteable(false);
     }
 }
 
@@ -282,11 +307,8 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             // if memory is emulated, and we don't know that it doesn't go to 
             // a non-instrumented library, add a callback to synchShadowOrigCB_wrapper
             if (proc()->lowlevel_process()->isMemoryEmulated()) {
-                BPatch_module *mod = proc()->findModuleByAddr(curPoint->getSavedTargets(targs));
-                if (memHandles.end() == memHandles.find(curPoint) &&
-                     ( !mod || 
-                        mod->lowlevel_mod()->obj() != 
-                        curPoint->llpoint()->func()->obj() ))
+                if ( memHandles.end() == memHandles.find(curPoint) &&
+                     ! isIntraMod(curPoint) )
                 {
                     std::pair<BPatchSnippetHandle*,BPatchSnippetHandle*> handles;
                     handles.first = proc()->insertSnippet

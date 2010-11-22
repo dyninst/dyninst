@@ -29,6 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "parseAPI/h/CodeObject.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "memEmulator.h"
 #include "dyninstAPI/src/mapped_object.h"

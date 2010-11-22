@@ -41,6 +41,7 @@
 #include "dyninstAPI/src/trapMappings.h"
 #include <list>
 
+#include "parseAPI/h/CodeObject.h"
 #include "parseAPI/h/InstructionSource.h"
 #include "Relocation/Relocation.h"
 #include "Relocation/CodeTracker.h"
@@ -58,7 +59,6 @@ class instPoint;
 class BPatch_process;
 class BPatch_function;
 class BPatch_point;
-class ParseAPI::CodeObject;
 
 class Emitter;
 class generatedCodeObject;
