@@ -139,7 +139,7 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
   // or a targetBaseTramp (for taken edges)
 
   if (point) {
-    //relocation_cerr << "   Trailing <point>, checking edge instrumentation" << endl;
+    cerr << "   Trailing <point>, checking edge instrumentation" << endl;
     baseTramp *target = point->targetBaseTramp();
     // post is still assigned from above
     if (!target &&
@@ -153,18 +153,20 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
     assert(cf);
 
     if (post) {
-      //relocation_cerr << "   ... fallthrough inst, adding" << endl;
+      cerr << "   ... fallthrough inst @ " << hex << point->addr() << dec << ", adding" << endl;
       if (!addEdgeInstrumentation(post,
 				  cf,
 				  CFAtom::Fallthrough,
+                  After,
 				  *iter))
 	return false;
     }
     if (target) {
-      //relocation_cerr << "   ... target inst, adding" << endl;
+      cerr << "   ... target inst, adding" << endl;
       if (!addEdgeInstrumentation(target,
 				  cf,
 				  CFAtom::Taken,
+                  Before,
 				  *iter))
 	return false;
     }
@@ -175,7 +177,7 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
 bool Instrumenter::postprocess(TraceList &bl) {
   // Yuck iteration... anyone have a better idea?
 
-  //relocation_cerr << "Instrumenter: postProcess" << endl;
+  relocation_cerr << "Instrumenter: postProcess "  << edgeTraces_.size() << endl;
   
   if (edgeTraces_.empty()) {
     //relocation_cerr << "  ... nothing to do, returning" << endl;
@@ -184,17 +186,19 @@ bool Instrumenter::postprocess(TraceList &bl) {
 
   for (TraceList::iterator iter = bl.begin();
        iter != bl.end(); ++iter) {
-    //relocation_cerr << "   Testing block " << iter->get() << endl;
+
     // Try pre-insertion
     EdgeTraces::iterator pre = edgeTraces_.find(std::make_pair(*iter, Before));
     if (pre != edgeTraces_.end()) {
-      //relocation_cerr << "     Inserting " << pre->second.size() << " pre blocks" << endl;
+      relocation_cerr << "     Inserting " << pre->second.size() << " pre blocks" << endl;
       bl.insert(iter, pre->second.begin(), pre->second.end());
     }
     // And post-insertion?
     EdgeTraces::iterator post = edgeTraces_.find(std::make_pair(*iter, After));
     if (post != edgeTraces_.end()) {
-      //relocation_cerr << "    Inserting " << post->second.size() << " post blocks" << endl;
+
+      cerr << "Post trace " << (*iter)->format();
+      cerr << "New trace " << (*(post->second.begin()))->format() << endl;
       // Game the main iterator here...
       ++iter; // To get successor
       bl.insert(iter, post->second.begin(), post->second.end());
@@ -202,6 +206,7 @@ bool Instrumenter::postprocess(TraceList &bl) {
       // move us forward.
       --iter;
     }
+
   }
   return true;
 }
@@ -210,13 +215,14 @@ bool Instrumenter::postprocess(TraceList &bl) {
 bool Instrumenter::addEdgeInstrumentation(baseTramp *tramp,
 					  CFAtom::Ptr cf,
 					  Address dest,
+                      When when,
 					  Trace::Ptr cur) {
   if (tramp->empty()) return true;
-
+  relocation_cerr << "Adding edge inst" << endl;
   // We handle edge instrumentation by creating a new Trace and
   // wiring it in in the appropriate place. The actual adding is
   // done later, since we can't modify the list from here. 
-  // What we can do is leave a marker of _where_ it should be
+  // What we can do is leave a marker of _where_ it should be 
   // inserted. 
 
   Trace::Ptr inst = Trace::create(tramp);
@@ -256,10 +262,11 @@ bool Instrumenter::addEdgeInstrumentation(baseTramp *tramp,
   // fall back.
   Trace::Ptr insertPoint;
   Target<Trace::Ptr> *targ = dynamic_cast<Target<Trace::Ptr> *>(target);
-  if (targ) {
+  if ((when == Before) && targ) {
     edgeTraces_[std::make_pair(targ->t(), Before)].push_back(inst);
   }
   else {
+      // Sorry, can't do it before a non-relocated trace
     edgeTraces_[std::make_pair(cur, After)].push_back(inst);
   }
 

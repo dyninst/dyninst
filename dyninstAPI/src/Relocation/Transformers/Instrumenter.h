@@ -58,9 +58,10 @@ class Instrumenter : public Transformer {
   EdgeTraces edgeTraces_;
 
   bool addEdgeInstrumentation(baseTramp *tramp,
-			      CFAtomPtr cf,
-			      Address dest,
-			      TracePtr cur);
+            			      CFAtomPtr cf,
+		            	      Address dest,
+                              When when,
+			                  TracePtr cur);
 
 };
 
