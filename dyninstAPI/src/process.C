@@ -3285,10 +3285,6 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
                              const void *inSelf) 
 {
     Address tmp = (Address) inTracedProcess;
-    if (tmp< 0x40d837 &&
-        (tmp + size) >= 0x40d837) {
-            cerr << "DEBUG BREAKPOINT!" << endl;
-        }
 
 bool needToCont = false;
 

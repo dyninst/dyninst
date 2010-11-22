@@ -1276,10 +1276,6 @@ void mapped_object::findBBIsByRange(Address startAddr,
                                     Address endAddr,
                                     list<bblInstance*> &rangeBlocks)//output
 {
-    if (startAddr <= 0x9335a1 &&
-        endAddr >= 0x9335ad) {
-            cerr << "BREAKPOINT!" << endl;
-        }
    std::set<ParseAPI::Block *> papiBlocks;
    for (Address cur = startAddr; cur < endAddr; ++cur) {
       Address papiCur = cur - codeBase();
@@ -1530,6 +1526,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
     mal_printf("Expand region: %lx blocks copied back into mapped file\n", 
                analyzedBlocks.size());
 
+    parse_img()->codeObject()->expandSection(reg->getMemOffset(), reg->getMemSize());
     // KEVINTODO: what?  why is this necessary?, I've killed it for now, delete if no failures
     // 
     //// now update all of the other regions
@@ -1706,8 +1703,19 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
                 assert(0);// read failed
             }
         }
-        mal_printf("UP: copied to [%lx %lx)\n", prevEndAddr+base, 
-                   base+symReg->getDiskSize());
+        // change all region pages with REPROTECTED status to PROTECTED status
+        Address page_size = proc()->proc()->getMemoryPageSize();
+        Address curPage = (regStart / page_size) * page_size + base;
+        Address regEnd = base + regStart + reg->getDiskSize();
+        for (; protPages_.end() == protPages_.find(curPage)  && curPage < regEnd; 
+               curPage += page_size);
+        for (map<Address,WriteableStatus>::iterator pit = protPages_.find(curPage);
+             pit != protPages_.end() && pit->first < regEnd;
+             pit++) 
+        {
+            pit->second = PROTECTED;
+        }
+
     }
 }
 
@@ -1865,7 +1873,9 @@ bool mapped_object::updateCodeBytesIfNeeded(Address entry)
         return false;
     }
 
-    if (protPages_.end() != protPages_.find(pageAddr)) {
+    if (protPages_.end() != protPages_.find(pageAddr) &&
+        PROTECTED == protPages_[pageAddr]) 
+    {
         return false;
     }
 
@@ -2026,12 +2036,20 @@ bool mapped_object::isExploratoryModeOn()
 
 void mapped_object::addProtectedPage(Address pageAddr)
 {
-    protPages_.insert(pageAddr);
+    map<Address,WriteableStatus>::iterator iter = protPages_.find(pageAddr);
+    if (protPages_.end() == iter) {
+        protPages_[pageAddr] = PROTECTED;
+    }
+    else if (PROTECTED != iter->second) {
+        iter->second = REPROTECTED;
+    }
 }
 
 void mapped_object::removeProtectedPage(Address pageAddr)
 {
-    protPages_.erase(pageAddr);
+    map<Address,WriteableStatus>::iterator iter = protPages_.find(pageAddr);
+    assert(iter != protPages_.end());
+    iter->second = UNPROTECTED;
 }
 
 void mapped_object::setCodeBytesUpdated(bool newval)

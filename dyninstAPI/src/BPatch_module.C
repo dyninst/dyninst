@@ -866,7 +866,11 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
         {
             // add the current page addr to mapped_object's hash table
             // of protected code pages
-            mod->obj()->addProtectedPage( *piter );
+            if (writeable) {
+                mod->obj()->removeProtectedPage( *piter );
+            } else {
+                mod->obj()->addProtectedPage( *piter );
+            }
 
             piter++;
 

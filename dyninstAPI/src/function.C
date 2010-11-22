@@ -487,7 +487,6 @@ bool int_function::removePoint(instPoint *point)
         }
         break;
     case otherPoint:
-    case abruptEnd:
         for (unsigned i = 0; !foundPoint && i < arbitraryPoints_.size(); i++) {
             if (arbitraryPoints_[i] == point) {
                 arbitraryPoints_[i] = arbitraryPoints_[arbitraryPoints_.size()-1];
@@ -1642,9 +1641,6 @@ bblInstance::bblInstance(Address start, Address last, Address end, int_basicBloc
         fprintf(stderr, "bblInstance_count: %d (%d)\n",
                 bblInstance_count, bblInstance_count*sizeof(bblInstance));
 #endif
-    if (firstInsnAddr_ == 0x9335ab) {
-            cerr << "DEBUG BREAKPOINT!" << endl;
-        }
 
     // And add to the mapped_object code range
     block_->func()->obj()->codeRangesByAddr_.insert(this);
@@ -1681,9 +1677,6 @@ bblInstance::bblInstance(const bblInstance *parent, int_basicBlock *block) :
 }
 
 bblInstance::~bblInstance() {
-    if (firstInsnAddr()  == 0x9335a1) {
-        cerr << "DEBUG BREAKPOINT!";
-        }
     mal_printf("deleting bblInstance at %lx\n", firstInsnAddr());
 }
 

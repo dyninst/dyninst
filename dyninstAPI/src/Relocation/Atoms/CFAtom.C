@@ -517,10 +517,6 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
 	if (!insn_->readsMemory()) {
 		return true;
 		}
-	if (addr_ == 0x40e4ca)	{
-		cerr << "Got it!" << endl;
-	}
-
 BPatch_memoryAccessAdapter converter;
 	BPatch_memoryAccess *acc = converter.convert(insn_, addr_, false);
 	if (!acc) {

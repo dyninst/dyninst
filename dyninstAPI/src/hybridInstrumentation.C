@@ -220,7 +220,9 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 
     // grab all unresolved control transfer points in the function
     vector<BPatch_point*> points;
-    func->getUnresolvedControlTransfers(points);
+    if (BPatch_defensiveMode == func->lowlevel_func()->obj()->hybridMode()) {
+        func->getUnresolvedControlTransfers(points);
+    }
     //iterate through all the points and instrument them
     BPatch_dynamicTargetExpr dynTarget;
     for (unsigned pidx=0; pidx < points.size(); pidx++) {
@@ -646,9 +648,6 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
 
     // make sure that the edge hasn't already been parsed 
     Address fallThroughAddr = callPoint->getCallFallThroughAddr();
-    if (fallThroughAddr == 0x933647) {
-        cerr << "DEBUG BREAKPOINT" << endl;
-        }
     vector<BPatch_function *> fallThroughFuncs;
     proc()->findFunctionsByAddr(fallThroughAddr,fallThroughFuncs);
 
@@ -800,9 +799,6 @@ bool HybridAnalysis::analyzeNewFunction( Address target ,
 
 bool HybridAnalysis::hasEdge(BPatch_function *func, Address source, Address target)
 {
-if (target == 0x933647) {
-    cerr << "TEMP BREAKPOINT" << endl;
-    }
 // 0. first see if the edge needs to be parsed
     int_basicBlock *block = func->lowlevel_func()->findBlockByAddr(source);
     pdvector<int_basicBlock *> targBlocks; 

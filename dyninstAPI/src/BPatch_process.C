@@ -1674,7 +1674,6 @@ bool BPatch_process::hideDebuggerInt()
     bool retval = llproc->hideDebugger();
 
     // disable API calls //
-    beginInsertionSet();
 
     // BlockInput
     BPatch_module *user = image->findModule("user32.dll",true);
@@ -1690,7 +1689,9 @@ bool BPatch_process::hideDebuggerInt()
         patch[1] = 0xc0;
         patch[2] = 0x40; // inc eax
         patch[3] = 0xc3; // retn
-        llproc->writeDataSpace((void*)entry,4,&patch);
+        if (!llproc->writeDataSpace((void*)entry,4,&patch)) {
+            assert(0);
+        }
         funcs.clear();
     }
 
@@ -1724,6 +1725,7 @@ bool BPatch_process::hideDebuggerInt()
         args.push_back(&lasterr); // need a second parameter, but it goes unused by windows
         BPatch_funcCallExpr callSLE (*(sle_funcs[0]), args);
         vector<BPatch_point*> *exitPoints = sle_funcs[0]->findPoint(BPatch_exit);
+        beginInsertionSet();
         for (unsigned i=0; i < exitPoints->size(); i++) {
             insertSnippet( callSLE, *((*exitPoints)[i]) );
         }
@@ -1743,13 +1745,23 @@ bool BPatch_process::setMemoryAccessRights
     // get lwp from which we can call changeMemoryProtections
     dyn_lwp *stoppedlwp = llproc->query_for_stopped_lwp();
     if ( ! stoppedlwp ) {
+        assert(0); //KEVINTODO: I don't think this code is right, it doesn't resume the stopped lwp
         bool wasRunning = true;
         stoppedlwp = llproc->stop_an_lwp(&wasRunning);
         if ( ! stoppedlwp ) {
         return false;
         }
     }
-    stoppedlwp->changeMemoryProtections(start, size, rights,true);
+#if defined(os_windows)
+    if (PAGE_EXECUTE_READWRITE == rights || PAGE_READWRITE == rights) {
+        mapped_object *obj = llproc->findObject(start);
+        int page_size = llproc->getMemoryPageSize();
+        for (Address cur = start; cur < (start + size); cur += page_size) {
+            obj->removeProtectedPage(start -(start % page_size));
+        }
+    }
+#endif
+    stoppedlwp->changeMemoryProtections(start, size, rights, true);
     return true;
 }
 
