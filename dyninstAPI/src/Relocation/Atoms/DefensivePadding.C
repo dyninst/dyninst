@@ -29,36 +29,37 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(_R_T_DEFENSIVE_H_)
-#define _R_T_DEFENSIVE_H_
+#include "DefensivePadding.h"
+#include "Atom.h"
+#include "CFAtom.h"
 
-#include "Transformer.h"
-#include "../CodeMover.h"
+#include "../CodeTracker.h"
+#include "../CodeBuffer.h"
 
+using namespace Dyninst;
+using namespace Relocation;
+using namespace InstructionAPI;
 
-namespace Dyninst {
-namespace Relocation {
+bool DefensivePadding::generate(const codeGen &templ, const Trace *t, CodeBuffer &buffer)
+{
+    buffer.addPatch(new PaddingPatch(10, true, bbl_), 
+                    new EmulatorTracker(bbl_->endAddr(), bbl_->func()));
 
-class DefensiveTransformer : public Transformer {
- public:
-    virtual bool processTrace(TraceList::iterator &);
-    virtual bool postprocess(TraceList &l); 
-  
-    DefensiveTransformer() {};
-  
-  virtual ~DefensiveTransformer() {};
+    return true;
+}
 
- private:
-  bool requiresDefensivePad(const bblInstance *inst);
+std::string DefensivePadding::format() const
+{
+  stringstream ret;
+  ret << "DefensivePad(" << std::hex;
+  ret << addr() << dec << ")";
+  return ret.str();
+}
 
+Address DefensivePadding::addr() const {
+    return bbl_->endAddr();
+}
 
-  typedef std::map<TracePtr, TracePtr> InsertionMap;
-  InsertionMap defensivePads_;
-
-};
-
-};
-};
-
-
-#endif
+unsigned DefensivePadding::size() const {
+    return 10;
+}

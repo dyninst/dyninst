@@ -78,14 +78,13 @@ class CFAtom : public Atom {
   void setCall() { isCall_ = true; };
   void setConditional() { isConditional_ = true; };
   void setIndirect() { isIndirect_ = true; };
-  void setNeedsUnknownCallPadding() { postCallPadding_ = (unsigned) -1; }
-  void setNeedsPostCallPadding(unsigned size) { postCallPadding_ = size; }
-
+  void setPostCallPadding(unsigned i) { postCallPadding_ = i; }
 
   virtual ~CFAtom();
 
   // Owns the provided *dest parameter
   void addDestination(Address index, TargetInt *dest);
+  TargetInt *getDestination(Address dest) const;
 
   virtual std::string format() const;
 

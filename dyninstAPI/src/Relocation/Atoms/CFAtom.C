@@ -126,8 +126,16 @@ bool CFAtom::generate(const codeGen &templ,
     assert(!isConditional_);
     assert(!isCall_);
 
-    bool fallthrough = (destMap_.begin()->first == Fallthrough);
-    TargetInt *target = destMap_.begin()->second;
+    // Check for a taken destination first.
+    bool fallthrough = false;
+    DestinationMap::iterator iter = destMap_.find(Taken);
+    if (iter == destMap_.end()) {
+        iter = destMap_.find(Fallthrough);
+        fallthrough = true;
+    }
+    assert(iter != destMap_.end());
+
+    TargetInt *target = iter->second;
     assert(target);
 
     if (target->necessary()) {
@@ -294,6 +302,14 @@ void CFAtom::addDestination(Address index, TargetInt *dest) {
       printf("adding bad dest\n");
   }
   destMap_[index] = dest;
+}
+
+TargetInt *CFAtom::getDestination(Address dest) const {
+    CFAtom::DestinationMap::const_iterator d_iter = destMap_.find(dest);
+    if (d_iter != destMap_.end()) {
+        return d_iter->second;
+    }
+    return NULL;
 }
 
 void CFAtom::updateInsn(Instruction::Ptr insn) {

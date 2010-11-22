@@ -487,7 +487,6 @@ bool int_function::removePoint(instPoint *point)
         }
         break;
     case otherPoint:
-    case abruptEnd:
         for (unsigned i = 0; !foundPoint && i < arbitraryPoints_.size(); i++) {
             if (arbitraryPoints_[i] == point) {
                 arbitraryPoints_[i] = arbitraryPoints_[arbitraryPoints_.size()-1];

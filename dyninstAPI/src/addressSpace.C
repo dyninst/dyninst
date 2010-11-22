@@ -1531,7 +1531,9 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   if (begin == end) {
     return true;
   }
-
+  if ((*begin)->getAddress() > 0x900000) {
+      dyn_debug_reloc = true;
+  }
   // Create a CodeMover covering these functions
   //cerr << "Creating a CodeMover" << endl;
   
@@ -1571,7 +1573,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       }
       cerr << dec;
   }
-
+  dyn_debug_reloc = false;
 
 
   // Copy it in
@@ -1691,6 +1693,14 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
 	       cm->priorityMap());
   cm->transform(t);
 
+  // Add in pads after all calls that have an unknown return status. We want this
+  // to occur pre-instrumentation so that we can ensure instrumentation still gets
+  // executed properly.
+
+  DefensiveTransformer defTrans;
+  cm->transform(defTrans);
+
+
   // Add instrumentation
   // For ease of edge instrumentation this should occur post-LocalCFTransformer-age
   //cerr << "Inst transformer" << endl;
@@ -1701,9 +1711,6 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   Fallthroughs f;
   cm->transform(f);
 
-  // Kevin's stuff
-  Defensive d(cm->priorityMap());
-  cm->transform(d);
 
   return true;
 

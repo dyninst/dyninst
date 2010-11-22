@@ -36,45 +36,112 @@
 #include "dyninstAPI/src/debug.h"
 #include "../Atoms/Atom.h"
 #include "dyninstAPI/src/function.h"
-#include "../Atoms/Padding.h"
+#include "../Atoms/DefensivePadding.h"
+#include "../Atoms/CFAtom.h"
+#include "../Atoms/Target.h"
 
 using namespace std;
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
-bool Defensive::processTrace(TraceList::iterator &iter) {
+// This transformer supports Kevin's run-time parsing of binaries. Specifically,
+// it handles the case of calls that we do not have a return status for. When we
+// see such a call we append a block of null operations (a pad). If the call returns,
+// we use this block to insert a jump to the newly parsed code.
+//
+// Logically, this code exists in the CFG between the call return and the newly parsed
+// code. Since we are inserting a branch to that new code, it is more tightly tied to
+// its successor than the call. In addition, it has to place nicely with things like
+// post-call instrumentation. Therefore, we are implementing this as a CFG transformation;
+// the padding consists of a new Trace that is added between the call trace C and the new trace
+// N. 
+
+bool DefensiveTransformer::processTrace(TraceList::iterator &iter) {
   relocation_cerr << "DefensiveMode, processing block " 
 		  << std::hex << (*iter)->origAddr() << std::dec << endl;
   bblInstance *bbl = (*iter)->bbl();
   if (!bbl) return true;
 
-  if (!followsCall(bbl)) return true;
-
-  // Ah, we're a call follower. Nice to be us. 
-  pMap_[bbl] = Required;
-
-  // And let's make sure the block is big enough to drop a branch in in the future
-  // It will be at least as big as the current block, possibly larger
-  if (bbl->getSize() < 5) {
-    Padding::Ptr pad = Padding::create(bbl->firstInsnAddr(), 5-bbl->getSize());
-    (*iter)->elements().push_front(pad);
+  if (!requiresDefensivePad(bbl)) {
+      return true;
   }
+
+  // Create a new Trace for this, and add
+  // a TODO to insert it during postprocess
+  DefensivePadding::Ptr pad = DefensivePadding::create(bbl);
+  TracePtr trace = Trace::create(pad, bbl->endAddr(), bbl->func());
+
+  // Add it as a fallthrough from the prior block, and if the block had a fallthrough
+  // reassign it to us.
+
+  // 1) Fallthrough for old block.
+  // 1a) Get CF atom for the block
+  CFAtom::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFAtom>((*iter)->elements().back());
+  assert(cf);
+  // 1b) Cache old fallthrough if it exists
+  TargetInt *oldFallthrough = cf->getDestination(CFAtom::Fallthrough);
+  // 1c) Set us to be fallthrough
+  Target<Trace::Ptr> *t = new Target<Trace::Ptr>(trace);
+  cf->addDestination(CFAtom::Fallthrough, t);
+
+  // 2) Fallthrough for us
+  CFAtom::Ptr newCFAtom = CFAtom::create(bbl);
+  newCFAtom->updateAddr(bbl->endAddr());
+  trace->elements().push_back(newCFAtom);
+  if (oldFallthrough) {
+      newCFAtom->addDestination(CFAtom::Fallthrough, oldFallthrough);
+  }
+
+  defensivePads_[*iter] = trace;
 
   return true;
 }
 
-bool Defensive::followsCall(const bblInstance *bbl) {
-  // If we're the fallthrough from a call block, then
-  // we need to make sure we can put a branch in should this block be
-  // relocated again.
-  int_basicBlock *block = bbl->block();
-  
-  const ParseAPI::Block::edgelist &sources = block->llb()->sources();
-  ParseAPI::Block::edgelist::iterator iter = sources.begin();
-  for (; iter != sources.end(); ++iter) {
-    if ((*iter)->type() == ParseAPI::CALL_FT)
-      return true;
-  }
-  return false;
+bool DefensiveTransformer::postprocess(TraceList &l) {
+    for (TraceList::iterator iter = l.begin();
+        iter != l.end(); ++iter)
+    {
+        InsertionMap::iterator foo = defensivePads_.find(*iter);
+        if (foo != defensivePads_.end()) {
+            // We want the new one _after_ the current location.
+            if (iter == l.end()) {
+                // Oddd....
+                l.push_back(foo->second);
+            }
+            else {
+                ++iter;
+                l.insert(iter, foo->second);
+                --iter;
+            }
+        }
+    }
+    return true;
+}
+// First parameter: do we need a defensive 
+bool DefensiveTransformer::requiresDefensivePad(const bblInstance *inst) {
+   // Find if the program does anything funky with a call fallthrough
+   // 1) A call edge with no fallthrough
+   // 2) A gap between the call block and the fallthrough block.
+   
+   ParseAPI::Edge *callEdge = NULL;
+   ParseAPI::Edge *ftEdge = NULL;
+   
+   const ParseAPI::Block::edgelist &targets = inst->block()->llb()->targets();
+   ParseAPI::Block::edgelist::iterator iter = targets.begin();
+   for (; iter != targets.end(); ++iter) {
+      if ((*iter)->type() == ParseAPI::CALL) {
+         callEdge = *iter;
+      }
+      if ((*iter)->type() == ParseAPI::CALL_FT) {
+         ftEdge = *iter;
+      }
+   }
+   
+   if (callEdge && !ftEdge) {
+        return true;
+   }
+   else {
+       return false;
+   }
 }

@@ -75,15 +75,9 @@ bool CFAtomCreator::processTrace(TraceList::iterator &iter) {
   
   // SD-Dyninst: if we haven't parsed past a call (or indirect branch?)
   // we need to drop in a patch area for a future control flow fixup
-  bool unknownCallFallthrough = false;
-  unsigned gap = 0;
-  boost::tie(unknownCallFallthrough, gap) = modifiedCallFallthrough(bbl);
-  if (unknownCallFallthrough) {
-     ender->setNeedsUnknownCallPadding();
-  }
-  else if (gap) {
-     ender->setNeedsPostCallPadding(gap);
-  }
+  unsigned gap = modifiedCallFallthrough(bbl);
+  if (gap) 
+      ender->setPostCallPadding(gap);
 
   for (unsigned i = 0; i < successors.size(); ++i) {
     TargetInt *targ = successors[i].targ;
@@ -270,7 +264,7 @@ void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
   }
 }
 
-std::pair<bool, unsigned> CFAtomCreator::modifiedCallFallthrough(const bblInstance *inst) {
+unsigned CFAtomCreator::modifiedCallFallthrough(const bblInstance *inst) {
    // Find if the program does anything funky with a call fallthrough
    // 1) A call edge with no fallthrough
    // 2) A gap between the call block and the fallthrough block.
@@ -288,18 +282,11 @@ std::pair<bool, unsigned> CFAtomCreator::modifiedCallFallthrough(const bblInstan
          ftEdge = *iter;
       }
    }
-   
-   if (callEdge) {
-      if (!ftEdge) {
-         // No fallthrough, easy
-         return std::make_pair(true, (unsigned) -1);
-      }
-      // Otherwise check to see if there's a gap here
-      Address callEnd = inst->block()->llb()->end();
+
+   if (ftEdge) {
+      Address callEnd = ftEdge->src()->end();
       Address ftStart = ftEdge->trg()->start();
-      if (ftStart != callEnd) {
-         return std::make_pair(false, ftStart - callEnd);
-      }
+        return ftStart - callEnd;
    }
-   return std::make_pair(false, 0);
+    return 0;
 }
