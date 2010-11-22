@@ -1463,40 +1463,41 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
     }
     mal_printf("EX: copied to [%lx %lx)\n", codeBase()+regStart, codeBase()+regStart+copySize);
 
-    if (proc()->isMemoryEmulated()) {
-        mal_printf("Expand region: no blocks copied back into mapped file, memEm is on\n");
-        return; // instrumentation is not a problem 
-    }
 
-    // 2. copy code bytes back into the regBuf before setting it as raw 
-    //    data for region
+    if ( ! proc()->isMemoryEmulated() ) {
 
-    // find the first block in the region
-    set<ParseAPI::Block*> analyzedBlocks;
-    cObj->findBlocks(parseReg, regStart, analyzedBlocks);
-    if (analyzedBlocks.size()) {
-        cur = * analyzedBlocks.begin();
-    } else {
-        cur = cObj->findNextBlock(parseReg, regStart);
-    }
+    // 2. copy code bytes back into the regBuf to wipe out instrumentation 
+    //    and set regBuf to be the data for the region
 
-    // copy code ranges from old mapped data into regBuf
-    while (cur != NULL && 
-           cur->start() < initializedEnd)
-    {
-        if ( ! memcpy((void*)((Address)regBuf + cur->start() - regStart),
-                      (void*)((Address)mappedPtr + cur->start() - regStart),
-                      cur->size()) )
+        // find the first block in the region
+        set<ParseAPI::Block*> analyzedBlocks;
+        cObj->findBlocks(parseReg, regStart, analyzedBlocks);
+        if (analyzedBlocks.size()) {
+            cur = * analyzedBlocks.begin();
+        } else {
+            cur = cObj->findNextBlock(parseReg, regStart);
+        }
+
+        // copy code ranges from old mapped data into regBuf
+        while (cur != NULL && 
+               cur->start() < initializedEnd)
         {
-            assert(0);
+            if ( ! memcpy((void*)((Address)regBuf + cur->start() - regStart),
+                          (void*)((Address)mappedPtr + cur->start() - regStart),
+                          cur->size()) )
+            {
+                assert(0);
+            }
+            mal_printf("EX: uncopy [%lx %lx)\n", codeBase()+cur->start(),codeBase()+cur->end());
+            // advance to the next block
+            Address prevEnd = cur->end();
+            cur = cObj->findBlockByEntry(parseReg,prevEnd);
+            if (!cur) {
+                cur = cObj->findNextBlock(parseReg,prevEnd);
+            }
         }
-        mal_printf("EX: uncopy [%lx %lx)\n", codeBase()+cur->start(),codeBase()+cur->end());
-        // advance to the next block
-        Address prevEnd = cur->end();
-        cur = cObj->findBlockByEntry(parseReg,prevEnd);
-        if (!cur) {
-            cur = cObj->findNextBlock(parseReg,prevEnd);
-        }
+        mal_printf("Expand region: %lx blocks copied back into mapped file\n", 
+                   analyzedBlocks.size());
     }
 
     if (reg->isDirty()) {
@@ -1523,10 +1524,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
                                      - codeAbs() );
         proc()->addOrigRange(this);
     }
-    mal_printf("Expand region: %lx blocks copied back into mapped file\n", 
-               analyzedBlocks.size());
 
-    parse_img()->codeObject()->expandSection(reg->getMemOffset(), reg->getMemSize());
     // KEVINTODO: what?  why is this necessary?, I've killed it for now, delete if no failures
     // 
     //// now update all of the other regions
