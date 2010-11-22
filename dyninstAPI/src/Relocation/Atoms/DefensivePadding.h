@@ -29,36 +29,37 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(_R_T_DEFENSIVE_H_)
-#define _R_T_DEFENSIVE_H_
+#if !defined (_R_E_DEFENSIVE_PAD_H_)
+#define _R_E_DEFENSIVE_PAD_H_
 
-#include "Transformer.h"
-#include "../CodeMover.h"
-
+#include "Atom.h"
 
 namespace Dyninst {
 namespace Relocation {
 
-class DefensiveTransformer : public Transformer {
+class DefensivePadding : public Atom {
  public:
-    virtual bool processTrace(TraceList::iterator &);
-    virtual bool postprocess(TraceList &l); 
-  
-    DefensiveTransformer() {};
-  
-  virtual ~DefensiveTransformer() {};
+  typedef dyn_detail::boost::shared_ptr<DefensivePadding> Ptr;
+
+  virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
+
+  static Ptr create(bblInstance *bbl) { return Ptr(new DefensivePadding(bbl)); }
+
+  virtual ~DefensivePadding() {};
+
+  virtual std::string format() const;
+
+  virtual Address addr() const;
+  virtual unsigned size() const;
 
  private:
-  bool requiresDefensivePad(const bblInstance *inst);
+  DefensivePadding(bblInstance *bbl) 
+      : bbl_(bbl) {};
 
-
-  typedef std::map<TracePtr, TracePtr> InsertionMap;
-  InsertionMap defensivePads_;
-
+  bblInstance *bbl_;
 };
 
 };
 };
-
 
 #endif

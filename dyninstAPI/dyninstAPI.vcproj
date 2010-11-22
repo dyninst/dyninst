@@ -1106,6 +1106,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Atoms\DefensivePadding.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\common\src\Dictionary.C"
 				>
 				<FileConfiguration
@@ -2504,6 +2516,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Atoms\DefensivePadding.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\deviceStructs.h"
 				>
 			</File>
@@ -2588,11 +2604,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Transformers\Include.h"
+				RelativePath=".\src\Relocation\Atoms\Include.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Include.h"
+				RelativePath=".\src\Relocation\Transformers\Include.h"
 				>
 			</File>
 			<File
@@ -2828,6 +2844,10 @@
 				>
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\ClassDiagram1.cd"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>
