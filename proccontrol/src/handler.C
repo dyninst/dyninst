@@ -1418,6 +1418,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static HandleRPCInternal *hrpcinternal = NULL;
    static HandleAsync *hasync = NULL;
    static iRPCHandler *hrpc = NULL;
+   static HandlerRPCPreCallback *hrpc_callback = NULL;
    if (!initialized) {
       hbootstrap = new HandleBootstrap();
       hsignal = new HandleSignal();
@@ -1437,6 +1438,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hpostexec = new HandlePostExec();
       hasync = new HandleAsync();
       hrpcinternal = new HandleRPCInternal();
+      hrpc_callback = new HandlerRPCPreCallback();
       initialized = true;
    }
    HandlerPool *hpool = new HandlerPool(p);
@@ -1458,6 +1460,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hpostexec);
    hpool->addHandler(hrpcinternal);
    hpool->addHandler(hasync);
+   hpool->addHandler(hrpc_callback);
    plat_createDefaultHandlerPool(hpool);
    return hpool;
 }

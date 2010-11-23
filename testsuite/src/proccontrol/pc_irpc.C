@@ -558,6 +558,14 @@ Process::cb_ret_t on_irpc(Event::const_ptr ev)
       return Process::cbDefault;
    }
 
+   // Check whether the thread's registers can be read or not
+   MachRegister pcReg = MachRegister::getPC(ev->getProcess()->getArchitecture());
+   MachRegisterVal pcVal;
+   if( !ev->getThread()->getRegister(pcReg, pcVal) ) {
+       logerror("Failed to retrieve PC in iRPC callback\n");
+       myerror = true;
+   }
+
    int &cur = t.cur;
 
    assert(cur < t.rpcs.size());

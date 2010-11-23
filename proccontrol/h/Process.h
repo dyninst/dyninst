@@ -164,6 +164,7 @@ class IRPC
    friend void dyn_detail::boost::checked_delete<const IRPC>(const IRPC *);
  private:
    rpc_wrapper *wrapper;
+   void *userData_;
    IRPC(rpc_wrapper *wrapper_);
    ~IRPC();
  public:
@@ -184,6 +185,10 @@ class IRPC
    unsigned long getID() const;
    void setStartOffset(unsigned long);
    unsigned long getStartOffset() const;
+
+   // user-defined data retrievable during a callback
+   void *getData() const;
+   void setData(void *p);
 };
 
 class Process
@@ -192,6 +197,7 @@ class Process
    friend class ::int_process;
    int_process *llproc_;
    proc_exitstate *exitstate_;
+   void *userData_;
 
    Process();
    ~Process();
@@ -250,6 +256,10 @@ class Process
    static bool removeEventCallback(EventType evt, cb_func_t cbfunc);
    static bool removeEventCallback(EventType evt);
    static bool removeEventCallback(cb_func_t cbfunc);
+
+   // user-defined data retrievable during a callback
+   void *getData() const;
+   void setData(void *p);
 
    Dyninst::PID getPid() const;
 
@@ -327,6 +337,7 @@ class Thread
    int_thread *llthrd() const;
 
    Dyninst::LWP getLWP() const;
+   Dyninst::THR_ID getTid() const;
    Process::ptr getProcess() const;
 
    bool isStopped() const;

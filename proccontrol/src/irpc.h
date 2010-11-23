@@ -270,6 +270,16 @@ class iRPCMgr
 
 iRPCMgr *rpcMgr();
 
+//Runs before user callback
+class HandlerRPCPreCallback : public Handler
+{
+  public:
+   HandlerRPCPreCallback();
+   virtual ~HandlerRPCPreCallback();
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+};
+
 //Runs after user callback
 class iRPCHandler : public Handler
 {

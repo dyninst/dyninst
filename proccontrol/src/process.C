@@ -1162,7 +1162,7 @@ bool int_process::infFree(Dyninst::Address addr)
          return false;
       }
       if (!result && block) {
-         pthrd_printf("Error in waitAndHandleEvents");
+         pthrd_printf("Error in waitAndHandleEvents\n");
          return false;
       }
    }
@@ -3110,7 +3110,7 @@ bool installed_breakpoint::uninstall(int_process *proc, result_response::ptr asy
    }
    memory->breakpoints.erase(i);
 
-   return had_failure;
+   return !had_failure;
 }
 
 bool installed_breakpoint::suspend(int_process *proc, result_response::ptr result_resp)
@@ -3887,7 +3887,8 @@ Process::ptr Process::attachProcess(Dyninst::PID pid, std::string executable)
 
 Process::Process() :
    llproc_(NULL),
-   exitstate_(NULL)
+   exitstate_(NULL),
+   userData_(NULL)
 {
 }
 
@@ -3899,6 +3900,13 @@ Process::~Process()
    }
 }
 
+void *Process::getData() const {
+    return userData_;
+}
+
+void Process::setData(void *p) {
+    userData_ = p;
+}
 
 Dyninst::PID Process::getPid() const 
 {
@@ -4705,6 +4713,17 @@ Dyninst::LWP Thread::getLWP() const
    return llthread_->getLWP();
 }
 
+Dyninst::THR_ID Thread::getTid() const
+{
+   MTLock lock_this_func;
+   if( !llthread_ ) {
+       assert(exitstate_);
+       return exitstate_->thr_id;
+   }
+
+   return llthread_->getTid();
+}
+
 bool Thread::postIRPC(IRPC::ptr irpc) const
 {
    MTLock lock_this_func;
@@ -4872,6 +4891,20 @@ ThreadPool::iterator ThreadPool::end()
    return i;
 }
 
+ThreadPool::iterator ThreadPool::find(Dyninst::LWP lwp) 
+{
+    MTLock lock_this_func;
+    ThreadPool::iterator i;
+    int_thread *thread = threadpool->findThreadByLWP(lwp);
+    if( !thread ) return end();
+
+    i.curp = threadpool;
+    i.curh = thread->thread();
+    i.curi = threadpool->hl_threads.size()-1;
+
+    return i;
+}
+
 ThreadPool::const_iterator::const_iterator()
 {
    curp = NULL;
@@ -4953,6 +4986,20 @@ ThreadPool::const_iterator ThreadPool::end() const
    i.curi = (int) threadpool->hl_threads.size();
    i.curh = Thread::ptr();
    return i;
+}
+
+ThreadPool::const_iterator ThreadPool::find(Dyninst::LWP lwp) const 
+{
+    MTLock lock_this_func;
+    ThreadPool::const_iterator i;
+    int_thread *thread = threadpool->findThreadByLWP(lwp);
+    if( !thread ) return end();
+
+    i.curp = threadpool;
+    i.curh = thread->thread();
+    i.curi = threadpool->hl_threads.size()-1;
+
+    return i;
 }
 
 const Process::ptr ThreadPool::getProcess() const
