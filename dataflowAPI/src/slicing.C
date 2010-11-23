@@ -358,7 +358,9 @@ Slicer::updateAndLinkFromCache(
         set<Def>::const_iterator dit = defs.begin();
         for( ; dit != defs.end(); ++dit) {
             for(unsigned i=0;i<eles.size();++i) {
-                insertPair(g,dir,eles[i],(*dit).ele,(*dit).data);
+                // don't create self-loops on assignments
+                if (eles[i].ptr != (*dit).ele.ptr)
+                    insertPair(g,dir,eles[i],(*dit).ele,(*dit).data);
             }
         }
 
@@ -453,7 +455,8 @@ Slicer::findMatch(
                 //      call or return edges. This `true' AbsRegion
                 //      is used to associate two different AbsRegions
                 //      during symbolic evaluation
-                insertPair(g,dir,eles[i],ne,eles[i].reg);
+                if (eles[i].ptr != ne.ptr)
+                    insertPair(g,dir,eles[i],ne,eles[i].reg);
             }
 
             // In this case, we are now interested in the 
@@ -1510,7 +1513,11 @@ void Slicer::constructInitialFrame(
 {
     initFrame.con.push_front(ContextElement(f_));
     initFrame.loc = Location(f_,b_);
-    initFrame.active[init.reg].push_back(init);
+    vector<AbsRegion> & inputs = init.ptr->inputs();
+    vector<AbsRegion>::iterator iit = inputs.begin();
+    for ( ; iit != inputs.end(); ++iit) {
+        initFrame.active[*iit].push_back(init);
+    }
 
     if(dir == forward) {
         initFrame.loc.fwd = true;
