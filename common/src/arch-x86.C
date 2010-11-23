@@ -38,6 +38,9 @@
 
 // Note: Unless specified "book" refers to Intel's manual
 
+// This include *must* come first in the file.
+#include "common/h/Types.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <map>
@@ -48,7 +51,6 @@
 #include "boost/assign/std/vector.hpp"
 #include "boost/assign/std/set.hpp"
 
-#include "common/h/Types.h"
 #include "common/h/arch-x86.h"
 #include "instructionAPI/h/Register.h"
 #include "dyn_regs.h"
@@ -863,9 +865,9 @@ list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)
   flagTable[e_verw] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
   flagTable[e_xadd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable[e_xor] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_scasb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_scasw] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_scasd] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_scasb] = flagInfo(list_of(x86::df), standardFlags);
+  flagTable[e_scasw] = flagInfo(list_of(x86::df), standardFlags);
+  flagTable[e_scasd] = flagInfo(list_of(x86::df), standardFlags);
 }
 
 bool ia32_entry::flagsUsed(std::set<MachRegister>& flagsRead, std::set<MachRegister>& flagsWritten, ia32_locations* locs)

@@ -102,7 +102,9 @@ FuncReturnStatus InstructionAdapter::getReturnStatus(Function * context ,
         }
         if(!parsedJumpTable)
         {
+#if !defined(os_vxworks)
             assert(0);
+#endif
             return UNSET;
         }
         else if(!successfullyParsedJumpTable)

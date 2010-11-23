@@ -54,10 +54,10 @@ SRCS	     +=	../src/frame.C \
       ../src/procstate.C \
       ../src/steppergroup.C \
 		../src/libstate.C \
-		../src/sw_c.C
+		../src/sw_c.C \
+		../src/sw_pcontrol.C
 
-
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../proccontrol/h
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)

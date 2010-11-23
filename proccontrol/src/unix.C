@@ -138,13 +138,11 @@ void unix_process::plat_execv() {
     // Never returns
     typedef const char * const_str;
 
-    const_str *new_argv = (const_str *) calloc(argv.size()+3, sizeof(char *));
-    new_argv[0] = executable.c_str();
-    unsigned i;
-    for (i=1; i<argv.size()+1; i++) {
-        new_argv[i] = argv[i-1].c_str();
+    const_str *new_argv = (const_str *) calloc(argv.size()+2, sizeof(char *));
+    for (unsigned i=0; i<argv.size(); ++i) {
+        new_argv[i] = argv[i].c_str();
     }
-    new_argv[i+1] = (char *) NULL;
+    new_argv[argv.size()] = (char *) NULL;
 
     for(std::map<int,int>::iterator fdit = fds.begin(),
             fdend = fds.end();

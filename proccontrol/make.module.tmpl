@@ -56,6 +56,6 @@ SRCS	     +=	../src/event.C \
 
 
 IFLAGS       += -I../src -I../h
-
+LDFLAGS += -L../../common/$(PLATFORM)
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)

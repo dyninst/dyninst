@@ -82,8 +82,6 @@ extern int dyn_stats_parse;
 extern int dyn_debug_crash;
 extern int dyn_debug_rtlib;
 
-extern int dyn_debug_stackanalysis;
-
 extern char *dyn_debug_crash_debugger;
 
 #include "common/h/stats.h"
@@ -157,7 +155,6 @@ extern int write_printf_int(const char *format, ...);
 extern int liveness_printf_int(const char *format, ...);
 extern int infmalloc_printf_int(const char *format, ...);
 extern int crash_printf_int(const char *format, ...);
-extern int stackanalysis_printf_int(const char *format, ...);
 
 #if defined(__GNUC__)
 
@@ -184,7 +181,6 @@ extern int stackanalysis_printf_int(const char *format, ...);
 #define liveness_printf(format, args...) do {if (dyn_debug_liveness) liveness_printf_int(format, ## args); } while(0)
 #define infmalloc_printf(format, args...) do {if (dyn_debug_infmalloc) infmalloc_printf_int(format, ## args); } while(0)
 #define crash_printf(format, args...) do {if (dyn_debug_crash) crash_printf_int(format, ## args); } while(0)
-#define stackanalysis_printf(format, args...) do {if (dyn_debug_stackanalysis) stackanalysis_printf_int(format, ## args); } while(0)
 
 #else
 // Non-GCC doesn't have the ## macro
@@ -211,7 +207,6 @@ extern int stackanalysis_printf_int(const char *format, ...);
 #define liveness_printf liveness_printf_int
 #define infmalloc_printf infmalloc_printf_int
 #define crash_printf crash_printf_int
-#define stackanalysis_printf stackanalysis_printf_int
 
 
 #endif

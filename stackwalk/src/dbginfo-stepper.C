@@ -38,7 +38,7 @@
 #include "stackwalk/src/dbgstepper-impl.h"
 #include "stackwalk/src/linux-swk.h"
 #include "dynutil/h/dyntypes.h"
-
+#include "common/h/Types.h"
 
 using namespace Dyninst;
 using namespace Stackwalker;
@@ -68,7 +68,17 @@ public:
 
 #include "dwarf.h"
 #include "libdwarf.h"
-#define setSymtabError(x) 
+
+typedef enum {
+   No_Error = 0,
+   Bad_Frame_Data,
+   No_Frame_Entry,
+   Frame_Read_Error,
+} FrameErrors_t;
+
+static FrameErrors_t frame_error = No_Error;
+
+#define setSymtabError(x) { frame_error = x; }
 #define dwarf_printf sw_printf
 #include "common/h/dwarfExpr.h"
 #include "common/h/dwarfSW.h"
@@ -154,8 +164,13 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    }   
    Address pc = in.getRA() - lib.second;
 
+   bool isVsyscallPage = false;
+#if defined(os_linux)
+   isVsyscallPage = (strstr(lib.first.c_str(), "[vsyscall-") != NULL);
+#endif
+
    cur_frame = &in;
-   gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dinfo);
+   gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dinfo, isVsyscallPage);
    cur_frame = NULL;
    return gcresult;
 }
@@ -184,7 +199,8 @@ DebugStepperImpl::~DebugStepperImpl()
 
 #if defined(arch_x86) || defined(arch_x86_64)
 gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in, 
-                                                   Frame &out, DwarfSW *dinfo)
+                                                   Frame &out, DwarfSW *dinfo,
+                                                   bool isVsyscallPage)
 {
    MachRegisterVal frame_value, stack_value, ret_value;
    bool result;
@@ -198,6 +214,16 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
 
    result = dinfo->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
                                       ret_value, arch, this);
+   if (!result && frame_error == No_Frame_Entry && isVsyscallPage) {
+      //Work-around kernel bug.  The vsyscall page location was randomized, but
+      // the debug info still has addresses from the old, pre-randomized days.
+      // See if we get any hits by assuming the address corresponds to the 
+      // old PC.
+      pc += 0xffffe000;
+      result = dinfo->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
+                                         ret_value, arch, this);
+
+   }
    if (!result) {
       sw_printf("[%s:%u] - Couldn't get return debug info at %lx\n",
                 __FILE__, __LINE__, in.getRA());

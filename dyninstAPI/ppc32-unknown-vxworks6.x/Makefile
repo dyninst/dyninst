@@ -27,13 +27,14 @@ SRCS =          ../src/vxworks.C \
 		../src/dynamiclinking.C \
                 ../src/inst-power.C \
                 ../src/codegen-power.C \
-		../src/InstrucIter-Function.C \
 		../src/image-power.C \
-		../src/syscall-vxworks.C
+		../src/syscall-vxworks.C \
+                ../src/BPatch_memoryAccessAdapter.C
 #               ../src/unix.C \
 #		../src/addLibraryLinux.C \
 #		../src/writeBackElf.C \
 #		../src/saveSharedLibrary.C \
+#		../src/InstrucIter-Function.C \
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG
@@ -58,7 +59,7 @@ TFLAGS          += $(MYFLAGS)
 
 SYSLIBS		= -ldl 
 
-LIBS      +=  -L$(WIND_FOUNDATION_PATH)/$(WIND_HOST_TYPE)/lib -lwtxapi41 -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
+LIBS    += -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
 ifdef LIBDWARFSTATIC
 LIBS    += -Wl,-static -ldwarf -Wl,-call_shared
 else

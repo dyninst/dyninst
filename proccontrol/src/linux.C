@@ -926,9 +926,9 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
          entryNumber = segmentSelectorVal / 8;
 
          pthrd_printf("Get segment base doing PTRACE with entry %lu\n", entryNumber);
-         do_ptrace((pt_req) PTRACE_GET_THREAD_AREA, 
-            lwp, (void *) entryNumber, (void *) &entryDesc);
-         if (errno != 0) {
+         long result = do_ptrace((pt_req) PTRACE_GET_THREAD_AREA, 
+                                 lwp, (void *) entryNumber, (void *) &entryDesc);
+         if (result == -1 && errno != 0) {
             pthrd_printf("PTRACE to get segment base failed: %s\n", strerror(errno));
             return false;
          }

@@ -231,6 +231,8 @@ class int_process
    virtual bool refresh_libraries(std::set<int_library *> &added_libs,
                                   std::set<int_library *> &rmd_libs,
                                   std::set<response::ptr> &async_responses) = 0;
+
+   virtual int_library *getExecutableLib() = 0;
    virtual bool initLibraryMechanism() = 0;
    virtual bool plat_isStaticBinary() = 0;
 
@@ -598,23 +600,31 @@ class int_library
    std::string name;
    Dyninst::Address load_address;
    Dyninst::Address data_load_address;
+   Dyninst::Address dynamic_address;
    bool has_data_load;
    bool marked;
+   void *user_data;
    Library::ptr up_lib;
   public:
-   int_library(std::string n, Dyninst::Address load_addr);
-   int_library(std::string n, Dyninst::Address load_addr, 
-               Dyninst::Address data_load_addr);
+   int_library(std::string n, 
+               Dyninst::Address load_addr,
+               Dyninst::Address dynamic_load_addr, 
+               Dyninst::Address data_load_addr = 0, 
+               bool has_data_load_addr = false);
    int_library(int_library *l);
    ~int_library();
    std::string getName();
    Dyninst::Address getAddr();
    Dyninst::Address getDataAddr();
+   Dyninst::Address getDynamicAddr();
    bool hasDataAddr();
    
    void setMark(bool b);
    bool isMarked() const;
    
+   void setUserData(void *d);
+   void *getUserData();
+
    Library::ptr getUpPtr() const;
 };
 

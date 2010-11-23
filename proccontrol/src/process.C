@@ -368,7 +368,30 @@ bool int_process::post_attach()
 
 bool int_process::post_create()
 {
-   return initLibraryMechanism();
+   bool result = initLibraryMechanism();
+   if( !result ) {
+       pthrd_printf("Error initializing library mechanism\n");
+       return false;
+   }
+
+   std::set<int_library*> added, rmd;
+   for (;;) {
+      std::set<response::ptr> async_responses;
+      result = refresh_libraries(added, rmd, async_responses);
+      if (!result && !async_responses.empty()) {
+         result = waitForAsyncEvent(async_responses);
+         if (!result) {
+            pthrd_printf("Failure waiting for async completion\n");
+            return false;
+         }
+         continue;
+      }
+      if (!result) {
+         pthrd_printf("Failure refreshing libraries for %d\n", getPid());
+         return false;
+      }
+      return true;
+   }
 }
 
 bool int_process::getThreadLWPs(std::vector<Dyninst::LWP> &)
@@ -1336,7 +1359,7 @@ size_t int_process::numLibs() const
 
 std::string int_process::getExecutable() const
 {
-   return executable;
+   return executable; //The name of the exec passed to PC
 }
 
 bool int_process::isInCallback()
@@ -3089,14 +3112,14 @@ bool installed_breakpoint::restoreBreakpointData(int_process *proc, result_respo
 bool installed_breakpoint::uninstall(int_process *proc, result_response::ptr async_resp)
 {
    assert(installed);
-   bool had_failure = false;
+   bool had_success = true;
    if (proc->getState() != int_process::exited)
    {
       bool result = proc->writeMem(&buffer, addr, buffer_size, async_resp);
       if (!result) {
          pthrd_printf("Failed to remove breakpoint at %lx from process %d\n", 
                       addr, proc->getPid());
-         had_failure = true;
+         had_success = false;
       }
    }
    installed = false;
@@ -3110,7 +3133,7 @@ bool installed_breakpoint::uninstall(int_process *proc, result_response::ptr asy
    }
    memory->breakpoints.erase(i);
 
-   return !had_failure;
+   return had_success;
 }
 
 bool installed_breakpoint::suspend(int_process *proc, result_response::ptr result_resp)
@@ -3246,23 +3269,14 @@ Dyninst::Address installed_breakpoint::getAddr() const
    return addr;
 }
 
-int_library::int_library(std::string n, Dyninst::Address load_addr) :
-   name(n),
-   load_address(load_addr),
-   data_load_address(0),
-   has_data_load(false),
-   marked(false)
-{
-   up_lib = new Library();
-   up_lib->lib = this;
-}
-
-int_library::int_library(std::string n, Dyninst::Address load_addr, Dyninst::Address data_load_addr) :
+int_library::int_library(std::string n, Dyninst::Address load_addr, Dyninst::Address dynamic_load_addr, Dyninst::Address data_load_addr, bool has_data_load_addr) :
    name(n),
    load_address(load_addr),
    data_load_address(data_load_addr),
-   has_data_load(true),
-   marked(false)
+   dynamic_address(dynamic_load_addr),
+   has_data_load(has_data_load_addr),
+   marked(false),
+   user_data(NULL)
 {
    up_lib = new Library();
    up_lib->lib = this;
@@ -3272,8 +3286,10 @@ int_library::int_library(int_library *l) :
    name(l->name),
    load_address(l->load_address),
    data_load_address(l->data_load_address),
+   dynamic_address(l->dynamic_address),
    has_data_load(l->has_data_load),
-   marked(l->marked)
+   marked(l->marked),
+   user_data(NULL)
 {
    up_lib = new Library();
    up_lib->lib = this;
@@ -3303,6 +3319,11 @@ bool int_library::hasDataAddr()
    return has_data_load;
 }
 
+Dyninst::Address int_library::getDynamicAddr()
+{
+   return dynamic_address;
+}
+
 void int_library::setMark(bool b)
 {
    marked = b;
@@ -3311,6 +3332,16 @@ void int_library::setMark(bool b)
 bool int_library::isMarked() const
 {
    return marked;
+}
+
+void int_library::setUserData(void *d)
+{
+   user_data = d;
+}
+
+void *int_library::getUserData()
+{
+   return user_data;
 }
 
 Library::ptr int_library::getUpPtr() const
@@ -3652,6 +3683,21 @@ Dyninst::Address Library::getDataLoadAddress() const
    return lib->getDataAddr();
 }
 
+Dyninst::Address Library::getDynamicAddress() const
+{
+   return lib->getDynamicAddr();
+}
+
+void *Library::getData() const
+{
+   return lib->getUserData();
+}
+
+void Library::setData(void *p) const
+{
+   lib->setUserData(p);
+}
+
 LibraryPool::LibraryPool()
 {
 }
@@ -3667,18 +3713,32 @@ size_t LibraryPool::size() const
 
 Library::ptr LibraryPool::getLibraryByName(std::string s)
 {
+   MTLock lock_this_func;
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
       return NULL;
    return int_lib->up_lib;
 }
 
-Library::ptr LibraryPool::getLibraryByName(std::string s) const
+Library::const_ptr LibraryPool::getLibraryByName(std::string s) const
 {
+   MTLock lock_this_func;
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
       return NULL;
    return int_lib->up_lib;
+}
+
+Library::ptr LibraryPool::getExecutable()
+{
+   MTLock lock_this_func;
+   return proc->getExecutableLib()->up_lib;
+}
+
+Library::const_ptr LibraryPool::getExecutable() const
+{
+   MTLock lock_this_func;
+   return proc->getExecutableLib()->up_lib;
 }
 
 LibraryPool::iterator::iterator()
@@ -4348,6 +4408,7 @@ bool Process::writeMemory(Dyninst::Address addr, const void *buffer, size_t size
    bool result = llproc_->writeMem(buffer, addr, size, resp);
    if (!result) {
       pthrd_printf("Error writing to memory\n");
+      resp->isReady();
       return false;
    }
 
@@ -4375,6 +4436,7 @@ bool Process::readMemory(void *buffer, Dyninst::Address addr, size_t size) const
    if (!result) {
       pthrd_printf("Error reading from memory %lx on target process %d\n",
                    addr, llproc_->getPid());
+      memresult->isReady();
       return false;
    }
 

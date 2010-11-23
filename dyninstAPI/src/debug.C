@@ -236,7 +236,7 @@ int dyn_debug_liveness = 0;
 int dyn_debug_infmalloc = 0;
 int dyn_debug_crash = 0;
 char *dyn_debug_crash_debugger = NULL;
-int dyn_debug_stackanalysis = 0;
+int dyn_debug_relocation = 0;
 
 static char *dyn_debug_write_filename = NULL;
 static FILE *dyn_debug_write_file = NULL;
@@ -366,9 +366,9 @@ bool init_debug() {
      dyn_debug_crash = 1;
      dyn_debug_crash_debugger = p;
   }
-  if ((p=getenv("DYNINST_DEBUG_STACKANALYSIS"))) {
-    fprintf(stderr, "Enabling DyninstAPI stack analysis debugging\n");
-    dyn_debug_stackanalysis = 1;
+  if ((p=getenv("DYNINST_DEBUG_RELOCATION"))) {
+    fprintf(stderr, "Enabling DyninstAPI relocation debugging\n");
+    dyn_debug_relocation = 1;
   }
 
   debugPrintLock = new eventLock();
@@ -823,24 +823,6 @@ int infmalloc_printf_int(const char *format, ...)
   return ret;
 }
 
-
-int stackanalysis_printf_int(const char *format, ...)
-{
-  if (!dyn_debug_stackanalysis) return 0;
-  if (NULL == format) return -1;
-
-  debugPrintLock->_Lock(FILE__, __LINE__);
-  
-  fprintf(stderr, "[%s]: ", getThreadStr(getExecThreadID()));
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
-
-  debugPrintLock->_Unlock(FILE__, __LINE__);
-
-  return ret;
-}
 
 StatContainer stats_instru;
 StatContainer stats_ptrace;

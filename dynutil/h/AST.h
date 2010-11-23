@@ -84,6 +84,7 @@ class ASTVisitor;
  class ReferenceAST;
  class StpAST;
  class YicesAST;
+ class SemanticsAST;
 
 #define DEF_AST_LEAF_TYPE(name, type)					\
 class name : public AST {						\
@@ -182,7 +183,8 @@ class COMMON_EXPORT AST : public dyn_detail::boost::enable_shared_from_this<AST>
     V_InputVariableAST,
     V_ReferenceAST,
     V_StpAST,
-    V_YicesAST } ID;
+    V_YicesAST,
+    V_SemanticsAST } ID;
 
   typedef dyn_detail::boost::shared_ptr<AST> Ptr;
   typedef std::vector<AST::Ptr> Children;      
@@ -242,6 +244,7 @@ class COMMON_EXPORT AST : public dyn_detail::boost::enable_shared_from_this<AST>
    virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();};
    virtual ASTPtr visit(StpAST *) {return AST::Ptr();};
    virtual ASTPtr visit(YicesAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();};
 
    virtual ~ASTVisitor() {};
  };

@@ -237,9 +237,9 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary)
     }
 
     return true;
- }																	
- 
- SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary) 
+ }
+
+SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary) 
  {
     // Check to see if we're duplicating
     for (unsigned i = 0; i < prettyNames_.size(); i++) {
@@ -255,8 +255,8 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary)
         prettyNames_.push_back(name);
 
     return true;
- }																	
- 
+ }
+
 SYMTAB_EXPORT bool Aggregate::addTypedName(string name, bool isPrimary) 
 {
   // Check to see if we're duplicating

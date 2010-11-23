@@ -635,6 +635,15 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 return;
             }
             else if(ct && work->tailcall()) {
+               if (ct->_rs == UNSET) {
+                  // Ah helll....
+                frame.call_target = ct;
+                frame.set_status(ParseFrame::CALL_BLOCKED);
+                // need to re-visit this edge
+                frame.pushWork(work);
+                return;
+               }                  
+
                 if(func->_rs != RETURN && ct->_rs > NORETURN)
                     func->_rs = ct->_rs;
             }
@@ -735,7 +744,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         } else {
             parsing_printf("[%s] deferring parse of shared block %lx\n",
                 FILE__,cur->start());
-            func->_rs = UNKNOWN;
+            if (func->_rs < UNKNOWN) {
+                func->_rs = UNKNOWN;
+            }
             continue;
         }
 
@@ -924,14 +935,15 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
     /** parsing complete **/
     if(HASHDEF(plt_entries,frame.func->addr())) {
-        if(obj().cs()->nonReturning(frame.func->addr()))
-            frame.func->_rs = NORETURN;
-        else
-            frame.func->_rs = UNKNOWN; 
+       if(obj().cs()->nonReturning(frame.func->addr())) {
+          frame.func->_rs = NORETURN;
+       }
+       else
+          frame.func->_rs = UNKNOWN; 
     }
-    else if(frame.func->_rs == UNSET)
+    else if(frame.func->_rs == UNSET) {
         frame.func->_rs = NORETURN;
-
+    }
     frame.set_status(ParseFrame::PARSED);
 }
 
@@ -1044,7 +1056,7 @@ Parser::add_edge(
     Block * split = NULL;
     Block * ret = NULL;
     Edge * newedge = NULL;
-    pair<Block *, Edge *> retpair(NULL,NULL);
+    pair<Block *, Edge *> retpair((Block *) NULL, (Edge *) NULL);
 
     if(!is_code(owner,dst)) {
         parsing_printf("[%s] target address %lx rejected by isCode()\n",dst);
@@ -1155,7 +1167,7 @@ Parser::bind_call(ParseFrame & frame, Address target, Block * cur, Edge * exist)
     if(!tfunc) {
         parsing_printf("[%s:%d] can't bind call to %lx\n",
             FILE__,__LINE__,target);
-        return pair<Function*,Edge*>(NULL,exist);
+        return pair<Function*,Edge*>((Function *) NULL,exist);
     }
 
     // add an edge
@@ -1164,7 +1176,7 @@ Parser::bind_call(ParseFrame & frame, Address target, Block * cur, Edge * exist)
     if(!tblock) {
         parsing_printf("[%s:%d] can't bind call to %lx\n",
             FILE__,__LINE__,target);
-        return pair<Function*,Edge*>(NULL,exist);
+        return pair<Function*,Edge*>((Function *) NULL,exist);
     }
 
     return pair<Function*,Edge*>(tfunc,ret.second);

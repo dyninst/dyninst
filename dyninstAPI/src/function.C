@@ -1209,7 +1209,7 @@ EdgeTypeEnum int_basicBlock::getSourceEdgeType(int_basicBlock *source) const {
     Block::edgelist & ib_ins = ib_->sources();
     Block::edgelist::iterator eit = ib_ins.begin(&epred);
     for( ; eit != ib_ins.end(); ++eit)
-        if((*eit)->trg() == source->ib_)
+        if((*eit)->src() == source->ib_)
             return (*eit)->type();
     return NOEDGE;
 }
@@ -1986,6 +1986,10 @@ bblInstance * bblInstance::getTargetBBL() {
                     break;
                 }
             }
+            if (hlTarget == NULL) {
+                fprintf(stderr, "targets:%d out_edges:%d src:0x%lx->0x%lx trg:0x%lx->0x%lx\n", targets.size(), out_edges.size(), (*eit)->src()->start(), (*eit)->src()->end(), (*eit)->trg()->start(), (*eit)->trg()->end());
+            }
+
             assert(hlTarget != NULL);
             return hlTarget->instVer(version_);
         }

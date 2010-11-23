@@ -65,8 +65,18 @@ dynHandle *mutatorInit(void)
 	sendMsg(config.outfd, ID_INIT_CREATE_BPATCH, INFO, ID_FAIL,
 		"Failure creating new BPatch object");
 	return NULL;
-    } else
-	sendMsg(config.outfd, ID_INIT_CREATE_BPATCH, INFO, ID_PASS);
+    }
+
+    // Connect to remote host, if requested.  --EXPERIMENTAL--
+    if (config.remoteHost) {
+        if (!dh->bpatch->remoteConnect(*config.remoteHost)) {
+            sendMsg(config.outfd, ID_INIT_CREATE_BPATCH, INFO, ID_FAIL,
+                    "Failure connecting to remote target");
+            return NULL;
+        }
+    }
+
+    sendMsg(config.outfd, ID_INIT_CREATE_BPATCH, INFO, ID_PASS);
 
     /*
      * BPatch class level flags.

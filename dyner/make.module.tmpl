@@ -16,10 +16,11 @@ TEST_TARGET	= testDyner
 SRCS	     += ../src/$(TARGET).C lex.$(TARGET).C $(TARGET).tab.C
 TEST_SRC      = ../tests/$(TEST_TARGET).C
 
-IFLAGS	     += -I$(TO_CORE)/dyninstAPI/h 
-IFLAGS      += -I$(TO_CORE)/symtabAPI/h 
-IFLAGS      += -I$(TO_CORE)/dynutil/h 
-IFLAGS      += -I../src
+IFLAGS       += -I$(TO_CORE)/dyninstAPI/h 
+IFLAGS       += -I$(TO_CORE)/symtabAPI/h 
+IFLAGS       += -I$(TO_CORE)/dynutil/h 
+IFLAGS       += -I$(TO_CORE)/instructionAPI/h
+IFLAGS       += -I../src
 
 CXXFLAGS     += $(BASICWARNINGS)
 CFLAGS       += $(BASICWARNINGS)
@@ -34,7 +35,7 @@ CFLAGS		+= -fno-squangle
 CXXFLAGS	+= -fno-squangle
 endif
 
-LIBS         += -ldyninstAPI -lsymtabAPI -lcommon
+LIBS         += -lcommon -lsymtabAPI -lparseAPI -linstructionAPI -ldyninstAPI -liberty
 
 SYSLIBS      += $(DEMANGLER_EXEC_LINK)
 SYSLIBS      += -L$(TCLTK_LIB_DIR) $(TCL_LIB)

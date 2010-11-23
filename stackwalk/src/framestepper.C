@@ -265,9 +265,9 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 #undef PIMPL_NAME
 
 //BottomOfStackStepper defined here
-#define OVERLOAD_NEWLIBRARY
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_bg)
 #include "stackwalk/src/linux-swk.h"
+#define OVERLOAD_NEWLIBRARY
 #define PIMPL_IMPL_CLASS BottomOfStackStepperImpl
 #endif
 #define PIMPL_CLASS BottomOfStackStepper
@@ -319,3 +319,15 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 #undef PIMPL_IMPL_CLASS
 #undef PIMPL_NAME
 #undef OVERLOAD_NEWLIBRARY
+
+//AnalysisStepper defined here
+#if defined(arch_x86) || defined(arch_x86_64)
+#include "stackwalk/src/analysis_stepper.h"
+#define PIMPL_IMPL_CLASS AnalysisStepperImpl
+#endif
+#define PIMPL_CLASS AnalysisStepper
+#define PIMPL_NAME "AnalysisStepper"
+#include "framestepper_pimple.h"
+#undef PIMPL_CLASS
+#undef PIMPL_IMPL_CLASS
+#undef PIMPL_NAME

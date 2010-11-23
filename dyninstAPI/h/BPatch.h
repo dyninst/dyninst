@@ -82,6 +82,27 @@ typedef struct {
   unsigned int insnGenerated;
 } BPatch_stats;
 
+// --------------------------------------------------------------------
+// This is a purposefully undocumented prototype of a "remote debugging"
+// interface.  Meant to generalize debuggers like remote gdb and wtx.
+
+typedef enum {
+    BPATCH_REMOTE_DEBUG_WTX,
+
+    BPATCH_REMOTE_DEBUG_END
+} BPatch_remote_t;
+
+typedef struct {
+    char *target;
+    char *tool;
+    char *host;
+} BPatch_remoteWtxInfo;
+
+typedef struct {
+    BPatch_remote_t type;
+    void *info;
+} BPatch_remoteHost;
+// --------------------------------------------------------------------
 
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
@@ -627,6 +648,22 @@ public:
     API_EXPORT_V(Int, (major, minor, subminor),
     void ,getBPatchVersion,(int &major, int &minor, int &subminor));
 
+    // These three should probably be moved into their own BPatch_* class.
+    // Perhaps BPatch_remoteDebug?
+    API_EXPORT(Int, (),
+    bool, isConnected, ());
+
+    API_EXPORT(Int, (remote),
+    bool, remoteConnect, (BPatch_remoteHost &remote));
+
+    API_EXPORT(Int, (remote, pidlist),
+    bool,getPidList,(BPatch_remoteHost &remote, BPatch_Vector<unsigned int> &pidlist));
+
+    API_EXPORT(Int, (remote, pid, pidStr),
+    bool,getPidInfo,(BPatch_remoteHost &remote, unsigned int pid, std::string &pidStr));
+
+    API_EXPORT(Int, (remote),
+    bool, remoteDisconnect, (BPatch_remoteHost &remote));
 };
 
 #endif /* _BPatch_h_ */
