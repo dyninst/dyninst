@@ -47,6 +47,8 @@ class PCProcess;
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Archive.h"
 
+#include "common/h/parseauxv.h"
+
 #define BYTES_TO_SAVE   256
 
 #define EXIT_NAME "_exit"
@@ -91,7 +93,6 @@ typedef int handleT; // a /proc file descriptor
 
 /* For linux.C */
 void printRegs( void * save );
-Address findFunctionToHijack(PCProcess * p );
 
 #ifndef WNOWAIT
 #define WNOWAIT WNOHANG

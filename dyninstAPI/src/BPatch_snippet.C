@@ -55,6 +55,7 @@
 #include "registerSpace.h"
 #include "debug.h"
 #include "pcProcess.h"
+#include "pcEventHandler.h"
 
 #include "symtabAPI/h/Type.h"
 #include "symtabAPI/h/Variable.h"
@@ -1590,7 +1591,7 @@ void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
     }
 
     // create callback ID argument
-    int cb_id = PCProcess::getStopThreadCB_ID((Address)bp_cb); 
+    int cb_id = BPatch::bpatch->eventHandler_->getStopThreadCallbackID((Address)bp_cb); 
     AstNodePtr idNode = AstNode::operandNode(AstNode::Constant, (void*)(int) cb_id );
     BPatch_type *inttype = BPatch::bpatch->stdTypes->findType("int");
     assert(inttype != NULL);

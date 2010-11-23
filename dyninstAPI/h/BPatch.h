@@ -46,6 +46,7 @@ class BPatch_libInfo;
 class BPatch_module;
 class int_function;
 class PCProcess;
+class PCEventHandler;
 
 //Keep old versions defined, that way someone can test if we're more
 // at or more recent than version 5.1 with '#if defined(DYNINST_5_1)'
@@ -92,6 +93,7 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     friend class BPatch_point;
     friend class BPatch_stopThreadExpr; // Registers a callback
     friend class int_function;
+    friend class PCProcess;
 
     BPatch_libInfo *info; 
 
@@ -143,15 +145,13 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
         // callbacks may delete BPatch objects. 
         void continueIfExists(int pid);
 
-   /* flag that is set when a mutatee's runnning status changes,
-      for use with pollForStatusChange */
-   bool mutateeStatusChange;
-
    /* Internal notification file descriptor - a pipe */
    int notificationFDOutput_;
    int notificationFDInput_;
    // Easier than non-blocking reads... there is either 1 byte in the pipe or 0.
    bool FDneedsPolling_;
+
+   PCEventHandler *eventHandler_;
 
    // Callbacks //
    BPatchErrorCallback errorCallback;
@@ -199,6 +199,7 @@ public:
 
     void registerNormalExit(PCProcess *proc, int exitcode);
     void registerSignalExit(PCProcess *proc, int signalnum);
+    void cleanupProcess(PCProcess *proc);
 
     void registerThreadExit(PCProcess *proc, long tid, bool exiting);
     bool registerThreadCreate(BPatch_process *proc, BPatch_thread *newthr);

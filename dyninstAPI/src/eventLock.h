@@ -38,6 +38,7 @@ class BPatch_eventLock;
 
 unsigned long getExecThreadID();
 const char *getThreadStr(unsigned long tid);
+void setCallbackThreadID(unsigned long tid);
 
 class eventLock {
   friend class BPatch_eventLock;

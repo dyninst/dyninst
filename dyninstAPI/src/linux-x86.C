@@ -78,6 +78,7 @@
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
+using namespace Dyninst::ProcControlAPI;
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
@@ -88,61 +89,32 @@ const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
 
 const char libc_version_symname[] = "__libc_version";
 
-#define NUM_REGS (17 /*+ NUM_FREGS*/)
-#define NUM_FREGS 8
-#define FP0_REGNUM NUM_REGS
-#define FP7_REGNUM (FP0_REGNUM+7)
-#define INTREGSIZE (sizeof(long))
-#define FPREGSIZE 10
-#define MAX_REGISTER_RAW_SIZE 10
-
-#define REGISTER_RAW_SIZE(N) (((N) < FP0_REGNUM) ? INTREGSIZE : FPREGSIZE)
-#define REGS_SIZE ( NUM_REGS * REGISTER_RAW_SIZE(0) + NUM_FREGS * REGISTER_RAW_SIZE(FP0_REGNUM) )
-#define REGS_INTS ( REGS_SIZE / INTREGSIZE )
-
-const int GENREGS_STRUCT_SIZE = sizeof( user_regs_struct );
-#ifdef _SYS_USER_H 
-const int FPREGS_STRUCT_SIZE = sizeof( user_fpregs_struct );
-#else
-const int FPREGS_STRUCT_SIZE = sizeof( user_i387_struct );
-#endif
-
-#define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
-
-/* ********************************************************************** */
-
-Frame PCThread::getActiveFrame() {
-    Address pc = 0, fp = 0, sp = 0;
-    //TODO get register values
-    return Frame(pc, fp, sp, proc_->getPid(), proc_, this, true);
-}
-
 #if defined(arch_x86_64)
-bool PCProcess::getSysCallParameters(dyn_saved_regs *regs, long *params, int numparams) 
+bool PCProcess::getSysCallParameters(const RegisterPool &regs, long *params, int numparams) 
 {
    if (getAddressWidth() == 4) { // 32 bit mutatee
    } else { // 64 bit mutatee, have to use ifdef, otherwise it won't
       // compile on a 32 bit machine
       if (numparams > 0) {
-         params[0] = regs->gprs.rdi;
+         params[0] = regs[x86_64::rdi];
       }
       if (numparams > 1) {
-         params[1] = regs->gprs.rsi;
+         params[1] = regs[x86_64::rsi];
       }
       if (numparams > 2) {
-         params[2] = regs->gprs.rdx;
+         params[2] = regs[x86_64::rdx];
       }
       if (numparams > 3) {
-         params[3] = regs->gprs.r8;
+         params[3] = regs[x86_64::r8];
       }
       if (numparams > 4) {
-         params[4] = regs->gprs.r9;
+         params[4] = regs[x86_64::r9];
       }
       if (numparams > 5) {
-         params[5] = regs->gprs.r10;
+         params[5] = regs[x86_64::r10];
       }
       for (int i=6; i < numparams; i++) {
-         if (!readDataSpace((void*)regs->gprs.rsp, getAddressWidth(), 
+         if (!readDataSpace((void*)regs[x86_64::rsp], getAddressWidth(), 
                   (void*)(params + i * getAddressWidth()), true)) {
             return false;
          }
@@ -151,16 +123,16 @@ bool PCProcess::getSysCallParameters(dyn_saved_regs *regs, long *params, int num
    return true;
 }
 
-int PCProcess::getSysCallNumber(dyn_saved_regs *regs) {
-   return regs->gprs.orig_rax;
+int PCProcess::getSysCallNumber(const RegisterPool &regs) {
+   return regs[x86_64::orax];
 }
 
-long PCProcess::getSysCallReturnValue(dyn_saved_regs *regs) {
-   return regs->gprs.rax;
+long PCProcess::getSysCallReturnValue(const RegisterPool &regs) {
+   return regs[x86_64::rax];
 }
 
-Address PCProcess::getSysCallProgramCounter(dyn_saved_regs *regs) {
-   return regs->gprs.rip;
+Address PCProcess::getSysCallProgramCounter(const RegisterPool &regs) {
+   return regs[x86_64::rip];
 }
 
 bool PCProcess::isMmapSysCall(int callnum) {
@@ -170,49 +142,49 @@ bool PCProcess::isMmapSysCall(int callnum) {
    return callnum == SYS_mmap;
 }
 
-Offset PCProcess::getMmapLength(int, dyn_saved_regs *regs) {
-   return (Offset) regs->gprs.rsi;
+Offset PCProcess::getMmapLength(int, const RegisterPool &regs) {
+   return (Offset) regs[x86_64::rsi];
 }
 
 Address PCProcess::getLibcStartMainParam(PCThread *trappingThread) {
    Address mainaddr = 0;
-   dyn_saved_regs regs;
-   trappingThread->getRegisters(&regs);
+   RegisterPool regs;
+   trappingThread->getRegisters(regs);
    if (getAddressWidth() == 4) { // 32 bit mutatee
-      if (!readDataSpace((void*)(regs.gprs.rsp + getAddressWidth()),
+      if (!readDataSpace((void*)(regs[x86_64::rsp] + getAddressWidth()),
                getAddressWidth(), (void*)&mainaddr,true)) {
          fprintf(stderr,"[%s][%d]: failed readDataSpace\n", __FILE__,__LINE__); 
       }
    } else { // 64 bit mutatee
-      mainaddr = regs.gprs.rdi;
+      mainaddr = regs[x86_64::rdi];
    }
    return mainaddr;
 }
 // 64 bit architecture
 #else 
 // 32 bit architecture
-bool PCProcess::getSysCallParameters(dyn_saved_regs *regs, 
+bool PCProcess::getSysCallParameters(const RegisterPool &regs, 
       long *params, int numparams) {
    if (numparams > 0) {
-      params[0] = regs->gprs.ebx;
+      params[0] = regs[x86::ebx];
    }
    if (numparams > 1) {
-      params[1] = regs->gprs.ecx;
+      params[1] = regs[x86::ecx];
    }
    if (numparams > 2) {
-      params[2] = regs->gprs.edx;
+      params[2] = regs[x86::edx];
    }
    if (numparams > 3) {
-      params[3] = regs->gprs.esi;
+      params[3] = regs[x86::esi];
    }
    if (numparams > 4) {
-      params[4] = regs->gprs.edi;
+      params[4] = regs[x86::edi];
    }
    if (numparams > 5) {
-      params[5] = regs->gprs.ebp;
+      params[5] = regs[x86::ebp];
    }
    for (int i=6; i < numparams; i++) {
-      if (!readDataSpace((void*)regs->gprs.esp, getAddressWidth(), 
+      if (!readDataSpace((void*)regs[x86::esp], getAddressWidth(), 
                (void*)(params + i * getAddressWidth()), true)) {
          return false;
       }
@@ -220,44 +192,44 @@ bool PCProcess::getSysCallParameters(dyn_saved_regs *regs,
    return true;
 }
 
-int PCProcess::getSysCallNumber(dyn_saved_regs *regs) 
+int PCProcess::getSysCallNumber(const RegisterPool &regs) 
 {
-   return regs->gprs.orig_eax;
+   return regs[x86::oeax];
 }
 
-long PCProcess::getSysCallReturnValue(dyn_saved_regs *regs) 
+long PCProcess::getSysCallReturnValue(const RegisterPool &regs) 
 {
-   return regs->gprs.eax;
+   return regs[x86::eax];
 }
 
-Address PCProcess::getSysCallProgramCounter(dyn_saved_regs *regs) 
+Address PCProcess::getSysCallProgramCounter(const RegisterPool &regs) 
 {
-   return regs->gprs.eip;
+   return regs[x86::eip];
 }
 
 bool PCProcess::isMmapSysCall(int callnum) {
    return (callnum == SYS_mmap || callnum == SYS_mmap2);
 }
 
-Offset PCProcess::getMmapLength(int callnum, dyn_saved_regs *regs) 
+Offset PCProcess::getMmapLength(int callnum, const RegisterPool &regs) 
 {
    if (callnum == SYS_mmap) {
       Offset length;
-      readDataSpace((void*)(regs->gprs.ebx + getAddressWidth()),
+      readDataSpace((void*)(regs[x86::ebx] + getAddressWidth()),
             getAddressWidth(), (void*)&length, true);
       return length;
    }
    else {
-      return (Offset) regs->gprs.ecx;
+      return (Offset) regs[x86::ecx];
    }
 }
 
 Address PCProcess::getLibcStartMainParam(PCThread *trappingThread) 
 {
-   dyn_saved_regs regs;
-   trappingThread->getRegisters(&regs);
+   RegisterPool regs;
+   trappingThread->getRegisters(regs);
    Address mainaddr;
-   if (!readDataSpace((void*)(regs.gprs.esp + getAddressWidth()),
+   if (!readDataSpace((void*)(regs[x86::esp] + getAddressWidth()),
             getAddressWidth(), (void*)&mainaddr,true)) {
       fprintf(stderr,"[%s][%d]: failed readDataSpace\n", __FILE__,__LINE__); 
    }
@@ -265,6 +237,225 @@ Address PCProcess::getLibcStartMainParam(PCThread *trappingThread)
 } 
 
 #endif
+
+bool PCProcess::postRTLoadCleanup() {
+    if( rtLibLoadHeap_ ) {
+        if( !pcProc_->freeMemory(rtLibLoadHeap_) ) {
+            startup_printf("%s[%d]: failed to free memory used for RT library load\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+    }
+    return true;
+}
+
+AstNodePtr PCProcess::createLoadRTAST() {
+    pdvector<int_function *> dlopen_funcs;
+
+    // allow user to override default dlopen func names
+    // with env. var
+
+    DL_OPEN_FUNC_USER = getenv("DYNINST_DLOPEN_FUNC");
+
+    if( DL_OPEN_FUNC_USER ) {
+        findFuncsByAll(DL_OPEN_FUNC_USER, dlopen_funcs);
+    }
+
+    bool useHiddenFunction = false;
+    if( dlopen_funcs.size() == 0 ) {
+        if( !findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs) ) {
+            useHiddenFunction = true;
+            if( !findFuncsByAll(DL_OPEN_FUNC_NAME, dlopen_funcs) ) {
+                pdvector<int_function *> dlopen_int_funcs;
+                // If we can't find the do_dlopen function (because this library
+                // is stripped, for example), try searching for the internal
+                // _dl_open function and find the do_dlopen function by examining
+                // the functions that call it. This depends on the do_dlopen
+                // function having been parsed (though its name is not known)
+                // through speculative parsing.
+                if(findFuncsByAll(DL_OPEN_FUNC_INTERNAL, dlopen_int_funcs)) {
+                    if(dlopen_int_funcs.size() > 1) {
+                        startup_printf("%s[%d] warning: found %d matches for %s\n",
+                                       __FILE__,__LINE__,dlopen_int_funcs.size(),
+                                       DL_OPEN_FUNC_INTERNAL);
+                    }
+                    dlopen_int_funcs[0]->getStaticCallers(dlopen_funcs);
+                    if(dlopen_funcs.size() > 1) {
+                        startup_printf("%s[%d] warning: found %d do_dlopen candidates\n",
+                                       __FILE__,__LINE__,dlopen_funcs.size());
+                    }
+
+                    if(dlopen_funcs.size() > 0) {
+                        // give it a name
+                        dlopen_funcs[0]->addSymTabName("do_dlopen",true);
+                    }
+                }else{
+                    startup_printf("%s[%d]: failed to find dlopen function to load RT lib\n",
+                                   FILE__, __LINE__);
+                    return AstNodePtr();
+                }
+            }
+        }
+    }
+
+    assert( dlopen_funcs.size() != 0 );
+
+    if (dlopen_funcs.size() > 1) {
+        logLine("WARNING: More than one dlopen found, using the first\n");
+    }
+
+    int_function *dlopen_func = dlopen_funcs[0];
+
+    if( !useHiddenFunction ) {
+        // XXX
+        //
+        // For now, we cannot use inferiorMalloc because that requires the RT library
+        // Hopefully, we can transition inferiorMalloc to use ProcControlAPI for 
+        // allocating memory
+        rtLibLoadHeap_ = pcProc_->mallocMemory(dyninstRT_name.length());
+        if( !rtLibLoadHeap_ ) {
+            startup_printf("%s[%d]: failed to allocate memory for RT library load\n",
+                    FILE__, __LINE__);
+            return AstNodePtr();
+        }
+
+        if( !writeDataSpace((char *)rtLibLoadHeap_, dyninstRT_name.length(), dyninstRT_name.c_str()) ) {
+            startup_printf("%s[%d]: failed to write RT lib name into mutatee\n",
+                    FILE__, __LINE__);
+            return AstNodePtr();
+        }
+
+        pdvector<AstNodePtr> args;
+        args.push_back(AstNode::operandNode(AstNode::Constant, (void *)rtLibLoadHeap_));
+        args.push_back(AstNode::operandNode(AstNode::Constant, (void *)DLOPEN_MODE));
+
+        return AstNode::funcCallNode(dlopen_func, args);
+    }
+    pdvector<AstNodePtr> sequence;
+
+    AstNodePtr unprotectStackAST = createUnprotectStackAST();
+    if( unprotectStackAST == AstNodePtr() ) {
+        startup_printf("%s[%d]: failed to generate unprotect stack AST\n",
+                FILE__, __LINE__);
+        return AstNodePtr();
+    }
+
+    sequence.push_back(unprotectStackAST);
+
+    startup_printf("%s[%d]: Creating AST to call libc's internal dlopen\n", FILE__, __LINE__);
+    struct libc_dlopen_args_32 {
+        uint32_t namePtr;
+        uint32_t mode;
+        uint32_t linkMapPtr;
+    };
+
+    struct libc_dlopen_args_64 {
+        uint64_t namePtr;
+        uint32_t mode;
+        uint64_t linkMapPtr;
+    };
+
+    // Construct the argument to the internal function
+    struct libc_dlopen_args_32 args32;
+    struct libc_dlopen_args_64 args64;
+
+    unsigned argsSize = 0;
+    void *argsPtr;
+    if( getAddressWidth() == 4 ) {
+        argsSize = sizeof(args32);
+        argsPtr = &args32;
+    }else{
+        argsSize = sizeof(args64);
+        argsPtr = &args64;
+    }
+
+    // Allocate memory for the arguments
+    rtLibLoadHeap_ = pcProc_->mallocMemory(dyninstRT_name.length()+1 + argsSize);
+    if( !rtLibLoadHeap_ ) {
+        startup_printf("%s[%d]: failed to allocate memory for RT library load\n",
+                FILE__, __LINE__);
+        return AstNodePtr();
+    }
+
+    if( !writeDataSpace((char *)rtLibLoadHeap_, dyninstRT_name.length()+1, dyninstRT_name.c_str()) ) {
+        startup_printf("%s[%d]: failed to write RT lib name into mutatee\n",
+                FILE__, __LINE__);
+        return AstNodePtr();
+    }
+
+    if( getAddressWidth() == 4 ) {
+        args32.namePtr = (uint32_t)rtLibLoadHeap_;
+        args32.mode = DLOPEN_MODE;
+    }else{
+        args64.namePtr = (uint64_t)rtLibLoadHeap_;
+        args64.mode = DLOPEN_MODE;
+    }
+
+    Address argsAddr = rtLibLoadHeap_ + dyninstRT_name.length()+1;
+    if( !writeDataSpace((char *) argsAddr, argsSize, argsPtr) ) {
+        startup_printf("%s[%d]: failed to write arguments to libc dlopen\n",
+                FILE__, __LINE__);
+        return AstNodePtr();
+    }
+
+    pdvector<AstNodePtr> args;
+    args.push_back(AstNode::operandNode(AstNode::Constant, (void *)argsAddr));
+
+    sequence.push_back(AstNode::funcCallNode(dlopen_func, args));
+
+    return AstNode::sequenceNode(sequence);
+}
+
+AstNodePtr PCProcess::createUnprotectStackAST() {
+    startup_printf("%s[%d]: creating AST to call mprotect to unprotect libc stack protection variable\n",
+            FILE__, __LINE__);
+
+    // find variable __stack_prot
+
+    // mprotect READ/WRITE __stack_prot
+    pdvector<int_variable *> vars;
+    pdvector<int_function *> funcs;
+
+    Address var_addr;
+    int size;
+    int pagesize;
+    Address page_start;
+    bool ret;
+
+    ret = findVarsByAll("__stack_prot", vars);
+
+    if(!ret || vars.size() == 0) {
+        return AstNodePtr();
+    } else if(vars.size() > 1) {
+        startup_printf("%s[%d]: Warning: found more than one __stack_prot variable\n",
+                FILE__, __LINE__);
+    }
+
+    pagesize = getpagesize();
+
+    var_addr = vars[0]->getAddress();
+    page_start = var_addr & ~(pagesize -1);
+    size = var_addr - page_start +sizeof(int);
+
+    ret = findFuncsByAll("mprotect",funcs);
+
+    if(!ret || funcs.size() == 0) {
+        startup_printf("%s[%d]: Couldn't find mprotect\n",
+                FILE__, __LINE__);
+        return AstNodePtr();
+    }
+
+    // mprotect: int mprotect(const void *addr, size_t len, int prot);
+    int_function *mprot = funcs[0];
+    
+    pdvector<AstNodePtr> args;
+    args.push_back(AstNode::operandNode(AstNode::Constant, (void *)page_start));
+    args.push_back(AstNode::operandNode(AstNode::Constant, (void *)size));
+    // prot = READ|WRITE|EXECUTE
+    args.push_back(AstNode::operandNode(AstNode::Constant, (void *)7));
+
+    return AstNode::funcCallNode(mprot, args);
+}
 
 // For now, this isn't defined
 #if 0 
@@ -707,5 +898,3 @@ Frame PCProcess::preStackWalkInit(Frame startFrame)
   }
   return startFrame;
 }
-
-

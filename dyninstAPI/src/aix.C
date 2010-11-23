@@ -86,6 +86,21 @@ extern "C" {
 extern int ioctl(int, int, ...);
 };
 
+bool PCProcess::skipHeap(const heapDescriptor &heap) {
+    // MT: I've seen problems writing into a "found" heap that
+    // is in the application heap (IE a dlopen'ed
+    // library). Since we don't have any problems getting
+    // memory there, I'm skipping any heap that is in 0x2.....
+
+    if ((infHeaps[j].addr() > 0x20000000) &&
+        (infHeaps[j].addr() < 0xd0000000) &&
+        (infHeaps[j].type() == uncopiedHeap)) {
+        infmalloc_printf("... never mind, AIX skipped heap\n");
+        return true;
+    }
+    return false;
+}
+
 // The frame threesome: normal (singlethreaded), thread (given a pthread ID),
 // and LWP (given an LWP/kernel thread).
 // The behavior is identical unless we're in a leaf node where

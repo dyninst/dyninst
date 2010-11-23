@@ -38,10 +38,6 @@ SRCS =          ../src/linux.C \
 		../src/BPatch_memoryAccessAdapter.C \
 		../src/IAPI_to_AST.C 
 
-		#../src/linuxDL.C \
-		#../src/linuxMT.C \
-		#../src/dynamiclinking.C \
-
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG
 #MYFLAGS	+= -DATTACH_DETACH_DEBUG

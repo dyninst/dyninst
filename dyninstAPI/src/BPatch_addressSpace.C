@@ -825,7 +825,11 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       proc->beginInsertionSetInt();
       pendingInsertions->push_back(rec);
       // All the insertion work was moved here...
-      proc->finalizeInsertionSetInt(false);
+      if( !proc->finalizeInsertionSetInt(false) ) {
+          inst_printf("[%s:%u] - failed to finalize insertion set\n",
+                  FILE__, __LINE__);
+          return false;
+      }
    }
    return ret;
 }

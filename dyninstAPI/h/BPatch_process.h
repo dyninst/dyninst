@@ -151,6 +151,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     friend class AstNode; // AST needs to translate instPoint to
     friend class AstOperatorNode;
     friend class AstMemoryNode;
+    friend class PCEventHandler; // to deliver events for callbacks
 
     protected:
     void getAS(std::vector<AddressSpace *> &as);
@@ -220,12 +221,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     // for forking
     BPatch_process(PCProcess *proc);
 
-    // Create a new thread in this proc
-    BPatch_thread *createOrUpdateBPThread(int lwp, dynthread_t tid, unsigned index, 
-                                          unsigned long stack_start, 
-                                          unsigned long start_addr);
-    BPatch_thread *handleThreadCreate(unsigned index, int lwpid, dynthread_t threadid, 
-                            unsigned long stack_top, unsigned long start_pc, PCProcess *proc = NULL);
+    BPatch_thread *handleThreadCreate(PCThread *thread);
     void deleteBPThread(BPatch_thread *thrd);
 
     public:

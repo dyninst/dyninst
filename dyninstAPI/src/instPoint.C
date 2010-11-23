@@ -932,7 +932,7 @@ bool instPoint::instrSideEffect(Frame &frame)
             if (!frame.setPC(newPC)) {
                 mal_printf("setting active frame's PC from %lx to %lx %s[%d]\n", 
                            frame.getPC(), newPC, FILE__,__LINE__);
-                frame.getThread()->changePC(newPC,NULL);
+                frame.getThread()->changePC(newPC);
             }
             if (frame.setPC(newPC)) 
                 modified = true;

@@ -48,23 +48,21 @@ typedef long dynthread_t;
 
 class PCThread {
 public:
-    static PCThread *createPCThread(PCProcess *parent, int index,
-                                    int lwpId, dynthread_t async_tid);
+    static PCThread *createPCThread(PCProcess *parent, ProcControlAPI::Thread::ptr thr);
 
     // Stackwalking interface
     bool walkStack(pdvector<Frame> &stackWalk);
-    bool getRegisters(struct dyn_saved_regs *regs, bool includeFP = false);
-    bool changePC(Address, struct dyn_saved_regs *) { return false; }
+    bool getRegisters(ProcControlAPI::RegisterPool &regs, bool includeFP = false);
+    bool changePC(Address newPC);
 
     // Field accessors
     dynthread_t getTid() const;
     int getIndex() const;
-    int getLWPId() const;
+    int getLWP() const;
     int_function *getStartFunc() const;
-    Address getIndirectStartAddr() const;
     Address getStackAddr() const;
-    int getFD() const;
     PCProcess *getProc() const;
+    bool isLive() const;
 
     // Field mutators
     void updateStartFunc(int_function *ifunc);
@@ -75,9 +73,24 @@ public:
     // Architecture-specific
     Frame getActiveFrame();
 
+    ProcControlAPI::Thread::ptr getProcControlThread();
+
 protected:
+    PCThread(PCProcess *parent, int ind,
+            ProcControlAPI::Thread::ptr thr);
+
     PCProcess *proc_;
     ProcControlAPI::Thread::ptr pcThr_;
+
+    int index_;
+    Address stackAddr_;
+    int_function *startFunc_;
+
+    // When we run an inferior RPC we cache the stackwalk of the
+    // process and return that if anyone asks for a stack walk
+    int_stackwalk cached_stackwalk_;
+
+    static int nextIndex;
 };
 
 #endif

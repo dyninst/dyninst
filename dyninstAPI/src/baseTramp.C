@@ -206,9 +206,7 @@ baseTramp::baseTramp(instPoint *iP, callWhen when) :
     savedFlagSize(0), 
     createFrame_(true),
     instVersion_(),
-    when_(when),
-    isIRPCTramp_(false),
-    rpcProc_(NULL)
+    when_(when)
 {
 }
 
@@ -294,11 +292,6 @@ baseTramp::baseTramp(const baseTramp *pt, AddressSpace *child) :
         parMini = parMini->next;
     }
     lastMini = childMini;
-
-    isIRPCTramp_ = pt->isIRPCTramp_;
-    if( isIRPCTramp_ ) {
-        rpcProc_ = child;
-    }
 }
 
 baseTramp::~baseTramp() {
@@ -335,7 +328,6 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     gen.setPCRelUseCount(0);
     gen.setBTI(this);
     if (baseT->instP()) {
-       //iRPCs already have this set
        gen.setPoint(baseT->instP());
        gen.setRegisterSpace(registerSpace::actualRegSpace(baseT->instP(), baseT->when_));
     }
@@ -609,7 +601,7 @@ bool baseTrampInstance::installCode() {
 AddressSpace *baseTramp::proc() const { 
   if (instP_)
     return instP_->proc();
-  return rpcProc_;
+  return NULL;
 }
 
 Address baseTramp::origInstAddr() {
@@ -620,11 +612,6 @@ Address baseTramp::origInstAddr() {
   
   // TODO: a post tramp _should_ return the next addr, but hey...
 
-  if (!instP_) {
-    assert( isIRPCTramp_ );
-    return 0;
-  }
-  
   return instP()->addr();
 }
 
@@ -763,7 +750,7 @@ bool baseTramp::isConservative() {
         return true;
     }
 
-  return isIRPCTramp_;
+  return false;
 }
 
 bool baseTramp::isCallsite() {

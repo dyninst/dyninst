@@ -279,7 +279,7 @@ bool init_debug() {
     fprintf(stderr, "Enabling DyninstAPI forkexec debug\n");
     dyn_debug_forkexec = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_PROCCONTROL"))) {
+  if ( (p=getenv("DYNINST_DEBUG_PC"))) {
     fprintf(stderr, "Enabling DyninstAPI process control debug\n");
     dyn_debug_proccontrol = 1;
   }

@@ -331,7 +331,7 @@ ostream & operator << ( ostream & s, Frame & f ) {
 	s << " FP: 0x" << std::hex << f.getFP() << " SP: 0x" << f.getSP() << " PID: " << std::dec << f.getPID() << " "; 
 	if( f.getThread() ) {
    		s << "TID: " << f.getThread()->getTid() << " ";
-                s << "LWP: " << f.getThread()->getLWPId() << " ";
+                s << "LWP: " << f.getThread()->getLWP() << " ";
         }
 	
 	return s;

@@ -36,7 +36,7 @@ ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
 	LDFLAGS += -linstructionAPI
 endif
 
-LDFLAGS += -lpthread -lsymtabAPI -lcommon -lparseAPI
+LDFLAGS += -lpthread -lsymtabAPI -lcommon -lparseAPI -lpcontrol
 
 LDFLAGS     += -L../../common/$(PLATFORM) 
 LDFLAGS     += -L../../symtabAPI/$(PLATFORM) 

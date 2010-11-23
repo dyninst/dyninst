@@ -68,23 +68,16 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
 
     BPatch_process *proc;
     PCThread *llthread;
-    unsigned index;
-    bool doa;
-    //  If thread is doa, keep a record of the tid around so that user
-    //  callbacks can get the right tid, even if they can't do anything else
-    //  with it.
-    dynthread_t doa_tid;
     bool deleted_callback_made;
     bool is_deleted;
+    dynthread_t deleted_tid;
     bool legacy_destructor;
 
  protected:
     BPatch_thread(BPatch_process *parent, PCThread *thr);
-    BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthread_t async_tid);
 
     //Generator for above constructor
-    static BPatch_thread *createNewThread(BPatch_process *proc, int ind, 
-                                          int lwp_id, dynthread_t async_tid);
+    static BPatch_thread *createNewThread(BPatch_process *proc, PCThread *thr);
     void removeThreadFromProc();
     
  public:

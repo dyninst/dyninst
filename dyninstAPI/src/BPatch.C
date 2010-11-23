@@ -71,8 +71,6 @@ BPatch *BPatch::bpatch = NULL;
 
 void defaultErrorFunc(BPatchErrorLevel level, int num, const char * const *params);
 
-extern void dyninst_yield();
-
 #ifndef CASE_RETURN_STR
 #define CASE_RETURN_STR(x) case x: return #x
 #endif
@@ -112,10 +110,10 @@ BPatch::BPatch()
     delayedParsing_(false),
     instrFrames(false),
     systemPrelinkCommand(NULL),
-    mutateeStatusChange(false),
     notificationFDOutput_(-1),
     notificationFDInput_(-1),
     FDneedsPolling_(false),
+    eventHandler_(NULL),
     errorCallback(NULL),
     preForkCallback(NULL),
     postForkCallback(NULL),
@@ -183,6 +181,8 @@ BPatch::BPatch()
     //loadNativeDemangler();
     
     global_mutex->_Unlock(FILE__, __LINE__);
+
+    eventHandler_ = PCEventHandler::createPCEventHandler();
 }
 
 
@@ -193,6 +193,8 @@ BPatch::BPatch()
  */
 void BPatch::BPatch_dtor()
 {
+    delete eventHandler_;
+
     delete info;
 
     type_Error->decrRefCount();
@@ -679,7 +681,7 @@ void BPatch::registerForkedProcess(PCProcess *parentProc, PCProcess *childProc)
     int parentPid = parentProc->getPid();
     int childPid = childProc->getPid();
 
-    forkexec_printf("BPatch: registering fork, parent %d, child %d\n",
+    proccontrol_printf("BPatch: registering fork, parent %d, child %d\n",
                     parentPid, childPid);
     assert(getProcessByPid(childPid) == NULL);
     
@@ -688,15 +690,13 @@ void BPatch::registerForkedProcess(PCProcess *parentProc, PCProcess *childProc)
 
     BPatch_process *child = new BPatch_process(childProc);
 
-    forkexec_printf("Successfully connected socket to child\n");
-
-    signalNotificationFD();
+    proccontrol_printf("Successfully connected socket to child\n");
 
     if( postForkCallback ) {
         postForkCallback(parent->threads[0], child->threads[0]);
     }
     
-    forkexec_printf("BPatch: finished registering fork, parent %d, child %d\n",
+    proccontrol_printf("BPatch: finished registering fork, parent %d, child %d\n",
                     parentPid, childPid);
 }
 
@@ -714,8 +714,6 @@ void BPatch::registerForkingProcess(int forkingPid, PCProcess * /*proc*/)
 {
     BPatch_process *forking = getProcessByPid(forkingPid);
     assert(forking);
-
-    signalNotificationFD();
 
     if( preForkCallback ) {
         preForkCallback(forking->threads[0], NULL);
@@ -763,8 +761,6 @@ void BPatch::registerExecExit(PCProcess *proc)
 
    // The async pipe should be gone... handled in registerExecCleanup
 
-   signalNotificationFD();
-
    if( execCallback ) {
        execCallback(process->threads[0]);
    }
@@ -789,9 +785,6 @@ void BPatch::registerNormalExit(PCProcess *proc, int exitcode)
 
    process->setExitCode(exitcode);
    process->setExitedNormally();
-
-   signalNotificationFD();
-
 
    if (thrd) {
       if( threadDestroyCallback ) {
@@ -831,8 +824,6 @@ void BPatch::registerSignalExit(PCProcess *proc, int signalnum)
    bpprocess->setExitedViaSignal(signalnum);
    bpprocess->terminated = true;
 
-   signalNotificationFD();
-
    if (thrd) {
       if( threadDestroyCallback ) {
           threadDestroyCallback(bpprocess, thrd);
@@ -856,15 +847,19 @@ void BPatch::registerSignalExit(PCProcess *proc, int signalnum)
 
 }
 
+void BPatch::cleanupProcess(PCProcess *proc) {
+    if( !proc ) return;
+    BPatch_process *bpproc = getProcessByPid(proc->getPid());
+    if( !bpproc ) return;
+
+    delete bpproc;
+}
+
 bool BPatch::registerThreadCreate(BPatch_process *proc, BPatch_thread *newthr)
 {
-   signalNotificationFD();
-
    if( threadCreateCallback ) {
        threadCreateCallback(proc, newthr);
    }
-
-   mutateeStatusChange = true;
 
    return true;
 }
@@ -903,8 +898,6 @@ void BPatch::registerThreadExit(PCProcess *proc, long tid, bool exiting)
         return;
     }
 
-    signalNotificationFD();
-
     thrd->deleted_callback_made = true;
     if( threadDestroyCallback ) {
         threadDestroyCallback(bpprocess, thrd);
@@ -929,8 +922,6 @@ void BPatch::registerLoadedModule(PCProcess *process, mapped_module *mod) {
     
     BPatch_module *bpmod = bImage->findOrCreateModule(mod);
 
-    signalNotificationFD();
-
     if( dynLibraryCallback ) {
         dynLibraryCallback(bProc->threads[0], bpmod, true);
     }
@@ -951,8 +942,6 @@ void BPatch::registerUnloadedModule(PCProcess *process, mapped_module *mod) {
     
     BPatch_module *bpmod = bImage->findModule(mod);
     if (bpmod == NULL) return;
-
-    signalNotificationFD();
 
     // For now we use the same callback for load and unload of library....
     if( dynLibraryCallback ) {
@@ -1083,6 +1072,11 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
 #endif // VxWorks
 #endif
 
+   if( !eventHandler_->start() ) {
+       reportError(BPatchFatal, 68, "create process failed to create event handler");
+       return NULL;
+   }
+
    BPatch_process *ret = 
       new BPatch_process(path, argv, mode, envp, stdin_fd,stdout_fd,stderr_fd);
 
@@ -1121,6 +1115,12 @@ BPatch_process *BPatch::processAttachInt
       return NULL;
    }
 
+   // make sure the event handler is waiting on events from ProcControlAPI
+   if( !eventHandler_->start() ) {
+       reportError(BPatchFatal, 26, "attach process failed to create event handler");
+       return NULL;
+   }
+
    BPatch_process *ret = new BPatch_process(path, pid, mode);
 
    if (!ret->llproc ||
@@ -1148,9 +1148,10 @@ BPatch_process *BPatch::processAttachInt
  */
 bool BPatch::pollForStatusChangeInt()
 {
-    signal_printf("[%s:%u] Polling for events\n", __FILE__, __LINE__);
-    if( PCEventHandler::pollForEvents() ) {
-        signal_printf("[%s:%u] Failed to poll for events\n",
+    proccontrol_printf("[%s:%u] Polling for events\n", __FILE__, __LINE__);
+    PCEventHandler::WaitResult result = eventHandler_->waitForEvents(false);
+    if( result == PCEventHandler::Error ) {
+        proccontrol_printf("[%s:%u] Failed to poll for events\n",
                 __FILE__, __LINE__);
         BPatch_reportError(BPatchWarning, 0, 
                 "Failed to handle events and deliver callbacks");
@@ -1159,14 +1160,12 @@ bool BPatch::pollForStatusChangeInt()
 
     clearNotificationFD();
 
-    if( mutateeStatusChange ) {
-        mutateeStatusChange = false;
-
-        signal_printf("[%s:%u] Events received\n", __FILE__, __LINE__);
+    if( result == PCEventHandler::EventsReceived ) {
+        proccontrol_printf("[%s:%u] Events received\n", __FILE__, __LINE__);
         return true;
     }
   
-    signal_printf("[%s:%u] No events available\n", __FILE__, __LINE__);
+    proccontrol_printf("[%s:%u] No events available\n", __FILE__, __LINE__);
     return false;
 }
 
@@ -1176,15 +1175,12 @@ bool BPatch::pollForStatusChangeInt()
  *
  * Blocks waiting for a change to occur in the running status of a child
  * process.  Returns true upon success, false upon failure.
- *
- * This function is declared as a friend of BPatch_thread so that it can use
- * the BPatch_thread::getThreadEvent call to check for status changes.
  */
 bool BPatch::waitForStatusChangeInt() {
-
-    signal_printf("[%s:%u] Waiting for events\n", __FILE__, __LINE__);
-    if( PCEventHandler::waitForEvents() ) {
-        signal_printf("[%s:%u] Failed to wait for events\n",
+    proccontrol_printf("[%s:%u] Waiting for events\n", __FILE__, __LINE__);
+    PCEventHandler::WaitResult result = eventHandler_->waitForEvents(true);
+    if( result == PCEventHandler::Error ) {
+        proccontrol_printf("[%s:%u] Failed to wait for events\n",
                       __FILE__, __LINE__);
         BPatch_reportError(BPatchWarning, 0,
                            "Failed to handle events and deliver callbacks");
@@ -1193,15 +1189,13 @@ bool BPatch::waitForStatusChangeInt() {
 
     clearNotificationFD();
 
-    if( mutateeStatusChange ) {
-        mutateeStatusChange = false;
-
-        signal_printf("[%s:%u] Events received\n", __FILE__, __LINE__);
+    if( result == PCEventHandler::EventsReceived ) {
+        proccontrol_printf("[%s:%u] Events received\n", __FILE__, __LINE__);
         return true;
     }
 
     //  we waited for a change, but didn't get it
-    signal_printf("%s[%d]:  Error in status change reporting\n", FILE__, __LINE__);
+    proccontrol_printf("%s[%d]:  Error in status change reporting\n", FILE__, __LINE__);
     return false;
 }
 
@@ -1676,7 +1670,7 @@ void BPatch::continueIfExists(int pid)
     BPatch_process *proc = getProcessByPid(pid);
     if (!proc) return;
 
-    proc->llproc->continueProcess();
+    proc->continueExecution();
 }
 
 ////////////// Signal FD functions

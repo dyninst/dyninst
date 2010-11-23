@@ -29,61 +29,147 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "pcProcess.h"
 #include "pcThread.h"
+#include "debug.h"
 
-PCThread *PCThread::createPCThread(PCProcess *parent, int index,
-                                int lwpId, dynthread_t async_tid)
+using namespace Dyninst::ProcControlAPI;
+
+int PCThread::nextIndex = 0;
+
+PCThread::PCThread(PCProcess *parent, int ind,
+        Thread::ptr thr) :
+    proc_(parent),
+    pcThr_(thr),
+    index_(ind),
+    stackAddr_(0),
+    startFunc_(NULL)
 {
-    return NULL;
 }
 
-bool PCThread::walkStack(pdvector<Frame> &stackWalk) {
-    return false;
-}
+PCThread *PCThread::createPCThread(PCProcess *parent, Thread::ptr thr)
+{
+    PCThread *ret = new PCThread(parent, nextIndex++, thr);
+    assert(ret);
 
-bool PCThread::getRegisters(struct dyn_saved_regs *regs, bool includeFP) {
-    return false;
-}
-
-dynthread_t PCThread::getTid() const {
-    dynthread_t ret;
     return ret;
 }
 
-int PCThread::getIndex() const {
-    return 0;
+dynthread_t PCThread::getTid() const {
+    // TODO once Linux uses thread_db in ProcControlAPI this should
+    // be the ProcControl level TID
+    return index_;
 }
 
-int PCThread::getLWPId() const {
-    return 0;
+int PCThread::getIndex() const {
+    return index_;
+}
+
+int PCThread::getLWP() const {
+    return pcThr_->getLWP();
 }
 
 int_function *PCThread::getStartFunc() const {
-    return 0;
-}
-
-Address PCThread::getIndirectStartAddr() const {
-    return 0;
+    return startFunc_;
 }
 
 Address PCThread::getStackAddr() const {
-    return 0;
-}
-
-int PCThread::getFD() const {
-    return 0;
+    return stackAddr_;
 }
 
 void PCThread::updateStartFunc(int_function *ifunc) {
+    startFunc_ = ifunc;
 }
 
 void PCThread::updateStackAddr(Address stackStart) {
-}
-
-int_function *PCThread::mapInitialFunc(int_function *ifunc) {
-    return NULL;
+    stackAddr_ = stackStart;
 }
 
 PCProcess *PCThread::getProc() const {
-    return NULL;
+    return proc_;
+}
+
+bool PCThread::walkStack(pdvector<Frame> &stackWalk) {
+    bool continueWhenDone = false;
+    if( pcThr_->isRunning() ) {
+        continueWhenDone = true;
+        if( !pcThr_->stopThread() ) {
+            stackwalk_printf("%s[%d]: Failed to stop thread %ld to perform stackwalk\n",
+                    __FILE__, __LINE__, getTid());
+            return false;
+        }
+    }
+
+    if (cached_stackwalk_.isValid()) {
+        stackWalk = cached_stackwalk_.getStackwalk();
+        for (unsigned i=0; i<stackWalk.size(); i++) {
+            stackWalk[i].setThread(this);
+        }
+        return true;
+    }
+
+    stackwalk_printf("%s[%d]: beginning stack walk on thread %ld\n",
+                     FILE__, __LINE__, getTid());
+
+    Frame active = getActiveFrame();
+    active.setThread(this);
+    bool retval = proc_->walkStackFromFrame(active, stackWalk);
+
+    // if the stackwalk was successful, cache it
+    if (retval) {
+        cached_stackwalk_.setStackwalk(stackWalk);
+    }
+
+    stackwalk_printf("%s[%d]: ending stack walk on thread %ld\n",
+                     FILE__, __LINE__, getTid());
+
+    if (continueWhenDone) {
+        proc_->invalidateActiveMultis();
+        if( !pcThr_->continueThread() ) {
+            stackwalk_printf("%s[%d]: failed to continue thread %ld after stackwalk\n",
+                    FILE__, __LINE__, getTid());
+        }
+    }
+
+    return retval;
+}
+
+bool PCThread::getRegisters(RegisterPool &regs, bool /* includeFP */) {
+    // XXX ProcControlAPI doesn't yet get floating point registers
+    return pcThr_->getAllRegisters(regs);
+}
+
+bool PCThread::changePC(Address newPC) {
+    return pcThr_->setRegister(MachRegister::getPC(proc_->getArch()), newPC);
+}
+
+Frame PCThread::getActiveFrame() {
+    Address pc = 0, fp = 0, sp = 0;
+
+    assert( pcThr_->isStopped() && "Thread not stopped before trying to get the active frame" );
+
+    if( !pcThr_->getRegister(MachRegister::getPC(proc_->getArch()), pc) ) {
+        stackwalk_printf("%s[%d]: Failed to obtain the current PC\n", __FILE__, __LINE__);
+        return Frame();
+    }
+
+    if( !pcThr_->getRegister(MachRegister::getFramePointer(proc_->getArch()), fp) ) {
+        stackwalk_printf("%s[%d]: Failed to obtain the current frame pointer\n", __FILE__, __LINE__);
+        return Frame();
+    }
+
+    if( !pcThr_->getRegister(MachRegister::getStackPointer(proc_->getArch()), sp) ) {
+        stackwalk_printf("%s[%d]: Failed to obtain the current stack pointer\n", __FILE__, __LINE__);
+        return Frame();
+    }
+
+    return Frame(pc, fp, sp, proc_->getPid(), proc_, this, true);
+}
+
+Thread::ptr PCThread::getProcControlThread() {
+    return pcThr_;
+}
+
+bool PCThread::isLive() const {
+    return pcThr_->isLive();
 }

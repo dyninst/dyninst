@@ -112,6 +112,7 @@ class Frame {
   unsigned getPID() const { return pid_; }
   PCProcess *getProc() const { return proc_; }
   PCThread *getThread() const { return thread_; }
+  void setThread(PCThread *thrd) { thread_ = thrd; }
   bool     isUppermost() const { return uppermost_; }
   bool	   isSignalFrame();
   bool 	   isInstrumentation();

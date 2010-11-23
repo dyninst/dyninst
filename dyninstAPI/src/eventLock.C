@@ -34,6 +34,7 @@
 #include "dyninstAPI/src/debug.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
+#include "common/h/dthread.h"
 
 #if defined (os_windows)
 #include <windows.h>
@@ -347,7 +348,19 @@ unsigned long getExecThreadID() {
 #endif
 }
 
+static Mutex callbackTidLock;
+static unsigned long callbackTid = 0;
+
 const char *getThreadStr(unsigned long tid) {
-    // TODO add some stuff for PC callback thread
-    return "UI";
+    bool isCallbackThread = false;
+    callbackTidLock.lock();
+    isCallbackThread = (tid == callbackTid);
+    callbackTidLock.unlock();
+    return ( isCallbackThread ? "CALLBACK" : "UI" );
+}
+
+void setCallbackThreadID(unsigned long tid) {
+    callbackTidLock.lock();
+    callbackTid = tid;
+    callbackTidLock.unlock();
 }

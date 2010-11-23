@@ -177,6 +177,7 @@ class mapped_object : public codeRange {
     mapped_module *getDefaultModule();
 
 
+    bool getInfHeapList(pdvector<heapDescriptor> &infHeaps);
     void getInferiorHeaps(vector<pair<string, Address> > &infHeaps);
 
 

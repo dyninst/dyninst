@@ -35,7 +35,94 @@
 #include "debug.h"
 #include "mapped_object.h"
 #include "pcProcess.h"
+#include "pcThread.h"
+#include "function.h"
 
+using namespace Dyninst::ProcControlAPI;
+
+// Functions for all Unices //
+
+int_function *PCThread::mapInitialFunc(int_function *ifunc) {
+    return ifunc;
+}
+
+bool PCProcess::hideDebugger()
+{
+    return false;
+}
+
+bool OS::executableExists(const std::string &file) 
+{
+   struct stat file_stat;
+   int stat_result;
+
+   const char *fn = file.c_str();
+   stat_result = stat(fn, &file_stat);
+   return (stat_result != -1);
+}
+
+std::string PCProcess::createExecPath(const std::string &file, const std::string &dir) {
+    std::string ret = file;
+    if (dir.length() > 0) {
+        if (!(file[0] == ('/'))) {
+            // file does not start  with a '/', so it is a relative pathname
+            // we modify it to prepend the given directory
+            if (dir[dir.length()-1 ] == ('/') ) {
+                // the dir already has a trailing '/', so we can
+                // just concatenate them to get an absolute path
+                ret =  dir + file;
+            } else {
+                // the dir does not have a trailing '/', so we must
+                // add a '/' to get the absolute path
+                ret =  dir + "/" + file;
+            }
+        } else {
+            // file starts with a '/', so it is an absolute pathname
+            // DO NOT prepend the directory, regardless of what the
+            // directory variable holds.
+            // nothing to do in this case
+        }
+
+    }
+    return ret;
+}
+
+// If true is passed for ignore_if_mt_not_set, then an error won't be
+// initiated if we're unable to determine if the program is multi-threaded.
+// We are unable to determine this if the daemon hasn't yet figured out what
+// libraries are linked against the application.  Currently, we identify an
+// application as being multi-threaded if it is linked against a thread
+// library (eg. libpthreads.a on AIX).  There are cases where we are querying
+// whether the app is multi-threaded, but it can't be determined yet but it
+// also isn't necessary to know.
+bool PCProcess::multithread_capable(bool ignoreIfMtNotSet) {
+#if !defined(cap_threads)
+    return false;
+#endif
+
+    if( mt_cache_result_ != not_cached ) {
+        if( mt_cache_result_ == cached_mt_true) return true;
+        else return false;
+    }
+
+    if( mapped_objects.size() <= 1 ) {
+        assert( ignoreIfMtNotSet && "Can't query MT state" );
+        return false;
+    }
+
+    if(    findObject("libthread.so*", true) // Solaris
+        || findObject("libpthreads.*", true) // AIX
+        || findObject("libpthread.so*", true)) // Linux
+    {
+        mt_cache_result_ = cached_mt_true;
+        return true;
+    }
+
+    mt_cache_result_ = cached_mt_false;
+    return false;
+}
+
+// The following functions are only implemented on some Unices //
 
 #if defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
 
@@ -142,21 +229,6 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
 }
 
 #endif
-
-bool PCProcess::hideDebugger()
-{
-    return false;
-}
-
-bool OS::executableExists(const std::string &file) 
-{
-   struct stat file_stat;
-   int stat_result;
-
-   const char *fn = file.c_str();
-   stat_result = stat(fn, &file_stat);
-   return (stat_result != -1);
-}
 
 #if defined(os_linux) || defined(os_freebsd)
 

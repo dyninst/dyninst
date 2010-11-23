@@ -32,15 +32,89 @@
 #ifndef PCEVENTHANDLER_H
 #define PCEVENTHANDLER_H
 
+#include "proccontrol/h/Event.h"
+
+#include "common/h/Dictionary.h"
+#include "common/h/Types.h"
+#include "common/h/dthread.h"
+
+#include <queue>
+
+class PCEventMailbox {
+public:
+    PCEventMailbox();
+    ~PCEventMailbox();
+
+    void enqueue(ProcControlAPI::Event::const_ptr ev);
+    ProcControlAPI::Event::const_ptr dequeue(bool block);
+
+protected:
+    std::queue<ProcControlAPI::Event::const_ptr> eventQueue;
+    CondVar queueCond;
+};
+
+class PCProcess;
+
 /*
  * pcEventHandler.h
  *
  * The entry point for event and callback handling.
  */
-
 class PCEventHandler {
-    public:
-        static bool pollForEvents();
-        static bool waitForEvents();
+public:
+    typedef enum {
+        EventsReceived,
+        NoEvents,
+        Error
+    } WaitResult;
+
+    // Force heap allocation
+    static PCEventHandler *createPCEventHandler();
+
+    ~PCEventHandler();
+
+    WaitResult waitForEvents(bool block);
+    bool start();
+
+    // This information is stored here to avoid having to reference
+    // the dictionary_hash class in the BPatch headers -- otherwise
+    // this would be in the BPatch layer
+    int getStopThreadCallbackID(Address cb);
+
+protected:
+    PCEventHandler();
+
+    int stopThreadIDCounter_;
+    dictionary_hash<Address, unsigned> stopThreadCallbacks_;
+
+    // Event Handling
+    static ProcControlAPI::Process::cb_ret_t callbackMux(ProcControlAPI::Event::const_ptr ev);
+    ProcControlAPI::Event::const_ptr extractInfo(ProcControlAPI::Event::const_ptr ev);
+
+    bool eventMux(ProcControlAPI::Event::const_ptr ev) const;
+    bool handleExit(ProcControlAPI::EventExit::const_ptr ev, PCProcess *evProc) const;
+    bool handleCrash(ProcControlAPI::EventCrash::const_ptr ev, PCProcess *evProc) const;
+    bool handleFork(ProcControlAPI::EventFork::const_ptr ev, PCProcess *evProc) const;
+    bool handleExec(ProcControlAPI::EventExec::const_ptr ev, PCProcess *evProc) const;
+    bool handleThreadCreate(ProcControlAPI::EventNewThread::const_ptr ev, PCProcess *evProc) const;
+    bool handleThreadDestroy(ProcControlAPI::EventThreadDestroy::const_ptr ev, PCProcess *evProc) const;
+    bool handleSignal(ProcControlAPI::EventSignal::const_ptr ev, PCProcess *evProc) const;
+    bool handleLibrary(ProcControlAPI::EventLibrary::const_ptr ev, PCProcess *evProc) const;
+    bool handleBreakpoint(ProcControlAPI::EventBreakpoint::const_ptr ev, PCProcess *evProc) const;
+    bool handleRPC(ProcControlAPI::EventRPC::const_ptr ev, PCProcess *evProc) const;
+
+    PCEventMailbox *eventMailbox_;
+
+    // Callback Thread Management
+    static void main_wrapper(void *);
+    void main(); // Callback thread main loop
+
+    DThread thrd_;
+    CondVar initCond_; //Start-up synchronization
+    bool started_;
+
+    int exitNotificationOutput_;
+    int exitNotificationInput_;
 };
+
 #endif

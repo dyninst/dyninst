@@ -157,49 +157,26 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
    return true;
 }
 
-BPatch_thread *BPatch_thread::createNewThread(BPatch_process *proc, 
-                                              int ind, int lwp_id, dynthread_t async_tid)
+BPatch_thread *BPatch_thread::createNewThread(BPatch_process *proc, PCThread *thr)
 {
    BPatch_thread *newthr;
-   newthr = new BPatch_thread(proc, ind, lwp_id, async_tid);
+   newthr = new BPatch_thread(proc, thr);
    return newthr;
-}
-
-BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthread_t async_tid) :
-    deleted_callback_made(false)
-{
-   proc = parent;
-   legacy_destructor = true;
-   index = (unsigned) -1; // is this safe ??  might want index = -1??
-   is_deleted = false;
-   doa_tid = async_tid;
-
-   llthread = PCThread::createPCThread(proc->llproc, ind, lwp_id,
-           async_tid);
-   if( llthread == NULL ) {
-       doa = true;
-       is_deleted = true;
-       return;
-   }
-
-   index = llthread->getIndex();
 }
 
 BPatch_thread::BPatch_thread(BPatch_process *parent, PCThread *thr) :
     deleted_callback_made(false)
 {
-   doa = false;
-   doa_tid = (dynthread_t) -1;
-   is_deleted = false;
-   index = 0;
    proc = parent;
-   llthread = thr;
    legacy_destructor = true;
+   is_deleted = false;
+   deleted_tid = (dynthread_t) -1;
+   llthread = thr;
 }
 
 unsigned BPatch_thread::getBPatchIDInt()
 {
-   return index;
+    return (unsigned)llthread->getIndex();
 }
 
 BPatch_process *BPatch_thread::getProcessInt() 
@@ -209,41 +186,26 @@ BPatch_process *BPatch_thread::getProcessInt()
 
 dynthread_t BPatch_thread::getTidInt()
 {
-   if (doa || is_deleted) {
-      return doa_tid/*(dynthread_t) -1*/;
+   if (is_deleted) {
+      return deleted_tid;
    }
    return llthread->getTid();
 }
 
 int BPatch_thread::getLWPInt()
 {
-   if (doa || is_deleted) {
+   if (is_deleted) {
       return (int) -1;
    }
-   return llthread->getLWPId();
+   return llthread->getLWP();
 }
 
 BPatch_function *BPatch_thread::getInitialFuncInt()
 {
-   if (doa || is_deleted) {
+   if (is_deleted) {
       return NULL;
    }
    int_function *ifunc = llthread->getStartFunc();
-
-   if (!ifunc && llthread->getIndirectStartAddr())
-   {
-      //Currently should only be true on IA-64
-      PCProcess *llproc = getProcess()->llproc;
-      Address func_struct = llthread->getIndirectStartAddr();
-      Address functionEntry = 0;
-      bool readDataSpace = llproc->readDataSpace((void *) func_struct, 
-                                                 sizeof(Address), 
-                                                 &functionEntry, false);
-      if( readDataSpace ) {
-         ifunc = llproc->findFuncByAddr(functionEntry);
-         llthread->updateStartFunc(ifunc);
-      }
-   }
 
    if (!ifunc) {
        BPatch_Vector<BPatch_frame> stackWalk;
@@ -317,7 +279,7 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
 
 unsigned long BPatch_thread::getStackTopAddrInt()
 {
-   if (doa || is_deleted) {
+   if (is_deleted) {
       return (unsigned long) -1;
    }
    if (llthread->getStackAddr() == 0) {
@@ -366,7 +328,11 @@ void BPatch_thread::removeThreadFromProc()
          break;
       }
    }
-#endif    
+#endif
+
+   proc->llproc->deleteThread(llthread->getTid());
+
+   is_deleted = true;
 }
 
 /**
@@ -407,98 +373,8 @@ void BPatch_thread::BPatch_thread_dtor()
  **/
 unsigned long BPatch_thread::os_handleInt()
 {
-   if (doa || is_deleted) {
-      return (unsigned long) -1;
-   }
-#if !defined(os_windows)
-    // Don't need this any more; we only needed the /proc/<pid>/usage
-    // fd on Solaris, and that's opened by the daemon. Windows... I don't
-    // understand enough about the system to say.
-    assert(0);
-    return -1UL; // keep compiler happy
-#else
-    return (unsigned long) llthread->getFd();
-#endif
+    return (unsigned long)-1;
 }
-
-#if 0
-// We use the one in BPatch_process, feeding it thread info...
-
-/*
- * BPatch_thread::oneTimeCodeInternal
- *
- * Causes a snippet expression to be evaluated once in the mutatee at the next
- * available opportunity.  Optionally, Dyninst will call a callback function
- * when the snippet has executed in the mutatee, and can wait until the
- * snippet has executed to return.
- *
- * expr		The snippet to evaluate.
- * userData	This value is given to the callback function along with the
- *		return value for the snippet.  Can be used by the caller to
- *		store per-oneTimeCode information.
- * synchronous	True means wait until the snippet has executed, false means
- *		return immediately.
- */
-void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
-                                         void *userData,
-                                         bool synchronous)
-{
-   bool needToResume = false;
-
-   signal_printf("%s[%d]: UI top of oneTimeCode (threaded)...\n", FILE__, __LINE__);
-
-   while (proc->llproc->sh->isActivelyProcessing()) {
-       signal_printf("%s[%d]:  waiting before doing user stop for process %d\n", FILE__, __LINE__, proc->llproc->getPid());
-       proc->llproc->sh->waitForEvent(evtAnyEvent);
-   }
-      
-   signal_printf("%s[%d]: oneTimeCode (threaded), handlers quiet, sync %d, statusIsStopped %d\n",
-                 FILE__, __LINE__, synchronous, proc->statusIsStopped());
-
-   if (synchronous && !proc->statusIsStopped()) {
-       assert(0); // ...
-       
-      if (!isStopped()) {
-         fprintf(stderr, "%s[%d]:  failed to run oneTimeCodeInternal .. status is %s\n", 
-                 FILE__, __LINE__, 
-                 proc->llproc ? proc->llproc->getStatusAsString().c_str() : "unavailable");
-         return NULL;
-      }
-      needToResume = true;
-   }
-
-   OneTimeCodeInfo *info = new OneTimeCodeInfo(synchronous, userData, index);
-
-   proc->llproc->getRpcMgr()->postRPCtoDo(expr.ast,
-                                          false, 
-                                          BPatch_process::oneTimeCodeCallbackDispatch,
-                                          (void *)info,
-                                          false,
-                                          llthread, NULL); 
-    
-   if (synchronous) {
-      do {
-        proc->llproc->getRpcMgr()->launchRPCs(false);
-        getMailbox()->executeCallbacks(FILE__, __LINE__);
-        if (info->isCompleted()) break;
-        proc->llproc->sh->waitForEvent(evtRPCSignal, proc->llproc, NULL /*lwp*/, statusRPCDone);
-        getMailbox()->executeCallbacks(FILE__, __LINE__);
-      } while (!info->isCompleted() && !isTerminated());
-      
-      void *ret = info->getReturnValue();
-      delete info;
-
-      if (needToResume) {
-         proc->continueExecutionInt();
-      }
-        
-      return ret;
-   } else {
-      proc->llproc->getRpcMgr()->launchRPCs(proc->llproc->status() == running);
-      return NULL;
-   }
-}
-#endif
 
 /*
  * BPatch_thread::oneTimeCode
@@ -529,10 +405,10 @@ bool BPatch_thread::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
    if (is_deleted)
      return false;
    proc->oneTimeCodeInternal(expr, this, userData, cb, false, NULL);
-   return true; // TODO what if oneTimeCodeInternal fails
+   return true; // XXX what if oneTimeCodeInternal fails
 }
 
 bool BPatch_thread::isDeadOnArrivalInt() 
 {
-   return doa;
+   return false;
 }
