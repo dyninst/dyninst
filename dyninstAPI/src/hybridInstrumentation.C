@@ -59,7 +59,8 @@ static bool isIntraMod(BPatch_point *point)
          tit != targs.end(); 
          tit++) 
     {
-        BPatch_module *targMod = proc->findModuleByAddr(*tit);
+        BPatch_module *targMod = point->getFunction()->getAddSpace()->
+                findModuleByAddr(*tit);
         if (targMod != point->getFunction()->getModule()) {
             return false;
         }

@@ -606,11 +606,10 @@ BPatch_function * BPatch_basicBlock::getCallTarget()
             intCallPoint = iblock->func()->findInstPByAddr(pointAddr);
         }
         assert(intCallPoint);
-        if ( 0 != intCallPoint->getSavedTargets(targs) &&
-            -1 != intCallPoint->getSavedTargets(targs)   ) 
+        set<Address> targs;
+        if ( 1 == targs.size() ) 
         {
-            targFunc = flowGraph->addSpace->findFunctionByEntry(
-                intCallPoint->getSavedTargets(targs) );
+            targFunc = flowGraph->addSpace->findFunctionByEntry( * targs.begin() );
         }
     }
     return targFunc;

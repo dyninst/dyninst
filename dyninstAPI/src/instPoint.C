@@ -276,8 +276,7 @@ instPoint::instPoint(AddressSpace *proc,
     block_(block),
     addr_(addr),
     hasNewInstrumentation_(false),
-    hasAnyInstrumentation_(false),
-    savedTarget_(0)
+    hasAnyInstrumentation_(false)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     instPoint_count++;
@@ -306,8 +305,7 @@ instPoint::instPoint(AddressSpace *proc,
     block_(block),
     addr_(addr),
     hasNewInstrumentation_(false),
-    hasAnyInstrumentation_(false),
-    savedTarget_(0)
+    hasAnyInstrumentation_(false)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     instPoint_count++;
@@ -336,7 +334,7 @@ instPoint::instPoint(instPoint *parP,
     block_(child),
     addr_(parP->addr()),
     hasNewInstrumentation_(parP->hasNewInstrumentation_),
-    hasAnyInstrumentation_(parP->hasAnyInstrumentation_),
+    hasAnyInstrumentation_(parP->hasAnyInstrumentation_)
 {
 }
                   

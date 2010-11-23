@@ -264,6 +264,7 @@ bool BPatch_point::getCFTargets(BPatch_Vector<Address> &targets)
 {
     bool ret = true;
     if (point->isDynamic()) {
+        set<Address> targs;
         if (point->getSavedTargets(targs)) {
             return point->getSavedTargets(targs);
         } else {

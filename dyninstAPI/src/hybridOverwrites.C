@@ -359,7 +359,11 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop
         mal_printf(" instr unresolved: 0x%x in func at 0x%lx\n", 
                   uAddr, (*uIter)->getFunction()->getBaseAddr());
         if ((*uIter)->isDynamic()) {
-            long st = (*uIter)->getSavedTargets(targs);
+            long st = 0;
+            set<Address> targs;
+            if ((*uIter)->getSavedTargets(targs)) {
+                st = * targs.begin();
+            }
             BPatch_constExpr stSnip(st);
             BPatch_ifExpr stopIfNewTarg
                 ( BPatch_boolExpr(BPatch_ne, dynTarg, stSnip),
@@ -587,13 +591,14 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop(BPatch_function &func, Add
                     pIter++) 
                 {
                     if ((*pIter)->isDynamic()) {
-                        if (0 == (*pIter)->getSavedTargets(targs)) {
+                        set<Address> targs;
+                        if (!(*pIter)->getSavedTargets(targs)) {
                             // for now, warn, but allow to proceed
                             mal_printf("loop has an unresolved indirect transfer at %lx\n", 
                                     (*pIter)->getAddress());
                             hasIndirect = true;
-                        } else if (-1 == (long)(*pIter)->getSavedTargets(targs)) {
-                            mal_printf("loop has an ambiguously resolved indirect transfer at %lx\n", 
+                        } else if (targs.size() > 1) {
+                            mal_printf("loop has an indirect transfer resolving to multiple targets at %lx\n", 
                                     (*pIter)->getAddress());
                             hasIndirect = true;
                         }
@@ -686,13 +691,14 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
             pIter != unresolvedCF.end(); 
             pIter++) 
         {
-            Address curTarg = (*pIter)->getSavedTargets(targs);
-            if (-1 == (long)curTarg) {
+            set<Address> targs;
+            (*pIter)->getSavedTargets(targs);
+            if (1 < targs.size()) {
                 hasUnresolved = true;
-                mal_printf("loop %d calls func %lx which has an ambiguously "
-                          "resolved indirect transfer at %lx savedtarg %lx "
+                mal_printf("loop %d calls func %lx which has an indirect "
+                          "transfer at %lx that resolves to multiple targets "
                           "%s[%d]\n", loop->getID(), (*fIter)->getBaseAddr(), 
-                          (*pIter)->getAddress(), curTarg, FILE__,__LINE__);
+                          (*pIter)->getAddress(), FILE__,__LINE__);
             } else {
                 exitPoints.insert(*pIter);
             }
@@ -771,24 +777,25 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
             pIter++) 
         {
             if ((*pIter)->isDynamic()) {
-                Address target = (*pIter)->getSavedTargets(targs);
-                if (-1 == (long)target) {
-                    // if the transfer's target is not uniquely resolved, 
-                    // we won't use this loop
-                    mal_printf("loop %d has an indirect transfer with "
-                              "ambiguously unresolved target at %lx\n", loop->getID(), 
-                              (*pIter)->getAddress());
-                    hasUnresolvedCF = true;
-                } else if (0 == target) {
+                set<Address> targs;
+                (*pIter)->getSavedTargets(targs);
+                if (targs.empty()) {
                     // haven't seen its target yet, mark it as a loop exit
                     exitPoints.insert(*pIter);
+                } else if (1 < targs.size()) {
+                    // if the transfer's target is not uniquely resolved, 
+                    // we won't use this loop
+                    mal_printf("loop %d has indirect transfer that resolves "
+                              "to multiple targets at %lx\n", loop->getID(), 
+                              (*pIter)->getAddress());
+                    hasUnresolvedCF = true;
                 } else {
                     // if the transfer IS uniquely resolved, add the target
                     mal_printf("loop %d has an indirect transfer at %lx with "
                               "target %lx\n", loop->getID(), (*pIter)->getAddress(), 
-                              target);
+                              *targs.begin());
                     vector<BPatch_function *> targFuncs;
-                    proc()->findFunctionsByAddr(target,targFuncs);
+                    proc()->findFunctionsByAddr(*targs.begin(),targFuncs);
                     if (targFuncs.size() && 
                         targFuncs[0]->getModule()->isExploratoryModeOn()) 
                     {
