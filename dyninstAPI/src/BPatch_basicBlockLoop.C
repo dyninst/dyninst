@@ -103,14 +103,7 @@ void BPatch_basicBlockLoop::addBackEdges
 
 bool 
 BPatch_basicBlockLoop::hasAncestorInt(BPatch_basicBlockLoop* l) {
-    // walk up this loop's chain of parents looking for l
-    BPatch_basicBlockLoop* p = parent;
-    while (p != NULL) {
-        //        fprintf(stderr,"hasAncestor 0x%x 0x%x\n", p, p->parent);
-	if (p==l) return true;
-	p = p->parent;
-    }
-    return false;
+    return l->containedLoops.contains(this); 
 }
 
 

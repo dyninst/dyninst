@@ -74,7 +74,7 @@ class CodeRegion : public Dyninst::InstructionSource, public Dyninst::interval<A
     PARSER_EXPORT Address low() const =0;
     PARSER_EXPORT Address high() const =0;
 
-    PARSER_EXPORT bool contains(const Address) const;
+    PARSER_EXPORT bool contains(Address) const;
 };
 
 /* A starting point for parsing */
@@ -224,6 +224,7 @@ class SymtabCodeSource : public CodeSource {
     PARSER_EXPORT Address baseAddress() const;
     PARSER_EXPORT Address loadAddress() const;
     PARSER_EXPORT Address getTOC(Address addr) const;
+    PARSER_EXPORT SymtabAPI::Symtab * getSymtabObject() {return _symtab;} 
 
     /** InstructionSource implementation **/
     PARSER_EXPORT bool isValidAddress(const Address) const;

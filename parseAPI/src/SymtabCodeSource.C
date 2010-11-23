@@ -31,6 +31,8 @@
 #include <vector>
 #include <map>
 
+#include <boost/assign/list_of.hpp>
+
 #include "dyntypes.h"
 
 #include "symtabAPI/h/Symtab.h"
@@ -299,12 +301,12 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
             continue;
         }
 
-#if defined(os_vxworks)
+	//#if defined(os_vxworks)
         if(0 == (*rit)->getMemSize()) {
             parsing_printf(" [skipped null region]\n");
             continue;
         }
-#endif
+	//#endif
         parsing_printf("\n");
 
         if(HASHDEF(rmap,*rit)) {
@@ -418,20 +420,27 @@ SymtabCodeSource::nonReturning(Address addr)
     return ret;
 }
 
+namespace {
+    dyn_hash_map<std::string, bool> non_returning_funcs = 
+        boost::assign::map_list_of 
+            ("exit",true)
+            ("abort",true)
+            ("__f90_stop",true)
+            ("fancy_abort",true)
+            ("__stack_chk_fail",true)
+            ("__assert_fail",true)
+            ("ExitProcess",true)
+            ("_ZSt17__throw_bad_allocv",true)
+            ("_ZSt20__throw_length_errorPKc",true)
+            ("_Unwind_Resume",true)
+            ("longjmp",true)
+            ("siglongjmp",true);
+}
+
 bool
 SymtabCodeSource::nonReturning(string name)
 {
-    return (name == "exit" ||
-            name == "abort" ||
-            name == "__f90_stop" ||
-            name == "fancy_abort" ||
-            name == "__stack_chk_fail" ||
-            name == "__assert_fail" ||
-            name == "ExitProcess" ||
-            /* bernat, 5/2010 */
-            name == "_ZSt17__throw_bad_allocv" ||
-            name == "_ZSt20__throw_length_errorPKc") ||
-            name == "_Unwind_Resume";
+    return non_returning_funcs.find(name) != non_returning_funcs.end();
 }
 
 Address

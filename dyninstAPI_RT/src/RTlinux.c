@@ -490,40 +490,23 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
 
 #include <ucontext.h>
 
-#if defined(arch_x86) || defined(MUTATEE_32)
+// Register numbers experimentally verified
 
-#if !defined(REG_EIP)
-#define REG_EIP 14
-#endif
-#if !defined(REG_ESP)
-#define REG_ESP 7
-#endif
-#define REG_IP REG_EIP
-#define REG_SP REG_ESP
-#define MAX_REG 18
-
+#if defined(arch_x86)
+  #define UC_PC(x) x->uc_mcontext.gregs[14]
 #elif defined(arch_x86_64)
-
-#if !defined(REG_RIP)
-#define REG_RIP 16
-#endif
-#if !defined(REG_RSP)
-#define REG_RSP 15
-#endif
-#define REG_IP REG_RIP
-#define REG_SP REG_RSP
-#define MAX_REG 15
-#if !defined(REG_RAX)
-#define REG_RAX 13
-#endif
-#if !defined(REG_R10)
-#define REG_R10 2
-#endif
-#if !defined(REG_R11)
-#define REG_R11 3
-#endif
-
-#endif
+  #if defined(MUTATEE_32)
+    #define UC_PC(x) x->uc_mcontext.gregs[14]
+  #else // 64-bit
+    #define UC_PC(x) x->uc_mcontext.gregs[16]
+  #endif // amd-64
+#elif defined(arch_power)
+  #if defined(arch_64bit)
+    #define UC_PC(x) x->uc_mcontext.uc_regs.gp_regs[32]
+  #else // 32-bit
+    #define UC_PC(x) x->uc_mcontext.uc_regs->gregs[32]
+  #endif // power
+#endif // UC_PC
 
 extern unsigned long dyninstTrapTableUsed;
 extern unsigned long dyninstTrapTableVersion;
@@ -558,7 +541,7 @@ void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
    void *orig_ip;
    void *trap_to;
 
-   orig_ip = (void *) context->uc_mcontext.gregs[REG_IP];
+   orig_ip = UC_PC(context);
    assert(orig_ip);
 
    // Find the new IP we're going to and substitute. Leave everything else untouched.
@@ -582,7 +565,7 @@ void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
                                      &dyninstTrapTableIsSorted);
                                      
    }
-   context->uc_mcontext.gregs[REG_IP] = (long) trap_to;
+   UC_PC(context) = (long) trap_to;
 }
 
 #if defined(cap_binary_rewriter)

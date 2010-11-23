@@ -67,6 +67,8 @@ DatabaseOutputDriver::DatabaseOutputDriver(void * data)
 		wroteLogHeader = true;
 		fclose(fp);
 	}
+    bytes = 0;
+    elapsed = 0.0;
 }
 
 DatabaseOutputDriver::~DatabaseOutputDriver() {
@@ -101,6 +103,8 @@ DatabaseOutputDriver::startNewTest(std::map<std::string,
   submittedResults = false;
   // Don't know what the test's result is
   result = UNKNOWN;
+  //bytes = 0;
+  //elapsed = 0.0;
 }
 
 void DatabaseOutputDriver::redirectStream(TestOutputStream stream, const char * filename) {
@@ -114,6 +118,14 @@ void DatabaseOutputDriver::logResult(test_results_t res, int stage) {
   // finalizeOutput for that?
   result = res;
 }
+
+void DatabaseOutputDriver::logMemory(unsigned long bytesUsed) {
+    bytes = bytesUsed;
+}
+void DatabaseOutputDriver::logTime(double elapsedTime) {
+    elapsed = elapsedTime;
+}
+
 
 void DatabaseOutputDriver::logCrash(std::string crashedTest) {
   // New idea: we've already called startNewTest for this test, so
@@ -303,8 +315,15 @@ void DatabaseOutputDriver::writeSQLLog() {
       fprintf(out, buf.c_str());
       delete [] buffer;
    }
-   if (buf.rfind("RESULT:") == std::string::npos)
-      fprintf(out, "\nRESULT: %d", result);
+   if (buf.rfind("RESULT:") == std::string::npos) {
+       fprintf(out, "\nRESULT: %d", result);
+       if(elapsed != 0.0) {
+           fprintf(out, "\nCPU: %f", elapsed);
+       }
+       if(bytes != 0) {
+           fprintf(out, "\nMEMORY: %d", bytes);
+       }
+   }
    fprintf(out, "\n\n");
    
    fflush(out);

@@ -1,11 +1,8 @@
-PDFLATEX=/s/texlive-2008/bin/pdflatex
-BIBTEX=/s/texlive-2008/bin/bibtex
+PDFLATEX    ?=pdflatex
+
 all:
 	${PDFLATEX} parseapi
-	#${BIBTEX} parseapi
-	#${PDFLATEX} parseapi
-	#${PDFLATEX} parseapi
-	acroread parseapi.pdf
+	${PDFLATEX} parseapi
 
 clean:
-	rm -f parseapi.aux parseapi.bbl parseapi.blg parseapi.dvi parseapi.log parseapi.pdf parseapi.ps
+	rm -f parseapi.aux parseapi.bbl parseapi.blg parseapi.dvi parseapi.log parseapi.pdf parseapi.ps parseapi.toc parseapi.out

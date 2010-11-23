@@ -57,6 +57,7 @@ bool runParseThat(int &bannerLen);
 
 int main(int argc, char **argv)
 {
+   int retval = 0;
     parseArgs(argc, argv);
 
    if (config.hunt_crashes && !config.no_fork) {
@@ -66,12 +67,12 @@ int main(int argc, char **argv)
 
    int bannerLen = 0;
     while (getNextTarget()) {
-      runParseThat(bannerLen);
+       retval = runParseThat(bannerLen);
    }
    dlog(INFO, "Analysis complete.\n");
    cleanupFinal();
 
-   return 0;
+   return retval;
 }
 
 bool runParseThat(int &bannerLen)
@@ -124,7 +125,7 @@ bool runParseThat(int &bannerLen)
 
 	    // Only parent should have signal handlers modified.
 	    setSigHandlers();
-
+            
 	    launch_monitor(infd);
 
 	    // Reset signal handers so next child won't be affected.
@@ -150,6 +151,7 @@ bool runParseThat(int &bannerLen)
 	    // Start new process group.  Makes forced process shutdown easier.
 	    setpgid(0, 0);
 
+
 	    close(pipefd[0]); // Close (historically) read side of pipe.
 
 	    // Leave stdout open for mutatee, but if an output file was specified by user,
@@ -173,7 +175,12 @@ bool runParseThat(int &bannerLen)
 	    dlog(ERR, "Error on fork(): %s\n", strerror(errno));
 	    exit(-2);
 	}
-   return 0;
+
+        if (config.abnormal_exit) {
+           return -1;
+        }
+        else
+           return 0;
 }
 
 bool runHunt_binaryEdit(){

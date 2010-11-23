@@ -39,9 +39,9 @@
 #include "Absloc.h"
 #include "AST.h"
 
-#include "external/rose/rose-compat.h"
-#include "external/rose/powerpcInstructionEnum.h"
 #include "Graph.h"
+#include "Node.h"
+#include "Edge.h"
 
 class SgAsmx86Instruction;
 class SgAsmExpression;
@@ -292,7 +292,7 @@ namespace InstructionAPI {
   class Instruction;
 }
 
-class AssignNode;
+class SliceNode;
 
 namespace DataflowAPI {
 
@@ -309,7 +309,7 @@ class  SymEval {
 
 public:
     typedef std::map<Assignment::Ptr, AST::Ptr> Result_t;
-    typedef dyn_detail::boost::shared_ptr<AssignNode> AssignNodePtr;
+    typedef dyn_detail::boost::shared_ptr<SliceNode> SliceNodePtr;
 public:
   // Return type: mapping AbsRegions to ASTs
   // We then can map Assignment::AbsRegions to 
@@ -325,7 +325,7 @@ public:
   // they point to is discarded.
   DATAFLOW_EXPORT static void expand(Result_t &res, bool applyVisitors = true);
 
-  // Hand in a Graph (of AssignNodes, natch) and get back a Result;
+  // Hand in a Graph (of SliceNodes, natch) and get back a Result;
   // prior results from the Graph
   // are substituted into anything that uses them.
   DATAFLOW_EXPORT static void expand(Graph::Ptr slice, Result_t &res);
@@ -340,7 +340,7 @@ public:
 			 const uint64_t addr,
 			 Result_t& res);
 
-  static bool process(AssignNodePtr ptr, Result_t &dbase, std::map<Node::Ptr, unsigned> & cycles);
+  static bool process(SliceNodePtr ptr, Result_t &dbase, std::set<Edge::Ptr> &skipEdges);
 
   static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func);
 };
