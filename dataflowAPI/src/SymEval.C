@@ -265,20 +265,14 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
     //cout << "Calling expand" << endl;
     // Other than the substitution this is pretty similar to the first example.
     NodeIterator gbegin, gend;
-    slice->entryNodes(gbegin, gend);
+    slice->allNodes(gbegin, gend);
 
     // Optimal ordering of search
     ExpandOrder worklist;
 
     std::queue<Node::Ptr> dfs_worklist;
     for (; gbegin != gend; ++gbegin) {
-      expand_cerr << "adding " << (*gbegin)->format() << " to worklist" << endl;
-
       Node::Ptr ptr = *gbegin;
-      SliceNode::Ptr sptr = 
-        dyn_detail::boost::static_pointer_cast<SliceNode>(ptr);
-      worklist.insert(sptr,false);
-
       dfs_worklist.push(ptr);
     }
 
@@ -288,6 +282,15 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
     while (!dfs_worklist.empty()) {
        Node::Ptr ptr = dfs_worklist.front(); dfs_worklist.pop();
        dfs(ptr, state, worklist.skipEdges());
+    }
+
+    slice->allNodes(gbegin, gend);
+    for (; gbegin != gend; ++gbegin) {
+        expand_cerr << "adding " << (*gbegin)->format() << " to worklist" << endl;
+        Node::Ptr ptr = *gbegin;
+        SliceNode::Ptr sptr = 
+            dyn_detail::boost::static_pointer_cast<SliceNode>(ptr);
+        worklist.insert(sptr,false);
     }
 
     /* have a list
