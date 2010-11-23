@@ -168,7 +168,6 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
                 thread, parentThread, childThread);
         assert(0 && "Unexpected BPatch_thread in exitFunc");
     }
-    thread->getProcess()->continueExecution();
     return;
 }
 

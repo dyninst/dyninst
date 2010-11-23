@@ -22,7 +22,7 @@ symtab_MUTATORS = test_lookup_func test_lookup_var test_line_info test_module te
 symtab_OBJS_ALL_MUTATORS = test_lookup_func.o test_lookup_var.o test_line_info.o test_module.o test_type_info.o test_symtab_ser_funcs.o test_ser_anno.o test_anno_basic_types.o 
 
 pc_breakpoint.so: pc_breakpoint.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_breakpoint.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ltestSuite 
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -30,7 +30,7 @@ endif
 endif
 
 pc_irpc.so: pc_irpc.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_irpc.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ltestSuite 
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -38,7 +38,7 @@ endif
 endif
 
 pc_launch.so: pc_launch.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_launch.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ltestSuite 
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -46,7 +46,7 @@ endif
 endif
 
 pc_library.so: pc_library.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_library.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ltestSuite 
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -54,7 +54,7 @@ endif
 endif
 
 pc_singlestep.so: pc_singlestep.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_singlestep.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ltestSuite 
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -62,7 +62,7 @@ endif
 endif
 
 pc_thread_cont.so: pc_thread_cont.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_thread_cont.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ltestSuite 
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@

@@ -1,9 +1,9 @@
 # Define variables for our compilers, if they aren't already defined
-M_gnu_cc ?= mpicc -dynamic -L.
+M_gnu_cc ?= powerpc-bgp-linux-gcc
 M_gnu_cc ?= gcc
 M_gnu_cxx ?= g++
-M_gnu_xx ?= mpicxx -dynamic -L.
-M_gnu_fc ?= mpif90
+M_gnu_xx ?= powerpc-bgp-linux-g++
+M_gnu_fc ?= powerpc-bgp-linux-gfortran
 
 ######################################################################
 # Mutatees compiled with bg_g++ for symtab
