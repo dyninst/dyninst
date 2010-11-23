@@ -650,6 +650,11 @@ public:
 
     API_EXPORT(Int, (remote),
     bool, remoteDisconnect, (BPatch_remoteHost &remote));
+
+    //  BPatch::addNonReturningFunc:
+    //  Globally specify that any function with a given name will not return
+    API_EXPORT_V(Int, (name),
+    void, addNonReturningFunc, (std::string name));
 };
 
 #endif /* _BPatch_h_ */

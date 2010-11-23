@@ -2248,3 +2248,8 @@ bool BPatch::remoteDisconnectInt(BPatch_remoteHost &remote)
     return OS_disconnect(remote);
 }
 // -----------------------------------------------------------
+
+void BPatch::addNonReturningFuncInt(std::string name)
+{
+  Dyninst::ParseAPI::SymtabCodeSource::addNonReturning(name);
+}
