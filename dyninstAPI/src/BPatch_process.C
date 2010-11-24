@@ -57,6 +57,7 @@
 #include "BPatch.h"
 #include "BPatch_thread.h"
 #include "BPatch_function.h"
+#include "BPatch_basicBlock.h"
 #include "callbacks.h"
 #include "BPatch_module.h"
 #include "hybridAnalysis.h"

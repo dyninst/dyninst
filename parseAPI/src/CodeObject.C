@@ -176,6 +176,9 @@ CodeObject::deleteFunc(Function *func)
     fact()->free_func(func);
 }
 
+// Call this function on the CodeObject corresponding to the targets,
+// not the sources, if the edges are inter-module ones
+// 
 // create work elements and pass them to the parser
 bool 
 CodeObject::parseNewEdges( vector<Block*> & sources, 

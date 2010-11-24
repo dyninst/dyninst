@@ -4596,28 +4596,35 @@ Address process::stopThreadCtrlTransfer
         using namespace ParseAPI;
         Block::edgelist &edges = intPoint->block()->llb()->targets();
         Block::edgelist::iterator eit = edges.begin();
-        for (; eit != edges.end(); eit++)
-            if (CALL == (*eit)->type() || INDIRECT == (*eit)->type())
-                break;
-        if (eit == edges.end()) {
+        mapped_object *targObj = findObject(target);
+        if (targObj) {
+            for (; eit != edges.end(); eit++)
+                if ( ! (*eit)->sinkEdge() && 
+                     (*eit)->trg()->start() == (target - targObj->codeBase()) )
+                    break;
+        }
+        if (targObj && eit == edges.end()) {
             // add edge
             vector<Block*>  srcs; 
             vector<Address> trgs;
             vector<EdgeTypeEnum> etypes;
             srcs.push_back(intPoint->block()->llb());
-            trgs.push_back(target);
+            mapped_object *targObj = findObject(target);
+            if (targObj != intPoint->func()->obj()) {
+                targObj->parse_img()->analyzeImage();
+            }
+            trgs.push_back(target - targObj->codeBase());
             mal_printf("Adding indirect edge %lx->%lx", pointAddr, target);
             if (callSite == intPoint->getPointType()) {
                 etypes.push_back(CALL);
-                mal_printf("of type CALL\n");
+                mal_printf(" of type CALL\n");
             } else {
                 etypes.push_back(INDIRECT);
-                mal_printf("of type INDIRECT\n");
+                mal_printf(" of type INDIRECT\n");
             }
-            intPoint->func()->ifunc()->img()->codeObject()->
+            targObj->parse_img()->codeObject()->
                 parseNewEdges(srcs,trgs,etypes);
         }
-        //intPoint->setSavedTarget(unrelocTarget);
     }
     else if ( ! intPoint->isDynamic() && 
               functionExit != intPoint->getPointType()) 

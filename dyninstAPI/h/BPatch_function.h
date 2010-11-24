@@ -38,7 +38,7 @@
 #include "BPatch_point.h"
 #include "BPatch_type.h"
 #include "BPatch_module.h"
-#include "BPatch_flowGraph.h"
+//#include "BPatch_flowGraph.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_memoryAccess_NP.h"
 //#include "BPatch_dependenceGraphNode.h"
@@ -93,8 +93,6 @@ class BPATCH_DLL_EXPORT BPatch_function :
     BPatch_addressSpace *addSpace;
     AddressSpace *lladdSpace;
     BPatch_type *retType;
-    BPatch_Vector<BPatch_localVar *> params;
-    std::map<BPatch_localVar *, BPatch_variableExpr *> local_vars;
     BPatch_module *mod;
     BPatch_flowGraph* cfg;
     bool cfgCreated;
@@ -109,6 +107,14 @@ private:
    void constructVarsAndParams();
 
    void identifyParamDependencies(BPatch_function* callee, void* calleeAddress);
+
+#pragma warning(push)
+#pragma warning(disable:4251) 
+   // Disable warning that these vectors cannot be used externally, 
+   // which is irrelevant since the vectors are private
+   std::map<BPatch_localVar *, BPatch_variableExpr *> local_vars;
+   BPatch_Vector<BPatch_localVar *> params;
+#pragma warning(pop)
 public:
     virtual	~BPatch_function();
 

@@ -143,6 +143,8 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     friend class process;
     friend class BPatch_edge;
     friend class BPatch_snippet;
+
+private:
     
     static BPatch_point* createInstructionInstPoint(//BPatch_process *proc,
                                                     BPatch_addressSpace *addSpace,
@@ -153,7 +155,6 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     static BPatch_Vector<BPatch_point *> *getPoints(const BPatch_Set<BPatch_opCode> &ops,
                                                     InstrucIter &ii,
                                                     BPatch_function *bpf);
-
     BPatch_addressSpace *addSpace;
     AddressSpace *lladdSpace;
     BPatch_function	*func;
@@ -190,10 +191,6 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
 
     instPoint * getPoint() {return point;}
 
-    BPatch_Vector<BPatchSnippetHandle *> preSnippets;
-    BPatch_Vector<BPatchSnippetHandle *> postSnippets;
-    BPatch_Vector<BPatchSnippetHandle *> allSnippets;
-
     // If we're edge inst
     BPatch_edge *edge_;
 
@@ -204,6 +201,16 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     void attachMemAcc(BPatch_memoryAccess *memacc);
 
     AddressSpace *getAS();
+
+private:
+#pragma warning(push)
+#pragma warning(disable:4251) 
+    // Disable warning that these vectors cannot be used externally, 
+    // which is irrelevant since the vectors are private
+    BPatch_Vector<BPatchSnippetHandle *> preSnippets;
+    BPatch_Vector<BPatchSnippetHandle *> postSnippets;
+    BPatch_Vector<BPatchSnippetHandle *> allSnippets;
+#pragma warning(pop)    
 
 public:
     //~BPatch_point() { delete memacc; };
@@ -217,7 +224,7 @@ public:
     bool getCFTargets(BPatch_Vector<Dyninst::Address> &targets);
     Dyninst::Address getCallFallThroughAddr();
     void setResolved();
-    bool getSavedTargets(std::set<Address> & targs);
+    bool getSavedTargets(std::vector<Dyninst::Address> & targs);
     bool patchPostCallArea();
     // End internal functions
 

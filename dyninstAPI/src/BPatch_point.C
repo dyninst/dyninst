@@ -264,9 +264,8 @@ bool BPatch_point::getCFTargets(BPatch_Vector<Address> &targets)
 {
     bool ret = true;
     if (point->isDynamic()) {
-        set<Address> targs;
-        if (point->getSavedTargets(targs)) {
-            return point->getSavedTargets(targs);
+        if (point->getSavedTargets(targets)) {
+            return true;
         } else {
             return false;
         }
@@ -380,7 +379,7 @@ Address BPatch_point::getCallFallThroughAddr()
 #endif
 }
 
-bool BPatch_point::getSavedTargets(set<Address> & targs)
+bool BPatch_point::getSavedTargets(vector<Address> & targs)
 {
     return point->getSavedTargets(targs);
 }

@@ -32,6 +32,8 @@
 #include "hybridAnalysis.h"
 #include "BPatch_process.h"
 #include "BPatch_function.h"
+#include "BPatch_basicBlock.h"
+#include "BPatch_flowGraph.h"
 #include "BPatch_edge.h"
 #include "BPatch_module.h"
 #include "process.h"
@@ -360,7 +362,7 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop
                   uAddr, (*uIter)->getFunction()->getBaseAddr());
         if ((*uIter)->isDynamic()) {
             long st = 0;
-            set<Address> targs;
+            vector<Address> targs;
             if ((*uIter)->getSavedTargets(targs)) {
                 st = * targs.begin();
             }
@@ -591,7 +593,7 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop(BPatch_function &func, Add
                     pIter++) 
                 {
                     if ((*pIter)->isDynamic()) {
-                        set<Address> targs;
+                        vector<Address> targs;
                         if (!(*pIter)->getSavedTargets(targs)) {
                             // for now, warn, but allow to proceed
                             mal_printf("loop has an unresolved indirect transfer at %lx\n", 
@@ -621,6 +623,43 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop(BPatch_function &func, Add
     }
     return writeLoop;
 }
+
+// adds to visitMe if the library is in a non-system library in 
+// exploratory or defensive mode
+static void addLoopFunc(BPatch_function *func, 
+                        set<BPatch_function*> &visited, 
+                        set<BPatch_function*> &visitMe)
+{   
+    if (!func) {
+        return;
+    }
+
+    // if we've visited the func, return
+    if (visited.end() != visited.find(func)) {
+        return;
+    }
+
+    // add to visited
+    visited.insert(func);
+
+    // add to visitMe, if func is in a defensive binary
+    if ( BPatch_defensiveMode == func->getModule()->getHybridMode() ) {
+        mal_printf("new loop func at=%lx %d\n",
+                   (Address)func->getBaseAddr(),__LINE__);
+        visitMe.insert(func);
+    } 
+    else if ( ! func->getModule()->isSystemLib() ) {
+        const int nameLen = 32;
+        char modName[nameLen];
+        func->getModule()->getName(modName,nameLen);
+        fprintf(stderr,"ERROR: overwrite loop calls into func at "
+                "0x%lx in module %s that is not marked with "
+                "malware mode %s[%d]\n",
+                (Address)func->getBaseAddr(),
+                modName,FILE__,__LINE__);
+    }
+}
+
 
 // recursively add all functions that contain calls, 
 // return true if the function contains no unresolved control flow
@@ -656,33 +695,12 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
                         blockStart, (*bIter)->getEndAddress(),
                         loop->getID(), blockToLoop[blockStart],FILE__,__LINE__);
                 overlappingLoops.insert(blockToLoop[blockStart]);
-            } else {
-                blockToLoop[blockStart] = loop->getID();
             }
+            blockToLoop[blockStart] = loop->getID();
             loop->blocks.insert(*bIter);
 
-            // if call is to unseen function then add it for next iteration
-            BPatch_function *targFunc = (*bIter)->getCallTarget();
-            if ( targFunc && seenFuncs.find(targFunc) == seenFuncs.end() ) {
-                seenFuncs.insert(targFunc);
-                if (/*buggy*/ targFunc->getModule()->isExploratoryModeOn() ) {
-                    nextAddFuncs.insert(targFunc);
-                    //KEVINTODO: this 0x50000000 test is disgusting
-                } else if ((Address)targFunc->getBaseAddr() < 0x50000000) {
-                    mal_printf("revbug targfunc at=%lx %d\n",
-                               (Address)targFunc->getBaseAddr(),__LINE__);
-                    const int nameLen = 32;
-                    char modName[nameLen];
-                    targFunc->getModule()->getName(modName,nameLen);
-                    fprintf(stderr,"ERROR: overwrite loop calls into func at "
-                            "0x%lx in module %s that is not marked with "
-                            "malware mode %s[%d]\n",
-                            (Address)targFunc->getBaseAddr(),
-                            modName,FILE__,__LINE__);
-                 } else {
-                    mal_printf("revbug targfunc at=%lx %d\n",targFunc->getBaseAddr(),__LINE__);
-                }
-            }
+            // if the block has a call to an unseen function, add it for next iteration
+            addLoopFunc((*bIter)->getCallTarget(), seenFuncs, nextAddFuncs);
         }
         // if func contains ambiguously resolved control flow, or truly 
         // unresolved ctrl flow, then set flag and clear vector
@@ -691,16 +709,17 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
             pIter != unresolvedCF.end(); 
             pIter++) 
         {
-            set<Address> targs;
+            vector<Address> targs;
             (*pIter)->getSavedTargets(targs);
-            if (1 < targs.size()) {
+            if (1 != targs.size()) {
                 hasUnresolved = true;
                 mal_printf("loop %d calls func %lx which has an indirect "
                           "transfer at %lx that resolves to multiple targets "
                           "%s[%d]\n", loop->getID(), (*fIter)->getBaseAddr(), 
                           (*pIter)->getAddress(), FILE__,__LINE__);
             } else {
-                exitPoints.insert(*pIter);
+                // add target function if it's not in seenFuncs
+                addLoopFunc(proc()->findFunctionByEntry(targs[0]), seenFuncs, nextAddFuncs);
             }
         }
         if (unresolvedCF.size()) {
@@ -717,7 +736,7 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
         }
     }
     // if these functions called additional functions
-    if (nextAddFuncs.size()) {
+    if (!hasUnresolved && nextAddFuncs.size()) {
         if (false == addFuncBlocks(loop, 
                                    nextAddFuncs, 
                                    seenFuncs, 
@@ -746,8 +765,8 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
                                      std::set<int> &overlappingLoops)
 {
     bool hasUnresolvedCF = false;
-    std::set<BPatch_function*> loopFuncs;
     vector<BPatch_point*> blockPoints;
+    std::set<BPatch_function*> loopFuncs;// functions called by loop insns
 	vector<BPatch_basicBlock *>loopBlocks;
     writeLoop->getLoopBasicBlocks(loopBlocks);
     // for each block in the loop
@@ -765,9 +784,8 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
                     (*bIter)->getEndAddress(), loop->getID(), 
                     blockToLoop[blockStart], FILE__,__LINE__);
             overlappingLoops.insert(blockToLoop[blockStart]);
-        } else {
-            blockToLoop[(*bIter)->getStartAddress()] = loop->getID();
         }
+        blockToLoop[(*bIter)->getStartAddress()] = loop->getID();
         loop->blocks.insert(*bIter);
 
         // if the block has an indirect control transfer
@@ -777,33 +795,24 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
             pIter++) 
         {
             if ((*pIter)->isDynamic()) {
-                set<Address> targs;
+                // We've already checked that the transfer is uniquely 
+                // resolved, add the target.
+                vector<Address> targs;
                 (*pIter)->getSavedTargets(targs);
-                if (targs.empty()) {
-                    // haven't seen its target yet, mark it as a loop exit
-                    exitPoints.insert(*pIter);
-                } else if (1 < targs.size()) {
-                    // if the transfer's target is not uniquely resolved, 
-                    // we won't use this loop
-                    mal_printf("loop %d has indirect transfer that resolves "
-                              "to multiple targets at %lx\n", loop->getID(), 
-                              (*pIter)->getAddress());
-                    hasUnresolvedCF = true;
-                } else {
-                    // if the transfer IS uniquely resolved, add the target
-                    mal_printf("loop %d has an indirect transfer at %lx with "
-                              "target %lx\n", loop->getID(), (*pIter)->getAddress(), 
-                              *targs.begin());
-                    vector<BPatch_function *> targFuncs;
-                    proc()->findFunctionsByAddr(*targs.begin(),targFuncs);
-                    if (targFuncs.size() && 
-                        targFuncs[0]->getModule()->isExploratoryModeOn()) 
-                    {
-                        loopFuncs.insert(targFuncs.begin(),targFuncs.end());
-                    } else if (targFuncs.size()) {
-                        mal_printf("loop contains call to non-mal-func:%lx %d\n",
-                                   targFuncs[0]->getBaseAddr(), __LINE__);
-                    }
+                assert(targs.size() == 1); 
+                mal_printf("loop %d has a resolved indirect transfer at %lx with "
+                          "target %lx\n", loop->getID(), (*pIter)->getAddress(), 
+                          *targs.begin());
+
+                vector<BPatch_function *> targFuncs;
+                proc()->findFunctionsByAddr(*targs.begin(),targFuncs);
+                if (targFuncs.size() && 
+                    targFuncs[0]->getModule()->isExploratoryModeOn()) 
+                {
+                    loopFuncs.insert(targFuncs.begin(),targFuncs.end());
+                } else if (targFuncs.size()) {
+                    mal_printf("loop contains call to non-mal-func:%lx %d\n",
+                               targFuncs[0]->getBaseAddr(), __LINE__);
                 }
             }
         }

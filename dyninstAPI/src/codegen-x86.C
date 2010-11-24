@@ -1033,7 +1033,7 @@ bool insnCodeGen::generateMem(codeGen &gen,
 
    struct ia32_memacc memacc[3];
    struct ia32_condition cond;
-   struct ia32_locations loc;
+   class ia32_locations loc;
 
    ia32_entry *entry;
    ia32_instruction orig_instr(memacc, &cond, &loc);

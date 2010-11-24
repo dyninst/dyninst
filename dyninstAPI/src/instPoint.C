@@ -619,7 +619,7 @@ void instPoint::setBlock( int_basicBlock* newBlock )
     block_ = newBlock;
 }
 
-bool instPoint::getSavedTargets(set<Address> & targs)
+bool instPoint::getSavedTargets(vector<Address> & targs)
 {
     using namespace ParseAPI;
     Block::edgelist & trgs = block()->llb()->targets();
@@ -627,11 +627,13 @@ bool instPoint::getSavedTargets(set<Address> & targs)
          eit != trgs.end();
          eit++)
     {
-        if ( !(*eit)->sinkEdge() ) {
+        if ( !(*eit)->sinkEdge() && 
+             FALLTHROUGH != (*eit)->type() &&
+             CALL_FT != (*eit)->type()) 
+        {
             Block *trg = (*eit)->trg();
-            
-            targs.insert(trg->start());
-            
+            mapped_object *targObj = proc()->findObject(trg->obj());
+            targs.push_back(trg->start()+targObj->codeBase());
         }
     }
     return ! targs.empty();

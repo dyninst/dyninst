@@ -437,13 +437,13 @@ struct findInsns : public insnPredicate
 BPatch_point* BPatch_basicBlock::findEntryPointInt()
 {
     return BPatch_point::createInstructionInstPoint(flowGraph->getAddSpace(), (void*)this->getStartAddressInt(),
-        flowGraph->getBFunction());
+        flowGraph->getFunction());
 }
 
 BPatch_point* BPatch_basicBlock::findExitPointInt()
 {
     return BPatch_point::createInstructionInstPoint(flowGraph->getAddSpace(), (void*)this->getEndAddressInt(),
-            flowGraph->getBFunction());
+            flowGraph->getFunction());
 }
         
 BPatch_Vector<BPatch_point*>*
@@ -460,7 +460,7 @@ BPatch_Vector<BPatch_point*>*
         if(f(curInsn->first))
         {
             BPatch_point* tmp = BPatch_point::createInstructionInstPoint(flowGraph->getAddSpace(), (void*) curInsn->second,
-                    flowGraph->getBFunction());
+                    flowGraph->getFunction());
             if(!tmp)
             {
 #if defined(cap_instruction_api)
@@ -482,7 +482,7 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<B
 {
 
     // function is generally uninstrumentable (with current technology)
-    if (!flowGraph->getBFunction()->func->isInstrumentable())
+    if (!flowGraph->getFunction()->func->isInstrumentable())
         return NULL;
     
 #if defined(cap_instruction_api)
@@ -491,7 +491,7 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<B
 #else
     // Use an instruction iterator
     InstrucIter ii(getStartAddress(),size(),flowGraph->getllAddSpace());
-    BPatch_function *func = flowGraph->getBFunction();
+    BPatch_function *func = flowGraph->getFunction();
     
     return BPatch_point::getPoints(ops, ii, func);
 #endif
@@ -513,8 +513,8 @@ BPatch_point *BPatch_basicBlock::convertPoint(instPoint *pt)
     if (iblock->origInstance()->firstInsnAddr() <= pt->addr()
         && iblock->origInstance()->endAddr() > pt->addr()) 
     {
-        bpPt = flowGraph->getBFunction()->getAddSpace()->findOrCreateBPPoint
-            ( flowGraph->getBFunction(), 
+        bpPt = flowGraph->getFunction()->getAddSpace()->findOrCreateBPPoint
+            ( flowGraph->getFunction(), 
               pt, 
               BPatch_point::convertInstPointType_t(pt->getPointType()) );
     }
@@ -530,7 +530,7 @@ void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
     unsigned pIdx;
     for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
         BPatch_point *point = convertPoint(blockPoints[pIdx]);
-        if (point && dupCheck.end() != dupCheck.find(point)) {
+        if (point && dupCheck.end() == dupCheck.find(point)) {
             dupCheck.insert(point);
             bpPoints.push_back(point);
         }
@@ -539,7 +539,7 @@ void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
     blockPoints = iblock->func()->funcExits();
     for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
         BPatch_point *point = convertPoint(blockPoints[pIdx]);
-        if (point && dupCheck.end() != dupCheck.find(point)) {
+        if (point && dupCheck.end() == dupCheck.find(point)) {
             dupCheck.insert(point);
             bpPoints.push_back(point);
         }
@@ -547,7 +547,7 @@ void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
     blockPoints = iblock->func()->funcCalls();
     for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
         BPatch_point *point = convertPoint(blockPoints[pIdx]);
-        if (point && dupCheck.end() != dupCheck.find(point)) {
+        if (point && dupCheck.end() == dupCheck.find(point)) {
             dupCheck.insert(point);
             bpPoints.push_back(point);
         }
@@ -555,7 +555,7 @@ void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
     blockPoints = iblock->func()->funcArbitraryPoints();
     for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
         BPatch_point *point = convertPoint(blockPoints[pIdx]);
-        if (point && dupCheck.end() != dupCheck.find(point)) {
+        if (point && dupCheck.end() == dupCheck.find(point)) {
             dupCheck.insert(point);
             bpPoints.push_back(point);
         }
@@ -564,7 +564,7 @@ void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
     set<instPoint*>::iterator pIter = pointSet.begin();
     for (; pIter != pointSet.end(); pIter++) {
         BPatch_point *point = convertPoint(*pIter);
-        if (point && dupCheck.end() != dupCheck.find(point)) {
+        if (point && dupCheck.end() == dupCheck.find(point)) {
             dupCheck.insert(point);
             bpPoints.push_back(point);
         }
@@ -572,7 +572,7 @@ void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
     pointSet = iblock->func()->funcAbruptEnds();
     for (pIter = pointSet.begin(); pIter != pointSet.end(); pIter++) {
         BPatch_point *point = convertPoint(*pIter);
-        if (point && dupCheck.end() != dupCheck.find(point)) {
+        if (point && dupCheck.end() == dupCheck.find(point)) {
             dupCheck.insert(point);
             bpPoints.push_back(point);
         }

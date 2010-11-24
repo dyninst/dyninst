@@ -33,6 +33,7 @@
 #include "BPatch.h"
 #include "BPatch_process.h"
 #include "BPatch_function.h"
+#include "BPatch_flowGraph.h"
 #include "BPatch_module.h"
 #include "function.h"
 #include "instPoint.h"
@@ -48,14 +49,14 @@ using namespace Dyninst;
 // intramodular
 static bool isIntraMod(BPatch_point *point)
 {
-    set<Address> targs;
+    vector<Address> targs;
     point->getSavedTargets(targs);
 
     if (targs.empty()) {
         return false;
     }
 
-    for (set<Address>::iterator tit= targs.begin();
+    for (vector<Address>::iterator tit= targs.begin();
          tit != targs.end(); 
          tit++) 
     {

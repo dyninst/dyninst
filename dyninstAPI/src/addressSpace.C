@@ -832,8 +832,11 @@ mapped_object *AddressSpace::findObject(Address addr) {
 }
 
 mapped_object *AddressSpace::findObject(ParseAPI::CodeObject *co) {
-    return findObject(static_cast<ParseAPI::SymtabCodeSource*>(co->cs())->
-            getSymtabObject()->name());
+    mapped_object *obj = 
+        findObject(static_cast<ParseAPI::SymtabCodeSource*>(co->cs())->
+            getSymtabObject()->file());
+    assert(obj);
+    return obj;
 }
 
 int_function *AddressSpace::findFuncByAddr(Address addr) {

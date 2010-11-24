@@ -657,7 +657,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 #if defined (os_windows)
   FD_SET(windows_sock, &readSet);
   FD_SET(windows_sock, &errSet);
-  if (windows_sock > width)
+  if (windows_sock > (unsigned)width)
       width = windows_sock;
 #else
   //  build the set of fds we want to wait on, one fd per process
@@ -674,7 +674,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 		assert(process_fds[i].sock != INVALID_PDSOCKET);
 		FD_SET(process_fds[i].sock, &readSet);
 		FD_SET(process_fds[i].sock, &errSet);
-		if (process_fds[i].sock > width)
+		if (process_fds[i].sock > (unsigned)width)
 			width = process_fds[i].sock;
 	}
 	else

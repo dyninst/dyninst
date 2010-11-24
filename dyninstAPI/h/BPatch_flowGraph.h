@@ -84,7 +84,7 @@ public:
   //BPatch_process *getBProcess() const { return bproc; }
   BPatch_addressSpace *getAddSpace() const { return addSpace; }
   AddressSpace *getllAddSpace() const;
-  BPatch_function *getBFunction() const { return func_; }
+  BPatch_function *getFunction() const { return func_; }
   BPatch_module *getModule() const { return mod; }
   BPatch_basicBlock *findBlockByAddr(Dyninst::Address addr);
   void invalidate(); // invoked when additional parsing takes place

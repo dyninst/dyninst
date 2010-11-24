@@ -147,7 +147,7 @@ BPatch_point *BPatch_edge::getPointInt()
       
       AddressSpace *as = flowGraph->getllAddSpace();
       assert(as);
-      int_function *f = flowGraph->getBFunction()->lowlevel_func();
+      int_function *f = flowGraph->getFunction()->lowlevel_func();
 
       instPoint *ip = instPoint::createArbitraryInstPoint(lastInsnAddr, as, f);
       
@@ -158,7 +158,7 @@ BPatch_point *BPatch_edge::getPointInt()
       }
       
       BPatch_point *newPoint = new BPatch_point(flowGraph->getAddSpace(),
-                                                flowGraph->getBFunction(),
+                                                flowGraph->getFunction(),
                                                 this,
                                                 ip,
                                                 as);

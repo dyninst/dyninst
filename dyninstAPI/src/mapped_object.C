@@ -1281,8 +1281,8 @@ void mapped_object::findBBIsByRange(Address startAddr,
       Address papiCur = cur - codeBase();
       parse_img()->codeObject()->findBlocks(NULL, papiCur, papiBlocks);
    }
-   cerr << "ParseAPI reported " << papiBlocks.size() << " unique blocks in the range "
-        << hex << startAddr << " -> " << endAddr << dec << endl;
+   //cerr << "ParseAPI reported " << papiBlocks.size() << " unique blocks in the range "
+   //     << hex << startAddr << " -> " << endAddr << dec << endl;
 
    for (std::set<ParseAPI::Block *>::iterator iter = papiBlocks.begin();
         iter != papiBlocks.end(); ++iter) {
@@ -1461,7 +1461,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
                 __FILE__, __LINE__, (long)regStart+codeBase(), copySize);
         assert(0);
     }
-    mal_printf("EX: copied to [%lx %lx)\n", codeBase()+regStart, codeBase()+regStart+copySize);
+    mal_printf("EXTEND_CB: copied to [%lx %lx)\n", codeBase()+regStart, codeBase()+regStart+copySize);
 
 
     if ( ! proc()->isMemoryEmulated() ) {
@@ -1598,7 +1598,7 @@ void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges
         {
             assert(0);
         }
-        mal_printf("OW: copied to [%lx %lx): ", rIter->first,rIter->second);
+        mal_printf("OW_CB: copied to [%lx %lx): ", rIter->first,rIter->second);
         for (unsigned idx=0; idx < rIter->second - rIter->first; idx++) {
             mal_printf("%2x ", (unsigned) regPtr[idx]);
         }
@@ -1668,7 +1668,7 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
                 {
                     assert(0);//read failed
                 }
-                mal_printf("UP: copied to [%lx %lx)\n", prevEndAddr+base,curB->start()+base);
+                //mal_printf("UPDATE_CB: copied to [%lx %lx)\n", prevEndAddr+base,curB->start()+base);
             }
 
             // advance curB to last adjacent block and set prevEndAddr 
