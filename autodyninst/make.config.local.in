@@ -66,6 +66,7 @@ LINK_LIBERTY = @LINK_LIBERTY@
 #nice to have: where is libiberty?
 LIBIBERTY_LIB = @LIBIBERTY_LIB_DIR@
 
+DEFAULT_COMPONENT = @DEFAULT_COMPONENT@
 
 #nasm is needed for the Linux/x86 dyninst tests
 NASM = @NASM@

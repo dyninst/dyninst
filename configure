@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS CXXCPP EGREP LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC BUILD_XLC GNU_DEMANGLER USE_LIBERTY LINK_LIBERTY LIBIBERTY_LIB_DIR LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBDWARF_HAS_SET_FRAME LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LAUNCHMON_INC_DIR LAUNCHMON_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR DEFAULT_COMPONENT build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS CXXCPP EGREP LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC BUILD_XLC GNU_DEMANGLER USE_LIBERTY LINK_LIBERTY LIBIBERTY_LIB_DIR LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBDWARF_HAS_SET_FRAME LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LAUNCHMON_INC_DIR LAUNCHMON_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -855,6 +855,9 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-package-base     Base directory to look for packages
+  --with-default-component
+                          Valid values: DyninstAPI, SymtabAPI, InstructionAPI,
+                          ProcControlAPI, ParseAPI, default
   --with-tcl83            Use Tcl/Tk 8.3
   --with-tcltk-incdir     TCL/TK include directory
   --with-tcltk-libdir     TCL/TK library directory
@@ -2214,6 +2217,13 @@ fi;
 #LIBIBERTY_LIB_DIR="/usr/lib";
 
 
+# Check whether --with-default-component or --without-default-component was given.
+if test "${with_default_component+set}" = set; then
+  withval="$with_default_component"
+  DEFAULT_COMPONENT="${withval}";
+else
+  DEFAULT_COMPONENT=`cat autodyninst/default_component`;
+fi;
 
 # Check whether --with-tcl83 or --without-tcl83 was given.
 if test "${with_tcl83+set}" = set; then
@@ -2547,6 +2557,7 @@ fi
 
 
 
+
 # Make sure we can run config.sub.
 $ac_config_sub sun4 >/dev/null 2>&1 ||
   { { echo "$as_me:$LINENO: error: cannot run $ac_config_sub" >&5
@@ -2616,10 +2627,15 @@ if test "${enable_gnu_demangler+set}" = set; then
   GNU_DEMANGLER="true"
 fi;
 
+if test "x$DEFAULT_COMPONENT" = "xInstructionAPI"; then
+   { echo "$as_me:$LINENO: InstructionAPI, skipping libelf..." >&5
+echo "$as_me: InstructionAPI, skipping libelf..." >&6;}
+   SUPPRESS_LIBELF_REQ="true"
+fi
+
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
    { echo "$as_me:$LINENO: AIX system, skipping libelf..." >&5
 echo "$as_me: AIX system, skipping libelf..." >&6;}
-
 else
 
 # Check whether --with-libelf-incdir or --without-libelf-incdir was given.
@@ -2634,12 +2650,13 @@ if test "${with_libelf_libdir+set}" = set; then
   LIBELF_LIB_DIR="${withval}";
 fi;
 
-   CXXFLAGS_HOLD=$CXXFLAGS;
-   CXXFLAGS="$CXXFLAGS -I$LIBELF_INC_DIR";
-   CPPFLAGS_HOLD=$CPPFLAGS;
-   CPPFLAGS="$CPPFLAGS -I$LIBELF_INC_DIR";
+   if test "x$SUPPRESS_LIBELF_REQ" = "x"; then
+      CXXFLAGS_HOLD=$CXXFLAGS;
+      CXXFLAGS="$CXXFLAGS -I$LIBELF_INC_DIR";
+      CPPFLAGS_HOLD=$CPPFLAGS;
+      CPPFLAGS="$CPPFLAGS -I$LIBELF_INC_DIR";
 
-   ac_ext=cc
+      ac_ext=cc
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
@@ -3266,8 +3283,8 @@ if test `eval echo '${'$as_ac_Header'}'` = yes; then
 echo "$as_me: ELF include directory: $LIBELF_INC_DIR" >&6;}
 else
   CXXFLAGS="$CXXFLAGS -I$LIBELF_INC_DIR/libelf";
-         CPPFLAGS="$CPPFLAGS -I$LIBELF_INC_DIR/libelf";
-         as_ac_Header=`echo "ac_cv_header_$LIBELF_INC_DIR/libelf/libelf.h" | $as_tr_sh`
+            CPPFLAGS="$CPPFLAGS -I$LIBELF_INC_DIR/libelf";
+            as_ac_Header=`echo "ac_cv_header_$LIBELF_INC_DIR/libelf/libelf.h" | $as_tr_sh`
 if eval "test \"\${$as_ac_Header+set}\" = set"; then
   echo "$as_me:$LINENO: checking for $LIBELF_INC_DIR/libelf/libelf.h" >&5
 echo $ECHO_N "checking for $LIBELF_INC_DIR/libelf/libelf.h... $ECHO_C" >&6
@@ -3418,8 +3435,8 @@ fi
 fi
 
 
-   CXXFLAGS=$CXXFLAGS_HOLD;
-   CPPFLAGS=$CPPFLAGS_HOLD;
+      CXXFLAGS=$CXXFLAGS_HOLD;
+      CPPFLAGS=$CPPFLAGS_HOLD;
 
   if test "$LIBELF_LIB_DIR" = "" ; then
 
@@ -3674,6 +3691,7 @@ fi
   	LIB_TYPE_STATIC=`ls -H -1 $LIBELF_LIB_DIR | grep elf | grep '\.a' | wc | awk '{if($'2' > 0){print "true"} else {print ""}}'`
   fi
 
+   fi
    LIBELF_STATIC="$LIB_TYPE_STATIC"
    LIBELF_DYNAMIC="$LIB_TYPE_DYNAMIC"
 
@@ -3884,10 +3902,19 @@ fi
 
 
 
+if test "x$DEFAULT_COMPONENT" = "xInstructionAPI"; then
+   { echo "$as_me:$LINENO: InstructionAPI, skipping libdwarf..." >&5
+echo "$as_me: InstructionAPI, skipping libdwarf..." >&6;}
+   SUPPRESS_LIBDWARF_REQ="true"
+elif test "x$DEFAULT_COMPONENT" = "xProcControlAPI"; then
+   { echo "$as_me:$LINENO: ProcControlAPI, skipping libdwarf..." >&5
+echo "$as_me: ProcControlAPI, skipping libdwarf..." >&6;}
+   SUPPRESS_LIBDWARF_REQ="true"
+fi
+
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
    { echo "$as_me:$LINENO: AIX system, skipping libdwarf..." >&5
 echo "$as_me: AIX system, skipping libdwarf..." >&6;}
-
 else
 
 # Check whether --with-libdwarf-incdir or --without-libdwarf-incdir was given.
@@ -3902,12 +3929,13 @@ if test "${with_libdwarf_libdir+set}" = set; then
   LIBDWARF_LIB_DIR="${withval}";
 fi;
 
-   CXXFLAGS_HOLD=$CXXFLAGS;
-   CXXFLAGS="$CXXFLAGS -I$LIBDWARF_INC_DIR";
-   CPPFLAGS_HOLD=$CPPFLAGS;
-   CPPFLAGS="$CPPFLAGS -I$LIBDWARF_INC_DIR";
+   if test "x$SUPPRESS_LIBDWARF_REQ" = "x"; then
+       CXXFLAGS_HOLD=$CXXFLAGS;
+       CXXFLAGS="$CXXFLAGS -I$LIBDWARF_INC_DIR";
+       CPPFLAGS_HOLD=$CPPFLAGS;
+       CPPFLAGS="$CPPFLAGS -I$LIBDWARF_INC_DIR";
 
-   as_ac_Header=`echo "ac_cv_header_$LIBDWARF_INC_DIR/libdwarf.h" | $as_tr_sh`
+       as_ac_Header=`echo "ac_cv_header_$LIBDWARF_INC_DIR/libdwarf.h" | $as_tr_sh`
 if eval "test \"\${$as_ac_Header+set}\" = set"; then
   echo "$as_me:$LINENO: checking for $LIBDWARF_INC_DIR/libdwarf.h" >&5
 echo $ECHO_N "checking for $LIBDWARF_INC_DIR/libdwarf.h... $ECHO_C" >&6
@@ -4050,8 +4078,8 @@ if test `eval echo '${'$as_ac_Header'}'` = yes; then
 echo "$as_me: DWARF include directory: $LIBDWARF_INC_DIR" >&6;}
 else
   CXXFLAGS="$CXXFLAGS -I$LIBDWARF_INC_DIR/libdwarf";
-         CPPFLAGS="$CPPFLAGS -I$LIBDWARF_INC_DIR/libdwarf";
-         as_ac_Header=`echo "ac_cv_header_$LIBDWARF_INC_DIR/libdwarf/libdwarf.h" | $as_tr_sh`
+                         CPPFLAGS="$CPPFLAGS -I$LIBDWARF_INC_DIR/libdwarf";
+                         as_ac_Header=`echo "ac_cv_header_$LIBDWARF_INC_DIR/libdwarf/libdwarf.h" | $as_tr_sh`
 if eval "test \"\${$as_ac_Header+set}\" = set"; then
   echo "$as_me:$LINENO: checking for $LIBDWARF_INC_DIR/libdwarf/libdwarf.h" >&5
 echo $ECHO_N "checking for $LIBDWARF_INC_DIR/libdwarf/libdwarf.h... $ECHO_C" >&6
@@ -4202,8 +4230,8 @@ fi
 fi
 
 
-   CXXFLAGS=$CXXFLAGS_HOLD;
-   CPPFLAGS=$CPPFLAGS_HOLD;
+       CXXFLAGS=$CXXFLAGS_HOLD;
+       CPPFLAGS=$CPPFLAGS_HOLD;
 
 
   if test "$LIBDWARF_LIB_DIR" = "" ; then
@@ -4458,6 +4486,8 @@ fi
   else
   	LIB_TYPE_STATIC=`ls -H -1 $LIBDWARF_LIB_DIR | grep dwarf | grep '\.a' | wc | awk '{if($'2' > 0){print "true"} else {print ""}}'`
   fi
+
+   fi
 
    LIBDWARF_STATIC="$LIB_TYPE_STATIC"
    LIBDWARF_DYNAMIC="$LIB_TYPE_DYNAMIC"
@@ -6193,6 +6223,7 @@ s,@_CXX_@,$_CXX_,;t t
 s,@USE_TCL83@,$USE_TCL83,;t t
 s,@TCLTK_INC_DIR@,$TCLTK_INC_DIR,;t t
 s,@TCLTK_LIB_DIR@,$TCLTK_LIB_DIR,;t t
+s,@DEFAULT_COMPONENT@,$DEFAULT_COMPONENT,;t t
 s,@build@,$build,;t t
 s,@build_cpu@,$build_cpu,;t t
 s,@build_vendor@,$build_vendor,;t t
