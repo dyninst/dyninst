@@ -177,13 +177,13 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
   // Check to see if we're creating the new instPoint on an
   // instruction boundary. First, get the instance...
 
-    bblInstance *bbl = func->findBlockInstanceByAddr(addr);
+    int_block *bbl = func->findOneBlockByAddr(addr);
     if (!bbl) {
         inst_printf("Address not in known code, ret null\n");
         fprintf(stderr, "%s[%d]: Address not in known code, ret null\n", FILE__, __LINE__);
         return NULL;
     }
-    int_basicBlock *block = bbl->block();
+    int_block *block = bbl;
     assert(block);
 
     // Some blocks cannot be relocated; since instrumentation requires
@@ -196,16 +196,16 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
 
     // For now: we constrain the address to be in the original instance
     // of the basic block.
-    if (block->origInstance() != bbl) {
+    if (block != bbl) {
         fprintf(stderr, "%s[%d]: Address not in original basic block instance\n", FILE__, __LINE__);
         return NULL;
     }
-    if (!proc->isValidAddress(bbl->firstInsnAddr())) return NULL;
+    if (!proc->isValidAddress(bbl->start())) return NULL;
 
-    const unsigned char* buffer = reinterpret_cast<unsigned char*>(proc->getPtrToInstruction(bbl->firstInsnAddr()));
-    InstructionDecoder decoder(buffer, bbl->getSize(), proc->getArch());
+    const unsigned char* buffer = reinterpret_cast<unsigned char*>(proc->getPtrToInstruction(bbl->start()));
+    InstructionDecoder decoder(buffer, bbl->size(), proc->getArch());
     Instruction::Ptr i;
-    Address currentInsn = bbl->firstInsnAddr();
+    Address currentInsn = bbl->start();
     while((i = decoder.decode()) && (currentInsn < addr))
     {
         currentInsn += i->size();
@@ -262,7 +262,7 @@ int instPoint_count = 0;
 instPoint::instPoint(AddressSpace *proc,
                      Dyninst::InstructionAPI::Instruction::Ptr insn,
                      Address addr,
-                     int_basicBlock *block) :
+                     int_block *block) :
     instPointBase(insn, 
                 otherPoint),
     callee_(NULL),
@@ -291,7 +291,7 @@ instPoint::instPoint(AddressSpace *proc,
 instPoint::instPoint(AddressSpace *proc,
                      image_instPoint *img_p,
                      Address addr,
-                     int_basicBlock *block) :
+                     int_block *block) :
         instPointBase(img_p->insn(),
                   img_p->getPointType(),
                   img_p->id()),
@@ -320,7 +320,7 @@ instPoint::instPoint(AddressSpace *proc,
 
 // Copying over from fork
 instPoint::instPoint(instPoint *parP,
-                     int_basicBlock *child,
+                     int_block *child,
                      process *childP) :
         instPointBase(parP->insn(),
                   parP->getPointType(),
@@ -368,13 +368,13 @@ instPoint *instPoint::createParsePoint(int_function *func,
                 offsetInFunc,
                 absAddr);
     
-    bblInstance *bbi = func->findBlockInstanceByAddr(absAddr);
+    int_block *bbi = func->findOneBlockByAddr(absAddr);
     if (!bbi) return NULL; // Not in the function...
 
     newIP = new instPoint(func->proc(),
                           img_p,
                           absAddr,
-                          bbi->block());
+                          bbi);
     
     if (!commonIPCreation(newIP)) {
         delete newIP;
@@ -385,7 +385,7 @@ instPoint *instPoint::createParsePoint(int_function *func,
 }
 
 instPoint *instPoint::createForkedPoint(instPoint *parP,
-                                        int_basicBlock *childB,
+                                        int_block *childB,
                                         process *childP) {
     int_function *func = childB->func();
     instPoint *existingInstP = func->findInstPByAddr(parP->addr());
@@ -577,7 +577,7 @@ instPoint::catchup_result_t instPoint::catchupRequired(Address pc,
 #endif
 }
 
-int_basicBlock *instPoint::block() const { 
+int_block *instPoint::block() const { 
     assert(block_);
     return block_;
 }
@@ -616,7 +616,7 @@ std::string instPoint::getCalleeName()
 }
 
 
-void instPoint::setBlock( int_basicBlock* newBlock )
+void instPoint::setBlock( int_block* newBlock )
 {
     // update block (not sure what to do with instPointInstance block mappings)
     block_ = newBlock;
@@ -629,7 +629,8 @@ Address instPoint::getSavedTarget()
         // address in another function whose target has been saved,
         // retrieve that
         vector<ParseAPI::Function *> allfuncs;
-        image_basicBlock *imgBlock = func()->findBlockByAddr(addr())->llb();
+        
+        image_basicBlock *imgBlock = block()->llb();
         imgBlock->getFuncs(allfuncs);
         if (allfuncs.size() > 1) {
             for(vector<ParseAPI::Function*>::iterator fIter = allfuncs.begin();

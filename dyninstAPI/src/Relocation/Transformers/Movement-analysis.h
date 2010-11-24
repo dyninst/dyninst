@@ -126,7 +126,7 @@ class PCSensitiveTransformer : public Transformer {
 		   InstructionAPI::Instruction::Ptr insn,
 		   Address addr);
   
-  bool exceptionSensitive(Address addr, const bblInstance *bbl);
+  bool exceptionSensitive(Address addr, const int_block *bbl);
 
   bool isSyscall(InstructionAPI::Instruction::Ptr insn, Address addr);
 

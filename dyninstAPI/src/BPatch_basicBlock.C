@@ -54,7 +54,7 @@
 
 int bpatch_basicBlock_count = 0;
 
-BPatch_basicBlock::BPatch_basicBlock(int_basicBlock *ib, BPatch_flowGraph *fg):
+BPatch_basicBlock::BPatch_basicBlock(int_block *ib, BPatch_flowGraph *fg):
    iblock(ib),
    flowGraph(fg),
    immediateDominates(NULL),
@@ -103,7 +103,7 @@ void BPatch_basicBlock::BPatch_basicBlock_dtor(){
 //returns the predecessors of the basic block in aset 
 void BPatch_basicBlock::getSourcesInt(BPatch_Vector<BPatch_basicBlock*>& srcs){
    BPatch_basicBlock *b;
-   pdvector<int_basicBlock *> in_blocks;
+   pdvector<int_block *> in_blocks;
    unsigned i;
 
    iblock->getSources(in_blocks);
@@ -117,7 +117,7 @@ void BPatch_basicBlock::getSourcesInt(BPatch_Vector<BPatch_basicBlock*>& srcs){
 //returns the successors of the basic block in a set 
 void BPatch_basicBlock::getTargetsInt(BPatch_Vector<BPatch_basicBlock*>& tgrts){
    BPatch_basicBlock *b;
-   pdvector<int_basicBlock *> out_blocks;
+   pdvector<int_block *> out_blocks;
    unsigned i;
 
    iblock->getTargets(out_blocks);
@@ -510,8 +510,8 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(bool(*filter)(Inst
 BPatch_point *BPatch_basicBlock::convertPoint(instPoint *pt)
 {
     BPatch_point *bpPt = NULL;
-    if (iblock->origInstance()->firstInsnAddr() <= pt->addr()
-        && iblock->origInstance()->endAddr() > pt->addr()) 
+    if (iblock->start() <= pt->addr()
+        && iblock->end() > pt->addr()) 
     {
         bpPt = flowGraph->getBFunction()->getAddSpace()->findOrCreateBPPoint
             ( flowGraph->getBFunction(), 
@@ -701,17 +701,17 @@ bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAP
 
 unsigned long BPatch_basicBlock::getStartAddressInt() CONST_EXPORT 
 {
-   return iblock->origInstance()->firstInsnAddr();
+   return iblock->start();
 }
 
 unsigned long BPatch_basicBlock::getLastInsnAddressInt() CONST_EXPORT 
 {
-   return iblock->origInstance()->lastInsnAddr();
+   return iblock->last();
 }
 
 unsigned long BPatch_basicBlock::getEndAddressInt() CONST_EXPORT
 {
-   return iblock->origInstance()->endAddr();
+   return iblock->end();
 }
 
 unsigned BPatch_basicBlock::sizeInt() CONST_EXPORT

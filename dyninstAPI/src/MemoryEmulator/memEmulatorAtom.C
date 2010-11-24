@@ -75,8 +75,8 @@ void MemEmulator::initTranslators(TranslatorMap &t) {
   translators_ = t;
 }
 
-TrackerElement *MemEmulator::tracker(int_function *f) const {
-   EmulatorTracker *e = new EmulatorTracker(addr_, f);
+TrackerElement *MemEmulator::tracker(int_block *b) const {
+   EmulatorTracker *e = new EmulatorTracker(addr_, b);
   return e;
 }
 
@@ -176,7 +176,7 @@ bool MemEmulator::generateEAXMove(int opcode,
     *tmp = target; tmp++;
     buf = (codeBuf_t *)tmp;
     SET_PTR(buf, patch);
-    buffer.addPIC(patch, tracker(t->bbl()->func()));
+    buffer.addPIC(patch, tracker(t->bbl()));
     return true;
 }
 
@@ -188,7 +188,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
    // not present, assume we don't need to emulate this piece of
    // memory.
    if (!templ.addrSpace()->up_ptr()) {
-      buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t->bbl()->func()));
+      buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t->bbl()));
       return true;
    }
 
@@ -196,7 +196,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
    prepatch.applyTemplate(templ);
 
    bool debug = false;
-
+    if (addr_ > 0x900000) debug = true;
 
   // We want to ensure that a memory operation produces its
   // original result in the face of overwriting the text
@@ -249,7 +249,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
   }
   if (!setupFrame(false, prepatch)) {
      cerr << " FAILED TO ALLOC REGISTERS for insn @ " << hex << addr() << dec << endl;
-     buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t->bbl()->func()));
+     buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t->bbl()));
      return false;
   }
     
@@ -261,9 +261,9 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
   // push/pop time!
   if (!preCallSave(prepatch))
      return false;
-  buffer.addPIC(prepatch, tracker(t->bbl()->func()));
+  buffer.addPIC(prepatch, tracker(t->bbl()));
 
-  buffer.addPatch(new MemEmulatorPatch(effAddr_, addr_, getTranslatorAddr(prepatch, false)), tracker(t->bbl()->func()));
+  buffer.addPatch(new MemEmulatorPatch(effAddr_, addr_, getTranslatorAddr(prepatch, false)), tracker(t->bbl()));
   
   prepatch.setIndex(0);
   if (!postCallRestore(prepatch))
@@ -279,7 +279,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
   }
 
 //  if (debug) prepatch.fill(1, codeGen::cgTrap);
-  buffer.addPIC(prepatch, tracker(t->bbl()->func()));
+  buffer.addPIC(prepatch, tracker(t->bbl()));
 
   return true;
 }
@@ -710,18 +710,18 @@ if (debug) {
    if (usesTwo) {
        ::emitPush(RealRegister(effAddr2_), prepatch);
    }
-   buffer.addPIC(prepatch, tracker(t->bbl()->func()));
+   buffer.addPIC(prepatch, tracker(t->bbl()));
 
    buffer.addPatch(new MemEmulatorPatch(effAddr_, addr_, getTranslatorAddr(prepatch, true)),
-                   tracker(t->bbl()->func()));
+                   tracker(t->bbl()));
 
        prepatch.setIndex(0);
    if (usesTwo) {
       ::emitPop(RealRegister(effAddr2_), prepatch);
       ::emitPush(RealRegister(effAddr_), prepatch);
-      buffer.addPIC(prepatch, tracker(t->bbl()->func()));
+      buffer.addPIC(prepatch, tracker(t->bbl()));
       buffer.addPatch(new MemEmulatorPatch(effAddr2_, addr_, getTranslatorAddr(prepatch, true)),
-                   tracker(t->bbl()->func()));
+                   tracker(t->bbl()));
       prepatch.setIndex(0);
       ::emitPop(RealRegister(effAddr_), prepatch);
    }
@@ -781,7 +781,7 @@ if (debug) {
 	prepatch.fill(1, codeGen::cgTrap);
 }
 #endif
-   buffer.addPIC(prepatch, tracker(t->bbl()->func()));
+   buffer.addPIC(prepatch, tracker(t->bbl()));
    
    return true;
 }

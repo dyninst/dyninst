@@ -46,15 +46,15 @@ class Modification : public Transformer {
     // to include that file.
     typedef std::list<TracePtr> TraceList;
     //typedef std::map<Address, TraceList> TraceMap;
-    typedef std::map<bblInstance *, TracePtr> TraceMap;
+    typedef std::map<int_block *, TracePtr> TraceMap;
     // These three mimic definitions in addressSpace.h
     typedef std::map<instPoint *, int_function *> ext_CallReplaceMap;
     typedef std::map<int_function *, int_function *> ext_FuncReplaceMap;
     typedef std::set<instPoint *> ext_CallRemovalSet;
 
-    typedef std::map<const bblInstance *, std::pair<int_function *, instPoint *> > CallReplaceMap;
-    typedef std::map<const bblInstance *, int_function *> FuncReplaceMap;
-    typedef std::set<const bblInstance *> CallRemovalSet;
+    typedef std::map<const int_block *, std::pair<int_function *, instPoint *> > CallReplaceMap;
+    typedef std::map<const int_block *, int_function *> FuncReplaceMap;
+    typedef std::set<const int_block *> CallRemovalSet;
 
     virtual bool processTrace(TraceList::iterator &);
 

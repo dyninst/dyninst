@@ -69,7 +69,7 @@ bool LocalizeCF::processTrace(TraceList::iterator &iter) {
   // so getting commented out instead of replaced. 
   // if (cf->needsPostCallPadding()) return true;
 
-  // If this CFAtom contains a Target that is a bblInstance
+  // If this CFAtom contains a Target that is a int_block
   // in our map, replace it with a Target to that block.
 
   for (CFAtom::DestinationMap::iterator d_iter = cf->destMap_.begin();
@@ -83,14 +83,14 @@ bool LocalizeCF::processTrace(TraceList::iterator &iter) {
       continue;
     }
 
-    Target<bblInstance *> *targ = static_cast<Target<bblInstance *> *> (target);
-    bblInstance *bbl = targ->t();
+    Target<int_block *> *targ = static_cast<Target<int_block *> *> (target);
+    int_block *bbl = targ->t();
 
     TraceMap::const_iterator found = bMap_.find(bbl);
     if (found != bMap_.end()) {
       //relocation_cerr << "      found matching block " << found->second.get() << endl;
 
-      // First, record the bblInstance we removed an edge from. We will check
+      // First, record the int_block we removed an edge from. We will check
       // later to see if we removed all the incoming edges from this instance...
       recordIncomingEdges(d_iter->second);
 
@@ -113,9 +113,9 @@ bool LocalizeCF::processTrace(TraceList::iterator &iter) {
 // to see if we need to branch in to this block
 bool LocalizeCF::postprocess(TraceList &) {
   //relocation_cerr << "Postprocessing LocalizeCF" << endl;
-  for (std::map<bblInstance *, int>::iterator iter = replacedCount_.begin();
+  for (std::map<int_block *, int>::iterator iter = replacedCount_.begin();
        iter != replacedCount_.end(); ++iter) {
-    bblInstance *bbl = iter->first;
+    int_block *bbl = iter->first;
 
     int removedEdges = iter->second;
 
@@ -130,7 +130,7 @@ bool LocalizeCF::postprocess(TraceList &) {
 
     
     if (removedEdges > incomingEdges) {
-      cerr << "Odd case: " << removedEdges << " removed @ block " << hex << bbl->firstInsnAddr() << dec
+      cerr << "Odd case: " << removedEdges << " removed @ block " << hex << bbl->start() << dec
 	   << ", but only " << incomingEdges << " known." << endl;
     }
     else if (removedEdges == incomingEdges) {
@@ -143,18 +143,18 @@ bool LocalizeCF::postprocess(TraceList &) {
   return true;
 }
 
-int LocalizeCF::getInEdgeCount(const bblInstance *bbl) {
+int LocalizeCF::getInEdgeCount(const int_block *bbl) {
   //relocation_cerr << "   ... getting number of in edges for block at "
 //		  << std::hex << bbl->firstInsnAddr() << std::dec << endl;
 
   // Need to duck to internals to get interprocedural counts
-  return bbl->block()->llb()->sources().size();
+  return bbl->llb()->sources().size();
 }
 
 void LocalizeCF::recordIncomingEdges(const TargetInt *in) {
   if (!in) return;
 
-  const Target<bblInstance *> *targ = dynamic_cast<const Target<bblInstance *> *>(in);
+  const Target<int_block *> *targ = dynamic_cast<const Target<int_block *> *>(in);
   if (!targ) return;
  
   incomingCount_[targ->t()] = getInEdgeCount(targ->t());

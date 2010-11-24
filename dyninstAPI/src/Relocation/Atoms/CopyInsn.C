@@ -44,12 +44,12 @@ using namespace InstructionAPI;
 bool CopyInsn::generate(const codeGen &, 
                         const Trace *t,
                         CodeBuffer &buffer) {
-   buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t->bbl()->func()));
+   buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t->bbl()));
   return true;
 }
 
-TrackerElement *CopyInsn::tracker(int_function *func) const {
-  OriginalTracker *e = new OriginalTracker(addr_, func);
+TrackerElement *CopyInsn::tracker(int_block *block) const {
+  OriginalTracker *e = new OriginalTracker(addr_, block);
   return e;
 }
 

@@ -247,7 +247,7 @@ bool CFAtom::generate(const codeGen &templ,
   return true;
 }
 
-CFAtom::Ptr CFAtom::create(bblInstance *b) {
+CFAtom::Ptr CFAtom::create(int_block *b) {
   return Ptr(new CFAtom(b));
 }
 
@@ -261,7 +261,7 @@ CFAtom::~CFAtom() {
 
 TrackerElement *CFAtom::tracker() const {
   assert(addr_ != 1);
-  EmulatorTracker *e = new EmulatorTracker(addr_, block()->func());
+  EmulatorTracker *e = new EmulatorTracker(addr_, block());
   return e;
 }
 
@@ -280,19 +280,19 @@ TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
          break;
       }
       case TargetInt::BlockTarget:
-         destFunc = (static_cast<Target<bblInstance *> *>(dest))->t()->func();
+         destFunc = (static_cast<Target<int_block *> *>(dest))->t()->func();
          assert(destFunc);
          break;
       default:
          assert(0);
          break;
    }
-   EmulatorTracker *e = new EmulatorTracker(dest->origAddr(), destFunc);
+   EmulatorTracker *e = new EmulatorTracker(dest->origAddr(), destFunc->entryBlock());
    return e;
 }
 
 TrackerElement *CFAtom::addrTracker(Address addr) const {
-   EmulatorTracker *e = new EmulatorTracker(addr, block()->func());
+   EmulatorTracker *e = new EmulatorTracker(addr, block());
    return e;
 }
 

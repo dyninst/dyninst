@@ -45,7 +45,7 @@ class CopyInsn : public Atom {
                         const Trace *,
                         CodeBuffer &);
 
-  TrackerElement *tracker(int_function *) const;
+  TrackerElement *tracker(int_block *) const;
 
   static Ptr create(InstructionAPI::Instruction::Ptr insn,
 		    Address addr);

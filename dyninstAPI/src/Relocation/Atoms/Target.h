@@ -120,28 +120,28 @@ template <>
 };
 
 template <>
-class Target<bblInstance *> : public TargetInt {
+class Target<int_block *> : public TargetInt {
  public:
    //Address addr() const { return t_->firstInsnAddr(); }
- Target(bblInstance *t) : t_(t) {}
+ Target(int_block *t) : t_(t) {}
   ~Target() {}
 
-  bblInstance *t() const { return t_; };
+  int_block *t() const { return t_; };
 
   virtual type_t type() const { return BlockTarget; };
 
-  Address origAddr() const { return t_->firstInsnAddr(); };
+  Address origAddr() const { return t_->start(); };
   
   virtual string format() const { 
     stringstream ret;
-    ret << "O{" << std::hex << t_->firstInsnAddr() << "/" << (necessary() ? "+" : "-") << std::dec << "}";
+    ret << "O{" << std::hex << t_->start() << "/" << (necessary() ? "+" : "-") << std::dec << "}";
     return ret.str();
   }
 
   int label(CodeBuffer *) const;
 
  private:
-  bblInstance *t_;
+  int_block *t_;
 };
 
 

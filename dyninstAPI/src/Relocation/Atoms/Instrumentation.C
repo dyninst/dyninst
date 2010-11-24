@@ -72,7 +72,7 @@ TrackerElement *Inst::tracker(baseTrampInstance *bti) const {
    // But we can't actually determine that with at-insn
    // instPs; fix when Wenbin fixes the instP data structure.
    
-   e = new InstTracker(bti->baseT->instP()->addr(), bti, bti->baseT->instP()->func());
+   e = new InstTracker(bti->baseT->instP()->addr(), bti, bti->baseT->instP()->block());
    
    return e;
 }

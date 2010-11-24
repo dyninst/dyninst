@@ -354,17 +354,17 @@ void MemoryEmulator::removeSpringboards(int_function * func)
 {
     malware_cerr << "untracking springboards from deadfunc " << hex << func->getAddress() << dec << endl;
 
-    const set<int_basicBlock*,int_basicBlock::compare> & blocks = func->blocks();
-    set<int_basicBlock*,int_basicBlock::compare>::const_iterator bit = blocks.begin();
+    const set<int_block*,int_block::compare> & blocks = func->blocks();
+    set<int_block*,int_block::compare>::const_iterator bit = blocks.begin();
     for (; bit != blocks.end(); bit++) {
-        removeSpringboards((*bit)->origInstance());
+        removeSpringboards((*bit));
     }
 }
 
-void MemoryEmulator::removeSpringboards(const bblInstance *bbi) 
+void MemoryEmulator::removeSpringboards(const int_block *bbi) 
 {
     malware_cerr << "  untracking springboards from deadblock [" << hex 
-         << bbi->firstInsnAddr() << " " << bbi->endAddr() << ")" << dec <<endl;
+         << bbi->start() << " " << bbi->end() << ")" << dec <<endl;
     SymtabAPI::Region * reg = 
         ((ParseAPI::SymtabCodeRegion*)bbi->func()->ifunc()->region())->symRegion();
     Address base = bbi->func()->obj()->codeBase();
@@ -372,8 +372,8 @@ void MemoryEmulator::removeSpringboards(const bblInstance *bbi)
     map<Address,int>::iterator sit = springboards_[reg].begin();
     std::vector<Address> toDelete;
     for(; sit != springboards_[reg].end(); sit++) {
-        if (bbi->func() == aS_->findFuncByAddr(base + regBase + sit->first)) {
-           toDelete.push_back(sit->first);
+        if (sit->first == bbi->start()) {
+            toDelete.push_back(sit->first);
         }
     }
     for (unsigned i = 0; i < toDelete.size(); ++i) {

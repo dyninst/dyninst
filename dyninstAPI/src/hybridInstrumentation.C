@@ -800,15 +800,12 @@ bool HybridAnalysis::analyzeNewFunction( Address target ,
 
 bool HybridAnalysis::hasEdge(BPatch_function *func, Address source, Address target)
 {
-if (target == 0x933647) {
-    cerr << "TEMP BREAKPOINT" << endl;
-    }
 // 0. first see if the edge needs to be parsed
-    int_basicBlock *block = func->lowlevel_func()->findBlockByAddr(source);
-    pdvector<int_basicBlock *> targBlocks; 
+    int_block *block = func->lowlevel_func()->findBlockByEntry(source);
+    pdvector<int_block *> targBlocks; 
     block->getTargets(targBlocks);
     for (unsigned bidx=0; bidx < targBlocks.size(); bidx++) {
-        if (target == targBlocks[bidx]->origInstance()->firstInsnAddr()) {
+        if (target == targBlocks[bidx]->start()) {
             return true; // already parsed this edge, we're done!
         }
     }

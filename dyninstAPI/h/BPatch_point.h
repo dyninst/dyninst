@@ -189,6 +189,8 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     miniTramp *dynamic_point_monitor_func;
 
     instPoint * getPoint() {return point;}
+    // These three vectors make Windows unhappy
+#pragma warning (disable:4251)
 
     BPatch_Vector<BPatchSnippetHandle *> preSnippets;
     BPatch_Vector<BPatchSnippetHandle *> postSnippets;

@@ -114,7 +114,7 @@ class int_variable {
 class mapped_object : public codeRange {
     friend class mapped_module; // for findFunction
     friend class int_function;
-    friend class bblInstance; // Adds to codeRangesByAddr_
+    friend class int_block; // Adds to codeRangesByAddr_
  private:
     mapped_object();
     mapped_object(fileDescriptor fileDesc, 
@@ -181,6 +181,10 @@ class mapped_object : public codeRange {
 
     void getInferiorHeaps(vector<pair<string, Address> > &infHeaps);
 
+    bool findFuncsByAddr(const Address addr, std::set<int_function *> &funcs);
+    bool findBlocksByAddr(const Address addr, std::set<int_block *> &blocks);
+
+    int_block *findBlock(ParseAPI::Function *f, ParseAPI::Block *b);
 
     // codeRange method
     void *getPtrToInstruction(Address addr) const;
@@ -208,7 +212,7 @@ class mapped_object : public codeRange {
     bool splitIntLayer();
     void findBBIsByRange(Address startAddr,
                           Address endAddr,
-                          std::list<bblInstance*> &pageBlocks);
+                          std::list<int_block*> &pageBlocks);
     void findFuncsByRange(Address startAddr,
                           Address endAddr,
                           std::set<int_function*> &pageFuncs);
@@ -241,8 +245,8 @@ public:
     const pdvector<int_function *> *findFuncVectorByPretty(const std::string &funcname);
     const pdvector<int_function *> *findFuncVectorByMangled(const std::string &funcname); 
 
-    int_function *findFuncByAddr(const Address &address);
-    codeRange *findCodeRangeByAddress(const Address &address);
+    bool findFuncsByAddr(std::vector<int_function *> &funcs);
+    bool findBlocksByAddr(std::vector<int_block *> &blocks);
 
     const pdvector<int_variable *> *findVarVectorByPretty(const std::string &varname);
     const pdvector<int_variable *> *findVarVectorByMangled(const std::string &varname); 
@@ -253,19 +257,7 @@ public:
 	void setDirty(){ dirty_=true;}
 	bool isDirty() { return dirty_; }
 
-
-#if defined(cap_save_the_world)
-	//ccw 24 jul 2003
-	//This marks the shared library as one that contains functions
-	//that are called by instrumentation.  These functions, and hence
-	//this shared library, MUST be reloaded in the same place.  The
-	//shared library is not necessarily mutated itself, so it may not
-	//need to be saved (as dirty_ would imply).
-	void setDirtyCalled() { dirtyCalled_ = true; }
-	bool isDirtyCalled() { return dirtyCalled_; }
-#endif
-
-    int_function *findFunction(image_func *img_func);
+    int_function *findFunction(ParseAPI::Function *img_func);
     int_variable *findVariable(image_variable *img_var);
 
     // These methods should be invoked to find the global constructor and
@@ -296,7 +288,8 @@ private:
 
     pdvector<mapped_module *> everyModule;
 
-    dictionary_hash<const image_func *, int_function *> everyUniqueFunction;
+    typedef std::map<const image_func *, int_function *> FuncMap;
+    FuncMap everyUniqueFunction;
     dictionary_hash<const image_variable *, int_variable *> everyUniqueVariable;
 
     dictionary_hash< std::string, pdvector<int_function *> * > allFunctionsByMangledName;

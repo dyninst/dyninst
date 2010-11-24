@@ -65,7 +65,7 @@ class instPoint;
 class Frame;
 
 class int_function;
-class int_basicBlock;
+class int_block;
 class funcMod;
 
 typedef enum callType {
@@ -76,166 +76,93 @@ typedef enum callType {
   thiscall_call
 } callType;
 
-// A specific instance (relocated version) of a basic block
-// It's really a semi-smart struct...
-class bblInstance : public codeRange {
-    friend class int_basicBlock;
+class int_block {
     friend class int_function;
-
-    // "We'll set things up later" constructor. Private because only int_basicBlock
-    // should be playing in here
-    bblInstance(int_basicBlock *parent, int version);
+    friend class int_block;
  public:
-    bblInstance(Address start, Address last, Address end, int_basicBlock *parent, int version);
-    bblInstance(const bblInstance *parent, int_basicBlock *block);
-    ~bblInstance();
+    int_block(image_basicBlock *ib, int_function *func);
+    int_block(const int_block *parent, int_function *func);
+    ~int_block();
 
-    Address firstInsnAddr() const { return firstInsnAddr_; }
-    Address lastInsnAddr() const { return lastInsnAddr_; }
-    // Just to be obvious -- this is the end addr of the block
-    Address endAddr() const { return blockEndAddr_; }
-    Address getSize() const { return blockEndAddr_ - firstInsnAddr_; }
+    // "Basic" block stuff
+    Address start() const;
+    Address end() const;
+    Address last() const;
+    unsigned size() const;
 
-    void setLastInsnAddr( Address newLast ) { lastInsnAddr_ = newLast; }
-    void setEndAddr( Address newEnd ) { blockEndAddr_ = newEnd; }
-
-    // And equivalence in addresses...
-    Address equivAddr(int newVersion, Address addr) const;
-
-    // As a note: do _NOT_ create an address-based comparison of this
-    // class unless you just need some sort of ordering. We may create these
-    // blocks in some random place; depending on address is just plain dumb.
-
-    Address get_address() const { return firstInsnAddr(); }
-    unsigned get_size() const { return getSize(); }
-    void *getPtrToInstruction(Address addr) const;
-    void *get_local_ptr() const;
-
-    // Singular CF target...
-    bblInstance *getTargetBBL();
-    bblInstance *getFallthroughBBL();
-
-
-    const void *getPtrToOrigInstruction(Address addr) const;
-    unsigned getRelocInsnSize(Address addr) const;
-
-    void getOrigInstructionInfo(Address addr, const void *&ptr, Address &origAddr, unsigned &origSize) const;
-
-    //process *proc() const;
-    AddressSpace *proc() const;
+    // Up-accessors
     int_function *func() const;
-    int_basicBlock *block() const;
-    int version() const;
+    AddressSpace *addrSpace() const;
+    AddressSpace *proc() const { return addrSpace(); }
 
-
-#if defined(cap_instruction_api)
-    void getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >&instances) const;
-    void disassemble() const;
-#endif
-
-    Address firstInsnAddr_;
-    Address lastInsnAddr_;
-    Address blockEndAddr_;
-    int_basicBlock *block_;
-    int version_;
-};
-
-class int_basicBlock {
-    friend class int_function;
-    friend class bblInstance;
- public:
-    int_basicBlock(image_basicBlock *ib, Address baseAddr, int_function *func, int id);
-    int_basicBlock(const int_basicBlock *parent, int_function *func, int id);
-    ~int_basicBlock();
-
-        // just because a block is an entry block doesn't mean it is
-        // an entry block that this block's function cares about
+    // just because a block is an entry block doesn't mean it is
+    // an entry block that this block's function cares about
     bool isEntryBlock() const;
     bool isExitBlock() const { return ib_->isExitBlock(); }
 
-        // int_basicBlocks are not shared, but their underlying blocks
-        // may be
+    // int_blocks are not shared, but their underlying blocks
+    // may be
     bool hasSharedBase() const { return ib_->isShared(); }
 
     image_basicBlock * llb() const { return ib_; }
     
     struct compare {
-        bool operator()(int_basicBlock * const &b1,
-                        int_basicBlock * const &b2) const {
-            if(b1->instances_[0]->firstInsnAddr() < b2->instances_[0]->firstInsnAddr())
-                return true;
-            if(b2->instances_[0]->firstInsnAddr() < b1->instances_[0]->firstInsnAddr())
-                return false;
-
-            if(b1 != b2) 
-                fprintf(stderr,"error: two blocks (0x%p,0x%p) at 0x%lx \n",
-                        b1,b2,b1->instances_[0]->firstInsnAddr());
-
+        bool operator()(int_block * const &b1,
+                        int_block * const &b2) const {
+            if(b1->start() < b2->start()) return true;
+            if(b2->start() < b1->start()) return false;
             assert(b1 == b2);
             return false;
         }
     };
 
-    const pdvector<bblInstance *> &instances() const;
-    bblInstance *origInstance() const;
-    bblInstance *instVer(unsigned index) const;
-    void removeVersion(unsigned index,bool deleteInstance=true);
-    unsigned numInstances() { return instances_.size(); }
+    std::string format() const;
 
-    void debugPrint();
+#if defined(cap_instruction_api)
+    typedef std::pair<InstructionAPI::Instruction::Ptr, Address> InsnInstance;
+    typedef std::vector<InsnInstance> InsnInstances;
+    void getInsnInstances(InsnInstances &instances) const;
+    std::string disassemble() const;
+#endif
 
-    void getSources(pdvector<int_basicBlock *> &ins) const;
-    void getTargets(pdvector<int_basicBlock *> &outs) const;
-    EdgeTypeEnum getSourceEdgeType(int_basicBlock *source) const;
-    EdgeTypeEnum getTargetEdgeType(int_basicBlock *target) const;
+    void *getPtrToInstruction(Address addr) const;
+
+    // The int_* layer doesn't have edges. That's really annoying, but
+    // I'm not sure we really need them. Also, I don't want to pay the
+    // creation cost. 
+    void getSources(std::vector<int_block *> &) const;
+    void getTargets(std::vector<int_block *> &) const;
+    // Yay ugly!
+    EdgeTypeEnum getSourceEdgeType(int_block *source) const;
+    EdgeTypeEnum getTargetEdgeType(int_block *target) const;
+
+    // Shortcuts
+    int_block *getTarget() const;
+    int_block *getFallthrough() const;
 
     bool containsCall();
-    int_basicBlock *getFallthrough() const;
 
-    int id() const { return id_; }
+    int id() const;
 
-    // True if we need to put a jump in here. If we're an entry block
-    // or the target of an indirect jump (for now).
-    bool needsJumpToNewVersion();
-
-    // A block will need relocation (when instrumenting) if
-    // its underlying image_basicBlock is shared (this is independant
-    // of relocation requirements dependant on size available)
-    bool needsRelocation() const;
-
-    int_function *func() const { return func_; }
-    //process *proc() const;
-    AddressSpace *proc() const;
-
-    void setHighLevelBlock(void *newb);
-    void *getHighLevelBlock() const;
-
+    void setHighLevelBlock(BPatch_basicBlock *newb);
+    BPatch_basicBlock *getHighLevelBlock() const;
 
  private:
-    void *highlevel_block; //Should point to a BPatch_basicBlock, if they've
-                           //been created.
+    BPatch_basicBlock *highlevel_block;
     int_function *func_;
     image_basicBlock *ib_;
-
-    int id_;
-
-    // A single "logical" basic block may correspond to multiple
-    // physical areas of code. In particular, we may relocate the
-    // block (either replaced or duplicated).
-    pdvector<bblInstance *> instances_;
 };
 
 struct edgeStub {
-    edgeStub(bblInstance *s, Address t, EdgeTypeEnum y) 
+    edgeStub(int_block *s, Address t, EdgeTypeEnum y) 
     { src = s; trg = t; type = y; }
-    bblInstance* src;
+    int_block* src;
     Address trg;
     EdgeTypeEnum type;
 };
 
 class int_function : public patchTarget {
-  friend class bblInstance;
-  friend class int_basicBlock;
+  friend class int_block;
  public:
    //static std::string emptyString;
 
@@ -313,21 +240,25 @@ class int_function : public patchTarget {
    // CFG and other function body methods
    ////////////////////////////////////////////////
 
-   const std::set< int_basicBlock* , int_basicBlock::compare > &blocks();
-
-
+   typedef std::set<int_block *, int_block::compare> BlockSet;
+   const BlockSet &blocks();
 
    // Perform a lookup (either linear or log(n)).
-   int_basicBlock *findBlockByAddr(Address addr);
-   int_basicBlock *findBlockByOffset(Address offset) { return findBlockByAddr(offsetToAddr(offset)); }
-   int_basicBlock *findBlockByOffsetInFunc(Address offset) { return findBlockByAddr(offset + getAddress()); }
-   bblInstance *findBlockInstanceByAddr(Address addr);
-   int_basicBlock *findBlockByImage(image_basicBlock *block);
-   bblInstance *findBlockInstanceByEntry(Address addr);
+   bool findBlocksByAddr(Address addr, std::set<int_block *> &blocks);
+   bool findBlocksByOffsetInFunc(Address offset, std::set<int_block *> &blocks) {
+       return findBlocksByAddr(offset + baseAddr(), blocks);
+   }
+   bool findBlocksByOffset(Address offset, std::set<int_block *> &blocks) {
+       return findBlocksByAddr(offsetToAddr(offset), blocks);
+   }
 
-   int_basicBlock *entryBlock();
+   int_block *findBlock(ParseAPI::Block *block);
+   int_block *findBlockByEntry(Address addr);
+   int_block *findOneBlockByAddr(Address Addr);
 
-   void findBlocksByRange(std::vector<int_basicBlock*> &funcs, 
+   int_block *entryBlock();
+
+   void findBlocksByRange(std::vector<int_block*> &funcs, 
                           Address start, Address end);
 
    void addMissingBlock(image_basicBlock & imgBlock);
@@ -396,19 +327,18 @@ class int_function : public patchTarget {
    ////////////////////////////////////////////////
 
    bool canBeRelocated() const { return ifunc_->canBeRelocated(); }
-   int version() const { return version_; }
 
 
    ////////////////////////////////////////////////
    // Code overlapping
    ////////////////////////////////////////////////
    // Get all functions that "share" the block. Actually, the
-   // int_basicBlock will not be shared (they are per function),
+   // int_block will not be shared (they are per function),
    // but the underlying image_basicBlock records the sharing status. 
    // So dodge through to the image layer and find out that info. 
    // Returns true if such functions exist.
 
-   bool getSharingFuncs(int_basicBlock *b,
+   bool getSharingFuncs(int_block *b,
                         std::set<int_function *> &funcs);
 
    // The same, but for any function that overlaps with any of
@@ -435,10 +365,6 @@ class int_function : public patchTarget {
 
    codeRange *copy() const;
 
-#if defined(sparc_sun_solaris2_4)
-   bool is_o7_live(){ return ifunc_->is_o7_live(); }
-#endif
-
 #if defined(arch_power)
    bool savesReturnAddr() const { return ifunc_->savesReturnAddr(); }
 #endif
@@ -454,13 +380,14 @@ class int_function : public patchTarget {
 
 
     bool removePoint(instPoint *point);
-    void deleteBlock(int_basicBlock *block);
+    void deleteBlock(int_block *block);
     void removeFromAll();
-    int_basicBlock *setNewEntryPoint();
-    void getReachableBlocks(const std::set<bblInstance*> &exceptBlocks,
-                            const std::list<bblInstance*> &seedBlocks,
-                            std::set<bblInstance*> &reachBlocks);//output
+    int_block *setNewEntryPoint();
+    void getReachableBlocks(const std::set<int_block*> &exceptBlocks,
+                            const std::list<int_block*> &seedBlocks,
+                            std::set<int_block*> &reachBlocks);//output
    
+
 
 
  private:
@@ -474,13 +401,11 @@ class int_function : public patchTarget {
 			// image_funcs to int_funcs
 
    ///////////////////// CFG and function body
-   std::set< int_basicBlock* , int_basicBlock::compare > blockList; 
+   BlockSet blocks_; 
 
-   // Added to support translation between function-specific int_basicBlocks
-   // and potentially shared image_basicBlocks
-   dictionary_hash<int, int> blockIDmap;
-
-   //BPatch_flowGraph *flowGraph;
+   // We need some method of doing up-pointers
+   typedef std::map<image_basicBlock *, int_block *> BlockMap;
+   BlockMap blockMap_;
 
    ///////////////////// Instpoints 
 
@@ -500,32 +425,29 @@ class int_function : public patchTarget {
 
    bool isBeingInstrumented_;
 
-   dictionary_hash<Address, instPoint *> instPsByAddr_;
+   std::map<Address, instPoint *> instPsByAddr_;
 
    //////////////////////////  Parallel Regions 
    pdvector<int_parRegion*> parallelRegions_; /* pointer to the parallel regions */
 
-
-   // Used to sync with instPoints
-   int version_;
-
-   codeRangeTree blocksByAddr_;
-   std::map<Address, bblInstance *> blocksByEntry_;
-   void addBBLInstance(bblInstance *instance);
+   void addint_block(int_block *instance);
 
 #if defined(os_windows) 
    callType callingConv;
    int paramSize;
 #endif
 
-    // the number of blocks in a function can go up or down, I need 
-    // to keep track of the next block ID to use
-    int nextBlockID;
-
-    // 
+     // 
     // Local instrumentation-based auxiliary functions
     void getNewInstrumentation(std::set<instPoint *> &);
     void getAnyInstrumentation(std::set<instPoint *> &);
+
+    // Convenience function for int_block; get the base address
+    // where we were loaded (AKA "int layer addr - image layer offset")
+    Address baseAddr() const;
+    // Create and register
+    void createBlock(image_basicBlock *ib);
+    void createBlockFork(const int_block *parent);
 
 };
 

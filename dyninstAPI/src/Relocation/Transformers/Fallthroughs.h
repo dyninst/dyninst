@@ -43,7 +43,7 @@ class Fallthroughs : public Transformer {
     // to include that file.
     typedef std::list<TracePtr> TraceList;
     //typedef std::map<Address, TraceList> TraceMap;
-    typedef std::map<bblInstance *, TracePtr> TraceMap;
+    typedef std::map<int_block *, TracePtr> TraceMap;
     
     virtual bool preprocess(TraceList &);
     bool process(TraceList::iterator &, TracePtr);

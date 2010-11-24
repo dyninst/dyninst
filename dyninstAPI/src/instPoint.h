@@ -52,7 +52,7 @@ class instPoint;
 class process;
 class image;
 
-class int_basicBlock;
+class int_block;
 class Frame;
 class instPointInstance;
 
@@ -273,7 +273,7 @@ public:
 class instPoint : public instPointBase {
     friend class instPointInstance;
     friend class baseTramp;
-    friend class int_basicBlock;
+    friend class int_block;
     friend void initRegisters();
     friend class registerSpace; // Liveness
  public:
@@ -297,16 +297,16 @@ class instPoint : public instPointBase {
                                  instruction insn,
 #endif
               Address addr,
-              int_basicBlock *block);
+              int_block *block);
 
     instPoint(AddressSpace *proc,
               image_instPoint *img_p,
               Address addr,
-              int_basicBlock *block);
+              int_block *block);
 
     // Fork instPoint
     instPoint(instPoint *parP,
-              int_basicBlock *childB,
+              int_block *childB,
               process *childP);
 
     // A lot of arbitrary/parse creation work can be shared
@@ -328,7 +328,7 @@ class instPoint : public instPointBase {
   static instPoint *createParsePoint(int_function *func,
                                      image_instPoint *img_p);
 
-  static instPoint *createForkedPoint(instPoint *p, int_basicBlock *child, process *childP);
+  static instPoint *createForkedPoint(instPoint *p, int_block *child, process *childP);
 
   static int liveRegSize();
 
@@ -379,7 +379,7 @@ class instPoint : public instPointBase {
 
   AddressSpace *proc() const { return proc_; }
   
-  int_basicBlock *block() const;
+  int_block *block() const;
   int_function *func() const;
 
   Address addr() const { return addr_; }
@@ -393,7 +393,7 @@ class instPoint : public instPointBase {
   // returns false if it was already resolved
   bool setResolved();
   // needed for blocks that are split after the initial parse
-  void setBlock( int_basicBlock* newBlock );
+  void setBlock( int_block* newBlock );
 
 
 
@@ -492,7 +492,7 @@ class instPoint : public instPointBase {
   image_instPoint *img_p_;
 
   // The block we're attached to.
-  int_basicBlock *block_;
+  int_block *block_;
   Address addr_;
 
  public:

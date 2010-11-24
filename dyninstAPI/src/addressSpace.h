@@ -152,20 +152,17 @@ class AddressSpace : public InstructionSource {
 
     bool isInferiorAllocated(Address block);
 
-    // We need a mechanism to track what exists at particular addresses in the
-    // address space - both for lookup and to ensure that there are no collisions.
-    // We have a multitude of ways to "muck with" the application (function replacement,
-    // instrumentation, function relocation, ...) and they can all stomp on each
-    // other. 
+    // These are being obsoleted since they are _dangerous_ to use.
 
+#if 0
     void addOrigRange(codeRange *range);
-    void addModifiedRange(codeRange *range);
+
 
     void removeOrigRange(codeRange *range);
-    void removeModifiedRange(codeRange *) {};
+
 
     codeRange *findOrigByAddr(Address addr);
-    codeRange *findModByAddr(Address) { return NULL; }
+#endif
 
     bool getDyninstRTLibName();
 
@@ -232,12 +229,15 @@ class AddressSpace : public InstructionSource {
     void getAllFunctions(pdvector<int_function *> &);
     
     // Find the code sequence containing an address
-    // Note: fix the name....
-    int_function *findFuncByAddr(Address addr);
-    bool findFuncsByAddr(Address addr, std::vector<int_function *> &funcs);
+    bool findFuncsByAddr(Address addr, std::set<int_function *> &funcs, bool includeReloc = false);
+    bool findBlocksByAddr(Address addr, std::set<int_block *> &blocks, bool includeReloc = false);
+    // Don't use this...
+    // I take it back. Use it when you _know_ that you want one function,
+    // picked arbitrarily, from the possible functions.
+    int_function *findOneFuncByAddr(Address addr);
+    // And the one thing that is unique: entry address!
+    int_function *findFuncByEntry(Address addr);
 
-    int_basicBlock *findBasicBlockByAddr(Address addr);
-    
     // And a lookup by "internal" function to find clones during fork...
     int_function *findFuncByInternalFunc(image_func *ifunc);
     
@@ -416,7 +416,7 @@ class AddressSpace : public InstructionSource {
 
     bool getRelocInfo(Address relocAddr,
 		      Address &origAddr,
-		      int_function *&origFunc,
+		      int_block *&origBlock,
 		      baseTrampInstance *&baseTramp);
 		
     // defensive mode code // 
@@ -427,10 +427,10 @@ class AddressSpace : public InstructionSource {
     bool inEmulatedCode(Address addr);
 
     std::map<int_function*,std::vector<edgeStub> > 
-    getStubs(const std::list<bblInstance *> &owBBIs,
-             const std::set<bblInstance*> &delBBIs);
+    getStubs(const std::list<int_block *> &owBBIs,
+             const std::set<int_block*> &delBBIs);
 
-    void addDefensivePad(bblInstance *callBlock, Address padStart, unsigned size);
+    void addDefensivePad(int_block *callBlock, Address padStart, unsigned size);
 
     void getPreviousInstrumentationInstances(baseTramp *bt,
 					     std::set<Address>::iterator &b,

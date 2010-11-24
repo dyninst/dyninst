@@ -107,7 +107,6 @@ void AddressSpace::copyAddressSpace(process *parent) {
         assert(child_obj);
         
         mapped_objects.push_back(child_obj);
-        addOrigRange(child_obj);
         
         // This clones funcs, which then clone instPoints, which then 
         // clone baseTramps, which then clones miniTramps.
@@ -176,77 +175,6 @@ void AddressSpace::deleteAddressSpace() {
 }
 
 
-// findRangeByAddr: finds the object (see below) that corresponds with
-// a given absolute address. This includes:
-//   Functions (non-relocated)
-//   Base tramps
-//   Mini tramps
-//   Relocated functions
-//
-// The process class keeps a tree of objects occupying the address space.
-// This top-level tree includes trampolines, relocated functions, and the
-// application and shared objects. The search starts at the top of this tree.
-// If the address resolves to a base tramp, mini tramp, or relocated function,
-// that is returned. If the address resolves within the range of an shared
-// object, the search recurses into the object (the offset into the object
-// is calculated and the function lookup works from the offset). If the offset
-// is within the a.out, we look up the function assuming the address given is
-// the offset. 
-
-// This function gives only "original" code - that is, code that either existed
-// in the binary or that we added to unallocated space. If you're looking for places
-// where things were overwritten (jumps to instrumentation, etc.) look at
-// modifiedRanges_.
-
-void AddressSpace::addOrigRange(codeRange *range) {
-    textRanges_.insert(range);
-#if 0
-    if (range->is_mapped_object()) {
-        // Hack... add data range
-        mappedObjData *data = new mappedObjData(range->is_mapped_object());
-        dataRanges_.insert(data);
-    }
-#endif
-}
-
-void AddressSpace::removeOrigRange(codeRange *range) {
-    codeRange *tmp = NULL;
-    
-    if (!textRanges_.find(range->get_address(), tmp))
-        return;
-
-    assert (range == tmp);
-
-    textRanges_.remove(range->get_address());
-}
-
-
-codeRange *AddressSpace::findOrigByAddr(Address addr) {
-    codeRange *range = NULL;
-    
-    if (!textRanges_.find(addr, range)) {
-        return NULL;
-    }
-    
-    assert(range);
-    
-    bool in_range = (addr >= range->get_address() &&
-                     addr <= (range->get_address() + range->get_size()));
-    assert(in_range); // Supposed to return NULL if this is the case
-    
-    // The top level tree doesn't go into mapped_objects, which is not
-    // what we want; so if we're in a mapped_object, poke inside.
-    // However, if we're in a function (int_function), minitramp,
-    // basetramp, ... return that right away.
-    
-    mapped_object *mobj = range->is_mapped_object();
-    if (mobj) {
-        codeRange *obj_range = mobj->findCodeRangeByAddress(addr);
-        if (obj_range) range = obj_range;
-    }
-    
-    return range;
-}
 
 // Returns the named symbol from the image or a shared object
 bool AddressSpace::getSymbolInfo( const std::string &name, int_symbol &ret ) 
@@ -830,44 +758,6 @@ mapped_object *AddressSpace::findObject(Address addr) {
     return NULL;
 }
 
-int_function *AddressSpace::findFuncByAddr(Address addr) {
-    codeRange *range = findOrigByAddr(addr);
-    if (!range) return NULL;
-    
-    int_function *func_ptr = range->is_function();
-    mapped_object *obj = range->is_mapped_object();
-
-    if(func_ptr) {
-       return func_ptr;
-    }
-    else if (obj) {
-        if ( ! obj->isAnalyzed() ) {
-            obj->analyze();
-        }
-        return obj->findFuncByAddr( addr );
-    }
-    else {
-        return NULL;
-    }
-}
-
-int_basicBlock *AddressSpace::findBasicBlockByAddr(Address addr) {
-    codeRange *range = findOrigByAddr(addr);
-    if (!range) return NULL;
-
-    int_basicBlock *b = range->is_basicBlock();
-    int_function *f = range->is_function();
-
-    if(b) {
-        return b;
-    }
-    else if(f) {
-        return f->findBlockByAddr(addr);
-    }
-    else
-        return NULL;
-}
-
 int_function *AddressSpace::findFuncByInternalFunc(image_func *ifunc) {
     assert(ifunc);
   
@@ -958,13 +848,10 @@ void AddressSpace::getAllModules(pdvector<mapped_module *> &mods){
 int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
 
     Address addr2 = 0;
-    int_function *f = findFuncByAddr(addr);
+    int_function *f = findOneFuncByAddr(addr);
     if (f)
         return f;
 
-    codeRange *range = findOrigByAddr(addr);
-    if (!range->is_mapped_object()) 
-        return NULL;
 #if defined(cap_instruction_api)
     using namespace Dyninst::InstructionAPI;
     InstructionDecoder decoder((const unsigned char*)getPtrToInstruction(addr),
@@ -996,7 +883,7 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
     if (ii.isAJumpInstruction())
         addr2 = ii.getBranchTargetAddress();
 #endif //defined(cap_instruction_api)
-    return findFuncByAddr(addr2);
+    return findOneFuncByAddr(addr2);
 }
 
 AstNodePtr AddressSpace::trampGuardAST() {
@@ -1378,37 +1265,72 @@ void trampTrapMappings::allocateTable()
 }
 
 // only works for unrelocated addresses
-bool AddressSpace::findFuncsByAddr(Address addr, vector<int_function*> &funcs)
+bool AddressSpace::findFuncsByAddr(Address addr, std::set<int_function*> &funcs, bool includeReloc)
 {
-   codeRange *range = findOrigByAddr(addr);
-   if (!range)
-      return false;
-
-   bblInstance *bblInst = range->is_basicBlockInstance();
-   if (!bblInst) {
-       return false;
-   }
-   
-   if (!bblInst->block()->llb()->isShared()) {
-       funcs.push_back(bblInst->func());
-       return true;
-   }
-
-
-   // the function is shared, get the multiple functions from the image block, 
-   // convert to int_functions and return them.
-   image_basicBlock *img_block = bblInst->block()->llb();
-   vector<ParseAPI::Function *> img_funcs;
-   img_block->getFuncs(img_funcs);
-   assert(img_funcs.size());
-   vector<ParseAPI::Function *>::iterator fit = img_funcs.begin();
-   for( ; fit != img_funcs.end(); ++fit) {
-       int_function *int_func = findFuncByInternalFunc((image_func*)(*fit));
-       funcs.push_back(int_func);
-   }
-
-   return true;
+    mapped_object *obj = findObject(addr);
+    if (!obj) return false;
+    bool ret = obj->findFuncsByAddr(addr, funcs);
+    if (ret || !includeReloc)
+        return ret;
+    baseTrampInstance *bti;
+    int_block *block;
+    Address oAddr;
+    if (getRelocInfo(addr, oAddr, block, bti)) {
+        funcs.insert(block->func());
+        return true;
+    }
+    return false;
 }
+
+bool AddressSpace::findBlocksByAddr(Address addr, std::set<int_block *> &blocks, bool includeReloc) {
+   mapped_object *obj = findObject(addr);
+    if (!obj) return false;
+    bool ret = obj->findBlocksByAddr(addr, blocks);
+    if (ret || !includeReloc)
+        return ret;
+    baseTrampInstance *bti;
+    int_block *block;
+    Address oAddr;
+    if (getRelocInfo(addr, oAddr, block, bti)) {
+        blocks.insert(block);
+        return true;
+    }
+    return false;
+}
+
+int_function *AddressSpace::findOneFuncByAddr(Address addr) {
+    std::set<int_function *> funcs;
+    if (!findFuncsByAddr(addr, funcs)) return NULL;
+    if (funcs.empty()) return NULL;
+    if (funcs.size() == 1) return *(funcs.begin());
+    // Arbitrarily pick one...
+    Address last = 0;
+    int_function *ret = NULL;
+    for (std::set<int_function *>::iterator iter = funcs.begin();
+        iter != funcs.end(); ++iter) {
+            if (ret == NULL ||
+                ((*iter)->entryBlock()->start() > last)) {
+                ret = *iter;
+                last = (*iter)->entryBlock()->start();
+            }
+    }
+    return ret;
+}
+
+int_function *AddressSpace::findFuncByEntry(Address addr) {
+    std::set<int_function *> funcs;
+    if (!findFuncsByAddr(addr, funcs)) return NULL;
+    if (funcs.empty()) return NULL;
+
+    for (std::set<int_function *>::iterator iter = funcs.begin();
+        iter != funcs.end(); ++iter) {
+        if ((*iter)->entryBlock()->start() == addr) {
+            return *iter;
+        }
+    }
+    return NULL;
+}
+
 
 bool AddressSpace::canUseTraps()
 {
@@ -1561,7 +1483,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       using namespace InstructionAPI;
       // Print out the buffer we just created
       cerr << "DUMPING RELOCATION BUFFER " << hex 
-           << cm->blockMap().begin()->first->firstInsnAddr() << dec << endl;
+           << cm->blockMap().begin()->first->start() << dec << endl;
       Address base = baseAddr;
       InstructionDecoder deco
         (cm->ptr(),cm->size(),getArch());
@@ -1628,7 +1550,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           }
           // if the PC matches a modified function, change the PC
           for (FuncSet::const_iterator fit = begin; fit != end; fit++) {
-              if ((*fit)->findBlockInstanceByAddr(pcOrig)) {
+              if ((*fit)->findOneBlockByAddr(pcOrig)) {
                  // HACK: if we're in the middle of an emulation block, add that
                  // offset to where we transfer to. 
                  TrackerElement *te = NULL;
@@ -1846,23 +1768,22 @@ void AddressSpace::getRelocAddrs(Address orig,
 }      
 
 bool AddressSpace::getAddrInfo(Address relocAddr,
-				Address &origAddr,
-				vector<int_function *> &origFuncs,
-				baseTrampInstance *&baseT) 
+                				Address &origAddr,
+		                		vector<int_function *> &origFuncs,
+				                baseTrampInstance *&baseT) 
 {
-    // retrieve if unrelocated address
-    bblInstance *bbi = findOrigByAddr(relocAddr)->is_basicBlockInstance();
-    if ( bbi ) {
+    std::set<int_function *> tmpFuncs;
+    if (findFuncsByAddr(relocAddr, tmpFuncs)) {
         origAddr = relocAddr;
-        findFuncsByAddr(origAddr, origFuncs);
+        std::copy(tmpFuncs.begin(), tmpFuncs.end(), std::back_inserter(origFuncs));
         baseT = NULL;
         return true;
     }
 
     // retrieve if relocated address
-    int_function *func;
-    if (getRelocInfo(relocAddr, origAddr, func, baseT)) {
-        origFuncs.push_back(func);
+    int_block *block;
+    if (getRelocInfo(relocAddr, origAddr, block, baseT)) {
+        origFuncs.push_back(block->func());
         return true;
     }
 
@@ -1872,18 +1793,18 @@ bool AddressSpace::getAddrInfo(Address relocAddr,
 
 
 bool AddressSpace::getRelocInfo(Address relocAddr,
-				Address &origAddr,
-				int_function *&origFunc,
-				baseTrampInstance *&baseT) 
+                				Address &origAddr,
+                                int_block *&origBlock,
+                                baseTrampInstance *&baseT) 
 {
   baseT = NULL;
-  origFunc = NULL;
+  origBlock = NULL;
 
   // address is relocated (or bad), check relocation maps
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
        iter != relocatedCode_.end(); ++iter) 
   {
-     if (iter->relocToOrig(relocAddr, origAddr, origFunc, baseT)) {
+     if (iter->relocToOrig(relocAddr, origAddr, origBlock, baseT)) {
         return true;
      }
   }
@@ -1912,15 +1833,15 @@ void AddressSpace::addModifiedFunction(int_function *func) {
   modifiedFunctions_[func->obj()].insert(func);
 }
 
-void AddressSpace::addDefensivePad(bblInstance *callBlock, Address padStart, unsigned size) {
-  // We want to register these in terms of a bblInstance that the pad ends, but 
+void AddressSpace::addDefensivePad(int_block *callBlock, Address padStart, unsigned size) {
+  // We want to register these in terms of a int_block that the pad ends, but 
   // the CFG can change out from under us; therefore, for lookup we use an instPoint
   // as they are invariant. 
    
-   instPoint *point = callBlock->func()->findInstPByAddr(callBlock->lastInsnAddr());
+   instPoint *point = callBlock->func()->findInstPByAddr(callBlock->last());
    if (!point) {
        callBlock->func()->funcCalls();
-       point = callBlock->func()->findInstPByAddr(callBlock->lastInsnAddr());
+       point = callBlock->func()->findInstPByAddr(callBlock->last());
    }
    if (!point) {
        // Kevin didn't instrument it so we don't care :)
@@ -1965,30 +1886,30 @@ MemoryEmulator * AddressSpace::getMemEm() {
 //     e->trg() in owBBIs and
 //     while e->src() in delBlocks try e->src()->sources()
 std::map<int_function*,vector<edgeStub> > 
-AddressSpace::getStubs(const std::list<bblInstance *> &owBBIs,
-                       const std::set<bblInstance*> &delBBIs)
+AddressSpace::getStubs(const std::list<int_block *> &owBBIs,
+                       const std::set<int_block*> &delBBIs)
 {
     std::map<int_function*,vector<edgeStub> > stubs;
     std::list<edgeStub> deadStubs;
     
-    for (list<bblInstance*>::const_iterator deadIter = owBBIs.begin();
+    for (list<int_block*>::const_iterator deadIter = owBBIs.begin();
          deadIter != owBBIs.end(); 
          deadIter++) 
     {
         using namespace ParseAPI;
         SingleContext epred_((*deadIter)->func()->ifunc(),true,true);
         Intraproc epred(&epred_);
-        image_basicBlock *curImgBlock = (*deadIter)->block()->llb();
+        image_basicBlock *curImgBlock = (*deadIter)->llb();
         Block::edgelist & sourceEdges = curImgBlock->sources();
         Block::edgelist::iterator eit = sourceEdges.begin(&epred);
-        Address baseAddr = (*deadIter)->firstInsnAddr() 
+        Address baseAddr = (*deadIter)->start() 
             - curImgBlock->firstInsnOffset();
 
         // find all stub blocks for this edge
         for( ; eit != sourceEdges.end(); ++eit) {
             image_basicBlock *sourceBlock = 
                 static_cast<image_basicBlock*>((*eit)->src());
-            bblInstance *src = (*deadIter)->block()->func()->findBlockInstanceByEntry(baseAddr + sourceBlock->start());
+            int_block *src = (*deadIter)->func()->findBlockByEntry(baseAddr + sourceBlock->start());
 
             edgeStub st(src, 
                     curImgBlock->start() + baseAddr, 

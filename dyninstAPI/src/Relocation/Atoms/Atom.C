@@ -75,7 +75,7 @@ using namespace std;
 
 int Trace::TraceID = 0;
 
-Trace::Ptr Trace::create(bblInstance *bbl) {
+Trace::Ptr Trace::create(int_block *bbl) {
   if (!bbl) return Trace::Ptr();
 
   relocation_cerr << "Creating new Trace" << endl;
@@ -99,7 +99,7 @@ Trace::Ptr Trace::create(bblInstance *bbl) {
     
     newTrace->elements_.push_back(ptr);
   }
-
+  dyn_debug_reloc = false;
   return newTrace;
 }
 
@@ -174,8 +174,8 @@ std::string Trace::format() const {
   return ret.str();
 }
 
-int Target<bblInstance *>::label(CodeBuffer *buf) const {
-   return buf->defineLabel(t_->firstInsnAddr());
+int Target<int_block *>::label(CodeBuffer *buf) const {
+   return buf->defineLabel(t_->start());
 }
 
 int Target<Address>::label(CodeBuffer *buf) const {

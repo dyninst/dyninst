@@ -79,8 +79,6 @@ typedef enum frameStatus_t {
 
 static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_height)
 {
-   codeRange *range;
-
    int_function *func = NULL;
    extra_height = 0;
 
@@ -100,11 +98,11 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
 
    // See if we're in instrumentation
    Address origAddr = pc;
-
+   int_block *block = NULL;
    baseTrampInstance *bti = NULL;
    if (p->getRelocInfo(pc, 
                        origAddr,
-                       func,
+                       block,
                        bti)) {
       // Find out whether we've got a saved
       // state or not
@@ -119,8 +117,7 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
       }
    }
    else {
-      range = p->findOrigByAddr(origAddr);
-      func = range->is_function();
+       func = p->findOneFuncByAddr(origAddr);
    }
 
    if (func == NULL) {
@@ -143,29 +140,13 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
 static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
 {
     if (BPatch_defensiveMode != proc->getHybridMode()) {
-        codeRange *range = proc->findOrigByAddr(addr);
-        pdvector<instPoint *> callsites;
-
-        if (range == NULL) {
-            baseTrampInstance *bti = NULL;
-            Address origAddr = 0;
-            int_function *tmp=NULL;
-            bool success = proc->getRelocInfo(addr, origAddr, tmp, bti);
-            if (success) {
-                addr = origAddr;
-                range = proc->findOrigByAddr(origAddr);
-            }
+        std::set<int_function *> funcs;
+        if (!proc->findFuncsByAddr(addr, funcs, true)) {
+            return NULL;
         }
-        if (range == NULL) {
-            return false;
-        }
-   
-        int_function *func_ptr = range->is_function();
-
-        if (func_ptr != NULL)
-            callsites = func_ptr->funcCalls();
-        else
-            return false;
+        if (funcs.empty()) return false;
+        // If we have overlapping funcs, we should be able to just pick one.
+        const std::vector<instPoint *> &callsites = (*(funcs.begin()))->funcCalls();
       
         for (unsigned i = 0; i < callsites.size(); i++)
             {
@@ -193,81 +174,49 @@ static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
           address and see if the block's last instruction is a call
         */
 
-        codeRange *callRange = proc->findOrigByAddr(addr-1);
-        bblInstance *callBBI = callRange->is_basicBlockInstance();
-        Address callAddr = 0; //address of call in original block instance
+        std::set<int_block *> blocks;
+        proc->findBlocksByAddr(addr-1, blocks);
 
-        if (callRange && callRange->is_mapped_object()) 
-        {
-            callRange->is_mapped_object()->analyze();
-            callRange = proc->findOrigByAddr(addr-1);
-            callBBI = callRange->is_basicBlockInstance();
-        }
-        if (!callRange) {
-            // see if we're in instrumentation
-            baseTrampInstance *bti = NULL;
-            Address origAddr = 0;
-            int_function *tmp = NULL;
-            bool success = proc->getRelocInfo(addr, origAddr, tmp, bti);
-            if (success) {
-               
-               callBBI = tmp->findBlockInstanceByAddr(origAddr);
-               //// this is possible if we're searching for the
-               //// return address of a frameless function and happen to 
-               //// run over an instrumentation address
-               //mal_printf("Stackwalked into relocated code "
-               //           "[%lx from origAddr %lx], which should "
-               //           "not be possible as we're in defensive mode, "
-               //           "where we disable frameless tramps %s[%d]\n",
-               //           addr, origAddr, FILE__,__LINE__);
-            }
-            return false;
-        }
-
-
-        // if the range is a bbi, and it contains a call, and the call instruction
-        // matches the address, set callee and return true
-        if (callBBI && addr == callBBI->endAddr()) {
-
-            // if the block has no call, make sure it's not due to block splitting
-            if ( !callBBI->block()->containsCall() ) {
-                Address origAddr = callBBI->equivAddr(0,callBBI->lastInsnAddr());
-                callBBI = proc->findOrigByAddr(origAddr)->is_basicBlockInstance();
-                if (callBBI && callBBI->block()->containsCall()) {
-                    callAddr = origAddr;//addr of orig call instruction
+        for (std::set<int_block *>::iterator iter = blocks.begin(); 
+            iter != blocks.end(); ++iter) {
+            int_block *callBBI = *iter;
+            Address callAddr = 0;
+            // if the range is a bbi, and it contains a call, and the call instruction
+            // matches the address, set callee and return true
+            if (callBBI && addr == callBBI->end()) {
+                // if the block has no call, make sure it's not due to block splitting
+                if ( !callBBI->containsCall() ) {
+                    continue;
                 }
+                callAddr = callBBI->last();
             }
-            // if the block does contain a call, set callAddr if we haven't yet
-            if ( !callAddr && callBBI->block()->containsCall() ) {
-                callAddr = callBBI->equivAddr(0, callBBI->lastInsnAddr());
-            }
-        }
 
-        if (callAddr) {
-            instPoint *callPoint = callBBI->func()->findInstPByAddr( callAddr );
-            if (!callPoint) { // this is necessary, at least the first time
-                callBBI->func()->funcCalls();
-                callPoint = callBBI->func()->findInstPByAddr( callAddr );
-            }
-            if (!callPoint || callSite != callPoint->getPointType()) {
-                assert(callBBI->func()->obj()->parse_img()->codeObject()->
-                       defensiveMode());
-                mal_printf("Warning, call at %lx, found while "
-                           "stackwalking, has no callpoint attached, does "
-                           "the target tamper with the call stack? %s[%d]\n", 
-                           callAddr, FILE__,__LINE__);
-                *callee = callBBI->func(); // wrong function here, but what can we do?
-            } else {
-                *callee = callPoint->findCallee();
-            }
-            if (NULL == *callee && 
-                string::npos == callBBI->func()->get_name().find("DYNINSTbreakPoint"))
-                {
-                    mal_printf("WARNING: didn't find a callee for callPoint at "
-                               "%lx when stackwalking %s[%d]\n", callAddr, 
-                               FILE__,__LINE__);
+            if (callAddr) {
+                instPoint *callPoint = callBBI->func()->findInstPByAddr( callAddr );
+                if (!callPoint) { // this is necessary, at least the first time
+                    callBBI->func()->funcCalls();
+                    callPoint = callBBI->func()->findInstPByAddr( callAddr );
                 }
-            return true;
+                if (!callPoint || callSite != callPoint->getPointType()) {
+                    assert(callBBI->func()->obj()->parse_img()->codeObject()->
+                           defensiveMode());
+                    mal_printf("Warning, call at %lx, found while "
+                               "stackwalking, has no callpoint attached, does "
+                               "the target tamper with the call stack? %s[%d]\n", 
+                               callAddr, FILE__,__LINE__);
+                    *callee = callBBI->func(); // wrong function here, but what can we do?
+                } else {
+                    *callee = callPoint->findCallee();
+                }
+                if (NULL == *callee && 
+                    string::npos == callBBI->func()->get_name().find("DYNINSTbreakPoint"))
+                    {
+                        mal_printf("WARNING: didn't find a callee for callPoint at "
+                                   "%lx when stackwalking %s[%d]\n", callAddr, 
+                                   FILE__,__LINE__);
+                    }
+                return true;
+            }
         }
         return false;
     }
@@ -282,12 +231,12 @@ static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
  **/
 static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
 {
-    codeRange *range = proc->findOrigByAddr(addr);
-
-    if (range &&
-        range->is_basicBlockInstance()) {
-      frameChecker fc((const unsigned char*)(proc->getPtrToInstruction(addr)),
-		      range->get_size() - (addr - range->get_address()),
+    std::set<int_block *> blocks;
+    proc->findBlocksByAddr(addr, blocks);
+    if (!blocks.empty()) {
+        int_block *aBlock = *(blocks.begin());
+        frameChecker fc((const unsigned char*)(proc->getPtrToInstruction(addr)),
+		      aBlock->size() - (addr - aBlock->start()),
 		      proc->getAOut()->parse_img()->codeObject()->cs()->getArch());
       if(fc.isReturn() || fc.isStackPreamble())
       {
@@ -399,10 +348,11 @@ extern int tramp_pre_frame_size_64;
 Frame Frame::getCallerFrame()
 {
   stackwalk_printf("Entry to getCallerFrame, cur pc 0x%lx\n", pc_);
-
-    int_function *cur_func = getProc()->findFuncByAddr(pc_);
+ 
     int addr_size = getProc()->getAddressWidth();
     int extra_height = 0;
+
+    int_function *cur_func = getFunc();
 #if defined(os_linux)
     // assume _start is never called, so just return if we're there
     if (cur_func &&
@@ -631,7 +581,7 @@ Frame Frame::getCallerFrame()
    {
        baseTrampInstance *bti = NULL;
        Address origAddr = 0;
-       int_function *tmp = NULL;
+       int_block *tmp = NULL;
        bool success = getProc()->getRelocInfo(pc_, origAddr, tmp, bti);
        assert(success);
        newPC = origAddr;
@@ -738,7 +688,7 @@ Frame Frame::getCallerFrame()
          //Check the validity of the frame pointer.  It's possible the
          // previous frame doesn't have a valid fp, so we won't be able
          // to rely on the check in this case.
-         int_function *next_func = getProc()->findFuncByAddr(estimated_ip);
+         int_function *next_func = getProc()->findOneFuncByAddr(estimated_ip);
          if (next_func != NULL && 
              getFrameStatus(getProc(), estimated_ip, extra_height) == frame_allocates_frame &&
              (estimated_fp < fp_ || estimated_fp > stack_top))

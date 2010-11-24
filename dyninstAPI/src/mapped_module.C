@@ -228,18 +228,6 @@ mapped_module *mapped_module::createMappedModule(mapped_object *obj,
    return mod;
 }
 
-// BPatch loves the mapped_module, but we pass it up to the image (since
-// that occupies a range of memory; modules can be scattered all around it).
-codeRange *mapped_module::findCodeRangeByAddress(const Address &addr)  
-{
-   return obj()->findCodeRangeByAddress(addr);
-}
-
-int_function *mapped_module::findFuncByAddr(const Address &addr)  
-{
-   return obj()->findFuncByAddr(addr);
-}
-
 
 std::string mapped_module::processDirectories(const std::string &fn) const 
 {

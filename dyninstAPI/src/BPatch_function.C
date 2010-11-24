@@ -328,11 +328,10 @@ bool BPatch_function::parseNewEdge(Dyninst::Address source,
     }
 
     // set up arguments to lower level parseNewEdges and call it
-    int_basicBlock *sblock = func->findBlockByAddr(source);
+    int_block *sblock = func->findBlockByEntry(source);
     assert(sblock);
     vector<edgeStub> stubs;
-    stubs.push_back(edgeStub(
-        sblock->origInstance(), target, ParseAPI::NOEDGE));
+    stubs.push_back(edgeStub(sblock, target, ParseAPI::NOEDGE));
     func->parseNewEdges(stubs);
 
     // Correct missing elements in BPatch-level datastructures
@@ -1038,10 +1037,10 @@ unsigned int BPatch_function::getContiguousSizeInt() {
    start = func->getAddress();
    end = start + func->getSize_NP();
     
-    bblInstance* block = func->findBlockInstanceByAddr(start);
+    int_block* block = func->findBlockByEntry(start);
     while (block != NULL) {
-       end = block->firstInsnAddr() + block->getSize();
-       block = func->findBlockInstanceByAddr(end);
+       end = block->end();
+       block = func->findBlockByEntry(end);
     }
     return end - start;
 }
@@ -1087,8 +1086,8 @@ bool BPatch_function::getSharedFuncs(set<BPatch_function*> &sharedFuncs)
     if (!func->containsSharedBlocks()) {
         return false;
     }
-    const set<int_basicBlock*,int_basicBlock::compare> blocks = func->blocks();
-    std::set<int_basicBlock*,int_basicBlock::compare>::const_iterator bit;
+    const set<int_block*,int_block::compare> blocks = func->blocks();
+    std::set<int_block*,int_block::compare>::const_iterator bit;
     for (bit = blocks.begin(); bit != blocks.end(); bit++) {
         if((*bit)->hasSharedBase()) {
             vector<ParseAPI::Function*> papiFuncs;

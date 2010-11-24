@@ -63,13 +63,13 @@ struct SpringboardReq {
    Address from;
    Address to;
    Priority priority;
-   std::set<bblInstance *> bbls;
+   std::set<int_block *> bbls;
    bool checkConflicts;
    bool includeRelocatedCopies;
    bool fromRelocatedCode;
    bool useTrap;
    SpringboardReq(const Address a, const Address b, 
-                  const Priority c, bblInstance *d, 
+                  const Priority c, int_block *d, 
                   bool e, 
                   bool f, 
                   bool g,
@@ -90,7 +90,7 @@ struct SpringboardReq {
       fromRelocatedCode(false),
       useTrap(false) {};
     void addReq (const Address a, const Address b,
-                        const Priority c, bblInstance *d,
+                        const Priority c, int_block *d,
                         bool e, bool f, bool g, bool i) 
     {
         // This mechanism handles overlapping functions, where
@@ -136,7 +136,7 @@ class SpringboardBuilder;
    }
 
    void addFromOrigCode(Address from, Address to, 
-                        Priority p, bblInstance *bbl) {
+                        Priority p, int_block *bbl) {
 // This uses the default constructor if it isn't already there.
       sBoardMap_[p][from].addReq(from, to, p, bbl, true, true, false, false);
    }
@@ -152,7 +152,7 @@ class SpringboardBuilder;
                                            true, false);
    };
    
-   void addRaw(Address from, Address to, Priority p, bblInstance *bbl,
+   void addRaw(Address from, Address to, Priority p, int_block *bbl,
                bool checkConflicts, bool includeRelocatedCopies, bool fromRelocatedCode,
                bool useTrap) {
       sBoardMap_[p][from] = SpringboardReq(from, to, p, bbl,

@@ -43,7 +43,7 @@ class DefensivePadding : public Atom {
 
   virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
 
-  static Ptr create(bblInstance *bbl) { return Ptr(new DefensivePadding(bbl)); }
+  static Ptr create(int_block *bbl) { return Ptr(new DefensivePadding(bbl)); }
 
   virtual ~DefensivePadding() {};
 
@@ -53,10 +53,10 @@ class DefensivePadding : public Atom {
   virtual unsigned size() const;
 
  private:
-  DefensivePadding(bblInstance *bbl) 
+  DefensivePadding(int_block *bbl) 
       : bbl_(bbl) {};
 
-  bblInstance *bbl_;
+  int_block *bbl_;
 };
 
 };

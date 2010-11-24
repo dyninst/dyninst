@@ -36,7 +36,7 @@
 #include "../CodeMover.h"
 
 class int_function;
-class bblInstance; 
+class int_block; 
 
 namespace Dyninst {
 namespace Relocation {
@@ -55,7 +55,7 @@ class LocalizeCF : public Transformer {
   // to include that file.
   typedef std::list<TracePtr> TraceList;
   //typedef std::map<Address, TraceList> TraceMap;
-  typedef std::map<bblInstance *, TracePtr> TraceMap;
+  typedef std::map<int_block *, TracePtr> TraceMap;
 
   virtual bool processTrace(TraceList::iterator &);
   virtual bool postprocess(TraceList &); 
@@ -68,7 +68,7 @@ class LocalizeCF : public Transformer {
   TracePtr findTrace(Address addr, int_function *func);
 
  private:
-  int getInEdgeCount(const bblInstance *inst);
+  int getInEdgeCount(const int_block *inst);
   void recordIncomingEdges(const TargetInt *);
 
   // Borrowed from the CodeMover, we don't change it
@@ -76,8 +76,8 @@ class LocalizeCF : public Transformer {
   // And the priority list that we modify
   PriorityMap &pMap_;
 
-  std::map<bblInstance *, int> replacedCount_;
-  std::map<bblInstance *, int> incomingCount_;
+  std::map<int_block *, int> replacedCount_;
+  std::map<int_block *, int> incomingCount_;
 };
 };
 };

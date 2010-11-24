@@ -43,7 +43,7 @@
 // Remove when I'm done debugging this...
 //#include "dyninstAPI/src/baseTramp.h"
 
-class bblInstance;
+class int_block;
 class baseTrampInstance;
 class int_function;
 
@@ -59,8 +59,9 @@ class TrackerElement {
     emulated,
     instrumentation
   } type_t;
-  TrackerElement(Address o, int_function *f) :
-  orig_(o), reloc_(0), size_(0), func_(f) {assert(o); assert(f);};
+  TrackerElement(Address o, int_block *b) 
+      : orig_(o), reloc_(0), size_(0), 
+      block_(b) {assert(o); assert(b);};
   virtual ~TrackerElement() {};
 
   virtual Address relocToOrig(Address reloc) const = 0;
@@ -70,7 +71,7 @@ class TrackerElement {
   Address orig() const { return orig_; };
   Address reloc() const { return reloc_; };
   unsigned size() const { return size_; };
-  int_function *func() const { return func_; };
+  int_block *block() const { return block_; };
 
   void setReloc(Address reloc) { reloc_ = reloc; };
   void setSize(unsigned size) { size_ = size; }
@@ -81,13 +82,13 @@ class TrackerElement {
   Address orig_;
   Address reloc_;
   unsigned size_;
-  int_function *func_;
+  int_block *block_;
 };
 
 class OriginalTracker : public TrackerElement {
  public:
-  OriginalTracker(Address orig, int_function *f) :
-  TrackerElement(orig, f) {};
+  OriginalTracker(Address orig, int_block *b) :
+  TrackerElement(orig, b) {};
   virtual ~OriginalTracker() {};
 
   virtual Address relocToOrig(Address reloc) const {
@@ -109,8 +110,8 @@ class OriginalTracker : public TrackerElement {
 
 class EmulatorTracker : public TrackerElement {
  public:
- EmulatorTracker(Address orig, int_function *f) : 
-  TrackerElement(orig, f) {};
+ EmulatorTracker(Address orig, int_block *b) : 
+  TrackerElement(orig, b) {};
   virtual ~EmulatorTracker() {};
 
   virtual Address relocToOrig(Address reloc) const {
@@ -131,8 +132,8 @@ class EmulatorTracker : public TrackerElement {
 
 class InstTracker : public TrackerElement {
  public:
-  InstTracker(Address orig, baseTrampInstance *baseT, int_function *f) :
-   TrackerElement(orig, f), baseT_(baseT) {};
+  InstTracker(Address orig, baseTrampInstance *baseT, int_block *b) :
+   TrackerElement(orig, b), baseT_(baseT) {};
   virtual ~InstTracker() {};
 
   virtual Address relocToOrig(Address reloc) const {
@@ -173,7 +174,7 @@ class CodeTracker {
   ~CodeTracker() {};
 
   bool origToReloc(Address origAddr, int_function *func, RelocatedElements &relocs) const;
-  bool relocToOrig(Address relocAddr, Address &orig, int_function *&func, baseTrampInstance *&baseT) const;
+  bool relocToOrig(Address relocAddr, Address &orig, int_block *&block, baseTrampInstance *&baseT) const;
 
   TrackerElement *findByReloc(Address relocAddr) const;
 

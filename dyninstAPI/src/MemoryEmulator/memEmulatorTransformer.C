@@ -134,9 +134,7 @@ bool MemEmulatorTransformer::canRewriteMemInsn(CopyInsn::Ptr reloc,
 
 bool MemEmulatorTransformer::override(CopyInsn::Ptr reloc) {
     unsigned char *buf = (unsigned char *)reloc->insn()->ptr();
-    if (reloc->addr() == 0x905574) {
-        cerr << "DEBUG BREAKPOINT!" << endl;
-    }
+
     if (buf[0] == (unsigned char) 0xa1 ||
         buf[0] == (unsigned char) 0xa3) { 
             // Read/write with addr specified in an operand

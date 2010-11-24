@@ -201,7 +201,7 @@ bool SignalHandler::handleThreadCreate(EventRecord &ev, bool &continueHint)
            vector<Address> faddrs;
            faddrs.push_back(initial_func);
            obj->parseNewFunctions(faddrs);
-           func = proc->findFuncByAddr(initial_func);
+           func = proc->findOneFuncByAddr(initial_func);
         }
      }
    }
@@ -2511,8 +2511,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
             return false;
         }
         prevEvtReg = handler.prev;
-        if (!proc->findOrigByAddr((Address)prevEvtReg) &&
-            !proc->findModByAddr((Address)prevEvtReg)) {
+        if (!proc->findOneFuncByAddr((Address)prevEvtReg)) {
             mal_printf("EUREKA! Found handler at 0x%x while handling "
                    "exceptionCode=0x%X for exception at %lx %s[%d]\n",
                    handler.handler, ev.what, ev.address, FILE__,__LINE__);
@@ -2528,18 +2527,18 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     vector<int_function*> faultFuncs;
     baseTrampInstance *bti = NULL;
     ev.proc->getAddrInfo(ev.address, origAddr, faultFuncs, bti);
-    bblInstance *faultBBI = NULL;
+    int_block *faultBBI = NULL;
     switch( faultFuncs.size() ) {
     case 0: 
         fprintf(stderr,"ERROR: Failed to find a valid instruction for fault "
             "at %lx %s[%d] \n", ev.address, FILE__,__LINE__);
         return false;
     case 1:
-        faultBBI = faultFuncs[0]->findBlockInstanceByAddr(origAddr);
+        faultBBI = faultFuncs[0]->findOneBlockByAddr(origAddr);
         break;
     default: 
         faultBBI = ev.proc->findActiveFuncByAddr(ev.address)->
-                findBlockInstanceByAddr(origAddr);
+                findOneBlockByAddr(origAddr);
         break;
     }
 
@@ -2564,7 +2563,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
          hIter != handlers.end(); 
          hIter++) 
     {
-        int_function *hfunc = ev.proc->findFuncByAddr(*hIter);
+        int_function *hfunc = ev.proc->findOneFuncByAddr(*hIter);
         if (hfunc) {
             using namespace ParseAPI;
             hfunc->setHandlerFaultAddr(point->addr());
@@ -2847,7 +2846,7 @@ mapped_object *process::createObjectNoFile(Address addr)
             (desc,this,proc()->getHybridMode(),false);
         if (obj != NULL) {
             mapped_objects.push_back(obj);
-            addOrigRange(obj);
+
             obj->parse_img()->getOrCreateModule(
                 obj->parse_img()->getObject()->getDefaultModule());
             return obj;

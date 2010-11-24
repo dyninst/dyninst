@@ -515,24 +515,18 @@ BPatch_module::findFunctionByAddressInt(void *addr, BPatch_Vector<BPatch_functio
 
    int_function *pdfunc = NULL;
    BPatch_function *bpfunc = NULL;
+   std::set<int_function *> ifuncs;
+   mod->findFuncsByAddr((Address) addr, ifuncs);
 
-   pdfunc = mod->findFuncByAddr((Address)addr);
-   if (!pdfunc) {
-      if (notify_on_failure) {
-         char msg[1024];
-         sprintf(msg, "%s[%d]:  Module %s: unable to find function %p",
-               __FILE__, __LINE__, mod->fileName().c_str(), addr);
-         BPatch_reportError(BPatchSerious, 100, msg);
-      }
-      return NULL;
-   }
-
-   if (incUninstrumentable || pdfunc->isInstrumentable()) {
-      bpfunc = addSpace->findOrCreateBPFunc(pdfunc, this);
-      //bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
-      if (bpfunc) {
-         funcs.push_back(bpfunc);
-      }
+   for (std::set<int_function *>::iterator iter = ifuncs.begin(); 
+       iter != ifuncs.end(); ++iter) {
+        int_function *pdfunc = *iter; 
+        if (incUninstrumentable || pdfunc->isInstrumentable()) {
+           bpfunc = addSpace->findOrCreateBPFunc(pdfunc, this);
+          if (bpfunc) {
+               funcs.push_back(bpfunc);
+           }
+        }
    }
    return &funcs;
 }
@@ -825,16 +819,16 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
     int pageSize = getAS()->proc()->getMemoryPageSize();
     const pdvector<int_function *> funcs = lowlevel_mod()->getAllFunctions();
     for (unsigned fidx=0; fidx < funcs.size(); fidx++) {
-        const std::set< int_basicBlock* , int_basicBlock::compare >&
+        const int_function::BlockSet&
             blocks = funcs[fidx]->blocks();
-        set< int_basicBlock* , int_basicBlock::compare >::const_iterator bIter;
+        int_function::BlockSet::const_iterator bIter;
         for (bIter = blocks.begin(); 
             bIter != blocks.end(); 
             bIter++) 
         {
             Address bStart, bEnd, page;
-            bStart = (*bIter)->origInstance()->firstInsnAddr();
-            bEnd = (*bIter)->origInstance()->endAddr();
+            bStart = (*bIter)->start();
+            bEnd = (*bIter)->end();
             page = bStart - (bStart % pageSize);
             while (page < bEnd) { // account for blocks spanning multiple pages
                 pageAddrs.insert(page);

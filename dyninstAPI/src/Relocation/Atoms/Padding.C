@@ -47,12 +47,12 @@ bool Padding::generate(const codeGen &,
    codeGen gen(size_);
    gen.fill(size_, codeGen::cgNOP);
 
-   buffer.addPIC(gen, tracker(t->bbl()->func()));
+   buffer.addPIC(gen, tracker(t->bbl()));
   return true;
 }
 
-TrackerElement *Padding::tracker(int_function *f) const {
-  EmulatorTracker *e = new EmulatorTracker(addr_, f);
+TrackerElement *Padding::tracker(int_block *b) const {
+  EmulatorTracker *e = new EmulatorTracker(addr_, b);
   return e;
 }
 

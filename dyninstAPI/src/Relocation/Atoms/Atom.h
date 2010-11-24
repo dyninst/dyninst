@@ -38,12 +38,12 @@
 #include "instructionAPI/h/Instruction.h" // Instruction::Ptr
 
 #include <list> // stl::list
-#include "dyninstAPI/src/function.h" // bblInstance
+#include "dyninstAPI/src/function.h" // int_block
 
 #include "../AddressMapper.h"
 
 class baseTramp;
-class bblInstance;
+class int_block;
 class baseTrampInstance;
 
 namespace Dyninst {
@@ -111,8 +111,8 @@ class Trace {
   typedef std::list<Atom::Ptr> AtomList;
   typedef dyn_detail::boost::shared_ptr<Trace> Ptr;
 
-  // Creation via a known bblInstance
-  static Ptr create(bblInstance *inst);
+  // Creation via a known int_block
+  static Ptr create(int_block *inst);
 
   // Creation via a single baseTramp;
   static Ptr create(baseTramp *base);
@@ -134,7 +134,7 @@ class Trace {
 
   std::string format() const;
 
-  bblInstance *bbl() const { return bbl_; }
+  int_block *bbl() const { return bbl_; }
   // Unlike basic blocks, _all_ traces must be
   // created in the context of a function so we can correctly
   // report which function we're from.
@@ -148,9 +148,9 @@ class Trace {
 
  private:
 
-  Trace(bblInstance *bbl)
+  Trace(int_block *bbl)
      : curAddr_(0),
-     origAddr_(bbl->firstInsnAddr()),
+     origAddr_(bbl->start()),
      bbl_(bbl),
      id_(TraceID++),
      label_(-1),
@@ -183,7 +183,7 @@ class Trace {
   Address curAddr_;
   Address origAddr_;
 
-  bblInstance *bbl_;
+  int_block *bbl_;
 
   typedef std::list<Patch *> Patches;
 

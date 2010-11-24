@@ -140,11 +140,11 @@ bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end, int funcID) {
   // can do our thang.
   for (; begin != end; ++begin) {
     bool useBlock = true;
-    bblInstance *bbl = (*begin)->origInstance();
+    int_block *bbl = (*begin);
     // don't add block if it's shared and the entry point of another function
-    if (bbl->block()->llb()->isShared()) {
+    if (bbl->llb()->isShared()) {
         using namespace ParseAPI;
-        Block *llb = bbl->block()->llb();
+        Block *llb = bbl->llb();
 
         std::vector<Function*> funcs;
         llb->getFuncs(funcs);
@@ -163,14 +163,14 @@ bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end, int funcID) {
     if (useBlock) {
         // Check for overlapping blocks. Lovely.
         Address LB, UB; int id;
-        if (validRanges_.find(bbl->firstInsnAddr(), LB, UB, id)) {
+        if (validRanges_.find(bbl->start(), LB, UB, id)) {
             // SUCK monkey
-            if (UB < bbl->endAddr()) {
-                validRanges_.insert(UB, bbl->endAddr(), funcID);
+            if (UB < bbl->end()) {
+                validRanges_.insert(UB, bbl->end(), funcID);
             }
         }
         else {
-            validRanges_.insert(bbl->firstInsnAddr(), bbl->endAddr(), funcID);
+            validRanges_.insert(bbl->start(), bbl->end(), funcID);
         }
     }
   }
@@ -357,7 +357,7 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool
    // Just the requests for now.
    
    std::list<Address> relocAddrs;
-   for (std::set<bblInstance *>::const_iterator b_iter = req.bbls.begin(); 
+   for (std::set<int_block *>::const_iterator b_iter = req.bbls.begin(); 
            b_iter != req.bbls.end(); ++b_iter) {
        addrSpace_->getRelocAddrs(req.from, (*b_iter)->func(), relocAddrs, true);
        for (std::list<Address>::const_iterator addr = relocAddrs.begin(); 

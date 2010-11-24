@@ -334,7 +334,6 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &mem
     }
 
     newBinaryEdit->mapped_objects.push_back(newBinaryEdit->mobj);
-    newBinaryEdit->addOrigRange(newBinaryEdit->mobj);
 
     // We now need to access the start of the new section we're creating.
 
@@ -790,7 +789,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
     unsigned size = 0;
 
     for (unsigned i = 0; i < ranges.size(); i++) {
-        bblInstance *bbl = ranges[i]->is_basicBlockInstance();
+        int_block *bbl = ranges[i]->is_basicBlockInstance();
 
         bool finishCurrentRegion = false;
         bool startNewRegion = false;

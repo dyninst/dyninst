@@ -582,31 +582,28 @@ BPatch_function *BPatch_addressSpace::findFunctionByAddrInt(void *addr)
 
    getAS(as);
    assert(as.size());
-   codeRange *range = as[0]->findOrigByAddr((Address) addr);
-   if (!range)
-      return NULL;
-
-   func = range->is_function();
-
-   if (!func) {
+   std::set<int_function *> funcs;
+   if (!as[0]->findFuncsByAddr((Address) addr, funcs)) {
       // if it's a mapped_object that has yet to be analyzed, 
       // trigger analysis and re-invoke this function
-      if ( range->is_mapped_object() && 
-          ! ((mapped_object*)range)->isAnalyzed() ) {
-         ((mapped_object*)range)->analyze();
+       mapped_object *obj = as[0]->findObject((Address) addr);
+       if (obj &&
+           !obj->isAnalyzed()) {
+         obj->analyze();
          return findFunctionByAddrInt(addr);
       }
       return NULL;
    }
+   if (funcs.empty()) return NULL;
 
-   if (func->findBlockByAddr((Address)addr)->llb()->isShared()) {
+   if (funcs.size() > 1) {
        bpwarn("Warning: deprecated function findFunctionByAddr found "
               "multiple functions sharing address 0x%lx, picking one at "
               "random.  Use findFunctionByEntry or findFunctionsByAddr\n",
               addr);
    }
 
-   return findOrCreateBPFunc(func, NULL);
+   return findOrCreateBPFunc((*(funcs.begin())), NULL);
 }
 
 /*
@@ -670,12 +667,12 @@ bool BPatch_addressSpace::findFunctionsByAddrInt
     assert(as.size());
 
     // grab the funcs, return false if there aren't any
-    std::vector<int_function*> intfuncs;
+    std::set<int_function*> intfuncs;
     if (!as[0]->findFuncsByAddr( addr, intfuncs )) {
         return false;
     }
     // convert to BPatch_functions
-    for (std::vector<int_function*>::iterator fiter=intfuncs.begin(); 
+    for (std::set<int_function*>::iterator fiter=intfuncs.begin(); 
          fiter != intfuncs.end(); fiter++) 
     {
         funcs.push_back(findOrCreateBPFunc(*fiter, NULL));

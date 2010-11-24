@@ -43,7 +43,7 @@ class Padding : public Atom {
 
   virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
 
-  TrackerElement *tracker(int_function *) const;
+  TrackerElement *tracker(int_block *) const;
 
   static Ptr create(Address addr, unsigned size);
 

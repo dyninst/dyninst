@@ -126,8 +126,7 @@ void Frame::calcFrameType()
   }
 #endif   
   
-  codeRange *range = getProc()->findOrigByAddr(pc_);
-  if (range) {
+  if (getProc()->findObject(pc_)) {
     // We're in original code
     frameType_ = normal;
     return;
@@ -137,11 +136,11 @@ void Frame::calcFrameType()
 
   baseTrampInstance *bti;
   Address origPC = 42;
-  int_function *tmp;
+  int_block *tmp;
   if (getProc()->getRelocInfo(pc_,
-			      origPC,
+			                  origPC,
                               tmp,
-			      bti)) {
+			                  bti)) {
     if (bti) {
       frameType_ = instrumentation;
     }
@@ -165,11 +164,11 @@ instPoint *Frame::getPoint() {
 baseTramp *Frame::getBaseTramp() {
   baseTrampInstance *bti = NULL;
   Address origPC;
-  int_function *tmp;
+  int_block *tmp;
   if (getProc()->getRelocInfo(pc_,
-			      origPC,
+			                  origPC,
                               tmp,
-			      bti)) {
+			                  bti)) {
     if (bti) {
       return bti->baseT;
     }
@@ -178,35 +177,18 @@ baseTramp *Frame::getBaseTramp() {
 }  
 
 int_function *Frame::getFunc() {
-  Address uninst = getUninstAddr();
-  codeRange *range = getProc()->findOrigByAddr(uninst);
-  
-  if (range->is_function())
-    return range->is_function();
-  else if (BPatch_defensiveMode == getProc()->getHybridMode() && 
-	   range->is_mapped_object()) {
-    // in defensive mode, return the function at getPC-1, since
-    // the PC could be at the fallthrough address of a call
-    // instruction that was assumed to be non-returning
-    range = getProc()->findModByAddr(getPC()-1);
-    if (range == NULL) 
-      return NULL;
-    if (range->is_function())
-      return range->is_function();
-  }
-  
-  return NULL;
+  return getProc()->findOneFuncByAddr(getUninstAddr());
 }
 
 Address Frame::getUninstAddr() {
   
   baseTrampInstance *bti;
   Address origPC;
-  int_function *tmp;
+  int_block *tmp;
   if (getProc()->getRelocInfo(pc_,
-			      origPC,
+			                  origPC,
                               tmp,
-			      bti)) {
+			                  bti)) {
     return origPC;
   }
   return pc_;
