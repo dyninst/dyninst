@@ -685,7 +685,9 @@ bool mapped_object::findBlocksByAddr(const Address addr, std::set<int_block *> &
         (*llb_iter)->getFuncs(ll_funcs);
         for (std::vector<ParseAPI::Function *>::iterator llf_iter = ll_funcs.begin();
             llf_iter != ll_funcs.end(); ++llf_iter) {
-                blocks.insert(findBlock(*llf_iter, *llb_iter));
+           int_block *block = findBlock(*llf_iter, *llb_iter);
+           assert(block);
+           blocks.insert(block);
         }
     }
     return true;
@@ -705,10 +707,25 @@ bool mapped_object::findFuncsByAddr(const Address addr, std::set<int_function *>
     return ret;
 }
 
+int_function *mapped_object::findFuncByEntry(const Address addr) {
+   std::set<int_function *> funcs;
+   if (!findFuncsByAddr(addr, funcs)) return NULL;
+   for (std::set<int_function *>::iterator iter = funcs.begin();
+        iter != funcs.end(); ++iter) {
+      if ((*iter)->entryBlock()->start() == addr) return *iter;
+   }
+   return NULL;
+}
+
 int_block *mapped_object::findBlock(ParseAPI::Function *ll_func, ParseAPI::Block *ll_block) {
     int_function *func = findFunction(ll_func);
-    if (!func) return NULL;
-    return func->findBlock(ll_block);
+    if (!func) {
+       cerr << "Failed to find int_function for ll_func!" << endl;
+       return NULL;
+    }
+    int_block *block = func->findBlock(ll_block);
+    assert(block);
+    return block;
 }
 
 const pdvector<mapped_module *> &mapped_object::getModules() {
@@ -1230,6 +1247,7 @@ bool mapped_object::splitIntLayer()
     }
 
     // check arbitrary points in functions whose block boundaries may have changed 
+    assert(0 && "FIXME!");
     Address baseAddress = codeBase();
     for (std::set<image_func*>::iterator fIter = splitfuncs.begin();
             fIter != splitfuncs.end(); 

@@ -117,7 +117,7 @@ std::string int_block::disassemble() const {
 void *int_block::getPtrToInstruction(Address addr) const {
     if (addr < start()) return NULL;
     if (addr > end()) return NULL;
-    return addrSpace()->getPtrToInstruction(addr);
+    return func()->obj()->getPtrToInstruction(addr);
 }
 
 // Note that code sharing is masked at this level. That is, edges

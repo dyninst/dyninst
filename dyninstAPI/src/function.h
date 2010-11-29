@@ -78,7 +78,7 @@ typedef enum callType {
 
 class int_block {
     friend class int_function;
-    friend class int_block;
+
  public:
     int_block(image_basicBlock *ib, int_function *func);
     int_block(const int_block *parent, int_function *func);

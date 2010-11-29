@@ -146,22 +146,11 @@ Address process::getTOCoffsetInfo(Address dest)
     // I think this is the right func to use
     
     // Find out which object we're in (by addr).
-    codeRange *range = NULL;
-    textRanges_.find(dest, range);
-    if (!range)  // Try data?
-        dataRanges_.find(dest, range);
-    if (!range)
-        return 0;
-    mapped_object *mobj = range->is_mapped_object();
-    if (!mobj) {
-        mappedObjData *tmp = dynamic_cast<mappedObjData *>(range);
-        if (tmp)
-            mobj = tmp->obj;
-    }
-    // Very odd case if this is not defined.
-    assert(mobj);
-    Address TOCOffset = mobj->parse_img()->getObject()->getTOCoffset(); 
-
+   mapped_object *mobj = findObject(dest);
+   // Very odd case if this is not defined.
+   assert(mobj);
+   Address TOCOffset = mobj->parse_img()->getObject()->getTOCoffset(); 
+   
     if (!TOCOffset)
        return 0;
     return TOCOffset + mobj->dataBase();

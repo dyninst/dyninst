@@ -89,8 +89,8 @@ class mapped_module {
       bool findFuncVectorByMangled(const std::string &funcname,
             pdvector<int_function *> &funcs);
 
-    bool findFuncsByAddr(Address addr, std::set<int_function *> &funcs);
-    bool findBlocksByAddr(Address addr, std::set<int_block *> &blocks);
+    bool findFuncsByAddr(const Address addr, std::set<int_function *> &funcs);
+    bool findBlocksByAddr(const Address addr, std::set<int_block *> &blocks);
 
 
       void dumpMangled(std::string prefix) const;

@@ -452,19 +452,6 @@ bool BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
 
 bool BinaryEdit::writeFile(const std::string &newFileName) 
 {
-   // We've made a bunch of changes and additions to the
-   // mapped object.
-   //   Changes: modifiedRanges_
-   //   Additions: textRanges_, excepting the file itself. 
-   // 
-   // Although, since we're creating a new file name we want
-   // textRanges. Basically, we want to serialize the contents
-   // of textRanges_, dataRanges_, and modifiedRanges_.
-
-   // A _lot_ of this method will depend on how the new file
-   // generation ends up working. Do we provide buffers? I'm guessing
-   // so.
-
    // Step 1: changes. 
 
       inst_printf(" writing %s ... \n", newFileName.c_str());
@@ -779,8 +766,12 @@ Address BinaryEdit::getDependentRelocationAddr(Symbol *referring) {
 void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
                                      Region *newSec,
                                      Module *newMod) {
+
+
     pdvector<codeRange *> ranges;
-    textRanges_.elements(ranges);
+    // FIXME: fill this in
+    // Should just check each relocated function and add a symbol
+    // for it, since this is now totally broken.
 
     int_function *currFunc = NULL;
     codeRange *startRange = NULL;

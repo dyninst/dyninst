@@ -190,7 +190,9 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
 
     instPoint * getPoint() {return point;}
     // These three vectors make Windows unhappy
+#if defined(_MSC_VER)
 #pragma warning (disable:4251)
+#endif
 
     BPatch_Vector<BPatchSnippetHandle *> preSnippets;
     BPatch_Vector<BPatchSnippetHandle *> postSnippets;

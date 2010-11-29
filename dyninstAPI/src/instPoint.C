@@ -393,6 +393,7 @@ instPoint *instPoint::createForkedPoint(instPoint *parP,
        //One instPoint may be covering multiple instPointTypes, e.g.
        // a one instruction function with an entry and exit point at
        // the same point.
+       assert(existingInstP->block() == childB);
        return existingInstP; 
     }
 
@@ -438,11 +439,9 @@ instPoint *instPoint::createForkedPoint(instPoint *parP,
     
     
 instPoint::~instPoint() {
-
     if (preBaseTramp_) delete preBaseTramp_;
     if (postBaseTramp_) delete postBaseTramp_;
-    if (targetBaseTramp_) delete targetBaseTramp_;
-    
+    if (targetBaseTramp_) delete targetBaseTramp_; 
 }
 
 

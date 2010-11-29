@@ -309,3 +309,29 @@ int_variable* mapped_module::createVariable(std::string name, Address addr, int 
   return ret;
 }
 
+bool mapped_module::findFuncsByAddr(const Address addr,
+                                    std::set<int_function *> &funcs) {
+   std::set<int_function *> allFuncs;
+   int size = funcs.size();
+   if (!obj()->findFuncsByAddr(addr, allFuncs)) return false;
+   for (std::set<int_function *>::iterator iter = allFuncs.begin();
+        iter != allFuncs.end(); ++iter) {
+      if ((*iter)->mod() == this) funcs.insert(*iter);
+   }
+   return (funcs.size() > size);
+}
+
+bool mapped_module::findBlocksByAddr(const Address addr,
+                                    std::set<int_block *> &blocks) {
+   std::set<int_block *> allBlocks;
+   int size = blocks.size();
+   if (!obj()->findBlocksByAddr(addr, allBlocks)) return false;
+   for (std::set<int_block *>::iterator iter = allBlocks.begin();
+        iter != allBlocks.end(); ++iter) {
+      if ((*iter)->func()->mod() == this) blocks.insert(*iter);
+   }
+   return (blocks.size() > size);
+}
+
+
+

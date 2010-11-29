@@ -67,8 +67,8 @@ AddressSpace::AddressSpace () :
     trampGuardBase_(NULL),
     up_ptr_(NULL),
     costAddr_(0),
-    emulateMem_(true),
-    emulatePC_(true)
+    emulateMem_(false),
+    emulatePC_(false)
 {
    memEmulator_ = new MemoryEmulator(this);
    if ( getenv("DYNINST_EMULATE_MEMORY") ) {
@@ -134,34 +134,9 @@ void AddressSpace::deleteAddressSpace() {
 
     // bool heapInitialized_
     // inferiorHeap heap_
-    // codeRangeTree textRanges_
-    // codeRangeTree modifiedCodeRanges_
 
     heapInitialized_ = false;
     heap_.clear();
-
-    // We can just clear the originalCodeRanges structure - everything else
-    // is deleted elsewhere, and we won't leak.
-    textRanges_.clear();
-
-    // Delete only the wrapper objects
-    pdvector<codeRange *> ranges;
-    dataRanges_.elements(ranges);
-    for (unsigned i = 0; i < ranges.size(); i++) {
-        delete ranges[i];
-    }
-    ranges.clear();
-    dataRanges_.clear();
-
-    for (unsigned i = 0; i < ranges.size(); i++) {
-        // This is either a:
-        // instArea
-        // replacedFunctionCall
-        // replacedFunction
-
-        // Either way, we can nuke 'em.
-        delete ranges[i];
-    }
 
     for (unsigned i = 0; i < mapped_objects.size(); i++) 
         delete mapped_objects[i];
@@ -184,12 +159,6 @@ bool AddressSpace::getSymbolInfo( const std::string &name, int_symbol &ret )
           return true;
   }
   return false;
-}
-
-
-bool AddressSpace::getOrigRanges(pdvector<codeRange *> &ranges) {
-    textRanges_.elements(ranges);
-    return true;
 }
 
 bool heapItemLessByAddr(const heapItem *a, const heapItem *b)
@@ -677,69 +646,49 @@ bool AddressSpace::findVarsByAll(const std::string &varname,
 void *AddressSpace::getPtrToInstruction(const Address addr) const {
     codeRange *range;
 
-    if (textRanges_.find(addr, range)) {
-        return range->getPtrToInstruction(addr);
-    }
-    else if (dataRanges_.find(addr, range)) {
-        mappedObjData *data = dynamic_cast<mappedObjData *>(range);
-        assert(data);
-        return data->obj->getPtrToData(addr);
-    }
+    mapped_object *obj = findObject(addr);
+    if (obj) return obj->getPtrToInstruction(addr);
+
     fprintf(stderr,"[%s:%d] failed to find matching range for address %lx\n",
         FILE__,__LINE__,addr);
     assert(0);
     return NULL;
 }
 
-void *
-AddressSpace::getPtrToData(const Address addr) const {
-    codeRange *range = NULL;
-    if(dataRanges_.find(addr,range)) {
-        mappedObjData * data = dynamic_cast<mappedObjData *>(range);
-        assert(data);
-        return data->obj->getPtrToData(addr);
-    }
-    assert(0);
-    return NULL;
-}
-
 bool AddressSpace::isCode(const Address addr) const {
-    codeRange *dontcare;
-    if (textRanges_.find(addr, dontcare))
-        return true;
-    else
-        return false;
+   mapped_object *obj = findObject(addr);
+   if (!obj) return false;
+
+   Address objStart = obj->codeAbs();
+   Address objEnd;
+   if (BPatch_defensiveMode == obj->hybridMode()) {
+      objEnd = obj->memoryEnd();
+   } else {
+      objEnd = objStart + obj->imageSize();
+   }
+
+   return (addr >= objStart && addr <= objEnd);
+
 }
 bool AddressSpace::isData(const Address addr) const {
-    return !isCode(addr) && isValidAddress(addr);
+   mapped_object *obj = findObject(addr);
+   if (!obj) return false;
+   
+   Address dataStart = obj->dataAbs();
+   if (addr >= dataStart &&
+       addr < (dataStart + obj->dataSize())) return true;
+   return false;
 }
 
-bool AddressSpace::isValidAddress(const Address addr) const{
-    // "Is this part of the process address space, and if so, 
-    //  does it correspond to an address that we can get a 
-    //  valid pointer to?"
-
-    codeRange *range;
-    if (textRanges_.find(addr, range)) {
-        mapped_object *obj = range->is_mapped_object();
-
-        if ( !obj ) 
-            return true;
- 
-        if ( obj->parse_img()->getObject()->isCode(addr - obj->codeBase()) ||
-             obj->parse_img()->getObject()->isData(addr - obj->dataBase())   )
-            return true;
- 
-        return false;
-    }
-
-    if (dataRanges_.find(addr, range))
-        return true;
-
-    return false;
+bool AddressSpace::isValidAddress(const Address addr) const {
+   mapped_object *obj = findObject(addr);
+   if ( obj->parse_img()->getObject()->isCode(addr - obj->codeBase()) ||
+        obj->parse_img()->getObject()->isData(addr - obj->dataBase())   )
+      return true;
+   return false;
 }
 
-mapped_object *AddressSpace::findObject(Address addr) {
+mapped_object *AddressSpace::findObject(Address addr) const {
     for (unsigned i=0; i<mapped_objects.size(); i++)
     {
         Address objStart = mapped_objects[i]->codeAbs();
@@ -754,6 +703,10 @@ mapped_object *AddressSpace::findObject(Address addr) {
         {
             return mapped_objects[i];
         }
+
+        Address dataStart = mapped_objects[i]->dataAbs();
+        if (addr >= dataStart &&
+            addr < (dataStart + mapped_objects[i]->dataSize())) return mapped_objects[i];
     }
     return NULL;
 }
@@ -797,7 +750,7 @@ mapped_module *AddressSpace::findModule(const std::string &mod_name, bool wildca
 
 // findObject: returns the object associated with obj_name 
 // This just iterates over the mapped object vector
-mapped_object *AddressSpace::findObject(const std::string &obj_name, bool wildcard)
+mapped_object *AddressSpace::findObject(const std::string &obj_name, bool wildcard) const
 {
     for(u_int j=0; j < mapped_objects.size(); j++){
         if (mapped_objects[j]->fileName() == obj_name.c_str() ||
@@ -812,7 +765,7 @@ mapped_object *AddressSpace::findObject(const std::string &obj_name, bool wildca
 
 // findObject: returns the object associated with obj_name 
 // This just iterates over the mapped object vector
-mapped_object *AddressSpace::findObject(fileDescriptor desc)
+mapped_object *AddressSpace::findObject(fileDescriptor desc) const
 {
     for(u_int j=0; j < mapped_objects.size(); j++){
        if (desc == mapped_objects[j]->getFileDesc()) 
@@ -1453,9 +1406,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   if (begin == end) {
     return true;
   }
-  if ((*begin)->getAddress() > 0x900000) {
-      dyn_debug_reloc = true;
-  }
+
   // Create a CodeMover covering these functions
   //cerr << "Creating a CodeMover" << endl;
   
@@ -1495,7 +1446,6 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       }
       cerr << dec;
   }
-  dyn_debug_reloc = false;
 
 
   // Copy it in

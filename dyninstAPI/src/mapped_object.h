@@ -183,6 +183,7 @@ class mapped_object : public codeRange {
 
     bool findFuncsByAddr(const Address addr, std::set<int_function *> &funcs);
     bool findBlocksByAddr(const Address addr, std::set<int_block *> &blocks);
+    int_function *findFuncByEntry(const Address addr);
 
     int_block *findBlock(ParseAPI::Function *f, ParseAPI::Block *b);
 

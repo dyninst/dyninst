@@ -139,7 +139,7 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
   // or a targetBaseTramp (for taken edges)
 
   if (point) {
-    cerr << "   Trailing <point>, checking edge instrumentation" << endl;
+     relocation_cerr << "   Trailing <point>, checking edge instrumentation" << endl;
     baseTramp *target = point->targetBaseTramp();
     // post is still assigned from above
     if (!target &&
@@ -153,7 +153,7 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
     assert(cf);
 
     if (post) {
-      cerr << "   ... fallthrough inst @ " << hex << point->addr() << dec << ", adding" << endl;
+       relocation_cerr << "   ... fallthrough inst @ " << hex << point->addr() << dec << ", adding" << endl;
       if (!addEdgeInstrumentation(post,
 				  cf,
 				  CFAtom::Fallthrough,
@@ -162,7 +162,7 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
 	return false;
     }
     if (target) {
-      cerr << "   ... target inst, adding" << endl;
+       relocation_cerr << "   ... target inst, adding" << endl;
       if (!addEdgeInstrumentation(target,
 				  cf,
 				  CFAtom::Taken,
@@ -196,9 +196,6 @@ bool Instrumenter::postprocess(TraceList &bl) {
     // And post-insertion?
     EdgeTraces::iterator post = edgeTraces_.find(std::make_pair(*iter, After));
     if (post != edgeTraces_.end()) {
-
-      cerr << "Post trace " << (*iter)->format();
-      cerr << "New trace " << (*(post->second.begin()))->format() << endl;
       // Game the main iterator here...
       ++iter; // To get successor
       bl.insert(iter, post->second.begin(), post->second.end());

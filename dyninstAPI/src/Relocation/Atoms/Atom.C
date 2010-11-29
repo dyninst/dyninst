@@ -99,7 +99,7 @@ Trace::Ptr Trace::create(int_block *bbl) {
     
     newTrace->elements_.push_back(ptr);
   }
-  dyn_debug_reloc = false;
+
   return newTrace;
 }
 

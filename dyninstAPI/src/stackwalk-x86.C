@@ -142,7 +142,7 @@ static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
     if (BPatch_defensiveMode != proc->getHybridMode()) {
         std::set<int_function *> funcs;
         if (!proc->findFuncsByAddr(addr, funcs, true)) {
-            return NULL;
+            return false;
         }
         if (funcs.empty()) return false;
         // If we have overlapping funcs, we should be able to just pick one.

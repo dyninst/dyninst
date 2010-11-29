@@ -169,7 +169,7 @@ class AddressSpace : public InstructionSource {
     // InstructionSource 
     virtual bool isValidAddress(const Address) const;
     virtual void *getPtrToInstruction(const Address) const;
-    virtual void *getPtrToData(const Address) const;
+    virtual void *getPtrToData(const Address a) const { return getPtrToInstruction(a); }
     virtual unsigned getAddressWidth() const = 0;
     virtual bool isCode(const Address) const;
     virtual bool isData(const Address) const;
@@ -180,10 +180,6 @@ class AddressSpace : public InstructionSource {
     // Trap address to base tramp address (for trap instrumentation)
     trampTrapMappings trapMapping;
     
-    // Should return iterators
-    bool getOrigRanges(pdvector<codeRange *> &);
-
-
     //////////////////////////////////////////////////////////////
     // Function/variable lookup code
     // Turns out that instrumentation needs this... so the 
@@ -259,9 +255,9 @@ class AddressSpace : public InstructionSource {
     mapped_module *findModule(const std::string &mod_name, bool wildcard = false);
     // And the same for objects
     // Wildcard: handles "*" and "?"
-    mapped_object *findObject(const std::string &obj_name, bool wildcard = false);
-    mapped_object *findObject(Address addr);
-    mapped_object *findObject(fileDescriptor desc);
+    mapped_object *findObject(const std::string &obj_name, bool wildcard = false) const;
+    mapped_object *findObject(Address addr) const;
+    mapped_object *findObject(fileDescriptor desc) const;
 
     mapped_object *getAOut() { assert(mapped_objects.size()); return mapped_objects[0];}
     
@@ -460,11 +456,6 @@ class AddressSpace : public InstructionSource {
     bool heapInitialized_;
     bool useTraps_;
     inferiorHeap heap_;
-
-    // Text sections (including added - instrumentation)
-    codeRangeTree textRanges_;
-    // Data sections
-    codeRangeTree dataRanges_;
 
     // Loaded mapped objects (may be just 1)
     pdvector<mapped_object *> mapped_objects;

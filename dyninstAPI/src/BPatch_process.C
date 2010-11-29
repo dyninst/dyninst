@@ -1827,8 +1827,8 @@ void BPatch_process::overwriteAnalysisUpdate
     // create stub edge set which is: all edges such that: 
     //     e->trg() in owBBIs and
     //     while e->src() in delBlocks try e->src()->sources()
-    std::map<int_function*,vector<edgeStub> > & stubs = 
-        llproc->getStubs(owBBIs,delBBIs);
+    std::map<int_function*,vector<edgeStub> > stubs = 
+       llproc->getStubs(owBBIs,delBBIs);
 
     // remove dead springboards
     for(set<int_block*>::iterator bit = delBBIs.begin(); 

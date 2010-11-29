@@ -502,112 +502,111 @@ bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
                                   Instruction::Ptr insn,
 				  Address /*origAddr*/) 
 {
-	// I'm pretty sure that anything that can get translated will be
-	// turned into a push/jump combo already. 
-	assert(reg == Null_Register);
-  // Check this to see if it's RIP-relative
-  instruction ugly_insn(insn->ptr());
-  if (ugly_insn.type() & REL_D_DATA) {
-    // We don't know our final address, so use the patching system
-    assert(0 && "Unimplemented!");
-    // This target better not be NULL...
-    CFPatch *newPatch = new CFPatch(CFPatch::Data, insn, NULL, addr_);
-    buffer.addPatch(newPatch, tracker());
-  }
-  else {
-     buffer.addPIC(insn->ptr(), insn->size(), tracker());
-  }
-
-  return true;
+   // I'm pretty sure that anything that can get translated will be
+   // turned into a push/jump combo already. 
+   assert(reg == Null_Register);
+   // Check this to see if it's RIP-relative
+   instruction ugly_insn(insn->ptr());
+   if (ugly_insn.type() & REL_D_DATA) {
+      // We don't know our final address, so use the patching system
+      assert(0 && "Unimplemented!");
+      // This target better not be NULL...
+      CFPatch *newPatch = new CFPatch(CFPatch::Data, insn, NULL, addr_);
+      buffer.addPatch(newPatch, tracker());
+   }
+   else {
+      buffer.addPIC(insn->ptr(), insn->size(), tracker());
+   }
+   
+   return true;
 }
 
 bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
-									   const codeGen &templ,
-									   Register &reg) 
+                                       const codeGen &templ,
+                                       Register &reg) 
 {
-	if (insn_->getOperation().getID() == e_ret_near ||
-		insn_->getOperation().getID() == e_ret_far) {
-		// Oops!
-		return true;
-	}
-	if (!insn_->readsMemory()) {
-		return true;
-		}
-	if (addr_ == 0x40e4ca)	{
-		cerr << "Got it!" << endl;
-	}
+   if (!templ.addrSpace()->isMemoryEmulated()) return true;
 
-BPatch_memoryAccessAdapter converter;
-	BPatch_memoryAccess *acc = converter.convert(insn_, addr_, false);
-	if (!acc) {
-		reg = Null_Register;
-		return true;
-		}
-
-codeGen patch(128);
-	patch.applyTemplate(templ);
-
-	// step 1: create space on the stack. 
-	::emitPush(RealRegister(REGNUM_EAX), patch);
-
-    // step 2: save registers that will be affected by the call
-    ::emitPush(RealRegister(REGNUM_ECX), patch);
-    ::emitPush(RealRegister(REGNUM_EDX), patch);
-    ::emitPush(RealRegister(REGNUM_EAX), patch);
-
-    // Step 3: LEA this sucker into ECX.
-	const BPatch_addrSpec_NP *start = acc->getStartAddr(0);
-	emitASload(start, REGNUM_ECX, patch, true);
-    
-    // Step 4: save flags post-LEA
-	emitSimpleInsn(0x9f, patch);
-	emitSaveO(patch);
-	::emitPush(RealRegister(REGNUM_EAX), patch);
-
-	// This might look a lot like a memEmulatorAtom. That's, well, because it
-	// is. 
-	buffer.addPIC(patch, tracker());
-
-	// Where are we going?
-    int_function *func = templ.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
-    // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
-	assert(func);
-
-	// Now we start stealing from memEmulatorAtom. We need to call our translation function,
-	// which means a non-PIC patch to the CodeBuffer. I don't feel like rewriting everything,
-	// so there we go.
-	buffer.addPatch(new MemEmulatorPatch(REGNUM_ECX, addr_, func->getAddress()),
-					tracker());
-	patch.setIndex(0);
-
-	// Restore flags
-	::emitPop(RealRegister(REGNUM_EAX), patch);
-    emitRestoreO(patch);
-    emitSimpleInsn(0x9E, patch);
-    ::emitPop(RealRegister(REGNUM_EAX), patch);
-    ::emitPop(RealRegister(REGNUM_EDX), patch);
-
-	// ECX now holds the pointer to the destination...
-    // Dereference
-	::emitMovRMToReg(RealRegister(REGNUM_ECX),
-                     RealRegister(REGNUM_ECX),
-                     0,
-                     patch);
-
-	// ECX now holds the _actual_ destination, so move it on to the stack. 
-    // We've got ECX saved
-	::emitMovRegToRM(RealRegister(REGNUM_ESP),
-                     1*4, 
-                     RealRegister(REGNUM_ECX),
-                     patch);
-	::emitPop(RealRegister(REGNUM_ECX), patch);
-	// And tell our people to use the top of the stack
-	// for their work.
-	// TODO: trust liveness and leave this in a register. 
-
-	buffer.addPIC(patch, tracker());
-	reg = REGNUM_ESP;
-	return true;
+   if (insn_->getOperation().getID() == e_ret_near ||
+       insn_->getOperation().getID() == e_ret_far) {
+      // Oops!
+      return true;
+   }
+   if (!insn_->readsMemory()) {
+      return true;
+   }
+   
+   BPatch_memoryAccessAdapter converter;
+   BPatch_memoryAccess *acc = converter.convert(insn_, addr_, false);
+   if (!acc) {
+      reg = Null_Register;
+      return true;
+   }
+   
+   codeGen patch(128);
+   patch.applyTemplate(templ);
+   
+   // step 1: create space on the stack. 
+   ::emitPush(RealRegister(REGNUM_EAX), patch);
+   
+   // step 2: save registers that will be affected by the call
+   ::emitPush(RealRegister(REGNUM_ECX), patch);
+   ::emitPush(RealRegister(REGNUM_EDX), patch);
+   ::emitPush(RealRegister(REGNUM_EAX), patch);
+   
+   // Step 3: LEA this sucker into ECX.
+   const BPatch_addrSpec_NP *start = acc->getStartAddr(0);
+   emitASload(start, REGNUM_ECX, patch, true);
+   
+   // Step 4: save flags post-LEA
+   emitSimpleInsn(0x9f, patch);
+   emitSaveO(patch);
+   ::emitPush(RealRegister(REGNUM_EAX), patch);
+   
+   // This might look a lot like a memEmulatorAtom. That's, well, because it
+   // is. 
+   buffer.addPIC(patch, tracker());
+   
+   // Where are we going?
+   int_function *func = templ.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
+   // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
+   assert(func);
+   
+   // Now we start stealing from memEmulatorAtom. We need to call our translation function,
+   // which means a non-PIC patch to the CodeBuffer. I don't feel like rewriting everything,
+   // so there we go.
+   buffer.addPatch(new MemEmulatorPatch(REGNUM_ECX, addr_, func->getAddress()),
+                   tracker());
+   patch.setIndex(0);
+   
+   // Restore flags
+   ::emitPop(RealRegister(REGNUM_EAX), patch);
+   emitRestoreO(patch);
+   emitSimpleInsn(0x9E, patch);
+   ::emitPop(RealRegister(REGNUM_EAX), patch);
+   ::emitPop(RealRegister(REGNUM_EDX), patch);
+   
+   // ECX now holds the pointer to the destination...
+   // Dereference
+   ::emitMovRMToReg(RealRegister(REGNUM_ECX),
+                    RealRegister(REGNUM_ECX),
+                    0,
+                    patch);
+   
+   // ECX now holds the _actual_ destination, so move it on to the stack. 
+   // We've got ECX saved
+   ::emitMovRegToRM(RealRegister(REGNUM_ESP),
+                    1*4, 
+                    RealRegister(REGNUM_ECX),
+                    patch);
+   ::emitPop(RealRegister(REGNUM_ECX), patch);
+   // And tell our people to use the top of the stack
+   // for their work.
+   // TODO: trust liveness and leave this in a register. 
+   
+   buffer.addPIC(patch, tracker());
+   reg = REGNUM_ESP;
+   return true;
 }
 
 std::string CFAtom::format() const {

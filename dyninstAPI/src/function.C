@@ -70,7 +70,6 @@ int_function::int_function(image_func *f,
         fprintf(stderr, "int_function_count: %d (%d)\n",
                 int_function_count, int_function_count*sizeof(int_function));
 #endif
-    
 
     addr_ = f->getOffset() + baseAddr;
     ptrAddr_ = (f->getPtrOffset() ? f->getPtrOffset() + baseAddr : 0);
@@ -112,7 +111,7 @@ int_function::int_function(const int_function *parFunc,
      
      for (i = 0; i < parFunc->entryPoints_.size(); i++) {
          instPoint *parP = parFunc->entryPoints_[i];
-         int_block *block = parP->block();
+         int_block *block = findBlockByEntry(parP->block()->start());
          assert(block);
          instPoint *childIP = instPoint::createForkedPoint(parP, block, childP);
          entryPoints_.push_back(childIP);
@@ -120,7 +119,7 @@ int_function::int_function(const int_function *parFunc,
 
      for (i = 0; i < parFunc->exitPoints_.size(); i++) {
          instPoint *parP = parFunc->exitPoints_[i];
-         int_block *block = parP->block();
+         int_block *block = findBlockByEntry(parP->block()->start());
          assert(block);
          instPoint *childIP = instPoint::createForkedPoint(parP, block, childP);
          exitPoints_.push_back(childIP);
@@ -128,7 +127,7 @@ int_function::int_function(const int_function *parFunc,
 
      for (i = 0; i < parFunc->callPoints_.size(); i++) {
          instPoint *parP = parFunc->callPoints_[i];
-         int_block *block = parP->block();
+         int_block *block = findBlockByEntry(parP->block()->start());
          assert(block);
          instPoint *childIP = instPoint::createForkedPoint(parP, block, childP);
          callPoints_.push_back(childIP);
@@ -136,7 +135,7 @@ int_function::int_function(const int_function *parFunc,
 
      for (i = 0; i < parFunc->arbitraryPoints_.size(); i++) {
          instPoint *parP = parFunc->arbitraryPoints_[i];
-         int_block *block = parP->block();
+         int_block *block = findBlockByEntry(parP->block()->start());
          assert(block);
          instPoint *childIP = instPoint::createForkedPoint(parP, block, childP);
          arbitraryPoints_.push_back(childIP);
@@ -147,7 +146,7 @@ int_function::int_function(const int_function *parFunc,
          pIter != parFunc->unresolvedPoints_.end(); pIter++) 
      {
          instPoint *parP = *pIter;
-         int_block *block = parP->block();
+         int_block *block = findBlockByEntry(parP->block()->start());
          assert(block);
          instPoint *childIP = instPoint::createForkedPoint(parP, block, childP);
          unresolvedPoints_.insert(childIP);
@@ -157,7 +156,7 @@ int_function::int_function(const int_function *parFunc,
          pIter != parFunc->abruptEnds_.end(); pIter++) 
      {
          instPoint *parP = *pIter;
-         int_block *block = parP->block();
+         int_block *block = findBlockByEntry(parP->block()->start());
          assert(block);
          instPoint *childIP = instPoint::createForkedPoint(parP, block, childP);
          abruptEnds_.insert(childIP);
@@ -189,14 +188,14 @@ int_function::~int_function() {
         delPoints.insert(arbitraryPoints_[i]);
     }
     set<instPoint*>::iterator pIter = unresolvedPoints_.begin();
-    for(; pIter != unresolvedPoints_.end(); pIter++) {
+    for(; pIter != unresolvedPoints_.end(); ++pIter) {
         delPoints.insert(*pIter);
     }
-    for (pIter = abruptEnds_.begin(); pIter != abruptEnds_.end(); pIter++) {
+    for (pIter = abruptEnds_.begin(); pIter != abruptEnds_.end(); ++pIter) {
         delPoints.insert(*pIter);
     }
-    for (pIter = delPoints.begin(); delPoints.end() != pIter; pIter++) {
-        delete (*pIter);
+    for (pIter = delPoints.begin(); delPoints.end() != pIter; ++pIter) {
+       delete (*pIter);
     }
 
     // int_blocks
@@ -1148,19 +1147,20 @@ void int_function::getReachableBlocks(const set<int_block*> &exceptBlocks,
 bool int_function::findBlocksByAddr(Address addr, 
                                     std::set<int_block *> &blocks) 
 {
-    bool ret = false;    
-    Address offset = addr-baseAddr();
-    std::set<ParseAPI::Block *> iblocks;
-    if (!ifunc()->img()->findBlocksByAddr(offset, iblocks)) return false;
-    for (std::set<ParseAPI::Block *>::iterator iter = iblocks.begin(); 
+   this->blocks();
+   bool ret = false;    
+   Address offset = addr-baseAddr();
+   std::set<ParseAPI::Block *> iblocks;
+   if (!ifunc()->img()->findBlocksByAddr(offset, iblocks)) return false;
+   for (std::set<ParseAPI::Block *>::iterator iter = iblocks.begin(); 
         iter != iblocks.end(); ++iter) {
-        int_block *bbl = findBlock(*iter);
-        if (bbl) {
-            ret = true; 
-            blocks.insert(bbl);
-        }
-    }
-    return ret;
+      int_block *bbl = findBlock(*iter);
+      if (bbl) {
+         ret = true; 
+         blocks.insert(bbl);
+      }
+   }
+   return ret;
 }
 
 int_block *int_function::findOneBlockByAddr(Address addr) {
@@ -1194,6 +1194,7 @@ int_block *int_function::findBlockByEntry(Address addr) {
 }
 
 int_block *int_function::findBlock(ParseAPI::Block *block) {
+   blocks();
     image_basicBlock *iblock = static_cast<image_basicBlock *>(block);
     BlockMap::iterator iter = blockMap_.find(iblock);
     if (iter != blockMap_.end()) return iter->second;
