@@ -109,6 +109,7 @@ unsigned activeProcesses; // number of active processes
 pdvector<process*> processVec;
 
 pdvector<instMapping*> initialRequests;
+class BPatch_process;
 
 void printLoadDyninstLibraryError() {
     cerr << "Paradyn/Dyninst failed to load the runtime library. This is normally caused by " << endl;
@@ -2217,7 +2218,7 @@ static void cleanupBPatchHandle(int pid)
  *   the program
  */
 process *ll_createProcess(const std::string File, pdvector<std::string> *argv,
-			  BPatch_hybridMode &analysisMode, 
+			  BPatch_hybridMode &analysisMode, void * upPtr, 
 			  pdvector<std::string> *envp, const std::string dir = "",
 			  int stdin_fd=0, int stdout_fd=1, int stderr_fd=2)
 {
@@ -2266,10 +2267,12 @@ process *ll_createProcess(const std::string File, pdvector<std::string> *argv,
 
     startup_printf( "%s[%d]:  Fork new process... succeeded",FILE__, __LINE__);
 
-    // Register the pid with the BPatch library (not yet associated with a
-    // BPatch_thread object).
+    // Add this object to the list of processes
+    startup_cerr << "Registering process..." << endl;
     assert(BPatch::bpatch != NULL);
-    BPatch::bpatch->registerProvisionalThread(theProc->sh->getPid());
+    ((BPatch_process*)upPtr)->set_llproc(theProc);
+    BPatch::bpatch->registerProcess((BPatch_process*)upPtr, 
+                                    theProc->sh->getPid());
 
     theProc->set_status(running);
 

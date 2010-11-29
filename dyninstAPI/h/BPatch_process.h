@@ -287,6 +287,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
           bool &changedPages, bool &changedCode ); //output
     HybridAnalysis *getHybridAnalysis() { return hybridAnalysis_; }
     bool protectAnalyzedCode();
+    void set_llproc(process *proc);
     // DO NOT USE
     // This is an internal debugging function
     API_EXPORT_V(Int, (), 

@@ -42,6 +42,9 @@
 #include "instPoint.h"
 #include "Parsing.h"
 #include "debug.h"
+#include "BPatch.h"
+#include "process.h"
+#include "mapped_object.h"
 
 #if defined(os_aix) || defined(os_solaris)
 #include "parRegion.h"
@@ -377,4 +380,22 @@ DynParseCallback::updateCodeBytes(Address target)
     assert(BPatch_normalMode != _img->hybridMode());
     return codeBytesUpdateCB( _img->cb_arg0(), 
                               target + _img->desc().loadAddr() );
+}
+
+bool 
+DynParseCallback::loadAddr(Address absoluteAddr, Address & loadAddr) 
+{ 
+    std::vector<BPatch_process*> * procs = BPatch::bpatch->getProcesses();
+    for (unsigned pidx=0; pidx < procs->size(); pidx++) {
+        if ((*procs)[pidx]->lowlevel_process()->findObject(_img->desc())) {
+            mapped_object * obj = (*procs)[pidx]->lowlevel_process()->
+                findObject(absoluteAddr);
+            if (obj) {
+                loadAddr = obj->codeBase();
+                return true;
+            }
+            return false;
+        }
+    }
+    return false; 
 }

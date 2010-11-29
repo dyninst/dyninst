@@ -182,7 +182,8 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
    }
    
    std::string spath(path);
-   llproc = ll_createProcess(spath, &argv_vec, mode, (envp ? &envp_vec : NULL),
+   llproc = ll_createProcess(spath, &argv_vec, mode, this, 
+                             (envp ? &envp_vec : NULL),
                              directoryName, stdin_fd, stdout_fd, stderr_fd);
    if (llproc == NULL) { 
       BPatch::bpatch->reportError(BPatchFatal, 68, 
@@ -197,10 +198,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
    llproc->set_up_ptr(this);
 
 
-   // Add this object to the list of processes
    assert(BPatch::bpatch != NULL);
-   startup_cerr << "Registering process..." << endl;
-   BPatch::bpatch->registerProcess(this);
 
    // Create an initial thread
    startup_cerr << "Getting initial thread..." << endl;
@@ -2046,4 +2044,10 @@ bool BPatch_process::protectAnalyzedCode()
        ret = (*bpMods)[midx]->setAnalyzedCodeWriteable(false) && ret;
     }
     return false;
+}
+
+void BPatch_process::set_llproc(process *proc) 
+{
+    assert(NULL == llproc);
+    llproc = proc;
 }

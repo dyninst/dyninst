@@ -651,7 +651,7 @@ AST::Ptr ExtPCSensVisitor::visit(BottomAST *b) {
 }
 
 AST::Ptr ExtPCSensVisitor::visit(ConstantAST *c) {
-  diffs_.push(DiffVar(c->val().val, 0));
+  diffs_.push(DiffVar((int)c->val().val, 0));
   return c->ptr();
 }
 

@@ -1142,6 +1142,7 @@ private:
 
 process *ll_createProcess(const std::string file, pdvector<std::string> *argv, 
                           BPatch_hybridMode &analysisMode, 
+                          void * upPtr, //the BPatch_process*
                           pdvector<std::string> *envp,
                           const std::string dir, int stdin_fd, int stdout_fd,
                           int stderr_fd);

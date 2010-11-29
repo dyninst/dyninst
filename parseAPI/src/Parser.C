@@ -1617,19 +1617,19 @@ Parser::getTamperAbsFrame(Function *tamperFunc)
 {
     assert(TAMPER_ABS == tamperFunc->tampersStack());
     Function * targFunc = NULL;
-    Address target = tamperFunc->_tamper_addr;
 
-    // for the target to be valid, it must be greater than the binary's 
-    // load addr, which should be subtracted from it
-
-    if (target == 0x0) {
-        return NULL;
+    // get the binary's load address and subtract it
+    Address loadAddr = 0;
+    if ( ! _pcb.loadAddr(tamperFunc->_tamper_addr, loadAddr) ) {
+        parsing_printf("WARNING: Failed to find object load address "
+                       "for tampered return address\n");
+        mal_printf("WARNING: Failed to find object load address "
+                       "for tampered return address\n");
+        tamperFunc->_tamper = TAMPER_NONZERO;
+        return NULL; // failed to find object load address
     }
+    Address target = tamperFunc->_tamper_addr - loadAddr;
 
-    if (tamperFunc->_tamper_addr < tamperFunc->obj()->cs()->loadAddress()) {
-        return NULL;
-    }
-    target -= tamperFunc->obj()->cs()->loadAddress();
     targFunc = _parse_data->get_func
         (tamperFunc->region(), 
          target, 
