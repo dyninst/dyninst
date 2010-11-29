@@ -725,7 +725,9 @@ void calcVSyscallFrame(PCProcess *p)
 }
 
 bool Frame::setPC(Address newpc) {
-   if (!pcAddr_)
+
+   Address pcAddr = getPClocation();
+   if (!pcAddr)
    {
        //fprintf(stderr, "[%s:%u] - Frame::setPC aborted", __FILE__, __LINE__);
       return false;
@@ -733,9 +735,9 @@ bool Frame::setPC(Address newpc) {
 
    //fprintf(stderr, "[%s:%u] - Frame::setPC setting %x to %x",
    //__FILE__, __LINE__, pcAddr_, newpc);
-   if (!getProc()->writeDataSpace((void*)pcAddr_, sizeof(Address), &newpc))
+   if (!getProc()->writeDataSpace((void*)pcAddr, sizeof(Address), &newpc))
       return false;
-   pc_ = newpc;
+   sw_frame_.setRA(newpc);
    range_ = NULL;
 
    return true;
@@ -886,18 +888,4 @@ bool AddressSpace::getDyninstRTLibName() {
     }
 
     return true;
-}
-
-Frame PCProcess::preStackWalkInit(Frame startFrame) 
-{
-  /* Do a special check for the vsyscall page.  Silently drop
-     the page if it exists. */
-  calcVSyscallFrame( this );
-  
-  Address next_pc = startFrame.getPC();
-  if ((next_pc >= getVsyscallStart() && next_pc < getVsyscallEnd()) ||
-      /* RH9 Hack */ (next_pc >= 0xffffe000 && next_pc < 0xfffff000)) {
-     return startFrame.getCallerFrame();
-  }
-  return startFrame;
 }

@@ -81,9 +81,14 @@ ProcDebug *ProcDebug::newProcDebug(PID pid, std::string executable)
       return NULL;
    }
    
+   return newProcDebug(proc);
+}
+
+ProcDebug *ProcDebug::newProcDebug(Dyninst::ProcControlAPI::Process::ptr proc)
+{
    ProcDebug *pd = new ProcDebug(proc);
    pd->library_tracker = new PCLibraryState(pd);
-   
+
    return pd;
 }
 

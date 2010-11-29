@@ -33,6 +33,7 @@
 #define WALKER_H_
 
 #include "basetypes.h"
+#include "Process.h"
 #include <vector>
 #include <list>
 
@@ -62,6 +63,7 @@ class Walker {
    StepperGroup *createDefaultStepperGroup();
    static ProcessState *createDefaultProcess(std::string exec_name = std::string(""));
    static ProcessState *createDefaultProcess(Dyninst::PID pid, std::string exe);
+   static ProcessState *createDefaultProcess(Dyninst::ProcControlAPI::Process::ptr proc);
    static bool createDefaultProcess(const std::vector<Dyninst::PID> &pids,
                                     std::vector<ProcDebug *> &pds);
    static ProcessState *createDefaultProcess(std::string exec_name, 
@@ -84,6 +86,7 @@ class Walker {
    static Walker *newWalker(Dyninst::PID pid,
                             std::string executable);
    static Walker *newWalker(Dyninst::PID pid);
+   static Walker *newWalker(Dyninst::ProcControlAPI::Process::ptr proc);
    static bool newWalker(const std::vector<Dyninst::PID> &pids,
                          std::vector<Walker *> &walkers_out,
                          std::string executable);

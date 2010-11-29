@@ -309,12 +309,6 @@ bool syscallNotification::removePreLwpExit() {
     return false;
 }
 
-Frame dyn_lwp::getActiveFrame() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    Frame nullFrame;
-    return nullFrame;
-}
-
 bool dyn_lwp::waitUntilStopped() {
     assert(!FREEBSD_NOT_IMPLEMENTED);
     return false;
@@ -416,12 +410,6 @@ void dyn_lwp::realLWP_detach_() {
 bool dyn_lwp::writeDataSpace(void*, unsigned int, void const*) {
     assert(!FREEBSD_NOT_IMPLEMENTED);
     return false;
-}
-
-Frame dyn_thread::getActiveFrameMT() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    Frame nullFrame;
-    return nullFrame;
 }
 
 bool syscallNotification::removePostExec() {

@@ -57,6 +57,8 @@
 
 #include "proccontrol/h/Process.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+#include "stackwalk/h/walker.h"
+#include "stackwalk/h/framestepper.h"
 
 #define RPC_LEAVE_AS_IS 0
 #define RPC_RUN_WHEN_DONE 1
@@ -243,9 +245,8 @@ public:
     Offset getMmapLength(int, const ProcControlAPI::RegisterPool &regs);
 
     // Stackwalking internals
-    bool walkStackFromFrame(Frame currentFrame, // Where to start walking
-            pdvector<Frame> &stackWalk); // return parameter
-    Frame preStackWalkInit(Frame startFrame);
+    bool walkStack(pdvector<Frame> &stackWalk, PCThread *thread);
+    bool getActiveFrame(Frame &frame, PCThread *thread);
 
     Address getVsyscallText() { return vsyscall_text_; }
     void setVsyscallText(Address addr) { vsyscall_text_ = addr; }
@@ -316,7 +317,8 @@ protected:
           vsys_status_(vsys_unknown),
           auxv_parser_(NULL),
           irpcTramp_(NULL),
-          inEventHandling_(false)
+          inEventHandling_(false),
+          stackwalker_(NULL)
     {
         irpcTramp_ = new baseTramp(NULL, callUnset);
         irpcTramp_->setRecursive(true);
@@ -361,7 +363,8 @@ protected:
           vsys_status_(vsys_unknown),
           auxv_parser_(NULL),
           irpcTramp_(NULL),
-          inEventHandling_(false)
+          inEventHandling_(false),
+          stackwalker_(NULL)
     {
         irpcTramp_ = new baseTramp(NULL, callUnset);
         irpcTramp_->setRecursive(true);
@@ -591,6 +594,7 @@ protected:
     baseTramp *irpcTramp_;
     bool inEventHandling_;
     std::set<PCThread *> syncRPCThreads_;
+    Dyninst::Stackwalker::Walker *stackwalker_;
 };
 
 class inferiorRPCinProgress : public codeRange {
@@ -645,6 +649,17 @@ public:
 private:
     Address addr_;
     unsigned size_;
+};
+
+class StackwalkInstrumentationHelper : public Dyninst::Stackwalker::DyninstInstrHelper {
+  private:
+    PCProcess *proc_;
+
+  public:
+    StackwalkInstrumentationHelper(PCProcess *pc);
+    virtual bool isInstrumentation(Dyninst::Address ra, Dyninst::Address *orig_ra,
+                                   unsigned *stack_height, bool *entryExit);
+    virtual ~StackwalkInstrumentationHelper();
 };
 
 #endif

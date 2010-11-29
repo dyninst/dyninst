@@ -85,6 +85,7 @@ gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
    bool found_exact_match = false;
    Address found_base = 0x0;
    Address found_ra = 0x0;
+   FrameFuncHelper::alloc_frame_t alloc_res;
 
    do {
       result = getWord(word, current_stack);
@@ -107,7 +108,7 @@ gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
          }
          else
          {
-            //candidate.push_back(std::pair<Address, Address>(word, current_stack));
+            candidate.push_back(std::pair<Address, Address>(word, current_stack));
          }
       }
       current_stack += addr_width;
@@ -126,15 +127,17 @@ gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
        * push_back and the below code.  This trades false negatives for
        * potential false positives, but I'm not sure it's worth it.
        **/
-      return gcf_not_me;
-      //found_ra = candidate[0].first;
-      //found_base = candidate[0].second;
+      //return gcf_not_me;
+      found_ra = candidate[0].first;
+      found_base = candidate[0].second;
    }
 
    out.setRA(found_ra);
    out.setSP(found_base + addr_width);
-   
-   if (fhelper->allocatesFrame(in.getRA()).first == FrameFuncHelper::savefp_only_frame) {
+
+   alloc_res = fhelper->allocatesFrame(in.getRA());
+   if (alloc_res.first == FrameFuncHelper::savefp_only_frame &&
+       alloc_res.second != FrameFuncHelper::unset_frame) {
       Address new_fp;
       result = getProcessState()->readMem(&new_fp, out.getSP(), 
                                           getProcessState()->getAddressWidth());

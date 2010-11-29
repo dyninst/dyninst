@@ -94,11 +94,18 @@ FrameFuncHelper::~FrameFuncHelper()
 {
 }
 
+DyninstInstrHelper::~DyninstInstrHelper()
+{
+}
+
 std::map<SymReader*, bool> DyninstInstrStepperImpl::isRewritten;
 
-DyninstInstrStepperImpl::DyninstInstrStepperImpl(Walker *w, FrameStepper *p) :
+DyninstInstrStepperImpl::DyninstInstrStepperImpl(Walker *w, FrameStepper *p,
+                                                 DyninstInstrHelper *h) :
   FrameStepper(w),
-  parent(p)
+  parent(p),
+  helper(h),
+  prevEntryExit(false)
 {
 }
 
@@ -106,6 +113,21 @@ gcframe_ret_t DyninstInstrStepperImpl::getCallerFrame(const Frame &in, Frame &ou
 {
    LibAddrPair lib;
    bool result;
+   unsigned stack_height = 0;
+   Address orig_ra = 0x0;
+   bool entryExit = false;
+
+   // Handle dynamic instrumentation
+   if (helper)
+   {
+       bool instResult = helper->isInstrumentation(in.getRA(), &orig_ra, &stack_height, &entryExit);
+       bool pEntryExit = prevEntryExit;
+       
+       // remember that this frame was entry/exit instrumentation
+       prevEntryExit = entryExit;
+
+       if (pEntryExit || instResult) return getCallerFrameArch(in, out, 0, 0, 0, stack_height, orig_ra, pEntryExit);
+   }
 
    result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(in.getRA(), lib);
    if (!result) {
@@ -159,7 +181,7 @@ gcframe_ret_t DyninstInstrStepperImpl::getCallerFrame(const Frame &in, Frame &ou
    sw_printf("[%s:%u] - Current function %s is baseTramp\n",
 	      __FILE__, __LINE__, s);
    Address base;
-   unsigned size, stack_height;
+   unsigned size;
    int num_read = sscanf(s, "dyninstBT_%lx_%u_%x", &base, &size, &stack_height);
    bool has_stack_frame = (num_read == 3);
    if (!has_stack_frame) {
@@ -259,10 +281,12 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 #define PIMPL_IMPL_CLASS DyninstInstrStepperImpl
 #define PIMPL_CLASS DyninstInstrStepper
 #define PIMPL_NAME "DyninstInstrStepper"
+#define PIMPL_ARG1 DyninstInstrHelper*
 #include "framestepper_pimple.h"
 #undef PIMPL_CLASS
 #undef PIMPL_IMPL_CLASS
 #undef PIMPL_NAME
+#undef PIMPL_ARG1
 
 //BottomOfStackStepper defined here
 #if defined(os_linux) || defined(os_bg)

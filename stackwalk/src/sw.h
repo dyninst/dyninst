@@ -106,12 +106,16 @@ class DyninstInstrStepperImpl : public FrameStepper {
  private:
    static std::map<SymReader *, bool> isRewritten;
    FrameStepper *parent;
+   DyninstInstrHelper *helper;
+   bool prevEntryExit; // remember if the previous frame was entry/exit instrumentation
   
  public:
-   DyninstInstrStepperImpl(Walker *w, FrameStepper *p);
+   DyninstInstrStepperImpl(Walker *w, FrameStepper *p, DyninstInstrHelper *h);
    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
    gcframe_ret_t getCallerFrameArch(const Frame &in, Frame &out, Address base, Address lib_base, 
-				    unsigned size, unsigned stack_height);
+				    unsigned size, unsigned stack_height,
+                                    Address orig_ra = 0x0,
+                                    bool pEntryExit = false);
    virtual unsigned getPriority() const;
    virtual void registerStepperGroup(StepperGroup *group);
    virtual const char *getName() const;

@@ -33,7 +33,7 @@
 #define ANALYSIS_STEPPER_H_
 
 #include "stackwalk/h/framestepper.h"
-#include "symEval/h/stackanalysis.h"
+#include "dataflowAPI/h/stackanalysis.h"
 
 #include <string>
 

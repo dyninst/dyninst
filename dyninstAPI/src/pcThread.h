@@ -56,6 +56,7 @@ public:
 
     // Stackwalking interface
     bool walkStack(pdvector<Frame> &stackWalk);
+    Frame getActiveFrame();
     bool getRegisters(ProcControlAPI::RegisterPool &regs, bool includeFP = false);
     bool changePC(Address newPC);
 
@@ -74,9 +75,6 @@ public:
     void clearStackwalk();
 
     int_function *mapInitialFunc(int_function *ifunc);
-
-    // Architecture-specific
-    Frame getActiveFrame();
 
 protected:
     PCThread(PCProcess *parent, int ind,

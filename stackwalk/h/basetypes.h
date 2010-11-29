@@ -39,13 +39,19 @@ namespace Dyninst {
 namespace Stackwalker {
 
 typedef enum { loc_address, loc_register, loc_unknown } storage_t;
-typedef struct {
+struct location_t {
+  bool operator==(const location_t &L) const
+  {
+    return ((val.addr == L.val.addr) &&
+            (val.reg == L.val.reg) &&
+            (location == L.location));
+  }
   struct {
     Dyninst::Address addr;
     Dyninst::MachRegister reg;
   } val;
   storage_t location;
-} location_t;
+};
  
 }
 }

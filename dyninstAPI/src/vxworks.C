@@ -1057,20 +1057,6 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
         if (events[i].type != evtUndefined)
             continue;
 
-        // Check if the task no longer exists.
-/*
-        assert(events[i].lwp);
-        Frame af = events[i].lwp->getActiveFrame();
-
-        // Is this trap due to an instPoint?
-        if (isInstTrap(events[i], af)) {
-            events[i].type = evtInstPointTrap;
-            events[i].address = af.getPC();
-        }
-
-        // Is this trap due to a RPC?
-        else 
-*/
         if (proc->getRpcMgr()->decodeEventIfDueToIRPC(events[i])) {
             signal_printf("%s[%d]:  SIGTRAP due to RPC\n", FILE__, __LINE__);
         }
@@ -1424,7 +1410,6 @@ mapped_object *process::createObjectNoFile(Address)
 // bool process::continueProc_(int sig) { assert(0); return false; }
 // Address process::setAOutLoadAddress(fileDescriptor &desc) { assert(0); return 0; }
 // bool process::detachForDebugger(const EventRecord &/*crash_event*/) { assert(0); return false; }
-// Frame process::preStackWalkInit(Frame startFrame) { assert(0); return startFrame; }
 
 #if defined(cap_binary_rewriter)
 std::pair<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename) { assert(0); }
@@ -1632,33 +1617,6 @@ bool dyn_lwp::changePC(Address loc, struct dyn_saved_regs */*ignored registers*/
     }
 #endif
     return (result == WTX_OK);
-}
-
-// getActiveFrame(): populate Frame object using toplevel frame
-Frame dyn_lwp::getActiveFrame()
-{
-    struct dyn_saved_regs r;
-
-    WTX_CONTEXT ctx;
-    ctx.contextType  = WTX_CONTEXT_TASK;
-    ctx.contextId    = currCtx;
-    ctx.contextSubId = 0;
-
-    STATUS result = wtxRegsGet(wtxh, //WTX API handle
-                               &ctx, // WTX Context
-                               WTX_REG_SET_IU, // type of register set
-                               0x0, // first byte of register set
-                               sizeof(dyn_saved_regs), // number of bytes of register set
-                               &r); // place holder for reg. values
-    if (result != WTX_OK) {
-        fprintf(stderr, "Error on wtxRegsGet(): %s\n", wtxErrMsgGet(wtxh));
-        return Frame();
-    }
-
-    return Frame(swapBytesIfNeeded(r.sprs[ 3]), // PC
-                 swapBytesIfNeeded(r.gprs[31]), // FP
-                 swapBytesIfNeeded(r.gprs[ 1]), // SP
-                 proc_->getPid(), proc_, NULL, this, true);
 }
 
 bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool /*includeFP*/)
@@ -1987,12 +1945,6 @@ const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
 
 void calcVSyscallFrame(process * /*p*/) { assert(0); return; }
 
-Frame Frame::getCallerFrame()
-{
-    // XXX Implement me!
-    return Frame();
-}
-
 bool Frame::setPC(Address /*newpc*/) { assert(0); return false; }
 
 bool AddressSpace::getDyninstRTLibName()
@@ -2188,5 +2140,3 @@ bool dynamic_linking::installTracing()
     // Hopefully, we can get WTX's event system to notify us of such events.
     return true;
 }
-
-Frame dyn_thread::getActiveFrameMT() { assert(0); }

@@ -329,6 +329,17 @@ bool PCProcess::bootstrapProcess() {
     startup_printf("%s[%d]: attempting to bootstrap process %d\n", 
             FILE__, __LINE__, getPid());
 
+    // Initialize StackwalkerAPI
+    if (NULL == (stackwalker_ = Dyninst::Stackwalker::Walker::newWalker(pcProc_)))
+    {
+      startup_printf("Bootstrap failed while initializing Stackwalker\n");
+      return false;
+    }
+    StackwalkInstrumentationHelper *swInstrHelper = new StackwalkInstrumentationHelper(this);
+    Dyninst::Stackwalker::DyninstInstrStepper *dynInstrStep
+      = new Dyninst::Stackwalker::DyninstInstrStepper(stackwalker_, swInstrHelper);
+    stackwalker_->addStepper(dynInstrStep);
+
     // Create the initial threads
     createInitialThreads();
 
@@ -3358,41 +3369,38 @@ void PCProcess::setDesiredProcessState(PCProcess::processState_t pc) {
     processState_ = pc;
 }
 
-bool PCProcess::walkStackFromFrame(Frame startFrame,
-                                   pdvector<Frame> &stackWalk) 
+bool PCProcess::walkStack(pdvector<Frame> &stackWalk,
+                          PCThread *thread)
 {
-#if !defined( arch_x86) && !defined(arch_x86_64)
-    Address fpOld   = 0;
-#else
-    Address spOld = 0;
-#endif
-    if (!isStopped())
-        return false;
+  vector<Dyninst::Stackwalker::Frame> swWalk;
 
-    Frame currentFrame = preStackWalkInit(startFrame);
+  if (!stackwalker_->walkStack(swWalk, thread->getLWP()))
+  {
+    return false;
+  }
 
-    while (!currentFrame.isLastFrame()) {
+  for (vector<Dyninst::Stackwalker::Frame>::iterator SWB = swWalk.begin(),
+       SWI = SWB,
+       SWE = swWalk.end();
+       SWI != SWE;
+       ++SWI)
+  {
+    stackWalk.push_back(Frame(*SWI, this, thread, (SWI == SWB)));
+  }
 
-#if !defined( arch_x86) && !defined(arch_x86_64)
-        // Check that we are not moving up the stack.  Not relevant on x86,
-        // since the frame pointer may be used for data.
-        // successive frame pointers might be the same (e.g. leaf functions)
-        if (fpOld > currentFrame.getFP())
-            return false;
-        fpOld = currentFrame.getFP();
-#else
-        if (spOld > currentFrame.getSP())
-            return (stackWalk.size() != 0);
-        spOld = currentFrame.getSP();
-#endif
+  return true;
+}
 
-        stackWalk.push_back(currentFrame);
-        currentFrame = currentFrame.getCallerFrame();
-    }
-    if (currentFrame.getProc() != NULL)
-        stackWalk.push_back(currentFrame);
+bool PCProcess::getActiveFrame(Frame &frame, PCThread *thread)
+{
+  Dyninst::Stackwalker::Frame swFrame;
+  if (!stackwalker_->getInitialFrame(swFrame, thread->getLWP()))
+  {
+    return false;
+  }
 
-    return true;
+  frame = Frame(swFrame, this, thread, true);
+  return true;
 }
 
 /* This is the simple version
@@ -3733,3 +3741,10 @@ bool PCProcess::continueSyncRPCThreads() {
 
     return true;
 }
+
+StackwalkInstrumentationHelper::StackwalkInstrumentationHelper(PCProcess *p)
+  : proc_(p)
+{}
+
+StackwalkInstrumentationHelper::~StackwalkInstrumentationHelper()
+{}

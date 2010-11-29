@@ -111,7 +111,7 @@ static gcframe_ret_t HandleStandardFrame(const Frame &in, Frame &out, ProcessSta
   } ra_fp_pair;
 
   in_fp = in.getFP();
-  out_sp = in_fp + addr_width;
+  out_sp = in_fp + (2 * addr_width);
 
 #if defined(arch_x86_64)
   /**
@@ -138,7 +138,7 @@ static gcframe_ret_t HandleStandardFrame(const Frame &in, Frame &out, ProcessSta
   }
 
   if (!result) {
-    sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, out_sp);
+    sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, in_fp);
     return gcf_error;
   }
   
@@ -289,6 +289,7 @@ FrameFuncHelper::alloc_frame_t LookupFuncStart::allocatesFrame(Address addr)
    }
    func_addr = reader->getSymbolOffset(sym) + lib.second;
 
+   result = proc->readMem(mem, func_addr, FUNCTION_PROLOG_TOCHECK);
    if (!result) {
       sw_printf("[%s:%u] - Error.  Couldn't read from memory at %lx\n",
                 __FILE__, __LINE__, func_addr);
@@ -372,13 +373,77 @@ void LookupFuncStart::clear_func_mapping(Dyninst::PID pid)
 
 gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &in, Frame &out, 
                                                           Address /*base*/, Address lib_base,
-                                                          unsigned /*size*/, unsigned stack_height)
+                                                          unsigned /*size*/, unsigned stack_height,
+                                                          Address orig_ra,
+                                                          bool pEntryExit)
 {
+  bool result = false;
+  const unsigned addr_width = getProcessState()->getAddressWidth();
+  unsigned long sp_value = 0x0;
+  Address sp_addr = 0x0;
+
+  // Handle frameless instrumentation
+  if (0x0 != orig_ra)
+  {
+    location_t unknownLocation;
+    unknownLocation.location = loc_unknown;
+    out.setRA(orig_ra);
+    out.setFP(in.getFP());
+    out.setSP(in.getSP()); //Not really correct, but difficult to compute and unlikely to matter
+    out.setRALocation(unknownLocation);
+    return gcf_success;
+  }
+
+  // Handle case where *previous* frame was entry/exit instrumentation
+  if (pEntryExit)
+  {
+    Address ra_value = 0x0;
+
+    // RA is pointed to by input SP
+    // TODO may have an additional offset in some cases...
+    Address newRAAddr = in.getSP();
+
+    location_t raLocation;
+    raLocation.location = loc_address;
+    raLocation.val.addr = newRAAddr;
+    out.setRALocation(raLocation);
+
+    // TODO handle 64-bit mutator / 32-bit mutatee
+
+    // get value of RA
+    result = getProcessState()->readMem(&ra_value, newRAAddr, addr_width);
+
+    if (!result) {
+      sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, newRAAddr);
+      return gcf_error;
+    }
+
+    out.setRA(ra_value);
+    out.setFP(in.getFP()); // FP stays the same
+    out.setSP(newRAAddr + addr_width);
+    return gcf_success;
+  }
+
   gcframe_ret_t ret = HandleStandardFrame(in, out, getProcessState());
   if (ret != gcf_success)
     return ret;
   out.setRA(out.getRA() + lib_base);
-  out.setSP(out.getSP() + stack_height);
+
+  // For tramps with frames, read the saved stack pointer
+  // TODO does this apply to static instrumentation?
+  if (stack_height)
+  {
+    sp_addr = in.getFP() + stack_height;
+    result = getProcessState()->readMem(&sp_value, sp_addr, addr_width);
+
+    if (!result) {
+      sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, sp_addr);
+      return gcf_error;
+    }
+
+    out.setSP(sp_value);
+  }
+
   return gcf_success;
 }
 

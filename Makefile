@@ -13,8 +13,8 @@ include ./make.config
 BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 
 SymtabAPI 	= ready common symtabAPI dynutil
-StackwalkerAPI = ready common symtabAPI stackwalk
-DyninstAPI	= ready common symtabAPI instructionAPI parseAPI dyninstAPI_RT dyninstAPI dynutil
+StackwalkerAPI = ready common symtabAPI proccontrol stackwalk
+DyninstAPI	= ready common symtabAPI instructionAPI parseAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynutil
 DynC_API = ready common dyninstAPI dynC_API  dynutil
 InstructionAPI	= ready common instructionAPI dynutil
 ProcControlAPI = ready common proccontrol

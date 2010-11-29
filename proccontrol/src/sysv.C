@@ -399,6 +399,10 @@ Dyninst::Address sysv_process::getLibBreakpointAddr() const
 bool sysv_process::plat_execed()
 {
    pthrd_printf("Rebuilding library trap mechanism after exec on %d\n", getPid());
+   if (aout) {
+      // TODO safely delete aout
+      aout = NULL;
+   }
    if (translator) {
       delete translator;
       translator = NULL;
@@ -409,7 +413,31 @@ bool sysv_process::plat_execed()
    }
    breakpoint_addr = 0x0;
    lib_initialized = false;
-   return initLibraryMechanism();
+
+   bool result = initLibraryMechanism();
+   if (!result) {
+      pthrd_printf("Error initializing library mechanism\n");
+      return false;
+   }
+
+   std::set<int_library*> added, rmd;
+   for (;;) {
+      std::set<response::ptr> async_responses;
+      bool result = refresh_libraries(added, rmd, async_responses);
+      if (!result && !async_responses.empty()) {
+         result = waitForAsyncEvent(async_responses);
+         if (!result) {
+            pthrd_printf("Failure waiting for async completion\n");
+            return false;
+         }
+         continue;
+      }
+      if (!result) {
+         pthrd_printf("Failure refreshing libraries for %d\n", getPid());
+         return false;
+      }
+      return true;
+   }
 }
 
 bool sysv_process::plat_isStaticBinary()
@@ -429,6 +457,6 @@ int_library *sysv_process::getExecutableLib()
 
    aout = new int_library(ll->getName(), ll->getCodeLoadAddr(), ll->getDynamicAddr());
    ll->setUpPtr((void *) aout);
-   
+
    return aout;
 }

@@ -31,7 +31,7 @@
 
 #include "stackwalk/src/analysis_stepper.h"
 #include "symtabAPI/h/Symtab.h"
-#include "symEval/h/stackanalysis.h"
+#include "dataflowAPI/h/stackanalysis.h"
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/frame.h"
 

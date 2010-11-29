@@ -38,6 +38,8 @@
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
 
+#include "stackwalk/h/frame.h"
+
 class PCThread;
 class PCProcess;
 class codeRange;
@@ -54,62 +56,41 @@ class Frame {
   Frame();
 
   // Real constructor -- fill-in.
-  // Option 2 would be to have the constructor look up this info,
-  // but getCallerFrame works as is.
-  Frame(Address pc, Address fp, Address sp,
-	unsigned pid, PCProcess *proc, 
+  Frame(const Dyninst::Stackwalker::Frame &swf,
+	PCProcess *proc, 
 	PCThread *thread,
-	bool uppermost,
-	Address pcAddr = 0 );
-
-  // getCallerFrame constructor. Choose what we want from the
-  // callee frame, set pc/fp/sp/pcAddr manually
-  Frame(Address pc, Address fp, 
-	Address sp, Address pcAddr,
-	Frame *calleeFrame);
+	bool uppermost);
 
  Frame(const Frame &f) :
-  frameType_(f.frameType_),
-  uppermost_(f.uppermost_),
-      pc_(f.pc_),
-      fp_(f.fp_),
-      sp_(f.sp_),
-      pid_(f.pid_),
+      sw_frame_(f.sw_frame_),
       proc_(f.proc_),
       thread_(f.thread_),
       range_(f.range_),
-      pcAddr_(f.pcAddr_) {};
+      frameType_(f.frameType_),
+      uppermost_(f.uppermost_) {};
 
   const Frame &operator=(const Frame &f) {
-      frameType_ = f.frameType_;
-      uppermost_ = f.uppermost_;
-      pc_ = f.pc_;
-      fp_ = f.fp_;
-      sp_ = f.sp_;
-      pid_ = f.pid_;
+      sw_frame_ = f.sw_frame_;
       proc_ = f.proc_;
       thread_ = f.thread_;
       range_ = f.range_;
-      pcAddr_ = f.pcAddr_;
+      frameType_ = f.frameType_;
+      uppermost_ = f.uppermost_;
       return *this;
   }
   
   bool operator==(const Frame &F) {
     return ((uppermost_ == F.uppermost_) &&
-	    (pc_      == F.pc_) &&
-	    (fp_      == F.fp_) &&
-	    (sp_      == F.sp_) &&	    
-	    (pid_     == F.pid_) &&
+	    (sw_frame_ == F.sw_frame_) &&
 	    (proc_    == F.proc_) &&
 	    (thread_  == F.thread_));
   }
 
-  Address  getPC() const { return pc_; }
+  Address  getPC() const { return (Address) sw_frame_.getRA(); }
   // New method: unwind instrumentation
   Address  getUninstAddr(); // calls getRange so can't be const
-  Address  getFP() const { return fp_; }
-  Address  getSP() const { return sp_; }
-  unsigned getPID() const { return pid_; }
+  Address  getFP() const { return (Address) sw_frame_.getFP(); }
+  Address  getSP() const { return (Address) sw_frame_.getSP(); }
   PCProcess *getProc() const { return proc_; }
   PCThread *getThread() const { return thread_; }
   void setThread(PCThread *thrd) { thread_ = thrd; }
@@ -117,7 +98,7 @@ class Frame {
   bool	   isSignalFrame();
   bool 	   isInstrumentation();
   bool     isSyscall();
-  Address  getPClocation() { return pcAddr_; }
+  Address  getPClocation();
 
   instPoint *getPoint(); // If we're in instrumentation returns the appropriate point
   int_function *getFunc(); // As above
@@ -135,27 +116,17 @@ class Frame {
 
   // check for zero frame
   bool isLastFrame() const;
-  
-  // get stack frame of caller
-  // May need the process image for various reasons
-  Frame getCallerFrame();
-  frameType_t frameType_;
 
   // Set the frameType_ member
   void calcFrameType();
   
  private:
-  bool			uppermost_;
-  Address		pc_;
-  Address		fp_;
-  Address		sp_;				// NOTE: this is not always populated
-  int			pid_;				// Process id 
+  Dyninst::Stackwalker::Frame sw_frame_;        // StackwalkerAPI frame
   PCProcess *		proc_;				// We're only valid for a single process anyway
   PCThread *            thread_;                // User-level thread
   codeRange *	range_;				// If we've done a by-address lookup, keep it here
-
-  Address		pcAddr_;
-  
+  frameType_t frameType_;
+  bool			uppermost_;
 };
 
 class int_stackwalk {

@@ -71,9 +71,12 @@ protected:
   void setNameValue() const;
   
  public:
+  Frame();
   Frame(Walker *walker);
   static Frame *newFrame(Dyninst::MachRegisterVal ra, Dyninst::MachRegisterVal sp, Dyninst::MachRegisterVal fp, Walker *walker);
-  
+
+  bool operator==(const Frame &F) const;
+
   Dyninst::MachRegisterVal getRA() const;
   Dyninst::MachRegisterVal getSP() const;
   Dyninst::MachRegisterVal getFP() const;

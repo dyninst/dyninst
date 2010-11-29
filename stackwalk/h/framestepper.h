@@ -182,12 +182,20 @@ class BottomOfStackStepper : public FrameStepper {
    virtual const char *getName() const;
 };
 
+class DyninstInstrHelper
+{
+ public:
+   virtual bool isInstrumentation(Address ra, Address *orig_ra,
+                                  unsigned *stack_height, bool *entryExit) = 0;
+   virtual ~DyninstInstrHelper();
+};
+
 class DyninstInstrStepperImpl;
 class DyninstInstrStepper : public FrameStepper {
  private:
    DyninstInstrStepperImpl *impl;
  public:
-   DyninstInstrStepper(Walker *w);
+   DyninstInstrStepper(Walker *w, DyninstInstrHelper *dihelper = NULL);
    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
    virtual unsigned getPriority() const;
    virtual void registerStepperGroup(StepperGroup *group);

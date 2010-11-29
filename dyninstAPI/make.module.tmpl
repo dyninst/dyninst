@@ -37,7 +37,7 @@ ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
 	LDFLAGS += -linstructionAPI
 endif
 
-LDFLAGS += -lpthread -lsymtabAPI -lcommon -lparseAPI -lpcontrol
+LDFLAGS += -lpthread -lsymtabAPI -lcommon -lparseAPI -lpcontrol -lstackwalk
 
 LDFLAGS     += -L../../common/$(PLATFORM) 
 LDFLAGS     += -L../../symtabAPI/$(PLATFORM) 
@@ -190,6 +190,7 @@ PUBLIC_H = BPatch_addressSpace.h \
 IFLAGS      += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h 
 IFLAGS      += -I../../symtabAPI/h -I../../instructionAPI/h
 IFLAGS      += -I../../parseAPI/h
+IFLAGS      += -I../../proccontrol/h
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)

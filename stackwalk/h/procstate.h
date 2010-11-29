@@ -121,55 +121,6 @@ class ProcSelf : public ProcessState {
   virtual ~ProcSelf();
 };
 
-typedef enum {
-  ps_neonatal,                // 0
-  ps_attached_intermediate,
-  ps_attached,
-  ps_running,
-  ps_exited,
-  ps_errorstate               // 5
-} proc_state;
-
-typedef enum {
-  dbg_err,           // 0
-  dbg_exited,
-  dbg_crashed,
-  dbg_stopped,
-  dbg_other,
-  dbg_noevent,      // 5
-  dbg_libraryload,
-  // BG events are below.
-  dbg_continued,
-  dbg_mem_ack,
-  dbg_setmem_ack,
-  dbg_reg_ack,      // 10
-  dbg_allregs_ack,
-  dbg_setreg_ack,
-  dbg_attached,
-  dbg_thread_info,
-  dbg_detached      // 15
-} dbg_t;
-
-class ProcDebug;
-
-struct DebugEvent {
-   dbg_t dbg;
-   union {
-      int idata;
-      void *pdata;
-   } data;
-   unsigned size;
-   ProcDebug *proc;
-   ThreadState *thr;
-
-   DebugEvent() : dbg(dbg_noevent), size(0), proc(NULL), thr(NULL) {}
-};
-
-struct procdebug_ltint
-{
-   bool operator()(int a, int b) const;
-};
-
 class ProcDebug : public ProcessState {
  protected:
    Dyninst::ProcControlAPI::Process::ptr proc;
@@ -179,6 +130,7 @@ class ProcDebug : public ProcessState {
  public:
   
   static ProcDebug *newProcDebug(Dyninst::PID pid, std::string executable="");
+  static ProcDebug *newProcDebug(Dyninst::ProcControlAPI::Process::ptr proc);
   static bool newProcDebugSet(const std::vector<Dyninst::PID> &pids,
                               std::vector<ProcDebug *> &out_set);
   static ProcDebug *newProcDebug(std::string executable, 
@@ -211,8 +163,6 @@ class ProcDebug : public ProcessState {
 
   virtual Dyninst::Architecture getArchitecture();
 };
-
-class ProcDebug;
 
 //LibAddrPair.first = path to library, LibAddrPair.second = load address
 typedef std::pair<std::string, Address> LibAddrPair;

@@ -42,6 +42,28 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
+Frame::Frame() :
+  ra(0x0),
+  fp(0x0),
+  sp(0x0),
+  sym_value(NULL),
+  name_val_set(nv_unset),
+  bottom_frame(false),
+  frame_complete(false),
+  stepper(NULL),
+  walker(NULL),
+  originating_thread(NULL_THR_ID)
+{
+  ra_loc.location = loc_unknown;
+  ra_loc.val.addr = 0x0;
+  fp_loc.location = loc_unknown;
+  fp_loc.val.addr = 0x0;
+  sp_loc.location = loc_unknown;
+  sp_loc.val.addr = 0x0;
+  
+  sw_printf("[%s:%u] - Created null frame at %p\n", __FILE__, __LINE__, this);
+}
+
 Frame::Frame(Walker *parent_walker) :
   ra(0x0),
   fp(0x0),
@@ -81,6 +103,21 @@ Frame *Frame::newFrame(Dyninst::MachRegisterVal pc, Dyninst::MachRegisterVal sp,
   newframe->setFP(fp);
   
   return newframe;
+}
+
+bool Frame::operator==(const Frame &F) const
+{
+  return ((ra == F.ra) &&
+          (fp == F.fp) &&
+          (sp == F.sp) &&
+          (ra_loc == F.ra_loc) &&
+          (fp_loc == F.fp_loc) &&
+          (sp_loc == F.sp_loc) &&
+          (sym_name == F.sym_name) &&
+          (frame_complete == F.frame_complete) &&
+          (stepper == F.stepper) &&
+          (walker == F.walker) &&
+          (originating_thread == F.originating_thread));
 }
 
 void Frame::setStepper(FrameStepper *newstep) {

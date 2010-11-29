@@ -90,18 +90,6 @@ PCProcess *PCThread::getProc() const {
 }
 
 bool PCThread::walkStack(pdvector<Frame> &stackWalk) {
-    if( pcThr_ == Thread::ptr() ) return false;
-
-    bool continueWhenDone = false;
-    if( pcThr_->isRunning() ) {
-        continueWhenDone = true;
-        if( !pcThr_->stopThread() ) {
-            stackwalk_printf("%s[%d]: Failed to stop thread %ld to perform stackwalk\n",
-                    __FILE__, __LINE__, getTid());
-            return false;
-        }
-    }
-
     if (cached_stackwalk_.isValid()) {
         stackWalk = cached_stackwalk_.getStackwalk();
         for (unsigned i=0; i<stackWalk.size(); i++) {
@@ -110,30 +98,25 @@ bool PCThread::walkStack(pdvector<Frame> &stackWalk) {
         return true;
     }
 
-    stackwalk_printf("%s[%d]: beginning stack walk on thread %ld\n",
-                     FILE__, __LINE__, getTid());
-
-    Frame active = getActiveFrame();
-    active.setThread(this);
-    bool retval = proc_->walkStackFromFrame(active, stackWalk);
-
-    // if the stackwalk was successful, cache it
-    if (retval) {
-        cached_stackwalk_.setStackwalk(stackWalk);
+    if (!proc_->walkStack(stackWalk, this))
+    {
+        return false;
     }
 
-    stackwalk_printf("%s[%d]: ending stack walk on thread %ld\n",
-                     FILE__, __LINE__, getTid());
+    cached_stackwalk_.setStackwalk(stackWalk);
 
-    if (continueWhenDone) {
-        proc_->invalidateActiveMultis();
-        if( !pcThr_->continueThread() ) {
-            stackwalk_printf("%s[%d]: failed to continue thread %ld after stackwalk\n",
-                    FILE__, __LINE__, getTid());
-        }
+    return true;
+}
+
+Frame PCThread::getActiveFrame() {
+    Frame frame;
+
+    if (!proc_->getActiveFrame(frame, this))
+    {
+      return Frame();
     }
 
-    return retval;
+    return frame;
 }
 
 void PCThread::clearStackwalk() {
@@ -151,31 +134,6 @@ bool PCThread::changePC(Address newPC) {
     if( pcThr_ == Thread::ptr() ) return false;
 
     return pcThr_->setRegister(MachRegister::getPC(proc_->getArch()), newPC);
-}
-
-Frame PCThread::getActiveFrame() {
-    if( pcThr_ == Thread::ptr() ) return Frame();
-
-    Address pc = 0, fp = 0, sp = 0;
-
-    assert( pcThr_->isStopped() && "Thread not stopped before trying to get the active frame" );
-
-    if( !pcThr_->getRegister(MachRegister::getPC(proc_->getArch()), pc) ) {
-        stackwalk_printf("%s[%d]: Failed to obtain the current PC\n", __FILE__, __LINE__);
-        return Frame();
-    }
-
-    if( !pcThr_->getRegister(MachRegister::getFramePointer(proc_->getArch()), fp) ) {
-        stackwalk_printf("%s[%d]: Failed to obtain the current frame pointer\n", __FILE__, __LINE__);
-        return Frame();
-    }
-
-    if( !pcThr_->getRegister(MachRegister::getStackPointer(proc_->getArch()), sp) ) {
-        stackwalk_printf("%s[%d]: Failed to obtain the current stack pointer\n", __FILE__, __LINE__);
-        return Frame();
-    }
-
-    return Frame(pc, fp, sp, proc_->getPid(), proc_, this, true);
 }
 
 bool PCThread::isLive() const {

@@ -52,22 +52,6 @@ using namespace Dyninst::ProcControlAPI;
 
 using std::string;
 
-void printStackWalk( PCProcess *p ) {
-  Frame theFrame = p->getInitialThread()->getActiveFrame();
-  while (true) {
-    // do we have a match?
-    const Address framePC = theFrame.getPC();
-    proccontrol_cerr << "stack frame pc @ " << (void*)framePC << endl;
-    
-    if (theFrame.isLastFrame())
-      // well, we've gone as far as we can, with no match.
-      break;
-    
-    // else, backtrace 1 more level
-    theFrame = theFrame.getCallerFrame();
-  }
-}
- 
 bool get_linux_version(int &major, int &minor, int &subvers)
 {
     int subsub;

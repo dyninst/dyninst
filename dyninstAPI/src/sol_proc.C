@@ -286,47 +286,6 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith)
 
 }
 
-#if 0
-// Not implemented.  At least not in AIX.
-Address dyn_lwp::step_next_insn() {
-   int result;
-   int command[2];
-
-   if (status() != stopped) {
-      fprintf(stderr, "[%s:%u] - Internal Error.  lwp wasn't stopped\n",
-            __FILE__, __LINE__);
-      return (Address) -1;
-   }
-
-   singleStepping = true;
-   proc()->set_lwp_status(this, running);
-
-   command[0] = PCRUN;
-   command[1] = PRSTEP;
-busy_retry:
-   if (write(ctl_fd(), command, 2*sizeof(int)) != 2*sizeof(int)) {
-      if (errno == EBUSY) {
-         struct timeval slp;
-         slp.tv_sec = 0;
-         slp.tv_usec = 1 /*ms*/ *1000;
-         select(0, NULL, NULL, NULL, &slp);
-         fprintf(stderr, "%s[%d]: continueLWP_, ctl_fd is busy, trying again\n", FILE__, __LINE__);
-         goto busy_retry;
-      }
-      perror("Couldn't PCRUN PRSTEP");
-      return (Address)-1;
-   }
-
-   do {
-      if(proc()->hasExited()) 
-         return (Address) -1;
-      proc()->sh->waitForEvent(evtDebugStep);
-   } while (singleStepping);
-
-   return getActiveFrame().getPC();
-}
-#endif
-
 // Abort a system call. Place a trap at the exit of the syscall in
 // question, and run with the ABORT flag set. Wait for the trap
 // to be hit and then return.
@@ -540,20 +499,6 @@ bool dyn_lwp::stop_()
    }
 
    return true;
-}
-
-// Get the active frame (PC, FP/SP)
-Frame dyn_lwp::getActiveFrame()
-{
-   struct dyn_saved_regs regs;
-   bool status = getRegisters(&regs);
-   if(status == false)
-      return Frame();  
-
-   return Frame(GETREG_PC(regs.theIntRegs),
-         GETREG_FP(regs.theIntRegs), 
-         0, // SP unused
-         proc_->getPid(), proc_, NULL, this, true);
 }
 
 // Get the registers of the stopped thread and return them.

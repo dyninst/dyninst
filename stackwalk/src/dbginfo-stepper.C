@@ -214,7 +214,9 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
 
    result = dinfo->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
                                       ret_value, arch, this);
-   if (!result && frame_error == No_Frame_Entry && isVsyscallPage) {
+   // TODO DEBUG - fix getRegValueAtFrame to return error instead of inlining def'n
+   // DEBUG orig - if (!result && frame_error == No_Frame_Entry && isVsyscallPage) {
+   if (!result && isVsyscallPage) {
       //Work-around kernel bug.  The vsyscall page location was randomized, but
       // the debug info still has addresses from the old, pre-randomized days.
       // See if we get any hits by assuming the address corresponds to the 

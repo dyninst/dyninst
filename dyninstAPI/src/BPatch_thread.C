@@ -84,11 +84,9 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
       BPatch_point *point = NULL;
 
       Frame frame = stackWalk[i];
-      frame.calcFrameType();
-      if (frame.frameType_ != FRAME_unset) {
-         isSignalFrame = frame.isSignalFrame();
-         isInstrumentation = frame.isInstrumentation();
-      }
+
+      isSignalFrame = frame.isSignalFrame();
+      isInstrumentation = frame.isInstrumentation();
 
       if (isInstrumentation) {
          // This is a bit of a slog, actually. We want to only show

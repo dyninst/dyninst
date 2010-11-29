@@ -42,46 +42,30 @@
 #include "miniTramp.h"
 #include "debug.h"
 
+#include "stackwalk/h/framestepper.h"
+
 Frame::Frame() : 
-  frameType_(FRAME_unset), 
-  uppermost_(false), 
-  pc_(0), 
-  fp_(0), 
-  sp_(0),
-  pid_(0), 
-  proc_(NULL), 
-  thread_(NULL), 
-  range_(0), 
-  pcAddr_(0) {
+  sw_frame_(Dyninst::Stackwalker::Frame()),
+  proc_(NULL),
+  thread_(NULL),
+  range_(0),
+  frameType_(FRAME_unset),
+  uppermost_(false) {
     stackwalk_cerr << "*** Null frame ***" << endl;
 }
 
-
-Frame::Frame(Address pc, Address fp, Address sp,
-	     unsigned pid, PCProcess *proc, 
+Frame::Frame(const Dyninst::Stackwalker::Frame &swf,
+	     PCProcess *proc,
 	     PCThread *thread,
-	     bool uppermost,
-	     Address pcAddr ) :
-  frameType_(FRAME_unset),
-  uppermost_(uppermost),
-  pc_(pc), fp_(fp), sp_(sp),
-  pid_(pid), proc_(proc), thread_(thread),
-  range_(0), 
-  pcAddr_(pcAddr) {
-  stackwalk_cerr << "Base frame:   " << (*this) << endl;
-};
+	     bool uppermost) :
 
-Frame::Frame(Address pc, Address fp, Address sp,
-	     Address pcAddr, Frame *f) : 
-    frameType_(FRAME_unset),
-  uppermost_(false),
-  pc_(pc), fp_(fp), 
-  sp_(sp),
-  pid_(f->pid_), proc_(f->proc_),
-  thread_(f->thread_),
-  range_(0), 
-pcAddr_(pcAddr) {
-  stackwalk_cerr << "Called frame: " << (*this) << endl;
+  sw_frame_(swf),
+  proc_(proc),
+  thread_(thread),
+  range_(0),
+  frameType_(FRAME_unset),
+  uppermost_(uppermost) {
+  stackwalk_cerr << "Base frame:   " << (*this) << endl;
 }
 
 codeRange *Frame::getRange() {
@@ -102,11 +86,7 @@ void Frame::setRange(codeRange *range) {
 
 bool Frame::isLastFrame() const
 {
-#if !defined(arch_x86) && !defined(arch_x86_64)
-   if (fp_ == 0) return true;
-#endif
-   if (pc_ == 0) return true;
-   return false;
+  return sw_frame_.isFrameComplete();
 }
 
 #if defined(os_linux) && defined(arch_x86)
@@ -121,8 +101,6 @@ void Frame::calcFrameType()
     }
 
    int_function *func;
-   miniTrampInstance *mini;
-   multiTramp *multi;
 
    // Without a process pointer, we're not going to get far.
    if (!getProc())
@@ -130,7 +108,7 @@ void Frame::calcFrameType()
 
    // Checking for a signal handler must go before the vsyscall check
    // since (on Linux) the signal handler is _inside_ the vsyscall page.
-   if (getProc()->isInSignalHandler(pc_)) {
+   if (isSignalFrame()) {
      frameType_ = FRAME_signalhandler;
      return;
    }
@@ -139,7 +117,7 @@ void Frame::calcFrameType()
    // than a stack of 90% equivalent functions
 #if defined(os_linux) && defined(arch_x86)
    calcVSyscallFrame(getProc());
-   if ((pc_ >= getProc()->getVsyscallStart() && pc_ < getProc()->getVsyscallEnd()) || /* Hack for RH9 */ (pc_ >= 0xffffe000 && pc_ < 0xfffff000)) {
+   if ((getPC() >= getProc()->getVsyscallStart() && getPC() < getProc()->getVsyscallEnd()) || /* Hack for RH9 */ (getPC() >= 0xffffe000 && getPC() < 0xfffff000)) {
      frameType_ = FRAME_syscall;
      return;
    }
@@ -148,14 +126,8 @@ void Frame::calcFrameType()
    codeRange *range = getRange();
 
    func = range->is_function();
-   multi = range->is_multitramp();
-   mini = range->is_minitramp();
 
-   if (mini != NULL) {
-       frameType_ = FRAME_instrumentation;
-       return;
-   }
-   else if (multi != NULL) {
+   if (isInstrumentation()) {
        frameType_ = FRAME_instrumentation;
        return;
    }
@@ -328,7 +300,7 @@ ostream & operator << ( ostream & s, Frame & f ) {
             s << "[ERROR!]";
             break;
 	}
-	s << " FP: 0x" << std::hex << f.getFP() << " SP: 0x" << f.getSP() << " PID: " << std::dec << f.getPID() << " "; 
+	s << " FP: 0x" << std::hex << f.getFP() << " SP: 0x" << f.getSP() << " PID: " << std::dec << f.getProc()->getPid() << " "; 
 	if( f.getThread() ) {
    		s << "TID: " << f.getThread()->getTid() << " ";
                 s << "LWP: " << f.getThread()->getLWP() << " ";
@@ -339,20 +311,33 @@ ostream & operator << ( ostream & s, Frame & f ) {
 
 bool Frame::isSignalFrame()
 { 
-    calcFrameType();
-    return frameType_ == FRAME_signalhandler;
+    return dynamic_cast<Dyninst::Stackwalker::SigHandlerStepper*>
+      (sw_frame_.getStepper());
 }
 
 bool Frame::isInstrumentation()
 { 
-    calcFrameType();
-    return frameType_ == FRAME_instrumentation;
+    return dynamic_cast<Dyninst::Stackwalker::DyninstInstrStepper*>
+      (sw_frame_.getStepper());
 }
 
 bool Frame::isSyscall()
 { 
     calcFrameType();
     return frameType_ == FRAME_syscall;
+}
+
+Address Frame::getPClocation()
+{
+  Dyninst::Stackwalker::location_t pcLoc = sw_frame_.getRALocation();
+    if (pcLoc.location != Dyninst::Stackwalker::loc_address)
+    {
+      return 0;
+    }
+    else
+    {
+      return pcLoc.val.addr;
+    }
 }
 
 int_stackwalk::int_stackwalk() { 
@@ -378,3 +363,4 @@ pdvector<Frame>& int_stackwalk::getStackwalk() {
    assert(isValid_);
    return stackwalk_;
 }
+
