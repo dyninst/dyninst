@@ -4593,44 +4593,8 @@ Address process::stopThreadCtrlTransfer
         }
     }
 
-    // save the targets of indirect control transfers, save them in the point
-    if (intPoint->isDynamic() && ! intPoint->isReturnInstruction()) {
-        // if necessary, add the target edge
-        using namespace ParseAPI;
-        Block::edgelist &edges = intPoint->block()->llb()->targets();
-        Block::edgelist::iterator eit = edges.begin();
-        mapped_object *targObj = findObject(target);
-        if (targObj) {
-            for (; eit != edges.end(); eit++)
-                if ( ! (*eit)->sinkEdge() && 
-                     (*eit)->trg()->start() == (target - targObj->codeBase()) )
-                    break;
-        }
-        if (targObj && eit == edges.end()) {
-            // add edge
-            vector<Block*>  srcs; 
-            vector<Address> trgs;
-            vector<EdgeTypeEnum> etypes;
-            srcs.push_back(intPoint->block()->llb());
-            mapped_object *targObj = findObject(target);
-            if (targObj != intPoint->func()->obj()) {
-                targObj->parse_img()->analyzeImage();
-            }
-            trgs.push_back(target - targObj->codeBase());
-            mal_printf("Adding indirect edge %lx->%lx", pointAddr, target);
-            if (callSite == intPoint->getPointType()) {
-                etypes.push_back(CALL);
-                mal_printf(" of type CALL\n");
-            } else {
-                etypes.push_back(INDIRECT);
-                mal_printf(" of type INDIRECT\n");
-            }
-            targObj->parse_img()->codeObject()->
-                parseNewEdges(srcs,trgs,etypes);
-        }
-    }
-    else if ( ! intPoint->isDynamic() && 
-              functionExit != intPoint->getPointType()) 
+    if ( ! intPoint->isDynamic() && 
+           functionExit != intPoint->getPointType()) 
     {
         // remove unresolved status from point if it is a static ctrl transfer
         if ( ! intPoint->setResolved() ) {

@@ -1622,9 +1622,11 @@ Parser::getTamperAbsFrame(Function *tamperFunc)
     Address loadAddr = 0;
     if ( ! _pcb.loadAddr(tamperFunc->_tamper_addr, loadAddr) ) {
         parsing_printf("WARNING: Failed to find object load address "
-                       "for tampered return address\n");
+                       "for tampered return address 0x%lx\n", 
+                       tamperFunc->_tamper_addr);
         mal_printf("WARNING: Failed to find object load address "
-                       "for tampered return address\n");
+                   "for tampered return address 0x%lx\n", 
+                   tamperFunc->_tamper_addr);
         tamperFunc->_tamper = TAMPER_NONZERO;
         return NULL; // failed to find object load address
     }

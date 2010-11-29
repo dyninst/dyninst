@@ -197,8 +197,8 @@ bool Instrumenter::postprocess(TraceList &bl) {
     EdgeTraces::iterator post = edgeTraces_.find(std::make_pair(*iter, After));
     if (post != edgeTraces_.end()) {
 
-      cerr << "Post trace " << (*iter)->format();
-      cerr << "New trace " << (*(post->second.begin()))->format() << endl;
+      malware_cerr << "Post trace " << (*iter)->format();
+      malware_cerr << "New trace " << (*(post->second.begin()))->format() << endl;
       // Game the main iterator here...
       ++iter; // To get successor
       bl.insert(iter, post->second.begin(), post->second.end());
