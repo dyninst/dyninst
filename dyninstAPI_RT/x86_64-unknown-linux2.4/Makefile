@@ -87,6 +87,8 @@ RTspace.o: ../src/RTspace.S
 	@echo "Compiling RTspace"
 	$(HIDE_COMP)$(CC) $(CFLAGS) -c $< -o $@
 
+RELEASE_NUM ?= $(RELEASE_MAJOR).$(RELEASE_MINOR)
+
 $(DEST)/$(TARGET_32_SO): $(TARGET_32_SO)
 	-$(CP) $(TARGET_32_SO) $(DEST)/$(TARGET_32_SO).$(RELEASE_NUM)
 	-$(LN) $(DEST)/$(TARGET_32_SO).$(RELEASE_NUM) $(DEST)/$(TARGET_32_SO)
