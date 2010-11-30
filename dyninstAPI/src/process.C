@@ -4779,7 +4779,7 @@ bool process::getOverwrittenBlocks
     while (rIter != overwrittenRanges.end()) {
         mapped_object *curObject = findObject((*rIter).first);
 
-        curObject->findBBIsByRange((*rIter).first,(*rIter).second,curBBIs);
+        curObject->findBlocksByRange((*rIter).first,(*rIter).second,curBBIs);
         if (curBBIs.size()) {
             mal_printf("overwrote %d blocks in range %lx %lx \n",
                        curBBIs.size(),(*rIter).first,(*rIter).second);

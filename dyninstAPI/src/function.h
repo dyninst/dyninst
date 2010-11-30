@@ -261,7 +261,7 @@ class int_function : public patchTarget {
    void findBlocksByRange(std::vector<int_block*> &funcs, 
                           Address start, Address end);
 
-   void addMissingBlock(image_basicBlock & imgBlock);
+   void addMissingBlock(image_basicBlock *imgBlock);
    void addMissingBlocks();
    void addMissingPoints();
 
@@ -381,6 +381,8 @@ class int_function : public patchTarget {
 
     bool removePoint(instPoint *point);
     void deleteBlock(int_block *block);
+    void splitBlock(image_basicBlock *origBlock, image_basicBlock *newBlock);
+
     void removeFromAll();
     int_block *setNewEntryPoint();
     void getReachableBlocks(const std::set<int_block*> &exceptBlocks,
@@ -388,7 +390,8 @@ class int_function : public patchTarget {
                             std::set<int_block*> &reachBlocks);//output
    
 
-
+    // So we can assert(consistency());
+    bool consistency() const;
 
  private:
 
@@ -446,9 +449,11 @@ class int_function : public patchTarget {
     // where we were loaded (AKA "int layer addr - image layer offset")
     Address baseAddr() const;
     // Create and register
-    void createBlock(image_basicBlock *ib);
-    void createBlockFork(const int_block *parent);
+    int_block *createBlock(image_basicBlock *ib);
+    int_block *createBlockFork(const int_block *parent);
 
+    void findPoints(int_block *, std::set<instPoint *> &foundPoints) const;
+    bool validPoint(instPoint *) const;
 };
 
 

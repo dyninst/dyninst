@@ -1179,117 +1179,33 @@ bool mapped_object::splitIntLayer()
     Address baseAddr = codeBase();
     using namespace InstructionAPI;
     // iterates through the blocks that were created during block splitting
-    std::set< image_basicBlock* > splits = parse_img()->getSplitBlocks();
-    set<image_basicBlock*>::iterator bIter;
-    std::set<image_func*> splitfuncs;
-    for (bIter = splits.begin(); bIter != splits.end(); bIter++) 
+    const image::SplitBlocks &splits = parse_img()->getSplitBlocks();
+    for (image::SplitBlocks::const_iterator bIter = splits.begin(); 
+         bIter != splits.end(); bIter++) 
     {
         // foreach function corresponding to the block
-        image_basicBlock *splitImgB = (*bIter); //latter half
+       image_basicBlock *splitImgB = bIter->first;
         vector<Function *> funcs;
         splitImgB->getFuncs(funcs);
         for (std::vector<Function*>::iterator fIter = funcs.begin();
              fIter != funcs.end(); 
-             fIter++) 
-        {
-            image_func *imgFunc = dynamic_cast<image_func*>(*fIter);
-            splitfuncs.insert(imgFunc);
-            int_function   * intFunc  = findFunction(imgFunc);
-            int_block * splitIntB = intFunc->findBlock(splitImgB);
-
-            // add block to new int_function if necessary
-            if (!splitIntB || splitIntB->llb() != splitImgB) {
-                // this will adjust the previous block's length if necessary
-                intFunc->addMissingBlock(*splitImgB);
-            }
-
-            // splitIntB is null if its function is uninstrumentable 
-            // (because it is very short or has indirect jumps)
-            if (splitIntB) {
-
-                // make point fixes
-                instPoint *point = NULL;
-                Address current = splitIntB->start();
-                InstructionDecoder dec
-                    (getPtrToInstruction(current),
-                     splitIntB->size(),
-                     proc()->getArch());
-                Instruction::Ptr insn;
-                while(insn = dec.decode()) 
-                {
-                    point = intFunc->findInstPByAddr( current );
-                    if ( point && point->block() != splitIntB ) {
-                        point->setBlock( splitIntB );
-                    } 
-                    current += insn->size();
-                }
-                // we're at the last instruction, create a point if needed
-                if ( !point && 
-                     parse_img()->getInstPoint
-                         (splitIntB->last() - baseAddr) ) 
-                {
-                    intFunc->addMissingPoints();
-                    point = intFunc->findInstPByAddr
-                        ( splitIntB->last() );
-
-                    if (!point) {
-                        fprintf(stderr,"WARNING: failed to find point for "
-                                "block [%lx %lx] at the"
-                                " block's lastInsnAddr = %lx %s[%d]\n", 
-                                splitIntB->start(), 
-                                splitIntB->end(),
-                                splitIntB->last(),
-                                FILE__,__LINE__);
-                    }
-                }
-            }
-        }
-    }
-
-    // check arbitrary points in functions whose block boundaries may have changed 
-    assert(0 && "FIXME!");
-    Address baseAddress = codeBase();
-    for (std::set<image_func*>::iterator fIter = splitfuncs.begin();
-            fIter != splitfuncs.end(); 
-            fIter++) 
-    {
-        int_function *f = findFunction(*fIter);
-        const pdvector<instPoint*> & points = f->funcArbitraryPoints();
-        for (pdvector<instPoint*>::const_iterator pIter = points.begin(); 
-             pIter != points.end(); pIter++) 
-        {
-            Address pointAddr = (*pIter)->addr();
-            int_block *bbi = (*pIter)->block();
-            // fix block boundaries if necessary
-            while (pointAddr <  bbi->start()) 
-            {
-                bbi = bbi->func()->findBlockByEntry(bbi->start() -1 );
-                assert(bbi);
-            } 
-            while (pointAddr >= bbi->end()) 
-            {
-                bbi = bbi->func()->findBlockByEntry(bbi->end() );
-                assert(bbi);
-            }
-            if (bbi != (*pIter)->block()) {
-                mal_printf("updating block (which was split) for arbitrary"
-                           " point %lx; %s[%d]\n",(*pIter)->addr(),
-                           FILE__,__LINE__);
-                (*pIter)->setBlock(bbi);
-            }
+             fIter++) {
+            image_func *imgFunc = static_cast<image_func*>(*fIter);
+            int_function *func = findFunction(imgFunc);
+            assert(func);
+            func->splitBlock(bIter->first, bIter->second);
         }
     }
     return true;
-
 #endif
 }
 
 // Grabs all int_blocks corresponding to the region, taking special care 
 // to get ALL int_blocks corresponding to an address if it is shared 
 // between multiple functions
-void mapped_object::findBBIsByRange(Address startAddr,
-                                    Address endAddr,
-                                    list<int_block*> &rangeBlocks)//output
+void mapped_object::findBlocksByRange(Address startAddr,
+                                      Address endAddr,
+                                      list<int_block*> &rangeBlocks)//output
 {
    std::set<ParseAPI::Block *> papiBlocks;
    for (Address cur = startAddr; cur < endAddr; ++cur) {
@@ -1298,7 +1214,7 @@ void mapped_object::findBBIsByRange(Address startAddr,
    }
    cerr << "ParseAPI reported " << papiBlocks.size() << " unique blocks in the range "
         << hex << startAddr << " -> " << endAddr << dec << endl;
-
+   
    for (std::set<ParseAPI::Block *>::iterator iter = papiBlocks.begin();
         iter != papiBlocks.end(); ++iter) {
       // For each parseAPI block, up-map it to a set of int_blocks
@@ -1324,7 +1240,7 @@ void mapped_object::findFuncsByRange(Address startAddr,
                                       std::set<int_function*> &pageFuncs)
 {
    std::list<int_block *> bbls;
-   findBBIsByRange(startAddr, endAddr, bbls);
+   findBlocksByRange(startAddr, endAddr, bbls);
    for (std::list<int_block *>::iterator iter = bbls.begin();
         iter != bbls.end(); ++iter) {
       pageFuncs.insert((*iter)->func());

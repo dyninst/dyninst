@@ -209,17 +209,19 @@ int_function::~int_function() {
       
 }
 
-void int_function::createBlock(image_basicBlock *ib) {
+int_block *int_function::createBlock(image_basicBlock *ib) {
     int_block *block = new int_block(ib, this);
     blocks_.insert(block);
     blockMap_[ib] = block;
+    return block;
 }
 
-void int_function::createBlockFork(const int_block *parent)
+int_block *int_function::createBlockFork(const int_block *parent)
 {
     int_block *block = new int_block(parent, this);
     blocks_.insert(block);
     blockMap_[parent->llb()] = block;
+    return block;
 }
 
 Address int_function::baseAddr() const {
@@ -658,15 +660,14 @@ bool int_function::parseNewEdges(const std::vector<edgeStub> &stubs )
         sources[sidx]->getFuncs(funcs);
         for (unsigned fidx=0; fidx < funcs.size(); fidx++) 
         {
-            int_function *func = proc()->findFuncByInternalFunc(
-                static_cast<image_func*>(funcs[fidx]));
+           int_function *func = obj()->findFunction(funcs[fidx]);
 
 /* 3. Add img-level blocks and points to int-level datastructures */
-            func->addMissingBlocks();
-            func->addMissingPoints();
-
-            // invalidate liveness calculations
-            func->ifunc()->invalidateLiveness();
+           func->addMissingBlocks();
+           func->addMissingPoints();
+           
+           // invalidate liveness calculations
+           func->ifunc()->invalidateLiveness();
         }
     }
 
@@ -676,6 +677,7 @@ bool int_function::parseNewEdges(const std::vector<edgeStub> &stubs )
         ifunc()->img()->clearSplitBlocks();
     }
 
+    assert(consistency());
     return true;
 }
 
@@ -733,32 +735,44 @@ void int_function::fixHandlerReturnAddr(Address faultAddr)
         return;
     }
 
-	// Do a straightfoward forward map of faultAddr
-	// First, get the original address
+    // Do a straightfoward forward map of faultAddr
+    // First, get the original address
     int_function *func;
     int_block *block; baseTrampInstance *ignored;
-	Address origAddr;
-	if (!proc()->getRelocInfo(faultAddr, origAddr, block, ignored)) {
-		func = dynamic_cast<process *>(proc())->findActiveFuncByAddr(faultAddr);
-		origAddr = faultAddr;
-	}
-    else {
-        func = block->func();
+    Address origAddr;
+    if (!proc()->getRelocInfo(faultAddr, origAddr, block, ignored)) {
+       func = dynamic_cast<process *>(proc())->findActiveFuncByAddr(faultAddr);
+       origAddr = faultAddr;
     }
-	std::list<Address> relocAddrs;
-	proc()->getRelocAddrs(origAddr, this, relocAddrs, true);
-	Address newPC = (!relocAddrs.empty() ? relocAddrs.back() : origAddr);
+    else {
+       func = block->func();
+    }
+    std::list<Address> relocAddrs;
+    proc()->getRelocAddrs(origAddr, this, relocAddrs, true);
+    Address newPC = (!relocAddrs.empty() ? relocAddrs.back() : origAddr);
+    
+    if (newPC != faultAddr) {
+       if(!proc()->writeDataSpace((void*)handlerFaultAddrAddr_, 
+                                  sizeof(Address), 
+                                  (void*)&newPC)) {
+          assert(0);
+       }
+    }
+}
 
-	if (newPC != faultAddr) {
-            if(!proc()->writeDataSpace((void*)handlerFaultAddrAddr_, 
-                                           sizeof(Address), 
-                                           (void*)&newPC))
-            {
-                assert(0);
-				}
-		}
-	}
+void int_function::findPoints(int_block *block,
+                              std::set<instPoint *> &foundPoints) const {
+   // What's better - iterate over all our point contaners 
+   // looking for options, or run through instPsByAddr_...
 
+   for (Address a = block->start(); a < block->end(); ++a) {
+      std::map<Address, instPoint *>::const_iterator p_iter = instPsByAddr_.find(a);
+      if ((p_iter != instPsByAddr_.end()) &&
+          (p_iter->second->block() == block)) {
+         foundPoints.insert(p_iter->second);
+      }
+   }
+}
 
 // doesn't delete the ParseAPI::Block's, those are removed in a batch
 // call to the parseAPI
@@ -767,57 +781,51 @@ void int_function::deleteBlock(int_block* block)
     // init stuff
     assert(block && this == block->func());
 
-    image_basicBlock *imgBlock = block->llb();
-	if (imgBlock->isShared()) {
-		cerr << "BAD CASE : block is shared" << endl;
-		std::vector<ParseAPI::Function *> funcs;
-		imgBlock->getFuncs(funcs);
-		for (unsigned i = 0; i < funcs.size(); ++i) {
-			cerr << "\t" << i << ": func @ " << hex << funcs[i]->entry()->start() << dec << endl;
-			const ParseAPI::Function::blocklist &blocks = funcs[i]->blocks();
-			for (ParseAPI::Function::blocklist::iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
-				cerr << "\t\t Block: " << hex << (*iter)->start() << " -> " << (*iter)->end() << endl;
-				const ParseAPI::Block::edgelist &edges = (*iter)->targets();
-				for (ParseAPI::Block::edgelist::iterator e_iter = edges.begin(); e_iter != edges.end(); ++e_iter) {
-					cerr << "\t\t\t Edge to: " << hex << (*e_iter)->trg()->start() << dec << endl;
-				}
-			}
-		}
-	}
-
-	//assert( ! imgBlock->isShared() ); //KEVINTODO: unimplemented case
-    mal_printf("WARNING: deleting shared block [%lx %lx)\n", 
-               block->start(), 
-               block->end());
-    Address baseAddr = obj()->codeBase();
-
-    // remove parse points
-    pdvector<image_instPoint*> imgPoints;
-    ifunc()->img()->getInstPoints( block->start()-baseAddr, 
-                                   block->end()-baseAddr, 
-                                   imgPoints );
-    for (unsigned pidx=0; pidx < imgPoints.size(); pidx++) {
-        image_instPoint *imgPt = imgPoints[pidx];
-        instPoint *point = findInstPByAddr( imgPt->offset() + baseAddr );
-        if (!point) {
-            addMissingBlocks();
-            point = findInstPByAddr( imgPt->offset() + baseAddr );
-        }
-        removePoint( point );
-    }
-
-    // remove arbitrary points
-    for (unsigned pidx=0; pidx < arbitraryPoints_.size(); pidx++) {
-        if (block->start() <= arbitraryPoints_[pidx]->addr() &&
-            block->end() > arbitraryPoints_[pidx]->addr()) 
-        {
-            removePoint(arbitraryPoints_[pidx]); // removes point from the vector
-            pidx--;
-        }
+    // Find the points that reside in this block. 
+    std::set<instPoint *> foundPoints;
+    findPoints(block, foundPoints);
+    
+    // And delete them
+    for (std::set<instPoint *>::iterator iter = foundPoints.begin();
+         iter != foundPoints.end(); ++iter) {
+       removePoint(*iter);
     }
 
     blocks_.erase(block);
     blockMap_.erase(block->llb());
+
+    assert(consistency());
+}
+
+void int_function::splitBlock(image_basicBlock *img_orig, 
+                              image_basicBlock *img_new) {
+   int_block *origBlock = blockMap_[img_orig];
+   assert(origBlock);
+   
+   int_block *newBlock = blockMap_[img_new];
+   if (!newBlock) {
+      newBlock = createBlock(img_new);
+   }
+   // Also adds to trackers
+
+   // Move all instPoints that were contained in orig and should be
+   // contained in newBlock...
+
+   std::set<instPoint *> points;
+   findPoints(origBlock, points); 
+   for (std::set<instPoint *>::iterator iter = points.begin();
+        iter != points.end(); ++iter) {
+      instPoint *point = *iter;
+      if (point->addr() >= origBlock->end()) {
+         assert(point->addr() >= newBlock->start());
+         assert(point->addr() < newBlock->end());
+         point->setBlock(newBlock);
+      }
+   }
+   
+   // The new block should already be in the tracking data
+   // structures from when it was created
+   assert(consistency());
 }
 
 // Remove funcs from:
@@ -861,131 +869,15 @@ void int_function::removeFromAll()
     delete(this);
 }
 
-void int_function::addMissingBlock(image_basicBlock & missingB)
+void int_function::addMissingBlock(image_basicBlock *missingB)
 {
-    // TODO: make sure we're looking things up correctly
-    Address baseAddr = getAddress() - ifunc()->getOffset();
-    int_block *bbi = findBlock(&missingB);
-
-    if (bbi) {
-        if (&missingB == bbi->llb()) {
-            // Make sure our boundaries are correct
-            assert(bbi->start() == (baseAddr + bbi->llb()->start()));
-            return;
-        }
-        else
-        {
-            image_basicBlock *imgB = bbi->llb();
-            // Check to see if missingB and imgB overlap
-            // If that's the case, missingB's end must lie within imgB's range
-            // or vice versa
-            Address higherStart = (missingB.start() > imgB->start()) ? missingB.start() : imgB->start();
-            Address lowerEnd = (missingB.end() < imgB->end()) ? missingB.end() : imgB->end();
-            if (lowerEnd > higherStart)
-            {
-                // blocks have misaligned parses, add block (could checked needsRelocation_ flag)
-                bbi = NULL;
-            }
-            else {
-                // the block was split during parsing, adjust the end and lastInsn 
-                // fields of both int_blocks 
-                Address blockBaseAddr = bbi->start() - 
-                    imgB->firstInsnOffset();
-                assert(baseAddr == blockBaseAddr);
-                mal_printf("adjusting boundaries of split block %lx (split at %lx)\n",
-                           imgB->start(), missingB.start());
-                // instance 2
-                int_block *otherInst = findBlockByEntry
-                                (missingB.firstInsnOffset() + blockBaseAddr);
-                if (otherInst && otherInst != bbi) {
-                    bbi = otherInst;
-                    imgB = bbi->llb();
-                    blockBaseAddr = bbi->start() - 
-                        imgB->firstInsnOffset();
-                    assert(baseAddr == blockBaseAddr);
-                }
-
-                // now try and find the block again
-                int_block *newbbi = findBlockByEntry( 
-                    missingB.firstInsnOffset() + blockBaseAddr );
-                if (bbi == newbbi) {
-                    // there's real overlapping going on
-                    mal_printf("WARNING: overlapping blocks, major obfuscation or "
-                            "bad parse [%lx %lx] [%lx %lx] %s[%d]\n",
-                            bbi->start(), 
-                            bbi->end(), 
-                            baseAddr + missingB.firstInsnOffset(), 
-                            baseAddr + missingB.endOffset(), 
-                            FILE__,__LINE__);
-                }
-                bbi = newbbi;
-            }
-        }
+   int_block *bbi = findBlock(missingB);
+   if (bbi) {
+      assert(bbi->llb() == missingB);
+      return;
     }
-
-    if ( ! bbi ) {
-        // TODO
-        // create new int_block and add it to our datastructures
-        createBlock(&missingB);
-    } 
-    // see if the new block falls through into a function that
-    // was already parsed
-    Block::edgelist & edges = missingB.targets();
-    SingleContext epred(ifunc(),true,true);
-    Function *parsedInto=NULL;
-    vector<Function*> funcs;
-    missingB.getFuncs(funcs);
-    for (Block::edgelist::iterator eit = edges.begin(&epred);
-         !parsedInto && eit != edges.end();
-         eit++)
-    {
-        vector<Function*> tfuncs;
-        (*eit)->trg()->getFuncs(tfuncs);
-        if (tfuncs.size() > funcs.size()) {
-            // we fell through into another function and need to add some of
-            // its blocks to our function
-            image_func *tfunc = NULL;
-            for (vector<Function*>::iterator tit = tfuncs.begin();
-                 tit != tfuncs.end();
-                 tit++) 
-            {
-                bool foundit = false;
-                for (vector<Function*>::iterator fit = funcs.begin();
-                     fit != funcs.end();
-                     fit++) 
-                {
-                    if ((*tit) == (*fit)) {
-                        foundit = true;
-                        break;
-                    }
-                }
-                if (!foundit) {
-                    tfunc = static_cast<image_func*>(*tit);
-                    break;
-                }
-            }
-            assert(tfunc);
-            malware_cerr << "FUNC 0x" << hex << getAddress() 
-                << " PARSED INTO SHARED FUNC 0x" 
-                << tfunc->addr() + obj()->codeBase()
-                << " AT 0x" << missingB.start() + obj()->codeBase() 
-                << dec << endl;
-            set<image_basicBlock*> emptyset;
-            list<image_basicBlock*> seedBs;
-            seedBs.push_back(&missingB);
-            set<image_basicBlock*> reachableBs;
-            tfunc->getReachableBlocks(emptyset,seedBs,reachableBs);
-            for (set<image_basicBlock*>::iterator bit = reachableBs.begin();
-                bit != reachableBs.end(); 
-                bit++)
-            {
-                
-                if ((*bit) != &missingB) {
-                    addMissingBlock(*static_cast<image_basicBlock*>(*bit));
-                }
-            }
-        }
-    }
+   
+   createBlock(missingB);
 }
 
 
@@ -995,34 +887,20 @@ void int_function::addMissingBlock(image_basicBlock & missingB)
  * 
  * We have to take into account that additional parsing may cause basic block splitting,
  * in which case it is necessary not only to add new int-level blocks, but to update 
- * int_block, int_block, and BPatch_basicBlock objects. 
+ * int_block and BPatch_basicBlock objects. 
  */
 void int_function::addMissingBlocks()
 {
-        blocks();
-    
-    // iterate through whichever of blocks_ and img->newBlocks_ is smaller
-    if (blocks_.size() < ifunc_->img()->getNewBlocks().size()) {
-        Function::blocklist & imgBlocks = ifunc_->blocks();
-        Function::blocklist::iterator sit = imgBlocks.begin();
-        for( ; sit != imgBlocks.end(); ++sit) {
-            addMissingBlock( *dynamic_cast<image_basicBlock*>(*sit) );
-        }
-    }
-    else {
-        const vector<image_basicBlock*> & nblocks = 
-            ifunc()->img()->getNewBlocks();
-        vector<image_basicBlock*>::const_iterator nit = nblocks.begin();
-        for( ; nit != nblocks.end(); ++nit) {
-            mal_printf("nblock [%lx %lx)", (*nit)->start(), (*nit)->end());
-            if ( ifunc()->contains( *nit ) ) {
-                addMissingBlock( **nit );
-                mal_printf(" was missing\n");
-            } else {
-                mal_printf(" not missing\n");
-            }
-        }
-    }
+   blocks();
+
+   // Add new blocks
+   const vector<image_basicBlock*> & nblocks = ifunc()->img()->getNewBlocks();
+   vector<image_basicBlock*>::const_iterator nit = nblocks.begin();
+   for( ; nit != nblocks.end(); ++nit) {
+      if (ifunc()->contains(*nit)) {
+         addMissingBlock(*nit);
+      }
+   }
 }
 
 /* trigger search in image_layer points vectors to be added to int_level 
@@ -1135,7 +1013,6 @@ void int_function::getReachableBlocks(const set<int_block*> &exceptBlocks,
     set<image_basicBlock*> imgReach;
     ifunc()->getReachableBlocks(imgExcept,imgSeeds,imgReach);
 
-    Address base = getAddress() - ifunc()->addr();
     for (set<image_basicBlock*>::iterator rit = imgReach.begin();
          rit != imgReach.end(); 
          rit++) 
@@ -1232,14 +1109,10 @@ AddressSpace *int_function::proc() const { return obj()->proc(); }
 
 const int_function::BlockSet &int_function::blocks()
 {
-    int i = 0;
-
     if (blocks_.empty()) {
         // defensiveMode triggers premature block list creation when it
         // checks that the targets of control transfers have not been
         // tampered with.  
-        Address base = getAddress() - ifunc_->getOffset();
-
         Function::blocklist & img_blocks = ifunc_->blocks();
         Function::blocklist::iterator sit = img_blocks.begin();
 
@@ -1520,6 +1393,54 @@ const pdvector< int_parRegion* > &int_function::parRegions()
       parallelRegions_.push_back(iPR);
     }
   return parallelRegions_;
+}
+
+bool int_function::validPoint(instPoint *p) const {
+   // check whether the instPoint is correct
+   assert(p->block()->start() <= p->addr());
+   assert(p->block()->end() > p->addr());
+   return true;
+}
+
+bool int_function::consistency() const {
+   // 1) Check for 1:1 block relationship in
+   //    the block list and block map
+   // 2) Check that all instPoints are in the
+   //    correct block.
+
+   const ParseAPI::Function::blocklist &img_blocks = ifunc_->blocks();
+   assert(img_blocks.size() == blocks_.size());
+   assert(blockMap_.size() == blocks_.size());
+   for (ParseAPI::Function::blocklist::iterator iter = img_blocks.begin();
+        iter != img_blocks.end(); ++iter) {
+      image_basicBlock *img_block = static_cast<image_basicBlock *>(*iter);
+      BlockMap::const_iterator m_iter = blockMap_.find(img_block);
+      assert(m_iter != blockMap_.end());
+      assert(blocks_.find(m_iter->second) != blocks_.end());
+   }
+
+   // Instpoints
+   for (unsigned i = 0; i < entryPoints_.size(); ++i) {
+      assert(validPoint(entryPoints_[i]));
+   }
+   for (unsigned i = 0; i < exitPoints_.size(); ++i) {
+      assert(validPoint(exitPoints_[i]));
+   }
+   for (unsigned i = 0; i < callPoints_.size(); ++i) {
+      assert(validPoint(callPoints_[i]));
+   }
+   for (unsigned i = 0; i < arbitraryPoints_.size(); ++i) {
+      assert(validPoint(arbitraryPoints_[i]));
+   }
+   for (std::set<instPoint *>::iterator iter = unresolvedPoints_.begin();
+        iter != unresolvedPoints_.end(); ++iter) {
+      assert(validPoint(*iter));
+   }
+   for (std::set<instPoint *>::iterator iter = abruptEnds_.begin();
+        iter != abruptEnds_.end(); ++iter) {
+      assert(validPoint(*iter));
+   }
+   return true;
 }
 
 

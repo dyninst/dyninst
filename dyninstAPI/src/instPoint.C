@@ -111,7 +111,7 @@ miniTramp *instPoint::addInst(AstNodePtr ast,
     return miniT;
 }
 
-bool instPoint::replaceCode(AstNodePtr ast) {
+bool instPoint::replaceCode(AstNodePtr) {
    // TODO
    assert(0);
    return true;
@@ -446,7 +446,7 @@ instPoint::~instPoint() {
 
 
 
-bool instPoint::instrSideEffect(Frame &frame)
+bool instPoint::instrSideEffect(Frame &)
 {
    return false;
 
@@ -488,9 +488,9 @@ bool instPoint::instrSideEffect(Frame &frame)
 #endif
 }
 
-instPoint::catchup_result_t instPoint::catchupRequired(Address pc,
-                                                       miniTramp *mt,
-                                                       bool active) 
+instPoint::catchup_result_t instPoint::catchupRequired(Address,
+                                                       miniTramp *,
+                                                       bool) 
 {
    // Unimplemented!
    return noMatch_c;

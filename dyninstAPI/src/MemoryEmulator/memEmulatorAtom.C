@@ -95,10 +95,10 @@ bool MemEmulator::generateViaOverride(const codeGen &templ,
                                       CodeBuffer &buffer) 
 {
     // Watch for a1/a2/a3 moves 
-    char *buf = (char *)insn_->ptr();
-    if (buf[0] == 0xa1 ||
-        buf[0] == 0xa3) {
-            return generateEAXMove(buf[0], templ, t, buffer);
+    unsigned char *buf = (unsigned char *)insn_->ptr();
+    if (buf[0] == (unsigned char) 0xa1 ||
+        buf[0] == (unsigned char) 0xa3) {
+       return generateEAXMove(buf[0], templ, t, buffer);
     }
                                           
    const InstructionAPI::Operation &op = insn_->getOperation();

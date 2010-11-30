@@ -211,7 +211,7 @@ class mapped_object : public codeRange {
     void removeFunction(int_function *func);
     void removeRange(codeRange *range);
     bool splitIntLayer();
-    void findBBIsByRange(Address startAddr,
+    void findBlocksByRange(Address startAddr,
                           Address endAddr,
                           std::list<int_block*> &pageBlocks);
     void findFuncsByRange(Address startAddr,

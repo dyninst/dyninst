@@ -274,6 +274,7 @@ class instPoint : public instPointBase {
     friend class instPointInstance;
     friend class baseTramp;
     friend class int_block;
+    friend class int_function;
     friend void initRegisters();
     friend class registerSpace; // Liveness
  public:

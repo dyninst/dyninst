@@ -2269,7 +2269,7 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
 }
 
 
-const set<image_basicBlock*> & image::getSplitBlocks() const
+const image::SplitBlocks & image::getSplitBlocks() const
 {
     return splitBlocks_;
 }
