@@ -1540,9 +1540,6 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   if (begin == end) {
     return true;
   }
-  if ((*begin)->getAddress() > 0x900000) {
-      dyn_debug_reloc = true;
-  }
   // Create a CodeMover covering these functions
   //cerr << "Creating a CodeMover" << endl;
   
@@ -1582,7 +1579,6 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       }
       cerr << dec;
   }
-  dyn_debug_reloc = false;
 
 
   // Copy it in
@@ -1622,10 +1618,11 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           Address pcOrig=0;
           vector<int_function *> origFuncs;
           baseTrampInstance *bti=NULL;
-          if (! getAddrInfo(tframe.getPC(), pcOrig, origFuncs, bti)) 
-          {
+          mapped_object *pcobj = findObject(tframe.getPC());
+          if (pcobj && mapped_object::isSystemLib(pcobj->fileName())) 
               continue;
-          }
+          if (!getAddrInfo(tframe.getPC(), pcOrig, origFuncs, bti)) 
+              continue;
           int_function *origFunc;
           if (origFuncs.size() == 1) {
               origFunc = origFuncs[0];

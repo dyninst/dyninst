@@ -145,6 +145,7 @@ public:
     bool parseNewEdge(Dyninst::Address source, Dyninst::Address target);
     void relocateFunction();
     bool getSharedFuncs(std::set<BPatch_function*> &funcs);
+    BPatch_point * BPatch_function::getPoint(Address addr);
 
     void addParam(Dyninst::SymtabAPI::localVar *lvar);
 

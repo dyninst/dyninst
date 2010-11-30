@@ -54,6 +54,18 @@ class BPatch_basicBlockLoop;
 class HybridAnalysis {
     friend class HybridAnalysisOW;
 
+private:
+    class SynchHandle {
+      public:
+        SynchHandle(BPatch_point* prePt, BPatchSnippetHandle* preHandle);
+        void setPostHandle(BPatch_point* postPt, BPatchSnippetHandle* postHandle);
+
+        BPatch_point *prePt_;
+        BPatch_point *postPt_;
+        BPatchSnippetHandle *preHandle_;
+        BPatchSnippetHandle *postHandle_;
+   };
+
 public:
 
     HybridAnalysis(BPatch_hybridMode mode, BPatch_process *proc);
@@ -68,7 +80,11 @@ public:
     BPatch_process *proc() { return proc_; };
     static InternalSignalHandlerCallback getSignalHandlerCB();
     BPatch_module *getRuntimeLib() { return sharedlib_runtime; }
-    void deleteSynchSnippet(BPatch_point*);
+    void deleteSynchSnippet(SynchHandle *handle);
+    bool isIntraMod(BPatch_point *point);//targets in same mod as point
+
+    std::map< BPatch_point* , SynchHandle* > & synchMap_pre();
+    std::map< BPatch_point* , SynchHandle* > & synchMap_post();
 
     // callbacks
     bool isInLoop(Dyninst::Address blockAddr, bool activeOnly);
@@ -110,20 +126,26 @@ private:
     int saveInstrumentationHandle(BPatch_point *point, 
                                   BPatchSnippetHandle *handle);
     bool hasEdge(BPatch_function *func, Dyninst::Address source, Dyninst::Address target);
+    bool processInterModuleEdge(BPatch_point *point, 
+                                Dyninst::Address target, 
+                                BPatch_module *targMod);
 
     // parsing
     void parseNewEdgeInFunction(BPatch_point *sourcePoint, 
                                 Dyninst::Address target,
                                 bool useInsertionSet);
-    bool analyzeNewFunction( Dyninst::Address target , 
+    bool analyzeNewFunction( BPatch_point *source, 
+                             Dyninst::Address target , 
                              bool doInstrumentation , 
                              bool useInsertionSet );
+    bool addIndirectEdgeIfNeeded(BPatch_point *srcPt, Dyninst::Address target);
 
     // variables
     std::map<Dyninst::Address,Dyninst::Address> handlerFunctions; 
     std::map < BPatch_function*, 
                std::map<BPatch_point*,BPatchSnippetHandle*> *> * instrumentedFuncs;
-    std::map < BPatch_point*,std::pair<BPatchSnippetHandle*,BPatchSnippetHandle*> >  memHandles;
+    std::map< BPatch_point* , SynchHandle* > synchMap_pre_; // maps from prePt
+    std::map< BPatch_point* , SynchHandle* > synchMap_post_; // maps from postPt
     BPatch_module *sharedlib_runtime;
     BPatch_hybridMode mode_;
     BPatch_process *proc_;
@@ -275,29 +297,11 @@ private:
 
     bool isRealStore(Dyninst::Address insnAddr, 
                      BPatch_function *func);
-    // variables
 
+    // variables
     HybridAnalysis *hybrid_;
     std::set<owLoop*> loops;
-#if 0
-    //loopid to snippets
-    std::map<int,std::set<BPatchSnippetHandle*>*> loopSnippets;
-    //loopid to shadows
-    std::map<int,std::map<Dyninst::Address,unsigned char *>*> loopShadowMap;
-    //loopid to write target
-    std::map<int,Dyninst::Address> loopWriteTarget;
-    //loopid to write instructions
-    std::map<int,std::set<Dyninst::Address>*> loopWriteInsns;
-    //loopid to loopblocks
-    std::map<int,std::set<BPatch_basicBlock*,HybridAnalysis::blockcmp>*> loopBlockMap;
-    //loopblockstarts to loopid: 
     std::map<Dyninst::Address,int> blockToLoop;//KEVINCOMMENT: makes non-guaranteed assumption that only one loop per block, would it be better to use the last instruction address?
-    //loop active status
-    std::map<int,bool> loopActiveStatus;
-    //loop writes own page
-    std::map<int,bool> loopWritesOwnPage;
-#endif
-    std::map<Dyninst::Address,int> blockToLoop;
     std::map<int, owLoop*> idToLoop;
 
     BPatchCodeOverwriteBeginCallback bpatchBeginCB;

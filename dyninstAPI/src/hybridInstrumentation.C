@@ -45,31 +45,6 @@
 
 using namespace Dyninst;
 
-// underestimates the likelihood that an indirect control flow instruction is 
-// intramodular
-static bool isIntraMod(BPatch_point *point)
-{
-    vector<Address> targs;
-    point->getSavedTargets(targs);
-
-    if (targs.empty()) {
-        return false;
-    }
-
-    for (vector<Address>::iterator tit= targs.begin();
-         tit != targs.end(); 
-         tit++) 
-    {
-        BPatch_module *targMod = point->getFunction()->getAddSpace()->
-                findModuleByAddr(*tit);
-        if (targMod != point->getFunction()->getModule()) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 /* Callback wrapper funcs */
 static void badTransferCB_wrapper(BPatch_point *point, void *calc) 
 { 
@@ -94,19 +69,42 @@ static void signalHandlerExitCB_wrapper(BPatch_point *point, void *returnAddr)
 }
 static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig) 
 {
-    if ( isIntraMod(point) ) {
-        return;
-    }
+    mal_printf("in synch callback for point 0x%lx toOrig=%d\n",
+               (Address)point->getAddress(), (int)toOrig);
 
     BPatch_process *proc = dynamic_cast<BPatch_process*>(
        point->getFunction()->getAddSpace());
+    if ( proc->getHybridAnalysis()->isIntraMod(point) ) {
+        return;
+    }
+
+    // synch the shadow pages
     BPatch_function *pfunc = point->getFunction();
     proc->lowlevel_process()->getMemEm()->synchShadowOrig
-        ( pfunc->lowlevel_func()->obj(), 
-          (bool) toOrig);
+        ( pfunc->lowlevel_func()->obj(), (bool) toOrig);
     if (toOrig) {
+        // instrument at fallthrough
+        int_basicBlock *ftBlk = point->llpoint()->block()->getFallthrough();
+        assert(ftBlk);
+        BPatch_function *bpFunc = proc->findOrCreateBPFunc(ftBlk->func(),NULL);
+        BPatch_point *ftPt = bpFunc->getPoint(
+            ftBlk->origInstance()->firstInsnAddr());
+        assert(ftPt);
+        BPatchSnippetHandle *handle = proc->insertSnippet
+            (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(0)), 
+             *ftPt,
+             BPatch_callBefore,
+             BPatch_firstSnippet);
+        HybridAnalysis *ha = proc->getHybridAnalysis();
+        ha->synchMap_pre()[point]->setPostHandle(ftPt, handle);
+        ha->synchMap_post()[ftPt] = ha->synchMap_pre()[point];
+        // remove write-protections from code pages
         pfunc->getModule()->setAnalyzedCodeWriteable(true);
     } else {
+        // KEVINTODO: if there are other in edges to the fallthrough block it 
+        //            might be cheaper to remove synch instrumentation here
+
+        // restore write-protections to code pages
         pfunc->getModule()->setAnalyzedCodeWriteable(false);
     }
 }
@@ -212,7 +210,7 @@ int HybridAnalysis::saveInstrumentationHandle(BPatch_point *point,
                                               BPatchSnippetHandle *handle) 
 {
     BPatch_function *func = point->getFunction();
-    if (NULL == (*instrumentedFuncs)[func]) {
+    if (instrumentedFuncs->end() == instrumentedFuncs->find(func)) {
         (*instrumentedFuncs)[func] = new map<BPatch_point*,BPatchSnippetHandle*>();
     }
     assert((*instrumentedFuncs)[func]->end() == // don't add point twice
@@ -246,7 +244,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     }
     int pointCount = 0;
 
-    if (!(*instrumentedFuncs)[func]) {
+    if (instrumentedFuncs->end() == instrumentedFuncs->find(func)) {
         (*instrumentedFuncs)[func] = new 
             std::map<BPatch_point*,BPatchSnippetHandle*>();
     }
@@ -308,23 +306,16 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             }
             // if memory is emulated, and we don't know that it doesn't go to 
             // a non-instrumented library, add a callback to synchShadowOrigCB_wrapper
-            if (proc()->lowlevel_process()->isMemoryEmulated()) {
-                if ( memHandles.end() == memHandles.find(curPoint) &&
-                     ! isIntraMod(curPoint) )
-                {
-                    std::pair<BPatchSnippetHandle*,BPatchSnippetHandle*> handles;
-                    handles.first = proc()->insertSnippet
-                        (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(1)), 
-                         *curPoint, 
-                         BPatch_lastSnippet);
-                    handles.second = proc()->insertSnippet
-                        (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(0)), 
-                         *curPoint,
-                         BPatch_callAfter, 
-                         BPatch_firstSnippet);
-                    memHandles[curPoint] = handles;
-                    pointCount++;
-                }
+            if ( proc()->lowlevel_process()->isMemoryEmulated() && 
+                 ! isIntraMod(curPoint) )
+            {
+                mal_printf("Adding pre- and post- synch instrumentation to 0x%lx\n",
+                           (Address)curPoint->getAddress());
+                BPatchSnippetHandle *handle = proc()->insertSnippet
+                    (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(1)), 
+                     *curPoint, 
+                     BPatch_lastSnippet);
+                synchMap_pre_[curPoint] = new SynchHandle(curPoint, handle);
             }
         } 
         else { // static ctrl flow
@@ -545,6 +536,26 @@ void HybridAnalysis::removeInstrumentation(BPatch_function *func,
 
     // 1. Remove elements from instrumentedFuncs
     if (instrumentedFuncs->end() != instrumentedFuncs->find(func)) {
+        if (proc()->lowlevel_process()->isMemoryEmulated()) {
+            map<BPatch_point*,BPatchSnippetHandle*>::iterator 
+                pit = (*instrumentedFuncs)[func]->begin();
+            for (; pit != (*instrumentedFuncs)[func]->end(); pit++) {
+                if (synchMap_pre_.end() != synchMap_pre_.find(pit->first)) 
+                {
+                    SynchHandle *shandle = synchMap_pre_[pit->first];
+                    synchMap_pre_.erase(shandle->prePt_);
+                    synchMap_post_.erase(shandle->postPt_);
+                    delete shandle;
+                }
+                else if (synchMap_post_.end() != synchMap_post_.find(pit->first))
+                {
+                    SynchHandle *shandle = synchMap_post_[pit->first];
+                    synchMap_pre_.erase(shandle->prePt_);
+                    synchMap_post_.erase(shandle->postPt_);
+                    delete shandle;
+                }
+            }
+        }
         (*instrumentedFuncs)[func]->clear();
         delete (*instrumentedFuncs)[func];
         instrumentedFuncs->erase(func);
@@ -674,6 +685,11 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
             }
             cIter++;
         }
+        // parse the call target edge if needed
+        if (callPoint->isDynamic()) {
+            addIndirectEdgeIfNeeded(callPoint,
+                                    (Address)calledFunc->getBaseAddr());
+        }
     }
 
     // make sure that the edge hasn't already been parsed 
@@ -715,7 +731,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         {
             BPatch_function *callFunc = callPoint->getFunction();
             // remove the ctrl-transfer instrumentation for this point 
-            if ((*instrumentedFuncs)[callFunc] && 
+            if (instrumentedFuncs->end() != instrumentedFuncs->find(callFunc) && 
                 (*instrumentedFuncs)[callFunc]->end() !=
                 (*instrumentedFuncs)[callFunc]->find(callPoint)) 
             {
@@ -782,11 +798,54 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
     return success;
 }
 
+bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt, 
+                                             Address target)
+{
+    // see if the edge already exists
+    using namespace ParseAPI;
+    Block::edgelist &edges = sourcePt->llpoint()->block()->llb()->targets();
+    Block::edgelist::iterator eit = edges.begin();
+    mapped_object *targObj = proc()->lowlevel_process()->findObject(target);
+    if (targObj) {
+        for (; eit != edges.end(); eit++)
+            if ( ! (*eit)->sinkEdge() && 
+                 (*eit)->trg()->start() == (target - targObj->codeBase()) )
+                break;
+    }
+    if (targObj && eit == edges.end()) {
+        // edge does not exist, add it
+        vector<Block*>  srcs; 
+        vector<Address> trgs;
+        vector<EdgeTypeEnum> etypes;
+        srcs.push_back(sourcePt->llpoint()->block()->llb());
+        trgs.push_back(target - targObj->codeBase());
+        mal_printf("Adding indirect edge %lx->%lx", 
+                   (Address)sourcePt->getAddress(), target);
+        if (BPatch_subroutine == sourcePt->getPointType()) {
+            etypes.push_back(CALL);
+            mal_printf(" of type CALL\n");
+        } else if (BPatch_exit == sourcePt->getPointType()) {
+            etypes.push_back(RET);
+            mal_printf(" of type RET\n");
+        } else {
+            etypes.push_back(INDIRECT);
+            mal_printf(" of type INDIRECT\n");
+        }
+        targObj->parse_img()->codeObject()->
+            parseNewEdges(srcs,trgs,etypes);
+        return true;
+    }
+    return false;
+}
+
+
 // parse, instrument, and write-protect code found by seeding at a new target address
-bool HybridAnalysis::analyzeNewFunction( Address target , 
-                                         bool doInstrumentation , 
+bool HybridAnalysis::analyzeNewFunction( BPatch_point *source, 
+                                         Address target, 
+                                         bool doInstrumentation, 
                                          bool useInsertionSet )
 {
+    // parse at the target
     bool parsed = true;
     vector<BPatch_module *> affectedMods;
     vector<Address> targVec; // has only one element, used to conform to interface
@@ -796,7 +855,7 @@ bool HybridAnalysis::analyzeNewFunction( Address target ,
                 "containing target addr %lx  %s[%d]\n", (long)target, FILE__, __LINE__);
         parsed = false;
     }
-
+    
     // inform the mutator of the new code
     if (bpatchCodeDiscoveryCB) {
         std::vector<BPatch_function *> newfuncs;
@@ -813,6 +872,10 @@ bool HybridAnalysis::analyzeNewFunction( Address target ,
         }
     }
     proc()->getImage()->clearNewCodeRegions();
+
+    if (source->isDynamic() || BPatch_exit == source->getPointType()) {
+        addIndirectEdgeIfNeeded(source,target);
+    }
 
     // instrument all of the new modules and protect their code
     for (unsigned i=0; i < affectedMods.size(); i++) {
@@ -936,7 +999,119 @@ void HybridAnalysis::parseNewEdgeInFunction(BPatch_point *sourcePoint,
     }
 
     proc()->getImage()->clearNewCodeRegions();
+}
 
+bool HybridAnalysis::processInterModuleEdge(BPatch_point *point, 
+                                            Address target, 
+                                            BPatch_module *targMod)
+{
+    bool processTargMod = true;
+    BPatch_function* targFunc = targMod->findFunctionByEntry(target);
+    char modName[16]; 
+    char funcName[32];
+    targMod->getName(modName,16);
+    if (targFunc) {
+        targFunc->getName(funcName,32);
+        mal_printf("%lx => %lx, in module %s to known func %s\n",
+                    point->getAddress(),target,modName,funcName);
+    } else {
+        funcName[0]= '\0';
+        mal_printf("%lx => %lx, in module %s \n",
+                    point->getAddress(),target,modName,funcName);
+    }
+    // 1.1 if targMod is a system library don't parse at target.  However, if the 
+    //     transfer into the targMod is an unresolved indirect call, parse at the 
+    //     call's fallthrough addr and return.
+    if (targMod->isSystemLib() && BPatch_defensiveMode != targMod->getHybridMode()) 
+    {
+        if (point->getPointType() == BPatch_subroutine) {
+            if (0 == strncmp(funcName,"ExitProcess",32) && 
+                0 == strncmp(modName,"kernel32.dll",16)) 
+            {
+                fprintf(stderr,"Caught call to %s, should exit soon %s[%d]\n", 
+                        funcName,FILE__,__LINE__);
+            }
+            else {
+                mal_printf("stopThread instrumentation found call %lx=>%lx, "
+                          "target is in module %s, parsing at fallthrough %s[%d]\n",
+                          (long)point->getAddress(), target, modName,FILE__,__LINE__);
+                parseAfterCallAndInstrument(point, targFunc);
+            }
+            processTargMod = false;
+		} else if (point->getPointType() == BPatch_exit) {
+			mal_printf("WARNING: stopThread instrumentation found return %lx=>%lx, "
+                      "into module %s, this indicates obfuscation or that there was a "
+					  "call from that module into our code %s[%d]\n",
+                      (long)point->getAddress(), target, modName,FILE__,__LINE__);
+		}
+		else { // jump into system library
+            // this is usually symptomatic of the following:
+            // call tail1
+            //    ...
+            // .tail1
+            // jump ptr
+            mal_printf("WARNING: transfer into non-instrumented system module "
+                        "%s at: %lx=>%lx %s[%d]\n", modName, 
+                        (long)point->getAddress(), target,FILE__,__LINE__);
+
+            // Instrument the return instructions of the system library 
+            // function so we can find the code at the call instruction's
+            // fallthrough address
+            proc()->beginInsertionSet();
+			BPatch_function *targFunc = proc()->findFunctionByEntry(target);
+            if (!targFunc) {
+                analyzeNewFunction(point,target,false,false);
+                targFunc = proc()->findFunctionByEntry(target);
+            }
+			instrumentFunction(targFunc, false, true);
+            proc()->finalizeInsertionSet(false);
+            processTargMod = false;
+        }
+    }
+    // 1.2 if targMod is a non-system library, then warn, and fall through into
+    // handling the transfer as we would any other transfer
+    else if ( targMod->isExploratoryModeOn() ) { 
+        mal_printf("WARNING: Transfer into instrumented module %s "
+                "func %s at: %lx=>%lx %s[%d]\n", modName, funcName, 
+                (long)point->getAddress(), target, FILE__,__LINE__);
+    } else { // jumped or called into module that's not recognized as a 
+             // system library and is not instrumented
+        if ((Address)point->getAddress() != 0x77c39d78) {
+            mal_printf("WARNING: Transfer into non-instrumented module "
+                    "%s func %s that is not recognized as a system lib: "
+                    "%lx=>%lx [%d]\n", modName, funcName, 
+                    (long)point->getAddress(), target, FILE__,__LINE__);
+        } else {
+            processTargMod = false; 
+                    // triggers for nspack's transfer into space that's 
+                    // allocated at runtime
+        }
+    }
+    return processTargMod;
+}
+
+// returns true current if evidence suggests that an indirect control 
+// transfer is always intramodular
+bool HybridAnalysis::isIntraMod(BPatch_point *point)
+{
+    vector<Address> targs;
+    point->getSavedTargets(targs);
+
+    if (targs.empty()) {
+        return false;
+    }
+
+    for (vector<Address>::iterator tit= targs.begin();
+         tit != targs.end(); 
+         tit++) 
+    {
+        BPatch_module *targMod = proc()->findModuleByAddr(*tit);
+        if (targMod != point->getFunction()->getModule()) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool HybridAnalysis::blockcmp::operator () (const BPatch_basicBlock *b1, 
@@ -951,11 +1126,37 @@ bool HybridAnalysis::blockcmp::operator () (const BPatch_basicBlock *b1,
     return false; 
 }
 
-void HybridAnalysis::deleteSynchSnippet(BPatch_point *point)
+HybridAnalysis::SynchHandle::SynchHandle(BPatch_point *prePt, 
+                                         BPatchSnippetHandle *preHandle)
 {
-    assert(memHandles.end() != memHandles.find(point));
-    proc()->deleteSnippet(memHandles[point].first);
-    proc()->deleteSnippet(memHandles[point].second);
-    memHandles.erase(point);
+    prePt_ = prePt;
+    preHandle_ = preHandle;
 }
 
+void 
+HybridAnalysis::SynchHandle::setPostHandle(BPatch_point *postPt, 
+                                           BPatchSnippetHandle *postHandle)
+{
+    postPt_ = postPt;
+    postHandle_ = postHandle;
+}
+
+void HybridAnalysis::deleteSynchSnippet(SynchHandle *handle)
+{
+    proc()->deleteSnippet(handle->preHandle_);
+    if (handle->postHandle_) {
+        proc()->deleteSnippet(handle->postHandle_);
+    }
+}
+
+std::map< BPatch_point* , HybridAnalysis::SynchHandle* > & 
+HybridAnalysis::synchMap_pre()
+{ 
+    return synchMap_pre_;
+}
+
+std::map< BPatch_point* , HybridAnalysis::SynchHandle* > & 
+HybridAnalysis::synchMap_post()
+{ 
+    return synchMap_post_;
+}

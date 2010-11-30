@@ -103,7 +103,7 @@ void HybridAnalysis::signalHandlerExitCB(BPatch_point *point, void *returnAddr)
     vector<BPatch_function *> funcs;
     proc()->findFunctionsByAddr((Address)returnAddr,funcs);
     if (0 == funcs.size()) {
-        analyzeNewFunction((Address)returnAddr, true, true);
+        analyzeNewFunction(point, (Address)returnAddr, true, true);
     }
     point->getFunction()->fixHandlerReturnAddr((Address)returnAddr);
     mal_printf("Exception handler exiting at %lx will resume execution at "
@@ -122,6 +122,39 @@ static void signalHandlerEntryCB_wrapper(BPatch_point *point, void *returnAddr)
     dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
         getHybridAnalysis()->signalHandlerEntryCB(point,returnAddr); 
 }
+
+bool HybridAnalysis::registerCodeDiscoveryCallback
+        (BPatchCodeDiscoveryCallback cb)
+{
+    bpatchCodeDiscoveryCB = cb;
+    return true;
+}
+
+bool HybridAnalysis::registerSignalHandlerCallback
+        (BPatchSignalHandlerCallback cb)
+{
+    bpatchSignalHandlerCB = cb;
+    return true;
+}
+
+bool HybridAnalysis::removeCodeDiscoveryCallback()
+{
+    if (bpatchCodeDiscoveryCB) {
+        bpatchCodeDiscoveryCB = NULL;
+        return true;
+    }
+    return false;
+}
+
+bool HybridAnalysis::removeSignalHandlerCallback()
+{
+    if (bpatchSignalHandlerCB) {
+        bpatchSignalHandlerCB = NULL;
+        return true;
+    }
+    return false;
+}
+
 
 /* Parse and instrument any signal handlers that have yet to be
  * analyzed (and instrumented), and that are not in system libraries
@@ -155,7 +188,7 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
         // parse and instrument handler
         mal_printf("found handler at %x %s[%d]\n", *it,FILE__,__LINE__);
         onlySysHandlers = false;
-        analyzeNewFunction(*it,true,false);
+        analyzeNewFunction(point,*it,true,false);
         handlerFunc = proc()->findFunctionByEntry(*it);
         assert(handlerFunc);
         handlerAddrs.push_back(*it);
@@ -250,6 +283,7 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
  * 4.1 if the point is a direct transfer: 
  * 4.1.1 remove instrumentation
  * 4. parse at the target if it is code
+ * KEVINTODO: split into phases: parse, instrument
  */
 void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue) 
 {
@@ -264,92 +298,21 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     strftime(timeStr, 64, "%X", tmstruct);
     printf("badTransferCB %lx=>%lx %s\n\n", point->getAddress(), target, timeStr);
 
-    // 1. the target address is in a shared library
     BPatch_module * targMod = proc()->findModuleByAddr(target);
     if (!targMod) {
         mal_printf( "ERROR, NO MODULE for target addr %lx %s[%d]\n", 
                 target,FILE__,__LINE__);
         assert(0);
     }
-    if ( targMod != point->getFunction()->getModule() ) {
-        BPatch_function* targFunc = targMod->findFunctionByEntry(target);
-        char modName[16]; 
-        char funcName[32];
-        targMod->getName(modName,16);
-        if (targFunc) {
-            targFunc->getName(funcName,32);
-            mal_printf("%lx => %lx, in module %s to known func %s\n",
-                        point->getAddress(),target,modName,funcName);
-        } else {
-            funcName[0]= '\0';
-            mal_printf("%lx => %lx, in module %s \n",
-                        point->getAddress(),target,modName,funcName);
-        }
-        // 1.1 if targMod is a system library don't parse at target.  However, if the 
-        //     transfer into the targMod is an unresolved indirect call, parse at the 
-        //     call's fallthrough addr and return.
-        if (targMod->isSystemLib() && BPatch_normalMode == targMod->getHybridMode()) 
-        {
-            if (point->getPointType() == BPatch_subroutine) {
-                if (0 == strncmp(funcName,"ExitProcess",32) && 
-                    0 == strncmp(modName,"kernel32.dll",16)) 
-                {
-                    fprintf(stderr,"Caught call to %s, should exit soon %s[%d]\n", 
-                            funcName,FILE__,__LINE__);
-                    return;
-                }
-                mal_printf("stopThread instrumentation found call %lx=>%lx, "
-                          "target is in module %s, parsing at fallthrough %s[%d]\n",
-                          (long)point->getAddress(), target, modName,FILE__,__LINE__);
-                parseAfterCallAndInstrument(point, targFunc);
-                return;
-			} else if (point->getPointType() == BPatch_exit) {
-				mal_printf("WARNING: stopThread instrumentation found return %lx=>%lx, "
-                          "into module %s, this indicates obfuscation or that there was a "
-						  "call from that module into our code %s[%d]\n",
-                          (long)point->getAddress(), target, modName,FILE__,__LINE__);
-			}
-			else { // jump into system library
-                // this is usually symptomatic of the following:
-                // call thunk1
-                //    ...
-                // .thunk1
-                // jump ptr
-                mal_printf("WARNING: transfer into non-instrumented system module "
-                            "%s at: %lx=>%lx %s[%d]\n", modName, 
-                            (long)point->getAddress(), target,FILE__,__LINE__);
 
-                // Instrument the return instructions of the system library 
-                // function so we can find the code at the call instruction's
-                // fallthrough address
-                proc()->beginInsertionSet();
-				BPatch_function *targFunc = proc()->findFunctionByEntry(target);
-                if (!targFunc) {
-                    analyzeNewFunction(target,false,false);
-                    targFunc = proc()->findFunctionByEntry(target);
-                }
-				instrumentFunction(targFunc, false, true);
-                proc()->finalizeInsertionSet(false);
-                return;
-            }
-        }
-        // 1.2 if targMod is a non-system library, then warn, and fall through into
-        // handling the transfer as we would any other transfer
-        else if ( targMod->isExploratoryModeOn() ) { 
-            mal_printf("WARNING: Transfer into instrumented module %s "
-                    "func %s at: %lx=>%lx %s[%d]\n", modName, funcName, 
-                    (long)point->getAddress(), target, FILE__,__LINE__);
-        } else { // jumped or called into module that's not recognized as a 
-                 // system library and is not instrumented
-            if (pointAddr != 0x77c39d78) {
-                mal_printf("WARNING: Transfer into non-instrumented module "
-                        "%s func %s that is not recognized as a system lib: "
-                        "%lx=>%lx [%d]\n", modName, funcName, 
-                        (long)point->getAddress(), target, FILE__,__LINE__);
-            } else {
-                return; // triggers for nspack's transfer into space that's 
-                        // allocated at runtime
-            }
+// 1. the target address is in a shared library
+    bool processTargMod = false;
+    if ( targMod != point->getFunction()->getModule() ) {
+        // process the edge, decide if we should instrument target function
+        processTargMod = processInterModuleEdge(point, target, targMod);
+
+        if (!processTargMod) {
+            return;
         }
     }
 
@@ -391,7 +354,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             mal_printf("stopThread instrumentation found call %lx=>%lx, "
                       "parsing at call target %s[%d]\n",
                      (long)point->getAddress(), target,FILE__,__LINE__);
-            if (!analyzeNewFunction( target,true,false )) {
+            if (!analyzeNewFunction( point,target,true,false )) {
                 //this happens for some single-instruction functions
                 mal_printf("WARNING: parse of call target %lx=>%lx failed %s[%d]\n",
                          (long)point->getAddress(), target, FILE__,__LINE__);
@@ -482,104 +445,71 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                         "instruction semantics for insn at %lx target %lx\n",
                         __LINE__, point->getAddress(), returnAddr);
             }
-            analyzeNewFunction( returnAddr, true , true );
+            analyzeNewFunction( point, returnAddr, true , true );
         }
 
         // 3. return
         return;
     }
-
-// 4. else case: the point is a jump/branch 
-    proc()->beginInsertionSet();
-    // 4.1 if the point is a direct branch, remove any instrumentation
-    vector<Address> *targets = new vector<Address>;
-    if ( point->getCFTargets(*targets) ) {
-        BPatch_function *func = point->getFunction();
-        if ((*instrumentedFuncs)[func]
-            &&
-            (*instrumentedFuncs)[func]->end() != 
-            (*instrumentedFuncs)[func]->find(point))
-        {
-            proc()->deleteSnippet(
-                (*(*instrumentedFuncs)[func])[point] );
-            (*instrumentedFuncs)[func]->erase(point);
-        }
-        //KEVINTODO: currently don't need to resolve the point here, it happens in handleStopThread, what's the better place for it?
-        //point->setResolved();
-    } 
-    delete(targets);
-
-    bool newParsing;
-    vector<BPatch_function*> targFuncs;
-    proc()->findFunctionsByAddr(target, targFuncs);
-    if ( 0 == targFuncs.size() ) { 
-        newParsing = true;
-        mal_printf("stopThread instrumentation found jump "
-                "at 0x%lx leading to an unparsed target at 0x%lx\n",
-                (long)point->getAddress(), target);
-    } else {
-        newParsing = false;
-        mal_printf("stopThread instrumentation added an edge for jump "
-                " at 0x%lx leading to a previously parsed target at 0x%lx\n",
-                (long)point->getAddress(), target);
-    }
-
-    // add the new edge to the program, parseNewEdgeInFunction will figure
-    // out whether to extend the current function or parse as a new one. 
-    parseNewEdgeInFunction(point, target, false);
-    if (0 == targFuncs.size()) {
-        proc()->findFunctionsByAddr( target, targFuncs );
-    }
-
-    // manipulate init_retstatus so that we will instrument the function's 
-    // return addresses, since this jump might be a tail call
-    for (unsigned tidx=0; tidx < targFuncs.size(); tidx++) {
-        image_func *imgfunc = targFuncs[tidx]->lowlevel_func()->ifunc();
-        FuncReturnStatus initStatus = imgfunc->init_retstatus();
-        if (ParseAPI::RETURN == initStatus) {
-            imgfunc->setinit_retstatus(ParseAPI::UNKNOWN);
-            removeInstrumentation(targFuncs[tidx],false);
-            instrumentFunction(targFuncs[tidx],false,true);
+    else {
+    // 4. else case: the point is a jump/branch 
+        proc()->beginInsertionSet();
+        // 4.1 if the point is a direct branch, remove any instrumentation
+        vector<Address> *targets = new vector<Address>;
+        if ( point->getCFTargets(*targets) ) {
+            BPatch_function *func = point->getFunction();
+            if (instrumentedFuncs->end() != instrumentedFuncs->find(func)
+                &&
+                (*instrumentedFuncs)[func]->end() != 
+                (*instrumentedFuncs)[func]->find(point))
+            {
+                proc()->deleteSnippet(
+                    (*(*instrumentedFuncs)[func])[point] );
+                (*instrumentedFuncs)[func]->erase(point);
+            }
+            //KEVINTODO: currently don't need to resolve the point here, it happens in handleStopThread, what's the better place for it?
+            //point->setResolved();
         } 
-    }
+        delete(targets);
 
-    // re-instrument the function or the whole module, as needed
-    if (newParsing) {
-        instrumentModules(false);
-    }
-    proc()->finalizeInsertionSet(false);
+        bool newParsing;
+        vector<BPatch_function*> targFuncs;
+        proc()->findFunctionsByAddr(target, targFuncs);
+        if ( 0 == targFuncs.size() ) { 
+            newParsing = true;
+            mal_printf("stopThread instrumentation found jump "
+                    "at 0x%lx leading to an unparsed target at 0x%lx\n",
+                    (long)point->getAddress(), target);
+        } else {
+            newParsing = false;
+            mal_printf("stopThread instrumentation added an edge for jump "
+                    " at 0x%lx leading to a previously parsed target at 0x%lx\n",
+                    (long)point->getAddress(), target);
+        }
 
+        // add the new edge to the program, parseNewEdgeInFunction will figure
+        // out whether to extend the current function or parse as a new one. 
+        parseNewEdgeInFunction(point, target, false);
+        if (0 == targFuncs.size()) {
+            proc()->findFunctionsByAddr( target, targFuncs );
+        }
+
+        // manipulate init_retstatus so that we will instrument the function's 
+        // return addresses, since this jump might be a tail call
+        for (unsigned tidx=0; tidx < targFuncs.size(); tidx++) {
+            image_func *imgfunc = targFuncs[tidx]->lowlevel_func()->ifunc();
+            FuncReturnStatus initStatus = imgfunc->init_retstatus();
+            if (ParseAPI::RETURN == initStatus) {
+                imgfunc->setinit_retstatus(ParseAPI::UNKNOWN);
+                removeInstrumentation(targFuncs[tidx],false);
+                instrumentFunction(targFuncs[tidx],false,true);
+            } 
+        }
+
+        // re-instrument the function or the whole module, as needed
+        if (newParsing) {
+            instrumentModules(false);
+        }
+        proc()->finalizeInsertionSet(false);
+    }
 } // end badTransferCB
-
-
-bool HybridAnalysis::registerCodeDiscoveryCallback
-        (BPatchCodeDiscoveryCallback cb)
-{
-    bpatchCodeDiscoveryCB = cb;
-    return true;
-}
-
-bool HybridAnalysis::registerSignalHandlerCallback
-        (BPatchSignalHandlerCallback cb)
-{
-    bpatchSignalHandlerCB = cb;
-    return true;
-}
-
-bool HybridAnalysis::removeCodeDiscoveryCallback()
-{
-    if (bpatchCodeDiscoveryCB) {
-        bpatchCodeDiscoveryCB = NULL;
-        return true;
-    }
-    return false;
-}
-
-bool HybridAnalysis::removeSignalHandlerCallback()
-{
-    if (bpatchSignalHandlerCB) {
-        bpatchSignalHandlerCB = NULL;
-        return true;
-    }
-    return false;
-}

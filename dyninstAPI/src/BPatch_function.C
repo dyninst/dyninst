@@ -615,6 +615,27 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
     return result;
 }
 
+BPatch_point * BPatch_function::getPoint(Address addr)
+{
+    BPatch_point *ret = NULL;
+    instPoint *point = lowlevel_func()->findInstPByAddr(addr);
+    if (!point) {
+        point = instPoint::createArbitraryInstPoint
+                    (addr, lladdSpace, lowlevel_func());
+    }
+    if (point) {
+        BPatch_procedureLocation ptType = 
+            BPatch_point::convertInstPointType_t(point->getPointType());
+        ret = addSpace->findOrCreateBPPoint(this, point, ptType);
+    } 
+    else {
+        bperr("Failed to create an instPoint at %lx in "
+              "function at %lx %s[%d]\n",
+              addr, getBaseAddr(), FILE__, __LINE__);
+    }
+    return ret;
+}
+
 /*
  * BPatch_function::findPoint (VG 09/05/01)
  *

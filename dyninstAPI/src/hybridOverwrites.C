@@ -573,10 +573,10 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop(BPatch_function &func, Add
             (!writeLoop || writeLoop->hasAncestor(*lIter))) 
         {
             // set writeLoop if the curloop has no indirect control transfers
-            bool hasIndirect = false;
+            bool hasUnresolved = false;
             (*lIter)->getLoopBasicBlocks(loopBlocks);
             for (vector<BPatch_basicBlock*>::iterator bIter= loopBlocks.begin(); 
-                bIter != loopBlocks.end() && !hasIndirect; 
+                bIter != loopBlocks.end() && !hasUnresolved; 
                 bIter++) 
             {
                 Address blockStart = (*bIter)->getStartAddress();
@@ -595,14 +595,18 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop(BPatch_function &func, Add
                     if ((*pIter)->isDynamic()) {
                         vector<Address> targs;
                         if (!(*pIter)->getSavedTargets(targs)) {
-                            // for now, warn, but allow to proceed
                             mal_printf("loop has an unresolved indirect transfer at %lx\n", 
                                     (*pIter)->getAddress());
-                            hasIndirect = true;
+                            hasUnresolved = true;
                         } else if (targs.size() > 1) {
                             mal_printf("loop has an indirect transfer resolving to multiple targets at %lx\n", 
                                     (*pIter)->getAddress());
-                            hasIndirect = true;
+                            hasUnresolved = true;
+                        } 
+                        else if ( ! hybrid()->isIntraMod(*pIter) ) {
+                            mal_printf("loop has an indirect transfer that could leave the module at %lx\n", 
+                                       (*pIter)->getAddress());
+                            hasUnresolved = true;
                         }
                     }
                 }
@@ -610,7 +614,7 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop(BPatch_function &func, Add
             }
             loopBlocks.clear();
             
-            if (!hasIndirect) {
+            if (!hasUnresolved) {
                 writeLoop = *lIter;
             }
         }
@@ -714,7 +718,13 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
             if (1 != targs.size()) {
                 hasUnresolved = true;
                 mal_printf("loop %d calls func %lx which has an indirect "
-                          "transfer at %lx that resolves to multiple targets "
+                           "transfer at %lx that resolves to %d targets "
+                           "%s[%d]\n", loop->getID(), (*fIter)->getBaseAddr(), 
+                           (*pIter)->getAddress(), targs.size(), FILE__,__LINE__);
+            } else if (!hybrid()->isIntraMod(*pIter)) {
+                hasUnresolved = true;
+                mal_printf("loop %d calls func %lx which has an indirect "
+                          "transfer at %lx that leaves the module "
                           "%s[%d]\n", loop->getID(), (*fIter)->getBaseAddr(), 
                           (*pIter)->getAddress(), FILE__,__LINE__);
             } else {
@@ -729,9 +739,9 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
         if ( ParseAPI::RETURN != 
              (*fIter)->lowlevel_func()->ifunc()->retstatus() ) 
         {
-            mal_printf("loop %d calls func %lx which appears to be "
-                      "non-returning %s[%d]\n", loop->getID(), 
-                      (*fIter)->getBaseAddr(), FILE__,__LINE__);
+            mal_printf("loop %d calls func %lx which could be "
+                       "non-returning %s[%d]\n", loop->getID(), 
+                       (*fIter)->getBaseAddr(), FILE__,__LINE__);
             hasUnresolved = true;
         }
     }
@@ -820,12 +830,16 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
 
         // if the block has a call, add it to the list of called funcs
         BPatch_function *targFunc = (*bIter)->getCallTarget();
-        if ( targFunc && targFunc->getModule()->isExploratoryModeOn()) { 
+        if (targFunc && 
+            (*bIter)->getFlowGraph()->getModule() == targFunc->getModule()) 
+        { 
             mal_printf("loop has a function call %lx->%lx\n", 
                       (*bIter)->getLastInsnAddress(), targFunc->getBaseAddr());
             loopFuncs.insert(targFunc);
+
         } else if (targFunc) {
-            mal_printf("loop calls non-mal-func:%lx [%d]\n",targFunc->getBaseAddr(), __LINE__);
+            mal_printf("loop calls func at %lx in different module [%d]\n",
+                       targFunc->getBaseAddr(), __LINE__);
         }
     }
     //recursively add blocks in called functions to the loop
