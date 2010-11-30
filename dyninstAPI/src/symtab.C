@@ -1267,40 +1267,8 @@ int image::destroy() {
     return refCount; 
 }
 
-void image::removeInstPoint(image_instPoint *p, instPoint *ip)
-{
-    instp_map_t::iterator iit = inst_pts_.find(p->offset());
-    if(iit != inst_pts_.end()) {
-        if (ip) {
-            iit->second->owners.erase(ip);
-        if ((ip == NULL) || iit->second->owners.empty())
-            inst_pts_.erase(iit);
-        }
-    }
-}
 void image::deleteFunc(image_func *func)
 {
-    // Remove the function's points, but not points that are shared
-    // with other functions since they might not be going away. 
-    vector<FuncExtent *>::const_iterator eit = func->extents().begin();
-    set<ParseAPI::Function *> pt_funcs;
-    for( ; eit != func->extents().end(); ++eit) {
-        FuncExtent * fe = *eit;
-        pdvector<image_instPoint *> pts;
-        getInstPoints(fe->start(),fe->end(),pts);
-        for(unsigned i=0;i<pts.size();++i) {
-            image_instPoint *p = pts[i];
-            findFuncs(p->offset(), pt_funcs);
-            if ( 1 == pt_funcs.size() )
-                removeInstPoint(p, NULL);
-            pt_funcs.clear();
-        }
-    }
-    // Remove the function's entry point whether it is shared or not
-    image_instPoint *p = getInstPoint(func->getOffset());
-    if (p && functionEntry == p->getPointType()) 
-        removeInstPoint(p, NULL);
-
     // remove the function from symtabAPI
     SymtabAPI::Function *sym_func =NULL;
     getObject()->findFuncByEntryOffset(sym_func, func->getOffset());
@@ -1313,34 +1281,10 @@ void image::deleteFunc(image_func *func)
 
 }
 
-#if 0   // FIXME ensure all necessary functionality preserved
-// Enter a function in all the appropriate tables
-void image::enterFunctionInTables(image_func *func) {
-    if (!func) return;
-
-    parsing_printf("[%s:%u] entering function at %lx (%s) in tables\n",
-        FILE__,__LINE__,func->getOffset(),func->symTabName().c_str());
-
-    funcsByEntryAddr[func->getOffset()] = func;
-   
-    // XXX the origin & meaning of the following comment is unknown; preserving.
-    // TODO: out-of-line insertion here
-    if(func->get_size()) {
-        funcsByRange.insert(func);
-    }
-
-    // This has already been done for symtab functions
-    if(func->src() != HINT) {
-        Symbol *sym = func->getSymtabFunction()->getFirstSymbol();
-        getObject()->addSymbol(sym);
-    }
-   
-    if(func->src() == HINT)
-        exportedFunctions.push_back(func);
-    else
-        createdFunctions.push_back(func);
-}  
-#endif
+void image::deleteInstPoint(image_instPoint *p) {
+   inst_pts_.erase(p->offset());
+   delete p;
+}
 
 void image::analyzeIfNeeded() {
   if (parseState_ == symtab) {
@@ -1632,7 +1576,6 @@ image::image(fileDescriptor &desc,
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
    // XXX FIXME having this static member in instPointBase
    //     prevents support of multiple architectures simultaneously
-   instPointBase::setArch(cs_->getArch(), (getObject()->getAddressWidth() == 8));
 
    // Continue ParseAPI init
    img_fact_ = new DynCFGFactory(this);

@@ -119,6 +119,7 @@ class int_block {
     std::string format() const;
 
 #if defined(cap_instruction_api)
+    // TODO: this should be a map from addr to insn, really
     typedef std::pair<InstructionAPI::Instruction::Ptr, Address> InsnInstance;
     typedef std::vector<InsnInstance> InsnInstances;
     void getInsnInstances(InsnInstances &instances) const;

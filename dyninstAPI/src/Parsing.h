@@ -107,12 +107,12 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   ~DynParseCallback() { }
 
   // defensive and exploratory mode callbacks
-  void abruptEnd_cf(Address,default_details*);
+  void abruptEnd_cf(Address,ParseAPI::Block *,default_details*);
   void newfunction_retstatus(ParseAPI::Function*);
   void block_split(ParseAPI::Block *first, ParseAPI::Block *second);
   void patch_nop_jump(Address);
   // other callbacks
-  void interproc_cf(ParseAPI::Function*,Address,interproc_details*);
+  void interproc_cf(ParseAPI::Function*,ParseAPI::Block*,Address,interproc_details*);
   void overlapping_blocks(ParseAPI::Block*,ParseAPI::Block*);
   bool updateCodeBytes(Address target); // updates if needed
 

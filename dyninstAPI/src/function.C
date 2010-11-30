@@ -452,9 +452,6 @@ bool int_function::removePoint(instPoint *point)
         unresolvedPoints_.erase(point);
         foundPoint = true;
     }
-    if (point->imgPt()) {
-        ifunc()->img()->removeInstPoint(point->imgPt(), point);
-    }
     assert(foundPoint);
     return foundPoint;
 }
@@ -524,28 +521,9 @@ int_block * int_function::setNewEntryPoint()
 
     assert(!newEntry->llb()->isShared()); //KEVINTODO: unimplemented case
 
-    //create and add an entry point for the image_func
-    int insn_size = 0;
-    unsigned char * insn_buf = (unsigned char *) obj()->getPtrToInstruction
-        (newEntry->start());
-#if defined(cap_instruction_api)
-    using namespace InstructionAPI;
-    InstructionDecoder dec
-        (insn_buf,InstructionDecoder::maxInstructionLength,proc()->getArch());
-    Instruction::Ptr insn = dec.decode();
-    if(insn)
-        insn_size = insn->size();
-#else
-    InstrucIter ah(newEntry->start(),
-                   newEntry->getSize(),
-                   proc());
-    instruction insn = ah.getInstruction();
-    insn_size = insn.size();
-#endif
     image_instPoint *imgPoint = new image_instPoint(
         newEntry->llb()->firstInsnOffset(),
-        insn_buf,
-        insn_size,
+        newEntry->llb(),
         ifunc()->img(),
         functionEntry);
     ifunc()->img()->addInstPoint(imgPoint);

@@ -237,17 +237,26 @@ image_basicBlock::image_basicBlock(
 #endif
 }
 
+image_basicBlock::~image_basicBlock() {
+   cerr << "Deleting image_basicBlock..." << endl;
+   // Nuke image_instPoints associated with this block.
+   for (Address addr = start(); addr < end(); ++addr) {
+      image_instPoint *p = img()->getInstPoint(addr);
+      if (p && p->block() == this) {
+         img()->deleteInstPoint(p);
+      }
+   }
+}
+
 int image_instPoint_count = 0;
 
 image_instPoint::image_instPoint(Address offset,
-                                 unsigned char * insn_buf,
-                                 size_t insn_len,
+                                 ParseAPI::Block *b,
                                  image * img,
                                  instPointType_t type) :
-    instPointBase(insn_buf,
-                  insn_len,
-                  type),
+    instPointBase(type),
     offset_(offset),
+    block_(b),
     image_(img),
     callee_(NULL),
     callTarget_(0),
@@ -264,18 +273,16 @@ image_instPoint::image_instPoint(Address offset,
 }
 
 image_instPoint::image_instPoint(Address offset,
-                                 unsigned char * insn_buf,
-                                 size_t insn_len,
+                                 ParseAPI::Block *b,
                                  image * img,
                                  Address callTarget,
                                  bool isDynamic,
                                  bool isAbsolute,
                                  instPointType_t ptType, 
                                  bool isUnresolved) :
-    instPointBase(insn_buf,
-                  insn_len,
-                  ptType),
+    instPointBase(ptType),
     offset_(offset),
+    block_(b),
     image_(img),
     callee_(reinterpret_cast<image_func*>(-1)),
     callTarget_(callTarget),
@@ -472,8 +479,17 @@ image_func::funcEntries(pdvector<image_instPoint*> &points)
 {
     // there can be only one
     image_instPoint * p = img()->getInstPoint(addr());
-    if(p)
-        points.push_back(p);
+
+    if (!p && instLevel_ != UNINSTRUMENTABLE) {
+       // We can create these lazily...
+       p = new image_instPoint(addr(),
+                               entryBlock(),
+                               img(), 
+                               functionEntry);
+       img()->addInstPoint(p);
+    }
+    points.push_back(p);
+
 }
 void 
 image_func::funcExits(pdvector<image_instPoint*> &points)

@@ -49,8 +49,6 @@
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/InstructionDecoder.h"
 using namespace Dyninst::InstructionAPI;
-Dyninst::Architecture instPointBase::arch = Dyninst::Arch_none;
-
 #else
 #include "parseAPI/src/InstrucIter.h"
 #endif // defined(cap_instruction_api)
@@ -217,7 +215,6 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
             return NULL; // Not aligned
     }
     newIP = new instPoint(proc,
-                          i,
                           addr,
                           block);
     
@@ -260,11 +257,9 @@ miniTramp *instPoint::instrument(AstNodePtr ast,
 int instPoint_count = 0;
 
 instPoint::instPoint(AddressSpace *proc,
-                     Dyninst::InstructionAPI::Instruction::Ptr insn,
                      Address addr,
                      int_block *block) :
-    instPointBase(insn, 
-                otherPoint),
+    instPointBase(otherPoint),
     callee_(NULL),
     isDynamic_(false),
     preBaseTramp_(NULL),
@@ -292,9 +287,8 @@ instPoint::instPoint(AddressSpace *proc,
                      image_instPoint *img_p,
                      Address addr,
                      int_block *block) :
-        instPointBase(img_p->insn(),
-                  img_p->getPointType(),
-                  img_p->id()),
+   instPointBase(img_p->getPointType(),
+                 img_p->id()),
     callee_(NULL),
     isDynamic_(img_p->isDynamic()),
     preBaseTramp_(NULL),
@@ -315,16 +309,14 @@ instPoint::instPoint(AddressSpace *proc,
         fprintf(stderr, "instPoint_count: %d (%d)\n",
                 instPoint_count, instPoint_count*sizeof(instPoint));
 #endif
-    img_p->owners.insert(this);
 }
 
 // Copying over from fork
 instPoint::instPoint(instPoint *parP,
                      int_block *child,
-                     process *childP) :
-        instPointBase(parP->insn(),
-                  parP->getPointType(),
-                  parP->id()),
+                     process *childP)
+   : instPointBase(parP->getPointType(),
+                   parP->id()),
     callee_(NULL), // Will get set later
     isDynamic_(parP->isDynamic_),
     preBaseTramp_(NULL),
@@ -692,3 +684,15 @@ bool instPoint::setResolved()
 
     return false;
 }
+
+#if defined(cap_instruction_api)
+InstructionAPI::Instruction::Ptr instPoint::insn() const {
+   int_block::InsnInstances insns;
+   block()->getInsnInstances(insns);
+   for (int_block::InsnInstances::iterator iter = insns.begin();
+        iter != insns.end(); ++iter) {
+      if (iter->second == addr()) return iter->first;
+   }
+   return InstructionAPI::Instruction::Ptr();
+}
+#endif

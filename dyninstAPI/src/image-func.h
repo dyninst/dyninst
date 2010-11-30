@@ -83,6 +83,7 @@ class image_basicBlock : public codeRange, public ParseAPI::Block  {
     image_basicBlock(ParseAPI::CodeObject *, ParseAPI::CodeRegion*, Address);
  public:
     image_basicBlock(image_func*,ParseAPI::CodeRegion*,Address);
+    ~image_basicBlock();
 
     // just pass through to Block
     Address firstInsnOffset() const;
