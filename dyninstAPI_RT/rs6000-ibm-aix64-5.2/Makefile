@@ -12,7 +12,7 @@ DEBUG_FLAG = -g
 
 # AIX: libraries end in .a
 TARGET = libdyninstAPI_RT.a
-TARGET_SYMLINK = libdyninstAPI_RT.so.1
+TARGET_SYMLINK = libdyninstAPI_RT.so
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -88,7 +88,7 @@ libDyninstText.a: space.o
 endif
 
 
-libDyninstAPI_RT.so.1: libDyninstText.a
+libDyninstAPI_RT.so: libDyninstText.a
 # ... and uses default AIX link line
 
 RTthread-power-asm.o:
@@ -109,7 +109,7 @@ install: install_generic libDyninstText.a
 ASM_SRCS_32  = ../src/RTthread-power-asm.s
 
 TARGET_32    = libdyninstAPI_RT_m32.a
-TARGET_SYMLINK_32 = libdyninstAPI_RT_m32.so.1
+TARGET_SYMLINK_32 = libdyninstAPI_RT_m32.so
 
 XTARGET_32   = $(basename $(TARGET_32))
 VOUCHER_32   = V_$(XTARGET_32)
