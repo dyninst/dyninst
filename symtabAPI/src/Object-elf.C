@@ -5198,6 +5198,7 @@ MappedFile *Object::findMappedFileForDebugInfo() {
     fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary %s\n",__FILE__,__LINE__,
             getFileName());
     log_elferror(err_func_, ".shstrtab section");
+    return mf;
   }
 
   string debugFileFromDebugLink, debugFileFromBuildID;
