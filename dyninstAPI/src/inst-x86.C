@@ -575,6 +575,8 @@ void registerSpace::initialize64() {
     returnRead64_[REGNUM_R13] = true;
     returnRead64_[REGNUM_R14] = true;
     returnRead64_[REGNUM_R15] = true;
+    returnRead64_[REGNUM_XMM0] = true;
+    returnRead64_[REGNUM_XMM1] = true;
 
     //returnRead64_[REGNUM_R10] = true;
     
@@ -586,6 +588,15 @@ void registerSpace::initialize64() {
     callRead64_[REGNUM_R9] = true;
     callRead64_[REGNUM_RDI] = true;
     callRead64_[REGNUM_RSI] = true;
+    
+    callRead64_[REGNUM_XMM0] = true;
+    callRead64_[REGNUM_XMM1] = true;
+    callRead64_[REGNUM_XMM2] = true;
+    callRead64_[REGNUM_XMM3] = true;
+    callRead64_[REGNUM_XMM4] = true;
+    callRead64_[REGNUM_XMM5] = true;
+    callRead64_[REGNUM_XMM6] = true;
+    callRead64_[REGNUM_XMM7] = true;
 
     // Anything in those four is not preserved across a call...
     // So we copy this as a shorthand then augment it
@@ -599,7 +610,6 @@ void registerSpace::initialize64() {
     for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) 
         callWritten64_[i] = true;
 
-    // What about floating point?
 
     // And assume a syscall reads or writes _everything_
     syscallRead64_ = getBitArray().set();
