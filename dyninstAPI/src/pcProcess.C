@@ -39,6 +39,7 @@
 #include "instPoint.h"
 #include "BPatch.h"
 #include "mapped_module.h"
+#include "baseTramp.h"
 
 #include "common/h/pathName.h"
 
@@ -71,7 +72,7 @@ PCProcess *PCProcess::createProcess(const string file, pdvector<string> *argv,
         for (unsigned e = 0; e < envp->size(); e++)
             startup_cerr << "   " << e << ": " << (*envp)[e] << endl;
     }
-    startup_printf("Stdin: %d, stdout: %d, stderr: %d\n", stdin_fd, stdout_fd, stderr_fd);
+    startup_printf("%s[%d]: stdin: %d, stdout: %d, stderr: %d\n", stdin_fd, stdout_fd, stderr_fd);
 
     // Create a full path to the executable
     string path = createExecPath(file, dir);
@@ -109,7 +110,7 @@ PCProcess *PCProcess::createProcess(const string file, pdvector<string> *argv,
 
     if( !tmpPcProc ) {
         const char *lastErrMsg = getLastErrorMsg();
-        startup_printf("%s[%d]: Failed to create process for %s: %s\n", __FILE__,
+        startup_printf("%s[%d]: failed to create process for %s: %s\n", __FILE__,
                 __LINE__, file.c_str(), lastErrMsg);
         string msg = string("Failed to create process for ") + file +
            string(": ") + lastErrMsg;
@@ -166,6 +167,7 @@ PCProcess *PCProcess::attachProcess(const string &progpath, int pid,
     tmpPcProc->setData(ret);
 
     ret->runningWhenAttached_ = runningWhenAttached;
+    ret->file_ = tmpPcProc->libraries().getExecutable()->getName();
 
     if( !ret->bootstrapProcess() ) {
         startup_cerr << "Failed to bootstrap process " << pid 
@@ -239,7 +241,8 @@ void PCProcess::setBootstrapState(bootstrapState_t newState) {
 bool PCProcess::bootstrapProcess() {
     assert( pcProc_->allThreadsStopped() );
 
-    startup_printf("Attempting to bootstrap process %d\n", getPid());
+    startup_printf("%s[%d]: attempting to bootstrap process %d\n", 
+            FILE__, __LINE__, getPid());
 
     // Create the initial threads
     createInitialThreads();
@@ -253,13 +256,15 @@ bool PCProcess::bootstrapProcess() {
 
     // Create the mapped_objects for the executable and shared libraries
     if( !createInitialMappedObjects() ) {
-        startup_printf("Bootstrap failed while creating mapped objects\n");
+        startup_printf("%s[%d]: bootstrap failed while creating mapped objects\n",
+                FILE__, __LINE__);
         return false;
     }
 
     // Set the RT library name
     if( !getDyninstRTLibName() ) {
-        startup_printf("Failed to get Dyninst RT lib name\n");
+        startup_printf("%s[%d]: failed to get Dyninst RT lib name\n",
+                FILE__, __LINE__);
         return false;
     }
     startup_printf("%s[%d]: Got Dyninst RT libname: %s\n", FILE__, __LINE__,
@@ -268,19 +273,22 @@ bool PCProcess::bootstrapProcess() {
     // Insert a breakpoint at the entry point of main (and possibly __libc_start_main)
     if( !hasPassedMain() ) {
         if( !insertBreakpointAtMain() ) {
-            startup_printf("Bootstrap failed while setting a breakpoint at main\n");
+            startup_printf("%s[%d]: bootstrap failed while setting a breakpoint at main\n",
+                    FILE__, __LINE__);
             return false;
         }
 
         if( !continueProcess() ) {
-            startup_printf("Bootstrap failed while continuing the process\n");
+            startup_printf("%s[%d]: bootstrap failed while continuing the process\n",
+                    FILE__, __LINE__);
             return false;
         }
 
         while( !hasReachedBootstrapState(bs_readyToLoadRTLib) ) {
             if( isStopped() ) {
                 if( !continueProcess() ) {
-                    startup_printf("Bootstrap failed while continuing the process\n");
+                    startup_printf("%s[%d]: bootstrap failed while continuing the process\n",
+                            FILE__, __LINE__);
                     return false;
                 }
             }
@@ -296,23 +304,26 @@ bool PCProcess::bootstrapProcess() {
                       "Ubuntu users - You may need to rebuild the RT library "
                       "with the DISABLE_STACK_PROT line enabled in "
                       "core/make.config.local");
-                startup_printf("%s[%d] Program exited early, never reached "
+                startup_printf("%s[%d]: program exited early, never reached "
                                "initialized state\n", FILE__, __LINE__);
                 startup_printf("Error is likely due to the application or RT "
                                "library having missing symbols or dependencies\n");
                 return false;
             }
 
-            startup_printf("Bootstrap waiting for process to initialize\n");
+            startup_printf("%s[%d]: bootstrap waiting for process to initialize\n",
+                    FILE__, __LINE__);
             if( eventHandler_->waitForEvents(true) != PCEventHandler::EventsReceived ) {
-                startup_printf("Bootstrap failed to wait for events\n");
+                startup_printf("%s[%d]: bootstrap failed to wait for events\n",
+                        FILE__, __LINE__);
                 return false;
             }
         }
     }else{
         bootstrapState_ = bs_readyToLoadRTLib;
     }
-    startup_printf("Process initialized, loading the RT library\n");
+    startup_printf("%s[%d]: process initialized, loading the RT library\n",
+            FILE__, __LINE__);
 
     // Load the RT library
     if( !loadRTLib() ) {
@@ -320,13 +331,15 @@ bool PCProcess::bootstrapProcess() {
               "into the application.  This may be caused by statically "
               "linked executables, or by having dyninst linked against a "
               "different version of libelf than it was built with.");
-        startup_printf("Bootstrap failed to load RT library\n");
+        startup_printf("%s[%d]: bootstrap failed to load RT library\n",
+                FILE__, __LINE__);
         return false;
     }
 
     pdvector<int_variable *> obsCostVec;
     if( !findVarsByAll("DYNINSTobsCostLow", obsCostVec) ) {
-        startup_printf("Failed to find DYNINSTobsCostLow\n");
+        startup_printf("%s[%d]: failed to find DYNINSTobsCostLow\n",
+                FILE__, __LINE__);
         return false;
     }
 
@@ -337,7 +350,8 @@ bool PCProcess::bootstrapProcess() {
 
     /*
     if( !wasCreatedViaFork() ) {
-        startup_printf("Installing default Dyninst instrumentation into process %d\n", getPid());
+        startup_printf("%s[%d]: installing default Dyninst instrumentation into process %d\n", 
+            FILE__, __LINE__, getPid());
 
         tracedSyscalls_ = new syscallNotification(this);
 
@@ -364,9 +378,9 @@ bool PCProcess::bootstrapProcess() {
     */
 
     // Initialize the tramp guard
-    startup_printf("Initializing tramp guard\n");
+    startup_printf("%s[%d]: initializing tramp guard\n", FILE__, __LINE__);
     if( !initTrampGuard() ) {
-        startup_printf("Failed to initalize tramp guards\n");
+        startup_printf("%s[%d]: failed to initalize tramp guards\n", FILE__, __LINE__);
         return false;
     }
 
@@ -392,7 +406,7 @@ bool PCProcess::bootstrapProcess() {
     }
 
     bootstrapState_ = bs_initialized;
-    startup_printf("Finished bootstrapping process %d\n", getPid());
+    startup_printf("%s[%d]: finished bootstrapping process %d\n", FILE__, __LINE__, getPid());
 
     return true;
 }
@@ -437,6 +451,12 @@ void PCProcess::createInitialThreads() {
 }
 
 bool PCProcess::createInitialMappedObjects() {
+    if( file_.empty() ) {
+        startup_printf("%s[%d]: failed to determine executable for process %d\n",
+                FILE__, __LINE__, getPid());
+        return false;
+    }
+
     // Create the executable mapped object
     fileDescriptor desc;
     startup_printf("%s[%d]: about to getExecFileDescriptor\n", FILE__, __LINE__);
@@ -495,7 +515,8 @@ void PCProcess::addASharedObject(mapped_object *newObj) {
 
     findSignalHandler(newObj);
 
-    startup_printf("Adding shared object %s, addr range 0x%x to 0x%x\n",
+    startup_printf("%s[%d]: adding shared object %s, addr range 0x%x to 0x%x\n",
+            FILE__, __LINE__,
             newObj->fileName().c_str(),
             newObj->getBaseAddress(),
             newObj->getBaseAddress() + newObj->get_size());
@@ -535,14 +556,6 @@ void PCProcess::removeASharedObject(mapped_object *obj) {
 
     // Signal handler...
     // TODO
-
-    const pdvector<mapped_module *> &modlist = obj->getModules();
-
-    for (unsigned i = 0; i < modlist.size(); i++) {
-        mapped_module *curr = modlist[i];
-
-        BPatch::bpatch->registerUnloadedModule(this, curr);
-    }
 }
 
 bool PCProcess::setAOut(fileDescriptor &desc) {
@@ -698,6 +711,14 @@ bool PCProcess::loadRTLib() {
     }
 
     // Initialize some variables in the RT lib
+    DYNINST_bootstrapStruct bs_record;
+
+    if( !extractBootstrapStruct(&bs_record) || bs_record.event == 0 ) {
+        startup_printf("%s[%d]: RT library not initialized, using RPC to initialize\n",
+                FILE__, __LINE__);
+        if( !iRPCDyninstInit() ) return false;
+    }
+
     return setRTLibInitParams();
 }
 
@@ -706,7 +727,7 @@ bool PCProcess::setRTLibInitParams() {
     startup_printf("%s[%d]: welcome to PCPRocess::setRTLibInitParams\n",
             FILE__, __LINE__);
 
-    int pid = getPid();
+    int pid = P_getpid();
 
     // Cause:
     // 1 = created
@@ -767,8 +788,11 @@ bool PCProcess::setRTLibInitParams() {
         }
     }
 
+    unsigned numThreads = MAX_THREADS;
+    if( !multithread_capable() ) numThreads = 1;
+
     assert(vars.size() == 1);
-    if (!writeDataWord((void*)vars[0]->getAddress(), sizeof(int), (void *) &MAX_THREADS)) {
+    if (!writeDataWord((void*)vars[0]->getAddress(), sizeof(int), (void *) &numThreads)) {
         startup_printf("%s[%d]: writeDataWord failed\n", FILE__, __LINE__);
         return false;
     }
@@ -795,6 +819,73 @@ bool PCProcess::setRTLibInitParams() {
     return true;
 }
 
+#if !defined(os_vxworks)
+bool PCProcess::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record) {
+    const std::string vrbleName("DYNINST_bootstrap_info");
+
+    pdvector<int_variable *> bootstrapInfoVec;
+    if( !findVarsByAll(vrbleName, bootstrapInfoVec) ) {
+        startup_printf("%s[%d]: failed to find bootstrap variable %s\n",
+                FILE__, __LINE__, vrbleName.c_str());
+        return false;
+    }
+
+    if( bootstrapInfoVec.size() > 1 ) {
+        startup_printf("%s[%d]: found more than 1 bootstrap struct var, choosing first one\n",
+                FILE__, __LINE__);
+        return false;
+    }
+
+    Address symAddr = bootstrapInfoVec[0]->getAddress();
+    if( !readDataSpace((const void *)symAddr, sizeof(*bs_record), bs_record, true) ) {
+        startup_printf("%s[%d]: failed to read bootstrap struct in RT library\n",
+                FILE__, __LINE__);
+        return false;
+    }
+
+    return true;
+}
+#endif
+
+bool PCProcess::iRPCDyninstInit() {
+    startup_printf("%s[%d]: running DYNINSTinit via iRPC\n", FILE__, __LINE__);
+
+    extern int dyn_debug_rtlib;
+    int pid = P_getpid();
+    unsigned maxthreads = MAX_THREADS;
+    if( !multithread_capable() ) maxthreads = 1;
+
+    int cause;
+    if( createdViaAttach_ ) {
+        cause = 3;
+    }else{
+        cause = 1;
+    }
+
+    pdvector<AstNodePtr> the_args(4);
+    the_args[0] = AstNode::operandNode(AstNode::Constant, (void*)(Address)cause);
+    the_args[1] = AstNode::operandNode(AstNode::Constant, (void*)(Address)pid);
+    the_args[2] = AstNode::operandNode(AstNode::Constant, (void*)(Address)maxthreads);
+    the_args[3] = AstNode::operandNode(AstNode::Constant, (void*)(Address)dyn_debug_rtlib);
+    AstNodePtr dynInit = AstNode::funcCallNode("DYNINSTinit", the_args);
+
+    if( !postIRPC(dynInit, 
+                NULL,  // no user data
+                false, // don't run after it is done
+                NULL,  // doesn't matter which thread
+                true,  // wait for completion
+                NULL,  // don't need to check result directly
+                false) ) // don't deliver callbacks 
+    {
+        startup_printf("%s[%d]: failed to run DYNINSTinit via iRPC\n", FILE__, __LINE__);
+        return false;
+    }
+
+    startup_printf("%s[%d]: finished running DYNINSTinit via RPC\n", FILE__, __LINE__);
+
+    return true;
+}
+
 #if defined(os_vxworks)
 bool PCProcess::insertBreakpointAtMain() {
     // We don't need any extra processing of the RTlib.
@@ -803,19 +894,21 @@ bool PCProcess::insertBreakpointAtMain() {
 #else
 bool PCProcess::insertBreakpointAtMain() {
     if( main_function_ == NULL ) {
-        startup_printf("main function not yet found, cannot insert breakpoint\n");
+        startup_printf("%s[%d]: main function not yet found, cannot insert breakpoint\n",
+                FILE__, __LINE__);
     }
     Address addr = main_function_->getAddress();
 
     // Create the breakpoint
     mainBrkPt_ = Breakpoint::newBreakpoint();
     if( !pcProc_->addBreakpoint(addr, mainBrkPt_) ) {
-        startup_printf("Failed to insert a breakpoint at main entry: 0x%x\n",
-                addr);
+        startup_printf("%s[%d]: failed to insert a breakpoint at main entry: 0x%x\n",
+                FILE__, __LINE__, addr);
         return false;
     }
 
-    startup_printf("Added trap to entry of main, address 0x%x\n", addr);
+    startup_printf("%s[%d]: added trap to entry of main, address 0x%x\n", 
+            FILE__, __LINE__, addr);
 
     return true;
 }
@@ -823,15 +916,16 @@ bool PCProcess::insertBreakpointAtMain() {
 
 bool PCProcess::removeBreakpointAtMain() {
     if( main_function_ == NULL || mainBrkPt_ == Breakpoint::ptr() ) {
-        startup_printf("no breakpoint set at main function, not removing\n");
+        startup_printf("%s[%d]: no breakpoint set at main function, not removing\n",
+                FILE__, __LINE__);
         return true;
     }
 
     Address addr = main_function_->getAddress();
 
     if( !pcProc_->rmBreakpoint(addr, mainBrkPt_) ) {
-        startup_printf("Failed to remove breakpoint at main entry: 0x%x\n",
-                addr);
+        startup_printf("%s[%d]: failed to remove breakpoint at main entry: 0x%x\n",
+                FILE__, __LINE__, addr);
         return false;
     }
     mainBrkPt_ = Breakpoint::ptr();
@@ -846,7 +940,7 @@ Breakpoint::ptr PCProcess::getBreakpointAtMain() const {
 // End Runtime library initialization code
 
 bool PCProcess::continueProcess(int /* contSignal */) {
-    proccontrol_printf("Continuing process %d\n", getPid());
+    proccontrol_printf("%s[%d]: Continuing process %d\n", FILE__, __LINE__, getPid());
 
     if( !isAttached() ) {
         bpwarn("Warning: continue attempted on non-attached process\n");
@@ -1048,6 +1142,12 @@ unsigned PCProcess::getMemoryPageSize() const {
 
 int PCProcess::getPid() const {
     return pcProc_->getPid();
+}
+
+int PCProcess::incrementThreadIndex() {
+    int ret = curThreadIndex_;
+    curThreadIndex_++;
+    return ret;
 }
 
 unsigned PCProcess::getAddressWidth() const {
@@ -2851,13 +2951,15 @@ Architecture PCProcess::getArch() const {
 }
 
 bool PCProcess::multithread_ready(bool ignoreIfMtNotSet) {
-    if( thread_index_function_ != NULL ) return true;
-    if( !multithread_capable(ignoreIfMtNotSet) ) return false;
+    // Since ProcControlAPI has taken over handling thread creation
+    // and destruction from the RT library, as soon as the process reaches
+    // the initialized state, the process is multithread ready if it
+    // is multithread capable.
+
     if( !hasReachedBootstrapState(bs_initialized) ) return false;
+    if( !multithread_capable(ignoreIfMtNotSet) ) return false;
 
-    thread_index_function_ = findOnlyOneFunction("DYNINSTthreadIndex");
-
-    return thread_index_function_ != NULL;
+    return true;
 }
 
 bool PCProcess::needsPIC() {
@@ -2911,4 +3013,197 @@ bool PCProcess::walkStackFromFrame(Frame startFrame,
         stackWalk.push_back(currentFrame);
 
     return true;
+}
+
+/* This is the simple version
+ * 1. Need three pieces of information:
+ * 1a. The instrumentation point that triggered the stopThread event (pointAddress)
+ * 1b. The ID of the callback function given at the registration
+ *     of the stopThread snippet
+ * 1c. The result of the snippet calculation that was given by the user,
+ *     if the point is a return instruction, read the return address
+ * 2. If the calculation is an address that is meant to be interpreted, do that
+ * 3. Invoke the callback
+ */
+bool PCProcess::triggerStopThread(Address pointAddress, int callbackID, void *calculation) {
+    // get instPoint from point address
+    int_function *pointfunc = findActiveFuncByAddr(pointAddress);
+    if (!pointfunc) {
+        mal_printf("%s[%d]: failed to find active function at 0x%lx\n",
+                FILE__, __LINE__, pointAddress);
+        return false;
+    }
+
+    instPoint *intPoint = pointfunc->findInstPByAddr(pointAddress);
+    if (!intPoint) {
+        mal_printf("%s[%d]: failed to find inst point at 0x%lx\n",
+                FILE__, __LINE__, pointAddress);
+        return false;
+    }
+
+    /* 2. If the callbackID is negative, the calculation is meant to be
+      interpreted as the address of code, so we call stopThreadCtrlTransfer
+      to translate the target to an unrelocated address */
+    if (callbackID < 0) {
+        callbackID *= -1;
+        calculation = (void*)
+            stopThreadCtrlTransfer(intPoint, (Address)calculation);
+    }
+
+    /* 3. Trigger the callback for the stopThread
+      using the correct snippet instance ID & event type */
+    ((BPatch_process*)up_ptr())->triggerStopThread
+        (intPoint, pointfunc, callbackID, (void*)calculation);
+
+    return true;
+}
+
+/*    If calculation is a relocated address, translate it to the original addr
+ *    case 1: The point is at a return instruction
+ *    case 2: The point is a control transfer into the runtime library
+ *    Mark returning functions as returning
+ *    Save the targets of indirect control transfers (not regular returns)
+ */
+Address PCProcess::stopThreadCtrlTransfer(instPoint *intPoint, Address target) {
+    int_function *pointfunc = intPoint->func();
+    Address pointAddress = intPoint->addr();
+
+    // if the point is a real return instruction and its target is a stack
+    // address, get the return address off of the stack
+    Address returnAddrAddr=0;
+    if ( intPoint->isReturnInstruction() &&
+         ! intPoint->func()->isSignalHandler() &&
+         NULL == findObject(target) )
+    {
+        returnAddrAddr = target + intPoint->preBaseTramp()->savedFlagSize;
+        assert (getAddressWidth() == // otherwise we'll have cached the wrong address in the runtime library
+                intPoint->preBaseTramp()->savedFlagSize);
+        if (!readDataSpace((void *)returnAddrAddr,
+                           getAddressWidth(), &target, false))
+        {
+            fprintf(stderr, "%s[%d] WARNING: reading from the stopthread "
+                    "return addr addr %lx failed\n",FILE__,__LINE__,target);
+            assert(0);
+        }
+        mal_printf("%s[%d]: return address address %lx contains %lx\n", FILE__,
+                __LINE__,returnAddrAddr,target);
+    }
+
+    Address unrelocTarget = target;
+    bblInstance *pointBBI = intPoint->block()->instVer(pointfunc->version());
+
+    if ( isRuntimeHeapAddr( target ) ) {
+        // case 1: The point is at a return instruction
+        if (intPoint->getPointType() == functionExit &&
+            ! intPoint->func()->isSignalHandler())
+        {
+            // case 1a: at return instruction not in signal handler
+            bblInstance *callBBI = NULL;
+            // set callBBI
+            codeRange *callRange = findOrigByAddr(target-1);
+            if (! callRange ) {
+                fprintf(stderr,"ERROR STOPTHREAD FOUND NO MATCH FOR RUNTIME "
+                        "HEAP ADDR %lx %s[%d]\n",target,FILE__,__LINE__);
+                assert(0 && "stopThread target is unmatched rt-lib heap addr");
+            }
+            callBBI = callRange->is_basicBlockInstance();
+            if ( ! callBBI ) {
+                multiTramp *callMulti = callRange->is_multitramp();
+                if (callMulti) {
+                    Address uninstrumented =
+                        callMulti->instToUninstAddr(target-1)+1;
+                    callRange = findOrigByAddr(uninstrumented-1);
+                    if ( callRange ) {
+                        callBBI = callRange->is_basicBlockInstance();
+                    }
+                    assert(callBBI);
+                }
+            }
+            while ( callBBI && ! callBBI->block()->containsCall() ) {
+                                if ( ! callBBI->block()->getFallthrough() ) {
+                                        break;
+                                }
+                callBBI = callBBI->block()->getFallthrough()->
+                    instVer(callBBI->version());
+            }
+            assert( callBBI );
+
+            // Translate the address
+            unrelocTarget = callBBI->block()->origInstance()->endAddr();
+
+            // Set the return status of the function containing the
+            // return instPoint to returning
+            pointfunc->ifunc()->set_retstatus(ParseAPI::RETURN);
+        }
+        else if (intPoint->getPointType() == functionExit &&
+                 intPoint->func()->isSignalHandler())
+        {
+            // case 1a: at return instruction in signal handler
+            bblInstance *targBBI = findOrigByAddr(target)->
+                is_basicBlockInstance();
+            multiTramp *targMulti = findOrigByAddr(target)->is_multitramp();
+            if (targMulti) {
+                Address uninstrumented =
+                    targMulti->instToUninstAddr(target);
+                targBBI = findOrigByAddr(uninstrumented)->is_basicBlockInstance();
+            }
+            assert(targBBI);
+            unrelocTarget = targBBI->equivAddr(0, target);
+        }
+        // case 2: The point is a control transfer into the runtime library
+        else {
+            // This is an indirect jump or call into the dyninst runtime
+            // library heap, meaning that the indirect target is calculated
+            // by basing off of the program counter at the source block, so
+            // adjust the target by determining the uninstrumented address of
+            // the source instruction
+            bblInstance *origPointBBI = intPoint->block()->origInstance();
+            assert(pointAddress >= origPointBBI->firstInsnAddr() &&
+                   pointAddress < origPointBBI->endAddr());
+            Address relocPointAddr = origPointBBI->equivAddr
+                (pointBBI->version(), pointAddress);
+            Address adjustment;
+            if (relocPointAddr > pointAddress) {
+                adjustment = relocPointAddr - pointAddress;
+            } else {
+                adjustment = pointAddress - relocPointAddr;
+            }
+            unrelocTarget = target - adjustment;
+            mal_printf("%s[%d] WARNING: stopThread caught transfer "
+                    "%lx[%lx]=>%lx[%lx] whose target is "
+                    "in runtime library heap, will translate target addr\n",
+                    FILE__, __LINE__, relocPointAddr, pointAddress,
+                    target, target);
+        }
+        mal_printf("%s[%d] translated %lx to %lx\n",
+                FILE__, __LINE__, target, unrelocTarget);
+    }
+    else { // target is not relocated, find the mapped_object
+        mapped_object *obj = findObject(target);
+        if (!obj) {
+            obj = createObjectNoFile(target);
+            if (!obj) {
+                fprintf(stderr,"ERROR, point %lx has target %lx that responds "
+                        "to no object %s[%d]\n", pointAddress, target,
+                        FILE__,__LINE__);
+                assert(0 && "stopThread snippet has an invalid target");
+                return 0;
+            }
+        }
+    }
+
+    // save the targets of indirect control transfers, save them in the point
+    if (intPoint->isDynamic() && ! intPoint->isReturnInstruction()) {
+        intPoint->setSavedTarget(unrelocTarget);
+    }
+    else if ( ! intPoint->isDynamic() &&
+              functionExit != intPoint->getPointType())
+    {
+        // remove unresolved status from point if it is a static ctrl transfer
+        if ( false == intPoint->setResolved() ) {
+            fprintf(stderr,"We seem to have tried resolving this point[0x%lx] "
+                    "twice, why? %s[%d]\n", pointAddress, FILE__,__LINE__);
+        }
+    }
+    return unrelocTarget;
 }

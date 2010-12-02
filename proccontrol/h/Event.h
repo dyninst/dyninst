@@ -270,6 +270,7 @@ class EventSignal : public Event
    virtual ~EventSignal();
 
    int getSignal() const;
+   void clearSignal() const;
 };
 
 class EventBootstrap : public Event

@@ -54,6 +54,7 @@
 #include "Symtab.h"
 
 #include "proccontrol/h/Process.h"
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 #define RPC_LEAVE_AS_IS 0
 #define RPC_RUN_WHEN_DONE 1
@@ -76,6 +77,7 @@ class PCProcess : public AddressSpace {
     // This allows changes to the internals to have relatively low impact on the
     // rest of Dyninst
     friend class PCEventHandler;
+
 public:
     // The desired state of the process, as indicated by the user
     typedef enum {
@@ -144,6 +146,7 @@ public:
     bool wasCreatedViaAttach() const;
     bool wasCreatedViaFork() const;
     PCEventHandler *getPCEventHandler() const;
+    int incrementThreadIndex();
 
     // Stackwalking
     bool walkStacks(pdvector<pdvector<Frame> > &stackWalks);
@@ -187,7 +190,9 @@ public:
                           std::set<int_function*> &deadFuncs); //output
     unsigned getMemoryPageSize() const;
 
+
     // synch modified mapped objects with current memory contents
+    mapped_object *createObjectNoFile(Address addr);
     void updateMappedFile(std::map<Dyninst::Address,unsigned char*>& owPages,
                           std::map<Address,Address> owRegions);
 
@@ -292,10 +297,15 @@ protected:
           processState_(ps_stopped),
           bootstrapState_(bs_attached),
           main_function_(NULL),
-          thread_index_function_(NULL),
+          curThreadIndex_(0),
           analysisMode_(analysisMode), 
           memoryPageSize_(0),
           isAMcacheValid_(false),
+          sync_event_id_addr_(0),
+          sync_event_arg1_addr_(0),
+          sync_event_arg2_addr_(0),
+          sync_event_arg3_addr_(0),
+          sync_event_breakpoint_addr_(0),
           eventHandler_(eventHandler),
           tracedSyscalls_(NULL),
           rtLibLoadHeap_(0),
@@ -327,10 +337,15 @@ protected:
           processState_(ps_stopped),
           bootstrapState_(bs_attached), 
           main_function_(NULL),
-          thread_index_function_(NULL),
+          curThreadIndex_(0),
           analysisMode_(analysisMode), 
           memoryPageSize_(0),
           isAMcacheValid_(false),
+          sync_event_id_addr_(0),
+          sync_event_arg1_addr_(0),
+          sync_event_arg2_addr_(0),
+          sync_event_arg3_addr_(0),
+          sync_event_breakpoint_addr_(0),
           eventHandler_(eventHandler),
           tracedSyscalls_(NULL),
           rtLibLoadHeap_(0),
@@ -373,6 +388,19 @@ protected:
     bool initTrampGuard();
     Address findFunctionToHijack(); // OS-specific
     bool postRTLoadCleanup(); // architecture-specific
+    bool extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record);
+    bool iRPCDyninstInit();
+
+    Address getRTEventBreakpointAddr() const { return sync_event_breakpoint_addr_; }
+    Address getRTEventIdAddr() const { return sync_event_id_addr_; }
+    Address getRTEventArg1Addr() const { return sync_event_arg1_addr_; }
+    Address getRTEventArg2Addr() const { return sync_event_arg2_addr_; }
+    Address getRTEventArg3Addr() const { return sync_event_arg3_addr_; }
+    void setRTEventBreakpointAddr(Address addr) { sync_event_breakpoint_addr_ = addr; }
+    void setRTEventIdAddr(Address addr) { sync_event_id_addr_ = addr; }
+    void setRTEventArg1Addr(Address addr) { sync_event_arg1_addr_ = addr; }
+    void setRTEventArg2Addr(Address addr) { sync_event_arg2_addr_ = addr; }
+    void setRTEventArg3Addr(Address addr) { sync_event_arg3_addr_ = addr; }
 
     // Shared library managment
     void addASharedObject(mapped_object *newObj);
@@ -388,6 +416,11 @@ protected:
     // garbage collection instrumentation
     void gcInstrumentation();
     void gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks);
+
+
+    // Hybrid Mode
+    bool triggerStopThread(Address pointAddress, int callbackID, void *calculation);
+    Address stopThreadCtrlTransfer(instPoint *intPoint, Address target);
 
     // Misc
     static bool getOSRunningState(int pid); // platform-specific, true if the OS says the process is running
@@ -425,7 +458,7 @@ protected:
     processState_t processState_;
     bootstrapState_t bootstrapState_;
     int_function *main_function_;
-    int_function *thread_index_function_;
+    int curThreadIndex_;
 
     // Hybrid Analysis
     BPatch_hybridMode analysisMode_;
@@ -443,6 +476,13 @@ protected:
     pdvector<generatedCodeObject *> pendingGCInstrumentation_;
 
     // Misc.
+    
+    // Addresses of variables in RT library
+    Address sync_event_id_addr_;
+    Address sync_event_arg1_addr_;
+    Address sync_event_arg2_addr_;
+    Address sync_event_arg3_addr_;
+    Address sync_event_breakpoint_addr_;
 
     // The same PCEventHandler held by the BPatch layer
     PCEventHandler *eventHandler_;

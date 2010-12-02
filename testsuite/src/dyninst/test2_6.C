@@ -73,6 +73,11 @@ test_results_t test2_6_Mutator::executeTest() {
     // see if the dlopen happened.
     char match2[256];
     sprintf(match2, "%s_module", TEST_DYNAMIC_LIB);
+
+    // Links are now resolved at library load so compare the names (minus the extension)
+    std::string noext(TEST_DYNAMIC_LIB);
+    noext = noext.substr(0, noext.find_last_of("."));
+
     BPatch_Vector<BPatch_module *> *m = appImage->getModules();
     for (unsigned i=0; i < m->size(); i++) {
 	    char name[80];
@@ -81,6 +86,7 @@ test_results_t test2_6_Mutator::executeTest() {
 #ifdef os_aix_test
 		strcmp(name, TEST_DYNAMIC_LIB_NOPATH) == 0 ||
 #endif
+                strcmp(name, noext.c_str()) ||
 		strcmp(name, match2) == 0) {
 		found = true;
 		break;

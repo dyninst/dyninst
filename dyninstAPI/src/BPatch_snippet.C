@@ -790,20 +790,6 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
 		to see if func is in a shared lib. if it
 		is marked that shared lib as dirtyCalled()
 	*/
-#if defined(cap_save_the_world)
-
-      AddressSpace *as = func.getAddSpace()->getAS();
-      process* proc = dynamic_cast<process *>(as);
-
-      //	process *proc = func.getProc()->llproc;
-	
-	// We can't define isSharedLib as constant everywhere, so strip
-	// the const definition here.
-	BPatch_function &stripFunc = const_cast<BPatch_function &> (func);
-	if( proc && proc->collectSaveWorldData && stripFunc.isSharedLib()){
-            stripFunc.lowlevel_func()->obj()->setDirtyCalled();
-	}
-#endif
 }
 
 /*

@@ -1306,28 +1306,6 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 
    //  cerr << "process::writeDataSpace_ pid " << getPid() << " writing "
    //       << amount << " bytes at loc " << inTraced << endl;
-#if defined (cap_save_the_world)
-#if defined (sparc_sun_solaris2_4)
-   if(proc_->collectSaveWorldData &&  ((Address) inTraced) >
-         proc_->getDyn()->getlowestSObaseaddr() ) {
-      mapped_object *sh_obj = NULL;
-      bool result = false;
-      const pdvector<mapped_object *> &objs = proc_->mappedObjects();
-      for (unsigned i = 0; i < objs.size(); i++) {
-         sh_obj = objs[i];
-         result = sh_obj->isinText((Address) inTraced);
-         if( result  ){
-            /*	bperr(" write at %lx in %s amount %x insn: %x \n", 
-               (off_t)inTraced, sh_obj->getName().c_str(), amount,
-             *(unsigned int*) inSelf);
-             */	
-            sh_obj->setDirty();	
-            break;
-         }
-      }
-   }
-#endif
-#endif
    off64_t loc;
    // Problem: we may be getting a address with the high bit
    // set. So how to convince the system that it's not negative?

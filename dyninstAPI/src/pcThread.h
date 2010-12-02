@@ -89,8 +89,6 @@ protected:
     // When we run an inferior RPC we cache the stackwalk of the
     // process and return that if anyone asks for a stack walk
     int_stackwalk cached_stackwalk_;
-
-    static int nextIndex;
 };
 
 #endif

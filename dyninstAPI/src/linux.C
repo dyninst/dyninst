@@ -415,82 +415,11 @@ static void findThreadFuncs(PCProcess *p, std::string func,
 }
 
 bool PCProcess::instrumentMTFuncs() {
-    unsigned i;
     bool res;
 
 #if !defined(cap_threads)
     return true;
 #endif
-
-    /**
-     * Instrument thread_create with calls to DYNINST_dummy_create
-     **/
-    //Find create_thread
-    pdvector<int_function *> thread_init_funcs;
-    findThreadFuncs(this, "create_thread", thread_init_funcs);
-    findThreadFuncs(this, "start_thread", thread_init_funcs);
-    if (thread_init_funcs.size() < 1) {
-        fprintf(stderr, "[%s:%d] - Found no copies of create_thread, expected 1\n",
-                __FILE__, __LINE__);
-        return false;
-    }
-    //Find DYNINST_dummy_create
-    int_function *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
-    if (!dummy_create) {
-        fprintf(stderr, "[%s:%d] - Couldn't find DYNINST_dummy_create",
-                __FILE__, __LINE__);
-        return false;
-    }
-    //Instrument
-    for (i=0; i<thread_init_funcs.size(); i++) {
-        pdvector<AstNodePtr> args;
-        AstNodePtr ast = AstNode::funcCallNode(dummy_create, args);
-        const pdvector<instPoint *> &ips = thread_init_funcs[i]->funcEntries();
-        for (unsigned j=0; j<ips.size(); j++) {
-            miniTramp *mt;
-            mt = ips[j]->instrument(ast, callPreInsn, orderFirstAtPoint, false,
-                                    false);
-            if (!mt) {
-                fprintf(stderr, "[%s:%d] - Couldn't instrument thread_create\n",
-                        __FILE__, __LINE__);
-            }
-            //TODO: Save the mt objects for detach
-        }
-    }
-
-    //Find functions that are run on pthread exit
-    pdvector<int_function *> thread_dest_funcs;
-    findThreadFuncs(this, "__pthread_do_exit", thread_dest_funcs);
-    findThreadFuncs(this, "pthread_exit", thread_dest_funcs);
-    findThreadFuncs(this, "deallocate_tsd", thread_dest_funcs);
-    if (!thread_dest_funcs.size()) {
-        fprintf(stderr,"[%s:%d] - Found 0 copies of pthread_exit, expected 1\n",
-                __FILE__, __LINE__);
-        return false;
-    }
-    //Find DYNINSTthreadDestroy
-    int_function *threadDestroy = findOnlyOneFunction("DYNINSTthreadDestroy");
-    if (!threadDestroy) {
-        fprintf(stderr, "[%s:%d] - Couldn't find DYNINSTthreadDestroy",
-                __FILE__, __LINE__);
-        return false;
-    }
-
-    for (i=0; i<thread_dest_funcs.size(); i++) {
-        pdvector<AstNodePtr> args;
-        AstNodePtr ast = AstNode::funcCallNode(threadDestroy, args);
-        const pdvector<instPoint *> &ips = thread_dest_funcs[i]->funcExits();
-        for (unsigned j=0; j<ips.size(); j++) {
-            miniTramp *mt;
-            mt = ips[j]->instrument(ast, callPreInsn, orderFirstAtPoint, false,
-                                    false);
-            if (!mt) {
-                fprintf(stderr, "[%s:%d] - Couldn't instrument thread_exit\n",
-                        __FILE__, __LINE__);
-            }
-            //TODO: Save the mt objects for detach
-        }
-    }
 
     /**
      * Have dyn_pthread_self call the actual pthread_self
@@ -527,6 +456,11 @@ bool PCProcess::instrumentMTFuncs() {
     }
 
     return true;
+}
+
+PCEventHandler::CallbackBreakpointCase
+PCEventHandler::getCallbackBreakpointCase(ProcControlAPI::EventType et) {
+    return BreakpointOnly;
 }
 
 bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<string> &paths) {

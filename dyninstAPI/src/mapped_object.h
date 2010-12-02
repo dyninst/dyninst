@@ -218,14 +218,6 @@ private:
 public:
 
 
-#if defined(cap_save_the_world)
-    bool isinText(Address addr){ 
-        return ((addr >= codeBase_) && (addr < (codeBase_ + imageSize())));
-    }
-    void openedWithdlopen() { dlopenUsed = true; }; 
-    bool isopenedWithdlopen() { return dlopenUsed; };
-#endif
-
     bool  getSymbolInfo(const std::string &n, int_symbol &sym);
 
     // All name lookup functions are vectorized, because you can have
@@ -253,17 +245,6 @@ public:
 	void setDirty(){ dirty_=true;}
 	bool isDirty() { return dirty_; }
 
-
-#if defined(cap_save_the_world)
-	//ccw 24 jul 2003
-	//This marks the shared library as one that contains functions
-	//that are called by instrumentation.  These functions, and hence
-	//this shared library, MUST be reloaded in the same place.  The
-	//shared library is not necessarily mutated itself, so it may not
-	//need to be saved (as dirty_ would imply).
-	void setDirtyCalled() { dirtyCalled_ = true; }
-	bool isDirtyCalled() { return dirtyCalled_; }
-#endif
 
     int_function *findFunction(image_func *img_func);
     int_variable *findVariable(image_variable *img_var);

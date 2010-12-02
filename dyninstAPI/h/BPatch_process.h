@@ -188,6 +188,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
 
     bool statusIsTerminated();
 
+    void setLastSignal(int signal) { lastSignal = signal; }
+
     bool getType();
     bool getTerminated() {return terminated;}
     bool getMutationsActive() {return mutationsActive;}

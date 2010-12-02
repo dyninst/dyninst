@@ -2913,3 +2913,88 @@ bool OS_disconnect(BPatch_remoteHost &remote)
 {
     return true;
 }
+
+mapped_object *PCProcess::createObjectNoFile(Address addr)
+{
+    Address closestObjEnd = 0;
+    for (unsigned i=0; i<mapped_objects.size(); i++)
+    {
+        if (addr >= mapped_objects[i]->codeAbs() &&
+            addr <   mapped_objects[i]->codeAbs()
+                   + mapped_objects[i]->imageSize())
+        {
+            fprintf(stderr,"createObjectNoFile called for addr %lx, "
+                    "matching existing mapped_object %s %s[%d]\n",
+                    mapped_objects[i]->fullName().c_str(), FILE__,__LINE__);
+            return mapped_objects[i];
+        }
+        if (  addr >= ( mapped_objects[i]->codeAbs() +
+                        mapped_objects[i]->imageSize() ) &&
+            closestObjEnd < ( mapped_objects[i]->codeAbs() +
+                               mapped_objects[i]->imageSize() ) )
+        {
+            closestObjEnd = mapped_objects[i]->codeAbs() +
+                            mapped_objects[i]->imageSize();
+        }
+    }
+
+    Address testRead = 0;
+
+    // VirtualQueryEx rounds down to pages size, so we need to round up first.
+    if (proc()->proc() && closestObjEnd % proc()->proc()->getMemoryPageSize())
+    {
+        closestObjEnd = closestObjEnd
+            - (closestObjEnd % proc()->proc()->getMemoryPageSize())
+            + proc()->proc()->getMemoryPageSize();
+    }
+    if (proc()->proc() && readDataSpace((void*)addr, proc()->getAddressWidth(),
+                                        &testRead, false))
+    {
+        // create a module for the region enclosing this address
+        MEMORY_BASIC_INFORMATION meminfo;
+        memset(&meminfo,0, sizeof(MEMORY_BASIC_INFORMATION) );
+        SIZE_T size = VirtualQueryEx(proc()->processHandle_,
+                                     (LPCVOID)addr, &meminfo,
+                                     sizeof(MEMORY_BASIC_INFORMATION));
+        assert(meminfo.State == MEM_COMMIT);
+        // The size of the region returned by VirtualQueryEx is from BaseAddress
+        // to the end, NOT from meminfo.AllocationBase, which is what we want.
+        // BaseAddress is the start address of the page of the address parameter
+        // that is sent to VirtualQueryEx as a parameter
+        Address regionSize = (Address)meminfo.BaseAddress
+            - (Address)meminfo.AllocationBase
+            + (Address)meminfo.RegionSize;
+        mal_printf("[%lx %lx] is valid region containing %lx and corresponding "
+               "to no object, closest is object ending at %lx %s[%d]\n",
+               meminfo.AllocationBase,
+               ((Address)meminfo.AllocationBase) + regionSize,
+               addr, closestObjEnd, FILE__,__LINE__);
+        // read region into this process
+        unsigned char* rawRegion = (unsigned char*)
+            ::LocalAlloc(LMEM_FIXED, meminfo.RegionSize);
+        assert( proc()->readDataSpace(meminfo.AllocationBase,
+                                    regionSize, rawRegion, true) );
+        // set up file descriptor
+        char regname[64];
+        snprintf(regname,63,"mmap_buffer_%lx_%lx",
+                 ((Address)meminfo.AllocationBase),
+                 ((Address)meminfo.AllocationBase) + regionSize);
+
+        fileDescriptor desc(string(regname),
+                            0,
+                            (HANDLE)0,
+                            (HANDLE)0,
+                            true,
+                            (Address)meminfo.AllocationBase,
+                            (Address)meminfo.RegionSize,
+                            rawRegion);
+        mapped_object *obj = mapped_object::createMappedObject
+            (desc,this,proc()->getHybridMode(),false);
+        if (obj != NULL) {
+            mapped_objects.push_back(obj);
+            addOrigRange(obj);
+            return obj;
+        }
+    }
+    return NULL;
+}

@@ -35,8 +35,6 @@
 
 using namespace Dyninst::ProcControlAPI;
 
-int PCThread::nextIndex = 0;
-
 PCThread::PCThread(PCProcess *parent, int ind,
         Thread::ptr thr) :
     proc_(parent),
@@ -49,7 +47,7 @@ PCThread::PCThread(PCProcess *parent, int ind,
 
 PCThread *PCThread::createPCThread(PCProcess *parent, Thread::ptr thr)
 {
-    PCThread *ret = new PCThread(parent, nextIndex++, thr);
+    PCThread *ret = new PCThread(parent, parent->incrementThreadIndex(), thr);
     assert(ret);
 
     return ret;

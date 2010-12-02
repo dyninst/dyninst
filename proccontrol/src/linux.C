@@ -320,7 +320,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
          default:
             pthrd_printf("Decoded event to signal %d on %d/%d\n",
                          stopsig, proc->getPid(), thread->getLWP());
-#if 1
+#if 0
             //Debugging code
             if (stopsig == 11) {
                Dyninst::MachRegisterVal addr;
