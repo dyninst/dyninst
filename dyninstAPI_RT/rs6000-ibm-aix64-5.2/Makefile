@@ -147,7 +147,7 @@ libDyninstText_m32.a: space_m32.o
 $(DEST)/$(TARGET_32): $(TARGET_32) libDyninstText_m32.a
 	-$(CP) $(TARGET_32) $(DEST)
 	-chmod 755 $(DEST)/$(TARGET_32)
-	-ln -sf $(TARGET_32) $(DEST)/$(TARGET_SYMLINK_32)
+	-cd $(DEST); ln -sf $(TARGET_32) $(TARGET_SYMLINK_32)
 
 ifndef SKIP_BUILD_RTLIB_32
 install: $(DEST)/$(TARGET_32)
