@@ -285,6 +285,12 @@ build_mask(uint8_t mb_value, uint8_t me_value)
            write32(operands[0], policy.or_(read32(operands[1]),read32(operands[2])));
            break;
          }
+      case powerpc_orc:
+	{
+	   ROSE_ASSERT(operands.size() == 3);
+           write32(operands[0], policy.or_(read32(operands[1]),policy.invert(read32(operands[2]))));
+	   break;	
+	}
       case powerpc_fmr:
          {
            ROSE_ASSERT(operands.size() == 2);
@@ -655,6 +661,39 @@ build_mask(uint8_t mb_value, uint8_t me_value)
            policy.writeSPR(powerpc_spr_xer,policy.or_(policy.and_(policy.readSPR(powerpc_spr_xer),number<32>(0xDFFFFFFFU)),policy.ite(carry_out,number<32>(0x20000000U),number<32>(0x0))));
            break;
          }
+      case powerpc_si:
+         {
+           ROSE_ASSERT(operands.size() == 3);
+	   Word(32) RA = read32(operands[1]);
+	   // The disassembler should have built this as a DWord with a sign extended value
+           Word(32) signExtended_SI = signExtend<16,32>(extract<0,16>(read32(operands[2])));
+	  
+           write32(operands[0], policy.add(RA,policy.invert(signExtended_SI)));
+
+           break;
+         }
+
+
+      case powerpc_subfze:
+         {
+           ROSE_ASSERT(operands.size() == 2);
+
+        // This should be a helper function to read CA (and other flags)
+           Word(1)  carry_in = extract<29,30>(policy.readSPR(powerpc_spr_xer));
+
+           Word(32) carries = number<32>(0);
+           Word(32) result = policy.addWithCarries(policy.invert(read32(operands[1])),number<32>(0x0),carry_in,carries);
+
+        // Policy class bit numbering is opposite ordering from powerpc (based on x86).
+           Word(1)  carry_out = extract<31,32>(carries);
+           write32(operands[0], result);
+
+        // This should be a helper function to read/write CA (and other flags)
+        // The value 0xDFFFFFFFU is the mask for the Carry (CA) flag
+           policy.writeSPR(powerpc_spr_xer,policy.or_(policy.and_(policy.readSPR(powerpc_spr_xer),number<32>(0xDFFFFFFFU)),policy.ite(carry_out,number<32>(0x20000000U),number<32>(0x0))));
+           break;
+         }
+
 
       case powerpc_subfc:
          {

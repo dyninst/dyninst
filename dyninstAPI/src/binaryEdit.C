@@ -353,6 +353,15 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &mem
     // I assume we'll pass it to DynSymtab, then add our base
     // address to it at the mapped_ level. 
     Symtab* linkedFile = newBinaryEdit->getAOut()->parse_img()->getObject();
+  
+    Region *newSec = NULL;
+    linkedFile->findRegion(newSec, ".dyninstInst");
+    if (newSec) {
+         // We're re-instrumenting - will fail for now
+         fprintf(stderr, "ERROR:  unable to open/reinstrument previously instrumented binary!\n");
+         return NULL;
+    }
+       
     newBinaryEdit->highWaterMark_ = linkedFile->getFreeOffset(50*1024*1024);
     newBinaryEdit->lowWaterMark_ = newBinaryEdit->highWaterMark_;
 

@@ -3606,7 +3606,9 @@ SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
 		return false;
 	}
-   obj->insertPrereqLibrary(name);
+   size_t size = name.find_last_of("/");
+   string filename = name.substr(size+1);
+   obj->insertPrereqLibrary(filename);
    return true;
 #else
    return false;
