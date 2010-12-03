@@ -1862,6 +1862,11 @@ int_function *instPoint::findCallee() {
    return NULL;
 }
 
+bool process::setMemoryAccessRights(Address start, Address size, int rights)
+{
+    assert(0 && "IMPLEMENTED FOR WINDOWS ONLY"); 
+}
+
 void BinaryEdit::makeInitAndFiniIfNeeded()
 {
     Symtab* linkedFile = getAOut()->parse_img()->getObject();

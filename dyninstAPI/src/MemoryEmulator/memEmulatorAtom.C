@@ -95,9 +95,9 @@ bool MemEmulator::generateViaOverride(const codeGen &templ,
                                       CodeBuffer &buffer) 
 {
     // Watch for a1/a2/a3 moves 
-    char *buf = (char *)insn_->ptr();
-    if (buf[0] == 0xa1 ||
-        buf[0] == 0xa3) {
+    unsigned char *buf = (unsigned char *)insn_->ptr();
+    if ((unsigned char) 0xa1 <= buf[0] &&
+        buf[0] <= (unsigned char) 0xa3) {
             return generateEAXMove(buf[0], templ, t, buffer);
     }
                                           
@@ -144,7 +144,9 @@ bool MemEmulator::generateEAXMove(int opcode,
     patch.applyTemplate(templ);
 
     Address origTarget;
-    if (opcode == 0xa1) {
+    switch(opcode) {
+    case 0xa0:
+    case 0xa1: {
         // read from memory
         std::set<Expression::Ptr> reads;
         insn_->getMemoryReadOperands(reads);
@@ -152,9 +154,10 @@ bool MemEmulator::generateEAXMove(int opcode,
         Result res = (*(reads.begin()))->eval();
         assert(res.defined);
         origTarget = res.convert<Address>();
+        break;
     }
-    else {
-        assert(opcode == 0xa3);
+    case 0xa2:
+    case 0xa3: {
         // write
         std::set<Expression::Ptr> writes;
         insn_->getMemoryWriteOperands(writes);
@@ -162,6 +165,11 @@ bool MemEmulator::generateEAXMove(int opcode,
         Result res = (*(writes.begin()))->eval();
         assert(res.defined);
         origTarget = res.convert<Address>();
+        break;
+    }
+    default:
+        assert(0);
+        break;
     }
     // Map it to the new location
     bool valid; Address target;

@@ -1740,28 +1740,7 @@ bool BPatch_process::hideDebuggerInt()
 bool BPatch_process::setMemoryAccessRights
 (Address start, Address size, int rights)
 {
-    mal_printf("setMemoryAccessRights to %d [%lx %lx]\n", rights, start, start+size);
-    // get lwp from which we can call changeMemoryProtections
-    dyn_lwp *stoppedlwp = llproc->query_for_stopped_lwp();
-    if ( ! stoppedlwp ) {
-        assert(0); //KEVINTODO: I don't think this code is right, it doesn't resume the stopped lwp
-        bool wasRunning = true;
-        stoppedlwp = llproc->stop_an_lwp(&wasRunning);
-        if ( ! stoppedlwp ) {
-        return false;
-        }
-    }
-#if defined(os_windows)
-    if (PAGE_EXECUTE_READWRITE == rights || PAGE_READWRITE == rights) {
-        mapped_object *obj = llproc->findObject(start);
-        int page_size = llproc->getMemoryPageSize();
-        for (Address cur = start; cur < (start + size); cur += page_size) {
-            obj->removeProtectedPage(start -(start % page_size));
-        }
-    }
-#endif
-    stoppedlwp->changeMemoryProtections(start, size, rights, true);
-    return true;
+    return llproc->setMemoryAccessRights(start,size,rights);
 }
 
 unsigned char * BPatch_process::makeShadowPage(Dyninst::Address pageAddr)

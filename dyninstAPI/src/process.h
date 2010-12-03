@@ -718,6 +718,7 @@ public:
   BPatch_hybridMode getHybridMode() { return analysisMode_; }
   bool isExploratoryModeOn();
   bool isRuntimeHeapAddr(Address addr);
+  bool setMemoryAccessRights(Address start, Address size, int rights);
 
  private:
   BPatch_hybridMode analysisMode_;
@@ -728,11 +729,6 @@ public:
   Address resolveJumpIntoRuntimeLib(instPoint* srcPoint, Address target);
   static int stopThread_ID_counter;
   static dictionary_hash< Address, unsigned > stopThread_callbacks;
-
-  //// active instrumentation tracking
-  //bool isAMcacheValid;
-  //std::map<bblInstance*,Address> activeBBIs;
-  //std::map<int_function*,std::set<Address>*> am_funcRelocs;
 
   // runtime library stuff 
   Address RT_address_cache_addr;

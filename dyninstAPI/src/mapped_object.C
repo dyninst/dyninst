@@ -2046,7 +2046,24 @@ void mapped_object::addProtectedPage(Address pageAddr)
 void mapped_object::removeProtectedPage(Address pageAddr)
 {
     map<Address,WriteableStatus>::iterator iter = protPages_.find(pageAddr);
-    assert(iter != protPages_.end());
+    if (iter == protPages_.end()) {
+        // sanity check, make sure there isn't any code on the page, in which
+        // case we're unprotecting a page that was originally set to be writeable
+        Address pageOffset = pageAddr - codeBase();
+        SymtabAPI::Region *reg = parse_img()->getObject()->findEnclosingRegion(pageOffset);
+        assert(reg);
+        set<CodeRegion*> cregs;
+        parse_img()->codeObject()->cs()->findRegions(reg->getMemOffset(), cregs);
+        if (!cregs.empty()) { // (if empty, pageAddr is in uninitialized memory)
+            ParseAPI::Block *blk = parse_img()->codeObject()->findNextBlock
+                (*cregs.begin(), pageOffset);
+            Address pageEnd =  pageOffset + proc()->proc()->getMemoryPageSize();
+            if (blk && blk->start() < pageEnd) {
+                assert(0);
+            }
+        }
+        return;
+    }
     iter->second = UNPROTECTED;
 }
 

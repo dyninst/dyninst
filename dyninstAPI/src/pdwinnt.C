@@ -899,19 +899,47 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf) {
     return res && (nbytes == amount);
 }
 
+bool process::setMemoryAccessRights
+(Address start, Address size, int rights)
+{
+    mal_printf("setMemoryAccessRights to %d [%lx %lx]\n", rights, start, start+size);
+    // get lwp from which we can call changeMemoryProtections
+    dyn_lwp *stoppedlwp = query_for_stopped_lwp();
+    if ( ! stoppedlwp ) {
+        assert(0); //KEVINTODO: I don't think this code is right, it doesn't resume the stopped lwp
+        bool wasRunning = true;
+        stoppedlwp = stop_an_lwp(&wasRunning);
+        if ( ! stoppedlwp ) {
+        return false;
+        }
+    }
+    if (PAGE_EXECUTE_READWRITE == rights || PAGE_READWRITE == rights) {
+        mapped_object *obj = findObject(start);
+        int page_size = getMemoryPageSize();
+        for (Address cur = start; cur < (start + size); cur += page_size) {
+            obj->removeProtectedPage(start -(start % page_size));
+        }
+    }
+    stoppedlwp->changeMemoryProtections(start, size, rights, true);
+    return true;
+}
+
 int dyn_lwp::changeMemoryProtections
 (Address addr, Offset size, unsigned rights, bool setShadow)
 {
-    int oldRights=0;
+    unsigned oldRights=0;
+    mal_printf("setting rights to %lx for [%lx %lx)\n", rights, addr, addr + size);
     if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(addr), 
                          (SIZE_T)size, (DWORD)rights, (PDWORD)&oldRights)) 
     {
+        fprintf(stderr, "ERROR: failed to set access rights for page %lx "
+                "%s[%d]\n", addr, FILE__, __LINE__);
         return -1;
     }
 
     if (proc()->isMemoryEmulated() && setShadow) {
         Address shadowAddr = addr;
-        int shadowRights=0;
+        unsigned shadowRights=0;
         bool valid = false;
         boost::tie(valid, shadowAddr) = proc()->getMemEm()->translate(addr);
         if (!valid) {
@@ -919,6 +947,7 @@ int dyn_lwp::changeMemoryProtections
                     "no shadow %s[%d]\n",addr,FILE__,__LINE__);
             return oldRights;
         }
+        mal_printf("setting rights to %lx for shadow [%lx %lx)\n", rights, shadowAddr, shadowAddr + size);
         if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(shadowAddr), 
                              (SIZE_T)size, (DWORD)rights, (PDWORD)&shadowRights)) 
         {
@@ -928,8 +957,8 @@ int dyn_lwp::changeMemoryProtections
             return -1;
         }
         if (shadowRights != oldRights) {
-            mal_printf("WARNING: shadow page[%lx] rights did not match orig-page"
-                       "[%lx] rights\n",shadowAddr,addr);
+            mal_printf("WARNING: shadow page[%lx] rights %x did not match orig-page"
+                       "[%lx] rights %x\n",shadowAddr,shadowRights, addr, oldRights);
         }
     }
     return oldRights;

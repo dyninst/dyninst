@@ -1955,7 +1955,9 @@ void AddressSpace::addAllocatedRegion(Address start, unsigned size) {
 }
 
 void AddressSpace::addModifiedRegion(mapped_object *obj) {
-   memEmulator_->addRegion(obj);
+   if (BPatch_defensiveMode == obj->hybridMode()) { //KEVINTODO: this should be conditional on whether the object has memory emulation
+       memEmulator_->addRegion(obj);
+   }
    return;
 }
 

@@ -1051,7 +1051,6 @@ bool insnCodeGen::generateMem(codeGen &gen,
 	   }
    if (loc.modrm_position == -1) {
       //Only supporting MOD/RM instructions now
-      cerr << "Error: insn doesn't use MOD/RM" << endl;
       return false; 
    }
 

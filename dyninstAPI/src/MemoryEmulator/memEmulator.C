@@ -167,6 +167,28 @@ void MemoryEmulator::addRegion(Region *reg, Address base) {
    aS_->writeDataSpace((void *)mutateeBase,
                        reg->getMemSize(),
                        (void *)buffer);
+   if (aS_->proc()) {
+#if defined (os_windows)
+       using namespace SymtabAPI;
+       unsigned winrights = 0;
+       Region::perm_t reg_rights = reg->getRegionPermissions();
+       switch (reg_rights) {
+       case Region::RP_R:
+       case Region::RP_RW: 
+           winrights = PAGE_READONLY;
+           break;
+       case Region::RP_RX:
+       case Region::RP_RWX:
+           winrights = PAGE_EXECUTE_READ;
+           break;
+       default:
+           assert(0);
+       }
+       dyn_lwp *stoppedlwp = aS_->proc()->query_for_stopped_lwp();
+       assert(stoppedlwp);
+       stoppedlwp->changeMemoryProtections(mutateeBase, reg->getMemSize(), winrights, false);
+#endif
+   }
    
     Address regionBase = base + reg->getMemOffset();
 
@@ -274,7 +296,7 @@ std::pair<bool, Address> MemoryEmulator::translateBackwards(Address addr) {
 }
 
 void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig) 
-{
+{//KEVINTODO: this should only change rights to ranges that contain analyzed code, and shouldn't things to writeable unless they were so originally
     if (toOrig) malware_cerr << "Syncing shadow to orig for obj " << obj->fileName() << endl;
     else        malware_cerr << "Syncing orig to shadow for obj " << obj->fileName() << endl;
     using namespace SymtabAPI;

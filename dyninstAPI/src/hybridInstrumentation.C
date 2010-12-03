@@ -74,7 +74,13 @@ static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig)
 
     BPatch_process *proc = dynamic_cast<BPatch_process*>(
        point->getFunction()->getAddSpace());
-    if ( proc->getHybridAnalysis()->isIntraMod(point) ) {
+
+    Address buf = 0;
+    if (!proc->lowlevel_process()->readDataSpace((void *)0x40de48,sizeof(Address),&buf,false)) 
+        assert(0);
+    printf("*[0x40de48] = %lx\n", buf);
+
+    if ( toOrig && proc->getHybridAnalysis()->isIntraMod(point) ) {
         return;
     }
 
