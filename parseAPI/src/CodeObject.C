@@ -185,43 +185,46 @@ CodeObject::parseNewEdges( vector<Block*> & sources,
                            vector<Address> & targets,
                            vector<EdgeTypeEnum> & edge_types )
 {
-    // XXX if we're adding a new edge to an existing block, I think we could
-    // use add_edge instead
-
     vector< ParseWorkElem * > work_elems;
+    vector<std::pair<Address,CodeRegion*> > parsedTargs;
     for (unsigned idx=0; idx < sources.size(); idx++) {
-        ParseWorkBundle *bundle = new ParseWorkBundle();
-        ParseWorkElem *elem = bundle->add(new ParseWorkElem
-            ( bundle, 
-              parser->link_tempsink(sources[idx], edge_types[idx]),
-              targets[idx],
-              true,
-              false ));
-        work_elems.push_back(elem);
+        // see if the target block already exists, in which case we can use
+        // add_edge
+        set<CodeRegion*> regs;
+        cs()->findRegions(targets[idx],regs);
+        assert(1 == regs.size()); // at present this function doesn't support 
+                                  // ambiguous regions for the target address
+        Block *trgB = findBlockByEntry(*(regs.begin()), targets[idx]);
+
+        if (trgB) {
+            add_edge(sources[idx], trgB, edge_types[idx]);
+        } 
+        else {
+            parsedTargs.push_back(pair<Address,CodeRegion*>(targets[idx],
+                                                            *regs.begin()));
+            ParseWorkBundle *bundle = new ParseWorkBundle();
+            ParseWorkElem *elem = bundle->add(new ParseWorkElem
+                ( bundle, 
+                  parser->link_tempsink(sources[idx], edge_types[idx]),
+                  targets[idx],
+                  true,
+                  false ));
+            work_elems.push_back(elem);
+        }
     }
 
     parser->parse_edges( work_elems );
 
     if (defensiveMode()) {
-        // update tampersStack for modified funcs and invalidate liveness info
-        for (unsigned idx=0; idx < targets.size(); idx++) {
-            set<CodeRegion*> tregs;
+        // update tampersStack for modified funcs
+        for (unsigned idx=0; idx < parsedTargs.size(); idx++) {
             set<Function*> tfuncs;
-            _cs->findRegions(targets[idx],tregs);
-
-            for (set<CodeRegion*>::iterator rit = tregs.begin(); 
-                 rit != tregs.end(); 
-                 rit++ ) 
-            {
-                findFuncs(*rit, targets[idx], tfuncs);
-            }
-
+            findFuncs(parsedTargs[idx].second, parsedTargs[idx].first, tfuncs);
             for (set<Function*>::iterator fit = tfuncs.begin();
                  fit != tfuncs.end();
                  fit++) 
             {
-                Function *tfunc = *fit;
-                tfunc->tampersStack(true);
+                (*fit)->tampersStack(true);
             }
         }
     }
