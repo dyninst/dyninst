@@ -122,18 +122,16 @@ Slicer::sliceInternal(
     map<CacheEdge, set<AbsRegion> > visited;
     map<Address,DefCache> cache;
     
-
     ret = Graph::createGraph();
    
-    // set up a slicing element describing the starting
-    // position of this slicd 
-    Element initial = constructInitialElement();
-
     // set up a slicing frame describing with the
-    // relevant context and the initial element
-    constructInitialFrame(dir,initial,initFrame);
+    // relevant context
+    constructInitialFrame(dir,initFrame);
 
-    aP = createNode(initial);
+    // note that the AbsRegion in this Element *does not matter*;
+    // we just need the block, function and assignment
+    aP = createNode(Element(b_,f_,a_->out(),a_));
+
     if(dir == forward) {
         slicing_printf("Inserting entry node %p/%s\n",
             aP.get(),aP->format().c_str());
@@ -607,6 +605,12 @@ Slicer::getPredecessors(
                 for( ; ait != cand.active.end(); ++ait) {
                     slicing_printf("\t\t\t\t%s\n",
                         (*ait).first.format().c_str());
+
+			vector<Element> const& eles = (*ait).second;
+			for(unsigned i=0;i<eles.size();++i) {
+				slicing_printf("\t\t\t\t\t [%s] : %s\n",
+					eles[i].reg.format().c_str(),eles[i].ptr->format().c_str());
+			}
                 }
             }
     
@@ -1353,7 +1357,7 @@ void Slicer::insertPair(Graph::Ptr ret,
 			Direction dir,
 			Element const&source,
 			Element const&target,
-            AbsRegion const& data) 
+			AbsRegion const& data) 
 {
   SliceNode::Ptr s = createNode(source);
   SliceNode::Ptr t = createNode(target);
@@ -1508,15 +1512,21 @@ void Slicer::insertInitialNode(GraphPtr ret, Direction dir, SliceNode::Ptr aP) {
  
 void Slicer::constructInitialFrame(
     Direction dir,
-    Element const& init,
     SliceFrame & initFrame)
 {
     initFrame.con.push_front(ContextElement(f_));
     initFrame.loc = Location(f_,b_);
-    vector<AbsRegion> & inputs = init.ptr->inputs();
-    vector<AbsRegion>::iterator iit = inputs.begin();
-    for ( ; iit != inputs.end(); ++iit) {
-        initFrame.active[*iit].push_back(init);
+
+    if(dir == forward) {
+        Element oe(b_,f_,a_->out(),a_);
+        initFrame.active[a_->out()].push_back(oe);
+    } else {
+        vector<AbsRegion> & inputs = a_->inputs();
+        vector<AbsRegion>::iterator iit = inputs.begin();
+        for ( ; iit != inputs.end(); ++iit) {
+            Element ie(b_,f_,*iit,a_);
+            initFrame.active[*iit].push_back(ie);
+        }
     }
 
     if(dir == forward) {
@@ -1529,11 +1539,6 @@ void Slicer::constructInitialFrame(
         fastBackward(initFrame.loc, a_->addr());
     }
 }
-
-Slicer::Element Slicer::constructInitialElement()
-{
-    return Element(b_,f_,a_->out(),a_);
-}   
 
 void
 Slicer::DefCache::merge(Slicer::DefCache const& o)
