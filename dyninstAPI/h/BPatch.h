@@ -139,6 +139,7 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     /* If true, we save FPRs in situations we normally would 
        Defaults to true */
     bool saveFloatingPointsOn;
+    bool forceSaveFloatingPointsOn;
 
     /* If true, we will use liveness calculations to avoid saving
        registers on platforms that support it. 
@@ -290,6 +291,13 @@ public:
     API_EXPORT(Int, (),
 
     bool,isSaveFPROn,());        
+
+    // BPatch::forceSaveFPROn:
+    // returns whether base tramp and mini-tramp is merged
+    API_EXPORT(Int, (),
+
+    bool,isForceSaveFPROn,());        
+
 
     // BPatch::hasForcedRelocation_NP:
     // returns whether all instrumented functions will be relocated
@@ -487,6 +495,13 @@ public:
     API_EXPORT_V(Int, (x),
 
     void,setSaveFPR,(bool x));
+
+    //  BPatch::forceSaveFPR:
+    //  Force Turn on/off merged base & mini-tramps - ignores isConservative
+    API_EXPORT_V(Int, (x),
+
+    void,forceSaveFPR,(bool x));
+
 
     //  BPatch::setForcedRelocation_NP:
     //  Turn on/off forced relocation of instrumted functions

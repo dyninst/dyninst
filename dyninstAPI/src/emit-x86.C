@@ -486,6 +486,7 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &ge
                    bt->isConservative() && 
                    BPatch::bpatch->isSaveFPROn() &&
                    !bt->optimized_out_guards;
+    if( BPatch::bpatch->isForceSaveFPROn() ) useFPRs = true; 
     bool createFrame = !bti || bt->createFrame() || useFPRs;
     bool saveOrigAddr = createFrame && bt->instP();
     bool localSpace = createFrame || useFPRs || 
@@ -637,6 +638,7 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen 
           bt->isConservative() && 
           BPatch::bpatch->isSaveFPROn() &&
           !bt->optimized_out_guards;
+       if( BPatch::bpatch->isForceSaveFPROn() ) useFPRs = true; 
        createFrame = true;
        saveOrigAddr = bt->instP();
        localSpace = true;
@@ -2253,6 +2255,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &g
       BPatch::bpatch->isSaveFPROn() &&
       bt->isConservative() &&
       !bt->optimized_out_guards;
+   if( BPatch::bpatch->isForceSaveFPROn() ) useFPRs = true; 
    bool createFrame = !bti || bt->createFrame() || useFPRs;
    bool saveOrigAddr = createFrame && bt->instP();
 
@@ -2397,6 +2400,7 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen
           BPatch::bpatch->isSaveFPROn() &&
           bt->isConservative() &&
           !bt->optimized_out_guards;
+       if( BPatch::bpatch->isForceSaveFPROn() ) useFPRs = true; 
        createFrame = true;
        saveOrigAddr = false;
     }

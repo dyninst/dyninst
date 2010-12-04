@@ -653,7 +653,8 @@ bool baseTramp::generateSaves(codeGen &gen,
     }
 
 
-    if (isConservative() && BPatch::bpatch->isSaveFPROn() ) {
+    if (BPatch::bpatch->isForceSaveFPROn() || 
+       (isConservative() && BPatch::bpatch->isSaveFPROn()) ) {
         for (unsigned f_iter = 0; f_iter <= 30; f_iter += 2) {
             // std %f[iter], [%fp + -(40 + iter*4)]
             insnCodeGen::generateStoreFD(gen, f_iter, REG_FPTR, 
@@ -676,7 +677,8 @@ bool baseTramp::generateSaves(codeGen &gen,
 bool baseTramp::generateRestores(codeGen &gen,
                                  registerSpace *,
                                  baseTrampInstance *) {
-    if (isConservative() && BPatch::bpatch->isSaveFPROn()) {
+    if (BPatch::bpatch->isForceSaveFPROn() || 
+       (isConservative() && BPatch::bpatch->isSaveFPROn())) {
         for (unsigned f_iter = 0; f_iter <= 30; f_iter += 2) {
             // std %f[iter], [%fp + -(40 + iter*4)]
             insnCodeGen::generateLoadFD(gen, REG_FPTR, 
