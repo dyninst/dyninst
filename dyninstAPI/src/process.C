@@ -7168,7 +7168,7 @@ dyn_lwp *process::getInitialLwp() const {
 int process::getPid() const { return sh ? sh->getPid() : -1;}
 
 bool process::shouldSaveFPState() {
-   return BPatch::bpatch->isSaveFPROn();
+   return (BPatch::bpatch->isSaveFPROn() || BPatch::bpatch->isForceSaveFPROn());
 }
 
 const char *process::getInterpreterName() {
