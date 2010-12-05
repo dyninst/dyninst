@@ -379,27 +379,34 @@ void EmitterIA32::emitGetRetVal(Register dest, bool addr_of, codeGen &gen)
    emitLEA(loc.reg, RealRegister(Null_Register), 0, loc.offset, dest_r, gen);
 }
 
-void EmitterIA32::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, bool addr_of, codeGen &gen)
+void EmitterIA32::emitGetParam(Register dest, Register param_num,
+                               instPointType_t pt_type, bool addr_of,
+                               codeGen &gen)
 {
    // Parameters are addressed by a positive offset from ebp,
    // the first is PARAM_OFFSET[ebp]
-   stackItemLocation loc = getHeightOf(stackItem(stackItem::stacktop), gen);
-
-   // Load the original %esp value into dest_r
+   stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
    RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-   emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
-
-   int offset = 0;
-   if (pt_type != callSite) {
-      //Return value before any parameters
-      offset += 4;
+   if (!gen.bti() || gen.bti()->alignedStack()) {
+       // Load the original %esp value into dest_r
+       emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
+       loc.offset = 0;
+       loc.reg = dest_r;
    }
-   offset += param_num*4;
+
+   if (pt_type != callSite) {
+       //Return value before any parameters
+       loc.offset += 4;
+   }
+   loc.offset += param_num*4;
+
+   // Prepare a real destination register.
 
    if (!addr_of)
-      emitMovRMToReg(dest_r, dest_r, offset, gen);
+      emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
    else
-      emitLEA(dest_r, RealRegister(Null_Register), 0, offset, dest_r, gen);
+      emitLEA(loc.reg, RealRegister(Null_Register),
+              0, loc.offset, dest_r, gen);
 }
 
 // Moves stack pointer by offset and aligns it to IA32_STACK_ALIGNMENT
@@ -429,28 +436,40 @@ void EmitterIA32::emitGetParam(Register dest, Register param_num, instPointType_
 //     3) Care has been taken to properly restore both %eax and %eflags
 //        by using "lea" instead of "add" or "sub," and saving the necessary
 //        flags around the "and" instruction.
+//
+// Saving of the flags register can be skipped if the register is not live.
 
 void EmitterIA32::emitStackAlign(int offset, codeGen &gen)
 {
-    int off = offset + 8 + IA32_STACK_ALIGNMENT;
+    int off = offset + 4 + IA32_STACK_ALIGNMENT;
     int saveSlot1 =    0 + IA32_STACK_ALIGNMENT;
     int saveSlot2 =    4 + IA32_STACK_ALIGNMENT;
     RealRegister esp = RealRegister(REGNUM_ESP);
     RealRegister eax = RealRegister(REGNUM_EAX);
     RealRegister enull = RealRegister(Null_Register);
 
+    bool saveFlags = false;
+    if (gen.rs()->checkVolatileRegisters(gen, registerSlot::live)) {
+        saveFlags = true;   // We need to save the flags register
+        off += 4;           // Allocate stack space to store the flags
+    }
+
     emitLEA(esp, enull, 0, -off, esp, gen);
     emitMovRegToRM(esp, saveSlot1, eax, gen);
-    emitSimpleInsn(0x9f, gen);
-    emitSaveO(gen);
-    emitMovRegToRM(esp, saveSlot2, eax, gen);
+    if (saveFlags) {
+        emitSimpleInsn(0x9f, gen);
+        emitSaveO(gen);
+        emitMovRegToRM(esp, saveSlot2, eax, gen);
+    }
     emitLEA(esp, enull, 0, off, eax, gen);
     emitOpExtRegImm8(0x83, EXTENDED_0x83_AND, esp, -IA32_STACK_ALIGNMENT, gen);
     emitMovRegToRM(esp, 0, eax, gen);
-    emitMovRMToReg(eax, eax, -off + saveSlot2, gen);
-    emitRestoreO(gen);
-    emitSimpleInsn(0x9e, gen);
-    emitMovRMToReg(eax, esp, 0, gen);
+    if (saveFlags) {
+        emitMovRMToReg(eax, eax, -off + saveSlot2, gen);
+        emitRestoreO(gen);
+        emitSimpleInsn(0x9e, gen);
+        emitMovRMToReg(eax, esp, 0, gen);
+    }
     emitMovRMToReg(eax, eax, -off + saveSlot1, gen);
 }
 
@@ -460,11 +479,11 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &ge
     // x86 linux platforms do not allow for writing to memory
     // below the stack pointer.  No need to skip a "red zone."
 
+    int instFrameSize = 0; // Tracks how much we are moving %rsp
     int funcJumpSlotSize = 0;
     if (bti) {
-       funcJumpSlotSize = bti->funcJumpSlotSize();
+        funcJumpSlotSize = bti->funcJumpSlotSize() * 4;
     }
-    funcJumpSlotSize *= 4;
 
     // Align the stack now to avoid having a padding hole in the middle of
     // our instrumentation stack.  Referring to anything on the stack above
@@ -475,18 +494,28 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &ge
     //    - Any time we need to save the FP registers
     //    - Any time we may execute SSE/SSE2 instructions
     //
-    // Hopefully, at some point in the future, our code generator will
-    // be smart enough to generate a stack alignment sequence only when
-    // necessary.  For now, we'll always align the stack for correctness.
+    // The second case is only possible if we generate a function call
+    // so search the ASTs for function call generation.
     //
-    emitStackAlign(funcJumpSlotSize, gen);
+    bool useFPRs =  BPatch::bpatch->isForceSaveFPROn() ||
+                  ( BPatch::bpatch->isSaveFPROn()      &&
+                    gen.rs()->anyLiveFPRsAtEntry()     &&
+                    bt->isConservative()               &&
+                    !bt->optimized_out_guards );
+    bool alignStack = useFPRs || !bti || bti->checkForFuncCalls();
+
+    if (alignStack) {
+        emitStackAlign(funcJumpSlotSize, gen);
+
+    } else if (funcJumpSlotSize > 0) {
+        // Just move %esp to make room for the funcJump.
+        // Use LEA to avoid flag modification.
+        emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
+                -funcJumpSlotSize, RealRegister(REGNUM_ESP), gen);
+        instFrameSize += funcJumpSlotSize;
+    }
 
     bool flags_saved = gen.rs()->saveVolatileRegisters(gen);
-    bool useFPRs = gen.rs()->anyLiveFPRsAtEntry() && 
-                   bt->isConservative() && 
-                   BPatch::bpatch->isSaveFPROn() &&
-                   !bt->optimized_out_guards;
-    if( BPatch::bpatch->isForceSaveFPROn() ) useFPRs = true; 
     bool createFrame = !bti || bt->createFrame() || useFPRs;
     bool saveOrigAddr = createFrame && bt->instP();
     bool localSpace = createFrame || useFPRs || 
@@ -498,6 +527,7 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &ge
        bti->setHasStackFrame(createFrame);
        bti->setSavedOrigAddr(saveOrigAddr);
        bti->setHasLocalSpace(localSpace);
+       bti->setAlignedStack(alignStack);
     }
 
     int flags_saved_i = flags_saved ? 1 : 0;
@@ -566,7 +596,7 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &ge
     //bool liveFPRs = (gen.rs()->FPRs()[0]->liveState == registerSlot:live);
 
     // Prepare our stack bookkeeping data structures.
-    int instFrameSize = (flags_saved_i + num_saved + base_i) * 4;
+    instFrameSize += (flags_saved_i + num_saved + base_i) * 4;
     if (bti) {
         bti->setTrampStackHeight(instFrameSize);
     }
@@ -577,9 +607,9 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &ge
     int extra_space = 0;
     if (useFPRs) {
         if (gen.rs()->hasXMM) {
-            extra_space += 512;
+            extra_space += TRAMP_FRAME_SIZE + 512;
         } else {
-            extra_space += FSAVE_STATE_SIZE;
+            extra_space += TRAMP_FRAME_SIZE + FSAVE_STATE_SIZE;
         }
 
     } else if (localSpace) {
@@ -587,9 +617,11 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &ge
     }
 
     // Make sure that we're still aligned when we add extra_space to the stack.
-    if ((instFrameSize + extra_space) % IA32_STACK_ALIGNMENT)
-        extra_space += IA32_STACK_ALIGNMENT -
-                       ((instFrameSize + extra_space) % IA32_STACK_ALIGNMENT);
+    if (alignStack) {
+        if ((instFrameSize + extra_space) % IA32_STACK_ALIGNMENT)
+            extra_space += IA32_STACK_ALIGNMENT -
+                ((instFrameSize + extra_space) % IA32_STACK_ALIGNMENT);
+    }
 
     if (extra_space) {
         emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
@@ -627,21 +659,24 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen 
     bool createFrame;
     bool saveOrigAddr;
     bool localSpace;
+    bool alignStack;
     if (bti) {
        useFPRs = bti->savedFPRs();
        createFrame = bti->hasStackFrame();
        saveOrigAddr = bti->savedOrigAddr();
        localSpace = bti->hasLocalSpace();
+       alignStack = bti->alignedStack();
     }
     else {
-       useFPRs = gen.rs()->anyLiveFPRsAtEntry() && 
-          bt->isConservative() && 
-          BPatch::bpatch->isSaveFPROn() &&
-          !bt->optimized_out_guards;
-       if( BPatch::bpatch->isForceSaveFPROn() ) useFPRs = true; 
+       useFPRs =  BPatch::bpatch->isForceSaveFPROn() ||
+                ( BPatch::bpatch->isSaveFPROn()      &&
+                  gen.rs()->anyLiveFPRsAtEntry()     &&
+                  bt->isConservative()               &&
+                  !bt->optimized_out_guards );
        createFrame = true;
        saveOrigAddr = bt->instP();
        localSpace = true;
+       alignStack = true;
     }
 
     if (useFPRs) {
@@ -654,8 +689,8 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen 
             *insn++ = 0x0c;
             *insn++ = 0x24;
             SET_PTR(insn, gen);
-        }
-        else 
+
+        } else
            emitOpRegRM(FRSTOR, RealRegister(FRSTOR_OP),
                        RealRegister(REGNUM_ESP), 0, gen);
     }
@@ -672,14 +707,26 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen 
        emitSimpleInsn(LEAVE, gen);
     }
     if (saveOrigAddr) {
-        emitAddRegImm32(RealRegister(REGNUM_ESP), 4, gen);
+        emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 4,
+                RealRegister(REGNUM_ESP), gen);
     }
 
     //popa or pop each register, plus optional popf
     emitBTRegRestores32(bti, gen);
 
     // Restore the (possibly unaligned) stack pointer.
-    emitMovRMToReg(RealRegister(REGNUM_ESP), RealRegister(REGNUM_ESP), 0, gen);
+    if (alignStack) {
+        emitMovRMToReg(RealRegister(REGNUM_ESP),
+                       RealRegister(REGNUM_ESP), 0, gen);
+    } else {
+        int funcJumpSlotSize = 0;
+        if (bti && bti->funcJumpSlotSize()) {
+            funcJumpSlotSize = bti->funcJumpSlotSize() * 4;
+            emitLEA(RealRegister(REGNUM_ESP),
+                    RealRegister(Null_Register), 0, funcJumpSlotSize,
+                    RealRegister(REGNUM_ESP), gen);
+        }
+    }
 
     return true;
 }
@@ -1405,8 +1452,12 @@ void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register destinati
    assert(dest);
 
    if (register_num == REGNUM_ESP) {
-      stackItemLocation loc = getHeightOf(stackItem(stackItem::stacktop), gen);
-      emitMovRMToReg64(destination, loc.reg.reg(), loc.offset, 8, gen);
+      stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
+      if (!gen.bti() || gen.bti()->alignedStack())
+          emitMovRMToReg64(destination, loc.reg.reg(), loc.offset, 8, gen);
+      else
+          emitLEA64(loc.reg.reg(), Null_Register, 0, loc.offset,
+                    destination, true, gen);
       return;
    }
 
@@ -1808,18 +1859,22 @@ void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPointType
 
    // Load the original %rsp value into dest
    stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-   emitMovRMToReg64(dest, loc.reg.reg(), loc.offset, 8, gen);
+   if (!gen.bti() || gen.bti()->alignedStack()) {
+      // Load the original %rsp value into dest
+      emitMovRMToReg64(dest, loc.reg.reg(), loc.offset, 8, gen);
+      loc.reg = RealRegister(dest);
+      loc.offset = 0;
+   }
 
-   int offset = 0;
    if (pt_type != callSite) {
       //Return value before any parameters
-      offset += 8;
+      loc.offset += 8;
    }
-   offset += (param_num-6)*8;
+   loc.offset += (param_num-6)*8;
    if (!addr_of)
-      emitMovRMToReg64(dest, dest, offset, 8, gen);
+      emitMovRMToReg64(dest, loc.reg.reg(), loc.offset, 8, gen);
    else
-      emitLEA64(dest, Null_Register, 0, offset, dest, true, gen);
+      emitLEA64(loc.reg.reg(), Null_Register, 0, loc.offset, dest, true, gen);
 }
 
 static void emitPushImm16_64(unsigned short imm, codeGen &gen)
@@ -1844,6 +1899,11 @@ static void emitPushImm16_64(unsigned short imm, codeGen &gen)
 void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, bool callOp, codeGen &gen)
 {
     assert(gen.bti());
+
+    // This function assumes we aligned the stack, and hence the original
+    // stack pointer value is stored at the top of our instrumentation stack.
+    assert(gen.bti()->alignedStack());
+
     Address addr = f->getAddress();
     long int disp = addr - (gen.currAddr()+5);
     int saved_stack_height = gen.rs()->getStackHeight();
@@ -1864,16 +1924,24 @@ void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, boo
         emitMovPCRMToReg64(dest, 0, 8, gen, false);
 
         //Add the distance from the current PC to the end of this
-        // baseTramp (which isn't known yet).
-        Register tmp_dest = dest; // emitRex "helps" by masking our registers.
-        emitRex(true, NULL, NULL, &tmp_dest, gen);
+        // baseTramp (which isn't known yet).  We use a ridiculously
+        // large offset (2<<30) to force a 32-bit displacement.
+        emitLEA64(dest, Null_Register, 0, 2<<30, dest, true, gen);
+
+        // The last 4 bytes of a LEA instruction hold the offset constant.
+        // Mark this as the location to patch.
         GET_PTR(insn, gen);
-        *insn++ = 0x81;
-        *insn++ = makeModRMbyte(3, 0, dest);
-        void *patch_loc = (void *) insn;
-        *((int *)insn) = 0x0;
-        insn += sizeof(int);
-        SET_PTR(insn, gen);
+        void *patch_loc = (void *)(insn - sizeof(int));
+
+        //Create a patch to fill in the end of the baseTramp to the above
+        // LEA instruction when it becomes known.
+        generatedCodeObject *nextobj = gen.bti()->nextObj()->nextObj();
+        assert(nextobj);
+        int offset = ((unsigned long) patch_start) -
+                     ((unsigned long) gen.start_ptr());
+        relocPatch newPatch(patch_loc, nextobj, relocPatch::pcrel, &gen, 
+                            offset, sizeof(int));
+        gen.addPatch(newPatch);
 
         //Store the computed return address into the stack slot.
         stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
@@ -1893,16 +1961,6 @@ void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, boo
         }
         emitLEA64(origSP, Null_Register, 0, slotSpace, origSP, true, gen);
         emitMovRegToRM64(loc.reg.reg(), loc.offset, origSP, 8, gen);
-
-        //Create a patch to fill in the end of the baseTramp to the above
-        // add instruction when it becomes known.
-        generatedCodeObject *nextobj = gen.bti()->nextObj()->nextObj();
-        assert(nextobj);
-        int offset = ((unsigned long) patch_start) -
-                     ((unsigned long) gen.start_ptr());
-        relocPatch newPatch(patch_loc, nextobj, relocPatch::pcrel, &gen, 
-                            offset, sizeof(int));
-        gen.addPatch(newPatch);
     }
 
     if (f->proc() == gen.addrSpace() &&
@@ -2201,34 +2259,47 @@ bool shouldSaveReg(registerSlot *reg, baseTrampInstance *inst)
 //     4) Care has been taken to properly restore both %eax and %eflags
 //        by using "lea" instead of "add" or "sub," and saving the necessary
 //        flags around the "and" instruction.
+//
+// Saving of the flags register can be skipped if the register is not live.
 
 void EmitterAMD64::emitStackAlign(int offset, codeGen &gen)
 {
-    int off = offset + 16 + AMD64_STACK_ALIGNMENT;
-    int saveSlot1 =     0 + AMD64_STACK_ALIGNMENT;
-    int saveSlot2 =     8 + AMD64_STACK_ALIGNMENT;
+    int off = offset + 8 + AMD64_STACK_ALIGNMENT;
+    int saveSlot1 =    0 + AMD64_STACK_ALIGNMENT;
+    int saveSlot2 =    8 + AMD64_STACK_ALIGNMENT;
+
+    bool saveFlags = false;
+    if (gen.rs()->checkVolatileRegisters(gen, registerSlot::live)) {
+        saveFlags = true;   // We need to save the flags register
+        off += 8;           // Allocate stack space to store the flags
+    }
 
     emitLEA64(REGNUM_RSP, Null_Register, 0, -off, REGNUM_RSP, true, gen);
     emitStoreRelative(REGNUM_RAX, saveSlot1, REGNUM_RSP, 8, gen);
-    emitSimpleInsn(0x9f, gen);
-    emitSaveO(gen);
-    emitStoreRelative(REGNUM_RAX, saveSlot2, REGNUM_RSP, 8, gen);
+    if (saveFlags) {
+        emitSimpleInsn(0x9f, gen);
+        emitSaveO(gen);
+        emitStoreRelative(REGNUM_RAX, saveSlot2, REGNUM_RSP, 8, gen);
+    }
     emitLEA64(REGNUM_RSP, Null_Register, 0, off, REGNUM_RAX, true, gen);
     emitOpRegImm8_64(0x83, EXTENDED_0x83_AND, REGNUM_RSP,
                      -AMD64_STACK_ALIGNMENT, true, gen);
     emitStoreRelative(REGNUM_RAX, 0, REGNUM_RSP, 8, gen);
-    emitLoadRelative(REGNUM_RAX, -off+saveSlot2, REGNUM_RAX, 8, gen);
-    emitRestoreO(gen);
-    emitSimpleInsn(0x9e, gen);
-    emitLoadRelative(REGNUM_RAX, 0, REGNUM_RSP, 8, gen);
+    if (saveFlags) {
+        emitLoadRelative(REGNUM_RAX, -off+saveSlot2, REGNUM_RAX, 8, gen);
+        emitRestoreO(gen);
+        emitSimpleInsn(0x9e, gen);
+        emitLoadRelative(REGNUM_RAX, 0, REGNUM_RSP, 8, gen);
+    }
     emitLoadRelative(REGNUM_RAX, -off+saveSlot1, REGNUM_RAX, 8, gen);
 }
 
 bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &gen)
 {
+   int instFrameSize = 0; // Tracks how much we are moving %rsp
    int funcJumpSlotSize = 0;
    if (bti) {
-      funcJumpSlotSize = bti->funcJumpSlotSize() * 8;
+       funcJumpSlotSize = bti->funcJumpSlotSize() * 8;
    }
 
    // Align the stack now to avoid having a padding hole in the middle of
@@ -2238,24 +2309,32 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &g
    // There are four cases that require a AMD64_STACK_ALIGNMENT aligned
    // stack pointer:
    //
-   //    - Any time we call a function (Required by the AMD64 ABI)
    //    - Any time we need to save the FP registers
+   //    - Any time we call a function (Required by the AMD64 ABI)
    //    - Any time we may execute SSE/SSE2 instructions
    //
-   // Hopefully, at some point in the future, our code generator will
-   // be smart enough to generate a stack alignment sequence only when
-   // necessary.  For now, we'll always align the stack for correctness.
+   // The third case is equivalent to the second case, so search the
+   // ASTs for function call generation.
    //
+   bool useFPRs =  BPatch::bpatch->isForceSaveFPROn() ||
+                 ( BPatch::bpatch->isSaveFPROn()      &&
+                   gen.rs()->anyLiveFPRsAtEntry()     &&
+                   bt->isConservative()               &&
+                   !bt->optimized_out_guards );
+   bool alignStack = useFPRs || !bti || bti->checkForFuncCalls();
 
-   // Skip past the red zone and funcJump slots while we're aligning.
-   emitStackAlign(AMD64_RED_ZONE + funcJumpSlotSize, gen);
+   if (alignStack) {
+       emitStackAlign(AMD64_RED_ZONE + funcJumpSlotSize, gen);
+
+   } else {
+       // Just move %rsp past the red zone and funcJump slots.
+       // Use LEA to avoid flag modification.
+       emitLEA64(REGNUM_RSP, Null_Register, 0,
+                 -(AMD64_RED_ZONE + funcJumpSlotSize), REGNUM_RSP, true, gen);
+       instFrameSize += AMD64_RED_ZONE + funcJumpSlotSize;
+   }
 
    bool flagsSaved = gen.rs()->saveVolatileRegisters(gen);
-   bool useFPRs = gen.rs()->anyLiveFPRsAtEntry() &&
-      BPatch::bpatch->isSaveFPROn() &&
-      bt->isConservative() &&
-      !bt->optimized_out_guards;
-   if( BPatch::bpatch->isForceSaveFPROn() ) useFPRs = true; 
    bool createFrame = !bti || bt->createFrame() || useFPRs;
    bool saveOrigAddr = createFrame && bt->instP();
 
@@ -2265,6 +2344,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &g
       bti->setFlagsSaved(flagsSaved);
       bti->setSavedFPRs(useFPRs);
       bti->setSavedOrigAddr(saveOrigAddr);
+      bti->setAlignedStack(alignStack);
    }
 
    // We use RAX implicitly all over the place... so mark it read-only
@@ -2324,7 +2404,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &g
    {
       // set up a fresh stack frame
       // pushl %rbp        (0x55)
-      // movl  %rsp, %rbp  (0x48 0x89 0xe5)      
+      // movl  %rsp, %rbp  (0x48 0x89 0xe5)
       emitSimpleInsn(0x55, gen);
       gen.rs()->markSavedRegister(REGNUM_RBP, 0);
       num_saved++;
@@ -2340,7 +2420,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &g
    assert(num_saved == num_to_save);
 
    // Prepare our stack bookkeeping data structures.
-   int instFrameSize = num_saved * 8;
+   instFrameSize += num_saved * 8;
    if (bti) {
        bti->setTrampStackHeight(instFrameSize);
    }
@@ -2355,8 +2435,10 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &g
 
    // Make sure that we're still 32-byte aligned when we add extra_space
    // to the stack.
-   if ((instFrameSize + extra_space) % 32)
-       extra_space += 32 - ((instFrameSize + extra_space) % 32);
+   if (alignStack) {
+       if ((instFrameSize + extra_space) % 32)
+           extra_space += 32 - ((instFrameSize + extra_space) % 32);
+   }
 
    if (extra_space) {
        emitLEA64(REGNUM_RSP, Null_Register, 0, -extra_space,
@@ -2389,20 +2471,23 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen
     bool useFPRs;
     bool createFrame;
     bool saveOrigAddr;
+    bool alignStack;
 
     if (bti) {
        useFPRs = bti->savedFPRs();
        createFrame = bti->hasStackFrame();
        saveOrigAddr = bti->savedOrigAddr();
+       alignStack = bti->alignedStack();
     }
     else {
-       useFPRs = gen.rs()->anyLiveFPRsAtEntry() &&
-          BPatch::bpatch->isSaveFPROn() &&
-          bt->isConservative() &&
-          !bt->optimized_out_guards;
-       if( BPatch::bpatch->isForceSaveFPROn() ) useFPRs = true; 
+       useFPRs =  BPatch::bpatch->isForceSaveFPROn() ||
+                ( BPatch::bpatch->isSaveFPROn()      &&
+                  gen.rs()->anyLiveFPRsAtEntry()     &&
+                  bt->isConservative()               &&
+                  !bt->optimized_out_guards );
        createFrame = true;
        saveOrigAddr = false;
+       alignStack = true;
     }
 
     if (useFPRs) {
@@ -2445,7 +2530,17 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen
     gen.rs()->restoreVolatileRegisters(gen);
 
     // Restore the (possibly unaligned) stack pointer.
-    emitLoadRelative(REGNUM_RSP, 0, REGNUM_RSP, 0, gen);
+    if (alignStack) {
+        emitLoadRelative(REGNUM_RSP, 0, REGNUM_RSP, 0, gen);
+
+    } else {
+        int funcJumpSlotSize = 0;
+        if (bti && bti->funcJumpSlotSize()) {
+            funcJumpSlotSize = bti->funcJumpSlotSize() * 8;
+        }
+        emitLEA64(REGNUM_ESP, Null_Register, 0,
+                  AMD64_RED_ZONE + funcJumpSlotSize, REGNUM_ESP, true, gen);
+    }
 
     return true;
 }

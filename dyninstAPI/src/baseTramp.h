@@ -138,6 +138,7 @@ class baseTrampInstance : public generatedCodeObject {
     // Update the list of miniTrampInstances
     void updateMTInstances();
 
+    bool checkForFuncCalls();
     cfjRet_t checkForFuncJumps();
 
     // Null out an MTI pointer
@@ -179,6 +180,7 @@ class baseTrampInstance : public generatedCodeObject {
     bool flags_saved_;
     bool saved_fprs_;
     bool saved_orig_addr_;
+    bool aligned_stack_;
     cfjRet_t hasFuncJump_;
     int trampStackHeight_;
  public:
@@ -190,6 +192,7 @@ class baseTrampInstance : public generatedCodeObject {
     bool flagsSaved() { return flags_saved_; }
     bool savedFPRs() { return saved_fprs_; }
     bool savedOrigAddr() { return saved_orig_addr_; }
+    bool alignedStack() { return aligned_stack_; }
     cfjRet_t hasFuncJump() { return hasFuncJump_; }
     int trampStackHeight() { return trampStackHeight_; }
     void setHasOptInfo(bool v) { hasOptInfo_ = v; } 
@@ -200,6 +203,7 @@ class baseTrampInstance : public generatedCodeObject {
     void setSavedFPRs(bool v) { saved_fprs_ = v; }
     void setSavedOrigAddr(bool v) { saved_orig_addr_ = v; }
     void setHasFuncJump(cfjRet_t v) { hasFuncJump_ = v; }
+    void setAlignedStack(bool v) { aligned_stack_ = v; }
     void setTrampStackHeight(int v) { trampStackHeight_ = v; }
     int funcJumpSlotSize();
 };
