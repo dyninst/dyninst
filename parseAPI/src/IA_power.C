@@ -280,7 +280,7 @@ bool IA_IAPI::isReturnInst(Dyninst::ParseAPI::Function * context, Dyninst::Parse
       Instruction::Ptr ci = curInsn ();
       int foundMTLR = false;
       std::map < Address,
-      Dyninst::InstructionAPI::Instruction::Ptr >::const_reverse_iterator iter;
+      Dyninst::InstructionAPI::Instruction::Ptr >::reverse_iterator iter;
       Address blockStart = currBlk->start ();
       const unsigned char *b =
 	(const unsigned char *) (this->_isrc->
