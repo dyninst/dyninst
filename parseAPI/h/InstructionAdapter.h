@@ -114,11 +114,11 @@ const;
     mutable bool checkedDynamicCall_;
     mutable bool isInvalidCallTarget_;
     mutable bool checkedInvalidCallTarget_;
-    // Block associated with the instruction adapter. This is required for powerpc slicing to determine the return address of a function
-    ParseAPI::Block * _curBlk;
     ParseAPI::CodeObject * _obj;
     ParseAPI::CodeRegion * _cr;
     InstructionSource * _isrc;
+    // Block associated with the instruction adapter. This is required for powerpc slicing to determine the return address of a function
+    ParseAPI::Block * _curBlk;
 };
 
 } // Dyninst
