@@ -186,13 +186,13 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    
    bool usedTrap = false;
    
-   generateBranch(r.from, r.to, gen);
+   generateBranch(r.from, r.destinations.begin()->second, gen);
    
    if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
       // Errr...
       // Fine. Let's do the trap thing. 
       usedTrap = true;
-      generateTrap(r.from, r.to, gen);
+      generateTrap(r.from, r.destinations.begin()->second, gen);
       if (conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
          // Someone could already be there; omit the trap. 
          return Failed;
@@ -357,12 +357,12 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool
    // Just the requests for now.
    
    std::list<Address> relocAddrs;
-   for (std::set<int_block *>::const_iterator b_iter = req.bbls.begin(); 
-           b_iter != req.bbls.end(); ++b_iter) {
-       addrSpace_->getRelocAddrs(req.from, (*b_iter)->func(), relocAddrs, true);
+   for (SpringboardReq::Destinations::const_iterator b_iter = req.destinations.begin(); 
+       b_iter != req.destinations.end(); ++b_iter) {
+       addrSpace_->getRelocAddrs(req.from, b_iter->first->func(), relocAddrs, true);
        for (std::list<Address>::const_iterator addr = relocAddrs.begin(); 
             addr != relocAddrs.end(); ++addr) {
-          if (*addr == req.to) continue;
+          if (*addr == b_iter->second) continue;
           Priority newPriority;
           switch(req.priority) {
              case Suggested:
@@ -376,8 +376,8 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool
                 break;
           }
           
-          input.addRaw(*addr, req.to, 
-                       newPriority, *b_iter,
+          input.addRaw(*addr, b_iter->second, 
+                       newPriority, b_iter->first,
                        req.checkConflicts, 
                        false, true, useTrap);
        }

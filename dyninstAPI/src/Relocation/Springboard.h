@@ -61,9 +61,9 @@ typedef enum {
 
 struct SpringboardReq {
    Address from;
-   Address to;
    Priority priority;
-   std::set<int_block *> bbls;
+   typedef std::map<int_block *, Address> Destinations;
+   Destinations destinations;
    bool checkConflicts;
    bool includeRelocatedCopies;
    bool fromRelocatedCode;
@@ -74,17 +74,17 @@ struct SpringboardReq {
                   bool f, 
                   bool g,
                   bool i)
-   : from(a), to(b), 
+   : from(a), 
       priority(c), 
       checkConflicts(e), 
       includeRelocatedCopies(f),
       fromRelocatedCode(g),
       useTrap(i) 
    {
-       bbls.insert(d);
+      destinations[d] = b;
    }
    SpringboardReq() 
-   : from(0), to(0), priority(NotRequired), 
+   : from(0), priority(NotRequired), 
       checkConflicts(false),
       includeRelocatedCopies(false),
       fromRelocatedCode(false),
@@ -100,11 +100,10 @@ struct SpringboardReq {
         // we can do the right thing with includeRelocatedCopies.
         if (from == 0) {
             // New version version
-            assert(to == 0);
+            assert(destinations.empty()); 
             from = a;
-            to = b;
             priority = c;
-            bbls.insert(d);
+            destinations[d] = b;
             checkConflicts = e;
             includeRelocatedCopies = f;
             fromRelocatedCode = g;
@@ -112,8 +111,7 @@ struct SpringboardReq {
         }
         else {
             assert(from == a);
-            // Ignore everything else but the bbl
-            bbls.insert(d);
+            destinations[d] = b;
         }
     }
 };
