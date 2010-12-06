@@ -228,18 +228,6 @@ mapped_module *mapped_module::createMappedModule(mapped_object *obj,
    return mod;
 }
 
-// BPatch loves the mapped_module, but we pass it up to the image (since
-// that occupies a range of memory; modules can be scattered all around it).
-codeRange *mapped_module::findCodeRangeByAddress(const Address &addr)  
-{
-   return obj()->findCodeRangeByAddress(addr);
-}
-
-int_function *mapped_module::findFuncByAddr(const Address &addr)  
-{
-   return obj()->findFuncByAddr(addr);
-}
-
 
 std::string mapped_module::processDirectories(const std::string &fn) const 
 {
@@ -320,4 +308,30 @@ int_variable* mapped_module::createVariable(std::string name, Address addr, int 
   obj()->addVariable(ret);
   return ret;
 }
+
+bool mapped_module::findFuncsByAddr(const Address addr,
+                                    std::set<int_function *> &funcs) {
+   std::set<int_function *> allFuncs;
+   int size = funcs.size();
+   if (!obj()->findFuncsByAddr(addr, allFuncs)) return false;
+   for (std::set<int_function *>::iterator iter = allFuncs.begin();
+        iter != allFuncs.end(); ++iter) {
+      if ((*iter)->mod() == this) funcs.insert(*iter);
+   }
+   return (funcs.size() > size);
+}
+
+bool mapped_module::findBlocksByAddr(const Address addr,
+                                    std::set<int_block *> &blocks) {
+   std::set<int_block *> allBlocks;
+   int size = blocks.size();
+   if (!obj()->findBlocksByAddr(addr, allBlocks)) return false;
+   for (std::set<int_block *>::iterator iter = allBlocks.begin();
+        iter != allBlocks.end(); ++iter) {
+      if ((*iter)->func()->mod() == this) blocks.insert(*iter);
+   }
+   return (blocks.size() > size);
+}
+
+
 

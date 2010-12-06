@@ -1529,7 +1529,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     return false;
 }
 
-int dyn_lwp::changeMemoryProtections(Address , Offset , unsigned )
+int dyn_lwp::changeMemoryProtections(Address , Offset , unsigned, bool )
 {
     assert(0);//not implemented for unix
     return 0;

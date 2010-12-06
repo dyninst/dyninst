@@ -40,8 +40,8 @@ using namespace Relocation;
 using namespace std;
 
 bool CodeTracker::origToReloc(Address origAddr,
-			      int_function *func,
-			      RelocatedElements &reloc) const {
+			                  int_function *func,
+			                  RelocatedElements &reloc) const {
   BFM_citer iter = origToReloc_.find(func);
   if (iter == origToReloc_.end()) return false;
 
@@ -55,14 +55,14 @@ bool CodeTracker::origToReloc(Address origAddr,
 }
 
 bool CodeTracker::relocToOrig(Address relocAddr, 
-			      Address &orig, 
-			      int_function *&func,
+			                  Address &orig, 
+			                  int_block *&block,
                               baseTrampInstance *&bti) const {
   TrackerElement *e = NULL;
   if (!relocToOrig_.find(relocAddr, e))
     return false;
   orig = e->relocToOrig(relocAddr);
-  func = e->func();
+  block = e->block();
   if (e->type() == TrackerElement::instrumentation) {
      InstTracker *i = static_cast<InstTracker *>(e);
      bti = i->baseT();
@@ -85,8 +85,6 @@ void CodeTracker::addTracker(TrackerElement *e) {
   // If that happens, the assumption origToReloc makes that we can
   // get away without an IntervalTree will be violated and a lot
   // of code will need to be rewritten.
-   assert(e->func());
-
    if (!trackers_.empty()) {
       TrackerElement *last = trackers_.back();
       if (e->orig() == last->orig() &&
@@ -113,17 +111,12 @@ void CodeTracker::createIndices() {
 
     relocToOrig_.insert(e->reloc(), e->reloc() + e->size(), e);
 
-    if (e->func()) {
-       if (e->type() == TrackerElement::instrumentation) {
-          origToReloc_[e->func()][e->orig()].instrumentation = e->reloc();
-       }
-       else {
-          origToReloc_[e->func()][e->orig()].instruction = e->reloc();
-       }
-    }
-    else {
-       cerr << "WARNING: ignoring tracker entry " << (*e) << endl;
-    }
+   if (e->type() == TrackerElement::instrumentation) {
+      origToReloc_[e->block()->func()][e->orig()].instrumentation = e->reloc();
+   }
+   else {
+      origToReloc_[e->block()->func()][e->orig()].instruction = e->reloc();
+   }
   }
 
   if (dyn_debug_reloc) debug();
@@ -175,6 +168,7 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::Relocation::TrackerEle
     os << ",?";
     break;
   }
+  os << "," << e.block()->start() << "," << e.block()->func()->symTabName();
   os << ")" << dec;
   return os;
 }

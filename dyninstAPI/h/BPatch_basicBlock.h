@@ -44,7 +44,7 @@
 
 class image;
 class int_function;
-class int_basicBlock;
+class int_block;
 
 /* Currently all this bitarray stuff is just for power, 
    but could be extended as we do liveness stuff for other platforms */
@@ -82,7 +82,7 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 
  private:
    /** the internal basic block structure **/
-   int_basicBlock *iblock;
+   int_block *iblock;
 
    /** the flow graph that contains this basic block */
    BPatch_flowGraph *flowGraph;
@@ -112,7 +112,7 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
  protected:
 
    /** constructor of class */
-   BPatch_basicBlock(int_basicBlock *ib, BPatch_flowGraph *fg);
+   BPatch_basicBlock(int_block *ib, BPatch_flowGraph *fg);
 
 
    
@@ -123,9 +123,9 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    
    // Internal functions. Don't use these unless you know what you're
    // doing.
-   int_basicBlock *lowlevel_block()  { return iblock; }
+   int_block *lowlevel_block()  { return iblock; }
 
-   void setlowlevel_block(int_basicBlock *b)  { iblock = b; }
+   void setlowlevel_block(int_block *b)  { iblock = b; }
    void  getAllPoints(std::vector<BPatch_point*>& allPoints);
    BPatch_point *convertPoint(instPoint *pt);
    BPatch_function *getCallTarget();

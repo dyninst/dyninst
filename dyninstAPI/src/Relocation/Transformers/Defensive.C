@@ -60,7 +60,7 @@ using namespace InstructionAPI;
 bool DefensiveTransformer::processTrace(TraceList::iterator &iter) {
   relocation_cerr << "DefensiveMode, processing block " 
 		  << std::hex << (*iter)->origAddr() << std::dec << endl;
-  bblInstance *bbl = (*iter)->bbl();
+  int_block *bbl = (*iter)->bbl();
   if (!bbl) return true;
 
   if (!requiresDefensivePad(bbl)) {
@@ -70,7 +70,7 @@ bool DefensiveTransformer::processTrace(TraceList::iterator &iter) {
   // Create a new Trace for this, and add
   // a TODO to insert it during postprocess
   DefensivePadding::Ptr pad = DefensivePadding::create(bbl);
-  TracePtr trace = Trace::create(pad, bbl->endAddr(), bbl->func());
+  TracePtr trace = Trace::create(pad, bbl->end(), bbl->func());
 
   // Add it as a fallthrough from the prior block, and if the block had a fallthrough
   // reassign it to us.
@@ -87,7 +87,7 @@ bool DefensiveTransformer::processTrace(TraceList::iterator &iter) {
 
   // 2) Fallthrough for us
   CFAtom::Ptr newCFAtom = CFAtom::create(bbl);
-  newCFAtom->updateAddr(bbl->endAddr());
+  newCFAtom->updateAddr(bbl->end());
   trace->elements().push_back(newCFAtom);
   if (oldFallthrough) {
       newCFAtom->addDestination(CFAtom::Fallthrough, oldFallthrough);
@@ -119,7 +119,7 @@ bool DefensiveTransformer::postprocess(TraceList &l) {
     return true;
 }
 // First parameter: do we need a defensive 
-bool DefensiveTransformer::requiresDefensivePad(const bblInstance *inst) {
+bool DefensiveTransformer::requiresDefensivePad(const int_block *inst) {
    // Find if the program does anything funky with a call fallthrough
    // 1) A call edge with no fallthrough
    // 2) A gap between the call block and the fallthrough block.
@@ -127,7 +127,7 @@ bool DefensiveTransformer::requiresDefensivePad(const bblInstance *inst) {
    ParseAPI::Edge *callEdge = NULL;
    ParseAPI::Edge *ftEdge = NULL;
    
-   const ParseAPI::Block::edgelist &targets = inst->block()->llb()->targets();
+   const ParseAPI::Block::edgelist &targets = inst->llb()->targets();
    ParseAPI::Block::edgelist::iterator iter = targets.begin();
    for (; iter != targets.end(); ++iter) {
       if ((*iter)->type() == ParseAPI::CALL) {

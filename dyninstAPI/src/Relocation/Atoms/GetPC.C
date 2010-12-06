@@ -49,9 +49,9 @@ GetPC::Ptr GetPC::create(Instruction::Ptr insn,
   return Ptr(new GetPC(insn, addr, a, thunk));
 }
 
-TrackerElement *GetPC::tracker(int_function *f) const {
+TrackerElement *GetPC::tracker(int_block *b) const {
   assert(addr_ != 1);
-  EmulatorTracker *e = new EmulatorTracker(addr_, f);
+  EmulatorTracker *e = new EmulatorTracker(addr_, b);
   return e;
 }
 
@@ -79,11 +79,11 @@ bool GetPC::PCtoStack(const codeGen &templ, const Trace *t, CodeBuffer &buffer) 
       newInsn.insert(newInsn.end(),
                      tmp,
                      tmp+sizeof(unsigned int));
-      buffer.addPIC(newInsn, tracker(t->bbl()->func()));
+      buffer.addPIC(newInsn, tracker(t->bbl()));
    }
    else {
       IPPatch *newPatch = new IPPatch(IPPatch::Push, addr_ + insn_->size());
-      buffer.addPatch(newPatch, tracker(t->bbl()->func()));
+      buffer.addPatch(newPatch, tracker(t->bbl()));
    }	
    
   return true;
@@ -104,11 +104,11 @@ bool GetPC::PCtoReg(const codeGen &templ, const Trace *t, CodeBuffer &buffer) {
      newInsn.insert(newInsn.end(),
                     tmp,
                     tmp + sizeof(unsigned int));
-     buffer.addPIC(newInsn, tracker(t->bbl()->func()));
+     buffer.addPIC(newInsn, tracker(t->bbl()));
   }
   else {
     IPPatch *newPatch = new IPPatch(IPPatch::Reg, addr_ + insn_->size(), reg, thunkAddr_);
-    buffer.addPatch(newPatch, tracker(t->bbl()->func()));
+    buffer.addPatch(newPatch, tracker(t->bbl()));
   }
   return true;
 }

@@ -59,16 +59,16 @@ class Transformer;
 class CodeMover;
   class CodeTracker;
 
-  typedef std::map<bblInstance *, Priority> PriorityMap;
+  typedef std::map<int_block *, Priority> PriorityMap;
 
 class CodeMover {
  public:
   typedef dyn_detail::boost::shared_ptr<CodeMover> Ptr;
   typedef dyn_detail::boost::shared_ptr<Trace> TracePtr;
   typedef std::list<TracePtr> TraceList;
-  typedef std::map<bblInstance *, TracePtr> TraceMap;
+  typedef std::map<int_block *, TracePtr> TraceMap;
   typedef std::set<int_function *> FuncSet;
-  typedef std::set<bblInstance *> BlockSet;
+  typedef std::set<int_block *> BlockSet;
 
   // A generic mover of code; an instruction, a basic block, or
   // a function. This is the algorithm (fixpoint) counterpart
@@ -139,12 +139,12 @@ class CodeMover {
   template <typename TraceIter>
     bool addTraces(TraceIter begin, TraceIter end);
 
-  bool addTrace(bblInstance *block);
+  bool addTrace(int_block *block);
 
   void createInstrumentationSpringboards(AddressSpace *as);
 
   TraceList blocks_;
-  // We also want to have a map from a bblInstance
+  // We also want to have a map from a int_block
   // to a Trace so we can wire together jumps within
   // moved code
   TraceMap blockMap_;

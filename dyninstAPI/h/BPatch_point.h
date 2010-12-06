@@ -190,6 +190,10 @@ private:
     miniTramp *dynamic_point_monitor_func;
 
     instPoint * getPoint() {return point;}
+    // These three vectors make Windows unhappy
+#if defined(_MSC_VER)
+#pragma warning (disable:4251)
+#endif
 
     // If we're edge inst
     BPatch_edge *edge_;

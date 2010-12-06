@@ -81,6 +81,8 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
    pointType(_pointType), memacc(NULL), dynamic_point_monitor_func(NULL),
    edge_(NULL)
 {
+    assert(point->block()->func() == func->func);
+
     if (_pointType == BPatch_subroutine)
         dynamic_call_site_flag = 2; // dynamic status unknown
     else
@@ -283,14 +285,14 @@ bool BPatch_point::getCFTargets(BPatch_Vector<Address> &targets)
         break;
       }
       case abruptEnd:
-        targets.push_back( point->block()->origInstance()->endAddr() );
+        targets.push_back( point->block()->end() );
         break;
       default: 
       { // branch or jump. 
         // don't miss targets to invalid addresses 
         // (these get linked to the sink block by ParseAPI)
         using namespace ParseAPI;
-        Address baseAddr = point->block()->origInstance()->firstInsnAddr() 
+        Address baseAddr = point->block()->start() 
                          - point->block()->llb()->start();
         Block::edgelist & trgs = point->block()->llb()->targets();
         Block::edgelist::iterator iter = trgs.begin();
@@ -357,7 +359,7 @@ Address BPatch_point::getCallFallThroughAddr()
 	// HACK to enable this for entry points - we can get a call as the first insn in a function
 		// which means it gets labeled an entry point instead of a call.
 	if (0 && point->getPointType() != callSite && 
-        ( point->addr() != point->block()->origInstance()->lastInsnAddr() )) 
+        ( point->addr() != point->block()->last() )) 
     {
         fprintf(stderr,"ERROR: requested fallthrough address for point at %lx "
                 "that is not a call %s[%d]\n", point->addr(), FILE__, __LINE__);

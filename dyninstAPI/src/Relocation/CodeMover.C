@@ -33,7 +33,7 @@
 #include "CodeMover.h"
 #include "Atoms/Atom.h"
 
-#include "dyninstAPI/src/function.h" // bblInstance, int_basicTrace, int_function...
+#include "dyninstAPI/src/function.h" // int_block, int_basicTrace, int_function...
 
 #include "instructionAPI/h/InstructionDecoder.h" // for debug
 #include "dyninstAPI/src/addressSpace.h" // Also for debug
@@ -71,7 +71,7 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
       }
     
       // Add the function entry as Required in the priority map
-      bblInstance *entry = func->entryBlock()->origInstance();
+      int_block *entry = func->entryBlock();
       priorityMap_[entry] = Required;
    }
 
@@ -81,7 +81,7 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
 template <typename TraceIter>
 bool CodeMover::addTraces(TraceIter begin, TraceIter end) {
    for (; begin != end; ++begin) {
-      bblInstance *bbl = (*begin)->origInstance();
+      int_block *bbl = (*begin);
       //relocation_cerr << "Creating Trace for bbl at " 
 //                      << std::hex << bbl->firstInsnAddr() << std::dec
       //                << endl;
@@ -99,7 +99,7 @@ bool CodeMover::addTraces(TraceIter begin, TraceIter end) {
    return true;
 }
 
-bool CodeMover::addTrace(bblInstance *bbl) {
+bool CodeMover::addTrace(int_block *bbl) {
    //relocation_cerr << "Creating Trace for bbl at " 
 //                   << std::hex << bbl->firstInsnAddr() << std::dec
 //                   << endl;
@@ -209,7 +209,7 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
    if (sboardMap_.empty()) {
       for (PriorityMap::const_iterator iter = priorityMap_.begin();
            iter != priorityMap_.end(); ++iter) {
-         bblInstance *bbl = iter->first;
+         int_block *bbl = iter->first;
          const Priority &p = iter->second;
 
          // the priority map may include things not in the block
@@ -220,7 +220,7 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
             int labelID = trace->getLabel();
             Address to = buffer_.getLabelAddr(labelID);
             
-            sboardMap_.addFromOrigCode(bbl->firstInsnAddr(), to, p, bbl);
+            sboardMap_.addFromOrigCode(bbl->start(), to, p, bbl);
             //relocation_cerr << "Added map " << hex
 //                            << bbl->firstInsnAddr() << " -> " 
 //                            << to << ", " << p << dec << endl;
@@ -249,7 +249,7 @@ string CodeMover::format() const {
 }
 
 void CodeMover::extractDefensivePads(AddressSpace *AS) {
-   for (std::map<bblInstance *, codeGen::Extent>::iterator iter = gen().getDefensivePads().begin();
+   for (std::map<int_block *, codeGen::Extent>::iterator iter = gen().getDefensivePads().begin();
         iter != gen().getDefensivePads().end(); ++iter) {
       AS->addDefensivePad(iter->first, iter->second.first, iter->second.second);
    }

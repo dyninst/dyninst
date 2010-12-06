@@ -41,7 +41,7 @@
 class dyn_thread;
 class process;
 class dyn_lwp;
-class codeRange;
+
 class instPoint;
 class miniTramp;
 class int_function;

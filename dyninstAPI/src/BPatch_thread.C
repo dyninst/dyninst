@@ -313,7 +313,7 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
                                                  sizeof(Address), 
                                                  &functionEntry, false);
       if( readDataSpace ) {
-         ifunc = llproc->findFuncByAddr(functionEntry);
+         ifunc = llproc->findOneFuncByAddr(functionEntry);
          llthread->update_start_func(ifunc);
       }
    }

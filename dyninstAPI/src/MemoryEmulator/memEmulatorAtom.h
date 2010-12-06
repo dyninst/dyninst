@@ -79,7 +79,7 @@ class MemEmulator : public Atom {
 
    virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
 
-   TrackerElement *tracker(int_function *) const;
+   TrackerElement *tracker(int_block *) const;
 
    virtual ~MemEmulator() {};
    virtual std::string format() const;

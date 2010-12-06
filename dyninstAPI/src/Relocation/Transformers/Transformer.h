@@ -40,7 +40,7 @@
 
 #include "dyninstAPI/src/image-func.h" // EdgeTypeEnum
 
-class bblInstance;
+class int_block;
 class baseTramp;
 
 namespace Dyninst {

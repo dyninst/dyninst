@@ -49,8 +49,6 @@
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/InstructionDecoder.h"
 using namespace Dyninst::InstructionAPI;
-Dyninst::Architecture instPointBase::arch = Dyninst::Arch_none;
-
 #else
 #include "parseAPI/src/InstrucIter.h"
 #endif // defined(cap_instruction_api)
@@ -111,7 +109,7 @@ miniTramp *instPoint::addInst(AstNodePtr ast,
     return miniT;
 }
 
-bool instPoint::replaceCode(AstNodePtr ast) {
+bool instPoint::replaceCode(AstNodePtr) {
    // TODO
    assert(0);
    return true;
@@ -177,13 +175,13 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
   // Check to see if we're creating the new instPoint on an
   // instruction boundary. First, get the instance...
 
-    bblInstance *bbl = func->findBlockInstanceByAddr(addr);
+    int_block *bbl = func->findOneBlockByAddr(addr);
     if (!bbl) {
         inst_printf("Address not in known code, ret null\n");
         fprintf(stderr, "%s[%d]: Address not in known code, ret null\n", FILE__, __LINE__);
         return NULL;
     }
-    int_basicBlock *block = bbl->block();
+    int_block *block = bbl;
     assert(block);
 
     // Some blocks cannot be relocated; since instrumentation requires
@@ -196,16 +194,16 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
 
     // For now: we constrain the address to be in the original instance
     // of the basic block.
-    if (block->origInstance() != bbl) {
+    if (block != bbl) {
         fprintf(stderr, "%s[%d]: Address not in original basic block instance\n", FILE__, __LINE__);
         return NULL;
     }
-    if (!proc->isValidAddress(bbl->firstInsnAddr())) return NULL;
+    if (!proc->isValidAddress(bbl->start())) return NULL;
 
-    const unsigned char* buffer = reinterpret_cast<unsigned char*>(proc->getPtrToInstruction(bbl->firstInsnAddr()));
-    InstructionDecoder decoder(buffer, bbl->getSize(), proc->getArch());
+    const unsigned char* buffer = reinterpret_cast<unsigned char*>(proc->getPtrToInstruction(bbl->start()));
+    InstructionDecoder decoder(buffer, bbl->size(), proc->getArch());
     Instruction::Ptr i;
-    Address currentInsn = bbl->firstInsnAddr();
+    Address currentInsn = bbl->start();
     while((i = decoder.decode()) && (currentInsn < addr))
     {
         currentInsn += i->size();
@@ -217,7 +215,6 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
             return NULL; // Not aligned
     }
     newIP = new instPoint(proc,
-                          i,
                           addr,
                           block);
     
@@ -260,11 +257,9 @@ miniTramp *instPoint::instrument(AstNodePtr ast,
 int instPoint_count = 0;
 
 instPoint::instPoint(AddressSpace *proc,
-                     Dyninst::InstructionAPI::Instruction::Ptr insn,
                      Address addr,
-                     int_basicBlock *block) :
-    instPointBase(insn, 
-                otherPoint),
+                     int_block *block) :
+    instPointBase(otherPoint),
     callee_(NULL),
     isDynamic_(false),
     preBaseTramp_(NULL),
@@ -290,10 +285,9 @@ instPoint::instPoint(AddressSpace *proc,
 instPoint::instPoint(AddressSpace *proc,
                      image_instPoint *img_p,
                      Address addr,
-                     int_basicBlock *block) :
-        instPointBase(img_p->insn(),
-                  img_p->getPointType(),
-                  img_p->id()),
+                     int_block *block) :
+   instPointBase(img_p->getPointType(),
+                 img_p->id()),
     callee_(NULL),
     isDynamic_(img_p->isDynamic()),
     preBaseTramp_(NULL),
@@ -313,16 +307,14 @@ instPoint::instPoint(AddressSpace *proc,
         fprintf(stderr, "instPoint_count: %d (%d)\n",
                 instPoint_count, instPoint_count*sizeof(instPoint));
 #endif
-    img_p->owners.insert(this);
 }
 
 // Copying over from fork
 instPoint::instPoint(instPoint *parP,
-                     int_basicBlock *child,
-                     process *childP) :
-        instPointBase(parP->insn(),
-                  parP->getPointType(),
-                  parP->id()),
+                     int_block *child,
+                     process *childP)
+   : instPointBase(parP->getPointType(),
+                   parP->id()),
     callee_(NULL), // Will get set later
     isDynamic_(parP->isDynamic_),
     preBaseTramp_(NULL),
@@ -365,13 +357,13 @@ instPoint *instPoint::createParsePoint(int_function *func,
                 offsetInFunc,
                 absAddr);
     
-    bblInstance *bbi = func->findBlockInstanceByAddr(absAddr);
+    int_block *bbi = func->findOneBlockByAddr(absAddr);
     if (!bbi) return NULL; // Not in the function...
 
     newIP = new instPoint(func->proc(),
                           img_p,
                           absAddr,
-                          bbi->block());
+                          bbi);
     
     if (!commonIPCreation(newIP)) {
         delete newIP;
@@ -382,7 +374,7 @@ instPoint *instPoint::createParsePoint(int_function *func,
 }
 
 instPoint *instPoint::createForkedPoint(instPoint *parP,
-                                        int_basicBlock *childB,
+                                        int_block *childB,
                                         process *childP) {
     int_function *func = childB->func();
     instPoint *existingInstP = func->findInstPByAddr(parP->addr());
@@ -390,6 +382,7 @@ instPoint *instPoint::createForkedPoint(instPoint *parP,
        //One instPoint may be covering multiple instPointTypes, e.g.
        // a one instruction function with an entry and exit point at
        // the same point.
+       assert(existingInstP->block() == childB);
        return existingInstP; 
     }
 
@@ -435,16 +428,14 @@ instPoint *instPoint::createForkedPoint(instPoint *parP,
     
     
 instPoint::~instPoint() {
-
     if (preBaseTramp_) delete preBaseTramp_;
     if (postBaseTramp_) delete postBaseTramp_;
-    if (targetBaseTramp_) delete targetBaseTramp_;
-    
+    if (targetBaseTramp_) delete targetBaseTramp_; 
 }
 
 
 
-bool instPoint::instrSideEffect(Frame &frame)
+bool instPoint::instrSideEffect(Frame &)
 {
    return false;
 
@@ -486,9 +477,9 @@ bool instPoint::instrSideEffect(Frame &frame)
 #endif
 }
 
-instPoint::catchup_result_t instPoint::catchupRequired(Address pc,
-                                                       miniTramp *mt,
-                                                       bool active) 
+instPoint::catchup_result_t instPoint::catchupRequired(Address,
+                                                       miniTramp *,
+                                                       bool) 
 {
    // Unimplemented!
    return noMatch_c;
@@ -574,7 +565,7 @@ instPoint::catchup_result_t instPoint::catchupRequired(Address pc,
 #endif
 }
 
-int_basicBlock *instPoint::block() const { 
+int_block *instPoint::block() const { 
     assert(block_);
     return block_;
 }
@@ -613,7 +604,7 @@ std::string instPoint::getCalleeName()
 }
 
 
-void instPoint::setBlock( int_basicBlock* newBlock )
+void instPoint::setBlock( int_block* newBlock )
 {
     // update block (not sure what to do with instPointInstance block mappings)
     block_ = newBlock;
@@ -665,3 +656,15 @@ bool instPoint::setResolved()
 
     return false;
 }
+
+#if defined(cap_instruction_api)
+InstructionAPI::Instruction::Ptr instPoint::insn() const {
+   int_block::InsnInstances insns;
+   block()->getInsnInstances(insns);
+   for (int_block::InsnInstances::iterator iter = insns.begin();
+        iter != insns.end(); ++iter) {
+      if (iter->second == addr()) return iter->first;
+   }
+   return InstructionAPI::Instruction::Ptr();
+}
+#endif

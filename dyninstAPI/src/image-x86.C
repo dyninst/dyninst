@@ -491,7 +491,7 @@ int_function *mapped_object::findGlobalConstructorFunc(const std::string &ctorHa
     }
 
     int_function *ret;
-    if( (ret = findFuncByAddr(ctorAddress)) == NULL ) {
+    if( (ret = findFuncByEntry(ctorAddress)) == NULL ) {
         logLine("unable to create representation for global constructor function\n");
         return NULL;
     }
@@ -597,7 +597,7 @@ int_function *mapped_object::findGlobalDestructorFunc(const std::string &dtorHan
 
     // A targ stub should have been created at the address
     int_function *ret = NULL;
-    if( (ret = findFuncByAddr(dtorAddress)) == NULL ) {
+    if( (ret = findFuncByEntry(dtorAddress)) == NULL ) {
         logLine("unable to find global destructor function\n");
         return NULL;
     }

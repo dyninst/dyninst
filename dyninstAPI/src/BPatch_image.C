@@ -423,7 +423,7 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
       func = bpf->func;
    }
    else {
-      func = llAS->findFuncByAddr(address_int);
+      func = llAS->findOneFuncByAddr(address_int);
    }
 
    if (func == NULL) return NULL;
@@ -748,7 +748,7 @@ BPatch_function *BPatch_image::findFunctionInt(unsigned long addr)
    std::vector<AddressSpace *> as;
    addSpace->getAS(as);
    assert(as.size());
-   int_function *ifunc = as[0]->findFuncByAddr(addr);
+   int_function *ifunc = as[0]->findOneFuncByAddr(addr);
    if (!ifunc)
       return NULL;
 
@@ -759,7 +759,7 @@ bool BPatch_image::findFunctionInt(Dyninst::Address addr,
                                    BPatch_Vector<BPatch_function *> &funcs)
 {
    std::vector<AddressSpace *> as;
-   std::vector<int_function *> ifuncs;
+   std::set<int_function *> ifuncs;
    bool result;
 
    addSpace->getAS(as);
@@ -770,9 +770,10 @@ bool BPatch_image::findFunctionInt(Dyninst::Address addr,
       return false;
 
    assert(ifuncs.size());
-   for (unsigned i=0; i<ifuncs.size(); i++)
+   for (std::set<int_function *>::iterator iter = ifuncs.begin();
+       iter != ifuncs.end(); ++iter) 
    {
-      BPatch_function *bpfunc = addSpace->findOrCreateBPFunc(ifuncs[i], NULL);
+      BPatch_function *bpfunc = addSpace->findOrCreateBPFunc(*iter, NULL);
       funcs.push_back(bpfunc);
    }
 

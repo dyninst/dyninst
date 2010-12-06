@@ -47,8 +47,8 @@ PCRelativeData::Ptr PCRelativeData::create(Instruction::Ptr insn,
   return Ptr(new PCRelativeData(insn, addr, target));
 }
 
-TrackerElement *PCRelativeData::tracker(int_function *f) const {
-   EmulatorTracker *e = new EmulatorTracker(addr_, f);
+TrackerElement *PCRelativeData::tracker(int_block *b) const {
+   EmulatorTracker *e = new EmulatorTracker(addr_, b);
   return e;
 }
 
@@ -68,7 +68,7 @@ bool PCRelativeData::generate(const codeGen &,
 		  <<"," << target_ << std::dec << ")" << endl;
 
   RelDataPatch *newPatch = new RelDataPatch(insn_, target_);
-  buffer.addPatch(newPatch, tracker(t->bbl()->func()));
+  buffer.addPatch(newPatch, tracker(t->bbl()));
 
   return true;
 }
