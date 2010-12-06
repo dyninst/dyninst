@@ -424,7 +424,7 @@ void BPatch_function::getCallerPoints(std::vector<BPatch_point*>& callerPoints)
     lowlevel_func()->getCallerPoints(intPoints);
     std::vector<instPoint*>::iterator pIter = intPoints.begin();
     while (pIter != intPoints.end()) {
-        callerPoints.push_back(addSpace->findOrCreateBPPoint(this,*pIter, 
+        callerPoints.push_back(addSpace->findOrCreateBPPoint(NULL,*pIter, 
             BPatch_point::convertInstPointType_t((*pIter)->getPointType())));
         pIter++;
     }
