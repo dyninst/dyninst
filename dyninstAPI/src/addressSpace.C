@@ -645,8 +645,6 @@ bool AddressSpace::findVarsByAll(const std::string &varname,
 // TODO: is this really worth it? Or should we just use ptrace?
 
 void *AddressSpace::getPtrToInstruction(const Address addr) const {
-    codeRange *range;
-
     mapped_object *obj = findObject(addr);
     if (obj) return obj->getPtrToInstruction(addr);
 

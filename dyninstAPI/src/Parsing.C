@@ -114,7 +114,6 @@ DynCFGFactory::mkfunc(
     SymtabAPI::Symtab * st;
     SymtabAPI::Function * stf;
     pdmodule * pdmod;
-    image_instPoint * entry;
 
     record_func_alloc(src);
 

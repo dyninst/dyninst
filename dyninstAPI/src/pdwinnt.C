@@ -1051,7 +1051,7 @@ void dyn_lwp::dumpRegisters()
 
 bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 {    
-  if (dyninst_debug_malware) {
+  if (dyn_debug_malware) {
       std::set<int_function *> funcs;
       proc()->findFuncsByAddr(addr, funcs, true);
       cerr << "CHANGEPC to addr " << hex << addr;
