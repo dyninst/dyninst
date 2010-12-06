@@ -85,11 +85,11 @@ static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig)
         ( pfunc->lowlevel_func()->obj(), (bool) toOrig);
     if (toOrig) {
         // instrument at fallthrough
-        int_basicBlock *ftBlk = point->llpoint()->block()->getFallthrough();
+        int_block *ftBlk = point->llpoint()->block()->getFallthrough();
         assert(ftBlk);
         BPatch_function *bpFunc = proc->findOrCreateBPFunc(ftBlk->func(),NULL);
         BPatch_point *ftPt = bpFunc->getPoint(
-            ftBlk->origInstance()->firstInsnAddr());
+            ftBlk->start());
         assert(ftPt);
         BPatchSnippetHandle *handle = proc->insertSnippet
             (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(0)), 
@@ -695,10 +695,6 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
 
     // make sure that the edge hasn't already been parsed 
     Address fallThroughAddr = callPoint->getCallFallThroughAddr();
-<<<<<<< HEAD:dyninstAPI/src/hybridInstrumentation.C
-=======
-
->>>>>>> 32d2489b88584a74fd91b00925089f6bde314dec:dyninstAPI/src/hybridInstrumentation.C
     vector<BPatch_function *> fallThroughFuncs;
     proc()->findFunctionsByAddr(fallThroughAddr,fallThroughFuncs);
 
@@ -736,13 +732,9 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         {
             BPatch_function *callFunc = callPoint->getFunction();
             // remove the ctrl-transfer instrumentation for this point 
-<<<<<<< HEAD:dyninstAPI/src/hybridInstrumentation.C
-            if (instrumentedFuncs->end() != instrumentedFuncs->find(callFunc) && 
-=======
-            if ((*instrumentedFuncs).find(callFunc) != (*instrumentedFuncs).end() && 
->>>>>>> 32d2489b88584a74fd91b00925089f6bde314dec:dyninstAPI/src/hybridInstrumentation.C
+            if ((*instrumentedFuncs).end() != (*instrumentedFuncs).find(callFunc) && 
                 (*instrumentedFuncs)[callFunc]->end() !=
-                (*instrumentedFuncs)[callFunc]->find(callPoint)) 
+                (*instrumentedFuncs)[callFunc]->find(callPoint))
             {
                 proc()->deleteSnippet( (*(*instrumentedFuncs)[callFunc])[callPoint] );
                 (*instrumentedFuncs)[callFunc]->erase(callPoint);

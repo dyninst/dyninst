@@ -235,7 +235,7 @@ void CFAtomCreator::getInterproceduralSuccessors(const int_block *block,
            // a call...
            image_func *iCallee = ib->getEntryFunc();
            int_function *callee = NULL;
-           if (iCallee) callee = block->func()->obj()->findFunction(iCallee);
+           if (iCallee) callee = block->proc()->findFuncByInternalFunc(iCallee);
            if (callee) {
               // Make sure it's parsed
               callee->blocks();
