@@ -1865,7 +1865,8 @@ void BPatch_process::overwriteAnalysisUpdate
             newEntry = newFuncEntries[bFunc]->llb();
             bFunc->ifunc()->setEntryBlock(newEntry);
         }
-        bFunc->ifunc()->deleteBlocks(bSet); //KEVINTODO: doing this one by one is highly inefficient
+        bFunc->ifunc()->destroyBlocks(bSet); //KEVINTODO: doing this one by one is highly inefficient
+        assert(bFunc->consistency());
     }
 
     // delete completely dead functions

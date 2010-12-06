@@ -394,6 +394,9 @@ class int_function : public patchTarget {
     // So we can assert(consistency());
     bool consistency() const;
 
+        // Convenience function for int_block; get the base address
+    // where we were loaded (AKA "int layer addr - image layer offset")
+    Address baseAddr() const;
  private:
 
    ///////////////////// Basic func info
@@ -446,9 +449,7 @@ class int_function : public patchTarget {
     void getNewInstrumentation(std::set<instPoint *> &);
     void getAnyInstrumentation(std::set<instPoint *> &);
 
-    // Convenience function for int_block; get the base address
-    // where we were loaded (AKA "int layer addr - image layer offset")
-    Address baseAddr() const;
+
     // Create and register
     int_block *createBlock(image_basicBlock *ib);
     int_block *createBlockFork(const int_block *parent);

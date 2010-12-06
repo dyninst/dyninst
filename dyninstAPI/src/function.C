@@ -255,8 +255,9 @@ const pdvector<instPoint *> &int_function::funcEntries() {
         entryPoints_.reserve_exact(img_entries.size());
 #endif
         for (unsigned i = 0; i < img_entries.size(); i++) {
-            instPoint *point = instPoint::createParsePoint(this,
-                                                           img_entries[i]);
+            instPoint *point = findInstPByAddr(img_entries[i]->offset() + baseAddr());
+            if (!point) point = instPoint::createParsePoint(this,
+                                                            img_entries[i]);
             if (!point) continue; // Can happen if we double-create
             assert(point);
             entryPoints_.push_back(point);
@@ -282,8 +283,9 @@ const pdvector<instPoint*> &int_function::funcExits() {
 #endif
         
         for (unsigned i = 0; i < img_exits.size(); i++) {
-            instPoint *point = instPoint::createParsePoint(this,
-                                                           img_exits[i]);
+            instPoint *point = findInstPByAddr(img_exits[i]->offset() + baseAddr());
+            if (!point) point = instPoint::createParsePoint(this,
+                                                            img_exits[i]);
             if (!point) continue; // Can happen if we double-create
 
             assert(point);
@@ -308,7 +310,8 @@ const pdvector<instPoint*> &int_function::funcCalls() {
 #endif
         
         for (unsigned i = 0; i < img_calls.size(); i++) {
-            instPoint *point = instPoint::createParsePoint(this,
+            instPoint *point = findInstPByAddr(img_calls[i]->offset() + baseAddr());
+            if (!point) point = instPoint::createParsePoint(this,
                                                            img_calls[i]);
             if (!point) continue; // Can happen if we double-create
 
@@ -772,7 +775,8 @@ void int_function::deleteBlock(int_block* block)
     blocks_.erase(block);
     blockMap_.erase(block->llb());
 
-    assert(consistency());
+    // It appears that we delete the int_block before the image_basicBlock...
+    //assert(consistency());
 }
 
 void int_function::splitBlock(image_basicBlock *img_orig, 
@@ -782,22 +786,17 @@ void int_function::splitBlock(image_basicBlock *img_orig,
    
    int_block *newBlock = blockMap_[img_new];
    if (!newBlock) {
-      newBlock = createBlock(img_new);
+       newBlock = createBlock(img_new);
    }
    // Also adds to trackers
 
    // Move all instPoints that were contained in orig and should be
    // contained in newBlock...
-
-   std::set<instPoint *> points;
-   findPoints(origBlock, points); 
-   for (std::set<instPoint *>::iterator iter = points.begin();
-        iter != points.end(); ++iter) {
-      instPoint *point = *iter;
-      if (point->addr() >= origBlock->end()) {
-         assert(point->addr() >= newBlock->start());
-         assert(point->addr() < newBlock->end());
-         point->setBlock(newBlock);
+   for (Address a = newBlock->start(); a < newBlock->end(); ++a) {
+      std::map<Address, instPoint *>::const_iterator p_iter = instPsByAddr_.find(a);
+      if ((p_iter != instPsByAddr_.end()) &&
+          (p_iter->second->block() == origBlock)) {
+            p_iter->second->setBlock(newBlock);
       }
    }
    
@@ -1006,13 +1005,18 @@ bool int_function::findBlocksByAddr(Address addr,
    bool ret = false;    
    Address offset = addr-baseAddr();
    std::set<ParseAPI::Block *> iblocks;
-   if (!ifunc()->img()->findBlocksByAddr(offset, iblocks)) return false;
+   if (!ifunc()->img()->findBlocksByAddr(offset, iblocks)) {
+       return false;
+   }
    for (std::set<ParseAPI::Block *>::iterator iter = iblocks.begin(); 
         iter != iblocks.end(); ++iter) {
       int_block *bbl = findBlock(*iter);
       if (bbl) {
          ret = true; 
          blocks.insert(bbl);
+      }
+      else {
+          cerr << "Error: failed to find int_block for parseAPI block" << endl;
       }
    }
    return ret;
@@ -1410,11 +1414,11 @@ bool int_function::consistency() const {
    for (unsigned i = 0; i < arbitraryPoints_.size(); ++i) {
       assert(validPoint(arbitraryPoints_[i]));
    }
-   for (std::set<instPoint *>::iterator iter = unresolvedPoints_.begin();
+   for (std::set<instPoint *>::const_iterator iter = unresolvedPoints_.begin();
         iter != unresolvedPoints_.end(); ++iter) {
       assert(validPoint(*iter));
    }
-   for (std::set<instPoint *>::iterator iter = abruptEnds_.begin();
+   for (std::set<instPoint *>::const_iterator iter = abruptEnds_.begin();
         iter != abruptEnds_.end(); ++iter) {
       assert(validPoint(*iter));
    }

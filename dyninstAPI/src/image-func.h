@@ -308,7 +308,8 @@ class image_func : public ParseAPI::Function
    ///////////////////////////////////////////////////
    // Mutable function code, used for hybrid analysis
    ///////////////////////////////////////////////////
-
+    // A version of deleteBlocks that also nukes instPoints
+   void destroyBlocks(std::vector<ParseAPI::Block *> &);
    
    void getReachableBlocks
    ( const std::set<image_basicBlock*> &exceptBlocks, // input

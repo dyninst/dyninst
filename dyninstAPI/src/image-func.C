@@ -238,14 +238,7 @@ image_basicBlock::image_basicBlock(
 }
 
 image_basicBlock::~image_basicBlock() {
-   cerr << "Deleting image_basicBlock..." << endl;
-   // Nuke image_instPoints associated with this block.
-   for (Address addr = start(); addr < end(); ++addr) {
-      image_instPoint *p = img()->getInstPoint(addr);
-      if (p && p->block() == this) {
-         img()->deleteInstPoint(p);
-      }
-   }
+
 }
 
 int image_instPoint_count = 0;
@@ -730,4 +723,17 @@ ParseAPI::FuncReturnStatus image_func::init_retstatus() const
         return retstatus();
     }
     return init_retstatus_;
+}
+
+void image_func::destroyBlocks(std::vector<ParseAPI::Block *> &blocks) {
+    // Delete instPoints, then call ParseAPI::Func::deleteBlocks
+    for (unsigned i = 0; i < blocks.size(); ++i) {
+        for (Address addr = blocks[i]->start(); addr < blocks[i]->end(); ++addr) {
+          image_instPoint *p = img()->getInstPoint(addr);
+              if (p && p->block() == blocks[i]) {
+                 img()->deleteInstPoint(p);
+              }
+        }
+    }
+    deleteBlocks(blocks);
 }
