@@ -90,7 +90,7 @@ class ParseCallback {
         } unres;
     } data;
   };
-  virtual void interproc_cf(Function*,Address,interproc_details*) { }
+  virtual void interproc_cf(Function*,Block *,Address,interproc_details*) { }
 
   /*
    * Allow examination of every instruction processed during parsing.
@@ -98,7 +98,7 @@ class ParseCallback {
   struct insn_details {
     InsnAdapter::InstructionAdapter * insn;
   };
-  virtual void instruction_cb(Function*,Address,insn_details*) { }
+  virtual void instruction_cb(Function*,Block *,Address,insn_details*) { }
 
   /* 
    * Notify about inconsistent parse data (overlapping blocks).
@@ -121,7 +121,7 @@ class ParseCallback {
   virtual void block_split(Block *, Block *) { }
   virtual void patch_nop_jump(Address) { }
   virtual bool updateCodeBytes(Address) { return false; }
-  virtual void abruptEnd_cf(Address,default_details*) { }
+  virtual void abruptEnd_cf(Address, Block *,default_details*) { }
   virtual bool loadAddr(Address absoluteAddr, Address & loadAddr) { return false; }
 };
 

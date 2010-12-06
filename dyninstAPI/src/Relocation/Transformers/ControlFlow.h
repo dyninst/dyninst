@@ -62,10 +62,10 @@ class CFAtomCreator : public Transformer {
   typedef std::vector<Succ> SuccVec;
 
   // Determine who the successors of a block are
-  static void getInterproceduralSuccessors(const bblInstance *inst,
+  static void getInterproceduralSuccessors(const int_block *inst,
 					   SuccVec &succ);
 
-  static unsigned modifiedCallFallthrough(const bblInstance *inst);
+  static unsigned modifiedCallFallthrough(const int_block *inst);
 };
 
 };

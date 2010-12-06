@@ -83,6 +83,7 @@ class image_basicBlock : public codeRange, public ParseAPI::Block  {
     image_basicBlock(ParseAPI::CodeObject *, ParseAPI::CodeRegion*, Address);
  public:
     image_basicBlock(image_func*,ParseAPI::CodeRegion*,Address);
+    ~image_basicBlock();
 
     // just pass through to Block
     Address firstInsnOffset() const;
@@ -307,7 +308,8 @@ class image_func : public ParseAPI::Function
    ///////////////////////////////////////////////////
    // Mutable function code, used for hybrid analysis
    ///////////////////////////////////////////////////
-
+    // A version of deleteBlocks that also nukes instPoints
+   void destroyBlocks(std::vector<ParseAPI::Block *> &);
    
    void getReachableBlocks
    ( const std::set<image_basicBlock*> &exceptBlocks, // input

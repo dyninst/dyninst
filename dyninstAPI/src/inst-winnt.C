@@ -142,17 +142,8 @@ int_function *instPoint::findCallee()
 		Address callTarget = r.convert<Address>();
 		parsing_printf(" **** instPoint::findCallee() callTarget = 0x%lx, insn = %s\n", callTarget, insn()->format().c_str());
 
-      // find code range that contains the target address
-      // TODO: optimize by checking callsite image first?
-      codeRange* cr = proc()->findOrigByAddr(callTarget);
-	  if (cr == NULL) {
-         return NULL;
-	  }
-
-      int_function* func = cr->is_function();
-	  mapped_object *obj = cr->is_mapped_object();
-      if (func == NULL && obj == NULL)
-         return NULL;
+        int_function *func = proc()->findOneFuncByAddr(callTarget);
+        if (func == NULL) return NULL;
       
 	  /*
        * Handle the idiom discussed above, of calls to an entry in the ILT
@@ -177,7 +168,7 @@ int_function *instPoint::findCallee()
           {
               Address targAddr = r.convert<Address>();
 				parsing_printf(" **** instPoint::findCallee() targAddr = 0x%lx\n", targAddr);
-              int_function *target = proc()->findFuncByAddr(targAddr);
+              int_function *target = proc()->findFuncByEntry(targAddr);
               if(target)
               {
                   callee_ = target;
@@ -241,7 +232,7 @@ int_function *instPoint::findCallee()
             // see whether we already know anything about the target
             // this may be the case with implicitly-loaded and delay-loaded
             // DLLs, and it is possible with other types of indirect calls
-                  int_function *target = proc()->findFuncByAddr( targetAddr );
+            int_function *target = proc()->findFuncByEntry( targetAddr );
                           
             // we need to handle the delay-loaded function case specially,
             // since we want the actual target function, not the temporary

@@ -43,7 +43,7 @@ using namespace InstructionAPI;
 bool DefensivePadding::generate(const codeGen &templ, const Trace *t, CodeBuffer &buffer)
 {
     buffer.addPatch(new PaddingPatch(10, true, bbl_), 
-                    new EmulatorTracker(bbl_->endAddr(), bbl_->func()));
+                    new EmulatorTracker(bbl_->end(), bbl_));
 
     return true;
 }
@@ -57,7 +57,7 @@ std::string DefensivePadding::format() const
 }
 
 Address DefensivePadding::addr() const {
-    return bbl_->endAddr();
+    return bbl_->end();
 }
 
 unsigned DefensivePadding::size() const {

@@ -293,7 +293,6 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
     }
     
     /* Why we don't just pass runningRPC_ into createRPCImage()... */
-	mgr_->proc()->addOrigRange( runningRPC_ );
 
 #if !defined(i386_unknown_nt4_0) \
  && !defined(mips_unknown_ce2_11)
@@ -404,7 +403,6 @@ bool rpcLWP::handleCompletedIRPC()
   
   // step 2) delete temp tramp
   process *proc = lwp_->proc();
-  proc->removeOrigRange(runningRPC_);
   proc->inferiorFree(runningRPC_->rpcBaseAddr);
   
     // save enough information to call the callback function, if needed

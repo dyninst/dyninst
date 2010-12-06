@@ -49,19 +49,12 @@ inferiorRPCinProgress * codeRange::is_inferior_rpc() {
 // This is a special case... the multitramp is the thing in the
 // codeRange tree, but people think of baseTramps.
 // So this is dangerous to use, actually.
-bblInstance *codeRange::is_basicBlockInstance() {
-    return dynamic_cast<bblInstance *>(this);
-}
-
-int_basicBlock *codeRange::is_basicBlock() {
-    bblInstance *block = dynamic_cast<bblInstance *>(this);
-    if (block)
-        return block->block();
-    return NULL;
+int_block *codeRange::is_basicBlockInstance() {
+    return dynamic_cast<int_block *>(this);
 }
 
 int_function *codeRange::is_function() {
-    bblInstance *block = dynamic_cast<bblInstance *>(this);
+    int_block *block = dynamic_cast<int_block *>(this);
     if (block)
         return block->func();
     return NULL;

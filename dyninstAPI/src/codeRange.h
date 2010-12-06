@@ -59,8 +59,8 @@
 typedef enum { TREE_RED, TREE_BLACK } color_t;
 
 class int_function;
-class int_basicBlock;
-class bblInstance;
+class int_block;
+class int_block;
 class image;
 class mapped_object;
 class baseTrampInstance;
@@ -98,8 +98,8 @@ class codeRange : public patchTarget {
     // if we're in a function, and this suffices. We actually do a
     // basic block lookup, then transform that into a function.
     int_function *is_function();
-    int_basicBlock *is_basicBlock();
-    bblInstance *is_basicBlockInstance();
+    int_block *is_basicBlock();
+    int_block *is_basicBlockInstance();
 
     image *is_image();
     mapped_object *is_mapped_object();

@@ -68,7 +68,7 @@ class CFAtom : public Atom {
 
   // Factory function... we create these first,
   // then fill them in.
-  static Ptr create(bblInstance *);
+  static Ptr create(int_block *);
 		    
   void updateInsn(InstructionAPI::Instruction::Ptr insn);
   void updateAddr(Address addr);
@@ -91,11 +91,11 @@ class CFAtom : public Atom {
   virtual Address addr() const { return addr_; }
   virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
   virtual unsigned size() const;
-  bblInstance *block() const { return block_; }
+  int_block *block() const { return block_; }
   bool needsPostCallPadding() const { return postCallPadding_ != 0; }
 
  private:
-  CFAtom(bblInstance *block)
+  CFAtom(int_block *block)
      : isCall_(false),
      isConditional_(false),
      isIndirect_(false),
@@ -127,7 +127,7 @@ class CFAtom : public Atom {
   // to split these up.
   DestinationMap destMap_;
 
-  bblInstance *block_;
+  int_block *block_;
 
   //
   // These should move to a CodeGenerator class or something...
@@ -196,7 +196,7 @@ struct PaddingPatch : public Patch {
   // do statically, but the second requires a patch so that
   // we get notified of address finickiness.
 
-  PaddingPatch(unsigned size, bool registerDefensive, bblInstance *b) 
+  PaddingPatch(unsigned size, bool registerDefensive, int_block *b) 
      : size_(size), registerDefensive_(registerDefensive), block_(b) {};
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
    virtual unsigned estimate(codeGen &templ);
@@ -204,7 +204,7 @@ struct PaddingPatch : public Patch {
    
    unsigned size_;
    bool registerDefensive_;
-   bblInstance *block_;
+   int_block *block_;
 };
 
 };

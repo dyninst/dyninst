@@ -140,7 +140,7 @@ void Parser::ProcessReturnInsn(
     det.isize = ah.getSize();
     det.type = ParseCallback::interproc_details::ret;
 
-    _pcb.interproc_cf(frame.func,ah.getAddr(),&det);
+    _pcb.interproc_cf(frame.func, cur, ah.getAddr(),&det);
 }
 
 inline 
@@ -173,7 +173,7 @@ InstructionAdapter_t * getNewAdapter(Function *func, Address addr)
 inline
 void Parser::ProcessCallInsn(
     ParseFrame & frame,
-    Block * /* cur */,
+    Block * cur,
     InstructionAdapter_t & ah,
     bool isDynamic,
     bool isAbsolute,
@@ -197,7 +197,7 @@ void Parser::ProcessCallInsn(
     else
         det.type = ParseCallback::interproc_details::branch_interproc;
     
-    _pcb.interproc_cf(frame.func,ah.getAddr(),&det);
+    _pcb.interproc_cf(frame.func,cur,ah.getAddr(),&det);
 }
 
 void Parser::ProcessCFInsn(
@@ -266,7 +266,7 @@ void Parser::ProcessCFInsn(
                 (unsigned char*) cur->region()->getPtrToInstruction(cur->lastInsnAddr()),
                 cur->end() - cur->lastInsnAddr(),
                 true);
-            _pcb.abruptEnd_cf(cur->lastInsnAddr(),&det);
+            _pcb.abruptEnd_cf(cur->lastInsnAddr(),cur,&det);
         }
     }
 
@@ -395,7 +395,7 @@ void Parser::ProcessCFInsn(
                 det.data.unres.dynamic = false;
                 det.data.unres.absolute_address = false;
             }
-            _pcb.interproc_cf(frame.func,ah->getAddr(),&det);
+            _pcb.interproc_cf(frame.func,cur,ah->getAddr(),&det);
         }
     }
 

@@ -678,9 +678,9 @@ class process : public AddressSpace {
   struct ActiveDefensivePad {
     Address activePC;
     Address padStart;
-    bblInstance *callBlock;
-    bblInstance *ftBlock;
-  ActiveDefensivePad(Address a, Address b, bblInstance *c, bblInstance *d) : 
+    int_block *callBlock;
+    int_block *ftBlock;
+  ActiveDefensivePad(Address a, Address b, int_block *c, int_block *d) : 
     activePC(a), padStart(b), callBlock(c), ftBlock(d) {};
   };
   typedef std::list<ActiveDefensivePad> ADPList;
@@ -697,13 +697,13 @@ public:
   bool getOverwrittenBlocks
       ( std::map<Address, unsigned char *>& overwrittenPages,//input
         std::list<std::pair<Address,Address> >& overwrittenRegions,//output
-        std::list<bblInstance *> &writtenBBIs);//output
+        std::list<int_block *> &writtenBBIs);//output
   bool getDeadCode
-    ( const std::list<bblInstance*> &owBlocks, // input
-      std::set<bblInstance*> &delBlocks, //output: Del(for all f)
-      std::map<int_function*,set<bblInstance*> > &elimMap, //output: elimF
+    ( const std::list<int_block*> &owBlocks, // input
+      std::set<int_block*> &delBlocks, //output: Del(for all f)
+      std::map<int_function*,set<int_block*> > &elimMap, //output: elimF
       std::list<int_function*> &deadFuncs, //output: DeadF
-      std::map<int_function*,bblInstance*> &newFuncEntries); //output: newF
+      std::map<int_function*,int_block*> &newFuncEntries); //output: newF
   unsigned getMemoryPageSize() const { return memoryPageSize_; }
 
   // synch modified mapped objects with current memory contents

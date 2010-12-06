@@ -1036,7 +1036,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             // per-instruction callback notification 
             ParseCallback::insn_details insn_det;
             insn_det.insn = ah;
-            _pcb.instruction_cb(func,curAddr,&insn_det);
+            _pcb.instruction_cb(func,cur,curAddr,&insn_det);
 
             if(isNopBlock && !ah->isNop()) {
                 ah->retreat();

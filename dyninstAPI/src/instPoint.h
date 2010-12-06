@@ -52,7 +52,7 @@ class instPoint;
 class process;
 class image;
 
-class int_basicBlock;
+class int_block;
 class Frame;
 class instPointInstance;
 
@@ -68,7 +68,11 @@ typedef enum {
 
 class instPoint;
 
-
+namespace Dyninst {
+   namespace ParseAPI {
+      class Block;
+   };
+};
 
 #if defined(cap_instruction_api)
 #include "Instruction.h"
@@ -85,100 +89,22 @@ class instPointBase {
   instPointType_t getPointType() const { return ipType_; }
   void setPointType(instPointType_t type_) { ipType_ = type_; }
 
-  // Single instruction we're instrumenting (if at all)
-#if defined(cap_instruction_api)
-  static void setArch(Dyninst::Architecture a, bool) 
-  {
-    arch = a;
-  }
-  static Dyninst::Architecture arch;
-  
-    Dyninst::InstructionAPI::Instruction::Ptr insn() {
-      Dyninst::InstructionAPI::InstructionDecoder dec((const unsigned char*)NULL, 0, arch);
-      return dec.decode(insn_);
-    }
-#else
-    static void setArch(Dyninst::Architecture, bool) {}
-    const instruction &insn()  { 
-        // XXX super-evil cast due to incoherant "codeBuf_t" typedefs
-        if(dec_insn_.size() == 0)
-          dec_insn_.setInstruction((NS_sparc::codeBuf_t*)insn_,0);
-        return dec_insn_; 
-    }
-#endif
-  instPointBase(
-    unsigned char * insn_buf,
-    size_t insn_len,
-    instPointType_t type) :
-    ipType_(type)
-    { id_ = id_ctr++;
-      insn_ = (unsigned char*)(malloc(insn_len));
-      memcpy(insn_, insn_buf, insn_len);
-    }
-  // We need to have a manually-set-everything method
-  instPointBase(
-          unsigned char * insn_buf,
-          size_t insn_len,
-          instPointType_t type,
-                unsigned int id) :
-      id_(id),
-      ipType_(type)
-      {
-        insn_ = (unsigned char*)(malloc(insn_len));
-        memcpy(insn_, insn_buf, insn_len);
-      }
-  // convenience for creations from instPoint
-  instPointBase(
-#if defined(cap_instruction_api)
-    Dyninst::InstructionAPI::Instruction::Ptr insn,
-#else
-    instruction insn,
-#endif
-    instPointType_t type) :
-    ipType_(type)
-    {
-        id_ = id_ctr++;
-#if defined(cap_instruction_api)
-        insn_ = (unsigned char*)malloc(insn->size());
-        memcpy(insn_,insn->ptr(),insn->size());
-#else
-        insn_ = (unsigned char*)malloc(insn.size());
-        memcpy(insn_,insn.ptr(),insn.size());
-#endif
+  instPointBase(instPointType_t type)
+     : ipType_(type) {
+       id_ = id_ctr++;
     } 
-  instPointBase(
-#if defined(cap_instruction_api)
-    Dyninst::InstructionAPI::Instruction::Ptr insn,
-#else
-    instruction insn,
-#endif
-    instPointType_t type,
-    unsigned int id) :
+  instPointBase(instPointType_t type,
+                unsigned int id) :
     id_(id),
     ipType_(type)
     {
-        id_ = id_ctr++;
-#if defined(cap_instruction_api)
-        insn_ = (unsigned char*)malloc(insn->size());
-        memcpy(insn_,insn->ptr(),insn->size());
-#else
-        insn_ = (unsigned char*)malloc(insn.size());
-        memcpy(insn_,insn.ptr(),insn.size());
-#endif
     } 
 
   int id() const { return id_; }
-    virtual ~instPointBase() {
-        if(insn_)
-            free(insn_);
-    }
+  virtual ~instPointBase() { }
  protected:
   unsigned int id_;
   instPointType_t ipType_;
-  unsigned char* insn_;
-#if !defined(cap_instruction_api)
-  instruction dec_insn_;
-#endif
 };
 
 class image_instPoint : public instPointBase {
@@ -187,14 +113,12 @@ class image_instPoint : public instPointBase {
  public:
     // Entry/exit
     image_instPoint(Address offset,
-                    unsigned char * insn_buf,
-                    size_t insn_len,
+                    ParseAPI::Block *,
                     image * img,
                     instPointType_t type);
     // Call site or otherPoint that has a target
     image_instPoint(Address offset,
-                    unsigned char * insn_buf,
-                    size_t insn_len,
+                    ParseAPI::Block *,
                     image * img,
                     Address callTarget,
                     bool isDynamic,
@@ -204,9 +128,10 @@ class image_instPoint : public instPointBase {
 
   Address offset_;
   Address offset() const { return offset_; }
-  std::set<instPoint *> owners;
+  ParseAPI::Block *block() const { return block_; }
   // For call-site points:
 private:
+  ParseAPI::Block *block_;
   image * image_;
   mutable image_func *callee_; // cache
   std::string callee_name_;
@@ -273,7 +198,8 @@ public:
 class instPoint : public instPointBase {
     friend class instPointInstance;
     friend class baseTramp;
-    friend class int_basicBlock;
+    friend class int_block;
+    friend class int_function;
     friend void initRegisters();
     friend class registerSpace; // Liveness
  public:
@@ -291,22 +217,17 @@ class instPoint : public instPointBase {
  private:
     // Generic instPoint...
     instPoint(AddressSpace *proc,
-#if defined(cap_instruction_api)
-    Dyninst::InstructionAPI::Instruction::Ptr insn,
-#else
-                                 instruction insn,
-#endif
               Address addr,
-              int_basicBlock *block);
+              int_block *block);
 
     instPoint(AddressSpace *proc,
               image_instPoint *img_p,
               Address addr,
-              int_basicBlock *block);
+              int_block *block);
 
     // Fork instPoint
     instPoint(instPoint *parP,
-              int_basicBlock *childB,
+              int_block *childB,
               process *childP);
 
     // A lot of arbitrary/parse creation work can be shared
@@ -328,7 +249,7 @@ class instPoint : public instPointBase {
   static instPoint *createParsePoint(int_function *func,
                                      image_instPoint *img_p);
 
-  static instPoint *createForkedPoint(instPoint *p, int_basicBlock *child, process *childP);
+  static instPoint *createForkedPoint(instPoint *p, int_block *child, process *childP);
 
   static int liveRegSize();
 
@@ -379,10 +300,14 @@ class instPoint : public instPointBase {
 
   AddressSpace *proc() const { return proc_; }
   
-  int_basicBlock *block() const;
+  int_block *block() const;
   int_function *func() const;
 
   Address addr() const { return addr_; }
+
+#if defined(cap_instruction_api)
+  InstructionAPI::Instruction::Ptr insn() const;
+#endif
 
   Address callTarget() const;
 
@@ -392,7 +317,7 @@ class instPoint : public instPointBase {
   // returns false if it was already resolved
   bool setResolved();
   // needed for blocks that are split after the initial parse
-  void setBlock( int_basicBlock* newBlock );
+  void setBlock( int_block* newBlock );
 
 
 
@@ -491,7 +416,7 @@ class instPoint : public instPointBase {
   image_instPoint *img_p_;
 
   // The block we're attached to.
-  int_basicBlock *block_;
+  int_block *block_;
   Address addr_;
 
  public:
