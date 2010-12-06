@@ -1191,8 +1191,8 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    defaultNamespacePrefix = "";
 }
 
-Symtab::Symtab(char *mem_image, size_t image_size, 
-               bool defensive_bin, bool &err) :
+Symtab::Symtab(unsigned char *mem_image, size_t image_size, 
+               const std::string &name, bool defensive_bin, bool &err) :
    member_offset_(0),
    is_a_out(false), 
    main_call_addr_(0),
@@ -1210,7 +1210,7 @@ Symtab::Symtab(char *mem_image, size_t image_size,
                  FILE__, __LINE__, mem_image);
 
    //  createMappedFile handles reference counting
-   mf = MappedFile::createMappedFile(mem_image, image_size);
+   mf = MappedFile::createMappedFile(mem_image, image_size, name);
    if (!mf) {
       create_printf("%s[%d]: WARNING: creating symtab for memory image at " 
                     "addr %u, createMappedFile() failed\n", FILE__, __LINE__, 
@@ -1272,7 +1272,7 @@ Symtab::Symtab(std::string, std::string, Offset, bool &, void *)
 }
 #endif
 
-#if defined(os_aix)
+#if defined(os_aix) // is this ever used on AIX? 
 Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
                        Offset offset, bool &err, void *base) :
    member_name_(member_name), 
@@ -1952,7 +1952,8 @@ Symtab *Symtab::importBin(std::string file)
 }
 
 
-bool Symtab::openFile(Symtab *&obj, char *mem_image, size_t size, bool def_bin)
+bool Symtab::openFile(Symtab *&obj, unsigned char *mem_image, size_t size, 
+                      const std::string &name, bool def_bin)
 {
    bool err = false;
 #if defined(TIMED_PARSE)
@@ -1960,7 +1961,7 @@ bool Symtab::openFile(Symtab *&obj, char *mem_image, size_t size, bool def_bin)
    gettimeofday(&starttime, NULL);
 #endif
 
-   obj = new Symtab(mem_image, size, err, def_bin);
+   obj = new Symtab(mem_image, size, name, def_bin, err);
 
 #if defined(TIMED_PARSE)
     struct timeval endtime;

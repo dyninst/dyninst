@@ -89,10 +89,10 @@ MappedFile::MappedFile(std::string fullpath_, bool &ok) :
   //  but is this really somehow better?
 }
 
-MappedFile *MappedFile::createMappedFile(void *loc, unsigned long size_)
+MappedFile *MappedFile::createMappedFile(void *loc, unsigned long size_, const std::string &name)
 {
    bool ok = false;
-   MappedFile *mf = new MappedFile(loc, size_, ok);
+   MappedFile *mf = new MappedFile(loc, size_, name, ok);
    if (!mf || !ok) {
       if (mf)
          delete mf;
@@ -102,8 +102,8 @@ MappedFile *MappedFile::createMappedFile(void *loc, unsigned long size_)
   return mf;
 }
 
-MappedFile::MappedFile(void *loc, unsigned long size_, bool &ok) :
-   fullpath("in_memory_file"),
+MappedFile::MappedFile(void *loc, unsigned long size_, const std::string &name, bool &ok) :
+   fullpath(name),
    remote_file(false),
    did_mmap(false),
    did_open(false),

@@ -2823,7 +2823,7 @@ mapped_object *process::createObjectNoFile(Address addr)
                                           &probe,
                                           sizeof(MEMORY_BASIC_INFORMATION));
             probeAddr = (Address) probe.BaseAddress + (Address) probe.RegionSize;
-            } while (probe.AllocationBase == meminfo.AllocationBase);
+        } while (probe.AllocationBase == meminfo.AllocationBase);
 
 
         // The size of the region returned by VirtualQueryEx is from BaseAddress
@@ -2842,13 +2842,6 @@ mapped_object *process::createObjectNoFile(Address addr)
 		if (!proc()->readDataSpace((void *)objStart,
 								   regionSize,
 								   rawRegion, true)) assert(0);
-#if 0
-		if (! proc()->readDataSpace(meminfo.AllocationBase,
-                                    regionSize, rawRegion, true) )
-        { 
-            assert(0);
-        }
-#endif
 		// set up file descriptor
         char regname[64];
         snprintf(regname,63,"mmap_buffer_%lx_%lx",

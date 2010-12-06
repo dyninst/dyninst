@@ -1556,9 +1556,10 @@ image::image(fileDescriptor &desc,
    string file = desc_.file();
    startup_printf("%s[%d]: opening file %s\n", FILE__, __LINE__, file.c_str());
    if(desc.rawPtr()) {
-       linkedFile = new SymtabAPI::Symtab((char*)desc.rawPtr(), 
+       linkedFile = new SymtabAPI::Symtab((unsigned char*)desc.rawPtr(), 
                                           desc.length(), 
-                                          BPatch_defensiveMode == mode, 
+                                          desc.file(), 
+                                          BPatch_defensiveMode == mode,
                                           err);
    } 
    else if(!SymtabAPI::Symtab::openFile(linkedFile, file, BPatch_defensiveMode == mode)) 

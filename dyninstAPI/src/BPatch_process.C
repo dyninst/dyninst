@@ -1950,13 +1950,14 @@ void BPatch_process::overwriteAnalysisUpdate
                            "at %x %s[%d]\n", bit->second, FILE__,__LINE__);
             }
         }
+
         // re-instate call edges to the function
-        
         vector<ParseAPI::Block*>  srcs; 
         vector<Address> trgs; 
         vector<EdgeTypeEnum> etypes; 
         srcs.push_back(bit->first->block()->llb());
-        trgs.push_back(bit->second);
+        mapped_object *tobj = llproc->findObject(bit->second);
+        trgs.push_back(bit->second - tobj->codeBase());
         etypes.push_back(ParseAPI::CALL);
         bit->first->func()->ifunc()->img()->codeObject()->parseNewEdges(srcs,trgs,etypes);
     }
