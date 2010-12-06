@@ -286,7 +286,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         if (toOrig) {
             from = addedRegions_[reg];
         } else {
-            from = obj->codeBase() + reg->getMemOffset();
+            from = obj->codeBase();
         }
         //cerr << "SYNC READ FROM " << hex << from << " -> " << from + reg->getMemSize() << dec << endl;
         if (!aS_->readDataSpace((void *)from,
@@ -300,7 +300,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         Address cp_start = 0;
         Address toBase;
         if (toOrig) {
-            toBase = obj->codeBase() + reg->getMemOffset();
+            toBase = obj->codeBase();
         } else {
             toBase = addedRegions_[reg];
         }
@@ -342,7 +342,10 @@ void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size)
     //    if (sit->first >= offset + size) break;
     //    assert(0);
     //}
-
+    if (offset == 0xd3d2 ||
+        offset == 0xd3d3) {
+            cerr << "DEBUG BREAKPOINT!" << endl;
+    }
     for (Address tmp = offset; tmp < offset + size; ++tmp) {
         springboards_[reg].erase(tmp);
     }
@@ -363,22 +366,13 @@ void MemoryEmulator::removeSpringboards(int_function * func)
 
 void MemoryEmulator::removeSpringboards(const int_block *bbi) 
 {
+    if (bbi->llb()->start() == 0xd3d2 ||
+        bbi->llb()->start() == 0xd323)
+        cerr << "DEBUG BREAKPOINT" << endl;
     malware_cerr << "  untracking springboards from deadblock [" << hex 
          << bbi->start() << " " << bbi->end() << ")" << dec <<endl;
     SymtabAPI::Region * reg = 
         ((ParseAPI::SymtabCodeRegion*)bbi->func()->ifunc()->region())->symRegion();
-    Address base = bbi->func()->obj()->codeBase();
-    Address regBase = reg->getMemOffset();
-    map<Address,int>::iterator sit = springboards_[reg].begin();
-    std::vector<Address> toDelete;
-    for(; sit != springboards_[reg].end(); sit++) {
-        if (sit->first == bbi->start()) {
-            toDelete.push_back(sit->first);
-        }
-    }
-    for (unsigned i = 0; i < toDelete.size(); ++i) {
-       malware_cerr << "\tdeleting springboard at " << hex << toDelete[i] << dec << endl;
-       springboards_[reg].erase(toDelete[i]);
-    }
+    springboards_[reg].erase(bbi->llb()->start());
     if (springboards_[reg].empty()) springboards_.erase(reg);
 }
