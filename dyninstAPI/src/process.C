@@ -4495,7 +4495,7 @@ Address process::stopThreadCtrlTransfer
                 std::vector<int_block *> sourceBlocks;
                 targBBI->getSources(sourceBlocks);
                 assert(sourceBlocks.size() == 1);
-                int_block *callBBI = sourceBlocks[0];
+                callBBI = sourceBlocks[0];
                 if (callBBI) {
                     // if necessary, add the fallthrough edge
                     using namespace ParseAPI;
