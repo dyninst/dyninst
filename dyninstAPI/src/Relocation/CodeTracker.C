@@ -168,6 +168,7 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::Relocation::TrackerEle
     os << ",?";
     break;
   }
+  os << "," << e.block()->start() << "," << e.block()->func()->symTabName();
   os << ")" << dec;
   return os;
 }
