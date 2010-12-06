@@ -619,14 +619,14 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         {
             Address curFallThroughAddr = (*cIter)->getCallFallThroughAddr();
             if ( ! hasEdge((*cIter)->getFunction(), 
-                           (Address)((*cIter)->getAddress()), 
+                           (Address)((*cIter)->llpoint()->block()->start()), 
                            curFallThroughAddr) &&
                 dupFuncCheck.find((*cIter)->getFunction()) == dupFuncCheck.end())
             {
                 mal_printf("%s[%d] Function call at 0x%lx is returning, adding edge "
                           "after calls to the function at %lx\n", __FILE__,__LINE__,
                           callPoint->getAddress(), (long)(*cIter)->getAddress());
-                assert(0);// KEVINTEST, this case has never executed
+                //assert(0);// KEVINTEST, this case has never executed
 
                 parseNewEdgeInFunction( *cIter , curFallThroughAddr , false );
 
@@ -646,15 +646,13 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
 
     // make sure that the edge hasn't already been parsed 
     Address fallThroughAddr = callPoint->getCallFallThroughAddr();
-    if (fallThroughAddr == 0x933647) {
-        cerr << "DEBUG BREAKPOINT" << endl;
-        }
+
     vector<BPatch_function *> fallThroughFuncs;
     proc()->findFunctionsByAddr(fallThroughAddr,fallThroughFuncs);
 
     if (! parsedAfterCallPoint && 
         ! hasEdge(callPoint->getFunction(), 
-                  (Address)callPoint->getAddress(), 
+                  (Address)callPoint->llpoint()->block()->start(), 
                   fallThroughAddr)) 
     {
         mal_printf("Function call at 0x%lx is returning, "
@@ -686,7 +684,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         {
             BPatch_function *callFunc = callPoint->getFunction();
             // remove the ctrl-transfer instrumentation for this point 
-            if ((*instrumentedFuncs)[callFunc] && 
+            if ((*instrumentedFuncs).find(callFunc) != (*instrumentedFuncs).end() && 
                 (*instrumentedFuncs)[callFunc]->end() !=
                 (*instrumentedFuncs)[callFunc]->find(callPoint)) 
             {
@@ -710,31 +708,29 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
 
     bool success = false;
     if (didSomeParsing) { // called parseNewEdge
-        if (callPoint->llpoint()->block()->llb()->isShared()) {
-            vector<ParseAPI::Function*> imgFuncs;
-            callPoint->llpoint()->block()->llb()->getFuncs(imgFuncs);
-            for (unsigned fidx=0; fidx < imgFuncs.size(); fidx++) 
-            {
-                BPatch_function *func = proc()->findOrCreateBPFunc(
-                    proc()->lowlevel_process()->findFuncByInternalFunc((image_func*)imgFuncs[fidx]),
-                    NULL);
-                removeInstrumentation(func, false);
-                func->getCFG()->invalidate();
+        vector<ParseAPI::Function*> imgFuncs;
+        callPoint->llpoint()->block()->llb()->getFuncs(imgFuncs);
+        for (unsigned fidx=0; fidx < imgFuncs.size(); fidx++) 
+        {
+            BPatch_function *func = proc()->findOrCreateBPFunc(
+                proc()->lowlevel_process()->findFuncByInternalFunc((image_func*)imgFuncs[fidx]),
+                NULL);
+            removeInstrumentation(func, false);
+            func->getCFG()->invalidate();
 
-                if (func != callPoint->getFunction() &&
-                    !hasEdge(func,(Address)callPoint->getAddress(),fallThroughAddr))
-                {
-                    BPatch_point *sharedCallPoint = NULL;
-                    std::vector<BPatch_point *> *points = func->findPoint(BPatch_subroutine);
-                    for (unsigned i = 0; i < points->size(); ++i) {
-                        if ((*points)[i]->getAddress() == callPoint->getAddress()) {
-                            sharedCallPoint = (*points)[i];
-                            break;
-                        }
+            if (func != callPoint->getFunction() &&
+                !hasEdge(func,(Address)callPoint->llpoint()->block()->start(),fallThroughAddr))
+            {
+                BPatch_point *sharedCallPoint = NULL;
+                std::vector<BPatch_point *> *points = func->findPoint(BPatch_subroutine);
+                for (unsigned i = 0; i < points->size(); ++i) {
+                    if ((*points)[i]->getAddress() == callPoint->getAddress()) {
+                        sharedCallPoint = (*points)[i];
+                        break;
                     }
-                    assert(sharedCallPoint);
-                    parseNewEdgeInFunction(sharedCallPoint, fallThroughAddr, false);
                 }
+                assert(sharedCallPoint);
+                parseNewEdgeInFunction(sharedCallPoint, fallThroughAddr, false);
             }
         }
         // Ensure we relocate the re-parsed function
@@ -826,7 +822,7 @@ void HybridAnalysis::parseNewEdgeInFunction(BPatch_point *sourcePoint,
 {
     // 0. first see if the edge needs to be parsed
     if (hasEdge(sourcePoint->getFunction(),
-                (Address)sourcePoint->getAddress(),
+                (Address)sourcePoint->llpoint()->block()->start(),
                 target)) 
     {
         return;
@@ -870,7 +866,7 @@ void HybridAnalysis::parseNewEdgeInFunction(BPatch_point *sourcePoint,
     }
 
     // 2. parse the new edge
-    if ( ! sourceFunc->parseNewEdge( (Address)sourcePoint->getAddress() , 
+    if ( ! sourceFunc->parseNewEdge( (Address)sourcePoint->llpoint()->block()->start() , 
                                      target ) ) 
     {
         assert(0);//this case should be ruled out by the call to sameRegion
