@@ -681,6 +681,7 @@ bool AddressSpace::isData(const Address addr) const {
 
 bool AddressSpace::isValidAddress(const Address addr) const {
    mapped_object *obj = findObject(addr);
+   if (!obj) return false;
    if ( obj->parse_img()->getObject()->isCode(addr - obj->codeBase()) ||
         obj->parse_img()->getObject()->isData(addr - obj->dataBase())   )
       return true;
@@ -1689,7 +1690,7 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
             findEnclosingRegion(iter->startAddr() - objBase);
         getMemEm()->addSpringboard(
                          reg, 
-                         iter->startAddr() - objBase,
+                         iter->startAddr() - objBase - reg->getMemOffset(),
                          iter->used());
     }
   }
