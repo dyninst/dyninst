@@ -85,6 +85,7 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(int_function* ifunc,
    if (bpmod->func_map.count(ifunc)) {
       BPatch_function *bpf = bpmod->func_map[ifunc];
       assert(bpf);
+      assert(bpf->func == ifunc);
       return bpf;
    }
 
@@ -98,11 +99,13 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(int_function* ifunc,
    if (bpmod->func_map.count(ifunc)) {
       BPatch_function *bpf = bpmod->func_map[ifunc];
       assert(bpf);
+      assert(bpf->func == ifunc);
       return bpf;
    }
 
    BPatch_function *ret = new BPatch_function(this, ifunc, bpmod);
    assert( ret != NULL );
+   assert(ret->func == ifunc);
    return ret;
 }
 
@@ -127,6 +130,7 @@ BPatch_point *BPatch_addressSpace::findOrCreateBPPoint(BPatch_function *bpfunc,
    if (!bpfunc) 
       bpfunc = findOrCreateBPFunc(ip->func(), mod);
 
+   assert(bpfunc->func == ip->func());
    BPatch_point *pt = new BPatch_point(this, bpfunc, ip, pointType, lladdrSpace);
    mod->instp_map[ip] = pt;
 
@@ -577,7 +581,6 @@ BPatch_variableExpr *BPatch_addressSpace::createVariableInt(std::string name,
 
 BPatch_function *BPatch_addressSpace::findFunctionByAddrInt(void *addr)
 {
-   int_function *func;   
    std::vector<AddressSpace *> as;
 
    getAS(as);

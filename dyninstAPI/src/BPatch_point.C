@@ -81,6 +81,8 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
    pointType(_pointType), memacc(NULL), dynamic_point_monitor_func(NULL),
    edge_(NULL)
 {
+    assert(point->block()->func() == func->func);
+
     if (_pointType == BPatch_subroutine)
         dynamic_call_site_flag = 2; // dynamic status unknown
     else
