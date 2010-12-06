@@ -716,20 +716,6 @@ mapped_object *AddressSpace::findObject(const ParseAPI::CodeObject *co) const {
     return obj;
 }
 
-int_function *AddressSpace::findFuncByAddr(Address addr) {
-    codeRange *range = findOrigByAddr(addr);
-    if (!range) return NULL;
-    
-    int_function *func_ptr = range->is_function();
-    mapped_object *obj = range->is_mapped_object();
-
-        Address dataStart = mapped_objects[i]->dataAbs();
-        if (addr >= dataStart &&
-            addr < (dataStart + mapped_objects[i]->dataSize())) return mapped_objects[i];
-    }
-    return NULL;
-}
-
 int_function *AddressSpace::findFuncByInternalFunc(image_func *ifunc) {
     assert(ifunc);
   
