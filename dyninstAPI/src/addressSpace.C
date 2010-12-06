@@ -67,8 +67,8 @@ AddressSpace::AddressSpace () :
     trampGuardBase_(NULL),
     up_ptr_(NULL),
     costAddr_(0),
-    emulateMem_(false),
-    emulatePC_(false)
+    emulateMem_(true),
+    emulatePC_(true)
 {
    memEmulator_ = new MemoryEmulator(this);
    if ( getenv("DYNINST_EMULATE_MEMORY") ) {
@@ -1220,19 +1220,19 @@ void trampTrapMappings::allocateTable()
 // only works for unrelocated addresses
 bool AddressSpace::findFuncsByAddr(Address addr, std::set<int_function*> &funcs, bool includeReloc)
 {
+    if (includeReloc) {
+        // Check that first
+        baseTrampInstance *bti;
+        int_block *block;
+        Address oAddr;
+        if (getRelocInfo(addr, oAddr, block, bti)) {
+            funcs.insert(block->func());
+            return true;
+        }
+    }
     mapped_object *obj = findObject(addr);
     if (!obj) return false;
-    bool ret = obj->findFuncsByAddr(addr, funcs);
-    if (ret || !includeReloc)
-        return ret;
-    baseTrampInstance *bti;
-    int_block *block;
-    Address oAddr;
-    if (getRelocInfo(addr, oAddr, block, bti)) {
-        funcs.insert(block->func());
-        return true;
-    }
-    return false;
+    return obj->findFuncsByAddr(addr, funcs);
 }
 
 bool AddressSpace::findBlocksByAddr(Address addr, std::set<int_block *> &blocks, bool includeReloc) {
@@ -1685,7 +1685,7 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
             findEnclosingRegion(iter->startAddr() - objBase);
         getMemEm()->addSpringboard(
                          reg, 
-                         iter->startAddr() - objBase - reg->getMemOffset(),
+                         iter->startAddr() - objBase,
                          iter->used());
     }
   }
