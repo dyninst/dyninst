@@ -1033,8 +1033,13 @@ void dyn_lwp::dumpRegisters()
 
 bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 {    
-cerr << "CHANGEPC to addr " << hex << addr << dec << endl;
-cerr << "Currently at: " << getActiveFrame();
+    std::set<int_function *> funcs;
+    proc()->findFuncsByAddr(addr, funcs, true);
+    cerr << "CHANGEPC to addr " << hex << addr;
+    cerr << " to func " << (funcs.empty() ? "<UNKNOWN>" :
+        ((funcs.size() == 1) ? (*(funcs.begin()))->symTabName() : "<MULTIPLE>"));
+    cerr << dec << endl;
+    cerr << "Currently at: " << getActiveFrame();
   w32CONTEXT cont;//ccw 27 july 2000
   if (!regs) {
       cont.ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001
@@ -2532,7 +2537,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     case 0: 
         fprintf(stderr,"ERROR: Failed to find a valid instruction for fault "
             "at %lx %s[%d] \n", ev.address, FILE__,__LINE__);
-        return false;
+         return false;
     case 1:
         faultBBI = faultFuncs[0]->findOneBlockByAddr(origAddr);
         break;
