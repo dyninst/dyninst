@@ -769,6 +769,7 @@ void int_function::deleteBlock(int_block* block)
 
 void int_function::splitBlock(image_basicBlock *img_orig, 
                               image_basicBlock *img_new) {
+    blocks();
    int_block *origBlock = blockMap_[img_orig];
    assert(origBlock);
    
