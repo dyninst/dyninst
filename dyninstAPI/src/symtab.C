@@ -1282,8 +1282,23 @@ void image::deleteFunc(image_func *func)
 }
 
 void image::deleteInstPoint(image_instPoint *p) {
-   inst_pts_.erase(p->offset());
+    cerr << "Erasing instPoint at " << hex << p->offset() << dec << endl;
+    inst_pts_.erase(p->offset());
    delete p;
+}
+
+void image::deleteInstPoints(ParseAPI::Block *b) {
+    std::list<image_instPoint *> points;
+    instp_map_t::iterator iit = inst_pts_.lower_bound(b->start());
+    while(iit != inst_pts_.end() && iit->second->offset() < b->end()) {
+        if (iit->second->block() == b)
+            points.push_back(iit->second);
+        ++iit;
+    }
+    for (std::list<image_instPoint *>::iterator iter = points.begin();
+        iter != points.end(); ++iter) {
+            deleteInstPoint(*iter);
+    }
 }
 
 void image::analyzeIfNeeded() {

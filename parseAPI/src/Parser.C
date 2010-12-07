@@ -1405,9 +1405,7 @@ Parser::split_block(
     }
 
     // if we're re-parsing in this function, inform user program of the split
-    if (owner->_extents.size()) {
-        _pcb.block_split(b,ret);
-    }
+    _pcb.block_split(b,ret);
 
     return ret;
  }
@@ -1597,6 +1595,9 @@ Parser::remove_func(Function *func)
 void
 Parser::remove_block(Dyninst::ParseAPI::Block *block)
 {
+    if (block->containingFuncs() == 1) {
+        _pcb.block_delete(block);
+    }
     _parse_data->remove_block(block);
 }
 

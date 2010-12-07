@@ -372,6 +372,8 @@ class image : public codeRange {
    bool addInstPoint(image_instPoint*p);
    void getInstPoints(Address start, Address end, 
                       pdvector<image_instPoint*> &points); 
+   void deleteInstPoints(ParseAPI::Block *b);
+
 
    //-----------DEFENSIVE-MODE CODE------------//
    BPatch_hybridMode hybridMode() const { return mode_; }

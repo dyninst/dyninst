@@ -274,6 +274,10 @@ DynParseCallback::block_split(Block *first, Block *second)
                        static_cast<image_basicBlock *>(second));
 }
 
+void DynParseCallback::block_delete(Block *b) {
+    _img->deleteInstPoints(b);
+}
+
 void
 DynParseCallback::patch_nop_jump(Address addr)
 {
