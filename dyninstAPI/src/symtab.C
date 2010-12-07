@@ -2227,6 +2227,16 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
     return ret;
 }
 
+void image::addSplitBlock(image_basicBlock *first, image_basicBlock *second) {
+    splitBlocks_.insert(make_pair(first, second));
+    instp_map_t::iterator iit = inst_pts_.lower_bound(second->start());
+    while(iit != inst_pts_.end() && iit->second->offset() < second->end()) {
+        if (iit->second->block() == first)
+            iit->second->setBlock(second);
+        ++iit;
+    }
+}
+
 
 const image::SplitBlocks & image::getSplitBlocks() const
 {

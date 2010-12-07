@@ -129,7 +129,9 @@ class image_instPoint : public instPointBase {
   Address offset_;
   Address offset() const { return offset_; }
   ParseAPI::Block *block() const { return block_; }
+  void setBlock(ParseAPI::Block *b) { block_ = b; }
   // For call-site points:
+
 private:
   ParseAPI::Block *block_;
   image * image_;
