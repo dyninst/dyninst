@@ -562,7 +562,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
      }
      else {
 	    requested_wait_until_active = false;
-            ret = true;
+        ret = true;
 	    if (1) cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
                  << " (DEBUG:" 
                  << "EAX: " << activeFrame.eax
