@@ -894,7 +894,7 @@ void int_function::getCallerPoints(std::vector<instPoint*>& callerPoints)
         (*iter)->src()->getFuncs(llFuncs);
         for (std::vector<ParseAPI::Function *>::iterator f_iter = llFuncs.begin();
             f_iter != llFuncs.end(); ++f_iter) {
-            int_function *caller = obj()->findFunction(*f_iter);
+            int_function *caller = proc()->findFuncByInternalFunc(static_cast<image_func *>(*f_iter));
             int_block *callerBlock = caller->findBlock((*iter)->src());
             caller->funcCalls();
             instPoint *callPoint = caller->findInstPByAddr(callerBlock->last());
