@@ -603,8 +603,8 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop(BPatch_function &func, Add
                                     (*pIter)->getAddress());
                             hasUnresolved = true;
                         } 
-                        else if ( ! hybrid()->isIntraMod(*pIter) ) {
-                            mal_printf("loop has an indirect transfer that could leave the module at %lx\n", 
+                        else if ( hybrid()->needsSynchronization(*pIter) ) {
+                            mal_printf("loop has an indirect transfer that needs synchronization at %lx\n", 
                                        (*pIter)->getAddress());
                             hasUnresolved = true;
                         }
@@ -721,10 +721,10 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
                            "transfer at %lx that resolves to %d targets "
                            "%s[%d]\n", loop->getID(), (*fIter)->getBaseAddr(), 
                            (*pIter)->getAddress(), targs.size(), FILE__,__LINE__);
-            } else if (!hybrid()->isIntraMod(*pIter)) {
+            } else if (hybrid()->needsSynchronization(*pIter)) {
                 hasUnresolved = true;
                 mal_printf("loop %d calls func %lx which has an indirect "
-                          "transfer at %lx that leaves the module "
+                          "transfer at %lx that needs synchronization "
                           "%s[%d]\n", loop->getID(), (*fIter)->getBaseAddr(), 
                           (*pIter)->getAddress(), FILE__,__LINE__);
             } else {

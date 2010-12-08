@@ -179,7 +179,10 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
 
    if (!p) return NULL;
 
-   if (BPatch_defensiveMode == analysisMode) {
+   if ( BPatch_defensiveMode == analysisMode || 
+        ( desc.isSharedObject() && 
+          BPatch_defensiveMode == p->getAOut()->hybridMode() ) )
+   {
        // parsing in the gaps in defensive mode is a bad idea because
        // we mark all binary regions as possible code-containing areas
        parseGaps = false;

@@ -42,6 +42,8 @@
 #include "mapped_object.h"
 #include "MemoryEmulator/memEmulator.h"
 #include "mapped_module.h"
+#include <iostream>
+#include <fstream>
 
 using namespace Dyninst;
 
@@ -74,13 +76,7 @@ static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig)
 
     BPatch_process *proc = dynamic_cast<BPatch_process*>(
        point->getFunction()->getAddSpace());
-
-    Address buf = 0;
-    if (!proc->lowlevel_process()->readDataSpace((void *)0x40de48,sizeof(Address),&buf,false)) 
-        assert(0);
-    printf("*[0x40de48] = %lx\n", buf);
-
-    if ( toOrig && proc->getHybridAnalysis()->isIntraMod(point) ) {
+    if ( toOrig && !proc->getHybridAnalysis()->needsSynchronization(point) ) {
         return;
     }
 
@@ -88,6 +84,8 @@ static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig)
     BPatch_function *pfunc = point->getFunction();
     proc->lowlevel_process()->getMemEm()->synchShadowOrig
         ( pfunc->lowlevel_func()->obj(), (bool) toOrig);
+
+    // fix up page rights so that the program can proceed
     if (toOrig) {
         // instrument at fallthrough
         int_basicBlock *ftBlk = point->llpoint()->block()->getFallthrough();
@@ -106,12 +104,12 @@ static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig)
         ha->synchMap_post()[ftPt] = ha->synchMap_pre()[point];
         // remove write-protections from code pages
         pfunc->getModule()->setAnalyzedCodeWriteable(true);
-    } else {
-        // KEVINTODO: if there are other in edges to the fallthrough block it 
-        //            might be cheaper to remove synch instrumentation here
-
+    } 
+    else {
         // restore write-protections to code pages
         pfunc->getModule()->setAnalyzedCodeWriteable(false);
+        // KEVINTODO: if there are other in edges to the fallthrough block it 
+        //            might be cheaper to remove synch instrumentation at this point
     }
 }
 
@@ -136,6 +134,39 @@ bool HybridAnalysis::init()
     bool ret = true;
 
     proc()->hideDebugger();
+
+#if defined (os_windows)
+    if (proc()->lowlevel_process()->isMemoryEmulated()) {
+        // read in the list of whitelisted Windows API functions (those that 
+        // don't use pointers) so we save time by not to synchronizing around
+        // them
+        char *dyn_root = getenv("DYNINST_ROOT");
+        if (!dyn_root) {
+            fprintf(stderr, "ERROR: DYNINST_ROOT environment variable was not "
+                    "declared, couldn't find the list of non-pointer Windows API "
+                    "functions, will synchronize memory at all inter-library calls"
+                    " %s[%d]\n",FILE__,__LINE__);
+        } 
+        else {
+            string fname = string(dyn_root) + "\\dyninst\\dyninstAPI\\nosynchfuncs.txt";
+            ifstream nsf_file(fname.c_str());
+            if ( ! nsf_file.is_open() ) {
+                fprintf(stderr, "ERROR: failed to open file %s, which should "
+                        "contain the list of non-pointer Windows API functions, "
+                        "will synchronize memory at all inter-library calls "
+                        "%s[%d]\n",fname.c_str(),FILE__,__LINE__);
+            }
+            else {
+                std::string curfunc;
+                while (nsf_file.good()) {
+                    getline(nsf_file, curfunc);
+                    nonPtrAPIs_.insert(curfunc);
+                }
+            }
+        }
+    }
+#endif
+
     //mal_printf("   pre-inst  "); proc()->printKTimer();
 
     // instrument a.out module & protect analyzed code
@@ -169,10 +200,9 @@ bool HybridAnalysis::init()
         }
 #endif
     }
-
     mal_printf("   post-inst ");
     //proc()->printKTimer();
-	
+
     proc()->getImage()->clearNewCodeRegions();
     if (BPatch_defensiveMode == mode_) {
         hybridow_ = new HybridAnalysisOW(this);
@@ -313,7 +343,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             // if memory is emulated, and we don't know that it doesn't go to 
             // a non-instrumented library, add a callback to synchShadowOrigCB_wrapper
             if ( proc()->lowlevel_process()->isMemoryEmulated() && 
-                 ! isIntraMod(curPoint) )
+                 needsSynchronization(curPoint) )
             {
                 mal_printf("Adding pre- and post- synch instrumentation to 0x%lx\n",
                            (Address)curPoint->getAddress());
@@ -1088,7 +1118,7 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
                     "%lx=>%lx [%d]\n", modName, funcName, 
                     (long)point->getAddress(), target, FILE__,__LINE__);
         } else {
-            processTargMod = false; 
+            processTargMod = false;
                     // triggers for nspack's transfer into space that's 
                     // allocated at runtime
         }
@@ -1096,15 +1126,16 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
     return processTargMod;
 }
 
-// returns true current if evidence suggests that an indirect control 
-// transfer is always intramodular
-bool HybridAnalysis::isIntraMod(BPatch_point *point)
+// returns false if current evidence suggests that an indirect control 
+// transfer is always intramodular or if it is to a function that does
+// take pointers as parameters or produce them as a return value
+bool HybridAnalysis::needsSynchronization(BPatch_point *point)
 {
     vector<Address> targs;
     point->getSavedTargets(targs);
 
     if (targs.empty()) {
-        return false;
+        return true;
     }
 
     for (vector<Address>::iterator tit= targs.begin();
@@ -1113,11 +1144,18 @@ bool HybridAnalysis::isIntraMod(BPatch_point *point)
     {
         BPatch_module *targMod = proc()->findModuleByAddr(*tit);
         if (targMod != point->getFunction()->getModule()) {
-            return false;
+            BPatch_function *tfunc = targMod->findFunctionByEntry(*tit);
+            std::set<string>::iterator fit = nonPtrAPIs_.find(tfunc->getName());
+            if (nonPtrAPIs_.end() == fit) {
+                return true;
+            } else {
+                mal_printf("Not synchronizing around call to non-ptr func %s\n", 
+                           tfunc->getName());
+            }
         }
     }
 
-    return true;
+    return false;
 }
 
 bool HybridAnalysis::blockcmp::operator () (const BPatch_basicBlock *b1, 
