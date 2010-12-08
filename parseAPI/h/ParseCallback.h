@@ -123,6 +123,7 @@ class ParseCallback {
   virtual bool updateCodeBytes(Address) { return false; }
   virtual void abruptEnd_cf(Address, Block *,default_details*) { }
   virtual bool loadAddr(Address absoluteAddr, Address & loadAddr) { return false; }
+  virtual void block_delete(Block *) {};
 };
 
 }

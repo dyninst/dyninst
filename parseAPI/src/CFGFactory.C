@@ -47,9 +47,7 @@ Edge::Edge(Block *source, Block *target, EdgeTypeEnum type)
 : _source(source),
   _target(target),
   _type(type,false) { 
-    if (source->end() == 0x647 || target->start() == 0x647) {
-      std::cerr << "DEBUG BREAKPOINT!" << endl;
-        }
+      
     }
 
 CFGFactory::~CFGFactory()
@@ -75,6 +73,7 @@ CFGFactory::free_func(Function *f) {
 
 Block *
 CFGFactory::mkblock(Function *  f , CodeRegion *r, Address addr) {
+
     Block * ret = new Block(f->obj(),r,addr);
     blocks_.add(*ret);
     return ret;
@@ -93,19 +92,16 @@ CFGFactory::free_block(Block *b) {
 
 Edge *
 CFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
-    if((src->end() & 0xFFF) == 0x647) {
-        std::cerr << "DEBUG BREAKPOINT!" << endl;
-        }
-    if (trg->start() == 0x647) {
-        std::cerr << "DEBUG BREAKPOINT" << endl;
-        }
     Edge * ret = new Edge(src,trg,type);
     edges_.add(*ret);
     return ret;
 }
+
+
 void
 CFGFactory::free_edge(Edge *e) {
     e->remove();
+
     delete e;
 }
 

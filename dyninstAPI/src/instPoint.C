@@ -340,9 +340,6 @@ instPoint *instPoint::createParsePoint(int_function *func,
                 func->symTabName().c_str(),
                 img_p->getPointType());
 
-   // Madhavi 2010: This condition is no longer true. We could have
-   // instPoints above the function entry point that belongs to a function
-   // (especially with shared code)
     Address offsetInFunc = img_p->offset() - func->ifunc()->getOffset();
     Address absAddr = offsetInFunc + func->getAddress();
 
@@ -350,14 +347,14 @@ instPoint *instPoint::createParsePoint(int_function *func,
     if (newIP) {
        //fprintf(stderr, "WARNING: already have parsed point at addr 0x%lx\n",
        //absAddr);
-       return NULL;
+       return newIP;
     }
     inst_printf("Parsed offset: 0x%x, in func 0x%x, absolute addr 0x%x\n",
                 img_p->offset(),
                 offsetInFunc,
                 absAddr);
     
-    int_block *bbi = func->findOneBlockByAddr(absAddr);
+    int_block *bbi = func->findBlock(img_p->block());
     if (!bbi) return NULL; // Not in the function...
 
     newIP = new instPoint(func->proc(),

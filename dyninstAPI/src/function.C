@@ -244,9 +244,10 @@ void int_function::addArbitraryPoint(instPoint *insp) {
 }
 
 const pdvector<instPoint *> &int_function::funcEntries() {
+    pdvector<image_instPoint *> img_entries;
     if (entryPoints_.size() == 0 || obj()->isExploratoryModeOn()) {
         entryPoints_.clear();
-        pdvector<image_instPoint *> img_entries;
+
         ifunc_->funcEntries(img_entries);
 	    if (img_entries.empty()) {
 	      cerr << "Warning: function " << prettyName() << " has no parsed entry points" << endl;
@@ -255,8 +256,7 @@ const pdvector<instPoint *> &int_function::funcEntries() {
         entryPoints_.reserve_exact(img_entries.size());
 #endif
         for (unsigned i = 0; i < img_entries.size(); i++) {
-            instPoint *point = findInstPByAddr(img_entries[i]->offset() + baseAddr());
-            if (!point) point = instPoint::createParsePoint(this,
+            instPoint *point = instPoint::createParsePoint(this,
                                                             img_entries[i]);
             if (!point) continue; // Can happen if we double-create
             assert(point);
@@ -283,8 +283,7 @@ const pdvector<instPoint*> &int_function::funcExits() {
 #endif
         
         for (unsigned i = 0; i < img_exits.size(); i++) {
-            instPoint *point = findInstPByAddr(img_exits[i]->offset() + baseAddr());
-            if (!point) point = instPoint::createParsePoint(this,
+            instPoint *point = instPoint::createParsePoint(this,
                                                             img_exits[i]);
             if (!point) continue; // Can happen if we double-create
 
@@ -310,12 +309,9 @@ const pdvector<instPoint*> &int_function::funcCalls() {
 #endif
         
         for (unsigned i = 0; i < img_calls.size(); i++) {
-            instPoint *point = findInstPByAddr(img_calls[i]->offset() + baseAddr());
-            if (!point) point = instPoint::createParsePoint(this,
+            instPoint *point = instPoint::createParsePoint(this,
                                                            img_calls[i]);
             if (!point) continue; // Can happen if we double-create
-
-            assert(point);
             callPoints_.push_back(point);
         }
     }
@@ -353,16 +349,8 @@ const std::set<instPoint*> &int_function::funcUnresolvedControlFlow()
             }
 
             // find or create the new instPoint and add it to the vector
-            instPoint *curPoint;
-            Address ptAddr = (*pIter)->offset() 
-                                   + getAddress() 
-                                   - ifunc()->getOffset();
-            if (instPsByAddr_.find(ptAddr) != instPsByAddr_.end()) {
-                curPoint = instPsByAddr_[ptAddr];
-            } else {
-                curPoint = instPoint::createParsePoint(this, *pIter);
-            }
-            unresolvedPoints_.insert(curPoint); // std::set eliminates duplicates
+            instPoint *curPoint = instPoint::createParsePoint(this, *pIter);
+            if (curPoint) unresolvedPoints_.insert(curPoint); // std::set eliminates duplicates
             pIter++;
         }
     }
@@ -781,6 +769,7 @@ void int_function::deleteBlock(int_block* block)
 
 void int_function::splitBlock(image_basicBlock *img_orig, 
                               image_basicBlock *img_new) {
+    blocks();
    int_block *origBlock = blockMap_[img_orig];
    assert(origBlock);
    
@@ -905,7 +894,7 @@ void int_function::getCallerPoints(std::vector<instPoint*>& callerPoints)
         (*iter)->src()->getFuncs(llFuncs);
         for (std::vector<ParseAPI::Function *>::iterator f_iter = llFuncs.begin();
             f_iter != llFuncs.end(); ++f_iter) {
-            int_function *caller = obj()->findFunction(*f_iter);
+            int_function *caller = proc()->findFuncByInternalFunc(static_cast<image_func *>(*f_iter));
             int_block *callerBlock = caller->findBlock((*iter)->src());
             caller->funcCalls();
             instPoint *callPoint = caller->findInstPByAddr(callerBlock->last());

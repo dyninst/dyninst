@@ -372,6 +372,8 @@ class image : public codeRange {
    bool addInstPoint(image_instPoint*p);
    void getInstPoints(Address start, Address end, 
                       pdvector<image_instPoint*> &points); 
+   void deleteInstPoints(ParseAPI::Block *b);
+
 
    //-----------DEFENSIVE-MODE CODE------------//
    BPatch_hybridMode hybridMode() const { return mode_; }
@@ -380,7 +382,7 @@ class image : public codeRange {
    void deleteFunc(image_func *func);
    void deleteInstPoint(image_instPoint *p);
    void addSplitBlock(image_basicBlock *first,
-                      image_basicBlock *second) { splitBlocks_.insert(make_pair(first, second)); }
+                      image_basicBlock *second);
    typedef std::set<std::pair<image_basicBlock *, image_basicBlock *> > SplitBlocks;
    const SplitBlocks & getSplitBlocks() const;
    bool hasSplitBlocks() const { return !splitBlocks_.empty(); }

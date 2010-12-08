@@ -116,6 +116,7 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   void overlapping_blocks(ParseAPI::Block*,ParseAPI::Block*);
   bool updateCodeBytes(Address target); // updates if needed
   bool loadAddr(Address absoluteAddr, Address & loadAddr);
+  void block_delete(ParseAPI::Block *b);
 
 #if defined(arch_power) || defined(arch_sparc)
   void instruction_cb(ParseAPI::Function*,Address,insn_details*);
