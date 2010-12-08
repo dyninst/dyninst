@@ -153,7 +153,7 @@ class Edge : public allocatable {
     PARSER_EXPORT Edge(Block * source,
          Block * target,
          EdgeTypeEnum type);
-     PARSER_EXPORT virtual ~Edge() { }
+     PARSER_EXPORT virtual ~Edge();
 
     PARSER_EXPORT virtual Block * src() const { return _source; }
     PARSER_EXPORT virtual Block * trg() const { return _target; }

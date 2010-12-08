@@ -1199,10 +1199,6 @@ Parser::end_block(Block * b, InstructionAdapter_t & ah)
     b->_lastInsn = ah.getAddr();
     b->_end = ah.getNextAddr();
 
-    if (b->_end == 0x647) {
-        cerr << "DEBUG BREAKPOINT!" << endl;
-        }
-
     record_block(b);
 }
 
@@ -1367,13 +1363,11 @@ Parser::split_block(
     vector<Edge *> & trgs = b->_targets;
     vector<Edge *>::iterator tit = trgs.begin(); 
     for(;tit!=trgs.end();++tit) {
-        (*tit)->_source = ret;
-        ret->_targets.push_back(*tit);
+        Edge *e = *tit;
+        e->_source = ret;
+        ret->_targets.push_back(e);
     }
     trgs.clear();
-    if (b->_end == 0x647) {
-        cerr << "DEBUG BREAKPOINT!" << endl;
-        }
     ret->_end = b->_end;
     ret->_lastInsn = b->_lastInsn;
     ret->_parsed = true;
@@ -1384,9 +1378,6 @@ Parser::split_block(
     // b's range has changed
     rd->blocksByRange.remove(b);
     b->_end = addr;
-    if (addr == 0x647) {
-        cerr << "DEBUG_BREAKPOINT!" << endl;
-        }
     b->_lastInsn = previnsn;
     rd->blocksByRange.insert(b); 
     // Any functions holding b that have already been finalized

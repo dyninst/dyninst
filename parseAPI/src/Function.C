@@ -65,12 +65,11 @@ Function::Function(Address addr, string name, CodeObject * obj,
 {
     if (obj->defensiveMode()) {
         mal_printf("new funct at %lx\n",addr);
-        if (addr == 0x0) {
-            cerr << "BREAKPOINT" << endl;
-            }
     }
 }
 
+ParseAPI::Edge::~Edge() {
+}
 
 Function::~Function()
 {
@@ -341,6 +340,13 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
         if (1 == dead->containingFuncs()) {
             for (unsigned sidx=0; sidx < dead->_sources.size(); sidx++) {
                 Edge *edge = dead->_sources[sidx];
+                if (edge->type() == CALL) {
+                    std::vector<Function *> funcs;
+                    edge->src()->getFuncs(funcs);
+                    for (unsigned k = 0; k < funcs.size(); ++k) {
+                        funcs[k]->_call_edges.erase(edge);
+                    }
+                }
                 edge->src()->removeTarget( edge );
                 obj()->fact()->free_edge(edge);
             }
