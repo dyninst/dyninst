@@ -237,17 +237,19 @@ image_basicBlock::image_basicBlock(
 #endif
 }
 
+image_basicBlock::~image_basicBlock() {
+
+}
+
 int image_instPoint_count = 0;
 
 image_instPoint::image_instPoint(Address offset,
-                                 unsigned char * insn_buf,
-                                 size_t insn_len,
+                                 ParseAPI::Block *b,
                                  image * img,
                                  instPointType_t type) :
-    instPointBase(insn_buf,
-                  insn_len,
-                  type),
+    instPointBase(type),
     offset_(offset),
+    block_(b),
     image_(img),
     callee_(NULL),
     callTarget_(0),
@@ -264,18 +266,16 @@ image_instPoint::image_instPoint(Address offset,
 }
 
 image_instPoint::image_instPoint(Address offset,
-                                 unsigned char * insn_buf,
-                                 size_t insn_len,
+                                 ParseAPI::Block *b,
                                  image * img,
                                  Address callTarget,
                                  bool isDynamic,
                                  bool isAbsolute,
                                  instPointType_t ptType, 
                                  bool isUnresolved) :
-    instPointBase(insn_buf,
-                  insn_len,
-                  ptType),
+    instPointBase(ptType),
     offset_(offset),
+    block_(b),
     image_(img),
     callee_(reinterpret_cast<image_func*>(-1)),
     callTarget_(callTarget),
@@ -472,8 +472,17 @@ image_func::funcEntries(pdvector<image_instPoint*> &points)
 {
     // there can be only one
     image_instPoint * p = img()->getInstPoint(addr());
-    if(p)
-        points.push_back(p);
+
+    if (!p && instLevel_ != UNINSTRUMENTABLE) {
+       // We can create these lazily...
+       p = new image_instPoint(addr(),
+                               entryBlock(),
+                               img(), 
+                               functionEntry);
+       img()->addInstPoint(p);
+    }
+    points.push_back(p);
+
 }
 void 
 image_func::funcExits(pdvector<image_instPoint*> &points)
@@ -714,4 +723,17 @@ ParseAPI::FuncReturnStatus image_func::init_retstatus() const
         return retstatus();
     }
     return init_retstatus_;
+}
+
+void image_func::destroyBlocks(std::vector<ParseAPI::Block *> &blocks) {
+    // Delete instPoints, then call ParseAPI::Func::deleteBlocks
+    for (unsigned i = 0; i < blocks.size(); ++i) {
+        for (Address addr = blocks[i]->start(); addr < blocks[i]->end(); ++addr) {
+          image_instPoint *p = img()->getInstPoint(addr);
+              if (p && p->block() == blocks[i]) {
+                 img()->deleteInstPoint(p);
+              }
+        }
+    }
+    deleteBlocks(blocks);
 }

@@ -75,7 +75,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
    }
 #endif
 
-   const bblInstance *bbl = (*b_iter)->bbl();
+   const int_block *bbl = (*b_iter)->bbl();
   
   // Can be true if we see an instrumentation block...
   if (!bbl) return true;
@@ -152,7 +152,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
        sensitivity_cerr << "Forward slice from " << (*a_iter)->format() << " in func " << bbl->func()->prettyName() << endl;
 
       Graph::Ptr slice = forwardSlice(*a_iter,
-				      bbl->block()->llb(),
+				      bbl->llb(),
 				      bbl->func()->ifunc());
 
       if (!slice) {
@@ -525,13 +525,13 @@ void PCSensitiveTransformer::handleThunkCall(TraceList::iterator &b_iter,
 
 void PCSensitiveTransformer::recordIntSensitive(Address addr) {
   // All we have from this is a raw address. Suck...
-  // Look up the bblInstances that map to this address. 
-  std::vector<int_function *> funcs;
+  // Look up the int_blocks that map to this address. 
+  std::set<int_function *> funcs;
   addrSpace->findFuncsByAddr(addr, funcs);
 
-  for (unsigned i = 0; i < funcs.size(); ++i) {
-    int_basicBlock *block = funcs[i]->findBlockByAddr(addr);
-    priMap[block->origInstance()] = Required;
+  for (std::set<int_function *>::iterator iter = funcs.begin(); iter != funcs.end(); ++iter) {
+    int_block *block = (*iter)->findBlockByEntry(addr);
+    priMap[block] = Required;
   }
 }
 
@@ -614,7 +614,7 @@ void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
 }
 
 // TODO: fix t
-bool PCSensitiveTransformer::exceptionSensitive(Address a, const bblInstance *bbl) {
+bool PCSensitiveTransformer::exceptionSensitive(Address a, const int_block *bbl) {
   // If we're within the try section of an exception, return true.
   // Otherwise return false.
   

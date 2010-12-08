@@ -41,7 +41,7 @@ class MappedFile {
 
    public:
       COMMON_EXPORT static MappedFile *createMappedFile(std::string fullpath_);
-      COMMON_EXPORT static MappedFile *createMappedFile(void *map_loc, unsigned long size_);
+      COMMON_EXPORT static MappedFile *createMappedFile(void *map_loc, unsigned long size_, const std::string &name);
       COMMON_EXPORT static void closeMappedFile(MappedFile *&mf);
 
       COMMON_EXPORT std::string pathname();
@@ -61,7 +61,7 @@ class MappedFile {
    private:
 
       MappedFile(std::string fullpath_, bool &ok);
-      MappedFile(void *loc, unsigned long size_, bool &ok);
+      MappedFile(void *loc, unsigned long size_, const std::string & name, bool &ok);
       ~MappedFile();
       bool clean_up();
       std::string fullpath;

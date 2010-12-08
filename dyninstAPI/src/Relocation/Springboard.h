@@ -61,36 +61,36 @@ typedef enum {
 
 struct SpringboardReq {
    Address from;
-   Address to;
    Priority priority;
-   std::set<bblInstance *> bbls;
+   typedef std::map<int_block *, Address> Destinations;
+   Destinations destinations;
    bool checkConflicts;
    bool includeRelocatedCopies;
    bool fromRelocatedCode;
    bool useTrap;
    SpringboardReq(const Address a, const Address b, 
-                  const Priority c, bblInstance *d, 
+                  const Priority c, int_block *d, 
                   bool e, 
                   bool f, 
                   bool g,
                   bool i)
-   : from(a), to(b), 
+   : from(a), 
       priority(c), 
       checkConflicts(e), 
       includeRelocatedCopies(f),
       fromRelocatedCode(g),
       useTrap(i) 
    {
-       bbls.insert(d);
+      destinations[d] = b;
    }
    SpringboardReq() 
-   : from(0), to(0), priority(NotRequired), 
+   : from(0), priority(NotRequired), 
       checkConflicts(false),
       includeRelocatedCopies(false),
       fromRelocatedCode(false),
       useTrap(false) {};
     void addReq (const Address a, const Address b,
-                        const Priority c, bblInstance *d,
+                        const Priority c, int_block *d,
                         bool e, bool f, bool g, bool i) 
     {
         // This mechanism handles overlapping functions, where
@@ -100,11 +100,10 @@ struct SpringboardReq {
         // we can do the right thing with includeRelocatedCopies.
         if (from == 0) {
             // New version version
-            assert(to == 0);
+            assert(destinations.empty()); 
             from = a;
-            to = b;
             priority = c;
-            bbls.insert(d);
+            destinations[d] = b;
             checkConflicts = e;
             includeRelocatedCopies = f;
             fromRelocatedCode = g;
@@ -112,8 +111,7 @@ struct SpringboardReq {
         }
         else {
             assert(from == a);
-            // Ignore everything else but the bbl
-            bbls.insert(d);
+            destinations[d] = b;
         }
     }
 };
@@ -136,7 +134,7 @@ class SpringboardBuilder;
    }
 
    void addFromOrigCode(Address from, Address to, 
-                        Priority p, bblInstance *bbl) {
+                        Priority p, int_block *bbl) {
 // This uses the default constructor if it isn't already there.
       sBoardMap_[p][from].addReq(from, to, p, bbl, true, true, false, false);
    }
@@ -152,7 +150,7 @@ class SpringboardBuilder;
                                            true, false);
    };
    
-   void addRaw(Address from, Address to, Priority p, bblInstance *bbl,
+   void addRaw(Address from, Address to, Priority p, int_block *bbl,
                bool checkConflicts, bool includeRelocatedCopies, bool fromRelocatedCode,
                bool useTrap) {
       sBoardMap_[p][from] = SpringboardReq(from, to, p, bbl,

@@ -306,15 +306,15 @@ void instPoint::calcLiveness() {
    stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
    using namespace Dyninst::InstructionAPI;
     
-   Address blockBegin = block()->origInstance()->firstInsnAddr();
-   Address blockEnd = block()->origInstance()->endAddr();
+   Address blockBegin = block()->start();
+   Address blockEnd = block()->end();
    std::vector<Address> blockAddrs;
    
    const unsigned char* insnBuffer = 
-      reinterpret_cast<const unsigned char*>(block()->origInstance()->getPtrToInstruction(blockBegin));
+      reinterpret_cast<const unsigned char*>(block()->getPtrToInstruction(blockBegin));
    assert(insnBuffer);
 
-   InstructionDecoder decoder(insnBuffer,block()->origInstance()->getSize(),
+   InstructionDecoder decoder(insnBuffer,block()->size(),
         func()->ifunc()->isrc()->getArch());
    Address curInsnAddr = blockBegin;
    do
@@ -366,7 +366,7 @@ void instPoint::calcLiveness() {
       }
       else
       {
-	Instruction::Ptr tmp = decoder.decode((const unsigned char*)(block()->origInstance()->getPtrToInstruction(*current)));
+	Instruction::Ptr tmp = decoder.decode((const unsigned char*)(block()->getPtrToInstruction(*current)));
 	rwAtCurrent = calcRWSets(tmp, block()->llb(), width, *current);
 	assert(!"SERIOUS ERROR: read/write info cache state inconsistent");
 	liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",

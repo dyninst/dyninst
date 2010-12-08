@@ -49,19 +49,19 @@ Modification::Modification(const ext_CallReplaceMap &callRepl,
 			   const ext_CallRemovalSet &callRem) {
   for (ext_CallReplaceMap::const_iterator iter = callRepl.begin();
        iter != callRepl.end(); ++iter) {
-    bblInstance *bbl = iter->first->block()->origInstance();
+    int_block *bbl = iter->first->block();
     callRep_[bbl] = std::make_pair<int_function *, instPoint *>(iter->second, iter->first);
   }
 
   for (ext_FuncReplaceMap::const_iterator iter = funcRepl.begin();
        iter != funcRepl.end(); ++iter) {
-    bblInstance *bbl = iter->first->entryBlock()->origInstance();
+    int_block *bbl = iter->first->entryBlock();
     funcRep_[bbl] = iter->second;
   }
 
   for (ext_CallRemovalSet::const_iterator iter = callRem.begin();
        iter != callRem.end(); ++iter) {
-    bblInstance *bbl = (*iter)->block()->origInstance();
+    int_block *bbl = (*iter)->block();
     callRem_.insert(bbl);
   }
 }
@@ -118,9 +118,9 @@ void Modification::replaceCall(TracePtr block, int_function *target, instPoint *
     // Don't leak target objects
     delete d_iter->second;
     
-    bblInstance *tbbl = target->entryBlock()->origInstance();
+    int_block *tbbl = target->entryBlock();
     
-    Target<bblInstance *> *new_target = new Target<bblInstance *>(tbbl);
+    Target<int_block *> *new_target = new Target<int_block *>(tbbl);
     assert(new_target);
     
     d_iter->second = new_target;

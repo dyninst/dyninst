@@ -90,13 +90,13 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT Symtab();
 
    SYMTAB_EXPORT Symtab(const Symtab& obj);
-   SYMTAB_EXPORT Symtab(char *mem_image, size_t image_size, 
-                        bool defensive_binary, bool &err);
+   SYMTAB_EXPORT Symtab(unsigned char *mem_image, size_t image_size, 
+                        const std::string &name, bool defensive_binary, bool &err);
 
    SYMTAB_EXPORT static bool openFile(Symtab *&obj, std::string filename, 
                                       bool defensive_binary=false);
-   SYMTAB_EXPORT static bool openFile(Symtab *&obj, char *mem_image, size_t size, 
-                                      bool defensive_binary=false);
+   SYMTAB_EXPORT static bool openFile(Symtab *&obj, unsigned char *mem_image, size_t size, 
+                                      const std::string &name, bool defensive_binary=false);
    SYMTAB_EXPORT static Symtab *findOpenSymtab(std::string filename);
    SYMTAB_EXPORT static bool closeSymtab(Symtab *);
 

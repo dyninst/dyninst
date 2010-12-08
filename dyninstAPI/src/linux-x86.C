@@ -1191,7 +1191,7 @@ bool process::hasBeenBound(const relocationEntry &entry,
     if( !( bound_addr == (entry.target_addr()+6+base_addr)) ) {
         // the callee function has been bound by the runtime linker
 	// find the function and return it
-        target_pdf = findFuncByAddr(bound_addr);
+        target_pdf = findFuncByEntry(bound_addr);
 	if(!target_pdf){
             return false;
 	}

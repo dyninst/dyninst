@@ -49,7 +49,7 @@ class DefensiveTransformer : public Transformer {
   virtual ~DefensiveTransformer() {};
 
  private:
-  bool requiresDefensivePad(const bblInstance *inst);
+  bool requiresDefensivePad(const int_block *inst);
 
 
   typedef std::map<TracePtr, TracePtr> InsertionMap;

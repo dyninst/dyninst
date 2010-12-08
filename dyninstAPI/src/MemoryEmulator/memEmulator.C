@@ -311,7 +311,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         } else {
             from = obj->codeBase() + reg->getMemOffset();
         }
-        //cerr << "SYNC READ FROM " << hex << from << " -> " << from + reg->getMemSize() << dec << endl;
+        cerr << "SYNC READ FROM " << hex << from << " -> " << from + reg->getMemSize() << dec << endl;
         if (!aS_->readDataSpace((void *)from,
                                 reg->getMemSize(),
                                 regbuf,
@@ -327,11 +327,11 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         } else {
             toBase = addedRegions_[reg];
         }
-        //cerr << "SYNC WRITE TO " << hex << toBase << dec << endl;
+        cerr << "SYNC WRITE TO " << hex << toBase << dec << endl;
         for (; sit != springboards_[reg].end(); sit++) {
             assert(cp_start <= sit->first);
             int cp_size = sit->first - cp_start;
-            //cerr << "\t Write " << hex << toBase + cp_start << "..." << toBase + cp_start + cp_size << dec << endl;
+            cerr << "\t Write " << hex << toBase + cp_start << "..." << toBase + cp_start + cp_size << dec << endl;
             if (cp_size &&
                 !aS_->writeDataSpace((void *)(toBase + cp_start),
                                      cp_size,
@@ -341,7 +341,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
             }
             cp_start = sit->first + sit->second;
         }
-        //cerr << "\t Finishing write " << hex << toBase + cp_start << " -> " << toBase + cp_start + reg->getMemSize() - cp_start << dec << endl;
+        cerr << "\t Finishing write " << hex << toBase + cp_start << " -> " << toBase + cp_start + reg->getMemSize() - cp_start << dec << endl;
 
         if (cp_start < reg->getMemSize() &&
             !aS_->writeDataSpace((void *)(toBase + cp_start),
@@ -365,7 +365,10 @@ void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size)
     //    if (sit->first >= offset + size) break;
     //    assert(0);
     //}
-
+    if (offset == 0xd3d2 ||
+        offset == 0xd3d3) {
+            cerr << "DEBUG BREAKPOINT!" << endl;
+    }
     for (Address tmp = offset; tmp < offset + size; ++tmp) {
         springboards_[reg].erase(tmp);
     }
@@ -377,31 +380,25 @@ void MemoryEmulator::removeSpringboards(int_function * func)
 {
     malware_cerr << "untracking springboards from deadfunc " << hex << func->getAddress() << dec << endl;
 
-    const set<int_basicBlock*,int_basicBlock::compare> & blocks = func->blocks();
-    set<int_basicBlock*,int_basicBlock::compare>::const_iterator bit = blocks.begin();
+    const set<int_block*,int_block::compare> & blocks = func->blocks();
+    set<int_block*,int_block::compare>::const_iterator bit = blocks.begin();
     for (; bit != blocks.end(); bit++) {
-        removeSpringboards((*bit)->origInstance());
+        removeSpringboards((*bit));
     }
 }
 
-void MemoryEmulator::removeSpringboards(const bblInstance *bbi) 
+void MemoryEmulator::removeSpringboards(const int_block *bbi) 
 {
+    if (bbi->llb()->start() == 0xd3d2 ||
+        bbi->llb()->start() == 0xd323)
+        cerr << "DEBUG BREAKPOINT" << endl;
     malware_cerr << "  untracking springboards from deadblock [" << hex 
-         << bbi->firstInsnAddr() << " " << bbi->endAddr() << ")" << dec <<endl;
+         << bbi->start() << " " << bbi->end() << ")" << dec <<endl;
     SymtabAPI::Region * reg = 
         ((ParseAPI::SymtabCodeRegion*)bbi->func()->ifunc()->region())->symRegion();
-    Address base = bbi->func()->obj()->codeBase();
-    Address regBase = reg->getMemOffset();
-    map<Address,int>::iterator sit = springboards_[reg].begin();
-    std::vector<Address> toDelete;
-    for(; sit != springboards_[reg].end(); sit++) {
-        if (bbi->func() == aS_->findFuncByAddr(base + regBase + sit->first)) {
-           toDelete.push_back(sit->first);
-        }
+    if (springboards_[reg].find((bbi->llb()->start() - reg->getMemOffset())) == springboards_[reg].end()) {
+        cerr << "ERROR IN DELETING SPRINGBOARD!" << endl;
     }
-    for (unsigned i = 0; i < toDelete.size(); ++i) {
-       malware_cerr << "\tdeleting springboard at " << hex << toDelete[i] << dec << endl;
-       springboards_[reg].erase(toDelete[i]);
-    }
+    springboards_[reg].erase(bbi->llb()->start() - reg->getMemOffset());
     if (springboards_[reg].empty()) springboards_.erase(reg);
 }

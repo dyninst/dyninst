@@ -54,7 +54,7 @@ bool ASTAtom::generate(const codeGen &,
 }
 
 TrackerElement *ASTAtom::tracker() const {
-   OriginalTracker *e = new OriginalTracker(point_->addr(), point_->func());
+   OriginalTracker *e = new OriginalTracker(point_->addr(), point_->block());
   return e;
 }
 

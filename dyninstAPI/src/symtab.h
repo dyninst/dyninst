@@ -376,11 +376,14 @@ class image : public codeRange {
    //-----------DEFENSIVE-MODE CODE------------//
    BPatch_hybridMode hybridMode() const { return mode_; }
    // element removal
-   void removeInstPoint(image_instPoint *p, instPoint *ip);
+
    void deleteFunc(image_func *func);
-   void addSplitBlock(image_basicBlock *blk) { splitBlocks_.insert(blk); }
-   const set<image_basicBlock*> & getSplitBlocks() const;
-   bool hasSplitBlocks() const { return 0 < splitBlocks_.size(); }
+   void deleteInstPoint(image_instPoint *p);
+   void addSplitBlock(image_basicBlock *first,
+                      image_basicBlock *second) { splitBlocks_.insert(make_pair(first, second)); }
+   typedef std::set<std::pair<image_basicBlock *, image_basicBlock *> > SplitBlocks;
+   const SplitBlocks & getSplitBlocks() const;
+   bool hasSplitBlocks() const { return !splitBlocks_.empty(); }
    void clearSplitBlocks();
    bool hasNewBlocks() const { return 0 < newBlocks_.size(); }
    const vector<image_basicBlock*> & getNewBlocks() const;
@@ -533,7 +536,7 @@ class image : public codeRange {
    vector<pair<string, Address> > dataHeaps_;
 
    // new element tracking
-   set<image_basicBlock*> splitBlocks_;
+   SplitBlocks splitBlocks_;
    vector<image_basicBlock*> newBlocks_;
    bool trackNewBlocks_;
 

@@ -325,7 +325,7 @@ bool
 BPatch_flowGraph::getEntryBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& ebb) 
 {
    BPatch_basicBlock *bb;
-   set< int_basicBlock* , int_basicBlock::compare > blockList; 
+
    const pdvector<instPoint*> entryPoints = ll_func()->funcEntries();
    for (unsigned i=0; i<entryPoints.size(); i++)
    {
@@ -545,10 +545,10 @@ BPatch_flowGraph::getOuterLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 bool BPatch_flowGraph::createBasicBlocks()
 { 
     assert(ll_func());
-    // create blocks from int_basicBlocks
-    const std::set< int_basicBlock* , int_basicBlock::compare >&
+    // create blocks from int_blocks
+    const int_function::BlockSet&
         iblocks = ll_func()->blocks();
-    set< int_basicBlock* , int_basicBlock::compare >::const_iterator ibIter;
+    int_function::BlockSet::const_iterator ibIter;
     //for( unsigned int i = 0; i < iblocks.size(); i++ )
     for (ibIter = iblocks.begin(); 
          ibIter != iblocks.end(); 
@@ -559,11 +559,11 @@ bool BPatch_flowGraph::createBasicBlocks()
        assert (allBlocks.contains(newblock));
     }
 
-    // create edges from target & source block lists in int_basicBlock
+    // create edges from target & source block lists in int_block
     BPatch_Set<BPatch_basicBlock*, BPatch_basicBlock::compare>::iterator 
         bIter = allBlocks.begin();
     while(bIter != allBlocks.end()) {
-        pdvector<int_basicBlock *> sourceBlocks, targetBlocks; 
+        pdvector<int_block *> sourceBlocks, targetBlocks; 
         (*bIter)->lowlevel_block()->getSources(sourceBlocks);
         (*bIter)->lowlevel_block()->getTargets(targetBlocks);
         for (unsigned sidx =0; sidx < sourceBlocks.size(); sidx++) {
@@ -826,7 +826,7 @@ void BPatch_flowGraph::findBBForBackEdge(BPatch_edge* backEdge,
    } STACK;
     
    STACK* stack = new STACK;
-   pdvector<int_basicBlock *> blocks;
+   pdvector<int_block *> blocks;
    BPatch_basicBlock *pred;
 
    bbSet += backEdge->target;

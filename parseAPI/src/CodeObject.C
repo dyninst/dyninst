@@ -198,6 +198,26 @@ CodeObject::parseNewEdges( vector<Block*> & sources,
 
         if (trgB) {
             add_edge(sources[idx], trgB, edge_types[idx]);
+            if (CALL == edge_types[idx]) {
+                // if it's a call edge, add it to Function::_call_edges
+                // since we won't re-finalize the function
+                vector<Function*> funcs;
+                sources[idx]->getFuncs(funcs);
+                for(vector<Function*>::iterator fit = funcs.begin();
+                    fit != funcs.end();
+                    fit++) 
+                {
+                    Block::edgelist & tedges = sources[idx]->targets();
+                    for(Block::edgelist::iterator eit = tedges.begin();
+                        eit != tedges.end();
+                        eit++)
+                    {
+                        if ((*eit)->trg() == trgB) {
+                            (*fit)->_call_edges.insert(*eit);
+                        }
+                    }
+                }
+            }
         } 
         else {
             parsedTargs.push_back(pair<Address,CodeRegion*>(targets[idx],

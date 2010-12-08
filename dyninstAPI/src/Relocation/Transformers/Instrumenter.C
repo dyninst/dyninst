@@ -162,7 +162,7 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
 	return false;
     }
     if (target) {
-      cerr << "   ... target inst, adding" << endl;
+       relocation_cerr << "   ... target inst, adding" << endl;
       if (!addEdgeInstrumentation(target,
 				  cf,
 				  CFAtom::Taken,
@@ -196,9 +196,6 @@ bool Instrumenter::postprocess(TraceList &bl) {
     // And post-insertion?
     EdgeTraces::iterator post = edgeTraces_.find(std::make_pair(*iter, After));
     if (post != edgeTraces_.end()) {
-
-      malware_cerr << "Post trace " << (*iter)->format();
-      malware_cerr << "New trace " << (*(post->second.begin()))->format() << endl;
       // Game the main iterator here...
       ++iter; // To get successor
       bl.insert(iter, post->second.begin(), post->second.end());

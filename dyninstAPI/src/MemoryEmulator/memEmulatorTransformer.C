@@ -134,13 +134,10 @@ bool MemEmulatorTransformer::canRewriteMemInsn(CopyInsn::Ptr reloc,
 
 bool MemEmulatorTransformer::override(CopyInsn::Ptr reloc) {
     unsigned char *buf = (unsigned char *)reloc->insn()->ptr();
-    if (reloc->addr() == 0x905574) {
-        cerr << "DEBUG BREAKPOINT!" << endl;
-    }
     if ((unsigned char) 0xa0 <= buf[0] && 
         buf[0] <= (unsigned char) 0xa3) { 
-            // Read/write with addr specified in an operand
-            return true;
+        // Read/write with addr specified in an operand
+        return true;
     }
    const InstructionAPI::Instruction::Ptr &insn = reloc->insn();
 

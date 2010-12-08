@@ -76,7 +76,6 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
       BPatch_hybridMode mode):
    desc_(fileDesc),
    fullName_(fileDesc.file()), 
-   everyUniqueFunction(imgFuncHash),
    everyUniqueVariable(imgVarHash),
    allFunctionsByMangledName(::Dyninst::stringhash),
    allFunctionsByPrettyName(::Dyninst::stringhash),
@@ -272,7 +271,6 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
    fileName_(s->fileName_),
    codeBase_(s->codeBase_),
    dataBase_(s->dataBase_),
-   everyUniqueFunction(imgFuncHash),
    everyUniqueVariable(imgVarHash),
    allFunctionsByMangledName(::Dyninst::stringhash),
    allFunctionsByPrettyName(::Dyninst::stringhash),
@@ -296,15 +294,15 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
       everyModule.push_back(mod);
    }
 
-   const pdvector<int_function *> parFuncs = s->everyUniqueFunction.values();
-   for (unsigned i = 0; i < parFuncs.size(); i++) {
-      int_function *parFunc = parFuncs[i];
+   for (FuncMap::const_iterator iter = s->everyUniqueFunction.begin();
+       iter != s->everyUniqueFunction.end(); ++iter) {
+      int_function *parFunc = iter->second;
       assert(parFunc->mod());
       mapped_module *mod = getOrCreateForkedModule(parFunc->mod());
       int_function *newFunc = new int_function(parFunc,
-            mod,
-            child);
-      addFunction(newFunc);
+                                               mod,
+                                               child);
+      addFunction(newFunc); 
    }
 
    const pdvector<int_variable *> parVars = s->everyUniqueVariable.values();
@@ -335,9 +333,8 @@ mapped_object::~mapped_object()
       delete everyModule[i];
    everyModule.clear();    
 
-   pdvector<int_function *> funcs = everyUniqueFunction.values();
-   for (unsigned j = 0; j < funcs.size(); j++) {
-      delete funcs[j];
+   for (FuncMap::iterator iter = everyUniqueFunction.begin(); iter != everyUniqueFunction.end(); ++iter) {
+       delete iter->second;
    }
    everyUniqueFunction.clear();
 
@@ -547,7 +544,7 @@ const pdvector<int_function *> *mapped_object::findFuncVectorByPretty(const std:
    // Slow path: check each img_func, add those we don't already have, and return.
    for (unsigned i = 0; i < img_funcs->size(); i++) {
        image_func *func = (*img_funcs)[i];
-       if (!everyUniqueFunction.defines(func)) {
+       if (everyUniqueFunction.find(func) == everyUniqueFunction.end()) {
            findFunction(func);
        }
        assert(everyUniqueFunction[func]);
@@ -579,7 +576,7 @@ const pdvector <int_function *> *mapped_object::findFuncVectorByMangled(const st
     // Slow path: check each img_func, add those we don't already have, and return.
     for (unsigned i = 0; i < img_funcs->size(); i++) {
         image_func *func = (*img_funcs)[i];
-        if (!everyUniqueFunction.defines(func)) {
+        if (everyUniqueFunction.find(func) == everyUniqueFunction.end()) {
             findFunction(func);
         }
         assert(everyUniqueFunction[func]);
@@ -665,53 +662,73 @@ const int_variable *mapped_object::getVariable(const std::string &varname) {
     return NULL;
 }
 
-codeRange *mapped_object::findCodeRangeByAddress(const Address &addr)  {
+bool mapped_object::findBlocksByAddr(const Address addr, std::set<int_block *> &blocks)
+{
     // Quick bounds check...
     if (addr < codeAbs()) { 
-        return NULL; 
+        return false; 
     }
     if (addr >= (codeAbs() + imageSize())) {
-        return NULL;
+        return false;
     }
-
-    codeRange *range = NULL;
-    if (hybridMode() != BPatch_normalMode && codeRangesByAddr_.find(addr, range)) {
-        if (range->is_basicBlockInstance()->block()->llb()->isShared()) {
-            mal_printf("WARNING: mapped_obj lookup by addr %lx returning shared "
-                       "block [%lx %lx)\n", addr, range->get_address(), 
-                       range->get_address() + range->get_size());
-        }
-        return range;
-    }
-    // reset range, which may have been modified
-    // by codeRange::find
-    range = NULL;
 
     // Duck into the image class to see if anything matches
-    set<ParseAPI::Function*> stab;
-    parse_img()->findFuncs(addr - codeBase(),stab);
-    if(!stab.empty()) {
-        // FIXME what if there are multiple functions at this point?
-        image_func * img_func = (image_func*)*stab.begin();
-        int_function *func = findFunction(img_func);
-        assert(func);
-        func->blocks(); // Adds to codeRangesByAddr_...
-        // And repeat...
-        bool res = codeRangesByAddr_.find(addr, range);
-        if (!res) {
-            // Possible: we do a basic-block level search at this point, and a gap (or non-symtab parsing)
-            // may skip an address.
-            return NULL;
+    set<ParseAPI::Block *> stab;
+    parse_img()->findBlocksByAddr(addr - codeBase(), stab);
+    if (stab.empty()) return false;
+
+    for (set<ParseAPI::Block *>::iterator llb_iter = stab.begin();
+        llb_iter != stab.end(); ++llb_iter) 
+    {
+        // For each block b \in stab
+        //   For each func f \in b.funcs()
+        //     Let i_f = up_map(f)
+        //       add up_map(b, i_f)
+        std::vector<ParseAPI::Function *> ll_funcs;
+        (*llb_iter)->getFuncs(ll_funcs);
+        for (std::vector<ParseAPI::Function *>::iterator llf_iter = ll_funcs.begin();
+            llf_iter != ll_funcs.end(); ++llf_iter) {
+           int_block *block = findBlock(*llf_iter, *llb_iter);
+           assert(block);
+           blocks.insert(block);
         }
     }
-    
-    return range;
+    return true;
 }
 
-int_function *mapped_object::findFuncByAddr(const Address &addr) {
-    codeRange *range = findCodeRangeByAddress(addr);
-    if (!range) return NULL;
-    return range->is_function();
+bool mapped_object::findFuncsByAddr(const Address addr, std::set<int_function *> &funcs) 
+{
+    bool ret = false;
+    // Quick and dirty implementation
+    std::set<int_block *> blocks;
+    if (!findBlocksByAddr(addr, blocks)) return false;
+    for (std::set<int_block *>::iterator iter = blocks.begin();
+        iter != blocks.end(); ++iter) {
+            ret = true;
+            funcs.insert((*iter)->func());
+    }
+    return ret;
+}
+
+int_function *mapped_object::findFuncByEntry(const Address addr) {
+   std::set<int_function *> funcs;
+   if (!findFuncsByAddr(addr, funcs)) return NULL;
+   for (std::set<int_function *>::iterator iter = funcs.begin();
+        iter != funcs.end(); ++iter) {
+      if ((*iter)->entryBlock()->start() == addr) return *iter;
+   }
+   return NULL;
+}
+
+int_block *mapped_object::findBlock(ParseAPI::Function *ll_func, ParseAPI::Block *ll_block) {
+    int_function *func = findFunction(ll_func);
+    if (!func) {
+       cerr << "Failed to find int_function for ll_func!" << endl;
+       return NULL;
+    }
+    int_block *block = func->findBlock(ll_block);
+    assert(block);
+    return block;
 }
 
 const pdvector<mapped_module *> &mapped_object::getModules() {
@@ -733,7 +750,7 @@ bool mapped_object::getAllFunctions(pdvector<int_function *> &funcs) {
     CodeObject::funclist &img_funcs = parse_img()->getAllFunctions();
     CodeObject::funclist::iterator fit = img_funcs.begin();
     for( ; fit != img_funcs.end(); ++fit) {
-        if(!everyUniqueFunction.defines((image_func*)*fit)) {
+        if(everyUniqueFunction.find((image_func*)*fit) == everyUniqueFunction.end()) {
             findFunction((image_func*)*fit);
         }
         funcs.push_back(everyUniqueFunction[(image_func*)*fit]);
@@ -756,7 +773,8 @@ bool mapped_object::getAllVariables(pdvector<int_variable *> &vars) {
 }
 
 // Enter a function in all the appropriate tables
-int_function *mapped_object::findFunction(image_func *img_func) {
+int_function *mapped_object::findFunction(ParseAPI::Function *papi_func) {
+    image_func *img_func = static_cast<image_func *>(papi_func);
     if (!img_func) {
         fprintf(stderr, "Warning: findFunction with null img_func\n");
         return NULL;
@@ -771,11 +789,11 @@ int_function *mapped_object::findFunction(image_func *img_func) {
     assert(mod);
     
 
-    if (everyUniqueFunction.defines(img_func)) {
+    if (everyUniqueFunction.find(img_func) != everyUniqueFunction.end()) {
         return everyUniqueFunction[img_func];
     }
 
-    int_function *func = new int_function(img_func, 
+    int_function *func = new int_function(static_cast<image_func *>(img_func), 
                                           codeBase_,
                                           mod);
     addFunction(func);
@@ -1164,132 +1182,45 @@ bool mapped_object::splitIntLayer()
     Address baseAddr = codeBase();
     using namespace InstructionAPI;
     // iterates through the blocks that were created during block splitting
-    std::set< image_basicBlock* > splits = parse_img()->getSplitBlocks();
-    set<image_basicBlock*>::iterator bIter;
-    std::set<image_func*> splitfuncs;
-    for (bIter = splits.begin(); bIter != splits.end(); bIter++) 
+    const image::SplitBlocks &splits = parse_img()->getSplitBlocks();
+    for (image::SplitBlocks::const_iterator bIter = splits.begin(); 
+         bIter != splits.end(); bIter++) 
     {
         // foreach function corresponding to the block
-        image_basicBlock *splitImgB = (*bIter); //latter half
+       image_basicBlock *splitImgB = bIter->first;
         vector<Function *> funcs;
         splitImgB->getFuncs(funcs);
         for (std::vector<Function*>::iterator fIter = funcs.begin();
              fIter != funcs.end(); 
-             fIter++) 
-        {
-            image_func *imgFunc = dynamic_cast<image_func*>(*fIter);
-            splitfuncs.insert(imgFunc);
-            int_function   * intFunc  = findFunction(imgFunc);
-            int_basicBlock * splitIntB = intFunc->findBlockByOffsetInFunc
-                ( splitImgB->firstInsnOffset() - imgFunc->getOffset() );
-
-            // add block to new int_function if necessary
-            if (!splitIntB || splitIntB->llb() != splitImgB) {
-                // this will adjust the previous block's length if necessary
-                intFunc->addMissingBlock(*splitImgB);
-            }
-
-            // splitIntB is null if its function is uninstrumentable 
-            // (because it is very short or has indirect jumps)
-            if (splitIntB) {
-
-                // make point fixes
-                instPoint *point = NULL;
-                Address current = splitIntB->origInstance()->firstInsnAddr();
-                InstructionDecoder dec
-                    (getPtrToInstruction(current),
-                     splitIntB->origInstance()->get_size(),
-                     proc()->getArch());
-                Instruction::Ptr insn;
-                while(insn = dec.decode()) 
-                {
-                    point = intFunc->findInstPByAddr( current );
-                    if ( point && point->block() != splitIntB ) {
-                        point->setBlock( splitIntB );
-                    } 
-                    current += insn->size();
-                }
-                // we're at the last instruction, create a point if needed
-                if ( !point && 
-                     parse_img()->getInstPoint
-                         (splitIntB->origInstance()->lastInsnAddr() - baseAddr) ) 
-                {
-                    intFunc->addMissingPoints();
-                    point = intFunc->findInstPByAddr
-                        ( splitIntB->origInstance()->lastInsnAddr() );
-
-                    if (!point) {
-                        fprintf(stderr,"WARNING: failed to find point for "
-                                "block [%lx %lx] at the"
-                                " block's lastInsnAddr = %lx %s[%d]\n", 
-                                splitIntB->origInstance()->firstInsnAddr(), 
-                                splitIntB->origInstance()->endAddr(),
-                                splitIntB->origInstance()->lastInsnAddr(),
-                                FILE__,__LINE__);
-                    }
-                }
-            }
+             fIter++) {
+            image_func *imgFunc = static_cast<image_func*>(*fIter);
+            int_function *func = findFunction(imgFunc);
+            assert(func);
+            func->splitBlock(bIter->first, bIter->second);
         }
     }
-
-    // check arbitrary points in functions whose block boundaries may have changed 
-    Address baseAddress = codeBase();
-    for (std::set<image_func*>::iterator fIter = splitfuncs.begin();
-            fIter != splitfuncs.end(); 
-            fIter++) 
-    {
-        int_function *f = findFuncByAddr(baseAddress + (*fIter)->getOffset());
-        const pdvector<instPoint*> & points = f->funcArbitraryPoints();
-        for (pdvector<instPoint*>::const_iterator pIter = points.begin(); 
-             pIter != points.end(); pIter++) 
-        {
-            Address pointAddr = (*pIter)->addr();
-            bblInstance *bbi = (*pIter)->block()->origInstance();
-            // fix block boundaries if necessary
-            while (pointAddr <  bbi->firstInsnAddr()) 
-            {
-                bbi = bbi->block()->func()->findBlockInstanceByAddr(
-                    bbi->firstInsnAddr() -1 );
-                assert(bbi);
-            } 
-            while (pointAddr >= bbi->endAddr()) 
-            {
-                bbi = bbi->block()->func()->findBlockInstanceByAddr(
-                    bbi->endAddr() );
-                assert(bbi);
-            }
-            if (bbi != (*pIter)->block()->origInstance()) {
-                mal_printf("updating block (which was split) for arbitrary"
-                           " point %lx; %s[%d]\n",(*pIter)->addr(),
-                           FILE__,__LINE__);
-                (*pIter)->setBlock(bbi->block());
-            }
-        }
-    }
-
     return true;
-
 #endif
 }
 
-// Grabs all bblInstances corresponding to the region, taking special care 
-// to get ALL bblInstances corresponding to an address if it is shared 
+// Grabs all int_blocks corresponding to the region, taking special care 
+// to get ALL int_blocks corresponding to an address if it is shared 
 // between multiple functions
-void mapped_object::findBBIsByRange(Address startAddr,
-                                    Address endAddr,
-                                    list<bblInstance*> &rangeBlocks)//output
+void mapped_object::findBlocksByRange(Address startAddr,
+                                      Address endAddr,
+                                      list<int_block*> &rangeBlocks)//output
 {
    std::set<ParseAPI::Block *> papiBlocks;
    for (Address cur = startAddr; cur < endAddr; ++cur) {
       Address papiCur = cur - codeBase();
       parse_img()->codeObject()->findBlocks(NULL, papiCur, papiBlocks);
    }
-   //cerr << "ParseAPI reported " << papiBlocks.size() << " unique blocks in the range "
-   //     << hex << startAddr << " -> " << endAddr << dec << endl;
-
+   malware_cerr << "ParseAPI reported " << papiBlocks.size() << " unique blocks in the range "
+        << hex << startAddr << " -> " << endAddr << dec << endl;
+   
    for (std::set<ParseAPI::Block *>::iterator iter = papiBlocks.begin();
         iter != papiBlocks.end(); ++iter) {
-      // For each parseAPI block, up-map it to a set of bblInstances
+      // For each parseAPI block, up-map it to a set of int_blocks
       ParseAPI::Block *pB = *iter;
       
       std::vector<ParseAPI::Function *> funcs;
@@ -1300,7 +1231,7 @@ void mapped_object::findBBIsByRange(Address startAddr,
          int_function *func = findFunction(ifunc);
          assert(func);
 
-         bblInstance *bbl = func->findBlockInstanceByEntry(pB->start() + codeBase());
+         int_block *bbl = func->findBlockByEntry(pB->start() + codeBase());
          assert(bbl);
          rangeBlocks.push_back(bbl);
       }
@@ -1311,11 +1242,11 @@ void mapped_object::findFuncsByRange(Address startAddr,
                                       Address endAddr,
                                       std::set<int_function*> &pageFuncs)
 {
-   std::list<bblInstance *> bbls;
-   findBBIsByRange(startAddr, endAddr, bbls);
-   for (std::list<bblInstance *>::iterator iter = bbls.begin();
+   std::list<int_block *> bbls;
+   findBlocksByRange(startAddr, endAddr, bbls);
+   for (std::list<int_block *>::iterator iter = bbls.begin();
         iter != bbls.end(); ++iter) {
-      pageFuncs.insert((*iter)->block()->func());
+      pageFuncs.insert((*iter)->func());
    }
 }
 
@@ -1327,7 +1258,7 @@ void mapped_object::registerNewFunctions()
     CodeObject::funclist::iterator fit = newFuncs.begin();
     for( ; fit != newFuncs.end(); ++fit) {
         image_func *curFunc = (image_func*) *fit;
-        if ( ! everyUniqueFunction.defines(curFunc) ) { 
+        if (everyUniqueFunction.find(curFunc) == everyUniqueFunction.end()) { 
             if(curFunc->src() == HINT)
                 mal_printf("adding function of source type hint\n");
             findFunction(curFunc); // does all the work
@@ -1520,12 +1451,11 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
         > 
         codeAbs() + get_size())
     {
-        proc()->removeOrigRange(this);
         parse_img()->setImageLength( codeBase() 
                                      + reg->getMemOffset()
                                      + reg->getMemSize()
                                      - codeAbs() );
-        proc()->addOrigRange(this);
+
     }
 
     // KEVINTODO: what?  why is this necessary?, I've killed it for now, delete if no failures
@@ -1907,7 +1837,7 @@ bool mapped_object::updateCodeBytesIfNeeded(Address entry)
 
 void mapped_object::removeFunction(int_function *func) {
     // remove from int_function vectore
-    everyUniqueFunction.undef(func->ifunc());
+    everyUniqueFunction.erase(func->ifunc());
     // remove pretty names
     pdvector<int_function *> *funcsByName = NULL;
     for (unsigned pretty_iter = 0; 
@@ -1974,7 +1904,7 @@ void mapped_object::removeFunction(int_function *func) {
     }  
 }
 
-// remove an element from range, these are always original bblInstance's
+// remove an element from range, these are always original int_block's
 void mapped_object::removeRange(codeRange *range) {
     codeRange *foundrange = NULL;
     if (codeRangesByAddr_.find(range->get_address(), foundrange) && 

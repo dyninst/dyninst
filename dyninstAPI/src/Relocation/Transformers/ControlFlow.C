@@ -38,6 +38,7 @@
 #include "../Atoms/CopyInsn.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "boost/tuple/tuple.hpp"
+#include "dyninstAPI/src/mapped_object.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -46,7 +47,7 @@ using namespace InstructionAPI;
 using namespace ParseAPI;
 
 bool CFAtomCreator::processTrace(TraceList::iterator &iter) {
-  bblInstance *bbl = (*iter)->bbl();
+  int_block *bbl = (*iter)->bbl();
 
   // Can be true if we see an instrumentation block...
   if (!bbl) return true;
@@ -141,15 +142,14 @@ bool CFAtomCreator::processTrace(TraceList::iterator &iter) {
 }
 
 
-void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
+void CFAtomCreator::getInterproceduralSuccessors(const int_block *block,
                                                  SuccVec &succ) {
-  int_basicBlock *block = bbl->block();
   int_function *func = block->func();
 
   // This function is only annoying because our parsing layer is so incredibly
   // unintuitive and backwards. Hence... yeah. Annoyance. 
 
-  // The int_ layer (that bblInstances work on) has two restrictions:
+  // The int_ layer (that int_blocks work on) has two restrictions:
   // Single-function; we don't see interprocedural edges
   // No efficient way to get a list of all edges with edge types;
   //   instead we see target blocks and can query the type of each
@@ -159,7 +159,7 @@ void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
   // reason: handling calls between modules in the static case. Calls
   // go to PLT entries and we don't parse those, so normally we'd see
   // an image_basicBlock with no image_function, int_function,
-  // int_basicBlock, or bblInstance... useless. Instead I'm using the
+  // int_block, or int_block... useless. Instead I'm using the
   // Target concept to create a destination out of whole cloth.
 
   // This requires an... interesting... dodge through to the internals
@@ -184,7 +184,7 @@ void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
               // it anyway, so figure out manually what the destination
               // is by binding the PC to the address. Ugh. Ugh ugh ugh.
               std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> > insns;
-              bbl->getInsnInstances(insns);
+              block->getInsnInstances(insns);
               InstructionAPI::Instruction::Ptr insn = insns.back().first;
               Expression::Ptr exp = insn->getControlFlowTarget();
               if (!exp) {
@@ -207,8 +207,8 @@ void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
            case ParseAPI::COND_NOT_TAKEN:
            case ParseAPI::FALLTHROUGH:
            case ParseAPI::CALL_FT: {
-              out.targ = new Target<Address>(bbl->endAddr());
-              out.addr = bbl->endAddr();
+              out.targ = new Target<Address>(block->end());
+              out.addr = block->end();
               break;
            }
 
@@ -218,42 +218,42 @@ void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
      }
      else {
         // We have an image_basicBlock... now we need to map up
-        // to both an int_basicBlock and an bblInstance.
+        // to both an int_block and an int_block.
         image_basicBlock *ib = static_cast<image_basicBlock *>((*iter)->trg());
         
         if (out.type == RET) {
            continue;
         }
         else if (out.type != CALL) {
-           int_basicBlock *targ = func->findBlockByImage(ib);
+           int_block *targ = func->findBlock(ib);
            assert(targ);
-           out.targ = new Target<bblInstance *>(targ->origInstance());
-           out.addr = targ->origInstance()->firstInsnAddr();
+           out.targ = new Target<int_block *>(targ);
+           out.addr = targ->start();
         }
         else {
            // Trace must be an entry point since we reach it with
            // a call...
            image_func *iCallee = ib->getEntryFunc();
            int_function *callee = NULL;
-           if (iCallee) callee = bbl->proc()->findFuncByInternalFunc(iCallee);
+           if (iCallee) callee = block->proc()->findFuncByInternalFunc(iCallee);
            if (callee) {
               // Make sure it's parsed
               callee->blocks();
               // Same as above
-              int_basicBlock *targ = callee->findBlockByImage(ib);
-              out.targ = new Target<bblInstance *>(targ->origInstance());
-              out.addr = targ->origInstance()->firstInsnAddr();
+              int_block *targ = callee->findBlock(ib);
+              out.targ = new Target<int_block *>(targ);
+              out.addr = targ->start();
            }
            else {
               // Okay. This is obviously (really) a call to a PLT
               // entry. Now, calls to PLT entries are tricky, since
               // we currently don't parse them. OTOH, that means that
-              // I don't have anything to find a bblInstance with.
+              // I don't have anything to find a int_block with.
               // Instead we use a special-form Target
               
               // First, assert that our offset is 0. If it isn't we're in
               // real trouble since we can't upcast.
-              assert(bbl->firstInsnAddr() == block->llb()->firstInsnOffset());
+              assert(block->start() == block->llb()->firstInsnOffset());
               out.targ = new Target<Address>(ib->firstInsnOffset());
               out.addr = ib->firstInsnOffset();
            }
@@ -264,7 +264,7 @@ void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
   }
 }
 
-unsigned CFAtomCreator::modifiedCallFallthrough(const bblInstance *inst) {
+unsigned CFAtomCreator::modifiedCallFallthrough(const int_block *inst) {
    // Find if the program does anything funky with a call fallthrough
    // 1) A call edge with no fallthrough
    // 2) A gap between the call block and the fallthrough block.
@@ -272,7 +272,7 @@ unsigned CFAtomCreator::modifiedCallFallthrough(const bblInstance *inst) {
    ParseAPI::Edge *callEdge = NULL;
    ParseAPI::Edge *ftEdge = NULL;
    
-   const ParseAPI::Block::edgelist &targets = inst->block()->llb()->targets();
+   const ParseAPI::Block::edgelist &targets = inst->llb()->targets();
    ParseAPI::Block::edgelist::iterator iter = targets.begin();
    for (; iter != targets.end(); ++iter) {
       if ((*iter)->type() == ParseAPI::CALL) {

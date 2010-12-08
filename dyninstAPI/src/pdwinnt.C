@@ -201,7 +201,7 @@ bool SignalHandler::handleThreadCreate(EventRecord &ev, bool &continueHint)
            vector<Address> faddrs;
            faddrs.push_back(initial_func);
            obj->parseNewFunctions(faddrs);
-           func = proc->findFuncByAddr(initial_func);
+           func = proc->findOneFuncByAddr(initial_func);
         }
      }
    }
@@ -562,7 +562,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
      }
      else {
 	    requested_wait_until_active = false;
-            ret = true;
+        ret = true;
 	    if (1) cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
                  << " (DEBUG:" 
                  << "EAX: " << activeFrame.eax
@@ -1051,8 +1051,15 @@ void dyn_lwp::dumpRegisters()
 
 bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 {    
-  malware_cerr << "CHANGEPC to addr " << hex << addr << dec << endl;
-  malware_cerr << "Currently at: " << getActiveFrame();
+  if (dyn_debug_malware) {
+      std::set<int_function *> funcs;
+      proc()->findFuncsByAddr(addr, funcs, true);
+      cerr << "CHANGEPC to addr " << hex << addr;
+      cerr << " to func " << (funcs.empty() ? "<UNKNOWN>" :
+                              ((funcs.size() == 1) ? (*(funcs.begin()))->symTabName() : "<MULTIPLE>"));
+      cerr << dec << endl;
+      cerr << "Currently at: " << getActiveFrame();
+  }
   w32CONTEXT cont;//ccw 27 july 2000
   if (!regs) {
       cont.ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001
@@ -2529,8 +2536,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
             return false;
         }
         prevEvtReg = handler.prev;
-        if (!proc->findOrigByAddr((Address)prevEvtReg) &&
-            !proc->findModByAddr((Address)prevEvtReg)) {
+        if (!proc->findOneFuncByAddr((Address)prevEvtReg)) {
             mal_printf("EUREKA! Found handler at 0x%x while handling "
                    "exceptionCode=0x%X for exception at %lx %s[%d]\n",
                    handler.handler, ev.what, ev.address, FILE__,__LINE__);
@@ -2546,18 +2552,18 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     vector<int_function*> faultFuncs;
     baseTrampInstance *bti = NULL;
     ev.proc->getAddrInfo(ev.address, origAddr, faultFuncs, bti);
-    bblInstance *faultBBI = NULL;
+    int_block *faultBBI = NULL;
     switch( faultFuncs.size() ) {
     case 0: 
         fprintf(stderr,"ERROR: Failed to find a valid instruction for fault "
             "at %lx %s[%d] \n", ev.address, FILE__,__LINE__);
-        return false;
+         return false;
     case 1:
-        faultBBI = faultFuncs[0]->findBlockInstanceByAddr(origAddr);
+        faultBBI = faultFuncs[0]->findOneBlockByAddr(origAddr);
         break;
     default: 
         faultBBI = ev.proc->findActiveFuncByAddr(ev.address)->
-                findBlockInstanceByAddr(origAddr);
+                findOneBlockByAddr(origAddr);
         break;
     }
 
@@ -2582,7 +2588,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
          hIter != handlers.end(); 
          hIter++) 
     {
-        int_function *hfunc = ev.proc->findFuncByAddr(*hIter);
+        int_function *hfunc = ev.proc->findOneFuncByAddr(*hIter);
         if (hfunc) {
             using namespace ParseAPI;
             hfunc->setHandlerFaultAddr(point->addr());
@@ -2823,7 +2829,7 @@ mapped_object *process::createObjectNoFile(Address addr)
                                           &probe,
                                           sizeof(MEMORY_BASIC_INFORMATION));
             probeAddr = (Address) probe.BaseAddress + (Address) probe.RegionSize;
-            } while (probe.AllocationBase == meminfo.AllocationBase);
+        } while (probe.AllocationBase == meminfo.AllocationBase);
 
 
         // The size of the region returned by VirtualQueryEx is from BaseAddress
@@ -2842,13 +2848,6 @@ mapped_object *process::createObjectNoFile(Address addr)
 		if (!proc()->readDataSpace((void *)objStart,
 								   regionSize,
 								   rawRegion, true)) assert(0);
-#if 0
-		if (! proc()->readDataSpace(meminfo.AllocationBase,
-                                    regionSize, rawRegion, true) )
-        { 
-            assert(0);
-        }
-#endif
 		// set up file descriptor
         char regname[64];
         snprintf(regname,63,"mmap_buffer_%lx_%lx",
@@ -2865,7 +2864,7 @@ mapped_object *process::createObjectNoFile(Address addr)
             (desc,this,proc()->getHybridMode(),false);
         if (obj != NULL) {
             mapped_objects.push_back(obj);
-            addOrigRange(obj);
+
             obj->parse_img()->getOrCreateModule(
                 obj->parse_img()->getObject()->getDefaultModule());
             return obj;

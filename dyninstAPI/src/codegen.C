@@ -689,7 +689,7 @@ Dyninst::Architecture codeGen::getArch() const {
   return Arch_none;
 }
 
-void codeGen::registerDefensivePad(bblInstance *callBlock, Address padStart, unsigned padSize) {
+void codeGen::registerDefensivePad(int_block *callBlock, Address padStart, unsigned padSize) {
   // Register a match between a call instruction
   // and a padding area post-reloc-call for
   // control flow interception purposes.
