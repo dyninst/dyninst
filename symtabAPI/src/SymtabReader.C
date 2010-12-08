@@ -50,7 +50,8 @@ SymtabReader::SymtabReader(const char *buffer, unsigned long size) :
    ref_count(1),
    mapped_regions(NULL)
 {
-   Symtab::openFile(symtab, const_cast<char *>(buffer), size);
+   Symtab::openFile(symtab, (unsigned char*)const_cast<char *>(buffer), 
+                    size, symtab->file(), symtab->isDefensiveBinary());
 }
 
 SymtabReader::~SymtabReader()
