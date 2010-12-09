@@ -1664,7 +1664,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
    for (int u = operands.size() - 1; u >= 0; u--) {
       Address unused = ADDR_NULL;
       unsigned reg = REG_NULL;
-      if(u >= AMD64_ARG_REGS)
+      if(u >= (int)AMD64_ARG_REGS)
       {
           if (!operands[u]->generateCode_phase2(gen,
                noCost,

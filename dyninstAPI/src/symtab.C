@@ -1628,6 +1628,9 @@ image::image(fileDescriptor &desc,
    // look for `main' or something similar to recognize a.outs
    startup_printf("%s[%d]:  before determineImageType\n", FILE__, __LINE__);
    determineImageType();
+   if (isDyninstRTLib()) { // don't parse gaps in the runtime library
+       parseGaps_ = false;
+   }
             
    // And symtab variables
    addSymtabVariables();

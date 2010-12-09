@@ -182,6 +182,9 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
       startup_printf("%s[%d]:  failed to parseImage\n", FILE__, __LINE__);
       return NULL;
    }
+   if (img->isDyninstRTLib()) {
+       parseGaps = false;
+   }
 
 #if defined(os_linux) && defined(arch_x86_64)
    //Our x86_64 is actually reporting negative load addresses.  Go fig.
