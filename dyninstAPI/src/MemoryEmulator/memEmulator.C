@@ -167,19 +167,23 @@ void MemoryEmulator::addRegion(Region *reg, Address base) {
    aS_->writeDataSpace((void *)mutateeBase,
                        reg->getMemSize(),
                        (void *)buffer);
-   if (aS_->proc()) {
+   if (aS_->proc() && BPatch_defensiveMode == aS_->proc()->getHybridMode()) {
 #if defined (os_windows)
        using namespace SymtabAPI;
        unsigned winrights = 0;
        Region::perm_t reg_rights = reg->getRegionPermissions();
        switch (reg_rights) {
        case Region::RP_R:
-       case Region::RP_RW: 
            winrights = PAGE_READONLY;
            break;
+       case Region::RP_RW: 
+           winrights = PAGE_READWRITE;
+           break;
        case Region::RP_RX:
-       case Region::RP_RWX:
            winrights = PAGE_EXECUTE_READ;
+           break;
+       case Region::RP_RWX:
+           winrights = PAGE_EXECUTE_READWRITE;
            break;
        default:
            assert(0);
@@ -327,11 +331,11 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         } else {
             toBase = addedRegions_[reg];
         }
-        cerr << "SYNC WRITE TO " << hex << toBase << dec << endl;
+        //cerr << "SYNC WRITE TO " << hex << toBase << dec << endl;
         for (; sit != springboards_[reg].end(); sit++) {
             assert(cp_start <= sit->first);
             int cp_size = sit->first - cp_start;
-            cerr << "\t Write " << hex << toBase + cp_start << "..." << toBase + cp_start + cp_size << dec << endl;
+            //cerr << "\t Write " << hex << toBase + cp_start << "..." << toBase + cp_start + cp_size << dec << endl;
             if (cp_size &&
                 !aS_->writeDataSpace((void *)(toBase + cp_start),
                                      cp_size,
@@ -341,7 +345,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
             }
             cp_start = sit->first + sit->second;
         }
-        cerr << "\t Finishing write " << hex << toBase + cp_start << " -> " << toBase + cp_start + reg->getMemSize() - cp_start << dec << endl;
+        //cerr << "\t Finishing write " << hex << toBase + cp_start << " -> " << toBase + cp_start + reg->getMemSize() - cp_start << dec << endl;
 
         if (cp_start < reg->getMemSize() &&
             !aS_->writeDataSpace((void *)(toBase + cp_start),
