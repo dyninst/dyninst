@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 1996-2009 Barton P. Miller
  * 
@@ -788,10 +789,6 @@ void int_function::splitBlock(image_basicBlock *img_orig,
             p_iter->second->setBlock(newBlock);
       }
    }
-   
-   // The new block should already be in the tracking data
-   // structures from when it was created
-   assert(consistency());
 }
 
 // Remove funcs from:
