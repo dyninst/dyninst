@@ -175,7 +175,7 @@ bool MemEmulator::generateEAXMove(int opcode,
     bool valid; Address target;
     boost::tie(valid, target) = patch.addrSpace()->getMemEm()->translate(origTarget);
     if (!valid) target = origTarget;
-    cerr << "Handling mov EAX, [offset]: opcode " << hex << opcode << ", orig dest " << origTarget << " and translated " << target << dec << endl;
+    //cerr << "Handling mov EAX, [offset]: opcode " << hex << opcode << ", orig dest " << origTarget << " and translated " << target << dec << endl;
     // And emit the insn
     assert(insn_->size() == 5);
     GET_PTR(buf, patch);

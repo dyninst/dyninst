@@ -315,7 +315,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         } else {
             from = obj->codeBase() + reg->getMemOffset();
         }
-        cerr << "SYNC READ FROM " << hex << from << " -> " << from + reg->getMemSize() << dec << endl;
+        //cerr << "SYNC READ FROM " << hex << from << " -> " << from + reg->getMemSize() << dec << endl;
         if (!aS_->readDataSpace((void *)from,
                                 reg->getMemSize(),
                                 regbuf,
