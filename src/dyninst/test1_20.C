@@ -42,6 +42,8 @@
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
 #include "BPatch_point.h"
+#include "BPatch_flowGraph.h"
+#include "BPatch_function.h"
 
 #include "test_lib.h"
 #include "Callbacks.h"
