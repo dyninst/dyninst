@@ -902,7 +902,7 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf) {
 bool process::setMemoryAccessRights
 (Address start, Address size, int rights)
 {
-    mal_printf("setMemoryAccessRights to %d [%lx %lx]\n", rights, start, start+size);
+    mal_printf("setMemoryAccessRights to %x [%lx %lx]\n", rights, start, start+size);
     // get lwp from which we can call changeMemoryProtections
     dyn_lwp *stoppedlwp = query_for_stopped_lwp();
     if ( ! stoppedlwp ) {

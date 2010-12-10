@@ -178,7 +178,10 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
 
    if (!p) return NULL;
 
-   if (BPatch_defensiveMode == analysisMode) {
+   if ( BPatch_defensiveMode == analysisMode || 
+        ( desc.isSharedObject() && 
+          BPatch_defensiveMode == p->getAOut()->hybridMode() ) )
+   {
        // parsing in the gaps in defensive mode is a bad idea because
        // we mark all binary regions as possible code-containing areas
        parseGaps = false;
@@ -1177,6 +1180,7 @@ bool mapped_object::splitIntLayer()
     return false;
 #else
     Address baseAddr = codeBase();
+    set<int_function*> splitFuncs;
     using namespace InstructionAPI;
     // iterates through the blocks that were created during block splitting
     const image::SplitBlocks &splits = parse_img()->getSplitBlocks();
@@ -1184,7 +1188,7 @@ bool mapped_object::splitIntLayer()
          bIter != splits.end(); bIter++) 
     {
         // foreach function corresponding to the block
-       image_basicBlock *splitImgB = bIter->first;
+        image_basicBlock *splitImgB = bIter->first;
         vector<Function *> funcs;
         splitImgB->getFuncs(funcs);
         for (std::vector<Function*>::iterator fIter = funcs.begin();
@@ -1194,8 +1198,19 @@ bool mapped_object::splitIntLayer()
             int_function *func = findFunction(imgFunc);
             assert(func);
             func->splitBlock(bIter->first, bIter->second);
+            splitFuncs.insert(func);
         }
     }
+
+    // The new block should already be in the tracking data
+    // structures from when it was created
+    for(set<int_function*>::iterator fit = splitFuncs.begin();
+        fit != splitFuncs.end();
+        fit++)
+    {
+        assert((*fit)->consistency());
+    }
+
     return true;
 #endif
 }
@@ -1212,8 +1227,8 @@ void mapped_object::findBlocksByRange(Address startAddr,
       Address papiCur = cur - codeBase();
       parse_img()->codeObject()->findBlocks(NULL, papiCur, papiBlocks);
    }
-   malware_cerr << "ParseAPI reported " << papiBlocks.size() << " unique blocks in the range "
-        << hex << startAddr << " -> " << endAddr << dec << endl;
+   //malware_cerr << "ParseAPI reported " << papiBlocks.size() << " unique blocks in the range "
+   //     << hex << startAddr << " -> " << endAddr << dec << endl;
    
    for (std::set<ParseAPI::Block *>::iterator iter = papiBlocks.begin();
         iter != papiBlocks.end(); ++iter) {
@@ -1528,11 +1543,13 @@ void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges
         {
             assert(0);
         }
-        mal_printf("OW_CB: copied to [%lx %lx): ", rIter->first,rIter->second);
-        for (unsigned idx=0; idx < rIter->second - rIter->first; idx++) {
-            mal_printf("%2x ", (unsigned) regPtr[idx]);
+        if (0) {
+            mal_printf("OW_CB: copied to [%lx %lx): ", rIter->first,rIter->second);
+            for (unsigned idx=0; idx < rIter->second - rIter->first; idx++) {
+                mal_printf("%2x ", (unsigned) regPtr[idx]);
+            }
+            mal_printf("\n");
         }
-        mal_printf("\n");
     }
     pagesUpdated_ = true;
 }

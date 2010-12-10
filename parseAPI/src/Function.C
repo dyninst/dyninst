@@ -315,7 +315,7 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
             switch((*oit)->type()) {
                 case CALL:
                     for (set<Edge*>::iterator cit = _call_edges.begin(); 
-                         _call_edges.end() != cit; 
+                         _call_edges.end() != cit;
                          cit++) 
                     {
                         if (*oit == *cit) {

@@ -81,7 +81,7 @@ public:
     static InternalSignalHandlerCallback getSignalHandlerCB();
     BPatch_module *getRuntimeLib() { return sharedlib_runtime; }
     void deleteSynchSnippet(SynchHandle *handle);
-    bool isIntraMod(BPatch_point *point);//targets in same mod as point
+    bool needsSynchronization(BPatch_point *point);
 
     std::map< BPatch_point* , SynchHandle* > & synchMap_pre();
     std::map< BPatch_point* , SynchHandle* > & synchMap_post();
@@ -146,6 +146,7 @@ private:
                std::map<BPatch_point*,BPatchSnippetHandle*> *> * instrumentedFuncs;
     std::map< BPatch_point* , SynchHandle* > synchMap_pre_; // maps from prePt
     std::map< BPatch_point* , SynchHandle* > synchMap_post_; // maps from postPt
+    std::set< std::string > nonPtrAPIs_;
     BPatch_module *sharedlib_runtime;
     BPatch_hybridMode mode_;
     BPatch_process *proc_;
