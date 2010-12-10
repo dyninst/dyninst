@@ -855,6 +855,15 @@ baseTrampInstance *baseTramp::findOrCreateInstance(multiTramp *multi) {
     return newInst;
 }
 
+bool baseTrampInstance::checkForFuncCalls()
+{
+    for (miniTramp *curr = baseT->firstMini; curr; curr = curr->next) {
+        if (curr->ast_->containsFuncCall())
+            return true;
+    }
+    return false;
+}
+
 cfjRet_t baseTrampInstance::checkForFuncJumps()
 {
    if (hasFuncJump_ != cfj_unset)

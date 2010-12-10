@@ -56,7 +56,8 @@ class IA_IAPI : public InstructionAdapter
                 Address start_, 
                 Dyninst::ParseAPI::CodeObject* o,
                 Dyninst::ParseAPI::CodeRegion* r,
-                Dyninst::InstructionSource *isrc);
+                Dyninst::InstructionSource *isrc,
+		Dyninst::ParseAPI::Block * curBlk_);
         virtual ~IA_IAPI() {
         }
         Dyninst::InstructionAPI::Instruction::Ptr getInstruction();
@@ -93,7 +94,8 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isSyscall() const;
         virtual bool isInterrupt() const;
         virtual bool isCall() const;
-        virtual bool isReturnAddrSave() const;
+        virtual bool isReturnAddrSave(Address &) const;
+	virtual bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const;
         virtual ParseAPI::StackTamper tampersStack(ParseAPI::Function *func, Address &retAddr) const;
 private:
         virtual bool isRealCall() const;
@@ -102,7 +104,8 @@ private:
              std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const;
         bool isIPRelativeBranch() const;
         bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
-        virtual bool isReturn() const;
+        virtual bool isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block* currBlk) const;
+        virtual bool isReturnInst(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block* currBlk) const;
         bool isFakeCall() const;
         bool isIATcall() const;
         bool isLinkerStub() const;

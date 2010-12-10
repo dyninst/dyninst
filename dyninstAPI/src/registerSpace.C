@@ -476,54 +476,60 @@ bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
 // later - something like "can be unintentionally nuked". For example,
 // x86 flags register. 
 #if defined(arch_x86_64) || defined(arch_x86)
-bool registerSpace::saveVolatileRegisters(codeGen &gen) {
-    bool doWeSave = false; 
+bool registerSpace::checkVolatileRegisters(codeGen &gen,
+                                           registerSlot::livenessState_t state)
+{
     if (addr_width == 8) {
         for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
-            registerSlot *reg = registers_[i];
-            
-            if (reg->liveState == registerSlot::live) {
-                doWeSave = true;
-                break;
-            }
+            if (registers_[i]->liveState == state)
+                return true;
         }
+        return false;
+    }
 
-        savedFlagSize = 0;
+    assert(addr_width == 4);
+    return (registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState == state);
+}
+#else
+bool registerSpace::checkVolatileRegisters(codeGen &,
+                                           registerSlot::livenessState_t)
+{
+    assert(0);
+    return false;
+}
+#endif
 
-        if (!doWeSave) return false; // All done
-        
-        // Okay, save.
-        
+#if defined(arch_x86_64) || defined(arch_x86)
+bool registerSpace::saveVolatileRegisters(codeGen &gen)
+{
+    savedFlagSize = 0;
+    if (!checkVolatileRegisters(gen, registerSlot::live))
+        return false;
+
+    // Okay, save.
+    if (addr_width == 8) {
         // save flags (PUSHFQ)
-        
         emitSimpleInsn(0x9C, gen);
-        
-        // And mark flags as spilled. Another for loop.
+
+        // And mark flags as spilled.
         for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
-            registerSlot *reg = registers_[i];
-            reg->liveState = registerSlot::spilled;
+            registers_[i]->liveState = registerSlot::spilled;
         }
-        savedFlagSize += addr_width;
-        return true;
-    }
-    else {
+
+    } else {
         assert(addr_width == 4);
-        if (registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState == registerSlot::live) {
-           emitPush(RealRegister(REGNUM_EAX), gen);
-           emitSimpleInsn(0x9f, gen);
-           emitSaveO(gen);
-		   gen.markRegDefined(REGNUM_EAX);
-           //emitSimpleInsn(PUSHFD, gen);
-           registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState = registerSlot::spilled;
-           savedFlagSize = addr_width;
-           return true;
-        }
-        else {
-            savedFlagSize = 0;
-            return false;
-        }
+
+        emitPush(RealRegister(REGNUM_EAX), gen);
+        emitSimpleInsn(0x9f, gen);
+        emitSaveO(gen);
+        gen.markRegDefined(REGNUM_EAX);
+        //emitSimpleInsn(PUSHFD, gen);
+        registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState =
+            registerSlot::spilled;
     }
-    
+
+    savedFlagSize = addr_width;
+    return true;
 }
 #else
 bool registerSpace::saveVolatileRegisters(codeGen &) {
@@ -533,39 +539,28 @@ bool registerSpace::saveVolatileRegisters(codeGen &) {
 #endif
 
 #if defined(arch_x86_64) || defined(arch_x86)
-bool registerSpace::restoreVolatileRegisters(codeGen &gen) {
+bool registerSpace::restoreVolatileRegisters(codeGen &gen)
+{
+    if (!checkVolatileRegisters(gen, registerSlot::spilled))
+        return false;
+
+    // Okay, restore.
     if (addr_width == 8) {
-        bool doWeRestore = false;
-        for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
-            registerSlot *reg = registers_[i];
-            
-            if (reg->liveState == registerSlot::spilled) {
-                doWeRestore = true;
-                break;
-            }
-        }
-        if (!doWeRestore) return false; // All done
-        
-        // Okay, save.
-        
-        // save flags (POPFQ)
+        // restore flags (POPFQ)
         emitSimpleInsn(0x9D, gen);
-        
+
         // Don't care about their state...
-        return true;
-    }
-    else {
+
+    } else {
         assert(addr_width == 4);
-        if (registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState == registerSlot::spilled) {
-           emitRestoreO(gen);
-           emitSimpleInsn(0x9E, gen);
-           emitPop(RealRegister(REGNUM_EAX), gen);
-           // State stays at spilled, which is incorrect - but will never matter.
-           return true;
-        }
-        else
-            return false;
+
+        emitRestoreO(gen);
+        emitSimpleInsn(0x9E, gen);
+        emitPop(RealRegister(REGNUM_EAX), gen);
+        // State stays at spilled, which is incorrect - but will never matter.
     }
+
+    return true;
 }
 #else
 bool registerSpace::restoreVolatileRegisters(codeGen &) {
@@ -573,7 +568,6 @@ bool registerSpace::restoreVolatileRegisters(codeGen &) {
     return true;
 }
 #endif
-
 
 // Free the specified register (decrement its refCount)
 void registerSpace::freeRegister(Register num) 
