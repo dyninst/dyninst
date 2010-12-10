@@ -286,7 +286,7 @@ void SpringboardBuilder::registerBranch(Address start, Address end, bool inReloc
    relocation_cerr << "Adding branch: " << hex << start << " -> " << end << dec << endl;
    int idToUse = -1;
    while (end > working) {
-      int state;
+      int state = 0;
       validRanges_.find(working, lb, ub, state);
       validRanges_.remove(lb);
 

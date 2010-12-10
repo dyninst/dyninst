@@ -122,7 +122,7 @@ class ParseCallback {
   virtual void patch_nop_jump(Address) { }
   virtual bool updateCodeBytes(Address) { return false; }
   virtual void abruptEnd_cf(Address, Block *,default_details*) { }
-  virtual bool loadAddr(Address absoluteAddr, Address & loadAddr) { return false; }
+  virtual bool loadAddr(Address, Address &) { return false; }
   virtual void block_delete(Block *) {};
 };
 

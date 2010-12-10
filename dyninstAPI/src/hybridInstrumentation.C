@@ -70,7 +70,7 @@ static void signalHandlerExitCB_wrapper(BPatch_point *point, void *returnAddr)
 static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig) 
 {
     mal_printf("in synch callback for point 0x%lx toOrig=%d\n",
-               (Address)point->getAddress(), (int)toOrig);
+               (Address)point->getAddress(), (int) (long) toOrig);
 
     BPatch_process *proc = dynamic_cast<BPatch_process*>(
        point->getFunction()->getAddSpace());

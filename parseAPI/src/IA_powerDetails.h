@@ -62,9 +62,11 @@ namespace Dyninst
                 bool parseRelativeTableIdiom();
                 
                 dyn_detail::boost::shared_ptr<detail::TOCandOffsetExtractor> toc_visitor;
+		std::set<Dyninst::InstructionAPI::RegisterAST::Ptr> dfgregs;
                 std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator patternIter;
                 bool tableIsRelative;
                 Address tableStartAddress;
+                Address adjustTableStartAddress;
                 Address jumpStartAddress;
                 Address adjustEntry;
                 bool foundAdjustEntry;

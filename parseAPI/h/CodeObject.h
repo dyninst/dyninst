@@ -55,6 +55,7 @@ class ParseCallback;
 
 class CodeObject {
  public:
+    PARSER_EXPORT static void version(int& major, int& minor, int& maintenance);
     typedef ContainerWrapper<
         std::set<Function*,Function::less>,
         Function*,

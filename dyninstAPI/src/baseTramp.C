@@ -595,6 +595,17 @@ bool baseTramp::isEntryExit() {
   return false;
 }
 
+
+bool baseTrampInstance::checkForFuncCalls()
+{
+   for (baseTramp::iterator iter = baseT->begin(); 
+        iter != baseT->end(); ++iter) {
+      if ((*iter)->ast_->containsFuncCall())
+         return true;
+   }
+   return false;
+}
+
 cfjRet_t baseTrampInstance::checkForFuncJumps()
 {
    if (hasFuncJump_ != cfj_unset)

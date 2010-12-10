@@ -285,6 +285,12 @@ build_mask(uint8_t mb_value, uint8_t me_value)
            write32(operands[0], policy.or_(read32(operands[1]),read32(operands[2])));
            break;
          }
+      case powerpc_orc:
+	{
+	   ROSE_ASSERT(operands.size() == 3);
+           write32(operands[0], policy.or_(read32(operands[1]),policy.invert(read32(operands[2]))));
+	   break;	
+	}
       case powerpc_fmr:
          {
            ROSE_ASSERT(operands.size() == 2);
@@ -655,6 +661,39 @@ build_mask(uint8_t mb_value, uint8_t me_value)
            policy.writeSPR(powerpc_spr_xer,policy.or_(policy.and_(policy.readSPR(powerpc_spr_xer),number<32>(0xDFFFFFFFU)),policy.ite(carry_out,number<32>(0x20000000U),number<32>(0x0))));
            break;
          }
+      case powerpc_si:
+         {
+           ROSE_ASSERT(operands.size() == 3);
+	   Word(32) RA = read32(operands[1]);
+	   // The disassembler should have built this as a DWord with a sign extended value
+           Word(32) signExtended_SI = signExtend<16,32>(extract<0,16>(read32(operands[2])));
+	  
+           write32(operands[0], policy.add(RA,policy.invert(signExtended_SI)));
+
+           break;
+         }
+
+
+      case powerpc_subfze:
+         {
+           ROSE_ASSERT(operands.size() == 2);
+
+        // This should be a helper function to read CA (and other flags)
+           Word(1)  carry_in = extract<29,30>(policy.readSPR(powerpc_spr_xer));
+
+           Word(32) carries = number<32>(0);
+           Word(32) result = policy.addWithCarries(policy.invert(read32(operands[1])),number<32>(0x0),carry_in,carries);
+
+        // Policy class bit numbering is opposite ordering from powerpc (based on x86).
+           Word(1)  carry_out = extract<31,32>(carries);
+           write32(operands[0], result);
+
+        // This should be a helper function to read/write CA (and other flags)
+        // The value 0xDFFFFFFFU is the mask for the Carry (CA) flag
+           policy.writeSPR(powerpc_spr_xer,policy.or_(policy.and_(policy.readSPR(powerpc_spr_xer),number<32>(0xDFFFFFFFU)),policy.ite(carry_out,number<32>(0x20000000U),number<32>(0x0))));
+           break;
+         }
+
 
       case powerpc_subfc:
          {
@@ -805,7 +844,7 @@ build_mask(uint8_t mb_value, uint8_t me_value)
          }
 
       case powerpc_bcl:
-	policy.writeSPR(powerpc_spr_lr, policy.readIP());
+	    policy.writeSPR(powerpc_spr_lr, policy.readIP());
           // fall through
       case powerpc_bc:
          {
@@ -844,6 +883,47 @@ build_mask(uint8_t mb_value, uint8_t me_value)
            break;
          }
 
+        case powerpc_bcla:
+            policy.writeSPR(powerpc_spr_lr, policy.readIP());
+          // fall through
+        case powerpc_bca:
+        {
+            ROSE_ASSERT(operands.size() == 3);
+            SgAsmByteValueExpression* byteValue = isSgAsmByteValueExpression(operands[0]);
+            ROSE_ASSERT(byteValue != NULL);
+            uint8_t boConstant = byteValue->get_value();
+
+        // bool BO_4 = boConstant & 0x1;
+            bool BO_3 = boConstant & 0x2;
+            bool BO_2 = boConstant & 0x4;
+            bool BO_1 = boConstant & 0x8;
+            bool BO_0 = boConstant & 0x10;
+
+            if (!BO_2)
+            {
+                policy.writeSPR(powerpc_spr_ctr,policy.add(policy.readSPR(powerpc_spr_ctr),number<32>(-1)));
+            }
+
+           Word(1) CTR_ok = BO_2 ? policy.true_() : BO_3 ? policy.equalToZero(policy.readSPR(powerpc_spr_ctr)) :
+                   policy.invert(policy.equalToZero(policy.readSPR(powerpc_spr_ctr)));
+
+           SgAsmPowerpcRegisterReferenceExpression* BI = isSgAsmPowerpcRegisterReferenceExpression(operands[1]);
+           ROSE_ASSERT(BI != NULL);
+           ROSE_ASSERT(BI->get_register_class() == powerpc_regclass_cr);
+           ROSE_ASSERT(BI->get_conditionRegisterGranularity() == powerpc_condreggranularity_bit);
+
+        // This needs a collection of helpfer functions!
+           int bi_value = BI->get_register_number();
+           Word(4) CR_field = policy.readCRField(bi_value/4);
+           Word(1) CR_bi = extract<0,1>(policy.shiftRight(CR_field,number<2>(3 - bi_value % 4)));
+           Word(1) COND_ok = BO_0 ? policy.true_() : BO_1 ? CR_bi : policy.invert(CR_bi);
+           policy.writeIP(policy.ite(policy.and_(CTR_ok,COND_ok),
+                          read32(operands[2]),
+                          policy.readIP()));
+           break;
+        }
+
+         
       case powerpc_subf:
          {
            ROSE_ASSERT(operands.size() == 3);
@@ -862,7 +942,10 @@ build_mask(uint8_t mb_value, uint8_t me_value)
            break;
          }
 
-      case powerpc_bclr:
+        case powerpc_bclrl:
+            policy.writeSPR(powerpc_spr_lr,number<32>(insn->get_address() + 4));
+            // fall through to non-linking case
+        case powerpc_bclr:
          {
            ROSE_ASSERT(operands.size() == 3);
            SgAsmByteValueExpression* byteValue = isSgAsmByteValueExpression(operands[0]);

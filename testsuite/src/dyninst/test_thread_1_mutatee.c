@@ -167,9 +167,9 @@ int func1_1()
 #if !defined (os_windows_test) && !defined(os_irix)
 
 #if defined(m32_test)
-  libname = "libdyninstAPI_RT_m32.so.1";
+  libname = "libdyninstAPI_RT_m32.so";
 #else
-  libname = "libdyninstAPI_RT.so.1";
+  libname = "libdyninstAPI_RT.so";
 #endif
   RTlib = dlopen(libname, RTLD_NOW);
   if (!RTlib) {

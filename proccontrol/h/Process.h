@@ -200,6 +200,7 @@ class Process
  public:
    typedef dyn_detail::boost::shared_ptr<Process> ptr;
    typedef dyn_detail::boost::shared_ptr<const Process> const_ptr;
+   static void version(int& major, int& minor, int& maintenance);
 
    int_process *llproc() const;
 

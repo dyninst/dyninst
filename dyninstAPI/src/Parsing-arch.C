@@ -49,9 +49,13 @@ void
 DynParseCallback::instruction_cb(Function*f,Address,insn_details*det)
 {
     image_func * ifunc = static_cast<image_func*>(f);
-
-    if(!ifunc->ppc_saves_return_addr_ && det->insn->isReturnAddrSave())
-        ifunc->ppc_saves_return_addr_ = true;
+    /* In case we do callback from a place where the leaf function analysis has not been done */ 
+    Address ret_addr = 0;
+    if (f->_is_leaf_function) { 
+    	f->_is_leaf_function = !(det->insn->isReturnAddrSave(ret_addr));
+    	if (!f->_is_leaf_function) f->_ret_addr = ret_addr;
+    }
+    ifunc->ppc_saves_return_addr_ = !(f->_is_leaf_function);
 }
 #endif
 

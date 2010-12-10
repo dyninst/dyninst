@@ -1,8 +1,6 @@
-// Simple search mechanism to assist in short-range slicing.
-
 #include <set>
 #include <vector>
-#include <queue>
+#include <map>
 #include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/AbslocInterface.h"
 #include "Instruction.h"
@@ -25,6 +23,1116 @@ using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace std;
 using namespace ParseAPI;
+
+bool containsCall(ParseAPI::Block *);
+bool containsRet(ParseAPI::Block *);
+ParseAPI::Function *getEntryFunc(ParseAPI::Block *);
+
+/* An algorithm to generate a slice graph.
+ 
+The slice graph is a directed graph that consists of nodes
+corresponding to assignments from a set of inputs to an
+output, where each input or output is an `abstract region'
+(AbsRegion class) describing a register or a stack or heap
+location. Edges in the slice graph indicate flow from the
+output AbsRegion of the source node to an input AbsRegion of
+the target node. Edges are typed with an AbsRegion
+corresponding to the input region the flow describes; this
+edge typing is necessary because two AbsRegions in different
+assignments may be refer to equivalent locations without
+being identical---consider, for example, the transformation
+of stack locations across function calls in interprocedural
+slices.
+
+Implementation details:
+
+The slicing algorithm searches either forward or backward
+from an initial assignment in the CFG, with the search
+termination controlled in part by a set of user-provided
+predicates (indicating, e.g., whether to follow call edges).
+At each step, the slicer maintains an `active' set of
+AbsRegions for which we are searching for related
+assignments (uses, in the forward case; definitions, in the
+backward case); this set is updated as the search
+progresses. The graph is linked up on the way "down" the
+slice recursion.
+
+To avoid redundantly revisiting "down-slice" instructions
+due to forks in the CFG, AbsRegion assignments are cached as
+the search completes recursion down a particular branch.
+Because CFGs are loopy directeg graphs, however, this does
+not lead to an optimimal search ordering; it is possible to
+construct pathological cases in which down-slice edges are
+visited multiple times due to novel AbsRegions arising on
+different paths. The caching of down-slice AbsRegions only 
+guarantees that a particular AbsRegion is only searched for
+once along a given path---the loopy nature of the graph
+prevents optimal search stragegies such as a topologically
+sorted ordering that would be possible in a DAG. 
+
+The algorithm goes more or less like this:
+
+   A_0 <- initial assignment 
+   F <- initialize frame from active AbsRegions in A_0
+   // F contains `active' set of AbsRegions
+   
+   sliceInternalAux( F ) :
+     
+      // find assignments in the current instruction,
+      // add them to the graph if appropriate, update
+      // the active set:
+      // active <- active \ killed U matches
+      updateAndLink(F)
+  
+      // `successor' is direction-appropriate 
+      foreach successor NF of F
+         if visited(F->NF) // edge visited    
+            
+            // try to add assignments cached from down-slice
+            updateAndLinkFromCache(NF)
+            
+            // remove AbsRegions that have been visited
+            // along this edge from the active set
+            removeBlocked(NF) 
+
+            // active is empty unless this instruction
+            // introduced new active regions (in
+            // updateAndLinkFromCache)
+
+         visited(F->NF) <- true
+         // recurse
+         sliceInternalAux( NF )
+         // merge cached definitions, except those generated
+         // in F
+         cache[F] <- cache[F] U (cache[NF] \ defs[F]
+
+   Clearly the `find successors' bit is quite complicated
+   and involves user-defined predicates and various CFG
+   traversal rules, updating of AbsRegions, etc. Refer to
+   comments in the code for more details.
+*/
+Graph::Ptr
+Slicer::sliceInternal(
+    Direction dir,
+    Predicates &p)
+{
+    Graph::Ptr ret;
+    SliceNode::Ptr aP;
+    SliceFrame initFrame;
+    map<CacheEdge, set<AbsRegion> > visited;
+    map<Address,DefCache> cache;
+    
+    ret = Graph::createGraph();
+   
+    // set up a slicing frame describing with the
+    // relevant context
+    constructInitialFrame(dir,initFrame);
+
+    // note that the AbsRegion in this Element *does not matter*;
+    // we just need the block, function and assignment
+    aP = createNode(Element(b_,f_,a_->out(),a_));
+
+    if(dir == forward) {
+        slicing_printf("Inserting entry node %p/%s\n",
+            aP.get(),aP->format().c_str());
+    } else {
+        slicing_printf("Inserting exit node %p/%s\n",
+            aP.get(),aP->format().c_str());
+    }
+
+    // add to graph
+    insertInitialNode(ret, dir, aP);
+    
+    slicing_printf("Starting recursive slicing\n");
+    sliceInternalAux(ret,dir,p,initFrame,true,visited,cache);
+    slicing_printf("Finished recursive slicing\n");
+
+    cleanGraph(ret);
+    return ret;
+}
+
+void
+Slicer::sliceInternalAux(
+    Graph::Ptr g,
+    Direction dir,
+    Predicates &p,
+    SliceFrame &cand,
+    bool skip,              // skip linking this frame; for bootstrapping
+    map<CacheEdge,set<AbsRegion> > & visited,
+    map<Address,DefCache> & cache)
+{
+    vector<SliceFrame> nextCands;
+    DefCache mydefs;
+
+    slicing_printf("\tslicing from %lx, currently watching %ld regions\n",
+        cand.addr(),cand.active.size());
+
+    // Find assignments at this point that affect the active
+    // region set (if any) and link them into the graph; update
+    // the active set. Returns `true' if any changes are made,
+    // `false' otherwise.
+
+    if(!skip)
+        updateAndLink(g,dir,cand,mydefs);
+
+    slicing_printf("\t\tfinished udpateAndLink, active.size: %ld\n",
+        cand.active.size());
+
+    if(cand.active.empty())
+        return;
+
+    // Find the next search candidates along the control
+    // flow (for appropriate direction)
+    bool success = getNextCandidates(dir,p,cand,nextCands);
+    if(!success) {
+        widenAll(g,dir,cand);
+    }
+
+    slicing_printf("\t\tgetNextCandidates returned %ld, success: %d\n",
+        nextCands.size(),success);
+
+    for(unsigned i=0;i<nextCands.size();++i) {
+        SliceFrame & f = nextCands[i];
+        CacheEdge e(cand.addr(),f.addr());
+
+        slicing_printf("\t\t candidate %d is at %lx, %ld active\n",
+            i,f.addr(),f.active.size());
+
+        if(visited.find(e) != visited.end()) {
+            // attempt to resolve the current active set
+            // via cached values from down-slice, eliminating
+            // those elements of the active set that can be
+            // so resolved
+
+            updateAndLinkFromCache(g,dir,f,cache[f.addr()]);
+            removeBlocked(f,visited[e]);
+
+            // the only way this is not true is if the current
+            // search path has introduced new AbsRegions of interest
+            if(f.active.empty()) {
+                continue;
+            }
+        }
+
+        markVisited(visited,e,f.active);
+
+        // If the control flow search has run
+        // off the rails somehow, widen;
+        // otherwise search down this new path
+        if(!f.valid)
+            widenAll(g,dir,cand);
+        else {
+            sliceInternalAux(g,dir,p,f,false,visited,cache);
+
+            // absorb the down-slice cache into this node's cache
+            cache[cand.addr()].merge(cache[f.addr()]);
+        }
+    }
+   
+    // Replace any definitions from down-slice with
+    // those created by this instruction
+    //
+    // XXX if this instruction has definitions that
+    //     were not of interest when it was visited
+    //     (empty mydefs for that absregion), then
+    //     do not cache down-slice information; if
+    //     a different path leads back to this node,
+    //     we need to create the real definitions
+    cache[cand.addr()].replace(mydefs);
+}
+
+void
+Slicer::removeBlocked(
+    SliceFrame & f,
+    set<AbsRegion> const& block)
+{
+    SliceFrame::ActiveMap::iterator ait = f.active.begin();
+    for( ; ait != f.active.end(); ) {
+        if(block.find((*ait).first) != block.end()) {
+            SliceFrame::ActiveMap::iterator del = ait;
+            ++ait;
+            f.active.erase(del);
+        } else {
+            ++ait;
+        }
+    }
+}
+
+void
+Slicer::markVisited(
+    map<CacheEdge, set<AbsRegion> > & visited,
+    CacheEdge const& e,
+    SliceFrame::ActiveMap const& active)
+{
+    set<AbsRegion> & v = visited[e];
+    SliceFrame::ActiveMap::const_iterator ait = active.begin();
+    for( ; ait != active.end(); ++ait) {
+        v.insert((*ait).first);
+    }
+}
+
+bool
+Slicer::updateAndLink(
+    Graph::Ptr g,
+    Direction dir,
+    SliceFrame & cand,
+    DefCache & cache)
+{
+    vector<Assignment::Ptr> assns;
+    vector<bool> killed;
+    vector<Element> matches;
+    vector<Element> newactive;
+    Instruction::Ptr insn;
+    bool change = false;
+
+    killed.resize(cand.active.size(),false);
+
+    if(dir == forward)
+        insn = cand.loc.current->first;
+    else
+        insn = cand.loc.rcurrent->first;
+
+    convertInstruction(insn,cand.addr(),cand.loc.func,assns);
+
+    for(unsigned i=0; i<assns.size(); ++i) {
+        SliceFrame::ActiveMap::iterator ait = cand.active.begin();
+        unsigned j=0;
+        for( ; ait != cand.active.end(); ++ait,++j) {
+            findMatch(g,dir,cand,(*ait).first,assns[i],matches,cache); 
+            killed[j] = killed[j] || kills((*ait).first,assns[i]);
+            change = change || killed[j];
+        }
+        // Record the *potential* of this instruction to interact
+        // with all possible abstract regions
+        cachePotential(dir,assns[i],cache);
+    }
+
+    if(!change && matches.empty()) // no change -- nothing killed, nothing added
+        return false;
+
+    // update of active set -- matches + anything not killed
+    SliceFrame::ActiveMap::iterator ait = cand.active.begin();
+    unsigned j=0;
+    for( ; ait != cand.active.end(); ) {
+        if(killed[j]) {
+            SliceFrame::ActiveMap::iterator del = ait;
+            ++ait;
+            cand.active.erase(del);
+        } else {
+            ++ait;
+        }
+        ++j;
+    }
+
+    for(unsigned i=0;i<matches.size();++i) {
+        cand.active[matches[i].reg].push_back(matches[i]);
+    }
+
+    return true;
+}
+
+void
+Slicer::updateAndLinkFromCache(
+    Graph::Ptr g,
+    Direction dir,
+    SliceFrame & f, 
+    DefCache & cache)
+{
+    SliceFrame::ActiveMap::iterator ait = f.active.begin();
+
+    // if the abstract region of interest is in the defcache,
+    // update it and link it
+
+    for( ; ait != f.active.end(); ) {
+        AbsRegion const& r = (*ait).first;
+        if(!cache.defines(r)) {
+            ++ait;
+            continue;
+        }
+
+        // Link them up 
+        vector<Element> const& eles = (*ait).second;
+        set<Def> const& defs = cache.get(r);
+        set<Def>::const_iterator dit = defs.begin();
+        for( ; dit != defs.end(); ++dit) {
+            for(unsigned i=0;i<eles.size();++i) {
+                // don't create self-loops on assignments
+                if (eles[i].ptr != (*dit).ele.ptr)
+                    insertPair(g,dir,eles[i],(*dit).ele,(*dit).data);
+            }
+        }
+
+        // Stop caring about this region
+        SliceFrame::ActiveMap::iterator del = ait;
+        ++ait;
+        f.active.erase(del);
+    }
+}
+
+void
+Slicer::cachePotential(
+    Direction dir,
+    Assignment::Ptr assn,
+    DefCache & cache)
+{
+    if(dir == forward) {
+        vector<AbsRegion> const& inputs = assn->inputs();
+        for(unsigned i=0;i<inputs.size();++i) {
+            (void)cache.get(inputs[i]);
+        }
+    } else {
+        (void)cache.get(assn->out());
+    }
+}
+
+/*
+ * Compare the assignment `assn' to the abstract region `cur'
+ * and see whether they match, for the direction-appropriate
+ * definition of "match". If so, generate new slice elements
+ * and return them in the `match' vector, after linking them
+ * to the elements associated with the region `cur'
+ */
+void
+Slicer::findMatch(
+    Graph::Ptr g,
+    Direction dir,
+    SliceFrame const& cand,
+    AbsRegion const& reg,
+    Assignment::Ptr assn,
+    vector<Element> & matches,
+    DefCache & cache)
+{
+    if(dir == forward) {
+        vector<AbsRegion> const& inputs = assn->inputs();
+        bool hadmatch = false;
+        for(unsigned i=0;i<inputs.size();++i) {
+            if(reg.contains(inputs[i])) {
+                hadmatch = true;    
+
+                // Link the assignments associated with this
+                // abstract region (may be > 1)
+                Element ne(cand.loc.block,cand.loc.func,reg,assn);
+                    
+                // Cache
+                cache.get(reg).insert( Def(ne,inputs[i]) );
+                
+                vector<Element> const& eles = cand.active.find(reg)->second;
+                for(unsigned j=0;j<eles.size();++j) {
+                    insertPair(g,dir,eles[j],ne,inputs[i]);
+
+                }
+            }
+        }
+        if(hadmatch) {
+            // In this case, we are now interested in
+            // the outputs of the assignment
+            matches.push_back(
+                Element(cand.loc.block,cand.loc.func,assn->out(),assn));
+        }
+    } else {
+        slicing_printf("\t\t\t\t\tComparing current %s to candidate %s\n",
+            reg.format().c_str(),assn->out().format().c_str());
+        if(reg.contains(assn->out())) {
+            slicing_printf("\t\t\t\t\t\tMatch!\n");
+
+            // Link the assignments associated with this
+            // abstract region (may be > 1)
+            Element ne(cand.loc.block,cand.loc.func,reg,assn);
+            
+            // Cache
+            cache.get(reg).insert( Def(ne,reg) );
+            slicing_printf("\t\t\t cached [%s] -> <%s,%s>\n",
+               reg.format().c_str(),
+                ne.ptr->format().c_str(),reg.format().c_str()); 
+
+            vector<Element> const& eles = cand.active.find(reg)->second;
+            for(unsigned i=0;i<eles.size();++i) {
+                // N.B. using the AbsRegion from the Element, which
+                //      may differ from the `reg' parameter to this
+                //      method because of transformation though
+                //      call or return edges. This `true' AbsRegion
+                //      is used to associate two different AbsRegions
+                //      during symbolic evaluation
+                if (eles[i].ptr != ne.ptr)
+                    insertPair(g,dir,eles[i],ne,eles[i].reg);
+            }
+
+            // In this case, we are now interested in the 
+            // _inputs_ to the assignment
+            vector<AbsRegion> const& inputs = assn->inputs();
+            for(unsigned i=0; i< inputs.size(); ++i) {
+                ne.reg = inputs[i];
+                matches.push_back(ne);
+            }
+        }
+    }
+}
+
+
+bool 
+Slicer::getNextCandidates(
+    Direction dir,
+    Predicates & p,
+    SliceFrame const& cand,
+    vector<SliceFrame> & newCands)
+{
+    if(dir == forward) {
+        return getSuccessors(p,cand,newCands);
+    }
+    else {
+        return getPredecessors(p,cand,newCands);
+    }
+}
+
+/*
+ * Given the location (instruction) in `cand', find zero or more
+ * control flow successors from this location and create new slicing
+ * frames for them. Certain types of control flow require mutation of
+ * the SliceFrame (modification of context, e.g.) AND mutate the 
+ * abstract regions in the frame's `active' list (e.g. modifying
+ * stack locations).
+ */
+bool
+Slicer::getSuccessors(
+    Predicates &p,
+    SliceFrame const& cand,
+    vector<SliceFrame> & newCands)
+{
+    InsnVec::iterator next = cand.loc.current;
+    ++next;
+
+    // Case 1: just one intra-block successor
+    if(next != cand.loc.end) {
+        SliceFrame nf = cand;
+        nf.loc.current = next;
+        newCands.push_back(nf);
+
+        slicing_printf("\t\t\t\t added intra-block successor\n");
+        return true;
+    }
+
+    // Case 2: end of the block. Subcases are calls, returns, and other
+    bool err = false;
+
+    if(containsCall(cand.loc.block)) {
+        slicing_printf("\t\t Handling call... ");
+        SliceFrame nf = cand;
+
+        // nf may be transformed
+        if(handleCall(p,nf,err)) {
+            slicing_printf("success, err: %d\n",err);
+            newCands.push_back(nf);
+        } else {
+            slicing_printf("failed, err: %d\n",err);
+        }
+    }
+    else if(containsRet(cand.loc.block)) {
+        slicing_printf("\t\t Handling return... ");
+        SliceFrame nf = cand;
+    
+        // nf may be transformed
+        if(handleReturn(p,nf,err)) {
+            slicing_printf("success, err: %d\n",err);
+            newCands.push_back(nf);
+        } else {
+            slicing_printf("failed, err: %d\n",err);
+        }
+    }
+    else {
+        // Default intraprocedural control flow case; this
+        // case may produce multiple new frames, but it
+        // will not transform any of them (besides changing
+        // the location)
+
+        Block::edgelist & targets = cand.loc.block->targets();
+        Block::edgelist::iterator eit = targets.begin();
+        for( ; eit != targets.end(); ++eit) {
+            if((*eit)->sinkEdge()) {
+                // will force widening
+                newCands.push_back(SliceFrame(false));
+            } 
+            else {
+                SliceFrame nf = cand;
+                slicing_printf("\t\t Handling default edge type %d... ",
+                    (*eit)->type());
+                if(handleDefault(forward,p,*eit,nf,err)) {
+                    slicing_printf("success, err: %d\n",err);
+                    newCands.push_back(nf);
+                } else {
+                    slicing_printf("failed, err: %d\n",err);
+                }
+            }
+        }
+    }
+    return !err;
+}
+
+/*
+ * Same as successors, only backwards
+ */
+bool
+Slicer::getPredecessors(
+    Predicates &p,
+    SliceFrame const& cand,
+    vector<SliceFrame> & newCands)
+{
+    InsnVec::reverse_iterator prev = cand.loc.rcurrent;
+    ++prev;
+
+    // Case 1: intra-block
+    if(prev != cand.loc.rend) {
+        SliceFrame nf(cand.loc,cand.con);
+        nf.loc.rcurrent = prev;
+
+        // Slightly more complicated than the forward case; check
+        // a predicate for each active abstract region to see whether
+        // we should continue
+        bool cont = false;
+        SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
+        for( ; ait != cand.active.end(); ++ait) {
+            bool add = p.addPredecessor((*ait).first);
+            if(add)
+                nf.active.insert(*ait);
+            cont = cont || add;
+        }
+
+        if(cont) {
+            slicing_printf("\t\t\t\t Adding intra-block predecessor %lx\n",
+                nf.loc.addr());
+            slicing_printf("\t\t\t\t Current regions are:\n");
+            if(slicing_debug_on()) {
+                SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
+                for( ; ait != cand.active.end(); ++ait) {
+                    slicing_printf("\t\t\t\t%s\n",
+                        (*ait).first.format().c_str());
+
+			vector<Element> const& eles = (*ait).second;
+			for(unsigned i=0;i<eles.size();++i) {
+				slicing_printf("\t\t\t\t\t [%s] : %s\n",
+					eles[i].reg.format().c_str(),eles[i].ptr->format().c_str());
+			}
+                }
+            }
+    
+            newCands.push_back(nf);
+        }
+        return true;
+    }
+
+    // Case 2: inter-block
+    bool err = false;
+    SliceFrame nf;
+    
+    SingleContextOrInterproc epred(cand.loc.func, true, true);
+
+    Block::edgelist & sources = cand.loc.block->sources();
+    Block::edgelist::iterator eit = sources.begin(&epred);
+    for( ; eit != sources.end(); ++eit) {
+        ParseAPI::Edge * e = *eit;
+        switch(e->type()) {
+            case CALL:
+                slicing_printf("\t\t Handling call... ");
+                if(handleCallBackward(p,cand,newCands,e,err)) {
+                    slicing_printf("succeess, err: %d\n",err);
+                } else {
+                    slicing_printf("failed, err: %d\n",err);
+                }
+                break;
+            case RET:
+                slicing_printf("\t\t Handling return... ");
+                nf = cand;
+                if(handleReturnBackward(p,cand,nf,e,err)) {
+                    slicing_printf("succeess, err: %d\n",err);
+                } else {
+                    slicing_printf("failed, err: %d\n",err);
+                }
+                break;
+            default:
+                nf = cand;
+                slicing_printf("\t\t Handling default edge type %d... ",
+                    e->type());
+                if(handleDefault(backward,p,*eit,nf,err)) {
+                    slicing_printf("success, err: %d\n",err);
+                    newCands.push_back(nf);
+                } else {
+                    slicing_printf("failed, err: %d\n",err);
+                }
+        }
+    }
+    return !err; 
+}
+
+/*
+ * Process a call instruction, determining whether to follow the
+ * call edge (with the help of the predicates) or the fallthrough
+ * edge (coloquially referred to as `funlink' thanks to our 
+ * departed Arizona alum --- much respect M.L.)
+ */
+bool
+Slicer::handleCall(
+    Predicates & p,
+    SliceFrame & cur,
+    bool & err)
+{
+    ParseAPI::Block * callee = NULL;
+    ParseAPI::Edge * funlink = NULL;
+
+    Block::edgelist & targets = cur.loc.block->targets();
+    Block::edgelist::iterator eit = targets.begin();
+    for( ; eit != targets.end(); ++eit) {
+        ParseAPI::Edge * e = *eit;
+        if(e->sinkEdge()) {
+            // FIXME all blocks with calls contain a sink edge;
+            //       this probably isn't an error. I am duplicating
+            //       functionality that existed as of git version
+            //       06697df, and it needs review
+            err = true;
+        } else if(e->type() == CALL) {
+            callee = e->trg();
+        } else if(e->type() == CALL_FT) {
+            funlink = e;
+        }
+    }
+
+    if(followCall(p, callee, cur)) {
+        ParseAPI::Block * caller_block = cur.loc.block;
+
+        cur.loc.block = callee;
+        cur.loc.func = getEntryFunc(callee);
+        getInsns(cur.loc);
+
+        // Update the context of the slicing frame
+        // and modify the abstract regions in its
+        // active vector
+        if(!handleCallDetails(cur,caller_block)) {
+            err = true;
+            return false;
+        }
+    }
+    else {
+        // Use the funlink
+        if(!funlink) {
+            // FIXME I am preserving a comment and semantics that
+            // I do not understand here, again as of 06697df. Quote:
+
+            // ???
+            return false;
+        }
+        if(!handleDefault(forward,p,funlink,cur,err)) {
+            err = true;
+            return false;
+        }
+    }
+    return true;
+}
+
+/*
+ * Builds up a call stack and callee function, and ask
+ * the predicate whether we should follow the call (or,
+ * implicitly, follow its fallthrough edge instead).
+ */
+bool
+Slicer::followCall(
+    Predicates & p,
+    ParseAPI::Block * target,
+    SliceFrame & cur)
+{
+    // FIXME quote:
+        // A NULL callee indicates an indirect call.
+        // TODO on that one...
+   
+    ParseAPI::Function * callee = (target ? getEntryFunc(target) : NULL);
+    
+    // cons up a call stack
+    stack< pair<ParseAPI::Function *, int> > callStack;
+    for(Context::reverse_iterator calls = cur.con.rbegin();
+        calls != cur.con.rend(); ++calls)
+    {
+        if(NULL != calls->func) {
+            callStack.push( 
+                make_pair<ParseAPI::Function*, int>(
+                    calls->func,calls->stackDepth));
+        }
+    } 
+    // Quote:
+        // FIXME: assuming that this is not a PLT function, since I have no
+        // idea at present.  -- BW, April 2010
+
+    // Give the predicate an opportunity to accept this call for each
+    // of the abstract regions in the active set
+    //
+    // XXX There is an interesting concern here. What if the predicate
+    // would indicate `follow' for one active AbsRegion and `do not
+    // follow' for another? What you'd want to do in that case is
+    // fork into multiple SliceFrames for absregions that should go
+    // one way or the other. This is something that could be done by
+    // moving the handleCallDetails() call into this method and
+    // modifying the nextCands vector here, as opposed to in
+    // handleCall(). 
+    // 
+    // This issue needs review by a person involved in slicer design.
+    // FIXME
+
+    bool ret = false;
+
+    SliceFrame::ActiveMap::iterator ait = cur.active.begin();
+    for( ; ait != cur.active.end(); ++ait) {
+        ret = ret || p.followCall(callee, callStack, (*ait).first);
+    }
+    
+    return ret;
+}
+
+void 
+Slicer::shiftAllAbsRegions(
+    SliceFrame & cur,
+    long stack_depth,
+    ParseAPI::Function *callee)
+{
+    SliceFrame::ActiveMap newMap;
+
+    // fix all of the abstract regions
+    SliceFrame::ActiveMap::iterator ait = cur.active.begin();
+    for( ; ait != cur.active.end(); ++ait) {
+        AbsRegion const& reg = (*ait).first;
+
+        // shortcut -- do nothing if no adjustment is necessary
+        if(reg.absloc() == Absloc()) {
+            // N.B. doing this the hard way (rather than map.insert()
+            //      in case a previous or later iteration transforms
+            //      a different AbsRegion to the same as (*ait).first
+            vector<Element> & e = newMap[(*ait).first];
+            e.insert(e.end(),(*ait).second.begin(),(*ait).second.end());
+            continue;
+        }
+
+        // Adjust the mapping region, but do not adjust the regions of the
+        // elements --- these are maintained to their old values for
+        // annotating the slicing graph edges to facilitate substitution
+        // in symbolic expansion
+        AbsRegion newReg;
+        shiftAbsRegion(reg,newReg,stack_depth,callee);
+
+        // just copy the elements
+        vector<Element> & e = newMap[newReg];
+        e.insert(e.end(),(*ait).second.begin(),(*ait).second.end());
+    }
+    // and replace
+    cur.active = newMap;    
+}
+
+/*
+ * Adjust the slice frame's context and translates the abstract
+ * regions in the active list from caller to callee
+ */
+bool
+Slicer::handleCallDetails(
+    SliceFrame & cur,
+    ParseAPI::Block * caller_block)
+{ 
+    ParseAPI::Function * caller = cur.con.front().func;
+    ParseAPI::Function * callee = cur.loc.func;
+
+    long stack_depth = 0;
+    if(!getStackDepth(caller, caller_block->end(), stack_depth))
+        return false;
+
+    // Increment the context
+    pushContext(cur.con, callee, caller_block, stack_depth);
+
+    // Transform the active abstract regions
+    shiftAllAbsRegions(cur,stack_depth,callee);
+
+    return true;
+}
+
+/*
+ * Properly adjusts the location & context of the slice frame and the
+ * AbsRegions of its active elements
+ */
+bool 
+Slicer::handleReturn(
+    Predicates & /* p */,
+    SliceFrame & cur,
+    bool & err)
+{
+    // Sanity check -- when we pop (in handleReturnDetails),
+    // it should not result in context being empty
+    //
+    // FIXME I duplicated this from the old version; I don't
+    //       understand why this doesn't set err = false.
+    if(cur.con.size() <= 1)
+        return false;
+
+    // Find successor
+    ParseAPI::Block * retBlock = NULL;
+    
+    Block::edgelist & targets = cur.loc.block->targets();
+    Block::edgelist::iterator eit = targets.begin();
+    for(; eit != targets.end(); ++eit) {
+        if((*eit)->type() == CALL_FT) {
+            retBlock = (*eit)->trg();
+            break;
+        }
+    }
+    if(!retBlock) {
+        err = true;
+        return false;
+    }
+
+    // Pops a context and adjusts the abstract regions in `active'
+    handleReturnDetails(cur);
+
+    // Fix location given new context
+    cur.loc.func = cur.con.front().func;
+    cur.loc.block = retBlock;
+    getInsns(cur.loc);
+
+    return true;
+}
+
+/*
+ * Do the actual context popping and active AbsRegion translation
+ */
+void
+Slicer::handleReturnDetails(
+    SliceFrame & cur)
+{
+    long stack_depth = cur.con.front().stackDepth;
+    popContext(cur.con);
+
+    assert(!cur.con.empty());
+
+    slicing_printf("\t%s, \n",
+        (cur.con.front().func ? cur.con.front().func->name().c_str() : "NULL"),
+        cur.con.front().stackDepth);
+
+    // Transform the active abstract regions
+    shiftAllAbsRegions(cur,-1*stack_depth,cur.con.front().func);
+}
+
+bool
+Slicer::handleDefault(
+    Direction dir,
+    Predicates & /*p*/,
+    ParseAPI::Edge * e,
+    SliceFrame & cur,
+    bool & /* err */)
+{
+    if(dir == forward) {
+        cur.loc.block = e->trg();
+        getInsns(cur.loc);
+    } else {
+        cur.loc.block = e->src();
+        getInsnsBackward(cur.loc);
+    }
+    return true;
+}
+
+/* ----------------- backwards slicing implementations ------------------ */
+
+bool
+Slicer::handleCallBackward(
+    Predicates & p,
+    SliceFrame const& cand,
+    vector<SliceFrame> & newCands,
+    ParseAPI::Edge * e,
+    bool & /* err */)
+{
+    // We don't know which function the caller block belongs to,
+    // so check each possibility against the predicate.
+    //
+    // XXX   this suffers the same problem as followCall in the forward
+    //       case; the predicates test against only a single abstract
+    //       region. What we do here is to build up mappings from
+    //       function paths (that will be followed) to sets of abstract
+    //       regions, then create SliceFrames with these sets.
+
+    map<ParseAPI::Function *, SliceFrame::ActiveMap > fmap;
+
+    SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
+    for( ; ait != cand.active.end(); ++ait) {
+        vector<ParseAPI::Function *> follow = 
+            followCallBackward(p,cand,(*ait).first,e->src());
+        for(unsigned j=0;j<follow.size();++j) {
+            fmap[follow[j]].insert(*ait);
+        }
+    }
+
+    map<ParseAPI::Function *, SliceFrame::ActiveMap >::iterator mit = 
+        fmap.begin();
+    for( ; mit != fmap.end(); ++mit) {
+        ParseAPI::Function * f = (*mit).first;
+        SliceFrame::ActiveMap & act = (*mit).second;
+    
+        SliceFrame nf(cand.loc,cand.con);
+        nf.active = act;
+
+        nf.con.push_back(ContextElement(f));
+        nf.loc.block = e->src();
+        nf.loc.func = f;
+
+        // pop context & adjust AbsRegions
+        if(!handleCallDetailsBackward(nf)) {
+            // FIXME I have preserved this behavior (returning false if
+            //       the current frame can't be adjusted). It seems to
+            //       me that we ought to set err = true and continue
+            //       processing the rest of the call edges.
+            //
+            //       This issue needs review by somebody knowledgeable
+            //       about the slicer.
+            return false;
+        }
+
+        getInsnsBackward(nf.loc);
+        newCands.push_back(nf);
+    } 
+    return true;
+}
+
+/*
+ * FIXME egregious copying
+ */
+vector<ParseAPI::Function *>
+Slicer::followCallBackward(
+    Predicates & p,
+    SliceFrame const& cand,
+    AbsRegion const& reg,
+    ParseAPI::Block * caller_block)
+{
+    stack< pair<ParseAPI::Function *, int> > callStack;  
+    for(Context::const_reverse_iterator calls = cand.con.rbegin();
+        calls != cand.con.rend(); ++calls)
+    {
+        if(calls->func) {
+            callStack.push(
+                make_pair<ParseAPI::Function*,int>(
+                    calls->func, calls->stackDepth));
+        }
+    }
+    return p.followCallBackward(caller_block, callStack, reg);
+}
+
+bool
+Slicer::handleCallDetailsBackward(
+    SliceFrame & cur)
+{
+    ParseAPI::Block * callBlock = cur.loc.block;
+    ParseAPI::Function * caller = cur.loc.func;
+
+    Address callBlockLastInsn = callBlock->lastInsnAddr();
+
+    long stack_depth;
+    if(!getStackDepth(caller,callBlockLastInsn,stack_depth)) {
+        return false;
+    }
+
+    popContext(cur.con);
+    assert(!cur.con.empty());
+
+
+    slicing_printf("\t%s, %d\n",
+        (cur.con.front().func ? cur.con.front().func->name().c_str() : "NULL"),
+        cur.con.front().stackDepth);
+
+    // Transform the active abstract regions
+    shiftAllAbsRegions(cur,-1*stack_depth,caller);
+
+    return true;
+}
+    
+bool
+Slicer::handleReturnBackward(
+    Predicates & p,
+    SliceFrame const& cand,
+    SliceFrame & newCand,
+    ParseAPI::Edge * e,
+    bool & err)
+{
+    ParseAPI::Block * callee = e->src();
+
+    // cons up a call stack for the call associated
+    // with this return and ask the predicates whether
+    // they would have come down this call.
+    //
+    // FIXME the issue of predicates evaluating only a
+    //       single abstract region applies here as well;
+    //       see comments in handleCall and handleCallBackward
+
+    if(followReturn(p,cand,callee)) {
+        // XXX it is not clear to me why a null callee is an error here
+        //     but not if followReturn returns false FIXME
+        if(!callee) {
+            err = true;
+            return false;
+        }
+
+        newCand = cand;
+        newCand.loc.block = callee;
+        newCand.loc.func = getEntryFunc(callee);
+        getInsnsBackward(newCand.loc);
+
+        if(!handleReturnDetailsBackward(newCand,cand.loc.block)) {
+            err = true;
+            return false;
+        }
+        return true;
+    }
+
+    return false;
+}
+
+bool
+Slicer::handleReturnDetailsBackward(
+    SliceFrame & cur,
+    ParseAPI::Block * caller_block)
+{
+    ParseAPI::Function * caller = cur.con.front().func;
+    ParseAPI::Function * callee = cur.loc.func;
+
+    long stack_depth;
+    if(!getStackDepth(caller,caller_block->end(),stack_depth)) {
+        return false;
+    }
+    
+    pushContext(cur.con, callee, caller_block, stack_depth);
+
+    // Transform the active abstract regions
+    shiftAllAbsRegions(cur,stack_depth,caller);
+
+    return true; 
+}
+
+bool
+Slicer::followReturn(
+    Predicates & p,
+    SliceFrame const& cand,
+    ParseAPI::Block * source)
+{
+    ParseAPI::Function * callee = (source ? getEntryFunc(source) : NULL);
+    
+    stack< pair<ParseAPI::Function *, int> > callStack;
+    for(Context::const_reverse_iterator calls = cand.con.rbegin();
+        calls != cand.con.rend(); ++calls)
+    {
+        if(calls->func) {
+            callStack.push(
+                make_pair<ParseAPI::Function*,int>(
+                    calls->func, calls->stackDepth));
+        }
+    }
+
+    bool ret = false;
+    SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
+    for( ; ait != cand.active.end(); ++ait) {
+        ret = ret || p.followCall(callee,callStack,(*ait).first);
+    }
+    return ret;
+}
+    
+
+
+/* ------------------------------------------- */
 
 Address SliceNode::addr() const { 
   if (a_)
@@ -84,139 +1192,18 @@ Slicer::Slicer(Assignment::Ptr a,
   f_(func),
   converter(true) {
   df_init_debug();
-
 };
 
 Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {
+  // delete cache state
+  unique_edges_.clear(); 
   return sliceInternal(forward, predicates);
 }
 
 Graph::Ptr Slicer::backwardSlice(Predicates &predicates) {
+  // delete cache state
+  unique_edges_.clear(); 
   return sliceInternal(backward, predicates);
-}
-
-Graph::Ptr Slicer::sliceInternal(Direction dir,
-				 Predicates &p) {
-  Graph::Ptr ret = Graph::createGraph();
-
-  // This does the work of forward or backwards slicing;
-  // the few different operations are flagged by the
-  // direction.
-
-  // e tells us when we should end (naturally)
-  // w tells us when we should end and widen
-  // c determines whether a call should be followed or skipped
-  // a does ???
-  
-  Element initial;
-  constructInitialElement(initial, dir);
-  //     constructInitialElementBackward(initial);
-
-  SliceNode::Ptr aP = createNode(initial);
-  if (dir == forward) {
-      slicing_cerr << "Inserting entry node " << aP << "/" << aP->format() << endl;
-  } else {
-      slicing_cerr << "Inserting exit node " << aP << "/" << aP->format() << endl;
-    }
-
-  insertInitialNode(ret, dir, aP);
-
-  Elements worklist;
-  worklist.push(initial);
-
-  std::set<Assignment::Ptr> visited;
-
-  while (!worklist.empty()) {
-    Element current = worklist.front(); worklist.pop();
-
-    assert(current.ptr);
-
-    // As a note, anything we see here has already been added to the
-    // return graph. We're trying to decide whether to keep searching.
-
-    // Don't get stuck in a loop
-    if (visited.find(current.ptr) != visited.end()) {
-      slicing_cerr << "\t Already visited, skipping" << endl;
-      continue;
-    }
-    else {
-      visited.insert(current.ptr);
-    }
-
-    slicing_cerr << "\tSlicing from " << current.ptr->format() << endl;
-    
-    // Do we widen out? This should check the defined
-    // abstract region...
-    if (p.widenAtPoint(current.ptr)) {
-      slicing_cerr << "\t\t... widens slice" << endl;
-      widen(ret, dir, current);
-      continue;
-    }
-
-    // Do we stop here according to the end predicate?
-    if (p.endAtPoint(current.ptr)) {
-      slicing_cerr << "\t\t... ends slice" << endl;
-      markAsEndNode(ret, dir, current);
-      continue;
-    }
-
-    Elements found;
-    
-    if (!getMatchingElements(current, found, p, dir)) {
-      widen(ret, dir, current);
-    }
-    // We actually want to fall through; it's possible to have
-    // a partially successful search.
-
-    while (!found.empty()) {
-      Element target = found.front(); found.pop();
-      if (target.valid) {
-         insertPair(ret, dir, current, target);
-         worklist.push(target);
-      }
-      else {
-         widen(ret, dir, current);
-      }
-    }
-  }
-
-  cleanGraph(ret);
-  slicing_cerr << "... done" << endl;
-  return ret;
-}
-  
-bool Slicer::getMatchingElements(Element &current,
-				 Elements &found,
-				 Predicates &p,
-				 Direction dir) {
-  bool ret = true;
-  if (dir == forward) {
-    // Find everyone who uses what this ptr defines
-    current.reg = current.ptr->out();
-    
-    if (!search(current, found, p, 
-		// it's set when we find a match
-		forward)) {
-      ret = false;
-    }
-  }
-  else {
-    assert(dir == backward);
-
-    // Find everyone who defines what this instruction uses
-    std::vector<AbsRegion> inputs = current.ptr->inputs();
-
-    for (unsigned int k = 0; k < inputs.size(); ++k) {
-      // Do processing on each input
-      current.reg = inputs[k];
-
-      if (!search(current, found, p, backward)) {
-	slicing_cerr << "\t\t... backward search failed" << endl;
-	ret = false;
-      }
-    }
-  }
-  return ret;
 }
 
 bool Slicer::getStackDepth(ParseAPI::Function *func, Address callAddr, long &height) {
@@ -233,6 +1220,9 @@ bool Slicer::getStackDepth(ParseAPI::Function *func, Address callAddr, long &hei
   }
   
   height = heightSA.height();
+  
+  // The height will include the effects of the call
+  // Should check the region... 
 
   //slicing_cerr << "Get stack depth at " << std::hex << callAddr
   //<< std::dec << " " << (int) height << endl;
@@ -242,13 +1232,11 @@ bool Slicer::getStackDepth(ParseAPI::Function *func, Address callAddr, long &hei
 
 void Slicer::pushContext(Context &context,
 			 ParseAPI::Function *callee,
-			 ParseAPI::Block *returnBlock,
+			 ParseAPI::Block *callBlock,
 			 long stackDepth) {
   slicing_cerr << "pushContext with " << context.size() << " elements" << endl;
   assert(context.front().block == NULL);
-  context.front().block = returnBlock;
-
-  //cerr << "Saving block @ " << hex << callBlock->end() << dec << " as call block" << endl;
+  context.front().block = callBlock;
 
   slicing_cerr << "\t" 
 	       << (context.front().func ? context.front().func->name() : "NULL")
@@ -265,7 +1253,7 @@ void Slicer::popContext(Context &context) {
   context.front().block = NULL;
 }
 
-void Slicer::shiftAbsRegion(AbsRegion &callerReg,
+void Slicer::shiftAbsRegion(AbsRegion const&callerReg,
 			    AbsRegion &calleeReg,
 			    long stack_depth,
 			    ParseAPI::Function *callee) {
@@ -299,655 +1287,7 @@ void Slicer::shiftAbsRegion(AbsRegion &callerReg,
   }
 }
 
-bool Slicer::handleCallDetails(AbsRegion &reg,
-                               Context &context,
-                               ParseAPI::Block *callerBlock,
-                               ParseAPI::Block *returnBlock,
-                               ParseAPI::Function *callee) {
-  ParseAPI::Function *caller = context.front().func;
-  AbsRegion newReg = reg;
-
-  long stack_depth;
-  if (!getStackDepth(caller, callerBlock->lastInsnAddr(), stack_depth)) {
-    return false;
-  }
-
-  // By definition, the stack of the callee starts _before_ the call instruction,
-  // so we take the pre-call stack height and run with it. 
-
-  // Increment the context
-  pushContext(context, callee, returnBlock, stack_depth);
-
-  // Translate the AbsRegion from caller to callee
-  shiftAbsRegion(reg,
-		 newReg,
-		 stack_depth,
-		 callee);
-
-  //slicing_cerr << "After call, context has " << context.size() << " elements" << endl;
-  //slicing_cerr << "\t" << (context.front().func ? context.front().func->name() : "NULL")
-  //       << ", " << context.front().stackDepth << endl;
-
-  reg = newReg;
-  return true;
-}
-
-void Slicer::handleReturnDetails(AbsRegion &reg,
-				 Context &context) {
-  // We need to add back the appropriate stack depth, basically
-  // reversing what we did in handleCall
-
-  //  slicing_cerr << "Return: context has " << context.size() << " elements" << endl;
-  //slicing_cerr << "\t" << (context.front().func ? context.front().func->name() : "NULL")
-  //<< ", " << context.front().stackDepth << endl;
-
-  long stack_depth = context.front().stackDepth;
-
-  popContext(context);
-
-  assert(!context.empty());
-
-  slicing_cerr << "\t" << (context.front().func ?
-			   context.front().func->name() : "NULL")
-	       << ", " << context.front().stackDepth << endl;
-
-
-  AbsRegion newRegion;
-  shiftAbsRegion(reg, newRegion,
-		 -1*stack_depth,
-		 context.front().func);
-  reg = newRegion;
-}
-
-bool Slicer::handleReturnDetailsBackward(AbsRegion &reg,
-        Context &context,
-        ParseAPI::Block *callerBlock,
-        ParseAPI::Function *callee)
-{
-    ParseAPI::Function * caller = context.front().func;
-    AbsRegion newReg = reg;
-
-    long stack_depth;
-    if (!getStackDepth(caller, callerBlock->end(), stack_depth)) {
-        return false;
-    }
-
-    // Increment the context
-    pushContext(context, callee, callerBlock, stack_depth);
-
-    // Translate the AbsRegion from caller to callee
-    shiftAbsRegion(reg,
-            newReg,
-            stack_depth,
-            callee);
-
-    reg = newReg;
-    return true;
-}
-
-bool Slicer::handleCallDetailsBackward(AbsRegion &reg,
-                                        Context &context,
-                                        ParseAPI::Block * callBlock,
-                                        ParseAPI::Function *caller) {
-
-    Address callBlockLastInsn = callBlock->lastInsnAddr();
-
-    long stack_depth;
-    if (!getStackDepth(caller, callBlockLastInsn, stack_depth)) {
-        return false;
-    }
-    
-    popContext(context);
-
-    assert(!context.empty());
-
-    slicing_cerr << "\t" << (context.front().func ?
-            context.front().func->name() : "NULL")
-        << ", " << context.front().stackDepth << endl;
-
-    AbsRegion newRegion;
-    shiftAbsRegion(reg, newRegion,
-            -1*stack_depth,
-            caller);
-
-    reg = newRegion;
-    
-    return true;
-}
-
-// Given a <location> this function returns a list of successors.
-// If the successor is in a different function the searched-for
-// AbsRegion should be updated (along with the context) but this
-// doesn't handle that. 
-
-bool Slicer::getSuccessors(Element &current,
-			   Elements &succ,
-			   Predicates &p) {
-  // Simple case: if we're not at the end of the instructions
-  // in this block, then add the next one and return.
-
-  InsnVec::iterator next = current.loc.current;
-  next++;
-
-  if (next != current.loc.end) {
-    Element newElement = current;
-    // We're in the same context since we're in the same block
-    // Also, AbsRegion
-    // But update the Location
-    newElement.loc.current = next;
-    succ.push(newElement);
-
-    slicing_cerr << "\t\t\t\t Adding intra-block successor " << newElement.reg.format() << endl;
-
-    return true;
-  }
-
-  bool ret = true;
-  // At the end of the block: set up the next blocks.
-  bool err = false;
-
-  if (containsCall(current.loc.block)) {
-    Element newElement;
-    slicing_cerr << "\t\t Handling call:";
-    if (handleCall(current.loc.block,
-		   current,
-		   newElement,
-		   p, 
-		   err)) {
-      slicing_cerr << " succeeded, err " << err << endl;
-      succ.push(newElement);
-    }
-    else {
-        ret = false;
-    }
-  }
-  else if (containsRet(current.loc.block)) {
-    Element newElement;
-    slicing_cerr << "\t\t Handling return:";
-    if (handleReturn(current.loc.block,
-		     current,
-		     newElement,
-		     p,
-		     err)) {
-      slicing_cerr << " succeeded, err " << err << endl;
-      succ.push(newElement);
-    }
-  }
-  else {
-    const Block::edgelist &targets = current.loc.block->targets();
-    Block::edgelist::iterator eit = targets.begin();
-    for (; eit != targets.end(); ++eit) {
-      Element newElement;
-      if ((*eit)->sinkEdge()) {
-         newElement.valid = false;
-         succ.push(newElement);
-      }
-      else if (handleDefault(*eit,
-                             forward,
-                             current,
-                             newElement,
-                             p,
-                             err)) {
-         succ.push(newElement);
-      }
-      else {
-         cerr << " failed handleDefault, err " << err << endl;
-      }
-    }
-  }
-  if (err) {
-    ret = false;
-  }
-  
-  return ret;
-}
-
-bool Slicer::getPredecessors(Element &current, 
-			     Elements &pred,
-			     Predicates &p) 
-{
-    // Simple case: if we're not at the beginning of the instructions
-    // in the block, then add the previous one and return
-    InsnVec::reverse_iterator prev = current.loc.rcurrent;
-    prev++;
-
-    if (prev != current.loc.rend) {
-        Element newElement = current;
-        // We're in the same context since we're in the same block
-        // Also, AbsRegion
-        // But update the Location
-        newElement.loc.rcurrent = prev;
-
-        if (p.addPredecessor(newElement.reg)) {
-            pred.push(newElement);
-
-            slicing_cerr << "\t\t\t\t Adding intra-block predecessor " 
-                << std::hex << newElement.loc.addr() << " "  
-                << newElement.reg.format() << endl;
-            slicing_cerr << "\t\t\t\t Current region is " << current.reg.format() 
-                << endl;
-        }
-        return true;
-    }
-    
-    bool ret = true;
-    bool err = false;
-
-    Element newElement;
-    Elements newElements;
-    //SingleContext epredSC(current.loc.func, true, true);
-    //Interproc epred;
-    SingleContextOrInterproc epred(current.loc.func, true, true);
-
-    const Block::edgelist &sources = current.loc.block->sources();
-    Block::edgelist::iterator eit = sources.begin(&epred);
-    for ( ; eit != sources.end(); ++eit) {   
-      switch ((*eit)->type()) {
-      case CALL:
-        slicing_cerr << "\t\t Handling call:";
-        if (handleCallBackward(*eit,
-                    current,
-                    newElements,
-                    p,
-                    err)) {
-            slicing_cerr << " succeeded, err " <<err << endl;
-            while (newElements.size()) {
-                newElement = newElements.front(); newElements.pop();
-                pred.push(newElement);
-            }
-        }
-        break;
-      case RET:
-        slicing_cerr << "\t\t Handling return:";
-        if (handleReturnBackward(*eit,
-                    current,
-                    newElement,
-                    p,
-                    err)) {
-            slicing_cerr << " succeeded, err " << err << endl;
-            pred.push(newElement);
-        }
-        break;
-      default:
-	    Element newElement;
-        if (handleDefault((*eit),
-                          backward,
-                          current,
-                          newElement,
-                          p,
-                          err)) {
-            pred.push(newElement);
-        }    
-      }
-    }
-    if (err) {
-      ret = false;
-    }
-    return ret;
- 
-}
-
-
-bool Slicer::handleDefault(ParseAPI::Edge *e,
-        Direction dir,
-        Element &current,
-        Element &newElement,
-        Predicates &,
-        bool &) {
-    // Since we're in the same function we can keep the AbsRegion
-    // and Context. Instead we only need to update the Location
-    newElement = current;
-
-    if (dir == forward) {
-        newElement.loc.block = e->trg();
-
-        // Cache the new vector of instruction instances and get iterators into it
-        getInsns(newElement.loc);
-    } else {
-        newElement.loc.block = e->src();
-
-        getInsnsBackward(newElement.loc);
-    }
-
-    return true;
-
-}
-
-bool Slicer::handleCall(ParseAPI::Block *block,
-			Element &current,
-			Element &newElement,
-			Predicates &p,
-			bool &err) {
-  ParseAPI::Block *callee = NULL;
-  ParseAPI::Edge *funlink = NULL;
-
-  const Block::edgelist &targets = block->targets();
-  Block::edgelist::iterator eit = targets.begin();
-  for (; eit != targets.end(); ++eit) {
-    if ((*eit)->sinkEdge()) {
-      err = true; 
-      continue;
-    }
-    if ((*eit)->type() == CALL) {
-      callee = (*eit)->trg();
-    }
-    else if ((*eit)->type() == CALL_FT) {
-      funlink = (*eit);
-    }
-  }
-
-  if (followCall(callee, forward, current, p)) {
-    if (!callee) {
-      err = true;
-      return false;
-    }
-
-    newElement = current;
-    // Update location
-    newElement.loc.block = callee;
-    newElement.loc.func = getEntryFunc(callee);
-    assert(newElement.loc.func);
-    getInsns(newElement.loc);
-    
-    if (!funlink) {
-       // We can't return...
-       return false;
-    }
-    
-
-    // HandleCall updates both an AbsRegion and a context...
-    if (!handleCallDetails(newElement.reg,
-			   newElement.con,
-			   current.loc.block,
-                           funlink->trg(),
-			   newElement.loc.func)) {
-      slicing_cerr << "Handle of call details failed!" << endl;
-      err = true;
-      return false;
-    }
-  }
-  else {
-    // Use the funlink
-    if (!funlink) {
-      // ???
-      return false;
-    }
-    if (!handleDefault(funlink,
-                       forward,
-		       current,
-		       newElement,
-		       p,
-		       err)) {
-      slicing_cerr << "handleDefault failed!" << endl;
-      err = true;
-      return false;
-    }
-  }
-  
-  return true;
-}
-
-bool Slicer::handleCallBackward(ParseAPI::Edge *edge,
-        Element &current,
-        Elements &newElements,
-        Predicates &p,
-        bool &)
-{
-    Element newElement = current;
-
-    newElement.loc.block = edge->src();
-
-    /* We don't know which function the caller block belongs to,
-     * follow each possibility */
-    std::vector<ParseAPI::Function *> funcsToFollow = followCallBackward(newElement.loc.block, backward, current, p);
-
-    std::vector<ParseAPI::Function *>::iterator fit;
-    for (fit = funcsToFollow.begin(); fit != funcsToFollow.end(); ++fit) {
-        Element curElement = newElement;
-        curElement.con.push_back(ContextElement(*fit));
-
-        // Pop AbsRegion and Context
-        if (!handleCallDetailsBackward(curElement.reg,
-                    curElement.con,
-                    curElement.loc.block,
-                    *fit)) {
-            return false;
-        }
-
-        curElement.loc.func = *fit;
-        getInsnsBackward(curElement.loc);
-        newElements.push(curElement);
-    }
-
-    return true;
-}
-
-bool Slicer::handleReturn(ParseAPI::Block *,
-			  Element &current,
-			  Element &newElement,
-			  Predicates &,
-			  bool &err) {
-  // As handleCallEdge, but now with 50% fewer calls
-  newElement = current;
-
-  // Find out the successor block...
-  Context callerCon = newElement.con;
-  callerCon.pop_front();
-
-  if (callerCon.empty()) {
-    return false;
-  }
-
-  ParseAPI::Block *retBlock = NULL;
-
-#if 0
-  // We'd want something like this for a non-context-sensitive traversal.
-  // However, what we need here is to strip out the saved block in the
-  // Context and use it instead of doing a pointless iteration.
-  // Also, looking for CALL_FT edges in a return is... odd... at best.
-
-  const Block::edgelist &targets = current.loc.block->targets();
-  Block::edgelist::iterator eit = targets.begin();
-  for (; eit != targets.end(); ++eit) {
-    if ((*eit)->type() == CALL_FT) {
-      retBlock = (*eit)->trg();
-      break;
-    }
-  }
-#endif
-
-  retBlock = callerCon.front().block;
-  if (!retBlock) {
-    err = true;
-    return false;
-  }
-
-  slicing_cerr << "\t Handling return, going to block @ " << hex << retBlock->start() << endl;
-
-  // Pops absregion and context
-  handleReturnDetails(newElement.reg,
-		      newElement.con);
-  
-  newElement.loc.func = newElement.con.front().func;
-  newElement.loc.block = retBlock;
-  getInsns(newElement.loc);
-  return true;
-}
-
-bool Slicer::handleReturnBackward(ParseAPI::Edge *edge,
-        Element &current,
-        Element &newElement,
-        Predicates &p,
-        bool &err)
-{
-    ParseAPI::Block * callee = edge->src();
-
-    if (followReturn(callee, backward, current, p)) {
-        if (!callee) {
-            err = true;
-            return false;
-        }
-
-        newElement = current;
-
-        // Update location
-        newElement.loc.block = callee;
-        newElement.loc.func = getEntryFunc(callee);
-        getInsnsBackward(newElement.loc);
-
-        // handleReturnDetailsBackward updates both an AbsRegion and a context
-        if (!handleReturnDetailsBackward(newElement.reg,
-                    newElement.con,
-                    current.loc.block,
-                    newElement.loc.func)) {
-            err = true;
-            return false;
-        }
-        return true;
-    }
-
-    return false;
-}
-
-bool Slicer::search(Element &initial,
-		    Elements &succ,
-		    Predicates &p,
-		    Direction dir) {
-  bool ret = true;
-  
-  Assignment::Ptr source = initial.ptr;
-
-  Elements worklist;
-  
-  if (dir == forward)  {
-      slicing_cerr << "\t\t Getting forward successors from " << initial.ptr->format()
-          << " - " << initial.reg.format() << endl;
-  } else {
-      slicing_cerr << "\t\t Getting backward predecessors from " << initial.ptr->format()
-          << " - " << initial.reg.format() << endl;
-  }
-
-  if (!getNextCandidates(initial, worklist, p, dir)) {
-    ret = false;
-  }
-
-  // Need this so we don't get trapped in a loop (literally) 
-  std::set<Address> visited;
-  
-  while (!worklist.empty()) {
-    Element current = worklist.front();
-    worklist.pop();
-
-    if (!current.valid) {
-       // This marks a widen spot
-       succ.push(current);
-       continue;
-    }
-
-    if (visited.find(current.addr()) != visited.end()) {
-      continue;
-    }
-    else {
-      visited.insert(current.addr());
-    }
-    
-    // After this point we treat current as a scratch space to scribble in
-    // and return...
-
-    // If we're an int3, assume we need to widen the slice
-
-    // Split the instruction up
-    std::vector<Assignment::Ptr> assignments;
-    Instruction::Ptr insn;
-    if (dir == forward)
-        insn = current.loc.current->first;
-    else
-        insn = current.loc.rcurrent->first;
-
-    if (e_int3 == insn->getOperation().getID()) {
-        ret = false;
-        continue;
-    }
-
-    convertInstruction(insn,
-                       current.addr(),
-                       current.loc.func,
-                       assignments);
-    bool keepGoing = true;
-
-    for (std::vector<Assignment::Ptr>::iterator iter = assignments.begin();
-	 iter != assignments.end(); ++iter) {
-      Assignment::Ptr &assign = *iter;
-
-      findMatches(current, assign, dir, p, succ);
-
-      if (kills(current, assign)) {
-	keepGoing = false;
-      }
-    }
-    if (keepGoing) {
-      if (!getNextCandidates(current, worklist, p, dir)) {
-	ret = false;
-      }
-    }
-  }
-  return ret;
-}
-
-bool Slicer::getNextCandidates(Element &current, Elements &worklist,
-			       Predicates &p, Direction dir) {
-  if (dir == forward) {
-    return getSuccessors(current, worklist, p);
-  }
-  else {
-    return getPredecessors(current, worklist, p);
-  }
-}
-
-bool Slicer::findMatches(Element &current, Assignment::Ptr &assign, Direction dir, Predicates &p, Elements &succ) {
-  if (dir == forward) {
-    // We compare the AbsRegion in current to the inputs
-    // of assign
-    for (unsigned k = 0; k < assign->inputs().size(); ++k) {
-      const AbsRegion &uReg = assign->inputs()[k];
-      slicing_cerr << "\t\t\t\t\tComparing current " 
-                   << current.reg.format() << " to candidate "
-                   << uReg.format() << endl;
-      if (current.reg.contains(uReg)) {
-         if (uReg.isImprecise() && !p.allowImprecision()) {
-            // Consider this to be a widen...
-            current.valid = false;
-         }
-         slicing_cerr << "\t\t\t\t\t\tMatch!, adding " << assign->format() << endl;
-         // We make a copy of each Element for each Assignment...
-         current.ptr = assign;
-         current.inputRegion = uReg;
-         succ.push(current);
-         return true;
-     }
-    }
-  }
-  else {
-    assert(dir == backward);
-    const AbsRegion &oReg = assign->out();
-    slicing_cerr << "\t\t\t\t\tComparing current " 
-                 << current.reg.format() << " to candidate "
-                 << oReg.format() << endl;
-    if (current.reg.contains(oReg)) {
-       if (oReg.isImprecise() && !p.allowImprecision()) {
-          current.valid = false;
-       }
-       slicing_cerr << "\t\t\t\t\t\tMatch!" << endl;
-      current.ptr = assign;
-      current.inputRegion = current.reg;
-      succ.push(current);
-      return true;
-    }
-  }
-  return false;
-}
-
-bool Slicer::kills(Element &current, Assignment::Ptr &assign) {
+bool Slicer::kills(AbsRegion const&reg, Assignment::Ptr &assign) {
   // Did we find a definition of the same abstract region?
   // TBD: overlaps ins't quite the right thing here. "contained
   // by" would be better, but we need to get the AND/OR
@@ -958,14 +1298,14 @@ bool Slicer::kills(Element &current, Assignment::Ptr &assign) {
     return false; 
   }
 
-  return current.reg.contains(assign->out());
+  return reg.contains(assign->out());
 }
 
-SliceNode::Ptr Slicer::createNode(Element &elem) {
+SliceNode::Ptr Slicer::createNode(Element const&elem) {
   if (created_.find(elem.ptr) != created_.end()) {
     return created_[elem.ptr];
   }
-  SliceNode::Ptr newNode = SliceNode::create(elem.ptr, elem.loc.block, elem.loc.func);
+  SliceNode::Ptr newNode = SliceNode::create(elem.ptr, elem.block, elem.func);
   created_[elem.ptr] = newNode;
   return newNode;
 }
@@ -1015,24 +1355,46 @@ void Slicer::getInsnsBackward(Location &loc) {
 
 void Slicer::insertPair(Graph::Ptr ret,
 			Direction dir,
-			Element &source,
-			Element &target) {
+			Element const&source,
+			Element const&target,
+			AbsRegion const& data) 
+{
   SliceNode::Ptr s = createNode(source);
   SliceNode::Ptr t = createNode(target);
 
-  slicing_cerr << "Inserting pair: " << s->format() << ", " << t->format() << endl;
+  EdgeTuple et(s,t,data);
+  if(unique_edges_.find(et) != unique_edges_.end()) {
+    unique_edges_[et] += 1;
+    return;
+  }
+  unique_edges_[et] = 1;  
+
   if (dir == forward) {
-     SliceEdge::Ptr e = SliceEdge::create(s, t, target.inputRegion);
+     SliceEdge::Ptr e = SliceEdge::create(s, t, data);
      ret->insertPair(s, t, e);
   } else {
-     SliceEdge::Ptr e = SliceEdge::create(t, s, target.inputRegion);
+     SliceEdge::Ptr e = SliceEdge::create(t, s, data);
      ret->insertPair(t, s, e);
   }
 }
 
+void
+Slicer::widenAll(
+    Graph::Ptr g,
+    Direction dir,
+    SliceFrame const& cand)
+{
+    SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
+    for( ; ait != cand.active.end(); ++ait) {
+        vector<Element> const& eles = (*ait).second;
+        for(unsigned i=0;i<eles.size();++i)
+            widen(g,dir,eles[i]);
+    }
+}
+
 void Slicer::widen(Graph::Ptr ret,
 		   Direction dir,
-		   Element &e) {
+		   Element const&e) {
   if (dir == forward) {
     ret->insertPair(createNode(e),
 		    widenNode());
@@ -1133,71 +1495,6 @@ void Slicer::cleanGraph(Graph::Ptr ret) {
 
 }
 
-bool Slicer::followCall(ParseAPI::Block *target, Direction dir, Element &current, Predicates &p)
-{
-  // We provide the call stack and the potential callee.
-  // It returns whether we follow the call or not.
-  
-  // A NULL callee indicates an indirect call.
-  // TODO on that one...
-  
-  // Find the callee
-  assert(dir == forward);
-  ParseAPI::Function *callee = (target ? getEntryFunc(target) : NULL);
-  // Create a call stack
-  std::stack<std::pair<ParseAPI::Function *, int> > callStack;
-  for (Context::reverse_iterator calls = current.con.rbegin();
-       calls != current.con.rend();
-       ++calls)
-    {
-      if (calls->func)  {
-	//cerr << "Adding " << calls->func->name() << " to call stack" << endl;
-	callStack.push(std::make_pair<ParseAPI::Function*, int>(calls->func, calls->stackDepth));
-      }
-    }
-  //cerr << "Calling followCall with stack and " << (callee ? callee->name() : "<NULL>") << endl;
-  // FIXME: assuming that this is not a PLT function, since I have no idea at present.
-  // -- BW, April 2010
-  return p.followCall(callee, callStack, current.reg);
-}
-
-std::vector<ParseAPI::Function *> Slicer::followCallBackward(ParseAPI::Block * callerBlock,
-        Direction dir,
-        Element &current,
-        Predicates &p) {
-    assert(dir == backward);
-
-    // Create the call stack
-    std::stack<std::pair<ParseAPI::Function *, int> > callStack;
-    for (Context::reverse_iterator calls = current.con.rbegin();
-            calls != current.con.rend();
-            ++calls) {
-        if (calls->func) {
-            callStack.push(std::make_pair<ParseAPI::Function *, int>(calls->func, calls->stackDepth));
-        }
-    }
-    return p.followCallBackward(callerBlock, callStack, current.reg);
-}
-
-bool Slicer::followReturn(ParseAPI::Block *source,
-                            Direction dir,
-                            Element &current,
-                            Predicates &p)
-{
-    assert(dir == backward);
-    ParseAPI::Function * callee = (source ? getEntryFunc(source) : NULL);
-    // Create a call stack
-    std::stack<std::pair<ParseAPI::Function *, int> > callStack;
-    for (Context::reverse_iterator calls = current.con.rbegin();
-            calls != current.con.rend();
-            ++calls) {
-        if (calls->func) {
-            callStack.push(std::make_pair<ParseAPI::Function *, int>(calls->func, calls->stackDepth));
-        }
-    }
-    return p.followCall(callee, callStack, current.reg);
-}
-
 ParseAPI::Block *Slicer::getBlock(ParseAPI::Edge *e,
 				   Direction dir) {
   return ((dir == forward) ? e->trg() : e->src());
@@ -1220,26 +1517,72 @@ void Slicer::insertInitialNode(GraphPtr ret, Direction dir, SliceNode::Ptr aP) {
     ret->insertExitNode(aP);
   }
 }
-  
+ 
+void Slicer::constructInitialFrame(
+    Direction dir,
+    SliceFrame & initFrame)
+{
+    initFrame.con.push_front(ContextElement(f_));
+    initFrame.loc = Location(f_,b_);
 
-void Slicer::constructInitialElement(Element &initial, Direction dir) {
-  // Cons up the first Element. We need a context, a location, and an
-  // abstract region
-  ContextElement context(f_);
-  initial.con.push_front(ContextElement(f_));
-  initial.loc = Location(f_, b_);
-  initial.reg = a_->out();
-  initial.ptr = a_;
+    if(dir == forward) {
+        Element oe(b_,f_,a_->out(),a_);
+        initFrame.active[a_->out()].push_back(oe);
+    } else {
+        vector<AbsRegion> & inputs = a_->inputs();
+        vector<AbsRegion>::iterator iit = inputs.begin();
+        for ( ; iit != inputs.end(); ++iit) {
+            Element ie(b_,f_,*iit,a_);
+            initFrame.active[*iit].push_back(ie);
+        }
+    }
 
-  if (dir == forward) {
-    initial.loc.fwd = true;
-    getInsns(initial.loc);
-    fastForward(initial.loc, a_->addr());
-  }
-  else {
-    initial.loc.fwd = false;
-    getInsnsBackward(initial.loc);
-    fastBackward(initial.loc, a_->addr());
-  }
-}   
-                                    
+    if(dir == forward) {
+        initFrame.loc.fwd = true;
+        getInsns(initFrame.loc);
+        fastForward(initFrame.loc, a_->addr());
+    } else {
+        initFrame.loc.fwd = false;
+        getInsnsBackward(initFrame.loc);
+        fastBackward(initFrame.loc, a_->addr());
+    }
+}
+
+void
+Slicer::DefCache::merge(Slicer::DefCache const& o)
+{
+    map<AbsRegion, set<Def> >::const_iterator oit = o.defmap.begin();
+    for( ; oit != o.defmap.end(); ++oit) {
+        AbsRegion const& r = oit->first;
+        set<Def> const& s = oit->second;
+        defmap[r].insert(s.begin(),s.end());
+    }
+}
+
+void
+Slicer::DefCache::replace(Slicer::DefCache const& o)
+{   
+    // XXX if o.defmap[region] is empty set, remove that entry
+    map<AbsRegion, set<Def> >::const_iterator oit = o.defmap.begin();
+    for( ; oit != o.defmap.end(); ++oit) {
+        if(!(*oit).second.empty())
+            defmap[(*oit).first] = (*oit).second;
+        else
+            defmap.erase((*oit).first);
+    }
+}
+
+void
+Slicer::DefCache::print() const {
+    map<AbsRegion, set<Def> >::const_iterator it = defmap.begin();
+    for( ; it !=defmap.end(); ++it) {
+        slicing_printf("\t\t%s ->\n",(*it).first.format().c_str());
+        set<Def> const& defs = (*it).second;
+        set<Def>::const_iterator dit = defs.begin();
+        for( ; dit != defs.end(); ++dit) {
+            slicing_printf("\t\t\t<%s,%s>\n",
+                (*dit).ele.ptr->format().c_str(),
+                (*dit).data.format().c_str());
+        }
+    }
+}

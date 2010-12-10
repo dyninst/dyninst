@@ -36,9 +36,9 @@
 #include <vector>
 #include <list>
 
-#define SW_MAJOR 1
-#define SW_MINOR 4
-#define SW_BETA  5
+#define SW_MAJOR 2
+#define SW_MINOR 1
+#define SW_BETA  0
 
 namespace Dyninst {
 namespace Stackwalker {
@@ -76,6 +76,7 @@ class Walker {
    bool callPreStackwalk(THR_ID tid = NULL_THR_ID);
    bool callPostStackwalk(THR_ID tid = NULL_THR_ID);
  public:
+   static void version(int& major, int& minor, int& maintenance);
    //Create an object that operates on the current process
    static Walker *newWalker();
 
