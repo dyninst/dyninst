@@ -94,6 +94,14 @@ class int_variable {
     mapped_module *mod_;
 };
 
+struct edgeStub {
+    edgeStub(int_block *s, Address t, EdgeTypeEnum y) 
+    { src = s; trg = t; type = y; }
+    int_block* src;
+    Address trg;
+    EdgeTypeEnum type;
+};
+
 
 /*
  * A class for link map information about a shared object that is mmapped 
@@ -201,6 +209,7 @@ class mapped_object : public codeRange {
     // begin exploratory and defensive mode functions //
     BPatch_hybridMode hybridMode() { return analysisMode_; }
     bool isExploratoryModeOn();
+    bool parseNewEdges(const std::vector<edgeStub>& sources);
     bool parseNewFunctions(std::vector<Address> &funcEntryAddrs);
     void registerNewFunctions(); // register funcs found by recursive parsing
     bool updateCodeBytesIfNeeded(Address entryAddr); // ret true if was needed
@@ -209,7 +218,6 @@ class mapped_object : public codeRange {
     void addProtectedPage(Address pageAddr); // adds to protPages_
     void removeProtectedPage(Address pageAddr);
     void removeFunction(int_function *func);
-    void removeRange(codeRange *range);
     bool splitIntLayer();
     void findBlocksByRange(Address startAddr,
                           Address endAddr,

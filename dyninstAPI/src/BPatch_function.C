@@ -332,7 +332,7 @@ bool BPatch_function::parseNewEdge(Dyninst::Address source,
     assert(sblock);
     vector<edgeStub> stubs;
     stubs.push_back(edgeStub(sblock, target, ParseAPI::NOEDGE));
-    func->parseNewEdges(stubs);
+    func->obj()->parseNewEdges(stubs);
 
     // Correct missing elements in BPatch-level datastructures
     // i.e., wipe out the BPatch_flowGraph CFG, we'll re-generate it

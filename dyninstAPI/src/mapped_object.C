@@ -1369,6 +1369,132 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
     return reparsedObject;
 }
 
+
+/* 0. The target and source must be in the same mapped region, make sure memory
+ *    for the target is up to date
+ * 1. Parse from target address, add new edge at image layer
+ * 2. Register all newly created functions as a result of new edge parsing
+ * 3. Add image blocks as int_blocks
+ * 4. fix up mapping of split blocks with points
+ * 5. Add image points, as instPoints 
+*/
+bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
+{
+    using namespace SymtabAPI;
+    using namespace ParseAPI;
+
+    vector<ParseAPI::Block*> sources;
+    vector<Address> targets;
+    vector<EdgeTypeEnum> edgeTypes;
+    for (unsigned sidx = 0; sidx < stubs.size(); sidx++) {
+        sources.push_back(stubs[sidx].src->llb());
+        targets.push_back(stubs[sidx].trg);
+        edgeTypes.push_back(stubs[sidx].type);
+    }
+
+/* 0. Make sure memory for the target is up to date */
+
+    // Do various checks and set edge types, if necessary
+    Address loadAddr = codeBase();
+    for (unsigned idx=0; idx < stubs.size(); idx++) {
+
+        Block *cursrc = stubs[idx].src->llb();
+
+        // update target region if needed
+        if (BPatch_defensiveMode == hybridMode()) {
+            updateCodeBytesIfNeeded(stubs[idx].trg);
+        }
+
+        // translate targets to memory offsets rather than absolute addrs
+        targets[idx] -= loadAddr;
+
+        // figure out edge types if they have not been set yet
+        if (ParseAPI::NOEDGE == stubs[idx].type) {
+            Block::edgelist & edges = cursrc->targets();
+            Block::edgelist::iterator eit = edges.begin();
+            bool isIndirJmp = false;
+            bool isCondl = false;
+            for (; eit != edges.end(); eit++) {
+                if ((*eit)->trg()->start() == stubs[idx].trg) {
+                    edgeTypes[idx] = (*eit)->type();
+                    break;
+                } 
+                if (ParseAPI::INDIRECT == (*eit)->type()) {
+                    isIndirJmp = true;
+                } else if (ParseAPI::COND_NOT_TAKEN == (*eit)->type()
+                            || ParseAPI::COND_TAKEN == (*eit)->type()) {
+                    isCondl = true;
+                }
+            }
+            if (ParseAPI::NOEDGE == edgeTypes[idx]) {
+                bool isCall = false;
+                int_function *func = stubs[idx].src->func();
+                func->funcCalls();
+                instPoint *pt = func->findInstPByAddr(stubs[idx].src->last());
+                if (pt && callSite == pt->getPointType()) {
+                    isCall = true;
+                }
+                if (cursrc->end() == targets[idx]) {
+                    if (isCall) {
+                        edgeTypes[idx] = CALL_FT;
+                    } else if (isCondl) {
+                        edgeTypes[idx] = ParseAPI::COND_NOT_TAKEN;
+                    } else {
+                        edgeTypes[idx] = ParseAPI::FALLTHROUGH;
+                    }
+                } else if (isCall) {
+                    edgeTypes[idx] = ParseAPI::CALL;
+                } else if (isIndirJmp) {
+                    edgeTypes[idx] = ParseAPI::INDIRECT;
+                } else if (isCondl) {
+                    edgeTypes[idx] = ParseAPI::COND_TAKEN;
+                } else {
+                    edgeTypes[idx] = ParseAPI::DIRECT;
+                }
+            }
+        }
+    }
+ 
+/* 1. Parse from target address, add new edge at image layer  */
+    parse_img()->codeObject()->parseNewEdges(sources, targets, edgeTypes);
+
+/* 2. Register all newly created image_funcs as a result of new edge parsing */
+    registerNewFunctions();
+
+    // build list of potentially modified functions
+    vector<ParseAPI::Function*> modFuncs;
+    for(unsigned sidx=0; sidx < sources.size(); sidx++) {
+        sources[sidx]->getFuncs(modFuncs);
+    }
+
+    for (unsigned fidx=0; fidx < modFuncs.size(); fidx++) 
+    {
+       int_function *func = findFunction(modFuncs[fidx]);
+
+/* 3. Add img-level blocks and points to int-level datastructures */
+       func->addMissingBlocks();
+       func->addMissingPoints();
+       
+       // invalidate liveness calculations
+       func->ifunc()->invalidateLiveness();
+    }
+
+/* 5. fix mapping of split blocks that have points */
+    if (parse_img()->hasSplitBlocks()) {
+        splitIntLayer();
+        parse_img()->clearSplitBlocks();
+    }
+
+    for (unsigned fidx=0; fidx < modFuncs.size(); fidx++) 
+    {
+       int_function *func = findFunction(modFuncs[fidx]);
+       assert(func->consistency());
+    }
+    
+    return true;
+}
+
+
 /* 1. Copy the entire region in from the mutatee, 
  * 2. if memory emulation is not on, copy blocks back in from the
  * mapped file, since we don't want to copy instrumentation into
@@ -1916,16 +2042,6 @@ void mapped_object::removeFunction(int_function *func) {
             }
         }
     }  
-}
-
-// remove an element from range, these are always original int_block's
-void mapped_object::removeRange(codeRange *range) {
-    codeRange *foundrange = NULL;
-    if (codeRangesByAddr_.find(range->get_address(), foundrange) && 
-        range == foundrange) 
-    {
-        codeRangesByAddr_.remove(range->get_address());
-    }
 }
 
 bool mapped_object::isSystemLib(const std::string &objname)

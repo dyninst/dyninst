@@ -1984,7 +1984,7 @@ void BPatch_process::overwriteAnalysisUpdate
     {
         // parse new edges in the function
         if (stubs[fit->first].size()) {
-            fit->first->parseNewEdges(stubs[fit->first]);
+            fit->first->obj()->parseNewEdges(stubs[fit->first]);
         } 
         else if (newFuncEntries.end() == newFuncEntries.find(fit->first)) {
             mal_printf("WARNING: didn't have any stub edges for overwritten "
@@ -1992,7 +1992,7 @@ void BPatch_process::overwriteAnalysisUpdate
             vector<edgeStub> svec;
             svec.push_back(edgeStub(
                 NULL, fit->first->getAddress(), ParseAPI::NOEDGE));
-		    fit->first->parseNewEdges(svec);
+		    fit->first->obj()->parseNewEdges(svec);
             assert(0);
         }
         // else, this is the entry point of the function, do nothing, 

@@ -421,7 +421,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
 			assert(callPoint);
             if (callFuncs.size() > 1) {
                 //KEVINTODO: implement this case
-                mal_printf("callPoint %lx is shared, test this case\n",
+                mal_printf("ERROR: callPoint %lx is shared, test this case\n",
                            callPoint->getAddress());
             }
         }
