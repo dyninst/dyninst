@@ -739,12 +739,30 @@ void int_function::addMissingBlocks()
    blocks();
 
    // Add new blocks
-   const vector<image_basicBlock*> & nblocks = ifunc()->img()->getNewBlocks();
-   vector<image_basicBlock*>::const_iterator nit = nblocks.begin();
-   for( ; nit != nblocks.end(); ++nit) {
-      if (ifunc()->contains(*nit)) {
-         addMissingBlock(*nit);
-      }
+
+   const vector<image_basicBlock*> & nblocks = obj()->parse_img()->getNewBlocks();
+   if (nblocks.size() < ifunc()->blocks().size()) {
+       // add blocks by looking up new blocks, if it promises to be more 
+       // efficient than looking through all of the llfunc's blocks
+       vector<image_basicBlock*>::const_iterator nit = nblocks.begin();
+       for( ; nit != nblocks.end(); ++nit) {
+          if (ifunc()->contains(*nit)) {
+             addMissingBlock(*nit);
+          }
+       }
+   }
+   if (ifunc()->blocks().size() > blocks_.size()) { //not just the else case!
+       // we may have parsed into an existing function and added its blocks 
+       // to ours, or this may just be a more efficient lookup method
+       Function::blocklist & iblks = ifunc()->blocks();
+       for (Function::blocklist::iterator bit = iblks.begin(); 
+            bit != iblks.end(); 
+            bit++) 
+       {
+           if (!findBlock(*bit)) {
+               addMissingBlock(static_cast<image_basicBlock*>(*bit));
+           }
+       }
    }
 }
 
