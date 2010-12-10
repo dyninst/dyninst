@@ -75,7 +75,7 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
       AddressSpace *proc,
       BPatch_hybridMode mode):
    desc_(fileDesc),
-   fullName_(fileDesc.file()), 
+   fullName_(img->getObject()->file()), 
    everyUniqueVariable(imgVarHash),
    allFunctionsByMangledName(::Dyninst::stringhash),
    allFunctionsByPrettyName(::Dyninst::stringhash),
