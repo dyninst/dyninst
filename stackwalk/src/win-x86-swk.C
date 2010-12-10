@@ -86,8 +86,8 @@ bool ProcSelf::readMem(void *dest, Address source, size_t size)
    return true;
 }
 
-ProcSelf::ProcSelf() :
-   ProcessState(_getpid())
+ProcSelf::ProcSelf(std::string exe_path) :
+   ProcessState(_getpid(), exe_path)
 {
 }
 
@@ -100,7 +100,7 @@ ProcDebug *ProcDebug::newProcDebug(PID pid, string)
   return NULL;
 }
 
-ProcDebug *ProcDebug::newProcDebug(const std::string &executable, 
+ProcDebug *ProcDebug::newProcDebug(std::string executable, 
                                    const std::vector<std::string> &argv)
 {
   return NULL;
