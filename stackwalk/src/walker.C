@@ -55,7 +55,7 @@ Walker::Walker(ProcessState *p,
                StepperGroup *grp,
                SymbolLookup *sym, 
                bool default_steppers,
-	       const std::string &exec_name) :
+               std::string exec_name) :
    proc(NULL), 
    lookup(NULL),
    creation_error(false),
@@ -87,19 +87,19 @@ Walker::Walker(ProcessState *p,
    }
 }
 
-Walker* Walker::newWalker() 
+Walker* Walker::newWalker(std::string exec_name) 
 {
   sw_printf("[%s:%u] - Creating new stackwalker on current process\n",
             __FILE__, __LINE__);
    
-  ProcessState *newproc = createDefaultProcess();
+  ProcessState *newproc = createDefaultProcess(exec_name);
   if (!newproc) {
     sw_printf("[%s:%u] - Error creating default process\n",
 	      __FILE__, __LINE__);
     return NULL;
   }
   
-  Walker *newwalker = new Walker(newproc, NULL, NULL, true, "");
+  Walker *newwalker = new Walker(newproc, NULL, NULL, true, exec_name);
   if (!newwalker || newwalker->creation_error) {
     sw_printf("[%s:%u] - Error creating new Walker object %p\n",
 	      __FILE__, __LINE__, newwalker);
@@ -113,7 +113,7 @@ Walker* Walker::newWalker()
 }
 
 Walker *Walker::newWalker(Dyninst::PID pid,
-                          const std::string &executable)
+                          std::string executable)
 {
   sw_printf("[%s:%u] - Creating new stackwalker for process %d\n",
 	    __FILE__, __LINE__, (int) pid);
@@ -138,7 +138,7 @@ Walker *Walker::newWalker(Dyninst::PID pid,
   return newwalker;
 }
 
-Walker *Walker::newWalker(const std::string &exec_name, 
+Walker *Walker::newWalker(std::string exec_name, 
                           const std::vector<std::string> &argv)
 {
    sw_printf("[%s:%u] - Creating new stackwalker with process %s\n",
@@ -205,7 +205,7 @@ bool Walker::newWalker(const std::vector<Dyninst::PID> &pids,
 
 bool Walker::newWalker(const std::vector<Dyninst::PID> &pids,
                        std::vector<Walker *> &walkers_out,
-                       const std::string &executable)
+                       std::string executable)
 {
   sw_printf("[%s:%u] - Creating multiple stackwalkers\n",
 	    __FILE__, __LINE__);
@@ -531,14 +531,14 @@ SymbolLookup *Walker::getSymbolLookup() const {
    return lookup;
 }
 
-ProcessState *Walker::createDefaultProcess()
+ProcessState *Walker::createDefaultProcess(std::string exec_name)
 {
-   ProcSelf *pself = new ProcSelf();
+   ProcSelf *pself = new ProcSelf(exec_name);
    pself->initialize();
    return pself;
 }
 
-ProcessState *Walker::createDefaultProcess(PID pid, const std::string& executable)
+ProcessState *Walker::createDefaultProcess(PID pid, std::string executable)
 {
    ProcDebug *pdebug = ProcDebug::newProcDebug(pid, executable);
    return pdebug;
@@ -550,7 +550,7 @@ bool Walker::createDefaultProcess(const vector<Dyninst::PID> &pids,
    return ProcDebug::newProcDebugSet(pids, pds);
 }
 
-ProcessState *Walker::createDefaultProcess(const std::string &exec_name, 
+ProcessState *Walker::createDefaultProcess(std::string exec_name, 
                                            const std::vector<std::string> &argv)
 {
    ProcDebug *pdebug = ProcDebug::newProcDebug(exec_name, argv);

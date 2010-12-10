@@ -49,8 +49,6 @@ using namespace Dyninst;
 
 #if defined(os_bg_ion) && defined(os_bgp)
 #include "external/bluegene/bgp-debugger-interface.h"
-#else
-#error "BUILD ERROR: addrtranslate-bluegenep.C compiled in non bgp ion build."
 #endif // defined(os_bg_ion) && defined(os_bgp)
 
 
@@ -61,8 +59,12 @@ ProcessReader *AddressTranslateSysV::createDefaultDebugger(int) {
 
 bool AddressTranslateSysV::setAddressSize() 
 {
+#if defined(os_bg_ion) && defined(os_bgp)
   address_size = sizeof(DebuggerInterface::BG_Addr_t);
   translate_printf("[%s:%u] - Set address size to %z.\n", __FILE__, __LINE__, address_size);
+#else
+  address_size = sizeof(void *);
+#endif
   return true;
 }
 
@@ -108,11 +110,44 @@ bool AddressTranslateSysV::setInterpreter()
 
   translate_printf("[%s:%u] - About to set interpreter.\n", __FILE__, __LINE__);
   string interp_name = exe->getInterpreter();
-
-  interpreter = files.getNode(interp_name, symfactory);
+  if (interp_name == std::string("")) {
+     return false;
+  }
+ interpreter = files.getNode(interp_name, symfactory);
   if (interpreter)
      interpreter->markInterpreter();
   translate_printf("[%s:%u] - Set interpreter name: '%s'\n", __FILE__, __LINE__, interp_name.c_str());
 
   return true;
 }
+
+#if defined(os_bg_compute)
+
+#include <elf.h>
+#include <link.h>
+extern char **environ;
+
+bool AddressTranslateSysV::setInterpreterBase() {
+    if (set_interp_base) return true;
+
+    Elf32_auxv_t *auxv;
+    char **env_end = environ;
+    while (*env_end++ != NULL);
+    
+    auxv = (Elf32_auxv_t *) env_end;
+    for (;;) {
+       if (auxv->a_type == AT_BASE) {
+          interpreter_base = auxv->a_un.a_val;
+          set_interp_base = true;
+          return true;
+       }
+       if (auxv->a_type == AT_NULL) {
+          set_interp_base = true;
+          interpreter_base = 0;
+          return 0;
+       }
+       auxv++;
+    }
+
+}
+#endif

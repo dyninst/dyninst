@@ -515,8 +515,8 @@ bool AddressTranslateSysV::parseInterpreter() {
 
     result = setInterpreter();
     if (!result) {
-        translate_printf("[%s:%u] - Failed to set interpreter.\n", __FILE__, __LINE__);
-        return false;
+        translate_printf("[%s:%u] - Failed to set interpreter--static binary.\n", __FILE__, __LINE__);
+        return true;
     }
 
     result = setAddressSize();
@@ -654,6 +654,7 @@ bool AddressTranslateSysV::refresh()
           if (!exec) {
              exec = getAOut();
           }
+          libs.push_back(exec);
           getArchLibs(libs);
           return true;
        }

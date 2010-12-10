@@ -49,7 +49,7 @@ class ProcDebugLinux : public ProcDebug {
   virtual bool debug_attach(ThreadState *ts);
   virtual bool debug_post_attach(ThreadState *ts);
   virtual bool debug_post_create();
-  virtual bool debug_create(const std::string &executable, 
+  virtual bool debug_create(std::string executable, 
                             const std::vector<std::string> &argv);
   virtual bool debug_pause(ThreadState *thr);
   virtual bool debug_continue(ThreadState *thr);
@@ -60,7 +60,7 @@ class ProcDebugLinux : public ProcDebug {
   void setOptions(Dyninst::THR_ID tid);
  public:
   ProcDebugLinux(Dyninst::PID pid);
-  ProcDebugLinux(const std::string &executable, 
+  ProcDebugLinux(std::string executable, 
                  const std::vector<std::string> &argv);
   virtual ~ProcDebugLinux();
 
