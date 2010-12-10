@@ -490,6 +490,8 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &ge
     // x86 linux platforms do not allow for writing to memory
     // below the stack pointer.  No need to skip a "red zone."
 
+   gen.setInInstrumentation(true);
+
     int instFrameSize = 0; // Tracks how much we are moving %rsp
     int funcJumpSlotSize = 0;
     if (bti) {
@@ -639,7 +641,6 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &ge
                 -extra_space, RealRegister(REGNUM_ESP), gen);
         gen.rs()->incStack(extra_space);
     }
-    cerr << "Setting extra_space_check to " << extra_space << endl;
     extra_space_check = extra_space;
 
     if (useFPRs) {
@@ -709,7 +710,6 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen 
 
     // Remove extra space allocated for temporaries and floating-point state
     int extra_space = gen.rs()->getStackHeight();
-    cerr << "Asserting extra_space " << extra_space << " == " << extra_space_check << endl;
     assert(extra_space == extra_space_check);
     if (!createFrame && extra_space) {
         emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
@@ -741,6 +741,7 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen 
         }
     }
 
+   gen.setInInstrumentation(true);
     return true;
 }
 
@@ -1915,7 +1916,7 @@ static void emitPushImm16_64(unsigned short imm, codeGen &gen)
 #define MIN_SINT ((signed int) (0x80000000))
 void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, bool callOp, codeGen &gen)
 {
-    assert(gen.bti());
+   assert(gen.inInstrumentation());
 
     // This function assumes we aligned the stack, and hence the original
     // stack pointer value is stored at the top of our instrumentation stack.
@@ -2078,7 +2079,7 @@ void EmitterAMD64::emitASload(int ra, int rb, int sc, long imm, Register dest, c
       emitMovImmToReg64(dest, imm, true, gen);
       return;
     }
-    if (gen.bti()) {
+    if (gen.inInstrumentation()) {
       use_a = dest;
       emitLoadOrigRegister(ra, dest, gen);
     }
@@ -2089,7 +2090,7 @@ void EmitterAMD64::emitASload(int ra, int rb, int sc, long imm, Register dest, c
   
   // if rb is specified, move its inst-point value into RAX
   if(haverb) {
-    if (gen.bti()) {
+     if (gen.inInstrumentation()) {
       use_b = gen.rs()->getScratchRegister(gen);
       gen.markRegDefined(use_b);
       emitLoadOrigRegister(rb, use_b, gen);
@@ -2336,6 +2337,8 @@ void EmitterAMD64::emitStackAlign(int offset, codeGen &gen)
 
 bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &gen)
 {
+   gen.setInInstrumentation(true);
+
    int instFrameSize = 0; // Tracks how much we are moving %rsp
    int funcJumpSlotSize = 0;
    if (bti) {
@@ -2485,7 +2488,6 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &g
                  REGNUM_RSP, true, gen);
        gen.rs()->incStack(extra_space);
    }
-   cerr << "Setting extra_space_check to " << extra_space << endl;
    extra_space_check = extra_space;
 
    if (useFPRs) {
@@ -2543,7 +2545,6 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen
     }
 
     int extra_space = gen.rs()->getStackHeight();
-    cerr << "Checking if " << extra_space << " == " << extra_space_check << endl;
     assert(extra_space == extra_space_check);
     if (!createFrame && extra_space) {
         emitLEA64(REGNUM_RSP, Null_Register, 0, extra_space,
@@ -2584,6 +2585,7 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen
                   AMD64_RED_ZONE + funcJumpSlotSize, REGNUM_ESP, true, gen);
     }
 
+   gen.setInInstrumentation(false);
     return true;
 }
 

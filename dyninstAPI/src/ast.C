@@ -673,7 +673,6 @@ bool AstNode::generateCode(codeGen &gen,
         entered = false;
         stats_codegen.stopTimer(CODEGEN_AST_TIMER);
     }
-
     return ret;
 }
 

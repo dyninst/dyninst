@@ -1415,7 +1415,6 @@ void registerSpace::incStack(int val) {
 }
 
 void registerSpace::setStackHeight(int val) {
-   cerr << "Setting stack height (" << regStateStack.size() << ") to " << val << endl;
    if (!regStateStack.size())
       initRealRegSpace();
    regStateStack[regStateStack.size()-1]->stack_height = val;
@@ -1425,7 +1424,6 @@ int registerSpace::getStackHeight()
 {
    if (!regStateStack.size())
       initRealRegSpace();
-   cerr << "Getting stack height (" << regStateStack.size() << "): " << regStateStack[regStateStack.size()-1]->stack_height;
    return regStateStack[regStateStack.size()-1]->stack_height;
 }
 

@@ -75,6 +75,7 @@ codeGen::codeGen() :
     bti_(NULL),
     isPadded_(true),
     trackRegDefs_(false),
+    inInstrumentation_(false), // save default
     obj_(NULL)
 {}
 
@@ -96,6 +97,7 @@ codeGen::codeGen(unsigned size) :
     bti_(NULL),
     isPadded_(true),
     trackRegDefs_(false),
+    inInstrumentation_(false),
     obj_(NULL)
 {
     buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
@@ -129,6 +131,7 @@ codeGen::codeGen(const codeGen &g) :
     bti_(g.bti_),
     isPadded_(g.isPadded_),
     trackRegDefs_(g.trackRegDefs_),
+    inInstrumentation_(g.inInstrumentation_),
     obj_(g.obj_)
 {
     if (size_ != 0) {
@@ -160,6 +163,7 @@ codeGen &codeGen::operator=(const codeGen &g) {
     lwp_ = g.lwp_;
     isPadded_ = g.isPadded_;
     int bufferSize = size_ + (isPadded_ ? codeGenPadding : 0);
+    inInstrumentation_ = g.inInstrumentation_;
     obj_ = g.obj_;
     
 
@@ -426,6 +430,7 @@ void codeGen::applyTemplate(const codeGen &c) {
   ip_ = c.ip_;
   f_ = c.f_;
   bti_ = c.bti_;
+  inInstrumentation_ = c.inInstrumentation_;
 }
 
 void codeGen::setAddrSpace(AddressSpace *a)

@@ -681,33 +681,33 @@ Slicer::handleCall(
     Block::edgelist::iterator eit = targets.begin();
     for( ; eit != targets.end(); ++eit) {
         ParseAPI::Edge * e = *eit;
-        if(e->sinkEdge()) {
-            // FIXME all blocks with calls contain a sink edge;
-            //       this probably isn't an error. I am duplicating
-            //       functionality that existed as of git version
-            //       06697df, and it needs review
-            err = true;
-        } else if(e->type() == CALL) {
-            callee = e->trg();
+        if(e->type() == CALL) {
+           callee = e->trg();
         } else if(e->type() == CALL_FT) {
-            funlink = e;
+           funlink = e;
         }
     }
-
+    
     if(followCall(p, callee, cur)) {
-        ParseAPI::Block * caller_block = cur.loc.block;
+       if (!callee) {
+          // Indirect call that they wanted us to follow, so widen.
+          err = true;
+          return true;
+       }
 
-        cur.loc.block = callee;
-        cur.loc.func = getEntryFunc(callee);
-        getInsns(cur.loc);
-
-        // Update the context of the slicing frame
-        // and modify the abstract regions in its
-        // active vector
-        if(!handleCallDetails(cur,caller_block)) {
-            err = true;
-            return false;
-        }
+       ParseAPI::Block * caller_block = cur.loc.block;
+       
+       cur.loc.block = callee;
+       cur.loc.func = getEntryFunc(callee);
+       getInsns(cur.loc);
+       
+       // Update the context of the slicing frame
+       // and modify the abstract regions in its
+       // active vector
+       if(!handleCallDetails(cur,caller_block)) {
+          err = true;
+          return false;
+       }
     }
     else {
         // Use the funlink
@@ -738,8 +738,8 @@ Slicer::followCall(
     SliceFrame & cur)
 {
     // FIXME quote:
-        // A NULL callee indicates an indirect call.
-        // TODO on that one...
+   // A NULL callee indicates an indirect call.
+   // TODO on that one...
    
     ParseAPI::Function * callee = (target ? getEntryFunc(target) : NULL);
     

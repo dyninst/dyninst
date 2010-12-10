@@ -1685,7 +1685,7 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
       dest_r = *dest_to_use;
    }
    else {
-      if (gen.bti()) {
+      if (gen.inInstrumentation()) {
          dest = gen.rs()->getScratchRegister(gen);
       }
       else {
@@ -1784,7 +1784,7 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, co
    RealRegister src1_r(-1);
    Register src1 = REG_NULL;
    if (havera) {
-     if (gen.bti()) {
+      if (gen.inInstrumentation()) {
        src1 = restoreGPRtoReg(RealRegister(ra), gen);
        src1_r = gen.rs()->loadVirtual(src1, gen);
       gen.rs()->markKeptRegister(src1);
@@ -1801,7 +1801,7 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, co
       if (ra == rb) {
          src2_r = src1_r;
       }
-      else if (gen.bti()) {
+      else if (gen.inInstrumentation()) {
 	src2 = restoreGPRtoReg(RealRegister(rb), gen);
 	src2_r = gen.rs()->loadVirtual(src2, gen);
 	gen.rs()->markKeptRegister(src2);
@@ -1813,7 +1813,7 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, co
    
    if (havera && !haverb && !sc && !imm) {
       //Optimized case, just use the existing src1_r
-     if (gen.bti()) {
+      if (gen.inInstrumentation()) {
        gen.rs()->unKeepRegister(src1);
        gen.rs()->freeRegister(src1);
        gen.rs()->noteVirtualInReal(dest, src1_r);
@@ -1830,7 +1830,7 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, co
    // e.g. lea eax, [eax + edx * sc + imm] if both ra and rb had to be
    // restored
    RealRegister dest_r; 
-   if (gen.bti()) {
+   if (gen.inInstrumentation()) {
      dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
    }
    else {
@@ -2319,7 +2319,7 @@ void emitFuncJump(opCode op,
 void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/,
                                bool callOp, codeGen &gen)
 {
-    assert(gen.bti());
+   assert(gen.inInstrumentation());
 
     // This function assumes we aligned the stack, and hence the original
     // stack pointer value is stored at the top of our instrumentation stack.
@@ -2484,7 +2484,7 @@ bool emitPush(RealRegister reg, codeGen &gen) {
     *insn++ = static_cast<unsigned char>(0x50 + r); // 0x50 is push EAX, and it increases from there.
 
     SET_PTR(insn, gen);
-    if (gen.bti()) {
+    if (gen.inInstrumentation()) {
        gen.rs()->incStack(4);
     }
     return true;
@@ -2496,7 +2496,7 @@ bool emitPop(RealRegister reg, codeGen &gen) {
     assert(r < 8);
     *insn++ = static_cast<unsigned char>(0x58 + r);    
     SET_PTR(insn, gen);
-    if (gen.bti()) {
+    if (gen.inInstrumentation()) {
        gen.rs()->incStack(-4);
     }
     return true;
