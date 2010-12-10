@@ -1400,6 +1400,7 @@ void BPatch_image::clearNewCodeRegions()
     for (unsigned oix=0; oix < objs.size(); oix++) {
         if (BPatch_normalMode != objs[oix]->hybridMode()) {
             objs[oix]->parse_img()->clearNewBlocks();
+            objs[oix]->parse_img()->clearSplitBlocks();
         }
     }
 }
