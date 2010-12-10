@@ -666,16 +666,18 @@ bool Frame::setPC(Address newpc) {
    //__FILE__, __LINE__, pcAddr_, newpc);
    if (getProc()->getAddressWidth() == sizeof(uint64_t)) {
       uint64_t newpc64 = newpc;
-      getProc()->writeDataSpace((void*)pcAddr_, sizeof(newpc64), &newpc64);
+      if (!getProc()->writeDataSpace((void*)pcAddr_, sizeof(newpc64), &newpc64))
+         return false;
    }
    else {
       uint32_t newpc32 = newpc;
-      getProc()->writeDataSpace((void*)pcAddr_, sizeof(newpc32), &newpc32);
+      if (!getProc()->writeDataSpace((void*)pcAddr_, sizeof(newpc32), &newpc32))
+         return false;
    }
    pc_ = newpc;
    range_ = NULL;
 
-   return false;
+   return true;
 }
 
 bool AddressSpace::getDyninstRTLibName() {
