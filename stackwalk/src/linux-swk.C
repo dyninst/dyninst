@@ -139,8 +139,9 @@ Elf_X *getElfHandle(std::string s)
 }
 
 static void registerLibSpotterSelf(ProcSelf *pself);
-ProcSelf::ProcSelf() :
-   ProcessState(getpid())
+
+ProcSelf::ProcSelf(std::string exe_path) :
+   ProcessState(getpid(), exe_path)
 {
 }
 
@@ -781,7 +782,7 @@ ProcDebugLinux::ProcDebugLinux(PID pid)
 {
 }
 
-ProcDebugLinux::ProcDebugLinux(const std::string &executable, 
+ProcDebugLinux::ProcDebugLinux(std::string executable, 
                                const std::vector<std::string> &argv)
    : ProcDebug(executable, argv),
      cached_addr_width(0),
@@ -818,7 +819,7 @@ ProcDebug *ProcDebug::newProcDebug(PID pid, std::string)
    return pd;
 }
 
-ProcDebug *ProcDebug::newProcDebug(const std::string &executable, 
+ProcDebug *ProcDebug::newProcDebug(std::string executable, 
                                    const std::vector<std::string> &argv)
 {
    ProcDebugLinux *pd = new ProcDebugLinux(executable, argv);
@@ -915,7 +916,7 @@ int ProcDebug::getNotificationFD()
    return pipe_out;
 }
 
-bool ProcDebugLinux::debug_create(const std::string &executable, 
+bool ProcDebugLinux::debug_create(std::string executable, 
                                   const std::vector<std::string> &argv)
 {
    pid = fork();

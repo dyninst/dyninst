@@ -36,10 +36,11 @@
 using namespace Dyninst;
 using namespace std;
 
-AddressTranslate::AddressTranslate(PID pid_, PROC_HANDLE phand) :
+AddressTranslate::AddressTranslate(PID pid_, PROC_HANDLE phand, std::string exename) :
    pid(pid_),
    phandle(phand),
    creation_error(false),
+   exec_name(exename),
    exec(NULL),
    symfactory(NULL),
    read_abort(false)

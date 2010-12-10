@@ -54,11 +54,13 @@ class ProcessState {
    friend class Walker;
 protected:
    Dyninst::PID pid;
+   std::string exec_path;
    LibraryState *library_tracker;
    Walker *walker;
    static std::map<Dyninst::PID, ProcessState *> proc_map;
+   std::string executable_path;
 
-   ProcessState(Dyninst::PID pid_ = 0);
+   ProcessState(Dyninst::PID pid_ = 0, std::string executable_path_ = std::string(""));
    void setPid(Dyninst::PID pid_);
 public:
 
@@ -99,11 +101,13 @@ public:
   virtual bool postStackwalk(Dyninst::THR_ID tid);
 
   virtual bool isFirstParty() = 0;
+
+  std::string getExecutablePath();
 };
 
 class ProcSelf : public ProcessState {
  public:
-  ProcSelf();
+  ProcSelf(std::string exe_path = std::string(""));
   void initialize();
 
   virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val);
@@ -170,7 +174,7 @@ class ProcDebug : public ProcessState {
   friend class ThreadState;
  protected:
   ProcDebug(Dyninst::PID pid, std::string executable="");
-  ProcDebug(const std::string &executable, 
+  ProcDebug(std::string executable, 
             const std::vector<std::string> &argv);
   
   /**
@@ -186,9 +190,9 @@ class ProcDebug : public ProcessState {
   virtual bool debug_post_attach(ThreadState *ts);
   virtual bool debug_post_create();
 
-  virtual bool create(const std::string &executable, 
+  virtual bool create(std::string executable, 
                       const std::vector<std::string> &argv);
-  virtual bool debug_create(const std::string &executable, 
+  virtual bool debug_create(std::string executable, 
                             const std::vector<std::string> &argv) = 0;
   virtual bool debug_waitfor_create();
   
@@ -221,7 +225,7 @@ class ProcDebug : public ProcessState {
   static ProcDebug *newProcDebug(Dyninst::PID pid, std::string executable="");
   static bool newProcDebugSet(const std::vector<Dyninst::PID> &pids,
                               std::vector<ProcDebug *> &out_set);
-  static ProcDebug *newProcDebug(const std::string &executable, 
+  static ProcDebug *newProcDebug(std::string executable, 
                                  const std::vector<std::string> &argv);
   virtual ~ProcDebug();
 
@@ -242,7 +246,6 @@ class ProcDebug : public ProcessState {
   virtual bool detach(bool leave_stopped = false) = 0;
 
   static int getNotificationFD();
-  const std::string& getExecutablePath();
 
   static bool handleDebugEvent(bool block = false);
   virtual bool isFirstParty();
@@ -278,7 +281,6 @@ class ProcDebug : public ProcessState {
   ThreadState *active_thread;
   typedef std::map<Dyninst::THR_ID, ThreadState*> thread_map_t;
   thread_map_t threads;
-  std::string executable_path;
   sig_callback_func sigfunc;
  public:
   static int pipe_in;

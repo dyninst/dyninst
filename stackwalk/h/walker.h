@@ -57,14 +57,14 @@ class Walker {
           StepperGroup *grp,
           SymbolLookup *sym, 
           bool default_steppers,
-          const std::string &exec_name);
-   SymbolLookup *createDefaultSymLookup(const std::string &exec_name);
+          std::string exec_name);
+   SymbolLookup *createDefaultSymLookup(std::string exec_name);
    StepperGroup *createDefaultStepperGroup();
-   static ProcessState *createDefaultProcess();
-   static ProcessState *createDefaultProcess(Dyninst::PID pid, const std::string& exe);
+   static ProcessState *createDefaultProcess(std::string exec_name = std::string(""));
+   static ProcessState *createDefaultProcess(Dyninst::PID pid, std::string exe);
    static bool createDefaultProcess(const std::vector<Dyninst::PID> &pids,
                                     std::vector<ProcDebug *> &pds);
-   static ProcessState *createDefaultProcess(const std::string &exec_name, 
+   static ProcessState *createDefaultProcess(std::string exec_name, 
                                              const std::vector<std::string> &argv);
 
    bool createDefaultSteppers();
@@ -78,20 +78,20 @@ class Walker {
  public:
    static void version(int& major, int& minor, int& maintenance);
    //Create an object that operates on the current process
-   static Walker *newWalker();
+   static Walker *newWalker(std::string exec_name = std::string(""));
 
    //Create an object that operates on the specified process
    static Walker *newWalker(Dyninst::PID pid,
-                            const std::string &executable);
+                            std::string executable);
    static Walker *newWalker(Dyninst::PID pid);
    static bool newWalker(const std::vector<Dyninst::PID> &pids,
                          std::vector<Walker *> &walkers_out,
-                         const std::string &executable);
+                         std::string executable);
    static bool newWalker(const std::vector<Dyninst::PID> &pids,
                          std::vector<Walker *> &walkers_out);      
 
    //Create an object that creates the specified process
-   static Walker *newWalker(const std::string &exec_name, 
+   static Walker *newWalker(std::string exec_name, 
                             const std::vector<std::string> &argv);
 
    //Create an object with custom backend classes
