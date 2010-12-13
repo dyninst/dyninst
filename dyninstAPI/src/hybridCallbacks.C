@@ -115,6 +115,29 @@ void HybridAnalysis::signalHandlerExitCB(BPatch_point *point, void *returnAddr)
 #if !defined (os_windows)
 void HybridAnalysis::signalHandlerCB(BPatch_point *,long,std::vector<Address>&)
 {}
+
+bool HybridAnalysis::registerCodeDiscoveryCallback
+        (BPatchCodeDiscoveryCallback )
+{
+    return true;
+}
+
+bool HybridAnalysis::registerSignalHandlerCallback
+        (BPatchSignalHandlerCallback )
+{
+    return true;
+}
+
+bool HybridAnalysis::removeCodeDiscoveryCallback()
+{
+    return false;
+}
+
+bool HybridAnalysis::removeSignalHandlerCallback()
+{
+    return false;
+}
+
 #else 
 
 static void signalHandlerEntryCB_wrapper(BPatch_point *point, void *returnAddr) 

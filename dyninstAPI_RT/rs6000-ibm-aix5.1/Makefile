@@ -12,7 +12,7 @@ DEBUG_FLAG = -g
 
 # AIX: libraries end in .a
 TARGET = libdyninstAPI_RT.a
-TARGET_SYMLINK = libdyninstAPI_RT.so.1
+TARGET_SYMLINK = libdyninstAPI_RT.so
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.

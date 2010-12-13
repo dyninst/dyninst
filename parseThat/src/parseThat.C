@@ -191,7 +191,14 @@ bool runHunt_binaryEdit(){
 		// child case
 		// run new binary
 		char * exeFile = (char *) malloc (1024);
-		sprintf(exeFile, "./%s", config.writeFilePath);
+		if (config.use_exe)
+        {
+            sprintf(exeFile, "./%s", config.exeFilePath);
+        }
+		else
+        {
+            sprintf(exeFile, "./%s", config.writeFilePath);
+        }
 		int numargs = 0;
 		char **arg = (char **) malloc (2);
 		arg[0] = exeFile;
@@ -679,6 +686,17 @@ void parseArgs(int argc, char **argv)
                   {
                      strcpy(config.writeFilePath,arg);
                      printf("Write File Path is %s\n", config.writeFilePath);
+                  }
+               }  else if (strcmp(ptr, "-exe") == 0) {
+                  config.use_exe = true;
+                  if (!arg) {
+                     fprintf(stderr, "--binary-edit requires a path argument\n");
+                     userError();
+                  }
+                  else
+                  {
+                     strcpy(config.exeFilePath,arg);
+                     printf(" Executable Path is %s\n", config.exeFilePath);
                   }
                } else if (strcmp(ptr, "-args") == 0) {
                   if (!arg) {

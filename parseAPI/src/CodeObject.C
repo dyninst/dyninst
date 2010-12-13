@@ -52,6 +52,18 @@ namespace {
     }
 }
 
+static const int ParseAPI_major_version = 1;
+static const int ParseAPI_minor_version = 0;
+static const int ParseAPI_maintenance_version = 0;
+
+void CodeObject::version(int& major, int& minor, int& maintenance)
+{
+    major = ParseAPI_major_version;
+    minor = ParseAPI_minor_version;
+    maintenance = ParseAPI_maintenance_version;
+}
+
+
 CodeObject::CodeObject(CodeSource *cs, 
                        CFGFactory *fact, 
                        ParseCallback * cb, 

@@ -286,7 +286,7 @@ class Block : public Dyninst::interval<Address>,
     PARSER_EXPORT edgelist & sources() { return _srclist; }
     PARSER_EXPORT edgelist & targets() { return _trglist; }
 
-    PARSER_EXPORT bool consistent(Address addr, Address & prev_insn) const;
+    PARSER_EXPORT bool consistent(Address addr, Address & prev_insn);
 
     PARSER_EXPORT int  containingFuncs() const;
     PARSER_EXPORT void getFuncs(std::vector<Function *> & funcs);
@@ -414,6 +414,8 @@ class Function : public allocatable, public AnnotatableSparse {
  protected:
     PARSER_EXPORT Function(); 
  public:
+    bool _is_leaf_function;
+    Address _ret_addr; // return address of a function stored in stack at function entry
     typedef ContainerWrapper<
         std::vector<Block*>,
         Block*,

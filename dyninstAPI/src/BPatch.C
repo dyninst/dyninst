@@ -89,6 +89,7 @@ BPatch::BPatch()
     forceRelocation_NP(false),
     autoRelocation_NP(true),
     saveFloatingPointsOn(true),
+    forceSaveFloatingPointsOn(false),
     livenessAnalysisOn_(true),
     livenessAnalysisDepth_(3),
     asyncActive(false),
@@ -297,9 +298,14 @@ void BPatch::setSaveFPRInt(bool x)
   saveFloatingPointsOn = x;
 }
 
-bool BPatch::useNewRelocInt() { return useNewReloc_; }
-void BPatch::setNewRelocInt(bool x) { useNewReloc_ = x; }
-
+bool BPatch::isForceSaveFPROnInt()
+{
+  return forceSaveFloatingPointsOn;
+}
+void BPatch::forceSaveFPRInt(bool x)
+{
+  forceSaveFloatingPointsOn = x;
+}
 
 /*
  * BPatch::registerErrorCallbackInt
@@ -2258,3 +2264,8 @@ bool BPatch::remoteDisconnectInt(BPatch_remoteHost &remote)
     return OS_disconnect(remote);
 }
 // -----------------------------------------------------------
+
+void BPatch::addNonReturningFuncInt(std::string name)
+{
+  Dyninst::ParseAPI::SymtabCodeSource::addNonReturning(name);
+}

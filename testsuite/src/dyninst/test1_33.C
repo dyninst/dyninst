@@ -42,6 +42,8 @@
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
+#include "BPatch_flowGraph.h"
+#include "BPatch_basicBlock.h"
 
 #include "test_lib.h"
 #include "dyninst_comp.h"

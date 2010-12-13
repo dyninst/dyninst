@@ -234,7 +234,7 @@ AST::Ptr BooleanVisitor::visit(RoseAST *r) {
     // Our "true" is a constAST of 1
     if (newKids[0]->getID() == AST::V_ConstantAST) {
       ConstantAST::Ptr c = ConstantAST::convert(newKids[0]);
-      cerr << "\t 0 was const, val " << c->val() << endl;
+      //cerr << "\t 0 was const, val " << c->val() << endl;
       if (c->val().val != 0) {
 	return newKids[1];
       }

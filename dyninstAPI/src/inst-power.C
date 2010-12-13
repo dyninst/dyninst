@@ -1244,7 +1244,8 @@ bool baseTramp::generateSaves(codeGen &gen,
     // Save GPRs
     saveGPRegisters(gen, gen.rs(), gpr_off);
 
-    if(BPatch::bpatch->isSaveFPROn()) // Save FPRs
+    if(BPatch::bpatch->isSaveFPROn() ||  // Save FPRs
+        BPatch::bpatch->isForceSaveFPROn() ) 
 	saveFPRegisters(gen, gen.rs(), fpr_off);
 
     // Save LR            
@@ -1288,7 +1289,8 @@ bool baseTramp::generateRestores(codeGen &gen,
     // LR
     restoreLR(gen, REG_SCRATCH, TRAMP_SPR_OFFSET + STK_LR);
 
-    if (BPatch::bpatch->isSaveFPROn()) // FPRs
+    if (BPatch::bpatch->isSaveFPROn() || // FPRs
+        BPatch::bpatch->isForceSaveFPROn() ) 
 	restoreFPRegisters(gen, gen.rs(), fpr_off);
 
     // GPRs

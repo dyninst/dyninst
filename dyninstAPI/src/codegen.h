@@ -219,6 +219,7 @@ class codeGen {
     void setFunction(int_function *f) { f_ = f; }
     void setObj(generatedCodeObject *object) { obj_ = object; }
     void setBTI(baseTrampInstance *i) { bti_ = i; }
+    void setInInstrumentation(bool i) { inInstrumentation_ = i; }
 
     dyn_lwp *lwp() const;
     dyn_thread *thread() const;
@@ -232,6 +233,8 @@ class codeGen {
     regTracker_t *tracker() const;
     Emitter *codeEmitter() const;
     Emitter *emitter() const { return codeEmitter(); } // A little shorter
+    bool inInstrumentation() const { return inInstrumentation_; }
+    
 
     Dyninst::Architecture getArch() const;
 
@@ -285,6 +288,8 @@ class codeGen {
 
     bitArray regsDefined_;
     bool trackRegDefs_;
+
+    bool inInstrumentation_;
 
     generatedCodeObject *obj_;
 

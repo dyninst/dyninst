@@ -64,7 +64,7 @@ Block::~Block()
 }
 
 bool
-Block::consistent(Address addr, Address & prev_insn) const
+Block::consistent(Address addr, Address & prev_insn) 
 {
     InstructionSource * isrc;
     if(!_obj->cs()->regionsOverlap())
@@ -75,10 +75,10 @@ Block::consistent(Address addr, Address & prev_insn) const
     const unsigned char * buf = 
         (const unsigned char*)(region()->getPtrToInstruction(_start));
     InstructionDecoder dec(buf,size(),isrc->getArch());
-    InstructionAdapter_t ah(dec,_start,_obj,region(),isrc);
+    InstructionAdapter_t ah(dec,_start,_obj,region(),isrc, this);
 #else
     InstrucIter iter(_start,size(),isrc);
-    InstructionAdapter_t ah(iter,_obj,region(),isrc);
+    InstructionAdapter_t ah(iter,_obj,region(),isrc, this);
 #endif
 
     Address cur = ah.getAddr();
