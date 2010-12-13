@@ -105,7 +105,6 @@ private:
         bool isIPRelativeBranch() const;
         bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
         virtual bool isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block* currBlk) const;
-        virtual bool isReturnInst(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block* currBlk) const;
         bool isFakeCall() const;
         bool isIATcall() const;
         bool isLinkerStub() const;

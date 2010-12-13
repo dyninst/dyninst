@@ -249,11 +249,6 @@ bool IA_IAPI::isReturnAddrSave(Address& retAddr) const
 
 bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const
 {
-	return isReturnInst(context, currBlk);
-
-}
-bool IA_IAPI::isReturnInst(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const 
-{
   /* Check for leaf node or lw - mflr - blr pattern */
   if (curInsn()->getCategory() != c_ReturnInsn) {
 	parsing_printf(" Not BLR - returning false \n");
