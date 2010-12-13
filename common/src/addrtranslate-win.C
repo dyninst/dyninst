@@ -65,7 +65,7 @@ void AddressTranslateWin::setNoProc(bool b)
    no_proc = b;
 }
 
-AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessReader *, SymbolReaderFactory *, PROC_HANDLE phandle_)
+AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessReader *, SymbolReaderFactory *, PROC_HANDLE phandle_, std::string)
 {
 	AddressTranslateWin *new_translate = new AddressTranslateWin(pid_, phandle_);
 	if (!new_translate)
@@ -75,7 +75,7 @@ AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessRea
 	return new_translate;
 }
 
-AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *, SymbolReaderFactory *)
+AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *, SymbolReaderFactory *, std::string)
 {
 	//return createAddressTranslator(GetCurrentProcess(), NULL);
 	return createAddressTranslator(GetCurrentProcessId(), NULL, NULL, GetCurrentProcess());
