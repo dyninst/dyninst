@@ -54,6 +54,8 @@
 
 #include "debug_dataflow.h"
 
+#include "boost/tuple/tuple.hpp"
+
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace DataflowAPI;
@@ -106,35 +108,156 @@ void dfs(Node::Ptr source,
    // insert that incoming edge into skipEdges.
    //
    // A node n has state[n] > 0 if it is on the path currently
-   // being explored. Incrementing and decrementing a counter
-   // for visited nodes (as opposed to setting a "PROGRESS" or "DONE"
-   // flag) avoids a corner case with the first node in the search.
+   // being explored.
 
    EdgeIterator b, e;
    source->outs(b, e);
 
-   // Because this is a non-simple graph---in particular because it has
-   // multiple edges between nodes---one must be careful not to repeatedly
-   // visit nodes to avoid exponential blowup.
-   std::set<Node::Ptr> done;
+   //state[source]++;
+   std::map<Node::Ptr, int>::iterator ssit = state.find(source);
+   if(ssit == state.end())
+    boost::tuples::tie(ssit,boost::tuples::ignore) = 
+        state.insert(make_pair(source,1));
+   else
+    (*ssit).second++;
 
    for (; b != e; ++b) {
       Edge::Ptr edge = *b;
       Node::Ptr cur = edge->target();
-      if (state[cur] > 0) { 
-         skipEdges.insert(edge);
-      }
-      else {
-         if(done.find(cur) != done.end()) {
-            done.insert(cur);
 
-            state[cur]++;
-            dfs(cur, state, skipEdges);
-            state[cur]--;
-        }
-      }
+      std::map<Node::Ptr, int>::iterator sit = state.find(cur);
+      bool done = (sit != state.end());
+
+      if(done && (*sit).second > 0)
+        skipEdges.insert(edge);
+
+      if(!done)
+        dfs(cur, state, skipEdges);
    }
+
+   //state[source]--;
+   (*ssit).second--;
 }
+
+/*
+ * Optimal ordering for visiting the slicing
+ * nodes during expansion; this is possible to do
+ * because we have removed loops
+ */
+class ExpandOrder {
+ public:
+    ExpandOrder() { }
+    ~ExpandOrder() { }
+
+    // remove an element from the next-lowest queue
+    // and return it and its order
+    pair<SliceNode::Ptr,int> pop_next()
+    {
+        SliceNode::Ptr rn = SliceNode::Ptr();
+        int ro = -1;
+
+        map<int,order_queue>::iterator qit = queues.begin();
+        for( ; qit != queues.end(); ++qit) {
+            order_queue & q = (*qit).second;
+            if(!q.nodes.empty()) {
+                rn = *q.nodes.begin();
+                ro = q.order; 
+                remove(rn);
+                break;
+            }
+        }
+        return make_pair(rn,ro);
+    }
+
+    // removes a node from the structure
+    // returns true if the node was there
+    bool remove(SliceNode::Ptr n) {
+        map<SliceNode::Ptr, int>::iterator it = order_map.find(n);
+        if(it != order_map.end()) {
+            queues[ (*it).second ].nodes.erase(n);
+            order_map.erase(it);
+            return true;
+        } 
+        return false;
+    }
+
+    // places a node in the structure -- its
+    // order is computed
+    void insert(SliceNode::Ptr n, bool force_done = false) {
+        // compute the order of this node --- the number of its parents
+        // not on the skipedges list and not done
+        EdgeIterator begin, end;
+        n->ins(begin,end);
+        int pcnt = 0;
+        for( ; begin != end; ++begin) {
+            Edge::Ptr edge = *begin;
+            if(skip_edges.find(edge) == skip_edges.end()) {
+                SliceNode::Ptr parent =
+                    dyn_detail::boost::static_pointer_cast<SliceNode>(
+                        edge->source());
+                if(done.find(parent) == done.end())
+                    ++pcnt;
+            }
+        }
+
+        queues[pcnt].nodes.insert(n);
+        queues[pcnt].order = pcnt;
+        order_map[n] = pcnt;
+
+        if(force_done)
+            done.insert(n);
+    }
+
+    // Mark a node complete, updating its children.
+    // Removes the node from the data structure
+    void mark_done(SliceNode::Ptr n) {
+        // First pull all of the children of this node
+        // that are not on the skip list
+
+        set<SliceNode::Ptr> children;
+
+        EdgeIterator begin, end;
+        n->outs(begin, end);
+        for (; begin != end; ++begin) {
+            Edge::Ptr edge = *begin;
+            if(skip_edges.find(edge) == skip_edges.end()) {
+                SliceNode::Ptr child = 
+                    dyn_detail::boost::static_pointer_cast<SliceNode>(
+                        edge->target());
+                if(remove(child))
+                    children.insert(child);
+            }
+        }
+
+        // remove n and set done
+        remove(n);
+        done.insert(n);
+
+        // put the children back
+        set<SliceNode::Ptr>::iterator cit = children.begin();
+        for( ; cit != children.end(); ++cit) {
+            insert(*cit); 
+        }
+    }
+    
+    bool is_done(SliceNode::Ptr n) const {
+        return done.find(n) == done.end();
+    }
+
+    set<Edge::Ptr> & skipEdges() { return skip_edges; }
+
+ private:
+    struct order_queue {
+        int order;
+        set<SliceNode::Ptr> nodes; 
+    };
+
+    set<Edge::Ptr> skip_edges; 
+    map<int,order_queue> queues;
+    map<SliceNode::Ptr, int> order_map;
+    set<SliceNode::Ptr> done;
+};
+
 
 // Do the previous, but use a Graph as a guide for
 // performing forward substitution on the AST results
@@ -142,58 +265,77 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
     //cout << "Calling expand" << endl;
     // Other than the substitution this is pretty similar to the first example.
     NodeIterator gbegin, gend;
-    slice->entryNodes(gbegin, gend);
+    slice->allNodes(gbegin, gend);
 
-    std::queue<Node::Ptr> worklist;
+    // Optimal ordering of search
+    ExpandOrder worklist;
+
     std::queue<Node::Ptr> dfs_worklist;
     for (; gbegin != gend; ++gbegin) {
-      expand_cerr << "adding " << (*gbegin)->format() << " to worklist" << endl;
-      worklist.push(*gbegin);
-      dfs_worklist.push(*gbegin);
+      Node::Ptr ptr = *gbegin;
+      dfs_worklist.push(ptr);
     }
 
     /* First, we'll do DFS to check for circularities in the graph;
      * if so, mark them so we don't do infinite substitution */
-    std::set<Edge::Ptr> skipEdges;
-
+    std::map<Node::Ptr, int> state;
     while (!dfs_worklist.empty()) {
        Node::Ptr ptr = dfs_worklist.front(); dfs_worklist.pop();
-       std::map<Node::Ptr, int> state;
-       state[ptr] = 1;
-       dfs(ptr, state, skipEdges);
+       dfs(ptr, state, worklist.skipEdges());
     }
-    
+
+    slice->allNodes(gbegin, gend);
+    for (; gbegin != gend; ++gbegin) {
+        expand_cerr << "adding " << (*gbegin)->format() << " to worklist" << endl;
+        Node::Ptr ptr = *gbegin;
+        SliceNode::Ptr sptr = 
+            dyn_detail::boost::static_pointer_cast<SliceNode>(ptr);
+        worklist.insert(sptr,false);
+    }
+
     /* have a list
      * for each node, process
      * if processessing succeeded, remove the element
      * if the size of the list has changed, continue */
 
-    while (!worklist.empty()) {
-      Node::Ptr ptr = worklist.front(); worklist.pop();
-      SliceNode::Ptr aNode = dyn_detail::boost::static_pointer_cast<SliceNode>(ptr);
-      if (!aNode) continue; // They need to be SliceNodes
-      
+    while (1) {
+      SliceNode::Ptr aNode;
+      int order;
+
+      boost::tie(aNode,order) = worklist.pop_next();
+      if(order == -1) // empty
+        break;
+
       if (!aNode->assign()) continue; // Could be a widen point
-      
-      expand_cerr << "Visiting node " << aNode->assign()->format() << endl;
+
+      expand_cerr << "Visiting node " << aNode->assign()->format() 
+        << " order " << order << endl;
+
+      assert(order == 0); // there are no loops
 
       AST::Ptr prev = res[aNode->assign()];
-      
-      process(aNode, res, skipEdges); 
-    
+      process(aNode, res, worklist.skipEdges()); 
       AST::Ptr post = res[aNode->assign()];
 
+      // We've visited this node, freeing its children
+      // to be visited in turn
+      worklist.mark_done(aNode);
+
       if (post && !(post->equals(prev))) {
-	// Oy
-	expand_cerr << "Adding successors to list, as new expansion " << endl
-		    << "\t" << post->format() << endl 
-		    << " != " << endl
-		    << "\t" << (prev ? prev->format() : "<NULL>") << endl;
-	NodeIterator oB, oE;
-	aNode->outs(oB, oE);
-	for (; oB != oE; ++oB) {
-	  worklist.push(*oB);
-	}
+        expand_cerr << "Adding successors to list, as new expansion " << endl
+            << "\t" << post->format() << endl 
+            << " != " << endl
+            << "\t" << (prev ? prev->format() : "<NULL>") << endl;
+        EdgeIterator oB, oE;
+        aNode->outs(oB, oE);
+        for (; oB != oE; ++oB) {
+            if(worklist.skipEdges().find(*oB) == worklist.skipEdges().end()) {
+                SliceNode::Ptr out =
+                    dyn_detail::boost::static_pointer_cast<SliceNode>(
+                        (*oB)->target());
+                worklist.insert(out);
+            }
+        }
       }
     }
 }

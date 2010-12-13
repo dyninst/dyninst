@@ -69,6 +69,18 @@ using namespace std;
 static std::string errMsg;
 extern bool parseCompilerType(Object *);
 
+static const int Symtab_major_version = 7;
+static const int Symtab_minor_version = 0;
+static const int Symtab_maintenance_version = 0;
+
+void Symtab::version(int& major, int& minor, int& maintenance)
+{
+    major = Symtab_major_version;
+    minor = Symtab_minor_version;
+    maintenance = Symtab_maintenance_version;
+}
+
+
 void symtab_log_perror(const char *msg)
 {
    errMsg = std::string(msg);
@@ -3603,7 +3615,9 @@ SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
 		return false;
 	}
-   obj->insertPrereqLibrary(name);
+   size_t size = name.find_last_of("/");
+   string filename = name.substr(size+1);
+   obj->insertPrereqLibrary(filename);
    return true;
 #else
    return false;

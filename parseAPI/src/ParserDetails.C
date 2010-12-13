@@ -111,7 +111,7 @@ getBlockInsns(Block &blk, std::set<Address> &addrs)
     InstructionDecoder dec = InstructionDecoder
         (bufferBegin, bufSize, blk.region()->getArch());
     InstructionAdapter_t ah = InstructionAdapter_t
-        (dec, blk.start(), blk.obj(), blk.region(), blk.obj()->cs());
+       (dec, blk.start(), blk.obj(), blk.region(), blk.obj()->cs(), &blk);
 #else        
     InstrucIter iter(blk.start(), bufSize, blk.obj()->cs());
     InstructionAdapter_t ah(iter, 
@@ -141,29 +141,6 @@ void Parser::ProcessReturnInsn(
     det.type = ParseCallback::interproc_details::ret;
 
     _pcb.interproc_cf(frame.func, cur, ah.getAddr(),&det);
-}
-
-inline 
-static
-InstructionAdapter_t * getNewAdapter(Function *func, Address addr)
-{
-    unsigned bufSize = func->region()->offset() 
-                     + func->region()->length() 
-                     - addr;
-#if defined(cap_instruction_api)
-    using namespace InstructionAPI;
-    const unsigned char* bufferBegin = (const unsigned char *)
-        (func->isrc()->getPtrToInstruction(addr));
-    InstructionDecoder * dec = new InstructionDecoder
-        (bufferBegin, bufSize, func->region()->getArch());
-    InstructionAdapter_t * ah = new InstructionAdapter_t
-        (*dec, addr, func->obj(), func->region(), func->isrc());
-#else        
-    InstrucIter *iter = new InstrucIter(addr, bufSize, func->isrc());
-    InstructionAdapter_t *ah = new InstructionAdapter_t(*iter, 
-        func->obj(), func->region(), func->isrc());
-#endif
-    return ah;
 }
 
 /*
@@ -203,19 +180,19 @@ void Parser::ProcessCallInsn(
 void Parser::ProcessCFInsn(
     ParseFrame & frame,
     Block * cur,
-    InstructionAdapter_t *& ah)
+    InstructionAdapter_t & ah)
 {
     FuncReturnStatus insn_ret;
     Edges_t edges_out;
     ParseWorkBundle * bundle = NULL;
 
     // terminate the block at this address
-    end_block(cur,*ah);
+    end_block(cur,ah);
     
     // Instruction adapter provides edge estimates from an instruction
-    ah->getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries); 
+    ah.getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries); 
 
-    if (unlikely(_obj.defensiveMode() && !ah->isCall() && edges_out.size())) {
+    if (unlikely(_obj.defensiveMode() && !ah.isCall() && edges_out.size())) {
         // only parse branch edges that align with existing blocks
         bool hasUnalignedEdge = false;
         set<CodeRegion*> tregs;
@@ -270,7 +247,7 @@ void Parser::ProcessCFInsn(
         }
     }
 
-    insn_ret = ah->getReturnStatus(frame.func,frame.num_insns); 
+    insn_ret = ah.getReturnStatus(frame.func,frame.num_insns); 
 
     // Update function return status if possible
     if(unlikely(insn_ret != UNSET && frame.func->_rs < RETURN))
@@ -278,13 +255,13 @@ void Parser::ProcessCFInsn(
 
     // Return instructions need extra processing
     if(insn_ret == RETURN)
-        ProcessReturnInsn(frame,cur,*ah);
+       ProcessReturnInsn(frame,cur,ah);
 
-    bool dynamic_call = ah->isDynamicCall();
-    bool absolute_call = ah->isAbsoluteCall();
+    bool dynamic_call = ah.isDynamicCall();
+    bool absolute_call = ah.isAbsoluteCall();
     // unresolved is true for indirect calls, unresolved indirect branches, 
     // and later on is set set to true for transfers to bad addresses
-    bool has_unres = ah->hasUnresolvedControlFlow(frame.func,frame.num_insns);
+    bool has_unres = ah.hasUnresolvedControlFlow(frame.func,frame.num_insns);
 
     parsing_printf("\t\t%d edges:\n",edges_out.size());
     for(Edges_t::iterator curEdge = edges_out.begin();
@@ -313,17 +290,17 @@ void Parser::ProcessCFInsn(
         {
             // call callback
             resolvable_edge = resolvable_edge && !dynamic_call;
-            ProcessCallInsn(frame,cur,*ah,dynamic_call,
+            ProcessCallInsn(frame,cur,ah,dynamic_call,
                 absolute_call,resolvable_edge,curEdge->first);
 
             tailcall = !dynamic_call && 
-                ah->isTailCall(frame.func,frame.num_insns);
+                ah.isTailCall(frame.func,frame.num_insns);
             if(resolvable_edge)
                 newedge = link_tempsink(cur,CALL);
             else {
                 newedge = link(cur,_sink,CALL,true);
             }
-            if(!ah->isCall())
+            if(!ah.isCall())
                 newedge->_type._interproc = true;
         }
         /*
@@ -343,7 +320,7 @@ void Parser::ProcessCFInsn(
             frame.work_bundles.push_back(bundle);
         }
 
-        verbose_log(ah->getAddr(),curEdge);
+        verbose_log(ah.getAddr(),curEdge);
 
         ParseWorkElem * we = 
           bundle->add(
@@ -379,15 +356,15 @@ void Parser::ProcessCFInsn(
             // with bad targets (calls will have been taken care of)
             ParseCallback::interproc_details det;
             det.ibuf = (unsigned char*)
-               frame.func->isrc()->getPtrToInstruction(ah->getAddr());
-            det.isize = ah->getSize();
+               frame.func->isrc()->getPtrToInstruction(ah.getAddr());
+            det.isize = ah.getSize();
             det.data.unres.target = curEdge->first;
             det.type = ParseCallback::interproc_details::unres_branch;
             if (-1 == det.data.unres.target) {
                 det.data.unres.target = 0;
             }
             bool valid; Address addr;
-            boost::tie(valid, addr) = ah->getCFT();
+            boost::tie(valid, addr) = ah.getCFT();
             if (!valid) {
                 det.data.unres.dynamic = true;
                 det.data.unres.absolute_address = true;
@@ -395,13 +372,13 @@ void Parser::ProcessCFInsn(
                 det.data.unres.dynamic = false;
                 det.data.unres.absolute_address = false;
             }
-            _pcb.interproc_cf(frame.func,cur,ah->getAddr(),&det);
+            _pcb.interproc_cf(frame.func,cur,ah.getAddr(),&det);
         }
     }
 
-    if(ah->isDelaySlot())
-        ah->advance();
+    if(ah.isDelaySlot())
+        ah.advance();
 
-    if(!frame.func->_cleans_stack && ah->cleansStack())
+    if(!frame.func->_cleans_stack && ah.cleansStack())
         frame.func->_cleans_stack = true;
 }

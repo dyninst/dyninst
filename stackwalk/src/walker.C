@@ -43,6 +43,14 @@ using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 using namespace std;
 
+void Walker::version(int& major, int& minor, int& maintenance)
+{
+    major = SW_MAJOR;
+    minor = SW_MINOR;
+    maintenance = SW_BETA;
+}
+
+
 Walker::Walker(ProcessState *p, 
                StepperGroup *grp,
                SymbolLookup *sym, 

@@ -42,6 +42,9 @@
 #include "BPatch_Vector.h"
 #include "BPatch_addressSpace.h"
 #include "BPatch_snippet.h"
+#include "BPatch_flowGraph.h"
+#include "BPatch_basicBlock.h"
+#include "BPatch_basicBlockLoop.h"
 
 #include "test_lib.h"
 #include "Callbacks.h"

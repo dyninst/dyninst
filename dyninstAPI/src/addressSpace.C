@@ -68,8 +68,8 @@ AddressSpace::AddressSpace () :
     trampGuardBase_(NULL),
     up_ptr_(NULL),
     costAddr_(0),
-    emulateMem_(true),
-    emulatePC_(true)
+    emulateMem_(false),
+    emulatePC_(false)
 {
    memEmulator_ = new MemoryEmulator(this);
    if ( getenv("DYNINST_EMULATE_MEMORY") ) {

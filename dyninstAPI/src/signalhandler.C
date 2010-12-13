@@ -216,6 +216,23 @@ bool SignalHandler::handleProcessExit(EventRecord &ev, bool &continueHint)
   bool ret = false;
   process *proc = ev.proc;
 
+#if defined(os_aix)
+  /*
+   * For some odd reason, a process could exit without hitting our
+   * pre-exit instrumentation. This has been observed on AIX and is
+   * documented in bug 1104.
+   */
+
+  BPatch_process *bproc = BPatch::bpatch->getProcessByPid(proc->getPid());
+  if( bproc && !bproc->pendingUnreportedTermination() ) {
+     // Because the process no longer exists convert this event to
+     // a signal exit so the user doesn't mistakenly try to operate on
+     // the process
+     ev.status = statusSignalled;
+     ev.what = 0;
+     ev.info = 0;
+  }
+#endif
 
   if (ev.status == statusNormal) {
       sprintf(errorLine, "Process %d has terminated with code 0x%x\n",
