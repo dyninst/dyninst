@@ -207,8 +207,8 @@ class mapped_object : public codeRange {
     const pdvector<mapped_module *> &getModules();
 
     // begin exploratory and defensive mode functions //
-    BPatch_hybridMode hybridMode() { return analysisMode_; }
-    bool isExploratoryModeOn();
+    BPatch_hybridMode hybridMode() const { return analysisMode_; }
+    bool isExploratoryModeOn() const;
     bool parseNewEdges(const std::vector<edgeStub>& sources);
     bool parseNewFunctions(std::vector<Address> &funcEntryAddrs);
     void registerNewFunctions(); // register funcs found by recursive parsing
@@ -225,6 +225,7 @@ class mapped_object : public codeRange {
     void findFuncsByRange(Address startAddr,
                           Address endAddr,
                           std::set<int_function*> &pageFuncs);
+    unsigned int getAnalyzedCodePages(std::set<Address> &pageAddrs) const;//returns pageSize
 private:
     // helper functions
     void updateCodeBytes(SymtabAPI::Region *reg = NULL);

@@ -2089,7 +2089,7 @@ bool mapped_object::isSystemLib(const std::string &objname)
    return false;
 }
 
-bool mapped_object::isExploratoryModeOn()
+bool mapped_object::isExploratoryModeOn() const
 {
     return BPatch_exploratoryMode == analysisMode_ ||
            BPatch_defensiveMode == analysisMode_;
@@ -2142,6 +2142,40 @@ void mapped_object::setCodeBytesUpdated(bool newval)
              <<  "on non-defensive mapped object, ignoring request " 
              << fileName().c_str() << " " << __FILE__ << __LINE__ << endl;
     }
+}
+
+unsigned int mapped_object::getAnalyzedCodePages(set<Address> &pageAddrs) const
+{
+    unsigned pageSize = 1024; // memory emulation uses this func, but 
+                              // doesn't need the actual page size
+                              // if it's in rewriter mode
+    if (proc()->proc()) {
+        pageSize = proc()->proc()->getMemoryPageSize();
+    }
+    else if (!proc()->isMemoryEmulated()) {
+        assert(0 && "don't know page size in rewriter mode");
+    }
+    for (FuncMap::const_iterator iter = everyUniqueFunction.begin();
+         iter != everyUniqueFunction.end(); 
+         ++iter) 
+    {
+        const int_function::BlockSet & blocks = iter->second->blocks();
+        int_function::BlockSet::const_iterator bIter;
+        for (bIter = blocks.begin(); 
+            bIter != blocks.end(); 
+            bIter++) 
+        {
+            Address bStart, bEnd, page;
+            bStart = (*bIter)->start();
+            bEnd = (*bIter)->end();
+            page = bStart - (bStart % pageSize);
+            while (page < bEnd) { // account for blocks spanning multiple pages
+                pageAddrs.insert(page);
+                page += pageSize;
+            }
+        }
+    }
+    return pageSize;
 }
 
 #if !( (defined(os_linux) || defined(os_freebsd)) && \
