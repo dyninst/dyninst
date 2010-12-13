@@ -389,7 +389,7 @@ void IA_IAPI::getNewEdges(
         {
             outEdges.push_back(std::make_pair(getNextAddr(), FALLTHROUGH));
         }
- 	else if (!isReturnInst(context, currBlk)) {
+ 	else if (!isReturn(context, currBlk)) {
 	    // If BLR is not a return, then it is a jump table
             parsedJumpTable = true;
             parsing_printf("%s[%d]: BLR jump table candidate %s at 0x%lx\n", FILE__, __LINE__,

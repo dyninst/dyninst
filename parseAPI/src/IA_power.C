@@ -249,8 +249,7 @@ bool IA_IAPI::isReturnAddrSave(Address& retAddr) const
 
 bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const
 {
-	bool ret = isReturnInst(context, currBlk);
-	return ret;
+	return isReturnInst(context, currBlk);
 
 }
 bool IA_IAPI::isReturnInst(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const 
