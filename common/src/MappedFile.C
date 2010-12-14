@@ -47,7 +47,9 @@ MappedFile *MappedFile::createMappedFile(std::string fullpath_)
 
    bool ok = false;
    MappedFile *mf = new MappedFile(fullpath_, ok);
-   if (!mf) return NULL;
+   if (!mf) {
+       return NULL;
+   }
 
    if (!ok) {
 #if defined(os_vxworks)
@@ -59,6 +61,27 @@ MappedFile *MappedFile::createMappedFile(std::string fullpath_)
       mf->fd = -1;
 
       ok = true;
+#elif defined(os_windows)
+      if (std::string::npos != fullpath_.find(".dll") &&
+          std::string::npos == fullpath_.find("\\"))
+      {
+          size_t envLen = 64;
+          char *buf = (char*) malloc(envLen);
+          bool repeat = false;
+          do {
+              repeat = false;
+              if (getenv_s(&envLen, buf, envLen, "windir")) {
+                  if (envLen > 64) { // error due to size problem
+                      repeat = true;
+                      free(buf);
+                      buf = (char*) malloc(envLen);
+                  }
+              }
+          } while(repeat); // repeat once if needed
+          fullpath_ = buf + ("\\system32\\" + fullpath_);
+          free(buf);
+          return MappedFile::createMappedFile(fullpath_);
+      }
 #else
       delete mf;
       return NULL;

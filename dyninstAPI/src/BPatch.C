@@ -95,7 +95,6 @@ BPatch::BPatch()
     asyncActive(false),
     delayedParsing_(false),
     instrFrames(false),
-    useNewReloc_(true),
     systemPrelinkCommand(NULL),
     mutateeStatusChange(false),
     waitingForStatusChange(false),
@@ -2269,3 +2268,4 @@ void BPatch::addNonReturningFuncInt(std::string name)
 {
   Dyninst::ParseAPI::SymtabCodeSource::addNonReturning(name);
 }
+

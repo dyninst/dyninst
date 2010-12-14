@@ -815,27 +815,9 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
     }
 
     // build up list of memory pages that contain analyzed code
+    unsigned pageSize = getAS()->proc()->getMemoryPageSize();
     std::set<Address> pageAddrs;
-    int pageSize = getAS()->proc()->getMemoryPageSize();
-    const pdvector<int_function *> funcs = lowlevel_mod()->getAllFunctions();
-    for (unsigned fidx=0; fidx < funcs.size(); fidx++) {
-        const int_function::BlockSet&
-            blocks = funcs[fidx]->blocks();
-        int_function::BlockSet::const_iterator bIter;
-        for (bIter = blocks.begin(); 
-            bIter != blocks.end(); 
-            bIter++) 
-        {
-            Address bStart, bEnd, page;
-            bStart = (*bIter)->start();
-            bEnd = (*bIter)->end();
-            page = bStart - (bStart % pageSize);
-            while (page < bEnd) { // account for blocks spanning multiple pages
-                pageAddrs.insert(page);
-                page += pageSize;
-            }
-        }
-    }
+    mod->obj()->getAnalyzedCodePages(pageAddrs);
 
     // get lwp from which we can call changeMemoryProtections
     process *proc = ((BPatch_process*)addSpace)->lowlevel_process();

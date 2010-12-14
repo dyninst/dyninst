@@ -5176,16 +5176,18 @@ bool process::generateRequiredPatches(instPoint *callPt,
 
     // 1)
     int_block *callbbi = callPt->block();
-    assert(callPt->addr() <= callbbi->end());
+    assert(callPt->addr() < callbbi->end());
     int_block *ftbbi = callbbi->getFallthrough();
     Relocation::CodeTracker::RelocatedElements reloc;
-    if (!relocatedCode_.back().origToReloc(ftbbi->start(),
-					   ftbbi->func(),
-					   reloc)) 
+    CodeTrackers::reverse_iterator rit;
+    for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++)
     {
-        assert(0);
-        return false;
+        if ((*rit).origToReloc(ftbbi->start(), ftbbi->func(), reloc)) {
+            break;
+        }
     }
+    assert(rit != relocatedCode_.rend());
+    
     Address to = (reloc.instrumentation ? reloc.instrumentation : reloc.instruction);
 
     // 2) 
@@ -6633,3 +6635,4 @@ bool process::needsPIC()
 {
    return 0;
 }
+

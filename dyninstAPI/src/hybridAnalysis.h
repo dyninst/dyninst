@@ -129,6 +129,7 @@ private:
     bool processInterModuleEdge(BPatch_point *point, 
                                 Dyninst::Address target, 
                                 BPatch_module *targMod);
+    bool canUseCache(BPatch_point *pt);
 
     // parsing
     void parseNewEdgeInFunction(BPatch_point *sourcePoint, 

@@ -154,14 +154,6 @@ class int_block {
     image_basicBlock *ib_;
 };
 
-struct edgeStub {
-    edgeStub(int_block *s, Address t, EdgeTypeEnum y) 
-    { src = s; trg = t; type = y; }
-    int_block* src;
-    Address trg;
-    EdgeTypeEnum type;
-};
-
 class int_function : public patchTarget {
   friend class int_block;
  public:
@@ -290,8 +282,6 @@ class int_function : public patchTarget {
    const std::set<instPoint*> &funcUnresolvedControlFlow();
    const std::set<instPoint*> &funcAbruptEnds();
    bool setPointResolved(instPoint* resolvedPt);
-
-   bool parseNewEdges(const std::vector<edgeStub>& sources);
 
    bool isSignalHandler() {return handlerFaultAddr_ != 0;}
    Address getHandlerFaultAddr() {return handlerFaultAddr_;}

@@ -40,6 +40,7 @@
 #include "mapped_module.h"
 #include "InstructionDecoder.h"
 #include "parseAPI/src/InstrucIter.h"
+#include "MemoryEmulator/memEmulator.h"
 
 //std::string int_function::emptyString("");
 
@@ -534,124 +535,6 @@ int_block * int_function::setNewEntryPoint()
     return newEntry;
 }
 
-/* 0. The target and source must be in the same mapped region, make sure memory
- *    for the target is up to date
- * 1. Parse from target address, add new edge at image layer
- * 2. Register all newly created functions as a result of new edge parsing
- * 3. Add image blocks as int_blocks
- * 4. fix up mapping of split blocks with points
- * 5. Add image points, as instPoints 
-*/
-bool int_function::parseNewEdges(const std::vector<edgeStub> &stubs )
-{
-    using namespace SymtabAPI;
-    using namespace ParseAPI;
-
-    vector<ParseAPI::Block*> sources;
-    vector<Address> targets;
-    vector<EdgeTypeEnum> edgeTypes;
-    for (unsigned sidx = 0; sidx < stubs.size(); sidx++) {
-        sources.push_back(stubs[sidx].src->llb());
-        targets.push_back(stubs[sidx].trg);
-        edgeTypes.push_back(stubs[sidx].type);
-    }
-
-/* 0. Make sure memory for the target is up to date */
-
-    // Do various checks and set edge types, if necessary
-    Address loadAddr = getAddress() - ifunc()->getOffset();
-    for (unsigned idx=0; idx < stubs.size(); idx++) {
-
-        Block *cursrc = stubs[idx].src->llb();
-
-        // update target region if needed
-        if (BPatch_defensiveMode == obj()->hybridMode()) {
-            obj()->updateCodeBytesIfNeeded(stubs[idx].trg);
-        }
-
-        // translate targets to memory offsets rather than absolute addrs
-        targets[idx] -= loadAddr;
-
-        // figure out edge types if they have not been set yet
-        if (ParseAPI::NOEDGE == stubs[idx].type) {
-            Block::edgelist & edges = cursrc->targets();
-            Block::edgelist::iterator eit = edges.begin();
-            bool isIndirJmp = false;
-            bool isCondl = false;
-            for (; eit != edges.end(); eit++) {
-                if ((*eit)->trg()->start() == stubs[idx].trg) {
-                    edgeTypes[idx] = (*eit)->type();
-                    break;
-                } 
-                if (ParseAPI::INDIRECT == (*eit)->type()) {
-                    isIndirJmp = true;
-                } else if (ParseAPI::COND_NOT_TAKEN == (*eit)->type()
-                            || ParseAPI::COND_TAKEN == (*eit)->type()) {
-                    isCondl = true;
-                }
-            }
-            if (ParseAPI::NOEDGE == edgeTypes[idx]) {
-                bool isCall = false;
-                funcCalls();
-                instPoint *pt = findInstPByAddr(
-                    cursrc->lastInsnAddr()+loadAddr);
-                if (pt && callSite == pt->getPointType()) {
-                    isCall = true;
-                }
-                if (cursrc->end() == targets[idx]) {
-                    if (isCall) {
-                        edgeTypes[idx] = CALL_FT;
-                    } else if (isCondl) {
-                        edgeTypes[idx] = ParseAPI::COND_NOT_TAKEN;
-                    } else {
-                        edgeTypes[idx] = ParseAPI::FALLTHROUGH;
-                    }
-                } else if (isCall) {
-                    edgeTypes[idx] = ParseAPI::CALL;
-                } else if (isIndirJmp) {
-                    edgeTypes[idx] = ParseAPI::INDIRECT;
-                } else if (isCondl) {
-                    edgeTypes[idx] = ParseAPI::COND_TAKEN;
-                } else {
-                    edgeTypes[idx] = ParseAPI::DIRECT;
-                }
-            }
-        }
-    }
- 
-/* 1. Parse from target address, add new edge at image layer  */
-    ifunc()->img()->codeObject()->parseNewEdges(sources, targets, edgeTypes);
-
-/* 2. Register all newly created image_funcs as a result of new edge parsing */
-    obj()->registerNewFunctions();
-
-    for(unsigned sidx=0; sidx < sources.size(); sidx++) {
-        vector<ParseAPI::Function*> funcs;
-        sources[sidx]->getFuncs(funcs);
-        for (unsigned fidx=0; fidx < funcs.size(); fidx++) 
-        {
-           int_function *func = obj()->findFunction(funcs[fidx]);
-
-/* 3. Add img-level blocks and points to int-level datastructures */
-           func->addMissingBlocks();
-           func->addMissingPoints();
-           
-           // invalidate liveness calculations
-           func->ifunc()->invalidateLiveness();
-        }
-    }
-
-/* 5. fix mapping of split blocks that have points */
-    if (ifunc()->img()->hasSplitBlocks()) {
-        obj()->splitIntLayer();
-        ifunc()->img()->clearSplitBlocks();
-    }
-
-    assert(consistency());
-    return true;
-}
-
-
 void int_function::setHandlerFaultAddr(Address fa) 
 { 
     handlerFaultAddr_ = fa;
@@ -845,24 +728,40 @@ void int_function::addMissingBlock(image_basicBlock *missingB)
 
 
 /* Find image_basicBlocks that are missing from these datastructures and add
- * them.  The int_block constructor does pretty much all of the work in
- * a chain of side-effects extending all the way into the mapped_object class
- * 
- * We have to take into account that additional parsing may cause basic block splitting,
- * in which case it is necessary not only to add new int-level blocks, but to update 
- * int_block and BPatch_basicBlock objects. 
+ * them.  Pass the blocks to the memory emulator so it can shadow their memory
  */
 void int_function::addMissingBlocks()
 {
    blocks();
 
    // Add new blocks
-   const vector<image_basicBlock*> & nblocks = ifunc()->img()->getNewBlocks();
-   vector<image_basicBlock*>::const_iterator nit = nblocks.begin();
-   for( ; nit != nblocks.end(); ++nit) {
-      if (ifunc()->contains(*nit)) {
-         addMissingBlock(*nit);
-      }
+
+   const vector<image_basicBlock*> & nblocks = obj()->parse_img()->getNewBlocks();
+   if (proc()->isMemoryEmulated()) {
+       proc()->getMemEm()->addNewCode(obj(),nblocks);
+   }
+   if (nblocks.size() < ifunc()->blocks().size()) {
+       // add blocks by looking up new blocks, if it promises to be more 
+       // efficient than looking through all of the llfunc's blocks
+       vector<image_basicBlock*>::const_iterator nit = nblocks.begin();
+       for( ; nit != nblocks.end(); ++nit) {
+          if (ifunc()->contains(*nit)) {
+             addMissingBlock(*nit);
+          }
+       }
+   }
+   if (ifunc()->blocks().size() > blocks_.size()) { //not just the else case!
+       // we may have parsed into an existing function and added its blocks 
+       // to ours, or this may just be a more efficient lookup method
+       Function::blocklist & iblks = ifunc()->blocks();
+       for (Function::blocklist::iterator bit = iblks.begin(); 
+            bit != iblks.end(); 
+            bit++) 
+       {
+           if (!findBlock(*bit)) {
+               addMissingBlock(static_cast<image_basicBlock*>(*bit));
+           }
+       }
    }
 }
 

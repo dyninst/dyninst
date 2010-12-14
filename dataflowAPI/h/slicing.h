@@ -209,7 +209,7 @@ class Slicer {
     InsnVec::reverse_iterator rcurrent;
     InsnVec::reverse_iterator rend;
 
-    Address addr() const { if(fwd) return current->second; else return rcurrent->second;}
+    Address addr() const { if(fwd) return (*current).second; else return (*rcurrent).second;}
 
   Location(ParseAPI::Function *f,
 	   ParseAPI::Block *b) : func(f), block(b), fwd(true){};

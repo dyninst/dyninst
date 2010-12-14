@@ -344,7 +344,7 @@ void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 			 const uint64_t addr,
 			 Result_t &res) {
 
-  SymEvalPolicy policy(res, addr, insn->getArch());
+  SymEvalPolicy policy(res, (Address)addr, insn->getArch());
 
   SgAsmInstruction *roseInsn;
   switch(insn->getArch()) {

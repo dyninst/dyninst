@@ -87,21 +87,22 @@ static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig)
 
     // fix up page rights so that the program can proceed
     if (toOrig) {
+        HybridAnalysis *ha = proc->getHybridAnalysis();
         // instrument at fallthrough
         int_block *ftBlk = point->llpoint()->block()->getFallthrough();
         assert(ftBlk);
         BPatch_function *bpFunc = proc->findOrCreateBPFunc(ftBlk->func(),NULL);
-        BPatch_point *ftPt = bpFunc->getPoint(
-            ftBlk->start());
+        BPatch_point *ftPt = bpFunc->getPoint(ftBlk->start());
         assert(ftPt);
-        BPatchSnippetHandle *handle = proc->insertSnippet
-            (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(0)), 
-             *ftPt,
-             BPatch_callBefore,
-             BPatch_firstSnippet);
-        HybridAnalysis *ha = proc->getHybridAnalysis();
-        ha->synchMap_pre()[point]->setPostHandle(ftPt, handle);
-        ha->synchMap_post()[ftPt] = ha->synchMap_pre()[point];
+        if (ha->synchMap_post().end() == ha->synchMap_post().find(ftPt)) {
+            BPatchSnippetHandle *handle = proc->insertSnippet
+                (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(0)), 
+                 *ftPt,
+                 BPatch_callBefore,
+                 BPatch_firstSnippet);
+            ha->synchMap_pre()[point]->setPostHandle(ftPt, handle);
+            ha->synchMap_post()[ftPt] = ha->synchMap_pre()[point];
+        }
         // remove write-protections from code pages
         pfunc->getModule()->setAnalyzedCodeWriteable(true);
     } 
@@ -262,6 +263,28 @@ int HybridAnalysis::saveInstrumentationHandle(BPatch_point *point,
     return 0;
 }
 
+bool HybridAnalysis::canUseCache(BPatch_point *pt) 
+{
+    if (proc()->lowlevel_process()->isMemoryEmulated()) {
+        vector<Address> targs;
+        pt->getSavedTargets(targs);
+        if (1 == targs.size() && 
+            pt->llpoint()->func()->obj() == 
+            proc()->lowlevel_process()->findObject(targs[0]))
+        {
+            return false;
+        }
+    }
+    if (BPatch_subroutine == pt->getPointType()) {
+        vector<BPatch_function*>tmp;
+        if (!proc()->findFunctionsByAddr(pt->getCallFallThroughAddr(),tmp)) {
+            return false;
+        }
+        return true;
+    }
+    return true;
+}
+
 // returns false if no new instrumentation was added to the module
 // Iterates through all unresolved instrumentation points in the 
 // function and adds control-flow instrumentation at each type: 
@@ -270,8 +293,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 						bool useInsertionSet, 
 						bool instrumentReturns) 
 {
-   Address funcAddr = (Address) func->getBaseAddr();
-    vector<BPatch_function*>dontcare;
+    Address funcAddr = (Address) func->getBaseAddr();
     mal_printf("instfunc at %lx\n", funcAddr);
     if (proc()->lowlevel_process()->isMemoryEmulated() && 
         BPatch_defensiveMode == func->lowlevel_func()->obj()->hybridMode()) 
@@ -308,23 +330,11 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 
             //choose the type of snippet
             BPatch_stopThreadExpr *dynamicTransferSnippet;
-            if (curPoint->getPointType() == BPatch_locSubroutine &&
-                ! proc()->findFunctionsByAddr(
-                    curPoint->getCallFallThroughAddr(),dontcare)) 
-            {   // If this indirect control transfer is a function call whose 
-                // return status is unknown, don't allow its instrumentation to 
-                // use the address cache, use the unconditional DYNINST_stopThread
-                dynamicTransferSnippet = new BPatch_stopThreadExpr(
-                    badTransferCB_wrapper, dynTarget, false,BPatch_interpAsTarget);
-                mal_printf("hybridInstrumentation[%d] unconditional monitoring at 0x%lx:"
-                            " call indirect\n", __LINE__,(long)curPoint->getAddress());
-            }
-            else {
-                dynamicTransferSnippet = new BPatch_stopThreadExpr(
-                    badTransferCB_wrapper, dynTarget, true,BPatch_interpAsTarget);
-                mal_printf("hybridInstrumentation[%d] monitoring at 0x%lx: indirect\n", 
-                            __LINE__,(long) curPoint->getAddress());
-            }
+            bool useCache = canUseCache(curPoint);
+            mal_printf("hybridInstrumentation[%d] monitoring unresolved at 0x%lx: "
+                       "indirect, useCache=%d\n", __LINE__,(long)curPoint->getAddress(),(int)useCache);
+            dynamicTransferSnippet = new BPatch_stopThreadExpr(
+                badTransferCB_wrapper, dynTarget, useCache, BPatch_interpAsTarget);
 
             // instrument the point
             if (useInsertionSet && 0 == pointCount) {
@@ -349,7 +359,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                            (Address)curPoint->getAddress());
                 BPatchSnippetHandle *handle = proc()->insertSnippet
                     (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(1)), 
-                     *curPoint, 
+                     *curPoint,
                      BPatch_lastSnippet);
                 synchMap_pre_[curPoint] = new SynchHandle(curPoint, handle);
             }
@@ -392,7 +402,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             BPatch_stopThreadExpr staticTransferSnippet
                 (badTransferCB_wrapper,
                  BPatch_constExpr(target), 
-                 true,BPatch_interpAsTarget);
+                 false, BPatch_interpAsTarget);
             handle = proc()->insertSnippet
                 (staticTransferSnippet, *curPoint, BPatch_lastSnippet);
         }
@@ -757,10 +767,11 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
     // a false positive code overwrite) re-instrument the point to use
     // the cache, if it's an indirect transfer, or remove it altogether
     // if it's a static transfer. 
-    for (unsigned ftidx=0; 
-         !parsedAfterCallPoint && ftidx < fallThroughFuncs.size(); 
-         ftidx++) 
+    if (!parsedAfterCallPoint && 
+        !proc()->lowlevel_process()->isMemoryEmulated()) 
     {
+      for (unsigned ftidx=0; ftidx < fallThroughFuncs.size(); ftidx++) 
+      {
         BPatch_function *fallThroughFunc = fallThroughFuncs[ftidx];
         if ( hybridOW() &&
              ! hybridOW()->hasLoopInstrumentation(true, *fallThroughFunc) )
@@ -787,6 +798,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
                 saveInstrumentationHandle(callPoint, handle);
             }
         }
+      }
     }
 
     bool success = false;

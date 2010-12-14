@@ -928,9 +928,6 @@ bool Object::isText( const Offset addr ) const
 
 void fixup_filename(std::string &filename)
 {
-	if (strcmp(filename.c_str(), "ntdll.dll") == 0)
-		filename = "c:\\windows\\system32\\ntdll.dll";
-
 	if (filename.substr(0,22) == "\\Device\\HarddiskVolume") {
 		TCHAR volumePath[1024];
 		if (GetVolumePathName(filename.c_str(), volumePath, 1024)) {
