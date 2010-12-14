@@ -1671,6 +1671,7 @@ bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
 bool BPatch_process::hideDebuggerInt()
 {
     bool retval = llproc->hideDebugger();
+    return false; //KEVINTODO: RE-ENABLE THIS
 
     // disable API calls //
 

@@ -386,24 +386,28 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
 {
     if (toOrig) malware_cerr << "Syncing shadow to orig for obj " << obj->fileName() << endl;
     else        malware_cerr << "Syncing orig to shadow for obj " << obj->fileName() << endl;
+
     using namespace SymtabAPI;
-    vector<Region*> regs;
-    obj->parse_img()->getObject()->getCodeRegions(regs);
     std::vector< std::pair<std::pair<Address,Address>,unsigned long> > elements;
     memoryMap_.elements(elements);
     for (unsigned idx=0; idx < elements.size(); idx++) {
         std::pair<Address,Address> range(0,0);
         unsigned int shift = 0;
         boost::tie(range,shift) = elements[idx];
+        if (range.second <= obj->codeBase() ||
+            range.first >= (obj->codeBase() + obj->get_size()))
+        {
+            continue;
+        }
         unsigned char *rangebuf = (unsigned char*) malloc(range.second-range.first);
         Address from = 0;
         Address toShift = 0;
         if (toOrig) {
+            from = range.first + shift;
+            toShift = 0;
+        } else {
             from = range.first;
             toShift = shift;
-        } else {
-            from = obj->codeBase() + shift;
-            toShift = 0;
         }
         if (!aS_->readDataSpace((void *)from,
                                 range.second-range.first,
@@ -414,7 +418,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         }
         std::map<Address,int>::const_iterator sit = springboards_.begin();
         Address cp_start = range.first;
-        cerr << "SYNC WRITE TO [" << hex << range.first << " " << range.second << ")" << dec << endl;
+        cerr << "SYNC WRITE TO [" << hex << range.first+toShift << " " << range.second+toShift << ")" << dec << endl;
         for (; sit != springboards_.end() && sit->first < range.second; sit++) {
             if ((*sit).first < range.first) {
                 continue;
@@ -424,7 +428,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
             if (cp_size &&
                 !aS_->writeDataSpace((void *)(cp_start + toShift),
                                      cp_size,
-                                     rangebuf + cp_start))
+                                     rangebuf + cp_start - range.first))
             {
                 assert(0);
             }
@@ -432,10 +436,10 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         }
 
         cerr << "\t Write " << hex << cp_start +toShift << "..." << range.second - cp_start<< dec << endl;
-        if (cp_start < range.second &&
+        if (cp_start < (range.first + range.second) &&
             !aS_->writeDataSpace((void *)(cp_start + toShift),
                                  range.second - cp_start,
-                                 rangebuf + cp_start))
+                                 rangebuf + cp_start - range.first))
         {
             assert(0);
         }
