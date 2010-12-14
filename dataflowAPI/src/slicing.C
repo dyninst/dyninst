@@ -682,7 +682,12 @@ Slicer::handleCall(
     for( ; eit != targets.end(); ++eit) {
         ParseAPI::Edge * e = *eit;
         if(e->type() == CALL) {
-           callee = e->trg();
+            if (e->sinkEdge()) {
+                callee = NULL;
+            }
+            else {
+                callee = e->trg();
+            }
         } else if(e->type() == CALL_FT) {
            funlink = e;
         }
@@ -1197,6 +1202,7 @@ Slicer::Slicer(Assignment::Ptr a,
 Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {
   // delete cache state
   unique_edges_.clear(); 
+
   return sliceInternal(forward, predicates);
 }
 
