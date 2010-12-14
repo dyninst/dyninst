@@ -1042,6 +1042,10 @@ namespace Dyninst
         decodedInstruction = new (decodedInstruction) ia32_instruction(NULL, NULL, locs);
         ia32_decode(IA32_DECODE_PREFIXES, b.start, *decodedInstruction);
         sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
+        if (decodedInstruction->getPrefix()->rexW()) {
+           // as per 2.2.1.2 - rex.w overrides 66h
+           sizePrefixPresent = false;
+        }
         addrSizePrefixPresent = (decodedInstruction->getPrefix()->getAddrSzPrefix() == 0x67);
     }
     
