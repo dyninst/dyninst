@@ -53,6 +53,8 @@ class adhocMovementTransformer : public Transformer {
   virtual ~adhocMovementTransformer() {};
 
  private:
+  bool isPCDerefCF(AtomPtr ptr,
+                   Address &destPtr);
   bool isPCRelData(AtomPtr ptr,
 		   Address &target);
   // Records where PC was stored

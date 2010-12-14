@@ -69,13 +69,22 @@ bool adhocMovementTransformer::processTrace(TraceList::iterator &b_iter) {
     Address target = 0;
     Absloc aloc;
 
+    if (isPCDerefCF(*iter, target)) {
+       CFAtom::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFAtom>(*iter);
+       assert(cf);
+       cf->setOrigTarget(target);
+    }
     if (isPCRelData(*iter, target)) {
       relocation_cerr << "  ... isPCRelData at " 
 		      << std::hex << (*iter)->addr() << std::dec << endl;
+      // Two options: a memory reference or a indirect call. The indirect call we 
+      // just want to set target in the CFAtom, as it has the hardware to handle
+      // control flow. Generic memory references get their own atoms. How nice. 
       Atom::Ptr replacement = PCRelativeData::create((*iter)->insn(),
-							(*iter)->addr(),
-							target);
+                                                     (*iter)->addr(),
+                                                     target);
       (*iter).swap(replacement);
+      
     }
     else if (isGetPC(*iter, aloc, target)) {
 
@@ -122,11 +131,43 @@ bool adhocMovementTransformer::processTrace(TraceList::iterator &b_iter) {
   return true;
 }
 
+bool adhocMovementTransformer::isPCDerefCF(Atom::Ptr ptr,
+                                           Address &target) {
+   Expression::Ptr cf = ptr->insn()->getControlFlowTarget();
+   if (!cf) return false;
+
+   static Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(Arch_x86)));
+   static Expression::Ptr thePC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
+
+   // Okay, see if we're memory
+   set<Expression::Ptr> mems;
+   ptr->insn()->getMemoryReadOperands(mems);
+   
+   for (set<Expression::Ptr>::const_iterator iter = mems.begin();
+        iter != mems.end(); ++iter) {
+      Expression::Ptr exp = *iter;
+      if (exp->bind(thePC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
+          exp->bind(thePC64.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
+         // Bind succeeded, eval to get target address
+         Result res = exp->eval();
+         if (!res.defined) {
+            cerr << "ERROR: failed bind/eval at " << std::hex << ptr->addr() << endl;if (ptr->insn()->getControlFlowTarget()) return false;
+         }
+         assert(res.defined);
+         target = res.convert<Address>();
+         break;
+      }
+   }
+   if (target) return true;
+   return false;
+}
+
+
+
 // We define this as "uses PC and is not control flow"
 bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
-				   Address &target) {
+                                           Address &target) {
   target = 0;
-
   if (ptr->insn()->getControlFlowTarget()) return false;
 
   // TODO FIXME
@@ -169,7 +210,6 @@ bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
        iter != operands.end(); ++iter) {
     // If we can bind the PC, then we're in the operand
     // we want.
-
     Expression::Ptr exp = iter->getValue();
     if (exp->bind(thePC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
 	exp->bind(thePC64.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
@@ -179,6 +219,9 @@ bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
       target = res.convert<Address>();
       break;
     }
+  }
+  if (target == 0) {
+     cerr << "Error: failed to bind PC in " << ptr->insn()->format() << endl;
   }
   assert(target != 0);
   return true;    
@@ -231,6 +274,11 @@ bool adhocMovementTransformer::isGetPC(Atom::Ptr ptr,
   if (addrSpace->isValidAddress(target)) {
     // Get us an instrucIter    
     const unsigned char* buf = reinterpret_cast<const unsigned char*>(addrSpace->getPtrToInstruction(target));
+    if (!buf) {
+       cerr << "Error: illegal pointer to buffer!" << endl;
+       cerr << "Target of " << hex << target << " from addr " << ptr->addr() << " in insn " << ptr->insn()->format() << dec << endl;
+       assert(0);
+    }
 
     InstructionDecoder decoder(buf,
 			       2*InstructionDecoder::maxInstructionLength,

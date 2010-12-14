@@ -428,8 +428,8 @@ bool CFAtom::generateConditionalBranch(CodeBuffer &buffer,
 }
 
 bool CFAtom::generateIndirect(CodeBuffer &buffer,
-							  Register reg,
-							  Instruction::Ptr insn) {
+                              Register reg,
+                              Instruction::Ptr insn) {
   // Two possibilities here: either copying an indirect jump w/o
   // changes, or turning an indirect call into an indirect jump because
   // we've had the isCall_ flag overridden.
@@ -500,7 +500,7 @@ bool CFAtom::generateIndirect(CodeBuffer &buffer,
 bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
                                   Register reg,
                                   Instruction::Ptr insn,
-				  Address /*origAddr*/) 
+				  Address origAddr) 
 {
    // I'm pretty sure that anything that can get translated will be
    // turned into a push/jump combo already. 
@@ -508,10 +508,12 @@ bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
    // Check this to see if it's RIP-relative
    instruction ugly_insn(insn->ptr());
    if (ugly_insn.type() & REL_D_DATA) {
-      // We don't know our final address, so use the patching system
-      assert(0 && "Unimplemented!");
-      // This target better not be NULL...
-      CFPatch *newPatch = new CFPatch(CFPatch::Data, insn, NULL, addr_);
+      // This was an IP-relative call that we moved to a new location.
+      assert(origTarget_);
+
+      CFPatch *newPatch = new CFPatch(CFPatch::Data, insn, 
+                                      new Target<Address>(origTarget_),
+                                      addr_);
       buffer.addPatch(newPatch, tracker());
    }
    else {

@@ -93,6 +93,7 @@ class CFAtom : public Atom {
   virtual unsigned size() const;
   int_block *block() const { return block_; }
   bool needsPostCallPadding() const { return postCallPadding_ != 0; }
+  void setOrigTarget(Address addr) { origTarget_ = addr; }
 
  private:
   CFAtom(int_block *block)
@@ -101,6 +102,7 @@ class CFAtom : public Atom {
      isIndirect_(false),
      postCallPadding_(0),
      addr_(0),
+     origTarget_(0),
      block_(block) {};
 
   bool isCall_;
@@ -111,6 +113,7 @@ class CFAtom : public Atom {
 
   InstructionAPI::Instruction::Ptr insn_;
   Address addr_;
+  Address origTarget_; 
 
   // An expression that represents how the PC is determined
   // Should be a single register, but who are we to judge?
@@ -158,8 +161,9 @@ class CFAtom : public Atom {
 			    Address origAddr);
   
   bool generateAddressTranslator(CodeBuffer &buffer,
-	  const codeGen &templ,
+                                 const codeGen &templ,
 				 Register &reg);  
+
 };
 
 struct CFPatch : public Patch {
