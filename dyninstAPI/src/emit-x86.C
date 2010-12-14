@@ -384,10 +384,18 @@ void EmitterIA32::emitGetRetVal(Register dest, bool addr_of, codeGen &gen)
 
 void EmitterIA32::emitGetRetAddr(Register dest, codeGen &gen)
 {
-   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   // Parameters are addressed by a positive offset from ebp,
+   // the first is PARAM_OFFSET[ebp]
    stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-//   emitMovIRegToReg(dest_r, loc.reg, gen);
-    emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
+   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   if (!gen.bti() || gen.bti()->alignedStack()) {
+       // Load the original %esp value into dest_r
+       emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
+       loc.offset = 0;
+       loc.reg = dest_r;
+   }
+
+   emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
 }
 
 void EmitterIA32::emitGetParam(Register dest, Register param_num,
