@@ -193,6 +193,10 @@ Slicer::sliceInternalAux(
 
     for(unsigned i=0;i<nextCands.size();++i) {
         SliceFrame & f = nextCands[i];
+        if(!f.valid) {
+            widenAll(g,dir,cand);
+            continue;
+        }
         CacheEdge e(cand.addr(),f.addr());
 
         slicing_printf("\t\t candidate %d is at %lx, %ld active\n",
@@ -216,17 +220,10 @@ Slicer::sliceInternalAux(
 
         markVisited(visited,e,f.active);
 
-        // If the control flow search has run
-        // off the rails somehow, widen;
-        // otherwise search down this new path
-        if(!f.valid)
-            widenAll(g,dir,cand);
-        else {
-            sliceInternalAux(g,dir,p,f,false,visited,cache);
+        sliceInternalAux(g,dir,p,f,false,visited,cache);
 
-            // absorb the down-slice cache into this node's cache
-            cache[cand.addr()].merge(cache[f.addr()]);
-        }
+        // absorb the down-slice cache into this node's cache
+        cache[cand.addr()].merge(cache[f.addr()]);
     }
    
     // Replace any definitions from down-slice with
@@ -505,6 +502,7 @@ Slicer::getSuccessors(
     if(next != cand.loc.end) {
         SliceFrame nf = cand;
         nf.loc.current = next;
+        assert(nf.loc.block);
         newCands.push_back(nf);
 
         slicing_printf("\t\t\t\t added intra-block successor\n");
@@ -521,6 +519,7 @@ Slicer::getSuccessors(
         // nf may be transformed
         if(handleCall(p,nf,err)) {
             slicing_printf("success, err: %d\n",err);
+            assert(nf.loc.block);
             newCands.push_back(nf);
         } else {
             slicing_printf("failed, err: %d\n",err);
@@ -533,6 +532,7 @@ Slicer::getSuccessors(
         // nf may be transformed
         if(handleReturn(p,nf,err)) {
             slicing_printf("success, err: %d\n",err);
+            assert(nf.loc.block);
             newCands.push_back(nf);
         } else {
             slicing_printf("failed, err: %d\n",err);
@@ -557,6 +557,7 @@ Slicer::getSuccessors(
                     (*eit)->type());
                 if(handleDefault(forward,p,*eit,nf,err)) {
                     slicing_printf("success, err: %d\n",err);
+                    assert(nf.loc.block);
                     newCands.push_back(nf);
                 } else {
                     slicing_printf("failed, err: %d\n",err);
@@ -877,6 +878,9 @@ Slicer::handleReturn(
     for(; eit != targets.end(); ++eit) {
         if((*eit)->type() == CALL_FT) {
             retBlock = (*eit)->trg();
+            if ((*eit)->sinkEdge()) {
+                cerr << "Weird!" << endl;
+            }
             break;
         }
     }
@@ -1340,6 +1344,7 @@ void Slicer::convertInstruction(Instruction::Ptr insn,
 
 void Slicer::getInsns(Location &loc) {
 
+
   InsnCache::iterator iter = insnCache_.find(loc.block);
   if (iter == insnCache_.end()) {
     getInsnInstances(loc.block, insnCache_[loc.block]);
@@ -1350,6 +1355,7 @@ void Slicer::getInsns(Location &loc) {
 }
 
 void Slicer::getInsnsBackward(Location &loc) {
+    assert(loc.block->start() != (Address) -1); 
     InsnCache::iterator iter = insnCache_.find(loc.block);
     if (iter == insnCache_.end()) {
       getInsnInstances(loc.block, insnCache_[loc.block]);
