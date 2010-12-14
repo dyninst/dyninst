@@ -353,6 +353,10 @@ bool PCProcess::usesDataLoadAddress() const {
     return false;
 }
 
+bool PCProcess::copyDanglingMemory(PCProcess *) {
+    return true;
+}
+
 const unsigned int N_DYNINST_LOAD_HIJACK_FUNCTIONS = 4;
 const char DYNINST_LOAD_HIJACK_FUNCTIONS[][20] = {
   "__libc_start_main",
@@ -459,8 +463,47 @@ bool PCProcess::instrumentMTFuncs() {
 }
 
 PCEventHandler::CallbackBreakpointCase
-PCEventHandler::getCallbackBreakpointCase(ProcControlAPI::EventType et) {
-    return BreakpointOnly;
+PCEventHandler::getCallbackBreakpointCase(EventType et) {
+    // This switch statement can be derived from the EventTypes and Events
+    // table in the ProcControlAPI manual -- it states what Events are
+    // available on each platform
+    
+    switch(et.code()) {
+        case EventType::Fork:
+            switch(et.time()) {
+                case EventType::Pre:
+                    return BreakpointOnly;
+                case EventType::Post:
+                    return CallbackOnly;
+                default:
+                    break;
+            }
+            break;
+        case EventType::Exit:
+            switch(et.time()) {
+                case EventType::Pre:
+                    // Using the RT library breakpoint allows us to determine
+                    // the exit code in a uniform way across Unices
+                    return BreakpointOnly;
+                case EventType::Post:
+                    return CallbackOnly;
+                default:
+                    break;
+            }
+            break;
+        case EventType::Exec:
+            switch(et.time()) {
+                case EventType::Pre:
+                    return BreakpointOnly;
+                case EventType::Post:
+                    return CallbackOnly;
+                default:
+                    break;
+            }
+            break;
+    }
+
+    return NoCallbackOrBreakpoint;
 }
 
 bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<string> &paths) {

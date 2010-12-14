@@ -1415,7 +1415,8 @@ Register EmitterIA32::emitCall(opCode op,
 
    param_size = emitCallParams(gen, operands, callee, saves, noCost);
 
-   Register ret = gen.rs()->allocateRegister(gen, noCost);
+   //Register ret = gen.rs()->allocateRegister(gen, noCost);
+   Register ret = REGNUM_EAX;
 
    emitCallInstruction(gen, callee, ret);
 

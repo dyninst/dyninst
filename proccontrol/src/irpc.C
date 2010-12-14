@@ -1075,38 +1075,6 @@ bool iRPCMgr::stopNeededThreads(int_process *p, bool sync)
    return !error;
 }
 
-HandlerRPCPreCallback::HandlerRPCPreCallback() :
-    Handler(std::string("RPC Pre-Callback Handler"))
-{
-}
-
-HandlerRPCPreCallback::~HandlerRPCPreCallback()
-{
-}
-
-void HandlerRPCPreCallback::getEventTypesHandled(std::vector<EventType> &etypes)
-{
-    etypes.push_back(EventType(EventType::None, EventType::RPC));
-}
-
-Handler::handler_ret_t HandlerRPCPreCallback::handleEvent(Event::ptr ev) 
-{
-    // Put the thread in a stopped state so the user can operate on it
-    // in the callback
-    pthrd_printf("Handling event RPC on %d/%d\n",
-                 ev->getProcess()->llproc()->getPid(),
-                 ev->getThread()->llthrd()->getLWP());
-    if( !ev->suppressCB() ) {
-        ev->getThread()->llthrd()->setUserState(int_thread::stopped);
-        ev->getThread()->llthrd()->setInternalState(int_thread::stopped);
-    }else{
-        pthrd_printf("Suppressing callbacks, not updating state of thread %d/%d\n",
-                ev->getProcess()->llproc()->getPid(),
-                ev->getThread()->llthrd()->getLWP());
-    }
-    return ret_success;
-}
-
 iRPCHandler::iRPCHandler() :
    Handler(std::string("RPC Handler"))
 {

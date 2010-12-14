@@ -138,7 +138,7 @@ public:
     PCThread *getThread(dynthread_t tid) const;
     void getThreads(std::vector<PCThread* > &threads) const;
     void addThread(PCThread *thread);
-    void deleteThread(dynthread_t tid);
+    void removeThread(dynthread_t tid);
 
     int getPid() const;
     unsigned getAddressWidth() const;
@@ -272,24 +272,15 @@ protected:
         cached_mt_false
     } mt_cache_result_t;
 
-    // Process create constructor
-    PCProcess(ProcControlAPI::Process::ptr pcProc, std::string file, std::string dir,
-            pdvector<std::string> *argv, pdvector<std::string> *envp,
-            std::string inputFile, std::string outputFile,
-            int stdin_fd, int stdout_fd, int stderr_fd,
+    static PCProcess *setupExecedProcess(PCProcess *proc, std::string execPath);
+
+    // Process create/exec constructor
+    PCProcess(ProcControlAPI::Process::ptr pcProc, std::string file,
             BPatch_hybridMode analysisMode, PCEventHandler *eventHandler)
         : pcProc_(pcProc),
           parent_(NULL),
           initialThread_(NULL), 
           file_(file), 
-          dir_(dir), 
-          argv_(argv),
-          envp_(envp), 
-          inputFile_(inputFile), 
-          outputFile_(outputFile),
-          stdin_fd_(stdin_fd), 
-          stdout_fd_(stdout_fd),
-          stderr_fd_(stderr_fd),
           attached_(true),
           execing_(false),
           runningWhenAttached_(false), 
@@ -298,6 +289,8 @@ protected:
           bootstrapState_(bs_attached),
           main_function_(NULL),
           curThreadIndex_(0),
+          reportedEvent_(false),
+          savedPid_(pcProc->getPid()),
           analysisMode_(analysisMode), 
           memoryPageSize_(0),
           isAMcacheValid_(false),
@@ -325,11 +318,6 @@ protected:
         : pcProc_(pcProc),
           parent_(NULL),
           initialThread_(NULL), 
-          argv_(NULL), 
-          envp_(NULL), 
-          stdin_fd_(-1),
-          stdout_fd_(-1), 
-          stderr_fd_(-1),
           attached_(true), 
           execing_(false),
           runningWhenAttached_(false), 
@@ -338,6 +326,8 @@ protected:
           bootstrapState_(bs_attached), 
           main_function_(NULL),
           curThreadIndex_(0),
+          reportedEvent_(false),
+          savedPid_(pcProc->getPid()),
           analysisMode_(analysisMode), 
           memoryPageSize_(0),
           isAMcacheValid_(false),
@@ -359,7 +349,45 @@ protected:
           auxv_parser_(NULL)
     {}
 
-    // Process fork constructor TODO
+    static PCProcess *setupForkedProcess(PCProcess *parent, ProcControlAPI::Process::ptr pcProc);
+
+    // Process fork constructor
+    PCProcess(PCProcess *parent, ProcControlAPI::Process::ptr pcProc)
+        : pcProc_(pcProc),
+          parent_(parent),
+          initialThread_(NULL), // filled in during bootstrap
+          file_(parent->file_),
+          attached_(true), 
+          execing_(false),
+          runningWhenAttached_(false), 
+          createdViaAttach_(false),
+          processState_(ps_stopped),
+          bootstrapState_(bs_attached), 
+          main_function_(parent->main_function_),
+          curThreadIndex_(0), // threads are created from ProcControl threads
+          reportedEvent_(false),
+          savedPid_(pcProc->getPid()),
+          analysisMode_(parent->analysisMode_), 
+          memoryPageSize_(parent->memoryPageSize_),
+          isAMcacheValid_(parent->isAMcacheValid_),
+          sync_event_id_addr_(parent->sync_event_id_addr_),
+          sync_event_arg1_addr_(parent->sync_event_arg1_addr_),
+          sync_event_arg2_addr_(parent->sync_event_arg2_addr_),
+          sync_event_arg3_addr_(parent->sync_event_arg3_addr_),
+          sync_event_breakpoint_addr_(parent->sync_event_breakpoint_addr_),
+          eventHandler_(parent->eventHandler_),
+          tracedSyscalls_(NULL),
+          rtLibLoadHeap_(parent->rtLibLoadHeap_),
+          mt_cache_result_(parent->mt_cache_result_),
+          isInDebugSuicide_(parent->isInDebugSuicide_),
+          vsyscall_text_(parent->vsyscall_text_),
+          vsyscall_start_(parent->vsyscall_start_),
+          vsyscall_obj_(parent->vsyscall_obj_),
+          vsyscall_end_(parent->vsyscall_end_),
+          vsys_status_(parent->vsys_status_),
+          auxv_parser_(parent->auxv_parser_)
+    {
+    }
 
     // bootstrapping
     bool bootstrapProcess();
@@ -378,6 +406,7 @@ protected:
     ProcControlAPI::Breakpoint::ptr getBreakpointAtMain() const;
     bool removeBreakpointAtMain();
     Address getLibcStartMainParam(PCThread *thread); // architecture-specific
+    bool copyDanglingMemory(PCProcess *parent);
 
     // RT library management
     bool loadRTLib();
@@ -411,21 +440,44 @@ protected:
     void addInferiorHeap(mapped_object *obj);
     bool skipHeap(const heapDescriptor &heap); // platform-specific
     bool inferiorMallocDynamic(int size, Address lo, Address hi);
-    inferiorHeapType getDynamicHeapType() const; // platform-specific (TODO AIX is dataHeap, everything else is anyHeap)
+
+    // platform-specific (TODO AIX is dataHeap, everything else is anyHeap)
+    inferiorHeapType getDynamicHeapType() const; 
     
     // garbage collection instrumentation
     void gcInstrumentation();
     void gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks);
 
-
     // Hybrid Mode
     bool triggerStopThread(Address pointAddress, int callbackID, void *calculation);
     Address stopThreadCtrlTransfer(instPoint *intPoint, Address target);
 
-    // Misc
-    static bool getOSRunningState(int pid); // platform-specific, true if the OS says the process is running
+    // Event Handling
+    void triggerNormalExit(int exitcode);
 
+    // TODO this is temporary until ProcControl on Linux gives valid thread id's
+    PCThread *getThreadByLWP(Dyninst::LWP lwp);
+
+    // Misc
+
+    // platform-specific, true if the OS says the process is running
+    static bool getOSRunningState(int pid); 
+    // platform-specific, needed for capability with previous versions of Dyninst that didn't
+    // use ProcControlAPI
+    static int getDefaultTermSignal(); 
+    
     bool isInDebugSuicide() const;
+    void setReportingEvent(bool b) { reportedEvent_ = b; }
+    bool hasReportedEvent() const { return reportedEvent_; }
+    void setExecing(bool b) { execing_ = b; }
+
+    // ProcControl doesn't keep around a process's information after it exits.
+    // However, we allow a Dyninst user to query certain information out of
+    // an exited process
+    void procControlProcExited() { pcProc_ = ProcControlAPI::Process::ptr(); }
+
+    // Debugging
+    bool setBreakpoint(Address addr);
 
     // Fields //
 
@@ -439,18 +491,8 @@ protected:
 
     ProcControlAPI::Breakpoint::ptr mainBrkPt_;
 
-    // Executable properties
-    std::string file_;
-    std::string dir_;
-    pdvector<std::string> *argv_;
-    pdvector<std::string> *envp_;
-    std::string inputFile_;
-    std::string outputFile_;
-    int stdin_fd_;
-    int stdout_fd_;
-    int stderr_fd_;
-
     // Properties
+    std::string file_;
     bool attached_;
     bool execing_;
     bool runningWhenAttached_;
@@ -459,6 +501,9 @@ protected:
     bootstrapState_t bootstrapState_;
     int_function *main_function_;
     int curThreadIndex_;
+    // true when Dyninst has reported an event to ProcControlAPI for this process
+    bool reportedEvent_; // indicates the process should remain stopped
+    int savedPid_; // ProcControl doesn't keep around Process objects after exit
 
     // Hybrid Analysis
     BPatch_hybridMode analysisMode_;
@@ -519,7 +564,7 @@ public:
         deliverCallbacks(false),
         userData(NULL),
         thr(ProcControlAPI::Thread::ptr()),
-        synchronous(false) {};
+        synchronous(false) {}
 
     virtual Address get_address() const { return rpc->getAddress(); }
     virtual unsigned get_size() const { return (rpcCompletionAddr - rpc->getAddress())+1; }

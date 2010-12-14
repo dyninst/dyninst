@@ -59,7 +59,9 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
    pdvector<Frame> stackWalk;   
 
    if (!llthread->walkStack(stackWalk) ) {
-     fprintf(stderr, "%s[%d]: ERROR doing stackwalk\n", FILE__, __LINE__);
+     proccontrol_printf("%s[%d]: failed to perform stackwalk on thread %d\n",
+             llthread->getLWP());
+     return false;
    }
 
    // The internal representation of a stack walk treats instrumentation
@@ -164,13 +166,8 @@ BPatch_thread *BPatch_thread::createNewThread(BPatch_process *proc, PCThread *th
    return newthr;
 }
 
-BPatch_thread::BPatch_thread(BPatch_process *parent, PCThread *thr) :
-    deleted_callback_made(false)
-{
+BPatch_thread::BPatch_thread(BPatch_process *parent, PCThread *thr) {
    proc = parent;
-   legacy_destructor = true;
-   is_deleted = false;
-   deleted_tid = (dynthread_t) -1;
    llthread = thr;
 }
 
@@ -186,25 +183,18 @@ BPatch_process *BPatch_thread::getProcessInt()
 
 dynthread_t BPatch_thread::getTidInt()
 {
-   if (is_deleted) {
-      return deleted_tid;
-   }
    return llthread->getTid();
 }
 
 int BPatch_thread::getLWPInt()
 {
-   if (is_deleted) {
-      return (int) -1;
-   }
    return llthread->getLWP();
 }
 
 BPatch_function *BPatch_thread::getInitialFuncInt()
 {
-   if (is_deleted) {
-      return NULL;
-   }
+   if( !llthread->isLive() ) return NULL;
+
    int_function *ifunc = llthread->getStartFunc();
 
    if (!ifunc) {
@@ -279,9 +269,8 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
 
 unsigned long BPatch_thread::getStackTopAddrInt()
 {
-   if (is_deleted) {
-      return (unsigned long) -1;
-   }
+   if( !llthread->isLive() ) return (unsigned long) -1;
+
    if (llthread->getStackAddr() == 0) {
        BPatch_Vector<BPatch_frame> stackWalk;
 
@@ -313,57 +302,12 @@ unsigned long BPatch_thread::getStackTopAddrInt()
    return llthread->getStackAddr();
 }
 
-
-void BPatch_thread::removeThreadFromProc() 
-{
-#if !defined(USE_DEPRECATED_BPATCH_VECTOR)
-   // STL vectors don't have item erase. We use iterators instead...
-   proc->threads.erase(std::find(proc->threads.begin(),
-                                 proc->threads.end(),
-                                 this));
-#else
-   for (unsigned i=0; i<proc->threads.size(); i++) {
-      if (proc->threads[i] == this) {
-         proc->threads.erase(i);
-         break;
-      }
-   }
-#endif
-
-   proc->llproc->deleteThread(llthread->getTid());
-
-   is_deleted = true;
-}
-
-/**
- * We can't overload destructors, and this function used to defined in
- * the API to delete the process.  We don't know if any users are still
- * depending on that behavior, so any regular call to this destructor
- * will trigger the 'delete proc'
- *    
- * To get the "overloaded" and new destructor, set legacy_destructor
- * to false before calling.  This should be okay since it's only used
- * by internal code (should only be called through BPatch_process).
- **/    
 void BPatch_thread::BPatch_thread_dtor()
 {
-  if (llthread)
-    removeThreadFromProc();
-  if (legacy_destructor)
-  {
-    //  ~BPatch_process obtains a lock and does a wait(), so it will fail an assert 
-    //  unless we "creatively adjust" the recursive lock depth here.
-    BPatch_process *temp = proc;
-    proc = NULL;
-    if (temp) delete temp;
-  }
-  else
-  {
-    if (llthread) {
-      delete llthread;
-      llthread = NULL;
+    if( llthread ) {
+        delete llthread;
+        llthread = NULL;
     }
-  }
 }
 
 /**
@@ -384,8 +328,7 @@ unsigned long BPatch_thread::os_handleInt()
  */
 void *BPatch_thread::oneTimeCodeInt(const BPatch_snippet &expr, bool *err)
 {
-  if (is_deleted)
-    return NULL;
+  if( !llthread->isLive() ) return NULL;
   return proc->oneTimeCodeInternal(expr, this, NULL, NULL, true, err);
 }
 
@@ -399,16 +342,18 @@ bool BPatch_thread::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
                                         void *userData,
                                         BPatchOneTimeCodeCallback cb)
 {
-   if (proc->statusIsTerminated()) {
-      return false;
-   }
-   if (is_deleted)
-     return false;
-   proc->oneTimeCodeInternal(expr, this, userData, cb, false, NULL);
-   return true; // XXX what if oneTimeCodeInternal fails
+   if ( !llthread->isLive() ) return false;
+   if (proc->statusIsTerminated()) return false;
+   return (proc->oneTimeCodeInternal(expr, this, userData, cb, false, NULL) == NULL);
 }
 
 bool BPatch_thread::isDeadOnArrivalInt() 
 {
    return false;
+}
+
+void BPatch_thread::updateThread(PCThread *newThr) {
+    if( llthread ) delete llthread;
+
+    llthread = newThr;
 }

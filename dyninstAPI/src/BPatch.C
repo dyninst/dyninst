@@ -42,6 +42,7 @@
 #include "common/h/Pair.h"
 #include "common/h/Vector.h"
 #include "common/h/stats.h"
+#include "common/h/Dictionary.h"
 #include "BPatch.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_collections.h"
@@ -194,6 +195,13 @@ BPatch::BPatch()
 void BPatch::BPatch_dtor()
 {
     delete eventHandler_;
+
+    for(dictionary_hash<int, BPatch_process *>::iterator i =
+            info->procsByPid.begin(); i != info->procsByPid.end();
+            ++i)
+    {
+        delete i.currval();
+    }
 
     delete info;
 
@@ -689,8 +697,7 @@ void BPatch::registerForkedProcess(PCProcess *parentProc, PCProcess *childProc)
     assert(parent);
 
     BPatch_process *child = new BPatch_process(childProc);
-
-    proccontrol_printf("Successfully connected socket to child\n");
+    child->triggerInitialThreadEvents();
 
     if( postForkCallback ) {
         postForkCallback(parent->threads[0], child->threads[0]);
@@ -735,7 +742,8 @@ void BPatch::registerExecCleanup(PCProcess *p, char *)
     assert(execing);
 
     for (unsigned i=0; i<execing->threads.size(); i++)
-       registerThreadExit(p, execing->threads[i]->getTid(), false);
+       registerThreadExit(p, execing->threads[i]->llthread);
+
 }    
 
 /*
@@ -743,27 +751,48 @@ void BPatch::registerExecCleanup(PCProcess *p, char *)
  *
  * Register a process that has just done an exec call.
  *
- * thread	thread that has just performed the exec
- *
+ * proc - the representation of the process after the exec
  */
-
-void BPatch::registerExecExit(PCProcess *proc)
-{
+void BPatch::registerExecExit(PCProcess *proc) {
     int execPid = proc->getPid();
     BPatch_process *process = getProcessByPid(execPid);
     assert(process);
 
-   // build a new BPatch_image for this one
-   if (process->image)
-      process->image->removeAllModules();
+    assert( process->threads.size() <= 1 );
 
-   process->image = new BPatch_image(process);
+    // There is a new underlying process representation
+    process->llproc = proc;
+    PCThread *thr = proc->getInitialThread();
 
-   // The async pipe should be gone... handled in registerExecCleanup
+    // Create a new initial thread or update it
+    BPatch_thread *initialThread;
+    if( process->threads.size() == 0 ) { 
+        initialThread = new BPatch_thread(process, thr);
+        process->threads.push_back(initialThread);
+    }else{
+        initialThread = process->getThreadByIndex(0);
+        initialThread->updateThread(thr);
+    }
 
-   if( execCallback ) {
-       execCallback(process->threads[0]);
-   }
+    // build a new BPatch_image for this one
+    if (process->image)
+        process->image->removeAllModules();
+
+    BPatch_image *oldImage = process->image;
+    process->image = new BPatch_image(process);
+    if( oldImage ) delete oldImage;
+
+    assert( proc->isBootstrapped() );
+
+    // ProcControlAPI doesn't deliver callbacks for the initial thread,
+    // even if the mutatee is multithread capable
+    if( proc->multithread_capable() ) {
+        registerThreadCreate(process, initialThread);
+    }
+
+    if( execCallback ) {
+        execCallback(process->threads[0]);
+    }
 }
 
 void BPatch::registerNormalExit(PCProcess *proc, int exitcode)
@@ -847,14 +876,6 @@ void BPatch::registerSignalExit(PCProcess *proc, int signalnum)
 
 }
 
-void BPatch::cleanupProcess(PCProcess *proc) {
-    if( !proc ) return;
-    BPatch_process *bpproc = getProcessByPid(proc->getPid());
-    if( !bpproc ) return;
-
-    delete bpproc;
-}
-
 bool BPatch::registerThreadCreate(BPatch_process *proc, BPatch_thread *newthr)
 {
    if( threadCreateCallback ) {
@@ -864,15 +885,11 @@ bool BPatch::registerThreadCreate(BPatch_process *proc, BPatch_thread *newthr)
    return true;
 }
 
-
-void BPatch::registerThreadExit(PCProcess *proc, long tid, bool exiting)
+void BPatch::registerThreadExit(PCProcess *llproc, PCThread *llthread)
 {
-    if (!proc)
-        return;
+    assert( llproc && llthread );
     
-    int pid = proc->getPid();
-    
-    BPatch_process *bpprocess = getProcessByPid(pid);
+    BPatch_process *bpprocess = getProcessByPid(llproc->getPid());
     
     if (!bpprocess) {
         // Error during startup can cause this -- we have a partially
@@ -880,31 +897,21 @@ void BPatch::registerThreadExit(PCProcess *proc, long tid, bool exiting)
         // bpatch
         return;
     }
-    BPatch_thread *thrd = bpprocess->getThread(tid);
+
+    BPatch_thread *thrd = bpprocess->getThread(llthread->getTid());
     if (!thrd) {
         //If we don't have an BPatch thread, then it might have been an internal
         // thread that we decided not to report to the user (happens during 
         //  windows attach).  Just trigger the lower level clean up in this case.
-        if (tid == 0) {
-          fprintf(stderr, "%s[%d]:  about to deleteThread(0)\n", FILE__, __LINE__);
-        }
-        if (!exiting) proc->deleteThread(tid);        
+        llproc->removeThread(llthread->getTid());
         return;
     }
 
-    if (thrd->deleted_callback_made) { 
-        // Thread exits; we make the callback, then the process exits and
-        // tries to nuke it as well. This guards against that.
-        return;
-    }
-
-    thrd->deleted_callback_made = true;
     if( threadDestroyCallback ) {
         threadDestroyCallback(bpprocess, thrd);
     }
 
-    if (exiting) 
-       return;
+    bpprocess->deleteBPThread(thrd);
 }
 
 /*
@@ -1090,11 +1097,12 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
    if (!ret->llproc 
          ||  !ret->llproc->isStopped()
          ||  !ret->llproc->isBootstrapped()) {
-      ret->BPatch_process_dtor();  
       delete ret;
       reportError(BPatchFatal, 68, "create process failed bootstrap");
       return NULL;
    }
+
+   ret->triggerInitialThreadEvents();
 
    return ret;
 }
@@ -1138,13 +1146,14 @@ BPatch_process *BPatch::processAttachInt
    if (!ret->llproc ||
        !ret->llproc->isStopped() ||
        !ret->llproc->isBootstrapped()) {
-       ret->BPatch_process_dtor();  
        char msg[256];
        sprintf(msg,"attachProcess failed: process %d may now be killed!",pid);
        reportError(BPatchWarning, 26, msg);
        delete ret;
        return NULL;
    }
+
+   ret->triggerInitialThreadEvents();
 
    return ret;
 }
@@ -1160,11 +1169,11 @@ BPatch_process *BPatch::processAttachInt
  */
 bool BPatch::pollForStatusChangeInt()
 {
-    proccontrol_printf("[%s:%u] Polling for events\n", __FILE__, __LINE__);
+    proccontrol_printf("[%s:%u] Polling for events\n", FILE__, __LINE__);
     PCEventHandler::WaitResult result = eventHandler_->waitForEvents(false);
     if( result == PCEventHandler::Error ) {
         proccontrol_printf("[%s:%u] Failed to poll for events\n",
-                __FILE__, __LINE__);
+                FILE__, __LINE__);
         BPatch_reportError(BPatchWarning, 0, 
                 "Failed to handle events and deliver callbacks");
         return false;
@@ -1173,11 +1182,11 @@ bool BPatch::pollForStatusChangeInt()
     clearNotificationFD();
 
     if( result == PCEventHandler::EventsReceived ) {
-        proccontrol_printf("[%s:%u] Events received\n", __FILE__, __LINE__);
+        proccontrol_printf("[%s:%u] Events received\n", FILE__, __LINE__);
         return true;
     }
   
-    proccontrol_printf("[%s:%u] No events available\n", __FILE__, __LINE__);
+    proccontrol_printf("[%s:%u] No events available\n", FILE__, __LINE__);
     return false;
 }
 
@@ -1189,11 +1198,29 @@ bool BPatch::pollForStatusChangeInt()
  * process.  Returns true upon success, false upon failure.
  */
 bool BPatch::waitForStatusChangeInt() {
-    proccontrol_printf("[%s:%u] Waiting for events\n", __FILE__, __LINE__);
+    // Sanity check: make sure there are processes running that could
+    // cause events to occur, otherwise the user will be waiting indefinitely
+    bool processRunning = false;
+    for(dictionary_hash<int, BPatch_process *>::iterator i =
+        info->procsByPid.begin(); i != info->procsByPid.end(); ++i) 
+    {
+        if( !i.currval()->isStopped() ) {
+            processRunning = true;
+            break;
+        }
+    }
+
+    if( !processRunning ) {
+        BPatch_reportError(BPatchWarning, 0,
+                "No processes running, not waiting for events");
+        return false;
+    }
+
+    proccontrol_printf("%s:[%d] Waiting for events\n", FILE__, __LINE__);
     PCEventHandler::WaitResult result = eventHandler_->waitForEvents(true);
     if( result == PCEventHandler::Error ) {
-        proccontrol_printf("[%s:%u] Failed to wait for events\n",
-                      __FILE__, __LINE__);
+        proccontrol_printf("%s:[%d] Failed to wait for events\n",
+                      FILE__, __LINE__);
         BPatch_reportError(BPatchWarning, 0,
                            "Failed to handle events and deliver callbacks");
         return false;
@@ -1202,7 +1229,7 @@ bool BPatch::waitForStatusChangeInt() {
     clearNotificationFD();
 
     if( result == PCEventHandler::EventsReceived ) {
-        proccontrol_printf("[%s:%u] Events received\n", __FILE__, __LINE__);
+        proccontrol_printf("%s:[%d] Events received\n", FILE__, __LINE__);
         return true;
     }
 

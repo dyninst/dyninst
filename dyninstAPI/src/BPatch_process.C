@@ -323,7 +323,8 @@ BPatch_process::BPatch_process
    }
 
    BPatch::bpatch->registerProcess(this, pid);
-    startup_printf("%s[%d]:  attached to process %s/%d\n", FILE__, __LINE__, path ? path : "no_path", pid);
+   startup_printf("%s[%d]:  attached to process %s/%d\n", FILE__, __LINE__, path ? path : 
+            "no_path", pid);
 
    // Create an initial thread
    PCThread *thr = llproc->getInitialThread();
@@ -374,7 +375,6 @@ BPatch_process::BPatch_process(PCProcess *nProc)
    {
       BPatch_thread *thrd = new BPatch_thread(this, *i);
       threads.push_back(thrd);
-      BPatch::bpatch->registerThreadCreate(this, thrd);
    }
 
    llproc->registerFunctionCallback(createBPFuncCB);
@@ -387,18 +387,40 @@ BPatch_process::BPatch_process(PCProcess *nProc)
 /*
  * BPatch_process::~BPatch_process
  *
- * Destructor for BPatch_process.  Detaches from the running thread.
+ * Destructor for BPatch_process.
  */
 void BPatch_process::BPatch_process_dtor()
 {
-   for (int i=threads.size()-1; i>=0; i--)
-   {
-      deleteBPThread(threads[i]);
+   if( llproc ) {
+       //  unRegister process before doing detach
+       BPatch::bpatch->unRegisterProcess(getPid(), this);   
+
+       /**
+        * If we attached to the process, then we detach and leave it be,
+        * otherwise we'll terminate it
+        **/
+
+       if (createdViaAttach) 
+       {
+           llproc->detachProcess(true);
+       }
+       else  
+       {
+           if (llproc->isAttached() && !llproc->hasExited() ) 
+               {
+               proccontrol_printf("%s[%d]:  about to terminate execution\n", __FILE__, __LINE__);
+               terminateExecutionInt();
+           }
+       }
+       delete llproc;
+       llproc = NULL;
    }
 
-   if (image) 
-      delete image;
-   
+   for (int i=threads.size()-1; i>=0; i--) {
+       delete threads[i];
+   }
+
+   if (image) delete image;
    image = NULL;
 
    if (pendingInsertions) 
@@ -411,40 +433,29 @@ void BPatch_process::BPatch_process_dtor()
        delete pendingInsertions;
        pendingInsertions = NULL;
    }
-
-   if (!llproc) {
-
-      return; 
-   }
-
-   //  unRegister process before doing detach
-   BPatch::bpatch->unRegisterProcess(getPid(), this);   
-
-   /**
-    * If we attached to the process, then we detach and leave it be,
-    * otherwise we'll terminate it
-    **/
-
-   if (createdViaAttach) 
-   {
-       llproc->detachProcess(true);
-   }
-   else  
-   {
-       if (llproc->isAttached() && !llproc->hasExited() ) 
-	   {
-           proccontrol_printf("%s[%d]:  about to terminate execution\n", __FILE__, __LINE__);
-           terminateExecutionInt();
-       }
-   }
    
    if (NULL != hybridAnalysis_) {
        delete hybridAnalysis_;
    }
 
-   delete llproc;
-   llproc = NULL;
    assert(BPatch::bpatch != NULL);
+}
+
+/*
+ * BPatch_process::triggerInitialThreadEvents
+ *
+ * Events and callbacks shouldn't be delivered from a constructor so after a
+ * BPatch_process is constructed, this should be called.
+ */
+void BPatch_process::triggerInitialThreadEvents() {
+    // For compatibility, only do this for multithread capable processes
+    if( llproc->multithread_capable() ) {
+        for (BPatch_Vector<BPatch_thread *>::iterator i = threads.begin();
+                i != threads.end(); ++i) 
+        {
+            BPatch::bpatch->registerThreadCreate(this, *i);
+        }
+    }
 }
 
 /*
@@ -455,6 +466,9 @@ void BPatch_process::BPatch_process_dtor()
 bool BPatch_process::stopExecutionInt() 
 {
     if( NULL == llproc ) return false;
+
+    // The user has already indicated they would like the process stopped
+    if( llproc->getDesiredProcessState() == PCProcess::ps_stopped ) return true;
 
     llproc->setDesiredProcessState(PCProcess::ps_stopped);
     return llproc->stopProcess();
@@ -471,6 +485,9 @@ bool BPatch_process::continueExecutionInt()
 
     if( !llproc->isBootstrapped() ) return false;
 
+    // The user has already indicated they would like the process running
+    if( llproc->getDesiredProcessState() == PCProcess::ps_running ) return true;
+
     llproc->setDesiredProcessState(PCProcess::ps_running);
 
     return llproc->continueProcess();
@@ -485,6 +502,8 @@ bool BPatch_process::terminateExecutionInt()
 {
     if( NULL == llproc ) return false;
 
+    if( isTerminated() ) return true;
+
     proccontrol_printf("%s[%d]:  about to terminate proc\n", FILE__, __LINE__);
     return llproc->terminateProcess();
 }
@@ -498,7 +517,19 @@ bool BPatch_process::isStoppedInt()
 {
     if( llproc == NULL ) return true;
 
-    return llproc->isStopped();
+    // The state visible to the user is different than the state
+    // maintained by ProcControlAPI because processes remain in
+    // a stopped state while doing event handling -- the user 
+    // shouldn't see the process in a stopped state in this
+    // case
+    //
+    // The following list is all cases where the user should see
+    // the process stopped:
+    // 1) BPatch_process::stopExecution is invoked
+    // 2) A snippet breakpoint occurs
+    // 3) The mutatee is delivered a stop signal
+
+    return llproc->getDesiredProcessState() == PCProcess::ps_stopped;
 }
 
 /*
@@ -1811,7 +1842,8 @@ void BPatch_process::getAS(std::vector<AddressSpace *> &as)
 }
 
 /**
- * Called when a delete thread event is read out of the event queue
+ * Removes the BPatch_thread from this process' collection of
+ * threads
  **/
 void BPatch_process::deleteBPThread(BPatch_thread *thrd)
 {
@@ -1824,7 +1856,25 @@ void BPatch_process::deleteBPThread(BPatch_thread *thrd)
       return;
    }
 
-   thrd->removeThreadFromProc();
+#if !defined(USE_DEPRECATED_BPATCH_VECTOR)
+   // STL vectors don't have item erase. We use iterators instead...
+   threads.erase(std::find(threads.begin(),
+                                 threads.end(),
+                                 thrd));
+#else
+   for (unsigned i=0; i< threads.size(); i++) {
+      if (threads[i] == thrd) {
+         threads.erase(i);
+         break;
+      }
+   }
+#endif
+
+   llproc->removeThread(thrd->getTid());
+
+   // We allow users to maintain pointers to exited threads
+   // If this changes, the memory can be free'd here
+   // delete thrd;
 }
 
 #ifdef IBM_BPATCH_COMPAT
@@ -1850,15 +1900,11 @@ void BPatch_process::debugSuicideInt()
     llproc->debugSuicide();
 }
 
-BPatch_thread *BPatch_process::handleThreadCreate(PCThread *thread) {
-  proccontrol_printf("%s[%d]:  welcome to handleThreadCreate\n", FILE__, __LINE__);
-
+void BPatch_process::triggerThreadCreate(PCThread *thread) {
   BPatch_thread *newthr = BPatch_thread::createNewThread(this, thread);
   threads.push_back(newthr);
 
   BPatch::bpatch->registerThreadCreate(this, newthr);
-
-  return newthr;
 }
 
 /* BPatch::triggerStopThread

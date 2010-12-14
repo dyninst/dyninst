@@ -245,6 +245,7 @@ bool PCProcess::postRTLoadCleanup() {
                     FILE__, __LINE__);
             return false;
         }
+        rtLibLoadHeap_ = 0;
     }
     return true;
 }

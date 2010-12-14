@@ -764,8 +764,6 @@ Handler::handler_ret_t HandleSingleStep::handleEvent(Event::ptr ev)
    pthrd_printf("Handling event single step on %d/%d\n", 
                 ev->getProcess()->llproc()->getPid(),
                 ev->getThread()->llthrd()->getLWP());
-   ev->getThread()->llthrd()->setUserState(int_thread::stopped);
-   ev->getThread()->llthrd()->setInternalState(int_thread::stopped);
    return ret_success;
 }
 
@@ -1209,6 +1207,14 @@ bool HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_
       return true;
    }
 
+   // Make sure the user can operate on the process in the callback
+   // But if this is a PostCrash or PostExit, the underlying process and
+   // threads are already gone
+   if( !ev->getProcess()->isTerminated() ) {
+       ev->getThread()->llthrd()->setUserState(int_thread::stopped);
+       ev->getThread()->llthrd()->setInternalState(int_thread::stopped);
+   }
+
    //The following code loops over each callback registered for this event type
    // and triggers the callback for the user.  Return results are aggregated.
    assert(!(isHandlerThread() && mt()->getThreadMode() != Process::CallbackThreading));
@@ -1418,7 +1424,6 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static HandleRPCInternal *hrpcinternal = NULL;
    static HandleAsync *hasync = NULL;
    static iRPCHandler *hrpc = NULL;
-   static HandlerRPCPreCallback *hrpc_callback = NULL;
    if (!initialized) {
       hbootstrap = new HandleBootstrap();
       hsignal = new HandleSignal();
@@ -1438,7 +1443,6 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hpostexec = new HandlePostExec();
       hasync = new HandleAsync();
       hrpcinternal = new HandleRPCInternal();
-      hrpc_callback = new HandlerRPCPreCallback();
       initialized = true;
    }
    HandlerPool *hpool = new HandlerPool(p);
@@ -1460,7 +1464,6 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hpostexec);
    hpool->addHandler(hrpcinternal);
    hpool->addHandler(hasync);
-   hpool->addHandler(hrpc_callback);
    plat_createDefaultHandlerPool(hpool);
    return hpool;
 }

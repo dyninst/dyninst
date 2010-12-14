@@ -41,7 +41,9 @@ PCThread::PCThread(PCProcess *parent, int ind,
     pcThr_(thr),
     index_(ind),
     stackAddr_(0),
-    startFunc_(NULL)
+    startFunc_(NULL),
+    savedLWP_(thr->getLWP()),
+    savedTid_(ind) // TODO use actual TID provided by ProcControlAPI
 {
 }
 
@@ -54,9 +56,10 @@ PCThread *PCThread::createPCThread(PCProcess *parent, Thread::ptr thr)
 }
 
 dynthread_t PCThread::getTid() const {
-    // TODO once Linux uses thread_db in ProcControlAPI this should
-    // be the ProcControl level TID
-    return index_;
+    if( pcThr_ == Thread::ptr() ) return savedTid_;
+
+    // TODO use actual TID provided by ProcControlAPI
+    return (unsigned)index_;
 }
 
 int PCThread::getIndex() const {
@@ -64,6 +67,7 @@ int PCThread::getIndex() const {
 }
 
 int PCThread::getLWP() const {
+    if( pcThr_ == Thread::ptr() ) return savedLWP_;
     return pcThr_->getLWP();
 }
 
@@ -88,6 +92,8 @@ PCProcess *PCThread::getProc() const {
 }
 
 bool PCThread::walkStack(pdvector<Frame> &stackWalk) {
+    if( pcThr_ == Thread::ptr() ) return false;
+
     bool continueWhenDone = false;
     if( pcThr_->isRunning() ) {
         continueWhenDone = true;
@@ -132,16 +138,26 @@ bool PCThread::walkStack(pdvector<Frame> &stackWalk) {
     return retval;
 }
 
+void PCThread::clearStackwalk() {
+    cached_stackwalk_.clear();
+}
+
 bool PCThread::getRegisters(RegisterPool &regs, bool /* includeFP */) {
+    if( pcThr_ == Thread::ptr() ) return false;
+
     // XXX ProcControlAPI doesn't yet get floating point registers
     return pcThr_->getAllRegisters(regs);
 }
 
 bool PCThread::changePC(Address newPC) {
+    if( pcThr_ == Thread::ptr() ) return false;
+
     return pcThr_->setRegister(MachRegister::getPC(proc_->getArch()), newPC);
 }
 
 Frame PCThread::getActiveFrame() {
+    if( pcThr_ == Thread::ptr() ) return Frame();
+
     Address pc = 0, fp = 0, sp = 0;
 
     assert( pcThr_->isStopped() && "Thread not stopped before trying to get the active frame" );
@@ -169,5 +185,10 @@ Thread::ptr PCThread::getProcControlThread() {
 }
 
 bool PCThread::isLive() const {
+    if( pcThr_ == Thread::ptr() ) return false;
     return pcThr_->isLive();
+}
+
+void PCThread::markExited() { 
+    pcThr_ = Thread::ptr();
 }

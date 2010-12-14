@@ -223,7 +223,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     // for forking
     BPatch_process(PCProcess *proc);
 
-    BPatch_thread *handleThreadCreate(PCThread *thread);
+    void triggerThreadCreate(PCThread *thread);
+    void triggerInitialThreadEvents();
     void deleteBPThread(BPatch_thread *thrd);
 
     public:

@@ -38,6 +38,8 @@
 #include "common/h/Types.h"
 #include "common/h/dthread.h"
 
+#include "syscallNotification.h"
+
 #include <queue>
 
 class PCEventMailbox {
@@ -61,6 +63,13 @@ class PCProcess;
  * The entry point for event and callback handling.
  */
 class PCEventHandler {
+    // Why syscallNotification is a friend:
+    //
+    // It is a friend because it reaches in to determine whether to install
+    // breakpoints at specific system calls. I didn't want to expose this to
+    // the rest of Dyninst.
+    
+    friend class syscallNotification;
 public:
     typedef enum {
         EventsReceived,
@@ -92,6 +101,8 @@ protected:
 
     bool eventMux(ProcControlAPI::Event::const_ptr ev) const;
     bool handleExit(ProcControlAPI::EventExit::const_ptr ev, PCProcess *evProc) const;
+    bool handleFork(ProcControlAPI::EventFork::const_ptr ev, PCProcess *evProc) const;
+    bool handleExec(ProcControlAPI::EventExec::const_ptr ev, PCProcess **evProc) const;
     bool handleCrash(ProcControlAPI::EventCrash::const_ptr ev, PCProcess *evProc) const;
     bool handleThreadCreate(ProcControlAPI::EventNewThread::const_ptr ev, PCProcess *evProc) const;
     bool handleThreadDestroy(ProcControlAPI::EventThreadDestroy::const_ptr ev, PCProcess *evProc) const;
@@ -157,7 +168,8 @@ protected:
     enum CallbackBreakpointCase {
         CallbackOnly, // case 1
         BothCallbackBreakpoint, // case 2
-        BreakpointOnly // case 3
+        BreakpointOnly, // case 3
+        NoCallbackOrBreakpoint // default
     };
     static CallbackBreakpointCase getCallbackBreakpointCase(ProcControlAPI::EventType et);
 

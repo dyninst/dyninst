@@ -448,6 +448,8 @@ class RegisterPool
       iterator();
       ~iterator();
       std::pair<Dyninst::MachRegister, Dyninst::MachRegisterVal> operator*();
+      bool operator==(const iterator &i);
+      bool operator!=(const iterator &i);
       RegisterPool::iterator operator++();
       RegisterPool::iterator operator++(int);
    };
@@ -465,6 +467,8 @@ class RegisterPool
       const_iterator();
       ~const_iterator();
       std::pair<Dyninst::MachRegister, Dyninst::MachRegisterVal> operator*() const;
+      bool operator==(const const_iterator &i);
+      bool operator!=(const const_iterator &i);
       RegisterPool::const_iterator operator++();
       RegisterPool::const_iterator operator++(int);
    };

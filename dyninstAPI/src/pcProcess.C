@@ -72,7 +72,8 @@ PCProcess *PCProcess::createProcess(const string file, pdvector<string> *argv,
         for (unsigned e = 0; e < envp->size(); e++)
             startup_cerr << "   " << e << ": " << (*envp)[e] << endl;
     }
-    startup_printf("%s[%d]: stdin: %d, stdout: %d, stderr: %d\n", stdin_fd, stdout_fd, stderr_fd);
+    startup_printf("%s[%d]: stdin: %d, stdout: %d, stderr: %d\n", FILE__, __LINE__,
+            stdin_fd, stdout_fd, stderr_fd);
 
     // Create a full path to the executable
     string path = createExecPath(file, dir);
@@ -120,9 +121,7 @@ PCProcess *PCProcess::createProcess(const string file, pdvector<string> *argv,
 
     startup_cerr << "Created process " << tmpPcProc->getPid() << endl;
 
-    PCProcess *ret = new PCProcess(tmpPcProc, file, dir,
-            argv, envp, inputFile, outputFile, stdin_fd, stdout_fd, stderr_fd,
-            analysisMode, eventHandler);
+    PCProcess *ret = new PCProcess(tmpPcProc, file, analysisMode, eventHandler);
     assert(ret);
     tmpPcProc->setData(ret);
 
@@ -179,6 +178,105 @@ PCProcess *PCProcess::attachProcess(const string &progpath, int pid,
     }
 
     return ret;
+}
+
+PCProcess *PCProcess::setupForkedProcess(PCProcess *parent, Process::ptr pcProc) {
+    startup_printf("%s[%d]: setting up forked process %d\n",
+            FILE__, __LINE__, pcProc->getPid());
+
+    PCProcess *ret = new PCProcess(parent, pcProc);
+    assert(ret);
+
+    pcProc->setData(ret);
+
+    ret->copyAddressSpace(parent);
+
+    // This requires the AddressSpace be copied from the parent
+    ret->tracedSyscalls_ = new syscallNotification(parent->tracedSyscalls_, ret);
+
+    // Check if RT library exists in child
+    if( ret->runtime_lib.size() == 0 ) {
+        // Set the RT library name
+        if( !ret->getDyninstRTLibName() ) {
+            startup_printf("%s[%d]: failed to get Dyninst RT lib name\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+        startup_printf("%s[%d]: Got Dyninst RT libname: %s\n", FILE__, __LINE__,
+                       ret->dyninstRT_name.c_str());
+
+        for(unsigned i = 0; i < ret->mapped_objects.size(); ++i) {
+            const fileDescriptor &desc = ret->mapped_objects[i]->getFileDesc();
+            fileDescriptor tmpDesc(ret->dyninstRT_name,
+                    desc.code(), desc.data(), true);
+            if( desc == tmpDesc ) {
+                ret->runtime_lib.insert(ret->mapped_objects[i]);
+                break;
+            }
+        }
+    }
+
+    // TODO hybrid mode stuff, pendingGCInstrumentation
+
+    // Copy signal handlers
+    pdvector<codeRange *> sigHandlers;
+    parent->signalHandlerLocations_.elements(sigHandlers);
+    for(unsigned i = 0; i < sigHandlers.size(); ++i) {
+        signal_handler_location *oldSig = dynamic_cast<signal_handler_location *>(sigHandlers[i]);
+        assert(oldSig);
+        signal_handler_location *newSig = new signal_handler_location(*oldSig);
+        ret->signalHandlerLocations_.insert(newSig);
+    }
+
+    // If required
+    if( !ret->copyDanglingMemory(parent) ) {
+        startup_printf("%s[%d]: failed to copy dangling memory from parent %d to child %d\n",
+                FILE__, __LINE__, parent->getPid(), ret->getPid());
+        ret->terminateProcess();
+
+        delete ret;
+        return NULL;
+    }
+
+    if( !ret->bootstrapProcess() ) {
+        startup_cerr << "Failed to bootstrap process " << ret->getPid()
+                     << ": terminating..." << endl;
+        ret->terminateProcess();
+
+        delete ret;
+        return NULL;
+    }
+
+    ret->setDesiredProcessState(parent->getDesiredProcessState());
+
+    return ret;
+}
+
+PCProcess *PCProcess::setupExecedProcess(PCProcess *oldProc, std::string execPath) {
+    BPatch::bpatch->registerExecCleanup(oldProc, NULL);
+
+    PCProcess *newProc = new PCProcess(oldProc->pcProc_, execPath, oldProc->analysisMode_,
+            oldProc->eventHandler_);
+
+    oldProc->pcProc_->setData(newProc);
+    newProc->setExecing(true);
+
+    if( !newProc->bootstrapProcess() ) {
+        proccontrol_printf("%s[%d]: failed to bootstrap execed process %d\n",
+                FILE__, __LINE__, newProc->getPid());
+        delete newProc;
+        return NULL;
+    }
+
+    delete oldProc;
+    oldProc = NULL;
+
+    BPatch::bpatch->registerExecExit(newProc);
+
+    newProc->setExecing(false);
+    newProc->setDesiredProcessState(ps_running);
+
+    return newProc;
 }
 
 PCProcess::~PCProcess() {
@@ -247,28 +345,30 @@ bool PCProcess::bootstrapProcess() {
     // Create the initial threads
     createInitialThreads();
 
-    // Initialize the inferior heaps
-    initializeHeap();
+    if( !wasCreatedViaFork() ) {
+        // Initialize the inferior heaps
+        initializeHeap();
 
-    for(unsigned i = 0; i < mapped_objects.size(); ++i) {
-        addInferiorHeap(mapped_objects[i]);
-    }
+        for(unsigned i = 0; i < mapped_objects.size(); ++i) {
+            addInferiorHeap(mapped_objects[i]);
+        }
 
-    // Create the mapped_objects for the executable and shared libraries
-    if( !createInitialMappedObjects() ) {
-        startup_printf("%s[%d]: bootstrap failed while creating mapped objects\n",
-                FILE__, __LINE__);
-        return false;
-    }
+        // Create the mapped_objects for the executable and shared libraries
+        if( !createInitialMappedObjects() ) {
+            startup_printf("%s[%d]: bootstrap failed while creating mapped objects\n",
+                    FILE__, __LINE__);
+            return false;
+        }
 
-    // Set the RT library name
-    if( !getDyninstRTLibName() ) {
-        startup_printf("%s[%d]: failed to get Dyninst RT lib name\n",
-                FILE__, __LINE__);
-        return false;
+        // Set the RT library name
+        if( !getDyninstRTLibName() ) {
+            startup_printf("%s[%d]: failed to get Dyninst RT lib name\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+        startup_printf("%s[%d]: Got Dyninst RT libname: %s\n", FILE__, __LINE__,
+                       dyninstRT_name.c_str());
     }
-    startup_printf("%s[%d]: Got Dyninst RT libname: %s\n", FILE__, __LINE__,
-                   dyninstRT_name.c_str());
 
     // Insert a breakpoint at the entry point of main (and possibly __libc_start_main)
     if( !hasPassedMain() ) {
@@ -346,10 +446,8 @@ bool PCProcess::bootstrapProcess() {
     costAddr_ = obsCostVec[0]->getAddress();
     assert(costAddr_);
 
-    // Install system call tracing
-
-    /*
     if( !wasCreatedViaFork() ) {
+        // Install system call tracing
         startup_printf("%s[%d]: installing default Dyninst instrumentation into process %d\n", 
             FILE__, __LINE__, getPid());
 
@@ -358,43 +456,65 @@ bool PCProcess::bootstrapProcess() {
         // TODO 
         // pre-fork and pre-exit should depend on whether a callback is defined
         // 
-        // This will require checking whether BPatch holds defined callback and also
+        // This will require checking whether BPatch holds a defined callback and also
         // adding a way for BPatch enable this instrumentation in all processes when
         // a callback is registered
 
-        if (!tracedSyscalls_->installPreFork()) 
-            bpwarn("Warning: failed pre-fork notification setup");
-        if (!tracedSyscalls_->installPostFork()) 
-            bpwarn("Warning: failed post-fork notification setup");
-        if (!tracedSyscalls_->installPreExec())
-            bpwarn("Warning: failed pre-exec notification setup");
-        if (!tracedSyscalls_->installPostExec())
-            bpwarn("Warning: failed post-exec notification setup");
-        if (!tracedSyscalls_->installPreExit())
-            bpwarn("Warning: failed pre-exit notification setup");
-        if (!tracedSyscalls_->installPreLwpExit())
-            bpwarn("Warning: failed pre-lwp-exit notification setup");
-    }
-    */
-
-    // Initialize the tramp guard
-    startup_printf("%s[%d]: initializing tramp guard\n", FILE__, __LINE__);
-    if( !initTrampGuard() ) {
-        startup_printf("%s[%d]: failed to initalize tramp guards\n", FILE__, __LINE__);
-        return false;
-    }
-
-    // Initialize the MT stuff
-    
-#if defined(cap_threads)
-    if (multithread_capable()) {
-        if( !instrumentMTFuncs() ) {
-            startup_printf("%s[%d]: Failed to instrument MT funcs\n",
+        if (!tracedSyscalls_->installPreFork()) {
+            startup_printf("%s[%d]: failed pre-fork notification setup\n",
                     FILE__, __LINE__);
             return false;
         }
-    }
+
+        if (!tracedSyscalls_->installPostFork()) {
+            startup_printf("%s[%d]: failed post-fork notification setup\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+
+        if (!tracedSyscalls_->installPreExec()) {
+            startup_printf("%s[%d]: failed pre-exec notification setup\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+
+        if (!tracedSyscalls_->installPostExec()) {
+            startup_printf("%s[%d]: failed post-exec notification setup\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+
+        if (!tracedSyscalls_->installPreExit()) {
+            startup_printf("%s[%d]: failed pre-exit notification setup\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+
+        if (!tracedSyscalls_->installPreLwpExit()) {
+            startup_printf("%s[%d]: failed pre-lwp-exit notification setup\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+
+        // Initialize the tramp guard
+        startup_printf("%s[%d]: initializing tramp guard\n", FILE__, __LINE__);
+        if( !initTrampGuard() ) {
+            startup_printf("%s[%d]: failed to initalize tramp guards\n", FILE__, __LINE__);
+            return false;
+        }
+
+        // Initialize the MT stuff
+        
+#if defined(cap_threads)
+        if (multithread_capable()) {
+            if( !instrumentMTFuncs() ) {
+                startup_printf("%s[%d]: Failed to instrument MT funcs\n",
+                        FILE__, __LINE__);
+                return false;
+            }
+        }
 #endif
+    }
 
     // use heuristics to set hybrid analysis mode
     if (BPatch_heuristicMode == analysisMode_) {
@@ -432,7 +552,8 @@ bool PCProcess::initTrampGuard() {
         readDataWord((void *)vars[0]->getAddress(), 8, &allocedTrampAddr, true);
     } else assert(0 && "Incompatible mutatee address width");
 
-    trampGuardBase_ = getAOut()->getDefaultModule()->createVariable("DYNINST_tramp_guard", allocedTrampAddr, getAddressWidth());
+    trampGuardBase_ = getAOut()->getDefaultModule()->createVariable("DYNINST_tramp_guard", 
+            allocedTrampAddr, getAddressWidth());
 
     return true;
 }
@@ -670,9 +791,6 @@ void PCProcess::addInferiorHeap(mapped_object *obj) {
 static const unsigned MAX_THREADS = 32; // Should match MAX_THREADS in RTcommon.c
 
 bool PCProcess::loadRTLib() {
-    // TODO test this code for the case when the RT lib has already been loaded
-    // I think it is right, but I am not sure
-
     // Check if the RT library has already been loaded
     if( runtime_lib.size() != 0 ) return true;
 
@@ -942,7 +1060,7 @@ Breakpoint::ptr PCProcess::getBreakpointAtMain() const {
 bool PCProcess::continueProcess(int /* contSignal */) {
     proccontrol_printf("%s[%d]: Continuing process %d\n", FILE__, __LINE__, getPid());
 
-    if( !isAttached() ) {
+    if( !isAttached() || hasExited() ) {
         bpwarn("Warning: continue attempted on non-attached process\n");
         return false;
     }
@@ -951,13 +1069,19 @@ bool PCProcess::continueProcess(int /* contSignal */) {
 
     invalidateActiveMultis();
 
+    for(map<dynthread_t, PCThread *>::iterator i = threadsByTid_.begin();
+            i != threadsByTid_.end(); ++i)
+    {
+        i->second->clearStackwalk();
+    }
+
     return pcProc_->continueProc();
 }
 
 bool PCProcess::stopProcess() {
-    proccontrol_printf("Stopping process %d\n", getPid());
+    proccontrol_printf("%s[%d]: Stopping process %d\n", FILE__, __LINE__, getPid());
 
-    if( !isAttached() ) {
+    if( !isAttached() || hasExited() ) {
         bpwarn("Warning: stop attempted on non-attached process\n");
         return false;
     }
@@ -966,7 +1090,23 @@ bool PCProcess::stopProcess() {
 }
 
 bool PCProcess::terminateProcess() {
-    return pcProc_->terminate();
+    if( hasExited() ) return true;
+
+    proccontrol_printf("%s[%d]: Terminating process %d\n", FILE__, __LINE__, getPid());
+    if( !pcProc_->terminate() ) {
+        proccontrol_printf("%s[%d]: Failed to terminate process %d\n", FILE__, __LINE__, 
+                getPid());
+        return false;
+    }
+
+    // TODO this may not be right
+    // ProcControlAPI doesn't issue a callback on forced-termination
+    // so manually deliver the event here
+    proccontrol_printf("%s[%d]: delivering terminate event to BPatch-layer\n", FILE__,
+            __LINE__);
+    BPatch::bpatch->registerSignalExit(this, getDefaultTermSignal());
+
+    return true;
 }
 
 bool PCProcess::detachProcess(bool /*cont*/) {
@@ -992,14 +1132,17 @@ bool PCProcess::isAttached() const {
 }
 
 bool PCProcess::isStopped() const {
+    if( pcProc_ == Process::ptr() ) return true;
     return pcProc_->allThreadsStopped();
 }
 
 bool PCProcess::isTerminated() const {
+    if( pcProc_ == Process::ptr() ) return true;
     return pcProc_->isTerminated();
 }
 
 bool PCProcess::hasExited() const {
+    if( pcProc_ == Process::ptr() ) return true;
     return pcProc_->isExited() || pcProc_->isCrashed();
 }
 
@@ -1010,18 +1153,22 @@ bool PCProcess::isExecing() const {
 bool PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
                          const void *inSelf)
 {
+    if( hasExited() ) return false;
     return pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
 }
 
 bool PCProcess::writeDataSpace(void *inTracedProcess,
                     u_int amount, const void *inSelf)
 {
+    if( hasExited() ) return false;
     return pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
 }
 
 bool PCProcess::writeDataWord(void *inTracedProcess,
                    u_int amount, const void *inSelf) 
 {
+    if( hasExited() ) return false;
+
     // XXX ProcControlAPI should support word writes in the future
     return pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
 }
@@ -1029,6 +1176,8 @@ bool PCProcess::writeDataWord(void *inTracedProcess,
 bool PCProcess::readDataSpace(const void *inTracedProcess, u_int amount,
                    void *inSelf, bool displayErrMsg)
 {
+    if( hasExited() ) return false;
+
     bool result = pcProc_->readMemory(inSelf, (Address)inTracedProcess, amount);
     if( !result && displayErrMsg ) {
         stringstream msg;
@@ -1043,6 +1192,8 @@ bool PCProcess::readDataSpace(const void *inTracedProcess, u_int amount,
 bool PCProcess::readDataWord(const void *inTracedProcess, u_int amount,
                   void *inSelf, bool displayErrMsg)
 {
+    if( hasExited() ) return false;
+
     // XXX see writeDataWord above
     bool result = pcProc_->readMemory(inSelf, (Address)inTracedProcess, amount);
     if( !result && displayErrMsg ) {
@@ -1058,11 +1209,14 @@ bool PCProcess::readDataWord(const void *inTracedProcess, u_int amount,
 
 bool PCProcess::writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf)
 {
+    if( hasExited() ) return false;
     return pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
 }
 
 bool PCProcess::writeTextWord(void *inTracedProcess, u_int amount, const void *inSelf)
 {
+    if( hasExited() ) return false;
+
     // XXX see writeDataWord above
     return pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
 }
@@ -1070,12 +1224,16 @@ bool PCProcess::writeTextWord(void *inTracedProcess, u_int amount, const void *i
 bool PCProcess::readTextSpace(const void *inTracedProcess, u_int amount,
                    void *inSelf)
 {
+    if( hasExited() ) return false;
+
     return pcProc_->readMemory(inSelf, (Address)inTracedProcess, amount);
 }
 
 bool PCProcess::readTextWord(const void *inTracedProcess, u_int amount,
                   void *inSelf)
 {
+    if( hasExited() ) return false;
+
     // XXX see writeDataWord above
     return pcProc_->readMemory(inSelf, (Address)inTracedProcess, amount);
 }
@@ -1094,7 +1252,7 @@ PCThread *PCProcess::getThread(dynthread_t tid) const {
     return findIter->second;
 }
 
-void PCProcess::deleteThread(dynthread_t tid) {
+void PCProcess::removeThread(dynthread_t tid) {
     map<dynthread_t, PCThread *>::iterator result;
     result = threadsByTid_.find(tid);
 
@@ -1106,7 +1264,9 @@ void PCProcess::deleteThread(dynthread_t tid) {
         initialThread_ = NULL;
     }
 
-    delete toDelete;
+    toDelete->markExited();
+
+    // Note: don't delete the thread here, the BPatch_thread takes care of it
 }
 
 void PCProcess::addThread(PCThread *thread) {
@@ -1141,7 +1301,7 @@ unsigned PCProcess::getMemoryPageSize() const {
 }
 
 int PCProcess::getPid() const {
-    return pcProc_->getPid();
+    return savedPid_;
 }
 
 int PCProcess::incrementThreadIndex() {
@@ -1155,7 +1315,7 @@ unsigned PCProcess::getAddressWidth() const {
         return mapped_objects[0]->parse_img()->codeObject()->cs()->getAddressWidth();
     }
 
-    // We can call this before we've attached...
+    // We can call this before we've attached...best effort guess
     return sizeof(Address);
 }
 
@@ -1361,11 +1521,8 @@ void alignUp(int &val, int align) {
 }
 
 bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
-    enum InferiorMallocResult {
-        MallocFailed = 0,
-        UnalignedBuffer = -1
-        // anything else is a valid address
-    };
+    const int MallocFailed = 0;
+    const int UnalignedBuffer = -1;
 
     // Could possibly end up with recursion here TODO if it actually is a problem
     infmalloc_printf("%s[%d]: entering inferiorMallocDynamic\n", FILE__, __LINE__);
@@ -1384,7 +1541,10 @@ bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
     // issue RPC and wait for result
     bool wasRunning = !isStopped();
 
-    InferiorMallocResult result = MallocFailed;
+    proccontrol_printf("%s[%d]: running inferiorMalloc via iRPC on process %d\n",
+            FILE__, __LINE__, getPid());
+
+    Address result;
     if( !postIRPC(code,
                   NULL, // only care about the result
                   wasRunning, // run when finished?
@@ -1397,8 +1557,10 @@ bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
                 FILE__, __LINE__);
         return false;
     }
+    proccontrol_printf("%s[%d]: inferiorMalloc via iRPC returned 0x%lx\n",
+            FILE__, __LINE__, result);
 
-    switch (result) {
+    switch ((int)result) {
         case MallocFailed:
             infmalloc_printf("%s[%d]: DYNINSTos_malloc() failed\n",
                                FILE__, __LINE__);
@@ -1409,7 +1571,7 @@ bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
             return false;
         default:
             // add new segment to buffer pool
-            heapItem *h = new heapItem((Address)result, size, getDynamicHeapType(),
+            heapItem *h = new heapItem(result, size, getDynamicHeapType(),
                     true, HEAPfree);
             addHeap(h);
             break;
@@ -1744,13 +1906,13 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
         void **result, bool deliverCallbacks, Address addr)
 {
     if( isTerminated() || hasExited() ) {
-        inferiorrpc_printf("%s[%d]: cannot post RPC to exited or terminated process %d\n",
+        proccontrol_printf("%s[%d]: cannot post RPC to exited or terminated process %d\n",
                 FILE__, __LINE__, getpid());
         return false;
     }
 
     if( thread && !thread->isLive() ) {
-        inferiorrpc_printf("%s[%d]: attempted to post RPC to dead thread %d\n",
+        proccontrol_printf("%s[%d]: attempted to post RPC to dead thread %d\n",
                 FILE__, __LINE__, thread->getLWP());
         return false;
     }
@@ -1786,8 +1948,11 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
 #endif
 
     newRPC->resultRegister = REG_NULL;
+    // Allocate a register for the return value
+    //newRPC->resultRegister = irpcBuf.rs()->allocateRegister(irpcBuf, false);
+
     if( !action->generateCode(irpcBuf, false, newRPC->resultRegister) ) {
-        inferiorrpc_printf("%s[%d]: failed to generate code from AST\n",
+        proccontrol_printf("%s[%d]: failed to generate code from AST\n",
                 FILE__, __LINE__);
         delete newRPC;
         return false;
@@ -1815,7 +1980,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
         // Post to a specific thread
         newRPC->thr = thread->getProcControlThread();
         if( !newRPC->thr->postIRPC(newRPC->rpc) ) {
-            inferiorrpc_printf("%s[%d]: failed to post RPC to thread %d\n",
+            proccontrol_printf("%s[%d]: failed to post RPC to thread %d\n",
                     FILE__, __LINE__, thread->getLWP());
             delete newRPC;
             return false;
@@ -1823,7 +1988,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     }else{
         newRPC->thr = pcProc_->postIRPC(newRPC->rpc);
         if( newRPC->thr == Thread::ptr() ) {
-            inferiorrpc_printf("%s[%d]: failed to post RPC to process %d\n",
+            proccontrol_printf("%s[%d]: failed to post RPC to process %d\n",
                     FILE__, __LINE__, getPid());
             delete newRPC;
             return false;
@@ -1849,41 +2014,48 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
 
     newRPC->rpc->setStartOffset(newRPC->rpcStartAddr - newRPC->get_address());
     
-    inferiorrpc_printf("%s[%d]: created iRPC %lu, base = 0x%lx, start = 0x%lx, complete = 0x%lx\n",
-            FILE__, __LINE__, newRPC->rpc->getID(), newRPC->get_address(), newRPC->rpcStartAddr,
+    proccontrol_printf("%s[%d]: created iRPC %lu on thread %d/%d, base = 0x%lx, start = 0x%lx, complete = 0x%lx\n",
+            FILE__, __LINE__, newRPC->rpc->getID(), getPid(), newRPC->thr->getLWP(),
+            newRPC->get_address(), newRPC->rpcStartAddr,
             newRPC->rpcCompletionAddr);
 
     // Store the range, use removeOrigRange on completion
-    addOrigRange(newRPC);
+
+    // Only store the range if it doesn't overlap with an existing range ( when
+    // loading the RT library on Linux, we need to execute the iRPC from within
+    // libc, thus the code range for libc and the iRPC overlap)
+    if( findOrigByAddr(newRPC->get_address()) == NULL ) {
+        addOrigRange(newRPC);
+    }
 
     if( synchronous ) {
         while( !newRPC->isComplete ) {
             if( !newRPC->thr->isLive() ) {
-                inferiorrpc_printf("%s[%d]: thread %d/%d no longer exists, failed to finish RPC\n",
-                        FILE__, __LINE__, getPid(), newRPC->thr->getTid());
+                proccontrol_printf("%s[%d]: thread %d/%d no longer exists, failed to finish RPC\n",
+                        FILE__, __LINE__, getPid(), newRPC->thr->getLWP());
                 removeOrigRange(newRPC);
                 delete newRPC;
                 return false;
             }
 
             if( !newRPC->thr->isRunning() ) {
-                inferiorrpc_printf("%s[%d]: thread %d/%d not running, continuing thread to finish RPC\n",
-                        FILE__, __LINE__, getPid(), newRPC->thr->getTid());
+                proccontrol_printf("%s[%d]: thread %d/%d not running, continuing thread to finish RPC\n",
+                        FILE__, __LINE__, getPid(), newRPC->thr->getLWP());
                 if( !newRPC->thr->continueThread() ) {
-                    inferiorrpc_printf("%s[%d]: failed to continue thread %lu, process %d to run RPC\n",
-                            FILE__, __LINE__, newRPC->thr->getTid(), getPid());
+                    proccontrol_printf("%s[%d]: failed to continue thread %lu, process %d to run RPC\n",
+                            FILE__, __LINE__, newRPC->thr->getLWP(), getPid());
                     removeOrigRange(newRPC);
                     delete newRPC;
                     return false;
                 }
             }
 
-            inferiorrpc_printf("%s[%d]: waiting for the RPC to complete\n",
+            proccontrol_printf("%s[%d]: waiting for the RPC to complete\n",
                     FILE__, __LINE__);
             // This implicitly does the necessary handling for the completion of the iRPC
             if( eventHandler_->waitForEvents(true) != PCEventHandler::EventsReceived ) {
-                inferiorrpc_printf("%s[%d]: failed to wait for completion of iRPC\n",
-                        FILE__, __LINE__, newRPC->thr->getTid(), getPid());
+                proccontrol_printf("%s[%d]: failed to wait for completion of iRPC\n",
+                        FILE__, __LINE__, newRPC->thr->getLWP(), getPid());
                 removeOrigRange(newRPC);
                 delete newRPC;
                 return false;
@@ -2867,6 +3039,8 @@ int_function *PCProcess::findActiveFuncByAddr(Address addr)
  * it executes.
  */
 void PCProcess::debugSuicide() {
+    if( hasExited() ) return;
+
     isInDebugSuicide_ = true;
 
     pdvector<Frame> activeFrames;
@@ -2947,6 +3121,7 @@ Address PCProcess::length() const {
 }
 
 Architecture PCProcess::getArch() const {
+    if( pcProc_ == Process::ptr() ) return Dyninst::Arch_none;
     return pcProc_->getArchitecture();
 }
 
@@ -3206,4 +3381,36 @@ Address PCProcess::stopThreadCtrlTransfer(instPoint *intPoint, Address target) {
         }
     }
     return unrelocTarget;
+}
+
+void PCProcess::triggerNormalExit(int exitcode) {
+    for(std::map<dynthread_t, PCThread *>::iterator i = threadsByTid_.begin();
+            i != threadsByTid_.end(); ++i)
+    {
+        if( i->second != initialThread_ ) 
+            BPatch::bpatch->registerThreadExit(this, i->second);
+    }
+    BPatch::bpatch->registerNormalExit(this, exitcode);
+}
+
+PCThread *PCProcess::getThreadByLWP(Dyninst::LWP lwp) {
+    for(std::map<dynthread_t, PCThread *>::iterator i = threadsByTid_.begin();
+            i != threadsByTid_.end(); ++i)
+    {
+        if( i->second->getLWP() == lwp ) return i->second;
+    }
+
+    return NULL;
+}
+
+// Debugging only
+bool PCProcess::setBreakpoint(Address addr) {
+    Breakpoint::ptr brkPt = Breakpoint::newBreakpoint();
+    if( !pcProc_->addBreakpoint(addr, brkPt) ) {
+        proccontrol_printf("%s[%d]: failed to set breakpoint at 0x%lx\n",
+                FILE__, __LINE__, addr);
+        return false;
+    }
+
+    return true;
 }

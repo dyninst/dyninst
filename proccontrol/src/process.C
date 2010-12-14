@@ -1654,6 +1654,43 @@ bool int_threadPool::cont(bool user_cont)
       int_thread *thr = *i;
       assert(thr);
 
+      ProcPool()->condvar()->unlock();
+      bool completed_rpc = true;
+      bool result = rpcMgr()->handleThreadContinue(thr, user_cont, completed_rpc);
+      if (!result) {
+         pthrd_printf("Error handling IRPC during continue\n");
+         had_error = true;
+         continue;
+      }
+      if (!completed_rpc && !thr->hasPendingStop()) {
+         /**
+          * A thread has an RPC being prepped and has been asked to continue.
+          * We'll postpone this continue until the RPC is prepped.  This should
+          * only happen on an async system (BlueGene), in which case we'll
+          * generate RPCInternal events to move the system along until everything is complete.
+          *
+          * We'll still allow a continue on a thread with a pending stop, since the thread
+          * will move to a proper stop state before actually running.
+          **/
+         pthrd_printf("Unable to complete post of RPC, postponing continue\n");
+         if (user_cont) {
+            bool result = thr->setUserState(int_thread::running);
+            if (!result) {
+               setLastError(err_exited, "Attempted thread continue on exited thread\n");
+               perr_printf("Failed to continue thread %d/%d--bad state\n", proc()->getPid(), 
+                       thr->getLWP());
+               had_error = true;
+               continue;
+            }
+         }
+         if (!thr->postponed_continue) {
+            thr->desyncInternalState();
+            thr->postponed_continue = true;
+         }
+         continue;
+      }
+      ProcPool()->condvar()->lock();
+
       pthrd_printf("Continuing thread %d on process %d\n", thr->getLWP(), pid);
       int_thread::stopcont_ret_t ret = thr->cont(user_cont, true);
       switch (ret) {
@@ -3541,6 +3578,16 @@ RegisterPool::iterator RegisterPool::find(MachRegister r)
    return RegisterPool::iterator(llregpool->regs.find(r));
 }
 
+bool RegisterPool::iterator::operator==(const iterator &iter)
+{
+    return i == iter.i;
+}
+
+bool RegisterPool::iterator::operator!=(const iterator &iter)
+{
+    return i != iter.i;
+}
+
 RegisterPool::const_iterator RegisterPool::begin() const
 {
    return RegisterPool::const_iterator(llregpool->regs.begin());
@@ -3554,6 +3601,16 @@ RegisterPool::const_iterator RegisterPool::end() const
 RegisterPool::const_iterator RegisterPool::find(MachRegister r) const
 {
    return RegisterPool::const_iterator(llregpool->regs.find(r));
+}
+
+bool RegisterPool::const_iterator::operator==(const const_iterator &iter)
+{
+    return i != iter.i;
+}
+
+bool RegisterPool::const_iterator::operator!=(const const_iterator &iter)
+{
+    return i != iter.i;
 }
 
 MachRegisterVal& RegisterPool::operator[](MachRegister r)

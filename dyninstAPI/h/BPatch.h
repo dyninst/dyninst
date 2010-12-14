@@ -46,6 +46,7 @@ class BPatch_libInfo;
 class BPatch_module;
 class int_function;
 class PCProcess;
+class PCThread;
 class PCEventHandler;
 
 //Keep old versions defined, that way someone can test if we're more
@@ -220,9 +221,8 @@ public:
 
     void registerNormalExit(PCProcess *proc, int exitcode);
     void registerSignalExit(PCProcess *proc, int signalnum);
-    void cleanupProcess(PCProcess *proc);
 
-    void registerThreadExit(PCProcess *proc, long tid, bool exiting);
+    void registerThreadExit(PCProcess *llproc, PCThread *llthread);
     bool registerThreadCreate(BPatch_process *proc, BPatch_thread *newthr);
 
     void registerProcess(BPatch_process *process, int pid=0);

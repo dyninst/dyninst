@@ -47,6 +47,8 @@ class PCProcess;
 typedef long dynthread_t;
 
 class PCThread {
+    friend class PCProcess;
+
 public:
     static PCThread *createPCThread(PCProcess *parent, ProcControlAPI::Thread::ptr thr);
 
@@ -67,17 +69,19 @@ public:
     // Field mutators
     void updateStartFunc(int_function *ifunc);
     void updateStackAddr(Address stackStart);
+    void clearStackwalk();
 
     int_function *mapInitialFunc(int_function *ifunc);
 
     // Architecture-specific
     Frame getActiveFrame();
 
-    ProcControlAPI::Thread::ptr getProcControlThread();
-
 protected:
     PCThread(PCProcess *parent, int ind,
             ProcControlAPI::Thread::ptr thr);
+
+    ProcControlAPI::Thread::ptr getProcControlThread();
+    void markExited();
 
     PCProcess *proc_;
     ProcControlAPI::Thread::ptr pcThr_;
@@ -89,6 +93,8 @@ protected:
     // When we run an inferior RPC we cache the stackwalk of the
     // process and return that if anyone asks for a stack walk
     int_stackwalk cached_stackwalk_;
+    int savedLWP_;
+    dynthread_t savedTid_;
 };
 
 #endif

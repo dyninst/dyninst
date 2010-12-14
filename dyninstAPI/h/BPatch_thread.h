@@ -68,17 +68,15 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
 
     BPatch_process *proc;
     PCThread *llthread;
-    bool deleted_callback_made;
-    bool is_deleted;
-    dynthread_t deleted_tid;
-    bool legacy_destructor;
 
  protected:
     BPatch_thread(BPatch_process *parent, PCThread *thr);
 
     //Generator for above constructor
     static BPatch_thread *createNewThread(BPatch_process *proc, PCThread *thr);
-    void removeThreadFromProc();
+
+    // Currently only used on an exec to replace the underlying PCThread
+    void updateThread(PCThread *newThr);
     
  public:
 

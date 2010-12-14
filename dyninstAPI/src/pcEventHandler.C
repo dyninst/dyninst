@@ -36,6 +36,9 @@
 #include "pcProcess.h"
 #include "mapped_object.h"
 
+#include <vector>
+using std::vector;
+
 // TODO this needs to be more general
 #if defined(arch_x86) || defined(arch_x86_64)
 #include "RegisterConversion-x86.h"
@@ -105,11 +108,7 @@ void PCEventHandler::main() {
     // Register callbacks before allowing the user thread to continue
 
     // Any error in registration is a programming error
-
-    // Note: we only care about Post-Exit via ProcControlAPI (we use instrumentation for Pre-Exit)
-    assert( Process::registerEventCallback(EventType(EventType::Post, EventType::Exit), PCEventHandler::callbackMux) );
     assert( Process::registerEventCallback(EventType(EventType::Any, EventType::Crash), PCEventHandler::callbackMux) );
-    // Note: we don't care about Fork and Exec via ProcControlAPI (we use instrumentation)
     assert( Process::registerEventCallback(EventType(EventType::Any, EventType::ThreadCreate), PCEventHandler::callbackMux) );
     assert( Process::registerEventCallback(EventType(EventType::Any, EventType::ThreadDestroy), PCEventHandler::callbackMux) );
     // Note: we do not care about EventStop's right now (these correspond to internal stops see bug 1121)
@@ -119,6 +118,28 @@ void PCEventHandler::main() {
     assert( Process::registerEventCallback(EventType(EventType::Any, EventType::Breakpoint), PCEventHandler::callbackMux) );
     assert( Process::registerEventCallback(EventType(EventType::Any, EventType::RPC), PCEventHandler::callbackMux) );
     assert( Process::registerEventCallback(EventType(EventType::Any, EventType::SingleStep), PCEventHandler::callbackMux) );
+
+    // Check if callbacks should be registered for syscalls on this platform
+    vector<EventType> syscallTypes;
+    syscallTypes.push_back(EventType(EventType::Pre, EventType::Exit));
+    syscallTypes.push_back(EventType(EventType::Post, EventType::Exit));
+    syscallTypes.push_back(EventType(EventType::Pre, EventType::Fork));
+    syscallTypes.push_back(EventType(EventType::Post, EventType::Fork));
+    syscallTypes.push_back(EventType(EventType::Pre, EventType::Exec));
+    syscallTypes.push_back(EventType(EventType::Post, EventType::Exec));
+
+    for(vector<EventType>::iterator i = syscallTypes.begin();
+            i != syscallTypes.end(); ++i)
+    {
+        switch(getCallbackBreakpointCase(*i)) {
+            case CallbackOnly:
+            case BothCallbackBreakpoint:
+                assert( Process::registerEventCallback(*i, PCEventHandler::callbackMux) );
+                break;
+            default:
+                break;
+        }
+    }
 
     initCond_.lock();
     initCond_.signal();
@@ -167,7 +188,7 @@ void PCEventHandler::main() {
         }
     }
 
-    proccontrol_printf("%s[%d]: callback thread exiting %lx\n", FILE__, __LINE__);
+    proccontrol_printf("%s[%d]: callback thread exiting\n", FILE__, __LINE__);
 }
 
 Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
@@ -201,16 +222,45 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
             EventRPC::const_ptr evRPC = ev->getEventRPC();
             inferiorRPCinProgress *rpcInProg = (inferiorRPCinProgress *)evRPC->getIRPC()->getData();
 
-            // Get the result out of a register
-            MachRegister resultReg = convertRegID(rpcInProg->resultRegister);
-            MachRegisterVal resultVal;
-            if( !ev->getThread()->getRegister(resultReg, resultVal) ) {
-                proccontrol_printf("%s[%d]: failed to retrieve register from thread %d/%d\n",
-                        FILE__, __LINE__,
-                        ev->getProcess()->getPid(), ev->getThread()->getLWP());
-                ev = Event::const_ptr(new Event(EventType::Error));
+            if( rpcInProg->resultRegister == REG_NULL ) {
+                // If the resultRegister isn't set, the returnValue shouldn't matter
+                rpcInProg->returnValue = NULL;
             }else{
-                rpcInProg->returnValue = (void *)resultVal;
+                // Get the result out of a register
+                MachRegister resultReg = convertRegID(rpcInProg->resultRegister, 
+                        ev->getProcess()->getArchitecture());
+                MachRegisterVal resultVal;
+                if( !ev->getThread()->getRegister(resultReg, resultVal) ) {
+                    proccontrol_printf("%s[%d]: failed to retrieve register from thread %d/%d\n",
+                            FILE__, __LINE__,
+                            ev->getProcess()->getPid(), ev->getThread()->getLWP());
+                    ev = Event::const_ptr(new Event(EventType::Error));
+                }else{
+                    rpcInProg->returnValue = (void *)resultVal;
+
+                    proccontrol_printf("%s[%d]: iRPC %lu return value = 0x%lx\n",
+                        FILE__, __LINE__, rpcInProg->rpc->getID(),
+                        resultVal);
+                }
+            }
+        }
+            break;
+        case EventType::Signal:
+        {
+            if( dyn_debug_proccontrol ) {
+                EventSignal::const_ptr evSig = ev->getEventSignal();
+                if( evSig->getSignal() == SIGSEGV ) {
+                    RegisterPool segvRegs;
+                    if( !evSig->getThread()->getAllRegisters(segvRegs) ) {
+                        fprintf(stderr, "%s[%d]: Failed to get registers for crash\n", FILE__, __LINE__);
+                    }else{
+                        fprintf(stderr, "Registers at crash:\n");
+                        for(RegisterPool::iterator i = segvRegs.begin(); i != segvRegs.end(); i++) {
+                            fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name(), (*i).second);
+                        }
+                    }
+                    while(1) { sleep(1); }
+                }
             }
         }
            break;
@@ -322,8 +372,9 @@ PCEventHandler::WaitResult PCEventHandler::waitForEvents(bool block) {
 }
 
 bool PCEventHandler::eventMux(Event::const_ptr ev) const {
-    proccontrol_printf("%s[%d]: attempting to handle event: %s\n",
-            FILE__, __LINE__, ev->getEventType().name().c_str());
+    proccontrol_printf("%s[%d]: attempting to handle event %s on thread %d/%d\n",
+            FILE__, __LINE__, ev->getEventType().name().c_str(),
+            ev->getProcess()->getPid(), ev->getThread()->getLWP());
 
     PCProcess *evProc = (PCProcess *)ev->getProcess()->getData();
     if( evProc == NULL ) {
@@ -338,10 +389,6 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
         // Errors first
         case EventType::Error:
         case EventType::Unset:
-        // We currently don't use ProcControlAPI's Fork and Exec events
-        // as they are not available on every platform
-        case EventType::Fork:
-        case EventType::Exec:
             ret = false;
             break;
         case EventType::SingleStep: // for now, this should be unused
@@ -353,15 +400,8 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
             break;
         // Interesting events
         case EventType::Exit:
-            // We currently don't use ProcControl's Pre-Exit event
-            // for the same reasons as above
-            if( ev->getEventType().time() == EventType::Pre ) {
-                ret = false;
-                break;
-            }
-
             ret = handleExit(ev->getEventExit(), evProc);
-            if( ev->getEventType().time() == EventType::Post ) {
+            if( ev->getEventType().time() != EventType::Pre ) {
                 processDeleted = true;
             }
             break;
@@ -370,6 +410,13 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
             if( ev->getEventType().time() != EventType::Pre ) {
                 processDeleted = true;
             }
+            break;
+        case EventType::Fork:
+            ret = handleFork(ev->getEventFork(), evProc);
+            break;
+        case EventType::Exec:
+            // On Post-Exec, a new PCProcess is created
+            ret = handleExec(ev->getEventExec(), &evProc);
             break;
         case EventType::ThreadCreate:
             ret = handleThreadCreate(ev->getEventNewThread(), evProc);
@@ -397,8 +444,12 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
             break;
     }
 
-    if( ret && !processDeleted && evProc->getDesiredProcessState() == PCProcess::ps_running &&
-            evProc->isStopped() )
+    if(    ret // there were no errors
+        && !processDeleted  // the process hasn't already exited/terminated
+        && evProc->getDesiredProcessState() == PCProcess::ps_running // the user wants the process running
+        && evProc->isStopped() // the process is stopped
+        && !evProc->hasReportedEvent() // we aren't in the middle of processing an event that we reported to ProcControl
+      )
     {
         proccontrol_printf("%s[%d]: user wants process running after event handling\n",
                 FILE__, __LINE__);
@@ -417,9 +468,13 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
 }
 
 bool PCEventHandler::handleExit(EventExit::const_ptr ev, PCProcess *evProc) const {
-    assert( ev->getEventType().time() != EventType::Pre );
+    evProc->setReportingEvent(false);
+    if( ev->getEventType().time() == EventType::Pre ) {
+        // This is handled as an RT signal on all platforms for now
+    }else{
+        // Nothing done here for now
+    }
 
-    BPatch::bpatch->cleanupProcess(evProc);
     return true;
 }
 
@@ -428,18 +483,109 @@ bool PCEventHandler::handleCrash(EventCrash::const_ptr ev, PCProcess *evProc) co
         // There is no BPatch equivalent for a Pre-Crash
     }else{ 
         BPatch::bpatch->registerSignalExit(evProc, ev->getTermSignal());
-        BPatch::bpatch->cleanupProcess(evProc);
     }
 
     return true;
 }
 
-bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr /*ev*/, PCProcess * /*evProc*/) const {
-    return false;
+bool PCEventHandler::handleFork(EventFork::const_ptr ev, PCProcess *evProc) const {
+    evProc->setReportingEvent(false);
+    if( ev->getEventType().time() == EventType::Pre ) {
+        // This is handled as an RT signal on all platforms for now
+    }else{
+        // XXX
+        // This is not the way to do this -- once the enhancement in bug 1123
+        // is done, that is the correct way to do this
+        Process::ptr childPCProc(
+                dyn_detail::boost::const_pointer_cast<Process>(ev->getChildProcess()));
+        PCProcess *childProc = PCProcess::setupForkedProcess(evProc, childPCProc);
+        if( childProc == NULL ) {
+            proccontrol_printf("%s[%d]: failed to create process representation for child %d of process %d\n",
+                    FILE__, __LINE__, ev->getChildProcess()->getPid(), evProc->getPid());
+            return false;
+        }
+
+        BPatch::bpatch->registerForkedProcess(evProc, childProc);
+
+        if( childProc->getDesiredProcessState() == PCProcess::ps_running ) {
+            proccontrol_printf("%s[%d]: user wants newly created process running after event handling\n",
+                    FILE__, __LINE__);
+            if( !childProc->continueProcess() ) {
+                proccontrol_printf("%s[%d]: failed to continue newly created process %d\n",
+                        FILE__, __LINE__, childProc->getPid());
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
-bool PCEventHandler::handleThreadDestroy(EventThreadDestroy::const_ptr /*ev*/, PCProcess * /*evProc*/) const {
-    return false;
+bool PCEventHandler::handleExec(EventExec::const_ptr ev, PCProcess **evProc) const {
+    (*evProc)->setReportingEvent(false);
+    if( ev->getEventType().time() == EventType::Pre ) {
+        // This is handled as an RT signal on all platforms for now
+    }else{
+        PCProcess *newProc = PCProcess::setupExecedProcess(*evProc, ev->getExecPath());
+        if( newProc == NULL ) {
+            proccontrol_printf("%s[%d]: failed to setup newly execed process %d\n",
+                    FILE__, __LINE__, (*evProc)->getPid());
+            return false;
+        }
+
+        *evProc = newProc;
+    }
+
+    return true;
+}
+
+bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr ev, PCProcess *evProc) const {
+    BPatch_process *bpproc = BPatch::bpatch->getProcessByPid(evProc->getPid());
+    if( bpproc == NULL ) {
+        proccontrol_printf("%s[%d]: failed to locate BPatch_process for process %d\n",
+                FILE__, __LINE__, evProc->getPid());
+        return false;
+    }
+
+    Thread::ptr pcThr = *(ev->getProcess()->threads().find(ev->getLWP()));
+    if( pcThr == Thread::ptr() ) {
+        proccontrol_printf("%s[%d]: failed to locate ProcControl thread for new thread %d/%d\n",
+                FILE__, __LINE__, evProc->getPid(), ev->getLWP());
+        return false;
+    }
+
+    PCThread *newThr = PCThread::createPCThread(evProc, pcThr);
+    if( newThr == NULL ) {
+        proccontrol_printf("%s[%d]: failed to create internal thread representation for new thread %d/%d\n",
+                FILE__, __LINE__, evProc->getPid(), ev->getLWP());
+        return false;
+    }
+
+    bpproc->triggerThreadCreate(newThr);
+
+    return true;
+}
+
+bool PCEventHandler::handleThreadDestroy(EventThreadDestroy::const_ptr ev, PCProcess *evProc) const {
+    BPatch_process *bpproc = BPatch::bpatch->getProcessByPid(evProc->getPid());
+    if( bpproc == NULL ) {
+        proccontrol_printf("%s[%d]: failed to locate BPatch_process for process %d\n",
+                FILE__, __LINE__, evProc->getPid());
+        return false;
+    }
+
+    // TODO
+    // Convert this to use PCProcess::getThread(tid) when ProcControl produces valid tid's
+    PCThread *exitThread = evProc->getThreadByLWP(ev->getThread()->getLWP());
+    if( exitThread == NULL ) {
+        proccontrol_printf("%s[%d]: failed to locate internal thread representation for thread %d/%d\n",
+                FILE__, __LINE__, evProc->getPid(), ev->getThread()->getLWP());
+        return false;
+    }
+
+    BPatch::bpatch->registerThreadExit(evProc, exitThread);
+
+    return true;
 }
 
 bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) const {
@@ -473,12 +619,15 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
         return false;
     }
 
-    if( PCEventHandler::shouldStopForSignal(ev->getSignal()) ) {
+    if( shouldStopForSignal(ev->getSignal()) ) {
+        proccontrol_printf("%s[%d]: signal %d is stop signal, leaving process stopped\n",
+                FILE__, __LINE__, ev->getSignal());
         evProc->setDesiredProcessState(PCProcess::ps_stopped);
 
         // Don't deliver stop signals to the process
         ev->clearSignal();
     }
+
 
     bpproc->setLastSignal(ev->getSignal());
 
@@ -488,7 +637,8 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
 PCEventHandler::RTSignalResult
 PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) const {
     // Check whether the signal was sent from the RT library by checking variables
-    // in the library
+    // in the library -- if it cannot be determine whether this signal came from
+    // the RT library, assume it did not.
 
     Address sync_event_breakpoint_addr = evProc->getRTEventBreakpointAddr();
     Address sync_event_id_addr = evProc->getRTEventIdAddr();
@@ -507,7 +657,7 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
         if( !evProc->findVarsByAll(status_str, vars) ) {
             proccontrol_printf("%s[%d]: failed to find variable %s\n",
                     FILE__, __LINE__, status_str.c_str());
-            return ErrorInDecoding;
+            return NotRTSignal;
         }
 
         if( vars.size() != 1 ) {
@@ -520,7 +670,7 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
     }
 
     if( !evProc->readDataWord((const void *)sync_event_breakpoint_addr,
-                sizeof(int), &breakpoint, false) ) return ErrorInDecoding;
+                sizeof(int), &breakpoint, false) ) return NotRTSignal;
 
     const int NO_BREAKPOINT = 0;
     const int NORMAL_BREAKPOINT = 1;
@@ -548,7 +698,7 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
     if( !evProc->writeDataWord((void *)sync_event_breakpoint_addr, sizeof(int), &zero) ) {
         proccontrol_printf("%s[%d]: failed to reset RT library breakpoint variable\n",
                 FILE__, __LINE__);
-        return ErrorInDecoding;
+        return NotRTSignal;
     }
 
     if( sync_event_id_addr == 0 ) {
@@ -558,7 +708,7 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
         if( !evProc->findVarsByAll(status_str, vars) ) {
             proccontrol_printf("%s[%d]: failed to find variable %s\n",
                     FILE__, __LINE__, status_str.c_str());
-            return ErrorInDecoding;
+            return NotRTSignal;
         }
 
         if( vars.size() != 1 ) {
@@ -571,7 +721,7 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
     }
 
     if( !evProc->readDataWord((const void *)sync_event_id_addr, sizeof(int),
-                &status, false) ) return ErrorInDecoding;
+                &status, false) ) return NotRTSignal;
 
     if( status == DSE_undefined ) {
         proccontrol_printf("%s[%d]: signal is not RT library signal\n", FILE__, __LINE__);
@@ -582,7 +732,7 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
     if( !evProc->writeDataWord((void *)sync_event_id_addr, sizeof(int), &zero) ) {
         proccontrol_printf("%s[%d]: failed to reset RT library event id variable\n",
                 FILE__, __LINE__);
-        return ErrorInDecoding;
+        return NotRTSignal;
     }
 
     // get runtime library arg1 address
@@ -590,16 +740,15 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
         std::string arg_str("DYNINST_synch_event_arg1");
 
         pdvector<int_variable *> vars;
-        if( evProc->findVarsByAll(arg_str, vars) ) {
+        if( !evProc->findVarsByAll(arg_str, vars) ) {
             proccontrol_printf("%s[%d]: failed to find %s\n",
                     FILE__, __LINE__, arg_str.c_str());
-            return ErrorInDecoding;
+            return NotRTSignal;
         }
 
         if( vars.size() != 1 ) {
             proccontrol_printf("%s[%d]: WARNING: multiple copies of %s found\n",
                     FILE__, __LINE__, arg_str.c_str());
-            return ErrorInDecoding;
         }
 
         sync_event_arg1_addr = vars[0]->getAddress();
@@ -610,7 +759,7 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
                 evProc->getAddressWidth(), &arg1, false) ) {
         proccontrol_printf("%s[%d]: failed to read RT library arg1 variable\n",
                 FILE__, __LINE__);
-        return ErrorInDecoding;
+        return NotRTSignal;
     }
 
     return handleRTSignal_NP(ev, evProc, arg1, status);
@@ -731,6 +880,11 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
             assert( !evProc->hasReachedBootstrapState(PCProcess::bs_initialized) );
             proccontrol_printf("%s[%d]: library event contains RT library load\n", FILE__, __LINE__);
 
+            // In the dynamic case, we can only work with dynamic binaries at
+            // this point and thus the RT library is a shared library, so the
+            // runtime_lib structure should be empty
+            assert( evProc->runtime_lib.size() == 0 );
+
             evProc->runtime_lib.insert(newObj);
         }
 
@@ -798,8 +952,19 @@ bool PCEventHandler::handleBreakpoint(EventBreakpoint::const_ptr ev, PCProcess *
             if( !evProc->hasReachedBootstrapState(PCProcess::bs_readyToLoadRTLib) ) {
                 evProc->setBootstrapState(PCProcess::bs_readyToLoadRTLib);
             }
+        }else{
+            if( dyn_debug_proccontrol ) {
+                RegisterPool regs;
+                if( !ev->getThread()->getAllRegisters(regs) ) {
+                    fprintf(stderr, "%s[%d]: Failed to get registers at breakpoint\n", FILE__, __LINE__);
+                }else{
+                    fprintf(stderr, "Registers at breakpoint:\n");
+                    for(RegisterPool::iterator i = regs.begin(); i != regs.end(); i++) {
+                        fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name(), (*i).second);
+                    }
+                }
+            }
         }
-        // TODO handle other types of breakpoints (probably syscall stuff)
     }
 
     return true;

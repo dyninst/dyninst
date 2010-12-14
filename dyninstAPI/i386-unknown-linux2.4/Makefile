@@ -25,9 +25,6 @@ include ../../make.config
 
 SRCS =          ../src/linux.C \
 		../src/linux-x86.C \
-		../src/linuxDL.C \
-		../src/dynamiclinking.C \
-		../src/linuxMT.C \
                 ../src/inst-linux.C \
 		../src/cpuid-x86.S \
                 ../src/inst-x86.C \
@@ -40,10 +37,7 @@ SRCS =          ../src/linux.C \
 		../src/frameChecker.C \
 		../src/IAPI_to_AST.C \
 		../src/BPatch_memoryAccessAdapter.C \
-		../src/RegisterConversion-x86.C\
-#		../src/addLibraryLinux.C \
-#		../src/writeBackElf.C \
-#		../src/saveSharedLibrary.C \
+		../src/RegisterConversion-x86.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG
