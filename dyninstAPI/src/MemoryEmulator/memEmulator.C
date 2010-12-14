@@ -143,7 +143,7 @@ static void mergeRanges(const mapped_object *obj,
 }
 
 void MemoryEmulator::addObject(const mapped_object *obj) {
-   //cerr << "memEmulator::addObject for " << obj->fileName() << endl;
+   sensitivity_cerr << "memEmulator::addObject for " << obj->fileName() << endl;
 
    // Get all pages containing analyzed code, 
    // coalesce them into larger ranges (that don't span region boundaries), 

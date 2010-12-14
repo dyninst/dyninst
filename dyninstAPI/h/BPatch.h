@@ -160,8 +160,6 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
 
     bool instrFrames;
 
-    bool useNewReloc_;
-
     BPatch_stats stats;
     void updateStats();
 
@@ -327,10 +325,6 @@ public:
     API_EXPORT(Int, (),
                int, livenessAnalysisDepth, ());
 
-    API_EXPORT(Int, (),
-	       bool, useNewReloc, ());
-
-    
 
     //  User-specified callback functions...
 
@@ -534,9 +528,6 @@ public:
 
     API_EXPORT_V(Int, (x),
                  void, setLivenessAnalysisDepth, (int x));
-
-    API_EXPORT_V(Int, (x),
-		 void, setNewReloc, (bool x));
 
     // BPatch::processCreate:
     // Create a new mutatee process

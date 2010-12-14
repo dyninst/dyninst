@@ -75,6 +75,7 @@ AddressSpace::AddressSpace () :
    if ( getenv("DYNINST_EMULATE_MEMORY") ) {
        printf("emulating memory\n");
        emulateMem_ = true;
+       emulatePC_ = true;
    }
 }
 

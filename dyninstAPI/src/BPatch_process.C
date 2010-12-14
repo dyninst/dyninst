@@ -1695,7 +1695,7 @@ bool BPatch_process::hideDebuggerInt()
     }
 
     BPatch_module *kern = image->findModule("kernel32.dll",true);
-    if (kern) { // should only succeed on windows
+    if (kern && user) { // should only succeed on windows
         // CheckRemoteDebuggerPresent
         vector<BPatch_function*> funcs;
         kern->findFunction(
