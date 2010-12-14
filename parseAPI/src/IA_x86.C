@@ -390,15 +390,15 @@ bool IA_IAPI::isFakeCall() const
     InstructionDecoder newdec( bufPtr,
                               _cr->length() - entryOff,
                               _cr->getArch() );
-    IA_IAPI ah(newdec, entry, _obj, _cr, _isrc, _curBlk);
-    Instruction::Ptr insn = ah.curInsn();
+    IA_IAPI *ah = new IA_IAPI(newdec, entry, _obj, _cr, _isrc, _curBlk);
+    Instruction::Ptr insn = ah->curInsn();
 
     // follow ctrl transfers until you get a block containing non-ctrl 
     // transfer instructions, or hit a return instruction
     while (insn->getCategory() == c_CallInsn ||
            insn->getCategory() == c_BranchInsn) 
     {
-       boost::tie(valid, entry) = ah.getCFT();
+       boost::tie(valid, entry) = ah->getCFT();
        if ( !valid || ! _cr->contains(entry) || ! _isrc->isCode(entry) ) {
           mal_printf("WARNING: found call to function at %lx that "
                      "leaves to %lx, out of the code region %s[%d]\n", 
@@ -407,11 +407,12 @@ bool IA_IAPI::isFakeCall() const
        }
         bufPtr = (const unsigned char *)(_cr->getPtrToInstruction(entry));
         entryOff = entry - _cr->offset();
+        delete(ah);
         newdec = InstructionDecoder(bufPtr, 
                                     _cr->length() - entryOff, 
                                     _cr->getArch());
-        ah = IA_IAPI(newdec, entry, _obj, _cr, _isrc, _curBlk);
-        insn = ah.curInsn();
+        ah = new IA_IAPI(newdec, entry, _obj, _cr, _isrc, _curBlk);
+        insn = ah->curInsn();
     }
 
     // calculate instruction stack deltas for the block, leaving the iterator
@@ -446,7 +447,7 @@ bool IA_IAPI::isFakeCall() const
                 stackDelta += sign * size;
                 if (1 == sign) {
                     mal_printf("pop ins'n at %lx in func at %lx changes sp "
-                               "by %d. %s[%d]\n", ah.getAddr(), entry,
+                               "by %d. %s[%d]\n", ah->getAddr(), entry,
                                sign * size, FILE__, __LINE__);
                 }
                 break;
@@ -458,7 +459,7 @@ bool IA_IAPI::isFakeCall() const
             case e_popad:
                 if (1 == sign) {
                     mal_printf("popad ins'n at %lx in func at %lx changes sp "
-                               "by %d. %s[%d]\n", ah.getAddr(), 
+                               "by %d. %s[%d]\n", ah->getAddr(), 
                                entry, 8 * sign * addrWidth, FILE__, __LINE__);
                 }
                 stackDelta += sign * 8 * addrWidth;
@@ -471,7 +472,7 @@ bool IA_IAPI::isFakeCall() const
                 stackDelta += sign * 4;
                 if (1 == sign) {
                     mal_printf("popf ins'n at %lx in func at %lx changes sp "
-                               "by %d. %s[%d]\n", ah.getAddr(), entry, 
+                               "by %d. %s[%d]\n", ah->getAddr(), entry, 
                                sign * 4, FILE__, __LINE__);
                 }
                 break;
@@ -480,6 +481,7 @@ bool IA_IAPI::isFakeCall() const
                 //           "quitting early, assuming not fake "
                 //           "%s[%d]\n",curAddr, FILE__,__LINE__);
                 //KEVIN: unhandled case, but not essential for correct analysis
+                delete ah;
                 return false;
                 break;
             case e_leave:
@@ -516,65 +518,30 @@ bool IA_IAPI::isFakeCall() const
                     }
                     stackDelta += delta_int;
                 } else if (sign == -1) {
+                    delete ah;
                     return false;
                 } else {
                     mal_printf("ERROR: in isFakeCall, add ins'n "
                                "at %lx (in first block of function at "
                                "%lx) modifies the sp but failed to evaluate "
                                "its arguments %s[%d]\n", 
-                               ah.getAddr(), entry, FILE__, __LINE__);
+                               ah->getAddr(), entry, FILE__, __LINE__);
+                    delete ah;
                     return true;
                 }
                 break;
             }
-#if 0
-            case e_sub:
-                //mal_printf("Saw subtract from stack ptr at %lx in "
-                //           "isFakeCall, quitting early, assuming not fake "
-                //           "%s[%d]\n",curAddr, FILE__,__LINE__);
-                //KEVIN: unhandled case, but not essential for correct analysis
-                return false;
-                break;
-            case e_add: {
-                mal_printf("in isFakeCall, add ins'n "
-                           "at %lx (in first block of function at "
-                           "%lx) modifies the sp. %s[%d]\n", 
-                           ah.getAddr(), entry, FILE__, __LINE__);
-                std::vector<Operand> opers;
-                insn->getOperands(opers);
-                // if the insn uses a register (other than sp, which it writes)
-                // we won't be able to get a result out of the instruction
-                for (unsigned oidx = 0; oidx < opers.size(); oidx++) {
-                    if (!opers[oidx].isWritten()) {
-                        Expression::Ptr expr = opers[oidx].getValue();
-                        if (Arch_x86 == _isrc->getArch() || 
-                            Arch_ppc32 == _isrc->getArch()) 
-                        {
-                            expr->bind(theStackPtr.get(),Result(s32,0));
-                        } else {
-                            expr->bind(theStackPtr.get(),Result(s64,0));
-                        }
-                        Result val = expr->eval();
-                        if (val.defined) {
-                            stackDelta += val.convert<Address>();
-                            break;
-                        }
-                    }
-                }
-                break; 
-            }
-#endif
             default: {
                 //KEVINTODO: remove this assert
                 fprintf(stderr,"WARNING: in isFakeCall non-push/pop "
                         "ins'n at %lx (in first block of function at "
                         "%lx) modifies the sp by an unknown amount. "
-                        "%s[%d]\n", ah.getAddr(), entry, 
+                        "%s[%d]\n", ah->getAddr(), entry, 
                         FILE__, __LINE__);
                 assert(0); // what stack-altering instruction is this?
                 break;
             } // end default block
-            }
+            } // end switch
         }
 
         if (stackDelta > 0) {
@@ -582,8 +549,8 @@ bool IA_IAPI::isFakeCall() const
         }
 
         // exit condition 2
-        ah.advance();
-        Instruction::Ptr next = ah.curInsn();
+        ah->advance();
+        Instruction::Ptr next = ah->curInsn();
         if (NULL == next) {
             break;
         }
@@ -593,6 +560,7 @@ bool IA_IAPI::isFakeCall() const
 
     // not a fake call if it ends w/ a return instruction
     if (insn->getCategory() == c_ReturnInsn) {
+        delete ah;
         return false;
     }
 
@@ -603,9 +571,11 @@ bool IA_IAPI::isFakeCall() const
         mal_printf("Found fake call at %lx to %lx, where the first block "
                    "pops off the return address %s[%d]\n", 
                    current, entry, FILE__,__LINE__);
+        delete ah;
         return true;
     }
 
+    delete ah;
     return false;
 }
 
