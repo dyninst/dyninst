@@ -1113,9 +1113,9 @@ void emitMovImmToRM64(Register base, int disp, int imm, bool is_64,
 
 void emitAddRM64(Register dest, int imm, bool is_64, codeGen &gen)
 {
-   GET_PTR(insn, gen);
    if (imm == 1) {
       emitRex(is_64, &dest, NULL, NULL, gen);
+      GET_PTR(insn, gen);
       *insn++ = 0xFF;
       *insn++ = dest & 0x7; 
       SET_PTR(insn, gen);   
