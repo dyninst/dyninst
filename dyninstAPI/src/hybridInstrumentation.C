@@ -355,7 +355,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             if ( proc()->lowlevel_process()->isMemoryEmulated() && 
                  needsSynchronization(curPoint) )
             {
-                mal_printf("Adding pre- and post- synch instrumentation to 0x%lx\n",
+                mal_printf("Adding pre-call synch instrumentation to 0x%lx\n",
                            (Address)curPoint->getAddress());
                 BPatchSnippetHandle *handle = proc()->insertSnippet
                     (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(1)), 

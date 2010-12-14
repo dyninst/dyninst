@@ -126,7 +126,6 @@ static void mergeRanges(const mapped_object *obj,
    SymtabAPI::Region *prevReg = NULL;
    int count = 0;
    for (set<Address>::iterator pit =in.begin(); pit != in.end(); pit++) {
-       count++;
        SymtabAPI::Region *reg = obj->parse_img()->getObject()->findEnclosingRegion(*pit - obj->codeBase());
        if (prevEnd != 0xbadadd && (prevEnd != (*pit) || reg != prevReg)) {
            out.push_back(pair<Address,unsigned>(prevEnd - (rangeSize * count),
@@ -135,6 +134,7 @@ static void mergeRanges(const mapped_object *obj,
        }
        prevEnd = (*pit) + rangeSize;
        prevReg = reg;
+       count++;
    }
    if (count) {
        out.push_back(pair<Address,unsigned>(prevEnd - (rangeSize * count), 
@@ -143,6 +143,12 @@ static void mergeRanges(const mapped_object *obj,
 }
 
 void MemoryEmulator::addObject(const mapped_object *obj) {
+
+   if (emulatedObjs.end() != emulatedObjs.find(obj)) {
+       return;
+   }
+   emulatedObjs.insert(obj);
+
    sensitivity_cerr << "memEmulator::addObject for " << obj->fileName() << endl;
 
    // Get all pages containing analyzed code, 
@@ -172,15 +178,17 @@ void MemoryEmulator::addNewCode(const mapped_object *obj,
         bit != blks.end(); 
         bit++) 
     {
-        if ( ! memoryMap_.find((*bit)->start() + obj->codeBase(), dontcare) ) {
-            Address pageAddr = (*bit)->start() 
-                - ((*bit)->start() % pageSize) 
-                + obj->codeBase();
-            pageAddrs.insert(pageAddr);
-            while (((*bit)->end()+obj->codeBase()) > (pageAddr + pageSize)) {
-                pageAddr += pageSize;
+        Address pageAddr = (*bit)->start() 
+            - ((*bit)->start() % pageSize) 
+            + obj->codeBase();
+        Address endPageAddr = (*bit)->end() - 1 
+           - ((*bit)->start() % pageSize) 
+           + obj->codeBase();
+        while (pageAddr <= endPageAddr) {
+            if (! memoryMap_.find(pageAddr, dontcare) ) {
                 pageAddrs.insert(pageAddr);
             }
+            pageAddr += pageSize;
         }
     }
    vector<pair<Address,unsigned int> > ranges;
