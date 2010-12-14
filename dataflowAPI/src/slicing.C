@@ -677,25 +677,26 @@ Slicer::handleCall(
 {
     ParseAPI::Block * callee = NULL;
     ParseAPI::Edge * funlink = NULL;
+    bool widen = false;
 
     Block::edgelist & targets = cur.loc.block->targets();
     Block::edgelist::iterator eit = targets.begin();
     for( ; eit != targets.end(); ++eit) {
         ParseAPI::Edge * e = *eit;
-        if(e->type() == CALL) {
-            if (e->sinkEdge()) {
-                callee = NULL;
+        if (e->sinkEdge()) widen = true;
+        else if(e->type() == CALL) {
+            if (callee && callee != e->trg()) {
+                // Oops
+                widen = true;
             }
-            else {
-                callee = e->trg();
-            }
+            callee = e->trg();
         } else if(e->type() == CALL_FT) {
            funlink = e;
         }
     }
     
     if(followCall(p, callee, cur)) {
-       if (!callee) {
+       if (widen) {
           // Indirect call that they wanted us to follow, so widen.
           err = true;
           return true;
