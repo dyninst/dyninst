@@ -1265,8 +1265,8 @@ bool Connection::client_connect()
    socklen_t socklen = sizeof(struct sockaddr_in);
    addr.sin_family = AF_INET;
    addr.sin_port = htons(port); 
-   //iaddr.s_addr = htonl(*((int *) host->h_addr_list[0]));
-   inet_aton("172.16.126.164", &iaddr);
+   iaddr.s_addr = htonl(*((int *) host->h_addr_list[0]));
+   //inet_aton("172.16.126.164", &iaddr);
    addr.sin_addr = iaddr;
    debug_printf("Connecting to %d.%d.%d.%d:%d\n", 
                 (int) (((char *) &addr.sin_addr)[0]),
@@ -1326,14 +1326,27 @@ bool Connection::server_setup(string &hostname_, int &port_)
       return false;
    }
 
-   char name_buffer[1024];
-   result = gethostname(name_buffer, 1024);
-   if (result != 0) {
-     debug_printf("[%s:%u] - Unable to get hostname\n", __FILE__, __LINE__);
-      return false;
+   char *override_name = getenv("DYNINST_TESTSERVER_HOST");
+   if (override_name) {
+      hostname = override_name;
+   }
+   else {
+      char name_buffer[1024];
+      result = gethostname(name_buffer, 1024);
+      if (result != 0) {
+         debug_printf("[%s:%u] - Unable to get hostname\n", __FILE__, __LINE__);
+         return false;
+      }
+      hostname = name_buffer;
+#if defined(os_bg_test)
+      std::string iohostname = hostname + "-io";
+      struct hostent *lookup_test = gethostbyname2(iohostname.c_str(), AF_INET);
+      if (lookup_test) {
+         hostname = iohostname;
+      }
+#endif
    }
 
-   hostname = name_buffer;
    port = (int) addr.sin_port;
 
    hostname_ = hostname;

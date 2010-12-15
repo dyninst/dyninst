@@ -21,9 +21,9 @@ extern "C" DLLEXPORT TestMutator* pc_breakpoint_factory()
 #define NUM_BREAKPOINTS 4
 #define NUM_BREAKPOINT_SPINS 16
 
-Dyninst::Address bp_addrs[NUM_PARALLEL_PROCS][NUM_BREAKPOINTS];
-Breakpoint::ptr bps[NUM_PARALLEL_PROCS][NUM_BREAKPOINTS];
-std::pair<unsigned, unsigned> indexes[NUM_PARALLEL_PROCS*NUM_BREAKPOINTS];
+Dyninst::Address bp_addrs[DEFAULT_NUM_PROCS][NUM_BREAKPOINTS];
+Breakpoint::ptr bps[DEFAULT_NUM_PROCS][NUM_BREAKPOINTS];
+std::pair<unsigned, unsigned> indexes[DEFAULT_NUM_PROCS*NUM_BREAKPOINTS];
 unsigned cur_index;
 std::map<Thread::const_ptr, unsigned> hit_counts;
 unsigned num_breakpoints_hit;
@@ -40,14 +40,14 @@ Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
    }
 
    Dyninst::Address addr = evbp->getAddress();
-   std::vector<Breakpoint::ptr> evbps;
+   std::vector<Breakpoint::const_ptr> evbps;
    evbp->getBreakpoints(evbps);
    if (evbps.size() != 1) {
       logerror("Unexpected number of breakpoint objects\n");
       haserror = true;
       return Process::cbProcContinue;
    }
-   Breakpoint::ptr bp = evbps[0];
+   Breakpoint::const_ptr bp = evbps[0];
 
    std::pair<unsigned, unsigned> *index = (std::pair<unsigned, unsigned> *) bp->getData();
    if (!index) {
@@ -55,7 +55,7 @@ Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
       haserror = true;
       return Process::cbProcContinue;
    }
-   if (index->first >= NUM_PARALLEL_PROCS) {
+   if (index->first >= DEFAULT_NUM_PROCS) {
       logerror("Invalid proc index\n");
       haserror = true;
       return Process::cbProcContinue;
@@ -98,7 +98,7 @@ test_results_t pc_breakpointMutator::executeTest()
    hit_counts.clear();
    memset(indexes, 0, sizeof(indexes));
    memset(bp_addrs, 0, sizeof(bp_addrs));
-   for (unsigned i=0; i<NUM_PARALLEL_PROCS; i++) {
+   for (unsigned i=0; i<DEFAULT_NUM_PROCS; i++) {
       for (unsigned j=0; j<NUM_BREAKPOINTS; j++) {
          bps[i][j] = Breakpoint::ptr();
       }

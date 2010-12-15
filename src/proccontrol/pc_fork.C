@@ -40,7 +40,7 @@ static Breakpoint::ptr bp;
 Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
 {
    EventBreakpoint::const_ptr ebp = ev->getEventBreakpoint();
-   std::vector<Breakpoint::ptr> bps;
+   std::vector<Breakpoint::const_ptr> bps;
    ebp->getBreakpoints(bps);
    if (bps.size() != 1 && bps[0] != bp) {
       logerror("Got unexpected breakpoint\n");

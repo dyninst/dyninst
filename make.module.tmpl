@@ -477,7 +477,7 @@ $(LIBINSTRUCTIONCOMP) : $(OBJS_INSTRUCTIONCOMP_LIB) $(LIBTESTSUITE)
 
 $(LIBPROCCONTROLCOMP) : $(OBJS_PROCCONTROLCOMP_LIB) $(LIBTESTSUITE)
 	@echo Linking $@
-	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_PROCCONTROLCOMP_LIB) -o $@ -L. -ltestSuite -lpcontrol -lcommon
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_PROCCONTROLCOMP_LIB) -o $@ -L. -ltestSuite -lpcontrol -lcommon $(PROCCONTROLCOMP_DEP_LIBS) $(proccontrol_TESTLIB_LFLAGS)
 
 $(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h $(LIBTESTLAUNCH)
 	@echo Linking $@

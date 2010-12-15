@@ -42,8 +42,6 @@
 using namespace Dyninst;
 using namespace ProcControlAPI;
 
-#define NUM_PARALLEL_PROCS 8
-
 class ProcControlComponent : public ComponentTester
 {
 private:

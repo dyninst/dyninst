@@ -52,7 +52,7 @@ static bool myerror;
 Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
 {
    EventBreakpoint::const_ptr ebp = ev->getEventBreakpoint();
-   std::vector<Breakpoint::ptr> bps;
+   std::vector<Breakpoint::const_ptr> bps;
    ebp->getBreakpoints(bps);
    if (bps.size() != 1 && bps[0] != bp) {
       logerror("Got unexpected breakpoing\n");
@@ -192,7 +192,7 @@ test_results_t pc_singlestepMutator::executeTest()
       }
    }
 
-   syncloc loc[NUM_PARALLEL_PROCS];
+   syncloc loc[DEFAULT_NUM_PROCS];
    bool result = comp->recv_broadcast((unsigned char *) loc, sizeof(syncloc));
    if (!result) {
       logerror("Failed to recieve sync broadcast\n");

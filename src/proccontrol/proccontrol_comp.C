@@ -70,11 +70,20 @@ Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &
 
    Process::ptr proc = Process::ptr();
    if (group->createmode == CREATE) {
+#if defined(os_bg_test)
+      Dyninst::PID pid = getMutateePid(group);
+      proc = Process::attachProcess(pid, group->mutatee);
+      if (!proc) {
+         logerror("Failed to attach to new mutatee\n");
+         return Process::ptr();
+      }
+#else
       proc = Process::createProcess(exec_name, vargs);
       if (!proc) {
          logerror("Failed to execute new mutatee\n");
          return Process::ptr();
       }
+#endif
    }
    else if (group->createmode == USEATTACH) {
       Dyninst::PID pid = getMutateePid(group);
@@ -113,7 +122,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
    
    num_processes = 0;
    if (group->procmode == MultiProcess)
-      num_processes = NUM_PARALLEL_PROCS;
+      num_processes = DEFAULT_NUM_PROCS;
    else
       num_processes = 1;
 
