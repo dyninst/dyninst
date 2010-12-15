@@ -3308,7 +3308,7 @@ int_library::int_library(std::string n, Dyninst::Address load_addr) :
    has_data_load(false),
    marked(false)
 {
-   up_lib = new Library();
+   up_lib = Library::ptr(new Library());
    up_lib->lib = this;
 }
 
@@ -3319,7 +3319,7 @@ int_library::int_library(std::string n, Dyninst::Address load_addr, Dyninst::Add
    has_data_load(true),
    marked(false)
 {
-   up_lib = new Library();
+   up_lib = Library::ptr(new Library());
    up_lib->lib = this;
 }
 
@@ -3330,7 +3330,7 @@ int_library::int_library(int_library *l) :
    has_data_load(l->has_data_load),
    marked(l->marked)
 {
-   up_lib = new Library();
+   up_lib = Library::ptr(new Library());
    up_lib->lib = this;
 }
 
@@ -3725,16 +3725,16 @@ Library::ptr LibraryPool::getLibraryByName(std::string s)
    MTLock lock_this_func;
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
-      return NULL;
+      return Library::ptr();
    return int_lib->up_lib;
 }
 
-Library::ptr LibraryPool::getLibraryByName(std::string s) const
+Library::const_ptr LibraryPool::getLibraryByName(std::string s) const
 {
    MTLock lock_this_func;
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
-      return NULL;
+      return Library::const_ptr();
    return int_lib->up_lib;
 }
 
@@ -3743,7 +3743,7 @@ Library::ptr LibraryPool::getExecutable()
    return getLibraryByName(proc->getExecutable());
 }
 
-const Library::ptr LibraryPool::getExecutable() const
+Library::const_ptr LibraryPool::getExecutable() const
 {
    return getLibraryByName(proc->getExecutable());
 }
@@ -4865,7 +4865,7 @@ Thread::ptr ThreadPool::getInitialThread()
    return threadpool->initialThread()->thread();
 }
 
-const Thread::ptr ThreadPool::getInitialThread() const
+Thread::const_ptr ThreadPool::getInitialThread() const
 {
    return threadpool->initialThread()->thread();
 }
@@ -4984,7 +4984,7 @@ bool ThreadPool::const_iterator::operator!=(const const_iterator &i)
    return (i.curh != curh);
 }
 
-const Thread::ptr ThreadPool::const_iterator::operator*() const
+Thread::const_ptr ThreadPool::const_iterator::operator*() const
 {
    MTLock lock_this_func;
    assert(curp);
@@ -5056,7 +5056,7 @@ ThreadPool::const_iterator ThreadPool::find(Dyninst::LWP lwp) const
     return i;
 }
 
-const Process::ptr ThreadPool::getProcess() const
+Process::const_ptr ThreadPool::getProcess() const
 {
    MTLock lock_this_func;
    return threadpool->proc()->proc();

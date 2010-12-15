@@ -38,6 +38,7 @@
 #include "proccontrol/src/sysv.h"
 #include "proccontrol/src/ppc_process.h"
 #include "proccontrol/src/procpool.h"
+#include "proccontrol/src/int_thread_db.h"
 
 #if defined(os_bgl)
 #include "external/bluegene/bgl-debugger-interface.h"
@@ -47,7 +48,9 @@
 #error "ERROR: No suitable debug interface for this BG ION."
 #endif
 
-class bg_process : public sysv_process, public ppc_process
+#define BG_INITIAL_THREAD_ID 5
+
+class bg_process : public sysv_process, public ppc_process, public thread_db_process
 {
    friend class HandleBGAttached;
    friend class DecoderBlueGene;

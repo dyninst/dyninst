@@ -42,13 +42,13 @@
 FILE *debug_log = NULL;
 using namespace std;
 
-#if defined(cap_launchmon)
-#include "lmon_api/lmon_be.h"
-
-#define log_printf(str, args...) do { if (debug_log) { fprintf(debug_log, str, args); fflush(debug_log); } } while (0)
-
 #include <sys/time.h>
 #include <sys/resource.h>
+#define log_printf(str, args...) do { if (debug_log) { fprintf(debug_log, str, args); fflush(debug_log); } } while (0)
+
+
+#if defined(cap_launchmon)
+#include "lmon_api/lmon_be.h"
 
 void init_lmon(int *argc, char ***argv)
 {

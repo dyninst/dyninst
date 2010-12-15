@@ -673,17 +673,44 @@ void HandleThreadStop::getEventTypesHandled(std::vector<EventType> &etypes)
 
 Handler::handler_ret_t HandleThreadStop::handleEvent(Event::ptr ev)
 {
-   int_thread *thrd = ev->getThread()->llthrd();
    int_process *proc = ev->getProcess()->llproc();
-   pthrd_printf("Handling thread stop for %d/%d\n", proc->getPid(), thrd->getLWP());
 
-   assert(thrd->hasPendingStop());
-   thrd->setPendingStop(false);
+   switch (proc->plat_getThreadControlMode())
+   {
+      case int_process::HybridLWPControl:
+      case int_process::IndependentLWPControl: 
+      {
+         int_thread *thrd = ev->getThread()->llthrd();
+         pthrd_printf("Handling thread stop for %d/%d\n", proc->getPid(), thrd->getLWP());
+         assert(thrd->hasPendingStop());
+         thrd->setPendingStop(false);
+         
+         thrd->setInternalState(int_thread::stopped);
+         if (thrd->hasPendingUserStop()) {
+            thrd->setUserState(int_thread::stopped);
+            thrd->setPendingUserStop(false);
+         }
+         break;
+      }
+      case int_process::NoLWPControl: 
+      {
+         int_thread *initial_thrd = proc->threadPool()->initialThread();
+         pthrd_printf("Handling process stop for %d\n", proc->getPid());
+         for (int_threadPool::iterator i = proc->threadPool()->begin(); i != proc->threadPool()->end(); i++) {
+            int_thread *thrd = *i;
+            pthrd_printf("Handling process stop for %d/%d\n", proc->getPid(), thrd->getLWP());
+            assert(thrd->hasPendingStop());
+            thrd->setPendingStop(false);
 
-   thrd->setInternalState(int_thread::stopped);
-   if (thrd->hasPendingUserStop()) {
-      thrd->setUserState(int_thread::stopped);
-      thrd->setPendingUserStop(false);
+            thrd->setInternalState(int_thread::stopped);
+            if (thrd->hasPendingUserStop()) {
+               assert(thrd->hasPendingUserStop());
+               thrd->setUserState(int_thread::stopped);
+               thrd->setPendingUserStop(false);
+            }
+         }
+         break;
+      }
    }
 
    return ret_success;
@@ -790,7 +817,7 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
    int_process *proc = ev->getProcess()->llproc();
 
    EventBreakpoint *ebp = static_cast<EventBreakpoint *>(ev.get());
-   std::vector<Breakpoint::ptr> hl_bps;
+   std::vector<Breakpoint::const_ptr> hl_bps;
    ebp->getBreakpoints(hl_bps);
    bool has_user_breakpoints = !hl_bps.empty();
 

@@ -105,7 +105,6 @@ TESTLIB_DLL_EXPORT int setupMutatorsForRunGroup (RunGroup *group);
 // change them.
 TESTLIB_DLL_EXPORT void setPIDFilename(char *pfn);
 TESTLIB_DLL_EXPORT void registerPID(int pid);
-TESTLIB_DLL_EXPORT void cleanPIDFile();
 
 TESTLIB_DLL_EXPORT void setDebugPrint(int debug);
 TESTLIB_DLL_EXPORT bool inTestList(test_data_t &test, std::vector<char *> &test_list);

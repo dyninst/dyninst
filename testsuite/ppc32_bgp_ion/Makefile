@@ -8,6 +8,7 @@ DEBUG_FLAG = -g
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
+include $(TO_CORE)/make.config.local
 include $(TO_CORE)/make.config 
 
 # Now make any necessary architecture specific changes to variables:
@@ -85,10 +86,9 @@ MYLINK_FLAGS += -Wl,--whole-archive -lelf -Wl,--no-whole-archive
 else
 ifdef LIBELF_LIB
 MYLINK_FLAGS += -L$(LIBELF_LIB)
+proccontrol_TESTLIB_LFAGS = -Wl,-rpath -Wl,$(LIBELF_LIB)
 endif
-ifdef LIBDWARF_STATIC
 MYLINK_FLAGS += -lelf
-endif
 endif
 
 ifdef USE_LIBERTY
@@ -112,14 +112,19 @@ LAUNCHMON_FE_CFLAGS = -Dcap_launchmon
 LAUNCHMON_BE_CFLAGS = -Dcap_launchmon
 endif
 
-proccontrol_MUTATOR_FLAGS += -Wl,-rpath -Wl,$(PWD)
+TO_CORE_ABS = `readlink -f $(TO_CORE)`
+LIBRARY_DEST_ABS = `readlink -f $(LIBRARY_DEST)`
+proccontrol_TESTLIB_LFLAGS += -Wl,-rpath -Wl,$(TO_CORE_ABS)/testsuite/$(PLATFORM) -Wl,-rpath -Wl,$(LIBRARY_DEST_ABS)
+proccontrol_MUTATOR_FLAGS += $(proccontrol_TESTLIB_LFLAGS)
 
 include ../make.module.tmpl
-
-libtestproccontrol.so: $(LIBRARY_DEST)/libpcontrol.a $(LIBRARY_DEST)/libstackwalk.a
 
 TESTLIB_CC = powerpc-bgp-linux-gcc
 
 CFLAGS   += -D_XOPEN_SOURCE=600
 CXXFLAGS += -D_XOPEN_SOURCE=600
 F77FLAGS += -D_XOPEN_SOURCE=600
+
+.PHONY: dyninst_clean_solo_mutatees
+dyninst_clean_solo_mutatees:
+	@echo No dyninst mutatees to clean

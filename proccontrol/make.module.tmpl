@@ -20,6 +20,18 @@ TARGET = libpcontrol.so
 MYFLAGS += -fPIC
 endif
 
+ifdef HAVE_THREAD_DB
+ifdef THREAD_DB_INC
+MYFLAGS += -I$(THREAD_DB_INC)
+endif
+ifdef THREAD_DB_LIB
+LDFLAGS += -L$(THREAD_DB_LIB)
+endif
+ifndef THREAD_DB_STATIC
+LDFLAGS += -lthread_db
+endif
+endif
+
 LDFLAGS += -L../../common/$(PLATFORM)
 
 ifndef USES_NATIVE_CC

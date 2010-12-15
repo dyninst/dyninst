@@ -147,17 +147,19 @@ do { \
 class testMetrics
 {
     public:
-    testMetrics(TestOutputDriver* d)
-    : driver(d)
+    testMetrics(TestOutputDriver* d, ParameterDict &dict)
+       : driver(d),
+         initialized(false)
     {
-        if (!measureMEMCPU || !d)
+        if (!dict["measure_memcpu"]->getInt() || !d)
             return;
 
+        initialized = true;
         getrusage(RUSAGE_SELF, &start_time);
     }
     ~testMetrics()
     {
-        if (!measureMEMCPU || !driver)
+       if (!initialized)
             return;
 
         //unsigned long mem_end = get_mem_usage();
@@ -180,6 +182,7 @@ class testMetrics
     private:
         TestOutputDriver* driver;
         struct rusage start_time;
+        bool initialized;
 };
 
 #else
@@ -338,7 +341,7 @@ void executeTest(ComponentTester *tester,
     }
 
     {
-        testMetrics m(getOutput());
+        testMetrics m(getOutput(), param);
 
         if(shouldRunTest(group, test))
         {
@@ -413,7 +416,10 @@ bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
    driver_args.push_back("--tool=memcheck");
    driver_args.push_back("testdriver_be");
 #else
-   string driver_exec = "/g/g22/legendre/pc_bluegene/dyninst/testsuite/ppc32_bgp_ion/testdriver_be";
+   static char buffer[4096];
+   char *wd = getcwd(buffer, 4096);
+   strncat(wd, "/testdriver_be", 4096);
+   string driver_exec = wd;
 #endif
    char port_s[32];
    snprintf(port_s, 32, "%d", port);
@@ -425,6 +431,8 @@ bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
       driver_args.push_back(gargv[i]);
    }
    char **c_driver_args = getCParams(driver_exec, driver_args);
+
+   fprintf(stderr, "[%s:%u] - Driver exec: %s\n", __FILE__, __LINE__, driver_exec.c_str());
 
    bool attach_mode = (group->createmode == USEATTACH);
    int result_i = LMONInvoke(group, params, c_mutatee_args, c_driver_args, attach_mode);
@@ -648,7 +656,6 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
          }
       }
 
-      
       fprintf(stderr, "[%s:%u] - Remove here\n", __FILE__, __LINE__);
       break;
    }
@@ -688,7 +695,6 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
    }
       
    clearConnection();
-   cleanPIDFile();
 
    return;
 } // startAllTests()
@@ -826,15 +832,9 @@ int main(int argc, char *argv[]) {
    if (result)
       exit(result);
 
-   setupProcessGroup();
-
    // Set the resume log name
    if ( getenv("RESUMELOG") ) {
       set_resumelog_name(getenv("RESUMELOG"));
-   }
-
-   if ( shouldDebugBreak ) {
-      DebugPause();
    }
 
    startAllTests(groups, params);

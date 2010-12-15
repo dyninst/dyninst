@@ -84,7 +84,7 @@ class Breakpoint
  public:
    int_breakpoint *llbp() const;
    typedef dyn_detail::boost::shared_ptr<Breakpoint> ptr;
-   typedef dyn_detail::boost::shared_ptr<Breakpoint> const_ptr;
+   typedef dyn_detail::boost::shared_ptr<const Breakpoint> const_ptr;
    typedef dyn_detail::boost::weak_ptr<Breakpoint> weak_ptr;
 
    static Breakpoint::ptr newBreakpoint();
@@ -100,13 +100,16 @@ class Breakpoint
 class Library
 {
    friend class ::int_library;
+   friend void dyn_detail::boost::checked_delete<Library>(Library *);
+   friend void dyn_detail::boost::checked_delete<const Library>(const Library *);
  private:
    int_library *lib;
    Library();
    ~Library();
  public:
-   typedef Library* ptr;
-   typedef const Library* const_ptr;
+   typedef dyn_detail::boost::shared_ptr<Library> ptr;
+   typedef dyn_detail::boost::shared_ptr<const Library> const_ptr;
+
    std::string getName() const;
    Dyninst::Address getLoadAddress() const;
    Dyninst::Address getDataLoadAddress() const;
@@ -404,7 +407,7 @@ class ThreadPool
    public:
       const_iterator();
       ~const_iterator();
-      Thread::const_pitr operator*() const;
+      Thread::const_ptr operator*() const;
       bool operator==(const const_iterator &i);
       bool operator!=(const const_iterator &i);
       ThreadPool::const_iterator operator++();

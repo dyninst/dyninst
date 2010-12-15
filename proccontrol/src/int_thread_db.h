@@ -39,8 +39,10 @@
 #include "proccontrol/src/sysv.h"
 #include "proccontrol/src/int_handler.h"
 
+extern "C" {
 #include <thread_db.h>
-#include <proc_service.h>
+#include "proc_service_wrapper.h"
+}
 
 #include <map>
 using std::map;
@@ -71,7 +73,7 @@ public:
 
     td_thragent_t *getThreadDBAgent();
     ps_err_e getSymbolAddr(const char *objName, const char *symName, 
-            psaddr_t *symbolAddr);
+                           psaddr_t *symbolAddr);
     virtual bool initThreadDB();
     virtual void freeThreadDBAgent();
     virtual bool getPostDestroyEvents(vector<Event::ptr> &events);
@@ -88,18 +90,15 @@ public:
     virtual bool post_attach();
     virtual bool post_create();
 
-    virtual bool plat_readProcMem(void *local,
-            Dyninst::Address remote, size_t size) = 0;
-    virtual bool plat_writeProcMem(void *local,
-            Dyninst::Address remote, size_t size) = 0;
-    virtual bool plat_getLWPInfo(lwpid_t lwp, void *lwpInfo) = 0;
-    virtual bool plat_contThread(lwpid_t lwp) = 0;
-    virtual bool plat_stopThread(lwpid_t lwp) = 0;
-    virtual string getThreadLibName(const char *symName) = 0;
-    virtual bool isSupportedThreadLib(const string &libName) = 0;
+    //Currently FreeBSD only
+    virtual bool plat_getLWPInfo(lwpid_t lwp, void *lwpInfo);
+
+    virtual const char *getThreadLibName(const char *symName);
+    virtual bool isSupportedThreadLib(string libName);
 
 protected:
     static volatile bool thread_db_initialized;
+    bool thread_db_proc_initialized;
     static Mutex thread_db_init_lock;
 
     map<Dyninst::Address, pair<int_breakpoint *, EventType> > addr2Event;

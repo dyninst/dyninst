@@ -9,9 +9,9 @@
 
 include ../../make.config 
 
-STATIC_COMPS = true
+# STATIC_COMPS = true
 
-TARGET = libpcontrol.a
+# TARGET = libpcontrol.a
 
 LDFLAGS     += $(LIBDIR) -lcommon
 
@@ -19,6 +19,7 @@ SRCS = 	../src/bluegene.C \
         ../src/notify_pipe.C \
         ../src/sysv.C \
         ../src/ppc_process.C \
+		  ../src/int_thread_db.C \
         ../../common/src/dthread-unix.C
 
 ifdef LIBELF_INC

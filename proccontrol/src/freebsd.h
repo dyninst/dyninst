@@ -115,15 +115,9 @@ public:
     virtual SymbolReaderFactory *plat_defaultSymReader();
 
     /* thread_db_process methods */
-    virtual string getThreadLibName(const char *symName);
-    virtual bool isSupportedThreadLib(const string &libName);
-    virtual bool plat_readProcMem(void *local,
-            Dyninst::Address remote, size_t size);
-    virtual bool plat_writeProcMem(void *local,
-            Dyninst::Address remote, size_t size);
+    virtual const char *getThreadLibName(const char *symName);
+    virtual bool isSupportedThreadLib(string libName);
     virtual bool plat_getLWPInfo(lwpid_t lwp, void *lwpInfo);
-    virtual bool plat_contThread(lwpid_t lwp);
-    virtual bool plat_stopThread(lwpid_t lwp);
     
 protected:
     string libThreadName;

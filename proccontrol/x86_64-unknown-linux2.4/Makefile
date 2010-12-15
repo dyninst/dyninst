@@ -17,6 +17,8 @@ SRCS = 	../src/linux.C \
         ../src/sysv.C \
         ../src/unix.C \
         ../src/x86_process.C \
+		  ../src/int_thread_db.C \
+		  ../src/notify_pipe.C \
         ../../common/src/dthread-unix.C
 
 ifdef LIBELF_INC

@@ -320,7 +320,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
          default:
             pthrd_printf("Decoded event to signal %d on %d/%d\n",
                          stopsig, proc->getPid(), thread->getLWP());
-#if 1
+#if 0
             //Debugging code
             if (stopsig == 11) {
                Dyninst::MachRegisterVal addr;
@@ -507,7 +507,8 @@ linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::str
    int_process(p, e, a, f),
    sysv_process(p, e, a, f),
    unix_process(p, e, a, f),
-   x86_process(p, e, a, f)
+   x86_process(p, e, a, f),
+   thread_db_process(p, e, a, f)
 {
 }
 
@@ -515,7 +516,8 @@ linux_process::linux_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p),
    sysv_process(pid_, p),
    unix_process(pid_, p),
-   x86_process(pid_, p)
+   x86_process(pid_, p),
+   thread_db_process(pid_, p)
 {
 }
 
@@ -1481,6 +1483,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
       initialized = true;
    }
    hpool->addHandler(lbootstrap);
+   thread_db_process::addThreadDBHandlers(hpool);
    return hpool;
 }
 

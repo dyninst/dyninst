@@ -334,7 +334,6 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
    pthrd_printf("Decoding event\n");
    assert(archE);
    ArchEventBlueGene *archbg = static_cast<ArchEventBlueGene *>(archE);
-   Event::ptr event = Event::ptr();
 
    BG_Debugger_Msg *msg = archbg->getMsg();
    
@@ -403,7 +402,7 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
       case SIGNAL_ENCOUNTERED: {
          int signo = msg->dataArea.SIGNAL_ENCOUNTERED.signal;
          int thrd_id = msg->header.thread;
-         pthrd_printf("Decoded SIGNAL_ENCOUNTERED, signal = %d\n", signo);
+         pthrd_printf("Decoding SIGNAL_ENCOUNTERED, signal = %d\n", signo);
 
          if (proc->getState() == int_process::neonatal_intermediate) {
             if (signo != SIGSTOP) {
@@ -422,9 +421,17 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
             pthrd_printf("Decoded SIGSTOP for process bootstrap\n");
             assert(proc->bootstrap_state == bg_process::bg_stop_pending);
             new_event = EventIntBootstrap::ptr(new EventIntBootstrap());         
-            new_event->setSyncType(Event::sync_process);
-            break;
          }
+         else if (signo == SIGSTOP && proc->threadPool()->initialThread()->hasPendingStop()) {
+            pthrd_printf("Recieved pending SIGSTOP on %d/%d\n", proc->getPid(), thread->getLWP());
+            new_event = EventStop::ptr(new EventStop());
+         }
+         else {
+            pthrd_printf("Decoded event to signal %d on %d/%d\n",
+                         signo, proc->getPid(), thread->getLWP());
+            new_event = EventSignal::ptr(new EventSignal(signo));
+         }
+         new_event->setSyncType(Event::sync_process);
          break;
       }
       case VERSION_MSG_ACK:
@@ -543,7 +550,8 @@ int bg_process::virt_procs = -1;
 bg_process::bg_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f) :
    int_process(p, e, a, f),
    sysv_process(p, e, a, f),
-   ppc_process(p, e, a, f)
+   ppc_process(p, e, a, f),
+   thread_db_process(p, e, a, f)
 {
 }
 
@@ -551,6 +559,7 @@ bg_process::bg_process(Dyninst::PID pid_, int_process *proc_) :
    int_process(pid_, proc_),
    sysv_process(pid_, proc_),
    ppc_process(pid_, proc_),
+   thread_db_process(pid_, proc_),
    bootstrap_state(bg_init)
 {
    assert(0); //No fork
@@ -797,7 +806,7 @@ void bg_process::getVersionInfo(int &protocol, int &phys, int &virt)
    phys_procs = (int) ack_msg->dataArea.VERSION_MSG_ACK.numPhysicalProcessors;
    virt_procs = (int) ack_msg->dataArea.VERSION_MSG_ACK.numLogicalProcessors;
    
-   pthrd_printf("Debug interface version = %d, phys_procs = %d, virt_procs = %d",
+   pthrd_printf("Debug interface version = %d, phys_procs = %d, virt_procs = %d\n",
                 protocol_version, phys_procs, virt_procs);
    protocol = protocol_version;
    phys = phys_procs;
@@ -836,7 +845,15 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
                                          Dyninst::LWP lwp_id,
                                          bool initial_thrd)
 {
-   bg_thread *bgthrd = new bg_thread(proc, thr_id, initial_thrd ? 0 : lwp_id);
+   bg_thread *bgthrd;
+   if (initial_thrd) {
+      int proto, phys, virt;
+      bg_process::getVersionInfo(proto, phys, virt);
+      bgthrd = new bg_thread(proc, thr_id, proto == 1 ? 0 : BG_INITIAL_THREAD_ID);
+   }
+   else {
+      bgthrd = new bg_thread(proc, thr_id, lwp_id);
+   }
    assert(bgthrd);
    return static_cast<int_thread *>(bgthrd);
 }
@@ -852,16 +869,16 @@ bg_thread::~bg_thread()
 
 bool bg_thread::plat_cont()
 {
-   /*int_threadPool *tp = llproc()->threadPool();
+   int_threadPool *tp = llproc()->threadPool();
    if (tp->initialThread() != this) {
       pthrd_printf("Not continuing non-initial thread\n");
       return true;
-      }*/
+   }
    
    Dyninst::LWP lwp_to_cont = getLWP();
    int sig_to_cont = 0;
 
-/*   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
+   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
       bg_thread *thr = static_cast<bg_thread *>(*i);
       if (thr->continueSig_) {
          lwp_to_cont = thr->getLWP();
@@ -869,7 +886,7 @@ bool bg_thread::plat_cont()
          thr->continueSig_ = 0;
          break;
       }
-      }*/
+   }
    lwp_to_cont = getLWP();
    sig_to_cont = continueSig_;
    continueSig_ = 0;
@@ -891,10 +908,10 @@ bool bg_thread::plat_cont()
 
 bool bg_thread::plat_stop()
 {
-/*   if (llproc()->threadPool()->initialThread() != this) {
+   if (llproc()->threadPool()->initialThread() != this) {
       pthrd_printf("Not stopping non-initial thread\n");
       return true;
-      }*/
+   }
 
    BG_Debugger_Msg msg(KILL, llproc()->getPid(), getLWP(), 0, 0);
    msg.dataArea.KILL.signal = SIGSTOP;
@@ -1008,7 +1025,7 @@ Handler::handler_ret_t HandleBGAttached::handleEvent(Event::ptr ev)
       proc->bootstrap_state = bg_process::bg_stop_pending;
    }
    else if (proc->bootstrap_state == bg_process::bg_stop_pending) {
-      pthrd_printf("Recieved SIGSTOP ack during process initialization\n");
+      pthrd_printf("Recieved SIGSTOP during process initialization\n");
       proc->bootstrap_state = bg_process::bg_stopped;
    }
    if (proc->bootstrap_state == bg_process::bg_stopped) {
@@ -1020,7 +1037,7 @@ Handler::handler_ret_t HandleBGAttached::handleEvent(Event::ptr ev)
          proc->bootstrap_state = bg_process::bg_ready;
       }
       else if (protocol == 2 || protocol == 3) {
-         for (unsigned i=1; i<=8; i++) {
+         for (unsigned i=1; i<=16; i++) {
             //Iterate over the max number of threads, and check which of them
             // are alive.  
             BG_Debugger_Msg msg(THREAD_ALIVE, proc->getPid(), i, 0, 0);
@@ -1132,6 +1149,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
       initialized = true;
    }
    hpool->addHandler(bg_attach);
+   thread_db_process::addThreadDBHandlers(hpool);
    return hpool;
 }
 

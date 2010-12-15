@@ -29,17 +29,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <proc_service.h>
-#include <thread_db.h>
+#include "common/h/Types.h"
+#include "int_thread_db.h"
 
 #include <cassert>
 #include <cerrno>
+#include <cstdarg>
+
 #include <set>
-using std::set;
+
+using namespace std;
 
 #include "common/h/dthread.h"
 #include "dynutil/h/SymReader.h"
-#include "int_thread_db.h"
 
 /* 
  * proc_service interface implementation, needed by libthread_db
@@ -54,27 +56,60 @@ ps_err_e ps_pglobal_lookup(struct ps_prochandle *handle, const char *objName,
 ps_err_e ps_pread(struct ps_prochandle *handle, psaddr_t remote, void *local, size_t size) {
     pthrd_printf("thread_db reading from %#lx to %#lx, size = %d on %d\n",
             (unsigned long)remote, (unsigned long)local, (int)size, handle->thread_db_proc->getPid());
-    if( !handle->thread_db_proc->plat_readProcMem(local, (Dyninst::Address)remote, size) )  {
-        pthrd_printf("Failed to read from %#lx to %#lx, size = %d on %d: %s\n",
-                    (unsigned long)remote, (unsigned long)local, (int)size, handle->thread_db_proc->getPid(),
-                    strerror(errno));
-        return PS_ERR;
-    }
 
+    mem_response::ptr resp = mem_response::createMemResponse((char *) local, size);
+    bool result = handle->thread_db_proc->readMem((Dyninst::Address) remote, resp);
+    if (!result) {
+       goto err;
+    }
+    result = int_process::waitForAsyncEvent(resp);
+    if (!result || resp->hasError()) {
+       goto err;
+    }
+    
     return PS_OK;
+  err:
+    pthrd_printf("Failed to read from %#lx to %#lx, size = %d on %d: %s\n",
+                 (unsigned long)remote, (unsigned long)local, (int)size, handle->thread_db_proc->getPid(),
+                 strerror(errno));
+    return PS_ERR;
+}
+
+ps_err_e ps_pdread(struct ps_prochandle *handle, psaddr_t remote, void *local, size_t size) {
+   return ps_pread(handle, remote, local, size);
+}
+
+ps_err_e ps_ptread(struct ps_prochandle *handle, psaddr_t remote, void *local, size_t size) {
+   return ps_pread(handle, remote, local, size);
 }
 
 ps_err_e ps_pwrite(struct ps_prochandle *handle, psaddr_t remote, const void *local, size_t size) {
     pthrd_printf("thread_db writing to %#lx from %#lx, size = %d on %d\n",
             (unsigned long)remote, (unsigned long)local, (int)size, handle->thread_db_proc->getPid());
-    if( !handle->thread_db_proc->plat_writeProcMem(const_cast<void *>(local), (Dyninst::Address)remote, size) ) {
-        pthrd_printf("Failed to write to %#lx from %#lx, size = %d on %d: %s\n",
-                (unsigned long)remote, (unsigned long)local, (int)size, handle->thread_db_proc->getPid(),
-                strerror(errno));
-        return PS_ERR;
+    result_response::ptr resp = result_response::createResultResponse();
+    bool result = handle->thread_db_proc->writeMem(const_cast<void *>(local), (Dyninst::Address) remote, size, resp);
+    if (!result) {
+       goto err;
     }
-
+    result = int_process::waitForAsyncEvent(resp);
+    if (!result || resp->hasError()) {
+       goto err;
+    }
+    
     return PS_OK;
+  err:
+    pthrd_printf("Failed to write to %#lx from %#lx, size = %d on %d: %s\n",
+                 (unsigned long)remote, (unsigned long)local, (int)size, handle->thread_db_proc->getPid(),
+                 strerror(errno));
+    return PS_ERR;
+}
+
+ps_err_e ps_pdwrite(struct ps_prochandle *handle, psaddr_t remote, const void *local, size_t size) {
+   return ps_pwrite(handle, remote, local, size);
+}
+
+ps_err_e ps_ptwrite(struct ps_prochandle *handle, psaddr_t remote, const void *local, size_t size) {
+   return ps_pwrite(handle, remote, local, size);
 }
 
 ps_err_e ps_linfo(struct ps_prochandle *handle, lwpid_t lwp, void *lwpInfo) {
@@ -85,19 +120,60 @@ ps_err_e ps_linfo(struct ps_prochandle *handle, lwpid_t lwp, void *lwpInfo) {
 }
 
 ps_err_e ps_lstop(struct ps_prochandle *handle, lwpid_t lwp) {
-    if( !handle->thread_db_proc->plat_stopThread(lwp) ) {
-        return PS_ERR;
-    }
-
-    return PS_OK;
+   int_process *proc = handle->thread_db_proc;
+   int_threadPool *tp = proc->threadPool();
+   assert(tp);
+   int_thread *thr = tp->findThreadByLWP((Dyninst::LWP) lwp);
+   if (!thr) {
+      perr_printf("ps_lstop is unable to find LWP %d in process %d\n",
+                  lwp, proc->getPid());
+      return PS_ERR;
+   }
+   pthrd_printf("ps_lstop on %d/%d\n", proc->getPid(), thr->getLWP());
+   
+   if (thr->getInternalState() == int_thread::stopped) {
+      return PS_OK;
+   }
+   else if (thr->getInternalState() != int_thread::running) {
+      perr_printf("Error, ps_lstop on thread in bad state\n");
+      return PS_ERR;
+   }
+   
+   if( !thr->intStop() ) {
+      return PS_ERR;
+   }
+   return PS_OK;
 }
 
 ps_err_e ps_lcontinue(struct ps_prochandle *handle, lwpid_t lwp) {
-    if( !handle->thread_db_proc->plat_contThread(lwp) ) {
-        return PS_ERR;
-    }
+   int_process *proc = handle->thread_db_proc;
+   int_threadPool *tp = proc->threadPool();
+   assert(tp);
+   int_thread *thr = tp->findThreadByLWP((Dyninst::LWP) lwp);
+   if (!thr) {
+      perr_printf("ps_lcontinue is unable to find LWP %d in process %d\n",
+                  lwp, proc->getPid());
+      return PS_ERR;
+   }
+   pthrd_printf("ps_lcontinue on %d/%d\n", proc->getPid(), thr->getLWP());
+   
+   if (thr->getInternalState() == int_thread::running) {
+      return PS_OK;
+   }
+   else if (thr->getInternalState() != int_thread::stopped) {
+      perr_printf("Error, ps_lcontinue on thread in bad state\n");
+      return PS_ERR;
+   }
+   
+   if( !thr->intCont() ) {
+      return PS_ERR;
+   }
+   return PS_OK;
+}
 
-    return PS_OK;
+pid_t ps_getpid (struct ps_prochandle *ph)
+{
+   return ph->thread_db_proc->getPid();
 }
 
 void	 ps_plog(const char *format, ...) {
@@ -224,6 +300,7 @@ Mutex thread_db_process::thread_db_init_lock;
 
 thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f) :
   int_process(p, e, a, f),
+  thread_db_proc_initialized(false),
   threadAgent(NULL)
 {
   self = new ps_prochandle();
@@ -233,6 +310,7 @@ thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<
 
 thread_db_process::thread_db_process(Dyninst::PID pid_, int_process *p) :
   int_process(pid_, p), 
+  thread_db_proc_initialized(false),
   threadAgent(NULL)
 {
   self = new ps_prochandle();
@@ -254,16 +332,19 @@ thread_db_process::~thread_db_process()
 // A callback passed to td_ta_thr_iter
 // A non-zero return value is an error
 static
-int bootstrap_cb(const td_thrhandle_t *handle, void * /* unused */) {
-    td_err_e errVal = td_thr_dbsuspend(handle);
+int bootstrap_cb(const td_thrhandle_t *handle, void * /* unused */) 
+{
+   td_err_e errVal;
+#if defined(os_freebsd)
+   errVal = td_thr_dbsuspend(handle);
+   if( TD_OK != errVal ) return 1;
+#endif
 
-    if( TD_OK != errVal ) return 1;
-
-    errVal = td_thr_event_enable(handle, 1);
-
-    if( TD_OK != errVal ) return 1;
-
-    return 0;
+   errVal = td_thr_event_enable(handle, 1);
+   
+   if( TD_OK != errVal ) return 1;
+   
+   return 0;
 }
 
 bool thread_db_process::initThreadDB() {
@@ -287,12 +368,16 @@ bool thread_db_process::initThreadDB() {
         }
         thread_db_init_lock.unlock();
     }
+    if (thread_db_proc_initialized) {
+       return true;
+    }
 
     // Create the thread agent
     td_err_e errVal = td_ta_new(self, &threadAgent);
     switch(errVal) {
         case TD_OK:
             pthrd_printf("Retrieved thread agent from thread_db\n");
+            thread_db_proc_initialized = true;
             break;
         case TD_NOLIBTHREAD:
             pthrd_printf("Debuggee isn't multithreaded at this point, libthread_db not enabled\n");
@@ -300,6 +385,7 @@ bool thread_db_process::initThreadDB() {
         default:
             perr_printf("Failed to create thread agent: %s(%d)\n",
                     tdErr2Str(errVal), errVal);
+            thread_db_proc_initialized = true;
             setLastError(err_internal, "Failed to create libthread_db agent");
             return false;
     }
@@ -400,6 +486,11 @@ void thread_db_process::freeThreadDBAgent() {
     }
 }
 
+const char *thread_db_process::getThreadLibName(const char *)
+{
+   return "";
+}
+
 bool thread_db_process::getEventsAtAddr(Dyninst::Address addr, 
         thread_db_thread *eventThread, vector<Event::ptr> &threadEvents) 
 {
@@ -462,6 +553,30 @@ td_thragent_t *thread_db_process::getThreadDBAgent() {
     return threadAgent;
 }
 
+static string stripLibraryName(const char *libname)
+{
+   const char *filename_c = strrchr(libname, '/');
+   if (!filename_c)
+      filename_c = strrchr(libname, '\\');
+   if (!filename_c) 
+      filename_c = libname;
+   else 
+      filename_c++;
+   
+   const char *lesser_ext;
+   const char *dot_ext = strchr(filename_c, '.');
+   if (dot_ext)
+      lesser_ext = dot_ext;
+   const char *dash_ext = strchr(filename_c, '-');
+   if (dash_ext && (!lesser_ext || dash_ext < lesser_ext))
+      lesser_ext = dash_ext;
+
+   if (!lesser_ext) {
+      return std::string(filename_c);
+   }
+   return std::string(filename_c, lesser_ext - filename_c);
+}
+
 ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symName,
         psaddr_t *symbolAddr)
 {
@@ -469,22 +584,24 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
     int_library *lib = NULL;
     
     if (plat_isStaticBinary()) {
-      // For static executables, we need to search the executable instead of the
-      // thread library. 
+       // For static executables, we need to search the executable instead of the
+       // thread library. 
        assert(memory()->libs.size() == 1);
        lib = *memory()->libs.begin();
     }
     else
     {
-        // FreeBSD implementation doesn't set objName
-        string name = objName ? objName : getThreadLibName(symName);
-	for (set<int_library *>::iterator i = memory()->libs.begin(); i != memory()->libs.end(); i++) {
-           int_library *l = *i;
-	   if (strstr(l->getName().c_str(), name.c_str())) {
-	      lib = l;
-	      break;
-	   }
-	}
+       // FreeBSD implementation doesn't set objName
+       const char *name_c = objName ? objName : getThreadLibName(symName);
+       std::string name = stripLibraryName(name_c);
+       
+       for (set<int_library *>::iterator i = memory()->libs.begin(); i != memory()->libs.end(); i++) {
+          int_library *l = *i;
+          if (strstr(l->getName().c_str(), name.c_str())) {
+             lib = l;
+             break;
+          }
+       }
     }
 
     if( NULL == lib ) {
@@ -545,6 +662,10 @@ bool thread_db_process::getPostDestroyEvents(vector<Event::ptr> &events) {
     return events.size() != oldSize;
 }
 
+bool thread_db_process::isSupportedThreadLib(string libName) {
+   return (libName.find("libpthread") != string::npos);
+}
+
 void thread_db_process::addThreadDBHandlers(HandlerPool *hpool) {
     static bool initialized = false;
     static ThreadDBLibHandler *libHandler = NULL;
@@ -559,6 +680,12 @@ void thread_db_process::addThreadDBHandlers(HandlerPool *hpool) {
     hpool->addHandler(libHandler);
     hpool->addHandler(createHandler);
     hpool->addHandler(destroyHandler);
+}
+
+bool thread_db_process::plat_getLWPInfo(lwpid_t, void *) 
+{
+   perr_printf("Attempt to use unsupported plat_getLWPInfo\n");
+   return false;
 }
 
 ThreadDBLibHandler::ThreadDBLibHandler() :

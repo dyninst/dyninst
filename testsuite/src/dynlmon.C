@@ -143,8 +143,7 @@ static char **getLaunchParams(char *executable, char *args[], const char *num)
 }
 #elif defined(os_bg_test)
 static char **getLaunchParams(char *executable, char *args[], const char *num)
-{
-   
+{   
    int count = 0;
    for (char **counter = args; *counter; counter++, count++);
    char **new_args = (char **) malloc(sizeof(char *) * (count+5));
