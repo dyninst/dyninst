@@ -144,9 +144,6 @@ static void mergeRanges(const mapped_object *obj,
 
 void MemoryEmulator::addObject(const mapped_object *obj) {
 
-   if (emulatedObjs.end() != emulatedObjs.find(obj)) {
-       return;
-   }
    emulatedObjs.insert(obj);
 
    sensitivity_cerr << "memEmulator::addObject for " << obj->fileName() << endl;
@@ -162,7 +159,10 @@ void MemoryEmulator::addObject(const mapped_object *obj) {
         rit != ranges.end(); 
         rit++) 
    {
-       addRange(obj, rit->first, rit->second);
+       unsigned long dontcare = 0;
+       if ( ! memoryMap_.find(rit->first, dontcare) ) {
+           addRange(obj, rit->first, rit->second);
+       }
    }
 }
 
@@ -171,6 +171,7 @@ void MemoryEmulator::addNewCode(const mapped_object *obj,
     // we'll only add new code if we're monitoring the program at runtime
     assert(aS_->proc());
 
+    sensitivity_cerr << "memEmulator::addNewCode for " << obj->fileName() << endl;
     unsigned int pageSize = aS_->proc()->getMemoryPageSize();
     set<Address> pageAddrs;
     unsigned long dontcare=0;
