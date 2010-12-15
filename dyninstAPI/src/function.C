@@ -41,6 +41,7 @@
 #include "InstructionDecoder.h"
 #include "parseAPI/src/InstrucIter.h"
 #include "MemoryEmulator/memEmulator.h"
+#include "Relocation/Transformers/Movement-analysis.h"
 
 //std::string int_function::emptyString("");
 
@@ -48,7 +49,7 @@
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
-
+using namespace Dyninst::Relocation;
 
 int int_function_count = 0;
 
@@ -215,6 +216,9 @@ int_block *int_function::createBlock(image_basicBlock *ib) {
     int_block *block = new int_block(ib, this);
     blocks_.insert(block);
     blockMap_[ib] = block;
+
+    PCSensitiveTransformer::clearAnalysisCache(block);
+       
     return block;
 }
 
@@ -631,9 +635,12 @@ void int_function::findPoints(int_block *block,
 // call to the parseAPI
 void int_function::deleteBlock(int_block* block) 
 {
-    // init stuff
-    assert(block && this == block->func());
+   // Need a callback-based system for this...
+   PCSensitiveTransformer::clearAnalysisCache(block);
 
+   // init stuff
+   assert(block && this == block->func());
+   
     // Find the points that reside in this block. 
     std::set<instPoint *> foundPoints;
     findPoints(block, foundPoints);
@@ -663,6 +670,10 @@ void int_function::splitBlock(image_basicBlock *img_orig,
    }
    // Also adds to trackers
 
+   // Need a callback-based system for this...
+   PCSensitiveTransformer::clearAnalysisCache(origBlock);
+   PCSensitiveTransformer::clearAnalysisCache(newBlock);
+   
    // Move all instPoints that were contained in orig and should be
    // contained in newBlock...
    for (Address a = newBlock->start(); a < newBlock->end(); ++a) {
