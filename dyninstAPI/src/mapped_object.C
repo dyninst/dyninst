@@ -1531,6 +1531,10 @@ void mapped_object::getRegionPages(SymtabAPI::Region *reg,
 void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
 {
     assert(reg != NULL && proc()->proc());
+    malware_cerr << hex << "In expandCodeBytes("
+        << (codeBase() + reg->getMemOffset()) 
+        << ") with disk size " << reg->getDiskSize()
+        << " and memory size " << reg->getMemSize() << dec << endl;
 
     Address regStart = reg->getRegionAddr();
     void *mappedPtr = reg->getPtrToRawData();
@@ -1564,18 +1568,15 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
         vector<Address> dontcare;
         vector<Address> emPages;
         getRegionPages(reg,dontcare,emPages);
-        long shift = 0; 
-        if (!emPages.empty()) {
-            bool valid;
-            Address emAddr;
-            boost::tie(valid,emAddr) = proc_->getMemEm()->translate(emPages[0]);
-            assert(valid);
-            shift = emAddr - emPages[0];
-        }
         for (vector<Address>::iterator pit = emPages.begin(); 
              pit != emPages.end(); 
              pit++) 
         {
+            bool valid;
+            Address emAddr;
+            boost::tie(valid,emAddr) = proc_->getMemEm()->translate(emPages[0]);
+            assert(valid);
+            long shift = emAddr - emPages[0];
             unsigned copyLen = ( ((*pit) + pageSize) < (initializedEnd + codeBase()) ) ?
                 (*pit) + pageSize : initializedEnd + codeBase();
             copyLen -= *pit;
@@ -1655,25 +1656,26 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
 // 2. copy overwritten regions into the mapped objects
 void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges)
 {
+    malware_cerr << "In updateCodeBytes(owRanges)" << endl;
     bool memEmulation = proc()->isMemoryEmulated();
 // 1. use other update functions to update non-code areas of mapped files, 
 //    expanding them if we wrote in un-initialized memory
     using namespace SymtabAPI;
     std::set<Region *> expandRegs;// so we don't update regions more than once
     std::set<Region *> owRegs;
-    Address baseAddress = codeBase();
 
     // figure out which regions need expansion and which need updating
     list<pair<Address,Address> >::const_iterator rIter = owRanges.begin();
     for(; rIter != owRanges.end(); rIter++) {
-        Address lastChangeOffset = (*rIter).second -1 -baseAddress;
+        Address lastChangeOffset = (*rIter).second -1 -codeBase();
         Region *curReg = parse_img()->getObject()->findEnclosingRegion
                                                     ( lastChangeOffset );
-        if ( lastChangeOffset - curReg->getRegionAddr() >= curReg->getDiskSize() ) {
+        if ( lastChangeOffset - curReg->getMemOffset() >= curReg->getDiskSize() ) {
             expandRegs.insert(curReg);
         }
         owRegs.insert(curReg);
     }
+
     // expand and update regions
     for (set<Region*>::iterator regIter = expandRegs.begin();
          regIter != expandRegs.end(); regIter++) 
@@ -1700,9 +1702,9 @@ void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges
         }
 
         Region *reg = parse_img()->getObject()->findEnclosingRegion
-            ( (*rIter).first - baseAddress );
+            ( (*rIter).first - codeBase() );
         unsigned char* regPtr = (unsigned char*)reg->getPtrToRawData() 
-            + (*rIter).first - baseAddress - reg->getMemOffset();
+            + (*rIter).first - codeBase() - reg->getMemOffset();
 
         if (!proc()->readDataSpace((void*)readAddr, 
                                    (*rIter).second - (*rIter).first, 
@@ -1732,7 +1734,8 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * symReg)
 {
     assert(symReg != NULL && proc()->proc());
     ParseAPI::CodeObject *cObj = parse_img()->codeObject();
-
+    malware_cerr << "In updateCodeBytes(" << hex 
+        << (codeBase() + symReg->getMemOffset()) << dec << ")" << endl;
     void *mappedPtr = symReg->getPtrToRawData();
     Address regStart = symReg->getRegionAddr();
     Address regEnd = regStart + symReg->getDiskSize();
@@ -1748,20 +1751,11 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * symReg)
         // pages don't have instrumentation, copy both vectors over
         for (int iter = 0; iter < 2; iter++) {
 
-            long shift=0; 
             vector<Address> * pageVec;
             if (iter == 0) {
                 pageVec = &origPages;
-                shift = 0;
             } else {
                 pageVec = &emulPages;
-                if (!emulPages.empty()) {
-                    bool valid;
-                    Address emAddr;
-                    boost::tie(valid,emAddr) = proc_->getMemEm()->translate(emulPages[0]);
-                    assert(valid);
-                    shift = emAddr - emulPages[0];
-                }
             }
 
             for (vector<Address>::iterator pit = pageVec->begin();
@@ -1775,6 +1769,18 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * symReg)
                 else {
                     readSize = regEnd + codeBase() - (*pit);
                 }
+                long shift;
+                if (iter == 0) {
+                    shift = 0;
+                } else {
+                    bool valid;
+                    Address emAddr;
+                    boost::tie(valid,emAddr) = proc_->getMemEm()->translate(*pit);
+                    assert(valid);
+                    shift = emAddr - (*pit);
+                }
+
+
                 if (readSize > 0 && 
                     !proc()->readDataSpace(
                         (void*)((*pit) + shift), 
