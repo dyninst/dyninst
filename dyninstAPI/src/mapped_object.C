@@ -1573,9 +1573,9 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
         {
             bool valid;
             Address emAddr;
-            boost::tie(valid,emAddr) = proc_->getMemEm()->translate(emPages[0]);
+            boost::tie(valid,emAddr) = proc_->getMemEm()->translate(*pit);
             assert(valid);
-            long shift = emAddr - emPages[0];
+            long shift = emAddr - (*pit);
             unsigned copyLen = ( ((*pit) + pageSize) < (initializedEnd + codeBase()) ) ?
                 (*pit) + pageSize : initializedEnd + codeBase();
             copyLen -= *pit;
