@@ -1539,8 +1539,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
     Address regStart = reg->getRegionAddr();
     void *mappedPtr = reg->getPtrToRawData();
     const unsigned pageSize = proc()->proc()->getMemoryPageSize();
-    Address copySize = reg->getMemSize();
-    unsigned char* regBuf = (unsigned char*) malloc(copySize);
+    unsigned char* regBuf = (unsigned char*) malloc(reg->getMemSize());
     Address initializedEnd = regStart + reg->getDiskSize();
     
     ParseAPI::CodeRegion *parseReg = NULL;
@@ -1552,15 +1551,15 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
 
     // 1. copy memory into regBuf
     if (!proc()->readDataSpace((void*)(regStart + codeBase()), 
-                               copySize, 
+                               reg->getMemSize(), 
                                regBuf, 
                                true)) 
     {
         fprintf(stderr, "%s[%d] Failed to read from region [%lX %lX]\n",
-                __FILE__, __LINE__, (long)regStart+codeBase(), copySize);
+                __FILE__, __LINE__, (long)regStart+codeBase(), reg->getMemSize());
         assert(0);
     }
-    mal_printf("EXTEND_CB: copied to [%lx %lx)\n", codeBase()+regStart, codeBase()+regStart+copySize);
+    mal_printf("EXTEND_CB: copied to [%lx %lx)\n", codeBase()+regStart, codeBase()+regStart+reg->getMemSize());
 
 
     if (proc()->isMemoryEmulated()) {
@@ -1582,7 +1581,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
             copyLen -= *pit;
             if (!proc()->readDataSpace((void*)((*pit) + shift), 
                                        copyLen, 
-                                       (void*)(regBuf + (*pit) + shift - codeBase() - regStart), 
+                                       (void*)(regBuf + (*pit) - codeBase() - regStart), 
                                        true)) 
             {
                 assert(0);
@@ -1636,7 +1635,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
     // KEVINTODO: find a cleaner solution than taking over the mapped files
     static_cast<SymtabCodeSource*>(cObj->cs())->
         resizeRegion( reg, reg->getMemSize() );
-    reg->setPtrToRawData( regBuf , copySize );
+    reg->setPtrToRawData( regBuf , reg->getMemSize() );
 
     // expand this mapped_object's codeRange
     if (codeBase() + reg->getMemOffset() + reg->getMemSize() 
