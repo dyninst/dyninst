@@ -967,11 +967,12 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             cur->region()->offset() + cur->region()->length() - curAddr;
 #if defined(cap_instruction_api)
         const unsigned char* bufferBegin = 
-         (const unsigned char *)(func->isrc()->getPtrToInstruction(curAddr));
-        InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
-
-        InstructionAdapter_t ah(dec, curAddr, func->obj(), 
-                                cur->region(), func->isrc(), cur);
+            (const unsigned char *)(func->isrc()->getPtrToInstruction(curAddr));
+        InstructionDecoder *dec_ptr = new InstructionDecoder(
+            bufferBegin,size,frame.codereg->getArch());
+        InstructionAdapter_t *ah_ptr = new InstructionAdapter_t(
+            *dec_ptr, curAddr, func->obj(), cur->region(), func->isrc(), cur);
+        InstructionAdapter_t &ah = *ah_ptr;
 #else        
         InstrucIter iter(curAddr, size, func->isrc());
         InstructionAdapter_t ah(iter, 
@@ -1040,13 +1041,13 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 parsing_printf("[%s:%d] curAddr 0x%lx \n",
                     FILE__,__LINE__,curAddr);
 
-	    if (func->_is_leaf_function) {
-		Address ret_addr;
-	    	func->_is_leaf_function = !(insn_det.insn->isReturnAddrSave(ret_addr));
-                parsing_printf("[%s:%d] leaf %d funcname %s \n",
-                    FILE__,__LINE__,func->_is_leaf_function, func->name().c_str());
-	        if (!func->_is_leaf_function) func->_ret_addr = ret_addr;	
-		}
+            if (func->_is_leaf_function) {
+            Address ret_addr;
+    	        func->_is_leaf_function = !(insn_det.insn->isReturnAddrSave(ret_addr));
+                    parsing_printf("[%s:%d] leaf %d funcname %s \n",
+                        FILE__,__LINE__,func->_is_leaf_function, func->name().c_str());
+                if (!func->_is_leaf_function) func->_ret_addr = ret_addr;	
+            }
 		
             _pcb.instruction_cb(func,cur,curAddr,&insn_det);
 
@@ -1148,10 +1149,13 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 #if defined(cap_instruction_api)
                 const unsigned char* bufferBegin = (const unsigned char *)
                     (func->isrc()->getPtrToInstruction(ah.getAddr()));
-                dec = InstructionDecoder
+                delete dec_ptr;
+                delete ah_ptr;
+                dec_ptr = new InstructionDecoder
                     (bufferBegin, bufsize, frame.codereg->getArch());
-                ah = InstructionAdapter_t(dec, curAddr, func->obj(), 
+                ah_ptr = new InstructionAdapter_t(*dec_ptr, curAddr, func->obj(), 
                                           func->region(), func->isrc(), cur);
+                ah = *ah_ptr;
 #else        
                 assert(0 && "This case is only possible on x86"); 
 #endif
@@ -1180,6 +1184,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             }
             ah.advance();
         }
+        delete dec_ptr;
+        delete ah_ptr;
     }
 
     /** parsing complete **/
