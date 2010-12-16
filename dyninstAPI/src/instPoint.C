@@ -660,7 +660,8 @@ InstructionAPI::Instruction::Ptr instPoint::insn() const {
    block()->getInsnInstances(insns);
    for (int_block::InsnInstances::iterator iter = insns.begin();
         iter != insns.end(); ++iter) {
-      if (iter->second == addr()) return iter->first;
+      if (iter->second == addr()) 
+          return iter->first;
    }
    return InstructionAPI::Instruction::Ptr();
 }
