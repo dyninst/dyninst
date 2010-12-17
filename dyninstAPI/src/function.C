@@ -217,7 +217,6 @@ int_block *int_function::createBlock(image_basicBlock *ib) {
     blocks_.insert(block);
     blockMap_[ib] = block;
 
-    PCSensitiveTransformer::clearAnalysisCache(block);
        
     return block;
 }
@@ -635,8 +634,6 @@ void int_function::findPoints(int_block *block,
 // call to the parseAPI
 void int_function::deleteBlock(int_block* block) 
 {
-   // Need a callback-based system for this...
-   PCSensitiveTransformer::clearAnalysisCache(block);
 
    // init stuff
    assert(block && this == block->func());
@@ -656,7 +653,6 @@ void int_function::deleteBlock(int_block* block)
 
     // It appears that we delete the int_block before the image_basicBlock...
     //assert(consistency());
-	triggerModified();
 }
 
 void int_function::splitBlock(image_basicBlock *img_orig, 
@@ -670,10 +666,6 @@ void int_function::splitBlock(image_basicBlock *img_orig,
        newBlock = createBlock(img_new);
    }
    // Also adds to trackers
-
-   // Need a callback-based system for this...
-   PCSensitiveTransformer::clearAnalysisCache(origBlock);
-   PCSensitiveTransformer::clearAnalysisCache(newBlock);
    
    // Move all instPoints that were contained in orig and should be
    // contained in newBlock...
@@ -798,6 +790,7 @@ void int_function::addMissingPoints()
 // get instPoints of known function callsinto this one
 void int_function::getCallerPoints(std::vector<instPoint*>& callerPoints)
 {
+	if (!entryBlock()) return;
     image_basicBlock *entryLLB = entryBlock()->llb();
     const ParseAPI::Block::edgelist &sources = entryLLB->sources();
     for (ParseAPI::Block::edgelist::iterator iter = sources.begin();
@@ -1010,12 +1003,9 @@ const int_function::BlockSet &int_function::blocks()
 
 
 int_block *int_function::entryBlock() {
-  blocks();
-
-  funcEntries();
-  assert(entryPoints_.size() == 1);
-  return entryPoints_[0]->block();
-
+	ParseAPI::Block *iEntry = ifunc_->entry();
+	if (!iEntry) return NULL;
+	return findBlock(iEntry);
 }
 
 unsigned int_function::getNumDynamicCalls()
