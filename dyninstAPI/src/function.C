@@ -649,6 +649,7 @@ void int_function::deleteBlock(int_block* block)
 
     // It appears that we delete the int_block before the image_basicBlock...
     //assert(consistency());
+	triggerModified();
 }
 
 void int_function::splitBlock(image_basicBlock *img_orig, 
@@ -672,6 +673,7 @@ void int_function::splitBlock(image_basicBlock *img_orig,
             p_iter->second->setBlock(newBlock);
       }
    }
+   	triggerModified();
 }
 
 // Remove funcs from:
@@ -709,6 +711,8 @@ void int_function::removeFromAll()
     abruptEnds_.clear();
     unresolvedPoints_.clear();
     instPsByAddr_.clear();
+
+	triggerModified();
 
     // remove func & blocks from image, ParseAPI, & SymtabAPI datastructures
     ifunc()->img()->deleteFunc(ifunc());
@@ -763,6 +767,7 @@ void int_function::addMissingBlocks()
            }
        }
    }
+	triggerModified();	
 }
 
 /* trigger search in image_layer points vectors to be added to int_level 
@@ -1306,4 +1311,10 @@ bool int_function::consistency() const {
    return true;
 }
 
+void int_function::triggerModified() {
+	// A single location to drop anything that needs to be
+	// informed when an int_function was updated.
 
+	// Relocation info caching...
+	PCSensitiveTransformer::invalidateCache(this);
+}

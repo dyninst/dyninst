@@ -446,6 +446,8 @@ class int_function : public patchTarget {
 
     void findPoints(int_block *, std::set<instPoint *> &foundPoints) const;
     bool validPoint(instPoint *) const;
+
+	void triggerModified();
 };
 
 
