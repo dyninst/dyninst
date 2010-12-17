@@ -1360,6 +1360,12 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
     // add the functions we created to mapped_object datastructures
     registerNewFunctions();
 
+    // add new emulated ranges for the code
+    if (proc()->isMemoryEmulated()) {
+       const vector<image_basicBlock*> & nblocks = parse_img()->getNewBlocks();
+       proc()->getMemEm()->addNewCode(this,nblocks);
+    }
+
     // split int layer
     if (parse_img()->hasSplitBlocks()) {
         splitIntLayer();
@@ -1495,6 +1501,28 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
 }
 
 
+// find all page address corresponding to the region and
+// categorize them as emulated or original pages
+void mapped_object::getRegionPages(SymtabAPI::Region *reg,
+                                   vector<Address> &origPages,
+                                   vector<Address> &emulPages)
+{
+    const unsigned pageSize = proc()->proc()->getMemoryPageSize();
+    Address regStart = reg->getMemOffset() + codeBase();
+    Address regEnd = regStart + reg->getMemSize();
+    for (Address page = regStart; page < regEnd; page += pageSize) {
+        bool isEmulated = false;
+        Address emPage = 0;
+        boost::tie(isEmulated, emPage) = proc()->getMemEm()->translate(page);
+        if (isEmulated) {
+            emulPages.push_back(page);
+        } else {
+            origPages.push_back(page);
+        }
+    }
+}
+
+
 /* 1. Copy the entire region in from the mutatee, 
  * 2. if memory emulation is not on, copy blocks back in from the
  * mapped file, since we don't want to copy instrumentation into
@@ -1502,46 +1530,71 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
  */
 void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
 {
-    assert(reg);
-    void *mappedPtr = reg->getPtrToRawData();
+    assert(reg != NULL && proc()->proc());
+    malware_cerr << hex << "In expandCodeBytes("
+        << (codeBase() + reg->getMemOffset()) 
+        << ") with disk size " << reg->getDiskSize()
+        << " and memory size " << reg->getMemSize() << dec << endl;
+
     Address regStart = reg->getRegionAddr();
-    ParseAPI::Block *cur = NULL;
-    ParseAPI::CodeObject *cObj = parse_img()->codeObject();
-    ParseAPI::CodeRegion *parseReg = NULL;
-    Address copySize = reg->getMemSize();
-    void* regBuf = malloc(copySize);
-    Address initializedEnd = regStart + copySize;
+    void *mappedPtr = reg->getPtrToRawData();
+    const unsigned pageSize = proc()->proc()->getMemoryPageSize();
+    unsigned char* regBuf = (unsigned char*) malloc(reg->getMemSize());
+    Address initializedEnd = regStart + reg->getDiskSize();
     
+    ParseAPI::CodeRegion *parseReg = NULL;
+    ParseAPI::CodeObject *cObj = parse_img()->codeObject();
     set<ParseAPI::CodeRegion*> parseRegs;
     cObj->cs()->findRegions(regStart, parseRegs);
     parseReg = * parseRegs.begin();
     parseRegs.clear();
 
     // 1. copy memory into regBuf
-    Address readAddr = regStart + codeBase();
-    if (proc()->isMemoryEmulated()) {
-        bool valid = false;
-        boost::tie(valid, readAddr) = proc()->getMemEm()->translate(readAddr);
-        assert(valid);
-    }
-    if (!proc()->readDataSpace((void*)readAddr, 
-                               copySize, 
+    if (!proc()->readDataSpace((void*)(regStart + codeBase()), 
+                               reg->getMemSize(), 
                                regBuf, 
                                true)) 
     {
         fprintf(stderr, "%s[%d] Failed to read from region [%lX %lX]\n",
-                __FILE__, __LINE__, (long)regStart+codeBase(), copySize);
+                __FILE__, __LINE__, (long)regStart+codeBase(), reg->getMemSize());
         assert(0);
     }
-    mal_printf("EXTEND_CB: copied to [%lx %lx)\n", codeBase()+regStart, codeBase()+regStart+copySize);
+    mal_printf("EXTEND_CB: copied to [%lx %lx)\n", codeBase()+regStart, codeBase()+regStart+reg->getMemSize());
 
 
-    if ( ! proc()->isMemoryEmulated() ) {
+    if (proc()->isMemoryEmulated()) {
+        // copy the emulated pages in over the original ones and we're done
+        vector<Address> dontcare;
+        vector<Address> emPages;
+        getRegionPages(reg,dontcare,emPages);
+        for (vector<Address>::iterator pit = emPages.begin(); 
+             pit != emPages.end(); 
+             pit++) 
+        {
+            bool valid;
+            Address emAddr;
+            boost::tie(valid,emAddr) = proc_->getMemEm()->translate(*pit);
+            assert(valid);
+            long shift = emAddr - (*pit);
+            unsigned copyLen = ( ((*pit) + pageSize) < (initializedEnd + codeBase()) ) ?
+                (*pit) + pageSize : initializedEnd + codeBase();
+            copyLen -= *pit;
+            if (!proc()->readDataSpace((void*)((*pit) + shift), 
+                                       copyLen, 
+                                       (void*)(regBuf + (*pit) - codeBase() - regStart), 
+                                       true)) 
+            {
+                assert(0);
+            }
+        }
+    }
+    else {
 
     // 2. copy code bytes back into the regBuf to wipe out instrumentation 
     //    and set regBuf to be the data for the region
 
         // find the first block in the region
+        ParseAPI::Block *cur = NULL;
         set<ParseAPI::Block*> analyzedBlocks;
         cObj->findBlocks(parseReg, regStart, analyzedBlocks);
         if (analyzedBlocks.size()) {
@@ -1582,7 +1635,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
     // KEVINTODO: find a cleaner solution than taking over the mapped files
     static_cast<SymtabCodeSource*>(cObj->cs())->
         resizeRegion( reg, reg->getMemSize() );
-    reg->setPtrToRawData( regBuf , copySize );
+    reg->setPtrToRawData( regBuf , reg->getMemSize() );
 
     // expand this mapped_object's codeRange
     if (codeBase() + reg->getMemOffset() + reg->getMemSize() 
@@ -1595,18 +1648,6 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
                                      - codeAbs() );
 
     }
-
-    // KEVINTODO: what?  why is this necessary?, I've killed it for now, delete if no failures
-    // 
-    //// now update all of the other regions
-    //std::vector<SymtabAPI::Region*> regions;
-    //parse_img()->getObject()->getCodeRegions(regions);
-    //for(unsigned rIdx=0; rIdx < regions.size(); rIdx++) {
-    //    SymtabAPI::Region *curReg = regions[rIdx];
-    //    if (curReg != reg) {
-    //        updateCodeBytes(curReg);
-    //    }
-    //}
 }
 
 // 1. use other update functions to update non-code areas of mapped files, 
@@ -1614,25 +1655,26 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
 // 2. copy overwritten regions into the mapped objects
 void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges)
 {
+    malware_cerr << "In updateCodeBytes(owRanges)" << endl;
     bool memEmulation = proc()->isMemoryEmulated();
 // 1. use other update functions to update non-code areas of mapped files, 
 //    expanding them if we wrote in un-initialized memory
     using namespace SymtabAPI;
     std::set<Region *> expandRegs;// so we don't update regions more than once
     std::set<Region *> owRegs;
-    Address baseAddress = codeBase();
 
     // figure out which regions need expansion and which need updating
     list<pair<Address,Address> >::const_iterator rIter = owRanges.begin();
     for(; rIter != owRanges.end(); rIter++) {
-        Address lastChangeOffset = (*rIter).second -1 -baseAddress;
+        Address lastChangeOffset = (*rIter).second -1 -codeBase();
         Region *curReg = parse_img()->getObject()->findEnclosingRegion
                                                     ( lastChangeOffset );
-        if ( lastChangeOffset - curReg->getRegionAddr() >= curReg->getDiskSize() ) {
+        if ( lastChangeOffset - curReg->getMemOffset() >= curReg->getDiskSize() ) {
             expandRegs.insert(curReg);
         }
         owRegs.insert(curReg);
     }
+
     // expand and update regions
     for (set<Region*>::iterator regIter = expandRegs.begin();
          regIter != expandRegs.end(); regIter++) 
@@ -1659,9 +1701,9 @@ void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges
         }
 
         Region *reg = parse_img()->getObject()->findEnclosingRegion
-            ( (*rIter).first - baseAddress );
+            ( (*rIter).first - codeBase() );
         unsigned char* regPtr = (unsigned char*)reg->getPtrToRawData() 
-            + (*rIter).first - baseAddress - reg->getMemOffset();
+            + (*rIter).first - codeBase() - reg->getMemOffset();
 
         if (!proc()->readDataSpace((void*)readAddr, 
                                    (*rIter).second - (*rIter).first, 
@@ -1689,108 +1731,149 @@ void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges
 // (not analyzed code regions so we don't get instrumentation in our parse)
 void mapped_object::updateCodeBytes(SymtabAPI::Region * symReg)
 {
-    assert(symReg != NULL);
-    Address base = codeBase();
+    assert(symReg != NULL && proc()->proc());
     ParseAPI::CodeObject *cObj = parse_img()->codeObject();
-
-    //std::vector<SymtabAPI::Region *> regions;
-    //regions.push_back(reg);
-    //if (NULL == reg) {
-    //    parse_img()->getObject()->getCodeRegions(regions);
-    //} else {
-    //    regions.push_back(reg);
-    //}
-
-    //for(unsigned rIdx=0; rIdx < regions.size(); rIdx++) {
-
-    //SymtabAPI::Region *symReg = regions[rIdx];
+    malware_cerr << "In updateCodeBytes(" << hex 
+        << (codeBase() + symReg->getMemOffset()) << dec << ")" << endl;
     void *mappedPtr = symReg->getPtrToRawData();
     Address regStart = symReg->getRegionAddr();
+    Address regEnd = regStart + symReg->getDiskSize();
+    unsigned pageSize = proc()->proc()->getMemoryPageSize();
 
-    set<ParseAPI::CodeRegion*> parseRegs;
-    cObj->cs()->findRegions(regStart, parseRegs);
-    ParseAPI::CodeRegion *parseReg = * parseRegs.begin();
-    //parseRegs.clear();
-    
-    // find the first block in the region
-    Block *curB = NULL;
-    set<ParseAPI::Block *> analyzedBlocks;
-    cObj->findBlocks(parseReg, regStart, analyzedBlocks);
-    if (analyzedBlocks.size()) {
-        curB = * analyzedBlocks.begin();
-        analyzedBlocks.clear();
-    } else {
-        curB = cObj->findNextBlock(parseReg, regStart);
-    }
+    if (proc()->isMemoryEmulated()) {
+        // find all page address corresponding to the region
+        vector<Address> origPages;
+        vector<Address> emulPages;
+        getRegionPages(symReg, origPages, emulPages);
 
-    Address prevEndAddr = regStart;
-    while ( curB != NULL && 
-            curB->start() < regStart + symReg->getDiskSize() )
-    {
-        // if there's a gap between previous and current block
-        if (prevEndAddr < curB->start()) {
-            // update the mapped file
-            Address readAddr = prevEndAddr + base;
-            if (proc()->isMemoryEmulated()) {
-                bool valid = false;
-                boost::tie(valid, readAddr) = proc()->getMemEm()->translate(readAddr);
-                assert(valid);
+        // orig pages have no code or they would be emulated, and emulated
+        // pages don't have instrumentation, copy both vectors over
+        for (int iter = 0; iter < 2; iter++) {
+
+            vector<Address> * pageVec;
+            if (iter == 0) {
+                pageVec = &origPages;
+            } else {
+                pageVec = &emulPages;
             }
+
+            for (vector<Address>::iterator pit = pageVec->begin();
+                 pit != pageVec->end(); 
+                 pit++)
+            {
+                long readSize;
+                if ( ((*pit) + pageSize) < (regEnd +  codeBase()) ) {
+                    readSize = pageSize;
+                }
+                else {
+                    readSize = regEnd + codeBase() - (*pit);
+                }
+                long shift;
+                if (iter == 0) {
+                    shift = 0;
+                } else {
+                    bool valid;
+                    Address emAddr;
+                    boost::tie(valid,emAddr) = proc_->getMemEm()->translate(*pit);
+                    assert(valid);
+                    shift = emAddr - (*pit);
+                }
+
+
+                if (readSize > 0 && 
+                    !proc()->readDataSpace(
+                        (void*)((*pit) + shift), 
+                        readSize, 
+                        (void*)((Address)mappedPtr + (*pit) - codeBase() - regStart),
+                        true))
+                {
+                    assert(0);//read failed
+                }
+                // set protPage status to PROTECTED
+                map<Address,WriteableStatus>::iterator ppit = protPages_.find(*pit);
+                if (ppit != protPages_.end()) {
+                    ppit->second = PROTECTED;
+                }
+            }
+        }
+    }
+    else { // memory not emulated
+        Block *curB = NULL;
+        set<ParseAPI::Block *> analyzedBlocks;
+        set<ParseAPI::CodeRegion*> parseRegs;
+        void *mappedPtr = symReg->getPtrToRawData();
+        Address regStart = symReg->getRegionAddr();
+
+        cObj->cs()->findRegions(regStart, parseRegs);
+        ParseAPI::CodeRegion *parseReg = * parseRegs.begin();
+        parseRegs.clear();
+        
+        // find the first block in the region
+        cObj->findBlocks(parseReg, regStart, analyzedBlocks);
+        if (analyzedBlocks.size()) {
+            curB = * analyzedBlocks.begin();
+            analyzedBlocks.clear();
+        } else {
+            curB = cObj->findNextBlock(parseReg, regStart);
+        }
+
+        Address prevEndAddr = regStart;
+        while ( curB != NULL && 
+                curB->start() < regStart + symReg->getDiskSize() )
+        {
+            // if there's a gap between previous and current block
+            if (prevEndAddr < curB->start()) {
+                // update the mapped file
+                Address readAddr = prevEndAddr + codeBase();
+                if (!proc()->readDataSpace(
+                        (void*)readAddr, 
+                        curB->start() - prevEndAddr, 
+                        (void*)((Address)mappedPtr + prevEndAddr - regStart),
+                        true)) 
+                {
+                    assert(0);//read failed
+                }
+                //mal_printf("UPDATE_CB: copied to [%lx %lx)\n", prevEndAddr+codeBase(),curB->start()+codeBase());
+            }
+
+            // advance curB to last adjacent block and set prevEndAddr 
+            prevEndAddr = curB->end();
+            Block *ftBlock = cObj->findBlockByEntry(parseReg,prevEndAddr);
+            while (ftBlock) {
+                curB = ftBlock;
+                prevEndAddr = curB->end();
+                ftBlock = cObj->findBlockByEntry(parseReg,prevEndAddr);
+            }
+
+            curB = cObj->findNextBlock(parseReg, prevEndAddr);
+
+        }
+        // read in from prevEndAddr to the end of the region
+	    // (will read in whole region if there are no ranges in the region)
+        if (prevEndAddr < regStart + symReg->getDiskSize()) {
+            Address readAddr = prevEndAddr + codeBase();
             if (!proc()->readDataSpace(
                     (void*)readAddr, 
-                    curB->start() - prevEndAddr, 
-                    (void*)((Address)mappedPtr + prevEndAddr - regStart),
+                    regStart + symReg->getDiskSize() - prevEndAddr, 
+                    (void*)((Address)mappedPtr + prevEndAddr - regStart), 
                     true)) 
             {
-                assert(0);//read failed
+                assert(0);// read failed
             }
-            //mal_printf("UPDATE_CB: copied to [%lx %lx)\n", prevEndAddr+base,curB->start()+base);
         }
-
-        // advance curB to last adjacent block and set prevEndAddr 
-        prevEndAddr = curB->end();
-        Block *ftBlock = cObj->findBlockByEntry(parseReg,prevEndAddr);
-        while (ftBlock) {
-            curB = ftBlock;
-            prevEndAddr = curB->end();
-            ftBlock = cObj->findBlockByEntry(parseReg,prevEndAddr);
-        }
-
-        curB = cObj->findNextBlock(parseReg, prevEndAddr);
-
-    }
-    // read in from prevEndAddr to the end of the region
-	// (will read in whole region if there are no ranges in the region)
-    if (prevEndAddr < regStart + symReg->getDiskSize()) {
-        Address readAddr = prevEndAddr + base;
-        if (proc()->isMemoryEmulated()) {
-            bool valid = false;
-            boost::tie(valid, readAddr) = proc()->getMemEm()->translate(readAddr);
-            assert(valid);
-        }
-        if (!proc()->readDataSpace(
-                (void*)readAddr, 
-                regStart + symReg->getDiskSize() - prevEndAddr, 
-                (void*)((Address)mappedPtr + prevEndAddr - regStart), 
-                true)) 
+        // change all region pages with REPROTECTED status to PROTECTED status
+        Address page_size = proc()->proc()->getMemoryPageSize();
+        Address curPage = (regStart / page_size) * page_size + codeBase();
+        for (; protPages_.end() == protPages_.find(curPage)  && curPage < regEnd; 
+               curPage += page_size);
+        for (map<Address,WriteableStatus>::iterator pit = protPages_.find(curPage);
+             pit != protPages_.end() && pit->first < regEnd;
+             pit++) 
         {
-            assert(0);// read failed
+            pit->second = PROTECTED;
         }
-    }
-    // change all region pages with REPROTECTED status to PROTECTED status
-    Address page_size = proc()->proc()->getMemoryPageSize();
-    Address curPage = (regStart / page_size) * page_size + base;
-    Address regEnd = base + regStart + symReg->getDiskSize();
-    for (; protPages_.end() == protPages_.find(curPage)  && curPage < regEnd; 
-           curPage += page_size);
-    for (map<Address,WriteableStatus>::iterator pit = protPages_.find(curPage);
-         pit != protPages_.end() && pit->first < regEnd;
-         pit++) 
-    {
-        pit->second = PROTECTED;
-    }
 
-    //}
+    }
 }
 
 // checks if update is needed by looking in the gap between the previous 
@@ -1899,8 +1982,11 @@ bool mapped_object::isExpansionNeeded(Address entry)
         base + reg->getRegionAddr() + reg->getDiskSize();
     if (proc()->isMemoryEmulated()) {
         bool valid = false;
-        boost::tie(valid, compareStart) = proc()->getMemEm()->translate(compareStart);
-        assert(valid);
+        Address emStart;
+        boost::tie(valid, emStart) = proc()->getMemEm()->translate(compareStart);
+        if (valid) {
+            compareStart = emStart;
+        }
     }
 #if defined(cap_instruction_api)
     unsigned compareSize = InstructionAPI::InstructionDecoder::maxInstructionLength;
@@ -2149,14 +2235,21 @@ void mapped_object::setCodeBytesUpdated(bool newval)
 
 unsigned int mapped_object::getAnalyzedCodePages(set<Address> &pageAddrs) const
 {
-    unsigned pageSize = 1024; // memory emulation uses this func, but 
-                              // doesn't need the actual page size
-                              // if it's in rewriter mode
+    unsigned pageSize = 0;
     if (proc()->proc()) {
         pageSize = proc()->proc()->getMemoryPageSize();
     }
-    else if (!proc()->isMemoryEmulated()) {
-        assert(0 && "don't know page size in rewriter mode");
+    else { // rewriter mode, have no way of knowing actual page size
+        if (proc()->isMemoryEmulated()) {
+            // memory emulation uses this func in rewriter mode, but 
+            // doesn't need the actual page size, so we just pick a 
+            // number that will group analyzed code into page-like
+            // sizes
+            pageSize = 1024;
+        }
+        else {
+            assert(0 && "don't know page size in rewriter mode");
+        }
     }
     for (FuncMap::const_iterator iter = everyUniqueFunction.begin();
          iter != everyUniqueFunction.end(); 

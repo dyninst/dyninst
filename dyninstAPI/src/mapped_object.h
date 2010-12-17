@@ -232,6 +232,9 @@ private:
     bool isUpdateNeeded(Address entryAddr);
     bool isExpansionNeeded(Address entryAddr);
     void expandCodeBytes(SymtabAPI::Region *reg);
+    void getRegionPages(SymtabAPI::Region *reg,
+                        std::vector<Address> &origPages,
+                        std::vector<Address> &emulPages);
     // end exploratory and defensive mode functions //
 public:
 

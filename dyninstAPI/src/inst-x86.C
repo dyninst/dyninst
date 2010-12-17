@@ -2536,6 +2536,9 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                                           pdvector<AstNodePtr> &args)
 {
    using namespace Dyninst::InstructionAPI;        
+   if (callSite->addr() == 0x9a308a) {
+       mal_printf("instrumenting 0x9a308a\n");
+   }
    Expression::Ptr cft = callSite->insn()->getControlFlowTarget();
    ASTFactory f;
    cft->apply(&f);
