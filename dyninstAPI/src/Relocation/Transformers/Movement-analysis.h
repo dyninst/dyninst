@@ -100,6 +100,8 @@ class PCSensitiveTransformer : public Transformer {
 
   virtual bool postprocess(TraceList &);
 
+  static void clearAnalysisCache(int_block *);
+
  private:
   bool analysisRequired(TraceList::iterator &);
 
@@ -130,6 +132,9 @@ class PCSensitiveTransformer : public Transformer {
 
   bool isSyscall(InstructionAPI::Instruction::Ptr insn, Address addr);
 
+  void cacheAnalysis(Address addr, bool intSens, bool extSens);
+  bool queryCache(Address addr, bool &intSens, bool &extSens);
+
   AssignmentConverter aConverter;
 
   AddressSpace *addrSpace;
@@ -145,6 +150,10 @@ class PCSensitiveTransformer : public Transformer {
   // And for times we don't want the overhead - if non-defensive or
   // system libraries
   adhocMovementTransformer adhoc;
+
+  typedef std::map<Address, std::pair<bool, bool> > AnalysisCache;
+  static AnalysisCache analysisCache_;
+  
 };
 
 };
