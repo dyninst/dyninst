@@ -278,7 +278,7 @@ testlibs:
 MINIMUM_BUILD_FILTER = %_max %_high %_low
 BUILD_FILTER =
 ifdef SKIP_BUILD_RTLIB_32
-	BUILD_FILTER += %_32_max %_32_high %_32_low %_32_none
+   BUILD_FILTER += %_32_none_max %_32_none_high %_32_none_low %_32_none_none %_32_pic_max %_32_pic_high %_32_pic_low %_32_pic_none
 endif
 
 ifneq ($(wildcard ../src/dyninst), )
@@ -311,8 +311,8 @@ endif
 endif
 
 ifneq ($(wildcard ../src/proccontrol), )
-mutatees: $(proccontrol_SOLO_MUTATEES)
-mutatees_minimum: $(filter-out $(MINIMUM_BUILD_FILTER), $(proccontrol_SOLO_MUTATEES))
+mutatees: $(filter-out $(BUILD_FILTER), $(proccontrol_SOLO_MUTATEES))
+mutatees_minimum: $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(proccontrol_SOLO_MUTATEES)))
 mutators: $(proccontrol_MUTATORS_SO)
 ifneq ($(proccontrol_MUTATORS_SO), )
 components: $(LIBPROCCONTROLCOMP)
