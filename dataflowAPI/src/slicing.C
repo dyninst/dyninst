@@ -173,7 +173,7 @@ Slicer::sliceInternalAux(
     // `false' otherwise.
 
     if(!skip)
-        updateAndLink(g,dir,cand,mydefs);
+       updateAndLink(g,dir,cand,mydefs,p);
 
     slicing_printf("\t\tfinished udpateAndLink, active.size: %ld\n",
         cand.active.size());
@@ -219,13 +219,15 @@ Slicer::sliceInternalAux(
         // If the control flow search has run
         // off the rails somehow, widen;
         // otherwise search down this new path
-        if(!f.valid)
+        if(!f.valid) {
             widenAll(g,dir,cand);
+	}
         else {
-            sliceInternalAux(g,dir,p,f,false,visited,cache);
 
-            // absorb the down-slice cache into this node's cache
-            cache[cand.addr()].merge(cache[f.addr()]);
+	  sliceInternalAux(g,dir,p,f,false,visited,cache);
+	  
+	  // absorb the down-slice cache into this node's cache
+	  cache[cand.addr()].merge(cache[f.addr()]);
         }
     }
    
@@ -276,7 +278,8 @@ Slicer::updateAndLink(
     Graph::Ptr g,
     Direction dir,
     SliceFrame & cand,
-    DefCache & cache)
+    DefCache & cache,
+    Predicates &p)
 {
     vector<Assignment::Ptr> assns;
     vector<bool> killed;
@@ -325,7 +328,16 @@ Slicer::updateAndLink(
     }
 
     for(unsigned i=0;i<matches.size();++i) {
-        cand.active[matches[i].reg].push_back(matches[i]);
+       // Check our predicates
+       if (p.widenAtPoint(matches[i].ptr)) {
+          widen(g, dir, matches[i]);
+       }
+       else if (p.endAtPoint(matches[i].ptr)) {
+          // Do nothing...
+       }
+       else {
+          cand.active[matches[i].reg].push_back(matches[i]);
+       }
     }
 
     return true;
@@ -1203,6 +1215,7 @@ Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {
 Graph::Ptr Slicer::backwardSlice(Predicates &predicates) {
   // delete cache state
   unique_edges_.clear(); 
+
   return sliceInternal(backward, predicates);
 }
 
