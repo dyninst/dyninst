@@ -136,6 +136,10 @@ struct Handle {
 		 Dyninst::Architecture a);
 
    ~SymEvalPolicy() {};
+
+   void undefinedInstruction(SgAsmx86Instruction *);
+   void undefinedInstruction(SgAsmPowerpcInstruction *);
+   void undefinedInstructionCommon();
   
    void startInstruction(SgAsmx86Instruction *);
    void startInstruction(SgAsmPowerpcInstruction *);

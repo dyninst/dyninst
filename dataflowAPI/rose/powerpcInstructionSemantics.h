@@ -1343,17 +1343,11 @@ build_mask(uint8_t mb_value, uint8_t me_value)
            break;
          }
 
-      case powerpc_stbx:
-      case powerpc_lswi:
-      case powerpc_lswx:
-      case powerpc_stswi:
-      case powerpc_stswx:
-         {
-           // XXX - Implement me!
-           break;
-         }
-
-      default: fprintf(stderr, "Bad instruction\n"); abort();
+      default:
+      {
+         policy.undefinedInstruction(insn);
+         break;
+      }
     }
   }
 

@@ -35,6 +35,22 @@ SymEvalPolicy::SymEvalPolicy(Result_t &r,
   }
 }
   
+void SymEvalPolicy::undefinedInstruction(SgAsmx86Instruction *) {
+   undefinedInstructionCommon();
+}
+
+void SymEvalPolicy::undefinedInstruction(SgAsmPowerpcInstruction *) {
+   // Log insn details here
+
+   undefinedInstructionCommon();
+}
+
+void SymEvalPolicy::undefinedInstructionCommon() {
+   for (std::map<Absloc, Assignment::Ptr>::iterator iter = aaMap.begin();
+        iter != aaMap.end(); ++iter) {
+      res[iter->second] = getBottomAST();
+   }
+}
 
 void SymEvalPolicy::startInstruction(SgAsmx86Instruction *) {
 }
