@@ -111,6 +111,7 @@ class MemEmulator : public Atom {
    bool checkLiveness(codeGen &gen);   
    bool setupFrame(bool, codeGen &gen);
    bool computeEffectiveAddress(codeGen &gen);
+   bool computeEffectiveSize(codeGen &gen);
    bool teardownFrame(codeGen &gen);
    bool trailingTeardown(codeGen &gen);
 
@@ -129,7 +130,7 @@ class MemEmulator : public Atom {
    
    bool generateOrigAccess(codeGen &gen); 
 
-   bool stealEffectiveAddr(Register &ret, codeGen &gen);
+   bool stealReg(Register &ret, codeGen &gen);
 
    bool usesESP();
    bool emulateESPUse(codeGen &gen);
@@ -154,6 +155,7 @@ class MemEmulator : public Atom {
 
    Register effAddr_;
    Register effAddr2_;
+   Register effLen_;
    bool saveFlags_;
    bool saveRAX_;
    
@@ -188,14 +190,15 @@ struct MemEmulatorPatch : public Patch {
    // Put in a call to the RTtranslateMemory
    // function
    MemEmulatorPatch(Register r,
+                    Register r2,
 					Address o,
-                    Address d)
-		: reg_(r), orig_(o), dest_(d) {};
+                    Address d);
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
    virtual unsigned estimate(codeGen &) { return 7; };
    virtual ~MemEmulatorPatch() {};
 
    Register reg_;
+   Register reg_len_;
    Address orig_;
    Address dest_;
 };

@@ -324,7 +324,7 @@ void MemoryEmulator::addRange(Address start, unsigned size, Address shift) {
    }
    else if (memoryMap_.find(end, lb, ub, val)) {
       // See the above
-      if (end != ub) {
+      if (end != lb) {
          fprintf(stderr, "ERROR: adding range 0x%lx -> 0x%lx (0x%lx), found range 0x%lx -> 0x%lx (0x%lx)\n",
                  start, end, shift, lb, ub, val);
 
@@ -392,14 +392,18 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
     std::vector< std::pair<std::pair<Address,Address>,unsigned long> > elements;
     memoryMap_.elements(elements);
     for (unsigned idx=0; idx < elements.size(); idx++) {
+
         std::pair<Address,Address> range(0,0);
         unsigned int shift = 0;
         boost::tie(range,shift) = elements[idx];
+
+        // skip ranges that lie outside of the object
         if (range.second <= obj->codeBase() ||
             range.first >= (obj->codeBase() + obj->get_size()))
         {
             continue;
         }
+        // choose read and write offsets for the copy based on toOrig parameter
         unsigned char *rangebuf = (unsigned char*) malloc(range.second-range.first);
         Address from = 0;
         Address toShift = 0;
@@ -410,6 +414,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
             from = range.first;
             toShift = shift;
         }
+        //read
         if (!aS_->readDataSpace((void *)from,
                                 range.second-range.first,
                                 rangebuf,
@@ -417,6 +422,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         {
             assert(0);
         }
+        // write, but don't copy springboards over
         std::map<Address,int>::const_iterator sit = springboards_.begin();
         Address cp_start = range.first;
         cerr << "SYNC WRITE TO [" << hex << range.first+toShift << " " << range.second+toShift << ")" << dec << endl;
@@ -425,7 +431,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
                 continue;
             }
             int cp_size = sit->first - cp_start;
-            cerr << "\t Write " << hex << cp_start +toShift << "..." << cp_start + cp_size + toShift<< dec << endl;
+            //cerr << "\t Write " << hex << cp_start +toShift << "..." << cp_start + cp_size + toShift<< dec << endl;
             if (cp_size &&
                 !aS_->writeDataSpace((void *)(cp_start + toShift),
                                      cp_size,
@@ -437,7 +443,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         }
 
         cerr << "\t Write " << hex << cp_start +toShift << "..." << range.second - cp_start<< dec << endl;
-        if (cp_start < (range.first + range.second) &&
+        if (cp_start < range.second &&
             !aS_->writeDataSpace((void *)(cp_start + toShift),
                                  range.second - cp_start,
                                  rangebuf + cp_start - range.first))

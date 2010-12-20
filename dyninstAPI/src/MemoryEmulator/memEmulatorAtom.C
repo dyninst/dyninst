@@ -63,6 +63,15 @@ using namespace InstructionAPI;
 
 MemEmulator::TranslatorMap MemEmulator::translators_;
 
+MemEmulatorPatch::MemEmulatorPatch(Register r,
+                    Register r2,
+					Address o,
+                    Address d)
+		: reg_(r), reg_len_(r2), orig_(o), dest_(d) 
+{
+};
+
+
 MemEmulator::Ptr MemEmulator::create(Instruction::Ptr insn,
 				     Address addr,
 				     instPoint *point) {
@@ -204,7 +213,6 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
    prepatch.applyTemplate(templ);
 
    bool debug = false;
-   if (addr_ == 0x40d4dc) debug = true;
 
   // We want to ensure that a memory operation produces its
   // original result in the face of overwriting the text
@@ -266,12 +274,17 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
     return false;
   }
 
+  if (!computeEffectiveSize(prepatch)) {
+     relocation_cerr << "\tFailed to compute eff. addr. of memory operation!" << endl;
+    return false;
+  }
+
   // push/pop time!
   if (!preCallSave(prepatch))
      return false;
   buffer.addPIC(prepatch, tracker(t->bbl()));
 
-  buffer.addPatch(new MemEmulatorPatch(effAddr_, addr_, getTranslatorAddr(prepatch, false)), tracker(t->bbl()));
+  buffer.addPatch(new MemEmulatorPatch(effAddr_, effLen_, addr_, getTranslatorAddr(prepatch, false)), tracker(t->bbl()));
   
   prepatch.setIndex(0);
   if (!postCallRestore(prepatch))
@@ -295,6 +308,7 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
 bool MemEmulator::initialize(codeGen &gen) {
   effAddr_ = Null_Register;
   effAddr2_ = Null_Register;
+  effLen_ = Null_Register;
   saveFlags_ = false;
   saveRAX_ = false;
 
@@ -340,20 +354,26 @@ bool MemEmulator::setupFrame(bool needTwo, codeGen &gen) {
    // since we _really_ need to use it for flag saves
    gen.rs()->allocateSpecificRegister(gen, REGNUM_EAX, true);
    
+//   removes reliance on liveness analysis:
 //   effAddr_ = gen.rs()->allocateRegister(gen, false, true);
    if (true || effAddr_ == Null_Register) {
-      if (!stealEffectiveAddr(effAddr_, gen)) {
+      if (!stealReg(effAddr_, gen)) {
          return false;
       }
    }      
    if (needTwo) {
+//      removes reliance on liveness analysis:
 //      effAddr2_ = gen.rs()->allocateRegister(gen, false, true);
       if (true || effAddr2_ == Null_Register) {
-         if (!stealEffectiveAddr(effAddr2_, gen)) {
+         if (!stealReg(effAddr2_, gen)) {
             return false;
          }
       }
    }
+   if (!stealReg(effLen_, gen)) {
+      return false;
+   }
+
 
    return true;
 }
@@ -377,6 +397,30 @@ bool MemEmulator::computeEffectiveAddress(codeGen &gen) {
   // we just st0mped the flags. 
 
   emitASload(start, effAddr_, gen, true);
+
+  return true;
+}
+
+// number of bytes that were read or written
+bool MemEmulator::computeEffectiveSize(codeGen &gen) {
+  assert(gen.addrSpace());
+  BPatch_addressSpace *bproc = (BPatch_addressSpace *)gen.addrSpace()->up_ptr();
+  assert(bproc);
+  assert(gen.point());
+  BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point(), BPatch_locInstruction);
+  if (bpoint == NULL) {
+    fprintf(stderr, "ERROR: Unable to find BPatch point for internal point %p/0x%lx\n",
+	    gen.point(), gen.point()->addr());
+    return false;
+  }
+  const BPatch_memoryAccess *ma = bpoint->getMemoryAccess();
+  
+  const BPatch_addrSpec_NP *start = ma->getByteCount(0); // Guessing on 0, here...
+  
+  // If we use RAX for the effective address calculation, we need to restore it, since
+  // we just st0mped the flags. 
+
+  emitCSload(start, effAddr_, gen, true);
 
   return true;
 }
@@ -720,7 +764,7 @@ if (debug) {
    }
    buffer.addPIC(prepatch, tracker(t->bbl()));
 
-   buffer.addPatch(new MemEmulatorPatch(effAddr_, addr_, getTranslatorAddr(prepatch, true)),
+   buffer.addPatch(new MemEmulatorPatch(effAddr_, effLen_, addr_, getTranslatorAddr(prepatch, true)),
                    tracker(t->bbl()));
 
        prepatch.setIndex(0);
@@ -728,7 +772,7 @@ if (debug) {
       ::emitPop(RealRegister(effAddr2_), prepatch);
       ::emitPush(RealRegister(effAddr_), prepatch);
       buffer.addPIC(prepatch, tracker(t->bbl()));
-      buffer.addPatch(new MemEmulatorPatch(effAddr2_, addr_, getTranslatorAddr(prepatch, true)),
+      buffer.addPatch(new MemEmulatorPatch(effAddr2_, effLen_, addr_, getTranslatorAddr(prepatch, true)),
                    tracker(t->bbl()));
       prepatch.setIndex(0);
       ::emitPop(RealRegister(effAddr_), prepatch);
@@ -794,7 +838,7 @@ if (debug) {
    return true;
 }
 
-bool MemEmulator::stealEffectiveAddr(Register &ret, codeGen &gen) {
+bool MemEmulator::stealReg(Register &ret, codeGen &gen) {
    //cerr << "STEALING EFFECTIVE ADDR REGISTER @ " << hex << addr_ << dec << endl;
    // This sucks. Find a register not used by this instruction
    // and push/pop it around the whole mess.
@@ -1041,6 +1085,14 @@ bool MemEmulatorPatch::apply(codeGen &gen,
    // Two debugging assists
    ::emitPushImm(gen.currAddr(), gen);
    ::emitPushImm(orig_, gen);
+    // length of the memory operation
+   if (reg_len_ == Null_Register) {
+       // assume length to be address width, should
+       ::emitPushImm(gen.addrSpace()->getAddressWidth(), gen);
+   } 
+   else {
+       ::emitPush(RealRegister(reg_len_), gen); 
+   }
 	// And our argument
    ::emitPush(RealRegister(reg_), gen);
 
@@ -1052,7 +1104,7 @@ bool MemEmulatorPatch::apply(codeGen &gen,
    if (reg_ != REGNUM_EAX) {
 	   ::emitMovRegToReg(RealRegister(reg_), RealRegister(REGNUM_EAX), gen);
 	   }
-   ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 12, RealRegister(REGNUM_ESP), gen);
+   ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 16, RealRegister(REGNUM_ESP), gen);
 
    return true;
 }
