@@ -306,11 +306,17 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
       if(order == -1) // empty
         break;
 
-      if (!aNode->assign()) continue; // Could be a widen point
+      if (!aNode->assign()) {
+          worklist.mark_done(aNode);
+          continue; // Could be a widen point
+      }
 
       expand_cerr << "Visiting node " << aNode->assign()->format() 
         << " order " << order << endl;
 
+      if (order != 0) {
+	cerr << "ERROR: order is non zero: " << order << endl;
+      }
       assert(order == 0); // there are no loops
 
       AST::Ptr prev = res[aNode->assign()];
