@@ -132,8 +132,9 @@ struct Handle {
  public:
 
      SymEvalPolicy(Result_t &r,
-		 Address addr,
-		 Dyninst::Architecture a);
+                   Address addr,
+                   Dyninst::Architecture a,
+                   Dyninst::InstructionAPI::Instruction::Ptr insn);
 
    ~SymEvalPolicy() {};
 
@@ -575,6 +576,8 @@ struct Handle {
 				    number<32>(To).var()));
    }
 
+   bool failedTranslate() const { return failedTranslate_; }
+
  private:
    // Don't use this...
    SymEvalPolicy();
@@ -587,6 +590,10 @@ struct Handle {
 
    Handle<32> ip_;
 
+   bool failedTranslate_;
+
+   // The Dyninst version of the instruction we're translating
+   Dyninst::InstructionAPI::Instruction::Ptr insn_;
     
 
    // The above is an Assignment::Ptr -> AST::Ptr map
