@@ -244,7 +244,7 @@ void MemoryEmulator::addRegion(Address start, unsigned size, Address shift) {
    }
    else if (memoryMap_.find(end, lb, ub, val)) {
       // See the above
-      if (end != lb) {
+      if (end != ub) {
          fprintf(stderr, "ERROR: adding range 0x%lx -> 0x%lx (0x%lx), found range 0x%lx -> 0x%lx (0x%lx)\n",
                  start, end, shift, lb, ub, val);
 
@@ -315,7 +315,6 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         } else {
             from = obj->codeBase() + reg->getMemOffset();
         }
-        //cerr << "SYNC READ FROM " << hex << from << " -> " << from + reg->getMemSize() << dec << endl;
         if (!aS_->readDataSpace((void *)from,
                                 reg->getMemSize(),
                                 regbuf,

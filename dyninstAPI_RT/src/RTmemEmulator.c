@@ -45,19 +45,16 @@
 /* Code to assist in remapping memory operations that were affected
  * by our instrumentation */
 
-extern int getpagesize();
-
 struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0};
 
 //#define DEBUG_MEM_EM
 
-unsigned long RTtranslateMemory(unsigned long input, unsigned long len, unsigned long origAddr, unsigned long curAddr) {
+unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, unsigned long curAddr) {
    /* Standard nonblocking synchronization construct */
    int index;
    int min;
    int max;
    volatile int guard2;
-   const int pageSize = getpagesize();
 
 #if 0
 int bidx;
@@ -115,10 +112,6 @@ for (bidx=0; origAddr == 0x40d75e && bidx < 0x100; bidx+=4) {
                 * (int *)(input + RTmemoryMapper.elements[index].shift));
         fprintf(stderr, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
 #endif
-        if ( (input+len) >= RTmemoryMapper.elements[index].hi ) {
-            fprintf(stderr, "ERROR: memory access [%lx %lx) spans emulated and "
-                    "non-emulated ranges\n", input, input+len);
-        }
 
         return input + RTmemoryMapper.elements[index].shift;
       }
@@ -127,24 +120,16 @@ for (bidx=0; origAddr == 0x40d75e && bidx < 0x100; bidx+=4) {
 #ifdef  DEBUG_MEM_EM
       fprintf(stderr, "\t min %d, max %d, index %d, returning no change\n", min, max, index);
 #endif
-      if ( len > 1 && // see if the last written byte lies in an emulated range
-           input - (input%pageSize) != (input+len) - (input+len)%pageSize &&
-           0 != RTtranslateMemory(input+len-1,1,origAddr,curAddr) )
-      {
-          fprintf(stderr, "ERROR, memory access [%lx %lx) spans emulated and "
-                  "non-emulated ranges\n", input, input+len);
-      }
       return input;
    }
 }
 
-unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long len, unsigned long origAddr, unsigned long curAddr) {
+unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr, unsigned long curAddr) {
    /* Standard nonblocking synchronization construct */
    int index;
    int min;
    int max;
    volatile int guard2;
-   const int pageSize = getpagesize();
 #ifdef  DEBUG_MEM_EM
    fprintf(stderr, "RTtranslateMemoryShift(ptr 0x%lx, origAddr 0x%lx, curAddr 0x%lx 0x40d4bf = 0x%lx)\n", 
            input, origAddr, curAddr, *(int*)0x40d4bf);
@@ -177,29 +162,18 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long len, uns
       }
       else {
 #ifdef DEBUG_MEM_EM
-         fprintf(stderr, "Original 0x%lx, accessLen 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ", 
-                 input, len, * (int *) input, (input + RTmemoryMapper.elements[index].shift),
+         fprintf(stderr, "Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ", 
+                 input, * (int *) input, (input + RTmemoryMapper.elements[index].shift),
                  * (int *)(input + RTmemoryMapper.elements[index].shift));
          fprintf(stderr, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
 #endif
-      if ( (input+len) >= RTmemoryMapper.elements[index].hi ) {
-          fprintf(stderr, "ERROR: memory access [%lx %lx) spans emulated and "
-                  "non-emulated ranges\n", input, input+len);
-      }
          return RTmemoryMapper.elements[index].shift;
       }
    }
-   else { // not in an emulated range
+   else {
 #ifdef DEBUG_MEM_EM
       fprintf(stderr, "\t min %d, max %d, index %d, returning no change\n", min, max, index);
 #endif
-      if ( len > 1 && // see if the last written byte lies in an emulated range
-           input - (input%pageSize) != (input+len) - (input+len)%pageSize &&
-           0 != RTtranslateMemoryShift(input+len-1,1,origAddr,curAddr) )
-      {
-          fprintf(stderr, "ERROR, memory access [%lx %lx) spans emulated and "
-                  "non-emulated ranges\n", input, input+len);
-      }
       return 0;
    }
 }

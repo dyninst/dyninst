@@ -577,7 +577,7 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
    // Now we start stealing from memEmulatorAtom. We need to call our translation function,
    // which means a non-PIC patch to the CodeBuffer. I don't feel like rewriting everything,
    // so there we go.
-   buffer.addPatch(new MemEmulatorPatch(REGNUM_ECX, Null_Register, addr_, func->getAddress()),
+   buffer.addPatch(new MemEmulatorPatch(REGNUM_ECX, addr_, func->getAddress()),
                    tracker());
    patch.setIndex(0);
    
