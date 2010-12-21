@@ -43,6 +43,7 @@
 #include "symtabAPI/h/Symtab.h" 
 #include "dyninstAPI/src/mapped_object.h"
 #include "instructionAPI/h/InstructionDecoder.h"
+#include "dyninstAPI/src/instPoint.h"
 
 #include "dataflowAPI/h/slicing.h"
 
@@ -53,6 +54,8 @@ using namespace InstructionAPI;
 using namespace SymtabAPI;
 
 using namespace DataflowAPI;
+
+PCSensitiveTransformer::AnalysisCache PCSensitiveTransformer::analysisCache_;
 
 bool PCSensitiveTransformer::postprocess(TraceList &) {
    sensitivity_cerr << dec << "Sensitive count: " << Sens_ << ", failed " << overApprox_ << ", ext " << extSens_ << ", int " << intSens_ << ", thunk " << thunk_ << endl;
@@ -146,39 +149,41 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
       sensitivity_cerr << "Sensitive by exception @ " << hex << addr << dec << endl;
     }
 
-    for (AssignList::iterator a_iter = sensitiveAssignments.begin();
-	 a_iter != sensitiveAssignments.end(); ++a_iter) {
-
-       sensitivity_cerr << "Forward slice from " << (*a_iter)->format() << " in func " << bbl->func()->prettyName() << endl;
-
-      Graph::Ptr slice = forwardSlice(*a_iter,
-				      bbl->llb(),
-				      bbl->func()->ifunc());
-
-      if (!slice) {
-         // Safe assumption, as always
-         sensitivity_cerr << "\t slice failed!" << endl;
-        approx = true;
-      }
-      else {
-         if (slice->size() > 10) {
+    if (!queryCache(bbl, addr, intSens, extSens)) {
+       for (AssignList::iterator a_iter = sensitiveAssignments.begin();
+            a_iter != sensitiveAssignments.end(); ++a_iter) {
+          
+          sensitivity_cerr << "Forward slice from " << (*a_iter)->format() << " in func " << bbl->func()->prettyName() << endl;
+          
+          Graph::Ptr slice = forwardSlice(*a_iter,
+                                          bbl->llb(),
+                                          bbl->func()->ifunc());
+          
+          if (!slice) {
+             // Safe assumption, as always
+             sensitivity_cerr << "\t slice failed!" << endl;
+             approx = true;
+          }
+          else {
+             if (slice->size() > 10) {
 // HACK around a problem with slice sizes
-            approx = true;
-         }
-         else if (!determineSensitivity(slice, intSens, extSens)) {
-	  // Analysis failed for some reason... go conservative
-            sensitivity_cerr << "\t sensitivity analysis failed!" << endl;
-            approx = true;
-         }
-         else {
-            sensitivity_cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / " 
-                             << (extSens ? "extSens" : "") << endl;
-         }
-      }
-
-      if (approx || (intSens && extSens)) {
-	break; 
-      }
+                approx = true;
+             }
+             else if (!determineSensitivity(slice, intSens, extSens)) {
+                // Analysis failed for some reason... go conservative
+                sensitivity_cerr << "\t sensitivity analysis failed!" << endl;
+                approx = true;
+             }
+             else {
+                sensitivity_cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / " 
+                                 << (extSens ? "extSens" : "") << endl;
+             }
+          }
+          
+          if (approx || (intSens && extSens)) {
+             break; 
+          }
+       }
     }
 
     if (approx) {
@@ -230,6 +235,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
 		  insn, 
 		  addr);
     }
+    cacheAnalysis(bbl, addr, intSens, extSens);
   }
   return true;
 }
@@ -627,6 +633,46 @@ bool PCSensitiveTransformer::exceptionSensitive(Address a, const int_block *bbl)
   ExceptionBlock eBlock;
   // Amusingly, existence is sufficient for us.
   return symtab->findException(eBlock, o);
+}
+
+void PCSensitiveTransformer::cacheAnalysis(const int_block *bbl, Address addr, bool intSens, bool extSens) {
+   analysisCache_[bbl][addr] = std::make_pair(intSens, extSens);
+}
+
+bool PCSensitiveTransformer::queryCache(const int_block *bbl, Address addr, bool &intSens, bool &extSens) {
+   AnalysisCache::const_iterator iter = analysisCache_.find(bbl);
+   if (iter == analysisCache_.end()) return false;
+   CacheEntry::const_iterator iter2 = iter->second.find(addr);
+   if (iter2 == iter->second.end()) return false;
+   intSens = iter2->second.first;
+   extSens = iter2->second.second;
+   return true;
+}
+
+void PCSensitiveTransformer::invalidateCache(const int_block *b) {
+   // Clear everything corresponding to an addr in the block;
+   // overapproximation for shared functions and shared blocks,
+   // but hey. 
+	analysisCache_.erase(b);
+}
+
+void PCSensitiveTransformer::invalidateCache(int_function *f) {
+	// We want to invalidate any cache results for f directly,
+	// as well as any for blocks that call f. 
+
+	const int_function::BlockSet &blocks = f->blocks();
+	for (int_function::BlockSet::iterator iter = blocks.begin();
+		iter != blocks.end(); ++iter) {
+			invalidateCache(*iter);
+	}
+
+	// Get callers of this function
+	std::vector<instPoint *> callerPoints;
+	f->getCallerPoints(callerPoints);
+	for (std::vector<instPoint *>::iterator iter = callerPoints.begin();
+		iter != callerPoints.end(); ++iter) {
+			invalidateCache((*iter)->block());
+	}
 }
 
 ExtPCSensVisitor::ExtPCSensVisitor(const AbsRegion &a) :

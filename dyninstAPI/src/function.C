@@ -40,6 +40,8 @@
 #include "mapped_module.h"
 #include "InstructionDecoder.h"
 #include "parseAPI/src/InstrucIter.h"
+#include "MemoryEmulator/memEmulator.h"
+#include "Relocation/Transformers/Movement-analysis.h"
 
 //std::string int_function::emptyString("");
 
@@ -47,7 +49,7 @@
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
-
+using namespace Dyninst::Relocation;
 
 int int_function_count = 0;
 
@@ -214,6 +216,8 @@ int_block *int_function::createBlock(image_basicBlock *ib) {
     int_block *block = new int_block(ib, this);
     blocks_.insert(block);
     blockMap_[ib] = block;
+
+       
     return block;
 }
 
@@ -630,9 +634,10 @@ void int_function::findPoints(int_block *block,
 // call to the parseAPI
 void int_function::deleteBlock(int_block* block) 
 {
-    // init stuff
-    assert(block && this == block->func());
 
+   // init stuff
+   assert(block && this == block->func());
+   
     // Find the points that reside in this block. 
     std::set<instPoint *> foundPoints;
     findPoints(block, foundPoints);
@@ -661,7 +666,7 @@ void int_function::splitBlock(image_basicBlock *img_orig,
        newBlock = createBlock(img_new);
    }
    // Also adds to trackers
-
+   
    // Move all instPoints that were contained in orig and should be
    // contained in newBlock...
    for (Address a = newBlock->start(); a < newBlock->end(); ++a) {
@@ -671,6 +676,7 @@ void int_function::splitBlock(image_basicBlock *img_orig,
             p_iter->second->setBlock(newBlock);
       }
    }
+   	triggerModified();
 }
 
 // Remove funcs from:
@@ -708,6 +714,8 @@ void int_function::removeFromAll()
     abruptEnds_.clear();
     unresolvedPoints_.clear();
     instPsByAddr_.clear();
+
+	triggerModified();
 
     // remove func & blocks from image, ParseAPI, & SymtabAPI datastructures
     ifunc()->img()->deleteFunc(ifunc());
@@ -764,6 +772,7 @@ void int_function::addMissingBlocks()
            }
        }
    }
+	triggerModified();	
 }
 
 /* trigger search in image_layer points vectors to be added to int_level 
@@ -783,6 +792,7 @@ void int_function::addMissingPoints()
 // get instPoints of known function callsinto this one
 void int_function::getCallerPoints(std::vector<instPoint*>& callerPoints)
 {
+	if (!entryBlock()) return;
     image_basicBlock *entryLLB = entryBlock()->llb();
     const ParseAPI::Block::edgelist &sources = entryLLB->sources();
     for (ParseAPI::Block::edgelist::iterator iter = sources.begin();
@@ -995,12 +1005,9 @@ const int_function::BlockSet &int_function::blocks()
 
 
 int_block *int_function::entryBlock() {
-  blocks();
-
-  funcEntries();
-  assert(entryPoints_.size() == 1);
-  return entryPoints_[0]->block();
-
+	ParseAPI::Block *iEntry = ifunc_->entry();
+	if (!iEntry) return NULL;
+	return findBlock(iEntry);
 }
 
 unsigned int_function::getNumDynamicCalls()
@@ -1307,4 +1314,10 @@ bool int_function::consistency() const {
    return true;
 }
 
+void int_function::triggerModified() {
+	// A single location to drop anything that needs to be
+	// informed when an int_function was updated.
 
+	// Relocation info caching...
+	PCSensitiveTransformer::invalidateCache(this);
+}

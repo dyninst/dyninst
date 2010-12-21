@@ -411,7 +411,8 @@ class Slicer {
             GraphPtr g,
             Direction dir,
             SliceFrame & cand,
-            DefCache & cache);
+            DefCache & cache,
+            Predicates &p);
 
     void updateAndLinkFromCache(
             GraphPtr g,
