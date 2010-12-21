@@ -291,6 +291,11 @@ int findFuncs(CodeRegion * cr, Address addr, std::set<Function*> & funcs)
 \apidesc{Finds all functions spanning \texttt{addr} in the code region, adding each to \texttt{funcs}. The number of results of this stabbing query are returned.}
 
 \begin{apient}
+int findFuncs(CodeRegion * cr, Address start, Address end, std::set<Function*> & funcs)
+\end{apient}
+\apidesc{Finds all functions overlapping the range \texttt{[start,end)} in the code region, adding each to \texttt{funcs}. The number of results of this stabbing query are returned.}
+
+\begin{apient}
 funclist & funcs()
 \end{apient}
 \apidesc{Returns a reference to a container of all functions in the binary. Refer to Section \ref{sec:containers} for container access details.}
