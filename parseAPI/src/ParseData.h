@@ -219,6 +219,7 @@ class ParseData {
     virtual Function * findFunc(CodeRegion *, Address) =0;
     virtual Block * findBlock(CodeRegion *, Address) =0;
     virtual int findFuncs(CodeRegion *, Address, set<Function*> &) =0;
+    virtual int findFuncs(CodeRegion *, Address, Address, set<Function*> &) =0;
     virtual int findBlocks(CodeRegion *, Address, set<Block*> &) =0;
     virtual ParseFrame * findFrame(CodeRegion *, Address) = 0;
     virtual ParseFrame::Status frameStatus(CodeRegion *, Address) = 0;
@@ -259,6 +260,7 @@ class StandardParseData : public ParseData {
     Function * findFunc(CodeRegion * pf, Address addr);
     Block * findBlock(CodeRegion * pf, Address addr);
     int findFuncs(CodeRegion *, Address, set<Function*> &);
+    int findFuncs(CodeRegion *, Address, Address, set<Function*> &);
     int findBlocks(CodeRegion *, Address, set<Block*> &);
     ParseFrame * findFrame(CodeRegion *, Address);
     ParseFrame::Status frameStatus(CodeRegion *, Address);
@@ -308,6 +310,7 @@ class OverlappingParseData : public ParseData {
     Function * findFunc(CodeRegion *, Address addr);
     Block * findBlock(CodeRegion *, Address addr);
     int findFuncs(CodeRegion *, Address, set<Function*> &);
+    int findFuncs(CodeRegion *, Address, Address, set<Function*> &);
     int findBlocks(CodeRegion *, Address, set<Block*> &);
     ParseFrame * findFrame(CodeRegion *, Address);
     ParseFrame::Status frameStatus(CodeRegion *, Address);
