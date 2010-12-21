@@ -170,7 +170,7 @@ bool IA_powerDetails::findTableAddrNoTOC(const IA_IAPI* blockToCheck)
       // Hence, we use adjustTableStartAddress to keep track of immediate values from addi instructions.
       if(foundDep && !foundAddis && 
 	 (patternIter->second->getOperation().getID() == power_op_addi || 
-	  patternIter->second->getOperation().getID() == power_op_si))
+	  patternIter->second->getOperation().getID() == power_op_addic))
         {
 	  std::set<RegisterAST::Ptr> tmpregs;
 	  patternIter->second->getReadSet(tmpregs);
@@ -230,7 +230,7 @@ bool IA_powerDetails::findTableAddrNoTOC(const IA_IAPI* blockToCheck)
 	} else if( foundDep && foundAddis && 
 		   patternIter->second &&
 		   ((patternIter->second->getOperation().getID() == power_op_addi) ||
-		    (patternIter->second->getOperation().getID() == power_op_si)) &&
+		    (patternIter->second->getOperation().getID() == power_op_addic)) &&
 		   patternIter->second->isWritten(*(regs.begin())))
 	{
 	  foundAddi = true;
