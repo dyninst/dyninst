@@ -512,6 +512,7 @@ build_mask(uint8_t mb_value, uint8_t me_value)
          }
 
       case powerpc_stb:
+      case powerpc_stbx:
          {
            ROSE_ASSERT(operands.size() == 2);
            write8(operands[1],extract<0,8>(read32(operands[0])));
