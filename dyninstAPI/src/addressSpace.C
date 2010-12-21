@@ -1391,7 +1391,7 @@ bool AddressSpace::relocate() {
     }
     iter->second.insert(overlappingFuncs.begin(), overlappingFuncs.end());
 
-	//addModifiedRegion(iter->first);
+	addModifiedRegion(iter->first);
 
     if (!relocateInt(iter->second.begin(), iter->second.end(), iter->first->codeAbs())) {
       ret = false;
@@ -1689,7 +1689,10 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
         Address objBase = obj->codeBase();
         SymtabAPI::Region * reg = obj->parse_img()->getObject()->
             findEnclosingRegion(iter->startAddr() - objBase);
-        getMemEm()->addSpringboard(iter->startAddr(), iter->used());
+        getMemEm()->addSpringboard(
+                         reg, 
+                         iter->startAddr() - objBase - reg->getMemOffset(),
+                         iter->used());
     }
   }
 
@@ -1824,7 +1827,7 @@ void AddressSpace::addAllocatedRegion(Address start, unsigned size) {
 
 void AddressSpace::addModifiedRegion(mapped_object *obj) {
    if (BPatch_defensiveMode == obj->hybridMode()) { //KEVINTODO: this should be conditional on whether the object has memory emulation
-       memEmulator_->addObject(obj);
+       memEmulator_->addRegion(obj);
    }
    return;
 }

@@ -6635,4 +6635,3 @@ bool process::needsPIC()
 {
    return 0;
 }
-
