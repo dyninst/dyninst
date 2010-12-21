@@ -1391,7 +1391,7 @@ bool AddressSpace::relocate() {
     }
     iter->second.insert(overlappingFuncs.begin(), overlappingFuncs.end());
 
-	addModifiedRegion(iter->first);
+	//addModifiedRegion(iter->first);
 
     if (!relocateInt(iter->second.begin(), iter->second.end(), iter->first->codeAbs())) {
       ret = false;

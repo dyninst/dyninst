@@ -73,8 +73,8 @@ for (bidx=0; origAddr == 0x40d75e && bidx < 0x100; bidx+=4) {
 #endif
 
 #ifdef DEBUG_MEM_EM
-   fprintf(stderr, "RTtranslateMemory(ptr 0x%lx, accesslen 0x%lx, origInsn 0x%lx, curAddr 0x%lx)\n", 
-           input, len, origAddr, curAddr);
+   fprintf(stderr, "RTtranslateMemory(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx 0x40d4bf = 0x%lx)\n", 
+           input, origAddr, curAddr, *(int*)0x40d4bf);
 #endif
 
    do {
@@ -146,8 +146,8 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long len, uns
    volatile int guard2;
    const int pageSize = getpagesize();
 #ifdef  DEBUG_MEM_EM
-   fprintf(stderr, "RTtranslateMemoryShift(ptr 0x%lx, accesslen 0x%lx, origAddr 0x%lx, curAddr 0x%lx)\n", 
-           input, len, origAddr, curAddr);
+   fprintf(stderr, "RTtranslateMemoryShift(ptr 0x%lx, origAddr 0x%lx, curAddr 0x%lx 0x40d4bf = 0x%lx)\n", 
+           input, origAddr, curAddr, *(int*)0x40d4bf);
 #endif
    do {
       guard2 = RTmemoryMapper.guard2;

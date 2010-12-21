@@ -80,7 +80,6 @@ class MemoryEmulator {
    Address mutateeBase_;
 
    std::map<Address,int> springboards_;
-   std::set<const mapped_object*> emulatedObjs;
 
    //typedef std::map<Address, Address> RangeMap;//start-end pairs, not really used for anything
    //RangeMap addedRanges_;

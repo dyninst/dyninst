@@ -228,13 +228,10 @@ class mapped_object : public codeRange {
     unsigned int getAnalyzedCodePages(std::set<Address> &pageAddrs) const;//returns pageSize
 private:
     // helper functions
-    void updateCodeBytes(SymtabAPI::Region *reg);
+    void updateCodeBytes(SymtabAPI::Region *reg = NULL);
     bool isUpdateNeeded(Address entryAddr);
     bool isExpansionNeeded(Address entryAddr);
     void expandCodeBytes(SymtabAPI::Region *reg);
-    void getRegionPages(SymtabAPI::Region *reg,
-                        std::vector<Address> &origPages,
-                        std::vector<Address> &emulPages);
     // end exploratory and defensive mode functions //
 public:
 

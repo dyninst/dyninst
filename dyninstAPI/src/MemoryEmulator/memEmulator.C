@@ -126,6 +126,7 @@ static void mergeRanges(const mapped_object *obj,
    SymtabAPI::Region *prevReg = NULL;
    int count = 0;
    for (set<Address>::iterator pit =in.begin(); pit != in.end(); pit++) {
+       count++;
        SymtabAPI::Region *reg = obj->parse_img()->getObject()->findEnclosingRegion(*pit - obj->codeBase());
        if (prevEnd != 0xbadadd && (prevEnd != (*pit) || reg != prevReg)) {
            out.push_back(pair<Address,unsigned>(prevEnd - (rangeSize * count),
@@ -134,7 +135,6 @@ static void mergeRanges(const mapped_object *obj,
        }
        prevEnd = (*pit) + rangeSize;
        prevReg = reg;
-       count++;
    }
    if (count) {
        out.push_back(pair<Address,unsigned>(prevEnd - (rangeSize * count), 
@@ -143,9 +143,6 @@ static void mergeRanges(const mapped_object *obj,
 }
 
 void MemoryEmulator::addObject(const mapped_object *obj) {
-
-   emulatedObjs.insert(obj);
-
    sensitivity_cerr << "memEmulator::addObject for " << obj->fileName() << endl;
 
    // Get all pages containing analyzed code, 
@@ -159,10 +156,7 @@ void MemoryEmulator::addObject(const mapped_object *obj) {
         rit != ranges.end(); 
         rit++) 
    {
-       unsigned long dontcare = 0;
-       if ( ! memoryMap_.find(rit->first, dontcare) ) {
-           addRange(obj, rit->first, rit->second);
-       }
+       addRange(obj, rit->first, rit->second);
    }
 }
 
@@ -171,7 +165,6 @@ void MemoryEmulator::addNewCode(const mapped_object *obj,
     // we'll only add new code if we're monitoring the program at runtime
     assert(aS_->proc());
 
-    sensitivity_cerr << "memEmulator::addNewCode for " << obj->fileName() << endl;
     unsigned int pageSize = aS_->proc()->getMemoryPageSize();
     set<Address> pageAddrs;
     unsigned long dontcare=0;
@@ -179,17 +172,15 @@ void MemoryEmulator::addNewCode(const mapped_object *obj,
         bit != blks.end(); 
         bit++) 
     {
-        Address pageAddr = (*bit)->start() 
-            - ((*bit)->start() % pageSize) 
-            + obj->codeBase();
-        Address endPageAddr = (*bit)->end() - 1 
-           - ((*bit)->start() % pageSize) 
-           + obj->codeBase();
-        while (pageAddr <= endPageAddr) {
-            if (! memoryMap_.find(pageAddr, dontcare) ) {
+        if ( ! memoryMap_.find((*bit)->start() + obj->codeBase(), dontcare) ) {
+            Address pageAddr = (*bit)->start() 
+                - ((*bit)->start() % pageSize) 
+                + obj->codeBase();
+            pageAddrs.insert(pageAddr);
+            while (((*bit)->end()+obj->codeBase()) > (pageAddr + pageSize)) {
+                pageAddr += pageSize;
                 pageAddrs.insert(pageAddr);
             }
-            pageAddr += pageSize;
         }
     }
    vector<pair<Address,unsigned int> > ranges;
@@ -387,8 +378,9 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
 {
     if (toOrig) malware_cerr << "Syncing shadow to orig for obj " << obj->fileName() << endl;
     else        malware_cerr << "Syncing orig to shadow for obj " << obj->fileName() << endl;
-
     using namespace SymtabAPI;
+    vector<Region*> regs;
+    obj->parse_img()->getObject()->getCodeRegions(regs);
     std::vector< std::pair<std::pair<Address,Address>,unsigned long> > elements;
     memoryMap_.elements(elements);
     for (unsigned idx=0; idx < elements.size(); idx++) {
@@ -397,22 +389,15 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         unsigned int shift = 0;
         boost::tie(range,shift) = elements[idx];
 
-        // skip ranges that lie outside of the object
-        if (range.second <= obj->codeBase() ||
-            range.first >= (obj->codeBase() + obj->get_size()))
-        {
-            continue;
-        }
-        // choose read and write offsets for the copy based on toOrig parameter
         unsigned char *rangebuf = (unsigned char*) malloc(range.second-range.first);
         Address from = 0;
         Address toShift = 0;
         if (toOrig) {
-            from = range.first + shift;
-            toShift = 0;
-        } else {
             from = range.first;
             toShift = shift;
+        } else {
+            from = obj->codeBase() + shift;
+            toShift = 0;
         }
         //read
         if (!aS_->readDataSpace((void *)from,
@@ -425,7 +410,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         // write, but don't copy springboards over
         std::map<Address,int>::const_iterator sit = springboards_.begin();
         Address cp_start = range.first;
-        cerr << "SYNC WRITE TO [" << hex << range.first+toShift << " " << range.second+toShift << ")" << dec << endl;
+        cerr << "SYNC WRITE TO [" << hex << range.first << " " << range.second << ")" << dec << endl;
         for (; sit != springboards_.end() && sit->first < range.second; sit++) {
             if ((*sit).first < range.first) {
                 continue;
@@ -435,7 +420,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
             if (cp_size &&
                 !aS_->writeDataSpace((void *)(cp_start + toShift),
                                      cp_size,
-                                     rangebuf + cp_start - range.first))
+                                     rangebuf + cp_start))
             {
                 assert(0);
             }
@@ -446,7 +431,7 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         if (cp_start < range.second &&
             !aS_->writeDataSpace((void *)(cp_start + toShift),
                                  range.second - cp_start,
-                                 rangebuf + cp_start - range.first))
+                                 rangebuf + cp_start))
         {
             assert(0);
         }
