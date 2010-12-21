@@ -71,7 +71,7 @@
 
 #if defined(i386_unknown_nt4_0)
 #include <dbghelp.h>
-#include <cvconst.h>
+//#include <cvconst.h>
 #endif
 
 #if defined(os_vxworks)
