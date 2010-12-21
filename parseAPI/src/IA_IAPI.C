@@ -56,6 +56,47 @@ std::map<Architecture, RegisterAST::Ptr> IA_IAPI::framePtr;
 std::map<Architecture, RegisterAST::Ptr> IA_IAPI::stackPtr;
 std::map<Architecture, RegisterAST::Ptr> IA_IAPI::thePC;
 
+IA_IAPI::IA_IAPI(const IA_IAPI &rhs) 
+   : InstructionAdapter(rhs),
+     dec(rhs.dec),
+     allInsns(rhs.allInsns),
+     validCFT(rhs.validCFT),
+     cachedCFT(rhs.cachedCFT),
+     validLinkerStubState(rhs.validLinkerStubState),
+     cachedLinkerStubState(rhs.cachedLinkerStubState),
+     hascftstatus(rhs.hascftstatus),
+     tailCall(rhs.tailCall) {
+   curInsnIter = allInsns.find(rhs.curInsnIter->first);
+}
+
+IA_IAPI &IA_IAPI::operator=(const IA_IAPI &rhs) {
+   dec = rhs.dec;
+   allInsns = rhs.allInsns;
+   curInsnIter = allInsns.find(rhs.curInsnIter->first);
+   validCFT = rhs.validCFT;
+   cachedCFT = rhs.cachedCFT;
+   validLinkerStubState = rhs.validLinkerStubState;
+   cachedLinkerStubState = rhs.cachedLinkerStubState;
+   hascftstatus = rhs.hascftstatus;
+   tailCall = rhs.tailCall;
+
+   // InstructionAdapter members
+   current = rhs.current;
+   previous = rhs.previous;
+   parsedJumpTable = rhs.parsedJumpTable;
+   successfullyParsedJumpTable = rhs.successfullyParsedJumpTable;
+   isDynamicCall_ = rhs.isDynamicCall_;
+   checkedDynamicCall_ = rhs.checkedDynamicCall_;
+   isInvalidCallTarget_ = rhs.isInvalidCallTarget_;
+   checkedInvalidCallTarget_ = rhs.checkedInvalidCallTarget_;
+   _obj = rhs._obj;
+   _cr = rhs._cr;
+   _isrc = rhs._isrc;
+   _curBlk = rhs._curBlk;
+
+   return *this;
+}
+
 void IA_IAPI::initASTs()
 {
     if(framePtr.empty())
