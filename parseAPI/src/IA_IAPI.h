@@ -57,7 +57,12 @@ class IA_IAPI : public InstructionAdapter {
                 Dyninst::ParseAPI::CodeRegion* r,
                 Dyninst::InstructionSource *isrc,
 		Dyninst::ParseAPI::Block * curBlk_);
-        virtual ~IA_IAPI() {
+		// Declarations that are purposefully not defined - DO NOT 
+		// COPY THESE OBJECTS!
+		IA_IAPI(const IA_IAPI &); 
+		IA_IAPI &operator=(const IA_IAPI &);
+		// End DO NOT COPY THESE OBJECTS
+		virtual ~IA_IAPI() {
         }
         Dyninst::InstructionAPI::Instruction::Ptr getInstruction();
     
