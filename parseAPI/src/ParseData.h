@@ -142,6 +142,9 @@ class region_data {
     Block * findBlock(Address entry);
     int findFuncs(Address addr, set<Function *> & funcs);
     int findBlocks(Address addr, set<Block *> & blocks);
+
+	 // Find functions within [start,end)
+	 int findFuncs(Address start, Address end, set<Function *> & funcs);
 };
 
 /** region_data inlines **/
@@ -173,6 +176,21 @@ region_data::findFuncs(Address addr, set<Function *> & funcs)
     set<FuncExtent *>::iterator eit;
     
     funcsByRange.find(addr,extents);
+    for(eit = extents.begin(); eit != extents.end(); ++eit)
+        funcs.insert((*eit)->func());
+ 
+    return funcs.size() - sz;
+}
+inline int
+region_data::findFuncs(Address start, Address end, set<Function *> & funcs)
+{
+	 FuncExtent dummy(NULL,start,end);
+    int sz = funcs.size();
+
+    set<FuncExtent *> extents;
+    set<FuncExtent *>::iterator eit;
+    
+    funcsByRange.find(&dummy,extents);
     for(eit = extents.begin(); eit != extents.end(); ++eit)
         funcs.insert((*eit)->func());
  
