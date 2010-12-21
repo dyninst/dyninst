@@ -1686,79 +1686,42 @@ void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges
 //
 // Read unprotected pages into the mapped file
 // (not analyzed code regions so we don't get instrumentation in our parse)
-void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
+void mapped_object::updateCodeBytes(SymtabAPI::Region * symReg)
 {
+    assert(NULL != symReg);
+
     Address base = codeBase();
     ParseAPI::CodeObject *cObj = parse_img()->codeObject();
-
     std::vector<SymtabAPI::Region *> regions;
-    if (NULL == reg) {
-        parse_img()->getObject()->getCodeRegions(regions);
-    } else {
-        regions.push_back(reg);
-    }
 
     Block *curB = NULL;
     set<ParseAPI::Block *> analyzedBlocks;
     set<ParseAPI::CodeRegion*> parseRegs;
-    for(unsigned rIdx=0; rIdx < regions.size(); rIdx++) {
 
-        SymtabAPI::Region *symReg = regions[rIdx];
-        void *mappedPtr = symReg->getPtrToRawData();
-        Address regStart = symReg->getRegionAddr();
+    SymtabAPI::Region *symReg = regions[rIdx];
+    void *mappedPtr = symReg->getPtrToRawData();
+    Address regStart = symReg->getRegionAddr();
 
-        cObj->cs()->findRegions(regStart, parseRegs);
-        ParseAPI::CodeRegion *parseReg = * parseRegs.begin();
-        parseRegs.clear();
-        
-        // find the first block in the region
-        cObj->findBlocks(parseReg, regStart, analyzedBlocks);
-        if (analyzedBlocks.size()) {
-            curB = * analyzedBlocks.begin();
-            analyzedBlocks.clear();
-        } else {
-            curB = cObj->findNextBlock(parseReg, regStart);
-        }
+    cObj->cs()->findRegions(regStart, parseRegs);
+    ParseAPI::CodeRegion *parseReg = * parseRegs.begin();
+    parseRegs.clear();
+    
+    // find the first block in the region
+    cObj->findBlocks(parseReg, regStart, analyzedBlocks);
+    if (analyzedBlocks.size()) {
+        curB = * analyzedBlocks.begin();
+        analyzedBlocks.clear();
+    } else {
+        curB = cObj->findNextBlock(parseReg, regStart);
+    }
 
-        Address prevEndAddr = regStart;
-        while ( curB != NULL && 
-                curB->start() < regStart + symReg->getDiskSize() )
-        {
-            // if there's a gap between previous and current block
-            if (prevEndAddr < curB->start()) {
-                // update the mapped file
-                Address readAddr = prevEndAddr + base;
-                if (proc()->isMemoryEmulated()) {
-                    bool valid = false;
-                    boost::tie(valid, readAddr) = proc()->getMemEm()->translate(readAddr);
-                    assert(valid);
-                }
-                if (!proc()->readDataSpace(
-                        (void*)readAddr, 
-                        curB->start() - prevEndAddr, 
-                        (void*)((Address)mappedPtr + prevEndAddr - regStart),
-                        true)) 
-                {
-                    assert(0);//read failed
-                }
-                //mal_printf("UPDATE_CB: copied to [%lx %lx)\n", prevEndAddr+base,curB->start()+base);
-            }
-
-            // advance curB to last adjacent block and set prevEndAddr 
-            prevEndAddr = curB->end();
-            Block *ftBlock = cObj->findBlockByEntry(parseReg,prevEndAddr);
-            while (ftBlock) {
-                curB = ftBlock;
-                prevEndAddr = curB->end();
-                ftBlock = cObj->findBlockByEntry(parseReg,prevEndAddr);
-            }
-
-            curB = cObj->findNextBlock(parseReg, prevEndAddr);
-
-        }
-        // read in from prevEndAddr to the end of the region
-    	// (will read in whole region if there are no ranges in the region)
-        if (prevEndAddr < regStart + symReg->getDiskSize()) {
+    Address prevEndAddr = regStart;
+    while ( curB != NULL && 
+            curB->start() < regStart + symReg->getDiskSize() )
+    {
+        // if there's a gap between previous and current block
+        if (prevEndAddr < curB->start()) {
+            // update the mapped file
             Address readAddr = prevEndAddr + base;
             if (proc()->isMemoryEmulated()) {
                 bool valid = false;
@@ -1767,26 +1730,56 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
             }
             if (!proc()->readDataSpace(
                     (void*)readAddr, 
-                    regStart + symReg->getDiskSize() - prevEndAddr, 
-                    (void*)((Address)mappedPtr + prevEndAddr - regStart), 
+                    curB->start() - prevEndAddr, 
+                    (void*)((Address)mappedPtr + prevEndAddr - regStart),
                     true)) 
             {
-                assert(0);// read failed
+                assert(0);//read failed
             }
-        }
-        // change all region pages with REPROTECTED status to PROTECTED status
-        Address page_size = proc()->proc()->getMemoryPageSize();
-        Address curPage = (regStart / page_size) * page_size + base;
-        Address regEnd = base + regStart + reg->getDiskSize();
-        for (; protPages_.end() == protPages_.find(curPage)  && curPage < regEnd; 
-               curPage += page_size);
-        for (map<Address,WriteableStatus>::iterator pit = protPages_.find(curPage);
-             pit != protPages_.end() && pit->first < regEnd;
-             pit++) 
-        {
-            pit->second = PROTECTED;
+            //mal_printf("UPDATE_CB: copied to [%lx %lx)\n", prevEndAddr+base,curB->start()+base);
         }
 
+        // advance curB to last adjacent block and set prevEndAddr 
+        prevEndAddr = curB->end();
+        Block *ftBlock = cObj->findBlockByEntry(parseReg,prevEndAddr);
+        while (ftBlock) {
+            curB = ftBlock;
+            prevEndAddr = curB->end();
+            ftBlock = cObj->findBlockByEntry(parseReg,prevEndAddr);
+        }
+
+        curB = cObj->findNextBlock(parseReg, prevEndAddr);
+
+    }
+    // read in from prevEndAddr to the end of the region
+	// (will read in whole region if there are no ranges in the region)
+    if (prevEndAddr < regStart + symReg->getDiskSize()) {
+        Address readAddr = prevEndAddr + base;
+        if (proc()->isMemoryEmulated()) {
+            bool valid = false;
+            boost::tie(valid, readAddr) = proc()->getMemEm()->translate(readAddr);
+            assert(valid);
+        }
+        if (!proc()->readDataSpace(
+                (void*)readAddr, 
+                regStart + symReg->getDiskSize() - prevEndAddr, 
+                (void*)((Address)mappedPtr + prevEndAddr - regStart), 
+                true)) 
+        {
+            assert(0);// read failed
+        }
+    }
+    // change all region pages with REPROTECTED status to PROTECTED status
+    Address page_size = proc()->proc()->getMemoryPageSize();
+    Address curPage = (regStart / page_size) * page_size + base;
+    Address regEnd = base + regStart + reg->getDiskSize();
+    for (; protPages_.end() == protPages_.find(curPage)  && curPage < regEnd; 
+           curPage += page_size);
+    for (map<Address,WriteableStatus>::iterator pit = protPages_.find(curPage);
+         pit != protPages_.end() && pit->first < regEnd;
+         pit++) 
+    {
+        pit->second = PROTECTED;
     }
 }
 

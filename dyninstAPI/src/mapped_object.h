@@ -227,7 +227,7 @@ class mapped_object : public codeRange {
                           std::set<int_function*> &pageFuncs);
 private:
     // helper functions
-    void updateCodeBytes(SymtabAPI::Region *reg = NULL);
+    void updateCodeBytes(SymtabAPI::Region *reg);
     bool isUpdateNeeded(Address entryAddr);
     bool isExpansionNeeded(Address entryAddr);
     void expandCodeBytes(SymtabAPI::Region *reg);

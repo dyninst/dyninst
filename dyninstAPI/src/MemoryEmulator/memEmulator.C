@@ -300,38 +300,22 @@ std::pair<bool, Address> MemoryEmulator::translateBackwards(Address addr) {
 }
 
 void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig) 
-{//KEVINTODO: this should only change rights to ranges that contain analyzed code, and shouldn't things to writeable unless they were so originally
+{
     if (toOrig) malware_cerr << "Syncing shadow to orig for obj " << obj->fileName() << endl;
     else        malware_cerr << "Syncing orig to shadow for obj " << obj->fileName() << endl;
     using namespace SymtabAPI;
     vector<Region*> regs;
     obj->parse_img()->getObject()->getCodeRegions(regs);
-<<<<<<< HEAD
-    std::vector< std::pair<std::pair<Address,Address>,unsigned long> > elements;
-    memoryMap_.elements(elements);
-    for (unsigned idx=0; idx < elements.size(); idx++) {
-
-        std::pair<Address,Address> range(0,0);
-        unsigned int shift = 0;
-        boost::tie(range,shift) = elements[idx];
-
-        unsigned char *rangebuf = (unsigned char*) malloc(range.second-range.first);
-=======
     for (unsigned idx=0; idx < regs.size(); idx++) {
         Region * reg = regs[idx];
         unsigned char* regbuf = (unsigned char*) malloc(reg->getMemSize());
->>>>>>> 22fdc9a... Switches from emulating whole binary sections to analyzed code pages
         Address from = 0;
         if (toOrig) {
             from = addedRegions_[reg];
         } else {
             from = obj->codeBase() + reg->getMemOffset();
         }
-<<<<<<< HEAD
-        //read
-=======
         //cerr << "SYNC READ FROM " << hex << from << " -> " << from + reg->getMemSize() << dec << endl;
->>>>>>> 22fdc9a... Switches from emulating whole binary sections to analyzed code pages
         if (!aS_->readDataSpace((void *)from,
                                 reg->getMemSize(),
                                 regbuf,
@@ -339,18 +323,6 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         {
             assert(0);
         }
-<<<<<<< HEAD
-        // write, but don't copy springboards over
-        std::map<Address,int>::const_iterator sit = springboards_.begin();
-        Address cp_start = range.first;
-        cerr << "SYNC WRITE TO [" << hex << range.first << " " << range.second << ")" << dec << endl;
-        for (; sit != springboards_.end() && sit->first < range.second; sit++) {
-            if ((*sit).first < range.first) {
-                continue;
-            }
-            int cp_size = sit->first - cp_start;
-            //cerr << "\t Write " << hex << cp_start +toShift << "..." << cp_start + cp_size + toShift<< dec << endl;
-=======
         std::map<Address,int>::const_iterator sit = springboards_[reg].begin();
         Address cp_start = 0;
         Address toBase;
@@ -364,7 +336,6 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
             assert(cp_start <= sit->first);
             int cp_size = sit->first - cp_start;
             //cerr << "\t Write " << hex << toBase + cp_start << "..." << toBase + cp_start + cp_size << dec << endl;
->>>>>>> 22fdc9a... Switches from emulating whole binary sections to analyzed code pages
             if (cp_size &&
                 !aS_->writeDataSpace((void *)(toBase + cp_start),
                                      cp_size,
@@ -422,9 +393,6 @@ void MemoryEmulator::removeSpringboards(int_function * func)
 
 void MemoryEmulator::removeSpringboards(const int_block *bbi) 
 {
-    if (bbi->llb()->start() == 0xd3d2 ||
-        bbi->llb()->start() == 0xd323)
-        cerr << "DEBUG BREAKPOINT" << endl;
     malware_cerr << "  untracking springboards from deadblock [" << hex 
          << bbi->start() << " " << bbi->end() << ")" << dec <<endl;
     SymtabAPI::Region * reg = 
