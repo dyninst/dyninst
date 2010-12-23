@@ -332,10 +332,10 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         }
         //cerr << "SYNC WRITE TO " << hex << toBase << dec << endl;
         for (; sit != springboards_[reg].end(); sit++) {
-            assert(cp_start <= sit->first);
+            //assert(cp_start <= sit->first);
             int cp_size = sit->first - cp_start;
             //cerr << "\t Write " << hex << toBase + cp_start << "..." << toBase + cp_start + cp_size << dec << endl;
-            if (cp_size &&
+            if (cp_size > 0 &&
                 !aS_->writeDataSpace((void *)(toBase + cp_start),
                                      cp_size,
                                      regbuf + cp_start))
@@ -397,7 +397,7 @@ void MemoryEmulator::removeSpringboards(const int_block *bbi)
     SymtabAPI::Region * reg = 
         ((ParseAPI::SymtabCodeRegion*)bbi->func()->ifunc()->region())->symRegion();
     if (springboards_[reg].find((bbi->llb()->start() - reg->getMemOffset())) == springboards_[reg].end()) {
-        cerr << "ERROR IN DELETING SPRINGBOARD!" << endl;
+        cerr << "ERROR IN DELETING SPRINGBOARD!" << endl; // could just mean that the block is shared
     }
     springboards_[reg].erase(bbi->llb()->start() - reg->getMemOffset());
     if (springboards_[reg].empty()) springboards_.erase(reg);

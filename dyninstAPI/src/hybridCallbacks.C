@@ -36,13 +36,80 @@
 #include "BPatch_module.h"
 #include "instPoint.h"
 #include "function.h"
-
+#include "MemoryEmulator/memEmulator.h"
 
 void newCodeCB(std::vector<BPatch_function*> &newFuncs, 
                std::vector<BPatch_function*> &modFuncs)
 {
     printf("new functions %d mod functions %d %s[%d]\n", 
            (int)newFuncs.size(), (int)modFuncs.size(), FILE__, __LINE__);
+}
+
+void HybridAnalysis::synchShadowOrigCB(BPatch_point *point, bool toOrig)
+{
+    mal_printf("in synch callback for point 0x%lx toOrig=%d\n",
+               (Address)point->getAddress(), (int) (long) toOrig);
+
+    if ( toOrig && !proc()->getHybridAnalysis()->needsSynchronization(point) ) {
+        return;
+    }
+
+    // synch the shadow pages
+    BPatch_function *pfunc = point->getFunction();
+    proc()->lowlevel_process()->getMemEm()->synchShadowOrig
+        ( pfunc->lowlevel_func()->obj(), (bool) toOrig);
+
+    // fix up page rights so that the program can proceed
+    if (toOrig) {
+        // instrument at fallthrough
+        std::vector<int_block*> ftBlks;
+        int_block *ftBlk = point->llpoint()->block()->getFallthrough();
+        if (ftBlk) {
+            ftBlks.push_back(ftBlk);
+        }
+        else {
+            // the transfer is an inter-module jump, instrument at 
+            // fallthroughs of callers to the function containing the jump
+            std::vector<BPatch_point*> callerPoints;
+            point->getFunction()->getCallerPoints(callerPoints);
+            mal_printf("Caught inter-module jump at %lx, parsing at "
+                       "fallthroughs of %d callers to the jump func\n",
+                       point->getAddress(), callerPoints.size());
+            assert(callerPoints.size()); // there has to be at least one
+            for (vector<BPatch_point*>::iterator pit = callerPoints.begin();
+                 pit != callerPoints.end(); 
+                 pit++)
+            {
+                ftBlk = (*pit)->llpoint()->block()->getFallthrough();
+                if (!ftBlk) {
+                    parseAfterCallAndInstrument(*pit, pfunc);
+                    ftBlk = (*pit)->llpoint()->block()->getFallthrough();
+                }
+                assert(ftBlk);
+                ftBlks.push_back(ftBlk);
+            }
+        }
+        // drop the instrumentation in 
+        origToShadowInstrumentation(point, ftBlks);
+
+        // remove write-protections from code pages
+        pfunc->getModule()->setAnalyzedCodeWriteable(true);
+    } 
+    else {
+        // restore write-protections to code pages
+        pfunc->getModule()->setAnalyzedCodeWriteable(false);
+        // but not to those of active overwrite loops
+        std::set<Address> pages;
+        hybridOW()->activeOverwritePages(pages);
+        for (set<Address>::iterator pit = pages.begin(); 
+             pit != pages.end(); 
+             pit++) 
+        {
+            proc()->setMemoryAccessRights(*pit,1,PAGE_EXECUTE_READWRITE);
+        }
+        // KEVINTODO: if there are other in edges to the fallthrough block it 
+        //            might be cheaper to remove synch instrumentation at this point
+    }
 }
 
 

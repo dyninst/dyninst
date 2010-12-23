@@ -35,10 +35,9 @@
 #include "BPatch_function.h"
 #include "BPatch_flowGraph.h"
 #include "BPatch_module.h"
+#include "debug.h"
 #include "function.h"
 #include "instPoint.h"
-#include "debug.h"
-#include "process.h"
 #include "mapped_object.h"
 #include "MemoryEmulator/memEmulator.h"
 #include "mapped_module.h"
@@ -71,47 +70,8 @@ static void signalHandlerExitCB_wrapper(BPatch_point *point, void *returnAddr)
 }
 static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig) 
 {
-    mal_printf("in synch callback for point 0x%lx toOrig=%d\n",
-               (Address)point->getAddress(), (int) (long) toOrig);
-
-    BPatch_process *proc = dynamic_cast<BPatch_process*>(
-       point->getFunction()->getAddSpace());
-    if ( toOrig && !proc->getHybridAnalysis()->needsSynchronization(point) ) {
-        return;
-    }
-
-    // synch the shadow pages
-    BPatch_function *pfunc = point->getFunction();
-    proc->lowlevel_process()->getMemEm()->synchShadowOrig
-        ( pfunc->lowlevel_func()->obj(), (bool) toOrig);
-
-    // fix up page rights so that the program can proceed
-    if (toOrig) {
-        HybridAnalysis *ha = proc->getHybridAnalysis();
-        // instrument at fallthrough
-        int_block *ftBlk = point->llpoint()->block()->getFallthrough();
-        assert(ftBlk);
-        BPatch_function *bpFunc = proc->findOrCreateBPFunc(ftBlk->func(),NULL);
-        BPatch_point *ftPt = bpFunc->getPoint(ftBlk->start());
-        assert(ftPt);
-        if (ha->synchMap_post().end() == ha->synchMap_post().find(ftPt)) {
-            BPatchSnippetHandle *handle = proc->insertSnippet
-                (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(0)), 
-                 *ftPt,
-                 BPatch_callBefore,
-                 BPatch_firstSnippet);
-            ha->synchMap_pre()[point]->setPostHandle(ftPt, handle);
-            ha->synchMap_post()[ftPt] = ha->synchMap_pre()[point];
-        }
-        // remove write-protections from code pages
-        pfunc->getModule()->setAnalyzedCodeWriteable(true);
-    } 
-    else {
-        // restore write-protections to code pages
-        pfunc->getModule()->setAnalyzedCodeWriteable(false);
-        // KEVINTODO: if there are other in edges to the fallthrough block it 
-        //            might be cheaper to remove synch instrumentation at this point
-    }
+    dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
+        getHybridAnalysis()->synchShadowOrigCB(point, (bool) toOrig);
 }
 
 InternalSignalHandlerCallback HybridAnalysis::getSignalHandlerCB()
@@ -680,6 +640,29 @@ bool HybridAnalysis::instrumentModules(bool useInsertionSet)
     return didInstrument;
 }
 
+// add instrumentation to trigger an original memory to shadow memory copy 
+// at blks, associated with an intermodule call at callPt
+void HybridAnalysis::origToShadowInstrumentation(BPatch_point *callPt, 
+                                                 const vector<int_block*> &blks)
+{
+    for (vector<int_block*>::const_iterator bit = blks.begin();
+         bit != blks.end();
+         bit++) 
+    {
+        BPatch_function *bpFunc = proc()->findOrCreateBPFunc((*bit)->func(),NULL);
+        BPatch_point *ftPt = bpFunc->getPoint((*bit)->start());
+        assert(ftPt);
+        if (synchMap_post().end() == synchMap_post().find(ftPt)) {
+            BPatchSnippetHandle *handle = proc()->insertSnippet
+                (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(0)), 
+                 *ftPt,
+                 BPatch_callBefore,
+                 BPatch_firstSnippet);
+            synchMap_pre()[callPt]->setPostHandle(ftPt, handle);
+            synchMap_post()[ftPt] = synchMap_pre()[callPt];
+        }
+    }
+}
 
 /* Takes a point corresponding to a function call and continues the parse in 
  * the calling function after the call.  If there are other points that call
@@ -767,8 +750,8 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
     // a false positive code overwrite) re-instrument the point to use
     // the cache, if it's an indirect transfer, or remove it altogether
     // if it's a static transfer. 
-    if (!parsedAfterCallPoint && 
-        !proc()->lowlevel_process()->isMemoryEmulated()) 
+    if (!parsedAfterCallPoint //KEVINTODO: re-enable re-instrumentation for memory-emulated calls that stay in their module
+        && !proc()->lowlevel_process()->isMemoryEmulated()) 
     {
       for (unsigned ftidx=0; ftidx < fallThroughFuncs.size(); ftidx++) 
       {

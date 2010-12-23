@@ -52,6 +52,7 @@
 #include "BPatch_statement.h"
 #include "mapped_module.h"
 #include "mapped_object.h"
+#include "hybridAnalysis.h"
 
 #include "common/h/Types.h"
 #if !defined(cap_instruction_api)
@@ -361,7 +362,14 @@ bool BPatch_function::removeInstrumentation(bool useInsertionSet)
             points[pidx]->getCurrentSnippetsInt();
         for (unsigned all = 0; all < allSnippets.size(); all++) 
         {
-            if ( ! addSpace->deleteSnippetInt(allSnippets[all]) ) {
+            if (dynamic_cast<BPatch_process*>(addSpace)->getHybridAnalysis()->hybridOW()->
+                hasLoopInstrumentation(true,*this))
+            {
+                mal_printf("ERROR: Trying to remove active looop instrumentation\n");
+                removedAll = false;
+                assert(0);
+            }
+            else if ( ! addSpace->deleteSnippetInt(allSnippets[all]) ) {
                 removedAll = false;
             }
         } 

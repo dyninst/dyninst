@@ -1698,7 +1698,6 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * symReg)
     set<ParseAPI::Block *> analyzedBlocks;
     set<ParseAPI::CodeRegion*> parseRegs;
 
-    SymtabAPI::Region *symReg = regions[rIdx];
     void *mappedPtr = symReg->getPtrToRawData();
     Address regStart = symReg->getRegionAddr();
 
@@ -1772,7 +1771,7 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * symReg)
     // change all region pages with REPROTECTED status to PROTECTED status
     Address page_size = proc()->proc()->getMemoryPageSize();
     Address curPage = (regStart / page_size) * page_size + base;
-    Address regEnd = base + regStart + reg->getDiskSize();
+    Address regEnd = base + regStart + symReg->getDiskSize();
     for (; protPages_.end() == protPages_.find(curPage)  && curPage < regEnd; 
            curPage += page_size);
     for (map<Address,WriteableStatus>::iterator pit = protPages_.find(curPage);
