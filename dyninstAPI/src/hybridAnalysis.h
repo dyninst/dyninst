@@ -39,6 +39,7 @@
 #include "dyntypes.h"
 #include "BPatch_hybridAnalysis.h"
 #include "BPatch_callbacks.h"
+#include "process.h"
 
 class BPatch_module;
 class BPatch_function;
@@ -49,6 +50,7 @@ class HybridAnalysisOW;
 class BPatchSnippetHandle;
 class BPatch_basicBlock;
 class BPatch_basicBlockLoop;
+class int_block;
 
 /* There should only be one instance of this class, as for the BPatch class */
 class HybridAnalysis {
@@ -94,6 +96,7 @@ public:
     void signalHandlerEntryCB(BPatch_point *point, void *pcAddr);
     void signalHandlerCB(BPatch_point *pt, long snum, std::vector<Dyninst::Address> &handlers);
     void signalHandlerExitCB(BPatch_point *point, void *returnAddr);
+    void synchShadowOrigCB(BPatch_point *point, bool toOrig);
     void overwriteSignalCB(Dyninst::Address faultInsnAddr, Dyninst::Address writeTarget);
 
     // callback registering functions
@@ -120,6 +123,8 @@ private:
     bool instrumentFunction(BPatch_function *func, 
                             bool useInsertionSet, 
                             bool instrumentReturns=false);
+    void origToShadowInstrumentation(BPatch_point *callPt, 
+                                     const std::vector<int_block*> &blks);
     bool parseAfterCallAndInstrument(BPatch_point *callPoint, 
                         BPatch_function *calledFunc) ;
     void removeInstrumentation(BPatch_function *func, bool useInsertionSet);
@@ -245,7 +250,9 @@ public:
     // overwrite loop functions
     bool hasLoopInstrumentation
         (bool activeOnly, BPatch_function &func, 
-        std::set<HybridAnalysisOW::owLoop*> *loops=NULL);
+         std::set<HybridAnalysisOW::owLoop*> *loops=NULL);
+    bool getActiveLoops(std::vector<HybridAnalysisOW::owLoop*> &active);
+    bool activeOverwritePages(std::set<Dyninst::Address> &pages);
 
     /* 1. Check for changes to the underlying code to see if this is safe to do
      * 2. If the loop is active, check for changes to the underlying data, and 

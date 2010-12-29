@@ -4536,7 +4536,7 @@ Address process::stopThreadCtrlTransfer
             // by basing off of the program counter at the source block, so
             // adjust the target by comparing to the uninstrumented address of
             // the source instruction
-            unrelocTarget = resolveJumpIntoRuntimeLib(intPoint, target);
+            assert(0);   unrelocTarget = resolveJumpIntoRuntimeLib(intPoint, target);
             if (0 == unrelocTarget) {
                 mal_printf("WARNING: stopThread caught an indirect "
                         "call or jump whose target is an unresolved "
@@ -6635,4 +6635,3 @@ bool process::needsPIC()
 {
    return 0;
 }
-

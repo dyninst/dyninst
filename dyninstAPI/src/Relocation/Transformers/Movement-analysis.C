@@ -670,7 +670,7 @@ void PCSensitiveTransformer::invalidateCache(int_function *f) {
 	// as well as any for blocks that call f. 
 
 	const int_function::BlockSet &blocks = f->blocks();
-	for (int_function::BlockSet::iterator iter = blocks.begin();
+	for (int_function::BlockSet::const_iterator iter = blocks.begin();
 		iter != blocks.end(); ++iter) {
 			invalidateCache(*iter);
 	}

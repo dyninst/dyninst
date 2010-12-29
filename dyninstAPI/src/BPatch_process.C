@@ -1671,8 +1671,7 @@ bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
 bool BPatch_process::hideDebuggerInt()
 {
     bool retval = llproc->hideDebugger();
-    return false; //KEVINTODO: RE-ENABLE THIS
-
+    return true; // KEVINTODO: re-enable this function
     // disable API calls //
 
     // BlockInput
@@ -1840,12 +1839,14 @@ void BPatch_process::overwriteAnalysisUpdate
         llproc->getMemEm()->removeSpringboards(*fit);
     }
 
-    // delete delBlocks (remove from elimMap)
+    // delete delBlocks
+    std::set<int_function*> modFuncs;
     for(set<int_block*>::iterator bit = delBBIs.begin(); 
         bit != delBBIs.end();
         bit++) 
     {
         int_function *bFunc = (*bit)->func();
+        modFuncs.insert(bFunc);
         if ((*bit)->getHighLevelBlock()) {
             ((BPatch_basicBlock*)(*bit)->getHighLevelBlock())
                 ->setlowlevel_block(NULL);
@@ -1860,7 +1861,14 @@ void BPatch_process::overwriteAnalysisUpdate
             bFunc->ifunc()->setEntryBlock(newEntry);
         }
         bFunc->ifunc()->destroyBlocks(bSet); //KEVINTODO: doing this one by one is highly inefficient
-        assert(bFunc->consistency());
+    }
+    // do a consistency check
+    for (set<int_function*>::iterator fit = modFuncs.begin(); 
+         fit != modFuncs.end(); 
+         fit++) 
+    {
+        (*fit)->ifunc()->blocks(); // force ParseAPI func finalization
+        assert((*fit)->consistency());
     }
 
     // delete completely dead functions

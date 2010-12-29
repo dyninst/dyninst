@@ -735,7 +735,12 @@ void int_function::addMissingBlock(image_basicBlock *missingB)
 
 
 /* Find image_basicBlocks that are missing from these datastructures and add
- * them.  Pass the blocks to the memory emulator so it can shadow their memory
+ * them.  The int_block constructor does pretty much all of the work in
+ * a chain of side-effects extending all the way into the mapped_object class
+ * 
+ * We have to take into account that additional parsing may cause basic block splitting,
+ * in which case it is necessary not only to add new int-level blocks, but to update 
+ * int_block and BPatch_basicBlock objects. 
  */
 void int_function::addMissingBlocks()
 {
@@ -744,9 +749,6 @@ void int_function::addMissingBlocks()
    // Add new blocks
 
    const vector<image_basicBlock*> & nblocks = obj()->parse_img()->getNewBlocks();
-   if (proc()->isMemoryEmulated()) {
-       proc()->getMemEm()->addNewCode(obj(),nblocks);
-   }
    if (nblocks.size() < ifunc()->blocks().size()) {
        // add blocks by looking up new blocks, if it promises to be more 
        // efficient than looking through all of the llfunc's blocks

@@ -38,7 +38,6 @@
 #include "symtabAPI/h/Region.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/function.h"
-#include <boost/tuple/tuple.hpp>
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -112,123 +111,45 @@ void MemoryEmulator::update() {
    }
 }
 
-// only called for the runtime library
 void MemoryEmulator::addAllocatedRegion(Address start, unsigned size) {
-   addRange(start, size, -1);
+   addRegion(start, size, -1);
 }
 
-static void mergeRanges(const mapped_object *obj,
-                        unsigned int rangeSize, 
-                        std::set<Address> &in, 
-                        std::vector<pair<Address,unsigned int> > &out)
-{
-   Address prevEnd = 0xbadadd;
-   SymtabAPI::Region *prevReg = NULL;
-   int count = 0;
-   for (set<Address>::iterator pit =in.begin(); pit != in.end(); pit++) {
-       SymtabAPI::Region *reg = obj->parse_img()->getObject()->findEnclosingRegion(*pit - obj->codeBase());
-       if (prevEnd != 0xbadadd && (prevEnd != (*pit) || reg != prevReg)) {
-           out.push_back(pair<Address,unsigned>(prevEnd - (rangeSize * count),
-                                                rangeSize * count));
-           count = 0;
-       }
-       prevEnd = (*pit) + rangeSize;
-       prevReg = reg;
-       count++;
-   }
-   if (count) {
-       out.push_back(pair<Address,unsigned>(prevEnd - (rangeSize * count), 
-                                            rangeSize * count));
-   }
+void MemoryEmulator::addRegion(mapped_object *obj) {
+   //cerr << "addRegion for " << obj->fileName() << endl;
+
+   // Add each code region
+   std::vector<Region *> codeRegions;
+   obj->parse_img()->getObject()->getCodeRegions(codeRegions);
+
+   for (unsigned i = 0; i < codeRegions.size(); ++i) {
+      Region *reg = codeRegions[i];
+
+      addRegion(reg, obj->codeBase());
+   }         
 }
 
-void MemoryEmulator::addObject(const mapped_object *obj) {
-
-   emulatedObjs.insert(obj);
-
-   sensitivity_cerr << "memEmulator::addObject for " << obj->fileName() << endl;
-
-   // Get all pages containing analyzed code, 
-   // coalesce them into larger ranges (that don't span region boundaries), 
-   // and add them to our datastructures
-   set<Address> pages;
-   unsigned int pageSize = obj->getAnalyzedCodePages(pages);
-   vector<pair<Address,unsigned int> > ranges;
-   mergeRanges(obj,pageSize,pages,ranges);
-   for (vector<pair<Address,unsigned int> >::iterator rit=ranges.begin(); 
-        rit != ranges.end(); 
-        rit++) 
-   {
-       unsigned long dontcare = 0;
-       if ( ! memoryMap_.find(rit->first, dontcare) ) {
-           addRange(obj, rit->first, rit->second);
-       }
-   }
-}
-
-void MemoryEmulator::addNewCode(const mapped_object *obj, 
-                                const vector<image_basicBlock*> &blks) {
-    // we'll only add new code if we're monitoring the program at runtime
-    assert(aS_->proc());
-
-    sensitivity_cerr << "memEmulator::addNewCode for " << obj->fileName() << endl;
-    unsigned int pageSize = aS_->proc()->getMemoryPageSize();
-    set<Address> pageAddrs;
-    unsigned long dontcare=0;
-    for(vector<image_basicBlock*>::const_iterator bit = blks.begin(); 
-        bit != blks.end(); 
-        bit++) 
-    {
-        Address pageAddr = (*bit)->start() 
-            - ((*bit)->start() % pageSize) 
-            + obj->codeBase();
-        Address endPageAddr = (*bit)->end() - 1 
-           - ((*bit)->start() % pageSize) 
-           + obj->codeBase();
-        while (pageAddr <= endPageAddr) {
-            if (! memoryMap_.find(pageAddr, dontcare) ) {
-                pageAddrs.insert(pageAddr);
-            }
-            pageAddr += pageSize;
-        }
-    }
-   vector<pair<Address,unsigned int> > ranges;
-   mergeRanges(obj,pageSize,pageAddrs,ranges);
-   for (vector<pair<Address,unsigned int> >::iterator rit=ranges.begin(); 
-        rit != ranges.end(); 
-        rit++) 
-   {
-       addRange(obj, rit->first, rit->second);
-   }
-}
-
-void MemoryEmulator::addRange(const mapped_object *obj, 
-                              Address start, 
-                              unsigned int size) 
-{
-   unsigned long dontcare;
-   if (memoryMap_.find(start,dontcare)) 
-       assert(0);
-
+void MemoryEmulator::addRegion(Region *reg, Address base) {
+   
+   //cerr << "\t\t Region " << i << ": " << hex
+   //<< codeRegions[i]->getMemOffset() + obj->codeBase() << " -> " 
+   //<< codeRegions[i]->getMemOffset() + codeRegions[i]->getMemSize() + obj->codeBase() << endl;
+   
+   if (addedRegions_.find(reg) != addedRegions_.end()) return;
+      
    process *proc = dynamic_cast<process *>(aS_);
-   unsigned char *buffer = (unsigned char *) malloc(size);
+   char *buffer = (char *)malloc(reg->getMemSize());
    if (proc) {
-       if (!proc->readDataSpace((void*)start, size, buffer, false)) {
+       if (!proc->readDataSpace((void*)(base + reg->getMemOffset()), 
+                               reg->getMemSize(), buffer, false)) {
            assert(0);
        }
    } else {
-       memset(buffer, 0, size);
-       SymtabAPI::Region *reg = obj->parse_img()->getObject()->
-           findEnclosingRegion(start - obj->codeBase());
-       Address offset = start - obj->codeBase() - reg->getMemOffset();
-       if (offset < reg->getDiskSize()) {
-           memcpy(buffer, 
-                  ((char*)reg->getPtrToRawData()) + offset, 
-                  reg->getDiskSize() - offset);
-       }
+       memset(buffer, 0, reg->getMemSize());
+       memcpy(buffer, reg->getPtrToRawData(), reg->getDiskSize());
    }
    
-   unsigned long allocSize = size;
+   unsigned long allocSize = reg->getMemSize();
    if (proc) {
       allocSize += proc->getMemoryPageSize();
    }
@@ -244,14 +165,13 @@ void MemoryEmulator::addRange(const mapped_object *obj,
    
    
    aS_->writeDataSpace((void *)mutateeBase,
-                       size,
+                       reg->getMemSize(),
                        (void *)buffer);
-   if (proc && BPatch_defensiveMode == obj->hybridMode()) {
+   if (aS_->proc() && BPatch_defensiveMode == aS_->proc()->getHybridMode()) {
 #if defined (os_windows)
        using namespace SymtabAPI;
        unsigned winrights = 0;
-       Region::perm_t reg_rights = obj->parse_img()->getObject()->
-           findEnclosingRegion(start - obj->codeBase())->getRegionPermissions();
+       Region::perm_t reg_rights = reg->getRegionPermissions();
        switch (reg_rights) {
        case Region::RP_R:
            winrights = PAGE_READONLY;
@@ -268,26 +188,26 @@ void MemoryEmulator::addRange(const mapped_object *obj,
        default:
            assert(0);
        }
-       dyn_lwp *stoppedlwp = proc->query_for_stopped_lwp();
+       dyn_lwp *stoppedlwp = aS_->proc()->query_for_stopped_lwp();
        assert(stoppedlwp);
-       stoppedlwp->changeMemoryProtections(mutateeBase, size, winrights, false);
+       stoppedlwp->changeMemoryProtections(mutateeBase, reg->getMemSize(), winrights, false);
 #endif
    }
    
-   sensitivity_cerr << hex << " Adding range [0x" << start << " 0x" << start + size
-       << "), allocated buffer base " << mutateeBase << " and so shift " 
-       << mutateeBase - start << dec << endl;
+    Address regionBase = base + reg->getMemOffset();
 
-   addRange(start,
-            size,
-            mutateeBase - start);
+    sensitivity_cerr << hex << " Adding region with base " << base << " and mem offset " << reg->getMemOffset()
+        << ", allocated buffer base " << mutateeBase << " and so shift " << mutateeBase - regionBase << dec << endl;
+
+   addRegion(regionBase,
+             reg->getMemSize(),
+             mutateeBase - regionBase);
    
-   //addedRanges_[start] = end;
+   addedRegions_[reg] = mutateeBase;
    free(buffer);
 }
 
-// helper for addRegion(reg,size), do not call directly
-void MemoryEmulator::addRange(Address start, unsigned size, Address shift) {
+void MemoryEmulator::addRegion(Address start, unsigned size, Address shift) {
    if (size == 0) return;
 
    Address end = start + size;
@@ -379,77 +299,66 @@ std::pair<bool, Address> MemoryEmulator::translateBackwards(Address addr) {
    return std::make_pair(true, addr - val);
 }
 
-/* Synchronizes shadow and original memory pages that contain analyzed code
- * if toOrig == true: copies shadow memory into original
- * if toOrig == false: copies original memory into shadow memory
- */ 
 void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig) 
 {
     if (toOrig) malware_cerr << "Syncing shadow to orig for obj " << obj->fileName() << endl;
     else        malware_cerr << "Syncing orig to shadow for obj " << obj->fileName() << endl;
-
     using namespace SymtabAPI;
-    std::vector< std::pair<std::pair<Address,Address>,unsigned long> > elements;
-    memoryMap_.elements(elements);
-    for (unsigned idx=0; idx < elements.size(); idx++) {
-        std::pair<Address,Address> range(0,0);
-        unsigned int shift = 0;
-        boost::tie(range,shift) = elements[idx];
-        if (range.second <= obj->codeBase() ||
-            range.first >= (obj->codeBase() + obj->get_size()))
-        {
-            continue;
-        }
-        unsigned char *rangebuf = (unsigned char*) malloc(range.second-range.first);
+    vector<Region*> regs;
+    obj->parse_img()->getObject()->getCodeRegions(regs);
+    for (unsigned idx=0; idx < regs.size(); idx++) {
+        Region * reg = regs[idx];
+        unsigned char* regbuf = (unsigned char*) malloc(reg->getMemSize());
         Address from = 0;
-        Address toShift = 0;
         if (toOrig) {
-            from = range.first + shift;
-            toShift = 0;
+            from = addedRegions_[reg];
         } else {
-            from = range.first;
-            toShift = shift;
+            from = obj->codeBase() + reg->getMemOffset();
         }
         if (!aS_->readDataSpace((void *)from,
-                                range.second-range.first,
-                                rangebuf,
+                                reg->getMemSize(),
+                                regbuf,
                                 false)) 
         {
             assert(0);
         }
-        std::map<Address,int>::const_iterator sit = springboards_.begin();
-        Address cp_start = range.first;
-        cerr << "SYNC WRITE TO [" << hex << range.first+toShift << " " << range.second+toShift << ")" << dec << endl;
-        for (; sit != springboards_.end() && sit->first < range.second; sit++) {
-            if ((*sit).first < range.first) {
-                continue;
-            }
+        std::map<Address,int>::const_iterator sit = springboards_[reg].begin();
+        Address cp_start = 0;
+        Address toBase;
+        if (toOrig) {
+            toBase = obj->codeBase() + reg->getMemOffset();
+        } else {
+            toBase = addedRegions_[reg];
+        }
+        //cerr << "SYNC WRITE TO " << hex << toBase << dec << endl;
+        for (; sit != springboards_[reg].end(); sit++) {
+            //assert(cp_start <= sit->first);
             int cp_size = sit->first - cp_start;
-            cerr << "\t Write " << hex << cp_start +toShift << "..." << cp_start + cp_size + toShift<< dec << endl;
-            if (cp_size &&
-                !aS_->writeDataSpace((void *)(cp_start + toShift),
+            //cerr << "\t Write " << hex << toBase + cp_start << "..." << toBase + cp_start + cp_size << dec << endl;
+            if (cp_size > 0 &&
+                !aS_->writeDataSpace((void *)(toBase + cp_start),
                                      cp_size,
-                                     rangebuf + cp_start - range.first))
+                                     regbuf + cp_start))
             {
                 assert(0);
             }
             cp_start = sit->first + sit->second;
         }
+        //cerr << "\t Finishing write " << hex << toBase + cp_start << " -> " << toBase + cp_start + reg->getMemSize() - cp_start << dec << endl;
 
-        cerr << "\t Write " << hex << cp_start +toShift << "..." << range.second - cp_start<< dec << endl;
-        if (cp_start < (range.first + range.second) &&
-            !aS_->writeDataSpace((void *)(cp_start + toShift),
-                                 range.second - cp_start,
-                                 rangebuf + cp_start - range.first))
+        if (cp_start < reg->getMemSize() &&
+            !aS_->writeDataSpace((void *)(toBase + cp_start),
+                                 reg->getMemSize() - cp_start,
+                                 regbuf + cp_start))
         {
             assert(0);
         }
-        free(rangebuf);
+        free(regbuf);
     }
 }
 
 
-void MemoryEmulator::addSpringboard(Address addr, int size) 
+void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size) 
 {
     // DEBUGGING
     //map<Address,int>::iterator sit = springboards_[reg].begin();
@@ -459,11 +368,15 @@ void MemoryEmulator::addSpringboard(Address addr, int size)
     //    if (sit->first >= offset + size) break;
     //    assert(0);
     //}
-    for (Address tmp = addr; tmp < addr + size; ++tmp) {
-        springboards_.erase(tmp);
+    if (offset == 0xd3d2 ||
+        offset == 0xd3d3) {
+            cerr << "DEBUG BREAKPOINT!" << endl;
+    }
+    for (Address tmp = offset; tmp < offset + size; ++tmp) {
+        springboards_[reg].erase(tmp);
     }
 
-    springboards_[addr] = size;
+    springboards_[reg][offset] = size;
 }
 
 void MemoryEmulator::removeSpringboards(int_function * func) 
@@ -481,8 +394,11 @@ void MemoryEmulator::removeSpringboards(const int_block *bbi)
 {
     malware_cerr << "  untracking springboards from deadblock [" << hex 
          << bbi->start() << " " << bbi->end() << ")" << dec <<endl;
-    if (springboards_.find(bbi->start()) == springboards_.end()) {
-        cerr << "ERROR IN DELETING SPRINGBOARD!" << endl;
+    SymtabAPI::Region * reg = 
+        ((ParseAPI::SymtabCodeRegion*)bbi->func()->ifunc()->region())->symRegion();
+    if (springboards_[reg].find((bbi->llb()->start() - reg->getMemOffset())) == springboards_[reg].end()) {
+        cerr << "ERROR IN DELETING SPRINGBOARD!" << endl; // could just mean that the block is shared
     }
-    springboards_.erase(bbi->start());
+    springboards_[reg].erase(bbi->llb()->start() - reg->getMemOffset());
+    if (springboards_[reg].empty()) springboards_.erase(reg);
 }

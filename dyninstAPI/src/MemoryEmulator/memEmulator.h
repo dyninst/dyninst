@@ -48,9 +48,8 @@ class MemoryEmulator {
    ~MemoryEmulator() {};
 
    void addAllocatedRegion(Address start, unsigned size);
-   void addObject(const mapped_object *obj);
-   void addNewCode(const mapped_object *obj, 
-                   const std::vector<image_basicBlock*> &blks);
+   void addRegion(mapped_object *obj);
+   void addRegion(SymtabAPI::Region *reg, Address base);
    void update();
 
    void reprocess(mapped_object *obj);
@@ -61,12 +60,13 @@ class MemoryEmulator {
     const std::map<Address,int> & getSpringboards(SymtabAPI::Region*) const;
     void removeSpringboards(int_function* deadfunc);
     void removeSpringboards(const int_block* deadBBI);
-    void addSpringboard(Address addr, int size);
+    void addSpringboard(SymtabAPI::Region*, 
+                        Address offset,/*from start of region*/
+                        int size);
     void synchShadowOrig(mapped_object*,bool toOrig);
 
   private:
-   void addRange(const mapped_object *obj, Address start, unsigned int size);
-   void addRange(Address start, unsigned size, Address newBase);
+   void addRegion(Address start, unsigned size, Address newBase);
    bool findMutateeTable();
    unsigned addrWidth();
 
@@ -79,11 +79,10 @@ class MemoryEmulator {
 
    Address mutateeBase_;
 
-   std::map<Address,int> springboards_;
-   std::set<const mapped_object*> emulatedObjs;
+   std::map<SymtabAPI::Region*, std::map<Address,int> > springboards_;
 
-   //typedef std::map<Address, Address> RangeMap;//start-end pairs, not really used for anything
-   //RangeMap addedRanges_;
+   typedef std::map<SymtabAPI::Region *, Address> RegionMap;
+   RegionMap addedRegions_;
 };
 };
 

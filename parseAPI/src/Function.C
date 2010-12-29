@@ -278,6 +278,7 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
 {
     _cache_valid = false;
     bool deleteAll = (dead_blocks.size() == _blocks.size());
+    bool hasSharedDeadBlocks = false;
 
     for (unsigned didx=0; didx < dead_blocks.size(); didx++) {
         bool found = false;
@@ -369,6 +370,7 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
         Block *dead = dead_blocks[didx];
         if (dead->_func_cnt >= 2) {
             dead->removeFunc(this);
+            hasSharedDeadBlocks = true;
             mal_printf("WARNING: removing shared block [%lx %lx] rather "
                        "than deleting it %s[%d]\n", dead->start(), 
                        dead->end(), FILE__,__LINE__);
@@ -378,7 +380,8 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
     }
 
     // call finalize, fixes extents
-    if (!deleteAll) {
+    _cache_valid = false;
+    if (!deleteAll && !hasSharedDeadBlocks) {
         obj()->parser->finalize(this);
     }
 }

@@ -78,10 +78,13 @@ HybridAnalysisOW::owLoop::owLoop(HybridAnalysisOW *hybridow,
     realLoop_ = true;
     loopID_ = owLoop::getNextLoopId();
     hybridow_->idToLoop[loopID_] = this;
+    hybridow_->loops.insert(this);
 }
 
 HybridAnalysisOW::owLoop::~owLoop()
 {
+    hybridow_->idToLoop.erase(loopID_);
+    hybridow_->loops.erase(this);
     std::map<Dyninst::Address,unsigned char *>::iterator sIter = shadowMap.begin();
     for(; sIter != shadowMap.end(); sIter++) {
         if ((*sIter).second) {
@@ -242,6 +245,7 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool useInsertionSet, BPatch_poi
     // delete loop (destructor deletes shadow pages)
     assert(idToLoop.end() != idToLoop.find(loop->getID()));
     idToLoop.erase(idToLoop.find(loop->getID()));
+    loops.erase(loop);
     delete loop;
 
     if (useInsertionSet) {
@@ -334,7 +338,6 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop
 
     // 2. Instrument exit edges and unresolved points with callbacks to 
     //    the analysis update routine
-    hybridow_->proc()->beginInsertionSet();
     BPatch_stopThreadExpr stopForAnalysis(overwriteAnalysis_wrapper, 
                                           BPatch_constExpr(getID()),
                                           false,
@@ -380,8 +383,6 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop
         snippets.insert(snippetHandle);
         uIter++;
     }
-
-    hybridow_->proc()->finalizeInsertionSet(false);
 }
 
 
@@ -397,7 +398,6 @@ void HybridAnalysisOW::owLoop::instrumentOneWrite(Address writeInsnAddr,
              BPatch_constExpr(loopID_), 
              false,BPatch_noInterp);
 
-    hybridow_->proc()->beginInsertionSet();
     for (unsigned fidx =0; fidx < writeFuncs.size(); fidx++) 
     {
         // create instrumentation points
@@ -412,7 +412,6 @@ void HybridAnalysisOW::owLoop::instrumentOneWrite(Address writeInsnAddr,
 	    assert(snippetHandle);
         snippets.insert(snippetHandle);
     }
-    hybridow_->proc()->finalizeInsertionSet(false);
 }
 
 
@@ -534,7 +533,6 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
     BPatch_boolExpr cond_bounds(BPatch_and, cond_lb, cond_hb);
 
     //4. instrument each write point
-    hybridow_->proc()->beginInsertionSet();
     for (unsigned wIdx=0; wIdx < loopWrites.size(); wIdx++) {
         // create the stopthread expression
         BPatch_stopThreadExpr stopForAnalysis
@@ -549,7 +547,6 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
             (ifBoundsThenStop, *loopWrites[wIdx], BPatch_callAfter);
         snippets.insert(handle);
     }
-    hybridow_->proc()->finalizeInsertionSet(false);
 }
 
 
@@ -603,11 +600,11 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop(BPatch_function &func, Add
                                     (*pIter)->getAddress());
                             hasUnresolved = true;
                         } 
-                        else if ( hybrid()->needsSynchronization(*pIter) ) {
-                            mal_printf("loop has an indirect transfer that needs synchronization at %lx\n", 
-                                       (*pIter)->getAddress());
-                            hasUnresolved = true;
-                        }
+                        //else if ( hybrid()->needsSynchronization(*pIter) ) {
+                        //    mal_printf("loop has an indirect transfer that needs synchronization at %lx\n", 
+                        //               (*pIter)->getAddress());
+                        //    hasUnresolved = true;
+                        //}
                     }
                 }
                 blockPoints.clear();
@@ -721,12 +718,12 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
                            "transfer at %lx that resolves to %d targets "
                            "%s[%d]\n", loop->getID(), (*fIter)->getBaseAddr(), 
                            (*pIter)->getAddress(), targs.size(), FILE__,__LINE__);
-            } else if (hybrid()->needsSynchronization(*pIter)) {
-                hasUnresolved = true;
-                mal_printf("loop %d calls func %lx which has an indirect "
-                          "transfer at %lx that needs synchronization "
-                          "%s[%d]\n", loop->getID(), (*fIter)->getBaseAddr(), 
-                          (*pIter)->getAddress(), FILE__,__LINE__);
+            //} else if (hybrid()->needsSynchronization(*pIter)) {
+            //    hasUnresolved = true;
+            //    mal_printf("loop %d calls func %lx which has an indirect "
+            //              "transfer at %lx that needs synchronization "
+            //              "%s[%d]\n", loop->getID(), (*fIter)->getBaseAddr(), 
+            //              (*pIter)->getAddress(), FILE__,__LINE__);
             } else {
                 // add target function if it's not in seenFuncs
                 addLoopFunc(proc()->findFunctionByEntry(targs[0]), seenFuncs, nextAddFuncs);
@@ -1002,19 +999,16 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 //        assert(0 && "KEVINTODO: test this, overwrite loop modified itself, triggering bounds check instrumentation");
     }
 
-    owLoop *loop = idToLoop[loopID]; 
-
     // find the loop corresponding to the loopID, and if there is none, it
     // means we tried to delete the instrumentation earlier, but failed
-    if (NULL == loop) {
+    if (idToLoop.end() == idToLoop.find(loopID)) {
         fprintf(stderr,"executed instrumentation for old loop %d at point %lx "
                   "%s[%d]\n", loopID, pointAddr, FILE__,__LINE__);
-        // this should not happen now that instrumentation removal unlinks 
-        // multiTramps and can only fail to remove multis with calls in them
         assert(0);
         return; 
     }
 
+    owLoop *loop = idToLoop[loopID]; 
     loop->setActive(false);
 
     if (overwroteLoop) {
@@ -1211,6 +1205,7 @@ void HybridAnalysisOW::overwriteSignalCB
     assert(faultBlocks.size() == faultFuncs.size());
     const unsigned int pageSize = proc()->lowlevel_process()->getMemoryPageSize();
     Address pageAddress = (writeTarget / pageSize) * pageSize;
+    proc()->beginInsertionSet();
 
 /* 1. If this is an already instrumented instruction that has now moved onto 
       an adjacent page or is in a subsequent iteration of the instrumented loop: */
@@ -1309,12 +1304,14 @@ void HybridAnalysisOW::overwriteSignalCB
                     BPatch_point::convertInstPointType_t(pt->getPointType()));
                 deleteLoop(loop, true, writePoint);
                 overwriteSignalCB(faultInsnAddr, writeTarget);
+                proc()->finalizeInsertionSet(false);
                 return;
             }
         }
 
         makeShadow_setRights(writeTarget, loop);
         loop->setActive(true);
+        proc()->finalizeInsertionSet(false);
         return;
     }
 
@@ -1394,6 +1391,7 @@ void HybridAnalysisOW::overwriteSignalCB
     // make a shadow page and restore write privileges to the page
     makeShadow_setRights(writeTarget, loop);
     loop->setActive(true);
+    proc()->finalizeInsertionSet(false);
 }
 
 bool HybridAnalysisOW::registerCodeOverwriteCallbacks
@@ -1415,4 +1413,35 @@ bool HybridAnalysisOW::removeCodeOverwriteCallbacks()
     bpatchEndCB = NULL;
     return ret;
 }
+
+bool HybridAnalysisOW::getActiveLoops
+(std::vector<HybridAnalysisOW::owLoop*> &active)
+{
+    std::set<HybridAnalysisOW::owLoop*>::iterator lit;
+    for (lit = loops.begin(); lit != loops.end(); lit++) {
+        if ((*lit)->isActive()) {
+            active.push_back(*lit);
+        }
+    }
+    return !active.empty();
+}
+
+bool HybridAnalysisOW::activeOverwritePages(std::set<Address> &pages)
+{
+    std::vector<HybridAnalysisOW::owLoop*> active;
+    getActiveLoops(active);
+    for (vector<HybridAnalysisOW::owLoop*>::iterator lit = active.begin(); 
+         lit != active.end(); 
+         lit++)
+    {
+        for (map<Address,unsigned char*>::iterator pit = (*lit)->shadowMap.begin();
+             pit != (*lit)->shadowMap.end();
+             pit++)
+        {
+            pages.insert(pit->first);
+        }
+    }
+    return !pages.empty();
+}
+
 //KEVINTODO: figure out why I'm tracking writeInsnAddrs, I'm not tracking it properly
