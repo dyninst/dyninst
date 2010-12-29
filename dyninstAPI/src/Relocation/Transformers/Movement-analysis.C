@@ -282,15 +282,20 @@ public:
 
   virtual bool endAtPoint (Assignment::Ptr p) {
     if (p->out().absloc().isPC()) return true;
-    return false;
+	return false;
   }
 
   virtual bool widenAtPoint (Assignment::Ptr p) {
-    if (p->out().absloc() == Absloc()) {
+    if (p->out().type() != Absloc::Unknown) {
       haveWidened = true;
       return true;
     }
-    return false;
+	if (p->out().containsOfType(Absloc::Register) &&
+		!p->out().absloc().isPC()) {
+			haveWidened = true;
+			return true;
+	}
+	return false;
   };
 
   virtual bool widenAtAssignment(const AbsRegion &search, const AbsRegion &found) {
@@ -640,7 +645,11 @@ void PCSensitiveTransformer::cacheAnalysis(const int_block *bbl, Address addr, b
 }
 
 bool PCSensitiveTransformer::queryCache(const int_block *bbl, Address addr, bool &intSens, bool &extSens) {
-   AnalysisCache::const_iterator iter = analysisCache_.find(bbl);
+	intSens = true;
+	extSens = true;
+	return true;
+	
+	AnalysisCache::const_iterator iter = analysisCache_.find(bbl);
    if (iter == analysisCache_.end()) return false;
    CacheEntry::const_iterator iter2 = iter->second.find(addr);
    if (iter2 == iter->second.end()) return false;
