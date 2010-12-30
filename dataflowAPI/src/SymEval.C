@@ -61,42 +61,48 @@ using namespace InstructionAPI;
 using namespace DataflowAPI;
 
 
-AST::Ptr SymEval::expand(const Assignment::Ptr &assignment) {
+std::pair<AST::Ptr, bool> SymEval::expand(const Assignment::Ptr &assignment) {
   // This is a shortcut version for when we only want a
   // single assignment
   
   Result_t res;
   // Fill it in to mark it as existing
   res[assignment] = AST::Ptr();
-  expand(res);
-  return res[assignment];
+  std::set<Instruction::Ptr> ignored;
+  bool succ = expand(res, ignored);
+  return std::make_pair(res[assignment], succ);
 }
 
-void SymEval::expand(Result_t &res, bool applyVisitors) {
+bool SymEval::expand(Result_t &res, 
+                     std::set<Instruction::Ptr> &failedInsns,
+                     bool applyVisitors) {
   // Symbolic evaluation works off an Instruction
   // so we have something to hand to ROSE. 
-  for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
-    if (i->second != AST::Ptr()) {
-      // Must've already filled it in from a previous instruction crack
-      continue;
-    }
+   failedInsns.clear();
+   for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
+      if (i->second != AST::Ptr()) {
+         // Must've already filled it in from a previous instruction crack
+         continue;
+      }
     Assignment::Ptr ptr = i->first;
     
-    expandInsn(ptr->insn(),
-	       ptr->addr(),
-	       res);
-  }
+    bool success = expandInsn(ptr->insn(),
+                              ptr->addr(),
+                              res);
+    if (!success) failedInsns.insert(ptr->insn());
+   }
 
-  if (applyVisitors) {
-    // Must apply the visitor to each filled in element
-    for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
-      if (!i->second) continue;
-      AST::Ptr tmp = simplifyStack(i->second, i->first->addr(), i->first->func());
-      BooleanVisitor b;
-      AST::Ptr tmp2 = tmp->accept(&b);
-      i->second = tmp2;
-    }
-  }
+   if (applyVisitors) {
+      // Must apply the visitor to each filled in element
+      for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
+         if (!i->second) continue;
+         AST::Ptr tmp = simplifyStack(i->second, i->first->addr(), i->first->func());
+         BooleanVisitor b;
+         AST::Ptr tmp2 = tmp->accept(&b);
+         i->second = tmp2;
+      }
+   }
+   return (!failedInsns.size());
 }
 
 void dfs(Node::Ptr source,
@@ -261,7 +267,10 @@ class ExpandOrder {
 
 // Do the previous, but use a Graph as a guide for
 // performing forward substitution on the AST results
-void SymEval::expand(Graph::Ptr slice, Result_t &res) {
+SymEval::Retval_t SymEval::expand(Graph::Ptr slice, Result_t &res) {
+   bool failedTranslation = false;
+   bool skippedInput = false;
+
     //cout << "Calling expand" << endl;
     // Other than the substitution this is pretty similar to the first example.
     NodeIterator gbegin, gend;
@@ -306,16 +315,38 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
       if(order == -1) // empty
         break;
 
-      if (!aNode->assign()) continue; // Could be a widen point
+      if (!aNode->assign()) {
+          worklist.mark_done(aNode);
+          continue; // Could be a widen point
+      }
 
       expand_cerr << "Visiting node " << aNode->assign()->format() 
         << " order " << order << endl;
 
+      if (order != 0) {
+	cerr << "ERROR: order is non zero: " << order << endl;
+      }
       assert(order == 0); // there are no loops
 
       AST::Ptr prev = res[aNode->assign()];
-      process(aNode, res, worklist.skipEdges()); 
+      Retval_t result = process(aNode, res, worklist.skipEdges()); 
       AST::Ptr post = res[aNode->assign()];
+      switch (result) {
+         case FAILED:
+            return FAILED;
+            break;
+         case WIDEN_NODE:
+            // Okay...
+            break;
+         case FAILED_TRANSLATION:
+            failedTranslation = true;
+            break;
+         case SKIPPED_INPUT:
+            skippedInput = true;
+            break;
+         case SUCCESS:
+            break;
+      }
 
       // We've visited this node, freeing its children
       // to be visited in turn
@@ -338,13 +369,16 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
         }
       }
     }
+    if (failedTranslation) return FAILED_TRANSLATION;
+    else if (skippedInput) return SKIPPED_INPUT;
+    else return SUCCESS;
 }
 
-void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
+bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 			 const uint64_t addr,
 			 Result_t &res) {
 
-  SymEvalPolicy policy(res, addr, insn->getArch());
+   SymEvalPolicy policy(res, addr, insn->getArch(), insn);
 
   SgAsmInstruction *roseInsn;
   switch(insn->getArch()) {
@@ -368,21 +402,29 @@ void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
     assert(0 && "Unimplemented symbolic expansion architecture");
     break;
   }
-  return;
+
+  if (policy.failedTranslate()) {
+     cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+     return false;
+  }
+  return true;
 }
 
 
-bool SymEval::process(SliceNode::Ptr ptr,
-		      Result_t &dbase,
-                      std::set<Edge::Ptr> &skipEdges) {
-    bool ret = false;
-    
+SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
+                                   Result_t &dbase,
+                                   std::set<Edge::Ptr> &skipEdges) {
+   bool failedTranslation;
+   bool skippedEdge = false;
+   bool skippedInput = false;
+   bool success = false;
+
     std::map<AbsRegion, std::set<Assignment::Ptr> > inputMap;
 
     expand_cerr << "Calling process on " << ptr->format() << endl;
 
     // Don't try an expansion of a widen node...
-    if (!ptr->assign()) return ret;
+    if (!ptr->assign()) return WIDEN_NODE;
 
     EdgeIterator begin, end;
     ptr->ins(begin, end);
@@ -395,6 +437,7 @@ bool SymEval::process(SliceNode::Ptr ptr,
        if (skipEdges.find(edge) != skipEdges.end()) {
 	 expand_cerr << "In process, skipping edge from " 
 		     << source->format() << endl;
+         skippedEdge = true;
 	 continue;
        }
        
@@ -410,8 +453,9 @@ bool SymEval::process(SliceNode::Ptr ptr,
     
     // All of the expanded inputs are in the parameter dbase
     // If not (like this one), add it
-
-    AST::Ptr ast = SymEval::expand(ptr->assign());
+    
+    AST::Ptr ast;
+    boost::tie(ast, failedTranslation) = SymEval::expand(ptr->assign());
     //expand_cerr << "\t ... resulting in " << dbase.format() << endl;
 
     // We have an AST. Now substitute in all of its predecessors.
@@ -435,6 +479,7 @@ bool SymEval::process(SliceNode::Ptr ptr,
 	else {
 	  // Not equal
 	  definition = AST::Ptr(); 
+          skippedInput = true;
 	  break;
 	}
       }
@@ -457,7 +502,7 @@ bool SymEval::process(SliceNode::Ptr ptr,
 	expand_cerr << "Skipping substitution because of null AST" << endl;
       } else {
 	ast = AST::substitute(ast, use, definition);
-	ret = true;
+        success = true;
       }	
       //expand_cerr << "\t result is " << res->format() << endl;
     }
@@ -469,7 +514,10 @@ bool SymEval::process(SliceNode::Ptr ptr,
 		<< (ast ? ast->format() : "<NULL AST>") << endl;
     
     dbase[ptr->assign()] = ast;
-    return ret;
+    if (failedTranslation) return FAILED_TRANSLATION;
+    else if (skippedEdge || skippedInput) return SKIPPED_INPUT;
+    else if (success) return SUCCESS;
+    else return FAILED;
 }
 
 AST::Ptr SymEval::simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func) {

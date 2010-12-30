@@ -72,7 +72,12 @@ StandardParseData::findFuncs(CodeRegion * /* cr */, Address addr,
 {
     return _rdata.findFuncs(addr,funcs);
 }
-
+int
+StandardParseData::findFuncs(CodeRegion * /* cr */, Address start, 
+    Address end, set<Function *> & funcs)
+{
+    return _rdata.findFuncs(start,end,funcs);
+}
 int StandardParseData::findBlocks(CodeRegion * /* cr */, Address addr,
     set<Block *> & blocks)
 {
@@ -216,7 +221,14 @@ OverlappingParseData::findFuncs(CodeRegion * cr, Address addr,
     region_data * rd = rmap[cr];
     return rd->findFuncs(addr,funcs);
 }
-
+int
+OverlappingParseData::findFuncs(CodeRegion * cr, Address start, 
+    Address end, set<Function *> & funcs)
+{
+    if(!HASHDEF(rmap,cr)) return 0;
+    region_data * rd = rmap[cr];
+    return rd->findFuncs(start,end,funcs);
+}
 int 
 OverlappingParseData::findBlocks(CodeRegion * cr, Address addr,
     set<Block *> & blocks)

@@ -1247,6 +1247,24 @@ Parser::findFuncs(CodeRegion *r, Address addr, set<Function *> & funcs)
     return _parse_data->findFuncs(r,addr,funcs);
 }
 
+int 
+Parser::findFuncs(CodeRegion *r, Address start, Address end, set<Function *> & funcs)
+{
+    if(_parse_state < COMPLETE) {
+        parsing_printf("[%s:%d] Parser::findFuncs([%lx,%lx),%lx,%lx) "
+                       "forced parsing\n",
+            FILE__,__LINE__,r->low(),r->high(),start,end);
+        parse();
+    }
+    if(_parse_state < FINALIZED) {
+        parsing_printf("[%s:%d] Parser::findFuncs([%lx,%lx),%lx,%lx) "
+                       "forced finalization\n",
+            FILE__,__LINE__,r->low(),r->high(),start,end);
+        finalize();
+    }
+    return _parse_data->findFuncs(r,start,end,funcs);
+}
+
 Block *
 Parser::findBlockByEntry(CodeRegion *r, Address entry)
 {

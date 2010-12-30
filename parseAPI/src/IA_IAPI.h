@@ -33,6 +33,7 @@
 #define IA_IAPI_H
 
 #include <boost/tuple/tuple.hpp>
+#include <boost/static_assert.hpp>
 
 #include "InstructionAdapter.h"
 #include "InstructionDecoder.h"
@@ -58,7 +59,12 @@ class IA_IAPI : public InstructionAdapter
                 Dyninst::ParseAPI::CodeRegion* r,
                 Dyninst::InstructionSource *isrc,
 		Dyninst::ParseAPI::Block * curBlk_);
-        virtual ~IA_IAPI() {
+
+        // We have a iterator, and so can't use the implicit copiers
+		IA_IAPI(const IA_IAPI &); 
+		IA_IAPI &operator=(const IA_IAPI &r);
+
+		virtual ~IA_IAPI() {
         }
         Dyninst::InstructionAPI::Instruction::Ptr getInstruction();
     

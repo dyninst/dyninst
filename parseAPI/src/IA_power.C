@@ -139,6 +139,18 @@ bool IA_IAPI::cleansStack() const
     return false;
 }
 
+class PPCReturnPredicates : public Slicer::Predicates {
+  virtual bool widenAtPoint(Assignment::Ptr p) {
+    for (std::vector<AbsRegion>::const_iterator iter = p->inputs().begin();
+	 iter != p->inputs().end(); ++iter) {
+      if ((*iter).type() != Absloc::Unknown)
+	return true;
+    }
+    return false;
+  }
+};
+
+
 
 bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const {
 
@@ -147,7 +159,7 @@ bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Func
   AssignmentConverter converter(true);
   vector<Assignment::Ptr>::iterator ait;
   vector<Assignment::Ptr> assgns;
-  Slicer::Predicates preds;
+  PPCReturnPredicates preds;
 
   Address retnAddr = bit->lastInsnAddr();
   InstructionDecoder retdec( _isrc->getPtrToInstruction( retnAddr ), 
