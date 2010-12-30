@@ -99,22 +99,40 @@ struct eh_cmp_func
                    const pair<Event::ptr, Handler*> &b)
    {
       //Async events go first
-      if (a.first->getEventType().code() == EventType::Async)
-         return true;
-      if (b.first->getEventType().code() == EventType::Async)
-         return false;
-      
+      if (a.first->getEventType().code() != EventType::Async ||
+          a.first->getEventType().code() != EventType::Async)
+      {
+         if (a.first->getEventType().code() == EventType::Async)
+            return true;
+         if (b.first->getEventType().code() == EventType::Async)
+            return false;
+      }
+
       //Others are run via handler priority
       if (a.second->getPriority() != b.second->getPriority())
          return a.second->getPriority() < b.second->getPriority();
 
+      //Hard-coded rule.  UserThreadDestroy always comes before LWPDestroy
+      if (a.first->getEventType().code() == EventType::LWPDestroy &&
+          b.first->getEventType().code() == EventType::UserThreadDestroy)
+         return false;
+      if (b.first->getEventType().code() == EventType::LWPDestroy &&
+          a.first->getEventType().code() == EventType::UserThreadDestroy)
+         return true;
+      
       //Subservient events run latter in handler tie
       if (a.first->subservientTo().lock() == b.first)
          return false;
       if (b.first->subservientTo().lock() == a.first)
          return true;
+
+      //Events are equal in order--just choose a consistent ordering at this point
       eventtype_cmp cmp;
-      return cmp(a.first->getEventType(), b.first->getEventType());
+      if (cmp(a.first->getEventType(), b.first->getEventType()))
+         return true;
+      if (cmp(b.first->getEventType(), a.first->getEventType()))
+         return false;
+      return a.first < b.first;
    }
 };
 
@@ -583,6 +601,8 @@ HandleThreadCreate::~HandleThreadCreate()
 void HandleThreadCreate::getEventTypesHandled(std::vector<EventType> &etypes)
 {
    etypes.push_back(EventType(EventType::None, EventType::ThreadCreate));
+   etypes.push_back(EventType(EventType::None, EventType::UserThreadCreate));
+   etypes.push_back(EventType(EventType::None, EventType::LWPCreate));
 }
 
 Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
@@ -594,9 +614,18 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    pthrd_printf("Handle thread create for %d/%d with new thread %d\n",
                 proc->getPid(), thrd ? thrd->getLWP() : -1, threadev->getLWP());
 
+   if (ev->getEventType().code() == EventType::UserThreadCreate)  {
+      //If we support both user and LWP thread creation, and we're doing a user
+      // creation, then the Thread object may already exist.  Do nothing.
+      int_thread *thr = proc->threadPool()->findThreadByLWP(threadev->getLWP());
+      if (thr) {
+         pthrd_printf("Thread object already exists, ThreadCreate handler doing nothing\n");
+         return ret_success;
+      }
+   }
    ProcPool()->condvar()->lock();
    
-   int_thread *newthr = int_thread::createThread(proc, 0, threadev->getLWP(), false);
+   int_thread *newthr = int_thread::createThread(proc, NULL_THR_ID, threadev->getLWP(), false);
    //New threads start stopped, but inherit the user state of the creating
    // thread (which should be 'running').
    newthr->setGeneratorState(int_thread::stopped);
@@ -622,6 +651,8 @@ HandleThreadDestroy::~HandleThreadDestroy()
 void HandleThreadDestroy::getEventTypesHandled(std::vector<EventType> &etypes)
 {
    etypes.push_back(EventType(EventType::Any, EventType::ThreadDestroy));
+   etypes.push_back(EventType(EventType::Any, EventType::UserThreadDestroy));
+   etypes.push_back(EventType(EventType::Any, EventType::LWPDestroy));
 }
 
 Handler::handler_ret_t HandleThreadDestroy::handleEvent(Event::ptr ev)
@@ -630,6 +661,16 @@ Handler::handler_ret_t HandleThreadDestroy::handleEvent(Event::ptr ev)
    int_process *proc = ev->getProcess()->llproc();
    if (ev->getEventType().time() == EventType::Pre) {
       pthrd_printf("Handling pre-thread destroy for %d\n", thrd->getLWP());
+      return ret_success;
+   }
+
+   if (ev->getEventType().code() == EventType::UserThreadCreate &&
+       proc->plat_supportLWPEvents()) 
+   {
+      //This is a user thread delete, but we still have an upcoming LWP 
+      // delete.  Don't actually do anything yet.
+      pthrd_printf("Handling user thread... postponing clean of %d/%d until LWP delete\n", 
+                   proc->getPid(), thrd->getLWP());
       return ret_success;
    }
 
@@ -1247,6 +1288,8 @@ bool HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_
          child_proc = static_cast<EventFork *>(ev.get())->getChildProcess();
          break;
       case EventType::ThreadCreate:
+      case EventType::UserThreadCreate:
+      case EventType::LWPCreate:
          event_has_child = true;
          child_thread = static_cast<EventNewThread *>(ev.get())->getNewThread();
          break;
@@ -1263,6 +1306,22 @@ bool HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_
    return true;
 }
 
+void HandleCallbacks::getRealEvents(EventType ev, std::vector<EventType> &out_evs)
+{
+   switch (ev.code()) {
+      case EventType::Terminate:
+         out_evs.push_back(EventType(ev.time(), EventType::Exit));
+         out_evs.push_back(EventType(ev.time(), EventType::Crash));
+         break;
+      case EventType::ThreadCreate:
+         out_evs.push_back(EventType(ev.time(), EventType::UserThreadCreate));
+         out_evs.push_back(EventType(ev.time(), EventType::LWPCreate));
+         break;
+      default:
+         out_evs.push_back(ev);
+   }
+}
+
 bool HandleCallbacks::registerCallback_int(EventType ev, Process::cb_func_t func)
 {
    pthrd_printf("Registering event %s with callback function %p\n", ev.name().c_str(), func);
@@ -1275,31 +1334,38 @@ bool HandleCallbacks::registerCallback_int(EventType ev, Process::cb_func_t func
    return true;
 }
 
-bool HandleCallbacks::registerCallback(EventType ev, Process::cb_func_t func)
+bool HandleCallbacks::registerCallback(EventType oev, Process::cb_func_t func)
 {
-   switch (ev.time()) {
-      case EventType::Pre:
-      case EventType::Post:
-      case EventType::None: {
-         bool result = registerCallback_int(ev, func);
-         if (!result) {
-            pthrd_printf("Did not register any callbacks for %s\n", ev.name().c_str());
-            setLastError(err_noevents, "EventType does not exist");
-            return false;
+   bool registered_cb = false;
+   std::vector<EventType> real_evs;
+   getRealEvents(oev, real_evs);
+   
+   for (std::vector<EventType>::iterator i = real_evs.begin(); i != real_evs.end(); i++)
+   {
+      EventType ev = *i;
+      switch (ev.time()) {
+         case EventType::Pre:
+         case EventType::Post:
+         case EventType::None: {
+            bool result = registerCallback_int(ev, func);
+            if (result)
+               registered_cb = true;
+            break;
          }
-         break;
-      }
-      case EventType::Any: {
-         bool result1 = registerCallback_int(EventType(EventType::Pre, ev.code()), func);
-         bool result2 = registerCallback_int(EventType(EventType::Post, ev.code()), func);
-         bool result3 = registerCallback_int(EventType(EventType::None, ev.code()), func);
-         if (!result1 && !result2 && !result3) {
-            pthrd_printf("Did not register any callbacks for %s\n", ev.name().c_str());
-            setLastError(err_noevents, "EventType does not exist");
-            return false;
+         case EventType::Any: {
+            bool result1 = registerCallback_int(EventType(EventType::Pre, ev.code()), func);
+            bool result2 = registerCallback_int(EventType(EventType::Post, ev.code()), func);
+            bool result3 = registerCallback_int(EventType(EventType::None, ev.code()), func);
+            if (result1 || result2 || result3)
+               registered_cb = true;
+            break;
          }
-         break;
       }
+   }
+   if (!registered_cb) {
+      pthrd_printf("Did not register any callbacks for %s\n", oev.name().c_str());
+      setLastError(err_noevents, "EventType does not exist");
+      return false;
    }
    return true;
 }
@@ -1319,25 +1385,37 @@ bool HandleCallbacks::removeCallback_int(EventType et, Process::cb_func_t func)
    return true;
 }
 
-bool HandleCallbacks::removeCallback(EventType et, Process::cb_func_t func)
+bool HandleCallbacks::removeCallback(EventType oet, Process::cb_func_t func)
 {
-   bool result = false;
-   switch (et.time()) {
-      case EventType::Pre:
-      case EventType::Post:
-      case EventType::None: {
-         result = removeCallback_int(et, func);
-      }
-      case EventType::Any: {
-         bool result1 = removeCallback_int(EventType(EventType::Pre, et.code()), func);
-         bool result2 = removeCallback_int(EventType(EventType::Post,et.code()), func);
-         bool result3 = removeCallback_int(EventType(EventType::None,et.code()), func);
-         result = (result1 || result2 || result3);
+   bool removed_cb = false;
+   std::vector<EventType> real_ets;
+   getRealEvents(oet, real_ets);
+   
+   for (std::vector<EventType>::iterator i = real_ets.begin(); i != real_ets.end(); i++)
+   {
+      EventType et = *i;
+
+      switch (et.time()) {
+         case EventType::Pre:
+         case EventType::Post:
+         case EventType::None: {
+            bool result = removeCallback_int(et, func);
+            if (result)
+               removed_cb = true;
+         }
+         case EventType::Any: {
+            bool result1 = removeCallback_int(EventType(EventType::Pre, et.code()), func);
+            bool result2 = removeCallback_int(EventType(EventType::Post,et.code()), func);
+            bool result3 = removeCallback_int(EventType(EventType::None,et.code()), func);
+            if (result1 || result2 || result3)
+               removed_cb = true;
+         }
       }
    }
-   if (!result) {
+
+   if (!removed_cb) {
       perr_printf("Attempted to remove non-existant callback %s\n", 
-                  et.name().c_str());
+                  oet.name().c_str());
       setLastError(err_badparam, "Callback does not exist");
       return false;
    }

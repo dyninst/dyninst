@@ -224,7 +224,10 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                      if (thread->getLWP() == proc->getPid())
                         event = Event::ptr(new EventExit(EventType::Pre, 0));
                      else {
-                        event = Event::ptr(new EventThreadDestroy(EventType::Pre));
+                        EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
+                        event = lwp_ev;
+                        event->setThread(thread->thread());
+                        lproc->decodeTdbLWPExit(lwp_ev);
                      }
                      break;
                   case PTRACE_EVENT_FORK: 
@@ -290,14 +293,23 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             if (ibp && ibp != thread->isClearingBreakpoint()) {
                pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(), 
                             thread->getLWP(), adjusted_addr);
-               event = Event::ptr(new EventBreakpoint(adjusted_addr, ibp));
+               EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(adjusted_addr, ibp));
+               event = event_bp;
+               event->setThread(thread->thread());
 
                if (adjusted_addr == lproc->getLibBreakpointAddr()) {
                   pthrd_printf("Breakpoint is library load/unload\n");
-                  Event::ptr lib_event = Event::ptr(new EventLibrary());
+                  EventLibrary::ptr lib_event = EventLibrary::ptr(new EventLibrary());
                   lib_event->setThread(thread->thread());
                   lib_event->setProcess(proc->proc());
+                  lproc->decodeTdbLibLoad(lib_event);
                   event->addSubservientEvent(lib_event);
+                  
+                  break;
+               }
+               if (lproc->decodeTdbBreakpoint(event_bp)) {
+                  pthrd_printf("Breakpoint was thread event\n");
+                  break;
                }
                break;
             }
@@ -355,8 +367,11 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       int exitcode = WEXITSTATUS(status);
       pthrd_printf("Decoded exit of thread %d/%d with code %d\n",
                    proc->getPid(), thread->getLWP(), exitcode);
-      event = Event::ptr(new EventThreadDestroy(EventType::Post));
+      EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
+      event = lwp_ev;
       event->setSyncType(Event::async);
+      event->setThread(thread->thread());
+      lproc->decodeTdbLWPExit(lwp_ev);
       thread->setGeneratorState(int_thread::exited);
    }
    else if (WIFEXITED(status) || WIFSIGNALED(status)) {
@@ -389,7 +404,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       if (parent->event_ext == PTRACE_EVENT_FORK)
          event = Event::ptr(new EventFork(child->pid));
       else if (parent->event_ext == PTRACE_EVENT_CLONE)
-         event = Event::ptr(new EventNewThread(child->pid));
+         event = Event::ptr(new EventNewLWP(child->pid));
       else 
          assert(0);
       event->setSyncType(Event::sync_thread);
@@ -507,7 +522,8 @@ linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::str
    int_process(p, e, a, f),
    sysv_process(p, e, a, f),
    unix_process(p, e, a, f),
-   x86_process(p, e, a, f)
+   x86_process(p, e, a, f),
+   thread_db_process(p, e, a, f)
 {
 }
 
@@ -515,7 +531,8 @@ linux_process::linux_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p),
    sysv_process(pid_, p),
    unix_process(pid_, p),
-   x86_process(pid_, p)
+   x86_process(pid_, p),
+   thread_db_process(pid_, p)
 {
 }
 
@@ -731,6 +748,11 @@ bool linux_process::needIndividualThreadAttach()
    return true;
 }
 
+bool linux_process::plat_supportLWPEvents() const
+{
+   return true;
+}
+
 bool linux_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
 {
    return findProcLWPs(pid, lwps);
@@ -845,7 +867,7 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
 }
 
 linux_thread::linux_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
-   int_thread(p, t, l)
+   thread_db_thread(p, t, l)
 {
 }
 
@@ -1367,6 +1389,64 @@ bool linux_thread::attach()
    return true;
 }
 
+#if !defined(ARCH_GET_FS)
+#define ARCH_GET_FS 0x1003
+#endif
+#if !defined(ARCH_GET_GS)
+#define ARCH_GET_GS 0x1004
+#endif
+#if !defined(PTRACE_GET_THREAD_AREA)
+#define PTRACE_GET_THREAD_AREA 25
+#endif
+#if !defined(PTRACE_ARCH_PRCTL)
+#define PTRACE_ARCH_PRCTL 30
+#endif
+#define FS_REG_NUM 25
+#define GS_REG_NUM 26
+
+bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
+{
+   Dyninst::Architecture arch = llproc()->getTargetArch();
+   switch (arch) {
+      case Arch_x86: {
+         uint32_t addrv[4];
+         int result = do_ptrace((pt_req) PTRACE_GET_THREAD_AREA, lwp, (void *) val, &addrv);
+         if (result != 0) {
+            int error = errno;
+            perr_printf("Error doing PTRACE_GET_THREAD_AREA on %d/%d: %s\n", llproc()->getPid(), lwp, strerror(error));
+            setLastError(err_internal, "Error doing PTRACE_GET_THREAD_AREA\n");
+            return false;
+         }
+         addr = (Dyninst::Address) addrv[1];
+         break;
+      }
+      case Arch_x86_64: {
+         int op;
+         if (val == FS_REG_NUM)
+            op = ARCH_GET_FS;
+         else if (val == GS_REG_NUM)
+            op = ARCH_GET_GS;
+         else {
+            perr_printf("Bad value (%d) passed to thrdb_getThreadArea\n", val);
+            return false;
+         }
+         uint64_t addrv;
+         int result = do_ptrace((pt_req) PTRACE_ARCH_PRCTL, lwp, &addrv, (void *) op);
+         if (result != 0) {
+            int error = errno;
+            perr_printf("Error doing PTRACE_ARCH_PRCTL on %d/%d: %s\n", llproc()->getPid(), lwp, strerror(error));
+            setLastError(err_internal, "Error doing PTRACE_ARCH_PRCTL\n");
+            return false;
+         }
+         addr = (Dyninst::Address) addrv;
+         break;
+      }
+      default:
+         assert(0); //Should not be needed on non-x86
+   }
+   return true;
+}
+
 ArchEventLinux::ArchEventLinux(bool inter_) : 
    status(0),
    pid(NULL_PID),
@@ -1480,6 +1560,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
       initialized = true;
    }
    hpool->addHandler(lbootstrap);
+   thread_db_process::addThreadDBHandlers(hpool);
    return hpool;
 }
 

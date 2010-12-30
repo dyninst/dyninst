@@ -347,6 +347,16 @@ class Thread
    bool setAllRegisters(RegisterPool &pool) const;
 
    /**
+    * User level thread info.  Only available after a UserThreadCreate event
+    **/
+   bool haveUserThreadInfo() const;
+   Dyninst::THR_ID getTID() const;
+   Dyninst::Address getStartFunction() const;
+   Dyninst::Address getStackBase() const;
+   unsigned long getStackSize() const;
+   Dyninst::Address getTLS() const;
+
+   /**
     * IRPC
     **/
    bool postIRPC(IRPC::ptr irpc) const;
