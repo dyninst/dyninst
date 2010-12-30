@@ -80,6 +80,7 @@ public:
    bool send_message(unsigned char *msg, unsigned msg_size, int sfd);
    bool send_message(unsigned char *msg, unsigned msg_size, Process::ptr p);
    bool block_for_events();
+   bool poll_for_events();
    
    bool registerEventCounter(EventType et);
 
@@ -99,6 +100,7 @@ class COMPLIB_DLL_EXPORT ProcControlMutator : public TestMutator {
 public:
   ProcControlMutator();
   virtual test_results_t setup(ParameterDict &param);
+  virtual test_results_t pre_init(ParameterDict &param);
   virtual ~ProcControlMutator();
   ProcControlComponent *comp;
 };

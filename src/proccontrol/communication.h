@@ -48,7 +48,18 @@ typedef struct {
    uint32_t is_threaded;
    uint32_t is_done;
 } forkinfo;
-      
+
+#define THREADINFO_CODE 0xBEEF0007
+typedef struct {
+   uint64_t code;
+   uint64_t pid;
+   uint64_t lwp;
+   uint64_t tid;
+   uint64_t a_stack_addr;
+   uint64_t initial_func;
+   uint64_t tls_addr;
+} threadinfo;
+
 #if defined(__cplusplus)
 }
 #endif
