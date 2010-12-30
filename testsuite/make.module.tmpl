@@ -307,12 +307,12 @@ endif
 
 ifneq ($(wildcard ../src/proccontrol), )
 ifneq ($(findstring proccontrol,$(fullSystem)),)
-mutatees: $(filter-out $(BUILD_FILTER), $(proccontrol_SOLO_MUTATEES))
+mutatees: $(filter-out $(BUILD_FILTER), $(proccontrol_SOLO_MUTATEES)) 
 mutatees_minimum: $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(proccontrol_SOLO_MUTATEES)))
 mutators: $(proccontrol_MUTATORS_SO)
 ifneq ($(proccontrol_MUTATORS_SO), )
 components: $(LIBPROCCONTROLCOMP)
-testlibs: $(PROCCONTROL_TESTLIBS) $(PROCCONTROL_TESTLIBS_ABI)
+testlibs: $(PROCCONTROL_TESTLIBS) $(PROCCONTROL_TESTLIBS_ABI) $(DYNINST_TESTLIBS)
 endif
 endif
 endif
