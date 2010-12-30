@@ -3559,7 +3559,12 @@ size_t RegisterPool::size() const
    return llregpool->regs.size();
 }
 
-Thread::ptr RegisterPool::getThread() const
+Thread::ptr RegisterPool::getThread()
+{
+   return llregpool->thread->thread();
+}
+
+Thread::const_ptr RegisterPool::getThread() const
 {
    return llregpool->thread->thread();
 }
@@ -4465,7 +4470,17 @@ Thread::~Thread()
    }
 }
 
-Process::ptr Thread::getProcess() const
+Process::const_ptr Thread::getProcess() const
+{
+   MTLock lock_this_func;
+   if (!llthread_) {
+      assert(exitstate_);
+      return exitstate_->proc_ptr;
+   }
+   return llthread_->proc();
+}
+
+Process::ptr Thread::getProcess()
 {
    MTLock lock_this_func;
    if (!llthread_) {
@@ -4906,7 +4921,7 @@ Thread::ptr ThreadPool::getInitialThread()
    return threadpool->initialThread()->thread();
 }
 
-const Thread::ptr ThreadPool::getInitialThread() const
+Thread::const_ptr ThreadPool::getInitialThread() const
 {
    return threadpool->initialThread()->thread();
 }
@@ -5025,7 +5040,7 @@ bool ThreadPool::const_iterator::operator!=(const const_iterator &i)
    return (i.curh != curh);
 }
 
-const Thread::ptr ThreadPool::const_iterator::operator*() const
+Thread::const_ptr ThreadPool::const_iterator::operator*() const
 {
    MTLock lock_this_func;
    assert(curp);
@@ -5097,7 +5112,7 @@ ThreadPool::const_iterator ThreadPool::find(Dyninst::LWP lwp) const
     return i;
 }
 
-const Process::ptr ThreadPool::getProcess() const
+Process::const_ptr ThreadPool::getProcess() const
 {
    MTLock lock_this_func;
    return threadpool->proc()->proc();

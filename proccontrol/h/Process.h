@@ -328,7 +328,8 @@ class Thread
    int_thread *llthrd() const;
 
    Dyninst::LWP getLWP() const;
-   Process::ptr getProcess() const;
+   Process::ptr getProcess();
+   Process::const_ptr getProcess() const;
 
    bool isStopped() const;
    bool isRunning() const;
@@ -404,7 +405,7 @@ class ThreadPool
    public:
       const_iterator();
       ~const_iterator();
-      const Thread::ptr operator*() const;
+      Thread::const_ptr operator*() const;
       bool operator==(const const_iterator &i);
       bool operator!=(const const_iterator &i);
       ThreadPool::const_iterator operator++();
@@ -415,9 +416,9 @@ class ThreadPool
    const_iterator find(Dyninst::LWP lwp) const;
 
    size_t size() const;
-   const Process::ptr getProcess() const;
+   Process::const_ptr getProcess() const;
    Process::ptr getProcess();
-   const Thread::ptr getInitialThread() const;
+   Thread::const_ptr getInitialThread() const;
    Thread::ptr getInitialThread();
 };
 
@@ -469,7 +470,8 @@ class RegisterPool
    const Dyninst::MachRegisterVal& operator[](Dyninst::MachRegister r) const;
 
    size_t size() const;
-   Thread::ptr getThread() const;
+   Thread::const_ptr getThread() const;
+   Thread::ptr getThread();
 };
 
 class EventNotify
