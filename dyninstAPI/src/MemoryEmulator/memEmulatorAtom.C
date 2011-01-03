@@ -303,6 +303,7 @@ bool MemEmulator::initialize(codeGen &gen) {
   registerSpace *rs = registerSpace::actualRegSpace(point_, callPreInsn);
   gen.setRegisterSpace(rs);
 
+  stackShift_ = 0;
   externalSaved_.clear();
 
   return true;
@@ -330,6 +331,7 @@ bool MemEmulator::setupFrame(bool needTwo, codeGen &gen) {
    if (insn_->getOperation().getID() == e_push) {
       // Value doesn't matter
       ::emitPush(RealRegister(REGNUM_EAX), gen);
+	  stackShift_ -= 4;
    }
 
    // Goals:
@@ -376,7 +378,7 @@ bool MemEmulator::computeEffectiveAddress(codeGen &gen) {
   // If we use RAX for the effective address calculation, we need to restore it, since
   // we just st0mped the flags. 
 
-  emitASload(start, effAddr_, gen, true);
+  emitASload(start, effAddr_, stackShift_, gen, true);
 
   return true;
 }
@@ -395,6 +397,7 @@ bool MemEmulator::trailingTeardown(codeGen &gen) {
    while (!externalSaved_.empty()) {
       Register pop = externalSaved_.front(); externalSaved_.pop_front();
       ::emitPop(RealRegister(pop), gen);
+  stackShift_ += 4;
    }
    return true;
 }
@@ -409,6 +412,7 @@ bool MemEmulator::saveFlags(codeGen &gen) {
 
   // Get 'em out of here
   ::emitPush(RealRegister(REGNUM_EAX), gen);
+  stackShift_ -= 4;
 
   return true;
 }
@@ -417,6 +421,7 @@ bool MemEmulator::restoreFlags(codeGen &gen) {
   if (saveFlags_ == false) return true;
 
   ::emitPop(RealRegister(REGNUM_EAX), gen);
+  stackShift_ += 4;
 
   emitRestoreO(gen);
   emitSimpleInsn(0x9E, gen);
@@ -513,6 +518,7 @@ bool MemEmulator::emulatePush(codeGen &gen) {
    // We have to push, since we _know_ we have no free
    // registers
    ::emitPush(RealRegister(toUse), gen);
+   stackShift_ -= 4;
 
    // Pull from memory into our spare register
    ::emitMovRMToReg(RealRegister(toUse),
@@ -527,6 +533,7 @@ bool MemEmulator::emulatePush(codeGen &gen) {
                     gen);
    // Restore toUse
    ::emitPop(RealRegister(toUse), gen);
+   stackShift_ += 4;
    // Restore the externalSaved stack
    if (!trailingTeardown(gen)) return false;
 
@@ -561,6 +568,7 @@ bool MemEmulator::emulatePop(codeGen &gen) {
    // We have to push, since we _know_ we have no free
    // registers
    ::emitPush(RealRegister(toUse), gen);
+   stackShift_ -= 4;
    // Load the value off the stack. We want an offset of
    // 4 + 4*(sizeof externalSaved)
    ::emitMovRMToReg(RealRegister(toUse),
@@ -574,6 +582,7 @@ bool MemEmulator::emulatePop(codeGen &gen) {
                     gen);
    // Restore toUse
    ::emitPop(RealRegister(toUse), gen);
+  stackShift_ += 4;
    // Restore the externalSaved stack
    if (!trailingTeardown(gen)) return false;
    // And now LEA to clear the dead value
@@ -599,7 +608,8 @@ bool MemEmulator::pushRegIfLive(registerSlot *reg, codeGen &gen) {
 
    if (true || reg->liveState == registerSlot::live) {
       ::emitPush(RealRegister(reg->encoding()), gen);
-      reg->liveState = registerSlot::spilled;
+	  stackShift_ -= 4;
+	  reg->liveState = registerSlot::spilled;
    }
    return true;
 }
@@ -607,6 +617,7 @@ bool MemEmulator::pushRegIfLive(registerSlot *reg, codeGen &gen) {
 bool MemEmulator::popRegIfSaved(registerSlot *reg, codeGen &gen) {
    if (reg->liveState == registerSlot::spilled) {
       ::emitPop(RealRegister(reg->encoding()), gen);
+  stackShift_ += 4;
       reg->liveState = registerSlot::live;
    }
    return true;
@@ -717,6 +728,7 @@ if (debug) {
 
    if (usesTwo) {
        ::emitPush(RealRegister(effAddr2_), prepatch);
+	   stackShift_ -= 4;
    }
    buffer.addPIC(prepatch, tracker(t->bbl()));
 
@@ -726,12 +738,15 @@ if (debug) {
        prepatch.setIndex(0);
    if (usesTwo) {
       ::emitPop(RealRegister(effAddr2_), prepatch);
+  stackShift_ += 4;
       ::emitPush(RealRegister(effAddr_), prepatch);
+	  stackShift_ -= 4;
       buffer.addPIC(prepatch, tracker(t->bbl()));
       buffer.addPatch(new MemEmulatorPatch(effAddr2_, addr_, getTranslatorAddr(prepatch, true)),
                    tracker(t->bbl()));
       prepatch.setIndex(0);
       ::emitPop(RealRegister(effAddr_), prepatch);
+  stackShift_ += 4;
    }
 
    if (!postCallRestore(prepatch)) return false;
@@ -760,6 +775,7 @@ if (debug) {
    // But it might have been changed by the operation, 
    // so instead subtract the shift
    ::emitPush(RealRegister(REGNUM_EAX), prepatch);
+   	   stackShift_ -= 4;
 
    if (saveFlags_) {
       if (!saveFlags(prepatch)) return false;
@@ -781,6 +797,7 @@ if (debug) {
    }
 
    ::emitPop(RealRegister(REGNUM_EAX), prepatch);
+     stackShift_ += 4;
 
    // And clean up
    if (!trailingTeardown(prepatch)) return false;
@@ -820,6 +837,7 @@ bool MemEmulator::stealEffectiveAddr(Register &ret, codeGen &gen) {
 
    // Okay, so we stole a reg that wasn't used by the instruction
    ::emitPush(RealRegister(ret), gen);
+	   stackShift_ -= 4;
    externalSaved_.push_front(ret);
    return true;
 }

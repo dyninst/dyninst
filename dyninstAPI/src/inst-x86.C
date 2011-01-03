@@ -1752,7 +1752,7 @@ void restoreGPRtoGPR(RealRegister src, RealRegister dest, codeGen &gen)
 
 // VG(11/07/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
-void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool /* noCost */)
+void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift, codeGen &gen, bool /* noCost */)
 {
     // TODO 16-bit registers, rep hacks
     long imm = as->getImm();
@@ -1760,10 +1760,10 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool 
     int rb  = as->getReg(1);
     int sc  = as->getScale();
 
-    gen.codeEmitter()->emitASload(ra, rb, sc, imm, dest, gen);
+    gen.codeEmitter()->emitASload(ra, rb, sc, imm, dest, stackShift, gen);
 }
 
-void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
+void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, int stackOffset, codeGen &gen)
 {
     bool havera = ra > -1, haverb = rb > -1;
    
@@ -1792,6 +1792,11 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, co
      else {
        // Don't have a base tramp - use only reals
        src1_r = RealRegister(ra);
+	   // If this is a stack pointer, modify imm to compensate
+	   // for any changes in the stack pointer
+	   if (ra == REGNUM_ESP) {
+		   imm -= stackOffset;
+	   }
      }
    }
 
@@ -1807,7 +1812,12 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, co
 	gen.rs()->markKeptRegister(src2);
       }
       else {
-	src2_r = RealRegister(rb);
+		  src2_r = RealRegister(rb);
+	      // If this is a stack pointer, modify imm to compensate
+	      // for any changes in the stack pointer
+	      if (rb == REGNUM_ESP) {
+			  imm -= (stackOffset*sc);
+		  }
       }
    }
    
