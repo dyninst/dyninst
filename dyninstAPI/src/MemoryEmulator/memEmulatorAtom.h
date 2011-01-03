@@ -157,6 +157,8 @@ class MemEmulator : public Atom {
    bool saveFlags_;
    bool saveRAX_;
    
+   int stackShift_;
+
    std::deque<Register> externalSaved_;
 
    static TranslatorMap translators_;

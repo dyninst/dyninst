@@ -558,7 +558,17 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
    
    // Step 3: LEA this sucker into ECX.
    const BPatch_addrSpec_NP *start = acc->getStartAddr(0);
-   emitASload(start, REGNUM_ECX, patch, true);
+   if (start->getReg(0) == REGNUM_ESP ||
+	   start->getReg(1) == REGNUM_ESP) {
+	  cerr << "ERROR: CF insn that uses the stack pointer! " << insn_->format() << endl;
+   }
+
+   int stackShift = -16;
+   // If we are a call _instruction_ but isCall is false, then we've got an extra word
+   // on the stack from an emulated return address
+   if (!isCall_ && insn_->getCategory() == c_CallInsn) stackShift -= 4;
+
+   emitASload(start, REGNUM_ECX, stackShift, patch, true);
    
    // Step 4: save flags post-LEA
    emitSimpleInsn(0x9f, patch);

@@ -1079,7 +1079,7 @@ bool BPatch_function::findOverlappingInt(BPatch_Vector<BPatch_function *> &funcs
     assert(addSpace);
 
     std::set<int_function *> overlappingIntFuncs;
-    if (!func->getOverlappingFuncs(overlappingIntFuncs)) {
+    if (!func->getSharingFuncs(overlappingIntFuncs)) {
         // No overlapping functions
         return false;
     }

@@ -223,7 +223,7 @@ typedef BPatch_addrSpec_NP BPatch_countSpec_NP;
 
 void emitJmpMC(int condition, int offset, codeGen &gen);
 
-void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool noCost);
+void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift, codeGen &gen, bool noCost);
 
 void emitCSload(const BPatch_countSpec_NP *as, Register dest, codeGen &gen, bool noCost);
 
