@@ -337,8 +337,13 @@ class int_function : public patchTarget {
    // OPTIMIZATION: we're not checking all blocks, only an exit
    // point; this _should_ work :) but needs to change if we
    // ever do flow-sensitive parsing
-   bool getOverlappingFuncs(std::set<int_function *> &funcs);
+   bool getSharingFuncs(std::set<int_function *> &funcs);
 
+   // Slower version of the above that also finds functions that occupy
+   // the same address range, even if they do not share blocks - this can
+   // be caused by overlapping but disjoint assembly sequences
+   bool getOverlappingFuncs(std::set<int_function *> &funcs);
+   bool getOverlappingFuncs(int_block *b, std::set<int_function *> &funcs);
 
    ////////////////////////////////////////////////
    // Misc
