@@ -1012,11 +1012,11 @@ bool insnCodeGen::generateMem(codeGen &gen,
     **********/
    Register newreg = Null_Register;
    if (loadExpr != Null_Register && storeExpr != Null_Register) {
-     cerr << "error 1" << endl;
+       cerr << "can't rewrite insn\nerror 1" << endl;
       return false; //Can only do one memory replace per instruction now
    }
    else if (loadExpr == Null_Register && storeExpr == Null_Register)  {
-      cerr << "Error in generateMem: loadExpr " << loadExpr << ", storeExpr " << storeExpr << endl;
+      cerr << "can't rewrite insn\nError in generateMem: loadExpr " << loadExpr << ", storeExpr " << storeExpr << endl;
       assert(0);
      return false; //None specified
    }
@@ -1045,7 +1045,7 @@ bool insnCodeGen::generateMem(codeGen &gen,
 	   //The instruction accesses memory via segment registers.  Disallow.
 	// That just takes all the fun out of it. Don't disallow, but still skip FS
 	   if (orig_instr.getPrefix()->getPrefix(1) == 0x64) {
-		   cerr << "Error: insn uses segment regs: " << hex << (int) orig_instr.getPrefix()->getPrefix(1) << endl;
+		   cerr << "Warning: insn uses segment regs: " << hex << (int) orig_instr.getPrefix()->getPrefix(1) << endl;
 		  return false;
 		   }
 	   }
@@ -1068,7 +1068,7 @@ bool insnCodeGen::generateMem(codeGen &gen,
    }
 
    if (loc.modrm_mod == 3) {
-      cerr << "Error: insn doesn't use MOD/RM (2)" <<  endl;
+      cerr << "can't rewrite insn\nError: insn doesn't use MOD/RM (2)" <<  endl;
       //This instruction doesn't use the MOD/RM to access memory
       return false;
    }

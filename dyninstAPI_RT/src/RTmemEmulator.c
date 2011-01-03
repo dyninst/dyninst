@@ -47,7 +47,7 @@
 
 struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0};
 
-//#define DEBUG_MEM_EM
+#define DEBUG_MEM_EM
 
 unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, unsigned long curAddr) {
    /* Standard nonblocking synchronization construct */
@@ -70,8 +70,8 @@ for (bidx=0; origAddr == 0x40d75e && bidx < 0x100; bidx+=4) {
 #endif
 
 #ifdef DEBUG_MEM_EM
-   fprintf(stderr, "RTtranslateMemory(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx 0x40d4bf = 0x%lx)\n", 
-           input, origAddr, curAddr, *(int*)0x40d4bf);
+   fprintf(stderr, "RTtranslateMemory(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx)\n", 
+           input, origAddr, curAddr);
 #endif
 
    do {
@@ -118,7 +118,8 @@ for (bidx=0; origAddr == 0x40d75e && bidx < 0x100; bidx+=4) {
    }
    else {
 #ifdef  DEBUG_MEM_EM
-      fprintf(stderr, "\t min %d, max %d, index %d, returning no change\n", min, max, index);
+      fprintf(stderr, "\t min %d, max %d, index %d returning no change ", min, max, index);
+      fprintf(stderr, "@deref 0x%x\n", *(int*)input);
 #endif
       return input;
    }
@@ -131,8 +132,8 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
    int max;
    volatile int guard2;
 #ifdef  DEBUG_MEM_EM
-   fprintf(stderr, "RTtranslateMemoryShift(ptr 0x%lx, origAddr 0x%lx, curAddr 0x%lx 0x40d4bf = 0x%lx)\n", 
-           input, origAddr, curAddr, *(int*)0x40d4bf);
+   fprintf(stderr, "RTtranslateMemoryShift(ptr 0x%lx, origAddr 0x%lx, curAddr 0x%lx)\n", 
+           input, origAddr, curAddr);
 #endif
    do {
       guard2 = RTmemoryMapper.guard2;
@@ -172,7 +173,8 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
    }
    else {
 #ifdef DEBUG_MEM_EM
-      fprintf(stderr, "\t min %d, max %d, index %d, returning no change\n", min, max, index);
+      fprintf(stderr, "\t min %d, max %d, index %d returning no change ", min, max, index);
+      fprintf(stderr, "@deref 0x%x\n", *(int*)input);
 #endif
       return 0;
    }
