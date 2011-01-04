@@ -1596,7 +1596,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
             assert(0);
         }
         start = ma->getStartAddr(which_);
-        emitASload(start, retReg, gen, noCost);
+        emitASload(start, retReg, 0, gen, noCost);
         break;
     }
     case BytesAccessed: {

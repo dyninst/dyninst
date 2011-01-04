@@ -1101,7 +1101,6 @@ image_func *int_function::ifunc() {
     return ifunc_;
 }
 
-
 // Dig down to the low-level block of b, find the low-level functions
 // that share it, and map up to int-level functions and add them
 // to the funcs list.
@@ -1129,11 +1128,11 @@ bool int_function::getSharingFuncs(int_block *b,
     return ret;
 }
 
-// Find overlapping functions via checking all basic blocks. We might be
+// Find sharing functions via checking all basic blocks. We might be
 // able to check only exit points; but we definitely need to check _all_
 // exits so for now we're checking everything.
 
-bool int_function::getOverlappingFuncs(std::set<int_function *> &funcs) {
+bool int_function::getSharingFuncs(std::set<int_function *> &funcs) {
     bool ret = false;
 
     // Create the block list.
@@ -1144,6 +1143,51 @@ bool int_function::getOverlappingFuncs(std::set<int_function *> &funcs) {
          bIter != blocks_.end(); 
          bIter++) {
        if (getSharingFuncs(*bIter,funcs))
+          ret = true;
+    }
+
+    return ret;
+}
+
+// Find functions that have overlapping, but disjoint, blocks in 
+// addition to shared blocks. Very slow!
+
+bool int_function::getOverlappingFuncs(int_block *block,
+										std::set<int_function *> &funcs) 
+{
+	ParseAPI::Block *llB = block->llb();
+	std::set<ParseAPI::Block *> overlappingBlocks;
+	for (Address i = llB->start(); i < llB->end(); ++i) {
+		llB->obj()->findBlocks(llB->region(), i, overlappingBlocks);
+	}
+	if (overlappingBlocks.size() > 1) {
+		int i = 3;
+	}
+	// We now have all of the overlapping ParseAPI blocks. Get the set of 
+	// ParseAPI::Functions containing each and up-map to int_functions
+	for (std::set<ParseAPI::Block *>::iterator iter = overlappingBlocks.begin();
+		iter != overlappingBlocks.end(); ++iter) {
+		std::vector<ParseAPI::Function *> llFuncs;
+		(*iter)->getFuncs(llFuncs);
+		for (std::vector<ParseAPI::Function *>::iterator iter2 = llFuncs.begin();
+			iter2 != llFuncs.end(); ++iter2) {
+			funcs.insert(obj()->findFunction(*iter2));
+		}
+	}
+	return (funcs.size() > 1);
+}
+
+bool int_function::getOverlappingFuncs(std::set<int_function *> &funcs) 
+{
+    bool ret = false;
+
+    // Create the block list.
+    blocks();
+    BlockSet::iterator bIter;
+    for (bIter = blocks_.begin(); 
+         bIter != blocks_.end(); 
+         bIter++) {
+       if (getOverlappingFuncs(*bIter,funcs))
           ret = true;
     }
 
