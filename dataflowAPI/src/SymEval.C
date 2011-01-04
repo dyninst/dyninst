@@ -50,108 +50,256 @@
 
 #include "../h/Absloc.h"
 
-#include "../h/slicing.h" // AssignNode
+#include "../h/slicing.h" // SliceNode
 
 #include "debug_dataflow.h"
+
+#include "boost/tuple/tuple.hpp"
 
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace DataflowAPI;
 
 
-AST::Ptr SymEval::expand(const Assignment::Ptr &assignment) {
+std::pair<AST::Ptr, bool> SymEval::expand(const Assignment::Ptr &assignment) {
   // This is a shortcut version for when we only want a
   // single assignment
   
   Result_t res;
   // Fill it in to mark it as existing
   res[assignment] = AST::Ptr();
-  expand(res);
-  return res[assignment];
+  std::set<Instruction::Ptr> ignored;
+  bool succ = expand(res, ignored);
+  return std::make_pair(res[assignment], succ);
 }
 
-void SymEval::expand(Result_t &res, bool applyVisitors) {
+bool SymEval::expand(Result_t &res, 
+                     std::set<Instruction::Ptr> &failedInsns,
+                     bool applyVisitors) {
   // Symbolic evaluation works off an Instruction
   // so we have something to hand to ROSE. 
-  for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
-    if (i->second != AST::Ptr()) {
-      // Must've already filled it in from a previous instruction crack
-      continue;
-    }
+   failedInsns.clear();
+   for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
+      if (i->second != AST::Ptr()) {
+         // Must've already filled it in from a previous instruction crack
+         continue;
+      }
     Assignment::Ptr ptr = i->first;
     
-    expandInsn(ptr->insn(),
-	       ptr->addr(),
-	       res);
-  }
+    bool success = expandInsn(ptr->insn(),
+                              ptr->addr(),
+                              res);
+    if (!success) failedInsns.insert(ptr->insn());
+   }
 
-  if (applyVisitors) {
-    // Must apply the visitor to each filled in element
-    for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
-      if (!i->second) continue;
-      AST::Ptr tmp = simplifyStack(i->second, i->first->addr(), i->first->func());
-      i->second = tmp;
-    }
-  }
+   if (applyVisitors) {
+      // Must apply the visitor to each filled in element
+      for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
+         if (!i->second) continue;
+         AST::Ptr tmp = simplifyStack(i->second, i->first->addr(), i->first->func());
+         BooleanVisitor b;
+         AST::Ptr tmp2 = tmp->accept(&b);
+         i->second = tmp2;
+      }
+   }
+   return (!failedInsns.size());
 }
 
-void dfs(Node::Ptr source, Node::Ptr node,
-        set<Node::Ptr> & dfs_nodes,
-        map<Node::Ptr, unsigned> & cycles) {
-    // If we've already encountered this node, we've found a loop!
-    // Mark as a circularity and break
-    if (dfs_nodes.find(node) != dfs_nodes.end()) {
-        expand_cerr << "Found cycle at " << node->format()
-            << ", marking node as not for substitution" << endl;
+void dfs(Node::Ptr source,
+         std::map<Node::Ptr, int> &state,
+         std::set<Edge::Ptr> &skipEdges) {
 
-        AssignNode::Ptr in = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(source);
-        Assignment::Ptr assign = in->assign();
-        AssignNode::Ptr cur_node = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(node);
-        
-        unsigned index = cur_node->getAssignmentIndex(in);
-        cycles.insert(make_pair(node, index));
-        return;
-    } else {
-        dfs_nodes.insert(node);
-    }   
+   // DFS from the node given by source
+   // If we meet a node twice without having to backtrack first,
+   // insert that incoming edge into skipEdges.
+   //
+   // A node n has state[n] > 0 if it is on the path currently
+   // being explored.
 
-    // Continue DFS by following out-edges
-    NodeIterator gbegin, gend;
-    node->outs(gbegin, gend);
-    for (; gbegin != gend; ++gbegin) {
-        dfs(node, *gbegin, dfs_nodes, cycles);
-    }
+   EdgeIterator b, e;
+   source->outs(b, e);
+
+   //state[source]++;
+   std::map<Node::Ptr, int>::iterator ssit = state.find(source);
+   if(ssit == state.end())
+    boost::tuples::tie(ssit,boost::tuples::ignore) = 
+        state.insert(make_pair(source,1));
+   else
+    (*ssit).second++;
+
+   for (; b != e; ++b) {
+      Edge::Ptr edge = *b;
+      Node::Ptr cur = edge->target();
+
+      std::map<Node::Ptr, int>::iterator sit = state.find(cur);
+      bool done = (sit != state.end());
+
+      if(done && (*sit).second > 0)
+        skipEdges.insert(edge);
+
+      if(!done)
+        dfs(cur, state, skipEdges);
+   }
+
+   //state[source]--;
+   (*ssit).second--;
 }
+
+/*
+ * Optimal ordering for visiting the slicing
+ * nodes during expansion; this is possible to do
+ * because we have removed loops
+ */
+class ExpandOrder {
+ public:
+    ExpandOrder() { }
+    ~ExpandOrder() { }
+
+    // remove an element from the next-lowest queue
+    // and return it and its order
+    pair<SliceNode::Ptr,int> pop_next()
+    {
+        SliceNode::Ptr rn = SliceNode::Ptr();
+        int ro = -1;
+
+        map<int,order_queue>::iterator qit = queues.begin();
+        for( ; qit != queues.end(); ++qit) {
+            order_queue & q = (*qit).second;
+            if(!q.nodes.empty()) {
+                rn = *q.nodes.begin();
+                ro = q.order; 
+                remove(rn);
+                break;
+            }
+        }
+        return make_pair(rn,ro);
+    }
+
+    // removes a node from the structure
+    // returns true if the node was there
+    bool remove(SliceNode::Ptr n) {
+        map<SliceNode::Ptr, int>::iterator it = order_map.find(n);
+        if(it != order_map.end()) {
+            queues[ (*it).second ].nodes.erase(n);
+            order_map.erase(it);
+            return true;
+        } 
+        return false;
+    }
+
+    // places a node in the structure -- its
+    // order is computed
+    void insert(SliceNode::Ptr n, bool force_done = false) {
+        // compute the order of this node --- the number of its parents
+        // not on the skipedges list and not done
+        EdgeIterator begin, end;
+        n->ins(begin,end);
+        int pcnt = 0;
+        for( ; begin != end; ++begin) {
+            Edge::Ptr edge = *begin;
+            if(skip_edges.find(edge) == skip_edges.end()) {
+                SliceNode::Ptr parent =
+                    dyn_detail::boost::static_pointer_cast<SliceNode>(
+                        edge->source());
+                if(done.find(parent) == done.end())
+                    ++pcnt;
+            }
+        }
+
+        queues[pcnt].nodes.insert(n);
+        queues[pcnt].order = pcnt;
+        order_map[n] = pcnt;
+
+        if(force_done)
+            done.insert(n);
+    }
+
+    // Mark a node complete, updating its children.
+    // Removes the node from the data structure
+    void mark_done(SliceNode::Ptr n) {
+        // First pull all of the children of this node
+        // that are not on the skip list
+
+        set<SliceNode::Ptr> children;
+
+        EdgeIterator begin, end;
+        n->outs(begin, end);
+        for (; begin != end; ++begin) {
+            Edge::Ptr edge = *begin;
+            if(skip_edges.find(edge) == skip_edges.end()) {
+                SliceNode::Ptr child = 
+                    dyn_detail::boost::static_pointer_cast<SliceNode>(
+                        edge->target());
+                if(remove(child))
+                    children.insert(child);
+            }
+        }
+
+        // remove n and set done
+        remove(n);
+        done.insert(n);
+
+        // put the children back
+        set<SliceNode::Ptr>::iterator cit = children.begin();
+        for( ; cit != children.end(); ++cit) {
+            insert(*cit); 
+        }
+    }
+    
+    bool is_done(SliceNode::Ptr n) const {
+        return done.find(n) == done.end();
+    }
+
+    set<Edge::Ptr> & skipEdges() { return skip_edges; }
+
+ private:
+    struct order_queue {
+        int order;
+        set<SliceNode::Ptr> nodes; 
+    };
+
+    set<Edge::Ptr> skip_edges; 
+    map<int,order_queue> queues;
+    map<SliceNode::Ptr, int> order_map;
+    set<SliceNode::Ptr> done;
+};
+
 
 // Do the previous, but use a Graph as a guide for
 // performing forward substitution on the AST results
-void SymEval::expand(Graph::Ptr slice, Result_t &res) {
+SymEval::Retval_t SymEval::expand(Graph::Ptr slice, Result_t &res) {
+   bool failedTranslation = false;
+   bool skippedInput = false;
+
     //cout << "Calling expand" << endl;
     // Other than the substitution this is pretty similar to the first example.
     NodeIterator gbegin, gend;
-    slice->entryNodes(gbegin, gend);
+    slice->allNodes(gbegin, gend);
 
-    std::queue<Node::Ptr> worklist;
+    // Optimal ordering of search
+    ExpandOrder worklist;
+
     std::queue<Node::Ptr> dfs_worklist;
     for (; gbegin != gend; ++gbegin) {
-      expand_cerr << "adding " << (*gbegin)->format() << " to worklist" << endl;
-      worklist.push(*gbegin);
-      dfs_worklist.push(*gbegin);
+      Node::Ptr ptr = *gbegin;
+      dfs_worklist.push(ptr);
     }
 
     /* First, we'll do DFS to check for circularities in the graph;
      * if so, mark them so we don't do infinite substitution */
-    set<Node::Ptr> dfs_nodes;
-    map<Node::Ptr, unsigned> cycles;
+    std::map<Node::Ptr, int> state;
     while (!dfs_worklist.empty()) {
-        Node::Ptr ptr = dfs_worklist.front(); dfs_worklist.pop();
+       Node::Ptr ptr = dfs_worklist.front(); dfs_worklist.pop();
+       dfs(ptr, state, worklist.skipEdges());
+    }
 
-        NodeIterator nbegin, nend;
-        ptr->outs(nbegin, nend);
-
-        for (; nbegin != nend; ++nbegin) {
-            dfs(ptr, *nbegin, dfs_nodes, cycles);
-        }
+    slice->allNodes(gbegin, gend);
+    for (; gbegin != gend; ++gbegin) {
+        expand_cerr << "adding " << (*gbegin)->format() << " to worklist" << endl;
+        Node::Ptr ptr = *gbegin;
+        SliceNode::Ptr sptr = 
+            dyn_detail::boost::static_pointer_cast<SliceNode>(ptr);
+        worklist.insert(sptr,false);
     }
 
     /* have a list
@@ -159,41 +307,78 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
      * if processessing succeeded, remove the element
      * if the size of the list has changed, continue */
 
-    while (!worklist.empty()) {
-      Node::Ptr ptr = worklist.front(); worklist.pop();
-      AssignNode::Ptr aNode = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(ptr);
-      if (!aNode) continue; // They need to be AssignNodes
-      
-      if (!aNode->assign()) continue; // Could be a widen point
-      
-      expand_cerr << "Visiting node " << aNode->assign()->format() << endl;
+    while (1) {
+      SliceNode::Ptr aNode;
+      int order;
+
+      boost::tie(aNode,order) = worklist.pop_next();
+      if(order == -1) // empty
+        break;
+
+      if (!aNode->assign()) {
+          worklist.mark_done(aNode);
+          continue; // Could be a widen point
+      }
+
+      expand_cerr << "Visiting node " << aNode->assign()->format() 
+        << " order " << order << endl;
+
+      if (order != 0) {
+	cerr << "ERROR: order is non zero: " << order << endl;
+      }
+      assert(order == 0); // there are no loops
 
       AST::Ptr prev = res[aNode->assign()];
-      
-      process(aNode, res, cycles); 
-    
+      Retval_t result = process(aNode, res, worklist.skipEdges()); 
       AST::Ptr post = res[aNode->assign()];
+      switch (result) {
+         case FAILED:
+            return FAILED;
+            break;
+         case WIDEN_NODE:
+            // Okay...
+            break;
+         case FAILED_TRANSLATION:
+            failedTranslation = true;
+            break;
+         case SKIPPED_INPUT:
+            skippedInput = true;
+            break;
+         case SUCCESS:
+            break;
+      }
+
+      // We've visited this node, freeing its children
+      // to be visited in turn
+      worklist.mark_done(aNode);
 
       if (post && !(post->equals(prev))) {
-	// Oy
-	expand_cerr << "Adding successors to list, as new expansion " << endl
-		    << "\t" << post->format() << endl 
-		    << " != " << endl
-		    << "\t" << (prev ? prev->format() : "<NULL>") << endl;
-	NodeIterator oB, oE;
-	aNode->outs(oB, oE);
-	for (; oB != oE; ++oB) {
-	  worklist.push(*oB);
-	}
+        expand_cerr << "Adding successors to list, as new expansion " << endl
+            << "\t" << post->format() << endl 
+            << " != " << endl
+            << "\t" << (prev ? prev->format() : "<NULL>") << endl;
+        EdgeIterator oB, oE;
+        aNode->outs(oB, oE);
+        for (; oB != oE; ++oB) {
+            if(worklist.skipEdges().find(*oB) == worklist.skipEdges().end()) {
+                SliceNode::Ptr out =
+                    dyn_detail::boost::static_pointer_cast<SliceNode>(
+                        (*oB)->target());
+                worklist.insert(out);
+            }
+        }
       }
     }
+    if (failedTranslation) return FAILED_TRANSLATION;
+    else if (skippedInput) return SKIPPED_INPUT;
+    else return SUCCESS;
 }
 
-void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
+bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 			 const uint64_t addr,
 			 Result_t &res) {
 
-  SymEvalPolicy policy(res, addr, insn->getArch());
+   SymEvalPolicy policy(res, addr, insn->getArch(), insn);
 
   SgAsmInstruction *roseInsn;
   switch(insn->getArch()) {
@@ -217,106 +402,122 @@ void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
     assert(0 && "Unimplemented symbolic expansion architecture");
     break;
   }
-  return;
+
+  if (policy.failedTranslate()) {
+     cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+     return false;
+  }
+  return true;
 }
 
 
-bool SymEval::process(AssignNode::Ptr ptr,
-		      Result_t &dbase,
-                      map<Node::Ptr, unsigned> & cycles) {
-    bool ret = false;
-    
-    std::map<unsigned, Assignment::Ptr> inputMap;
+SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
+                                   Result_t &dbase,
+                                   std::set<Edge::Ptr> &skipEdges) {
+   bool failedTranslation;
+   bool skippedEdge = false;
+   bool skippedInput = false;
+   bool success = false;
+
+    std::map<AbsRegion, std::set<Assignment::Ptr> > inputMap;
 
     expand_cerr << "Calling process on " << ptr->format() << endl;
 
     // Don't try an expansion of a widen node...
-    if (!ptr->assign()) return ret;
+    if (!ptr->assign()) return WIDEN_NODE;
 
-    NodeIterator begin, end;
+    EdgeIterator begin, end;
     ptr->ins(begin, end);
 
     for (; begin != end; ++begin) {
-        AssignNode::Ptr in = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*begin);
-        if (!in) continue;
+       SliceEdge::Ptr edge = dyn_detail::boost::static_pointer_cast<SliceEdge>(*begin);
+       SliceNode::Ptr source = dyn_detail::boost::static_pointer_cast<SliceNode>(edge->source());
 
-        Assignment::Ptr assign = in->assign();
-
-        if (!assign) continue;
-
-        // Find which input this assignNode maps to
-        unsigned index = ptr->getAssignmentIndex(in);
-        expand_cerr << "Assigning input " << index << " from assignment " << assign->format() << endl;
-        if (inputMap.find(index) == inputMap.end()) {
-            inputMap[index] = assign;
-        }
-        else {
-            // Need join operator!
-            expand_cerr << "\t Overlap in inputs, setting to null assignment pointer" << endl;
-            inputMap[index] = Assignment::Ptr(); // Null equivalent
-        }
+       // Skip this one to break a cycle.
+       if (skipEdges.find(edge) != skipEdges.end()) {
+	 expand_cerr << "In process, skipping edge from " 
+		     << source->format() << endl;
+         skippedEdge = true;
+	 continue;
+       }
+       
+       Assignment::Ptr assign = source->assign();
+       if (!assign) continue; // widen node
+       
+       expand_cerr << "Assigning input " << edge->data().format() 
+                   << " from assignment " << assign->format() << endl;
+       inputMap[edge->data()].insert(assign);
     }
-
+    
     expand_cerr << "\t Input map has size " << inputMap.size() << endl;
-
+    
     // All of the expanded inputs are in the parameter dbase
     // If not (like this one), add it
-
-    AST::Ptr ast = SymEval::expand(ptr->assign());
+    
+    AST::Ptr ast;
+    boost::tie(ast, failedTranslation) = SymEval::expand(ptr->assign());
     //expand_cerr << "\t ... resulting in " << dbase.format() << endl;
 
     // We have an AST. Now substitute in all of its predecessors.
-    for (std::map<unsigned, Assignment::Ptr>::iterator iter = inputMap.begin();
-            iter != inputMap.end(); ++iter) {
-        if (!iter->second) {
-            // Colliding definitions; skip.
-            //cerr << "Skipping subsitution for input " << iter->first << endl;
-            continue;
-        }
-        expand_cerr << "Substituting input " << iter->first << " with assignment " << iter->second->format() << endl;
-        // The region used by the current assignment...
-        const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
+    for (std::map<AbsRegion, std::set<Assignment::Ptr> >::iterator iter = inputMap.begin();
+         iter != inputMap.end(); ++iter) {
+      // If we have multiple secondary definitions, we:
+      //   if all definitions are equal, use the first
+      //   otherwise, use nothing
+      AST::Ptr definition;
 
-        // Create an AST around this one
-        VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));
+      for (std::set<Assignment::Ptr>::iterator iter2 = iter->second.begin(); 
+	   iter2 != iter->second.end(); ++iter2) {
+	AST::Ptr newDef = dbase[*iter2];
+	if (!definition) {
+	  definition = newDef;
+	  continue;
+	}
+	else if (definition->equals(newDef)) {
+	  continue;
+	}
+	else {
+	  // Not equal
+	  definition = AST::Ptr(); 
+          skippedInput = true;
+	  break;
+	}
+      }
 
-        // And substitute whatever we have in the database for that AST
-        AST::Ptr definition = dbase[iter->second];
-
-        if (!definition) {
-            // Can happen if we're expanding out of order, and is generally harmless.
-            continue;
-        }
-
-        expand_cerr << "Before substitution: " << (ast ? ast->format() : "<NULL AST>") << endl;
-
-        if (!ast) {
-            expand_cerr << "Skipping substitution because of null AST" << endl;
-        } else {
-            // Check if we have a circular dependency here; if yes, don't substitute
-            map<Node::Ptr, unsigned>::iterator cit;
-            cit = cycles.find(ptr);
-            if (cit != cycles.end()) {
-                if (cit->second == iter->first) {
-                    expand_cerr << "Found in-edge that's a cycle, skipping substitution" << endl;
-                    break;
-                }
-            }
-
-            ast = AST::substitute(ast, use, definition);
-            ret = true;
-        }	
-        //expand_cerr << "\t result is " << res->format() << endl;
+      
+      // The region used by the current assignment...
+      const AbsRegion &reg = iter->first;
+      
+      // Create an AST around this one
+      VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));
+      
+      if (!definition) {
+	// Can happen if we're expanding out of order, and is generally harmless.
+	continue;
+      }
+      
+      expand_cerr << "Before substitution: " << (ast ? ast->format() : "<NULL AST>") << endl;
+      
+      if (!ast) {
+	expand_cerr << "Skipping substitution because of null AST" << endl;
+      } else {
+	ast = AST::substitute(ast, use, definition);
+        success = true;
+      }	
+      //expand_cerr << "\t result is " << res->format() << endl;
     }
     expand_cerr << "Result of substitution: " << ptr->assign()->format() << " == " << (ast ? ast->format() : "<NULL AST>") << endl;
-
+    
     // And attempt simplification again
     ast = simplifyStack(ast, ptr->addr(), ptr->func());
     expand_cerr << "Result of post-substitution simplification: " << ptr->assign()->format() << " == " 
 		<< (ast ? ast->format() : "<NULL AST>") << endl;
     
     dbase[ptr->assign()] = ast;
-    return ret;
+    if (failedTranslation) return FAILED_TRANSLATION;
+    else if (skippedEdge || skippedInput) return SKIPPED_INPUT;
+    else if (success) return SUCCESS;
+    else return FAILED;
 }
 
 AST::Ptr SymEval::simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func) {

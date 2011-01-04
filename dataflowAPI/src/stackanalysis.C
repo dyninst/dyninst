@@ -713,10 +713,15 @@ void StackAnalysis::computeInsnEffects(Block *block,
         iFunc.delta() = -1*word_size;
         stackanalysis_printf("\t\t\t Stack height reset by leave: %s\n", iFunc.format().c_str());
         return;
-    case power_op_si:
+    case e_pushfd:
         sign = -1;
+    case e_popfd:
+        iFunc.delta() = sign * word_size;
+        stackanalysis_printf("\t\t\t Stack height changed by flag push/pop: %s\n", iFunc.format().c_str());
+        return;
     case power_op_addi:
-      {
+    case power_op_addic:
+        {
         // Add/subtract are op0 = op1 +/- op2; we'd better read the stack pointer as well as writing it
         Operand arg = insn->getOperand(2);
         Result delta = arg.getValue()->eval();

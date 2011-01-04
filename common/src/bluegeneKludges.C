@@ -31,11 +31,6 @@
 
 #include <common/h/headers.h>
 
-#include "BG_AuxvReader.h"
-#include "parseauxv.h"
-#include "auxvtypes.h"
-
-
 // taken from LinuxKludges.C.
 // TODO: put this in some common place?  It's used by at least 2 platforms.
 char * P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeTypes ) 
@@ -62,6 +57,10 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeT
 } /* end P_cplus_demangle() */
 
 
+#if !defined(os_bg_compute)
+#include "BG_AuxvReader.h"
+#include "parseauxv.h"
+#include "auxvtypes.h"
 
 bool AuxvParser::readAuxvInfo() {
   BG_AuxvReader reader(pid);
@@ -82,3 +81,4 @@ bool AuxvParser::readAuxvInfo() {
 }
 
 
+#endif

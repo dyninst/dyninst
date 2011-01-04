@@ -68,8 +68,14 @@ void DYNINSTbreakPoint()
 void DYNINSTsafeBreakPoint()
 {
     DYNINST_break_point_event = 2; /* Not the same as above */
-    while (DYNINST_break_point_event)
-        kill(getpid(), SIGSTOP);
+
+    // We cannot send SIGSTOPs to ourselves - it triggers kernel
+    // bugs on exit -> see bug 1081
+
+    // We can now use SIGTRAPs in this situation because we
+    // can now trust that the child will be traced on exit from
+    // fork
+    kill(getpid(), SIGTRAP);
 }
 
 void DYNINSTos_init(int calledByFork, int calledByAttach)

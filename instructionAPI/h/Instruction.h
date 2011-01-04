@@ -74,6 +74,10 @@ namespace Dyninst
     ///
     class Instruction
     {
+        /// Component version information corresponding to \c libInstructionAPI.so.(major).(minor).(maintenance)
+        /// Note that \c maintenance may be absent from the binary (in which case, it will be zero in the interface).
+
+        INSTRUCTION_EXPORT static void version(int& major, int& minor, int& maintenance);
       union raw_insn_T
       {
 	unsigned int small_insn;

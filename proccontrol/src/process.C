@@ -52,6 +52,18 @@ const map<int,int> Process::emptyFDs;
 Process::thread_mode_t threadingMode = Process::GeneratorThreading;
 bool int_process::in_callback = false;
 
+static const int ProcControl_major_version = 0;
+static const int ProcControl_minor_version = 1;
+static const int ProcControl_maintenance_version = 0;
+
+void Process::version(int& major, int& minor, int& maintenance)
+{
+    major = ProcControl_major_version;
+    minor = ProcControl_minor_version;
+    maintenance = ProcControl_maintenance_version;
+}
+
+
 bool int_process::create()
 {
    ProcPool()->condvar()->lock();
@@ -4874,6 +4886,16 @@ ThreadPool::iterator ThreadPool::end()
    return i;
 }
 
+ThreadPool::iterator ThreadPool::find(Dyninst::LWP lwp)
+{
+    MTLock lock_this_func;
+    ThreadPool::iterator i = begin();
+    for(; i != end(); ++i) {
+        if( (*i)->getLWP() == lwp ) break;
+    }
+    return i;
+}
+
 ThreadPool::const_iterator::const_iterator()
 {
    curp = NULL;
@@ -4955,6 +4977,16 @@ ThreadPool::const_iterator ThreadPool::end() const
    i.curi = (int) threadpool->hl_threads.size();
    i.curh = Thread::ptr();
    return i;
+}
+
+ThreadPool::const_iterator ThreadPool::find(Dyninst::LWP lwp) const
+{
+    MTLock lock_this_func;
+    ThreadPool::const_iterator i = begin();
+    for(; i != end(); ++i) {
+        if( (*i)->getLWP() == lwp ) break;
+    }
+    return i;
 }
 
 const Process::ptr ThreadPool::getProcess() const

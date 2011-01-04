@@ -75,6 +75,10 @@ bool df_init_debug() {
   return true;
 }
 
+bool slicing_debug_on() {
+    return df_debug_slicing != 0;
+}
+
 int stackanalysis_printf_int(const char *format, ...)
 {
   if (!df_debug_stackanalysis) return 0;

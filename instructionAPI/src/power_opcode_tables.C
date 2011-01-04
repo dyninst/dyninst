@@ -25,7 +25,7 @@ void power_entry::buildTables()
     main_opcode_table.push_back(power_entry(power_op_dozi, "dozi", NULL, list_of(fn(RT))(fn(RA))(fn(SI))));
     main_opcode_table.push_back(power_entry(power_op_cmpli, "cmpli", NULL, list_of(fn(BF))(fn(L))(fn(RA))(fn(UI))));
     main_opcode_table.push_back(power_entry(power_op_cmpi, "cmpi", NULL, list_of(fn(BF))(fn(L))(fn(RA))(fn(SI))));
-    main_opcode_table.push_back(power_entry(power_op_si, "si", NULL, list_of(fn(RT))(fn(RA))(fn(SI))));
+    main_opcode_table.push_back(power_entry(power_op_addic, "addic", NULL, list_of(fn(RT))(fn(RA))(fn(SI))));
     main_opcode_table.push_back(power_entry(power_op_addic_rc, "addic.", NULL, list_of(fn(RT))(fn(RA))(fn(SI))));
     main_opcode_table.push_back(power_entry(power_op_addi, "addi", NULL, list_of(fn(RT))(fn(RA))(fn(SI))));
     main_opcode_table.push_back(power_entry(power_op_addis, "addis", NULL, list_of(fn(RT))(fn(RA))(fn(SI))));

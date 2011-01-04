@@ -178,6 +178,11 @@ BPatch_sourceObj *BPatch_function::getObjParent()
     return (BPatch_sourceObj *) mod;
 }
 
+std::string BPatch_function::getNameStr() {
+   return func->prettyName();
+}
+
+
 /*
  * BPatch_function::getName
  *

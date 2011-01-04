@@ -31,6 +31,7 @@
 
 
 #include "IA_IAPI.h"
+#include "IA_power.h"
 
 #include "Register.h"
 #include "Dereference.h"
@@ -69,9 +70,58 @@ bool IA_IAPI::isThunk() const {
     return false;
 }
 
-bool IA_IAPI::isTailCall(Function*,unsigned int) const
+bool IA_IAPI::isTailCall(Function* /*context*/,unsigned int) const
 {
-    return false;
+    parsing_printf("Checking for Tail Call \n");
+
+    if(tailCall.first) {
+        parsing_printf("\tReturning cached tail call check result: %d\n", tailCall.second);
+        return tailCall.second;
+    }
+    tailCall.first = true;
+
+    if(curInsn()->getCategory() == c_BranchInsn &&
+       _obj->findFuncByEntry(_cr,getCFT()))
+    {
+        parsing_printf("\tjump to 0x%lx, TAIL CALL\n", getCFT());
+        tailCall.second = true;
+        return tailCall.second;
+    }
+
+    if(allInsns.size() < 2) {
+        tailCall.second = false;
+        parsing_printf("\ttoo few insns to detect tail call\n");
+        return tailCall.second;
+    }
+/*
+    if(curInsn()->getCategory() == c_BranchInsn ||
+       curInsn()->getCategory() == c_CallInsn)
+    {
+        std::map<Address, Instruction::Ptr>::const_iterator prevIter =
+                allInsns.find(current);
+        --prevIter;
+        Instruction::Ptr prevInsn = prevIter->second;
+        if(prevInsn->getOperation().getID() == e_leave)
+        {
+            parsing_printf("\tprev insn was leave, TAIL CALL\n");
+            tailCall.second = true;
+            return tailCall.second;
+        }
+        if(prevInsn->getOperation().getID() == e_pop)
+        {
+            if(prevInsn->isWritten(framePtr[_isrc->getArch()]))
+            {
+                parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn->format().c_str());
+                tailCall.second = true;
+                return tailCall.second;
+            }
+            parsing_printf("\tprev insn was %s, not tail call\n", prevInsn->format().c_str());
+        }
+    }
+*/
+    tailCall.second = false;
+    return tailCall.second;
+
 }
 
 bool IA_IAPI::savesFP() const
@@ -89,46 +139,211 @@ bool IA_IAPI::cleansStack() const
     return false;
 }
 
+class PPCReturnPredicates : public Slicer::Predicates {
+  virtual bool widenAtPoint(Assignment::Ptr p) {
+    for (std::vector<AbsRegion>::const_iterator iter = p->inputs().begin();
+	 iter != p->inputs().end(); ++iter) {
+      if ((*iter).type() != Absloc::Unknown)
+	return true;
+    }
+    return false;
+  }
+};
 
-bool IA_IAPI::isReturnAddrSave() const
+
+
+bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const {
+
+  parsing_printf(" sliceReturn ret 0x%lx address 0x%lx func %s addr 0x%lx \n", ret_addr, bit->lastInsnAddr(), func->name().c_str(), func->addr() );
+  AST::Ptr pcDef;
+  AssignmentConverter converter(true);
+  vector<Assignment::Ptr>::iterator ait;
+  vector<Assignment::Ptr> assgns;
+  PPCReturnPredicates preds;
+
+  Address retnAddr = bit->lastInsnAddr();
+  InstructionDecoder retdec( _isrc->getPtrToInstruction( retnAddr ), 
+                             InstructionDecoder::maxInstructionLength, 
+                             _cr->getArch() );
+  Instruction::Ptr retn = retdec.decode();
+  converter.convert(retn, retnAddr, func, assgns);
+  for (ait = assgns.begin(); assgns.end() != ait; ait++) {
+      AbsRegion & outReg = (*ait)->out();
+      if ( outReg.absloc().isPC() ) {
+          Slicer slicer(*ait,bit,func);
+          Graph::Ptr slGraph = slicer.backwardSlice(preds);
+          DataflowAPI::SymEval::Result_t slRes;
+          DataflowAPI::SymEval::expand(slGraph,slRes);
+          pcDef = slRes[*ait];
+	  if (!pcDef) assert(0);
+	  /*
+  	 for (DataflowAPI::SymEval::Result_t::const_iterator r_iter = slRes.begin();
+       		r_iter != slRes.end(); ++r_iter) {
+    		cout << "-----------------" << endl;
+    		cout << r_iter->first->format();
+    		cout << " == ";
+    		cout << (r_iter->second ? r_iter->second->format() : "<NULL>") << endl;
+
+    	}
+*/
+        break;
+      }
+  }
+
+  PPC_BLR_Visitor checker(ret_addr);
+  pcDef->accept(&checker);
+  if (checker.returnState() == PPC_BLR_Visitor::PPC_BLR_RETURN) {
+    return true;
+  } else {
+            return false;
+  }
+}
+
+bool IA_IAPI::isReturnAddrSave(Address& retAddr) const
 {
-    // FIXME it seems as though isReturnAddrSave won't work for PPC64
-    static RegisterAST::Ptr ppc_theLR(new RegisterAST(ppc32::lr));
-    static RegisterAST::Ptr ppc_stackPtr(new RegisterAST(ppc32::r1));
-    static RegisterAST::Ptr ppc_gpr0(new RegisterAST(ppc32::r0));
+  // FIXME it seems as though isReturnAddrSave won't work for PPC64
+  static RegisterAST::Ptr ppc_theLR (new RegisterAST (ppc32::lr));
+  static RegisterAST::Ptr ppc_stackPtr (new RegisterAST (ppc32::r1));
+  static RegisterAST::Ptr ppc_gpr0 (new RegisterAST (ppc32::r0));
+  std::set < RegisterAST::Ptr > regs;
+  RegisterAST::Ptr destLRReg;
+  bool foundMFLR = false;
+  Address ret = 0;
+  int cnt = 1;
+  Instruction::Ptr ci = curInsn ();
+   parsing_printf(" Examining address 0x%lx to check if LR is saved on stack \n", getAddr());
+    parsing_printf("\t\tchecking insn %s \n", ci->format().c_str());
 
-    bool foundMFLR = false;   
-    bool ret = false;
-    Instruction::Ptr ci = curInsn();
-    if(ci->getOperation().getID() == power_op_mfspr &&
-       ci->isRead(ppc_theLR) &&
-       ci->isWritten(ppc_gpr0))
+  if (ci->getOperation ().getID () == power_op_mfspr &&
+      ci->isRead (ppc_theLR))
     {
-        foundMFLR = true;
+      foundMFLR = true;
+      ci->getWriteSet (regs);
+      if (regs.size () != 1)
+	{
+	  parsing_printf ("expected mtspr to read 1 register, insn is %s\n",
+			  ci->format ().c_str ());
+	  return 0;
+	}
+      destLRReg = *(regs.begin ());
+      retAddr = getAddr();
+      parsing_printf ("Found MFLR saved in %s at 0x%lx \n", destLRReg->format ().c_str (), getAddr());
     }
 
-    if(!foundMFLR)
-        return false;
+  if (foundMFLR)
+    {
 
-    // walk to first control flow transfer instruction, looking
-    // for a save of gpr0
-    int cnt = 1;
-    IA_IAPI copy(dec,getAddr(),_obj,_cr,_isrc);
-    while(!copy.hasCFT() && copy.curInsn()) {
-        ci = copy.curInsn();
-        if(ci->writesMemory() &&
-           ci->isRead(ppc_stackPtr) &&
-           ci->isRead(ppc_gpr0))
-        {
-            ret = true;
-            break;
-        }
-        copy.advance();
-        ++cnt;
+      // walk to first control flow transfer instruction, looking
+      // for a save of gpr0
+      IA_IAPI copy (dec, getAddr (), _obj, _cr, _isrc, _curBlk);
+      while (!copy.hasCFT () && copy.curInsn ())
+	{
+	  ci = copy.curInsn ();
+	  if (ci->writesMemory () &&
+	      ci->isRead (ppc_stackPtr) && ci->isRead (destLRReg))
+	    {
+	      ret = true;
+	      break;
+	    }
+	  else if (ci->isWritten (destLRReg))
+	    {
+	      ret = false;
+	      break;
+	    }
+	  copy.advance ();
+	  ++cnt;
+	}
     }
-    parsing_printf("[%s:%d] isReturnAddrSave examined %d instructions\n",   
-        FILE__,__LINE__,cnt);
-    return ret;
+  parsing_printf ("[%s:%d] isReturnAddrSave examined %d instructions - returning %d \n",
+		  FILE__, __LINE__, cnt, ret);
+  return ret;
+}
+
+bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const
+{
+  /* Check for leaf node or lw - mflr - blr pattern */
+  if (curInsn()->getCategory() != c_ReturnInsn) {
+	parsing_printf(" Not BLR - returning false \n");
+	return false;
+   }
+  Instruction::Ptr ci = curInsn ();
+  Function *func = context;
+  parsing_printf
+    ("isblrReturn at 0x%lx Addr 0x%lx 0x%lx Function addr 0x%lx leaf %d \n",
+     current, getAddr (), currBlk->start (), context->addr (),
+     func->_is_leaf_function);
+  if (!func->_is_leaf_function)
+    {
+      parsing_printf ("\t LR saved for %s \n", func->name().c_str());
+      // Check for lwz from Stack - mtlr - blr 
+      static RegisterAST::Ptr ppc_theLR (new RegisterAST (ppc32::lr));
+      static RegisterAST::Ptr ppc_stackPtr (new RegisterAST (ppc32::r1));
+      static RegisterAST::Ptr ppc_gpr0 (new RegisterAST (ppc32::r0));
+      static RegisterAST::Ptr ppc_gpr11 (new RegisterAST (ppc32::r11));
+      std::set < RegisterAST::Ptr > regs;
+      RegisterAST::Ptr sourceLRReg;
+
+      Instruction::Ptr ci = curInsn ();
+      int foundMTLR = false;
+      std::map < Address,
+      Dyninst::InstructionAPI::Instruction::Ptr >::reverse_iterator iter;
+      Address blockStart = currBlk->start ();
+      const unsigned char *b =
+	(const unsigned char *) (this->_isrc->
+				 getPtrToInstruction (blockStart));
+      InstructionDecoder decCopy (b, currBlk->size (),
+				  this->_isrc->getArch ());
+      IA_IAPI copy (decCopy, blockStart, _obj, _cr, _isrc, _curBlk);
+      while (copy.getInstruction () && !copy.hasCFT ())
+	{
+	  copy.advance ();
+	}
+      for(iter = copy.allInsns.rbegin(); iter != copy.allInsns.rend(); iter++)
+	{
+	  parsing_printf ("\t\tchecking insn 0x%x: %s \n", iter->first,
+		  iter->second->format ().c_str ());
+	  if (iter->second->getOperation ().getID () == power_op_mtspr &&
+	      iter->second->isWritten (ppc_theLR))
+	    {
+	      iter->second->getReadSet (regs);
+	      if (regs.size () != 1)
+		{
+		  parsing_printf
+		    ("expected mtspr to read 1 register, insn is %s\n",
+		     ci->format ().c_str ());
+		  return false;
+		}
+	      sourceLRReg = *(regs.begin ());
+	      parsing_printf ("\t\t\t **** Found MTLR saved from %s \n",
+		      sourceLRReg->format ().c_str ());
+	      foundMTLR = true;
+	    }
+	  else if (foundMTLR &&
+		   iter->second->readsMemory () &&
+		   (iter->second->isRead (ppc_stackPtr) ||
+		    (iter->second->isRead (ppc_gpr11))) &&
+		   iter->second->isWritten (sourceLRReg))
+	    {
+	      parsing_printf ("\t\t\t **** Found lwz - RETURNING TRUE\n");
+	      return true;
+	    }
+	}
+	
+      parsing_printf (" Slicing for Addr 0x%lx startAddr 0x%lx ret adrr 0x%lx func %s\n",
+	      getAddr (), currBlk->start (), func->_ret_addr, func->name().c_str());
+      if (sliceReturn(currBlk, func->_ret_addr, func)) {
+	parsing_printf ("\t\t\t **** Slicing - is a return instruction\n");
+	return true;
+	} else {
+	parsing_printf ("\t\t\t **** Slicing - is not a return instruction\n");
+      return false;	
+	}
+    }
+  else
+    {
+      parsing_printf ("\t leaf node  RETURNING TRUE \n");
+      return true;
+    }
 }
 
 bool IA_IAPI::isFakeCall() const
@@ -524,7 +739,75 @@ bool IA_IAPI::isLinkerStub() const
     return cachedLinkerStubState;
 }
 
-ParseAPI::StackTamper 
+AST::Ptr PPC_BLR_Visitor::visit(AST *a) {
+  return a->ptr(); 
+}
+
+AST::Ptr PPC_BLR_Visitor::visit(DataflowAPI::BottomAST *b) {
+  return_ = PPC_BLR_UNKNOWN;
+  return b->ptr();
+}
+
+AST::Ptr PPC_BLR_Visitor::visit(DataflowAPI::ConstantAST *c) {
+  // Very odd case, but claiming not a return
+  return_ = PPC_BLR_NOTRETURN;
+  return c->ptr();
+}
+
+AST::Ptr PPC_BLR_Visitor::visit(DataflowAPI::VariableAST *v) {
+  if ((v->val().reg == AbsRegion(ppc32::lr)) &&
+      (v->val().addr == ret_)) {
+    return_ = PPC_BLR_RETURN;
+  }
+  // Check the stack
+  else if ((v->val().reg.type() == Absloc::Unknown) &&
+      (v->val().reg.absloc().type() == Absloc::Stack) &&
+      (v->val().reg.absloc().off() == 4)) {
+    // FIXME WORDSIZE
+    return_ = PPC_BLR_RETURN;
+  }
+  else {
+    return_ = PPC_BLR_UNKNOWN;
+  }
+  return v->ptr();
+}
+/*
+AST::Ptr PPC_BLR_Visitor::visit(StackAST *s) {
+  return_ = UNKNOWN;
+  return s->Ptr();
+}
+*/
+AST::Ptr PPC_BLR_Visitor::visit(DataflowAPI::RoseAST *r) {
+  if (return_ != PPC_BLR_UNSET) {
+    return r->ptr();
+  }
+
+  switch(r->val().op) {
+  case DataflowAPI::ROSEOperation::andOp: {
+    assert(r->numChildren() == 2);
+    if (r->child(1)->getID() != AST::V_ConstantAST) {
+      return_ = PPC_BLR_UNKNOWN;
+      return r->ptr();
+    }
+    DataflowAPI::ConstantAST::Ptr mask = DataflowAPI::ConstantAST::convert(r->child(1));
+    if (mask->val().val != 0xfffffffc) {
+      return_ = PPC_BLR_UNKNOWN;
+      return r->ptr();
+    }
+
+    r->child(0)->accept(this);
+    break;
+  }
+  default:
+    return_ = PPC_BLR_UNKNOWN;
+    break;
+  }
+  return r->ptr();
+}
+      
+
+ 
+ParseAPI::StackTamper
 IA_IAPI::tampersStack(ParseAPI::Function *, Address &) const
 {
     return TAMPER_NONE;

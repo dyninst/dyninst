@@ -1817,6 +1817,12 @@ bool process::prepareExec(fileDescriptor &desc)
     // Revert the bootstrap state
     bootstrapState = attached_bs;
 
+    // Reset whether this process is multithread capable -- it may have changed
+    cached_result = not_cached;
+
+    // The tramp guard ast cannot be reused for the new process image
+    trampGuardAST_ = AstNodePtr();
+
     // First, duplicate constructor.
 
     assert(theRpcMgr == NULL);
@@ -3452,12 +3458,6 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
 {
    assert(inTracedProcess);
    bool needToCont = false;
-
-   /*
-   fprintf(stderr, "writeTextSpace to %p to %p, %d\n",
-           inTracedProcess,
-           (char *)inTracedProcess + amount, amount);
-   */
 
    if (!isAttached()) return false;
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
@@ -7162,7 +7162,7 @@ dyn_lwp *process::getInitialLwp() const {
 int process::getPid() const { return sh ? sh->getPid() : -1;}
 
 bool process::shouldSaveFPState() {
-   return BPatch::bpatch->isSaveFPROn();
+   return (BPatch::bpatch->isSaveFPROn() || BPatch::bpatch->isForceSaveFPROn());
 }
 
 const char *process::getInterpreterName() {

@@ -66,6 +66,7 @@ void configInit()
     config.use_save_world = false;
     config.saved_mutatee = NULL;
     config.use_process = true;
+    config.use_exe = false;
 
     config.trace_inst = false;
     config.trace_count = 0;

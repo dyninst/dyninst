@@ -49,7 +49,7 @@ ProcDebug *ProcDebug::newProcDebug(PID, std::string)
    return NULL;
 }
 
-ProcDebug *ProcDebug::newProcDebug(const std::string &, 
+ProcDebug *ProcDebug::newProcDebug(std::string, 
                                    const std::vector<std::string> &)
 {
    setLastError(err_unsupported, "Third party stackwalking not supported on " \

@@ -44,20 +44,20 @@ class AddressTranslateStatic : public AddressTranslate
 public:
    virtual bool init();
    virtual bool refresh();
-   AddressTranslateStatic(PID pid, PROC_HANDLE phand);
+   AddressTranslateStatic(PID pid, PROC_HANDLE phand, std::string exename);
 };
 
 using namespace Dyninst;
 
-AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessReader *, SymbolReaderFactory *, PROC_HANDLE phand)
+AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessReader *, SymbolReaderFactory *, PROC_HANDLE phand, std::string exename)
 {
-	AddressTranslateStatic *new_translate = new AddressTranslateStatic(pid_, phand);
+	AddressTranslateStatic *new_translate = new AddressTranslateStatic(pid_, phand, exename);
 	return new_translate;
 }
 
-AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *, SymbolReaderFactory *)
+AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *, SymbolReaderFactory *, std::string exename)
 {
-	return createAddressTranslator(0, NULL);
+	return createAddressTranslator(0, NULL, exename);
 }
 
 bool AddressTranslateStatic::init()
@@ -75,7 +75,7 @@ vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
    return &mapped_regions;
 }
 
-AddressTranslateStatic::AddressTranslateStatic(PID pid, PROC_HANDLE phand) :
-	AddressTranslate(pid, phand)
+AddressTranslateStatic::AddressTranslateStatic(PID pid, PROC_HANDLE phand, std::string exename) :
+	AddressTranslate(pid, phand, exename)
 {
 }

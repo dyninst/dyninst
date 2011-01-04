@@ -1151,6 +1151,8 @@ bool multiTramp::generateCodeWorker(unsigned size_required,
 #endif
 
 bool multiTramp::installCode() {
+   inst_printf("%s[%d]: installing multiTramp 0x%lx to 0x%lx\n",
+               FILE__, __LINE__, instAddr_, instAddr_ + instSize_);
     // We need to add a jump back and fix any conditional jump
     // instrumentation
     assert(generatedMultiT_.used() == trampSize_); // Nobody messed with things
@@ -1160,8 +1162,11 @@ bool multiTramp::installCode() {
     if (branchSize_ > instSize_)  {
         // Crud. Go with traps.
         jumpBuf_.setIndex(0);
-        if (!generateTrapToTramp(jumpBuf_))
-            return false;
+        if (!generateTrapToTramp(jumpBuf_)) {
+           inst_printf("%s[%d]: \t failed to generate trap to tramp, ret false\n",
+                       FILE__, __LINE__);
+           return false;
+        }
     }
     fillJumpBuf(jumpBuf_);
 
@@ -1172,7 +1177,6 @@ bool multiTramp::installCode() {
         bool success = proc()->writeTextSpace((void *)trampAddr_,
                                               trampSize_,
                                               generatedMultiT_.start_ptr());
-
         if( success ) {
             proc()->addOrigRange(this);
 #if defined( cap_unwind )
@@ -1268,7 +1272,6 @@ bool multiTramp::linkCode() {
                                        savedCodeBuf_)) {
             }
         }
-
         if (!proc()->writeTextSpace((void *)instAddr_,
                                     instSize_,
                                     jumpBuf_.start_ptr())) {
@@ -1276,7 +1279,6 @@ bool multiTramp::linkCode() {
                    instSize_, instAddr_);
            return false;
         }
-
         linked_ = true;
     }
 
@@ -1296,7 +1298,6 @@ bool multiTramp::linkCode() {
             }
             Address newMultiAddr = insns_[uninst]->relocAddr();
             
-            
             if (!proc()->writeTextSpace((void *)oldMultiAddr,
                                         gen.used(),
                                         gen.start_ptr())) {
@@ -1304,7 +1305,6 @@ bool multiTramp::linkCode() {
                         gen.used(), gen.start_ptr());
                 return false;
             }
-            
             proc()->trapMapping.addTrapMapping(oldMultiAddr, newMultiAddr, false);
         }
 
@@ -2627,6 +2627,7 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
 
 bool multiTramp::generateTrapToTramp(codeGen &gen) {
     if (!proc()->canUseTraps())  {
+       inst_printf("%s[%d]: process cannot use traps, attempting to use trap, ret false\n", FILE__, __LINE__);
         return false;
     }
 

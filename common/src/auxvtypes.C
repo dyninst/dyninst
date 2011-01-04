@@ -77,5 +77,5 @@ const char *auxv_type_to_string(int type) {
   };
   
   const size_t size = (sizeof(names) / sizeof(const char*));
-  return (type >= 0 && type < size) ? names[type] : unknown;
+  return (type >= 0 && ((size_t) type) < size) ? names[type] : unknown;
 }

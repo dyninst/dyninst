@@ -411,7 +411,8 @@ Address IA_x86Details::findThunkInBlock(Block* curBlock, Address& thunkOffset)
     InstructionDecoder dec(buf,curBlock->size() + InstructionDecoder::maxInstructionLength,
                            currentBlock->_isrc->getArch());
     IA_IAPI * blockptr = NULL;
-    blockptr = new IA_IAPI(dec,curBlock->start(),currentBlock->_obj,currentBlock->_cr,currentBlock->_isrc);
+    blockptr = new IA_IAPI(dec,curBlock->start(),currentBlock->_obj,currentBlock->_cr,
+			   currentBlock->_isrc, curBlock);
     IA_IAPI & block = *blockptr;
 
     parsing_printf("\tchecking block at 0x%lx for thunk\n", curBlock->start());

@@ -33,6 +33,7 @@
 #define IA_IAPI_H
 
 #include <boost/tuple/tuple.hpp>
+#include <boost/static_assert.hpp>
 
 #include "InstructionAdapter.h"
 #include "InstructionDecoder.h"
@@ -56,8 +57,14 @@ class IA_IAPI : public InstructionAdapter
                 Address start_, 
                 Dyninst::ParseAPI::CodeObject* o,
                 Dyninst::ParseAPI::CodeRegion* r,
-                Dyninst::InstructionSource *isrc);
-        virtual ~IA_IAPI() {
+                Dyninst::InstructionSource *isrc,
+		Dyninst::ParseAPI::Block * curBlk_);
+
+        // We have a iterator, and so can't use the implicit copiers
+		IA_IAPI(const IA_IAPI &); 
+		IA_IAPI &operator=(const IA_IAPI &r);
+
+		virtual ~IA_IAPI() {
         }
         Dyninst::InstructionAPI::Instruction::Ptr getInstruction();
     
@@ -93,7 +100,8 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isSyscall() const;
         virtual bool isInterrupt() const;
         virtual bool isCall() const;
-        virtual bool isReturnAddrSave() const;
+        virtual bool isReturnAddrSave(Address &) const;
+	virtual bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const;
         virtual ParseAPI::StackTamper tampersStack(ParseAPI::Function *func, Address &retAddr) const;
 private:
         virtual bool isRealCall() const;
@@ -102,7 +110,7 @@ private:
              std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const;
         bool isIPRelativeBranch() const;
         bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
-        virtual bool isReturn() const;
+        virtual bool isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block* currBlk) const;
         bool isFakeCall() const;
         bool isIATcall() const;
         bool isLinkerStub() const;
