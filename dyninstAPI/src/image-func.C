@@ -101,6 +101,7 @@ image_func::image_func(
   containsSharedBlocks_(false),
   instLevel_(NORMAL),
   canBeRelocated_(true),
+  hasWeirdInsns_(false),
   init_retstatus_(UNSET),
   o7_live(false),
   ppc_saves_return_addr_(false)

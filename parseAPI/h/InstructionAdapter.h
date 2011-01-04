@@ -66,6 +66,7 @@ class InstructionAdapter
     virtual size_t getSize() const = 0;
     virtual bool isFrameSetupInsn() const = 0;
     virtual bool isAbortOrInvalidInsn() const = 0;
+    virtual bool isGarbageInsn() const = 0; //true for insns indicative of bad parse, for defensive mode
     virtual void
             getNewEdges(std::vector<std::pair<Address,ParseAPI::EdgeTypeEnum> >&
             outEdges, 
