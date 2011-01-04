@@ -82,7 +82,7 @@ static void prepareTestCase2(procType proc_type, BPatch_thread *thread, forkWhen
    static BPatchSnippetHandle *parSnippetHandle2;
 
    if(proc_type == Parent_p  &&  when == PreFork) {
-      BPatch_image *parImage = thread->getImage();
+       BPatch_image *parImage = thread->getProcess()->getImage();
       
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "test_fork_6_func1";
@@ -111,9 +111,9 @@ static void prepareTestCase2(procType proc_type, BPatch_thread *thread, forkWhen
       BPatch_arithExpr expr7_2p(BPatch_assign, *var7_2p,BPatch_constExpr(951));
 
       parSnippetHandle2 =
-	 thread->insertSnippet(expr7_2p, *point7_2p, BPatch_callBefore);
+              thread->getProcess()->insertSnippet(expr7_2p, *point7_2p, BPatch_callBefore);
    } else if(proc_type == Child_p  &&  when == PostFork) {
-      BPatch_image *childImage = thread->getImage();      
+       BPatch_image *childImage = thread->getProcess()->getImage();
 
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "test_fork_6_func1";
@@ -140,7 +140,7 @@ static void prepareTestCase2(procType proc_type, BPatch_thread *thread, forkWhen
 		 " No snippets were found at test_fork_6_func1\n")) return;
 
       for(unsigned i=0; i<childSnippets.size(); i++) {
-	 bool result = thread->deleteSnippet(childSnippets[i]);
+          bool result = thread->getProcess()->deleteSnippet(childSnippets[i]);
 	 if(result == false) {
 	    logerror("  error, couldn't delete snippet\n");
 	    passedTest = false;
@@ -152,11 +152,11 @@ static void prepareTestCase2(procType proc_type, BPatch_thread *thread, forkWhen
 
 static void checkTestCase2(procType proc_type, BPatch_thread *thread) {
    if(proc_type == Parent_p) {
-      if(! verifyProcMemory(thread, "test_fork_6_global1", 951, proc_type)) {
+       if(! verifyProcMemory(thread->getProcess(), "test_fork_6_global1", 951, proc_type)) {
 	 passedTest = false;
       }
    } else if(proc_type == Child_p) {
-      if(! verifyProcMemory(thread, "test_fork_6_global1", 159, proc_type)) {
+       if(! verifyProcMemory(thread->getProcess(), "test_fork_6_global1", 159, proc_type)) {
 	 passedTest = false;
       }
    }
@@ -195,14 +195,14 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
                 thread, parentThread, childThread);
         assert(0 && "Unexpected BPatch_thread in exitFunc");
     }
-    thread->continueExecution();
+    thread->getProcess()->continueExecution();
     return;
 }
 
 static void initialPreparation(BPatch_thread *parent)
 {
    //cerr << "in initialPreparation\n";
-   assert(parent->isStopped());
+    assert(parent->getProcess()->isStopped());
 
    //cerr << "ok, inserting instr\n";
    prepareTestCase2(Parent_p, parent, PreFork);
@@ -220,13 +220,13 @@ static bool mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
 
     initialPreparation(parentThread);
     /* ok, do the fork */;
-    parentThread->continueExecution();
+                         parentThread->getProcess()->continueExecution();
 
     /* the rest of the execution occurs in postForkFunc() */
     /* Secondary test: we should not have to manually continue
        either parent or child at any point */
 
-    while ( !parentThread->isTerminated() ) 
+    while ( !parentThread->getProcess()->isTerminated() )
     {
        bpatch->waitForStatusChange();
     }
@@ -240,7 +240,7 @@ static bool mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
        return passedTest;
     }
     
-    if ( !childThread->isTerminated() )
+    while ( !childThread->getProcess()->isTerminated() )
     {
        bpatch->waitForStatusChange();
     }

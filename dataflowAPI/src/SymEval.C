@@ -80,33 +80,47 @@ void SymEval::expand(Result_t &res, bool applyVisitors) {
     }
     Assignment::Ptr ptr = i->first;
     
-    //cerr << "Expand called for insn " << ptr->insn()->format() << endl;
-    
     expandInsn(ptr->insn(),
 	       ptr->addr(),
 	       res);
-    
   }
 
   if (applyVisitors) {
     // Must apply the visitor to each filled in element
     for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
-      if (i->second == AST::Ptr()) {
-        // Must not have been filled in above
-        continue;
-      }
-      Assignment::Ptr ptr = i->first;
-
-      // Let's experiment with simplification
-      StackAnalysis sA(ptr->func());
-      StackAnalysis::Height sp = sA.findSP(ptr->addr());
-      StackAnalysis::Height fp = sA.findFP(ptr->addr());
-
-      StackVisitor sv(ptr->addr(), ptr->func()->name(), sp, fp);
-      if (i->second)
-        i->second = i->second->accept(&sv);
+      if (!i->second) continue;
+      AST::Ptr tmp = simplifyStack(i->second, i->first->addr(), i->first->func());
+      i->second = tmp;
     }
   }
+}
+
+void dfs(Node::Ptr source, Node::Ptr node,
+        set<Node::Ptr> & dfs_nodes,
+        map<Node::Ptr, unsigned> & cycles) {
+    // If we've already encountered this node, we've found a loop!
+    // Mark as a circularity and break
+    if (dfs_nodes.find(node) != dfs_nodes.end()) {
+        expand_cerr << "Found cycle at " << node->format()
+            << ", marking node as not for substitution" << endl;
+
+        AssignNode::Ptr in = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(source);
+        Assignment::Ptr assign = in->assign();
+        AssignNode::Ptr cur_node = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(node);
+        
+        unsigned index = cur_node->getAssignmentIndex(in);
+        cycles.insert(make_pair(node, index));
+        return;
+    } else {
+        dfs_nodes.insert(node);
+    }   
+
+    // Continue DFS by following out-edges
+    NodeIterator gbegin, gend;
+    node->outs(gbegin, gend);
+    for (; gbegin != gend; ++gbegin) {
+        dfs(node, *gbegin, dfs_nodes, cycles);
+    }
 }
 
 // Do the previous, but use a Graph as a guide for
@@ -115,58 +129,64 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
     //cout << "Calling expand" << endl;
     // Other than the substitution this is pretty similar to the first example.
     NodeIterator gbegin, gend;
-    //slice->entryNodes(gbegin, gend);
-    slice->allNodes(gbegin, gend); /* add everything to the list */
+    slice->entryNodes(gbegin, gend);
 
-    //std::queue<Node::Ptr> worklist;
-    std::list<Node::Ptr> worklist;
+    std::queue<Node::Ptr> worklist;
+    std::queue<Node::Ptr> dfs_worklist;
     for (; gbegin != gend; ++gbegin) {
-        expand_cerr << "adding " << (*gbegin)->format() << " to worklist" << endl;
-        //worklist.push(*gbegin);
-        worklist.push_back(*gbegin);
+      expand_cerr << "adding " << (*gbegin)->format() << " to worklist" << endl;
+      worklist.push(*gbegin);
+      dfs_worklist.push(*gbegin);
     }
-    std::set<Node::Ptr> processed;
+
+    /* First, we'll do DFS to check for circularities in the graph;
+     * if so, mark them so we don't do infinite substitution */
+    set<Node::Ptr> dfs_nodes;
+    map<Node::Ptr, unsigned> cycles;
+    while (!dfs_worklist.empty()) {
+        Node::Ptr ptr = dfs_worklist.front(); dfs_worklist.pop();
+
+        NodeIterator nbegin, nend;
+        ptr->outs(nbegin, nend);
+
+        for (; nbegin != nend; ++nbegin) {
+            dfs(ptr, *nbegin, dfs_nodes, cycles);
+        }
+    }
 
     /* have a list
      * for each node, process
      * if processessing succeeded, remove the element
      * if the size of the list has changed, continue */
 
-    unsigned size = worklist.size();
-    while (size) {
-        expand_cerr << "Current worklist size = " << size << endl;
-        std::list<Node::Ptr>::iterator nit;
-        for (nit = worklist.begin(); nit != worklist.end(); ++nit) {
-            Node::Ptr ptr = *nit;
-            AssignNode::Ptr aNode = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(ptr);
-            if (!aNode) continue; // They need to be AssignNodes
+    while (!worklist.empty()) {
+      Node::Ptr ptr = worklist.front(); worklist.pop();
+      AssignNode::Ptr aNode = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(ptr);
+      if (!aNode) continue; // They need to be AssignNodes
+      
+      if (!aNode->assign()) continue; // Could be a widen point
+      
+      expand_cerr << "Visiting node " << aNode->assign()->format() << endl;
 
-            if (!aNode->assign()) continue; // Could be a widen point
+      AST::Ptr prev = res[aNode->assign()];
+      
+      process(aNode, res, cycles); 
+    
+      AST::Ptr post = res[aNode->assign()];
 
-            expand_cerr << "Visiting node " << aNode->assign()->format() << endl;
-
-            if (process(aNode, res)) {
-                expand_cerr << "Successfully processed " << aNode->assign()->format()
-                    << ", removing from worklist" << endl;
-                processed.insert(ptr);
-            }
-        }
-
-        /* Remove successfully processed elements */
-        std::set<Node::Ptr>::iterator pit;
-        for (pit = processed.begin(); pit != processed.end(); ++pit) {
-            worklist.remove(*pit);
-        }  
-
-        /* Check if we should continue processing */
-        unsigned cur_size = worklist.size();
-        if (cur_size == size) {
-            break;
-            expand_cerr << "Worklist did not change sizes, stopping" << endl; 
-        } else {
-            size = cur_size;
-        }
-    } 
+      if (post && !(post->equals(prev))) {
+	// Oy
+	expand_cerr << "Adding successors to list, as new expansion " << endl
+		    << "\t" << post->format() << endl 
+		    << " != " << endl
+		    << "\t" << (prev ? prev->format() : "<NULL>") << endl;
+	NodeIterator oB, oE;
+	aNode->outs(oB, oE);
+	for (; oB != oE; ++oB) {
+	  worklist.push(*oB);
+	}
+      }
+    }
 }
 
 void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
@@ -202,7 +222,8 @@ void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 
 
 bool SymEval::process(AssignNode::Ptr ptr,
-			 Result_t &dbase) {
+		      Result_t &dbase,
+                      map<Node::Ptr, unsigned> & cycles) {
     bool ret = false;
     
     std::map<unsigned, Assignment::Ptr> inputMap;
@@ -252,7 +273,7 @@ bool SymEval::process(AssignNode::Ptr ptr,
             //cerr << "Skipping subsitution for input " << iter->first << endl;
             continue;
         }
-        //cerr << "Substituting input " << iter->first << endl;
+        expand_cerr << "Substituting input " << iter->first << " with assignment " << iter->second->format() << endl;
         // The region used by the current assignment...
         const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
 
@@ -263,7 +284,6 @@ bool SymEval::process(AssignNode::Ptr ptr,
         AST::Ptr definition = dbase[iter->second];
 
         if (!definition) {
-            expand_cerr << "Odd; no expansion for " << iter->second->format() << endl;
             // Can happen if we're expanding out of order, and is generally harmless.
             continue;
         }
@@ -273,14 +293,42 @@ bool SymEval::process(AssignNode::Ptr ptr,
         if (!ast) {
             expand_cerr << "Skipping substitution because of null AST" << endl;
         } else {
+            // Check if we have a circular dependency here; if yes, don't substitute
+            map<Node::Ptr, unsigned>::iterator cit;
+            cit = cycles.find(ptr);
+            if (cit != cycles.end()) {
+                if (cit->second == iter->first) {
+                    expand_cerr << "Found in-edge that's a cycle, skipping substitution" << endl;
+                    break;
+                }
+            }
+
             ast = AST::substitute(ast, use, definition);
             ret = true;
-        }
+        }	
         //expand_cerr << "\t result is " << res->format() << endl;
     }
-    expand_cerr << "Result of subsitution: " << ptr->assign()->format() << " == " << (ast ? ast->format() : "<NULL AST>") << endl;
+    expand_cerr << "Result of substitution: " << ptr->assign()->format() << " == " << (ast ? ast->format() : "<NULL AST>") << endl;
+
+    // And attempt simplification again
+    ast = simplifyStack(ast, ptr->addr(), ptr->func());
+    expand_cerr << "Result of post-substitution simplification: " << ptr->assign()->format() << " == " 
+		<< (ast ? ast->format() : "<NULL AST>") << endl;
+    
     dbase[ptr->assign()] = ast;
     return ret;
 }
 
+AST::Ptr SymEval::simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func) {
+  if (!ast) return ast;
+  // Let's experiment with simplification
+  StackAnalysis sA(func);
+  StackAnalysis::Height sp = sA.findSP(addr);
+  StackAnalysis::Height fp = sA.findFP(addr);
+  
+  StackVisitor sv(addr, func, sp, fp);
 
+  AST::Ptr simplified = ast->accept(&sv);
+
+  return simplified;
+}

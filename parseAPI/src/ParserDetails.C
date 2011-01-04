@@ -54,6 +54,8 @@ verbose_log(Address /* currAddr */, Edges_t::iterator & /* curEdge */)
 #else
 verbose_log(Address currAddr, Edges_t::iterator & curEdge)
 {
+  using namespace Dyninst::ParseAPI;
+  
     switch(curEdge->second)
     {
         case CALL:
@@ -75,7 +77,7 @@ verbose_log(Address currAddr, Edges_t::iterator & curEdge)
             parsing_printf("%s[%d]: adding conditional not taken edge %x->%x\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
             break;
-        case INDIR:
+        case INDIRECT:
             parsing_printf("%s[%d]: adding indirect edge %x->%x\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
             break;
@@ -161,7 +163,6 @@ void Parser::ProcessCFInsn(
     
     // Instruction adapter provides edge estimates from an instruction
     ah.getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries); 
-    
     insn_ret = ah.getReturnStatus(frame.func,frame.num_insns); 
 
     // Update function return status if possible
@@ -185,7 +186,8 @@ void Parser::ProcessCFInsn(
         bool resolvable_edge = true;
         bool tailcall = false;
 
-        if(!is_code(frame.func,curEdge->first)) 
+        if(!is_code(frame.func,curEdge->first) &&
+           !HASHDEF(plt_entries,curEdge->first))
         {
             if(curEdge->second != NOEDGE || !dynamic_call) {
                 unresolved = true;
@@ -200,15 +202,15 @@ void Parser::ProcessCFInsn(
         if(curEdge->second == NOEDGE)
         {
             // call callback
+            resolvable_edge = resolvable_edge && !dynamic_call;
             ProcessCallInsn(frame,cur,ah,dynamic_call,
                 absolute_call,curEdge->first);
 
             tailcall = !dynamic_call &&  
                 ah.isTailCall(frame.func,frame.num_insns);
-            if(!dynamic_call)
+            if(resolvable_edge)
                 newedge = link_tempsink(cur,CALL);
             else {
-                resolvable_edge = false;
                 newedge = link(cur,_sink,CALL,true);
                 if (frame.func->obj()->defensiveMode()) {
                     unresolved = true;

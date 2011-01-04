@@ -21,6 +21,7 @@ SRCS =		../../common/src/solarisKludges.C \
 		../../common/src/parseauxv.C \
 		../src/addrtranslate.C \
 		../src/addrtranslate-sysv.C \
+		../src/addrtranslate-auxv.C \
 		../src/addrtranslate-solaris.C
 
 # VG(12/02/01) Using -g here seems a bad idea since it is passed from

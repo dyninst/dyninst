@@ -40,10 +40,15 @@ class SnippetGenerator{
   public:
 
   SnippetGenerator() :  point(NULL), addSpace(NULL), image(NULL) {};
-  SnippetGenerator(BPatch_point *pt, char *snName) : point(pt), snippetName(snName) 
+  SnippetGenerator(BPatch_point &pt, char *snName) : point(&pt), snippetName(snName) 
    { 
-      assert(point != NULL); 
-      addSpace = pt->getAddressSpace();
+      addSpace = point->getAddressSpace();
+      image = addSpace->getImage();
+   };
+   
+  SnippetGenerator(BPatch_addressSpace &aSpace, char *snName) : addSpace(&aSpace), snippetName(snName) 
+   { 
+      point = NULL;
       image = addSpace->getImage();
    };
 

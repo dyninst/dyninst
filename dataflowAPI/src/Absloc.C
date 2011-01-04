@@ -39,6 +39,8 @@
 
 #include "dataflowAPI/h/stackanalysis.h"
 
+#include "parseAPI/h/CFG.h"
+
 #include <sstream>
 
 using namespace Dyninst;
@@ -88,7 +90,7 @@ std::string Absloc::format() const {
     ret << reg_.name();
     break;
   case Stack: {
-    ret << "S[" << func_ << "," << off_ << "," << region_ << "]";
+    ret << "S[" << func_->name() << "," << off_ << "," << region_ << "]";
     break;
   }
   case Heap:
@@ -143,6 +145,8 @@ bool AbsRegion::contains(const AbsRegion &rhs) const {
     if (absloc_.type() == rhs.type()) return true;
   }
 
+  if (absloc_ == rhs.absloc_) return true;
+
   // Stack slots operate kinda... odd...
   if ((absloc_.type() == Absloc::Stack) &&
       (rhs.absloc_.type() == Absloc::Stack)) {
@@ -152,7 +156,6 @@ bool AbsRegion::contains(const AbsRegion &rhs) const {
 	(absloc_.region() != rhs.absloc_.region())) return true;
   }
 
-  if (absloc_ == rhs.absloc_) return true;
   return false;
 }
 /*

@@ -34,7 +34,6 @@
 #include <boost/assign/list_of.hpp>
 #include "../../common/h/singleton_object_pool.h"
 
-
 namespace Dyninst
 {
   namespace InstructionAPI
@@ -193,7 +192,7 @@ namespace Dyninst
         cout.width(8);
         cout.fill('0');
         cout << hex << insn << "\t";
-#endif        
+#endif
         mainDecode();
         b.start += 4;
         return make_shared(insn_in_progress);
@@ -505,13 +504,24 @@ namespace Dyninst
         }
         if(current->op == power_op_bclr)
         {
+	  // blrl is in practice a return-and-link, not a call-through-LR
+	  // so we'll treat it as such
             insn_in_progress->addSuccessor(makeRegisterExpression(ppc32::lr),
-                                           field<31,31>(insn) == 1, true, bcIsConditional, false);
+                                           /*field<31,31>(insn) == 1*/ false, true, 
+					   bcIsConditional, false);
+            if(bcIsConditional)
+            {
+                insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
+            }
         }
         if(current->op == power_op_bcctr)
         {
             insn_in_progress->addSuccessor(makeRegisterExpression(ppc32::ctr),
                                            field<31,31>(insn) == 1, true, bcIsConditional, false);
+            if(bcIsConditional)
+            {
+                insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
+            }
         }
         if(current->op == power_op_addic_rc ||
            current->op == power_op_andi_rc ||
@@ -655,7 +665,9 @@ using namespace boost::assign;
 			taken ^= field<10,10>(insn) ? true : false;
             insn_in_progress->getOperation().mnemonic += (taken ? "+" : "-");
         }
-            
+#if defined(DEBUG_BO_FIELD)
+        cout << "bcIsConditional = " << (bcIsConditional ? "true" : "false") << endl;
+#endif
         return;
     }
     void InstructionDecoder_power::syscall()

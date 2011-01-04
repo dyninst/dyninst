@@ -298,6 +298,13 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
             parsing_printf(" [skipped]\n");
             continue;
         }
+
+	//#if defined(os_vxworks)
+        if(0 == (*rit)->getMemSize()) {
+            parsing_printf(" [skipped null region]\n");
+            continue;
+        }
+	//#endif
         parsing_printf("\n");
 
         if(HASHDEF(rmap,*rit)) {
@@ -334,7 +341,7 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
         {
             parsing_printf("    == filtered hint %s [%lx] ==\n",
                 FILE__,__LINE__,(*fsit)->getOffset(),
-                (*fsit)->getFirstSymbol()->getName().c_str());
+                (*fsit)->getFirstSymbol()->getPrettyName().c_str());
             continue;
         }
 
@@ -346,7 +353,7 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
            parsing_printf("[%s:%d] duplicate function at address %lx: %s\n",
                 FILE__,__LINE__,
                 (*fsit)->getOffset(),
-                (*fsit)->getFirstSymbol()->getName().c_str());
+                (*fsit)->getFirstSymbol()->getPrettyName().c_str());
             ++dupes;
         }
         seen[(*fsit)->getOffset()] = true;
@@ -371,10 +378,10 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
         } else {
             _hints.push_back( Hint((*fsit)->getOffset(),
                                cr,
-                               (*fsit)->getFirstSymbol()->getName()) );
+                               (*fsit)->getFirstSymbol()->getPrettyName()) );
             parsing_printf("\t<%lx,%s,[%lx,%lx)>\n",
                 (*fsit)->getOffset(),
-                (*fsit)->getFirstSymbol()->getName().c_str(),
+                (*fsit)->getFirstSymbol()->getPrettyName().c_str(),
                 cr->offset(),
                 cr->offset()+cr->length());
         }
@@ -404,7 +411,7 @@ SymtabCodeSource::nonReturning(Address addr)
 
     if(f) {
         SymtabAPI::Symbol * s = f->getFirstSymbol();
-        string st_name = s->getName();
+        string st_name = s->getMangledName();
         ret = nonReturning(st_name);
     }
 
@@ -423,7 +430,8 @@ SymtabCodeSource::nonReturning(string name)
             name == "ExitProcess" ||
             /* bernat, 5/2010 */
             name == "_ZSt17__throw_bad_allocv" ||
-            name == "_ZSt20__throw_length_errorPKc");
+            name == "_ZSt20__throw_length_errorPKc") ||
+            name == "_Unwind_Resume";
 }
 
 Address
@@ -436,6 +444,17 @@ Address
 SymtabCodeSource::loadAddress() const
 {
     return _symtab->getLoadOffset();
+}
+
+Address
+SymtabCodeSource::getTOC(Address addr) const
+{
+    SymtabAPI::Function *func;
+
+    if (_symtab->getContainingFunction(addr, func)) {
+        return func->getTOCOffset();
+    }
+    return _table_of_contents;
 }
 
 inline CodeRegion *

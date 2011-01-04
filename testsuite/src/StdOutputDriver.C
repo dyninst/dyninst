@@ -136,7 +136,15 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
       thread_str[3] = 'T';
       thread_str[4] = '\0';
    }
-
+   const char* picStr = NULL;
+   if(last_group->pic == nonPIC)
+   {
+       picStr = "nonPIC";
+   } else
+   {
+       picStr = "PIC";
+   }
+   
    assert(last_test && last_group);
 
    int max_name_len = TestInfo::getMaxTestNameLength();
@@ -162,13 +170,13 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
    }
 #endif
 #if defined(cap_32_64_test)
-   fprintf(out, "%s compiler: %-3s  opt: %-4s  abi: %-2s  mode: %-10s thread: %4s link: %-7s  result: ",
+   fprintf(out, "%s compiler: %-3s  opt: %-4s  abi: %-2s  mode: %-10s thread: %4s link: %-7s pic: %-6s result: ",
            name_align_buffer, last_group->compiler, last_group->optlevel, last_group->abi, 
-           run_mode_str, thread_str, linkage_str);
+           run_mode_str, thread_str, linkage_str, picStr);
 #else
-   fprintf(out, "%s compiler: %-3s  opt: %-4s  mode: %-10s thread: %4s link: %-7s  result: ",
+   fprintf(out, "%s compiler: %-3s  opt: %-4s  mode: %-10s thread: %4s link: %-7s pic: %-6s result: ",
            name_align_buffer, last_group->compiler, last_group->optlevel, run_mode_str, thread_str,
-           linkage_str);
+           linkage_str, picStr);
 #endif
    free(name_align_buffer);
    switch(result) {

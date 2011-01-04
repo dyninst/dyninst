@@ -13,7 +13,7 @@ RELEASE_NUM	= 5.00
 TARGET		= dyner
 #TEST_TARGET	= testDyner
 
-SRCS	     += ../src/$(TARGET).C lex.$(TARGET).C $(TARGET).tab.C
+SRCS	     += ../src/$(TARGET).C #lex.$(TARGET).C $(TARGET).tab.C
 #TEST_SRC      = ../tests/$(TEST_TARGET).C
 
 IFLAGS	     += -I$(TO_CORE)/dyninstAPI/h
@@ -37,9 +37,10 @@ CFLAGS		+= -fno-squangle
 CXXFLAGS	+= -fno-squangle
 endif
 
-LIBS         += -ldyninstAPI -lsymtabAPI -lcommon -ldynC_API
+LIBS         += -lcommon -lsymtabAPI -lparseAPI -linstructionAPI -ldyninstAPI -ldynC_API
 
-SYSLIBS      += -liberty -L$(TCLTK_LIB_DIR) $(TCL_LIB) 
+SYSLIBS      += -liberty $(DEMANGLER_EXEC_LINK)
+SYSLIBS      += -L$(TCLTK_LIB_DIR) $(TCL_LIB)
 
 all: $(TARGET) $(TEST_TARGET)
 
@@ -47,15 +48,3 @@ MUTATEE_CFLAGS += $(MODCFLAGS) -g
 
 $(TEST_TARGET): $(TEST_SRC)
 	$(CXX) $(MUTATEE_CFLAGS) -o $(TEST_TARGET) $(TEST_SRC)
-
-LEXFLAGS += -P$(TARGET)
-YACCFLAGS += -d -b $(TARGET) -p $(TARGET)
-
-lex.$(TARGET).C: ../src/cmdline.l $(TARGET).tab.h
-	$(LEX) $(LEXFLAGS) ../src/cmdline.l
-	mv lex.$(TARGET).c lex.$(TARGET).C
-
-$(TARGET).tab.h: $(TARGET).tab.C
-$(TARGET).tab.C: ../src/cmdline.y
-	$(YACC) $(YACCFLAGS) ../src/cmdline.y
-	mv $(TARGET).tab.c $(TARGET).tab.C

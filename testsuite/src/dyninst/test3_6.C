@@ -220,9 +220,9 @@ test_results_t test3_6_Mutator::executeTest() {
     child_argv[n++] = NULL;
 
     int pids[Mutatees];
-    BPatch_thread *appThread[MAX_MUTATEES];
+    BPatch_process *appProc[MAX_MUTATEES];
 
-    for (n=0; n<MAX_MUTATEES; n++) appThread[n]=NULL;
+    for (n=0; n<MAX_MUTATEES; n++) appProc[n]=NULL;
 
     // Start the mutatees
     if (!grandparentForkMutatees(Mutatees, pids, pathname, child_argv)) {
@@ -234,40 +234,38 @@ test_results_t test3_6_Mutator::executeTest() {
     //  Attach to them
     for (n=0; n<Mutatees; n++) {
         dprintf("Attaching \"%s\" %d/%d\n", pathname, n, Mutatees);
-        appThread[n] = bpatch->attachProcess(pathname, pids[n]);
-        if (!appThread[n]) {
+        appProc[n] = bpatch->processAttach(pathname, pids[n]);
+        if (!appProc[n]) {
             logerror("*ERROR*: unable to create handle%d for executable\n", n);
             logerror("**Failed** test3_6 (simultaneous multiple-process management - terminate (fork))\n");
-            MopUpMutatees(n-1,appThread);
+            MopUpMutatees(n-1,appProc);
             return FAILED;
         }
-        dprintf("Mutatee %d attached, pid=%d\n", n, appThread[n]->getPid());
+        dprintf("Mutatee %d attached, pid=%d\n", n, appProc[n]->getPid());
     }
 
     dprintf("Letting mutatee processes run a short while (5s).\n");
-    for (n=0; n<Mutatees; n++) appThread[n]->continueExecution();
+    for (n=0; n<Mutatees; n++) appProc[n]->continueExecution();
 
     P_sleep(5);
     dprintf("Terminating mutatee processes.\n");
 
-    appThread[0]->getProcess(); // ???
-
     // And kill them
     unsigned int numTerminated=0;
     for (n=0; n<Mutatees; n++) {
-        bool dead = appThread[n]->terminateExecution();
-        if (!dead || !(appThread[n]->isTerminated())) {
+        bool dead = appProc[n]->terminateExecution();
+        if (!dead || !(appProc[n]->isTerminated())) {
             logerror("**Failed** test3_6 (simultaneous multiple-process management - terminate (fork))\n");
             logerror("    mutatee process [%d] was not terminated\n", n);
             continue;
         }
 #if !defined(os_aix_test) && !defined(os_solaris_test) && !defined(os_osf_test)
-        if(appThread[n]->terminationStatus() != expectedSignal) {
+        if(appProc[n]->terminationStatus() != expectedSignal) {
             logerror("**Failed** test3_6 (simultaneous multiple-process management - terminate (fork))\n");
             logerror("    mutatee process [%d] didn't get notice of termination\n", n);
             continue;
         }
-        int signalNum = appThread[n]->getExitSignal();
+        int signalNum = appProc[n]->getExitSignal();
         dprintf("Terminated mutatee [%d] from signal 0x%x\n", n, signalNum);
 #endif
         numTerminated++;

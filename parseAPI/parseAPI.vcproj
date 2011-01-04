@@ -4,6 +4,7 @@
 	Version="9.00"
 	Name="parseAPI"
 	ProjectGUID="{39161B28-A3B4-40B9-AE03-4E021448BA80}"
+	RootNamespace="parseAPI"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="131072"
 	>
@@ -17,7 +18,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="i386-unknown-nt4.0"
+			OutputDirectory="..\..\i386-unknown-nt4.0\lib"
 			IntermediateDirectory="i386-unknown-nt4.0"
 			ConfigurationType="2"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
@@ -42,7 +43,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="h;..;../dynutil/h;../../include;../external;../dataflowAPI/h;../dataflowAPI/src"
-				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_instruction_api;cap_async_events;cap_threads;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;snprintf=_snprintf;PARSER_LIB;DATAFLOW_LIB"
+				PreprocessorDefinitions="_CRT_SECURE_NO_WARNINGS;WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_instruction_api;cap_async_events;cap_threads;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;snprintf=_snprintf;PARSER_LIB;DATAFLOW_LIB"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
@@ -51,7 +52,7 @@
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="3"
-				DisableSpecificWarnings="4251"
+				DisableSpecificWarnings="4251;4503"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -97,7 +98,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0&#x0D;&#x0A;echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;echo copy $(TargetDir)libparseAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)libparseAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;echo copy $(TargetDir)libparseAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)libparseAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;echo mkdir $(TargetDir)..\..\..\include&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\include&#x0D;&#x0A;echo copy $(InputDir)h\*.h $(TargetDir)..\..\..\include&#x0D;&#x0A;copy $(InputDir)h\*.h $(TargetDir)..\..\..\include&#x0D;&#x0A;&#x0D;&#x0A;"
+				CommandLine="echo mkdir $(TargetDir)..\..\include&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\include&#x0D;&#x0A;echo copy $(InputDir)h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;copy $(InputDir)h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -372,6 +373,30 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\IA_platformDetailsFactory.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\IA_powerDetails.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\IA_x86.C"
 				>
 				<FileConfiguration
@@ -384,6 +409,18 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\IA_x86Details.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"

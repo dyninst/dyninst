@@ -38,16 +38,19 @@
 #include "InstructionDecoder.h"
 #include "Instruction.h"
 
-#include "dynutil/h/dyntypes.h"
+#include "dyntypes.h"
 
-#include "parseAPI/h/CFG.h"
+#include "CFG.h"
 
 namespace Dyninst {
 namespace InsnAdapter {
 
 class IA_IAPI : public InstructionAdapter
 {
-  friend class image_func;
+    friend class image_func;
+    friend class IA_platformDetails;
+    friend class IA_x86Details;
+    friend class IA_powerDetails;
     public:
         IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder dec_,
                 Address start_, 
@@ -98,32 +101,11 @@ private:
         bool parseJumpTable(Dyninst::ParseAPI::Block* currBlk,
              std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const;
         bool isIPRelativeBranch() const;
-        bool isMovAPSTable(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const;
-        std::pair<Address, Address> findThunkAndOffset(Dyninst::ParseAPI::Block * start) const;
-        bool isTableInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
-        std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator findTableInsn() const;
-        boost::tuple<Dyninst::InstructionAPI::Instruction::Ptr,
-        Dyninst::InstructionAPI::Instruction::Ptr,
-        bool> findMaxSwitchInsn(Dyninst::ParseAPI::Block *start) const;
-        Address findThunkInBlock(Dyninst::ParseAPI::Block * curBlock, Address& thunkOffset) const;
-        bool computeTableBounds(Dyninst::InstructionAPI::Instruction::Ptr maxSwitchInsn,
-                                Dyninst::InstructionAPI::Instruction::Ptr branchInsn,
-                                Dyninst::InstructionAPI::Instruction::Ptr tableInsn,
-                                bool foundJCCAlongTaken,
-                                unsigned& tableSize,
-                                unsigned& tableStride) const;
-        bool fillTableEntries(Address thunkOffset,
-                              Address tableBase,
-                              unsigned tableSize,
-                              unsigned tableStride,
-                              std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum> >& outEdges) const;
-        Address getTableAddress(Dyninst::InstructionAPI::Instruction::Ptr tableInsn,
-                                Address tableInsnAddr,
-                                Address thunkOffset) const;
         bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
         virtual bool isReturn() const;
         bool isFakeCall() const;
         bool isIATcall() const;
+        bool isLinkerStub() const;
 
 
         Dyninst::InstructionAPI::InstructionDecoder dec;
@@ -132,6 +114,8 @@ private:
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::iterator curInsnIter;
         mutable bool validCFT;
         mutable Address cachedCFT;
+        mutable bool validLinkerStubState;
+        mutable bool cachedLinkerStubState;
         mutable std::pair<bool, bool> hascftstatus;
         mutable std::pair<bool, bool> tailCall;
         static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> framePtr;

@@ -49,7 +49,7 @@
 #include "BPatch.h"
 #include "BPatch_type.h"
 #include "BPatch_Vector.h"
-#include "BPatch_thread.h"
+#include "BPatch_process.h"
 #include "BPatch_snippet.h"
 #include "BPatch_function.h"
 #include "BPatch_statement.h"
@@ -70,7 +70,7 @@ extern "C" {
 }
 
 bool stopFlag = false;
-extern int dynerdebug;
+//extern int dynerdebug;
 
 int debugPrint = 0;
 BPatch_point *targetPoint;
@@ -84,24 +84,25 @@ bool fromSource = false;
 
 class ListElem {
 public:
-   int			     number;
-   char		     *function;
-   BPatch_procedureLocation where;
-   BPatch_callWhen	     when;
-   BPatchSnippetHandle	     *handle;
+    int                       number;
+    char                     *function;
+    BPatch_procedureLocation  where;
+    BPatch_callWhen           when;
+    BPatchSnippetHandle      *handle;
+    BPatch_point             *point;
 };
 
 class BPListElem: public ListElem {
 public:
-   char	         *condition;
-   int			     lineNum;
-   
-   BPListElem(int _number, const char *_function,
-              BPatch_procedureLocation _where,
-              BPatch_callWhen _when, const char *_condition,
-              BPatchSnippetHandle *_handle, int _lineNum);
-   ~BPListElem();
-   void Print();
+    char *condition;
+    int   lineNum;
+
+   BPListElem(int _number, const char *_function, BPatch_point *_point,
+               BPatch_procedureLocation _where,
+               BPatch_callWhen _when, const char *_condition,
+               BPatchSnippetHandle *_handle, int _lineNum);
+    ~BPListElem();
+    void Print();
 };
 
 class runtimeVar {
@@ -130,15 +131,16 @@ public:
 };
 
 BPatch *bpatch;
-BPatch_thread *appThread = NULL;
-BPatch_image *appImage = NULL;
 BPatch_process *appProc = NULL;
+BPatch_thread *currThr = NULL;
+BPatch_image *appImage = NULL;
 static BPatch_variableExpr *bpNumber = NULL;
 static int bpCtr = 1;
 static int ipCtr = 1;
 static DynerList<BPListElem *> bplist;
 static DynerList<IPListElem *> iplist;
 static std::vector<runtimeVar *> varList;
+
 int whereAmINow = -1;/*ccw 10 mar 2004 : this holds the index of the current stackframe for where, up, down*/
 
 #if !defined(i386_unknown_nt4_0)
@@ -191,11 +193,12 @@ const char *loc2name(BPatch_procedureLocation where, BPatch_callWhen when)
    };
 }
 
-BPListElem::BPListElem(int _number, const char *_function,
+BPListElem::BPListElem(int _number, const char *_function, BPatch_point * _point,
                        BPatch_procedureLocation _where, BPatch_callWhen _when,
                        const char *_condition,
                        BPatchSnippetHandle *_handle, int _lineNum)
 {
+   point = _point;
    number = _number;
    function = strdup(_function);
    where = _where;
@@ -223,7 +226,7 @@ void BPListElem::Print()
       printf("%s (%s)", function,
              loc2name(where, when));
    
-   if (condition)
+   if (strlen(condition) != 0)
       printf(", condition %s\n", condition);
    else
       printf("\n");
@@ -251,10 +254,11 @@ IPListElem::~IPListElem()
    free(function);
    free(statement);
    if (handle) {
-      if (appProc)
+      if (appProc){
          appProc->deleteSnippet(handle);
-// leaks now? caused segfault      
-//      delete handle;
+//causes a segfault?
+         delete handle;
+      }
    }
 }
 
@@ -338,14 +342,14 @@ int help(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv)
       printf("deletebreak <breakpoint number ...> - delete breakpoint(s)\n");
       printf("deleteinst <instpoint number ...> - delete intrumentation point(s)\n");
    }
-   
+  
    LIMIT_TO("break") {
       printf("break <function> [entry|exit|preCall|postCall] [<condition>] - set a (conditional)\n");
       printf("     break point at specified points of <function>\n");
       printf("break <file name:line number> [<condition>] - set an arbitrary (conditional) break\n");
       printf("     point at <line number> of <file name>\n");
    }
-   
+  
    LIMIT_TO("debugparse") {
       printf("debugparse [enable | disable] - Turn on/off debug parsing of the mutatee programs\n");
    }
@@ -599,6 +603,78 @@ int loadSource(const char *inp) {
    return loadLib(fname);
 }
 
+// The following wtx*Command routines are using a temporary remote
+// debugging BPatch interface.  They may be removed without warning.
+static BPatch_remoteHost remote;
+int wtxConnectCommand(ClientData, Tcl_Interp *,
+                      int argc, TCLCONST char *argv[])
+{
+    if (argc < 2 || argc > 3) {
+        printf("Usage: wtxConnect <target_server_name> [hostname]\n");
+        return TCL_ERROR;
+    }
+
+    BPatch_remoteWtxInfo *info;
+    info = static_cast<BPatch_remoteWtxInfo *>(
+        malloc( sizeof(BPatch_remoteWtxInfo) ));
+
+    if (!info) {
+        printf("Could not allocate memory for debugger handle\n");
+        return TCL_ERROR;
+    }
+
+    info->target = const_cast<char *>(argv[1]);
+    info->tool   = "Dyner Tool";
+    info->host   = const_cast<char *>(argc == 3 ? argv[2] : NULL);
+
+    remote.type = BPATCH_REMOTE_DEBUG_WTX;
+    remote.info = static_cast<void *>( info );
+
+    if (!bpatch->remoteConnect(remote))
+        return TCL_ERROR;
+
+    return TCL_OK;
+}
+
+int wtxPsCommand(ClientData, Tcl_Interp *,
+                 int /*argc*/, TCLCONST char * /*argv[]*/)
+{
+    BPatch_Vector<unsigned int> tlist;
+
+    if (!bpatch->getPidList(remote, tlist)) {
+        return TCL_ERROR;
+    }
+
+    printf("Active processes (tasks):\n");
+    if (tlist.size()) {
+        for (unsigned int i = 0; i < tlist.size(); ++i) {
+            std::string pidstr;
+
+            printf("\t%d (0x%x): ", tlist[i], tlist[i]);
+            if (bpatch->getPidInfo(remote, tlist[i], pidstr))
+                printf("%s\n", pidstr.c_str());
+            else
+                printf("<getPidInfo failure>\n");
+        }
+    } else {
+        printf("\t<No active tasks found>\n");
+    }
+
+    fflush(stdout);
+    return TCL_OK;
+}
+
+int wtxDisconnectCommand(ClientData, Tcl_Interp *,
+                         int /*argc*/, TCLCONST char * /*argv[]*/)
+{
+    if (!bpatch->remoteDisconnect(remote))
+        return TCL_ERROR;
+
+    remote.type = BPATCH_REMOTE_DEBUG_END;
+    free(remote.info);
+    return TCL_OK;
+}
+
 int loadCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
    if (argc == 3) {
@@ -741,14 +817,24 @@ int deleteInstrument(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    return ret;
 }
 
+void getCallStack(BPatch_Vector<BPatch_frame> &callStack)
+{
+    if (currThr) currThr->getCallStack(callStack);
+
+    BPatch_Vector<BPatch_thread *> threads;
+    appProc->getThreads(threads);
+    currThr = threads[0];
+
+    currThr->getCallStack(callStack);
+}
+
 void setWhereAmINow(){
 	std::vector<BPatch_frame> callStack;
    
-	appThread->getCallStack(callStack);
+	getCallStack(callStack);
    
 	whereAmINow = callStack.size()-1;
-   
-}
+}   
 
 
 int runApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
@@ -764,6 +850,7 @@ int runApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
    dprintf("starting program execution.\n");
    appProc->continueExecution();
 	
+   targetPoint = NULL;
 	whereAmINow = -1 ; //ccw 10 mar 2004 : i dont know where i will be when i stop
    
    while (!appProc->isStopped() && !appProc->isTerminated() && !stopFlag)
@@ -772,7 +859,7 @@ int runApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
 #else
 	usleep(250);
 #endif
-   
+
    if (stopFlag) {
       stopFlag = false;
       appProc->stopExecution();
@@ -790,6 +877,7 @@ int runApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
 		if (i != NULL) {
 	    	BPListElem *curr = (BPListElem *) i;
          curr->Print();
+         targetPoint = i->point;
 		}
    } else {
       printf("\nStopped.\n");
@@ -814,12 +902,12 @@ bool saveWorldStart =false;
 int saveStart(ClientData, Tcl_Interp *, int /* argc */, TCLCONST char ** /* argv */){
    
 	if (!haveApp()) return TCL_ERROR;
-   
-   
-	saveWorldStart=true;
+
+	saveWorldStart = true;
+
 	appProc->enableDumpPatchedImage();
-	return TCL_OK;
-   
+
+	return TCL_OK;   
 }
 
 int saveWorld(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv){
@@ -841,7 +929,7 @@ int saveWorld(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv){
 
 /*
  * This is a subroutine for getting the arguments of a line.
- * WARNING: Users are responsible for releasing the returned string!
+ * WARNING: Caller responsible for releasing the returned string!
  */
 char * getBufferAux(int argc, TCLCONST char *argv[], int expr_start, bool addNewLine){
    // Count up how large a buffer we need for the whole line
@@ -852,7 +940,8 @@ char * getBufferAux(int argc, TCLCONST char *argv[], int expr_start, bool addNew
    }
    ++line_len;
    // Make the buffer and copy the line into it
-   char *line_buf = new char[line_len];
+   char *line_buf = new char[line_len + (addNewLine ? 2 : 1)];
+   //memset(line_buf, '\0', line_len + (addNewLine ? 2 : 1));
    *line_buf = '\0';
    for (i = expr_start; i < argc - 1; ++i) {
       strcat(line_buf, argv[i]);
@@ -860,12 +949,17 @@ char * getBufferAux(int argc, TCLCONST char *argv[], int expr_start, bool addNew
    }
    strcat(line_buf, argv[i]);
    if(addNewLine) strcat(line_buf, "\n");
+   //strcat(line_buf, "\0\0");
+   /* *strchr(line_buf, '\0') = EOF;
+    */
+   //debug:
    return line_buf;
 }     
 
 extern BPatch_snippet *parse_result;
 int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
+   //disabled temporarily
    if (argc < 2) {
       printf("Usage: break <function> [entry|exit|preCall|postCall] [<condition>]\n");
       printf("or     break <file name:line number> [<condition>]\n");
@@ -875,7 +969,7 @@ int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    if (!haveApp()) return TCL_ERROR;
    
    if (bpNumber == NULL) {
-      bpNumber = appProc->malloc(*appImage->findType("int"));
+      bpNumber = appProc->malloc(*appImage->findType("int"), "DYNER_bpNumber");
       if (bpNumber == NULL) {
          fprintf(stderr, "Unable to allocate memory in the inferior process.\n");
          exit(1);
@@ -891,7 +985,7 @@ int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    char *ptr = strchr(argv[1],':');
    if (ptr) {
       //Arbitrary break point, first find module name
-      
+      expr_start = 2;
       where = BPatch_entry;
       when = BPatch_callBefore;
       *ptr = '\0';
@@ -911,6 +1005,7 @@ int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
       if ( (argc > 2) && name2loc(argv[2], where, when)) {
          expr_start = 3;
       } else {
+         expr_start = 0;
          where = BPatch_entry;
          when = BPatch_callBefore;
       }
@@ -923,76 +1018,85 @@ int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
       }
       
       if (1 < found_funcs.size()) {
-         printf("%s[%d]:  WARNING  :  %d functions called '%s'found.  Using the first\n", 
-                __FILE__, __LINE__,  (int) found_funcs.size(), argv[1]);
+         printf("%s[%d]:  WARNING  :  %d functions called '%s' found.  Creating %d breakpoints.\n", 
+                __FILE__, __LINE__,  (int) found_funcs.size(), argv[1], (int) found_funcs.size());
       }
+
+
+      points = new std::vector<BPatch_point *>; 
       
-      points = found_funcs[0]->findPoint(where);
+      for(unsigned int n = 0; n < found_funcs.size(); ++n){
+         std::vector<BPatch_point *> *pts = found_funcs[n]->findPoint(where);
+         if (pts == NULL) {
+            printf("Unable to locate points for function %s\n", argv[1]);
+            return TCL_ERROR;
+         }        
+         for(unsigned int p = 0; p < pts->size(); ++p){
+            if((*pts)[p] != NULL){
+               points->push_back((*pts)[p]);
+            }
+         }
+      }
+ 
       
-      if (points == NULL) {
+      if (points->size() == 0) {
          printf("Unable to locate points for function %s\n", argv[1]);
          return TCL_ERROR;
       }
+      
    }
-   
+
    char *line_buf = NULL;
-   
-   if (argc > 3) {
 
+   if(argc > expr_start){
       line_buf = getBufferAux(argc, argv, expr_start, false);
-
-      set_lex_input(line_buf);
-      if (dynerparse() != 0) {
-         fprintf(stderr, "Breakpoint not set due to error.\n");
-         delete line_buf;
-         return TCL_ERROR;
+   }
+   std::stringstream sn;
+   
+   for(unsigned int i = 0; i < points->size(); ++i){
+      printf("bpCounter = %d\n", bpCtr);
+      sn.str("");
+      if(argc > expr_start){
+         sn << "if(" << line_buf << "){\n";
+      }
+      sn << "inf`DYNER_bpNumber = " << bpCtr << ";\n";
+      sn << "dyninst`break();\n";
+      if(argc > expr_start){
+         sn << "}";
       }
       
-      if (parse_type != parsed_bool) {
-         fprintf(stderr, "Breakpoint not set due error, expression not boolean.\n");
-         delete line_buf;
-         delete parse_result;
-         return TCL_ERROR;
-      }
-   }
-   
-   // Make a snippet to tell us which breakpoint it is
-   BPatch_arithExpr storeBPNum(BPatch_assign, *bpNumber, BPatch_constExpr(bpCtr));
-   
-   // store the break point number, then  break
-
-   std::vector<BPatch_snippet *> doBreak;
-   doBreak.push_back(&storeBPNum);
-   doBreak.push_back(new BPatch_breakPointExpr());
-
-   BPatch_snippet * brSnippet = new BPatch_sequence(doBreak);;   
-
-   if (argc > 3) {
-      // Call the break snippet conditionally
-      BPatch_ifExpr * condBreak = new BPatch_ifExpr(*(BPatch_boolExpr *)parse_result, *brSnippet); 
-   	brSnippet = (BPatch_snippet *) condBreak;
+      std::stringstream snippetName;
+      snippetName.str() = "";
+      snippetName << "breakSnippet_" << bpCtr;
       
-      delete parse_result;
-   }
-
-
- BPatchSnippetHandle *handle = appProc->insertSnippet(*brSnippet, *points, when, BPatch_lastSnippet);
-
-   if (handle == 0) {
-      fprintf(stderr, "Error inserting snippet.\n");
-      if (line_buf) delete line_buf;
-      return TCL_ERROR;
+      BPatch_snippet *statement = dynC_API::createSnippet(sn.str().c_str(), *(*points)[i], snippetName.str().c_str());
+      if(statement == NULL){
+         fprintf(stderr, "Error creating breakpoint %d.\n", bpCtr);
+         bpCtr++;
+         continue;
+         //return TCL_ERROR;
+      }
+      printf("insert %d... point %p\n", bpCtr, (*points)[i]->getAddress());
+      printf("{\n%s}\n", sn.str().c_str());
+      BPatchSnippetHandle *handle = appProc->insertSnippet(*statement, *(*points)[i], when, BPatch_lastSnippet);
+         
+      if (handle == 0) {
+         fprintf(stderr, "Error inserting breakpoint %d.\n", bpCtr);
+         bpCtr++;
+         continue; 
+         //return TCL_ERROR;
       }
    
-   BPListElem *bpl =
-      new BPListElem(bpCtr, argv[1], where, when, line_buf, handle, lineNum);
-   
+      BPListElem *bpl =
+         new BPListElem(bpCtr, argv[1], (*points)[i], where, when, (line_buf ? strdup(line_buf) : ""), handle, lineNum);
+      
+      bplist.push_back(bpl);
+      
+      printf("Breakpoint %d set.\n", bpCtr);
+      bpCtr++;  
+   }
+
    if (line_buf) delete line_buf;
-   
-    bplist.push_back(bpl);
-   
-   printf("Breakpoint %d set.\n", bpCtr);
-   bpCtr++;
 
    return TCL_OK;
 }
@@ -1056,7 +1160,7 @@ void printArray(BPatch_type * type )
       case 3:
          
          //3D array
-         printf("    %s is an array [%s..%s][%s..%s][%s..%s] of %s\n",
+         printf("    %s is an array [%ld..%ld][%ld..%ld][%ld..%ld] of %s\n",
                 type->getName(), type->getLow(), type->getHigh(),
                 type->getConstituentType()->getLow(),
                 type->getConstituentType()->getHigh(),
@@ -1067,14 +1171,14 @@ void printArray(BPatch_type * type )
       case 2:
          
          //2D array
-         printf("    %s is an array [%s..%s][%s..%s] of %s\n", type->getName(), 
+         printf("    %s is an array [%ld..%ld][%ld..%ld] of %s\n", type->getName(), 
                 type->getLow(), type->getHigh(),
                 type->getConstituentType()->getLow(),
                 type->getConstituentType()->getHigh(),
                 type->getConstituentType()->getConstituentType()->getName());
          break;
       case 1:
-         printf("    %s is an array [%s..%s] of %s\n", type->getName(),
+         printf("    %s is an array [%ld..%ld] of %s\n", type->getName(),
                 type->getLow(), type->getHigh(), 
                 type->getConstituentType()->getName());
          break;
@@ -1101,25 +1205,24 @@ int instTermStatement(int argc, TCLCONST char *argv[])
 
    
    char *line_buf = getBufferAux(argc, argv, 2, true);
+
+   BPatch_snippet *statement = dynC_API::createSnippet(line_buf, *appProc, "terminalSnippet");
    
-   // printf("calling parse of %s\n", line_buf);
-   set_lex_input(line_buf);
-   if (dynerparse() != 0) {
+   if(statement == NULL){
       fprintf(stderr, "Instrumentation not set due to error.\n");
       delete line_buf;
+      delete statement;
       return TCL_ERROR;
    }
-   
-   if (parse_type != parsed_statement) {
-      fprintf(stderr, "code not inserted, expression is not a statement.\n");
-      delete line_buf;
-      delete parse_result;
-      return TCL_ERROR;
-   }
-   
-   termStatement = parse_result;
+
+   termStatement = statement;
+
+   delete line_buf;
+   delete statement;
    return TCL_OK;
 }
+
+static int dynerSnippetNumber = 0;
 
 int instStatement(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
@@ -1179,54 +1282,30 @@ int instStatement(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    }
 
 
-   char *line_buf = getBufferAux(argc, argv, expr_start, false);
-/*   
-   printf("calling parse of %s\n", line_buf);
+   char *line_buf = getBufferAux(argc, argv, expr_start, true);
 
-   BPatch_snippet * snResult = commandAPI::createSnippet(line_buf);
-   
-   printf("successful parse \n");
-*/
-   set_lex_input(line_buf);
-   if (dynerparse() != 0) {
-      fprintf(stderr, "Instrumentation not set due to error.\n");
-      delete line_buf;
-      targetPoint = NULL;
-      return TCL_ERROR;
+   for(unsigned int i = 0; i < points->size(); ++i){
+      std::stringstream snName;
+      snName << "dynerSnippet_" << dynerSnippetNumber;
+      BPatch_snippet *snippet = dynC_API::createSnippet(line_buf, *(*points)[i], snName.str().c_str());
+      BPatchSnippetHandle *handle =
+         appProc->insertSnippet(*snippet, *(*points)[i], when, BPatch_lastSnippet);
+       if (handle == NULL) {
+         fprintf(stderr, "Error inserting snippet.\n");
+         delete line_buf;
+         return TCL_ERROR;
+      }
+      
+      IPListElem *snl =
+         new IPListElem(ipCtr, argv[1], where, when, line_buf, handle, instType);
+     
+      
+      iplist.push_back(snl);
+      printf("Instrument point %d set.\n", ipCtr++);
    }
-
-
-//   parse_result = snResult;
-
-   targetPoint = NULL;
-   
-   if (parse_type != parsed_statement) {
-      fprintf(stderr, "code not inserted, expression is not a statement.\n");
-      delete line_buf;
-      delete parse_result;
-      return TCL_ERROR;
-   }
-
-   BPatchSnippetHandle *handle =
-      appProc->insertSnippet(*parse_result, *points, when,BPatch_lastSnippet);
-
-   if (handle == 0) {
-      fprintf(stderr, "Error inserting snippet.\n");
-      delete line_buf;
-      return TCL_ERROR;
-   }
-   
-   IPListElem *snl =
-      new IPListElem(ipCtr, argv[1], where, when, line_buf, handle, instType);
    delete line_buf;
-   
-   iplist.push_back(snl);
-   
-   if (instType == NORMAL) {
-    	printf("Instrument point %d set.\n", ipCtr);
-      ipCtr++;
-   }
-   
+   targetPoint = NULL;
+     
    return TCL_OK;
 }
 
@@ -1240,24 +1319,24 @@ int execStatement(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    }
    
    char *line_buf = getBufferAux(argc, argv, 1, true);
-  
-   //printf("calling parse of %s\n", line_buf);
-   set_lex_input(line_buf);
-   if (dynerparse() != 0) {
-      fprintf(stderr, "Execution can not be done due to error.\n");
+
+   BPatch_snippet *statement = NULL;
+   // reenable for targetpoint at breaks?
+   // if(targetPoint == NULL){
+   //printf("hi_generic\n");
+   statement = dynC_API::createSnippet(line_buf, *appProc, "SnippetEx");
+   //}else{
+   //   printf("func: %s\n", targetPoint->getFunction()->getName(new char[512], 512));
+   //   statement = dynC_API::createSnippet(line_buf, *targetPoint, "SnippetEx");
+   //}
+   if(statement == NULL){
+      fprintf(stderr, "Execution cannot be done due to error.\n");
       delete line_buf;
       return TCL_ERROR;
    }
-   
-   if (parse_type != parsed_statement) {
-      fprintf(stderr, "Syntax error, expression is not a statement.\n");
-      delete line_buf;
-      delete parse_result;
-      return TCL_ERROR;
-   }
-   
-   appProc->oneTimeCode(*parse_result);
-   delete parse_result;
+
+   appProc->oneTimeCode(*statement);
+   delete statement;
    delete line_buf;
    
    return TCL_OK;
@@ -1448,10 +1527,10 @@ BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
 	std::vector<BPatch_frame> callStack;
 	char funcName [1024];
 	BPatch_variableExpr *tmpVar;
-   
-	appThread->getCallStack(callStack);
-   
-	if(	callStack[index].findFunction()){
+
+	getCallStack(callStack);
+
+	if(callStack[index].findFunction()){
       
 		std::vector<BPatch_point *> *points = callStack[index].findFunction()->findPoint(BPatch_entry);//ccw 10 mar 2004 was subroutine
       
@@ -1463,8 +1542,12 @@ BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
          
 			tmpVar = appImage->findVariable(*targetPoint, name);
 			targetPoint = NULL;
-         
-         
+
+// Not sure what this once did, but it's old and we certainly
+// don't allow the external creation of BPatch_variableExpr's
+// anymore.
+
+#if 0
 			if (tmpVar && 
 #ifdef rs6000_ibm_aix4_1
              (((int)tmpVar->getBaseAddr()) < 0x1000) ) {
@@ -1475,8 +1558,6 @@ BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
 #endif
 				offset = (CASTOFFSET) (tmpVar->getBaseAddr());
             
-            
-            
 #ifdef sparc_sun_solaris2_4
 				index ++; /* ccw 9 mar 2004 WHY DO I NEED TO DO THIS ?*/
 #endif
@@ -1484,11 +1565,11 @@ BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
 				/* WARNING: the function BPatch_thread::lowlevel_process() is risky, it should go away
 				   But i need to build a variable that points to a specific address, and I can not find
 				   a better way to do it right now
-            */	
-            BPatch_type *bptype = const_cast<BPatch_type *>(tmpVar->getType());
-				var = new BPatch_variableExpr(tmpVar->getName(), appProc->getProcess(),
-                                          (void*) ( ((CASTOFFSET) (callStack[index].getFP())) +offset), bptype );	
-            
+				 */	
+//          BPatch_type *bptype = const_cast<BPatch_type *>(tmpVar->getType());
+//				var = new BPatch_variableExpr(tmpVar->getName(), appProc->getProcess(),
+//					(void*) ( ((CASTOFFSET) (callStack[index].getFP())) +offset), bptype );	
+
 #ifdef sparc_sun_solaris2_4 
 				index --;  
 #endif
@@ -1496,6 +1577,9 @@ BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
             
 				return var;
 			}
+#endif  // End Dead Code
+
+                        if (tmpVar) return tmpVar;
 			
 		}
       
@@ -1917,7 +2001,7 @@ int whatisType(ClientData cd, Tcl_Interp *interp, int argc, TCLCONST char *argv[
          else
             printf("    %s is a scalar of size %d\n",argv[1],type->getSize());
          if( type->getLow() ){
-            printf("        with range %s to %s\n", type->getLow(),
+            printf("        with range %ld to %ld\n", type->getLow(),
                    type->getHigh());
          }
          break;
@@ -2025,7 +2109,7 @@ int whatisVar(ClientData cd, Tcl_Interp *interp, int argc, TCLCONST char *argv[]
          else
             printf("    %s is a scalar of size %d\n",argv[1],type->getSize());
          if( type->getLow() ){
-            printf("        with range %s to %s\n", type->getLow(),
+            printf("        with range %ld to %ld\n", type->getLow(),
                    type->getHigh());
          }
          break;
@@ -2428,7 +2512,6 @@ int countCommand(ClientData, Tcl_Interp *interp, int argc, TCLCONST char *argv[]
  * Replace all calls to fcn1 with calls fcn2
  */
 int repFunc(const char *name1, const char *name2) {
-   
    std::vector<BPatch_function *> bpfv;
    if (dynerVerbose) printf("Searching for %s...\n", name1);
    if (NULL == appImage->findFunction(name1, bpfv) || !bpfv.size()) {
@@ -2974,6 +3057,15 @@ int Tcl_AppInit(Tcl_Interp *interp)
    Tcl_CreateCommand(interp, "saveStart", (Tcl_CmdProc*)saveStart, NULL, NULL);
    
 #endif
+
+#if defined(os_vxworks)
+    // These commands are specific to vxWorks, and will be replaced with
+    // a documented generalized remote debugging interface.
+    Tcl_CreateCommand(interp, "wtxConnect", (Tcl_CmdProc*)wtxConnectCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "wtxPs", (Tcl_CmdProc*)wtxPsCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "wtxDisconnect", (Tcl_CmdProc*)wtxDisconnectCommand, NULL, NULL);
+#endif
+
    
    Tcl_AllowExceptions(interp);
    
@@ -2989,7 +3081,6 @@ int Tcl_AppInit(Tcl_Interp *interp)
 }
 
 
-
 int main(int argc, char *argv[])
 {
 
@@ -3001,14 +3092,13 @@ int main(int argc, char *argv[])
             firstCommand = (char *) calloc(strlen(argv[i] + 2) + 7, sizeof(char));
             strcpy(firstCommand, "source ");
             strcat(firstCommand, argv[i] + 2);
-            
          }
       }
    }   
   
    if (argc >= 2 && !strcmp(argv[1], "-debug")) {
       printf("parser debug enabled\n");
-      dynerdebug = 1;
+      //dynerdebug = 1;
       verbose = true;
    }
    

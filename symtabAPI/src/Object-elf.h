@@ -421,6 +421,7 @@ class Object : public AObject {
     bool hasRelaplt() const {return hasRelaplt_;}
     bool isBlueGene() const {return isBlueGene_;}
     bool hasNoteSection() const {return hasNoteSection_;}
+    Region::RegionType getRelType() const { return relType_; }
 
     Offset getTextAddr() const {return text_addr_;}
     Offset getSymtabAddr() const {return symtab_addr_;}
@@ -459,6 +460,7 @@ class Object : public AObject {
   bool hasReladyn_;
   bool hasRelplt_;
   bool hasRelaplt_;
+  Region::RegionType relType_;
 
   bool isBlueGene_;
   bool hasNoteSection_;
@@ -478,8 +480,6 @@ class Object : public AObject {
   Offset   dynamic_addr_;	 //.dynamic section
   Offset   dynsym_addr_;        // .dynsym section
   Offset   dynstr_addr_;        // .dynstr section
-  Offset   opd_addr_;
-  unsigned opd_size_;
   Offset   got_addr_;           // global offset table
   unsigned got_size_;           // global offset table
   Offset   plt_addr_;           // procedure linkage table
@@ -541,11 +541,12 @@ class Object : public AObject {
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr*& rel_plt_scnp, Elf_X_Shdr*& plt_scnp, 
-		    Elf_X_Shdr*& opd_scnp, Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
+		    Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
 		    Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr*& dynamic_scnp, Elf_X_Shdr*& eh_frame,
 		    Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
           bool a_out=false);
   
+  Symbol *handle_opd_symbol(Region *opd, Symbol *sym);
   void parseStabFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &li);
   void parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &li);
 
@@ -575,13 +576,12 @@ class Object : public AObject {
   bool parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                      Elf_X_Shdr* bssscnp,
                      Elf_X_Shdr* symscnp,
-		     Elf_X_Shdr* opdscnp,
                      bool shared_library,
                      std::string module);
   
   void parse_dynamicSymbols( Elf_X_Shdr *& dyn_scnp, Elf_X_Data &symdata,
-                             Elf_X_Data &strdata, Elf_X_Shdr* opdscnp,
-                             bool shared_library, std::string module);
+                             Elf_X_Data &strdata, bool shared_library,
+                             std::string module);
 
   void find_code_and_data(Elf_X &elf,
        Offset txtaddr, Offset dataddr);

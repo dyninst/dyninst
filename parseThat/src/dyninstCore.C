@@ -51,6 +51,17 @@
 #include "log.h"
 #include "utils.h"
 
+/* These are missing on some platforms -- just use O_SYNC 
+ * This is the approach Linux uses 
+ */
+#ifndef O_RSYNC
+#define O_RSYNC O_SYNC
+#endif
+
+#ifndef O_DSYNC
+#define O_DSYNC O_SYNC
+#endif
+
 using namespace std;
 
 /*******************************************************************************
@@ -428,35 +439,35 @@ int launch_mutator()
 
             sendMsg(config.outfd, ID_INST_FUNC, VERB1, ID_TEST, buf);
 
-            if (config.inst_level >= INST_FUNC_ENTRY) {
+            if (config.inst_level == INST_FUNC_ENTRY) {
                if (!instrumentFunctionEntry(dh, (*appFunctions)[j]))
                   ++func_warn_cnt;
                else
                   ++func_pass_cnt;
             }
 
-            if (config.inst_level >= INST_FUNC_EXIT) {
+            if (config.inst_level == INST_FUNC_EXIT) {
                if (!instrumentFunctionExit(dh, (*appFunctions)[j]))
                   ++func_warn_cnt;
                else
                   ++func_pass_cnt;
             }
 
-            if (config.inst_level >= INST_BASIC_BLOCK) {
+            if (config.inst_level == INST_BASIC_BLOCK) {
                if (!instrumentBasicBlocks(dh, (*appFunctions)[j]))
                   ++func_warn_cnt;
                else
                   ++func_pass_cnt;
             }
 
-            if (config.inst_level >= INST_MEMORY_READ) {
+            if (config.inst_level == INST_MEMORY_READ) {
                if (!instrumentMemoryReads(dh, (*appFunctions)[j]))
                   ++func_warn_cnt;
                else
                   ++func_pass_cnt;
             }
 
-            if (config.inst_level >= INST_MEMORY_WRITE) {
+            if (config.inst_level == INST_MEMORY_WRITE) {
                if (!instrumentMemoryWrites(dh, (*appFunctions)[j]))
                   ++func_warn_cnt;
                else
@@ -631,11 +642,11 @@ void printSummary(BPatch_thread *proc, BPatch_exitType exit_type)
                }
             }
          }
-         sendMsg(config.outfd, ID_EXIT_CODE, INFO, ID_INFO, proc->getExitCode());
+         sendMsg(config.outfd, ID_EXIT_CODE, INFO, ID_INFO, proc->getProcess()->getExitCode());
          break;
 
       case ExitedViaSignal:
-         sendMsg(config.outfd, ID_EXIT_SIGNAL, INFO, ID_INFO, proc->getExitSignal());
+          sendMsg(config.outfd, ID_EXIT_SIGNAL, INFO, ID_INFO, proc->getProcess()->getExitSignal());
          if (config.hunt_crashes) {
             sendMsg(config.outfd, ID_CRASH_HUNT_NUM_ACTIONS, INFO, ID_INFO, numInstsAllowed);
          }
@@ -656,7 +667,7 @@ void printSummary(BPatch_thread *proc, BPatch_exitType exit_type)
 
 void reportNewProcess(BPatch_thread *parent, BPatch_thread *child)
 {
-   sendMsg(config.outfd, ID_POST_FORK, INFO, ID_INFO, child->getPid());
+    sendMsg(config.outfd, ID_POST_FORK, INFO, ID_INFO, child->getProcess()->getPid());
 }
 
 //

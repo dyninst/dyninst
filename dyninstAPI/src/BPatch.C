@@ -706,32 +706,6 @@ BPatch_thread *BPatch::getThreadByPid(int pid, bool *exists)
 }
 
 
-/*
- * BPatch::getThreads
- *
- * Returns a vector of all threads that are currently defined.  Includes
- * threads created directly using the library and those created with UNIX fork
- * or Windows NT spawn system calls.  The caller is responsible for deleting
- * the vector when it is no longer needed.
- */
-BPatch_Vector<BPatch_thread *> *BPatch::getThreadsInt()
-{
-    BPatch_Vector<BPatch_thread *> *result = new BPatch_Vector<BPatch_thread *>;
-
-    dictionary_hash_iter<int, BPatch_process *> ti(info->procsByPid);
-
-    int pid;
-    BPatch_process *proc;
-
-    while (ti.next(pid, proc))
-    {
-       assert(proc);
-       assert(proc->threads.size() > 0);
-       result->push_back(proc->threads[0]);
-    }
-
-    return result;
-}
 
 /*
  * BPatch::getProcs
@@ -1301,11 +1275,16 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
 {
    clearError();
 
+    if (!OS_isConnected()) {
+        reportError(BPatchFatal, 68, "Attempted to create process before connected to target server\n");
+        return NULL;
+    }
+
    if ( path == NULL ) { return NULL; }
 
 #if !defined (os_windows)
-   //  This might be ok on windows...  not 100%sure and it takes to long to build for
-   //  the moment.
+   //  This might be ok on windows...  not 100% sure and it takes
+   //  to long to build for the moment.
 
    //  just a sanity check for the exitence of <path>
    struct stat statbuf;
@@ -1324,8 +1303,9 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
       return NULL;
    }
 
-   //  and ensure its executable (does not check permissions):
 #if !defined(os_vxworks) // Not necessary for VxWorks modules
+
+   //  and ensure its executable (does not check permissions):
    if (! ( (statbuf.st_mode & S_IXUSR)
             || (statbuf.st_mode & S_IXGRP)
             || (statbuf.st_mode & S_IXOTH) )) {
@@ -1334,8 +1314,9 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
       reportError(BPatchFatal, 68, ebuf);
       return NULL;
    }
-#endif // VxWorks
-#endif
+
+#endif // !VxWorks
+#endif // !Windows
 
    BPatch_process *ret = 
       new BPatch_process(path, argv, mode, envp, stdin_fd,stdout_fd,stderr_fd);
@@ -1364,22 +1345,6 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
    return ret;
 }
 
-/*
- * BPatch::createProcess
- * This function is deprecated, see processCreate
- */
-BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[], 
-                                         const char **envp, int stdin_fd, 
-                                         int stdout_fd, int stderr_fd)
-{
-   BPatch_process *ret = processCreateInt(path, argv, envp, stdin_fd, 
-                                          stdout_fd, stderr_fd);
-   if (!ret)
-      return NULL;
-
-   assert(ret->threads.size() > 0);
-   return ret->threads[0];
-}
 
 /*
  * BPatch::processAttach
@@ -1394,7 +1359,12 @@ BPatch_process *BPatch::processAttachInt
 (const char *path, int pid, BPatch_hybridMode mode)
 {
    clearError();
-   
+
+    if (!OS_isConnected()) {
+        reportError(BPatchFatal, 68, "Error: Attempted to attach to process before connected to target server.");
+        return NULL;
+    }
+
    if (info->procsByPid.defines(pid)) {
       char msg[256];
       sprintf(msg, "attachProcess failed.  Dyninst is already attached to %d.",
@@ -1426,20 +1396,6 @@ BPatch_process *BPatch::processAttachInt
    if (!ret->updateThreadInfo()) return false;
 
    return ret;
-}
-
-/*
- * BPatch::attachProcess
- * This function is deprecated, see processAttach
- */
-BPatch_thread *BPatch::attachProcessInt(const char *path, int pid)
-{
-   BPatch_process *proc = processAttachInt(path, pid);
-   if (!proc)
-      return NULL;
-   
-   assert(proc->threads.size() > 0);
-   return proc->threads[0];
 }
 
 /*
@@ -1829,7 +1785,7 @@ bool BPatch::waitUntilStoppedInt(BPatch_thread *appThread){
 
    while (1) {
      __LOCK;
-     if (!appThread->isStopped() && !appThread->isTerminated()) {
+     if (!appThread->getProcess()->isStopped() && !appThread->getProcess()->isTerminated()) {
        __UNLOCK;
        this->waitForStatusChange();
      }
@@ -1841,7 +1797,7 @@ bool BPatch::waitUntilStoppedInt(BPatch_thread *appThread){
 
    __LOCK;
 
-	if (!appThread->isStopped())
+   if (!appThread->getProcess()->isStopped())
 	{
 		cerr << "ERROR : process did not signal mutator via stop"
 		     << endl;
@@ -1850,8 +1806,8 @@ bool BPatch::waitUntilStoppedInt(BPatch_thread *appThread){
 	}
 #if defined(i386_unknown_nt4_0) || \
     defined(mips_unknown_ce2_11)
-	else if((appThread->stopSignal() != EXCEPTION_BREAKPOINT) && 
-		(appThread->stopSignal() != -1))
+	else if((appThread->getProcess()->stopSignal() != EXCEPTION_BREAKPOINT) && 
+		(appThread->getProcess()->stopSignal() != -1))
 	{
 		cerr << "ERROR : process stopped on signal different"
 		     << " than SIGTRAP" << endl;
@@ -1859,11 +1815,11 @@ bool BPatch::waitUntilStoppedInt(BPatch_thread *appThread){
  		goto done;
 	}
 #else
-	else if ((appThread->stopSignal() != SIGSTOP) &&
+	else if ((appThread->getProcess()->stopSignal() != SIGSTOP) &&
 #if defined(bug_irix_broken_sigstop)
-		 (appThread->stopSignal() != SIGEMT) &&
+		 (appThread->getProcess()->stopSignal() != SIGEMT) &&
 #endif 
-		 (appThread->stopSignal() != SIGHUP)) {
+		 (appThread->getProcess()->stopSignal() != SIGHUP)) {
 		cerr << "ERROR :  process stopped on signal "
 		     << "different than SIGSTOP" << endl;
 		ret =  false;
@@ -2242,3 +2198,53 @@ bool BPatch::getInstrStackFramesInt()
 {
    return instrFrames;
 }
+
+bool BPatch::isConnectedInt()
+{
+    return OS_isConnected();
+}
+
+// -----------------------------------------------------------
+// Undocumented public remote debugging interface.
+// See comments in BPatch.h about the future of these methods.
+bool BPatch::remoteConnectInt(BPatch_remoteHost &remote)
+{
+    if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
+        fprintf(stderr, "Unknown remote debugging protocol %d\n", remote.type);
+        return false;
+    }
+
+    return OS_connect(remote);
+}
+
+bool BPatch::getPidListInt(BPatch_remoteHost &remote, BPatch_Vector<unsigned int> &pidlist)
+{
+    if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
+        fprintf(stderr, "Unknown remote debugging protocol %d\n", remote.type);
+        return false;
+    }
+
+    return OS_getPidList(remote, pidlist);
+}
+
+bool BPatch::getPidInfoInt(BPatch_remoteHost &remote, unsigned int pid,
+                           std::string &pidInfo)
+{
+    if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
+        fprintf(stderr, "Unknown remote debugging protocol %d\n", remote.type);
+        return false;
+    }
+
+    return OS_getPidInfo(remote, pid, pidInfo);
+}
+
+bool BPatch::remoteDisconnectInt(BPatch_remoteHost &remote)
+{
+    if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
+        fprintf(stderr, "Unknown remote debugging protocol %d\n", remote.type);
+        return false;
+    }
+
+    return OS_disconnect(remote);
+}
+// -----------------------------------------------------------

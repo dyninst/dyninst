@@ -87,9 +87,11 @@ BPatch_snippet *SnippetGenerator::findAppVariable(const char * name, bool global
       lastError << "Cannot specify a variable as both global and local.";
       return NULL;
    }
-   BPatch_variableExpr *varExpr = image->findVariable(*point, name, false);;
-   
-   if(global){
+   BPatch_variableExpr *varExpr = NULL;
+   if(point != NULL){
+      varExpr  = image->findVariable(*point, name, false);;
+   }
+   if(global || point == NULL){
       varExpr = image->findVariable(name, false);
    }else if(local){
       varExpr = image->findVariable(*point, name, false);
@@ -102,7 +104,7 @@ BPatch_snippet *SnippetGenerator::findAppVariable(const char * name, bool global
       return NULL;
    }
    BPatch_variableExpr *varExprGbl = image->findVariable(name);    
-   if(!global){
+   if(!global && point != NULL){
       if(local && NULL != varExprGbl && varExpr == varExprGbl){
          lastError << "Can't find local variable \"" << name << "\". There is a global variable of the same name.";
          return NULL;
@@ -115,7 +117,7 @@ BPatch_snippet *SnippetGenerator::findAppVariable(const char * name, bool global
          return varExpr; //found a local variable
       }
    }
-   if(!local && !global && (NULL != varExprGbl && varExprGbl != varExpr)){// if BPatch_AppVar && both local and global
+   if(point != NULL && !local && !global && (NULL != varExprGbl && varExprGbl != varExpr)){// if BPatch_AppVar && both local and global
       if (point->getPointType() != BPatch_entry && point->getPointType() != BPatch_exit){
          return varExpr; //found a local variable`
       }
@@ -126,6 +128,10 @@ BPatch_snippet *SnippetGenerator::findAppVariable(const char * name, bool global
 }
 BPatch_snippet *SnippetGenerator::findParameter(const char * name){
    lastError.str() = "";
+   if(point == NULL){
+      lastError << "Cannot access local varaibles without point information.";
+      return NULL;
+   }
    if(point->getPointType() != BPatch_entry){
       lastError << "Parameters only valid at entry points.";
       return NULL;
@@ -148,6 +154,10 @@ BPatch_snippet *SnippetGenerator::findParameter(const char * name){
 }
 BPatch_snippet *SnippetGenerator::findParameter(int index){
    lastError.str() = "";       
+   if(point == NULL){
+      lastError << "Cannot access local varaibles without point information.";
+      return NULL;
+   }
    if(point->getPointType() != BPatch_entry){
       lastError << "Parameters only valid at entry points.";
       return NULL;
@@ -179,10 +189,11 @@ BPatch_snippet *SnippetGenerator::findInstVariable(const char *mangledStub, cons
    for(unsigned int i = 0; i < vars->size(); ++i){
       char *substr = strstr((*vars)[i]->getName(), mangledStub);
       if(substr != NULL){
-         if(strstr(substr, snippetName) == substr){
+         // if(strstr(substr, snippetName) == substr){
             //found snippet local var
             return (*vars)[i];            
-         }
+//         }
+/*
          if(strncmp(substr, "_", 1)){
             //found snippet global var
             if(varExprGbl != NULL){
@@ -190,7 +201,9 @@ BPatch_snippet *SnippetGenerator::findInstVariable(const char *mangledStub, cons
                return NULL;
             }
             varExprGbl = (*vars)[i];
+
          }
+*/
       }
    }
    if(varExprGbl != NULL){
@@ -224,6 +237,7 @@ BPatch_function *SnippetGenerator::findFunction(const char * name, std::vector<B
    }
    char funcName[512];
    bool foundDebugInfo, foundMatch, setFunc;
+   BPatch_function *noParamFunc = NULL; //for storing potentially variadic functions
    foundDebugInfo = false;
    foundMatch = false;
    setFunc = false;
@@ -236,6 +250,9 @@ BPatch_function *SnippetGenerator::findFunction(const char * name, std::vector<B
       if(functions[n]->hasParamDebugInfo()){
          foundDebugInfo = true;
          funcParams = functions[n]->getParams();
+         if(funcParams->size() == 0){
+            noParamFunc = functions[n]; //store a potentially variadic function
+         }
          foundMatch = true;
          if(funcParams->size() == params.size()){
             for(unsigned int i = 0; i < funcParams->size(); ++i){
@@ -254,8 +271,9 @@ BPatch_function *SnippetGenerator::findFunction(const char * name, std::vector<B
    }
 
    const char *errorHeader = getErrorBase().c_str();
-
-   if(!setFunc && foundDebugInfo){
+   if(noParamFunc != NULL && !setFunc){
+         func = noParamFunc;
+   }else if(!setFunc && foundDebugInfo){
       lastError << "No matching function for call to '" << name << "(";
       if(params.size() > 0){
          lastError << params[0]->getType()->getName();
@@ -286,19 +304,6 @@ BPatch_function *SnippetGenerator::findFunction(const char * name, std::vector<B
       return NULL;
    }
    
-   //             :::Type Checking:::                 //   
-   //params
-   //check for debug info:
-   if(func->hasParamDebugInfo()){
-      //assuming debug info. TODO: higher confidence
-      funcParams = func->getParams();
-      if(params.size() != funcParams->size()){
-         lastError << "Function '" << name <<  "' expects " << funcParams->size();
-         lastError << " parameters, given " << params.size() << ".";
-         return NULL;
-      } 
-
-   } 
 
    if(!foundDebugInfo){
       func = functions[0]; //<- Pick the first one if there is no debug info
@@ -307,13 +312,10 @@ BPatch_function *SnippetGenerator::findFunction(const char * name, std::vector<B
 }
 BPatch_snippet *SnippetGenerator::getContextInfo(SGContext context){
    char name[512];
+   lastError.str() = "";
    if(point == NULL){
-      printf("whoops point!\n");
-      fflush(stdout);
-   }
-   if(point->getFunction() == NULL){
-      printf("whoops func!\n");
-      fflush(stdout);
+      lastError << "Cannot provide context information without a point";
+      return NULL;
    }
    switch(context){
       case SG_FunctionName:

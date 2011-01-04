@@ -31,6 +31,8 @@
 
 #define INSIDE_INSTRUCTION_API
 
+#include "common/h/Types.h"
+
 #include "Operation.h"
 #include "common/h/arch-x86.h"
 #include "entryIDs.h"
@@ -295,6 +297,10 @@ namespace Dyninst
           framePointer.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(arch))));
           spAndBP.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(arch))));
           spAndBP.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(arch))));
+          si.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::esi : x86::esi)));
+          di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::edi : x86::edi)));
+          si_and_di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::esi : x86::esi)));
+          si_and_di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::edi : x86::edi)));
 	
           nonOperandRegisterReads[e_call] = pcAndSP;
           nonOperandRegisterReads[e_ret_near] = stackPointer;
@@ -336,6 +342,31 @@ namespace Dyninst
         nonOperandMemoryReads[e_ret_near] = stackPointerAsExpr;
         nonOperandMemoryReads[e_ret_far] = stackPointerAsExpr;
 	nonOperandMemoryReads[e_leave] = stackPointerAsExpr;
+        nonOperandRegisterWrites[e_cmpsb] = si_and_di;
+        nonOperandRegisterWrites[e_cmpsd] = si_and_di;
+        nonOperandRegisterWrites[e_cmpsw] = si_and_di;
+        nonOperandRegisterWrites[e_movsb] = si_and_di;
+        nonOperandRegisterWrites[e_movsd] = si_and_di;
+        nonOperandRegisterWrites[e_movsw] = si_and_di;
+        nonOperandRegisterWrites[e_cmpsb] = si_and_di;
+        nonOperandRegisterWrites[e_cmpsd] = si_and_di;
+        nonOperandRegisterWrites[e_cmpsw] = si_and_di;
+        nonOperandRegisterWrites[e_insb] = di;
+        nonOperandRegisterWrites[e_insd] = di;
+        nonOperandRegisterWrites[e_insw] = di;
+        nonOperandRegisterWrites[e_stosb] = di;
+        nonOperandRegisterWrites[e_stosd] = di;
+        nonOperandRegisterWrites[e_stosw] = di;
+        nonOperandRegisterWrites[e_scasb] = di;
+        nonOperandRegisterWrites[e_scasd] = di;
+        nonOperandRegisterWrites[e_scasw] = di;
+        nonOperandRegisterWrites[e_lodsb] = si;
+        nonOperandRegisterWrites[e_lodsd] = si;
+        nonOperandRegisterWrites[e_lodsw] = si;
+        nonOperandRegisterWrites[e_outsb] = si;
+        nonOperandRegisterWrites[e_outsd] = si;
+        nonOperandRegisterWrites[e_outsw] = si;
+        
       }
       Operation::registerSet thePC;
       Operation::registerSet pcAndSP;
@@ -343,6 +374,9 @@ namespace Dyninst
       Operation::VCSet stackPointerAsExpr;
       Operation::registerSet framePointer;
       Operation::registerSet spAndBP;
+      Operation::registerSet si;
+      Operation::registerSet di;
+      Operation::registerSet si_and_di;
       dyn_hash_map<entryID, Operation::registerSet > nonOperandRegisterReads;
       dyn_hash_map<entryID, Operation::registerSet > nonOperandRegisterWrites;
 

@@ -419,7 +419,8 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &g
     bool flags_saved = gen.rs()->saveVolatileRegisters(gen);
     bool useFPRs = gen.rs()->anyLiveFPRsAtEntry() && 
        bt->isConservative() && 
-       BPatch::bpatch->isSaveFPROn();
+       BPatch::bpatch->isSaveFPROn() &&
+       !bt->optimized_out_guards;
     bool createFrame = !inst || bt->createFrame() || useFPRs;
     bool saveOrigAddr = createFrame && bt->instP();
     bool localSpace = createFrame || useFPRs || 
@@ -562,7 +563,8 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen 
     else {
        useFPRs = gen.rs()->anyLiveFPRsAtEntry() && 
           bt->isConservative() && 
-          BPatch::bpatch->isSaveFPROn();
+          BPatch::bpatch->isSaveFPROn() &&
+          !bt->optimized_out_guards;
        createFrame = true;
        saveOrigAddr = bt->instP();
        localSpace = true;
@@ -1530,20 +1532,35 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
    // the correct register so we don't need to move it. 
    // So try and allocate the correct one. 
    // We should be able to - we saved them all up above.
-   for (unsigned u = 0; u < operands.size(); u++) {
+   int frame_size = 0;
+   for (int u = operands.size() - 1; u >= 0; u--) {
       Address unused = ADDR_NULL;
       unsigned reg = REG_NULL;
-
-      if (gen.rs()->allocateSpecificRegister(gen, (unsigned) amd64_arg_regs[u], true))
-         reg = amd64_arg_regs[u];
+      if(u >= AMD64_ARG_REGS)
+      {
+          if (!operands[u]->generateCode_phase2(gen,
+               noCost,
+               unused,
+               reg)) assert(0);
+          assert(reg != REG_NULL);
+          emitPushReg64(reg, gen);
+          frame_size++;
+      }
       else
-         assert(0);
-      gen.markRegDefined(reg);
-      if (!operands[u]->generateCode_phase2(gen,
-                                            noCost, 
-                                            unused,
-                                            reg)) assert(0);
+      {
+          if (gen.rs()->allocateSpecificRegister(gen, (unsigned) amd64_arg_regs[u], true))
+              reg = amd64_arg_regs[u];
+          else
+              assert(0);
+          gen.markRegDefined(reg);
+          if (!operands[u]->generateCode_phase2(gen,
+               noCost,
+               unused,
+               reg)) assert(0);
+      }
    }
+
+   
    // RAX = number of FP regs used by varargs on AMD64 (also specified as caller-saved).
    //Clobber it to 0.
    emitMovImmToReg64(REGNUM_RAX, 0, true, gen);
@@ -1555,6 +1572,11 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
    for (unsigned i = 0; i < operands.size(); i++) {
       if (operands[i]->decRefCount())
          gen.rs()->freeRegister(amd64_arg_regs[i]);
+   }
+   if(frame_size)
+   {
+       emitAdjustStackPointer(frame_size, gen);
+       //emitOpRegImm64(0x81, EXTENDED_0x81_ADD, REGNUM_RSP, frame_size * 8, gen); // add esp, frame_size
    }
 
    if (!inInstrumentation) return REG_NULL;
@@ -2044,7 +2066,8 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &
    bool flagsSaved = gen.rs()->saveVolatileRegisters(gen);
    bool useFPRs = gen.rs()->anyLiveFPRsAtEntry() &&
       BPatch::bpatch->isSaveFPROn() &&
-      bt->isConservative();
+      bt->isConservative() &&
+      !bt->optimized_out_guards;
    bool createFrame = !inst || bt->createFrame() || useFPRs;
    bool saveOrigAddr = createFrame && bt->instP();
 
@@ -2070,8 +2093,11 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &
    //Calculate the number of registers we'll save
    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
       registerSlot *reg = gen.rs()->GPRs()[i];
-      if (shouldSaveReg(reg, inst))
-         num_to_save++;
+      if (!shouldSaveReg(reg, inst))
+         continue;
+      if (createFrame && reg->encoding() == REGNUM_RBP)
+         continue;
+      num_to_save++;
    }
    if (flagsSaved) {
       num_saved++;
@@ -2094,6 +2120,8 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &
    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
       registerSlot *reg = gen.rs()->GPRs()[i];
       if (!shouldSaveReg(reg, inst))
+         continue;
+      if (createFrame && reg->encoding() == REGNUM_RBP)
          continue;
           
       emitPushReg64(reg->encoding(),gen);
@@ -2120,11 +2148,13 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &
       // pushl %rbp        (0x55)
       // movl  %rsp, %rbp  (0x48 0x89 0xe5)      
       emitSimpleInsn(0x55, gen);
+      gen.rs()->markSavedRegister(REGNUM_RBP, 0);
+      num_saved++;
+
       // And track where it went
       (*gen.rs())[REGNUM_RBP]->liveState = registerSlot::spilled;
       (*gen.rs())[REGNUM_RBP]->spilledState = registerSlot::framePointer;
       (*gen.rs())[REGNUM_RBP]->saveOffset = 0;
-      num_saved++;
 
       emitMovRegToReg64(REGNUM_RBP, REGNUM_RSP, true, gen);
    }
@@ -2177,7 +2207,8 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen
     else {
        useFPRs = gen.rs()->anyLiveFPRsAtEntry() &&
           BPatch::bpatch->isSaveFPROn() &&
-          bt->isConservative();
+          bt->isConservative() &&
+          !bt->optimized_out_guards;
        createFrame = true;
        saveOrigAddr = false;
     }

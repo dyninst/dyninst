@@ -2020,10 +2020,10 @@ int_function *instPoint::findCallee() {
     if(insns[5]->getOperation().getID() != power_op_bcctr) return NULL;
     if(insns[0]->isWritten(r12) && insns[0]->isRead(r2))
     {
-        std::vector<InstructionAST::Ptr> tmp;
+        std::vector<Expression::Ptr> tmp;
         insns[0]->getOperand(1).getValue()->getChildren(tmp);
         assert(tmp.size() == 1);
-        Expression::Ptr child_as_expr = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+        Expression::Ptr child_as_expr = tmp[0];
         assert(child_as_expr);
         child_as_expr->bind(r2.get(), Result(u32, 0));
         toc_offset = child_as_expr->eval().convert<Address>();
@@ -2216,4 +2216,33 @@ bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/, bool &)
 bool process::hasPassedMain() 
 {
    return true;
+}
+
+// Temporary remote debugger interface.
+// I assume these will be removed when procControlAPI is complete.
+bool OS_isConnected(void)
+{
+    return true;  // We're always connected to the child on this platform.
+}
+
+bool OS_connect(BPatch_remoteHost &/*remote*/)
+{
+    return true;  // We're always connected to the child on this platform.
+}
+
+bool OS_getPidList(BPatch_remoteHost &/*remote*/,
+                   BPatch_Vector<unsigned int> &/*tlist*/)
+{
+    return false;  // Not implemented.
+}
+
+bool OS_getPidInfo(BPatch_remoteHost &/*remote*/,
+                   unsigned int /*pid*/, std::string &/*pidStr*/)
+{
+    return false;  // Not implemented.
+}
+
+bool OS_disconnect(BPatch_remoteHost &/*remote*/)
+{
+    return true;
 }

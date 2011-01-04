@@ -1846,7 +1846,7 @@ void derivedType::serialize_derived(SerializerBase *sb, const char *tag) THROW_S
  * RANGED
  */
 
-rangedType::rangedType(std::string &name, typeId_t ID, dataClass typeDes, int size, long low, long hi) :
+rangedType::rangedType(std::string &name, typeId_t ID, dataClass typeDes, int size, unsigned long low, unsigned long hi) :
    	Type(name, ID, typeDes), 
 	low_(low), 
 	hi_(hi) 
@@ -1854,7 +1854,7 @@ rangedType::rangedType(std::string &name, typeId_t ID, dataClass typeDes, int si
    size_ = size;
 }
 
-rangedType::rangedType(std::string &name, dataClass typeDes, int size, long low, long hi) :
+rangedType::rangedType(std::string &name, dataClass typeDes, int size, unsigned long low, unsigned long hi) :
     Type(name, USER_TYPE_ID--, typeDes), 
 	low_(low), 
 	hi_(hi)

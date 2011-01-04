@@ -79,6 +79,8 @@ class MappedFile {
 #else
       int fd;
 #endif
+
+      bool remote_file;
       bool did_mmap;
       bool did_open;
       bool can_share;

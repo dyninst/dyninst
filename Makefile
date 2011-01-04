@@ -52,6 +52,7 @@ Build_list += dynC_API
 allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI dynC_API
 allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem depGraphAPI stackwalk proccontrol
 
+
 # We're not building the new test suite on all platforms yet
 
 
@@ -209,14 +210,15 @@ $(coreSubdirs_explicitInstall): install_%: %
 # dependencies -- keep parallel make from building out of order
 symtabAPI igen: common
 stackwalk: symtabAPI dynutil
-dyninstAPI: symtabAPI instructionAPI parseAPI
+dyninstAPI: symtabAPI instructionAPI parseAPI common dynutil
+instructionAPI: common dynutil
 symtabAPI dyninstAPI: dynutil
 dyner dynC_API codeCoverage dyninstAPI/tests testsuite: dyninstAPI
 testsuite: $(coreSubdirs_explicitInstall)
 testsuite: parseThat
 parseThat: $(coreSubdirs_explicitInstall)
 proccontrol: common dynutil
-parseAPI: symtabAPI instructionAPI
+parseAPI: symtabAPI instructionAPI common dynutil
 #depGraphAPI: instructionAPI $(coreSubdirs_explicitInstall)
 # depGraphAPI: instructionAPI dyninstAPI
 

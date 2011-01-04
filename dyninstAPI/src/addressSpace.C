@@ -1596,6 +1596,10 @@ bool AddressSpace::canUseTraps()
    BinaryEdit *binEdit = dynamic_cast<BinaryEdit *>(this);
    if (binEdit && binEdit->getMappedObject()->parse_img()->getObject()->isStaticBinary())
    	return false;
+
+#if !defined(cap_mutatee_traps)
+   return false;
+#endif
    
    return useTraps_;
 }

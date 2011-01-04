@@ -37,9 +37,15 @@
 #include "Immediate.h"
 #include "BinaryFunction.h"
 #include "debug_parse.h"
+#include "IA_platformDetails.h"
+#include "util.h"
 
 #include <deque>
 #include <map>
+
+#if defined(os_vxworks)
+#include "common/h/wtxKludges.h"
+#endif
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -83,7 +89,8 @@ IA_IAPI::IA_IAPI(InstructionDecoder dec_,
     InstructionAdapter(where_, o, r, isrc), 
     dec(dec_),
     validCFT(false), 
-    cachedCFT(0)
+    cachedCFT(0),
+    validLinkerStubState(false)
 {
     hascftstatus.first = false;
     tailCall.first = false;
@@ -106,6 +113,7 @@ void IA_IAPI::advance()
         parsing_printf("......WARNING: after advance at 0x%lx, curInsn() NULL\n", current);
     }
     validCFT = false;
+    validLinkerStubState = false;
     hascftstatus.first = false;
     tailCall.first = false;
 }
@@ -136,6 +144,7 @@ void IA_IAPI::retreat()
 
     /* blind duplication -- nate */
     validCFT = false;
+    validLinkerStubState = false;
     hascftstatus.first = false;
     tailCall.first = false;
 } 
@@ -274,27 +283,39 @@ void IA_IAPI::getNewEdges(
     if(ci->getCategory() == c_CallInsn)
     {
         Address target = getCFT();
-        if(isRealCall() || isDynamicCall())
+        bool callEdge = true;
+        bool ftEdge = true;
+        if( ! isDynamicCall() )
         {
-            outEdges.push_back(std::make_pair(target, NOEDGE));
-        }
-        else
-        {
-            if(_isrc->isValidAddress(target))
+            if ( ! isRealCall() )
+                callEdge = false;
+
+            if ( simulateJump() ) 
             {
-                if(simulateJump())
-                {
-                    parsing_printf("[%s:%u] call at 0x%lx simulated as "
-                            "jump to 0x%lx\n",
-                    FILE__,__LINE__,getAddr(),getCFT());
-                    outEdges.push_back(std::make_pair(target, DIRECT));
-                    return;
-                }
+                outEdges.push_back(std::make_pair(target, DIRECT));
+                callEdge = false;
+                ftEdge = false;
             }
         }
-        outEdges.push_back(std::make_pair(getAddr() + getSize(),
-                           CALL_FT));
-        return;
+
+        if ( unlikely(_obj->defensiveMode()) )
+        {
+            if (isDynamicCall()) 
+            {
+                if ( ! isIATcall() )
+                    ftEdge = false;
+            }
+            else if ( ! _isrc->isValidAddress(target) )
+            {
+                ftEdge = false;
+            }
+        }
+ 
+        if (callEdge)
+            outEdges.push_back(std::make_pair(target, NOEDGE));
+        if (ftEdge)
+            outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
+         return;
     }
     else if(ci->getCategory() == c_BranchInsn)
     {
@@ -429,12 +450,6 @@ bool IA_IAPI::isRealCall() const
         parsing_printf("... getting PC\n");
         return false;
     }
-    if(!_isrc->isValidAddress(getCFT()))
-    {
-        parsing_printf(" isREalCall whacked by _isrc->isVAlidAddress(%lx)\n",
-            getCFT());
-        return false;
-    }
     if(isThunk()) {
         return false;
     }
@@ -468,7 +483,57 @@ Address IA_IAPI::getCFT() const
     callTarget->bind(thePC[_isrc->getArch()].get(), Result(s64, current));
     parsing_printf("%s[%d]: binding PC %s in %s to 0x%x...", FILE__, __LINE__,
                    thePC[_isrc->getArch()]->format().c_str(), curInsn()->format().c_str(), current);
+
     Result actualTarget = callTarget->eval();
+#if defined(os_vxworks)
+    if (actualTarget.convert<Address>() == current) {
+        // We have a zero offset branch.  Consider relocation information.
+        SymtabCodeRegion *scr = dynamic_cast<SymtabCodeRegion *>(_cr);
+        SymtabCodeSource *scs = dynamic_cast<SymtabCodeSource *>(_obj->cs());
+
+        if (!scr && scs) {
+            set<CodeRegion *> regions;
+            assert( scs->findRegions(current, regions) == 1 );
+            scr = dynamic_cast<SymtabCodeRegion *>(*regions.begin());
+        }
+
+        SymtabAPI::Symbol *sym = NULL;
+        if (scr) {
+            std::vector<SymtabAPI::relocationEntry> relocs =
+                scr->symRegion()->getRelocations();
+
+            for (unsigned i = 0; i < relocs.size(); ++i) {
+                if (relocs[i].rel_addr() == current) {
+                    sym = relocs[i].getDynSym();
+                    if (sym && sym->getOffset()) {
+                        parsing_printf(" <reloc hit> ");
+                        actualTarget = Result(s64, sym->getOffset());
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (sym && sym->getOffset() == 0) {
+            // VxWorks external call.
+            // Need some external means to find the target.
+            Address found;
+            const std::string &sym_name = sym->getMangledName();
+            if (wtxFindFunction(sym_name.c_str(), 0x0, found)) {
+                parsing_printf(" <wtx search hit> ");
+                actualTarget = Result(s64, found);
+
+                // We've effectively found a plt call.  Update linkage table.
+                _obj->cs()->linkage()[found] = sym_name;
+
+            } else {
+                parsing_printf(" <wtx fail %s> ", sym_name.c_str());
+                actualTarget.defined = false;
+            }
+        }
+    }
+#endif
+
     if(actualTarget.defined)
     {
         cachedCFT = actualTarget.convert<Address>();
@@ -477,9 +542,16 @@ Address IA_IAPI::getCFT() const
     else
     {
         cachedCFT = 0;
-        parsing_printf("FAIL (CFT=0x%x), callTarget exp: %s\n", cachedCFT,callTarget->format().c_str());
+        parsing_printf("FAIL (CFT=0x%x), callTarget exp: %s\n",
+                       cachedCFT,callTarget->format().c_str());
     }
     validCFT = true;
+
+    if(isLinkerStub()) {
+        parsing_printf("Linker stub detected: Correcting CFT.  (CFT=0x%x)\n",
+                       cachedCFT);
+    }
+
     return cachedCFT;
 }
 
@@ -504,6 +576,17 @@ bool IA_IAPI::isRelocatable(InstrumentableLevel lvl) const
     }
     return true;
 }
+
+bool IA_IAPI::parseJumpTable(Dyninst::ParseAPI::Block* currBlk,
+                    std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const
+{
+    IA_platformDetails* jumpTableParser = makePlatformDetails(_isrc->getArch(), this);
+    bool ret = jumpTableParser->parseJumpTable(currBlk, outEdges);
+    delete jumpTableParser;
+    return ret;
+}
+
+
 
 InstrumentableLevel IA_IAPI::getInstLevel(Function * context, unsigned int num_insns) const
 {

@@ -21,35 +21,67 @@ namespace dynC_API{
    const bool debug = false;
    static int snippetCount;
 
-   BPatch_snippet * createSnippet(char *s, BPatch_point *point, char *name){
+   BPatch_snippet * createSnippet(const char *s, BPatch_point &point, const char *name){
       if(debug) printf("Hello World! from createSnippet\n");
-      set_lex_input(strdup(s));
-      if(debug) printf("Set lex input to:\n%s", s);
+      if(debug) printf("Set lex input to:\n%s\n", s);
+      char *mutS = strdup(s);
+      set_lex_input(mutS);
       if(strlen(name) == 0){
-         char autoName[32];
+         char *autoName = new char[32];
          sprintf(autoName, "%s%d", "Snippet_", snippetCount);
          name = autoName;
       }
       snippetCount++;
-      dynCSnippetName = name;
-      snippetPoint = point;
-      snippetGen = new SnippetGenerator(point, name);
+      char *mutName = strdup(name);      
+      dynCSnippetName = mutName;
+      snippetPoint = &point;
+      snippetGen = new SnippetGenerator(point, mutName);
       if(dynCparse() == 0){
          if(debug){
             dyn_debug_ast = 1;
             parse_result->ast_wrapper->debugPrint();
             dyn_debug_ast = 0;
          }
+         delete mutName;
+         delete mutS;
          return parse_result;
       }
+      delete mutName;
+      delete mutS;
       return NULL; //error
    }
 
-   BPatch_snippet * createSnippet(std::string str, BPatch_point *point, char *name){
-      return createSnippet((char *)strdup(str.c_str()), point, name);
+   BPatch_snippet * createSnippet(const char *s, BPatch_addressSpace &addSpace, const char *name){
+      if(debug) printf("Hello World! from createSnippet\n");
+      char *mutS = strdup(s);
+      set_lex_input(mutS);
+      if(debug) printf("Set lex input to:\n%s", s);
+      if(strlen(name) == 0){
+         char *autoName = new char[32];
+         sprintf(autoName, "%s%d", "Snippet_", snippetCount);
+         name = autoName;
+      }
+      snippetCount++;
+      char *mutName = strdup(name);
+      dynCSnippetName = mutName;
+      snippetPoint = NULL;
+      snippetGen = new SnippetGenerator(addSpace, mutName);
+      if(dynCparse() == 0){
+         if(debug){
+            dyn_debug_ast = 1;
+            parse_result->ast_wrapper->debugPrint();
+            dyn_debug_ast = 0;
+         }
+         delete mutS;
+         delete mutName;
+         return parse_result;
+      }
+      delete mutS;
+      delete mutName;
+      return NULL; //error
    }
 
-   BPatch_snippet * createSnippet(FILE *f, BPatch_point *point, char *name){
+   BPatch_snippet * createSnippet(FILE *f, BPatch_point &point, const char *name){
       std::string fileString;
       char line[128];
       if(f == NULL){
@@ -60,36 +92,46 @@ namespace dynC_API{
       {
          fileString += line;
       }
-      return createSnippet(fileString.c_str(), point, name);
+      return createSnippet(strdup(fileString.c_str()), point, name);
    }
 
-   BPatch_snippet * createSnippet(std::ifstream *is, BPatch_point *point, char *name){
+
+   BPatch_snippet * createSnippet(FILE *f, BPatch_addressSpace &addSpace, const char *name){
       std::string fileString;
-      std::string line;
-      if(!is->is_open()){
+      char line[128];
+      if(f == NULL){
          fprintf(stderr, "Error: Unable to open file\n");
          return NULL;
       }
-      while(!is->eof())
+      while(fgets(line, 128, f) != NULL)
       {
-         std::getline(*is, line);
-         fileString += line + "\n";
+         fileString += line;
       }
-      return createSnippet(fileString.c_str(), point, name);
+      return createSnippet(strdup(fileString.c_str()), addSpace, name);
    }
-   
+
+   std::string mangle(const char *varName, BPatch_point *point, const char *typeName){
+      std::stringstream namestr;
+      namestr << varNameBase << varName << "_0x" << (point == NULL ? 0 : point->getAddress());
+      namestr << "_" << typeName;
+      std::string retName = namestr.str();
+      return retName;
+   }
+
+/* Old version
    std::string mangle(const char *varName, const char *snippetName, const char *typeName, const bool isGlobal){
       std::stringstream namestr;
-      namestr << varNameBase << varName << "_" << snippetName;
+      namestr << varNameBase << varName << "_" << point;
       namestr << "_" << typeName;
       namestr << "_" << (isGlobal ? "global" : "local");
       std::string retName = namestr.str();
       return retName;
    }
-
-   std::string getMangledStub(const char *varName){
+*/
+   std::string getMangledStub(const char *varName, BPatch_point *point){
       std::stringstream namestr;
-      namestr << varNameBase << varName << "_";
+//      namestr << varNameBase << varName << "_";
+      namestr << varNameBase << varName << "_0x" << (point == NULL ? 0 : point->getAddress());
       std::string retName = namestr.str();
       return retName;
    }   

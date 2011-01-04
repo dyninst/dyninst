@@ -21,15 +21,15 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-SRCS =          ../src/Object-elf.C \
-			../src/Archive.C \
-			../src/Archive-elf.C \
+SRCS =		../src/Object-elf.C \
+		../src/Archive.C \
+		../src/Archive-elf.C \
 		../src/parseDwarf.C \
 		../src/parseStab.C \
+		../src/LinkMap.C \
 		../src/emitElf.C \
 		../src/emitElfStatic.C \
 		../src/emitElfStatic-stub.C \
-		../src/LinkMap.C \
 		../src/relocationEntry-elf-ppc32.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
@@ -44,7 +44,6 @@ SRCS =          ../src/Object-elf.C \
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
 MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
 MYFLAGS     	+= -I$(LIBELF_INC)
-MYFLAGS		+= -I/usr/include/libelf
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
@@ -61,9 +60,6 @@ LIBS += -ldwarf
 endif
 ifndef LIBELFSTATIC
 LIBS += -lelf
-endif
-ifndef LIBIBERTYSTATIC
-LIBS	+= -liberty
 endif
 
 AS		= /usr/bin/as

@@ -306,14 +306,14 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     //  Allocate memory for a new variable in the mutatee process
 
     API_EXPORT(Int, (n, name),
-               BPatch_variableExpr *,malloc,(int n, std::string name = ""));
+               BPatch_variableExpr *,malloc,(int n, std::string name = std::string("")));
 
     //  BPatch_addressSpace::malloc
     //  
     //  Allocate memory for a new variable in the mutatee process
 
     API_EXPORT(ByType, (type, name),
-               BPatch_variableExpr *,malloc,(const BPatch_type &type, std::string name = ""));
+               BPatch_variableExpr *,malloc,(const BPatch_type &type, std::string name = std::string("")));
 
     API_EXPORT(Int, (at_addr, type, var_name, in_module),
     BPatch_variableExpr *, createVariable,(Dyninst::Address at_addr, 
@@ -361,6 +361,12 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT_VIRT(Int, (libname, reload),
     bool, loadLibrary,(const char *libname, bool reload = false));
 
+    // BPatch_addressSpace::isStaticExecutable
+    //
+    // Returns true if the underlying image represents a 
+    // statically-linked executable, false otherwise
+    API_EXPORT(Int, (),
+            bool, isStaticExecutable,());
 };
 
 #endif 

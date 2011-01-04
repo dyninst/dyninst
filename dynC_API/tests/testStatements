@@ -1,9 +1,1 @@
-//welcome to testStatements
-{%
-printf("Welcome to %s!\n", dyninst`module_name);
-%}
-//array[1]++;
-int hi = 7;
-//printf("%d, %d, %d, %d, %d\n", param`i, array[1], array[2], array[3], array[4]);
-printf("%d\n", hi);
-//printf("%s -- {%d, %d, %d, %d, %d} -> ", dyninst`function_name, array[0], array[1], array[2], array[3], array[4]);
+printf("Hi!\n");

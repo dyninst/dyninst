@@ -71,6 +71,8 @@ int main(){
         fileString2 += line + "\n";
      }
 
+     appProc->malloc(*appImage->findType("long"), std::string("globalVar"));
+     
 
   std::vector<BPatch_point *> * entry_points = (*functions)[0]->findPoint(BPatch_entry);
   std::vector<BPatch_point *> * exit_points = (*functions)[0]->findPoint(BPatch_exit);;
@@ -86,11 +88,12 @@ int main(){
      if((*entry_points)[i] == NULL){
         printf("entry point %d is null \n", i);
      }
-     BPatch_snippet *retSnippet = dynC_API::createSnippet(fileString, (*entry_points)[i], "entrySnippet");
+     char str[] = "printf(\"Flow!\\n\");"; 
+     BPatch_snippet *retSnippet = dynC_API::createSnippet(str, *(*entry_points)[i], "entrySnippet");
      if (retSnippet != NULL){
         appProc->insertSnippet(*retSnippet, *(*entry_points)[i]);       
      }
-     BPatch_snippet *retSnippet2 = dynC_API::createSnippet(fileString2, (*exit_points)[i], "exitSnippet");
+     BPatch_snippet *retSnippet2 = dynC_API::createSnippet(strdup(fileString2.c_str()), *(*exit_points)[i], "entrySnippet");
      if (retSnippet != NULL){
         appProc->insertSnippet(*retSnippet2, *(*exit_points)[i]);       
      }

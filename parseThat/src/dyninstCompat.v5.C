@@ -65,8 +65,18 @@ dynHandle *mutatorInit(void)
 	sendMsg(config.outfd, ID_INIT_CREATE_BPATCH, INFO, ID_FAIL,
 		"Failure creating new BPatch object");
 	return NULL;
-    } else
-	sendMsg(config.outfd, ID_INIT_CREATE_BPATCH, INFO, ID_PASS);
+    }
+
+    // Connect to remote host, if requested.  --EXPERIMENTAL--
+    if (config.remoteHost) {
+        if (!dh->bpatch->remoteConnect(*config.remoteHost)) {
+            sendMsg(config.outfd, ID_INIT_CREATE_BPATCH, INFO, ID_FAIL,
+                    "Failure connecting to remote target");
+            return NULL;
+        }
+    }
+
+    sendMsg(config.outfd, ID_INIT_CREATE_BPATCH, INFO, ID_PASS);
 
     /*
      * BPatch class level flags.
@@ -127,7 +137,7 @@ dynHandle *mutatorInit(void)
     } else {
       printf("Created BPatch_binaryEdit\n");
       //dh->addSpace = new BPatch_binaryEdit(config.target);
-      dh->addSpace = dh->bpatch->openBinary(config.target);
+      dh->addSpace = dh->bpatch->openBinary(config.target, config.include_libs);
       if (!dh->addSpace) {
 	sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO, ID_FAIL,
 		"Failure in BPatch:_binaryEdit constructor");

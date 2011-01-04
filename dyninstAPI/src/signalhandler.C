@@ -232,7 +232,7 @@ bool SignalHandler::handleProcessExit(EventRecord &ev, bool &continueHint)
               proc->getPid(), (int) ev.what);
       logLine(errorLine);
       statusLine(errorLine);
-	  async_printf("%s[%d]: %s\n", errorLine);
+	  async_printf("%s[%d]: %s\n", FILE__, __LINE__, errorLine);
       printDyninstStats();
       // The process is gone at this point; we just have a return code.
       // So handle the exit _before_ we do the user-level callback, as

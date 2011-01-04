@@ -164,10 +164,6 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
 
    // Sets "fileName_"
    set_short_name();
-
-#if defined(os_vxworks)
-    launch_task(fileDesc.file(), this);
-#endif
 }
 
 mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
@@ -1908,3 +1904,16 @@ bool mapped_object::isExploratoryModeOn()
     return BPatch_exploratoryMode == analysisMode_ ||
            BPatch_defensiveMode == analysisMode_;
 }
+
+#if !( (defined(os_linux) || defined(os_freebsd)) && \
+       (defined(arch_x86) || defined(arch_x86_64)) )
+int_function *mapped_object::findGlobalConstructorFunc(const std::string &) {
+    assert(!"Not implemented");
+    return NULL;
+}
+
+int_function *mapped_object::findGlobalDestructorFunc(const std::string &) {
+    assert(!"Not implemented");
+    return NULL;
+}
+#endif

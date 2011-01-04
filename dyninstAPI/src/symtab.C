@@ -49,6 +49,7 @@
 #include "common/h/Timer.h"
 #include "common/h/debugOstream.h"
 #include "common/h/pathName.h"
+#include "common/h/MappedFile.h"
 
 #include "dyninstAPI/h/BPatch_flowGraph.h"
 #include "dynutil/h/util.h"
@@ -85,6 +86,7 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
+using Dyninst::SymtabAPI::Symtab;
 using Dyninst::SymtabAPI::Symbol;
 using Dyninst::SymtabAPI::Region;
 using Dyninst::SymtabAPI::Variable;
@@ -167,7 +169,8 @@ void image::findMain()
 #if defined(i386_unknown_linux2_0) \
 || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
 || defined(i386_unknown_solaris2_5) \
-   
+|| (defined(os_freebsd) \
+    && (defined(arch_x86) || defined(arch_x86_64)))
     if(!desc_.isSharedObject())
     {
     	bool foundMain = false;
@@ -197,7 +200,6 @@ void image::findMain()
             const unsigned char* p;
 		                   
             p = (( const unsigned char * ) textsec->getPtrToRawData());
-            const unsigned char *lastP = 0;
 
             switch(linkedFile->getAddressWidth()) {
        	    	case 4:
@@ -218,7 +220,16 @@ void image::findMain()
 
             instruction insn;
             insn.setInstruction( p );
- 
+            Address mainAddress = 0;
+
+	    // Create a temporary SymtabCodeSource that we can use for parsing. 
+	    // We're going to throw it away when we're done so that we can re-sync
+	    // with the new symbols we're going to add shortly. 
+	    bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
+	    SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
+
+#if !defined(os_freebsd)
+            const unsigned char *lastP = 0;
             while( !insn.isCall() )
             {
             	lastP = p;
@@ -234,12 +245,50 @@ void image::findMain()
             instruction preCall;
             preCall.setInstruction(lastP);
 
-            Address mainAddress;
             mainAddress = get_immediate_operand(&preCall);
+#else
+            // Heuristic: main is the target of the 4th call in the text section
+            using namespace Dyninst::InstructionAPI;
 
-            if(!mainAddress || !cs_->isValidAddress(mainAddress)) {
+            unsigned bytesSeen = 0, numCalls = 0;
+            InstructionDecoder decoder(p, textsec->getRegionSize(), scs.getArch());
+
+            Instruction::Ptr curInsn = decoder.decode();
+            while( numCalls < 4 && curInsn && curInsn->isValid() &&
+                   bytesSeen < textsec->getRegionSize())
+            {
+                InsnCategory category = curInsn->getCategory();
+                if( category == c_CallInsn ) {
+                    numCalls++;
+                }
+
+                if( numCalls < 4 ) {
+                    bytesSeen += curInsn->size();
+                    curInsn = decoder.decode();
+                }
+            }
+
+            if( numCalls != 4 ) {
+                logLine("heuristic for finding global constructor function failed\n");
+            }else{
+                Address callAddress = textsec->getRegionAddr() + bytesSeen;
+                RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(scs.getArch()));
+
+                Expression::Ptr callTarget = curInsn->getControlFlowTarget();
+
+                if( callTarget.get() ) {
+                    callTarget->bind(&thePC, Result(s64, callAddress));
+                    Result actualTarget = callTarget->eval();
+                    if( actualTarget.defined ) {
+                        mainAddress = actualTarget.convert<Address>();
+                    }
+                }
+            }
+#endif
+
+            if(!mainAddress || !scs.isValidAddress(mainAddress)) {
                 startup_printf("%s[%u]:  invalid main address 0x%lx\n",
-                    mainAddress);   
+                    FILE__, __LINE__, mainAddress);   
             } else {
                 startup_printf("%s[%u]:  set main address to 0x%lx\n",
                     FILE__,__LINE__,mainAddress);
@@ -298,17 +347,18 @@ void image::findMain()
     	}
     	if( !foundFini )
     	{
-	    Region *finisec;
-	    linkedFile->findRegion(finisec,".fini");
-            Symbol *finiSym = new Symbol( "_fini",
-                                          Symbol::ST_FUNCTION,
-                                          Symbol::SL_GLOBAL, 
-                                          Symbol::SV_DEFAULT, 
-                                          finisec->getRegionAddr(),
-                                          linkedFile->getDefaultModule(),
-                                          finisec, 
-                                          0 );
-	    linkedFile->addSymbol(finiSym);		
+	  Region *finisec = NULL;
+	  if (linkedFile->findRegion(finisec,".fini")) {
+	    Symbol *finiSym = new Symbol( "_fini",
+					  Symbol::ST_FUNCTION,
+					  Symbol::SL_GLOBAL, 
+					  Symbol::SV_DEFAULT, 
+					  finisec->getRegionAddr(),
+					  linkedFile->getDefaultModule(),
+					  finisec, 
+					  0 );
+	    linkedFile->addSymbol(finiSym);	
+	  }	
     	}
     }
 
@@ -341,10 +391,10 @@ void image::findMain()
        linkedFile->findFunctionsByName(funcs, "usla_main"))
        foundMain = true;
 
-   Region *sec;
-   linkedFile->findRegion(sec, ".text"); 	
+   Region *sec = NULL;
+   bool found = linkedFile->findRegion(sec, ".text"); 	
 
-   if( !foundMain && linkedFile->isExec() && sec )
+   if( !foundMain && linkedFile->isExec() && found )
    {
        //we havent found a symbol for main therefore we have to parse _start
        //to find the address of main
@@ -1097,7 +1147,7 @@ void image::analyzeImage() {
        for( ; rit != cs_->regions().end(); ++rit)
        {
         SymtabCodeRegion * scr = static_cast<SymtabCodeRegion*>(*rit);
-        if(scr->symRegion()->isText()) {
+        if(parseGaps_ && scr->symRegion()->isText()) {
             obj_->parseGaps(scr);
         }
        } 
@@ -1197,7 +1247,7 @@ image::image(fileDescriptor &desc,
       }
    }
    startup_printf("%s[%d]:  opened file %s (or archive)\n", FILE__, __LINE__, file.c_str());
-#elif defined(os_linux) || defined(os_solaris)
+#elif defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
    string file = desc_.file().c_str();
    if( desc_.member().empty() ) {
        startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
@@ -1219,9 +1269,22 @@ image::image(fileDescriptor &desc,
            return;
        }
    }
+#elif defined(os_vxworks)
+   string file = desc_.file();
+   startup_printf("%s[%d]: opening file %s\n", FILE__, __LINE__, file.c_str());
+   if( !Symtab::openFile(linkedFile, file) ) {
+       startup_printf("%s[%d]: %s unavailable. Building info from target.\n",
+                      FILE__, __LINE__, file.c_str());
+       MappedFile *mf = MappedFile::createMappedFile(file);
+       linkedFile = new Symtab::Symtab(mf);
+   }
+
+   // Fill in remaining unknown information from remote target.
+   fixup_offsets(file, linkedFile);
+
 #else
    string file = desc_.file();
-   startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
+   startup_printf("%s[%d]: opening file %s\n", FILE__, __LINE__, file.c_str());
    if(desc.rawPtr()) {
        linkedFile = new SymtabAPI::Symtab((char*)desc.rawPtr(), desc.length(), err);
    } 
@@ -1233,10 +1296,6 @@ image::image(fileDescriptor &desc,
 #endif
 
    err = false;
-
-#if defined(os_vxworks)
-   fixup_offsets(file, linkedFile);
-#endif
 
    // fix isSharedObject flag in file descriptor
    desc.setIsShared(!linkedFile->isExec());
@@ -1276,28 +1335,22 @@ image::image(fileDescriptor &desc,
    }
 
    // Initialize ParseAPI 
-   SymtabCodeSource::hint_filt * filt = NULL;
+   filt = NULL;
 
    /** Optionally eliminate some hints in which Dyninst is not
        interested **/
-#if defined(os_vxworks)
-   struct filt_all : SymtabCodeSource::hint_filt {
-        bool operator()(SymtabAPI::Function * /* f */) {
-            return true; // filter all
-        }
-   } nuke_hints;
-   // Don't include local functions for the VxWorks Kernel object -- rchen '10
-   if (desc_.member() == "<KERNEL>") {
-       filt = &nuke_hints;
-   }
-#else
    struct filt_heap : SymtabCodeSource::hint_filt {
         bool operator()(SymtabAPI::Function * f) {
             return f->getModule()->fullName() == "DYNINSTheap";
         }
     } nuke_heap;
     filt = &nuke_heap;
-#endif
+
+   //Now add Main and Dynamic Symbols if they are not present
+   startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
+   findMain();
+
+
    bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
    // XXX FIXME having this static member in instPointBase
@@ -1315,9 +1368,6 @@ image::image(fileDescriptor &desc,
 
    statusLine(msg.c_str());
 
-   //Now add Main and Dynamic Symbols if they are not present
-   startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
-   findMain();
 
    // look for `main' or something similar to recognize a.outs
    startup_printf("%s[%d]:  before determineImageType\n", FILE__, __LINE__);
@@ -1941,17 +1991,6 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
     return ret;
 }
 
-#if !defined(os_linux) && !(defined(arch_x86) || defined(arch_x86_64))
-bool image::findGlobalConstructorFunc() {
-    assert("!Not implemented");
-    return false;
-}
-
-bool image::findGlobalDestructorFunc() {
-    assert("!Not implemented");
-    return false;
-}
-#endif
 
 const set<image_basicBlock*> & image::getSplitBlocks() const
 {

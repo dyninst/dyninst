@@ -61,26 +61,22 @@ parse_ret parse_type;
 };
 
 
-%token <sval> TYPE IDENTIFIER STRING
-%token <ival> NUMBER
+%token <sval> IDENTIFIER_T STRING_T
+%token <ival> NUMBER_T
+%token _ERROR_T IF_T ELSE_T
+%token PLUSPLUS_T MINUSMINUS_T
 %token TRUE FALSE
-%token QUESTION_MARK COLON
-%token _ERROR IF ELSE
-%token PLUSPLUS MINUSMINUS
 
-%left DOT DOLLAR ASTERISK AMPERSAND
-%left NOT
-%left OR
-%left AND
-%left EQ NOT_EQ LESS_EQ GREATER_EQ
-%left ASSIGN ADD_ASSIGN SUB_ASSIGN DIV_ASSIGN MUL_ASSIGN MOD_ASSIGN
-%left '?'
-%left ':'
+%left DOT_T DOLLAR_T
+%left OR_T
+%left AND_T
+%left EQ_T NOT_EQ_T LESS_EQ_T GREATER_EQ_T
 %left '+' '-'
 %left '*' '/' '%'
-%left COMMA
-%left SEMI
-%left START_BLOCK END_BLOCK
+%left COMMA_T
+%left ASSIGN_T ADD_ASSIGN_T SUB_ASSIGN_T MUL_ASSIGN_T DIV_ASSIGN_T MOD_ASSIGN_T
+%left SEMI_T
+%left START_BLOCK_T END_BLOCK_T
 
 %type <boolExpr> bool_expression bool_constant
 %type <snippet> arith_expression  statement inc_decr_expr 
@@ -123,12 +119,12 @@ statement_list:
 
 statement:
     // 1 + 2;
-    arith_expression SEMI
+    arith_expression SEMI_T
     { 
        $$ = $1; 
     }
   // if (x == y) {}
-    | IF '(' bool_expression ')' block 
+    | IF_T '(' bool_expression ')' block 
     {
        if(verbose) printf(" if () ");
        $$ = new BPatch_ifExpr(*$3, *$5);
@@ -136,7 +132,7 @@ statement:
        delete $5;
     }
     // if (x == y) {} else {}
-    | IF '(' bool_expression ')' block ELSE block 
+    | IF_T '(' bool_expression ')' block ELSE_T block 
     {
        if(verbose) printf(" if () else ");
        $$ = new BPatch_ifExpr(*$3, *$5, *$7);
@@ -148,14 +144,15 @@ statement:
 
 block: statement
      // {stuff}
-     | START_BLOCK statement_list END_BLOCK
+     | START_BLOCK_T statement_list END_BLOCK_T
      {
         $$ = new BPatch_sequence(*$2);
         delete $2;
      }
      ;
 
-func_call: IDENTIFIER '(' param_list ')'
+
+func_call: IDENTIFIER_T '(' param_list ')'
            //funct(stuff,stuff)
     { 
        if(verbose) printf(" %s () ", $1);
@@ -197,7 +194,7 @@ param_list:
        $$->push_back($1);
     }
     //(stuff,stuff)
-    | param_list COMMA param
+    | param_list COMMA_T param
     {
        if(verbose) printf(" , ");
        $1->push_back($3); 
@@ -207,7 +204,7 @@ param_list:
 
 param: arith_expression  //funct(2+5)
     //funct("hi")
-    |  STRING { 
+    |  STRING_T { 
        $$ = new BPatch_constExpr($1); 
     }
     ;
@@ -230,59 +227,45 @@ bool_expression: bool_constant
        delete $1;
        delete $3;
     }
-    |	arith_expression '>' arith_expression
-    {
-       if(verbose) printf(" > ");
+    |		 arith_expression '>' arith_expression {
        $$ = new BPatch_boolExpr(BPatch_gt, *$1, *$3);
        delete $1;
        delete $3;
     }
-    | arith_expression EQ arith_expression
-    {
-       if(verbose) printf(" == ");
+    |		 arith_expression EQ_T arith_expression {
        $$ = new BPatch_boolExpr(BPatch_eq, *$1, *$3);
        delete $1;
        delete $3;
     }
-    | arith_expression LESS_EQ arith_expression
-    {
-       if(verbose) printf(" <= ");
+    |		 arith_expression LESS_EQ_T arith_expression {
        $$ = new BPatch_boolExpr(BPatch_le, *$1, *$3);
        delete $1;
        delete $3;
     }
-    | arith_expression GREATER_EQ arith_expression 
-    {
-       if(verbose) printf(" >= ");
+    |		 arith_expression GREATER_EQ_T arith_expression {
        $$ = new BPatch_boolExpr(BPatch_ge, *$1, *$3);
        delete $1;
        delete $3;
     }
-    | arith_expression NOT_EQ arith_expression 
-    {
-       if(verbose) printf(" != ");
+    |		 arith_expression NOT_EQ_T arith_expression {
        $$ = new BPatch_boolExpr(BPatch_ne, *$1, *$3);
        delete $1;
        delete $3;
     }
-    |	bool_expression AND bool_expression  
-    {
-       if(verbose) printf(" AND ");
+    |		 bool_expression AND_T bool_expression  {
        $$ = new BPatch_boolExpr(BPatch_and, *$1, *$3);
        delete $1;
        delete $3;
     }
-    | bool_expression OR bool_expression  
-    {       if(verbose) printf(" OR ");
+    |		 bool_expression OR_T bool_expression  {
        $$ = new BPatch_boolExpr(BPatch_or, *$1, *$3);
        delete $1;
        delete $3;
     }
-    // add not
     ;
 
-variable_expr: IDENTIFIER
-    {
+variable_expr:
+    IDENTIFIER_T {
        BPatch_variableExpr *var = findVariable($1);
        if (var == NULL) {
           fprintf(stderr, "Cannot find variable: %s\n", $1);
@@ -290,12 +273,10 @@ variable_expr: IDENTIFIER
           return 1;
           $$ = NULL;
        }
-       if(verbose) printf(" var(%s) ", $1);
        free($1);
        $$ = var;
     }
-    | IDENTIFIER DOT IDENTIFIER
-    {
+    | IDENTIFIER_T DOT_T IDENTIFIER_T {
        bool foundField = false;
        
        BPatch_variableExpr *var = findVariable($1);
@@ -304,7 +285,7 @@ variable_expr: IDENTIFIER
           free($1);
           return 1;
        }
-
+       
        BPatch_Vector<BPatch_variableExpr *> *vars = var->getComponents();
        if (!vars) {
           fprintf(stderr, "is not an aggregate type: %s\n", $1);
@@ -317,85 +298,59 @@ variable_expr: IDENTIFIER
              foundField = true;
           }
        }
-
+       
        if (!foundField) {
           fprintf(stderr, "%s is not a field of %s\n", $3, $1);
           free($1);
           return 1;
        }
-
-       free($1);
     }
     ;
-/*
-    | DOLLAR NUMBER
-    {
-       if (($2 < 0) || ($2 >= 8)) {
-          printf("parameter %d is not valid\n", $2);
-          return 1;
-       }
-       $$ = new BPatch_paramExpr($2);
-    }
-    ;
-*/
+       
 arith_expression: variable_expr { $$ = (BPatch_snippet *)$1;}
-    | bool_expression '?' arith_expression ':' arith_expression
-    {
-       //can't allow arith_expressions that don't return a val, i.e. assigns
-       //type checking ?
-       // throw away expression:
-       BPatch_arithExpr retExpr = BPatch_arithExpr(BPatch_negate, BPatch_constExpr(1));
-       BPatch_arithExpr assignFirst = BPatch_arithExpr(BPatch_assign, retExpr, *$3);
-       BPatch_arithExpr assignSecond = BPatch_arithExpr(BPatch_assign, retExpr, *$5);
-      
-       $$ = new BPatch_arithExpr(BPatch_seq, BPatch_ifExpr(*$1, assignFirst, assignSecond), retExpr);
+    |  NUMBER_T     { $$ = new BPatch_constExpr($1); }
+    |		 arith_expression '*' arith_expression  {
+	$$ = new BPatch_arithExpr(BPatch_times, *$1, *$3);
+	delete $1;
+	delete $3;
     }
-    | NUMBER     { if(verbose) printf(" %d ", $1); $$ = new BPatch_constExpr($1);}
-    |	arith_expression '*' arith_expression 
-    {
-       if(verbose) printf(" * ");
-       $$ = new BPatch_arithExpr(BPatch_times, *$1, *$3);
-       delete $1;
-       delete $3;
-    }
-    | func_call {$$ = $1;}
-    | variable_expr ASSIGN arith_expression
-    {
-       if(verbose) printf(" = ");
+    |
+    func_call { $$ = $1; }
+    |
+    variable_expr ASSIGN_T arith_expression {
 	    $$ = new BPatch_arithExpr(BPatch_assign, *$1, *$3);
 	    delete $1;
 	    delete $3;
     }
-
-    | variable_expr ADD_ASSIGN arith_expression
+    | variable_expr ADD_ASSIGN_T arith_expression
     {
        if(verbose) printf(" += ");
        $$ = new BPatch_arithExpr(BPatch_assign, *$1, BPatch_arithExpr(BPatch_plus, *$1, *$3));
        delete $1;
        delete $3;
     }
-    | variable_expr SUB_ASSIGN arith_expression
+    | variable_expr SUB_ASSIGN_T arith_expression
     {
        if(verbose) printf(" -= ");
        $$ = new BPatch_arithExpr(BPatch_assign, *$1, BPatch_arithExpr(BPatch_minus, *$1, *$3));
        delete $1;
        delete $3;
     }
-    | variable_expr MUL_ASSIGN arith_expression
+    | variable_expr MUL_ASSIGN_T arith_expression
     {
        if(verbose) printf(" *= ");
        $$ = new BPatch_arithExpr(BPatch_assign, *$1, BPatch_arithExpr(BPatch_times, *$1, *$3));
        delete $1;
        delete $3;
     }
-    | variable_expr DIV_ASSIGN arith_expression
+    | variable_expr DIV_ASSIGN_T arith_expression
     {
        if(verbose) printf(" /= ");
        $$ = new BPatch_arithExpr(BPatch_assign, *$1, BPatch_arithExpr(BPatch_divide, *$1, *$3));
        delete $1;
        delete $3;
     }
-    | variable_expr MOD_ASSIGN arith_expression
+    | variable_expr MOD_ASSIGN_T arith_expression
     {
        if(verbose) printf(" %%= ");
        $$ = new BPatch_arithExpr(BPatch_assign, *$1, BPatch_arithExpr(BPatch_minus, *$1, BPatch_arithExpr(BPatch_times, BPatch_arithExpr(BPatch_divide, *$1, *$3), *$3)));
@@ -433,29 +388,28 @@ arith_expression: variable_expr { $$ = (BPatch_snippet *)$1;}
     }
     |	'(' arith_expression ')'  {$$ = $2;}
     | inc_decr_expr {$$ = $1;}
-     
     ;
 
 inc_decr_expr:
-    variable_expr PLUSPLUS 
+    variable_expr PLUSPLUS_T 
     {
        if(verbose) printf(" <++ ");
        BPatch_arithExpr addOne = BPatch_arithExpr(BPatch_assign, *$1, BPatch_arithExpr(BPatch_plus, *$1, BPatch_constExpr(1)));
        $$ = new BPatch_arithExpr(BPatch_seq, (BPatch_snippet &)addOne, BPatch_arithExpr(BPatch_minus, *$1, BPatch_constExpr(1)));
     }
-    | PLUSPLUS variable_expr 
+    | PLUSPLUS_T variable_expr 
     {
        if(verbose) printf(" ++> ");
        BPatch_arithExpr addOne = BPatch_arithExpr(BPatch_assign, *$2, BPatch_arithExpr(BPatch_plus, *$2, BPatch_constExpr(1)));
        $$ = new BPatch_arithExpr(BPatch_seq, (BPatch_snippet &)addOne, *$2);
     }
-    | variable_expr MINUSMINUS
+    | variable_expr MINUSMINUS_T
     {
        if(verbose) printf(" -- ");
        BPatch_arithExpr subOne = BPatch_arithExpr(BPatch_assign, *$1, BPatch_arithExpr(BPatch_minus, *$1, BPatch_constExpr(1)));
        $$ = new BPatch_arithExpr(BPatch_seq, (BPatch_snippet &)subOne, BPatch_arithExpr(BPatch_plus, *$1, BPatch_constExpr(1)));
     }
-    | MINUSMINUS variable_expr
+    | MINUSMINUS_T variable_expr
     {
        if(verbose) printf(" -- ");
        BPatch_arithExpr subOne = BPatch_arithExpr(BPatch_assign, *$2, BPatch_arithExpr(BPatch_minus, *$2, BPatch_constExpr(1)));

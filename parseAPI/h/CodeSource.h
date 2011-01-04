@@ -74,7 +74,7 @@ class CodeRegion : public Dyninst::InstructionSource, public Dyninst::interval<A
     PARSER_EXPORT Address low() const =0;
     PARSER_EXPORT Address high() const =0;
 
-    PARSER_EXPORT bool contains(const Address) const;
+    PARSER_EXPORT bool contains(Address) const;
 };
 
 /* A starting point for parsing */
@@ -102,7 +102,7 @@ class CodeSource : public Dyninst::InstructionSource {
     /*
      * Named external linkage table (e.g. PLT on ELF). Optional.
      */
-    std::map<Address, std::string> _linkage;
+    mutable std::map<Address, std::string> _linkage;
 
     /*
      * Table of Contents for position independent references. Optional.
@@ -146,13 +146,18 @@ class CodeSource : public Dyninst::InstructionSource {
     PARSER_EXPORT virtual Address baseAddress() const { return 0; }
     PARSER_EXPORT virtual Address loadAddress() const { return 0; }
 
-    PARSER_EXPORT std::map< Address, std::string > const& linkage() const { return _linkage; }
+    PARSER_EXPORT std::map< Address, std::string > & linkage() const { return _linkage; }
     PARSER_EXPORT std::vector< Hint > const& hints() const { return _hints; } 
     PARSER_EXPORT std::vector<CodeRegion *> const& regions() const { return _regions; }
     PARSER_EXPORT int findRegions(Address addr, set<CodeRegion *> & ret) const;
     PARSER_EXPORT bool regionsOverlap() const { return _regions_overlap; }
 
     PARSER_EXPORT Address getTOC() const { return _table_of_contents; }
+    /* If the binary file type supplies per-function
+     * TOC's (e.g. ppc64 Linux), override.
+     */
+    PARSER_EXPORT virtual Address getTOC(Address) const { return _table_of_contents; }
+
  protected:
     CodeSource() : _regions_overlap(false),
                    _table_of_contents(0) {}
@@ -218,6 +223,8 @@ class SymtabCodeSource : public CodeSource {
 
     PARSER_EXPORT Address baseAddress() const;
     PARSER_EXPORT Address loadAddress() const;
+    PARSER_EXPORT Address getTOC(Address addr) const;
+    PARSER_EXPORT SymtabAPI::Symtab * getSymtabObject() {return _symtab;} 
 
     /** InstructionSource implementation **/
     PARSER_EXPORT bool isValidAddress(const Address) const;

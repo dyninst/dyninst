@@ -54,12 +54,22 @@ typedef struct  {
     HANDLE hndl;
 } thread_t;
 
+// TODO needs to be implemented if a barrier
+// is ever needed in the tests on Windows
+typedef int testbarrier_t;
+
 #else
 
 #include <pthread.h>
 #include <unistd.h>
 typedef pthread_mutex_t testlock_t;
 typedef pthread_t thread_t;
+
+#if defined(os_aix_test)
+typedef int testbarrier_t; // Older versions of AIX don't define pthread_barrier_t
+#else
+typedef pthread_barrier_t testbarrier_t;
+#endif
 
 #endif
 
@@ -84,7 +94,7 @@ extern int debugPrint;
    points.  The following macro is used to flesh out these
    functions. (expanded to use on all platforms for non-gcc compilers jkh 10/99)
  */
-static volatile int dummy3__;
+static volatile int dummy3__ = 0;
 #define DUMMY_FN_BODY \
   int dummy1__ = 1; \
   int dummy2__ = 2; \
@@ -191,6 +201,8 @@ extern void initThreads();
 extern void initLock(testlock_t *newlock);
 extern void testLock(testlock_t *lck);
 extern void testUnlock(testlock_t *lck);
+extern void initBarrier(testbarrier_t *barrier, unsigned int count);
+extern void waitTestBarrier(testbarrier_t *barrier);
 extern thread_t threadSelf();
 extern unsigned long thread_int(thread_t a);
 extern void schedYield();

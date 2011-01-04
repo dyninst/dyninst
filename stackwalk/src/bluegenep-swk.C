@@ -93,13 +93,14 @@ namespace Dyninst {
         }
       }
 
-      sw_printf("[%s:%u] - Successfully polled for threads in debug_post_attach on %d\n", __FILE__, __LINE__, pid);      
+/*   
+    sw_printf("[%s:%u] - Successfully polled for threads in debug_post_attach on %d\n", __FILE__, __LINE__, pid);      
 #   if defined(cap_stackwalker_use_symtab)
       library_tracker = new SymtabLibState(this, executable_path);
 #   else
       library_tracker = new DefaultLibState(this);
 #   endif
-
+*/
       // This should really be checking for exceptions, since the above are constructors.
       if (!library_tracker) {
         sw_printf("[%s:%u] - PID %d failed to create library tracker\n", __FILE__, __LINE__, pid);
@@ -126,7 +127,7 @@ namespace Dyninst {
         return false;
       
       Dyninst::MachRegisterVal cur_pc;
-      bool result = getRegValue(Dyninst::MachRegPC, thrd, cur_pc);
+      bool result = getRegValue(Dyninst::ReturnAddr, thrd, cur_pc);
       if (!result) {
         sw_printf("[%s:%u] - Error getting PC value for thrd %d\n",
                   __FILE__, __LINE__, (int) thrd);
@@ -141,6 +142,12 @@ namespace Dyninst {
       bool result = pause();
       if (!result) {
 	sw_printf("[%s:%u] - Failed to pause process for detach clean\n");
+      }
+
+      if (!wrote_trap)
+      {
+         sw_printf("[%s:%u] - Skipping trap clean\n", __FILE__, __LINE__);
+         return true;
       }
 
       lib_load_trap = library_tracker->getLibTrapAddress();
@@ -235,7 +242,8 @@ namespace Dyninst {
 	  break;
 	}
       }
-      
+ 
+      wrote_trap = true;
       sw_printf("[%s:%u] - Successfully wrote BG library trap at %lx\n",
                 __FILE__, __LINE__, lib_load_trap);
     }
@@ -336,7 +344,7 @@ namespace Dyninst {
 	   * Forward over the trap instructoin
 	   **/
 	  Dyninst::MachRegisterVal newpc = ls->getLibTrapAddress() + 4;
-	  bool result = setRegValue(Dyninst::MachRegPC, tid, newpc);
+	  bool result = setRegValue(Dyninst::ReturnAddr, tid, newpc);
 	  if (!result) {
 	    sw_printf("[%s:%u] - Error! Could not set PC past trap!\n",
 		      __FILE__, __LINE__);

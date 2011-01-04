@@ -66,11 +66,6 @@
 #include <string>
 #include <elf.h>
 
-#ifndef HOST
-#define HOST // vxWorks foundation libraries require this to be defined.
-#endif
-#include "wtx.h"
-
 // #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/function.h"
@@ -82,7 +77,7 @@
 #include "dyninstAPI/src/mailbox.h"
 #include "dyninstAPI/src/debuggerinterface.h"
 #include "common/h/headers.h"
-#include "common/h/linuxKludges.h"
+#include "common/h/wtxKludges.h"
 #include "dyninstAPI/src/os.h"
 #include "common/h/stats.h"
 #include "common/h/Types.h"
@@ -98,84 +93,48 @@
 #include "dynamiclinking.h"
 #include "symtabAPI/h/Symtab.h"
 
+using namespace Dyninst::SymtabAPI;
+
 // Global declarations
 // XXX Find a place for these eventually
-WTX_TGT_ID_T currCtx = 0;
-image *currImage;
+WTX_TGT_ID_T currCtx = 0x0;
+//image *currImage;
 process *currProc;
 
 eventLock wtxLock;
 std::vector<EventRecord> wtxEvents;
 
-int wtx_state = 0;
-HWTX wtxh;
-dyn_hash_map<std::string, WTX_MODULE_INFO *> wtxMods;
 dyn_hash_map<std::string, WTX_CONTEXT_ID_T> wtxTasks;
 dyn_hash_map<Address, WTX_TGT_ID_T> wtxBreakpoints;
-dyn_hash_map<Address, relocationEntry> reloc;
+extern dyn_hash_map<Address, relocationEntry> wtxReloc;
 
 //TODO: Remove the writeBack functions and get rid of this include
 #ifdef PAPI
 #include "papi.h"
 #endif
 
-void printStackWalk( process *p ) { assert(0); return; }
-
-#if 0
-// Linux Only
-WaitpidMux SignalGenerator::waitpid_mux;
-
-bool SignalGenerator::attachToChild(int pid) { assert(0); return false; }
-bool SignalGenerator::add_lwp_to_poll_list(dyn_lwp *lwp) { assert(0); return false; }
-bool SignalGenerator::remove_lwp_from_poll_list(int lwp_id) { assert(0); return false; }
-bool SignalGenerator::resendSuppressedSignals() { assert(0); return false; }
-bool SignalGenerator::exists_dead_lwp() { assert(0); return false; }
-int SignalGenerator::find_dead_lwp() { assert(0); return false; }
-bool SignalGenerator::suppressSignalWhenStopping(EventRecord &ev) { assert(0); return false; }
-pid_t SignalGenerator::waitpid_kludge(pid_t /*pid_arg*/, int *status, int /*options*/, int *dead_lwp) { assert(0); return (pid_t)0; }
-
-void process::independentLwpControlInit() { assert(0); return; }
-bool process::waitUntilLWPStops() { assert(0); return false; }
-bool process::loadDYNINSTlib_exported(const char *) { assert(0); return false; }
-bool process::loadDYNINSTlib_hidden() { assert(0); return false; }
-bool process::readAuxvInfo() { assert(0); return false; }
-
-bool dyn_lwp::isRunning() const { assert(0); return false; }
-bool dyn_lwp::isWaitingForStop() const { assert(0); return false; }
-bool dyn_lwp::removeSigStop() { assert(0); return false; }
-
-bool ForkNewProcessCallback::operator()(std::string file, 
-                    std::string dir, pdvector<std::string> *argv,
-                    pdvector<std::string> *envp,
-                    std::string inputFile, std::string outputFile, int &traceLink,
-                    pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd,
-    SignalGenerator *sg) { assert(0); return false; }
-bool ForkNewProcessCallback::execute_real() { assert(0); return false; }
-
-/* get_ld_info() returns true if it filled in the base address of the
-   ld.so library and its path, and false if it could not. */
-bool dynamic_linking::get_ld_info( Address & addr, unsigned &size, char ** path) { assert(0); }
-// getLinkMapAddrs: returns a vector of addresses corresponding to all 
-// base addresses in the link maps.  Returns 0 on error.
-pdvector<Address> *dynamic_linking::getLinkMapAddrs() { assert(0); }
-
-#endif
-
-void InstrucIter::readWriteRegisters(int* readRegs, int* writeRegs) { assert(0); }
+void printStackWalk( process * /*p*/ ) { assert(0); return; }
+// void InstrucIter::readWriteRegisters(int* /*readRegs*/, int* /*writeRegs*/) { assert(0); }
 
 /* **********************************************************************
  * VxWorks local functions
  * **********************************************************************/
-void setAgentMode(WTX_AGENT_MODE_TYPE type)
-{
-/*
-    if (type != WTX_AGENT_MODE_TASK) return;
-
-    STATUS result = wtxAgentModeSet(wtxh, type);
-    if (result != WTX_OK) {
-        fprintf(stderr, "Error on wtxAgentModeSet(): %s\n", wtxErrMsgGet(wtxh));
+bool getRTlibName(std::string &name) {
+    // Get env variable.
+    if (getenv("DYNINSTAPI_RT_LIB") == NULL) {
+        fprintf(stderr, "Environment variable DYNINSTAPI_RT_LIB has not been defined.\n");
+        return false;
     }
-*/
+    name = getenv("DYNINSTAPI_RT_LIB");
+
+    // Check to see if the library given exists.
+    if (access(name.c_str(), R_OK)) {
+        std::string msg = std::string("Runtime library ") + name
+            + std::string(" does not exist or cannot be accessed!");
+        showErrorCallback(101, msg);
+        return false;
+    }
+    return true;
 }
 
 void fakeWtxEvent(process *proc,
@@ -218,7 +177,6 @@ eventType decodeWtxEvent(const char *eventStr)
     else if (strcmp("", eventStr) == 0)
         return evtUndefined;
 
-
     return evtUndefined;
 }
 
@@ -254,13 +212,14 @@ void wtxEventHandler(WTX_EVENT_DESC *desc, HWTX wtxHandle)
 
     assert(wtxHandle == wtxh);
 
+/* -
     fprintf(stderr, "WTX Event Received '%s' + %d\n", desc->event, desc->addlDataLen);
     for (unsigned int i = 0; i < desc->addlDataLen; ++i) {
         fprintf(stderr, "0x%x ", desc->addlData[i]);
         if (i % 15 == 0) fprintf(stderr, "\n");
     }
     fprintf(stderr, "\n---END\n");
-
+*/
     EventRecord ev;
     if (!desc->event) {
         fprintf(stderr, "Unknown event!\n");
@@ -294,7 +253,7 @@ void wtxEventHandler(WTX_EVENT_DESC *desc, HWTX wtxHandle)
 
         Address addr = strtol(&desc->event[pc_idx], NULL, 0);
         if (wtxBreakpoints.count(addr) == 0) {
-            fprintf(stderr, "*** ERROR: I don't know about event at address 0x%x...\n", addr);
+            fprintf(stderr, "*** ERROR: I don't know about event at address 0x%lx...\n", addr);
         } else {
             if (wtxEventpointDelete(wtxh, wtxBreakpoints[addr]) != WTX_OK)
                 fprintf(stderr, "%s(%d): wtxEventPointDelete() error: %s\n", FILE__, __LINE__, wtxErrMsgGet(wtxh));
@@ -319,137 +278,370 @@ WTX_TGT_ARG_T triggerlist[] = { WTX_EVENT_OBJ_LOADED,
 
 void enableEventPoints(WTX_CONTEXT_ID_T ctxID)
 {
+    WTX_CONTEXT ctx;
+    ctx.contextType  = WTX_CONTEXT_TASK;
+    ctx.contextId    = ctxID;
+    ctx.contextSubId = 0x0;
+
+    WTX_TGT_ID_T result = wtxContextExitNotifyAdd(wtxh, &ctx);
+    if (result == static_cast<WTX_TGT_ID_T>( WTX_ERROR )) {
+        fprintf(stderr, "Error on wtxContextExitNotifyAdd(): %s\n", wtxErrMsgGet(wtxh));
+    }
+    //printEventpoints();
+
+/*
     WTX_EVTPT point;
     memset(&point, 0, sizeof(WTX_EVTPT));
-
-    point.event.eventType     = WTX_EVENT_TRIGGER;
-    point.event.numArgs       = 1;
 
     point.context.contextType = WTX_CONTEXT_TASK;
     point.context.contextId   = ctxID;
 
+    if (wtxRegisterForEvent(wtxh, ".*") != WTX_OK) {
+        fprintf(stderr, "Error on wtxRegisterForEvent(.*): %s\n", wtxErrMsgGet(wtxh));
+    }
+
+    point.event.eventType     = WTX_EVENT_TRIGGER;
+    point.event.numArgs       = 1;
+
     point.action.actionType   = (WTX_ACTION_TYPE)(WTX_ACTION_NOTIFY |
                                                   WTX_ACTION_STOP);
 
-    for (unsigned int i = 0; triggerlist[i] != WTX_EVENT_INVALID; ++i) {
+    WTX_TGT_ARG_T end = WTX_EVENT_INVALID;
+    for (unsigned int i = 0; triggerlist[i] != end; ++i) {
         point.event.args = &triggerlist[i];
-        if (wtxEventpointAdd(wtxh, &point) == WTX_ERROR) {
-            fprintf(stderr, "Error on wtxEventpointAdd(%d): %s\n", triggerlist[i], wtxErrMsgGet(wtxh));
+
+        if (wtxEventpointAdd(wtxh, &point) == static_cast<WTX_TGT_ID_T>(WTX_ERROR)) {
+            fprintf(stderr, "Error on wtxEventpointAdd(%d): %s\n", static_cast<int>(triggerlist[i]), wtxErrMsgGet(wtxh));
+        }
+    }
+*/
+}
+/*
+void fillRelocationMap(Symtab *obj)
+{
+    std::vector<Region *> reg;
+    if (!obj || !obj->getAllRegions(reg)) return;
+
+    for (unsigned i = 0; i < reg.size(); ++i) {
+        std::vector<relocationEntry> &reloc = reg[i]->getRelocations();
+        for(unsigned j = 0; j < reloc.size(); ++j) {
+//            fprintf(stderr, "Adding address 0x%lx\n", reloc[j].rel_addr());
+            wtxReloc[reloc[j].rel_addr()] = reloc[j].name();
+        }
+    }
+}
+*/
+void freeObjects()
+{
+    STATUS result;
+
+    while (!wtxDynLoadedMods.empty()) {
+        WTX_MODULE_INFO *info = *(wtxDynLoadedMods.rbegin());
+        result = wtxObjModuleUnload(wtxh,
+                                    0x0, 0x0, /* pdID and unload options */
+                                    info->moduleId);
+        if (result != WTX_OK) {
+            fprintf(stderr, "Error on wtxObjModuleUnload(): %s\n",
+                    wtxErrMsgGet(wtxh));
+            //wtxTerminate(wtxh);
+            return;
+        }
+
+        std::string filename = info->moduleName;
+        assert(wtxMods.count(filename));
+        wtxMods.erase(filename);
+
+        wtxResultFree(wtxh, info);
+        wtxDynLoadedMods.pop_back();
+    }
+}
+
+/* **********************************************************************
+ * VxWorks exported functions
+ * **********************************************************************/
+bool OS_isConnected(void)
+{
+    return (wtx_state == WTX_CONNECTED);
+}
+
+bool OS_connect(BPatch_remoteHost &remote)
+{
+    assert(remote.type == BPATCH_REMOTE_DEBUG_WTX);
+
+    STATUS result;
+    const char *errstr;
+
+    if (wtx_state < WTX_INITIALIZED) {
+        result = wtxInitialize(&wtxh);
+        if (result != WTX_OK) {
+            errstr = wtxErrMsgGet(wtxh);
+            fprintf(stderr, "Error on wtxInitialize(): %s\n", errstr);
+            return false;
+        }
+        wtx_state = WTX_INITIALIZED;
+    }
+
+    BPatch_remoteWtxInfo *info =
+        static_cast<BPatch_remoteWtxInfo *>( remote.info );
+    result = wtxToolOnHostAttach(wtxh,
+                                 const_cast<char *>(info->target),
+                                 const_cast<char *>(info->tool),
+                                 const_cast<char *>(info->host));
+    if (result != WTX_OK) {
+        errstr = wtxErrMsgGet(wtxh);
+        fprintf(stderr, "Error on wtxToolOnHostAttach(): %s\n", errstr);
+        return false;
+    }
+
+    wtx_state = WTX_CONNECTED;
+
+    result = wtxAsyncNotifyEnable(wtxh, wtxEventHandler);
+    if (result != WTX_OK) {
+        fprintf(stderr, "Error on wtxAsyncNotifyEnable(): %s\n", wtxErrMsgGet(wtxh));
+        return false;
+    }
+
+    result = wtxRegisterForEvent(wtxh, ".*");
+    if (result != WTX_OK) {
+        fprintf(stderr, "Error on wtxRegisterForEvent(.*): %s\n", wtxErrMsgGet(wtxh));
+        return false;
+    }
+
+    return true;
+}
+
+bool OS_getPidList(BPatch_remoteHost &remote, BPatch_Vector<unsigned int> &tlist)
+{
+    assert(remote.type == BPATCH_REMOTE_DEBUG_WTX);
+
+    if (wtx_state < WTX_CONNECTED) {
+        fprintf(stderr, "Error: Attempted to get pid list while disconnected.\n");
+        return false;
+    }
+
+    std::string rtlib_name;
+    if (!getRTlibName(rtlib_name)) {
+        fprintf(stderr, "Could not determine runtime library pathname.\n");
+        return false;
+    }
+
+    if (!wtxLoadObject(rtlib_name)) {
+        fprintf(stderr, "Could not load runtime library on target.\n");
+        return false;
+    }
+
+    // Get address of DYNINSTrefreshTasks().
+    WTX_TGT_ADDR_T funcaddr;
+    if (!wtxFindFunction("DYNINSTrefreshTasks", 0x0, funcaddr)) {
+        fprintf(stderr, "Could not find function named DYNINSTrefreshTasks\n");
+        return false;
+    }
+
+    // Call the function.
+    STATUS result;
+    WTX_TGT_ADDR_T listaddr;
+    result = wtxDirectCall(wtxh, funcaddr, &listaddr, 0);
+    if (result != WTX_OK) {
+        fprintf(stderr, "Error on wtxDirectCall(): %s\n",  wtxErrMsgGet(wtxh));
+        return false;
+    }
+
+    // Find and read the count variable.
+    unsigned int taskcount;
+    WTX_TGT_ADDR_T countaddr;
+    if (!wtxFindVariable("DYNINSTtaskListCount", 0x0, countaddr)) {
+        fprintf(stderr, "Cound not find variable DYNINSTtaskListCount\n");
+        return false;
+    }
+    if (!wtxReadMem((void *)countaddr, sizeof(unsigned int), &taskcount)) {
+        fprintf(stderr, "Could not read DYNINSTtaskListCount at 0x%lx.\n",
+                countaddr);
+        return false;
+    }
+    taskcount = swapBytesIfNeeded(taskcount);
+
+    // Then find and read the pid list.
+    static unsigned int tasklist_max = 0;
+    static int *tasklist = NULL;
+
+    if (tasklist_max < taskcount) {
+        int *newlist = (int *)realloc(tasklist, taskcount * sizeof(int));
+        if (!newlist) {
+            fprintf(stderr, "Could not allocate %d bytes for tasklist\n",
+                    taskcount * sizeof(int));
+            return false;
+        }
+        tasklist = newlist;
+        tasklist_max = taskcount;
+    }
+
+    if (!wtxReadMem((void *)listaddr, taskcount * sizeof(int), tasklist)) {
+        fprintf(stderr, "Could not read DYNINSTtaskList at 0x%lx.\n",
+                listaddr);
+        return false;
+    }
+
+    tlist.clear();
+    for (unsigned int i = 0; i < taskcount; ++i) {
+        tlist.push_back(swapBytesIfNeeded(tasklist[i]));
+    }
+
+    return true;
+}
+
+bool OS_getPidInfo(BPatch_remoteHost &remote, unsigned int pid, std::string &pidStr)
+{
+    assert(remote.type == BPATCH_REMOTE_DEBUG_WTX);
+
+    if (wtx_state < WTX_CONNECTED) {
+        fprintf(stderr, "Error: Attempted to get pid list while disconnected.\n");
+        return false;
+    }
+
+    std::string rtlib_name;
+    if (!getRTlibName(rtlib_name)) {
+        fprintf(stderr, "Could not determine runtime library pathname.\n");
+        return false;
+    }
+
+    if (!wtxLoadObject(rtlib_name)) {
+        fprintf(stderr, "Could not load runtime library on target.\n");
+        return false;
+    }
+
+    // Get address of DYNINSTtaskInfo().
+    WTX_TGT_ADDR_T funcaddr;
+    if (!wtxFindFunction("DYNINSTtaskInfo", 0x0, funcaddr)) {
+        fprintf(stderr, "Could not find function named DYNINSTtaskInfo\n");
+        return false;
+    }
+
+    // Call the function.
+    void *bufAddr;
+    STATUS result;
+    result = wtxDirectCall(wtxh, funcaddr, &bufAddr, 1, pid);
+    if (result != WTX_OK) {
+        fprintf(stderr, "Error on wtxDirectCall(): %s\n",  wtxErrMsgGet(wtxh));
+        return false;
+    }
+
+    // Find and read the name buffer size.
+    unsigned int bufSize;
+    WTX_TGT_ADDR_T sizeAddr;
+    if (!wtxFindVariable("DYNINSTtaskNameSize", 0x0, sizeAddr)) {
+        fprintf(stderr, "Cound not find variable DYNINSTtaskNameSize\n");
+        return false;
+    }
+    if (!wtxReadMem((void *)sizeAddr, sizeof(unsigned int), &bufSize)) {
+        fprintf(stderr, "Could not read DYNINSTtaskNameSize at 0x%lx.\n",
+                sizeAddr);
+        return false;
+    }
+    bufSize = swapBytesIfNeeded(bufSize);
+
+    // Read the string buffer.
+    char tmpBuf[1024];
+    assert(sizeof(tmpBuf) > bufSize);
+    if (!wtxReadMem(bufAddr, bufSize, tmpBuf)) {
+        fprintf(stderr, "Could not read %d bytes of DYNINSTtaskNameBuf at 0x%lx.\n",
+                bufSize, (unsigned long)bufAddr);
+        return false;
+    }
+
+    // Then find and read the pid list.
+    pidStr = std::string(tmpBuf);
+    return true;
+}
+
+bool OS_disconnect(BPatch_remoteHost &remote)
+{
+    assert(remote.type == BPATCH_REMOTE_DEBUG_WTX);
+    return wtxDisconnect();
+}
+
+bool wtxCreateTask(const std::string &filename, WTX_MODULE_INFO *modinfo)
+{
+    WTX_CONTEXT_DESC desc;
+    memset(&desc, 0, sizeof(WTX_CONTEXT_DESC));
+    desc.wtxContextType = WTX_CONTEXT_TASK;
+    desc.wtxContextDef.wtxTaskContextDef.priority = 100;
+
+    WTX_CONTEXT ctx;
+    ctx.contextType  = WTX_CONTEXT_TASK;
+    ctx.contextSubId = 0;
+
+    // First, check for default component level init/term and entry routines.
+    WTX_TGT_ADDR_T initAddr  = 0x0;
+    WTX_TGT_ADDR_T entryAddr = 0x0;
+
+    if (wtxMods.count(filename)) {
+        initAddr  = wtxMods[filename]->vxCompRtn;
+        entryAddr = wtxMods[filename]->userInitRtn;
+    }
+
+    if (initAddr) {
+        desc.wtxContextDef.wtxTaskContextDef.name = "modInit";
+        desc.wtxContextDef.wtxTaskContextDef.entry = initAddr;
+
+        ctx.contextId = wtxContextCreate(wtxh, &desc);
+        if (ctx.contextId == static_cast<WTX_CONTEXT_ID_T>( WTX_ERROR )) {
+            fprintf(stderr, "Error calling init routine for %s: %s\n",
+                    filename.c_str(), wtxErrMsgGet(wtxh));
+
+        } else {
+            if (wtxContextResume(wtxh, &ctx) != WTX_OK)
+                fprintf(stderr, "Error starting init task for %s: %s\n",
+                        filename.c_str(), wtxErrMsgGet(wtxh));
+
+            // Should we wait until this routine completes?
         }
     }
 
-    if (wtxContextExitNotifyAdd(wtxh, &point.context) == WTX_ERROR) {
-        fprintf(stderr, "Error on wtxContextExitNotifyAdd(): %s\n", wtxErrMsgGet(wtxh));
-    }
-#if 0
-    typedef struct wtx_event                /* target event                       */
-    {
-        WTX_EVENT_TYPE      eventType;      /* type of event                      */
-        UINT32              numArgs;        /* number of arguments                */
-        WTX_TGT_ARG_T *     args;           /* list of arguments                  */
-    } WTX_EVENT;
-
-    typedef struct wtx_action               /* action descriptor                  */
-    {
-        WTX_ACTION_TYPE     actionType;     /* action type to perform             */
-        UINT32              actionArg;      /* action dependent argument          */
-        WTX_TGT_ADDR_T      callRtn;        /* function to ACTION_CALL            */
-        WTX_TGT_ARG_T       callArg;        /* function argument                  */
-    } WTX_ACTION;
-    typedef struct wtx_evtpt                /* eventpoint descriptor              */
-    {
-        WTX_EVENT           event;          /* event to detect                    */
-        WTX_CONTEXT         context;        /* context descriptor                 */
-        WTX_ACTION          action;         /* action to perform                  */
-    } WTX_EVTPT;
-#endif
-}
-
-void fillRelocationMap(const Symtab *obj)
-{
-    vector<relocationEntry> fbt;
-    if (!obj) return;
-
-    obj->getFuncBindingTable(fbt);
-    for(unsigned i = 0; i < fbt.size(); ++i)
-        reloc[fbt[i].rel_addr()] = fbt[i];
-}
-
-void launch_task(const std::string &filename, mapped_object *obj)
-{
-    // First check user-supplied init routine.
-    WTX_TGT_ADDR_T initAddr = 0x0;
-    if (wtxMods.count(filename))
-        initAddr = wtxMods[filename]->vxCompRtn;
-
-    if (initAddr) {
-        setAgentMode(WTX_AGENT_MODE_TASK);
-
-        WTX_CONTEXT_DESC desc;
-        memset(&desc, 0, sizeof(WTX_CONTEXT_DESC));
-        desc.wtxContextType = WTX_CONTEXT_TASK;
-        desc.wtxContextDef.wtxTaskContextDef.name = "modInit";
-        desc.wtxContextDef.wtxTaskContextDef.priority = 100;
-        desc.wtxContextDef.wtxTaskContextDef.entry = initAddr;
-        WTX_CONTEXT_ID_T ctxID = wtxContextCreate(wtxh, &desc);
-        enableEventPoints(ctxID);
-/* Don't run the task right away.
-
-        WTX_CONTEXT ctx;
-        memset(&ctx, 0, sizeof(WTX_CONTEXT));
-        ctx.contextType = WTX_CONTEXT_TASK;
-        ctx.contextId   = ctxID;
-        if (wtxContextResume(wtxh, &ctx) != WTX_OK)
-            fprintf(stderr, "Error starting init task for %s: %s\n",
-                    filename.c_str(), wtxErrMsgGet(wtxh));
-*/
-
-        setAgentMode(WTX_AGENT_MODE_EXTERN);
-    }
-
-    // First check user-supplied init routine.
-    WTX_TGT_ADDR_T entryAddr = 0x0;
-    if (wtxMods.count(filename))
-        entryAddr = wtxMods[filename]->userInitRtn;
-
-    // Drop back to symbol main if needed.
+    // Drop back to symbol "main" if needed.
     if (!entryAddr) {
-        const pdvector <int_function *> *funcs;
-        funcs = obj->findFuncVectorByMangled("main");
-
-        if (funcs && funcs->size())
-            entryAddr = (*funcs)[0]->getAddress();
+        wtxFindFunction("main", modinfo->moduleId, entryAddr);
+        //const pdvector <int_function *> *funcs;
+        //funcs = obj->findFuncVectorByMangled("main");
+        //if (funcs && funcs->size())
+        //    entryAddr = (*funcs)[0]->getAddress();
     }
 
     if (entryAddr) {
-        std::string shortname = extract_pathname_tail(filename);
-        fprintf(stderr, "Launching task %s with start address 0x%x\n", shortname.c_str(), entryAddr);
+//        fprintf(stderr, "Launching task %s with start address 0x%x\n", filename.c_str(), entryAddr);
 
-        setAgentMode(WTX_AGENT_MODE_TASK);
-
-        WTX_CONTEXT_DESC desc;
-        memset(&desc, 0, sizeof(WTX_CONTEXT_DESC));
-        desc.wtxContextType = WTX_CONTEXT_TASK;
-        desc.wtxContextDef.wtxTaskContextDef.name = const_cast<char *>(shortname.c_str());
-        desc.wtxContextDef.wtxTaskContextDef.priority = 100;
+        desc.wtxContextDef.wtxTaskContextDef.name = const_cast<char *>(filename.c_str());
         desc.wtxContextDef.wtxTaskContextDef.entry = entryAddr;
-        WTX_CONTEXT_ID_T ctxID = wtxContextCreate(wtxh, &desc);
 
-        if (ctxID == WTX_ERROR)
-            fprintf(stderr, "Error starting task for %s: %s\n",
+        ctx.contextId = wtxContextCreate(wtxh, &desc);
+        if (ctx.contextId == static_cast<WTX_CONTEXT_ID_T>( WTX_ERROR )) {
+            fprintf(stderr, "Error creating task for %s: %s\n",
                     filename.c_str(), wtxErrMsgGet(wtxh));
-        else {
-            currCtx = ctxID;
-            currImage = obj->parse_img();
-//            currProc = obj->proc();
+            return false;
         }
 
-        setAgentMode(WTX_AGENT_MODE_EXTERN);
-        enableEventPoints(ctxID);
+        currCtx = ctx.contextId;
+        enableEventPoints(ctx.contextId);
 
-        fakeWtxEvent(static_cast<process *>(obj->proc()), evtProcessInit, 5);
+        //currImage = obj->parse_img();
+        //currProc = obj->proc();
+
+/*      - Have to find a way to stop the entire system.
+
+        memset(&desc, 0, sizeof(WTX_CONTEXT_DESC));
+        desc.wtxContextType = WTX_CONTEXT_SYSTEM;
+        ctxID = wtxContextCreate(wtxh, &desc);
+        if (ctxID == WTX_ERROR)
+            fprintf(stderr, "Error creating system-wide context: %s\n",
+                    wtxErrMsgGet(wtxh));
+        else {
+            sysCtx = ctxID;
+        }
+*/
+
+        //fakeWtxEvent(static_cast<process *>(obj->proc()), evtProcessInit, 5);
     }
     // wtxTasks[filename] = ctx;
+    return true;
 }
 
 bool fixup_offsets(const std::string &filename, Dyninst::SymtabAPI::Symtab *linkedFile)
@@ -462,9 +654,65 @@ bool fixup_offsets(const std::string &filename, Dyninst::SymtabAPI::Symtab *link
 
     // Fixup loadable sections
     for (i = 0; i < info->nSections; ++i) {
-        linkedFile->fixup_RegionAddr(info->section[i].name,
-                                     info->section[i].baseAddr,
-                                     info->segment[i].length);
+        if (linkedFile->fixup_RegionAddr(info->section[i].name,
+                                         info->section[i].baseAddr,
+                                         info->section[i].length)) {
+            // Record the relocations
+            Region *reg = NULL;
+            assert(linkedFile->findRegion(reg, info->section[i].baseAddr,
+                                               info->section[i].length));
+            std::vector<relocationEntry> &reloc = reg->getRelocations();
+            for (unsigned j = 0; j < reloc.size(); ++j)
+                wtxReloc[ reloc[j].rel_addr() ] = reloc[j];
+
+            // Region exists in file.  It's been updated and our job is done.
+            continue;
+        }
+
+        // Skip zero length sections
+        if (info->section[i].length == 0x0)
+            continue;
+
+        // Otherwise, we must add the section manually.
+        Region::RegionType rtype;
+        switch (info->section[i].type) {
+        case WTX_SECTION_TEXT:    rtype = Region::RT_TEXT; break;
+        case WTX_SECTION_RODATA:
+        case WTX_SECTION_DATA:
+        case WTX_SECTION_BSS:     rtype = Region::RT_DATA; break;
+        case WTX_SECTION_UNKNOWN:
+        default:
+            fprintf(stderr, "Skipping section %s of unknown type.\n",
+                    info->section[i].name);
+            continue;
+        }
+
+        // Allocate host memory to hold data from target memory.
+        char *data = (char *)malloc(info->section[i].length);
+        if (!data) {
+            fprintf(stderr, "Malloc error allocating %d bytes.\n",
+                    info->section[i].length);
+            continue;
+        }
+
+        // Read target memory into host buffer.
+        if (!wtxReadMem(reinterpret_cast<void *>(info->section[i].baseAddr),
+                        info->section[i].length, data)) {
+            fprintf(stderr, "Could not read '%s' section data.  Skipping.\n",
+                    info->section[i].name);
+            continue;
+        }
+
+        if (!linkedFile->addRegion(info->section[i].baseAddr,
+                                   data,
+                                   info->section[i].length,
+                                   info->section[i].name,
+                                   rtype,       /* type      */
+                                   true,        /* loadable  */
+                                   sizeof(int)  /* memalign  */,
+                                   false        /* tls       */))
+            fprintf(stderr, "*** Failed to add section %s.\n",
+                    info->section[i].name);
     }
 
     // Fixup regions
@@ -472,7 +720,10 @@ bool fixup_offsets(const std::string &filename, Dyninst::SymtabAPI::Symtab *link
         code_off = (WTX_TGT_ADDR_T) -1,
         code_len = (WTX_TGT_ADDR_T) -1,
         data_off = (WTX_TGT_ADDR_T) -1,
-        data_len = (WTX_TGT_ADDR_T) -1;
+        data_len = (WTX_TGT_ADDR_T) -1,
+        bss_off  = (WTX_TGT_ADDR_T) -1,
+        bss_len  = (WTX_TGT_ADDR_T) -1,
+        max_addr = (WTX_TGT_ADDR_T) 0;
 
     // Don't need offset locations anymore.  Still need this to find the len.
     for (i = 0; i < info->nSegments; ++i) {
@@ -481,19 +732,28 @@ bool fixup_offsets(const std::string &filename, Dyninst::SymtabAPI::Symtab *link
             //                             info->segment[i].addr,
             //                             info->segment[i].length);
             code_off = info->segment[i].addr;
-            code_len = code_off + info->segment[i].length;
+            code_len = info->segment[i].length;
+            if (max_addr < code_off + info->segment[i].length)
+                max_addr = code_off + info->segment[i].length;
 
         } else if (info->segment[i].type == WTX_SEGMENT_DATA) {
             //linkedFile->fixup_RegionAddr("DATA_SEGMENT",
             //                             info->segment[i].addr,
             //                             info->segment[i].length);
             data_off = info->segment[i].addr;
-            data_len = data_off + info->segment[i].length;
+            data_len = info->segment[i].length;
+            if (max_addr < data_off + info->segment[i].length)
+                max_addr = data_off + info->segment[i].length;
 
         } else if (info->segment[i].type == WTX_SEGMENT_BSS) {
             //linkedFile->fixup_RegionAddr("BSS_SEGMENT",
             //                             info->segment[i].addr,
             //                             info->segment[i].length);
+            bss_off = info->segment[i].addr;
+            bss_len = info->segment[i].length;
+            if (max_addr < bss_off + info->segment[i].length)
+                max_addr = bss_off + info->segment[i].length;
+
         } else {
             fprintf(stderr, "Unknown segment type 0x%x\n",
                     info->segment[i].type);
@@ -501,14 +761,13 @@ bool fixup_offsets(const std::string &filename, Dyninst::SymtabAPI::Symtab *link
         }
     }
 
-
     // Fixup code and data pointers
     //assert(code_off != (WTX_TGT_ADDR_T) -1);
     assert(code_len != (WTX_TGT_ADDR_T) -1);
     //assert(data_off != (WTX_TGT_ADDR_T) -1);
     assert(data_len != (WTX_TGT_ADDR_T) -1);
-    linkedFile->fixup_code_and_data(0x0 /*code_off*/, code_len,
-                                    0x0 /*data_off*/, data_len);
+    linkedFile->fixup_code_and_data(/*0x0*/ code_off, code_len,
+                                    /*0x0*/ data_off, data_len);
 
     // Fixup symbols
     WTX_SYM_FIND_CRITERIA crit;
@@ -523,17 +782,96 @@ bool fixup_offsets(const std::string &filename, Dyninst::SymtabAPI::Symtab *link
 
     WTX_SYM_LIST *list = wtxSymListGet(wtxh, &crit);
     if (list) {
+        // Make a pass through the symbols to gather default size values.
+        // This doesn't account for non-continuous functions, but an initial
+        // size value will be required for individual function parsing.
         WTX_SYMBOL *curr = list->pSymbol;
+        std::set<unsigned long> addr_set;
+        std::set<unsigned long>::iterator iter;
         while (curr) {
-            if (!linkedFile->fixup_SymbolAddr(curr->name, curr->value)) {
-                fprintf(stderr, "Type: 0x%x\n", curr->type);
-            }
+            addr_set.insert(curr->value);
             curr = curr->next;
+        }
+        // Make sure length can be calculated for all symbols.
+        addr_set.insert(max_addr);
+        
+        // Second pass through the symbols.
+        curr = list->pSymbol;
+        for (curr = list->pSymbol; curr; curr = curr->next) {
+            // Find the symbol with the next higher value.
+            iter = addr_set.find(curr->value);
+            assert(iter != addr_set.end());
+            ++iter;
+
+            if (linkedFile->fixup_SymbolAddr(curr->name, curr->value)) {
+
+                if ((curr->type & WTX_SYMBOL_COMM) == WTX_SYMBOL_COMM) {
+                    /* DEBUG
+                    fprintf(stderr,
+                            "Creating common variable addr:0x%08lx size:%d"
+                            " next_addr:0x%08lx type:0x%08x %s\n",
+                            curr->value, curr->size,
+                            (iter == addr_set.end() ? 0 : *iter),
+                            curr->type, curr->name); // */
+                }
+
+                // Symbol exists and has been updated.  Our job is done.
+                continue;
+            }
+
+            // Skip absolute symbols (and local symbols for now).
+            if ((curr->type & WTX_SYMBOL_ABS) == WTX_SYMBOL_ABS ||
+                (curr->type & WTX_SYMBOL_LOCAL) == WTX_SYMBOL_LOCAL) {
+                continue;
+            }
+
+            if ((curr->type & WTX_SYMBOL_TEXT) == WTX_SYMBOL_TEXT) {
+
+                // This is a horrible hack:
+                // If we don't have an object file, we cannot distinguish
+                // between code objects in the text section (functions), 
+                // and data objects in the text section (type info/vtables).
+                //
+                // We could use the demangler to figure some of this out.
+                // Using hard-coded string prefixes for now.
+                if (strncmp(curr->name, "_ZTI", 4) == 0) continue; // Typeinfo
+                if (strncmp(curr->name, "_ZTS", 4) == 0) continue; // Typename
+                if (strncmp(curr->name, "_ZTV", 4) == 0) continue; // vtable
+
+                // These are symbols in the text section known to hold data.
+                if (strcmp(curr->name, "hcfDeviceList") == 0) continue;
+                if (strcmp(curr->name, "ipcom_ipd_products") == 0) continue;
+                if (strcmp(curr->name, "ipnet_conf_sysvar_ext") == 0) continue;
+                if (strcmp(curr->name, "ipnet_conf_link_layer") == 0) continue;
+                if (strcmp(curr->name, "__clz_tab") == 0) continue;
+                if (strcmp(curr->name, "__popcount_tab") == 0) continue;
+                if (strcmp(curr->name, "__thenan_sf") == 0) continue;
+                if (strcmp(curr->name, "__thenan_df") == 0) continue;
+                if (strcmp(curr->name, "netVersionString") == 0) continue;
+                if (strcmp(curr->name, "ipcom_priority_map") == 0) continue;
+                if (strcmp(curr->name, "MD5_version") == 0) continue;
+
+                linkedFile->createFunction(curr->name, curr->value,
+                                           *iter - curr->value);
+
+            } else if ((curr->type & WTX_SYMBOL_DATA) == WTX_SYMBOL_DATA ||
+                       (curr->type & WTX_SYMBOL_BSS)  == WTX_SYMBOL_BSS) {
+                linkedFile->createVariable(curr->name, curr->value,
+                                           *iter - curr->value);
+
+            } else if ((curr->type & WTX_SYMBOL_COMM) == WTX_SYMBOL_COMM) {
+                //fprintf(stderr, "Creating common variable addr:0x%08lx size:%d est_size:%10ld type:0x%08x %s\n",
+                //        curr->value, curr->size, *iter - curr->value, curr->type, curr->name);
+                linkedFile->createVariable(curr->name, curr->value, 4);
+
+            } else {
+                fprintf(stderr, "Unhandled wtx type: 0x%x\n", curr->type);
+            }
         }
         wtxResultFree(wtxh, list);
     }
 
-    fillRelocationMap(linkedFile);
+    //fillRelocationMap(linkedFile);
     return true;
 }
 
@@ -545,88 +883,60 @@ void addBreakpoint(Address bp)
     ctx.contextSubId = 0;
 
     WTX_TGT_ID_T point = wtxBreakpointAdd(wtxh, &ctx, (WTX_TGT_ADDR_T)bp);
-    if (point == WTX_ERROR) {
+    if (point == static_cast<WTX_TGT_ID_T>( WTX_ERROR )) {
         fprintf(stderr, "Error on wtxBreakpointAdd(): %s\n", wtxErrMsgGet(wtxh));
         return;
     }
 
-    fprintf(stderr, "Successfully added a breakpoint at 0x%x\n", bp);
+    //fprintf(stderr, "Successfully added a breakpoint at 0x%lx\n", bp);
     wtxBreakpoints[bp] = point;
 }
 
-bool wtxFindSymbol(const char *name, WTX_SYMBOL_TYPE t, Address &addr)
+bool doNotParseList(const std::vector< std::string > &names)
 {
-    WTX_SYM_FIND_CRITERIA crit;
-    memset(&crit, 0, sizeof(WTX_SYM_FIND_CRITERIA));
-    crit.options    = WTX_SYM_FIND_BY_NAME;
-
-    crit.pdId       = 0x0;
-    crit.findName   = const_cast<char *>(name);
-    crit.type       = t;
-    
-    WTX_SYM_LIST *list = wtxSymListGet(wtxh, &crit);
-    if (list) {
-        if (list->pSymbol) {
-            addr = list->pSymbol->value;
-            wtxResultFree(wtxh, list);
-            return true;
-        }
-        wtxResultFree(wtxh, list);
+    static dyn_hash_set<std::string> list;
+    if (list.empty()) {
+        list.insert("<<oogabooga");
+//        list.insert("_mBlkClFree");
+//        list.insert("pciConfigOutByte");
     }
+
+    for (unsigned int i = 0; i < names.size(); ++i)
+        if (list.find(names[i]) != list.end())
+            return true;
+
     return false;
 }
 
-bool wtxFindFunction(const char *name, Address &addr)
+void disasAddress(const Address /*addr*/)
 {
-    return wtxFindSymbol(name, WTX_SYMBOL_TEXT, addr);
-}
+/*
+    WTX_DASM_INST_LIST *insn;
+    fprintf(stderr, "0x%lx: ---\n", addr);
+    insn = wtxMemDisassemble(wtxh, 0x0, addr, 3, 0x0, TRUE, TRUE, TRUE);
 
-bool relocationTarget(const Address addr, Address *target)
-{
-    if (reloc.count(addr)) {
-        if (!target) return true;
+    if (insn) {
+        char *strs[4], *curr = insn->pInst;
+        while (curr && *curr) {
+            for (int i = 0; i < 4; ++i) {
+                curr = strchr(curr, '{');
+                if (!curr) break;
+                *curr++ = '[';
+                strs[i] = curr;
 
-        string symname = reloc[addr].name();
-//        fprintf(stderr, "There is a relocation at 0x%x (to %s)\n", addr, symname.c_str());
-#if 1
-        if (wtxFindFunction(symname.c_str(), *target)) {
-//            fprintf(stderr, "Replacing with relocation address 0x%x\n", *target);
-            switch (reloc[addr].getRelType()) {
-            case R_PPC_ADDR16_HA:
-                *target = (*target >> 16) + ((*target & 0x8000) ? 1 : 0);
-                break;
-            case R_PPC_ADDR16_LO:
-                *target = *target & 0xFFFF;
-                break;
-            default:
-                break;
+                curr = strchr(curr, '}');
+                if (!curr) break;
+                *curr++ = '\0';
             }
-            return true;
-        }
-#else
-        const pdvector<image_func *> *funclist;
-        funclist = currImage->findFuncVectorByPretty(symname);
+            if (!curr) break;
 
-        fprintf(stderr, "Looking up %s...\n", symname.c_str());
-        if (funclist && funclist->size() > 0) {
-            fprintf(stderr, "Replacing with relocation address 0x%x\n", (*funclist)[0]->getOffset());
-            *target = (*funclist)[0]->getOffset();
-
-            switch (reloc[addr].getRelType()) {
-            case R_PPC_ADDR16_HA:
-                *target = (*target >> 16) + ((*target & 0x8000) ? 1 : 0);
-                break;
-            case R_PPC_ADDR16_LO:
-                *target = *target & 0xFFFF;
-                break;
-            default:
-                break;
-            }
-            return true;
+            fprintf(stderr, "\t%20s %08x %08x %s\n",
+                    strs[0], strs[1], strs[2], strs[3]);
         }
-#endif
+        wtxResultFree(wtxh, insn);
     }
-    return false;
+    fprintf(stderr, "---\n");
+*/
 }
 
 /* **********************************************************************
@@ -646,9 +956,9 @@ bool OS::executableExists(const std::string &file)
     stat_result = stat(fn, &file_stat);
     return (stat_result != -1);
 }
-void OS::make_tempfile(char *s) { assert(0); }
-bool OS::execute_file(char *path) { assert(0); }
-void OS::unlink(char *file) { assert(0); }
+void OS::make_tempfile(char * /*s*/) { assert(0); }
+bool OS::execute_file(char * /*path*/) { assert(0); }
+void OS::unlink(char * /*file*/) { assert(0); }
 
 /* **********************************************************************
  * Class EventRecord Implementations
@@ -668,7 +978,8 @@ void EventRecord::clear() {
  * Class SignalGenerator Implementations
  * **********************************************************************/
 SignalGenerator::SignalGenerator(char *idstr, std::string file, int pid)
-    : SignalGeneratorCommon(idstr)
+    : SignalGeneratorCommon(idstr) ,
+      waiting_for_stop(false)
 {
     setupAttached(file, pid);
 }
@@ -676,11 +987,10 @@ SignalGenerator::~SignalGenerator()
 {
 
 }
-bool SignalGenerator::decodeSyscall(EventRecord &ev) {assert(0);}
+bool SignalGenerator::decodeSyscall(EventRecord & /*ev*/) {assert(0);}
 bool SignalGenerator::forkNewProcess()
 {
-    STATUS result;
-
+/*
     result = wtxInitialize(&wtxh);
     if (result != WTX_OK) {
         fprintf(stderr, "Error on wtxInitialize(): %s\n", wtxErrMsgGet(wtxh));
@@ -693,7 +1003,7 @@ bool SignalGenerator::forkNewProcess()
         wtxTerminate(wtxh);
         return false;
     }
-
+*/
     setAgentMode(WTX_AGENT_MODE_TASK);
 
 /*
@@ -718,73 +1028,25 @@ bool SignalGenerator::forkNewProcess()
         return false;
     }
 */
-    result = wtxRegisterForEvent(wtxh, ".*");
-    if (result != WTX_OK) {
-        fprintf(stderr, "Error on wtxRegisterForEvent(.*): %s\n", wtxErrMsgGet(wtxh));
-        wtxTerminate(wtxh);
+    string fullpath = file_;
+    if (file_.find(dir_) == string::npos)
+        fullpath = dir_ + file_;
+
+    WTX_MODULE_INFO *info = wtxLoadObject(fullpath);
+    if (!info) {
+        fprintf(stderr, "Could not load %s on target\n", fullpath.c_str());
         return false;
     }
 
-    result = wtxAsyncNotifyEnable(wtxh, wtxEventHandler);
-    if (result != WTX_OK) {
-        fprintf(stderr, "Error on wtxAsyncNotifyEnable(): %s\n", wtxErrMsgGet(wtxh));
-        wtxTerminate(wtxh);
+    if (!wtxCreateTask(fullpath, info)) {
+        fprintf(stderr, "Could not create a task for %s\n", fullpath.c_str());
         return false;
     }
 
-    WTX_MODULE_FILE_DESC f_desc;
-    string fullpath = dir_ + file_;
-    memset(&f_desc, 0, sizeof(WTX_MODULE_FILE_DESC));
-    f_desc.filename = const_cast<char *>(fullpath.c_str());
-    f_desc.loadFlag = WTX_LOAD_ALL_SYMBOLS;
-
-    WTX_MODULE_INFO *info = wtxObjModuleLoad(wtxh, 0, &f_desc, WTX_LOAD_FROM_TARGET_SERVER);
-    if (info == NULL) {
-        fprintf(stderr, "Error on wtxObjModuleLoad(): %s\n", wtxErrMsgGet(wtxh));
-        if (wtxToolConnected(wtxh)) {
-            result = wtxToolDetach(wtxh);
-        }
-        wtxTerminate(wtxh);
-        return false;
-    }
-    wtxMods[fullpath] = info;
-
-    unsigned i;
-    fprintf(stderr, "protection domain ID: 0x%x\n", (unsigned int)info->pdId);
-    fprintf(stderr, "module ID: 0x%x\n", (unsigned int)info->moduleId);
-    fprintf(stderr, "module name: %s\n", info->moduleName);
-    fprintf(stderr, "object file format: 0x%x\n", (unsigned int)info->format);
-    fprintf(stderr, "load flags: 0x%x\n", (unsigned int)info->loadFlag);
-    fprintf(stderr, "component init/term routine: 0x%x\n", (unsigned int)info->vxCompRtn);
-    fprintf(stderr, "user-supplied init routine: 0x%x\n", (unsigned int)info->userInitRtn);
-    fprintf(stderr, "memory used by common symbols: 0x%x\n", (unsigned int)info->commTotalSize);
-    fprintf(stderr, "Number of sections: %d\n", (int)info->nSections);
-    for (i = 0; i < info->nSections; ++i) {
-        fprintf(stderr, "\tSection: 0x%x Name: %s Type: 0x%x Flags: 0x%x BaseAddr: 0x%x Partition: 0x%x Len: 0x%x Sum: 0x%x\n",
-                (unsigned int)info->section[i].id,
-                info->section[i].name,
-                (unsigned int)info->section[i].type,
-                (unsigned int)info->section[i].flags,
-                (unsigned int)info->section[i].baseAddr,
-                (unsigned int)info->section[i].partId,
-                (unsigned int)info->section[i].length,
-                (unsigned int)info->section[i].checksum);
-    }
-    fprintf(stderr, "Group: 0x%x\n", (unsigned int)info->group);
-    fprintf(stderr, "Number of segments: %d\n", (int)info->nSegments);
-    for (i = 0; i < info->nSegments; ++i) {
-        fprintf(stderr, "\tType: 0x%x  Addr: 0x%x Len: 0x%x Flags: 0x%x\n",
-                (unsigned int)info->segment[i].type,
-                (unsigned int)info->segment[i].addr,
-                (unsigned int)info->segment[i].length,
-                (unsigned int)info->segment[i].flags);
-    }
-
-    setAgentMode(WTX_AGENT_MODE_EXTERN);
-
-//    proc->setBootstrapState(libcLoaded_bs);
-    pid_ = info->moduleId;
+    pid_ = currCtx;
     fakeWtxEvent(proc, evtProcessCreate, 5);
+    fakeWtxEvent(proc, evtProcessInit,   5);
+
     return true;
 }
 
@@ -822,7 +1084,6 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
     std::vector<EventRecord> local_buf;
     assert(events.size() == 0);
 
-    bool ret = true;
     signal_printf("%s[%d][%s]:  waitNextEvent\n", FILE__, __LINE__, 
                   getThreadStr(getExecThreadID()));
 
@@ -870,21 +1131,25 @@ bool SignalGeneratorCommon::getExecFileDescriptor(std::string filename,
                                                   fileDescriptor &desc)
 {
     if (!wtxMods.count(filename)) {
-        assert(0);
         desc = fileDescriptor(filename.c_str(), 0x0, 0x0, false);
-        return false;
+        return true;
     }
     WTX_MODULE_INFO *info = wtxMods[filename];
     assert(info);
 
+    bool found_text = false, found_data = false;
     WTX_TGT_ADDR_T text_addr = 0, data_addr = 0;
     for (unsigned i = 0; i < info->nSegments; ++i) {
-        if (info->segment[i].type == WTX_SEGMENT_TEXT)
+        if (info->segment[i].type == WTX_SEGMENT_TEXT) {
+            found_text = true;
             text_addr = info->segment[i].addr;
-        if (info->segment[i].type == WTX_SEGMENT_DATA)
+        }
+        if (info->segment[i].type == WTX_SEGMENT_DATA) {
+            found_data = true;
             data_addr = info->segment[i].addr;
+        }
     }
-    assert(text_addr && data_addr);
+    assert(found_text && found_data);
 
     desc = fileDescriptor(filename.c_str(),
                           0x0 /*text_addr*/,
@@ -897,23 +1162,48 @@ bool SignalGeneratorCommon::postSignalHandler()
 {
     return true;
 }
-bool SignalGeneratorCommon::decodeRTSignal_NP(EventRecord &ev, Address rt_arg, int status) { assert(0); }
+bool SignalGeneratorCommon::decodeRTSignal_NP(EventRecord & /*ev*/, Address /*rt_arg*/, int /*status*/) { assert(0); }
 
 /* **********************************************************************
  * Class SignalHandler Implementations
  * **********************************************************************/
-bool SignalHandler::handleExecEntry(EventRecord &ev, bool &continueHint) { assert(0); }
-bool SignalHandler::handleProcessCreate(EventRecord &ev, bool &continueHint)
+bool SignalHandler::handleProcessCreate(EventRecord & /*ev*/, bool & /*continueHint*/)
 {
-    
     return true;
 }
 
-bool SignalHandler::handleProcessAttach(EventRecord &ev, bool &continueHint) { assert(0); }
-bool SignalHandler::handleThreadCreate(EventRecord &, bool &) { assert(0); }
-bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev) { assert(0); }
-bool SignalHandler::forwardSigToProcess(EventRecord &ev, bool &continueHint) { assert(0); }
+bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/,
+                                          bool & /*continueHint */)
+{
+    freeObjects();
+    currCtx = 0x0;
+/*
+    WTX_CONTEXT ctx;
+    ctx.contextType  = WTX_CONTEXT_TASK;
+    ctx.contextId    = currCtx;
+    ctx.contextSubId = 0;
+    STATUS result;
+    result = wtxContextKill(wtxh, &ctx, 0x0);
+    if (result != WTX_OK)
+        fprintf(stderr, "Error on wtxContextKill(): %s\n",
+                wtxErrMsgGet(wtxh));
+*/
+    
+    //wtxTerminate(wtxh);
+    return true;
+}
 
+bool SignalHandler::handleCodeOverwrite(EventRecord &)
+{
+    assert(0);//not implemented for unix 
+    return false;
+}
+
+bool SignalHandler::handleExecEntry(EventRecord & /*ev*/, bool & /*continueHint*/) { assert(0); }
+bool SignalHandler::handleProcessAttach(EventRecord & /*ev*/, bool & /*continueHint*/) { assert(0); }
+bool SignalHandler::handleThreadCreate(EventRecord &, bool &) { assert(0); }
+bool SignalHandler::handleSignalHandlerCallback(EventRecord & /*ev*/) { assert(0); }
+bool SignalHandler::forwardSigToProcess(EventRecord & /*ev*/, bool & /*continueHint*/) { assert(0); }
 
 /* **********************************************************************
  * Class process Implementations
@@ -928,24 +1218,62 @@ dyn_lwp *process::createRepresentativeLWP()
     representativeLWP = initialLWP;
     return initialLWP;
 }
-bool process::trapAtEntryPointOfMain(dyn_lwp *trappingLWP, Address) { assert(0); return false; }
-bool process::trapDueToDyninstLib(dyn_lwp *trappingLWP) { assert(0); return false; }
+bool process::trapAtEntryPointOfMain(dyn_lwp * /*trappingLWP*/, Address) { assert(0); return false; }
+bool process::trapDueToDyninstLib(dyn_lwp * /*trappingLWP*/) { assert(0); return false; }
 bool process::setProcessFlags()
 {
     // Use this to modify any necessary state of the debugging link.
     return true;
 }
 
-bool process::unsetProcessFlags() { assert(0); return false; }
-bool process::isRunning_() const { assert(0); return false; }
+bool process::unsetProcessFlags()
+{
+    // No vxWorks or wtx flags to unset.
+    return true;
+}
+
+bool process::isRunning_() const
+{
+    WTX_CONTEXT ctx;
+    ctx.contextType  = WTX_CONTEXT_TASK;
+    ctx.contextId    = getPid();
+    ctx.contextSubId = 0;
+
+    WTX_CONTEXT_STATUS result = wtxContextStatusGet(wtxh, &ctx);
+    return (result & WTX_CONTEXT_RUNNING);
+}
 bool process::waitUntilStopped() { assert(0); return false; }
-terminateProcStatus_t process::terminateProc_() { assert(0); return terminateFailed; }
+
+terminateProcStatus_t process::terminateProc_()
+{
+    WTX_CONTEXT ctx;
+
+    if (currCtx == 0x0) return alreadyTerminated;
+
+    ctx.contextType  = WTX_CONTEXT_TASK;
+    ctx.contextId    = currCtx;
+    ctx.contextSubId = 0;
+
+    STATUS result = wtxContextKill(wtxh, &ctx, 0x0);
+    if (result != WTX_OK) {
+        fprintf(stderr, "wtxContextKill() error: %s\n", wtxErrMsgGet(wtxh));
+        return terminateFailed;
+    }
+
+    currCtx = 0x0;
+    return terminateSucceeded;
+}
+
 bool process::dumpCore_(const std::string/* coreFile*/) { assert(0); return false; }
-std::string process::tryToFindExecutable(const std::string& /* progpath */, int pid) { assert(0); return ""; }
-bool process::determineLWPs(pdvector<unsigned> &lwp_ids) { assert(0); return false; }
+std::string process::tryToFindExecutable(const std::string& /*progpath*/, int /*pid*/)
+{
+    // There's no easy way to associate a vxWorks task with an object file.
+    return "[No file for attach]";
+}
+bool process::determineLWPs(pdvector<unsigned> & /*lwp_ids*/) { assert(0); return false; }
 bool process::dumpImage( std::string ) { assert(0); return false; }
 static const Address lowest_addr = 0x0;
-void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi, inferiorHeapType /* type */ )
+void process::inferiorMallocConstraints(Address /*near*/, Address &lo, Address &hi, inferiorHeapType /* type */ )
 {
     lo = 0;
     hi = (Address)-1;
@@ -957,9 +1285,13 @@ void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi, 
  * _start function.  Get the current PC, parse /lib/ld-2.x.x, and 
  * compare the two points.
  **/
-bool process::hasPassedMain() { assert(0); return false; }
+bool process::hasPassedMain()
+{
+    // Main holds no significance for vxWorks kernel tasks.
+    return true;
+}
 bool process::initMT() { assert(0); return false; }
-bool process::handleTrapAtEntryPointOfMain(dyn_lwp *trappingLWP)
+bool process::handleTrapAtEntryPointOfMain(dyn_lwp * /*trappingLWP*/)
 {
     // We don't need to do anything for the RTlib, right?
     return true;
@@ -986,68 +1318,25 @@ Address process::getLibcStartMainParam(dyn_lwp *) { assert(0); }
 
 bool process::loadDYNINSTlib()
 {
-    STATUS result;
-    WTX_MODULE_FILE_DESC desc;
-    memset(&desc, 0, sizeof(WTX_MODULE_FILE_DESC));
-    desc.filename = const_cast<char *>(dyninstRT_name.c_str());
-    desc.loadFlag = WTX_LOAD_ALL_SYMBOLS;
-
-    setAgentMode(WTX_AGENT_MODE_TASK);
-
-    WTX_MODULE_INFO *info;
-    info = wtxObjModuleLoad(wtxh, 0, &desc, WTX_LOAD_FROM_TARGET_SERVER);
-    if (info == NULL) {
-        fprintf(stderr, "Error on wtxObjModuleLoad(): %s\n", wtxErrMsgGet(wtxh));
-        if (wtxToolConnected(wtxh)) {
-            result = wtxToolDetach(wtxh);
-        }
-        wtxTerminate(wtxh);
+    WTX_MODULE_INFO *info = wtxLoadObject(dyninstRT_name);
+    if (!info) {
+        fprintf(stderr, "Could not load runtime library on target.\n");
         return false;
     }
-    wtxMods[dyninstRT_name] = info;
 
-    fprintf(stderr, "FOR THE RUNTIME LIBRARY\n");
-    unsigned i;
-    fprintf(stderr, "protection domain ID: 0x%x\n", (unsigned int)info->pdId);
-    fprintf(stderr, "module ID: 0x%x\n", (unsigned int)info->moduleId);
-    fprintf(stderr, "module name: %s\n", info->moduleName);
-    fprintf(stderr, "object file format: 0x%x\n", (unsigned int)info->format);
-    fprintf(stderr, "load flags: 0x%x\n", (unsigned int)info->loadFlag);
-    fprintf(stderr, "component init/term routine: 0x%x\n", (unsigned int)info->vxCompRtn);
-    fprintf(stderr, "user-supplied init routine: 0x%x\n", (unsigned int)info->userInitRtn);
-    fprintf(stderr, "memory used by common symbols: 0x%x\n", (unsigned int)info->commTotalSize);
-    fprintf(stderr, "Number of sections: %d\n", (int)info->nSections);
-    for (i = 0; i < info->nSections; ++i) {
-        fprintf(stderr, "\tSection: 0x%x Name: %s Type: 0x%x Flags: 0x%x BaseAddr: 0x%x Partition: 0x%x Len: 0x%x Sum: 0x%x\n",
-                (unsigned int)info->section[i].id,
-                info->section[i].name,
-                (unsigned int)info->section[i].type,
-                (unsigned int)info->section[i].flags,
-                (unsigned int)info->section[i].baseAddr,
-                (unsigned int)info->section[i].partId,
-                (unsigned int)info->section[i].length,
-                (unsigned int)info->section[i].checksum);
-    }
-    fprintf(stderr, "Group: 0x%x\n", (unsigned int)info->group);
-    fprintf(stderr, "Number of segments: %d\n", (int)info->nSegments);
-    for (i = 0; i < info->nSegments; ++i) {
-        fprintf(stderr, "\tType: 0x%x  Addr: 0x%x Len: 0x%x Flags: 0x%x\n",
-                (unsigned int)info->segment[i].type,
-                (unsigned int)info->segment[i].addr,
-                (unsigned int)info->segment[i].length,
-                (unsigned int)info->segment[i].flags);
-    }
-
-    setAgentMode(WTX_AGENT_MODE_EXTERN);
-
+    bool found_text = false, found_data = false;
     WTX_TGT_ADDR_T text_addr = 0, data_addr = 0;
     for (unsigned i = 0; i < info->nSegments; ++i) {
-        if (info->segment[i].type == WTX_SEGMENT_TEXT)
+        if (info->segment[i].type == WTX_SEGMENT_TEXT) {
+            found_text = true;
             text_addr = info->segment[i].addr;
-        if (info->segment[i].type == WTX_SEGMENT_DATA)
+        }
+        if (info->segment[i].type == WTX_SEGMENT_DATA) {
+            found_data = true;
             data_addr = info->segment[i].addr;
+        }
     }
-    assert(text_addr && data_addr);
+    assert(found_text && found_data);
 
     fileDescriptor *fd = new fileDescriptor(dyninstRT_name,
                                             0x0 /*text_addr*/,
@@ -1060,8 +1349,37 @@ bool process::loadDYNINSTlib()
     return true;
 }
 
+extern int dyn_debug_rtlib;
 bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
 {
+    // ---------------------------------------------------------------------
+    // First, re-run DYNINSTinit() from runtime library.
+
+    // Get address of DYNINSTinit().
+    WTX_TGT_ADDR_T funcaddr;
+    if (!wtxFindFunction("DYNINSTinit", 0x0, funcaddr)) {
+        fprintf(stderr, "Could not find function named DYNINSTinit\n");
+        return false;
+    }
+
+    // Call the function.
+    // Parameters mirrored from setDyninstLibInitParams(), except we always
+    // want to look like the process was created. (not attached or forked).
+    unsigned int resultBuf;
+    STATUS result;
+    result = wtxDirectCall(wtxh, funcaddr, &resultBuf, 4,
+                           1,                       /* created_cm   */
+                           P_getpid(),              /* mutator pid  */
+                           maxNumberOfThreads(),    /* max threads  */
+                           dyn_debug_rtlib);        /* rtdebug flag */
+    if (result != WTX_OK) {
+        fprintf(stderr, "Error on wtxDirectCall(): %s\n",  wtxErrMsgGet(wtxh));
+        return false;
+    }
+
+    // ---------------------------------------------------------------------
+    // Now the DYNINST_bootstrap_info is guarenteed to be initialized.
+
     const std::string vrbleName = "DYNINST_bootstrap_info";
 
     pdvector<int_variable *> bootstrapInfoVec;
@@ -1088,8 +1406,18 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
     return true;
 }
 
-bool process::loadDYNINSTlibCleanup(dyn_lwp *trappingLWP) { assert(0); return false; }
+bool process::loadDYNINSTlibCleanup(dyn_lwp * /*trappingLWP*/) { assert(0); return false; }
 bool process::startDebugger() { assert(0); }
+bool process::hideDebugger()
+{
+    return false;
+}
+
+mapped_object *process::createObjectNoFile(Address)
+{
+    assert(0); // Not implemented for unix or vxWorks
+    return NULL;
+}
 
 // In process.C:
 // bool process::stop_(bool waitUntilStop) { assert(0); return false; }
@@ -1097,23 +1425,24 @@ bool process::startDebugger() { assert(0); }
 // Address process::setAOutLoadAddress(fileDescriptor &desc) { assert(0); return 0; }
 // bool process::detachForDebugger(const EventRecord &/*crash_event*/) { assert(0); return false; }
 // Frame process::preStackWalkInit(Frame startFrame) { assert(0); return startFrame; }
-// Address dyn_lwp::step_next_insn() { assert(0); return 0; }
 
 #if defined(cap_binary_rewriter)
 std::pair<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename) { assert(0); }
 #endif
 
-void emitCallRel32(unsigned disp32, unsigned char *&insn) { assert(0); return; }
-static int lwp_kill(int pid, int sig) { assert(0); return 0; }
+void emitCallRel32(unsigned /*disp32*/, unsigned char *& /*insn*/) { assert(0); return; }
+
+//static int lwp_kill(int /*pid*/, int /*sig*/) { assert(0); return 0; }
 /**
  * Return the state of the process from /proc/pid/stat.
  * File format is:
  *   pid (executablename) state ...
  * where state is a character.  Returns '\0' on error.
  **/
-static char getState(int pid) { assert(0); return 0; }
-static std::string getNextLine(int fd) { assert(0); return ""; }
-bool isPLT(int_function *f) { assert(0); return false; }
+//static char getState(int /*pid*/) { assert(0); return 0; }
+//static std::string getNextLine(int /*fd*/) { assert(0); return ""; }
+
+bool isPLT(int_function * /*f*/) { assert(0); return false; }
 
 /* **********************************************************************
  * Class dyn_lwp Implementations
@@ -1133,10 +1462,17 @@ bool dyn_lwp::continueLWP_(int /*signalToContinueWith*/)
     return true;
 }
 
+// XXX Replace this with a target-level kernel call.
 bool dyn_lwp::waitUntilStopped()
 {
     unsigned char buf;
     while (1) {
+        void *addr = reinterpret_cast<void *>(currCtx + 0x73);
+        if (!wtxReadMem(addr, 1, &buf)) {
+            fprintf(stderr, "Could not read task state.\n");
+            return false;
+        }
+#if 0
         unsigned int result;
         result = wtxMemRead(wtxh,
                             0x0,   // Protection domain
@@ -1148,7 +1484,7 @@ bool dyn_lwp::waitUntilStopped()
             fprintf(stderr, "%s(%d): wtxMemRead() error: %s\n", FILE__, __LINE__, wtxErrMsgGet(wtxh));
             return false;
         }
-
+#endif
         // Here's the magic.
         if (buf & 0x1 == 1) break;
 
@@ -1178,17 +1514,7 @@ bool dyn_lwp::waitUntilStopped()
 
 bool dyn_lwp::stop_()
 {
-    WTX_CONTEXT ctx;
-    ctx.contextType  = WTX_CONTEXT_TASK;
-    ctx.contextId    = currCtx;
-    ctx.contextSubId = 0;
-
-    STATUS result = wtxContextSuspend(wtxh, &ctx);
-    if (result != WTX_OK) {
-        fprintf(stderr, "wtxContextSuspend() error: %s\n", wtxErrMsgGet(wtxh));
-        return false;
-    }
-    return true;
+    return wtxSuspendTask(currCtx);
 }
 
 void dyn_lwp::realLWP_detach_() { assert(0); return; }
@@ -1196,70 +1522,43 @@ void dyn_lwp::representativeLWP_detach_()
 {
     return;
 }
-bool dyn_lwp::writeTextWord(caddr_t inTraced, int data) { assert(0); return false; }
+bool dyn_lwp::writeTextWord(caddr_t /*inTraced*/, int /*data*/) { assert(0); return false; }
 bool dyn_lwp::writeTextSpace(void *inTraced, u_int amount, const void *inSelf)
 {   // No real distinction between text and data.
-    return writeDataSpace(inTraced, amount, inSelf);
+    return wtxWriteMem(inTraced, amount, inSelf);
 }
 
 bool dyn_lwp::readTextSpace(const void *inTraced, u_int amount, void *inSelf)
 {   // No real distrinction between text and data.
-    return readDataSpace(inTraced, amount, inSelf);
+    return wtxReadMem(inTraced, amount, inSelf);
 }
 
 bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
 {
-    UINT32 result;
-
-    result = wtxMemWrite(wtxh,
-                         0x0,
-                         const_cast<void *>(inSelf),
-                         (WTX_TGT_ADDR_T)inTraced,
-                         nbytes,
-                         WTX_MEM_CACHE_BYPASS);
-    if (result == WTX_ERROR) {
-        fprintf(stderr, "wtxMemWrite() error: %s\n", wtxErrMsgGet(wtxh));
-        return false;
-    }
-
-    result = wtxCacheTextUpdate(wtxh, (WTX_TGT_ADDR_T)inTraced, nbytes);
-    if (result == WTX_ERROR) {
-        fprintf(stderr, "wtxCacheTextUpdate() error: %s\n", wtxErrMsgGet(wtxh));
-        return false;
-    }
-
-    return true;
+    return wtxWriteMem(inTraced, nbytes, inSelf);
 }
 
 bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf)
 {
-    UINT32 result;
-
-    result = wtxMemRead(wtxh,
-                        0x0,
-                        (WTX_TGT_ADDR_T)inTraced,
-                        const_cast<void *>(inSelf),
-                        nbytes,
-                        WTX_MEM_CACHE_BYPASS);
-    if (result == WTX_ERROR)
-        fprintf(stderr, "wtxMemRead() error: %s\n", wtxErrMsgGet(wtxh));
-    return (result != WTX_ERROR);
+    return wtxReadMem(inTraced, nbytes, inSelf);
 }
 
 bool dyn_lwp::realLWP_attach_() { assert(0); return false; }
-static bool is_control_stopped(int lwp) { assert(0); return false; }
+//static bool is_control_stopped(int /*lwp*/) { assert(0); return false; }
 bool dyn_lwp::representativeLWP_attach_()
 {
     bool running = false;
-    int result;
 
 //    XXX Why does this assert fail?  Why doesn't it think we're created via fork?
 //    assert(proc_->wasCreatedViaFork() && "*** Implememnt Me ***");
 
     if (proc_->wasCreatedViaAttach()) {
-        running = proc_->isRunning_();
+        currCtx = proc_->getPid();
+        stop_();
+        proc_->set_status(stopped);
+        enableEventPoints(currCtx);
     }
-   
+
     startup_printf("%s[%d]: in representative lwp attach, isRunning %d\n",
                    FILE__, __LINE__, running);
 
@@ -1351,6 +1650,10 @@ Frame dyn_lwp::getActiveFrame()
                                0x0, // first byte of register set
                                sizeof(dyn_saved_regs), // number of bytes of register set
                                &r); // place holder for reg. values
+    if (result != WTX_OK) {
+        fprintf(stderr, "Error on wtxRegsGet(): %s\n", wtxErrMsgGet(wtxh));
+        return Frame();
+    }
 
     return Frame(swapBytesIfNeeded(r.sprs[ 3]), // PC
                  swapBytesIfNeeded(r.gprs[31]), // FP
@@ -1358,7 +1661,7 @@ Frame dyn_lwp::getActiveFrame()
                  proc_->getPid(), proc_, NULL, this, true);
 }
 
-bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP)
+bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool /*includeFP*/)
 {
     WTX_CONTEXT ctx;
     ctx.contextType  = WTX_CONTEXT_TASK;
@@ -1409,7 +1712,7 @@ Address dyn_lwp::readRegister(Register reg)
     return swapBytesIfNeeded(retval);
 }
 
-bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool includeFP)
+bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool /*includeFP*/)
 {
     struct dyn_saved_regs newRegs;
     const unsigned long *hostp = (const unsigned long *)&regs;
@@ -1441,15 +1744,21 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool includeF
     return true;
 }
 
-int_function *dyn_thread::map_initial_func(int_function *ifunc) { assert(0); }
+int dyn_lwp::changeMemoryProtections(Address , Offset , unsigned )
+{
+    assert(0); // Not implemented for unix or vxWorks.
+    return 0;
+}
+
+int_function *dyn_thread::map_initial_func(int_function * /*ifunc*/) { assert(0); }
 
 void loadNativeDemangler() { return; }
 
 /* **********************************************************************
  * Class DebuggerInterface Implementations
  * **********************************************************************/
-bool DebuggerInterface::bulkPtraceWrite(void *inTraced, u_int nbytes, void *inSelf, int pid, int /*address_width*/) { assert(0); return false; }
-bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf, int pid, int /*address_width*/) { assert(0); return false; }
+bool DebuggerInterface::bulkPtraceWrite(void * /*inTraced*/, u_int /*nbytes*/, void * /*inSelf*/, int /*pid*/, int /*address_width*/) { assert(0); return false; }
+bool DebuggerInterface::bulkPtraceRead(void * /*inTraced*/, u_int /*nelem*/, void * /*inSelf*/, int /*pid*/, int /*address_width*/) { assert(0); return false; }
 
 // findCallee: finds the function called by the instruction corresponding
 // to the instPoint "instr". If the function call has been bound to an
@@ -1463,6 +1772,8 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
 // Returns false on error (ex. process doesn't contain this instPoint).
 int_function *instPoint::findCallee()
 {
+    assert(0);
+#if 0
     if (callee_) {
         return callee_;
     }
@@ -1553,7 +1864,7 @@ int_function *instPoint::findCallee()
             return NULL;
     }
     return NULL;
-
+#endif
 }
 
 const unsigned int N_DYNINST_LOAD_HIJACK_FUNCTIONS = 4;
@@ -1572,13 +1883,13 @@ const char DYNINST_LOAD_HIJACK_FUNCTIONS[][20] = {
  * will sometimes check it's caller and return with a 'invalid caller'
  * error if it's called from the application.
  **/
-Address findFunctionToHijack(process *p) { assert(0); return 0; }
+Address findFunctionToHijack(process * /*p*/) { assert(0); return 0; }
 
 /**
  * Searches for function in order, with preference given first 
  * to libpthread, then to libc, then to the process.
  **/
-static void findThreadFuncs(process *p, std::string func, pdvector<int_function *> &result) { assert(0); return; }
+//static void findThreadFuncs(process * /*p*/, std::string /*func*/, pdvector<int_function *> & /*result*/) { assert(0); return; }
 void dyninst_yield() { assert(0); return; }
 
 // ****** Support linux-specific forkNewProcess DBI callbacks ***** //
@@ -1586,40 +1897,36 @@ void dyninst_yield() { assert(0); return; }
 /* **********************************************************************
  * Class DBI Callback Implementations
  * **********************************************************************/
-bool DebuggerInterface::forkNewProcess(std::string file, 
-                    std::string dir, pdvector<std::string> *argv,
-                    pdvector<std::string> *envp,
-                    std::string inputFile, std::string outputFile, int &traceLink,
-                    pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd,
-    SignalGenerator *sg) { assert(0); return false; }
-bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/,
-                                          bool & /*continueHint */)
-{
-    return true;
-}
+bool DebuggerInterface::forkNewProcess(std::string /*file*/, 
+                                       std::string /*dir*/,
+                                       pdvector<std::string> * /*argv*/,
+                                       pdvector<std::string> * /*envp*/,
+                                       std::string /*inputFile*/, std::string /*outputFile*/, int & /*traceLink*/,
+                                       pid_t & /*pid*/, int /*stdin_fd*/, int /*stdout_fd*/, int /*stderr_fd*/,
+                                       SignalGenerator * /*sg*/) { assert(0); return false; }
 
-static int P_gettid() { assert(0); return 0; }
+//static int P_gettid() { assert(0); return 0; }
 void chld_handler(int) { assert(0); return; }
 void chld_handler2(int, siginfo_t *, void *) { assert(0); return; }
-static void kickWaitpider(int pid) { assert(0); return; }
+//static void kickWaitpider(int /*pid*/) { assert(0); return; }
 
 /* **********************************************************************
  * Class WaitpidMux Implementations
  * **********************************************************************/
 //Force the SignalGenerator to return -1, EINTR from waitpid
-bool WaitpidMux::registerProcess(SignalGenerator *me) { assert(0); return false; }
-bool WaitpidMux::registerLWP(unsigned lwpid, SignalGenerator *me) { assert(0); return false; }
-bool WaitpidMux::unregisterLWP(unsigned lwpid, SignalGenerator *me) { assert(0); return false; }
-bool WaitpidMux::unregisterProcess(SignalGenerator *me) { assert(0); return false; }
+bool WaitpidMux::registerProcess(SignalGenerator * /*me*/) { assert(0); return false; }
+bool WaitpidMux::registerLWP(unsigned /*lwpid*/, SignalGenerator * /*me*/) { assert(0); return false; }
+bool WaitpidMux::unregisterLWP(unsigned /*lwpid*/, SignalGenerator * /*me*/) { assert(0); return false; }
+bool WaitpidMux::unregisterProcess(SignalGenerator * /*me*/) { assert(0); return false; }
 void WaitpidMux::forceWaitpidReturn() { assert(0); return; }
 bool WaitpidMux::suppressWaitpidActivity() { assert(0); return false; }
 bool WaitpidMux::resumeWaitpidActivity() { assert(0); return false; }
-int WaitpidMux::waitpid(SignalGenerator *me, int *status) { assert(0); return 0; }
-bool WaitpidMux::hasFirstTimer(SignalGenerator *me) { assert(0); return false; }
-void WaitpidMux::addPidGen(int pid, SignalGenerator *sg) { assert(0); return; }
-void WaitpidMux::removePidGen(int pid, SignalGenerator *sg) { assert(0); return; }
-void WaitpidMux::removePidGen(SignalGenerator *sg) { assert(0); return; }
-int WaitpidMux::enqueueWaitpidValue(waitpid_ret_pair ev, SignalGenerator *event_owner) { assert(0); return 0; }
+int WaitpidMux::waitpid(SignalGenerator * /*me*/, int * /*status*/) { assert(0); return 0; }
+bool WaitpidMux::hasFirstTimer(SignalGenerator * /*me*/) { assert(0); return false; }
+void WaitpidMux::addPidGen(int /*pid*/, SignalGenerator * /*sg*/) { assert(0); return; }
+void WaitpidMux::removePidGen(int /*pid*/, SignalGenerator * /*sg*/) { assert(0); return; }
+void WaitpidMux::removePidGen(SignalGenerator * /*sg*/) { assert(0); return; }
+int WaitpidMux::enqueueWaitpidValue(waitpid_ret_pair /*ev*/, SignalGenerator * /*event_owner*/) { assert(0); return 0; }
 
 
 #include <string>
@@ -1678,48 +1985,38 @@ const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
 
 #define SIZEOF_PTRACE_DATA(mutatee_address_width)  (mutatee_address_width)
 
+void calcVSyscallFrame(process * /*p*/) { assert(0); return; }
 
-void calcVSyscallFrame(process *p) { assert(0); return; }
-Frame Frame::getCallerFrame() { assert(0); }
-bool Frame::setPC(Address newpc) { assert(0); return false; }
-bool AddressSpace::getDyninstRTLibName() {
+Frame Frame::getCallerFrame()
+{
+    // XXX Implement me!
+    return Frame();
+}
+
+bool Frame::setPC(Address /*newpc*/) { assert(0); return false; }
+
+bool AddressSpace::getDyninstRTLibName()
+{
+    bool retval = getRTlibName(dyninstRT_name);
     startup_printf("dyninstRT_name: %s\n", dyninstRT_name.c_str());
-    if (dyninstRT_name.length() == 0) {
-        // Get env variable                                                                                              
-        if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
-            dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
-        }
-        else {
-            fprintf(stderr, "Environment variable DYNINSTAPI_RT_LIB has not been defined.\n");
-            return false;
-        }
-    }
-
-    // Check to see if the library given exists.
-    if (access(dyninstRT_name.c_str(), R_OK)) {
-        std::string msg = std::string("Runtime library ") + dyninstRT_name
-            + std::string(" does not exist or cannot be accessed!");
-        showErrorCallback(101, msg);
-        return false;
-    }
-    return true;
+    return retval;
 }
 
 // floor of inferior malloc address range within a single branch of x
 // for 32-bit ELF PowerPC mutatees
-Address region_lo(const Address x) { return 0; }
+Address region_lo(const Address /*x*/) { return 0; }
 
 // floor of inferior malloc address range within a single branch of x
 // for 64-bit ELF PowerPC mutatees
-Address region_lo_64(const Address x) { assert(0); return 0; }
+Address region_lo_64(const Address /*x*/) { assert(0); return 0; }
 
 // ceiling of inferior malloc address range within a single branch of x
 // for 32-bit ELF PowerPC mutatees
-Address region_hi(const Address x) { return (Address)-1; }
+Address region_hi(const Address /*x*/) { return (Address)-1; }
 
 // ceiling of inferior malloc address range within a single branch of x
 // for 64-bit ELF PowerPC mutatees
-Address region_hi_64(const Address x) { assert(0); return 0; }
+Address region_hi_64(const Address /*x*/) { assert(0); return 0; }
 
 //
 // All costs are based on Measurements on a SPARC station 10/40.
@@ -1781,7 +2078,7 @@ void initPrimitiveCost()
  * A lot of this may not make sense for VxWorks.
  * **********************************************************************/
 
-sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b) { assert(0); }
+sharedLibHook::sharedLibHook(process * /*p*/, sharedLibHookType /*t*/, Address /*b*/) { assert(0); }
 sharedLibHook::~sharedLibHook() { assert(0); }
 
 // processLinkMaps: This routine is called by getSharedObjects to  
@@ -1800,41 +2097,43 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs)
         WTX_MODULE *curr = list->pModule;
         WTX_MODULE_INFO *info;
         while (curr) {
-            if (wtxMods.count(curr->moduleName)) {
-                info = wtxMods[curr->moduleName];
+            std::string filename = curr->moduleName;
+            if (wtxMods.count(filename)) {
+                info = wtxMods[filename];
 
             } else {
                 info = wtxObjModuleInfoGet(wtxh, 0x0, curr->moduleId);
                 if (!info) {
-                    fprintf(stderr, "Error on wtxObjModuleInfoGet(0x%x): %s\n",
+                    fprintf(stderr, "Error on wtxObjModuleInfoGet(0x%lx): %s\n",
                             curr->moduleId, wtxErrMsgGet(wtxh));
                     assert(0);
                 }
-                wtxMods[curr->moduleName] = info;
+                if (strcmp(curr->moduleName, "/var/ftp/pub/vxWorks") == 0) {
+                    curr->moduleName[0] = '['; // Force incremental parsing.
+                    filename = curr->moduleName;
+                }
+                wtxMods[filename] = info;
             }
             assert(info);
 
+            bool found_text = false, found_data = false;
             WTX_TGT_ADDR_T text_addr = 0, data_addr = 0;
             for (unsigned i = 0; i < info->nSegments; ++i) {
-                if (info->segment[i].type == WTX_SEGMENT_TEXT)
+                if (info->segment[i].type == WTX_SEGMENT_TEXT) {
+                    found_text = true;
                     text_addr = info->segment[i].addr;
-                if (info->segment[i].type == WTX_SEGMENT_DATA)
+                }
+                if (info->segment[i].type == WTX_SEGMENT_DATA) {
+                    found_data = true;
                     data_addr = info->segment[i].addr;
+                }
             }
-            assert(text_addr && data_addr);
+            assert(found_text && found_data);
 
             fileDescriptor newDesc = fileDescriptor(curr->moduleName,
                                                     0x0 /*text_addr*/,
                                                     0x0 /*data_addr*/,
-                                                    true,
-                                                    text_addr);
-            if (curr == list->pModule) {
-                // If this is the first object returned from
-                // wtxObjModuleListGet(), then it is the kernel object.
-                // Mark the object so we can recognize it later.
-                newDesc.setMember("<KERNEL>");
-            }
-
+                                                    true);
             descs.push_back(newDesc);
             curr = curr->next;
         }
@@ -1861,22 +2160,22 @@ bool dynamic_linking::initialize()
  * code, we'll worry about whether or not any libraries were
  * added/removed later on when we handle the exception
  */
-bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
+bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord & /*ev*/,
     unsigned int & /*change_type*/) { assert(0); }
 
 bool dynamic_linking::getChangedObjects(EventRecord & /* ev */, pdvector<mapped_object*> & /* changed_objects */) { assert(0); }
 
 // handleIfDueToSharedObjectMapping: returns true if the trap was caused
 // by a change to the link maps,  If it is, and if the linkmaps state is
-// safe, it processes the linkmaps to find out what has changed...if it
+// safe, it processse the linkmaps to find out what has changed...if it
 // is not safe it sets the type of change currently going on (specified by
 // the value of r_debug.r_state in link.h
 // The added or removed shared objects are returned in changed_objects
 // the change_type value is set to indicate if the objects have been added 
 // or removed
-bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
-                                 pdvector<mapped_object*> &changed_objects,
-    pdvector<bool> &is_new_object)
+bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord & /*ev*/,
+                                                       pdvector<mapped_object*> & /*changed_objects*/,
+                                                       pdvector<bool> & /*is_new_object*/)
 {
     // assert(0);
     return true;

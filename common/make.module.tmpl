@@ -54,7 +54,7 @@ TFLAGS		+=
 VPATH	     += ../.. common/src dynutil/h
 
 SRCS	     +=	../../common/src/Ident.C \
-		../../common/src/String.C \
+		../../common/src/string-regex.C \
 		../../common/src/Timer.C \
 		../../common/src/Types.C \
 		../../common/src/debugOstream.C \
@@ -70,16 +70,16 @@ SRCS	     +=	../../common/src/Ident.C \
 		../../common/src/serialize-bin.C \
 		../../common/src/serialize-xml.C \
 		../../common/src/util.C \
-      ../../common/src/Node.C \
-      ../../common/src/Graph.C \
-      ../../common/src/Edge.C \
-      ../../common/src/DOT.C \
-      ../../common/src/dyn_regs.C \
+		../../common/src/Node.C \
+		../../common/src/Graph.C \
+		../../common/src/Edge.C \
+		../../common/src/DOT.C \
+		../../common/src/dyn_regs.C \
 		../../common/src/AST.C \
-      ../../common/src/addrtranslate.C\
-      ../../common/src/arch-x86.C\
-      ../../common/src/arch-power.C\
-      ../../common/src/arch-sparc.C
+		../../common/src/addrtranslate.C \
+		../../common/src/arch-x86.C \
+		../../common/src/arch-power.C \
+		../../common/src/arch-sparc.C
 #		../../common/src/Dictionary.C \
 #		../../common/src/vectorSet.C \
 
@@ -88,15 +88,7 @@ SRCS	     +=	../../common/src/Ident.C \
 
 #IGEN_ISRCS    = 
 
-ifndef USES_NATIVE_CC
-ifdef CROSSCOMPILER
-SYSLIBS		+= -liberty -lg++ -lstdc++ -lm
-else
-SYSLIBS         += -liberty
-endif
-else
-SYSLIBS		+= -ldemangle
-endif
+LIBS += $(DEMANGLER_LINK)
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../instructionAPI/h
 

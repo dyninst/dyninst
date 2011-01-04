@@ -99,7 +99,8 @@ def parse_mutators(tuplestring):
 def parse_mutatees(tuplestring):
 	mutatee_labels = ('name', 'preprocessed_sources', 'raw_sources',
 					  'libraries', 'platform', 'abi', 'compiler',
-					  'optimization', 'groupable', 'module', 'format')
+					  'optimization', 'groupable', 'module', 'format',
+                                          'pic')
 	mutatee_list = parse_pllist(tuplestring)
 	return map(lambda x: dict(zip(mutatee_labels, x)), mutatee_list)
 
@@ -109,13 +110,14 @@ def parse_tests(tuplestring):
 
 def parse_compilers(tuplestring):
 	compiler_tuple_labels = ('executable', 'defstring', 'platforms',
-							 'presencevar', 'optimization', 'parameters',
+							 'presencevar', 'optimization', 'pic', 'parameters',
 							 'languages', 'flags', 'abiflags', 'staticlink',
                                                          'dynamiclink', 'platform')
 	compiler_list = parse_pllist(tuplestring)
 	compiler_dict = dict(map(lambda x: (x[0], dict(zip(compiler_tuple_labels,x[1:]))), compiler_list))
 	for c in compiler_dict:
 		compiler_dict[c]['optimization'] = dict(compiler_dict[c]['optimization'])
+                compiler_dict[c]['pic'] = dict(compiler_dict[c]['pic'])
 		compiler_dict[c]['parameters'] = dict(compiler_dict[c]['parameters'])
 		compiler_dict[c]['flags'] = dict(zip(('std', 'mutatee', 'link'), compiler_dict[c]['flags']))
 		abiflags = {}
@@ -131,7 +133,8 @@ def parse_compilers(tuplestring):
 def parse_rungroups(tuplestring):
 	rungroups_tuple_labels = ('mutatee', 'compiler', 'optimization',
 							  'run_mode', 'start_state', 'groupable', 'tests',
-							  'abi', 'thread_mode', 'process_mode', 'format')
+							  'abi', 'thread_mode', 'process_mode', 'format',
+                                                          'pic')
 	rungroups_list = parse_pllist(tuplestring)
 	return map(lambda x: dict(zip(rungroups_tuple_labels, x)), rungroups_list)
 

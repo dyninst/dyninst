@@ -46,10 +46,10 @@ namespace DataflowAPI {
 class StackVisitor : public ASTVisitor {
  public:
   StackVisitor(Address a,
-	       std::string funcname,
+	       ParseAPI::Function *func,
 	       StackAnalysis::Height &stackHeight,
 	       StackAnalysis::Height &frameHeight) :
-    addr_(a), func_(funcname), stack_(stackHeight), frame_(frameHeight) {};
+    addr_(a), func_(func), stack_(stackHeight), frame_(frameHeight) {};
 
     DATAFLOW_EXPORT virtual AST::Ptr visit(AST *);
     DATAFLOW_EXPORT virtual AST::Ptr visit(BottomAST *);
@@ -57,12 +57,17 @@ class StackVisitor : public ASTVisitor {
     DATAFLOW_EXPORT virtual AST::Ptr visit(VariableAST *);
     DATAFLOW_EXPORT virtual AST::Ptr visit(RoseAST *);
     DATAFLOW_EXPORT virtual AST::Ptr visit(StackAST *);
+    DATAFLOW_EXPORT virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();};
+    DATAFLOW_EXPORT virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();};
+    DATAFLOW_EXPORT virtual ASTPtr visit(StpAST *) {return AST::Ptr();};
+    DATAFLOW_EXPORT virtual ASTPtr visit(YicesAST *) {return AST::Ptr();};
+
   
   DATAFLOW_EXPORT virtual ~StackVisitor() {};
 
   private:
   Address addr_;
-  std::string func_;
+  ParseAPI::Function *func_;
   StackAnalysis::Height stack_;
   StackAnalysis::Height frame_;
 };

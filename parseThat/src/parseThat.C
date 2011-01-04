@@ -57,6 +57,7 @@ bool runParseThat(int &bannerLen);
 
 int main(int argc, char **argv)
 {
+   int retval = 0;
     parseArgs(argc, argv);
 
    if (config.hunt_crashes && !config.no_fork) {
@@ -66,12 +67,12 @@ int main(int argc, char **argv)
 
    int bannerLen = 0;
     while (getNextTarget()) {
-      runParseThat(bannerLen);
+       retval = runParseThat(bannerLen);
    }
    dlog(INFO, "Analysis complete.\n");
    cleanupFinal();
 
-   return 0;
+   return retval;
 }
 
 bool runParseThat(int &bannerLen)
@@ -124,7 +125,7 @@ bool runParseThat(int &bannerLen)
 
 	    // Only parent should have signal handlers modified.
 	    setSigHandlers();
-
+            
 	    launch_monitor(infd);
 
 	    // Reset signal handers so next child won't be affected.
@@ -150,6 +151,7 @@ bool runParseThat(int &bannerLen)
 	    // Start new process group.  Makes forced process shutdown easier.
 	    setpgid(0, 0);
 
+
 	    close(pipefd[0]); // Close (historically) read side of pipe.
 
 	    // Leave stdout open for mutatee, but if an output file was specified by user,
@@ -173,7 +175,12 @@ bool runParseThat(int &bannerLen)
 	    dlog(ERR, "Error on fork(): %s\n", strerror(errno));
 	    exit(-2);
 	}
-   return 0;
+
+        if (config.abnormal_exit) {
+           return -1;
+        }
+        else
+           return 0;
 }
 
 bool runHunt_binaryEdit(){
@@ -744,6 +751,30 @@ void parseArgs(int argc, char **argv)
                      fprintf(stderr, "Invalid argument supplied to --use-transactions.  Valid arguments are func, mod, or proc.\n");
                      userError();
                   }
+
+               } else if (strcmp(ptr, "-wtx-target") == 0) {
+                   BPatch_remoteWtxInfo *info;
+                   if (arg) {
+                       info = (BPatch_remoteWtxInfo *)
+                           malloc(sizeof(BPatch_remoteWtxInfo));
+                       memset(info, 0, sizeof(BPatch_remoteWtxInfo));
+
+                       if (!strchr(arg, ':')) {
+                           info->target = arg;
+
+                       } else {
+                           info->target = strchr(arg, ':') + 1;
+                           info->host   = arg;
+                           *(strchr(arg, ':')) = '\0';
+                       }
+                       info->tool = "parseThat";
+
+                       config.remoteHost = (BPatch_remoteHost *)
+                           malloc(sizeof(BPatch_remoteHost));
+                       config.remoteHost->type = BPATCH_REMOTE_DEBUG_WTX;
+                       config.remoteHost->info = info;
+                   }
+                   if (needShift) ++i;
 
                } else {
                   fprintf(stderr, "Unknown parameter: %s\n", ptr);

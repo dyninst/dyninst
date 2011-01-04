@@ -161,14 +161,6 @@ public:
 
     // For users of the library:
 
-	// This function should be deprecated.
-	API_EXPORT(Int, (start, end, filename, max),
-              bool,getLineAndFile,( unsigned int & start, unsigned int & end, 
-                                    char * filename, unsigned int max ));
-	
-	// This function should be deprecated.
-	API_EXPORT(Int, (lineNo, buffer, exactMatch),
-	bool,getLineToAddr,( unsigned short lineNo, BPatch_Vector< unsigned long > & buffer, bool exactMatch = true ));
 
     //  BPatch_function::getName
     //  Returns <demangled> name of function

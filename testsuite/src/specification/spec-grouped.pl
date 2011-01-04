@@ -156,7 +156,8 @@ mutatee('symtab_group_test', [
 	'test_symtab_ser_funcs_mutatee.c',
 	'test_ser_anno_mutatee.c',
 	'test_type_info_mutatee.c',
-   'test_anno_basic_types_mutatee.c'
+        'test_anno_basic_types_mutatee.c',
+        'test_add_symbols_mutatee.c'
    ]).
 compiler_for_mutatee('symtab_group_test', Compiler) :-
     comp_lang(Compiler, 'c').
@@ -380,7 +381,14 @@ test_description('test1_22', 'Replace Function').
 test_runs_everywhere('test1_22').
 groupable_test('test1_22').
 mutator('test1_22', ['test1_22.C']).
-mutatee_requires_libs('dyninst_group_test', ['dl']).
+mutatee_requires_libs('dyninst_group_test', Libs) :-
+    % FreeBSD doesn't have a libdl
+    current_platform(P),
+    platform(_, OS, _, P),
+    (
+        OS = 'freebsd' -> Libs = [];
+        Libs = ['dl']
+    ).
 test_runmode('test1_22', 'staticdynamic').
 test_start_state('test1_22', 'stopped').
 tests_module('test1_22', 'dyninst').
@@ -417,16 +425,39 @@ test_runmode('test_snip_remove', 'dynamic').
 test_start_state('test_snip_remove', 'stopped').
 tests_module('test_snip_remove', 'dyninst').
 
+% amd64_7_arg_call
+test('amd64_7_arg_call', 'amd64_7_arg_call', 'amd64_7_arg_call').
+test_description('amd64_7_arg_call', 'AMD64: verify that we can make calls using the stack and GPRs for parameter passing.').
+    test_platform('amd64_7_arg_call', Platform) :-
+    platform(Arch, _, _, Platform),
+    member(Arch, ['x86_64']).
+groupable_test('amd64_7_arg_call').
+mutator('amd64_7_arg_call', ['amd64_7_arg_call.C']).
+mutatee('amd64_7_arg_call', ['amd64_7_arg_call_mutatee.c']).
+compiler_for_mutatee('amd64_7_arg_call', Compiler) :-
+    comp_lang(Compiler, 'c').
+test_runmode('amd64_7_arg_call', 'staticdynamic').
+test_start_state('amd64_7_arg_call', 'stopped').
+tests_module('amd64_7_arg_call', 'dyninst').
+
+
 test('init_fini_callback', 'init_fini_callback', 'init_fini_callback').
 test_description('init_fini_callback', 'Adds callbacks for rewritten module on load/unload/entry/exit.').
 % ELF platforms only
     test_platform('init_fini_callback', Platform) :-
     platform(Arch, OS, _, Platform),
-    member(OS, ['linux']),
-    member(Arch, ['i386', 'x86_64']).
+    member(OS, ['linux', 'freebsd']),
+    member(Arch, ['i386', 'x86_64', 'power']).
 mutator('init_fini_callback', ['init_fini_callback.C']).
 mutatee('init_fini_callback', ['init_fini_callback_mutatee.c']).
-mutatee_requires_libs('init_fini_callback', ['dl']).
+mutatee_requires_libs('init_fini_callback', Libs) :-
+    % FreeBSD doesn't have a libdl
+    current_platform(P),
+    platform(_, OS, _, P),
+    (
+        OS = 'freebsd' -> Libs = [];
+        Libs = ['dl']
+    ).
 compiler_for_mutatee('init_fini_callback', Compiler) :-
     comp_lang(Compiler, 'c').
 groupable_test('init_fini_callback').
@@ -484,7 +515,7 @@ test_description('test1_28', 'User Defined Fields').
 test_runs_everywhere('test1_28').
 groupable_test('test1_28').
 mutator('test1_28', ['test1_28.C']).
-test_runmode('test1_28', 'dynamic').
+test_runmode('test1_28', 'staticdynamic').
 test_start_state('test1_28', 'stopped').
 tests_module('test1_28', 'dyninst').
 
@@ -534,7 +565,7 @@ test_description('test1_33', 'Control Flow Graphs').
 test_runs_everywhere('test1_33').
 groupable_test('test1_33').
 mutator('test1_33', ['test1_33.C']).
-test_runmode('test1_33', 'dynamic').
+test_runmode('test1_33', 'staticdynamic').
 test_start_state('test1_33', 'stopped').
 tests_module('test1_33', 'dyninst').
 
@@ -543,7 +574,7 @@ test_description('test1_34', 'Loop Information').
 test_runs_everywhere('test1_34').
 groupable_test('test1_34').
 mutator('test1_34', ['test1_34.C']).
-test_runmode('test1_34', 'dynamic').
+test_runmode('test1_34', 'staticdynamic').
 test_start_state('test1_34', 'stopped').
 tests_module('test1_34', 'dyninst').
 
@@ -554,6 +585,8 @@ test_platform('test1_35', 'i386-unknown-linux2.6').
 test_platform('test1_35', 'x86_64-unknown-linux2.4').
 test_platform('test1_35', 'sparc-sun-solaris2.8').
 test_platform('test1_35', 'sparc-sun-solaris2.9').
+test_platform('test1_35', 'i386-unknown-freebsd7.2').
+test_platform('test1_35', 'amd64-unknown-freebsd7.2').
 groupable_test('test1_35').
 mutator('test1_35', ['test1_35.C']).
 mutatee('test1_35', ['test1_35_mutatee.c'], Sources) :-
@@ -565,6 +598,10 @@ mutatee('test1_35', ['test1_35_mutatee.c'], Sources) :-
             Sources = ['call35_1_x86_64_linux.s'];
         (Arch = 'i386', OS = 'linux') ->
             Sources = ['call35_1_x86_linux.s'];
+        (Arch = 'i386', OS = 'freebsd') ->
+            Sources = ['call35_1_x86_linux.s'];
+        (Arch = 'x86_64', OS = 'freebsd') ->
+            Sources = ['call35_1_x86_64_linux.s'];
         (Arch = 'i386', OS = 'solaris') ->
             Sources = ['call35_1_x86_solaris.s'];
         Sources = ['call35_1.c']
@@ -740,7 +777,14 @@ mutator('test2_6', ['test2_6.C']).
 mutatee('test2_6', ['test2_6_mutatee.c']).
 compiler_for_mutatee('test2_6', Compiler) :-
     comp_lang(Compiler, 'c').
-mutatee_requires_libs('test2_6', ['dl']).
+mutatee_requires_libs('test2_6', Libs) :-
+    % FreeBSD doesn't have a libdl
+    current_platform(P),
+    platform(_, OS, _, P),
+    (
+        OS = 'freebsd' -> Libs = [];
+        Libs = ['dl']
+    ).
 test_runmode('test2_6', 'dynamic').
 test_start_state('test2_6', 'stopped').
 tests_module('test2_6', 'dyninst').
@@ -803,6 +847,7 @@ test_start_state('test2_13', 'stopped').
 groupable_test('test2_13').
 tests_module('test2_13', 'dyninst').
 
+% test2_14 used getThreads(), which has been deprecated forever and is now gone.
 test('test2_14', 'test2_14', 'test2_14').
 test_runs_everywhere('test2_14').
 mutator('test2_14', ['test2_14.C']).
@@ -935,7 +980,7 @@ test('test5_1', 'test5_1', 'dyninst_cxx_group_test').
 % test5_1 only runs on Linux, Solaris, and Windows
 test_platform('test5_1', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
 mutator('test5_1', ['test5_1.C']).
 test_runmode('test5_1', 'staticdynamic').
 test_start_state('test5_1', 'stopped').
@@ -947,7 +992,7 @@ test('test5_2', 'test5_2', 'dyninst_cxx_group_test').
 % test5_2 only runs on Linux, Solaris, and Windows
 test_platform('test5_2', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
 mutator('test5_2', ['test5_2.C']).
 test_runmode('test5_2', 'staticdynamic').
 test_start_state('test5_2', 'stopped').
@@ -968,7 +1013,7 @@ test('test5_4', 'test5_4', 'dyninst_cxx_group_test').
 % test5_4 only runs on Linux, Solaris, and Windows
 test_platform('test5_4', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
 mutator('test5_4', ['test5_4.C']).
 test_runmode('test5_4', 'staticdynamic').
 test_start_state('test5_4', 'stopped').
@@ -980,7 +1025,7 @@ test('test5_5', 'test5_5', 'dyninst_cxx_group_test').
 % test5_5 only runs on Linux, Solaris, and Windows
 test_platform('test5_5', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
 mutator('test5_5', ['test5_5.C']).
 test_runmode('test5_5', 'staticdynamic').
 test_start_state('test5_5', 'stopped').
@@ -991,7 +1036,8 @@ tests_module('test5_5', 'dyninst').
 test('test5_6', 'test5_6', 'dyninst_cxx_group_test').
 % test5_6 only runs on x86 Linux
 test_platform('test5_6', Platform) :-
-    platform('i386', 'linux', _, Platform).
+    platform('i386', OS, _, Platform),
+    member(OS, ['linux', 'freebsd']).
 mutator('test5_6', ['test5_6.C']).
 test_runmode('test5_6', 'staticdynamic').
 test_start_state('test5_6', 'stopped').
@@ -1003,7 +1049,7 @@ test('test5_7', 'test5_7', 'dyninst_cxx_group_test').
 % test5_7 only runs on Linux, Solaris, and Windows
 test_platform('test5_7', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
 mutator('test5_7', ['test5_7.C']).
 test_runmode('test5_7', 'staticdynamic').
 test_start_state('test5_7', 'stopped').
@@ -1016,7 +1062,7 @@ test('test5_8', 'test5_8', 'dyninst_cxx_group_test').
 % test5_8 only runs on Linux, Solaris, and Windows
 test_platform('test5_8', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
 mutator('test5_8', ['test5_8.C']).
 test_runmode('test5_8', 'staticdynamic').
 test_start_state('test5_8', 'stopped').
@@ -1029,7 +1075,7 @@ test('test5_9', 'test5_9', 'dyninst_cxx_group_test').
 % test5_9 only runs on Linus, Solaris, and Windows
 test_platform('test5_9', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
 mutator('test5_9', ['test5_9.C']).
 test_runmode('test5_9', 'staticdynamic').
 test_start_state('test5_9', 'stopped').
@@ -1419,6 +1465,7 @@ mutatee_requires_libs('test_thread_1', Libs) :-
     platform(_, OS, _, P),
     (
         OS = 'solaris' -> Libs = ['dl', 'pthread', 'rt'];
+        OS = 'freebsd' -> Libs = ['pthread'];
         Libs = ['dl', 'pthread']
     ).
 test_runmode('test_thread_1', 'createProcess').
@@ -1436,6 +1483,7 @@ mutatee_requires_libs('test_thread_2', Libs) :-
     platform(_, OS, _, P),
     (
         OS = 'solaris' -> Libs = ['dl', 'pthread', 'rt'];
+        OS = 'freebsd' -> Libs = ['pthread'];
         Libs = ['dl', 'pthread']
     ).
 test('test_thread_2', 'test_thread_2', 'test_thread_2').
@@ -1459,6 +1507,7 @@ mutatee_requires_libs('test_thread_3', Libs) :-
     platform(_, OS, _, P),
     (
         OS = 'solaris' -> Libs = ['dl', 'pthread', 'rt'];
+        OS = 'freebsd' -> Libs = ['pthread'];
         Libs = ['dl', 'pthread']
     ).
 test('test_thread_3', 'test_thread_3', 'test_thread_3').
@@ -1481,6 +1530,7 @@ mutatee_requires_libs('test_thread_5', Libs) :-
     platform(_, OS, _, P),
     (
         OS = 'solaris' -> Libs = ['dl', 'pthread', 'rt'];
+        OS = 'freebsd' -> Libs = ['pthread'];
         Libs = ['dl', 'pthread']
     ).
 test('test_thread_5', 'test_thread_5', 'test_thread_5').
@@ -2196,6 +2246,16 @@ test_start_state('test_lookup_var', 'stopped').
 tests_module('test_lookup_var', 'symtab').
 % test_serializable('test_lookup_var').
 
+test('test_add_symbols', 'test_add_symbols', 'symtab_group_test').
+test_description('test_add_symbols', 'Use SymtabAPI to add symbols to a file').
+groupable_test('test_add_symbols').
+mutator('test_add_symbols', ['test_add_symbols.C']).
+test_runmode('test_add_symbols', 'createProcess').
+test_start_state('test_add_symbols', 'stopped').
+tests_module('test_add_symbols', 'symtab').
+test_platform('test_add_symbols', Platform) :- rewriteablePlatforms(Platform).
+% test_serializable('test_add_symbols').
+
 test('test_line_info', 'test_line_info', 'symtab_group_test').
 test_description('test_line_info', 'SymtabAPI Line Information').
 test_runs_everywhere('test_line_info').
@@ -2369,12 +2429,19 @@ tests_module('fucompp', 'instruction').
 % ProcessControlAPI Tests
 pcPlatforms(P) :- platform('x86_64', 'linux', _, P).
 pcPlatforms(P) :- platform('i386', 'linux', _, P).
+pcPlatforms(P) :- platform('i386', 'freebsd', _,P).
+pcPlatforms(P) :- platform('x86_64', 'freebsd', _,P).
+
+% ELF platforms
+rewriteablePlatforms(P) :- platform(_, 'linux', _, P).
+rewriteablePlatforms(P) :- platform(_, 'freebsd', _, P).
 
 pcMutateeLibs(Libs) :-
    current_platform(P),
    platform(_, OS, _, P),
    (
        OS = 'solaris' -> Libs = ['dl', 'pthread', 'rt'];
+       OS = 'freebsd' -> Libs = ['pthread'];
        Libs = ['dl', 'pthread']
    ).
 
@@ -2450,7 +2517,11 @@ optimization_for_mutatee('pc_singlestep', _, Opt) :- member(Opt, ['none']).
 
 test('pc_fork', 'pc_fork', 'pc_fork').
 test_description('pc_fork', 'Fork processes').
-test_platform('pc_fork', Platform) :- pcPlatforms(Platform).
+% FreeBSD doesn't provide fork events
+test_platform('pc_fork', Platform) :- 
+    pcPlatforms(Platform),
+    platform(_, OS, _, Platform),
+    member(OS, ['linux']).
 mutator('pc_fork', ['pc_fork.C']).
 test_runmode('pc_fork', 'dynamic').
 test_threadmode('pc_fork', 'Threading').
@@ -2463,7 +2534,10 @@ optimization_for_mutatee('pc_fork', _, Opt) :- member(Opt, ['none']).
 
 test('pc_fork_exec', 'pc_fork_exec', 'pc_fork_exec').
 test_description('pc_fork_exec', 'Fork exec processes').
-test_platform('pc_fork_exec', Platform) :- pcPlatforms(Platform).
+test_platform('pc_fork_exec', Platform) :- 
+    pcPlatforms(Platform),
+    platform(_, OS, _, Platform),
+    member(OS, ['linux']).
 mutator('pc_fork_exec', ['pc_fork_exec.C']).
 test_runmode('pc_fork_exec', 'dynamic').
 test_threadmode('pc_fork_exec', 'Threading').
@@ -2536,6 +2610,8 @@ platform('alpha', 'osf', 'osf5.1', 'alpha-dec-osf5.1').
 platform('x86_64', 'linux', 'linux2.4', 'x86_64-unknown-linux2.4').
 platform('power', 'linux', 'linux2.6', 'ppc64_linux').
 platform('power', 'linux', 'linux2.6', 'ppc32_linux').
+platform('i386', 'freebsd', 'freebsd7.2', 'i386-unknown-freebsd7.2').
+platform('x86_64', 'freebsd', 'freebsd7.2', 'amd64-unknown-freebsd7.2').
 
 % Platform Defns
 % platform/1
@@ -2558,6 +2634,8 @@ mutatee_abi(64).
 platform_format(_, 'dynamicMutatee').
 platform_format(P, 'staticMutatee') :- platform('i386', 'linux', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'linux', _, P).
+platform_format(P, 'staticMutatee') :- platform('i386', 'freebsd', _, P).
+platform_format(P, 'staticMutatee') :- platform('x86_64', 'freebsd', _, P).
 
 % compiler_format (Compiler, Format)
 compiler_format(_, 'dynamicMutatee').
@@ -2584,13 +2662,15 @@ whitelist([['platform', Platform], ['mutatee_abi', ABI]]) :-
 % FIXME Does ppc64 support 32-bit mutatees?
 platform_abi(Platform, 32) :-
     platform(Arch, _, _, Platform),
-    Arch \= 'ia64'.
+    Arch \= 'ia64',
+    Platform \= 'amd64-unknown-freebsd7.2'.
 
 % A smaller list of platforms with for 64-bit mutatees
 platform_abi('ia64-unknown-linux2.4', 64).
 platform_abi('x86_64-unknown-linux2.4', 64).
 platform_abi('ppc64_linux', 64).
 platform_abi('rs6000-ibm-aix64-5.2', 64).
+platform_abi('amd64-unknown-freebsd7.2', 64).
 
 % restricted_abi_for_arch(Test, Arch, ABI)
 % Limits the test Test to only running with mutatees compiled to ABI on the
@@ -2871,6 +2951,24 @@ compiler_opt_trans(IBM, 'max', '-O5') :-
     member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'max', '/Ox') :- Comp == 'VC++'; Comp == 'VC'.
 
+compiler_pic_trans(_, 'none', '').
+compiler_pic_trans(Comp, 'pic', '-fPIC') :-
+    member(Comp, ['gcc', 'g++', 'gfortran', 'icc', 'iCC']).
+compiler_pic_trans(Comp, 'pic', '-KPIC') :-
+    member(Comp, ['pgcc', 'pgCC']).
+compiler_pic_trans(Comp, 'pic', '') :-
+        member(Comp, ['cc', 'cxx', 'VC++', 'VC']).
+
+compiler_pic('g++', 'pic').
+compiler_pic('gcc', 'pic').
+compiler_pic('pgCC', 'pic').
+compiler_pic('pgcc', 'pic').
+compiler_pic('iCC', 'pic').
+compiler_pic('icc', 'pic').
+compiler_pic('gfortran', 'pic').
+compiler_pic(C, 'none') :-
+        mutatee_comp(C).
+        
 % Ensure that we're only defining translations for compilers that exist
 insane('P1 not defined as a compiler, but has optimization translation defined',
        [Compiler]) :-
@@ -2904,6 +3002,8 @@ mutatee_link_options('VC++', '$(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LD
 % Static and dynamic linking
 compiler_static_link('g++', P, '-static') :- platform(_,'linux', _, P).
 compiler_static_link('gcc', P, '-static') :- platform(_,'linux', _, P).
+compiler_static_link('g++', P, '-static') :- platform(_,'freebsd', _,P).
+compiler_static_link('gcc', P, '-static') :- platform(_,'freebsd', _,P).
 compiler_dynamic_link(_, _, '').
 
 % Specify the standard flags for each compiler
@@ -3050,7 +3150,10 @@ test_runs_everywhere(none).
 % All mutators need to be linked with dyninstAPI and iberty
 % All mutators also need to be linked with testSuite, for the TestMutator
 % superclass if nothing else.
-all_mutators_require_libs(['iberty', 'testSuite']).
+%
+% Remove liberty from the prolog--this is determined by autoconf
+all_mutators_require_libs(['testSuite']).
+
 
 module_required_libs('dyninst', ['dyninstAPI']).
 module_required_libs('symtab', ['symtabAPI']).
@@ -3187,6 +3290,8 @@ runmode_platform(P, 'useAttach') :- platform(_, _, _, P).
 runmode_platform(P, 'binary') :- platform('i386', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('x86_64', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('power', 'linux', _, P).
+runmode_platform(P, 'binary') :- platform('i386', 'freebsd', _, P).
+runmode_platform(P, 'binary') :- platform('x86_64', 'freebsd', _,P).
 % runmode_platform(P, 'deserialize') :- platform(_, _, _, P).
 
 % mutatee_peers/2

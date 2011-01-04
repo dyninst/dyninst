@@ -27,6 +27,7 @@ extern "C" {
    void yywarn(char *s);
    int yyparse();
    void makeOneTimeStatement(BPatch_snippet &statement);
+   void makeOneTimeStatementGbl(BPatch_snippet &statement);
    std::string getErrorBase();
 //   char *yytext;
 //   char *dynCSnippetName;
@@ -44,7 +45,7 @@ std::set<std::string> *universalErrors = new std::set<std::string>();
 //void yywarn(char *s);
 
 int oneTimeCount = 0;
-
+int oneTimeGblCount = 0;
 int yylex();
 
 BPatch_snippet *parse_result;
@@ -112,7 +113,7 @@ std::vector<BPatch_snippet *> endSnippets;
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE CONST VOID
 %token STRUCT UNION ENUM ELLIPSIS 
 %token IF
-%token LOCAL PARAM THREAD GLOBAL MACHINE DYNINST INST
+%token LOCAL PARAM THREAD GLOBAL MACHINE INF DYNINST INST
 %token NEWLINE
 
 %token CASE DEFAULT SWITCH RETURN
@@ -133,12 +134,13 @@ std::vector<BPatch_snippet *> endSnippets;
 %left DOLLAR
 %left BACKTICK
 
-%right '!' '~'
+%right '!' '~' '&'
 %right AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN SUB_ASSIGN ASSIGN
 
 %nonassoc NOPEN NCLOSE
 %nonassoc LOWER_THAN_ELSE //used to trick Bison into accepting if else statements
 %nonassoc ELSE
+%nonassoc LOWER_THAN_DEREF
 
 %type <boolExpr> bool_expression bool_constant
 %type <snippet> arith_expression variable_expr statement inc_decr_expr func_call  block
@@ -154,6 +156,7 @@ start:
     statement_list
     { 
        oneTimeCount = 0;
+       oneTimeGblCount = 0;
        $1->insert($1->end(), endSnippets.begin(), endSnippets.end());
        parse_result = new BPatch_sequence(*$1); 
        delete $1;
@@ -169,7 +172,7 @@ var_declaration: var_decl_modifiers IDENTIFIER
     {
        //IDENTIFIER leaks, but how to fix b/c use of $0?
        std::string mangledName;
-       mangledName = dynC_API::mangle($2, ($1.isStatic || $1.isGlobal ? "" : dynCSnippetName), $1.type, $1.isGlobal);
+       mangledName = dynC_API::mangle($2, snippetPoint, $1.type);
        $$ = snippetGen->findOrCreateVariable(mangledName.c_str(), $1.type);
        if($$ == NULL){
           $$ = new BPatch_nullExpr();
@@ -179,18 +182,18 @@ var_declaration: var_decl_modifiers IDENTIFIER
           break;
        }
 
-       if(!($1.isStatic || $1.isGlobal)){ 
+       /* if(!($1.isStatic || $1.isGlobal)){ 
           BPatch_snippet setSn = BPatch_constExpr(0); // if int etc.
           if(strcmp($1.type, "char *") == 0){
              setSn = BPatch_constExpr("");
           }
           endSnippets.push_back(new BPatch_arithExpr(BPatch_assign, *$$, setSn));
-       }
+          }*/
     }
     | var_decl_modifiers IDENTIFIER ASSIGN arith_expression
     {   
       
-       std::string mangledName = dynC_API::mangle($2, ($1.isStatic || $1.isGlobal ? "" : dynCSnippetName), $1.type, $1.isGlobal);
+       std::string mangledName = dynC_API::mangle($2, snippetPoint, $1.type);
        BPatch_snippet *alloc = snippetGen->findOrCreateVariable(mangledName.c_str(), $1.type);
        if(alloc == NULL){
           $$ = new BPatch_nullExpr();
@@ -202,9 +205,13 @@ var_declaration: var_decl_modifiers IDENTIFIER
        BPatch_arithExpr assign = BPatch_arithExpr(BPatch_assign, *alloc, *$4);
        
        $$ = new BPatch_arithExpr(BPatch_seq, *alloc, assign); //will only allocate memory if nessessary
+
+/*
        if($1.isStatic || $1.isGlobal){
           makeOneTimeStatement(*$$);
        }
+       */
+       makeOneTimeStatement(*$$);
        
     }
     | var_decl_modifiers IDENTIFIER '[' NUMBER ']' 
@@ -222,7 +229,7 @@ var_declaration: var_decl_modifiers IDENTIFIER
       
        std::stringstream type;
        type << $1.type << "[" << $4 << "]";
-       std::string mangledName = dynC_API::mangle($2, dynCSnippetName, type.str().c_str(), $1.isGlobal);
+       std::string mangledName = dynC_API::mangle($2, snippetPoint, type.str().c_str());
       
        $$ = snippetGen->findOrCreateArray(mangledName.c_str(), $1.type, $4);
        if($$ == NULL){
@@ -232,6 +239,7 @@ var_declaration: var_decl_modifiers IDENTIFIER
           free(errString);
           break;
        }
+/*
        if(!($1.isStatic || $1.isGlobal)){ 
           BPatch_snippet setSn = BPatch_constExpr(0); // if int etc.
           if(strcmp($1.type, "char *") == 0){
@@ -241,13 +249,14 @@ var_declaration: var_decl_modifiers IDENTIFIER
              endSnippets.push_back(new BPatch_arithExpr(BPatch_assign, BPatch_arithExpr(BPatch_ref, *$$, BPatch_constExpr(n)), setSn));             
           }
        }
+*/
     }
     | var_decl_modifiers IDENTIFIER '[' ']' ASSIGN '{' const_list '}'
     {
        //IDENTIFIER leaks, but how to fix b/c use of $0?
        std::stringstream type;
        type << $1.type << "[" << $7->size() << "]";
-       std::string mangledName = dynC_API::mangle($2, dynCSnippetName, type.str().c_str(), $1.isGlobal);
+       std::string mangledName = dynC_API::mangle($2, snippetPoint, type.str().c_str());
 
        $$ = snippetGen->findOrCreateArray(mangledName.c_str(), $1.type, $7->size()); //will only allocate memory if nessessary
        if($$ == NULL){
@@ -272,9 +281,11 @@ var_declaration: var_decl_modifiers IDENTIFIER
              break;
           }
           BPatch_snippet *assign = new BPatch_arithExpr(BPatch_assign, BPatch_arithExpr(BPatch_ref, *$$, BPatch_constExpr(n)), *(*$7)[n].first);      
+          /*
           if($1.isStatic || $1.isGlobal){
               makeOneTimeStatement(*assign);
-          }
+              }*/
+          makeOneTimeStatement(*assign);
           assignVect->push_back(assign);
        }
        $$ = new BPatch_sequence(*assignVect);
@@ -294,7 +305,7 @@ var_declaration: var_decl_modifiers IDENTIFIER
           break;
        }
        type << $1.type << "[" << $4 << "]";
-       std::string mangledName = dynC_API::mangle($2, dynCSnippetName, type.str().c_str(), $1.isGlobal);
+       std::string mangledName = dynC_API::mangle($2, snippetPoint, type.str().c_str());
 
        $$ = snippetGen->findOrCreateArray(mangledName.c_str(), $1.type, $4); //will only allocate memory if nessessary
        if($$ == NULL){
@@ -324,9 +335,10 @@ var_declaration: var_decl_modifiers IDENTIFIER
              break;
           }
           BPatch_snippet *assign = new BPatch_arithExpr(BPatch_assign, BPatch_arithExpr(BPatch_ref, *$$, BPatch_constExpr(n)), *(*$8)[n].first);      
-          if($1.isStatic || $1.isGlobal){
+/*          if($1.isStatic || $1.isGlobal){
              makeOneTimeStatement(*assign);
-          }
+             }*/
+          makeOneTimeStatement(*assign);
           assignVect->push_back(assign);
        }
        $$ = new BPatch_sequence(*assignVect);
@@ -338,7 +350,7 @@ var_decl_modifiers: TYPE
       YYSTYPE::VariableSpec rSpec = {false,false,false,false,false,false,false,false,$1};
       $$ = rSpec;
    } 
-   | STATIC var_decl_modifiers
+/*   | STATIC var_decl_modifiers
    {
       if ($2.isStatic){
          //throw error: two static
@@ -405,7 +417,7 @@ var_decl_modifiers: TYPE
          $2.isMachineState = true;
       }
       $$ = $2;   
-   }
+      }*/
    ;
 
 
@@ -424,7 +436,7 @@ statement_list:
     | NOPEN statement_list NCLOSE
     {
        BPatch_sequence *seq = new BPatch_sequence(*$2);
-       makeOneTimeStatement(*seq);
+       makeOneTimeStatementGbl(*seq);
        std::vector<BPatch_snippet *> *retVect = new std::vector<BPatch_snippet *>;
        retVect->push_back(seq);
        $$ = retVect;       
@@ -432,7 +444,7 @@ statement_list:
     | statement_list NOPEN statement_list NCLOSE
     {
        BPatch_sequence seq = BPatch_sequence(*$3);
-       makeOneTimeStatement(seq);
+       makeOneTimeStatementGbl(seq);
        $1->push_back(&seq);
        $$ = $1;
     }
@@ -641,9 +653,9 @@ var_modifiers:
    ;
 
 
-variable_expr: INST BACKTICK IDENTIFIER
+variable_expr: IDENTIFIER
     {
-       $$ = snippetGen->findInstVariable(dynC_API::getMangledStub($3).c_str(), $3);
+       $$ = snippetGen->findInstVariable(dynC_API::getMangledStub($1, snippetPoint).c_str(), $1);
        if($$ == NULL){
           $$ = new BPatch_nullExpr();
           char *errString = strdup(snippetGen->getError().c_str());
@@ -652,9 +664,34 @@ variable_expr: INST BACKTICK IDENTIFIER
           break;
        }
     }
-    | IDENTIFIER
+    | '*' IDENTIFIER
     {
-       $$ = snippetGen->findAppVariable($1);
+       $$ = snippetGen->findInstVariable(dynC_API::getMangledStub($2, snippetPoint).c_str(), $2);
+       if($$ == NULL){
+          $$ = new BPatch_nullExpr();
+          char *errString = strdup(snippetGen->getError().c_str());
+          yyerror(errString);
+          free(errString);
+          break;
+       }
+       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_deref, *$$));       
+    }
+    | '&' IDENTIFIER
+    {
+       $$ = snippetGen->findInstVariable(dynC_API::getMangledStub($2, snippetPoint).c_str(), $2);
+       if($$ == NULL){
+          $$ = new BPatch_nullExpr();
+          char *errString = strdup(snippetGen->getError().c_str());
+          yyerror(errString);
+          free(errString);
+          break;
+       }
+       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_addr, *$$));       
+    }
+
+    | INF BACKTICK IDENTIFIER
+    {
+       $$ = snippetGen->findAppVariable($3);
        if($$ == NULL){
           $$ = new BPatch_nullExpr();
           char *errString = strdup(snippetGen->getError().c_str());
@@ -663,8 +700,40 @@ variable_expr: INST BACKTICK IDENTIFIER
           break;
        }
     }
+    | '*' INF BACKTICK IDENTIFIER
+    {
+       $$ = snippetGen->findAppVariable($4);
+       if($$ == NULL){
+          $$ = new BPatch_nullExpr();
+          char *errString = strdup(snippetGen->getError().c_str());
+          yyerrorNoTokNonUni(errString);
+          free(errString);
+          break;
+       }
+       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_deref, *$$));       
+    }
+    | '&' INF BACKTICK IDENTIFIER
+    {
+       $$ = snippetGen->findAppVariable($4);
+       if($$ == NULL){
+          $$ = new BPatch_nullExpr();
+          char *errString = strdup(snippetGen->getError().c_str());
+          yyerrorNoTokNonUni(errString);
+          free(errString);
+          break;
+       }
+       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_addr, *$$));       
+    }
+
+
     | var_modifiers BACKTICK IDENTIFIER
     {
+       //disallowed if there is no point specifier
+       if(snippetPoint == NULL){
+          yyerrorNoTok("Local variables not allowed when snippet point is unspecified.");
+          YYABORT;
+          break;
+       }
        if($1.isParam){
           $$ = snippetGen->findParameter($3);
        }else{
@@ -676,6 +745,33 @@ variable_expr: INST BACKTICK IDENTIFIER
              char *errString = strdup(snippetGen->getError().c_str());
              yyerror(errString);
              free(errString);
+             YYABORT;
+          }else{
+             char *errString = strdup(snippetGen->getError().c_str());
+             yyerrorNonUni(errString);
+             free(errString);
+             YYABORT;
+          }
+          break;
+       }
+    }
+    | '*' var_modifiers BACKTICK IDENTIFIER
+    {
+       if(snippetPoint == NULL){
+          yyerrorNoTok("Local variables not allowed when snippet point is unspecified.");
+          break;
+       }       
+       if($2.isParam){
+          $$ = snippetGen->findParameter($4);
+       }else{
+          $$ = snippetGen->findAppVariable($4, $2.isGlobal, $2.isLocal);
+       }
+       if($$ == NULL){
+          $$ = new BPatch_nullExpr();
+          if($2.isGlobal){
+             char *errString = strdup(snippetGen->getError().c_str());
+             yyerror(errString);
+             free(errString);
           }else{
              char *errString = strdup(snippetGen->getError().c_str());
              yyerrorNonUni(errString);
@@ -683,10 +779,43 @@ variable_expr: INST BACKTICK IDENTIFIER
           }
           break;
        }
+       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_deref, *$$));       
     }
+
+    | '&' var_modifiers BACKTICK IDENTIFIER
+    {
+       if(snippetPoint == NULL){
+          yyerrorNoTok("Local variables not allowed when snippet point is unspecified.");
+          break;
+       }       
+       if($2.isParam){
+          $$ = snippetGen->findParameter($4);
+       }else{
+          $$ = snippetGen->findAppVariable($4, $2.isGlobal, $2.isLocal);
+       }
+       if($$ == NULL){
+          $$ = new BPatch_nullExpr();
+          if($2.isGlobal){
+             char *errString = strdup(snippetGen->getError().c_str());
+             yyerror(errString);
+             free(errString);
+          }else{
+             char *errString = strdup(snippetGen->getError().c_str());
+             yyerrorNonUni(errString);
+             free(errString);
+          }
+          break;
+       }
+       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_addr, *$$));       
+    }
+
     | var_modifiers BACKTICK NUMBER 
     {
        //special case for indexed parameters
+       if(snippetPoint == NULL){
+          yyerrorNoTok("Local variables not allowed when snippet point is unspecified.");
+          break;
+       }       
        if(!$1.isParam){
           yyerror("Numbered indexes for parameters only");
           $$ = new BPatch_nullExpr();
@@ -701,6 +830,52 @@ variable_expr: INST BACKTICK IDENTIFIER
           break;
        }
     }
+    | '*' var_modifiers BACKTICK NUMBER 
+    {
+       //special case for indexed parameters
+       if(snippetPoint == NULL){
+          yyerrorNoTok("Local variables not allowed when snippet point is unspecified.");
+          break;
+       }       
+       if(!$2.isParam){
+          yyerror("Numbered indexes for parameters only");
+          $$ = new BPatch_nullExpr();
+          break;
+       }
+       $$ = snippetGen->findParameter($4);
+       if($$ == NULL){
+          $$ = new BPatch_nullExpr();
+          char *errString = strdup(snippetGen->getError().c_str());
+          yyerrorNoTokNonUni(errString);
+          free(errString);
+          break;
+       }
+       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_deref, *$$));
+    }
+    | '&' var_modifiers BACKTICK NUMBER 
+    {
+       //special case for indexed parameters
+       if(snippetPoint == NULL){
+          yyerrorNoTok("Local variables not allowed when snippet point is unspecified.");
+          break;
+       }       
+
+       if(!$2.isParam){
+          yyerror("Numbered indexes for parameters only");
+          $$ = new BPatch_nullExpr();
+          break;
+       }
+       $$ = snippetGen->findParameter($4);
+       if($$ == NULL){
+          $$ = new BPatch_nullExpr();
+          char *errString = strdup(snippetGen->getError().c_str());
+          yyerrorNoTokNonUni(errString);
+          free(errString);
+          break;
+       }
+       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_addr, *$$));
+    }
+
     | variable_expr '[' arith_expression ']'
     {
        //array referance
@@ -714,6 +889,18 @@ variable_expr: INST BACKTICK IDENTIFIER
           break;
        }
     }
+/*
+    | '*' variable_expr 
+    {
+       //dereference variable
+       printf("DEREF!\n");
+       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_deref, *$2));
+    }
+    | '&' variable_expr
+    {
+       //referance variable
+       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_addr, *$2));
+       }*/
     ;
 
 constant: 
@@ -1009,10 +1196,19 @@ void writeMessage(char *s){
    fprintf(mfile, "%s\n", s);   
 }
 
- 
 void makeOneTimeStatement(BPatch_snippet &statement){
    std::stringstream mangledName;
-   mangledName << "dynC_internal_" << dynCSnippetName << "_" << oneTimeCount++;
+   mangledName << "dynC_internal_" << snippetPoint->getAddress() << "_" << oneTimeCount++;
+   BPatch_snippet * var = snippetGen->findOrCreateVariable(mangledName.str().c_str(), "int"); //will only allocate memory if nessessary
+   BPatch_arithExpr *setFlag = new BPatch_arithExpr(BPatch_assign, *var, BPatch_constExpr(1));
+   BPatch_arithExpr *pair = new BPatch_arithExpr(BPatch_seq, *setFlag, statement);
+   BPatch_ifExpr *testFirst = new BPatch_ifExpr(BPatch_boolExpr(BPatch_eq, *var, BPatch_constExpr(0)), *pair);
+   statement = *testFirst;    
+}
+
+void makeOneTimeStatementGbl(BPatch_snippet &statement){
+   std::stringstream mangledName;
+   mangledName << "dynC_internal_" << dynCSnippetName << "_" << oneTimeGblCount++;
    BPatch_snippet * var = snippetGen->findOrCreateVariable(mangledName.str().c_str(), "int"); //will only allocate memory if nessessary
    BPatch_arithExpr *setFlag = new BPatch_arithExpr(BPatch_assign, *var, BPatch_constExpr(1));
    BPatch_arithExpr *pair = new BPatch_arithExpr(BPatch_seq, *setFlag, statement);

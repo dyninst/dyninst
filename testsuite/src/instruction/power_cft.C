@@ -77,7 +77,7 @@ test_results_t verifyTargetType(const Instruction::CFT& actual, const cftExpecte
         return FAILED;
     }
     if(actual.isIndirect != expected.indirect) {
-        logerror("FAILED: expected indirect = %d, actual = %d\n", expected.call, actual.isIndirect);
+        logerror("FAILED: expected indirect = %d, actual = %d\n", expected.indirect, actual.isIndirect);
         return FAILED;
     }
     if(actual.isConditional != expected.conditional) {
@@ -104,8 +104,9 @@ test_results_t power_cft_Mutator::executeTest()
         0x40, 0x01, 0x01, 0x01, // bdnzl cr0, +0x100
         0x40, 0x01, 0x01, 0x00, // bdnz cr0, +0x100
         0x4e, 0xf0, 0x04, 0x21, // bctrl
+        0x4c, 0xa3, 0x00, 0x20, // bnslr+
   };
-  unsigned int expectedInsns = 9;
+  unsigned int expectedInsns = 10;
   unsigned int size = expectedInsns * 4;
   ++expectedInsns;
   InstructionDecoder d(buffer, size, Dyninst::Arch_ppc32);
@@ -156,6 +157,8 @@ test_results_t power_cft_Mutator::executeTest()
   cfts.push_back(cftExpected(true, 0x500, false, true, false, false));
   cfts.push_back(cftExpected(true, 0x404, false, false, false, true));
   cfts.push_back(cftExpected(true, 44, true, false, true, false));
+  cfts.push_back(cftExpected(true, 0x200, false, true, true, false));
+  cfts.push_back(cftExpected(true, 0x404, false, false, false, true));
   while(!decodedInsns.empty())
   {
       (void)(decodedInsns.front()->getControlFlowTarget());

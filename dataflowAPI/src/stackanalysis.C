@@ -83,7 +83,9 @@ AnnotationClass <StackAnalysis::HeightTree> FP_Anno(std::string("FP_Anno"));
 
 bool StackAnalysis::analyze()
 {
-  init_debugData();
+
+  df_init_debug();
+
   stackanalysis_printf("Beginning stack analysis for function %s\n",
 		       func->name().c_str());
 
@@ -1074,6 +1076,6 @@ StackAnalysis::Height StackAnalysis::findFP(Address addr) {
 }
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::StackAnalysis::Height &h) {
-  os << h.format();
+  os << "STACK_SLOT[" << h.format() << "]";
   return os;
 }

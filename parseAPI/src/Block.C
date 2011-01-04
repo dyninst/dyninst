@@ -121,6 +121,13 @@ Intraproc::pred_impl(Edge * e) const
     return base && (e->type() != CALL) && (e->type() != RET);
 }
 
+bool Interproc::pred_impl(Edge *e) const 
+{
+    bool base = EdgePredicate::pred_impl(e);
+
+    return !base || ((e->type() == CALL) || (e->type() == RET));
+}
+
 bool
 SingleContext::pred_impl(Edge * e) const
 {
@@ -128,6 +135,20 @@ SingleContext::pred_impl(Edge * e) const
     return base && 
         (!_forward || _context->contains(e->trg())) &&
         (!_backward || _context->contains(e->src()));
+}
+
+bool
+SingleContextOrInterproc::pred_impl(Edge * e) const
+{
+    bool base = EdgePredicate::pred_impl(e);
+
+    bool singleContext = base && 
+        (!_forward || _context->contains(e->trg())) &&
+        (!_backward || _context->contains(e->src()));
+
+    bool interproc = !base || ((e->type() == CALL) || (e->type() == RET));
+
+    return singleContext || interproc;
 }
 
 int Block::containingFuncs() const {

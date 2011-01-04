@@ -66,6 +66,7 @@ extern int expand_printf_int(const char *format, ...);
 #endif
 
 // And initialization
-extern bool init_debugData();
+
+extern bool df_init_debug();
 
 #endif /* SHOWERROR_H */

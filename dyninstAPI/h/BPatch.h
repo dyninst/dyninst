@@ -81,6 +81,27 @@ typedef struct {
   unsigned int insnGenerated;
 } BPatch_stats;
 
+// --------------------------------------------------------------------
+// This is a purposefully undocumented prototype of a "remote debugging"
+// interface.  Meant to generalize debuggers like remote gdb and wtx.
+
+typedef enum {
+    BPATCH_REMOTE_DEBUG_WTX,
+
+    BPATCH_REMOTE_DEBUG_END
+} BPatch_remote_t;
+
+typedef struct {
+    char *target;
+    char *tool;
+    char *host;
+} BPatch_remoteWtxInfo;
+
+typedef struct {
+    BPatch_remote_t type;
+    void *info;
+} BPatch_remoteHost;
+// --------------------------------------------------------------------
 
 class EventRecord;
 
@@ -408,12 +429,8 @@ public:
         (BPatchCodeOverwriteBeginCallback cbBegin,
          BPatchCodeOverwriteEndCallback cbEnd));
 
-    //  BPatch::getThreads:
-    //  Get a vector of all threads
-    API_EXPORT(Int, (),
-    BPatch_Vector<BPatch_thread*> *,getThreads,());
 
-    //  BPatch::getThreads:
+    //  BPatch::getProcesses:
     //  Get a vector of all processes 
     API_EXPORT(Int, (),
     BPatch_Vector<BPatch_process*> *,getProcesses,());
@@ -513,15 +530,6 @@ public:
     BPatch_process *,processAttach,(const char *path, int pid, 
                                     BPatch_hybridMode mode=BPatch_normalMode));
 
-    // BPatch::createProcess:
-    // Create a new mutatee process
-    API_EXPORT(Int, (path, argv, envp, stdin_fd, stdout_fd, stderr_fd),
-    BPatch_thread *,createProcess,(const char *path,
-                                   const char *argv[],
-                                   const char **envp = NULL,
-                                   int stdin_fd=0,
-                                   int stdout_fd=1,
-                                   int stderr_fd=2));
 
     // BPatch::openBinary
     // Open a binary for static instrumentation
@@ -532,11 +540,6 @@ public:
     // 
     API_EXPORT(Int, (path, openDependencies), 
                BPatch_binaryEdit *, openBinary, (const char *path, bool openDependencies = false));
-
-    // BPatch::attachProcess:
-    // Attach to mutatee process
-    API_EXPORT(Int, (path, pid),
-    BPatch_thread *,attachProcess,(const char *path, int pid));
 
     // BPatch::createEnum:
     // Create Enum types. 
@@ -631,6 +634,22 @@ public:
     API_EXPORT_V(Int, (major, minor, subminor),
     void ,getBPatchVersion,(int &major, int &minor, int &subminor));
 
+    // These three should probably be moved into their own BPatch_* class.
+    // Perhaps BPatch_remoteDebug?
+    API_EXPORT(Int, (),
+    bool, isConnected, ());
+
+    API_EXPORT(Int, (remote),
+    bool, remoteConnect, (BPatch_remoteHost &remote));
+
+    API_EXPORT(Int, (remote, pidlist),
+    bool,getPidList,(BPatch_remoteHost &remote, BPatch_Vector<unsigned int> &pidlist));
+
+    API_EXPORT(Int, (remote, pid, pidStr),
+    bool,getPidInfo,(BPatch_remoteHost &remote, unsigned int pid, std::string &pidStr));
+
+    API_EXPORT(Int, (remote),
+    bool, remoteDisconnect, (BPatch_remoteHost &remote));
 };
 
 #endif /* _BPatch_h_ */

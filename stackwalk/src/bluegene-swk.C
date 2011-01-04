@@ -41,6 +41,8 @@ using namespace DebuggerInterface;
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/procstate.h"
 #include "stackwalk/src/symtab-swk.h"
+#include "common/h/SymLite-elf.h"
+
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
@@ -302,9 +304,9 @@ namespace Dyninst {
         sw_printf("[%s:%u] - Process %d acknowledged attach\n", __FILE__, __LINE__, pid);
         break;
       case DETACH_ACK:
-	ev.dbg = dbg_detached;
-	sw_printf("[%s:%u] - Process %d acknowledged detach\n", __FILE__, __LINE__, pid);
-	break;
+         ev.dbg = dbg_detached;
+         sw_printf("[%s:%u] - Process %d acknowledged detach\n", __FILE__, __LINE__, pid);
+         break;
       case CONTINUE_ACK:
         ev.dbg = dbg_continued;
         sw_printf("[%s:%u] - Process %d acknowledged continue\n", __FILE__, __LINE__, pid);
@@ -418,8 +420,9 @@ namespace Dyninst {
         read_cache(NULL),
         read_cache_start(0x0),
         read_cache_size(0x0),
-	detached(false),
-	write_ack(false)
+        detached(false),
+        write_ack(false),
+        wrote_trap(false)
     {
     }
 
@@ -750,21 +753,23 @@ namespace Dyninst {
         } while (!thr->gprs_set);
       }
    
-      switch(reg)
+      switch(reg.val())
       {
-      case Dyninst::MachRegStackBase:
-        val = 0x0;
-        break;
-      case Dyninst::MachRegFrameBase:
-        val = thr->gprs.gpr[BG_GPR1];
-        break;
-      case Dyninst::MachRegPC:
-        val = thr->gprs.iar;
-        break;
-      default:
-        sw_printf("[%s:%u] - Request for unsupported register %d\n", __FILE__, __LINE__, reg);
-        setLastError(err_badparam, "Unknown register passed in reg field");
-        return false;
+         case Dyninst::iReturnAddr:
+         case Dyninst::ppc32::ipc:
+            val = thr->gprs.iar;
+            break;
+         case Dyninst::iFrameBase:
+         case Dyninst::ppc32::ir1:
+            val = thr->gprs.gpr[BG_GPR1];
+            break;
+         case Dyninst::iStackTop:
+            val = 0x0;
+            break;
+         default:
+            sw_printf("[%s:%u] - Request for unsupported register %d\n", __FILE__, __LINE__, reg.name());
+            setLastError(err_badparam, "Unknown register passed in reg field");
+            return false;
       }   
       return true;
     }
@@ -778,18 +783,20 @@ namespace Dyninst {
       BG_Debugger_Msg msg(SET_REG, pid, tid, 0, 0);
       msg.header.dataLength = sizeof(msg.dataArea.SET_REG);
       msg.dataArea.SET_REG.value = val;
-      switch(reg)
+      switch(reg.val())
       {
-      case Dyninst::MachRegFrameBase:
-        msg.dataArea.SET_REG.registerNumber = BG_GPR1;
-        break;
-      case Dyninst::MachRegPC:
-	msg.dataArea.SET_REG.registerNumber = BG_IAR;
-        break;
-      default:
-        sw_printf("[%s:%u] - Request for unsupported register %d\n", __FILE__, __LINE__, reg);
-        setLastError(err_badparam, "Unknown register passed in reg field");
-        return false;
+         case Dyninst::iFrameBase:
+         case Dyninst::ppc32::ir1:
+            msg.dataArea.SET_REG.registerNumber = BG_GPR1;
+            break;
+         case Dyninst::iReturnAddr:
+         case Dyninst::ppc32::ipc:
+            msg.dataArea.SET_REG.registerNumber = BG_IAR;
+            break;
+         default:
+            sw_printf("[%s:%u] - Request for unsupported register %s\n", __FILE__, __LINE__, reg.name());
+            setLastError(err_badparam, "Unknown register passed in reg field");
+            return false;
       }  
       thr->write_ack = false;
       bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
@@ -948,9 +955,9 @@ namespace Dyninst {
     // ============================================================ //
     // SymtabLibState -- need to differentiate for P
     // ============================================================ //
-    bool SymtabLibState::updateLibsArch() {
-      return true;
-    }
+     bool TrackLibState::updateLibsArch() {
+        return true;
+     }
 
 
     // ============================================================ //
@@ -969,6 +976,25 @@ namespace Dyninst {
     {
     }
 
+     Dyninst::Architecture ProcDebug::getArchitecture()
+     {
+        return Dyninst::Arch_ppc32;
+     }
+
+     void BottomOfStackStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_t change)
+     {
+        if (change == library_unload)
+           return;
+        if (!libthread_init || !aout_init) {
+           initialize();
+        }
+     }
+     
+     SymbolReaderFactory *getDefaultSymbolReader()
+     {
+        static SymElfFactory symelffact;
+        return &symelffact;
+     }
   } // namespace Stackwalker
 } // namespace Dyninst
 

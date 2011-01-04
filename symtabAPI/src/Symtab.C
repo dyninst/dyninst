@@ -115,6 +115,8 @@ std::string Symtab::printError(SymtabError serr)
            return "Not an Archive. Call openFile()";
        case Export_Error:
            return "Error Constructing XML"+errMsg;
+       case Emit_Error:
+           return "Error rewriting binary: " + errMsg;
        case Invalid_Flags:
           return "Flags passed are invalid.";
        case No_Error:
@@ -323,26 +325,66 @@ SYMTAB_EXPORT bool Symtab::isNativeCompiler() const
 {
     return nativeCompiler; 
 }
- 
 
 SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    AnnotatableSparse(),
    mf(mf_), 
    mfForDebugInfo(mf_),
+   imageOffset_(0),   
+   address_width_(sizeof(int)),
+   object_type_(obj_Unknown),
+   defaultNamespacePrefix(""),
+   no_of_sections(0),
+   newSectionInsertPoint(0),
+   no_of_symbols(0),
    obj_private(NULL),
    _ref_cnt(1)
-{   
+{
     init_debug_symtabAPI();
-}   
 
+#if defined(os_vxworks)
+    // This is how we initialize objects from WTX information alone.
+    // Basically replaces extractInfo().
+    object_type_ = obj_RelocatableFile;
+    mfForDebugInfo = NULL;
+    imageOffset_ = 0;
+    dataOffset_ = 0;
+    imageLen_ = 0;
+    dataLen_ = 0;
+    isStaticBinary_ = false;
+    hasRel_ = false;
+    hasRela_ = false;
+    hasReldyn_ = false;
+    hasReladyn_ = false;
+    hasRelplt_ = false;
+    hasRelaplt_ = false;
+    is_a_out = false;
+    code_ptr_ = NULL;
+    data_ptr_ = NULL;
+    entry_address_ = 0;
+    base_address_ = 0;
+    load_address_ = 0;
+    toc_offset_ = 0;
+    is_eel_ = false;
+#endif
+
+    createDefaultModule();
+}
 
 SYMTAB_EXPORT Symtab::Symtab() :
+   imageOffset_(0),
+   address_width_(sizeof(int)),
+   object_type_(obj_Unknown),
+   defaultNamespacePrefix(""),
+   no_of_sections(0),
+   newSectionInsertPoint(0),
+   no_of_symbols(0),
    obj_private(NULL),
    _ref_cnt(1)
 {
     init_debug_symtabAPI();
     create_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
-    defaultNamespacePrefix = "";
+    createDefaultModule();
 }
 
 SYMTAB_EXPORT bool Symtab::isExec() const 
@@ -352,7 +394,7 @@ SYMTAB_EXPORT bool Symtab::isExec() const
 
 SYMTAB_EXPORT bool Symtab::isStripped() 
 {
-#if defined(os_linux) || defined(os_solaris)
+#if defined(os_linux) || defined(os_freebsd) || defined(os_solaris)
     Region *sec;
     return !findRegion(sec,".symtab");
 #else
@@ -597,7 +639,9 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
 	Object *obj = getObject();
 	if (!obj)
 	{
+#if !defined(os_vxworks)
 		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+#endif
 		return false;
 	}
     const std::vector<std::pair<std::string, Offset> > &mods = obj->modules_;
@@ -679,7 +723,9 @@ bool Symtab::fixSymModule(Symbol *&sym)
 		Object *obj = getObject();
 		if (!obj)
 		{
+#if !defined(os_vxworks)
 			fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+#endif
 			return false;
 		}
         std::string modName = obj->findModuleForSym(sym);
@@ -871,6 +917,13 @@ bool Symtab::doNotAggregate(Symbol *&sym) {
   if (sym->getMangledName().compare(0, strlen("_L_unlock_"), "_L_unlock_") == 0) {
     return true;
   }
+
+  // PPC64 Linux symbols in the .opd section appear to be functions,
+  // but are not.
+  if (sym->getRegion() && sym->getRegion()->getRegionName() == ".opd") {
+      return true;
+  }
+
   return false;
 }
 
@@ -995,7 +1048,13 @@ void Symtab::createDefaultModule() {
     else {
         mod = new Module(lang_Unknown, 
                          imageOffset_,
+#if defined(os_vxworks)
+                         // VxWorks' kernel objects should
+                         // have their own module.
+                         name(),
+#else
                          "DEFAULT_MODULE",
+#endif
                          this);
     }
     modsByFileName[mod->fileName()] = mod;
@@ -1315,18 +1374,14 @@ bool Symtab::extractInfo(Object *linkedFile)
         if ( regions_[index]->isLoadable() ) 
         {
            if (     (regions_[index]->getRegionPermissions() == Region::RP_RX) 
-// KEVINTODO: find a better solution for this
-#if defined(_MSC_VER) // added this to deal with obfuscated programs (e.g. aspack)
-                 || (regions_[index]->getRegionPermissions() == Region::RP_RW)
-#endif
                  || (regions_[index]->getRegionPermissions() == Region::RP_RWX)) 
            {
               codeRegions_.push_back(regions_[index]);
            }
            else 
            {
-                dataRegions_.push_back(regions_[index]);
-            }
+              dataRegions_.push_back(regions_[index]);
+           }
         }
 
         regionsByEntryAddr[regions_[index]->getRegionAddr()] = regions_[index];
@@ -1341,7 +1396,7 @@ bool Symtab::extractInfo(Object *linkedFile)
             hasRela_ = true;
         }
 
-#if defined(os_linux) || defined(os_solaris)
+#if defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
         hasReldyn_ = linkedFile->hasReldyn();
 	hasReladyn_ = linkedFile->hasReladyn();
         hasRelplt_ = linkedFile->hasRelplt();
@@ -1382,7 +1437,7 @@ bool Symtab::extractInfo(Object *linkedFile)
     linkedFile->get_line_info(nlines_, lines_, fdptr_);
 #endif
 
-#if defined(os_solaris) || defined(os_aix) || defined(os_linux)
+#if defined(os_solaris) || defined(os_aix) || defined(os_linux) || defined(os_freebsd)
     // make sure we're using the right demangler
     
     nativeCompiler = parseCompilerType(linkedFile);
@@ -1391,10 +1446,6 @@ bool Symtab::extractInfo(Object *linkedFile)
     
     // define all of the functions
     //statusLine("winnowing functions");
-
-#if defined(ppc64_linux)
-    //checkPPC64DescriptorSymbols(linkedFile);
-#endif
 
     // a vector to hold all created symbols until they are properly classified
     std::vector<Symbol *> raw_syms;
@@ -1438,7 +1489,9 @@ bool Symtab::extractInfo(Object *linkedFile)
 	Object *obj = getObject();
 	if (!obj)
 	{
+#if !defined(os_vxworks)
 		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+#endif
 		return false;
 	}
     obj->clearSymsToMods();
@@ -2166,7 +2219,9 @@ void Symtab::parseLineInformation()
    Object *linkedFile = getObject();
 	if (!linkedFile)
 	{
+#if !defined(os_vxworks)
 		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+#endif
 		return;
 	}
    linkedFile->parseFileLineInfo(this, *lineInfo);
@@ -2323,7 +2378,9 @@ void Symtab::parseTypes()
    Object *linkedFile = getObject();
 	if (!linkedFile)
 	{
+#if !defined(os_vxworks)
 		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+#endif
 		return;
 	}
    linkedFile->parseTypeInfo(this);
@@ -2540,7 +2597,9 @@ SYMTAB_EXPORT bool Symtab::emit(std::string filename, unsigned flag)
 	Object *obj = getObject();
 	if (!obj)
 	{
+#if !defined(os_vxworks)
 		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+#endif
 		return false;
 	}
    obj->mf->setSharing(false);
@@ -2605,30 +2664,46 @@ SYMTAB_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset, 
     Region *sec;
 
     if (!findRegion(sec, name)) {
-        fprintf(stderr, "Couldn't find region %s\n", name);
-        assert(0);
         return false;
     }
 
-    if (!strcmp(name, ".text")) {
-        vector<relocationEntry> relocs;
+    vector<relocationEntry> relocs;
+    Object *obj = getObject();
 
-        // Fix relocation table with correct memory address
-        getObject()->get_func_binding_table(relocs);
-//        fprintf(stderr, "There are %d relocs in this symtab.\n", relocs.size());
+    // Fix relocation table with correct memory address
+    if (obj) {
+        obj->get_func_binding_table(relocs);
+        /* DEBUG
+        fprintf(stderr, "There are %d relocs in this symtab.\n",
+                relocs.size()); // */
+
         for (unsigned i=0; i < relocs.size(); i++) {
             Offset value = relocs[i].rel_addr();
             relocs[i].setRelAddr(memOffset + value);
-//            fprintf(stderr, "Fixing relocation from 0x%x to 0x%x\n", value, memOffset + value);
+            /* DEBUG
+            fprintf(stderr, "Fixing reloc from 0x%x to 0x%x\n",
+                    value, memOffset + value); // */
         }
+    }
+    relocation_table_ = relocs;
 
-        relocation_table_ = relocs;
+    vector<relocationEntry> &relref = sec->getRelocations();
+    for (unsigned i=0; i < relref.size(); i++) {
+        Offset value = relref[i].rel_addr();
+        relref[i].setRelAddr(memOffset + value);
+        /* DEBUG
+        fprintf(stderr, "Fixing region reloc from 0x%x to 0x%x\n",
+                value, memOffset + value); // */
     }
 
 #if defined(_MSC_VER)
     regionsByEntryAddr.erase(sec->getRegionAddr());
 #endif
 
+    /* DEBUG
+    fprintf(stderr, "Fixing region %s from 0x%x [0x%x] to 0x%x [0x%x]\n",
+            name, sec->getRegionAddr(), sec->getRegionSize(), memOffset,
+            memSize); // */
     sec->setMemOffset(memOffset);
     sec->setMemSize(memSize);
 
@@ -2645,23 +2720,20 @@ SYMTAB_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset, 
 SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
 {
     // Find the symbol.
-    Symbol *sym = NULL;
-    unsigned int i;
-    for (i = 0; i < everyDefinedSymbol.size(); ++i)
-        if (everyDefinedSymbol[i]->getMangledName() == name) {
-            sym = everyDefinedSymbol[i];
-            break;
-        }
-    if (!sym) {
-        fprintf(stderr, "VxWorks found symbol %s that we didn't know about.  Skipping...\n", name);
-        assert(0);
-        return false;
-    }
+    if (symsByMangledName.count(name) == 0) return false;
+    // /* DEBUG
+    if (symsByMangledName[name].size() != 1)
+        fprintf(stderr, "*** Found %d symbols with name %s.  Expecting 1.\n",
+                symsByMangledName[name].size(), name); // */
+    Symbol *sym = symsByMangledName[name][0];
 
     // Update symbol.
     Offset oldOffset = sym->getOffset();
     sym->setOffset(newOffset);
-    //fprintf(stderr, "Fixing symbol %s from 0x%x to 0x%x\n", name, oldOffset, newOffset);
+
+    /* DEBUG
+    fprintf(stderr, "Fixing symbol %s from 0x%x to 0x%x\n",
+            name, oldOffset, newOffset); // */
 
     // Update hashes.
     if (symsByOffset.count(oldOffset)) {
@@ -2681,27 +2753,6 @@ SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
     if (!doNotAggregate(sym)) {
       addSymbolToAggregates(sym);
     }
-
-#if 0
-    if (funcsByOffset.count(oldOffset) > 0) {
-        Function *func = funcsByOffset[oldOffset];
-
-        func->changeSymbolOffset(sym);
-        funcsByOffset.erase(oldOffset);
-        funcsByOffset[newOffset] = func;
-
-        // DEBUG fprintf(stderr, "Symbol was a function\n");
-    }
-
-    if (varsByOffset.count(oldOffset) > 0) {
-        Variable *var = varsByOffset[oldOffset];
-
-        var->changeSymbolOffset(sym);
-        varsByOffset.erase(oldOffset);
-        varsByOffset[newOffset] = var;
-        // DEBUG fprintf(stderr, "Symbol was a variable\n");
-    }
-#endif
 
     return true;
 }
@@ -2738,7 +2789,9 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
    Object *linkedFile = getObject();
 	if (!linkedFile)
 	{
+#if !defined(os_vxworks)
 		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+#endif
 		return 0;
 	}
 
@@ -3519,7 +3572,7 @@ SYMTAB_EXPORT void nonpublic_free_bin_symtab_serializer(SerializerBase *sb)
 
 SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 {
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_freebsd)
 	Object *obj = getObject();
 	if (!obj)
 	{
@@ -3534,7 +3587,7 @@ SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 
 SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 {
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_freebsd)
 	Object *obj = getObject();
 	if (!obj)
 	{
@@ -3550,7 +3603,7 @@ SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 
 SYMTAB_EXPORT bool Symtab::addSysVDynamic(long name, long value)
 {
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_freebsd)
 	Object *obj = getObject();
 	if (!obj)
 	{
@@ -3567,14 +3620,20 @@ SYMTAB_EXPORT bool Symtab::addSysVDynamic(long name, long value)
 SYMTAB_EXPORT bool Symtab::addExternalSymbolReference(Symbol *externalSym, Region *localRegion,
         relocationEntry localRel)
 {
+    // Adjust this to the correct value
+    localRel.setRegionType(getObject()->getRelType());
+
     // Create placeholder Symbol for external Symbol reference
+    // Bernat, 7SEP2010 - according to Matt, these symbols should have
+    // type "undefined", which means a region of NULL. Changing
+    // from "localRegion" to NULL. 
     Symbol *symRef = new Symbol(externalSym->getName(),
                                 externalSym->getType(),
                                 Symbol::SL_GLOBAL,
                                 Symbol::SV_DEFAULT,
                                 (Address)0,
                                 getDefaultModule(),
-                                localRegion,
+                                NULL, // localRegion,
                                 externalSym->getSize(),
                                 true,
                                 false);
@@ -3608,7 +3667,7 @@ SYMTAB_EXPORT bool Symtab::getLinkingResources(std::vector<Archive *> &libs) {
 
 SYMTAB_EXPORT Address Symtab::getLoadAddress()
 {
-#if defined(os_linux) || defined(os_aix)
+#if defined(os_linux) || defined(os_freebsd) || defined(os_aix)
    return getObject()->getLoadAddress();
 #else
    return 0x0;
@@ -3622,7 +3681,7 @@ SYMTAB_EXPORT bool Symtab::canBeShared()
 
 SYMTAB_EXPORT Offset Symtab::getInitOffset()
 {
-#if defined(os_linux) || defined(os_solaris)
+#if defined(os_linux) || defined(os_freebsd) || defined(os_solaris)
    return getObject()->getInitAddr();
 #else
    return 0x0;
@@ -3632,7 +3691,7 @@ SYMTAB_EXPORT Offset Symtab::getInitOffset()
 
 SYMTAB_EXPORT Offset Symtab::getFiniOffset()
 {
-#if defined(os_linux) || defined(os_solaris)
+#if defined(os_linux) || defined(os_freebsd) || defined(os_solaris)
    return getObject()->getFiniAddr();
 #else
    return 0x0;

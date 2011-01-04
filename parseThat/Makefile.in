@@ -45,7 +45,12 @@ endif
 OBJS         = $(SRCS:%.C=%.o)
 
 CXXFLAGS    += -Wall
-LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -liberty -lparseAPI
+LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -lparseAPI
+
+# FreeBSD doesn't need to be linked with libiberty
+ifeq (, $(findstring freebsd, $(PLATFORM)))
+LIBS += -liberty
+endif
 
 ifneq (, $(findstring solaris, $(PLATFORM)))
 LIBS        += -ldwarf  -lelf
@@ -87,12 +92,21 @@ ifneq (, $(findstring ppc32_linux, $(PLATFORM)))
 LIBS        += -linstructionAPI
 endif
 
+ifneq (, $(findstring ppc64_linux, $(PLATFORM)))
+LIBS        += -linstructionAPI
+CXXFLAGS    += -m64
+endif
+
 ifneq (, $(findstring alpha, $(PLATFORM)))
 CXXFLAGS    += -pthread
 endif
 
 ifneq (, $(findstring ia64, $(PLATFORM)))
 LIBS        += -ldl
+endif
+
+ifeq (freebsd, $(findstring freebsd, $(PLATFORM)))
+LIBS	    += -lpthread
 endif
 
 all: ready parseThat

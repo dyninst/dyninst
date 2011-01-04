@@ -23,7 +23,7 @@ IS(u|U|l|L)*
 int line_num = 1;
 
 extern "C" {
-  void set_lex_input(char *);
+  void set_lex_input(char *);   //not being called?
 }
 
 std::string lineStr;
@@ -41,6 +41,7 @@ extern bool fatalError;
         lineStr = yytext;
 
 #define input() (*input_str++)
+//#define yyinput() (*input_str++)
 #define yylval dynClval
 
 std::string c_string_buf = "";
@@ -92,7 +93,8 @@ char|int|long|float|double|short|void|bool { yylval.sval = strdup(yytext); retur
 "machine" { return(MACHINE); }
 "dyninst" { return(DYNINST); }
 "inst" { return(INST); }
-
+"inf" { return(INF); }
+"inferior" { return(INF); }
 "NULL" {return (NILL); }
 
 [A-Za-z][A-Za-z0-9_]* {yylval.sval = strdup(yytext); if(lexVerbose) printf("ID: %s\n", yytext); return(IDENTIFIER); }
@@ -229,13 +231,14 @@ void set_lex_input(char *str)
 {
    static bool firstCall = true;
    YY_BUFFER_STATE bp;
-
-   if(!firstCall) yy_flush_buffer(YY_CURRENT_BUFFER);
-   yycolumn = 0;;
+   
+   //db removed firstcall check
+   if(!firstCall) dynC_flush_buffer(YY_CURRENT_BUFFER);
+   yycolumn = 0;
    line_num = 1;
+   
    input_str = str;
-   bp = yy_scan_string(str);
-
+   bp = dynC_scan_string(str);
    firstCall = false;
 }
 

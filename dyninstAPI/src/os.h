@@ -63,6 +63,9 @@
 #elif defined(os_linux)
 #include "dyninstAPI/src/linux.h"
 
+#elif defined(os_freebsd)
+#include "dyninstAPI/src/freebsd.h"
+
 #elif defined(os_vxworks)
 #include "dyninstAPI/src/vxworks.h"
 #endif
@@ -83,5 +86,14 @@ public:
   static void unlink(char *);
   static bool executableExists(const std::string &file);
 };
+
+// Temporary prototype for a remote debugging BPatch interface.
+#include "dyninstAPI/h/BPatch.h"
+bool OS_isConnected(void);
+bool OS_connect(BPatch_remoteHost &remote);
+bool OS_getPidList(BPatch_remoteHost &remote,
+                   BPatch_Vector<unsigned int> &tlist);
+bool OS_getPidInfo(BPatch_remoteHost &remote, unsigned int pid, std::string &pidStr);
+bool OS_disconnect(BPatch_remoteHost &remote);
 
 #endif

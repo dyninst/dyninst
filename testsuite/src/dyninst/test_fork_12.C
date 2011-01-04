@@ -86,8 +86,8 @@ static BPatch_variableExpr *var7_8p;
 static void prepareTestCase8(procType proc_type, BPatch_thread *thread, forkWhen when)
 {
    if(proc_type == Parent_p  &&  when == PreFork) {
-      BPatch_image *parImage = thread->getImage();
-      var7_8p = thread->malloc(*(parImage->findType("int")));
+       BPatch_image *parImage = thread->getProcess()->getImage();
+       var7_8p = thread->getProcess()->malloc(*(parImage->findType("int")));
       if(doError(&passedTest, (var7_8p==NULL),
 		 "  Unable to malloc variable in parent\n")) return;
 
@@ -95,7 +95,7 @@ static void prepareTestCase8(procType proc_type, BPatch_thread *thread, forkWhen
 				  BPatch_constExpr(10));
       thread->oneTimeCode(a_expr7_8p);
    } else if(proc_type == Parent_p  &&  when == PostFork) {
-      BPatch_image *parImage = thread->getImage();
+       BPatch_image *parImage = thread->getProcess()->getImage();
 
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "test_fork_12_func1";
@@ -119,10 +119,10 @@ static void prepareTestCase8(procType proc_type, BPatch_thread *thread, forkWhen
       BPatch_arithExpr a_expr7_8p(BPatch_plus, *var7_8p, BPatch_constExpr(3));
       BPatch_arithExpr b_expr7_8p(BPatch_assign, *var7_8p, a_expr7_8p);
 
-      thread->insertSnippet(b_expr7_8p, *point7_8p, BPatch_callBefore);
+      thread->getProcess()->insertSnippet(b_expr7_8p, *point7_8p, BPatch_callBefore);
    } else if(proc_type == Child_p  &&  when == PostFork) {
-      BPatch_variableExpr *var7_8c = thread->getInheritedVariable(*var7_8p);
-      thread->free(*var7_8c);
+       BPatch_variableExpr *var7_8c = thread->getProcess()->getInheritedVariable(*var7_8p);
+      thread->getProcess()->free(*var7_8c);
    }
 }
 
@@ -170,14 +170,14 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
                 thread, parentThread, childThread);
         assert(0 && "Unexpected BPatch_thread in exitFunc");
     }
-    thread->continueExecution();
+    thread->getProcess()->continueExecution();
     return;
 }
 
 static void initialPreparation(BPatch_thread *parent)
 {
    //cerr << "in initialPreparation\n";
-   assert(parent->isStopped());
+    assert(parent->getProcess()->isStopped());
 
    //cerr << "ok, inserting instr\n";
    prepareTestCase8(Parent_p, parent, PreFork);
@@ -195,13 +195,13 @@ static int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
 
     initialPreparation(parentThread);
     /* ok, do the fork */;
-    parentThread->continueExecution();
+                         parentThread->getProcess()->continueExecution();
 
     /* the rest of the execution occurs in postForkFunc() */
     /* Secondary test: we should not have to manually continue
        either parent or child at any point */
 
-    while ( !parentThread->isTerminated() ) 
+    while ( !parentThread->getProcess()->isTerminated() )
     {
        bpatch->waitForStatusChange();
     }
@@ -215,7 +215,7 @@ static int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
        return passedTest;
     }
     
-    if ( !childThread->isTerminated() )
+    while ( !childThread->getProcess()->isTerminated() )
     {
        bpatch->waitForStatusChange();
     }

@@ -43,7 +43,7 @@ int test1_33_func3(int x);
  * names.
  */
 
-int test1_33_globalVariable1 = 0;
+int test1_33_globalVariable1 = -1;
 
 /* Internally used function prototypes.  These should be declared with the
  * keyword static so they don't interfere with other mutatees in the group.

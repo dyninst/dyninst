@@ -399,10 +399,6 @@ bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
   return true;
 }
 
-bool BPatch_binaryEdit::isStaticExecutableInt() {
-    return origBinEdit->getMappedObject()->isStaticExec();
-}
-
 // Here's the story. We may need to install a trap handler for instrumentation
 // to work in the rewritten binary. This doesn't play nicely with trap handlers
 // that the binary itself registers. So we're going to replace every call to

@@ -859,7 +859,7 @@ void SerDesXML::translate(char * &param, int /*bufsize*/, const char *tag)
 #endif
 }
 
-void SerDesXML::translate(string &param, const char *tag)
+void SerDesXML::translate(std::string &param, const char *tag)
 {
    assert(tag);
    assert(param.c_str());

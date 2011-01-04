@@ -158,6 +158,7 @@ class Symbol : public Serializable,
    SYMTAB_EXPORT SymbolLinkage getLinkage () const { return linkage_; }
    SYMTAB_EXPORT Offset getOffset() const { return offset_; }
    SYMTAB_EXPORT Offset getPtrOffset() const { return ptr_offset_; }
+   SYMTAB_EXPORT Offset getLocalTOC() const { return localTOC_; }
    SYMTAB_EXPORT unsigned getSize() const { return size_; }
    SYMTAB_EXPORT Region *getRegion() const { return region_; }
 
@@ -186,12 +187,14 @@ class Symbol : public Serializable,
    //////////////// Modification
    SYMTAB_EXPORT bool setOffset (Offset newOffset);
    SYMTAB_EXPORT bool setPtrOffset (Offset newOffset);
+   SYMTAB_EXPORT bool setLocalTOC (Offset localTOC);
    SYMTAB_EXPORT bool setSize(unsigned ns);
+   SYMTAB_EXPORT bool setRegion(Region *r);
    SYMTAB_EXPORT bool setModule(Module *mod);
 
-   SYMTAB_EXPORT bool setMangledName(std::string &name); 
-   SYMTAB_EXPORT bool setPrettyName(std::string &name); 
-   SYMTAB_EXPORT bool setTypedName(std::string &name); 
+   SYMTAB_EXPORT bool setMangledName(std::string &name);
+   SYMTAB_EXPORT bool setPrettyName(std::string &name);
+   SYMTAB_EXPORT bool setTypedName(std::string &name);
 
    SYMTAB_EXPORT bool setSymbolType(SymbolType sType);
 
@@ -236,6 +239,7 @@ class Symbol : public Serializable,
    SymbolVisibility visibility_;
    Offset        offset_;
    Offset        ptr_offset_;  // Function descriptor offset.  Not available on all platforms.
+   Offset        localTOC_;
    Region*       region_;
    Symbol* 	 referring_;
    unsigned      size_;  // size of this symbol. This is NOT available on all platforms.

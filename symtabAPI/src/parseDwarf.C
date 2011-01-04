@@ -260,7 +260,7 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE,
     decipherBound( dbg, lowerBoundAttribute, loBound );
     dwarf_dealloc( dbg, lowerBoundAttribute, DW_DLA_ATTR );
   } /* end if we found a lower bound. */
-
+      
   /* Look for the upper bound. */
   Dwarf_Attribute upperBoundAttribute;
   status = dwarf_attr( subrangeDIE, DW_AT_upper_bound, & upperBoundAttribute, NULL );
@@ -290,8 +290,8 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE,
   unsigned long low_conv = strtoul(loBound.c_str(), NULL, 10);
   if (errno)
   {
-	  fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n",
-			  FILE__, __LINE__, loBound.c_str(), strerror(errno));
+	  dwarf_printf("%s[%d]:  module %s: error converting range limit '%s' to long: %s\n",
+			  FILE__, __LINE__, module->fileName().c_str(), loBound.c_str(), strerror(errno));
 	  low_conv = LONG_MIN;
   }
 
@@ -299,8 +299,8 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE,
   unsigned long hi_conv = strtoul(hiBound.c_str(), NULL, 10);
   if (errno) 
   {
-	  fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n",
-			  FILE__, __LINE__, hiBound.c_str(), strerror(errno));
+	  dwarf_printf("%s[%d]:  module %s: error converting range limit '%s' to long: %s\n",
+			  FILE__, __LINE__, module->fileName().c_str(), hiBound.c_str(), strerror(errno));
 	  hi_conv = LONG_MAX;
   }  
 
@@ -1567,7 +1567,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       /* Sanity check: typedefs should not have children. */
       Dwarf_Die childDwarf;
       status = dwarf_child( dieEntry, & childDwarf, NULL );
-      assert( status == DW_DLV_NO_ENTRY );
+      //assert( status == DW_DLV_NO_ENTRY );
 
       dwarf_dealloc( dbg, definedName, DW_DLA_STRING );
     } break;

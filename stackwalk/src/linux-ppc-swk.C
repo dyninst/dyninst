@@ -35,6 +35,7 @@
 #include "stackwalk/h/procstate.h"
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/src/linux-swk.h"
+#include "dynutil/h/dyn_regs.h"
 #include <sys/user.h>
 #include <sys/ptrace.h>
 #include <assert.h>
@@ -51,30 +52,27 @@ unsigned ProcDebugLinux::getAddressWidth()
 
 #define USER_OFFSET_OF(register) ((signed int) &(((struct user *) NULL)->regs.register))
 
-static int getRegOffset(Dyninst::MachRegister reg, int addr_width)
+static long int getRegOffset(Dyninst::MachRegister reg, int addr_width)
 {
-  if (addr_width == 4)
-  {
-    switch (reg.val()) {
+   switch (reg.val()) {
       case Dyninst::iReturnAddr:
       case Dyninst::ppc32::ipc:
-	return USER_OFFSET_OF(nip);
+         return USER_OFFSET_OF(nip);
       case Dyninst::iStackTop:
-	return -2;
+         return -2;
       case Dyninst::iFrameBase:
       case Dyninst::ppc32::ir1:
-	return USER_OFFSET_OF(gpr[1]);
-    }
-  }
-  return -1;
+         return USER_OFFSET_OF(gpr[1]);
+   }
+   return -1;
 }
 
 bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg, 
                                  Dyninst::THR_ID t, 
                                  Dyninst::MachRegisterVal &val)
 {
-   int result;
-   signed int offset = getRegOffset(reg, getAddressWidth());
+   long int result;
+   long int offset = getRegOffset(reg, getAddressWidth());
    if (offset == -2) {
      val = 0x0;
      return true;
@@ -86,6 +84,7 @@ bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg,
      return false;
    }
    
+   sw_printf("[%s:%u] - Reading register %d at offset %ld\n", __FILE__, __LINE__, (int) reg, offset);
    errno = 0;
    result = ptrace(PTRACE_PEEKUSER, (pid_t) t, (void*) offset, NULL);
    if (errno)
@@ -107,7 +106,7 @@ bool ProcDebugLinux::setRegValue(Dyninst::MachRegister reg,
                                  Dyninst::MachRegisterVal val)
 {
    int result;
-   signed int offset = getRegOffset(reg, getAddressWidth());
+   long int offset = getRegOffset(reg, getAddressWidth());
    if (offset < 0) {
      sw_printf("[%s:%u] - Request for unsupported register %s\n",
 	       __FILE__, __LINE__, reg.name());

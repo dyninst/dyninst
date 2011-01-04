@@ -68,7 +68,8 @@ AST::Ptr StackVisitor::visit(VariableAST *v) {
     // Create a new ConstantAST
     return StackAST::create(stack_);
   }
-  else if (aloc.isFP()) {
+  // If we're bottom it means "the FP register isn't the logical FP"
+  else if (aloc.isFP() && (frame_ != StackAnalysis::Height::bottom)) {
     return StackAST::create(frame_);
   }
   else return v->ptr();
@@ -94,9 +95,10 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
 					  addr_));
     case AST::V_StackAST: {
       StackAST::Ptr s = StackAST::convert(newKids[0]);
-      if (s->val() == StackAnalysis::Height::bottom) 
+      if (s->val() == StackAnalysis::Height::bottom) { 
 	return VariableAST::create(Variable(AbsRegion(Absloc::Stack), 
 					    addr_));
+      }
       else 
 	return VariableAST::create(Variable(AbsRegion(Absloc(s->val().height(),
 							     s->val().region()->name(),
@@ -129,9 +131,12 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
     case AST::V_StackAST:
       // NewKids[0] is a constant; is the newKids[1] something we can add?
       switch (newKids[1]->getID()) {
-      case AST::V_ConstantAST:
+      case AST::V_ConstantAST: {
+	cerr << "Caught stackAST + constAST: " << StackAST::convert(newKids[0])->val() << " + " 
+	     << ConstantAST::convert(newKids[1])->val().val << endl;
 	return StackAST::create(StackAST::convert(newKids[0])->val() +
 				ConstantAST::convert(newKids[1])->val().val);
+      }
       default:
 	return RoseAST::create(r->val(), newKids);
       }

@@ -41,9 +41,9 @@
 #include <stdlib.h>
 
 
-BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, const char *pathname, const char **child_argv, bool useAttach)
+BPatch_process *startMutateeTestGeneric(BPatch *bpatch, const char *pathname, const char **child_argv, bool useAttach)
 {
-   BPatch_thread *appThread;
+   BPatch_process *appProc;
    if (useAttach) {
       // I should be able to remove the outlog and errlog parameters from
       // startNewProcessForAttach without harming anything.
@@ -57,21 +57,21 @@ BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, const char *pathname, con
          registerPID(pid); // Register PID for cleanup
       }
       dprintf("Attaching to process: %s, %d\n", pathname, pid);
-      appThread = bpatch->attachProcess(pathname, pid);
+      appProc = bpatch->processAttach(pathname, pid);
       dprintf("Attached to process\n");
-      dprintf("appThread == %lu\n", (unsigned long) appThread);
+      dprintf("appProc == %lu\n", (unsigned long) appProc);
    } else {
-      appThread = bpatch->createProcess(pathname, child_argv, NULL);
-      if (appThread != NULL) {
-         int pid = appThread->getProcess()->getPid();
-         registerPID(pid); // Register PID for cleanup
+       appProc = bpatch->processCreate(pathname, child_argv, NULL);
+       if (appProc != NULL) {
+           int pid = appProc->getPid();
+           registerPID(pid); // Register PID for cleanup
       }
    }
 
-   return appThread;
+   return appProc;
 }
 
-BPatch_thread *startMutateeTest(BPatch *bpatch, const char *mutatee, const char *testname,
+BPatch_process *startMutateeTest(BPatch *bpatch, const char *mutatee, const char *testname,
                                 bool useAttach, char *logfilename,
                                 char *humanlogname)
 {
@@ -102,7 +102,7 @@ BPatch_thread *startMutateeTest(BPatch *bpatch, const char *mutatee, const char 
    }
    child_argv[n] = NULL;
 
-   BPatch_thread *retval = startMutateeTestGeneric(bpatch, mutatee, child_argv,
+   BPatch_process *retval = startMutateeTestGeneric(bpatch, mutatee, child_argv,
                                                    useAttach);
    delete [] child_argv;
    return retval;
@@ -220,7 +220,7 @@ static const char** parseArgs(RunGroup *group,
    return child_argv;
 }
 
-BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group,
+BPatch_process *startMutateeTest(BPatch *bpatch, RunGroup *group,
                                 char *logfilename, char *humanlogname,
                                 bool verboseFormat, bool printLabels,
                                 int debugPrint, char *pidfilename, 
@@ -232,7 +232,7 @@ BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group,
    
    // Start the mutatee
    dprintf("Starting \"%s\"\n", group->mutatee);
-   BPatch_thread *retval = startMutateeTestGeneric(bpatch, group->mutatee,
+   BPatch_process *retval = startMutateeTestGeneric(bpatch, group->mutatee,
                                                    child_argv,
                                                    group->useAttach);
    delete [] child_argv;
@@ -246,7 +246,8 @@ BPatch_binaryEdit *startBinaryTest(BPatch *bpatch, RunGroup *group)
 }
 
 
-#if defined(os_linux_test)
+#if defined(os_linux_test) || defined(os_freebsd_test)
+
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -317,7 +318,12 @@ static bool cdBack()
 static bool waitForCompletion(int pid, bool &app_crash, int &app_return)
 {
    int result, status;
-   int options = __WALL;
+   int options = 0;
+
+#if defined(__WALL)
+   options = __WALL;
+#endif
+
    do {
       result = waitpid(pid, &status, options);
    } while (result == -1 && errno == EINTR);

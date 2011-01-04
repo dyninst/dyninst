@@ -20,6 +20,7 @@ TO_CORE = ../..
 include $(TO_CORE)/make.config 
 
 # Now make any necessary architecture specific changes to variables:
+MYFLAGS         += -I$(WIND_FOUNDATION_PATH)/include -DHOST
 MYFLAGS         += -g
 
 CXXFLAGS        += $(MYFLAGS)

@@ -35,6 +35,10 @@
 #include <sys/wait.h>
 #include <string.h>
 
+#if defined(os_freebsd_test)
+#include <assert.h>
+#endif
+
 #include "pcontrol_mutatee_tools.h"
 
 #define EXIT_CODE 4
@@ -55,7 +59,7 @@ static void bp_func()
    pc_fork_here++;
 }
 
-#if defined(os_linux_test)
+#if defined(os_linux_test) || defined(os_freebsd_test)
 static int check_if_threaded()
 {
    return 0;
@@ -130,7 +134,12 @@ static int threadFunc(int myid, void *data)
       myerror = 1;
    }
    if (!WIFEXITED(status)) {
-      output->log(STDERR, "Unexpected waitpid return\n");
+      if( WIFSIGNALED(status) ) {
+          output->log(STDERR, "Child received unexpected signal: %d\n", 
+                  WTERMSIG(status));
+      }else{
+          output->log(STDERR, "Unexpected waitpid return: %x\n", status);
+      }
       myerror = 1;
       return -1;
    }

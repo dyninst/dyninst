@@ -10,9 +10,9 @@ USES_DWARF_DEBUG = true
 USES_LIBELF = true
 DEBUG_FLAG = -g 
 
-CC = gcc
-CXX = g++
-PLATFORM_CXXFLAGS = 
+LDFLAGS=-m64
+TESTSUITE_FLAGS=$(LDFLAGS)
+
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 include $(TO_CORE)/make.config 
@@ -55,7 +55,6 @@ MUTATEE_G77_CFLAGS += $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS_
 MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS)  -fno-implicit-templates -c
 TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
 
-MUTATOR_LIBS += -liberty
 MUTATEE_CFLAGS_NATIVE 	= $(UNIFIED_DEF)
 MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF)
 
@@ -80,7 +79,10 @@ MUTATEE_TEST9_EXTRA_LIB_ABI = 9.-L./ 9.-lInstMe_$(M_ABI)
 
 LIBS_LIBTESTSUITE = -ldl
 
-TESTDRIVER_LDFLAGS = -liberty
-
 include ../make.module.tmpl
 
+# Some ppc32_linux distributions require _XOPEN_SOURCE to be defined as 600
+# to get the functions/types we require
+CFLAGS   += -D_XOPEN_SOURCE=600
+CXXFLAGS += -D_XOPEN_SOURCE=600
+F77FLAGS += -D_XOPEN_SOURCE=600

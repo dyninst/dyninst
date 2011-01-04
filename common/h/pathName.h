@@ -36,47 +36,33 @@
 #define _PATH_NAME_H_
 
 #include "headers.h"
-#include "String.h"
 
-#if defined (cap_use_pdstring)
-class pdstring;
-#else
 #include <string>
-using namespace std;
-#endif
 
 
-pdstring expand_tilde_pathname(const pdstring &dir);
+std::string expand_tilde_pathname(const std::string &dir);
    // e.g. convert "~tamches/hello" to "/u/t/a/tamches/hello",
    // or convert "~/hello" to same.
    // In the spirit of Tcl_TildeSubst
 
-pdstring concat_pathname_components(const pdstring &part1, const pdstring &part2);
+std::string concat_pathname_components(const std::string &part1, const std::string &part2);
    // concatenate path1 and part2, adding a "/" between them if neither
    // part1 ends in a "/" or part2 begins in one.
 
-bool extractNextPathElem(const char * &ptr, pdstring &result);
+bool extractNextPathElem(const char * &ptr, std::string &result);
    // assumes that "ptr" points to the value of the PATH environment
    // variable.  Extracts the next element (writing to result, updating
    // ptr, returning true) if available else returns false;
 
-bool exists_executable(const pdstring &fullpathname);
+bool exists_executable(const std::string &fullpathname);
 
 
 
-#if defined (cap_use_pdstring)
-bool executableFromArgv0AndPathAndCwd(pdstring &result,
-				      const pdstring &i_argv0,
-				      const pdstring &path,
-				      const pdstring &cwd);
-COMMON_EXPORT pdstring extract_pathname_tail(const pdstring &path);
-#else
 bool executableFromArgv0AndPathAndCwd(std::string &result,
 				      const std::string &i_argv0,
 				      const std::string &path,
 				      const std::string &cwd);
-COMMON_EXPORT string extract_pathname_tail(const string &path);
-#endif
+COMMON_EXPORT std::string extract_pathname_tail(const std::string &path);
 
 COMMON_EXPORT char *resolve_file_path(const char *fname, char *resolved_name);
 #endif

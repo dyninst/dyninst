@@ -139,22 +139,24 @@ class emitElf64{
     bool createLoadableSections( Symtab * obj, Elf64_Shdr* &shdr, unsigned &extraAlignSize,
                        dyn_hash_map<std::string, unsigned>& newIndexMapping, 
                        unsigned &sectionNumber);
-    void createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, bool isDynRelocs, dyn_hash_map<std::string, unsigned> &dynSymNameMapping);
+    void createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, bool isDynRelocs, dyn_hash_map<std::string, unsigned long> &dynSymNameMapping);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
+
+    bool hasRewrittenTLS;
+    bool TLSExists;
+    Elf64_Shdr *newTLSData;
 
 #if !defined(os_solaris)
     void updateDynamic(unsigned tag, Elf64_Addr val);
     void createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
     void createHashSection(Symtab *obj, Elf64_Word *&hashsecData, unsigned &hashsecSize, std::vector<Symbol *>&dynSymbols);
     void createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&dynsecData, unsigned &dynsecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
-
-    bool hasRewrittenTLS;
-    Elf64_Shdr *newTLSData;
 #endif 
 
     void log_elferror(void (*err_func)(const char *), const char* msg);
     bool hasPHdrSectionBug();
+    bool cannotRelocatePhdrs();
 
 };
 

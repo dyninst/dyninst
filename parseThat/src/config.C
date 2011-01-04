@@ -83,6 +83,7 @@ void configInit()
     config.time_limit = 0;
 
     config.state = NORMAL;
+    config.abnormal_exit = false;
 
     config.dynlib = NULL;
 
@@ -100,6 +101,8 @@ void configInit()
     snprintf(config.pipe_filename, sizeof(config.pipe_filename), "%s/pipe-%d", 
              outdir, (int)getpid());
     config.curr_rec = record_init();
+
+    config.remoteHost = NULL;
 }
 
 bool getNextTarget()

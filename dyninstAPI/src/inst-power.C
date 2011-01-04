@@ -304,7 +304,12 @@ void registerSpace::initialize32() {
                                              registerSlot::liveAlways,
                                              registerSlot::FPR));
     }
-
+    registers.push_back(new registerSlot(xer,
+                                         "xer",
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+ 
     registers.push_back(new registerSlot(lr,
                                          "lr",
                                          true,
@@ -358,7 +363,10 @@ void registerSpace::initialize32() {
         callWritten_[i] = true;
 
     // Syscall - assume the same as call
+    //syscallRead_ = getBitArray().set();
+    //syscallWritten_ = getBitArray().set();
     syscallRead_ = callRead_;
+    syscallRead_[r0] = true;
     syscallWritten_ = callWritten_;
 
     allRegs_ = getBitArray().set();
@@ -454,7 +462,11 @@ void registerSpace::initialize64() {
                                              registerSlot::liveAlways,
                                              registerSlot::FPR));
     }
-
+    registers.push_back(new registerSlot(xer,
+                                         "xer",
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
     registers.push_back(new registerSlot(lr,
                                          "lr",
                                          true,
@@ -508,8 +520,8 @@ void registerSpace::initialize64() {
         callWritten64_[i] = true;
 
     // Syscall - assume the same as call
-    syscallRead64_ = callRead_;
-    syscallWritten64_ = syscallWritten_;
+    syscallRead64_ = getBitArray().set();
+    syscallWritten64_ = getBitArray().set();
 
     allRegs64_ = getBitArray().set();
 #endif
@@ -1056,7 +1068,8 @@ unsigned saveSPRegisters(codeGen &gen,
 #if defined(os_aix)
                          theRegSpace
 #endif
-                         , int save_off)
+                         , int save_off
+			 , int force_save)
 {
     unsigned num_saved = 0;
     int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
@@ -1065,22 +1078,40 @@ unsigned saveSPRegisters(codeGen &gen,
 	cr_off    = STK_CR_32;
 	ctr_off   = STK_CTR_32;
 	xer_off   = STK_XER_32;
-	spr0_off  = STK_SPR0_32;
 	fpscr_off = STK_FP_CR_32;
+	spr0_off  = STK_SPR0_32;
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
 	cr_off    = STK_CR_64;
 	ctr_off   = STK_CTR_64;
 	xer_off   = STK_XER_64;
-	spr0_off  = STK_SPR0_64;
 	fpscr_off = STK_FP_CR_64;
+	spr0_off  = STK_SPR0_64;
     }
-    
+
+    registerSlot *regCR = (*(gen.rs()))[registerSpace::cr]; 
+    assert (regCR != NULL); 
+    if (force_save || regCR->liveState == registerSlot::live) 
+    {
     saveCR(gen, 10, save_off + cr_off); num_saved++;
     gen.rs()->markSavedRegister(registerSpace::cr, save_off + cr_off);
+    }
+    registerSlot *regCTR = (*(gen.rs()))[registerSpace::ctr]; 
+    assert (regCTR != NULL); 
+    if (force_save || regCTR->liveState == registerSlot::live) 
+    {
     saveSPR(gen, 10, SPR_CTR, save_off + ctr_off); num_saved++;
     gen.rs()->markSavedRegister(registerSpace::ctr, save_off + ctr_off);
+    }
+
+    registerSlot *regXER = (*(gen.rs()))[registerSpace::xer]; 
+    assert (regXER != NULL); 
+    if (force_save || regXER->liveState == registerSlot::live) 
+   {
     saveSPR(gen, 10, SPR_XER, save_off + xer_off); num_saved++;
     gen.rs()->markSavedRegister(registerSpace::xer, save_off + xer_off);
+    }
+
+    saveFPSCR(gen, 10, save_off + fpscr_off); num_saved++;
     
     // MQ only exists on POWER, not PowerPC. Right now that's correlated
     // to AIX vs Linux, but we _really_ should fix that...
@@ -1100,7 +1131,6 @@ unsigned saveSPRegisters(codeGen &gen,
     }
 #endif
 
-    saveFPSCR(gen, 10, save_off + fpscr_off); num_saved++;
     return num_saved;
 }
 
@@ -1114,7 +1144,8 @@ unsigned restoreSPRegisters(codeGen &gen,
 #if defined(os_aix)
                             theRegSpace
 #endif
-                            , int save_off)
+                            , int save_off
+			    , int force_save)
 {
     int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
     unsigned num_restored = 0;
@@ -1123,20 +1154,36 @@ unsigned restoreSPRegisters(codeGen &gen,
 	cr_off    = STK_CR_32;
 	ctr_off   = STK_CTR_32;
 	xer_off   = STK_XER_32;
-	spr0_off  = STK_SPR0_32;
 	fpscr_off = STK_FP_CR_32;
+	spr0_off  = STK_SPR0_32;
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
 	cr_off    = STK_CR_64;
 	ctr_off   = STK_CTR_64;
 	xer_off   = STK_XER_64;
-	spr0_off  = STK_SPR0_64;
 	fpscr_off = STK_FP_CR_64;
+	spr0_off  = STK_SPR0_64;
     }
 
+    registerSlot *regCR = (*(gen.rs()))[registerSpace::cr]; 
+    assert (regCR != NULL); 
+    if (force_save || regCR->liveState == registerSlot::spilled) 
+    {
     restoreCR(gen, 10, save_off + cr_off); num_restored++;
+    }
+    registerSlot *regCTR = (*(gen.rs()))[registerSpace::ctr]; 
+    assert (regCTR != NULL); 
+    if (force_save || regCTR->liveState == registerSlot::spilled) 
+    {
     restoreSPR(gen, 10, SPR_CTR, save_off + ctr_off); num_restored++;
+    }
+    registerSlot *regXER = (*(gen.rs()))[registerSpace::xer]; 
+    assert (regXER != NULL); 
+    if (force_save || regXER->liveState == registerSlot::spilled) 
+    {
     restoreSPR(gen, 10, SPR_XER, save_off + xer_off); num_restored++;
-
+    }
+    restoreFPSCR(gen, 10, save_off + fpscr_off); num_restored++;
+    
 #if defined(os_aix) && !defined(arch_64bit)
     // See comment in saveSPRegisters
     registerSlot *mq = ((*theRegSpace)[registerSpace::mq]);
@@ -1145,7 +1192,6 @@ unsigned restoreSPRegisters(codeGen &gen,
     }
 #endif
 
-    restoreFPSCR(gen, 10, save_off + fpscr_off); num_restored++;
     return num_restored;
 }
 
@@ -1207,11 +1253,10 @@ bool baseTramp::generateSaves(codeGen &gen,
 
     // No more cookie. FIX aix stackwalking.
     if (isConservative())
-        saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET);
-    else if (isCallsite()) {
-        saveSPR(gen, REG_SCRATCH, SPR_CTR, TRAMP_SPR_OFFSET + ctr_off);
-        gen.rs()->markSavedRegister(registerSpace::ctr, TRAMP_SPR_OFFSET + ctr_off);
-    }
+        saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET, true);
+    else 
+        saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET, false);
+    
 
     return true;
 }
@@ -1236,9 +1281,9 @@ bool baseTramp::generateRestores(codeGen &gen,
 
     // Restore possible SPR saves
     if (isConservative())
-        restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET);
-    else if (isCallsite())
-        restoreSPR(gen, REG_SCRATCH, SPR_CTR, TRAMP_SPR_OFFSET + ctr_off);
+        restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET, true);
+    else 
+        restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET, false);
 
 
     // LR
@@ -1738,6 +1783,10 @@ Register EmitterPOWER::emitCall(opCode ocode,
     if (!inInstrumentation && setTOC) {
         // Need to reset the TOC
         emitVload(loadConstOp, caller_toc, 2, 2, gen, false);
+
+        // Also store toc_orig [r2] into the TOC save area [40(r1)].
+        // Subsequent code will look for it there.
+        saveRegisterAtOffset(gen, 2, 40);
     }        
 
     /*
@@ -3342,7 +3391,8 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
    if (scratchReg == REG_NULL) {
    	pdvector<Register> freeReg;
-   	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg);
+        pdvector<Register> excludeReg;
+   	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
    	assert (stackSize == 1);
    	scratchReg = freeReg[0];
    	inst_printf("emitLoadrelative - after new stack frame - addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n", 
@@ -3397,7 +3447,8 @@ void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, 
    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
    if (scratchReg == REG_NULL) {
    	pdvector<Register> freeReg;
-   	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg);
+        pdvector<Register> excludeReg;
+   	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
 	assert (stackSize == 1);
 	scratchReg = freeReg[0];
 	

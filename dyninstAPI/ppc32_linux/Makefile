@@ -28,10 +28,10 @@ SRCS =          ../src/linux.C \
 		../src/linuxDL.C \
 		../src/dynamiclinking.C \
 		../src/linuxMT.C \
-                ../src/inst-linux.C \
-                ../src/inst-power.C \
-                ../src/unix.C \
-        ../src/codegen-power.C\
+		../src/inst-linux.C \
+		../src/inst-power.C \
+		../src/unix.C \
+		../src/codegen-power.C \
 		../src/image-power.C \
 		../src/syscall-linux.C \
 		../src/BPatch_memoryAccessAdapter.C
@@ -51,7 +51,6 @@ SRCS =          ../src/linux.C \
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
 MYFLAGS         += -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
 MYFLAGS         += -I$(LIBELF_INC)
-MYFLAGS		+= -I/usr/include/libelf
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)

@@ -205,7 +205,7 @@ thread_start_t thread_start;
 
 #define STR_CASE(S) case S: return #S
 
-char *am_str() {
+const char *am_str() {
    switch (allocation_mode) {
       STR_CASE(manual_allocate);
       STR_CASE(auto_allocate);
@@ -213,7 +213,7 @@ char *am_str() {
    return NULL;
 }
 
-char *pti_str() {
+const char *pti_str() {
    switch (post_time) {
       STR_CASE(post_sequential);
       STR_CASE(post_all_once);
@@ -222,7 +222,7 @@ char *pti_str() {
    return NULL;
 }
 
-char *pto_str() {
+const char *pto_str() {
    switch (post_to) {
       STR_CASE(post_to_proc);
       STR_CASE(post_to_thread);
@@ -230,7 +230,7 @@ char *pto_str() {
    return NULL;
 }
 
-char *rs_str() {
+const char *rs_str() {
    switch (rpc_sync) {
       STR_CASE(rpc_use_sync);
       STR_CASE(rpc_use_async);
@@ -238,7 +238,7 @@ char *rs_str() {
    return NULL;
 }
 
-char *ts_str() {
+const char *ts_str() {
    switch (thread_start) {
       STR_CASE(rpc_start_stopped);
       STR_CASE(rpc_start_running);
@@ -657,9 +657,9 @@ test_results_t pc_irpcMutator::executeTest()
                   post_to = (post_to_t) c;
                   rpc_sync = (rpc_sync_t) d;
                   thread_start = (thread_start_t) e;
-                  //fprintf(stderr, "Running: allocation_mode=%s post_time=%s post_to=%s " 
-                  //        "rpc_sync=%s thread_start=%s\n", am_str(), pti_str(), pto_str(), 
-                  //        rs_str(), ts_str());
+                  logerror("Running: allocation_mode=%s post_time=%s post_to=%s " 
+                          "rpc_sync=%s thread_start=%s\n", am_str(), pti_str(), pto_str(), 
+                          rs_str(), ts_str());
                   runIRPCs();
                   if (myerror) {
                      char buffer[256];

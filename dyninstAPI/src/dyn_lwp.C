@@ -153,11 +153,12 @@ bool dyn_lwp::continueLWP(int signalToContinueWith, bool clear_stackwalk)
        return true;
    }
 */
+#if !defined(os_vxworks)
    if (proc()->sh->waitingForStop())
    {
      return false;
    }
-
+#endif
 
    bool ret = continueLWP_(signalToContinueWith);
    if(ret == false) {

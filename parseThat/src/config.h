@@ -85,7 +85,6 @@ enum InstType {
     DEFAULT 
 };
 
-
 enum RunState {
     NORMAL,
     SIGCHLD_WAIT,
@@ -105,7 +104,7 @@ struct Config {
 
     // For BATCH_FILE runMode.
     const char *config_file;
-	
+
     // For instrumenting with functions loaded from library
     // format library:function_name
     const char *inst_function;
@@ -169,6 +168,9 @@ struct Config {
     // Reflects current state of execution.
     RunState state;
 
+   // True if parseThat/mutatee exited abnormally
+   bool abnormal_exit;
+
     // Mutators register their dBPatch_thread object here for
     // efficient process clean-up in the face of signals.
     dynHandle *dynlib;
@@ -180,6 +182,8 @@ struct Config {
     // Collection of libraries used for symbols when rewriting 
     // a static binary
     deque<string> symbol_libraries;
+
+    BPatch_remoteHost *remoteHost;
 };
 
 extern Config config;

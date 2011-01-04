@@ -299,7 +299,7 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 
 
    int blockNo() const;
-    
+
    struct compare {
       int operator()(CONST_EXPORT BPatch_basicBlock *b1, 
                      CONST_EXPORT BPatch_basicBlock *b2) CONST_EXPORT
@@ -315,6 +315,16 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
          //   return 1;
          //return 0;
       }
+   };
+};
+
+template <>
+struct comparison <BPatch_basicBlock *> {
+   int operator()(const BPatch_basicBlock * const &x, 
+                  const BPatch_basicBlock * const &y) const {
+      if (x->getStartAddress() < y->getStartAddress()) return -1;
+      if (x->getStartAddress() > y->getStartAddress()) return 1;
+      return 0;
    };
 };
 

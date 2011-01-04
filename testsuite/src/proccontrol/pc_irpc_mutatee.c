@@ -67,6 +67,8 @@ int pc_irpc_mutatee()
    initLock(&init_lock);
    testLock(&init_lock);
 
+   initLock(&val_lock);
+
    result = initProcControlTest(threadFunc, NULL);
    if (result != 0) {
       output->log(STDERR, "Initialization failed\n");
