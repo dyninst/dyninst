@@ -436,16 +436,21 @@ RT_Boolean cacheLookup(void *calculation)
  * bit 1: true if interpAsTarget
  * bit 2: true if interpAsReturnAddr
  **/     
-#define STACKDUMP
+
 void DYNINST_stopThread (void * pointAddr, void *callBackID, 
                          void *flags, void *calculation)
 {
+	static int reentrant = 0;
+
     RT_Boolean isInCache = RT_FALSE;
 #if defined STACKDUMP
     unsigned char *stackBase = (unsigned char*) 0x971140; // & pointAddr;
     unsigned bidx=0;
 #endif
-
+	if (reentrant == 1) {
+		return;
+	}
+	reentrant = 1;
     tc_lock_lock(&DYNINST_trace_lock);
     rtdebug_printf("pt[%lx] flags[%lx] calc[%lx] ", 
                    (long)pointAddr, (long)flags, (long)calculation);
@@ -514,7 +519,7 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
     }
 
     tc_lock_unlock(&DYNINST_trace_lock);
-
+	reentrant = 0;
     return;
 }
 

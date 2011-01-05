@@ -72,7 +72,7 @@ static dyntid_t initial_thread_tid;
 void DYNINSTos_init(int calledByFork, int calledByAttach)
 {
   RTprintf("DYNINSTos_init(%d,%d)\n", calledByFork, calledByAttach);
-  initial_thread_tid = (dyntid_t) GetCurrentThreadId();
+  initial_thread_tid = (dyntid_t) dyn_lwp_self();
 }
 
 /* this function is automatically called when windows loads this dll
@@ -247,7 +247,16 @@ int dyn_pid_self()
 
 int dyn_lwp_self()
 {
-    return GetCurrentThreadId();
+	/* getCurrentThreadId() is conflicting with SD-Dyninst instrumentation. 
+	So I'm doing the massively unportable thing here and hard-coding the assembly
+	FOR GREAT JUSTICE! */
+/*    return GetCurrentThreadId(); */
+	/* This will do stack frame setup, but that seems harmless in this context... */
+	__asm
+    {
+        mov     EAX,FS:[0x18]
+		mov     EAX,DS:[EAX+0x24]
+	}
 }
 
 dyntid_t dyn_pthread_self()
