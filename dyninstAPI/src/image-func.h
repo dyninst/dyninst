@@ -318,7 +318,8 @@ class image_func : public ParseAPI::Function
    ParseAPI::FuncReturnStatus init_retstatus() const;
    void setinit_retstatus(ParseAPI::FuncReturnStatus rs); //also sets retstatus
    bool hasWeirdInsns() { return hasWeirdInsns_; } // true if we stopped the 
-								           // parse at a weird instruction (e.g., arpl)
+                                // parse at a weird instruction (e.g., arpl)
+   void setHasWeirdInsns(bool wi);
 
    // ----------------------------------------------------------------------
 

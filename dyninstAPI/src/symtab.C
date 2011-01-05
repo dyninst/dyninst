@@ -1295,6 +1295,8 @@ void image::deleteInstPoints(ParseAPI::Block *b) {
             points.push_back(iit->second);
         ++iit;
     }
+    mal_printf("Deleting %d points from block [%lx %lx)\n", 
+               points.size(), b->start(), b->end());
     for (std::list<image_instPoint *>::iterator iter = points.begin();
         iter != points.end(); ++iter) {
             deleteInstPoint(*iter);

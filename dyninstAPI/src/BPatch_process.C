@@ -1845,6 +1845,8 @@ void BPatch_process::overwriteAnalysisUpdate
         bit != delBBIs.end();
         bit++) 
     {
+        mal_printf("Deleting block [%lx %lx) from func at %lx\n",
+                   (*bit)->start(),(*bit)->end(),(*bit)->func()->getAddress());
         int_function *bFunc = (*bit)->func();
         modFuncs.insert(bFunc);
         if ((*bit)->getHighLevelBlock()) {

@@ -729,12 +729,12 @@ ParseAPI::FuncReturnStatus image_func::init_retstatus() const
 void image_func::destroyBlocks(std::vector<ParseAPI::Block *> &blocks) {
     // Delete instPoints, then call ParseAPI::Func::deleteBlocks
     for (unsigned i = 0; i < blocks.size(); ++i) {
-        for (Address addr = blocks[i]->start(); addr < blocks[i]->end(); ++addr) {
-          image_instPoint *p = img()->getInstPoint(addr);
-              if (p && p->block() == blocks[i]) {
-                 img()->deleteInstPoint(p);
-              }
-        }
+        img()->deleteInstPoints(blocks[i]);
     }
     deleteBlocks(blocks);
+}
+
+void image_func::setHasWeirdInsns(bool wi)
+{
+    hasWeirdInsns_ = wi;
 }

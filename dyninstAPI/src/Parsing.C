@@ -389,9 +389,9 @@ DynParseCallback::hasWeirdInsns(const ParseAPI::Function* func) const
             (func))->hasWeirdInsns();
 }
 
-void
+void 
 DynParseCallback::foundWeirdInsns(ParseAPI::Function* func)
 {
-    return static_cast<image_func*>(func)->hasWeirdInsns();
+    static_cast<image_func*>(func)->setHasWeirdInsns(true);
 }
 

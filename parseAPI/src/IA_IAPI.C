@@ -210,7 +210,8 @@ bool IA_IAPI::isGarbageInsn() const
     if (unlikely(_obj->defensiveMode())) {
         entryID e = curInsn()->getOperation().getID();
         if (e == e_arpl) {
-            cerr << "REACHED AN ARPL, COUNTING AS INVALID" << endl;
+            cerr << "REACHED AN ARPL AT "<< std::hex << current 
+                 << std::dec <<" COUNTING AS INVALID" << endl;
             return true;
         }
     }

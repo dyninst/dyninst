@@ -1385,11 +1385,31 @@ bool AddressSpace::relocate() {
        iter != modifiedFunctions_.end(); ++iter) {
     assert(iter->first);
 
-    std::set<int_function *> overlappingFuncs;
-    for (FuncSet::iterator iter2 = iter->second.begin(); iter2 != iter->second.end(); ++iter2) {
-       (*iter2)->getOverlappingFuncs(overlappingFuncs);
-    }
-    iter->second.insert(overlappingFuncs.begin(), overlappingFuncs.end());
+    bool repeat;
+    FuncSet checkFuncs;
+    checkFuncs.insert(iter->second.begin(), iter->second.end());
+    do { // add overlapping functions in a fixpoint calculation
+        repeat = false;
+        FuncSet overlappingFuncs;
+        for (FuncSet::iterator iter2 = checkFuncs.begin(); iter2 != checkFuncs.end(); ++iter2) {
+           (*iter2)->getOverlappingFuncs(overlappingFuncs);
+        }
+        // init checkFuncs for next iteration
+        unsigned int prevSize = iter->second.size();
+        checkFuncs.clear();
+        checkFuncs.insert(overlappingFuncs.begin(), overlappingFuncs.end());
+        for (FuncSet::iterator iter2=iter->second.begin(); 
+             iter2 != iter->second.end(); 
+             iter2++) 
+        {
+            checkFuncs.erase(*iter2);
+        }
+        // add overlapping funcs, if any
+        iter->second.insert(overlappingFuncs.begin(), overlappingFuncs.end());
+        if (prevSize < iter->second.size()) {
+            repeat = true;
+        }
+    } while (repeat);
 
 	addModifiedRegion(iter->first);
 

@@ -382,7 +382,8 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
     // call finalize, fixes extents
     _cache_valid = false;
     if (!deleteAll && !hasSharedDeadBlocks) {
-        obj()->parser->finalize(this);
+        //Don't think this is necessary or wanted, Jan 4, 2011
+        //obj()->parser->finalize(this);
     }
 }
 
