@@ -1572,7 +1572,7 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fcmovne,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
         { e_fcmovnbe, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
         { e_fcmovnu,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }, // FIXME: needs FCLEX and FINIT in group
+        { e_fp_generic,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }, // FIXME: needs FCLEX and FINIT in group
         { e_fucomi,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
         { e_fcomi,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
         { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
