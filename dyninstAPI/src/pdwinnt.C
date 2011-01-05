@@ -538,7 +538,8 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
   else if (proc->trapMapping.definesTrapMapping(ev.address)) {
      ev.type = evtInstPointTrap;
      Frame activeFrame = ev.lwp->getActiveFrame();
-	 if (0) cerr << "SPRINGBOARD FRAME: " << hex << activeFrame.getPC() << " / " <<activeFrame.getSP() 
+#if 1
+	 cerr << "SPRINGBOARD FRAME: " << hex << activeFrame.getPC() << " / " <<activeFrame.getSP() 
                  << " (DEBUG:" 
                  << "EAX: " << activeFrame.eax
                  << ", ECX: " << activeFrame.ecx
@@ -548,7 +549,12 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
                  << ", EBP: " << activeFrame.ebp
                  << ", ESI: " << activeFrame.esi 
                  << ", EDI " << activeFrame.edi << ")" << dec << endl;
-
+	 for (unsigned i = 0; i < 10; ++i) {
+			Address stackTOPVAL =0;
+		    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
+			cerr << "\tSTACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
+	 }
+#endif
 	 ret = true;
   }
   else if (decodeRTSignal(ev)) {
@@ -563,6 +569,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
      else {
 	    requested_wait_until_active = false;
         ret = true;
+#if 1
 	    if (1) cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
                  << " (DEBUG:" 
                  << "EAX: " << activeFrame.eax
@@ -576,10 +583,11 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 		for (unsigned i = 0; i < 10; ++i) {
 			Address stackTOPVAL =0;
 		    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
-			//cerr << "STACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
+			cerr << "STACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
 			ev.type = evtIgnore;
-            }
-         }
+		}
+#endif
+	 }
   }
   else {
 	  ev.type = evtCritical;
@@ -928,7 +936,7 @@ int dyn_lwp::changeMemoryProtections
 (Address addr, Offset size, unsigned rights, bool setShadow)
 {
     unsigned oldRights=0;
-    mal_printf("setting rights to %lx for [%lx %lx)\n", rights, addr, addr + size);
+//    mal_printf("setting rights to %lx for [%lx %lx)\n", rights, addr, addr + size);
     if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(addr), 
                          (SIZE_T)size, (DWORD)rights, (PDWORD)&oldRights)) 
     {
@@ -2518,6 +2526,26 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     }
     mal_printf("Handling exception, excCode=0x%X raised by %lx %s[%d]\n",
             ev.what, ev.address, FILE__, __LINE__);
+
+	cerr << "Frame info dump" << endl;
+	Frame activeFrame = ev.lwp->getActiveFrame();
+	cerr << "EXCEPTION FRAME: " << hex << activeFrame.getPC() << " / " <<activeFrame.getSP() 
+                 << " (DEBUG:" 
+                 << "EAX: " << activeFrame.eax
+                 << ", ECX: " << activeFrame.ecx
+                 << ", EDX: " << activeFrame.edx
+                 << ", EBX: " << activeFrame.ebx
+                 << ", ESP: " << activeFrame.esp
+                 << ", EBP: " << activeFrame.ebp
+                 << ", ESI: " << activeFrame.esi 
+                 << ", EDI " << activeFrame.edi << ")" << dec << endl;
+
+	for (unsigned i = 0; i < 10; ++i) {
+			Address stackTOPVAL =0;
+		    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
+			cerr << "\tSTACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
+	 }
+
     Address tibPtr = ev.lwp->getThreadInfoBlockAddr();
     struct EXCEPTION_REGISTRATION handler;
     EXCEPTION_REGISTRATION *prevEvtReg=NULL;
@@ -2624,14 +2652,21 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
     Address writtenAddr = 
         ev.info.u.Exception.ExceptionRecord.ExceptionInformation[1];
     SymtabAPI::Region *reg = (SymtabAPI::Region*) ev.info2;
+	mal_printf("handleCodeOverwrite: 0x%lx\n", writtenAddr);
+
     if (ev.proc->isMemoryEmulated()) {
         Address shadowAddr = writtenAddr;
         int shadowRights=0;
         bool valid = false;
         boost::tie(valid, shadowAddr) = ev.proc->getMemEm()->translateBackwards(writtenAddr);
-        assert(valid && shadowAddr != writtenAddr);
-        writtenAddr = shadowAddr;
-    }
+		if (!valid) {
+			cerr << "WARNING: writing to original memory directly, should only happen in uninstrumented code!" << endl;
+		}
+		else {
+			assert(valid && shadowAddr != writtenAddr);
+			writtenAddr = shadowAddr;
+		}
+	}
 
     // 2. Flush the runtime cache if we overwrote any code
     // Produce warning message if we've overwritten weird types of code: 
