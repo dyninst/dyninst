@@ -1308,6 +1308,11 @@ void image::analyzeIfNeeded() {
       parsing_printf("ANALYZING IMAGE %s\n",
               file().c_str());
       analyzeImage();
+	  // For defensive mode: we only care about incremental splitting and block
+	  // creation, not ones noted during parsing (as we haven't created the int
+	  // layer yet, so no harm no foul)
+	  clearSplitBlocks();
+	  clearNewBlocks();
   }
 }
 
@@ -2230,7 +2235,10 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
 }
 
 void image::addSplitBlock(image_basicBlock *first, image_basicBlock *second) {
-    splitBlocks_.insert(make_pair(first, second));
+	if (name_ == "uxtheme.dll") {
+		int i = 3;
+	}
+	splitBlocks_.insert(make_pair(first, second));
     instp_map_t::iterator iit = inst_pts_.lower_bound(second->start());
     while(iit != inst_pts_.end() && iit->second->offset() < second->end()) {
         if (iit->second->block() == first)

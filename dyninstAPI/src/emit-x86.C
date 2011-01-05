@@ -500,6 +500,7 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &ge
 
    gen.setInInstrumentation(true);
 
+
     int instFrameSize = 0; // Tracks how much we are moving %rsp
     int funcJumpSlotSize = 0;
     if (bti) {
@@ -749,7 +750,8 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen 
         }
     }
 
-   gen.setInInstrumentation(true);
+   gen.setInInstrumentation(false);
+   	//gen.fill(1, codeGen::cgTrap);
     return true;
 }
 
