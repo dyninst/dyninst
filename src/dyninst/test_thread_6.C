@@ -120,7 +120,7 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
    dprintf(stderr, "%s[%d]:  welcome to newthr, error13 = %d\n", __FILE__, __LINE__, error13);
 
-   if (my_proc != proc)
+   if (my_proc != proc && proc != NULL && my_proc != NULL)
    {
       logerror("[%s:%u] - Got invalid process: %p vs %p\n", 
               __FILE__, __LINE__, my_proc, proc);

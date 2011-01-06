@@ -94,7 +94,7 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    dprintf(stderr, "%s[%d]:  welcome to newthr, error15 = %d\n", __FILE__, __LINE__, error15);
    unsigned my_dyn_id = thr->getBPatchID();
 
-   if (create_proc && (my_proc != proc))
+   if (create_proc && (my_proc != proc) && proc != NULL && my_proc != NULL)
    {
       logerror("[%s:%u] - Got invalid process\n", __FILE__, __LINE__);
       error15 = 1;
@@ -251,7 +251,6 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
               __FILE__, __LINE__, thread_count, NUM_THREADS);
          return error_exit();
       }
-      P_sleep(1);
    }
 
    dprintf(stderr, "%s[%d]:  done waiting for thread creations\n", 
@@ -304,8 +303,6 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
        failed_tests--;
 //       logerror("Passed test #1 (thread-specific oneTimeCodeAsync)\n");
     }
-
-   P_sleep(10);
 
    // OneTimeCode each worker thread to allow it to exit
    for (unsigned i=1; i<NUM_THREADS; i++)
@@ -404,6 +401,10 @@ test_results_t test_thread_8_Mutator::setup(ParameterDict &param) {
       create_proc = false;
    } else {
      create_proc = true;
+   }
+
+   if( param["debugPrint"]->getInt() != 0 ) {
+       debug_flag = true;
    }
 
    return PASSED;
