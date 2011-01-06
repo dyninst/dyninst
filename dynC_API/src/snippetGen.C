@@ -23,6 +23,8 @@ BPatch_snippet *SnippetGenerator::findOrCreateVariable(const char * name, const 
    
    if(bptype == NULL){
       lastError << "Unable to find type:" << type;
+      lastErrorInfo.type = SG_LookUpFailure;
+      lastErrorInfo.fatal = true;
       return NULL;
    }
 //   varExpr = addSpace->malloc(*bptype);
@@ -30,11 +32,16 @@ BPatch_snippet *SnippetGenerator::findOrCreateVariable(const char * name, const 
 
    if(varExpr == NULL){
       lastError << "FIXME: varExpr is null!";
+      lastErrorInfo.type = SG_InternalError;
+      lastErrorInfo.fatal = true;
       return NULL;
    }
    
    if(!(varExpr->writeValue(initialValue))){
       //unable to initialize... what to do?
+      lastError << "Internal: Variable initialization failed";
+      lastErrorInfo.type = SG_InternalError;
+      lastErrorInfo.fatal = false;
    }
    
    return varExpr;
@@ -53,6 +60,8 @@ BPatch_snippet *SnippetGenerator::findOrCreateArray(const char * name, const cha
        
         if(type == NULL){
            lastError << "Unable to find type:" << elementType;
+           lastErrorInfo.type = SG_LookUpFailure;
+           lastErrorInfo.fatal = true;
            return NULL;
         }
         
@@ -60,6 +69,8 @@ BPatch_snippet *SnippetGenerator::findOrCreateArray(const char * name, const cha
 
         if(array == NULL){
            lastError << "Failed to create array";
+           lastErrorInfo.type = SG_InternalError;
+           lastErrorInfo.fatal = true;
            return NULL;
         }
 
@@ -68,6 +79,8 @@ BPatch_snippet *SnippetGenerator::findOrCreateArray(const char * name, const cha
         
         if(varExpr == NULL){
            lastError << "FIXME: varExpr is null!";
+           lastErrorInfo.type = SG_InternalError;
+           lastErrorInfo.fatal = true;
            return NULL;
         }
 
@@ -85,11 +98,13 @@ BPatch_snippet *SnippetGenerator::findAppVariable(const char * name, bool global
    lastError.str() = "";
    if(global && local){
       lastError << "Cannot specify a variable as both global and local.";
+      lastErrorInfo.type = SG_SyntaxError;
+      lastErrorInfo.fatal = true;
       return NULL;
    }
    BPatch_variableExpr *varExpr = NULL;
    if(point != NULL){
-      varExpr  = image->findVariable(*point, name, false);;
+      varExpr = image->findVariable(*point, name, false);;
    }
    if(global || point == NULL){
       varExpr = image->findVariable(name, false);
@@ -101,17 +116,23 @@ BPatch_snippet *SnippetGenerator::findAppVariable(const char * name, bool global
       lastError << (local ? "local " : (global ? "global " : ""));
 //      printf("%s\n", name);
       lastError << "variable \"" << name << "\"";
+      lastErrorInfo.type = SG_LookUpFailure;
+      lastErrorInfo.fatal = true;
       return NULL;
    }
    BPatch_variableExpr *varExprGbl = image->findVariable(name);    
    if(!global && point != NULL){
       if(local && NULL != varExprGbl && varExpr == varExprGbl){
          lastError << "Can't find local variable \"" << name << "\". There is a global variable of the same name.";
+         lastErrorInfo.type = SG_LookUpFailure;
+         lastErrorInfo.fatal = true;
          return NULL;
       }
       if(NULL == varExprGbl || (local && NULL != varExprGbl && varExprGbl != varExpr)){ // if var is local
          if (point->getPointType() == BPatch_entry || point->getPointType() == BPatch_exit){
             lastError << "Cannot access local variables at entry or exit points.";
+            lastErrorInfo.type = SG_ScopeViolation;
+            lastErrorInfo.fatal = true;
             return NULL;
          }
          return varExpr; //found a local variable
@@ -130,16 +151,22 @@ BPatch_snippet *SnippetGenerator::findParameter(const char * name){
    lastError.str() = "";
    if(point == NULL){
       lastError << "Cannot access local varaibles without point information.";
+      lastErrorInfo.type = SG_ScopeViolation;
+      lastErrorInfo.fatal = true;
       return NULL;
    }
    if(point->getPointType() != BPatch_entry){
       lastError << "Parameters only valid at entry points.";
+      lastErrorInfo.type = SG_ScopeViolation;
+      lastErrorInfo.fatal = true;
       return NULL;
    }
    char fnName[512] = "";   
    std::vector<BPatch_localVar *> *locals = point->getFunction()->getParams();
    if(locals->size() == 0){
       lastError << "No parameters for " << point->getFunction()->getTypedName(fnName, 512) << "";
+      lastErrorInfo.type = SG_LookUpFailure;
+      lastErrorInfo.fatal = false; //should this be false?
       return NULL;
    }
          
@@ -150,16 +177,22 @@ BPatch_snippet *SnippetGenerator::findParameter(const char * name){
    }
 
    lastError << "Parameter \'" << name << "\' not found for " << point->getFunction()->getTypedName(fnName, 512) << "" ;
+   lastErrorInfo.type = SG_LookUpFailure;
+   lastErrorInfo.fatal = false; //should this be false?
    return NULL;
 }
 BPatch_snippet *SnippetGenerator::findParameter(int index){
    lastError.str() = "";       
    if(point == NULL){
       lastError << "Cannot access local varaibles without point information.";
+      lastErrorInfo.type = SG_ScopeViolation;
+      lastErrorInfo.fatal = true;
       return NULL;
    }
    if(point->getPointType() != BPatch_entry){
       lastError << "Parameters only valid at entry points.";
+      lastErrorInfo.type = SG_ScopeViolation;
+      lastErrorInfo.fatal = true;
       return NULL;
    }
 
@@ -168,11 +201,15 @@ BPatch_snippet *SnippetGenerator::findParameter(int index){
    if(locals->size() == 0){
       
       lastError << "No parameters for " << point->getFunction()->getTypedName(fnName, 512) << "";
+      lastErrorInfo.type = SG_LookUpFailure;
+      lastErrorInfo.fatal = false; //should this be false?
       return NULL;
    }
          
    if(locals->size() <= (const unsigned int)index || index < 0){
       lastError << "Parameter index out of range:" << index << "for " << point->getFunction()->getTypedName(fnName, 512) << "";
+      lastErrorInfo.type = SG_LookUpFailure;
+      lastErrorInfo.fatal = false; //should this be false?
       return NULL;
    }   
    return new BPatch_paramExpr(index);
@@ -182,6 +219,7 @@ BPatch_snippet *SnippetGenerator::findInstVariable(const char *mangledStub, cons
    std::vector<BPatch_variableExpr *> *vars = image->getGlobalVariables();
    if(vars->size() == 0){
       lastError << "No global variables!";
+      lastErrorInfo.type = SG_InternalError ; lastErrorInfo.fatal = true;
       return NULL;
    }
    //  BPatch_variableExpr *varExpr = NULL;
@@ -189,41 +227,40 @@ BPatch_snippet *SnippetGenerator::findInstVariable(const char *mangledStub, cons
    for(unsigned int i = 0; i < vars->size(); ++i){
       char *substr = strstr((*vars)[i]->getName(), mangledStub);
       if(substr != NULL){
-         // if(strstr(substr, snippetName) == substr){
-            //found snippet local var
-            return (*vars)[i];            
-//         }
-/*
-         if(strncmp(substr, "_", 1)){
-            //found snippet global var
-            if(varExprGbl != NULL){
-               lastError << "DYNC INTERNAL ERROR: Multiple global variables fitting mangled \"" << mangledStub << "\"";
-               return NULL;
-            }
-            varExprGbl = (*vars)[i];
-
-         }
-*/
+         return (*vars)[i];            
       }
    }
    if(varExprGbl != NULL){
       return varExprGbl;
    }
    lastError << "Unable to find InstVar \"" << name << "\"";
+   lastErrorInfo.type = SG_LookUpFailure; 
+   lastErrorInfo.fatal = true; //should this be false?
    return NULL;
 }
 BPatch_snippet *SnippetGenerator::generateArrayRef(BPatch_snippet *base, BPatch_snippet *index){
    lastError.str() = "";
    if(base->getType() != NULL && base->getType()->getDataClass() != BPatch_dataArray){
       lastError << "Base of array reference is not an array";
+      lastErrorInfo.type = SG_TypeError; 
+      lastErrorInfo.fatal = true;
       return NULL;
    }
    if(index->getType() != NULL && index->getType()->getDataClass() != BPatch_scalar){
       lastError << "Array index is not a scalar";
+      lastErrorInfo.type = SG_TypeError; 
+      lastErrorInfo.fatal = true;
       return NULL;
    }
 
-   return new BPatch_arithExpr(BPatch_ref, *base, *index);
+   BPatch_arithExpr *ref = new BPatch_arithExpr(BPatch_ref, *base, *index);
+   if(ref == NULL){
+      lastError << "Array reference cannot be generated - received null pointer";
+      lastErrorInfo.type = SG_InternalError;
+      lastErrorInfo.fatal = true;
+      return NULL;
+   }
+   return ref;
 }
 
 BPatch_function *SnippetGenerator::findFunction(const char * name, std::vector<BPatch_snippet *> params){
@@ -233,6 +270,8 @@ BPatch_function *SnippetGenerator::findFunction(const char * name, std::vector<B
    
    if(NULL == image->findFunction(name, functions, false)){
       lastError << "Couldn't find function \'" << name << "\'";
+      lastErrorInfo.type = SG_LookUpFailure; 
+      lastErrorInfo.fatal = true;
       return NULL;
    }
    char funcName[512];
@@ -300,11 +339,11 @@ BPatch_function *SnippetGenerator::findFunction(const char * name, std::vector<B
          lastError << "  note:                ";
          lastError << functions[n]->getTypedName(funcName, 512);
       }
-         lastError << "\n";
+      lastError << "\n";
+      lastErrorInfo.type = SG_LookUpFailure ; lastErrorInfo.fatal = true;
       return NULL;
    }
    
-
    if(!foundDebugInfo){
       func = functions[0]; //<- Pick the first one if there is no debug info
    }
@@ -315,6 +354,8 @@ BPatch_snippet *SnippetGenerator::getContextInfo(SGContext context){
    lastError.str() = "";
    if(point == NULL){
       lastError << "Cannot provide context information without a point";
+      lastErrorInfo.type = SG_ScopeViolation ;
+      lastErrorInfo.fatal = true;
       return NULL;
    }
    switch(context){
@@ -329,11 +370,15 @@ BPatch_snippet *SnippetGenerator::getContextInfo(SGContext context){
       case SG_TID:
          if(image->getProcess() == NULL){
             lastError << "Process is null!"; // doesn't do anything
+            lastErrorInfo.type = SG_InternalError;
+            lastErrorInfo.fatal = true;
             return NULL;
         }      
         return new BPatch_tidExpr(image->getProcess());
       default:
          lastError << "Internal: Unrecognized SGContext!";
+         lastErrorInfo.type = SG_InternalError;
+         lastErrorInfo.fatal = true;
          return NULL;
    }
 }

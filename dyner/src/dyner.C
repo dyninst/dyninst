@@ -1288,6 +1288,10 @@ int instStatement(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
       std::stringstream snName;
       snName << "dynerSnippet_" << dynerSnippetNumber;
       BPatch_snippet *snippet = dynC_API::createSnippet(line_buf, *(*points)[i], snName.str().c_str());
+      if(snippet == NULL){
+         printf("Snippet generation failure for point %d.\n", ipCtr++);
+         continue;
+      }
       BPatchSnippetHandle *handle =
          appProc->insertSnippet(*snippet, *(*points)[i], when, BPatch_lastSnippet);
        if (handle == NULL) {

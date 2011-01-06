@@ -2722,7 +2722,7 @@ void AstCallNode::setChildren(pdvector<AstNodePtr > &children){
       //memory management?
       for (unsigned i = 0; i < args_.size(); i++){
          AstNodePtr * newNode = new AstNodePtr(children[i]);
-         args_.insert(args_.begin() + i, *newNode);
+         args_.push_back(*newNode);
          args_.erase(args_.begin() + i + 1);
       }
    }else{

@@ -14,19 +14,29 @@
 
 class SnippetGenerator{
   public:
+
    enum SGErrorType{
       SG_LookUpFailure,
-      SG_TypeError
+      SG_TypeError,
+      SG_ScopeViolation,
+      SG_SyntaxError,
+      SG_InternalError
    };
-   
+
+   struct SGError{
+      SGErrorType type;
+      bool fatal;
+   };   
+
    enum SGContext{
       SG_FunctionName,
       SG_ModuleName,
       SG_TID
    };
+
   private:
    std::stringstream lastError;
-   SGErrorType lastErrorType;   
+   SGError lastErrorInfo;   
    BPatch_point *point;
    BPatch_addressSpace *addSpace;
    BPatch_image *image;
@@ -35,7 +45,7 @@ class SnippetGenerator{
   
   public:
    std::string getError() {return lastError.str();};
-   SGErrorType getErrorType() {return lastErrorType;};
+   SGError getErrorInfo() {return lastErrorInfo;};
   
   public:
 
