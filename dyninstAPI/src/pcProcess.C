@@ -193,6 +193,7 @@ PCProcess *PCProcess::setupForkedProcess(PCProcess *parent, Process::ptr pcProc)
 
     // This requires the AddressSpace be copied from the parent
     ret->tracedSyscalls_ = new syscallNotification(parent->tracedSyscalls_, ret);
+    ret->irpcTramp_ = new baseTramp(parent->irpcTramp_, ret);
 
     // Check if RT library exists in child
     if( ret->runtime_lib.size() == 0 ) {
@@ -247,6 +248,8 @@ PCProcess *PCProcess::setupForkedProcess(PCProcess *parent, Process::ptr pcProc)
         return NULL;
     }
 
+    ret->setInEventHandling(true);
+
     ret->setDesiredProcessState(parent->getDesiredProcessState());
 
     return ret;
@@ -271,6 +274,8 @@ PCProcess *PCProcess::setupExecedProcess(PCProcess *oldProc, std::string execPat
     delete oldProc;
     oldProc = NULL;
 
+    newProc->setInEventHandling(true);
+
     BPatch::bpatch->registerExecExit(newProc);
 
     newProc->setExecing(false);
@@ -282,6 +287,9 @@ PCProcess *PCProcess::setupExecedProcess(PCProcess *oldProc, std::string execPat
 PCProcess::~PCProcess() {
     if( tracedSyscalls_ ) delete tracedSyscalls_;
     tracedSyscalls_ = NULL;
+
+    if( irpcTramp_ ) delete irpcTramp_;
+    irpcTramp_ = NULL;
 
     signalHandlerLocations_.clear();
 
@@ -393,7 +401,7 @@ bool PCProcess::bootstrapProcess() {
                 }
             }
 
-            if( hasExited() ) {
+            if( isTerminated() ) {
                 bperr("The process exited during startup.  This is likely due to one "
                       "of two reasons:\n"
                       "A). The application is mis-built and unable to load.  Try "
@@ -842,7 +850,7 @@ bool PCProcess::loadRTLib() {
 
 // Set up the parameters for DYNINSTinit in the RT lib
 bool PCProcess::setRTLibInitParams() {
-    startup_printf("%s[%d]: welcome to PCPRocess::setRTLibInitParams\n",
+    startup_printf("%s[%d]: welcome to PCProcess::setRTLibInitParams\n",
             FILE__, __LINE__);
 
     int pid = P_getpid();
@@ -1057,15 +1065,22 @@ Breakpoint::ptr PCProcess::getBreakpointAtMain() const {
 
 // End Runtime library initialization code
 
-bool PCProcess::continueProcess(int /* contSignal */) {
+bool PCProcess::continueProcess() {
     proccontrol_printf("%s[%d]: Continuing process %d\n", FILE__, __LINE__, getPid());
 
-    if( !isAttached() || hasExited() ) {
+    // If the process is in event handling, the process should not be continued, 
+    // the processState_t value will be used after event handling to determine the
+    // state of the process
+    if( isInEventHandling() ) {
+        proccontrol_printf("%s[%d]: process currently in event handling, not continuing\n",
+                FILE__, __LINE__);
+        return true;
+    }
+
+    if( !isAttached() || isTerminated() ) {
         bpwarn("Warning: continue attempted on non-attached process\n");
         return false;
     }
-
-    // XXX ProcControlAPI doesn't have a way to continue a process with a signal
 
     invalidateActiveMultis();
 
@@ -1081,16 +1096,25 @@ bool PCProcess::continueProcess(int /* contSignal */) {
 bool PCProcess::stopProcess() {
     proccontrol_printf("%s[%d]: Stopping process %d\n", FILE__, __LINE__, getPid());
 
-    if( !isAttached() || hasExited() ) {
+    if( !isAttached() || isTerminated() ) {
         bpwarn("Warning: stop attempted on non-attached process\n");
         return false;
+    }
+
+    // See comment in continueProcess about this
+    if( isInEventHandling() ) {
+        proccontrol_printf("%s[%d]: process currently in event handling, not stopping\n",
+                FILE__, __LINE__);
+        return true;
     }
 
     return pcProc_->stopProc();
 }
 
 bool PCProcess::terminateProcess() {
-    if( hasExited() ) return true;
+    if( isTerminated() ) return true;
+
+    if( !isAttached() ) return false;
 
     proccontrol_printf("%s[%d]: Terminating process %d\n", FILE__, __LINE__, getPid());
     if( !pcProc_->terminate() ) {
@@ -1110,7 +1134,9 @@ bool PCProcess::terminateProcess() {
 }
 
 bool PCProcess::detachProcess(bool /*cont*/) {
-    if( hasExited() ) return true;
+    if( isTerminated() ) return true;
+
+    if( !isAttached() ) return false;
 
     // TODO figure out if ProcControl should care about continuing a process
     // after detach
@@ -1141,33 +1167,65 @@ bool PCProcess::isTerminated() const {
     return pcProc_->isTerminated();
 }
 
-bool PCProcess::hasExited() const {
+bool PCProcess::hasExitedNormally() const {
     if( pcProc_ == Process::ptr() ) return true;
-    return pcProc_->isExited() || pcProc_->isCrashed();
+    return pcProc_->isExited();
 }
 
 bool PCProcess::isExecing() const {
     return execing_;
-} 
+}
+
+void PCProcess::setExecing(bool b) {
+    execing_ = b;
+}
+
+bool PCProcess::isExiting() const {
+    return exiting_;
+}
+
+void PCProcess::setExiting(bool b) {
+    exiting_ = b;
+}
+
+bool PCProcess::isInEventHandling() const {
+    return inEventHandling_;
+}
+
+void PCProcess::setInEventHandling(bool b) {
+    inEventHandling_ = b;
+}
+
+bool PCProcess::hasReportedEvent() const {
+    return reportedEvent_;
+}
+
+void PCProcess::setReportingEvent(bool b) {
+    reportedEvent_ = b;
+}
+
+void PCProcess::markExited() {
+    pcProc_ = Process::ptr();
+}
 
 bool PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
                          const void *inSelf)
 {
-    if( hasExited() ) return false;
+    if( isTerminated() ) return false;
     return pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
 }
 
 bool PCProcess::writeDataSpace(void *inTracedProcess,
                     u_int amount, const void *inSelf)
 {
-    if( hasExited() ) return false;
+    if( isTerminated() ) return false;
     return pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
 }
 
 bool PCProcess::writeDataWord(void *inTracedProcess,
                    u_int amount, const void *inSelf) 
 {
-    if( hasExited() ) return false;
+    if( isTerminated() ) return false;
 
     // XXX ProcControlAPI should support word writes in the future
     return pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
@@ -1176,7 +1234,7 @@ bool PCProcess::writeDataWord(void *inTracedProcess,
 bool PCProcess::readDataSpace(const void *inTracedProcess, u_int amount,
                    void *inSelf, bool displayErrMsg)
 {
-    if( hasExited() ) return false;
+    if( isTerminated() ) return false;
 
     bool result = pcProc_->readMemory(inSelf, (Address)inTracedProcess, amount);
     if( !result && displayErrMsg ) {
@@ -1192,7 +1250,7 @@ bool PCProcess::readDataSpace(const void *inTracedProcess, u_int amount,
 bool PCProcess::readDataWord(const void *inTracedProcess, u_int amount,
                   void *inSelf, bool displayErrMsg)
 {
-    if( hasExited() ) return false;
+    if( isTerminated() ) return false;
 
     // XXX see writeDataWord above
     bool result = pcProc_->readMemory(inSelf, (Address)inTracedProcess, amount);
@@ -1209,13 +1267,13 @@ bool PCProcess::readDataWord(const void *inTracedProcess, u_int amount,
 
 bool PCProcess::writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf)
 {
-    if( hasExited() ) return false;
+    if( isTerminated() ) return false;
     return pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
 }
 
 bool PCProcess::writeTextWord(void *inTracedProcess, u_int amount, const void *inSelf)
 {
-    if( hasExited() ) return false;
+    if( isTerminated() ) return false;
 
     // XXX see writeDataWord above
     return pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
@@ -1224,7 +1282,7 @@ bool PCProcess::writeTextWord(void *inTracedProcess, u_int amount, const void *i
 bool PCProcess::readTextSpace(const void *inTracedProcess, u_int amount,
                    void *inSelf)
 {
-    if( hasExited() ) return false;
+    if( isTerminated() ) return false;
 
     return pcProc_->readMemory(inSelf, (Address)inTracedProcess, amount);
 }
@@ -1232,7 +1290,7 @@ bool PCProcess::readTextSpace(const void *inTracedProcess, u_int amount,
 bool PCProcess::readTextWord(const void *inTracedProcess, u_int amount,
                   void *inSelf)
 {
-    if( hasExited() ) return false;
+    if( isTerminated() ) return false;
 
     // XXX see writeDataWord above
     return pcProc_->readMemory(inSelf, (Address)inTracedProcess, amount);
@@ -1267,6 +1325,8 @@ void PCProcess::removeThread(dynthread_t tid) {
     toDelete->markExited();
 
     // Note: don't delete the thread here, the BPatch_thread takes care of it
+    proccontrol_printf("%s[%d]: removed thread %lu from process %d\n",
+            FILE__, __LINE__, toDelete->getLWP(), getPid());
 }
 
 void PCProcess::addThread(PCThread *thread) {
@@ -1274,6 +1334,8 @@ void PCProcess::addThread(PCThread *thread) {
     result = threadsByTid_.insert(make_pair(thread->getTid(), thread));
 
     assert( result.second && "Thread shouldn't already be in collection of threads" );
+    proccontrol_printf("%s[%d]: added thread %lu to process %d\n",
+            FILE__, __LINE__, thread->getLWP(), getPid());
 }
 
 void PCProcess::getThreads(vector<PCThread* > &threads) const {
@@ -1524,7 +1586,6 @@ bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
     const int MallocFailed = 0;
     const int UnalignedBuffer = -1;
 
-    // Could possibly end up with recursion here TODO if it actually is a problem
     infmalloc_printf("%s[%d]: entering inferiorMallocDynamic\n", FILE__, __LINE__);
 
     // word-align buffer size
@@ -1584,7 +1645,7 @@ void PCProcess::gcInstrumentation() {
     // The without-a-passed-in-stackwalk version. Walk the stack
     // and pass it down.
     // First, idiot check...
-    if (hasExited()) return;
+    if (isTerminated()) return;
 
     if (pendingGCInstrumentation_.size() == 0) return;
 
@@ -1615,7 +1676,7 @@ void PCProcess::gcInstrumentation() {
 void PCProcess::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks) {
     // Go through the list and try to clear out any
     // instInstances that are freeable.
-    if (hasExited()) return;
+    if (isTerminated()) return;
 
     // This is seriously optimizable -- go by the stack walks first,
     // and label each item as to whether it is deletable or not,
@@ -1905,7 +1966,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
         bool runProcessWhenDone, PCThread *thread, bool synchronous,
         void **result, bool deliverCallbacks, Address addr)
 {
-    if( isTerminated() || hasExited() ) {
+    if( isTerminated() ) {
         proccontrol_printf("%s[%d]: cannot post RPC to exited or terminated process %d\n",
                 FILE__, __LINE__, getpid());
         return false;
@@ -1926,7 +1987,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     // Generate the code for the iRPC
     codeGen irpcBuf(MAX_IRPC_SIZE);
     irpcBuf.setAddrSpace(this);
-    irpcBuf.setRegisterSpace(registerSpace::savedRegSpace(proc()));
+    irpcBuf.setRegisterSpace(registerSpace::irpcRegSpace(proc()));
     irpcBuf.beginTrackRegDefs();
 
     // Emit the header for the iRPC, if necessary
@@ -1947,10 +2008,15 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     irpcBuf.fill(proc()->getAddressWidth(), codeGen::cgNOP);
 #endif
 
-    newRPC->resultRegister = REG_NULL;
-    // Allocate a register for the return value
-    //newRPC->resultRegister = irpcBuf.rs()->allocateRegister(irpcBuf, false);
+    // Create a stack frame for the RPC
+    if( !irpcTramp_->generateSaves(irpcBuf, irpcBuf.rs(), NULL) ) {
+        proccontrol_printf("%s[%d]: failed to generate saves via baseTramp\n",
+                FILE__, __LINE__);
+        delete newRPC;
+        return false;
+    }
 
+    newRPC->resultRegister = REG_NULL;
     if( !action->generateCode(irpcBuf, false, newRPC->resultRegister) ) {
         proccontrol_printf("%s[%d]: failed to generate code from AST\n",
                 FILE__, __LINE__);
@@ -1958,8 +2024,14 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
         return false;
     }
 
+    // Note: we should not do a corresponding baseTramp restore here:
+    // 1) It isn't necessary because ProcControl will restore the
+    //    registers
+    // 2) We need to be able to read registers to get the result of the iRPC
+    //    If we restore, we can't do that
+
     // Emit the trailer for the iRPC
-    
+
     // breakOffset: where the irpc ends
     unsigned breakOffset = irpcBuf.used();
     insnCodeGen::generateTrap(irpcBuf);
@@ -2019,6 +2091,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
             newRPC->get_address(), newRPC->rpcStartAddr,
             newRPC->rpcCompletionAddr);
 
+    /*
     // Store the range, use removeOrigRange on completion
 
     // Only store the range if it doesn't overlap with an existing range ( when
@@ -2027,13 +2100,14 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     if( findOrigByAddr(newRPC->get_address()) == NULL ) {
         addOrigRange(newRPC);
     }
+    */
 
     if( synchronous ) {
         while( !newRPC->isComplete ) {
             if( !newRPC->thr->isLive() ) {
                 proccontrol_printf("%s[%d]: thread %d/%d no longer exists, failed to finish RPC\n",
                         FILE__, __LINE__, getPid(), newRPC->thr->getLWP());
-                removeOrigRange(newRPC);
+                // removeOrigRange(newRPC);
                 delete newRPC;
                 return false;
             }
@@ -2044,7 +2118,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
                 if( !newRPC->thr->continueThread() ) {
                     proccontrol_printf("%s[%d]: failed to continue thread %lu, process %d to run RPC\n",
                             FILE__, __LINE__, newRPC->thr->getLWP(), getPid());
-                    removeOrigRange(newRPC);
+                    // removeOrigRange(newRPC);
                     delete newRPC;
                     return false;
                 }
@@ -2056,7 +2130,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
             if( eventHandler_->waitForEvents(true) != PCEventHandler::EventsReceived ) {
                 proccontrol_printf("%s[%d]: failed to wait for completion of iRPC\n",
                         FILE__, __LINE__, newRPC->thr->getLWP(), getPid());
-                removeOrigRange(newRPC);
+                // removeOrigRange(newRPC);
                 delete newRPC;
                 return false;
             }
@@ -3039,7 +3113,7 @@ int_function *PCProcess::findActiveFuncByAddr(Address addr)
  * it executes.
  */
 void PCProcess::debugSuicide() {
-    if( hasExited() ) return;
+    if( isTerminated() ) return;
 
     isInDebugSuicide_ = true;
 
@@ -3057,7 +3131,7 @@ void PCProcess::debugSuicide() {
     Thread::ptr initialThread = pcProc_->threads().getInitialThread();
 
     initialThread->setSingleStepMode(true);
-    while( !hasExited() && isAttached() && initialThread->isLive() ) {
+    while( !isTerminated() && isAttached() && initialThread->isLive() ) {
         // Get the current PC
         MachRegister pcReg = MachRegister::getPC(getArch());
         MachRegisterVal resultVal;
@@ -3391,6 +3465,10 @@ void PCProcess::triggerNormalExit(int exitcode) {
             BPatch::bpatch->registerThreadExit(this, i->second);
     }
     BPatch::bpatch->registerNormalExit(this, exitcode);
+
+    // Let the event handler know that the process should be moved to
+    // an exited state
+    setExiting(true);
 }
 
 PCThread *PCProcess::getThreadByLWP(Dyninst::LWP lwp) {
@@ -3413,4 +3491,63 @@ bool PCProcess::setBreakpoint(Address addr) {
     }
 
     return true;
+}
+
+static
+Address getVarAddr(PCProcess *proc, std::string str) {
+    Address retAddr = 0;
+
+    pdvector<int_variable *> vars;
+    if( proc->findVarsByAll(str, vars) ) {
+        if( vars.size() != 1 ) {
+            proccontrol_printf("%s[%d]: WARNING: multiple copies of %s found\n",
+                    FILE__, __LINE__, str.c_str());
+        }else{
+            retAddr = vars[0]->getAddress();
+        }
+    }else{
+        proccontrol_printf("%s[%d]: failed to find variable %s\n",
+                FILE__, __LINE__, str.c_str());
+    }
+    return retAddr;
+}
+
+Address PCProcess::getRTEventBreakpointAddr() {
+    if( sync_event_breakpoint_addr_ == 0 ) {
+        sync_event_breakpoint_addr_ = getVarAddr(this, "DYNINST_break_point_event");
+    }
+
+    return sync_event_breakpoint_addr_;
+}
+
+Address PCProcess::getRTEventIdAddr() {
+    if( sync_event_id_addr_ == 0 ) {
+        sync_event_id_addr_ = getVarAddr(this, "DYNINST_synch_event_id");
+    }
+
+    return sync_event_id_addr_;
+}
+
+Address PCProcess::getRTEventArg1Addr() {
+    if( sync_event_arg1_addr_ == 0 ) {
+        sync_event_arg1_addr_ = getVarAddr(this, "DYNINST_synch_event_arg1");
+    }
+
+    return sync_event_arg1_addr_;
+}
+
+Address PCProcess::getRTEventArg2Addr() {
+    if( sync_event_arg2_addr_ == 0 ) {
+        sync_event_arg2_addr_ = getVarAddr(this, "DYNINST_synch_event_arg2");
+    }
+
+    return sync_event_arg2_addr_;
+}
+
+Address PCProcess::getRTEventArg3Addr() {
+    if( sync_event_arg3_addr_ == 0 ) {
+        sync_event_arg3_addr_ = getVarAddr(this, "DYNINST_synch_event_arg3");
+    }
+
+    return sync_event_arg3_addr_;
 }

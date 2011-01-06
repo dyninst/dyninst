@@ -750,7 +750,7 @@ bool baseTramp::isConservative() {
         return true;
     }
 
-  return false;
+  return isIRPCTramp_;
 }
 
 bool baseTramp::isCallsite() {

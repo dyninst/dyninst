@@ -77,7 +77,8 @@ struct DYNINST_bootstrapStruct {
    int ppid; /* parent of forked process */
 };
 
-typedef enum {DSE_undefined, DSE_forkEntry, DSE_forkExit, DSE_execEntry, DSE_execExit, DSE_exitEntry, DSE_loadLibrary, DSE_lwpExit, DSE_snippetBreakpoint, DSE_stopThread} DYNINST_synch_event_t;
+typedef enum {DSE_undefined, DSE_forkEntry, DSE_forkExit, DSE_execEntry, DSE_execExit, DSE_exitEntry, DSE_loadLibrary, DSE_lwpExit, DSE_snippetBreakpoint, DSE_stopThread,
+DSE_userMessage, DSE_dynFuncCall } DYNINST_synch_event_t;
 
 extern int DYNINSTdebugPrintRT; /* control run-time lib debug/trace prints */
 #if !defined(RTprintf)

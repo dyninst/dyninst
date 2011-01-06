@@ -38,8 +38,6 @@
 #include "pcThread.h"
 #include "function.h"
 
-#include "proccontrol/h/Mailbox.h"
-
 using namespace Dyninst::ProcControlAPI;
 
 // Functions for all Unices //
@@ -130,167 +128,44 @@ bool PCEventHandler::shouldStopForSignal(int signal) {
     return false;
 }
 
-PCEventHandler::RTSignalResult
-PCEventHandler::handleRTSignal_NP(EventSignal::const_ptr ev,
-        PCProcess *evProc, Address rt_arg, int status) const
+bool PCEventHandler::isValidRTSignal(int signal, RTBreakpointVal breakpointVal, 
+        Address arg1, int status)
 {
     /* Okay... we use both DYNINST_BREAKPOINT_SIGNUM and sigstop,
-       depending on what we're trying to stop. So we have to check the
-       flags against the signal
-    */
-    // This is split into two to make things easier
-    if (ev->getSignal() == SIGSTOP) {
-        // We only use stop on fork...
-        if (status != DSE_forkExit) {
-            proccontrol_printf("%s[%d]: SIGSTOP wasn't due to fork exit\n",
+     * depending on what we're trying to stop. So we have to check the
+     *flags against the signal
+     */
+    if( signal == SIGSTOP ) {
+        if( breakpointVal == SoftRTBreakpoint ) {
+            if( status == DSE_forkExit ) {
+                if( arg1 == 0 ) return true;
+
+                proccontrol_printf("%s[%d]: parent process received SIGSTOP\n",
+                        FILE__, __LINE__);
+            }else{
+                proccontrol_printf("%s[%d]: SIGSTOP wasn't due to fork exit\n",
+                        FILE__, __LINE__);
+            }
+        }else{
+            proccontrol_printf("%s[%d]: mismatch in signal for breakpoint type\n",
                     FILE__, __LINE__);
-            return NotRTSignal;
         }
-        // ... of the child
-        if (rt_arg != 0) {
-            proccontrol_printf("%s[%d]: parent %d received SIGSTOP\n",
-                    FILE__, __LINE__, evProc->getPid());
-            return NotRTSignal;
+    }else if( signal == DYNINST_BREAKPOINT_SIGNUM ) {
+        if( breakpointVal == NormalRTBreakpoint ) {
+            if( (status != DSE_forkExit) || (arg1 != 0) ) return true;
+
+            proccontrol_printf("%s[%d]: child received signal %d\n",
+                    FILE__, __LINE__, DYNINST_BREAKPOINT_SIGNUM);
+        }else{
+            proccontrol_printf("%s[%d]: mismatch in signal for breakpoint type\n",
+                    FILE__, __LINE__);
         }
-    } else if (ev->getSignal() == DYNINST_BREAKPOINT_SIGNUM) {
-        if ((status == DSE_forkExit) && (rt_arg == 0)) {
-            proccontrol_printf("%s[%d]: child %d received signal %d\n",
-                    FILE__ ,__LINE__, evProc->getPid(), DYNINST_BREAKPOINT_SIGNUM);
-            return NotRTSignal;
-        }
-    } else {
+    }else{
         proccontrol_printf("%s[%d]: signal wasn't sent by RT library\n",
                 FILE__, __LINE__);
-        return NotRTSignal;
     }
 
-    BPatch_process *bproc = BPatch::bpatch->getProcessByPid(evProc->getPid());
-    if( bproc == NULL ) {
-        proccontrol_printf("%s[%d]: no corresponding BPatch_process for process %d\n",
-                FILE__, __LINE__, evProc->getPid());
-        return ErrorInDecoding;
-    }
-
-    // See pcEventHandler.h (SYSCALL HANDLING) for a description of what
-    // is going on here
-
-    Event::ptr newEvt;
-
-    switch(status) {
-    case DSE_forkEntry:
-        proccontrol_printf("%s[%d]: decodeRTSignal_NP decoded forkEntry, arg = %lx\n",
-                      FILE__, __LINE__, rt_arg);
-        switch(getCallbackBreakpointCase(EventType(EventType::Pre, EventType::Fork))) {
-            case BreakpointOnly: 
-                proccontrol_printf("%s[%d]: reporting fork entry event to BPatch layer\n",
-                        FILE__, __LINE__);
-                BPatch::bpatch->registerForkingProcess(evProc->getPid(), NULL);
-                break;
-            case BothCallbackBreakpoint:
-                // Cannot create events that ProcControl currently doesn't support
-                assert(!"Pre-Fork events are currently not implemented in ProcControlAPI");
-                break;
-            default:
-                break;
-        }
-        break;
-    case DSE_forkExit:
-        proccontrol_printf("%s[%d]: decodeRTSignal_NP decoded forkExit, arg = %lx\n",
-                      FILE__, __LINE__, rt_arg);
-        switch(getCallbackBreakpointCase(EventType(EventType::Post, EventType::Fork))) {
-            case BreakpointOnly:
-                assert(!"Post-Fork via just a breakpoint is invalid");
-                break;
-            case BothCallbackBreakpoint:
-                proccontrol_printf("%s[%d]: reporting fork exit event to ProcControlAPI\n",
-                        FILE__, __LINE__);
-                newEvt = Event::ptr(new EventFork((Dyninst::PID)rt_arg));
-                break;
-            default:
-                break;
-        }
-        break;
-    case DSE_execEntry:
-        proccontrol_printf("%s[%d]: decodeRTSignal_NP decoded execEntry, arg = %lx\n",
-                      FILE__, __LINE__, rt_arg);
-        // For now, just note that the process is going to exec
-        evProc->setExecing(true);
-        break;
-    case DSE_execExit:
-        proccontrol_printf("%s[%d]: decodeRTSignal_NP decoded execExit, arg = %lx\n",
-                      FILE__, __LINE__, rt_arg);
-        // This is not currently used by Dyninst internals for anything
-        // We rely on ProcControlAPI for this and it should be impossible
-        // to get this via a breakpoint
-        return ErrorInDecoding;
-    case DSE_exitEntry:
-        proccontrol_printf("%s[%d]: decodeRTSignal_NP decoded exitEntry, arg = %lx\n",
-                      FILE__, __LINE__, rt_arg);
-        /* Entry of exit, used for the callback. We need to trap before
-           the process has actually exited as the callback may want to
-           read from the process */
-        switch(getCallbackBreakpointCase(EventType(EventType::Pre, EventType::Exit))) {
-            case BreakpointOnly:
-                proccontrol_printf("%s[%d]: reporting exit entry event to BPatch layer\n",
-                        FILE__, __LINE__);
-                evProc->triggerNormalExit((int)rt_arg);
-                break;
-            case BothCallbackBreakpoint:
-                proccontrol_printf("%s[%d]: reporting exit entry event to ProcControlAPI\n",
-                        FILE__, __LINE__);
-                newEvt = Event::ptr(new EventExit(EventType::Pre, (int)rt_arg));
-                break;
-            default:
-                break;
-        }
-        break;
-    case DSE_loadLibrary:
-        proccontrol_printf("%s[%d]: decodeRTSignal_NP decoded loadLibrary (error), arg = %lx\n",
-                      FILE__, __LINE__, rt_arg);
-        // This is no longer used 
-        return ErrorInDecoding;
-    case DSE_lwpExit:
-        proccontrol_printf("%s[%d]: decodeRTSignal_NP decoded lwpExit, arg = %lx\n",
-                      FILE__, __LINE__, rt_arg);
-        // This is not currently used on any platform
-        return ErrorInDecoding;
-    case DSE_snippetBreakpoint:
-        proccontrol_printf("%s[%d]: decodeRTSignal_NP decoded snippetBreak, arg = %lx\n",
-                      FILE__, __LINE__, rt_arg);
-        bproc->setLastSignal(ev->getSignal());
-        evProc->setDesiredProcessState(PCProcess::ps_stopped);
-        break;
-    case DSE_stopThread:
-        proccontrol_printf("%s[%d]: decodeRTSignal_NP decoded stopThread, arg = %lx\n",
-                      FILE__, __LINE__, rt_arg);
-        bproc->setLastSignal(ev->getSignal());
-        if( !handleStopThread(evProc, rt_arg) ) {
-            proccontrol_printf("%s[%d]: failed to handle stopped thread event\n",
-                    FILE__, __LINE__);
-            return ErrorInDecoding;
-        }
-        break;
-    default:
-        return NotRTSignal;
-    }
-
-    // Behavior common to all syscalls
-    if( newEvt != NULL ) {
-        // Report the event to ProcControlAPI, make sure process remains stopped
-        evProc->setReportingEvent(true);
-
-        newEvt->setProcess(ev->getProcess());
-        newEvt->setThread(ev->getThread());
-
-        // In the callback thread, the process and thread are stopped
-        newEvt->setSyncType(Event::sync_process);
-
-        ProcControlAPI::mbox()->enqueue(newEvt);
-    }
-
-    // Don't deliver any of the RT library signals to the process
-    ev->clearSignal();
-    return IsRTSignal;
+    return false;
 }
 
 mapped_object *PCProcess::createObjectNoFile(Address) {

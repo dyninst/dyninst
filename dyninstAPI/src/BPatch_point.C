@@ -514,6 +514,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
       return NULL;
     }
     func_to_use = funcs[0];
+    BPatch::bpatch->info->registerMonitoredPoint(this);
   }
   // The callback takes two arguments: the first is the (address of the) callee,
   // the second the (address of the) callsite. 

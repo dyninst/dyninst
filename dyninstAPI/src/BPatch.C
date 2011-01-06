@@ -914,6 +914,46 @@ void BPatch::registerThreadExit(PCProcess *llproc, PCThread *llthread)
     bpprocess->deleteBPThread(thrd);
 }
 
+
+void BPatch::registerUserEvent(BPatch_process *process, void *buffer,
+                       unsigned int bufsize)
+{
+    for(unsigned i = 0; i < userEventCallbacks.size(); ++i) {
+        (userEventCallbacks[i])(process, buffer, bufsize);
+    }
+}
+
+void BPatch::registerDynamicCallsiteEvent(BPatch_process *process, Address callTarget,
+                       Address callAddr)
+{
+    // find the point that triggered the event
+
+    BPatch_point *point = info->getMonitoredPoint(callAddr);
+    if ( point == NULL ) {
+        proccontrol_printf("%s[%d]: failed to find point for dynamic callsite event\n",
+                FILE__, __LINE__);
+        return;
+    }
+
+    int_function *targetFunc = process->llproc->findFuncByAddr(callTarget);
+    if( targetFunc == NULL ) {
+        proccontrol_printf("%s[%d]: failed to find dynamic call target function\n",
+                FILE__, __LINE__);
+        return;
+    }
+
+    BPatch_function *bpatchTargetFunc = process->findOrCreateBPFunc(targetFunc, NULL);
+    if( bpatchTargetFunc == NULL ) {
+        proccontrol_printf("%s[%d]: failed to find BPatch target function\n",
+                FILE__, __LINE__);
+        return;
+    }
+
+    if( dynamicCallSiteCallback ) {
+        dynamicCallSiteCallback(point, bpatchTargetFunc);
+    }
+}
+
 /*
  * BPatch::registerLoadedModule
  *
@@ -1853,3 +1893,31 @@ bool BPatch::remoteDisconnectInt(BPatch_remoteHost &remote)
     return OS_disconnect(remote);
 }
 // -----------------------------------------------------------
+
+int BPatch_libInfo::getStopThreadCallbackID(Address cb) {
+    if( stopThreadCallbacks_.defines(cb) ) {
+        return stopThreadCallbacks_[cb];
+    }
+
+    int cb_id = ++stopThreadIDCounter_;
+    stopThreadCallbacks_[cb] = cb_id;
+    return cb_id;
+}
+
+bool BPatch_libInfo::registerMonitoredPoint(BPatch_point *point) {
+    if( monitoredPoints_.defines((Address)point->getAddress()) ) {
+        return false;
+    }
+
+    monitoredPoints_[(Address)point->getAddress()] = point;
+
+    return true;
+}
+
+BPatch_point *BPatch_libInfo::getMonitoredPoint(Address addr) {
+    if( !monitoredPoints_.defines(addr) ) {
+        return NULL;
+    }
+
+    return monitoredPoints_[addr];
+}

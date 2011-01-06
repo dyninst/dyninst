@@ -33,6 +33,7 @@
 #define PCEVENTHANDLER_H
 
 #include "proccontrol/h/Event.h"
+#include "dyninstAPI/h/BPatch_process.h"
 
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
@@ -49,6 +50,7 @@ public:
 
     void enqueue(ProcControlAPI::Event::const_ptr ev);
     ProcControlAPI::Event::const_ptr dequeue(bool block);
+    unsigned int size();
 
 protected:
     std::queue<ProcControlAPI::Event::const_ptr> eventQueue;
@@ -85,16 +87,8 @@ public:
     WaitResult waitForEvents(bool block);
     bool start();
 
-    // This information is stored here to avoid having to reference
-    // the dictionary_hash class in the BPatch headers -- otherwise
-    // this would be in the BPatch layer
-    int getStopThreadCallbackID(Address cb);
-
 protected:
     PCEventHandler();
-
-    int stopThreadIDCounter_;
-    dictionary_hash<Address, unsigned> stopThreadCallbacks_;
 
     // Event Handling
     static ProcControlAPI::Process::cb_ret_t callbackMux(ProcControlAPI::Event::const_ptr ev);
@@ -117,12 +111,20 @@ protected:
         IsRTSignal
     };
 
+    enum RTBreakpointVal {
+        NoRTBreakpoint,
+        NormalRTBreakpoint,
+        SoftRTBreakpoint
+    };
+
     RTSignalResult handleRTSignal(ProcControlAPI::EventSignal::const_ptr ev, PCProcess *evProc) const;
     bool handleStopThread(PCProcess *evProc, Address rt_arg) const;
+    bool handleUserMessage(PCProcess *evProc, BPatch_process *bpProc, Address rt_arg) const;
+    bool handleDynFuncCall(PCProcess *evProc, BPatch_process *bpProc, Address rt_arg) const;
 
     // platform-specific
-    RTSignalResult handleRTSignal_NP(ProcControlAPI::EventSignal::const_ptr ev, PCProcess *evProc, Address rt_arg, int status) const;
     static bool shouldStopForSignal(int signal);
+    static bool isValidRTSignal(int signal, RTBreakpointVal breakpointVal, Address arg1, int status);
 
     /*
      * SYSCALL HANDLING

@@ -524,94 +524,40 @@ RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_,
 /**
  * Used to report addresses of functions called at dynamic call sites 
  **/     
-int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr)
-{
-  int err = 0;
-  int result;
-  rtBPatch_asyncEventRecord ev;
-  BPatch_dynamicCallRecord call_ev;
+int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr) {
+    if (DYNINSTstaticMode) return 0;
 
-  if (DYNINSTstaticMode)
-     return 0;
+    /* Set the state so the mutator knows what's up */
+    DYNINST_synch_event_id = DSE_dynFuncCall;
+    DYNINST_synch_event_arg1 = call_target;
+    DYNINST_synch_event_arg2 = call_addr;
+    /* Stop ourselves */
+    DYNINSTbreakPoint();
+    /* Once the stop completes, clean up */
+    DYNINST_synch_event_id = DSE_undefined;
+    DYNINST_synch_event_arg1 = NULL;
+    DYNINST_synch_event_arg2 = NULL;
 
-  rtdebug_printf("%s[%d]:  welcome to DYNINSTasyncDynFuncCall\n", __FILE__, __LINE__);
-  result = tc_lock_lock(&DYNINST_trace_lock);
-  if (result == DYNINST_DEAD_LOCK)
-  {
-     fprintf(stderr, "[%s:%d] - Error in libdyninstAPI_RT: trace pipe deadlock\n",
-             __FILE__, __LINE__);
-     return DYNINST_TRACEPIPE_ERRVAL;
-  }
- 
-  ev.type = rtBPatch_dynamicCallEvent;
-  ev.pid = dyn_pid_self();
-  err = DYNINSTwriteEvent((void *) &ev, sizeof(rtBPatch_asyncEventRecord));
-
-  if (err) {
-    fprintf(stderr, "%s[%d]:  write error\n",
-            __FILE__, __LINE__);
-    goto done;
-  }
-
-  call_ev.call_site_addr = call_addr;
-  call_ev.call_target = call_target;
-  err = DYNINSTwriteEvent((void *) &call_ev, sizeof(BPatch_dynamicCallRecord));
-
-  if (err) {
-    fprintf(stderr, "%s[%d]:  write error\n",
-            __FILE__, __LINE__);
-    goto done;
-  }
-
- done:
-  tc_lock_unlock(&DYNINST_trace_lock);
-
-  rtdebug_printf("%s[%d]:  leaving DYNINSTasyncDynFuncCall: status = %s\n", 
-                 __FILE__, __LINE__, err ? "error" : "ok");
-  return err;
+    return 0;
 }
 
-int DYNINSTuserMessage(void *msg, unsigned int msg_size)
-{
-  int err = 0, result;
-  rtBPatch_asyncEventRecord ev;
+int DYNINSTuserMessage(void *msg, unsigned int msg_size) {
+    if (DYNINSTstaticMode) return 0;
 
-  if (DYNINSTstaticMode)
-     return 0;
+    unsigned long msg_size_long = (unsigned long)msg_size;
 
-  rtdebug_printf("%s[%d]:  welcome to DYNINSTuserMessage\n", __FILE__, __LINE__);
-  result = tc_lock_lock(&DYNINST_trace_lock);
-  if (result == DYNINST_DEAD_LOCK)
-  {
-     fprintf(stderr, "[%s:%d] - Error in libdyninstAPI_RT: trace pipe deadlock\n",
-             __FILE__, __LINE__);
-     return DYNINST_TRACEPIPE_ERRVAL;
-  }
+    /* Set the state so the mutator knows what's up */
+    DYNINST_synch_event_id = DSE_userMessage;
+    DYNINST_synch_event_arg1 = msg;
+    DYNINST_synch_event_arg2 = (void *)msg_size_long;
+    /* Stop ourselves */
+    DYNINSTbreakPoint();
+    /* Once the stop completes, clean up */
+    DYNINST_synch_event_id = DSE_undefined;
+    DYNINST_synch_event_arg1 = NULL;
+    DYNINST_synch_event_arg2 = NULL;
 
-  ev.type = rtBPatch_userEvent;
-  ev.pid = dyn_pid_self();
-  ev.size = msg_size;
-  err = DYNINSTwriteEvent((void *) &ev, sizeof(rtBPatch_asyncEventRecord));
-
-  if (err) {
-    fprintf(stderr, "%s[%d]:  write error\n",
-            __FILE__, __LINE__);
-    goto done;
-  }
-
-  err = DYNINSTwriteEvent(msg, msg_size);
-
-  if (err) {
-    fprintf(stderr, "%s[%d]:  write error\n",
-            __FILE__, __LINE__);
-    goto done;
-  }
-
- done:
-  tc_lock_unlock(&DYNINST_trace_lock);
-  rtdebug_printf("%s[%d]:  leaving DYNINSTuserMessage: status = %s\n", 
-                 __FILE__, __LINE__, err ? "error" : "ok");
-  return err;
+    return 0;
 }
 
 int tc_lock_init(tc_lock_t *t)

@@ -406,7 +406,7 @@ void BPatch_process::BPatch_process_dtor()
        }
        else  
        {
-           if (llproc->isAttached() && !llproc->hasExited() ) 
+           if (llproc->isAttached()) 
                {
                proccontrol_printf("%s[%d]:  about to terminate execution\n", __FILE__, __LINE__);
                terminateExecutionInt();
@@ -555,7 +555,7 @@ int BPatch_process::stopSignalInt()
 bool BPatch_process::statusIsTerminated()
 {
    if (llproc == NULL) return true;
-   return llproc->hasExited();
+   return llproc->isTerminated();
 }
 
 /*
@@ -1944,7 +1944,7 @@ bool BPatch_process::triggerStopThread(instPoint *intPoint,
     // Trigger all the callbacks matching this snippet
     for(unsigned int i = 0; i < BPatch::bpatch->stopThreadCallbacks.size(); ++i) {
         BPatchStopThreadCallback curCallback = BPatch::bpatch->stopThreadCallbacks[i];
-        if( cb_ID == BPatch::bpatch->eventHandler_->getStopThreadCallbackID((Address)curCallback) ) {
+        if( cb_ID == BPatch::bpatch->info->getStopThreadCallbackID((Address)curCallback) ) {
             (*curCallback)(bpPoint, retVal);
         }
     }

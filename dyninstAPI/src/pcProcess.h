@@ -50,6 +50,7 @@
 #include "ast.h"
 #include "syscallNotification.h"
 #include "os.h"
+#include "baseTramp.h"
 
 #include "Symtab.h"
 
@@ -99,7 +100,7 @@ public:
 
     static std::string createExecPath(const std::string &file, const std::string &dir);
 
-    bool continueProcess(int contSignal = 0);
+    bool continueProcess();
     bool stopProcess();
     bool terminateProcess();
     bool detachProcess(bool cont);
@@ -108,8 +109,8 @@ public:
     bool isBootstrapped() const; // true if Dyninst has finished it's initialization for the process
     bool isAttached() const; // true if ok to operate on the process
     bool isStopped() const; // true if the process is stopped
-    bool isTerminated() const; // true if the process is terminated
-    bool hasExited() const; // true if the process has exited
+    bool isTerminated() const; // true if the process is terminated ( either via normal exit or crash )
+    bool hasExitedNormally() const; // true if the process has exited (via a normal exit)
     bool isExecing() const; // true if the process is in the middle of an exec
     processState_t getDesiredProcessState() const;
     void setDesiredProcessState(processState_t ps);
@@ -283,6 +284,7 @@ protected:
           file_(file), 
           attached_(true),
           execing_(false),
+          exiting_(false),
           runningWhenAttached_(false), 
           createdViaAttach_(false),
           processState_(ps_stopped),
@@ -309,8 +311,14 @@ protected:
           vsyscall_obj_(NULL),
           vsyscall_end_(0),
           vsys_status_(vsys_unknown),
-          auxv_parser_(NULL)
-    {}
+          auxv_parser_(NULL),
+          irpcTramp_(NULL),
+          inEventHandling_(false)
+    {
+        irpcTramp_ = new baseTramp(NULL, callUnset);
+        irpcTramp_->setRecursive(true);
+        irpcTramp_->setIRPCTramp(true);
+    }
 
     // Process attach constructor
     PCProcess(ProcControlAPI::Process::ptr pcProc, BPatch_hybridMode analysisMode,
@@ -320,6 +328,7 @@ protected:
           initialThread_(NULL), 
           attached_(true), 
           execing_(false),
+          exiting_(false),
           runningWhenAttached_(false), 
           createdViaAttach_(true),
           processState_(ps_stopped),
@@ -346,8 +355,14 @@ protected:
           vsyscall_obj_(NULL),
           vsyscall_end_(0),
           vsys_status_(vsys_unknown),
-          auxv_parser_(NULL)
-    {}
+          auxv_parser_(NULL),
+          irpcTramp_(NULL),
+          inEventHandling_(false)
+    {
+        irpcTramp_ = new baseTramp(NULL, callUnset);
+        irpcTramp_->setRecursive(true);
+        irpcTramp_->setIRPCTramp(true);
+    }
 
     static PCProcess *setupForkedProcess(PCProcess *parent, ProcControlAPI::Process::ptr pcProc);
 
@@ -359,6 +374,7 @@ protected:
           file_(parent->file_),
           attached_(true), 
           execing_(false),
+          exiting_(false),
           runningWhenAttached_(false), 
           createdViaAttach_(false),
           processState_(ps_stopped),
@@ -376,7 +392,7 @@ protected:
           sync_event_arg3_addr_(parent->sync_event_arg3_addr_),
           sync_event_breakpoint_addr_(parent->sync_event_breakpoint_addr_),
           eventHandler_(parent->eventHandler_),
-          tracedSyscalls_(NULL),
+          tracedSyscalls_(NULL), // filled after construction
           rtLibLoadHeap_(parent->rtLibLoadHeap_),
           mt_cache_result_(parent->mt_cache_result_),
           isInDebugSuicide_(parent->isInDebugSuicide_),
@@ -385,7 +401,9 @@ protected:
           vsyscall_obj_(parent->vsyscall_obj_),
           vsyscall_end_(parent->vsyscall_end_),
           vsys_status_(parent->vsys_status_),
-          auxv_parser_(parent->auxv_parser_)
+          auxv_parser_(parent->auxv_parser_),
+          irpcTramp_(NULL), // filled after construction
+          inEventHandling_(false)
     {
     }
 
@@ -420,16 +438,11 @@ protected:
     bool extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record);
     bool iRPCDyninstInit();
 
-    Address getRTEventBreakpointAddr() const { return sync_event_breakpoint_addr_; }
-    Address getRTEventIdAddr() const { return sync_event_id_addr_; }
-    Address getRTEventArg1Addr() const { return sync_event_arg1_addr_; }
-    Address getRTEventArg2Addr() const { return sync_event_arg2_addr_; }
-    Address getRTEventArg3Addr() const { return sync_event_arg3_addr_; }
-    void setRTEventBreakpointAddr(Address addr) { sync_event_breakpoint_addr_ = addr; }
-    void setRTEventIdAddr(Address addr) { sync_event_id_addr_ = addr; }
-    void setRTEventArg1Addr(Address addr) { sync_event_arg1_addr_ = addr; }
-    void setRTEventArg2Addr(Address addr) { sync_event_arg2_addr_ = addr; }
-    void setRTEventArg3Addr(Address addr) { sync_event_arg3_addr_ = addr; }
+    Address getRTEventBreakpointAddr();
+    Address getRTEventIdAddr();
+    Address getRTEventArg1Addr();
+    Address getRTEventArg2Addr();
+    Address getRTEventArg3Addr();
 
     // Shared library managment
     void addASharedObject(mapped_object *newObj);
@@ -467,14 +480,19 @@ protected:
     static int getDefaultTermSignal(); 
     
     bool isInDebugSuicide() const;
-    void setReportingEvent(bool b) { reportedEvent_ = b; }
-    bool hasReportedEvent() const { return reportedEvent_; }
-    void setExecing(bool b) { execing_ = b; }
+    void setReportingEvent(bool b);
+    bool hasReportedEvent() const;
+    void setExecing(bool b);
+    bool isInEventHandling() const;
+    void setInEventHandling(bool b);
+    void setExiting(bool b);
+    bool isExiting() const;
 
     // ProcControl doesn't keep around a process's information after it exits.
     // However, we allow a Dyninst user to query certain information out of
-    // an exited process
-    void procControlProcExited() { pcProc_ = ProcControlAPI::Process::ptr(); }
+    // an exited process. Just make sure no operations are attempted on the
+    // ProcControl process
+    void markExited();
 
     // Debugging
     bool setBreakpoint(Address addr);
@@ -495,6 +513,7 @@ protected:
     std::string file_;
     bool attached_;
     bool execing_;
+    bool exiting_;
     bool runningWhenAttached_;
     bool createdViaAttach_;
     processState_t processState_;
@@ -549,6 +568,8 @@ protected:
     Address vsyscall_end_;
     syscallStatus_t vsys_status_;
     AuxvParser *auxv_parser_;
+    baseTramp *irpcTramp_;
+    bool inEventHandling_;
 };
 
 class inferiorRPCinProgress : public codeRange {

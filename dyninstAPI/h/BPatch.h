@@ -228,6 +228,12 @@ public:
     void registerProcess(BPatch_process *process, int pid=0);
     void unRegisterProcess(int pid, BPatch_process *proc);
 
+    void registerUserEvent(BPatch_process *process, void *buffer,
+           unsigned int bufsize);
+
+    void registerDynamicCallsiteEvent(BPatch_process *process, Dyninst::Address callTarget,
+           Dyninst::Address callAddr); 
+
     void launchDeferredOneTimeCode();
 
     void registerLoadedModule(PCProcess *process, mapped_module *mod);

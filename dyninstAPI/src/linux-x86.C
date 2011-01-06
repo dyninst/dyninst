@@ -781,7 +781,7 @@ void print_read_error_info(const relocationEntry entry,
 bool PCProcess::hasBeenBound(const relocationEntry &entry, 
 			   int_function *&target_pdf, Address base_addr) {
 
-    if (hasExited()) return false;
+    if (isTerminated()) return false;
 
     // if the relocationEntry has not been bound yet, then the value
     // at rel_addr is the address of the instruction immediately following

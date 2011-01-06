@@ -80,26 +80,15 @@ test_results_t test_thread_1_Mutator::executeTest() {
 
   proc->continueExecution();
 
-   int timeout = 0;
-   while (timeout < TIMEOUT) {
-     sleep_ms(SLEEP_INTERVAL/*ms*/);
-     timeout += SLEEP_INTERVAL;
-     if (proc->isTerminated())
-        break;
-     if (proc->isStopped()) {
-        //  This really shouldn't happen
-        dprintf("%s[%d]:  BAD NEWS:  process is stopped, something is broken\n",
-                __FILE__, __LINE__);
-        proc->continueExecution();
-     }
-     if (proc->isDetached()) {
-        dprintf("%s[%d]:  BAD NEWS:  process is detached, something is broken\n",
-                __FILE__, __LINE__);
-	proc->terminateExecution(); // BUG(?) Will this work?
-	return FAILED;
-     }
-   }
-   if (proc->isTerminated()) {
+  while( !proc->isTerminated() ) {
+      if( !bpatch->waitForStatusChange() ) {
+          dprintf("%s[%d]: failed to wait for events\n",
+                  __FILE__, __LINE__);
+          return FAILED;
+      }
+  }
+
+     if (proc->isTerminated()) {
      switch(proc->terminationStatus()) {
        case ExitedNormally:
          {
@@ -125,13 +114,6 @@ test_results_t test_thread_1_Mutator::executeTest() {
           return FAILED;
           break;
      };
-   }
-
-   if (timeout >= TIMEOUT) {
-     FAIL_MES(TESTNAME, TESTDESC);
-     dprintf("%s[%d]:  test timed out.\n",
-            __FILE__, __LINE__);
-     return FAILED;
    }
 
   PASS_MES(TESTNAME, TESTDESC);
