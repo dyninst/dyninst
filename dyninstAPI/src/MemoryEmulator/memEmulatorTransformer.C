@@ -85,7 +85,6 @@ bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
     }
 
     if (!canRewriteMemInsn(reloc, func)) {
-       cerr << "\t Can't rewrite " << reloc->insn()->format() << " @ " << hex << reloc->addr() << endl;
        continue;
     }
 
@@ -116,7 +115,7 @@ bool MemEmulatorTransformer::canRewriteMemInsn(CopyInsn::Ptr reloc,
 				0,
 				Null_Register)) {
     // We can't rewrite it
-    cerr << "Warning: skipping possibly memory sensitive insn "
+    cerr << "Warning: won't rewrite possibly memory sensitive insn "
 	 << reloc->insn()->format() << " @ "
 	 << std::hex << reloc->addr() << std::dec
 	 << " as rewriting is unsupported: insn " ;

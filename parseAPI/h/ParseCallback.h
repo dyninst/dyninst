@@ -124,6 +124,8 @@ class ParseCallback {
   virtual void abruptEnd_cf(Address, Block *,default_details*) { }
   virtual bool loadAddr(Address, Address &) { return false; }
   virtual void block_delete(Block *) {};
+  virtual bool hasWeirdInsns(const Function*) const { return false; };
+  virtual void foundWeirdInsns(Function*) {};
 };
 
 }

@@ -159,18 +159,66 @@ bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end, int funcID) {
                 useBlock = false;
             }
         }
+        int dontcare;
+        if (useBlock && validRanges_.find(bbl->start(),dontcare)) {
+            // if we're replacing a shared block that is already
+            // in validRanges_, remove it before adding bbl
+            validRanges_.remove(bbl->start());
+        }
     }
     if (useBlock) {
         // Check for overlapping blocks. Lovely.
         Address LB, UB; int id;
-        if (validRanges_.find(bbl->start(), LB, UB, id)) {
-            // SUCK monkey
-            if (UB < bbl->end()) {
-                validRanges_.insert(UB, bbl->end(), funcID);
+        Address lastRangeStart = bbl->start();
+        for (Address lookup = bbl->start(); lookup < bbl->end(); ) 
+        {/* there may be more than one range that overlaps with bbl, 
+          * so we update lookup and lastRangeStart to after each conflict
+          * to match UB, and loop until lookup >= bbl->end()
+          */
+            if (validRanges_.find(lookup, LB, UB, id)) 
+            {
+                /* The ranges overlap and we must split them into non-
+                 * overlapping ranges, possible range splits are listed
+                 * below:
+                 *
+                 * [LB UB)                     already in validRanges_, remove if it gets split
+                 * [LB bbl->start())
+                 * [bbl->start() LB)
+                 * [lastRangeStart LB)         when bbl overlaps multiple ranges and LB is for an N>1 range
+                 * [bbl->start() UB)           possible if LB < bbl->start()
+                 * [lastRangeStart UB)         possible if LB < bbl->start() and bbl overlaps multiple ranges
+                 * [LB bbl->end())             if last existing range includes bbl->end()
+                 * [bbl->end() UB)             if last existing range includes bbl->end()
+                 * [UB bbl->end())             don't add until after loop exits as there might be more overlapping ranges
+                 */
+                if (LB < bbl->start()) { 
+                    validRanges_.remove(LB); // replace [LB UB)...
+                    validRanges_.insert(LB, bbl->start(), funcID); // with  [LB bbl->start())
+                    if (UB <= bbl->end()) { // [bbl->start() UB)
+                         validRanges_.insert(bbl->start(), UB, funcID);
+                    } else { // [bbl->start() bbl->end()) or [lastRangeStart bbl->end()) and [bbl->end() UB) 
+                         validRanges_.insert(bbl->start(), bbl->end(), funcID);
+                         validRanges_.insert(bbl->end(), UB, funcID);
+                    }
+                } 
+                else {
+                    if (lastRangeStart < LB) { // add [bbl->start() LB) or [lastRangeStart LB)
+                        validRanges_.insert(lastRangeStart, LB, funcID);
+                    }
+                    if (UB > bbl->end()) { // [LB bbl->end()) and [bbl->end() UB) 
+                         validRanges_.insert(LB, bbl->end(), funcID);
+                         validRanges_.insert(bbl->end(), UB, funcID);
+                    } // otherwise [LB UB) is already in validRanges_
+                }
+                lookup = UB;
+                lastRangeStart = UB;
+            }
+            else {
+                lookup++;
             }
         }
-        else {
-            validRanges_.insert(bbl->start(), bbl->end(), funcID);
+        if (lastRangeStart < bbl->end()) { // [bbl->start() bbl->end()) or [UB bbl->end())
+            validRanges_.insert(lastRangeStart, bbl->end(), funcID);
         }
     }
   }
@@ -257,6 +305,15 @@ bool SpringboardBuilder::conflict(Address start, Address end, bool inRelocated) 
       lastState = state;
    }
    relocation_cerr << "\t No conflict, we're good" << endl;
+   if (start == 0x971170) {
+       printf("no conflict for [%x %x)\n", start,end);
+   }
+   if (start == 0x97116d) {
+       printf("no conflict for [%x %x)\n", start,end);
+   }
+   if (start == 0x97116f) {
+       printf("no conflict for [%x %x)\n", start,end);
+   }
    return false;
 }
 

@@ -444,7 +444,7 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
 
     RT_Boolean isInCache = RT_FALSE;
 #if defined STACKDUMP
-    unsigned char *stackBase = (unsigned char*) & pointAddr;
+    unsigned char *stackBase = (unsigned char*) 0x971140; // & pointAddr;
     unsigned bidx=0;
 #endif
 	if (reentrant == 1) {
@@ -458,15 +458,17 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
 #if defined STACKDUMP
     fprintf(stderr,"RT_stopThread: pt[%lx] flags[%lx] calc[%lx]\n", 
                    (long)pointAddr, (long)flags, (long)calculation);
-    if ((unsigned long)calculation == 0x7c801d7b) {
+    if ((unsigned long)calculation == 0x9746a3 || 
+        (unsigned long)calculation == 0x77dd761b) 
+    {
         fprintf(stderr,"RT_st: %lx(%lx)\n", (long)pointAddr,&calculation);
         fprintf(stderr,"at instr w/ targ=%lx\n",(long)calculation);
-        for (bidx=0; bidx < 0x120; bidx+=4) {
+        for (bidx=0; bidx < 0x60; bidx+=4) {
             fprintf(stderr,"0x%x:  ", (int)stackBase+bidx);
-            fprintf(stderr,"%02hhx", stackBase[bidx+3]);
-            fprintf(stderr,"%02hhx", stackBase[bidx+2]);
-            fprintf(stderr,"%02hhx", stackBase[bidx+1]);
             fprintf(stderr,"%02hhx", stackBase[bidx]);
+            fprintf(stderr,"%02hhx", stackBase[bidx+1]);
+            fprintf(stderr,"%02hhx", stackBase[bidx+2]);
+            fprintf(stderr,"%02hhx", stackBase[bidx+3]);
             fprintf(stderr,"\n");
         }
     }

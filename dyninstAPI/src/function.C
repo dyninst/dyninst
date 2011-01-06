@@ -686,21 +686,26 @@ void int_function::splitBlock(image_basicBlock *img_orig,
 //   BPatch_addressSpace::BPatch_funcMap <int_function -> BPatch_function>
 void int_function::removeFromAll() 
 {
-    mal_printf("purging blocks_ of size = %d\n",blocks_.size());
+    mal_printf("purging blocks_ of size = %d from func at %lx\n",
+               blocks_.size(), getAddress());
+
+    // invalidates analyses related to this function
+	triggerModified();
+
     BlockSet::const_iterator bIter;
     for (bIter = blocks_.begin(); 
          bIter != blocks_.end(); 
          bIter++) 
     {
         int_block *bbi = (*bIter);
-        mal_printf("block [%lx %lx]\n",bbi->start(), bbi->end());
+        mal_printf("purged block [%lx %lx]\n",bbi->start(), bbi->end());
     }
     // delete blocks 
     for (bIter = blocks_.begin(); 
          bIter != blocks_.end();
          bIter = blocks_.begin()) 
     {
-        deleteBlock(*bIter);// removfes block from blocks_ too
+        deleteBlock(*bIter);// removes block from blocks_ too
     }
     // remove from mapped_object & mapped_module datastructures
     obj()->removeFunction(this);
@@ -714,8 +719,6 @@ void int_function::removeFromAll()
     abruptEnds_.clear();
     unresolvedPoints_.clear();
     instPsByAddr_.clear();
-
-	triggerModified();
 
     // remove func & blocks from image, ParseAPI, & SymtabAPI datastructures
     ifunc()->img()->deleteFunc(ifunc());

@@ -111,6 +111,8 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   void newfunction_retstatus(ParseAPI::Function*);
   void block_split(ParseAPI::Block *first, ParseAPI::Block *second);
   void patch_nop_jump(Address);
+  bool hasWeirdInsns(const ParseAPI::Function*) const;
+  void foundWeirdInsns(ParseAPI::Function*);
   // other callbacks
   void interproc_cf(ParseAPI::Function*,ParseAPI::Block*,Address,interproc_details*);
   void overlapping_blocks(ParseAPI::Block*,ParseAPI::Block*);

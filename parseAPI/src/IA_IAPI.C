@@ -198,21 +198,25 @@ bool IA_IAPI::isAbortOrInvalidInsn() const
     if(e == e_No_Entry)
     {
         parsing_printf("...WARNING: un-decoded instruction at 0x%x\n", current);
-
 	}
-	// GARBAGE PARSING HEURISTIC
-	if (unlikely(_obj->defensiveMode())) {
-        if (e == e_arpl) {
-    		cerr << "REACHED AN ARPL, COUNTING AS INVALID" << endl;
-            return true;
-		}
-    }
-	
 	return e == e_No_Entry ||
             e == e_int3 ||
             e == e_hlt;
 }
 
+bool IA_IAPI::isGarbageInsn() const
+{
+    // GARBAGE PARSING HEURISTIC
+    if (unlikely(_obj->defensiveMode())) {
+        entryID e = curInsn()->getOperation().getID();
+        if (e == e_arpl) {
+            cerr << "REACHED AN ARPL AT "<< std::hex << current 
+                 << std::dec <<" COUNTING AS INVALID" << endl;
+            return true;
+        }
+    }
+    return false;
+}	
 bool IA_IAPI::isFrameSetupInsn() const
 {
     return isFrameSetupInsn(curInsn());

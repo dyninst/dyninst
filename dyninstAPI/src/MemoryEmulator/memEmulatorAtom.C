@@ -218,11 +218,6 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
 
    bool debug = false;
 
-   if (addr_ >= 0x9a18b0 &&
-	   addr_ <= 0x9a1973) debug = true;
-   if (addr_ >= 0x9a1f85 &&
-	   addr_ <= 0x9a1f98) debug = true;
-
   // We want to ensure that a memory operation produces its
   // original result in the face of overwriting the text
   // segment.

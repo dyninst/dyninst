@@ -317,6 +317,9 @@ class image_func : public ParseAPI::Function
      std::set<image_basicBlock*> &reachableBlocks ); // output
    ParseAPI::FuncReturnStatus init_retstatus() const;
    void setinit_retstatus(ParseAPI::FuncReturnStatus rs); //also sets retstatus
+   bool hasWeirdInsns() { return hasWeirdInsns_; } // true if we stopped the 
+                                // parse at a weird instruction (e.g., arpl)
+   void setHasWeirdInsns(bool wi);
 
    // ----------------------------------------------------------------------
 
@@ -410,6 +413,9 @@ class image_func : public ParseAPI::Function
    bool canBeRelocated_;           // True if nothing prevents us from
                                    // relocating function
    bool needsRelocation_;          // Override -- "relocate this func"
+
+   bool hasWeirdInsns_;            // true if we stopped the parse at a 
+								           // weird instruction (e.g., arpl)
 
    // Some functions are known to be unparesable by name
    bool isInstrumentableByFunctionName();

@@ -380,3 +380,18 @@ DynParseCallback::loadAddr(Address absoluteAddr, Address & loadAddr)
     }
     return false; 
 }
+
+bool
+DynParseCallback::hasWeirdInsns(const ParseAPI::Function* func) const
+{
+    return static_cast<image_func*>
+        (const_cast<ParseAPI::Function*>
+            (func))->hasWeirdInsns();
+}
+
+void 
+DynParseCallback::foundWeirdInsns(ParseAPI::Function* func)
+{
+    static_cast<image_func*>(func)->setHasWeirdInsns(true);
+}
+

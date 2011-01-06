@@ -182,6 +182,7 @@ CodeObject::finalize() {
 void 
 CodeObject::deleteFunc(Function *func)
 {
+    mal_printf("deleting func at %lx, ptr=%p\n", func->addr(), func);
     assert(func->_cache_valid);
     parser->remove_func(func);
     func->deleteBlocks(func->_blocks);

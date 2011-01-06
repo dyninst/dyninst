@@ -126,6 +126,7 @@ void mapped_module::removeFunction(int_function *func)
            return;
        }
    }
+   assert(0 && "Tried to remove function that's not in the module");
 }
 
 const string &mapped_module::fileName() const 

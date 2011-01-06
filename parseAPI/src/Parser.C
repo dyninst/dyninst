@@ -1097,18 +1097,23 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             {
                 // 4. Invalid or `abort-causing' instructions
                 end_block(cur,*ah);
-
-                if (unlikely(func->obj()->defensiveMode())) {
-                    // add instrumentation at this addr so we can
-                    // extend the function if this really executes
-                    // KEVINTODO: this should not happen for int3 instructions 
-                    //ParseCallback::default_details det(
-                    //    (unsigned char*) cur->region()->getPtrToInstruction(cur->lastInsnAddr()),
-                    //    cur->end() - cur->lastInsnAddr(),
-                    //    true);
-                    //_pcb.abruptEnd_cf(cur->lastInsnAddr(),&det);
-                }
                 break; 
+            }
+            else if(unlikely(func->obj()->defensiveMode() && 
+                             !_pcb.hasWeirdInsns(func) &&
+                             ah->isGarbageInsn())) 
+            {
+                // add instrumentation at this addr so we can
+                // extend the function if this really executes
+                // KEVINTODO: the weirdInsns flag really ought to be associated with the block so we can halt parsing along multiple function paths
+                ParseCallback::default_details det(
+                    (unsigned char*) cur->region()->getPtrToInstruction(cur->lastInsnAddr()),
+                    cur->end() - cur->lastInsnAddr(),
+                    true);
+                _pcb.abruptEnd_cf(cur->lastInsnAddr(),cur,&det);
+                _pcb.foundWeirdInsns(func);
+                end_block(cur,*ah);
+                break;
             }
             else if( ah->isInterruptOrSyscall() )
             {
@@ -1136,7 +1141,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 }
                 break;
             }
-            else if (_obj.defensiveMode() && ah->isNopJump()) {
+            else if (unlikely(_obj.defensiveMode() && ah->isNopJump())) {
                 // patch the jump to make it a nop, and re-set the 
                 // instruction adapter so we parse the instruction
                 // as a no-op this time, allowing the subsequent

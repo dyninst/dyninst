@@ -70,6 +70,7 @@ class IA_IAPI : public InstructionAdapter {
         virtual size_t getSize() const;
         virtual bool isFrameSetupInsn() const;
         virtual bool isAbortOrInvalidInsn() const;
+        virtual bool isGarbageInsn() const; //true for insns indicative of bad parse, for defensive mode
         virtual void
                 getNewEdges(std::vector<std::pair< Address, 
                                 Dyninst::ParseAPI::EdgeTypeEnum> >&outEdges, 
