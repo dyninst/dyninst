@@ -428,7 +428,6 @@ bool int_function::relocationCheck(pdvector<Address> &checkPCs) {
         
 
 bool int_function::relocationLink(pdvector<codeRange *> &overwritten_objs) {
-
     if (linkedVersion_ == installedVersion_) {
         assert(linkedVersion_ == version_);
         return true; // We're already done...

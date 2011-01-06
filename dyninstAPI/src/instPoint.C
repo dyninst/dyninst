@@ -929,13 +929,13 @@ bool instPoint::instrSideEffect(Frame &frame)
 
         Address newPC = target->multi()->uninstToInstAddr(frame.getPC());
         if (newPC) {
-            if (!frame.setPC(newPC)) {
-                mal_printf("setting active frame's PC from %lx to %lx %s[%d]\n", 
-                           frame.getPC(), newPC, FILE__,__LINE__);
-                frame.getThread()->changePC(newPC);
-            }
-            if (frame.setPC(newPC)) 
-                modified = true;
+           if (frame.isUppermost()) {
+              frame.getThread()->changePC(newPC);
+           }
+           else {
+              frame.setPC(newPC);
+              modified = true;
+           }
         }
         // That's if we want to move into instrumentation. Mental note:
         // check to see if we're handling return points correctly; we should

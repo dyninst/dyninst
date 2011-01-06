@@ -74,7 +74,7 @@ class CodeRegion : public Dyninst::InstructionSource, public Dyninst::interval<A
     PARSER_EXPORT Address low() const =0;
     PARSER_EXPORT Address high() const =0;
 
-    PARSER_EXPORT bool contains(const Address) const;
+    PARSER_EXPORT bool contains(Address) const;
 };
 
 /* A starting point for parsing */
@@ -204,6 +204,8 @@ class SymtabCodeSource : public CodeSource {
     SymtabAPI::Symtab * _symtab;
     bool owns_symtab;
     mutable CodeRegion * _lookup_cache;
+
+    static dyn_hash_map<std::string, bool> non_returning_funcs;
  public:
     struct hint_filt {
         virtual ~hint_filt() { }
@@ -224,6 +226,7 @@ class SymtabCodeSource : public CodeSource {
     PARSER_EXPORT Address baseAddress() const;
     PARSER_EXPORT Address loadAddress() const;
     PARSER_EXPORT Address getTOC(Address addr) const;
+    PARSER_EXPORT SymtabAPI::Symtab * getSymtabObject() {return _symtab;} 
 
     /** InstructionSource implementation **/
     PARSER_EXPORT bool isValidAddress(const Address) const;
@@ -238,6 +241,7 @@ class SymtabCodeSource : public CodeSource {
 
     PARSER_EXPORT void removeHint(Hint);
 
+    PARSER_EXPORT static void addNonReturning(std::string func_name);
  private:
     void init(hint_filt *, bool);
     void init_regions(hint_filt *, bool);

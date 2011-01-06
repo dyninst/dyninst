@@ -73,6 +73,7 @@ namespace Dyninst
       bool operator==(const MachRegister &a) const;
       operator signed int() const;
       signed int val() const;
+      unsigned int regClass() const;
 
       static MachRegister getPC(Dyninst::Architecture arch);
       static MachRegister getFramePointer(Dyninst::Architecture arch);

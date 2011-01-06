@@ -108,6 +108,10 @@ private:
    void constructVarsAndParams();
 
    void identifyParamDependencies(BPatch_function* callee, void* calleeAddress);
+
+  public:
+   //dynC internal use only
+   bool hasParamDebugInfo();
 public:
     virtual	~BPatch_function();
 
@@ -156,6 +160,7 @@ public:
 
     // For users of the library:
 
+    API_EXPORT(Str, (), std::string, getName, ());
 
     //  BPatch_function::getName
     //  Returns <demangled> name of function

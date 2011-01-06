@@ -69,37 +69,35 @@ class DynCFGFactory : public ParseAPI::CFGFactory {
     //void free_edge(ParseAPI::Edge * e);
 
     //void free_all();
+    void dump_stats();
+
   private:
     image * _img;     
-#if defined(VERBOSE_CFG_FACTORY)
-#warning "VERBOSE_CFG_FACTORY enabled ; may impact performance"
-    vector<int> __func_allocs(__funcsource_end__);
-    vector<int> __edge_allocs(__edgetype_end__);
-    int __block_allocs;
-    int __sink_block_allocs;
-    //int __sink_edge_allocs; FIXME can't determine
+    vector<int> _func_allocs;
+    vector<int> _edge_allocs;
+    int _block_allocs;
+    int _sink_block_allocs;
+    //int _sink_edge_allocs; FIXME can't determine
 
-    void __record_func_alloc(FuncSource fs)
+    void _record_func_alloc(ParseAPI::FuncSource fs)
     {
-        assert(fs < __funsource_end__);
-        ++__func_allocs[fs];
+        assert(fs < ParseAPI::_funcsource_end_);
+        ++_func_allocs[fs];
     }
-    void __record_edge_alloc(EdgeTypeEnum et,bool sink)
+    void _record_edge_alloc(ParseAPI::EdgeTypeEnum et,bool /* sink */)
     {
-        assert(et < __edgetype_end__);
-        ++__edge_allocs[et];
+        assert(et < ParseAPI::_edgetype_end_);
+        ++_edge_allocs[et];
 
         //if(sink)
-            //++__sink_block_allocs;
+            //++_sink_block_allocs;
     }
-    void __record_block_alloc(bool sink)
+    void _record_block_alloc(bool sink)
     {
-        ++__block_allocs;
+        ++_block_allocs;
         if(sink)
-            ++__sink_block_allocs;
+            ++_sink_block_allocs;
     }
-    void dump_stats();
-#endif
 };
 
 class image;

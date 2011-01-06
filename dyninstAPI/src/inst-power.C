@@ -363,8 +363,11 @@ void registerSpace::initialize32() {
         callWritten_[i] = true;
 
     // Syscall - assume the same as call
-    syscallRead_ = getBitArray().set();
-    syscallWritten_ = getBitArray().set();
+    //syscallRead_ = getBitArray().set();
+    //syscallWritten_ = getBitArray().set();
+    syscallRead_ = callRead_;
+    syscallRead_[r0] = true;
+    syscallWritten_ = callWritten_;
 
     allRegs_ = getBitArray().set();
 #endif
@@ -1242,7 +1245,8 @@ bool baseTramp::generateSaves(codeGen &gen,
     // Save GPRs
     saveGPRegisters(gen, gen.rs(), gpr_off);
 
-    if(BPatch::bpatch->isSaveFPROn()) // Save FPRs
+    if(BPatch::bpatch->isSaveFPROn() ||  // Save FPRs
+        BPatch::bpatch->isForceSaveFPROn() ) 
 	saveFPRegisters(gen, gen.rs(), fpr_off);
 
     // Save LR            
@@ -1286,7 +1290,8 @@ bool baseTramp::generateRestores(codeGen &gen,
     // LR
     restoreLR(gen, REG_SCRATCH, TRAMP_SPR_OFFSET + STK_LR);
 
-    if (BPatch::bpatch->isSaveFPROn()) // FPRs
+    if (BPatch::bpatch->isSaveFPROn() || // FPRs
+        BPatch::bpatch->isForceSaveFPROn() ) 
 	restoreFPRegisters(gen, gen.rs(), fpr_off);
 
     // GPRs
@@ -1780,6 +1785,10 @@ Register EmitterPOWER::emitCall(opCode ocode,
     if (!inInstrumentation && setTOC) {
         // Need to reset the TOC
         emitVload(loadConstOp, caller_toc, 2, 2, gen, false);
+
+        // Also store toc_orig [r2] into the TOC save area [40(r1)].
+        // Subsequent code will look for it there.
+        saveRegisterAtOffset(gen, 2, 40);
     }        
 
     /*
@@ -3409,8 +3418,8 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
 	} else {
 		// Move address of the variable into the register - load effective address
 		//dest = effective address of pc+offset ;
-                insnCodeGen::generateImm (gen, CAUop, dest, 0, BOT_HI (offset));
-                insnCodeGen::generateImm (gen, ORILop, dest, dest, BOT_LO (offset));
+                insnCodeGen::generateImm (gen, CAUop, dest, 0, BOT_HI (varOffset));
+                insnCodeGen::generateImm (gen, ORILop, dest, dest, BOT_LO (varOffset));
           	insnCodeGen::generateAddReg (gen, CAXop, dest, dest, scratchReg);
 	}
    }

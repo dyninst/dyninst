@@ -60,6 +60,11 @@ MachRegister::MachRegister(signed int r, const char *n) :
    (*names)[r] = n;
 }
 
+unsigned int MachRegister::regClass() const
+{
+    return reg & 0x00ff0000;
+}
+
 MachRegister MachRegister::getBaseRegister() const { 
    switch (getArchitecture()) {
       case Arch_x86:

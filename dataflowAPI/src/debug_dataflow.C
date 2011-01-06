@@ -46,6 +46,7 @@ int df_debug_convert = 0;
 int df_debug_expand = 0;
 
 bool df_init_debug() {
+
   static bool init = false;
   if (init) return true;
   init = true;
@@ -72,6 +73,10 @@ bool df_init_debug() {
     df_debug_expand = 1;
   }
   return true;
+}
+
+bool slicing_debug_on() {
+    return df_debug_slicing != 0;
 }
 
 int stackanalysis_printf_int(const char *format, ...)

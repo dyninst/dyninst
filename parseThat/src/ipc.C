@@ -379,10 +379,14 @@ void sigchldHandler(int signal)
 		if (WCOREDUMP(status)) dlog(ERR, "* Core file generated.\n");
 #endif
 		dlog(ERR, "*\n");
-            config.hunt_crashed = true;
+                config.hunt_crashed = true;
+                config.abnormal_exit = true;
 
 	    } else if (WIFEXITED(status)) {
 		dlog(INFO, "Dyninst mutator exited normally and returned %d.\n", WEXITSTATUS(status));
+                if (WEXITSTATUS(status)) {
+                   config.abnormal_exit = true;
+                }
 	    }
          if (pid == config.pid) {
             config.state = CHILD_EXITED;

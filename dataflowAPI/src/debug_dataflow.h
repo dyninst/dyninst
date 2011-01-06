@@ -66,6 +66,10 @@ extern int expand_printf_int(const char *format, ...);
 #endif
 
 // And initialization
+
 extern bool df_init_debug();
+
+// Conditional based on debug
+extern bool slicing_debug_on();
 
 #endif /* SHOWERROR_H */

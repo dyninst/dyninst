@@ -91,7 +91,10 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallback & pcb) :
     }
 
     if(obj.cs()->regions().empty()) {
-        fprintf(stderr,"Error, CodeSource fails to provide CodeRegions\n");
+        parsing_printf("[%s:%d] CodeSource provides no CodeRegions"
+                       " -- unparesable\n",
+            FILE__,__LINE__);
+        _parse_state = UNPARSEABLE;
         return;
     }
 
@@ -150,6 +153,9 @@ Parser::parse()
 {
     parsing_printf("[%s:%d] parse() called on Parser with state %d\n",
         FILE__,__LINE__,_parse_state);
+
+    if(_parse_state == UNPARSEABLE)
+        return;
 
     assert(!_in_parse);
     _in_parse = true;
@@ -222,6 +228,9 @@ Parser::parse_at(Address target, bool recursive, FuncSource src)
 
     parsing_printf("[%s:%d] entered parse_at(%lx)\n",FILE__,__LINE__,target);
 
+    if(_parse_state == UNPARSEABLE)
+        return;
+
     StandardParseData * spd = dynamic_cast<StandardParseData *>(_parse_data);
     if(!spd) {
         parsing_printf("   parse_at is invalid on overlapping regions\n");
@@ -278,6 +287,9 @@ Parser::parse_vanilla()
 void
 Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
 {
+    if(_parse_state == UNPARSEABLE)
+        return;
+
     for (unsigned idx=0; idx < work_elems.size(); idx++) {
 
         ParseWorkElem *elem = work_elems[idx];
@@ -512,13 +524,13 @@ Parser::init_frame(ParseFrame & frame)
      (const unsigned char *)(frame.func->isrc()->getPtrToInstruction(ia_start));
     InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
     InstructionAdapter_t ah(dec, ia_start, frame.func->obj(),
-        frame.codereg, frame.func->isrc());
+        frame.codereg, frame.func->isrc(), b);
 #else
     InstrucIter iter(ia_start, size, frame.func->isrc());
     InstructionAdapter_t ah(iter, 
         frame.func->obj(),
         frame.codereg,
-        frame.func->isrc());
+        frame.func->isrc(), b);
 #endif
     if(ah.isStackFramePreamble())
         frame.func->_no_stack_frame = false;
@@ -635,17 +647,16 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 return;
             }
             else if(ct && work->tailcall()) {
-               if (ct->_rs == UNSET) {
-                  // Ah helll....
-                frame.call_target = ct;
-                frame.set_status(ParseFrame::CALL_BLOCKED);
-                // need to re-visit this edge
-                frame.pushWork(work);
-                return;
-               }                  
-
-                if(func->_rs != RETURN && ct->_rs > NORETURN)
-                    func->_rs = ct->_rs;
+                // XXX The target has been or is currently being parsed (else
+                //     the previous conditional would have been taken),
+                //     so if its return status is unset then this
+                //     function has to take UNKNOWN
+                if(func->_rs != RETURN) {
+                    if(ct->_rs > NORETURN)
+                        func->_rs = ct->_rs;
+                    else if(ct->_rs == UNSET)
+                        func->_rs = UNKNOWN;
+                }
             }
 
             // check for catch blocks after non-returning calls
@@ -745,7 +756,16 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             parsing_printf("[%s] deferring parse of shared block %lx\n",
                 FILE__,cur->start());
             if (func->_rs < UNKNOWN) {
-                func->_rs = UNKNOWN;
+                // we've parsed into another function, if we've parsed
+                // into it's entry point, set retstatus to match it
+                Function * other_func = _parse_data->findFunc(
+                    func->region(), cur->start());
+                if (other_func && other_func->retstatus() > UNKNOWN) {
+                    func->_rs = other_func->retstatus();
+                }
+                else {
+                    func->_rs = UNKNOWN;
+                }
             }
             continue;
         }
@@ -768,7 +788,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
 
         InstructionAdapter_t ah(dec, curAddr, func->obj(), 
-                                cur->region(), func->isrc());
+                                cur->region(), func->isrc(), cur);
 #else        
         InstrucIter iter(curAddr, size, func->isrc());
         InstructionAdapter_t ah(iter, 
@@ -830,6 +850,18 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             // per-instruction callback notification 
             ParseCallback::insn_details insn_det;
             insn_det.insn = &ah;
+	     
+                parsing_printf("[%s:%d] curAddr 0x%lx \n",
+                    FILE__,__LINE__,curAddr);
+
+	    if (func->_is_leaf_function) {
+		Address ret_addr;
+	    	func->_is_leaf_function = !(insn_det.insn->isReturnAddrSave(ret_addr));
+                parsing_printf("[%s:%d] leaf %d funcname %s \n",
+                    FILE__,__LINE__,func->_is_leaf_function, func->name().c_str());
+	        if (!func->_is_leaf_function) func->_ret_addr = ret_addr;	
+		}
+		
             _pcb.instruction_cb(func,curAddr,&insn_det);
 
             if(isNopBlock && !ah.isNop()) {
@@ -940,6 +972,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
        }
        else
           frame.func->_rs = UNKNOWN; 
+
+       // Convenience -- adopt PLT name
+       frame.func->_name = plt_entries[frame.func->addr()];
     }
     else if(frame.func->_rs == UNSET) {
         frame.func->_rs = NORETURN;
@@ -1210,6 +1245,24 @@ Parser::findFuncs(CodeRegion *r, Address addr, set<Function *> & funcs)
         finalize();
     }
     return _parse_data->findFuncs(r,addr,funcs);
+}
+
+int 
+Parser::findFuncs(CodeRegion *r, Address start, Address end, set<Function *> & funcs)
+{
+    if(_parse_state < COMPLETE) {
+        parsing_printf("[%s:%d] Parser::findFuncs([%lx,%lx),%lx,%lx) "
+                       "forced parsing\n",
+            FILE__,__LINE__,r->low(),r->high(),start,end);
+        parse();
+    }
+    if(_parse_state < FINALIZED) {
+        parsing_printf("[%s:%d] Parser::findFuncs([%lx,%lx),%lx,%lx) "
+                       "forced finalization\n",
+            FILE__,__LINE__,r->low(),r->high(),start,end);
+        finalize();
+    }
+    return _parse_data->findFuncs(r,start,end,funcs);
 }
 
 Block *

@@ -70,8 +70,9 @@ public:
 
 std::map<Dyninst::PID, ProcessState *> ProcessState::proc_map;
 
-ProcessState::ProcessState(Dyninst::PID pid_) :
-   library_tracker(NULL)
+ProcessState::ProcessState(Dyninst::PID pid_, std::string executable_path_) :
+   library_tracker(NULL),
+   executable_path(executable_path_)
 {
    std::map<PID, ProcessState *>::iterator i = proc_map.find(pid_);
    if (i != proc_map.end())

@@ -52,6 +52,18 @@ const map<int,int> Process::emptyFDs;
 Process::thread_mode_t threadingMode = Process::GeneratorThreading;
 bool int_process::in_callback = false;
 
+static const int ProcControl_major_version = 0;
+static const int ProcControl_minor_version = 1;
+static const int ProcControl_maintenance_version = 0;
+
+void Process::version(int& major, int& minor, int& maintenance)
+{
+    major = ProcControl_major_version;
+    minor = ProcControl_minor_version;
+    maintenance = ProcControl_maintenance_version;
+}
+
+
 bool int_process::create()
 {
    ProcPool()->condvar()->lock();

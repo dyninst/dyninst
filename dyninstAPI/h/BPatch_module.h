@@ -59,6 +59,8 @@ class AddressSpace;
 class BPatch_snippet;
 class BPatchSnippetHandle;
 
+namespace Dyninst { namespace ParseAPI { class CodeObject; }}
+
 extern BPatch_builtInTypeCollection * builtInTypes;
 
 #ifdef DYNINST_CLASS_NAME
@@ -288,6 +290,9 @@ public:
     std::vector<struct BPatch_module::Statement>, getStatements, ());
 #endif
 
+    // Tentative ParseAPI exposure
+    API_EXPORT(Int, (),
+    Dyninst::ParseAPI::CodeObject *, getCodeObject, ());
 
 private:
     // Parse wrapper

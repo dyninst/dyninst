@@ -850,6 +850,7 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name,
     }
 
    BPatch_variableExpr *bpvar = addSpace->findOrCreateVariable(var);
+
    assert(bpvar);
    return bpvar;
 }
@@ -861,7 +862,7 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name,
 //
 
 BPatch_variableExpr *BPatch_image::findVariableInScope(BPatch_point &scp,
-		const char *name)
+                                                       const char *name, bool showError)
 {
 	// Get the function to search for it's local variables.
 	// XXX - should really use more detailed scoping info here - jkh 6/30/99
@@ -903,7 +904,7 @@ BPatch_variableExpr *BPatch_image::findVariableInScope(BPatch_point &scp,
 		reportErrors = false; 
 	}
 
-	BPatch_variableExpr * gsVar = findVariable( name, reportErrors );
+	BPatch_variableExpr * gsVar = findVariable( name, reportErrors ? showError : false );
 
 	if ( gsVar == NULL ) 
 	{

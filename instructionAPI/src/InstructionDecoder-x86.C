@@ -967,7 +967,11 @@ namespace Dyninst
                         r = MachRegister(r.val() & ~r.getArchitecture() | m_Arch);
                         if(locs->rex_b && insn_to_complete->m_Operands.empty())
                         {
-                            r = MachRegister((r.val()) | x86_64::r8.val());
+                            // FP stack registers are not affected by the rex_b bit in AM_REG.
+                            if(r.regClass() != x86::MMX)
+                            {
+                                r = MachRegister((r.val()) | x86_64::r8.val());
+                            }
                         }
                         if(sizePrefixPresent)
                         {
@@ -1038,6 +1042,10 @@ namespace Dyninst
         decodedInstruction = new (decodedInstruction) ia32_instruction(NULL, NULL, locs);
         ia32_decode(IA32_DECODE_PREFIXES, b.start, *decodedInstruction);
         sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
+        if (decodedInstruction->getPrefix()->rexW()) {
+           // as per 2.2.1.2 - rex.w overrides 66h
+           sizePrefixPresent = false;
+        }
         addrSizePrefixPresent = (decodedInstruction->getPrefix()->getAddrSzPrefix() == 0x67);
     }
     

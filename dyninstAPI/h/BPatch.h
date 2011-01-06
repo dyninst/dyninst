@@ -57,9 +57,10 @@ class PCEventHandler;
 #define DYNINST_5_2
 #define DYNINST_6_0
 #define DYNINST_6_1
+#define DYNINST_7_0
 
-#define DYNINST_MAJOR 6
-#define DYNINST_MINOR 1
+#define DYNINST_MAJOR 7
+#define DYNINST_MINOR 0
 #define DYNINST_SUBMINOR 0
 
 #ifdef IBM_BPATCH_COMPAT
@@ -136,6 +137,7 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     /* If true, we save FPRs in situations we normally would 
        Defaults to true */
     bool saveFloatingPointsOn;
+    bool forceSaveFloatingPointsOn;
 
     /* If true, we will use liveness calculations to avoid saving
        registers on platforms that support it. 
@@ -309,6 +311,13 @@ public:
     API_EXPORT(Int, (),
 
     bool,isSaveFPROn,());        
+
+    // BPatch::forceSaveFPROn:
+    // returns whether base tramp and mini-tramp is merged
+    API_EXPORT(Int, (),
+
+    bool,isForceSaveFPROn,());        
+
 
     // BPatch::hasForcedRelocation_NP:
     // returns whether all instrumented functions will be relocated
@@ -507,6 +516,13 @@ public:
 
     void,setSaveFPR,(bool x));
 
+    //  BPatch::forceSaveFPR:
+    //  Force Turn on/off merged base & mini-tramps - ignores isConservative
+    API_EXPORT_V(Int, (x),
+
+    void,forceSaveFPR,(bool x));
+
+
     //  BPatch::setForcedRelocation_NP:
     //  Turn on/off forced relocation of instrumted functions
     API_EXPORT_V(Int, (x),
@@ -670,6 +686,11 @@ public:
 
     API_EXPORT(Int, (remote),
     bool, remoteDisconnect, (BPatch_remoteHost &remote));
+
+    //  BPatch::addNonReturningFunc:
+    //  Globally specify that any function with a given name will not return
+    API_EXPORT_V(Int, (name),
+    void, addNonReturningFunc, (std::string name));
 };
 
 #endif /* _BPatch_h_ */

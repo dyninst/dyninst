@@ -598,7 +598,7 @@ Frame Frame::getCallerFrame()
      else
      {
         if (!fp_) {
-           stackwalk_printf("%s[%d]: No frame pointer!\n", FILE__, __LINE__);	  
+           stackwalk_printf("%s[%d]: No frame pointer!\n", FILE__, __LINE__);
            return Frame();
         }
         if (!getProc()->readDataSpace((caddr_t) fp_, addr_size, 
@@ -618,8 +618,15 @@ Frame Frame::getCallerFrame()
         newSP = fp_+ (2 * addr_size);
         pcLoc = fp_ + addr_size;
      }
-     if (status == frame_tramp)
-        newSP += extra_height;
+     if (status == frame_tramp) {
+        assert(fp_);
+        if (!getProc()->readDataSpace((caddr_t)(fp_+extra_height), addr_size,
+                                      &newSP, false)) {
+            stackwalk_printf("%s[%d]: Failed to read memory at fp_ (%d+fp_) 0x%lx\n",
+                             FILE__, __LINE__, extra_height, fp_+extra_height);
+            return Frame();
+        }
+     }
      goto done;
    }
    else if (status == frameless_tramp)

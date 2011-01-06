@@ -15,28 +15,31 @@ STATIC_COMPS = true;
 include ../../make.config 
 
 # Now make any necessary architecture specific changes to variables:
-
+MYFLAGS         += -I../../common/src -I../../common/h
 CXXFLAGS        += $(MYFLAGS)
 CXXFLAGS    += -I/bgsys/drivers/ppcfloor/arch/include
 
 CFLAGS          += $(MYFLAGS)
 TFLAGS          += $(MYFLAGS)
+VPATH = ../../common/src
 
 SRCS = ../src/ppc-swk.C \
-		 ../src/firstparty.C \
-		 ../src/bg_firstparty.C
+		 ../src/bg_firstparty.C \
+       ../src/firstparty.C \
+		 dyn_regs.C \
+		 addrtranslate.C \
+		 addrtranslate-sysv.C \
+		 addrtranslate-bluegenep.C \
+		 bluegeneKludges.C \
+		 string-regex.C
 
-# Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
-#TFLAGS                += -g
+ifdef LIBELF_INC
+MYFLAGS += -I$(LIBELF_INC)
+endif
 
-SYSLIBS                = -ldl 
-LIBS    += -lgcc
-AS             = /usr/bin/as
-
-
-# Add preprocessor and special link information for G++
-G_PTHREAD      = -pthread
-G_PTHREAD_LD   = -pthread
+ifdef LIBELF_LIB
+LIBS += -L$(LIBELF_LIB) -lelf
+endif
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

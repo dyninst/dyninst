@@ -216,6 +216,7 @@ void codeRangeTree::deleteFixup(entry* x){
 }
 
 
+// fails if the key value is already in the tree (happens for shared code)
 codeRangeTree::entry *codeRangeTree::treeInsert(Address key, codeRange *value)
 {
 	entry* y = NULL;
@@ -227,15 +228,8 @@ codeRangeTree::entry *codeRangeTree::treeInsert(Address key, codeRange *value)
                 else if(key > x->key)
                     x = x->right;
                 else {
-                    if(!(x->value) && !(x->value->get_size()))
-                    {
-                        return NULL;
-                    }
-                    else
-                    {
-                        x->value = value;
-                        return x;
-                    }
+                    x->value = value;
+                    return NULL; // node is already in tree
                 }
 	}
 	entry* z = new entry(key, value, nil);

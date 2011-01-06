@@ -22,6 +22,8 @@ Function::Function() :
         _src(RT),
         _rs(UNSET),
         _entry(NULL),
+	 _is_leaf_function(true),
+	 _ret_addr(0),
         _parsed(false),
         _cache_valid(false),
         _bl(_blocks),
@@ -46,6 +48,8 @@ Function::Function(Address addr, string name, CodeObject * obj,
         _rs(UNSET),
         _name(name),
         _entry(NULL),
+	 _is_leaf_function(true),
+	 _ret_addr(0),
         _parsed(false),
         _cache_valid(false),
         _bl(_blocks),
@@ -113,7 +117,10 @@ Function::blocks_int()
     if(_cache_valid)
         return _blocks;
 
-    dyn_hash_map<Address,bool> visited;
+    // overloaded map warning:
+    // visited[addr] == 1 means visited
+    // visited[addr] == 2 means already on the return list
+    dyn_hash_map<Address,short> visited;
     vector<Block *> worklist;
 
     bool need_entry = true;
@@ -121,15 +128,23 @@ Function::blocks_int()
         bit!=_blocks.end();++bit) 
     {
         Block * b = *bit;
-        visited[b->start()] = true;
+        visited[b->start()] = 1;
         need_entry = need_entry && (b != _entry);
     }
     worklist.insert(worklist.begin(),_blocks.begin(),_blocks.end());
 
     if(need_entry) {
         worklist.push_back(_entry);
-        visited[_entry->start()] = true;
+        visited[_entry->start()] = 1;
         add_block(_entry);
+    }
+
+    // avoid duplicating return edges
+    for(vector<Block*>::iterator bit=_return_blocks.begin();
+        bit!=_return_blocks.end();++bit)
+    {
+        Block * b = *bit;
+        visited[b->start()] = 2;
     }
     
     while(!worklist.empty()) {
@@ -144,7 +159,7 @@ Function::blocks_int()
             Block * t = e->trg();
 
             if(e->type() == CALL) {
-                _call_edges.push_back(e);
+                _call_edges.insert(e);
                 continue;
             }
 
@@ -165,7 +180,8 @@ Function::blocks_int()
         } 
         if(link_return) {
             delayed_link_return(_obj,cur);
-            _return_blocks.push_back(cur);
+            if(visited[cur->start()] <= 1)
+                _return_blocks.push_back(cur);
         }
     }
 
@@ -179,7 +195,15 @@ void
 Function::delayed_link_return(CodeObject * o, Block * retblk)
 {
     bool link_entry = false;
-    Block::edgelist::iterator eit = _entry->sources().begin();
+
+    dyn_hash_map<Address,bool> linked;
+    Block::edgelist::iterator eit = retblk->targets().begin();
+    for( ; eit != retblk->targets().end(); ++eit) {
+        Edge * e = *eit;
+        linked[e->trg()->start()] = true;
+    }
+
+    eit = _entry->sources().begin();
     for( ; eit != _entry->sources().end(); ++eit) {
         Edge * e = *eit;
         if(e->type() == CALL) {
@@ -193,10 +217,14 @@ Function::delayed_link_return(CodeObject * o, Block * retblk)
             if(!call_ft) {
                 parsing_printf("[%s:%d] no block found, error!\n",
                     FILE__,__LINE__);
-            } else if(call_ft == _entry)
-                link_entry = true;
-            else 
-                o->add_edge(retblk,call_ft,RET);
+            } 
+            else if(!HASHDEF(linked,call_ft->start())) {
+                if(call_ft == _entry)
+                    link_entry = true;
+                else 
+                    o->add_edge(retblk,call_ft,RET);
+                linked[call_ft->start()] = true;
+            }
         }
     }
     // can't do this during iteration
@@ -268,7 +296,7 @@ Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
         {
             switch((*oit)->type()) {
                 case CALL:
-                    for (vector<Edge*>::iterator cit = _call_edges.begin(); 
+                    for (set<Edge*>::iterator cit = _call_edges.begin(); 
                          !found && _call_edges.end() != cit; 
                          cit++) 
                     {

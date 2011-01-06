@@ -198,7 +198,7 @@ bool AddressSpace::getDyninstRTLibName() {
     }else{
         if( P_strncmp(suffix, ".a", 2) == 0 ) {
             // This will be incorrect if the RT library's version changes
-            suffix = ".so.1";
+            suffix = ".so";
         }
     }
 

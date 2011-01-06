@@ -56,7 +56,8 @@ private:
   bool wroteLogHeader;
   bool submittedResults;
   test_results_t result;
-
+  unsigned long bytes;
+  double elapsed;
   // Stores any output before startNewTest is first called
   std::stringstream pretestLog;
 
@@ -69,6 +70,8 @@ public:
   virtual void startNewTest(std::map<std::string, std::string> &attrs, TestInfo *test, RunGroup *group);
   virtual void redirectStream(TestOutputStream stream, const char * filename);
   virtual void logResult(test_results_t result, int stage=-1);
+  virtual void logMemory(unsigned long  bytesUsed);
+  virtual void logTime(double elapsedSeconds);
   virtual void logCrash(std::string testname);
   virtual void log(TestOutputStream stream, const char *fmt, ...);
   virtual void vlog(TestOutputStream stream, const char *fmt, va_list args);

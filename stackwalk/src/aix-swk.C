@@ -62,8 +62,8 @@ using namespace Dyninst::Stackwalker;
 using namespace Dyninst::SymtabAPI;
 #endif
 
-ProcSelf::ProcSelf() : 
-   ProcessState(getpid())
+ProcSelf::ProcSelf(std::string exec_path) : 
+   ProcessState(getpid(), exec_path)
 {
 }
 

@@ -64,7 +64,7 @@ Block::~Block()
 }
 
 bool
-Block::consistent(Address addr, Address & prev_insn) const
+Block::consistent(Address addr, Address & prev_insn) 
 {
     InstructionSource * isrc;
     if(!_obj->cs()->regionsOverlap())
@@ -75,10 +75,10 @@ Block::consistent(Address addr, Address & prev_insn) const
     const unsigned char * buf = 
         (const unsigned char*)(region()->getPtrToInstruction(_start));
     InstructionDecoder dec(buf,size(),isrc->getArch());
-    InstructionAdapter_t ah(dec,_start,_obj,region(),isrc);
+    InstructionAdapter_t ah(dec,_start,_obj,region(),isrc, this);
 #else
     InstrucIter iter(_start,size(),isrc);
-    InstructionAdapter_t ah(iter,_obj,region(),isrc);
+    InstructionAdapter_t ah(iter,_obj,region(),isrc, this);
 #endif
 
     Address cur = ah.getAddr();
@@ -121,6 +121,13 @@ Intraproc::pred_impl(Edge * e) const
     return base && (e->type() != CALL) && (e->type() != RET);
 }
 
+bool Interproc::pred_impl(Edge *e) const 
+{
+    bool base = EdgePredicate::pred_impl(e);
+
+    return !base || ((e->type() == CALL) || (e->type() == RET));
+}
+
 bool
 SingleContext::pred_impl(Edge * e) const
 {
@@ -128,6 +135,20 @@ SingleContext::pred_impl(Edge * e) const
     return base && 
         (!_forward || _context->contains(e->trg())) &&
         (!_backward || _context->contains(e->src()));
+}
+
+bool
+SingleContextOrInterproc::pred_impl(Edge * e) const
+{
+    bool base = EdgePredicate::pred_impl(e);
+
+    bool singleContext = base && 
+        (!_forward || _context->contains(e->trg())) &&
+        (!_backward || _context->contains(e->src()));
+
+    bool interproc = !base || ((e->type() == CALL) || (e->type() == RET));
+
+    return singleContext || interproc;
 }
 
 int Block::containingFuncs() const {

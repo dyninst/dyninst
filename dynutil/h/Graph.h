@@ -109,10 +109,8 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
     // We create an empty graph and then add nodes and edges.
     static Ptr createGraph();
     
-    // We effectively build the graph by specifying all edges,
-    // since it is meaningless to have a disconnected node. 
-    void insertPair(NodePtr source, NodePtr target);
-    
+    void insertPair(NodePtr source, NodePtr target, EdgePtr edge = EdgePtr());
+
     virtual void insertEntryNode(NodePtr entry);
     virtual void insertExitNode(NodePtr exit);
 

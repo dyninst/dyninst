@@ -207,7 +207,7 @@ bool Function::getLocalVariables(std::vector<localVar *> &vars)
 
 bool Function::getParams(std::vector<localVar *> &params)
 {
-   module_->exec()->parseTypesNow();	
+   module_->exec()->parseTypesNow();
 
    localVarCollection *lvs = NULL;
    if (!getAnnotation(lvs, FunctionParametersAnno))
@@ -230,7 +230,7 @@ bool Function::getParams(std::vector<localVar *> &params)
    }
 
    params = *(lvs->getAllVars());
-
+   
    return true;
 }
 

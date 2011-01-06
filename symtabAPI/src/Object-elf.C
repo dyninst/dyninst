@@ -5198,6 +5198,7 @@ MappedFile *Object::findMappedFileForDebugInfo() {
     fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary %s\n",__FILE__,__LINE__,
             getFileName());
     log_elferror(err_func_, ".shstrtab section");
+    return mf;
   }
 
   string debugFileFromDebugLink, debugFileFromBuildID;
@@ -5470,23 +5471,35 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
                 continue;
             }
 
-            // Need to find target region
-            Region *targetRegion = NULL;
+	    Region *region = NULL;
             dyn_hash_map<unsigned, Region *>::iterator shToReg_it;
-            shToReg_it = shToRegion.find(shdr->sh_info());
+            shToReg_it = shToRegion.find(i);
             if( shToReg_it != shToRegion.end() ) {
-                targetRegion = shToReg_it->second;
+                region = shToReg_it->second;
             }
 
-            assert(targetRegion != NULL);
+            assert(region != NULL);
+            relocationEntry newrel(0, relOff, addend, name, sym, relType, regType);
+            region->addRelocationEntry(newrel);
+	    
+	   
+            // relocations are also stored with their targets
+            // Need to find target region
+	    if (shdr->sh_info() != 0) {
+            	    Region *targetRegion = NULL;
+	            shToReg_it = shToRegion.find(shdr->sh_info());
+        	    if( shToReg_it != shToRegion.end() ) {
+                	targetRegion = shToReg_it->second;
+            	     }
 
-            // A relocation is somewhat useless unless it is linked to a Symbol
-            if( sym ) {
-                relocationEntry newrel(0, relOff, addend, name, sym, relType, regType);
+            	     assert(targetRegion != NULL);
 
-                // relocations are stored with their targets
-                targetRegion->addRelocationEntry(newrel);
-            }
+            	     // A relocation is somewhat useless unless it is linked to a Symbol
+	    	     if (sym) {
+                	targetRegion->addRelocationEntry(newrel);
+	    	    }
+	   }
+	    
         }
     }
 

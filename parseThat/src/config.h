@@ -132,6 +132,7 @@ struct Config {
   bool use_merge_tramp; // Use merge tramp for instrumentation.
   bool use_save_world;  // Use save-the-world functionality.
   
+  bool use_exe;  //Use seperate execitable file instead of the rewritten library. Used for executing rewritten shared libraries
   bool use_process;  //Standard process style of instrumentation or binary edit
    bool hunt_crashes; //Keep running until crash is found
    bool hunt_crashed; //True if process crashed
@@ -140,6 +141,7 @@ struct Config {
    FILE *hunt_file;
    
   char writeFilePath[PATH_MAX];
+  char exeFilePath[PATH_MAX];
 
 
   char *saved_mutatee;
@@ -167,6 +169,9 @@ struct Config {
 
     // Reflects current state of execution.
     RunState state;
+
+   // True if parseThat/mutatee exited abnormally
+   bool abnormal_exit;
 
     // Mutators register their dBPatch_thread object here for
     // efficient process clean-up in the face of signals.

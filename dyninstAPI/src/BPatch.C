@@ -105,6 +105,7 @@ BPatch::BPatch()
     forceRelocation_NP(false),
     autoRelocation_NP(true),
     saveFloatingPointsOn(true),
+    forceSaveFloatingPointsOn(false),
     livenessAnalysisOn_(true),
     livenessAnalysisDepth_(3),
     asyncActive(false),
@@ -324,6 +325,15 @@ bool BPatch::isSaveFPROnInt()
 void BPatch::setSaveFPRInt(bool x)
 {
   saveFloatingPointsOn = x;
+}
+
+bool BPatch::isForceSaveFPROnInt()
+{
+  return forceSaveFloatingPointsOn;
+}
+void BPatch::forceSaveFPRInt(bool x)
+{
+  forceSaveFloatingPointsOn = x;
 }
 
 
@@ -1893,6 +1903,11 @@ bool BPatch::remoteDisconnectInt(BPatch_remoteHost &remote)
     return OS_disconnect(remote);
 }
 // -----------------------------------------------------------
+
+void BPatch::addNonReturningFuncInt(std::string name)
+{
+  Dyninst::ParseAPI::SymtabCodeSource::addNonReturning(name);
+}
 
 int BPatch_libInfo::getStopThreadCallbackID(Address cb) {
     if( stopThreadCallbacks_.defines(cb) ) {

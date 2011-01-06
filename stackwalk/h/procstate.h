@@ -55,11 +55,13 @@ class ProcessState {
    friend class Walker;
 protected:
    Dyninst::PID pid;
+   std::string exec_path;
    LibraryState *library_tracker;
    Walker *walker;
    static std::map<Dyninst::PID, ProcessState *> proc_map;
+   std::string executable_path;
 
-   ProcessState(Dyninst::PID pid_ = 0);
+   ProcessState(Dyninst::PID pid_ = 0, std::string executable_path_ = std::string(""));
    void setPid(Dyninst::PID pid_);
 public:
 
@@ -100,11 +102,13 @@ public:
   virtual bool postStackwalk(Dyninst::THR_ID tid);
 
   virtual bool isFirstParty() = 0;
+
+  std::string getExecutablePath();
 };
 
 class ProcSelf : public ProcessState {
  public:
-  ProcSelf();
+  ProcSelf(std::string exe_path = std::string(""));
   void initialize();
 
   virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val);

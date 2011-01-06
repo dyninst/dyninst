@@ -102,8 +102,9 @@ class AddressTranslate {
    PROC_HANDLE phandle;
    bool creation_error;
 
-   AddressTranslate(PID pid, PROC_HANDLE phand = INVALID_HANDLE_VALUE);
+   AddressTranslate(PID pid, PROC_HANDLE phand = INVALID_HANDLE_VALUE, std::string exename = std::string(""));
    vector<LoadedLib *> libs;
+   std::string exec_name;
    LoadedLib *exec;
    SymbolReaderFactory *symfactory;
    bool read_abort;
@@ -112,9 +113,11 @@ class AddressTranslate {
    COMMON_EXPORT static AddressTranslate *createAddressTranslator(PID pid_,
                                          ProcessReader *reader_ = NULL,
                                          SymbolReaderFactory *symfactory_ = NULL,
-                                         PROC_HANDLE phand = INVALID_HANDLE_VALUE);
+                                         PROC_HANDLE phand = INVALID_HANDLE_VALUE,
+                                         std::string exename = std::string(""));
    COMMON_EXPORT static AddressTranslate *createAddressTranslator(ProcessReader *reader_ = NULL,
-                                          SymbolReaderFactory *symfactory_ = NULL);
+                                         SymbolReaderFactory *symfactory_ = NULL,
+                                         std::string exename = std::string(""));
    
    COMMON_EXPORT virtual bool refresh() = 0;
    COMMON_EXPORT virtual ~AddressTranslate();

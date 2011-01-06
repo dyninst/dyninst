@@ -735,11 +735,12 @@ bool Frame::setPC(Address newpc) {
 
    //fprintf(stderr, "[%s:%u] - Frame::setPC setting %x to %x",
    //__FILE__, __LINE__, pcAddr_, newpc);
-   getProc()->writeDataSpace((void*)pcAddr_, sizeof(Address), &newpc);
+   if (!getProc()->writeDataSpace((void*)pcAddr_, sizeof(Address), &newpc))
+      return false;
    pc_ = newpc;
    range_ = NULL;
 
-   return false;
+   return true;
 }
 
 void print_read_error_info(const relocationEntry entry, 
@@ -863,8 +864,11 @@ bool AddressSpace::getDyninstRTLibName() {
         suffix = ".a";
     }else{
         if( P_strncmp(suffix, ".a", 2) == 0 ) {
-            // This will be incorrect if the RT library's version changes
-            suffix = ".so.1";
+	  // Add symlinks in makefiles as follows:
+	  // (lib).so => lib.so.(major)
+	  // lib.so.major => lib.so.major.minor
+	  // lib.so.major.minor => lib.so.major.minor.maintenance
+	  suffix = ".so";
         }
     }
 

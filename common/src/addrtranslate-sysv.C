@@ -340,12 +340,13 @@ vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
 }
 
 AddressTranslate *AddressTranslate::createAddressTranslator(int pid_, 
-                                               ProcessReader *reader_,
-                                               SymbolReaderFactory *symfactory_,
-                                               PROC_HANDLE)
+                                                            ProcessReader *reader_,
+                                                            SymbolReaderFactory *symfactory_,
+                                                            PROC_HANDLE,
+                                                            std::string exename)
 {
    translate_printf("[%s:%u] - Creating AddressTranslateSysV\n", __FILE__, __LINE__);
-   AddressTranslate *at = new AddressTranslateSysV(pid_, reader_, symfactory_);
+   AddressTranslate *at = new AddressTranslateSysV(pid_, reader_, symfactory_, exename);
    translate_printf("[%s:%u] - Created: %lx\n", __FILE__, __LINE__, (long)at);
    
    if (!at) {
@@ -359,9 +360,10 @@ AddressTranslate *AddressTranslate::createAddressTranslator(int pid_,
 }
 
 AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *reader_,
-                                                            SymbolReaderFactory *factory_)
+                                                            SymbolReaderFactory *factory_,
+                                                            std::string exename)
 {
-   return createAddressTranslator(getpid(), reader_, factory_, INVALID_HANDLE_VALUE);
+   return createAddressTranslator(getpid(), reader_, factory_, INVALID_HANDLE_VALUE, exename);
 }
 
 AddressTranslateSysV::AddressTranslateSysV() :
@@ -379,8 +381,9 @@ AddressTranslateSysV::AddressTranslateSysV() :
 }
 
 AddressTranslateSysV::AddressTranslateSysV(int pid, ProcessReader *reader_, 
-                                           SymbolReaderFactory *reader_fact) :
-   AddressTranslate(pid),
+                                           SymbolReaderFactory *reader_fact,
+                                           std::string exename) :
+   AddressTranslate(pid, INVALID_HANDLE_VALUE, exename),
    reader(reader_),
    interpreter_base(0),
    set_interp_base(0),
@@ -512,8 +515,8 @@ bool AddressTranslateSysV::parseInterpreter() {
 
     result = setInterpreter();
     if (!result) {
-        translate_printf("[%s:%u] - Failed to set interpreter.\n", __FILE__, __LINE__);
-        return false;
+        translate_printf("[%s:%u] - Failed to set interpreter--static binary.\n", __FILE__, __LINE__);
+        return true;
     }
 
     result = setAddressSize();
@@ -652,6 +655,7 @@ bool AddressTranslateSysV::refresh()
           if (!exec) {
              exec = getAOut();
           }
+          libs.push_back(exec);
           getArchLibs(libs);
           return true;
        }
