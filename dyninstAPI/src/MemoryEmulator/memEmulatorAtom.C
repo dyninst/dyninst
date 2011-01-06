@@ -87,6 +87,15 @@ bool MemEmulator::generate(const codeGen &templ,
       return true;
    if (generateViaModRM(templ, t, buffer))
       return true;
+
+   cerr << "Error: failed to emulate memory operation @ " << hex << addr() << dec << ", " << insn()->format() << endl;
+   unsigned char *tmp = (unsigned char *)insn()->ptr();
+   cerr << hex << "\t raw: ";
+   for (unsigned i = 0; i < insn()->size(); ++i) {
+	   cerr << tmp[i];
+   }
+   cerr << dec << endl;
+   assert(0);
    return false;
 }
 
@@ -96,9 +105,11 @@ bool MemEmulator::generateViaOverride(const codeGen &templ,
 {
     // Watch for a1/a2/a3 moves 
     unsigned char *buf = (unsigned char *)insn_->ptr();
-    if ((unsigned char) 0xa1 <= buf[0] &&
+    if ((unsigned char) 0xa0 <= buf[0] &&
         buf[0] <= (unsigned char) 0xa3) {
-            return generateEAXMove(buf[0], templ, t, buffer);
+			if (!generateEAXMove(buf[0], templ, t, buffer)) 
+				assert(0);
+			return true;
     }
                                           
    const InstructionAPI::Operation &op = insn_->getOperation();
@@ -124,10 +135,12 @@ bool MemEmulator::generateViaOverride(const codeGen &templ,
       case e_outsb:
       case e_outsd:
       case e_outsw:
-         return generateImplicit(templ, t, buffer);
+         if (!generateImplicit(templ, t, buffer)) {
+			 assert(0);
+		 }
+		 return true;
          break;
       default:
-         // WTF?
          break;
    }
    return false;
@@ -204,7 +217,11 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
    prepatch.applyTemplate(templ);
 
    bool debug = false;
-   if (addr_ == 0x40d4dc) debug = true;
+
+   if (addr_ >= 0x9a18b0 &&
+	   addr_ <= 0x9a1973) debug = true;
+   if (addr_ >= 0x9a1f85 &&
+	   addr_ <= 0x9a1f98) debug = true;
 
   // We want to ensure that a memory operation produces its
   // original result in the face of overwriting the text
@@ -280,13 +297,15 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
   if (!teardownFrame(prepatch))
      return false;
 
-  generateOrigAccess(prepatch);
+  if (!generateOrigAccess(prepatch)) {
+	  return false;
+  }
 
   if (!trailingTeardown(prepatch)) {
      return false;
   }
 
-//  if (debug) prepatch.fill(1, codeGen::cgTrap);
+  if (debug) prepatch.fill(1, codeGen::cgTrap);
   buffer.addPIC(prepatch, tracker(t->bbl()));
 
   return true;
@@ -495,7 +514,9 @@ bool MemEmulator::emulateESPUse(codeGen &gen) {
 
 bool MemEmulator::emulateCommon(codeGen &gen) {
   instruction ugly_insn(insn_->ptr());
-
+  if (addr_ == 0x9a196d) {
+	  int i = 3;
+  }
   if (!insnCodeGen::generateMem(gen,
 				ugly_insn,
 				0, // ignored
