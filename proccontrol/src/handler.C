@@ -1184,7 +1184,18 @@ bool HandleCallbacks::handleCBReturn(Process::const_ptr proc, Thread::const_ptr 
          int_threadPool *tp = proc->llproc()->threadPool();
          for (int_threadPool::iterator j = tp->begin(); j != tp->end(); j++) {
             (*j)->setUserState(int_thread::stopped);
-            (*j)->setInternalState(int_thread::stopped);
+
+            if( (*j)->getHandlerState() == int_thread::running ) {
+                // sync cannot be set here or it will result in recursive event
+                // handling -- waitAndHandleEvents will take care of flushing out
+                // the stop
+                if( !(*j)->intStop(false) ) {
+                    // Silent for now
+                    perr_printf("Failed to issue stop to handle user CB return\n");
+                }
+            }else{
+                (*j)->setInternalState(int_thread::stopped);
+            }
          }
          break;
       }
@@ -1210,9 +1221,10 @@ bool HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_
    // Make sure the user can operate on the process in the callback
    // But if this is a PostCrash or PostExit, the underlying process and
    // threads are already gone
-   if( !ev->getProcess()->isTerminated() ) {
+   int_thread::State savedUserState;
+   if( !ev->getProcess()->isTerminated() && ev->getThread()->llthrd() != NULL ) {
+       savedUserState = ev->getThread()->llthrd()->getUserState();
        ev->getThread()->llthrd()->setUserState(int_thread::stopped);
-       ev->getThread()->llthrd()->setInternalState(int_thread::stopped);
    }
 
    //The following code loops over each callback registered for this event type
@@ -1236,6 +1248,12 @@ bool HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_
 
       pthrd_printf("Callback #%u return %s/%s\n", k, action_str(ret.parent),
                    action_str(ret.child));
+   }
+
+   // Now that the callback is over, return the state to what it was before the
+   // callback so the return value from the callback can be used to update the state
+   if( !ev->getProcess()->isTerminated() && ev->getThread()->llthrd() != NULL ) {
+      ev->getThread()->llthrd()->setUserState(savedUserState);
    }
 
    //Given the callback return result, change the user state to the appropriate
