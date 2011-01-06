@@ -77,7 +77,7 @@ int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon
 
    if (attach) {
       pid_t mpirun_pid = run_local(new_test_args);
-      sleep(1); //Want some better way to let mpirun get running
+      sleep(10); //Want some better way to let mpirun get running
       rc = LMON_fe_attachAndSpawnDaemons(session,
                                          launcher_host,
                                          mpirun_pid,

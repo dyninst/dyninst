@@ -248,8 +248,20 @@ const char *ts_str() {
 
 static bool post_irpc(Thread::const_ptr thr)
 {
-   Process::ptr proc = thr->getProcess();
-   proc_info_t &p = pinfo[proc];
+   Process::const_ptr proc = thr->getProcess();
+   Process::ptr proc_nc = Process::ptr();
+
+   //bad hack to remove const from process
+   for (std::map<Process::ptr, proc_info_t>::iterator i = pinfo.begin(); 
+        i != pinfo.end(); i++) {
+      if (proc == i->first) {
+         proc_nc = i->first;
+         break;
+      }
+   }
+   assert(proc_nc);
+   
+   proc_info_t &p = pinfo[proc_nc];
 
       //for (vector<rpc_data_t *>::iterator j = p.rpcs.begin(); j != p.rpcs.end(); j++) 
    for (unsigned j = 0; j < p.rpcs.size(); j++)
@@ -378,7 +390,7 @@ void pc_irpcMutator::runIRPCs() {
         i != tinfo.end(); i++)
    {
       Thread::const_ptr thr = i->first;
-      Process::ptr proc = thr->getProcess();
+      Process::const_ptr proc = thr->getProcess();
       thread_info_t &t = i->second;
 
       int num_to_post_now = (post_time == post_all_once) ? NUM_IRPCS : 1;
