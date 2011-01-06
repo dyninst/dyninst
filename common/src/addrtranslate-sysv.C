@@ -340,10 +340,10 @@ vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
 }
 
 AddressTranslate *AddressTranslate::createAddressTranslator(int pid_, 
-                                               ProcessReader *reader_,
-                                               SymbolReaderFactory *symfactory_,
-                                               PROC_HANDLE,
-                                               std::string exename)
+                                                            ProcessReader *reader_,
+                                                            SymbolReaderFactory *symfactory_,
+                                                            PROC_HANDLE,
+                                                            std::string exename)
 {
    translate_printf("[%s:%u] - Creating AddressTranslateSysV\n", __FILE__, __LINE__);
    AddressTranslate *at = new AddressTranslateSysV(pid_, reader_, symfactory_, exename);
@@ -515,8 +515,8 @@ bool AddressTranslateSysV::parseInterpreter() {
 
     result = setInterpreter();
     if (!result) {
-        translate_printf("[%s:%u] - Failed to set interpreter.\n", __FILE__, __LINE__);
-        return false;
+        translate_printf("[%s:%u] - Failed to set interpreter--static binary.\n", __FILE__, __LINE__);
+        return true;
     }
 
     result = setAddressSize();
@@ -654,6 +654,7 @@ bool AddressTranslateSysV::refresh()
           if (!exec) {
              exec = getAOut();
           }
+          libs.push_back(exec);
           getArchLibs(libs);
           return true;
        }

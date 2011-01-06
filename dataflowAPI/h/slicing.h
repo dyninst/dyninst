@@ -410,7 +410,8 @@ class Slicer {
             GraphPtr g,
             Direction dir,
             SliceFrame & cand,
-            DefCache & cache);
+            DefCache & cache,
+            Predicates &p);
 
     void updateAndLinkFromCache(
             GraphPtr g,
@@ -525,10 +526,8 @@ class Slicer {
 
     /* general slicing support */
   
-    Element constructInitialElement();
     void constructInitialFrame(
             Direction dir, 
-            Element const& init,
             SliceFrame & initFrame);
     
     void widenAll(GraphPtr graph, Direction dir, SliceFrame const& frame);

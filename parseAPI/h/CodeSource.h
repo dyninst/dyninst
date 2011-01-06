@@ -204,6 +204,8 @@ class SymtabCodeSource : public CodeSource {
     SymtabAPI::Symtab * _symtab;
     bool owns_symtab;
     mutable CodeRegion * _lookup_cache;
+
+    static dyn_hash_map<std::string, bool> non_returning_funcs;
  public:
     struct hint_filt {
         virtual ~hint_filt() { }
@@ -239,6 +241,7 @@ class SymtabCodeSource : public CodeSource {
 
     PARSER_EXPORT void removeHint(Hint);
 
+    PARSER_EXPORT static void addNonReturning(std::string func_name);
  private:
     void init(hint_filt *, bool);
     void init_regions(hint_filt *, bool);

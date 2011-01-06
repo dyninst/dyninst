@@ -200,8 +200,8 @@ class int_process
    Dyninst::Address infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
    bool infFree(Dyninst::Address addr);
 
-   bool readMem(Dyninst::Address remote, mem_response::ptr result);
-   bool writeMem(void *local, Dyninst::Address remote, size_t size, result_response::ptr result);
+   bool readMem(Dyninst::Address remote, mem_response::ptr result, int_thread *thr = NULL);
+   bool writeMem(void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr = NULL);
 
    virtual bool plat_readMem(int_thread *thr, void *local, 
                              Dyninst::Address remote, size_t size) = 0;
@@ -236,6 +236,7 @@ class int_process
    virtual bool initLibraryMechanism() = 0;
    virtual bool plat_isStaticBinary() = 0;
 
+   virtual bool plat_supportLWPEvents() const;
    bool forceGeneratorBlock() const;
    void setForceGeneratorBlock(bool b);
 
@@ -378,7 +379,6 @@ class int_thread
    Process::ptr proc() const;
    int_process *llproc() const;
 
-   Dyninst::THR_ID getTid() const;
    Dyninst::LWP getLWP() const;
 
    typedef enum {
@@ -496,6 +496,16 @@ class int_thread
    virtual bool attach() = 0;
    Thread::ptr thread();
    bool useHybridLWPControl(bool check_mt = true) const;
+
+   //User level thread info
+   void setTID(Dyninst::THR_ID tid_);
+   virtual bool haveUserThreadInfo();
+   virtual bool getTID(Dyninst::THR_ID &tid);
+   virtual bool getStartFuncAddress(Dyninst::Address &addr);
+   virtual bool getStackBase(Dyninst::Address &addr);
+   virtual bool getStackSize(unsigned long &size);
+   virtual bool getTLSPtr(Dyninst::Address &addr);
+      
    virtual ~int_thread();
    static const char *stateStr(int_thread::State s);
  protected:

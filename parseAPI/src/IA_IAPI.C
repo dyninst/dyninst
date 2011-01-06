@@ -56,6 +56,47 @@ std::map<Architecture, RegisterAST::Ptr> IA_IAPI::framePtr;
 std::map<Architecture, RegisterAST::Ptr> IA_IAPI::stackPtr;
 std::map<Architecture, RegisterAST::Ptr> IA_IAPI::thePC;
 
+IA_IAPI::IA_IAPI(const IA_IAPI &rhs) 
+   : InstructionAdapter(rhs),
+     dec(rhs.dec),
+     allInsns(rhs.allInsns),
+     validCFT(rhs.validCFT),
+     cachedCFT(rhs.cachedCFT),
+     validLinkerStubState(rhs.validLinkerStubState),
+     cachedLinkerStubState(rhs.cachedLinkerStubState),
+     hascftstatus(rhs.hascftstatus),
+     tailCall(rhs.tailCall) {
+   curInsnIter = allInsns.find(rhs.curInsnIter->first);
+}
+
+IA_IAPI &IA_IAPI::operator=(const IA_IAPI &rhs) {
+   dec = rhs.dec;
+   allInsns = rhs.allInsns;
+   curInsnIter = allInsns.find(rhs.curInsnIter->first);
+   validCFT = rhs.validCFT;
+   cachedCFT = rhs.cachedCFT;
+   validLinkerStubState = rhs.validLinkerStubState;
+   cachedLinkerStubState = rhs.cachedLinkerStubState;
+   hascftstatus = rhs.hascftstatus;
+   tailCall = rhs.tailCall;
+
+   // InstructionAdapter members
+   current = rhs.current;
+   previous = rhs.previous;
+   parsedJumpTable = rhs.parsedJumpTable;
+   successfullyParsedJumpTable = rhs.successfullyParsedJumpTable;
+   isDynamicCall_ = rhs.isDynamicCall_;
+   checkedDynamicCall_ = rhs.checkedDynamicCall_;
+   isInvalidCallTarget_ = rhs.isInvalidCallTarget_;
+   checkedInvalidCallTarget_ = rhs.checkedInvalidCallTarget_;
+   _obj = rhs._obj;
+   _cr = rhs._cr;
+   _isrc = rhs._isrc;
+   _curBlk = rhs._curBlk;
+
+   return *this;
+}
+
 void IA_IAPI::initASTs()
 {
     if(framePtr.empty())
@@ -85,8 +126,9 @@ IA_IAPI::IA_IAPI(InstructionDecoder dec_,
         Address where_,
         CodeObject * o,
         CodeRegion * r,
-        InstructionSource *isrc) :
-    InstructionAdapter(where_, o, r, isrc), 
+        InstructionSource *isrc,
+	Block * curBlk_) :
+    InstructionAdapter(where_, o, r, isrc, curBlk_), 
     dec(dec_),
     validCFT(false), 
     cachedCFT(0),
@@ -229,11 +271,6 @@ bool IA_IAPI::isAbsoluteCall() const
     return false;
 }
 
-
-bool IA_IAPI::isReturn() const
-{
-    return curInsn()->getCategory() == c_ReturnInsn;
-}
 bool IA_IAPI::isBranch() const
 {
     return curInsn()->getCategory() == c_BranchInsn;
@@ -379,18 +416,33 @@ void IA_IAPI::getNewEdges(
 
             if(!successfullyParsedJumpTable || outEdges.empty()) {
                 outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
+            	parsing_printf("%s[%d]: BCTR unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", FILE__, __LINE__,
+                           ci->format().c_str(), current, context->name().c_str());
             }
             return;
         }
     }
     else if(ci->getCategory() == c_ReturnInsn)
     {
+        parsing_printf("%s[%d]: BLR %s at 0x%lx\n", FILE__, __LINE__,
+                           ci->format().c_str(), current);
         if(ci->allowsFallThrough())
         {
             outEdges.push_back(std::make_pair(getNextAddr(), FALLTHROUGH));
-            return;
         }
-        return;
+ 	else if (!isReturn(context, currBlk)) {
+	    // If BLR is not a return, then it is a jump table
+            parsedJumpTable = true;
+            parsing_printf("%s[%d]: BLR jump table candidate %s at 0x%lx\n", FILE__, __LINE__,
+                           ci->format().c_str(), current);
+            successfullyParsedJumpTable = parseJumpTable(currBlk, outEdges);
+
+            if(!successfullyParsedJumpTable || outEdges.empty()) {
+            	parsing_printf("%s[%d]: BLR unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", FILE__, __LINE__, ci->format().c_str(), current, context->name().c_str());
+                outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
+            }
+	}
+	return;
     }
     fprintf(stderr, "Unhandled instruction %s\n", ci->format().c_str());
     assert(0);

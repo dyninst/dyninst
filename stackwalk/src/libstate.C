@@ -303,7 +303,7 @@ bool TrackLibState::getAOut(LibAddrPair &addr_pair)
    return true;
 }
 
-swkProcessReader::swkProcessReader(ProcessState *pstate, const std::string& /*executable*/) :
+swkProcessReader::swkProcessReader(ProcessState *pstate, std::string /*executable*/) :
    procstate(pstate)
 {
 }

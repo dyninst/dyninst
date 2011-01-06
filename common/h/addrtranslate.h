@@ -116,7 +116,6 @@ class AddressTranslate {
    COMMON_EXPORT static AddressTranslate *createAddressTranslator(ProcessReader *reader_ = NULL,
                                          SymbolReaderFactory *symfactory_ = NULL,
                                          std::string exename = std::string(""));
-
    
    COMMON_EXPORT virtual bool refresh() = 0;
    COMMON_EXPORT virtual ~AddressTranslate();

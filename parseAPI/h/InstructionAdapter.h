@@ -59,7 +59,7 @@ class InstructionAdapter
 {
     public:
         InstructionAdapter(Address start, ParseAPI::CodeObject *o , 
-            ParseAPI::CodeRegion* r, InstructionSource * isrc);
+            ParseAPI::CodeRegion* r, InstructionSource * isrc,  ParseAPI::Block *);
         virtual ~InstructionAdapter();
     // Implemented
     virtual bool hasCFT() const = 0;
@@ -100,10 +100,11 @@ const;
     virtual bool isBranch() const = 0;
     virtual bool isInterruptOrSyscall() const = 0;
     virtual bool isCall() const = 0;
-    virtual bool isReturnAddrSave() const = 0;
+    virtual bool isReturnAddrSave(Address &ret_addr) const = 0; // ret_addr holds the return address pushed in the stack using mflr at function entry 
     virtual bool isTailCall(ParseAPI::Function *,unsigned int num_insns) const = 0;
     protected:
-        virtual bool isReturn() const = 0;
+    	// Uses pattern heuristics or backward slicing to determine if a blr instruction is a return or jump table
+        virtual bool isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const = 0;
         virtual bool isRealCall() const = 0;
         Address current;
     Address previous;
@@ -116,6 +117,8 @@ const;
     ParseAPI::CodeObject * _obj;
     ParseAPI::CodeRegion * _cr;
     InstructionSource * _isrc;
+    // Block associated with the instruction adapter. This is required for powerpc slicing to determine the return address of a function
+    ParseAPI::Block * _curBlk;
 };
 
 } // Dyninst

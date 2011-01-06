@@ -42,7 +42,7 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-SymbolLookup::SymbolLookup(Walker *w, const std::string &exec_path) :
+SymbolLookup::SymbolLookup(Walker *w, std::string exec_path) :
    walker(w),
    executable_path(exec_path)
 {
@@ -67,12 +67,12 @@ ProcessState *SymbolLookup::getProcessState()
   return walker->getProcessState();
 }
 
-SymbolLookup *Walker::createDefaultSymLookup(const std::string &exec_name)
+SymbolLookup *Walker::createDefaultSymLookup(std::string exec_name)
 {
    return new SymDefaultLookup(this, exec_name);
 }
 
-SwkSymtab::SwkSymtab(Walker *w, const std::string &s) :
+SwkSymtab::SwkSymtab(Walker *w, std::string s) :
    SymbolLookup(w, s)
 {
    assert(0);
@@ -90,7 +90,7 @@ SwkSymtab::~SwkSymtab()
 {
 }
 
-SymDefaultLookup::SymDefaultLookup(Walker *w, const std::string &s) :
+SymDefaultLookup::SymDefaultLookup(Walker *w, std::string s) :
    SymbolLookup(w, s)
 {
 }

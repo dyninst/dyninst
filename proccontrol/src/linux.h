@@ -98,11 +98,13 @@ class linux_process : public sysv_process, public unix_process, public x86_proce
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
    virtual Dyninst::Architecture getTargetArch();
    virtual bool plat_individualRegAccess();
-   virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
-   virtual ThreadControlMode plat_getThreadControlMode() const;
+   virtual bool plat_contProcess() { return true; }
+   virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
+   virtual bool plat_supportLWPEvents() const;
+   virtual int_process::ThreadControlMode plat_getThreadControlMode() const;
 };
 
-class linux_thread : public int_thread
+class linux_thread : public thread_db_thread
 {
  public:
    linux_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
@@ -126,6 +128,8 @@ class linux_thread : public int_thread
    virtual bool plat_setRegisterAsync(Dyninst::MachRegister reg, 
                                       Dyninst::MachRegisterVal val,
                                       result_response::ptr result);
+
+   virtual bool thrdb_getThreadArea(int val, Dyninst::Address &addr);
 
    // Needed by HybridLWPControl, unused on Linux
    virtual bool plat_resume() { return true; }

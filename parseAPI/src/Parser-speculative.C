@@ -139,7 +139,8 @@ namespace hd {
         InstructionDecoder dec(bufferBegin, 
             cr->offset() + cr->length() - addr, 
             cr->getArch());
-        InstructionAdapter_t ah(dec, addr, co, cr, cr);
+	Block * blk = NULL;
+	InstructionAdapter_t ah(dec, addr, co, cr, cr, blk);
 
         return ah.isStackFramePreamble();
     }
@@ -158,7 +159,8 @@ namespace hd {
         InstructionDecoder dec(bufferBegin, 
             cr->offset()+cr->length()-addr,
             cr->getArch());
-        InstructionAdapter_t ah(dec, addr, co, cr, cr);
+	Block * blk = NULL;
+        InstructionAdapter_t ah(dec, addr, co, cr, cr, blk);
     
         if(ah.isStackFramePreamble()) {
             return true;

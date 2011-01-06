@@ -161,7 +161,7 @@ bool SwkSymtab::lookupAtAddr(Address addr, std::string &out_name,
   return true;
 }
 
-SwkSymtab::SwkSymtab(Walker *w, const std::string &exec_name) :
+SwkSymtab::SwkSymtab(Walker *w, std::string exec_name) :
    SymbolLookup(w, exec_name)
 {
 }

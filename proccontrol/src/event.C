@@ -157,7 +157,11 @@ std::string EventType::name() const
       STR_CASE(Fork);
       STR_CASE(Exec);
       STR_CASE(ThreadCreate);
+      STR_CASE(UserThreadCreate);
+      STR_CASE(LWPCreate);
       STR_CASE(ThreadDestroy);
+      STR_CASE(UserThreadDestroy);
+      STR_CASE(LWPDestroy);
       STR_CASE(Stop);
       STR_CASE(Signal);
       STR_CASE(LibraryLoad);
@@ -332,9 +336,8 @@ EventBootstrap::~EventBootstrap()
 {
 }
 
-EventNewThread::EventNewThread(Dyninst::LWP lwp_) :
-   Event(EventType(EventType::None, EventType::ThreadCreate)),
-   lwp(lwp_)
+EventNewThread::EventNewThread(EventType et) : 
+   Event(et)
 {
 }
 
@@ -342,24 +345,89 @@ EventNewThread::~EventNewThread()
 {
 }
 
-Dyninst::LWP EventNewThread::getLWP() const
+EventNewUserThread::EventNewUserThread() :
+   EventNewThread(EventType(EventType::None, EventType::UserThreadCreate))
+{
+   iev = new int_eventNewUserThread();
+}
+
+EventNewUserThread::~EventNewUserThread()
+{
+   if (iev) 
+      delete iev;
+   iev = NULL;
+}
+
+Dyninst::LWP EventNewUserThread::getLWP() const
+{
+   if (iev->lwp != NULL_LWP)
+      return iev->lwp;
+   return iev->thr ? iev->thr->getLWP() : NULL_LWP;
+}
+
+Thread::const_ptr EventNewUserThread::getNewThread() const
+{
+   if (iev->thr)
+      return iev->thr->thread();
+   if (iev->lwp == NULL_LWP)
+      return Thread::const_ptr();
+
+   iev->thr = getProcess()->llproc()->threadPool()->findThreadByLWP(iev->lwp);
+   assert(iev->thr);
+   return iev->thr->thread();
+}
+
+int_eventNewUserThread *EventNewUserThread::getInternalEvent() const
+{
+   return iev;
+}
+
+EventNewLWP::EventNewLWP(Dyninst::LWP lwp_) :
+   EventNewThread(EventType(EventType::None, EventType::LWPCreate)),
+   lwp(lwp_)
+{
+}
+
+EventNewLWP::~EventNewLWP()
+{
+}
+
+Dyninst::LWP EventNewLWP::getLWP() const
 {
    return lwp;
 }
 
-Thread::const_ptr EventNewThread::getNewThread() const
+Thread::const_ptr EventNewLWP::getNewThread() const
 {
    int_thread *thr = getProcess()->llproc()->threadPool()->findThreadByLWP(lwp);
    assert(thr);
    return thr->thread();
 }
 
-EventThreadDestroy::EventThreadDestroy(EventType::Time time_) :
-   Event(EventType(time_, EventType::ThreadDestroy))
+EventThreadDestroy::EventThreadDestroy(EventType et) :
+   Event(et)
 {
 }
 
 EventThreadDestroy::~EventThreadDestroy()
+{
+}
+
+EventUserThreadDestroy::EventUserThreadDestroy(EventType::Time time_) :
+   EventThreadDestroy(EventType(time_, EventType::UserThreadDestroy))
+{
+}
+
+EventUserThreadDestroy::~EventUserThreadDestroy()
+{
+}
+
+EventLWPDestroy::EventLWPDestroy(EventType::Time time_) :
+   EventThreadDestroy(EventType(time_, EventType::LWPDestroy))
+{
+}
+
+EventLWPDestroy::~EventLWPDestroy()
 {
 }
 
@@ -558,6 +626,20 @@ response::ptr int_eventAsync::getResponse() const
    return resp;
 }
 
+int_eventNewUserThread::int_eventNewUserThread() :
+   thr(NULL),
+   lwp(NULL_LWP),
+   raw_data(NULL),
+   needs_update(true)
+{   
+}
+
+int_eventNewUserThread::~int_eventNewUserThread()
+{
+   if (raw_data)
+      free(raw_data);
+}
+
 EventAsync::EventAsync(int_eventAsync *ievent) :
    Event(EventType(EventType::None, EventType::Async)),
    internal(ievent)
@@ -637,13 +719,17 @@ void EventIntBootstrap::setData(void *d)
    }
 
 DEFN_EVENT_CAST2(EventTerminate, Exit, Crash)
+DEFN_EVENT_CAST2(EventNewThread, ThreadCreate, LWPCreate)
+DEFN_EVENT_CAST2(EventThreadDestroy, ThreadDestroy, UserThreadDestroy)
 DEFN_EVENT_CAST(EventExit, Exit)
 DEFN_EVENT_CAST(EventCrash, Crash)
 DEFN_EVENT_CAST(EventExec, Exec)
 DEFN_EVENT_CAST(EventStop, Stop)
 DEFN_EVENT_CAST(EventBreakpoint, Breakpoint)
-DEFN_EVENT_CAST(EventNewThread, ThreadCreate)
-DEFN_EVENT_CAST(EventThreadDestroy, ThreadDestroy)
+DEFN_EVENT_CAST(EventNewUserThread, UserThreadCreate)
+DEFN_EVENT_CAST(EventNewLWP, LWPCreate)
+DEFN_EVENT_CAST(EventUserThreadDestroy, UserThreadDestroy)
+DEFN_EVENT_CAST(EventLWPDestroy, LWPDestroy)
 DEFN_EVENT_CAST(EventFork, Fork)
 DEFN_EVENT_CAST(EventSignal, Signal)
 DEFN_EVENT_CAST(EventBootstrap, Bootstrap)

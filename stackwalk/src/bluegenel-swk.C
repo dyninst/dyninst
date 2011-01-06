@@ -59,7 +59,7 @@ namespace Dyninst {
     // ProcDebugBG
     // This is the factor function that initially creates a BGL stackwalker.
     // ============================================================ //
-    ProcDebug *ProcDebugBG::createProcDebugBG(PID pid, const string& executable) {
+    ProcDebug *ProcDebugBG::createProcDebugBG(PID pid, string executable) {
       return new ProcDebugBGL(pid, executable);
     }
 

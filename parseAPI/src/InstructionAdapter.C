@@ -40,12 +40,12 @@ using namespace Dyninst;
 using namespace Dyninst::InsnAdapter;
 using namespace Dyninst::ParseAPI;
 
-InstructionAdapter::InstructionAdapter(Address start, CodeObject *o, CodeRegion * r, InstructionSource * isrc)
+InstructionAdapter::InstructionAdapter(Address start, CodeObject *o, CodeRegion * r, InstructionSource * isrc, Block * curBlk)
     : current(start), previous((Address)-1), parsedJumpTable(false), successfullyParsedJumpTable(false),
     isDynamicCall_(false), checkedDynamicCall_(false),
     isInvalidCallTarget_(false), checkedInvalidCallTarget_(false),
     //context(NULL), 
-    _obj(o), _cr(r), _isrc(isrc)
+    _obj(o), _cr(r), _isrc(isrc), _curBlk(curBlk)
 {
 }
 
@@ -113,7 +113,7 @@ FuncReturnStatus InstructionAdapter::getReturnStatus(Function * context ,
         }
             
     }
-    if(isReturn())
+    if(isReturn(context, _curBlk))
     {
         return RETURN;
     }

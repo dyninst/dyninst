@@ -40,6 +40,8 @@
 #include <assert.h>
 #include <errno.h>
 
+#define os_bluegene_test
+
 #if defined(os_windows_test)
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -47,11 +49,6 @@
 #else
 #include <unistd.h>
 #include <sys/time.h>
-#endif
-
-#define os_bluegene_test
-#if defined(os_bluegene_test)
-#include <mpi.h>
 #endif
 
 #ifdef __cplusplus

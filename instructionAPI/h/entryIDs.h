@@ -543,7 +543,7 @@ enum entryID {
   power_op_fnmsubs,
   power_op_addze,
   power_op_mulld,
-  power_op_si,
+  power_op_addic,
   power_op_lfs,
   power_op_andc,
   power_op_eciwx,

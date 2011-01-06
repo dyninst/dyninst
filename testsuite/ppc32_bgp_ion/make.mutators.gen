@@ -7,9 +7,9 @@
 ######################################################################
 
 
-proccontrol_MUTATORS = pc_launch pc_thread_cont pc_breakpoint pc_library pc_singlestep pc_irpc 
+proccontrol_MUTATORS = pc_launch pc_thread_cont pc_breakpoint pc_library pc_singlestep pc_thread pc_irpc 
 
-proccontrol_OBJS_ALL_MUTATORS = pc_launch.o pc_thread_cont.o pc_breakpoint.o pc_library.o pc_singlestep.o pc_irpc.o 
+proccontrol_OBJS_ALL_MUTATORS = pc_launch.o pc_thread_cont.o pc_breakpoint.o pc_library.o pc_singlestep.o pc_thread.o pc_irpc.o 
 
 
 instruction_MUTATORS = power_decode power_cft 
@@ -54,6 +54,14 @@ endif
 endif
 
 pc_singlestep.so: pc_singlestep.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_singlestep.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+pc_thread.so: pc_thread.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_thread.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
 	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO

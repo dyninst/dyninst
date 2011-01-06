@@ -55,6 +55,7 @@ class ParseCallback;
 
 class CodeObject {
  public:
+    PARSER_EXPORT static void version(int& major, int& minor, int& maintenance);
     typedef ContainerWrapper<
         std::set<Function*,Function::less>,
         Function*,
@@ -89,6 +90,10 @@ class CodeObject {
     PARSER_EXPORT Function * findFuncByEntry(CodeRegion * cr, Address entry);
     PARSER_EXPORT int findFuncs(CodeRegion * cr, 
             Address addr, 
+            std::set<Function*> & funcs);
+      // Find functions overlapping the range [start,end)
+    PARSER_EXPORT int findFuncs(CodeRegion * cr,
+            Address start, Address end,
             std::set<Function*> & funcs);
     PARSER_EXPORT funclist & funcs() { return flist; }
 

@@ -296,7 +296,7 @@ if test "x$THREADDB_INC_DIR" != "x"; then
   CXXFLAGS="$CXXFLAGS -I$THREADDB_INC_DIR"
   CPPFLAGS="$CPPFLAGS -I$THREADDB_INC_DIR"
 fi
-LDFLAGS="-shared"
+LDFLAGS="-shared -fPIC"
 HAVE_THREADDB="true"
 if test "x$SUPPRESS_THREADDB_REQ" = "x"; then
     AC_CHECK_HEADER([thread_db.h], [AC_MSG_NOTICE(thread_db include directory: $THREADDB_INC_DIR)],

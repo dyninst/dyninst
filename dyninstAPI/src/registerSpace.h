@@ -277,6 +277,7 @@ class registerSpace {
 
     // Things that will be modified implicitly by anything else we
     // generate - condition registers, etc.
+    bool checkVolatileRegisters(codeGen &gen, registerSlot::livenessState_t);
     bool saveVolatileRegisters(codeGen &gen);
     bool restoreVolatileRegisters(codeGen &gen);
 

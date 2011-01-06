@@ -122,18 +122,16 @@ Slicer::sliceInternal(
     map<CacheEdge, set<AbsRegion> > visited;
     map<Address,DefCache> cache;
     
-
     ret = Graph::createGraph();
    
-    // set up a slicing element describing the starting
-    // position of this slicd 
-    Element initial = constructInitialElement();
-
     // set up a slicing frame describing with the
-    // relevant context and the initial element
-    constructInitialFrame(dir,initial,initFrame);
+    // relevant context
+    constructInitialFrame(dir,initFrame);
 
-    aP = createNode(initial);
+    // note that the AbsRegion in this Element *does not matter*;
+    // we just need the block, function and assignment
+    aP = createNode(Element(b_,f_,a_->out(),a_));
+
     if(dir == forward) {
         slicing_printf("Inserting entry node %p/%s\n",
             aP.get(),aP->format().c_str());
@@ -175,7 +173,7 @@ Slicer::sliceInternalAux(
     // `false' otherwise.
 
     if(!skip)
-        updateAndLink(g,dir,cand,mydefs);
+       updateAndLink(g,dir,cand,mydefs,p);
 
     slicing_printf("\t\tfinished udpateAndLink, active.size: %ld\n",
         cand.active.size());
@@ -221,13 +219,15 @@ Slicer::sliceInternalAux(
         // If the control flow search has run
         // off the rails somehow, widen;
         // otherwise search down this new path
-        if(!f.valid)
+        if(!f.valid) {
             widenAll(g,dir,cand);
+	}
         else {
-            sliceInternalAux(g,dir,p,f,false,visited,cache);
 
-            // absorb the down-slice cache into this node's cache
-            cache[cand.addr()].merge(cache[f.addr()]);
+	  sliceInternalAux(g,dir,p,f,false,visited,cache);
+	  
+	  // absorb the down-slice cache into this node's cache
+	  cache[cand.addr()].merge(cache[f.addr()]);
         }
     }
    
@@ -278,7 +278,8 @@ Slicer::updateAndLink(
     Graph::Ptr g,
     Direction dir,
     SliceFrame & cand,
-    DefCache & cache)
+    DefCache & cache,
+    Predicates &p)
 {
     vector<Assignment::Ptr> assns;
     vector<bool> killed;
@@ -327,7 +328,16 @@ Slicer::updateAndLink(
     }
 
     for(unsigned i=0;i<matches.size();++i) {
-        cand.active[matches[i].reg].push_back(matches[i]);
+       // Check our predicates
+       if (p.widenAtPoint(matches[i].ptr)) {
+          widen(g, dir, matches[i]);
+       }
+       else if (p.endAtPoint(matches[i].ptr)) {
+          // Do nothing...
+       }
+       else {
+          cand.active[matches[i].reg].push_back(matches[i]);
+       }
     }
 
     return true;
@@ -358,7 +368,9 @@ Slicer::updateAndLinkFromCache(
         set<Def>::const_iterator dit = defs.begin();
         for( ; dit != defs.end(); ++dit) {
             for(unsigned i=0;i<eles.size();++i) {
-                insertPair(g,dir,eles[i],(*dit).ele,(*dit).data);
+                // don't create self-loops on assignments
+                if (eles[i].ptr != (*dit).ele.ptr)
+                    insertPair(g,dir,eles[i],(*dit).ele,(*dit).data);
             }
         }
 
@@ -453,7 +465,8 @@ Slicer::findMatch(
                 //      call or return edges. This `true' AbsRegion
                 //      is used to associate two different AbsRegions
                 //      during symbolic evaluation
-                insertPair(g,dir,eles[i],ne,eles[i].reg);
+                if (eles[i].ptr != ne.ptr)
+                    insertPair(g,dir,eles[i],ne,eles[i].reg);
             }
 
             // In this case, we are now interested in the 
@@ -604,6 +617,12 @@ Slicer::getPredecessors(
                 for( ; ait != cand.active.end(); ++ait) {
                     slicing_printf("\t\t\t\t%s\n",
                         (*ait).first.format().c_str());
+
+			vector<Element> const& eles = (*ait).second;
+			for(unsigned i=0;i<eles.size();++i) {
+				slicing_printf("\t\t\t\t\t [%s] : %s\n",
+					eles[i].reg.format().c_str(),eles[i].ptr->format().c_str());
+			}
                 }
             }
     
@@ -1196,6 +1215,7 @@ Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {
 Graph::Ptr Slicer::backwardSlice(Predicates &predicates) {
   // delete cache state
   unique_edges_.clear(); 
+
   return sliceInternal(backward, predicates);
 }
 
@@ -1350,7 +1370,7 @@ void Slicer::insertPair(Graph::Ptr ret,
 			Direction dir,
 			Element const&source,
 			Element const&target,
-            AbsRegion const& data) 
+			AbsRegion const& data) 
 {
   SliceNode::Ptr s = createNode(source);
   SliceNode::Ptr t = createNode(target);
@@ -1505,12 +1525,22 @@ void Slicer::insertInitialNode(GraphPtr ret, Direction dir, SliceNode::Ptr aP) {
  
 void Slicer::constructInitialFrame(
     Direction dir,
-    Element const& init,
     SliceFrame & initFrame)
 {
     initFrame.con.push_front(ContextElement(f_));
     initFrame.loc = Location(f_,b_);
-    initFrame.active[init.reg].push_back(init);
+
+    if(dir == forward) {
+        Element oe(b_,f_,a_->out(),a_);
+        initFrame.active[a_->out()].push_back(oe);
+    } else {
+        vector<AbsRegion> & inputs = a_->inputs();
+        vector<AbsRegion>::iterator iit = inputs.begin();
+        for ( ; iit != inputs.end(); ++iit) {
+            Element ie(b_,f_,*iit,a_);
+            initFrame.active[*iit].push_back(ie);
+        }
+    }
 
     if(dir == forward) {
         initFrame.loc.fwd = true;
@@ -1522,11 +1552,6 @@ void Slicer::constructInitialFrame(
         fastBackward(initFrame.loc, a_->addr());
     }
 }
-
-Slicer::Element Slicer::constructInitialElement()
-{
-    return Element(b_,f_,a_->out(),a_);
-}   
 
 void
 Slicer::DefCache::merge(Slicer::DefCache const& o)

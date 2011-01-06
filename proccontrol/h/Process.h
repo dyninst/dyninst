@@ -209,6 +209,7 @@ class Process
  public:
    typedef dyn_detail::boost::shared_ptr<Process> ptr;
    typedef dyn_detail::boost::shared_ptr<const Process> const_ptr;
+   static void version(int& major, int& minor, int& maintenance);
 
    int_process *llproc() const;
 
@@ -341,7 +342,8 @@ class Thread
    int_thread *llthrd() const;
 
    Dyninst::LWP getLWP() const;
-   Process::ptr getProcess() const;
+   Process::ptr getProcess();
+   Process::const_ptr getProcess() const;
 
    bool isStopped() const;
    bool isRunning() const;
@@ -358,6 +360,16 @@ class Thread
    bool getAllRegisters(RegisterPool &pool) const;
    bool setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const;
    bool setAllRegisters(RegisterPool &pool) const;
+
+   /**
+    * User level thread info.  Only available after a UserThreadCreate event
+    **/
+   bool haveUserThreadInfo() const;
+   Dyninst::THR_ID getTID() const;
+   Dyninst::Address getStartFunction() const;
+   Dyninst::Address getStackBase() const;
+   unsigned long getStackSize() const;
+   Dyninst::Address getTLS() const;
 
    /**
     * IRPC
@@ -472,7 +484,8 @@ class RegisterPool
    const Dyninst::MachRegisterVal& operator[](Dyninst::MachRegister r) const;
 
    size_t size() const;
-   Thread::ptr getThread() const;
+   Thread::const_ptr getThread() const;
+   Thread::ptr getThread();
 };
 
 class EventNotify

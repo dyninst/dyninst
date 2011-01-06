@@ -268,6 +268,8 @@ class HandleCallbacks : public Handler
   bool deliverCallback(Event::ptr ev, const set<Process::cb_func_t> &cbset);
   
   bool requiresCB(Event::const_ptr ev);
+
+  static void getRealEvents(EventType ev, std::vector<EventType> &out_evs);
 };
 
 #endif

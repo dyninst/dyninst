@@ -3459,12 +3459,6 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
    assert(inTracedProcess);
    bool needToCont = false;
 
-   /*
-   fprintf(stderr, "writeTextSpace to %p to %p, %d\n",
-           inTracedProcess,
-           (char *)inTracedProcess + amount, amount);
-   */
-
    if (!isAttached()) return false;
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
@@ -7168,7 +7162,7 @@ dyn_lwp *process::getInitialLwp() const {
 int process::getPid() const { return sh ? sh->getPid() : -1;}
 
 bool process::shouldSaveFPState() {
-   return BPatch::bpatch->isSaveFPROn();
+   return (BPatch::bpatch->isSaveFPROn() || BPatch::bpatch->isForceSaveFPROn());
 }
 
 const char *process::getInterpreterName() {

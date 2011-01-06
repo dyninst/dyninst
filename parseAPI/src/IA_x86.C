@@ -249,12 +249,25 @@ bool IA_IAPI::cleansStack() const
 
 }
 
-bool IA_IAPI::isReturnAddrSave() const
+bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * /*context*/, 
+			Dyninst::ParseAPI::Block* /*currBlk*/) const
+{
+    // For x86, we check if an instruction is return based on the category. 
+    // However, for powerpc, the return instruction BLR can be a return or
+    // an indirect jump used for jump tables etc. Hence, we need to function and block
+    // to determine if an instruction is a return. But these parameters are unused for x86. 
+    return curInsn()->getCategory() == c_ReturnInsn;
+}
+
+bool IA_IAPI::isReturnAddrSave(Dyninst::Address&) const
 {
     // not implemented on non-power
     return false;
 }
 
+bool IA_IAPI::sliceReturn(ParseAPI::Block* /*bit*/, Address /*ret_addr*/, ParseAPI::Function * /*func*/) const {
+	return true;
+}
 
 //class ST_Predicates : public Slicer::Predicates {};
 
@@ -349,7 +362,7 @@ bool IA_IAPI::isFakeCall() const
     InstructionDecoder newdec( bufPtr,
                               _isrc->offset() + _isrc->length() - entry,
                               _cr->getArch() );
-    IA_IAPI ah(newdec, entry, _obj, _cr, _isrc);
+    IA_IAPI ah(newdec, entry, _obj, _cr, _isrc, _curBlk);
     Instruction::Ptr insn = ah.curInsn();
 
     // follow ctrl transfers until you get a block containing non-ctrl 
@@ -368,7 +381,7 @@ bool IA_IAPI::isFakeCall() const
         newdec = InstructionDecoder(bufPtr, 
                                     _isrc->offset() + _isrc->length() - entry, 
                                     _cr->getArch());
-        ah = IA_IAPI(newdec, entry, _obj, _cr, _isrc);
+        ah = IA_IAPI(newdec, entry, _obj, _cr, _isrc, _curBlk);
         insn = ah.curInsn();
     }
 

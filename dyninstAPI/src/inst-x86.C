@@ -575,6 +575,8 @@ void registerSpace::initialize64() {
     returnRead64_[REGNUM_R13] = true;
     returnRead64_[REGNUM_R14] = true;
     returnRead64_[REGNUM_R15] = true;
+    returnRead64_[REGNUM_XMM0] = true;
+    returnRead64_[REGNUM_XMM1] = true;
 
     //returnRead64_[REGNUM_R10] = true;
     
@@ -586,6 +588,15 @@ void registerSpace::initialize64() {
     callRead64_[REGNUM_R9] = true;
     callRead64_[REGNUM_RDI] = true;
     callRead64_[REGNUM_RSI] = true;
+    
+    callRead64_[REGNUM_XMM0] = true;
+    callRead64_[REGNUM_XMM1] = true;
+    callRead64_[REGNUM_XMM2] = true;
+    callRead64_[REGNUM_XMM3] = true;
+    callRead64_[REGNUM_XMM4] = true;
+    callRead64_[REGNUM_XMM5] = true;
+    callRead64_[REGNUM_XMM6] = true;
+    callRead64_[REGNUM_XMM7] = true;
 
     // Anything in those four is not preserved across a call...
     // So we copy this as a shorthand then augment it
@@ -599,7 +610,6 @@ void registerSpace::initialize64() {
     for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) 
         callWritten64_[i] = true;
 
-    // What about floating point?
 
     // And assume a syscall reads or writes _everything_
     syscallRead64_ = getBitArray().set();
@@ -1680,8 +1690,13 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
       //Special handling for ESP 
       if (dest_r.reg() == -1)
          dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-      stackItemLocation loc = getHeightOf(stackItem(stackItem::stacktop), gen);
-      emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
+
+      stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
+      if (!gen.bti() || gen.bti()->alignedStack())
+          emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
+      else
+          emitLEA(loc.reg, RealRegister(Null_Register), 0,
+                  loc.offset, dest_r, gen);
       return dest;
    }
 
@@ -1734,8 +1749,12 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, co
    if (ra == REGNUM_ESP && !haverb && sc == 0 && gen.bti()) {
       //Optimization, common for push/pop
       RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-      stackItemLocation loc = getHeightOf(stackItem(stackItem::stacktop), gen);
-      emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
+      stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
+      if (!gen.bti() || gen.bti()->alignedStack())
+          emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
+      else
+          emitLEA(loc.reg, RealRegister(Null_Register), 0,
+                  loc.offset, dest_r, gen);
       return;
    }
 
@@ -2249,6 +2268,11 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/,
                                bool callOp, codeGen &gen)
 {
     assert(gen.bti());
+
+    // This function assumes we aligned the stack, and hence the original
+    // stack pointer value is stored at the top of our instrumentation stack.
+    assert(gen.bti()->alignedStack());
+
     Address addr = f->getAddress();
     signed int disp = addr - (gen.currAddr()+5);
     int saved_stack_height = gen.rs()->getStackHeight();
@@ -2273,14 +2297,24 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/,
        emitMovPCRMToReg(dest_r, 0, gen, false);
 
        //Add the distance from the current PC to the end of this
-       // baseTramp (which isn't known yet).
+       // baseTramp (which isn't known yet).  We use a ridiculously
+       // large offset (2<<30) to force a 32-bit displacement.
+       emitLEA(dest_r, enull, 0, 2<<30, dest_r, gen);
+
+       // The last 4 bytes of a LEA instruction hold the offset constant.
+       // Mark this as the location to patch.
        GET_PTR(insn, gen);
-       *insn++ = 0x81;
-       *insn++ = makeModRMbyte(3, 0, dest_r.reg());
-       void *patch_loc = (void *) insn;
-       *((int *)insn) = 0x0;
-       insn += sizeof(int);
-       SET_PTR(insn, gen);
+       void *patch_loc = (void *)(insn - sizeof(int));
+
+       //Create a patch to fill in the end of the baseTramp to the above
+       // LEA instruction when it becomes known.
+       generatedCodeObject *nextobj = gen.bti()->nextObj()->nextObj();
+       assert(nextobj);
+       int offset = ((unsigned long) patch_start) -
+                    ((unsigned long) gen.start_ptr());
+       relocPatch newPatch(patch_loc, nextobj, relocPatch::pcrel, &gen, 
+                           offset, sizeof(int));
+       gen.addPatch(newPatch);
 
        // Store the computed return address into the top stack slot.
        stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
@@ -2299,16 +2333,6 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/,
        }
        emitLEA(origSP_r, enull, 0, slotSpace, origSP_r, gen);
        emitMovRegToRM(loc.reg, loc.offset, origSP_r, gen);
-
-       //Create a patch to fill in the end of the baseTramp to the above
-       // (opcode 0x81) instruction when it becomes known.
-       generatedCodeObject *nextobj = gen.bti()->nextObj()->nextObj();
-       assert(nextobj);
-       int offset = ((unsigned long) patch_start) -
-                    ((unsigned long) gen.start_ptr());
-       relocPatch newPatch(patch_loc, nextobj, relocPatch::pcrel, &gen, 
-                           offset, sizeof(int));
-       gen.addPatch(newPatch);
     }
 
     if (f->proc() == gen.addrSpace() &&

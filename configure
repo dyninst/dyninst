@@ -4768,7 +4768,7 @@ if test "x$THREADDB_INC_DIR" != "x"; then
   CXXFLAGS="$CXXFLAGS -I$THREADDB_INC_DIR"
   CPPFLAGS="$CPPFLAGS -I$THREADDB_INC_DIR"
 fi
-LDFLAGS="-shared"
+LDFLAGS="-shared -fPIC"
 HAVE_THREADDB="true"
 if test "x$SUPPRESS_THREADDB_REQ" = "x"; then
     if test "${ac_cv_header_thread_db_h+set}" = set; then

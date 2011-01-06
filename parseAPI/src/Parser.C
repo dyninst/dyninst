@@ -524,13 +524,13 @@ Parser::init_frame(ParseFrame & frame)
      (const unsigned char *)(frame.func->isrc()->getPtrToInstruction(ia_start));
     InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
     InstructionAdapter_t ah(dec, ia_start, frame.func->obj(),
-        frame.codereg, frame.func->isrc());
+        frame.codereg, frame.func->isrc(), b);
 #else
     InstrucIter iter(ia_start, size, frame.func->isrc());
     InstructionAdapter_t ah(iter, 
         frame.func->obj(),
         frame.codereg,
-        frame.func->isrc());
+        frame.func->isrc(), b);
 #endif
     if(ah.isStackFramePreamble())
         frame.func->_no_stack_frame = false;
@@ -788,7 +788,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
 
         InstructionAdapter_t ah(dec, curAddr, func->obj(), 
-                                cur->region(), func->isrc());
+                                cur->region(), func->isrc(), cur);
 #else        
         InstrucIter iter(curAddr, size, func->isrc());
         InstructionAdapter_t ah(iter, 
@@ -850,6 +850,18 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             // per-instruction callback notification 
             ParseCallback::insn_details insn_det;
             insn_det.insn = &ah;
+	     
+                parsing_printf("[%s:%d] curAddr 0x%lx \n",
+                    FILE__,__LINE__,curAddr);
+
+	    if (func->_is_leaf_function) {
+		Address ret_addr;
+	    	func->_is_leaf_function = !(insn_det.insn->isReturnAddrSave(ret_addr));
+                parsing_printf("[%s:%d] leaf %d funcname %s \n",
+                    FILE__,__LINE__,func->_is_leaf_function, func->name().c_str());
+	        if (!func->_is_leaf_function) func->_ret_addr = ret_addr;	
+		}
+		
             _pcb.instruction_cb(func,curAddr,&insn_det);
 
             if(isNopBlock && !ah.isNop()) {
@@ -1233,6 +1245,24 @@ Parser::findFuncs(CodeRegion *r, Address addr, set<Function *> & funcs)
         finalize();
     }
     return _parse_data->findFuncs(r,addr,funcs);
+}
+
+int 
+Parser::findFuncs(CodeRegion *r, Address start, Address end, set<Function *> & funcs)
+{
+    if(_parse_state < COMPLETE) {
+        parsing_printf("[%s:%d] Parser::findFuncs([%lx,%lx),%lx,%lx) "
+                       "forced parsing\n",
+            FILE__,__LINE__,r->low(),r->high(),start,end);
+        parse();
+    }
+    if(_parse_state < FINALIZED) {
+        parsing_printf("[%s:%d] Parser::findFuncs([%lx,%lx),%lx,%lx) "
+                       "forced finalization\n",
+            FILE__,__LINE__,r->low(),r->high(),start,end);
+        finalize();
+    }
+    return _parse_data->findFuncs(r,start,end,funcs);
 }
 
 Block *
