@@ -183,7 +183,7 @@ class Slicer {
   // This should be sufficient...
   typedef std::deque<ContextElement> Context;
 
-  bool getStackDepth(ParseAPI::Function *func, Address callAddr, long &height);
+  bool getStackDepth(ParseAPI::Function *func, ParseAPI::Block *block, Address callAddr, long &height);
 
   // Add the newly called function to the given Context.
   void pushContext(Context &context,
@@ -546,6 +546,7 @@ class Slicer {
   void convertInstruction(InstructionPtr,
 			  Address,
 			  ParseAPI::Function *,
+                          ParseAPI::Block *,
 			  std::vector<AssignmentPtr> &);
 
   void fastForward(Location &loc, Address addr);
