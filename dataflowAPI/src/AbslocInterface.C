@@ -19,6 +19,7 @@ using namespace Dyninst::InstructionAPI;
 void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
 				    Address addr,
 				    ParseAPI::Function *func,
+                                    ParseAPI::Block *block,
 				    std::vector<AbsRegion> &regions) {
   // If we're a memory dereference, then convert us and all
   // used registers.
@@ -28,7 +29,7 @@ void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
     expr->getChildren(tmp);
     for (std::vector<Expression::Ptr>::const_iterator i = tmp.begin();
 	 i != tmp.end(); ++i) {
-      regions.push_back(convert(*i, addr, func));
+       regions.push_back(convert(*i, addr, func, block));
     }
   }
   
@@ -45,6 +46,7 @@ void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
 void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
 				    Address addr,
 				    ParseAPI::Function *func,
+                                    ParseAPI::Block *block,
 				    std::vector<AbsRegion> &used,
 				    std::vector<AbsRegion> &defined) {
                         
@@ -64,7 +66,7 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
       for (std::set<Expression::Ptr>::const_iterator r = memReads.begin();
 	   r != memReads.end();
 	   ++r) {
-	used.push_back(AbsRegionConverter::convert(*r, addr, func));
+         used.push_back(AbsRegionConverter::convert(*r, addr, func, block));
       }
     }
   }
@@ -94,7 +96,7 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
       for (std::set<Expression::Ptr>::const_iterator r = memWrites.begin();
 	   r != memWrites.end();
 	   ++r) {
-	defined.push_back(AbsRegionConverter::convert(*r, addr, func));
+         defined.push_back(AbsRegionConverter::convert(*r, addr, func, block));
       }
     }
   }
@@ -117,7 +119,8 @@ AbsRegion AbsRegionConverter::convert(RegisterAST::Ptr reg) {
 
 AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
 				      Address addr,
-				      ParseAPI::Function *func) {
+				      ParseAPI::Function *func,
+                                      ParseAPI::Block *block) {
     // We want to simplify the expression as much as possible given 
     // currently known state, and then quantify it as one of the following:
     // 
@@ -152,17 +155,15 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     //     Create a generic MemLoc.
 
     long spHeight = 0;
-    int spRegion = 0;
     bool stackDefined = getCurrentStackHeight(func,
-					     addr, 
-					     spHeight, 
-					     spRegion);
+                                              block,
+                                              addr, 
+                                              spHeight);
     long fpHeight = 0;
-    int fpRegion = 0;
     bool frameDefined = getCurrentFrameHeight(func,
-					     addr,
-					     fpHeight,
-					     fpRegion);
+                                              block,
+                                              addr,
+                                              fpHeight);
 
     bool isStack = false;
     bool isFrame = false;
@@ -205,7 +206,7 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     if (isFrame && stackAnalysisEnabled_) {
       if (res.defined && frameDefined) {
 	return AbsRegion(Absloc(res.convert<Address>(),
-				fpRegion,
+                                0,
 				func));
       }
       else {
@@ -215,9 +216,9 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
 
     if (isStack && stackAnalysisEnabled_) {
       if (res.defined && stackDefined) {
-	return AbsRegion(Absloc(res.convert<Address>(),
-				spRegion,
-				func));
+         return AbsRegion(Absloc(res.convert<Address>(),
+                                 0,
+                                 func));
       }
       else {
 	return AbsRegion(Absloc::Stack);
@@ -235,13 +236,13 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
 
 AbsRegion AbsRegionConverter::stack(Address addr,
 				    ParseAPI::Function *func,
+                                    ParseAPI::Block *block,
 				    bool push) {
     long spHeight = 0;
-    int spRegion = 0;
     bool stackExists = getCurrentStackHeight(func,
+                                             block,
 					     addr, 
-					     spHeight, 
-					     spRegion);
+					     spHeight);
     if (!stackExists) {
       return AbsRegion(Absloc::Stack);
     }
@@ -252,19 +253,20 @@ AbsRegion AbsRegionConverter::stack(Address addr,
     }
 
     return AbsRegion(Absloc(spHeight,
-			    spRegion,
+                            0,
 			    func));
 }
 
 AbsRegion AbsRegionConverter::frame(Address addr,
 				    ParseAPI::Function *func,
+                                    ParseAPI::Block *block,
 				    bool push) {
     long fpHeight = 0;
-    int fpRegion = 0;
     bool frameExists = getCurrentFrameHeight(func,
+                                             block,
 					     addr, 
-					     fpHeight, 
-					     fpRegion);
+					     fpHeight);
+
     if (!frameExists) {
       return AbsRegion(Absloc::Heap);
     }
@@ -275,17 +277,17 @@ AbsRegion AbsRegionConverter::frame(Address addr,
     }
     
     return AbsRegion(Absloc(fpHeight,
-			    fpRegion,
+                            0,
 			    func));
 }
 
 bool AbsRegionConverter::getCurrentStackHeight(ParseAPI::Function *func,
+                                               ParseAPI::Block *block,
 					       Address addr,
-					       long &height,
-					       int &region) {
+					       long &height) {
   StackAnalysis sA(func);
 
-  StackAnalysis::Height heightSA = sA.findSP(addr);
+  StackAnalysis::Height heightSA = sA.findSP(block, addr);
 
   // Ensure that analysis has been performed.
   assert(!heightSA.isTop());
@@ -295,18 +297,17 @@ bool AbsRegionConverter::getCurrentStackHeight(ParseAPI::Function *func,
   }
   
   height = heightSA.height();
-  region = heightSA.region()->name();
   
   return true;
 }
 
 bool AbsRegionConverter::getCurrentFrameHeight(ParseAPI::Function *func,
-					       Address addr,
-					       long &height,
-					       int &region) {
+                                               ParseAPI::Block *block,
+                                               Address addr,
+					       long &height) {
   StackAnalysis sA(func);
 
-  StackAnalysis::Height heightSA = sA.findFP(addr);
+  StackAnalysis::Height heightSA = sA.find(block, addr, MachRegister::getFramePointer(func->isrc()->getArch()));;
 
   // Ensure that analysis has been performed.
   assert(!heightSA.isTop());
@@ -316,7 +317,6 @@ bool AbsRegionConverter::getCurrentFrameHeight(ParseAPI::Function *func,
   }
   
   height = heightSA.height();
-  region = heightSA.region()->name();
   
   return true;
 }
@@ -354,6 +354,7 @@ bool AbsRegionConverter::definedCache(Address addr,
 void AssignmentConverter::convert(const Instruction::Ptr I, 
                                   const Address &addr,
 				  ParseAPI::Function *func,
+                                  ParseAPI::Block *block,
 				  std::vector<Assignment::Ptr> &assignments) {
   assignments.clear();
   if (cache(func, addr, assignments)) return;
@@ -385,11 +386,12 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 
     std::vector<AbsRegion> oper0;
     aConverter.convertAll(operands[0].getValue(),
-				   addr,
-				   func,
-				   oper0);
+                          addr,
+                          func,
+                          block,
+                          oper0);
 
-    handlePushEquivalent(I, addr, func, oper0, assignments);
+    handlePushEquivalent(I, addr, func, block, oper0, assignments);
     break;
   }
   case e_call: {
@@ -399,7 +401,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     pcRegion.push_back(Absloc::makePC(func->isrc()->getArch()));
     Absloc sp = Absloc::makeSP(func->isrc()->getArch());
     
-    handlePushEquivalent(I, addr, func, pcRegion, assignments);
+    handlePushEquivalent(I, addr, func, block, pcRegion, assignments);
 
     // Now for the PC definition
     // Assume full intra-dependence of non-flag and non-pc registers. 
@@ -409,10 +411,11 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     aConverter.convertAll(I,
 			  addr,
 			  func,
+                          block,
 			  used,
 			  defined);
 
-    Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, func, pcRegion[0]));
+    Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, func, block, pcRegion[0]));
     if (!used.empty()) {
         for(std::vector<AbsRegion>::const_iterator u = used.begin();
             u != used.end();
@@ -452,11 +455,12 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 
     std::vector<AbsRegion> oper0;
     aConverter.convertAll(operands[0].getValue(),
-				   addr,
-				   func,
-				   oper0);
+                          addr,
+                          func,
+                          block,
+                          oper0);
 
-    handlePopEquivalent(I, addr, func, oper0, assignments);
+    handlePopEquivalent(I, addr, func, block, oper0, assignments);
     break;
   }
   case e_leave: {
@@ -484,6 +488,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
 							 addr,
 							 func,
+                                                         block,
 							 sp));
     spA->addInput(fp);
 
@@ -497,9 +502,10 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     Assignment::Ptr fpA = Assignment::Ptr(new Assignment(I,
 							 addr,
 							 func,
+                                                         block,
 							 fp));
     //fpA->addInput(aConverter.stack(addr + I->size(), func, false));
-    fpA->addInput(aConverter.frame(addr, func, false));
+    fpA->addInput(aConverter.frame(addr, func, block, false));
 
     assignments.push_back(spA);
     assignments.push_back(fpA);
@@ -515,13 +521,15 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     Assignment::Ptr pcA = Assignment::Ptr(new Assignment(I, 
 							 addr,
 							 func,
+                                                         block,
 							 pc));
-    pcA->addInput(aConverter.stack(addr, func, false));
+    pcA->addInput(aConverter.stack(addr, func, block, false));
 
     AbsRegion sp = AbsRegion(Absloc::makeSP(func->isrc()->getArch()));
     Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
 							 addr,
 							 func,
+                                                         block,
 							 sp));
     spA->addInput(sp);
 
@@ -542,25 +550,27 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     // We use the first to define the second, and vice versa
     std::vector<AbsRegion> oper0;
     aConverter.convertAll(operands[0].getValue(),
-				   addr,
-				   func,
-				   oper0);
+                          addr,
+                          func,
+                          block,
+                          oper0);
     
     std::vector<AbsRegion> oper1;
     aConverter.convertAll(operands[1].getValue(),
-				   addr,
-				   func,
-				   oper1);
+                          addr,
+                          func,
+                          block,
+                          oper1);
 
     // Okay. We may have a memory reference in here, which will
     // cause either oper0 or oper1 to have multiple entries (the
     // remainder will be registers). So. Use everything from oper1
     // to define oper0[0], and vice versa.
     
-    Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, func, oper0[0]));
+    Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, func, block, oper0[0]));
     a->addInputs(oper1);
 
-    Assignment::Ptr b = Assignment::Ptr(new Assignment(I, addr, func, oper1[0]));
+    Assignment::Ptr b = Assignment::Ptr(new Assignment(I, addr, func, block, oper1[0]));
     b->addInputs(oper0);
 
     assignments.push_back(a);
@@ -589,23 +599,26 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     Expression::Ptr tmp = *(writes.begin());
     AbsRegion effAddr = aConverter.convert(tmp,
 					   addr, 
-					   func);
+					   func,
+                                           block);
     std::vector<AbsRegion> regions;
-    aConverter.convertAll(operands[0].getValue(), addr, func, regions);
+    aConverter.convertAll(operands[0].getValue(), addr, func, block, regions);
     AbsRegion RS = regions[0];
     regions.clear();
-    aConverter.convertAll(operands[2].getValue(), addr, func, regions);
+    aConverter.convertAll(operands[2].getValue(), addr, func, block, regions);
     AbsRegion RA = regions[0];
 
     Assignment::Ptr mem = Assignment::Ptr(new Assignment(I, 
 							 addr,
 							 func,
+                                                         block,
 							 effAddr));
     mem->addInput(RS);
     
     Assignment::Ptr ra = Assignment::Ptr(new Assignment(I,
 							addr,
 							func,
+                                                        block,
 							RA));
     ra->addInput(RS);
     assignments.push_back(mem);
@@ -621,11 +634,12 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     aConverter.convertAll(I,
 			  addr,
 			  func,
+                          block,
 			  used,
 			  defined);
     for (std::vector<AbsRegion>::const_iterator i = defined.begin();
 	 i != defined.end(); ++i) {
-       Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, func, *i));
+       Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, func, block, *i));
        a->addInputs(used);
        assignments.push_back(a);
     }
@@ -654,22 +668,24 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 void AssignmentConverter::handlePushEquivalent(const Instruction::Ptr I,
 					       Address addr,
 					       ParseAPI::Function *func,
+                                               ParseAPI::Block *block,
 					       std::vector<AbsRegion> &operands,
 					       std::vector<Assignment::Ptr> &assignments) {
   // The handled-in operands are used to define *SP
   // And then we update SP
   
-  AbsRegion stackTop = aConverter.stack(addr, func, true);
+   AbsRegion stackTop = aConverter.stack(addr, func, block, true);
   AbsRegion sp(Absloc::makeSP(func->isrc()->getArch()));
 
   Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
 						       addr,
 						       func,
+                                                       block,
 						       stackTop));
   spA->addInputs(operands);
   spA->addInput(sp);
 
-  Assignment::Ptr spB = Assignment::Ptr(new Assignment(I, addr, func, sp));
+  Assignment::Ptr spB = Assignment::Ptr(new Assignment(I, addr, func, block, sp));
   spB->addInput(sp);
 
   assignments.push_back(spA);
@@ -679,17 +695,19 @@ void AssignmentConverter::handlePushEquivalent(const Instruction::Ptr I,
 void AssignmentConverter::handlePopEquivalent(const Instruction::Ptr I,
 					      Address addr,
 					      ParseAPI::Function *func,
+                                              ParseAPI::Block *block,
 					      std::vector<AbsRegion> &operands,
 					      std::vector<Assignment::Ptr> &assignments) {
   // We use the top of the stack and any operands beyond the first.
   // (Can you pop into memory?)
 
-  AbsRegion stackTop = aConverter.stack(addr, func, false);
+   AbsRegion stackTop = aConverter.stack(addr, func, block, false);
   AbsRegion sp(Absloc::makeSP(func->isrc()->getArch()));
   
   Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
 						       addr,
 						       func,
+                                                       block,
 						       operands[0]));
   spA->addInput(stackTop);
   spA->addInput(sp);
@@ -699,7 +717,7 @@ void AssignmentConverter::handlePopEquivalent(const Instruction::Ptr I,
   }
 
   // Now stack assignment
-  Assignment::Ptr spB = Assignment::Ptr(new Assignment(I, addr, func, sp));
+  Assignment::Ptr spB = Assignment::Ptr(new Assignment(I, addr, func, block, sp));
   spB->addInput(sp);
 
   assignments.push_back(spA);

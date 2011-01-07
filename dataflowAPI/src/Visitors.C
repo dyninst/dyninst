@@ -142,7 +142,7 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
       }
       else {
 	return VariableAST::create(Variable(AbsRegion(Absloc(s->val().height(),
-							     s->val().region()->name(),
+							     0,
 							     func_)),
 					    addr_));
       }

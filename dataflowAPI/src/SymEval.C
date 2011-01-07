@@ -91,7 +91,7 @@ void SymEval::expand(Result_t &res, bool applyVisitors) {
     // Must apply the visitor to each filled in element
     for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
       if (!i->second) continue;
-      AST::Ptr tmp = simplifyStack(i->second, i->first->addr(), i->first->func());
+      AST::Ptr tmp = simplifyStack(i->second, i->first->addr(), i->first->func(), i->first->block());
       BooleanVisitor b;
       AST::Ptr tmp2 = tmp->accept(&b);
       i->second = tmp2;
@@ -470,7 +470,7 @@ bool SymEval::process(SliceNode::Ptr ptr,
     expand_cerr << "Result of substitution: " << ptr->assign()->format() << " == " << (ast ? ast->format() : "<NULL AST>") << endl;
     
     // And attempt simplification again
-    ast = simplifyStack(ast, ptr->addr(), ptr->func());
+    ast = simplifyStack(ast, ptr->addr(), ptr->func(), ptr->block());
     expand_cerr << "Result of post-substitution simplification: " << ptr->assign()->format() << " == " 
 		<< (ast ? ast->format() : "<NULL AST>") << endl;
     
@@ -478,12 +478,12 @@ bool SymEval::process(SliceNode::Ptr ptr,
     return ret;
 }
 
-AST::Ptr SymEval::simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func) {
+AST::Ptr SymEval::simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func, ParseAPI::Block *block) {
   if (!ast) return ast;
   // Let's experiment with simplification
   StackAnalysis sA(func);
-  StackAnalysis::Height sp = sA.findSP(addr);
-  StackAnalysis::Height fp = sA.findFP(addr);
+  StackAnalysis::Height sp = sA.findSP(block, addr);
+  StackAnalysis::Height fp = sA.find(block, addr, MachRegister::getFramePointer(func->isrc()->getArch()));
   
   StackVisitor sv(addr, func, sp, fp);
 
