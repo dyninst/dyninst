@@ -44,6 +44,7 @@
 #include "AbslocInterface.h"
 #include "InstructionDecoder.h"
 #include "instPoint.h"
+#include "mapped_object.h"
 
 using namespace Dyninst;
 
@@ -927,8 +928,9 @@ bool HybridAnalysisOW::removeOverlappingLoops(owLoop *loop,
         if (loop->shadowMap.size()) {
             std::map<Address,unsigned char*>::iterator siter = loop->shadowMap.begin();
             for (; siter != loop->shadowMap.end(); siter++) {
-    	        proc()->setMemoryAccessRights
-                    ((*siter).first, 1, PAGE_EXECUTE_READWRITE);
+    	        proc()->setMemoryAccessRights(siter->first, 
+                    proc()->lowlevel_process()->getMemoryPageSize(), 
+                    PAGE_EXECUTE_READWRITE);
                 mal_printf("revbug restoring write to %lx %s[%d]\n",(*siter).first, 
                         FILE__,__LINE__);
             }
@@ -963,7 +965,7 @@ void HybridAnalysisOW::makeShadow_setRights
     loop->shadowMap[pageAddr] = proc()->makeShadowPage(pageAddr);
 
 	// Restore write permissions to the written page
-    proc()->setMemoryAccessRights(pageAddr, 1, PAGE_EXECUTE_READWRITE);
+    proc()->setMemoryAccessRights(pageAddr, pageSize, PAGE_EXECUTE_READWRITE);
 }
 
 
@@ -1127,9 +1129,24 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
                 (*spIter).second = NULL;
 
 		        // . Re-instate write protections for the written pages,
-                //   if they still contain code
-    	        proc()->setMemoryAccessRights(
-                    (*spIter).first, 1, PAGE_EXECUTE_READ);
+                //   if they contain code
+                process *llproc = proc()->lowlevel_process();
+                mapped_object *obj = llproc->findObject((*spIter).first);
+                std::list<int_block*> dontcare;
+                if (obj->findBlocksByRange((*spIter).first, 
+                        (*spIter).first + llproc->getMemoryPageSize(),
+                        dontcare))
+                {
+    	            proc()->setMemoryAccessRights(spIter->first, 
+                        llproc->getMemoryPageSize(), 
+                        PAGE_EXECUTE_READ);
+                }
+                else { 
+                    int origPerms = hybrid()->getOrigPageRights(spIter->first);
+    	            proc()->setMemoryAccessRights(spIter->first, 
+                        llproc->getMemoryPageSize(), 
+                        origPerms);
+                }// KEVINTODO set to original page rights
     	        spIter++;
 	        }
             loop->shadowMap.clear();

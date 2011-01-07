@@ -84,6 +84,7 @@ public:
     BPatch_module *getRuntimeLib() { return sharedlib_runtime; }
     void deleteSynchSnippet(SynchHandle *handle);
     bool needsSynchronization(BPatch_point *point);
+    int getOrigPageRights(Dyninst::Address addr);
 
     std::map< BPatch_point* , SynchHandle* > & synchMap_pre();
     std::map< BPatch_point* , SynchHandle* > & synchMap_post();

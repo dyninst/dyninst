@@ -1197,3 +1197,31 @@ HybridAnalysis::synchMap_post()
 { 
     return synchMap_post_;
 }
+
+int
+HybridAnalysis::getOrigPageRights(Address addr)
+{
+    int origPerms;
+    using namespace SymtabAPI;
+    mapped_object *obj = proc()->lowlevel_process()->findObject(addr);
+    Region * reg = obj->parse_img()->getObject()->
+        findEnclosingRegion(addr - obj->codeBase());
+    Region::perm_t perms = reg->getRegionPermissions();
+    switch (perms) {
+    case (Region::RP_R):
+        origPerms = PAGE_READONLY;
+        break;
+    case (Region::RP_RW):
+        origPerms = PAGE_READWRITE;
+        break;
+    case (Region::RP_RX):
+        origPerms = PAGE_EXECUTE_READ;
+        break;
+    case (Region::RP_RWX):
+        origPerms = PAGE_EXECUTE_READWRITE;
+        break;
+    default:
+        assert(0);
+    }
+    return origPerms;
+}

@@ -1218,7 +1218,7 @@ bool mapped_object::splitIntLayer()
 // Grabs all int_blocks corresponding to the region, taking special care 
 // to get ALL int_blocks corresponding to an address if it is shared 
 // between multiple functions
-void mapped_object::findBlocksByRange(Address startAddr,
+bool mapped_object::findBlocksByRange(Address startAddr,
                                       Address endAddr,
                                       list<int_block*> &rangeBlocks)//output
 {
@@ -1248,6 +1248,7 @@ void mapped_object::findBlocksByRange(Address startAddr,
          rangeBlocks.push_back(bbl);
       }
    }
+   return !rangeBlocks.empty();
 }
 
 void mapped_object::findFuncsByRange(Address startAddr,

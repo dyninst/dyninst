@@ -105,7 +105,9 @@ void HybridAnalysis::synchShadowOrigCB(BPatch_point *point, bool toOrig)
              pit != pages.end(); 
              pit++) 
         {
-            proc()->setMemoryAccessRights(*pit,1,PAGE_EXECUTE_READWRITE);
+            proc()->setMemoryAccessRights(*pit,
+                proc()->lowlevel_process()->getMemoryPageSize(),
+                getOrigPageRights(*pit));
         }
         // KEVINTODO: if there are other in edges to the fallthrough block it 
         //            might be cheaper to remove synch instrumentation at this point
@@ -508,12 +510,11 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
 					}
 				}
 
-			assert(callPoint);
-            if (callFuncs.size() > 1) {
+            if (callPoint && callFuncs.size() > 1) {
                 //KEVINTODO: implement this case
                 mal_printf("ERROR: callPoint %lx is shared, test this case\n",
                            callPoint->getAddress());
-            }
+            } 
         }
 
         // 3.2.1 if the return addr follows a call, parse it as its fallthrough edge

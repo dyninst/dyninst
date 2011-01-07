@@ -436,7 +436,7 @@ RT_Boolean cacheLookup(void *calculation)
  * bit 1: true if interpAsTarget
  * bit 2: true if interpAsReturnAddr
  **/     
-
+//#define STACKDUMP 1
 void DYNINST_stopThread (void * pointAddr, void *callBackID, 
                          void *flags, void *calculation)
 {
@@ -452,7 +452,7 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
 	}
 	reentrant = 1;
     tc_lock_lock(&DYNINST_trace_lock);
-    rtdebug_printf("pt[%lx] flags[%lx] calc[%lx] ", 
+    rtdebug_printf("RT_st: pt[%lx] flags[%lx] calc[%lx] ", 
                    (long)pointAddr, (long)flags, (long)calculation);
 
 #if defined STACKDUMP

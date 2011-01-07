@@ -219,7 +219,7 @@ class mapped_object : public codeRange {
     void removeProtectedPage(Address pageAddr);
     void removeFunction(int_function *func);
     bool splitIntLayer();
-    void findBlocksByRange(Address startAddr,
+    bool findBlocksByRange(Address startAddr,
                           Address endAddr,
                           std::list<int_block*> &pageBlocks);
     void findFuncsByRange(Address startAddr,

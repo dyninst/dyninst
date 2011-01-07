@@ -538,7 +538,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
   else if (proc->trapMapping.definesTrapMapping(ev.address)) {
      ev.type = evtInstPointTrap;
      Frame activeFrame = ev.lwp->getActiveFrame();
-#if 1
+#if 0
 	 cerr << "SPRINGBOARD FRAME: " << hex << activeFrame.getPC() << " / " <<activeFrame.getSP() 
                  << " (DEBUG:" 
                  << "EAX: " << activeFrame.eax
@@ -569,7 +569,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
      else {
 	    requested_wait_until_active = false;
         ret = true;
-#if 1
+#if 0
 	    if (1) cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
                  << " (DEBUG:" 
                  << "EAX: " << activeFrame.eax
@@ -936,7 +936,8 @@ int dyn_lwp::changeMemoryProtections
 (Address addr, Offset size, unsigned rights, bool setShadow)
 {
     unsigned oldRights=0;
-//    mal_printf("setting rights to %lx for [%lx %lx)\n", rights, addr, addr + size);
+    //mal_printf("setting rights to %lx for [%lx %lx)\n", rights, addr, addr + size);
+
     if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(addr), 
                          (SIZE_T)size, (DWORD)rights, (PDWORD)&oldRights)) 
     {
