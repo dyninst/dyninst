@@ -489,6 +489,9 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
                                 init_frame(*tf);
                                 frames.push_back(tf);
                                 _parse_data->record_frame(tf);
+                                Address loadBase =0;
+                                _pcb.loadAddr(pf->func->_tamper_addr, loadBase);
+                                _pcb.updateCodeBytes(pf->func->_tamper_addr - loadBase);
                             }
                             work.push_back(tf);
                         }

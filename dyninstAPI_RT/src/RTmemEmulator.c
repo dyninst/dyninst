@@ -118,6 +118,7 @@ for (bidx=0; origAddr == 0x40d75e && bidx < 0x100; bidx+=4) {
    }
    else {
 #ifdef  DEBUG_MEM_EM
+      //fprintf(stderr, "\t min %d, max %d, index %d returning no change\n", min, max, index);
       fprintf(stderr, "\t min %d, max %d, index %d returning no change ", min, max, index);
       fprintf(stderr, "@deref 0x%x\n", *(int*)input);
 #endif
@@ -132,7 +133,7 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
    int max;
    volatile int guard2;
 #ifdef  DEBUG_MEM_EM
-   fprintf(stderr, "RTtranslateMemoryShift(ptr 0x%lx, origAddr 0x%lx, curAddr 0x%lx)\n", 
+   fprintf(stderr, "RTtranslateMemoryShift(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx)\n", 
            input, origAddr, curAddr);
 #endif
    do {
@@ -173,6 +174,7 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
    }
    else {
 #ifdef DEBUG_MEM_EM
+      //fprintf(stderr, "\t min %d, max %d, index %d returning no change\n", min, max, index);
       fprintf(stderr, "\t min %d, max %d, index %d returning no change ", min, max, index);
       fprintf(stderr, "@deref 0x%x\n", *(int*)input);
 #endif

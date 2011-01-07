@@ -353,6 +353,22 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         {
             assert(0);
         }
+#if 0
+        if (!toOrig && 0x1000 == reg->getMemOffset()) {
+            Address regbase = 0x401000;
+            Address saddr = 0x1e80;
+            printf("memory dump at %lx:", saddr+regbase);
+            for (unsigned bidx=0; bidx < 0x100; bidx++) {
+                if ( !(bidx%8) ) {
+                    printf("\n%lx: ", regbase + saddr + bidx);
+                } else if ( !(bidx%4) ) {
+                    printf(" ");
+                }
+                printf("%02hhx", regbuf[saddr+bidx]);
+            }
+            printf("\n");
+        }
+#endif
         free(regbuf);
     }
 }
