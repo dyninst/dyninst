@@ -2774,7 +2774,7 @@ void AstSequenceNode::setChildren(pdvector<AstNodePtr > &children){
       //memory management?
       for (unsigned i = 0; i < sequence_.size(); i++){
          AstNodePtr * newNode = new AstNodePtr(children[i]);
-         sequence_.insert(sequence_.begin() + i, *newNode);
+         sequence_.push_back(sequence_.begin() + i, *newNode);
          sequence_.erase(sequence_.begin() + i + 1);
       }
    }else{
