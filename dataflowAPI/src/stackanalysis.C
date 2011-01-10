@@ -155,7 +155,7 @@ void StackAnalysis::summarizeBlocks() {
 	  TransferFuncs &xferFuncs = insnEffects[block][off];
 	  computeInsnEffects(block, insn, off,
 		                 xferFuncs);
-      if (off == 0x0000d60e) {
+      if (off == 0x00001d85) {
 		  int i = 3;
 	  }
       bFunc.add(xferFuncs);
@@ -325,12 +325,14 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
        case e_popfd:
           handlePushPopFlags(sign, xferFuncs);
           break;
+#if 0
 	   case e_pushad:
 		   sign = -1;
 	   case e_popad:
 		   handlePushPopRegs(sign, xferFuncs);
 		   break;
-       case power_op_si:
+#endif
+	   case power_op_si:
           sign = -1;
        case power_op_addi:
           handlePowerAddSub(insn, sign, xferFuncs);
@@ -898,11 +900,16 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
          return;
       }
 
-	  // Default cases: record the alias, and if it's been changed since the block start 
-	  // grab that too. 
+	  // Default case: record the alias, zero out everything else, copy over the delta
+	  // if it's defined.
+	  //input.target is defined
 	  input.from = alias.target;
+	  input.abs = Height::top;
 	  if (alias.isDelta()) {
          input.delta = alias.delta;
+	  }
+	  else {
+		  input.delta = Height::top;
 	  }
 	  return;
    }
