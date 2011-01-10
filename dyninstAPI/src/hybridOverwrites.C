@@ -979,6 +979,9 @@ void HybridAnalysisOW::makeShadow_setRights
 void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 {
     Address pointAddr = (Address) point->getAddress();
+	if (pointAddr == 0x9d33c7) {
+		int i = 3;
+	}
     mal_printf("\noverwriteAnalysis(trigger=%lx, loopID=%d)\n", 
 		      pointAddr,(long)loopID_);
 
@@ -1180,7 +1183,8 @@ bool HybridAnalysisOW::isRealStore(Address insnAddr,
 
     std::vector<Assignment::Ptr> assignments;
     AssignmentConverter aConverter(false);
-    aConverter.convert(insn, image_addr, imgfunc, assignments);
+	int_block *block = func->lowlevel_func()->findOneBlockByAddr(insnAddr);
+    aConverter.convert(insn, image_addr, imgfunc, block->llb(), assignments);
 
     for (std::vector<Assignment::Ptr>::const_iterator a_iter = assignments.begin();
          a_iter != assignments.end(); ++a_iter) 
