@@ -333,7 +333,7 @@ StackTamper IA_IAPI::tampersStack(ParseAPI::Function *,
                 Graph::Ptr slGraph = slicer.backwardSlice(preds);
                 SymEval::Result_t slRes;
                 SymEval::expand(slGraph,slRes);
-                if (dyn_debug_malware) {
+                if (0 && dyn_debug_malware) {
                     stringstream graphDump;
                     graphDump << "sliceDump_" << func->name() 
                               << "_" << retnAddr << ".dot";

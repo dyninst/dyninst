@@ -88,6 +88,7 @@ class Frame {
      ebp(f.ebp),
      esi(f.esi),
      edi(f.edi),
+	 eflags(f.eflags),
      uppermost_(f.uppermost_),
       pc_(f.pc_),
       fp_(f.fp_),
@@ -108,6 +109,7 @@ class Frame {
       ebp = f.ebp;
       esi = f.esi;
       edi = f.edi;
+	  eflags = f.eflags;
       uppermost_ = f.uppermost_;
       pc_ = f.pc_;
       fp_ = f.fp_;
@@ -174,6 +176,7 @@ class Frame {
   Address ebp;
   Address esi;
   Address edi;
+  Address eflags;
 
  private:
   bool			uppermost_;

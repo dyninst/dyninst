@@ -521,7 +521,10 @@ bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
 bool registerSpace::checkVolatileRegisters(codeGen &gen,
                                            registerSlot::livenessState_t state)
 {
-    if (addr_width == 8) {
+	// FIXME for non-defensive-mode
+	return true;
+	
+	if (addr_width == 8) {
         for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
             if (registers_[i]->liveState == state)
                 return true;
