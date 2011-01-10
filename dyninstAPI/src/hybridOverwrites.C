@@ -465,7 +465,8 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
         for (unsigned widx = 0; widx < (*blockWrites).size(); widx++) {
             if (BPatch_locSubroutine == (*blockWrites)[widx]->getPointType() ||
                 !hybridow_->isRealStore(
-                    (Address)(*blockWrites)[widx]->getAddress(),
+                    (Address)(*blockWrites)[widx]->getAddress(), 
+                    (*bIter)->lowlevel_block(),
                     (*blockWrites)[widx]->getFunction())) 
             {
                 (*blockWrites)[widx] = (*blockWrites)[blockWrites->size()-1];
@@ -1164,7 +1165,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 #endif
 
 
-bool HybridAnalysisOW::isRealStore(Address insnAddr, 
+bool HybridAnalysisOW::isRealStore(Address insnAddr, int_block *block, 
                                    BPatch_function *func) 
 {
     using namespace InstructionAPI;
@@ -1180,7 +1181,7 @@ bool HybridAnalysisOW::isRealStore(Address insnAddr,
 
     std::vector<Assignment::Ptr> assignments;
     AssignmentConverter aConverter(false);
-    aConverter.convert(insn, image_addr, imgfunc, assignments);
+    aConverter.convert(insn, image_addr, imgfunc, block->llb(), assignments);
 
     for (std::vector<Assignment::Ptr>::const_iterator a_iter = assignments.begin();
          a_iter != assignments.end(); ++a_iter) 

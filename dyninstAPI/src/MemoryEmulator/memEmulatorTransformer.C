@@ -79,7 +79,7 @@ bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
 
     relocation_cerr << "Memory emulation considering addr " << hex << reloc->addr() << dec << endl;
 
-    if (!isSensitive(reloc, func) || BPatch_defensiveMode != func->obj()->hybridMode()) {
+    if (!isSensitive(reloc, (*iter)->bbl(), func) || BPatch_defensiveMode != func->obj()->hybridMode()) {
         relocation_cerr << "\t Not sensitive, skipping" << endl;
         continue;
     }
@@ -192,7 +192,8 @@ Atom::Ptr MemEmulatorTransformer::createReplacement(CopyInsn::Ptr reloc,
 }
 
 bool MemEmulatorTransformer::isSensitive(CopyInsn::Ptr reloc,
-					 int_function *func) {
+                                         int_block *block,
+					                     int_function *func) {
 
   image_func *ifunc = func->ifunc();  
   Address image_addr = func->addrToOffset(reloc->addr());
@@ -201,6 +202,7 @@ bool MemEmulatorTransformer::isSensitive(CopyInsn::Ptr reloc,
   aConverter.convert(reloc->insn(),
 		     image_addr,
 		     ifunc,
+             block->llb(),
 		     assignments);
   
   for (std::vector<Assignment::Ptr>::const_iterator a_iter = assignments.begin();

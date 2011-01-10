@@ -119,6 +119,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
     // This function also returns the sensitive assignments
     if (!isPCSensitive(insn,
 		       addr,
+               (*b_iter)->bbl(),
 		       (*b_iter)->bbl()->func(),
 		       sensitiveAssignments)) {
       //cerr << "Instruction " << insn->format() << " not PC sensitive, skipping" << endl;
@@ -242,6 +243,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
 
 bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
 					   Address addr,
+                       int_block *block,
 					   int_function *func,
 					   AssignList &sensitiveAssignments) {
   if (!(insn->getOperation().getID() == e_call)) return false;
@@ -253,6 +255,7 @@ bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
   aConverter.convert(insn,
 		     func->addrToOffset(addr),
 		     func->ifunc(),
+             block->llb(),
 		     assignments);
   for (std::vector<Assignment::Ptr>::iterator a_iter = assignments.begin();
        a_iter != assignments.end(); ++a_iter) {
