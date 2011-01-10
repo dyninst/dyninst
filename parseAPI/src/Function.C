@@ -474,6 +474,10 @@ Function::tampersStack(bool recalculate)
         StackTamperVisitor vis(Absloc(-1 * isrc()->getAddressWidth(), 0, this));
         Address curTamperAddr=0;
         StackTamper curtamper = vis.tampersStack(sliceAtRet, curTamperAddr);
+        mal_printf("StackTamperVisitor for func at 0x%lx block[%lx %lx) w/ "
+                   "lastInsn at 0x%lx returns tamper=%d tamperAddr=0x%lx\n",
+                   _start, (*bit)->start(), (*bit)->end(), retnAddr, 
+                   curtamper, curTamperAddr);
         if (TAMPER_UNSET == _tamper || TAMPER_NONE == _tamper ||
             (TAMPER_NONZERO == _tamper && 
              TAMPER_NONE != curtamper))
