@@ -492,6 +492,14 @@ bool IA_IAPI::isFakeCall() const
                 // be a red flag if there wasn't an enter ins'n first and 
                 // we didn't end in a return instruction
                 break;
+			case e_and:
+				// Rounding off the stack pointer. 
+				mal_printf("WARNING: saw and instruction at %lx that is not handled by isFakeCall %s[%d]\n",
+					curAddr, FILE__, __LINE__);
+				delete ah;
+				return false;
+				break;
+
             case e_sub:
                 sign = -1;
             case e_add: {
