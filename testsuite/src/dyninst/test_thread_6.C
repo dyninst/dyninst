@@ -185,6 +185,25 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    {
       logerror("[%s:%d] - WARNING: Thread %d has no stack\n",
               __FILE__, __LINE__, my_dyn_id);
+
+        // For debugging, dump the stack
+        BPatch_Vector<BPatch_frame> stack;
+	thr->getCallStack(stack);
+
+        dprintf(stderr, "Stack dump\n");
+        for( unsigned i = 0; i < stack.size(); i++) {
+                char name[256];
+                BPatch_function *func = stack[i].findFunction();
+                if (func == NULL)
+                        strcpy(name, "[UNKNOWN]");
+                else
+                        func->getName(name, 256);
+                dprintf(stderr, "  %10p: %s, fp = %p\n",
+                                stack[i].getPC(),
+                                name,
+                                stack[i].getFP());
+        }
+        dprintf(stderr, "End of stack dump.\n");
    }
    else
    {
@@ -263,7 +282,7 @@ BPatch_process *test_thread_6_Mutator::getProcess()
    args[n++] = "-run";
    args[n++] = "test_thread_6";
 
-   BPatch_process *proc;
+   BPatch_process *proc = NULL;
    if (create_proc) {
       args[n++] = create_arg; // I don't think this does anything.
       args[n] = NULL;
@@ -327,6 +346,7 @@ test_results_t test_thread_6_Mutator::mutatorTest(BPatch *bpatch)
    deleted_threads = 0;
    memset(stack_addrs, 0, sizeof(stack_addrs));
 
+   proc = NULL;
    proc = getProcess();
    if (!proc)
       return FAILED;
@@ -453,6 +473,10 @@ test_results_t test_thread_6_Mutator::setup(ParameterDict &param) {
    bpatch = (BPatch *)(param["bpatch"]->getPtr());
    filename = param["pathname"]->getString();
    logfilename = param["logfilename"]->getString();
+   
+   if ( param["debugPrint"]->getInt() != 0 ) {
+       debug_flag = true;
+   }
    
    if ( param["useAttach"]->getInt() != 0 )
    {

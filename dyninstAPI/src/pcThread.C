@@ -43,7 +43,7 @@ PCThread::PCThread(PCProcess *parent, int ind,
     stackAddr_(0),
     startFunc_(NULL),
     savedLWP_(thr->getLWP()),
-    savedTid_(ind) // TODO use actual TID provided by ProcControlAPI
+    savedTid_(thr->getLWP()) // TODO use actual TID provided by ProcControlAPI
 {
 }
 
@@ -57,9 +57,7 @@ PCThread *PCThread::createPCThread(PCProcess *parent, Thread::ptr thr)
 
 dynthread_t PCThread::getTid() const {
     if( pcThr_ == Thread::ptr() ) return savedTid_;
-
-    // TODO use actual TID provided by ProcControlAPI
-    return (unsigned)index_;
+    return (dynthread_t)pcThr_->getLWP();
 }
 
 int PCThread::getIndex() const {

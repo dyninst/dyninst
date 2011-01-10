@@ -146,27 +146,6 @@ typedef struct {
    int index;        /*Index of the dead thread*/
 } BPatch_deleteThreadEventRecord;
 
-#define UNALLOC 0
-#define THREAD_ACTIVE 1
-#define THREAD_COMPLETE 2
-#define LWP_EXITED 3
-
-typedef struct {
-    int thread_state;
-    int next_free;
-    int lwp;
-    /* Put the pointer (variable size) last */
-    dyntid_t tid;
-} dyninst_thread_t;
-
-extern dyninst_thread_t *DYNINST_thread_structs;
-/* We keep the name here so that the Dyninst lib can use it - this means we
-   don't have to worry about parallel changes */
-
-#define DYNINST_thread_structs_name "DYNINST_thread_structs"
-extern int *DYNINST_thread_hash;
-extern unsigned DYNINST_thread_hash_size;
-
 /* Let's define some constants for, well, everything.... */
 /* These should be different to avoid unexpected collisions */
 

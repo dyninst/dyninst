@@ -211,6 +211,7 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
    failed_tests = 2;
    error15 = 0;
 
+   proc = NULL;
    proc = getProcess();
    if (!proc)
       return error_exit();

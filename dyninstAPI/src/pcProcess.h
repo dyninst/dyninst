@@ -139,7 +139,7 @@ public:
     PCThread *getThread(dynthread_t tid) const;
     void getThreads(std::vector<PCThread* > &threads) const;
     void addThread(PCThread *thread);
-    void removeThread(dynthread_t tid);
+    bool removeThread(dynthread_t tid);
 
     int getPid() const;
     unsigned getAddressWidth() const;
@@ -302,6 +302,7 @@ protected:
           sync_event_arg3_addr_(0),
           sync_event_breakpoint_addr_(0),
           eventHandler_(eventHandler),
+          eventCount_(0),
           tracedSyscalls_(NULL),
           rtLibLoadHeap_(0),
           mt_cache_result_(not_cached),
@@ -346,6 +347,7 @@ protected:
           sync_event_arg3_addr_(0),
           sync_event_breakpoint_addr_(0),
           eventHandler_(eventHandler),
+          eventCount_(0),
           tracedSyscalls_(NULL),
           rtLibLoadHeap_(0),
           mt_cache_result_(not_cached),
@@ -392,6 +394,7 @@ protected:
           sync_event_arg3_addr_(parent->sync_event_arg3_addr_),
           sync_event_breakpoint_addr_(parent->sync_event_breakpoint_addr_),
           eventHandler_(parent->eventHandler_),
+          eventCount_(0),
           tracedSyscalls_(NULL), // filled after construction
           rtLibLoadHeap_(parent->rtLibLoadHeap_),
           mt_cache_result_(parent->mt_cache_result_),
@@ -437,6 +440,8 @@ protected:
     bool postRTLoadCleanup(); // architecture-specific
     bool extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record);
     bool iRPCDyninstInit();
+    bool registerThread(PCThread *thread);
+    bool unregisterThread(dynthread_t tid);
 
     Address getRTEventBreakpointAddr();
     Address getRTEventIdAddr();
@@ -487,6 +492,9 @@ protected:
     void setInEventHandling(bool b);
     void setExiting(bool b);
     bool isExiting() const;
+    bool hasPendingEvents();
+    void incPendingEvents();
+    void decPendingEvents();
 
     // ProcControl doesn't keep around a process's information after it exits.
     // However, we allow a Dyninst user to query certain information out of
@@ -550,6 +558,8 @@ protected:
 
     // The same PCEventHandler held by the BPatch layer
     PCEventHandler *eventHandler_;
+    Mutex eventCountLock_;
+    int eventCount_;
 
     syscallNotification *tracedSyscalls_;
 

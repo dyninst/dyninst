@@ -207,12 +207,12 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
        
        int pos = stackWalk.size() - 1;
 
-#if defined(DEBUG)
-       for (unsigned foo = 0; foo < stackWalk.size(); foo++) {
-	 BPatch_function *func = stackWalk[foo].findFunction();
-	 fprintf(stderr, "Function at %d is %s\n", foo, func ? func->lowlevel_func()->symTabName().c_str() : "<NULL>");
+       if( dyn_debug_startup ) {
+           for (unsigned foo = 0; foo < stackWalk.size(); foo++) {
+             BPatch_function *func = stackWalk[foo].findFunction();
+             fprintf(stderr, "Function at %d is %s\n", foo, func ? func->lowlevel_func()->symTabName().c_str() : "<NULL>");
+           }
        }
-#endif
 
        //Consider stack_start as starting at the first
        //function with a stack frame.

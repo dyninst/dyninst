@@ -53,9 +53,6 @@ struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 int DYNINSTdebugRTlib;
 
-dyninst_thread_t *DYNINST_thread_structs;
-int *DYNINST_thread_hash;
-unsigned DYNINST_thread_hash_size;
 int DYNINSTstaticMode = 1;
 
 /**
@@ -288,6 +285,8 @@ int DYNINSTreturnZero()
 
 /* Used to by dyninst breakpoint snippet */
 void DYNINST_snippetBreakpoint() {
+   tc_lock_lock(&DYNINST_trace_lock);
+
    /* Set the state so the mutator knows what's up */
    DYNINST_synch_event_id = DSE_snippetBreakpoint;
    DYNINST_synch_event_arg1 = NULL;
@@ -295,10 +294,14 @@ void DYNINST_snippetBreakpoint() {
    DYNINSTbreakPoint();
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
+
+   tc_lock_unlock(&DYNINST_trace_lock);
 }
 
 /* Used to instrument (and report) the entry of fork */
 void DYNINST_instForkEntry() {
+   tc_lock_lock(&DYNINST_trace_lock);
+
    /* Set the state so the mutator knows what's up */
    DYNINST_synch_event_id = DSE_forkEntry;
    DYNINST_synch_event_arg1 = NULL;
@@ -307,6 +310,8 @@ void DYNINST_instForkEntry() {
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
+
+   tc_lock_unlock(&DYNINST_trace_lock);
 }
 
        
@@ -315,6 +320,8 @@ void DYNINST_instForkEntry() {
    as we may not be attached at that point. The parent
    side uses the normal version. */
 void DYNINST_instForkExit(void *arg1) {
+   tc_lock_lock(&DYNINST_trace_lock);
+
    /* Set the state so the mutator knows what's up */    
    DYNINST_synch_event_id = DSE_forkExit;
    DYNINST_synch_event_arg1 = arg1;
@@ -329,11 +336,15 @@ void DYNINST_instForkExit(void *arg1) {
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
+
+   tc_lock_unlock(&DYNINST_trace_lock);
 }
 
        
 /* Used to instrument (and report) the entry of exec */
 void DYNINST_instExecEntry(void *arg1) {
+   tc_lock_lock(&DYNINST_trace_lock);
+
    /* Set the state so the mutator knows what's up */
    DYNINST_synch_event_id = DSE_execEntry;
    DYNINST_synch_event_arg1 = arg1;
@@ -346,11 +357,15 @@ void DYNINST_instExecEntry(void *arg1) {
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
+
+   tc_lock_unlock(&DYNINST_trace_lock);
 }
 
        
 /* Used to instrument (and report) the exit of exec */
 void DYNINST_instExecExit(void *arg1) {
+   tc_lock_lock(&DYNINST_trace_lock);
+
    /* Set the state so the mutator knows what's up */
    DYNINST_synch_event_id = DSE_execExit;
    DYNINST_synch_event_arg1 = arg1;
@@ -359,11 +374,15 @@ void DYNINST_instExecExit(void *arg1) {
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
+
+   tc_lock_unlock(&DYNINST_trace_lock);
 }
 
        
 /* Used to instrument (and report) the entry of exit */
 void DYNINST_instExitEntry(void *arg1) {
+   tc_lock_lock(&DYNINST_trace_lock);
+
    /* Set the state so the mutator knows what's up */
    DYNINST_synch_event_id = DSE_exitEntry;
    DYNINST_synch_event_arg1 = arg1;
@@ -372,10 +391,14 @@ void DYNINST_instExitEntry(void *arg1) {
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
+
+   tc_lock_unlock(&DYNINST_trace_lock);
 }
 
 /* Used to instrument (and report) the entry of exit */
 void DYNINST_instLoadLibrary(void *arg1) {
+   tc_lock_lock(&DYNINST_trace_lock);
+
    /* Set the state so the mutator knows what's up */
    DYNINST_synch_event_id = DSE_loadLibrary;
    DYNINST_synch_event_arg1 = arg1;
@@ -384,10 +407,14 @@ void DYNINST_instLoadLibrary(void *arg1) {
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
+
+   tc_lock_unlock(&DYNINST_trace_lock);
 }
 
 /* Used to instrument (and report) the entry of exit */
 void DYNINST_instLwpExit(void) {
+   tc_lock_lock(&DYNINST_trace_lock);
+
    /* Set the state so the mutator knows what's up */
    DYNINST_synch_event_id = DSE_lwpExit;
    DYNINST_synch_event_arg1 = NULL;
@@ -396,6 +423,8 @@ void DYNINST_instLwpExit(void) {
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
+    
+   tc_lock_unlock(&DYNINST_trace_lock);
 }
 
 
@@ -527,6 +556,8 @@ RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_,
 int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr) {
     if (DYNINSTstaticMode) return 0;
 
+    tc_lock_lock(&DYNINST_trace_lock);
+
     /* Set the state so the mutator knows what's up */
     DYNINST_synch_event_id = DSE_dynFuncCall;
     DYNINST_synch_event_arg1 = call_target;
@@ -538,11 +569,15 @@ int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr) {
     DYNINST_synch_event_arg1 = NULL;
     DYNINST_synch_event_arg2 = NULL;
 
+    tc_lock_unlock(&DYNINST_trace_lock);
+
     return 0;
 }
 
 int DYNINSTuserMessage(void *msg, unsigned int msg_size) {
     if (DYNINSTstaticMode) return 0;
+
+    tc_lock_lock(&DYNINST_trace_lock);
 
     unsigned long msg_size_long = (unsigned long)msg_size;
 
@@ -556,6 +591,8 @@ int DYNINSTuserMessage(void *msg, unsigned int msg_size) {
     DYNINST_synch_event_id = DSE_undefined;
     DYNINST_synch_event_arg1 = NULL;
     DYNINST_synch_event_arg2 = NULL;
+
+    tc_lock_unlock(&DYNINST_trace_lock);
 
     return 0;
 }

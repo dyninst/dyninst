@@ -938,6 +938,8 @@ void BPatch::registerDynamicCallsiteEvent(BPatch_process *process, Address callT
 {
     // find the point that triggered the event
 
+    proccontrol_printf("%s[%d]: dynamic call event from 0x%lx to 0x%lx\n",
+            FILE__, __LINE__, callAddr, callTarget);
     BPatch_point *point = info->getMonitoredPoint(callAddr);
     if ( point == NULL ) {
         proccontrol_printf("%s[%d]: failed to find point for dynamic callsite event\n",
@@ -1925,6 +1927,9 @@ bool BPatch_libInfo::registerMonitoredPoint(BPatch_point *point) {
     }
 
     monitoredPoints_[(Address)point->getAddress()] = point;
+
+    proccontrol_printf("%s[%d]: monitoring address 0x%lx for dynamic calls\n",
+            FILE__, __LINE__, (unsigned long)point->getAddress());
 
     return true;
 }

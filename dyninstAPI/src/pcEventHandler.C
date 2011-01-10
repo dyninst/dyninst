@@ -195,6 +195,9 @@ void PCEventHandler::main() {
             // Report errors but keep trying anyway
             proccontrol_printf("%s[%d]: error returned by Process::handleEvents\n",
                     FILE__, __LINE__);
+        }else{
+            // Alert the user that events are now available
+            BPatch::bpatch->signalNotificationFD();
         }
     }
 
@@ -284,11 +287,10 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
             break;
     }
 
+    process->incPendingEvents();
+
     // Queue the event with no processing for now
     eventHandler->eventMailbox_->enqueue(ev);
-
-    // Alert the user that events are now available
-    BPatch::bpatch->signalNotificationFD();
 
     return ret;
 }
@@ -387,6 +389,8 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
                 FILE__, __LINE__);
         return false;
     }
+
+    evProc->decPendingEvents();
 
     // This means we already saw the entry to exit event and we can no longer
     // operate on the process, so ignore the event
@@ -492,6 +496,7 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
         && evProc->isStopped() // the process is stopped
         && !evProc->hasReportedEvent() // we aren't in the middle of processing an event that we reported to ProcControl
         && !evProc->isTerminated() // If one of the handling routines has marked the process exited
+        && !evProc->hasPendingEvents() // Can't continue the process until all pending events handled for all threads
       )
     {
         proccontrol_printf("%s[%d]: user wants process running after event handling\n",
@@ -616,7 +621,10 @@ bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr ev, PCProcess 
                 FILE__, __LINE__, evProc->getPid(), ev->getLWP());
         return false;
     }
+
     evProc->addThread(newThr);
+
+    if( !evProc->registerThread(newThr) ) return false;
 
     bpproc->triggerThreadCreate(newThr);
 
@@ -704,9 +712,9 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
     Address sync_event_id_addr = evProc->getRTEventIdAddr();
     Address sync_event_arg1_addr = evProc->getRTEventArg1Addr();
 
-    int breakpoint;
-    int status;
-    Address arg1;
+    int breakpoint = 0;
+    int status = 0;
+    Address arg1 = 0;
     int zero = 0;
 
     // Check that all addresses could be determined
@@ -952,7 +960,7 @@ bool PCEventHandler::handleDynFuncCall(PCProcess *evProc, BPatch_process *bpProc
         return false;
     }
 
-    Address callAddress;
+    Address callAddress = 0;
     if( !evProc->readDataWord((const void *)sync_event_arg2_addr,
                 evProc->getAddressWidth(), &callAddress, false) )
     {

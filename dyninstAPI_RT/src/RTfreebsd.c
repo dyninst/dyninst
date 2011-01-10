@@ -56,7 +56,7 @@
 /* FreeBSD libc has stubs so a static version shouldn't need libpthreads */
 #include <pthread.h>
 
-/* TODO threading support, mutatee traps */
+/* TODO mutatee traps */
 
 extern double DYNINSTstaticHeap_512K_lowmemHeap_1[];
 extern double DYNINSTstaticHeap_16M_anyHeap_1[];
@@ -105,10 +105,8 @@ void mark_heaps_exec() {
     RTprintf( "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize );
 } /* end mark_heaps_exec() */
 
-int DYNINST_sysEntry;
-void DYNINSTos_init(int calledByFork, int calledByAttach)
+void DYNINSTos_init(int /* calledByFork */, int /* calledByAttach */)
 {
-    assert(!NOT_ON_FREEBSD);
 }
 
 #if defined(cap_binary_rewriter) && !defined(DYNINST_RT_STATIC_LIB)
@@ -220,56 +218,6 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
     }
     return 0;
 } /* end DYNINST_am_initial_thread() */
-
-/*
- * This code extracts the lwp, the address of the thread entry function,
- * and the top of the thread's stack. It uses predefined offset to 
- * extract this information from pthread_t, which is usually opaque. 
- * 
- * Hopefully, only one set of offsets should be needed per architecture
- * because there should exist only one version of FreeBSD libc per 
- * FreeBSD version.
- *
- * If different versions are encountered, see the Linux version of this
- * for ideas on how to handle them.
- *
- * Finally, there is a problem that can be used to determine these offsets
- * at the end of this file.
- */
-#define READ_OPAQUE(buffer, pos, type) *((type *)(buffer + pos))
-
-typedef struct pthread_offset_t {
-    unsigned long lwp_pos;
-    unsigned long start_func_pos;
-    unsigned long stack_start_pos;
-    unsigned long stack_size_pos;
-} pthread_offset_t;
-
-#if defined(os_freebsd) && defined(arch_x86_64)
-static pthread_offset_t offsets = { 0, 112, 152, 160 };
-#elif defined(os_freebsd) && defined(arch_x86)
-static pthread_offset_t offsets = { 0, 80, 108, 112};
-#else
-#error pthread_t offsets undefined for this architecture
-#endif
-
-int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev) {
-    static int err_printed = 0;
-    unsigned char *buffer = (unsigned char *)ev->tid;
-
-    unsigned long lwp = READ_OPAQUE(buffer, offsets.lwp_pos, unsigned long);
-    ev->stack_addr = (void *)(READ_OPAQUE(buffer, offsets.stack_start_pos, unsigned long) + 
-        READ_OPAQUE(buffer, offsets.stack_size_pos, unsigned long));
-    ev->start_pc = (void *)(READ_OPAQUE(buffer, offsets.start_func_pos, unsigned long));
-
-    if( lwp != ev->lwp && !err_printed ) {
-        RTprintf("%s[%d]: Failed to parse pthread_t information. Making a best effort guess.\n",
-                __FILE__, __LINE__);
-        err_printed = 1;
-    }
-
-    return 1;
-}
 
 /** trap based instrumentation **/
 
@@ -579,6 +527,9 @@ static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
 #endif /* cap_mutatee_traps */
 
 /*
+ * Note: this program is for historical purposes only, we use libthread_db
+ * now to get thread information.
+ *
  * A program to determine the offsets of certain thread structures on FreeBSD
  *
  * This program should be compiled with the headers from the libthr library from

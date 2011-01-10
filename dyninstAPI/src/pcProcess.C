@@ -454,6 +454,17 @@ bool PCProcess::bootstrapProcess() {
     costAddr_ = obsCostVec[0]->getAddress();
     assert(costAddr_);
 
+    // Register the initial threads
+    for(map<dynthread_t, PCThread *>::iterator i = threadsByTid_.begin();
+            i != threadsByTid_.end(); ++i)
+    {
+        if( !registerThread(i->second) ) {
+            startup_printf("%s[%d]: bootstrap failed while registering threads with RT library\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+    }
+
     if( !wasCreatedViaFork() ) {
         // Install system call tracing
         startup_printf("%s[%d]: installing default Dyninst instrumentation into process %d\n", 
@@ -512,8 +523,6 @@ bool PCProcess::bootstrapProcess() {
         }
 
         // Initialize the MT stuff
-        
-#if defined(cap_threads)
         if (multithread_capable()) {
             if( !instrumentMTFuncs() ) {
                 startup_printf("%s[%d]: Failed to instrument MT funcs\n",
@@ -521,7 +530,6 @@ bool PCProcess::bootstrapProcess() {
                 return false;
             }
         }
-#endif
     }
 
     // use heuristics to set hybrid analysis mode
@@ -1310,9 +1318,14 @@ PCThread *PCProcess::getThread(dynthread_t tid) const {
     return findIter->second;
 }
 
-void PCProcess::removeThread(dynthread_t tid) {
+bool PCProcess::removeThread(dynthread_t tid) {
+    // First, tell the RT library about the removal
+    if( !unregisterThread(tid) ) return false;
+
     map<dynthread_t, PCThread *>::iterator result;
     result = threadsByTid_.find(tid);
+
+    if( result == threadsByTid_.end() ) return false;
 
     PCThread *toDelete = result->second;
 
@@ -1327,13 +1340,67 @@ void PCProcess::removeThread(dynthread_t tid) {
     // Note: don't delete the thread here, the BPatch_thread takes care of it
     proccontrol_printf("%s[%d]: removed thread %lu from process %d\n",
             FILE__, __LINE__, toDelete->getLWP(), getPid());
+    return true;
+}
+
+bool PCProcess::unregisterThread(dynthread_t tid) {
+    pdvector<AstNodePtr> the_args(1);
+    the_args[0] = AstNode::operandNode(AstNode::Constant, (void*)(Address)tid);
+    AstNodePtr unregisterAST = AstNode::funcCallNode("DYNINSTunregisterThread", the_args);
+
+    Address retval = 0;
+    if( !postIRPC(unregisterAST, 
+                NULL,  // no user data
+                false, // don't run after it is done
+                NULL,  // doesn't matter which thread
+                true,  // wait for completion
+                (void **)&retval,  // don't need to check result directly
+                false) ) // don't deliver callbacks 
+    {
+        proccontrol_printf("%s[%d]: failed to run DYNINSTunregisterThread via iRPC\n", FILE__, __LINE__);
+        return false;
+    }
+
+    if( !retval ) {
+        proccontrol_printf("%s[%d]: failed to unregister thread with RT library\n", FILE__, __LINE__);
+        return false;
+    }
+
+    return true;
+}
+
+bool PCProcess::registerThread(PCThread *thread) {
+    pdvector<AstNodePtr> the_args(2);
+    the_args[0] = AstNode::operandNode(AstNode::Constant, (void*)(Address)thread->getTid());
+    the_args[1] = AstNode::operandNode(AstNode::Constant, (void*)(Address)thread->getIndex());
+    AstNodePtr registerAST = AstNode::funcCallNode("DYNINSTregisterThread", the_args);
+
+    Address retval = 0;
+    if( !postIRPC(registerAST, 
+                NULL,  // no user data
+                false, // don't run after it is done
+                NULL,  // doesn't matter which thread
+                true,  // wait for completion
+                (void **)&retval,  // don't need to check result directly
+                false) ) // don't deliver callbacks 
+    {
+        proccontrol_printf("%s[%d]: failed to run DYNINSTregisterThread via iRPC\n", FILE__, __LINE__);
+        return false;
+    }
+
+    if( !retval ) {
+        proccontrol_printf("%s[%d]: failed to register thread with RT library\n", FILE__, __LINE__);
+        return false;
+    }
+
+    return true;
 }
 
 void PCProcess::addThread(PCThread *thread) {
     pair<map<dynthread_t, PCThread *>::iterator, bool> result;
     result = threadsByTid_.insert(make_pair(thread->getTid(), thread));
 
-    assert( result.second && "Thread shouldn't already be in collection of threads" );
+    assert( result.second && "Thread already in collection of threads" );
     proccontrol_printf("%s[%d]: added thread %lu to process %d\n",
             FILE__, __LINE__, thread->getLWP(), getPid());
 }
@@ -1605,7 +1672,7 @@ bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
     proccontrol_printf("%s[%d]: running inferiorMalloc via iRPC on process %d\n",
             FILE__, __LINE__, getPid());
 
-    Address result;
+    Address result = 0;
     if( !postIRPC(code,
                   NULL, // only care about the result
                   wasRunning, // run when finished?
@@ -1989,6 +2056,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     irpcBuf.setAddrSpace(this);
     irpcBuf.setRegisterSpace(registerSpace::irpcRegSpace(proc()));
     irpcBuf.beginTrackRegDefs();
+    if( thread != NULL ) irpcBuf.setThread(thread);
 
     // Emit the header for the iRPC, if necessary
 
@@ -3550,4 +3618,24 @@ Address PCProcess::getRTEventArg3Addr() {
     }
 
     return sync_event_arg3_addr_;
+}
+
+bool PCProcess::hasPendingEvents() {
+    bool retval;
+    eventCountLock_.lock();
+    retval = ( eventCount_ != 0 );
+    eventCountLock_.unlock();
+    return retval;
+}
+
+void PCProcess::incPendingEvents() {
+    eventCountLock_.lock();
+    eventCount_++;
+    eventCountLock_.unlock();
+}
+
+void PCProcess::decPendingEvents() {
+    eventCountLock_.lock();
+    eventCount_--;
+    eventCountLock_.unlock();
 }
