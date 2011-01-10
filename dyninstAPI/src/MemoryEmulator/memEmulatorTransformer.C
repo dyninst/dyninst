@@ -79,7 +79,7 @@ bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
 
     relocation_cerr << "Memory emulation considering addr " << hex << reloc->addr() << dec << endl;
 
-    if (!isSensitive(reloc, (*iter)->bbl(), func) || BPatch_defensiveMode != func->obj()->hybridMode()) {
+    if (BPatch_defensiveMode != func->obj()->hybridMode() || !isSensitive(reloc, func, (*iter)->bbl())) {
         relocation_cerr << "\t Not sensitive, skipping" << endl;
         continue;
     }
@@ -100,7 +100,9 @@ bool MemEmulatorTransformer::canRewriteMemInsn(CopyInsn::Ptr reloc,
 					       int_function *func) {
   // Let's see if this is an instruction we can rewrite;
   // otherwise complain but let it through (for testing purposes)
-
+							   if (reloc->addr() == 0x0040d3ba) {
+								   int i = 3;
+							   }
    if (override(reloc))
       return true;
   
@@ -114,18 +116,6 @@ bool MemEmulatorTransformer::canRewriteMemInsn(CopyInsn::Ptr reloc,
 				0,
 				0,
 				Null_Register)) {
-    // We can't rewrite it
-    cerr << "Warning: won't rewrite possibly memory sensitive insn "
-	 << reloc->insn()->format() << " @ "
-	 << std::hex << reloc->addr() << std::dec
-	 << " as rewriting is unsupported: insn " ;
-	
-	char *debugBuf = (char *)reloc->insn()->ptr();
-	for (unsigned i = 0; i < reloc->insn()->size(); ++i) {
-		cerr <<setw(2) << hex << (int) debugBuf[i] << "/" << dec;
-		}
-	cerr << endl;
-
     return false;
   }
   return true;
@@ -191,9 +181,7 @@ Atom::Ptr MemEmulatorTransformer::createReplacement(CopyInsn::Ptr reloc,
   return memE;
 }
 
-bool MemEmulatorTransformer::isSensitive(CopyInsn::Ptr reloc,
-                                         int_block *block,
-					                     int_function *func) {
+bool MemEmulatorTransformer::isSensitive(CopyInsn::Ptr reloc, int_function *func, int_block *block) {
 
   image_func *ifunc = func->ifunc();  
   Address image_addr = func->addrToOffset(reloc->addr());
@@ -202,7 +190,7 @@ bool MemEmulatorTransformer::isSensitive(CopyInsn::Ptr reloc,
   aConverter.convert(reloc->insn(),
 		     image_addr,
 		     ifunc,
-             block->llb(),
+			 block->llb(),
 		     assignments);
   
   for (std::vector<Assignment::Ptr>::const_iterator a_iter = assignments.begin();

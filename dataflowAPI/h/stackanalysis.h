@@ -269,7 +269,7 @@ class StackAnalysis {
     TransferFunc(Height a, Height d, MachRegister f, MachRegister t) : 
        from(f), target(t), delta(d), abs(a) {};
 
-       void apply(RegisterState &inputs) const;
+       Height apply(const RegisterState &inputs) const;
        void accumulate(std::map<MachRegister, TransferFunc> &inputs);
 
        std::string format() const;
@@ -294,8 +294,8 @@ class StackAnalysis {
        SummaryFunc() {};
 
        void apply(const RegisterState &in, RegisterState &out) const;
-       void apply(RegisterState &update) const;
        std::string format() const;
+	   void validate() const;
 
        void add(TransferFuncs &f);
 
@@ -313,14 +313,18 @@ class StackAnalysis {
     //      the stack pointer and the caller's stack pointer.
     //   c) The "depth" of any aliases of the stack pointer. 
     
-
-    typedef class IntervalTree<Offset, RegisterState> StateIntervals;
+	typedef std::map<Offset, RegisterState> StateIntervals;
+	//typedef class IntervalTree<Offset, RegisterState> StateIntervals;
     typedef std::map<ParseAPI::Block *, StateIntervals> Intervals;
     
     typedef std::map<ParseAPI::Function *, Height> FuncCleanAmounts;
     
     typedef std::map<ParseAPI::Block *, SummaryFunc> BlockEffects;
     typedef std::map<ParseAPI::Block *, RegisterState> BlockState;
+
+	// To build intervals, we must replay the effect of each instruction. 
+	// To avoid sucking enormous time, we keep those transfer functions around...
+	typedef std::map<ParseAPI::Block *, std::map<Offset, TransferFuncs> > InstructionEffects;
 
     DATAFLOW_EXPORT StackAnalysis();
     DATAFLOW_EXPORT StackAnalysis(ParseAPI::Function *f);
@@ -333,6 +337,8 @@ class StackAnalysis {
     
  private:
     
+	std::string format(const RegisterState &input) const;
+
     MachRegister sp();
     MachRegister fp();
 
@@ -361,6 +367,7 @@ class StackAnalysis {
     void handleAddSub(InstructionPtr insn, int sign, TransferFuncs &xferFuncs);
     void handleLeave(TransferFuncs &xferFuncs);
     void handlePushPopFlags(int sign, TransferFuncs &xferFuncs);
+	void handlePushPopRegs(int sign, TransferFuncs &xferFuncs);
     void handlePowerAddSub(InstructionPtr insn, int sign, TransferFuncs &xferFuncs);
     void handlePowerStoreUpdate(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleMov(InstructionPtr insn, TransferFuncs &xferFuncs);
@@ -376,9 +383,12 @@ class StackAnalysis {
 
     // SP effect tracking
     BlockEffects blockEffects;
+	InstructionEffects insnEffects;
 
     BlockState blockInputs;
     BlockState blockOutputs;
+
+
 
     Intervals *intervals_; // Pointer so we can make it an annotation
     

@@ -145,17 +145,19 @@ void StackAnalysis::summarizeBlocks() {
       Offset &off = instances[j].second;
       Offset next;
       if (j < (instances.size() - 1)) {
-	next = instances[j+1].second;
+		  next = instances[j+1].second;
       }
       else {
-	next = block->end();
+		  next = block->end();
       }
 
-      TransferFuncs xferFuncs;
- 
-      computeInsnEffects(block, insn, off,
-                         xferFuncs);
-      
+	  // Fills in insnEffects[off]
+	  TransferFuncs &xferFuncs = insnEffects[block][off];
+	  computeInsnEffects(block, insn, off,
+		                 xferFuncs);
+      if (off == 0x00001d85) {
+		  int i = 3;
+	  }
       bFunc.add(xferFuncs);
 
       stackanalysis_printf("\t\t\t At 0x%lx:  %s\n",
@@ -196,7 +198,7 @@ void StackAnalysis::fixpoint() {
        meetInputs(block, input);
     }
     
-    //stackanalysis_printf("\t New in meet:  %s\n",
+    stackanalysis_printf("\t New in meet: %s\n", format(input).c_str());
 
     // Step 2: see if the input has changed
     
@@ -206,8 +208,7 @@ void StackAnalysis::fixpoint() {
        continue;
     }
     
-    //stackanalysis_printf("\t ... inequal to current %s, analyzing block\n",
-    // inBlockEffects[block].format().c_str());
+    stackanalysis_printf("\t ... inequal to current %s, analyzing block\n", format(blockInputs[block]).c_str());
     
     blockInputs[block] = input;
     
@@ -216,8 +217,7 @@ void StackAnalysis::fixpoint() {
     blockEffects[block].apply(input,
                               blockOutputs[block]);
     
-    //stackanalysis_printf("\t ... output from block: %s\n",
-    //outBlockEffects[block].format().c_str());
+    stackanalysis_printf("\t ... output from block: %s\n", format(blockOutputs[block]).c_str());
     
     // Step 4: push all children on the worklist.
     
@@ -231,9 +231,38 @@ void StackAnalysis::fixpoint() {
 }
 
 void StackAnalysis::summarize() {
-   // Help!
-   //intervals_ = new something...
-   assert(0);
+	// Now that we know the actual inputs to each block,
+	// we create intervals by replaying the effects of each
+	// instruction. 
+
+	intervals_ = new Intervals();
+
+	Function::blocklist & bs = func->blocks();
+	Function::blocklist::iterator bit = bs.begin();
+	for( ; bit != bs.end(); ++bit) {
+		Block *block = *bit;
+		if (block->start() == 0x0000d60e) {
+			int i = 3;
+		}
+		RegisterState input = blockInputs[block];
+
+		for (std::map<Offset, TransferFuncs>::iterator iter = insnEffects[block].begin(); 
+			iter != insnEffects[block].end(); ++iter) {
+			Offset off = iter->first;
+			TransferFuncs &xferFuncs = iter->second;
+
+			// TODO: try to collapse these in some intelligent fashion
+			(*intervals_)[block][off] = input;
+
+			RegisterState old = input;
+			for (TransferFuncs::iterator iter2 = xferFuncs.begin();
+				iter2 != xferFuncs.end(); ++iter2) {
+					input[iter2->target] = iter2->apply(old);
+			}
+		}
+		(*intervals_)[block][block->end()] = input;
+		assert(input == blockOutputs[block]);
+	}
 }
 
 void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
@@ -296,7 +325,14 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
        case e_popfd:
           handlePushPopFlags(sign, xferFuncs);
           break;
-       case power_op_si:
+#if 0
+	   case e_pushad:
+		   sign = -1;
+	   case e_popad:
+		   handlePushPopRegs(sign, xferFuncs);
+		   break;
+#endif
+	   case power_op_si:
           sign = -1;
        case power_op_addi:
           handlePowerAddSub(insn, sign, xferFuncs);
@@ -419,9 +455,8 @@ StackAnalysis::Height StackAnalysis::find(Block *b, Address addr, MachRegister r
   }
   assert(intervals_);
 
-  RegisterState state;
-  (*intervals_)[b].find(addr, state);
-  ret = state[reg];
+  //(*intervals_)[b].find(addr, state);
+  ret = (*intervals_)[b][addr][reg];
 
   if (ret.isTop()) {
      return Height::bottom;
@@ -526,6 +561,12 @@ void StackAnalysis::handlePushPopFlags(int sign, TransferFuncs &xferFuncs) {
    xferFuncs.push_back(TransferFunc::deltaFunc(sp(), sign * word_size));
 }
 
+void StackAnalysis::handlePushPopRegs(int sign, TransferFuncs &xferFuncs) {
+   // Fixed-size push/pop
+	// 8 registers
+   xferFuncs.push_back(TransferFunc::deltaFunc(sp(), sign * 8 * word_size));
+}
+
 void StackAnalysis::handlePowerAddSub(Instruction::Ptr insn, int sign, TransferFuncs &xferFuncs) {
    // Add/subtract are op0 = op1 +/- op2; we'd better read the stack pointer as well as writing it
    if (!insn->isRead(theStackPtr) ||
@@ -586,9 +627,12 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
    MachRegister written;
    std::set<RegisterAST::Ptr> regs;
    insn->getReadSet(regs);
-   assert(regs.size() == 1);
-   RegisterAST::Ptr reg = *(regs.begin());
-   read = reg->getID();
+   assert(regs.size() < 2);
+   RegisterAST::Ptr reg;
+   if (!regs.empty()) {
+	   reg = *(regs.begin());
+	   read = reg->getID();
+   }
    regs.clear();
    insn->getWriteSet(regs);
    assert(regs.size() == 1);
@@ -596,8 +640,14 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
    written = reg->getID();
    regs.clear();
    
-   stackanalysis_printf("\t\t\t Alias detected: %s -> %s\n", read.name(), written.name());
-   xferFuncs.push_back(TransferFunc::aliasFunc(read, written));
+   if (read.isValid()) {
+	   stackanalysis_printf("\t\t\t Alias detected: %s -> %s\n", read.name(), written.name());
+	   xferFuncs.push_back(TransferFunc::aliasFunc(read, written));
+   }
+   else {
+	   xferFuncs.push_back(TransferFunc::bottomFunc(written));
+	   stackanalysis_printf("\t\t\t Non-register-register move: %s set to bottom\n", written.name());
+   }
 }
 
 void StackAnalysis::handleDefault(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
@@ -763,14 +813,21 @@ bool StackAnalysis::TransferFunc::isDelta() const {
 
 // Destructive update of the input map. Assumes inputs are absolute, uninitalized, or 
 // bottom; no deltas.
-void StackAnalysis::TransferFunc::apply(RegisterState &inputs ) const {
-   Height &input = inputs[target];
+StackAnalysis::Height StackAnalysis::TransferFunc::apply(const RegisterState &inputs ) const {
+	assert(target.isValid());
+	// Bottom stomps everything
+	if (isBottom()) {
+		return Height::bottom;
+	}
 
-   // Bottom stomps everything
-   if (isBottom()) {
-      input = Height::bottom;
-      return;
-   }
+	RegisterState::const_iterator iter = inputs.find(target);
+	Height input;
+	if (iter != inputs.end()) {
+		input = iter->second;
+	}
+	else {
+		input = Height::bottom;
+	}
 
    if (isAbs()) {
       // We cannot be an alias, as the absolute removes that. 
@@ -782,12 +839,14 @@ void StackAnalysis::TransferFunc::apply(RegisterState &inputs ) const {
       // Cannot be absolute
       assert(!isAbs());
       // Copy the input value from whatever we're an alias of.
-      input = inputs[from];
+	  RegisterState::const_iterator iter2 = inputs.find(from);
+	  if (iter2 != inputs.end()) input = iter2->second;
+	  else input = Height::bottom;
    }
    if (isDelta()) {
       input += delta;
    }
-   return;
+   return input;
 }
 
 // Accumulation to the input map. This is intended to create a summary, so we create
@@ -796,6 +855,7 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
    TransferFunc &input = inputs[target];
    if (input.target.isValid()) assert(input.target = target);
    input.target = target; // Default constructed TransferFuncs won't have this
+   assert(target.isValid());
 
    // Bottom stomps everything
    if (isBottom()) {
@@ -811,14 +871,23 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
    if (isAlias()) {
       // We need to record that we want to take the inflow height
       // of a different register. 
-      TransferFunc &alias = inputs[from];
+	   // Don't do an inputs[from] as that creates
+	   std::map<MachRegister, TransferFunc>::iterator iter = inputs.find(from);
+	   if (iter == inputs.end()) {
+		   // Aliasing to something we haven't seen yet; easy
+		   input = *this;
+		   return;
+	   }
+
+	   TransferFunc &alias = iter->second;
       
       if (alias.isAbs()) {
          // Easy; we reset the height, so we don't care about the inflow height.
          // This might be a delta from that absolute, but all that we care about is that
          // we ignore any inflow. 
          assert(!alias.isAlias());
-         input = alias;
+		 input = absFunc(input.target, alias.abs);
+		 assert(input.target.isValid());
          return;
       }
       if (alias.isAlias()) {
@@ -827,17 +896,22 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
          // be an absolute because that will remove the alias (and vice versa).
          assert(!alias.isAbs());
          input = alias;
+		 assert(input.target.isValid());
          return;
       }
-      if (alias.isDelta()) {
-         // A delta, but not an alias to a third register or an absolute setting.
-         // Keep only the alias' delta value, but record that we use a different inflow
-         // height.
-         input.from = alias.target;
+
+	  // Default case: record the alias, zero out everything else, copy over the delta
+	  // if it's defined.
+	  //input.target is defined
+	  input.from = alias.target;
+	  input.abs = Height::top;
+	  if (alias.isDelta()) {
          input.delta = alias.delta;
-         return;
-      }   
-      assert(0);
+	  }
+	  else {
+		  input.delta = Height::top;
+	  }
+	  return;
    }
    if (isDelta()) {
       // A delta can apply cleanly to anything, since Height += handles top/bottom
@@ -849,16 +923,17 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
 }
 
 void StackAnalysis::SummaryFunc::apply(const RegisterState &in, RegisterState &out) const {
-   out = in;
-   apply(out);
+	// Copy all the elements we don't have xfer funcs for. 
+	out = in;
+
+	// We apply in parallel, since all summary funcs are from the start of the block.
+	for (TransferSet::const_iterator iter = accumFuncs.begin();
+		iter != accumFuncs.end(); ++iter) {
+		assert(iter->first.isValid());
+		out[iter->first] = iter->second.apply(in);
+	}
 }
 
-void StackAnalysis::SummaryFunc::apply(RegisterState &update) const {
-   for (TransferSet::const_iterator iter = accumFuncs.begin();
-        iter != accumFuncs.end(); ++iter) {
-      iter->second.apply(update);
-   }
-}
 
 void StackAnalysis::SummaryFunc::add(TransferFuncs &xferFuncs) {
    // We need to update our register->xferFunc map
@@ -869,8 +944,35 @@ void StackAnalysis::SummaryFunc::add(TransferFuncs &xferFuncs) {
       TransferFunc &func = *iter;
 
       func.accumulate(accumFuncs);
+   validate();
+   }
+
+}
+
+void StackAnalysis::SummaryFunc::validate() const {
+   for (TransferSet::const_iterator iter = accumFuncs.begin(); 
+	   iter != accumFuncs.end(); ++iter)
+   {
+	   const TransferFunc &func = iter->second;
+	   assert(func.target.isValid());
+	   if (func.isAlias()) assert(!func.isAbs());
+	   if (func.isAbs()) assert(!func.isAlias());
+	   if (func.isBottom()) assert(!func.isAlias());
    }
 }
 
+MachRegister StackAnalysis::sp() { 
+ return MachRegister::getStackPointer(func->isrc()->getArch());
+}
 
-      
+MachRegister StackAnalysis::fp() { 
+ return MachRegister::getFramePointer(func->isrc()->getArch());
+}
+
+std::string StackAnalysis::format(const RegisterState &input) const {
+	std::stringstream ret;
+	for (RegisterState::const_iterator iter = input.begin(); iter != input.end(); ++iter) {
+		ret << iter->first.name() << " := " << iter->second.format() << ", ";
+	}
+	return ret.str();
+}

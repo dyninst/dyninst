@@ -980,6 +980,9 @@ void HybridAnalysisOW::makeShadow_setRights
 void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 {
     Address pointAddr = (Address) point->getAddress();
+	if (pointAddr == 0x9d33c7) {
+		int i = 3;
+	}
     mal_printf("\noverwriteAnalysis(trigger=%lx, loopID=%d)\n", 
 		      pointAddr,(long)loopID_);
 
