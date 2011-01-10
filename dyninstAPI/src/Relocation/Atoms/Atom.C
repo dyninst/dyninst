@@ -146,6 +146,18 @@ bool Trace::generate(const codeGen &templ,
    // Register ourselves with the CodeBuffer and get a label
    label_ = buffer.getLabel();
 
+#if 0
+   // DEBUGGING
+   if (bbl()) {
+	   if (bbl()->start() >= 0x9bc000 &&
+		   bbl()->end() <= 0x9bcfff) {
+			   codeGen gen(1);
+			   gen.fill(1, codeGen::cgTrap);
+			   buffer.addPIC(gen, new InstTracker(bbl()->start(), NULL, bbl()));
+	   }
+   }
+#endif
+
    // Simple form: iterate over every Atom, in order, and generate it.
    for (AtomList::iterator iter = elements_.begin(); iter != elements_.end(); ++iter) {
       if (!(*iter)->generate(templ, 
@@ -155,6 +167,13 @@ bool Trace::generate(const codeGen &templ,
          // This leaves the block in an inconsistent state and should only be used
          // for fatal failures.
       }
+#if 0
+	  if (bbl() && bbl()->start() == 0x9bc74a) {
+		  codeGen gen(1);
+		  gen.fill(1, codeGen::cgTrap);
+		  buffer.addPIC(gen, new InstTracker(bbl()->start(), NULL, bbl()));
+	  }
+#endif
    }
    
    return true;
