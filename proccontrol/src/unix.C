@@ -194,7 +194,25 @@ bool unix_process::post_forked()
    thrd->setUserState(int_thread::running);
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
-   return true;
+
+   std::set<int_library*> added, rmd;
+   for (;;) {
+      std::set<response::ptr> async_responses;
+      bool result = refresh_libraries(added, rmd, async_responses);
+      if (!result && !async_responses.empty()) {
+         result = waitForAsyncEvent(async_responses);
+         if (!result) {
+            pthrd_printf("Failure waiting for async completion\n");
+            return false;
+         }
+         continue;
+      }
+      if (!result) {
+         pthrd_printf("Failure refreshing libraries for %d\n", getPid());
+         return false;
+      }
+      return true;
+   }
 }
 
 unsigned unix_process::getTargetPageSize() {

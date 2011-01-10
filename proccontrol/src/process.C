@@ -3407,6 +3407,11 @@ mem_state::mem_state(mem_state &m, int_process *p)
 {
    pthrd_printf("Copying mem_state to new process %d\n", p->getPid());
    procs.insert(p);
+
+   // Do not copy over libraries -- need to use refresh_libraries to
+   // maintain consistency with AddressTranslate layer
+
+   /*
    set<int_library *>::iterator i;
    for (i = m.libs.begin(); i != m.libs.end(); i++)
    {
@@ -3414,6 +3419,8 @@ mem_state::mem_state(mem_state &m, int_process *p)
       int_library *new_lib = new int_library(orig_lib);
       libs.insert(new_lib);
    }
+   */
+
    map<Dyninst::Address, installed_breakpoint *>::iterator j;
    for (j = m.breakpoints.begin(); j != m.breakpoints.end(); j++)
    {

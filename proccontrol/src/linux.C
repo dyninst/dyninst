@@ -757,16 +757,37 @@ bool linux_thread::plat_cont()
          break;
    }
 
-   void *data = (continueSig_ == 0) ? NULL : (void *) continueSig_;
+   // The following case poses a problem:
+   // 1) This thread has received a signal, but the event hasn't been handled yet
+   // 2) An event that precedes the signal event triggers a callback where
+   //    the user requests that the whole process stop. This in turn causes
+   //    the thread to be sent a SIGSTOP because the Handler hasn't seen the
+   //    signal event yet.
+   // 3) Before handling the pending signal event, this thread is continued to
+   //    clear out the pending stop and consequently, it is delivered the signal
+   //    which can cause the whole process to crash
+   //
+   // The solution:
+   // Don't continue the thread with the pending signal if there is a pending stop.
+   // Wait until the user sees the signal event to deliver the signal to the process.
+   //
+   // This also applies to iRPCs
+   
+   int tmpSignal = continueSig_;
+   if( hasPendingStop() || runningRPC() ) {
+       tmpSignal = 0;
+   }
+
+   void *data = (tmpSignal == 0) ? NULL : (void *) tmpSignal;
    int result;
    if (singleStep())
    {
-      pthrd_printf("Calling PTRACE_SINGLESTEP with signal %d\n", continueSig_);
+      pthrd_printf("Calling PTRACE_SINGLESTEP with signal %d\n", tmpSignal);
       result = do_ptrace((pt_req) PTRACE_SINGLESTEP, lwp, NULL, data);
    }
    else 
    {
-      pthrd_printf("Calling PTRACE_CONT with signal %d\n", continueSig_);
+      pthrd_printf("Calling PTRACE_CONT with signal %d\n", tmpSignal);
       result = do_ptrace((pt_req) PTRACE_CONT, lwp, NULL, data);
    }
    if (result == -1) {
