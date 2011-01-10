@@ -116,17 +116,6 @@ bool MemEmulatorTransformer::canRewriteMemInsn(CopyInsn::Ptr reloc,
 				0,
 				0,
 				Null_Register)) {
-    // We can't rewrite it
-    cerr << "Warning: won't rewrite possibly memory sensitive insn "
-	 << reloc->insn()->format() << " @ "
-	 << std::hex << reloc->addr() << std::dec
-	 << " as rewriting is unsupported: insn " ;
-	
-	char *debugBuf = (char *)reloc->insn()->ptr();
-	for (unsigned i = 0; i < reloc->insn()->size(); ++i) {
-		cerr <<setw(2) << hex << (int) debugBuf[i] << "/" << dec;
-		}
-	cerr << endl;
     return false;
   }
   return true;
