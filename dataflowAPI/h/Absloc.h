@@ -56,6 +56,7 @@ namespace Dyninst {
 
   namespace ParseAPI {
     class Function;
+    class Block;
   };
 
 class Absloc {
@@ -293,24 +294,28 @@ class Assignment {
 					  Address addr);
 
   DATAFLOW_EXPORT Assignment(const InstructionAPI::Instruction::Ptr i,
-	     const Address a,
-	     ParseAPI::Function *f,
-	     const std::vector<AbsRegion> &ins,
-	     const AbsRegion &o) : 
+                             const Address a,
+                             ParseAPI::Function *f,
+                             ParseAPI::Block *b,
+                             const std::vector<AbsRegion> &ins,
+                             const AbsRegion &o) : 
     insn_(i),
-    addr_(a),
-      func_(f),
-    inputs_(ins),
-    out_(o) {};
+       addr_(a),
+       func_(f),
+       block_(b),
+       inputs_(ins),
+       out_(o) {};
 
   DATAFLOW_EXPORT Assignment(const InstructionAPI::Instruction::Ptr i,
-	     const Address a,
-	     ParseAPI::Function *f,
-	     const AbsRegion &o) : 
+                             const Address a,
+                             ParseAPI::Function *f,
+                             ParseAPI::Block *b,
+                             const AbsRegion &o) : 
     insn_(i),
-    addr_(a),
-      func_(f),
-    out_(o) {};
+       addr_(a),
+       func_(f),
+       block_(b),
+       out_(o) {};
 
   // Internally used method; add a dependence on 
   // a new abstract region. If this is a new region
@@ -322,11 +327,14 @@ class Assignment {
 
   DATAFLOW_EXPORT ParseAPI::Function *func() const { return func_; }
 
+  DATAFLOW_EXPORT ParseAPI::Block *block() const { return block_; }
+
  private:
   InstructionAPI::Instruction::Ptr insn_;
   Address addr_;
 
   ParseAPI::Function *func_;
+  ParseAPI::Block *block_;
 
   std::vector<AbsRegion> inputs_;
   AbsRegion out_;

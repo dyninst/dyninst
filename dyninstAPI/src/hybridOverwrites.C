@@ -228,6 +228,9 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool useInsertionSet, BPatch_poi
     for (; sIter != loop->snippets.end(); sIter++) {
         proc()->deleteSnippet(*sIter);
     }
+    if (useInsertionSet) {
+        proc()->finalizeInsertionSet(false);
+    }
 
     // clear loop from blockToLoop and idToLoop datastructures
     std::set<BPatch_basicBlock*,HybridAnalysis::blockcmp>::iterator bIter 
@@ -249,9 +252,6 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool useInsertionSet, BPatch_poi
     loops.erase(loop);
     delete loop;
 
-    if (useInsertionSet) {
-        proc()->finalizeInsertionSet(false);
-    }
     return isLoopActive;
 }
 
@@ -465,7 +465,8 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
         for (unsigned widx = 0; widx < (*blockWrites).size(); widx++) {
             if (BPatch_locSubroutine == (*blockWrites)[widx]->getPointType() ||
                 !hybridow_->isRealStore(
-                    (Address)(*blockWrites)[widx]->getAddress(),
+                    (Address)(*blockWrites)[widx]->getAddress(), 
+                    (*bIter)->lowlevel_block(),
                     (*blockWrites)[widx]->getFunction())) 
             {
                 (*blockWrites)[widx] = (*blockWrites)[blockWrites->size()-1];
@@ -1164,7 +1165,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 #endif
 
 
-bool HybridAnalysisOW::isRealStore(Address insnAddr, 
+bool HybridAnalysisOW::isRealStore(Address insnAddr, int_block *block, 
                                    BPatch_function *func) 
 {
     using namespace InstructionAPI;
@@ -1180,7 +1181,7 @@ bool HybridAnalysisOW::isRealStore(Address insnAddr,
 
     std::vector<Assignment::Ptr> assignments;
     AssignmentConverter aConverter(false);
-    aConverter.convert(insn, image_addr, imgfunc, assignments);
+    aConverter.convert(insn, image_addr, imgfunc, block->llb(), assignments);
 
     for (std::vector<Assignment::Ptr>::const_iterator a_iter = assignments.begin();
          a_iter != assignments.end(); ++a_iter) 
@@ -1300,6 +1301,8 @@ void HybridAnalysisOW::overwriteSignalCB
         {
             loop->setWritesOwnPage(true);
             if ( loop->isRealLoop() ) {
+                loop->instrumentLoopWritesWithBoundsCheck();
+#if 0
                 //re-invoke overwriteSignalCB
                 int_function *llfunc = faultFuncs[0]->lowlevel_func();
                 instPoint *pt = llfunc->findInstPByAddr(faultInsnAddr);
@@ -1323,6 +1326,7 @@ void HybridAnalysisOW::overwriteSignalCB
                 overwriteSignalCB(faultInsnAddr, writeTarget);
                 proc()->finalizeInsertionSet(false);
                 return;
+#endif
             }
         }
 

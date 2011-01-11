@@ -306,6 +306,7 @@ private:
                               owLoop *loop);
 
     bool isRealStore(Dyninst::Address insnAddr, 
+                     int_block *blk, 
                      BPatch_function *func);
 
     // variables

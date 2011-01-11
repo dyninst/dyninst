@@ -47,7 +47,7 @@
 
 struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0};
 
-#define DEBUG_MEM_EM
+//#define DEBUG_MEM_EM
 
 unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, unsigned long curAddr) {
    /* Standard nonblocking synchronization construct */
@@ -55,19 +55,6 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
    int min;
    int max;
    volatile int guard2;
-
-#if 0
-int bidx;
-unsigned char *stackBase = (char*)0x12ff00;
-for (bidx=0; origAddr == 0x40d75e && bidx < 0x100; bidx+=4) {
-    fprintf(stderr,"0x%x:  ", (int)stackBase+bidx);
-    fprintf(stderr,"%02hhx", stackBase[bidx+3]);
-    fprintf(stderr,"%02hhx", stackBase[bidx+2]);
-    fprintf(stderr,"%02hhx", stackBase[bidx+1]);
-    fprintf(stderr,"%02hhx", stackBase[bidx]);
-    fprintf(stderr,"\n");
-}
-#endif
 
 #ifdef DEBUG_MEM_EM
    fprintf(stderr, "RTtranslateMemory(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx)\n", 
@@ -112,7 +99,6 @@ for (bidx=0; origAddr == 0x40d75e && bidx < 0x100; bidx+=4) {
                 * (int *)(input + RTmemoryMapper.elements[index].shift));
         fprintf(stderr, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
 #endif
-
         return input + RTmemoryMapper.elements[index].shift;
       }
    }

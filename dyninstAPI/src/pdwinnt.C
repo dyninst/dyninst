@@ -417,12 +417,19 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events) {
 
 bool SignalGenerator::decodeEvent(EventRecord &ev)
 {
+	if (ev.address == 0x1052ed19) {
+		int i = 3;
+	}
+	if (ev.info.dwDebugEventCode == 0x1) {
+		int i = 3;
+	}
    bool ret = false;
    switch (ev.info.dwDebugEventCode) {
      case EXCEPTION_DEBUG_EVENT:
         //ev.type = evtException;
         ev.what = ev.info.u.Exception.ExceptionRecord.ExceptionCode;
         ret = decodeException(ev);
+		assert(ev.type != evtUndefined);
         break;
      case CREATE_THREAD_DEBUG_EVENT:
         ev.type = evtThreadCreate;
@@ -487,7 +494,7 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
          }
       }
    }
-
+   assert(ev.type != evtUndefined);
   return ret;
 }
 
@@ -538,7 +545,6 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
   else if (proc->trapMapping.definesTrapMapping(ev.address)) {
      ev.type = evtInstPointTrap;
      Frame activeFrame = ev.lwp->getActiveFrame();
-#if 1
 	 cerr << "SPRINGBOARD FRAME: " << hex << activeFrame.getPC() << " / " <<activeFrame.getSP() 
                  << " (DEBUG:" 
                  << "EAX: " << activeFrame.eax
@@ -548,7 +554,9 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
                  << ", ESP: " << activeFrame.esp
                  << ", EBP: " << activeFrame.ebp
                  << ", ESI: " << activeFrame.esi 
-                 << ", EDI " << activeFrame.edi << ")" << dec << endl;
+                 << ", EDI " << activeFrame.edi
+				 << ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
+#if 1
 	 for (unsigned i = 0; i < 10; ++i) {
 			Address stackTOPVAL =0;
 		    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
@@ -569,7 +577,8 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
      else {
 	    requested_wait_until_active = false;
         ret = true;
-#if 1
+		ev.type = evtIgnore;
+
 	    if (1) cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
                  << " (DEBUG:" 
                  << "EAX: " << activeFrame.eax
@@ -579,12 +588,13 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
                  << ", ESP: " << activeFrame.esp
                  << ", EBP: " << activeFrame.ebp
                  << ", ESI: " << activeFrame.esi 
-                 << ", EDI " << activeFrame.edi << ")" << dec << endl;
+                 << ", EDI: " << activeFrame.edi
+				 << ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
+#if 1
 		for (unsigned i = 0; i < 10; ++i) {
 			Address stackTOPVAL =0;
 		    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
 			cerr << "STACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
-			ev.type = evtIgnore;
 		}
 #endif
 	 }
@@ -1011,6 +1021,7 @@ Frame dyn_lwp::getActiveFrame()
                 frame.ebp = cont.Ebp;
 		frame.esi = cont.Esi;
 		frame.edi = cont.Edi;
+		frame.eflags = cont.EFlags;
 
 		return frame;
 	}
