@@ -64,6 +64,7 @@ class BPatch_function;
 class BPatch_point;
 class BPatch_addressSpace;
 class int_variable;
+class mapped_object;
 
 
 /*
@@ -724,7 +725,6 @@ class BPATCH_DLL_EXPORT BPatch_stopThreadExpr : public BPatch_snippet {
   //  evaluates a calculation snippet and triggers a callback to the
   //  user program with the result of the calculation and a pointer to
   //  the BPatch_point at which the snippet was inserted
-
   API_EXPORT_CTOR(Int, (cb, calculation, useCache, interp),
   BPatch_stopThreadExpr, 
   (const BPatchStopThreadCallback &cb,
@@ -732,6 +732,14 @@ class BPATCH_DLL_EXPORT BPatch_stopThreadExpr : public BPatch_snippet {
    bool useCache = false,
    BPatch_stInterpret interp = BPatch_noInterp));
 
+  // for internal use in conjunction with memory emulation and defensive 
+  // mode analysis
+  BPatch_stopThreadExpr(
+   const BPatchStopThreadCallback &cb,
+   const BPatch_snippet &calculation,
+   const mapped_object &obj,
+   bool useCache = false,
+   BPatch_stInterpret interp = BPatch_noInterp);
 };
 
 #ifdef DYNINST_CLASS_NAME

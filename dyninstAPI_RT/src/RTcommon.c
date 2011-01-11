@@ -429,8 +429,13 @@ RT_Boolean cacheLookup(void *calculation)
 }
 
 /** 
- * Receives two snippets as arguments, stops the mutator, and sends
- * the arguments back to the mutator.  
+ * Receives two snippets as arguments and stops the mutatee
+ * while the mutator reads the arguments, saved to 
+ * DYNINST_synch_event... global variables. 
+ *
+ * if flag useCache==1, does a cache lookup and stops only
+ * if there is a cache miss
+ * 
  * The flags are: 
  * bit 0: useCache
  * bit 1: true if interpAsTarget
@@ -523,6 +528,20 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
     return;
 }
 
+// zeroes out the useCache flag if the call is interprocedural
+void DYNINST_stopInterProc(void * pointAddr, void *callBackID, 
+                           void *flags, void *calculation,
+                           void *objStart, void *objEnd)
+{
+#if defined STACKDUMP
+    rtdebug_printf("RT_sip: calc=%lx objStart=%lx objEnd=%lx\n",
+                   calculation, objStart, objEnd);
+#endif
+    if (calculation < objStart || calculation >= objEnd) {
+        flags = (void*)(((int)flags) & 0xfffffffe);
+    }
+    DYNINST_stopThread(pointAddr, callBackID, flags, calculation);
+}
 
 // boundsArray is a sequence of (blockStart,blockEnd) pairs
 RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_, 

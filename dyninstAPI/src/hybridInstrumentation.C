@@ -223,26 +223,34 @@ int HybridAnalysis::saveInstrumentationHandle(BPatch_point *point,
     return 0;
 }
 
+// we can use the cache in memoryEmulation mode since it will
+// call a modified version of stopThreadExpr that excludes 
+// inter-modular calls from cache lookups
 bool HybridAnalysis::canUseCache(BPatch_point *pt) 
 {
-    if (proc()->lowlevel_process()->isMemoryEmulated()) {
+    bool ret = true;
+
+    // can't use cache for call points w/ no fallthrough addr
+    if (BPatch_subroutine == pt->getPointType()) {
+        vector<BPatch_function*>tmp;
+        if (!proc()->findFunctionsByAddr(pt->getCallFallThroughAddr(),tmp)) {
+            ret = false;
+        }
+    }
+
+#if 0
+    if (ret && proc()->lowlevel_process()->isMemoryEmulated()) {
         vector<Address> targs;
         pt->getSavedTargets(targs);
         if (1 == targs.size() && 
             pt->llpoint()->func()->obj() == 
             proc()->lowlevel_process()->findObject(targs[0]))
         {
-            return false;
+            ret = false;
         }
     }
-    if (BPatch_subroutine == pt->getPointType()) {
-        vector<BPatch_function*>tmp;
-        if (!proc()->findFunctionsByAddr(pt->getCallFallThroughAddr(),tmp)) {
-            return false;
-        }
-        return true;
-    }
-    return true;
+#endif
+    return ret;
 }
 
 // returns false if no new instrumentation was added to the module
@@ -293,8 +301,13 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             bool useCache = canUseCache(curPoint);
             mal_printf("hybridInstrumentation[%d] monitoring unresolved at 0x%lx: "
                        "indirect, useCache=%d\n", __LINE__,(long)curPoint->getAddress(),(int)useCache);
-            dynamicTransferSnippet = new BPatch_stopThreadExpr(
-                badTransferCB_wrapper, dynTarget, useCache, BPatch_interpAsTarget);
+            if (useCache) {
+                dynamicTransferSnippet = new BPatch_stopThreadExpr(badTransferCB_wrapper, 
+                    dynTarget, *curPoint->llpoint()->func()->obj(), useCache, BPatch_interpAsTarget);
+            } else {
+                dynamicTransferSnippet = new BPatch_stopThreadExpr(badTransferCB_wrapper, 
+                    dynTarget, useCache, BPatch_interpAsTarget);
+            }
 
             // instrument the point
             if (useInsertionSet && 0 == pointCount) {
@@ -750,9 +763,28 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
     // a false positive code overwrite) re-instrument the point to use
     // the cache, if it's an indirect transfer, or remove it altogether
     // if it's a static transfer. 
-    if (!parsedAfterCallPoint //KEVINTODO: re-enable re-instrumentation for memory-emulated calls that stay in their module
-        && !proc()->lowlevel_process()->isMemoryEmulated()) 
-    {
+    bool reInstrument = false;
+    if (!parsedAfterCallPoint) {
+        vector<Address> targs;
+        if (!proc()->lowlevel_process()->isMemoryEmulated()) {
+            reInstrument = true;
+        } else if (callPoint->getSavedTargets(targs)) {
+            reInstrument = true;
+            Address objStart = callPoint->llpoint()->func()->obj()->codeBase();
+            Address objEnd = objStart 
+                + callPoint->llpoint()->func()->obj()->imageSize();
+            for (vector<Address>::iterator iter=targs.begin(); 
+                 iter != targs.end(); 
+                 iter++) 
+            {
+                if ((*iter) < objStart || (*iter) >= objEnd) {
+                    reInstrument = false;
+                    break;
+                }
+            }
+        }
+    }
+    if (reInstrument) {
       for (unsigned ftidx=0; ftidx < fallThroughFuncs.size(); ftidx++) 
       {
         BPatch_function *fallThroughFunc = fallThroughFuncs[ftidx];
@@ -773,8 +805,9 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
                 mal_printf("replacing instrumentation at indirect call point "
                             "%lx with instrumentation that uses the cache "
                             "%s[%d]\n", callPoint->getAddress(),FILE__,__LINE__);
-                BPatch_stopThreadExpr newSnippet (
-                        badTransferCB_wrapper, BPatch_dynamicTargetExpr(), 
+                BPatch_stopThreadExpr newSnippet (badTransferCB_wrapper, 
+                        BPatch_dynamicTargetExpr(), 
+                        *callPoint->llpoint()->func()->obj(), 
                         true, BPatch_interpAsTarget);
                 BPatchSnippetHandle *handle = proc()->insertSnippet
                     (newSnippet, *callPoint, BPatch_lastSnippet);
@@ -1127,8 +1160,8 @@ bool HybridAnalysis::needsSynchronization(BPatch_point *point)
     vector<Address> targs;
     point->getSavedTargets(targs);
 
-    if (targs.empty()) {
-        return true;
+    if (targs.empty()) { 
+        return false; // the point target was a cache hit
     }
 
     for (vector<Address>::iterator tit= targs.begin();

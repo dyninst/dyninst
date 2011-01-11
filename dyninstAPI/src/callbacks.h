@@ -291,8 +291,8 @@ class StopThreadCallback : public SyncCallback
     CallbackBase *copy() { return new StopThreadCallback(*this); }
     bool execute_real(void);
     bool operator()(BPatch_point *atPoint, void *returnValue);
-    BPatchStopThreadCallback getFunc() {return cb;}
-    process *getProcess();
+    BPatchStopThreadCallback getFunc() const {return cb;}
+    process *getProcess() const;
  private:
     BPatchStopThreadCallback cb;
     BPatch_point *point;

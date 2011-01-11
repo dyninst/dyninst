@@ -582,7 +582,7 @@ void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
     newCF->updateInfo(cf);
 
     CFAtom::DestinationMap::iterator dest = cf->destMap_.find(CFAtom::Taken);
-    if (dest != cf->destMap_.end()) {
+    if (dest != cf->destMap_.end() && !cf->isIndirect_) {
       // Explicitly do _NOT_ reuse old information - this is just a branch
       
       newCF->destMap_[CFAtom::Taken] = dest->second;
@@ -598,14 +598,14 @@ void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
       newCF->updateInsn(insn);
       newCF->updateAddr(addr);
       if (!newCF->isIndirect_) { 
-	// WTF???
-	cerr << "Error: unknown insn " << insn->format() 
-	     << std::hex << "@" << addr << dec << endl;
+        // ???
+        cerr << "Error: unknown insn " << insn->format() 
+             << std::hex << "@" << addr << dec << endl;
 
-	for (CFAtom::DestinationMap::iterator foo = cf->destMap_.begin();
-	     foo != cf->destMap_.end(); ++foo) {
-	  //cerr << hex << foo->first << " -> " << foo->second->addr() << dec << endl;
-	}
+        for (CFAtom::DestinationMap::iterator foo = cf->destMap_.begin();
+             foo != cf->destMap_.end(); ++foo) {
+          //cerr << hex << foo->first << " -> " << foo->second->addr() << dec << endl;
+        }
 
       }
 

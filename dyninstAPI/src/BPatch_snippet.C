@@ -1579,18 +1579,13 @@ bool BPatch_insnExpr::overrideStoreAddressInt(BPatch_snippet &s) {
    necessary that we limit StopThreadCallbacks creations like this. */
 static std::set<BPatchStopThreadCallback> *stopThread_cbs=NULL;
 
-/* BPatch_stopThreadExpr 
- *
- *  This snippet type stops the thread that executes it.  It
- *  evaluates a calculation snippet and triggers a callback to the
- *  user program with the result of the calculation and a pointer to
- *  the BPatch_point at which the snippet was inserted
- */
-void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
-      (const BPatchStopThreadCallback &bp_cb,
-       const BPatch_snippet &calculation,
-       bool useCache,
-       BPatch_stInterpret interp)
+static void constructorHelper(
+   const BPatchStopThreadCallback &bp_cb,
+   const BPatch_snippet &calculation,
+   bool useCache,
+   BPatch_stInterpret interp,
+   AstNodePtr &idNode,
+   AstNodePtr &icNode)
 {
     //register the callback if it's new
     if (stopThread_cbs == NULL) {
@@ -1607,7 +1602,7 @@ void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
 
     // create callback ID argument
     int cb_id = process::getStopThreadCB_ID((Address)bp_cb); 
-    AstNodePtr idNode = AstNode::operandNode(AstNode::Constant, (void*)(int) cb_id );
+    idNode = AstNode::operandNode(AstNode::Constant, (void*)(int) cb_id );
     BPatch_type *inttype = BPatch::bpatch->stdTypes->findType("int");
     assert(inttype != NULL);
     idNode->setType(inttype);
@@ -1620,9 +1615,27 @@ void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
         ic += 2;
     else if (interp == BPatch_interpAsReturnAddr) 
         ic += 4;
-    AstNodePtr icNode = AstNode::operandNode(AstNode::Constant, (void*) ic );
+    icNode = AstNode::operandNode(AstNode::Constant, (void*) ic );
     icNode->setType(inttype);
-    
+}
+
+/* BPatch_stopThreadExpr 
+ *
+ *  This snippet type stops the thread that executes it.  It
+ *  evaluates a calculation snippet and triggers a callback to the
+ *  user program with the result of the calculation and a pointer to
+ *  the BPatch_point at which the snippet was inserted
+ */
+void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
+      (const BPatchStopThreadCallback &bp_cb,
+       const BPatch_snippet &calculation,
+       bool useCache,
+       BPatch_stInterpret interp)
+{
+    AstNodePtr idNode;
+    AstNodePtr icNode;
+    constructorHelper(bp_cb, calculation, useCache, interp, idNode, icNode);
+
     // set up funcCall args
     pdvector<AstNodePtr> ast_args;
     ast_args.push_back(AstNode::actualAddrNode());
@@ -1632,6 +1645,45 @@ void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
 
     // create func call & set type 
     ast_wrapper = AstNodePtr(AstNode::funcCallNode("DYNINST_stopThread", ast_args));
+    ast_wrapper->setType(BPatch::bpatch->type_Untyped);
+    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
+
+
+  // for internal use in conjunction with memory emulation and defensive 
+  // mode analysis
+BPatch_stopThreadExpr::BPatch_stopThreadExpr(
+   const BPatchStopThreadCallback &bp_cb,
+   const BPatch_snippet &calculation,
+   const mapped_object &obj,
+   bool useCache,
+   BPatch_stInterpret interp)
+{
+    AstNodePtr idNode;
+    AstNodePtr icNode;
+    constructorHelper(bp_cb, calculation, useCache, interp, idNode, icNode);
+    
+    Address objStart = obj.codeBase();
+    Address objEnd = objStart + obj.imageSize();
+    AstNodePtr objStartNode = AstNode::operandNode(
+        AstNode::Constant, (void*) objStart);
+    AstNodePtr objEndNode = AstNode::operandNode(
+        AstNode::Constant, (void*) objEnd);
+    BPatch_type *ulongtype = BPatch::bpatch->stdTypes->findType("unsigned long");
+    objStartNode->setType(ulongtype);
+    objEndNode->setType(ulongtype);
+
+    // set up funcCall args
+    pdvector<AstNodePtr> ast_args;
+    ast_args.push_back(AstNode::actualAddrNode());
+    ast_args.push_back(idNode);
+    ast_args.push_back(icNode);
+    ast_args.push_back(calculation.ast_wrapper);
+    ast_args.push_back(objStartNode);
+    ast_args.push_back(objEndNode);
+
+    // create func call & set type 
+    ast_wrapper = AstNodePtr(AstNode::funcCallNode("DYNINST_stopInterProc", ast_args));
     ast_wrapper->setType(BPatch::bpatch->type_Untyped);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
