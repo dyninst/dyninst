@@ -194,8 +194,7 @@ public:
            2a.Instrument at loop exit edges
            2b.Instrument at unresolved edges in the loop 
          */
-        void instrumentOverwriteLoop(Dyninst::Address writeInsnAddr, 
-                                     std::set<BPatch_point*> &unresExits);
+        void instrumentOverwriteLoop(Dyninst::Address writeInsnAddr);
 
         void instrumentOneWrite(Dyninst::Address writeInsnAddr, 
                                 std::vector<BPatch_function*> writeFuncs);
@@ -218,6 +217,8 @@ public:
         std::set<Dyninst::Address> writeInsns;
         //loopblocks
         std::set<BPatch_basicBlock*,HybridAnalysis::blockcmp> blocks;
+        //unresolved control transfers that we treat as exit points
+        std::set<BPatch_point*> unresExits_;
     private:
         //write target, set to 0 if loop has multiple write targets
         Dyninst::Address writeTarget_;
@@ -286,14 +287,12 @@ private:
     // and the function returns normally
     bool addFuncBlocks(owLoop *loop, std::set<BPatch_function*> &addFuncs, 
                        std::set<BPatch_function*> &seenFuncs,
-                       std::set<BPatch_point*> &exitPoints,
                        std::set<int> &overlappingLoops);
 
     // if writeLoop is null, return the whole function in the loop. 
     // returns true if we were able to identify all code in the loop
     bool setLoopBlocks(owLoop *loop, 
                        BPatch_basicBlockLoop *writeLoop,
-                       std::set<BPatch_point*> &exitPoints,
                        std::set<int> &overlappingLoops);
 
     //returns true if the loop blocks are a superset of the loop(s) it overlaps

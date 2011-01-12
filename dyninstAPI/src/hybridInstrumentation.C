@@ -1161,7 +1161,12 @@ bool HybridAnalysis::needsSynchronization(BPatch_point *point)
     point->getSavedTargets(targs);
 
     if (targs.empty()) { 
-        return false; // the point target was a cache hit
+        ParseAPI::Block::edgelist & outEdges = point->llpoint()->block()->llb()->targets();
+        if (outEdges.size() <= 1) {
+            return true; // the point has not been resolved yet
+        } else {
+            return false; // the point has been resolved
+        }
     }
 
     for (vector<Address>::iterator tit= targs.begin();
