@@ -38,6 +38,38 @@
 using namespace std;
 using namespace Dyninst;
 
+int dwarf_printf(const char *format, ...)
+{
+  static int dyn_debug_dwarf = 0;
+
+  if (dyn_debug_dwarf == -1) {
+    return 0;
+  }
+  if (!dyn_debug_dwarf) {
+    char *p = getenv("DYNINST_DEBUG_DWARF");
+    if (!p)
+      p = getenv("SYMTAB_DEBUG_DWARF");
+    if (p) {
+      fprintf(stderr, "Enabling SymtabAPI dwarf parsing\n");
+      dyn_debug_dwarf = 1;
+    }
+    else {
+      dyn_debug_dwarf = -1;
+      return 0;
+    }
+  }
+
+  if (!format)
+    return -1;
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
+
 #if defined(arch_x86_64)
 // We can only safely map the general purpose registers (0-7 on ia-32,
 // 0-15 on amd-64)

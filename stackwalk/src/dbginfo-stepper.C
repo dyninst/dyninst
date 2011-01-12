@@ -66,20 +66,9 @@ public:
    Address hiPC;
 };
 
+#include <stdarg.h>
 #include "dwarf.h"
 #include "libdwarf.h"
-
-typedef enum {
-   No_Error = 0,
-   Bad_Frame_Data,
-   No_Frame_Entry,
-   Frame_Read_Error,
-} FrameErrors_t;
-
-static FrameErrors_t frame_error = No_Error;
-
-#define setSymtabError(x) { frame_error = x; }
-#define dwarf_printf sw_printf
 #include "common/h/dwarfExpr.h"
 #include "common/h/dwarfSW.h"
 #include "common/h/Elf_X.h"
@@ -204,6 +193,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
 {
    MachRegisterVal frame_value, stack_value, ret_value;
    bool result;
+   FrameErrors_t frame_error = FE_No_Error;
 
    Dyninst::Architecture arch;
    unsigned addr_width = getProcessState()->getAddressWidth();
@@ -213,17 +203,16 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
       arch = Dyninst::Arch_x86_64;
 
    result = dinfo->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
-                                      ret_value, arch, this);
-   // TODO DEBUG - fix getRegValueAtFrame to return error instead of inlining def'n
-   // DEBUG orig - if (!result && frame_error == No_Frame_Entry && isVsyscallPage) {
-   if (!result && isVsyscallPage) {
+                                      ret_value, arch, this, frame_error);
+
+   if (!result && frame_error == FE_No_Frame_Entry && isVsyscallPage) {
       //Work-around kernel bug.  The vsyscall page location was randomized, but
       // the debug info still has addresses from the old, pre-randomized days.
       // See if we get any hits by assuming the address corresponds to the 
       // old PC.
       pc += 0xffffe000;
       result = dinfo->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
-                                         ret_value, arch, this);
+                                         ret_value, arch, this, frame_error);
 
    }
    if (!result) {
@@ -241,7 +230,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
       frame_reg = x86_64::rbp;
 
    result = dinfo->getRegValueAtFrame(pc, frame_reg,
-                                      frame_value, arch, this);
+                                      frame_value, arch, this, frame_error);
    if (!result) {
       sw_printf("[%s:%u] - Couldn't get frame debug info at %lx\n",
                  __FILE__, __LINE__, in.getRA());
@@ -249,7 +238,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    }
 
    result = dinfo->getRegValueAtFrame(pc, Dyninst::FrameBase,
-                                      stack_value, arch, this);
+                                      stack_value, arch, this, frame_error);
    if (!result) {
       sw_printf("[%s:%u] - Couldn't get stack debug info at %lx\n",
                  __FILE__, __LINE__, in.getRA());

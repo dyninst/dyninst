@@ -75,7 +75,7 @@ typedef enum {
 } ObjectType;
 
 typedef enum { 
-   Obj_Parsing,
+   Obj_Parsing = 0,
    Syms_To_Functions,
    Build_Function_Lists,
    No_Such_Function,
@@ -90,7 +90,7 @@ typedef enum {
    Export_Error,
    Emit_Error,
    Invalid_Flags,
-   Bad_Frame_Data,
+   Bad_Frame_Data,      /* 15 */
    No_Frame_Entry,
    Frame_Read_Error,
    No_Error
