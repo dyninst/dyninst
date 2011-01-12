@@ -377,11 +377,17 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
  * 4. parse at the target if it is code
  * KEVINTODO: split into phases: parse, instrument
  */
+extern bool debug_blocks;
 void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue) 
 {
     Address pointAddr = (Address) point->getAddress();
     Address target = (Address) returnValue;
-
+    if (pointAddr == 0x5ac12b || //skype
+        pointAddr == 0x97340e)   //asprotect
+    {
+        printf("setting debug_blocks to true\n");
+        debug_blocks = true;
+    }
     time_t tstruct;
     struct tm * tmstruct;
     char timeStr[64];

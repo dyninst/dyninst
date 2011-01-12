@@ -138,7 +138,7 @@ Trace::Ptr Trace::create(Atom::Ptr a, Address addr, int_function *f) {
 //
 // So basically if the incoming start address is different or if the
 // block size changed.
-
+bool debug_blocks = false;
 bool Trace::generate(const codeGen &templ,
                      CodeBuffer &buffer) {
    relocation_cerr << "Generating block " << id() << " orig @ " << hex << origAddr() << dec << endl;
@@ -146,14 +146,16 @@ bool Trace::generate(const codeGen &templ,
    // Register ourselves with the CodeBuffer and get a label
    label_ = buffer.getLabel();
 
-#if 0
+#if 1
    // DEBUGGING
    if (bbl()) {
-	   if (bbl()->start() >= 0x9bc000 &&
-		   bbl()->end() <= 0x9bcfff) {
-			   codeGen gen(1);
-			   gen.fill(1, codeGen::cgTrap);
-			   buffer.addPIC(gen, new InstTracker(bbl()->start(), NULL, bbl()));
+       //if (bbl()->start() >= 0x5ac13c && bbl()->end() > 0x5ac13c) {
+       //    debug_blocks = true;
+       //}
+	   if (debug_blocks) {
+		   codeGen gen(1);
+		   gen.fill(1, codeGen::cgTrap);
+		   buffer.addPIC(gen, new InstTracker(bbl()->start(), NULL, bbl()));
 	   }
    }
 #endif

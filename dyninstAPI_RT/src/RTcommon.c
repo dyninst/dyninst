@@ -120,6 +120,7 @@ int isMutatedExec = 0;
 // stopThread cache variables 
 char cacheLRUflags[TARGET_CACHE_WIDTH];
 void *DYNINST_target_cache[TARGET_CACHE_WIDTH][TARGET_CACHE_WAYS];
+FILE *stOut;
 
 
 unsigned *DYNINST_tramp_guards;
@@ -273,6 +274,7 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
           0, 
           sizeof(void*) * TARGET_CACHE_WIDTH * TARGET_CACHE_WAYS);
    memset(cacheLRUflags, 1, sizeof(char)*TARGET_CACHE_WIDTH);
+   stOut = fopen("rtdump.txt","w");
    rtdebug_printf("%s[%d]:  leaving DYNINSTinit\n", __FILE__, __LINE__);
 
    /* Memory emulation */
@@ -441,17 +443,20 @@ RT_Boolean cacheLookup(void *calculation)
  * bit 1: true if interpAsTarget
  * bit 2: true if interpAsReturnAddr
  **/     
-//#define STACKDUMP 1
+#define STACKDUMP
 void DYNINST_stopThread (void * pointAddr, void *callBackID, 
                          void *flags, void *calculation)
 {
 	static int reentrant = 0;
 
     RT_Boolean isInCache = RT_FALSE;
-#if defined STACKDUMP
-    unsigned char *stackBase = (unsigned char*) 0x971140; // & pointAddr;
+//#if defined STACKDUMP
+    unsigned char *stackBase = (unsigned char*) 0x12ff00; // & pointAddr;
     unsigned bidx=0;
-#endif
+    fprintf(stOut,"RT_stopThread: pt[%lx] flags[%lx] calc[%lx] reentrant=%d\n", 
+            (long)pointAddr, (long)flags, (long)calculation, reentrant);
+    fflush(stOut);
+//#endif
 	if (reentrant == 1) {
 		return;
 	}
@@ -461,22 +466,20 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
                    (long)pointAddr, (long)flags, (long)calculation);
 
 #if defined STACKDUMP
-    fprintf(stderr,"RT_stopThread: pt[%lx] flags[%lx] calc[%lx]\n", 
-                   (long)pointAddr, (long)flags, (long)calculation);
-    if ((unsigned long)calculation == 0x9746a3 || 
-        (unsigned long)calculation == 0x77dd761b) 
-    {
-        fprintf(stderr,"RT_st: %lx(%lx)\n", (long)pointAddr,&calculation);
-        fprintf(stderr,"at instr w/ targ=%lx\n",(long)calculation);
-        for (bidx=0; bidx < 0x60; bidx+=4) {
-            fprintf(stderr,"0x%x:  ", (int)stackBase+bidx);
-            fprintf(stderr,"%02hhx", stackBase[bidx]);
-            fprintf(stderr,"%02hhx", stackBase[bidx+1]);
-            fprintf(stderr,"%02hhx", stackBase[bidx+2]);
-            fprintf(stderr,"%02hhx", stackBase[bidx+3]);
-            fprintf(stderr,"\n");
+    //if (0 && ((unsigned long)calculation == 0x9746a3 || 
+    //          (unsigned long)calculation == 0x77dd761b))
+    //{
+        fprintf(stOut,"RT_st: %lx(%lx)\n", (long)pointAddr,&calculation);
+        fprintf(stOut,"at instr w/ targ=%lx\n",(long)calculation);
+        for (bidx=0; bidx < 0x100; bidx+=4) {
+            fprintf(stOut,"0x%x:  ", (int)stackBase+bidx);
+            fprintf(stOut,"%02hhx", stackBase[bidx]);
+            fprintf(stOut,"%02hhx", stackBase[bidx+1]);
+            fprintf(stOut,"%02hhx", stackBase[bidx+2]);
+            fprintf(stOut,"%02hhx", stackBase[bidx+3]);
+            fprintf(stOut,"\n");
         }
-    }
+    //}
     // fsg: read from 40a4aa, how did it become 40a380? 
 #endif
 
@@ -533,10 +536,11 @@ void DYNINST_stopInterProc(void * pointAddr, void *callBackID,
                            void *flags, void *calculation,
                            void *objStart, void *objEnd)
 {
-#if defined STACKDUMP
-    rtdebug_printf("RT_sip: calc=%lx objStart=%lx objEnd=%lx\n",
-                   calculation, objStart, objEnd);
-#endif
+//#if defined STACKDUMP
+    fprintf(stOut,"RT_sip: calc=%lx objStart=%lx objEnd=%lx\n",
+            calculation, objStart, objEnd);
+    fflush(stOut);
+//#endif
     if (calculation < objStart || calculation >= objEnd) {
         flags = (void*)(((int)flags) & 0xfffffffe);
     }

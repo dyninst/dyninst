@@ -200,7 +200,7 @@ bool MemEmulator::generateEAXMove(int opcode,
     buffer.addPIC(patch, tracker(t->bbl()));
     return true;
 }
-
+extern bool debug_blocks;
 bool GLOBAL_DISASSEMBLY = false;
 bool MemEmulator::generateViaModRM(const codeGen &templ,
                                    const Trace *t, 
@@ -217,6 +217,9 @@ bool MemEmulator::generateViaModRM(const codeGen &templ,
    prepatch.applyTemplate(templ);
 
    bool debug = false;
+   if (debug_blocks) {
+       debug = true;
+   }
 
   // We want to ensure that a memory operation produces its
   // original result in the face of overwriting the text
@@ -704,6 +707,9 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
 
    // This is an implicit use of ESI, EDI, or both. The both? Sucks. 
 bool debug = false;
+if (debug_blocks) {
+    debug = true;
+}
 if (debug) {
 	prepatch.fill(1, codeGen::cgTrap);
 }

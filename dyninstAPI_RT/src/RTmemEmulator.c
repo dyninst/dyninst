@@ -46,8 +46,9 @@
  * by our instrumentation */
 
 struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0};
+extern FILE *stOut;
 
-//#define DEBUG_MEM_EM
+#define DEBUG_MEM_EM
 
 unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, unsigned long curAddr) {
    /* Standard nonblocking synchronization construct */
@@ -57,7 +58,7 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
    volatile int guard2;
 
 #ifdef DEBUG_MEM_EM
-   fprintf(stderr, "RTtranslateMemory(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx)\n", 
+   fprintf(stOut, "RTtranslateMemory(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx)\n", 
            input, origAddr, curAddr);
 #endif
 
@@ -85,28 +86,28 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
 
    if (min <= max) {
       if (RTmemoryMapper.elements[index].shift == -1) {
-         //fprintf(stderr, "... returning (should be) segv!\n");
+         //fprintf(stOut, "... returning (should be) segv!\n");
          return 0;
       }
       else {
 #ifdef  DEBUG_MEM_EM
-        fprintf(stderr, "... returning shadow copy as index is within range 0x%lx to 0x%lx, shift 0x%lx\n",
+        fprintf(stOut, "... returning shadow copy as index is within range 0x%lx to 0x%lx, shift 0x%lx\n",
                 RTmemoryMapper.elements[index].lo,
                 RTmemoryMapper.elements[index].hi,
                 RTmemoryMapper.elements[index].shift);
-        fprintf(stderr, "Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ", 
+        fprintf(stOut, "Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ", 
                 input, * (int *) input, (input + RTmemoryMapper.elements[index].shift),
                 * (int *)(input + RTmemoryMapper.elements[index].shift));
-        fprintf(stderr, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
+        fprintf(stOut, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
 #endif
         return input + RTmemoryMapper.elements[index].shift;
       }
    }
    else {
 #ifdef  DEBUG_MEM_EM
-      //fprintf(stderr, "\t min %d, max %d, index %d returning no change\n", min, max, index);
-      fprintf(stderr, "\t min %d, max %d, index %d returning no change ", min, max, index);
-      fprintf(stderr, "@deref 0x%x\n", *(int*)input);
+      //fprintf(stOut, "\t min %d, max %d, index %d returning no change\n", min, max, index);
+      fprintf(stOut, "\t min %d, max %d, index %d returning no change ", min, max, index);
+      fprintf(stOut, "@deref 0x%x\n", *(int*)input);
 #endif
       return input;
    }
@@ -119,7 +120,7 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
    int max;
    volatile int guard2;
 #ifdef  DEBUG_MEM_EM
-   fprintf(stderr, "RTtranslateMemoryShift(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx)\n", 
+   fprintf(stOut, "RTtranslateMemoryShift(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx)\n", 
            input, origAddr, curAddr);
 #endif
    do {
@@ -150,19 +151,19 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
       }
       else {
 #ifdef DEBUG_MEM_EM
-         fprintf(stderr, "Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ", 
+         fprintf(stOut, "Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ", 
                  input, * (int *) input, (input + RTmemoryMapper.elements[index].shift),
                  * (int *)(input + RTmemoryMapper.elements[index].shift));
-         fprintf(stderr, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
+         fprintf(stOut, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
 #endif
          return RTmemoryMapper.elements[index].shift;
       }
    }
    else {
 #ifdef DEBUG_MEM_EM
-      //fprintf(stderr, "\t min %d, max %d, index %d returning no change\n", min, max, index);
-      fprintf(stderr, "\t min %d, max %d, index %d returning no change ", min, max, index);
-      fprintf(stderr, "@deref 0x%x\n", *(int*)input);
+      //fprintf(stOut, "\t min %d, max %d, index %d returning no change\n", min, max, index);
+      fprintf(stOut, "\t min %d, max %d, index %d returning no change ", min, max, index);
+      fprintf(stOut, "@deref 0x%x\n", *(int*)input);
 #endif
       return 0;
    }

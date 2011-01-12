@@ -715,7 +715,7 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
             (*pIter)->getSavedTargets(targs);
             if (1 != targs.size()) {
                 loop->unresExits_.insert(*pIter);
-                //hasUnresolved = true;
+                hasUnresolved = true;
                 mal_printf("loop %d calls func %lx which has an indirect "
                            "transfer at %lx that resolves to %d targets "
                            "%s[%d]\n", loop->getID(), (*fIter)->getBaseAddr(), 
@@ -1238,6 +1238,7 @@ void HybridAnalysisOW::overwriteSignalCB
       an adjacent page or is in a subsequent iteration of the instrumented loop: */
     owLoop *loop = findLoop(faultBlocks[0]->getStartAddress());
     if ( loop ) {
+        mal_printf("matches existing loop %d of %d blocks\n", loop->getID(), loop->blocks.size());
         //make sure we haven't added this page to the loop's shadows already
         assert(loop->shadowMap.end() == loop->shadowMap.find(pageAddress));
 
@@ -1253,11 +1254,13 @@ void HybridAnalysisOW::overwriteSignalCB
         // While we're at it, we check to see if the function has been
         // updated, in which case we can swith to loop-based instrumentation
         if ( ! loop->isRealLoop() ) {
+#if 0 // this can never execute since nothing ever sets codeChanged
             // see if the function's analysis has been updated, and if there
             // is now a loop surrounding the write instruction, scrap our
             // current instrumentation and instrument the loop
             if ( loop->codeChanged && 1 == faultFuncs.size()) {
 
+                mal_printf("updating the loop in response to code changes\n");
                 BPatch_basicBlockLoop * bpLoop = 
                     getWriteLoop(*faultFuncs[0], faultInsnAddr);
                 if (bpLoop) {
@@ -1289,11 +1292,18 @@ void HybridAnalysisOW::overwriteSignalCB
                     }
                 }
             }
+            else 
+#endif
             // if there is a new write instruction in the block that hasn't 
             // been instrumented, instrument after the new write instruction
-            else if (loop->writeInsns.end() == 
-                     loop->writeInsns.find(faultInsnAddr))
+            if (loop->writeInsns.end() == 
+                loop->writeInsns.find(faultInsnAddr))
             {
+                assert(0); // KEVINTODO: expunge this code, it should not be 
+                           // reachable, since we instrument immediately after 
+                           // the write instruction and single-instruction loops
+                           // do not get re-used
+                mal_printf("hit new uninstrumented write instruction in existing loop\n");
                 loop->writeInsns.insert(faultInsnAddr);
                 loop->instrumentOneWrite(faultInsnAddr,faultFuncs);
             } 
@@ -1308,6 +1318,8 @@ void HybridAnalysisOW::overwriteSignalCB
         {
             loop->setWritesOwnPage(true);
             if ( loop->isRealLoop() ) {
+                mal_printf("discovered that loop %d writes to one of its code pages, "
+                           "will add write-bounds instrumentation\n", loop->getID());
                 loop->instrumentLoopWritesWithBoundsCheck();
 #if 0
                 //re-invoke overwriteSignalCB
@@ -1338,6 +1350,7 @@ void HybridAnalysisOW::overwriteSignalCB
         }
 
         makeShadow_setRights(writeTarget, loop);
+        loop->setActive(true);
 #if 0
         if (!loop->isActive()) {
             if (!loop->isRealLoop()) {
