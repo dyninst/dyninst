@@ -548,6 +548,9 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
    codeGen patch(128);
    patch.applyTemplate(templ);
    
+   // TODO: we probably want this in a form that doesn't stomp the stack...
+   // But we can probably get away with this for now. Check that.
+
    // step 1: create space on the stack. 
    ::emitPush(RealRegister(REGNUM_EAX), patch);
    
@@ -587,7 +590,7 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
    // Now we start stealing from memEmulatorAtom. We need to call our translation function,
    // which means a non-PIC patch to the CodeBuffer. I don't feel like rewriting everything,
    // so there we go.
-   buffer.addPatch(new MemEmulatorPatch(REGNUM_ECX, addr_, func->getAddress()),
+   buffer.addPatch(new MemEmulatorPatch(REGNUM_ECX, REGNUM_ECX, addr_, func->getAddress()),
                    tracker());
    patch.setIndex(0);
    
