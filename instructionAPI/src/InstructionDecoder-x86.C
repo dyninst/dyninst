@@ -699,8 +699,7 @@ namespace Dyninst
                     {
                         // am_A only shows up as a far call/jump.  Position 1 should be universally safe.
                         Expression::Ptr addr(decodeImmediate(optype, b.start + 1));
-                        Expression::Ptr op(makeDereferenceExpression(addr, makeSizeType(optype)));
-                        insn_to_complete->addSuccessor(op, isCall, false, false, false);
+                        insn_to_complete->addSuccessor(addr, isCall, false, false, false);
                     }
                     break;
                     case am_C:
