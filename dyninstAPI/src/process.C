@@ -4485,14 +4485,16 @@ Address process::stopThreadCtrlTransfer
                 bool hasFT = getRelocInfo(target, unrelocTarget, targBBI, bti);
                 assert(hasFT); // otherwise we should be in the defensive map
 
-                std::vector<int_block *> sourceBlocks;
-                targBBI->getSources(sourceBlocks);
-                assert(sourceBlocks.size() == 1);
-                callBBI = sourceBlocks[0];
-                if (callBBI) {
-                    // if necessary, add the fallthrough edge
-                    using namespace ParseAPI;
-                    Block::edgelist &edges = callBBI->llb()->targets();
+				std::vector<int_block *> sources;
+				targBBI->getSources(sources);
+				for (unsigned i = 0; i < sources.size(); ++i) {
+					if (targBBI->getSourceEdgeType(sources[i]) == ParseAPI::CALL_FT) {
+						callBBI = sources[i];
+					}
+				}
+				if (callBBI) {
+					using namespace ParseAPI;
+					Block::edgelist &edges = callBBI->llb()->targets();
                     Block::edgelist::iterator eit = edges.begin();
                     for (; eit != edges.end(); eit++)
                         if (CALL_FT == (*eit)->type())
@@ -4508,7 +4510,7 @@ Address process::stopThreadCtrlTransfer
                         callBBI->func()->ifunc()->img()->codeObject()->
                             parseNewEdges(srcs,trgs,etypes);
                     }
-                } 
+				}
                 else { 
                     tampered = true;
                 }

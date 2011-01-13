@@ -42,29 +42,6 @@ namespace Relocation {
 
 class MemEmulatorTranslator;
 
-struct DecisionTree {
-  Register effAddr_;
-
-DecisionTree(Register a) : effAddr_(a) {};
-  
-  bool generate(codeGen &gen);
-
-
-  codeBufIndex_t generateSkip(codeGen &gen);
-  codeBufIndex_t generateOrig(codeGen &gen);
-  codeBufIndex_t generateInst(codeGen &gen);
-  codeBufIndex_t generateText(codeGen &gen);
-  
-  codeBufIndex_t generateCompare(codeGen &gen, Address comp);
-  void generateJumps(codeGen &gen,
-		     codeBufIndex_t target, 
-		     vector<codeBufIndex_t> &sources);
-  void generateJCC(codeGen &gen, 
-		   codeBufIndex_t target, 
-		   vector<codeBufIndex_t> &sources);
-  
-};
-
 class MemEmulator : public Atom {
   friend class MemEmulatorTranslator;
   typedef std::map<Register, TracePtr> TranslatorMap;
@@ -75,11 +52,7 @@ class MemEmulator : public Atom {
 		     Address addr,
 		     instPoint *point);
 
-   static void initTranslators(TranslatorMap &t); 
-
    virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
-
-   TrackerElement *tracker(int_block *) const;
 
    virtual ~MemEmulator() {};
    virtual std::string format() const;
@@ -88,21 +61,84 @@ class MemEmulator : public Atom {
    virtual unsigned size() const { return insn_->size(); }
    virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
 
-   Register effAddr() const { return effAddr_; }
-   
  private:
-   // TODO the compare should be a functor of some sort
    MemEmulator(InstructionAPI::Instruction::Ptr insn,
-	       Address addr,
-	       instPoint *point)
+	   Address addr,
+	   instPoint *point)
       : insn_(insn), 
       addr_(addr),
-      point_(point),
-      effAddr_(Null_Register),
-      effAddr2_(Null_Register),
-      saveFlags_(false),
-      saveRAX_(false)
+      point_(point)
       {};
+
+   // Set up the codeGen structures we use to hold code. 
+   bool initialize(const codeGen &templ, const Trace *);
+
+   // Handle a0-a3 implicit EAX uses, or ESI/EDI instructions
+   bool generateViaOverride(CodeBuffer &buffer);
+
+   // Handle generic MOD/RM using instructions
+   bool generateViaModRM(CodeBuffer &buffer);
+
+   // Handle a0-a3 implicit EAX moves
+   bool generateEAXMove(unsigned char opcode, CodeBuffer &buffer);
+
+   // Handle ESI/EDI instructions
+   bool generateESI_EDI(CodeBuffer &buffer);
+
+   // Drop in a trap for later debugging assistance
+   void insertDebugMarker();
+
+   // Initialize mod/rm specific data
+   bool generateModRMInitialize();
+   // Create the pre-call handling for MOD/RM instructions
+   bool generateTranslatorSetup();
+   // Create the call to the translator function
+   bool generateTranslatorCall(CodeBuffer &buffer);
+   // Create the teardown code
+   bool generateTranslatorTeardown();
+
+   // Move the stack down by a known amount
+   bool shiftStack();
+   // Determine which register we can use for the effective address
+   bool determineEffAddr();
+   // Save eax/ecx/edx
+   bool saveRegisters();
+   // Run the effective address calculation before we modify anything (except the stack pointer, sigh)
+   bool calculateEffAddr();
+   // Save the flags
+   bool saveFlags();
+
+   // Restore flags after the call 
+   bool restoreFlags();
+   // Restore caller-saved registers (except effAddr)
+   bool restoreRegisters();
+   // Restore the stack
+   bool restoreStack();
+   // Emulate the original instruction using effAddr instead of the original expression
+   bool emulateOriginalInstruction();
+   // And restore the effective address register
+   bool restoreEffectiveAddr();
+
+   // ESI/EDI implicit shtuff
+   bool determineESI_EDIUse();
+   bool saveRegistersESI_EDI(); // Almost, but not quite the same as saveRegisters. Yuck. 
+   bool generateESIShift(CodeBuffer &buffer);
+   bool generateEDIShift(CodeBuffer &buffer);
+   bool saveShiftsAndRestoreRegs();
+   bool emulateOriginalESI_EDI();
+   bool emulateESI_EDIValues();
+   bool restoreAllRegistersESI_EDI();
+
+   // Copy code into the CodeBuffer (and reset the scratch codegen)
+   bool copyScratchToCodeBuffer(CodeBuffer &);
+   TrackerElement *tracker() const;
+   bool push(Register);
+   bool pop(Register);
+   Address getTranslatorAddr(bool wantShiftFunc);
+
+#if 0
+
+
 
    bool generateViaModRM(const codeGen &gen, const Trace *, CodeBuffer &buffer);
    bool generateViaOverride(const codeGen &gen, const Trace *, CodeBuffer &buffer);
@@ -125,7 +161,7 @@ class MemEmulator : public Atom {
 
    bool pushRegIfLive(registerSlot *reg, codeGen &gen);
    bool popRegIfSaved(registerSlot *reg, codeGen &gen);
-   Address getTranslatorAddr(codeGen &gen, bool wantShift);
+   Address getTranslatorAddr(bool wantShift);
    
    bool generateOrigAccess(codeGen &gen); 
 
@@ -139,65 +175,43 @@ class MemEmulator : public Atom {
    bool emulatePush(codeGen &gen);
    bool emulatePop(codeGen &gen);
 
-   /*
-   bool generateJA(codeGen &gen,
-		  codeBufIndex_t from,
-		  codeBufIndex_t to);
-   */
+
 
    bool generateImplicit(const codeGen &templ, const Trace *t, CodeBuffer &buffer);
    bool generateEAXMove(int opcode, const codeGen &templ, const Trace *t, CodeBuffer &buffer);
+#endif
+
+   /// Members
+   Register effAddr;
+   int stackOffset;
+   int effAddrSaveOffset;
+   int_block *block;
+
+   bool usesESI;
+   bool usesEDI;
+
+   codeGen scratch;
+   bool debug;
 
    InstructionAPI::Instruction::Ptr insn_;
    Address addr_;
    instPoint *point_;
-
-   Register effAddr_;
-   Register effAddr2_;
-   bool saveFlags_;
-   bool saveRAX_;
-   
-   int stackShift_;
-
-   std::deque<Register> externalSaved_;
-
-   static TranslatorMap translators_;
-};
-
-
-
-// A utility class that packages up the stream of compare/branch/arithmetic
-// used above. This lets us outline the code.
-class MemEmulatorTranslator : public Atom {
- public:
-    typedef dyn_detail::boost::shared_ptr<MemEmulatorTranslator> Ptr;
-    static Ptr create(Register r);
-    virtual bool generate(const codeGen &, const Trace *, CodeBuffer &); 
-    virtual TrackerElement *tracker() const;
-
-    virtual ~MemEmulatorTranslator() {};
-    virtual std::string format() const;
-    
-  private:
-  MemEmulatorTranslator(Register r) : reg_(r) {};
-
-    bool generateReturn(codeGen &gen);
-
-    Register reg_;
 };
 
 struct MemEmulatorPatch : public Patch {
    // Put in a call to the RTtranslateMemory
    // function
-   MemEmulatorPatch(Register r,
+   MemEmulatorPatch(Register s,
+	                Register t,
 					Address o,
                     Address d)
-		: reg_(r), orig_(o), dest_(d) {};
+		: source_(s), target_(t), orig_(o), dest_(d) {};
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
    virtual unsigned estimate(codeGen &) { return 7; };
    virtual ~MemEmulatorPatch() {};
 
-   Register reg_;
+   Register source_;
+   Register target_;
    Address orig_;
    Address dest_;
 };
