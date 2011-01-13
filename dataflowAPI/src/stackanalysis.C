@@ -74,6 +74,7 @@ AnnotationClass <StackAnalysis::Intervals> Stack_Anno(std::string("Stack_Anno"))
 bool StackAnalysis::analyze()
 {
    df_init_debug();
+
    stackanalysis_printf("Beginning stack analysis for function %s\n",
                         func->name().c_str());
    
@@ -136,7 +137,6 @@ void StackAnalysis::summarizeBlocks() {
     stackanalysis_printf("\t Block starting at 0x%lx: %s\n", 
 			 block->start(),
 			 bFunc.format().c_str());
-    
     InsnVec instances;
     getInsnInstances(block, instances);
     
@@ -481,6 +481,8 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::StackAnalysis::Height 
 void StackAnalysis::handlePushPop(Instruction::Ptr insn, int sign, TransferFuncs &xferFuncs) {
    long delta = 0;
    Operand arg = insn->getOperand(0);
+#if 0
+   // Why was this here? bernat, 12JAN11
    if (arg.getValue()->eval().defined) {
       delta = sign * word_size;
       stackanalysis_printf("\t\t\t Stack height changed by evaluated push/pop: %lx\n", delta);
@@ -489,6 +491,8 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, int sign, TransferFuncs
       delta = sign * arg.getValue()->size();
       stackanalysis_printf("\t\t\t Stack height changed by unevalled push/pop: %lx\n", delta);
    }
+#endif
+   delta = sign *arg.getValue()->size();
    xferFuncs.push_back(TransferFunc::deltaFunc(sp(), delta));
 
    // Let's get whatever was popped (if it was)
@@ -537,7 +541,10 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, int sign, TransferFuncs 
    Operand arg = insn->getOperand(1);
    Result res = arg.getValue()->eval();
    if(res.defined) {
-      long delta = sign * res.convert<long>();
+	   // FIXME: IAPI is treating the operand as unsigned, and thus a <long> conversion
+	   // comes out as a small positive number if the offset is negative. 
+	   // This should fix it...
+      long delta = sign * (long) res.convert<char>();
       stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %lx\n", delta);
       xferFuncs.push_back(TransferFunc::deltaFunc(sp(), delta));   
    }
@@ -671,7 +678,7 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block, Offset
    if (!insn->getControlFlowTarget()) return false;
 
    // Must be a thunk based on parsing.
-   if (off != block->end()) return false;
+   if (off != block->lastInsnAddr()) return false;
    
    Block::edgelist & outs = block->targets();  
    Block::edgelist::iterator eit = outs.begin();
@@ -731,6 +738,7 @@ bool StackAnalysis::handleThunkCall(Instruction::Ptr insn, TransferFuncs &xferFu
    // Else we're calling a mov, ret thunk that has no effect on the stack pointer
    return true;
 }
+
 
 void StackAnalysis::createEntryInput(RegisterState &input) {
    // FIXME for POWER/non-IA32
