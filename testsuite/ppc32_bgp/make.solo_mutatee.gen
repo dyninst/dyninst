@@ -1,0 +1,654 @@
+# Define variables for our compilers, if they aren't already defined
+M_native_CC ?= bgxlc++
+M_native_cc ?= bgxlc
+
+######################################################################
+# Mutatees compiled with bgxlc++ for dyninst
+######################################################################
+
+dyninst_SOLO_MUTATEES_native_CC = dyninst_cxx_group_test.mutatee_solo_dynamic_bgxlc++_32_none_none dyninst_cxx_group_test.mutatee_solo_dynamic_bgxlc++_32_pic_none dyninst_group_test.mutatee_solo_dynamic_bgxlc++_32_none_none dyninst_group_test.mutatee_solo_dynamic_bgxlc++_32_pic_none init_fini_callback.mutatee_solo_dynamic_bgxlc++_32_none_none init_fini_callback.mutatee_solo_dynamic_bgxlc++_32_pic_none test1_14.mutatee_solo_dynamic_bgxlc++_32_none_none test1_14.mutatee_solo_dynamic_bgxlc++_32_pic_none test1_29.mutatee_solo_dynamic_bgxlc++_32_none_none test1_29.mutatee_solo_dynamic_bgxlc++_32_pic_none 
+
+# Now a list of rules for compiling the mutatees with bgxlc++
+
+dyninst_cxx_group_test.mutatee_solo_dynamic_bgxlc++_32_none_none: test5_1_mutatee_solo_bgxlc++_32_none_none.o test5_2_mutatee_solo_bgxlc++_32_none_none.o test5_3_mutatee_solo_bgxlc++_32_none_none.o test5_4_mutatee_solo_bgxlc++_32_none_none.o test5_5_mutatee_solo_bgxlc++_32_none_none.o test5_6_mutatee_solo_bgxlc++_32_none_none.o test5_7_mutatee_solo_bgxlc++_32_none_none.o test5_8_mutatee_solo_bgxlc++_32_none_none.o test5_9_mutatee_solo_bgxlc++_32_none_none.o cpp_test_bgxlc++_32_none_none.o mutatee_util_bgxlc++_32_none_none.o mutatee_driver_solo_bgxlc++_32.o
+	$(M_native_CC) -o $@ $(filter %.o,$^)   
+dyninst_cxx_group_test.mutatee_solo_dynamic_bgxlc++_32_pic_none: test5_1_mutatee_solo_bgxlc++_32_pic_none.o test5_2_mutatee_solo_bgxlc++_32_pic_none.o test5_3_mutatee_solo_bgxlc++_32_pic_none.o test5_4_mutatee_solo_bgxlc++_32_pic_none.o test5_5_mutatee_solo_bgxlc++_32_pic_none.o test5_6_mutatee_solo_bgxlc++_32_pic_none.o test5_7_mutatee_solo_bgxlc++_32_pic_none.o test5_8_mutatee_solo_bgxlc++_32_pic_none.o test5_9_mutatee_solo_bgxlc++_32_pic_none.o cpp_test_bgxlc++_32_pic_none.o mutatee_util_bgxlc++_32_pic_none.o mutatee_driver_solo_bgxlc++_32.o
+	$(M_native_CC) -o $@ $(filter %.o,$^)   
+dyninst_group_test.mutatee_solo_dynamic_bgxlc++_32_none_none: dyninst_group_test_group_bgxlc++_32_none_none.o test1_1_mutatee_solo_bgxlc++_32_none_none.o test1_2_mutatee_solo_bgxlc++_32_none_none.o test1_3_mutatee_solo_bgxlc++_32_none_none.o test1_4_mutatee_solo_bgxlc++_32_none_none.o test1_5_mutatee_solo_bgxlc++_32_none_none.o test1_6_mutatee_solo_bgxlc++_32_none_none.o test1_7_mutatee_solo_bgxlc++_32_none_none.o test1_8_mutatee_solo_bgxlc++_32_none_none.o test1_9_mutatee_solo_bgxlc++_32_none_none.o test1_10_mutatee_solo_bgxlc++_32_none_none.o test1_11_mutatee_solo_bgxlc++_32_none_none.o test1_13_mutatee_solo_bgxlc++_32_none_none.o test1_16_mutatee_solo_bgxlc++_32_none_none.o test1_17_mutatee_solo_bgxlc++_32_none_none.o test1_18_mutatee_solo_bgxlc++_32_none_none.o test1_20_mutatee_solo_bgxlc++_32_none_none.o test1_21_mutatee_solo_bgxlc++_32_none_none.o test1_22_mutatee_solo_bgxlc++_32_none_none.o snip_ref_shlib_var_mutatee_solo_bgxlc++_32_none_none.o snip_change_shlib_var_mutatee_solo_bgxlc++_32_none_none.o test1_23_mutatee_solo_bgxlc++_32_none_none.o test1_24_mutatee_solo_bgxlc++_32_none_none.o test1_25_mutatee_solo_bgxlc++_32_none_none.o test1_26_mutatee_solo_bgxlc++_32_none_none.o test1_27_mutatee_solo_bgxlc++_32_none_none.o test1_28_mutatee_solo_bgxlc++_32_none_none.o test1_30_mutatee_solo_bgxlc++_32_none_none.o test1_31_mutatee_solo_bgxlc++_32_none_none.o test1_32_mutatee_solo_bgxlc++_32_none_none.o test1_33_mutatee_solo_bgxlc++_32_none_none.o test1_34_mutatee_solo_bgxlc++_32_none_none.o test1_36_mutatee_solo_bgxlc++_32_none_none.o test1_37_mutatee_solo_bgxlc++_32_none_none.o test1_38_mutatee_solo_bgxlc++_32_none_none.o test1_39_mutatee_solo_bgxlc++_32_none_none.o test2_5_mutatee_solo_bgxlc++_32_none_none.o test2_7_mutatee_solo_bgxlc++_32_none_none.o test2_9_mutatee_solo_bgxlc++_32_none_none.o test2_11_mutatee_solo_bgxlc++_32_none_none.o test2_12_mutatee_solo_bgxlc++_32_none_none.o test2_13_mutatee_solo_bgxlc++_32_none_none.o test_write_param_mutatee_solo_bgxlc++_32_none_none.o mutatee_util_bgxlc++_32_none_none.o mutatee_driver_solo_bgxlc++_32.o
+	$(M_native_CC) -o $@ $(filter %.o,$^)   -ldl 
+dyninst_group_test.mutatee_solo_dynamic_bgxlc++_32_pic_none: dyninst_group_test_group_bgxlc++_32_pic_none.o test1_1_mutatee_solo_bgxlc++_32_pic_none.o test1_2_mutatee_solo_bgxlc++_32_pic_none.o test1_3_mutatee_solo_bgxlc++_32_pic_none.o test1_4_mutatee_solo_bgxlc++_32_pic_none.o test1_5_mutatee_solo_bgxlc++_32_pic_none.o test1_6_mutatee_solo_bgxlc++_32_pic_none.o test1_7_mutatee_solo_bgxlc++_32_pic_none.o test1_8_mutatee_solo_bgxlc++_32_pic_none.o test1_9_mutatee_solo_bgxlc++_32_pic_none.o test1_10_mutatee_solo_bgxlc++_32_pic_none.o test1_11_mutatee_solo_bgxlc++_32_pic_none.o test1_13_mutatee_solo_bgxlc++_32_pic_none.o test1_16_mutatee_solo_bgxlc++_32_pic_none.o test1_17_mutatee_solo_bgxlc++_32_pic_none.o test1_18_mutatee_solo_bgxlc++_32_pic_none.o test1_20_mutatee_solo_bgxlc++_32_pic_none.o test1_21_mutatee_solo_bgxlc++_32_pic_none.o test1_22_mutatee_solo_bgxlc++_32_pic_none.o snip_ref_shlib_var_mutatee_solo_bgxlc++_32_pic_none.o snip_change_shlib_var_mutatee_solo_bgxlc++_32_pic_none.o test1_23_mutatee_solo_bgxlc++_32_pic_none.o test1_24_mutatee_solo_bgxlc++_32_pic_none.o test1_25_mutatee_solo_bgxlc++_32_pic_none.o test1_26_mutatee_solo_bgxlc++_32_pic_none.o test1_27_mutatee_solo_bgxlc++_32_pic_none.o test1_28_mutatee_solo_bgxlc++_32_pic_none.o test1_30_mutatee_solo_bgxlc++_32_pic_none.o test1_31_mutatee_solo_bgxlc++_32_pic_none.o test1_32_mutatee_solo_bgxlc++_32_pic_none.o test1_33_mutatee_solo_bgxlc++_32_pic_none.o test1_34_mutatee_solo_bgxlc++_32_pic_none.o test1_36_mutatee_solo_bgxlc++_32_pic_none.o test1_37_mutatee_solo_bgxlc++_32_pic_none.o test1_38_mutatee_solo_bgxlc++_32_pic_none.o test1_39_mutatee_solo_bgxlc++_32_pic_none.o test2_5_mutatee_solo_bgxlc++_32_pic_none.o test2_7_mutatee_solo_bgxlc++_32_pic_none.o test2_9_mutatee_solo_bgxlc++_32_pic_none.o test2_11_mutatee_solo_bgxlc++_32_pic_none.o test2_12_mutatee_solo_bgxlc++_32_pic_none.o test2_13_mutatee_solo_bgxlc++_32_pic_none.o test_write_param_mutatee_solo_bgxlc++_32_pic_none.o mutatee_util_bgxlc++_32_pic_none.o mutatee_driver_solo_bgxlc++_32.o
+	$(M_native_CC) -o $@ $(filter %.o,$^)   -ldl 
+init_fini_callback.mutatee_solo_dynamic_bgxlc++_32_none_none: init_fini_callback_mutatee_solo_bgxlc++_32_none_none.o mutatee_util_bgxlc++_32_none_none.o mutatee_driver_solo_bgxlc++_32.o
+	$(M_native_CC) -o $@ $(filter %.o,$^)   -ldl 
+init_fini_callback.mutatee_solo_dynamic_bgxlc++_32_pic_none: init_fini_callback_mutatee_solo_bgxlc++_32_pic_none.o mutatee_util_bgxlc++_32_pic_none.o mutatee_driver_solo_bgxlc++_32.o
+	$(M_native_CC) -o $@ $(filter %.o,$^)   -ldl 
+test1_14.mutatee_solo_dynamic_bgxlc++_32_none_none: test1_14_mutatee_solo_bgxlc++_32_none_none.o mutatee_util_bgxlc++_32_none_none.o mutatee_driver_solo_bgxlc++_32.o
+	$(M_native_CC) -o $@ $(filter %.o,$^)   
+test1_14.mutatee_solo_dynamic_bgxlc++_32_pic_none: test1_14_mutatee_solo_bgxlc++_32_pic_none.o mutatee_util_bgxlc++_32_pic_none.o mutatee_driver_solo_bgxlc++_32.o
+	$(M_native_CC) -o $@ $(filter %.o,$^)   
+test1_29.mutatee_solo_dynamic_bgxlc++_32_none_none: test1_29_mutatee_solo_bgxlc++_32_none_none.o mutatee_util_bgxlc++_32_none_none.o mutatee_driver_solo_bgxlc++_32.o
+	$(M_native_CC) -o $@ $(filter %.o,$^)   
+test1_29.mutatee_solo_dynamic_bgxlc++_32_pic_none: test1_29_mutatee_solo_bgxlc++_32_pic_none.o mutatee_util_bgxlc++_32_pic_none.o mutatee_driver_solo_bgxlc++_32.o
+	$(M_native_CC) -o $@ $(filter %.o,$^)   
+
+# Exceptional rules for mutatees compiled with bgxlc++
+
+
+
+# Generic rules for bgxlc++'s mutatees and varying optimization levels for dyninst
+test5_3_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_3_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_3 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_3_mutatee.C -o $@ $<
+test5_1_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_1_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_1 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_1_mutatee.C -o $@ $<
+init_fini_callback_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/init_fini_callback_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=init_fini_callback -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/init_fini_callback_mutatee.c -o $@ $<
+test5_8_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_8_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_8 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_8_mutatee.C -o $@ $<
+test5_7_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_7_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_7 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_7_mutatee.C -o $@ $<
+test5_4_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_4_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_4 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_4_mutatee.C -o $@ $<
+test5_2_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_2_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_2 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_2_mutatee.C -o $@ $<
+test1_14_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_14_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_14 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test1_14_mutatee.c -o $@ $<
+test5_9_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_9_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_9 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_9_mutatee.C -o $@ $<
+test5_6_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_6_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_6 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -o $@ $<
+test1_29_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_29_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_29 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test1_29_mutatee.c -o $@ $<
+test5_5_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_5_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_5 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_5_mutatee.C -o $@ $<
+test1_7_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_7_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_7 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_7_mutatee.c -o $@ $<
+test1_5_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_5_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_5 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_5_mutatee.c -o $@ $<
+test1_18_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_18_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_18 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_18_mutatee.c -o $@ $<
+test1_8_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_8_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_8 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_8_mutatee.c -o $@ $<
+test1_22_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_22_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_22 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_22_mutatee.c -o $@ $<
+test1_27_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_27_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_27 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_27_mutatee.c -o $@ $<
+test1_13_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_13_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -o $@ $<
+test1_24_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_24_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_24 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_24_mutatee.c -o $@ $<
+snip_ref_shlib_var_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/snip_ref_shlib_var_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=snip_ref_shlib_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/snip_ref_shlib_var_mutatee.c -o $@ $<
+test1_32_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_32_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_32 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_32_mutatee.c -o $@ $<
+test2_9_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_9_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test2_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_9_mutatee.c -o $@ $<
+test_write_param_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test_write_param_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test_write_param -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test_write_param_mutatee.c -o $@ $<
+test1_26_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_26_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_26 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_26_mutatee.c -o $@ $<
+test1_36_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_36_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_36 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_36_mutatee.c -o $@ $<
+test1_33_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_33_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_33 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_33_mutatee.c -o $@ $<
+test2_5_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_5_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test2_5 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_5_mutatee.c -o $@ $<
+test1_3_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_3_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_3 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_3_mutatee.c -o $@ $<
+test1_39_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_39_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_39 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_39_mutatee.c -o $@ $<
+test1_9_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_9_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -o $@ $<
+test1_37_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_37_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_37 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_37_mutatee.c -o $@ $<
+test2_7_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_7_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test2_7 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_7_mutatee.c -o $@ $<
+test1_17_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_17_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_17 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_17_mutatee.c -o $@ $<
+test1_30_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_30_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_30 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_30_mutatee.c -o $@ $<
+test1_38_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_38_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_38 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_38_mutatee.c -o $@ $<
+test1_34_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_34_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_34 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_34_mutatee.c -o $@ $<
+test1_10_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_10_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
+test1_11_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_11_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_11_mutatee.c -o $@ $<
+test1_23_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_23_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_23 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_23_mutatee.c -o $@ $<
+test1_21_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_21_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_21 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_21_mutatee.c -o $@ $<
+test1_31_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_31_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -o $@ $<
+snip_change_shlib_var_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/snip_change_shlib_var_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=snip_change_shlib_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/snip_change_shlib_var_mutatee.c -o $@ $<
+test2_12_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_12_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test2_12 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_12_mutatee.c -o $@ $<
+test1_1_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_1_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_1_mutatee.c -o $@ $<
+test1_6_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_6_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_6_mutatee.c -o $@ $<
+test1_20_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_20_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_20 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_20_mutatee.c -o $@ $<
+test2_13_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_13_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test2_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_13_mutatee.c -o $@ $<
+test1_4_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_4_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -o $@ $<
+test2_11_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_11_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
+test1_16_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_16_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_16 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_16_mutatee.c -o $@ $<
+test1_28_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_28_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -o $@ $<
+test1_2_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_2_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_2_mutatee.c -o $@ $<
+test1_25_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_25_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_25 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_25_mutatee.c -o $@ $<
+test5_3_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_3_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_3 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_3_mutatee.C -o $@ $<
+test5_1_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_1_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_1 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_1_mutatee.C -o $@ $<
+init_fini_callback_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/init_fini_callback_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=init_fini_callback -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/init_fini_callback_mutatee.c -o $@ $<
+test5_8_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_8_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_8 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_8_mutatee.C -o $@ $<
+test5_7_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_7_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_7 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_7_mutatee.C -o $@ $<
+test5_4_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_4_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_4 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_4_mutatee.C -o $@ $<
+test5_2_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_2_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_2 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_2_mutatee.C -o $@ $<
+test1_14_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_14_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_14 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test1_14_mutatee.c -o $@ $<
+test5_9_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_9_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_9 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_9_mutatee.C -o $@ $<
+test5_6_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_6_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_6 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -o $@ $<
+test1_29_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_29_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_29 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test1_29_mutatee.c -o $@ $<
+test5_5_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_5_mutatee.C
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_5 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_5_mutatee.C -o $@ $<
+test1_7_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_7_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_7 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_7_mutatee.c -o $@ $<
+test1_5_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_5_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_5 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_5_mutatee.c -o $@ $<
+test1_18_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_18_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_18 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_18_mutatee.c -o $@ $<
+test1_8_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_8_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_8 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_8_mutatee.c -o $@ $<
+test1_22_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_22_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_22 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_22_mutatee.c -o $@ $<
+test1_27_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_27_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_27 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_27_mutatee.c -o $@ $<
+test1_13_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_13_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -o $@ $<
+test1_24_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_24_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_24 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_24_mutatee.c -o $@ $<
+snip_ref_shlib_var_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/snip_ref_shlib_var_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=snip_ref_shlib_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/snip_ref_shlib_var_mutatee.c -o $@ $<
+test1_32_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_32_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_32 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_32_mutatee.c -o $@ $<
+test2_9_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_9_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test2_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_9_mutatee.c -o $@ $<
+test_write_param_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test_write_param_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test_write_param -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test_write_param_mutatee.c -o $@ $<
+test1_26_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_26_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_26 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_26_mutatee.c -o $@ $<
+test1_36_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_36_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_36 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_36_mutatee.c -o $@ $<
+test1_33_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_33_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_33 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_33_mutatee.c -o $@ $<
+test2_5_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_5_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test2_5 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_5_mutatee.c -o $@ $<
+test1_3_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_3_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_3 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_3_mutatee.c -o $@ $<
+test1_39_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_39_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_39 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_39_mutatee.c -o $@ $<
+test1_9_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_9_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -o $@ $<
+test1_37_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_37_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_37 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_37_mutatee.c -o $@ $<
+test2_7_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_7_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test2_7 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_7_mutatee.c -o $@ $<
+test1_17_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_17_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_17 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_17_mutatee.c -o $@ $<
+test1_30_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_30_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_30 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_30_mutatee.c -o $@ $<
+test1_38_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_38_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_38 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_38_mutatee.c -o $@ $<
+test1_34_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_34_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_34 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_34_mutatee.c -o $@ $<
+test1_10_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_10_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
+test1_11_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_11_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_11_mutatee.c -o $@ $<
+test1_23_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_23_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_23 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_23_mutatee.c -o $@ $<
+test1_21_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_21_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_21 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_21_mutatee.c -o $@ $<
+test1_31_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_31_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -o $@ $<
+snip_change_shlib_var_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/snip_change_shlib_var_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=snip_change_shlib_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/snip_change_shlib_var_mutatee.c -o $@ $<
+test2_12_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_12_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test2_12 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_12_mutatee.c -o $@ $<
+test1_1_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_1_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_1_mutatee.c -o $@ $<
+test1_6_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_6_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_6_mutatee.c -o $@ $<
+test1_20_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_20_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_20 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_20_mutatee.c -o $@ $<
+test2_13_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_13_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test2_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_13_mutatee.c -o $@ $<
+test1_4_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_4_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -o $@ $<
+test2_11_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_11_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
+test1_16_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_16_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_16 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_16_mutatee.c -o $@ $<
+test1_28_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_28_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -o $@ $<
+test1_2_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_2_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_2_mutatee.c -o $@ $<
+test1_25_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_25_mutatee.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_25 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_25_mutatee.c -o $@ $<
+dyninst_group_test_group_bgxlc++_32_none_none.o: dyninst_group_test_group.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -DGROUPABLE=1 -o $@ $<
+dyninst_group_test_group_bgxlc++_32_pic_none.o: dyninst_group_test_group.c
+	$(M_native_CC) $(dyninst_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -DGROUPABLE=1 -o $@ $<
+
+%_bgxlc++_32_none_none.o: ../src/dyninst/%.c
+	$(M_native_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -o $@ $<
+%_bgxlc++_32_none_none.o: ../src/dyninst/%.C
+	$(M_native_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -o $@ $<
+%_bgxlc++_32_pic_none.o: ../src/dyninst/%.c
+	$(M_native_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -o $@ $<
+%_bgxlc++_32_pic_none.o: ../src/dyninst/%.C
+	$(M_native_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -o $@ $<
+
+# Generic rules for bgxlc++'s mutatees and varying optimization levels for symtab
+
+%_bgxlc++_32_none_none.o: ../src/symtab/%.c
+	$(M_native_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -o $@ $<
+%_bgxlc++_32_none_none.o: ../src/symtab/%.C
+	$(M_native_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -o $@ $<
+%_bgxlc++_32_pic_none.o: ../src/symtab/%.c
+	$(M_native_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -o $@ $<
+%_bgxlc++_32_pic_none.o: ../src/symtab/%.C
+	$(M_native_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -o $@ $<
+
+# Generic rules for bgxlc++'s mutatees and varying optimization levels for instruction
+
+%_bgxlc++_32_none_none.o: ../src/instruction/%.c
+	$(M_native_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -o $@ $<
+%_bgxlc++_32_none_none.o: ../src/instruction/%.C
+	$(M_native_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -o $@ $<
+%_bgxlc++_32_pic_none.o: ../src/instruction/%.c
+	$(M_native_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -o $@ $<
+%_bgxlc++_32_pic_none.o: ../src/instruction/%.C
+	$(M_native_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -o $@ $<
+%_bgxlc++_32_none_none.o: ../src/%.c
+	$(M_native_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -o $@ $<
+%_bgxlc++_32_none_none.o: ../src/%.C
+	$(M_native_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -o $@ $<
+%_bgxlc++_32_pic_none.o: ../src/%.c
+	$(M_native_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -o $@ $<
+%_bgxlc++_32_pic_none.o: ../src/%.C
+	$(M_native_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -o $@ $<
+# Rules for building the driver and utility objects
+mutatee_driver_solo_bgxlc++_32.o: ../src/mutatee_driver.c
+	$(M_native_CC)  $(CXXFLAGS)  -o $@ -c $<
+mutatee_util_bgxlc++_32.o: ../src/mutatee_util.c
+	$(M_native_CC)  $(CXXFLAGS)  -o $@ -c $<
+
+######################################################################
+# Mutatees compiled with bgxlc for dyninst
+######################################################################
+
+dyninst_SOLO_MUTATEES_native_cc = dyninst_group_test.mutatee_solo_dynamic_bgxlc_32_none_none dyninst_group_test.mutatee_solo_dynamic_bgxlc_32_pic_none init_fini_callback.mutatee_solo_dynamic_bgxlc_32_none_none init_fini_callback.mutatee_solo_dynamic_bgxlc_32_pic_none test1_14.mutatee_solo_dynamic_bgxlc_32_none_none test1_14.mutatee_solo_dynamic_bgxlc_32_pic_none test1_29.mutatee_solo_dynamic_bgxlc_32_none_none test1_29.mutatee_solo_dynamic_bgxlc_32_pic_none 
+
+# Now a list of rules for compiling the mutatees with bgxlc
+
+dyninst_group_test.mutatee_solo_dynamic_bgxlc_32_none_none: dyninst_group_test_group_bgxlc_32_none_none.o test1_1_mutatee_solo_bgxlc_32_none_none.o test1_2_mutatee_solo_bgxlc_32_none_none.o test1_3_mutatee_solo_bgxlc_32_none_none.o test1_4_mutatee_solo_bgxlc_32_none_none.o test1_5_mutatee_solo_bgxlc_32_none_none.o test1_6_mutatee_solo_bgxlc_32_none_none.o test1_7_mutatee_solo_bgxlc_32_none_none.o test1_8_mutatee_solo_bgxlc_32_none_none.o test1_9_mutatee_solo_bgxlc_32_none_none.o test1_10_mutatee_solo_bgxlc_32_none_none.o test1_11_mutatee_solo_bgxlc_32_none_none.o test1_13_mutatee_solo_bgxlc_32_none_none.o test1_16_mutatee_solo_bgxlc_32_none_none.o test1_17_mutatee_solo_bgxlc_32_none_none.o test1_18_mutatee_solo_bgxlc_32_none_none.o test1_20_mutatee_solo_bgxlc_32_none_none.o test1_21_mutatee_solo_bgxlc_32_none_none.o test1_22_mutatee_solo_bgxlc_32_none_none.o snip_ref_shlib_var_mutatee_solo_bgxlc_32_none_none.o snip_change_shlib_var_mutatee_solo_bgxlc_32_none_none.o test1_23_mutatee_solo_bgxlc_32_none_none.o test1_24_mutatee_solo_bgxlc_32_none_none.o test1_25_mutatee_solo_bgxlc_32_none_none.o test1_26_mutatee_solo_bgxlc_32_none_none.o test1_27_mutatee_solo_bgxlc_32_none_none.o test1_28_mutatee_solo_bgxlc_32_none_none.o test1_30_mutatee_solo_bgxlc_32_none_none.o test1_31_mutatee_solo_bgxlc_32_none_none.o test1_32_mutatee_solo_bgxlc_32_none_none.o test1_33_mutatee_solo_bgxlc_32_none_none.o test1_34_mutatee_solo_bgxlc_32_none_none.o test1_36_mutatee_solo_bgxlc_32_none_none.o test1_37_mutatee_solo_bgxlc_32_none_none.o test1_38_mutatee_solo_bgxlc_32_none_none.o test1_39_mutatee_solo_bgxlc_32_none_none.o test2_5_mutatee_solo_bgxlc_32_none_none.o test2_7_mutatee_solo_bgxlc_32_none_none.o test2_9_mutatee_solo_bgxlc_32_none_none.o test2_11_mutatee_solo_bgxlc_32_none_none.o test2_12_mutatee_solo_bgxlc_32_none_none.o test2_13_mutatee_solo_bgxlc_32_none_none.o test_write_param_mutatee_solo_bgxlc_32_none_none.o mutatee_util_bgxlc_32_none_none.o mutatee_driver_solo_bgxlc_32.o
+	$(M_native_cc) -o $@ $(filter %.o,$^)   -ldl 
+dyninst_group_test.mutatee_solo_dynamic_bgxlc_32_pic_none: dyninst_group_test_group_bgxlc_32_pic_none.o test1_1_mutatee_solo_bgxlc_32_pic_none.o test1_2_mutatee_solo_bgxlc_32_pic_none.o test1_3_mutatee_solo_bgxlc_32_pic_none.o test1_4_mutatee_solo_bgxlc_32_pic_none.o test1_5_mutatee_solo_bgxlc_32_pic_none.o test1_6_mutatee_solo_bgxlc_32_pic_none.o test1_7_mutatee_solo_bgxlc_32_pic_none.o test1_8_mutatee_solo_bgxlc_32_pic_none.o test1_9_mutatee_solo_bgxlc_32_pic_none.o test1_10_mutatee_solo_bgxlc_32_pic_none.o test1_11_mutatee_solo_bgxlc_32_pic_none.o test1_13_mutatee_solo_bgxlc_32_pic_none.o test1_16_mutatee_solo_bgxlc_32_pic_none.o test1_17_mutatee_solo_bgxlc_32_pic_none.o test1_18_mutatee_solo_bgxlc_32_pic_none.o test1_20_mutatee_solo_bgxlc_32_pic_none.o test1_21_mutatee_solo_bgxlc_32_pic_none.o test1_22_mutatee_solo_bgxlc_32_pic_none.o snip_ref_shlib_var_mutatee_solo_bgxlc_32_pic_none.o snip_change_shlib_var_mutatee_solo_bgxlc_32_pic_none.o test1_23_mutatee_solo_bgxlc_32_pic_none.o test1_24_mutatee_solo_bgxlc_32_pic_none.o test1_25_mutatee_solo_bgxlc_32_pic_none.o test1_26_mutatee_solo_bgxlc_32_pic_none.o test1_27_mutatee_solo_bgxlc_32_pic_none.o test1_28_mutatee_solo_bgxlc_32_pic_none.o test1_30_mutatee_solo_bgxlc_32_pic_none.o test1_31_mutatee_solo_bgxlc_32_pic_none.o test1_32_mutatee_solo_bgxlc_32_pic_none.o test1_33_mutatee_solo_bgxlc_32_pic_none.o test1_34_mutatee_solo_bgxlc_32_pic_none.o test1_36_mutatee_solo_bgxlc_32_pic_none.o test1_37_mutatee_solo_bgxlc_32_pic_none.o test1_38_mutatee_solo_bgxlc_32_pic_none.o test1_39_mutatee_solo_bgxlc_32_pic_none.o test2_5_mutatee_solo_bgxlc_32_pic_none.o test2_7_mutatee_solo_bgxlc_32_pic_none.o test2_9_mutatee_solo_bgxlc_32_pic_none.o test2_11_mutatee_solo_bgxlc_32_pic_none.o test2_12_mutatee_solo_bgxlc_32_pic_none.o test2_13_mutatee_solo_bgxlc_32_pic_none.o test_write_param_mutatee_solo_bgxlc_32_pic_none.o mutatee_util_bgxlc_32_pic_none.o mutatee_driver_solo_bgxlc_32.o
+	$(M_native_cc) -o $@ $(filter %.o,$^)   -ldl 
+init_fini_callback.mutatee_solo_dynamic_bgxlc_32_none_none: init_fini_callback_mutatee_solo_bgxlc_32_none_none.o mutatee_util_bgxlc_32_none_none.o mutatee_driver_solo_bgxlc_32.o
+	$(M_native_cc) -o $@ $(filter %.o,$^)   -ldl 
+init_fini_callback.mutatee_solo_dynamic_bgxlc_32_pic_none: init_fini_callback_mutatee_solo_bgxlc_32_pic_none.o mutatee_util_bgxlc_32_pic_none.o mutatee_driver_solo_bgxlc_32.o
+	$(M_native_cc) -o $@ $(filter %.o,$^)   -ldl 
+test1_14.mutatee_solo_dynamic_bgxlc_32_none_none: test1_14_mutatee_solo_bgxlc_32_none_none.o mutatee_util_bgxlc_32_none_none.o mutatee_driver_solo_bgxlc_32.o
+	$(M_native_cc) -o $@ $(filter %.o,$^)   
+test1_14.mutatee_solo_dynamic_bgxlc_32_pic_none: test1_14_mutatee_solo_bgxlc_32_pic_none.o mutatee_util_bgxlc_32_pic_none.o mutatee_driver_solo_bgxlc_32.o
+	$(M_native_cc) -o $@ $(filter %.o,$^)   
+test1_29.mutatee_solo_dynamic_bgxlc_32_none_none: test1_29_mutatee_solo_bgxlc_32_none_none.o mutatee_util_bgxlc_32_none_none.o mutatee_driver_solo_bgxlc_32.o
+	$(M_native_cc) -o $@ $(filter %.o,$^)   
+test1_29.mutatee_solo_dynamic_bgxlc_32_pic_none: test1_29_mutatee_solo_bgxlc_32_pic_none.o mutatee_util_bgxlc_32_pic_none.o mutatee_driver_solo_bgxlc_32.o
+	$(M_native_cc) -o $@ $(filter %.o,$^)   
+
+# Exceptional rules for mutatees compiled with bgxlc
+
+
+
+# Generic rules for bgxlc's mutatees and varying optimization levels for dyninst
+test5_3_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_3_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_3 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_3_mutatee.C -o $@ $<
+test5_1_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_1_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_1 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_1_mutatee.C -o $@ $<
+init_fini_callback_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/init_fini_callback_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=init_fini_callback -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/init_fini_callback_mutatee.c -o $@ $<
+test5_8_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_8_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_8 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_8_mutatee.C -o $@ $<
+test5_7_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_7_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_7 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_7_mutatee.C -o $@ $<
+test5_4_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_4_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_4 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_4_mutatee.C -o $@ $<
+test5_2_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_2_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_2 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_2_mutatee.C -o $@ $<
+test1_14_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_14_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_14 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test1_14_mutatee.c -o $@ $<
+test5_9_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_9_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_9 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_9_mutatee.C -o $@ $<
+test5_6_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_6_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_6 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -o $@ $<
+test1_29_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_29_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_29 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test1_29_mutatee.c -o $@ $<
+test5_5_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_5_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test5_5 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_5_mutatee.C -o $@ $<
+test1_7_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_7_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_7 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_7_mutatee.c -o $@ $<
+test1_5_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_5_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_5 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_5_mutatee.c -o $@ $<
+test1_18_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_18_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_18 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_18_mutatee.c -o $@ $<
+test1_8_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_8_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_8 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_8_mutatee.c -o $@ $<
+test1_22_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_22_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_22 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_22_mutatee.c -o $@ $<
+test1_27_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_27_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_27 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_27_mutatee.c -o $@ $<
+test1_13_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_13_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -o $@ $<
+test1_24_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_24_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_24 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_24_mutatee.c -o $@ $<
+snip_ref_shlib_var_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/snip_ref_shlib_var_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=snip_ref_shlib_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/snip_ref_shlib_var_mutatee.c -o $@ $<
+test1_32_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_32_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_32 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_32_mutatee.c -o $@ $<
+test2_9_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_9_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test2_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_9_mutatee.c -o $@ $<
+test_write_param_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test_write_param_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test_write_param -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test_write_param_mutatee.c -o $@ $<
+test1_26_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_26_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_26 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_26_mutatee.c -o $@ $<
+test1_36_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_36_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_36 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_36_mutatee.c -o $@ $<
+test1_33_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_33_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_33 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_33_mutatee.c -o $@ $<
+test2_5_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_5_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test2_5 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_5_mutatee.c -o $@ $<
+test1_3_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_3_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_3 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_3_mutatee.c -o $@ $<
+test1_39_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_39_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_39 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_39_mutatee.c -o $@ $<
+test1_9_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_9_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -o $@ $<
+test1_37_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_37_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_37 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_37_mutatee.c -o $@ $<
+test2_7_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_7_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test2_7 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_7_mutatee.c -o $@ $<
+test1_17_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_17_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_17 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_17_mutatee.c -o $@ $<
+test1_30_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_30_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_30 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_30_mutatee.c -o $@ $<
+test1_38_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_38_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_38 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_38_mutatee.c -o $@ $<
+test1_34_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_34_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_34 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_34_mutatee.c -o $@ $<
+test1_10_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_10_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
+test1_11_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_11_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_11_mutatee.c -o $@ $<
+test1_23_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_23_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_23 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_23_mutatee.c -o $@ $<
+test1_21_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_21_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_21 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_21_mutatee.c -o $@ $<
+test1_31_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_31_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -o $@ $<
+snip_change_shlib_var_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/snip_change_shlib_var_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=snip_change_shlib_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/snip_change_shlib_var_mutatee.c -o $@ $<
+test2_12_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_12_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test2_12 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_12_mutatee.c -o $@ $<
+test1_1_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_1_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_1_mutatee.c -o $@ $<
+test1_6_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_6_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_6_mutatee.c -o $@ $<
+test1_20_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_20_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_20 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_20_mutatee.c -o $@ $<
+test2_13_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_13_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test2_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_13_mutatee.c -o $@ $<
+test1_4_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_4_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -o $@ $<
+test2_11_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_11_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
+test1_16_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_16_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_16 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_16_mutatee.c -o $@ $<
+test1_28_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_28_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -o $@ $<
+test1_2_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_2_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_2_mutatee.c -o $@ $<
+test1_25_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_25_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/dyninst -DTEST_NAME=test1_25 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_25_mutatee.c -o $@ $<
+test5_3_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_3_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_3 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_3_mutatee.C -o $@ $<
+test5_1_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_1_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_1 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_1_mutatee.C -o $@ $<
+init_fini_callback_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/init_fini_callback_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=init_fini_callback -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/init_fini_callback_mutatee.c -o $@ $<
+test5_8_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_8_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_8 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_8_mutatee.C -o $@ $<
+test5_7_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_7_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_7 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_7_mutatee.C -o $@ $<
+test5_4_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_4_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_4 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_4_mutatee.C -o $@ $<
+test5_2_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_2_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_2 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_2_mutatee.C -o $@ $<
+test1_14_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_14_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_14 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test1_14_mutatee.c -o $@ $<
+test5_9_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_9_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_9 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_9_mutatee.C -o $@ $<
+test5_6_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_6_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_6 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -o $@ $<
+test1_29_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_29_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_29 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test1_29_mutatee.c -o $@ $<
+test5_5_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.C ../src/dyninst/test5_5_mutatee.C
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test5_5 -DGROUPABLE=0 -DMUTATEE_SRC=../src/dyninst/test5_5_mutatee.C -o $@ $<
+test1_7_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_7_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_7 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_7_mutatee.c -o $@ $<
+test1_5_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_5_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_5 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_5_mutatee.c -o $@ $<
+test1_18_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_18_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_18 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_18_mutatee.c -o $@ $<
+test1_8_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_8_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_8 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_8_mutatee.c -o $@ $<
+test1_22_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_22_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_22 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_22_mutatee.c -o $@ $<
+test1_27_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_27_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_27 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_27_mutatee.c -o $@ $<
+test1_13_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_13_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -o $@ $<
+test1_24_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_24_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_24 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_24_mutatee.c -o $@ $<
+snip_ref_shlib_var_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/snip_ref_shlib_var_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=snip_ref_shlib_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/snip_ref_shlib_var_mutatee.c -o $@ $<
+test1_32_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_32_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_32 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_32_mutatee.c -o $@ $<
+test2_9_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_9_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test2_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_9_mutatee.c -o $@ $<
+test_write_param_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test_write_param_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test_write_param -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test_write_param_mutatee.c -o $@ $<
+test1_26_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_26_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_26 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_26_mutatee.c -o $@ $<
+test1_36_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_36_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_36 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_36_mutatee.c -o $@ $<
+test1_33_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_33_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_33 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_33_mutatee.c -o $@ $<
+test2_5_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_5_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test2_5 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_5_mutatee.c -o $@ $<
+test1_3_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_3_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_3 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_3_mutatee.c -o $@ $<
+test1_39_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_39_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_39 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_39_mutatee.c -o $@ $<
+test1_9_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_9_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -o $@ $<
+test1_37_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_37_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_37 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_37_mutatee.c -o $@ $<
+test2_7_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_7_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test2_7 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_7_mutatee.c -o $@ $<
+test1_17_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_17_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_17 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_17_mutatee.c -o $@ $<
+test1_30_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_30_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_30 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_30_mutatee.c -o $@ $<
+test1_38_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_38_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_38 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_38_mutatee.c -o $@ $<
+test1_34_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_34_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_34 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_34_mutatee.c -o $@ $<
+test1_10_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_10_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
+test1_11_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_11_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_11_mutatee.c -o $@ $<
+test1_23_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_23_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_23 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_23_mutatee.c -o $@ $<
+test1_21_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_21_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_21 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_21_mutatee.c -o $@ $<
+test1_31_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_31_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -o $@ $<
+snip_change_shlib_var_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/snip_change_shlib_var_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=snip_change_shlib_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/snip_change_shlib_var_mutatee.c -o $@ $<
+test2_12_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_12_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test2_12 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_12_mutatee.c -o $@ $<
+test1_1_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_1_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_1_mutatee.c -o $@ $<
+test1_6_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_6_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_6_mutatee.c -o $@ $<
+test1_20_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_20_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_20 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_20_mutatee.c -o $@ $<
+test2_13_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_13_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test2_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_13_mutatee.c -o $@ $<
+test1_4_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_4_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -o $@ $<
+test2_11_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test2_11_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
+test1_16_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_16_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_16 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_16_mutatee.c -o $@ $<
+test1_28_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_28_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -o $@ $<
+test1_2_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_2_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_2_mutatee.c -o $@ $<
+test1_25_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/dyninst/test1_25_mutatee.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/dyninst -DTEST_NAME=test1_25 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_25_mutatee.c -o $@ $<
+dyninst_group_test_group_bgxlc_32_none_none.o: dyninst_group_test_group.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -DGROUPABLE=1 -o $@ $<
+dyninst_group_test_group_bgxlc_32_pic_none.o: dyninst_group_test_group.c
+	$(M_native_cc) $(dyninst_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -DGROUPABLE=1 -o $@ $<
+
+%_bgxlc_32_none_none.o: ../src/dyninst/%.c
+	$(M_native_cc) $(SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -o $@ $<
+%_bgxlc_32_pic_none.o: ../src/dyninst/%.c
+	$(M_native_cc) $(SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -o $@ $<
+
+# Generic rules for bgxlc's mutatees and varying optimization levels for symtab
+
+%_bgxlc_32_none_none.o: ../src/symtab/%.c
+	$(M_native_cc) $(SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -o $@ $<
+%_bgxlc_32_pic_none.o: ../src/symtab/%.c
+	$(M_native_cc) $(SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -o $@ $<
+
+# Generic rules for bgxlc's mutatees and varying optimization levels for instruction
+
+%_bgxlc_32_none_none.o: ../src/instruction/%.c
+	$(M_native_cc) $(SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -o $@ $<
+%_bgxlc_32_pic_none.o: ../src/instruction/%.c
+	$(M_native_cc) $(SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -o $@ $<
+%_bgxlc_32_none_none.o: ../src/%.c
+	$(M_native_cc) $(SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -o $@ $<
+%_bgxlc_32_pic_none.o: ../src/%.c
+	$(M_native_cc) $(SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -o $@ $<
+# Rules for building the driver and utility objects
+mutatee_driver_solo_bgxlc_32.o: ../src/mutatee_driver.c
+	$(M_native_cc)  $(CFLAGS)  -o $@ -c $<
+mutatee_util_bgxlc_32.o: ../src/mutatee_util.c
+	$(M_native_cc)  $(CFLAGS)  -o $@ -c $<
+
+
+# Generic rules for this platform's auxilliary compilers
+
+
+# Generic rules for this platform's auxilliary compilers
+
+
+# Generic rules for this platform's auxilliary compilers
+
+
+# Generic rules for this platform's auxilliary compilers
+
+# And a rule to build all of the mutatees
+.PHONY: dyninst_solo_mutatees
+dyninst_solo_mutatees: $(dyninstSOLO_MUTATEES_native_CC) $(dyninstSOLO_MUTATEES_native_cc) 
+
+.PHONY: clean_solo_mutatees
+dyninst_clean_solo_mutatees:
+	-$(RM) $(dyninst_SOLO_MUTATEES_native_CC)
+	-$(RM) $(dyninst_SOLO_MUTATEES_native_cc)
+	-$(RM) *_none.o
+	-$(RM) *_low.o
+	-$(RM) *_high.o
+	-$(RM) *_max.o
+
+
+dyninst_SOLO_MUTATEES = $(dyninst_SOLO_MUTATEES_native_CC) $(dyninst_SOLO_MUTATEES_native_cc)
+
+### COMPILER_CONTROL_DEFS is used to determine which compilers are present
+### when compiling the list of mutatees to test against
+COMPILER_CONTROL_DEFS =
+
+# And a rule to build all of the mutatees
+.PHONY: symtab_solo_mutatees
+symtab_solo_mutatees: $(symtabSOLO_MUTATEES_native_CC) $(symtabSOLO_MUTATEES_native_cc) 
+
+.PHONY: clean_solo_mutatees
+symtab_clean_solo_mutatees:
+	-$(RM) $(symtab_SOLO_MUTATEES_native_CC)
+	-$(RM) $(symtab_SOLO_MUTATEES_native_cc)
+	-$(RM) *_none.o
+	-$(RM) *_low.o
+	-$(RM) *_high.o
+	-$(RM) *_max.o
+
+
+symtab_SOLO_MUTATEES = $(symtab_SOLO_MUTATEES_native_CC) $(symtab_SOLO_MUTATEES_native_cc)
+
+### COMPILER_CONTROL_DEFS is used to determine which compilers are present
+### when compiling the list of mutatees to test against
+COMPILER_CONTROL_DEFS =
+
+# And a rule to build all of the mutatees
+.PHONY: instruction_solo_mutatees
+instruction_solo_mutatees: $(instructionSOLO_MUTATEES_native_CC) $(instructionSOLO_MUTATEES_native_cc) 
+
+.PHONY: clean_solo_mutatees
+instruction_clean_solo_mutatees:
+	-$(RM) $(instruction_SOLO_MUTATEES_native_CC)
+	-$(RM) $(instruction_SOLO_MUTATEES_native_cc)
+	-$(RM) *_none.o
+	-$(RM) *_low.o
+	-$(RM) *_high.o
+	-$(RM) *_max.o
+
+
+instruction_SOLO_MUTATEES = $(instruction_SOLO_MUTATEES_native_CC) $(instruction_SOLO_MUTATEES_native_cc)
+
+### COMPILER_CONTROL_DEFS is used to determine which compilers are present
+### when compiling the list of mutatees to test against
+COMPILER_CONTROL_DEFS =
+

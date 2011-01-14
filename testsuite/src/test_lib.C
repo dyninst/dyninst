@@ -80,6 +80,8 @@
 
 #include "test_lib.h"
 #include "ResumeLog.h"
+#define BINEDIT_DIRNAME "" 
+
 
 /* Control Debug printf statements */
 int debugPrint = 0;
@@ -605,6 +607,53 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 
    int i;
    for (i = 0; argv[i] != NULL; i++) ;
+
+   bool bgp_test = false;
+   int BGP_MAX_ARGS=13;
+	char **attach_argv;
+   char *platform = getenv("PLATFORM");
+   if(strcmp(platform, "ppc32_bgp") == 0)
+	bgp_test = true;
+   if (bgp_test) {
+   attach_argv = (char**)malloc(sizeof(char *) * BGP_MAX_ARGS);
+   for (int i = 0; i < 12; i++){
+	 attach_argv[i] = (char *) malloc (1024);
+   }
+   attach_argv[12] = (char *) malloc (4*1024);
+   char *binedit_dir = BINEDIT_DIRNAME;
+   char cwd[1024]; 
+   getcwd(cwd, 1024);
+   strcat(cwd, binedit_dir);
+   strcpy(attach_argv[0], "-nofree");
+   strcpy(attach_argv[1], "-partition");
+   char *partition = getenv("DYNINST_BGP_PARTITION");
+   if(partition == NULL) partition = "BGB1";
+   strcpy(attach_argv[2], partition);
+   strcpy(attach_argv[3], "-np");
+   strcpy(attach_argv[4], "1");
+   strcpy(attach_argv[5], "-env");
+   char *dyninst_base = getenv("DYNINST_ROOT");
+	if (dyninst_base == NULL)
+		fprintf(stderr, " DYNINST_ROOT is not set!! ");
+	sprintf(attach_argv[6], "LD_LIBRARY_PATH=.:%s/%s/binaries:%s/%s:${LD_LIBRARY_PATH}", dyninst_base, platform, dyninst_base, platform);
+//   strcpy(attach_argv[6], "LD_LIBRARY_PATH=.:/gpfs/fs2/frontend-3/ppc32_linux:${LD_LIBRARY_PATH}");
+   strcpy(attach_argv[7], "-cwd");
+   strcpy(attach_argv[8], cwd);
+   strcpy(attach_argv[9], "-exe");
+   strcpy(attach_argv[10], (char *) pathname);
+   strcpy(attach_argv[11], "-args");
+   strcpy(attach_argv[12], "\"");
+
+   for (int j = 0; argv[j] != NULL; j++){
+	strcat(attach_argv[12], argv[j]);
+ 	strcat(attach_argv[12], " ");
+   }
+   strcat(attach_argv[12], "\"");
+
+   attach_argv[BGP_MAX_ARGS] = NULL;
+
+} else{
+
    // i now contains the count of elements in argv
    const char **attach_argv = (const char**)malloc(sizeof(char *) * (i + 3));
    // attach_argv is length i + 3 (including space for NULL)
@@ -617,7 +666,8 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
       attach_argv[i++] = fdstr;
    }
    attach_argv[i++] = NULL;
-   
+}
+
    int pid;
    if (attach)
       pid = fork_mutatee();
@@ -659,6 +709,15 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 	  //fprintf(stderr, "%s[%d]:  before exec '%s':  LD_LIBRARY_PATH='%s'\n", 
 	  //FILE__, __LINE__, pathname, getenv("LD_LIBRARY_PATH"));
 
+if(bgp_test) {
+      printf(" running mpirun ");
+      for (int i = 0 ; i < BGP_MAX_ARGS ; i++)
+          printf(" %s", attach_argv[i]);
+      printf(" \n");
+      execvp("mpirun", (char * const *)attach_argv);
+      logerror("%s[%d]:  Exec failed!\n", FILE__, __LINE__);
+      exit(-1);
+}else{
       execvp(pathname, (char * const *)attach_argv);
       char *newname = (char *) malloc(strlen(pathname) + 3);
       strcpy(newname, "./");
@@ -666,6 +725,8 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
       execvp(newname, (char * const *)attach_argv);
       logerror("%s[%d]:  Exec failed!\n", FILE__, __LINE__);
       exit(-1);
+}
+
    } else if (pid < 0) {
       return -1;
    }
