@@ -262,13 +262,21 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 						bool instrumentReturns) 
 {
     Address funcAddr = (Address) func->getBaseAddr();
+    int pointCount = 0;
+    bool isHandler = false;
+    if (handlerFunctions.end() != 
+        handlerFunctions.find((Address)func->getBaseAddr())) 
+    {
+        isHandler = true;
+    }
+
     mal_printf("instfunc at %lx\n", funcAddr);
+
     if (proc()->lowlevel_process()->isMemoryEmulated() && 
         BPatch_defensiveMode == func->lowlevel_func()->obj()->hybridMode()) 
-    {
+    {   // we have to relocate all functions to emulate their memory accesses
         proc()->lowlevel_process()->addModifiedFunction(func->lowlevel_func());
     }
-    int pointCount = 0;
 
     if (instrumentedFuncs->end() == instrumentedFuncs->find(func)) {
         (*instrumentedFuncs)[func] = new 
@@ -422,8 +430,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
         (instrumentReturns || 
          ParseAPI::RETURN != func->lowlevel_func()->ifunc()->init_retstatus() || 
          ParseAPI::TAMPER_NONZERO == func->lowlevel_func()->ifunc()->tampersStack() ||
-         handlerFunctions.end() != 
-         handlerFunctions.find((Address)funcAddr) ))
+         isHandler ))
     {
         for (unsigned int j=0; j < retPoints->size(); j++) {
 			BPatch_point *curPoint = (*retPoints)[j];
@@ -452,11 +459,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             BPatch_stopThreadExpr *returnSnippet;
             BPatch_snippet * calcSnippet = NULL;
             BPatch_stInterpret interp;
-            bool isHandler = false;
-            if (handlerFunctions.end() != 
-                handlerFunctions.find((Address)func->getBaseAddr()) &&
-                0 != handlerFunctions[(Address)func->getBaseAddr()])
-            {
+            if (isHandler) {
                 // case 0: signal handler return address
                 // for handlers, instrument their exit point with a snippet 
                 // that reads the address to which the program will return 
@@ -464,10 +467,8 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 // to windows structured exception handlers
                 Address contextPCaddr = 
                     handlerFunctions[ (Address)func->getBaseAddr() ];
-                calcSnippet = new BPatch_arithExpr
-                    ( BPatch_deref, BPatch_constExpr(contextPCaddr) );
-                interp = BPatch_interpAsTarget;
-                isHandler = true;
+                calcSnippet = new BPatch_constExpr(0xbaadc0de);
+                interp = BPatch_noInterp;
             }
             else if (curPoint->isReturnInstruction()) {
                 // case 1: the point is at a return instruction
@@ -502,7 +503,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                     ( badTransferCB_wrapper, *calcSnippet, true, interp ); 
             } else {
                 returnSnippet = new BPatch_stopThreadExpr
-                    ( signalHandlerExitCB_wrapper, *calcSnippet, true, interp ); 
+                    ( signalHandlerExitCB_wrapper, *calcSnippet, false, interp ); 
             }
 
             // insert the instrumentation

@@ -398,8 +398,8 @@ void EmitterIA32::emitGetRetAddr(Register dest, codeGen &gen)
 }
 
 void EmitterIA32::emitGetParam(Register dest, Register param_num,
-                               instPointType_t pt_type, bool addr_of,
-                               codeGen &gen)
+                               instPointType_t pt_type, opCode op, 
+                               bool addr_of, codeGen &gen)
 {
    // Parameters are addressed by a positive offset from ebp,
    // the first is PARAM_OFFSET[ebp]
@@ -411,11 +411,25 @@ void EmitterIA32::emitGetParam(Register dest, Register param_num,
        loc.offset = 0;
        loc.reg = dest_r;
    }
-
-   if (pt_type != callSite) {
-       //Return value before any parameters
-       loc.offset += 4;
+   
+   switch (op) {
+       case getParamOp: 
+           // guess whether we're at the call or the function entry point,
+           // in which case we need to skip the return value
+           if (pt_type != callSite) {
+               loc.offset += 4;
+           }
+           break;
+       case getParamAtCallOp:
+           break;
+       case getParamAtEntryOp:
+           loc.offset += 4;
+           break;
+       default:
+           assert(0);
+           break;
    }
+
    loc.offset += param_num*4;
 
    // Prepare a real destination register.
@@ -1873,7 +1887,7 @@ void EmitterAMD64::emitGetRetAddr(Register dest, codeGen &gen)
 }
 
 
-void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, bool addr_of, codeGen &gen)
+void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, opCode op, bool addr_of, codeGen &gen)
 {
    if (!addr_of && param_num < 6) {
       emitLoadOrigRegister(amd64_arg_regs[param_num], dest, gen);

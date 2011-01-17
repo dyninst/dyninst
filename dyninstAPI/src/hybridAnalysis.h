@@ -37,7 +37,7 @@
 #include <map>
 #include <vector>
 #include "dyntypes.h"
-#include "BPatch_hybridAnalysis.h"
+#include "BPatch_enums.h"
 #include "BPatch_callbacks.h"
 #include "process.h"
 
@@ -148,7 +148,7 @@ private:
     bool addIndirectEdgeIfNeeded(BPatch_point *srcPt, Dyninst::Address target);
 
     // variables
-    std::map<Dyninst::Address,Dyninst::Address> handlerFunctions; 
+    std::map<Dyninst::Address,Dyninst::Address> handlerFunctions; // handlerAddr , addr of fault pc on the stack
     std::map < BPatch_function*, 
                std::map<BPatch_point*,BPatchSnippetHandle*> *> * instrumentedFuncs;
     std::map< BPatch_point* , SynchHandle* > synchMap_pre_; // maps from prePt

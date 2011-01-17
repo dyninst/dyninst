@@ -143,6 +143,8 @@ class AstNode {
                       DataReg,
                       DataIndir,
                       Param,
+                      ParamAtCall,
+                      ParamAtEntry,
                       ReturnVal, 
                       ReturnAddr, // address of a return instruction
                       DataAddr,  // Used to represent a variable in memory
@@ -475,7 +477,7 @@ class AstOperandNode : public AstNode {
         
     virtual BPatch_type	  *checkType();
 
-    virtual bool accessesParam(void) { return (oType == Param); };
+    virtual bool accessesParam(void) { return (oType == Param || oType == ParamAtEntry || oType == ParamAtCall); };
     virtual bool canBeKept() const;
         
     virtual void getChildren(pdvector<AstNodePtr> &children);

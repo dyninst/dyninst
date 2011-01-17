@@ -66,6 +66,8 @@ typedef enum {
    getRetAddrOp,
    getSysRetValOp,
    getParamOp,
+   getParamAtCallOp,
+   getParamAtEntryOp,
    getSysParamOp,	   
    getAddrOp,	// return the address of the operand
    loadIndirOp,

@@ -42,6 +42,7 @@
 #include "BPatch_eventLock.h"
 #include "BPatch_callbacks.h"
 #include "BPatch_instruction.h" // for register type
+#include "BPatch_enums.h"
 #include "dyn_detail/boost/shared_ptr.hpp"
 
 class AstNode;
@@ -66,15 +67,6 @@ class BPatch_addressSpace;
 class int_variable;
 class mapped_object;
 
-
-/*
- * Used to specify whether a snippet should be installed before other snippets
- * that have previously been inserted at the same point, or after.
- */
-typedef enum {
-    BPatch_firstSnippet,
-    BPatch_lastSnippet
-} BPatch_snippetOrder;
 
 typedef enum {
     BPatch_lt,
@@ -373,11 +365,14 @@ class BPATCH_DLL_EXPORT BPatch_nullExpr : public BPatch_snippet {
 #define DYNINST_CLASS_NAME BPatch_paramExpr
 
 class BPATCH_DLL_EXPORT BPatch_paramExpr : public BPatch_snippet {
-
     //  BPatch_paramExpr::BPatch_paramExpr
     //  Represents a parameter of a function (used in creating funcCallExpr)
-    API_EXPORT_CTOR(Int, (n),
-    BPatch_paramExpr,(int n));
+    //  n    is the index of the parameter that should be retrieved
+    //  loc  indicates whether the parameter lookup will be added at the call,
+    //       at the function's entry point, or whether Dyninst should guess
+    //       based on the instPoint type, which is error-prone and deprecated
+    API_EXPORT_CTOR(Int, (n,loc),
+    BPatch_paramExpr,(int n, BPatch_ploc loc=BPatch_ploc_guess));
 };
 
 #ifdef DYNINST_CLASS_NAME

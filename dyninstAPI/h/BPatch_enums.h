@@ -29,9 +29,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _BPatch_hybridAnalysis_h_
-#define _BPatch_hybridAnalysis_h_
+#ifndef _BPatch_enums_h_
+#define _BPatch_enums_h_
 
+/*
+ * Used to specify whether a snippet should be installed before other snippets
+ * that have previously been inserted at the same point, or after.
+ */
+typedef enum {
+    BPatch_firstSnippet,
+    BPatch_lastSnippet
+} BPatch_snippetOrder;
+
+// instrumentation locations for BPatch_paramExpr's
+typedef enum {
+    BPatch_ploc_guess,
+    BPatch_ploc_call,
+    BPatch_ploc_entry
+} BPatch_ploc;
+
+// program analysis styles
 typedef enum {
     BPatch_heuristicMode,
     BPatch_normalMode,
@@ -39,4 +56,5 @@ typedef enum {
     BPatch_defensiveMode
 } BPatch_hybridMode;
 
-#endif /* _BPatch_hybridAnalysis_h_ */
+
+#endif /* _BPatch_enums_h_ */

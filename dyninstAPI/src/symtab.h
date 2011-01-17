@@ -51,7 +51,7 @@
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/infHeap.h"
 #include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/h/BPatch_hybridAnalysis.h"
+#include "dyninstAPI/h/BPatch_enums.h"
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"

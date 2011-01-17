@@ -890,10 +890,26 @@ void BPatch_nullExpr::BPatch_nullExprInt()
  * n    The position of the parameter (0 is the first parameter, 1 the second,
  *      and so on).
  */
-void BPatch_paramExpr::BPatch_paramExprInt(int n)
+void BPatch_paramExpr::BPatch_paramExprInt(int n, BPatch_ploc loc)
 {
-    ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::Param,
-                                                             (void *)(long)n));
+    AstNode::operandType opType;
+    switch(loc) {
+        case (BPatch_ploc_guess):
+            opType = AstNode::Param;
+            break;
+        case (BPatch_ploc_call):
+            opType = AstNode::ParamAtCall;
+            break;
+        case (BPatch_ploc_entry):
+            opType = AstNode::ParamAtEntry;
+            break;
+        default:
+            assert(0);
+            break;
+    }
+
+    ast_wrapper = AstNodePtr(AstNode::operandNode(opType,
+                                                  (void *)(long)n));
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());

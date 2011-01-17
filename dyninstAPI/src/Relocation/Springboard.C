@@ -305,15 +305,6 @@ bool SpringboardBuilder::conflict(Address start, Address end, bool inRelocated) 
       lastState = state;
    }
    relocation_cerr << "\t No conflict, we're good" << endl;
-   if (start == 0x971170) {
-       printf("no conflict for [%x %x)\n", start,end);
-   }
-   if (start == 0x97116d) {
-       printf("no conflict for [%x %x)\n", start,end);
-   }
-   if (start == 0x97116f) {
-       printf("no conflict for [%x %x)\n", start,end);
-   }
    return false;
 }
 
@@ -397,6 +388,7 @@ void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) 
 
   insnCodeGen::generateBranch(gen, from, to);
   relocation_cerr << "Springboard branch " << hex << from << "->" << to << dec << endl;
+  malware_cerr << "Springboard branch " << hex << from << "->" << to << dec << endl;
 }
 
 void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
@@ -405,6 +397,7 @@ void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
   gen.setAddrSpace(addrSpace_);
   gen.setAddr(from);
   relocation_cerr << "YUCK! Springboard trap at: "<< hex << from << "->" << to << dec << endl;
+  malware_cerr << "YUCK! Springboard trap at: "<< hex << from << "->" << to << dec << endl;
   addrSpace_->trapMapping.addTrapMapping(from, to, true);
   insnCodeGen::generateTrap(gen);
 }

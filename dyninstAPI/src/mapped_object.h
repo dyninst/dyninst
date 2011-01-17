@@ -37,7 +37,7 @@
 #include <string>
 #include "common/h/Types.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/h/BPatch_hybridAnalysis.h"
+#include "dyninstAPI/h/BPatch_enums.h"
 #include <list>
 
 //  we really do not want to have this defined, but I'm defining it for the moment to get thru paradyn seperation

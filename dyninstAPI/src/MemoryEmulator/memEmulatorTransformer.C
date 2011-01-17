@@ -39,7 +39,7 @@
 #include "memEmulatorAtom.h"
 #include "dyninstAPI/src/instPoint.h" // Memory insn modelling requirement.
 #include "dyninstAPI/src/mapped_object.h"
-#include "dyninstAPI/h/BPatch_hybridAnalysis.h"
+#include "dyninstAPI/h/BPatch_enums.h"
 #include <iomanip>
 using namespace std;
 using namespace Dyninst;

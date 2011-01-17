@@ -1100,6 +1100,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             {
                 // 4. Invalid or `abort-causing' instructions
                 end_block(cur,*ah);
+                link(cur, _sink, DIRECT, true);
                 break; 
             }
             else if(unlikely(func->obj()->defensiveMode() && 

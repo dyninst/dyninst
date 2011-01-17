@@ -640,7 +640,7 @@ bool PCSensitiveTransformer::exceptionSensitive(Address a, const int_block *bbl)
 
   ExceptionBlock eBlock;
   // Amusingly, existence is sufficient for us.
-  return symtab->findException(eBlock, o);
+  return symtab->findException(eBlock, o);      
 }
 
 void PCSensitiveTransformer::cacheAnalysis(const int_block *bbl, Address addr, bool intSens, bool extSens) {
@@ -648,9 +648,9 @@ void PCSensitiveTransformer::cacheAnalysis(const int_block *bbl, Address addr, b
 }
 
 bool PCSensitiveTransformer::queryCache(const int_block *bbl, Address addr, bool &intSens, bool &extSens) {
-	intSens = true;
-	extSens = true;
-	return true;
+	//intSens = true;
+	//extSens = true;
+	//return true;
 	
 	AnalysisCache::const_iterator iter = analysisCache_.find(bbl);
    if (iter == analysisCache_.end()) return false;

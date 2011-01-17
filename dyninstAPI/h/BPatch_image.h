@@ -37,7 +37,7 @@
 #include "BPatch_Vector.h"
 //#include "BPatch_addressSpace.h"
 #include "BPatch_point.h"
-#include "BPatch_snippet.h"
+//#include "BPatch_snippet.h"
 #include "BPatch_module.h"
 #include "BPatch_type.h"
 #include "BPatch_eventLock.h"
