@@ -44,6 +44,7 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
+extern bool disassemble_reloc;
 
 bool LocalizeCF::processTrace(TraceList::iterator &iter) {
   // We don't care about elements that aren't CFAtoms
@@ -52,8 +53,7 @@ bool LocalizeCF::processTrace(TraceList::iterator &iter) {
 
   const Trace::AtomList &elements = (*iter)->elements();
 
-  //relocation_cerr << "localCFTransformer going to work on block " 
-//		  << std::hex << (*iter)->origAddr() << std::dec << endl;
+  recordIncomingEdges((*iter)->bbl());
 
   // We don't need to iterate over all the elements; by definition
   // the only one we care about is the last one. 
@@ -73,87 +73,82 @@ bool LocalizeCF::processTrace(TraceList::iterator &iter) {
   // in our map, replace it with a Target to that block.
 
   for (CFAtom::DestinationMap::iterator d_iter = cf->destMap_.begin();
-       d_iter != cf->destMap_.end(); ++d_iter) {
+       d_iter != cf->destMap_.end(); ++d_iter) 
+  {
 
-    assert(d_iter->second);
+	  assert(d_iter->second);
 
-    TargetInt *target = d_iter->second;
+	  TargetInt *target = d_iter->second;
 
-    if (target->type() != TargetInt::BlockTarget) {
-      continue;
-    }
+	  if (target->type() != TargetInt::BlockTarget) {
+		  continue;
+	  }
 
-    Target<int_block *> *targ = static_cast<Target<int_block *> *> (target);
-    int_block *target_bbl = targ->t();
+	  Target<int_block *> *targ = static_cast<Target<int_block *> *> (target);
+	  int_block *target_bbl = targ->t();
 
-    TraceMap::const_iterator found = bMap_.find(target_bbl);
-    if (found != bMap_.end()) {
-      //relocation_cerr << "      found matching block " << found->second.get() << endl;
+	  TraceMap::const_iterator found = bMap_.find(target_bbl);
+	  if (found != bMap_.end()) {
+		  //relocation_cerr << "      found matching block " << found->second.get() << endl;
 
-      // First, record the int_block we removed an edge from. We will check
-      // later to see if we removed all the incoming edges from this instance...
-      recordIncomingEdges(d_iter->second);
+		  EdgeTypeEnum edgeType = (*iter)->bbl()->getTargetEdgeType(target_bbl);
+		  if (edgeType == ParseAPI::INDIRECT ||
+			  edgeType == ParseAPI::CATCH ||
+			  edgeType == ParseAPI::NOEDGE) 
+		  {
+			  // Can't localize these types as they're calculated.
+			  continue;
+		  }
 
-      // And be sure not to leak
-      if (d_iter->second)
-		  delete d_iter->second;
 
-      Target<Trace::Ptr> *t = new Target<Trace::Ptr>(found->second);
-      d_iter->second = t;
+		  // Be sure not to leak
+		  if (d_iter->second)
+			  delete d_iter->second;
 
-      //relocation_cerr << "        Incrementing removed edge count for " 
-//		      << std::hex << found->first << std::dec << endl;
-	  // Added 18JAN11 - if we reach the target via an indirect edge, DO NOT
-	  // remove it. We'll be jumping to the original address until we add code to
-	  // translate indirect branches.
-	  EdgeTypeEnum edgeType = (*iter)->bbl()->getTargetEdgeType(target_bbl);
-	  if (edgeType == ParseAPI::CALL ||
-		  edgeType == ParseAPI::COND_TAKEN ||
-		  edgeType == ParseAPI::COND_NOT_TAKEN ||
-		  edgeType == ParseAPI::DIRECT ||
-		  edgeType == ParseAPI::FALLTHROUGH ||
-		  edgeType == ParseAPI::CALL_FT ||
-		  edgeType == ParseAPI::RET) 
-		  replacedCount_[found->first]++;
-    }
+		  Target<Trace::Ptr> *t = new Target<Trace::Ptr>(found->second);
+		  d_iter->second = t;
+		  counts_[found->first].second++;
+
+		  if (disassemble_reloc) {
+			  if (found->first) {
+				  cerr << "\t Removing edge " << hex << (*iter)->bbl()->start() << " -> " << found->first->start() << dec << endl;
+			  }
+		  }
+	  }
   }
   return true;
 }
 
 // Count up how many incoming edges we still have
 // to see if we need to branch in to this block
-bool LocalizeCF::postprocess(TraceList &) {
-  //relocation_cerr << "Postprocessing LocalizeCF" << endl;
-  for (std::map<int_block *, int>::iterator iter = replacedCount_.begin();
-       iter != replacedCount_.end(); ++iter) {
-    int_block *bbl = iter->first;
-	if (bbl && bbl->start() == 0x9bb8a6) {
-		int i = 3;
+bool LocalizeCF::postprocess(TraceList &l) {
+	//relocation_cerr << "Postprocessing LocalizeCF" << endl;
+	for (std::map<int_block *, std::pair<int, int> >::const_iterator iter = counts_.begin();
+       iter != counts_.end(); ++iter)
+	{
+		int_block *bbl = iter->first;
+		int originalEdges = iter->second.first;
+		int removedEdges = iter->second.second;
+
+		if (disassemble_reloc) 
+		{
+			if (bbl) {
+				cerr << "Postprocessing bbl @ " << hex << bbl->start() << dec << "; " << originalEdges << " incoming and " << removedEdges << " removed." << endl;
+			}
+		}
+
+		if (removedEdges > originalEdges) {
+			cerr << "Odd case: " << removedEdges << " removed @ block " << hex << bbl->start() << dec
+				<< ", but only " << originalEdges << " known." << endl;
+		}
+		else if (removedEdges == originalEdges) {
+			//pMap_[addr] = Suggested;
+		}
+		else {
+			pMap_[bbl] = Required;
+		}
 	}
-    int removedEdges = iter->second;
-
-    // see if this block has any incoming edges that we didn't remove
-    int incomingEdges = incomingCount_[bbl];
-
-    //relocation_cerr << "   Considering block at " 
-//		    << std::hex << bbl->firstInsnAddr() << std::dec
-	//	    << ": incoming " << incomingEdges 
-//<< " and removed " << removedEdges
-	//	    << endl;
-
-    
-    if (removedEdges > incomingEdges) {
-      cerr << "Odd case: " << removedEdges << " removed @ block " << hex << bbl->start() << dec
-	   << ", but only " << incomingEdges << " known." << endl;
-    }
-    else if (removedEdges == incomingEdges) {
-      //pMap_[addr] = Suggested;
-    }
-    else {
-      pMap_[bbl] = Required;
-    }
-  }
-  return true;
+	return true;
 }
 
 int LocalizeCF::getInEdgeCount(const int_block *bbl) {
@@ -164,11 +159,8 @@ int LocalizeCF::getInEdgeCount(const int_block *bbl) {
   return bbl->llb()->sources().size();
 }
 
-void LocalizeCF::recordIncomingEdges(const TargetInt *in) {
-  if (!in) return;
+void LocalizeCF::recordIncomingEdges(int_block *bbl) {
+  if (!bbl) return;
 
-  const Target<int_block *> *targ = dynamic_cast<const Target<int_block *> *>(in);
-  if (!targ) return;
- 
-  incomingCount_[targ->t()] = getInEdgeCount(targ->t());
+  counts_[bbl].first = getInEdgeCount(bbl);
 }
