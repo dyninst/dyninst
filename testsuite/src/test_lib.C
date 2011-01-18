@@ -636,7 +636,6 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 	if (dyninst_base == NULL)
 		fprintf(stderr, " DYNINST_ROOT is not set!! ");
 	sprintf(attach_argv[6], "LD_LIBRARY_PATH=.:%s/%s/binaries:%s/%s:${LD_LIBRARY_PATH}", dyninst_base, platform, dyninst_base, platform);
-//   strcpy(attach_argv[6], "LD_LIBRARY_PATH=.:/gpfs/fs2/frontend-3/ppc32_linux:${LD_LIBRARY_PATH}");
    strcpy(attach_argv[7], "-cwd");
    strcpy(attach_argv[8], cwd);
    strcpy(attach_argv[9], "-exe");

@@ -325,7 +325,7 @@ DynParseCallback::interproc_cf(Function*f,Address addr,interproc_details*det)
     if(p)
         _img->addInstPoint(p);
 
-#if defined(ppc32_linux)
+#if defined(ppc32_linux) || defined(ppc32_bgp)
     if(det->type == interproc_details::call) {
         image_func * ifunc = static_cast<image_func*>(f);
         _img->updatePltFunc(ifunc,det->data.call.target);
