@@ -137,7 +137,8 @@ Register convertRegID(MachRegister reg, bool &wasUpcast) {
     map<MachRegister, Register>::const_iterator found =
             reverseRegisterMap.find(baseReg);
     if(found == reverseRegisterMap.end()) {
-      assert(!"Bad register ID");
+      // Yeah, this happens when we analyze trash code. Oops...
+		return REGNUM_IGNORED;
     }
     if(found->second == REGNUM_DUMMYFPR) {
         wasUpcast = true;
