@@ -14,6 +14,25 @@ using namespace std;
 std::set<Generator::gen_cb_func_t> Generator::CBs;
 Mutex *Generator::cb_lock;
 
+/*
+ * Library deinitialization
+ *
+ * Note: it is crucial that this variable is located here because it guarantees
+ * that the threads will be stopped before destructing the CBs collection and
+ * therefore avoiding a problem where the generator will continue to run but
+ * the CBs collection has already been destructed
+ */
+static int_cleanup cleanup;
+
+int_cleanup::~int_cleanup() {
+    // First, stop the handler thread if necessary
+    MTManager *tmpMt = mt();
+    if( tmpMt ) tmpMt->stop();
+
+    // Second, stop the generator
+    Generator::stopDefaultGenerator();
+}
+
 Generator::Generator(std::string name_) :
    name(name_)
 {
@@ -195,6 +214,12 @@ void GeneratorMT::launch()
 GeneratorMT::~GeneratorMT()
 {
    setState(exiting);
+
+   // Wake up the generator thread if it is waiting for processes
+   ProcPool()->condvar()->lock();
+   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->unlock();
+
    sync->thrd.join();
    delete sync;
    sync = NULL;
@@ -238,7 +263,7 @@ bool GeneratorMT::processWait(bool block)
    ProcessPool *pp = ProcPool();
    pp->condvar()->lock();
    pthrd_printf("Checking for live processes\n");
-   while (!hasLiveProc()) {
+   while (!hasLiveProc() && !isExitingState()) {
       pthrd_printf("Checked and found no live processes\n");
       if (!block) {
          pthrd_printf("Returning from non-blocking processWait\n");

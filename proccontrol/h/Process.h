@@ -233,8 +233,10 @@ class Process
     * Create and attach to new processes
     **/
    static const std::map<int,int> emptyFDs;
+   static const std::vector<std::string> emptyEnvp;
    static Process::ptr createProcess(std::string executable,
                                      const std::vector<std::string> &argv,
+                                     const std::vector<std::string> &envp = emptyEnvp,
                                      const std::map<int,int> &fds = emptyFDs);
    static Process::ptr attachProcess(Dyninst::PID pid, std::string executable = "");
 

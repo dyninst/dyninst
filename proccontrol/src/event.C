@@ -171,6 +171,7 @@ std::string EventType::name() const
       STR_CASE(RPCInternal);
       STR_CASE(Async);
       STR_CASE(ChangePCStop);
+      STR_CASE(ForceTerminate);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -220,6 +221,21 @@ int EventCrash::getTermSignal() const
 }
          
 EventCrash::~EventCrash()
+{
+}
+
+EventForceTerminate::EventForceTerminate(int termsig_) :
+    EventTerminate(EventType(EventType::Post, EventType::ForceTerminate)),
+    termsig(termsig_)
+{
+}
+
+int EventForceTerminate::getTermSignal() const
+{
+   return termsig;
+}
+
+EventForceTerminate::~EventForceTerminate()
 {
 }
 
@@ -611,9 +627,20 @@ EventChangePCStop::~EventChangePCStop()
      return dyn_detail::boost::static_pointer_cast<const NAME>(shared_from_this()); \
    }
 
-DEFN_EVENT_CAST2(EventTerminate, Exit, Crash)
+#define DEFN_EVENT_CAST3(NAME, TYPE, TYPE2, TYPE3) \
+   NAME::ptr Event::get ## NAME() {  \
+     if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2 && etype.code() != EventType::TYPE3) return NAME::ptr(); \
+     return dyn_detail::boost::static_pointer_cast<NAME>(shared_from_this()); \
+   } \
+   NAME::const_ptr Event::get ## NAME() const { \
+     if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2 && etype.code() != EventType::TYPE3) return NAME::const_ptr(); \
+     return dyn_detail::boost::static_pointer_cast<const NAME>(shared_from_this()); \
+   }
+
+DEFN_EVENT_CAST3(EventTerminate, Exit, Crash, ForceTerminate)
 DEFN_EVENT_CAST(EventExit, Exit)
 DEFN_EVENT_CAST(EventCrash, Crash)
+DEFN_EVENT_CAST(EventForceTerminate, ForceTerminate)
 DEFN_EVENT_CAST(EventExec, Exec)
 DEFN_EVENT_CAST(EventStop, Stop)
 DEFN_EVENT_CAST(EventBreakpoint, Breakpoint)

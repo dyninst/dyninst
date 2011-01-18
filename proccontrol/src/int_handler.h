@@ -78,6 +78,16 @@ class HandleCrash : public Handler
    virtual handler_ret_t handleEvent(Event::ptr ev);  
 };
 
+class HandleForceTerminate : public Handler
+{
+ public:
+  HandleForceTerminate();
+  ~HandleForceTerminate();
+
+   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual handler_ret_t handleEvent(Event::ptr ev);  
+};
+
 class HandleSignal : public Handler
 {
  public:

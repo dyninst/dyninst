@@ -65,15 +65,21 @@
 using namespace Dyninst;
 using namespace std;
 
+static GeneratorLinux *gen = NULL;
+
 Generator *Generator::getDefaultGenerator()
 {
-   static GeneratorLinux *gen = NULL;
    if (!gen) {
       gen = new GeneratorLinux();
       assert(gen);
       gen->launch();
    }
    return static_cast<Generator *>(gen);
+}
+
+void Generator::stopDefaultGenerator()
+{
+    if(gen) delete gen;
 }
 
 bool GeneratorLinux::initialize()
@@ -368,9 +374,15 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       }
       else {
          int termsig = WTERMSIG(status);
-         pthrd_printf("Decoded event to crash of %d/%d with signal %d\n",
-                      proc->getPid(), thread->getLWP(), termsig);
-         event = Event::ptr(new EventCrash(termsig));
+         if( proc->wasForcedTerminated() ) {
+             pthrd_printf("Decoded event to force terminate of %d/%d\n",
+                     proc->getPid(), thread->getLWP());
+             event = Event::ptr(new EventForceTerminate(termsig));
+         }else{
+             pthrd_printf("Decoded event to crash of %d/%d with signal %d\n",
+                          proc->getPid(), thread->getLWP(), termsig);
+             event = Event::ptr(new EventCrash(termsig));
+         }
       }
       event->setSyncType(Event::sync_process);
       int_threadPool::iterator i = proc->threadPool()->begin();
@@ -416,16 +428,18 @@ int_process *int_process::createProcess(Dyninst::PID p, std::string e)
 {
    std::vector<std::string> a;
    std::map<int,int> f;
+   std::vector<std::string> envp;
    LinuxPtrace::getPtracer(); //Make sure ptracer thread is initialized
-   linux_process *newproc = new linux_process(p, e, a, f);
+   linux_process *newproc = new linux_process(p, e, a, envp, f);
    assert(newproc);
    return static_cast<int_process *>(newproc);
 }
 
-int_process *int_process::createProcess(std::string e, std::vector<std::string> a, std::map<int,int> f)
+int_process *int_process::createProcess(std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
+        std::map<int,int> f)
 {
    LinuxPtrace::getPtracer(); //Make sure ptracer thread is initialized
-   linux_process *newproc = new linux_process(0, e, a, f);
+   linux_process *newproc = new linux_process(0, e, a, envp, f);
    assert(newproc);
    return static_cast<int_process *>(newproc);
 }
@@ -503,11 +517,12 @@ Dyninst::Architecture linux_process::getTargetArch()
    return arch;
 }
 
-linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f) :
-   int_process(p, e, a, f),
-   sysv_process(p, e, a, f),
-   unix_process(p, e, a, f),
-   x86_process(p, e, a, f)
+linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
+        std::map<int,int> f) :
+   int_process(p, e, a, envp, f),
+   sysv_process(p, e, a, envp, f),
+   unix_process(p, e, a, envp, f),
+   x86_process(p, e, a, envp, f)
 {
 }
 

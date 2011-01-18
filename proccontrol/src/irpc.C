@@ -316,6 +316,10 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
       if (thr->getInternalState() != int_thread::running && thr->getInternalState() != int_thread::stopped) {
          continue;
       }
+
+      // Don't post RPCs to threads that are in the middle of exiting
+      if(thr->isExiting()) continue;
+
       int rpc_count = numActiveRPCs(thr);
       if (!findAllocationForRPC(thr, rpc)) {
          //We'll need to run an allocation and deallocation on this thread.
@@ -342,6 +346,13 @@ bool iRPCMgr::postRPCToThread(int_thread *thread, int_iRPC::ptr rpc)
                   rpc->id(), thread->getLWP());
       setLastError(err_exited, "Attempt to post iRPC to exited thread");
       return false;
+   }
+
+   if( thread->isExiting() ) {
+       perr_printf("Attempt to post IRPC %lu to exiting thread %d\n",
+               rpc->id(), thread->getLWP());
+       setLastError(err_exited, "Attempt to post iRPC to exiting thread");
+       return false;
    }
 
    if (!rpc->isAsync())
@@ -948,7 +959,7 @@ bool iRPCMgr::handleThreadContinue(int_thread *thr, bool user_cont, bool &comple
    if (!posted_rpc)
       return true;
 
-   if (!thr->runningRPC()) {
+   if (!thr->runningRPC() && !thr->isClearingBreakpoint() ) {
       //The user may have a posted RPC on a stopped thread,
       // ready this before the thread runs.
       pthrd_printf("Readying an IRPC before continuing\n");

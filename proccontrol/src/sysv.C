@@ -52,8 +52,8 @@ using namespace std;
 
 int_breakpoint *sysv_process::lib_trap = NULL;
 
-sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, map<int,int> f) :
-   int_process(p, e, a, f),
+sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, vector<string> envp, map<int,int> f) :
+   int_process(p, e, a, envp, f),
    translator(NULL),
    lib_initialized(false),
    procreader(NULL),

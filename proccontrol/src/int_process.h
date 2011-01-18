@@ -88,11 +88,13 @@ class int_process
 {
    friend class Dyninst::ProcControlAPI::Process;
  protected:
-   int_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f);
+   int_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+           std::vector<std::string> envp, std::map<int,int> f);
    int_process(Dyninst::PID pid_, int_process *p);
  public:
    static int_process *createProcess(Dyninst::PID p, std::string e);
-   static int_process *createProcess(std::string e, std::vector<std::string> a, std::map<int,int> f);
+   static int_process *createProcess(std::string e, std::vector<std::string> a, 
+           std::vector<std::string> envp, std::map<int,int> f);
    static int_process *createProcess(Dyninst::PID pid_, int_process *p);
    virtual ~int_process();
  protected:
@@ -251,6 +253,7 @@ class int_process
    Dyninst::PID pid;
    std::string executable;
    std::vector<std::string> argv;
+   std::vector<std::string> env;
    std::map<int,int> fds;
    Dyninst::Architecture arch;
    int_threadPool *threadpool;
@@ -498,6 +501,12 @@ class int_thread
    bool hasPostponedContinue() const;
    void setPostponedContinue(bool b);
 
+   // The exiting property is separate from the main state because an
+   // exiting thread can either be running or stopped (depending on the
+   // desires of the user).
+   bool isExiting() const;
+   void setExiting(bool b);
+
    //Misc
    virtual bool attach() = 0;
    Thread::ptr thread();
@@ -529,6 +538,7 @@ class int_thread
    bool user_single_step;
    bool single_step;
    bool postponed_continue;
+   bool exiting;
    installed_breakpoint *clearing_breakpoint;
 
 
@@ -837,6 +847,13 @@ class MTLock
       if (should_unlock && mt()->handlerThreading())
          mt()->endWork();
    }
+};
+
+// A class to stop the various threads that have been started when
+// the library is deinitialized
+class int_cleanup {
+    public:
+        ~int_cleanup();
 };
 
 #endif

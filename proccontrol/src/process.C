@@ -49,6 +49,7 @@ using namespace ProcControlAPI;
 using namespace std;
 
 const map<int,int> Process::emptyFDs;
+const vector<string> Process::emptyEnvp;
 Process::thread_mode_t threadingMode = Process::GeneratorThreading;
 bool int_process::in_callback = false;
 
@@ -580,7 +581,9 @@ bool syncRunState(int_process *p, void *r)
    {
       int_thread *thr = *i;
 
-      thr->handleNextPostedIRPC(int_thread::hnp_no_stop, false);
+      if( !thr->isClearingBreakpoint() ) {
+        thr->handleNextPostedIRPC(int_thread::hnp_no_stop, false);
+      }
 
       int_iRPC::ptr rpc = thr->hasRunningProcStopperRPC();
       if (!rpc) continue;
@@ -597,7 +600,10 @@ bool syncRunState(int_process *p, void *r)
    {
       int_thread *thr = *i;
 
-      if (thr->hasPendingStop()) {
+      // If the thread is exiting and it has a pending stop, it is reasonable that
+      // the pending stop will never occur and a continue will actually cause the
+      // thread to exit
+      if (thr->hasPendingStop() && !thr->isExiting()) {
          ret->hasStopPending = true;
       }
 
@@ -606,7 +612,7 @@ bool syncRunState(int_process *p, void *r)
       }
 
       int_iRPC::ptr pstop_rpc = thr->hasRunningProcStopperRPC();
-      if (thr->hasPendingStop() && thr->getHandlerState() == int_thread::stopped) {
+      if (thr->hasPendingStop() && !thr->isExiting() && thr->getHandlerState() == int_thread::stopped) {
          pthrd_printf("Continuing thread %d/%d to clear out pending stop\n", 
                       thr->llproc()->getPid(), thr->getLWP());
 
@@ -951,11 +957,13 @@ bool int_process::terminate(bool &needs_sync)
 
 int_process::int_process(Dyninst::PID p, std::string e,
                          std::vector<std::string> a,
+                         std::vector<std::string> envp,
                          std::map<int,int> f) :
    state(neonatal),
    pid(p),
    executable(e),
    argv(a),
+   env(envp),
    fds(f),
    arch(Dyninst::Arch_none),
    threadpool(NULL),
@@ -978,6 +986,7 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    pid(pid_),
    executable(p->executable),
    argv(p->argv),
+   env(p->env),
    arch(p->arch),
    hasCrashSignal(p->hasCrashSignal),
    crashSignal(p->crashSignal),
@@ -1666,6 +1675,7 @@ bool int_threadPool::cont(bool user_cont)
       int_thread *thr = *i;
       assert(thr);
 
+      ProcPool()->condvar()->signal();
       ProcPool()->condvar()->unlock();
       bool completed_rpc = true;
       bool result = rpcMgr()->handleThreadContinue(thr, user_cont, completed_rpc);
@@ -2039,7 +2049,7 @@ int_thread::stopcont_ret_t int_thread::stop(bool user_stop)
       return sc_skip;
    }
 
-   if (pending_stop) {
+   if (pending_stop && !exiting) {
       pthrd_printf("thread %d has in-progress stop on process %d\n", getLWP(), pid);
       return sc_success_pending;
    }
@@ -2058,6 +2068,13 @@ int_thread::stopcont_ret_t int_thread::stop(bool user_stop)
          setUserState(stopped);
       return sc_success;
    }
+
+   if (pending_stop && exiting) {
+       pthrd_printf("exiting thread %d has in-progress stop on process %d\n", getLWP(),
+               pid);
+       return sc_success_pending;
+   }
+
    if (getHandlerState() != running)
    {
       perr_printf("Attempt to stop thread %d/%d in bad state %d\n", 
@@ -2390,6 +2407,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    user_single_step(false),
    single_step(false),
    postponed_continue(false),
+   exiting(false),
    clearing_breakpoint(false)
 {
    Thread::ptr new_thr(new Thread());
@@ -2443,6 +2461,16 @@ bool int_thread::hasPostponedContinue() const
 void int_thread::setPostponedContinue(bool b)
 {
    postponed_continue = b;
+}
+
+bool int_thread::isExiting() const
+{
+    return exiting;
+}
+
+void int_thread::setExiting(bool b)
+{
+    exiting = b;
 }
 
 Thread::ptr int_thread::thread()
@@ -3974,6 +4002,7 @@ bool Process::setThreadingMode(thread_mode_t tm)
 
 Process::ptr Process::createProcess(std::string executable,
                                     const std::vector<std::string> &argv,
+                                    const std::vector<std::string> &envp,
                                     const std::map<int,int> &fds)
 {
    MTLock lock_this_func(MTLock::allow_init, MTLock::deliver_callbacks);
@@ -3986,7 +4015,7 @@ Process::ptr Process::createProcess(std::string executable,
    }
 
    Process::ptr newproc(new Process());
-   int_process *llproc = int_process::createProcess(executable, argv, fds);
+   int_process *llproc = int_process::createProcess(executable, argv, envp, fds);
    llproc->initializeProcess(newproc);
    
    bool result = llproc->create();
@@ -5328,6 +5357,8 @@ void MTManager::run()
 
 void MTManager::stop()
 {
+   if( !is_running ) return;
+
    Generator::removeNewEventCB(eventqueue_cb_wrapper);
    pending_event_lock.lock();
    should_exit = true;
