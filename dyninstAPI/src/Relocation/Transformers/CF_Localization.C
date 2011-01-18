@@ -84,9 +84,9 @@ bool LocalizeCF::processTrace(TraceList::iterator &iter) {
     }
 
     Target<int_block *> *targ = static_cast<Target<int_block *> *> (target);
-    int_block *bbl = targ->t();
+    int_block *target_bbl = targ->t();
 
-    TraceMap::const_iterator found = bMap_.find(bbl);
+    TraceMap::const_iterator found = bMap_.find(target_bbl);
     if (found != bMap_.end()) {
       //relocation_cerr << "      found matching block " << found->second.get() << endl;
 
@@ -96,14 +96,25 @@ bool LocalizeCF::processTrace(TraceList::iterator &iter) {
 
       // And be sure not to leak
       if (d_iter->second)
-	delete d_iter->second;
+		  delete d_iter->second;
 
       Target<Trace::Ptr> *t = new Target<Trace::Ptr>(found->second);
       d_iter->second = t;
 
       //relocation_cerr << "        Incrementing removed edge count for " 
 //		      << std::hex << found->first << std::dec << endl;
-      replacedCount_[found->first]++;
+	  // Added 18JAN11 - if we reach the target via an indirect edge, DO NOT
+	  // remove it. We'll be jumping to the original address until we add code to
+	  // translate indirect branches.
+	  EdgeTypeEnum edgeType = (*iter)->bbl()->getTargetEdgeType(target_bbl);
+	  if (edgeType == ParseAPI::CALL ||
+		  edgeType == ParseAPI::COND_TAKEN ||
+		  edgeType == ParseAPI::COND_NOT_TAKEN ||
+		  edgeType == ParseAPI::DIRECT ||
+		  edgeType == ParseAPI::FALLTHROUGH ||
+		  edgeType == ParseAPI::CALL_FT ||
+		  edgeType == ParseAPI::RET) 
+		  replacedCount_[found->first]++;
     }
   }
   return true;
@@ -116,7 +127,9 @@ bool LocalizeCF::postprocess(TraceList &) {
   for (std::map<int_block *, int>::iterator iter = replacedCount_.begin();
        iter != replacedCount_.end(); ++iter) {
     int_block *bbl = iter->first;
-
+	if (bbl && bbl->start() == 0x9bb8a6) {
+		int i = 3;
+	}
     int removedEdges = iter->second;
 
     // see if this block has any incoming edges that we didn't remove
