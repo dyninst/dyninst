@@ -175,6 +175,7 @@ Function::blocks_int()
 
             if(e->type() == RET) {
                 link_return = true;
+				_rs = RETURN;
                 continue;
             }
 
@@ -421,7 +422,10 @@ Function::tampersStack(bool recalculate)
     Function::blocklist::iterator bit;
     for (bit = retblks.begin(); retblks.end() != bit; ++bit) {
         Address retnAddr = (*bit)->lastInsnAddr();
-        InstructionDecoder retdec(this->isrc()->getPtrToInstruction(retnAddr), 
+		if (retnAddr == 0x37e9) {
+			int i = 3;
+		}
+		InstructionDecoder retdec(this->isrc()->getPtrToInstruction(retnAddr), 
                                   InstructionDecoder::maxInstructionLength, 
                                   this->region()->getArch() );
         Instruction::Ptr retn = retdec.decode();
