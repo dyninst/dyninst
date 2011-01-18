@@ -94,7 +94,7 @@ public:
     void netFuncCB(BPatch_point *point, void *);
     void abruptEndCB(BPatch_point *point, void *);
     void badTransferCB(BPatch_point *point, void *returnValue);
-    void signalHandlerEntryCB(BPatch_point *point, void *pcAddr);
+    void signalHandlerEntryCB(BPatch_point *point, Dyninst::Address pcAddr);
     void signalHandlerCB(BPatch_point *pt, long snum, std::vector<Dyninst::Address> &handlers);
     void signalHandlerExitCB(BPatch_point *point, void *returnAddr);
     void synchShadowOrigCB(BPatch_point *point, bool toOrig);

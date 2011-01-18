@@ -143,10 +143,10 @@ bool HybridAnalysis::removeSignalHandlerCallback()
 
 #else 
 
-static void signalHandlerEntryCB_wrapper(BPatch_point *point, void *returnAddr) 
+static void signalHandlerEntryCB_wrapper(BPatch_point *point, void *excRecAddr) 
 { 
     dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
-        getHybridAnalysis()->signalHandlerEntryCB(point,returnAddr); 
+        getHybridAnalysis()->signalHandlerEntryCB(point,(Address)excRecAddr); 
 }
 
 bool HybridAnalysis::registerCodeDiscoveryCallback
@@ -224,8 +224,8 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
         proc()->beginInsertionSet();
 
         // get relative position of fields in the EXCEPTION_RECORD struct
-        EXCEPTION_RECORD *tmpRec = (EXCEPTION_RECORD*)mod; //bogus pointer, but I won't write to it
-        Address excAddrPosition = (Address)(&(tmpRec->ExceptionAddress)) - (Address)tmpRec;
+        //EXCEPTION_RECORD *tmpRec = (EXCEPTION_RECORD*)mod; //bogus pointer, but I won't write to it
+        //Address excAddrPosition = (Address)(&(tmpRec->ExceptionAddress)) - (Address)tmpRec;
 #if 0
         CONTEXT *tmpCtxt         = (CONTEXT*)         mod; //bogus pointer, but I won't write to it
         Address eipPosition     = (Address)(&(tmpCtxt->Eip))             - (Address)tmpCtxt;
@@ -242,10 +242,11 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
         // instrument handler entry with callback that will deliver the stack 
         // address at which the fault addr is stored
         BPatch_paramExpr excRecAddr(0,BPatch_ploc_entry);
-        BPatch_arithExpr excSrcAddr
-            (BPatch_plus, excRecAddr, BPatch_constExpr(excAddrPosition));
+        //BPatch_arithExpr excSrcAddr
+        //    (BPatch_plus, excRecAddr, BPatch_constExpr(excAddrPosition));
         BPatch_stopThreadExpr sThread2
-            (signalHandlerEntryCB_wrapper,excSrcAddr,false,BPatch_noInterp);
+            (signalHandlerEntryCB_wrapper,excRecAddr,false,BPatch_noInterp);
+        //    (signalHandlerEntryCB_wrapper,excSrcAddr,false,BPatch_noInterp);
         proc()->insertSnippet(sThread2, *entryPt);
         //saveInstrumentationHandle(entryPt,handle);
 
@@ -290,10 +291,14 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
  * exit points because we didn't know the contextAddr before 
  */
 //static bool firstHandlerEntry = true;//KEVINTODO: not threadsafe
-void HybridAnalysis::signalHandlerEntryCB(BPatch_point *point, void *pcAddr)
+void HybridAnalysis::signalHandlerEntryCB(BPatch_point *point, Address excRecAddr)
 {
     mal_printf("\nAt signalHandlerEntry(%lx , %lx)\n", 
-                point->getAddress(), (Address)pcAddr);
+               point->getAddress(), (Address)excRecAddr);
+
+    // calculate the offset of the fault address in the EXCEPTION_RECORD
+    EXCEPTION_RECORD *tmpRec = (EXCEPTION_RECORD*)excRecAddr; //bogus pointer, but I won't write to it
+    Address pcAddr = excRecAddr + (Address)(&(tmpRec->ExceptionAddress)) - (Address)tmpRec;
 
     // save address of context information for the exit point handler
     BPatch_function *func = point->getFunction();
@@ -303,7 +308,7 @@ void HybridAnalysis::signalHandlerEntryCB(BPatch_point *point, void *pcAddr)
     } else {
 #endif
         func->setHandlerFaultAddrAddr((Address)pcAddr,true);
-        handlerFunctions[(Address)func->getBaseAddr()] = (Address)pcAddr;
+        handlerFunctions[(Address)func->getBaseAddr()] = (Address)excRecAddr;
 
 #if 0
         // remove any exit-point instrumentation and add new instrumentation 
@@ -341,16 +346,23 @@ void HybridAnalysis::signalHandlerExitCB(BPatch_point *point, void *dontcare)
     BPatch_function *func = point->getFunction();
     assert(handlerFunctions.end() != handlerFunctions.find((Address)func->getBaseAddr()) && 
            0 != handlerFunctions[(Address)func->getBaseAddr()]);
-    Address pcLoc = handlerFunctions[(Address)func->getBaseAddr()];
+    Address erLoc = handlerFunctions[(Address)func->getBaseAddr()];
 
     mal_printf("\nAt signalHandlerExit(%lx)\n", point->getAddress());
 
-    Address resumePC =0;
+    // figure out the address the program will resume at by reading in the stored EXCEPTION_RECORD
+    EXCEPTION_RECORD er;
     proc()->lowlevel_process()->readDataSpace(
-        (void*)pcLoc, sizeof(Address), &resumePC, true);
+        (void*)erLoc, sizeof(EXCEPTION_RECORD), &er, true);
+
+    Address resumePC = (Address) er.ExceptionAddress;
+    if (er.ExceptionCode == EXCEPTION_BREAKPOINT) {
+        resumePC += 1;
+    }
 
     mal_printf("Program will resume at %lx\n", resumePC);
 
+    // parse at the resumePC address, if necessary
     vector<BPatch_function *> funcs;
     proc()->findFunctionsByAddr((Address)resumePC,funcs);
     if (funcs.empty()) {
@@ -419,6 +431,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     Address pointAddr = (Address) point->getAddress();
     Address target = (Address) returnValue;
     if (pointAddr == 0x5ac12b || //skype
+        pointAddr == 0x40d5df || //yodaProt
         pointAddr == 0x97340e)   //asprotect
     {
         printf("setting debug_blocks to true\n");

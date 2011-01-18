@@ -579,7 +579,6 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
         ret = true;
 		ev.type = evtIgnore;
 
-#if 0
 	    if (1) cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
                  << " (DEBUG:" 
                  << "EAX: " << activeFrame.eax
@@ -591,6 +590,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
                  << ", ESI: " << activeFrame.esi 
                  << ", EDI: " << activeFrame.edi
 				 << ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
+#if 1
 		Address stackTOPVAL =0;
 		for (unsigned i = 0; i < 10; ++i) {
 		    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
@@ -657,12 +657,12 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
         }
         break;
 
-    case 1: // bad write
+    case 1: {// bad write 
+        Address origAddr = ev.address;
+        vector<int_function *> writefuncs;
+        baseTrampInstance *bti = NULL;
+        bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
         if (dyn_debug_malware) {
-            Address origAddr = ev.address;
-            vector<int_function *> writefuncs;
-            baseTrampInstance *bti = NULL;
-            bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
             if (success) {
                 fprintf(stderr,"---%s[%d] overwrite insn at %lx[%lx] in "
                         "function\"%s\" [%lx], writing to %lx \n",
@@ -683,6 +683,23 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
                    regs.cont.Esi, regs.cont.Edi);
         }
 
+        // ignore memory access violations originating in kernel32.dll 
+        // (if not originating from an instrumented instruction)
+        mapped_object *kern32 = ev.proc->findObject("*kernel32.dll",true);
+        assert(kern32);
+        if ( kern32->codeBase() <= origAddr && 
+             origAddr < (kern32->codeBase() + kern32->imageSize()) ) 
+        {
+            wait_until_active = false;
+            ret = true;
+            ev.type = evtIgnore;
+            ev.lwp->changeMemoryProtections(
+                violationAddr - (violationAddr % ev.proc->getMemoryPageSize()), 
+                ev.proc->getMemoryPageSize(), 
+                PAGE_EXECUTE_READWRITE, 
+                false);
+            break;
+        }
         // it's a write to a page containing write-protected code if region
         // permissions don't match the current permissions of the written page
         obj = ev.proc->findObject(violationAddr);
@@ -720,6 +737,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             //ev.proc->detachProcess(true);
         }
         break;
+    }
     case 8: // no execute permissions
         fprintf(stderr, "ERROR: executing code that lacks executable "
                 "permissions in pdwinnt.C at %lx, evt.addr=%lx [%d]\n",
@@ -742,9 +760,22 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
         assert(0);
     }
     if (evtCodeOverwrite != ev.type && ev.proc->isMemoryEmulated()) {
-        assert(0 && "stack imbalance and bad reg values resulting from incomplete memory emulation");
-        // KEVINTODO: we're emulating the instruction, pop saved regs off of the stack and into the appropriate registers, 
-        // KEVINTODO: signalHandlerEntry will have to fix up the saved context information on the stack 
+        // see if we were executing in defensive code whose memory access 
+        // would have been emulated, and assert if so, since we lack the
+        // mechanism to clean up the emulation properly
+        Address origAddr = ev.address;
+        vector<int_function *> writefuncs;
+        baseTrampInstance *bti = NULL;
+        bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
+        mapped_object *faultObj = NULL;
+        if (success) {
+            faultObj = ev.proc->findObject(origAddr);
+        }
+        if (!faultObj || BPatch_defensiveMode == faultObj->hybridMode()) {
+            // KEVINTODO: we're emulating the instruction, pop saved regs off of the stack and into the appropriate registers, 
+            // KEVINTODO: signalHandlerEntry will have to fix up the saved context information on the stack 
+            assert(1 || "stack imbalance and bad reg values resulting from incomplete memory emulation of instruction that caused a fault");
+        }
     }
     return ret;
 }
@@ -953,7 +984,11 @@ int dyn_lwp::changeMemoryProtections
 (Address addr, Offset size, unsigned rights, bool setShadow)
 {
     unsigned oldRights=0;
-    mal_printf("setting rights to %lx for [%lx %lx)\n", rights, addr, addr + size);
+    unsigned pageSize = proc()->getMemoryPageSize();
+    for (Address idx = addr; idx < addr + size; idx += pageSize) {
+        mal_printf("setting rights to %lx for [%lx %lx)\n", 
+                   rights, idx , idx + pageSize);
+    }
 
     if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(addr), 
                          (SIZE_T)size, (DWORD)rights, (PDWORD)&oldRights)) 
@@ -1078,7 +1113,7 @@ void dyn_lwp::dumpRegisters()
 
 bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 {    
-  if (0 && dyn_debug_malware) {
+  if (dyn_debug_malware) {
       std::set<int_function *> funcs;
       proc()->findFuncsByAddr(addr, funcs, true);
       cerr << "CHANGEPC to addr " << hex << addr;

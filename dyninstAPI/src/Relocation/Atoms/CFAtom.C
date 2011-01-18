@@ -47,6 +47,7 @@
 #include "dyninstAPI/src/MemoryEmulator/memEmulatorAtom.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/addressSpace.h"
+#include "dyninstAPI/src/mapped_object.h"
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
@@ -527,7 +528,9 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
                                        const codeGen &templ,
                                        Register &reg) 
 {
-   if (!templ.addrSpace()->isMemoryEmulated()) return true;
+    if (!templ.addrSpace()->isMemoryEmulated() ||
+        BPatch_defensiveMode != block()->func()->obj()->hybridMode())
+       return true;
 
    if (insn_->getOperation().getID() == e_ret_near ||
        insn_->getOperation().getID() == e_ret_far) {

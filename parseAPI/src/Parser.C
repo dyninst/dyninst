@@ -1103,22 +1103,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 link(cur, _sink, DIRECT, true);
                 break; 
             }
-            else if(unlikely(func->obj()->defensiveMode() && 
-                             !_pcb.hasWeirdInsns(func) &&
-                             ah->isGarbageInsn())) 
-            {
-                // add instrumentation at this addr so we can
-                // extend the function if this really executes
-                // KEVINTODO: the weirdInsns flag really ought to be associated with the block so we can halt parsing along multiple function paths
-                ParseCallback::default_details det(
-                    (unsigned char*) cur->region()->getPtrToInstruction(cur->lastInsnAddr()),
-                    cur->end() - cur->lastInsnAddr(),
-                    true);
-                _pcb.abruptEnd_cf(cur->lastInsnAddr(),cur,&det);
-                _pcb.foundWeirdInsns(func);
-                end_block(cur,*ah);
-                break;
-            }
             else if( ah->isInterruptOrSyscall() )
             {
                 // 5. Raising instructions
@@ -1143,28 +1127,62 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         );
                     leadersToBlock[targ->start()] = targ; 
                 }
+                if (unlikely(func->obj()->defensiveMode())) {
+                    fprintf(stderr,"parsed bluepill insn sysenter or syscall in defensive mode at %lx\n",curAddr);
+                }
                 break;
             }
-            else if (unlikely(_obj.defensiveMode() && ah->isNopJump())) {
-                // patch the jump to make it a nop, and re-set the 
-                // instruction adapter so we parse the instruction
-                // as a no-op this time, allowing the subsequent
-                // instruction to be parsed correctly
-                mal_printf("Nop jump at %lx, changing it to nop\n",ah->getAddr());
-                _pcb.patch_nop_jump(ah->getAddr());
-                unsigned bufsize = 
-                    func->region()->offset() + func->region()->length() - ah->getAddr();
+            else if(unlikely(func->obj()->defensiveMode())) 
+            {
+                if (!_pcb.hasWeirdInsns(func) && ah->isGarbageInsn())
+                {
+                    // add instrumentation at this addr so we can
+                    // extend the function if this really executes
+                    // KEVINTODO: the weirdInsns flag really ought to be associated with the block so we can halt parsing along multiple function paths
+                    ParseCallback::default_details det(
+                        (unsigned char*) cur->region()->getPtrToInstruction(cur->lastInsnAddr()),
+                        cur->end() - cur->lastInsnAddr(),
+                        true);
+                    _pcb.abruptEnd_cf(cur->lastInsnAddr(),cur,&det);
+                    _pcb.foundWeirdInsns(func);
+                    end_block(cur,*ah);
+                    break;
+                }
+                else if (ah->isNopJump()) 
+                {
+                    // patch the jump to make it a nop, and re-set the 
+                    // instruction adapter so we parse the instruction
+                    // as a no-op this time, allowing the subsequent
+                    // instruction to be parsed correctly
+                    mal_printf("Nop jump at %lx, changing it to nop\n",ah->getAddr());
+                    _pcb.patch_nop_jump(ah->getAddr());
+                    unsigned bufsize = 
+                        func->region()->offset() + func->region()->length() - ah->getAddr();
 #if defined(cap_instruction_api)
-                const unsigned char* bufferBegin = (const unsigned char *)
-                    (func->isrc()->getPtrToInstruction(ah->getAddr()));
-                delete ah;
-                dec = InstructionDecoder
-                    (bufferBegin, bufsize, frame.codereg->getArch());
-                ah = new InstructionAdapter_t(dec, curAddr, func->obj(), 
-                                          func->region(), func->isrc(), cur);
+                    const unsigned char* bufferBegin = (const unsigned char *)
+                        (func->isrc()->getPtrToInstruction(ah->getAddr()));
+                    delete ah;
+                    dec = InstructionDecoder
+                        (bufferBegin, bufsize, frame.codereg->getArch());
+                    ah = new InstructionAdapter_t(dec, curAddr, func->obj(), 
+                                              func->region(), func->isrc(), cur);
 #else        
-                assert(0 && "This case is only possible on x86"); 
+                    assert(0 && "This case is only possible on x86"); 
 #endif
+                }
+                else {
+                    entryID id = ah->getInstruction()->getOperation().getID();
+                    switch (id) {
+                        case e_rdtsc:
+                            fprintf(stderr,"parsed bluepill insn rdtsc at %lx\n",curAddr);
+                            break;
+                        case e_sldt:
+                            fprintf(stderr,"parsed bluepill insn sldt at %lx\n",curAddr);
+                            break;
+                        default:
+                            break;
+                    }
+                }
             }
             else {
                 // default

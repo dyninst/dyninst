@@ -604,7 +604,7 @@ void int_function::fixHandlerReturnAddr(Address faultAddr)
        func = block->func();
     }
     std::list<Address> relocAddrs;
-    proc()->getRelocAddrs(origAddr, this, relocAddrs, true);
+    proc()->getRelocAddrs(origAddr, func, relocAddrs, true);
     Address newPC = (!relocAddrs.empty() ? relocAddrs.back() : origAddr);
     
     if (newPC != faultAddr) {

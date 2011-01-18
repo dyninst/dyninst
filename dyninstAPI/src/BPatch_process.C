@@ -1671,26 +1671,38 @@ bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
 bool BPatch_process::hideDebuggerInt()
 {
     bool retval = llproc->hideDebugger();
-    return true; // KEVINTODO: re-enable this function
+    //return true; // KEVINTODO: re-enable this function
     // disable API calls //
 
     // BlockInput
     BPatch_module *user = image->findModule("user32.dll",true);
     if (user) {
+        using namespace SymtabAPI;
         vector<BPatch_function*> funcs;
         user->findFunction(
             "BlockInput",
             funcs, false, false, false, true);
         assert (funcs.size());
         Address entry = (Address)funcs[0]->getBaseAddr();
-        unsigned char patch[4];
+        // create a patch that will return one
+        const int PATCH_SIZE = 4;
+        unsigned char patch[PATCH_SIZE];
         patch[0] = 0x33; // xor eax,eax
         patch[1] = 0xc0;
         patch[2] = 0x40; // inc eax
         patch[3] = 0xc3; // retn
-        if (!llproc->writeDataSpace((void*)entry,4,&patch)) {
+        // patch out process memory and its copy in the mapped file
+        if (!llproc->writeDataSpace((void*)entry,sizeof(char)*PATCH_SIZE,&patch)) {
             assert(0);
         }
+        mapped_object *userObj = user->lowlevel_mod()->obj();
+        Region *reg = userObj->parse_img()->getObject()->findEnclosingRegion
+            (entry - userObj->codeBase());
+        assert(reg);
+        unsigned char *rawReg = (unsigned char *) reg->getPtrToRawData();
+        memcpy(rawReg + entry - userObj->codeBase() - reg->getMemOffset(), 
+               patch, 
+               sizeof(char) * PATCH_SIZE);
         funcs.clear();
     }
 
