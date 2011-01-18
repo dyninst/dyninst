@@ -42,7 +42,7 @@ using namespace std;
 bool CodeTracker::origToReloc(Address origAddr,
 			                  int_function *func,
 			                  RelocatedElements &reloc) const {
-  BFM_citer iter = origToReloc_.find(func);
+  BFM_citer iter = origToReloc_.find(func->getAddress());
   if (iter == origToReloc_.end()) return false;
 
   const ForwardsMap &fm = iter->second;
@@ -112,10 +112,10 @@ void CodeTracker::createIndices() {
     relocToOrig_.insert(e->reloc(), e->reloc() + e->size(), e);
 
    if (e->type() == TrackerElement::instrumentation) {
-      origToReloc_[e->block()->func()][e->orig()].instrumentation = e->reloc();
+      origToReloc_[e->block()->func()->getAddress()][e->orig()].instrumentation = e->reloc();
    }
    else {
-      origToReloc_[e->block()->func()][e->orig()].instruction = e->reloc();
+      origToReloc_[e->block()->func()->getAddress()][e->orig()].instruction = e->reloc();
    }
   }
 
@@ -127,7 +127,7 @@ void CodeTracker::debug() {
 
   for (BlockForwardsMap::iterator bfm_iter = origToReloc_.begin(); 
        bfm_iter != origToReloc_.end(); ++bfm_iter) {
-     cerr << "\t" << bfm_iter->first->symTabName() << endl;
+     cerr << "\t Func @" << hex << bfm_iter->first << dec << endl;
      for (ForwardsMap::iterator fm_iter = bfm_iter->second.begin();
           fm_iter != bfm_iter->second.end(); ++fm_iter) {
         cerr << "\t\t" << hex << fm_iter->first << " -> "

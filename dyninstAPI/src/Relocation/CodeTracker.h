@@ -162,10 +162,19 @@ class CodeTracker {
   RelocatedElements() : instruction(0), instrumentation(0) {};
   };
 
+  // I'd like to use an int_function * as a unique key element, but
+  // really can't because int_functions can be deleted and recreated.
+  // Instead, I'm using their entry address - that's the address
+  // in BlockForwardsMap. 
+  // The ForwardsMap address is a straightforward "what's the data at this
+  // particular address".
+
+  typedef Address UniqueFunctionID;
+
   typedef std::list<TrackerElement *> TrackerList;
   typedef std::map<Address, RelocatedElements> ForwardsMap;
   typedef ForwardsMap::const_iterator FM_citer;
-  typedef std::map<int_function *, ForwardsMap> BlockForwardsMap;
+  typedef std::map<UniqueFunctionID, ForwardsMap> BlockForwardsMap;
   typedef BlockForwardsMap::const_iterator BFM_citer;
   typedef class IntervalTree<Address, TrackerElement *> ReverseMap;
 

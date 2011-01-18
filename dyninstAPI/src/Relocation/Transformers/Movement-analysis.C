@@ -154,7 +154,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
        for (AssignList::iterator a_iter = sensitiveAssignments.begin();
             a_iter != sensitiveAssignments.end(); ++a_iter) {
           
-          sensitivity_cerr << "Forward slice from " << (*a_iter)->format() << " in func " << bbl->func()->prettyName() << endl;
+		cerr << "Forward slice from " << (*a_iter)->format() << hex << " @ " << addr << " (parse of " << (*a_iter)->addr() << dec << ") in func " << bbl->func()->prettyName() << endl;
           
           Graph::Ptr slice = forwardSlice(*a_iter,
                                           bbl->llb(),
@@ -651,7 +651,6 @@ bool PCSensitiveTransformer::queryCache(const int_block *bbl, Address addr, bool
 	//intSens = true;
 	//extSens = true;
 	//return true;
-	
 	AnalysisCache::const_iterator iter = analysisCache_.find(bbl);
    if (iter == analysisCache_.end()) return false;
    CacheEntry::const_iterator iter2 = iter->second.find(addr);
