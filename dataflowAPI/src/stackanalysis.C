@@ -481,18 +481,17 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::StackAnalysis::Height 
 void StackAnalysis::handlePushPop(Instruction::Ptr insn, int sign, TransferFuncs &xferFuncs) {
    long delta = 0;
    Operand arg = insn->getOperand(0);
-#if 0
    // Why was this here? bernat, 12JAN11
    if (arg.getValue()->eval().defined) {
       delta = sign * word_size;
       stackanalysis_printf("\t\t\t Stack height changed by evaluated push/pop: %lx\n", delta);
    }
    else {
-      delta = sign * arg.getValue()->size();
+	   delta = sign * arg.getValue()->size();
+	   //cerr << "Odd case: set delta to " << hex << delta << dec << " for instruction " << insn->format() << endl;
       stackanalysis_printf("\t\t\t Stack height changed by unevalled push/pop: %lx\n", delta);
    }
-#endif
-   delta = sign *arg.getValue()->size();
+   //   delta = sign *arg.getValue()->size();
    xferFuncs.push_back(TransferFunc::deltaFunc(sp(), delta));
 
    // Let's get whatever was popped (if it was)
