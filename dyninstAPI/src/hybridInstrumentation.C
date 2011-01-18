@@ -263,6 +263,12 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 {
     Address funcAddr = (Address) func->getBaseAddr();
     mal_printf("instfunc at %lx\n", funcAddr);
+	if (funcAddr == 0x9a37bc) {
+		int i = 3;
+	}
+	if (funcAddr == 0x9a388c) {
+		int i = 3;
+	}
     if (proc()->lowlevel_process()->isMemoryEmulated() && 
         BPatch_defensiveMode == func->lowlevel_func()->obj()->hybridMode()) 
     {
@@ -418,37 +424,44 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     vector<Address> targets;
     vector<BPatch_point *> *retPoints = func->findPoint(BPatch_exit);
     BPatch_retAddrExpr retAddrSnippet;
-    if (retPoints && retPoints->size() && 
-        (instrumentReturns || 
-         ParseAPI::RETURN != func->lowlevel_func()->ifunc()->init_retstatus() || 
-         ParseAPI::TAMPER_NONZERO == func->lowlevel_func()->ifunc()->tampersStack() ||
-         handlerFunctions.end() != 
-         handlerFunctions.find((Address)funcAddr) ))
-    {
-        for (unsigned int j=0; j < retPoints->size(); j++) {
+
+    if (retPoints && retPoints->size()) {
+		for (unsigned int j=0; j < retPoints->size(); j++) {
 			BPatch_point *curPoint = (*retPoints)[j];
-            BPatchSnippetHandle *handle;
+			BPatchSnippetHandle *handle;
 
-            // check that we don't instrument the same point multiple times
-            // and that we don't instrument the return instruction if it's got 
-            // a fixed, known target, e.g., it's a static target push-return 
-            if ( (*instrumentedFuncs)[func]->end() != 
-                 (*instrumentedFuncs)[func]->find(curPoint) 
-                ||
-                 ( ( curPoint->isReturnInstruction() || curPoint->isDynamic()) &&
-                   ! curPoint->getCFTargets(targets) ) ) 
-            {
-                continue;
-            }
+			// Workaround for a parsing inconsistency - instrument this with a snippet
+			// if _any_ of the functions that contain a retblock have unknown return status...
+			bool instrument = false;
+			std::vector<ParseAPI::Function *> funcs;
+			curPoint->llpoint()->block()->llb()->getFuncs(funcs);
+			for (unsigned f_iter = 0; f_iter < funcs.size(); ++f_iter) {
+				if (((image_func *)funcs[f_iter])->init_retstatus() != ParseAPI::RETURN ||
+					funcs[f_iter]->tampersStack() == ParseAPI::TAMPER_NONZERO) {
+						instrument = true;
+				}
+			}
+			if (instrument || instrumentReturns || (handlerFunctions.find((Address)funcAddr) != handlerFunctions.end())) {
+				// check that we don't instrument the same point multiple times
+				// and that we don't instrument the return instruction if it's got 
+				// a fixed, known target, e.g., it's a static target push-return 
+				if ( (*instrumentedFuncs)[func]->end() != 
+					(*instrumentedFuncs)[func]->find(curPoint) 
+					||
+					( ( curPoint->isReturnInstruction() || curPoint->isDynamic()) &&
+					! curPoint->getCFTargets(targets) ) ) 
+				{
+					continue;
+				}
+			}
+		// instrument the point, start insertion set, set interpretation 
+		// type according to the type of instruction we're instrumenting,
+		// and insert the instrumentation
+		if (useInsertionSet && 0 == pointCount) {
+			proc()->beginInsertionSet();
+		}
 
-            // instrument the point, start insertion set, set interpretation 
-            // type according to the type of instruction we're instrumenting,
-            // and insert the instrumentation
-            if (useInsertionSet && 0 == pointCount) {
-                proc()->beginInsertionSet();
-            }
-
-            // create instrumentation snippet
+		// create instrumentation snippet
             BPatch_stopThreadExpr *returnSnippet;
             BPatch_snippet * calcSnippet = NULL;
             BPatch_stInterpret interp;
@@ -516,7 +529,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 delete calcSnippet;
             }
         }
-    }
+	}
     
     // close insertion set
     if (proc()->lowlevel_process()->isMemoryEmulated() || pointCount) {
