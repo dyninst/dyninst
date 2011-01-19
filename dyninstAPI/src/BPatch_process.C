@@ -100,8 +100,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(false), detached(false), 
      terminated(false), reportedExit(false),
-     activeOneTimeCodes_(0),
-     resumeAfterCompleted_(false), hybridAnalysis_(NULL)
+     hybridAnalysis_(NULL)
 {
    image = NULL;
    pendingInsertions = NULL;
@@ -174,7 +173,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
    }
    
    std::string spath(path);
-   llproc = PCProcess::createProcess(spath, &argv_vec, mode, (envp ? &envp_vec : NULL),
+   llproc = PCProcess::createProcess(spath, argv_vec, mode, envp_vec,
                              directoryName, stdin_fd, stdout_fd, stderr_fd,
                              BPatch::bpatch->eventHandler_);
    if (llproc == NULL) {
@@ -283,7 +282,6 @@ BPatch_process::BPatch_process
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false), 
      terminated(false), reportedExit(false),
-     activeOneTimeCodes_(0), resumeAfterCompleted_(false),
      hybridAnalysis_(NULL)
 {
    image = NULL;
@@ -357,8 +355,7 @@ BPatch_process::BPatch_process(PCProcess *nProc)
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false),
      terminated(false),
-     reportedExit(false), activeOneTimeCodes_(0),
-     resumeAfterCompleted_(false), hybridAnalysis_(NULL)
+     reportedExit(false), hybridAnalysis_(NULL)
 {
    // Add this object to the list of threads
    assert(BPatch::bpatch != NULL);
@@ -408,7 +405,7 @@ void BPatch_process::BPatch_process_dtor()
        {
            if (llproc->isAttached()) 
                {
-               proccontrol_printf("%s[%d]:  about to terminate execution\n", __FILE__, __LINE__);
+               proccontrol_printf("%s[%d]:  about to terminate execution\n", FILE__, __LINE__);
                terminateExecutionInt();
            }
        }
@@ -1530,22 +1527,23 @@ bool BPatch_process::setMutationsActiveInt(bool activate)
  */
 void *BPatch_process::oneTimeCodeInt(const BPatch_snippet &expr, bool *err)
 {
-    return oneTimeCodeInternal(expr, NULL, NULL, NULL, true, err);
+    if( !isStoppedInt() ) {
+        BPatch_reportError(BPatchWarning, 0,
+                "oneTimeCode failing because process is not stopped");
+        if( err ) *err = true;
+        return NULL;
+    }
+
+    return oneTimeCodeInternal(expr, NULL, NULL, NULL, true, err, true);
 }
 
 /*
  * BPatch_process::oneTimeCodeCallbackDispatch
  *
- * This function is registered with the lower-level code as the callback for
- * inferior RPC completion.  It determines what thread the RPC was executed on
- * and then calls the API's higher-level callback routine for that thread.
- *
  * theProc	The process in which the RPC completed.
  * userData	This is a value that can be set when we invoke an inferior RPC
- *		and which will be returned to us in this callback.
  * returnValue	The value returned by the RPC.
  */
-
 int BPatch_process::oneTimeCodeCallbackDispatch(PCProcess *theProc,
                                                  unsigned /* rpcid */, 
                                                  void *userData,
@@ -1554,63 +1552,52 @@ int BPatch_process::oneTimeCodeCallbackDispatch(PCProcess *theProc,
     // Don't care what the process state is...
     int retval = RPC_LEAVE_AS_IS;
 
-   assert(BPatch::bpatch != NULL);
-   bool need_to_unlock = true;
-   global_mutex->_Lock(FILE__, __LINE__);
-   if (global_mutex->depth() > 1) {
-     global_mutex->_Unlock(FILE__, __LINE__);
-     need_to_unlock = false;
-   }
+    assert(BPatch::bpatch != NULL);
+    bool need_to_unlock = true;
+    global_mutex->_Lock(FILE__, __LINE__);
+    if (global_mutex->depth() > 1) {
+        global_mutex->_Unlock(FILE__, __LINE__);
+        need_to_unlock = false;
+    }
 
-   assert(global_mutex->depth());
-   
-   OneTimeCodeInfo *info = (OneTimeCodeInfo *)userData;
-   
-   BPatch_process *bproc =
-      BPatch::bpatch->getProcessByPid(theProc->getPid());
+    assert(global_mutex->depth());
 
-   assert(bproc != NULL);
+    OneTimeCodeInfo *info = (OneTimeCodeInfo *)userData;
 
-   assert(info && !info->isCompleted());
+    BPatch_process *bproc =
+    BPatch::bpatch->getProcessByPid(theProc->getPid());
 
-   if (returnValue == (void *) -1L) {
-       BPatch::reportError(BPatchWarning, 0,
-               "No return value for rpc");
-   }
+    assert(bproc != NULL);
 
-   info->setReturnValue(returnValue);
-   info->setCompleted(true);
+    assert(info && !info->isCompleted());
 
-   bool synchronous = info->isSynchronous();
-   
-   if (!synchronous) {
-       // Asynchronous RPCs: if we're running, then hint to run the process
-       if (bproc->isStopped())
-           retval = RPC_STOP_WHEN_DONE;
-       else
-           retval = RPC_RUN_WHEN_DONE;
+    info->setReturnValue(returnValue);
+    info->setCompleted(true);
 
-      // Do the callback specific to this OneTimeCode, if set
-      BPatchOneTimeCodeCallback specificCB = info->getCallback();
-      if( specificCB ) {
-          (*specificCB)(bproc->threads[0], info->getUserData(), returnValue);
-      }
+    if (!info->isSynchronous()) {
+        // Do the callback specific to this OneTimeCode, if set
+        BPatchOneTimeCodeCallback specificCB = info->getCallback();
+        if( specificCB ) {
+            (*specificCB)(bproc->threads[0], info->getUserData(), returnValue);
+        }
 
-      // Do the registered callback
-      BPatchOneTimeCodeCallback cb = BPatch::bpatch->oneTimeCodeCallback;
-      if( cb ) {
-          (*cb)(bproc->threads[0], info->getUserData(), returnValue);
-      }
+        // Do the registered callback
+        BPatchOneTimeCodeCallback cb = BPatch::bpatch->oneTimeCodeCallback;
+        if( cb ) {
+            (*cb)(bproc->threads[0], info->getUserData(), returnValue);
+        }
 
-      delete info;
-   }
+        // This is the case if the user requested a stop in a callback
+        if (bproc->isStopped()) retval = RPC_STOP_WHEN_DONE;
+        else retval = RPC_RUN_WHEN_DONE;
 
-   bproc->oneTimeCodeCompleted(synchronous);
+        delete info;
+    }
 
-  if (need_to_unlock)
-     global_mutex->_Unlock(FILE__, __LINE__);
+    if (need_to_unlock)
+        global_mutex->_Unlock(FILE__, __LINE__);
 
-  return retval;
+    return retval;
 }
 
 /*
@@ -1633,7 +1620,8 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                                           void *userData,
                                           BPatchOneTimeCodeCallback cb,
                                           bool synchronous,
-                                          bool *err)
+                                          bool *err,
+                                          bool userRPC)
 {
     if( statusIsTerminated() ) { 
         BPatch_reportError(BPatchWarning, 0,
@@ -1642,22 +1630,18 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
         return NULL;
     }
 
-    if( !isStoppedInt() && synchronous ) resumeAfterCompleted_ = true;
-
     proccontrol_printf("%s[%d]: UI top of oneTimeCode...\n", FILE__, __LINE__);
 
     OneTimeCodeInfo *info = new OneTimeCodeInfo(synchronous, userData, cb,
             (thread) ? thread->getBPatchIDInt() : 0);
 
-    activeOneTimeCodes_++;
-
     if( !llproc->postIRPC(expr.ast_wrapper, 
             (void *)info,
-            false, // TODO this should be set according to state instead of using resumeAfterCompleted_
+            !isStoppedInt(), 
             (thread ? thread->llthread : NULL),
             synchronous,
             NULL, // the result will be passed to the callback 
-            true) ) // deliver callbacks
+            userRPC) )
     {
         BPatch_reportError(BPatchWarning, 0,
                     "failed to continue process to run oneTimeCode");
@@ -1681,23 +1665,6 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
     return ret;
 }
 
-void BPatch_process::oneTimeCodeCompleted(bool isSynchronous) {
-    assert(activeOneTimeCodes_ > 0);
-    activeOneTimeCodes_--;
-    
-    if (activeOneTimeCodes_ == 0 && isSynchronous) {
-        proccontrol_printf("%s[%d]: oneTimeCodes outstanding reached 0, isStopped %d, completing: %s\n",
-                           FILE__, __LINE__, 
-                           isStoppedInt(),
-                           resumeAfterCompleted_ ? "setting running" : "leaving stopped");
-        if( resumeAfterCompleted_ ) {
-            continueExecution();
-        }
-
-        resumeAfterCompleted_ = false;
-    }
-}
-
 //  BPatch_process::oneTimeCodeAsync
 //
 //  Have the specified code be executed by the mutatee once.  Don't wait 
@@ -1705,10 +1672,10 @@ void BPatch_process::oneTimeCodeCompleted(bool isSynchronous) {
 bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr, 
                                          void *userData, BPatchOneTimeCodeCallback cb) 
 {
-   if (statusIsTerminated()) {
-      return false;
-   }
-   oneTimeCodeInternal(expr, NULL, userData,  cb, false, NULL);
+   bool err = false;
+   oneTimeCodeInternal(expr, NULL, userData,  cb, false, &err, true);
+
+   if( err ) return false;
    return true;
 }
 
@@ -1721,62 +1688,83 @@ bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
  */
 bool BPatch_process::loadLibraryInt(const char *libname, bool)
 {
-   stopExecutionInt();
-   if (!isStoppedInt()) {
-      BPatch_reportError(BPatchWarning, 0, 
-              "Process not stopped in loadLibrary");
-      return false;
-   }
-   
    if (!libname) {
       BPatch_reportError(BPatchWarning, 0, 
               "loadLibrary called with NULL library name");
       return false;
    }
 
-   /**
-    * Find the DYNINSTloadLibrary function
-    **/
-   BPatch_Vector<BPatch_function *> bpfv;
-   BPatch_module* dyn_rt_lib = image->findModule("dyninstAPI_RT", true);
-   if(dyn_rt_lib == NULL)
-   {
-      BPatch_reportError(BPatchFatal, 0, 
-               "FATAL: Cannot find module for DyninstAPI Runtime Library");
-      return false;
+   bool wasStopped = isStoppedInt();
+   if( !wasStopped ) {
+       if (!stopExecutionInt()) {
+          BPatch_reportError(BPatchWarning, 0, 
+                  "Failed to stop process for loadLibrary");
+          return false;
+       }
    }
-   dyn_rt_lib->findFunction("DYNINSTloadLibrary", bpfv);
-   if (!bpfv.size()) {
-      cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal"
-           << "Function DYNINSTloadLibrary" << endl;
-      return false;
-   }
-   if (bpfv.size() > 1) {
-      std::string msg = std::string("Found ") + utos(bpfv.size()) + 
-         std::string("functions called DYNINSTloadLibrary -- not fatal but weird");
-      BPatch_reportError(BPatchSerious, 100, msg.c_str());
-   }
-   BPatch_function *dlopen_func = bpfv[0]; 
-   if (dlopen_func == NULL) return false;
 
-   /**
-    * Generate a call to DYNINSTloadLibrary, and then run the generated code.
-    **/
-   BPatch_Vector<BPatch_snippet *> args;   
-   BPatch_constExpr nameArg(libname);
-   args.push_back(&nameArg);   
-   BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
-    
-   if (!oneTimeCodeInternal(call_dlopen, NULL, NULL, NULL, true)) {
-      BPatch_variableExpr *dlerror_str_var = 
-         dyn_rt_lib->findVariable("gLoadLibraryErrorString");
-      assert(NULL != dlerror_str_var);      
-      char dlerror_str[256];
-      dlerror_str_var->readValue((void *)dlerror_str, 256);
-      BPatch_reportError(BPatchSerious, 124, dlerror_str);
-      return false;
+   bool error = false;
+   do {
+       /**
+        * Find the DYNINSTloadLibrary function
+        **/
+       BPatch_Vector<BPatch_function *> bpfv;
+       BPatch_module* dyn_rt_lib = image->findModule("dyninstAPI_RT", true);
+       if(dyn_rt_lib == NULL)
+       {
+          BPatch_reportError(BPatchFatal, 0, 
+                   "FATAL: Cannot find module for DyninstAPI Runtime Library");
+          error = true;
+          break;
+       }
+
+       dyn_rt_lib->findFunction("DYNINSTloadLibrary", bpfv);
+       if (!bpfv.size() || bpfv[0] == NULL) {
+          BPatch_reportError(BPatchFatal, 0,
+                  "FATAL: Cannot find Internal Function DYNINSTloadLibrary");
+          error = true;
+          break;
+       }
+
+       if (bpfv.size() > 1) {
+          std::string msg = std::string("Found ") + utos(bpfv.size()) + 
+             std::string("functions called DYNINSTloadLibrary -- not fatal but weird");
+          BPatch_reportError(BPatchSerious, 100, msg.c_str());
+          error = true;
+          break;
+       }
+
+       BPatch_function *dlopen_func = bpfv[0]; 
+
+       /**
+        * Generate a call to DYNINSTloadLibrary, and then run the generated code.
+        **/
+       BPatch_Vector<BPatch_snippet *> args;   
+       BPatch_constExpr nameArg(libname);
+       args.push_back(&nameArg);   
+       BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
+        
+       if (!oneTimeCodeInternal(call_dlopen, NULL, NULL, NULL, true, false)) {
+          BPatch_variableExpr *dlerror_str_var = 
+             dyn_rt_lib->findVariable("gLoadLibraryErrorString");
+          assert(NULL != dlerror_str_var);      
+          char dlerror_str[256];
+          dlerror_str_var->readValue((void *)dlerror_str, 256);
+          BPatch_reportError(BPatchSerious, 124, dlerror_str);
+          error = true;
+          break;
+       }
+   }while(0);
+
+   if( !wasStopped ) {
+       if( !continueExecutionInt() ) {
+          BPatch_reportError(BPatchWarning, 0, 
+                  "Failed to continue process after loadLibrary");
+          error = true;
+       }
    }
-   return true;
+
+   return !error;
 }
 
 /* 
@@ -2067,10 +2055,27 @@ bool BPatch_process::hideDebuggerInt()
     return retval;
 }
 
-bool BPatch_process::setMemoryAccessRights
-(Address start, Address size, int rights)
-{
-    return llproc->setMemoryAccessRights(start, size, rights);
+bool BPatch_process::setMemoryAccessRights(Address start, Address size, int rights) {
+    bool wasStopped = isStoppedInt();
+    if( !wasStopped ) {
+        if (!stopExecutionInt()) {
+            BPatch_reportError(BPatchWarning, 0,
+                               "Failed to stop process for setMemoryAccessRights");
+            return false;
+        }
+    }
+
+    int result = llproc->setMemoryAccessRights(start, size, rights);
+
+    if( !wasStopped ) {
+        if( !continueExecutionInt() ) {
+            BPatch_reportError(BPatchWarning, 0,
+                    "Failed to continue process for setMemoryAccessRights");
+            return false;
+        }
+    }
+
+    return (result != -1);
 }
 
 unsigned char * BPatch_process::makeShadowPage(Dyninst::Address pageAddress)

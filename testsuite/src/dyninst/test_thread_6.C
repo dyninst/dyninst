@@ -254,7 +254,9 @@ void test_thread_6_Mutator::upgrade_mutatee_state()
    inc_var = new BPatch_arithExpr(BPatch_plus, *var, *one);
    inc_var_assign = new BPatch_arithExpr(BPatch_assign, *var, *inc_var);
    dprintf(stderr, "%s[%d]: going into oneTimecode...\n", __FILE__, __LINE__);
+   proc->stopExecution();
    proc->oneTimeCode(*inc_var_assign);
+   proc->continueExecution();
    dprintf(stderr, "%s[%d]:  upgrade_mutatee_state: after oneTimeCode\n", __FILE__, __LINE__);
 }
 

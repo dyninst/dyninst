@@ -194,9 +194,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     bool getTerminated() {return terminated;}
     bool getMutationsActive() {return mutationsActive;}
 
-    int activeOneTimeCodes_;
-    bool resumeAfterCompleted_;
-
     HybridAnalysis *hybridAnalysis_;
 
     static int oneTimeCodeCallbackDispatch(PCProcess *theProc,
@@ -208,9 +205,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
                               BPatch_thread *thread, // == NULL if proc-wide
                               void *userData,
                               BPatchOneTimeCodeCallback cb = NULL,
-                              bool synchronous = true, bool *err = NULL);
-
-    void oneTimeCodeCompleted(bool isSynchronous);
+                              bool synchronous = true, bool *err = NULL,
+                              bool userRPC = true);
 
     protected:
     // for creating a process

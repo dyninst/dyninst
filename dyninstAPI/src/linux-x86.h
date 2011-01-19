@@ -41,45 +41,5 @@
 
 #include "inst-x86.h"
 #include "codegen.h"
-#include "sys/user.h"
-
-/* For linuxDL.C */
-instruction generateTrapInstruction();
-
-
-#ifndef _SYS_USER_H
-struct user_regs_struct
-{
-  long ebx;
-  long ecx;
-  long edx;
-  long esi;
-  long edi;
-  long ebp;
-  long eax;
-  long xds;
-  long xes;
-  long xfs;
-  long xgs;
-  long orig_eax;
-  long eip;
-  long xcs;
-  long eflags;
-  long esp;
-  long xss;
-};
-#endif
-
-struct dyn_saved_regs
-{
-    user_regs_struct gprs;
-#ifdef _SYS_USER_H
-    user_fpregs_struct fprs;
-#else
-    user_i387_struct fprs;
-#endif
-};
-
-
 
 #endif

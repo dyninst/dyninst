@@ -326,10 +326,20 @@ unsigned long BPatch_thread::os_handleInt()
  * Have the mutatee execute specified code expr once.  Wait until done.
  *
  */
-void *BPatch_thread::oneTimeCodeInt(const BPatch_snippet &expr, bool *err)
-{
-  if( !llthread->isLive() ) return NULL;
-  return proc->oneTimeCodeInternal(expr, this, NULL, NULL, true, err);
+void *BPatch_thread::oneTimeCodeInt(const BPatch_snippet &expr, bool *err) {
+    if( !llthread->isLive() ) {
+        if ( err ) *err = true;
+        return NULL;
+    }
+
+    if( !proc->isStoppedInt() ) {
+        BPatch_reportError(BPatchWarning, 0,
+                           "oneTimeCode failing because process is not stopped");
+        if( err ) *err = true;
+        return NULL;
+    }
+
+    return proc->oneTimeCodeInternal(expr, this, NULL, NULL, true, err, true);
 }
 
 /*
@@ -344,7 +354,12 @@ bool BPatch_thread::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
 {
    if ( !llthread->isLive() ) return false;
    if (proc->statusIsTerminated()) return false;
-   return (proc->oneTimeCodeInternal(expr, this, userData, cb, false, NULL) == NULL);
+
+   bool err = false;
+   proc->oneTimeCodeInternal(expr, this, userData, cb, false, &err, true);
+
+   if( err ) return false;
+   return true;
 }
 
 bool BPatch_thread::isDeadOnArrivalInt() 

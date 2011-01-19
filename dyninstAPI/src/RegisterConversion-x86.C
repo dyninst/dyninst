@@ -247,6 +247,7 @@ MachRegister convertRegID(Register reg, Dyninst::Architecture arch) {
                     && "No Register->MachRegister mapping found" );
             break;
         default:
+            assert(!"Invalid architecture");
             break;
     }
 

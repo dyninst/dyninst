@@ -35,20 +35,40 @@
 #include "os.h"
 #include "pcProcess.h"
 #include "mapped_object.h"
+#include "registerSpace.h"
 
 #include "proccontrol/h/Mailbox.h"
 
+#include <set>
+#include <queue>
 #include <vector>
 using std::vector;
-
-// TODO this needs to be more general
-#if defined(arch_x86) || defined(arch_x86_64)
-#include "RegisterConversion-x86.h"
-#endif
-
-using namespace Dyninst::ProcControlAPI;
 using std::queue;
 using std::set;
+
+using namespace Dyninst::ProcControlAPI;
+
+#if defined(arch_x86) || defined(arch_x86_64)
+#include "RegisterConversion-x86.h"
+#elif defined(arch_power)
+static MachRegister convertRegID(Register r, Dyninst::Architecture arch) {
+    // TODO this probably isn't right
+    assert( arch == Arch_ppc32 || arch == Arch_ppc64 );
+
+    if( r == registerSpace::xer ) return ppc32::xer;
+    if( r == registerSpace::lr  ) return ppc32::lr;
+    if( r == registerSpace::mq  ) return ppc32::mq;
+    if( r == registerSpace::ctr ) return ppc32::ctr;
+    if( r == registerSpace::cr  ) return ppc32::cr0;
+    if( r >= registerSpace::r0 && r <= registerSpace::r31 )
+        return r - registerSpace::r0 + ppc32::r0;
+    if( r >= registerSpace::fpr0 && r <= registerSpace::fpr31 )
+        return r - registerSpace::r31 + ppc32::r31;
+
+    assert(!"Register not handled");
+    return InvalidReg;
+}
+#endif
 
 PCEventMailbox::PCEventMailbox()
 {
@@ -119,6 +139,7 @@ void PCEventHandler::main() {
 
     // Any error in registration is a programming error
     assert( Process::registerEventCallback(EventType(EventType::Any, EventType::Crash), PCEventHandler::callbackMux) );
+    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::ForceTerminate), PCEventHandler::callbackMux) );
     assert( Process::registerEventCallback(EventType(EventType::Any, EventType::ThreadCreate), PCEventHandler::callbackMux) );
     assert( Process::registerEventCallback(EventType(EventType::Pre, EventType::ThreadDestroy), PCEventHandler::callbackMux) );
     // Note: we do not care about EventStop's right now (these correspond to internal stops see bug 1121)
@@ -222,6 +243,8 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
     Process::cb_ret_t ret(Process::cbProcStop, Process::cbProcStop);
     PCEventHandler *eventHandler = process->getPCEventHandler();
 
+    bool isCallbackRPC = false;
+
     // Do some event-specific handling
     switch(ev->getEventType().code()) {
         case EventType::Exit:
@@ -262,6 +285,14 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
                         resultVal);
                 }
             }
+
+            // Special handling for callback RPCs
+            eventHandler->pendingCallbackLock_.lock();
+            if( eventHandler->pendingCallbackRPCs_.count(evRPC->getIRPC()->getID()) ) {
+                isCallbackRPC = true;
+                eventHandler->pendingCallbackRPCs_.erase(evRPC->getIRPC()->getID());
+            }
+            eventHandler->pendingCallbackLock_.unlock();
         }
             break;
         case EventType::Signal:
@@ -287,10 +318,20 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
             break;
     }
 
+    // If callback RPCs cause other events, need to make sure that the RPC thread is still continued
+    eventHandler->pendingCallbackLock_.lock();
+    if( eventHandler->pendingCallbackRPCs_.size() ) {
+        ret = Process::cb_ret_t(Process::cbThreadContinue);
+    }
+    eventHandler->pendingCallbackLock_.unlock();
+
     process->incPendingEvents();
 
-    // Queue the event with no processing for now
-    eventHandler->eventMailbox_->enqueue(ev);
+    if( !isCallbackRPC ) {
+        eventHandler->eventMailbox_->enqueue(ev);
+    }else{
+        eventHandler->callbackRPCMailbox_->enqueue(ev);
+    }
 
     return ret;
 }
@@ -298,8 +339,9 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
 bool PCEventHandler::start() {
     if( started_ ) return true;
 
-    // Create the mailbox
+    // Create the mailboxes
     eventMailbox_ = new PCEventMailbox;
+    callbackRPCMailbox_ = new PCEventMailbox;
 
     // Create the pipe to signal exit
     int pipeFDs[2];
@@ -334,7 +376,9 @@ PCEventHandler *PCEventHandler::createPCEventHandler() {
 }
 
 PCEventHandler::PCEventHandler() 
-    : eventMailbox_(NULL), started_(false),
+    : eventMailbox_(NULL),
+      callbackRPCMailbox_(NULL), 
+      started_(false),
       exitNotificationOutput_(-1), exitNotificationInput_(-1)
 {
 }
@@ -359,6 +403,26 @@ PCEventHandler::~PCEventHandler()
     close(exitNotificationOutput_);
 
     if( eventMailbox_ ) delete eventMailbox_;
+    if( callbackRPCMailbox_ ) delete callbackRPCMailbox_;
+}
+
+void PCEventHandler::registerCallbackRPC(inferiorRPCinProgress *rpc) {
+    pendingCallbackLock_.lock();
+    pendingCallbackRPCs_.insert(rpc->rpc->getID());
+    pendingCallbackLock_.unlock();
+}
+
+PCEventHandler::WaitResult PCEventHandler::waitForCallbackRPC() {
+    Event::const_ptr newEvent = callbackRPCMailbox_->dequeue(true);
+    if( !newEvent ) return NoEvents;
+
+    if( !eventMux(newEvent) ) {
+        proccontrol_printf("%s[%d]: error resulted from handling event: %s\n",
+                FILE__, __LINE__, newEvent->getEventType().name().c_str());
+        return Error;
+    }
+
+    return EventsReceived;
 }
 
 PCEventHandler::WaitResult PCEventHandler::waitForEvents(bool block) {
@@ -390,36 +454,36 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
         return false;
     }
 
-    evProc->decPendingEvents();
+    if( ev->getEventType().code() != EventType::ForceTerminate ) {
+        // This means we already saw the entry to exit event and we can no longer
+        // operate on the process, so ignore the event
+        if( evProc->isTerminated() ) {
+            proccontrol_printf("%s[%d]: process already marked terminated, ignoring event\n",
+                    FILE__, __LINE__);
+            // Still need to make sure ProcControl runs the process until it exits
+            if( !ev->getProcess()->isTerminated() ) {
+                // XXX
+                // This not the correct way to do this, see bug 1123
+                Process::ptr tmpProc(
+                        dyn_detail::boost::const_pointer_cast<Process>(ev->getProcess()));
 
-    // This means we already saw the entry to exit event and we can no longer
-    // operate on the process, so ignore the event
-    if( evProc->isTerminated() ) {
-        proccontrol_printf("%s[%d]: process already marked terminated, ignoring event\n",
-                FILE__, __LINE__);
-        // Still need to make sure ProcControl runs the process until it exits
-        if( !ev->getProcess()->isTerminated() ) {
-            // XXX
-            // This not the correct way to do this, see bug 1123
-            Process::ptr tmpProc(
-                    dyn_detail::boost::const_pointer_cast<Process>(ev->getProcess()));
-
-            if( !tmpProc->continueProc() ) {
-                proccontrol_printf("%s[%d]: failed to continue exiting process\n",
-                        FILE__, __LINE__);
+                if( !tmpProc->continueProc() ) {
+                    proccontrol_printf("%s[%d]: failed to continue exiting process\n",
+                            FILE__, __LINE__);
+                }
             }
+            return true;
         }
-        return true;
-    }
 
-    // The process needs to be stopped so we can operate on it
-    if( !evProc->isStopped() ) {
-        proccontrol_printf("%s[%d]: stopping process for event handling\n", FILE__,
-                __LINE__);
-        if( !evProc->stopProcess() ) {
-            proccontrol_printf("%s[%d]: failed to stop process for event handling\n", FILE__,
+        // The process needs to be stopped so we can operate on it
+        if( !evProc->isStopped() ) {
+            proccontrol_printf("%s[%d]: stopping process for event handling\n", FILE__,
                     __LINE__);
-            return false;
+            if( !evProc->stopProcess() ) {
+                proccontrol_printf("%s[%d]: failed to stop process for event handling\n", FILE__,
+                        __LINE__);
+                return false;
+            }
         }
     }
 
@@ -428,7 +492,6 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
     evProc->setInEventHandling(true);
 
     bool ret = true;
-    bool processDeleted = false;
     switch(ev->getEventType().code()) {
         // Errors first
         case EventType::Error:
@@ -445,15 +508,12 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
         // Interesting events
         case EventType::Exit:
             ret = handleExit(ev->getEventExit(), evProc);
-            if( ev->getEventType().time() != EventType::Pre ) {
-                processDeleted = true;
-            }
             break;
         case EventType::Crash:
             ret = handleCrash(ev->getEventCrash(), evProc);
-            if( ev->getEventType().time() != EventType::Pre ) {
-                processDeleted = true;
-            }
+            break;
+        case EventType::ForceTerminate:
+            ret = handleForceTerminate(ev->getEventForceTerminate(), evProc);
             break;
         case EventType::Fork:
             ret = handleFork(ev->getEventFork(), evProc);
@@ -488,10 +548,21 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
             break;
     }
 
+    evProc->decPendingEvents();
     evProc->setInEventHandling(prevEventHandlingState);
 
+    if( dyn_debug_proccontrol ) {
+        proccontrol_printf("%s[%d]: continue condition ( %d %d %d %d %d %d )\n",
+                FILE__, __LINE__, 
+                (int) ret, 
+                (int) (evProc->getDesiredProcessState() == PCProcess::ps_running),
+                (int) evProc->isStopped(),
+                (int) !evProc->hasReportedEvent(),
+                (int) !evProc->isTerminated(),
+                (int) !evProc->hasPendingEvents());
+    }
+
     if(    ret // there were no errors
-        && !processDeleted  // the process hasn't already exited/terminated
         && evProc->getDesiredProcessState() == PCProcess::ps_running // the user wants the process running
         && evProc->isStopped() // the process is stopped
         && !evProc->hasReportedEvent() // we aren't in the middle of processing an event that we reported to ProcControl
@@ -501,10 +572,18 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
     {
         proccontrol_printf("%s[%d]: user wants process running after event handling\n",
                 FILE__, __LINE__);
-        if( !evProc->continueProcess() ) {
-            proccontrol_printf("%s[%d]: failed to continue process after event handling\n",
-                    FILE__, __LINE__);
-            ret = false;
+        if( evProc->hasRunningSyncRPC() ) {
+            if( !evProc->continueSyncRPCThreads() ) {
+                proccontrol_printf("%s[%d]: failed to continue thread after event handling\n",
+                        FILE__, __LINE__);
+                ret = false;
+            }
+        }else{
+            if( !evProc->continueProcess() ) {
+                proccontrol_printf("%s[%d]: failed to continue process after event handling\n",
+                        FILE__, __LINE__);
+                ret = false;
+            }
         }
     }
 
@@ -537,6 +616,17 @@ bool PCEventHandler::handleCrash(EventCrash::const_ptr ev, PCProcess *evProc) co
         // There is no BPatch equivalent for a Pre-Crash
     }else{
         // ProcControlAPI process is going away
+        evProc->markExited();
+        BPatch::bpatch->registerSignalExit(evProc, ev->getTermSignal());
+    }
+
+    return true;
+}
+
+bool PCEventHandler::handleForceTerminate(EventForceTerminate::const_ptr ev, PCProcess *evProc) const {
+    if( ev->getEventType().time() == EventType::Pre ) {
+    }else{
+        evProc->setExiting(true);
         evProc->markExited();
         BPatch::bpatch->registerSignalExit(evProc, ev->getTermSignal());
     }
@@ -1168,18 +1258,23 @@ bool PCEventHandler::handleRPC(EventRPC::const_ptr ev, PCProcess *evProc) const 
     }
 
     if( rpcInProg->runProcWhenDone || callbackResult == RPC_RUN_WHEN_DONE ) {
-        proccontrol_printf("%s[%d]: continuing process after RPC %lu\n",
+        proccontrol_printf("%s[%d]: continue requested after RPC %lu\n",
                 FILE__, __LINE__, ev->getIRPC()->getID());
-        if( !evProc->continueProcess() ) {
-            proccontrol_printf("%s[%d]: failed to continue process %d after RPC completion\n",
-                    FILE__, __LINE__, evProc->getPid());
-            return false;
-        }
+        evProc->setDesiredProcessState(PCProcess::ps_running);
+    }else{
+        proccontrol_printf("%s[%d]: stop requested after RPC %lu\n",
+                FILE__, __LINE__, ev->getIRPC()->getID());
+        evProc->setDesiredProcessState(PCProcess::ps_stopped);
+    }
+
+    if( rpcInProg->memoryAllocated ) {
+        evProc->inferiorFree(ev->getIRPC()->getAddress());
     }
 
     // If it is synchronous, the caller is responsible for de-allocating the object
     if( rpcInProg->synchronous ) {
         rpcInProg->isComplete = true;
+        evProc->removeSyncRPCThread(rpcInProg->thread);
     }else{
         // evProc->removeOrigRange(rpcInProg);
         delete rpcInProg;

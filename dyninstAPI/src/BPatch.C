@@ -1210,6 +1210,8 @@ BPatch_process *BPatch::processAttachInt
    return ret;
 }
 
+static bool recursiveEventHandling = false;
+
 /*
  * pollForStatusChange
  *
@@ -1221,8 +1223,19 @@ BPatch_process *BPatch::processAttachInt
  */
 bool BPatch::pollForStatusChangeInt()
 {
+    // Sanity check: don't allow waiting for events in the callbacks
+    if( recursiveEventHandling ) {
+        BPatch_reportError(BPatchWarning, 0,
+                "Cannot wait for events in a callback");
+        return false;
+    }
+
     proccontrol_printf("[%s:%u] Polling for events\n", FILE__, __LINE__);
+
+    recursiveEventHandling = true;
     PCEventHandler::WaitResult result = eventHandler_->waitForEvents(false);
+    recursiveEventHandling = false;
+
     if( result == PCEventHandler::Error ) {
         proccontrol_printf("[%s:%u] Failed to poll for events\n",
                 FILE__, __LINE__);
@@ -1242,7 +1255,6 @@ bool BPatch::pollForStatusChangeInt()
     return false;
 }
 
-
 /*
  * waitForStatusChange
  *
@@ -1250,6 +1262,13 @@ bool BPatch::pollForStatusChangeInt()
  * process.  Returns true upon success, false upon failure.
  */
 bool BPatch::waitForStatusChangeInt() {
+    // Sanity check: don't allow waiting for events in the callbacks
+    if( recursiveEventHandling ) {
+        BPatch_reportError(BPatchWarning, 0,
+                "Cannot wait for events in a callback");
+        return false;
+    }
+
     // Sanity check: make sure there are processes running that could
     // cause events to occur, otherwise the user will be waiting indefinitely
     bool processRunning = false;
@@ -1269,7 +1288,11 @@ bool BPatch::waitForStatusChangeInt() {
     }
 
     proccontrol_printf("%s:[%d] Waiting for events\n", FILE__, __LINE__);
+
+    recursiveEventHandling = true;
     PCEventHandler::WaitResult result = eventHandler_->waitForEvents(true);
+    recursiveEventHandling = false;
+
     if( result == PCEventHandler::Error ) {
         proccontrol_printf("%s:[%d] Failed to wait for events\n",
                       FILE__, __LINE__);

@@ -45,9 +45,11 @@
 
 class PCProcess;
 typedef long dynthread_t;
+class inferiorRPCinProgress; 
 
 class PCThread {
     friend class PCProcess;
+    friend class PCEventHandler;
 
 public:
     static PCThread *createPCThread(PCProcess *parent, ProcControlAPI::Thread::ptr thr);
@@ -80,8 +82,10 @@ protected:
     PCThread(PCProcess *parent, int ind,
             ProcControlAPI::Thread::ptr thr);
 
-    ProcControlAPI::Thread::ptr getProcControlThread();
     void markExited();
+    bool continueThread();
+    bool isRunning();
+    bool postIRPC(inferiorRPCinProgress *newRPC);
 
     PCProcess *proc_;
     ProcControlAPI::Thread::ptr pcThr_;

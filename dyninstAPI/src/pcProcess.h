@@ -39,6 +39,7 @@
 
 #include <string>
 #include <map>
+#include <set>
 
 #include "addressSpace.h"
 #include "pcThread.h"
@@ -87,9 +88,9 @@ public:
     } processState_t;
 
     // Process creation and control
-    static PCProcess *createProcess(const std::string file, pdvector<std::string> *argv,
+    static PCProcess *createProcess(const std::string file, pdvector<std::string> &argv,
                                     BPatch_hybridMode analysisMode,
-                                    pdvector<std::string> *envp,
+                                    pdvector<std::string> &envp,
                                     const std::string dir, int stdin_fd, int stdout_fd,
                                     int stderr_fd, PCEventHandler *eventHandler);
 
@@ -117,8 +118,6 @@ public:
 
     // Memory access
     bool dumpCore(const std::string coreFile); // platform-specific
-    bool writeDebugDataSpace(void *inTracedProcess, u_int amount,
-                             const void *inSelf);
     bool writeDataSpace(void *inTracedProcess,
                         u_int amount, const void *inSelf);
     bool writeDataWord(void *inTracedProcess,
@@ -175,12 +174,15 @@ public:
                  PCThread *thread,
                  bool synchronous,
                  void **result,
-                 bool deliverCallbacks,
+                 bool userRPC,
+                 bool isMemAlloc = false,
                  Address addr = 0);
 
     // Hybrid Mode
     BPatch_hybridMode getHybridMode();
-    bool setMemoryAccessRights(Address start, Address size, int rights);
+
+    // platform-specific
+    int setMemoryAccessRights(Address start, Address size, int rights);
 
     // code overwrites
     bool getOverwrittenBlocks(std::map<Address, unsigned char *>& overwrittenPages,//input
@@ -480,10 +482,14 @@ protected:
 
     // platform-specific, true if the OS says the process is running
     static bool getOSRunningState(int pid); 
-    // platform-specific, needed for capability with previous versions of Dyninst that didn't
-    // use ProcControlAPI
-    static int getDefaultTermSignal(); 
     
+    // platform-specific, populates the passed map, if the file descriptors differ
+    static void redirectFds(int stdin_fd, int stdout_fd, int stderr_fd, 
+            std::map<int, int> &result);
+
+    // platform-specific, sets LD_PRELOAD with RT library 
+    static bool setEnvPreload(pdvector<std::string> &envp, std::string fileName);
+
     bool isInDebugSuicide() const;
     void setReportingEvent(bool b);
     bool hasReportedEvent() const;
@@ -495,6 +501,10 @@ protected:
     bool hasPendingEvents();
     void incPendingEvents();
     void decPendingEvents();
+    bool hasRunningSyncRPC() const;
+    void addSyncRPCThread(PCThread *thr);
+    void removeSyncRPCThread(PCThread *thr);
+    bool continueSyncRPCThreads();
 
     // ProcControl doesn't keep around a process's information after it exits.
     // However, we allow a Dyninst user to query certain information out of
@@ -547,8 +557,6 @@ protected:
     std::vector<heapItem *> dyninstRT_heaps_;
     pdvector<generatedCodeObject *> pendingGCInstrumentation_;
 
-    // Misc.
-    
     // Addresses of variables in RT library
     Address sync_event_id_addr_;
     Address sync_event_arg1_addr_;
@@ -578,8 +586,11 @@ protected:
     Address vsyscall_end_;
     syscallStatus_t vsys_status_;
     AuxvParser *auxv_parser_;
+
+    // Misc.
     baseTramp *irpcTramp_;
     bool inEventHandling_;
+    std::set<PCThread *> syncRPCThreads_;
 };
 
 class inferiorRPCinProgress : public codeRange {
@@ -594,8 +605,10 @@ public:
         isComplete(false),
         deliverCallbacks(false),
         userData(NULL),
-        thr(ProcControlAPI::Thread::ptr()),
-        synchronous(false) {}
+        thread(NULL),
+        synchronous(false),
+        memoryAllocated(false)
+    {}
 
     virtual Address get_address() const { return rpc->getAddress(); }
     virtual unsigned get_size() const { return (rpcCompletionAddr - rpc->getAddress())+1; }
@@ -612,8 +625,9 @@ public:
     bool isComplete;
     bool deliverCallbacks;
     void *userData;
-    ProcControlAPI::Thread::ptr thr;
+    PCThread *thread;
     bool synchronous; // caller is responsible for cleaning up this object
+    bool memoryAllocated;
 };
 
 class signal_handler_location : public codeRange {

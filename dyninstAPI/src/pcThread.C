@@ -178,10 +178,6 @@ Frame PCThread::getActiveFrame() {
     return Frame(pc, fp, sp, proc_->getPid(), proc_, this, true);
 }
 
-Thread::ptr PCThread::getProcControlThread() {
-    return pcThr_;
-}
-
 bool PCThread::isLive() const {
     if( pcThr_ == Thread::ptr() ) return false;
     return pcThr_->isLive();
@@ -189,4 +185,28 @@ bool PCThread::isLive() const {
 
 void PCThread::markExited() { 
     pcThr_ = Thread::ptr();
+}
+
+bool PCThread::isRunning() {
+    return pcThr_->isRunning();
+}
+
+bool PCThread::continueThread() {
+    clearStackwalk();
+    proc_->invalidateActiveMultis();
+
+    proccontrol_printf("%s[%d]: continuing thread %d/%d\n", 
+            FILE__, __LINE__, proc_->getPid(), getLWP());
+
+    if( !pcThr_->continueThread() ) {
+        proccontrol_printf("%s[%d]: failed to continue thread %d/%d\n",
+                proc_->getPid(), getLWP());
+        return false;
+    }
+
+    return true;
+}
+
+bool PCThread::postIRPC(inferiorRPCinProgress *newRPC) {
+    return pcThr_->postIRPC(newRPC->rpc);
 }

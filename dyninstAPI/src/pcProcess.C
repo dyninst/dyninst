@@ -53,61 +53,39 @@ using std::vector;
 using std::string;
 using std::stringstream;
 
-PCProcess *PCProcess::createProcess(const string file, pdvector<string> *argv,
+PCProcess *PCProcess::createProcess(const string file, pdvector<string> &argv,
                                     BPatch_hybridMode analysisMode,
-                                    pdvector<string> *envp,
+                                    pdvector<string> &envp,
                                     const string dir, int stdin_fd, int stdout_fd,
                                     int stderr_fd, PCEventHandler *eventHandler)
 {
     // Debugging information
     startup_cerr << "Creating process " << file << " in directory " << dir << endl;
 
-    if (argv) {
-        startup_cerr << "Arguments: (" << argv->size() << ")" << endl;
-        for (unsigned a = 0; a < argv->size(); a++)
-            startup_cerr << "   " << a << ": " << (*argv)[a] << endl;
-    }
-    if (envp) {
-        startup_cerr << "Environment: (" << envp->size() << ")" << endl;
-        for (unsigned e = 0; e < envp->size(); e++)
-            startup_cerr << "   " << e << ": " << (*envp)[e] << endl;
-    }
+    startup_cerr << "Arguments: (" << argv.size() << ")" << endl;
+    for (unsigned a = 0; a < argv.size(); a++)
+        startup_cerr << "   " << a << ": " << argv[a] << endl;
+
+    startup_cerr << "Environment: (" << envp.size() << ")" << endl;
+    for (unsigned e = 0; e < envp.size(); e++)
+        startup_cerr << "   " << e << ": " << envp[e] << endl;
+
     startup_printf("%s[%d]: stdin: %d, stdout: %d, stderr: %d\n", FILE__, __LINE__,
             stdin_fd, stdout_fd, stderr_fd);
 
     // Create a full path to the executable
     string path = createExecPath(file, dir);
 
-    // check for I/O redirection in arg list.
-    string inputFile;
-    string outputFile;
-    // TODO -- this assumes no more than 1 of each "<", ">"
-    // also, do we want this behavior in general, or should there be a switch to enable/disable?
-    for (unsigned i1=0; i1<argv->size(); i1++) {
-        if ((*argv)[i1] == "\\<") {
-            (*argv)[i1] = "<";
-        } else if ((*argv)[i1] == "<") {
-            inputFile = (*argv)[i1+1];
-            for (unsigned j=i1+2, k=i1; j<argv->size(); j++, k++)
-                (*argv)[k] = (*argv)[j];
-            argv->resize(argv->size()-2);
-        }
-    }
-    for (unsigned i2=0; i2<argv->size(); i2++) {
-        if ((*argv)[i2] == "\\>") {
-            (*argv)[i2] = ">";
-        } else if ((*argv)[i2] == ">") {
-            outputFile = (*argv)[i2+1];
-            for (unsigned j=i2+2, k=i2; j<argv->size(); j++, k++)
-                (*argv)[k] = (*argv)[j];
-            argv->resize(argv->size()-2);
-        }
-    }
+    std::map<int, int> fdMap;
+    redirectFds(stdin_fd, stdout_fd, stderr_fd, fdMap);
 
-    // TODO I/O redirection using ProcControlAPI -- need to investigate old implementation
+    if( !setEnvPreload(envp, path) ) {
+        startup_cerr << "Failed to set environment var to preload RT library" << endl;
+        return NULL;
+    }
 
     // Create the ProcControl process
-    Process::ptr tmpPcProc = Process::createProcess(path, *argv);
+    Process::ptr tmpPcProc = Process::createProcess(path, argv, envp, fdMap);
 
     if( !tmpPcProc ) {
         const char *lastErrMsg = getLastErrorMsg();
@@ -275,6 +253,7 @@ PCProcess *PCProcess::setupExecedProcess(PCProcess *oldProc, std::string execPat
     oldProc = NULL;
 
     newProc->setInEventHandling(true);
+    newProc->incPendingEvents();
 
     BPatch::bpatch->registerExecExit(newProc);
 
@@ -367,15 +346,6 @@ bool PCProcess::bootstrapProcess() {
                     FILE__, __LINE__);
             return false;
         }
-
-        // Set the RT library name
-        if( !getDyninstRTLibName() ) {
-            startup_printf("%s[%d]: failed to get Dyninst RT lib name\n",
-                    FILE__, __LINE__);
-            return false;
-        }
-        startup_printf("%s[%d]: Got Dyninst RT libname: %s\n", FILE__, __LINE__,
-                       dyninstRT_name.c_str());
     }
 
     // Insert a breakpoint at the entry point of main (and possibly __libc_start_main)
@@ -455,6 +425,8 @@ bool PCProcess::bootstrapProcess() {
     assert(costAddr_);
 
     // Register the initial threads
+    startup_printf("%s[%d]: registering initial threads with RT library\n",
+            FILE__, __LINE__);
     for(map<dynthread_t, PCThread *>::iterator i = threadsByTid_.begin();
             i != threadsByTid_.end(); ++i)
     {
@@ -464,6 +436,8 @@ bool PCProcess::bootstrapProcess() {
             return false;
         }
     }
+    startup_printf("%s[%d]: finished registering initial threads with RT library\n",
+            FILE__, __LINE__);
 
     if( !wasCreatedViaFork() ) {
         // Install system call tracing
@@ -607,6 +581,16 @@ bool PCProcess::createInitialMappedObjects() {
         return false;
     }
 
+    // Set the RT library name
+    if( !getDyninstRTLibName() ) {
+        startup_printf("%s[%d]: failed to get Dyninst RT lib name\n",
+                FILE__, __LINE__);
+        return false;
+    }
+    startup_printf("%s[%d]: Got Dyninst RT libname: %s\n", FILE__, __LINE__,
+                   dyninstRT_name.c_str());
+
+
     int objCount = 0;
     startup_printf("Processing initial shared objects\n");
     startup_printf("----\n");
@@ -620,16 +604,29 @@ bool PCProcess::createInitialMappedObjects() {
        if( usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
        fileDescriptor tmpDesc((*i)->getName(), (*i)->getLoadAddress(), dataAddress, true);
 
+       dataAddress = (*i)->getLoadAddress();
+       if( usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
+       fileDescriptor rtLibDesc(dyninstRT_name, (*i)->getLoadAddress(),
+                           dataAddress, true);
+
        // Skip the executable
        if( tmpDesc == desc ) continue;
 
+
        mapped_object *newObj = mapped_object::createMappedObject(tmpDesc, 
                this, analysisMode_);
+
 
        if( newObj == NULL ) {
            startup_printf("%s[%d]: failed to create mapped object for library %s\n",
                    FILE__, __LINE__, (*i)->getName().c_str());
            return false;
+       }
+
+       if( rtLibDesc == tmpDesc ) {
+           startup_printf("%s[%d]: RT library already loaded, manual loading not necessary\n",
+                   FILE__, __LINE__);
+           runtime_lib.insert(newObj);
        }
 
        objCount++;
@@ -808,7 +805,14 @@ static const unsigned MAX_THREADS = 32; // Should match MAX_THREADS in RTcommon.
 
 bool PCProcess::loadRTLib() {
     // Check if the RT library has already been loaded
-    if( runtime_lib.size() != 0 ) return true;
+    if( runtime_lib.size() != 0 ) {
+        if( !wasCreatedViaFork() ) {
+            // Need to still initialize the library
+            if( !iRPCDyninstInit() ) return false;
+        }
+
+        return true;
+    }
 
     // If not, load it using a iRPC
 
@@ -828,7 +832,8 @@ bool PCProcess::loadRTLib() {
                 NULL,  // doesn't matter which thread
                 true,  // wait for completion
                 NULL,  // don't need to check result directly
-                false, // don't deliver callbacks 
+                false, // internal RPC
+                false, // is not a memory allocation RPC
                 execAddress) ) 
     {
         startup_printf("%s[%d]: rpc failed to load RT lib\n", FILE__,
@@ -1076,6 +1081,11 @@ Breakpoint::ptr PCProcess::getBreakpointAtMain() const {
 bool PCProcess::continueProcess() {
     proccontrol_printf("%s[%d]: Continuing process %d\n", FILE__, __LINE__, getPid());
 
+    if( !isAttached() || isTerminated() ) {
+        bpwarn("Warning: continue attempted on non-attached process\n");
+        return false;
+    }
+
     // If the process is in event handling, the process should not be continued, 
     // the processState_t value will be used after event handling to determine the
     // state of the process
@@ -1083,11 +1093,6 @@ bool PCProcess::continueProcess() {
         proccontrol_printf("%s[%d]: process currently in event handling, not continuing\n",
                 FILE__, __LINE__);
         return true;
-    }
-
-    if( !isAttached() || isTerminated() ) {
-        bpwarn("Warning: continue attempted on non-attached process\n");
-        return false;
     }
 
     invalidateActiveMultis();
@@ -1130,13 +1135,16 @@ bool PCProcess::terminateProcess() {
                 getPid());
         return false;
     }
+    proccontrol_printf("%s[%d]: finished terminating process %d\n", FILE__, __LINE__, getPid());
 
-    // TODO this may not be right
-    // ProcControlAPI doesn't issue a callback on forced-termination
-    // so manually deliver the event here
-    proccontrol_printf("%s[%d]: delivering terminate event to BPatch-layer\n", FILE__,
-            __LINE__);
-    BPatch::bpatch->registerSignalExit(this, getDefaultTermSignal());
+    // Handle the event generated by terminate execution
+    while( !isExiting() ) {
+        if( eventHandler_->waitForEvents(true) != PCEventHandler::EventsReceived ) {
+            proccontrol_printf("%s[%d]: failed to wait for completion of terminate event\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+    }
 
     return true;
 }
@@ -1216,18 +1224,29 @@ void PCProcess::markExited() {
     pcProc_ = Process::ptr();
 }
 
-bool PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
-                         const void *inSelf)
-{
-    if( isTerminated() ) return false;
-    return pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
-}
-
 bool PCProcess::writeDataSpace(void *inTracedProcess,
                     u_int amount, const void *inSelf)
 {
     if( isTerminated() ) return false;
-    return pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
+    bool result = pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
+
+    if( BPatch_defensiveMode == proc()->getHybridMode() && !result ) {
+        // the write may have failed because we've removed write permissions
+        // from the page, remove them and try again
+
+        int oldRights = setMemoryAccessRights((Address)inTracedProcess,
+                amount, PAGE_EXECUTE_READWRITE);
+        if( oldRights == PAGE_EXECUTE_READ || oldRights == PAGE_READONLY ) {
+            result = pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
+            if( setMemoryAccessRights((Address)inTracedProcess, amount, oldRights) == -1 ) {
+                result = false;
+            }
+        }else{
+            result = false;
+        }
+    }
+
+    return result;
 }
 
 bool PCProcess::writeDataWord(void *inTracedProcess,
@@ -1351,10 +1370,10 @@ bool PCProcess::unregisterThread(dynthread_t tid) {
     Address retval = 0;
     if( !postIRPC(unregisterAST, 
                 NULL,  // no user data
-                false, // don't run after it is done
+                (getDesiredProcessState() == ps_running), 
                 NULL,  // doesn't matter which thread
                 true,  // wait for completion
-                (void **)&retval,  // don't need to check result directly
+                (void **)&retval,
                 false) ) // don't deliver callbacks 
     {
         proccontrol_printf("%s[%d]: failed to run DYNINSTunregisterThread via iRPC\n", FILE__, __LINE__);
@@ -1378,10 +1397,10 @@ bool PCProcess::registerThread(PCThread *thread) {
     Address retval = 0;
     if( !postIRPC(registerAST, 
                 NULL,  // no user data
-                false, // don't run after it is done
+                (getDesiredProcessState() == ps_running), // don't run after it is done
                 NULL,  // doesn't matter which thread
                 true,  // wait for completion
-                (void **)&retval,  // don't need to check result directly
+                (void **)&retval,
                 false) ) // don't deliver callbacks 
     {
         proccontrol_printf("%s[%d]: failed to run DYNINSTregisterThread via iRPC\n", FILE__, __LINE__);
@@ -1679,7 +1698,8 @@ bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
                   NULL, // no specific thread
                   true, // wait for completion
                   (void **)&result,
-                  false) ) // internal iRPC
+                  false, // internal iRPC
+                  true) ) // is a memory allocation RPC
     {
         infmalloc_printf("%s[%d]: failed to post iRPC for inferior malloc\n",
                 FILE__, __LINE__);
@@ -2031,7 +2051,7 @@ static const unsigned MAX_IRPC_SIZE = 0x100000;
 
 bool PCProcess::postIRPC(AstNodePtr action, void *userData, 
         bool runProcessWhenDone, PCThread *thread, bool synchronous,
-        void **result, bool deliverCallbacks, Address addr)
+        void **result, bool userRPC, bool isMemAlloc, Address addr)
 {
     if( isTerminated() ) {
         proccontrol_printf("%s[%d]: cannot post RPC to exited or terminated process %d\n",
@@ -2045,9 +2065,24 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
         return false;
     }
 
+    // The process needs to be stopped for code gen because memory may be
+    // read or written
+    bool tempStop = false;
+    if( !isStopped() ) {
+        tempStop = true;
+        if( !stopProcess() ) {
+            proccontrol_printf("%s[%d]: failed to stop process for code gen\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+    }
+
+    // Default to initial thread
+    if( thread == NULL ) thread = initialThread_;
+
     inferiorRPCinProgress *newRPC = new inferiorRPCinProgress;
     newRPC->runProcWhenDone = runProcessWhenDone;
-    newRPC->deliverCallbacks = deliverCallbacks;
+    newRPC->deliverCallbacks = userRPC;
     newRPC->userData = userData;
     newRPC->synchronous = synchronous;
 
@@ -2056,7 +2091,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     irpcBuf.setAddrSpace(this);
     irpcBuf.setRegisterSpace(registerSpace::irpcRegSpace(proc()));
     irpcBuf.beginTrackRegDefs();
-    if( thread != NULL ) irpcBuf.setThread(thread);
+    irpcBuf.setThread(thread);
 
     // Emit the header for the iRPC, if necessary
 
@@ -2108,31 +2143,41 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     irpcBuf.endTrackRegDefs();
 
     // Create the iRPC at the ProcControl level
-    if( addr != 0 ) {
-        newRPC->rpc = IRPC::createIRPC(irpcBuf.start_ptr(), irpcBuf.used(), addr);
-    }else{
-        newRPC->rpc = IRPC::createIRPC(irpcBuf.start_ptr(), irpcBuf.used());
+    if( addr == 0 ) {
+        bool err = false;
+        if( isMemAlloc ) {
+            // This assumes that there will always be space
+            addr = inferiorMalloc(irpcBuf.used(), lowmemHeap, 0, &err);
+        }else{
+            // recursive RPCs are okay when this isn't an inferiorMalloc RPC
+            addr = inferiorMalloc(irpcBuf.used(), anyHeap, 0, &err);
+        }
+
+        if( err ) {
+            proccontrol_printf("%s[%d]: failed to allocate memory for RPC\n",
+                    FILE__, __LINE__);
+            delete newRPC;
+            return false;
+        }
+        newRPC->memoryAllocated = true;
     }
+    newRPC->rpc = IRPC::createIRPC(irpcBuf.start_ptr(), irpcBuf.used(), addr, !synchronous);
+
     newRPC->rpc->setData(newRPC);
 
+    // sync RPCs posted from a callback (or while doing event handling) require
+    // special handling to avoid problems with recursive event handling
+    if( synchronous && isInEventHandling() ) {
+        eventHandler_->registerCallbackRPC(newRPC);
+    }
+
     // Post the iRPC
-    if( thread != NULL ) {
-        // Post to a specific thread
-        newRPC->thr = thread->getProcControlThread();
-        if( !newRPC->thr->postIRPC(newRPC->rpc) ) {
-            proccontrol_printf("%s[%d]: failed to post RPC to thread %d\n",
-                    FILE__, __LINE__, thread->getLWP());
-            delete newRPC;
-            return false;
-        }
-    }else{
-        newRPC->thr = pcProc_->postIRPC(newRPC->rpc);
-        if( newRPC->thr == Thread::ptr() ) {
-            proccontrol_printf("%s[%d]: failed to post RPC to process %d\n",
-                    FILE__, __LINE__, getPid());
-            delete newRPC;
-            return false;
-        }
+    newRPC->thread = thread;
+    if( !thread->postIRPC(newRPC) ) {
+        proccontrol_printf("%s[%d]: failed to post RPC to thread %d\n",
+                FILE__, __LINE__, thread->getLWP());
+        delete newRPC;
+        return false;
     }
 
     // Fill in the rest of inferiorRPCinProgress, now that the address of the RPC is known
@@ -2155,9 +2200,18 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     newRPC->rpc->setStartOffset(newRPC->rpcStartAddr - newRPC->get_address());
     
     proccontrol_printf("%s[%d]: created iRPC %lu on thread %d/%d, base = 0x%lx, start = 0x%lx, complete = 0x%lx\n",
-            FILE__, __LINE__, newRPC->rpc->getID(), getPid(), newRPC->thr->getLWP(),
+            FILE__, __LINE__, newRPC->rpc->getID(), getPid(), thread->getLWP(),
             newRPC->get_address(), newRPC->rpcStartAddr,
             newRPC->rpcCompletionAddr);
+
+    if( tempStop ) {
+        if( !continueProcess() ) {
+            proccontrol_printf("%s[%d]: failed to continue process after code gen\n",
+                    FILE__, __LINE__);
+            delete newRPC;
+            return false;
+        }
+    }
 
     /*
     // Store the range, use removeOrigRange on completion
@@ -2171,36 +2225,51 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     */
 
     if( synchronous ) {
+        // Ensure that the process runs until the RPC is completed
+        setDesiredProcessState(ps_running);
+        addSyncRPCThread(thread);
+
+        if( !thread->isRunning() ) {
+            proccontrol_printf("%s[%d]: thread %d/%d not running, continuing thread to run RPC\n",
+                    FILE__, __LINE__, getPid(), thread->getLWP());
+            if( !thread->continueThread() ) {
+                proccontrol_printf("%s[%d]: failed to continue thread %lu, process %d to run RPC\n",
+                        FILE__, __LINE__, thread->getLWP(), getPid());
+                // removeOrigRange(newRPC);
+                delete newRPC;
+                return false;
+            }
+        }
+
         while( !newRPC->isComplete ) {
-            if( !newRPC->thr->isLive() ) {
+            if( !thread->isLive() ) {
                 proccontrol_printf("%s[%d]: thread %d/%d no longer exists, failed to finish RPC\n",
-                        FILE__, __LINE__, getPid(), newRPC->thr->getLWP());
+                        FILE__, __LINE__, getPid(), thread->getLWP());
                 // removeOrigRange(newRPC);
                 delete newRPC;
                 return false;
             }
 
-            if( !newRPC->thr->isRunning() ) {
-                proccontrol_printf("%s[%d]: thread %d/%d not running, continuing thread to finish RPC\n",
-                        FILE__, __LINE__, getPid(), newRPC->thr->getLWP());
-                if( !newRPC->thr->continueThread() ) {
-                    proccontrol_printf("%s[%d]: failed to continue thread %lu, process %d to run RPC\n",
-                            FILE__, __LINE__, newRPC->thr->getLWP(), getPid());
+            if( !isInEventHandling() ) {
+                proccontrol_printf("%s[%d]: waiting for the RPC to complete\n",
+                        FILE__, __LINE__);
+                // This implicitly does the necessary handling for the completion of the iRPC
+                if( eventHandler_->waitForEvents(true) != PCEventHandler::EventsReceived ) {
+                    proccontrol_printf("%s[%d]: failed to wait for completion of iRPC\n",
+                            FILE__, __LINE__, thread->getLWP(), getPid());
                     // removeOrigRange(newRPC);
                     delete newRPC;
                     return false;
                 }
-            }
-
-            proccontrol_printf("%s[%d]: waiting for the RPC to complete\n",
-                    FILE__, __LINE__);
-            // This implicitly does the necessary handling for the completion of the iRPC
-            if( eventHandler_->waitForEvents(true) != PCEventHandler::EventsReceived ) {
-                proccontrol_printf("%s[%d]: failed to wait for completion of iRPC\n",
-                        FILE__, __LINE__, newRPC->thr->getLWP(), getPid());
-                // removeOrigRange(newRPC);
-                delete newRPC;
-                return false;
+            }else{
+                proccontrol_printf("%s[%d]: waiting for the callback RPC to complete\n",
+                        FILE__, __LINE__);
+                if( eventHandler_->waitForCallbackRPC() != PCEventHandler::EventsReceived ) {
+                    proccontrol_printf("%s[%d]: failed to wait for completion of iRPC\n",
+                            FILE__, __LINE__, thread->getLWP(), getPid());
+                    delete newRPC;
+                    return false;
+                }
             }
         }
 
@@ -2228,12 +2297,6 @@ bool PCProcess::isRuntimeHeapAddr(Address addr) const {
             return true;
         }
     }
-    return false;
-}
-
-bool PCProcess::setMemoryAccessRights(Address /*start*/, Address /*size*/, int /*rights*/) {
-    // TODO this is more involved than just copying from the old process class
-    assert(!"Not implemented yet");
     return false;
 }
 
@@ -3636,6 +3699,37 @@ void PCProcess::incPendingEvents() {
 
 void PCProcess::decPendingEvents() {
     eventCountLock_.lock();
+    assert(eventCount_ > 0);
     eventCount_--;
     eventCountLock_.unlock();
+}
+
+bool PCProcess::hasRunningSyncRPC() const {
+    return (syncRPCThreads_.size() > 0);
+}
+
+void PCProcess::addSyncRPCThread(PCThread *thr) {
+    proccontrol_printf("%s[%d]: added sync rpc thread %d/%d\n",
+            FILE__, __LINE__, getPid(), thr->getLWP());
+    syncRPCThreads_.insert(thr);
+}
+
+void PCProcess::removeSyncRPCThread(PCThread *thr) {
+    proccontrol_printf("%s[%d]: removed sync rpc thread %d/%d\n",
+            FILE__, __LINE__, getPid(), thr->getLWP());
+    syncRPCThreads_.erase(thr);
+}
+
+bool PCProcess::continueSyncRPCThreads() {
+    for(set<PCThread *>::iterator i = syncRPCThreads_.begin();
+            i != syncRPCThreads_.end(); ++i)
+    {
+        if( !(*i)->continueThread() ) {
+            proccontrol_printf("%s[%d]: failed to continue thread %d/%d for sync RPC\n",
+                    FILE__, __LINE__, getPid(), (*i)->getLWP());
+            return false;
+        }
+    }
+
+    return true;
 }

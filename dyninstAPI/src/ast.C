@@ -1581,8 +1581,11 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        
        addr = (Address) gen.addrSpace()->inferiorMalloc(len, dataHeap); //dataheap
        
-       if (!gen.addrSpace()->writeDataSpace((char *)addr, len, (char *)oValue))
-           perror("ast.C(1351): writing string value");
+       if (!gen.addrSpace()->writeDataSpace((char *)addr, len, (char *)oValue)) {
+           ast_printf("Failed to write string constant into mutatee\n");
+           return false;
+       }
+
        if(!gen.addrSpace()->needsPIC())
        {
           emitVload(loadConstOp, addr, retReg, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());

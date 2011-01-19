@@ -42,6 +42,7 @@
 #include "syscallNotification.h"
 
 #include <queue>
+#include <set>
 
 class PCEventMailbox {
 public:
@@ -58,6 +59,7 @@ protected:
 };
 
 class PCProcess;
+class inferiorRPCinProgress;
 
 /*
  * pcEventHandler.h
@@ -87,6 +89,12 @@ public:
     WaitResult waitForEvents(bool block);
     bool start();
 
+    // Special handling for sync. RPCs issued from callbacks because they result in
+    // recursive event handling -- this approach limits the events that can be
+    // handled recursively to those associated with the completion of the callback RPC
+    void registerCallbackRPC(inferiorRPCinProgress *rpc);
+    WaitResult waitForCallbackRPC();
+
 protected:
     PCEventHandler();
 
@@ -98,6 +106,7 @@ protected:
     bool handleFork(ProcControlAPI::EventFork::const_ptr ev, PCProcess *evProc) const;
     bool handleExec(ProcControlAPI::EventExec::const_ptr ev, PCProcess **evProc) const;
     bool handleCrash(ProcControlAPI::EventCrash::const_ptr ev, PCProcess *evProc) const;
+    bool handleForceTerminate(ProcControlAPI::EventForceTerminate::const_ptr ev, PCProcess *evProc) const;
     bool handleThreadCreate(ProcControlAPI::EventNewThread::const_ptr ev, PCProcess *evProc) const;
     bool handleThreadDestroy(ProcControlAPI::EventThreadDestroy::const_ptr ev, PCProcess *evProc) const;
     bool handleSignal(ProcControlAPI::EventSignal::const_ptr ev, PCProcess *evProc) const;
@@ -177,6 +186,11 @@ protected:
 
     PCEventMailbox *eventMailbox_;
 
+    // Callback RPCs
+    Mutex pendingCallbackLock_;
+    std::set<unsigned long> pendingCallbackRPCs_;
+    PCEventMailbox *callbackRPCMailbox_;
+
     // Callback Thread Management
     static void main_wrapper(void *);
     void main(); // Callback thread main loop
@@ -187,7 +201,6 @@ protected:
 
     int exitNotificationOutput_;
     int exitNotificationInput_;
-
 };
 
 #endif

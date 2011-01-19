@@ -173,8 +173,111 @@ mapped_object *PCProcess::createObjectNoFile(Address) {
     return NULL;
 }
 
-int PCProcess::getDefaultTermSignal() {
-    return SIGKILL;
+int PCProcess::setMemoryAccessRights(Address start, Address size, int rights) {
+    mal_printf("setMemoryAccessRights to %d [%lx %lx]\n", rights, start, start+size);
+    assert(!"Not implemented yet");
+    return -1;
+}
+
+void PCProcess::redirectFds(int stdin_fd, int stdout_fd, int stderr_fd,
+        std::map<int, int> &fds)
+{
+    if( stdin_fd != 0 ) fds.insert(std::make_pair(stdin_fd, 0));
+    if( stdout_fd != 1 ) fds.insert(std::make_pair(stdout_fd, 1));
+    if( stderr_fd != 2 ) fds.insert(std::make_pair(stderr_fd, 2));
+}
+
+bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileName) {
+    const unsigned int ERROR_CODE = 101;
+    bool use_abi_rt = false;
+
+#if defined(arch_x86_64)
+    SymtabAPI::Symtab *symt_obj;
+    bool result = SymtabAPI::Symtab::openFile(symt_obj, fileName);
+    if( !result ) return false;
+
+    use_abi_rt = (symt_obj->getAddressWidth() == 4);
+#endif
+
+    const char *rt_lib_name = getenv("DYNINSTAPI_RT_LIB");
+    if( rt_lib_name == NULL ) {
+        showErrorCallback(ERROR_CODE, std::string("setEnvPreload: DYNINSTAPI_RT_LIB is undefined"));
+        proccontrol_printf("%s[%d]: DYNINSTAPI_RT_LIB is undefined\n");
+        return false;
+    }
+
+    if (use_abi_rt) {
+        std::string full_name;
+        const char *slash = P_strrchr(rt_lib_name, '/');
+        if (!slash)
+            slash = P_strrchr(rt_lib_name, '\\');
+        if (!slash)
+            return false;
+        const char *dot = P_strchr(slash, '.');
+        if (!dot)
+            return false;
+        full_name = std::string(rt_lib_name, dot - rt_lib_name) +
+                    std::string("_m32") +
+                    std::string(dot);
+        rt_lib_name = full_name.c_str();
+    }
+
+    // Check to see if the library given exists.
+    if (access(rt_lib_name, R_OK)) {
+        std::string msg = std::string("Runtime library ") + std::string(rt_lib_name) +
+                          std::string(" does not exist or cannot be accessed!");
+        showErrorCallback(ERROR_CODE, msg);
+        return false;
+    }
+
+    const char *var_name = "LD_PRELOAD";
+    if (envp.size()) {
+        // Check if some LD_PRELOAD is already part of the environment.
+        std::vector<std::string>::iterator ldPreloadVal =  envp.end();
+        for(std::vector<std::string>::iterator i = envp.begin();
+                i != envp.end(); ++i)
+        {
+            if( (*i) == var_name ) {
+                ldPreloadVal = i;
+                break;
+            }
+        }
+
+        if (ldPreloadVal == envp.end()) {
+            // Not found, append an entry
+            std::string ld_preload = std::string(var_name) + std::string("=") +
+                                     std::string(rt_lib_name);
+            envp.push_back(ld_preload);
+        } else {
+            // Found, modify envs in-place
+            std::string ld_preload = *ldPreloadVal + std::string(":") +
+                                     std::string(rt_lib_name);
+            *ldPreloadVal = ld_preload;
+        }
+    } else {
+        // Environment inherited from this process, do putenv
+        char *ld_preload_orig = getenv("LD_PRELOAD");
+        std::string ld_preload;
+
+        if (ld_preload_orig) {
+            // Append to existing var
+            ld_preload = std::string(var_name) + std::string("=") +
+                         std::string(ld_preload_orig) + std::string(":") +
+                         std::string(rt_lib_name);
+        } else {
+            // Define a new var
+            ld_preload = std::string(var_name) + std::string("=") +
+                         std::string(rt_lib_name);
+        }
+        char *ld_preload_cstr = P_strdup(ld_preload.c_str());
+        if (ld_preload_cstr == 0 ||
+                P_putenv(ld_preload_cstr) < 0) {
+            showErrorCallback(ERROR_CODE, "setEnvPreload: failed to set LD_PRELOAD environment var");
+            return false;
+        }
+    }
+
+    return true;
 }
 
 // The following functions are only implemented on some Unices //

@@ -39,7 +39,6 @@
 #include "pcThread.h"
 #include "pcProcess.h"
 #include "common/h/Types.h"
-#include "common/h/parseauxv.h"
 #if defined (os_osf)
 #include <malloc.h>
 #endif

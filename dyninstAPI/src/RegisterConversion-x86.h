@@ -39,8 +39,6 @@
 Register convertRegID(Dyninst::InstructionAPI::RegisterAST::Ptr toBeConverted, bool& wasUpcast);
 Register convertRegID(Dyninst::InstructionAPI::RegisterAST* toBeConverted, bool& wasUpcast);
 Register convertRegID(Dyninst::MachRegister reg, bool &wasUpcast);
-
-// TODO This will most likely be a temporary fix
 Dyninst::MachRegister convertRegID(Register reg, Dyninst::Architecture);
 
 #endif //!defined(REGISTER_CONVERSION_H)

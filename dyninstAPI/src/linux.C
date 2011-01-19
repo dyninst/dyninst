@@ -320,7 +320,7 @@ Address PCProcess::setAOutLoadAddress(fileDescriptor &desc) {
    //Get the maps
    maps = getVMMaps(getPid(), maps_size);
    if (!maps) {
-      startup_printf("[%s:%u] - setAOutLoadAddress, getLinuxMaps return NULL\n",
+      startup_printf("[%s:%u] - setAOutLoadAddress, getVMMaps return NULL\n",
                      FILE__, __LINE__);
       goto done;
    }
