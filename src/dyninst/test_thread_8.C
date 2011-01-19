@@ -326,7 +326,9 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
          sync_code.push_back(&call_check_sync);
          BPatch_sequence *code = new BPatch_sequence(sync_code);
          dprintf(stderr, "%s[%d]: issuing oneTimeCode for tid %lu\n", __FILE__, __LINE__, tid);
+         proc->stopExecution();
          thr->oneTimeCode(*code);
+         proc->continueExecution();
          dprintf(stderr, "%s[%d]: finished oneTimeCode for tid %lu\n", __FILE__, __LINE__, tid);
       }
    }
