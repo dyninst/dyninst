@@ -42,13 +42,12 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-SymbolLookup::SymbolLookup(Walker *w, std::string exec_path) :
-   walker(w),
+SymbolLookup::SymbolLookup(std::string exec_path) :
+   walker(NULL),
    executable_path(exec_path)
 {
-  sw_printf("[%s:%u] - Creating SymbolLookup %p with walker %p\n", 
-	    __FILE__, __LINE__, this, walker);
-  assert(walker);
+  sw_printf("[%s:%u] - Creating SymbolLookup %p\n", 
+	    __FILE__, __LINE__, this);
 }
 
 SymbolLookup::~SymbolLookup() {
@@ -69,11 +68,11 @@ ProcessState *SymbolLookup::getProcessState()
 
 SymbolLookup *Walker::createDefaultSymLookup(std::string exec_name)
 {
-   return new SymDefaultLookup(this, exec_name);
+   return new SymDefaultLookup(exec_name);
 }
 
-SwkSymtab::SwkSymtab(Walker *w, std::string s) :
-   SymbolLookup(w, s)
+SwkSymtab::SwkSymtab(std::string s) :
+   SymbolLookup(s)
 {
    assert(0);
 }
@@ -90,8 +89,8 @@ SwkSymtab::~SwkSymtab()
 {
 }
 
-SymDefaultLookup::SymDefaultLookup(Walker *w, std::string s) :
-   SymbolLookup(w, s)
+SymDefaultLookup::SymDefaultLookup(std::string s) :
+   SymbolLookup(s)
 {
 }
 

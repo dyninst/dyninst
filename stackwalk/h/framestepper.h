@@ -134,9 +134,15 @@ class WandererHelper
  private:
    ProcessState *proc;
  public:
+   typedef enum {
+      unknown_s = 0,
+      in_func,
+      outside_func
+   } pc_state;
    WandererHelper(ProcessState *proc_);
    virtual bool isPrevInstrACall(Address addr, Address &target);
-   virtual bool isPCInFunc(Address func_entry, Address pc);
+   virtual pc_state isPCInFunc(Address func_entry, Address pc);
+   virtual bool requireExactMatch();
    virtual ~WandererHelper();
 };
 

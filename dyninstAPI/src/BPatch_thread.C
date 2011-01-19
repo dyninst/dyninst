@@ -64,95 +64,40 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
      return false;
    }
 
-   // The internal representation of a stack walk treats instrumentation
-   // as part of the original instrumented function. That is to say, if A() 
-   // calls B(), and B() is instrumented, the stack will appear as so:
-   // A()
-   // instrumentation
-
-   // We want it to look like so:
-   // A()
-   // B()
-   // instrumentation
-
-   // We handle this by adding a synthetic frame to the stack walk whenever
-   // we discover an instrumentation frame.
-
    for (unsigned int i = 0; i < stackWalk.size(); i++) {
       bool isSignalFrame = false;
       bool isInstrumentation = false;
       BPatch_point *point = NULL;
 
       Frame frame = stackWalk[i];
+      instPoint *iP = NULL;
 
       isSignalFrame = frame.isSignalFrame();
       isInstrumentation = frame.isInstrumentation();
 
-      if (isInstrumentation) {
-         // This is a bit of a slog, actually. We want to only show
-         // bpatch points that exist, not describe internals to the
-         // user. So instead of calling findOrCreateBPPoint, we manually
-         // poke through the mapping table. If there isn't a point, we
-         // skip this instrumentation frame instead
+      if (isInstrumentation)
+      {
+        if (NULL != (iP = frame.getPoint()))
+        {
+          point = proc->findOrCreateBPPoint(NULL, iP);
+        }
 
-         instPoint *iP = frame.getPoint();
-         if (iP) {
-            point = proc->findOrCreateBPPoint(NULL, iP);
-         }
-         if (point) {
-            stack.push_back(BPatch_frame(this,
-                                         (void*)stackWalk[i].getPC(),
-                                         (void*)stackWalk[i].getFP(),
-                                         false,
-                                         true,
-                                         point));
+        if (!point)
+        {
+          // DEBUG
+          fprintf(stderr, "DYN FRAME DEBUG: instrumentation but no point: %p\n", (void*)frame.getPC());
 
-            // And the "top-level function" one.
-            Address origPC = frame.getUninstAddr();
-            bblInstance *bbi = proc->lowlevel_process()->
-                findOrigByAddr(origPC)->is_basicBlockInstance();
-            if (bbi && 0 != bbi->version()) {
-                origPC = bbi->equivAddr(0, origPC);
-            }
-            stack.push_back(BPatch_frame(this,
-                                         (void *)origPC,
-                                         (void *)stackWalk[i].getFP(),
-                                         false, // not signal handler,
-                                         false, // not inst.
-                                         NULL, // No point
-                                         true)); // Synthesized frame
-         }
-         else {
-            // No point = internal instrumentation, make it go away.
-            Address origPC = frame.getUninstAddr();
-            bblInstance *bbi = proc->lowlevel_process()->
-                findOrigByAddr(origPC)->is_basicBlockInstance();
-            if (bbi && 0 != bbi->version()) {
-                origPC = bbi->equivAddr(0, origPC);
-            }
-            stack.push_back(BPatch_frame(this,
-                                         (void *)origPC,
-                                         (void *)stackWalk[i].getFP(),
-                                         false, // not signal handler,
-                                         false, // not inst.
-                                         NULL, // No point
-                                         false)); // Synthesized frame
-                
-         }
+          isInstrumentation = false; 
+        }
       }
-      else {
-         // Not instrumentation, normal case
-         Address origPC = frame.getPC();
-         bblInstance *bbi = proc->lowlevel_process()->
-             findOrigByAddr(frame.getPC())->is_basicBlockInstance();
-         if (bbi && 0 != bbi->version()) {
-             origPC = bbi->equivAddr(0, origPC);
-         }
-         stack.push_back(BPatch_frame(this,
-                                      (void *)origPC,
-                                      (void *)frame.getFP(),
-                                      isSignalFrame));
-      }
+
+
+      stack.push_back(BPatch_frame(this,
+                                   (void *)frame.getPC(),
+                                   (void *)frame.getFP(),
+                                   isSignalFrame,
+                                   isInstrumentation,
+                                   point));
    }
    return true;
 }

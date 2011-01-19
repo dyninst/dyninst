@@ -97,19 +97,28 @@ gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
       Address target;
       if (whelper->isPrevInstrACall(word, target))
       {
-         if (whelper->isPCInFunc(target, in.getRA()))
-         {
+        // in func = exact match
+        // outside func = reject
+        // unknown = candidate
+        WandererHelper::pc_state pcs = whelper->isPCInFunc(target, in.getRA());
+        switch (pcs)
+        {
+          case WandererHelper::unknown_s:
+            candidate.push_back(std::pair<Address, Address>(word, current_stack));
+            break;
+
+          case WandererHelper::in_func:
             sw_printf("[%s:%u] - Wanderer thinks word 0x%lx at 0x%lx  is return "
                       " address\n", __FILE__, __LINE__, word, current_stack);
             found_base = current_stack;
             found_ra = word;
             found_exact_match = true;
             break;
-         }
-         else
-         {
-            candidate.push_back(std::pair<Address, Address>(word, current_stack));
-         }
+
+          case WandererHelper::outside_func:
+            // not a candidate
+            break;
+        }
       }
       current_stack += addr_width;
       num_words_tried++;
@@ -127,9 +136,15 @@ gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
        * push_back and the below code.  This trades false negatives for
        * potential false positives, but I'm not sure it's worth it.
        **/
-      //return gcf_not_me;
-      found_ra = candidate[0].first;
-      found_base = candidate[0].second;
+      if (whelper->requireExactMatch())
+      {
+        return gcf_not_me;
+      }
+      else
+      {
+        found_ra = candidate[0].first;
+        found_base = candidate[0].second;
+      }
    }
 
    out.setRA(found_ra);
@@ -253,12 +268,12 @@ bool WandererHelper::isPrevInstrACall(Address addr, Address &target)
    return false;
 }
 
-bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
+WandererHelper::pc_state WandererHelper::isPCInFunc(Address func_entry, Address pc)
 {
    if (!func_entry || !pc)
-      return false;
+      return unknown_s;
    if (func_entry == pc)
-      return true;
+      return in_func;
 
    SymReader *reader = NULL;
    LibAddrPair func_lib, pc_lib;
@@ -272,7 +287,7 @@ bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
    if (!result) {
       sw_printf("[%s:%u] - Failed to find library at %lx\n",
                 __FILE__, __LINE__, func_entry);
-      return false;
+      return unknown_s;
    }
    func_entry_offset = func_entry - func_lib.second;
 
@@ -354,7 +369,7 @@ bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
    if (!result) {
       sw_printf("[%s:%u] - Failed to find library at %lx\n",
                 __FILE__, __LINE__, pc);
-      return false;
+      return unknown_s;
    }
    pc_offset = pc - pc_lib.second;
 
@@ -362,14 +377,14 @@ bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
    if (func_entry > pc) {
       sw_printf("[%s:%u] - func_entry %lx is greater than pc %lx\n",
                 __FILE__, __LINE__, func_entry, pc);
-      return false;
+      return outside_func;
    }
    
    if (pc_lib != func_lib)
    {
       sw_printf("[%s:%u] - %lx and %lx are from different libraries\n",
                 __FILE__, __LINE__, func_entry, pc);
-      return false;
+      return outside_func;
    }
 
    func_symbol = reader->getContainingSymbol(func_entry_offset);
@@ -390,12 +405,33 @@ bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
    pc_offset = reader->getSymbolOffset(pc_symbol);
    sw_printf("[%s:%u] - Decided func at offset %lx and pc-func at offset %lx\n",
              __FILE__, __LINE__, func_offset, pc_offset);
-   return (func_offset == pc_offset);
+   if (func_offset == pc_offset)
+   {
+     return in_func;
+   }
+   else
+   {
+     return unknown_s;
+   }
  reader_fail:   
 
    //We don't have much to work with.  This is all heuristics anyway, so assume
    // that if pc is within 8k of func_entry that it's a part of the function.
-   return (pc >= func_entry && pc < func_entry + 8192);
+   if (pc >= func_entry && pc < func_entry + 8192)
+   {
+     return in_func;
+   }
+   else
+   {
+     return unknown_s;
+   }
+}
+
+bool WandererHelper::requireExactMatch()
+{
+  // By default, require that candidate callsites actually call to the
+  // current function
+  return true;
 }
 
 WandererHelper::WandererHelper(ProcessState *proc_) :

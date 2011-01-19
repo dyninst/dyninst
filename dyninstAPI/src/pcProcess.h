@@ -59,6 +59,7 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "stackwalk/h/walker.h"
 #include "stackwalk/h/framestepper.h"
+#include "stackwalk/h/symlookup.h"
 
 #define RPC_LEAVE_AS_IS 0
 #define RPC_RUN_WHEN_DONE 1
@@ -419,6 +420,7 @@ protected:
     bool bootstrapProcess();
     bool hasReachedBootstrapState(bootstrapState_t state) const;
     void setBootstrapState(bootstrapState_t newState);
+    bool createStackwalker();
     void createInitialThreads();
     bool createInitialMappedObjects();
     bool getExecFileDescriptor(std::string filename,
@@ -651,6 +653,18 @@ private:
     unsigned size_;
 };
 
+class StackwalkSymLookup : public Dyninst::Stackwalker::SymbolLookup {
+  private:
+    PCProcess *proc_;
+
+  public:
+    StackwalkSymLookup(PCProcess *pc);
+    virtual bool lookupAtAddr(Dyninst::Address addr,
+                              std::string &out_name,
+                              void* &out_value);
+    virtual ~StackwalkSymLookup();
+};
+
 class StackwalkInstrumentationHelper : public Dyninst::Stackwalker::DyninstInstrHelper {
   private:
     PCProcess *proc_;
@@ -660,6 +674,28 @@ class StackwalkInstrumentationHelper : public Dyninst::Stackwalker::DyninstInstr
     virtual bool isInstrumentation(Dyninst::Address ra, Dyninst::Address *orig_ra,
                                    unsigned *stack_height, bool *entryExit);
     virtual ~StackwalkInstrumentationHelper();
+};
+
+class DynFrameHelper : public Dyninst::Stackwalker::FrameFuncHelper {
+  private:
+    PCProcess *proc_;
+
+  public:
+    DynFrameHelper(PCProcess *pc);
+    virtual Dyninst::Stackwalker::FrameFuncHelper::alloc_frame_t allocatesFrame(Address addr);
+    virtual ~DynFrameHelper();
+};
+
+class DynWandererHelper : public Dyninst::Stackwalker::WandererHelper {
+  private:
+    PCProcess *proc_;
+
+  public:
+    DynWandererHelper(PCProcess *pc);
+    virtual bool isPrevInstrACall(Address addr, Address &target);
+    virtual Dyninst::Stackwalker::WandererHelper::pc_state isPCInFunc(Address func_entry, Address pc);
+    virtual bool requireExactMatch();
+    virtual ~DynWandererHelper();
 };
 
 #endif

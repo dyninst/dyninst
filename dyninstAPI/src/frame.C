@@ -101,6 +101,8 @@ void Frame::calcFrameType()
     }
 
    int_function *func;
+   miniTrampInstance *mini;
+   multiTramp *multi;
 
    // Without a process pointer, we're not going to get far.
    if (!getProc())
@@ -108,7 +110,7 @@ void Frame::calcFrameType()
 
    // Checking for a signal handler must go before the vsyscall check
    // since (on Linux) the signal handler is _inside_ the vsyscall page.
-   if (isSignalFrame()) {
+   if (getProc()->isInSignalHandler(getPC())) {
      frameType_ = FRAME_signalhandler;
      return;
    }
@@ -126,14 +128,20 @@ void Frame::calcFrameType()
    codeRange *range = getRange();
 
    func = range->is_function();
+   multi = range->is_multitramp();
+   mini = range->is_minitramp();
 
-   if (isInstrumentation()) {
+   if (mini != NULL) {
        frameType_ = FRAME_instrumentation;
        return;
    }
+   else if (multi != NULL) {
+            frameType_ = FRAME_instrumentation;
+            return;
+   }
    else if (func != NULL) {
-     frameType_ = FRAME_normal;
-     return;
+       frameType_ = FRAME_normal;
+       return;
    }
    else if (range->is_inferior_rpc()) {
        frameType_ = FRAME_iRPC;
@@ -150,9 +158,11 @@ void Frame::calcFrameType()
 
 // Get the instPoint corresponding with this frame
 instPoint *Frame::getPoint() {
-    // Easy check:
-    if (getPC() == getUninstAddr())
-        return NULL;
+    // not detecting instrumentation properly
+    // TODO Should be fixed with Kevin/Drew merge
+    //if (getPC() == getUninstAddr()) {
+    //    return NULL;
+    //}
 
     codeRange *range = getRange();
     
@@ -223,7 +233,7 @@ Address Frame::getUninstAddr() {
 
     if (0 != uninst) {
         range = proc_->findOrigByAddr(uninst);
-        if (!range) {
+        if (!range || mt_ptr || bt_ptr) {
             return uninst;
         }
         bbl_ptr = range->is_basicBlockInstance();
@@ -311,14 +321,14 @@ ostream & operator << ( ostream & s, Frame & f ) {
 
 bool Frame::isSignalFrame()
 { 
-    return dynamic_cast<Dyninst::Stackwalker::SigHandlerStepper*>
-      (sw_frame_.getStepper());
+    calcFrameType();
+    return frameType_ == FRAME_signalhandler;
 }
 
 bool Frame::isInstrumentation()
 { 
-    return dynamic_cast<Dyninst::Stackwalker::DyninstInstrStepper*>
-      (sw_frame_.getStepper());
+    calcFrameType();
+    return frameType_ == FRAME_instrumentation;
 }
 
 bool Frame::isSyscall()

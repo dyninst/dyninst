@@ -100,7 +100,7 @@ DyninstInstrHelper::~DyninstInstrHelper()
 
 std::map<SymReader*, bool> DyninstInstrStepperImpl::isRewritten;
 
-DyninstInstrStepperImpl::DyninstInstrStepperImpl(Walker *w, FrameStepper *p,
+DyninstInstrStepperImpl::DyninstInstrStepperImpl(Walker *w, DyninstInstrStepper *p,
                                                  DyninstInstrHelper *h) :
   FrameStepper(w),
   parent(p),
@@ -200,7 +200,15 @@ unsigned DyninstInstrStepperImpl::getPriority() const
 
 void DyninstInstrStepperImpl::registerStepperGroup(StepperGroup *group)
 {
-  FrameStepper::registerStepperGroup(group);
+  unsigned addr_width = group->getWalker()->getProcessState()->getAddressWidth();
+  if (addr_width == 4)
+    group->addStepper(parent, 0, 0xffffffff);
+#if defined(arch_64bit)
+  else if (addr_width == 8)
+    group->addStepper(parent, 0, 0xffffffffffffffff);
+#endif
+  else
+    assert(0 && "Unknown architecture word size");
 }
 
 DyninstInstrStepperImpl::~DyninstInstrStepperImpl()

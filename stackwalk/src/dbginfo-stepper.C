@@ -216,8 +216,8 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
 
    }
    if (!result) {
-      sw_printf("[%s:%u] - Couldn't get return debug info at %lx\n",
-                __FILE__, __LINE__, in.getRA());
+      sw_printf("[%s:%u] - Couldn't get return debug info at %lx, error: %u\n",
+                __FILE__, __LINE__, in.getRA(), frame_error);
       return gcf_not_me;
    }
 

@@ -105,12 +105,12 @@ public:
 class DyninstInstrStepperImpl : public FrameStepper {
  private:
    static std::map<SymReader *, bool> isRewritten;
-   FrameStepper *parent;
+   DyninstInstrStepper *parent;
    DyninstInstrHelper *helper;
    bool prevEntryExit; // remember if the previous frame was entry/exit instrumentation
   
  public:
-   DyninstInstrStepperImpl(Walker *w, FrameStepper *p, DyninstInstrHelper *h);
+   DyninstInstrStepperImpl(Walker *w, DyninstInstrStepper *p, DyninstInstrHelper *h);
    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
    gcframe_ret_t getCallerFrameArch(const Frame &in, Frame &out, Address base, Address lib_base, 
 				    unsigned size, unsigned stack_height,

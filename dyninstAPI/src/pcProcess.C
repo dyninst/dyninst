@@ -330,15 +330,11 @@ bool PCProcess::bootstrapProcess() {
             FILE__, __LINE__, getPid());
 
     // Initialize StackwalkerAPI
-    if (NULL == (stackwalker_ = Dyninst::Stackwalker::Walker::newWalker(pcProc_)))
+    if ( !createStackwalker() )
     {
       startup_printf("Bootstrap failed while initializing Stackwalker\n");
       return false;
     }
-    StackwalkInstrumentationHelper *swInstrHelper = new StackwalkInstrumentationHelper(this);
-    Dyninst::Stackwalker::DyninstInstrStepper *dynInstrStep
-      = new Dyninst::Stackwalker::DyninstInstrStepper(stackwalker_, swInstrHelper);
-    stackwalker_->addStepper(dynInstrStep);
 
     // Create the initial threads
     createInitialThreads();
@@ -557,6 +553,94 @@ bool PCProcess::initTrampGuard() {
             allocedTrampAddr, getAddressWidth());
 
     return true;
+}
+
+bool PCProcess::createStackwalker()
+{
+  using namespace Stackwalker;
+  ProcDebug *procDebug = NULL;
+  StackwalkSymLookup *symLookup = NULL;
+  FrameStepper *stepper = NULL;
+  StackwalkInstrumentationHelper *swInstrHelper = NULL;
+  DynFrameHelper *dynFrameHelper = NULL;
+  DynWandererHelper *dynWandererHelper = NULL;
+
+  // Create ProcessState
+  if (NULL == (procDebug = ProcDebug::newProcDebug(pcProc_)))
+  {
+    startup_printf("Could not create Stackwalker process state\n");
+    return false;
+  }
+
+  // Create SymbolLookup
+  symLookup = new StackwalkSymLookup(this);
+
+  // Create Walker without default steppers
+  if (NULL == (stackwalker_ = Walker::newWalker(procDebug,
+                                                NULL,
+                                                symLookup,
+                                                false)))
+  {
+    startup_printf("Could not create Stackwalker\n");
+    return false;
+  }
+
+  // Create steppers, adding to walker
+
+  swInstrHelper = new StackwalkInstrumentationHelper(this);
+  stepper = new DyninstInstrStepper(stackwalker_, swInstrHelper);
+  if (!stackwalker_->addStepper(stepper))
+  {
+    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    return false;
+  }
+  startup_printf("Stackwalker stepper %p is a DyninstInstrStepper\n", stepper);
+
+  stepper = new DebugStepper(stackwalker_);
+  if (!stackwalker_->addStepper(stepper))
+  {
+    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    return false;
+  }
+  startup_printf("Stackwalker stepper %p is a DebugStepper\n", stepper);
+
+  dynFrameHelper = new DynFrameHelper(this);
+  stepper = new FrameFuncStepper(stackwalker_, dynFrameHelper);
+  if (!stackwalker_->addStepper(stepper))
+  {
+    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    return false;
+  }
+  startup_printf("Stackwalker stepper %p is a FrameFuncStepper\n", stepper);
+
+  // create a separate helper to avoid double deletion
+  dynFrameHelper = new DynFrameHelper(this);
+  dynWandererHelper = new DynWandererHelper(this);
+  stepper = new StepperWanderer(stackwalker_, dynWandererHelper, dynFrameHelper);
+  if (!stackwalker_->addStepper(stepper))
+  {
+    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    return false;
+  }
+  startup_printf("Stackwalker stepper %p is a WandererStepper\n", stepper);
+
+  stepper = new SigHandlerStepper(stackwalker_);
+  if (!stackwalker_->addStepper(stepper))
+  {
+    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    return false;
+  }
+  startup_printf("Stackwalker stepper %p is a SigHandlerStepper\n", stepper);
+
+  stepper = new BottomOfStackStepper(stackwalker_);
+  if (!stackwalker_->addStepper(stepper))
+  {
+    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    return false;
+  }
+  startup_printf("Stackwalker stepper %p is a BottomOfStackStepper\n", stepper);
+
+  return true;
 }
 
 void PCProcess::createInitialThreads() {
@@ -3742,9 +3826,32 @@ bool PCProcess::continueSyncRPCThreads() {
     return true;
 }
 
+StackwalkSymLookup::StackwalkSymLookup(PCProcess *p)
+  : proc_(p)
+{}
+
+StackwalkSymLookup::~StackwalkSymLookup()
+{}
+
 StackwalkInstrumentationHelper::StackwalkInstrumentationHelper(PCProcess *p)
   : proc_(p)
 {}
 
 StackwalkInstrumentationHelper::~StackwalkInstrumentationHelper()
+{}
+
+DynFrameHelper::DynFrameHelper(PCProcess *p)
+  : FrameFuncHelper(NULL),
+  proc_(p)
+{}
+
+DynFrameHelper::~DynFrameHelper()
+{}
+
+DynWandererHelper::DynWandererHelper(PCProcess *p)
+  : WandererHelper(NULL),
+  proc_(p)
+{}
+
+DynWandererHelper::~DynWandererHelper()
 {}

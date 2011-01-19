@@ -81,7 +81,10 @@ Walker::Walker(ProcessState *p,
    }
 
    lookup = sym ? sym : createDefaultSymLookup(exec_name);
-   if (!lookup) {
+   if (lookup) {
+      lookup->walker = this;
+   }
+   else {
       sw_printf("[%s:%u] - WARNING, no symbol lookup available\n",
                 __FILE__, __LINE__);
    }
@@ -470,6 +473,7 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
        }
        sw_printf("[%s:%u] - Returning frame with RA %lx, SP %lx, FP %lx\n",
 		 __FILE__, __LINE__, out.getRA(), out.getSP(), out.getFP());
+       out.setStepper(cur_stepper);
        result = true;
        goto done;
      }
