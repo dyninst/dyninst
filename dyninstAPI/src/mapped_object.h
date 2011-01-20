@@ -217,6 +217,7 @@ class mapped_object : public codeRange {
     void setCodeBytesUpdated(bool);
     void addProtectedPage(Address pageAddr); // adds to protPages_
     void removeProtectedPage(Address pageAddr);
+    void removeEmptyPages();
     void removeFunction(int_function *func);
     bool splitIntLayer();
     bool findBlocksByRange(Address startAddr,

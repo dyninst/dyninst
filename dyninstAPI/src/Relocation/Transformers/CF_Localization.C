@@ -44,8 +44,6 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
-extern bool disassemble_reloc;
-
 bool LocalizeCF::processTrace(TraceList::iterator &iter) {
   // We don't care about elements that aren't CFAtoms
   // We may remove CFAtoms and replace them with a new 
@@ -109,11 +107,6 @@ bool LocalizeCF::processTrace(TraceList::iterator &iter) {
 		  d_iter->second = t;
 		  counts_[found->first].second++;
 
-		  if (disassemble_reloc) {
-			  if (found->first) {
-				  cerr << "\t Removing edge " << hex << (*iter)->bbl()->start() << " -> " << found->first->start() << dec << endl;
-			  }
-		  }
 	  }
   }
   return true;
@@ -129,13 +122,6 @@ bool LocalizeCF::postprocess(TraceList &l) {
 		int_block *bbl = iter->first;
 		int originalEdges = iter->second.first;
 		int removedEdges = iter->second.second;
-
-		if (disassemble_reloc) 
-		{
-			if (bbl) {
-				cerr << "Postprocessing bbl @ " << hex << bbl->start() << dec << "; " << originalEdges << " incoming and " << removedEdges << " removed." << endl;
-			}
-		}
 
 		if (removedEdges > originalEdges) {
 			cerr << "Odd case: " << removedEdges << " removed @ block " << hex << bbl->start() << dec

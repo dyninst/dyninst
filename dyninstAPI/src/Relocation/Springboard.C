@@ -41,6 +41,7 @@ using namespace Relocation;
 
 const int SpringboardBuilder::Allocated(0);
 const int SpringboardBuilder::UnallocatedStart(1);
+std::set<Address> SpringboardBuilder::relocTraps_; 
 
 template <typename TraceIter> 
 SpringboardBuilder::Ptr SpringboardBuilder::create(TraceIter begin,
@@ -266,7 +267,8 @@ bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &,
 }
 
 bool SpringboardBuilder::conflict(Address start, Address end, bool inRelocated) {
-   if (inRelocated) return conflictInRelocated(start, end);
+   if (inRelocated) 
+       return conflictInRelocated(start, end);
 
    // We require springboards to stay within a particular block
    // so that we don't have issues with jumping into the middle
@@ -280,36 +282,41 @@ bool SpringboardBuilder::conflict(Address start, Address end, bool inRelocated) 
    // into another's. So check to see if state suddenly changes.
 
    Address working = start;
-   Address LB, UB;
+   Address LB;
+   Address UB = 0;
    int state = -1;
    int lastState = state;
-   relocation_cerr << "Conflict called for " << hex << start << "->" << end << dec << endl;
+   springboard_cerr << "Conflict called for " << hex << start << "->" << end << dec << endl;
    
    while (end > working) {
-        relocation_cerr << "\t looking for " << hex << working << dec << endl;
+        springboard_cerr << "\t looking for " << hex << working << dec << endl;
        if (!validRanges_.find(working, LB, UB, state)) {
-         relocation_cerr << "\t Conflict: unable to find entry for " << hex << working << dec << endl;
+         springboard_cerr << "\t Conflict: unable to find entry for " << hex << working << dec << endl;
          return true;
       }
-      relocation_cerr << "\t\t Found " << hex << LB << " -> " << UB << " /w/ state " << state << dec << endl;
+      springboard_cerr << "\t\t Found " << hex << LB << " -> " << UB << " /w/ state " << state << dec << endl;
       if (state == Allocated) {
-         relocation_cerr << "\t Starting range already allocated, ret conflict" << endl;
+         springboard_cerr << "\t Starting range already allocated, ret conflict" << endl;
          return true;
       }
       if (lastState != -1 &&
           state != lastState) {
-          relocation_cerr << "\t Crossed into a different function, ret conflict" << endl;
+          springboard_cerr << "\t Crossed into a different function, ret conflict" << endl;
           return true;
       }
       working = UB;
       lastState = state;
    }
-   relocation_cerr << "\t No conflict, we're good" << endl;
+   if (UB < end) {
+       return true;
+   }
+   springboard_cerr << "\t No conflict, we're good" << endl;
    return false;
 }
 
 bool SpringboardBuilder::conflictInRelocated(Address start, Address end) {
-   // Much simpler case: do we overlap something already in the range set.
+   // Much simpler case: do we overlap something already in the range set, 
+   // or did we use a trap for this block initially
    for (Address i = start; i < end; ++i) {
       Address lb, ub;
       bool val;
@@ -318,6 +325,14 @@ bool SpringboardBuilder::conflictInRelocated(Address start, Address end) {
          return true;
       }
    }
+
+   if ( (end-start) > 1 && relocTraps_.end() != relocTraps_.find(start)) {
+       springboard_cerr << "Springboard conflict for [" << hex << start 
+           << " " << end << "), our previous springboard here needed " 
+           << "a trap even though we may think we need one now" << endl;
+      return true;
+   }
+
    return false;
 }
 
@@ -331,7 +346,7 @@ void SpringboardBuilder::registerBranch(Address start, Address end, bool inReloc
    Address working = start;
    Address LB = 0, UB = 0;
    Address lb = 0, ub = 0;
-   relocation_cerr << "Adding branch: " << hex << start << " -> " << end << dec << endl;
+   springboard_cerr << "Adding branch: " << hex << start << " -> " << end << dec << endl;
    int idToUse = -1;
    while (end > working) {
       int state = 0;
@@ -351,19 +366,22 @@ void SpringboardBuilder::registerBranch(Address start, Address end, bool inReloc
    // [start..end] as false
    // [end..ub] as true
    if (LB < start) {
-        relocation_cerr << "\tInserting prior space " << hex << LB << " -> " << start << " /w/ range " << idToUse << dec << endl;
+        springboard_cerr << "\tInserting prior space " << hex << LB << " -> " << start << " /w/ range " << idToUse << dec << endl;
        validRanges_.insert(LB, start, idToUse);
    }
-    relocation_cerr << "\t Inserting taken space " << hex << start << " -> " << end << " /w/ range " << Allocated << dec << endl;
+    springboard_cerr << "\t Inserting taken space " << hex << start << " -> " << end << " /w/ range " << Allocated << dec << endl;
    validRanges_.insert(start, end, Allocated);
    if (UB > end) {
-        relocation_cerr << "\tInserting post space " << hex << end << " -> " << UB << " /w/ range " << idToUse << dec << endl;
+        springboard_cerr << "\tInserting post space " << hex << end << " -> " << UB << " /w/ range " << idToUse << dec << endl;
       validRanges_.insert(end, UB, idToUse);
    }
 }
 
 void SpringboardBuilder::registerBranchInRelocated(Address start, Address end) {
    overwrittenRelocatedCode_.insert(start, end, true);
+   if ( 1 == (end - start) ) {
+       relocTraps_.insert(start);
+   }
 }
 
 
@@ -387,8 +405,7 @@ void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) 
   gen.setAddr(from);
 
   insnCodeGen::generateBranch(gen, from, to);
-  relocation_cerr << "Springboard branch " << hex << from << "->" << to << dec << endl;
-  malware_cerr << "Springboard branch " << hex << from << "->" << to << dec << endl;
+  springboard_cerr << "Springboard branch " << hex << from << "->" << to << dec << endl;
 }
 
 void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
@@ -396,8 +413,7 @@ void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
   gen.allocate(4);
   gen.setAddrSpace(addrSpace_);
   gen.setAddr(from);
-  relocation_cerr << "YUCK! Springboard trap at: "<< hex << from << "->" << to << dec << endl;
-  malware_cerr << "YUCK! Springboard trap at: "<< hex << from << "->" << to << dec << endl;
+  springboard_cerr << "YUCK! Springboard trap at: "<< hex << from << "->" << to << dec << endl;
   addrSpace_->trapMapping.addTrapMapping(from, to, true);
   insnCodeGen::generateTrap(gen);
 }

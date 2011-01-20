@@ -685,10 +685,9 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
 
         // ignore memory access violations originating in kernel32.dll 
         // (if not originating from an instrumented instruction)
-        mapped_object *kern32 = ev.proc->findObject("*kernel32.dll",true);
-        assert(kern32);
-        if ( kern32->codeBase() <= origAddr && 
-             origAddr < (kern32->codeBase() + kern32->imageSize()) ) 
+        mapped_object *obj = ev.proc->findObject(origAddr);
+        assert(obj);
+        if ( BPatch_defensiveMode != obj->hybridMode() ) 
         {
             wait_until_active = false;
             ret = true;
@@ -2594,10 +2593,30 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
                  << ", ESI: " << activeFrame.esi 
                  << ", EDI " << activeFrame.edi << ")" << dec << endl;
 
+    // decode the executed instructions
+    using namespace InstructionAPI;
+    cerr << "Disassembling faulting insns" << endl;
+    Address base = ev.address;
+    const int BUF_SIZE=64;
+    unsigned char buf[BUF_SIZE];
+    ev.proc->readDataSpace((void *)base, BUF_SIZE, buf, false);
+    InstructionDecoder deco(buf,BUF_SIZE,ev.proc->getArch());
+    Instruction::Ptr insn = deco.decode();
+    for(int idx=0; insn && idx < 4; idx++) {
+        cerr << "\t" << hex << base << ": " << insn->format() << endl;
+        base += insn->size();
+        insn = deco.decode();
+    }
+    cerr << "raw bytes: ";
+    for(int idx=0; idx < BUF_SIZE; idx++) {
+        cerr << (unsigned int)buf[idx] << " ";
+    }
+    cerr << endl << dec << "Stack" << endl;
+
 	for (unsigned i = 0; i < 10; ++i) {
-			Address stackTOPVAL =0;
-		    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
-			cerr << "\tSTACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
+		Address stackTOPVAL =0;
+	    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
+		cerr << "\tSTACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
 	 }
 
     Address tibPtr = ev.lwp->getThreadInfoBlockAddr();

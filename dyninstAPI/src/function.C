@@ -590,7 +590,7 @@ void int_function::fixHandlerReturnAddr(Address faultAddr)
         assert(0);
         return;
     }
-
+#if 0 //KEVINTODO: this function doesn't work, I tried setting newPC to 0xdeadbeef and it had no impact on the program's behavior.  If the springboards work properly this code is unneeded
     // Do a straightfoward forward map of faultAddr
     // First, get the original address
     int_function *func;
@@ -614,6 +614,7 @@ void int_function::fixHandlerReturnAddr(Address faultAddr)
           assert(0);
        }
     }
+#endif
 }
 
 void int_function::findPoints(int_block *block,

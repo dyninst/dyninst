@@ -1128,7 +1128,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     leadersToBlock[targ->start()] = targ; 
                 }
                 if (unlikely(func->obj()->defensiveMode())) {
-                    fprintf(stderr,"parsed bluepill insn sysenter or syscall in defensive mode at %lx\n",curAddr);
+                    fprintf(stderr,"parsed bluepill insn sysenter or syscall "
+                            "in defensive mode at %lx\n",curAddr);
                 }
                 break;
             }

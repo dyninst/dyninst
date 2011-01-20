@@ -91,6 +91,7 @@ class mapped_module {
 
     bool findFuncsByAddr(const Address addr, std::set<int_function *> &funcs);
     bool findBlocksByAddr(const Address addr, std::set<int_block *> &blocks);
+    void getAnalyzedCodePages(std::set<Address> & pages);
 
 
       void dumpMangled(std::string prefix) const;

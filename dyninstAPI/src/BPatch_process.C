@@ -1706,7 +1706,43 @@ bool BPatch_process::hideDebuggerInt()
         funcs.clear();
     }
 
-    BPatch_module *kern = image->findModule("kernel32.dll",true);
+    BPatch_module *kern = image->findModule("*kernel32.dll",true);
+    if (kern) {
+        // SuspendThread
+
+        // KEVINTODO: use function replacement to replace the function, 
+        // conditioned on its thread ID parameter matching a Dyninst thread
+        using namespace SymtabAPI;
+        vector<BPatch_function*> funcs;
+        kern->findFunction(
+            "SuspendThread",
+            funcs, false, false, false, true);
+        assert (funcs.size());
+        Address entry = (Address)funcs[0]->getBaseAddr();
+        // create a patch that will return one
+        const int PATCH_SIZE = 6;
+        unsigned char patch[PATCH_SIZE];
+        patch[0] = 0x33; // xor eax,eax
+        patch[1] = 0xc0;
+        patch[2] = 0x40; // inc eax
+        patch[3] = 0xc2; // ret 4
+        patch[4] = 0x04;
+        patch[5] = 0x00;
+        // patch out process memory and its copy in the mapped file
+        if (!llproc->writeDataSpace((void*)entry,sizeof(char)*PATCH_SIZE,&patch)) {
+            assert(0);
+        }
+        mapped_object *kernObj = kern->lowlevel_mod()->obj();
+        Region *reg = kernObj->parse_img()->getObject()->findEnclosingRegion
+            (entry - kernObj->codeBase());
+        assert(reg);
+        unsigned char *rawReg = (unsigned char *) reg->getPtrToRawData();
+        memcpy(rawReg + entry - kernObj->codeBase() - reg->getMemOffset(), 
+               patch, 
+               sizeof(char) * PATCH_SIZE);
+        funcs.clear();
+    }
+
     if (kern && user) { // should only succeed on windows
         // CheckRemoteDebuggerPresent
         vector<BPatch_function*> funcs;
@@ -1975,6 +2011,10 @@ void BPatch_process::overwriteAnalysisUpdate
         }
 
         // re-instate call edges to the function
+        vector<edgeStub> stubs;
+        stubs.push_back(edgeStub(bit->first,bit->second,ParseAPI::CALL));
+        bit->first->func()->obj()->parseNewEdges(stubs);
+#if 0 // broken code that bypassed the int-layer parseNewEdges
         vector<ParseAPI::Block*>  srcs; 
         vector<Address> trgs; 
         vector<EdgeTypeEnum> etypes; 
@@ -1983,6 +2023,7 @@ void BPatch_process::overwriteAnalysisUpdate
         trgs.push_back(bit->second - tobj->codeBase());
         etypes.push_back(ParseAPI::CALL);
         bit->first->func()->ifunc()->img()->codeObject()->parseNewEdges(srcs,trgs,etypes);
+#endif
     }
 
     // set new entry points for functions with NewF blocks

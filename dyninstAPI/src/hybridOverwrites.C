@@ -45,6 +45,7 @@
 #include "InstructionDecoder.h"
 #include "instPoint.h"
 #include "mapped_object.h"
+#include "mapped_module.h"
 
 using namespace Dyninst;
 
@@ -1013,6 +1014,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
     loop->unresExits_.clear();
 
     if (overwroteLoop) {
+        mal_printf("Overwrite loop modified its own code\n");
         proc()->beginInsertionSet();
         std::set<BPatchSnippetHandle*>::iterator sIter = loop->snippets.begin();
         for (; sIter != loop->snippets.end(); sIter++) {
@@ -1071,11 +1073,13 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
             (*fIter)->getCFG()->invalidate();
         }
 
-        // re-instate code discovery instrumentation
+        // Clean up datastructures for pages that had code but don't anymore
+        // Re-instate code discovery instrumentation
         for(set<BPatch_module*>::iterator mIter = mods.begin();
             mIter != mods.end(); 
             mIter++) 
         {
+            (*mIter)->lowlevel_mod()->obj()->removeEmptyPages();
             hybrid_->instrumentModule(*mIter,false);
         }
 

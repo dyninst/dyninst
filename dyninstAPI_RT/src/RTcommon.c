@@ -450,13 +450,13 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
 	static int reentrant = 0;
 
     RT_Boolean isInCache = RT_FALSE;
-//#if defined STACKDUMP
+#if defined STACKDUMP
     unsigned char *stackBase = (unsigned char*) 0x12ff00; // & pointAddr;
     unsigned bidx=0;
     fprintf(stOut,"RT_stopThread: pt[%lx] flags[%lx] calc[%lx] reentrant=%d\n", 
             (long)pointAddr, (long)flags, (long)calculation, reentrant);
     fflush(stOut);
-//#endif
+#endif
 	if (reentrant == 1) {
 		return;
 	}
@@ -465,7 +465,7 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
     rtdebug_printf("RT_st: pt[%lx] flags[%lx] calc[%lx] ", 
                    (long)pointAddr, (long)flags, (long)calculation);
 
-#if defined STACKDUMP
+#if 0 && defined STACKDUMP
     //if (0 && ((unsigned long)calculation == 0x9746a3 || 
     //          (unsigned long)calculation == 0x77dd761b))
     //{
@@ -536,11 +536,11 @@ void DYNINST_stopInterProc(void * pointAddr, void *callBackID,
                            void *flags, void *calculation,
                            void *objStart, void *objEnd)
 {
-//#if defined STACKDUMP
+#if defined STACKDUMP
     fprintf(stOut,"RT_sip: calc=%lx objStart=%lx objEnd=%lx\n",
             calculation, objStart, objEnd);
     fflush(stOut);
-//#endif
+#endif
     if (calculation < objStart || calculation >= objEnd) {
         flags = (void*)(((int)flags) & 0xfffffffe);
     }

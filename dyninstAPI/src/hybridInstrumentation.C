@@ -426,30 +426,6 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     vector<Address> targets;
     vector<BPatch_point *> *retPoints = func->findPoint(BPatch_exit);
     BPatch_retAddrExpr retAddrSnippet;
-<<<<<<< HEAD:dyninstAPI/src/hybridInstrumentation.C
-    if (retPoints && retPoints->size() && 
-        (instrumentReturns || 
-         ParseAPI::RETURN != func->lowlevel_func()->ifunc()->init_retstatus() || 
-         ParseAPI::TAMPER_NONZERO == func->lowlevel_func()->ifunc()->tampersStack() ||
-         isHandler ))
-    {
-        for (unsigned int j=0; j < retPoints->size(); j++) {
-			BPatch_point *curPoint = (*retPoints)[j];
-            BPatchSnippetHandle *handle;
-
-            // check that we don't instrument the same point multiple times
-            // and that we don't instrument the return instruction if it's got 
-            // a fixed, known target, e.g., it's a static target push-return 
-            if ( (*instrumentedFuncs)[func]->end() != 
-                 (*instrumentedFuncs)[func]->find(curPoint) 
-                ||
-                 ( ( curPoint->isReturnInstruction() || curPoint->isDynamic()) &&
-                   ! curPoint->getCFTargets(targets) ) ) 
-            {
-                continue;
-            }
-=======
->>>>>>> 4d076cbf441b76487b03bac51eed7495aa8e6f6d:dyninstAPI/src/hybridInstrumentation.C
 
     if (retPoints && retPoints->size()) {
 		for (unsigned int j=0; j < retPoints->size(); j++) {
@@ -1121,10 +1097,15 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
     {
         if (point->getPointType() == BPatch_subroutine) {
             if (0 == strncmp(funcName,"ExitProcess",32) && 
-                0 == strncmp(modName,"kernel32.dll",16)) 
+                NULL == strstr(modName,"kernel32.dll")) 
             {
                 fprintf(stderr,"Caught call to %s, should exit soon %s[%d]\n", 
                         funcName,FILE__,__LINE__);
+            }
+            else if (0 == strncmp(funcName,"ExitProcess",32) && 
+                     NULL == strstr(modName,"kernel32.dll")) 
+            {
+
             }
             else {
                 mal_printf("stopThread instrumentation found call %lx=>%lx, "

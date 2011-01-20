@@ -232,6 +232,8 @@ class SpringboardBuilder {
 
   AddressSpace *addrSpace_;
 
+  // tracks relocation addresses that need trap-based springboards
+  static std::set<Address> relocTraps_; 
   
 
   // We don't really care about the payload; I just want an "easy to look up"

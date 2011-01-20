@@ -2037,6 +2037,30 @@ void mapped_object::removeFunction(int_function *func) {
     }  
 }
 
+void mapped_object::removeEmptyPages()
+{
+    // get all pages currently containing code from the mapped modules
+    set<Address> curPages;
+    vector<Address> emptyPages;
+    const vector<mapped_module*> & mods = getModules();
+    for (unsigned midx=0; midx < mods.size(); midx++) {
+        mods[midx]->getAnalyzedCodePages(curPages);
+    }
+    // find entries in protPages_ that aren't in curPages, add to emptyPages
+    for (map<Address,WriteableStatus>::iterator pit= protPages_.begin(); 
+         pit != protPages_.end(); 
+         pit++) 
+    {
+        if (curPages.end() == curPages.find(pit->first)) {
+            emptyPages.push_back(pit->first);
+        }
+    }
+    // erase emptyPages from protPages
+    for (unsigned pidx=0; pidx < emptyPages.size(); pidx++) {
+        protPages_.erase(emptyPages[pidx]);
+    }
+}
+
 bool mapped_object::isSystemLib(const std::string &objname)
 {
    std::string lowname = objname;

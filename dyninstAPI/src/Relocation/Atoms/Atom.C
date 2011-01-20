@@ -153,6 +153,7 @@ bool Trace::generate(const codeGen &templ,
        //    debug_blocks = true;
        //}
 	   if (debug_blocks) {
+           fprintf(stderr,"debug traps for block [%lx %lx)\n",bbl()->start(), bbl()->end());
 		   codeGen gen(1);
 		   gen.fill(1, codeGen::cgTrap);
 		   buffer.addPIC(gen, new InstTracker(bbl()->start(), NULL, bbl()));

@@ -334,5 +334,31 @@ bool mapped_module::findBlocksByAddr(const Address addr,
    return (blocks.size() > size);
 }
 
+void mapped_module::getAnalyzedCodePages(std::set<Address> & pages)
+{
+    assert(proc()->proc());
+    using namespace ParseAPI;
+    int pageSize = proc()->proc()->getMemoryPageSize();
+    const pdvector<int_function *> funcs = getAllFunctions();
+    for (unsigned fidx=0; fidx < funcs.size(); fidx++) {
+        const int_function::BlockSet&
+            blocks = funcs[fidx]->blocks();
+        int_function::BlockSet::const_iterator bIter;
+        for (bIter = blocks.begin(); 
+            bIter != blocks.end(); 
+            bIter++) 
+        {
+            Address bStart, bEnd, page;
+            bStart = (*bIter)->start();
+            bEnd = (*bIter)->end();
+            page = bStart - (bStart % pageSize);
+            while (page < bEnd) { // account for blocks spanning multiple pages
+                pages.insert(page);
+                page += pageSize;
+            }
+        }
+    }
+    
+}
 
 
