@@ -47,6 +47,12 @@
 using namespace Dyninst;
 
 /* Callback wrapper funcs */
+static void virtualFreeCB_wrapper(BPatch_point *point, void *calc)
+{
+	dynamic_cast<BPatch_process *>(point->getFunction()->getProc())->
+		getHybridAnalysis()->virtualFreeCB(point, calc);
+}
+
 static void badTransferCB_wrapper(BPatch_point *point, void *calc) 
 { 
     dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
@@ -97,6 +103,22 @@ bool HybridAnalysis::init()
     proc()->hideDebugger();
 
 #if defined (os_windows)
+	// Instrument VirtualFree to inform us when to unmap a code region
+	BPatch_stopThreadExpr virtualFreeSnippet = BPatch_stopThreadExpr(virtualFreeCB_wrapper,
+		BPatch_paramExpr(0), // Address getting unloaded
+		false, // No cache!
+		BPatch_interpAsTarget);
+	proc()->beginInsertionSet();
+	std::vector<BPatch_function *> virtualFreeFuncs;
+	proc()->getImage()->findFunction("VirtualFree", virtualFreeFuncs);
+	for (unsigned i = 0; i < virtualFreeFuncs.size(); ++i) {
+		std::vector<BPatch_point *> *entryPoints = virtualFreeFuncs[i]->findPoint(BPatch_locEntry);
+		proc()->insertSnippet(virtualFreeSnippet, *entryPoints);
+	}
+	proc()->finalizeInsertionSet(false);
+	// Done instrumenting VirtualFree
+
+
     if (proc()->lowlevel_process()->isMemoryEmulated()) {
         // read in the list of whitelisted Windows API functions (those that 
         // don't use pointers) so we save time by not to synchronizing around
@@ -271,6 +293,14 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     }
 
     mal_printf("instfunc at %lx\n", funcAddr);
+	if (funcAddr == 0x401014) {
+		DebugBreak();
+	}
+
+	assert(func);
+	assert(func->lowlevel_func());
+	assert(proc());
+	assert(proc()->lowlevel_process());
 
     if (proc()->lowlevel_process()->isMemoryEmulated() && 
         BPatch_defensiveMode == func->lowlevel_func()->obj()->hybridMode()) 
@@ -885,25 +915,23 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
     }
     if (targObj && eit == edges.end()) {
         // edge does not exist, add it
-        vector<Block*>  srcs; 
-        vector<Address> trgs;
-        vector<EdgeTypeEnum> etypes;
-        srcs.push_back(sourcePt->llpoint()->block()->llb());
-        trgs.push_back(target - targObj->codeBase());
+		vector<CodeObject::NewEdgeToParse> worklist;
+		EdgeTypeEnum etype;
+
         mal_printf("Adding indirect edge %lx->%lx", 
                    (Address)sourcePt->getAddress(), target);
         if (BPatch_subroutine == sourcePt->getPointType()) {
-            etypes.push_back(CALL);
+            etype = CALL;
             mal_printf(" of type CALL\n");
         } else if (BPatch_exit == sourcePt->getPointType()) {
-            etypes.push_back(RET);
+            etype = RET;
             mal_printf(" of type RET\n");
         } else {
-            etypes.push_back(INDIRECT);
+            etype = INDIRECT;
             mal_printf(" of type INDIRECT\n");
         }
-        targObj->parse_img()->codeObject()->
-            parseNewEdges(srcs,trgs,etypes);
+		worklist.push_back(CodeObject::NewEdgeToParse(sourcePt->llpoint()->block()->llb(), target - targObj->codeBase(), etype));
+        targObj->parse_img()->codeObject()->parseNewEdges(worklist);
         return true;
     }
     return false;
@@ -1090,6 +1118,9 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
         mal_printf("%lx => %lx, in module %s \n",
                     point->getAddress(),target,modName,funcName);
     }
+	if (target == 0x401014) {
+		int i = 3;
+	}
     // 1.1 if targMod is a system library don't parse at target.  However, if the 
     //     transfer into the targMod is an unresolved indirect call, parse at the 
     //     call's fallthrough addr and return.

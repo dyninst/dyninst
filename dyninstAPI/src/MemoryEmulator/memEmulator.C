@@ -129,6 +129,18 @@ void MemoryEmulator::addRegion(mapped_object *obj) {
    }         
 }
 
+void MemoryEmulator::removeRegion(mapped_object *obj) {
+	// Remove each code region
+	std::vector<Region *> codeRegions;
+	obj->parse_img()->getObject()->getCodeRegions(codeRegions);
+
+	for (unsigned i = 0; i < codeRegions.size(); ++i) {
+		Region *reg = codeRegions[i];
+
+		removeRegion(reg, obj->codeBase());
+	}
+}
+
 void MemoryEmulator::addRegion(Region *reg, Address base) {
    
    //cerr << "\t\t Region " << i << ": " << hex
@@ -207,6 +219,26 @@ void MemoryEmulator::addRegion(Region *reg, Address base) {
    free(buffer);
 }
 
+void MemoryEmulator::removeRegion(Region *reg, Address base) {
+   
+   //cerr << "\t\t Region " << i << ": " << hex
+   //<< codeRegions[i]->getMemOffset() + obj->codeBase() << " -> " 
+   //<< codeRegions[i]->getMemOffset() + codeRegions[i]->getMemSize() + obj->codeBase() << endl;
+   
+	RegionMap::iterator iter = addedRegions_.find(reg);
+	if (iter == addedRegions_.end()) return;
+
+	// First, nuke our track of the springboards
+	springboards_.erase(reg);
+
+   // Deallocate the shadow pages in the mutatee
+   //  -- this is TODO; we mangle the allocation base and therefore can't
+   //     really call inferiorfree on it. 
+
+   // Remove the region from the translation map
+   removeRegion(base + reg->getMemOffset(), reg->getMemSize());
+}
+
 void MemoryEmulator::addRegion(Address start, unsigned size, Address shift) {
    if (size == 0) return;
 
@@ -267,6 +299,35 @@ void MemoryEmulator::addRegion(Address start, unsigned size, Address shift) {
    }
 
    return;   
+}
+
+void MemoryEmulator::removeRegion(Address addr, unsigned size) {
+	Address lb, ub;
+	unsigned long shiftVal;
+
+	Address lowLB = 0, lowUB = 0, hiLB = 0, hiUB = 0;
+
+	// We are guaranteed to be either our own allocated range or
+	// coalesced with another range. 
+	memoryMap_.find(addr, lb, ub, shiftVal);
+	
+	if (lb < addr) {
+		lowLB = lb;
+		lowUB = addr;
+	}
+	if (ub > (addr + size)) {
+		hiLB = (addr + size);
+		hiUB = ub;
+	}
+	memoryMap_.remove(lb);
+	if (lowLB || lowUB) {
+		memoryMap_.insert(lowLB, lowUB, shiftVal);
+	}
+	if (hiLB || hiUB) {
+		memoryMap_.insert(hiLB, hiUB, shiftVal);
+	}
+	
+	reverseMemoryMap_.remove(addr + shiftVal);
 }
 
 unsigned MemoryEmulator::addrWidth() {

@@ -142,6 +142,7 @@ bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end, int funcID) {
   for (; begin != end; ++begin) {
     bool useBlock = true;
     int_block *bbl = (*begin);
+
     // don't add block if it's shared and the entry point of another function
     if (bbl->llb()->isShared()) {
         using namespace ParseAPI;
@@ -226,7 +227,7 @@ bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end, int funcID) {
   return true;
 }
 
-
+extern bool disassemble_reloc;
 SpringboardBuilder::generateResult_t 
 SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 					const SpringboardReq &r,
@@ -234,15 +235,17 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    codeGen gen;
    
    bool usedTrap = false;
-   
+   if (disassemble_reloc) cerr << "Springboard: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
+
    generateBranch(r.from, r.destinations.begin()->second, gen);
-   
+
    if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
       // Errr...
       // Fine. Let's do the trap thing. 
       usedTrap = true;
       generateTrap(r.from, r.destinations.begin()->second, gen);
-      if (conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
+	  //cerr << hex << "Generated springboard trap: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
+	  if (conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
          // Someone could already be there; omit the trap. 
          return Failed;
       }
@@ -419,11 +422,13 @@ void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) 
   gen.setAddr(from);
 
   insnCodeGen::generateBranch(gen, from, to);
+
   springboard_cerr << "Springboard branch " << hex << from << "->" << to << dec << endl;
 }
 
 void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
-  gen.invalidate();
+	//cerr << "Springboard: generateTrap " << hex << from << " -> " << to << dec << endl;
+	gen.invalidate();
   gen.allocate(4);
   gen.setAddrSpace(addrSpace_);
   gen.setAddr(from);
@@ -435,10 +440,11 @@ void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
 bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool useTrap, SpringboardMap &input) {
    assert(!req.fromRelocatedCode);
    // Just the requests for now.
-   
+   //cerr << "\t createRelocSpringboards for " << hex << req.from << dec << endl;
    std::list<Address> relocAddrs;
    for (SpringboardReq::Destinations::const_iterator b_iter = req.destinations.begin(); 
        b_iter != req.destinations.end(); ++b_iter) {
+
        addrSpace_->getRelocAddrs(req.from, b_iter->first->func(), relocAddrs, true);
        for (std::list<Address>::const_iterator addr = relocAddrs.begin(); 
             addr != relocAddrs.end(); ++addr) { 
@@ -470,7 +476,6 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool
                    << "a branch can fit" << dec << endl;
                curUseTrap = true;
           }
-
 
           input.addRaw(*addr, b_iter->second, 
                        newPriority, b_iter->first,

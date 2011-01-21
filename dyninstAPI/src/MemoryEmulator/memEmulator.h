@@ -52,6 +52,9 @@ class MemoryEmulator {
    void addRegion(SymtabAPI::Region *reg, Address base);
    void update();
 
+   void removeRegion(mapped_object *obj);
+   void removeRegion(SymtabAPI::Region *reg, Address base);
+
    void reprocess(mapped_object *obj);
 
    std::pair<bool, Address> translate(Address addr);
@@ -67,6 +70,8 @@ class MemoryEmulator {
 
   private:
    void addRegion(Address start, unsigned size, Address newBase);
+   void removeRegion(Address start, unsigned size);
+
    bool findMutateeTable();
    unsigned addrWidth();
 

@@ -37,6 +37,7 @@
 #include "instPoint.h"
 #include "function.h"
 #include "MemoryEmulator/memEmulator.h"
+#include "mapped_object.h"
 
 void newCodeCB(std::vector<BPatch_function*> &newFuncs, 
                std::vector<BPatch_function*> &modFuncs)
@@ -401,6 +402,23 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     instrumentModules(false);
     proc()->finalizeInsertionSet(false);
 }
+
+// Look up the memory region, and unmap it if it corresponds to a mapped object
+
+
+void HybridAnalysis::virtualFreeCB(BPatch_point *, void *addr) {
+	// Let's see if we correspond to a mapped object
+	mapped_object *obj = proc()->lowlevel_process()->createObjectNoFile((Address) addr);
+	if (obj) {
+		cerr << "Found object of " << obj->fileName() << " corresponding to freed addr " << hex << addr << dec << endl;
+		proc()->lowlevel_process()->removeASharedObject(obj);
+		// Dun dun duuunnnnnn
+		delete obj;
+	}
+
+	return;
+}
+
 
 /* CASES (sub-numbering are cases too)
  * 1. the target address is in a shared library

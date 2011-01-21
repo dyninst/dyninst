@@ -62,6 +62,8 @@ bool Fallthroughs::process(TraceList::iterator &iter, TracePtr next) {
   
   relocation_cerr << "Fallthrough transformer going to work on block " << (*iter)->id() << endl;
 
+
+
   // We don't need to iterate over all the elements; by definition
   // the only one we care about is the last one. 
   //
@@ -71,28 +73,37 @@ bool Fallthroughs::process(TraceList::iterator &iter, TracePtr next) {
   CFAtom::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFAtom>(elements.back() );
   
   if (!cf) return true;
-  
+
+  // Bug fix: if we have a block consisting of a single branch we _really_ need
+  // to keep it. Otherwise the CFG of the code we generate doesn't match the original
+  // CFG, and things like address lookups can get screwed up.
+
+  bool keepBlockOverride = false;
+  if ((elements.size() == 1) &&
+	  cf->destMap_.size() == 1) keepBlockOverride = true;
+
   for (CFAtom::DestinationMap::iterator d_iter = cf->destMap_.begin();
        d_iter != cf->destMap_.end(); ++d_iter) {
 
     if ((d_iter->first != CFAtom::Fallthrough) &&
-	(d_iter->first != CFAtom::Taken)) {
-      relocation_cerr << "\t Skipping addr-based edge " << d_iter->first << endl;
-      continue;
+		(d_iter->first != CFAtom::Taken))
+	{
+		relocation_cerr << "\t Skipping addr-based edge " << d_iter->first << endl;
+		continue;
     }
 
-    TargetInt *target = d_iter->second;
+	TargetInt *target = d_iter->second;
 
-    if (target->matches(next) && !cf->needsPostCallPadding() ) {
-      relocation_cerr << "\t " << d_iter->first << ": target " << target->format()
-		      << " and next block " << next->id() << ", setting branch not required" << endl;
-      target->setNecessary(false);
-    }
-    else {
-      relocation_cerr << "\t " << d_iter->first << ": target " << target->format()
-		      << " and next block " << next->id() << ", setting branch required" << endl;
-      target->setNecessary(true);
-    }
+    if (target->matches(next) && !cf->needsPostCallPadding() && !keepBlockOverride ) {
+		relocation_cerr << "\t " << d_iter->first << ": target " << target->format()
+			<< " and next block " << next->id() << ", setting branch not required" << endl;
+		target->setNecessary(false);
+	}
+	else {
+		relocation_cerr << "\t " << d_iter->first << ": target " << target->format()
+			<< " and next block " << next->id() << ", setting branch required" << endl;
+		target->setNecessary(true);
+	}
   }
   return true;
 }

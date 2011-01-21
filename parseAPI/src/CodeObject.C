@@ -194,33 +194,31 @@ CodeObject::deleteFunc(Function *func)
 // 
 // create work elements and pass them to the parser
 bool 
-CodeObject::parseNewEdges( vector<Block*> & sources, 
-                           vector<Address> & targets,
-                           vector<EdgeTypeEnum> & edge_types )
+CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
 {
     vector< ParseWorkElem * > work_elems;
     vector<std::pair<Address,CodeRegion*> > parsedTargs;
-    for (unsigned idx=0; idx < sources.size(); idx++) {
+    for (unsigned idx=0; idx < worklist.size(); idx++) {
         // see if the target block already exists, in which case we can use
         // add_edge
         set<CodeRegion*> regs;
-        cs()->findRegions(targets[idx],regs);
+        cs()->findRegions(worklist[idx].target,regs);
         assert(1 == regs.size()); // at present this function doesn't support 
                                   // ambiguous regions for the target address
-        Block *trgB = findBlockByEntry(*(regs.begin()), targets[idx]);
+        Block *trgB = findBlockByEntry(*(regs.begin()), worklist[idx].target);
 
         if (trgB) {
-            add_edge(sources[idx], trgB, edge_types[idx]);
-            if (CALL == edge_types[idx]) {
+            add_edge(worklist[idx].source, trgB, worklist[idx].edge_type);
+            if (CALL == worklist[idx].edge_type) {
                 // if it's a call edge, add it to Function::_call_edges
                 // since we won't re-finalize the function
                 vector<Function*> funcs;
-                sources[idx]->getFuncs(funcs);
+                worklist[idx].source->getFuncs(funcs);
                 for(vector<Function*>::iterator fit = funcs.begin();
                     fit != funcs.end();
                     fit++) 
                 {
-                    Block::edgelist & tedges = sources[idx]->targets();
+                    Block::edgelist & tedges = worklist[idx].source->targets();
                     for(Block::edgelist::iterator eit = tedges.begin();
                         eit != tedges.end();
                         eit++)
@@ -233,13 +231,13 @@ CodeObject::parseNewEdges( vector<Block*> & sources,
             }
         } 
         else {
-            parsedTargs.push_back(pair<Address,CodeRegion*>(targets[idx],
+            parsedTargs.push_back(pair<Address,CodeRegion*>(worklist[idx].target,
                                                             *regs.begin()));
             ParseWorkBundle *bundle = new ParseWorkBundle();
             ParseWorkElem *elem = bundle->add(new ParseWorkElem
                 ( bundle, 
-                  parser->link_tempsink(sources[idx], edge_types[idx]),
-                  targets[idx],
+                  parser->link_tempsink(worklist[idx].source, worklist[idx].edge_type),
+                  worklist[idx].target,
                   true,
                   false ));
             work_elems.push_back(elem);
