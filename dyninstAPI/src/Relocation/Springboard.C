@@ -252,7 +252,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
       createRelocSpringboards(r, usedTrap, input);
    }
 
-  registerBranch(r.from, r.from + gen.used(), r.fromRelocatedCode);
+  registerBranch(r.from, r.from + gen.used(), r.destinations, r.fromRelocatedCode);
   springboards.push_back(gen);
 
   return Succeeded;
@@ -325,20 +325,37 @@ bool SpringboardBuilder::conflictInRelocated(Address start, Address end) {
          return true;
       }
    }
-
-   if ( (end-start) > 1 && relocTraps_.end() != relocTraps_.find(start)) {
-       springboard_cerr << "Springboard conflict for [" << hex << start 
-           << " " << end << "), our previous springboard here needed " 
-           << "a trap even though we may think we need one now" << endl;
-      return true;
+   if ( (end-start) > 1 && relocTraps_.end() != relocTraps_.find(start) ) {
+       malware_cerr << "Springboard conflict for " << hex << start  
+           << " our previous springboard here needed a trap, "
+           << "but due to overwrites we may (erroneously) think "
+           << "a branch can fit" << dec << endl;
+       springboard_cerr << "Springboard conflict for " << hex << start  
+           << " our previous springboard here needed a trap, "
+           << "but due to overwrites we may (erroneously) think "
+           << "a branch can fit" << dec << endl;
+       return true;
    }
 
    return false;
 }
 
-void SpringboardBuilder::registerBranch(Address start, Address end, bool inRelocated) {
+void SpringboardBuilder::registerBranch
+(Address start, Address end, const SpringboardReq::Destinations & dest, bool inRelocated) 
+{
    // Remove the valid ranges for everything between start and end, using much the 
    // same logic as above.
+
+   if ( 1 == (end - start) ) {
+       for (SpringboardReq::Destinations::const_iterator dit=dest.begin();
+            dit != dest.end();
+            dit++)
+       {
+           relocTraps_.insert(start);
+           relocTraps_.insert(dit->second);// if we relocate again it will need a trap too
+       }
+   }
+    
    if (inRelocated) {
       return registerBranchInRelocated(start, end);
    }
@@ -379,9 +396,6 @@ void SpringboardBuilder::registerBranch(Address start, Address end, bool inReloc
 
 void SpringboardBuilder::registerBranchInRelocated(Address start, Address end) {
    overwrittenRelocatedCode_.insert(start, end, true);
-   if ( 1 == (end - start) ) {
-       relocTraps_.insert(start);
-   }
 }
 
 
@@ -427,7 +441,7 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool
        b_iter != req.destinations.end(); ++b_iter) {
        addrSpace_->getRelocAddrs(req.from, b_iter->first->func(), relocAddrs, true);
        for (std::list<Address>::const_iterator addr = relocAddrs.begin(); 
-            addr != relocAddrs.end(); ++addr) {
+            addr != relocAddrs.end(); ++addr) { 
           if (*addr == b_iter->second) continue;
           Priority newPriority;
           switch(req.priority) {
@@ -441,11 +455,27 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool
                 assert(0);
                 break;
           }
-          
+
+          bool curUseTrap = useTrap;
+          if ( !useTrap && relocTraps_.end() != relocTraps_.find(*addr)) {
+               malware_cerr << "Springboard conflict for " << hex 
+                   << req.from << "[" << (*addr) 
+                   << "] our previous springboard here needed a trap, "
+                   << "but due to overwrites we may (erroneously) think "
+                   << "a branch can fit" << dec << endl;
+               springboard_cerr << "Springboard conflict for " << hex 
+                   << req.from << "[" << (*addr) 
+                   << "] our previous springboard here needed a trap, "
+                   << "but due to overwrites we may (erroneously) think "
+                   << "a branch can fit" << dec << endl;
+               curUseTrap = true;
+          }
+
+
           input.addRaw(*addr, b_iter->second, 
                        newPriority, b_iter->first,
                        req.checkConflicts, 
-                       false, true, useTrap);
+                       false, true, curUseTrap);
        }
    }
    return true;

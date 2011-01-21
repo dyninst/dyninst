@@ -1463,21 +1463,20 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
     registerNewFunctions();
 
     // build list of potentially modified functions
-    vector<ParseAPI::Function*> modFuncs;
+    vector<ParseAPI::Function*> modIFuncs;
+    vector<int_function*> modFuncs;
     for(unsigned sidx=0; sidx < sources.size(); sidx++) {
-        sources[sidx]->getFuncs(modFuncs);
+        sources[sidx]->getFuncs(modIFuncs);
     }
 
-    for (unsigned fidx=0; fidx < modFuncs.size(); fidx++) 
+    for (unsigned fidx=0; fidx < modIFuncs.size(); fidx++) 
     {
-       int_function *func = findFunction(modFuncs[fidx]);
+       int_function *func = findFunction(modIFuncs[fidx]);
+       modFuncs.push_back(func);
 
 /* 3. Add img-level blocks and points to int-level datastructures */
        func->addMissingBlocks();
        func->addMissingPoints();
-       
-       // invalidate liveness calculations
-       func->ifunc()->invalidateLiveness();
     }
 
 /* 5. fix mapping of split blocks that have points */
@@ -1486,10 +1485,12 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
         parse_img()->clearSplitBlocks();
     }
 
+    // update the function's liveness and PC sensitivity analysis,
+    // and assert its consistency
     for (unsigned fidx=0; fidx < modFuncs.size(); fidx++) 
     {
-       int_function *func = findFunction(modFuncs[fidx]);
-       assert(func->consistency());
+    	modFuncs[fidx]->triggerModified();
+        assert(modFuncs[fidx]->consistency());
     }
     
     return true;

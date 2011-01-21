@@ -217,7 +217,7 @@ class SpringboardBuilder {
   bool conflict(Address start, Address end, bool inRelocatedCode);
   bool conflictInRelocated(Address start, Address end);
 
-  void registerBranch(Address start, Address end, bool inRelocatedCode);
+  void registerBranch(Address start, Address end, const SpringboardReq::Destinations &dest, bool inRelocatedCode);
   void registerBranchInRelocated(Address start, Address end);
 
   void addMultiNeeded(const SpringboardReq &p);

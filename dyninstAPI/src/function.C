@@ -776,7 +776,6 @@ void int_function::addMissingBlocks()
            }
        }
    }
-	triggerModified();	
 }
 
 /* trigger search in image_layer points vectors to be added to int_level 
@@ -793,7 +792,7 @@ void int_function::addMissingPoints()
     funcAbruptEnds();
 }
 
-// get instPoints of known function callsinto this one
+// get instPoints of known function calls into this one
 void int_function::getCallerPoints(std::vector<instPoint*>& callerPoints)
 {
 	if (!entryBlock()) return;
@@ -1365,6 +1364,9 @@ bool int_function::consistency() const {
 void int_function::triggerModified() {
 	// A single location to drop anything that needs to be
 	// informed when an int_function was updated.
+
+    // invalidate liveness calculations
+    ifunc()->invalidateLiveness();
 
 	// Relocation info caching...
 	PCSensitiveTransformer::invalidateCache(this);

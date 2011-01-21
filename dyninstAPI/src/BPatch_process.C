@@ -1995,6 +1995,7 @@ void BPatch_process::overwriteAnalysisUpdate
     {
         // the function is still reachable, reparse it
         if (reParsedFuncs.end() == reParsedFuncs.find(bit->second)) {
+            reParsedFuncs.insert(bit->second);
             vector<BPatch_module*> dontcare; 
             vector<Address> targVec; 
             targVec.push_back(bit->second);

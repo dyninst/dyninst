@@ -683,7 +683,7 @@ void PCSensitiveTransformer::invalidateCache(int_function *f) {
 	for (std::vector<instPoint *>::iterator iter = callerPoints.begin();
 		iter != callerPoints.end(); ++iter) {
 			invalidateCache((*iter)->block());
-	}
+    	}
 }
 
 ExtPCSensVisitor::ExtPCSensVisitor(const AbsRegion &a) :
