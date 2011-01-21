@@ -545,6 +545,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
   else if (proc->trapMapping.definesTrapMapping(ev.address)) {
      ev.type = evtInstPointTrap;
      Frame activeFrame = ev.lwp->getActiveFrame();
+#if 0
 	 cerr << "SPRINGBOARD FRAME: " << hex << activeFrame.getPC() << " / " <<activeFrame.getSP() 
                  << " (DEBUG:" 
                  << "EAX: " << activeFrame.eax
@@ -556,7 +557,6 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
                  << ", ESI: " << activeFrame.esi 
                  << ", EDI " << activeFrame.edi
 				 << ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
-#if 1
 	 for (unsigned i = 0; i < 10; ++i) {
 			Address stackTOPVAL =0;
 		    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
@@ -578,27 +578,26 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 	    requested_wait_until_active = false;
         ret = true;
 		ev.type = evtIgnore;
-
-	    if (1) cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
-                 << " (DEBUG:" 
-                 << "EAX: " << activeFrame.eax
-                 << ", ECX: " << activeFrame.ecx
-                 << ", EDX: " << activeFrame.edx
-                 << ", EBX: " << activeFrame.ebx
-                 << ", ESP: " << activeFrame.esp
-                 << ", EBP: " << activeFrame.ebp
-                 << ", ESI: " << activeFrame.esi 
-                 << ", EDI: " << activeFrame.edi
-				 << ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
-#if 1
-		Address stackTOPVAL =0;
-		for (unsigned i = 0; i < 10; ++i) {
-		    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
-			cerr << "STACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
+		static bool debug1 = true;
+		if (debug1)
+		{
+			cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
+				<< " (DEBUG:" 
+				<< "EAX: " << activeFrame.eax
+				<< ", ECX: " << activeFrame.ecx
+				<< ", EDX: " << activeFrame.edx
+				<< ", EBX: " << activeFrame.ebx
+				<< ", ESP: " << activeFrame.esp
+				<< ", EBP: " << activeFrame.ebp
+				<< ", ESI: " << activeFrame.esi 
+				<< ", EDI: " << activeFrame.edi
+				<< ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
+			Address stackTOPVAL =0;
+			for (unsigned i = 0; i < 10; ++i) {
+				ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
+				cerr << "STACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
+			}
 		}
-	    ev.proc->readDataSpace((void *) (0x12ff9c), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
-		cerr << "STACK 0x12ff9c VALUE=" << hex << stackTOPVAL << dec << endl;
-#endif
 	 }
   }
   else {
@@ -663,13 +662,22 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
         baseTrampInstance *bti = NULL;
         bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
         if (dyn_debug_malware) {
+            Address origAddr = ev.address;
+			Address shadowAddr = 0;
+			bool valid = false;
+			boost::tie(valid, shadowAddr) = ev.proc->getMemEm()->translateBackwards(violationAddr);
+
+			cerr << "Overwrite insn @ " << hex << origAddr << endl;
+            vector<int_function *> writefuncs;
+            baseTrampInstance *bti = NULL;
+            bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
             if (success) {
                 fprintf(stderr,"---%s[%d] overwrite insn at %lx[%lx] in "
-                        "function\"%s\" [%lx], writing to %lx \n",
+                        "function\"%s\" [%lx], writing to %lx (%lx) \n",
                         FILE__,__LINE__, ev.address, origAddr,
-                        writefuncs[0]->get_name().c_str(), 
-                        writefuncs[0]->get_address(), 
-                        violationAddr);
+						writefuncs.empty() ? "<NO FUNC>" : writefuncs[0]->get_name().c_str(), 
+						writefuncs.empty() ? 0 : writefuncs[0]->get_address(), 
+                        violationAddr, shadowAddr);
             } else { 
                 fprintf(stderr,"---%s[%d] overwrite insn at %lx, not "
                         "contained in any range, writing to %lx \n",
@@ -951,13 +959,53 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf) {
     handleT procHandle = getProcessHandle();
     bool res = ReadProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
 				 (LPVOID)inSelf, (DWORD)amount, &nbytes);
+	if (!res && (GetLastError() == 299)) // Partial read success...
+	{
+		// Loop and copy piecewise
+		Address start = (Address) inTraced;
+		Address cur = start;
+		Address end = start + amount;
+		Address bufStart = (Address) inSelf;
+		Address bufCur = bufStart;
+		Address bufEnd = bufStart + amount;
+
+		cerr << "Starting piecewise copy [" << hex << start << "," << end << dec << "]" << endl;
+
+		MEMORY_BASIC_INFORMATION meminfo;
+		memset(&meminfo, 0, sizeof(MEMORY_BASIC_INFORMATION));
+		do {
+			VirtualQueryEx(procHandle,
+				(LPCVOID) cur, 
+				&meminfo,
+				sizeof(MEMORY_BASIC_INFORMATION));
+			cerr << "\t VirtualQuery returns base " << hex
+				<< (Address) meminfo.AllocationBase << " and pages range [" 
+				<< (Address) meminfo.BaseAddress << "," << ((Address)meminfo.BaseAddress) + meminfo.RegionSize 
+				<< dec << "]" << endl;
+			unsigned remaining = end - cur;
+			assert(remaining == (bufEnd - bufCur));
+			unsigned toCopy = (remaining < meminfo.RegionSize) ? remaining : meminfo.RegionSize;
+			if (meminfo.State == MEM_COMMIT) {
+				cerr << "\t Copying range [" << hex << cur << "," << cur + toCopy << "]" << dec << endl;
+				bool res = ReadProcessMemory(procHandle, (LPVOID) cur, (LPVOID) bufCur, (DWORD) toCopy, &nbytes);
+				assert(res);
+			}
+			else {
+				cerr << "\t Zeroing range [" << hex << cur << "," << cur + toCopy << dec << "]" << endl;
+				memset((void *)bufCur, 0, toCopy);
+			}
+			cur += toCopy;
+			bufCur += toCopy;
+		} while (bufCur < bufEnd);
+		return true;
+	}
     return res && (nbytes == amount);
 }
 
 bool process::setMemoryAccessRights
 (Address start, Address size, int rights)
 {
-    //mal_printf("setMemoryAccessRights to %x [%lx %lx]\n", rights, start, start+size);
+    mal_printf("setMemoryAccessRights to %x [%lx %lx]\n", rights, start, start+size);
     // get lwp from which we can call changeMemoryProtections
     dyn_lwp *stoppedlwp = query_for_stopped_lwp();
     if ( ! stoppedlwp ) {
@@ -992,8 +1040,13 @@ int dyn_lwp::changeMemoryProtections
     if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(addr), 
                          (SIZE_T)size, (DWORD)rights, (PDWORD)&oldRights)) 
     {
-        fprintf(stderr, "ERROR: failed to set access rights for page %lx "
-                "%s[%d]\n", addr, FILE__, __LINE__);
+        fprintf(stderr, "ERROR: failed to set access rights for page %lx, error code %d "
+                "%s[%d]\n", addr, GetLastError(), FILE__, __LINE__);
+		MEMORY_BASIC_INFORMATION meminfo;
+		SIZE_T size = VirtualQueryEx(getProcessHandle(), (LPCVOID) (addr), &meminfo, sizeof(MEMORY_BASIC_INFORMATION));
+		fprintf(stderr, "ERROR DUMP: baseAddr 0x%lx, AllocationBase 0x%lx, AllocationProtect 0x%lx, RegionSize 0x%lx, State 0x%lx, Protect 0x%lx, Type 0x%lx\n",
+			meminfo.BaseAddress, meminfo.AllocationBase, meminfo.AllocationProtect, meminfo.RegionSize, meminfo.State, meminfo.Protect, meminfo.Type);
+		assert(0);
         return -1;
     }
 
@@ -2882,6 +2935,7 @@ bool process::hideDebugger()
     return true;
 }
 
+
 mapped_object *process::createObjectNoFile(Address addr)
 {
     Address closestObjEnd = 0;
@@ -2918,13 +2972,15 @@ mapped_object *process::createObjectNoFile(Address addr)
     if (proc()->proc() && readDataSpace((void*)addr, proc()->getAddressWidth(),
                                         &testRead, false)) 
     {
-        // create a module for the region enclosing this address
+		// create a module for the region enclosing this address
         MEMORY_BASIC_INFORMATION meminfo;
         memset(&meminfo,0, sizeof(MEMORY_BASIC_INFORMATION) );
         SIZE_T size = VirtualQueryEx(proc()->processHandle_,
                                      (LPCVOID)addr, &meminfo, 
                                      sizeof(MEMORY_BASIC_INFORMATION));
         assert(meminfo.State == MEM_COMMIT);
+
+
         Address objStart = (Address) meminfo.AllocationBase;
         Address probeAddr = (Address) meminfo.BaseAddress +  (Address) meminfo.RegionSize;
         Address objEnd = probeAddr;
@@ -2937,7 +2993,8 @@ mapped_object *process::createObjectNoFile(Address addr)
                                           &probe,
                                           sizeof(MEMORY_BASIC_INFORMATION));
             probeAddr = (Address) probe.BaseAddress + (Address) probe.RegionSize;
-        } while (probe.AllocationBase == meminfo.AllocationBase);
+        } while ((probe.AllocationBase == meminfo.AllocationBase) && // we're in the same allocation unit...
+			(objEnd != probeAddr)); // we're making forward progress
 
 
         // The size of the region returned by VirtualQueryEx is from BaseAddress
@@ -2955,7 +3012,12 @@ mapped_object *process::createObjectNoFile(Address addr)
             ::LocalAlloc(LMEM_FIXED, regionSize);
 		if (!proc()->readDataSpace((void *)objStart,
 								   regionSize,
-								   rawRegion, true)) assert(0);
+								   rawRegion, true))
+		{
+			cerr << "Error: failed to read memory region [" << hex << objStart << "," << objStart + regionSize << "]" << dec << endl;
+			printSysError(GetLastError());
+			assert(0);
+		}
 		// set up file descriptor
         char regname[64];
         snprintf(regname,63,"mmap_buffer_%lx_%lx",
