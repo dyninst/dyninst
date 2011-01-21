@@ -629,7 +629,7 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 	  if (dyninst_base == NULL)
 		fprintf(stderr,	" DYNINST_ROOT is not set!! ");
 	  char *ldpath = (char *) malloc (1024);
-	  sprintf(ldpath, "LD_LIBRARY_PATH=.:%s/%s/binaries:%s/%s:${LD_LIBRARY_PATH}", dyninst_base, platform, dyninst_base, platform);
+	  sprintf(ldpath, "LD_LIBRARY_PATH=.:%s/%s/binaries:%s/%s/lib:${LD_LIBRARY_PATH}", dyninst_base, platform, dyninst_base, platform);
 	  attach_argv[6] = const_cast<char *>(ldpath);
 
 	  char *binedit_dir = BINEDIT_DIRNAME;
@@ -642,13 +642,15 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 	  attach_argv[9] = const_cast<char *>("-exe");
 	  attach_argv[10] = const_cast<char *>(pathname);
 	  attach_argv[11] = const_cast<char *>("-args");
-	  attach_argv[12] = const_cast<char *>("\"");
+	  char *args = (char*) malloc (2048);
+	  strcpy(args ,"\"");
 
 	  for (int j = 0; argv[j] != NULL; j++){
-		strcat(const_cast<char	*>(attach_argv[12]), argv[j]);
-		strcat(const_cast<char *>(attach_argv[12]), " ");
+		strcat(args, argv[j]);
+		strcat(args, " ");
 	  }
-	  strcat(const_cast<char *>(attach_argv[12]), "\"");
+	  strcat(args, "\"");
+	  attach_argv[12] =  const_cast<char *>(args);
 
 	  attach_argv[BGP_MAX_ARGS] = NULL;
 
@@ -670,10 +672,10 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 	  attach_argv[i++] = NULL;
 	}
 
-   int pid;
+   int pid = 0;
    if (attach)
       pid = fork_mutatee();
-   else 
+   else if (!bgp_test) 
       pid = fork();
    if (pid == 0) {
       // child
@@ -712,10 +714,12 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 	  //FILE__, __LINE__, pathname, getenv("LD_LIBRARY_PATH"));
 
 if(bgp_test) {
-      printf(" running mpirun ");
+
+      dprintf(" running mpirun ");
       for (int i = 0 ; i < BGP_MAX_ARGS ; i++)
-          printf(" %s", attach_argv[i]);
-      printf(" \n");
+          dprintf(" %s", attach_argv[i]);
+      dprintf(" \n");
+
       execvp("mpirun", (char * const *)attach_argv);
       logerror("%s[%d]:  Exec failed!\n", FILE__, __LINE__);
       exit(-1);

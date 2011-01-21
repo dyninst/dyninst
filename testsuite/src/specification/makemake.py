@@ -589,8 +589,9 @@ def print_mutatee_rules(out, mutatees, compiler, module):
 			out.write("mutatee_driver_solo_%s_%s%s\n"
 					  % (aux_c, m['abi'], ObjSuffix))
 		# Print the actions used to link the mutatee executable
-		out.write("\t%s -o $@ $(filter %%%s,$^) %s %s"
+		out.write("\t%s %s -o $@ $(filter %%%s,$^) %s %s"
 				  % (platform['linker'] or "$(M_%s)" % compiler['defstring'],
+				    compiler['flags']['std'],
 					 ObjSuffix,
 					 compiler['flags']['link'],
 					 compiler['abiflags'][platform['name']][m['abi']]))
@@ -680,6 +681,8 @@ def print_patterns_wildcards(c, out, module):
                                     object_flag_string(platform, compiler,
                                                     abi, o, p)))
 def is_valid_test(mutatee):
+	 if(mutatee['groupable'] == 'false'):
+		  return 'true'
 	 groups = info['rungroups']
 	 mutatee_tests = filter(lambda g: g['mutatee'] == mutatee['name'], groups)
 	 if not mutatee_tests:
