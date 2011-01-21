@@ -2906,8 +2906,8 @@ compiler_define_string('xlC', 'native_cxx').
 compiler_define_string('gfortran', 'gnu_fc').
 compiler_define_string('icc', 'intel_cc').
 compiler_define_string('iCC', 'intel_CC').
-compiler_define_string('bgxlc', 'native_cc').
-compiler_define_string('bgxlc++', 'native_CC').
+compiler_define_string('bgxlc', 'bg_cc').
+compiler_define_string('bgxlc++', 'bg_CC').
 
 %%%%%%%%%%
 % *_s relations translate various internal atoms into strings than are
@@ -3029,6 +3029,8 @@ comp_std_flags_str('sun_cc', '$(CFLAGS_NATIVE)').
 comp_std_flags_str('xlc', '$(CFLAGS_NATIVE)').
 comp_std_flags_str('pgcc', '$(CFLAGS_NATIVE)').
 comp_std_flags_str('CC', '$(CXXFLAGS_NATIVE)').
+comp_std_flags_str('bgxlc', '-qnostaticlink').
+comp_std_flags_str('bgxlc++', '-qnostaticlink').
 % FIXME Make sure that these flags for cxx are correct, or tear out cxx (Alpha)
 comp_std_flags_str('cxx', '$(CXXFLAGS_NATIVE)').
 comp_std_flags_str('xlC', '$(CXXFLAGS_NATIVE)').

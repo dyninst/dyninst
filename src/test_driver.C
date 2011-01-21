@@ -81,7 +81,7 @@ struct compiler_t {
    bool enabled;
 };
 
-#define NUM_COMPILERS 19
+#define NUM_COMPILERS 21
 compiler_t compilers[] = {
    { "-gcc", "gcc", false },
    { "-g++", "g++", true },
@@ -98,6 +98,8 @@ compiler_t compilers[] = {
    { "-suncc", "suncc", false },
    { "-xlc", "xlc", false },
    { "-xlC", "xlC", false },
+   { "-bgxlc", "bgxlc", true },
+   { "-bgxlc++", "bgxlc++", true },
    { "-ibmas", "ibmas", false },
    { "-masm", "masm", false },
    { "-nasm", "nasm", false },
