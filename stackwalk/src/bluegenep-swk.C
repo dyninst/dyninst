@@ -101,6 +101,8 @@ namespace Dyninst {
       library_tracker = new DefaultLibState(this);
 #   endif
 */
+      if (!library_tracker)
+         setDefaultLibraryTracker();
       // This should really be checking for exceptions, since the above are constructors.
       if (!library_tracker) {
         sw_printf("[%s:%u] - PID %d failed to create library tracker\n", __FILE__, __LINE__, pid);

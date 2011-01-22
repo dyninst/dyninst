@@ -79,6 +79,20 @@ class TrackLibState : public LibraryState {
    virtual ~TrackLibState();
 };
 
+class StaticBinaryLibState : public LibraryState {
+   LibAddrPair the_exe;
+ public:
+   StaticBinaryLibState(ProcessState *parent, std::string executable = "");
+   ~StaticBinaryLibState();
+   virtual bool getLibraryAtAddr(Address addr, LibAddrPair &olib);
+   virtual bool getLibraries(std::vector<LibAddrPair> &olibs);
+   virtual bool getLibc(LibAddrPair &lc);
+   virtual bool getLibthread(LibAddrPair &lt);
+   virtual bool getAOut(LibAddrPair &ao);
+   virtual void notifyOfUpdate();
+   virtual Address getLibTrapAddress();
+};
+
 SymbolReaderFactory *getDefaultSymbolReader();
 
 class LibraryWrapper {

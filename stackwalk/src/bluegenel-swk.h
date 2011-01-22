@@ -46,6 +46,7 @@ namespace Dyninst {
     class ProcDebugBGL : public ProcDebugBG {
     public:
       ProcDebugBGL(PID pid, std::string executable);
+      virtual bool debug_post_attach(ThreadState *thr);
       virtual ~ProcDebugBGL();
     };
 
