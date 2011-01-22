@@ -83,7 +83,9 @@ AnnotationClass <StackAnalysis::HeightTree> FP_Anno(std::string("FP_Anno"));
 
 bool StackAnalysis::analyze()
 {
+
   df_init_debug();
+
   stackanalysis_printf("Beginning stack analysis for function %s\n",
 		       func->name().c_str());
 
@@ -717,10 +719,9 @@ void StackAnalysis::computeInsnEffects(Block *block,
         iFunc.delta() = sign * word_size;
         stackanalysis_printf("\t\t\t Stack height changed by flag push/pop: %s\n", iFunc.format().c_str());
         return;
-    case power_op_si:
-        sign = -1;
     case power_op_addi:
-      {
+    case power_op_addic:
+        {
         // Add/subtract are op0 = op1 +/- op2; we'd better read the stack pointer as well as writing it
         Operand arg = insn->getOperand(2);
         Result delta = arg.getValue()->eval();

@@ -222,6 +222,17 @@ BPatch_basicBlockLoop *BPatch_point::getLoopInt()
 }
 
 /*
+ * BPatch_point::getAddressSpace
+ *
+ * Returns the point's address space
+ */
+
+BPatch_addressSpace *BPatch_point::getAddressSpaceInt()
+{
+   return addSpace;
+}
+
+/*
  * BPatch_point::getFunction
  *
  * Returns function to which this BPatch_point belongs

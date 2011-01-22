@@ -188,6 +188,7 @@ void dyn_lwp::dumpRegisters()
 bool dyn_lwp::changePC(Address loc,
       struct dyn_saved_regs */*ignored registers*/)
 {
+
    Address regaddr = P_offsetof(struct user_regs_struct, PTRACE_REG_IP);
    assert(get_lwp_id() != 0);
    int ptrace_errno = 0;
@@ -1105,11 +1106,12 @@ bool Frame::setPC(Address newpc) {
 
    //fprintf(stderr, "[%s:%u] - Frame::setPC setting %x to %x",
    //__FILE__, __LINE__, pcAddr_, newpc);
-   getProc()->writeDataSpace((void*)pcAddr_, sizeof(Address), &newpc);
+   if (!getProc()->writeDataSpace((void*)pcAddr_, sizeof(Address), &newpc))
+      return false;
    pc_ = newpc;
    range_ = NULL;
 
-   return false;
+   return true;
 }
 
 // Laziness here: this func is used by the iRPC code
@@ -1334,14 +1336,15 @@ bool process::loadDYNINSTlib_hidden() {
 
   startup_printf("(%d) writing in dlopen call at addr %p\n", getPid(), (void *)codeBase);
 
-  codeGen scratchCodeBuffer(BYTES_TO_SAVE);
+  codeGen scratchCodeBuffer(MAX_IRPC_SIZE);
+  scratchCodeBuffer.setAddrSpace(this);
+  scratchCodeBuffer.setRegisterSpace(registerSpace::irpcRegSpace(this));
 
   // we need to make a call to dlopen to open our runtime library
 
   // Variables what we're filling in
   Address dyninstlib_str_addr = 0;
   Address dlopen_call_addr = 0;
-  Address mprotect_call_addr = 0;
 
   pdvector<int_function *> dlopen_funcs;
   if (!findFuncsByAll(DL_OPEN_FUNC_NAME, dlopen_funcs))
@@ -1423,6 +1426,10 @@ bool process::loadDYNINSTlib_hidden() {
   // Sync with whatever we've put in so far.
   dlopen_call_addr = codeBase + scratchCodeBuffer.used();
 
+  if( !theRpcMgr->emitInferiorRPCheader(scratchCodeBuffer) ) {
+    startup_cerr << "Couldn't emit inferior RPC header" << endl;
+    return false;
+  }
 
   // Since we are punching our way down to an internal function, we
   // may run into problems due to stack execute protection. Basically,
@@ -1439,7 +1446,7 @@ bool process::loadDYNINSTlib_hidden() {
   // Instead of chasing the value of the undocumented flag, we will
   // unprotect the __stack_prot variable ourselves (if we can find it).
 
-  if(!( mprotect_call_addr = tryUnprotectStack(scratchCodeBuffer,codeBase) )) {
+  if(!tryUnprotectStack(scratchCodeBuffer,codeBase)) {
     startup_printf("Failed to disable stack protection.\n");
   }
 
@@ -1466,10 +1473,14 @@ bool process::loadDYNINSTlib_hidden() {
 		     getPid(), codeBase + scratchCodeBuffer.used(), dlopen_addr);
       insnCodeGen::generateCall(scratchCodeBuffer, scratchCodeBuffer.used() + codeBase, dlopen_addr);
       
+      const unsigned stackUsage = 5*4; // 5 pushes
+      RealRegister esp(REGNUM_ESP);
+      RealRegister enull(Null_Register);
+      emitLEA(esp, enull, 0, stackUsage, esp, scratchCodeBuffer);
+      scratchCodeBuffer.rs()->incStack(-(stackUsage-4)); // 4 registered pushes
 
 #if defined(cap_32_64)
   } else {
-
       // Push caller
       emitMovImmToReg64(REGNUM_RAX, dlopen_addr, true, scratchCodeBuffer);
       emitSimpleInsn(0x50, scratchCodeBuffer); // push %rax
@@ -1492,16 +1503,23 @@ bool process::loadDYNINSTlib_hidden() {
       emitMovImmToReg64(REGNUM_RAX, dlopen_addr, true, scratchCodeBuffer);
       emitSimpleInsn(0xff, scratchCodeBuffer); // group 5
       emitSimpleInsn(0xd0, scratchCodeBuffer); // mod = 11, ext_op = 2 (call Ev), r/m = 0 (RAX)
+
+      const unsigned stackUsage = 4*8; // 4 pushes
+      emitLEA64(REGNUM_RSP, Null_Register, 0, stackUsage, REGNUM_RSP, true, scratchCodeBuffer);
   }
 #endif
 
-  // And the break point
-  dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-  insnCodeGen::generateTrap(scratchCodeBuffer);
-
-  if(mprotect_call_addr != 0) {
-    startup_printf("(%d) mprotect call addr at 0x%lx\n", getPid(), mprotect_call_addr);
+  // The break point address is computed by the following function
+  unsigned breakOffset = 0;
+  unsigned unused;
+  if( !theRpcMgr->emitInferiorRPCtrailer(scratchCodeBuffer, breakOffset, 
+                false, unused, unused) ) 
+  {
+    startup_cerr << "Couldn't emit inferior RPC trailer" << endl;
+    return false;
   }
+  dyninstlib_brk_addr = codeBase + breakOffset;
+
   startup_printf("(%d) dyninst lib string addr at 0x%x\n", getPid(), dyninstlib_str_addr);
   startup_printf("(%d) dyninst lib call addr at 0x%x\n", getPid(), dlopen_call_addr);
   startup_printf("(%d) break address is at %p\n", getPid(), (void *) dyninstlib_brk_addr);
@@ -1535,11 +1553,7 @@ bool process::loadDYNINSTlib_hidden() {
   else
      lwp_to_use = getRepresentativeLWP();
 
-    Address destPC;
-    if(mprotect_call_addr != 0)
-        destPC = mprotect_call_addr;
-    else
-        destPC = dlopen_call_addr;
+  Address destPC = dlopen_call_addr;
 
   startup_printf("Changing PC to 0x%x\n", destPC);
   startup_printf("String at 0x%x\n", dyninstlib_str_addr);
@@ -1596,8 +1610,11 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 	Address dlopen_addr = dlopen_funcs[0]->getAddress();
 
 	// We now fill in the scratch code buffer with appropriate data
-	codeGen scratchCodeBuffer(BYTES_TO_SAVE);
-	assert(dyninstRT_name.length() < BYTES_TO_SAVE);
+	codeGen scratchCodeBuffer(MAX_IRPC_SIZE);
+        scratchCodeBuffer.setAddrSpace(this);
+        scratchCodeBuffer.setRegisterSpace(registerSpace::irpcRegSpace(this));
+
+	assert(dyninstRT_name.length() < MAX_IRPC_SIZE);
 
 	// The library name goes first
 	dyninstlib_str_addr = codeBase;
@@ -1607,10 +1624,14 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 	//Fill in with NOPs, see loadDYNINSTlib_hidden
 	scratchCodeBuffer.fill(getAddressWidth(), codeGen::cgNOP);
 #endif
-
-	// Now the real code
+        // Now the real code
 	dlopen_call_addr = codeBase + scratchCodeBuffer.used();
 
+        if( !theRpcMgr->emitInferiorRPCheader(scratchCodeBuffer) ) {
+            startup_cerr << "Couldn't emit inferior RPC header" << endl;
+            return false;
+        }
+	
 	bool mode64bit = (getAddressWidth() == sizeof(uint64_t));
 
 	if (!mode64bit) 
@@ -1624,10 +1645,11 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 		insnCodeGen::generateCall(scratchCodeBuffer,
 				scratchCodeBuffer.used() + codeBase,
 				dlopen_addr);
-
-		// And the break point
-		dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-		insnCodeGen::generateTrap(scratchCodeBuffer);
+                const unsigned stackUsage = 2*4; // 2 pushes
+                RealRegister esp(REGNUM_ESP);
+                RealRegister enull(Null_Register);
+                emitLEA(esp, enull, 0, stackUsage, esp, scratchCodeBuffer);
+                scratchCodeBuffer.rs()->incStack(-stackUsage);
 	}
 	else 
 	{
@@ -1640,11 +1662,18 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 		emitMovImmToReg64(REGNUM_RAX, dlopen_addr, true, scratchCodeBuffer);
 		emitSimpleInsn(0xff, scratchCodeBuffer);
 		emitSimpleInsn(0xd0, scratchCodeBuffer);
-
-		// And the break point
-		dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-		insnCodeGen::generateTrap(scratchCodeBuffer);
 	}
+
+        // The break point address is computed by the following function
+        unsigned breakOffset = 0;
+        unsigned unused;
+        if( !theRpcMgr->emitInferiorRPCtrailer(scratchCodeBuffer, breakOffset, 
+                    false, unused, unused) ) 
+        {
+            startup_cerr << "Couldn't emit inferior RPC trailer" << endl;
+            return false;
+        }
+        dyninstlib_brk_addr = codeBase + breakOffset;
 
 	if (!readDataSpace((void *)codeBase,
 				sizeof(savedCodeBuffer), savedCodeBuffer, true)) 
@@ -1746,6 +1775,13 @@ Address process::tryUnprotectStack(codeGen &buf, Address codeBase)
       startup_printf("(%d): emitting call for mprotect from 0x%x to 0x%x\n",
 		     getPid(), codeBase + buf.used(), func_addr);
       insnCodeGen::generateCall(buf, buf.used() + codeBase, func_addr);
+
+      const unsigned stackUsage = 4*4; // 4 pushes
+      RealRegister esp(REGNUM_ESP);
+      RealRegister enull(Null_Register);
+      emitLEA(esp, enull, 0, stackUsage, esp, buf);
+      buf.rs()->incStack(-stackUsage);
+
 #if defined(arch_x86_64)
   } else {
       // Push caller

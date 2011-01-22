@@ -122,6 +122,11 @@ CodeObject::findFuncs(CodeRegion * cr, Address addr, set<Function*> & funcs)
 {
     return parser->findFuncs(cr,addr,funcs);
 }
+int
+CodeObject::findFuncs(CodeRegion * cr, Address start, Address end, set<Function*> & funcs)
+{
+	return parser->findFuncs(cr,start,end,funcs);
+}
 
 Block *
 CodeObject::findBlockByEntry(CodeRegion * cr, Address addr)

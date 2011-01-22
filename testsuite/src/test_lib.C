@@ -80,6 +80,8 @@
 
 #include "test_lib.h"
 #include "ResumeLog.h"
+#define BINEDIT_DIRNAME "" 
+
 
 /* Control Debug printf statements */
 int debugPrint = 0;
@@ -603,21 +605,71 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
       sprintf(fdstr, "%d", fds[1]);
    }
 
-   int i;
-   for (i = 0; argv[i] != NULL; i++) ;
-   // i now contains the count of elements in argv
-   const char **attach_argv = (const char**)malloc(sizeof(char *) * (i + 3));
-   // attach_argv is length i + 3 (including space for NULL)
 
-   for (i = 0; argv[i] != NULL; i++)
-      attach_argv[i] = argv[i];
-   if (attach)
-   {
-      attach_argv[i++] = const_cast<char*>("-attach");
-      attach_argv[i++] = fdstr;
-   }
-   attach_argv[i++] = NULL;
-   
+   const char **attach_argv;
+
+   bool bgp_test = false;
+   int BGP_MAX_ARGS=13;
+   char *platform = getenv("PLATFORM");
+   if(strcmp(platform, "ppc32_bgp") == 0)
+		bgp_test = true;
+
+   if (bgp_test) {
+	  attach_argv = (const char**)malloc(sizeof(char *) * BGP_MAX_ARGS);
+	  attach_argv[0] = const_cast<char *>("-nofree");
+	  attach_argv[1] = const_cast<char *>("-partition");
+	  char *partition = getenv("DYNINST_BGP_PARTITION");
+	  if(partition == NULL) partition = "BGB1";
+	  attach_argv[2] = const_cast<char *>( partition);
+	  attach_argv[3] = const_cast<char *>("-np");
+	  attach_argv[4] = const_cast<char *>("1");
+	  attach_argv[5] = const_cast<char *>("-env");
+
+	  char *dyninst_base = getenv("DYNINST_ROOT");
+	  if (dyninst_base == NULL)
+		fprintf(stderr,	" DYNINST_ROOT is not set!! ");
+	  char *ldpath = (char *) malloc (1024);
+	  sprintf(ldpath, "LD_LIBRARY_PATH=.:%s/%s/binaries:%s/%s:${LD_LIBRARY_PATH}", dyninst_base, platform, dyninst_base, platform);
+	  attach_argv[6] = const_cast<char *>(ldpath);
+
+	  char *binedit_dir = BINEDIT_DIRNAME;
+	  char cwd[1024]; 
+	  getcwd(cwd, 1024);
+	  strcat(cwd, binedit_dir);
+	  attach_argv[7] = const_cast<char *>("-cwd");
+	  attach_argv[8] = const_cast<char *>(cwd);
+
+	  attach_argv[9] = const_cast<char *>("-exe");
+	  attach_argv[10] = const_cast<char *>(pathname);
+	  attach_argv[11] = const_cast<char *>("-args");
+	  attach_argv[12] = const_cast<char *>("\"");
+
+	  for (int j = 0; argv[j] != NULL; j++){
+		strcat(const_cast<char	*>(attach_argv[12]), argv[j]);
+		strcat(const_cast<char *>(attach_argv[12]), " ");
+	  }
+	  strcat(const_cast<char *>(attach_argv[12]), "\"");
+
+	  attach_argv[BGP_MAX_ARGS] = NULL;
+
+	} else {
+
+	  int i;
+	  for (i = 0; argv[i] != NULL; i++) ;
+	  // i now contains the count of elements in argv
+	  attach_argv = (const char**)malloc(sizeof(char *) * (i + 3));
+	  // attach_argv is length i + 3 (including space for NULL)
+
+	  for (i = 0; argv[i] != NULL; i++)
+	     attach_argv[i] = argv[i];
+	  if (attach)
+	  {
+	     attach_argv[i++] = const_cast<char*>("-attach");
+	     attach_argv[i++] = fdstr;
+	  }
+	  attach_argv[i++] = NULL;
+	}
+
    int pid;
    if (attach)
       pid = fork_mutatee();
@@ -659,6 +711,15 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 	  //fprintf(stderr, "%s[%d]:  before exec '%s':  LD_LIBRARY_PATH='%s'\n", 
 	  //FILE__, __LINE__, pathname, getenv("LD_LIBRARY_PATH"));
 
+if(bgp_test) {
+      printf(" running mpirun ");
+      for (int i = 0 ; i < BGP_MAX_ARGS ; i++)
+          printf(" %s", attach_argv[i]);
+      printf(" \n");
+      execvp("mpirun", (char * const *)attach_argv);
+      logerror("%s[%d]:  Exec failed!\n", FILE__, __LINE__);
+      exit(-1);
+}else{
       execvp(pathname, (char * const *)attach_argv);
       char *newname = (char *) malloc(strlen(pathname) + 3);
       strcpy(newname, "./");
@@ -666,6 +727,8 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
       execvp(newname, (char * const *)attach_argv);
       logerror("%s[%d]:  Exec failed!\n", FILE__, __LINE__);
       exit(-1);
+}
+
    } else if (pid < 0) {
       return -1;
    }

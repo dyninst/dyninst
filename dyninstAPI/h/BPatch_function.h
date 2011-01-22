@@ -109,6 +109,10 @@ private:
    void constructVarsAndParams();
 
    void identifyParamDependencies(BPatch_function* callee, void* calleeAddress);
+
+  public:
+   //dynC internal use only
+   bool hasParamDebugInfo();
 public:
     virtual	~BPatch_function();
 

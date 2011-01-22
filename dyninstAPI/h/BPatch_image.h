@@ -252,9 +252,9 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     //  
     //  Returns local variable matching name <nm> in function scope of 
     //  provided BPatch_point.
-    API_EXPORT(InScope, (scp,nm),
+    API_EXPORT(InScope, (scp, nm, showError),
 
-    BPatch_variableExpr *,findVariable,(BPatch_point &scp, const char *nm));
+               BPatch_variableExpr *,findVariable,(BPatch_point &scp, const char *nm, bool showError=true));
 
     //  BPatch_image::findType
     //  

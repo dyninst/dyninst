@@ -3459,12 +3459,6 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
    assert(inTracedProcess);
    bool needToCont = false;
 
-   /*
-   fprintf(stderr, "writeTextSpace to %p to %p, %d\n",
-           inTracedProcess,
-           (char *)inTracedProcess + amount, amount);
-   */
-
    if (!isAttached()) return false;
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {

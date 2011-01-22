@@ -265,10 +265,6 @@ bool IA_IAPI::isReturnAddrSave(Dyninst::Address&) const
     return false;
 }
 
-bool IA_IAPI::isReturnInst(Dyninst::ParseAPI::Function* /*context*/, Dyninst::ParseAPI::Block* /*currBlk*/) const{
-    return curInsn()->getCategory() == c_ReturnInsn;
-}
-
 bool IA_IAPI::sliceReturn(ParseAPI::Block* /*bit*/, Address /*ret_addr*/, ParseAPI::Function * /*func*/) const {
 	return true;
 }

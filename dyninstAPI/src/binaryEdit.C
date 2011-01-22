@@ -358,7 +358,7 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &mem
     linkedFile->findRegion(newSec, ".dyninstInst");
     if (newSec) {
          // We're re-instrumenting - will fail for now
-         fprintf(stderr, "ERROR:  unable to open/reinstrument previously instrumented binary!\n");
+         fprintf(stderr, "ERROR:  unable to open/reinstrument previously instrumented binary %s!\n", file.c_str());
          return NULL;
     }
        
@@ -571,7 +571,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       symObj->findRegion(newSec, ".dyninstInst");
       if (newSec) {
          // We're re-instrumenting - will fail for now
-         fprintf(stderr, "ERROR:  unable to reinstrument previously instrumented binary!\n");
+         fprintf(stderr, "ERROR:  unable to open/reinstrument previously instrumented binary %s!\n", newFileName.c_str());
          return false;
       }
         
