@@ -629,7 +629,7 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 	  if (dyninst_base == NULL)
 		fprintf(stderr,	" DYNINST_ROOT is not set!! ");
 	  char *ldpath = (char *) malloc (1024);
-	  sprintf(ldpath, "LD_LIBRARY_PATH=.:%s/%s/binaries:%s/%s/lib:${LD_LIBRARY_PATH}", dyninst_base, platform, dyninst_base, platform);
+	  sprintf(ldpath, "LD_LIBRARY_PATH=%s/dyninst/testsuite/%s/binaries:.:%s/%s/lib:${LD_LIBRARY_PATH}", dyninst_base, platform, dyninst_base, platform);
 	  attach_argv[6] = const_cast<char *>(ldpath);
 
 	  char *binedit_dir = BINEDIT_DIRNAME;
@@ -672,10 +672,10 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 	  attach_argv[i++] = NULL;
 	}
 
-   int pid = 0;
+   int pid;
    if (attach)
       pid = fork_mutatee();
-   else if (!bgp_test) 
+   else  
       pid = fork();
    if (pid == 0) {
       // child

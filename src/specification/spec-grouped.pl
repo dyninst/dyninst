@@ -981,7 +981,7 @@ test('test5_1', 'test5_1', 'dyninst_cxx_group_test').
 % test5_1 only runs on Linux, Solaris, and Windows
 test_platform('test5_1', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd', 'bluegene']).
 mutator('test5_1', ['test5_1.C']).
 test_runmode('test5_1', 'staticdynamic').
 test_start_state('test5_1', 'stopped').
@@ -993,7 +993,7 @@ test('test5_2', 'test5_2', 'dyninst_cxx_group_test').
 % test5_2 only runs on Linux, Solaris, and Windows
 test_platform('test5_2', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd', 'bluegene']).
 mutator('test5_2', ['test5_2.C']).
 test_runmode('test5_2', 'staticdynamic').
 test_start_state('test5_2', 'stopped').
@@ -1014,7 +1014,7 @@ test('test5_4', 'test5_4', 'dyninst_cxx_group_test').
 % test5_4 only runs on Linux, Solaris, and Windows
 test_platform('test5_4', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd', 'bluegene']).
 mutator('test5_4', ['test5_4.C']).
 test_runmode('test5_4', 'staticdynamic').
 test_start_state('test5_4', 'stopped').
@@ -1026,7 +1026,7 @@ test('test5_5', 'test5_5', 'dyninst_cxx_group_test').
 % test5_5 only runs on Linux, Solaris, and Windows
 test_platform('test5_5', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd', 'bluegene']).
 mutator('test5_5', ['test5_5.C']).
 test_runmode('test5_5', 'staticdynamic').
 test_start_state('test5_5', 'stopped').
@@ -1038,7 +1038,7 @@ test('test5_6', 'test5_6', 'dyninst_cxx_group_test').
 % test5_6 only runs on x86 Linux
 test_platform('test5_6', Platform) :-
     platform('i386', OS, _, Platform),
-    member(OS, ['linux', 'freebsd']).
+    member(OS, ['linux', 'freebsd', 'bluegene']).
 mutator('test5_6', ['test5_6.C']).
 test_runmode('test5_6', 'staticdynamic').
 test_start_state('test5_6', 'stopped').
@@ -1050,7 +1050,7 @@ test('test5_7', 'test5_7', 'dyninst_cxx_group_test').
 % test5_7 only runs on Linux, Solaris, and Windows
 test_platform('test5_7', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd', 'bluegene']).
 mutator('test5_7', ['test5_7.C']).
 test_runmode('test5_7', 'staticdynamic').
 test_start_state('test5_7', 'stopped').
@@ -1063,7 +1063,7 @@ test('test5_8', 'test5_8', 'dyninst_cxx_group_test').
 % test5_8 only runs on Linux, Solaris, and Windows
 test_platform('test5_8', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd', 'bluegene']).
 mutator('test5_8', ['test5_8.C']).
 test_runmode('test5_8', 'staticdynamic').
 test_start_state('test5_8', 'stopped').
@@ -1076,7 +1076,7 @@ test('test5_9', 'test5_9', 'dyninst_cxx_group_test').
 % test5_9 only runs on Linus, Solaris, and Windows
 test_platform('test5_9', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd', 'bluegene']).
 mutator('test5_9', ['test5_9.C']).
 test_runmode('test5_9', 'staticdynamic').
 test_start_state('test5_9', 'stopped').
