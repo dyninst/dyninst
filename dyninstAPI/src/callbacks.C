@@ -41,6 +41,7 @@
 #include "dyninstAPI/src/signalgenerator.h"
 #include "dyninstAPI/h/BPatch_thread.h"
 #include "dyninstAPI/h/BPatch_function.h"
+#include "dyninstAPI/h/BPatch_point.h"
 
 CallbackManager *callback_manager = NULL;
 CallbackManager *getCBManager()

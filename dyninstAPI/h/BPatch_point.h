@@ -48,6 +48,7 @@ class BPatch_function;
 class BPatch_memoryAccess;
 class BPatchSnippetHandle;
 class BPatch_basicBlockLoop;
+class BPatch_point;
 class BPatch_process;
 class BPatch_frame;
 class BPatch_edge;
@@ -57,18 +58,6 @@ class AddressSpace;
 class BPatch_register;
 
 #include "Instruction.h"
-
-
-
-/*
- * Used to specify whether a snippet is to be called before the instructions
- * at the point where it is inserted, or after.
- */
-typedef enum {
-    BPatch_callBefore,
-    BPatch_callAfter,
-    BPatch_callUnset
-} BPatch_callWhen;
 
 /*
  * Provide these definitions for backwards compatability.
@@ -86,42 +75,6 @@ typedef enum {
 #define BPatch_locBasicBlockLoopEntry BPatch_locLoopEntry
 #define BPatch_locBasicBlockLoopExit BPatch_locLoopExit
 #endif
-/*
- * Used with BPatch_function::findPoint to specify which of the possible
- * instrumentation points within a procedure should be returned.
- */
-typedef enum eBPatch_procedureLocation {
-    BPatch_locEntry,
-    BPatch_locExit,
-    BPatch_locSubroutine,
-    BPatch_locLongJump,
-    BPatch_locAllLocations,
-    BPatch_locInstruction,
-    BPatch_locUnknownLocation,
-    BPatch_locSourceBlockEntry,		// not yet used
-    BPatch_locSourceBlockExit,		// not yet used
-    BPatch_locSourceLoopEntry,		// not yet used
-    BPatch_locSourceLoopExit,		// not yet used
-    BPatch_locBasicBlockEntry,		// not yet used
-    BPatch_locBasicBlockExit,		// not yet used
-    BPatch_locSourceLoop,		// not yet used
-    BPatch_locLoopEntry,	
-    BPatch_locLoopExit,
-    BPatch_locLoopStartIter,
-    BPatch_locLoopEndIter,
-    BPatch_locVarInitStart,		// not yet used
-    BPatch_locVarInitEnd,		// not yet used
-    BPatch_locStatement		// not yet used
-} BPatch_procedureLocation;
-
-
-/* VG (09/07/01) Created */
-
-typedef enum BPatch_opCode {
-  BPatch_opLoad,
-  BPatch_opStore,
-  BPatch_opPrefetch
-} BPatch_opCode;
 
 /* VG(09/17/01) Added memory access pointer */
 

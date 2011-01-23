@@ -52,6 +52,7 @@
 #include "BPatch.h"
 #include "BPatch_thread.h"
 #include "BPatch_function.h"
+#include "BPatch_point.h"
 #include "callbacks.h"
 
 #include "BPatch_private.h"

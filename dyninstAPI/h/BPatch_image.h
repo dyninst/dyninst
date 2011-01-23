@@ -35,9 +35,6 @@
 #include "BPatch_dll.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_Vector.h"
-//#include "BPatch_addressSpace.h"
-#include "BPatch_point.h"
-//#include "BPatch_snippet.h"
 #include "BPatch_module.h"
 #include "BPatch_type.h"
 #include "BPatch_eventLock.h"
@@ -53,6 +50,7 @@ typedef bool (*BPatchFunctionNameSieve)(const char *test,void *data);
 class process;
 class image;
 class int_variable;
+class BPatch_point;
 
 #ifdef IBM_BPATCH_COMPAT
 
@@ -344,8 +342,6 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
 
 private:
     BPatch_addressSpace *addSpace;
-    BPatch_Vector<BPatch_module *> modlist;
-    BPatch_Vector<BPatch_module *> removed_list;
     BPatch_module *defaultModule;
 
     BPatch_module *findModule(mapped_module *base);
@@ -353,7 +349,16 @@ private:
     void removeModule(BPatch_module *mod);
     void removeAllModules();
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable:4251) 
+#endif
+    BPatch_Vector<BPatch_module *> modlist;
+    BPatch_Vector<BPatch_module *> removed_list;
     BPatch_Vector<BPatch_point *> unresolvedCF;
+#if defined(_MSC_VER)
+#pragma warning(pop)    
+#endif
 
     // These private "find" functions convert from internal int_function
     // representation to the exported BPatch_Function type

@@ -36,6 +36,7 @@
 #include "BPatch_flowGraph.h"
 #include "BPatch_edge.h"
 #include "BPatch_module.h"
+#include "BPatch_point.h"
 #include "process.h"
 #include "function.h"
 #include "debug.h"

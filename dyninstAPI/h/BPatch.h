@@ -35,11 +35,13 @@
 #include <stdio.h>
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
+#include "BPatch_Set.h"
 #include "BPatch_thread.h"
 #include "BPatch_type.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_process.h"
 #include "BPatch_enums.h"
+#include "BPatch_callbacks.h"
 
 class BPatch_typeCollection;
 class BPatch_libInfo;

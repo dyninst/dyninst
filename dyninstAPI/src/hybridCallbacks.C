@@ -31,6 +31,7 @@
 
 #include "hybridAnalysis.h"
 #include "debug.h"
+#include "BPatch_point.h"
 #include "BPatch_process.h"
 #include "BPatch_function.h"
 #include "BPatch_module.h"

@@ -44,6 +44,7 @@
 
 #include "BPatch_process.h"
 #include "BPatch_edge.h"
+#include "BPatch_point.h"
 
 #include "util.h"
 #include "process.h"

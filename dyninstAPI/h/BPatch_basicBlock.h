@@ -32,7 +32,6 @@
 #ifndef _BPatch_basicBlock_h_
 #define _BPatch_basicBlock_h_
 
-#include "BPatch_point.h"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
@@ -40,11 +39,17 @@
 #include "BPatch_instruction.h"
 #include "BPatch_eventLock.h"
 #include "Instruction.h"
+#include "BPatch_enums.h"
 //#include "BPatch_edge.h"
 
 class image;
 class int_function;
+class instPoint;
 class int_block;
+class BPatch_point;
+class BPatch_edge;
+class BPatch_function;
+class BPatch_flowGraph;
 
 /* Currently all this bitarray stuff is just for power, 
    but could be extended as we do liveness stuff for other platforms */

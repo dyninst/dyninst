@@ -40,6 +40,7 @@
 #include "instPoint.h"
 #include "process.h"
 #include "BPatch_process.h"
+#include "BPatch_point.h"
 
 #include "Parsing.h"
 

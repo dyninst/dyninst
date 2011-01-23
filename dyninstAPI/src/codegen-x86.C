@@ -104,16 +104,26 @@ unsigned copy_prefixes_nosize_or_segments(const unsigned char *&origInsn, unsign
                               unsigned insnType) 
 {
   unsigned nPrefixes = count_prefixes(insnType);
-
-  for (unsigned u = 0; u < nPrefixes; u++) {
-     if ((*origInsn) >= 0x64 && (*origInsn) <= 0x67)
-     {
-        origInsn++;
-        continue;
-     }
-     *newInsn++ = *origInsn++;
+  if (0 == nPrefixes) {
+      return nPrefixes;
   }
-  return nPrefixes;
+
+  // duplicate prefixes are possible and are not identified by count_prefixes
+  unsigned nWithDups = 0; 
+  while(true) {
+     if ((*origInsn) >= 0x64 && (*origInsn) <= 0x67) {
+        origInsn++;
+     }
+     else {
+         if (nWithDups >= nPrefixes) {
+            break;
+         }
+         *newInsn++ = *origInsn++;
+     }
+     nWithDups++;
+  }
+
+  return nWithDups;
 }
 
 bool convert_to_rel8(const unsigned char*&origInsn, unsigned char *&newInsn) {

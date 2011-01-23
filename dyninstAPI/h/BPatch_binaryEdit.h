@@ -38,7 +38,6 @@
 #include "BPatch_Vector.h"
 #include "BPatch_image.h"
 #include "BPatch_eventLock.h"
-#include "BPatch_point.h"
 #include "BPatch_addressSpace.h"
 
 #include "BPatch_callbacks.h"
@@ -57,6 +56,7 @@ class miniTramp;
 class BPatch;
 class BPatch_thread;
 class BPatch_process;
+class BPatch_point;
 class BPatch_funcMap;
 class BPatch_instpMap;
 class int_function;

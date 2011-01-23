@@ -35,7 +35,7 @@
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
-#include "BPatch_point.h"
+#include "BPatch_enums.h"
 
 #include "BPatch_instruction.h" // for register type
 
@@ -47,6 +47,8 @@
 #include <signal.h>
 
 class BPatch_statement;
+class BPatch_snippet;
+class BPatch_point;
 class AddressSpace;
 class miniTrampHandle;
 class miniTramp;
@@ -76,8 +78,15 @@ private:
     // Address Space snippet belogns to
     BPatch_addressSpace *addSpace_;
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable:4251) 
+#endif
     // low-level mappings for removal
     BPatch_Vector<miniTramp *> mtHandles_;
+#if defined(_MSC_VER)
+#pragma warning(pop)    
+#endif
 
     //  a flag for catchuo
     bool catchupNeeded;

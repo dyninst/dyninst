@@ -42,6 +42,7 @@
 #include "BPatch_module.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_function.h"
+#include "BPatch_point.h"
 #include "BPatch_statement.h"
 #include "BPatch_collections.h"
 #include "symtabAPI/h/Type.h"    // For BPatch_type related stuff

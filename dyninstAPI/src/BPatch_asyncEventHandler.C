@@ -53,6 +53,7 @@
 #endif
 
 #include "BPatch.h"
+#include "BPatch_point.h"
 #include "BPatch_eventLock.h"
 #include "mailbox.h"
 #include "callbacks.h"

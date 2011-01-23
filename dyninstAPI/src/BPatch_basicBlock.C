@@ -45,6 +45,7 @@
 #include "parseAPI/src/InstrucIter.h"
 #endif
 #include "BPatch_instruction.h"
+#include "BPatch_point.h"
 #include "Instruction.h"
 #include "InstructionDecoder.h"
 #include "BPatch_libInfo.h"

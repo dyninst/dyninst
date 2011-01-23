@@ -35,13 +35,12 @@
 #include <string.h>
 
 #include "BPatch_memoryAccess_NP.h"
-#include "BPatch_point.h"
 #include "BPatch_Vector.h"
+#include "BPatch_point.h"
 #include "../../common/h/Types.h"
 #if !defined(cap_instruction_api)
 extern void initOpCodeInfo();
 #endif
-
 
 BPatch_addrSpec_NP::BPatch_addrSpec_NP(long _imm, int _ra, int _rb, int _scale) :
    imm(_imm), 

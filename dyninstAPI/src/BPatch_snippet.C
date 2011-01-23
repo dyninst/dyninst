@@ -45,6 +45,7 @@
 #include "BPatch_function.h"
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
+#include "BPatch_point.h"
 
 #include "addressSpace.h"
 #include "mapped_object.h" // for savetheworld

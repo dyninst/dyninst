@@ -55,6 +55,7 @@
 #include "BPatch_libInfo.h"
 #include "BPatch_asyncEventHandler.h"
 #include "BPatch.h"
+#include "BPatch_point.h"
 #include "BPatch_thread.h"
 #include "BPatch_function.h"
 #include "BPatch_basicBlock.h"
