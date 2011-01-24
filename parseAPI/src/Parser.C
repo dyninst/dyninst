@@ -1711,16 +1711,26 @@ Parser::getTamperAbsFrame(Function *tamperFunc)
         assert(0);
     }
         
-    // create new bundle since we're not adding CALL,CALL_FT edge pairs
-    ParseWorkBundle *bundle = new ParseWorkBundle();
-    pf->work_bundles.push_back(bundle);
-    bundle->add(
-        new ParseWorkElem(
-            bundle,
-            NULL,
-            target,
-            true, 
-            false)
-      );
+    // make a temp edge
+    Function::blocklist & ret_blks = tamperFunc->returnBlocks();
+    for (Function::blocklist::iterator bit = ret_blks.begin(); 
+         bit != ret_blks.end(); 
+         bit++)
+    {
+        Edge *edge = link_tempsink(*bit, CALL);
+
+        // create new bundle since we're not adding CALL,CALL_FT edge pairs
+        ParseWorkBundle *bundle = new ParseWorkBundle();
+        pf->work_bundles.push_back(bundle);
+        bundle->add(
+            new ParseWorkElem(
+                bundle,
+                edge,
+                target,
+                true,
+                true)
+          );
+    }
+
     return pf;
 }
