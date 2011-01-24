@@ -3013,6 +3013,8 @@ mutatee_link_options(Native_cxx, '$(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_N
     member(Native_cxx, ['cxx', 'CC', 'xlC', 'pgCC']).
 mutatee_link_options('VC', '$(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)').
 mutatee_link_options('VC++', '$(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)').
+mutatee_link_options('bgxlc', '$(MUTATEE_LDFLAGS_NATIVE)').
+mutatee_link_options('bgxlc++', '$(MUTATEE_LDFLAGS_NATIVE)').
 
 % Static and dynamic linking
 compiler_static_link('g++', P, '-static') :- platform(_,'linux', _, P).
