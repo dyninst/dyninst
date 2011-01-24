@@ -394,13 +394,12 @@ void EmitterIA32::emitGetRetAddr(Register dest, codeGen &gen)
        loc.offset = 0;
        loc.reg = dest_r;
    }
-
    emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
 }
 
 void EmitterIA32::emitGetParam(Register dest, Register param_num,
-                               instPointType_t pt_type, bool addr_of,
-                               codeGen &gen)
+                               instPointType_t pt_type, opCode op, 
+                               bool addr_of, codeGen &gen)
 {
    // Parameters are addressed by a positive offset from ebp,
    // the first is PARAM_OFFSET[ebp]
@@ -412,11 +411,25 @@ void EmitterIA32::emitGetParam(Register dest, Register param_num,
        loc.offset = 0;
        loc.reg = dest_r;
    }
-
-   if (pt_type != callSite) {
-       //Return value before any parameters
-       loc.offset += 4;
+   
+   switch (op) {
+       case getParamOp: 
+           // guess whether we're at the call or the function entry point,
+           // in which case we need to skip the return value
+           if (pt_type != callSite) {
+               loc.offset += 4;
+           }
+           break;
+       case getParamAtCallOp:
+           break;
+       case getParamAtEntryOp:
+           loc.offset += 4;
+           break;
+       default:
+           assert(0);
+           break;
    }
+
    loc.offset += param_num*4;
 
    // Prepare a real destination register.
@@ -505,6 +518,8 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &ge
     int funcJumpSlotSize = 0;
     if (bti) {
         funcJumpSlotSize = bti->funcJumpSlotSize() * 4;
+		// TODO FIXME
+		funcJumpSlotSize += 256;
     }
 
     // Align the stack now to avoid having a padding hole in the middle of
@@ -524,7 +539,7 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &ge
                     gen.rs()->anyLiveFPRsAtEntry()     &&
                     bt->isConservative()               &&
                     !bt->optimized_out_guards );
-    bool alignStack = useFPRs || !bti || bti->checkForFuncCalls();
+    bool alignStack = false; //  useFPRs || !bti || bti->checkForFuncCalls();
 
     if (alignStack) {
         emitStackAlign(funcJumpSlotSize, gen);
@@ -536,6 +551,7 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &ge
                 -funcJumpSlotSize, RealRegister(REGNUM_ESP), gen);
         instFrameSize += funcJumpSlotSize;
     }
+
 
     bool flags_saved = gen.rs()->saveVolatileRegisters(gen);
     bool createFrame = !bti || bt->createFrame() || useFPRs;
@@ -744,6 +760,9 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen 
         int funcJumpSlotSize = 0;
         if (bti && bti->funcJumpSlotSize()) {
             funcJumpSlotSize = bti->funcJumpSlotSize() * 4;
+		}
+		if (bti) funcJumpSlotSize += 256;
+		if (funcJumpSlotSize) {
             emitLEA(RealRegister(REGNUM_ESP),
                     RealRegister(Null_Register), 0, funcJumpSlotSize,
                     RealRegister(REGNUM_ESP), gen);
@@ -1868,7 +1887,7 @@ void EmitterAMD64::emitGetRetAddr(Register dest, codeGen &gen)
 }
 
 
-void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, bool addr_of, codeGen &gen)
+void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, opCode op, bool addr_of, codeGen &gen)
 {
    if (!addr_of && param_num < 6) {
       emitLoadOrigRegister(amd64_arg_regs[param_num], dest, gen);

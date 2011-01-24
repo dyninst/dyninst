@@ -219,6 +219,7 @@ int dyn_debug_stackwalk = 0;
 int dyn_debug_dbi = 0;
 int dyn_debug_inst = 0;
 int dyn_debug_reloc = 0;
+int dyn_debug_springboard = 0;
 int dyn_debug_sensitivity = 0;
 int dyn_debug_dyn_unw = 0;
 int dyn_debug_dyn_dbi = 0;
@@ -250,6 +251,10 @@ bool init_debug() {
   if ( (p=getenv("DYNINST_DEBUG_MALWARE"))) {
     fprintf(stderr, "Enabling DyninstAPI malware debug\n");
     dyn_debug_malware = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_SPRINGBOARD"))) {
+    fprintf(stderr, "Enabling DyninstAPI springboard debug\n");
+    dyn_debug_springboard = 1;
   }
   if ( (p=getenv("DYNINST_DEBUG_SIGNAL"))) {
     fprintf(stderr, "Enabling DyninstAPI signal debug\n");
@@ -766,7 +771,7 @@ int ast_printf_int(const char *format, ...)
 
 int write_printf_int(const char *format, ...)
 {
-  if (!dyn_debug_write) return 0;
+  if (1 || /*KEVINTODO: revert this*/ !dyn_debug_write) return 0;
   if (NULL == format) return -1;
 
   debugPrintLock->_Lock(FILE__, __LINE__);

@@ -47,6 +47,12 @@
 using namespace Dyninst;
 
 /* Callback wrapper funcs */
+static void virtualFreeCB_wrapper(BPatch_point *point, void *calc)
+{
+	dynamic_cast<BPatch_process *>(point->getFunction()->getProc())->
+		getHybridAnalysis()->virtualFreeCB(point, calc);
+}
+
 static void badTransferCB_wrapper(BPatch_point *point, void *calc) 
 { 
     dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
@@ -97,6 +103,22 @@ bool HybridAnalysis::init()
     proc()->hideDebugger();
 
 #if defined (os_windows)
+	// Instrument VirtualFree to inform us when to unmap a code region
+	BPatch_stopThreadExpr virtualFreeSnippet = BPatch_stopThreadExpr(virtualFreeCB_wrapper,
+		BPatch_paramExpr(0), // Address getting unloaded
+		false, // No cache!
+		BPatch_interpAsTarget);
+	proc()->beginInsertionSet();
+	std::vector<BPatch_function *> virtualFreeFuncs;
+	proc()->getImage()->findFunction("VirtualFree", virtualFreeFuncs);
+	for (unsigned i = 0; i < virtualFreeFuncs.size(); ++i) {
+		std::vector<BPatch_point *> *entryPoints = virtualFreeFuncs[i]->findPoint(BPatch_locEntry);
+		proc()->insertSnippet(virtualFreeSnippet, *entryPoints);
+	}
+	proc()->finalizeInsertionSet(false);
+	// Done instrumenting VirtualFree
+
+
     if (proc()->lowlevel_process()->isMemoryEmulated()) {
         // read in the list of whitelisted Windows API functions (those that 
         // don't use pointers) so we save time by not to synchronizing around
@@ -223,26 +245,34 @@ int HybridAnalysis::saveInstrumentationHandle(BPatch_point *point,
     return 0;
 }
 
+// we can use the cache in memoryEmulation mode since it will
+// call a modified version of stopThreadExpr that excludes 
+// inter-modular calls from cache lookups
 bool HybridAnalysis::canUseCache(BPatch_point *pt) 
 {
-    if (proc()->lowlevel_process()->isMemoryEmulated()) {
+    bool ret = true;
+
+    // can't use cache for call points w/ no fallthrough addr
+    if (BPatch_subroutine == pt->getPointType()) {
+        vector<BPatch_function*>tmp;
+        if (!proc()->findFunctionsByAddr(pt->getCallFallThroughAddr(),tmp)) {
+            ret = false;
+        }
+    }
+
+#if 0
+    if (ret && proc()->lowlevel_process()->isMemoryEmulated()) {
         vector<Address> targs;
         pt->getSavedTargets(targs);
         if (1 == targs.size() && 
             pt->llpoint()->func()->obj() == 
             proc()->lowlevel_process()->findObject(targs[0]))
         {
-            return false;
+            ret = false;
         }
     }
-    if (BPatch_subroutine == pt->getPointType()) {
-        vector<BPatch_function*>tmp;
-        if (!proc()->findFunctionsByAddr(pt->getCallFallThroughAddr(),tmp)) {
-            return false;
-        }
-        return true;
-    }
-    return true;
+#endif
+    return ret;
 }
 
 // returns false if no new instrumentation was added to the module
@@ -254,13 +284,29 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 						bool instrumentReturns) 
 {
     Address funcAddr = (Address) func->getBaseAddr();
+    int pointCount = 0;
+    bool isHandler = false;
+    if (handlerFunctions.end() != 
+        handlerFunctions.find((Address)func->getBaseAddr())) 
+    {
+        isHandler = true;
+    }
+
     mal_printf("instfunc at %lx\n", funcAddr);
+	if (funcAddr == 0x401014) {
+		DebugBreak();
+	}
+
+	assert(func);
+	assert(func->lowlevel_func());
+	assert(proc());
+	assert(proc()->lowlevel_process());
+
     if (proc()->lowlevel_process()->isMemoryEmulated() && 
         BPatch_defensiveMode == func->lowlevel_func()->obj()->hybridMode()) 
-    {
+    {   // we have to relocate all functions to emulate their memory accesses
         proc()->lowlevel_process()->addModifiedFunction(func->lowlevel_func());
     }
-    int pointCount = 0;
 
     if (instrumentedFuncs->end() == instrumentedFuncs->find(func)) {
         (*instrumentedFuncs)[func] = new 
@@ -293,8 +339,13 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             bool useCache = canUseCache(curPoint);
             mal_printf("hybridInstrumentation[%d] monitoring unresolved at 0x%lx: "
                        "indirect, useCache=%d\n", __LINE__,(long)curPoint->getAddress(),(int)useCache);
-            dynamicTransferSnippet = new BPatch_stopThreadExpr(
-                badTransferCB_wrapper, dynTarget, useCache, BPatch_interpAsTarget);
+            if (useCache) {
+                dynamicTransferSnippet = new BPatch_stopThreadExpr(badTransferCB_wrapper, 
+                    dynTarget, *curPoint->llpoint()->func()->obj(), useCache, BPatch_interpAsTarget);
+            } else {
+                dynamicTransferSnippet = new BPatch_stopThreadExpr(badTransferCB_wrapper, 
+                    dynTarget, useCache, BPatch_interpAsTarget);
+            }
 
             // instrument the point
             if (useInsertionSet && 0 == pointCount) {
@@ -405,45 +456,48 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     vector<Address> targets;
     vector<BPatch_point *> *retPoints = func->findPoint(BPatch_exit);
     BPatch_retAddrExpr retAddrSnippet;
-    if (retPoints && retPoints->size() && 
-        (instrumentReturns || 
-         ParseAPI::RETURN != func->lowlevel_func()->ifunc()->init_retstatus() || 
-         ParseAPI::TAMPER_NONZERO == func->lowlevel_func()->ifunc()->tampersStack() ||
-         handlerFunctions.end() != 
-         handlerFunctions.find((Address)funcAddr) ))
-    {
-        for (unsigned int j=0; j < retPoints->size(); j++) {
+
+    if (retPoints && retPoints->size()) {
+		for (unsigned int j=0; j < retPoints->size(); j++) {
 			BPatch_point *curPoint = (*retPoints)[j];
-            BPatchSnippetHandle *handle;
+			BPatchSnippetHandle *handle;
 
-            // check that we don't instrument the same point multiple times
-            // and that we don't instrument the return instruction if it's got 
-            // a fixed, known target, e.g., it's a static target push-return 
-            if ( (*instrumentedFuncs)[func]->end() != 
-                 (*instrumentedFuncs)[func]->find(curPoint) 
-                ||
-                 ( ( curPoint->isReturnInstruction() || curPoint->isDynamic()) &&
-                   ! curPoint->getCFTargets(targets) ) ) 
-            {
-                continue;
-            }
+			// Workaround for a parsing inconsistency - instrument this with a snippet
+			// if _any_ of the functions that contain a retblock have unknown return status...
+			bool instrument = false;
+			std::vector<ParseAPI::Function *> funcs;
+			curPoint->llpoint()->block()->llb()->getFuncs(funcs);
+			for (unsigned f_iter = 0; f_iter < funcs.size(); ++f_iter) {
+				if (((image_func *)funcs[f_iter])->init_retstatus() != ParseAPI::RETURN ||
+					funcs[f_iter]->tampersStack() == ParseAPI::TAMPER_NONZERO) {
+						instrument = true;
+				}
+			}
+			if (instrument || instrumentReturns || (handlerFunctions.find((Address)funcAddr) != handlerFunctions.end())) {
+				// check that we don't instrument the same point multiple times
+				// and that we don't instrument the return instruction if it's got 
+				// a fixed, known target, e.g., it's a static target push-return 
+				if ( (*instrumentedFuncs)[func]->end() != 
+					(*instrumentedFuncs)[func]->find(curPoint) 
+					||
+					( ( curPoint->isReturnInstruction() || curPoint->isDynamic()) &&
+					! curPoint->getCFTargets(targets) ) ) 
+				{
+					continue;
+				}
+			}
+		// instrument the point, start insertion set, set interpretation 
+		// type according to the type of instruction we're instrumenting,
+		// and insert the instrumentation
+		if (useInsertionSet && 0 == pointCount) {
+			proc()->beginInsertionSet();
+		}
 
-            // instrument the point, start insertion set, set interpretation 
-            // type according to the type of instruction we're instrumenting,
-            // and insert the instrumentation
-            if (useInsertionSet && 0 == pointCount) {
-                proc()->beginInsertionSet();
-            }
-
-            // create instrumentation snippet
+		// create instrumentation snippet
             BPatch_stopThreadExpr *returnSnippet;
             BPatch_snippet * calcSnippet = NULL;
             BPatch_stInterpret interp;
-            bool isHandler = false;
-            if (handlerFunctions.end() != 
-                handlerFunctions.find((Address)func->getBaseAddr()) &&
-                0 != handlerFunctions[(Address)func->getBaseAddr()])
-            {
+            if (isHandler) {
                 // case 0: signal handler return address
                 // for handlers, instrument their exit point with a snippet 
                 // that reads the address to which the program will return 
@@ -451,10 +505,8 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 // to windows structured exception handlers
                 Address contextPCaddr = 
                     handlerFunctions[ (Address)func->getBaseAddr() ];
-                calcSnippet = new BPatch_arithExpr
-                    ( BPatch_deref, BPatch_constExpr(contextPCaddr) );
-                interp = BPatch_interpAsTarget;
-                isHandler = true;
+                calcSnippet = new BPatch_constExpr(0xbaadc0de);
+                interp = BPatch_noInterp;
             }
             else if (curPoint->isReturnInstruction()) {
                 // case 1: the point is at a return instruction
@@ -489,7 +541,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                     ( badTransferCB_wrapper, *calcSnippet, true, interp ); 
             } else {
                 returnSnippet = new BPatch_stopThreadExpr
-                    ( signalHandlerExitCB_wrapper, *calcSnippet, true, interp ); 
+                    ( signalHandlerExitCB_wrapper, *calcSnippet, false, interp ); 
             }
 
             // insert the instrumentation
@@ -503,7 +555,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 delete calcSnippet;
             }
         }
-    }
+	}
     
     // close insertion set
     if (proc()->lowlevel_process()->isMemoryEmulated() || pointCount) {
@@ -750,9 +802,28 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
     // a false positive code overwrite) re-instrument the point to use
     // the cache, if it's an indirect transfer, or remove it altogether
     // if it's a static transfer. 
-    if (!parsedAfterCallPoint //KEVINTODO: re-enable re-instrumentation for memory-emulated calls that stay in their module
-        && !proc()->lowlevel_process()->isMemoryEmulated()) 
-    {
+    bool reInstrument = false;
+    if (!parsedAfterCallPoint) {
+        vector<Address> targs;
+        if (!proc()->lowlevel_process()->isMemoryEmulated()) {
+            reInstrument = true;
+        } else if (callPoint->getSavedTargets(targs)) {
+            reInstrument = true;
+            Address objStart = callPoint->llpoint()->func()->obj()->codeBase();
+            Address objEnd = objStart 
+                + callPoint->llpoint()->func()->obj()->imageSize();
+            for (vector<Address>::iterator iter=targs.begin(); 
+                 iter != targs.end(); 
+                 iter++) 
+            {
+                if ((*iter) < objStart || (*iter) >= objEnd) {
+                    reInstrument = false;
+                    break;
+                }
+            }
+        }
+    }
+    if (reInstrument) {
       for (unsigned ftidx=0; ftidx < fallThroughFuncs.size(); ftidx++) 
       {
         BPatch_function *fallThroughFunc = fallThroughFuncs[ftidx];
@@ -773,8 +844,9 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
                 mal_printf("replacing instrumentation at indirect call point "
                             "%lx with instrumentation that uses the cache "
                             "%s[%d]\n", callPoint->getAddress(),FILE__,__LINE__);
-                BPatch_stopThreadExpr newSnippet (
-                        badTransferCB_wrapper, BPatch_dynamicTargetExpr(), 
+                BPatch_stopThreadExpr newSnippet (badTransferCB_wrapper, 
+                        BPatch_dynamicTargetExpr(), 
+                        *callPoint->llpoint()->func()->obj(), 
                         true, BPatch_interpAsTarget);
                 BPatchSnippetHandle *handle = proc()->insertSnippet
                     (newSnippet, *callPoint, BPatch_lastSnippet);
@@ -843,25 +915,23 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
     }
     if (targObj && eit == edges.end()) {
         // edge does not exist, add it
-        vector<Block*>  srcs; 
-        vector<Address> trgs;
-        vector<EdgeTypeEnum> etypes;
-        srcs.push_back(sourcePt->llpoint()->block()->llb());
-        trgs.push_back(target - targObj->codeBase());
+		vector<CodeObject::NewEdgeToParse> worklist;
+		EdgeTypeEnum etype;
+
         mal_printf("Adding indirect edge %lx->%lx", 
                    (Address)sourcePt->getAddress(), target);
         if (BPatch_subroutine == sourcePt->getPointType()) {
-            etypes.push_back(CALL);
+            etype = CALL;
             mal_printf(" of type CALL\n");
         } else if (BPatch_exit == sourcePt->getPointType()) {
-            etypes.push_back(RET);
+            etype = RET;
             mal_printf(" of type RET\n");
         } else {
-            etypes.push_back(INDIRECT);
+            etype = INDIRECT;
             mal_printf(" of type INDIRECT\n");
         }
-        targObj->parse_img()->codeObject()->
-            parseNewEdges(srcs,trgs,etypes);
+		worklist.push_back(CodeObject::NewEdgeToParse(sourcePt->llpoint()->block()->llb(), target - targObj->codeBase(), etype));
+        targObj->parse_img()->codeObject()->parseNewEdges(worklist);
         return true;
     }
     return false;
@@ -1048,6 +1118,9 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
         mal_printf("%lx => %lx, in module %s \n",
                     point->getAddress(),target,modName,funcName);
     }
+	if (target == 0x401014) {
+		int i = 3;
+	}
     // 1.1 if targMod is a system library don't parse at target.  However, if the 
     //     transfer into the targMod is an unresolved indirect call, parse at the 
     //     call's fallthrough addr and return.
@@ -1055,10 +1128,15 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
     {
         if (point->getPointType() == BPatch_subroutine) {
             if (0 == strncmp(funcName,"ExitProcess",32) && 
-                0 == strncmp(modName,"kernel32.dll",16)) 
+                NULL == strstr(modName,"kernel32.dll")) 
             {
                 fprintf(stderr,"Caught call to %s, should exit soon %s[%d]\n", 
                         funcName,FILE__,__LINE__);
+            }
+            else if (0 == strncmp(funcName,"ExitProcess",32) && 
+                     NULL == strstr(modName,"kernel32.dll")) 
+            {
+
             }
             else {
                 mal_printf("stopThread instrumentation found call %lx=>%lx, "
@@ -1127,8 +1205,13 @@ bool HybridAnalysis::needsSynchronization(BPatch_point *point)
     vector<Address> targs;
     point->getSavedTargets(targs);
 
-    if (targs.empty()) {
-        return true;
+    if (targs.empty()) { 
+        ParseAPI::Block::edgelist & outEdges = point->llpoint()->block()->llb()->targets();
+        if (outEdges.size() <= 1) {
+            return true; // the point has not been resolved yet
+        } else {
+            return false; // the point has been resolved
+        }
     }
 
     for (vector<Address>::iterator tit= targs.begin();
@@ -1196,4 +1279,32 @@ std::map< BPatch_point* , HybridAnalysis::SynchHandle* > &
 HybridAnalysis::synchMap_post()
 { 
     return synchMap_post_;
+}
+
+int
+HybridAnalysis::getOrigPageRights(Address addr)
+{
+    int origPerms;
+    using namespace SymtabAPI;
+    mapped_object *obj = proc()->lowlevel_process()->findObject(addr);
+    Region * reg = obj->parse_img()->getObject()->
+        findEnclosingRegion(addr - obj->codeBase());
+    Region::perm_t perms = reg->getRegionPermissions();
+    switch (perms) {
+    case (Region::RP_R):
+        origPerms = PAGE_READONLY;
+        break;
+    case (Region::RP_RW):
+        origPerms = PAGE_READWRITE;
+        break;
+    case (Region::RP_RX):
+        origPerms = PAGE_EXECUTE_READ;
+        break;
+    case (Region::RP_RWX):
+        origPerms = PAGE_EXECUTE_READWRITE;
+        break;
+    default:
+        assert(0);
+    }
+    return origPerms;
 }

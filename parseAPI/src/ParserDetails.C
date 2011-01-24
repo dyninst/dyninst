@@ -189,6 +189,7 @@ void Parser::ProcessCFInsn(
     Edges_t edges_out;
     ParseWorkBundle * bundle = NULL;
 
+
     // terminate the block at this address
     end_block(cur,ah);
     
@@ -346,8 +347,10 @@ void Parser::ProcessCFInsn(
                 // update the underlying code bytes for CF targets
                 if (  CALL == curEdge->second
                       || DIRECT == curEdge->second
-                      || COND_TAKEN == curEdge->second )
+                      || COND_TAKEN == curEdge->second
+					  || NOEDGE == curEdge->second)
                 {
+
                     _pcb.updateCodeBytes(curEdge->first);
                 }
             }

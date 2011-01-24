@@ -37,7 +37,7 @@
 #include <map>
 #include <vector>
 #include "dyntypes.h"
-#include "BPatch_hybridAnalysis.h"
+#include "BPatch_enums.h"
 #include "BPatch_callbacks.h"
 #include "process.h"
 
@@ -84,6 +84,7 @@ public:
     BPatch_module *getRuntimeLib() { return sharedlib_runtime; }
     void deleteSynchSnippet(SynchHandle *handle);
     bool needsSynchronization(BPatch_point *point);
+    int getOrigPageRights(Dyninst::Address addr);
 
     std::map< BPatch_point* , SynchHandle* > & synchMap_pre();
     std::map< BPatch_point* , SynchHandle* > & synchMap_post();
@@ -92,8 +93,9 @@ public:
     bool isInLoop(Dyninst::Address blockAddr, bool activeOnly);
     void netFuncCB(BPatch_point *point, void *);
     void abruptEndCB(BPatch_point *point, void *);
+	void virtualFreeCB(BPatch_point *point, void *);
     void badTransferCB(BPatch_point *point, void *returnValue);
-    void signalHandlerEntryCB(BPatch_point *point, void *pcAddr);
+    void signalHandlerEntryCB(BPatch_point *point, Dyninst::Address pcAddr);
     void signalHandlerCB(BPatch_point *pt, long snum, std::vector<Dyninst::Address> &handlers);
     void signalHandlerExitCB(BPatch_point *point, void *returnAddr);
     void synchShadowOrigCB(BPatch_point *point, bool toOrig);
@@ -147,7 +149,7 @@ private:
     bool addIndirectEdgeIfNeeded(BPatch_point *srcPt, Dyninst::Address target);
 
     // variables
-    std::map<Dyninst::Address,Dyninst::Address> handlerFunctions; 
+    std::map<Dyninst::Address,Dyninst::Address> handlerFunctions; // handlerAddr , addr of fault pc on the stack
     std::map < BPatch_function*, 
                std::map<BPatch_point*,BPatchSnippetHandle*> *> * instrumentedFuncs;
     std::map< BPatch_point* , SynchHandle* > synchMap_pre_; // maps from prePt
@@ -193,8 +195,7 @@ public:
            2a.Instrument at loop exit edges
            2b.Instrument at unresolved edges in the loop 
          */
-        void instrumentOverwriteLoop(Dyninst::Address writeInsnAddr, 
-                                     std::set<BPatch_point*> &unresExits);
+        void instrumentOverwriteLoop(Dyninst::Address writeInsnAddr);
 
         void instrumentOneWrite(Dyninst::Address writeInsnAddr, 
                                 std::vector<BPatch_function*> writeFuncs);
@@ -217,6 +218,8 @@ public:
         std::set<Dyninst::Address> writeInsns;
         //loopblocks
         std::set<BPatch_basicBlock*,HybridAnalysis::blockcmp> blocks;
+        //unresolved control transfers that we treat as exit points
+        std::set<BPatch_point*> unresExits_;
     private:
         //write target, set to 0 if loop has multiple write targets
         Dyninst::Address writeTarget_;
@@ -285,14 +288,12 @@ private:
     // and the function returns normally
     bool addFuncBlocks(owLoop *loop, std::set<BPatch_function*> &addFuncs, 
                        std::set<BPatch_function*> &seenFuncs,
-                       std::set<BPatch_point*> &exitPoints,
                        std::set<int> &overlappingLoops);
 
     // if writeLoop is null, return the whole function in the loop. 
     // returns true if we were able to identify all code in the loop
     bool setLoopBlocks(owLoop *loop, 
                        BPatch_basicBlockLoop *writeLoop,
-                       std::set<BPatch_point*> &exitPoints,
                        std::set<int> &overlappingLoops);
 
     //returns true if the loop blocks are a superset of the loop(s) it overlaps
@@ -305,6 +306,7 @@ private:
                               owLoop *loop);
 
     bool isRealStore(Dyninst::Address insnAddr, 
+                     int_block *blk, 
                      BPatch_function *func);
 
     // variables

@@ -1288,7 +1288,9 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                //src1, gen, getSize(), noCost);
                loperand->decUseCount(gen);
                break;
-            case Param: {
+            case Param: 
+            case ParamAtCall: 
+            case ParamAtEntry: {
                dyn_detail::boost::shared_ptr<AstOperandNode> lnode = 
                   dyn_detail::boost::dynamic_pointer_cast<AstOperandNode>(loperand);
                emitR(getParamOp, (Address)lnode->oValue,
@@ -1498,7 +1500,24 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        }
        break;
    case Param:
-       src = emitR(getParamOp, (Address)oValue, Null_Register,
+   case ParamAtCall: 
+   case ParamAtEntry: {
+       opCode paramOp = undefOp;
+       switch(oType) {
+           case Param: 
+               paramOp = getParamOp;
+               break;
+           case ParamAtCall: 
+               paramOp = getParamAtCallOp;
+               break;
+           case ParamAtEntry: 
+               paramOp = getParamAtEntryOp;
+               break;
+           default:
+               assert(0);
+               break;
+       }
+       src = emitR(paramOp, (Address)oValue, Null_Register,
                    retReg, gen, noCost, gen.point(),
                    gen.addrSpace()->multithread_capable());
        REGISTER_CHECK(src);
@@ -1506,6 +1525,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
            // Move src to retReg. Can't simply return src, since it was not
            // allocated properly
            emitImm(orOp, src, 0, retReg, gen, noCost, gen.rs());
+       }
        }
        break;
    case DataAddr:
@@ -2049,7 +2069,7 @@ int AstOperandNode::costHelper(enum CostStyleType costStyle) const {
         total = getInsnCost(loadOp);
     } else if (oType == DataReg) {
         total = getInsnCost(loadIndirOp);
-    } else if (oType == Param) {
+    } else if (oType == Param || oType == ParamAtCall || oType == ParamAtEntry) {
         total = getInsnCost(getParamOp);
     }
     return total;
@@ -2098,7 +2118,7 @@ void AstNode::print() const {
       } else if (oType == DataReg) {
 	fprintf(stderr," reg%d ",(int)(Address)oValue);
         loperand->print();
-      } else if (oType == Param) {
+      } else if (oType == Param || oType == ParamAtCall || oType == ParamAtEntry) {
 	fprintf(stderr," param[%d]", (int)(Address) oValue);
       } else if (oType == ReturnVal) {
 	fprintf(stderr,"retVal");
@@ -2257,7 +2277,9 @@ BPatch_type *AstOperandNode::checkType()
         // XXX Should really be pointer to lType -- jkh 7/23/99
         ret = BPatch::bpatch->type_Untyped;
     } 
-    else if ((oType == Param) || (oType == ReturnVal) || (oType == ReturnAddr)) {
+    else if ((oType == Param) || (oType == ParamAtCall) || 
+             (oType == ParamAtEntry) || (oType == ReturnVal) 
+             || (oType == ReturnAddr)) {
             // XXX Params and ReturnVals untyped for now
       // ReturnAddr should be void *, probably
         ret = BPatch::bpatch->type_Untyped; 
@@ -2841,6 +2863,8 @@ bool AstOperandNode::usesAppRegister() const {
        oType == AstNode::RegOffset ||
        oType == AstNode::origRegister ||
        oType == AstNode::Param ||
+       oType == AstNode::ParamAtEntry ||
+       oType == AstNode::ParamAtCall ||
        oType == AstNode::ReturnVal)
    {
       return true;

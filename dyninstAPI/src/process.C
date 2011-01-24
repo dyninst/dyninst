@@ -4002,6 +4002,8 @@ bool process::removeASharedObject(mapped_object *obj) {
             break;
         }
     }
+	flushAddressCache_RT(obj);
+	getMemEm()->removeRegion(obj);
 
     if (runtime_lib.end() != runtime_lib.find(obj)) {
         runtime_lib.erase( runtime_lib.find(obj) );
@@ -4468,13 +4470,14 @@ Address process::stopThreadCtrlTransfer
             // b. We're in an analyzed fallthrough block
             // c. The stack was tampered with and we need the (mod_pc - pc) 
             //    offset to figure out where we should be
-
+			cerr << "Looking for matches to incoming address " << hex << target << dec << endl;
             instPoint *callPt = NULL;
             int_block *callBBI = NULL;
             bool tampered = false;
             if ( reverseDefensiveMap_.find(target,callPt) ) {
                 // a. 
-                callBBI = callPt->block();
+				cerr << "\t Found in defensive map" << endl;
+				callBBI = callPt->block();
             }
             else {
                 // b. 
@@ -4484,33 +4487,55 @@ Address process::stopThreadCtrlTransfer
                 baseTrampInstance *bti = NULL;
                 bool hasFT = getRelocInfo(target, unrelocTarget, targBBI, bti);
                 assert(hasFT); // otherwise we should be in the defensive map
-
-                std::vector<int_block *> sourceBlocks;
-                targBBI->getSources(sourceBlocks);
-                assert(sourceBlocks.size() == 1);
-                callBBI = sourceBlocks[0];
-                if (callBBI) {
-                    // if necessary, add the fallthrough edge
-                    using namespace ParseAPI;
-                    Block::edgelist &edges = callBBI->llb()->targets();
+				cerr << "Target address " << hex << target << " maps to original address " << unrelocTarget << endl;
+				std::vector<int_block *> sources;
+				targBBI->getSources(sources);
+				cerr << "\t Not found in defensive map, found in block " << hex << targBBI->start() << " -> " << targBBI->end() << " with " << dec << sources.size() << " predecessors" << endl;
+				for (unsigned i = 0; i < sources.size(); ++i) {
+					cerr << "\t\t Source edge type: " << targBBI->getSourceEdgeType(sources[i]) << endl;
+					if (targBBI->getSourceEdgeType(sources[i]) == ParseAPI::CALL_FT) {
+						callBBI = sources[i];
+					}
+				}
+				if (callBBI) {
+					cerr << "\t Found caller BBI" << endl;
+					using namespace ParseAPI;
+					Block::edgelist &edges = callBBI->llb()->targets();
                     Block::edgelist::iterator eit = edges.begin();
                     for (; eit != edges.end(); eit++)
                         if (CALL_FT == (*eit)->type())
                             break;
                     if (eit == edges.end()) {
                         // add ft edge
-                        vector<Block*>  srcs; 
-                        vector<Address> trgs;
-                        vector<EdgeTypeEnum> etypes;
-                        srcs.push_back(callBBI->llb());
-                        trgs.push_back(callBBI->llb()->end());
-                        etypes.push_back(CALL_FT);
+						vector<CodeObject::NewEdgeToParse> worklist;
+						worklist.push_back(CodeObject::NewEdgeToParse(callBBI->llb(), callBBI->llb()->end(), CALL_FT));
                         callBBI->func()->ifunc()->img()->codeObject()->
-                            parseNewEdges(srcs,trgs,etypes);
+							parseNewEdges(worklist);
                     }
-                } 
+				}
                 else { 
-                    tampered = true;
+					cerr << "FAILED TO FIND caller BBI, failing..." << endl;
+					// We're going to choke and die
+					// So let's try to figure out what the hell happened...
+					char buffer[256];
+					readDataSpace((void *)(target-128), 256, (void *)buffer, true);
+					using namespace InstructionAPI;
+					InstructionDecoder deco (buffer, 256, getArch());
+					Instruction::Ptr insn = deco.decode();
+					int i = 0;
+					int *tmp = (int *)buffer;
+					cerr << "Raw dump: " << endl;
+					for (int j = 0; j < 64; ++j) {
+						cerr << "\t " << hex << target - 128 + (j*4) << ": " << tmp[j] << dec << endl;
+					}				
+					cerr << "Disassembled: " << endl;
+					while (i < 256) {
+						cerr << "\t " << hex << target - 128 + i << ": " << dec << insn->format() << endl;
+						i += insn->size();
+						insn = deco.decode();
+					}
+					abort();
+					tampered = true;
                 }
             }
             if (!tampered) {
@@ -4679,6 +4704,9 @@ bool process::handleStopThread(EventRecord &ev)
 
     mal_printf("handling stopThread %lx[%lx]=>%lx %s[%d]\n", 
                pointAddr, relocPointAddr, (long)calculation, FILE__,__LINE__); 
+	if ((long)calculation == 0x401014) {
+		DebugBreak();
+	}
 /* 2. If the callbackID is negative, the calculation is meant to be
       interpreted as the address of code, so we call stopThreadCtrlTransfer
       to translate the target to an unrelocated address */
@@ -4723,11 +4751,15 @@ bool process::getOverwrittenBlocks
     for (; pIter != overwrittenPages.end(); pIter++) {
         Address curPageAddr = (*pIter).first / MEM_PAGE_SIZE * MEM_PAGE_SIZE;
         unsigned char *curShadow = (*pIter).second;
-    
+		cerr << "\t Checking page " << hex << curPageAddr << dec << endl;
+		if (curPageAddr == 0xbe0000) {
+			int i = 3;
+		}
         // 0. check to make sure curShadow is non-null, if it is null, 
         //    that means it hasn't been written to
         if ( ! curShadow ) {
-            continue;
+			cerr << "\t\t No current shadow, continuing" << endl;
+			continue;
         }
 
         mapped_object* obj = findObject(curPageAddr);
@@ -4740,6 +4772,7 @@ bool process::getOverwrittenBlocks
         if (isMemoryEmulated()) {
             bool valid = false;
             boost::tie(valid,readAddr) = getMemEm()->translate(curPageAddr);
+			cerr << "\t\t Reading from shadow page " << hex << readAddr << " instead of original " << curPageAddr << endl;
             assert(valid);
         }
         readTextSpace((void*)readAddr, MEM_PAGE_SIZE, memVersion);
@@ -4751,12 +4784,14 @@ bool process::getOverwrittenBlocks
                 regionStart = curPageAddr+mIdx;
             } else if (foundStart && curShadow[mIdx] == memVersion[mIdx]) {
                 foundStart = false;
-                overwrittenRanges.push_back(
+				cerr << "\t\t Adding overwritten range " << hex << regionStart << " -> " << curPageAddr + mIdx << dec << endl;
+				overwrittenRanges.push_back(
                     pair<Address,Address>(regionStart,curPageAddr+mIdx));
             }
         }
         if (foundStart) {
             foundStart = false;
+			cerr << "\t\t Adding overwritten range " << hex << regionStart << " -> " << curPageAddr + MEM_PAGE_SIZE << dec << endl;
             overwrittenRanges.push_back(
                 pair<Address,Address>(regionStart,curPageAddr+MEM_PAGE_SIZE));
         }

@@ -35,7 +35,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_eventLock.h"
-#include "BPatch_hybridAnalysis.h"
+#include "BPatch_enums.h"
 #include "dyntypes.h"
 #include <vector>
 #include <map>

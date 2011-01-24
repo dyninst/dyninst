@@ -120,6 +120,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
     if (!isPCSensitive(insn,
 		       addr,
 		       (*b_iter)->bbl()->func(),
+			   (*b_iter)->bbl(),
 		       sensitiveAssignments)) {
       //cerr << "Instruction " << insn->format() << " not PC sensitive, skipping" << endl;
       continue;
@@ -153,7 +154,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
        for (AssignList::iterator a_iter = sensitiveAssignments.begin();
             a_iter != sensitiveAssignments.end(); ++a_iter) {
           
-          sensitivity_cerr << "Forward slice from " << (*a_iter)->format() << " in func " << bbl->func()->prettyName() << endl;
+		cerr << "Forward slice from " << (*a_iter)->format() << hex << " @ " << addr << " (parse of " << (*a_iter)->addr() << dec << ") in func " << bbl->func()->prettyName() << endl;
           
           Graph::Ptr slice = forwardSlice(*a_iter,
                                           bbl->llb(),
@@ -243,6 +244,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
 bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
 					   Address addr,
 					   int_function *func,
+					   int_block *block,
 					   AssignList &sensitiveAssignments) {
   if (!(insn->getOperation().getID() == e_call)) return false;
   // FIXME for loopnz instruction
@@ -253,6 +255,7 @@ bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
   aConverter.convert(insn,
 		     func->addrToOffset(addr),
 		     func->ifunc(),
+			 block->llb(),
 		     assignments);
   for (std::vector<Assignment::Ptr>::iterator a_iter = assignments.begin();
        a_iter != assignments.end(); ++a_iter) {
@@ -582,7 +585,7 @@ void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
     newCF->updateInfo(cf);
 
     CFAtom::DestinationMap::iterator dest = cf->destMap_.find(CFAtom::Taken);
-    if (dest != cf->destMap_.end()) {
+    if (dest != cf->destMap_.end() && !cf->isIndirect_) {
       // Explicitly do _NOT_ reuse old information - this is just a branch
       
       newCF->destMap_[CFAtom::Taken] = dest->second;
@@ -598,14 +601,14 @@ void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
       newCF->updateInsn(insn);
       newCF->updateAddr(addr);
       if (!newCF->isIndirect_) { 
-	// WTF???
-	cerr << "Error: unknown insn " << insn->format() 
-	     << std::hex << "@" << addr << dec << endl;
+        // ???
+        cerr << "Error: unknown insn " << insn->format() 
+             << std::hex << "@" << addr << dec << endl;
 
-	for (CFAtom::DestinationMap::iterator foo = cf->destMap_.begin();
-	     foo != cf->destMap_.end(); ++foo) {
-	  //cerr << hex << foo->first << " -> " << foo->second->addr() << dec << endl;
-	}
+        for (CFAtom::DestinationMap::iterator foo = cf->destMap_.begin();
+             foo != cf->destMap_.end(); ++foo) {
+          //cerr << hex << foo->first << " -> " << foo->second->addr() << dec << endl;
+        }
 
       }
 
@@ -637,7 +640,7 @@ bool PCSensitiveTransformer::exceptionSensitive(Address a, const int_block *bbl)
 
   ExceptionBlock eBlock;
   // Amusingly, existence is sufficient for us.
-  return symtab->findException(eBlock, o);
+  return symtab->findException(eBlock, o);      
 }
 
 void PCSensitiveTransformer::cacheAnalysis(const int_block *bbl, Address addr, bool intSens, bool extSens) {
@@ -645,10 +648,9 @@ void PCSensitiveTransformer::cacheAnalysis(const int_block *bbl, Address addr, b
 }
 
 bool PCSensitiveTransformer::queryCache(const int_block *bbl, Address addr, bool &intSens, bool &extSens) {
-	intSens = true;
-	extSens = true;
-	return true;
-	
+	//intSens = true;
+	//extSens = true;
+	//return true;
 	AnalysisCache::const_iterator iter = analysisCache_.find(bbl);
    if (iter == analysisCache_.end()) return false;
    CacheEntry::const_iterator iter2 = iter->second.find(addr);
@@ -681,7 +683,7 @@ void PCSensitiveTransformer::invalidateCache(int_function *f) {
 	for (std::vector<instPoint *>::iterator iter = callerPoints.begin();
 		iter != callerPoints.end(); ++iter) {
 			invalidateCache((*iter)->block());
-	}
+    	}
 }
 
 ExtPCSensVisitor::ExtPCSensVisitor(const AbsRegion &a) :

@@ -1526,9 +1526,11 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
           return dest;
           break;
        case getParamOp:
+       case getParamAtCallOp:
+       case getParamAtEntryOp:
           // src1 is the number of the argument
           // dest is a register where we can store the value
-          gen.codeEmitter()->emitGetParam(dest, src1, location->getPointType(), 
+          gen.codeEmitter()->emitGetParam(dest, src1, location->getPointType(), op,
                                           get_addr_of, gen);
           if (!get_addr_of)
              return dest;

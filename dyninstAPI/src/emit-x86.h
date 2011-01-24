@@ -100,7 +100,7 @@ public:
                          int frame_size, pdvector<Register> &extra_saves);
     void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
     void emitGetRetAddr(Register dest, codeGen &gen);
-    void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, bool addr_of, codeGen &gen);
+    void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, opCode op, bool addr_of, codeGen &gen);
     void emitFuncJump(int_function *f, instPointType_t ptType, bool callOp, codeGen &gen);
     void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen);
     void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);

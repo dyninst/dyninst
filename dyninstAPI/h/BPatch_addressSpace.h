@@ -32,7 +32,6 @@
 #ifndef _BPatch_addressSpace_h_
 #define _BPatch_addressSpace_h_
 
-#include "BPatch_snippet.h"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
@@ -47,6 +46,7 @@
 #include <stdio.h>
 #include <signal.h>
 
+class BPatch_statement;
 class AddressSpace;
 class miniTrampHandle;
 class miniTramp;

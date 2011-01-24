@@ -217,7 +217,7 @@ class SpringboardBuilder {
   bool conflict(Address start, Address end, bool inRelocatedCode);
   bool conflictInRelocated(Address start, Address end);
 
-  void registerBranch(Address start, Address end, bool inRelocatedCode);
+  void registerBranch(Address start, Address end, const SpringboardReq::Destinations &dest, bool inRelocatedCode);
   void registerBranchInRelocated(Address start, Address end);
 
   void addMultiNeeded(const SpringboardReq &p);
@@ -232,6 +232,8 @@ class SpringboardBuilder {
 
   AddressSpace *addrSpace_;
 
+  // tracks relocation addresses that need trap-based springboards
+  static std::set<Address> relocTraps_; 
   
 
   // We don't really care about the payload; I just want an "easy to look up"

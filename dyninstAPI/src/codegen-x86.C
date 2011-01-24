@@ -99,6 +99,23 @@ unsigned copy_prefixes_nosize(const unsigned char *&origInsn, unsigned char *&ne
   return nPrefixes;
 }
 
+//Copy all prefixes but the Operand-Size and Address-Size prefixes (0x66 and 0x67)
+unsigned copy_prefixes_nosize_or_segments(const unsigned char *&origInsn, unsigned char *&newInsn, 
+                              unsigned insnType) 
+{
+  unsigned nPrefixes = count_prefixes(insnType);
+
+  for (unsigned u = 0; u < nPrefixes; u++) {
+     if ((*origInsn) >= 0x64 && (*origInsn) <= 0x67)
+     {
+        origInsn++;
+        continue;
+     }
+     *newInsn++ = *origInsn++;
+  }
+  return nPrefixes;
+}
+
 bool convert_to_rel8(const unsigned char*&origInsn, unsigned char *&newInsn) {
   if (*origInsn == 0x0f)
     origInsn++;
@@ -435,7 +452,7 @@ unsigned pcRelJCC::apply(Address addr)
    codeBufIndex_t start = gen->getIndex();
    GET_PTR(newInsn, *gen);
 
-   copy_prefixes_nosize(origInsn, newInsn, insnType); 
+   copy_prefixes_nosize_or_segments(origInsn, newInsn, insnType); 
    
    //8-bit jump
    potential = addr + 2;

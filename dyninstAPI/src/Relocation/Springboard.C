@@ -41,6 +41,7 @@ using namespace Relocation;
 
 const int SpringboardBuilder::Allocated(0);
 const int SpringboardBuilder::UnallocatedStart(1);
+std::set<Address> SpringboardBuilder::relocTraps_; 
 
 template <typename TraceIter> 
 SpringboardBuilder::Ptr SpringboardBuilder::create(TraceIter begin,
@@ -141,6 +142,7 @@ bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end, int funcID) {
   for (; begin != end; ++begin) {
     bool useBlock = true;
     int_block *bbl = (*begin);
+
     // don't add block if it's shared and the entry point of another function
     if (bbl->llb()->isShared()) {
         using namespace ParseAPI;
@@ -225,7 +227,7 @@ bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end, int funcID) {
   return true;
 }
 
-
+extern bool disassemble_reloc;
 SpringboardBuilder::generateResult_t 
 SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 					const SpringboardReq &r,
@@ -233,15 +235,17 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    codeGen gen;
    
    bool usedTrap = false;
-   
+   if (disassemble_reloc) cerr << "Springboard: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
+
    generateBranch(r.from, r.destinations.begin()->second, gen);
-   
+
    if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
       // Errr...
       // Fine. Let's do the trap thing. 
       usedTrap = true;
       generateTrap(r.from, r.destinations.begin()->second, gen);
-      if (conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
+	  //cerr << hex << "Generated springboard trap: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
+	  if (conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
          // Someone could already be there; omit the trap. 
          return Failed;
       }
@@ -251,7 +255,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
       createRelocSpringboards(r, usedTrap, input);
    }
 
-  registerBranch(r.from, r.from + gen.used(), r.fromRelocatedCode);
+  registerBranch(r.from, r.from + gen.used(), r.destinations, r.fromRelocatedCode);
   springboards.push_back(gen);
 
   return Succeeded;
@@ -266,7 +270,8 @@ bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &,
 }
 
 bool SpringboardBuilder::conflict(Address start, Address end, bool inRelocated) {
-   if (inRelocated) return conflictInRelocated(start, end);
+   if (inRelocated) 
+       return conflictInRelocated(start, end);
 
    // We require springboards to stay within a particular block
    // so that we don't have issues with jumping into the middle
@@ -280,45 +285,41 @@ bool SpringboardBuilder::conflict(Address start, Address end, bool inRelocated) 
    // into another's. So check to see if state suddenly changes.
 
    Address working = start;
-   Address LB, UB;
+   Address LB;
+   Address UB = 0;
    int state = -1;
    int lastState = state;
-   relocation_cerr << "Conflict called for " << hex << start << "->" << end << dec << endl;
+   springboard_cerr << "Conflict called for " << hex << start << "->" << end << dec << endl;
    
    while (end > working) {
-        relocation_cerr << "\t looking for " << hex << working << dec << endl;
+        springboard_cerr << "\t looking for " << hex << working << dec << endl;
        if (!validRanges_.find(working, LB, UB, state)) {
-         relocation_cerr << "\t Conflict: unable to find entry for " << hex << working << dec << endl;
+         springboard_cerr << "\t Conflict: unable to find entry for " << hex << working << dec << endl;
          return true;
       }
-      relocation_cerr << "\t\t Found " << hex << LB << " -> " << UB << " /w/ state " << state << dec << endl;
+      springboard_cerr << "\t\t Found " << hex << LB << " -> " << UB << " /w/ state " << state << dec << endl;
       if (state == Allocated) {
-         relocation_cerr << "\t Starting range already allocated, ret conflict" << endl;
+         springboard_cerr << "\t Starting range already allocated, ret conflict" << endl;
          return true;
       }
       if (lastState != -1 &&
           state != lastState) {
-          relocation_cerr << "\t Crossed into a different function, ret conflict" << endl;
+          springboard_cerr << "\t Crossed into a different function, ret conflict" << endl;
           return true;
       }
       working = UB;
       lastState = state;
    }
-   relocation_cerr << "\t No conflict, we're good" << endl;
-   if (start == 0x971170) {
-       printf("no conflict for [%x %x)\n", start,end);
+   if (UB < end) {
+       return true;
    }
-   if (start == 0x97116d) {
-       printf("no conflict for [%x %x)\n", start,end);
-   }
-   if (start == 0x97116f) {
-       printf("no conflict for [%x %x)\n", start,end);
-   }
+   springboard_cerr << "\t No conflict, we're good" << endl;
    return false;
 }
 
 bool SpringboardBuilder::conflictInRelocated(Address start, Address end) {
-   // Much simpler case: do we overlap something already in the range set.
+   // Much simpler case: do we overlap something already in the range set, 
+   // or did we use a trap for this block initially
    for (Address i = start; i < end; ++i) {
       Address lb, ub;
       bool val;
@@ -327,12 +328,37 @@ bool SpringboardBuilder::conflictInRelocated(Address start, Address end) {
          return true;
       }
    }
+   if ( (end-start) > 1 && relocTraps_.end() != relocTraps_.find(start) ) {
+       malware_cerr << "Springboard conflict for " << hex << start  
+           << " our previous springboard here needed a trap, "
+           << "but due to overwrites we may (erroneously) think "
+           << "a branch can fit" << dec << endl;
+       springboard_cerr << "Springboard conflict for " << hex << start  
+           << " our previous springboard here needed a trap, "
+           << "but due to overwrites we may (erroneously) think "
+           << "a branch can fit" << dec << endl;
+       return true;
+   }
+
    return false;
 }
 
-void SpringboardBuilder::registerBranch(Address start, Address end, bool inRelocated) {
+void SpringboardBuilder::registerBranch
+(Address start, Address end, const SpringboardReq::Destinations & dest, bool inRelocated) 
+{
    // Remove the valid ranges for everything between start and end, using much the 
    // same logic as above.
+
+   if ( 1 == (end - start) ) {
+       for (SpringboardReq::Destinations::const_iterator dit=dest.begin();
+            dit != dest.end();
+            dit++)
+       {
+           relocTraps_.insert(start);
+           relocTraps_.insert(dit->second);// if we relocate again it will need a trap too
+       }
+   }
+    
    if (inRelocated) {
       return registerBranchInRelocated(start, end);
    }
@@ -340,7 +366,7 @@ void SpringboardBuilder::registerBranch(Address start, Address end, bool inReloc
    Address working = start;
    Address LB = 0, UB = 0;
    Address lb = 0, ub = 0;
-   relocation_cerr << "Adding branch: " << hex << start << " -> " << end << dec << endl;
+   springboard_cerr << "Adding branch: " << hex << start << " -> " << end << dec << endl;
    int idToUse = -1;
    while (end > working) {
       int state = 0;
@@ -360,13 +386,13 @@ void SpringboardBuilder::registerBranch(Address start, Address end, bool inReloc
    // [start..end] as false
    // [end..ub] as true
    if (LB < start) {
-        relocation_cerr << "\tInserting prior space " << hex << LB << " -> " << start << " /w/ range " << idToUse << dec << endl;
+        springboard_cerr << "\tInserting prior space " << hex << LB << " -> " << start << " /w/ range " << idToUse << dec << endl;
        validRanges_.insert(LB, start, idToUse);
    }
-    relocation_cerr << "\t Inserting taken space " << hex << start << " -> " << end << " /w/ range " << Allocated << dec << endl;
+    springboard_cerr << "\t Inserting taken space " << hex << start << " -> " << end << " /w/ range " << Allocated << dec << endl;
    validRanges_.insert(start, end, Allocated);
    if (UB > end) {
-        relocation_cerr << "\tInserting post space " << hex << end << " -> " << UB << " /w/ range " << idToUse << dec << endl;
+        springboard_cerr << "\tInserting post space " << hex << end << " -> " << UB << " /w/ range " << idToUse << dec << endl;
       validRanges_.insert(end, UB, idToUse);
    }
 }
@@ -396,15 +422,17 @@ void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) 
   gen.setAddr(from);
 
   insnCodeGen::generateBranch(gen, from, to);
-  relocation_cerr << "Springboard branch " << hex << from << "->" << to << dec << endl;
+
+  springboard_cerr << "Springboard branch " << hex << from << "->" << to << dec << endl;
 }
 
 void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
-  gen.invalidate();
+	//cerr << "Springboard: generateTrap " << hex << from << " -> " << to << dec << endl;
+	gen.invalidate();
   gen.allocate(4);
   gen.setAddrSpace(addrSpace_);
   gen.setAddr(from);
-  relocation_cerr << "YUCK! Springboard trap at: "<< hex << from << "->" << to << dec << endl;
+  springboard_cerr << "YUCK! Springboard trap at: "<< hex << from << "->" << to << dec << endl;
   addrSpace_->trapMapping.addTrapMapping(from, to, true);
   insnCodeGen::generateTrap(gen);
 }
@@ -412,13 +440,14 @@ void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
 bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool useTrap, SpringboardMap &input) {
    assert(!req.fromRelocatedCode);
    // Just the requests for now.
-   
+   //cerr << "\t createRelocSpringboards for " << hex << req.from << dec << endl;
    std::list<Address> relocAddrs;
    for (SpringboardReq::Destinations::const_iterator b_iter = req.destinations.begin(); 
        b_iter != req.destinations.end(); ++b_iter) {
+
        addrSpace_->getRelocAddrs(req.from, b_iter->first->func(), relocAddrs, true);
        for (std::list<Address>::const_iterator addr = relocAddrs.begin(); 
-            addr != relocAddrs.end(); ++addr) {
+            addr != relocAddrs.end(); ++addr) { 
           if (*addr == b_iter->second) continue;
           Priority newPriority;
           switch(req.priority) {
@@ -432,11 +461,26 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool
                 assert(0);
                 break;
           }
-          
+
+          bool curUseTrap = useTrap;
+          if ( !useTrap && relocTraps_.end() != relocTraps_.find(*addr)) {
+               malware_cerr << "Springboard conflict for " << hex 
+                   << req.from << "[" << (*addr) 
+                   << "] our previous springboard here needed a trap, "
+                   << "but due to overwrites we may (erroneously) think "
+                   << "a branch can fit" << dec << endl;
+               springboard_cerr << "Springboard conflict for " << hex 
+                   << req.from << "[" << (*addr) 
+                   << "] our previous springboard here needed a trap, "
+                   << "but due to overwrites we may (erroneously) think "
+                   << "a branch can fit" << dec << endl;
+               curUseTrap = true;
+          }
+
           input.addRaw(*addr, b_iter->second, 
                        newPriority, b_iter->first,
                        req.checkConflicts, 
-                       false, true, useTrap);
+                       false, true, curUseTrap);
        }
    }
    return true;

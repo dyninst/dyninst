@@ -192,14 +192,15 @@ static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
             }
 
             if (callAddr) {
+				callBBI->func()->funcCalls();
                 instPoint *callPoint = callBBI->func()->findInstPByAddr( callAddr );
                 if (!callPoint) { // this is necessary, at least the first time
                     callBBI->func()->funcCalls();
                     callPoint = callBBI->func()->findInstPByAddr( callAddr );
                 }
                 if (!callPoint || callSite != callPoint->getPointType()) {
-                    assert(callBBI->func()->obj()->parse_img()->codeObject()->
-                           defensiveMode());
+                    //assert(callBBI->func()->obj()->parse_img()->codeObject()->
+                    //       defensiveMode());
                     mal_printf("Warning, call at %lx, found while "
                                "stackwalking, has no callpoint attached, does "
                                "the target tamper with the call stack? %s[%d]\n", 

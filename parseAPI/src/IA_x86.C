@@ -284,73 +284,6 @@ bool IA_IAPI::sliceReturn(ParseAPI::Block* /*bit*/, Address /*ret_addr*/, ParseA
 
 //class ST_Predicates : public Slicer::Predicates {};
 
-// returns stackTamper, which is false if parsing should not resume 
-// after call instructions to this function.  
-// The function recommends parsing at an alternative address if the stack 
-// delta is a known absolute or relative value, otherwise we will instrument
-// this function's return instructions to see if the function returns
-StackTamper IA_IAPI::tampersStack(ParseAPI::Function *, 
-                                  Address &) const
-{
-    return TAMPER_NONE;
-
-#if 0
-
-    using namespace DataflowAPI;
-    if (TAMPER_UNSET != func->stackTamper()) {
-        return func->stackTamper();
-    }
-
-    if ( ! _obj->defensiveMode() ) { 
-        return TAMPER_NONE;
-    }
-
-    Function::blocklist & retblks = func->returnBlocks();
-    if ( retblks.begin() == retblks.end() ) {
-        return TAMPER_NONE;
-    }
-
-    AssignmentConverter converter(true);
-    vector<Assignment::Ptr> assgns;
-    ST_Predicates preds;
-    StackTamper tamper = TAMPER_UNSET;
-    //Absloc stkLoc (MachRegister::getStackPointer(_isrc->getArch()));
-    Function::blocklist::iterator bit;
-    for (bit = retblks.begin(); retblks.end() != bit; bit++) {
-        Address retnAddr = (*bit)->lastInsnAddr();
-        InstructionDecoder retdec( _isrc->getPtrToInstruction( retnAddr ), 
-                                  InstructionDecoder::maxInstructionLength, 
-                                  _cr->getArch() );
-        Instruction::Ptr retn = retdec.decode();
-        converter.convert(retn, retnAddr, func, assgns);
-        vector<Assignment::Ptr>::iterator ait;
-        AST::Ptr sliceAtRet;
-
-        for (ait = assgns.begin(); assgns.end() != ait; ait++) {
-            AbsRegion & outReg = (*ait)->out();
-            if ( outReg.absloc().isPC() ) {
-                Slicer slicer(*ait,*bit,func);
-                Graph::Ptr slGraph = slicer.backwardSlice(preds);
-                SymEval::Result_t slRes;
-                SymEval::expand(slGraph,slRes);
-                if (dyn_debug_malware) {
-                    stringstream graphDump;
-                    graphDump << "sliceDump_" << func->name() 
-                              << "_" << retnAddr << ".dot";
-                    slGraph->printDOT(graphDump.str());
-                }
-                sliceAtRet = slRes[*ait];
-                break;
-            }
-        }
-        assert(sliceAtRet != NULL);
-        StackTamperVisitor vis((*ait)->out());
-        tamper = vis.tampersStack(sliceAtRet, tamperAddr);
-        assgns.clear();
-    }
-    return tamper;
-#endif
-}
 
 /* returns true if the call leads to:
  * -an invalid instruction (or immediately branches/calls to an invalid insn)
@@ -492,6 +425,14 @@ bool IA_IAPI::isFakeCall() const
                 // be a red flag if there wasn't an enter ins'n first and 
                 // we didn't end in a return instruction
                 break;
+			case e_and:
+				// Rounding off the stack pointer. 
+				mal_printf("WARNING: saw and instruction at %lx that is not handled by isFakeCall %s[%d]\n",
+					curAddr, FILE__, __LINE__);
+				delete ah;
+				return false;
+				break;
+
             case e_sub:
                 sign = -1;
             case e_add: {

@@ -175,6 +175,7 @@ Function::blocks_int()
 
             if(e->type() == RET) {
                 link_return = true;
+				_rs = RETURN;
                 continue;
             }
 
@@ -421,7 +422,10 @@ Function::tampersStack(bool recalculate)
     Function::blocklist::iterator bit;
     for (bit = retblks.begin(); retblks.end() != bit; ++bit) {
         Address retnAddr = (*bit)->lastInsnAddr();
-        InstructionDecoder retdec(this->isrc()->getPtrToInstruction(retnAddr), 
+		if (retnAddr == 0x37e9) {
+			int i = 3;
+		}
+		InstructionDecoder retdec(this->isrc()->getPtrToInstruction(retnAddr), 
                                   InstructionDecoder::maxInstructionLength, 
                                   this->region()->getArch() );
         Instruction::Ptr retn = retdec.decode();
@@ -450,7 +454,7 @@ Function::tampersStack(bool recalculate)
 
                 Slicer slicer(*ait,*bit,this);
                 Graph::Ptr slGraph = slicer.backwardSlice(preds);
-                if (dyn_debug_malware) {
+                if (dyn_debug_malware && 0) {
                     stringstream graphDump;
                     graphDump << "sliceDump_" << this->name() << "_" 
                               << hex << retnAddr << dec << ".dot";
@@ -474,6 +478,10 @@ Function::tampersStack(bool recalculate)
         StackTamperVisitor vis(Absloc(-1 * isrc()->getAddressWidth(), 0, this));
         Address curTamperAddr=0;
         StackTamper curtamper = vis.tampersStack(sliceAtRet, curTamperAddr);
+        mal_printf("StackTamperVisitor for func at 0x%lx block[%lx %lx) w/ "
+                   "lastInsn at 0x%lx returns tamper=%d tamperAddr=0x%lx\n",
+                   _start, (*bit)->start(), (*bit)->end(), retnAddr, 
+                   curtamper, curTamperAddr);
         if (TAMPER_UNSET == _tamper || TAMPER_NONE == _tamper ||
             (TAMPER_NONZERO == _tamper && 
              TAMPER_NONE != curtamper))

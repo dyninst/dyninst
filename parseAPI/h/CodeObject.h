@@ -77,9 +77,14 @@ class CodeObject {
     PARSER_EXPORT void parse(Address target, bool recursive);
 
     // parses new edges in already parsed functions
-    PARSER_EXPORT bool parseNewEdges( vector<Block*> & sources, 
-                                      vector<Address> & targets, 
-                                      vector<EdgeTypeEnum> & edge_types);
+	struct NewEdgeToParse {
+		Block *source;
+		Address target;
+		EdgeTypeEnum edge_type;
+		NewEdgeToParse(Block *a, Address b, EdgeTypeEnum c) : source(a), target(b), edge_type(c) {};
+	};
+
+    PARSER_EXPORT bool parseNewEdges( vector<NewEdgeToParse> & worklist ); 
 
     // `speculative' parsing
     PARSER_EXPORT void parseGaps(CodeRegion *cr);

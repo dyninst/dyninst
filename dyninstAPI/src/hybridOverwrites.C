@@ -44,6 +44,8 @@
 #include "AbslocInterface.h"
 #include "InstructionDecoder.h"
 #include "instPoint.h"
+#include "mapped_object.h"
+#include "mapped_module.h"
 
 using namespace Dyninst;
 
@@ -227,6 +229,10 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool useInsertionSet, BPatch_poi
     for (; sIter != loop->snippets.end(); sIter++) {
         proc()->deleteSnippet(*sIter);
     }
+    loop->snippets.clear();
+    if (useInsertionSet) {
+        proc()->finalizeInsertionSet(false);
+    }
 
     // clear loop from blockToLoop and idToLoop datastructures
     std::set<BPatch_basicBlock*,HybridAnalysis::blockcmp>::iterator bIter 
@@ -248,9 +254,6 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool useInsertionSet, BPatch_poi
     loops.erase(loop);
     delete loop;
 
-    if (useInsertionSet) {
-        proc()->finalizeInsertionSet(false);
-    }
     return isLoopActive;
 }
 
@@ -298,8 +301,7 @@ bool HybridAnalysisOW::hasLoopInstrumentation
    2a.Instrument at loop exit edges
    2b.Instrument at unresolved edges in the loop 
  */
-void HybridAnalysisOW::owLoop::instrumentOverwriteLoop
-    (Address writeInsn, std::set<BPatch_point*> &unresExits)
+void HybridAnalysisOW::owLoop::instrumentOverwriteLoop(Address writeInsn)
 {
     assert(blocks.size());
     writeInsns.insert(writeInsn);
@@ -358,8 +360,8 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop
     }
     // 2b.Instrument at unresolved edges in the loop
     BPatch_dynamicTargetExpr dynTarg;
-    std::set<BPatch_point*>::iterator uIter = unresExits.begin();
-    while (uIter != unresExits.end()) {
+    std::set<BPatch_point*>::iterator uIter = unresExits_.begin();
+    while (uIter != unresExits_.end()) {
         Address uAddr = (Address)(*uIter)->getAddress();
         mal_printf(" instr unresolved: 0x%x in func at 0x%lx\n", 
                   uAddr, (*uIter)->getFunction()->getBaseAddr());
@@ -464,7 +466,8 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
         for (unsigned widx = 0; widx < (*blockWrites).size(); widx++) {
             if (BPatch_locSubroutine == (*blockWrites)[widx]->getPointType() ||
                 !hybridow_->isRealStore(
-                    (Address)(*blockWrites)[widx]->getAddress(),
+                    (Address)(*blockWrites)[widx]->getAddress(), 
+                    (*bIter)->lowlevel_block(),
                     (*blockWrites)[widx]->getFunction())) 
             {
                 (*blockWrites)[widx] = (*blockWrites)[blockWrites->size()-1];
@@ -668,7 +671,6 @@ static void addLoopFunc(BPatch_function *func,
 bool HybridAnalysisOW::addFuncBlocks(owLoop *loop, 
                    std::set<BPatch_function*> &addFuncs, 
                    std::set<BPatch_function*> &seenFuncs,
-                   std::set<BPatch_point*> &exitPoints,
                    std::set<int> &overlappingLoops)
 {
     bool hasUnresolved = false;
@@ -713,6 +715,7 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
             vector<Address> targs;
             (*pIter)->getSavedTargets(targs);
             if (1 != targs.size()) {
+                loop->unresExits_.insert(*pIter);
                 hasUnresolved = true;
                 mal_printf("loop %d calls func %lx which has an indirect "
                            "transfer at %lx that resolves to %d targets "
@@ -747,7 +750,6 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
         if (false == addFuncBlocks(loop, 
                                    nextAddFuncs, 
                                    seenFuncs, 
-                                   exitPoints,
                                    overlappingLoops)) 
         {
             hasUnresolved = true;
@@ -768,7 +770,6 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
 // Does not set the block->loop map for overlapping blocks
 bool HybridAnalysisOW::setLoopBlocks(owLoop *loop, 
                                      BPatch_basicBlockLoop *writeLoop,
-                                     std::set<BPatch_point*> &exitPoints,
                                      std::set<int> &overlappingLoops)
 {
     bool hasUnresolvedCF = false;
@@ -845,7 +846,6 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
         if (false == addFuncBlocks(loop, 
                                    loopFuncs, 
                                    loopFuncCopy, 
-                                   exitPoints, 
                                    overlappingLoops)) 
         {
             hasUnresolvedCF = true;
@@ -927,8 +927,9 @@ bool HybridAnalysisOW::removeOverlappingLoops(owLoop *loop,
         if (loop->shadowMap.size()) {
             std::map<Address,unsigned char*>::iterator siter = loop->shadowMap.begin();
             for (; siter != loop->shadowMap.end(); siter++) {
-    	        proc()->setMemoryAccessRights
-                    ((*siter).first, 1, PAGE_EXECUTE_READWRITE);
+    	        proc()->setMemoryAccessRights(siter->first, 
+                    proc()->lowlevel_process()->getMemoryPageSize(), 
+                    PAGE_EXECUTE_READWRITE);
                 mal_printf("revbug restoring write to %lx %s[%d]\n",(*siter).first, 
                         FILE__,__LINE__);
             }
@@ -963,7 +964,7 @@ void HybridAnalysisOW::makeShadow_setRights
     loop->shadowMap[pageAddr] = proc()->makeShadowPage(pageAddr);
 
 	// Restore write permissions to the written page
-    proc()->setMemoryAccessRights(pageAddr, 1, PAGE_EXECUTE_READWRITE);
+    proc()->setMemoryAccessRights(pageAddr, pageSize, PAGE_EXECUTE_READWRITE);
 }
 
 
@@ -1010,8 +1011,10 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 
     owLoop *loop = idToLoop[loopID]; 
     loop->setActive(false);
+    loop->unresExits_.clear();
 
     if (overwroteLoop) {
+        mal_printf("Overwrite loop modified its own code\n");
         proc()->beginInsertionSet();
         std::set<BPatchSnippetHandle*>::iterator sIter = loop->snippets.begin();
         for (; sIter != loop->snippets.end(); sIter++) {
@@ -1070,11 +1073,13 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
             (*fIter)->getCFG()->invalidate();
         }
 
-        // re-instate code discovery instrumentation
+        // Clean up datastructures for pages that had code but don't anymore
+        // Re-instate code discovery instrumentation
         for(set<BPatch_module*>::iterator mIter = mods.begin();
             mIter != mods.end(); 
             mIter++) 
         {
+            (*mIter)->lowlevel_mod()->obj()->removeEmptyPages();
             hybrid_->instrumentModule(*mIter,false);
         }
 
@@ -1127,14 +1132,40 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
                 (*spIter).second = NULL;
 
 		        // . Re-instate write protections for the written pages,
-                //   if they still contain code
-    	        proc()->setMemoryAccessRights(
-                    (*spIter).first, 1, PAGE_EXECUTE_READ);
+                //   if they contain code
+                process *llproc = proc()->lowlevel_process();
+                mapped_object *obj = llproc->findObject((*spIter).first);
+                std::list<int_block*> dontcare;
+                if (obj->findBlocksByRange((*spIter).first, 
+                        (*spIter).first + llproc->getMemoryPageSize(),
+                        dontcare))
+                {
+    	            proc()->setMemoryAccessRights(spIter->first, 
+                        llproc->getMemoryPageSize(), 
+                        PAGE_EXECUTE_READ);
+                }
+                else { 
+                    int origPerms = hybrid()->getOrigPageRights(spIter->first);
+    	            proc()->setMemoryAccessRights(spIter->first, 
+                        llproc->getMemoryPageSize(), 
+                        origPerms);
+                }// KEVINTODO set to original page rights
     	        spIter++;
 	        }
             loop->shadowMap.clear();
 
             // reset some fields for this inactive loop in case we want to re-use it
+
+#if 0
+            // remove instrumentation snippets
+            if (!loop->snippets.empty()) {
+                std::set<BPatchSnippetHandle*>::iterator sIter = loop->snippets.begin();
+                for (; sIter != loop->snippets.end(); sIter++) {
+                    proc()->deleteSnippet(*sIter);
+                }
+                loop->snippets.clear();
+            }
+#endif
             // hasn't written to its own page... yet.
             loop->setWritesOwnPage(false);
             // clear loopWriteTarget so it can be reset
@@ -1147,7 +1178,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 #endif
 
 
-bool HybridAnalysisOW::isRealStore(Address insnAddr, 
+bool HybridAnalysisOW::isRealStore(Address insnAddr, int_block *block, 
                                    BPatch_function *func) 
 {
     using namespace InstructionAPI;
@@ -1163,7 +1194,7 @@ bool HybridAnalysisOW::isRealStore(Address insnAddr,
 
     std::vector<Assignment::Ptr> assignments;
     AssignmentConverter aConverter(false);
-    aConverter.convert(insn, image_addr, imgfunc, assignments);
+    aConverter.convert(insn, image_addr, imgfunc, block->llb(), assignments);
 
     for (std::vector<Assignment::Ptr>::const_iterator a_iter = assignments.begin();
          a_iter != assignments.end(); ++a_iter) 
@@ -1211,6 +1242,7 @@ void HybridAnalysisOW::overwriteSignalCB
       an adjacent page or is in a subsequent iteration of the instrumented loop: */
     owLoop *loop = findLoop(faultBlocks[0]->getStartAddress());
     if ( loop ) {
+        mal_printf("matches existing loop %d of %d blocks\n", loop->getID(), loop->blocks.size());
         //make sure we haven't added this page to the loop's shadows already
         assert(loop->shadowMap.end() == loop->shadowMap.find(pageAddress));
 
@@ -1226,11 +1258,13 @@ void HybridAnalysisOW::overwriteSignalCB
         // While we're at it, we check to see if the function has been
         // updated, in which case we can swith to loop-based instrumentation
         if ( ! loop->isRealLoop() ) {
+#if 0 // this can never execute since nothing ever sets codeChanged
             // see if the function's analysis has been updated, and if there
             // is now a loop surrounding the write instruction, scrap our
             // current instrumentation and instrument the loop
             if ( loop->codeChanged && 1 == faultFuncs.size()) {
 
+                mal_printf("updating the loop in response to code changes\n");
                 BPatch_basicBlockLoop * bpLoop = 
                     getWriteLoop(*faultFuncs[0], faultInsnAddr);
                 if (bpLoop) {
@@ -1240,18 +1274,16 @@ void HybridAnalysisOW::overwriteSignalCB
                     deleteLoop(loop,false);
                     loop = new owLoop(this,writeTarget);
                     set<int> overlappingLoops;
-                    set<BPatch_point*> unresExits;
                     // use current counter for now as we may choose not to 
                     // use the new loop 
                     if (setLoopBlocks(loop, 
                                       bpLoop, 
-                                      unresExits, 
                                       overlappingLoops) 
                         &&
                         ( 0 == overlappingLoops.size() || 
                           removeOverlappingLoops(loop, overlappingLoops)))
                     {   // use the new loop
-                        loop->instrumentOverwriteLoop(faultInsnAddr,unresExits);
+                        loop->instrumentOverwriteLoop(faultInsnAddr);
                         mal_printf("new overwrite loop %d %d[%d]\n", 
                                    loop->getID(), FILE__,__LINE__);
                     } else {
@@ -1264,11 +1296,18 @@ void HybridAnalysisOW::overwriteSignalCB
                     }
                 }
             }
+            else 
+#endif
             // if there is a new write instruction in the block that hasn't 
             // been instrumented, instrument after the new write instruction
-            else if (loop->writeInsns.end() == 
-                     loop->writeInsns.find(faultInsnAddr))
+            if (loop->writeInsns.end() == 
+                loop->writeInsns.find(faultInsnAddr))
             {
+                assert(0); // KEVINTODO: expunge this code, it should not be 
+                           // reachable, since we instrument immediately after 
+                           // the write instruction and single-instruction loops
+                           // do not get re-used
+                mal_printf("hit new uninstrumented write instruction in existing loop\n");
                 loop->writeInsns.insert(faultInsnAddr);
                 loop->instrumentOneWrite(faultInsnAddr,faultFuncs);
             } 
@@ -1283,6 +1322,10 @@ void HybridAnalysisOW::overwriteSignalCB
         {
             loop->setWritesOwnPage(true);
             if ( loop->isRealLoop() ) {
+                mal_printf("discovered that loop %d writes to one of its code pages, "
+                           "will add write-bounds instrumentation\n", loop->getID());
+                loop->instrumentLoopWritesWithBoundsCheck();
+#if 0
                 //re-invoke overwriteSignalCB
                 int_function *llfunc = faultFuncs[0]->lowlevel_func();
                 instPoint *pt = llfunc->findInstPByAddr(faultInsnAddr);
@@ -1306,11 +1349,22 @@ void HybridAnalysisOW::overwriteSignalCB
                 overwriteSignalCB(faultInsnAddr, writeTarget);
                 proc()->finalizeInsertionSet(false);
                 return;
+#endif
             }
         }
 
         makeShadow_setRights(writeTarget, loop);
         loop->setActive(true);
+#if 0
+        if (!loop->isActive()) {
+            if (!loop->isRealLoop()) {
+                loop->instrumentOneWrite(faultInsnAddr,faultFuncs);
+            } else {
+                loop->instrumentOverwriteLoop(faultInsnAddr);
+            }
+            loop->setActive(true);
+        }
+#endif
         proc()->finalizeInsertionSet(false);
         return;
     }
@@ -1321,7 +1375,6 @@ void HybridAnalysisOW::overwriteSignalCB
 
     // find loops surrounding the write insn
     BPatch_basicBlockLoop *bblLoop = getWriteLoop(*faultFuncs[0],faultInsnAddr);
-    set<BPatch_point*> unresExits;
 
     if ( bblLoop) 
     { 
@@ -1329,7 +1382,7 @@ void HybridAnalysisOW::overwriteSignalCB
         // in which case we default to immediate instrumentation
         set<int> overlappingLoops;
         if (1 == faultFuncs.size() &&
-            setLoopBlocks(loop, bblLoop, unresExits, overlappingLoops) &&
+            setLoopBlocks(loop, bblLoop, overlappingLoops) &&
             ( 0 == overlappingLoops.size() || 
             removeOverlappingLoops(loop,overlappingLoops))) 
         {
@@ -1359,7 +1412,9 @@ void HybridAnalysisOW::overwriteSignalCB
             // KEVINTODO: shift to instrumenting a smaller loop if there are 
             // any and they don't contain indirect ctrl flow, instead of
             // reverting to single block instrumentation, as we currently are
-            mal_printf("Found loop, but it contains indirect control flow, "
+            mal_printf("Found loop, but it contains unresolved control flow "
+                    "functions that may not return, shared code, or overlaps "
+                    "with another loop in a strange way "
                     "will instrument after write %s[%d]\n",FILE__,__LINE__);
             bblLoop = NULL; 
         }
@@ -1382,7 +1437,7 @@ void HybridAnalysisOW::overwriteSignalCB
 
     else {
         // . Instrument the loop
-        loop->instrumentOverwriteLoop(faultInsnAddr,unresExits);
+        loop->instrumentOverwriteLoop(faultInsnAddr);
         mal_printf("Instrumenting loop for write at %lx, loop has %d blocks, "
                    "loopID=%d %s[%d]\n", faultInsnAddr, 
                    loop->blocks.size(), loop->getID(), FILE__, __LINE__);

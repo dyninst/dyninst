@@ -59,7 +59,7 @@
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/callbacks.h"
 #include "dyninstAPI/src/addressSpace.h"
-#include "dyninstAPI/h/BPatch_hybridAnalysis.h"
+#include "dyninstAPI/h/BPatch_enums.h"
 #include "debug.h"
 
 #include "common/h/Dictionary.h"

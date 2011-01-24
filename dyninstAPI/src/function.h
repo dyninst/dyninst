@@ -378,6 +378,7 @@ class int_function : public patchTarget {
     bool removePoint(instPoint *point);
     void deleteBlock(int_block *block);
     void splitBlock(image_basicBlock *origBlock, image_basicBlock *newBlock);
+	void triggerModified();
 
     void removeFromAll();
     int_block *setNewEntryPoint();
@@ -452,7 +453,6 @@ class int_function : public patchTarget {
     void findPoints(int_block *, std::set<instPoint *> &foundPoints) const;
     bool validPoint(instPoint *) const;
 
-	void triggerModified();
 };
 
 

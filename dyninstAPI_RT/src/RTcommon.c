@@ -120,6 +120,7 @@ int isMutatedExec = 0;
 // stopThread cache variables 
 char cacheLRUflags[TARGET_CACHE_WIDTH];
 void *DYNINST_target_cache[TARGET_CACHE_WIDTH][TARGET_CACHE_WAYS];
+FILE *stOut;
 
 
 unsigned *DYNINST_tramp_guards;
@@ -273,6 +274,7 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
           0, 
           sizeof(void*) * TARGET_CACHE_WIDTH * TARGET_CACHE_WAYS);
    memset(cacheLRUflags, 1, sizeof(char)*TARGET_CACHE_WIDTH);
+   stOut = fopen("rtdump.txt","w");
    rtdebug_printf("%s[%d]:  leaving DYNINSTinit\n", __FILE__, __LINE__);
 
    /* Memory emulation */
@@ -429,14 +431,19 @@ RT_Boolean cacheLookup(void *calculation)
 }
 
 /** 
- * Receives two snippets as arguments, stops the mutator, and sends
- * the arguments back to the mutator.  
+ * Receives two snippets as arguments and stops the mutatee
+ * while the mutator reads the arguments, saved to 
+ * DYNINST_synch_event... global variables. 
+ *
+ * if flag useCache==1, does a cache lookup and stops only
+ * if there is a cache miss
+ * 
  * The flags are: 
  * bit 0: useCache
  * bit 1: true if interpAsTarget
  * bit 2: true if interpAsReturnAddr
  **/     
-
+#define STACKDUMP
 void DYNINST_stopThread (void * pointAddr, void *callBackID, 
                          void *flags, void *calculation)
 {
@@ -444,34 +451,35 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
 
     RT_Boolean isInCache = RT_FALSE;
 #if defined STACKDUMP
-    unsigned char *stackBase = (unsigned char*) 0x971140; // & pointAddr;
+    unsigned char *stackBase = (unsigned char*) 0x12ff00; // & pointAddr;
     unsigned bidx=0;
+    fprintf(stOut,"RT_stopThread: pt[%lx] flags[%lx] calc[%lx] reentrant=%d\n", 
+            (long)pointAddr, (long)flags, (long)calculation, reentrant);
+    fflush(stOut);
 #endif
 	if (reentrant == 1) {
 		return;
 	}
 	reentrant = 1;
     tc_lock_lock(&DYNINST_trace_lock);
-    rtdebug_printf("pt[%lx] flags[%lx] calc[%lx] ", 
+    rtdebug_printf("RT_st: pt[%lx] flags[%lx] calc[%lx] ", 
                    (long)pointAddr, (long)flags, (long)calculation);
 
-#if defined STACKDUMP
-    fprintf(stderr,"RT_stopThread: pt[%lx] flags[%lx] calc[%lx]\n", 
-                   (long)pointAddr, (long)flags, (long)calculation);
-    if ((unsigned long)calculation == 0x9746a3 || 
-        (unsigned long)calculation == 0x77dd761b) 
-    {
-        fprintf(stderr,"RT_st: %lx(%lx)\n", (long)pointAddr,&calculation);
-        fprintf(stderr,"at instr w/ targ=%lx\n",(long)calculation);
-        for (bidx=0; bidx < 0x60; bidx+=4) {
-            fprintf(stderr,"0x%x:  ", (int)stackBase+bidx);
-            fprintf(stderr,"%02hhx", stackBase[bidx]);
-            fprintf(stderr,"%02hhx", stackBase[bidx+1]);
-            fprintf(stderr,"%02hhx", stackBase[bidx+2]);
-            fprintf(stderr,"%02hhx", stackBase[bidx+3]);
-            fprintf(stderr,"\n");
+#if 0 && defined STACKDUMP
+    //if (0 && ((unsigned long)calculation == 0x9746a3 || 
+    //          (unsigned long)calculation == 0x77dd761b))
+    //{
+        fprintf(stOut,"RT_st: %lx(%lx)\n", (long)pointAddr,&calculation);
+        fprintf(stOut,"at instr w/ targ=%lx\n",(long)calculation);
+        for (bidx=0; bidx < 0x100; bidx+=4) {
+            fprintf(stOut,"0x%x:  ", (int)stackBase+bidx);
+            fprintf(stOut,"%02hhx", stackBase[bidx]);
+            fprintf(stOut,"%02hhx", stackBase[bidx+1]);
+            fprintf(stOut,"%02hhx", stackBase[bidx+2]);
+            fprintf(stOut,"%02hhx", stackBase[bidx+3]);
+            fprintf(stOut,"\n");
         }
-    }
+    //}
     // fsg: read from 40a4aa, how did it become 40a380? 
 #endif
 
@@ -523,6 +531,21 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
     return;
 }
 
+// zeroes out the useCache flag if the call is interprocedural
+void DYNINST_stopInterProc(void * pointAddr, void *callBackID, 
+                           void *flags, void *calculation,
+                           void *objStart, void *objEnd)
+{
+#if defined STACKDUMP
+    fprintf(stOut,"RT_sip: calc=%lx objStart=%lx objEnd=%lx\n",
+            calculation, objStart, objEnd);
+    fflush(stOut);
+#endif
+    if (calculation < objStart || calculation >= objEnd) {
+        flags = (void*)(((int)flags) & 0xfffffffe);
+    }
+    DYNINST_stopThread(pointAddr, callBackID, flags, calculation);
+}
 
 // boundsArray is a sequence of (blockStart,blockEnd) pairs
 RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_, 

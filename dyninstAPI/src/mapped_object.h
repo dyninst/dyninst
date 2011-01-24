@@ -37,7 +37,7 @@
 #include <string>
 #include "common/h/Types.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/h/BPatch_hybridAnalysis.h"
+#include "dyninstAPI/h/BPatch_enums.h"
 #include <list>
 
 //  we really do not want to have this defined, but I'm defining it for the moment to get thru paradyn seperation
@@ -217,9 +217,10 @@ class mapped_object : public codeRange {
     void setCodeBytesUpdated(bool);
     void addProtectedPage(Address pageAddr); // adds to protPages_
     void removeProtectedPage(Address pageAddr);
+    void removeEmptyPages();
     void removeFunction(int_function *func);
     bool splitIntLayer();
-    void findBlocksByRange(Address startAddr,
+    bool findBlocksByRange(Address startAddr,
                           Address endAddr,
                           std::list<int_block*> &pageBlocks);
     void findFuncsByRange(Address startAddr,

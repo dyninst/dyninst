@@ -590,7 +590,7 @@ void int_function::fixHandlerReturnAddr(Address faultAddr)
         assert(0);
         return;
     }
-
+#if 0 //KEVINTODO: this function doesn't work, I tried setting newPC to 0xdeadbeef and it had no impact on the program's behavior.  If the springboards work properly this code is unneeded
     // Do a straightfoward forward map of faultAddr
     // First, get the original address
     int_function *func;
@@ -604,7 +604,7 @@ void int_function::fixHandlerReturnAddr(Address faultAddr)
        func = block->func();
     }
     std::list<Address> relocAddrs;
-    proc()->getRelocAddrs(origAddr, this, relocAddrs, true);
+    proc()->getRelocAddrs(origAddr, func, relocAddrs, true);
     Address newPC = (!relocAddrs.empty() ? relocAddrs.back() : origAddr);
     
     if (newPC != faultAddr) {
@@ -614,6 +614,7 @@ void int_function::fixHandlerReturnAddr(Address faultAddr)
           assert(0);
        }
     }
+#endif
 }
 
 void int_function::findPoints(int_block *block,
@@ -775,7 +776,6 @@ void int_function::addMissingBlocks()
            }
        }
    }
-	triggerModified();	
 }
 
 /* trigger search in image_layer points vectors to be added to int_level 
@@ -792,7 +792,7 @@ void int_function::addMissingPoints()
     funcAbruptEnds();
 }
 
-// get instPoints of known function callsinto this one
+// get instPoints of known function calls into this one
 void int_function::getCallerPoints(std::vector<instPoint*>& callerPoints)
 {
 	if (!entryBlock()) return;
@@ -1364,6 +1364,9 @@ bool int_function::consistency() const {
 void int_function::triggerModified() {
 	// A single location to drop anything that needs to be
 	// informed when an int_function was updated.
+
+    // invalidate liveness calculations
+    ifunc()->invalidateLiveness();
 
 	// Relocation info caching...
 	PCSensitiveTransformer::invalidateCache(this);

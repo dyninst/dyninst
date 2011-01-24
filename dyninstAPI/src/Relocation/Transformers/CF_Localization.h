@@ -68,16 +68,18 @@ class LocalizeCF : public Transformer {
   TracePtr findTrace(Address addr, int_function *func);
 
  private:
-  int getInEdgeCount(const int_block *inst);
-  void recordIncomingEdges(const TargetInt *);
+  int getInEdgeCount(const int_block *bbl);
+  void recordIncomingEdges(int_block *bbl);
 
   // Borrowed from the CodeMover, we don't change it
   const TraceMap &bMap_;
   // And the priority list that we modify
   PriorityMap &pMap_;
 
-  std::map<int_block *, int> replacedCount_;
-  std::map<int_block *, int> incomingCount_;
+  // First element in the pair is the number of incoming edges
+  // Second is the number of removed edges.
+  std::map<int_block *, std::pair<int, int> > counts_;
+
 };
 };
 };

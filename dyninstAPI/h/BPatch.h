@@ -39,7 +39,7 @@
 #include "BPatch_type.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_process.h"
-#include "BPatch_hybridAnalysis.h"
+#include "BPatch_enums.h"
 
 class BPatch_typeCollection;
 class BPatch_libInfo;

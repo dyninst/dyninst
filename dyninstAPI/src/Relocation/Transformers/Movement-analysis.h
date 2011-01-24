@@ -108,6 +108,7 @@ class PCSensitiveTransformer : public Transformer {
   bool isPCSensitive(InstructionAPI::Instruction::Ptr insn,
 		     Address addr,
 		     int_function *func,
+			 int_block *block,
 		     AssignList &sensitiveAssignment);
   Graph::Ptr forwardSlice(Assignment::Ptr ptr,
 			  image_basicBlock *block,

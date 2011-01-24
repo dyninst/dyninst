@@ -3703,8 +3703,8 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
       //assert(i<2 || op.admet == am_reg || op.admet == am_I);
       switch(op.admet) {
       case am_A: /* address = segment + offset (word or dword or qword) */
-        nib += wordSzB * addrSzAttr;
-	nib += dwordSzB;
+		nib += wordSzB; // segment
+        nib += wordSzB * addrSzAttr;  // + offset (1 or 2 words, depending on prefix)
 	break;
       case am_O: /* operand offset */
         nib += wordSzB * addrSzAttr;

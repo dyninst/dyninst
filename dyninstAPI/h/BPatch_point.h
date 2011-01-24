@@ -35,8 +35,8 @@
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
-#include "BPatch_snippet.h" // snippetOrder
 #include "BPatch_Set.h"
+#include "BPatch_enums.h"
 
 class InstrucIter;
 class process;
@@ -51,6 +51,10 @@ class BPatch_basicBlockLoop;
 class BPatch_process;
 class BPatch_frame;
 class BPatch_edge;
+class BPatch_snippet;
+class BPatch_addressSpace;
+class AddressSpace;
+class BPatch_register;
 
 #include "Instruction.h"
 

@@ -1218,7 +1218,7 @@ bool mapped_object::splitIntLayer()
 // Grabs all int_blocks corresponding to the region, taking special care 
 // to get ALL int_blocks corresponding to an address if it is shared 
 // between multiple functions
-void mapped_object::findBlocksByRange(Address startAddr,
+bool mapped_object::findBlocksByRange(Address startAddr,
                                       Address endAddr,
                                       list<int_block*> &rangeBlocks)//output
 {
@@ -1248,6 +1248,7 @@ void mapped_object::findBlocksByRange(Address startAddr,
          rangeBlocks.push_back(bbl);
       }
    }
+   return !rangeBlocks.empty();
 }
 
 void mapped_object::findFuncsByRange(Address startAddr,
@@ -1383,40 +1384,36 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
     using namespace SymtabAPI;
     using namespace ParseAPI;
 
-    vector<ParseAPI::Block*> sources;
-    vector<Address> targets;
-    vector<EdgeTypeEnum> edgeTypes;
-    for (unsigned sidx = 0; sidx < stubs.size(); sidx++) {
-        sources.push_back(stubs[sidx].src->llb());
-        targets.push_back(stubs[sidx].trg);
-        edgeTypes.push_back(stubs[sidx].type);
-    }
+	vector<ParseAPI::CodeObject::NewEdgeToParse> edgesInThisObject;
 
 /* 0. Make sure memory for the target is up to date */
 
     // Do various checks and set edge types, if necessary
     Address loadAddr = codeBase();
     for (unsigned idx=0; idx < stubs.size(); idx++) {
+		mapped_object *targ_obj = proc()->findObject(stubs[idx].trg);
+		assert(targ_obj);
+
+		Address targOffset = stubs[idx].trg - targ_obj->codeBase();
+		EdgeTypeEnum edgeType = stubs[idx].type;
 
         Block *cursrc = stubs[idx].src->llb();
 
         // update target region if needed
         if (BPatch_defensiveMode == hybridMode()) {
-            updateCodeBytesIfNeeded(stubs[idx].trg);
+			targ_obj->updateCodeBytesIfNeeded(stubs[idx].trg);
         }
 
-        // translate targets to memory offsets rather than absolute addrs
-        targets[idx] -= loadAddr;
-
         // figure out edge types if they have not been set yet
-        if (ParseAPI::NOEDGE == stubs[idx].type) {
+		// For now, restrict us to the same mapped_object if we do this
+        if (ParseAPI::NOEDGE == stubs[idx].type && (targ_obj == this)) {
             Block::edgelist & edges = cursrc->targets();
             Block::edgelist::iterator eit = edges.begin();
             bool isIndirJmp = false;
             bool isCondl = false;
             for (; eit != edges.end(); eit++) {
-                if ((*eit)->trg()->start() == stubs[idx].trg) {
-                    edgeTypes[idx] = (*eit)->type();
+                if ((*eit)->trg()->start() == targOffset) {
+                    edgeType = (*eit)->type();
                     break;
                 } 
                 if (ParseAPI::INDIRECT == (*eit)->type()) {
@@ -1426,7 +1423,7 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
                     isCondl = true;
                 }
             }
-            if (ParseAPI::NOEDGE == edgeTypes[idx]) {
+            if (ParseAPI::NOEDGE == edgeType) {
                 bool isCall = false;
                 int_function *func = stubs[idx].src->func();
                 func->funcCalls();
@@ -1434,49 +1431,59 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
                 if (pt && callSite == pt->getPointType()) {
                     isCall = true;
                 }
-                if (cursrc->end() == targets[idx]) {
+                if (cursrc->end() == targOffset) {
                     if (isCall) {
-                        edgeTypes[idx] = CALL_FT;
+                        edgeType = CALL_FT;
                     } else if (isCondl) {
-                        edgeTypes[idx] = ParseAPI::COND_NOT_TAKEN;
+                        edgeType = ParseAPI::COND_NOT_TAKEN;
                     } else {
-                        edgeTypes[idx] = ParseAPI::FALLTHROUGH;
+                        edgeType = ParseAPI::FALLTHROUGH;
                     }
                 } else if (isCall) {
-                    edgeTypes[idx] = ParseAPI::CALL;
+                    edgeType = ParseAPI::CALL;
                 } else if (isIndirJmp) {
-                    edgeTypes[idx] = ParseAPI::INDIRECT;
+                    edgeType = ParseAPI::INDIRECT;
                 } else if (isCondl) {
-                    edgeTypes[idx] = ParseAPI::COND_TAKEN;
+                    edgeType = ParseAPI::COND_TAKEN;
                 } else {
-                    edgeTypes[idx] = ParseAPI::DIRECT;
+                    edgeType = ParseAPI::DIRECT;
                 }
             }
         }
-    }
+
+		/* 1. Parse from target address, add new edge at image layer  */
+		CodeObject::NewEdgeToParse newEdge(stubs[idx].src->llb(), targOffset, edgeType);
+		if (this != targ_obj) {
+			std::vector<ParseAPI::CodeObject::NewEdgeToParse> newEdges;
+			newEdges.push_back(newEdge);
+			targ_obj->parse_img()->codeObject()->parseNewEdges(newEdges);
+		}
+		else {
+			edgesInThisObject.push_back(newEdge);
+		}
+	}
  
-/* 1. Parse from target address, add new edge at image layer  */
-    parse_img()->codeObject()->parseNewEdges(sources, targets, edgeTypes);
+	/* 1. Clean up any edges we haven't done yet */
+	parse_img()->codeObject()->parseNewEdges(edgesInThisObject);
 
 /* 2. Register all newly created image_funcs as a result of new edge parsing */
     registerNewFunctions();
 
     // build list of potentially modified functions
-    vector<ParseAPI::Function*> modFuncs;
-    for(unsigned sidx=0; sidx < sources.size(); sidx++) {
-        sources[sidx]->getFuncs(modFuncs);
+    vector<ParseAPI::Function*> modIFuncs;
+    vector<int_function*> modFuncs;
+    for(unsigned sidx=0; sidx < stubs.size(); sidx++) {
+        stubs[sidx].src->llb()->getFuncs(modIFuncs);
     }
 
-    for (unsigned fidx=0; fidx < modFuncs.size(); fidx++) 
+    for (unsigned fidx=0; fidx < modIFuncs.size(); fidx++) 
     {
-       int_function *func = findFunction(modFuncs[fidx]);
+       int_function *func = findFunction(modIFuncs[fidx]);
+       modFuncs.push_back(func);
 
 /* 3. Add img-level blocks and points to int-level datastructures */
        func->addMissingBlocks();
        func->addMissingPoints();
-       
-       // invalidate liveness calculations
-       func->ifunc()->invalidateLiveness();
     }
 
 /* 5. fix mapping of split blocks that have points */
@@ -1485,10 +1492,12 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
         parse_img()->clearSplitBlocks();
     }
 
+    // update the function's liveness and PC sensitivity analysis,
+    // and assert its consistency
     for (unsigned fidx=0; fidx < modFuncs.size(); fidx++) 
     {
-       int_function *func = findFunction(modFuncs[fidx]);
-       assert(func->consistency());
+    	modFuncs[fidx]->triggerModified();
+        assert(modFuncs[fidx]->consistency());
     }
     
     return true;
@@ -1927,24 +1936,29 @@ bool mapped_object::isExpansionNeeded(Address entry)
 // or if the address is in an uninitialized memory, 
 bool mapped_object::updateCodeBytesIfNeeded(Address entry)
 {
-    assert( BPatch_defensiveMode == analysisMode_ );
+	cerr << "updateCodeBytes @ " << hex << entry << dec << endl;
+
+	assert( BPatch_defensiveMode == analysisMode_ );
 
     Address pageAddr = entry - 
         (entry % proc()->proc()->getMemoryPageSize());
 
     if ( pagesUpdated_ ) {
+		cerr << "\t No pages have been updated in mapped_object, ret false" << endl;
         return false;
     }
 
     if (protPages_.end() != protPages_.find(pageAddr) &&
         PROTECTED == protPages_[pageAddr]) 
     {
+		cerr << "\t Address corresponds to protected page, ret false" << endl;
         return false;
     }
 
     bool expand = isExpansionNeeded(entry);
     if ( ! expand ) {
         if ( ! isUpdateNeeded(entry) ) {
+			cerr << "\t Expansion false and no update needed, ret false" << endl;
             return false;
         }
     }
@@ -2036,6 +2050,30 @@ void mapped_object::removeFunction(int_function *func) {
     }  
 }
 
+void mapped_object::removeEmptyPages()
+{
+    // get all pages currently containing code from the mapped modules
+    set<Address> curPages;
+    vector<Address> emptyPages;
+    const vector<mapped_module*> & mods = getModules();
+    for (unsigned midx=0; midx < mods.size(); midx++) {
+        mods[midx]->getAnalyzedCodePages(curPages);
+    }
+    // find entries in protPages_ that aren't in curPages, add to emptyPages
+    for (map<Address,WriteableStatus>::iterator pit= protPages_.begin(); 
+         pit != protPages_.end(); 
+         pit++) 
+    {
+        if (curPages.end() == curPages.find(pit->first)) {
+            emptyPages.push_back(pit->first);
+        }
+    }
+    // erase emptyPages from protPages
+    for (unsigned pidx=0; pidx < emptyPages.size(); pidx++) {
+        protPages_.erase(emptyPages[pidx]);
+    }
+}
+
 bool mapped_object::isSystemLib(const std::string &objname)
 {
    std::string lowname = objname;
@@ -2089,6 +2127,9 @@ bool mapped_object::isExploratoryModeOn()
 
 void mapped_object::addProtectedPage(Address pageAddr)
 {
+	if (pageAddr == 0x401000) {
+		int i = 3;
+	}
     map<Address,WriteableStatus>::iterator iter = protPages_.find(pageAddr);
     if (protPages_.end() == iter) {
         protPages_[pageAddr] = PROTECTED;

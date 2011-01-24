@@ -64,7 +64,8 @@ class MemEmulatorTransformer : public Transformer {
 			 int_function *func);
 
   bool isSensitive(CopyInsnPtr reloc, 
-		   int_function *func);
+		   int_function *func,
+		   int_block *block);
 
   void createTranslator(Register r);
 

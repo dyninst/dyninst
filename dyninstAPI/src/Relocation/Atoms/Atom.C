@@ -139,6 +139,10 @@ Trace::Ptr Trace::create(Atom::Ptr a, Address addr, int_function *f) {
 // So basically if the incoming start address is different or if the
 // block size changed.
 
+bool debug_blocks = false;
+
+bool disassemble_reloc = false;
+
 bool Trace::generate(const codeGen &templ,
                      CodeBuffer &buffer) {
    relocation_cerr << "Generating block " << id() << " orig @ " << hex << origAddr() << dec << endl;
@@ -146,8 +150,22 @@ bool Trace::generate(const codeGen &templ,
    // Register ourselves with the CodeBuffer and get a label
    label_ = buffer.getLabel();
 
+   static bool debug = false;
+   bool insn_debug = false;
+#if 0
+   if (bbl() && (bbl()->end() == 0x9b7726 || bbl()->start() == 0x9b7698 || bbl()->start() == 0x401014)) {
+	   debug = true;
+	   disassemble_reloc = true;
+   }
+#endif
+
    // Simple form: iterate over every Atom, in order, and generate it.
    for (AtomList::iterator iter = elements_.begin(); iter != elements_.end(); ++iter) {
+	  if (debug && ((iter == elements_.begin()) || insn_debug) && bbl()) {
+		  codeGen gen(1);
+		  gen.fill(1, codeGen::cgTrap);
+		  buffer.addPIC(gen, new InstTracker(bbl()->start(), NULL, bbl()));
+	  }
       if (!(*iter)->generate(templ, 
                              this,
                              buffer)) {
