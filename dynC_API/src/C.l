@@ -29,6 +29,7 @@ extern "C" {
 std::string lineStr;
 static char *input_str = NULL;  
 
+
 int yycolumn = 0;
 
 extern bool fatalError;

@@ -38,8 +38,8 @@ extern BPatch_snippet *parse_result;
 extern "C" {
    void set_lex_input(char *s);
    int dynCparse();
-
 }
+
 extern char *dynCSnippetName;
 extern int dyn_debug_ast;
 extern SnippetGenerator *snippetGen;

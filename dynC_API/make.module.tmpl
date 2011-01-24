@@ -6,11 +6,9 @@
 # $Id: make.module.tmpl,v 1.4 2008/09/15 17:38:17 jaw Exp $
 #
 
-SUITE_NAME	= Dyninst
+SUITE_NAME	= DynC
 RELEASE_MAJOR = 7
 RELEASE_MINOR = 0
-#BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
-
 DYNCNAME = dynC
 
 CFLAGS		     += $(USEFULWARNINGS) -I$(TO_CORE)/../include
@@ -40,7 +38,7 @@ PUBLIC_H = \
     ../h/dynC.h\
     ../h/snippetGen.h
 
-SRCS += ../src/dynC.C ../src/snippetGen.C
+SRCS += ../src/dynC.C ../src/snippetGen.C ../src/lex.$(DYNCNAME).C ../src/$(DYNCNAME).tab.C
 
 
 ifndef USES_NATIVE_CC
@@ -61,18 +59,28 @@ ifeq (0,0)
 YACCFLAGS += -v
 endif
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h -I../../dyninstAPI/src 
-
-#EXTRA_LIBS += lex.$(DYNCNAME).C
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h -I../../dyninstAPI/src -I. 
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS) 
 
+#../src/lex.$(DYNCNAME).C: ../src/C.l ../h/$(DYNCNAME).tab.h
+#../src/$(DYNCNAME).tab.C: ../src/C.y
+#../h/$(DYNCNAME).tab.h: ../src/$(DYNCNAME).tab.C
+
 lex.$(DYNCNAME).C: ../src/C.l $(DYNCNAME).tab.h
 	$(LEX) $(LEXFLAGS) ../src/C.l
 	mv lex.$(DYNCNAME).c lex.$(DYNCNAME).C
+	mv lex.$(DYNCNAME).C ../src/
 
-$(DYNCNAME).tab.h: $(DYNCNAME).tab.C
+#$(DYNCNAME).tab.h: $(DYNCNAME).tab.C 
+#	mv $(DYNCNAME).tab.h ../h/
+
 $(DYNCNAME).tab.C: ../src/C.y
 	$(YACC) $(YACCFLAGS) ../src/C.y
 	mv $(DYNCNAME).tab.c $(DYNCNAME).tab.C
+	mv $(DYNCNAME).tab.C ../src/
+	mv $(DYNCNAME).tab.h ../h/
+
+
+

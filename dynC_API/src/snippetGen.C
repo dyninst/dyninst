@@ -31,8 +31,9 @@
 #include "snippetGen.h"  
 
 extern "C" {
-   std::string getErrorBase();
+   void getErrorBase(char *errbase, int length); 
 }
+
 
 BPatch_snippet *SnippetGenerator::findOrCreateVariable(const char * name, const char * type, const void * initialValue){
    lastError.str() = "";
@@ -339,7 +340,8 @@ BPatch_function *SnippetGenerator::findFunction(const char * name, std::vector<B
       }
    }
 
-   const char *errorHeader = getErrorBase().c_str();
+   char errorHeader[256];
+   getErrorBase(errorHeader, 256);
    if(noParamFunc != NULL && !setFunc){
          func = noParamFunc;
    }else if(!setFunc && foundDebugInfo){

@@ -28,17 +28,18 @@ extern "C" {
    int yyparse();
    void makeOneTimeStatement(BPatch_snippet &statement);
    void makeOneTimeStatementGbl(BPatch_snippet &statement);
-   std::string getErrorBase();
+   getErrorBase(char *errbase, int length);
 //   char *yytext;
 //   char *dynCSnippetName;
 }
 
 extern std::string lineStr;
 
+
 //name of current snippet for error reporting
 char *dynCSnippetName = "";
 SnippetGenerator *snippetGen;
-BPatch_point *snippetPoint;
+BPatch_point *snippetPoint = NULL;
 
 std::set<std::string> *universalErrors = new std::set<std::string>();
 
@@ -1135,7 +1136,9 @@ void yyerror(char *s)
    fflush(stdout);
    if(strlen(s) != 0){
       err = new std::stringstream("");
-      *err << getErrorBase() << " error: " << strdup(s) << " for token '" << lineStr << "'";
+      char ebase[256];
+      getErrorBase(ebase, 256);
+      *err << ebase << " error: " << strdup(s) << " for token '" << lineStr << "'";
       if(universalErrors->find(err->str()) != universalErrors->end()){
          delete err;
          return;
@@ -1148,23 +1151,26 @@ void yyerror(char *s)
 void yyerrorNonUni(char *s){
    fflush(stdout);
    err = new std::stringstream("");
-   *err << getErrorBase() << " error: " << s << " for token '" << lineStr << "'";
+   char ebase[256];
+   getErrorBase(ebase, 256);
+   *err << ebase << " error: " << s << " for token '" << lineStr << "'";
    printf("%s\n", err->str().c_str());
    delete err;
 }
 
-std::string getErrorBase(){
+void getErrorBase(char *errbase, int length){
    std::stringstream *base = new std::stringstream("");
    *base << dynCSnippetName << ":" << yylloc.first_line << "." << yylloc.first_column << ":";
-   std::string retStr = base->str();
+   strncpy(base->str()->c_str(), errbase, length)
    delete base;
-   return retStr;
 }
 
 void yyerrorNoTok(char *s){
    fflush(stdout);
    err = new std::stringstream("");
-   *err << getErrorBase() << " error: " << s;
+   char ebase[256];
+   getErrorBase(ebase, 256);
+   *err << ebase << " error: " << s;
    if(universalErrors->find(err->str()) != universalErrors->end()){
       delete err;
       return;
@@ -1175,7 +1181,9 @@ void yyerrorNoTok(char *s){
 
 
 void yyerrorNoTokNonUni(char *s){
-   printf("%s error: %s\n", getErrorBase().c_str(), s);
+   char ebase[256];
+   getErrorBase(ebase, 256);
+   printf("%s error: %s\n", ebase, s);
 }
 
 void yywarn(char *s)

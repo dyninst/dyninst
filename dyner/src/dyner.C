@@ -251,13 +251,12 @@ IPListElem::IPListElem(int _number, const char *_function,
 
 IPListElem::~IPListElem()
 {
+   Print();
    free(function);
    free(statement);
    if (handle) {
       if (appProc){
-         appProc->deleteSnippet(handle);
-//causes a segfault?
-         delete handle;
+         printf("deleteSnippet returns %s\n", (appProc->deleteSnippet(handle) ? "true" : "false"));
       }
    }
 }
@@ -297,7 +296,8 @@ IPListElem *removeIP(int n)
 {
    DynerList<IPListElem *>::iterator i;
    IPListElem *ret = NULL;
-   
+
+
    for (i = iplist.begin(); i != iplist.end(); i++) {
       if ((*i)->number == n) {
          ret = *i;
@@ -305,7 +305,6 @@ IPListElem *removeIP(int n)
          break;
       }
    }
-   
    return ret;
 }
 
@@ -803,7 +802,6 @@ int deleteInstrument(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    int ret = TCL_OK;
    for (int j = 1; j < argc; j++) {
       int n = atoi(argv[j]);
-      
       IPListElem *i = removeIP(n);
       if (i == NULL) {
          printf("No such intrument point: %d\n", n);
@@ -1196,7 +1194,7 @@ void exitCallback(BPatch_thread *thread, BPatch_exitType) {
    
    BPatch_snippet *stmt = termStatement;
    termStatement = NULL;
-   thread->oneTimeCode(*stmt);
+   thread->getProcess()->oneTimeCode(*stmt);
    delete stmt;
 }
 
@@ -1312,6 +1310,31 @@ int instStatement(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
      
    return TCL_OK;
 }
+/*
+int instStatementAtPoint(char *stmt, BPatch_point *pt){
+####
+   char *line_buf = getBufferAux(argc, argv, expr_start, true);
+
+   for(unsigned int i = 0; i < points->size(); ++i){
+      std::stringstream snName;
+      snName << "dynerSnippet_" << dynerSnippetNumber;
+      BPatch_snippet *snippet = dynC_API::createSnippet(line_buf, *(*points)[i], snName.str().c_str());
+      if(snippet == NULL){
+         printf("Snippet generation failure for point %d.\n", ipCtr++);
+         continue;
+      }
+      BPatchSnippetHandle *handle =
+         appProc->insertSnippet(*snippet, *(*points)[i], when, BPatch_lastSnippet);
+       if (handle == NULL) {
+         fprintf(stderr, "Error inserting snippet.\n");
+         delete line_buf;
+         return TCL_ERROR;
+      }
+      
+      IPListElem *snl =
+         new IPListElem(ipCtr, argv[1], where, when, line_buf, handle, instType);
+   }
+   }*/
 
 int execStatement(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
@@ -2700,6 +2723,24 @@ int traceFunc(Tcl_Interp *interp, const char *name)
            "at %s exit { printf(\"Exiting function %s\\n\"); } trace", name, name);
    return Tcl_Eval(interp, cmdBuf);
 }
+/*
+int traceBPFunc(BPatch_function *func){
+   if (NULL == func) {
+      printf("Dyner Internal Error: Given NULL function.\n");
+      return TCL_ERROR;
+   }
+      
+   char cmdBuf[1024];
+   sprintf(cmdBuf, 
+           "at %s entry printf(\"Entering function %s\\n\"); } trace", name, name);
+   if (Tcl_Eval(interp, cmdBuf) == TCL_ERROR)
+      return TCL_ERROR;
+   
+   sprintf(cmdBuf, 
+           "at %s exit { printf(\"Exiting function %s\\n\"); } trace", name, name);
+   return Tcl_Eval(interp, cmdBuf);
+
+   }*/
 
 /*
  * Trace all the function in a module

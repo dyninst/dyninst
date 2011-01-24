@@ -157,6 +157,13 @@ ifndef OVERRIDE_INSTALL
 install: install_generic
 endif
 
+%.C: %.y
+	$(YACC) $(YFLAGS) $<
+	$(MV) y.tab.c $@
+
+%.C: %.l
+	$(LEX) -t $(LFLAGS) $< > $@
+
 #
 # dependency generation definitions
 #
@@ -176,7 +183,7 @@ ifndef DEPENDFLAGS
   DEPENDFLAGS = -MM
 endif
 
-DEPENDS:
+DEPENDS: $(SRCS)
 	@echo "Building depends files"
 	@touch DEPENDS
 #	@$(MAKE) $(SRCS)
@@ -200,12 +207,6 @@ endif
 #.depend.% %.C:
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
 
-%.C: %.y
-	$(YACC) $(YFLAGS) $<
-	$(MV) y.tab.c $@
-
-%.C: %.l
-	$(LEX) -t $(LFLAGS) $< > $@
 
 #
 # A few pattern rules for simplicity in handling igen-generated files.
