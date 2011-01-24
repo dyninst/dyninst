@@ -37,6 +37,7 @@
 
 #include <assert.h>
 #include <map>
+#include <string>
 
 namespace Dyninst
 {
@@ -55,19 +56,22 @@ namespace Dyninst
    class COMMON_EXPORT MachRegister {
    private:
       signed int reg;
-      static std::map<signed int, const char *> *names;
+	  typedef std::map<signed int, std::string> NameMap;
+      static NameMap *names;
+	  void init_names();
    public:
 
 	  MachRegister();
       explicit MachRegister(signed int r);
       explicit MachRegister(signed int r, const char *n);
+	  explicit MachRegister(signed int r, std::string n);
 
       MachRegister getBaseRegister() const;
       Architecture getArchitecture() const;
       bool isValid() const;
       MachRegisterVal getSubRegValue(const MachRegister subreg, MachRegisterVal &orig) const;
 
-      const char *name() const;
+      std::string name() const;
       unsigned int size() const;
       bool operator<(const MachRegister &a) const;
       bool operator==(const MachRegister &a) const;
