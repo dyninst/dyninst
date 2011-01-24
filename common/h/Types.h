@@ -137,7 +137,9 @@ WindowsNT    nonexistant
 typedef long double double128_t;
 
 #elif defined(os_bg)
+#if !defined __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS
+#endif
 #include <stdint.h>
 
 #elif defined(os_freebsd)
