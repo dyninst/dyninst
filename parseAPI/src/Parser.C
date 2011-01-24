@@ -901,6 +901,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     factory().free_edge(remove);
                     continue;
                 }
+
+                // Invalidate cache_valid for all sharing functions
+                invalidateContainingFuncs(func, ce->src());                
             }
         } else if(work->order() == ParseWorkElem::seed_addr) {
             cur = leadersToBlock[work->target()]; 
@@ -1700,4 +1703,30 @@ Parser::getTamperAbsFrame(Function *tamperFunc)
             false)
       );
     return pf;
+}
+
+void Parser::invalidateContainingFuncs(Function *owner, Block *b)
+{
+    CodeRegion * cr;
+    if(owner->region()->contains(b->start()))
+        cr = owner->region();
+    else
+        cr = _parse_data->reglookup(owner->region(),b->start());
+    region_data * rd = _parse_data->findRegion(cr);
+    
+
+    // Any functions holding b that have already been finalized
+    // need to have their caches invalidated so that they will
+    // find out that they have this new 'ret' block
+    std::set<Function*> prev_owners;
+    rd->findFuncs(b->start(),prev_owners);
+    for(std::set<Function*>::iterator oit = prev_owners.begin();
+        oit != prev_owners.end(); ++oit)
+    {
+        Function * po = *oit;
+        po->_cache_valid = false;
+        parsing_printf("[%s:%d] split of [%lx,%lx) invalidates cache of "
+                       "func at %lx\n",
+                       FILE__,__LINE__,b->start(),b->end(),po->addr());
+    }   
 }
