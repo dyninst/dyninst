@@ -348,3 +348,53 @@ void LibraryWrapper::registerLibrary(SymReader *reader, std::string filename)
 {
    libs.file_map[filename] = reader;
 }
+ 
+StaticBinaryLibState::StaticBinaryLibState(ProcessState *parent, std::string executable) :
+   LibraryState(parent)
+{
+   the_exe.first = executable;
+   the_exe.second = 0x0;
+}
+
+StaticBinaryLibState::~StaticBinaryLibState()
+{
+}
+
+bool StaticBinaryLibState::getLibraryAtAddr(Address /*addr*/, LibAddrPair &olib)
+{
+   olib = the_exe;
+   return true;
+}
+
+bool StaticBinaryLibState::getLibraries(std::vector<LibAddrPair> &olibs)
+{
+   olibs.push_back(the_exe);
+   return true;
+}
+
+bool StaticBinaryLibState::getLibc(LibAddrPair &lc)
+{
+   lc = the_exe;
+   return true;
+}
+
+bool StaticBinaryLibState::getLibthread(LibAddrPair &lt)
+{
+   lt = the_exe;
+   return true;
+}
+
+bool StaticBinaryLibState::getAOut(LibAddrPair &ao)
+{
+   ao = the_exe;
+   return true;
+}
+
+void StaticBinaryLibState::notifyOfUpdate()
+{
+}
+
+Address StaticBinaryLibState::getLibTrapAddress()
+{
+   return 0x0;
+}

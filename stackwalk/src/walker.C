@@ -115,8 +115,8 @@ Walker* Walker::newWalker(std::string exec_name)
 Walker *Walker::newWalker(Dyninst::PID pid,
                           std::string executable)
 {
-  sw_printf("[%s:%u] - Creating new stackwalker for process %d\n",
-	    __FILE__, __LINE__, (int) pid);
+  sw_printf("[%s:%u] - Creating new stackwalker for process %d on %s\n",
+            __FILE__, __LINE__, (int) pid, executable.c_str());
   
   ProcessState *newproc = createDefaultProcess(pid, executable);
   if (!newproc) {
@@ -396,6 +396,8 @@ bool Walker::walkStackFromFrame(std::vector<Frame> &stackwalk,
       return false;
    }
 
+   sw_printf("[%s:%u] - Finished walking callstack from frame, result = %s\n",
+             __FILE__, __LINE__, result ? "true" : "false");
    return result;
 }
 
@@ -476,6 +478,8 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
       sw_printf("[%s:%u] - Call to postStackwalk failed\n", __FILE__, __LINE__);
       return false;
    }
+   sw_printf("[%s:%u] - Finished walking callstack, result = %s\n",
+             __FILE__, __LINE__, result ? "true" : "false");
 
    return result;
 }

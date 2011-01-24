@@ -527,7 +527,7 @@ namespace Dyninst {
         sw_printf("[%s:%u] - Process %d attached\n", __FILE__, __LINE__, pid);
         assert(state() == ps_neonatal);
         for_all_threads(set_state(ps_attached_intermediate));
-        //debug_pause(NULL); //immediately after debug_attach, pause the process.
+        debug_pause(NULL); //immediately after debug_attach, pause the process.
         break;
       case dbg_detached:
 	sw_printf("[%s:%u] - Process %d detached\n", __FILE__, __LINE__, pid);
