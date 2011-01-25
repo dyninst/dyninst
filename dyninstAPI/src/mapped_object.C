@@ -2210,6 +2210,6 @@ Register mapped_object::getEmulInsnReg(Address insnAddr)
 
 void mapped_object::addEmulInsn(Address insnAddr, Register effectiveAddrReg)
 {
-    emulInsns_[insnAddr] = pair<Register,void*>(effectiveAddrReg,0);
+    emulInsns_[insnAddr] = pair<Register,void*>(effectiveAddrReg,(void *)0);
 }
 

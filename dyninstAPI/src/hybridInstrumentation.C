@@ -115,19 +115,21 @@ bool HybridAnalysis::init()
 	BPatch_stopThreadExpr virtualFreeAddrSnippet = BPatch_stopThreadExpr(virtualFreeAddrCB_wrapper,
 		BPatch_paramExpr(0), // Address getting unloaded
 		false, // No cache!
-		BPatch_interpAsTarget);
+		BPatch_noInterp);
 	BPatch_stopThreadExpr virtualFreeSizeSnippet = BPatch_stopThreadExpr(virtualFreeSizeCB_wrapper,
 		BPatch_paramExpr(1), // Size of the free buffer
 		false, // No cache!
-		BPatch_interpAsTarget);
+		BPatch_noInterp);
+	BPatch_arithExpr virtualFreeSnippet = BPatch_arithExpr(BPatch_seq, virtualFreeAddrSnippet, virtualFreeSizeSnippet);
 
 	proc()->beginInsertionSet();
 	std::vector<BPatch_function *> virtualFreeFuncs;
 	proc()->getImage()->findFunction("VirtualFree", virtualFreeFuncs);
 	for (unsigned i = 0; i < virtualFreeFuncs.size(); ++i) {
 		std::vector<BPatch_point *> *entryPoints = virtualFreeFuncs[i]->findPoint(BPatch_locEntry);
-		proc()->insertSnippet(virtualFreeAddrSnippet, *entryPoints);
-		//proc()->insertSnippet(virtualFreeSizeSnippet, *entryPoints);
+
+		proc()->insertSnippet(virtualFreeSnippet, *entryPoints);
+
 	}
 	proc()->finalizeInsertionSet(false);
 	// Done instrumenting VirtualFree

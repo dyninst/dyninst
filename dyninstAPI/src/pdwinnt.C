@@ -1049,49 +1049,54 @@ int dyn_lwp::changeMemoryProtections
 {
     unsigned oldRights=0;
     unsigned pageSize = proc()->getMemoryPageSize();
-    for (Address idx = addr; idx < addr + size; idx += pageSize) {
+
+	Address pageBase = addr - (addr % pageSize);
+	size += (addr % pageSize);
+
+	// Temporary: set on a page-by-page basis to work around problems
+	// with memory deallocation
+	
+	for (Address idx = pageBase; idx < pageBase + size; idx += pageSize) {
         mal_printf("setting rights to %lx for [%lx %lx)\n", 
                    rights, idx , idx + pageSize);
-    }
+		if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(idx), 
+			(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&oldRights)) 
+		{
+			fprintf(stderr, "ERROR: failed to set access rights for page %lx, error code %d "
+				"%s[%d]\n", addr, GetLastError(), FILE__, __LINE__);
+			MEMORY_BASIC_INFORMATION meminfo;
+			SIZE_T size = VirtualQueryEx(getProcessHandle(), (LPCVOID) (addr), &meminfo, sizeof(MEMORY_BASIC_INFORMATION));
+			fprintf(stderr, "ERROR DUMP: baseAddr 0x%lx, AllocationBase 0x%lx, AllocationProtect 0x%lx, RegionSize 0x%lx, State 0x%lx, Protect 0x%lx, Type 0x%lx\n",
+				meminfo.BaseAddress, meminfo.AllocationBase, meminfo.AllocationProtect, meminfo.RegionSize, meminfo.State, meminfo.Protect, meminfo.Type);
+		}
+		else if (proc()->isMemoryEmulated() && setShadow) {
+			Address shadowAddr = 0;
+			unsigned shadowRights=0;
+			bool valid = false;
+			boost::tie(valid, shadowAddr) = proc()->getMemEm()->translate(idx);
+			if (!valid) {
+				fprintf(stderr, "WARNING: set access rights on page %lx that has "
+					"no shadow %s[%d]\n",addr,FILE__,__LINE__);
+			}
+			else 
+			{
+				mal_printf("setting rights to %lx for shadow [%lx %lx)\n", rights, shadowAddr, shadowAddr + size);
+				if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(shadowAddr), 
+					(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&shadowRights)) 
+				{
+					fprintf(stderr, "ERROR: set access rights found shadow page %lx "
+						"for page %lx but failed to set its rights %s[%d]\n",
+						shadowAddr, addr, FILE__, __LINE__);
+				}
 
-    if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(addr), 
-                         (SIZE_T)size, (DWORD)rights, (PDWORD)&oldRights)) 
-    {
-        fprintf(stderr, "ERROR: failed to set access rights for page %lx, error code %d "
-                "%s[%d]\n", addr, GetLastError(), FILE__, __LINE__);
-		MEMORY_BASIC_INFORMATION meminfo;
-		SIZE_T size = VirtualQueryEx(getProcessHandle(), (LPCVOID) (addr), &meminfo, sizeof(MEMORY_BASIC_INFORMATION));
-		fprintf(stderr, "ERROR DUMP: baseAddr 0x%lx, AllocationBase 0x%lx, AllocationProtect 0x%lx, RegionSize 0x%lx, State 0x%lx, Protect 0x%lx, Type 0x%lx\n",
-			meminfo.BaseAddress, meminfo.AllocationBase, meminfo.AllocationProtect, meminfo.RegionSize, meminfo.State, meminfo.Protect, meminfo.Type);
-		assert(0);
-        return -1;
-    }
-
-    if (proc()->isMemoryEmulated() && setShadow) {
-        Address shadowAddr = addr;
-        unsigned shadowRights=0;
-        bool valid = false;
-        boost::tie(valid, shadowAddr) = proc()->getMemEm()->translate(addr);
-        if (!valid) {
-            fprintf(stderr, "WARNING: set access rights on page %lx that has "
-                    "no shadow %s[%d]\n",addr,FILE__,__LINE__);
-            return oldRights;
-        }
-        mal_printf("setting rights to %lx for shadow [%lx %lx)\n", rights, shadowAddr, shadowAddr + size);
-        if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(shadowAddr), 
-                             (SIZE_T)size, (DWORD)rights, (PDWORD)&shadowRights)) 
-        {
-            fprintf(stderr, "ERROR: set access rights found shadow page %lx "
-                    "for page %lx but failed to set its rights %s[%d]\n",
-                    shadowAddr, addr, FILE__, __LINE__);
-            return -1;
-        }
-        if (shadowRights != oldRights) {
-            //mal_printf("WARNING: shadow page[%lx] rights %x did not match orig-page"
-            //           "[%lx] rights %x\n",shadowAddr,shadowRights, addr, oldRights);
-        }
-    }
-    return oldRights;
+				if (shadowRights != oldRights) {
+					//mal_printf("WARNING: shadow page[%lx] rights %x did not match orig-page"
+					//           "[%lx] rights %x\n",shadowAddr,shadowRights, addr, oldRights);
+				}
+			}
+		}
+	}
+	return oldRights;
 }
 
 

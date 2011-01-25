@@ -356,16 +356,71 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
 
 // Look up the memory region, and unmap it if it corresponds to a mapped object
 
+void HybridAnalysis::virtualFreeAddrCB(BPatch_point *, void *addr) {
+	assert(virtualFreeAddr_ == 0);
+	virtualFreeAddr_ = (Address) addr;
+	return;
+}
 
+<<<<<<< Updated upstream
+=======
 void HybridAnalysis::virtualFreeSizeCB(BPatch_point *, void *size) {
 #if 0
 	assert(virtualFreeAddr_ != 0);
 	cerr << "virtualSizeFree [" << hex << virtualFreeAddr_ << "," << virtualFreeAddr_ + (unsigned) size << "]" << dec << endl;
+>>>>>>> Stashed changes
 
-	// Let's see if we correspond to a mapped object
-	proc()->lowlevel_process()->invalidateMemory(virtualFreeAddr_, (Address) size);
+void HybridAnalysis::virtualFreeSizeCB(BPatch_point *, void *size_) {
+	assert(virtualFreeAddr_ != 0);
+	unsigned size = (unsigned) size_;
+	cerr << "virtualSizeFree [" << hex << virtualFreeAddr_ << "," << virtualFreeAddr_ + (unsigned) size << "]" << dec << endl;
+
+	Address pageSize = proc()->lowlevel_process()->getMemoryPageSize();
+
+	// Windows page-aligns everything.
+	if (size != 0)
+	{
+		size += virtualFreeAddr_ % pageSize;
+		size -= size % pageSize;
+		size += pageSize;
+	}
+	virtualFreeAddr_ -= (virtualFreeAddr_ % pageSize);
+
+	// We need to:
+	// 0) Figure out the range to remove (if size is 0)
+
+	// 1) Remove any function with a block in the deleted range
+	// 2) Remove memory translation for that range
+	// 3) Skip trying to set permissions for any page in the range.
+
+	if (size == 0) {
+		// Removing the entire range
+		mapped_object *obj = proc()->lowlevel_process()->createObjectNoFile(virtualFreeAddr_);
+		if (!obj) return;
+		virtualFreeAddr_ = obj->codeBase();
+		size = obj->imageSize();
+	}
+
+	std::set<int_function *> deletedFuncs;
+	for (Address i = virtualFreeAddr_; i < (virtualFreeAddr_ + size); ++i) {
+		proc()->lowlevel_process()->findFuncsByAddr(i, deletedFuncs);
+	}
+	for (std::set<int_function *>::iterator iter = deletedFuncs.begin();
+		iter != deletedFuncs.end(); ++iter)
+	{
+		BPatch_function * bpfunc = proc()->findOrCreateBPFunc(*iter, NULL);
+		if (!bpfunc) continue;
+		bpfunc->getModule()->removeFunction(bpfunc, true);
+	}
+
+	proc()->lowlevel_process()->getMemEm()->removeRegion(virtualFreeAddr_, size);
+	// And nuke the RT cache
+
+	proc()->lowlevel_process()->proc()->flushAddressCache_RT(virtualFreeAddr_, size);
 
 	virtualFreeAddr_ = 0;
+<<<<<<< Updated upstream
+=======
 #endif
 	return;
 }
@@ -383,6 +438,7 @@ void HybridAnalysis::virtualFreeAddrCB(BPatch_point *, void *addr) {
 	assert(virtualFreeAddr_ == 0);
 	virtualFreeAddr_ = (Address) addr;
 #endif
+>>>>>>> Stashed changes
 	return;
 }
 
