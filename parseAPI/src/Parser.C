@@ -841,7 +841,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
     
             continue;
         } else if(work->order() == ParseWorkElem::call_fallthrough) {
-            // check associated call edge's return status
+
+			// check associated call edge's return status
             Edge * ce = bundle_call_edge(work->bundle());
             if(!ce) {
                 // odd; no call edge in this bundle

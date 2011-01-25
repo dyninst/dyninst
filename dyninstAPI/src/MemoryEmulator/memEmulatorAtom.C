@@ -260,10 +260,11 @@ bool MemEmulator::generateViaModRM(CodeBuffer &buffer) {
       return true;
    }
 
-   if (debug) insertDebugMarker();
+   insertDebugMarker();
 
    // Choose a register to hold the effective address
    if (!generateModRMInitialize()) return false;
+   insertDebugMarker();
    // Shift the stack, save registers, calculate original effective address
    if (!generateTranslatorSetup()) return false;
    copyScratchToCodeBuffer(buffer);
@@ -271,8 +272,9 @@ bool MemEmulator::generateViaModRM(CodeBuffer &buffer) {
    // Make the call to the translation function
    if (!generateTranslatorCall(buffer)) return false;
    // Teardown the call saves
+   insertDebugMarker();
    if (!generateTranslatorTeardown()) return false;
-   if (debug) insertDebugMarker();
+   insertDebugMarker();
 
    copyScratchToCodeBuffer(buffer);
 
@@ -280,7 +282,8 @@ bool MemEmulator::generateViaModRM(CodeBuffer &buffer) {
 }
 
 void MemEmulator::insertDebugMarker() {
-	scratch.fill(1, codeGen::cgTrap);
+	if (debug) 
+		scratch.fill(1, codeGen::cgTrap);
 }
 
 bool MemEmulator::generateModRMInitialize() {
@@ -326,10 +329,13 @@ bool MemEmulator::generateTranslatorTeardown() {
 	// Shift stack back up
 	// Emulate memory operation
 	// Restore effAddr
-
+	insertDebugMarker();
 	if (!restoreFlags()) return false;
+	insertDebugMarker();
 	if (!restoreRegisters()) return false;
+	insertDebugMarker();
 	if (!restoreStack()) return false;
+	insertDebugMarker();
 	if (!emulateOriginalInstruction()) return false;
 	if (!restoreEffectiveAddr()) return false;
 
@@ -550,7 +556,7 @@ bool MemEmulator::pop(Register reg) {
 bool MemEmulator::generateESI_EDI(CodeBuffer &buffer) {
 	if (!determineESI_EDIUse()) return false;
 
-	if (debug) insertDebugMarker();
+	insertDebugMarker();
 
 	if (!shiftStack()) return false;
 
@@ -565,13 +571,13 @@ bool MemEmulator::generateESI_EDI(CodeBuffer &buffer) {
 
 	if (!saveShiftsAndRestoreRegs()) return false;
 
-	if (debug) insertDebugMarker();
+	insertDebugMarker();
 	if (!emulateOriginalESI_EDI()) return false;
 	if (!emulateESI_EDIValues()) return false;
 	if (!restoreAllRegistersESI_EDI()) return false;
 	if (!restoreStack()) return false;
 	assert(stackOffset == 0);
-	if (debug) insertDebugMarker();
+	insertDebugMarker();
 
 	copyScratchToCodeBuffer(buffer);
 	
@@ -1148,9 +1154,7 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
    prepatch.applyTemplate(templ);
 
    // This is an implicit use of ESI, EDI, or both. The both? Sucks. 
-if (debug) {
-	prepatch.fill(1, codeGen::cgTrap);
-}
+   insertDebugMarker();
 
    bool usesEDI = false;
    bool usesESI = false;
@@ -1261,11 +1265,7 @@ if (debug) {
 
    // And clean up
    if (!trailingTeardown(prepatch)) return false;
-#if 0
-   if (debug) {
-	prepatch.fill(1, codeGen::cgTrap);
-}
-#endif
+
    buffer.addPIC(prepatch, tracker(t->bbl()));
    
    return true;

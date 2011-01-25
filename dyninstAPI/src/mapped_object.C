@@ -1852,8 +1852,8 @@ bool mapped_object::isUpdateNeeded(Address entry)
 		if (valid) readAddr = translated;
 	}
 
-    mal_printf("%s[%d] Comparing %lx bytes starting at %lx\n",
-            FILE__,__LINE__,comparison_size,entry);
+   // mal_printf("%s[%d] Comparing %lx bytes starting at %lx\n",
+      //      FILE__,__LINE__,comparison_size,entry);
     if (!proc()->readDataSpace((void*)readAddr, comparison_size, regBuf, true)) {
         assert(0); 
     }
@@ -1936,7 +1936,7 @@ bool mapped_object::isExpansionNeeded(Address entry)
 // or if the address is in an uninitialized memory, 
 bool mapped_object::updateCodeBytesIfNeeded(Address entry)
 {
-	cerr << "updateCodeBytes @ " << hex << entry << dec << endl;
+	//cerr << "updateCodeBytes @ " << hex << entry << dec << endl;
 
 	assert( BPatch_defensiveMode == analysisMode_ );
 
@@ -1944,21 +1944,21 @@ bool mapped_object::updateCodeBytesIfNeeded(Address entry)
         (entry % proc()->proc()->getMemoryPageSize());
 
     if ( pagesUpdated_ ) {
-		cerr << "\t No pages have been updated in mapped_object, ret false" << endl;
+		//cerr << "\t No pages have been updated in mapped_object, ret false" << endl;
         return false;
     }
 
     if (protPages_.end() != protPages_.find(pageAddr) &&
         PROTECTED == protPages_[pageAddr]) 
     {
-		cerr << "\t Address corresponds to protected page, ret false" << endl;
+		//cerr << "\t Address corresponds to protected page, ret false" << endl;
         return false;
     }
 
     bool expand = isExpansionNeeded(entry);
     if ( ! expand ) {
         if ( ! isUpdateNeeded(entry) ) {
-			cerr << "\t Expansion false and no update needed, ret false" << endl;
+			//cerr << "\t Expansion false and no update needed, ret false" << endl;
             return false;
         }
     }

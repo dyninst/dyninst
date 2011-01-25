@@ -93,6 +93,7 @@ class StackAnalysis {
   typedef dyn_detail::boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
 
  public:
+
     class Height {
     public:
         typedef signed long Height_t;

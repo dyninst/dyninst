@@ -128,6 +128,7 @@ void int_block::getSources(std::vector<int_block *> &ins) const {
 
     /* Only allow edges that are within this current function; hide sharing */
     /* Also avoid CALL and RET edges */
+
     SingleContext epred(func()->ifunc(),true,true);
     Intraproc epred2(&epred);
 

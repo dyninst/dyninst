@@ -75,7 +75,7 @@ bool miniTramp::uninstrument() {
   // to be deleted again. Sigh. 
   
   // Better fix: figure out why we're double-deleting instrCodeNodes.
-
+	cerr << "Removing miniTramp from " << func()->symTabName() << " @ addr " << hex << instP()->addr() << dec << endl;
     if (proc()->proc() &&
         !proc()->proc()->isAttached()) {
         return true;

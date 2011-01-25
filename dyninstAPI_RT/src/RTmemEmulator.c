@@ -48,7 +48,7 @@
 struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0};
 extern FILE *stOut;
 
-#define DEBUG_MEM_EM
+//#define DEBUG_MEM_EM
 
 unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, unsigned long curAddr) {
    /* Standard nonblocking synchronization construct */
@@ -56,11 +56,24 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
    int min;
    int max;
    volatile int guard2;
+   int debug;
 
 #ifdef DEBUG_MEM_EM
    fprintf(stOut, "RTtranslateMemory(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx)\n", 
            input, origAddr, curAddr);
 #endif
+   debug = 0;
+   if (input <= 0xbe00ec &&
+	   input >= 0xbe00ec) 
+   {
+	   fprintf(stOut, "RTtranslateMemory hit guard value with 0x%lx, at 0x%lx\n", input, origAddr);
+	   debug = 1;
+   }
+
+   if (origAddr == 0x9a267d) {
+	   fprintf(stOut, "RTtranslateMemory hit addr 0x9a267d, input 0x%lx\n", input);
+	   debug = 1;
+   }
 
    do {
       guard2 = RTmemoryMapper.guard2;
@@ -100,7 +113,8 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
                 * (int *)(input + RTmemoryMapper.elements[index].shift));
         fprintf(stOut, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
 #endif
-        return input + RTmemoryMapper.elements[index].shift;
+		if (debug) fprintf(stOut, "\t Returning shift 0x%lx\n", RTmemoryMapper.elements[index].shift);
+		return input + RTmemoryMapper.elements[index].shift;
       }
    }
    else {
@@ -109,16 +123,31 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
       //fprintf(stOut, "\t min %d, max %d, index %d returning no change ", min, max, index);
       //fprintf(stOut, "@deref 0x%x\n", *(int*)input);
 #endif
+	  if (debug) fprintf(stOut, "\t no shift\n");
       return input;
    }
 }
 
 unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr, unsigned long curAddr) {
    /* Standard nonblocking synchronization construct */
-   int index;
+	int debug;
+	int index;
    int min;
    int max;
    volatile int guard2;
+  debug = 0;
+   if (input <= 0xbe00ec &&
+	   input >= 0xbe00ec) 
+   {
+	   fprintf(stOut, "RTtranslateMemoryShift hit guard value with 0x%lx, at 0x%lx\n", input, origAddr);
+	   debug = 1;
+   }
+
+   if (origAddr == 0x9a267d) {
+	   fprintf(stOut, "RTtranslateMemoryShift hit addr 0x9a267d, input 0x%lx\n", input);
+	   debug = 1;
+   }
+
 #ifdef  DEBUG_MEM_EM
    fprintf(stOut, "RTtranslateMemoryShift(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx)\n", 
            input, origAddr, curAddr);
@@ -156,7 +185,8 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
                  * (int *)(input + RTmemoryMapper.elements[index].shift));
          fprintf(stOut, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
 #endif
-         return RTmemoryMapper.elements[index].shift;
+		if (debug) fprintf(stOut, "\t Returning shift 0x%lx\n", RTmemoryMapper.elements[index].shift);
+		 return RTmemoryMapper.elements[index].shift;
       }
    }
    else {
@@ -165,7 +195,8 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
       //fprintf(stOut, "\t min %d, max %d, index %d returning no change ", min, max, index);
       //fprintf(stOut, "@deref 0x%x\n", *(int*)input);
 #endif
-      return 0;
+	  if (debug) fprintf(stOut, "\t No shift\n");
+	  return 0;
    }
 }
 

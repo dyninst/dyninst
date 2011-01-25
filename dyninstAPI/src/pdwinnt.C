@@ -593,10 +593,27 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 				<< ", EDI: " << activeFrame.edi
 				<< ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
 			Address stackTOPVAL =0;
-			for (unsigned i = 0; i < 10; ++i) {
+			for (unsigned i = 0; i < 20; ++i) {
 				ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
-				cerr << "STACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
+				Address remapped = 0;
+				vector<int_function *> funcs;
+				baseTrampInstance *bti;
+				ev.proc->getAddrInfo(stackTOPVAL, remapped, funcs, bti);
+				cerr << "STACK TOP VALUE=" << hex << stackTOPVAL << ", orig @ " << remapped << " in " << funcs.size() << "functions" << dec << endl;
 			}
+			Address src1 = 0xdeadbeef, src2 = 0xdeadbeef, targ1 = 0xdeadbeef, targ2 = 0xdeadbeef;
+			Address translated, translated2;
+			bool whocares;
+			ev.proc->readDataSpace((void *)0x9d4bec, 4, (void *) &src1, true);
+			boost::tie(whocares, translated) = ev.proc->getMemEm()->translate(0x9d4bec);
+			if (whocares) ev.proc->readDataSpace((void *)translated, 4, (void *)&src2, true);
+			ev.proc->readDataSpace((void *)0xbe00ec, 4, (void *) &targ1, true);
+			boost::tie(whocares, translated2) = ev.proc->getMemEm()->translate(0xbe00ec);
+			if (whocares) ev.proc->readDataSpace((void *)translated2, 4, (void *)&targ2, true);
+			cerr << "Magic locations in memory: " << hex << 0x9d4bec << ": "
+				<< src1 << " , " << translated << ": " << src2
+				<< ", " << 0xbe00ec << ": " << targ1 
+				<< ", " << translated2 << ": " << targ2 << dec << endl;
 		}
 	 }
   }

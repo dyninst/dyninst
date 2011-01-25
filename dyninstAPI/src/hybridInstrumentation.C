@@ -127,7 +127,7 @@ bool HybridAnalysis::init()
 	for (unsigned i = 0; i < virtualFreeFuncs.size(); ++i) {
 		std::vector<BPatch_point *> *entryPoints = virtualFreeFuncs[i]->findPoint(BPatch_locEntry);
 		proc()->insertSnippet(virtualFreeAddrSnippet, *entryPoints);
-		proc()->insertSnippet(virtualFreeSizeSnippet, *entryPoints);
+		//proc()->insertSnippet(virtualFreeSizeSnippet, *entryPoints);
 	}
 	proc()->finalizeInsertionSet(false);
 	// Done instrumenting VirtualFree

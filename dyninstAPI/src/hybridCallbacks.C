@@ -358,19 +358,31 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
 
 
 void HybridAnalysis::virtualFreeSizeCB(BPatch_point *, void *size) {
+#if 0
 	assert(virtualFreeAddr_ != 0);
+	cerr << "virtualSizeFree [" << hex << virtualFreeAddr_ << "," << virtualFreeAddr_ + (unsigned) size << "]" << dec << endl;
 
 	// Let's see if we correspond to a mapped object
 	proc()->lowlevel_process()->invalidateMemory(virtualFreeAddr_, (Address) size);
 
 	virtualFreeAddr_ = 0;
-
+#endif
 	return;
 }
 
 void HybridAnalysis::virtualFreeAddrCB(BPatch_point *, void *addr) {
+ 	// Let's see if we correspond to a mapped object
+	mapped_object *obj = proc()->lowlevel_process()->createObjectNoFile((Address) addr);
+	if (obj) {
+		cerr << "Found object of " << obj->fileName() << " corresponding to freed addr " << hex << addr << dec << endl;
+		proc()->lowlevel_process()->removeASharedObject(obj);
+		// Dun dun duuunnnnnn
+		delete obj;
+	}
+#if 0
 	assert(virtualFreeAddr_ == 0);
 	virtualFreeAddr_ = (Address) addr;
+#endif
 	return;
 }
 

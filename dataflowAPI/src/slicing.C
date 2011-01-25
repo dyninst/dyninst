@@ -419,12 +419,13 @@ Slicer::findMatch(
     DefCache & cache)
 {
     if(dir == forward) {
+		slicing_cerr << "\t\tComparing candidate assignment " << assn->format() << " to input region " << reg.format() << endl;
         vector<AbsRegion> const& inputs = assn->inputs();
         bool hadmatch = false;
         for(unsigned i=0;i<inputs.size();++i) {
             if(reg.contains(inputs[i])) {
                 hadmatch = true;    
-
+				slicing_cerr << "\t\t\t Match!" << endl;
                 // Link the assignments associated with this
                 // abstract region (may be > 1)
                 Element ne(cand.loc.block,cand.loc.func,reg,assn);
@@ -1224,7 +1225,8 @@ Slicer::Slicer(Assignment::Ptr a,
 };
 
 Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {
-  // delete cache state
+
+	// delete cache state
   unique_edges_.clear(); 
 
   return sliceInternal(forward, predicates);

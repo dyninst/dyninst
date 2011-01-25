@@ -144,9 +144,9 @@ bool CFAtom::generate(const codeGen &templ,
 			  target,
 			  insn_,
 			  fallthrough)) {
-	return false;
-      }
-    }
+				  return false;
+	  }
+	}
     else {
       relocation_cerr << "    target reported unnecessary" << endl;
     }
