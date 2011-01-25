@@ -68,6 +68,8 @@ class MemoryEmulator {
                         int size);
     void synchShadowOrig(mapped_object*,bool toOrig);
 
+    static const int STACK_SHIFT_VAL=256;
+
   private:
    void addRegion(Address start, unsigned size, Address newBase);
    void removeRegion(Address start, unsigned size);

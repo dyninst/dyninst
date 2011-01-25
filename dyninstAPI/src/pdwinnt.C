@@ -2617,11 +2617,13 @@ bool SignalHandler::forwardSigToProcess(EventRecord &ev, bool &continueHint)
 
 /* 1. Gather the list of Structured Exception Handlers by walking the linked
  * list whose head is in the TIB.  
- * 2. Create an instPoint at the faulting instruction, If the exception-raising
+ * 2. If the fault occurred at an emulated memory instruction, we saved a
+      register before stomping its effective address computation
+ * 3. Create an instPoint at the faulting instruction, If the exception-raising
  *    instruction is in a relocated block or multiTramp, save it as an active 
  *    tramp, we can't get rid of it until the handler returns
- * 3. Invoke the registered callback
- * 4. mark parsed handlers as such, store fault addr info in the handlers
+ * 4. Invoke the registered callback
+ * 5. mark parsed handlers as such, store fault addr info in the handlers
  */
 bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
 {
@@ -2633,6 +2635,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     mal_printf("Handling exception, excCode=0x%X raised by %lx %s[%d]\n",
             ev.what, ev.address, FILE__, __LINE__);
 
+/* begin debugging output */
 	cerr << "Frame info dump" << endl;
 	Frame activeFrame = ev.lwp->getActiveFrame();
 	cerr << "EXCEPTION FRAME: " << hex << activeFrame.getPC() << " / " <<activeFrame.getSP() 
@@ -2665,13 +2668,14 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
         cerr << (unsigned int)buf[idx] << " ";
     }
     cerr << endl << dec << "Stack" << endl;
-
 	for (unsigned i = 0; i < 10; ++i) {
 		Address stackTOPVAL =0;
 	    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
 		cerr << "\tSTACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
 	 }
+/* end debugging output */
 
+    // 1. gather the list of handlers by walking the SEH datastructure in the TEB
     Address tibPtr = ev.lwp->getThreadInfoBlockAddr();
     struct EXCEPTION_REGISTRATION handler;
     EXCEPTION_REGISTRATION *prevEvtReg=NULL;
@@ -2701,7 +2705,8 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
         return true;
     }
 
-    // 2. create instPoint at faulting instruction & trigger callback
+    // 2.  If the fault occurred at an emulated memory instruction, we saved a
+    //     register before stomping its effective address computation
     Address origAddr = ev.address;
     vector<int_function*> faultFuncs;
     baseTrampInstance *bti = NULL;
@@ -2720,6 +2725,48 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
                 findOneBlockByAddr(origAddr);
         break;
     }
+    if (ev.proc->isMemoryEmulated() && 
+        BPatch_defensiveMode == faultFuncs[0]->obj()->hybridMode())
+    {
+        if (faultFuncs[0]->obj()->isEmulInsn(origAddr)) {
+            void * val =0;
+            assert( sizeof(void*) == ev.proc->getAddressWidth() );
+            ev.proc->readDataSpace((void*)(activeFrame.getSP() + MemoryEmulator::STACK_SHIFT_VAL), 
+                                   ev.proc->getAddressWidth(), 
+                                   &val, false);
+            CONTEXT context;
+            GetThreadContext(ev.lwp->get_fd(), (LPCONTEXT) & context);
+            Register reg = faultFuncs[0]->obj()->getEmulInsnReg(origAddr);
+            switch(reg) {
+                case REGNUM_ECX:
+                    context.Ecx = (DWORD) val;
+                    break;
+                case REGNUM_EDX:
+                    context.Edx = (DWORD) val;
+                    break;
+                case REGNUM_EAX:
+                    context.Eax = (DWORD) val;
+                    break;
+                case REGNUM_EBX:
+                    context.Ebx = (DWORD) val;
+                    break;
+                case REGNUM_ESI:
+                    context.Esi = (DWORD) val;
+                    break;
+                case REGNUM_EDI:
+                    context.Edi = (DWORD) val;
+                    break;
+                case REGNUM_EBP:
+                    context.Ebp = (DWORD) val;
+                    break;
+                default:
+                    assert(0);
+            }
+            SetThreadContext(ev.lwp->get_fd(), (LPCONTEXT) & context);
+        }
+    }
+
+    // 3. create instPoint at faulting instruction & trigger callback
 
     instPoint *point = faultBBI->func()->findInstPByAddr(origAddr);
     if (!point) {
@@ -2733,11 +2780,11 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
         return false;
     }
 
-    //3. cause callbacks registered for this event to be triggered, if any.
+    //4. cause callbacks registered for this event to be triggered, if any.
     ((BPatch_process*)proc->up_ptr())->triggerSignalHandlerCB
             (point, faultBBI->func(), ev.what, &handlers);
 
-    //4. mark parsed handlers as such, store fault addr info in the handlers
+    //5. mark parsed handlers as such, store fault addr info in the handlers
     for (vector<Address>::iterator hIter=handlers.begin(); 
          hIter != handlers.end(); 
          hIter++) 

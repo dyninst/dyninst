@@ -170,3 +170,31 @@ void Edge::install()
     src()->addTarget(this);
     trg()->addSource(this);
 }
+
+void Edge::uninstall()
+{
+    // if it's a call edge, it's cached in the function object, remove it
+    if (CALL == type()) {
+        vector<Function*> srcFs;
+        _source->getFuncs(srcFs);
+        for (vector<Function*>::iterator fit = srcFs.begin(); 
+             fit != srcFs.end(); fit++) 
+        {
+            if ( ! (*fit)->_cache_valid ) {
+                continue;
+            }
+            for (set<Edge*>::iterator eit = (*fit)->_call_edges.begin();
+                 eit != (*fit)->_call_edges.end(); eit++) 
+            {
+                if (this == (*eit)) {
+                    (*fit)->_call_edges.erase(*eit);
+                    break;
+                }
+            }
+        }
+    }
+    // remove from source and target blocks
+    _source->removeTarget(this);
+    _target->removeSource(this);
+}
+

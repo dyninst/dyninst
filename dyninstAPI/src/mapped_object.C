@@ -2190,3 +2190,26 @@ int_function *mapped_object::findGlobalDestructorFunc(const std::string &) {
 }
 #endif
 
+bool mapped_object::isEmulInsn(Address insnAddr)
+{
+    return ( emulInsns_.end() != emulInsns_.find(insnAddr) );
+}
+
+
+void mapped_object::setEmulInsnVal(Address insnAddr, void * val)
+{
+    assert(emulInsns_.end() != emulInsns_.find(insnAddr));
+    emulInsns_[insnAddr] = pair<Register,void*>(emulInsns_[insnAddr].first,val);
+}
+
+Register mapped_object::getEmulInsnReg(Address insnAddr)
+{
+    assert(emulInsns_.end() != emulInsns_.find(insnAddr));
+    return emulInsns_[insnAddr].first;
+}
+
+void mapped_object::addEmulInsn(Address insnAddr, Register effectiveAddrReg)
+{
+    emulInsns_[insnAddr] = pair<Register,void*>(effectiveAddrReg,0);
+}
+

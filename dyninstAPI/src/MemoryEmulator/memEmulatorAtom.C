@@ -45,10 +45,9 @@
 
 #include "instructionAPI/h/Instruction.h"
 #include "dyninstAPI/src/addressSpace.h"
-
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/registerSpace.h"
-
+#include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/Relocation/CodeBuffer.h"
 
 #include "memEmulatorAtom.h"
@@ -69,7 +68,6 @@ MemEmulator::Ptr MemEmulator::create(Instruction::Ptr insn,
   return ptr;
 }
 
-const int STACK_SHIFT_VAL=256;
 const int ESI_SHIFT_REG = REGNUM_EBP;
 const int EDI_SHIFT_REG = REGNUM_EBX;
 
@@ -339,8 +337,8 @@ bool MemEmulator::generateTranslatorTeardown() {
 }
 
 bool MemEmulator::shiftStack() {
-	::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, -1*STACK_SHIFT_VAL, RealRegister(REGNUM_ESP), scratch);
-	stackOffset -= STACK_SHIFT_VAL;
+    ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, -1*MemoryEmulator::STACK_SHIFT_VAL, RealRegister(REGNUM_ESP), scratch);
+	stackOffset -= MemoryEmulator::STACK_SHIFT_VAL;
 	return true;
 }
 
@@ -372,13 +370,14 @@ bool MemEmulator::determineEffAddr() {
 
 	if (useECX) {
 		effAddr = REGNUM_ECX;
-		return true;
 	}
 	if (useEDX) {
 		effAddr = REGNUM_EDX;
-		return true;
 	}
-	return false;
+
+    block->func()->obj()->addEmulInsn(addr(),effAddr);
+    
+    return (useECX || useEDX);
 }
 
 bool MemEmulator::saveRegisters() {
