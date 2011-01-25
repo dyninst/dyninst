@@ -15,6 +15,7 @@
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
+extern int df_debug_stackanalysis;
 
 void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
 				    Address addr,
@@ -286,7 +287,7 @@ bool AbsRegionConverter::getCurrentStackHeight(ParseAPI::Function *func,
 					       Address addr,
 					       long &height) {
   StackAnalysis sA(func);
-
+ 
   StackAnalysis::Height heightSA = sA.findSP(block, addr);
 
   // Ensure that analysis has been performed.

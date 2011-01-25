@@ -1874,6 +1874,8 @@ void AddressSpace::invalidateMemory(Address addr, Address size) {
 	// Ensure that we will catch if we transfer into this code again.
 	// Add an override to the mapped_object so that we don't try to
 	// set permissions on the deallocated range. 
+	return;
+
 	getMemEm()->removeRegion(addr, size);
 
 	proc()->flushAddressCache_RT(addr, size);

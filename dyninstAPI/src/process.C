@@ -4701,9 +4701,7 @@ bool process::handleStopThread(EventRecord &ev)
 
     mal_printf("handling stopThread %lx[%lx]=>%lx %s[%d]\n", 
                pointAddr, relocPointAddr, (long)calculation, FILE__,__LINE__); 
-	if ((long)calculation == 0x401014) {
-		DebugBreak();
-	}
+
 /* 2. If the callbackID is negative, the calculation is meant to be
       interpreted as the address of code, so we call stopThreadCtrlTransfer
       to translate the target to an unrelocated address */
@@ -5016,12 +5014,12 @@ bool process::getDeadCode
 // will flush addresses of all addresses in the specified range, if the
 // range is null, flush all addresses from the cache.  Also flush 
 // rt-lib heap addrs that correspond to the range
-void process::flushAddressCache_RT(codeRange *flushRange)
+void process::flushAddressCache_RT(Address start, unsigned size)
 {
-    if (flushRange) {
+    if (start != 0) {
         mal_printf("Flushing address cache of range [%lx %lx]\n",
-                   flushRange->get_address(), 
-                   flushRange->get_address()+flushRange->get_size());
+                   start, 
+                   start + size);
     } else {
         mal_printf("Flushing address cache of rt_lib heap addrs only \n");
     }
@@ -5057,7 +5055,7 @@ void process::flushAddressCache_RT(codeRange *flushRange)
     bool flushedHeaps = false;
 
     while ( true ) // iterate twice, once to flush the heaps, 
-    {              // and once to flush the flushRange
+    {              // and once to flush the flush range
         Address flushStart=0;
         Address flushEnd=0;
         if (!flushedHeaps) {
@@ -5076,8 +5074,8 @@ void process::flushAddressCache_RT(codeRange *flushRange)
                 }
             }
         } else {
-            flushStart = flushRange->get_address();
-            flushEnd = flushStart + flushRange->get_size();
+            flushStart = start;
+            flushEnd = start + size;
         }
         //zero out entries that lie in the runtime heaps
         for(int idx=0; idx < TARGET_CACHE_WIDTH; idx++) {
@@ -5087,7 +5085,7 @@ void process::flushAddressCache_RT(codeRange *flushRange)
                 cacheCopy[idx] = 0;
             }
         }
-        if ( flushedHeaps || !flushRange ) {
+        if ( flushedHeaps || (start == 0) ) {
             break;
         }
         flushedHeaps = true;

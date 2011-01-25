@@ -956,7 +956,7 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
                     << "has abrupt end points and will probably get "
                     << "overwritten before it executes, if ever" << endl;
                 // clear cache of the target function address
-                //proc()->lowlevel_process()->flushAddressCache_RT(tFunc);
+                proc()->lowlevel_process()->flushAddressCache_RT(target,target+1);
                 return false;
             }
         }

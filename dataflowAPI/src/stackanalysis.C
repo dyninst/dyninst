@@ -647,12 +647,12 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
    regs.clear();
    
    if (read.isValid()) {
-	   stackanalysis_printf("\t\t\t Alias detected: %s -> %s\n", read.name(), written.name());
+	   stackanalysis_printf("\t\t\t Alias detected: %s -> %s\n", read.name().c_str(), written.name().c_str());
 	   xferFuncs.push_back(TransferFunc::aliasFunc(read, written));
    }
    else {
 	   xferFuncs.push_back(TransferFunc::bottomFunc(written));
-	   stackanalysis_printf("\t\t\t Non-register-register move: %s set to bottom\n", written.name());
+	   stackanalysis_printf("\t\t\t Non-register-register move: %s set to bottom\n", written.name().c_str());
    }
 }
 
@@ -664,7 +664,7 @@ void StackAnalysis::handleDefault(Instruction::Ptr insn, TransferFuncs &xferFunc
 
       xferFuncs.push_back(TransferFunc::bottomFunc((*iter)->getID()));
       stackanalysis_printf("\t\t\t Unhandled insn %s detected: %s set to bottom\n", insn->format().c_str(), 
-                           (*iter)->getID().name());
+                           (*iter)->getID().name().c_str());
    }
    return;
 }

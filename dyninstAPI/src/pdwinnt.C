@@ -593,10 +593,27 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 				<< ", EDI: " << activeFrame.edi
 				<< ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
 			Address stackTOPVAL =0;
-			for (unsigned i = 0; i < 10; ++i) {
+			for (unsigned i = 0; i < 20; ++i) {
 				ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
-				cerr << "STACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
+				Address remapped = 0;
+				vector<int_function *> funcs;
+				baseTrampInstance *bti;
+				ev.proc->getAddrInfo(stackTOPVAL, remapped, funcs, bti);
+				cerr << "STACK TOP VALUE=" << hex << stackTOPVAL << ", orig @ " << remapped << " in " << funcs.size() << "functions" << dec << endl;
 			}
+			Address src1 = 0xdeadbeef, src2 = 0xdeadbeef, targ1 = 0xdeadbeef, targ2 = 0xdeadbeef;
+			Address translated, translated2;
+			bool whocares;
+			ev.proc->readDataSpace((void *)0x9d4bec, 4, (void *) &src1, true);
+			boost::tie(whocares, translated) = ev.proc->getMemEm()->translate(0x9d4bec);
+			if (whocares) ev.proc->readDataSpace((void *)translated, 4, (void *)&src2, true);
+			ev.proc->readDataSpace((void *)0xbe00ec, 4, (void *) &targ1, true);
+			boost::tie(whocares, translated2) = ev.proc->getMemEm()->translate(0xbe00ec);
+			if (whocares) ev.proc->readDataSpace((void *)translated2, 4, (void *)&targ2, true);
+			cerr << "Magic locations in memory: " << hex << 0x9d4bec << ": "
+				<< src1 << " , " << translated << ": " << src2
+				<< ", " << 0xbe00ec << ": " << targ1 
+				<< ", " << translated2 << ": " << targ2 << dec << endl;
 		}
 	 }
   }
@@ -1032,49 +1049,54 @@ int dyn_lwp::changeMemoryProtections
 {
     unsigned oldRights=0;
     unsigned pageSize = proc()->getMemoryPageSize();
-    for (Address idx = addr; idx < addr + size; idx += pageSize) {
+
+	Address pageBase = addr - (addr % pageSize);
+	size += (addr % pageSize);
+
+	// Temporary: set on a page-by-page basis to work around problems
+	// with memory deallocation
+	
+	for (Address idx = pageBase; idx < pageBase + size; idx += pageSize) {
         mal_printf("setting rights to %lx for [%lx %lx)\n", 
                    rights, idx , idx + pageSize);
-    }
+		if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(idx), 
+			(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&oldRights)) 
+		{
+			fprintf(stderr, "ERROR: failed to set access rights for page %lx, error code %d "
+				"%s[%d]\n", addr, GetLastError(), FILE__, __LINE__);
+			MEMORY_BASIC_INFORMATION meminfo;
+			SIZE_T size = VirtualQueryEx(getProcessHandle(), (LPCVOID) (addr), &meminfo, sizeof(MEMORY_BASIC_INFORMATION));
+			fprintf(stderr, "ERROR DUMP: baseAddr 0x%lx, AllocationBase 0x%lx, AllocationProtect 0x%lx, RegionSize 0x%lx, State 0x%lx, Protect 0x%lx, Type 0x%lx\n",
+				meminfo.BaseAddress, meminfo.AllocationBase, meminfo.AllocationProtect, meminfo.RegionSize, meminfo.State, meminfo.Protect, meminfo.Type);
+		}
+		else if (proc()->isMemoryEmulated() && setShadow) {
+			Address shadowAddr = 0;
+			unsigned shadowRights=0;
+			bool valid = false;
+			boost::tie(valid, shadowAddr) = proc()->getMemEm()->translate(idx);
+			if (!valid) {
+				fprintf(stderr, "WARNING: set access rights on page %lx that has "
+					"no shadow %s[%d]\n",addr,FILE__,__LINE__);
+			}
+			else 
+			{
+				mal_printf("setting rights to %lx for shadow [%lx %lx)\n", rights, shadowAddr, shadowAddr + size);
+				if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(shadowAddr), 
+					(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&shadowRights)) 
+				{
+					fprintf(stderr, "ERROR: set access rights found shadow page %lx "
+						"for page %lx but failed to set its rights %s[%d]\n",
+						shadowAddr, addr, FILE__, __LINE__);
+				}
 
-    if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(addr), 
-                         (SIZE_T)size, (DWORD)rights, (PDWORD)&oldRights)) 
-    {
-        fprintf(stderr, "ERROR: failed to set access rights for page %lx, error code %d "
-                "%s[%d]\n", addr, GetLastError(), FILE__, __LINE__);
-		MEMORY_BASIC_INFORMATION meminfo;
-		SIZE_T size = VirtualQueryEx(getProcessHandle(), (LPCVOID) (addr), &meminfo, sizeof(MEMORY_BASIC_INFORMATION));
-		fprintf(stderr, "ERROR DUMP: baseAddr 0x%lx, AllocationBase 0x%lx, AllocationProtect 0x%lx, RegionSize 0x%lx, State 0x%lx, Protect 0x%lx, Type 0x%lx\n",
-			meminfo.BaseAddress, meminfo.AllocationBase, meminfo.AllocationProtect, meminfo.RegionSize, meminfo.State, meminfo.Protect, meminfo.Type);
-		assert(0);
-        return -1;
-    }
-
-    if (proc()->isMemoryEmulated() && setShadow) {
-        Address shadowAddr = addr;
-        unsigned shadowRights=0;
-        bool valid = false;
-        boost::tie(valid, shadowAddr) = proc()->getMemEm()->translate(addr);
-        if (!valid) {
-            fprintf(stderr, "WARNING: set access rights on page %lx that has "
-                    "no shadow %s[%d]\n",addr,FILE__,__LINE__);
-            return oldRights;
-        }
-        mal_printf("setting rights to %lx for shadow [%lx %lx)\n", rights, shadowAddr, shadowAddr + size);
-        if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(shadowAddr), 
-                             (SIZE_T)size, (DWORD)rights, (PDWORD)&shadowRights)) 
-        {
-            fprintf(stderr, "ERROR: set access rights found shadow page %lx "
-                    "for page %lx but failed to set its rights %s[%d]\n",
-                    shadowAddr, addr, FILE__, __LINE__);
-            return -1;
-        }
-        if (shadowRights != oldRights) {
-            //mal_printf("WARNING: shadow page[%lx] rights %x did not match orig-page"
-            //           "[%lx] rights %x\n",shadowAddr,shadowRights, addr, oldRights);
-        }
-    }
-    return oldRights;
+				if (shadowRights != oldRights) {
+					//mal_printf("WARNING: shadow page[%lx] rights %x did not match orig-page"
+					//           "[%lx] rights %x\n",shadowAddr,shadowRights, addr, oldRights);
+				}
+			}
+		}
+	}
+	return oldRights;
 }
 
 

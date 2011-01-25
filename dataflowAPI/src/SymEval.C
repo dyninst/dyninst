@@ -348,7 +348,8 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
 
 void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 			 const uint64_t addr,
-			 Result_t &res) {
+			 Result_t &res)
+{
 
   SymEvalPolicy policy(res, (Address)addr, insn->getArch());
 

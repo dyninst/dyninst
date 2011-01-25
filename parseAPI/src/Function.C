@@ -168,6 +168,7 @@ Function::blocks_int()
             Edge * e = *tit;
             Block * t = e->trg();
 
+
             if(e->type() == CALL) {
                 _call_edges.insert(e);
                 continue;
@@ -246,7 +247,8 @@ Function::delayed_link_return(CodeObject * o, Block * retblk)
 void
 Function::add_block(Block *b)
 {
-    ++b->_func_cnt;            // block counts references
+	//cerr << "Adding block @ " << hex << b->start() << " to func @ " << addr() << dec << endl;
+	++b->_func_cnt;            // block counts references
     _blocks.push_back(b);
     _bmap[b->start()] = b;
 }

@@ -795,7 +795,9 @@ void int_function::addMissingPoints()
 // get instPoints of known function calls into this one
 void int_function::getCallerPoints(std::vector<instPoint*>& callerPoints)
 {
-	if (!entryBlock()) return;
+	if (addr_ == 0x9a58c0) {
+		DebugBreak();
+	}
     image_basicBlock *entryLLB = entryBlock()->llb();
     const ParseAPI::Block::edgelist &sources = entryLLB->sources();
     for (ParseAPI::Block::edgelist::iterator iter = sources.begin();

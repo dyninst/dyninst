@@ -233,7 +233,7 @@ bool IA_IAPI::isGarbageInsn() const
             for (set<RegisterAST::Ptr>::iterator rit = regs.begin();
                  rit != regs.end(); rit++) 
             {
-                if (Dyninst::isSegmentRegister((*rit)->getID().regClass())) {
+                if (isSegmentRegister((*rit)->getID().regClass())) {
                     DebugBreak();
                     ret = true;
                     break;
