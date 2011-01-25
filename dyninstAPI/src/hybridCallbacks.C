@@ -357,19 +357,22 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
 // Look up the memory region, and unmap it if it corresponds to a mapped object
 
 
-void HybridAnalysis::virtualFreeCB(BPatch_point *, void *addr) {
+void HybridAnalysis::virtualFreeSizeCB(BPatch_point *, void *size) {
+	assert(virtualFreeAddr_ != 0);
+
 	// Let's see if we correspond to a mapped object
-	mapped_object *obj = proc()->lowlevel_process()->createObjectNoFile((Address) addr);
-	if (obj) {
-		cerr << "Found object of " << obj->fileName() << " corresponding to freed addr " << hex << addr << dec << endl;
-		proc()->lowlevel_process()->removeASharedObject(obj);
-		// Dun dun duuunnnnnn
-		delete obj;
-	}
+	proc()->lowlevel_process()->invalidateMemory(virtualFreeAddr_, (Address) size);
+
+	virtualFreeAddr_ = 0;
 
 	return;
 }
 
+void HybridAnalysis::virtualFreeAddrCB(BPatch_point *, void *addr) {
+	assert(virtualFreeAddr_ == 0);
+	virtualFreeAddr_ = (Address) addr;
+	return;
+}
 
 /* CASES (sub-numbering are cases too)
  * 1. the target address is in a shared library
