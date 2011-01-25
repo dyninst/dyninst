@@ -1936,7 +1936,7 @@ bool mapped_object::isExpansionNeeded(Address entry)
 // or if the address is in an uninitialized memory, 
 bool mapped_object::updateCodeBytesIfNeeded(Address entry)
 {
-	cerr << "updateCodeBytes @ " << hex << entry << dec << endl;
+	//malware_cerr << "updateCodeBytes @ " << hex << entry << dec << endl;
 
 	assert( BPatch_defensiveMode == analysisMode_ );
 
@@ -1944,21 +1944,21 @@ bool mapped_object::updateCodeBytesIfNeeded(Address entry)
         (entry % proc()->proc()->getMemoryPageSize());
 
     if ( pagesUpdated_ ) {
-		cerr << "\t No pages have been updated in mapped_object, ret false" << endl;
+		//malware_cerr << "\t No pages have been updated in mapped_object, ret false" << endl;
         return false;
     }
 
     if (protPages_.end() != protPages_.find(pageAddr) &&
         PROTECTED == protPages_[pageAddr]) 
     {
-		cerr << "\t Address corresponds to protected page, ret false" << endl;
+		//malware_cerr << "\t Address corresponds to protected page, ret false" << endl;
         return false;
     }
 
     bool expand = isExpansionNeeded(entry);
     if ( ! expand ) {
         if ( ! isUpdateNeeded(entry) ) {
-			cerr << "\t Expansion false and no update needed, ret false" << endl;
+			//malware_cerr << "\t Expansion false and no update needed, ret false" << endl;
             return false;
         }
     }

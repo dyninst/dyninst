@@ -915,12 +915,12 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
                 break;
     }
     if (targObj && eit == edges.end()) {
-        // edge does not exist, add it
-		vector<CodeObject::NewEdgeToParse> worklist;
-		EdgeTypeEnum etype;
 
         mal_printf("Adding indirect edge %lx->%lx", 
                    (Address)sourcePt->getAddress(), target);
+
+        // edge does not exist, determine desired edge type
+		EdgeTypeEnum etype;
         if (BPatch_subroutine == sourcePt->getPointType()) {
             etype = CALL;
             mal_printf(" of type CALL\n");
@@ -931,6 +931,27 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
             etype = INDIRECT;
             mal_printf(" of type INDIRECT\n");
         }
+
+        // make sure we're not adding a call to a function 
+        // that looks like garbage, since the edge would make us 
+        // update our analysis of the function over and over 
+        // rather than just blowing the function away of it
+        // gets stomped in its entry block
+        if (CALL == etype) {
+            int_function *tFunc = targObj->findFuncByEntry(target);
+            assert(tFunc);
+            if ( ! tFunc->funcAbruptEnds().empty() ) {
+                malware_cerr << "Ignoring request as target function "
+                    << "has abrupt end points and will probably get "
+                    << "overwritten before it executes, if ever" << endl;
+                // clear cache of the target function address
+                //proc()->lowlevel_process()->flushAddressCache_RT(tFunc);
+                return false;
+            }
+        }
+
+        // the function looks good, add the edge
+		vector<CodeObject::NewEdgeToParse> worklist;
 		worklist.push_back(CodeObject::NewEdgeToParse(sourcePt->llpoint()->block()->llb(), target - targObj->codeBase(), etype));
         targObj->parse_img()->codeObject()->parseNewEdges(worklist);
         return true;

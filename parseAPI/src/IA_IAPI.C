@@ -30,6 +30,7 @@
  */
 
 #include "dyntypes.h"
+#include "dyn_regs.h"
 #include "IA_IAPI.h"
 #include "util.h"
 #include "Register.h"
@@ -206,16 +207,45 @@ bool IA_IAPI::isAbortOrInvalidInsn() const
 
 bool IA_IAPI::isGarbageInsn() const
 {
+    bool ret = false;
     // GARBAGE PARSING HEURISTIC
     if (unlikely(_obj->defensiveMode())) {
         entryID e = curInsn()->getOperation().getID();
-        if (e == e_arpl) {
+        switch (e) {
+        case e_arpl:
             cerr << "REACHED AN ARPL AT "<< std::hex << current 
                  << std::dec <<" COUNTING AS INVALID" << endl;
-            return true;
+            ret = true;
+            break;
+        case e_fisub:
+            cerr << "REACHED A FISUB AT "<< std::hex << current 
+                 << std::dec <<" COUNTING AS INVALID" << endl;
+            ret = true;
+            break;
+        case e_into:
+            cerr << "REACHED AN INTO AT "<< std::hex << current 
+                 << std::dec <<" COUNTING AS INVALID" << endl;
+            ret = true;
+            break;
+        case e_mov: {
+            set<RegisterAST::Ptr> regs;
+            curInsn()->getWriteSet(regs);
+            for (set<RegisterAST::Ptr>::iterator rit = regs.begin();
+                 rit != regs.end(); rit++) 
+            {
+                if (Dyninst::isSegmentRegister((*rit)->getID().regClass())) {
+                    DebugBreak();
+                    ret = true;
+                    break;
+                }
+            }
+            break;
+        }
+        default:
+            break;
         }
     }
-    return false;
+    return ret;
 }	
 bool IA_IAPI::isFrameSetupInsn() const
 {

@@ -397,7 +397,7 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     parseNewEdgeInFunction(point, nextInsn, false);
 
     //make sure we don't re-instrument
-    point->setResolved();
+    point->setResolved(true);
 
     // re-instrument the module 
     instrumentModules(false);
@@ -632,8 +632,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                     (*(*instrumentedFuncs)[func])[point] );
                 (*instrumentedFuncs)[func]->erase(point);
             }
-            //KEVINTODO: currently don't need to resolve the point here, it happens in handleStopThread, what's the better place for it?
-            //point->setResolved();
+            //point is set to resolved in handleStopThread
         } 
         delete(targets);
 

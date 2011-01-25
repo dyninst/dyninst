@@ -256,6 +256,11 @@ bool MachRegister::isStackPointer() const
            *this == ppc32::r1 || *this == ppc64::r1);
 }
 
+COMMON_EXPORT bool Dyninst::isSegmentRegister(int regClass)
+{
+   return 0 != (regClass & x86::SEG);
+}
+
 void MachRegister::getROSERegister(int &c, int &n, int &p)
 {
    // Rose: class, number, position

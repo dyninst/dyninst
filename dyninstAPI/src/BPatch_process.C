@@ -2016,16 +2016,6 @@ void BPatch_process::overwriteAnalysisUpdate
         vector<edgeStub> stubs;
         stubs.push_back(edgeStub(bit->first,bit->second,ParseAPI::CALL));
         bit->first->func()->obj()->parseNewEdges(stubs);
-#if 0 // broken code that bypassed the int-layer parseNewEdges
-        vector<ParseAPI::Block*>  srcs; 
-        vector<Address> trgs; 
-        vector<EdgeTypeEnum> etypes; 
-        srcs.push_back(bit->first->llb());
-        mapped_object *tobj = llproc->findObject(bit->second);
-        trgs.push_back(bit->second - tobj->codeBase());
-        etypes.push_back(ParseAPI::CALL);
-        bit->first->func()->ifunc()->img()->codeObject()->parseNewEdges(srcs,trgs,etypes);
-#endif
     }
 
     // set new entry points for functions with NewF blocks
