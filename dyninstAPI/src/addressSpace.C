@@ -68,8 +68,8 @@ AddressSpace::AddressSpace () :
     trampGuardBase_(NULL),
     up_ptr_(NULL),
     costAddr_(0),
-    emulateMem_(false),
-    emulatePC_(false)
+    emulateMem_(true),
+    emulatePC_(true)
 {
    memEmulator_ = new MemoryEmulator(this);
    if ( getenv("DYNINST_EMULATE_MEMORY") ) {
@@ -1426,6 +1426,7 @@ bool AddressSpace::relocate() {
 }
 
 extern bool GLOBAL_DISASSEMBLY;
+extern bool disassemble_reloc;
 // iter is some sort of functions
 bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address nearTo) {
   if (begin == end) {
@@ -1455,7 +1456,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
     return false;
   }
 
-  if (dyn_debug_reloc || dyn_debug_write) {
+  if (disassemble_reloc || dyn_debug_reloc || dyn_debug_write) {
       using namespace InstructionAPI;
       // Print out the buffer we just created
       cerr << "DUMPING RELOCATION BUFFER " << hex 
@@ -1470,6 +1471,8 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
         insn = deco.decode();
       }
       cerr << dec;
+	  cerr << endl;
+	  cerr << cm->format() << endl;
   }
 
 
@@ -1507,14 +1510,16 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           // translate thread's active PC to orig addr
           Frame tframe = (*titer)->getActiveFrame();
           Address relocAddr = tframe.getPC();
+		  mal_printf("Attempting to change PC: current addr is 0x%lx\n", relocAddr);
           Address pcOrig=0;
           vector<int_function *> origFuncs;
           baseTrampInstance *bti=NULL;
           mapped_object *pcobj = findObject(tframe.getPC());
           if (pcobj && mapped_object::isSystemLib(pcobj->fileName())) 
               continue;
-          if (!getAddrInfo(tframe.getPC(), pcOrig, origFuncs, bti)) 
+          if (!getAddrInfo(tframe.getPC(), pcOrig, origFuncs, bti)) {
               continue;
+		  }
           int_function *origFunc;
           if (origFuncs.size() == 1) {
               origFunc = origFuncs[0];
@@ -1698,6 +1703,7 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
 
   for (std::list<codeGen>::iterator iter = patches.begin();
        iter != patches.end(); ++iter) {
+		   if (disassemble_reloc) cerr << "Writing to process: " << hex << iter->startAddr() << " -> " << iter->startAddr() + iter->used() << dec << endl;
     if (!writeTextSpace((void *)iter->startAddr(),
                         iter->used(),
                         iter->start_ptr())) {
@@ -1775,17 +1781,18 @@ bool AddressSpace::getRelocInfo(Address relocAddr,
 {
   baseT = NULL;
   origBlock = NULL;
-
+  bool ret = false;
   // address is relocated (or bad), check relocation maps
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
        iter != relocatedCode_.end(); ++iter) 
   {
      if (iter->relocToOrig(relocAddr, origAddr, origBlock, baseT)) {
-        return true;
+		 assert(!ret);
+		 ret = true;
      }
   }
 
-  return false;
+  return ret;
 }
 
 bool AddressSpace::inEmulatedCode(Address addr) {
@@ -1859,6 +1866,26 @@ void AddressSpace::updateMemEmulator() {
 MemoryEmulator * AddressSpace::getMemEm() {
     return memEmulator_;
 }
+
+void AddressSpace::invalidateMemory(Address addr, Address size) {
+	// To do list:
+	// Remove this section from the memory shadow
+	// Flush the RT cache of indirect transfers
+	// Ensure that we will catch if we transfer into this code again.
+	// Add an override to the mapped_object so that we don't try to
+	// set permissions on the deallocated range. 
+	getMemEm()->removeRegion(addr, size);
+
+	proc()->flushAddressCache_RT(addr, size);
+
+	std::set<int_function *> funcsToDelete;
+	for (Address i = addr; i < (addr + size); ++i)
+	{
+		findFuncsByAddr(i, funcsToDelete);
+	}
+
+}
+
 
 // create stub edge set which is: all edges such that: 
 //     e->trg() in owBBIs and

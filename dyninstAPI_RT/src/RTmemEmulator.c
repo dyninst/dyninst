@@ -105,9 +105,9 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
    }
    else {
 #ifdef  DEBUG_MEM_EM
-      //fprintf(stOut, "\t min %d, max %d, index %d returning no change\n", min, max, index);
-      fprintf(stOut, "\t min %d, max %d, index %d returning no change ", min, max, index);
-      fprintf(stOut, "@deref 0x%x\n", *(int*)input);
+      fprintf(stOut, "\t min %d, max %d, index %d returning no change\n", min, max, index);
+      //fprintf(stOut, "\t min %d, max %d, index %d returning no change ", min, max, index);
+      //fprintf(stOut, "@deref 0x%x\n", *(int*)input);
 #endif
       return input;
    }
@@ -161,9 +161,9 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
    }
    else {
 #ifdef DEBUG_MEM_EM
-      //fprintf(stOut, "\t min %d, max %d, index %d returning no change\n", min, max, index);
-      fprintf(stOut, "\t min %d, max %d, index %d returning no change ", min, max, index);
-      fprintf(stOut, "@deref 0x%x\n", *(int*)input);
+      fprintf(stOut, "\t min %d, max %d, index %d returning no change\n", min, max, index);
+      //fprintf(stOut, "\t min %d, max %d, index %d returning no change ", min, max, index);
+      //fprintf(stOut, "@deref 0x%x\n", *(int*)input);
 #endif
       return 0;
    }

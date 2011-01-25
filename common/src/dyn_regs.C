@@ -39,7 +39,7 @@
 
 using namespace Dyninst;
 
-std::map<signed int, const char *> *Dyninst::MachRegister::names;
+MachRegister::NameMap *Dyninst::MachRegister::names = NULL;
 
 MachRegister::MachRegister() :
    reg(0)
@@ -54,10 +54,20 @@ MachRegister::MachRegister(signed int r) :
 MachRegister::MachRegister(signed int r, const char *n) :
    reg(r)
 {
-   if (!names) {
-      names = new std::map<signed int, const char *>();
-   }
-   (*names)[r] = n;
+	init_names();
+	(*names)[r] = std::string(n);
+}
+
+MachRegister::MachRegister(signed int r, std::string n) :
+reg(r)
+{
+	init_names();
+	(*names)[r] = n;
+}
+
+void MachRegister::init_names() {
+	if (names == NULL)
+		names = new NameMap();
 }
 
 unsigned int MachRegister::regClass() const
@@ -106,8 +116,13 @@ MachRegisterVal MachRegister::getSubRegValue(const MachRegister subreg,
    }
 }
 
-const char *MachRegister::name() const { 
-   return (*names)[reg];
+std::string MachRegister::name() const { 
+	assert(names != NULL);
+	NameMap::const_iterator iter = names->find(reg);
+	if (iter != names->end()) {
+		return iter->second;
+	}
+	return std::string("<INVALID_REG>");
 }
 
 unsigned int MachRegister::size() const {

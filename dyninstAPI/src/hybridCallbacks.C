@@ -225,32 +225,12 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
         // instrument the handler at its entry and exit points
         proc()->beginInsertionSet();
 
-        // get relative position of fields in the EXCEPTION_RECORD struct
-        //EXCEPTION_RECORD *tmpRec = (EXCEPTION_RECORD*)mod; //bogus pointer, but I won't write to it
-        //Address excAddrPosition = (Address)(&(tmpRec->ExceptionAddress)) - (Address)tmpRec;
-#if 0
-        CONTEXT *tmpCtxt         = (CONTEXT*)         mod; //bogus pointer, but I won't write to it
-        Address eipPosition     = (Address)(&(tmpCtxt->Eip))             - (Address)tmpCtxt;
-
-        // instrument handler entry with callback that delivers the fault addr
-        BPatch_paramExpr contextAddr(2,BPatch_ploc_entry);
-        BPatch_arithExpr contextPCaddr
-            (BPatch_plus, contextAddr, BPatch_constExpr(eipPosition));
-        BPatch_stopThreadExpr sThread1
-            (signalHandlerEntryCB_wrapper,contextPCaddr,false,BPatch_noInterp);
-        proc()->insertSnippet(sThread1, *entryPt);
-        //saveInstrumentationHandle(entryPt,handle);
-#endif   
         // instrument handler entry with callback that will deliver the stack 
         // address at which the fault addr is stored
         BPatch_paramExpr excRecAddr(0,BPatch_ploc_entry);
-        //BPatch_arithExpr excSrcAddr
-        //    (BPatch_plus, excRecAddr, BPatch_constExpr(excAddrPosition));
         BPatch_stopThreadExpr sThread2
             (signalHandlerEntryCB_wrapper,excRecAddr,false,BPatch_noInterp);
-        //    (signalHandlerEntryCB_wrapper,excSrcAddr,false,BPatch_noInterp);
         proc()->insertSnippet(sThread2, *entryPt);
-        //saveInstrumentationHandle(entryPt,handle);
 
         // remove any exit-point instrumentation and add new instrumentation 
         // at exit points
@@ -292,7 +272,6 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
  * when execution resumes, and we replace instrumentation at the handler's 
  * exit points because we didn't know the contextAddr before 
  */
-//static bool firstHandlerEntry = true;//KEVINTODO: not threadsafe
 void HybridAnalysis::signalHandlerEntryCB(BPatch_point *point, Address excRecAddr)
 {
     mal_printf("\nAt signalHandlerEntry(%lx , %lx)\n", 
@@ -304,39 +283,9 @@ void HybridAnalysis::signalHandlerEntryCB(BPatch_point *point, Address excRecAdd
 
     // save address of context information for the exit point handler
     BPatch_function *func = point->getFunction();
-#if 0
-    if (firstHandlerEntry) {
-        func->setHandlerFaultAddrAddr((Address)pcAddr,false);
-    } else {
-#endif
-        func->setHandlerFaultAddrAddr((Address)pcAddr,true);
-        handlerFunctions[(Address)func->getBaseAddr()] = (Address)excRecAddr;
 
-#if 0
-        // remove any exit-point instrumentation and add new instrumentation 
-        // at exit points
-        proc()->beginInsertionSet();
-        std::map<BPatch_point*,BPatchSnippetHandle*> *funcPoints = 
-            (*instrumentedFuncs)[func];
-        if ( funcPoints ) {
-            std::map<BPatch_point*, BPatchSnippetHandle*>::iterator pit;
-            pit = funcPoints->begin();
-            while (pit != funcPoints->end())
-            {
-                if ( BPatch_exit == (*pit).first->getPointType() ) {
-                    proc()->deleteSnippet((*pit).second);
-                    funcPoints->erase( (*pit).first );
-                    pit = funcPoints->begin();                    
-                } else {
-                    pit++;
-                }
-            }
-        }
-        instrumentFunction(func, true, true);
-        proc()->finalizeInsertionSet(false);
-    }
-    firstHandlerEntry = !firstHandlerEntry; // alternates between true-false
-#endif
+    func->setHandlerFaultAddrAddr((Address)pcAddr,true);
+    handlerFunctions[(Address)func->getBaseAddr()] = (Address)excRecAddr;
 }
 
 /* If the context of the exception has been changed so that execution
@@ -361,8 +310,9 @@ void HybridAnalysis::signalHandlerExitCB(BPatch_point *point, void *dontcare)
     if (er.ExceptionCode == EXCEPTION_BREAKPOINT) {
         resumePC += 1;
     }
-
     mal_printf("Program will resume at %lx\n", resumePC);
+
+    // restore the effAddr of the 
 
     // parse at the resumePC address, if necessary
     vector<BPatch_function *> funcs;
@@ -407,19 +357,22 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
 // Look up the memory region, and unmap it if it corresponds to a mapped object
 
 
-void HybridAnalysis::virtualFreeCB(BPatch_point *, void *addr) {
+void HybridAnalysis::virtualFreeSizeCB(BPatch_point *, void *size) {
+	assert(virtualFreeAddr_ != 0);
+
 	// Let's see if we correspond to a mapped object
-	mapped_object *obj = proc()->lowlevel_process()->createObjectNoFile((Address) addr);
-	if (obj) {
-		cerr << "Found object of " << obj->fileName() << " corresponding to freed addr " << hex << addr << dec << endl;
-		proc()->lowlevel_process()->removeASharedObject(obj);
-		// Dun dun duuunnnnnn
-		delete obj;
-	}
+	proc()->lowlevel_process()->invalidateMemory(virtualFreeAddr_, (Address) size);
+
+	virtualFreeAddr_ = 0;
 
 	return;
 }
 
+void HybridAnalysis::virtualFreeAddrCB(BPatch_point *, void *addr) {
+	assert(virtualFreeAddr_ == 0);
+	virtualFreeAddr_ = (Address) addr;
+	return;
+}
 
 /* CASES (sub-numbering are cases too)
  * 1. the target address is in a shared library

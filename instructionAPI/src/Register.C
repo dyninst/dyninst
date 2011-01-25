@@ -86,7 +86,7 @@ namespace Dyninst
     
     std::string RegisterAST::format(formatStyle) const
     {
-        const char* name = m_Reg.name();
+        const char* name = m_Reg.name().c_str();
 	//return name;
         if(name)
         {

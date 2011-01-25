@@ -1984,7 +1984,7 @@ void BPatch_process::overwriteAnalysisUpdate
         fit++) 
     {
         BPatch_function *bpfunc = findOrCreateBPFunc(*fit,NULL);
-        bpfunc->getModule()->removeFunction(bpfunc);
+        bpfunc->getModule()->removeFunction(bpfunc,false);
         (*fit)->removeFromAll();
     }
 

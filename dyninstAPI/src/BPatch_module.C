@@ -566,14 +566,59 @@ bool BPatch_module::dumpMangledInt(char * prefix)
    return true;
 }
 
-bool BPatch_module::removeFunction(BPatch_function *func)
+bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
 {
-    BPatch_funcMap::iterator fit = func_map.find(func->lowlevel_func());
-    if (func_map.end() != fit) {
-        func_map.erase(fit);
-        return true;
+    int_function *func = bpfunc->lowlevel_func();
+
+    bool foundIt = false;
+    BPatch_funcMap::iterator fmap_iter = func_map.find(func);
+    if (func_map.end() != fmap_iter) {
+        foundIt = true;
     }
-    return false;
+
+    if (!foundIt) {
+        return false;
+    }
+
+    if (deepRemoval) {
+        std::map<int_function*,int_block*> newFuncEntries;
+
+        //remove instrumentation from dead function
+        bpfunc->removeInstrumentation(true);
+        bool dontcare=false;
+        addSpace->finalizeInsertionSet(false,&dontcare);
+
+        // delete completely dead functions
+        using namespace ParseAPI;
+        vector<pair<int_block*,Edge*> > deadFuncCallers; // build up list of live callers
+        Address funcAddr = func->getAddress();
+
+        // nuke all call edges, assert that there's a sink edge, otherwise we'll 
+        // have to fill in the code for direct transfers, creating unresolved points
+        // at the source blocks
+        Block::edgelist &callEdges = func->ifunc()->entryBlock()->sources();
+        Block::edgelist::iterator eit = callEdges.begin();
+        CFGFactory *fact = func->ifunc()->img()->codeObject()->fact();
+        bool foundSinkEdge = false;
+        for( ; eit != callEdges.end(); ++eit) {
+            if ( (*eit)->sinkEdge() ) {
+                foundSinkEdge = true;
+            }
+            else if (CALL == (*eit)->type()) {// includes tail calls
+                (*eit)->uninstall();
+                fact->free_edge(*eit);
+            }
+        }
+        assert(foundSinkEdge);
+ 
+        //remove dead function
+        func->removeFromAll();
+
+    } // end deepRemoval
+
+    this->func_map.erase(fmap_iter);
+
+    return true;
 }
 
 void BPatch_module::parseTypes() 
@@ -873,7 +918,6 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
     }
     return true;
 }
-
 
 Address BPatch_module::getLoadAddrInt()
 {

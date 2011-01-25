@@ -226,6 +226,10 @@ class mapped_object : public codeRange {
     void findFuncsByRange(Address startAddr,
                           Address endAddr,
                           std::set<int_function*> &pageFuncs);
+    void addEmulInsn(Address insnAddr, Register effective_addr);
+    bool isEmulInsn(Address insnAddr);
+    Register getEmulInsnReg(Address insnAddr);
+    void setEmulInsnVal(Address insnAddr, void * val);
 private:
     // helper functions
     void updateCodeBytes(SymtabAPI::Region *reg);
@@ -340,6 +344,8 @@ private:
     map<Address,WriteableStatus> protPages_;
     std::set<SymtabAPI::Region*> expansionCheckedRegions_;
     bool pagesUpdated_;
+    typedef std::map<Address, std::pair<Register,void*> > EmulInsnMap;
+    EmulInsnMap emulInsns_;
 
     Address memEnd_; // size of object in memory
 

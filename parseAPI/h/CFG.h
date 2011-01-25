@@ -165,6 +165,10 @@ class Edge : public allocatable {
 
     PARSER_EXPORT void install();
 
+    /* removes from blocks & finalized source functions if of type CALL */
+    PARSER_EXPORT void uninstall();
+
+
  friend class CFGFactory;
  friend class Parser;
 };
@@ -503,6 +507,7 @@ class Function : public allocatable, public AnnotatableSparse {
     /*** Internal parsing methods and state ***/
     void add_block(Block *b);
 
+    friend void Edge::uninstall();
     friend class Parser;
     friend class CFGFactory;
     friend class CodeObject;
