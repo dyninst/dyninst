@@ -362,13 +362,6 @@ void HybridAnalysis::virtualFreeAddrCB(BPatch_point *, void *addr) {
 	return;
 }
 
-<<<<<<< Updated upstream
-=======
-void HybridAnalysis::virtualFreeSizeCB(BPatch_point *, void *size) {
-#if 0
-	assert(virtualFreeAddr_ != 0);
-	cerr << "virtualSizeFree [" << hex << virtualFreeAddr_ << "," << virtualFreeAddr_ + (unsigned) size << "]" << dec << endl;
->>>>>>> Stashed changes
 
 void HybridAnalysis::virtualFreeSizeCB(BPatch_point *, void *size_) {
 	assert(virtualFreeAddr_ != 0);
@@ -419,26 +412,6 @@ void HybridAnalysis::virtualFreeSizeCB(BPatch_point *, void *size_) {
 	proc()->lowlevel_process()->proc()->flushAddressCache_RT(virtualFreeAddr_, size);
 
 	virtualFreeAddr_ = 0;
-<<<<<<< Updated upstream
-=======
-#endif
-	return;
-}
-
-void HybridAnalysis::virtualFreeAddrCB(BPatch_point *, void *addr) {
- 	// Let's see if we correspond to a mapped object
-	mapped_object *obj = proc()->lowlevel_process()->createObjectNoFile((Address) addr);
-	if (obj) {
-		cerr << "Found object of " << obj->fileName() << " corresponding to freed addr " << hex << addr << dec << endl;
-		proc()->lowlevel_process()->removeASharedObject(obj);
-		// Dun dun duuunnnnnn
-		delete obj;
-	}
-#if 0
-	assert(virtualFreeAddr_ == 0);
-	virtualFreeAddr_ = (Address) addr;
-#endif
->>>>>>> Stashed changes
 	return;
 }
 
