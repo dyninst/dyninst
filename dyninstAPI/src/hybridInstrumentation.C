@@ -48,10 +48,16 @@
 using namespace Dyninst;
 
 /* Callback wrapper funcs */
-static void virtualFreeCB_wrapper(BPatch_point *point, void *calc)
+static void virtualFreeAddrCB_wrapper(BPatch_point *point, void *calc)
 {
 	dynamic_cast<BPatch_process *>(point->getFunction()->getProc())->
-		getHybridAnalysis()->virtualFreeCB(point, calc);
+		getHybridAnalysis()->virtualFreeAddrCB(point, calc);
+}
+
+static void virtualFreeSizeCB_wrapper(BPatch_point *point, void *calc)
+{
+	dynamic_cast<BPatch_process *>(point->getFunction()->getProc())->
+		getHybridAnalysis()->virtualFreeSizeCB(point, calc);
 }
 
 static void badTransferCB_wrapper(BPatch_point *point, void *calc) 
@@ -95,6 +101,7 @@ HybridAnalysis::HybridAnalysis(BPatch_hybridMode mode, BPatch_process* proc)
     sharedlib_runtime = 
         proc_->getImage()->findModule("libdyninstAPI_RT", true);
     assert(sharedlib_runtime);
+	virtualFreeAddr_ = 0;
 }
 
 bool HybridAnalysis::init()
@@ -105,16 +112,22 @@ bool HybridAnalysis::init()
 
 #if defined (os_windows)
 	// Instrument VirtualFree to inform us when to unmap a code region
-	BPatch_stopThreadExpr virtualFreeSnippet = BPatch_stopThreadExpr(virtualFreeCB_wrapper,
+	BPatch_stopThreadExpr virtualFreeAddrSnippet = BPatch_stopThreadExpr(virtualFreeAddrCB_wrapper,
 		BPatch_paramExpr(0), // Address getting unloaded
 		false, // No cache!
 		BPatch_interpAsTarget);
+	BPatch_stopThreadExpr virtualFreeSizeSnippet = BPatch_stopThreadExpr(virtualFreeSizeCB_wrapper,
+		BPatch_paramExpr(1), // Size of the free buffer
+		false, // No cache!
+		BPatch_interpAsTarget);
+
 	proc()->beginInsertionSet();
 	std::vector<BPatch_function *> virtualFreeFuncs;
 	proc()->getImage()->findFunction("VirtualFree", virtualFreeFuncs);
 	for (unsigned i = 0; i < virtualFreeFuncs.size(); ++i) {
 		std::vector<BPatch_point *> *entryPoints = virtualFreeFuncs[i]->findPoint(BPatch_locEntry);
-		proc()->insertSnippet(virtualFreeSnippet, *entryPoints);
+		proc()->insertSnippet(virtualFreeAddrSnippet, *entryPoints);
+		proc()->insertSnippet(virtualFreeSizeSnippet, *entryPoints);
 	}
 	proc()->finalizeInsertionSet(false);
 	// Done instrumenting VirtualFree
@@ -294,9 +307,6 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     }
 
     mal_printf("instfunc at %lx\n", funcAddr);
-	if (funcAddr == 0x401014) {
-		DebugBreak();
-	}
 
 	assert(func);
 	assert(func->lowlevel_func());
@@ -632,6 +642,7 @@ void HybridAnalysis::removeInstrumentation(BPatch_function *func,
 // Protects the code in the module
 bool HybridAnalysis::instrumentModule(BPatch_module *mod, bool useInsertionSet) 
 {
+	cerr << "HybridAnalysis (" << hex << this << "), instrumenting mod " << mod << dec << endl;
     assert(proc() && mod);
     if (false == mod->isExploratoryModeOn()) {
         return true;
@@ -1119,9 +1130,7 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
         mal_printf("%lx => %lx, in module %s \n",
                     point->getAddress(),target,modName,funcName);
     }
-	if (target == 0x401014) {
-		int i = 3;
-	}
+
     // 1.1 if targMod is a system library don't parse at target.  However, if the 
     //     transfer into the targMod is an unresolved indirect call, parse at the 
     //     call's fallthrough addr and return.
