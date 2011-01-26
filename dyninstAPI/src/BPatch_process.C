@@ -1931,35 +1931,37 @@ void BPatch_process::overwriteAnalysisUpdate
         using namespace ParseAPI;
         Address funcAddr = (*fit)->getAddress();
 
-        // grab callers that aren't also dead
-        Block::edgelist &callEdges = (*fit)->ifunc()->entryBlock()->sources();
-        Block::edgelist::iterator eit = callEdges.begin();
-        for( ; eit != callEdges.end(); ++eit) {
-            if (CALL == (*eit)->type()) {// includes tail calls
-                image_basicBlock *cBlk = (image_basicBlock*)((*eit)->src());
-                vector<ParseAPI::Function*> cFuncs;
-                cBlk->getFuncs(cFuncs);
-                for (unsigned fix=0; fix < cFuncs.size(); fix++) {
-                    int_function *cfunc = llproc->findFuncByInternalFunc(
-                        (image_func*)(cFuncs[fix]));
-                    int_block *cbbi = cfunc->findBlock(cBlk);
-                    if (delBBIs.end() != delBBIs.find(cbbi)) {
-                        continue;
-                    }
-                    bool isFuncDead = false;
-                    for (std::list<int_function*>::iterator dfit = deadFuncs.begin();
-                         dfit != deadFuncs.end(); 
-                         dfit++) 
-                    {
-                        if (cfunc == *dfit) {
-                            isFuncDead = true;
-                            break;
+        if ( ! (*fit)->ifunc()->hasWeirdInsns() ) {
+            // grab callers that aren't also dead
+            Block::edgelist &callEdges = (*fit)->ifunc()->entryBlock()->sources();
+            Block::edgelist::iterator eit = callEdges.begin();
+            for( ; eit != callEdges.end(); ++eit) {
+                if (CALL == (*eit)->type()) {// includes tail calls
+                    image_basicBlock *cBlk = (image_basicBlock*)((*eit)->src());
+                    vector<ParseAPI::Function*> cFuncs;
+                    cBlk->getFuncs(cFuncs);
+                    for (unsigned fix=0; fix < cFuncs.size(); fix++) {
+                        int_function *cfunc = llproc->findFuncByInternalFunc(
+                            (image_func*)(cFuncs[fix]));
+                        int_block *cbbi = cfunc->findBlock(cBlk);
+                        if (delBBIs.end() != delBBIs.find(cbbi)) {
+                            continue;
                         }
+                        bool isFuncDead = false;
+                        for (std::list<int_function*>::iterator dfit = deadFuncs.begin();
+                             dfit != deadFuncs.end(); 
+                             dfit++) 
+                        {
+                            if (cfunc == *dfit) {
+                                isFuncDead = true;
+                                break;
+                            }
+                        }
+                        if (isFuncDead) {
+                            continue;
+                        }
+                        deadFuncCallers[cbbi] = funcAddr;
                     }
-                    if (isFuncDead) {
-                        continue;
-                    }
-                    deadFuncCallers[cbbi] = funcAddr;
                 }
             }
         }

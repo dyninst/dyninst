@@ -951,12 +951,10 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
         if (CALL == etype) {
             int_function *tFunc = targObj->findFuncByEntry(target);
             assert(tFunc);
-            if ( ! tFunc->funcAbruptEnds().empty() ) {
+            if ( tFunc->ifunc()->hasWeirdInsns() ) {
                 malware_cerr << "Ignoring request as target function "
                     << "has abrupt end points and will probably get "
                     << "overwritten before it executes, if ever" << endl;
-                // clear cache of the target function address
-                proc()->lowlevel_process()->flushAddressCache_RT(target,target+1);
                 return false;
             }
         }

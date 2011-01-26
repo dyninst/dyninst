@@ -347,7 +347,7 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     parseNewEdgeInFunction(point, nextInsn, false);
 
     //make sure we don't re-instrument
-    point->setResolved(true);
+    point->setResolved();
 
     // re-instrument the module 
     instrumentModules(false);
@@ -444,10 +444,11 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     Address pointAddr = (Address) point->getAddress();
     Address target = (Address) returnValue;
     if (pointAddr == 0x5ac12b || //skype
-        pointAddr == 0x40d5df || //yodaProt
+        target == 0x40dfd2 || //yodaProt
         pointAddr == 0x97340e)   //asprotect
     {
-        printf("setting debug_blocks to true\n");
+        DebugBreak();
+        //printf("setting debug_blocks to true\n");
         //debug_blocks = true;
     }
     time_t tstruct;
