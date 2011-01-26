@@ -34,6 +34,7 @@
 
 #include "dyntypes.h"
 #include "dyn_regs.h"
+#include "SymReader.h"
 
 namespace Dyninst {
 namespace Stackwalker {

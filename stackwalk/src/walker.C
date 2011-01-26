@@ -43,6 +43,8 @@ using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 using namespace std;
 
+SymbolReaderFactory *Walker::symrfact = NULL;
+
 void Walker::version(int& major, int& minor, int& maintenance)
 {
     major = SW_MAJOR;
@@ -283,6 +285,15 @@ Walker::~Walker() {
    //TODO: Stepper cleanup
 }
 
+SymbolReaderFactory *Walker::getSymbolReader()
+{
+   return symrfact;
+}
+
+void Walker::setSymbolReader(SymbolReaderFactory *srf)
+{
+   symrfact = srf;
+}
 
 /**
  * What is happening here, you may ask?  
@@ -447,6 +458,8 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
       setLastError(err_nogroup, "Attempt to walk a stack without a StepperGroup");
       return false;
    }
+
+   out.setPrevFrame(&in);
 
    FrameStepper *last_stepper = NULL;
    for (;;)

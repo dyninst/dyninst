@@ -50,6 +50,7 @@ Frame::Frame() :
   name_val_set(nv_unset),
   bottom_frame(false),
   frame_complete(false),
+  prev_frame(NULL),
   stepper(NULL),
   walker(NULL),
   originating_thread(NULL_THR_ID)
@@ -72,6 +73,7 @@ Frame::Frame(Walker *parent_walker) :
   name_val_set(nv_unset),
   bottom_frame(false),
   frame_complete(false),
+  prev_frame(NULL),
   stepper(NULL),
   walker(parent_walker),
   originating_thread(NULL_THR_ID)
@@ -272,7 +274,11 @@ bool Frame::getObject(void* &obj) const {
 bool Frame::isBottomFrame() const {
   return bottom_frame;
 }
-	
+
+const Frame *Frame::getPrevFrame() const {
+  return prev_frame;
+}
+
 FrameStepper *Frame::getStepper() const {
   return stepper;
 }
@@ -290,9 +296,9 @@ Frame::~Frame() {
 }
 
 #ifdef cap_stackwalker_use_symtab
-bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*& symtab)
+bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*& symtab) const
 #else
-bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*&)
+bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*&) const
 #endif
 {
   LibraryState *libstate = getWalker()->getProcessState()->getLibraryTracker();
@@ -324,6 +330,11 @@ bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*&)
 THR_ID Frame::getThread() const
 {
    return originating_thread;
+}
+
+void Frame::setPrevFrame(const Frame *pf)
+{
+  prev_frame = pf;
 }
 
 void Frame::setThread(THR_ID t)

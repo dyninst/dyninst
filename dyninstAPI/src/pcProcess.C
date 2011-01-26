@@ -45,6 +45,8 @@
 
 #include "proccontrol/h/PCErrors.h"
 
+#include "symtabAPI/h/SymtabReader.h"
+
 #include <sstream>
 
 using namespace Dyninst::ProcControlAPI;
@@ -564,6 +566,9 @@ bool PCProcess::createStackwalker()
   StackwalkInstrumentationHelper *swInstrHelper = NULL;
   DynFrameHelper *dynFrameHelper = NULL;
   DynWandererHelper *dynWandererHelper = NULL;
+
+  //Set SymbolReaderFactory in Stackwalker
+  Walker::setSymbolReader(Dyninst::SymtabAPI::getSymtabReaderFactory());
 
   // Create ProcessState
   if (NULL == (procDebug = ProcDebug::newProcDebug(pcProc_)))

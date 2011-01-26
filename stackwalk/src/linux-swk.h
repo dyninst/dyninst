@@ -41,6 +41,8 @@
 #include "stackwalk/src/get_trap_instruction.h"
 #define MAX_TRAP_LEN 8
 
+#include "libdwarf.h"
+
 namespace Dyninst {
 namespace Stackwalker {
 
@@ -81,7 +83,6 @@ vsys_info *getVsysInfo(ProcessState *ps);
 }
 }
 
-class Elf_X;
-Elf_X *getElfHandle(std::string s);
+bool getDwarfDebug(std::string s, Dwarf_Debug *d);
 
 #endif

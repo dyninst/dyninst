@@ -102,6 +102,12 @@ class Walker {
                             StepperGroup *grp = NULL,
                             SymbolLookup *lookup = NULL,
                             bool default_steppers = true);
+   
+   //Get the default symbol reader
+   static SymbolReaderFactory *getSymbolReader();
+
+   //Set the default symbol reader
+   static void setSymbolReader(SymbolReaderFactory *srf);
 
    //Collect a stackwalk
    bool walkStack(std::vector<Frame> &stackwalk, 
@@ -137,6 +143,7 @@ class Walker {
 
    virtual ~Walker();
  private:
+   static SymbolReaderFactory *symrfact;
    ProcessState *proc;
    SymbolLookup *lookup;
    bool creation_error;

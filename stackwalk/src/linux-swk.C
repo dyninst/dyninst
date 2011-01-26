@@ -64,6 +64,8 @@
 #include "common/h/parseauxv.h"
 #include "dynutil/h/dyn_regs.h"
 
+#include "symtabAPI/h/SymtabReader.h"
+
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
@@ -99,12 +101,15 @@ static int P_gettid()
 
 SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
 {
-   static SymElfFactory symelffact;
-   return &symelffact;
+   if (NULL == Walker::getSymbolReader())
+   {
+      static SymElfFactory symelffact;
+      Walker::setSymbolReader(&symelffact);
+   }
+   return Walker::getSymbolReader();
 }
 
-class Elf_X;
-Elf_X *getElfHandle(std::string s)
+bool getDwarfDebug(std::string s, Dwarf_Debug *d)
 {
    SymReader *reader = LibraryWrapper::getLibrary(s);
    if (!reader) {
@@ -112,9 +117,25 @@ Elf_X *getElfHandle(std::string s)
       reader = fact->openSymbolReader(s);
    }
    SymElf *symelf = dynamic_cast<SymElf *>(reader);
+   SymtabAPI::SymtabReader *symtabReader = dynamic_cast<SymtabAPI::SymtabReader *>(reader);
    if (symelf)
-      return symelf->getElfHandle();
-   return NULL;
+   {
+     Elf_X *elfx = symelf->getElfHandle();
+     Elf *elf = elfx->e_elfp();
+     int status = dwarf_elf_init(elf, DW_DLC_READ, NULL, NULL, d, NULL);
+     if (status != DW_DLV_OK)
+       return false;
+     else
+       return true;
+   }
+   else if (symtabReader)
+   {
+     Dwarf_Debug result = (Dwarf_Debug) symtabReader->getDebugInfo();
+     *d = result;
+     return true;
+   }
+
+   return false;
 }
 
 static void registerLibSpotterSelf(ProcSelf *pself);

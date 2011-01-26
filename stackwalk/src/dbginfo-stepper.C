@@ -40,6 +40,8 @@
 #include "dynutil/h/dyntypes.h"
 #include "common/h/Types.h"
 
+#include "symtabAPI/h/Symtab.h"
+
 using namespace Dyninst;
 using namespace Stackwalker;
 
@@ -73,21 +75,19 @@ public:
 #include "common/h/dwarfSW.h"
 #include "common/h/Elf_X.h"
 
-DwarfSW *getDwarfInfo(std::string s)
+DwarfSW *getDwarfInfo(std::string s, unsigned addr_width)
 {
+   Dwarf_Debug dbg;
+   DwarfSW *ret;
    static std::map<std::string, DwarfSW *> dwarf_info;
    std::map<std::string, DwarfSW *>::iterator i = dwarf_info.find(s);
    if (i != dwarf_info.end())
       return i->second;
 
-   DwarfSW *ret;
-   Elf_X *elfx = getElfHandle(s);
-   Elf *elf = elfx->e_elfp();
-   Dwarf_Debug dbg;
-   int status = dwarf_elf_init(elf, DW_DLC_READ, NULL, NULL, &dbg, NULL);
-   if (status != DW_DLV_OK)
-      goto done;
-   ret = new DwarfSW(dbg, elfx->wordSize());
+   bool result = getDwarfDebug(s, &dbg);
+   if (!result) goto done;
+
+   ret = new DwarfSW(dbg, addr_width);
 
   done:
    dwarf_info[s] = ret;
@@ -97,7 +97,8 @@ DwarfSW *getDwarfInfo(std::string s)
 DebugStepperImpl::DebugStepperImpl(Walker *w, DebugStepper *parent) :
    FrameStepper(w),
    parent_stepper(parent),
-   cur_frame(NULL)
+   cur_frame(NULL),
+   depth_frame(NULL)
 {
 }
 
@@ -108,22 +109,47 @@ bool DebugStepperImpl::ReadMem(Address addr, void *buffer, unsigned size)
 
 bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
 {
+   using namespace SymtabAPI;
+   
+   const Frame *prevDepthFrame = depth_frame;
+  
    if (reg.isFramePointer()) {
-      val = static_cast<MachRegisterVal>(cur_frame->getFP());
+      val = static_cast<MachRegisterVal>(depth_frame->getFP());
       return true;
    }
 
    if (reg.isStackPointer()) {
-      val = static_cast<MachRegisterVal>(cur_frame->getSP());
+      val = static_cast<MachRegisterVal>(depth_frame->getSP());
       return true;
    }
    
    if (reg.isPC()) {
-      val = static_cast<MachRegisterVal>(cur_frame->getRA());
+      val = static_cast<MachRegisterVal>(depth_frame->getRA());
       return true;
    }
 
-   return false;
+   depth_frame = depth_frame->getPrevFrame();
+   if (!depth_frame)
+   {
+      bool bres =  getProcessState()->getRegValue(reg, cur_frame->getThread(), val);
+      depth_frame = prevDepthFrame;
+      return bres;
+   }
+
+   Offset offset;
+   void *symtab_v;
+   std::string lib;
+   depth_frame->getLibOffset(lib, offset, symtab_v);
+   Symtab *symtab = (Symtab*) symtab_v;
+   if (!symtab)
+   {
+     depth_frame = prevDepthFrame;
+     return false;
+   }
+
+   bool result = symtab->getRegValueAtFrame(offset, reg, val, this);
+   depth_frame = prevDepthFrame;
+   return result;
 }
 
 gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
@@ -138,7 +164,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
       return gcf_stackbottom;
    }
    
-   DwarfSW *dinfo = getDwarfInfo(lib.first);
+   DwarfSW *dinfo = getDwarfInfo(lib.first, walker->getProcessState()->getAddressWidth());
    if (!dinfo) {
       sw_printf("[%s:%u] - Could not open file %s for DWARF info\n",
                 __FILE__, __LINE__, lib.first.c_str());
@@ -202,6 +228,8 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    else
       arch = Dyninst::Arch_x86_64;
 
+   depth_frame = cur_frame;
+
    result = dinfo->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
                                       ret_value, arch, this, frame_error);
 
@@ -252,6 +280,4 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    return gcf_success;
 }
 #endif
-
-
 
