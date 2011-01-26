@@ -135,10 +135,33 @@ void Modification::replaceCall(TracePtr block, int_function *target, instPoint *
 
 
 void Modification::replaceFunction(TracePtr block, int_function *to) {
-  // We handle this by "instrumenting" with a AST callReplacementNode.
+    // We replace the original function with a jump to the new function.
+    // Did I say "jump"? I meant "CFAtom". 
+
+    // No reason to keep the rest of the stuff, and we often assume CFAtoms are
+    // the last thing in the list.
+
+    block->elements().clear();
+
+    CFAtom::Ptr cf = CFAtom::create(block->bbl());
+    cf->updateAddr(block->bbl()->start());
+
+    int_block *dest = to->entryBlock();
+    assert(dest);
+
+    cf->addDestination(CFAtom::Taken, new Target<int_block *>(dest));
+    block->elements().push_back(cf);
+    return;
+
+
+
+    // We handle this by "instrumenting" with a AST callReplacementNode.
   // This is primarily due to needing registers to calculate the
   // destination, but means that we need to forge an Inst node
   // and prepend it to the block.
+
+  
+
   Inst::Ptr inst = Inst::create();
   block->elements().push_front(inst);
 
