@@ -295,25 +295,6 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
             eventHandler->pendingCallbackLock_.unlock();
         }
             break;
-        case EventType::Signal:
-        {
-            if( dyn_debug_proccontrol ) {
-                EventSignal::const_ptr evSig = ev->getEventSignal();
-                if( evSig->getSignal() == SIGSEGV ) {
-                    RegisterPool segvRegs;
-                    if( !evSig->getThread()->getAllRegisters(segvRegs) ) {
-                        fprintf(stderr, "%s[%d]: Failed to get registers for crash\n", FILE__, __LINE__);
-                    }else{
-                        fprintf(stderr, "Registers at crash:\n");
-                        for(RegisterPool::iterator i = segvRegs.begin(); i != segvRegs.end(); i++) {
-                            fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name(), (*i).second);
-                        }
-                    }
-                    while(1) { sleep(1); }
-                }
-            }
-        }
-           break;
         default:
             break;
     }
@@ -788,6 +769,51 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
 
 
     bpproc->setLastSignal(ev->getSignal());
+
+    // Debugging only
+    if(    (dyn_debug_proccontrol || dyn_debug_crash)
+            && isCrashSignal(ev->getSignal()) ) {
+        fprintf(stderr, "Caught crash signal %d for thread %d/%d\n",
+                ev->getSignal(), ev->getProcess()->getPid(), ev->getThread()->getLWP());
+
+        RegisterPool regs;
+        if( !ev->getThread()->getAllRegisters(regs) ) {
+            fprintf(stderr, "%s[%d]: Failed to get registers for crash\n", FILE__, __LINE__);
+        }else{
+            fprintf(stderr, "Registers at crash:\n");
+            for(RegisterPool::iterator i = regs.begin(); i != regs.end(); i++) {
+                fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name(), (*i).second);
+            }
+        }
+
+        // Dump the stacks
+        pdvector<pdvector<Frame> > stackWalks;
+        evProc->walkStacks(stackWalks);
+        for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
+            fprintf(stderr, "Stack for pid %d, lwpid %d\n",
+                    stackWalks[walk_iter][0].getProc()->getPid(),
+                    stackWalks[walk_iter][0].getThread()->getLWP());
+            for( unsigned i = 0; i < stackWalks[walk_iter].size(); i++ ) {
+                cerr << stackWalks[walk_iter][i] << endl;
+            }
+        }
+
+        // User specifies the action, defaults to core dump
+        // (which corresponds to standard Dyninst behavior)
+        if(dyn_debug_crash_debugger) {
+            if( string(dyn_debug_crash_debugger) == string("sleep") ) {
+                static volatile int spin = 1;
+                while(spin) sleep(1);
+            }else if( string(dyn_debug_crash_debugger) == string("gdb") ) {
+                // TODO
+                // Insert instrumentation to stop the process on detach
+
+                // Detach the process
+
+                // Exec the debugger
+            }
+        }
+    }
 
     return true;
 }

@@ -134,6 +134,7 @@ protected:
     // platform-specific
     static bool shouldStopForSignal(int signal);
     static bool isValidRTSignal(int signal, RTBreakpointVal breakpointVal, Address arg1, int status);
+    static bool isCrashSignal(int signal);
 
     /*
      * SYSCALL HANDLING

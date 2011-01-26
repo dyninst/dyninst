@@ -128,6 +128,20 @@ bool PCEventHandler::shouldStopForSignal(int signal) {
     return false;
 }
 
+bool PCEventHandler::isCrashSignal(int signal) {
+    switch(signal) {
+        case SIGBUS:
+        case SIGSEGV:
+        case SIGABRT:
+        case SIGILL:
+        case SIGFPE:
+        case SIGTRAP:
+            return true;
+        default:
+            return false;
+    }
+}
+
 bool PCEventHandler::isValidRTSignal(int signal, RTBreakpointVal breakpointVal, 
         Address arg1, int status)
 {
@@ -206,8 +220,8 @@ bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileNa
         return false;
     }
 
+    std::string full_name;
     if (use_abi_rt) {
-        std::string full_name;
         const char *slash = P_strrchr(rt_lib_name, '/');
         if (!slash)
             slash = P_strrchr(rt_lib_name, '\\');
@@ -247,18 +261,31 @@ bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileNa
             // Not found, append an entry
             std::string ld_preload = std::string(var_name) + std::string("=") +
                                      std::string(rt_lib_name);
+            startup_printf("LD_PRELOAD=%s\n", ld_preload.c_str());
             envp.push_back(ld_preload);
         } else {
             // Found, modify envs in-place
             std::string ld_preload = *ldPreloadVal + std::string(":") +
                                      std::string(rt_lib_name);
+            startup_printf("LD_PRELOAD=%s\n", ld_preload.c_str());
             *ldPreloadVal = ld_preload;
         }
     } else {
-        // Environment inherited from this process, do putenv
-        char *ld_preload_orig = getenv("LD_PRELOAD");
-        std::string ld_preload;
+        // Environment inherited from this process, copy the current
+        // environment to envp, modifying/adding LD_PRELOAD
+        char *ld_preload_orig = NULL;
+        int i = 0;
+        while( environ[i] != NULL ) {
+            std::string envVar(environ[i]);
+            if( envVar.find("LD_PRELOAD=") == 0 ) {
+                ld_preload_orig = environ[i];
+            }else{
+                envp.push_back(envVar);
+            }
+            i++;
+        }
 
+        std::string ld_preload;
         if (ld_preload_orig) {
             // Append to existing var
             ld_preload = std::string(var_name) + std::string("=") +
@@ -269,12 +296,7 @@ bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileNa
             ld_preload = std::string(var_name) + std::string("=") +
                          std::string(rt_lib_name);
         }
-        char *ld_preload_cstr = P_strdup(ld_preload.c_str());
-        if (ld_preload_cstr == 0 ||
-                P_putenv(ld_preload_cstr) < 0) {
-            showErrorCallback(ERROR_CODE, "setEnvPreload: failed to set LD_PRELOAD environment var");
-            return false;
-        }
+        envp.push_back(ld_preload);
     }
 
     return true;

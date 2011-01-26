@@ -308,8 +308,6 @@ AstNodePtr PCProcess::createLoadRTAST() {
     int_function *dlopen_func = dlopen_funcs[0];
 
     if( !useHiddenFunction ) {
-        // XXX
-        //
         // For now, we cannot use inferiorMalloc because that requires the RT library
         // Hopefully, we can transition inferiorMalloc to use ProcControlAPI for 
         // allocating memory

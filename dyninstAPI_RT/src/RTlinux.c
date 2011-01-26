@@ -84,6 +84,26 @@ unsigned long DYNINSTtocSave;
  * stop oneself.
 ************************************************************************/
 
+#ifndef SYS_tkill
+#define SYS_tkill 238
+#endif
+
+int t_kill(int pid, int sig) {
+    static int has_tkill = 1;
+    long int result = 0;
+    if (has_tkill) {
+        result = syscall(SYS_tkill, pid, sig);
+        if (result == -1 && errno == ENOSYS) {
+            has_tkill = 0;
+        }
+    }
+    if (!has_tkill) {
+        result = kill(pid, sig);
+    }
+
+    return (result == 0);
+}
+
 void DYNINSTbreakPoint()
 {
    /* We set a global flag here so that we can tell
@@ -94,7 +114,7 @@ void DYNINSTbreakPoint()
 
    DYNINST_break_point_event = 1;
    while (DYNINST_break_point_event)  {
-      kill(dyn_lwp_self(), DYNINST_BREAKPOINT_SIGNUM);
+      t_kill(dyn_lwp_self(), DYNINST_BREAKPOINT_SIGNUM);
    }
    /* Mutator resets to 0... */
 }

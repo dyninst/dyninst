@@ -403,9 +403,7 @@ void BPatch_process::BPatch_process_dtor()
        }
        else  
        {
-           if (llproc->isAttached()) 
-               {
-               proccontrol_printf("%s[%d]:  about to terminate execution\n", FILE__, __LINE__);
+           if (llproc->isAttached()) {
                terminateExecutionInt();
            }
        }
