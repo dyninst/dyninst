@@ -25,15 +25,12 @@ include ../../make.config
 
 SRCS =          ../src/linux.C \
 		../src/linux-x86.C \
-		../src/linuxDL.C \
-		../src/dynamiclinking.C \
-		../src/linuxMT.C \
                 ../src/inst-linux.C \
                 ../src/inst-x86.C \
 		../src/emit-x86.C \
                 ../src/codegen-x86.C \
                 ../src/unix.C \
-	      ../src/stackwalk-x86.C \
+	        ../src/stackwalk-x86.C \
 		../src/image-x86.C \
 		../src/syscall-linux.C \
 		../src/frameChecker.C \

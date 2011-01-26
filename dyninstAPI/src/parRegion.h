@@ -44,7 +44,6 @@
 #include "common/h/Dictionary.h"
 #include <map>
 
-class process;
 class mapped_module;
 class mapped_object;
 

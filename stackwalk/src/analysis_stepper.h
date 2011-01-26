@@ -29,32 +29,50 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// $Id: signalhandler.C,v 
+#if !defined(ANALYSIS_STEPPER_H_)
+#define ANALYSIS_STEPPER_H_
 
-#ifndef _EVENT_GATE_H_
-#define _EVENT_GATE_H_
+#include "stackwalk/h/framestepper.h"
+#include "dataflowAPI/h/stackanalysis.h"
 
-#include "signalhandler.h"
+#include <string>
 
-class eventLock;
+namespace Dyninst {
+namespace ParseAPI {
+class CodeObject;
+class CodeSource;
+}
+}
 
-class EventGate {
-  public:
-    EventGate(eventLock *l, eventType type, process *p = NULL, dyn_lwp *lwp = NULL,
-              eventStatusCode_t status = NULL_STATUS_INITIALIZER);
-    EventGate(eventLock *l, eventType type, unsigned long id);
-    bool addEvent(eventType type, process *p = NULL);
-    ~EventGate();
+namespace Dyninst {
+namespace Stackwalker {
 
-    EventRecord &wait(bool executeCallbacks = true);
-    bool signalIfMatch(EventRecord &ev);
-
+class AnalysisStepperImpl : public FrameStepper
+{
   private:
-    pdvector<EventRecord> evts;
-    eventLock *lock;
-    EventRecord trigger;
-    bool waiting;
+   AnalysisStepper *parent;
+  public:
+   AnalysisStepperImpl(Walker *w, AnalysisStepper *p);
+   virtual ~AnalysisStepperImpl();
+
+   typedef std::pair<StackAnalysis::Height, StackAnalysis::Height> height_pair_t;
+   static const height_pair_t err_height_pair;
+
+   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+   virtual unsigned getPriority() const;  
+   
+   virtual const char *getName() const;
+   
+  protected:
+   
+   static std::map<std::string, ParseAPI::CodeObject *> objs;
+   static ParseAPI::CodeObject *getCodeObject(std::string name);
+   static ParseAPI::CodeSource *getCodeSource(std::string name);
+
+   height_pair_t analyzeFunction(std::string name, Offset off);
+   virtual gcframe_ret_t getCallerFrameArch(height_pair_t height, const Frame &in, Frame &out);
 };
 
-
+}
+}
 #endif

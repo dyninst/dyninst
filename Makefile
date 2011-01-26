@@ -13,8 +13,8 @@ include ./make.config
 BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 
 SymtabAPI 	= ready common symtabAPI dynutil
-StackwalkerAPI = ready common symtabAPI stackwalk
-DyninstAPI	= ready common symtabAPI instructionAPI parseAPI dyninstAPI_RT dyninstAPI dynutil
+StackwalkerAPI = ready common symtabAPI proccontrol stackwalk
+DyninstAPI	= ready common symtabAPI instructionAPI parseAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynutil
 DynC_API = ready common dyninstAPI dynC_API  dynutil
 InstructionAPI	= ready common instructionAPI dynutil
 ProcControlAPI = ready common proccontrol
@@ -210,7 +210,7 @@ $(coreSubdirs_explicitInstall): install_%: %
 # dependencies -- keep parallel make from building out of order
 symtabAPI igen: common
 stackwalk: symtabAPI dynutil
-dyninstAPI: symtabAPI instructionAPI parseAPI common dynutil
+dyninstAPI: symtabAPI instructionAPI parseAPI proccontrol common dynutil
 instructionAPI: common dynutil
 symtabAPI dyninstAPI: dynutil
 dyner dynC_API codeCoverage dyninstAPI/tests testsuite: dyninstAPI

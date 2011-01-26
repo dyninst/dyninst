@@ -955,7 +955,8 @@ namespace Dyninst {
     // ============================================================ //
     // SymtabLibState -- need to differentiate for P
     // ============================================================ //
-     bool TrackLibState::updateLibsArch() {
+     bool LibraryState::updateLibsArch(vector<pair<LibAddrPair, unsigned int> > &)
+     {
         return true;
      }
 

@@ -28,28 +28,72 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#ifndef __EVENT_LOCK_H__
+#define __EVENT_LOCK_H__
+#include "os.h"
+#include "common/h/Vector.h"
+#include "common/h/Dictionary.h"
 
-// $Id: linuxMT.C,v
+class BPatch_eventLock;
 
-#include "dyn_thread.h"
-#include "debug.h"
+unsigned long getExecThreadID();
+const char *getThreadStr(unsigned long tid);
+void setCallbackThreadID(unsigned long tid);
 
-/* FIXME: placeholder.  Also, this should be platform-specific. */
-Frame dyn_thread::getActiveFrameMT() {
-   Frame newFrame;
+class eventLock {
+  friend class BPatch_eventLock;
 
-   updateLWP();
+  public:
 
-   if (lwp) {
-	  // We have a kernel thread
-	  Frame lwpFrame = lwp->getActiveFrame();
-	  lwpFrame.thread_ = this;
-	  return lwpFrame;
-   }
-   else {
-	  bperr("Error: attempt to get frame info for non-scheduled thread\n");
-   }
-   return newFrame;
-}
+  eventLock();
+  virtual ~eventLock();
 
+  public:
+  unsigned int depth() {return lock_depth;}
+  int _Lock(const char *__file__, unsigned int __line__);
+  int _Trylock(const char *__file__, unsigned int __line__);
+  int _Unlock(const char *__file__, unsigned int __line__);
+  int _Broadcast(const char *__file__, unsigned int __line__);
+  int _WaitForSignal(const char *__file__, unsigned int __line__);
 
+  void printLockStack();
+
+  private:
+
+  EventLock_t mutex;
+  EventCond_t cond;
+
+  unsigned int lock_depth;
+
+  typedef struct {
+    const char *file;
+    unsigned int line;
+  } lock_stack_elem;
+
+  inline lock_stack_elem popLockStack() {
+    lock_stack_elem el = lock_stack[lock_stack.size() -1];
+    lock_stack.pop_back();
+    lock_depth--;
+    return el;
+  }
+
+  inline void pushLockStack(lock_stack_elem elm) {
+    lock_stack.push_back(elm);
+    lock_depth++;
+  }
+
+  pdvector<lock_stack_elem> lock_stack;
+  unsigned long owner_id;
+
+#if defined (os_windows)
+  EventLock_t waiter_lock;
+  int num_waiters;
+
+  int generation_num;
+  int release_num;
+#endif
+};
+
+extern eventLock *global_mutex;
+
+#endif

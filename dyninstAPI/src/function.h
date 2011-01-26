@@ -47,7 +47,6 @@
 
 #include "dyn_detail/boost/shared_ptr.hpp"
 
-class process;
 class mapped_module;
 class mapped_object;
 
@@ -122,7 +121,6 @@ class bblInstance : public codeRange {
 
     void getOrigInstructionInfo(Address addr, const void *&ptr, Address &origAddr, unsigned &origSize) const;
 
-    //process *proc() const;
     AddressSpace *proc() const;
     int_function *func() const;
     int_basicBlock *block() const;
@@ -285,7 +283,6 @@ class int_basicBlock {
     bool needsRelocation() const;
 
     int_function *func() const { return func_; }
-    //process *proc() const;
     AddressSpace *proc() const;
 
     void setHighLevelBlock(void *newb);
@@ -317,7 +314,7 @@ class int_function : public patchTarget {
 
    int_function(const int_function *parent,
                 mapped_module *child_mod,
-                process *childP);
+                AddressSpace *childP);
 
    ~int_function();
 
@@ -356,7 +353,6 @@ class int_function : public patchTarget {
    image_func *ifunc();
    mapped_module *mod() const;
    mapped_object *obj() const;
-   //process *proc() const;
    AddressSpace *proc() const;
 
    // Necessary for BPatch_set which needs a structure with a ()
@@ -519,7 +515,7 @@ class int_function : public patchTarget {
    bool savesReturnAddr() const { return ifunc_->savesReturnAddr(); }
 #endif
 
-   void updateForFork(process *childProcess, const process *parentProcess);
+   void updateForFork(AddressSpace *childProcess, const AddressSpace *parentProcess);
 
 #if defined(cap_relocation)
    // These are defined in reloc-func.C to keep large chunks of

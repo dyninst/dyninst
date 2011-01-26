@@ -34,11 +34,11 @@
 #include "common/h/headers.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/syscallNotification.h"
-#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/PCProcess.h"
 
 
 syscallNotification::syscallNotification(syscallNotification *parentSN,
-                                         process *p) : preForkInst(NULL),
+                                         PCProcess *p) : preForkInst(NULL),
                                                        postForkInst(NULL),
                                                        preExecInst(NULL),
                                                        postExecInst(NULL),

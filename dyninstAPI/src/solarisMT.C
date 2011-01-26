@@ -31,47 +31,5 @@
 
 // $Id: solarisMT.C,v 1.16 2005/03/02 23:31:10 bernat Exp $
 
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/dyn_thread.h"
-#include "dyninstAPI/src/dyn_lwp.h"
-
-// As of solaris 8, threads are bound 1:1 with lwps. So this will always
-// end up querying an lwp.
-
-Frame dyn_thread::getActiveFrameMT() {
-
-  typedef struct {
-    long    sp;
-    long    pc;
-    long    l1; //fsr
-    long    l2; //fpu_en;
-    long    l3; //g2, g3, g4
-    long    l4; 
-    long    l5; 
-  } resumestate_t;
-
-  Address fp = 0, pc = 0;
-
-  Frame newFrame;
-
-  process* proc = get_proc();
-
-  updateLWP();
-  if (lwp) {
-    newFrame = lwp->getActiveFrame();
-    newFrame.thread_ = this;
-  }
-  else {
-    resumestate_t rs ;
-    if (get_start_pc() &&
-	proc->readDataSpace((caddr_t) get_resumestate_p(),
-			    sizeof(resumestate_t), (caddr_t) &rs, false)) {
-      fp = rs.sp;
-      pc = rs.pc;
-    } 
-    newFrame = Frame(pc, fp, 0, proc->getPid(), proc, this, 0, true);
-  }
-  return newFrame;
-}  
-
+// DELETE ME
 

@@ -120,8 +120,8 @@ bool int_notify::createPipe()
    return true;
 }
 
-unix_process::unix_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f) :
-   int_process(p, e, a, f)
+unix_process::unix_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, std::map<int,int> f) :
+   int_process(p, e, a, envp, f)
 {
 }
 
@@ -143,6 +143,12 @@ void unix_process::plat_execv() {
         new_argv[i] = argv[i].c_str();
     }
     new_argv[argv.size()] = (char *) NULL;
+
+    const_str *new_env = (const_str *) calloc(env.size()+1, sizeof(char *));
+    for (unsigned i=0; i < env.size(); ++i) {
+       new_env[i] = env[i].c_str();
+    }
+    new_env[env.size()] = (char *) NULL; 
 
     for(std::map<int,int>::iterator fdit = fds.begin(),
             fdend = fds.end();
@@ -167,7 +173,12 @@ void unix_process::plat_execv() {
         pthrd_printf("DEBUG redirected file!\n");
     }
 
-    execv(executable.c_str(), const_cast<char * const*>(new_argv));
+    if( env.size() ) {
+        execve(executable.c_str(), const_cast<char * const *>(new_argv), 
+                const_cast<char * const *>(new_env));
+    }else{
+        execv(executable.c_str(), const_cast<char * const*>(new_argv));
+    }
     int errnum = errno;         
     pthrd_printf("Failed to exec %s: %s\n", 
                executable.c_str(), strerror(errnum));
@@ -194,7 +205,25 @@ bool unix_process::post_forked()
    thrd->setUserState(int_thread::running);
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
-   return true;
+
+   std::set<int_library*> added, rmd;
+   for (;;) {
+      std::set<response::ptr> async_responses;
+      bool result = refresh_libraries(added, rmd, async_responses);
+      if (!result && !async_responses.empty()) {
+         result = waitForAsyncEvent(async_responses);
+         if (!result) {
+            pthrd_printf("Failure waiting for async completion\n");
+            return false;
+         }
+         continue;
+      }
+      if (!result) {
+         pthrd_printf("Failure refreshing libraries for %d\n", getPid());
+         return false;
+      }
+      return true;
+   }
 }
 
 unsigned unix_process::getTargetPageSize() {

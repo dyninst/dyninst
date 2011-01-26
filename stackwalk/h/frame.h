@@ -60,6 +60,7 @@ protected:
   bool bottom_frame;
   bool frame_complete;
   
+  const Frame *prev_frame;
   FrameStepper *stepper;
   Walker *walker;
   THR_ID originating_thread;
@@ -71,9 +72,12 @@ protected:
   void setNameValue() const;
   
  public:
+  Frame();
   Frame(Walker *walker);
   static Frame *newFrame(Dyninst::MachRegisterVal ra, Dyninst::MachRegisterVal sp, Dyninst::MachRegisterVal fp, Walker *walker);
-  
+
+  bool operator==(const Frame &F) const;
+
   Dyninst::MachRegisterVal getRA() const;
   Dyninst::MachRegisterVal getSP() const;
   Dyninst::MachRegisterVal getFP() const;
@@ -81,6 +85,7 @@ protected:
   void setRA(Dyninst::MachRegisterVal);
   void setSP(Dyninst::MachRegisterVal);
   void setFP(Dyninst::MachRegisterVal);
+  void setPrevFrame(const Frame*);
   void setThread(THR_ID);
   
   location_t getRALocation() const;
@@ -93,11 +98,12 @@ protected:
   
   bool getName(std::string &str) const;
   bool getObject(void* &obj) const;
-  bool getLibOffset(std::string &lib, Dyninst::Offset &offset, void* &symtab);
+  bool getLibOffset(std::string &lib, Dyninst::Offset &offset, void* &symtab) const;
   
   bool isBottomFrame() const;
   bool isFrameComplete() const;
   
+  const Frame *getPrevFrame() const;
   FrameStepper *getStepper() const;
   Walker *getWalker() const;
   THR_ID getThread() const;

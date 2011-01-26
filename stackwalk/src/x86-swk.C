@@ -138,7 +138,7 @@ static gcframe_ret_t HandleStandardFrame(const Frame &in, Frame &out, ProcessSta
   }
 
   if (!result) {
-    sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, out_sp);
+    sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, in_fp);
     return gcf_error;
   }
   
@@ -373,14 +373,135 @@ void LookupFuncStart::clear_func_mapping(Dyninst::PID pid)
 
 gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &in, Frame &out, 
                                                           Address /*base*/, Address lib_base,
-                                                          unsigned /*size*/, unsigned stack_height)
+                                                          unsigned /*size*/, unsigned stack_height,
+                                                          Address orig_ra,
+                                                          bool pEntryExit)
 {
+  bool result = false;
+  const unsigned addr_width = getProcessState()->getAddressWidth();
+  unsigned long sp_value = 0x0;
+  Address sp_addr = 0x0;
+
+  // Handle frameless instrumentation
+  if (0x0 != orig_ra)
+  {
+    location_t unknownLocation;
+    unknownLocation.location = loc_unknown;
+    out.setRA(orig_ra);
+    out.setFP(in.getFP());
+    out.setSP(in.getSP()); //Not really correct, but difficult to compute and unlikely to matter
+    out.setRALocation(unknownLocation);
+    return gcf_success;
+  }
+
+  // Handle case where *previous* frame was entry/exit instrumentation
+  if (pEntryExit)
+  {
+    Address ra_value = 0x0;
+
+    // RA is pointed to by input SP
+    // TODO may have an additional offset in some cases...
+    Address newRAAddr = in.getSP();
+
+    location_t raLocation;
+    raLocation.location = loc_address;
+    raLocation.val.addr = newRAAddr;
+    out.setRALocation(raLocation);
+
+    // TODO handle 64-bit mutator / 32-bit mutatee
+
+    // get value of RA
+    result = getProcessState()->readMem(&ra_value, newRAAddr, addr_width);
+
+    if (!result) {
+      sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, newRAAddr);
+      return gcf_error;
+    }
+
+    out.setRA(ra_value);
+    out.setFP(in.getFP()); // FP stays the same
+    out.setSP(newRAAddr + addr_width);
+    return gcf_success;
+  }
+
   gcframe_ret_t ret = HandleStandardFrame(in, out, getProcessState());
   if (ret != gcf_success)
     return ret;
   out.setRA(out.getRA() + lib_base);
-  out.setSP(out.getSP() + stack_height);
+
+  // For tramps with frames, read the saved stack pointer
+  // TODO does this apply to static instrumentation?
+  if (stack_height)
+  {
+    sp_addr = in.getFP() + stack_height;
+    result = getProcessState()->readMem(&sp_value, sp_addr, addr_width);
+
+    if (!result) {
+      sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, sp_addr);
+      return gcf_error;
+    }
+
+    out.setSP(sp_value);
+  }
+
   return gcf_success;
+}
+
+#include "analysis_stepper.h"
+gcframe_ret_t AnalysisStepperImpl::getCallerFrameArch(height_pair_t height,
+                                                      const Frame &in, Frame &out)
+{
+   Address in_sp = in.getSP();
+   StackAnalysis::Height pc_height = height.first;
+   StackAnalysis::Height fp_height = height.second;
+
+   ProcessState *proc = getProcessState();
+
+   Address ret_addr = 0;
+   
+   if (pc_height == StackAnalysis::Height::bottom) {
+      sw_printf("[%s:%u] - Analysis didn't find a stack height\n", 
+                __FILE__, __LINE__);
+      return gcf_not_me;
+   }
+
+   Address ret_loc = in_sp - pc_height.height() - proc->getAddressWidth();
+
+   bool result = proc->readMem(&ret_addr, ret_loc, proc->getAddressWidth());
+   if (!result) {
+      sw_printf("[%s:%u] - Error reading from return location %lx on stack\n",
+                __FILE__, __LINE__, ret_addr);
+      return gcf_not_me;
+   }
+   location_t ra_loc;
+   ra_loc.val.addr = ret_loc;
+   ra_loc.location = loc_address;
+   out.setRALocation(ra_loc);
+   out.setRA(ret_addr);
+   out.setSP(ret_loc + proc->getAddressWidth());
+
+   Address fp_addr = 0;
+   Address fp_loc = 0;
+   if (fp_height != StackAnalysis::Height::bottom) {
+      fp_loc = ret_loc + fp_height.height() - proc->getAddressWidth();
+      result = proc->readMem(&fp_addr, fp_loc, proc->getAddressWidth());
+      if (result) {
+         out.setFP(fp_addr);
+         location_t fp_loc;
+         ra_loc.val.addr = fp_addr;
+         ra_loc.location = loc_address;
+         out.setFPLocation(fp_loc);
+      }
+      else { 
+         sw_printf("[%s:%u] - Failed to read FP value\n", __FILE__, __LINE__);
+      }
+   }
+   else {
+      sw_printf("[%s:%u] - Did not find frame pointer in analysis\n",
+                __FILE__, __LINE__);
+   }
+
+   return gcf_success;
 }
 
 namespace Dyninst {

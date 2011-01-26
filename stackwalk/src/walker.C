@@ -43,6 +43,8 @@ using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 using namespace std;
 
+SymbolReaderFactory *Walker::symrfact = NULL;
+
 void Walker::version(int& major, int& minor, int& maintenance)
 {
     major = SW_MAJOR;
@@ -81,7 +83,10 @@ Walker::Walker(ProcessState *p,
    }
 
    lookup = sym ? sym : createDefaultSymLookup(exec_name);
-   if (!lookup) {
+   if (lookup) {
+      lookup->walker = this;
+   }
+   else {
       sw_printf("[%s:%u] - WARNING, no symbol lookup available\n",
                 __FILE__, __LINE__);
    }
@@ -197,6 +202,31 @@ Walker *Walker::newWalker(Dyninst::PID pid)
    return newWalker(pid, "");
 }
 
+Walker *Walker::newWalker(Dyninst::ProcControlAPI::Process::ptr proc)
+{
+  sw_printf("[%s:%u] - Creating new stackwalker for ProcControl process %d\n",
+	    __FILE__, __LINE__, (int) proc->getPid());
+  
+  ProcessState *newproc = createDefaultProcess(proc);
+  if (!newproc) {
+    sw_printf("[%s:%u] - Error creating default process\n",
+	      __FILE__, __LINE__);
+    return NULL;
+  }
+
+  Walker *newwalker = new Walker(newproc, NULL, NULL, true, string());
+  if (!newwalker || newwalker->creation_error) {
+    sw_printf("[%s:%u] - Error creating new Walker object %p\n",
+	      __FILE__, __LINE__, newwalker);
+    return NULL;
+  }
+  
+  sw_printf("[%s:%u] - Successfully created Walker %p\n", 
+	    __FILE__, __LINE__, newwalker);
+  
+  return newwalker;
+}
+
 bool Walker::newWalker(const std::vector<Dyninst::PID> &pids,
                        std::vector<Walker *> &walkers_out)
 {
@@ -255,6 +285,15 @@ Walker::~Walker() {
    //TODO: Stepper cleanup
 }
 
+SymbolReaderFactory *Walker::getSymbolReader()
+{
+   return symrfact;
+}
+
+void Walker::setSymbolReader(SymbolReaderFactory *srf)
+{
+   symrfact = srf;
+}
 
 /**
  * What is happening here, you may ask?  
@@ -422,6 +461,8 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
       return false;
    }
 
+   out.setPrevFrame(&in);
+
    FrameStepper *last_stepper = NULL;
    for (;;)
    {
@@ -447,6 +488,7 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
        }
        sw_printf("[%s:%u] - Returning frame with RA %lx, SP %lx, FP %lx\n",
 		 __FILE__, __LINE__, out.getRA(), out.getSP(), out.getFP());
+       out.setStepper(cur_stepper);
        result = true;
        goto done;
      }
@@ -545,6 +587,12 @@ ProcessState *Walker::createDefaultProcess(std::string exec_name)
 ProcessState *Walker::createDefaultProcess(PID pid, std::string executable)
 {
    ProcDebug *pdebug = ProcDebug::newProcDebug(pid, executable);
+   return pdebug;
+}
+
+ProcessState *Walker::createDefaultProcess(Dyninst::ProcControlAPI::Process::ptr proc)
+{
+   ProcDebug *pdebug = ProcDebug::newProcDebug(proc);
    return pdebug;
 }
 

@@ -37,9 +37,6 @@
 
 #include "common/h/Types.h"
 
-class dyn_thread;
-class dyn_lwp;
-
 /*
  * This file provides prototypes for the data structures which track
  * traps inserted at the exit of system calls. These are primarily
@@ -72,6 +69,6 @@ struct syscallTrap {
  * system call exits
  */
 
-typedef bool (*syscallTrapCallbackLWP_t)(dyn_lwp *lwp, void *data);
+typedef bool (*syscallTrapCallbackLWP_t)(PCThread *thread, void *data);
 
 #endif /*_SYSCALL_TRAP_H_*/

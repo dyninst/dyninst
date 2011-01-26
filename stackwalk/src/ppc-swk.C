@@ -172,11 +172,18 @@ bool WandererHelper::isPrevInstrACall(Address, Address&)
    return false;
 }
 
-bool WandererHelper::isPCInFunc(Address, Address)
+WandererHelper::pc_state WandererHelper::isPCInFunc(Address, Address)
 {
    sw_printf("[%s:%u] - Unimplemented on this platform!\n");
    assert(0);
-   return false;
+   return unknown_s;
+}
+
+bool WandererHelper::requireExactMatch()
+{
+   sw_printf("[%s:%u] - Unimplemented on this platform!\n");
+   assert(0);
+   return true;
 }
 
 WandererHelper::~WandererHelper()
@@ -185,7 +192,9 @@ WandererHelper::~WandererHelper()
 
 gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &/*in*/, Frame &/*out*/, 
                                                           Address /*base*/, Address /*lib_base*/,
-                                                          unsigned /*size*/, unsigned /*stack_height*/)
+                                                          unsigned /*size*/, unsigned /*stack_height*/,
+                                                          Address /*orig_ra*/,
+                                                          bool /*pEntryExit*/)
 {
   return gcf_not_me;
 }

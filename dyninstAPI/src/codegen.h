@@ -65,9 +65,6 @@ using namespace NS_x86;
 #undef max
 #endif
 
-class dyn_lwp;
-class dyn_thread;
-class process;
 class AddressSpace;
 class instPoint;
 class registerSpace;
@@ -78,6 +75,7 @@ class pcRelRegion;
 class int_function;
 class generatedCodeObject;
 class baseTrampInstance;
+class PCThread;
 
 // Code generation
 // This class wraps the actual code generation mechanism: we keep a buffer
@@ -193,10 +191,8 @@ class codeGen {
     //Apply all patches that have been added
     void applyPatches();
 
-    //void setProcess(process *p);
     void setAddrSpace(AddressSpace *a);
-    void setThread(dyn_thread *t) { thr_ = t; }
-    void setLWP(dyn_lwp *l) { lwp_ = l; }
+    void setThread(PCThread *t) { thr_ = t; }
     void setRegisterSpace(registerSpace *r) { rs_ = r; }
     void setAddr(Address a) { addr_ = a; }
     void setPoint(instPoint *i) { ip_ = i; }
@@ -206,10 +202,8 @@ class codeGen {
     void setObj(generatedCodeObject *object) { obj_ = object; }
     void setBTI(baseTrampInstance *i) { bti_ = i; }
 
-    dyn_lwp *lwp();
-    dyn_thread *thread();
-    //process *proc();
     AddressSpace *addrSpace();
+    PCThread *thread();
     Address startAddr() const { return addr_; }
     instPoint *point();
     baseTrampInstance *bti() const { return bti_; }
@@ -238,10 +232,8 @@ class codeGen {
     Emitter *emitter_;
     bool allocated_;
 
-    //process *proc_;
     AddressSpace *aSpace_;
-    dyn_thread *thr_;
-    dyn_lwp * lwp_;
+    PCThread *thr_;
     registerSpace *rs_;
     regTracker_t *t_;
     Address addr_;

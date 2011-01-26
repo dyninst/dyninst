@@ -31,7 +31,7 @@
 
 #include "addressSpace.h"
 #include "codeRange.h"
-#include "process.h"
+#include "pcProcess.h"
 #include "function.h"
 #include "binaryEdit.h"
 
@@ -39,6 +39,7 @@
 #include "baseTramp.h"
 #include "multiTramp.h" // multiTramp and instArea
 #include "instPoint.h"
+#include "debug.h"
 
 // Two-level codeRange structure
 #include "mapped_object.h"
@@ -64,8 +65,8 @@ AddressSpace::AddressSpace () :
 
 AddressSpace::~AddressSpace() {}
 
-process *AddressSpace::proc() {
-    return dynamic_cast<process *>(this);
+PCProcess *AddressSpace::proc() {
+    return dynamic_cast<PCProcess *>(this);
 }
 
 BinaryEdit *AddressSpace::edit() {
@@ -74,7 +75,9 @@ BinaryEdit *AddressSpace::edit() {
 
 // Fork constructor - and so we can assume a parent "process"
 // rather than "address space"
-void AddressSpace::copyAddressSpace(process *parent) {
+//
+// Actually, for the sake of abstraction, use an AddressSpace instead of process
+void AddressSpace::copyAddressSpace(AddressSpace *parent) {
     deleteAddressSpace();
 
     // This is only defined for process->process copy
@@ -1336,7 +1339,7 @@ void trampTrapMappings::flush() {
    //If we're sorting, then everytime we update we'll generate a whole new table
    //If we're not sorting, then each update will just append to the end of the
    // table.
-   bool should_sort = (dynamic_cast<process *>(proc()) == NULL ||
+   bool should_sort = (dynamic_cast<PCProcess *>(proc()) == NULL ||
                        table_mutatee_size > table_allocated);
 
    if (should_sort) {
@@ -1448,7 +1451,7 @@ void trampTrapMappings::flush() {
 
    //This function just keeps going... Now we need to take all of those 
    // mutatee side variables and update them.
-   if (dynamic_cast<process *>(proc())) 
+   if (dynamic_cast<PCProcess *>(proc())) 
    {
       if (!trapTable) {
          //Lookup all variables that are in the rtlib
@@ -1482,7 +1485,7 @@ void trampTrapMappings::allocateTable()
 {
    unsigned entry_size = proc()->getAddressWidth() * 2;
 
-   if (dynamic_cast<process *>(proc()))
+   if (dynamic_cast<PCProcess *>(proc()))
    {
       //Dynamic rewriting
 

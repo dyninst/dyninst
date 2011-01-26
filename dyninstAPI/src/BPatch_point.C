@@ -44,17 +44,18 @@
 #include "BPatch_image.h"
 #include "BPatch_function.h"
 #include "BPatch_collections.h"
-#include "BPatch_asyncEventHandler.h"
 #include "BPatch.h"
 #include "BPatch_process.h"
 #include "BPatch_libInfo.h"
-#include "process.h"
 #include "symtab.h"
 #include "instPoint.h"
 #include "instP.h"
 #include "baseTramp.h"
 #include "miniTramp.h"
 #include "function.h"
+#include "addressSpace.h"
+#include "pcProcess.h"
+#include "debug.h"
 
 #if defined(cap_instruction_api)
 #include "BPatch_memoryAccessAdapter.h"
@@ -524,6 +525,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
       return NULL;
     }
     func_to_use = funcs[0];
+    BPatch::bpatch->info->registerMonitoredPoint(this);
   }
   // The callback takes two arguments: the first is the (address of the) callee,
   // the second the (address of the) callsite. 
@@ -552,11 +554,6 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
      fprintf( stderr,"%s[%d]:  insertSnippet failed, cannot monitor call site\n",
                __FILE__, __LINE__ );
      return NULL;
-  }
-
-  //  Let asyncEventHandler know that we are being monitored
-  if (getAsync()) {
-      getAsync()->registerMonitoredPoint(this);
   }
 
   dynamic_point_monitor_func = res;

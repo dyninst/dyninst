@@ -180,14 +180,19 @@ using namespace ProcControlAPI;
  * being inconsistent).
  */
 
+static GeneratorFreeBSD *gen = NULL;
+
 Generator *Generator::getDefaultGenerator() {
-    static GeneratorFreeBSD *gen = NULL;
     if( NULL == gen ) {
         gen = new GeneratorFreeBSD();
         assert(gen);
         gen->launch();
     }
     return static_cast<Generator *>(gen);
+}
+
+void Generator::stopDefaultGenerator() {
+    if( gen ) delete gen;
 }
 
 GeneratorFreeBSD::GeneratorFreeBSD() :
@@ -583,9 +588,15 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
             event = Event::ptr(new EventExit(EventType::Post, exitcode));
         }else{
             int termsig = WTERMSIG(status);
-            pthrd_printf("Decoded event to crash of %d/%d with signal %d\n",
-                    proc->getPid(), thread->getLWP(), termsig);
-            event = Event::ptr(new EventCrash(termsig));
+            if( proc->wasForcedTerminated() ) {
+                pthrd_printf("Decoded event to force terminate of %d/%d\n",
+                        proc->getPid(), thread->getLWP());
+                event = Event::ptr(new EventForceTerminate(termsig));
+            }else{
+                pthrd_printf("Decoded event to crash of %d/%d with signal %d\n",
+                        proc->getPid(), thread->getLWP(), termsig);
+                event = Event::ptr(new EventCrash(termsig));
+            }
         }
         event->setSyncType(Event::sync_process);
 
@@ -646,9 +657,10 @@ int_process *int_process::createProcess(Dyninst::PID pid_, std::string exec) {
 }
 
 int_process *int_process::createProcess(std::string exec,
-        std::vector<std::string> args, std::map<int, int> f) 
+        std::vector<std::string> args, std::vector<std::string> envp,
+        std::map<int, int> f) 
 {
-    freebsd_process *newproc = new freebsd_process(0, exec, args, f);
+    freebsd_process *newproc = new freebsd_process(0, exec, args, envp, f);
     assert(newproc);
     return static_cast<int_process *>(newproc);
 }
@@ -725,12 +737,13 @@ bool ProcessPool::LWPIDsAreUnique() {
     return true;
 }
 
-freebsd_process::freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f) :
-  int_process(p, e, a, f),
-  thread_db_process(p, e, a, f),
-  sysv_process(p, e, a, f),
-  unix_process(p, e, a, f),
-  x86_process(p, e, a, f)
+freebsd_process::freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
+        std::map<int, int> f) :
+  int_process(p, e, a, envp, f),
+  thread_db_process(p, e, a, envp, f),
+  sysv_process(p, e, a, envp, f),
+  unix_process(p, e, a, envp, f),
+  x86_process(p, e, a, envp, f)
 {
 }
 
@@ -911,7 +924,7 @@ bool freebsd_process::plat_readProcMem(void *local,
     return PtraceBulkRead(remote, size, local, getPid());
 }
 
-bool freebsd_process::plat_writeMem(int_thread *thr, void *local, 
+bool freebsd_process::plat_writeMem(int_thread *thr, const void *local, 
                           Dyninst::Address remote, size_t size) 
 {
     return PtraceBulkWrite(remote, size, local, thr->llproc()->getPid());

@@ -32,8 +32,7 @@
 #include "parRegion.h"
 #include "image-func.h"
 #include "function.h"
-
-#include "process.h"
+#include "addressSpace.h"
 
 image_parRegion::image_parRegion(image_func * imageFunc)
 {

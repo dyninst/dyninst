@@ -250,7 +250,6 @@ typedef enum {unparsed, symtab, analyzing, analyzed} imageParseState_t;
 //  Image class contains information about statically and 
 //  dynamically linked code belonging to a process
 class image : public codeRange {
-   friend class process;
    friend class image_variable;
    friend class DynCFGFactory;
  public:
@@ -545,8 +544,6 @@ class pdmodule {
  public:
    pdmodule(SymtabAPI::Module *mod, image *e)
    	    : mod_(mod), exec_(e) {}
-
-   void cleanProcessSpecific(process *p);
 
    bool getFunctions(pdvector<image_func *> &funcs);
 

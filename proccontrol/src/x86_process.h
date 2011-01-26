@@ -38,7 +38,8 @@
 class x86_process : virtual public int_process
 {
  public:
-  x86_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f);
+  x86_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+          std::vector<std::string> envp, std::map<int, int> f);
   x86_process(Dyninst::PID pid_, int_process *p) ;
   virtual ~x86_process();
 

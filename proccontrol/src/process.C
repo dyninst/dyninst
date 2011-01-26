@@ -49,6 +49,7 @@ using namespace ProcControlAPI;
 using namespace std;
 
 const map<int,int> Process::emptyFDs;
+const vector<string> Process::emptyEnvp;
 Process::thread_mode_t threadingMode = Process::GeneratorThreading;
 bool int_process::in_callback = false;
 
@@ -380,7 +381,30 @@ bool int_process::post_attach()
 
 bool int_process::post_create()
 {
-   return initLibraryMechanism();
+   bool result = initLibraryMechanism();
+   if( !result ) {
+       pthrd_printf("Error initializing library mechanism\n");
+       return false;
+   }
+
+   std::set<int_library*> added, rmd;
+   for (;;) {
+      std::set<response::ptr> async_responses;
+      result = refresh_libraries(added, rmd, async_responses);
+      if (!result && !async_responses.empty()) {
+         result = waitForAsyncEvent(async_responses);
+         if (!result) {
+            pthrd_printf("Failure waiting for async completion\n");
+            return false;
+         }
+         continue;
+      }
+      if (!result) {
+         pthrd_printf("Failure refreshing libraries for %d\n", getPid());
+         return false;
+      }
+      return true;
+   }
 }
 
 bool int_process::getThreadLWPs(std::vector<Dyninst::LWP> &)
@@ -557,7 +581,9 @@ bool syncRunState(int_process *p, void *r)
    {
       int_thread *thr = *i;
 
-      thr->handleNextPostedIRPC(int_thread::hnp_no_stop, false);
+      if( !thr->isClearingBreakpoint() ) {
+        thr->handleNextPostedIRPC(int_thread::hnp_no_stop, false);
+      }
 
       int_iRPC::ptr rpc = thr->hasRunningProcStopperRPC();
       if (!rpc) continue;
@@ -574,7 +600,10 @@ bool syncRunState(int_process *p, void *r)
    {
       int_thread *thr = *i;
 
-      if (thr->hasPendingStop()) {
+      // If the thread is exiting and it has a pending stop, it is reasonable that
+      // the pending stop will never occur and a continue will actually cause the
+      // thread to exit
+      if (thr->hasPendingStop() && !thr->isExiting()) {
          ret->hasStopPending = true;
       }
 
@@ -583,7 +612,7 @@ bool syncRunState(int_process *p, void *r)
       }
 
       int_iRPC::ptr pstop_rpc = thr->hasRunningProcStopperRPC();
-      if (thr->hasPendingStop() && thr->getHandlerState() == int_thread::stopped) {
+      if (thr->hasPendingStop() && !thr->isExiting() && thr->getHandlerState() == int_thread::stopped) {
          pthrd_printf("Continuing thread %d/%d to clear out pending stop\n", 
                       thr->llproc()->getPid(), thr->getLWP());
 
@@ -709,7 +738,7 @@ bool int_process::waitAndHandleEvents(bool block)
 
       if (ret.readyProcStoppers.size()) {
          int_process *proc = ret.readyProcStoppers[0];
-         Event::ptr ev = proc->removeProcStopper();
+         Event::ptr ev = proc->getProcStopper();
          if (ev->triggersCB() &&
              isHandlerThread() && 
              mt()->getThreadMode() == Process::HandlerThreading) 
@@ -720,6 +749,7 @@ bool int_process::waitAndHandleEvents(bool block)
             notify()->noteEvent();
             goto done;
          }
+         proc->removeProcStopper();
 
          pthrd_printf("Handling postponed proc stopper event on %d\n", proc->getPid());
          proc->handlerpool->handleEvent(ev);
@@ -928,11 +958,13 @@ bool int_process::terminate(bool &needs_sync)
 
 int_process::int_process(Dyninst::PID p, std::string e,
                          std::vector<std::string> a,
+                         std::vector<std::string> envp,
                          std::map<int,int> f) :
    state(neonatal),
    pid(p),
    executable(e),
    argv(a),
+   env(envp),
    fds(f),
    arch(Dyninst::Arch_none),
    threadpool(NULL),
@@ -955,6 +987,7 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    pid(pid_),
    executable(p->executable),
    argv(p->argv),
+   env(p->env),
    arch(p->arch),
    hasCrashSignal(p->hasCrashSignal),
    crashSignal(p->crashSignal),
@@ -1037,7 +1070,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result)
    return bresult;      
 }
 
-bool int_process::writeMem(void *local, Dyninst::Address remote, size_t size, result_response::ptr result)
+bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result)
 {
    int_thread *thr = findStoppedThread();
    if (!thr) {
@@ -1174,7 +1207,7 @@ bool int_process::infFree(Dyninst::Address addr)
          return false;
       }
       if (!result && block) {
-         pthrd_printf("Error in waitAndHandleEvents");
+         pthrd_printf("Error in waitAndHandleEvents\n");
          return false;
       }
    }
@@ -1200,12 +1233,16 @@ void int_process::setForceGeneratorBlock(bool b)
    forceGenerator = b;
 }
 
-Event::ptr int_process::removeProcStopper()
+Event::ptr int_process::getProcStopper()
+{
+    assert(proc_stoppers.size());
+    return proc_stoppers.front();
+}
+
+void int_process::removeProcStopper()
 {
    assert(proc_stoppers.size());
-   Event::ptr ret = proc_stoppers.front();
    proc_stoppers.pop();
-   return ret;
 }
 
 bool int_process::hasQueuedProcStoppers() const
@@ -1348,7 +1385,7 @@ size_t int_process::numLibs() const
 
 std::string int_process::getExecutable() const
 {
-   return executable;
+   return executable; //The name of the exec passed to PC
 }
 
 bool int_process::isInCallback()
@@ -1460,7 +1497,7 @@ bool int_process::plat_readMemAsync(int_thread *, Dyninst::Address,
    return false;
 }
 
-bool int_process::plat_writeMemAsync(int_thread *, void *, Dyninst::Address,
+bool int_process::plat_writeMemAsync(int_thread *, const void *, Dyninst::Address,
                                      size_t, result_response::ptr )
 {
    assert(0);
@@ -1491,7 +1528,9 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
          assert(old_state == int_thread::running ||
                 old_state == int_thread::neonatal_intermediate ||
                 thrd->llproc()->plat_needsAsyncIO() || 
-                thrd->llproc()->wasForcedTerminated());
+                thrd->llproc()->wasForcedTerminated() ||
+                ( old_state == int_thread::stopped && 
+                  (thrd->isExiting() || thrd->isExitingInGenerator()) ) );
          if (old_state == int_thread::errorstate)
             break;
          if (gen)
@@ -1642,6 +1681,43 @@ bool int_threadPool::cont(bool user_cont)
    for (iterator i = begin(); i != end(); i++) {
       int_thread *thr = *i;
       assert(thr);
+
+      ProcPool()->condvar()->unlock();
+      bool completed_rpc = true;
+      bool result = rpcMgr()->handleThreadContinue(thr, user_cont, completed_rpc);
+      if (!result) {
+         pthrd_printf("Error handling IRPC during continue\n");
+         had_error = true;
+         continue;
+      }
+      if (!completed_rpc && !thr->hasPendingStop()) {
+         /**
+          * A thread has an RPC being prepped and has been asked to continue.
+          * We'll postpone this continue until the RPC is prepped.  This should
+          * only happen on an async system (BlueGene), in which case we'll
+          * generate RPCInternal events to move the system along until everything is complete.
+          *
+          * We'll still allow a continue on a thread with a pending stop, since the thread
+          * will move to a proper stop state before actually running.
+          **/
+         pthrd_printf("Unable to complete post of RPC, postponing continue\n");
+         if (user_cont) {
+            bool result = thr->setUserState(int_thread::running);
+            if (!result) {
+               setLastError(err_exited, "Attempted thread continue on exited thread\n");
+               perr_printf("Failed to continue thread %d/%d--bad state\n", proc()->getPid(), 
+                       thr->getLWP());
+               had_error = true;
+               continue;
+            }
+         }
+         if (!thr->postponed_continue) {
+            thr->desyncInternalState();
+            thr->postponed_continue = true;
+         }
+         continue;
+      }
+      ProcPool()->condvar()->lock();
 
       pthrd_printf("Continuing thread %d on process %d\n", thr->getLWP(), pid);
       int_thread::stopcont_ret_t ret = thr->cont(user_cont, true);
@@ -1979,7 +2055,7 @@ int_thread::stopcont_ret_t int_thread::stop(bool user_stop)
       return sc_skip;
    }
 
-   if (pending_stop) {
+   if (pending_stop && !handler_exiting_state) {
       pthrd_printf("thread %d has in-progress stop on process %d\n", getLWP(), pid);
       return sc_success_pending;
    }
@@ -1998,6 +2074,13 @@ int_thread::stopcont_ret_t int_thread::stop(bool user_stop)
          setUserState(stopped);
       return sc_success;
    }
+
+   if (pending_stop && handler_exiting_state) {
+       pthrd_printf("exiting thread %d has in-progress stop on process %d\n", getLWP(),
+               pid);
+       return sc_success_pending;
+   }
+
    if (getHandlerState() != running)
    {
       perr_printf("Attempt to stop thread %d/%d in bad state %d\n", 
@@ -2330,6 +2413,8 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    user_single_step(false),
    single_step(false),
    postponed_continue(false),
+   handler_exiting_state(false),
+   generator_exiting_state(false),
    clearing_breakpoint(false)
 {
    Thread::ptr new_thr(new Thread());
@@ -2383,6 +2468,26 @@ bool int_thread::hasPostponedContinue() const
 void int_thread::setPostponedContinue(bool b)
 {
    postponed_continue = b;
+}
+
+bool int_thread::isExiting() const
+{
+    return handler_exiting_state;
+}
+
+void int_thread::setExiting(bool b)
+{
+    handler_exiting_state = b;
+}
+
+bool int_thread::isExitingInGenerator() const
+{
+    return generator_exiting_state;
+}
+
+void int_thread::setExitingInGenerator(bool b)
+{
+    generator_exiting_state = b;
 }
 
 Thread::ptr int_thread::thread()
@@ -3258,23 +3363,14 @@ Dyninst::Address installed_breakpoint::getAddr() const
    return addr;
 }
 
-int_library::int_library(std::string n, Dyninst::Address load_addr) :
-   name(n),
-   load_address(load_addr),
-   data_load_address(0),
-   has_data_load(false),
-   marked(false)
-{
-   up_lib = new Library();
-   up_lib->lib = this;
-}
-
-int_library::int_library(std::string n, Dyninst::Address load_addr, Dyninst::Address data_load_addr) :
+int_library::int_library(std::string n, Dyninst::Address load_addr, Dyninst::Address dynamic_load_addr, Dyninst::Address data_load_addr, bool has_data_load_addr) :
    name(n),
    load_address(load_addr),
    data_load_address(data_load_addr),
-   has_data_load(true),
-   marked(false)
+   dynamic_address(dynamic_load_addr),
+   has_data_load(has_data_load_addr),
+   marked(false),
+   user_data(NULL)
 {
    up_lib = new Library();
    up_lib->lib = this;
@@ -3284,8 +3380,10 @@ int_library::int_library(int_library *l) :
    name(l->name),
    load_address(l->load_address),
    data_load_address(l->data_load_address),
+   dynamic_address(l->dynamic_address),
    has_data_load(l->has_data_load),
-   marked(l->marked)
+   marked(l->marked),
+   user_data(NULL)
 {
    up_lib = new Library();
    up_lib->lib = this;
@@ -3315,6 +3413,11 @@ bool int_library::hasDataAddr()
    return has_data_load;
 }
 
+Dyninst::Address int_library::getDynamicAddr()
+{
+   return dynamic_address;
+}
+
 void int_library::setMark(bool b)
 {
    marked = b;
@@ -3323,6 +3426,16 @@ void int_library::setMark(bool b)
 bool int_library::isMarked() const
 {
    return marked;
+}
+
+void int_library::setUserData(void *d)
+{
+   user_data = d;
+}
+
+void *int_library::getUserData()
+{
+   return user_data;
 }
 
 Library::ptr int_library::getUpPtr() const
@@ -3339,6 +3452,11 @@ mem_state::mem_state(mem_state &m, int_process *p)
 {
    pthrd_printf("Copying mem_state to new process %d\n", p->getPid());
    procs.insert(p);
+
+   // Do not copy over libraries -- need to use refresh_libraries to
+   // maintain consistency with AddressTranslate layer
+
+   /*
    set<int_library *>::iterator i;
    for (i = m.libs.begin(); i != m.libs.end(); i++)
    {
@@ -3346,6 +3464,8 @@ mem_state::mem_state(mem_state &m, int_process *p)
       int_library *new_lib = new int_library(orig_lib);
       libs.insert(new_lib);
    }
+   */
+
    map<Dyninst::Address, installed_breakpoint *>::iterator j;
    for (j = m.breakpoints.begin(); j != m.breakpoints.end(); j++)
    {
@@ -3522,6 +3642,16 @@ RegisterPool::iterator RegisterPool::find(MachRegister r)
    return RegisterPool::iterator(llregpool->regs.find(r));
 }
 
+bool RegisterPool::iterator::operator==(const iterator &iter)
+{
+    return i == iter.i;
+}
+
+bool RegisterPool::iterator::operator!=(const iterator &iter)
+{
+    return i != iter.i;
+}
+
 RegisterPool::const_iterator RegisterPool::begin() const
 {
    return RegisterPool::const_iterator(llregpool->regs.begin());
@@ -3535,6 +3665,16 @@ RegisterPool::const_iterator RegisterPool::end() const
 RegisterPool::const_iterator RegisterPool::find(MachRegister r) const
 {
    return RegisterPool::const_iterator(llregpool->regs.find(r));
+}
+
+bool RegisterPool::const_iterator::operator==(const const_iterator &iter)
+{
+    return i != iter.i;
+}
+
+bool RegisterPool::const_iterator::operator!=(const const_iterator &iter)
+{
+    return i != iter.i;
 }
 
 MachRegisterVal& RegisterPool::operator[](MachRegister r)
@@ -3664,6 +3804,21 @@ Dyninst::Address Library::getDataLoadAddress() const
    return lib->getDataAddr();
 }
 
+Dyninst::Address Library::getDynamicAddress() const
+{
+   return lib->getDynamicAddr();
+}
+
+void *Library::getData() const
+{
+   return lib->getUserData();
+}
+
+void Library::setData(void *p) const
+{
+   lib->setUserData(p);
+}
+
 LibraryPool::LibraryPool()
 {
 }
@@ -3679,18 +3834,32 @@ size_t LibraryPool::size() const
 
 Library::ptr LibraryPool::getLibraryByName(std::string s)
 {
+   MTLock lock_this_func;
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
       return NULL;
    return int_lib->up_lib;
 }
 
-Library::ptr LibraryPool::getLibraryByName(std::string s) const
+Library::const_ptr LibraryPool::getLibraryByName(std::string s) const
 {
+   MTLock lock_this_func;
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
       return NULL;
    return int_lib->up_lib;
+}
+
+Library::ptr LibraryPool::getExecutable()
+{
+   MTLock lock_this_func;
+   return proc->getExecutableLib()->up_lib;
+}
+
+Library::const_ptr LibraryPool::getExecutable() const
+{
+   MTLock lock_this_func;
+   return proc->getExecutableLib()->up_lib;
 }
 
 LibraryPool::iterator::iterator()
@@ -3850,6 +4019,7 @@ bool Process::setThreadingMode(thread_mode_t tm)
 
 Process::ptr Process::createProcess(std::string executable,
                                     const std::vector<std::string> &argv,
+                                    const std::vector<std::string> &envp,
                                     const std::map<int,int> &fds)
 {
    MTLock lock_this_func(MTLock::allow_init, MTLock::deliver_callbacks);
@@ -3862,7 +4032,7 @@ Process::ptr Process::createProcess(std::string executable,
    }
 
    Process::ptr newproc(new Process());
-   int_process *llproc = int_process::createProcess(executable, argv, fds);
+   int_process *llproc = int_process::createProcess(executable, argv, envp, fds);
    llproc->initializeProcess(newproc);
    
    bool result = llproc->create();
@@ -3899,7 +4069,8 @@ Process::ptr Process::attachProcess(Dyninst::PID pid, std::string executable)
 
 Process::Process() :
    llproc_(NULL),
-   exitstate_(NULL)
+   exitstate_(NULL),
+   userData_(NULL)
 {
 }
 
@@ -3911,6 +4082,13 @@ Process::~Process()
    }
 }
 
+void *Process::getData() const {
+    return userData_;
+}
+
+void Process::setData(void *p) {
+    userData_ = p;
+}
 
 Dyninst::PID Process::getPid() const 
 {
@@ -4337,7 +4515,7 @@ bool Process::freeMemory(Dyninst::Address addr)
    return llproc_->infFree(addr);
 }
 
-bool Process::writeMemory(Dyninst::Address addr, void *buffer, size_t size) const
+bool Process::writeMemory(Dyninst::Address addr, const void *buffer, size_t size) const
 {
    MTLock lock_this_func;
    if (!llproc_) {
@@ -4719,6 +4897,17 @@ Dyninst::LWP Thread::getLWP() const
    return llthread_->getLWP();
 }
 
+Dyninst::THR_ID Thread::getTid() const
+{
+   MTLock lock_this_func;
+   if( !llthread_ ) {
+       assert(exitstate_);
+       return exitstate_->thr_id;
+   }
+
+   return llthread_->getTid();
+}
+
 bool Thread::postIRPC(IRPC::ptr irpc) const
 {
    MTLock lock_this_func;
@@ -4886,13 +5075,17 @@ ThreadPool::iterator ThreadPool::end()
    return i;
 }
 
-ThreadPool::iterator ThreadPool::find(Dyninst::LWP lwp)
+ThreadPool::iterator ThreadPool::find(Dyninst::LWP lwp) 
 {
     MTLock lock_this_func;
-    ThreadPool::iterator i = begin();
-    for(; i != end(); ++i) {
-        if( (*i)->getLWP() == lwp ) break;
-    }
+    ThreadPool::iterator i;
+    int_thread *thread = threadpool->findThreadByLWP(lwp);
+    if( !thread ) return end();
+
+    i.curp = threadpool;
+    i.curh = thread->thread();
+    i.curi = threadpool->hl_threads.size()-1;
+
     return i;
 }
 
@@ -4979,13 +5172,17 @@ ThreadPool::const_iterator ThreadPool::end() const
    return i;
 }
 
-ThreadPool::const_iterator ThreadPool::find(Dyninst::LWP lwp) const
+ThreadPool::const_iterator ThreadPool::find(Dyninst::LWP lwp) const 
 {
     MTLock lock_this_func;
-    ThreadPool::const_iterator i = begin();
-    for(; i != end(); ++i) {
-        if( (*i)->getLWP() == lwp ) break;
-    }
+    ThreadPool::const_iterator i;
+    int_thread *thread = threadpool->findThreadByLWP(lwp);
+    if( !thread ) return end();
+
+    i.curp = threadpool;
+    i.curh = thread->thread();
+    i.curi = threadpool->hl_threads.size()-1;
+
     return i;
 }
 
@@ -5177,6 +5374,8 @@ void MTManager::run()
 
 void MTManager::stop()
 {
+   if( !is_running ) return;
+
    Generator::removeNewEventCB(eventqueue_cb_wrapper);
    pending_event_lock.lock();
    should_exit = true;

@@ -107,6 +107,10 @@ class Library
    std::string getName() const;
    Dyninst::Address getLoadAddress() const;
    Dyninst::Address getDataLoadAddress() const;
+   Dyninst::Address getDynamicAddress() const;
+   
+   void *getData() const;
+   void setData(void *p) const;
 };
 
 class LibraryPool
@@ -154,7 +158,10 @@ class LibraryPool
   size_t size() const;
 
   Library::ptr getLibraryByName(std::string s);
-  Library::ptr getLibraryByName(std::string s) const;
+  Library::const_ptr getLibraryByName(std::string s) const;
+
+  Library::ptr getExecutable();
+  Library::const_ptr getExecutable() const;
 };
 
 class IRPC
@@ -164,6 +171,7 @@ class IRPC
    friend void dyn_detail::boost::checked_delete<const IRPC>(const IRPC *);
  private:
    rpc_wrapper *wrapper;
+   void *userData_;
    IRPC(rpc_wrapper *wrapper_);
    ~IRPC();
  public:
@@ -184,6 +192,10 @@ class IRPC
    unsigned long getID() const;
    void setStartOffset(unsigned long);
    unsigned long getStartOffset() const;
+
+   // user-defined data retrievable during a callback
+   void *getData() const;
+   void setData(void *p);
 };
 
 class Process
@@ -192,6 +204,7 @@ class Process
    friend class ::int_process;
    int_process *llproc_;
    proc_exitstate *exitstate_;
+   void *userData_;
 
    Process();
    ~Process();
@@ -220,8 +233,10 @@ class Process
     * Create and attach to new processes
     **/
    static const std::map<int,int> emptyFDs;
+   static const std::vector<std::string> emptyEnvp;
    static Process::ptr createProcess(std::string executable,
                                      const std::vector<std::string> &argv,
+                                     const std::vector<std::string> &envp = emptyEnvp,
                                      const std::map<int,int> &fds = emptyFDs);
    static Process::ptr attachProcess(Dyninst::PID pid, std::string executable = "");
 
@@ -251,6 +266,10 @@ class Process
    static bool removeEventCallback(EventType evt, cb_func_t cbfunc);
    static bool removeEventCallback(EventType evt);
    static bool removeEventCallback(cb_func_t cbfunc);
+
+   // user-defined data retrievable during a callback
+   void *getData() const;
+   void setData(void *p);
 
    Dyninst::PID getPid() const;
 
@@ -290,7 +309,7 @@ class Process
    Dyninst::Address mallocMemory(size_t size);
    Dyninst::Address mallocMemory(size_t size, Dyninst::Address addr);
    bool freeMemory(Dyninst::Address addr);
-   bool writeMemory(Dyninst::Address addr, void *buffer, size_t size) const;
+   bool writeMemory(Dyninst::Address addr, const void *buffer, size_t size) const;
    bool readMemory(void *buffer, Dyninst::Address addr, size_t size) const;
 
    /**
@@ -328,6 +347,7 @@ class Thread
    int_thread *llthrd() const;
 
    Dyninst::LWP getLWP() const;
+   Dyninst::THR_ID getTid() const;
    Process::ptr getProcess() const;
 
    bool isStopped() const;
@@ -431,6 +451,8 @@ class RegisterPool
       iterator();
       ~iterator();
       std::pair<Dyninst::MachRegister, Dyninst::MachRegisterVal> operator*();
+      bool operator==(const iterator &i);
+      bool operator!=(const iterator &i);
       RegisterPool::iterator operator++();
       RegisterPool::iterator operator++(int);
    };
@@ -448,6 +470,8 @@ class RegisterPool
       const_iterator();
       ~const_iterator();
       std::pair<Dyninst::MachRegister, Dyninst::MachRegisterVal> operator*() const;
+      bool operator==(const const_iterator &i);
+      bool operator!=(const const_iterator &i);
       RegisterPool::const_iterator operator++();
       RegisterPool::const_iterator operator++(int);
    };

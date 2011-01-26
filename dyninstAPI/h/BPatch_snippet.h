@@ -58,7 +58,6 @@ namespace boost {
 typedef dyn_detail::boost::shared_ptr<AstNode> AstNodePtr;
 
 class AstNode;
-class process;
 class BPatch_process;
 class BPatch_function;
 class BPatch_point;

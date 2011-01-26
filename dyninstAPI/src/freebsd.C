@@ -220,6 +220,48 @@ bool AddressSpace::getDyninstRTLibName() {
     return true;
 }
 
+PCEventHandler::CallbackBreakpointCase
+PCEventHandler::getCallbackBreakpointCase(EventType et) {
+    // This switch statement can be derived from the EventTypes and Events
+    // table in the ProcControlAPI manual -- it states what Events are
+    // available on each platform
+
+    switch(et.code()) {
+        case EventType::Fork:
+            switch(et.time()) {
+                case EventType::Pre:
+                    return BreakpointOnly;
+                case EventType::Post:
+                    return BothCallbackBreakpoint;
+                default:
+                    break;
+            }
+            break;
+        case EventType::Exit:
+            switch(et.time()) {
+                case EventType::Pre:
+                    // Using the RT library breakpoint allows us to determine
+                    // the exit code in a uniform way across Unices
+                    return BreakpointOnly;
+                case EventType::Post:
+                    return CallbackOnly;
+                default:
+                    break;
+            }
+            break;
+       case EventType::Exec:
+            switch(et.time()) {
+                case EventType::Post:
+                    return CallbackOnly;
+                default:
+                    break;
+            }
+            break;
+    }
+
+    return NoCallbackOrBreakpoint;
+}
+
 /* START unimplemented functions */
 
 #define FREEBSD_NOT_IMPLEMENTED "This function is not implemented on FreeBSD"
@@ -265,12 +307,6 @@ bool dynamic_linking::installTracing() {
 bool syscallNotification::removePreLwpExit() {
     assert(!FREEBSD_NOT_IMPLEMENTED);
     return false;
-}
-
-Frame dyn_lwp::getActiveFrame() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    Frame nullFrame;
-    return nullFrame;
 }
 
 bool dyn_lwp::waitUntilStopped() {
@@ -374,12 +410,6 @@ void dyn_lwp::realLWP_detach_() {
 bool dyn_lwp::writeDataSpace(void*, unsigned int, void const*) {
     assert(!FREEBSD_NOT_IMPLEMENTED);
     return false;
-}
-
-Frame dyn_thread::getActiveFrameMT() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    Frame nullFrame;
-    return nullFrame;
 }
 
 bool syscallNotification::removePostExec() {

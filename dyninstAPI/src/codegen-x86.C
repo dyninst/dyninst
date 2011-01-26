@@ -40,12 +40,12 @@
 #include "codegen.h"
 #include "util.h"
 #include "debug.h"
+#include "addressSpace.h"
 
 #include "InstructionDecoder.h"
 #include "Instruction.h"
 
 #include "emit-x86.h"
-#include "process.h"
 #include "inst-x86.h"
 #include "instructionAPI/h/RegisterIDs.h"
 #include "pcrel.h"

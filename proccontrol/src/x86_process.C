@@ -31,8 +31,9 @@
 
 #include "x86_process.h"
 
-x86_process::x86_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f) :
-  int_process(p, e, a, f)
+x86_process::x86_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
+        std::map<int, int> f) :
+  int_process(p, e, a, envp, f)
 {
 }
 

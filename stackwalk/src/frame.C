@@ -42,6 +42,29 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
+Frame::Frame() :
+  ra(0x0),
+  fp(0x0),
+  sp(0x0),
+  sym_value(NULL),
+  name_val_set(nv_unset),
+  bottom_frame(false),
+  frame_complete(false),
+  prev_frame(NULL),
+  stepper(NULL),
+  walker(NULL),
+  originating_thread(NULL_THR_ID)
+{
+  ra_loc.location = loc_unknown;
+  ra_loc.val.addr = 0x0;
+  fp_loc.location = loc_unknown;
+  fp_loc.val.addr = 0x0;
+  sp_loc.location = loc_unknown;
+  sp_loc.val.addr = 0x0;
+  
+  sw_printf("[%s:%u] - Created null frame at %p\n", __FILE__, __LINE__, this);
+}
+
 Frame::Frame(Walker *parent_walker) :
   ra(0x0),
   fp(0x0),
@@ -50,6 +73,7 @@ Frame::Frame(Walker *parent_walker) :
   name_val_set(nv_unset),
   bottom_frame(false),
   frame_complete(false),
+  prev_frame(NULL),
   stepper(NULL),
   walker(parent_walker),
   originating_thread(NULL_THR_ID)
@@ -81,6 +105,21 @@ Frame *Frame::newFrame(Dyninst::MachRegisterVal pc, Dyninst::MachRegisterVal sp,
   newframe->setFP(fp);
   
   return newframe;
+}
+
+bool Frame::operator==(const Frame &F) const
+{
+  return ((ra == F.ra) &&
+          (fp == F.fp) &&
+          (sp == F.sp) &&
+          (ra_loc == F.ra_loc) &&
+          (fp_loc == F.fp_loc) &&
+          (sp_loc == F.sp_loc) &&
+          (sym_name == F.sym_name) &&
+          (frame_complete == F.frame_complete) &&
+          (stepper == F.stepper) &&
+          (walker == F.walker) &&
+          (originating_thread == F.originating_thread));
 }
 
 void Frame::setStepper(FrameStepper *newstep) {
@@ -235,7 +274,11 @@ bool Frame::getObject(void* &obj) const {
 bool Frame::isBottomFrame() const {
   return bottom_frame;
 }
-	
+
+const Frame *Frame::getPrevFrame() const {
+  return prev_frame;
+}
+
 FrameStepper *Frame::getStepper() const {
   return stepper;
 }
@@ -253,9 +296,9 @@ Frame::~Frame() {
 }
 
 #ifdef cap_stackwalker_use_symtab
-bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*& symtab)
+bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*& symtab) const
 #else
-bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*&)
+bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*&) const
 #endif
 {
   LibraryState *libstate = getWalker()->getProcessState()->getLibraryTracker();
@@ -287,6 +330,11 @@ bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*&)
 THR_ID Frame::getThread() const
 {
    return originating_thread;
+}
+
+void Frame::setPrevFrame(const Frame *pf)
+{
+  prev_frame = pf;
 }
 
 void Frame::setThread(THR_ID t)

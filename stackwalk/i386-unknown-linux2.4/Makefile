@@ -24,7 +24,8 @@ SRCS += 	../src/linux-swk.C \
 			../src/x86-swk.C \
 			../src/symtab-swk.C \
 			../src/dbginfo-stepper.C \
-			../src/x86-wanderer.C
+			../src/x86-wanderer.C \
+	                ../src/analysis_stepper.C
 
 
 ifdef LIBELF_INC
@@ -42,6 +43,7 @@ LDFLAGS += -L$(LIBDWARF_LIB) -ldwarf
 endif
 
 LIBS	+=
+MYFLAGS += -I../../parseAPI/h -I../../symtabAPI/h -I../../symEval/h
 CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults -fno-inline $(MYFLAGS)
 CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults -fno-inline $(MYFLAGS)
 AS		= as

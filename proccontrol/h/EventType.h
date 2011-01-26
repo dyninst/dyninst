@@ -24,6 +24,7 @@ class EventType
    static const int RPC                 = 13;
    static const int SingleStep          = 14;
    static const int Library             = 15;
+   static const int ForceTerminate      = 16;
 
    //Users do not recieve CBs for the below event types--ProcControlAPI internal
    static const int InternalEvents      = 500;

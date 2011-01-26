@@ -31,18 +31,13 @@
 
 #define BPATCH_FILE
 
-#include "process.h"
 #include "binaryEdit.h"
 #include "addressSpace.h"
-#include "EventHandler.h"
-#include "mailbox.h"
-#include "signalgenerator.h"
 #include "inst.h"
 #include "instP.h"
 #include "instPoint.h"
 #include "function.h" // int_function
 #include "codeRange.h"
-#include "dyn_thread.h"
 #include "miniTramp.h"
 
 #include "mapped_module.h"
@@ -55,7 +50,7 @@
 #include "BPatch_image.h"
 #include "BPatch_thread.h"
 #include "BPatch_function.h"
-#include "callbacks.h"
+#include "debug.h"
 
 #include "BPatch_private.h"
 #include <queue>
@@ -68,16 +63,13 @@
 /*
  * BPatch_binaryEdit::BPatch_binaryEdit
  *
- * Starts a new process and associates it with the BPatch_binaryEdit being
- * constructed.  The new process is placed into a stopped state before
- * executing any code.
+ * Creates a new BinaryEdit and associates it with the BPatch_binaryEdit
+ * being created. Additionally, if specified, the dependencies of the
+ * original BinaryEdit are opened and associated with the BPatch_binaryEdit
  *
- * path		Pathname of the executable to start.
- * argv		A list of pointers to character strings which are the
- *              arguments for the new process, terminated by a NULL pointer.
- * envp		A list of pointers to character strings which are the
- *              environment variables for the new process, terminated by a
- *              NULL pointer.  If NULL, the default environment will be used.
+ * path		     Pathname of the executable
+ * openDependencies  if true, the dependencies of the original BinaryEdit are
+ *                   also opened
  */
 BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
    BPatch_addressSpace(),

@@ -30,6 +30,7 @@ class Handler;
 class EventTerminate;
 class EventExit;
 class EventCrash;
+class EventForceTerminate;
 class EventExec;
 class EventBreakpoint;
 class EventStop;
@@ -93,6 +94,9 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
 
    dyn_detail::boost::shared_ptr<EventCrash> getEventCrash();
    dyn_detail::boost::shared_ptr<const EventCrash> getEventCrash() const;
+
+   dyn_detail::boost::shared_ptr<EventForceTerminate> getEventForceTerminate();
+   dyn_detail::boost::shared_ptr<const EventForceTerminate> getEventForceTerminate() const;
 
    dyn_detail::boost::shared_ptr<EventExec> getEventExec();
    dyn_detail::boost::shared_ptr<const EventExec> getEventExec() const;
@@ -189,6 +193,20 @@ class EventCrash : public EventTerminate
    virtual ~EventCrash();
 };
 
+class EventForceTerminate : public EventTerminate
+{
+   friend void dyn_detail::boost::checked_delete<EventForceTerminate>(EventForceTerminate *);
+   friend void dyn_detail::boost::checked_delete<const EventForceTerminate>(const EventForceTerminate *);
+ private:
+   int termsig;
+ public:
+   typedef dyn_detail::boost::shared_ptr<EventForceTerminate> ptr;
+   typedef dyn_detail::boost::shared_ptr<const EventForceTerminate> const_ptr;
+   int getTermSignal() const;
+   EventForceTerminate(int termsig);
+   virtual ~EventForceTerminate();
+};
+
 class EventExec : public Event
 {
    friend void dyn_detail::boost::checked_delete<EventExec>(EventExec *);
@@ -270,6 +288,7 @@ class EventSignal : public Event
    virtual ~EventSignal();
 
    int getSignal() const;
+   void clearSignal() const;
 };
 
 class EventBootstrap : public Event

@@ -45,10 +45,7 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, const void *inSel
 
 bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps);
 
-// So the function doesn't have to be renamed throughout the rest of Dyninst
-#define getVMMaps getLinuxMaps
-
-map_entries *getLinuxMaps(int pid, unsigned &maps_size);
+map_entries *getVMMaps(int pid, unsigned &maps_size);
 
 #endif
 

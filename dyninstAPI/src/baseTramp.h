@@ -49,7 +49,6 @@ class miniTramp;
 class miniTrampInstance;
 class baseTramp;
 class instPointInstance;
-class rpcMgr;
 
 class generatedCodeObject;
 
@@ -70,7 +69,7 @@ class baseTrampInstance : public generatedCodeObject {
     baseTrampInstance(const baseTrampInstance *pI,
                       baseTramp *cBT,
                       multiTramp *cMT,
-                      process *child);
+                      AddressSpace *child);
 
 
     Address trampAddr_;
@@ -221,10 +220,10 @@ class baseTramp {
 
     instPoint *instP() const { return instP_; }
 
-    // You know, a conservative tramp is equivalent to an iRPC...
-    rpcMgr *rpcMgr_;
-
     AddressSpace *proc() const;
+
+    bool isIRPCTramp() const  { return isIRPCTramp_; }
+    void setIRPCTramp(bool b) { isIRPCTramp_ = b; }
 
     void invalidateBT() { valid = false; };
 
@@ -254,7 +253,7 @@ class baseTramp {
     // Normal constructor
     baseTramp(instPoint *iP, callWhen when);
     // Fork constructor
-    baseTramp(const baseTramp *parentT, process *proc);
+    baseTramp(const baseTramp *parentT, AddressSpace *proc);
 
     // destructor
     ~baseTramp();
@@ -314,6 +313,8 @@ class baseTramp {
     bool createFrame_;
     unsigned instVersion_;
     callWhen when_;
+    bool isIRPCTramp_;
+    AddressSpace *rpcProc_;
 };
 
 extern baseTramp baseTemplate;

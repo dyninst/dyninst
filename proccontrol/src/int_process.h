@@ -88,11 +88,13 @@ class int_process
 {
    friend class Dyninst::ProcControlAPI::Process;
  protected:
-   int_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f);
+   int_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+           std::vector<std::string> envp, std::map<int,int> f);
    int_process(Dyninst::PID pid_, int_process *p);
  public:
    static int_process *createProcess(Dyninst::PID p, std::string e);
-   static int_process *createProcess(std::string e, std::vector<std::string> a, std::map<int,int> f);
+   static int_process *createProcess(std::string e, std::vector<std::string> a, 
+           std::vector<std::string> envp, std::map<int,int> f);
    static int_process *createProcess(Dyninst::PID pid_, int_process *p);
    virtual ~int_process();
  protected:
@@ -175,7 +177,8 @@ class int_process
    virtual bool plat_individualRegAccess() = 0;
 
    void addProcStopper(Event::ptr ev);
-   Event::ptr removeProcStopper();
+   Event::ptr getProcStopper();
+   void removeProcStopper();
    bool hasQueuedProcStoppers() const;
 
    int getAddressWidth();
@@ -200,11 +203,11 @@ class int_process
    bool infFree(Dyninst::Address addr);
 
    bool readMem(Dyninst::Address remote, mem_response::ptr result);
-   bool writeMem(void *local, Dyninst::Address remote, size_t size, result_response::ptr result);
+   bool writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result);
 
    virtual bool plat_readMem(int_thread *thr, void *local, 
                              Dyninst::Address remote, size_t size) = 0;
-   virtual bool plat_writeMem(int_thread *thr, void *local, 
+   virtual bool plat_writeMem(int_thread *thr, const void *local, 
                               Dyninst::Address remote, size_t size) = 0;
 
    //For a platform, if plat_needsAsyncIO returns true then the async
@@ -214,7 +217,7 @@ class int_process
    virtual bool plat_needsAsyncIO() const;
    virtual bool plat_readMemAsync(int_thread *thr, Dyninst::Address addr, 
                                   mem_response::ptr result);
-   virtual bool plat_writeMemAsync(int_thread *thr, void *local, Dyninst::Address addr,
+   virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
                                    size_t size, result_response::ptr result);
    
    typedef enum {
@@ -231,6 +234,8 @@ class int_process
    virtual bool refresh_libraries(std::set<int_library *> &added_libs,
                                   std::set<int_library *> &rmd_libs,
                                   std::set<response::ptr> &async_responses) = 0;
+
+   virtual int_library *getExecutableLib() = 0;
    virtual bool initLibraryMechanism() = 0;
    virtual bool plat_isStaticBinary() = 0;
 
@@ -249,6 +254,7 @@ class int_process
    Dyninst::PID pid;
    std::string executable;
    std::vector<std::string> argv;
+   std::vector<std::string> env;
    std::map<int,int> fds;
    Dyninst::Architecture arch;
    int_threadPool *threadpool;
@@ -496,6 +502,14 @@ class int_thread
    bool hasPostponedContinue() const;
    void setPostponedContinue(bool b);
 
+   // The exiting property is separate from the main state because an
+   // exiting thread can either be running or stopped (depending on the
+   // desires of the user).
+   bool isExiting() const;
+   void setExiting(bool b);
+   bool isExitingInGenerator() const;
+   void setExitingInGenerator(bool b);
+
    //Misc
    virtual bool attach() = 0;
    Thread::ptr thread();
@@ -527,6 +541,8 @@ class int_thread
    bool user_single_step;
    bool single_step;
    bool postponed_continue;
+   bool handler_exiting_state;
+   bool generator_exiting_state;
    installed_breakpoint *clearing_breakpoint;
 
 
@@ -598,23 +614,31 @@ class int_library
    std::string name;
    Dyninst::Address load_address;
    Dyninst::Address data_load_address;
+   Dyninst::Address dynamic_address;
    bool has_data_load;
    bool marked;
+   void *user_data;
    Library::ptr up_lib;
   public:
-   int_library(std::string n, Dyninst::Address load_addr);
-   int_library(std::string n, Dyninst::Address load_addr, 
-               Dyninst::Address data_load_addr);
+   int_library(std::string n, 
+               Dyninst::Address load_addr,
+               Dyninst::Address dynamic_load_addr, 
+               Dyninst::Address data_load_addr = 0, 
+               bool has_data_load_addr = false);
    int_library(int_library *l);
    ~int_library();
    std::string getName();
    Dyninst::Address getAddr();
    Dyninst::Address getDataAddr();
+   Dyninst::Address getDynamicAddr();
    bool hasDataAddr();
    
    void setMark(bool b);
    bool isMarked() const;
    
+   void setUserData(void *d);
+   void *getUserData();
+
    Library::ptr getUpPtr() const;
 };
 
@@ -827,6 +851,13 @@ class MTLock
       if (should_unlock && mt()->handlerThreading())
          mt()->endWork();
    }
+};
+
+// A class to stop the various threads that have been started when
+// the library is deinitialized
+class int_cleanup {
+    public:
+        ~int_cleanup();
 };
 
 #endif

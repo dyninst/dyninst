@@ -29,22 +29,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dyninstAPI/src/mailbox.h"
+#include "dyninstAPI/src/eventLock.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debug.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
+#include "common/h/dthread.h"
+
 #if defined (os_windows)
 #include <windows.h>
 #endif
-ThreadMailbox *eventmb = NULL;
-ThreadMailbox *getMailbox()
-{
-  if (eventmb == NULL) {
-    eventmb = new ThreadMailbox();
-  }
-  return eventmb;
-}
 
 extern eventLock *global_mutex;
 eventLock::eventLock()
@@ -346,139 +340,27 @@ void eventLock::printLockStack()
     }
 }
 
-ThreadMailbox::~ThreadMailbox() 
-{
-  for (unsigned int i = 0; i < cbs.size(); ++i) {
-    delete &(cbs[i]);
-  }
-  cbs.clear();
+unsigned long getExecThreadID() {
+#if defined(os_windows)
+    return (unsigned long) _threadid;
+#else
+    return (unsigned long) pthread_self();
+#endif
 }
 
-void ThreadMailbox::executeOrRegisterCallback(CallbackBase *cb) 
-{
-  //assert(global_mutex->depth());
-  CallbackBase *called_cb = executeCallback(cb);
-  mb_lock._Lock(FILE__, __LINE__);
-  cleanUpCalled();
-  if (called_cb) {
-    called.push_back(cb);
-  } else {
-    //  cannot execute now, save for later.
-    cbs.push_back(cb);
-  }
-  mb_lock._Unlock(FILE__, __LINE__);
+static Mutex callbackTidLock;
+static unsigned long callbackTid = 0;
+
+const char *getThreadStr(unsigned long tid) {
+    bool isCallbackThread = false;
+    callbackTidLock.lock();
+    isCallbackThread = (tid == callbackTid);
+    callbackTidLock.unlock();
+    return ( isCallbackThread ? "CALLBACK" : "UI" );
 }
 
-void ThreadMailbox::executeCallbacks(const char *file, unsigned int line) 
-{
-  if (!global_mutex->depth()) {
-    mailbox_printf("%s[%d][%s]: no lock before exec cbs from %s[%d], bad??\n",
-            FILE__, __LINE__, getThreadStr(getExecThreadID()), file, line);
-  }
-
-  //assert(global_mutex->depth());
-  mb_lock._Lock(FILE__, __LINE__);
-  mailbox_printf("%s[%d][%s]:  executeCallbacks...  %d in pile\n", FILE__, __LINE__, getThreadStr(getExecThreadID()), cbs.size());
-  cleanUpCalled();
-
-  pdvector<CallbackBase *> deferred;
-
-  while (cbs.size())
-  {
-    CallbackBase *cb = cbs[0], *called_cb;
-    VECTOR_ERASE(cbs,0,0);
-
-    mb_lock._Unlock(FILE__, __LINE__);
-    called_cb = executeCallback(cb);
-    mb_lock._Lock(FILE__, __LINE__);
-
-    if (called_cb) {
-       called.push_back(called_cb);
-       mailbox_printf("%s[%d]:  callback executed\n", FILE__, __LINE__);
-    }
-    else {
-      deferred.push_back(cb);
-    }
-  }
-  for (unsigned int i = 0; i < deferred.size(); ++i) {
-    cbs.push_back(deferred[i]);
-  }
-  deferred.clear(); 
-  mb_lock._Unlock(FILE__, __LINE__);
+void setCallbackThreadID(unsigned long tid) {
+    callbackTidLock.lock();
+    callbackTid = tid;
+    callbackTidLock.unlock();
 }
-
-CallbackBase *ThreadMailbox::executeCallback(CallbackBase *cb)
-{
-  if (cb->isExecuting()) {
-    //  per-callback recursion guard
-    mailbox_printf("%s[%d]:  callback is already executing!\n", FILE__, __LINE__);
-    return NULL;
-  }
-  if ((cb->targetThread() != getExecThreadID())
-      && (cb->targetThread()  != (unsigned long) -1L)) {
-    //  not the right thread for this callback, cannot execute
-    mailbox_printf("%s[%d]:  wrong thread for callback: target = %lu(%s), cur = %lu(%s)\n", 
-           FILE__, __LINE__, cb->targetThread(), getThreadStr(cb->targetThread()),
-            getExecThreadID(), getThreadStr(getExecThreadID()));
-    return NULL;
-  }
-  else {
-    mailbox_printf("%s[%d]:  got callback for thread %lu(%s), current: %lu\n",FILE__, __LINE__,
-           cb->targetThread(), getThreadStr(cb->targetThread()), getExecThreadID());
-  }
-
-  cb->setExecuting(true, getExecThreadID());
-  running.push_back(cb);
-  cb->execute(); 
-
-  //  remove callback from the running pile
-  bool erased_from_running_pile = false;
-  for (unsigned int i = 0; i < running.size(); ++i) {
-    if (running[i] == cb) {
-       VECTOR_ERASE(running,i,i);
-       erased_from_running_pile = true;
-       break;
-    }
-  }
-  assert(erased_from_running_pile);
-  cb->setExecuting(false);
-
- mailbox_printf("%s[%d]:  after executing callback for thread %lu(%s)\n",FILE__, __LINE__,
-        getExecThreadID(), getThreadStr(getExecThreadID()));
-
-  CallbackCompletionCallback cleanup_cb = cb->getCleanupCallback();
- mailbox_printf("%s[%d]:  before cleanup for thread %lu(%s), cb is %p\n",FILE__, __LINE__,
-        getExecThreadID(), getThreadStr(getExecThreadID()), cleanup_cb);
-  if (cleanup_cb) {
-    (cleanup_cb)(cb);
-  }
-
- mailbox_printf("%s[%d]:  after executing cleanup for thread %lu(%s)\n",FILE__, __LINE__,
-        getExecThreadID(), getThreadStr(getExecThreadID()));
-  return cb;
-}
-
-CallbackBase *ThreadMailbox::runningInsideCallback()
-{
-  //  if there is a callback executing on the current thread, then caller 
-  //  must be, by extension, running as a result being inside that callback.
-  for (unsigned int i = 0; i < running.size(); ++i) {
-    assert(running[i]->isExecuting());
-    if (running[i]->execThread() == getExecThreadID())
-      return running[i];
-  }
-  return NULL;
-}
-
-void ThreadMailbox::cleanUpCalled()
-{
-  int startsz = called.size();
-  for (int i = startsz -1; i >= 0; i--) {
-    if (called[i]->deleteEnabled()) {
-      CallbackBase *cb = called[i];
-      VECTOR_ERASE(called,i,i);
-      delete (cb);
-    }
-  }
-}
-

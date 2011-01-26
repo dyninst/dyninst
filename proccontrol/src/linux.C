@@ -65,15 +65,21 @@
 using namespace Dyninst;
 using namespace std;
 
+static GeneratorLinux *gen = NULL;
+
 Generator *Generator::getDefaultGenerator()
 {
-   static GeneratorLinux *gen = NULL;
    if (!gen) {
       gen = new GeneratorLinux();
       assert(gen);
       gen->launch();
    }
    return static_cast<Generator *>(gen);
+}
+
+void Generator::stopDefaultGenerator()
+{
+    if(gen) delete gen;
 }
 
 bool GeneratorLinux::initialize()
@@ -226,6 +232,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                      else {
                         event = Event::ptr(new EventThreadDestroy(EventType::Pre));
                      }
+                     thread->setExitingInGenerator(true);
                      break;
                   case PTRACE_EVENT_FORK: 
                   case PTRACE_EVENT_CLONE: {
@@ -368,9 +375,15 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       }
       else {
          int termsig = WTERMSIG(status);
-         pthrd_printf("Decoded event to crash of %d/%d with signal %d\n",
-                      proc->getPid(), thread->getLWP(), termsig);
-         event = Event::ptr(new EventCrash(termsig));
+         if( proc->wasForcedTerminated() ) {
+             pthrd_printf("Decoded event to force terminate of %d/%d\n",
+                     proc->getPid(), thread->getLWP());
+             event = Event::ptr(new EventForceTerminate(termsig));
+         }else{
+             pthrd_printf("Decoded event to crash of %d/%d with signal %d\n",
+                          proc->getPid(), thread->getLWP(), termsig);
+             event = Event::ptr(new EventCrash(termsig));
+         }
       }
       event->setSyncType(Event::sync_process);
       int_threadPool::iterator i = proc->threadPool()->begin();
@@ -416,16 +429,18 @@ int_process *int_process::createProcess(Dyninst::PID p, std::string e)
 {
    std::vector<std::string> a;
    std::map<int,int> f;
+   std::vector<std::string> envp;
    LinuxPtrace::getPtracer(); //Make sure ptracer thread is initialized
-   linux_process *newproc = new linux_process(p, e, a, f);
+   linux_process *newproc = new linux_process(p, e, a, envp, f);
    assert(newproc);
    return static_cast<int_process *>(newproc);
 }
 
-int_process *int_process::createProcess(std::string e, std::vector<std::string> a, std::map<int,int> f)
+int_process *int_process::createProcess(std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
+        std::map<int,int> f)
 {
    LinuxPtrace::getPtracer(); //Make sure ptracer thread is initialized
-   linux_process *newproc = new linux_process(0, e, a, f);
+   linux_process *newproc = new linux_process(0, e, a, envp, f);
    assert(newproc);
    return static_cast<int_process *>(newproc);
 }
@@ -503,11 +518,12 @@ Dyninst::Architecture linux_process::getTargetArch()
    return arch;
 }
 
-linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f) :
-   int_process(p, e, a, f),
-   sysv_process(p, e, a, f),
-   unix_process(p, e, a, f),
-   x86_process(p, e, a, f)
+linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
+        std::map<int,int> f) :
+   int_process(p, e, a, envp, f),
+   sysv_process(p, e, a, envp, f),
+   unix_process(p, e, a, envp, f),
+   x86_process(p, e, a, envp, f)
 {
 }
 
@@ -612,7 +628,7 @@ bool linux_process::plat_readMem(int_thread *thr, void *local,
    return LinuxPtrace::getPtracer()->ptrace_read(remote, size, local, thr->getLWP());
 }
 
-bool linux_process::plat_writeMem(int_thread *thr, void *local, 
+bool linux_process::plat_writeMem(int_thread *thr, const void *local, 
                                   Dyninst::Address remote, size_t size)
 {
    return LinuxPtrace::getPtracer()->ptrace_write(remote, size, local, thr->getLWP());
@@ -711,7 +727,7 @@ bool linux_process::plat_readMemAsync(int_thread *thr, Dyninst::Address addr, me
    return true;
 }
 
-bool linux_process::plat_writeMemAsync(int_thread *thr, void *local, Dyninst::Address addr, size_t size, 
+bool linux_process::plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr, size_t size, 
                                        result_response::ptr result)
 {
    bool b = plat_writeMem(thr, local, addr, size);
@@ -757,16 +773,37 @@ bool linux_thread::plat_cont()
          break;
    }
 
-   void *data = (continueSig_ == 0) ? NULL : (void *) continueSig_;
+   // The following case poses a problem:
+   // 1) This thread has received a signal, but the event hasn't been handled yet
+   // 2) An event that precedes the signal event triggers a callback where
+   //    the user requests that the whole process stop. This in turn causes
+   //    the thread to be sent a SIGSTOP because the Handler hasn't seen the
+   //    signal event yet.
+   // 3) Before handling the pending signal event, this thread is continued to
+   //    clear out the pending stop and consequently, it is delivered the signal
+   //    which can cause the whole process to crash
+   //
+   // The solution:
+   // Don't continue the thread with the pending signal if there is a pending stop.
+   // Wait until the user sees the signal event to deliver the signal to the process.
+   //
+   // This also applies to iRPCs
+   
+   int tmpSignal = continueSig_;
+   if( hasPendingStop() || runningRPC() ) {
+       tmpSignal = 0;
+   }
+
+   void *data = (tmpSignal == 0) ? NULL : (void *) tmpSignal;
    int result;
    if (singleStep())
    {
-      pthrd_printf("Calling PTRACE_SINGLESTEP with signal %d\n", continueSig_);
+      pthrd_printf("Calling PTRACE_SINGLESTEP with signal %d\n", tmpSignal);
       result = do_ptrace((pt_req) PTRACE_SINGLESTEP, lwp, NULL, data);
    }
    else 
    {
-      pthrd_printf("Calling PTRACE_CONT with signal %d\n", continueSig_);
+      pthrd_printf("Calling PTRACE_CONT with signal %d\n", tmpSignal);
       result = do_ptrace((pt_req) PTRACE_CONT, lwp, NULL, data);
    }
    if (result == -1) {
@@ -926,9 +963,9 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
          entryNumber = segmentSelectorVal / 8;
 
          pthrd_printf("Get segment base doing PTRACE with entry %lu\n", entryNumber);
-         do_ptrace((pt_req) PTRACE_GET_THREAD_AREA, 
-            lwp, (void *) entryNumber, (void *) &entryDesc);
-         if (errno != 0) {
+         long result = do_ptrace((pt_req) PTRACE_GET_THREAD_AREA, 
+                                 lwp, (void *) entryNumber, (void *) &entryDesc);
+         if (result == -1 && errno != 0) {
             pthrd_printf("PTRACE to get segment base failed: %s\n", strerror(errno));
             return false;
          }
@@ -1634,12 +1671,12 @@ bool LinuxPtrace::ptrace_read(Dyninst::Address inTrace, unsigned size_,
 }
 
 bool LinuxPtrace::ptrace_write(Dyninst::Address inTrace, unsigned size_, 
-                               void *inSelf, int pid_)
+                               const void *inSelf, int pid_)
 {
    start_request();
    ptrace_request = ptrace_bulkwrite;
    remote_addr = inTrace;
-   data = inSelf;
+   data = const_cast<void *>(inSelf);
    pid = pid_;
    size = size_;
    waitfor_ret();

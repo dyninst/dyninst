@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include "RTthread.h"
 #include "RTcommon.h"
@@ -42,205 +43,213 @@ extern unsigned DYNINST_max_num_threads;
 int DYNINST_multithread_capable;
 extern unsigned int DYNINSThasInitialized;
 
-static unsigned threadCreate(dyntid_t tid);
-
 static void (*rt_newthr_cb)(int) = NULL;
 void setNewthrCB(void (*cb)(int)) {
     rt_newthr_cb = cb;
+}
+
+#define IDX_NONE -1
+
+struct thread_hash_record {
+    dyntid_t tid;
+    int index;
+};
+
+static struct thread_hash_record *DYNINST_thread_hash;
+static unsigned DYNINST_thread_hash_size;
+
+static DECLARE_TC_LOCK(DYNINST_index_lock);
+
+static int num_free;
+
+static struct thread_hash_record default_thread_hash[THREADS_HASH_SIZE];
+
+DLLEXPORT int DYNINSTthreadCount() { return (DYNINST_max_num_threads - num_free); }
+
+void DYNINST_initialize_index_list()
+{
+  static int init_index_done;
+  unsigned i;
+
+  if (init_index_done) return;
+  init_index_done = 1;
+
+  if (DYNINST_max_num_threads == MAX_THREADS) {
+     DYNINST_thread_hash_size = THREADS_HASH_SIZE;
+     DYNINST_thread_hash = default_thread_hash;
+  }
+  else {
+     DYNINST_thread_hash_size = (int) (DYNINST_max_num_threads * 1.25);
+     DYNINST_thread_hash = (struct thread_hash_record *) 
+         malloc(DYNINST_thread_hash_size * sizeof(struct thread_hash_record));
+  }
+  assert( DYNINST_thread_hash != NULL );
+
+  for (i=0; i < DYNINST_thread_hash_size; i++)
+      DYNINST_thread_hash[i].index = IDX_NONE;
+
+  num_free = DYNINST_max_num_threads;
+}
+
+/**
+ * A guaranteed-if-there index lookup 
+ **/
+unsigned DYNINSTthreadIndexSLOW(dyntid_t tid) {
+    unsigned hash_id, orig;
+    unsigned retval = DYNINST_NOT_IN_HASHTABLE;
+    int index, result;
+    unsigned long tid_val = (unsigned long) tid;
+    result = tc_lock_lock(&DYNINST_index_lock);
+    if (result == DYNINST_DEAD_LOCK) {
+        rtdebug_printf("%s[%d]:  DEADLOCK HERE tid %lu \n", __FILE__, __LINE__,
+                       dyn_pthread_self());
+        /* We specifically return DYNINST_max_num_threads so that instrumentation
+         * has someplace safe to scribble in case of an error. */
+
+        /* DO NOT USE print statements here. That's horribly unsafe if we've instrumented
+           the output functions, as we'll infinite recurse and die */
+        return DYNINST_max_num_threads;
+    }
+
+    /**
+     * Search the hash table
+     **/
+    if (!DYNINST_thread_hash_size) {
+        //Uninitialized tramp guard.
+        return DYNINST_max_num_threads;
+    }
+
+    hash_id = tid_val % DYNINST_thread_hash_size;
+    orig = hash_id;
+    for (;;) {
+        index = DYNINST_thread_hash[hash_id].index;
+        if (index != IDX_NONE && DYNINST_thread_hash[hash_id].tid == tid) {
+            retval = index;
+            break;
+        }
+
+        hash_id++;
+        if (hash_id == DYNINST_thread_hash_size)
+            hash_id = 0;
+        if (orig == hash_id)
+            break;
+    }
+
+    tc_lock_unlock(&DYNINST_index_lock);
+    return retval;
+}
+
+/*
+ * Invoked by the mutator on thread creation
+ */
+int DYNINSTregisterThread(dyntid_t tid, unsigned index) {
+    unsigned hash_id, orig;
+    unsigned tid_val = (unsigned long) tid;
+
+    int retval = 1;
+
+    if( tc_lock_lock(&DYNINST_index_lock) == DYNINST_DEAD_LOCK ) {
+       rtdebug_printf("%s[%d]:  DEADLOCK HERE tid %lu \n", __FILE__, __LINE__, 
+               dyn_pthread_self());
+        return 0;
+    }
+
+    hash_id = tid_val % DYNINST_thread_hash_size;
+    orig = hash_id;
+    while(DYNINST_thread_hash[hash_id].index != IDX_NONE) {
+        hash_id++;
+        if( hash_id == DYNINST_thread_hash_size ) hash_id = 0;
+        if( orig == hash_id ) {
+            retval = 0;
+            break;
+        }
+    }
+
+    if( retval ) {
+        DYNINST_thread_hash[hash_id].index = index;
+        DYNINST_thread_hash[hash_id].tid = tid;
+        num_free--;
+        rtdebug_printf("%s[%d]: created mapping for thread (index = %lu, tid = 0x%lx)\n",
+                __FILE__, __LINE__, index, tid);
+    }
+
+    tc_lock_unlock(&DYNINST_index_lock);
+    return retval;
+}
+
+/*
+ * Invoked by the mutator on thread exit
+ */
+int DYNINSTunregisterThread(dyntid_t tid) {
+    unsigned hash_id, orig;
+    unsigned tid_val = (unsigned long) tid;
+
+    int retval = 1;
+
+    if( tc_lock_lock(&DYNINST_index_lock) == DYNINST_DEAD_LOCK ) {
+        rtdebug_printf("%s[%d]: DEADLOCK HERE tid %lu\n", __FILE__, __LINE__,
+                dyn_pthread_self());
+        return 0;
+    }
+
+    hash_id = tid_val % DYNINST_thread_hash_size;
+    orig = hash_id;
+    while(DYNINST_thread_hash[hash_id].tid != tid) {
+        hash_id++;
+        if( hash_id == DYNINST_thread_hash_size ) hash_id = 0;
+        if( orig == hash_id ) {
+            retval = 0;
+            break;
+        }
+    }
+
+    if( retval ) {
+        rtdebug_printf("%s[%d]: removed mapping for thread (index = %lu, tid = 0x%lx)\n",
+                __FILE__, __LINE__, DYNINST_thread_hash[hash_id].index, tid);
+        DYNINST_thread_hash[hash_id].index = IDX_NONE;
+        num_free++;
+    }
+
+    tc_lock_unlock(&DYNINST_index_lock);
+    return retval;
 }
 
 /**
  * Translate a tid given by pthread_self into an index.  Called by 
  * basetramps everywhere.
  **/
+int DYNINSTthreadIndex() {
+    dyntid_t tid;
+    unsigned curr_index;
 
-int DYNINSTthreadIndex()
-{
-   dyntid_t tid;
-   unsigned curr_index;
+    rtdebug_printf("%s[%d]:  welcome to DYNINSTthreadIndex()\n", __FILE__, __LINE__);
+    if (!DYNINSThasInitialized) return 0;
 
-   rtdebug_printf("%s[%d]:  welcome to DYNINSTthreadIndex()\n", __FILE__, __LINE__);
-   if (!DYNINSThasInitialized) 
-   {
-      return 0;
-   }
-   
-   tid = dyn_pthread_self();
-   rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): tid = %lu\n", __FILE__, __LINE__, (unsigned long) tid);
-   if (tid == (dyntid_t) DYNINST_SINGLETHREADED) {
-      return 0;
-   }
+    tid = (dyntid_t) ((unsigned long)dyn_lwp_self()); // XXX change to dyn_pthread_self once using tid's
+    rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): tid = %lu\n", __FILE__, __LINE__,
+                   (unsigned long) tid);
+    if (tid == (dyntid_t) DYNINST_SINGLETHREADED) return 0;
 
-   curr_index = DYNINSTthreadIndexFAST();
-   if (curr_index < DYNINST_max_num_threads &&
-       DYNINST_getThreadFromIndex(curr_index) == tid)
-   {
-       rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): index exists already, returning %d\n", __FILE__, __LINE__, curr_index);
-       return curr_index;
-   }
-   
-   curr_index = DYNINSTthreadIndexSLOW(tid);
-   if ( curr_index == DYNINST_NOT_IN_HASHTABLE )
-   {
-       rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): doing threadCreate for %lu\n", __FILE__, __LINE__, tid);
-       curr_index = threadCreate(tid);
-       rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): returning index: %d\n",  __FILE__, __LINE__, curr_index);
-   }
-		
-   /* While DYNINST_max_num_threads is also an error return for
-      DYNINSTthreadIndexSLOW(), there's not really anything we
-      can do about it at the moment, so just return it
-      and let the mutatee scribble into the so-allocated memory. */
+    curr_index = DYNINSTthreadIndexSLOW(tid);
 
-   rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): returning index: %d\n",  
-                  __FILE__, __LINE__, curr_index);
-   return curr_index;
-}
+    /* While DYNINST_max_num_threads is an error return for
+       DYNINSTthreadIndexSLOW(), there's not really anything we
+       can do about it at the moment, so just return it
+       and let the mutatee scribble into the so-allocated memory. */
+    if ( curr_index == DYNINST_NOT_IN_HASHTABLE ) {
+        rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): failed to find index for %lu\n",
+                __FILE__, __LINE__, tid);
+        curr_index = DYNINST_max_num_threads;
+    }
 
-extern tc_lock_t DYNINST_trace_lock;
-
-static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type, 
-                                void *ev, unsigned ev_size)
-{
-   int result;
-   rtBPatch_asyncEventRecord aev;
-   aev.pid = pid;
-   aev.type = type;
-   aev.event_fd = 0;
-   aev.size = ev_size;
-
-   result = tc_lock_lock(&DYNINST_trace_lock);
-   if (result == DYNINST_DEAD_LOCK)
-   {
-      fprintf(stderr, "[%s:%d] - Error in libdyninstAPI_RT: trace pipe deadlock in thread %lu\n",
-                    __FILE__, __LINE__, (unsigned long) dyn_pthread_self() );
-      return DYNINST_TRACEPIPE_ERRVAL;
-   }
-   
-   result = DYNINSTwriteEvent((void *) &aev, sizeof(rtBPatch_asyncEventRecord));
-   if (result == -1)
-   {
-      fprintf(stderr, "%s[%d]:  write error creating thread\n",
-              __FILE__, __LINE__);
-      goto done;
-   }
-
-   result = DYNINSTwriteEvent((void *) ev, ev_size);
-   if (result == -1)
-   {
-      fprintf(stderr, "%s[%d]:  write error creating thread\n",
-              __FILE__, __LINE__);
-      goto done;
-   }
-   
-   
- done:
-   tc_lock_unlock(&DYNINST_trace_lock);
-   rtdebug_printf("%s[%d]:  leaving asyncSendThreadEvent: status = %s\n", 
-                  __FILE__, __LINE__, result ? "error" : "ok");
-   return result;
-}
-
-/**
- * Creates a new index for a given tid.
- **/
-static unsigned threadCreate(dyntid_t tid)
-{
-   int res;
-   BPatch_newThreadEventRecord ev;
-   unsigned index;
-
-   rtdebug_printf("%s[%d]:  welcome to threadCreate\n", 
-                 __FILE__, __LINE__);
-   if (!DYNINSThasInitialized && !DYNINSTstaticMode)
-   {
-      return DYNINST_max_num_threads;
-   }
-   
-   /* Get an index */
-   index = DYNINST_alloc_index(tid);
-
-   /**
-    * Trigger the mutator and mutatee side callbacks.
-    **/
-   memset(&ev, 0, sizeof(BPatch_newThreadEventRecord));
-
-   ev.ppid = dyn_pid_self();
-   ev.tid = tid;
-   ev.lwp = dyn_lwp_self();
-   ev.index = index;
-   
-   res = DYNINSTthreadInfo(&ev);
-   if (!res)
-   {
-      return DYNINST_max_num_threads;
-   }
-   
-   if (rt_newthr_cb)
-   {
-      rt_newthr_cb(index);
-   }
-
-   if (!DYNINSTstaticMode)
-   {
-      /*Only async for now.  We should parameterize this function to also 
-        have a sync option.*/
-      asyncSendThreadEvent(ev.ppid, rtBPatch_threadCreateEvent, &ev, 
-                           sizeof(BPatch_newThreadEventRecord));
-      rtdebug_printf("%s[%d]:  leaving threadCreate: index = %d\n", 
-                     __FILE__, __LINE__, index);
-   }
-   return index;
-}
-
-/**
- * Called when a thread is destroyed
- **/
-void DYNINSTthreadDestroy()
-{
-   dyntid_t tid = dyn_pthread_self();
-   int index = DYNINSTthreadIndex();
-   /*   int pid = dyn_pid_self();*/
-   int err;
-   /*   BPatch_deleteThreadEventRecord rec;*/
-
-  rtdebug_printf("%s[%d]: DESTROY freeing index for thread %lu, index = %d\n", 
-                 __FILE__, __LINE__, tid, index);
-   err = DYNINST_free_index(tid);
-   if (err) {
-      rtdebug_printf("%s[%d]:  DYNINST_free_index FAILED\n", __FILE__, __LINE__);
-      return;
-   }
-#if 0
-   //  no longer do notification of exits asynchronously
-   memset(&rec, 0, sizeof(rec));
-   rec.index = index;
-#if !defined(os_windows)
-   //Windows doesn't need to use the trace pipe for thread events, thread 
-   // creation/deletion is handled through the debugging interface.
-   asyncSendThreadEvent(pid, rtBPatch_threadDestroyEvent, &rec, 
-                        sizeof(BPatch_deleteThreadEventRecord));
-#endif
-#endif
-}
-
-/**
- * This function's entire purpose in life is to exist in the symbol table.
- * We modify a global variable just to ensure that no compiler ever gets
- * rid of it.
- **/
-volatile int DYNINST_dummy_create_var;
-void DYNINST_dummy_create()
-{
-   /*   fprintf(stderr, "[%s:%u] - In DYNINST_dummy_create\n", __FILE__, __LINE__);*/
-   DYNINST_dummy_create_var++;
+    rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): returning index: %d\n",
+                   __FILE__, __LINE__, curr_index);
+    return curr_index;
 }
 
 /**
  * Some exported wrapper function for other runtime libraries to use tc_lock
  **/
-
-unsigned dyninst_threadIndex()
-{
+unsigned dyninst_threadIndex() {
    return DYNINSTthreadIndex();
 }

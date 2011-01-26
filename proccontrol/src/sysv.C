@@ -52,11 +52,12 @@ using namespace std;
 
 int_breakpoint *sysv_process::lib_trap = NULL;
 
-sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, map<int,int> f) :
-   int_process(p, e, a, f),
+sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, vector<string> envp, map<int,int> f) :
+   int_process(p, e, a, envp, f),
    translator(NULL),
    lib_initialized(false),
-   procreader(NULL)
+   procreader(NULL),
+   aout(NULL)
 {
 }
 
@@ -66,6 +67,7 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    sysv_process *sp = dynamic_cast<sysv_process *>(p);
    breakpoint_addr = sp->breakpoint_addr;
    lib_initialized = sp->lib_initialized;
+   aout = NULL;
    if (sp->procreader)
       procreader = new PCProcReader(this);
    if (sp->translator)
@@ -363,7 +365,7 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
                    ll->getCodeLoadAddr());
       if (!lib) {
          pthrd_printf("Creating new library object for %s\n", ll->getName().c_str());
-         lib = new int_library(ll->getName(), ll->getCodeLoadAddr());
+         lib = new int_library(ll->getName(), ll->getCodeLoadAddr(), ll->getDynamicAddr());
          assert(lib);
          added_libs.insert(lib);
          ll->setUpPtr((void *) lib);
@@ -397,6 +399,10 @@ Dyninst::Address sysv_process::getLibBreakpointAddr() const
 bool sysv_process::plat_execed()
 {
    pthrd_printf("Rebuilding library trap mechanism after exec on %d\n", getPid());
+   if (aout) {
+      // TODO safely delete aout
+      aout = NULL;
+   }
    if (translator) {
       delete translator;
       translator = NULL;
@@ -407,10 +413,50 @@ bool sysv_process::plat_execed()
    }
    breakpoint_addr = 0x0;
    lib_initialized = false;
-   return initLibraryMechanism();
+
+   bool result = initLibraryMechanism();
+   if (!result) {
+      pthrd_printf("Error initializing library mechanism\n");
+      return false;
+   }
+
+   std::set<int_library*> added, rmd;
+   for (;;) {
+      std::set<response::ptr> async_responses;
+      bool result = refresh_libraries(added, rmd, async_responses);
+      if (!result && !async_responses.empty()) {
+         result = waitForAsyncEvent(async_responses);
+         if (!result) {
+            pthrd_printf("Failure waiting for async completion\n");
+            return false;
+         }
+         continue;
+      }
+      if (!result) {
+         pthrd_printf("Failure refreshing libraries for %d\n", getPid());
+         return false;
+      }
+      return true;
+   }
 }
 
 bool sysv_process::plat_isStaticBinary()
 {
   return (breakpoint_addr == 0);
+}
+
+int_library *sysv_process::getExecutableLib()
+{
+   if (aout)
+      return aout;
+
+   LoadedLib *ll = translator->getExecutable();
+   aout = (int_library *) ll->getUpPtr();
+   if (aout)
+      return aout;
+
+   aout = new int_library(ll->getName(), ll->getCodeLoadAddr(), ll->getDynamicAddr());
+   ll->setUpPtr((void *) aout);
+
+   return aout;
 }

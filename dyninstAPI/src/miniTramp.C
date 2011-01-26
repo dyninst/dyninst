@@ -36,9 +36,10 @@
 #include "baseTramp.h"
 #include "instP.h"
 #include "instPoint.h"
-#include "process.h"
 #include "ast.h"
 #include "addressSpace.h"
+#include "pcProcess.h"
+#include "debug.h"
 #include "dyninstAPI/h/BPatch.h"
 
 // for AIX
@@ -365,7 +366,7 @@ unsigned miniTrampInstance::get_size() const {
 miniTrampInstance::miniTrampInstance(const miniTrampInstance *parMTI,
                                      baseTrampInstance *cBTI,
                                      miniTramp *cMT,
-                                     process *child) :
+                                     AddressSpace *child) :
     generatedCodeObject(parMTI, child),
     baseTI(cBTI),
     mini(cMT),
@@ -412,7 +413,7 @@ miniTramp::miniTramp(callWhen when_,
 
 miniTramp::miniTramp(const miniTramp *parMini,
                      baseTramp *childT,
-                     process *proc) :
+                     AddressSpace *proc) :
     miniTrampCode_(parMini->miniTrampCode_),
     ID(parMini->ID),
     returnOffset(parMini->returnOffset),
@@ -447,7 +448,7 @@ miniTramp::~miniTramp() {
 // Given a miniTramp parentMT, find the equivalent in the child
 // process (matching by the ID member). Fill in childMT.
   
-miniTramp *miniTramp::getInheritedMiniTramp(process *childProc) {
+miniTramp *miniTramp::getInheritedMiniTramp(AddressSpace *childProc) {
     int_function *childF = childProc->findFuncByInternalFunc(func()->ifunc());
     assert(childF);
     instPoint *childP = childF->findInstPByAddr(instP()->addr());

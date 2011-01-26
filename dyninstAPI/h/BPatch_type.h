@@ -355,7 +355,6 @@ public:
 #undef DYNINST_CLASS_NAME
 #endif
 #define DYNINST_CLASS_NAME BPatch_localVar
-class process;
 class BPATCH_DLL_EXPORT BPatch_localVar : public BPatch_eventLock{
     friend class BPatch;
     friend class BPatch_function;
