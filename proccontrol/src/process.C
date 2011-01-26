@@ -738,7 +738,7 @@ bool int_process::waitAndHandleEvents(bool block)
 
       if (ret.readyProcStoppers.size()) {
          int_process *proc = ret.readyProcStoppers[0];
-         Event::ptr ev = proc->removeProcStopper();
+         Event::ptr ev = proc->getProcStopper();
          if (ev->triggersCB() &&
              isHandlerThread() && 
              mt()->getThreadMode() == Process::HandlerThreading) 
@@ -749,6 +749,7 @@ bool int_process::waitAndHandleEvents(bool block)
             notify()->noteEvent();
             goto done;
          }
+         proc->removeProcStopper();
 
          pthrd_printf("Handling postponed proc stopper event on %d\n", proc->getPid());
          proc->handlerpool->handleEvent(ev);
@@ -1232,12 +1233,16 @@ void int_process::setForceGeneratorBlock(bool b)
    forceGenerator = b;
 }
 
-Event::ptr int_process::removeProcStopper()
+Event::ptr int_process::getProcStopper()
+{
+    assert(proc_stoppers.size());
+    return proc_stoppers.front();
+}
+
+void int_process::removeProcStopper()
 {
    assert(proc_stoppers.size());
-   Event::ptr ret = proc_stoppers.front();
    proc_stoppers.pop();
-   return ret;
 }
 
 bool int_process::hasQueuedProcStoppers() const
@@ -1523,7 +1528,9 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
          assert(old_state == int_thread::running ||
                 old_state == int_thread::neonatal_intermediate ||
                 thrd->llproc()->plat_needsAsyncIO() || 
-                thrd->llproc()->wasForcedTerminated());
+                thrd->llproc()->wasForcedTerminated() ||
+                ( old_state == int_thread::stopped && 
+                  (thrd->isExiting() || thrd->isExitingInGenerator()) ) );
          if (old_state == int_thread::errorstate)
             break;
          if (gen)
@@ -1675,7 +1682,6 @@ bool int_threadPool::cont(bool user_cont)
       int_thread *thr = *i;
       assert(thr);
 
-      ProcPool()->condvar()->signal();
       ProcPool()->condvar()->unlock();
       bool completed_rpc = true;
       bool result = rpcMgr()->handleThreadContinue(thr, user_cont, completed_rpc);
@@ -2049,7 +2055,7 @@ int_thread::stopcont_ret_t int_thread::stop(bool user_stop)
       return sc_skip;
    }
 
-   if (pending_stop && !exiting) {
+   if (pending_stop && !handler_exiting_state) {
       pthrd_printf("thread %d has in-progress stop on process %d\n", getLWP(), pid);
       return sc_success_pending;
    }
@@ -2069,7 +2075,7 @@ int_thread::stopcont_ret_t int_thread::stop(bool user_stop)
       return sc_success;
    }
 
-   if (pending_stop && exiting) {
+   if (pending_stop && handler_exiting_state) {
        pthrd_printf("exiting thread %d has in-progress stop on process %d\n", getLWP(),
                pid);
        return sc_success_pending;
@@ -2407,7 +2413,8 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    user_single_step(false),
    single_step(false),
    postponed_continue(false),
-   exiting(false),
+   handler_exiting_state(false),
+   generator_exiting_state(false),
    clearing_breakpoint(false)
 {
    Thread::ptr new_thr(new Thread());
@@ -2465,12 +2472,22 @@ void int_thread::setPostponedContinue(bool b)
 
 bool int_thread::isExiting() const
 {
-    return exiting;
+    return handler_exiting_state;
 }
 
 void int_thread::setExiting(bool b)
 {
-    exiting = b;
+    handler_exiting_state = b;
+}
+
+bool int_thread::isExitingInGenerator() const
+{
+    return generator_exiting_state;
+}
+
+void int_thread::setExitingInGenerator(bool b)
+{
+    generator_exiting_state = b;
 }
 
 Thread::ptr int_thread::thread()

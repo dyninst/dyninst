@@ -232,6 +232,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                      else {
                         event = Event::ptr(new EventThreadDestroy(EventType::Pre));
                      }
+                     thread->setExitingInGenerator(true);
                      break;
                   case PTRACE_EVENT_FORK: 
                   case PTRACE_EVENT_CLONE: {

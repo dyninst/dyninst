@@ -177,7 +177,8 @@ class int_process
    virtual bool plat_individualRegAccess() = 0;
 
    void addProcStopper(Event::ptr ev);
-   Event::ptr removeProcStopper();
+   Event::ptr getProcStopper();
+   void removeProcStopper();
    bool hasQueuedProcStoppers() const;
 
    int getAddressWidth();
@@ -506,6 +507,8 @@ class int_thread
    // desires of the user).
    bool isExiting() const;
    void setExiting(bool b);
+   bool isExitingInGenerator() const;
+   void setExitingInGenerator(bool b);
 
    //Misc
    virtual bool attach() = 0;
@@ -538,7 +541,8 @@ class int_thread
    bool user_single_step;
    bool single_step;
    bool postponed_continue;
-   bool exiting;
+   bool handler_exiting_state;
+   bool generator_exiting_state;
    installed_breakpoint *clearing_breakpoint;
 
 
