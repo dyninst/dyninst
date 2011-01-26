@@ -71,6 +71,8 @@ class MemoryEmulator {
 
     static const int STACK_SHIFT_VAL=256;
 
+	void debug() const;
+
   private:
    void addRegion(Address start, unsigned size, Address newBase);
 
