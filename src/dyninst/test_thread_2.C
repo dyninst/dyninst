@@ -143,9 +143,6 @@ test_results_t test_thread_2_Mutator::executeTest() {
   test3_threadCreateCounter = 0;
   callback_tids.clear();
 
-  unsigned int timeout = 0; // in ms
-  int err = 0;
-
   BPatchAsyncThreadEventCallback createcb = threadCreateCB;
   if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent, createcb))
   {
@@ -165,9 +162,15 @@ test_results_t test_thread_2_Mutator::executeTest() {
   appThread->continueExecution();
 #endif
 
-  //  wait until we have received the desired number of events
-  //  (or timeout happens)
+  if( !appProc->continueExecution() ) {
+      logerror("%s[%d]: failed to continue process\n", FILE__, __LINE__);
+      appProc->terminateExecution();
+      return FAILED;
+  }
 
+  //  wait until we have received the desired number of events
+
+  int err = 0;
   BPatch_Vector<BPatch_thread *> threads;
   BPatch_process *appProc = appThread->getProcess();
   assert(appProc);
@@ -175,31 +178,23 @@ test_results_t test_thread_2_Mutator::executeTest() {
   int active_threads = 11; // FIXME Magic number
   threads.clear();
   while (((test3_threadCreateCounter < TEST3_THREADS)
-         || (active_threads > 1))
-         && (timeout < TIMEOUT)) {
+         || (active_threads > 1)) && !appProc->isTerminated() ) {
     dprintf("%s[%d]: waiting for completion for test %d, num active threads = %d\n",
             __FILE__, __LINE__, TESTNO, active_threads);
-    sleep_ms(SLEEP_INTERVAL/*ms*/);
-    timeout += SLEEP_INTERVAL;
-    if (appProc->isTerminated()) {
-       logerror("%s[%d]:  BAD NEWS:  somehow the process died\n", __FILE__, __LINE__);
-       err = 1;
-       break;
+    if( !bpatch->waitForStatusChange() ) {
+        logerror("%s[%d]: failed to wait for events\n", __FILE__, __LINE__);
+        err = 1;
+        break;
     }
-    bpatch->pollForStatusChange();
-    if (appProc->isStopped()) {
-        appProc->continueExecution();
-    }
+
     appProc->getThreads(threads);
     active_threads = threads.size();
     threads.clear();
   }
 
-  if (timeout >= TIMEOUT) {
-    FAIL_MES(TESTNAME, TESTDESC);
-    logerror("%s[%d]:  test timed out. got %d/10 events\n",
-           __FILE__, __LINE__, test3_threadCreateCounter);
-    err = 1;
+  if( appProc->isTerminated() ) {
+      logerror("%s[%d]:  BAD NEWS:  somehow the process died\n", __FILE__, __LINE__);
+      return FAILED;
   }
 
   dprintf("%s[%d]: ending test %d, num active threads = %d\n",
