@@ -1744,7 +1744,49 @@ bool BPatch_process::hideDebuggerInt()
         funcs.clear();
     }
 
-    if (kern && user) { // should only succeed on windows
+    if (kern) {
+        // getTickCount
+        using namespace SymtabAPI;
+        vector<BPatch_function*> funcs;
+        kern->findFunction(
+            "GetTickCount",
+            funcs, false, false, false, true);
+        assert (!funcs.empty());
+#if 1
+        BPatch_module *rtlib = this->image->findOrCreateModule(
+            (*llproc->runtime_lib.begin())->getModules().front());
+        vector<BPatch_function*> repfuncs;
+        rtlib->findFunction("DYNINST_FakeTickCount", repfuncs, false);
+        assert(!repfuncs.empty());
+        replaceFunction(*funcs[0],*repfuncs[0]);
+#else
+        Address entry = (Address)funcs[0]->getBaseAddr();
+        // create a patch that returns zero
+        const int PATCH_SIZE = 14;
+        unsigned char patch[PATCH_SIZE];
+        patch[0] = 0x33; // xor eax,eax
+        patch[1] = 0xc0;
+        for (unsigned i=2; i < 13; i++) {
+            patch[i] = 0x90;
+        }
+        patch[13] = 0xc3; // retn
+        // patch out process memory and its copy in the mapped file
+        if (!llproc->writeDataSpace((void*)entry,sizeof(char)*PATCH_SIZE,&patch)) {
+            assert(0);
+        }
+        mapped_object *kernObj = kern->lowlevel_mod()->obj();
+        Region *reg = kernObj->parse_img()->getObject()->findEnclosingRegion
+            (entry - kernObj->codeBase());
+        assert(reg);
+        unsigned char *rawReg = (unsigned char *) reg->getPtrToRawData();
+        memcpy(rawReg + entry - kernObj->codeBase() - reg->getMemOffset(), 
+               patch, 
+               sizeof(char) * PATCH_SIZE);
+#endif
+        funcs.clear();
+    }
+
+    if (kern && user) { 
         // CheckRemoteDebuggerPresent
         vector<BPatch_function*> funcs;
         kern->findFunction(

@@ -277,3 +277,17 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
 int DYNINST_am_initial_thread(dyntid_t tid) {
     return (tid == initial_thread_tid);
 }
+
+extern int fakeTickCount;
+extern FILE *stOut;
+int DYNINST_FakeTickCount()
+{
+    DWORD tmp = GetTickCount();
+    if (0 == fakeTickCount) {
+        fakeTickCount = tmp;
+    } else {
+        fakeTickCount = fakeTickCount + (tmp - fakeTickCount)/1000 + 1;
+    }
+    fprintf(stOut,"DYNINST_FakeTickCount returning %lx\n",fakeTickCount);
+    return fakeTickCount;
+}

@@ -539,7 +539,7 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &ge
                     gen.rs()->anyLiveFPRsAtEntry()     &&
                     bt->isConservative()               &&
                     !bt->optimized_out_guards );
-    bool alignStack = false; //  useFPRs || !bti || bti->checkForFuncCalls();
+    bool alignStack = useFPRs || !bti || bti->checkForFuncCalls();
 
     if (alignStack) {
         emitStackAlign(funcJumpSlotSize, gen);
