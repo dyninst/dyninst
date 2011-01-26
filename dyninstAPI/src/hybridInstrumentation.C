@@ -60,6 +60,11 @@ static void virtualFreeSizeCB_wrapper(BPatch_point *point, void *calc)
 		getHybridAnalysis()->virtualFreeSizeCB(point, calc);
 }
 
+static void virtualFreeCB_wrapper(BPatch_point *point, void *calc)
+{
+	dynamic_cast<BPatch_process *>(point->getFunction()->getProc())->
+		getHybridAnalysis()->virtualFreeCB(point, calc);
+}
 static void badTransferCB_wrapper(BPatch_point *point, void *calc) 
 { 
     dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
@@ -120,7 +125,15 @@ bool HybridAnalysis::init()
 		BPatch_paramExpr(1), // Size of the free buffer
 		false, // No cache!
 		BPatch_noInterp);
-	BPatch_arithExpr virtualFreeSnippet = BPatch_arithExpr(BPatch_seq, virtualFreeAddrSnippet, virtualFreeSizeSnippet);
+	BPatch_stopThreadExpr virtualFreeTypeSnippet = BPatch_stopThreadExpr(virtualFreeCB_wrapper,
+		BPatch_paramExpr(2), // Size of the free buffer
+		false, // No cache!
+		BPatch_noInterp);
+	std::vector<BPatch_snippet *> snippets;
+	snippets.push_back(&virtualFreeAddrSnippet);
+	snippets.push_back(&virtualFreeSizeSnippet);
+	snippets.push_back(&virtualFreeTypeSnippet);
+	BPatch_sequence seq = BPatch_sequence(snippets);
 
 	proc()->beginInsertionSet();
 	std::vector<BPatch_function *> virtualFreeFuncs;
@@ -128,7 +141,7 @@ bool HybridAnalysis::init()
 	for (unsigned i = 0; i < virtualFreeFuncs.size(); ++i) {
 		std::vector<BPatch_point *> *entryPoints = virtualFreeFuncs[i]->findPoint(BPatch_locEntry);
 
-		proc()->insertSnippet(virtualFreeSnippet, *entryPoints);
+		proc()->insertSnippet(seq, *entryPoints);
 
 	}
 	proc()->finalizeInsertionSet(false);
