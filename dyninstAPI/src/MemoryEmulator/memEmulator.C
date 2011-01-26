@@ -130,6 +130,9 @@ void MemoryEmulator::addRegion(mapped_object *obj) {
 }
 
 void MemoryEmulator::removeRegion(mapped_object *obj) {
+	//cerr << "Removing region " << obj->fileName() << endl;
+	//cerr << "\t Before: " << endl;
+	//debug();
 	// Remove each code region
 	std::vector<Region *> codeRegions;
 	obj->parse_img()->getObject()->getCodeRegions(codeRegions);
@@ -139,6 +142,8 @@ void MemoryEmulator::removeRegion(mapped_object *obj) {
 
 		removeRegion(reg, obj->codeBase());
 	}
+	//cerr << "\t After: " << endl;
+	//debug();
 }
 
 void MemoryEmulator::addRegion(Region *reg, Address base) {
@@ -241,7 +246,9 @@ void MemoryEmulator::removeRegion(Region *reg, Address base) {
 
 void MemoryEmulator::addRegion(Address start, unsigned size, Address shift) {
    if (size == 0) return;
-
+   //cerr << "MemoryEmulator: adding region " << hex << start << " : " << size << " /w/ shift " << shift << dec << endl;
+   //debug();
+   //cerr << endl;
    Address end = start + size;
    assert(end > start);
 
@@ -297,25 +304,32 @@ void MemoryEmulator::addRegion(Address start, unsigned size, Address shift) {
    if (shift != (unsigned long) -1) {
       reverseMemoryMap_.insert(start + shift, end + shift, shift);
    }
-
+   //debug();
    return;   
 }
 
 void MemoryEmulator::removeRegion(Address addr, unsigned size) {
-	Address lb, ub;
+	Address lb = 0, ub = 0;
 	unsigned long shiftVal;
+
+	//cerr << "MemoryEmulator: removing region " << hex << addr << " : " << size << dec << endl;
+
+   //debug();
+   //cerr << endl;
 
 	Address lowLB = 0, lowUB = 0, hiLB = 0, hiUB = 0;
 
 	// We are guaranteed to be either our own allocated range or
 	// coalesced with another range. 
-	memoryMap_.find(addr, lb, ub, shiftVal);
-	
-	if (lb < addr) {
+	if (!memoryMap_.find(addr, lb, ub, shiftVal)) {
+		return;
+	}
+
+	if ((lb != 0) && (lb < addr)) {
 		lowLB = lb;
 		lowUB = addr;
 	}
-	if (ub > (addr + size)) {
+	if ((ub != 0) && (ub > (addr + size))) {
 		hiLB = (addr + size);
 		hiUB = ub;
 	}
@@ -328,6 +342,7 @@ void MemoryEmulator::removeRegion(Address addr, unsigned size) {
 	}
 	
 	reverseMemoryMap_.remove(addr + shiftVal);
+	//debug();
 }
 
 unsigned MemoryEmulator::addrWidth() {
@@ -445,10 +460,7 @@ void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size)
     //    if (sit->first >= offset + size) break;
     //    assert(0);
     //}
-    if (offset == 0xd3d2 ||
-        offset == 0xd3d3) {
-            cerr << "DEBUG BREAKPOINT!" << endl;
-    }
+
     for (Address tmp = offset; tmp < offset + size; ++tmp) {
         springboards_[reg].erase(tmp);
     }
@@ -478,4 +490,23 @@ void MemoryEmulator::removeSpringboards(const int_block *bbi)
     }
     springboards_[reg].erase(bbi->llb()->start() - reg->getMemOffset());
     if (springboards_[reg].empty()) springboards_.erase(reg);
+}
+
+void  MemoryEmulator::debug() const {
+	std::vector<MemoryMapTree::Entry> elements;
+	memoryMap_.elements(elements);
+	cerr << "\t Forward map: " << endl;
+	for (std::vector<MemoryMapTree::Entry>::iterator iter = elements.begin(); iter != elements.end(); ++iter)
+	{
+		cerr << "\t\t " << hex << "[" << iter->first.first << "," << iter->first.second << "]: " << iter->second << dec << endl;
+	}
+	elements.clear();
+	cerr << "\t Backwards map: " << endl;
+	reverseMemoryMap_.elements(elements);
+	for (std::vector<MemoryMapTree::Entry>::iterator iter = elements.begin(); iter != elements.end(); ++iter)
+	{
+		cerr << "\t\t " << hex << "[" << iter->first.first << "," << iter->first.second << "]: " << iter->second << dec << endl;
+	}
+	elements.clear();
+
 }
