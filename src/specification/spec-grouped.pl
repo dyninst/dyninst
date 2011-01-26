@@ -1418,6 +1418,21 @@ test_runmode('test_stack_3', 'createProcess').
 test_start_state('test_stack_3', 'stopped').
 tests_module('test_stack_3', 'dyninst').
 
+% test_stack_4
+test('test_stack_4', 'test_stack_4', 'test_stack_4').
+test_description('test_stack_4', 'Test getCallStack through an entry-instrumented signal handler').
+% test_stack_4 doesnt run on Windows
+test_platform('test_stack_4', Platform) :-
+    platform(_, OS, _, Platform),
+    OS \= 'windows'.
+mutator('test_stack_4', ['test_stack_4.C']).
+mutatee('test_stack_4', ['test_stack_4_mutatee.c']).
+compiler_for_mutatee('test_stack_4', Compiler) :-
+    comp_lang(Compiler, 'c').
+test_runmode('test_stack_4', 'createProcess').
+test_start_state('test_stack_4', 'stopped').
+tests_module('test_stack_4', 'dyninst').
+
 % test_callback_1 (formerly test12_2)
 test('test_callback_1', 'test_callback_1', 'test_callback_1').
 test_description('test_callback_1', 'dynamic callsite callbacks').
