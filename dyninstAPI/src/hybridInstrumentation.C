@@ -392,8 +392,8 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             if ( proc()->lowlevel_process()->isMemoryEmulated() && 
                  needsSynchronization(curPoint) )
             {
-                mal_printf("Adding pre- and post- synch instrumentation to 0x%lx\n",
-                           (Address)curPoint->getAddress());
+                mal_printf("preSync: Adding pre- and post- synch instrumentation to 0x%lx (0x%l)\n",
+                           (Address)curPoint->getAddress(), curPoint);
                 BPatchSnippetHandle *handle = proc()->insertSnippet
                     (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(1)), 
                      *curPoint,
@@ -627,14 +627,28 @@ void HybridAnalysis::removeInstrumentation(BPatch_function *func,
                 if (synchMap_pre_.end() != synchMap_pre_.find(pit->first)) 
                 {
                     SynchHandle *shandle = synchMap_pre_[pit->first];
+                    // Note: the points in this snippet handle may have been deleted, and thus
+                    // should not be dereferenced; use them only as key values in maps.
+
                     synchMap_pre_.erase(shandle->prePt_);
+                    /*
+                    // Don't remove an instrumentation point that we haven't specifically found;
+                    // it might be in a different function.
                     synchMap_post_.erase(shandle->postPt_);
+                    */
                     delete shandle;
                 }
                 else if (synchMap_post_.end() != synchMap_post_.find(pit->first))
                 {
                     SynchHandle *shandle = synchMap_post_[pit->first];
+                    // Note: the points in this snippet handle may have been deleted, and thus
+                    // should not be dereferenced; use them only as key values in maps.
+
+                    /*
+                    // Do not remove an instrumentation point that we haven't specifically found;
+                    // it might be in a different function.
                     synchMap_pre_.erase(shandle->prePt_);
+                    */
                     synchMap_post_.erase(shandle->postPt_);
                     delete shandle;
                 }
@@ -724,23 +738,32 @@ bool HybridAnalysis::instrumentModules(bool useInsertionSet)
 void HybridAnalysis::origToShadowInstrumentation(BPatch_point *callPt, 
                                                  const vector<int_block*> &blks)
 {
+    proc()->beginInsertionSet();
     for (vector<int_block*>::const_iterator bit = blks.begin();
          bit != blks.end();
          bit++) 
     {
+        cerr << "\t For point " << hex << callPt->getAddress() << " calling into system lib, doing return inst at " << (*bit)->start() << dec << endl;
         BPatch_function *bpFunc = proc()->findOrCreateBPFunc((*bit)->func(),NULL);
         BPatch_point *ftPt = bpFunc->getPoint((*bit)->start());
+        cerr << "\t\t Instrumenting point " << hex << ftPt << "/" << ftPt->getAddress() << dec << endl;
         assert(ftPt);
         if (synchMap_post().end() == synchMap_post().find(ftPt)) {
             BPatchSnippetHandle *handle = proc()->insertSnippet
                 (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(0)), 
                  *ftPt,
-                 BPatch_callBefore,
+                 (ftPt->getPointType() == BPatch_locExit) ? BPatch_callAfter : BPatch_callBefore,
                  BPatch_firstSnippet);
+            assert(handle);
+            cerr << "Adding handle to preSync @ " << hex << callPt << "/" << callPt->getAddress() << dec << endl;
             synchMap_pre()[callPt]->setPostHandle(ftPt, handle);
             synchMap_post()[ftPt] = synchMap_pre()[callPt];
         }
+        else {
+            cerr << "\t\t Already have synch instrumentation, skipping" << endl;
+        }
     }
+    proc()->finalizeInsertionSet(false);
 }
 
 /* Takes a point corresponding to a function call and continues the parse in 

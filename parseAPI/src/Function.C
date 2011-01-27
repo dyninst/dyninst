@@ -411,6 +411,7 @@ Function::tampersStack(bool recalculate)
         _tamper = TAMPER_NONE;
         return _tamper;
     }
+	_cache_valid = false;
 
     // if we want to re-calculate the tamper address
     if (!recalculate && TAMPER_UNSET != _tamper) {

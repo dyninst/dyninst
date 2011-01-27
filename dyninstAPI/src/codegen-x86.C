@@ -86,26 +86,30 @@ unsigned copy_prefixes(const unsigned char *&origInsn, unsigned char *&newInsn, 
 unsigned copy_prefixes_nosize(const unsigned char *&origInsn, unsigned char *&newInsn, 
                               unsigned insnType) 
 {
-  unsigned nPrefixes = count_prefixes(insnType);
+    unsigned retval = 0;
+    unsigned nPrefixes = count_prefixes(insnType);
 
-  for (unsigned u = 0; u < nPrefixes; u++) {
-     if (*origInsn == 0x66 || *origInsn == 0x67)
-     {
-        origInsn++;
-        continue;
-     }
-     *newInsn++ = *origInsn++;
-  }
-  return nPrefixes;
+    for (unsigned u = 0; u < nPrefixes; u++) {
+        if (*origInsn == 0x66 || *origInsn == 0x67)
+        {
+            origInsn++;
+            continue;
+        }
+        retval++;
+        *newInsn++ = *origInsn++;
+    }
+    return retval;
 }
 
 //Copy all prefixes but the Operand-Size and Address-Size prefixes (0x66 and 0x67)
+// Returns the number of bytes copied
 unsigned copy_prefixes_nosize_or_segments(const unsigned char *&origInsn, unsigned char *&newInsn, 
                               unsigned insnType) 
 {
+    unsigned retval = 0;
   unsigned nPrefixes = count_prefixes(insnType);
   if (0 == nPrefixes) {
-      return nPrefixes;
+      return 0;
   }
 
   // duplicate prefixes are possible and are not identified by count_prefixes
@@ -119,11 +123,12 @@ unsigned copy_prefixes_nosize_or_segments(const unsigned char *&origInsn, unsign
             break;
          }
          *newInsn++ = *origInsn++;
+         retval++;
      }
      nWithDups++;
   }
 
-  return nWithDups;
+  return retval;
 }
 
 bool convert_to_rel8(const unsigned char*&origInsn, unsigned char *&newInsn) {
@@ -398,12 +403,14 @@ unsigned pcRelJump::apply(Address addr)
    const unsigned char *origInsn = orig_instruc.ptr();
    unsigned insnType = orig_instruc.type();
    unsigned char *orig_loc;
-        
+  
    GET_PTR(newInsn, *gen);
    orig_loc = newInsn;
-    if (copy_prefixes_) {
-   copy_prefixes(origInsn, newInsn, insnType);
-    }
+   if (copy_prefixes_) {
+       addr += copy_prefixes(origInsn, newInsn, insnType);
+       // Otherwise we will fail to account for them and
+       // generate a branch that is +(# prefix bytes)
+   }
    SET_PTR(newInsn, *gen);
     
    insnCodeGen::generateBranch(*gen, addr, get_target());
@@ -462,8 +469,9 @@ unsigned pcRelJCC::apply(Address addr)
    codeBufIndex_t start = gen->getIndex();
    GET_PTR(newInsn, *gen);
 
-   copy_prefixes_nosize_or_segments(origInsn, newInsn, insnType); 
+   addr += copy_prefixes_nosize_or_segments(origInsn, newInsn, insnType); 
    
+
    //8-bit jump
    potential = addr + 2;
    disp = target - potential;
@@ -590,7 +598,7 @@ unsigned pcRelCall::apply(Address addr)
    GET_PTR(newInsn, *gen);
    orig_loc = newInsn;
 
-   copy_prefixes_nosize(origInsn, newInsn, insnType);
+   addr += copy_prefixes_nosize(origInsn, newInsn, insnType);
    SET_PTR(newInsn, *gen);
    insnCodeGen::generateCall(*gen, addr, get_target());
    REGET_PTR(newInsn, *gen);
@@ -669,7 +677,7 @@ unsigned pcRelData::apply(Address addr)
 
    // In other cases, we can rewrite the insn directly; in the 64-bit case, we
    // still need to copy the insn
-   copy_prefixes(origInsn, newInsn, insnType);
+   addr += copy_prefixes(origInsn, newInsn, insnType);
 
    if (*origInsn == 0x0F) {
       *newInsn++ = *origInsn++;

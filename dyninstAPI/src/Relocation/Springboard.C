@@ -329,6 +329,7 @@ bool SpringboardBuilder::conflictInRelocated(Address start, Address end) {
       }
    }
    if ( (end-start) > 1 && relocTraps_.end() != relocTraps_.find(start) ) {
+#if 0
        malware_cerr << "Springboard conflict for " << hex << start  
            << " our previous springboard here needed a trap, "
            << "but due to overwrites we may (erroneously) think "
@@ -337,6 +338,7 @@ bool SpringboardBuilder::conflictInRelocated(Address start, Address end) {
            << " our previous springboard here needed a trap, "
            << "but due to overwrites we may (erroneously) think "
            << "a branch can fit" << dec << endl;
+#endif
        return true;
    }
 
@@ -464,7 +466,8 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool
 
           bool curUseTrap = useTrap;
           if ( !useTrap && relocTraps_.end() != relocTraps_.find(*addr)) {
-               malware_cerr << "Springboard conflict for " << hex 
+#if 0
+              malware_cerr << "Springboard conflict for " << hex 
                    << req.from << "[" << (*addr) 
                    << "] our previous springboard here needed a trap, "
                    << "but due to overwrites we may (erroneously) think "
@@ -474,6 +477,7 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool
                    << "] our previous springboard here needed a trap, "
                    << "but due to overwrites we may (erroneously) think "
                    << "a branch can fit" << dec << endl;
+#endif
                curUseTrap = true;
           }
 

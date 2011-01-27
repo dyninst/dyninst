@@ -377,8 +377,12 @@ std::pair<bool, Address> MemoryEmulator::translateBackwards(Address addr) {
 
 void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig) 
 {
-    if (toOrig) malware_cerr << "Syncing shadow to orig for obj " << obj->fileName() << endl;
-    else        malware_cerr << "Syncing orig to shadow for obj " << obj->fileName() << endl;
+    if (toOrig) {
+        malware_cerr << "Syncing shadow to orig for obj " << obj->fileName() << endl;
+    }
+    else {
+        malware_cerr << "Syncing orig to shadow for obj " << obj->fileName() << endl;
+    }
     using namespace SymtabAPI;
     vector<Region*> regs;
     obj->parse_img()->getObject()->getCodeRegions(regs);
