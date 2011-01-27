@@ -1684,6 +1684,14 @@ bool BPatch_process::hideDebuggerInt()
             "BlockInput",
             funcs, false, false, false, true);
         assert (funcs.size());
+#if 1
+        BPatch_module *rtlib = this->image->findOrCreateModule(
+            (*llproc->runtime_lib.begin())->getModules().front());
+        vector<BPatch_function*> repfuncs;
+        rtlib->findFunction("DYNINST_FakeBlockInput", repfuncs, false);
+        assert(!repfuncs.empty());
+        replaceFunction(*funcs[0],*repfuncs[0]);
+#else
         Address entry = (Address)funcs[0]->getBaseAddr();
         // create a patch that will return one
         const int PATCH_SIZE = 4;
@@ -1704,6 +1712,7 @@ bool BPatch_process::hideDebuggerInt()
         memcpy(rawReg + entry - userObj->codeBase() - reg->getMemOffset(), 
                patch, 
                sizeof(char) * PATCH_SIZE);
+#endif
         funcs.clear();
     }
 
@@ -1711,14 +1720,21 @@ bool BPatch_process::hideDebuggerInt()
     if (kern) {
         // SuspendThread
 
-        // KEVINTODO: use function replacement to replace the function, 
-        // conditioned on its thread ID parameter matching a Dyninst thread
+        // KEVINTODO: condition the function replacement on its thread ID parameter matching a Dyninst thread
         using namespace SymtabAPI;
         vector<BPatch_function*> funcs;
         kern->findFunction(
             "SuspendThread",
             funcs, false, false, false, true);
         assert (funcs.size());
+#if 1
+        BPatch_module *rtlib = this->image->findOrCreateModule(
+            (*llproc->runtime_lib.begin())->getModules().front());
+        vector<BPatch_function*> repfuncs;
+        rtlib->findFunction("DYNINST_FakeSuspendThread", repfuncs, false);
+        assert(!repfuncs.empty());
+        replaceFunction(*funcs[0],*repfuncs[0]);
+#else
         Address entry = (Address)funcs[0]->getBaseAddr();
         // create a patch that will return one
         const int PATCH_SIZE = 6;
@@ -1741,6 +1757,7 @@ bool BPatch_process::hideDebuggerInt()
         memcpy(rawReg + entry - kernObj->codeBase() - reg->getMemOffset(), 
                patch, 
                sizeof(char) * PATCH_SIZE);
+#endif
         funcs.clear();
     }
 
@@ -1793,6 +1810,15 @@ bool BPatch_process::hideDebuggerInt()
             "CheckRemoteDebuggerPresent",
             funcs, false, false, true);
         assert (funcs.size());
+#if 1
+        BPatch_module *rtlib = this->image->findOrCreateModule(
+            (*llproc->runtime_lib.begin())->getModules().front());
+        vector<BPatch_function*> repfuncs;
+        rtlib->findFunction("DYNINST_FakeCheckRemoteDebuggerPresent", repfuncs, false);
+        assert(!repfuncs.empty());
+        replaceFunction(*funcs[0],*repfuncs[0]);
+#else 
+        // doesn't work anyway, missing the patch to the mapped file
         Address entry = (Address)funcs[0]->getBaseAddr();
         unsigned char patch[3];
         patch[0] = 0x33; //xor eax,eax
@@ -1800,6 +1826,7 @@ bool BPatch_process::hideDebuggerInt()
         patch[2] = 0xc3; // retn
         llproc->writeDataSpace((void*)entry,3,&patch);
         funcs.clear();
+#endif
 
         // OutputDebugStringA
         kern->findFunction("OutputDebugStringA",
@@ -1819,8 +1846,9 @@ bool BPatch_process::hideDebuggerInt()
         for (unsigned i=0; i < exitPoints->size(); i++) {
             insertSnippet( callSLE, *((*exitPoints)[i]) );
         }
-        finalizeInsertionSet(false);
     } 
+
+    finalizeInsertionSet(false);
 
     if (!user || !kern) {
         retval = false;
