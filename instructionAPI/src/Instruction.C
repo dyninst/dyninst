@@ -443,7 +443,7 @@ memAccessors.begin()));
         return m_Successors.front().target;
     }
     
-    INSTRUCTION_EXPORT std::string Instruction::format() const
+    INSTRUCTION_EXPORT std::string Instruction::format(Address addr) const
     {
       if(m_Operands.empty())
       {
@@ -457,7 +457,7 @@ memAccessors.begin()));
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-          retVal += curOperand->format();
+          retVal += curOperand->format(getArch(), addr);
 	retVal += ", ";
       }
       if(!m_Operands.empty())
