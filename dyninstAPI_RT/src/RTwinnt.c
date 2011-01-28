@@ -280,7 +280,7 @@ int DYNINST_am_initial_thread(dyntid_t tid) {
 
 extern int fakeTickCount;
 extern FILE *stOut;
-DWORD DYNINST_FakeTickCount()
+DWORD __stdcall DYNINST_FakeTickCount()
 {
     DWORD tmp = 0x12345678;
     if (0 == fakeTickCount) {
@@ -293,21 +293,21 @@ DWORD DYNINST_FakeTickCount()
     return (DWORD) fakeTickCount;
 }
 
-BOOL DYNINST_FakeBlockInput(BOOL blockit)
+BOOL __stdcall DYNINST_FakeBlockInput(BOOL blockit)
 {
     BOOL ret = RT_TRUE;
     fprintf(stOut,"0x%lx = DYNINST_FakeBlockInput(%d)\n",ret,blockit);
     return ret;
 }
 
-DWORD DYNINST_FakeSuspendThread(HANDLE hThread)
+DWORD __stdcall DYNINST_FakeSuspendThread(HANDLE hThread)
 {
     DWORD suspendCnt = 0;
     fprintf(stOut,"%d = DYNINST_FakeBlockInput(%d)\n",suspendCnt,hThread);
     return suspendCnt;
 }
 
-BOOL DYNINST_FakeCheckRemoteDebuggerPresent(HANDLE hProcess, PBOOL bpDebuggerPresent)
+BOOL __stdcall DYNINST_FakeCheckRemoteDebuggerPresent(HANDLE hProcess, PBOOL bpDebuggerPresent)
 {
     BOOL ret = RT_FALSE;
     fprintf(stOut,"%d = DYNINST_FakeCheckRemoteDebuggerPresent(%d,0x%lx)\n",

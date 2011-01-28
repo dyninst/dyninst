@@ -377,8 +377,11 @@ std::pair<bool, Address> MemoryEmulator::translateBackwards(Address addr) {
 
 void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig) 
 {
-    if (toOrig) malware_cerr << "Syncing shadow to orig for obj " << obj->fileName() << endl;
-    else        malware_cerr << "Syncing orig to shadow for obj " << obj->fileName() << endl;
+    if (toOrig) {
+        malware_cerr << "Syncing shadow to orig for obj " << obj->fileName() << endl;
+    } else {
+        malware_cerr << "Syncing orig to shadow for obj " << obj->fileName() << endl;
+    }
     using namespace SymtabAPI;
     vector<Region*> regs;
     obj->parse_img()->getObject()->getCodeRegions(regs);
@@ -406,11 +409,32 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         } else {
             toBase = addedRegions_[reg];
         }
-        //cerr << "SYNC WRITE TO " << hex << toBase << dec << endl;
+        if (!toOrig) {
+            //cerr << "SYNC WRITE TO " << hex << toBase << dec << endl;
+        }
         for (; sit != springboards_[reg].end(); sit++) {
             //assert(cp_start <= sit->first);
             int cp_size = sit->first - cp_start;
             //cerr << "\t Write " << hex << toBase + cp_start << "..." << toBase + cp_start + cp_size << dec << endl;
+
+#if 0            
+            Address inOrig = obj->codeBase() + reg->getMemOffset() + cp_start;
+            unsigned char* tmpbuf = (unsigned char*) malloc(cp_size);
+            aS_->readDataSpace((void*)(toBase + cp_start), cp_size, tmpbuf, false);
+            if (0 != memcmp(regbuf + cp_start, tmpbuf, cp_size)) {
+                fprintf(stderr, "synch orig/shadow difference: [%lx %lx)->[%lx %lx)\n",
+                        from+cp_start, from+cp_start+cp_size,
+                        toBase+cp_start, toBase+cp_start+cp_size);
+                for (unsigned j=0; j < cp_size; j++) {
+                    if (regbuf[cp_start+j] != tmpbuf[j]) {
+                        fprintf(stderr, "\t%lx->%lx: copying %02hhx to %02hhx\n", 
+                            from+cp_start+j, toBase+cp_start+j,
+                            ((unsigned char*)regbuf+cp_start)[j],
+                            ((unsigned char*)tmpbuf)[j]);
+                    }
+                }
+            }
+#endif
             if (cp_size > 0 &&
                 !aS_->writeDataSpace((void *)(toBase + cp_start),
                                      cp_size,
@@ -418,7 +442,10 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
             {
                 assert(0);
             }
-            cp_start = sit->first + sit->second;
+            cp_start = ((sit->first + sit->second) > cp_start) ? // max
+                (sit->first + sit->second) 
+                : 
+                cp_start;
         }
         //cerr << "\t Finishing write " << hex << toBase + cp_start << " -> " << toBase + cp_start + reg->getMemSize() - cp_start << dec << endl;
 
@@ -429,22 +456,6 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         {
             assert(0);
         }
-#if 0
-        if (!toOrig && 0x1000 == reg->getMemOffset()) {
-            Address regbase = 0x401000;
-            Address saddr = 0x1e80;
-            printf("memory dump at %lx:", saddr+regbase);
-            for (unsigned bidx=0; bidx < 0x100; bidx++) {
-                if ( !(bidx%8) ) {
-                    printf("\n%lx: ", regbase + saddr + bidx);
-                } else if ( !(bidx%4) ) {
-                    printf(" ");
-                }
-                printf("%02hhx", regbuf[saddr+bidx]);
-            }
-            printf("\n");
-        }
-#endif
         free(regbuf);
     }
 }
@@ -460,7 +471,6 @@ void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size)
     //    if (sit->first >= offset + size) break;
     //    assert(0);
     //}
-
     for (Address tmp = offset; tmp < offset + size; ++tmp) {
         springboards_[reg].erase(tmp);
     }

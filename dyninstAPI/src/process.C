@@ -3274,8 +3274,8 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
                              const void *inSelf) 
 {
     Address tmp = (Address) inTracedProcess;
-
-bool needToCont = false;
+    
+   bool needToCont = false;
 
    if (!isAttached()) return false;
 
@@ -4746,10 +4746,7 @@ bool process::getOverwrittenBlocks
     for (; pIter != overwrittenPages.end(); pIter++) {
         Address curPageAddr = (*pIter).first / MEM_PAGE_SIZE * MEM_PAGE_SIZE;
         unsigned char *curShadow = (*pIter).second;
-		cerr << "\t Checking page " << hex << curPageAddr << dec << endl;
-		if (curPageAddr == 0xbe0000) {
-			int i = 3;
-		}
+
         // 0. check to make sure curShadow is non-null, if it is null, 
         //    that means it hasn't been written to
         if ( ! curShadow ) {

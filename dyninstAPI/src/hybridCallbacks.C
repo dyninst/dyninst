@@ -456,14 +456,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
 {
     Address pointAddr = (Address) point->getAddress();
     Address target = (Address) returnValue;
-    if (pointAddr == 0x5ac12b || //skype
-        target == 0x40dfd2 || //yodaProt
-        pointAddr == 0x97340e)   //asprotect
-    {
-        DebugBreak();
-        //printf("setting debug_blocks to true\n");
-        //debug_blocks = true;
-    }
+
     time_t tstruct;
     struct tm * tmstruct;
     char timeStr[64];
@@ -570,7 +563,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         Address returnAddr = target;
         BPatch_point *callPoint = NULL;
         proc()->findFunctionsByAddr( ( (Address)returnAddr - 1 ) , callFuncs );
-        if ( callFuncs.size() ) {
+        if ( !callFuncs.empty() ) {
             // get the call point whose fallthrough addr matches the ret target
             vector<BPatch_point *> *callPoints = 
                 callFuncs[0]->findPoint(BPatch_subroutine);
@@ -599,8 +592,27 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             } 
         }
 
-        // 3.2.1 if the return addr follows a call, parse it as its fallthrough edge
-        if ( callPoint ) {
+        // 3.2.1 if the return addr follows a call to this function, parse at 
+        // its fallthrough edge
+        bool parseAtFT = false;
+        if (callPoint) {
+            vector<Address> targs;
+            callPoint->getSavedTargets(targs);
+            // unfortunately, because of pc emulation, if the return point is 
+            // shared we may have flipped between functions that share the 
+            // return point, so check both
+            vector<ParseAPI::Function*> retfuncs;
+            point->llpoint()->block()->llb()->getFuncs(retfuncs);
+            Address base = point->llpoint()->func()->obj()->codeBase();
+            for (unsigned tidx=0; !parseAtFT && tidx < targs.size(); tidx++) {
+                for (unsigned fidx=0; !parseAtFT && fidx < retfuncs.size(); fidx++) {
+                    if (targs[tidx] == (base + retfuncs[fidx]->addr()) ) {
+                        parseAtFT = true;
+                    }
+                }
+            }
+        }
+        if ( parseAtFT ) {
             mal_printf("stopThread instrumentation found return at %lx, "
                       "parsing return addr %lx as fallthrough of call "
                       "instruction at %lx %s[%d]\n", (long)point->getAddress(), 
