@@ -309,8 +309,9 @@ bool HybridAnalysis::canUseCache(BPatch_point *pt)
 // function and adds control-flow instrumentation at each type: 
 // unresolved, abruptEnds, and return instructions
 bool HybridAnalysis::instrumentFunction(BPatch_function *func, 
-						bool useInsertionSet, 
-						bool instrumentReturns) 
+    bool useInsertionSet, 
+    bool instrumentReturns,
+    bool addShadowSync) 
 {
     Address funcAddr = (Address) func->getBaseAddr();
     int pointCount = 0;
@@ -338,6 +339,9 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
         (*instrumentedFuncs)[func] = new 
             std::map<BPatch_point*,BPatchSnippetHandle*>();
     }
+
+
+
 
     // grab all unresolved control transfer points in the function
     vector<BPatch_point*> points;
@@ -387,6 +391,9 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 handle = proc()->insertSnippet
                     (ifSmallThenStop, *curPoint, BPatch_lastSnippet);
             }
+#if 0
+            // Replaced by entry/exit instrumentation pairs
+
             // if memory is emulated, and we don't know that it doesn't go to 
             // a non-instrumented library, add a callback to synchShadowOrigCB_wrapper
             if ( proc()->lowlevel_process()->isMemoryEmulated() && 
@@ -400,6 +407,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                      BPatch_lastSnippet);
                 synchMap_pre_[curPoint] = new SynchHandle(curPoint, handle);
             }
+#endif
         } 
         else { // static ctrl flow
 
@@ -582,6 +590,27 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             }
         }
 	}
+
+    // If we're copying original<->shadow do it here
+    if (addShadowSync) {
+        if (instShadowFuncs_.find(func) == instShadowFuncs_.end())
+        {
+            cerr << "Adding shadow sync instrumentation to function " << func->getName() << endl;
+            std::vector<BPatch_point *> *entryPoints = func->findPoint(BPatch_entry);
+            if (entryPoints) {
+                pointCount++;
+                proc()->insertSnippet(BPatch_shadowExpr(true, synchShadowOrigCB_wrapper, BPatch_constExpr(1)),
+                    *entryPoints, BPatch_firstSnippet);
+            }
+            std::vector<BPatch_point *> *exitPoints = func->findPoint(BPatch_exit);
+            if (exitPoints) {
+                pointCount++;
+                proc()->insertSnippet(BPatch_shadowExpr(false, synchShadowOrigCB_wrapper, BPatch_constExpr(0)),
+                    *exitPoints, BPatch_lastSnippet);
+            }
+            instShadowFuncs_.insert(func);
+        }
+    }
     
     // close insertion set
     if (proc()->lowlevel_process()->isMemoryEmulated() || pointCount) {
@@ -738,6 +767,10 @@ bool HybridAnalysis::instrumentModules(bool useInsertionSet)
 void HybridAnalysis::origToShadowInstrumentation(BPatch_point *callPt, 
                                                  const vector<int_block*> &blks)
 {
+    // Disabled in favor of entry/exit instrumentation
+    return;
+
+
     proc()->beginInsertionSet();
     for (vector<int_block*>::const_iterator bit = blks.begin();
          bit != blks.end();
@@ -1174,54 +1207,43 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
     //     call's fallthrough addr and return.
     if (targMod->isSystemLib() && BPatch_defensiveMode != targMod->getHybridMode()) 
     {
+        bool instReturns = false;
         if (point->getPointType() == BPatch_subroutine) {
-            if (0 == strncmp(funcName,"ExitProcess",32) && 
-                NULL == strstr(modName,"kernel32.dll")) 
-            {
-                fprintf(stderr,"Caught call to %s, should exit soon %s[%d]\n", 
-                        funcName,FILE__,__LINE__);
-            }
-            else if (0 == strncmp(funcName,"ExitProcess",32) && 
-                     NULL == strstr(modName,"kernel32.dll")) 
-            {
-
-            }
-            else {
-                mal_printf("stopThread instrumentation found call %lx=>%lx, "
-                          "target is in module %s, parsing at fallthrough %s[%d]\n",
-                          (long)point->getAddress(), target, modName,FILE__,__LINE__);
-                parseAfterCallAndInstrument(point, targFunc);
-            }
+            mal_printf("stopThread instrumentation found call %lx=>%lx, "
+                "target is in module %s, parsing at fallthrough %s[%d]\n",
+                (long)point->getAddress(), target, modName,FILE__,__LINE__);
+            parseAfterCallAndInstrument(point, targFunc);
             processTargMod = false;
-		} else if (point->getPointType() == BPatch_exit) {
-			mal_printf("WARNING: stopThread instrumentation found return %lx=>%lx, "
-                      "into module %s, this indicates obfuscation or that there was a "
-					  "call from that module into our code %s[%d]\n",
-                      (long)point->getAddress(), target, modName,FILE__,__LINE__);
-		}
-		else { // jump into system library
+        } else if (point->getPointType() == BPatch_exit) {
+            mal_printf("WARNING: stopThread instrumentation found return %lx=>%lx, "
+                "into module %s, this indicates obfuscation or that there was a "
+                "call from that module into our code %s[%d]\n",
+                (long)point->getAddress(), target, modName,FILE__,__LINE__);
+        } else {
+            // jump into system library
             // this is usually symptomatic of the following:
             // call tail1
             //    ...
             // .tail1
             // jump ptr
             mal_printf("WARNING: transfer into non-instrumented system module "
-                        "%s at: %lx=>%lx %s[%d]\n", modName, 
-                        (long)point->getAddress(), target,FILE__,__LINE__);
-
-            // Instrument the return instructions of the system library 
-            // function so we can find the code at the call instruction's
-            // fallthrough address
-            proc()->beginInsertionSet();
-			BPatch_function *targFunc = proc()->findFunctionByEntry(target);
-            if (!targFunc) {
-                analyzeNewFunction(point,target,false,false);
-                targFunc = proc()->findFunctionByEntry(target);
-            }
-			instrumentFunction(targFunc, false, true);
-            proc()->finalizeInsertionSet(false);
-            processTargMod = false;
+                "%s at: %lx=>%lx %s[%d]\n", modName, 
+                (long)point->getAddress(), target,FILE__,__LINE__);
+            instReturns = true;
         }
+
+        // Instrument the return instructions of the system library 
+        // function so we can find the code at the call instruction's
+        // fallthrough address
+        proc()->beginInsertionSet();
+        BPatch_function *targFunc = proc()->findFunctionByEntry(target);
+        if (!targFunc) {
+            analyzeNewFunction(point,target,false,false);
+            targFunc = proc()->findFunctionByEntry(target);
+        }
+        instrumentFunction(targFunc, false, instReturns, true);
+        proc()->finalizeInsertionSet(false);
+        processTargMod = false;
     }
     // 1.2 if targMod is a non-system library, then warn, and fall through into
     // handling the transfer as we would any other transfer

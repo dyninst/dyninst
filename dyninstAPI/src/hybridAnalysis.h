@@ -127,7 +127,8 @@ private:
     bool instrumentModule(BPatch_module *mod, bool useInsertionSet); 
     bool instrumentFunction(BPatch_function *func, 
                             bool useInsertionSet, 
-                            bool instrumentReturns=false);
+                            bool instrumentReturns=false,
+                            bool syncShadow = false);
     void origToShadowInstrumentation(BPatch_point *callPt, 
                                      const std::vector<int_block*> &blks);
     bool parseAfterCallAndInstrument(BPatch_point *callPoint, 
@@ -157,6 +158,7 @@ private:
                std::map<BPatch_point*,BPatchSnippetHandle*> *> * instrumentedFuncs;
     std::map< BPatch_point* , SynchHandle* > synchMap_pre_; // maps from prePt
     std::map< BPatch_point* , SynchHandle* > synchMap_post_; // maps from postPt
+    std::set< BPatch_function *> instShadowFuncs_;
     std::set< std::string > nonPtrAPIs_;
     BPatch_module *sharedlib_runtime;
     BPatch_hybridMode mode_;

@@ -52,54 +52,19 @@ void HybridAnalysis::synchShadowOrigCB(BPatch_point *point, bool toOrig)
     mal_printf("in synch callback for point 0x%lx toOrig=%d\n",
                (Address)point->getAddress(), (int) (long) toOrig);
 
-    if ( toOrig && !proc()->getHybridAnalysis()->needsSynchronization(point) ) {
-        return;
-    }
 
-    // synch the shadow pages
-    BPatch_function *pfunc = point->getFunction();
     proc()->lowlevel_process()->getMemEm()->synchShadowOrig
-        ( pfunc->lowlevel_func()->obj(), (bool) toOrig);
+        ((bool) toOrig);
+
+
+    std::vector<BPatch_module *> *mods = proc()->getImage()->getModules();
 
     // fix up page rights so that the program can proceed
-    if (toOrig) {
-        // instrument at fallthrough
-        std::vector<int_block*> ftBlks;
-        int_block *ftBlk = point->llpoint()->block()->getFallthrough();
-        if (ftBlk) {
-            ftBlks.push_back(ftBlk);
-        }
-        else {
-            // the transfer is an inter-module jump, instrument at 
-            // fallthroughs of callers to the function containing the jump
-            std::vector<BPatch_point*> callerPoints;
-            point->getFunction()->getCallerPoints(callerPoints);
-            mal_printf("Caught inter-module jump at %lx, parsing at "
-                       "fallthroughs of %d callers to the jump func\n",
-                       point->getAddress(), callerPoints.size());
-            assert(callerPoints.size()); // there has to be at least one
-            for (vector<BPatch_point*>::iterator pit = callerPoints.begin();
-                 pit != callerPoints.end(); 
-                 pit++)
-            {
-                ftBlk = (*pit)->llpoint()->block()->getFallthrough();
-                if (!ftBlk) {
-                    parseAfterCallAndInstrument(*pit, pfunc);
-                    ftBlk = (*pit)->llpoint()->block()->getFallthrough();
-                }
-                assert(ftBlk);
-                ftBlks.push_back(ftBlk);
-            }
-        }
-        // drop the instrumentation in 
-        origToShadowInstrumentation(point, ftBlks);
+    for (unsigned i = 0; i < mods->size(); ++i) {
+        (*mods)[i]->setAnalyzedCodeWriteable(toOrig);
+    }
 
-        // remove write-protections from code pages
-        pfunc->getModule()->setAnalyzedCodeWriteable(true);
-    } 
-    else {
-        // restore write-protections to code pages
-        pfunc->getModule()->setAnalyzedCodeWriteable(false);
+    if (!toOrig) {
         // but not to those of active overwrite loops
         std::set<Address> pages;
         hybridOW()->activeOverwritePages(pages);
@@ -111,8 +76,6 @@ void HybridAnalysis::synchShadowOrigCB(BPatch_point *point, bool toOrig)
                 proc()->lowlevel_process()->getMemoryPageSize(),
                 getOrigPageRights(*pit));
         }
-        // KEVINTODO: if there are other in edges to the fallthrough block it 
-        //            might be cheaper to remove synch instrumentation at this point
     }
 }
 
@@ -371,7 +334,7 @@ void HybridAnalysis::virtualFreeSizeCB(BPatch_point *, void *size) {
 void HybridAnalysis::virtualFreeCB(BPatch_point *, void *t) {
 	assert(virtualFreeAddr_ != 0);
 	unsigned type = (unsigned) t;
-	cerr << "virtualSizeFree [" << hex << virtualFreeAddr_ << "," << virtualFreeAddr_ + (unsigned) virtualFreeSize_ << "], " << (unsigned) type << dec << endl;
+	cerr << "virtualFree [" << hex << virtualFreeAddr_ << "," << virtualFreeAddr_ + (unsigned) virtualFreeSize_ << "], " << (unsigned) type << dec << endl;
 
 	Address pageSize = proc()->lowlevel_process()->getMemoryPageSize();
 
@@ -456,13 +419,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
 {
     Address pointAddr = (Address) point->getAddress();
     Address target = (Address) returnValue;
-    if (pointAddr == 0x5ac12b || //skype
-        pointAddr == 0x40d5df || //yodaProt
-        pointAddr == 0x97340e)   //asprotect
-    {
-        printf("setting debug_blocks to true\n");
-        //debug_blocks = true;
-    }
+
     time_t tstruct;
     struct tm * tmstruct;
     char timeStr[64];
