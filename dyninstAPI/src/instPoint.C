@@ -618,7 +618,8 @@ bool instPoint::getSavedTargets(vector<Address> & targs)
         if ( !(*eit)->sinkEdge() && 
              FALLTHROUGH != (*eit)->type() &&
              CALL_FT != (*eit)->type() &&
-             NOEDGE != (*eit)->type()) 
+             NOEDGE != (*eit)->type() &&
+             INDIRECT != (*eit)->type()) 
         {
             Block *trg = (*eit)->trg();
             mapped_object *targObj = proc()->findObject(trg->obj());

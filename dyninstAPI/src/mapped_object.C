@@ -662,6 +662,24 @@ const int_variable *mapped_object::getVariable(const std::string &varname) {
     return NULL;
 }
 
+bool mapped_object::findBlocksByEntry(Address addr, std::set<int_block *> &blocks)
+{
+    bool retval = false;
+    std::set<int_block *> allBlocks;
+    if (!findBlocksByAddr(addr, allBlocks)) return false;
+    for (std::set<int_block *>::iterator iter = allBlocks.begin();
+        iter != allBlocks.end(); ++iter) 
+    {
+        if ((*iter)->start() == addr)
+        {
+            retval = true;
+            blocks.insert(*iter);
+        }
+    }
+    return retval;
+}
+
+
 bool mapped_object::findBlocksByAddr(const Address addr, std::set<int_block *> &blocks)
 {
     // Quick bounds check...
@@ -730,6 +748,7 @@ int_block *mapped_object::findBlock(ParseAPI::Function *ll_func, ParseAPI::Block
     assert(block);
     return block;
 }
+
 
 const pdvector<mapped_module *> &mapped_object::getModules() {
     // everyModule may be out of date...
@@ -1391,68 +1410,90 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
     // Do various checks and set edge types, if necessary
     Address loadAddr = codeBase();
     for (unsigned idx=0; idx < stubs.size(); idx++) {
+        if (stubs[idx].src->start() == 0x40d788) {
+            DebugBreak();
+        }
 		mapped_object *targ_obj = proc()->findObject(stubs[idx].trg);
 		assert(targ_obj);
 
-		Address targOffset = stubs[idx].trg - targ_obj->codeBase();
-		EdgeTypeEnum edgeType = stubs[idx].type;
-
-        Block *cursrc = stubs[idx].src->llb();
-
         // update target region if needed
-        if (BPatch_defensiveMode == hybridMode()) {
-			targ_obj->updateCodeBytesIfNeeded(stubs[idx].trg);
+        if (BPatch_defensiveMode == hybridMode()) 
+        {
+            targ_obj->updateCodeBytesIfNeeded(stubs[idx].trg);
         }
 
-        // figure out edge types if they have not been set yet
-		// For now, restrict us to the same mapped_object if we do this
-        if (ParseAPI::NOEDGE == stubs[idx].type && (targ_obj == this)) {
-            Block::edgelist & edges = cursrc->targets();
-            Block::edgelist::iterator eit = edges.begin();
-            bool isIndirJmp = false;
-            bool isCondl = false;
-            for (; eit != edges.end(); eit++) {
-                if ((*eit)->trg()->start() == targOffset) {
-                    edgeType = (*eit)->type();
+        EdgeTypeEnum edgeType = stubs[idx].type;
+
+        // Determine if this stub already has been parsed
+        // Which means looking up a block at the target address
+        if (stubs[idx].src->func()->findBlockByEntry(stubs[idx].trg)) {
+            continue;
+        }
+
+
+        // Otherwise we don't have a target block, so we need to make one.
+        if (stubs[idx].type == ParseAPI::NOEDGE) 
+        {
+            using namespace InstructionAPI;
+            // And we don't know what type of edge this is. Lovely. Let's
+            // figure it out from the instruction class, since that's
+            // the easy way to do things.
+            
+            bool indirect = false;
+            Block::edgelist &edges = stubs[idx].src->llb()->targets();
+            for (Block::edgelist::iterator eit = edges.begin(); eit != edges.end(); ++eit) {
+                if ((*eit)->sinkEdge()) {
+                    indirect = true;
                     break;
-                } 
-                if (ParseAPI::INDIRECT == (*eit)->type()) {
-                    isIndirJmp = true;
-                } else if (ParseAPI::COND_NOT_TAKEN == (*eit)->type()
-                            || ParseAPI::COND_TAKEN == (*eit)->type()) {
-                    isCondl = true;
                 }
             }
-            if (ParseAPI::NOEDGE == edgeType) {
-                bool isCall = false;
-                int_function *func = stubs[idx].src->func();
-                func->funcCalls();
-                instPoint *pt = func->findInstPByAddr(stubs[idx].src->last());
-                if (pt && callSite == pt->getPointType()) {
-                    isCall = true;
+
+            int_block::InsnInstances insns;
+            stubs[idx].src->getInsnInstances(insns);
+            switch (insns.back().first->getCategory()) {
+            case c_CallInsn:
+                if (stubs[idx].trg == stubs[idx].src->end()) 
+                {
+                    edgeType = CALL_FT;
                 }
-                if (cursrc->end() == targOffset) {
-                    if (isCall) {
-                        edgeType = CALL_FT;
-                    } else if (isCondl) {
-                        edgeType = ParseAPI::COND_NOT_TAKEN;
-                    } else {
-                        edgeType = ParseAPI::FALLTHROUGH;
-                    }
-                } else if (isCall) {
-                    edgeType = ParseAPI::CALL;
-                } else if (isIndirJmp) {
-                    edgeType = ParseAPI::INDIRECT;
-                } else if (isCondl) {
-                    edgeType = ParseAPI::COND_TAKEN;
-                } else {
-                    edgeType = ParseAPI::DIRECT;
+                else 
+                {
+                    edgeType = CALL;
                 }
+                break;
+            case c_ReturnInsn:
+                //edgeType = RET;
+                // The above doesn't work according to Nate
+                edgeType = INDIRECT;
+                break;
+            case c_BranchInsn:
+                if (indirect) 
+                {
+                    edgeType = INDIRECT;
+                }
+                else if (!insns.back().first->allowsFallThrough())
+                {
+                    edgeType = DIRECT;
+                }
+                else if (stubs[idx].trg == stubs[idx].src->end()) 
+                {
+                    edgeType = COND_NOT_TAKEN;
+                }
+                else
+                {
+                    edgeType = COND_TAKEN;
+                }
+                break;
+            default:
+                edgeType = FALLTHROUGH;
+                break;
             }
         }
 
 		/* 1. Parse from target address, add new edge at image layer  */
-		CodeObject::NewEdgeToParse newEdge(stubs[idx].src->llb(), targOffset, edgeType);
+		CodeObject::NewEdgeToParse newEdge(stubs[idx].src->llb(),
+            stubs[idx].trg - targ_obj->codeBase(),
+            edgeType);
 		if (this != targ_obj) {
 			std::vector<ParseAPI::CodeObject::NewEdgeToParse> newEdges;
 			newEdges.push_back(newEdge);
@@ -1799,6 +1840,10 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * symReg)
 // check would not be needed
 bool mapped_object::isUpdateNeeded(Address entry)
 {
+
+    if (entry == 0x9bde4c) {
+        DebugBreak();
+    }
     using namespace ParseAPI;
     bool updateNeeded = false;
     void* regBuf = NULL;
@@ -2112,8 +2157,10 @@ bool mapped_object::isSystemLib(const std::string &objname)
    if (std::string::npos != lowname.find("msvcrt") && 
        std::string::npos != lowname.find(".dll"))
       return true;
-   if (std::string::npos == lowname.find("\\"))
-       return true; //KEVINTODO: can't leave this in, but for now, anything without a path
+   if (std::string::npos != lowname.find(".dll"))
+       return true; // Anything that's a library is a-ok with us! KEVIN TODO
+
+
 #endif
 
    return false;

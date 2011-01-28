@@ -221,7 +221,7 @@ void CFAtomCreator::getInterproceduralSuccessors(const int_block *block,
         // to both an int_block and an int_block.
         image_basicBlock *ib = static_cast<image_basicBlock *>((*iter)->trg());
         
-        if (out.type == RET || out.type == NOEDGE) {
+        if (out.type == RET || out.type == NOEDGE || out.type == INDIRECT) {
            continue;
         }
         else if (out.type != CALL) {
