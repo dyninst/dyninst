@@ -47,8 +47,6 @@ class instPoint;
 class miniTramp;
 class int_function;
 
-typedef enum { FRAME_unset, FRAME_instrumentation, FRAME_signalhandler, FRAME_normal, FRAME_syscall, FRAME_iRPC, FRAME_unknown } frameType_t;
-
 class Frame {
  public:
   
@@ -66,7 +64,6 @@ class Frame {
       proc_(f.proc_),
       thread_(f.thread_),
       range_(f.range_),
-      frameType_(f.frameType_),
       uppermost_(f.uppermost_) {};
 
   const Frame &operator=(const Frame &f) {
@@ -74,7 +71,6 @@ class Frame {
       proc_ = f.proc_;
       thread_ = f.thread_;
       range_ = f.range_;
-      frameType_ = f.frameType_;
       uppermost_ = f.uppermost_;
       return *this;
   }
@@ -97,7 +93,6 @@ class Frame {
   bool     isUppermost() const { return uppermost_; }
   bool	   isSignalFrame();
   bool 	   isInstrumentation();
-  bool     isSyscall();
   Address  getPClocation();
 
   instPoint *getPoint(); // If we're in instrumentation returns the appropriate point
@@ -117,15 +112,11 @@ class Frame {
   // check for zero frame
   bool isLastFrame() const;
 
-  // Set the frameType_ member
-  void calcFrameType();
-  
  private:
   Dyninst::Stackwalker::Frame sw_frame_;        // StackwalkerAPI frame
   PCProcess *		proc_;				// We're only valid for a single process anyway
   PCThread *            thread_;                // User-level thread
   codeRange *	range_;				// If we've done a by-address lookup, keep it here
-  frameType_t frameType_;
   bool			uppermost_;
 };
 
