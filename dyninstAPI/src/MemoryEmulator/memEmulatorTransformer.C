@@ -100,9 +100,6 @@ bool MemEmulatorTransformer::canRewriteMemInsn(CopyInsn::Ptr reloc,
 					       int_function *func) {
   // Let's see if this is an instruction we can rewrite;
   // otherwise complain but let it through (for testing purposes)
-							   if (reloc->addr() == 0x0040d3ba) {
-								   int i = 3;
-							   }
    if (override(reloc))
       return true;
   

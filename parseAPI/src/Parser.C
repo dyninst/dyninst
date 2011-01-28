@@ -520,6 +520,10 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
    - Finish delayed parsing
    - Prepare and record FuncExtents for range-based lookup
 */
+
+// Could set cache_valid depending on whether the function is currently
+// being parsed somewhere. 
+
 void
 Parser::finalize(Function *f)
 {
@@ -533,6 +537,16 @@ Parser::finalize(Function *f)
             FILE__,__LINE__,f->addr());
         parse();
     }
+
+	bool cache_value = true;
+	if(frame_status(f->region(), f->addr()) < ParseFrame::PARSED) {
+		// XXX prevent caching of blocks, extents for functions that
+		// are actively being parsed. This prevents callbacks and other
+		// functions called from within, e.g. parse_frame from setting
+		// the caching flag and preventing later updates to the blocks()
+		// vector during finalization.
+		cache_value = false;
+	}
 
     parsing_printf("[%s] finalizing %s (%lx)\n",
         FILE__,f->name().c_str(),f->addr());
@@ -554,7 +568,7 @@ Parser::finalize(Function *f)
     f->_extents.clear();
 
     if(blocks.empty()) {
-        f->_cache_valid = true;
+        f->_cache_valid = cache_value; // see above
         return;
     }
     
@@ -579,7 +593,7 @@ Parser::finalize(Function *f)
     rd->funcsByRange.insert(ext);
     f->_extents.push_back(ext);
 
-    f->_cache_valid = true;
+    f->_cache_valid = cache_value; // see comment at function entry
 
     if (unlikely( f->obj()->defensiveMode())) {
         // add fallthrough edges for calls assumed not to be returning

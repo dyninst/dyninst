@@ -49,6 +49,7 @@
 class BPatch_statement;
 class BPatch_snippet;
 class BPatch_point;
+class BPatch_variableExpr;
 class AddressSpace;
 class miniTrampHandle;
 class miniTramp;

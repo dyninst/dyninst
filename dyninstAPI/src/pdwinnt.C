@@ -1057,8 +1057,8 @@ int dyn_lwp::changeMemoryProtections
 	// with memory deallocation
 	
 	for (Address idx = pageBase; idx < pageBase + size; idx += pageSize) {
-        mal_printf("setting rights to %lx for [%lx %lx)\n", 
-                   rights, idx , idx + pageSize);
+        //mal_printf("setting rights to %lx for [%lx %lx)\n", 
+          //         rights, idx , idx + pageSize);
 		if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(idx), 
 			(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&oldRights)) 
 		{
@@ -2674,8 +2674,8 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     // decode the executed instructions
     using namespace InstructionAPI;
     cerr << "Disassembling faulting insns" << endl;
-    Address base = ev.address;
-    const int BUF_SIZE=64;
+    Address base = ev.address - 32;
+    const int BUF_SIZE=128;
     unsigned char buf[BUF_SIZE];
     ev.proc->readDataSpace((void *)base, BUF_SIZE, buf, false);
     InstructionDecoder deco(buf,BUF_SIZE,ev.proc->getArch());
@@ -3007,6 +3007,7 @@ bool process::hideDebugger()
 
 mapped_object *process::createObjectNoFile(Address addr)
 {
+	cerr << "createObjectNoFile " << hex << addr << dec << endl;
     Address closestObjEnd = 0;
     for (unsigned i=0; i<mapped_objects.size(); i++)
     {
@@ -3048,7 +3049,7 @@ mapped_object *process::createObjectNoFile(Address addr)
                                      (LPCVOID)addr, &meminfo, 
                                      sizeof(MEMORY_BASIC_INFORMATION));
         assert(meminfo.State == MEM_COMMIT);
-
+		cerr << "VirtualQuery reports baseAddr " << hex << meminfo.BaseAddress << ", allocBase " << meminfo.AllocationBase << ", size " << meminfo.RegionSize << ", state " << meminfo.State << dec << endl;
 
         Address objStart = (Address) meminfo.AllocationBase;
         Address probeAddr = (Address) meminfo.BaseAddress +  (Address) meminfo.RegionSize;
@@ -3061,7 +3062,9 @@ mapped_object *process::createObjectNoFile(Address addr)
                                           (LPCVOID) ((Address)meminfo.BaseAddress + meminfo.RegionSize),
                                           &probe,
                                           sizeof(MEMORY_BASIC_INFORMATION));
-            probeAddr = (Address) probe.BaseAddress + (Address) probe.RegionSize;
+			cerr << "VirtualQuery reports baseAddr " << hex << probe.BaseAddress << ", allocBase " << probe.AllocationBase << ", size " << probe.RegionSize << ", state " << probe.State << dec << endl;
+
+			probeAddr = (Address) probe.BaseAddress + (Address) probe.RegionSize;
         } while ((probe.AllocationBase == meminfo.AllocationBase) && // we're in the same allocation unit...
 			(objEnd != probeAddr)); // we're making forward progress
 

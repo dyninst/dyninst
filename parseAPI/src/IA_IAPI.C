@@ -234,7 +234,6 @@ bool IA_IAPI::isGarbageInsn() const
                  rit != regs.end(); rit++) 
             {
                 if (Dyninst::isSegmentRegister((*rit)->getID().regClass())) {
-                    DebugBreak();
                     ret = true;
                     break;
                 }

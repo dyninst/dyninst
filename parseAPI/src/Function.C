@@ -411,6 +411,7 @@ Function::tampersStack(bool recalculate)
         _tamper = TAMPER_NONE;
         return _tamper;
     }
+	_cache_valid = false;
 
     // if we want to re-calculate the tamper address
     if (!recalculate && TAMPER_UNSET != _tamper) {
@@ -424,10 +425,7 @@ Function::tampersStack(bool recalculate)
     Function::blocklist::iterator bit;
     for (bit = retblks.begin(); retblks.end() != bit; ++bit) {
         Address retnAddr = (*bit)->lastInsnAddr();
-		if (retnAddr == 0x37e9) {
-			int i = 3;
-		}
-		InstructionDecoder retdec(this->isrc()->getPtrToInstruction(retnAddr), 
+        InstructionDecoder retdec(this->isrc()->getPtrToInstruction(retnAddr), 
                                   InstructionDecoder::maxInstructionLength, 
                                   this->region()->getArch() );
         Instruction::Ptr retn = retdec.decode();
@@ -512,8 +510,8 @@ Function::tampersStack(bool recalculate)
         _tamper = TAMPER_NONZERO;
     }
 
-    if (TAMPER_ABS == _tamper) {
-        Address loadAddr = 0;
+    //if (TAMPER_ABS == _tamper) {
+        //Address loadAddr = 0;
         //if (_tamper_addr <  obj()->cs()->loadAddress()) {
         //    _tamper = TAMPER_NONZERO;
         //}
@@ -526,7 +524,7 @@ Function::tampersStack(bool recalculate)
         //        _tamper = TAMPER_NONZERO;
         //    }
         //}
-    }
+    //}
     if ( TAMPER_NONE != _tamper && TAMPER_REL != _tamper && RETURN == _rs ) {
         _rs = NORETURN;
     }
