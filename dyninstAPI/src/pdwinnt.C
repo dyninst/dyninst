@@ -959,8 +959,6 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
         if (oldRights == PAGE_EXECUTE_READ || oldRights == PAGE_READONLY) {
             res = WriteProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
                                      (LPVOID)inSelf, (DWORD)amount, &nbytes);
-        } else {
-            assert(0 && "failure in writeDataSpace");
         }
         if (oldRights != -1) { // set the rights back to what they were
             changeMemoryProtections((Address)inTraced, amount, oldRights,true);
@@ -1055,7 +1053,7 @@ int dyn_lwp::changeMemoryProtections
 
 	// Temporary: set on a page-by-page basis to work around problems
 	// with memory deallocation
-	
+	cerr << "Change memory protections [" << hex << addr << "," << addr+size << "], " << rights << dec << endl;
 	for (Address idx = pageBase; idx < pageBase + size; idx += pageSize) {
         //mal_printf("setting rights to %lx for [%lx %lx)\n", 
           //         rights, idx , idx + pageSize);
@@ -2657,6 +2655,13 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     mal_printf("Handling exception, excCode=0x%X raised by %lx %s[%d]\n",
             ev.what, ev.address, FILE__, __LINE__);
 
+    Address origAddr = ev.address;
+    vector<int_function*> faultFuncs;
+    baseTrampInstance *bti = NULL;
+    ev.proc->getAddrInfo(ev.address, origAddr, faultFuncs, bti);
+    cerr << "Address " << hex << ev.address << " maps to address " << origAddr << dec << endl;
+
+
 /* begin debugging output */
 	cerr << "Frame info dump" << endl;
 	Frame activeFrame = ev.lwp->getActiveFrame();
@@ -2674,13 +2679,13 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     // decode the executed instructions
     using namespace InstructionAPI;
     cerr << "Disassembling faulting insns" << endl;
-    Address base = ev.address - 32;
-    const int BUF_SIZE=128;
+    Address base = ev.address - 64;
+    const int BUF_SIZE=256;
     unsigned char buf[BUF_SIZE];
     ev.proc->readDataSpace((void *)base, BUF_SIZE, buf, false);
     InstructionDecoder deco(buf,BUF_SIZE,ev.proc->getArch());
     Instruction::Ptr insn = deco.decode();
-    for(int idx=0; insn && idx < 4; idx++) {
+    while(insn) {
         cerr << "\t" << hex << base << ": " << insn->format() << endl;
         base += insn->size();
         insn = deco.decode();
@@ -2729,10 +2734,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
 
     // 2.  If the fault occurred at an emulated memory instruction, we saved a
     //     register before stomping its effective address computation
-    Address origAddr = ev.address;
-    vector<int_function*> faultFuncs;
-    baseTrampInstance *bti = NULL;
-    ev.proc->getAddrInfo(ev.address, origAddr, faultFuncs, bti);
+
     int_block *faultBBI = NULL;
     switch( faultFuncs.size() ) {
     case 0: 

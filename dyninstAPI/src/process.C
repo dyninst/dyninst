@@ -4750,9 +4750,7 @@ bool process::getOverwrittenBlocks
         Address curPageAddr = (*pIter).first / MEM_PAGE_SIZE * MEM_PAGE_SIZE;
         unsigned char *curShadow = (*pIter).second;
 		cerr << "\t Checking page " << hex << curPageAddr << dec << endl;
-		if (curPageAddr == 0xbe0000) {
-			int i = 3;
-		}
+
         // 0. check to make sure curShadow is non-null, if it is null, 
         //    that means it hasn't been written to
         if ( ! curShadow ) {
@@ -5211,6 +5209,7 @@ bool process::generateRequiredPatches(instPoint *callPt,
     int_block *callbbi = callPt->block();
     assert(callPt->addr() < callbbi->end());
     int_block *ftbbi = callbbi->getFallthrough();
+    assert(ftbbi);
     Relocation::CodeTracker::RelocatedElements reloc;
     CodeTrackers::reverse_iterator rit;
     for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++)
