@@ -67,7 +67,7 @@ class MemoryEmulator {
     void addSpringboard(SymtabAPI::Region*, 
                         Address offset,/*from start of region*/
                         int size);
-    void synchShadowOrig(mapped_object*,bool toOrig);
+    void synchShadowOrig(bool toOrig);
 
     static const int STACK_SHIFT_VAL=256;
 
@@ -91,8 +91,12 @@ class MemoryEmulator {
 
    std::map<SymtabAPI::Region*, std::map<Address,int> > springboards_;
 
-   typedef std::map<SymtabAPI::Region *, Address> RegionMap;
+   // First address: original base in memory. Second address: shadow base.
+   typedef std::map<SymtabAPI::Region *, std::pair< Address, Address> > RegionMap;
    RegionMap addedRegions_;
+
+   std::map<SymtabAPI::Region *, unsigned char *> saved;
+
 };
 };
 

@@ -130,9 +130,9 @@ void MemoryEmulator::addRegion(mapped_object *obj) {
 }
 
 void MemoryEmulator::removeRegion(mapped_object *obj) {
-	//cerr << "Removing region " << obj->fileName() << endl;
-	//cerr << "\t Before: " << endl;
-	//debug();
+	cerr << "Removing region " << obj->fileName() << endl;
+	cerr << "\t Before: " << endl;
+	debug();
 	// Remove each code region
 	std::vector<Region *> codeRegions;
 	obj->parse_img()->getObject()->getCodeRegions(codeRegions);
@@ -142,8 +142,8 @@ void MemoryEmulator::removeRegion(mapped_object *obj) {
 
 		removeRegion(reg, obj->codeBase());
 	}
-	//cerr << "\t After: " << endl;
-	//debug();
+	cerr << "\t After: " << endl;
+	debug();
 }
 
 void MemoryEmulator::addRegion(Region *reg, Address base) {
@@ -220,7 +220,8 @@ void MemoryEmulator::addRegion(Region *reg, Address base) {
              reg->getMemSize(),
              mutateeBase - regionBase);
    
-   addedRegions_[reg] = mutateeBase;
+   cerr << "Added region: first " << hex << base + reg->getMemOffset() <<  ", second " << mutateeBase << dec << endl;
+   addedRegions_[reg] = std::make_pair(base + reg->getMemOffset(), mutateeBase);
    free(buffer);
 }
 
@@ -235,6 +236,9 @@ void MemoryEmulator::removeRegion(Region *reg, Address base) {
 
 	// First, nuke our track of the springboards
 	springboards_.erase(reg);
+
+    // Second, nuke it from the list of regions to copy on a sync
+    addedRegions_.erase(reg);
 
    // Deallocate the shadow pages in the mutatee
    //  -- this is TODO; we mangle the allocation base and therefore can't
@@ -375,25 +379,26 @@ std::pair<bool, Address> MemoryEmulator::translateBackwards(Address addr) {
    return std::make_pair(true, addr - val);
 }
 
-void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig) 
+void MemoryEmulator::synchShadowOrig(bool toOrig) 
 {
     if (toOrig) {
-        malware_cerr << "Syncing shadow to orig for obj " << obj->fileName() << endl;
+        malware_cerr << "Syncing shadow to orig" << endl;
     }
     else {
-        malware_cerr << "Syncing orig to shadow for obj " << obj->fileName() << endl;
+        malware_cerr << "Syncing orig to shadow" << endl;
     }
+
     using namespace SymtabAPI;
-    vector<Region*> regs;
-    obj->parse_img()->getObject()->getCodeRegions(regs);
-    for (unsigned idx=0; idx < regs.size(); idx++) {
-        Region * reg = regs[idx];
+
+    for (RegionMap::iterator iter = addedRegions_.begin();
+        iter != addedRegions_.end(); ++iter) {
+        Region * reg = iter->first;
         unsigned char* regbuf = (unsigned char*) malloc(reg->getMemSize());
         Address from = 0;
         if (toOrig) {
-            from = addedRegions_[reg];
+            from = iter->second.second;
         } else {
-            from = obj->codeBase() + reg->getMemOffset();
+            from = iter->second.first;
         }
         if (!aS_->readDataSpace((void *)from,
                                 reg->getMemSize(),
@@ -402,74 +407,140 @@ void MemoryEmulator::synchShadowOrig(mapped_object * obj, bool toOrig)
         {
             assert(0);
         }
+        if (toOrig) {
+            if (saved[reg]) {
+                free(saved[reg]);
+            }
+            saved[reg] = regbuf;
+        }
+
         std::map<Address,int>::const_iterator sit = springboards_[reg].begin();
         Address cp_start = 0;
         Address toBase;
         if (toOrig) {
-            toBase = obj->codeBase() + reg->getMemOffset();
+            toBase = iter->second.first;
         } else {
-            toBase = addedRegions_[reg];
+            toBase = iter->second.second;
         }
+        //cerr << "\t Copying " << hex << from << " -> " << toBase << dec << endl;
         //cerr << "SYNC WRITE TO " << hex << toBase << dec << endl;
         for (; sit != springboards_[reg].end(); sit++) {
+            // We purposefully have an overlapping datastructure, so this assert is 
+            // commented out.
             //assert(cp_start <= sit->first);
+
+            if ((sit->first + sit->second) < cp_start) continue;
+
+            //cerr << "\t Start @ " << hex << cp_start << " and next springboard " << sit->first << dec << endl;
             int cp_size = sit->first - cp_start;
-            //cerr << "\t Write " << hex << toBase + cp_start << "..." << toBase + cp_start + cp_size << dec << endl;
-            if (cp_size > 0 &&
-                !aS_->writeDataSpace((void *)(toBase + cp_start),
-                                     cp_size,
-                                     regbuf + cp_start))
-            {
-                assert(0);
+            //cerr << "\t Write [" << hex << toBase + cp_start << "," << toBase + cp_start + cp_size  << ")" << dec << endl;
+            if (cp_size > 0) {
+                if (!toOrig) {
+                    // Consistency check
+                    for (unsigned i = cp_start; i < cp_start + cp_size; ++i) {
+                        if (regbuf[i] != saved[reg][i]) {
+                            cerr << "Warning: difference at addr " << hex << toBase + i << ": cached " << (int) saved[reg][i] << " and current " << (int)regbuf[i] << dec << endl;
+                        }
+                    }
+                }
+                if (!aS_->writeDataSpace((void *)(toBase + cp_start),
+                    cp_size,
+                    regbuf + cp_start)) assert(0);
             }
             cp_start = sit->first + sit->second;
         }
         //cerr << "\t Finishing write " << hex << toBase + cp_start << " -> " << toBase + cp_start + reg->getMemSize() - cp_start << dec << endl;
 
-        if (cp_start < reg->getMemSize() &&
-            !aS_->writeDataSpace((void *)(toBase + cp_start),
-                                 reg->getMemSize() - cp_start,
-                                 regbuf + cp_start))
+        if (cp_start < reg->getMemSize())
         {
-            assert(0);
-        }
-#if 0
-        if (!toOrig && 0x1000 == reg->getMemOffset()) {
-            Address regbase = 0x401000;
-            Address saddr = 0x1e80;
-            printf("memory dump at %lx:", saddr+regbase);
-            for (unsigned bidx=0; bidx < 0x100; bidx++) {
-                if ( !(bidx%8) ) {
-                    printf("\n%lx: ", regbase + saddr + bidx);
-                } else if ( !(bidx%4) ) {
-                    printf(" ");
+            if (!toOrig) {
+                // Consistency check
+                for (unsigned i = cp_start; i < reg->getMemSize(); ++i) {
+                    if (regbuf[i] != saved[reg][i]) {
+                        cerr << "Warning: difference at addr " << hex << toBase + i << ": cached " << (int) saved[reg][i] << " and current " << (int)regbuf[i] << dec << endl;
+                    }
                 }
-                printf("%02hhx", regbuf[saddr+bidx]);
             }
-            printf("\n");
+            if (!aS_->writeDataSpace((void *)(toBase + cp_start),
+                reg->getMemSize() - cp_start,
+                regbuf + cp_start)) assert(0);
         }
-#endif
-        free(regbuf);
+        //free(regbuf);
     }
 }
 
 
 void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size) 
 {
-    // DEBUGGING
-    //map<Address,int>::iterator sit = springboards_[reg].begin();
-    //for (; sit != springboards_[reg].end(); ++sit) {
-    //    if (sit->first == offset) continue;
-    //    if (sit->first + sit->second <= offset) continue;
-    //    if (sit->first >= offset + size) break;
-    //    assert(0);
-    //}
+    // Look up whether there is a previous springboard that overlaps with us; 
+    // clearly, it's getting removed. 
 
-    for (Address tmp = offset; tmp < offset + size; ++tmp) {
-        springboards_[reg].erase(tmp);
+    std::map<SymtabAPI::Region *, std::map<Address, int> >::iterator s_iter = springboards_.find(reg);
+    if (s_iter == springboards_.end()) {
+        springboards_[reg][offset] = size;
+        return;
+    }
+    std::map<Address, int> &smap = s_iter->second;
+   
+    cerr << "Inserting SB [" << hex << offset << "," << offset + size << "]" << dec << endl;
+    smap[offset] = size;
+
+    std::map<Address, int>::iterator iter = smap.find(offset);
+    if (iter == smap.end()) {
+        smap[offset] = size;
+    }
+    else if (size > iter->second) {
+        smap[offset] = size;
     }
 
-    springboards_[reg][offset] = size;
+#if 0
+    // We don't want to delete these, actually, because we can conflict between a springboard
+    // addition and a synchronization operation.
+
+    while (true)
+    {
+        std::map<Address, int>::iterator lb = smap.lower_bound(offset);
+        if (lb != smap.end()) {
+            // Found a legal lower bound
+            if (lb->first >= offset &&
+                lb->first < (offset + size)) 
+            {
+                //cerr << "Erasing SB [" << hex << lb->first << "," << lb->first + lb->second << "]" << dec << endl;
+                smap.erase(lb);
+                continue;
+            }
+            if ((lb->first + lb->second) >= offset &&
+                (lb->first + lb->second) < (offset + size))
+            {
+                //cerr << "Erasing SB [" << hex << lb->first << "," << lb->first + lb->second << "]" << dec << endl;
+                smap.erase(lb);
+                continue;
+            }
+        }
+        // Lower bound is "first entry that is greater than the search term",
+        // so we need to try and back it up to check that one too
+        if (lb != smap.begin()) {
+            lb--;
+            if (lb->first >= offset &&
+                lb->first < (offset + size)) 
+            {
+                //cerr << "Erasing SB [" << hex << lb->first << "," << lb->first + lb->second << "]" << dec << endl;
+                smap.erase(lb);
+                continue;
+            }
+            if ((lb->first + lb->second) >= offset &&
+                (lb->first + lb->second) < (offset + size))
+            {
+                //cerr << "Erasing SB [" << hex << lb->first << "," << lb->first + lb->second << "]" << dec << endl;
+                smap.erase(lb);
+                continue;
+            }
+        }
+        break;
+    }
+#endif
+
+
 }
 
 void MemoryEmulator::removeSpringboards(int_function * func) 
