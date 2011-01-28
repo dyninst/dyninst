@@ -445,11 +445,11 @@ void MemoryEmulator::synchShadowOrig(bool toOrig)
 
             //cerr << "\t Write [" << hex << toBase + cp_start << "," << toBase + cp_start + cp_size  << ")" << dec << endl;
             if (cp_size > 0) {
-                if (!toOrig) {
+                if (!toOrig && saved[reg]) {
                     // Consistency check
                     for (unsigned i = cp_start; i < cp_start + cp_size; ++i) {
                         if (regbuf[i] != saved[reg][i]) {
-                            cerr << "Warning: difference at addr " << hex << toBase + i << ": cached " << (int) saved[reg][i] << " and current " << (int)regbuf[i] << dec << endl;
+                            cerr << "Warning: difference at addr " << hex << from + i << ": cached " << (int) saved[reg][i] << " and current " << (int)regbuf[i] << dec << endl;
                         }
                     }
                 }
@@ -462,11 +462,11 @@ void MemoryEmulator::synchShadowOrig(bool toOrig)
 
         if (cp_start < reg->getMemSize())
         {
-            if (!toOrig) {
+            if (!toOrig && saved[reg]) {
                 // Consistency check
                 for (unsigned i = cp_start; i < reg->getMemSize(); ++i) {
                     if (regbuf[i] != saved[reg][i]) {
-                        cerr << "Warning: difference at addr " << hex << toBase + i << ": cached " << (int) saved[reg][i] << " and current " << (int)regbuf[i] << dec << endl;
+                        cerr << "Warning: difference at addr " << hex << from + i << ": cached " << (int) saved[reg][i] << " and current " << (int)regbuf[i] << dec << endl;
                     }
                 }
             }
