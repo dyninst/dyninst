@@ -1684,26 +1684,12 @@ bool BPatch_process::hideDebuggerInt()
             "BlockInput",
             funcs, false, false, false, true);
         assert (funcs.size());
-        Address entry = (Address)funcs[0]->getBaseAddr();
-        // create a patch that will return one
-        const int PATCH_SIZE = 4;
-        unsigned char patch[PATCH_SIZE];
-        patch[0] = 0x33; // xor eax,eax
-        patch[1] = 0xc0;
-        patch[2] = 0x40; // inc eax
-        patch[3] = 0xc3; // retn
-        // patch out process memory and its copy in the mapped file
-        if (!llproc->writeDataSpace((void*)entry,sizeof(char)*PATCH_SIZE,&patch)) {
-            assert(0);
-        }
-        mapped_object *userObj = user->lowlevel_mod()->obj();
-        Region *reg = userObj->parse_img()->getObject()->findEnclosingRegion
-            (entry - userObj->codeBase());
-        assert(reg);
-        unsigned char *rawReg = (unsigned char *) reg->getPtrToRawData();
-        memcpy(rawReg + entry - userObj->codeBase() - reg->getMemOffset(), 
-               patch, 
-               sizeof(char) * PATCH_SIZE);
+        BPatch_module *rtlib = this->image->findOrCreateModule(
+            (*llproc->runtime_lib.begin())->getModules().front());
+        vector<BPatch_function*> repfuncs;
+        rtlib->findFunction("DYNINST_FakeBlockInput", repfuncs, false);
+        assert(!repfuncs.empty());
+        replaceFunction(*funcs[0],*repfuncs[0]);
         funcs.clear();
     }
 
@@ -1711,52 +1697,52 @@ bool BPatch_process::hideDebuggerInt()
     if (kern) {
         // SuspendThread
 
-        // KEVINTODO: use function replacement to replace the function, 
-        // conditioned on its thread ID parameter matching a Dyninst thread
+        // KEVINTODO: condition the function replacement on its thread ID parameter matching a Dyninst thread
         using namespace SymtabAPI;
         vector<BPatch_function*> funcs;
         kern->findFunction(
             "SuspendThread",
             funcs, false, false, false, true);
         assert (funcs.size());
-        Address entry = (Address)funcs[0]->getBaseAddr();
-        // create a patch that will return one
-        const int PATCH_SIZE = 6;
-        unsigned char patch[PATCH_SIZE];
-        patch[0] = 0x33; // xor eax,eax
-        patch[1] = 0xc0;
-        patch[2] = 0x40; // inc eax
-        patch[3] = 0xc2; // ret 4
-        patch[4] = 0x04;
-        patch[5] = 0x00;
-        // patch out process memory and its copy in the mapped file
-        if (!llproc->writeDataSpace((void*)entry,sizeof(char)*PATCH_SIZE,&patch)) {
-            assert(0);
-        }
-        mapped_object *kernObj = kern->lowlevel_mod()->obj();
-        Region *reg = kernObj->parse_img()->getObject()->findEnclosingRegion
-            (entry - kernObj->codeBase());
-        assert(reg);
-        unsigned char *rawReg = (unsigned char *) reg->getPtrToRawData();
-        memcpy(rawReg + entry - kernObj->codeBase() - reg->getMemOffset(), 
-               patch, 
-               sizeof(char) * PATCH_SIZE);
+        BPatch_module *rtlib = this->image->findOrCreateModule(
+            (*llproc->runtime_lib.begin())->getModules().front());
+        vector<BPatch_function*> repfuncs;
+        rtlib->findFunction("DYNINST_FakeSuspendThread", repfuncs, false);
+        assert(!repfuncs.empty());
+        replaceFunction(*funcs[0],*repfuncs[0]);
         funcs.clear();
     }
 
-    if (kern && user) { // should only succeed on windows
+    if (kern) {
+        // getTickCount
+        using namespace SymtabAPI;
+        vector<BPatch_function*> funcs;
+        kern->findFunction(
+            "GetTickCount",
+            funcs, false, false, false, true);
+        assert (!funcs.empty());
+        BPatch_module *rtlib = this->image->findOrCreateModule(
+            (*llproc->runtime_lib.begin())->getModules().front());
+        vector<BPatch_function*> repfuncs;
+        rtlib->findFunction("DYNINST_FakeTickCount", repfuncs, false);
+        assert(!repfuncs.empty());
+        replaceFunction(*funcs[0],*repfuncs[0]);
+        funcs.clear();
+    }
+
+    if (kern && user) { 
         // CheckRemoteDebuggerPresent
         vector<BPatch_function*> funcs;
         kern->findFunction(
             "CheckRemoteDebuggerPresent",
             funcs, false, false, true);
         assert (funcs.size());
-        Address entry = (Address)funcs[0]->getBaseAddr();
-        unsigned char patch[3];
-        patch[0] = 0x33; //xor eax,eax
-        patch[1] = 0xc0;
-        patch[2] = 0xc3; // retn
-        llproc->writeDataSpace((void*)entry,3,&patch);
+        BPatch_module *rtlib = this->image->findOrCreateModule(
+            (*llproc->runtime_lib.begin())->getModules().front());
+        vector<BPatch_function*> repfuncs;
+        rtlib->findFunction("DYNINST_FakeCheckRemoteDebuggerPresent", repfuncs, false);
+        assert(!repfuncs.empty());
+        replaceFunction(*funcs[0],*repfuncs[0]);
         funcs.clear();
 
         // OutputDebugStringA
@@ -1777,8 +1763,9 @@ bool BPatch_process::hideDebuggerInt()
         for (unsigned i=0; i < exitPoints->size(); i++) {
             insertSnippet( callSLE, *((*exitPoints)[i]) );
         }
-        finalizeInsertionSet(false);
     } 
+
+    finalizeInsertionSet(false);
 
     if (!user || !kern) {
         retval = false;
@@ -1931,35 +1918,37 @@ void BPatch_process::overwriteAnalysisUpdate
         using namespace ParseAPI;
         Address funcAddr = (*fit)->getAddress();
 
-        // grab callers that aren't also dead
-        Block::edgelist &callEdges = (*fit)->ifunc()->entryBlock()->sources();
-        Block::edgelist::iterator eit = callEdges.begin();
-        for( ; eit != callEdges.end(); ++eit) {
-            if (CALL == (*eit)->type()) {// includes tail calls
-                image_basicBlock *cBlk = (image_basicBlock*)((*eit)->src());
-                vector<ParseAPI::Function*> cFuncs;
-                cBlk->getFuncs(cFuncs);
-                for (unsigned fix=0; fix < cFuncs.size(); fix++) {
-                    int_function *cfunc = llproc->findFuncByInternalFunc(
-                        (image_func*)(cFuncs[fix]));
-                    int_block *cbbi = cfunc->findBlock(cBlk);
-                    if (delBBIs.end() != delBBIs.find(cbbi)) {
-                        continue;
-                    }
-                    bool isFuncDead = false;
-                    for (std::list<int_function*>::iterator dfit = deadFuncs.begin();
-                         dfit != deadFuncs.end(); 
-                         dfit++) 
-                    {
-                        if (cfunc == *dfit) {
-                            isFuncDead = true;
-                            break;
+        if ( ! (*fit)->ifunc()->hasWeirdInsns() ) {
+            // grab callers that aren't also dead
+            Block::edgelist &callEdges = (*fit)->ifunc()->entryBlock()->sources();
+            Block::edgelist::iterator eit = callEdges.begin();
+            for( ; eit != callEdges.end(); ++eit) {
+                if (CALL == (*eit)->type()) {// includes tail calls
+                    image_basicBlock *cBlk = (image_basicBlock*)((*eit)->src());
+                    vector<ParseAPI::Function*> cFuncs;
+                    cBlk->getFuncs(cFuncs);
+                    for (unsigned fix=0; fix < cFuncs.size(); fix++) {
+                        int_function *cfunc = llproc->findFuncByInternalFunc(
+                            (image_func*)(cFuncs[fix]));
+                        int_block *cbbi = cfunc->findBlock(cBlk);
+                        if (delBBIs.end() != delBBIs.find(cbbi)) {
+                            continue;
                         }
+                        bool isFuncDead = false;
+                        for (std::list<int_function*>::iterator dfit = deadFuncs.begin();
+                             dfit != deadFuncs.end(); 
+                             dfit++) 
+                        {
+                            if (cfunc == *dfit) {
+                                isFuncDead = true;
+                                break;
+                            }
+                        }
+                        if (isFuncDead) {
+                            continue;
+                        }
+                        deadFuncCallers[cbbi] = funcAddr;
                     }
-                    if (isFuncDead) {
-                        continue;
-                    }
-                    deadFuncCallers[cbbi] = funcAddr;
                 }
             }
         }
@@ -2016,16 +2005,6 @@ void BPatch_process::overwriteAnalysisUpdate
         vector<edgeStub> stubs;
         stubs.push_back(edgeStub(bit->first,bit->second,ParseAPI::CALL));
         bit->first->func()->obj()->parseNewEdges(stubs);
-#if 0 // broken code that bypassed the int-layer parseNewEdges
-        vector<ParseAPI::Block*>  srcs; 
-        vector<Address> trgs; 
-        vector<EdgeTypeEnum> etypes; 
-        srcs.push_back(bit->first->llb());
-        mapped_object *tobj = llproc->findObject(bit->second);
-        trgs.push_back(bit->second - tobj->codeBase());
-        etypes.push_back(ParseAPI::CALL);
-        bit->first->func()->ifunc()->img()->codeObject()->parseNewEdges(srcs,trgs,etypes);
-#endif
     }
 
     // set new entry points for functions with NewF blocks

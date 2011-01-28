@@ -173,6 +173,8 @@ void Edge::install()
 
 void Edge::uninstall()
 {
+    mal_printf("Uninstalling edge [%lx]->[%lx]\n", 
+               _source->lastInsnAddr(), _target->start());
     // if it's a call edge, it's cached in the function object, remove it
     if (CALL == type()) {
         vector<Function*> srcFs;

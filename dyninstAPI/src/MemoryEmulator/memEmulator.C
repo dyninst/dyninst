@@ -424,6 +424,7 @@ void MemoryEmulator::synchShadowOrig(bool toOrig)
         }
         //cerr << "\t Copying " << hex << from << " -> " << toBase << dec << endl;
         //cerr << "SYNC WRITE TO " << hex << toBase << dec << endl;
+
         for (; sit != springboards_[reg].end(); sit++) {
             // We purposefully have an overlapping datastructure, so this assert is 
             // commented out.
@@ -433,6 +434,15 @@ void MemoryEmulator::synchShadowOrig(bool toOrig)
 
             //cerr << "\t Start @ " << hex << cp_start << " and next springboard " << sit->first << dec << endl;
             int cp_size = sit->first - cp_start;
+
+            if (cp_size > 0 &&
+                !aS_->writeDataSpace((void *)(toBase + cp_start),
+                                     cp_size,
+                                     regbuf + cp_start))
+            {
+                assert(0);
+            }
+
             //cerr << "\t Write [" << hex << toBase + cp_start << "," << toBase + cp_start + cp_size  << ")" << dec << endl;
             if (cp_size > 0) {
                 if (!toOrig) {
@@ -447,7 +457,6 @@ void MemoryEmulator::synchShadowOrig(bool toOrig)
                     cp_size,
                     regbuf + cp_start)) assert(0);
             }
-            cp_start = sit->first + sit->second;
         }
         //cerr << "\t Finishing write " << hex << toBase + cp_start << " -> " << toBase + cp_start + reg->getMemSize() - cp_start << dec << endl;
 

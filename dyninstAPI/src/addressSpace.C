@@ -1651,7 +1651,14 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
 
   while (1) {
     relocation_cerr << "   Attempting to allocate " << cm->size() << "bytes" << endl;
-    baseAddr = inferiorMalloc(cm->size(), anyHeap, nearTo);
+    unsigned size = cm->size();
+    if (!size) {
+        // This can happen if the only thing being moved are control flow instructions
+        // (or other things that are _only_ patches)
+        // inferiorMalloc horks if we hand it zero, so make sure it's non-zero.
+        size = 1;
+    }
+    baseAddr = inferiorMalloc(size, anyHeap, nearTo);
     relocation_cerr << "   inferiorMalloc returned " 
 		    << std::hex << baseAddr << std::dec << endl;
 

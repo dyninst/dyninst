@@ -3274,8 +3274,8 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
                              const void *inSelf) 
 {
     Address tmp = (Address) inTracedProcess;
-
-bool needToCont = false;
+    
+   bool needToCont = false;
 
    if (!isAttached()) return false;
 
@@ -4599,10 +4599,7 @@ Address process::stopThreadCtrlTransfer
            functionExit != intPoint->getPointType()) 
     {
         // remove unresolved status from point if it is a static ctrl transfer
-        if ( ! intPoint->setResolved() ) {
-            fprintf(stderr,"We seem to have tried resolving this point[0x%lx] "
-                    "twice, why? %s[%d]\n", pointAddr, FILE__,__LINE__);
-        }
+        intPoint->setResolved();
     }
     return unrelocTarget;
 } 
@@ -4749,7 +4746,6 @@ bool process::getOverwrittenBlocks
     for (; pIter != overwrittenPages.end(); pIter++) {
         Address curPageAddr = (*pIter).first / MEM_PAGE_SIZE * MEM_PAGE_SIZE;
         unsigned char *curShadow = (*pIter).second;
-		cerr << "\t Checking page " << hex << curPageAddr << dec << endl;
 
         // 0. check to make sure curShadow is non-null, if it is null, 
         //    that means it hasn't been written to
@@ -4889,7 +4885,7 @@ static void otherFuncBlocks(int_function *func,
  * Del(f):  Blocks that can be deleted altogether
  *          F - R( B(f) - ow , New(f) U (EP(f) \ ow(f)) U (ex(f) intersect Elim(f)) )
  * DeadF:   the set of functions that have no executing blocks 
- *          and were overwritten at their entry points
+ *          and were overwritten in their entry blocks
  *          EP(f) in ow(f) AND ex(f) is empty
  */
 bool process::getDeadCode

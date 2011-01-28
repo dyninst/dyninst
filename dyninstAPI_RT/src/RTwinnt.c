@@ -277,3 +277,42 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
 int DYNINST_am_initial_thread(dyntid_t tid) {
     return (tid == initial_thread_tid);
 }
+
+extern int fakeTickCount;
+extern FILE *stOut;
+DWORD __stdcall DYNINST_FakeTickCount()
+{
+    DWORD tmp = 0x12345678;
+    if (0 == fakeTickCount) {
+        fakeTickCount = tmp;
+    } else {
+        fakeTickCount = fakeTickCount + 2;
+//        fakeTickCount = fakeTickCount + (tmp - fakeTickCount)/1000 + 1;
+    }
+    fprintf(stOut,"0x%lx = DYNINST_FakeTickCount()\n",fakeTickCount);
+    return (DWORD) fakeTickCount;
+}
+
+BOOL __stdcall DYNINST_FakeBlockInput(BOOL blockit)
+{
+    BOOL ret = RT_TRUE;
+    fprintf(stOut,"0x%lx = DYNINST_FakeBlockInput(%d)\n",ret,blockit);
+    return ret;
+}
+
+DWORD __stdcall DYNINST_FakeSuspendThread(HANDLE hThread)
+{
+    DWORD suspendCnt = 0;
+    fprintf(stOut,"%d = DYNINST_FakeBlockInput(%d)\n",suspendCnt,hThread);
+    return suspendCnt;
+}
+
+BOOL __stdcall DYNINST_FakeCheckRemoteDebuggerPresent(HANDLE hProcess, PBOOL bpDebuggerPresent)
+{
+    BOOL ret = RT_FALSE;
+    fprintf(stOut,"%d = DYNINST_FakeCheckRemoteDebuggerPresent(%d,0x%lx)\n",
+            ret, hProcess, bpDebuggerPresent);
+    (*bpDebuggerPresent) = ret;
+    return ret;
+}
+

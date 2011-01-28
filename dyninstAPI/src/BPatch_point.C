@@ -356,14 +356,6 @@ bool BPatch_point::getCFTargets(BPatch_Vector<Address> &targets)
 Address BPatch_point::getCallFallThroughAddr()
 {
     assert(point);
-	// HACK to enable this for entry points - we can get a call as the first insn in a function
-		// which means it gets labeled an entry point instead of a call.
-	if (0 && point->getPointType() != callSite && 
-        ( point->addr() != point->block()->last() )) 
-    {
-        fprintf(stderr,"ERROR: requested fallthrough address for point at %lx "
-                "that is not a call %s[%d]\n", point->addr(), FILE__, __LINE__);
-    }
 #if defined(cap_instruction_api)
     using namespace InstructionAPI;
     mapped_object *obj = point->func()->obj();

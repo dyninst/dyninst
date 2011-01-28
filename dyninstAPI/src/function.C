@@ -1010,6 +1010,9 @@ const int_function::BlockSet &int_function::blocks()
 
 
 int_block *int_function::entryBlock() {
+    if (!ifunc_->parsed()) {
+        ifunc_->blocks();
+    }
 	ParseAPI::Block *iEntry = ifunc_->entry();
 	if (!iEntry) return NULL;
 	return findBlock(iEntry);
