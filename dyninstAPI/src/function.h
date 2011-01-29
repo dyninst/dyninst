@@ -281,7 +281,7 @@ class int_function : public patchTarget {
    const pdvector<instPoint*> &funcArbitraryPoints();
    const std::set<instPoint*> &funcUnresolvedControlFlow();
    const std::set<instPoint*> &funcAbruptEnds();
-   bool setPointResolved(instPoint* resolvedPt);
+   void setPointResolved(instPoint* resolvedPt, bool newval);
 
    bool isSignalHandler() {return handlerFaultAddr_ != 0;}
    Address getHandlerFaultAddr() {return handlerFaultAddr_;}

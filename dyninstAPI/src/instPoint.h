@@ -317,7 +317,7 @@ class instPoint : public instPointBase {
   // false if there are none.  
   bool getSavedTargets(std::vector<Address> &targs);
   // returns false if it was already resolved
-  bool setResolved();
+  void setResolved(bool);
   // needed for blocks that are split after the initial parse
   void setBlock( int_block* newBlock );
 

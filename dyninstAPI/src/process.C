@@ -4599,7 +4599,7 @@ Address process::stopThreadCtrlTransfer
            functionExit != intPoint->getPointType()) 
     {
         // remove unresolved status from point if it is a static ctrl transfer
-        intPoint->setResolved();
+        intPoint->setResolved(true);
     }
     return unrelocTarget;
 } 
