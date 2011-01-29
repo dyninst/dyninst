@@ -785,8 +785,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
     }
     if (evtCodeOverwrite != ev.type && ev.proc->isMemoryEmulated()) {
         // see if we were executing in defensive code whose memory access 
-        // would have been emulated, and assert if so, since we lack the
-        // mechanism to clean up the emulation properly
+        // would have been emulated
         Address origAddr = ev.address;
         vector<int_function *> writefuncs;
         baseTrampInstance *bti = NULL;
@@ -2733,7 +2732,10 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     }
 
     // 2.  If the fault occurred at an emulated memory instruction, we saved a
-    //     register before stomping its effective address computation
+    //     register before stomping its effective address computation, restore
+    //     it to its original value, set the PC to point at the unrelocated
+    //     address of the faulting instruction, and make sure we get a 
+    //     springboard at the fault instruction
 
     int_block *faultBBI = NULL;
     switch( faultFuncs.size() ) {
@@ -2752,14 +2754,15 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     if (ev.proc->isMemoryEmulated() && 
         BPatch_defensiveMode == faultFuncs[0]->obj()->hybridMode())
     {
+        CONTEXT context;
+        GetThreadContext(ev.lwp->getFileHandle(), (LPCONTEXT) & context);
+        context.Eip = origAddr;
         if (faultFuncs[0]->obj()->isEmulInsn(origAddr)) {
             void * val =0;
             assert( sizeof(void*) == ev.proc->getAddressWidth() );
             ev.proc->readDataSpace((void*)(activeFrame.getSP() + MemoryEmulator::STACK_SHIFT_VAL), 
                                    ev.proc->getAddressWidth(), 
                                    &val, false);
-            CONTEXT context;
-            GetThreadContext(ev.lwp->get_fd(), (LPCONTEXT) & context);
             Register reg = faultFuncs[0]->obj()->getEmulInsnReg(origAddr);
             switch(reg) {
                 case REGNUM_ECX:
@@ -2786,8 +2789,8 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
                 default:
                     assert(0);
             }
-            SetThreadContext(ev.lwp->get_fd(), (LPCONTEXT) & context);
         }
+        SetThreadContext(ev.lwp->get_fd(), (LPCONTEXT) & context);
     }
 
     // 3. create instPoint at faulting instruction & trigger callback
