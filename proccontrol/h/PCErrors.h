@@ -76,6 +76,7 @@ const err_t err_notstopped     = 0x10011;
 const err_t err_notrunning     = 0x10012;
 const err_t err_noevents       = 0x10013;
 const err_t err_incallback     = 0x10014;
+const err_t err_nouserthrd     = 0x10015;
 
 err_t getLastError();
 void clearLastError();

@@ -1017,7 +1017,6 @@ void int_process::initializeProcess(Process::ptr p)
 
 int_thread *int_process::findStoppedThread()
 {
-   ProcPool()->condvar()->lock();
    int_thread *result = NULL;
    for (int_threadPool::iterator i = threadpool->begin(); i != threadpool->end(); i++)
    {
@@ -1027,20 +1026,19 @@ int_thread *int_process::findStoppedThread()
          break;
       }
    }   
-   ProcPool()->condvar()->unlock();
-   if (result) {
-      assert(result->getGeneratorState() == int_thread::stopped);
-   }
    return result;
 }
 
-bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result)
+bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int_thread *thr)
 {
-   int_thread *thr = findStoppedThread();
-   if (!thr) {
-      setLastError(err_notstopped, "A thread must be stopped to read from memory");
-      perr_printf("Unable to find a stopped thread for read in process %d\n", getPid());
-      return false;
+   if (!thr)
+   {
+      thr = findStoppedThread();
+      if (!thr) {
+         setLastError(err_notstopped, "A thread must be stopped to read from memory");
+         perr_printf("Unable to find a stopped thread for read in process %d\n", getPid());
+         return false;
+      }
    }
 
    bool bresult;
@@ -1070,13 +1068,16 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result)
    return bresult;      
 }
 
-bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result)
+bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr)
 {
-   int_thread *thr = findStoppedThread();
-   if (!thr) {
-      setLastError(err_notstopped, "A thread must be stopped to write to memory");
-      perr_printf("Unable to find a stopped thread for write in process %d\n", getPid());
-      return false;
+   if (!thr) 
+   {
+      thr = findStoppedThread();
+      if (!thr) {
+         setLastError(err_notstopped, "A thread must be stopped to write to memory");
+         perr_printf("Unable to find a stopped thread for write in process %d\n", getPid());
+         return false;
+      }
    }
 
    bool bresult;
@@ -1486,6 +1487,11 @@ void int_process::setInCB(bool b)
 }
 
 bool int_process::plat_needsAsyncIO() const
+{
+   return false;
+}
+
+bool int_process::plat_supportLWPEvents() const
 {
    return false;
 }
@@ -2215,11 +2221,6 @@ int_process *int_thread::llproc() const
    return proc_;
 }
 
-Dyninst::THR_ID int_thread::getTid() const
-{
-   return tid;
-}
-
 Dyninst::LWP int_thread::getLWP() const
 {
    return lwp;
@@ -2430,6 +2431,7 @@ int_thread::~int_thread()
    up_thread->exitstate_ = new thread_exitstate();
    up_thread->exitstate_->lwp = lwp;
    up_thread->exitstate_->thr_id = tid;
+   up_thread->exitstate_->proc_ptr = proc();
    up_thread->llthread_ = NULL;
 }
 
@@ -2976,6 +2978,11 @@ void int_thread::markClearingBreakpoint(installed_breakpoint *bp)
 {
    assert(!clearing_breakpoint || bp == NULL);
    clearing_breakpoint = bp;
+}
+
+void int_thread::setTID(Dyninst::THR_ID tid_)
+{
+   tid = tid_;
 }
 
 installed_breakpoint *int_thread::isClearingBreakpoint()
@@ -3692,7 +3699,12 @@ size_t RegisterPool::size() const
    return llregpool->regs.size();
 }
 
-Thread::ptr RegisterPool::getThread() const
+Thread::ptr RegisterPool::getThread()
+{
+   return llregpool->thread->thread();
+}
+
+Thread::const_ptr RegisterPool::getThread() const
 {
    return llregpool->thread->thread();
 }
@@ -4636,7 +4648,17 @@ Thread::~Thread()
    }
 }
 
-Process::ptr Thread::getProcess() const
+Process::const_ptr Thread::getProcess() const
+{
+   MTLock lock_this_func;
+   if (!llthread_) {
+      assert(exitstate_);
+      return exitstate_->proc_ptr;
+   }
+   return llthread_->proc();
+}
+
+Process::ptr Thread::getProcess()
 {
    MTLock lock_this_func;
    if (!llthread_) {
@@ -4897,17 +4919,6 @@ Dyninst::LWP Thread::getLWP() const
    return llthread_->getLWP();
 }
 
-Dyninst::THR_ID Thread::getTid() const
-{
-   MTLock lock_this_func;
-   if( !llthread_ ) {
-       assert(exitstate_);
-       return exitstate_->thr_id;
-   }
-
-   return llthread_->getTid();
-}
-
 bool Thread::postIRPC(IRPC::ptr irpc) const
 {
    MTLock lock_this_func;
@@ -4959,6 +4970,107 @@ bool Thread::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
    return true;
 }
 
+bool Thread::haveUserThreadInfo() const
+{
+   MTLock lock_this_func;
+   if (!llthread_) {
+      perr_printf("getStartFunction on deleted thread\n");
+      setLastError(err_exited, "Thread is exited");
+      return false;
+   }
+
+   return llthread_->haveUserThreadInfo();
+}
+
+Dyninst::THR_ID Thread::getTID() const
+{
+   MTLock lock_this_func;
+   if (!llthread_) {
+      if (exitstate_ && exitstate_->thr_id != NULL_THR_ID) {
+         return exitstate_->thr_id;
+      }
+      perr_printf("getTID on deleted thread\n");
+      setLastError(err_exited, "Thread is exited");
+      return false;
+   }
+
+   Dyninst::THR_ID tid;
+   bool result = llthread_->getTID(tid);
+   if (!result) {
+      return NULL_THR_ID;
+   }
+   llthread_->setTID(tid);
+   return tid;
+}
+
+Dyninst::Address Thread::getStartFunction() const
+{
+   MTLock lock_this_func;
+   if (!llthread_) {
+      perr_printf("getStartFunction on deleted thread\n");
+      setLastError(err_exited, "Thread is exited");
+      return false;
+   }
+
+   Dyninst::Address addr;
+   bool result = llthread_->getStartFuncAddress(addr);
+   if (!result) {
+      return 0;
+   }
+   return addr;
+}
+
+Dyninst::Address Thread::getStackBase() const
+{
+   MTLock lock_this_func;
+   if (!llthread_) {
+      perr_printf("getStartFunction on deleted thread\n");
+      setLastError(err_exited, "Thread is exited");
+      return false;
+   }
+
+   Dyninst::Address addr;
+   bool result = llthread_->getStackBase(addr);
+   if (!result) {
+      return 0;
+   }
+   return addr;
+}
+
+unsigned long Thread::getStackSize() const
+{
+   MTLock lock_this_func;
+   if (!llthread_) {
+      perr_printf("getStartFunction on deleted thread\n");
+      setLastError(err_exited, "Thread is exited");
+      return false;
+   }
+
+   unsigned long size;
+   bool result = llthread_->getStackSize(size);
+   if (!result) {
+      return 0;
+   }
+   return size;
+}
+
+Dyninst::Address Thread::getTLS() const
+{
+   MTLock lock_this_func;
+   if (!llthread_) {
+      perr_printf("getStartFunction on deleted thread\n");
+      setLastError(err_exited, "Thread is exited");
+      return false;
+   }
+
+   Dyninst::Address addr;
+   bool result = llthread_->getTLSPtr(addr);
+   if (!result) {
+      return 0;
+   }
+   return addr;
+}
+
 IRPC::const_ptr Thread::getRunningIRPC() const
 {
    MTLock lock_this_func;
@@ -4987,7 +5099,7 @@ Thread::ptr ThreadPool::getInitialThread()
    return threadpool->initialThread()->thread();
 }
 
-const Thread::ptr ThreadPool::getInitialThread() const
+Thread::const_ptr ThreadPool::getInitialThread() const
 {
    return threadpool->initialThread()->thread();
 }
@@ -5110,7 +5222,7 @@ bool ThreadPool::const_iterator::operator!=(const const_iterator &i)
    return (i.curh != curh);
 }
 
-const Thread::ptr ThreadPool::const_iterator::operator*() const
+Thread::const_ptr ThreadPool::const_iterator::operator*() const
 {
    MTLock lock_this_func;
    assert(curp);
@@ -5186,7 +5298,7 @@ ThreadPool::const_iterator ThreadPool::find(Dyninst::LWP lwp) const
     return i;
 }
 
-const Process::ptr ThreadPool::getProcess() const
+Process::const_ptr ThreadPool::getProcess() const
 {
    MTLock lock_this_func;
    return threadpool->proc()->proc();

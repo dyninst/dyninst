@@ -35,7 +35,11 @@ class EventExec;
 class EventBreakpoint;
 class EventStop;
 class EventNewThread;
+class EventNewUserThread;
+class EventNewLWP;
 class EventThreadDestroy;
+class EventUserThreadDestroy;
+class EventLWPDestroy;
 class EventFork;
 class EventSignal;
 class EventBootstrap;
@@ -110,8 +114,20 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
    dyn_detail::boost::shared_ptr<EventNewThread> getEventNewThread();
    dyn_detail::boost::shared_ptr<const EventNewThread> getEventNewThread() const;
 
+   dyn_detail::boost::shared_ptr<EventNewUserThread> getEventNewUserThread();
+   dyn_detail::boost::shared_ptr<const EventNewUserThread> getEventNewUserThread() const;
+
+   dyn_detail::boost::shared_ptr<EventNewLWP> getEventNewLWP();
+   dyn_detail::boost::shared_ptr<const EventNewLWP> getEventNewLWP() const;
+
    dyn_detail::boost::shared_ptr<EventThreadDestroy> getEventThreadDestroy();
    dyn_detail::boost::shared_ptr<const EventThreadDestroy> getEventThreadDestroy() const;
+
+   dyn_detail::boost::shared_ptr<EventUserThreadDestroy> getEventUserThreadDestroy();
+   dyn_detail::boost::shared_ptr<const EventUserThreadDestroy> getEventUserThreadDestroy() const;
+
+   dyn_detail::boost::shared_ptr<EventLWPDestroy> getEventLWPDestroy();
+   dyn_detail::boost::shared_ptr<const EventLWPDestroy> getEventLWPDestroy() const;
 
    dyn_detail::boost::shared_ptr<EventFork> getEventFork();
    dyn_detail::boost::shared_ptr<const EventFork> getEventFork() const;
@@ -238,15 +254,49 @@ class EventNewThread : public Event
 {
    friend void dyn_detail::boost::checked_delete<EventNewThread>(EventNewThread *);
    friend void dyn_detail::boost::checked_delete<const EventNewThread>(const EventNewThread *);
- private:
-   Dyninst::LWP lwp;
  public:
    typedef dyn_detail::boost::shared_ptr<EventNewThread> ptr;
    typedef dyn_detail::boost::shared_ptr<const EventNewThread> const_ptr;
-   EventNewThread(Dyninst::LWP lwp_);
+   EventNewThread(EventType et);
    virtual ~EventNewThread();
-   Dyninst::LWP getLWP() const;
-   Thread::const_ptr getNewThread() const;
+
+   virtual Dyninst::LWP getLWP() const = 0;
+   virtual Thread::const_ptr getNewThread() const = 0;
+};
+
+class int_eventNewUserThread;
+class EventNewUserThread : public EventNewThread
+{
+   friend void dyn_detail::boost::checked_delete<EventNewUserThread>(EventNewUserThread *);
+   friend void dyn_detail::boost::checked_delete<const EventNewUserThread>(const EventNewUserThread *);
+  private:
+   int_eventNewUserThread *iev;
+  public:
+   typedef dyn_detail::boost::shared_ptr<EventNewUserThread> ptr;
+   typedef dyn_detail::boost::shared_ptr<const EventNewUserThread> const_ptr;   
+
+   EventNewUserThread();
+   virtual ~EventNewUserThread();
+   int_eventNewUserThread *getInternalEvent() const;
+
+   virtual Dyninst::LWP getLWP() const;
+   virtual Thread::const_ptr getNewThread() const;
+};
+
+class EventNewLWP : public EventNewThread
+{
+   friend void dyn_detail::boost::checked_delete<EventNewLWP>(EventNewLWP *);
+   friend void dyn_detail::boost::checked_delete<const EventNewLWP>(const EventNewLWP *);
+  private:
+   Dyninst::LWP lwp;
+  public:
+   typedef dyn_detail::boost::shared_ptr<EventNewLWP> ptr;
+   typedef dyn_detail::boost::shared_ptr<const EventNewLWP> const_ptr;   
+   EventNewLWP(Dyninst::LWP lwp_);
+   virtual ~EventNewLWP();
+
+   virtual Dyninst::LWP getLWP() const;
+   virtual Thread::const_ptr getNewThread() const;
 };
 
 class EventThreadDestroy : public Event
@@ -256,8 +306,30 @@ class EventThreadDestroy : public Event
  public:
    typedef dyn_detail::boost::shared_ptr<EventThreadDestroy> ptr;
    typedef dyn_detail::boost::shared_ptr<const EventThreadDestroy> const_ptr;
-   EventThreadDestroy(EventType::Time time_);
-   virtual ~EventThreadDestroy();
+   EventThreadDestroy(EventType et);
+   virtual ~EventThreadDestroy() = 0;
+};
+
+class EventUserThreadDestroy : public EventThreadDestroy
+{
+   friend void dyn_detail::boost::checked_delete<EventUserThreadDestroy>(EventUserThreadDestroy *);
+   friend void dyn_detail::boost::checked_delete<const EventUserThreadDestroy>(const EventUserThreadDestroy *);
+ public:
+   typedef dyn_detail::boost::shared_ptr<EventUserThreadDestroy> ptr;
+   typedef dyn_detail::boost::shared_ptr<const EventUserThreadDestroy> const_ptr;
+   EventUserThreadDestroy(EventType::Time time_);
+   virtual ~EventUserThreadDestroy();
+};
+
+class EventLWPDestroy : public EventThreadDestroy
+{
+   friend void dyn_detail::boost::checked_delete<EventLWPDestroy>(EventLWPDestroy *);
+   friend void dyn_detail::boost::checked_delete<const EventLWPDestroy>(const EventLWPDestroy *);
+ public:
+   typedef dyn_detail::boost::shared_ptr<EventLWPDestroy> ptr;
+   typedef dyn_detail::boost::shared_ptr<const EventLWPDestroy> const_ptr;
+   EventLWPDestroy(EventType::Time time_);
+   virtual ~EventLWPDestroy();
 };
 
 class EventFork : public Event

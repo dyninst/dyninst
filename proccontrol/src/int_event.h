@@ -75,5 +75,16 @@ class int_eventAsync {
    response::ptr getResponse() const;
 };
 
+class int_eventNewUserThread {
+  public:
+   int_eventNewUserThread();
+   ~int_eventNewUserThread();
+
+   int_thread *thr;
+   Dyninst::LWP lwp;
+   void *raw_data;
+   bool needs_update;
+};
+
 }
 }
