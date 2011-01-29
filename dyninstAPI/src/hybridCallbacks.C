@@ -555,10 +555,11 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             } 
         }
 
-        // 3.2.1 if the return addr follows a call to this function, parse at 
-        // its fallthrough edge
-        bool parseAtFT = false;
+        // 3.2.1 if point->func() was called by callPoint, point->func() 
+        // returns normally, tell parseAfterCallAndInstrument to parse after 
+        // other callers to point->func()
         if (callPoint) {
+            BPatch_function *calledFunc = NULL;
             vector<Address> targs;
             callPoint->getSavedTargets(targs);
             // unfortunately, because of pc emulation, if the return point is 
@@ -567,20 +568,21 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             vector<ParseAPI::Function*> retfuncs;
             point->llpoint()->block()->llb()->getFuncs(retfuncs);
             Address base = point->llpoint()->func()->obj()->codeBase();
-            for (unsigned tidx=0; !parseAtFT && tidx < targs.size(); tidx++) {
-                for (unsigned fidx=0; !parseAtFT && fidx < retfuncs.size(); fidx++) {
+            for (unsigned tidx=0; !calledFunc && tidx < targs.size(); tidx++) {
+                for (unsigned fidx=0; !calledFunc && fidx < retfuncs.size(); fidx++) {
                     if (targs[tidx] == (base + retfuncs[fidx]->addr()) ) {
-                        parseAtFT = true;
+                        calledFunc = proc()->findOrCreateBPFunc(
+                            point->llpoint()->func()->obj()->
+                            findFunction(static_cast<image_func*>(retfuncs[fidx])),
+                            NULL);
                     }
                 }
             }
-        }
-        if ( parseAtFT ) {
             mal_printf("stopThread instrumentation found return at %lx, "
                       "parsing return addr %lx as fallthrough of call "
                       "instruction at %lx %s[%d]\n", (long)point->getAddress(), 
                       target,callPoint->getAddress(),FILE__,__LINE__);
-            parseAfterCallAndInstrument( callPoint, point->getFunction() );
+            parseAfterCallAndInstrument( callPoint, calledFunc );
         }
 
         // 3.2.2 else parse the return addr as a new function

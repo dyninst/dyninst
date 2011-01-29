@@ -85,6 +85,7 @@ public:
     void deleteSynchSnippet(SynchHandle *handle);
     bool needsSynchronization(BPatch_point *point);
     int getOrigPageRights(Dyninst::Address addr);
+    void addReplacedFuncs(std::vector<std::pair<BPatch_function*,BPatch_function*> > &repFs);
 
     std::map< BPatch_point* , SynchHandle* > & synchMap_pre();
     std::map< BPatch_point* , SynchHandle* > & synchMap_post();
@@ -96,7 +97,6 @@ public:
 	void virtualFreeAddrCB(BPatch_point *point, void *);
 	void virtualFreeSizeCB(BPatch_point *point, void *);
 	void virtualFreeCB(BPatch_point *point, void *);
-
 	void badTransferCB(BPatch_point *point, void *returnValue);
     void signalHandlerEntryCB(BPatch_point *point, Dyninst::Address pcAddr);
     void signalHandlerCB(BPatch_point *pt, long snum, std::vector<Dyninst::Address> &handlers);
@@ -160,6 +160,7 @@ private:
     std::map< BPatch_point* , SynchHandle* > synchMap_post_; // maps from postPt
     std::set< BPatch_function *> instShadowFuncs_;
     std::set< std::string > nonPtrAPIs_;
+    std::map< BPatch_function *, BPatch_function *> replacedFuncs_;
     BPatch_module *sharedlib_runtime;
     BPatch_hybridMode mode_;
     BPatch_process *proc_;

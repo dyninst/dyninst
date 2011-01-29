@@ -313,16 +313,30 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     bool instrumentReturns,
     bool addShadowSync) 
 {
+
     Address funcAddr = (Address) func->getBaseAddr();
     int pointCount = 0;
+    mal_printf("instfunc at %lx\n", funcAddr);
+
+    // first check to see if we've applied function replacement
+    std::map<BPatch_function *,BPatch_function *>::iterator 
+        rfIter = replacedFuncs_.find(func);
+    if (replacedFuncs_.end() != rfIter) {
+        malware_cerr << "Function " << func->getName() << " at " 
+            << hex << (Address)func->getBaseAddr() << "has been replaced "
+            << "by function " << rfIter->second->getName() << " at " 
+            << (Address)rfIter->second->getBaseAddr() 
+            << " will instrument it instead" << dec << endl;
+        func = rfIter->second;
+    }
+
+    // is this function a signal handler
     bool isHandler = false;
     if (handlerFunctions.end() != 
         handlerFunctions.find((Address)func->getBaseAddr())) 
     {
         isHandler = true;
     }
-
-    mal_printf("instfunc at %lx\n", funcAddr);
 
 	assert(func);
 	assert(func->lowlevel_func());
@@ -816,7 +830,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
     proc()->beginInsertionSet();
 
     if (calledFunc) {
-        // add fallthrough for any other calls to this function, iterate 
+        // add fallthrough for any other calls to calledFunc, iterate 
         // through call points to the called function
         std::vector<BPatch_point*> callerPoints;
         calledFunc->getCallerPoints(callerPoints);
@@ -977,7 +991,9 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
     // fill in the post-call area with a patch 
     // (even if we didn't parse, we have to do this to get rid of the illegal instructions in the pad)
     proc()->finalizeInsertionSet(false);
-    success = callPoint->patchPostCallArea() && success;
+    if (!callPoint->patchPostCallArea()) {
+        success = false;
+    }
 
     return success;
 }
@@ -1396,4 +1412,12 @@ HybridAnalysis::getOrigPageRights(Address addr)
         assert(0);
     }
     return origPerms;
+}
+
+void HybridAnalysis::addReplacedFuncs
+(std::vector<std::pair<BPatch_function*,BPatch_function*> > &repFs)
+{
+    for (unsigned ridx=0; ridx < repFs.size(); ridx++) {
+        replacedFuncs_[repFs[ridx].first] = repFs[ridx].second;
+    }
 }

@@ -444,8 +444,8 @@ void MemoryEmulator::synchShadowOrig(bool toOrig)
                     cp_size,
                     regbuf + cp_start)) assert(0);
 
-                cp_start = sit->first + sit->second;
             }
+            cp_start = sit->first + sit->second;
         }
         cerr << "\t Finishing write " << hex << toBase + cp_start << " -> " << toBase + cp_start + reg->getMemSize() - cp_start << dec << endl;
 

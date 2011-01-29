@@ -1671,13 +1671,16 @@ bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
  */
 bool BPatch_process::hideDebuggerInt()
 {
+    // do non-instrumentation related hiding
     bool retval = llproc->hideDebugger();
-    //return true; // KEVINTODO: re-enable this function
-    // disable API calls //
 
-    // BlockInput
+    // disable API calls //
+    vector<pair<BPatch_function *,BPatch_function *> > disabledFuncs;
     BPatch_module *user = image->findModule("user32.dll",true);
+    BPatch_module *kern = image->findModule("*kernel32.dll",true);
+
     if (user) {
+        // BlockInput
         using namespace SymtabAPI;
         vector<BPatch_function*> funcs;
         user->findFunction(
@@ -1690,13 +1693,12 @@ bool BPatch_process::hideDebuggerInt()
         rtlib->findFunction("DYNINST_FakeBlockInput", repfuncs, false);
         assert(!repfuncs.empty());
         replaceFunction(*funcs[0],*repfuncs[0]);
-        funcs.clear();
+        disabledFuncs.push_back(pair<BPatch_function*,BPatch_function*>(
+                                funcs[0],repfuncs[0]));
     }
 
-    BPatch_module *kern = image->findModule("*kernel32.dll",true);
     if (kern) {
         // SuspendThread
-
         // KEVINTODO: condition the function replacement on its thread ID parameter matching a Dyninst thread
         using namespace SymtabAPI;
         vector<BPatch_function*> funcs;
@@ -1710,7 +1712,8 @@ bool BPatch_process::hideDebuggerInt()
         rtlib->findFunction("DYNINST_FakeSuspendThread", repfuncs, false);
         assert(!repfuncs.empty());
         replaceFunction(*funcs[0],*repfuncs[0]);
-        funcs.clear();
+        disabledFuncs.push_back(pair<BPatch_function*,BPatch_function*>(
+                                funcs[0],repfuncs[0]));
     }
 
     if (kern) {
@@ -1727,10 +1730,11 @@ bool BPatch_process::hideDebuggerInt()
         rtlib->findFunction("DYNINST_FakeTickCount", repfuncs, false);
         assert(!repfuncs.empty());
         replaceFunction(*funcs[0],*repfuncs[0]);
-        funcs.clear();
+        disabledFuncs.push_back(pair<BPatch_function*,BPatch_function*>(
+                                funcs[0],repfuncs[0]));
     }
 
-    if (kern && user) { 
+    if (kern) { 
         // CheckRemoteDebuggerPresent
         vector<BPatch_function*> funcs;
         kern->findFunction(
@@ -1743,9 +1747,13 @@ bool BPatch_process::hideDebuggerInt()
         rtlib->findFunction("DYNINST_FakeCheckRemoteDebuggerPresent", repfuncs, false);
         assert(!repfuncs.empty());
         replaceFunction(*funcs[0],*repfuncs[0]);
-        funcs.clear();
+        disabledFuncs.push_back(pair<BPatch_function*,BPatch_function*>(
+                                funcs[0],repfuncs[0]));
+    }
 
+    if (kern && user) { 
         // OutputDebugStringA
+        vector<BPatch_function*> funcs;
         kern->findFunction("OutputDebugStringA",
             funcs, false, false, true);
         assert(funcs.size());
@@ -1764,7 +1772,10 @@ bool BPatch_process::hideDebuggerInt()
             insertSnippet( callSLE, *((*exitPoints)[i]) );
         }
     } 
-
+    
+    if (NULL != hybridAnalysis_) {
+        hybridAnalysis_->addReplacedFuncs(disabledFuncs);
+    }
     finalizeInsertionSet(false);
 
     if (!user || !kern) {
