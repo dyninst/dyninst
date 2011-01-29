@@ -25,6 +25,11 @@ test_results_t ProcControlMutator::setup(ParameterDict &param)
    return PASSED;
 }
 
+test_results_t ProcControlMutator::pre_init(ParameterDict &param)
+{
+   return PASSED;
+}
+
 ProcControlComponent::ProcControlComponent() :
    sockfd(0),
    sockname(NULL),
@@ -194,11 +199,39 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
          }
       }
    
-      while (eventsRecieved[thread_create].size() < num_procs*num_threads) {
-         bool result = Process::handleEvents(true);
-         if (!result) {
-            logerror("Failed to handle events during thread create\n");
-            error = true;
+      bool support_user_threads = false;
+      bool support_lwps = false;
+#if defined(os_linux_test)
+      support_user_threads = true;
+      support_lwps = true;
+#elif defined(os_bg_test)
+      support_user_threads = true;
+      support_lwps = false;
+#elif defined(os_freebsd_test)
+      support_user_threads = true;
+      support_lwps = false;
+#endif
+      assert(support_user_threads || support_lwps);
+
+      if (support_lwps)
+      {
+         while (eventsRecieved[EventType(EventType::None, EventType::LWPCreate)].size() < num_procs*num_threads) {
+            bool result = Process::handleEvents(true);
+            if (!result) {
+               logerror("Failed to handle events during thread create\n");
+               error = true;
+            }
+         }
+      }
+
+      if (support_user_threads)
+      {
+         while (eventsRecieved[EventType(EventType::None, EventType::UserThreadCreate)].size() < num_procs*num_threads) {
+            bool result = Process::handleEvents(true);
+            if (!result) {
+               logerror("Failed to handle events during thread create\n");
+               error = true;
+            }
          }
       }
 
@@ -284,6 +317,14 @@ test_results_t ProcControlComponent::group_setup(RunGroup *group, ParameterDict 
 
    me.setPtr(this);
    params["ProcControlComponent"] = &me;
+
+   for (unsigned j=0; j<group->tests.size(); j++) {
+      ProcControlMutator *mutator = static_cast<ProcControlMutator *>(group->tests[j]->mutator);
+      if (!mutator) continue;
+      test_results_t result = mutator->pre_init(params);
+      if (result == FAILED)
+         return FAILED;
+   }
 
    bool result = launchMutatees(group, params);
    if (!result) {
@@ -638,5 +679,11 @@ bool ProcControlComponent::block_for_events()
       return false;
    }
    return true;
+}
+
+bool ProcControlComponent::poll_for_events()
+{
+   bool bresult = Process::handleEvents(false);
+   return bresult;
 }
 
