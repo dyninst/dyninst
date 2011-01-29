@@ -120,7 +120,7 @@ bool HybridAnalysis::init()
 	BPatch_stopThreadExpr virtualFreeAddrSnippet = BPatch_stopThreadExpr(virtualFreeAddrCB_wrapper,
 		BPatch_paramExpr(0), // Address getting unloaded
 		false, // No cache!
-		BPatch_interpAsTarget);
+		BPatch_noInterp);
 	BPatch_stopThreadExpr virtualFreeSizeSnippet = BPatch_stopThreadExpr(virtualFreeSizeCB_wrapper,
 		BPatch_paramExpr(1), // Size of the free buffer
 		false, // No cache!
