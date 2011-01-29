@@ -961,7 +961,7 @@ bool BPatch_point::isReturnInstruction()
 
 void BPatch_point::setResolved()
 {
-    point->setResolved();
+    point->setResolved(true);
 }
 
 bool BPatch_point::patchPostCallArea()

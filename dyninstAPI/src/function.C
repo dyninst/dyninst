@@ -452,33 +452,27 @@ bool int_function::removePoint(instPoint *point)
     return foundPoint;
 }
 
-// returns true if a change was made, image layer is called independently
-bool int_function::setPointResolved(instPoint *point)
+void int_function::setPointResolved(instPoint *point, bool resolve)
 {
-    bool foundPoint = false;
     // look in unresolved points
     set<instPoint*>::iterator pIter = unresolvedPoints_.find( point );
     if (unresolvedPoints_.end() != pIter) {
-        unresolvedPoints_.erase(pIter);
-        foundPoint = true;
+        if (resolve) {
+            unresolvedPoints_.erase(pIter);
+        }
     } else {
-        // check among the abruptEnd points
-        pIter = abruptEnds_.find( point );
-        if (abruptEnds_.end() != pIter) {
-            abruptEnds_.erase(pIter);
-            foundPoint = true;
+        if (resolve) {
+            // check among the abruptEnd points
+            pIter = abruptEnds_.find( point );
+            if (abruptEnds_.end() != pIter) {
+                abruptEnds_.erase(pIter);
+            }
+        } else {
+            unresolvedPoints_.insert(point);
         }
     }
-
     // make sure the point is still accessible
     assert( point == findInstPByAddr(point->addr()) );
-
-    if (!foundPoint) {
-        fprintf(stderr,"WARNING: Tried to resolve point at offset %lx "
-                "that was already resolved %s[%d]\n",
-                point->addr(),FILE__,__LINE__);
-    }
-    return foundPoint;
 }
 
 // finds new entry point, sets the argument to the new 
