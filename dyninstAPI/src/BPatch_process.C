@@ -1954,17 +1954,14 @@ void BPatch_process::overwriteAnalysisUpdate
         }
  
         // add blocks to deadBlockAddrs 
-        vector<Address> bAddrs;
+
         const int_function::BlockSet& 
             deadBlocks = (*fit)->blocks();
         set<int_block* ,int_block::compare>::const_iterator
                 bIter= deadBlocks.begin();
         for (; bIter != deadBlocks.end(); bIter++) {
-            bAddrs.push_back((*bIter)->start());
+            deadBlockAddrs.push_back((*bIter)->start());
         }
-        deadBlockAddrs.insert(deadBlockAddrs.end(), 
-                              bAddrs.begin(), 
-                              bAddrs.end());
     }
 
     //remove dead functions
@@ -1977,8 +1974,11 @@ void BPatch_process::overwriteAnalysisUpdate
         (*fit)->removeFromAll();
     }
 
-    // reparse dead function entries that still have valid call edges
+    // set up datastructures for re-parsing dead function entries with valid call edges
+    map<mapped_object*,vector<edgeStub> > dfstubs;
     set<Address> reParsedFuncs;
+    vector<BPatch_module*> dontcare; 
+    vector<Address> targVec; 
     for (map<int_block*,Address>::iterator bit = deadFuncCallers.begin();
          bit != deadFuncCallers.end();
          bit++) 
@@ -1986,25 +1986,30 @@ void BPatch_process::overwriteAnalysisUpdate
         // the function is still reachable, reparse it
         if (reParsedFuncs.end() == reParsedFuncs.find(bit->second)) {
             reParsedFuncs.insert(bit->second);
-            vector<BPatch_module*> dontcare; 
-            vector<Address> targVec; 
             targVec.push_back(bit->second);
-            if (getImage()->parseNewFunctions(dontcare, targVec)) {
-                // add function to output vector
-                BPatch_function *bpfunc = findFunctionByEntry(bit->second);
-                assert(bpfunc);
-                owFuncs.push_back(bpfunc);
-            } else {
-                // couldn't reparse
-                mal_printf("WARNING: Couldn't re-parse overwritten function "
-                           "at %x %s[%d]\n", bit->second, FILE__,__LINE__);
+        }
+        // re-instate call edges to the function
+        dfstubs[bit->first->func()->obj()].push_back(edgeStub(bit->first,bit->second,ParseAPI::CALL));
+    }
+
+    // re-parse the functions
+    for (map<mapped_object*,vector<edgeStub> >::iterator mit= dfstubs.begin();
+         mit != dfstubs.end(); mit++)
+    {
+        if (getImage()->parseNewFunctions(dontcare, targVec)) {
+            // add function to output vector
+            for (int tidx=0; tidx < targVec.size(); tidx++) {
+                BPatch_function *bpfunc = findFunctionByEntry(targVec[tidx]);
+                if (!bpfunc) {
+                    owFuncs.push_back(bpfunc);
+                } else {
+                    // couldn't reparse
+                    mal_printf("WARNING: Couldn't re-parse some of the overwritten "
+                               "functions\n", targVec[tidx], FILE__,__LINE__);
+                }
             }
         }
-
-        // re-instate call edges to the function
-        vector<edgeStub> stubs;
-        stubs.push_back(edgeStub(bit->first,bit->second,ParseAPI::CALL));
-        bit->first->func()->obj()->parseNewEdges(stubs);
+        mit->first->parseNewEdges(mit->second);
     }
 
     // set new entry points for functions with NewF blocks
