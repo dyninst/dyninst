@@ -1078,7 +1078,7 @@ int dyn_lwp::changeMemoryProtections
 			}
 			else 
 			{
-				mal_printf("setting rights to %lx for shadow [%lx %lx)\n", rights, shadowAddr, shadowAddr + size);
+				mal_printf("setting rights to %lx for shadow [%lx %lx)\n", rights, shadowAddr, shadowAddr + pageSize);
 				if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(shadowAddr), 
 					(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&shadowRights)) 
 				{
@@ -2686,7 +2686,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     InstructionDecoder deco(buf,BUF_SIZE,ev.proc->getArch());
     Instruction::Ptr insn = deco.decode();
     while(insn) {
-        cerr << "\t" << hex << base << ": " << insn->format() << endl;
+        cerr << "\t" << hex << base << ": " << insn->format(base) << endl;
         base += insn->size();
         insn = deco.decode();
     }

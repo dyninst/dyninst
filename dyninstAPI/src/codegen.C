@@ -699,6 +699,7 @@ void codeGen::registerDefensivePad(int_block *callBlock, Address padStart, unsig
   // and a padding area post-reloc-call for
   // control flow interception purposes.
   // This is kind of hacky, btw.
+    cerr << "Registering pad [" << hex << padStart << "," << padStart + padSize << "], for block @ " << callBlock->start() << dec << endl;
   defensivePads_[callBlock] = Extent(padStart, padSize);
 }
 

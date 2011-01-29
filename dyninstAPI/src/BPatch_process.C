@@ -2079,10 +2079,14 @@ bool BPatch_process::protectAnalyzedCode()
     for (unsigned midx=0; midx < bpMods->size(); midx++) {
        mapped_module *curMod = (*bpMods)[midx]->lowlevel_mod();
        if ( ! curMod->getFuncVectorSize() 
-           || curMod->obj()->isSharedLib()) {
-          continue; // don't trigger analysis and don't protect shared libraries
+           || curMod->obj()->isSharedLib()) 
+       {
+           cerr << "Warning: skipping sync of module " << curMod->fileName() << (curMod->getFuncVectorSize() ? " <no analyzed funcs> " : "") << (curMod->obj()->isSharedLib() ? " <shared lib> " : "") << endl;
+           continue; // don't trigger analysis and don't protect shared libraries
        }
-       ret = (*bpMods)[midx]->setAnalyzedCodeWriteable(false) && ret;
+       if (!(*bpMods)[midx]->setAnalyzedCodeWriteable(false)) {
+           ret = false;
+       }
     }
     return false;
 }

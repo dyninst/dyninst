@@ -846,14 +846,18 @@ bool BPatch_module::isExploratoryModeOn()
  */ 
 bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
 {
+    cerr << "setAnalyzedCodeWriteable " << (writeable ? "(true)" : "(false)") << " for module " 
+        << mod->fileName() << endl;
     // only implemented for processes and only needed for defensive 
     // BPatch_modules
     if ( !getAS()->proc() || BPatch_defensiveMode != getHybridMode() ) {
+        cerr << "\t Skipping; illegal call" << endl;
         return false;
     }
 
     // see if we've analyzed code in the module without triggering analysis
     if ( ! lowlevel_mod()->getFuncVectorSize() ) {
+        cerr << "\t Skipping; no analyzed functions" << endl;
         return true;
     }
 
@@ -867,6 +871,7 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
         bool wasRunning = true;
         stoppedlwp = proc->stop_an_lwp(&wasRunning);
         if ( ! stoppedlwp ) {
+            cerr << "\t Skipping; no stopped LWP" << endl;
             return false;
         }
     }

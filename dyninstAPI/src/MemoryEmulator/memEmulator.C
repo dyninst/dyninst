@@ -116,7 +116,7 @@ void MemoryEmulator::addAllocatedRegion(Address start, unsigned size) {
 }
 
 void MemoryEmulator::addRegion(mapped_object *obj) {
-   //cerr << "addRegion for " << obj->fileName() << endl;
+   cerr << "addRegion for " << obj->fileName() << endl;
 
    // Add each code region
    std::vector<Region *> codeRegions;
@@ -148,9 +148,9 @@ void MemoryEmulator::removeRegion(mapped_object *obj) {
 
 void MemoryEmulator::addRegion(Region *reg, Address base) {
    
-   //cerr << "\t\t Region " << i << ": " << hex
-   //<< codeRegions[i]->getMemOffset() + obj->codeBase() << " -> " 
-   //<< codeRegions[i]->getMemOffset() + codeRegions[i]->getMemSize() + obj->codeBase() << endl;
+   cerr << "\t\t Region " << hex
+   << reg->getMemOffset() << " -> " 
+   << reg->getMemOffset() + reg->getMemSize() << endl;
    
    if (addedRegions_.find(reg) != addedRegions_.end()) return;
       
@@ -430,7 +430,7 @@ void MemoryEmulator::synchShadowOrig(bool toOrig)
             //cerr << "\t Start @ " << hex << cp_start << " and next springboard " << sit->first << dec << endl;
             int cp_size = sit->first - cp_start;
 
-            cerr << "\t Write [" << hex << toBase + cp_start << "," << toBase + cp_start + cp_size  << ")" << dec << endl;
+            //cerr << "\t Write [" << hex << toBase + cp_start << "," << toBase + cp_start + cp_size  << ")" << dec << endl;
             if (cp_size > 0) {
                 if (!toOrig && saved[reg]) {
                     // Consistency check
@@ -447,7 +447,7 @@ void MemoryEmulator::synchShadowOrig(bool toOrig)
             }
             cp_start = sit->first + sit->second;
         }
-        cerr << "\t Finishing write " << hex << toBase + cp_start << " -> " << toBase + cp_start + reg->getMemSize() - cp_start << dec << endl;
+        //cerr << "\t Finishing write " << hex << toBase + cp_start << " -> " << toBase + cp_start + reg->getMemSize() - cp_start << dec << endl;
 
         if (cp_start < reg->getMemSize())
         {
@@ -479,7 +479,7 @@ void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size)
     }
     std::map<Address, int> &smap = s_iter->second;
 
-    cerr << "Inserting SB [" << hex << offset << "," << offset + size << "]" << dec << endl;
+    //cerr << "Inserting SB [" << hex << offset << "," << offset + size << "]" << dec << endl;
 
     std::map<Address, int>::iterator iter = smap.find(offset);
     if (iter == smap.end()) {
@@ -489,7 +489,7 @@ void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size)
         smap[offset] = size;
     }
     // Otherwise keep the current value
-    cerr << "\t New value: " << hex << offset << " -> " << smap[offset] + offset << dec << endl;
+    //cerr << "\t New value: " << hex << offset << " -> " << smap[offset] + offset << dec << endl;
 
 #if 0
     // We don't want to delete these, actually, because we can conflict between a springboard

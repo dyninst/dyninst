@@ -558,6 +558,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         // 3.2.1 if point->func() was called by callPoint, point->func() 
         // returns normally, tell parseAfterCallAndInstrument to parse after 
         // other callers to point->func()
+
         if (callPoint) {
             BPatch_function *calledFunc = NULL;
             vector<Address> targs;

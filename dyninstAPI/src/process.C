@@ -5176,6 +5176,7 @@ int_function *process::findActiveFuncByAddr(Address addr)
 
 bool process::patchPostCallArea(instPoint *callPt)
 {
+    cerr << "patchPostCallArea for point " << callPt->addr();
     // 1) Find all the post-call patch areas that correspond to this 
     //    call point
     // 2) Generate and install the branches that will be inserted into 

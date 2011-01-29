@@ -153,20 +153,12 @@ bool Trace::generate(const codeGen &templ,
    static bool debug = false;
    bool insn_debug = false;
 #if 1
-   if (bbl() && bbl()->func()->get_address() == 0x9c7cc4) {
-	   debug = true;
-   }
-   else if (bbl() && bbl()->func()->get_address() == 0x9c61c8) {
-	   debug = true;
-   }
-   else if (bbl() && bbl()->start() <= 0x9a267d && bbl()->end() >= 0x9a267d) {
-	   debug = true;
-   }
-   else if (bbl() && bbl()->start() <= 0x9c6297 && bbl()->end() >= 0x9c6297) {
-	   debug = true;
+   if (bbl() && bbl()->start() <= 0x9bbc7c && bbl()->end() >= 0x9bbc7c) {
+       debug = true;
+       insn_debug = true;
    }
    else {
-	   debug = false;
+       debug = false;
    }
 #endif
 

@@ -1178,6 +1178,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
     }
     proc()->finalizeInsertionSet(false);
     proc()->protectAnalyzedCode();
+    cerr << "overWriteAnalysis returns" << endl;
 }
 #endif
 

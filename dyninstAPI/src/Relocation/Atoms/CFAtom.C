@@ -729,7 +729,8 @@ unsigned CFPatch::estimate(codeGen &) {
 }
 
 bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
-   if (registerDefensive_) {
+    cerr << "PaddingPatch::apply, current addr " << hex << gen.currAddr() << ", size " << size_ << ", registerDefensive " << (registerDefensive_ ? "<true>" : "<false>") << dec << endl;
+    if (registerDefensive_) {
       assert(block_);
       gen.registerDefensivePad(block_, gen.currAddr(), 10);
    }
@@ -738,6 +739,7 @@ bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
    } else {
        gen.fill(size_, codeGen::cgTrap);
    }
+   cerr << "\t After filling, current addr " << hex << gen.currAddr() << dec << endl;
    //gen.fill(10, codeGen::cgNOP);
    return true;
 }

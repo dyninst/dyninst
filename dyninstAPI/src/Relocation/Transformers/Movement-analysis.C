@@ -154,7 +154,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
        for (AssignList::iterator a_iter = sensitiveAssignments.begin();
             a_iter != sensitiveAssignments.end(); ++a_iter) {
           
-		cerr << "Forward slice from " << (*a_iter)->format() << hex << " @ " << addr << " (parse of " << (*a_iter)->addr() << dec << ") in func " << bbl->func()->prettyName() << endl;
+		//cerr << "Forward slice from " << (*a_iter)->format() << hex << " @ " << addr << " (parse of " << (*a_iter)->addr() << dec << ") in func " << bbl->func()->prettyName() << endl;
           
           Graph::Ptr slice = forwardSlice(*a_iter,
                                           bbl->llb(),
