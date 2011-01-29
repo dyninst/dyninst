@@ -63,18 +63,14 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
            input, origAddr, curAddr);
 #endif
    debug = 0;
-   if (input <= 0xbe00ec &&
-	   input >= 0xbe00ec) 
+#if 1
+   if (origAddr == 0x9a1ebe || origAddr == 0x9bce9b || origAddr == 0x9bde4c) 
    {
-	   fprintf(stOut, "RTtranslateMemory hit guard value with 0x%lx, at 0x%lx\n", input, origAddr);
+	   fprintf(stOut, "RTtranslateMemory debug: 0x%lx, at 0x%lx (cur 0x%lx)\n", input, origAddr, curAddr);
 	   debug = 1;
    }
 
-   if (origAddr == 0x9a267d) {
-	   fprintf(stOut, "RTtranslateMemory hit addr 0x9a267d, input 0x%lx\n", input);
-	   debug = 1;
-   }
-
+#endif
    do {
       guard2 = RTmemoryMapper.guard2;
       min = 0;
@@ -136,17 +132,12 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
    int max;
    volatile int guard2;
   debug = 0;
-   if (input <= 0xbe00ec &&
-	   input >= 0xbe00ec) 
-   {
-	   fprintf(stOut, "RTtranslateMemoryShift hit guard value with 0x%lx, at 0x%lx\n", input, origAddr);
+#if 1
+   if (origAddr == 0x9d33c7) {
+	   fprintf(stOut, "RTtranslateMemory hit addr 0x9d33c7 (reloc 0x%lx), input 0x%lx\n", curAddr, input);
 	   debug = 1;
    }
-
-   if (origAddr == 0x9a267d) {
-	   fprintf(stOut, "RTtranslateMemoryShift hit addr 0x9a267d, input 0x%lx\n", input);
-	   debug = 1;
-   }
+#endif
 
 #ifdef  DEBUG_MEM_EM
    fprintf(stOut, "RTtranslateMemoryShift(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx)\n", 
@@ -200,3 +191,25 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
    }
 }
 
+int RTuntranslatedEntryCounter;
+
+void RThandleShadow(void *direction, void *pointAddr, void *callbackID, void *flags, void *calculation) {
+    fprintf(stOut, "Syncing: at point 0x%lx, direction %d, counter val %d\n",
+        (long) pointAddr, (int) direction, RTuntranslatedEntryCounter);
+
+    if ((int)direction == 1) {
+        if (RTuntranslatedEntryCounter == 0) {
+            fprintf(stOut, "\t Calling stopThread!\n");
+            DYNINST_stopThread(pointAddr, callbackID, flags, (void *)1);
+        }
+        RTuntranslatedEntryCounter++;
+    }
+    else {
+        RTuntranslatedEntryCounter--;
+
+        if (RTuntranslatedEntryCounter == 0) {
+            fprintf(stOut, "\t Calling stopThread!\n");
+            DYNINST_stopThread(pointAddr, callbackID, flags, (void *)0);
+        }
+    }
+}

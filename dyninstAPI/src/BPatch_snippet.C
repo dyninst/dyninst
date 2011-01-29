@@ -1705,6 +1705,39 @@ BPatch_stopThreadExpr::BPatch_stopThreadExpr(
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
+
+void BPatch_shadowExpr::BPatch_shadowExprInt
+      (bool entry,
+      const BPatchStopThreadCallback &bp_cb,
+       const BPatch_snippet &calculation,
+       bool useCache,
+       BPatch_stInterpret interp)
+{
+    AstNodePtr idNode;
+    AstNodePtr icNode;
+    constructorHelper(bp_cb, calculation, useCache, interp, idNode, icNode);
+
+    // set up funcCall args
+    pdvector<AstNodePtr> ast_args;
+    if (entry) {
+        ast_args.push_back(AstNode::operandNode(AstNode::Constant, (void *)1));
+    }
+    else {
+        ast_args.push_back(AstNode::operandNode(AstNode::Constant, (void *)0));
+    }
+    ast_args.back()->setType(BPatch::bpatch->type_Untyped);
+
+    ast_args.push_back(AstNode::actualAddrNode());
+    ast_args.push_back(idNode);
+    ast_args.push_back(icNode);
+    ast_args.push_back(calculation.ast_wrapper);
+
+    // create func call & set type 
+    ast_wrapper = AstNodePtr(AstNode::funcCallNode("RThandleShadow", ast_args));
+    ast_wrapper->setType(BPatch::bpatch->type_Untyped);
+    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
+
 void BPatch_originalAddressExpr::BPatch_originalAddressExprInt() {
     ast_wrapper = AstNodePtr(AstNode::originalAddrNode());
 

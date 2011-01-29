@@ -52,54 +52,19 @@ void HybridAnalysis::synchShadowOrigCB(BPatch_point *point, bool toOrig)
     mal_printf("in synch callback for point 0x%lx toOrig=%d\n",
                (Address)point->getAddress(), (int) (long) toOrig);
 
-    if ( toOrig && !proc()->getHybridAnalysis()->needsSynchronization(point) ) {
-        return;
-    }
 
-    // synch the shadow pages
-    BPatch_function *pfunc = point->getFunction();
     proc()->lowlevel_process()->getMemEm()->synchShadowOrig
-        ( pfunc->lowlevel_func()->obj(), (bool) toOrig);
+        ((bool) toOrig);
+
+
+    std::vector<BPatch_module *> *mods = proc()->getImage()->getModules();
 
     // fix up page rights so that the program can proceed
-    if (toOrig) {
-        // instrument at fallthrough
-        std::vector<int_block*> ftBlks;
-        int_block *ftBlk = point->llpoint()->block()->getFallthrough();
-        if (ftBlk) {
-            ftBlks.push_back(ftBlk);
-        }
-        else {
-            // the transfer is an inter-module jump, instrument at 
-            // fallthroughs of callers to the function containing the jump
-            std::vector<BPatch_point*> callerPoints;
-            point->getFunction()->getCallerPoints(callerPoints);
-            mal_printf("Caught inter-module jump at %lx, parsing at "
-                       "fallthroughs of %d callers to the jump func\n",
-                       point->getAddress(), callerPoints.size());
-            assert(callerPoints.size()); // there has to be at least one
-            for (vector<BPatch_point*>::iterator pit = callerPoints.begin();
-                 pit != callerPoints.end(); 
-                 pit++)
-            {
-                ftBlk = (*pit)->llpoint()->block()->getFallthrough();
-                if (!ftBlk) {
-                    parseAfterCallAndInstrument(*pit, pfunc);
-                    ftBlk = (*pit)->llpoint()->block()->getFallthrough();
-                }
-                assert(ftBlk);
-                ftBlks.push_back(ftBlk);
-            }
-        }
-        // drop the instrumentation in 
-        origToShadowInstrumentation(point, ftBlks);
+    for (unsigned i = 0; i < mods->size(); ++i) {
+        (*mods)[i]->setAnalyzedCodeWriteable(toOrig);
+    }
 
-        // remove write-protections from code pages
-        pfunc->getModule()->setAnalyzedCodeWriteable(true);
-    } 
-    else {
-        // restore write-protections to code pages
-        pfunc->getModule()->setAnalyzedCodeWriteable(false);
+    if (!toOrig) {
         // but not to those of active overwrite loops
         std::set<Address> pages;
         hybridOW()->activeOverwritePages(pages);
@@ -111,8 +76,6 @@ void HybridAnalysis::synchShadowOrigCB(BPatch_point *point, bool toOrig)
                 proc()->lowlevel_process()->getMemoryPageSize(),
                 getOrigPageRights(*pit));
         }
-        // KEVINTODO: if there are other in edges to the fallthrough block it 
-        //            might be cheaper to remove synch instrumentation at this point
     }
 }
 
@@ -371,7 +334,7 @@ void HybridAnalysis::virtualFreeSizeCB(BPatch_point *, void *size) {
 void HybridAnalysis::virtualFreeCB(BPatch_point *, void *t) {
 	assert(virtualFreeAddr_ != 0);
 	unsigned type = (unsigned) t;
-	cerr << "virtualSizeFree [" << hex << virtualFreeAddr_ << "," << virtualFreeAddr_ + (unsigned) virtualFreeSize_ << "], " << (unsigned) type << dec << endl;
+	cerr << "virtualFree [" << hex << virtualFreeAddr_ << "," << virtualFreeAddr_ + (unsigned) virtualFreeSize_ << "], " << (unsigned) type << dec << endl;
 
 	Address pageSize = proc()->lowlevel_process()->getMemoryPageSize();
 
@@ -592,10 +555,11 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             } 
         }
 
-        // 3.2.1 if the return addr follows a call to this function, parse at 
-        // its fallthrough edge
-        bool parseAtFT = false;
+        // 3.2.1 if point->func() was called by callPoint, point->func() 
+        // returns normally, tell parseAfterCallAndInstrument to parse after 
+        // other callers to point->func()
         if (callPoint) {
+            BPatch_function *calledFunc = NULL;
             vector<Address> targs;
             callPoint->getSavedTargets(targs);
             // unfortunately, because of pc emulation, if the return point is 
@@ -604,20 +568,21 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             vector<ParseAPI::Function*> retfuncs;
             point->llpoint()->block()->llb()->getFuncs(retfuncs);
             Address base = point->llpoint()->func()->obj()->codeBase();
-            for (unsigned tidx=0; !parseAtFT && tidx < targs.size(); tidx++) {
-                for (unsigned fidx=0; !parseAtFT && fidx < retfuncs.size(); fidx++) {
+            for (unsigned tidx=0; !calledFunc && tidx < targs.size(); tidx++) {
+                for (unsigned fidx=0; !calledFunc && fidx < retfuncs.size(); fidx++) {
                     if (targs[tidx] == (base + retfuncs[fidx]->addr()) ) {
-                        parseAtFT = true;
+                        calledFunc = proc()->findOrCreateBPFunc(
+                            point->llpoint()->func()->obj()->
+                            findFunction(static_cast<image_func*>(retfuncs[fidx])),
+                            NULL);
                     }
                 }
             }
-        }
-        if ( parseAtFT ) {
             mal_printf("stopThread instrumentation found return at %lx, "
                       "parsing return addr %lx as fallthrough of call "
                       "instruction at %lx %s[%d]\n", (long)point->getAddress(), 
                       target,callPoint->getAddress(),FILE__,__LINE__);
-            parseAfterCallAndInstrument( callPoint, point->getFunction() );
+            parseAfterCallAndInstrument( callPoint, calledFunc );
         }
 
         // 3.2.2 else parse the return addr as a new function

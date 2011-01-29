@@ -1553,6 +1553,7 @@ Parser::findBlocks(CodeRegion *r, Address addr, set<Block *> & blocks)
 Edge*
 Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
 {
+    assert(et != NOEDGE);
     Edge * e = factory().mkedge(src,dst,et);
     e->_type._sink = sink;
     src->_targets.push_back(e);

@@ -5205,6 +5205,7 @@ bool process::generateRequiredPatches(instPoint *callPt,
     int_block *callbbi = callPt->block();
     assert(callPt->addr() < callbbi->end());
     int_block *ftbbi = callbbi->getFallthrough();
+    assert(ftbbi);
     Relocation::CodeTracker::RelocatedElements reloc;
     CodeTrackers::reverse_iterator rit;
     for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++)

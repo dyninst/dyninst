@@ -129,6 +129,7 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     friend class BPatch_sequence;
     friend class BPatch_insnExpr;
     friend class BPatch_stopThreadExpr;
+    friend class BPatch_shadowExpr;
     friend AstNodePtr generateArrayRef(const BPatch_snippet &lOperand, 
                                        const BPatch_snippet &rOperand);
     friend AstNodePtr generateFieldRef(const BPatch_snippet &lOperand, 
@@ -707,6 +708,27 @@ typedef enum {
     BPatch_interpAsTarget,
     BPatch_interpAsReturnAddr,
 } BPatch_stInterpret;
+
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_shadowExpr
+
+class BPATCH_DLL_EXPORT BPatch_shadowExpr : public BPatch_snippet {
+
+  // BPatch_stopThreadExpr 
+  //  This snippet type stops the thread that executes it.  It
+  //  evaluates a calculation snippet and triggers a callback to the
+  //  user program with the result of the calculation and a pointer to
+  //  the BPatch_point at which the snippet was inserted
+  API_EXPORT_CTOR(Int, (entry, cb, calculation, useCache, interp),
+  BPatch_shadowExpr, 
+  (bool entry, 
+  const BPatchStopThreadCallback &cb,
+   const BPatch_snippet &calculation,
+   bool useCache = false,
+   BPatch_stInterpret interp = BPatch_noInterp));
+};
 
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME

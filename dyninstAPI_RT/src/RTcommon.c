@@ -222,6 +222,8 @@ void DYNINSTBaseInit()
 #endif
    DYNINST_initialize_index_list();
    DYNINSThasInitialized = 1;
+
+   RTuntranslatedEntryCounter = 0;
 }
 
 /**
@@ -453,13 +455,10 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
 	static int reentrant = 0;
 
     RT_Boolean isInCache = RT_FALSE;
-#if defined STACKDUMP
-    unsigned char *stackBase = (unsigned char*) 0x12ff00; // & pointAddr;
-    unsigned bidx=0;
     fprintf(stOut,"RT_stopThread: pt[%lx] flags[%lx] calc[%lx] reentrant=%d\n", 
             (long)pointAddr, (long)flags, (long)calculation, reentrant);
     fflush(stOut);
-#endif
+
 	if (reentrant == 1) {
 		return;
 	}

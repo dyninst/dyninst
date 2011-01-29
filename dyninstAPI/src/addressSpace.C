@@ -712,7 +712,6 @@ mapped_object *AddressSpace::findObject(const ParseAPI::CodeObject *co) const {
     mapped_object *obj = 
         findObject(static_cast<ParseAPI::SymtabCodeSource*>(co->cs())->
             getSymtabObject()->file());
-    assert(obj);
     return obj;
 }
 
@@ -1435,7 +1434,8 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 
   // Create a CodeMover covering these functions
   //cerr << "Creating a CodeMover" << endl;
-  
+  //disassemble_reloc = false;
+
   // Attempting to reduce copies...
   CodeTracker t;
   relocatedCode_.push_back(t);
@@ -1466,7 +1466,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
         (cm->ptr(),cm->size(),getArch());
       Instruction::Ptr insn = deco.decode();
       while(insn) {
-        cerr << "\t" << hex << base << ": " << insn->format() << endl;
+        cerr << "\t" << hex << base << ": " << insn->format(base) << endl;
         base += insn->size();
         insn = deco.decode();
       }
@@ -1515,9 +1515,12 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           vector<int_function *> origFuncs;
           baseTrampInstance *bti=NULL;
           mapped_object *pcobj = findObject(tframe.getPC());
-          if (pcobj && mapped_object::isSystemLib(pcobj->fileName())) 
+          if (pcobj && mapped_object::isSystemLib(pcobj->fileName())) {
+              mal_printf("\tIn system lib, not changing\n");
               continue;
+          }
           if (!getAddrInfo(tframe.getPC(), pcOrig, origFuncs, bti)) {
+              mal_printf("\tgetAddrInfo failed, not changing\n");
               continue;
 		  }
           int_function *origFunc;
@@ -1710,7 +1713,7 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
 
   for (std::list<codeGen>::iterator iter = patches.begin();
        iter != patches.end(); ++iter) {
-		   if (disassemble_reloc) cerr << "Writing to process: " << hex << iter->startAddr() << " -> " << iter->startAddr() + iter->used() << dec << endl;
+		   //if (disassemble_reloc) cerr << "Writing to process: " << hex << iter->startAddr() << " -> " << iter->startAddr() + iter->used() << dec << endl;
     if (!writeTextSpace((void *)iter->startAddr(),
                         iter->used(),
                         iter->start_ptr())) {

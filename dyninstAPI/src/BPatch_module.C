@@ -849,9 +849,6 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
     // only implemented for processes and only needed for defensive 
     // BPatch_modules
     if ( !getAS()->proc() || BPatch_defensiveMode != getHybridMode() ) {
-        bperr("Ignoring request to protect analyzed code in module "
-              "%s that is either not in a live process or whose code is "
-              "not defensive %s[%d]\n", mod->fileName().c_str(), FILE__, __LINE__);
         return false;
     }
 

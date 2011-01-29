@@ -307,7 +307,7 @@ bool IA_IAPI::isSyscall() const
 
     return (((ci->getOperation().getID() == e_call) &&
             /*(curInsn()->getOperation().isRead(gs))) ||*/
-            (ci->getOperand(0).format() == "16")) ||
+            (ci->getOperand(0).format(ci->getArch()) == "16")) ||
             (ci->getOperation().getID() == e_syscall) || 
             (ci->getOperation().getID() == e_int) || 
             (ci->getOperation().getID() == power_op_sc));

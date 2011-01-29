@@ -609,7 +609,7 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
       static RegisterAST::Ptr gs(new RegisterAST(x86::gs));
       if (((curInsn->getOperation().getID() == e_call) &&
 	   /*(curInsn()->getOperation().isRead(gs))) ||*/
-	   (curInsn->getOperand(0).format() == "16")) ||
+	   (curInsn->getOperand(0).format(curInsn->getArch()) == "16")) ||
 	  (curInsn->getOperation().getID() == e_syscall) || 
 	  (curInsn->getOperation().getID() == e_int) || 
 	  (curInsn->getOperation().getID() == power_op_sc)) {

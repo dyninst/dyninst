@@ -975,12 +975,15 @@ void HybridAnalysisOW::makeShadow_setRights
  * 3. Remove loop instrumentation
  * 4. Free shadow pages 
  */
+#include "MemoryEmulator/memEmulator.h"
 
 void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 {
     Address pointAddr = (Address) point->getAddress();
     mal_printf("\noverwriteAnalysis(trigger=%lx, loopID=%d)\n", 
 		      pointAddr,(long)loopID_);
+
+    proc()->lowlevel_process()->getMemEm()->debug();
 
     // setup
     bool changedPages = false;
