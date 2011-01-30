@@ -1808,6 +1808,26 @@ unsigned char * BPatch_process::makeShadowPage(Dyninst::Address pageAddr)
     return buf;
 }
 
+// is the first instruction: [00 00] add byte ptr ds:[eax],al ? 
+static bool hasWeirdEntryBytes(int_function *func)
+{
+    using namespace SymtabAPI;
+    Symtab *sym = func->obj()->parse_img()->getObject();
+    if (sym->findEnclosingRegion(func->getAddress()) 
+        != 
+        sym->findEnclosingRegion(func->getAddress()+1)) 
+    {
+        return false;
+    }
+    unsigned short ebytes;
+    memcpy(&ebytes,func->obj()->getPtrToInstruction(func->getAddress()),2);
+    //proc()->readDataSpace((void*)func->getAddress(), sizeof(short), &ebytes, false);
+
+    if (0 == ebytes) {
+        return true;
+    }
+    return false;
+}
 
 // return true if the analysis changed
 // 
@@ -1957,7 +1977,9 @@ void BPatch_process::overwriteAnalysisUpdate
                     if (isFuncDead) {
                         continue;
                     }
-                    if ( (*fit)->ifunc()->hasWeirdInsns() ) {
+                    if ( (*fit)->ifunc()->hasWeirdInsns() || 
+                         hasWeirdEntryBytes(*fit) ) 
+                    {
                         // instrument caller--we'll parse when we hit the call
                         instPoint *cPoint = cfunc->findInstPByAddr(cbbi->last());
                         if (!cPoint) {
@@ -2018,7 +2040,7 @@ void BPatch_process::overwriteAnalysisUpdate
     {
         if (getImage()->parseNewFunctions(dontcare, targVec)) {
             // add function to output vector
-            for (int tidx=0; tidx < targVec.size(); tidx++) {
+            for (unsigned tidx=0; tidx < targVec.size(); tidx++) {
                 BPatch_function *bpfunc = findFunctionByEntry(targVec[tidx]);
                 if (!bpfunc) {
                     owFuncs.push_back(bpfunc);
