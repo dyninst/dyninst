@@ -1904,7 +1904,8 @@ void AddressSpace::invalidateMemory(Address addr, Address size) {
 //     while e->src() in delBlocks try e->src()->sources()
 std::map<int_function*,vector<edgeStub> > 
 AddressSpace::getStubs(const std::list<int_block *> &owBBIs,
-                       const std::set<int_block*> &delBBIs)
+                       const std::set<int_block*> &delBBIs,
+                       const std::list<int_function*> &deadFuncs)
 {
     std::map<int_function*,vector<edgeStub> > stubs;
     std::list<edgeStub> deadStubs;
@@ -1913,6 +1914,19 @@ AddressSpace::getStubs(const std::list<int_block *> &owBBIs,
          deadIter != owBBIs.end(); 
          deadIter++) 
     {
+        bool inDeadFunc = false;
+        for (list<int_function*>::const_iterator dfit = deadFuncs.begin();
+             dfit != deadFuncs.end(); dfit++) 
+        {
+            if ((*dfit)->findBlockByEntry((*deadIter)->start())) {
+                inDeadFunc = true;
+                break;
+            }
+        }
+        if (inDeadFunc) {
+            continue;
+        }
+             
         using namespace ParseAPI;
         SingleContext epred_((*deadIter)->func()->ifunc(),true,true);
         Intraproc epred(&epred_);
