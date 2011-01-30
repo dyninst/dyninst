@@ -649,15 +649,10 @@ bool instPoint::isReturnInstruction()
 }
 
 // returns false if the point was already resolved
-bool instPoint::setResolved()
+void instPoint::setResolved(bool newval)
 {
-    if (img_p_->isUnresolved()) {
-        img_p_->setUnresolved(false);
-        func()->setPointResolved( this );
-        return true;
-    }
-
-    return false;
+    img_p_->setUnresolved( !newval );
+    func()->setPointResolved( this , newval );
 }
 
 #if defined(cap_instruction_api)
