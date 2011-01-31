@@ -84,9 +84,6 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
 
         if (!point)
         {
-          // DEBUG
-          fprintf(stderr, "DYN FRAME DEBUG: instrumentation but no point: %p\n", (void*)frame.getPC());
-
           isInstrumentation = false; 
         }
       }

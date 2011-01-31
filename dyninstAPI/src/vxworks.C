@@ -1943,8 +1943,6 @@ const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
 
 #define SIZEOF_PTRACE_DATA(mutatee_address_width)  (mutatee_address_width)
 
-void calcVSyscallFrame(process * /*p*/) { assert(0); return; }
-
 bool Frame::setPC(Address /*newpc*/) { assert(0); return false; }
 
 bool AddressSpace::getDyninstRTLibName()
