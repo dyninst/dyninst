@@ -73,11 +73,14 @@ typedef enum {
 const char *storageRefClass2Str(storageRefClass sc);
 
 //location for a variable
+//Use mr_reg instead of reg for new code.  reg left in for backwards
+// compatibility.
 class VariableLocation : public Serializable {
 	public:
 	storageClass stClass;
 	storageRefClass refClass;
 	int reg;
+   MachRegister mr_reg;
 	long frameOffset;
 	Address lowPC;
 	Address hiPC;

@@ -85,9 +85,12 @@ int Register_DWARFtoMachineEnc64(int n)
   ((proc->getAddressWidth() == 4) ? Register_DWARFtoMachineEnc32((int) n) : Register_DWARFtoMachineEnc64((int) n))
 #define DWARF_TO_MACHINE_ENC_W(n, w) \
   (w == 4) ? Register_DWARFtoMachineEnc32((int) n) : Register_DWARFtoMachineEnc64((int) n)
+#define DWARF_TO_MACHINEREG_ENC_W(n, w) \
+   (w == 4) ? MachRegister::DwarfEncToReg(n, Dyninst::Arch_x86) : MachRegister::DwarfEncToReg(n, Dyninst::Arch_x86_64);
 #else
 #define DWARF_TO_MACHINE_ENC(n, proc) (n)
 #define DWARF_TO_MACHINE_ENC_W(n, w) (n)
+#define DWARF_TO_MACHINEREG_ENC_W(n, w) MachRegister::DwarfEncToReg(n, Dyninst::Arch_x86);
 #endif
 
 #define DWARF_FALSE_IF(condition,...)		\
@@ -147,6 +150,7 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
             loc->refClass = storageNoRef;
             loc->frameOffset = 0;
             loc->reg = DWARF_TO_MACHINE_ENC_W(locations[i].lr_atom - DW_OP_reg0, addr_width);
+            loc->mr_reg = DWARF_TO_MACHINEREG_ENC_W(locations[i].lr_atom - DW_OP_reg0, addr_width);
             //loc->frameOffset = 0;
             isLocSet = true;
          }
@@ -163,6 +167,7 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
             loc->refClass = storageNoRef;
             loc->frameOffset = locations[i].lr_number ;
             loc->reg = DWARF_TO_MACHINE_ENC_W(locations[i].lr_atom - DW_OP_breg0, addr_width);
+            loc->mr_reg = DWARF_TO_MACHINEREG_ENC_W(locations[i].lr_atom - DW_OP_breg0, addr_width);
             to_push = static_cast<long int>(locations[i].lr_number);
          }
          else if (reader) {
@@ -211,6 +216,7 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                loc->stClass = storageReg;
                loc->refClass = storageNoRef;
                loc->reg = (int) DWARF_TO_MACHINE_ENC_W(locations[i].lr_number, addr_width); 
+               loc->mr_reg = (int) DWARF_TO_MACHINEREG_ENC_W(locations[i].lr_number, addr_width); 
                loc->frameOffset = 0;
                isLocSet = true;
             }
@@ -247,6 +253,7 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                loc->stClass = storageRegOffset;
                loc->refClass = storageNoRef;
                loc->reg = (int) DWARF_TO_MACHINE_ENC_W( locations[i].lr_number, addr_width );
+               loc->mr_reg = (int) DWARF_TO_MACHINEREG_ENC_W( locations[i].lr_number, addr_width );
                loc->frameOffset = 0;
                to_push = static_cast<long int>(locations[i].lr_number2);
             }

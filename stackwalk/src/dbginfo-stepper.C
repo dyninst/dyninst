@@ -61,6 +61,7 @@ public:
    storageClass stClass;
    storageRefClass refClass;
    int reg;
+   MachRegister mr_reg;
    long frameOffset;
    Address lowPC;
    Address hiPC;
@@ -81,7 +82,7 @@ DwarfSW *getDwarfInfo(std::string s)
    if (i != dwarf_info.end())
       return i->second;
 
-   DwarfSW *ret;
+   DwarfSW *ret = NULL;
    Elf_X *elfx = getElfHandle(s);
    Elf *elf = elfx->e_elfp();
    Dwarf_Debug dbg;
