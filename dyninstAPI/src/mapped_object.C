@@ -1291,8 +1291,8 @@ void mapped_object::registerNewFunctions()
     for( ; fit != newFuncs.end(); ++fit) {
         image_func *curFunc = (image_func*) *fit;
         if (everyUniqueFunction.find(curFunc) == everyUniqueFunction.end()) { 
-            if(curFunc->src() == HINT)
-                mal_printf("adding function of source type hint\n");
+            //if(curFunc->src() == HINT)
+            //    mal_printf("adding function of source type hint\n");
             findFunction(curFunc); // does all the work
         }
     }
