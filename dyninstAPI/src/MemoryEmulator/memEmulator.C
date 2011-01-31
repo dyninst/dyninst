@@ -479,7 +479,7 @@ void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size)
     }
     std::map<Address, int> &smap = s_iter->second;
 
-    //cerr << "Inserting SB [" << hex << offset << "," << offset + size << "]" << dec << endl;
+    springboard_cerr << "Inserting SB [" << hex << offset << "," << offset + size << "]" << dec << endl;
 
     std::map<Address, int>::iterator iter = smap.find(offset);
     if (iter == smap.end()) {
@@ -489,7 +489,7 @@ void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size)
         smap[offset] = size;
     }
     // Otherwise keep the current value
-    //cerr << "\t New value: " << hex << offset << " -> " << smap[offset] + offset << dec << endl;
+    springboard_cerr << "\t New value: " << hex << offset << " -> " << smap[offset] + offset << dec << endl;
 
 #if 0
     // We don't want to delete these, actually, because we can conflict between a springboard

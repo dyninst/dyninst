@@ -426,7 +426,8 @@ class AddressSpace : public InstructionSource {
 
     std::map<int_function*,std::vector<edgeStub> > 
     getStubs(const std::list<int_block *> &owBBIs,
-             const std::set<int_block*> &delBBIs);
+             const std::set<int_block*> &delBBIs,
+             const std::list<int_function*> &deadFuncs);
 
     void addDefensivePad(int_block *callBlock, Address padStart, unsigned size);
 
