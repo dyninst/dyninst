@@ -78,11 +78,6 @@ void Frame::setRange(codeRange *range) {
   range_ = range;
 }
 
-bool Frame::isLastFrame() const
-{
-  return sw_frame_.isFrameComplete();
-}
-
 // Get the instPoint corresponding with this frame
 instPoint *Frame::getPoint() {
     // not detecting instrumentation properly

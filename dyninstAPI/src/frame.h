@@ -109,9 +109,6 @@ class Frame {
   bool setRealReturnAddr(Address retaddr);
 #endif
 
-  // check for zero frame
-  bool isLastFrame() const;
-
  private:
   Dyninst::Stackwalker::Frame sw_frame_;        // StackwalkerAPI frame
   PCProcess *		proc_;				// We're only valid for a single process anyway
