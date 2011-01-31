@@ -159,6 +159,7 @@ private:
     std::map< BPatch_point* , SynchHandle* > synchMap_pre_; // maps from prePt
     std::map< BPatch_point* , SynchHandle* > synchMap_post_; // maps from postPt
     std::set< BPatch_function *> instShadowFuncs_;
+    std::set< std::string > skipShadowFuncs_;
     std::set< std::string > nonPtrAPIs_;
     std::map< BPatch_function *, BPatch_function *> replacedFuncs_;
     BPatch_module *sharedlib_runtime;

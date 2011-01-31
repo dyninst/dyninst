@@ -65,6 +65,11 @@ class CFAtomCreator : public Transformer {
   static void getInterproceduralSuccessors(const int_block *inst,
 					   SuccVec &succ);
 
+  // Make sure that we don't miss stuff due to an incomplete CFG
+  // This is a hack that should be better fixed in ParseAPI
+  static void getRawSuccessors(const int_block *inst,
+      SuccVec &succ);
+
   static unsigned modifiedCallFallthrough(const int_block *inst);
 };
 

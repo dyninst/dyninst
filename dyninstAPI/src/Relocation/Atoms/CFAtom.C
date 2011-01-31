@@ -407,7 +407,7 @@ bool CFAtom::generateCall(CodeBuffer &buffer,
 			  Instruction::Ptr insn) {
   if (!to) {
     // This can mean an inter-module branch...
-    relocation_cerr << "    ... skipping call with no target!" << endl;
+    DebugBreak();
     return true;
   }
 
@@ -729,7 +729,7 @@ unsigned CFPatch::estimate(codeGen &) {
 }
 
 bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
-    cerr << "PaddingPatch::apply, current addr " << hex << gen.currAddr() << ", size " << size_ << ", registerDefensive " << (registerDefensive_ ? "<true>" : "<false>") << dec << endl;
+    //cerr << "PaddingPatch::apply, current addr " << hex << gen.currAddr() << ", size " << size_ << ", registerDefensive " << (registerDefensive_ ? "<true>" : "<false>") << dec << endl;
     if (registerDefensive_) {
       assert(block_);
       gen.registerDefensivePad(block_, gen.currAddr(), 10);
@@ -739,7 +739,7 @@ bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
    } else {
        gen.fill(size_, codeGen::cgTrap);
    }
-   cerr << "\t After filling, current addr " << hex << gen.currAddr() << dec << endl;
+   //cerr << "\t After filling, current addr " << hex << gen.currAddr() << dec << endl;
    //gen.fill(10, codeGen::cgNOP);
    return true;
 }

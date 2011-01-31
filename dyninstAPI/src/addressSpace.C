@@ -1456,7 +1456,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
     return false;
   }
 
-  if (1 || disassemble_reloc || dyn_debug_reloc || dyn_debug_write) {
+  if (disassemble_reloc || dyn_debug_reloc || dyn_debug_write) {
       using namespace InstructionAPI;
       // Print out the buffer we just created
       cerr << "DUMPING RELOCATION BUFFER " << hex 
@@ -1720,6 +1720,20 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
         cerr << "Failed writing a springboard branch, ret false" << endl;
         return false;
     }
+#if 0
+    using namespace InstructionAPI;
+    {
+    InstructionDecoder deco
+        (iter->start_ptr(),iter->used(),getArch());
+    Instruction::Ptr insn = deco.decode();
+    Address base = iter->startAddr();
+    while(insn) {
+        cerr << "Springboard: " << hex << base << ": " << insn->format(base) << endl;
+        base += insn->size();
+        insn = deco.decode();
+    }
+    }
+#endif
     mapped_object *obj = findObject(iter->startAddr());
     if (obj && runtime_lib.end() == runtime_lib.find(obj)) {
         Address objBase = obj->codeBase();

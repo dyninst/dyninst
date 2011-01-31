@@ -724,13 +724,11 @@ bool BPatchToInternalArgs(BPatch_point *point,
     if (when == BPatch_callBefore && point->getPointType() == BPatch_exit) {
         BPatch_reportError(BPatchSerious, 113,
                            "BPatch_callBefore at BPatch_exit not supported yet");
-        DebugBreak();
         return false;
     }
     if (when == BPatch_callAfter && point->getPointType() == BPatch_entry) {
         BPatch_reportError(BPatchSerious, 113,
                            "BPatch_callAfter at BPatch_entry not supported yet");
-        DebugBreak();
         return false;
     }
     

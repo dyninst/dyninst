@@ -1815,6 +1815,7 @@ void BPatch_process::overwriteAnalysisUpdate
     ( std::map<Dyninst::Address,unsigned char*>& owPages, //input
       std::vector<Dyninst::Address>& deadBlockAddrs, //output
       std::vector<BPatch_function*>& owFuncs, //output: overwritten & modified
+      std::set<BPatch_function *> &monitorFuncs, // output: those that call overwritten or modified funcs
       bool &changedPages, bool &changedCode) //output
 {
 
@@ -1964,7 +1965,10 @@ void BPatch_process::overwriteAnalysisUpdate
                             cfunc->funcCalls();
                             cPoint = cfunc->findInstPByAddr(cbbi->last());
                         }
+
                         cPoint->setResolved(false);
+
+                        monitorFuncs.insert(findOrCreateBPFunc(cfunc, NULL));
                     } else {
                         // parse right away
                         deadFuncCallers[cbbi] = funcAddr;
@@ -2090,7 +2094,7 @@ bool BPatch_process::protectAnalyzedCode()
        if ( ! curMod->getFuncVectorSize() 
            || curMod->obj()->isSharedLib()) 
        {
-           cerr << "Warning: skipping sync of module " << curMod->fileName() << (curMod->getFuncVectorSize() ? " <no analyzed funcs> " : "") << (curMod->obj()->isSharedLib() ? " <shared lib> " : "") << endl;
+           cerr << "Warning: skipping sync of module " << curMod->fileName() << (!curMod->getFuncVectorSize() ? " <no analyzed funcs> " : "") << (curMod->obj()->isSharedLib() ? " <shared lib> " : "") << endl;
            continue; // don't trigger analysis and don't protect shared libraries
        }
        if (!(*bpMods)[midx]->setAnalyzedCodeWriteable(false)) {

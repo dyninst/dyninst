@@ -50,7 +50,6 @@ bool CodeTracker::origToReloc(Address origAddr,
   if (iter2 == fm.end()) return false;
 
   reloc = iter2->second;
-
   return true;
 }
 

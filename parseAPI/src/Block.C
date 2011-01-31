@@ -44,6 +44,8 @@ using namespace Dyninst::InstructionAPI;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
+int HACKCOUNT = 0;
+
 Block::Block(CodeObject * o, CodeRegion *r, Address start) :
     _obj(o),
     _region(r),
@@ -55,7 +57,12 @@ Block::Block(CodeObject * o, CodeRegion *r, Address start) :
     _func_cnt(0),
     _parsed(false)
 {
-
+    if (start == 0x1d042) {
+        HACKCOUNT++;
+    }
+    if (HACKCOUNT > 1) {
+        DebugBreak();
+    }
 }
 
 Block::~Block()

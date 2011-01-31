@@ -235,7 +235,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    codeGen gen;
    
    bool usedTrap = false;
-   cerr << "Springboard: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
+   //cerr << "Springboard: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
 
    generateBranch(r.from, r.destinations.begin()->second, gen);
 
