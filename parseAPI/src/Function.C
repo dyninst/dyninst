@@ -364,8 +364,8 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
                 obj()->fact()->free_edge(edge);
             }
         }
-        // remove from internal parsing datastructures
-        obj()->parser->remove_block(dead);
+        // KEVIN TODO
+        // Moved remove_block farther down to guard against shared code
     }
 
     // delete the blocks
@@ -378,6 +378,9 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
                        "than deleting it %s[%d]\n", dead->start(), 
                        dead->end(), FILE__,__LINE__);
         } else {
+            // remove from internal parsing datastructures
+            obj()->parser->remove_block(dead);
+
             obj()->fact()->free_block(dead);
         }
     }

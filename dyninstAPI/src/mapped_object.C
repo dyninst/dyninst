@@ -89,7 +89,8 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
    analyzed_(false),
    analysisMode_(mode),
    pagesUpdated_(true),
-   memEnd_(-1)
+   memEnd_(-1),
+   memoryImg_(false)
 { 
    // Set occupied range (needs to be ranges)
    codeBase_ = fileDesc.code();
@@ -175,6 +176,7 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
       BPatch_hybridMode analysisMode, 
       bool parseGaps) 
 {
+   
 
    if (!p) return NULL;
 
@@ -283,7 +285,8 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
    proc_(child),
    analyzed_(s->analyzed_),
    analysisMode_(s->analysisMode_),
-   pagesUpdated_(true)
+   pagesUpdated_(true),
+   memoryImg_(s->memoryImg_)
 {
    // Let's do modules
    for (unsigned k = 0; k < s->everyModule.size(); k++) {
@@ -961,6 +964,8 @@ AddressSpace *mapped_object::proc() const { return proc_; }
 
 bool mapped_object::isSharedLib() const 
 {
+    if (isMemoryImg()) return false;
+
     return parse_img()->isSharedObj();
     // HELL NO
     //return desc_.isSharedObject();
@@ -1837,10 +1842,6 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * symReg)
 // check would not be needed
 bool mapped_object::isUpdateNeeded(Address entry)
 {
-
-    if (entry == 0x9bde4c) {
-        DebugBreak();
-    }
     using namespace ParseAPI;
     bool updateNeeded = false;
     void* regBuf = NULL;

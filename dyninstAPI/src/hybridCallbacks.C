@@ -489,6 +489,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     time( &tstruct );
     tmstruct = localtime( &tstruct );
     strftime(timeStr, 64, "%X", tmstruct);
+
     printf("badTransferCB %lx=>%lx %s\n\n", point->getAddress(), target, timeStr);
 
     BPatch_module * targMod = proc()->findModuleByAddr(target);
@@ -621,6 +622,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         // 3.2.1 if point->func() was called by callPoint, point->func() 
         // returns normally, tell parseAfterCallAndInstrument to parse after 
         // other callers to point->func()
+
         if (callPoint) {
             BPatch_function *calledFunc = NULL;
             vector<Address> targs;
@@ -645,6 +647,10 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                       "parsing return addr %lx as fallthrough of call "
                       "instruction at %lx %s[%d]\n", (long)point->getAddress(), 
                       target,callPoint->getAddress(),FILE__,__LINE__);
+            if (point->getFunction() != calledFunc) {
+                cerr << "Warning: new code believes the callee was " << (calledFunc ? calledFunc->getName() : "<NULL>") << " and not original " << (point ? point->getFunction()->getName() : "<NULL>") << endl;
+            }
+            //parseAfterCallAndInstrument( callPoint, point->getFunction() );
             parseAfterCallAndInstrument( callPoint, calledFunc );
         }
 

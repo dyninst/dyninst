@@ -169,6 +169,9 @@ class mapped_object : public codeRange {
     bool isSharedLib() const;
     bool isStaticExec() const;
     static bool isSystemLib(const std::string &name);
+    bool isMemoryImg() const { return memoryImg_; }
+
+    void setMemoryImg() { memoryImg_ = true; };
 
     // Return an appropriate identification string for debug purposes.
     // Will eventually be required by a debug base class.
@@ -357,6 +360,7 @@ private:
     // part removed.  return 0 on error
     char *getModulePart(std::string &full_path_name) ;
 
+    bool memoryImg_;
 };
 
 // Aggravation: a mapped object might very well occupy multiple "ranges". 

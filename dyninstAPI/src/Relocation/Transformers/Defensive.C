@@ -119,7 +119,7 @@ bool DefensiveTransformer::postprocess(TraceList &l) {
     return true;
 }
 // First parameter: do we need a defensive 
-bool DefensiveTransformer::requiresDefensivePad(const int_block *inst) {
+bool DefensiveTransformer::requiresDefensivePad(const int_block *block) {
    // Find if the program does anything funky with a call fallthrough
    // 1) A call edge with no fallthrough
    // 2) A gap between the call block and the fallthrough block.
@@ -127,7 +127,7 @@ bool DefensiveTransformer::requiresDefensivePad(const int_block *inst) {
    ParseAPI::Edge *callEdge = NULL;
    ParseAPI::Edge *ftEdge = NULL;
    
-   const ParseAPI::Block::edgelist &targets = inst->llb()->targets();
+   const ParseAPI::Block::edgelist &targets = block->llb()->targets();
    ParseAPI::Block::edgelist::iterator iter = targets.begin();
    for (; iter != targets.end(); ++iter) {
       if ((*iter)->type() == ParseAPI::CALL) {
@@ -137,11 +137,30 @@ bool DefensiveTransformer::requiresDefensivePad(const int_block *inst) {
          ftEdge = *iter;
       }
    }
-   
+
    if (callEdge && !ftEdge) {
         return true;
    }
-   else {
+   else if (callEdge && ftEdge) {
        return false;
    }
+
+
+   // See big comment in ControlFlow.C ; we're omitting edges from the ParseAPI
+   // and that makes things go badly.
+
+   using namespace InstructionAPI;
+
+   int_block::InsnInstances insns;
+   block->getInsnInstances(insns);
+
+   // Hack: this also triggers on call-next thunks; only go if we have _no_
+   // targets.
+   if ((insns.back().first->getCategory() == c_CallInsn) &&
+       (targets.empty())) 
+   {
+       cerr << "Hacky defensive pad for block @ " << hex << block->start() << dec << endl;
+       return true;
+   }
+   return false;
 }

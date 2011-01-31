@@ -4462,122 +4462,33 @@ Address process::stopThreadCtrlTransfer
     Address unrelocTarget = target;
 
     if ( isRuntimeHeapAddr( target ) ) {
-        // case 1: The point is at a return instruction
-        if (intPoint->getPointType() == functionExit) {
+        // get unrelocated target address, there are three possibilities
+        // a. We're in post-call padding, and targBBI is the call block
+        // b. We're in an analyzed fallthrough block
+        // c. The stack was tampered with and we need the (mod_pc - pc) 
+        //    offset to figure out where we should be
+        cerr << "Looking for matches to incoming address " << hex << target << dec << endl;
+        instPoint *callPt = NULL;
+        int_block *callBBI = NULL;
 
-            // get unrelocated target address, there are three possibilities
-            // a. We're in post-call padding, and targBBI is the call block
-            // b. We're in an analyzed fallthrough block
-            // c. The stack was tampered with and we need the (mod_pc - pc) 
-            //    offset to figure out where we should be
-			cerr << "Looking for matches to incoming address " << hex << target << dec << endl;
-            instPoint *callPt = NULL;
-            int_block *callBBI = NULL;
-            bool tampered = false;
-            if ( reverseDefensiveMap_.find(target,callPt) ) {
-                // a. 
-				cerr << "\t Found in defensive map" << endl;
-				callBBI = callPt->block();
-            }
-            else {
-                // b. 
-                // if we're in the fallthrough block, match to call block, 
-                // and if necessary, add fallthrough edge
-                int_block *targBBI = NULL;
-                baseTrampInstance *bti = NULL;
-                bool hasFT = getRelocInfo(target, unrelocTarget, targBBI, bti);
-                assert(hasFT); // otherwise we should be in the defensive map
-				cerr << "Target address " << hex << target << " maps to original address " << unrelocTarget << endl;
-				std::vector<int_block *> sources;
-				targBBI->getSources(sources);
-				cerr << "\t Not found in defensive map, found in block " << hex << targBBI->start() << " -> " << targBBI->end() << " with " << dec << sources.size() << " predecessors" << endl;
-				for (unsigned i = 0; i < sources.size(); ++i) {
-					cerr << "\t\t Source edge type: " << targBBI->getSourceEdgeType(sources[i]) << endl;
-					if (targBBI->getSourceEdgeType(sources[i]) == ParseAPI::CALL_FT) {
-						callBBI = sources[i];
-					}
-				}
-				if (callBBI) {
-					cerr << "\t Found caller BBI" << endl;
-					using namespace ParseAPI;
-					Block::edgelist &edges = callBBI->llb()->targets();
-                    Block::edgelist::iterator eit = edges.begin();
-                    for (; eit != edges.end(); eit++)
-                        if (CALL_FT == (*eit)->type())
-                            break;
-                    if (eit == edges.end()) {
-                        // add ft edge
-						vector<CodeObject::NewEdgeToParse> worklist;
-						worklist.push_back(CodeObject::NewEdgeToParse(callBBI->llb(), callBBI->llb()->end(), CALL_FT));
-                        callBBI->func()->ifunc()->img()->codeObject()->
-							parseNewEdges(worklist);
-                    }
-				}
-                else { 
-					cerr << "FAILED TO FIND caller BBI, failing..." << endl;
-					// We're going to choke and die
-					// So let's try to figure out what the hell happened...
-					char buffer[256];
-					readDataSpace((void *)(target-128), 256, (void *)buffer, true);
-					using namespace InstructionAPI;
-					InstructionDecoder deco (buffer, 256, getArch());
-					Instruction::Ptr insn = deco.decode();
-					int i = 0;
-					int *tmp = (int *)buffer;
-					cerr << "Raw dump: " << endl;
-					for (int j = 0; j < 64; ++j) {
-						cerr << "\t " << hex << target - 128 + (j*4) << ": " << tmp[j] << dec << endl;
-					}				
-					cerr << "Disassembled: " << endl;
-					while (i < 256) {
-						cerr << "\t " << hex << target - 128 + i << ": " << dec << insn->format() << endl;
-						i += insn->size();
-						insn = deco.decode();
-					}
-					abort();
-					tampered = true;
-                }
-            }
-            if (!tampered) {
-                unrelocTarget = callBBI->end();
-            } 
-            else {
-                // resolve target subtracting the difference between the address 
-                // of the relocated intPoint and its original counterpart
-                unrelocTarget = resolveJumpIntoRuntimeLib(intPoint, target);
-                if (0 == unrelocTarget) {
-                    mal_printf("ERROR: stopThread caught a return target in "
-                               "the rtlib heap that it couldn't translate "
-                               "%lx=>%lx %s[%d]\n", pointAddr, 
-                               target, FILE__, __LINE__);
-                    assert(0 && "need to change relocated return addr to orig");
-                }
-            }
+        bool tampered = false;
+        if ( reverseDefensiveMap_.find(target,callPt) ) {
+            // a. 
+            cerr << "\t Found in defensive map" << endl;
+            callBBI = callPt->block();
+            unrelocTarget = callBBI->end();
         }
-        // case 2: The point is a control transfer into the runtime library
         else {
-            // This is an indirect jump or call into the dyninst runtime 
-            // library heap, meaning that the indirect target is calculated 
-            // by basing off of the program counter at the source block, so
-            // adjust the target by comparing to the uninstrumented address of
-            // the source instruction
-            assert(0);   unrelocTarget = resolveJumpIntoRuntimeLib(intPoint, target);
-            if (0 == unrelocTarget) {
-                mal_printf("WARNING: stopThread caught an indirect "
-                        "call or jump whose target is an unresolved "
-                        "runtime library heap address %lx=>%lx %s[%d]\n",
-                        pointAddr, target, FILE__, __LINE__);
-                assert(0);
-            } else {
-                fprintf(stderr,"ERROR: jump %lx=>[%lx][%lx] is going to jump/"
-                        "call to the rtlib heap address where there is no "
-                        "code, need to modify the target somehow %s[%d]\n", 
-                        intPoint->addr(), unrelocTarget, 
-                        target, FILE__, __LINE__);
-            }
+            // b. 
+            // if we're in the fallthrough block, match to call block, 
+            // and if necessary, add fallthrough edge
+            int_block *targBBI = NULL;
+            baseTrampInstance *bti = NULL;
+            bool hasFT = getRelocInfo(target, unrelocTarget, targBBI, bti);
+            assert(hasFT); // otherwise we should be in the defensive map
         }
         mal_printf("translated target %lx to %lx %s[%d]\n",
-                   target, unrelocTarget, FILE__, __LINE__);
+            target, unrelocTarget, FILE__, __LINE__);
     }
     else { // target is not relocated, nothing to do but find the 
            // mapped_object, creating one if necessary, for transfers
@@ -5176,6 +5087,7 @@ int_function *process::findActiveFuncByAddr(Address addr)
 
 bool process::patchPostCallArea(instPoint *callPt)
 {
+    cerr << "patchPostCallArea for point " << callPt->addr();
     // 1) Find all the post-call patch areas that correspond to this 
     //    call point
     // 2) Generate and install the branches that will be inserted into 
