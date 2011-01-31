@@ -601,19 +601,14 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 				ev.proc->getAddrInfo(stackTOPVAL, remapped, funcs, bti);
 				cerr << "STACK TOP VALUE=" << hex << stackTOPVAL << ", orig @ " << remapped << " in " << funcs.size() << "functions" << dec << endl;
 			}
-			Address src1 = 0xdeadbeef, src2 = 0xdeadbeef, targ1 = 0xdeadbeef, targ2 = 0xdeadbeef;
-			Address translated, translated2;
-			bool whocares;
-			ev.proc->readDataSpace((void *)0x9d4bec, 4, (void *) &src1, true);
-			boost::tie(whocares, translated) = ev.proc->getMemEm()->translate(0x9d4bec);
-			if (whocares) ev.proc->readDataSpace((void *)translated, 4, (void *)&src2, true);
-			ev.proc->readDataSpace((void *)0xbe00ec, 4, (void *) &targ1, true);
-			boost::tie(whocares, translated2) = ev.proc->getMemEm()->translate(0xbe00ec);
-			if (whocares) ev.proc->readDataSpace((void *)translated2, 4, (void *)&targ2, true);
-			cerr << "Magic locations in memory: " << hex << 0x9d4bec << ": "
-				<< src1 << " , " << translated << ": " << src2
-				<< ", " << 0xbe00ec << ": " << targ1 
-				<< ", " << translated2 << ": " << targ2 << dec << endl;
+            Address magicMemVal, transMagicMemVal;
+            magicMemVal = 0x9cc03c;
+            bool valid;
+            boost::tie(valid, transMagicMemVal) = ev.proc->getMemEm()->translate(magicMemVal);
+            Address data1 = 0xdeadbeef, data2 = 0xcafebabe;
+            ev.proc->readDataSpace((void *) magicMemVal, sizeof(ev.proc->getAddressWidth()), &data1, false);
+            if (valid) ev.proc->readDataSpace((void *) transMagicMemVal, sizeof(ev.proc->getAddressWidth()), &data2, false);
+            cerr << "Magic memory value: " << hex << data1 << " / " << data2 << dec << endl;
 		}
 	 }
   }
@@ -1052,10 +1047,9 @@ int dyn_lwp::changeMemoryProtections
 
 	// Temporary: set on a page-by-page basis to work around problems
 	// with memory deallocation
-	cerr << "Change memory protections [" << hex << addr << "," << addr+size << "], " << rights << dec << endl;
 	for (Address idx = pageBase; idx < pageBase + size; idx += pageSize) {
-        mal_printf("setting rights to %lx for [%lx %lx)\n", 
-                   rights, idx , idx + pageSize);
+        //mal_printf("setting rights to %lx for [%lx %lx)\n", 
+          //         rights, idx , idx + pageSize);
 		if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(idx), 
 			(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&oldRights)) 
 		{
@@ -1077,7 +1071,6 @@ int dyn_lwp::changeMemoryProtections
 			}
 			else 
 			{
-				mal_printf("setting rights to %lx for shadow [%lx %lx)\n", rights, shadowAddr, shadowAddr + size);
 				if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(shadowAddr), 
 					(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&shadowRights)) 
 				{
@@ -2685,7 +2678,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     InstructionDecoder deco(buf,BUF_SIZE,ev.proc->getArch());
     Instruction::Ptr insn = deco.decode();
     while(insn) {
-        cerr << "\t" << hex << base << ": " << insn->format() << endl;
+        cerr << "\t" << hex << base << ": " << insn->format(base) << endl;
         base += insn->size();
         insn = deco.decode();
     }
@@ -2694,10 +2687,10 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
         cerr << (unsigned int)buf[idx] << " ";
     }
     cerr << endl << dec << "Stack" << endl;
-	for (unsigned i = 0; i < 10; ++i) {
+	for (int i = -5; i < 10; ++i) {
 		Address stackTOPVAL =0;
 	    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
-		cerr << "\tSTACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
+		cerr << "\t" << hex <<activeFrame.esp + 4*i << ": " << stackTOPVAL << dec << endl;
 	 }
 /* end debugging output */
 
@@ -3110,6 +3103,7 @@ mapped_object *process::createObjectNoFile(Address addr)
         mapped_object *obj = mapped_object::createMappedObject
             (desc,this,proc()->getHybridMode(),false);
         if (obj != NULL) {
+            obj->setMemoryImg();
             mapped_objects.push_back(obj);
 
             obj->parse_img()->getOrCreateModule(

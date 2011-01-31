@@ -74,6 +74,9 @@ bool CFAtomCreator::processTrace(TraceList::iterator &iter) {
 
   getInterproceduralSuccessors(bbl, successors);
   
+  // FIXME TODO
+  getRawSuccessors(bbl, successors);
+
   // SD-Dyninst: if we haven't parsed past a call (or indirect branch?)
   // we need to drop in a patch area for a future control flow fixup
   unsigned gap = modifiedCallFallthrough(bbl);
@@ -289,4 +292,70 @@ unsigned CFAtomCreator::modifiedCallFallthrough(const int_block *inst) {
         return ftStart - callEnd;
    }
     return 0;
+}
+
+void CFAtomCreator::getRawSuccessors(const int_block *block, 
+    SuccVec &succ) 
+{
+    // There is a specific bug in ParseAPI. If we see a function that
+    // looks like garbage code, we do not include it in the CFG and remove
+    // all edges into that function - including edges from (e.g.) 
+    // direct jumps and calls. However, these functions are typically overwritten
+    // at runtime before said direct jump or call executes. Since the edges
+    // are not in the CFG the code in getInterproceduralSuccessors misses
+    // them, and we end up skipping the control transfer instruction entirely.
+    // That is... suboptimal. As a temporary workaround, I'm regenerating
+    // the transfer from the raw instruction and setting it as an Address-typed
+    // target.
+    if (!succ.empty()) return;
+
+    using namespace InstructionAPI;
+
+    int_block::InsnInstances insns;
+    block->getInsnInstances(insns);
+
+    // If we have a resolveable control flow target, make sure there's
+    // a matching target in the successor vector
+
+    Expression::Ptr cft = insns.back().first->getControlFlowTarget();
+    if (!cft) return;
+
+    cerr << "Checking for missed successor @ " << hex << insns.back().second << " : format " << insns.back().first->format(insns.back().second) << dec << endl;
+
+    Expression::Ptr thePC = Expression::Ptr(new RegisterAST(MachRegister::getPC(insns.back().first->getArch())));
+    cft->bind(thePC.get(), Result(u32, insns.back().second));
+    Result res = cft->eval();
+    if (!res.defined) return;
+
+    Address target = res.convert<Address>();
+    cerr << "\t Determined target " << hex << target << dec << endl;
+
+    for (SuccVec::iterator iter = succ.begin(); iter != succ.end(); ++iter) {
+        if (iter->addr == target) return;
+    }
+    cerr << "\t Failed to find in CFG target list, creating" << endl;
+    // Oops...
+    Succ out;
+    out.targ = new Target<Address>(target);
+    out.addr = target;
+    switch(insns.back().first->getCategory())
+    {
+    case c_CallInsn:
+        out.type = CALL;
+        break;
+    case c_BranchInsn:
+        if (!insns.back().first->allowsFallThrough())
+        {
+            out.type = DIRECT;
+        }
+        else 
+        {
+            out.type = COND_TAKEN;
+        }
+        break;
+    default:
+        assert(0);
+        break;
+    }
+    succ.push_back(out);
 }

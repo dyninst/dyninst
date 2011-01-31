@@ -153,36 +153,44 @@ bool Trace::generate(const codeGen &templ,
    static bool debug = false;
    bool insn_debug = false;
 #if 1
-   if (bbl() && bbl()->func()->get_address() == 0x9c7cc4) {
-	   debug = true;
+   if (bbl() && bbl()->start() <= 0x9a5582 && bbl()->end() >= 0x9a5582) {
+       debug = true;
    }
-   else if (bbl() && bbl()->func()->get_address() == 0x9c61c8) {
-	   debug = true;
+   else if (bbl() && bbl()->start() <= 0x9bdf15 && bbl()->end() >= 0x9bdf15) {
+       debug = true;
+       insn_debug = true;
    }
-   else if (bbl() && bbl()->start() <= 0x9a267d && bbl()->end() >= 0x9a267d) {
-	   debug = true;
-   }
-   else if (bbl() && bbl()->start() <= 0x9c6297 && bbl()->end() >= 0x9c6297) {
-	   debug = true;
+   else if (bbl() && bbl()->start() == 0x9a276f) {
+       debug = true;
    }
    else {
-	   debug = false;
+       debug = false;
    }
 #endif
+   Address lastDebugAddr = 0;
 
    // Simple form: iterate over every Atom, in order, and generate it.
    for (AtomList::iterator iter = elements_.begin(); iter != elements_.end(); ++iter) {
-	  if (debug && ((iter == elements_.begin()) || insn_debug) && bbl()) {
-		  codeGen gen(1);
-		  gen.fill(1, codeGen::cgTrap);
-		  buffer.addPIC(gen, new InstTracker(bbl()->start(), NULL, bbl()));
-	  }
+       
+       if (bbl() && debug && ((iter == elements_.begin()) || insn_debug)) {
+          Address addr = (*iter)->addr();
+          if (addr && addr != lastDebugAddr) 
+          {
+              // We need a DebugTracker type. I'm using InstTracker, so _DO NOT_
+              // add instrumentation in the middle of an emulation sequence...
+              codeGen gen(1);
+              gen.fill(1, codeGen::cgTrap);
+              buffer.addPIC(gen, new InstTracker(addr, NULL, bbl()));
+              lastDebugAddr = addr;
+          }
+      }
       if (!(*iter)->generate(templ, 
-                             this,
-                             buffer)) {
-         return false;
-         // This leaves the block in an inconsistent state and should only be used
-         // for fatal failures.
+          this,
+          buffer)) 
+      {
+          return false;
+          // This leaves the block in an inconsistent state and should only be used
+          // for fatal failures.
       }
    }
    

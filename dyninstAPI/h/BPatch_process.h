@@ -284,6 +284,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
         ( std::map<Dyninst::Address,unsigned char*>& owPages, //input
           std::vector<Dyninst::Address>& deadBlockAddrs, //output
           std::vector<BPatch_function*>& owFuncs,     //output
+          std::set<BPatch_function *> &monitorFuncs, //output
           bool &changedPages, bool &changedCode ); //output
     HybridAnalysis *getHybridAnalysis() { return hybridAnalysis_; }
     bool protectAnalyzedCode();

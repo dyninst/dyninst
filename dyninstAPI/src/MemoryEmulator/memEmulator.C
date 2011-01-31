@@ -116,7 +116,7 @@ void MemoryEmulator::addAllocatedRegion(Address start, unsigned size) {
 }
 
 void MemoryEmulator::addRegion(mapped_object *obj) {
-   //cerr << "addRegion for " << obj->fileName() << endl;
+   cerr << "addRegion for " << obj->fileName() << endl;
 
    // Add each code region
    std::vector<Region *> codeRegions;
@@ -148,9 +148,9 @@ void MemoryEmulator::removeRegion(mapped_object *obj) {
 
 void MemoryEmulator::addRegion(Region *reg, Address base) {
    
-   //cerr << "\t\t Region " << i << ": " << hex
-   //<< codeRegions[i]->getMemOffset() + obj->codeBase() << " -> " 
-   //<< codeRegions[i]->getMemOffset() + codeRegions[i]->getMemSize() + obj->codeBase() << endl;
+   cerr << "\t\t Region " << hex
+   << reg->getMemOffset() << " -> " 
+   << reg->getMemOffset() + reg->getMemSize() << endl;
    
    if (addedRegions_.find(reg) != addedRegions_.end()) return;
       
@@ -447,7 +447,7 @@ void MemoryEmulator::synchShadowOrig(bool toOrig)
             }
             cp_start = sit->first + sit->second;
         }
-        cerr << "\t Finishing write " << hex << toBase + cp_start << " -> " << toBase + cp_start + reg->getMemSize() - cp_start << dec << endl;
+        //cerr << "\t Finishing write " << hex << toBase + cp_start << " -> " << toBase + cp_start + reg->getMemSize() - cp_start << dec << endl;
 
         if (cp_start < reg->getMemSize())
         {

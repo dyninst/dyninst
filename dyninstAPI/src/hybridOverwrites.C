@@ -211,9 +211,11 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool useInsertionSet, BPatch_poi
 			cerr << "Calling overwriteAnalysis with point @ " << hex << writePoint->getAddress() << dec << endl;
             overwriteAnalysis(writePoint,(void*)loop->getID());
         } else {
+            std::set<BPatch_function *> funcsToInstrument;
     	    proc()->overwriteAnalysisUpdate(loop->shadowMap,
                                             deadBlockAddrs,
                                             modFuncs,
+                                            funcsToInstrument,
                                             changedPages,
                                             changedCode);
             assert(!changedCode && "bug, overwrite loops should not contain "
@@ -992,6 +994,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
     std::vector<Address> deadBlockAddrs;
     std::vector<BPatch_function*> newFuncs;
     std::vector<BPatch_function*> modFuncs;
+    std::set<BPatch_function*> funcsToInstrument;
     const unsigned int pageSize = proc()->lowlevel_process()->getMemoryPageSize();
 	Address pageAddress = (((Address)pointAddr) / pageSize) * pageSize;
     bool overwroteLoop = false;
@@ -1033,6 +1036,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
     proc()->overwriteAnalysisUpdate(loop->shadowMap, 
                                     deadBlockAddrs,
                                     owFuncs, 
+                                    funcsToInstrument,
                                     changedPages,
                                     changedCode);
 
@@ -1040,6 +1044,15 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 
 /* 2. if the code changed, remove loop & overwritten instrumentation, 
       then re-instrument */
+    for (std::set<BPatch_function *>::iterator iter = funcsToInstrument.begin();
+        iter != funcsToInstrument.end(); ++iter)
+    {
+        hybrid_->instrumentFunction(*iter,
+            false, // Already in an insertion set, so don't start another
+            false, // Only need unresolved instrumentation, I think.
+            false); // And don't add shadow synchronization.
+    }
+
     if (changedCode) {
 
         // build up list of mods to instrument by traversing the functions, or
@@ -1178,6 +1191,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
     }
     proc()->finalizeInsertionSet(false);
     proc()->protectAnalyzedCode();
+    cerr << "overWriteAnalysis returns" << endl;
 }
 #endif
 

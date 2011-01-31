@@ -315,27 +315,37 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
             // create a call work elem so that the bundle is complete
             // and set the target function's return status and 
             // tamper to RETURN and TAMPER_NONE, respectively
-            assert(callEdge);
-            bool isResolvable = false;
-            Address callTarget = 0;
-            if ( ! callEdge->sinkEdge() ) 
-            {
-                isResolvable = true;
-                callTarget = callEdge->trg()->start();
-                Function *callee = findFuncByEntry(
-                    callEdge->trg()->region(), callTarget);
-                assert(callee);
-                callee->set_retstatus(RETURN);
-                callee->_tamper = TAMPER_NONE;
-            }
-            elem->bundle()->add(new ParseWorkElem
-                ( elem->bundle(), 
-                  callEdge,
-                  callTarget,
-                  isResolvable,
-                  false ));
-        }
+            //assert(callEdge);
+            // KEVIN TODO
+            // In cases where we had a direct call to garbage that was later unpacked,
+            // we aren't putting in the call edge when the call is first executed. I'm
+            // not sure why not, so I'm attempting to continue past here without
+            // fixing up the called function...
+            // Also, in the case I saw, the callee was _not_ returning. Not directly. It 
+            // led into a big case with a longjmp() equivalent. 
 
+            if (callEdge) 
+            {
+                bool isResolvable = false;
+                Address callTarget = 0;
+                if ( ! callEdge->sinkEdge() ) 
+                {
+                    isResolvable = true;
+                    callTarget = callEdge->trg()->start();
+                    Function *callee = findFuncByEntry(
+                        callEdge->trg()->region(), callTarget);
+                    assert(callee);
+                    callee->set_retstatus(RETURN);
+                    callee->_tamper = TAMPER_NONE;
+                }
+                elem->bundle()->add(new ParseWorkElem
+                    ( elem->bundle(), 
+                    callEdge,
+                    callTarget,
+                    isResolvable,
+                    false ));
+            }
+        }
         ParseFrame *frame = _parse_data->findFrame
             ( src->region(), 
               src->lastInsnAddr() );
