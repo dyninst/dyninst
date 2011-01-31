@@ -114,6 +114,12 @@ static void signalHandlerEntryCB_wrapper(BPatch_point *point, void *excRecAddr)
         getHybridAnalysis()->signalHandlerEntryCB(point,(Address)excRecAddr); 
 }
 
+static void signalHandlerEntryCB2_wrapper(BPatch_point *point, void *excCtxtAddr) 
+{ 
+    dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
+        getHybridAnalysis()->signalHandlerEntryCB2(point,(Address)excCtxtAddr); 
+}
+
 bool HybridAnalysis::registerCodeDiscoveryCallback
         (BPatchCodeDiscoveryCallback cb)
 {
@@ -170,7 +176,7 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
         } 
 
         BPatch_function *handlerFunc = proc()->findFunctionByEntry(*it);
-        handlerFunctions[*it] = 0;
+        handlerFunctions[*it] = ExceptionDetails();
         if (handlerFunc) {
             it = handlers.erase(it);
             continue;
@@ -188,16 +194,19 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
         // instrument the handler at its entry and exit points
         proc()->beginInsertionSet();
 
-        // instrument handler entry with callback that will deliver the stack 
-        // address at which the fault addr is stored
+        // instrument handler entry with callbacks that will deliver the stack 
+        // addresses at which the fault addr is stored
         BPatch_paramExpr excRecAddr(0,BPatch_ploc_entry);
-        BPatch_stopThreadExpr sThread2
+        BPatch_paramExpr excCtxtAddr(2,BPatch_ploc_entry);
+        BPatch_stopThreadExpr sThread1
             (signalHandlerEntryCB_wrapper,excRecAddr,false,BPatch_noInterp);
+        BPatch_stopThreadExpr sThread2
+            (signalHandlerEntryCB2_wrapper,excCtxtAddr,false,BPatch_noInterp);
         proc()->insertSnippet(sThread2, *entryPt);
+        proc()->insertSnippet(sThread1, *entryPt);
 
         // remove any exit-point instrumentation and add new instrumentation 
         // at exit points
-        proc()->beginInsertionSet();
         std::map<BPatch_point*,BPatchSnippetHandle*> *funcPoints = 
             (*instrumentedFuncs)[handlerFunc];
         if ( funcPoints ) {
@@ -228,12 +237,8 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
 #endif
 
 
-/* Invoked twice for every signal handler function, the first time we
- * just adjust the value of the saved fault address to its unrelocated 
- * counterpart (in the EXCEPTION_RECORD), the second time we do this
- * translation for the CONTEXT structure, containing the PC that is used
- * when execution resumes, and we replace instrumentation at the handler's 
- * exit points because we didn't know the contextAddr before 
+/* Invoked for every signal handler function, adjusts the value of the saved 
+ * fault address to its unrelocated counterpart in the EXCEPTION_RECORD
  */
 void HybridAnalysis::signalHandlerEntryCB(BPatch_point *point, Address excRecAddr)
 {
@@ -241,47 +246,83 @@ void HybridAnalysis::signalHandlerEntryCB(BPatch_point *point, Address excRecAdd
                point->getAddress(), (Address)excRecAddr);
 
     // calculate the offset of the fault address in the EXCEPTION_RECORD
-    EXCEPTION_RECORD *tmpRec = (EXCEPTION_RECORD*)excRecAddr; //bogus pointer, but I won't write to it
-    Address pcAddr = excRecAddr + (Address)(&(tmpRec->ExceptionAddress)) - (Address)tmpRec;
+    EXCEPTION_RECORD record;
+    proc()->lowlevel_process()->readDataSpace(
+        (void*)excRecAddr, sizeof(EXCEPTION_RECORD), &record, true);
+    Address pcAddr = excRecAddr 
+        + (Address) &(record.ExceptionAddress) 
+        - (Address) &record;
 
-    // save address of context information for the exit point handler
+    // set fault address to the unrelocated address of that instruction
     BPatch_function *func = point->getFunction();
-
-    func->setHandlerFaultAddrAddr((Address)pcAddr,true);
-    handlerFunctions[(Address)func->getBaseAddr()] = (Address)excRecAddr;
+    func->setHandlerFaultAddrAddr((Address)pcAddr,false);
+    handlerFunctions[(Address)func->getBaseAddr()].isInterrupt = 
+        (record.ExceptionCode == EXCEPTION_BREAKPOINT);
 }
+
+/* Invoked for every signal handler function, adjusts the value of the saved 
+ * fault address to its unrelocated counterpart in the CONTEXT structure,
+ * which contains the PC that is used when execution resumes
+ */
+void HybridAnalysis::signalHandlerEntryCB2(BPatch_point *point, Address excCtxtAddr)
+{
+    mal_printf("\nAt signalHandlerEntry2(%lx , %lx)\n", 
+               point->getAddress(), (Address)excCtxtAddr);
+
+    // calculate the offset of the fault address in the EXCEPTION_RECORD
+    CONTEXT *cont= (CONTEXT*)excCtxtAddr; //bogus pointer, but I won't write to it
+    Address pcAddr = excCtxtAddr + (Address)(&(cont->Eip)) - (Address)cont;
+
+    // set fault address to the unrelocated address of that instruction
+    // and save the PC address in the CONTEXT structure so the exit handler 
+    // can read it
+    BPatch_function *func = point->getFunction();
+    func->setHandlerFaultAddrAddr((Address)pcAddr,true);
+    handlerFunctions[(Address)func->getBaseAddr()].faultPCaddr = pcAddr;
+}
+
 
 /* If the context of the exception has been changed so that execution
  * will resume at a new address, parse and instrument the code at that
- * address
+ * address; then add a springboard at that address if it is not the 
+ * entry point of a function
  */
 void HybridAnalysis::signalHandlerExitCB(BPatch_point *point, void *dontcare)
 {
     BPatch_function *func = point->getFunction();
-    assert(handlerFunctions.end() != handlerFunctions.find((Address)func->getBaseAddr()) && 
-           0 != handlerFunctions[(Address)func->getBaseAddr()]);
-    Address erLoc = handlerFunctions[(Address)func->getBaseAddr()];
+    std::map<Dyninst::Address, ExceptionDetails>::iterator diter = 
+        handlerFunctions.find((Address)func->getBaseAddr());
+    assert(handlerFunctions.end() != diter && 
+           0 != diter->second.faultPCaddr);
+    Address pcLoc = diter->second.faultPCaddr;
 
     mal_printf("\nAt signalHandlerExit(%lx)\n", point->getAddress());
 
-    // figure out the address the program will resume at by reading in the stored EXCEPTION_RECORD
-    EXCEPTION_RECORD er;
+    // figure out the address the program will resume at by reading 
+    // in the stored CONTEXT structure
+    Address resumePC;
+    assert(sizeof(Address) == proc()->getAddressWidth());
     proc()->lowlevel_process()->readDataSpace(
-        (void*)erLoc, sizeof(EXCEPTION_RECORD), &er, true);
-
-    Address resumePC = (Address) er.ExceptionAddress;
-    if (er.ExceptionCode == EXCEPTION_BREAKPOINT) {
+        (void*)pcLoc, sizeof(resumePC), &resumePC, true);
+    if (diter->second.isInterrupt) {
         resumePC += 1;
     }
     mal_printf("Program will resume at %lx\n", resumePC);
-
-    // restore the effAddr of the 
 
     // parse at the resumePC address, if necessary
     vector<BPatch_function *> funcs;
     proc()->findFunctionsByAddr((Address)resumePC,funcs);
     if (funcs.empty()) {
         analyzeNewFunction(point, (Address)resumePC, true, true);
+    }
+    else {
+        // add a springboard at resumePC
+        for (vector<BPatch_function*>::iterator fit= funcs.begin();
+             fit != funcs.end();
+             fit++) 
+        {
+            //KEVINTODO:
+        }
     }
     point->getFunction()->fixHandlerReturnAddr((Address)resumePC);
     mal_printf("Exception handler exiting at %lx will resume execution at "
@@ -295,18 +336,40 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     mal_printf("\nabruptEndCB at %lx in function at %lx\n", 
                 pointAddr, point->getFunction()->getBaseAddr());
 
+    // before we trigger further parsing, make sure the function is 
+    // not just a big chunk of zeroes, in which case the first
+    // 00 00 instruction will probably raise an exception
+    using namespace ParseAPI;
+    int_function *pfunc = point->llpoint()->func();
+    CodeRegion *reg = pfunc->ifunc()->region();
+    unsigned char * ptr = (unsigned char *) reg->getPtrToInstruction(
+        pfunc->getAddress() - pfunc->obj()->codeBase());
+    Address regSize = reg->high() - reg->offset();
+    unsigned firstNonzero = 0;
+    for (; firstNonzero < regSize; firstNonzero++) {
+        if (0 != ptr[firstNonzero]) {
+            break;
+        }
+    }
+    if (firstNonzero == regSize) {
+        mal_printf("Not extending parse after abruptEnd; the code byes are "
+                   "zeroes through the end of the binary section and the "
+                   "0x0000 instruction is idempotent\n");
+        return; // don't do any parsing, there's nothing but 0's to the end 
+                // of the section
+    }
+
     // parse, immediately after the current block
     vector<Address> *targets = new vector<Address>;
     Address nextInsn =0;
     point->getCFTargets(*targets);
-    assert(targets->size());
+    assert(!targets->empty());
     nextInsn = (*targets)[0];
     delete(targets);
 
     proc()->beginInsertionSet();
     // add the new edge to the program, parseNewEdgeInFunction will figure
     // out whether to extend the current function or parse as a new one. 
-    assert(0 && "KEVINTODO: turn on non-existent parsing flag to force parsing of overlapping blocks and weird instructions");
     parseNewEdgeInFunction(point, nextInsn, false);
 
     //make sure we don't re-instrument

@@ -81,10 +81,10 @@ static void signalHandlerCB_wrapper
     dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
         getHybridAnalysis()->signalHandlerCB(point,snum,handlers); 
 }
-static void signalHandlerExitCB_wrapper(BPatch_point *point, void *returnAddr) 
+static void signalHandlerExitCB_wrapper(BPatch_point *point, void *dontcare) 
 { 
     dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
-        getHybridAnalysis()->signalHandlerExitCB(point,returnAddr); 
+        getHybridAnalysis()->signalHandlerExitCB(point,dontcare); 
 }
 static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig) 
 {
@@ -552,7 +552,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 // from the CONTEXT of the exception, which is the 3rd argument
                 // to windows structured exception handlers
                 Address contextPCaddr = 
-                    handlerFunctions[ (Address)func->getBaseAddr() ];
+                    handlerFunctions[(Address)func->getBaseAddr()].faultPCaddr;
                 calcSnippet = new BPatch_constExpr(0xbaadc0de);
                 interp = BPatch_noInterp;
             }

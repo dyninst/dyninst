@@ -1410,9 +1410,6 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
     // Do various checks and set edge types, if necessary
     Address loadAddr = codeBase();
     for (unsigned idx=0; idx < stubs.size(); idx++) {
-        if (stubs[idx].src->start() == 0x40d788) {
-            DebugBreak();
-        }
 		mapped_object *targ_obj = proc()->findObject(stubs[idx].trg);
 		assert(targ_obj);
 
