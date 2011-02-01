@@ -168,7 +168,9 @@ void CFAtomCreator::getInterproceduralSuccessors(const int_block *block,
   // Target concept to create a destination out of whole cloth.
 
   // This requires an... interesting... dodge through to the internals
-
+  if (block->start() == 0x40274d) {
+      DebugBreak();
+  }
   const ParseAPI::Block::edgelist &targets = block->llb()->targets();
   ParseAPI::Block::edgelist::iterator iter = targets.begin();
   for (; iter != targets.end(); ++iter) {
@@ -309,6 +311,7 @@ void CFAtomCreator::getRawSuccessors(const int_block *block,
     // That is... suboptimal. As a temporary workaround, I'm regenerating
     // the transfer from the raw instruction and setting it as an Address-typed
     // target.
+    bool hasCallEdge = false;
     if (!succ.empty()) {
         using namespace ParseAPI;
         Block::edgelist edges= block->llb()->targets();
@@ -318,6 +321,7 @@ void CFAtomCreator::getRawSuccessors(const int_block *block,
         {
             switch((*eit)->type()) {
                 case CALL:
+                    hasCallEdge = true;
                 case CALL_FT:
                 case COND_TAKEN:
                 case COND_NOT_TAKEN:
@@ -327,7 +331,7 @@ void CFAtomCreator::getRawSuccessors(const int_block *block,
                     break;
             }
         }
-        if ( 0 == (pairEdgeCnt % 2)) {
+        if ( 0 == (pairEdgeCnt % 2) ) {
             return;
         }
     }
@@ -369,6 +373,9 @@ void CFAtomCreator::getRawSuccessors(const int_block *block,
     case c_BranchInsn:
         if (!insns.back().first->allowsFallThrough())
         {
+            if (hasCallEdge) {
+                return;// it's a tail call, don't add any edges
+            }
             out.type = DIRECT;
         }
         else 
