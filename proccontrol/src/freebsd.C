@@ -882,8 +882,9 @@ bool freebsd_process::plat_execed() {
     return true;
 }
 
-bool freebsd_process::plat_detach() {
+bool freebsd_process::plat_detach(bool &needs_sync) {
     pthrd_printf("PT_DETACH on %d\n", getPid());
+    needs_sync = false;
     if( 0 != ptrace(PT_DETACH, getPid(), (caddr_t)1, 0) ) {
         perr_printf("Failed to PT_DETACH on %d\n", getPid());
         setLastError(err_internal, "PT_DETACH operation failed\n");
@@ -913,27 +914,15 @@ bool freebsd_process::plat_terminate(bool &needs_sync) {
 }
 
 bool freebsd_process::plat_readMem(int_thread *thr, void *local, 
-                         Dyninst::Address remote, size_t size) 
+                                   Dyninst::Address remote, size_t size) 
 {
     return PtraceBulkRead(remote, size, local, thr->llproc()->getPid());
 }
 
-bool freebsd_process::plat_readProcMem(void *local, 
-        Dyninst::Address remote, size_t size)
-{
-    return PtraceBulkRead(remote, size, local, getPid());
-}
-
 bool freebsd_process::plat_writeMem(int_thread *thr, const void *local, 
-                          Dyninst::Address remote, size_t size) 
+                                    Dyninst::Address remote, size_t size) 
 {
     return PtraceBulkWrite(remote, size, local, thr->llproc()->getPid());
-}
-
-bool freebsd_process::plat_writeProcMem(void *local, 
-                          Dyninst::Address remote, size_t size) 
-{
-    return PtraceBulkWrite(remote, size, local, getPid());
 }
 
 bool freebsd_process::needIndividualThreadAttach() {
@@ -1016,35 +1005,7 @@ bool freebsd_process::plat_getLWPInfo(lwpid_t lwp, void *lwpInfo) {
     return true;
 }
 
-bool freebsd_process::plat_contThread(lwpid_t lwp) {
-    if( threadPool()->size() <= 1 ) return true;
-
-    pthrd_printf("Calling PT_RESUME on %d\n", lwp);
-    if( 0 != ptrace(PT_RESUME, lwp, (caddr_t)1, 0) ) {
-        perr_printf("Failed to resume lwp %d: %s\n",
-                lwp, strerror(errno));
-        setLastError(err_internal, "Failed to resume lwp");
-        return false;
-    }
-
-    return true;
-}
-
-bool freebsd_process::plat_stopThread(lwpid_t lwp) {
-    if( threadPool()->size() <= 1 ) return true;
-
-    pthrd_printf("Calling PT_SUSPEND on %d\n", lwp);
-    if( 0 != ptrace(PT_SUSPEND, lwp, (caddr_t)1, 0) ) {
-        perr_printf("Failed to suspend lwp %d: %s\n",
-                lwp, strerror(errno));
-        setLastError(err_internal, "Failed to suspend lwp");
-        return false;
-    }
-
-    return true;
-}
-
-string freebsd_process::getThreadLibName(const char *symName) {
+const char *freebsd_process::getThreadLibName(const char *symName) {
     // This hack is needed because the FreeBSD implementation doesn't
     // set the object name when looking for a symbol -- instead of
     // searching every library for the symbol, make some educated 
@@ -1061,10 +1022,10 @@ string freebsd_process::getThreadLibName(const char *symName) {
         libThreadName = "libthr.so";
     }
 
-    return libThreadName;
+    return libThreadName.c_str();
 }
 
-bool freebsd_process::isSupportedThreadLib(const string &libName) {
+bool freebsd_process::isSupportedThreadLib(string libName) {
     if( libName.find("libthr") != string::npos ) {
         return true;
     }else if( libName.find("libkse") != string::npos ) {

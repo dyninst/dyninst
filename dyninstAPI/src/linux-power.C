@@ -90,69 +90,6 @@ const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
 
 #define SIZEOF_PTRACE_DATA(mutatee_address_width)  (mutatee_address_width)
 
-
-void calcVSyscallFrame(process *p)
-{
-  assert(0);  //sunlung
-  unsigned dso_size;
-  char *buffer;
-
-  /**
-   * If we've already calculated and cached the DSO information then
-   * just return.
-   **/
-
-  if (p->getAddressWidth() == 8) {
-     // FIXME: HACK to disable vsyscall page for AMD64, for now.
-     //  Reading the VSyscall data on ginger seems to trigger a
-     //  kernel panic.
-     p->setVsyscallRange(0x1000, 0x0);
-     return;
-  }
-
-  /**
-   * Read the location of the vsyscall page from /proc/.
-   **/
-  p->readAuxvInfo();
-  if (p->getVsyscallStatus() != vsys_found) {
-     p->setVsyscallRange(0x0, 0x0);
-     return;
-  }
-
-  /**
-   * Read the vsyscall page out of process memory.
-   **/
-  dso_size = p->getVsyscallEnd() - p->getVsyscallStart();
-  buffer = (char *) calloc(1, dso_size);
-  assert(buffer);
-/*if (!p->readDataSpace((caddr_t)p->getVsyscallStart(), dso_size, buffer,false))
-  {
-     int major, minor, sub;
-     get_linux_version(major, minor, sub);
-     if (major == 2 && minor == 6 && sub <= 2 && sub >= 0) {
-        //Linux 2.6.0 - Linux 2.6.2 has a  bug where ptrace
-        // can't read from the DSO.  The process can read the memory,
-        // it's just ptrace that's acting stubborn.
-        if (!execVsyscallFetch(p, buffer))
-        {
-           p->setVsyscallStatus(vsys_notfound);
-           return;
-        }
-     }
-  }
-
-  if (!isVsyscallData(buffer, dso_size)) {
-     p->setVsyscallRange(0x0, 0x0);
-     p->setVsyscallStatus(vsys_notfound);
-     return;
-  }
-  getVSyscallSignalSyms(buffer, dso_size, p);
-  result = parseVsyscallPage(buffer, dso_size, p);
-*/
-  return;
-}
-
-
 bool dyn_lwp::changePC(Address loc,
                        struct dyn_saved_regs */*ignored registers*/)
 {

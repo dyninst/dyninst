@@ -709,7 +709,7 @@ bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr ev, PCProcess 
         return false;
     }
 
-    Thread::ptr pcThr = *(ev->getProcess()->threads().find(ev->getLWP()));
+    Thread::ptr pcThr = pc_const_cast<Thread>(ev->getNewThread());
     if( pcThr == Thread::ptr() ) {
         proccontrol_printf("%s[%d]: failed to locate ProcControl thread for new thread %d/%d\n",
                 FILE__, __LINE__, evProc->getPid(), ev->getLWP());

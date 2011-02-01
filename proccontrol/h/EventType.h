@@ -13,18 +13,27 @@ class EventType
    static const int Crash               = 2;
    static const int Fork                = 3;
    static const int Exec                = 4;
-   static const int ThreadCreate        = 5;
-   static const int ThreadDestroy       = 6;
-   static const int Stop                = 7;
-   static const int Signal              = 8;
-   static const int LibraryLoad         = 9;
-   static const int LibraryUnload       = 10;
-   static const int Bootstrap           = 11;
-   static const int Breakpoint          = 12;
-   static const int RPC                 = 13;
-   static const int SingleStep          = 14;
-   static const int Library             = 15;
-   static const int ForceTerminate      = 16;
+   static const int UserThreadCreate    = 5;
+   static const int LWPCreate           = 6;
+   static const int ThreadDestroy       = 7;
+   static const int UserThreadDestroy   = 8;
+   static const int LWPDestroy          = 9;
+   static const int Stop                = 10;
+   static const int Signal              = 11;
+   static const int LibraryLoad         = 12;
+   static const int LibraryUnload       = 13;
+   static const int Bootstrap           = 14;
+   static const int Breakpoint          = 15;
+   static const int RPC                 = 16;
+   static const int SingleStep          = 17;
+   static const int Library             = 18;
+   static const int ForceTerminate      = 19;
+
+   //These aren't completely real events.  They can have callbacks registered, but won't be delivered.
+   // Instead, a real event will be delivered to their callback.  E.g, a callback registered for 
+   // Terminate will actually get Exit or Crash events.
+   static const int Terminate           = 400;
+   static const int ThreadCreate        = 401;
 
    //Users do not recieve CBs for the below event types--ProcControlAPI internal
    static const int InternalEvents      = 500;

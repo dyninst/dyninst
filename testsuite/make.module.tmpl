@@ -11,35 +11,24 @@ M_GXX ?= $(GXX)
 DEPCC ?= $(GCC)
 DEPENDFLAGS ?= -MM -MT
 DEPENDDIR = ./depends
-VPATH 	= ../src $(DEPENDDIR)
+VPATH 	= ../src $(DEPENDDIR) ../src/dyninst
 
-IFLAGS += ../../../include
-#DYNINST_INCDIR = -I../../dyninstAPI/h
-#SYMTAB_INCDIR = -I../../symtabAPI/h
-#DYNUTIL_INCDIR = -I../../dynutil/h
-#INSTRUCTION_INCDIR = -I../../instructionAPI/h
-#PROCCONTROL_INCDIR = -I../../proccontrol/h
-BOOST_INCDIR = -I../../external
-
-IFLAGS += $(DYNINST_INCDIR)
-IFLAGS += $(DYNUTIL_INCDIR)
-IFLAGS += $(SYMTAB_INCDIR)
-IFLAGS += $(INSTRUCTION_INCDIR)
-IFLAGS += $(PROCCONTROL_INCDIR)
-IFLAGS += $(BOOST_INCDIR)
+IFLAGS = -I../../dyninstAPI/h -I../../symtabAPI/h -I../../dynutil/h -I../../instructionAPI/h -I../../proccontrol/h -I../../external
+LFLAGS = -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM) -L../../proccontrol/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
 
 #######################################################################
 ### We don't want all of the CFLAGS stuff that came from make.config.
 ### Strip away most of it.
 #######################################################################
 
-CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(ARCH_FLAGS) $(AC_DEF) $(FIRST_INCLUDE) -I$(INCLUDE_DEST) -I../src -g $(BOOST_INCDIR)
+CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(ARCH_FLAGS) $(AC_DEF) $(FIRST_INCLUDE) -I$(INCLUDE_DEST) $(IFLAGS) -I../src -g $(BOOST_INCDIR)
 CXXFLAGS = $(CFLAGS)
 CXXFLAGS += $(PLATFORM_CXXFLAGS)
 CFLAGS_NATIVE = $(CFLAGS)
 CXXFLAGS_NATIVE = $(CXXFLAGS)
 MUTATEE_CFLAGS_NATIVE ?= $(CFLAGS)
 MUTATEE_CXXFLAGS_NATIVE ?= $(CXXFLAGS)
+
 
 #######################################################################
 ###  Generate compiler id strings
@@ -88,7 +77,7 @@ MUTATEE_CXXFLAGS_NATIVE += -DCOMPILER='"$(COMPILER_NATIVE_CXX)"'
 TEST_DEST = $(TO_CORE)/$(PROGRAM_DEST)/testprogs_new2
 LIB_DEST = $(TO_CORE)/$(LIBRARY_DEST)
 
-LIBDIR += -L$(LIBRARY_DEST)
+LIBDIR += -L$(LIBRARY_DEST) $(LFLAGS)
 
 #######################################################################
 ###  Basic definitions (filename prefixes)
@@ -281,7 +270,10 @@ ifdef SKIP_BUILD_RTLIB_32
    BUILD_FILTER += %_32_none_max %_32_none_high %_32_none_low %_32_none_none %_32_pic_max %_32_pic_high %_32_pic_low %_32_pic_none
 endif
 
+include $(TO_CORE)/make.components
+
 ifneq ($(wildcard ../src/dyninst), )
+ifneq ($(findstring dyninstAPI,$(fullSystem)),)
 mutatees: $(filter-out $(BUILD_FILTER), $(dyninst_SOLO_MUTATEES))
 mutatees_minimum: $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(dyninst_SOLO_MUTATEES)))
 mutators: $(dyninst_MUTATORS_SO)
@@ -289,39 +281,66 @@ components: $(LIBDYNINSTCOMP)
 testlibs: $(DYNINST_TESTLIBS) $(DYNINST_STATIC_TESTLIBS)
 ifndef SKIP_BUILD_RTLIB_32
 testlibs: $(DYNINST_TESTLIBS_ABI) $(DYNINST_STATIC_TESTLIBS_ABI)
+dyninst_targs = $(DYNINST_TESTLIBS_ABI) $(DYNINST_STATIC_TESTLIBS_ABI)
+endif
+dyninst_targs += $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(dyninst_SOLO_MUTATEES)))
+dyninst_targs += $(dyninst_MUTATORS_SO) $(LIBDYNINSTCOMP) $(DYNINST_TESTLIBS) $(DYNINST_STATIC_TESTLIBS)
 endif
 endif
 
 ifneq ($(wildcard ../src/symtab), )
+ifneq ($(findstring symtabAPI,$(fullSystem)),)
 mutatees: $(filter-out $(BUILD_FILTER), $(symtab_SOLO_MUTATEES))
 mutatees_minimum: $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(symtab_SOLO_MUTATEES)))
 mutators: $(symtab_MUTATORS_SO)
 components: $(LIBSYMTABCOMP)
 testlibs:
+symtab_targs = $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(symtab_SOLO_MUTATEES)))
+symtab_targs = $(symtab_MUTATORS_SO) $(LIBSYMTABCOMP)
+endif
 endif
 
 ifneq ($(wildcard ../src/instruction), )
+ifneq ($(findstring instructionAPI,$(fullSystem)),)
 mutatees: $(filter-out $(BUILD_FILTER), $(instruction_SOLO_MUTATEES))
 mutatees_minimum: $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(instruction_SOLO_MUTATEES)))
 mutators: $(instruction_MUTATORS_SO)
 ifneq ($(instruction_MUTATORS_SO), )
 components: $(LIBINSTRUCTIONCOMP)
 testlibs:
+instruction_targs = $(LIBINSTRUCTIONCOMP)
+endif
+instruction_targs += $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(instruction_SOLO_MUTATEES)))
+instruction_targs += $(instruction_MUTATORS_SO) $(LIBINSTRUCTIONCOMP)
 endif
 endif
 
 ifneq ($(wildcard ../src/proccontrol), )
-mutatees: $(filter-out $(BUILD_FILTER), $(proccontrol_SOLO_MUTATEES))
+ifneq ($(findstring proccontrol,$(fullSystem)),)
+mutatees: $(filter-out $(BUILD_FILTER), $(proccontrol_SOLO_MUTATEES)) 
 mutatees_minimum: $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(proccontrol_SOLO_MUTATEES)))
 mutators: $(proccontrol_MUTATORS_SO)
 ifneq ($(proccontrol_MUTATORS_SO), )
 components: $(LIBPROCCONTROLCOMP)
-testlibs: $(PROCCONTROL_TESTLIBS) $(PROCCONTROL_TESTLIBS_ABI)
+testlibs: $(PROCCONTROL_TESTLIBS) $(PROCCONTROL_TESTLIBS_ABI) $(DYNINST_TESTLIBS)
+proccontrol_targs = $(LIBPROCCONTROLCOMP) $(PROCCONTROL_TESTLIBS) $(PROCCONTROL_TESTLIBS_ABI) $(DYNINST_TESTLIBS)
+endif
+proccontrol_targs += $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(proccontrol_SOLO_MUTATEES)))
+proccontrol_targs += $(proccontrol_MUTATORS_SO)
 endif
 endif
 
+common_infra: drivers output_drivers
 
-install: all
+dyninstAPI: common_infra $(dyninst_targs) $(symtab_targs) $(instruction_targs) $(proccontrol_targs)
+
+symtabAPI: common_infra $(symtab_targs)
+
+instructionAPI: common_infra $(instruction_targs)
+
+proccontrol: common_infra $(proccontrol_targs)
+
+install: default
 
 symlink: all
 

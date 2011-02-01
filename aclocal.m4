@@ -57,6 +57,22 @@ AC_DEFUN(PD_CHECK_LIB_DIR,[
   fi
 ])
 
+AC_DEFUN(PD_CHECK_LIB_DIR_WERR,[
+  if test "$1" = "" ; then
+    AC_CHECK_LIB($2, $3, [], $6)
+  else
+    LIBS_HOLD=$LIBS
+    if test "$4" != "" ; then
+      LIBS="-L$1 -L$4"
+      AC_CHECK_LIB($2, $3, [], $6, $5)
+    else
+      LIBS="-L$1"
+      AC_CHECK_LIB($2, $3, [], $6)
+    fi
+    LIBS=$LIBS_HOLD
+  fi
+])
+
 AC_DEFUN(PD_SOFT_CHECK_LIB_DIR,[
   if test "$1" = "" ; then
     AC_CHECK_LIB($2, $3, [], [AC_MSG_RESULT(Can't find lib$2.)])

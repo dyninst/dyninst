@@ -80,6 +80,4 @@ Address getRegValueAtFrame(void *ehf, Address pc, int reg,
 bool get_linux_version(int &major, int &minor, int &subvers);
 bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers);
 
-void calcVSyscallFrame(PCProcess *p);
-
 #endif
