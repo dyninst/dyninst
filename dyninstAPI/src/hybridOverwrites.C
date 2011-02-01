@@ -194,7 +194,10 @@ bool HybridAnalysisOW::isInLoop(Address blockAddr, bool activeOnly)
  *    protections for the loop's pages
  * return true if the loop was active
  */ 
-bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool useInsertionSet, BPatch_point *writePoint)
+bool HybridAnalysisOW::deleteLoop(owLoop *loop, 
+                                  bool useInsertionSet, 
+                                  BPatch_point *writePoint,
+                                  bool uninstrument)
 {
     bool isLoopActive = loop->isActive();
     mal_printf("deleteLoop: loopID =%d active=%d %s[%d]\n",
@@ -225,16 +228,18 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool useInsertionSet, BPatch_poi
     }
 
     // remove loop instrumentation
-    if (useInsertionSet) {
-        proc()->beginInsertionSet();
-    }
-    std::set<BPatchSnippetHandle*>::iterator sIter = loop->snippets.begin();
-    for (; sIter != loop->snippets.end(); sIter++) {
-        proc()->deleteSnippet(*sIter);
-    }
-    loop->snippets.clear();
-    if (useInsertionSet) {
-        proc()->finalizeInsertionSet(false);
+    if (uninstrument) {
+        if (useInsertionSet) {
+            proc()->beginInsertionSet();
+        }
+        std::set<BPatchSnippetHandle*>::iterator sIter = loop->snippets.begin();
+        for (; sIter != loop->snippets.end(); sIter++) {
+            proc()->deleteSnippet(*sIter);
+        }
+        loop->snippets.clear();
+        if (useInsertionSet) {
+            proc()->finalizeInsertionSet(false);
+        }
     }
 
     // clear loop from blockToLoop and idToLoop datastructures
@@ -1004,7 +1009,6 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
     if (loopID < 0) {
         loopID *= -1;
 		overwroteLoop = true;
-//        assert(0 && "KEVINTODO: test this, overwrite loop modified itself, triggering bounds check instrumentation");
     }
 
     // find the loop corresponding to the loopID, and if there is none, it
@@ -1013,6 +1017,12 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
         fprintf(stderr,"executed instrumentation for old loop %d at point %lx "
                   "%s[%d]\n", loopID, pointAddr, FILE__,__LINE__);
         assert(0);
+        //if (!point->getFunction()->lowlevel_func()->isSignalHandler()) {
+        //    proc()->beginInsertionSet();
+        //    hybrid()->removeInstrumentation(point->getFunction(),false);
+        //    hybrid()->instrumentFunction(point->getFunction(),false);
+        //    proc()->finalizeInsertionSet(false);
+        //}
         return; 
     }
 
@@ -1058,7 +1068,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
         // build up list of mods to instrument by traversing the functions, or
         // if there aren't any, by traversing the block list
         std::set<BPatch_module*> mods;
-        if (owFuncs.size()) {
+        if (!owFuncs.empty()) {
             for(vector<BPatch_function*>::iterator fIter = owFuncs.begin();
                 fIter != owFuncs.end(); 
                 fIter++) 
@@ -1079,9 +1089,26 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
                 mods.insert( proc()->findModuleByAddr( (*pIter).first ) );
             }
         }
-
-        // remove loop and function instrumentation
-        deleteLoop(loop,false);
+#if 0
+        // remove loops with overwritten blocks 
+        set<int> delLoops;
+        for (vector<Address>::iterator bit = deadBlockAddrs.begin(); 
+             bit != deadBlockAddrs.end(); bit++) 
+        {
+            map<Dyninst::Address,int>::iterator lit = blockToLoop.find(*bit);
+            if (lit != blockToLoop.end()) {
+                delLoops.insert(lit->second);
+            }
+        }
+        delLoops.erase(loop->getID()); //KEVINTODO: don't need to delete the current loop
+        deleteLoop(loop,false);//KEVINTODO: don't need to delete the current loop
+        for (set<int>::iterator lit = delLoops.begin(); 
+             lit != delLoops.end(); lit++) 
+        {
+            deleteLoop(idToLoop[*lit],false,0,false);
+        }
+#endif
+        // remove function instrumentation datastructures
         vector<BPatch_function*>::iterator fIter = owFuncs.begin();
         for(;fIter != owFuncs.end(); fIter++) {   
             // this will already have happened internally, here we clear out 
@@ -1132,6 +1159,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
         // the fault instruction and not at the end of the block, meaning
         // that two faults in the block will cause us to treat the 2nd
         // as occurring in the existing inactive loop
+#if 0
         if (point->isDynamic() || 1 == loop->blocks.size()) {
             deleteLoop(loop,false);
         }
@@ -1171,22 +1199,23 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 	        }
             loop->shadowMap.clear();
 
-            // reset some fields for this inactive loop in case we want to re-use it
-
-#if 0
-            // remove instrumentation snippets
-            if (!loop->snippets.empty()) {
-                std::set<BPatchSnippetHandle*>::iterator sIter = loop->snippets.begin();
-                for (; sIter != loop->snippets.end(); sIter++) {
-                    proc()->deleteSnippet(*sIter);
-                }
-                loop->snippets.clear();
-            }
-#endif
             // hasn't written to its own page... yet.
             loop->setWritesOwnPage(false);
             // clear loopWriteTarget so it can be reset
             loop->setWriteTarget(0);
+        }
+#endif
+    }
+    if (idToLoop.end() != idToLoop.find(loopID)) {
+        deleteLoop(loop,false);
+    }
+    for (map<Address,int>::iterator lit = blockToLoop.begin();
+         lit != blockToLoop.end();) 
+    {
+        if (lit->second == loopID) {
+            lit = blockToLoop.erase(lit);
+        } else {
+            lit++;
         }
     }
     proc()->finalizeInsertionSet(false);

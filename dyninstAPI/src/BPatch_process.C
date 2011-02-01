@@ -1734,6 +1734,24 @@ bool BPatch_process::hideDebuggerInt()
                                 funcs[0],repfuncs[0]));
     }
 
+    if (kern) {
+        // getSystemTime
+        using namespace SymtabAPI;
+        vector<BPatch_function*> funcs;
+        kern->findFunction(
+            "GetSystemTime",
+            funcs, false, false, false, true);
+        assert (!funcs.empty());
+        BPatch_module *rtlib = this->image->findOrCreateModule(
+            (*llproc->runtime_lib.begin())->getModules().front());
+        vector<BPatch_function*> repfuncs;
+        rtlib->findFunction("DYNINST_FakeGetSystemTime", repfuncs, false);
+        assert(!repfuncs.empty());
+        replaceFunction(*funcs[0],*repfuncs[0]);
+        disabledFuncs.push_back(pair<BPatch_function*,BPatch_function*>(
+                                funcs[0],repfuncs[0]));
+    }
+
     if (kern) { 
         // CheckRemoteDebuggerPresent
         vector<BPatch_function*> funcs;

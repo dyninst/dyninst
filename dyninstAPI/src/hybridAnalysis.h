@@ -67,6 +67,10 @@ private:
         BPatchSnippetHandle *preHandle_;
         BPatchSnippetHandle *postHandle_;
    };
+    typedef struct ExceptionDetails {
+        Address faultPCaddr;
+        bool isInterrupt;
+    };
 
 public:
 
@@ -98,9 +102,10 @@ public:
 	void virtualFreeSizeCB(BPatch_point *point, void *);
 	void virtualFreeCB(BPatch_point *point, void *);
 	void badTransferCB(BPatch_point *point, void *returnValue);
-    void signalHandlerEntryCB(BPatch_point *point, Dyninst::Address pcAddr);
+    void signalHandlerEntryCB(BPatch_point *point, Dyninst::Address excRecAddr);
+    void signalHandlerEntryCB2(BPatch_point *point, Dyninst::Address excCtxtAddr);
     void signalHandlerCB(BPatch_point *pt, long snum, std::vector<Dyninst::Address> &handlers);
-    void signalHandlerExitCB(BPatch_point *point, void *returnAddr);
+    void signalHandlerExitCB(BPatch_point *point, void *dontcare);
     void synchShadowOrigCB(BPatch_point *point, bool toOrig);
     void overwriteSignalCB(Dyninst::Address faultInsnAddr, Dyninst::Address writeTarget);
 
@@ -153,14 +158,13 @@ private:
     bool addIndirectEdgeIfNeeded(BPatch_point *srcPt, Dyninst::Address target);
 
     // variables
-    std::map<Dyninst::Address,Dyninst::Address> handlerFunctions; // handlerAddr , addr of fault pc on the stack
+    std::map<Dyninst::Address, ExceptionDetails> handlerFunctions; 
     std::map < BPatch_function*, 
                std::map<BPatch_point*,BPatchSnippetHandle*> *> * instrumentedFuncs;
     std::map< BPatch_point* , SynchHandle* > synchMap_pre_; // maps from prePt
     std::map< BPatch_point* , SynchHandle* > synchMap_post_; // maps from postPt
     std::set< BPatch_function *> instShadowFuncs_;
     std::set< std::string > skipShadowFuncs_;
-    std::set< std::string > nonPtrAPIs_;
     std::map< BPatch_function *, BPatch_function *> replacedFuncs_;
     BPatch_module *sharedlib_runtime;
     BPatch_hybridMode mode_;
@@ -275,7 +279,8 @@ public:
      */ 
     bool deleteLoop(HybridAnalysisOW::owLoop *loop, 
                     bool useInsertionSet,
-                    BPatch_point *writePoint=NULL);
+                    BPatch_point *writePoint=NULL,
+                    bool uninstrument=true);
 
     /* Informs the mutator that an instruction will write to a page
     ` * that contains analyzed code.  

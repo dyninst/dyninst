@@ -309,7 +309,28 @@ void CFAtomCreator::getRawSuccessors(const int_block *block,
     // That is... suboptimal. As a temporary workaround, I'm regenerating
     // the transfer from the raw instruction and setting it as an Address-typed
     // target.
-    if (!succ.empty()) return;
+    if (!succ.empty()) {
+        using namespace ParseAPI;
+        Block::edgelist edges= block->llb()->targets();
+        int pairEdgeCnt = 0;
+        for (Block::edgelist::iterator eit= edges.begin();
+             eit != edges.end(); eit++) 
+        {
+            switch((*eit)->type()) {
+                case CALL:
+                case CALL_FT:
+                case COND_TAKEN:
+                case COND_NOT_TAKEN:
+                    pairEdgeCnt++;
+                    break;
+                default:
+                    break;
+            }
+        }
+        if ( 0 == (pairEdgeCnt % 2)) {
+            return;
+        }
+    }
 
     using namespace InstructionAPI;
 
