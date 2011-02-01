@@ -179,7 +179,7 @@ $(allSubdirs_noinstall):
 		$(MAKE) -C $@; \
 	else \
 		echo $@ has no Makefile; \
-		false; \
+		true; \
 	fi
 
 # Generate targets of the form install_<target> for all directories in

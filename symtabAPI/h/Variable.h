@@ -36,6 +36,7 @@
 #include "Serialization.h"
 #include "Symtab.h"
 #include "Aggregate.h"
+#include "dyn_regs.h"
 
 //class Dyninst::SymtabAPI::Variable;
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &);
