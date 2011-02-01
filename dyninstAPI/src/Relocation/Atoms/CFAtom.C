@@ -170,7 +170,7 @@ bool CFAtom::generate(const codeGen &templ,
       if (!generateConditionalBranch(buffer,
 				     destMap_[Taken],
 				     insn_))
-	return false;
+                     return false;
     }
 
     // Not necessary by design - fallthroughs are always to the next generated
@@ -237,11 +237,11 @@ bool CFAtom::generate(const codeGen &templ,
         // We don't know what the callee does to the return addr,
         // so we'll catch it at runtime. 
         // The "10" is arbitrary.
-        buffer.addPatch(new PaddingPatch(10, true, block_), addrTracker(addr_ + size()));
+         buffer.addPatch(new PaddingPatch(10, true, false, block_), addrTracker(addr_ + size()));
      }
      else {
         // Make up for stack tampering
-        buffer.addPatch(new PaddingPatch(postCallPadding_, false, block_), addrTracker(addr_ + size()));
+        buffer.addPatch(new PaddingPatch(postCallPadding_, false, true, block_), addrTracker(addr_ + size()));
      }
   }
   
@@ -734,8 +734,11 @@ bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
       assert(block_);
       gen.registerDefensivePad(block_, gen.currAddr(), 10);
    }
-   if ( 0 == (size_ % 2) ) {
-       gen.fill(size_, codeGen::cgIllegal);
+    if (noop_) {
+        gen.fill(size_, codeGen::cgNOP);
+    }
+    else if ( 0 == (size_ % 2) ) {
+            gen.fill(size_, codeGen::cgIllegal);
    } else {
        gen.fill(size_, codeGen::cgTrap);
    }

@@ -962,7 +962,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             parsing_printf("[%s] parsing block %lx\n",
                 FILE__,cur->start());
             if (frame.func->obj()->defensiveMode()) {
-                mal_printf("new block at %lx\n",cur->start());
+                mal_printf("new block at %lx (0x%lx)\n",cur->start(), cur);
             }
             cur->_parsed = true;
             curAddr = cur->start();

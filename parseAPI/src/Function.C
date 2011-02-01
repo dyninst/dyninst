@@ -180,6 +180,14 @@ Function::blocks_int()
                 continue;
             }
 
+            // If we are heading to a different CodeObject, call it a return
+            // and don't add target blocks.
+            if (t->obj() != cur->obj()) {
+                // Wowza
+                // Call or return?
+                continue;
+            }
+
             /* sink edges receive no further processing */
             if(e->sinkEdge())
                 continue;

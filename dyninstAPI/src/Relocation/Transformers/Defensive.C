@@ -139,6 +139,7 @@ bool DefensiveTransformer::requiresDefensivePad(const int_block *block) {
    }
 
    if (callEdge && !ftEdge) {
+       cerr << "Found call edge w/o fallthrough, block @ " << hex << block->start() << " gets defensive pad " << dec << endl;
         return true;
    }
    else if (callEdge && ftEdge) {

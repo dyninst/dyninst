@@ -1932,14 +1932,6 @@ void BPatch_process::overwriteAnalysisUpdate
         }
         bFunc->ifunc()->destroyBlocks(bSet); //KEVINTODO: doing this one by one is highly inefficient
     }
-    // do a consistency check
-    for (set<int_function*>::iterator fit = modFuncs.begin(); 
-         fit != modFuncs.end(); 
-         fit++) 
-    {
-        (*fit)->ifunc()->blocks(); // force ParseAPI func finalization
-        assert((*fit)->consistency());
-    }
 
     // delete completely dead functions
     map<int_block*,Address> deadFuncCallers; // build up list of live callers
@@ -2079,10 +2071,13 @@ void BPatch_process::overwriteAnalysisUpdate
         fit++) 
     {
         // parse new edges in the function
-        if (stubs[fit->first].size()) {
+        if (stubs[fit->first].size()) 
+        {
             fit->first->obj()->parseNewEdges(stubs[fit->first]);
+            modFuncs.insert(fit->first);
         } 
-        else if (newFuncEntries.end() == newFuncEntries.find(fit->first)) {
+        else if (newFuncEntries.end() == newFuncEntries.find(fit->first)) 
+        {
             mal_printf("WARNING: didn't have any stub edges for overwritten "
                        "func %lx\n", fit->first->getAddress());
             vector<edgeStub> svec;
@@ -2100,6 +2095,16 @@ void BPatch_process::overwriteAnalysisUpdate
         bpfunc->removeCFG();
         owFuncs.push_back(bpfunc);
     }
+        
+    // do a consistency check
+    for (set<int_function*>::iterator fit = modFuncs.begin(); 
+        fit != modFuncs.end(); 
+        fit++) 
+    {
+        (*fit)->ifunc()->blocks(); // force ParseAPI func finalization
+        (*fit)->addMissingBlocks();
+        assert((*fit)->consistency());
+    }
 }
 
 
@@ -2112,13 +2117,6 @@ bool BPatch_process::protectAnalyzedCode()
     bool ret = true;
     BPatch_Vector<BPatch_module *> *bpMods = image->getModules();
     for (unsigned midx=0; midx < bpMods->size(); midx++) {
-       mapped_module *curMod = (*bpMods)[midx]->lowlevel_mod();
-       if ( ! curMod->getFuncVectorSize() 
-           || curMod->obj()->isSharedLib()) 
-       {
-           cerr << "Warning: skipping sync of module " << curMod->fileName() << (!curMod->getFuncVectorSize() ? " <no analyzed funcs> " : "") << (curMod->obj()->isSharedLib() ? " <shared lib> " : "") << endl;
-           continue; // don't trigger analysis and don't protect shared libraries
-       }
        if (!(*bpMods)[midx]->setAnalyzedCodeWriteable(false)) {
            ret = false;
        }

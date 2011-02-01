@@ -73,10 +73,17 @@ StandardParseData::findFuncs(CodeRegion * /* cr */, Address addr,
     return _rdata.findFuncs(addr,funcs);
 }
 
-int StandardParseData::findBlocks(CodeRegion * /* cr */, Address addr,
+int StandardParseData::findBlocks(CodeRegion * cr , Address addr,
     set<Block *> & blocks)
 {
-    return _rdata.findBlocks(addr,blocks);
+    int ret = _rdata.findBlocks(addr,blocks);
+    CodeRegion *check = 0;
+    for (std::set<Block *>::iterator iter = blocks.begin(); iter != blocks.end(); ++iter)
+    {
+        if (!check) check = (*iter)->region();
+        else assert(check == (*iter)->region());
+    }
+    return ret;
 }
 
 Function *

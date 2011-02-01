@@ -152,16 +152,21 @@ bool Trace::generate(const codeGen &templ,
 
    static bool debug = false;
    bool insn_debug = false;
-#if 1
-   if (bbl() && bbl()->start() <= 0x9a5582 && bbl()->end() >= 0x9a5582) {
+#if 0
+   if (bbl() && bbl()->start() <= 0x9b38c9 && bbl()->end() >= 0x9b38c9) {
+       insn_debug = true;
        debug = true;
    }
-   else if (bbl() && bbl()->start() <= 0x9bdf15 && bbl()->end() >= 0x9bdf15) {
+   else if (bbl() && bbl()->start() <= 0x9b3c20 && bbl()->end() >= 0x9b3c20) {
        debug = true;
        insn_debug = true;
    }
-   else if (bbl() && bbl()->start() == 0x9a276f) {
+   else if (bbl() && bbl()->start() <= 0x9b3c26 && bbl()->end() >= 0x9b3c26) {
        debug = true;
+       insn_debug = true;
+   }
+   else if (bbl() && bbl()->start() <= 0x9b3a7c && bbl()->end() >= 0x9b3a7c) {
+       insn_debug = true;
    }
    else {
        debug = false;

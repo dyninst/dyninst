@@ -1421,6 +1421,7 @@ bool AddressSpace::relocate() {
   updateMemEmulator();
 
   modifiedFunctions_.clear();
+  cerr << "Done with relocation!" << endl;
   return ret;
 }
 
@@ -1932,7 +1933,7 @@ AddressSpace::getStubs(const std::list<int_block *> &owBBIs,
         for (list<int_function*>::const_iterator dfit = deadFuncs.begin();
              dfit != deadFuncs.end(); dfit++) 
         {
-            if ((*dfit)->findBlockByEntry((*deadIter)->start())) {
+            if ((*deadIter)->func() == *dfit) {
                 inDeadFunc = true;
                 break;
             }
@@ -1955,6 +1956,7 @@ AddressSpace::getStubs(const std::list<int_block *> &owBBIs,
             image_basicBlock *sourceBlock = 
                 static_cast<image_basicBlock*>((*eit)->src());
             int_block *src = (*deadIter)->func()->findBlockByEntry(baseAddr + sourceBlock->start());
+            assert(src);
 
             edgeStub st(src, 
                     curImgBlock->start() + baseAddr, 
@@ -1964,5 +1966,6 @@ AddressSpace::getStubs(const std::list<int_block *> &owBBIs,
             } 
         }
     }
+
     return stubs;
 }

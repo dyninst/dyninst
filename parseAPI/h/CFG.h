@@ -474,6 +474,10 @@ class Function : public allocatable, public AnnotatableSparse {
     /* Contiguous code segments of function */
     PARSER_EXPORT std::vector<FuncExtent *> const& extents();
 
+    /* This should not remain here - this is an experimental fix for
+       defensive mode CFG inconsistency */
+    void invalidateCache() { _cache_valid = false; }
+
  private:
     std::vector<Block *> const& blocks_int();
     void delayed_link_return(CodeObject * co, Block * retblk);

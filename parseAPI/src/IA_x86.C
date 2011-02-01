@@ -378,11 +378,6 @@ bool IA_IAPI::isFakeCall() const
             case e_pop: {
                 int size = insn->getOperand(0).getValue()->size();
                 stackDelta += sign * size;
-                if (1 == sign) {
-                    mal_printf("pop ins'n at %lx in func at %lx changes sp "
-                               "by %d. %s[%d]\n", ah->getAddr(), entry,
-                               sign * size, FILE__, __LINE__);
-                }
                 break;
             }
             case e_pusha:
@@ -509,9 +504,7 @@ bool IA_IAPI::isFakeCall() const
     // with an absolute value, it's a fake call, since in both cases 
     // the return address is gone and we cannot return to the caller
     if ( 0 < stackDelta || tampers ) {
-        mal_printf("Found fake call at %lx to %lx, where the first block "
-                   "pops off the return address %s[%d]\n", 
-                   current, entry, FILE__,__LINE__);
+
         delete ah;
         return true;
     }

@@ -80,8 +80,10 @@ bool CFAtomCreator::processTrace(TraceList::iterator &iter) {
   // SD-Dyninst: if we haven't parsed past a call (or indirect branch?)
   // we need to drop in a patch area for a future control flow fixup
   unsigned gap = modifiedCallFallthrough(bbl);
-  if (gap) 
+  if (gap) {
+      cerr << "We have a believed gap between source and fallthrough block of " << gap << " bytes, adding pad" << endl;
       ender->setPostCallPadding(gap);
+  }
 
   for (unsigned i = 0; i < successors.size(); ++i) {
     TargetInt *targ = successors[i].targ;

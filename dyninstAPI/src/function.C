@@ -393,62 +393,52 @@ const set<instPoint*> &int_function::funcAbruptEnds()
     return abruptEnds_;
 }
 
+// TODO: POINT TYPES CANNOT BE SINGULAR! We end up looking in the wrong vector and failing...
 
 bool int_function::removePoint(instPoint *point) 
 {
     bool foundPoint = false;
     instPsByAddr_.erase(point->addr());
-    switch(point->getPointType()) {
-    case functionEntry:
-        for (unsigned i = 0; !foundPoint && i < entryPoints_.size(); i++) {
-            if (entryPoints_[i] == point) {
-                entryPoints_[i] = entryPoints_[entryPoints_.size()-1];
-                entryPoints_.pop_back();
-                foundPoint = true;
-            }
-        }
-        break;
-    case functionExit:
-        for (unsigned i = 0; !foundPoint && i < exitPoints_.size(); i++) {
-            if (exitPoints_[i]->addr() == point->addr()) {
-                exitPoints_[i] = exitPoints_[exitPoints_.size()-1];
-                exitPoints_.pop_back();
-                foundPoint = true;
-            }
-        }
-        break;
-    case callSite:
-        for (unsigned i = 0; !foundPoint && i < callPoints_.size(); i++) {
-            if (callPoints_[i] == point) {
-                callPoints_[i] = callPoints_[callPoints_.size()-1];
-                callPoints_.pop_back();
-                foundPoint = true;
-            }
-        }
-        break;
-    case otherPoint:
-        for (unsigned i = 0; !foundPoint && i < arbitraryPoints_.size(); i++) {
-            if (arbitraryPoints_[i] == point) {
-                arbitraryPoints_[i] = arbitraryPoints_[arbitraryPoints_.size()-1];
-                arbitraryPoints_.pop_back();
-                foundPoint = true;
-            }
-        }
-        break;
-    case abruptEnd:
-        if (abruptEnds_.find(point) != abruptEnds_.end()) {
-            abruptEnds_.erase(point);
+
+    for (unsigned i = 0; i < entryPoints_.size(); i++) {
+        if (entryPoints_[i] == point) {
+            entryPoints_[i] = entryPoints_.back();
+            entryPoints_.pop_back();
             foundPoint = true;
         }
-        break;
-    default: // includes noneType
-        assert(0); // unhandled case!
     }
+    for (unsigned i = 0; i < exitPoints_.size(); i++) {
+        if (exitPoints_[i]->addr() == point->addr()) {
+            exitPoints_[i] = exitPoints_.back();
+            exitPoints_.pop_back();
+            foundPoint = true;
+        }
+    }
+    for (unsigned i = 0; i < callPoints_.size(); i++) {
+        if (callPoints_[i] == point) {
+            callPoints_[i] = callPoints_.back();
+            callPoints_.pop_back();
+            foundPoint = true;
+        }
+    }
+    for (unsigned i = 0; i < arbitraryPoints_.size(); i++) {
+        if (arbitraryPoints_[i] == point) {
+            arbitraryPoints_[i] = arbitraryPoints_.back();
+            arbitraryPoints_.pop_back();
+            foundPoint = true;
+        }
+    }
+
+    if (abruptEnds_.find(point) != abruptEnds_.end()) {
+        abruptEnds_.erase(point);
+        foundPoint = true;
+    }
+
     if (unresolvedPoints_.find(point) != unresolvedPoints_.end()) {
         unresolvedPoints_.erase(point);
         foundPoint = true;
     }
-    assert(foundPoint);
+
     return foundPoint;
 }
 
@@ -728,6 +718,7 @@ void int_function::addMissingBlock(image_basicBlock *missingB)
       return;
     }
    
+    cerr << "Function " << hex << this << " @ " << getAddress() << " adding block " << missingB->start() << " (" << missingB << ")" << dec << endl;
    createBlock(missingB);
 }
 
@@ -742,21 +733,24 @@ void int_function::addMissingBlock(image_basicBlock *missingB)
  */
 void int_function::addMissingBlocks()
 {
-   blocks();
+    // A bit of a hack, but be sure that we've re-checked the blocks in the
+    // image_func as well.
+    ifunc_->invalidateCache();
 
+   blocks();
+   cerr << "addMissingBlocks for function " << hex << this << dec << endl;
    // Add new blocks
 
    const vector<image_basicBlock*> & nblocks = obj()->parse_img()->getNewBlocks();
-   if (nblocks.size() < ifunc()->blocks().size()) {
-       // add blocks by looking up new blocks, if it promises to be more 
-       // efficient than looking through all of the llfunc's blocks
-       vector<image_basicBlock*>::const_iterator nit = nblocks.begin();
-       for( ; nit != nblocks.end(); ++nit) {
-          if (ifunc()->contains(*nit)) {
-             addMissingBlock(*nit);
-          }
+   // add blocks by looking up new blocks, if it promises to be more 
+   // efficient than looking through all of the llfunc's blocks
+   vector<image_basicBlock*>::const_iterator nit = nblocks.begin();
+   for( ; nit != nblocks.end(); ++nit) {
+       if (ifunc()->contains(*nit)) {
+           addMissingBlock(*nit);
        }
    }
+
    if (ifunc()->blocks().size() > blocks_.size()) { //not just the else case!
        // we may have parsed into an existing function and added its blocks 
        // to ours, or this may just be a more efficient lookup method
@@ -907,9 +901,9 @@ bool int_function::findBlocksByAddr(Address addr,
          ret = true; 
          blocks.insert(bbl);
       }
-      else {
-          cerr << "Error: failed to find int_block for parseAPI block" << endl;
-      }
+      // It's okay for this to fail if we're in the middle of a CFG
+      // modification. 
+
    }
    return ret;
 }
@@ -1169,8 +1163,9 @@ bool int_function::getOverlappingFuncs(int_block *block,
 		std::vector<ParseAPI::Function *> llFuncs;
 		(*iter)->getFuncs(llFuncs);
 		for (std::vector<ParseAPI::Function *>::iterator iter2 = llFuncs.begin();
-			iter2 != llFuncs.end(); ++iter2) {
-			funcs.insert(obj()->findFunction(*iter2));
+			iter2 != llFuncs.end(); ++iter2) 
+        {
+            funcs.insert(obj()->findFunction(*iter2));
 		}
 	}
 	return (funcs.size() > 1);

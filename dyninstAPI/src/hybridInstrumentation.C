@@ -113,7 +113,6 @@ HybridAnalysis::HybridAnalysis(BPatch_hybridMode mode, BPatch_process* proc)
     skipShadowFuncs_.insert("VirtualFree");
     skipShadowFuncs_.insert("GetCurrentThreadId");
     skipShadowFuncs_.insert("GetLocalTime");
-    skipShadowFuncs_.insert("GetProcAddress");
     skipShadowFuncs_.insert("LocalAlloc");
     skipShadowFuncs_.insert("TlsAlloc");
     skipShadowFuncs_.insert("TlsSetValue");

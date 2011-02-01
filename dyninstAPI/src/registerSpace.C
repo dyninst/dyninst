@@ -167,6 +167,9 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP,
 #endif
                                              ) 
 {
+    // KEVIN TODO
+    // We just can't trust liveness in defensive mode. 
+    return conservativeRegSpace(iP->proc());
 #if defined(cap_liveness)
     if (BPatch::bpatch->livenessAnalysisOn()) {
         assert(iP);

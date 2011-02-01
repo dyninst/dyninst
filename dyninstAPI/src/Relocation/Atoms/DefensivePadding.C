@@ -42,7 +42,7 @@ using namespace InstructionAPI;
 
 bool DefensivePadding::generate(const codeGen &templ, const Trace *t, CodeBuffer &buffer)
 {
-    buffer.addPatch(new PaddingPatch(10, true, bbl_), 
+    buffer.addPatch(new PaddingPatch(10, true, false, bbl_), 
                     new EmulatorTracker(bbl_->end(), bbl_));
 
     return true;

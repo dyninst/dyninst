@@ -633,18 +633,34 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
    MachRegister read;
    MachRegister written;
    std::set<RegisterAST::Ptr> regs;
-   insn->getReadSet(regs);
-   assert(regs.size() < 2);
    RegisterAST::Ptr reg;
+
+   insn->getWriteSet(regs);
+   if (regs.size() > 1) {
+       handleDefault(insn, xferFuncs);
+       return;
+   }
+
+   assert(regs.size() == 1);
+   reg = *(regs.begin());
+   written = reg->getID();
+   regs.clear();
+
+   insn->getReadSet(regs);
+   if (regs.size() > 1) {
+       //assert(regs.size() < 2);
+       // I had been asserting that there were two registers. Then a rep-prefixed mov instruction came
+       // along and ruined my day...
+       // This is a garbage instruction that is prefixed. Treat as bottom. 
+       handleDefault(insn, xferFuncs);
+       return;
+   }
+
+
    if (!regs.empty()) {
 	   reg = *(regs.begin());
 	   read = reg->getID();
    }
-   regs.clear();
-   insn->getWriteSet(regs);
-   assert(regs.size() == 1);
-   reg = *(regs.begin());
-   written = reg->getID();
    regs.clear();
    
    if (read.isValid()) {
