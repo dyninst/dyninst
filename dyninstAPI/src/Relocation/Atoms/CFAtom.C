@@ -621,7 +621,8 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
    // And tell our people to use the top of the stack
    // for their work.
    // TODO: trust liveness and leave this in a register. 
-   
+   patch.fill(1, codeGen::cgTrap);
+
    buffer.addPIC(patch, tracker());
    reg = REGNUM_ESP;
    return true;

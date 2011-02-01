@@ -2687,7 +2687,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
         cerr << (unsigned int)buf[idx] << " ";
     }
     cerr << endl << dec << "Stack" << endl;
-	for (int i = -5; i < 10; ++i) {
+	for (int i = -10; i < 10; ++i) {
 		Address stackTOPVAL =0;
 	    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
 		cerr << "\t" << hex <<activeFrame.esp + 4*i << ": " << stackTOPVAL << dec << endl;

@@ -1435,7 +1435,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 
   // Create a CodeMover covering these functions
   //cerr << "Creating a CodeMover" << endl;
-  //disassemble_reloc = false;
+  disassemble_reloc = false;
 
   // Attempting to reduce copies...
   CodeTracker t;
@@ -1721,18 +1721,21 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
         cerr << "Failed writing a springboard branch, ret false" << endl;
         return false;
     }
-#if 0
-    using namespace InstructionAPI;
+#if 1
+    if (disassemble_reloc) 
     {
-    InstructionDecoder deco
-        (iter->start_ptr(),iter->used(),getArch());
-    Instruction::Ptr insn = deco.decode();
-    Address base = iter->startAddr();
-    while(insn) {
-        cerr << "Springboard: " << hex << base << ": " << insn->format(base) << endl;
-        base += insn->size();
-        insn = deco.decode();
-    }
+        using namespace InstructionAPI;
+        {
+            InstructionDecoder deco
+                (iter->start_ptr(),iter->used(),getArch());
+            Instruction::Ptr insn = deco.decode();
+            Address base = iter->startAddr();
+            while(insn) {
+                cerr << "Springboard: " << hex << base << ": " << insn->format(base) << endl;
+                base += insn->size();
+                insn = deco.decode();
+            }
+        }
     }
 #endif
     mapped_object *obj = findObject(iter->startAddr());
