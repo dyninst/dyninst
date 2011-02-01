@@ -171,7 +171,11 @@ CodeObject::parseGaps(CodeRegion *cr) {
 void
 CodeObject::add_edge(Block * src, Block * trg, EdgeTypeEnum et)
 {
-    parser->link(src,trg,et,false);
+    if (trg == NULL) {
+        parser->link(src, parser->_sink, et, true);
+    } else {
+        parser->link(src,trg,et,false);
+    }
 }
 
 void

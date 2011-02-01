@@ -335,7 +335,7 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     Address pointAddr = (Address) point->getAddress();
     mal_printf("\nabruptEndCB at %lx in function at %lx\n", 
                 pointAddr, point->getFunction()->getBaseAddr());
-
+    DebugBreak();
     // before we trigger further parsing, make sure the function is 
     // not just a big chunk of zeroes, in which case the first
     // 00 00 instruction will probably raise an exception
@@ -345,7 +345,7 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     unsigned char * ptr = (unsigned char *) reg->getPtrToInstruction(
         pfunc->getAddress() - pfunc->obj()->codeBase());
     Address regSize = reg->high() - reg->offset();
-    unsigned firstNonzero = 0;
+    unsigned firstNonzero = point->llpoint()->block()->end() - reg->offset();
     for (; firstNonzero < regSize; firstNonzero++) {
         if (0 != ptr[firstNonzero]) {
             break;
