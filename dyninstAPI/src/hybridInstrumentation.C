@@ -851,8 +851,10 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         std::set<BPatch_function *> dupFuncCheck; //add one fallthrough edge per func
         while (cIter != callerPoints.end()) 
         {
+            using namespace InstructionAPI;
             Address curFallThroughAddr = (*cIter)->getCallFallThroughAddr();
-            if ( ! hasEdge((*cIter)->getFunction(), 
+            if (c_BranchInsn != (*cIter)->getInsnAtPoint()->getCategory() &&
+                ! hasEdge((*cIter)->getFunction(), 
                            (Address)((*cIter)->llpoint()->block()->start()), 
                            curFallThroughAddr) &&
                 dupFuncCheck.find((*cIter)->getFunction()) == dupFuncCheck.end())
@@ -860,7 +862,6 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
                 mal_printf("%s[%d] Function call at 0x%lx is returning, adding edge "
                           "after calls to the function at %lx\n", __FILE__,__LINE__,
                           callPoint->getAddress(), (long)(*cIter)->getAddress());
-                //assert(0);// KEVINTEST, this case has never executed
 
                 parseNewEdgeInFunction( *cIter , curFallThroughAddr , false );
 

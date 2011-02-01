@@ -328,7 +328,7 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
                             break;
                         }
                     }
-                    assert(found);
+                    assert(found || (*oit)->sinkEdge());
                     break;
                 case RET:
                     _return_blocks.erase(std::remove(_return_blocks.begin(),
@@ -354,6 +354,19 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
                     for (unsigned k = 0; k < funcs.size(); ++k) {
                         funcs[k]->_call_edges.erase(edge);
                     }
+                    Block::edgelist & trgs = edge->src()->targets();
+                    bool hasSinkEdge = false;
+                    for (Block::edgelist::iterator tit = trgs.begin();
+                         tit != trgs.end(); tit++) 
+                    {
+                        if ((*tit)->sinkEdge() && CALL == (*tit)->type()) {
+                            hasSinkEdge = true;
+                            break;
+                        }
+                    }
+                    if (!hasSinkEdge) {
+                        _obj->add_edge(edge->src(), NULL, CALL);
+                    }
                 }
                 edge->src()->removeTarget( edge );
                 obj()->fact()->free_edge(edge);
@@ -364,7 +377,7 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
                 obj()->fact()->free_edge(edge);
             }
         }
-        // KEVIN TODO
+        // KEVINTODO
         // Moved remove_block farther down to guard against shared code
     }
 

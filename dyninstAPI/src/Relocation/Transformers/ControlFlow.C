@@ -75,7 +75,7 @@ bool CFAtomCreator::processTrace(TraceList::iterator &iter) {
   getInterproceduralSuccessors(bbl, successors);
   
   // FIXME TODO
-  getRawSuccessors(bbl, successors);
+  //getRawSuccessors(bbl, successors);
 
   // SD-Dyninst: if we haven't parsed past a call (or indirect branch?)
   // we need to drop in a patch area for a future control flow fixup
@@ -166,9 +166,6 @@ void CFAtomCreator::getInterproceduralSuccessors(const int_block *block,
   // Target concept to create a destination out of whole cloth.
 
   // This requires an... interesting... dodge through to the internals
-  if (block->start() == 0x40274d) {
-      DebugBreak();
-  }
   const ParseAPI::Block::edgelist &targets = block->llb()->targets();
   ParseAPI::Block::edgelist::iterator iter = targets.begin();
   for (; iter != targets.end(); ++iter) {
