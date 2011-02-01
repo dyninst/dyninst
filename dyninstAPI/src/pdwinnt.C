@@ -2630,7 +2630,7 @@ bool SignalHandler::forwardSigToProcess(EventRecord &ev, bool &continueHint)
 /* 1. Gather the list of Structured Exception Handlers by walking the linked
  * list whose head is in the TIB.  
  * 2. If the fault occurred at an emulated memory instruction, we saved a
-      register before stomping its effective address computation
+ *    register before stomping its effective address computation
  * 3. Create an instPoint at the faulting instruction, If the exception-raising
  *    instruction is in a relocated block or multiTramp, save it as an active 
  *    tramp, we can't get rid of it until the handler returns
@@ -2725,10 +2725,8 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     }
 
     // 2.  If the fault occurred at an emulated memory instruction, we saved a
-    //     register before stomping its effective address computation, restore
-    //     it to its original value, set the PC to point at the unrelocated
-    //     address of the faulting instruction, and make sure we get a 
-    //     springboard at the fault instruction
+    //     register before stomping its effective address computation, 
+    //     restore the original register value
 
     int_block *faultBBI = NULL;
     switch( faultFuncs.size() ) {
@@ -2747,15 +2745,20 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     if (ev.proc->isMemoryEmulated() && 
         BPatch_defensiveMode == faultFuncs[0]->obj()->hybridMode())
     {
-        CONTEXT context;
-        GetThreadContext(ev.lwp->getFileHandle(), (LPCONTEXT) & context);
-        context.Eip = origAddr;
         if (faultFuncs[0]->obj()->isEmulInsn(origAddr)) {
             void * val =0;
             assert( sizeof(void*) == ev.proc->getAddressWidth() );
             ev.proc->readDataSpace((void*)(activeFrame.getSP() + MemoryEmulator::STACK_SHIFT_VAL), 
                                    ev.proc->getAddressWidth(), 
                                    &val, false);
+
+            CONTEXT context;
+            context.ContextFlags = CONTEXT_FULL;
+            if (!GetThreadContext(ev.lwp->get_fd(), (LPCONTEXT) & context)) {
+                malware_cerr << "ERROR: Failed call to GetThreadContext(" << hex << ev.lwp->get_fd() 
+                    << ") getLastError: " << endl;
+                printSysError(GetLastError());
+            }
             Register reg = faultFuncs[0]->obj()->getEmulInsnReg(origAddr);
             switch(reg) {
                 case REGNUM_ECX:
@@ -2782,8 +2785,8 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
                 default:
                     assert(0);
             }
+            SetThreadContext(ev.lwp->get_fd(), (LPCONTEXT) & context);
         }
-        SetThreadContext(ev.lwp->get_fd(), (LPCONTEXT) & context);
     }
 
     // 3. create instPoint at faulting instruction & trigger callback

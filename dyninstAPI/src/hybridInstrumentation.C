@@ -81,10 +81,10 @@ static void signalHandlerCB_wrapper
     dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
         getHybridAnalysis()->signalHandlerCB(point,snum,handlers); 
 }
-static void signalHandlerExitCB_wrapper(BPatch_point *point, void *returnAddr) 
+static void signalHandlerExitCB_wrapper(BPatch_point *point, void *dontcare) 
 { 
     dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
-        getHybridAnalysis()->signalHandlerExitCB(point,returnAddr); 
+        getHybridAnalysis()->signalHandlerExitCB(point,dontcare); 
 }
 static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig) 
 {
@@ -107,16 +107,6 @@ HybridAnalysis::HybridAnalysis(BPatch_hybridMode mode, BPatch_process* proc)
         proc_->getImage()->findModule("libdyninstAPI_RT", true);
     assert(sharedlib_runtime);
 	virtualFreeAddr_ = 0;
-
-    skipShadowFuncs_.insert("GetCurrentProcessId");
-    skipShadowFuncs_.insert("VirtualAlloc");
-    skipShadowFuncs_.insert("VirtualFree");
-    skipShadowFuncs_.insert("GetCurrentThreadId");
-    skipShadowFuncs_.insert("GetLocalTime");
-    skipShadowFuncs_.insert("GetProcAddress");
-    skipShadowFuncs_.insert("LocalAlloc");
-    skipShadowFuncs_.insert("TlsAlloc");
-    skipShadowFuncs_.insert("TlsSetValue");
 }
 
 bool HybridAnalysis::init()
@@ -182,10 +172,18 @@ bool HybridAnalysis::init()
                 std::string curfunc;
                 while (nsf_file.good()) {
                     getline(nsf_file, curfunc);
-                    nonPtrAPIs_.insert(curfunc);
+                    skipShadowFuncs_.insert(curfunc);
                 }
             }
         }
+        skipShadowFuncs_.insert("GetCurrentProcessId");
+        skipShadowFuncs_.insert("VirtualAlloc");
+        skipShadowFuncs_.insert("VirtualFree");
+        skipShadowFuncs_.insert("GetCurrentThreadId");
+        skipShadowFuncs_.insert("GetLocalTime");
+        skipShadowFuncs_.insert("LocalAlloc");
+        skipShadowFuncs_.insert("TlsAlloc");
+        skipShadowFuncs_.insert("TlsSetValue");
     }
 #endif
 
@@ -263,7 +261,7 @@ bool HybridAnalysis::setMode(BPatch_hybridMode mode)
     return true;
 }
 
-// return number of instrumented points, 1 or 0, if the handle is NULL
+// return number of instrumented points, 0 if the handle is NULL
 int HybridAnalysis::saveInstrumentationHandle(BPatch_point *point, 
                                               BPatchSnippetHandle *handle) 
 {
@@ -365,9 +363,6 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
         (*instrumentedFuncs)[func] = new 
             std::map<BPatch_point*,BPatchSnippetHandle*>();
     }
-
-
-
 
     // grab all unresolved control transfer points in the function
     vector<BPatch_point*> points;
@@ -529,90 +524,95 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 			curPoint->llpoint()->block()->llb()->getFuncs(funcs);
 			for (unsigned f_iter = 0; f_iter < funcs.size(); ++f_iter) {
 				if (((image_func *)funcs[f_iter])->init_retstatus() != ParseAPI::RETURN ||
-					funcs[f_iter]->tampersStack() == ParseAPI::TAMPER_NONZERO) {
-						instrument = true;
+					funcs[f_iter]->tampersStack() == ParseAPI::TAMPER_NONZERO) 
+                {
+                    instrument = true;
 				}
 			}
-			if (instrument || instrumentReturns || (handlerFunctions.find((Address)funcAddr) != handlerFunctions.end())) {
+			if (instrument || 
+                instrumentReturns || 
+                (handlerFunctions.find((Address)funcAddr) != handlerFunctions.end())) 
+            {
 				// check that we don't instrument the same point multiple times
 				// and that we don't instrument the return instruction if it's got 
 				// a fixed, known target, e.g., it's a static target push-return 
-				if ( (*instrumentedFuncs)[func]->end() != 
-					(*instrumentedFuncs)[func]->find(curPoint) 
-					||
-					( ( curPoint->isReturnInstruction() || curPoint->isDynamic()) &&
-					! curPoint->getCFTargets(targets) ) ) 
+                if ( (*instrumentedFuncs)[func]->end() != 
+                     (*instrumentedFuncs)[func]->find(curPoint) 
+                    ||
+                     ( ( curPoint->isReturnInstruction() || curPoint->isDynamic()) &&
+                       ! curPoint->getCFTargets(targets) ) ) 
 				{
 					continue;
 				}
-			}
-		// instrument the point, start insertion set, set interpretation 
-		// type according to the type of instruction we're instrumenting,
-		// and insert the instrumentation
-		if (useInsertionSet && 0 == pointCount) {
-			proc()->beginInsertionSet();
-		}
 
-		// create instrumentation snippet
-            BPatch_stopThreadExpr *returnSnippet;
-            BPatch_snippet * calcSnippet = NULL;
-            BPatch_stInterpret interp;
-            if (isHandler) {
-                // case 0: signal handler return address
-                // for handlers, instrument their exit point with a snippet 
-                // that reads the address to which the program will return 
-                // from the CONTEXT of the exception, which is the 3rd argument
-                // to windows structured exception handlers
-                Address contextPCaddr = 
-                    handlerFunctions[ (Address)func->getBaseAddr() ];
-                calcSnippet = new BPatch_constExpr(0xbaadc0de);
-                interp = BPatch_noInterp;
-            }
-            else if (curPoint->isReturnInstruction()) {
-                // case 1: the point is at a return instruction
-                interp = BPatch_interpAsReturnAddr;
-                calcSnippet = & retAddrSnippet;
-                mal_printf("monitoring return from func[%lx %lx] at %lx\n", 
-                            (long)func->getBaseAddr(), 
-                            (long)func->getBaseAddr() + func->getSize(), 
-                            (long)curPoint->getAddress());
-            }
-            else if (curPoint->isDynamic()) {
-                // case 2: above check ensures that this is not a return 
-                // instruction but that it is dynamic and therefore it's a jump 
-                // that leaves the region housing the rest of the function
-                    interp = BPatch_interpAsTarget;
+                // instrument the point, start insertion set, set interpretation 
+                // type according to the type of instruction we're instrumenting,
+                // and insert the instrumentation
+                if (useInsertionSet && 0 == pointCount) {
+                    proc()->beginInsertionSet();
+                }
+
+                // create instrumentation snippet
+                BPatch_stopThreadExpr *returnSnippet;
+                BPatch_snippet * calcSnippet = NULL;
+                BPatch_stInterpret interp;
+                if (isHandler) {
+                    // case 0: signal handler return address
+                    // for handlers, instrument their exit point with a snippet 
+                    // that reads the address to which the program will return 
+                    // from the CONTEXT of the exception, which is the 3rd argument
+                    // to windows structured exception handlers
+                    Address contextPCaddr = 
+                        handlerFunctions[(Address)func->getBaseAddr()].faultPCaddr;
+                    calcSnippet = new BPatch_constExpr(0xbaadc0de);
+                    interp = BPatch_noInterp;
+                }
+                else if (curPoint->isReturnInstruction()) {
+                    // case 1: the point is at a return instruction
+                    interp = BPatch_interpAsReturnAddr;
+                    calcSnippet = & retAddrSnippet;
+                    mal_printf("monitoring return from func[%lx %lx] at %lx\n", 
+                                (long)func->getBaseAddr(), 
+                                (long)func->getBaseAddr() + func->getSize(), 
+                                (long)curPoint->getAddress());
+                }
+                else if (curPoint->isDynamic()) {
+                    // case 2: above check ensures that this is not a return 
+                    // instruction but that it is dynamic and therefore it's a jump 
+                    // that leaves the region housing the rest of the function
+                        interp = BPatch_interpAsTarget;
+                        calcSnippet = & dynTarget;
+                        mal_printf("instrumenting indirect non-return exit "
+                                   "at 0x%lx %s[%d]\n", curPoint->getAddress(), 
+                                   FILE__,__LINE__);
+                }
+                else { // tail call, do nothing?
                     calcSnippet = & dynTarget;
-                    mal_printf("instrumenting indirect non-return exit "
-                               "at 0x%lx %s[%d]\n", curPoint->getAddress(), 
-                               FILE__,__LINE__);
-            }
-            else { // tail call, do nothing?
-                calcSnippet = & dynTarget;
-                fprintf(stderr,"WARNING: exit point at %lx that isn't "
-                        "a return or indirect control transfer, what "
-                        "kind of point is this? not instrumenting %s[%d]\n", 
-                        (Address)curPoint->getAddress(), FILE__,__LINE__);
-                continue;
-            }
+                    fprintf(stderr,"WARNING: exit point at %lx that isn't "
+                            "a return or indirect control transfer, what "
+                            "kind of point is this? not instrumenting %s[%d]\n", 
+                            (Address)curPoint->getAddress(), FILE__,__LINE__);
+                    continue;
+                }
 
-            if (!isHandler) {
-                returnSnippet = new BPatch_stopThreadExpr
-                    ( badTransferCB_wrapper, *calcSnippet, true, interp ); 
-            } else {
-                returnSnippet = new BPatch_stopThreadExpr
-                    ( signalHandlerExitCB_wrapper, *calcSnippet, false, interp ); 
-            }
+                if (!isHandler) {
+                    returnSnippet = new BPatch_stopThreadExpr
+                        ( badTransferCB_wrapper, *calcSnippet, true, interp ); 
+                } else {
+                    returnSnippet = new BPatch_stopThreadExpr
+                        ( signalHandlerExitCB_wrapper, *calcSnippet, false, interp ); 
+                }
 
-            // insert the instrumentation
-            handle = proc()->insertSnippet
-                (*returnSnippet, *(curPoint), BPatch_lastSnippet);
-            pointCount += saveInstrumentationHandle(curPoint,handle);
+                // insert the instrumentation
+                handle = proc()->insertSnippet
+                    (*returnSnippet, *(curPoint), BPatch_lastSnippet);
+                pointCount += saveInstrumentationHandle(curPoint,handle);
 
-            // clean up
-            delete returnSnippet;
-            if (dynamic_cast<BPatch_arithExpr*>(calcSnippet)) {
-                delete calcSnippet;
+                // clean up
+                delete returnSnippet;
+                if (dynamic_cast<BPatch_arithExpr*>(calcSnippet)) {
+                    delete calcSnippet;
+                }
             }
         }
 	}
@@ -1331,7 +1331,7 @@ bool HybridAnalysis::needsSynchronization(BPatch_point *point)
             return false; // the point has been resolved
         }
     }
-
+#if 0 //KEVINTODO: drew said this wasn't getting accessed, replaced with lookup to skipShadowFuncs_
     for (vector<Address>::iterator tit= targs.begin();
          tit != targs.end(); 
          tit++) 
@@ -1348,7 +1348,7 @@ bool HybridAnalysis::needsSynchronization(BPatch_point *point)
             }
         }
     }
-
+#endif
     return false;
 }
 

@@ -234,9 +234,22 @@ bool IA_IAPI::isGarbageInsn() const
                  rit != regs.end(); rit++) 
             {
                 if (Dyninst::isSegmentRegister((*rit)->getID().regClass())) {
+                    cerr << "REACHED A MOV SEGMENT INSN AT "<< std::hex 
+                        << current << std::dec <<" COUNTING AS INVALID" << endl;
                     ret = true;
                     break;
                 }
+            }
+            break;
+        }
+        case e_add: {
+            if (2 == curInsn()->size() && 
+                0 == ((char*)curInsn()->ptr())[0] && 
+                0 == ((char*)curInsn()->ptr())[1]) 
+            {
+                cerr << "REACHED A 0x0000 INSTRUCTION "<< std::hex << current 
+                     << std::dec <<" COUNTING AS INVALID" << endl;
+                ret = true;
             }
             break;
         }

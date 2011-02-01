@@ -57,12 +57,6 @@ Block::Block(CodeObject * o, CodeRegion *r, Address start) :
     _func_cnt(0),
     _parsed(false)
 {
-    if (start == 0x1d042) {
-        HACKCOUNT++;
-    }
-    if (HACKCOUNT > 1) {
-        DebugBreak();
-    }
 }
 
 Block::~Block()
