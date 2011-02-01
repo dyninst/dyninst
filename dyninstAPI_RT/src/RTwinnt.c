@@ -318,12 +318,12 @@ BOOL __stdcall DYNINST_FakeCheckRemoteDebuggerPresent(HANDLE hProcess, PBOOL bpD
 
 VOID __stdcall DYNINST_FakeGetSystemTime(LPSYSTEMTIME lpSystemTime)
 {
-   lpSystemTime->wDay = 1;
-   lpSystemTime->wDayOfWeek = 2;
-   lpSystemTime->wHour = 9;
-   lpSystemTime->wMilliseconds = 855;
-   lpSystemTime->wMinute = 23;
-   lpSystemTime->wMonth = 2;
-   lpSystemTime->wSecond = 33;
-   lpSystemTime->wYear = 2011;
+    lpSystemTime->wYear = 2009;
+    lpSystemTime->wMonth = 5;
+    lpSystemTime->wDayOfWeek = 0;
+    lpSystemTime->wDay = 3;
+    lpSystemTime->wHour = 10;
+    lpSystemTime->wMinute = 1;
+    lpSystemTime->wSecond = 33;
+    lpSystemTime->wMilliseconds = 855;
 }
