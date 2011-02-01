@@ -501,7 +501,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
              BPatch_constExpr(0), 
              false,BPatch_noInterp);
         BPatchSnippetHandle *handle = proc()->insertSnippet
-            (staticTransferSnippet, *curPoint, BPatch_lastSnippet);
+            (staticTransferSnippet, *curPoint, BPatch_callAfter, BPatch_lastSnippet);
         pointCount += saveInstrumentationHandle(curPoint,handle);
     }
     points.clear();
