@@ -321,7 +321,7 @@ void HybridAnalysis::signalHandlerExitCB(BPatch_point *point, void *dontcare)
              fit != funcs.end();
              fit++) 
         {
-            //KEVINTODO:
+            //KEVINTODO: force springboard to be added at resumePC
         }
     }
     point->getFunction()->fixHandlerReturnAddr((Address)resumePC);
@@ -335,19 +335,19 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     Address pointAddr = (Address) point->getAddress();
     mal_printf("\nabruptEndCB at %lx in function at %lx\n", 
                 pointAddr, point->getFunction()->getBaseAddr());
-    DebugBreak();
     // before we trigger further parsing, make sure the function is 
     // not just a big chunk of zeroes, in which case the first
     // 00 00 instruction will probably raise an exception
     using namespace ParseAPI;
     int_function *pfunc = point->llpoint()->func();
     CodeRegion *reg = pfunc->ifunc()->region();
-    unsigned char * ptr = (unsigned char *) reg->getPtrToInstruction(
-        pfunc->getAddress() - pfunc->obj()->codeBase());
+    unsigned char * regptr = (unsigned char *) reg->getPtrToInstruction(reg->offset());
     Address regSize = reg->high() - reg->offset();
-    unsigned firstNonzero = point->llpoint()->block()->end() - reg->offset();
+    unsigned firstNonzero = point->llpoint()->block()->end() 
+        - reg->offset() 
+        - pfunc->obj()->codeBase();
     for (; firstNonzero < regSize; firstNonzero++) {
-        if (0 != ptr[firstNonzero]) {
+        if (0 != regptr[firstNonzero]) {
             break;
         }
     }
@@ -674,8 +674,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     // 4. else case: the point is a jump/branch 
         proc()->beginInsertionSet();
         // 4.1 if the point is a direct branch, remove any instrumentation
-        vector<Address> *targets = new vector<Address>;
-        if ( point->getCFTargets(*targets) ) {
+        if ( !point->llpoint()->isDynamic() ) {
             BPatch_function *func = point->getFunction();
             if (instrumentedFuncs->end() != instrumentedFuncs->find(func)
                 &&
@@ -688,7 +687,6 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             }
             //point is set to resolved in handleStopThread
         } 
-        delete(targets);
 
         bool newParsing;
         vector<BPatch_function*> targFuncs;
