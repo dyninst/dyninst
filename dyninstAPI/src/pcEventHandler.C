@@ -245,6 +245,8 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
 
     bool isCallbackRPC = false;
 
+    bool queueEvent = true;
+
     // Do some event-specific handling
     switch(ev->getEventType().code()) {
         case EventType::Exit:
@@ -259,6 +261,32 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
                 ret = Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
             }
             break;
+        case EventType::Breakpoint: {
+            // Control transfer breakpoints are used for trap-based instrumentation
+            // No user interaction is required
+            EventBreakpoint::const_ptr evBreak = ev->getEventBreakpoint();
+
+            bool hasCtrlTransfer = false;
+            vector<Breakpoint::ptr> breakpoints;
+            evBreak->getBreakpoints(breakpoints);
+            for(vector<Breakpoint::ptr>::iterator i = breakpoints.begin();
+                    i != breakpoints.end(); ++i)
+            {
+                if( (*i)->isCtrlTransfer() ) {
+                    hasCtrlTransfer = true;
+                    break;
+                }
+            }
+
+            if( hasCtrlTransfer ) {
+                proccontrol_printf("%s[%d]: received control transfer breakpoint on thread %d/%d\n",
+                        FILE__, __LINE__, ev->getProcess()->getPid(),
+                        ev->getThread()->getLWP());
+                ret = Process::cb_ret_t(Process::cbProcContinue, Process::cbProcContinue);
+                queueEvent = false;
+            }
+            break;
+        }
         case EventType::RPC:
         {
             EventRPC::const_ptr evRPC = ev->getEventRPC();
@@ -299,19 +327,21 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
             break;
     }
 
-    // If callback RPCs cause other events, need to make sure that the RPC thread is still continued
-    eventHandler->pendingCallbackLock_.lock();
-    if( eventHandler->pendingCallbackRPCs_.size() ) {
-        ret = Process::cb_ret_t(Process::cbThreadContinue);
-    }
-    eventHandler->pendingCallbackLock_.unlock();
+    if( queueEvent ) {
+        // If callback RPCs cause other events, need to make sure that the RPC thread is still continued
+        eventHandler->pendingCallbackLock_.lock();
+        if( eventHandler->pendingCallbackRPCs_.size() ) {
+            ret = Process::cb_ret_t(Process::cbThreadContinue);
+        }
+        eventHandler->pendingCallbackLock_.unlock();
 
-    process->incPendingEvents();
+        process->incPendingEvents();
 
-    if( !isCallbackRPC ) {
-        eventHandler->eventMailbox_->enqueue(ev);
-    }else{
-        eventHandler->callbackRPCMailbox_->enqueue(ev);
+        if( !isCallbackRPC ) {
+            eventHandler->eventMailbox_->enqueue(ev);
+        }else{
+            eventHandler->callbackRPCMailbox_->enqueue(ev);
+        }
     }
 
     return ret;

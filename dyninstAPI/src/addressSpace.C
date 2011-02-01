@@ -1242,6 +1242,7 @@ void trampTrapMappings::addTrapMapping(Address from, Address to,
    }
    needs_updating = true;
 #endif
+   as->registerTrapMapping(from-1, to);
 }
 
 bool trampTrapMappings::definesTrapMapping(Address from)

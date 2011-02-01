@@ -230,6 +230,8 @@ public:
     virtual bool multithread_capable(bool ignoreIfMtNotSet = false); // platform-specific
     virtual bool multithread_ready(bool ignoreIfMtNotSet = false);
     virtual bool needsPIC();
+    virtual bool registerTrapMapping(Address from, Address to);
+    virtual bool unregisterTrapMapping(Address from);
 
     // Miscellaneuous
     void debugSuicide();
@@ -576,8 +578,6 @@ protected:
 
     syscallNotification *tracedSyscalls_;
 
-    // TODO remove when inferiorMalloc machinery uses ProcControlAPI 
-    // instead of the RT library
     Address rtLibLoadHeap_;
 
     mt_cache_result_t mt_cache_result_;
@@ -597,6 +597,7 @@ protected:
     bool inEventHandling_;
     std::set<PCThread *> syncRPCThreads_;
     Dyninst::Stackwalker::Walker *stackwalker_;
+    std::map<Address, ProcControlAPI::Breakpoint::ptr> installedCtrlBrkpts;
 };
 
 class inferiorRPCinProgress : public codeRange {

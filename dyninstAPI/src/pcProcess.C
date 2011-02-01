@@ -3831,6 +3831,36 @@ bool PCProcess::continueSyncRPCThreads() {
     return true;
 }
 
+bool PCProcess::registerTrapMapping(Address from, Address to) {
+    Breakpoint::ptr newBreak = Breakpoint::newTransferBreakpoint(to);
+
+    if( !pcProc_->addBreakpoint(from, newBreak) ) {
+        proccontrol_printf("%s[%d]: failed to add ctrl transfer breakpoint from "
+                "0x%lx to 0x%lx\n", FILE__, __LINE__, from, to);
+        return false;
+    }
+
+    installedCtrlBrkpts.insert(make_pair(from, newBreak));
+
+    return true;
+}
+
+bool PCProcess::unregisterTrapMapping(Address from) {
+    map<Address, Breakpoint::ptr>::iterator breakIter = 
+        installedCtrlBrkpts.find(from);
+    if( breakIter == installedCtrlBrkpts.end() ) return false;
+
+    if( !pcProc_->rmBreakpoint(from, breakIter->second) ) {
+        proccontrol_printf("%s[%d]: failed to remove ctrl transfer breakpoint from 0x%lx\n",
+                FILE__, __LINE__, from);
+        return false;
+    }
+
+    installedCtrlBrkpts.erase(breakIter);
+
+    return true;
+}
+
 StackwalkSymLookup::StackwalkSymLookup(PCProcess *p)
   : proc_(p)
 {}

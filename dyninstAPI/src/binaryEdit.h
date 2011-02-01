@@ -106,6 +106,9 @@ class BinaryEdit : public AddressSpace {
     Address length() const;
     Architecture getArch() const;
 
+    virtual bool registerTrapMapping(Address from, Address to);
+    virtual bool unregisterTrapMapping(Address from);
+
     /*
     // Until we need these different from AddressSpace,
     // I'm not implementing.
