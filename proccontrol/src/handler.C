@@ -883,11 +883,59 @@ Handler::handler_ret_t HandlePostBreakpoint::handleEvent(Event::ptr ev)
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thrd = ev->getThread()->llthrd();
 
-   /**
-    * TODO: Ctrl transfer breakpoints
-    **/
+   EventBreakpoint *evbp = static_cast<EventBreakpoint *>(ev.get());
+   installed_breakpoint *bp = evbp->installedbp();
+   int_eventBreakpoint *ibp = evbp->getInternal();
+
+   Breakpoint::ptr ctrlTransferBrkpt = Breakpoint::ptr();
+   std::vector<Breakpoint::ptr> hl_bps;
+   evbp->getBreakpoints(hl_bps);
+
+   for(std::vector<Breakpoint::ptr>::iterator i = hl_bps.begin();
+           i != hl_bps.end(); ++i)
+   {
+       if( (*i)->isCtrlTransfer() ) {
+           ctrlTransferBrkpt = *i;
+           break;
+       }
+   }
 
    /**
+    * Control transfer breakpoints
+    *
+    * Just change the PC of the thread that hit the breakpoint
+    **/
+   if( ctrlTransferBrkpt != Breakpoint::ptr() ) {
+       pthrd_printf("Handling control transfer breakpoint on thread %d/%d\n",
+               proc->getPid(), thrd->getLWP());
+
+       if( !ibp->pc_regset ) {
+           ibp->pc_regset = result_response::createResultResponse();
+           pthrd_printf("Setting PC to control transfer target at 0x%lx\n",
+                   ctrlTransferBrkpt->getToAddress());
+           MachRegister pcreg = MachRegister::getPC(proc->getTargetArch());
+           bool result = thrd->setRegister(pcreg, 
+                   (MachRegisterVal) ctrlTransferBrkpt->getToAddress(),
+                   ibp->pc_regset);
+           assert(result);
+       }
+
+       assert( ibp->pc_regset );
+
+       if( ibp->pc_regset->isPosted() && !ibp->pc_regset->isReady() ) {
+           pthrd_printf("Suspending breakpoint handling for control transfer pc set\n");
+           proc->handlerPool()->notifyOfPendingAsyncs(ibp->pc_regset, ev);
+           return ret_async;
+       }
+
+       proc->threadPool()->restoreInternalState(false);
+
+       return ret_success;
+   }
+
+   /**
+    * Normal breakpoints
+    *
     * Stop all other threads in the job while we remove the breakpoint, single step 
     * through the instruction and then resume the other threads
     **/
@@ -898,11 +946,7 @@ Handler::handler_ret_t HandlePostBreakpoint::handleEvent(Event::ptr ev)
       if ((*i)->getInternalState() == int_thread::running && (*i)->getHandlerState() == int_thread::stopped)
          (*i)->setInternalState(int_thread::stopped);
    }
-
-   EventBreakpoint *evbp = static_cast<EventBreakpoint *>(ev.get());
-   installed_breakpoint *bp = evbp->installedbp();
-   int_eventBreakpoint *ibp = evbp->getInternal();
-
+   
    if (!ibp->set_singlestep) {
       pthrd_printf("Setting breakpoint thread to single step mode\n");
       thrd->setSingleStepMode(true);

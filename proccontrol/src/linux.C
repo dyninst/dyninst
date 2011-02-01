@@ -559,6 +559,9 @@ bool linux_process::plat_create_int()
 
    if (!pid)
    {
+      // Make sure cleanup on failure goes smoothly
+      ProcPool()->condvar()->unlock();
+
       //Child
       long int result = ptrace((pt_req) PTRACE_TRACEME, 0, 0, 0);
       if (result == -1)
