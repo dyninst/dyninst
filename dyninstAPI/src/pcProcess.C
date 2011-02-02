@@ -331,13 +331,6 @@ bool PCProcess::bootstrapProcess() {
     startup_printf("%s[%d]: attempting to bootstrap process %d\n", 
             FILE__, __LINE__, getPid());
 
-    // Initialize StackwalkerAPI
-    if ( !createStackwalker() )
-    {
-      startup_printf("Bootstrap failed while initializing Stackwalker\n");
-      return false;
-    }
-
     // Create the initial threads
     createInitialThreads();
 
@@ -355,6 +348,13 @@ bool PCProcess::bootstrapProcess() {
                     FILE__, __LINE__);
             return false;
         }
+    }
+
+    // Initialize StackwalkerAPI
+    if ( !createStackwalker() )
+    {
+      startup_printf("Bootstrap failed while initializing Stackwalker\n");
+      return false;
     }
 
     // Insert a breakpoint at the entry point of main (and possibly __libc_start_main)
