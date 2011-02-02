@@ -858,6 +858,7 @@ void RemoteBE::setenv_on_local(char *message)
 
 void RemoteBE::dispatchExit(char *message)
 {
+   *((int *) 0x0) = 0x0;
    exit(0);
 }
 
@@ -1191,7 +1192,7 @@ bool Connection::waitForAvailData(int sock, int timeout_s, bool &sock_error)
          return false;
       }
       else if (result == 0) {
-        debug_printf("[%s:%u] - Timeout accepting connections\n", __FILE__, __LINE__);
+         debug_printf("[%s:%u] - Timeout accepting connections\n", __FILE__, __LINE__);
          return false;
       }
       else if (result >= 1) {

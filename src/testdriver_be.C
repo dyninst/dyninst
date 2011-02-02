@@ -132,12 +132,11 @@ int main(int argc, char *argv[])
    log_printf("[%s:%u] - result from setrlimit was %d: %s\n", __FILE__, __LINE__,
               result, strerror(result));
     
-
 /*
    if (!getenv("LD_DEBUG")) {
       setenv("LD_DEBUG", "all", 1);
       setenv("LD_DEBUG_OUTPUT", "/g/g22/legendre/ld_debug_output", 1);
-      execv("/g/g22/legendre/pc_bluegene/dyninst/testsuite/ppc32_bgp_ion/testdriver_be2", argv);
+      execv(argv[0], argv);
    }
 */
    /*
@@ -148,16 +147,19 @@ int main(int argc, char *argv[])
       sleep(1);
    }
    */
-/*
-   system("/bin/cp /lib/libm.so.6 /g/g22/legendre/pc_bluegene/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libgcc_s.so.1 /g/g22/legendre/pc_bluegene/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libc.so.6 /g/g22/legendre/pc_bluegene/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libdl.so.2 /g/g22/legendre/pc_bluegene/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/ld.so.1 /g/g22/legendre/pc_bluegene/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libnsl.so.1 /g/g22/legendre/pc_bluegene/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libnss_files.so.2 /g/g22/legendre/pc_bluegene/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-*/ 
 
+/*
+   system("/bin/cp /lib/libm.so.6 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libgcc_s.so.1 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libc.so.6 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libdl.so.2 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/ld.so.1 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libnsl.so.1 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libnss_files.so.2 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libpthread.so.0 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libstdc++.so.6 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libthread_db.so.1 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+*/
    debug_log = fopen("/g/g22/legendre/driver_output", "w");
    int debug_fd = fileno(debug_log);
    close(1);

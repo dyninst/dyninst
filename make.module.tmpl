@@ -593,7 +593,7 @@ test_driver: test_driver.o test_driver_templates.o dynlmon.o $(DEPENDDIR)/test_d
 
 testdriver_be: testdriver_be.o $(LIBTESTSUITE) $(LIBTESTLAUNCH)
 	@echo Linking $@
-	$(HIDE_COMP)$(CXX) -o $@ testdriver_be.o test_info_new.gen.o -Wl,-rpath -Wl,$(PWD) -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_BE_LINK)
+	$(HIDE_COMP)$(CXX) -o $@ testdriver_be.o test_info_new.gen.o -Wl,-rpath -Wl,$(TO_CORE_ABS)/testsuite/$(PLATFORM) -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_BE_LINK)
 
 ######################################################################
 ### Output Drivers

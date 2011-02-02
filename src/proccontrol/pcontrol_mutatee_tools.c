@@ -209,7 +209,7 @@ int finiProcControlTest(int expected_ret_code)
 #include <sys/socket.h>
 #include <sys/un.h>
 
-static char MutatorSocket[4096];
+static volatile char MutatorSocket[4096];
 static char *socket_type = NULL;
 static char *socket_name = NULL;
 
@@ -219,13 +219,13 @@ void getSocketInfo()
    while (MutatorSocket[0] == '\0') {
       sleep(1);
       count++;
-      if (count == 30) {
+      if (count >= 60) {
          fprintf(stderr, "Mutatee timeout\n");
          exit(-1);
       }
    }
-   socket_type = MutatorSocket;
-   char *space = strchr(MutatorSocket, ' ');
+   socket_type = (char *) MutatorSocket;
+   char *space = strchr((char *) MutatorSocket, ' ');
    socket_name = space+1;
    *space = '\0';
 }
