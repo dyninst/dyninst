@@ -400,7 +400,7 @@ bool sysv_process::plat_execed()
 {
    pthrd_printf("Rebuilding library trap mechanism after exec on %d\n", getPid());
    if (aout) {
-      // TODO safely delete aout
+      // aout has already been deleted in the forking process
       aout = NULL;
    }
    if (translator) {
