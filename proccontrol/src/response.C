@@ -42,7 +42,9 @@ using namespace Dyninst;
 using namespace ProcControlAPI;
 using namespace std;
 
-unsigned int response::next_id = 0;
+unsigned int response::next_id = 1;
+
+static Mutex id_lock;
 
 response::response() :
    event(Event::ptr()),
@@ -50,9 +52,11 @@ response::response() :
    checked_ready(false),
    isSyncHandled(false),
    error(false),
-   errorcode(0)
+   errorcode(0),
+   decoder_event(NULL),
+   multi_resp_size(0),
+   multi_resp_recvd(0)
 {
-   static Mutex id_lock;
    id_lock.lock();
    id = next_id++;
    id_lock.unlock();
@@ -140,6 +144,41 @@ string response::name() const
    assert(0);
    return "";
 }
+
+unsigned int response::markAsMultiResponse(int num_resps)
+{
+   assert(num_resps);
+   assert(state == unset);
+   id_lock.lock();
+   id = next_id;
+   next_id += num_resps;
+   id_lock.unlock();
+
+   multi_resp_size = num_resps;
+
+   return id;
+}
+
+bool response::isMultiResponse()
+{
+   return multi_resp_size != 0;
+}
+
+unsigned int response::multiResponseSize()
+{
+   return multi_resp_size;
+}
+
+void response::setDecoderEvent(ArchEvent *ae)
+{
+   decoder_event = ae;
+}
+
+ArchEvent *response::getDecoderEvent()
+{
+   return decoder_event;
+}
+
 
 result_response::ptr response::getResultResponse()
 {
@@ -264,11 +303,27 @@ void responses_pending::addResponse(response::ptr r, int_process *proc)
    r->setEvent(ev);
    r->markPosted();
 
-   pending[r->getID()] = r;
+   if (!r->isMultiResponse()) {
+      pending[r->getID()] = r;
+   }
+   else {
+      unsigned int id = r->getID();
+      unsigned int end = r->getID() + r->multiResponseSize();
+      for (unsigned int i = id; i < end; i++) {
+         pending[id + i] = r;
+      }
+   }
 }
 
 void responses_pending::noteResponse()
 {
+   if (isGeneratorThread()) {
+      //Signaling the ProcPool is meant to wake the generator.  We
+      // obviously don't need to signal ourselves.  In fact,
+      // the generator may already be holding the procpool lock, 
+      // so we don't want to retake it.
+      return;
+   }
    ProcPool()->condvar()->lock();
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
@@ -303,7 +358,19 @@ void result_response::setResponse(bool b_)
 
 void result_response::postResponse(bool b_)
 {
-   b = b_;
+   if (!isMultiResponse()) {
+      b = b_;
+      return;
+   }
+   //If a multi-response, then set b upon recieving the first response
+   // and AND b if we're on subsequent responses.  This this response
+   // object will be true iff all RESULT_ACKs returned true
+   multi_resp_recvd++;
+   if (!multi_resp_recvd == 1) {
+      b = b_;
+      return;
+   }
+   b = b & b_;
 }
 
 bool result_response::getResult() const

@@ -50,7 +50,7 @@
 #define perr_printf(format, ...) \
   do { \
     if (dyninst_debug_proccontrol) \
-      fprintf(pctrl_err_out, "[%s:%u-%s] - " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+      fprintf(pctrl_err_out, "[%s:%u-%s] - Error: " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
   } while (0)
 
 extern bool dyninst_debug_proccontrol;

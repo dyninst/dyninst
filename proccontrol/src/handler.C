@@ -925,7 +925,7 @@ Handler::handler_ret_t HandlePostBreakpoint::handleEvent(Event::ptr ev)
       assert(result);
    }
 
-   if (!ibp->pc_regset) 
+   if (proc->plat_breakpointAdvancesPC() && !ibp->pc_regset) 
    {
       ibp->pc_regset = result_response::createResultResponse();
       pthrd_printf("Restoring PC to original location location at %lx\n",
@@ -944,11 +944,13 @@ Handler::handler_ret_t HandlePostBreakpoint::handleEvent(Event::ptr ev)
       needs_async_ret = true;
    }
 
-   assert(ibp->pc_regset);
-   if (ibp->pc_regset->isPosted() && !ibp->pc_regset->isReady()) {
-      pthrd_printf("Suspending breakpoint handling for pc set\n");
-      proc->handlerPool()->notifyOfPendingAsyncs(ibp->pc_regset, ev);
-      needs_async_ret = true;      
+   if (proc->plat_breakpointAdvancesPC()) {
+      assert(ibp->pc_regset);
+      if (ibp->pc_regset->isPosted() && !ibp->pc_regset->isReady()) {
+         pthrd_printf("Suspending breakpoint handling for pc set\n");
+         proc->handlerPool()->notifyOfPendingAsyncs(ibp->pc_regset, ev);
+         needs_async_ret = true;      
+      }
    }
 
    if (needs_async_ret) {
@@ -960,7 +962,7 @@ Handler::handler_ret_t HandlePostBreakpoint::handleEvent(Event::ptr ev)
       return ret_error;
    }
 
-   if (ibp->pc_regset->hasError()) {
+   if (proc->plat_breakpointAdvancesPC() && ibp->pc_regset->hasError()) {
       pthrd_printf("Error setting PC register\n");
       return ret_error;
    }

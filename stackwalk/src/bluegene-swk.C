@@ -191,7 +191,7 @@ namespace Dyninst {
       }
 
       // extract process and thread id from the BG message.
-      pid_t pid = msg.header.nodeNumber;   
+      pid_t pid = msg.header.nodeNumber;
       THR_ID tid = msg.header.thread;
       int returnCode = msg.header.returnCode;
       sw_printf("[%s:%u] - Received debug event %s from pid %d, tid %d, rc %d\n", __FILE__, __LINE__,

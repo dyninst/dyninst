@@ -80,6 +80,11 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
    } resp_type_t;
    resp_type_t resp_type;
 
+   ArchEvent *decoder_event;
+
+   int multi_resp_size;
+   int multi_resp_recvd;
+
   public:
    typedef dyn_detail::boost::shared_ptr<response> ptr;
    typedef dyn_detail::boost::shared_ptr<const response> const_ptr;
@@ -105,6 +110,13 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
 
    void setEvent(Event::ptr ev);
    Event::ptr getEvent() const;
+
+   unsigned int markAsMultiResponse(int num_resps);
+   bool isMultiResponse();
+   unsigned int multiResponseSize();
+
+   void setDecoderEvent(ArchEvent *ae);
+   ArchEvent *getDecoderEvent();
 
    std::string name() const;
 };

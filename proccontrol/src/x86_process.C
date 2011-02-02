@@ -57,3 +57,7 @@ void x86_process::plat_breakpointBytes(char *buffer)
   buffer[0] = 0xcc;
 }
 
+bool x86_process::plat_breakpointAdvancesPC() const
+{
+   return true;
+}

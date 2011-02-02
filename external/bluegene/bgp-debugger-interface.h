@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
 #include <bpcore/bgp_types.h>
 
 
@@ -31,7 +32,10 @@ namespace DebuggerInterface {
    2 - Thread id passed in message header to reduce message traffic
    3 - Added GET_STACK_TRACE and END_DEBUG messages, Signal for detach from nodes
    4-  Added GET_PROCESS_DATA and GET_THREAD_DATA messages
+   5 - Added HOLD_THREAD, RELEASE_THREAD, SIGACTION, MAP_MEM and FAST_TRAP messages
+   6 - Added debugger ignore sinal function - DEBUG_IGNORE_SIG message
 */
+#define BG_Debugger_PROTOCOL_VERSION 6
 
 #define BG_DEBUGGER_WRITE_PIPE 3
 #define BG_DEBUGGER_READ_PIPE  4
@@ -185,7 +189,8 @@ typedef enum { GET_REG = 0,
                CONTINUE,		// tell compute node to continue running
                KILL,			// send a signal w/ implicit continue
                ATTACH,			// mark compute node
-               DETACH,			// unmark compute node
+	       DETACH,			// unmark compute node
+
                GET_REG_ACK,
                GET_ALL_REGS_ACK,	// sent when compute node responds
                SET_REG_ACK,		// send when compute node responds
@@ -198,7 +203,7 @@ typedef enum { GET_REG = 0,
                CONTINUE_ACK,		// sent when compute node is told
                KILL_ACK,		// send when signal is sent
                ATTACH_ACK,		// sent after compute node is marked
-               DETACH_ACK,		// sent after compute node is unmarked
+	       DETACH_ACK,		// sent after compute node is unmarked
 
                SIGNAL_ENCOUNTERED,	// sent when a signal is encountered
 
@@ -239,6 +244,24 @@ typedef enum { GET_REG = 0,
 
                GET_THREAD_DATA,
                GET_THREAD_DATA_ACK,
+
+               HOLD_THREAD,
+               HOLD_THREAD_ACK,
+
+               RELEASE_THREAD,
+               RELEASE_THREAD_ACK,
+
+               SIGACTION,
+               SIGACTION_ACK,
+
+               MAP_MEM,
+               MAP_MEM_ACK,
+
+               FAST_TRAP,
+               FAST_TRAP_ACK,
+
+               DEBUG_IGNORE_SIG,
+               DEBUG_IGNORE_SIG_ACK,
 
                THIS_SPACE_FOR_RENT
 
@@ -377,8 +400,9 @@ typedef enum {
   RC_DENIED            = 9,
   RC_BAD_SIGNAL        = 10,
   RC_NOT_STOPPED       = 11,
-  RC_NOT_INITIALIZED   = 12
-
+  RC_NOT_INITIALIZED   = 12,
+  RC_TIMEOUT           = 13
+  
 } BG_ErrorCode_t;
 
 
@@ -672,6 +696,51 @@ class BG_Debugger_Msg {
       struct {
          BG_Thread_Data_t threadData;
       } GET_THREAD_DATA_ACK;
+
+      struct {
+        uint32_t timeout;
+      } HOLD_THREAD;
+
+      struct {
+      } HOLD_THREAD_ACK;
+
+      struct {
+      } RELEASE_THREAD;
+
+      struct {
+      } RELEASE_THREAD_ACK;
+
+      struct {
+        uint32_t signum;        // signal number. Only supported value is SIGTRAP
+        __sighandler_t handler; // SIGTRAP signal handler function
+        uint32_t       mask;    // signal mask  (see syscall sigaction)
+        uint32_t       flags;   // signal flags (see syscall sigaction)
+      } SIGACTION;
+
+      struct {
+      } SIGACTION_ACK;
+
+      struct {
+        uint32_t          len;
+      } MAP_MEM;
+
+      struct {
+        BG_Addr_t        addr;
+      } MAP_MEM_ACK;
+
+      struct {
+        bool         enable;
+      } FAST_TRAP;
+
+      struct {
+      } FAST_TRAP_ACK;
+
+      struct {
+        sigset_t     ignoreSet;
+      } DEBUG_IGNORE_SIG;
+
+      struct {
+      } DEBUG_IGNORE_SIG_ACK;
 
       unsigned char      dataStartsHere;
 
@@ -989,7 +1058,18 @@ class BG_Debugger_Msg {
           "GET_PROCESS_DATA_ACK",
           "GET_THREAD_DATA",
           "GET_THREAD_DATA_ACK",
-
+          "HOLD_THREAD",
+          "HOLD_THREAD_ACK",
+          "RELEASE_THREAD",
+          "RELEASE_THREAD_ACK",
+          "SIGACTION",
+          "SIGACTION_ACK",
+          "MAP_MEM",
+          "MAP_MEM_ACK",
+          "FAST_TRAP",
+          "FAST_TRAP_ACK",
+          "DEBUG_IGNORE_SIG",
+          "DEBUG_IGNORE_SIG_ACK"
        };
 
        if ((type >= GET_REG) && (type < THIS_SPACE_FOR_RENT)) {
@@ -1017,7 +1097,7 @@ class BG_Debugger_Msg {
 
     static void dump( BG_Debugger_Msg &msg, FILE *outfile )
     {
-       //fprintf( outfile, "\n" );
+       fprintf( outfile, "\n" );
 
        fprintf( outfile, "Type: %s from node: %d, return code: %d\n",
                 getMessageName(msg.header.messageType),
@@ -1206,6 +1286,30 @@ class BG_Debugger_Msg {
            break;
          }
 
+         case HOLD_THREAD: {
+             fprintf( outfile, "Timeout(usec): %08x\n", msg.dataArea.HOLD_THREAD.timeout);
+             break;
+         }
+
+         case SIGACTION: {
+             fprintf( outfile, "Signum: %08x  flags: %08x mask: %08x\n", msg.dataArea.SIGACTION.signum, msg.dataArea.SIGACTION.flags, msg.dataArea.SIGACTION.mask);  
+             break;
+         }
+
+         case MAP_MEM: {
+             fprintf( outfile, "MemMap size: %08x\n", msg.dataArea.MAP_MEM.len);
+             break;
+         }
+         case FAST_TRAP: {
+             fprintf( outfile, "FastTrap option: %d\n", msg.dataArea.FAST_TRAP.enable);
+             break;
+         }
+
+         case DEBUG_IGNORE_SIG: {
+             fprintf( outfile, "Debug ignore signal option: \n");
+             break;
+         }
+
          case GET_FLOAT_REG:
          case SET_FLOAT_REG:
          case GET_FLOAT_REG_ACK:
@@ -1233,6 +1337,13 @@ class BG_Debugger_Msg {
          case END_DEBUG_ACK:
          case GET_PROCESS_DATA:
          case GET_THREAD_DATA:
+         case HOLD_THREAD_ACK:
+         case RELEASE_THREAD:
+         case RELEASE_THREAD_ACK:
+         case SIGACTION_ACK:
+         case MAP_MEM_ACK:
+         case FAST_TRAP_ACK:
+         case DEBUG_IGNORE_SIG_ACK:
          case THIS_SPACE_FOR_RENT: {
            // Nothing to do for these packet types unless data is added to them
            break;
@@ -1264,6 +1375,7 @@ private:
             return false;
          }
 
+         fprintf(stderr, "Entering header read\n");
          int headerRc = read( fd, ((unsigned char *)&msg.header)+headerBytesRead, headerBytesToRead - headerBytesRead );
 
          if ( headerRc == 0 ) {
@@ -1295,7 +1407,9 @@ private:
             return false;
          }
 
+         fprintf(stderr, "Entering payload read\n");
          int payloadRc = read( fd, ((unsigned char *)&msg.dataArea)+payloadBytesRead, msg.header.dataLength - payloadBytesRead );
+         fprintf(stderr, "Read %d of %u bytes\n", payloadRc, (unsigned) msg.header.dataLength);
 
          if ( payloadRc == 0 ) {
             // End of file
@@ -1305,8 +1419,10 @@ private:
 
            // EINTR could be tolerable ... the others are not though
            if ( errno != EINTR ) {
-             perror( "BG_Debugger_Msg::readFromFd" );
-             return false;
+              int err = errno;
+              perror( "BG_Debugger_Msg::readFromFd" );
+              errno = err;
+              return false;
            }
 
          }
@@ -1315,7 +1431,6 @@ private:
          }
 
       }
-
       return true;
    }
 
@@ -1341,7 +1456,9 @@ private:
          if ( writeRc == -1 ) {
 
             if ( errno != EINTR ) {
+               int err = errno;
                perror( "BG_Debugger_msg::writeOnFd" );
+               errno = err;
                return false;
             }
 

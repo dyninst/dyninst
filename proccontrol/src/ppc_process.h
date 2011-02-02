@@ -44,6 +44,7 @@ class ppc_process : virtual public int_process
 
   virtual unsigned plat_breakpointSize();
   virtual void plat_breakpointBytes(char *buffer);
+  virtual bool plat_breakpointAdvancesPC() const;
 };
 
 #endif

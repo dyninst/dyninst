@@ -77,7 +77,9 @@ int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon
 
    if (attach) {
       pid_t mpirun_pid = run_local(new_test_args);
+      fprintf(stderr, "Executing mpirun from test_driver\n");
       sleep(10); //Want some better way to let mpirun get running
+      fprintf(stderr, "Attaching to mpirun from test_driver\n");
       rc = LMON_fe_attachAndSpawnDaemons(session,
                                          launcher_host,
                                          mpirun_pid,
@@ -146,7 +148,7 @@ static char **getLaunchParams(char *executable, char *args[], const char *num)
 {   
    int count = 0;
    for (char **counter = args; *counter; counter++, count++);
-   char **new_args = (char **) malloc(sizeof(char *) * (count+5));
+   char **new_args = (char **) malloc(sizeof(char *) * (count+7));
    new_args[0] = "mpirun";
    new_args[1] = "-np";
    new_args[2] = const_cast<char *>(num);

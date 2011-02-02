@@ -34,11 +34,14 @@
 
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Decoder.h"
+#include "proccontrol/h/PCErrors.h"
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/sysv.h"
 #include "proccontrol/src/ppc_process.h"
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/int_thread_db.h"
+
+#define SINGLE_STEP_SIG 32064
 
 #if defined(os_bgl)
 #include "external/bluegene/bgl-debugger-interface.h"
@@ -50,7 +53,7 @@
 
 #define BG_INITIAL_THREAD_ID 5
 
-class bg_process : public sysv_process, public ppc_process, public thread_db_process
+class bg_process : public sysv_process, public ppc_process
 {
    friend class HandleBGAttached;
    friend class DecoderBlueGene;
@@ -131,6 +134,13 @@ class bg_thread : public int_thread
    virtual bool plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
    virtual bool plat_setAllRegisters(int_registerPool &reg);
    virtual bool plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val);
+   virtual bool plat_getRegisterAsync(Dyninst::MachRegister reg, 
+                                      reg_response::ptr result);
+   virtual bool plat_setRegisterAsync(Dyninst::MachRegister reg, 
+                                      Dyninst::MachRegisterVal val,
+                                      result_response::ptr result);   
+   bool plat_getAllRegistersAsync(allreg_response::ptr result);
+   bool plat_setAllRegistersAsync(int_registerPool &pool, result_response::ptr result);
    virtual bool attach();   
 
    virtual bool plat_suspend() { return true; }
@@ -141,16 +151,21 @@ class ArchEventBlueGene : public ArchEvent
 {
   private:
    DebuggerInterface::BG_Debugger_Msg *msg;
+   response::ptr pc_resp;
+
   public:
    ArchEventBlueGene(DebuggerInterface::BG_Debugger_Msg *m);
    virtual ~ArchEventBlueGene();
    DebuggerInterface::BG_Debugger_Msg *getMsg() const;
+
+   response::ptr getPCResp();
+   void setPCResp(response::ptr r);
 };
 
 class DebugPortReader
 {
   private:
-   static const int port_num = 7201;
+   static const int port_num = 9000;
    DThread debug_port_thread;
    static DebugPortReader *me;
    bool shutdown;
@@ -190,13 +205,19 @@ class DecoderBlueGene : public Decoder
    virtual unsigned getPriority() const;
    virtual bool decode(ArchEvent *archE, std::vector<Event::ptr> &events);
    
-   Event::ptr decodeGetRegAck(DebuggerInterface::BG_Debugger_Msg *msg);
-   Event::ptr decodeGetAllRegAck(DebuggerInterface::BG_Debugger_Msg *msg);
-   Event::ptr decodeGetMemAck(DebuggerInterface::BG_Debugger_Msg *msg);
-   Event::ptr decodeResultAck(DebuggerInterface::BG_Debugger_Msg *msg);
-   
-
+   Event::ptr decodeGetRegAck(DebuggerInterface::BG_Debugger_Msg *msg, response::ptr & resp);
+   Event::ptr decodeGetAllRegAck(DebuggerInterface::BG_Debugger_Msg *msg, response::ptr & resp);
+   Event::ptr decodeGetMemAck(DebuggerInterface::BG_Debugger_Msg *msg, response::ptr & resp);
+   Event::ptr decodeResultAck(DebuggerInterface::BG_Debugger_Msg *msg, response::ptr & resp);
    Event::ptr decodeAsyncAck(response::ptr resp);
+
+   bool getPC(Address &addr, int_thread *thr, ArchEventBlueGene *cur_event);
+
+   //Sometimes the decoder will generate an async event (e.g., reading PC values
+   // for breakpoint decoding).  decodeDecoderAsync will handle upon recieving
+   // the appropriate ACK event, and turn the ACK event into the original ArchEvent
+   // that triggered the original decode.
+   Event::ptr decodeDecoderAsync(response::ptr resp);
 };
 
 

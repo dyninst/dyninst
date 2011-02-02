@@ -414,11 +414,11 @@ bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
 #if defined(RUN_IN_VALGRIND) 
    string driver_exec = "valgrind";
    driver_args.push_back("--tool=memcheck");
-   driver_args.push_back("testdriver_be");
+   driver_args.push_back("testdriver_be2");
 #else
    static char buffer[4096];
    char *wd = getcwd(buffer, 4096);
-   strncat(wd, "/testdriver_be", 4096);
+   strncat(wd, "/testdriver_be2", 4096);
    string driver_exec = wd;
 #endif
    char port_s[32];

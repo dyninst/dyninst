@@ -60,3 +60,7 @@ void ppc_process::plat_breakpointBytes(char *buffer)
   buffer[3] = 0x08;
 }
 
+bool ppc_process::plat_breakpointAdvancesPC() const
+{
+   return false;
+}

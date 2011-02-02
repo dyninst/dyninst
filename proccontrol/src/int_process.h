@@ -188,6 +188,7 @@ class int_process
 
    virtual unsigned plat_breakpointSize() = 0;
    virtual void plat_breakpointBytes(char *buffer) = 0;
+   virtual bool plat_breakpointAdvancesPC() const = 0;
 
    virtual bool plat_createDeallocationSnippet(Dyninst::Address addr, unsigned long size, void* &buffer, 
                                                unsigned long &buffer_size, unsigned long &start_offset) = 0;
