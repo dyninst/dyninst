@@ -753,7 +753,7 @@ bool HybridAnalysis::instrumentModule(BPatch_module *mod, bool useInsertionSet)
     for (; fIter != modFuncs->end(); fIter++) 
     {
         if ( instrumentedFuncs->find(*fIter) == instrumentedFuncs->end() ) {
-            didInstrument = instrumentFunction(*fIter,false) || didInstrument;
+            if (instrumentFunction(*fIter, false)) didInstrument = true;
         }
     }
     

@@ -267,6 +267,7 @@ int AddressSpace::findFreeIndex(unsigned size, int type, Address lo, Address hi)
 }
 
 void AddressSpace::addHeap(heapItem *h) {
+    cerr << "addHeap " << hex << h->addr << " -> " << h->addr + h->length << endl;
     heap_.bufferPool.push_back(h);
     heapItem *h2 = new heapItem(h);
     h2->status = HEAPfree;
@@ -1881,9 +1882,7 @@ void AddressSpace::addAllocatedRegion(Address start, unsigned size) {
 }
 
 void AddressSpace::addModifiedRegion(mapped_object *obj) {
-   if (BPatch_defensiveMode == obj->hybridMode()) { //KEVINTODO: this should be conditional on whether the object has memory emulation
-       memEmulator_->addRegion(obj);
-   }
+    memEmulator_->addRegion(obj);
    return;
 }
 

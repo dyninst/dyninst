@@ -117,6 +117,11 @@ void MemoryEmulator::addAllocatedRegion(Address start, unsigned size) {
 
 void MemoryEmulator::addRegion(mapped_object *obj) {
    cerr << "addRegion for " << obj->fileName() << endl;
+   if (aS_->runtime_lib.find(obj) != aS_->runtime_lib.end())
+   {
+       // Runtime library, skip
+       return;
+   }
 
    // Add each code region
    std::vector<Region *> codeRegions;
@@ -249,8 +254,9 @@ void MemoryEmulator::removeRegion(Region *reg, Address base) {
 }
 
 void MemoryEmulator::addRegion(Address start, unsigned size, Address shift) {
-   if (size == 0) return;
-   //cerr << "MemoryEmulator: adding region " << hex << start << " : " << size << " /w/ shift " << shift << dec << endl;
+   cerr << "MemoryEmulator: adding region " << hex << start << " : " << size << " /w/ shift " << shift << dec << endl;
+
+    if (size == 0) return;
    //debug();
    //cerr << endl;
    Address end = start + size;
@@ -316,7 +322,7 @@ void MemoryEmulator::removeRegion(Address addr, unsigned size) {
 	Address lb = 0, ub = 0;
 	unsigned long shiftVal;
 
-	//cerr << "MemoryEmulator: removing region " << hex << addr << " : " << size << dec << endl;
+	cerr << "MemoryEmulator: removing region " << hex << addr << " : " << size << dec << endl;
 
    //debug();
    //cerr << endl;

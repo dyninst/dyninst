@@ -407,7 +407,7 @@ bool CFAtom::generateCall(CodeBuffer &buffer,
 			  Instruction::Ptr insn) {
   if (!to) {
     // This can mean an inter-module branch...
-    DebugBreak();
+   // DebugBreak();
     return true;
   }
 
@@ -621,7 +621,6 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
    // And tell our people to use the top of the stack
    // for their work.
    // TODO: trust liveness and leave this in a register. 
-   patch.fill(1, codeGen::cgTrap);
 
    buffer.addPIC(patch, tracker());
    reg = REGNUM_ESP;
@@ -650,7 +649,7 @@ std::string CFAtom::format() const {
       ret << iter->first;
       break;
     }
-    ret << "->" << iter->second->format() << ",";
+    ret << "->" << (iter->second ? iter->second->format() : "<NULL>") << ",";
   }
   ret << std::dec << ")";
   return ret.str();
