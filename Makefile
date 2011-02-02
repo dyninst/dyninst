@@ -116,10 +116,10 @@ testsuite_install: $(fullSystem_install_notests)
 #  targ: $filter-out( $(targ),$($(targ)))
 # Thus when targ is stackwalk we will evaluate to:
 #   stackwalk: dynutil common proccontrol    
-$(foreach targ,$(Everything),$(eval $(targ): $(filter-out $(targ),$($(targ)))))
+$(foreach targ,$(Everything) $(Everything_tests),$(eval $(targ): $(filter-out $(targ),$($(targ)))))
 
 # Same as above, but for %_install targets
-$(foreach targ,$(Everything),$(eval $(targ)_install: $(patsubst %,%_install,$(filter-out $(targ),$($(targ))))))
+$(foreach targ,$(Everything) $(Everything_tests),$(eval $(targ)_install: $(patsubst %,%_install,$(filter-out $(targ),$($(targ))))))
 
 # Now add testsuite dependency rules.  An example of these expanding is:
 #   dyninstAPI_testsuite: dyninstAPI
