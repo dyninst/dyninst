@@ -1101,77 +1101,78 @@ static void init_dynreg_to_user()
       cur+= 8; //r14
       cur+= 8; //r13
       cur+= 8; //r12
-      dynreg_to_user[x86::ebp]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::ebx]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
+      dynreg_to_user[x86::ebp]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::ebx]   = make_pair(cur+=8, 4);
       cur+= 8; //r11
       cur+= 8; //r10
       cur+= 8; //r9
       cur+= 8; //r8
-      dynreg_to_user[x86::eax]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::ecx]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::edx]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::esi]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::edi]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::oeax]  = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::eip]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::cs]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::flags] = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::esp]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::ss]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::fsbase]= std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::gsbase]= std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::ds]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::es]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::fs]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::gs]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
+      dynreg_to_user[x86::eax]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::ecx]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::edx]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::esi]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::edi]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::oeax]  = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::eip]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::cs]    = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::flags] = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::esp]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::ss]    = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::fsbase]= make_pair(cur+=8, 4);
+      dynreg_to_user[x86::gsbase]= make_pair(cur+=8, 4);
+      dynreg_to_user[x86::ds]    = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::es]    = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::fs]    = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::gs]    = make_pair(cur+=8, 4);
    }
    else {
-      dynreg_to_user[x86::ebx]   = std::pair<unsigned int, unsigned int>(cur, 4);
-      dynreg_to_user[x86::ecx]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::edx]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::esi]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::edi]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::ebp]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::eax]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::ds]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::es]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::fs]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::gs]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::oeax]  = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::eip]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::cs]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::flags] = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::esp]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::ss]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
+      dynreg_to_user[x86::ebx]   = make_pair(cur, 4);
+      dynreg_to_user[x86::ecx]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::edx]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::esi]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::edi]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::ebp]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::eax]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::ds]    = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::es]    = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::fs]    = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::gs]    = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::oeax]  = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::eip]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::cs]    = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::flags] = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::esp]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::ss]    = make_pair(cur+=4, 4);
    }
    cur = 0;
-   dynreg_to_user[x86_64::r15]    = std::pair<unsigned int, unsigned int>(cur, 8);
-   dynreg_to_user[x86_64::r14]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r13]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r12]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rbp]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rbx]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r11]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r10]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r9]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r8]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rax]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rcx]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rdx]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rsi]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rdi]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::orax]   = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rip]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::cs]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::flags]  = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rsp]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::ss]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::fsbase] = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::gsbase] = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::ds]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::es]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::fs]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::gs]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
+   dynreg_to_user[x86_64::r15]    = make_pair(cur, 8);
+   dynreg_to_user[x86_64::r14]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r13]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r12]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rbp]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rbx]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r11]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r10]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r9]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r8]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rax]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rcx]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rdx]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rsi]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rdi]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::orax]   = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rip]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::cs]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::flags]  = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rsp]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::ss]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::fsbase] = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::gsbase] = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::ds]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::es]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::fs]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::gs]     = make_pair(cur+=8, 8);
+
    initialized = true;
 
    init_lock.unlock();
@@ -1255,17 +1256,28 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    return true;
 }
 
-bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
-{
-   init_dynreg_to_user();
-
+bool linux_thread::plat_setAllRegisters(int_registerPool &regpool) {
    unsigned char user_area[MAX_USER_SIZE];
 
    //Fill in 'user_area' with the contents of regpool.
-   dynreg_to_user_t::iterator i;
+   if( !plat_convertToSystemRegs(regpool, user_area) ) return false;
+
+   int result = do_ptrace((pt_req) PTRACE_SETREGS, lwp, NULL, user_area);
+   if (result != 0) {
+      perr_printf("Error setting registers for %d\n", lwp);
+      setLastError(err_internal, "Could not read user area from thread");
+      return false;
+   }
+   pthrd_printf("Successfully set the values of all registers for %d\n", lwp);
+   return true;
+}
+
+bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, unsigned char *user_area) {
+   init_dynreg_to_user();
+
+   Architecture curplat = llproc()->getTargetArch();
    unsigned num_found = 0;
-   Dyninst::Architecture curplat = llproc()->getTargetArch();
-   for (i = dynreg_to_user.begin(); i != dynreg_to_user.end(); i++)
+   for (dynreg_to_user_t::const_iterator i = dynreg_to_user.begin(); i != dynreg_to_user.end(); i++)
    {
       const MachRegister reg = i->first;
       MachRegisterVal val;
@@ -1276,11 +1288,15 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
       const unsigned int size = i->second.second;
       assert(offset+size < MAX_USER_SIZE);
       
-      int_registerPool::reg_map_t::iterator j = regpool.regs.find(reg);
+      int_registerPool::reg_map_t::const_iterator j = regpool.regs.find(reg);
       assert(j != regpool.regs.end());
       val = j->second;
       
       if (size == 4) {
+          if( sizeof(void *) == 8 ) {
+              // Zero unused memory
+              *((uint64_t *) (user_area+offset)) = (uint64_t) 0;
+          }
          *((uint32_t *) (user_area+offset)) = (uint32_t) val;
       }
       else if (size == 8) {
@@ -1291,6 +1307,7 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
       }
       pthrd_printf("Register %s gets value %lx, offset %d\n", reg.name(), val, offset);
    }
+
    if (num_found != regpool.regs.size())
    {
       setLastError(err_badparam, "Invalid register set passed to setAllRegisters");
@@ -1300,13 +1317,6 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
    }
    assert(num_found == regpool.regs.size());
 
-   int result = do_ptrace((pt_req) PTRACE_SETREGS, lwp, NULL, user_area);
-   if (result != 0) {
-      perr_printf("Error setting registers for %d\n", lwp);
-      setLastError(err_internal, "Could not read user area from thread");
-      return false;
-   }
-   pthrd_printf("Successfully set the values of all registers for %d\n", lwp);
    return true;
 }
 
@@ -1444,7 +1454,7 @@ bool linux_thread::attach()
 #define FS_REG_NUM 25
 #define GS_REG_NUM 26
 
-bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
+bool linux_thread::plat_getThreadArea(int val, Dyninst::Address &addr)
 {
    Dyninst::Architecture arch = llproc()->getTargetArch();
    switch (arch) {
@@ -1467,7 +1477,7 @@ bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
          else if (val == GS_REG_NUM)
             op = ARCH_GET_GS;
          else {
-            perr_printf("Bad value (%d) passed to thrdb_getThreadArea\n", val);
+            perr_printf("Bad value (%d) passed to plat_getThreadArea\n", val);
             return false;
          }
          uint64_t addrv;

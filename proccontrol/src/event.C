@@ -720,8 +720,8 @@ EventChangePCStop::~EventChangePCStop()
    }
 
 DEFN_EVENT_CAST3(EventTerminate, Exit, Crash, ForceTerminate)
-DEFN_EVENT_CAST2(EventNewThread, ThreadCreate, LWPCreate)
-DEFN_EVENT_CAST2(EventThreadDestroy, ThreadDestroy, UserThreadDestroy)
+DEFN_EVENT_CAST2(EventNewThread, UserThreadCreate, LWPCreate)
+DEFN_EVENT_CAST2(EventThreadDestroy, UserThreadDestroy, LWPDestroy)
 DEFN_EVENT_CAST(EventExit, Exit)
 DEFN_EVENT_CAST(EventCrash, Crash)
 DEFN_EVENT_CAST(EventForceTerminate, ForceTerminate)

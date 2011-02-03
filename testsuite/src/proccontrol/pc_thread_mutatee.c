@@ -69,15 +69,15 @@ static int sendThreadMsg(int initial_thrd)
    int result;
    threadinfo tinfo;
    tinfo.code = THREADINFO_CODE;
-   tinfo.pid = (uint64_t) getpid();
-   tinfo.lwp = (uint64_t) getlwp();
-   tinfo.tid = (uint64_t) pthread_self();
-   tinfo.a_stack_addr = (uint64_t) &tinfo;
+   tinfo.pid = (unsigned long) getpid();
+   tinfo.lwp = (unsigned long) getlwp();
+   tinfo.tid = (unsigned long) pthread_self();
+   tinfo.a_stack_addr = (unsigned long) &tinfo;
    if (initial_thrd)
-      tinfo.initial_func = (uint64_t) 0x0;
+      tinfo.initial_func = (unsigned long) 0x0;
    else
-      tinfo.initial_func = (uint64_t) &ThreadTrampoline;
-   tinfo.tls_addr = (uint64_t) &thread_test_tls;
+      tinfo.initial_func = (unsigned long) &ThreadTrampoline;
+   tinfo.tls_addr = (unsigned long) &thread_test_tls;
 
    testLock(&sendlock);
    result = send_message((unsigned char *) &tinfo, sizeof(tinfo));

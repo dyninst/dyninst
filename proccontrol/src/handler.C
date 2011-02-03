@@ -678,11 +678,27 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    ProcPool()->condvar()->lock();
    
    int_thread *newthr = int_thread::createThread(proc, NULL_THR_ID, threadev->getLWP(), false);
-   //New threads start stopped, but inherit the user state of the creating
-   // thread (which should be 'running').
    newthr->setGeneratorState(int_thread::stopped);
    newthr->setHandlerState(int_thread::stopped);
-   newthr->setInternalState(thrd->getUserState());
+
+   if( proc->hasQueuedProcStoppers() ) {
+       // The following ordering of problems causes problems: 
+       // Breakpoint LWPCreate Stop
+       //
+       // Breakpoints require a whole process stop. However, an LWPCreate (this
+       // event) is interleaved between the Breakpoint and any stops required
+       // to handle the Breakpoint. Thus, the new thread isn't put into a
+       // stopped state because the parent thread isn't in a stopped state when
+       // this event is processed. 
+       //
+       // Make the necessary changes due to the postponed Breakpoint event
+       newthr->desyncInternalState();
+       newthr->setInternalState(int_thread::stopped);
+   }else{
+       //New threads start stopped, but inherit the user state of the creating
+       // thread (which should be 'running').
+       newthr->setInternalState(thrd->getUserState());
+   }
    newthr->setUserState(thrd->getUserState());
    
    ProcPool()->condvar()->signal();
@@ -1446,6 +1462,10 @@ void HandleCallbacks::getRealEvents(EventType ev, std::vector<EventType> &out_ev
       case EventType::ThreadCreate:
          out_evs.push_back(EventType(ev.time(), EventType::UserThreadCreate));
          out_evs.push_back(EventType(ev.time(), EventType::LWPCreate));
+         break;
+      case EventType::ThreadDestroy:
+         out_evs.push_back(EventType(ev.time(), EventType::UserThreadDestroy));
+         out_evs.push_back(EventType(ev.time(), EventType::LWPDestroy));
          break;
       default:
          out_evs.push_back(ev);
