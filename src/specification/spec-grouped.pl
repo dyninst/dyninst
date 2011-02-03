@@ -2661,12 +2661,12 @@ whitelist([['platform', Platform], ['mutatee_abi', ABI]]) :-
     platform_abi(Platform, ABI).
 
 % platform_abi/2
-% All platforms support 32-bit mutatees except ia64
-% FIXME Does ppc64 support 32-bit mutatees?
+% All platforms support 32-bit mutatees except ia64, ppc64, and freebsd.
 platform_abi(Platform, 32) :-
     platform(Arch, _, _, Platform),
     Arch \= 'ia64',
-    Platform \= 'amd64-unknown-freebsd7.2'.
+    \+ member(Platform, ['amd64-unknown-freebsd7.2',
+                         'ppc64_linux']).
 
 % A smaller list of platforms with for 64-bit mutatees
 platform_abi('ia64-unknown-linux2.4', 64).
@@ -3120,10 +3120,26 @@ compiler_platform_abi_s(Compiler, Platform, ABI, '') :-
     compiler_platform(Compiler, Platform),
     mutatee_abi(ABI),
     platform_abi(Platform, ABI),
-    \+ (member(Compiler, ['gcc', 'g++']), Platform = 'x86_64-unknown-linux2.4',
-        ABI = 32).
+    \+ ((member(Compiler, ['gcc', 'g++', 'icc', 'iCC', 'pgcc', 'pgCC']),
+         Platform = 'x86_64-unknown-linux2.4',
+         ABI = 32);
+        (member(Compiler, ['gcc', 'g++']),
+         Platform = 'ppc64_linux')).
+
 compiler_platform_abi_s(Compiler, 'x86_64-unknown-linux2.4', 32,
                         '-m32 -Di386_unknown_linux2_4 -Dm32_test') :-
+    member(Compiler, ['gcc', 'g++', 'icc', 'iCC']).
+compiler_platform_abi_s(Compiler, 'x86_64-unknown-linux2.4', 32,
+                        '-tp px -Di386_unknown_linux2_4 -Dm32_test') :-
+    member(Compiler, ['pgcc', 'pgCC']).
+%
+% PPC64 platform doesn't support 32-bit mutatees (yet).
+%
+%compiler_platform_abi_s(Compiler, 'ppc64_linux', 32,
+%                        '-m32 -Dppc32_linux -Dm32_test') :-
+%    member(Compiler, ['gcc', 'g++']).
+compiler_platform_abi_s(Compiler, 'ppc64_linux', 64,
+                        '-m64') :-
     member(Compiler, ['gcc', 'g++']).
 
 
