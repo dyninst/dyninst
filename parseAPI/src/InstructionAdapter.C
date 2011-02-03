@@ -132,7 +132,7 @@ bool InstructionAdapter::hasUnresolvedControlFlow(Function* context, unsigned in
         return true;
     }
     if(getReturnStatus(context, num_insns) == UNKNOWN)
-    {
+    { // true for indirect branches
         return true;
     }
     return false;
