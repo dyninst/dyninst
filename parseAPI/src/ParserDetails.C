@@ -421,7 +421,7 @@ void Parser::ProcessCFInsn(
     }
 
     if (unlikely(_obj.defensiveMode() && edges_out.empty() && has_unres)) {
-        ProcessBadBranchEdge(frame, cur, ah, has_unres, 0, INDIRECT);
+        ProcessBadBranchEdge(frame, cur, ah, has_unres, -1, INDIRECT);
     }
 
     if(ah.isDelaySlot())
