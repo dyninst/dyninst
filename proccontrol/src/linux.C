@@ -594,6 +594,39 @@ bool linux_process::plat_create_int()
    return true;
 }
 
+// Defaults to is running
+bool linux_process::plat_getOSRunningState(Dyninst::LWP lwp) const {
+    char proc_stat_name[128];
+    char sstat[256];
+    char *status;
+    int paren_level = 1;
+    
+    snprintf(proc_stat_name, 128, "/proc/%d/stat", lwp);
+    FILE *sfile = fopen(proc_stat_name, "r");
+
+    if (sfile == NULL) return true;
+    if( fread(sstat, 1, 256, sfile) == 0 ) {
+        pthrd_printf("Failed to read /proc/<pid>/stat file for %d\n",
+                pid);
+        return true;
+    }
+    fclose(sfile);
+
+    sstat[255] = '\0';
+    status = sstat;
+
+    while (*status != '\0' && *(status++) != '(') ;
+    while (*status != '\0' && paren_level != 0) {
+        if (*status == '(') paren_level++;
+        if (*status == ')') paren_level--;
+        status++;
+    }
+
+    while (*status == ' ') status++;
+
+    return (*status != 'T');
+}
+
 bool linux_process::plat_attach()
 {
    pthrd_printf("Attaching to pid %d\n", pid);

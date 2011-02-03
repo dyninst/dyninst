@@ -219,7 +219,10 @@ class int_process
                                   mem_response::ptr result);
    virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
                                    size_t size, result_response::ptr result);
-   
+
+   // true = running
+   virtual bool plat_getOSRunningState(Dyninst::LWP lwp) const = 0;
+
    typedef enum {
        NoLWPControl = 0,
        HybridLWPControl, // see below for a description of these modes
@@ -429,6 +432,8 @@ class int_thread
    bool hasPendingStop() const;
    void setResumed(bool b);
    bool isResumed() const;
+   bool wasRunningWhenAttached() const;
+   void setRunningWhenAttached(bool b);
 
    // Needed for HybridLWPControl thread control mode
    // These can be no-ops for other modes
@@ -553,7 +558,7 @@ class int_thread
    bool handler_exiting_state;
    bool generator_exiting_state;
    installed_breakpoint *clearing_breakpoint;
-
+   bool running_when_attached;
 
    bool setAnyState(int_thread::State *from, int_thread::State to);
 

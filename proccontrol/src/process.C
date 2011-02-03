@@ -205,6 +205,24 @@ bool int_process::attach()
 {
    ProcPool()->condvar()->lock();
 
+   // Determine the running state of all threads before attaching
+   map<Dyninst::LWP, bool> runningStates;
+   vector<Dyninst::LWP> lwps;
+   if( !getThreadLWPs(lwps) ) {
+       ProcPool()->condvar()->broadcast();
+       ProcPool()->condvar()->unlock();
+
+       pthrd_printf("Failed to determine lwps in %d\n", pid);
+       setLastError(err_internal, "Could not determine lwps for process");
+       return false;
+   }
+
+   for(vector<Dyninst::LWP>::iterator i = lwps.begin(); 
+           i != lwps.end(); ++i) 
+   {
+       runningStates.insert(make_pair(*i, plat_getOSRunningState(*i)));
+   }
+
    pthrd_printf("Attaching to process %d\n", pid);
    bool result = plat_attach();
    if (!result) {
@@ -231,6 +249,14 @@ bool int_process::attach()
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 
+   // Now that all the threads are created, set their running states
+   for(int_threadPool::iterator i = threadPool()->begin();
+           i != threadPool()->end(); ++i)
+   {
+       map<Dyninst::LWP, bool>::iterator findIter = runningStates.find((*i)->getLWP());
+       assert(findIter != runningStates.end());
+       (*i)->setRunningWhenAttached(findIter->second);
+   }
 
    pthrd_printf("Wait for attach from process %d\n", pid);
    result = waitfor_startup();
@@ -2211,6 +2237,14 @@ bool int_thread::isResumed() const
     return resumed;
 }
 
+bool int_thread::wasRunningWhenAttached() const {
+    return running_when_attached;
+}
+
+void int_thread::setRunningWhenAttached(bool b) {
+    running_when_attached = b;
+}
+
 Process::ptr int_thread::proc() const
 {
    return proc_->proc();
@@ -2416,7 +2450,8 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    postponed_continue(false),
    handler_exiting_state(false),
    generator_exiting_state(false),
-   clearing_breakpoint(false)
+   clearing_breakpoint(false),
+   running_when_attached(true)
 {
    Thread::ptr new_thr(new Thread());
 
@@ -4407,6 +4442,24 @@ bool Process::allThreadsRunning() const
          return false;
    }
    return true;
+}
+
+bool Process::allThreadsRunningWhenAttached() const 
+{
+    MTLock lock_this_func;
+    if(!llproc_) {
+        perr_printf("allThreadsRunningWhenAttached on deleted process\n");
+        setLastError(err_exited, "Process is exited\n");
+        return false;
+    }
+
+    for(int_threadPool::iterator i = llproc_->threadPool()->begin(); 
+            i != llproc_->threadPool()->end(); ++i)
+    {
+        if( !(*i)->wasRunningWhenAttached() ) return false;
+    }
+
+    return true;
 }
 
 Thread::ptr Process::postIRPC(IRPC::ptr irpc) const

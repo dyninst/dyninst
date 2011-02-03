@@ -294,6 +294,7 @@ class Process
    bool hasRunningThread() const;
    bool allThreadsStopped() const;
    bool allThreadsRunning() const;
+   bool allThreadsRunningWhenAttached() const;
 
    Dyninst::Architecture getArchitecture() const;
 

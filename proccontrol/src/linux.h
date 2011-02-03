@@ -102,6 +102,7 @@ class linux_process : public sysv_process, public unix_process, public x86_proce
    virtual bool plat_contProcess() { return true; }
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
    virtual bool plat_supportLWPEvents() const;
+   virtual bool plat_getOSRunningState(Dyninst::LWP lwp) const;
 };
 
 class linux_thread : public thread_db_thread
