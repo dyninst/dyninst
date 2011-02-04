@@ -40,8 +40,6 @@
 #include <assert.h>
 #include <errno.h>
 
-#define os_bluegene_test
-
 #if defined(os_windows_test)
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -167,7 +165,7 @@ static int useAttach = FALSE;
 void handleAttach()
 {
    char ch = 'T';
-#if defined(os_bluegene_test)
+#if defined(os_bg_test)
    return;
    struct timeval start_time;
 #elif !defined(os_windows_test)
@@ -258,12 +256,6 @@ int main(int iargc, char *argv[])
    unsigned int label_count = 0;
    int print_labels = FALSE;
    int has_pidfile = 0;
-
-   fprintf(stderr, "Mutatee args: ");
-   for (i=0; i<iargc; i++) {
-      fprintf(stderr, "%s ", argv[i]);
-   }
-   fprintf(stderr, "\n");
 
    gargc = argc;
    gargv = argv;

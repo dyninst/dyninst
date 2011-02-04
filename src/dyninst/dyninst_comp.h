@@ -200,17 +200,6 @@ COMPLIB_DLL_EXPORT bool getVar(BPatch_image *appImage, const char *vname, void *
 // Functions in test_lib_soExecution.C below
 //           or test_lib_dllExecution.C
 
-// Function in MutateeStart.C
-COMPLIB_DLL_EXPORT BPatch_process *startMutateeTestGeneric(BPatch *bpatch, const char *pathname, const char **child_argv, bool createmode);
-
-COMPLIB_DLL_EXPORT BPatch_process *startMutateeTest(BPatch *bpatch, const char *mutatee, const char *testname, bool createmode, char *logfilename, char *humanlogname);
-
-COMPLIB_DLL_EXPORT BPatch_process *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool
-verboseFormat, bool printLabels, int debugPrint, char *pidfilename, char *mutatee_resumelog, int unique);
-
-COMPLIB_DLL_EXPORT BPatch_process *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool
-verboseFormat, bool printLabels, int debugPrint, char *pidfilename, char *mutatee_resumelog, int unique);
-
 COMPLIB_DLL_EXPORT BPatch_binaryEdit *startBinaryTest(BPatch *bpatch, RunGroup *group);
 
 COMPLIB_DLL_EXPORT bool runBinaryTest(RunGroup *group, ParameterDict &params, test_results_t &test_result);

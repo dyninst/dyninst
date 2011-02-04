@@ -169,9 +169,14 @@ static void AddArchAttachArgs(std::vector<std::string> &args, create_mode_t cm)
 extern FILE *getOutputLog();
 extern FILE *getErrorLog();
 
-static std::string launchMutatee_plat(std::string exec_name, const std::vector<std::string> &args)
+static std::string launchMutatee_plat(std::string exec_name, const std::vector<std::string> &args, bool needs_grand_fork)
 {   
-   pid_t pid = fork_mutatee();
+   pid_t pid;
+   if (needs_grand_fork)
+      pid = fork_mutatee();
+   else
+      pid = fork();
+
    if (pid < 0) {
       return std::string("");
    }
@@ -277,7 +282,12 @@ std::string launchMutatee(std::string executable, std::vector<std::string> &args
    if (!shouldLaunch(group, params))
       return std::string(group_num) + ":-1";
 
-   string ret = launchMutatee_plat(executable, args);
+   bool needs_grand_fork = false;
+#if defined(os_linux)
+   need_grand_fork = (group->createmode == USEATTACH);
+#endif
+
+   string ret = launchMutatee_plat(executable, args, needs_grand_fork);
    if (ret == string(""))
       return string("");
 
@@ -405,6 +415,7 @@ int getMutateePid(RunGroup *group)
    int group_id;
    int pid;
 
+   sscanf(mutatee_string.c_str(), "%d:%d", &group_id, &pid);
    assert(group->index == group_id || group_id == -1);
 
    return pid;

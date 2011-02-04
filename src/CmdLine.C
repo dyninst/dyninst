@@ -115,6 +115,8 @@ ModeGroup mode_args[] = {
    { "ibmas",       COMPILERS, defaultOff },
    { "masm",        COMPILERS, defaultOff },
    { "nasm",        COMPILERS, defaultOff },
+   { "bgxlc",       COMPILERS, defaultOff },
+   { "bgxlc++",     COMPILERS, defaultOn  },
    { "nocompiler",  COMPILERS, defaultOn  },
    { "create",      RUNMODES,  defaultOn  },
    { "attach",      RUNMODES,  defaultOff },
