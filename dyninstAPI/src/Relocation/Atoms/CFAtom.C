@@ -441,7 +441,8 @@ bool CFAtom::generateIndirect(CodeBuffer &buffer,
 	  // at the top of the stack, go get 'er Tiger!"
 	  assert(reg == REGNUM_ESP);
 	  codeGen gen(1);
-	  GET_PTR(insn, gen);
+      //gen.fill(1, codeGen::cgTrap);
+      GET_PTR(insn, gen);
       *insn++ = 0xC3; // RET
       SET_PTR(insn, gen);
 	  buffer.addPIC(gen, tracker());
@@ -493,6 +494,11 @@ bool CFAtom::generateIndirect(CodeBuffer &buffer,
   // TODO: don't ignore reg...
   // Indirect branches don't use the PC and so are
   // easy - we just copy 'em.
+#if 0
+  codeGen gen(1);
+  gen.fill(1, codeGen::cgTrap);
+  buffer.addPIC(gen, tracker());
+#endif
   buffer.addPIC(raw, tracker());
 
   return true;
@@ -518,7 +524,13 @@ bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
       buffer.addPatch(newPatch, tracker());
    }
    else {
-      buffer.addPIC(insn->ptr(), insn->size(), tracker());
+#if 0
+       codeGen gen;
+       gen.fill(1, codeGen::cgTrap);
+       gen.copy(insn->ptr(), insn->size());
+       buffer.addPIC(gen, tracker());
+#endif
+       buffer.addPIC(insn->ptr(), insn->size(), tracker());
    }
    
    return true;
