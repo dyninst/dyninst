@@ -101,6 +101,7 @@ class PCSensitiveTransformer : public Transformer {
   virtual bool postprocess(TraceList &);
 
   static void invalidateCache(int_function *);
+  static void invalidateCache(const int_block *);
 
  private:
   bool analysisRequired(TraceList::iterator &);
@@ -135,7 +136,7 @@ class PCSensitiveTransformer : public Transformer {
 
   static void cacheAnalysis(const int_block *bbl, Address addr, bool intSens, bool extSens);
   static bool queryCache(const int_block *bbl, Address addr, bool &intSens, bool &extSens);
-  static void invalidateCache(const int_block *);
+
 
   AssignmentConverter aConverter;
 

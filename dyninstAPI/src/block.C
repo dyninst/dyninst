@@ -250,3 +250,8 @@ bool int_block::containsCall()
 int int_block::id() const {
     return llb()->id();
 }
+
+void int_block::triggerModified() {
+    // Relocation info caching...
+    PCSensitiveTransformer::invalidateCache(this);
+}

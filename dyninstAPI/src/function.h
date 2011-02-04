@@ -104,6 +104,8 @@ class int_block {
     // may be
     bool hasSharedBase() const { return ib_->isShared(); }
 
+    void triggerModified();
+
     image_basicBlock * llb() const { return ib_; }
     
     struct compare {

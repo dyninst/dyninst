@@ -638,6 +638,7 @@ void int_function::deleteBlock(int_block* block)
 
     // It appears that we delete the int_block before the image_basicBlock...
     //assert(consistency());
+    triggerModified();
 }
 
 void int_function::splitBlock(image_basicBlock *img_orig, 
@@ -674,9 +675,6 @@ void int_function::removeFromAll()
     mal_printf("purging blocks_ of size = %d from func at %lx\n",
                blocks_.size(), getAddress());
 
-    // invalidates analyses related to this function
-	triggerModified();
-
     BlockSet::const_iterator bIter;
     for (bIter = blocks_.begin(); 
          bIter != blocks_.end(); 
@@ -707,6 +705,10 @@ void int_function::removeFromAll()
 
     // remove func & blocks from image, ParseAPI, & SymtabAPI datastructures
     ifunc()->img()->deleteFunc(ifunc());
+
+    // invalidates analyses related to this function
+	triggerModified();
+
     delete(this);
 }
 
@@ -1358,7 +1360,4 @@ void int_function::triggerModified() {
 
     // invalidate liveness calculations
     ifunc()->invalidateLiveness();
-
-	// Relocation info caching...
-	PCSensitiveTransformer::invalidateCache(this);
 }
