@@ -111,7 +111,7 @@ static gcframe_ret_t HandleStandardFrame(const Frame &in, Frame &out, ProcessSta
   } ra_fp_pair;
 
   in_fp = in.getFP();
-  out_sp = in_fp + addr_width;
+  out_sp = in_fp + (2 * addr_width);
 
 #if defined(arch_x86_64)
   /**

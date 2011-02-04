@@ -136,6 +136,7 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     friend class BPatch_sequence;
     friend class BPatch_insnExpr;
     friend class BPatch_stopThreadExpr;
+    friend class BPatch_utilExpr;
     friend AstNodePtr generateArrayRef(const BPatch_snippet &lOperand, 
                                        const BPatch_snippet &rOperand);
     friend AstNodePtr generateFieldRef(const BPatch_snippet &lOperand, 
@@ -147,18 +148,32 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
 
     int PDSEP_astMinCost(); // This will go away too
 
+
     //  BPatch_snippet::BPatch_snippet
     //  Default constructor
 
     BPatch_snippet();
+    BPatch_snippet(AstNodePtr ast) {BPatch_snippet(); ast_wrapper = ast;}
 
     //  BPatch_snippet::BPatch_snippet
     //  Copy constructor
 
     public:  BPatch_snippet(const BPatch_snippet &src) : BPatch_eventLock(src)
              { LOCK_FUNCTION_V(BPatch_snippetInt,(src)); }
-    private: void BPatch_snippetInt(const BPatch_snippet &src);
 
+
+  public:
+    //DynC internal use only
+    //  BPatch_snippet::getType
+    //  Returns the type of the underlying AST
+    API_EXPORT(Int, (),
+    BPatch_type *,getType,());
+
+
+  private: 
+
+    void BPatch_snippetInt(const BPatch_snippet &src);
+    void BPatch_snippetInt(const AstNodePtr &node);
     //  BPatch_snippet:operator=
     //  Assign one BPatch_snippet to another
     API_EXPORT_OPER(_equals, (src),

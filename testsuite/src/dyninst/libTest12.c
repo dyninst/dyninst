@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// $Id: libTest12.c,v 1.1 2008/10/30 19:17:17 legendre Exp $
+/* $Id: libTest12.c,v 1.1 2008/10/30 19:17:17 legendre Exp $ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -143,7 +143,7 @@ void reportMutexInit()
   msg.id = nextid++;
   msg.what = mutex_init;
   msg.tid = (unsigned long) pthread_self();
-  //fprintf(stderr, "%s[%d]:  reporting init, thread %lu\n", __FILE__, __LINE__, msg.tid);
+  /* fprintf(stderr, "%s[%d]:  reporting init, thread %lu\n", __FILE__, __LINE__, msg.tid);*/
   if (0 != DYNINSTuserMessage(&msg, sizeof(user_msg_t))) {
     fprintf(stderr, "%s[%d]:  DYNINSTuserMessage failed\n", __FILE__, __LINE__);
   }
@@ -159,7 +159,7 @@ void reportMutexDestroy()
   msg.id = nextid++;
   msg.what = mutex_destroy;
   msg.tid = (unsigned long) pthread_self();
-  //fprintf(stderr, "%s[%d]:  reporting destroy-%d: thread %lu\n", __FILE__, __LINE__, msg.what,msg.tid);
+  /* fprintf(stderr, "%s[%d]:  reporting destroy-%d: thread %lu\n", __FILE__, __LINE__, msg.what,msg.tid);*/
   if (0 != DYNINSTuserMessage(&msg, sizeof(user_msg_t))) {
     fprintf(stderr, "%s[%d]:  DYNINSTuserMessage failed\n", __FILE__, __LINE__);
   }
@@ -175,7 +175,7 @@ void reportMutexLock()
   msg.id = nextid++;
   msg.what = mutex_lock;
   msg.tid = (unsigned long) pthread_self();
-  //fprintf(stderr, "%s[%d]:  reporting lock-%d: thread %lu\n", __FILE__, __LINE__, msg.what, msg.tid);
+  /*fprintf(stderr, "%s[%d]:  reporting lock-%d: thread %lu\n", __FILE__, __LINE__, msg.what, msg.tid); */
   if (0 != DYNINSTuserMessage(&msg, sizeof(user_msg_t))) {
     fprintf(stderr, "%s[%d]:  DYNINSTuserMessage failed\n", __FILE__, __LINE__);
   }
@@ -191,7 +191,7 @@ void reportMutexUnlock()
   msg.id = nextid++;
   msg.what = mutex_unlock;
   msg.tid = (unsigned long) pthread_self();
-  //fprintf(stderr, "%s[%d]:  reporting unlock-%d\n", __FILE__, __LINE__, msg.what);
+  /*fprintf(stderr, "%s[%d]:  reporting unlock-%d\n", __FILE__, __LINE__, msg.what);*/
   if (0 != DYNINSTuserMessage(&msg, sizeof(user_msg_t))) {
     fprintf(stderr, "%s[%d]:  DYNINSTuserMessage failed\n", __FILE__, __LINE__);
   }

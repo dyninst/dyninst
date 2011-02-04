@@ -83,7 +83,9 @@ AnnotationClass <StackAnalysis::HeightTree> FP_Anno(std::string("FP_Anno"));
 
 bool StackAnalysis::analyze()
 {
+
   df_init_debug();
+
   stackanalysis_printf("Beginning stack analysis for function %s\n",
 		       func->name().c_str());
 

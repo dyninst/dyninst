@@ -309,7 +309,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 
 test_results_t ProcControlComponent::program_setup(ParameterDict &params)
 {
-   Dyninst::ProcControlAPI::setDebug(true);
+   //Dyninst::ProcControlAPI::setDebug(true);
    return PASSED;
 }
 

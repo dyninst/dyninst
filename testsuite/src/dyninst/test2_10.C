@@ -73,7 +73,8 @@ test_results_t test2_10_Mutator::executeTest() {
  && !defined(mips_sgi_irix6_4_test) \
  && !defined(alpha_dec_osf4_0_test) \
  && !defined(ia64_unknown_linux2_4_test) /* Temporary duplication - TLM */ \
- && !defined(ppc32_linux) 
+ && !defined(ppc32_linux) \
+ && !defined(ppc32_bgp) 
   // Looks like it runs on everything but Windows - Greg
 
     logerror("Skipping test #10 (dump image)\n");

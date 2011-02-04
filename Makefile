@@ -12,9 +12,45 @@ include ./make.config
 
 BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 
+SymtabAPI 	= ready common symtabAPI dynutil
+StackwalkerAPI = ready common symtabAPI stackwalk
+DyninstAPI	= ready common symtabAPI instructionAPI parseAPI dyninstAPI_RT dyninstAPI dynutil
+DynC_API = ready common dyninstAPI dynC_API  dynutil
+InstructionAPI	= ready common instructionAPI dynutil
+ProcControlAPI = ready common proccontrol
+DepGraphAPI = depGraphAPI
+ParseAPI = ready common symtabAPI instructionAPI parseAPI
+ValueAdded = valueAdded/sharedMem
+#DataflowAPI = instructionAPI parseAPI dataflowAPI
+DataflowAPI = ParseAPI
+
+testsuites = dyninstAPI/tests 
 allSubdirs_noinstall =
-allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI
-allSubdirs	= $(allCoreSubdirs) parseThat testsuite valueAdded/sharedMem depGraphAPI stackwalk proccontrol 
+
+ifndef DONT_BUILD_DYNINST
+fullSystem	+= $(DyninstAPI)
+Build_list	+= DyninstAPI
+endif
+
+ifndef DONT_BUILD_PROCCONTROL
+fullSystem += proccontrol
+Build_list += proccontrol
+endif
+
+ifndef DONT_BUILD_NEWTESTSUITE
+testsuites += testsuite parseThat
+allSubdirs_noinstall += testsuite 
+fullSystem += testsuite parseThat
+Build_list += testsuite parseThat
+endif
+
+fullSystem += parseAPI
+
+fullSystem += dynC_API
+Build_list += dynC_API
+
+allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI dynC_API
+allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem depGraphAPI stackwalk proccontrol
 
 # We're not building the new test suite on all platforms yet
 
@@ -105,7 +141,7 @@ world: intro
 
 # "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI ParseAPI DataflowAPI ProcControlAPI: 
+DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI ParseAPI DynC_API DataflowAPI ProcControlAPI: 
 	$(MAKE) $($@)
 	@echo "Build of $@ complete."
 	@date
@@ -133,7 +169,7 @@ $(allSubdirs_noinstall):
 		$(MAKE) -C $@; \
 	else \
 		echo $@ has no Makefile; \
-		false; \
+		true; \
 	fi
 
 # Generate targets of the form install_<target> for all directories in
@@ -167,7 +203,9 @@ stackwalk: symtabAPI dynutil
 dyninstAPI: symtabAPI instructionAPI parseAPI common dynutil
 instructionAPI: common dynutil
 symtabAPI dyninstAPI: dynutil
-dyner codeCoverage: dyninstAPI
+dyner dynC_API codeCoverage dyninstAPI/tests testsuite: dyninstAPI
+testsuite: $(coreSubdirs_explicitInstall)
+testsuite: parseThat
 parseThat: $(coreSubdirs_explicitInstall)
 proccontrol: common dynutil
 parseAPI: symtabAPI instructionAPI common dynutil

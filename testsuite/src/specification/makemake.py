@@ -599,8 +599,9 @@ def print_mutatee_rules(out, mutatees, compiler, module):
 			out.write("mutatee_driver_solo_%s_%s%s\n"
 					  % (aux_c, m['abi'], ObjSuffix))
 		# Print the actions used to link the mutatee executable
-		out.write("\t%s -o $@ $(filter %%%s,$^) %s %s"
+		out.write("\t%s %s -o $@ $(filter %%%s,$^) %s %s"
 				  % (platform['linker'] or "$(M_%s)" % compiler['defstring'],
+				    compiler['flags']['std'],
 					 ObjSuffix,
 					 compiler['flags']['link'],
 					 compiler['abiflags'][platform['name']][m['abi']]))
@@ -689,6 +690,15 @@ def print_patterns_wildcards(c, out, module):
                                 % (compiler['defstring'],
                                     object_flag_string(platform, compiler,
                                                     abi, o, p)))
+def is_valid_test(mutatee):
+	 if(mutatee['groupable'] == 'false'):
+		  return 'true'
+	 groups = info['rungroups']
+	 mutatee_tests = filter(lambda g: g['mutatee'] == mutatee['name'], groups)
+	 if not mutatee_tests:
+		  return 'false'
+	 else:
+	 	  return 'true'
 
 def is_groupable(mutatee):
 	 if(mutatee['groupable'] == 'false'):
@@ -704,7 +714,7 @@ def get_all_mutatee_sources(groupable, module):
 	return uniq(reduce(lambda a, b: set(a) | set(b),
 		(map(lambda m: m['preprocessed_sources'],
 		filter(lambda m: m['name'] != 'none'
-			and is_groupable(m) == groupable and get_module(m) == module,
+			and is_valid_test(m) == 'true' and is_groupable(m) == groupable and get_module(m) == module,
 			info['mutatees']))),
 		[]))
 	 
@@ -912,7 +922,7 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 	for c in comps:
 		# Generate a block of rules for mutatees produced by each compiler
 		for m in modules:
-			muts = filter(lambda x: x['compiler'] == c and get_module(x) == m, mutatees)
+			muts = filter(lambda x: x['compiler'] == c and is_valid_test(x) == 'true' and get_module(x) == m, mutatees)
 			if(len(muts) != 0):
 				print_mutatee_rules(out, muts, compilers[c], m)
 		# Print rules for exceptional object files

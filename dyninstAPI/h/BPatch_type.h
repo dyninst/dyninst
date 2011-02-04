@@ -377,7 +377,7 @@ public:
     BPatch_storageClass convertToBPatchStorage(Dyninst::SymtabAPI::VariableLocation *loc);
 
 public:
-    //  end of functions for nternal use only
+    //  end of functions for internal use only
     const char *	getName();
     BPatch_type *	getType();
     int			getLineNum();

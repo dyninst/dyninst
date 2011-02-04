@@ -405,7 +405,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   plt_size_ = 0;
   symtab_addr_ = 0;
   strtab_addr_ = 0;
-#if defined (ppc32_linux)
+#if defined (ppc32_linux) || defined(ppc32_bgp)
   plt_entry_size_ = 8;
   rel_plt_entry_size_ = 8;
 #else
@@ -851,7 +851,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 #endif
 
 
-#if defined (ppc32_linux)
+#if defined (ppc32_linux) || defined(ppc32_bgp)
       if (scnp->sh_flags() & SHF_EXECINSTR) {
           // Old style executable PLT
       if (!plt_entry_size_)
@@ -1145,7 +1145,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 #if defined(arch_x86) || defined(arch_x86_64)
       next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
 
-#elif defined (ppc32_linux)
+#elif defined (ppc32_linux) || defined(ppc32_bgp)
       bool extraStubs = false;
 
       // Sanity check.

@@ -80,6 +80,8 @@
 
 #include "test_lib.h"
 #include "ResumeLog.h"
+#define BINEDIT_DIRNAME "" 
+
 
 /* Control Debug printf statements */
 int debugPrint = 0;
@@ -357,6 +359,7 @@ bool inTestList(test_data_t &test, std::vector<char *> &test_list)
 
    return false;
 }
+
 
 // control debug printf statements
 void dprintf(const char *fmt, ...) {

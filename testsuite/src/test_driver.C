@@ -655,9 +655,6 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
             break;
          }
       }
-
-      fprintf(stderr, "[%s:%u] - Remove here\n", __FILE__, __LINE__);
-      break;
    }
 
    unsigned final_group = i;
@@ -809,8 +806,6 @@ bool testsRemain(std::vector<RunGroup *> &groups)
 int main(int argc, char *argv[]) {
    updateSearchPaths(argv[0]);
    setOutput(new StdOutputDriver(NULL));
-
-   debug_log = stderr;
 
    ParameterDict params;
    int result = parseArgs(argc, argv, params);
