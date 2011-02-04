@@ -125,6 +125,42 @@ getBlockInsns(Block &blk, std::set<Address> &addrs)
     } 
 }
 
+
+/*
+ * Extra handling for bad jump instructions
+ */
+inline
+void Parser::ProcessBadBranchEdge(
+    ParseFrame & frame,
+    Block * cur,
+    InstructionAdapter_t & ah,
+    bool isResolved,
+    Address target,
+    EdgeTypeEnum type)
+{
+    ParseCallback::interproc_details det;
+    det.ibuf = (unsigned char*)
+       frame.func->isrc()->getPtrToInstruction(ah.getAddr());
+    det.isize = ah.getSize();
+    det.data.unres.target = target;
+    det.type = ParseCallback::interproc_details::unres_branch;
+    det.data.unres.target = target;
+
+    bool valid; Address addr;
+    boost::tie(valid, addr) = ah.getCFT();
+    if (!valid) {
+        det.data.unres.dynamic = true;
+        det.data.unres.absolute_address = true;
+        link(cur,_sink,type,true);
+    } else {
+        det.data.unres.dynamic = false;
+        det.data.unres.absolute_address = false;
+        link(cur,_sink,type,true);
+    }
+    _pcb.interproc_cf(frame.func,cur,ah.getAddr(),&det);
+}
+
+
 /*
  * Extra handling of return instructions
  */
@@ -145,6 +181,7 @@ void Parser::ProcessReturnInsn(
 
     _pcb.interproc_cf(frame.func, cur, ah.getAddr(),&det);
 }
+
 
 /*
  * Extra handling for literal call instructions
@@ -357,9 +394,10 @@ void Parser::ProcessCFInsn(
         } 
         else if( unlikely(_obj.defensiveMode() && NOEDGE != curEdge->second) )
         {   
+            ProcessBadBranchEdge(frame, cur, ah, resolvable_edge, curEdge->first, curEdge->second);
             // invoke callback for: 
-            // unresolved indirect branches and direct ctrl transfers 
-            // with bad targets (calls will have been taken care of)
+            // direct ctrl transfers with bad targets 
+            // (calls will have been taken care of and indirect branches don't have outgoing edges)
             ParseCallback::interproc_details det;
             det.ibuf = (unsigned char*)
                frame.func->isrc()->getPtrToInstruction(ah.getAddr());
@@ -380,6 +418,10 @@ void Parser::ProcessCFInsn(
             }
             _pcb.interproc_cf(frame.func,cur,ah.getAddr(),&det);
         }
+    }
+
+    if (unlikely(_obj.defensiveMode() && edges_out.empty() && has_unres)) {
+        ProcessBadBranchEdge(frame, cur, ah, has_unres, -1, INDIRECT);
     }
 
     if(ah.isDelaySlot())

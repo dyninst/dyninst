@@ -180,6 +180,13 @@ class Parser {
     ParseFrame * getTamperAbsFrame(Function *tamperFunc);
 
     /* implementation of the parsing loop */
+    void ProcessBadBranchEdge(
+        ParseFrame&,
+        Block*,
+        InstructionAdapter_t&,
+        bool isDynamic,
+        Address target,
+        EdgeTypeEnum etype);
     void ProcessCallInsn(
         ParseFrame&,
         Block*,

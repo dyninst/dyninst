@@ -291,7 +291,7 @@ image_instPoint::image_instPoint(Address offset,
                 image_instPoint_count, image_instPoint_count * sizeof(image_instPoint));
 #endif
     if (isDynamic_)
-        assert(callTarget_ == 0);
+        assert(callTarget_ == 0 || callTarget_ == -1);
 }
 
 void image_basicBlock::debugPrint() {
