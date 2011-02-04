@@ -3422,6 +3422,11 @@ Library::ptr int_library::getUpPtr() const
    return up_lib;
 }
 
+void int_library::markAsCleanable()
+{
+   up_lib = Library::ptr();
+}
+
 mem_state::mem_state(int_process *proc)
 {
    procs.insert(proc);
@@ -3453,10 +3458,8 @@ mem_state::~mem_state()
 {
    pthrd_printf("Destroy memory image of old process\n");
    set<int_library *>::iterator i;
-   for (i = libs.begin(); i != libs.end(); i++)
-   {
-      int_library *lib = *i;
-      delete lib;
+   for (i = libs.begin(); i != libs.end(); i++) {
+      (*i)->markAsCleanable();
    }
    libs.clear();
 
@@ -3740,6 +3743,7 @@ Library::Library()
 
 Library::~Library()
 {
+   MTLock lock_this_func;
    if (lib) {
       delete lib;
       lib = NULL;
@@ -3748,16 +3752,19 @@ Library::~Library()
 
 std::string Library::getName() const
 {
+   MTLock lock_this_func;
    return lib->getName();
 }
 
 Dyninst::Address Library::getLoadAddress() const
 {
+   MTLock lock_this_func;
    return lib->getAddr();
 }
 
 Dyninst::Address Library::getDataLoadAddress() const
-{
+{ 
+   MTLock lock_this_func;
    return lib->getDataAddr();
 }
 
@@ -3771,6 +3778,7 @@ LibraryPool::~LibraryPool()
 
 size_t LibraryPool::size() const
 {
+   MTLock lock_this_func;
    return proc->numLibs();
 }
 

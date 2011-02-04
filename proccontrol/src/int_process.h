@@ -625,6 +625,7 @@ class int_library
    bool isMarked() const;
    
    Library::ptr getUpPtr() const;
+   void markAsCleanable();
 };
 
 class int_breakpoint

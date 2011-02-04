@@ -1071,6 +1071,9 @@ Handler::handler_ret_t HandleLibrary::handleEvent(Event::ptr ev)
    for (set<int_library*>::iterator i = ll_rmd.begin(); i != ll_rmd.end(); i++) {
       rmd.insert((*i)->getUpPtr());
    }
+   for (set<int_library*>::iterator i = ll_rmd.begin(); i != ll_rmd.end(); i++) {
+      (*i)->markAsCleanable();
+   }
    lev->setLibs(added, rmd);
    return ret_success;
 }
