@@ -592,23 +592,16 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 				<< ", ESI: " << activeFrame.esi 
 				<< ", EDI: " << activeFrame.edi
 				<< ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
-			Address stackTOPVAL =0;
-			for (unsigned i = 0; i < 20; ++i) {
-				ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
-				Address remapped = 0;
-				vector<int_function *> funcs;
-				baseTrampInstance *bti;
-				ev.proc->getAddrInfo(stackTOPVAL, remapped, funcs, bti);
-				cerr << "STACK TOP VALUE=" << hex << stackTOPVAL << ", orig @ " << remapped << " in " << funcs.size() << "functions" << dec << endl;
+			Address stackTOPVAL[200];
+            ev.proc->readDataSpace((void *) activeFrame.esp, sizeof(ev.proc->getAddressWidth())*200, stackTOPVAL, false);
+            for (int i = 0; i < 200; ++i) 
+            {
+                Address remapped = 0;
+                vector<int_function *> funcs;
+                baseTrampInstance *bti;
+				ev.proc->getAddrInfo(stackTOPVAL[i], remapped, funcs, bti);
+				cerr  << hex << activeFrame.esp + 4*i << ": "  << stackTOPVAL[i] << ", orig @ " << remapped << " in " << funcs.size() << "functions" << dec << endl;
 			}
-            Address magicMemVal, transMagicMemVal;
-            magicMemVal = 0x9cc03c;
-            bool valid;
-            boost::tie(valid, transMagicMemVal) = ev.proc->getMemEm()->translate(magicMemVal);
-            Address data1 = 0xdeadbeef, data2 = 0xcafebabe;
-            ev.proc->readDataSpace((void *) magicMemVal, sizeof(ev.proc->getAddressWidth()), &data1, false);
-            if (valid) ev.proc->readDataSpace((void *) transMagicMemVal, sizeof(ev.proc->getAddressWidth()), &data2, false);
-            cerr << "Magic memory value: " << hex << data1 << " / " << data2 << dec << endl;
 		}
 	 }
   }
@@ -938,6 +931,9 @@ bool dyn_lwp::readTextSpace(const void *inTraced, u_int amount, void *inSelf) {
 
 bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 {
+    if ((Address)inTraced <= 0xc30000 && ((Address)inTraced + amount) >= 0xc30000) {
+        cerr << "writeDataSpace [" << hex << (Address) inTraced << "," << (Address) inTraced + amount << "]" << dec << endl;
+    }
     DWORD nbytes;
     handleT procHandle = getProcessHandle();
     bool res = WriteProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
@@ -964,6 +960,9 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 
 
 bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf) {
+    if ((Address)inTraced <= 0xc30000 && ((Address)inTraced + amount) >= 0xc30000) {
+        cerr << "readDataSpace [" << hex << (Address) inTraced << "," << (Address) inTraced + amount << "]" << dec << endl;
+    }
     DWORD nbytes;
     handleT procHandle = getProcessHandle();
     bool res = ReadProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 

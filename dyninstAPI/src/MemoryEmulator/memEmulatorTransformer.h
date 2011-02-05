@@ -58,7 +58,7 @@ class MemEmulatorTransformer : public Transformer {
  private:
 
   AtomPtr createReplacement(CopyInsnPtr reloc,
-			       int_function *func);
+			       int_function *func, int_block *);
 
   bool canRewriteMemInsn(CopyInsnPtr reloc,
 			 int_function *func);

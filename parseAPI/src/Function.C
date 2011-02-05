@@ -255,7 +255,6 @@ Function::delayed_link_return(CodeObject * o, Block * retblk)
 void
 Function::add_block(Block *b)
 {
-	//cerr << "Adding block @ " << hex << b->start() << " to func @ " << addr() << dec << endl;
 	++b->_func_cnt;            // block counts references
     _blocks.push_back(b);
     _bmap[b->start()] = b;
@@ -396,8 +395,8 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
             dead->removeFunc(this);
             hasSharedDeadBlocks = true;
             mal_printf("WARNING: removing shared block [%lx %lx] rather "
-                       "than deleting it %s[%d]\n", dead->start(), 
-                       dead->end(), FILE__,__LINE__);
+                       "than deleting it, refcount is now %d %s[%d]\n", dead->start(), 
+                       dead->end(), dead->_func_cnt, FILE__,__LINE__);
         } else {
             // remove from internal parsing datastructures
             obj()->parser->remove_block(dead);

@@ -173,7 +173,10 @@ StackTamper StackTamperVisitor::tampersStack(AST::Ptr a, Address &newAddr) {
 
     switch(diffs_.top().b.x) {
     case 0:
-        tamper_ = TAMPER_ABS;
+//        tamper_ = TAMPER_ABS;
+        // A great idea, but ends up with object-crossing edges. Ouch.
+        // KEVIN TODO
+        tamper_ = TAMPER_NONZERO;
         break;
     case 1:
         if (modpc_) {

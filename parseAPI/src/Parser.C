@@ -964,6 +964,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             if (frame.func->obj()->defensiveMode()) {
                 mal_printf("new block at %lx (0x%lx)\n",cur->start(), cur);
             }
+
             cur->_parsed = true;
             curAddr = cur->start();
         } else {
@@ -1018,7 +1019,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         while(true) 
         {
             curAddr = ah->getAddr();
-
             /** Check for straight-line fallthrough **/
             if(curAddr == nextBlockAddr) {
                 parsing_printf("[%s] straight-line parse into block at %lx\n",
@@ -1110,6 +1110,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             
             /** Particular instruction handling (calls, branches, etc) **/
             ++num_insns; 
+
             if(ah->hasCFT()) {
                ProcessCFInsn(frame,cur,*ah);
                break;

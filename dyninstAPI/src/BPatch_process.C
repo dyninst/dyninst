@@ -1950,7 +1950,7 @@ void BPatch_process::overwriteAnalysisUpdate
         }
         bFunc->ifunc()->destroyBlocks(bSet); //KEVINTODO: doing this one by one is highly inefficient
     }
-
+    mal_printf("Done deleting blocks\n"); 
     // delete completely dead functions
     map<int_block*,Address> deadFuncCallers; // build up list of live callers
     for(std::list<int_function*>::iterator fit = deadFuncs.begin(); 
@@ -2019,7 +2019,7 @@ void BPatch_process::overwriteAnalysisUpdate
             deadBlockAddrs.push_back((*bIter)->start());
         }
     }
-
+    mal_printf("Done deleting func-blocks\n");
     //remove dead functions
     for(std::list<int_function*>::iterator fit = deadFuncs.begin(); 
         fit != deadFuncs.end(); 
@@ -2029,6 +2029,7 @@ void BPatch_process::overwriteAnalysisUpdate
         bpfunc->getModule()->removeFunction(bpfunc,false);
         (*fit)->removeFromAll();
     }
+    mal_printf("Done deleting functions\n");
 
     // set up datastructures for re-parsing dead function entries with valid call edges
     map<mapped_object*,vector<edgeStub> > dfstubs;

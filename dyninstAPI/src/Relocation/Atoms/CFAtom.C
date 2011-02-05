@@ -639,6 +639,111 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
    return true;
 }
 
+#if 0
+// Try this at some point
+    if (!templ.addrSpace()->isMemoryEmulated() ||
+        BPatch_defensiveMode != block()->func()->obj()->hybridMode())
+       return true;
+
+   if (insn_->getOperation().getID() == e_ret_near ||
+       insn_->getOperation().getID() == e_ret_far) {
+      // Oops!
+      return true;
+   }
+   if (!insn_->readsMemory()) {
+      return true;
+   }
+   
+   BPatch_memoryAccessAdapter converter;
+   BPatch_memoryAccess *acc = converter.convert(insn_, addr_, false);
+   if (!acc) {
+      reg = Null_Register;
+      return true;
+   }
+   cerr << "Generating addr translate @ " << hex << addr_ << dec << endl;
+   codeGen patch(128);
+   patch.applyTemplate(templ);
+   
+   // TODO: we probably want this in a form that doesn't stomp the stack...
+   // But we can probably get away with this for now. Check that.
+
+   // Record how much we've moved ESP by (if the memory deref cares)
+   int stackShift = 0;
+
+   int priorStackShift = 0;
+   // If we're push/jmp emulating the call then isCall will be false; in this case account for the push.
+   if (!isCall_ && insn_->getCategory() == c_CallInsn) priorStackShift -= 4;
+
+   // step 1: Shift us down
+   ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, -1*MemoryEmulator::STACK_SHIFT_VAL, RealRegister(REGNUM_ESP), patch);
+   stackShift -= MemoryEmulator::STACK_SHIFT_VAL;
+
+   // step 2: save registers that will be affected by the call
+   int restoreOffset = stackShift;
+   ::emitPush(RealRegister(REGNUM_EDX), patch); stackShift -= 4;
+   ::emitPush(RealRegister(REGNUM_ECX), patch); stackShift -= 4;
+   ::emitPush(RealRegister(REGNUM_EAX), patch); stackShift -= 4;
+   emitSimpleInsn(0x9f, patch);
+   emitSaveO(patch);
+   ::emitPush(RealRegister(REGNUM_EAX), patch); stackShift -= 4;
+
+   // Step 3: LEA this sucker into ECX.
+   const BPatch_addrSpec_NP *start = acc->getStartAddr(0);
+   if (start->getReg(0) == REGNUM_ESP ||
+	   start->getReg(1) == REGNUM_ESP) {
+	  cerr << "ERROR: CF insn that uses the stack pointer! " << insn_->format() << endl;
+   }
+
+   emitASload(start, REGNUM_EDX, stackShift + priorStackShift, patch, true);   
+   
+   // This might look a lot like a memEmulatorAtom. That's, well, because it
+   // is. 
+   buffer.addPIC(patch, tracker());
+   
+   // Where are we going?
+   int_function *func = templ.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
+   // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
+   assert(func);
+   
+   // Now we start stealing from memEmulatorAtom. We need to call our translation function,
+   // which means a non-PIC patch to the CodeBuffer. I don't feel like rewriting everything,
+   // so there we go.
+   buffer.addPatch(new MemEmulatorPatch(REGNUM_EDX, REGNUM_EDX, addr_, func->getAddress()),
+                   tracker());
+   patch.setIndex(0);
+   
+   // Restore flags
+   ::emitPop(RealRegister(REGNUM_EAX), patch); stackShift += 4;
+   emitRestoreO(patch);
+   emitSimpleInsn(0x9E, patch);
+   ::emitPop(RealRegister(REGNUM_EAX), patch); stackShift += 4;
+   ::emitPop(RealRegister(REGNUM_ECX), patch); stackShift += 4;
+   // Don't restore EDX...
+
+   // EDX now holds the pointer to the destination...
+   // Dereference
+   ::emitMovRMToReg(RealRegister(REGNUM_EDX),
+                    RealRegister(REGNUM_EDX),
+                    0,
+                    patch);
+   // Reset ESP to what it should be; STACK_SHIFT_VAL + 4 (as we haven't popped edx)
+   ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, -1*stackShift, RealRegister(REGNUM_ESP), patch);
+   stackShift = 0;
+   // Push EDX
+   ::emitPush(RealRegister(REGNUM_EDX), patch); stackShift -= 4;
+   // And now we need to restore EDX, which is at restoreOffset - stackShift
+   ::emitMovRMToReg(RealRegister(REGNUM_EDX), RealRegister(REGNUM_ESP), restoreOffset - stackShift, patch);
+
+   // And tell our people to use the top of the stack
+   // for their work.
+   // TODO: trust liveness and leave this in a register. 
+
+   buffer.addPIC(patch, tracker());
+   reg = REGNUM_ESP;
+   return true;
+#endif
+
+
 std::string CFAtom::format() const {
   stringstream ret;
   ret << "CFAtom(" << std::hex;

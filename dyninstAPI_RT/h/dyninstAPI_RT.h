@@ -201,9 +201,15 @@ struct trap_mapping_header {
 #define MAX_MEMORY_MAPPER_ELEMENTS 1024
 
 typedef struct {
+    long start;
+    long size;
+} MemoryMapperCopyElement;
+
+typedef struct {
    unsigned long lo;
    unsigned long hi;
    long shift;
+   MemoryMapperCopyElement *copyList;
 } MemoryMapperElement;
 
 struct MemoryMapper {
@@ -220,12 +226,14 @@ typedef struct {
    uint32_t lo;
    uint32_t hi;
    uint32_t shift;
+   void *copyList;
 } MemoryMapperElement32;
 
 typedef struct {
    uint64_t lo;
    uint64_t hi;
    uint64_t shift;
+   void *copyList;
 } MemoryMapperElement64;
 
 struct MemoryMapper32 {

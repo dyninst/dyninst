@@ -368,9 +368,9 @@ class image : public codeRange {
    ParseAPI::CodeObject::funclist &getAllFunctions();
    const pdvector<image_variable*> &getAllVariables();
 
-   image_instPoint * getInstPoint(Address addr);
+   image_instPoint * getInstPoint(ParseAPI::Block *, Address addr);
    bool addInstPoint(image_instPoint*p);
-   void getInstPoints(Address start, Address end, 
+   void getInstPoints(ParseAPI::Block *,
                       pdvector<image_instPoint*> &points); 
    void deleteInstPoints(ParseAPI::Block *b);
 
@@ -505,7 +505,8 @@ class image : public codeRange {
 
    // instrumentation points by address
    // NB this must be ordered
-   typedef map<Address, image_instPoint *> instp_map_t;
+   typedef map<Address, image_instPoint *> block_map_t;
+   typedef map<ParseAPI::Block *, block_map_t> instp_map_t;
    instp_map_t inst_pts_;
 
    pdvector<image_variable *> everyUniqueVariable;

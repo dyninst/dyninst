@@ -95,15 +95,68 @@ void MemoryEmulator::update() {
       std::vector<MemoryMapTree::Entry> elements;
       memoryMap_.elements(elements);
       for (unsigned i = 0; i < elements.size(); ++i) {
-         newMapper.elements[i].lo = elements[i].first.first;
-         newMapper.elements[i].hi = elements[i].first.second;
-         assert(newMapper.elements[i].hi > newMapper.elements[i].lo);
-         newMapper.elements[i].shift = elements[i].second;
-         sensitivity_cerr << "\t\t Element: " << hex << newMapper.elements[i].lo << "->" << newMapper.elements[i].hi << ": " << newMapper.elements[i].shift << dec << endl;
+          Address base = elements[i].first.first;
+
+          newMapper.elements[i].lo = base;
+          newMapper.elements[i].hi = elements[i].first.second;
+          assert(newMapper.elements[i].hi > newMapper.elements[i].lo);
+          newMapper.elements[i].shift = elements[i].second;
+          sensitivity_cerr << "\t\t Element: " << hex << newMapper.elements[i].lo << "->" << newMapper.elements[i].hi << ": " << newMapper.elements[i].shift << dec << endl;
+          if (elements[i].second == (Address)-1) 
+          {
+              newMapper.elements[i].copyList = 0;
+          }
+          else
+          {
+              // Build this thing up
+              std::map<Address, int> &springboards = springboards_[base];
+              if (springboards.empty()) 
+              {
+                  newMapper.elements[i].copyList = 0;
+              }
+              else
+              {
+                  unsigned size = springboards.size() + 2;
+                  if (size > copyLists_[base].second) 
+                  {
+                      if (copyLists_[base].first) aS_->inferiorFree(copyLists_[base].first);
+                      copyLists_[base].first = aS_->inferiorMalloc(size);
+                      copyLists_[base].second = size;
+                  }
+                  MemoryMapperCopyElement *toCopy = (MemoryMapperCopyElement *)malloc(size * sizeof(MemoryMapperCopyElement));
+                  int index = 0;
+                  Address cur = base;
+                  for (std::map<Address, int>::iterator s_iter = springboards.begin();
+                      s_iter != springboards.end(); ++s_iter)
+                  {
+                      if (s_iter->first < cur)
+                      {
+                          cur = s_iter->first + s_iter->second;
+                          continue;
+                      }
+
+                      toCopy[index].start = cur;
+                      toCopy[index].size = s_iter->first - cur;
+                      cur = s_iter->first + s_iter->second;
+                      index++;
+                  }
+                  toCopy[index].start = cur;
+                  toCopy[index].size = newMapper.elements[i].hi - cur;
+                  index++;
+                  assert(index < size);
+                  toCopy[index].start = 0;
+                  toCopy[index].size = 0;
+                  aS_->writeDataSpace((void *)copyLists_[base].first,
+                      copyLists_[base].second,
+                      (void *)toCopy);
+                  free(toCopy);
+              }
+          }
       }
       aS_->writeDataSpace((void *)mutateeBase_,
                           sizeof(newMapper),
                           &newMapper);
+   
    }
    else {
       // TODO copy
@@ -240,7 +293,7 @@ void MemoryEmulator::removeRegion(Region *reg, Address base) {
 	if (iter == addedRegions_.end()) return;
 
 	// First, nuke our track of the springboards
-	springboards_.erase(reg);
+    //springboards_.erase(reg);
 
     // Second, nuke it from the list of regions to copy on a sync
     addedRegions_.erase(reg);
@@ -387,6 +440,7 @@ std::pair<bool, Address> MemoryEmulator::translateBackwards(Address addr) {
 
 void MemoryEmulator::synchShadowOrig(bool toOrig) 
 {
+#if 0
     if (toOrig) {
         malware_cerr << "Syncing shadow to orig" << endl;
     }
@@ -470,11 +524,24 @@ void MemoryEmulator::synchShadowOrig(bool toOrig)
                 regbuf + cp_start)) assert(0);
         }
     }
+#endif
 }
 
 
-void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size) 
+void MemoryEmulator::addSpringboard(Address addr, int size) 
 {
+   Address lb, ub;
+   unsigned long val;
+   if (!memoryMap_.find(addr, lb, ub, val)) 
+   {
+       assert(0);
+   }
+
+   int oldSize = springboards_[lb][addr];
+   if (size > oldSize)
+       springboards_[lb][addr] = size;
+
+#if 0
     // Look up whether there is a previous springboard that overlaps with us; 
     // clearly, it's getting removed. 
 
@@ -497,7 +564,7 @@ void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size)
     // Otherwise keep the current value
     springboard_cerr << "\t New value: " << hex << offset << " -> " << smap[offset] + offset << dec << endl;
 
-#if 0
+
     // We don't want to delete these, actually, because we can conflict between a springboard
     // addition and a synchronization operation.
 
@@ -560,6 +627,7 @@ void MemoryEmulator::removeSpringboards(int_function * func)
 
 void MemoryEmulator::removeSpringboards(const int_block *bbi) 
 {
+#if 0
     malware_cerr << "  untracking springboards from deadblock [" << hex 
          << bbi->start() << " " << bbi->end() << ")" << dec <<endl;
     SymtabAPI::Region * reg = 
@@ -569,6 +637,7 @@ void MemoryEmulator::removeSpringboards(const int_block *bbi)
     }
     springboards_[reg].erase(bbi->llb()->start() - reg->getMemOffset());
     if (springboards_[reg].empty()) springboards_.erase(reg);
+#endif
 }
 
 void  MemoryEmulator::debug() const {

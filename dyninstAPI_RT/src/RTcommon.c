@@ -455,9 +455,7 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
 	static int reentrant = 0;
 
     RT_Boolean isInCache = RT_FALSE;
-    fprintf(stOut,"RT_stopThread: pt[%lx] flags[%lx] calc[%lx] reentrant=%d\n", 
-            (long)pointAddr, (long)flags, (long)calculation, reentrant);
-    fflush(stOut);
+    
 
 	if (reentrant == 1) {
 		return;

@@ -88,7 +88,7 @@ bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
        continue;
     }
 
-    Atom::Ptr replacement = createReplacement(reloc, func);
+    Atom::Ptr replacement = createReplacement(reloc, func, (*iter)->bbl());
     if (!replacement) return false;
     
     (*e_iter).swap(replacement);
@@ -159,14 +159,15 @@ bool MemEmulatorTransformer::override(CopyInsn::Ptr reloc) {
 }
 
 Atom::Ptr MemEmulatorTransformer::createReplacement(CopyInsn::Ptr reloc,
-						       int_function *func) {
+						       int_function *func, int_block *block) {
   // MemEmulators want instPoints. How unreasonable.
   instPoint *point = func->findInstPByAddr(reloc->addr());
   if (!point) {
     // bleah...
     point = instPoint::createArbitraryInstPoint(reloc->addr(),
 						func->proc(),
-						func);
+						func, block, true);
+    point->setInsn(reloc->insn());
   }
   if (!point) return Atom::Ptr();
   

@@ -157,7 +157,9 @@ bool instPoint::match(Address a) const {
 
 instPoint *instPoint::createArbitraryInstPoint(Address addr, 
 		AddressSpace *proc,
-		int_function *func) 
+		int_function *func,
+        int_block *block,
+        bool trustedAddr) 
 {
 	// See if we get lucky
 	if (!func) 
@@ -174,61 +176,57 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
 
   // Check to see if we're creating the new instPoint on an
   // instruction boundary. First, get the instance...
+  if (!block)
+  {
+      block = func->findOneBlockByAddr(addr);
+      if (!block) {
+          inst_printf("Address not in known code, ret null\n");
+          fprintf(stderr, "%s[%d]: Address not in known code, ret null\n", FILE__, __LINE__);
+          return NULL;
+      }
+  }
+  // Some blocks cannot be relocated; since instrumentation requires
+  // relocation of the block, don't even bother.
+  if(!block->llb()->canBeRelocated())
+  {
+      inst_printf("Address is in unrelocatable block, ret null\n");
+      return NULL;
+  }    
 
-    int_block *bbl = func->findOneBlockByAddr(addr);
-    if (!bbl) {
-        inst_printf("Address not in known code, ret null\n");
-        fprintf(stderr, "%s[%d]: Address not in known code, ret null\n", FILE__, __LINE__);
-        return NULL;
-    }
-    int_block *block = bbl;
-    assert(block);
+  if (!trustedAddr)
+  {
+      if (!proc->isValidAddress(block->start())) return NULL;
 
-    // Some blocks cannot be relocated; since instrumentation requires
-    // relocation of the block, don't even bother.
-    if(!block->llb()->canBeRelocated())
-    {
-        inst_printf("Address is in unrelocatable block, ret null\n");
-        return NULL;
-    }    
+      const unsigned char* buffer = reinterpret_cast<unsigned char*>(proc->getPtrToInstruction(block->start()));
+      InstructionDecoder decoder(buffer, block->size(), proc->getArch());
+      Instruction::Ptr i;
+      Address currentInsn = block->start();
+      while((i = decoder.decode()) && (currentInsn < addr))
+      {
+          currentInsn += i->size();
+      }
+      if(currentInsn != addr)
+      {
+          inst_printf("Unaligned try for instruction iterator, ret null\n");
+          fprintf(stderr, "%s[%d]: Unaligned try for instruction iterator, ret null\n", FILE__, __LINE__);
+          return NULL; // Not aligned
+      }
+  }
+  newIP = new instPoint(proc,
+      addr,
+      block);
 
-    // For now: we constrain the address to be in the original instance
-    // of the basic block.
-    if (block != bbl) {
-        fprintf(stderr, "%s[%d]: Address not in original basic block instance\n", FILE__, __LINE__);
-        return NULL;
-    }
-    if (!proc->isValidAddress(bbl->start())) return NULL;
+  if (!commonIPCreation(newIP)) {
+      delete newIP;
+      inst_printf("Failed common IP creation, ret null\n");
+      return NULL;
+  }
 
-    const unsigned char* buffer = reinterpret_cast<unsigned char*>(proc->getPtrToInstruction(bbl->start()));
-    InstructionDecoder decoder(buffer, bbl->size(), proc->getArch());
-    Instruction::Ptr i;
-    Address currentInsn = bbl->start();
-    while((i = decoder.decode()) && (currentInsn < addr))
-    {
-        currentInsn += i->size();
-    }
-    if(currentInsn != addr)
-    {
-        inst_printf("Unaligned try for instruction iterator, ret null\n");
-            fprintf(stderr, "%s[%d]: Unaligned try for instruction iterator, ret null\n", FILE__, __LINE__);
-            return NULL; // Not aligned
-    }
-    newIP = new instPoint(proc,
-                          addr,
-                          block);
-    
-    if (!commonIPCreation(newIP)) {
-        delete newIP;
-        inst_printf("Failed common IP creation, ret null\n");
-        return NULL;
-    }
-    
-    func->addArbitraryPoint(newIP);
+  func->addArbitraryPoint(newIP);
 
-    return newIP;
+  return newIP;
 }
- 
+
 bool instPoint::commonIPCreation(instPoint *ip) {
 
     // But tell people we exist.
@@ -655,14 +653,19 @@ void instPoint::setResolved(bool newval)
     func()->setPointResolved( this , newval );
 }
 
-#if defined(cap_instruction_api)
-InstructionAPI::Instruction::Ptr instPoint::insn() const {
-   int_block::InsnInstances insns;
-   block()->getInsnInstances(insns);
-   for (int_block::InsnInstances::iterator iter = insns.begin();
-        iter != insns.end(); ++iter) {
-      if (iter->second == addr()) return iter->first;
-   }
-   return InstructionAPI::Instruction::Ptr();
+InstructionAPI::Instruction::Ptr instPoint::insn() {
+    if (insn_) return insn_;
+
+    int_block::InsnInstances insns;
+    block()->getInsnInstances(insns);
+    for (int_block::InsnInstances::iterator iter = insns.begin();
+        iter != insns.end(); ++iter) 
+    {
+        if (iter->second == addr())
+        {
+            insn_ = iter->first;
+            return insn_;
+        }
+    }
+    return InstructionAPI::Instruction::Ptr();
 }
-#endif

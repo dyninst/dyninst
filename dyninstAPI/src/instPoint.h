@@ -243,10 +243,14 @@ class instPoint : public instPointBase {
     bool hasNewInstrumentation() { return hasNewInstrumentation_; }
     bool hasAnyInstrumentation() { return hasAnyInstrumentation_; }
 
+    void setInsn(InstructionAPI::Instruction::Ptr i) { insn_ = i; }
+
   // Make a new instPoint at an arbitrary location
   static instPoint *createArbitraryInstPoint(Address addr,
                                              AddressSpace *proc,
-                                             int_function *func);
+                                             int_function *func,
+                                             int_block *block = NULL,
+                                             bool trustedAddr = false);
 
   static instPoint *createParsePoint(int_function *func,
                                      image_instPoint *img_p);
@@ -307,9 +311,7 @@ class instPoint : public instPointBase {
 
   Address addr() const { return addr_; }
 
-#if defined(cap_instruction_api)
-  InstructionAPI::Instruction::Ptr insn() const;
-#endif
+  InstructionAPI::Instruction::Ptr insn();
 
   Address callTarget() const;
 
@@ -420,6 +422,8 @@ class instPoint : public instPointBase {
   // The block we're attached to.
   int_block *block_;
   Address addr_;
+
+  InstructionAPI::Instruction::Ptr insn_;
 
  public:
   // RegisterSpace-only methods; all data in here is

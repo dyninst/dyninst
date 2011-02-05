@@ -39,7 +39,7 @@
 #include "InstructionDecoder.h"
 #include <set>
 #include <sstream>
-
+#include "Relocation/Transformers/Movement-analysis.h"
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
@@ -200,7 +200,7 @@ int_block *int_block::getFallthrough() const {
     Block::edgelist & ib_outs = ib_->targets();
     Block::edgelist::iterator eit = ib_outs.begin(&epred2);
     for( ; eit != ib_outs.end(); ++eit) {
-        Edge * e = *eit;
+        ParseAPI::Edge * e = *eit;
         if(e->type() == FALLTHROUGH ||
            e->type() == CALL_FT ||
            e->type() == COND_NOT_TAKEN)
@@ -217,7 +217,7 @@ int_block *int_block::getTarget() const {
     Block::edgelist & ib_outs = ib_->targets();
     Block::edgelist::iterator eit = ib_outs.begin(&epred2);
     for( ; eit != ib_outs.end(); ++eit) {
-        Edge * e = *eit;
+        ParseAPI::Edge * e = *eit;
         if(e->type() == DIRECT||
            e->type() == COND_TAKEN)
         {
@@ -251,6 +251,7 @@ int int_block::id() const {
     return llb()->id();
 }
 
+using namespace Dyninst::Relocation;
 void int_block::triggerModified() {
     // Relocation info caching...
     PCSensitiveTransformer::invalidateCache(this);

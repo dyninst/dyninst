@@ -578,7 +578,13 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         // 3.1 if the return address has been parsed as code, return
         vector<BPatch_function*> callFuncs;
         if ( proc()->findFunctionsByAddr( target,callFuncs ) ) {
-            return;
+            for (unsigned i = 0; i < callFuncs.size(); ++i) 
+            {
+                if (callFuncs[i]->lowlevel_func()->findBlockByEntry(target))
+                {
+                    return;
+                }
+            }
         }
         // 3.2 find the call point so we can parse after it
         //   ( In this case "point" is the return statement and 
@@ -705,7 +711,16 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
 
         // add the new edge to the program, parseNewEdgeInFunction will figure
         // out whether to extend the current function or parse as a new one. 
-        parseNewEdgeInFunction(point, target, false);
+        if (targMod != point->getFunction()->getModule()) {
+            // Don't put in inter-module branches
+            if (newParsing)
+                analyzeNewFunction(point, target, true, false);
+        }
+        else
+        {
+            parseNewEdgeInFunction(point, target, false);
+        }
+
         if (0 == targFuncs.size()) {
             proc()->findFunctionsByAddr( target, targFuncs );
         }

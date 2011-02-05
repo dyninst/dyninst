@@ -322,6 +322,24 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     bool instrumentReturns,
     bool addShadowSync) 
 {
+    if (!instrumentReturns)
+    {
+        // KEVIN TODO
+        // If we have an entry "return" edge, then we were likely reached by
+        // a return used as an indirect jump. In this case, consider us to have
+        // tampered with the stack to ensure that we instrument our return points.
+
+        ParseAPI::Block::edgelist &inEdges = func->lowlevel_func()->ifunc()->entry()->sources();
+        for (ParseAPI::Block::edgelist::iterator iter = inEdges.begin(); iter != inEdges.end(); ++iter)
+        {
+            if ((*iter)->type() != ParseAPI::CALL)
+            {
+                cerr << "Overriding instrumentation for function " << func->getName() << " : detected odd incoming edge " << (*iter)->type() << endl;
+                instrumentReturns = true;
+                break;
+            }
+        }
+    }
 
     Address funcAddr = (Address) func->getBaseAddr();
     int pointCount = 0;
@@ -1269,6 +1287,7 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
                 "into module %s, this indicates obfuscation or that there was a "
                 "call from that module into our code %s[%d]\n",
                 (long)point->getAddress(), target, modName,FILE__,__LINE__);
+            instReturns = true;
         } else {
             // jump into system library
             // this is usually symptomatic of the following:

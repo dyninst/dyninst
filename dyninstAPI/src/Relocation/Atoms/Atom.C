@@ -153,10 +153,15 @@ bool Trace::generate(const codeGen &templ,
    static bool debug = false;
    bool insn_debug = false;
 #if 0
-   if (bbl() && bbl()->start() == 0x9b7dcc) {
+   if (bbl() && bbl()->start() >= 0x9bce8c && bbl()->start() <= 0x9bcfff) {
+       disassemble_reloc = true;
        debug = true;
    }
-   if (bbl() && bbl()->start() >= 0x9bb7b1 && bbl()->start() <= 0x9bb910) {
+   else if (bbl() && bbl()->start() >= 0x9be045 && bbl()->start() <= 0x9be045) {
+       disassemble_reloc = true;
+       debug = true;
+   }
+   else if (bbl() && bbl()->start() >= 0xbd0000 && bbl()->start() <= 0xbd1000) {
        disassemble_reloc = true;
        debug = true;
    }

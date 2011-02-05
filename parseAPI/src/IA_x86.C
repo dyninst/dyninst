@@ -585,6 +585,7 @@ bool IA_IAPI::isNopJump() const
     bool valid; Address addr;
     boost::tie(valid, addr) = getCFT();
     if(valid && current+1 == addr) {
+        DebugBreak();
         return true;
     }
     return false;

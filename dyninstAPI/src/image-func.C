@@ -472,7 +472,7 @@ void
 image_func::funcEntries(pdvector<image_instPoint*> &points)
 {
     // there can be only one
-    image_instPoint * p = img()->getInstPoint(addr());
+    image_instPoint * p = img()->getInstPoint(entryBlock(), addr());
 
     if (!p && instLevel_ != UNINSTRUMENTABLE) {
        // We can create these lazily...
@@ -488,61 +488,74 @@ image_func::funcEntries(pdvector<image_instPoint*> &points)
 void 
 image_func::funcExits(pdvector<image_instPoint*> &points)
 {
-    vector<FuncExtent *>::const_iterator eit = extents().begin();
-    for( ; eit != extents().end(); ++eit) {
-        FuncExtent * fe = *eit;
-        pdvector<image_instPoint *> pts;
-        img()->getInstPoints(fe->start(),fe->end(),pts);
-        for(unsigned i=0;i<pts.size();++i) {
-            image_instPoint *p = pts[i];
-            if(p->getPointType() == functionExit)
-                points.push_back(p);
-        }
+    vector<image_instPoint *> allPoints;
+    // Inefficient as hell...
+    for (ParseAPI::Function::blocklist::iterator b_iter = blocks().begin();
+        b_iter != blocks().end(); ++b_iter) 
+    {
+        img()->getInstPoints(*b_iter, allPoints);
+    }
+
+    for (vector<image_instPoint *>::iterator iter = allPoints.begin();
+        iter != allPoints.end(); ++iter) 
+    {
+        if ((*iter)->getPointType() == functionExit)
+            points.push_back(*iter);
     }
 }
+
 void 
 image_func::funcCalls(pdvector<image_instPoint*> &points)
 {
-    vector<FuncExtent *>::const_iterator eit = extents().begin();
-    for( ; eit != extents().end(); ++eit) {
-        FuncExtent * fe = *eit;
-        pdvector<image_instPoint *> pts;
-        img()->getInstPoints(fe->start(),fe->end(),pts);
-        for(unsigned i=0;i<pts.size();++i) {
-            image_instPoint *p = pts[i];
-            if(p->getPointType() == callSite)
-                points.push_back(p);
-        }
+    vector<image_instPoint *> allPoints;
+    // Inefficient as hell...
+    for (ParseAPI::Function::blocklist::iterator b_iter = blocks().begin();
+        b_iter != blocks().end(); ++b_iter) 
+    {
+        img()->getInstPoints(*b_iter, allPoints);
+    }
+
+    for (vector<image_instPoint *>::iterator iter = allPoints.begin();
+        iter != allPoints.end(); ++iter) 
+    {
+        if ((*iter)->getPointType() == callSite)
+            points.push_back(*iter);
     }
 }
 
 void image_func::funcUnresolvedControlFlow(pdvector<image_instPoint*> & points)
 {
-    vector<FuncExtent *>::const_iterator eit = extents().begin();
-    for( ; eit != extents().end(); ++eit) {
-        FuncExtent * fe = *eit;
-        pdvector<image_instPoint *> pts;
-        img()->getInstPoints(fe->start(),fe->end(),pts);
-        for(unsigned i=0;i<pts.size();++i) {
-            image_instPoint *p = pts[i];
-            if( p->isUnresolved() )
-                points.push_back(p);
-        }
+    vector<image_instPoint *> allPoints;
+    // Inefficient as hell...
+    for (ParseAPI::Function::blocklist::iterator b_iter = blocks().begin();
+        b_iter != blocks().end(); ++b_iter) 
+    {
+        img()->getInstPoints(*b_iter, allPoints);
+    }
+
+    for (vector<image_instPoint *>::iterator iter = allPoints.begin();
+        iter != allPoints.end(); ++iter) 
+    {
+        if ((*iter)->isUnresolved())
+            points.push_back(*iter);
     }
 }
 
 void image_func::funcAbruptEnds(pdvector<image_instPoint*> & points)
 {
-    vector<FuncExtent *>::const_iterator eit = extents().begin();
-    for( ; eit != extents().end(); ++eit) {
-        FuncExtent * fe = *eit;
-        pdvector<image_instPoint *> pts;
-        img()->getInstPoints(fe->start(),fe->end(),pts);
-        for(unsigned i=0;i<pts.size();++i) {
-            image_instPoint *p = pts[i];
-            if(p->getPointType() == abruptEnd)
-                points.push_back(p);
-        }
+    vector<image_instPoint *> allPoints;
+    // Inefficient as hell...
+    for (ParseAPI::Function::blocklist::iterator b_iter = blocks().begin();
+        b_iter != blocks().end(); ++b_iter) 
+    {
+        img()->getInstPoints(*b_iter, allPoints);
+    }
+
+    for (vector<image_instPoint *>::iterator iter = allPoints.begin();
+        iter != allPoints.end(); ++iter) 
+    {
+        if ((*iter)->getPointType() == abruptEnd)
+            points.push_back(*iter);
     }
 }
 

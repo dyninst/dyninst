@@ -64,8 +64,7 @@ class MemoryEmulator {
     const std::map<Address,int> & getSpringboards(SymtabAPI::Region*) const;
     void removeSpringboards(int_function* deadfunc);
     void removeSpringboards(const int_block* deadBBI);
-    void addSpringboard(SymtabAPI::Region*, 
-                        Address offset,/*from start of region*/
+    void addSpringboard(Address start,
                         int size);
     void synchShadowOrig(bool toOrig);
 
@@ -89,13 +88,19 @@ class MemoryEmulator {
 
    Address mutateeBase_;
 
-   std::map<SymtabAPI::Region*, std::map<Address,int> > springboards_;
+   // Address: base of a allocated shadow region.
+   // Pair: a springboard start and size.
+   std::map<Address, std::map<Address, int> > springboards_;
 
    // First address: original base in memory. Second address: shadow base.
    typedef std::map<SymtabAPI::Region *, std::pair< Address, Address> > RegionMap;
    RegionMap addedRegions_;
 
    std::map<SymtabAPI::Region *, unsigned char *> saved;
+
+   // Maps from the start of a region to where the copylist sits in memory.
+   // Target is an address (where alloced) and size
+   std::map<Address, std::pair<Address, int> > copyLists_;
 
 };
 };

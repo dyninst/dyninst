@@ -982,46 +982,35 @@ pdmodule *image::findModule(const string &name, bool wildcard)
 }
 
 image_instPoint *
-image::getInstPoint(Address addr)
+image::getInstPoint(ParseAPI::Block *b, Address addr)
 {
     analyzeIfNeeded();
-    instp_map_t::iterator iit = inst_pts_.find(addr);
-    if(iit != inst_pts_.end())
-        return iit->second;
-    return NULL;
+    instp_map_t::iterator iit = inst_pts_.find(b);
+    if(iit == inst_pts_.end())
+        return NULL;
+    block_map_t::iterator iter = iit->second.find(addr);
+    if (iter == iit->second.end()) 
+        return NULL;
+    return iter->second;
 }
 void
-image::getInstPoints(Address start, Address end,
+image::getInstPoints(Block *b,
     pdvector<image_instPoint *> & points)
 {
     analyzeIfNeeded();
-    instp_map_t::iterator iit = inst_pts_.lower_bound(start);
-    while(iit != inst_pts_.end() && iit->second->offset() < end) {
-        points.push_back(iit->second);
-        ++iit;
+    instp_map_t::iterator iit = inst_pts_.find(b);
+    if (iit == inst_pts_.end()) return;
+    for (block_map_t::iterator iter = iit->second.begin(); iter != iit->second.end(); ++iter)
+    {
+        points.push_back(iter->second);
     }
 }
 
 bool
 image::addInstPoint(image_instPoint *newP)
 {
-    if(inst_pts_.find(newP->offset()) != inst_pts_.end()) {   
-        // this can happen because of code sharing or if there's a 
-        // call at a function entry or exit
-        parsing_printf("  attempt to add duplicate instpoint at %lx\n",
-            newP->offset());
-        if (codeObject()->defensiveMode()) {
-            image_instPoint *oldP = inst_pts_.find(newP->offset())->second;
-            mal_printf("WARNING: merging imgPoint info at %lx, new point type "
-                    "is %d, existing point has type %d %s[%d]\n", 
-                    newP->offset(), newP->getPointType(), 
-                    inst_pts_.find(newP->offset())->second->getPointType(),
-                    FILE__,__LINE__);
-            oldP->mergePoint(newP);
-        }
-        return false;
-    }
-    inst_pts_[newP->offset()] = newP;
+    inst_pts_[newP->block()][newP->offset()] = newP;
+
     return true;
 }
 
@@ -1283,24 +1272,19 @@ void image::deleteFunc(image_func *func)
 
 void image::deleteInstPoint(image_instPoint *p) {
     cerr << "Erasing instPoint at " << hex << p->offset() << dec << endl;
-    inst_pts_.erase(p->offset());
+
+    inst_pts_[p->block()].erase(p->offset());
    delete p;
 }
 
 void image::deleteInstPoints(ParseAPI::Block *b) {
-    std::list<image_instPoint *> points;
-    instp_map_t::iterator iit = inst_pts_.lower_bound(b->start());
-    while(iit != inst_pts_.end() && iit->second->offset() < b->end()) {
-        if (iit->second->block() == b)
-            points.push_back(iit->second);
-        ++iit;
+    std::list<image_instPoint *> toDelete;
+    for (block_map_t::iterator iter = inst_pts_[b].begin();
+        iter != inst_pts_[b].end(); ++iter) 
+    {
+        delete iter->second;
     }
-    mal_printf("Deleting %d points from block [%lx %lx)\n", 
-               points.size(), b->start(), b->end());
-    for (std::list<image_instPoint *>::iterator iter = points.begin();
-        iter != points.end(); ++iter) {
-            deleteInstPoint(*iter);
-    }
+    inst_pts_.erase(b);
 }
 
 void image::analyzeIfNeeded() {
@@ -1644,9 +1628,12 @@ image::~image()
     parallelRegions.clear();
 
     // free instPoints
-    instp_map_t::iterator iit = inst_pts_.begin();
-    for( ; iit != inst_pts_.end(); ++iit) {
-        delete iit->second;
+    for (instp_map_t::iterator iter = inst_pts_.begin(); iter != inst_pts_.end(); ++iter)
+    {
+        for (block_map_t::iterator iter2 = iter->second.begin(); iter2 != iter->second.end(); ++iter2)
+        {
+            delete iter2->second;
+        }
     }
     
     // Finally, remove us from the image list.
@@ -2235,15 +2222,22 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
 }
 
 void image::addSplitBlock(image_basicBlock *first, image_basicBlock *second) {
-	if (name_ == "uxtheme.dll") {
-		int i = 3;
-	}
+
+    std::list<Address> toRemove;
 	splitBlocks_.insert(make_pair(first, second));
-    instp_map_t::iterator iit = inst_pts_.lower_bound(second->start());
-    while(iit != inst_pts_.end() && iit->second->offset() < second->end()) {
-        if (iit->second->block() == first)
-            iit->second->setBlock(second);
-        ++iit;
+    for (block_map_t::iterator iter = inst_pts_[first].begin(); iter != inst_pts_[first].end(); ++iter) {
+        if (iter->second->offset() >= second->start()) 
+        {
+            // Move the point to the next block
+            iter->second->setBlock(second);
+            // Remove from the first block's instPoint map
+            toRemove.push_back(iter->first);
+            inst_pts_[second][iter->first] = iter->second;
+        }
+    }
+    for (std::list<Address>::iterator iter = toRemove.begin(); iter != toRemove.end(); ++iter) 
+    {
+        inst_pts_[first].erase(*iter);
     }
 }
 

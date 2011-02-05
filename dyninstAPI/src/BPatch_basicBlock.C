@@ -584,7 +584,7 @@ void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
 BPatch_function * BPatch_basicBlock::getCallTarget()
 {
     image_instPoint* imgPt = iblock->func()->ifunc()->img()->getInstPoint
-        ( iblock->llb()->lastInsnAddr() );
+        ( iblock->llb(), iblock->llb()->lastInsnAddr() );
     if ( ! imgPt || callSite != imgPt->getPointType() ) {
         return NULL;
     }

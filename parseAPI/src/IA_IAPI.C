@@ -164,7 +164,7 @@ size_t IA_IAPI::getSize() const
 
 bool IA_IAPI::hasCFT() const
 {
-  parsing_cerr << "hasCFT called" << endl;
+    parsing_cerr << "hasCFT called" << endl;
   if(hascftstatus.first) {
     parsing_cerr << "\t Returning cached entry: " << hascftstatus.second << endl;
     return hascftstatus.second;
@@ -177,6 +177,7 @@ bool IA_IAPI::hasCFT() const
         parsing_cerr << "\t branch or return, ret true" << endl;
         hascftstatus.second = true;
      }
+     else DebugBreak();
   }
   else if(c == c_CallInsn) {
      if(isRealCall()) {

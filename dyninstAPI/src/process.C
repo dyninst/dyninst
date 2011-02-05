@@ -4688,13 +4688,16 @@ bool process::getOverwrittenBlocks
             } else if (foundStart && curShadow[mIdx] == memVersion[mIdx]) {
                 foundStart = false;
 				cerr << "\t\t Adding overwritten range " << hex << regionStart << " -> " << curPageAddr + mIdx << dec << endl;
-				overwrittenRanges.push_back(
+
+                overwrittenRanges.push_back(
                     pair<Address,Address>(regionStart,curPageAddr+mIdx));
             }
         }
         if (foundStart) {
+
             foundStart = false;
 			cerr << "\t\t Adding overwritten range " << hex << regionStart << " -> " << curPageAddr + MEM_PAGE_SIZE << dec << endl;
+
             overwrittenRanges.push_back(
                 pair<Address,Address>(regionStart,curPageAddr+MEM_PAGE_SIZE));
         }
