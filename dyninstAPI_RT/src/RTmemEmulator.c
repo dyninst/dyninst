@@ -224,8 +224,8 @@ void RThandleShadow(void *direction, void *pointAddr, void *callbackID, void *fl
     if ((int)direction == 1) {
         if (RTuntranslatedEntryCounter == 0) {
             // Entering a system call...
-            //DYNINST_stopThread(pointAddr, callbackID, flags, (void *)1);
-            RTcopyData(TO_ORIG);
+            DYNINST_stopThread(pointAddr, callbackID, flags, (void *)1);
+            //RTcopyData(TO_ORIG);
         }
         RTuntranslatedEntryCounter++;
     }
@@ -233,8 +233,8 @@ void RThandleShadow(void *direction, void *pointAddr, void *callbackID, void *fl
         RTuntranslatedEntryCounter--;
 
         if (RTuntranslatedEntryCounter == 0) {
-            //            DYNINST_stopThread(pointAddr, callbackID, flags, (void *)0);
-            RTcopyData(TO_SHADOW);
+            DYNINST_stopThread(pointAddr, callbackID, flags, (void *)0);
+            //RTcopyData(TO_SHADOW);
         }
     }
 }

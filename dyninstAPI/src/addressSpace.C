@@ -1436,7 +1436,6 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 
   // Create a CodeMover covering these functions
   //cerr << "Creating a CodeMover" << endl;
-  disassemble_reloc = false;
 
   // Attempting to reduce copies...
   CodeTracker t;
@@ -1697,6 +1696,7 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
 
 bool AddressSpace::patchCode(CodeMover::Ptr cm,
 			     SpringboardBuilder::Ptr spb) {
+                     cerr << "patchCode" << endl;
 
    SpringboardMap &p = cm->sBoardMap(this);
   
@@ -1716,17 +1716,6 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
   for (std::list<codeGen>::iterator iter = patches.begin();
        iter != patches.end(); ++iter) 
   {
-      //if (disassemble_reloc) cerr << "Writing to process: " << hex << iter->startAddr() << " -> " << iter->startAddr() + iter->used() << dec << endl;
-      char *debugme = (char *)iter->start_ptr();
-      if (debugme[0] == 0xe9 && debugme[1] == 0x75 && debugme[2] == 0x65) 
-      {
-          cerr << "Hey: springboard @ " << iter->startAddr() << " matches odd pattern: " << hex 
-              << debugme[0] << " "
-              << debugme[1] << " "
-              << debugme[2] << " "
-              << debugme[3] << " "
-              << debugme[4] << dec << endl;
-      }
       if (!writeTextSpace((void *)iter->startAddr(),
           iter->used(),
           iter->start_ptr())) 
@@ -1734,30 +1723,18 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
           cerr << "Failed writing a springboard branch, ret false" << endl;
           return false;
       }
-#if 0
-    if (disassemble_reloc) 
-    {
-        using namespace InstructionAPI;
-        {
-            InstructionDecoder deco
-                (iter->start_ptr(),iter->used(),getArch());
-            Instruction::Ptr insn = deco.decode();
-            Address base = iter->startAddr();
-            while(insn) {
-                cerr << "Springboard: " << hex << base << ": " << insn->format(base) << endl;
-                base += insn->size();
-                insn = deco.decode();
-            }
-        }
-    }
-#endif
+
     mapped_object *obj = findObject(iter->startAddr());
     if (obj && runtime_lib.end() == runtime_lib.find(obj)) {
-        getMemEm()->addSpringboard(iter->startAddr(),
+        Address objBase = obj->codeBase();
+        SymtabAPI::Region * reg = obj->parse_img()->getObject()->
+            findEnclosingRegion(iter->startAddr() - objBase);
+        getMemEm()->addSpringboard(
+            reg, 
+            iter->startAddr() - objBase - reg->getMemOffset(),
             iter->used());
-    }
+     }
   }
-
 
   return true;
 };

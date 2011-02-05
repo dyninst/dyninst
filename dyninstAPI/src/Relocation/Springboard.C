@@ -235,7 +235,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    codeGen gen;
    
    bool usedTrap = false;
-   //cerr << "Springboard: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
+   if (disassemble_reloc) cerr << "Springboard: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
 
    generateBranch(r.from, r.destinations.begin()->second, gen);
 
@@ -448,8 +448,8 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool
        b_iter != req.destinations.end(); ++b_iter) {
 
        addrSpace_->getRelocAddrs(req.from, b_iter->first->func(), relocAddrs, true);
-       for (std::list<Address>::const_iterator addr = relocAddrs.begin(); 
-            addr != relocAddrs.end(); ++addr) { 
+       for (std::list<Address>::const_reverse_iterator addr = relocAddrs.rbegin(); 
+            addr != relocAddrs.rend(); ++addr) { 
           if (*addr == b_iter->second) continue;
           Priority newPriority;
           switch(req.priority) {
@@ -485,6 +485,7 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool
                        newPriority, b_iter->first,
                        req.checkConflicts, 
                        false, true, curUseTrap);
+
        }
    }
    return true;

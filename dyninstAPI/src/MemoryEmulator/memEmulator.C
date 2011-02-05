@@ -101,57 +101,6 @@ void MemoryEmulator::update() {
           newMapper.elements[i].hi = elements[i].first.second;
           assert(newMapper.elements[i].hi > newMapper.elements[i].lo);
           newMapper.elements[i].shift = elements[i].second;
-          sensitivity_cerr << "\t\t Element: " << hex << newMapper.elements[i].lo << "->" << newMapper.elements[i].hi << ": " << newMapper.elements[i].shift << dec << endl;
-          if (elements[i].second == (Address)-1) 
-          {
-              newMapper.elements[i].copyList = 0;
-          }
-          else
-          {
-              // Build this thing up
-              std::map<Address, int> &springboards = springboards_[base];
-              if (springboards.empty()) 
-              {
-                  newMapper.elements[i].copyList = 0;
-              }
-              else
-              {
-                  unsigned size = springboards.size() + 2;
-                  if (size > copyLists_[base].second) 
-                  {
-                      if (copyLists_[base].first) aS_->inferiorFree(copyLists_[base].first);
-                      copyLists_[base].first = aS_->inferiorMalloc(size);
-                      copyLists_[base].second = size;
-                  }
-                  MemoryMapperCopyElement *toCopy = (MemoryMapperCopyElement *)malloc(size * sizeof(MemoryMapperCopyElement));
-                  int index = 0;
-                  Address cur = base;
-                  for (std::map<Address, int>::iterator s_iter = springboards.begin();
-                      s_iter != springboards.end(); ++s_iter)
-                  {
-                      if (s_iter->first < cur)
-                      {
-                          cur = s_iter->first + s_iter->second;
-                          continue;
-                      }
-
-                      toCopy[index].start = cur;
-                      toCopy[index].size = s_iter->first - cur;
-                      cur = s_iter->first + s_iter->second;
-                      index++;
-                  }
-                  toCopy[index].start = cur;
-                  toCopy[index].size = newMapper.elements[i].hi - cur;
-                  index++;
-                  assert(index < size);
-                  toCopy[index].start = 0;
-                  toCopy[index].size = 0;
-                  aS_->writeDataSpace((void *)copyLists_[base].first,
-                      copyLists_[base].second,
-                      (void *)toCopy);
-                  free(toCopy);
-              }
-          }
       }
       aS_->writeDataSpace((void *)mutateeBase_,
                           sizeof(newMapper),
@@ -169,22 +118,20 @@ void MemoryEmulator::addAllocatedRegion(Address start, unsigned size) {
 }
 
 void MemoryEmulator::addRegion(mapped_object *obj) {
-   cerr << "addRegion for " << obj->fileName() << endl;
-   if (aS_->runtime_lib.find(obj) != aS_->runtime_lib.end())
-   {
-       // Runtime library, skip
-       return;
-   }
-
+    if (aS_->runtime_lib.find(obj) != aS_->runtime_lib.end())
+    {
+        // Runtime library, skip
+        return;
+    }
    // Add each code region
-   std::vector<Region *> codeRegions;
-   obj->parse_img()->getObject()->getCodeRegions(codeRegions);
+    std::vector<Region *> codeRegions;
+    obj->parse_img()->getObject()->getCodeRegions(codeRegions);
 
-   for (unsigned i = 0; i < codeRegions.size(); ++i) {
-      Region *reg = codeRegions[i];
+    for (unsigned i = 0; i < codeRegions.size(); ++i) {
+        Region *reg = codeRegions[i];
 
-      addRegion(reg, obj->codeBase());
-   }         
+      addRegion(reg, obj->codeBase(), 0, 0);
+    }
 }
 
 void MemoryEmulator::removeRegion(mapped_object *obj) {
@@ -204,12 +151,8 @@ void MemoryEmulator::removeRegion(mapped_object *obj) {
 	debug();
 }
 
-void MemoryEmulator::addRegion(Region *reg, Address base) {
-   
-   cerr << "\t\t Region " << hex
-   << reg->getMemOffset() << " -> " 
-   << reg->getMemOffset() + reg->getMemSize() << endl;
-   
+void MemoryEmulator::addRegion(Region *reg, Address base, Address, Address) {
+
    if (addedRegions_.find(reg) != addedRegions_.end()) return;
       
    process *proc = dynamic_cast<process *>(aS_);
@@ -223,25 +166,22 @@ void MemoryEmulator::addRegion(Region *reg, Address base) {
        memset(buffer, 0, reg->getMemSize());
        memcpy(buffer, reg->getPtrToRawData(), reg->getDiskSize());
    }
-   
+
    unsigned long allocSize = reg->getMemSize();
-   if (proc) {
-      allocSize += proc->getMemoryPageSize();
-   }
-   
+   allocSize += 0x1000;
+
    Address mutateeBase = aS_->inferiorMalloc(allocSize);
    assert(mutateeBase);
-   
+
    // "Upcast" it to align with a page boundary - Kevin's request
    if (proc) {         
-      mutateeBase += proc->getMemoryPageSize();
-      mutateeBase -= mutateeBase % proc->getMemoryPageSize();
+       mutateeBase += proc->getMemoryPageSize();
+       mutateeBase -= mutateeBase % proc->getMemoryPageSize();
    }
-   
-   
+
    aS_->writeDataSpace((void *)mutateeBase,
-                       reg->getMemSize(),
-                       (void *)buffer);
+       reg->getMemSize(),
+       (void *)buffer);
    if (aS_->proc() && BPatch_defensiveMode == aS_->proc()->getHybridMode()) {
 #if defined (os_windows)
        using namespace SymtabAPI;
@@ -271,14 +211,11 @@ void MemoryEmulator::addRegion(Region *reg, Address base) {
    
     Address regionBase = base + reg->getMemOffset();
 
-    sensitivity_cerr << hex << " Adding region with base " << base << " and mem offset " << reg->getMemOffset()
-        << ", allocated buffer base " << mutateeBase << " and so shift " << mutateeBase - regionBase << dec << endl;
-
    addRegion(regionBase,
              reg->getMemSize(),
              mutateeBase - regionBase);
    
-   cerr << "Added region: first " << hex << base + reg->getMemOffset() <<  ", second " << mutateeBase << dec << endl;
+
    addedRegions_[reg] = std::make_pair(base + reg->getMemOffset(), mutateeBase);
    free(buffer);
 }
@@ -293,7 +230,7 @@ void MemoryEmulator::removeRegion(Region *reg, Address base) {
 	if (iter == addedRegions_.end()) return;
 
 	// First, nuke our track of the springboards
-    //springboards_.erase(reg);
+    springboards_.erase(reg);
 
     // Second, nuke it from the list of regions to copy on a sync
     addedRegions_.erase(reg);
@@ -440,7 +377,7 @@ std::pair<bool, Address> MemoryEmulator::translateBackwards(Address addr) {
 
 void MemoryEmulator::synchShadowOrig(bool toOrig) 
 {
-#if 0
+
     if (toOrig) {
         malware_cerr << "Syncing shadow to orig" << endl;
     }
@@ -453,95 +390,65 @@ void MemoryEmulator::synchShadowOrig(bool toOrig)
     for (RegionMap::iterator iter = addedRegions_.begin();
         iter != addedRegions_.end(); ++iter) {
         Region * reg = iter->first;
-        unsigned char* regbuf = (unsigned char*) malloc(reg->getMemSize());
+
+        // We copy "source" (where we're copying from) and "target" (where we're
+        // copying to). We then select snippets of target (where springboards reside)
+        // and copy them into source, and then write source into target.
+
+        unsigned char *source = (unsigned char*) malloc(reg->getMemSize());
+        unsigned char *target = (unsigned char *) malloc(reg->getMemSize());
+
         Address from = 0;
-        Address toBase = 0;
+        Address to = 0;
         if (toOrig) {
             from = iter->second.second;
-            toBase = iter->second.first;
+            to = iter->second.first;
         } else {
             from = iter->second.first;
-            toBase = iter->second.second;
+            to = iter->second.second;
         }
+
         if (!aS_->readDataSpace((void *)from,
                                 reg->getMemSize(),
-                                regbuf,
+                                source,
                                 false)) 
         {
             assert(0);
         }
-        if (toOrig) {
-            if (saved[reg]) {
-                free(saved[reg]);
-            }
-            saved[reg] = regbuf;
+        if (!aS_->readDataSpace((void *)to,
+            reg->getMemSize(),
+            target,
+            false)) 
+        {
+            assert(0);
         }
 
         Address cp_start = 0;
 
         std::map<Address,int>::const_iterator sit = springboards_[reg].begin();
         for (; sit != springboards_[reg].end(); sit++) {
-            // We purposefully have an overlapping datastructure, so this assert is 
-            // commented out.
-            //assert(cp_start <= sit->first);
 
-            if ((sit->first + sit->second) < cp_start) continue;
-
-            //cerr << "\t Start @ " << hex << cp_start << " and next springboard " << sit->first << dec << endl;
-            int cp_size = sit->first - cp_start;
-
-            //cerr << "\t Write [" << hex << toBase + cp_start << "," << toBase + cp_start + cp_size  << ")" << dec << endl;
-            if (cp_size > 0) {
-                if (!toOrig && saved[reg]) {
-                    // Consistency check
-                    for (unsigned i = cp_start; i < cp_start + cp_size; ++i) {
-                        if (regbuf[i] != saved[reg][i]) {
-                            cerr << "Warning: difference at addr " << hex << from + i << ": cached " << (int) saved[reg][i] << " and current " << (int)regbuf[i] << dec << endl;
-                        }
-                    }
-                }
-                if (!aS_->writeDataSpace((void *)(toBase + cp_start),
-                    cp_size,
-                    regbuf + cp_start)) assert(0);
-
-            }
-            cp_start = sit->first + sit->second;
+            Address fromLB = (Address) target + sit->first;
+            Address toLB = (Address) source + sit->first;
+            memcpy((void *)toLB, (void *)fromLB, sit->second);
         }
-        //cerr << "\t Finishing write " << hex << toBase + cp_start << " -> " << toBase + cp_start + reg->getMemSize() - cp_start << dec << endl;
 
-        if (cp_start < reg->getMemSize())
+        if (!aS_->writeDataSpace((void *)to,
+            reg->getMemSize(),
+            source))
         {
-            if (!toOrig && saved[reg]) {
-                // Consistency check
-                for (unsigned i = cp_start; i < reg->getMemSize(); ++i) {
-                    if (regbuf[i] != saved[reg][i]) {
-                        cerr << "Warning: difference at addr " << hex << from + i << ": cached " << (int) saved[reg][i] << " and current " << (int)regbuf[i] << dec << endl;
-                    }
-                }
-            }
-            if (!aS_->writeDataSpace((void *)(toBase + cp_start),
-                reg->getMemSize() - cp_start,
-                regbuf + cp_start)) assert(0);
+            assert(0);
         }
+        free(source);
+        free(target);
+
     }
-#endif
+
 }
 
 
-void MemoryEmulator::addSpringboard(Address addr, int size) 
+void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size) 
 {
-   Address lb, ub;
-   unsigned long val;
-   if (!memoryMap_.find(addr, lb, ub, val)) 
-   {
-       assert(0);
-   }
-
-   int oldSize = springboards_[lb][addr];
-   if (size > oldSize)
-       springboards_[lb][addr] = size;
-
-#if 0
     // Look up whether there is a previous springboard that overlaps with us; 
     // clearly, it's getting removed. 
 
@@ -565,6 +472,7 @@ void MemoryEmulator::addSpringboard(Address addr, int size)
     springboard_cerr << "\t New value: " << hex << offset << " -> " << smap[offset] + offset << dec << endl;
 
 
+#if 0
     // We don't want to delete these, actually, because we can conflict between a springboard
     // addition and a synchronization operation.
 
@@ -627,7 +535,6 @@ void MemoryEmulator::removeSpringboards(int_function * func)
 
 void MemoryEmulator::removeSpringboards(const int_block *bbi) 
 {
-#if 0
     malware_cerr << "  untracking springboards from deadblock [" << hex 
          << bbi->start() << " " << bbi->end() << ")" << dec <<endl;
     SymtabAPI::Region * reg = 
@@ -637,7 +544,6 @@ void MemoryEmulator::removeSpringboards(const int_block *bbi)
     }
     springboards_[reg].erase(bbi->llb()->start() - reg->getMemOffset());
     if (springboards_[reg].empty()) springboards_.erase(reg);
-#endif
 }
 
 void  MemoryEmulator::debug() const {

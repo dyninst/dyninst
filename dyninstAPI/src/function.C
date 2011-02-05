@@ -344,15 +344,19 @@ const std::set<instPoint*> &int_function::funcUnresolvedControlFlow()
         // convert image_instPoints to instPoints, add to set
         pdvector<image_instPoint*>::iterator pIter = imgPoints.begin();
         while (pIter != imgPoints.end()) {
-
-            // skip static transfers to known code
+#if 0
+            // KEVIN TODO: this is horribly wrong in implementation, but decent in theory
+            // 1) the call target is _wrong_ because it's an offset from the instPoint
+            //    base. 
+            // 2) It's insufficient to check whether we're going to a known object;
+            //    we need to check whether we know the target _function_.
             if ( ! (*pIter)->isDynamic() ) {
                 if (proc()->findObject((*pIter)->callTarget())) {
                     pIter++;
                     continue;
                 }
             }
-
+#endif
             // find or create the new instPoint and add it to the vector
             instPoint *curPoint = instPoint::createParsePoint(this, *pIter);
             if (curPoint) unresolvedPoints_.insert(curPoint); // std::set eliminates duplicates
