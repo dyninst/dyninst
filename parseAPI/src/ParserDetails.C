@@ -104,9 +104,6 @@ static void
 getBlockInsns(Block &blk, std::set<Address> &addrs)
 {
     unsigned bufSize = blk.size();
-	if (blk.start() == 0x1256) {
-		int i = 3;
-	}
 #if defined(cap_instruction_api)
     using namespace InstructionAPI;
     const unsigned char* bufferBegin = (const unsigned char *)
@@ -130,11 +127,10 @@ getBlockInsns(Block &blk, std::set<Address> &addrs)
  * Extra handling for bad jump instructions
  */
 inline
-void Parser::ProcessBadBranchEdge(
+void Parser::ProcessUnresBranchEdge(
     ParseFrame & frame,
     Block * cur,
     InstructionAdapter_t & ah,
-    bool isResolved,
     Address target,
     EdgeTypeEnum type)
 {
@@ -394,7 +390,7 @@ void Parser::ProcessCFInsn(
         } 
         else if( unlikely(_obj.defensiveMode() && NOEDGE != curEdge->second) )
         {   
-            ProcessBadBranchEdge(frame, cur, ah, resolvable_edge, curEdge->first, curEdge->second);
+            ProcessUnresBranchEdge(frame, cur, ah, curEdge->first, curEdge->second);
             // invoke callback for: 
             // direct ctrl transfers with bad targets 
             // (calls will have been taken care of and indirect branches don't have outgoing edges)
@@ -404,7 +400,7 @@ void Parser::ProcessCFInsn(
             det.isize = ah.getSize();
             det.data.unres.target = curEdge->first;
             det.type = ParseCallback::interproc_details::unres_branch;
-            if (-1 == det.data.unres.target) {
+            if (-1 == (long)det.data.unres.target) {
                 det.data.unres.target = 0;
             }
             bool valid; Address addr;
@@ -421,7 +417,7 @@ void Parser::ProcessCFInsn(
     }
 
     if (unlikely(_obj.defensiveMode() && edges_out.empty() && has_unres)) {
-        ProcessBadBranchEdge(frame, cur, ah, has_unres, -1, INDIRECT);
+        ProcessUnresBranchEdge(frame, cur, ah, -1, INDIRECT);
     }
 
     if(ah.isDelaySlot())
