@@ -620,7 +620,7 @@ class StackwalkSymLookup : public Dyninst::Stackwalker::SymbolLookup {
     virtual ~StackwalkSymLookup();
 };
 
-class StackwalkInstrumentationHelper : public Dyninst::Stackwalker::DyninstInstrHelper {
+class StackwalkInstrumentationHelper : public Dyninst::Stackwalker::DyninstDynamicHelper {
   private:
     PCProcess *proc_;
 

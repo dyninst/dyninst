@@ -603,13 +603,13 @@ bool PCProcess::createStackwalker()
   // Create steppers, adding to walker
 
   swInstrHelper = new StackwalkInstrumentationHelper(this);
-  stepper = new DyninstInstrStepper(stackwalker_, swInstrHelper);
+  stepper = new DyninstDynamicStepper(stackwalker_, swInstrHelper);
   if (!stackwalker_->addStepper(stepper))
   {
     startup_printf("Error adding Stackwalker stepper %p\n", stepper);
     return false;
   }
-  startup_printf("Stackwalker stepper %p is a DyninstInstrStepper\n", stepper);
+  startup_printf("Stackwalker stepper %p is a DyninstDynamicStepper\n", stepper);
 
   stepper = new DebugStepper(stackwalker_);
   if (!stackwalker_->addStepper(stepper))
@@ -654,6 +654,16 @@ bool PCProcess::createStackwalker()
     return false;
   }
   startup_printf("Stackwalker stepper %p is a BottomOfStackStepper\n", stepper);
+
+  /* TODO finish AnalysisStepper and enable this
+  stepper = new AnalysisStepper(stackwalker_);
+  if (!stackwalker_->addStepper(stepper))
+  {
+    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    return false;
+  }
+  startup_printf("Stackwalker stepper %p is an AnalysisStepper\n", stepper);
+  */
 
   return true;
 }

@@ -94,40 +94,19 @@ FrameFuncHelper::~FrameFuncHelper()
 {
 }
 
-DyninstInstrHelper::~DyninstInstrHelper()
-{
-}
-
 std::map<SymReader*, bool> DyninstInstrStepperImpl::isRewritten;
 
-DyninstInstrStepperImpl::DyninstInstrStepperImpl(Walker *w, DyninstInstrStepper *p,
-                                                 DyninstInstrHelper *h) :
+DyninstInstrStepperImpl::DyninstInstrStepperImpl(Walker *w, DyninstInstrStepper *p) :
   FrameStepper(w),
-  parent(p),
-  helper(h),
-  prevEntryExit(false)
+  parent(p)
 {
 }
 
 gcframe_ret_t DyninstInstrStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 {
+   unsigned stack_height = 0;
    LibAddrPair lib;
    bool result;
-   unsigned stack_height = 0;
-   Address orig_ra = 0x0;
-   bool entryExit = false;
-
-   // Handle dynamic instrumentation
-   if (helper)
-   {
-       bool instResult = helper->isInstrumentation(in.getRA(), &orig_ra, &stack_height, &entryExit);
-       bool pEntryExit = prevEntryExit;
-       
-       // remember that this frame was entry/exit instrumentation
-       prevEntryExit = entryExit;
-
-       if (pEntryExit || instResult) return getCallerFrameArch(in, out, 0, 0, 0, stack_height, orig_ra, pEntryExit);
-   }
 
    result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(in.getRA(), lib);
    if (!result) {
@@ -273,6 +252,61 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 {
 }
 
+DyninstDynamicHelper::~DyninstDynamicHelper()
+{
+}
+
+DyninstDynamicStepperImpl::DyninstDynamicStepperImpl(Walker *w, DyninstDynamicStepper *p,
+                                                     DyninstDynamicHelper *h) :
+  FrameStepper(w),
+  parent(p),
+  helper(h),
+  prevEntryExit(false)
+{
+}
+
+gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrame(const Frame &in, Frame &out)
+{
+   unsigned stack_height = 0;
+   Address orig_ra = 0x0;
+   bool entryExit = false;
+
+   // Handle dynamic instrumentation
+   if (helper)
+   {
+       bool instResult = helper->isInstrumentation(in.getRA(), &orig_ra, &stack_height, &entryExit);
+       bool pEntryExit = prevEntryExit;
+       
+       // remember that this frame was entry/exit instrumentation
+       prevEntryExit = entryExit;
+
+       if (pEntryExit || instResult) return getCallerFrameArch(in, out, 0, 0, 0, stack_height, orig_ra, pEntryExit);
+   }
+
+   return gcf_not_me;
+}
+
+unsigned DyninstDynamicStepperImpl::getPriority() const
+{
+  return dyninstr_priority;
+}
+
+void DyninstDynamicStepperImpl::registerStepperGroup(StepperGroup *group)
+{
+  unsigned addr_width = group->getWalker()->getProcessState()->getAddressWidth();
+  if (addr_width == 4)
+    group->addStepper(parent, 0, 0xffffffff);
+#if defined(arch_64bit)
+  else if (addr_width == 8)
+    group->addStepper(parent, 0, 0xffffffffffffffff);
+#endif
+  else
+    assert(0 && "Unknown architecture word size");
+}
+
+DyninstDynamicStepperImpl::~DyninstDynamicStepperImpl()
+{
+}
 
 //FrameFuncStepper defined here
 #define PIMPL_IMPL_CLASS FrameFuncStepperImpl
@@ -289,12 +323,10 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 #define PIMPL_IMPL_CLASS DyninstInstrStepperImpl
 #define PIMPL_CLASS DyninstInstrStepper
 #define PIMPL_NAME "DyninstInstrStepper"
-#define PIMPL_ARG1 DyninstInstrHelper*
 #include "framestepper_pimple.h"
 #undef PIMPL_CLASS
 #undef PIMPL_IMPL_CLASS
 #undef PIMPL_NAME
-#undef PIMPL_ARG1
 
 //BottomOfStackStepper defined here
 #if defined(os_linux) || defined(os_bg)
@@ -363,3 +395,15 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 #undef PIMPL_CLASS
 #undef PIMPL_IMPL_CLASS
 #undef PIMPL_NAME
+
+//DyninstDynamicStepper defined here
+#define PIMPL_IMPL_CLASS DyninstDynamicStepperImpl
+#define PIMPL_CLASS DyninstDynamicStepper
+#define PIMPL_NAME "DyninstDynamicStepper"
+#define PIMPL_ARG1 DyninstDynamicHelper*
+#include "framestepper_pimple.h"
+#undef PIMPL_CLASS
+#undef PIMPL_IMPL_CLASS
+#undef PIMPL_NAME
+#undef PIMPL_ARG1
+
