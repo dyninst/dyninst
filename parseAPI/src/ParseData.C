@@ -73,7 +73,7 @@ StandardParseData::findFuncs(CodeRegion * /* cr */, Address addr,
     return _rdata.findFuncs(addr,funcs);
 }
 
-int StandardParseData::findBlocks(CodeRegion * cr , Address addr,
+int StandardParseData::findBlocks(CodeRegion * /* cr */ , Address addr,
     set<Block *> & blocks)
 {
     int ret = _rdata.findBlocks(addr,blocks);

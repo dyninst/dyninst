@@ -170,7 +170,7 @@ bool IA_IAPI::isThunk() const {
     return false;
 }
 
-bool IA_IAPI::isTailCall(Function * context,unsigned int) const
+bool IA_IAPI::isTailCall(Function * /*context*/,unsigned int) const
 {
     if(tailCall.first) {
         parsing_printf("\tReturning cached tail call check result: %d\n", tailCall.second);
@@ -585,7 +585,6 @@ bool IA_IAPI::isNopJump() const
     bool valid; Address addr;
     boost::tie(valid, addr) = getCFT();
     if(valid && current+1 == addr) {
-        DebugBreak();
         return true;
     }
     return false;
