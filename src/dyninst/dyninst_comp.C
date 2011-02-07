@@ -41,9 +41,11 @@
 #include "BPatch_process.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
+#include "BPatch_point.h"
 #include "test_lib.h"
 #include "ResumeLog.h"
 #include "dyninst_comp.h"
+
 
 #if defined(os_windows_test)
 #define snprintf _snprintf
