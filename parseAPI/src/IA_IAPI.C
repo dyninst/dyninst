@@ -177,7 +177,6 @@ bool IA_IAPI::hasCFT() const
         parsing_cerr << "\t branch or return, ret true" << endl;
         hascftstatus.second = true;
      }
-     else DebugBreak();
   }
   else if(c == c_CallInsn) {
      if(isRealCall()) {

@@ -151,13 +151,10 @@ void StackAnalysis::summarizeBlocks() {
 		  next = block->end();
       }
 
-	  // Fills in insnEffects[off]
-	  TransferFuncs &xferFuncs = insnEffects[block][off];
-	  computeInsnEffects(block, insn, off,
-		                 xferFuncs);
-      if (off == 0x00001d85) {
-		  int i = 3;
-	  }
+      // Fills in insnEffects[off]
+      TransferFuncs &xferFuncs = insnEffects[block][off];
+      computeInsnEffects(block, insn, off,
+                         xferFuncs);
       bFunc.add(xferFuncs);
 
       stackanalysis_printf("\t\t\t At 0x%lx:  %s\n",
@@ -241,9 +238,6 @@ void StackAnalysis::summarize() {
 	Function::blocklist::iterator bit = bs.begin();
 	for( ; bit != bs.end(); ++bit) {
 		Block *block = *bit;
-		if (block->start() == 0x0000d60e) {
-			int i = 3;
-		}
 		RegisterState input = blockInputs[block];
 
 		for (std::map<Offset, TransferFuncs>::iterator iter = insnEffects[block].begin(); 

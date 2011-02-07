@@ -106,6 +106,14 @@ bool HybridAnalysis::removeSignalHandlerCallback()
     return false;
 }
 
+void HybridAnalysis::signalHandlerEntryCB(BPatch_point *point, Address excRecAddr) { };
+
+void HybridAnalysis::signalHandlerEntryCB2(BPatch_point *point, Address excCtxtAddr) {};
+
+void HybridAnalysis::virtualFreeAddrCB(BPatch_point *, void *addr) { };
+void HybridAnalysis::virtualFreeSizeCB(BPatch_point *, void *size) { };
+void HybridAnalysis::virtualFreeCB(BPatch_point *, void *t) { };
+
 #else 
 
 static void signalHandlerEntryCB_wrapper(BPatch_point *point, void *excRecAddr) 
@@ -234,7 +242,6 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
         bpatchSignalHandlerCB(point,signum,&handlerAddrs);
     }
 }
-#endif
 
 
 /* Invoked for every signal handler function, adjusts the value of the saved 
@@ -244,7 +251,6 @@ void HybridAnalysis::signalHandlerEntryCB(BPatch_point *point, Address excRecAdd
 {
     mal_printf("\nAt signalHandlerEntry(%lx , %lx)\n", 
                point->getAddress(), (Address)excRecAddr);
-
     // calculate the offset of the fault address in the EXCEPTION_RECORD
     EXCEPTION_RECORD record;
     proc()->lowlevel_process()->readDataSpace(
@@ -280,6 +286,81 @@ void HybridAnalysis::signalHandlerEntryCB2(BPatch_point *point, Address excCtxtA
     func->setHandlerFaultAddrAddr((Address)pcAddr,true);
     handlerFunctions[(Address)func->getBaseAddr()].faultPCaddr = pcAddr;
 }
+
+void HybridAnalysis::virtualFreeAddrCB(BPatch_point *, void *addr) {
+	cerr << "Setting virtualFree addr to " << hex << (Address) addr << dec << endl;
+	virtualFreeAddr_ = (Address) addr;
+	return;
+}
+
+void HybridAnalysis::virtualFreeSizeCB(BPatch_point *, void *size) {
+	cerr << "Setting virtualFree size to " << (unsigned) size << endl;
+	virtualFreeSize_ = (unsigned) size;
+	return;
+}
+
+void HybridAnalysis::virtualFreeCB(BPatch_point *, void *t) {
+	assert(virtualFreeAddr_ != 0);
+	unsigned type = (unsigned) t;
+	cerr << "virtualFree [" << hex << virtualFreeAddr_ << "," << virtualFreeAddr_ + (unsigned) virtualFreeSize_ << "], " << (unsigned) type << dec << endl;
+
+	Address pageSize = proc()->lowlevel_process()->getMemoryPageSize();
+
+	// Windows page-aligns everything.
+
+	unsigned addrShift = virtualFreeAddr_ % pageSize;
+	unsigned sizeShift = pageSize - (virtualFreeSize_ % pageSize);
+
+	virtualFreeAddr_ -= addrShift;
+
+	if (type != MEM_RELEASE)
+	{
+		virtualFreeSize_ += addrShift + sizeShift;
+	}
+
+	// We need to:
+	// 1) Remove any function with a block in the deleted range
+	// 2) Remove memory translation for that range
+	// 3) Skip trying to set permissions for any page in the range.
+
+	// DEBUG!
+	if (1 || type == MEM_RELEASE)
+	{
+		mapped_object *obj = proc()->lowlevel_process()->findObject(virtualFreeAddr_);
+
+		if (!obj) return;
+		virtualFreeAddr_ = obj->codeBase();
+		virtualFreeSize_ = obj->imageSize();
+		// DEBUG!
+		cerr << "Removing shared object " << obj->fileName() << endl;
+		proc()->lowlevel_process()->removeASharedObject(obj);
+		virtualFreeAddr_ = 0;
+		return;
+	}
+
+	std::set<int_function *> deletedFuncs;
+	for (Address i = virtualFreeAddr_; i < (virtualFreeAddr_ + virtualFreeSize_); ++i) {
+		proc()->lowlevel_process()->findFuncsByAddr(i, deletedFuncs);
+	}
+	for (std::set<int_function *>::iterator iter = deletedFuncs.begin();
+		iter != deletedFuncs.end(); ++iter)
+	{
+		BPatch_function * bpfunc = proc()->findOrCreateBPFunc(*iter, NULL);
+		if (!bpfunc) continue;
+		bpfunc->getModule()->removeFunction(bpfunc, true);
+	}
+
+	proc()->lowlevel_process()->getMemEm()->removeRegion(virtualFreeAddr_, virtualFreeSize_);
+	// And nuke the RT cache
+
+	proc()->lowlevel_process()->proc()->flushAddressCache_RT(virtualFreeAddr_, virtualFreeSize_);
+
+	virtualFreeAddr_ = 0;
+	return;
+}
+
+
+#endif
 
 
 /* If the context of the exception has been changed so that execution
@@ -382,78 +463,6 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
 
 // Look up the memory region, and unmap it if it corresponds to a mapped object
 
-void HybridAnalysis::virtualFreeAddrCB(BPatch_point *, void *addr) {
-	cerr << "Setting virtualFree addr to " << hex << (Address) addr << dec << endl;
-	virtualFreeAddr_ = (Address) addr;
-	return;
-}
-
-void HybridAnalysis::virtualFreeSizeCB(BPatch_point *, void *size) {
-	cerr << "Setting virtualFree size to " << (unsigned) size << endl;
-	virtualFreeSize_ = (unsigned) size;
-	return;
-}
-
-void HybridAnalysis::virtualFreeCB(BPatch_point *, void *t) {
-	assert(virtualFreeAddr_ != 0);
-	unsigned type = (unsigned) t;
-	cerr << "virtualFree [" << hex << virtualFreeAddr_ << "," << virtualFreeAddr_ + (unsigned) virtualFreeSize_ << "], " << (unsigned) type << dec << endl;
-
-	Address pageSize = proc()->lowlevel_process()->getMemoryPageSize();
-
-	// Windows page-aligns everything.
-
-	unsigned addrShift = virtualFreeAddr_ % pageSize;
-	unsigned sizeShift = pageSize - (virtualFreeSize_ % pageSize);
-
-	virtualFreeAddr_ -= addrShift;
-
-	if (type != MEM_RELEASE)
-	{
-		virtualFreeSize_ += addrShift + sizeShift;
-	}
-
-	// We need to:
-	// 1) Remove any function with a block in the deleted range
-	// 2) Remove memory translation for that range
-	// 3) Skip trying to set permissions for any page in the range.
-
-	// DEBUG!
-	if (1 || type == MEM_RELEASE)
-	{
-		mapped_object *obj = proc()->lowlevel_process()->findObject(virtualFreeAddr_);
-
-		if (!obj) return;
-		virtualFreeAddr_ = obj->codeBase();
-		virtualFreeSize_ = obj->imageSize();
-		// DEBUG!
-		cerr << "Removing shared object " << obj->fileName() << endl;
-		proc()->lowlevel_process()->removeASharedObject(obj);
-		virtualFreeAddr_ = 0;
-		return;
-	}
-
-	std::set<int_function *> deletedFuncs;
-	for (Address i = virtualFreeAddr_; i < (virtualFreeAddr_ + virtualFreeSize_); ++i) {
-		proc()->lowlevel_process()->findFuncsByAddr(i, deletedFuncs);
-	}
-	for (std::set<int_function *>::iterator iter = deletedFuncs.begin();
-		iter != deletedFuncs.end(); ++iter)
-	{
-		BPatch_function * bpfunc = proc()->findOrCreateBPFunc(*iter, NULL);
-		if (!bpfunc) continue;
-		bpfunc->getModule()->removeFunction(bpfunc, true);
-	}
-
-	proc()->lowlevel_process()->getMemEm()->removeRegion(virtualFreeAddr_, virtualFreeSize_);
-	// And nuke the RT cache
-
-	proc()->lowlevel_process()->proc()->flushAddressCache_RT(virtualFreeAddr_, virtualFreeSize_);
-
-	virtualFreeAddr_ = 0;
-	return;
-}
-
 /* CASES (sub-numbering are cases too)
  * 1. the target address is in a shared library
  * 1.1 if it's a system library don't parse at the target, but if the point was marked 
@@ -490,7 +499,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     tmstruct = localtime( &tstruct );
     strftime(timeStr, 64, "%X", tmstruct);
 
-    printf("badTransferCB %lx=>%lx %s\n\n", point->getAddress(), target, timeStr);
+    printf("badTransferCB %lx=>%lx %s\n\n", (Address) point->getAddress(), target, timeStr);
 
     BPatch_module * targMod = proc()->findModuleByAddr(target);
     if (!targMod) {
@@ -548,7 +557,6 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             mal_printf("stopThread instrumentation found call %lx=>%lx, "
                       "parsing at call target %s[%d]\n",
                      (long)point->getAddress(), target,FILE__,__LINE__);
-            if (target == 0xe80004) DebugBreak();
             if (!analyzeNewFunction( point,target,true,false )) {
                 //this happens for some single-instruction functions
                 mal_printf("WARNING: parse of call target %lx=>%lx failed %s[%d]\n",

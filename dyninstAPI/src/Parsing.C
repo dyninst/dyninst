@@ -247,7 +247,7 @@ DynParseCallback::unresolved_cf(Function *f,Address addr,unresolved_details*det)
 #endif
 
 void
-DynParseCallback::abruptEnd_cf(Address addr,ParseAPI::Block *b,default_details*det)
+DynParseCallback::abruptEnd_cf(Address addr,ParseAPI::Block *b,default_details*)
 {
     image_instPoint * p =
         new image_instPoint(addr,

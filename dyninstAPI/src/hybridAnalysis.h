@@ -52,6 +52,17 @@ class BPatch_basicBlock;
 class BPatch_basicBlockLoop;
 class int_block;
 
+#if !defined(os_windows)
+// Compatibility definitions
+#define PAGE_READ 1
+#define PAGE_WRITE 2
+#define PAGE_EXECUTE 4
+#define PAGE_READONLY PAGE_READ
+#define PAGE_READWRITE (PAGE_READ | PAGE_WRITE)
+#define PAGE_EXECUTE_READ (PAGE_READ | PAGE_EXECUTE)
+#define PAGE_EXECUTE_READWRITE (PAGE_READ | PAGE_EXECUTE | PAGE_WRITE)
+#endif
+
 /* There should only be one instance of this class, as for the BPatch class */
 class HybridAnalysis {
     friend class HybridAnalysisOW;

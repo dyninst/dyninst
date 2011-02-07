@@ -1423,6 +1423,7 @@ HybridAnalysis::synchMap_post()
 int
 HybridAnalysis::getOrigPageRights(Address addr)
 {
+   
     int origPerms;
     using namespace SymtabAPI;
     mapped_object *obj = proc()->lowlevel_process()->findObject(addr);

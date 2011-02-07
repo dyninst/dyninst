@@ -46,6 +46,7 @@
 #include "BPatch_function.h"
 #include "BPatch_flowGraph.h"
 #include "BPatch_basicBlock.h"
+#include "BPatch_point.h"
 
 #include "dyninstCore.h"
 #include "config.h"

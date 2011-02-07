@@ -292,7 +292,7 @@ class StopThreadCallback : public SyncCallback
     bool execute_real(void);
     bool operator()(BPatch_point *atPoint, void *returnValue);
     BPatchStopThreadCallback getFunc() const {return cb;}
-    process *getProcess() const;
+    process *getProcess();
  private:
     BPatchStopThreadCallback cb;
     BPatch_point *point;

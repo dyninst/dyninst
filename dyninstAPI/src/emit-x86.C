@@ -1913,10 +1913,23 @@ void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPointType
       loc.offset = 0;
    }
 
-   if (pt_type != callSite) {
-      //Return value before any parameters
-      loc.offset += 8;
+   switch (op) {
+      case getParamOp:
+         if (pt_type != callSite) {
+            //Return value before any parameters
+            loc.offset += 8;
+         }
+         break;
+      case getParamAtCallOp:
+         break;
+      case getParamAtEntryOp:
+         loc.offset += 8;
+         break;
+      default:
+         assert(0);
+         break;
    }
+
    loc.offset += (param_num-6)*8;
    if (!addr_of)
       emitMovRMToReg64(dest, loc.reg.reg(), loc.offset, 8, gen);
@@ -2090,8 +2103,11 @@ void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, boo
     gen.rs()->setStackHeight( saved_stack_height );
 }
 
-void EmitterAMD64::emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
+void EmitterAMD64::emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen)
 {
+   // Support for using ESP that has been moved is unimplemented.
+
+   assert(stackShift == 0);
   Register use_a = Null_Register;
   Register use_b = Null_Register;
 

@@ -1159,9 +1159,6 @@ bool int_function::getOverlappingFuncs(int_block *block,
 	for (Address i = llB->start(); i < llB->end(); ++i) {
 		llB->obj()->findBlocks(llB->region(), i, overlappingBlocks);
 	}
-	if (overlappingBlocks.size() > 1) {
-		int i = 3;
-	}
 	// We now have all of the overlapping ParseAPI blocks. Get the set of 
 	// ParseAPI::Functions containing each and up-map to int_functions
 	for (std::set<ParseAPI::Block *>::iterator iter = overlappingBlocks.begin();

@@ -54,6 +54,7 @@ class AddressSpace;
 class miniTrampHandle;
 class miniTramp;
 class BPatch;
+class BPatch_image;
 
 class int_function;
 struct batchInsertionRecord;
