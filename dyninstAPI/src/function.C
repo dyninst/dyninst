@@ -1211,7 +1211,6 @@ std::string int_function::get_name() const
 }
 
 
-
 void int_function::getNewInstrumentation(std::set<instPoint *> &ret) {
     for (unsigned i = 0; i < entryPoints_.size(); i++) {
         if (entryPoints_[i]->hasNewInstrumentation()) {

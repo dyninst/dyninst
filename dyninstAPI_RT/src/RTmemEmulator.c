@@ -33,6 +33,7 @@
 #include "dyninstAPI_RT/src/RTcommon.h"
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 #include <errno.h>
 
 #if defined (__GNUC__)
@@ -219,6 +220,7 @@ void RTcopyData(int direction)
 }
 
 
+extern void DYNINST_stopThread (void * pointAddr, void *callBackID, void *flags, void *calculation);
 
 void RThandleShadow(void *direction, void *pointAddr, void *callbackID, void *flags, void *calculation) {
     if ((int)direction == 1) {
