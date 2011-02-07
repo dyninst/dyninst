@@ -887,3 +887,4 @@ void ThreadState::clearPendingStop() {
 bool ThreadState::hasPendingStop() {
   return pending_sigstops != 0;
 }
+

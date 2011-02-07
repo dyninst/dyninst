@@ -82,6 +82,7 @@ bool SwkSymtab::lookupAtAddr(Dyninst::Address,
                              std::string &,
                              void* &)
 {
+   sw_printf("[%s:%u] - Error: Called root symbol lookup\n", __FILE__, __LINE__);
    assert(0);
    return false;
 }
@@ -114,7 +115,7 @@ bool SymDefaultLookup::lookupAtAddr(Dyninst::Address addr,
                 __FILE__, __LINE__, lib.first.c_str());
       return false;
    }
-   
+
    Offset off = addr - lib.second;
    Symbol_t sym = reader->getContainingSymbol(off);
    if (!reader->isValidSymbol(sym)) {
@@ -124,6 +125,7 @@ bool SymDefaultLookup::lookupAtAddr(Dyninst::Address addr,
 
    out_name = reader->getDemangledName(sym);
    out_value = NULL;
+   sw_printf("[%s:%u] - Found symbol %s at address %lx\n", __FILE__, __LINE__, out_name.c_str(), addr);
    return true;
 }
 

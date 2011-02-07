@@ -36,6 +36,7 @@
 #include "Serialization.h"
 #include "Symtab.h"
 #include "Aggregate.h"
+#include "dyn_regs.h"
 
 //class Dyninst::SymtabAPI::Variable;
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &);
@@ -73,11 +74,14 @@ typedef enum {
 const char *storageRefClass2Str(storageRefClass sc);
 
 //location for a variable
+//Use mr_reg instead of reg for new code.  reg left in for backwards
+// compatibility.
 class VariableLocation : public Serializable {
 	public:
 	storageClass stClass;
 	storageRefClass refClass;
 	int reg;
+   MachRegister mr_reg;
 	long frameOffset;
 	Address lowPC;
 	Address hiPC;

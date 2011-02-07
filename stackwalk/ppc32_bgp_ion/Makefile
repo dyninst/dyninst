@@ -24,7 +24,9 @@ SRCS =         ../src/bluegene-swk.C \
 
 STATIC_COMPS = true
 
+ifdef LIBELF_INC
 MYFLAGS += -I$(LIBELF_INC)
+endif
 
 LIBS   +=
 CFLAGS  += -m32 $(MYFLAGS)
