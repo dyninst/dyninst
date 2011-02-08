@@ -1567,9 +1567,6 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 }
 
 bool AddressSpace::transform(CodeMover::Ptr cm) {
-  // Ensure each block ends with an appropriate CFElement
-  CFAtomCreator c;
-  cm->transform(c);
 
   if (emulatePC_) {
       PCSensitiveTransformer v(this, cm->priorityMap());
@@ -1590,30 +1587,10 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   Modification mod(callReplacements_, functionReplacements_, callRemovals_);
   cm->transform(mod);
 
-  // Localize control transfers
-  //cerr << "  Applying control flow localization" << endl;
-  LocalizeCF t(cm->blockMap(), 
-	       cm->priorityMap());
-  cm->transform(t);
-
-  // Add in pads after all calls that have an unknown return status. We want this
-  // to occur pre-instrumentation so that we can ensure instrumentation still gets
-  // executed properly.
-
-  DefensiveTransformer defTrans;
-  cm->transform(defTrans);
-
-
   // Add instrumentation
-  // For ease of edge instrumentation this should occur post-LocalCFTransformer-age
   //cerr << "Inst transformer" << endl;
   Instrumenter i;
   cm->transform(i);
-
-  // And remove unnecessary jumps. This needs to be last.
-  Fallthroughs f;
-  cm->transform(f);
-
 
   return true;
 

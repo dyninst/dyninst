@@ -43,8 +43,8 @@
 
 #include "parseAPI/h/CodeObject.h"
 #include "parseAPI/h/InstructionSource.h"
-#include "Relocation/Relocation.h"
-#include "Relocation/CodeTracker.h"
+//#include "Relocation/Relocation.h"
+//#include "Relocation/CodeTracker.h"
 
 class codeRange;
 class replacedFunctionCall;
@@ -472,6 +472,8 @@ class AddressSpace : public InstructionSource {
     Address costAddr_;
 
     /////// New instrumentation system
+#if 0
+    // Moved to PatchAPI
     typedef std::list<Relocation::CodeTracker> CodeTrackers;
     CodeTrackers relocatedCode_;
 
@@ -506,8 +508,11 @@ class AddressSpace : public InstructionSource {
     void addModifiedRegion(mapped_object *obj);
 
     MemoryEmulator *memEmulator_;
+#endif
+
     bool emulateMem_;
     bool emulatePC_;
+
 };
 
 

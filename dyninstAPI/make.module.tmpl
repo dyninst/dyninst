@@ -149,18 +149,12 @@ SRCS	     +=	../src/BPatch.C \
 		../src/Relocation/CodeMover.C \
 		../src/Relocation/Springboard.C \
 		../src/Relocation/Atoms/ASTAtom.C \
-		../src/Relocation/Atoms/Atom.C \
 		../src/Relocation/Atoms/CFAtom.C \
-		../src/Relocation/Atoms/CopyInsn.C \
-                ../src/Relocation/Atoms/DefensivePadding.C \
-		../src/Relocation/Atoms/GetPC.C \
-		../src/Relocation/Atoms/Instrumentation.C \
-		../src/Relocation/Atoms/Padding.C \
-		../src/Relocation/Atoms/RelData.C \
-		../src/Relocation/Transformers/CF_Localization.C \
-		../src/Relocation/Transformers/ControlFlow.C \
-		../src/Relocation/Transformers/Defensive.C \
-		../src/Relocation/Transformers/Fallthroughs.C \
+		../src/Relocation/Atoms/InsnAtom.C \
+		../src/Relocation/Atoms/PCAtom.C \
+                ../src/Relocation/Atoms/RelDataAtom.C \
+                ../src/Relocation/Atoms/Target.C \
+                ../src/Relocation/Atoms/Trace.C \
 		../src/Relocation/Transformers/Instrumenter.C \
 		../src/Relocation/Transformers/Modification.C \
 		../src/Relocation/Transformers/Movement-adhoc.C \
