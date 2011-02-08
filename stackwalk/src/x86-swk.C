@@ -53,10 +53,10 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
 {
   unsigned long *frame_pointer;
 
-#if defined(arch_x86_64) && defined(os_linux)
+#if defined(arch_x86_64) && (defined(os_linux) || defined(os_freebsd))
   __asm__("mov %%rbp, %0\n"
 	  : "=r"(frame_pointer));
-#elif defined(os_linux)
+#elif defined(os_linux) || defined(os_freebsd)
   __asm__("movl %%ebp, %0\n"
 	  : "=r"(frame_pointer));
 #elif defined(os_windows)

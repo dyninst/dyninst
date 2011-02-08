@@ -14,12 +14,13 @@ include ../../make.config
 LDFLAGS     += $(LIBDIR) -lcommon
 
 SRCS = 	../src/linux-swk.C \
-	../src/linux-x86-swk.C \
+	../src/linuxbsd-x86-swk.C \
 	../src/x86-swk.C \
 	../src/symtab-swk.C \
 	../src/dbginfo-stepper.C \
 	../src/x86-wanderer.C \
-	../src/analysis_stepper.C
+	../src/analysis_stepper.C \
+	../src/linuxbsd-swk.C
 
 
 

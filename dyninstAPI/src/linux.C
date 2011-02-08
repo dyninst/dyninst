@@ -292,9 +292,7 @@ Address PCProcess::setAOutLoadAddress(fileDescriptor &desc) {
    startup_printf("[%s:%u] - a.out is a shared library, computing load addr\n",
                   FILE__, __LINE__);
    memset(&aout, 0, sizeof(aout));
-   proc_path[127] = '\0';
-   snprintf(proc_path, 127, "/proc/%d/exe", getPid());
-   result = stat(proc_path, &aout);
+   result = stat(pcProc_->libraries().getExecutable()->getName().c_str(), &aout);
    if (result == -1) {
       startup_printf("[%s:%u] - setAOutLoadAddress couldn't stat %s: %s\n",
                      FILE__, __LINE__, proc_path, strerror(errno));

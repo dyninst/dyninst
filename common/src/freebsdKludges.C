@@ -276,6 +276,6 @@ bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int 
     return PtraceBulkAccess(inTraced, size, inSelf, pid, true);
 }
 
-bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid) {
-    return PtraceBulkAccess(inTraced, size, inSelf, pid, false);
+bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, const void *inSelf, int pid) {
+    return PtraceBulkAccess(inTraced, size, (void *)inSelf, pid, false);
 }

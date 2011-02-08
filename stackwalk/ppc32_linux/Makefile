@@ -19,7 +19,8 @@ LDFLAGS     += $(LIBDIR) -lcommon -ldl
 SRCS = 	../src/linux-swk.C \
 	../src/linux-ppc-swk.C \
 	../src/ppc-swk.C \
-	../src/symtab-swk.C
+	../src/symtab-swk.C \
+	../src/linuxbsd-swk.C
 
 ifdef LIBELF_INC
 MYFLAGS += -I$(LIBELF_INC)

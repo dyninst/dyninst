@@ -38,6 +38,8 @@
 #include "pcThread.h"
 #include "function.h"
 
+extern char **environ;
+
 using namespace Dyninst::ProcControlAPI;
 
 // Functions for all Unices //

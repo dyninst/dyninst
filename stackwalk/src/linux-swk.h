@@ -32,35 +32,18 @@
 #ifndef LINUX_SWK_H
 #define LINUX_SWK_H
 
-#include "stackwalk/h/framestepper.h"
-
-#include "dyntypes.h"
-#include <set>
-
+#include "dynutil/h/dyntypes.h"
 #include "dynutil/h/SymReader.h"
-#include "stackwalk/src/get_trap_instruction.h"
-#define MAX_TRAP_LEN 8
 
-#include "libdwarf.h"
+#include "common/h/Types.h"
+#include "common/h/linuxKludges.h"
+
+#define START_THREAD_FUNC_NAME "start_thread"
+#define CLONE_FUNC_NAME "__clone"
+#define START_FUNC_NAME "_start"
 
 namespace Dyninst {
 namespace Stackwalker {
-
-class SigHandlerStepperImpl : public FrameStepper {
-private:
-   SigHandlerStepper *parent_stepper;
-   void registerStepperGroupNoSymtab(StepperGroup *group);
-   bool init_libc;
-   bool init_libthread;
-public:
-   SigHandlerStepperImpl(Walker *w, SigHandlerStepper *parent);
-   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
-   virtual unsigned getPriority() const;
-   virtual void registerStepperGroup(StepperGroup *group);
-   virtual void newLibraryNotification(LibAddrPair *la, lib_change_t change);
-   virtual const char *getName() const;
-   virtual ~SigHandlerStepperImpl();  
-};
 
 struct vsys_info {
    void *vsys_mem;
@@ -82,7 +65,5 @@ struct vsys_info {
 vsys_info *getVsysInfo(ProcessState *ps);
 }
 }
-
-bool getDwarfDebug(std::string s, Dwarf_Debug *d);
 
 #endif

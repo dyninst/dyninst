@@ -31,14 +31,26 @@
 
 #include <cassert>
 
-#include "freebsd.h"
-#include "dyn_lwp.h"
-#include "process.h"
-#include "syscallNotification.h"
-#include "dynamiclinking.h"
-#include "signalgenerator.h"
 #include "binaryEdit.h"
+#include "pcProcess.h"
+#include "symtab.h"
+#include "function.h"
+#include "instPoint.h"
+#include "baseTramp.h"
+#include "os.h"
+#include "debug.h"
 #include "mapped_object.h"
+#include "mapped_module.h"
+#include "freebsd.h"
+
+#include "common/h/headers.h"
+#include "common/h/freebsdKludges.h"
+
+#include "symtabAPI/h/Symtab.h"
+using namespace Dyninst::SymtabAPI;
+using namespace Dyninst::ProcControlAPI;
+
+using std::string;
 
 void loadNativeDemangler() {}
 
@@ -117,8 +129,6 @@ bool BinaryEdit::getResolvedLibraryPath(const std::string &filename, std::vector
     return ( 0 < paths.size() );
 }
 
-sharedLibHook::~sharedLibHook() {}
-
 bool BinaryEdit::archSpecificMultithreadCapable() {
     /*
      * The heuristic on FreeBSD is to check for some symbols that are
@@ -156,8 +166,8 @@ bool AddressSpace::getDyninstRTLibName() {
         }
         else {
            std::string msg;
-           process *proc;
-           if ((proc = dynamic_cast<process *>(this)) != NULL) {
+           PCProcess *proc;
+           if ((proc = dynamic_cast<PCProcess *>(this)) != NULL) {
               msg = std::string("Environment variable ") +
                  std::string("DYNINSTAPI_RT_LIB") +
                  std::string(" has not been defined for process ") +

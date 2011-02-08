@@ -46,7 +46,7 @@ lwpid_t sysctl_getInitialLWP(pid_t pid);
 map_entries *getVMMaps(int pid, unsigned &maps_size);
 
 bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid);
-bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid);
+bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, const void *inSelf, int pid);
 
 #endif
 

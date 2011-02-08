@@ -650,7 +650,8 @@ bool tkill(pid_t pid, long lwp, int sig) {
 int_process *int_process::createProcess(Dyninst::PID pid_, std::string exec) {
     std::vector<std::string> args;
     std::map<int, int> f;
-    freebsd_process *newproc = new freebsd_process(pid_, exec, args, f);
+    std::vector<std::string> envp;
+    freebsd_process *newproc = new freebsd_process(pid_, exec, args, envp, f);
     assert(newproc);
 
     return static_cast<int_process *>(newproc);

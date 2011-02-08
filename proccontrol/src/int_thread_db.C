@@ -222,8 +222,10 @@ Event::ptr decodeThreadEvent(td_event_msg_t *eventMsg) {
 volatile bool thread_db_process::thread_db_initialized = false;
 Mutex thread_db_process::thread_db_init_lock;
 
-thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f) :
-  int_process(p, e, a, f),
+thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+        std::vector<std::string> envp, 
+        std::map<int, int> f) :
+  int_process(p, e, a, envp, f),
   threadAgent(NULL)
 {
   self = new ps_prochandle();

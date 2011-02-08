@@ -36,7 +36,7 @@
 #include "stackwalk/h/steppergroup.h"
 #include "stackwalk/h/walker.h"
 #include "stackwalk/src/dbgstepper-impl.h"
-#include "stackwalk/src/linux-swk.h"
+#include "stackwalk/src/linuxbsd-swk.h"
 #include "dynutil/h/dyntypes.h"
 #include "common/h/Types.h"
 

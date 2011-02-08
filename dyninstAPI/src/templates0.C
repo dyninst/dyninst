@@ -164,9 +164,6 @@ template class  pdvector<image_variable *>;
 #include "symtabAPI/h/Symtab.h"
 template class  pdvector<relocationEntry>;
 
-class sharedLibHook;
-template class  pdvector<sharedLibHook *>;
-
 #include "imageUpdate.h"
 template class pdvector<imageUpdate*>;//ccw 28 oct 2001
 template class pdvector<dataUpdate*> ;//ccw 26 nov 2001

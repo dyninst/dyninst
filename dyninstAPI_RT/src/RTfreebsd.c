@@ -51,8 +51,6 @@
 #include <sys/mman.h>
 #include <link.h>
 
-#define NOT_ON_FREEBSD "This function is unimplemented on FreeBSD"
-
 /* FreeBSD libc has stubs so a static version shouldn't need libpthreads */
 #include <pthread.h>
 
@@ -105,8 +103,9 @@ void mark_heaps_exec() {
     RTprintf( "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize );
 } /* end mark_heaps_exec() */
 
-void DYNINSTos_init(int /* calledByFork */, int /* calledByAttach */)
+void DYNINSTos_init(int calledByFork, int calledByAttach)
 {
+    RTprintf("DYNINSTos_init(%d,%d\n", calledByFork, calledByAttach);
 }
 
 #if defined(cap_binary_rewriter) && !defined(DYNINST_RT_STATIC_LIB)
@@ -128,9 +127,34 @@ void runDYNINSTBaseInit()
 
 /** Dynamic instrumentation support **/
 
+static
+int tkill(pid_t pid, long lwp, int sig) {
+    static int has_tkill = 1;
+    int result = 0;
+
+    if( has_tkill ) {
+        result = syscall(SYS_thr_kill2, pid, lwp, sig);
+        if( 0 != result && ENOSYS == errno ) {
+            has_tkill = 0;
+        }
+    }
+
+    if( !has_tkill ) {
+        result = kill(pid, sig);
+    }
+
+    return (result == 0);
+}
+
 void DYNINSTbreakPoint()
 {
-    assert(!NOT_ON_FREEBSD);
+    if(DYNINSTstaticMode) return;
+
+    DYNINST_break_point_event = 1;
+    while( DYNINST_break_point_event ) {
+        tkill(getpid(), dyn_lwp_self(), DYNINST_BREAKPOINT_SIGNUM);
+    }
+    /* Mutator resets to 0 */
 }
 
 static int failed_breakpoint = 0;
@@ -141,31 +165,36 @@ void uncaught_breakpoint(int sig)
 
 void DYNINSTsafeBreakPoint()
 {
-    assert(!NOT_ON_FREEBSD);
+    if( DYNINSTstaticMode ) return;
+
+    DYNINST_break_point_event = 2;
+    tkill(getpid(), dyn_lwp_self(), SIGSTOP);
 }
 
-/* FreeBSD libc includes dl* functions typically in libdl */
-typedef struct dlopen_args {
-  const char *libname;
-  int mode;
-  void *result;
-  void *caller;
-} dlopen_args_t;
-
-void *(*DYNINST_do_dlopen)(dlopen_args_t *) = NULL;
-
-/*
+#if !defined(DYNINST_RT_STATIC_LIB)
 static int get_dlopen_error() {
-    assert(!NOT_ON_FREEBSD);
-    return 1;
+    const char *err_str;
+    err_str = dlerror();
+    if( err_str ) {
+        strncpy(gLoadLibraryErrorString, err_str, (size_t) ERROR_STRING_LENGTH);
+        return 1;
+    }
+
+    sprintf(gLoadLibraryErrorString, "unknown error withe dlopen");
+    return 0;
 }
-*/
 
 int DYNINSTloadLibrary(char *libname)
 {
-    assert(!NOT_ON_FREEBSD);
-    return 1;
+    void *res;
+    gLoadLibraryErrorString[0] = '\0';
+    res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL);
+    if( res ) return 1;
+
+    get_dlopen_error();
+    return 0;
 }
+#endif
 
 /** threading support **/
 
@@ -207,17 +236,18 @@ dyntid_t dyn_pthread_self()
    return (dyntid_t) me;
 }
 
-/* 
-   We reserve index 0 for the initial thread. This value varies by
-   platform but is always constant for that platform. Wrap that
-   platform-ness here. 
-*/
 int DYNINST_am_initial_thread( dyntid_t tid ) {
-    if( dyn_lwp_self() == getpid() ) {
-        return 1;
-    }
+    /*
+     * LWPs and PIDs are in different namespaces on FreeBSD.
+     *
+     * I don't really know a good way to determine this without
+     * doing an expensive sysctl.
+     *
+     * Luckily, this function isn't used anymore
+     */
+    assert(!"This function is unimplemented on FreeBSD");
     return 0;
-} /* end DYNINST_am_initial_thread() */
+}
 
 /** trap based instrumentation **/
 

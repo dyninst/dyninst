@@ -297,8 +297,7 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 #undef PIMPL_ARG1
 
 //BottomOfStackStepper defined here
-#if defined(os_linux) || defined(os_bg)
-#include "stackwalk/src/linux-swk.h"
+#if defined(os_linux) || defined(os_bg) || defined(os_freebsd)
 #define OVERLOAD_NEWLIBRARY
 #define PIMPL_IMPL_CLASS BottomOfStackStepperImpl
 #endif
@@ -311,7 +310,7 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 #undef OVERLOAD_NEWLIBRARY
 
 //DebugStepper defined here
-#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
+#if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64))
 #include "stackwalk/src/dbgstepper-impl.h"
 #define PIMPL_IMPL_CLASS DebugStepperImpl
 #endif
@@ -340,8 +339,8 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 
 //SigHandlerStepper defined here
 #define OVERLOAD_NEWLIBRARY
-#if defined(os_linux)
-#include "stackwalk/src/linux-swk.h"
+#if defined(os_linux) || defined(os_freebsd)
+#include "stackwalk/src/linuxbsd-swk.h"
 #define PIMPL_IMPL_CLASS SigHandlerStepperImpl
 #endif
 #define PIMPL_CLASS SigHandlerStepper

@@ -283,7 +283,7 @@ bool LibraryState::getLibthread(LibAddrPair &addr_pair)
    }
    for (std::vector<LibAddrPair>::iterator i = libs.begin(); i != libs.end(); i++)
    {
-      if (libNameMatch("pthread", i->first.c_str())) {
+      if (libNameMatch("pthread", i->first.c_str()) || libNameMatch("thr", i->first.c_str()))  {
          addr_pair = *i;
          return true;
       }

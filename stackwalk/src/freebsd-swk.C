@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -29,54 +29,50 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// $Id: linux.h,v 1.37 2007/12/04 18:05:24 legendre Exp $
+#include "stackwalk/h/swk_errors.h"
+#include "stackwalk/h/symlookup.h"
+#include "stackwalk/h/walker.h"
+#include "stackwalk/h/steppergroup.h"
+#include "stackwalk/h/procstate.h"
+#include "stackwalk/h/frame.h"
 
-#if !defined(os_linux)
-#error "invalid architecture-os inclusion"
-#endif
+#include "stackwalk/src/linuxbsd-swk.h"
+#include "stackwalk/src/sw.h"
+#include "stackwalk/src/symtab-swk.h"
+#include "stackwalk/src/libstate.h"
 
-#ifndef LINUX_PD_HDR
-#define LINUX_PD_HDR
-class PCProcess;
+#include <cerrno>
+#include <cstring>
 
-#include "common/h/Types.h"
-#include "common/h/Vector.h"
-#include "common/h/parseauxv.h"
-#include "symtabAPI/h/Symtab.h"
-#include "symtabAPI/h/Archive.h"
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <signal.h>
+#include <setjmp.h>
 
-#define EXIT_NAME "_exit"
+using namespace Dyninst;
+using namespace Dyninst::Stackwalker;
 
-#if !defined(arch_x86_64)
-#define SIGNAL_HANDLER	 "__restore"
-#else
-#define SIGNAL_HANDLER   "__restore_rt"
-#endif
+int P_gettid() {
+    static int gettid_not_valid = 0;
+    int result;
+    long lwp_id = -1;
 
-#if defined(arch_x86) || defined(arch_x86_64)
-Address getRegValueAtFrame(void *ehf, Address pc, int reg, 
-                           Address *reg_map,
-                           PCProcess *p, bool *error);
-#endif
+    if( gettid_not_valid ) return getpid();
 
-#if defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4)
-#include "linux-x86.h"
-#elif defined(os_linux) && defined(arch_power)
-#include "linux-power.h"
-#else
-#error Invalid or unknown architecture-os inclusion
-#endif
+    result = syscall(SYS_thr_self, &lwp_id);
+    if( result && errno == ENOSYS ) {
+        gettid_not_valid = 1;
+        return getpid();
+    }
 
-#include "unix.h"
+    return lwp_id;
+}
 
-#ifndef WNOWAIT
-#define WNOWAIT WNOHANG
-#endif
+bool LibraryState::updateLibsArch(std::vector<std::pair<LibAddrPair, unsigned int> > &) {
+    return true;
+}
 
-bool get_linux_version(int &major, int &minor, int &subvers);
-bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers);
-
-void calcVSyscallFrame(PCProcess *p);
-
-#endif
+void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group) {
+   group->addStepper(parent_stepper, 0, 0);
+}

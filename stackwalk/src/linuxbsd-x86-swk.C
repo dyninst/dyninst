@@ -37,7 +37,7 @@
 #include "stackwalk/h/frame.h"
 
 #include "stackwalk/src/symtab-swk.h"
-#include "stackwalk/src/linux-swk.h"
+#include "stackwalk/src/linuxbsd-swk.h"
 #include "stackwalk/src/dbgstepper-impl.h"
 #include "stackwalk/src/x86-swk.h"
 
@@ -189,4 +189,3 @@ bool DebugStepperImpl::isStackRegister(MachRegister reg)
    else 
       return (reg == x86_64::rsp);
 }
-

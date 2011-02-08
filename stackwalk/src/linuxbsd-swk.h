@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -29,54 +29,50 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// $Id: linux.h,v 1.37 2007/12/04 18:05:24 legendre Exp $
+#ifndef LINUXBSD_SWK_H
+#define LINUXBSD_SWK_H
 
-#if !defined(os_linux)
-#error "invalid architecture-os inclusion"
-#endif
-
-#ifndef LINUX_PD_HDR
-#define LINUX_PD_HDR
-class PCProcess;
+#include "dynutil/h/dyntypes.h"
+#include "dynutil/h/SymReader.h"
 
 #include "common/h/Types.h"
-#include "common/h/Vector.h"
-#include "common/h/parseauxv.h"
-#include "symtabAPI/h/Symtab.h"
-#include "symtabAPI/h/Archive.h"
 
-#define EXIT_NAME "_exit"
+#include "stackwalk/h/framestepper.h"
 
-#if !defined(arch_x86_64)
-#define SIGNAL_HANDLER	 "__restore"
+#define MAX_TRAP_LEN 8
+
+#include "libdwarf.h"
+
+bool getDwarfDebug(std::string s, Dwarf_Debug *d);
+
+namespace Dyninst {
+namespace Stackwalker {
+
+class SigHandlerStepperImpl : public FrameStepper {
+private:
+   SigHandlerStepper *parent_stepper;
+   void registerStepperGroupNoSymtab(StepperGroup *group);
+   bool init_libc;
+   bool init_libthread;
+public:
+   SigHandlerStepperImpl(Walker *w, SigHandlerStepper *parent);
+   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+   virtual unsigned getPriority() const;
+   virtual void registerStepperGroup(StepperGroup *group);
+   virtual void newLibraryNotification(LibAddrPair *la, lib_change_t change);
+   virtual const char *getName() const;
+   virtual ~SigHandlerStepperImpl();  
+};
+
+}
+}
+
+#if defined(os_linux)
+#include "stackwalk/src/linux-swk.h"
+#elif defined(os_freebsd)
+#include "stackwalk/src/freebsd-swk.h"
 #else
-#define SIGNAL_HANDLER   "__restore_rt"
+#error "Invalid OS inclusion"
 #endif
-
-#if defined(arch_x86) || defined(arch_x86_64)
-Address getRegValueAtFrame(void *ehf, Address pc, int reg, 
-                           Address *reg_map,
-                           PCProcess *p, bool *error);
-#endif
-
-#if defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4)
-#include "linux-x86.h"
-#elif defined(os_linux) && defined(arch_power)
-#include "linux-power.h"
-#else
-#error Invalid or unknown architecture-os inclusion
-#endif
-
-#include "unix.h"
-
-#ifndef WNOWAIT
-#define WNOWAIT WNOHANG
-#endif
-
-bool get_linux_version(int &major, int &minor, int &subvers);
-bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers);
-
-void calcVSyscallFrame(PCProcess *p);
 
 #endif

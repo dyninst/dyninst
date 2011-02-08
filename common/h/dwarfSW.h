@@ -333,6 +333,7 @@ void DwarfSW::setupFdeData()
    if (result == DW_DLV_OK) {
       fde_data.push_back(fc);
    }
+   
 
    if (!fde_data.size()) {
       fde_dwarf_status = dwarf_status_error;
