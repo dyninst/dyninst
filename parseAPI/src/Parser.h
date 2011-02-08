@@ -197,6 +197,8 @@ class Parser {
     void finalize();
     void finalize_funcs(vector<Function *> & funcs);
 
+    void invalidateContainingFuncs(Function *, Block *);
+
     friend class CodeObject;
 };
 
