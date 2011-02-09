@@ -652,7 +652,7 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
       char *platform = getenv("PLATFORM");
       bool bgp_test = strcmp(platform ? platform : "", "ppc32_bgp") == 0;
       if (bgp_test) {
-         attach_argv.push_back("mpirun");
+         //attach_argv.push_back("mpirun");
          char *partition = getenv("DYNINST_BGP_PARTITION");
          //if(partition == NULL) partition = "BGB1";
          if (partition) {
