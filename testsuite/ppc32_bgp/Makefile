@@ -19,16 +19,6 @@ include $(TO_CORE)/make.config
 #if M_G77 is defined, g77 mutatees will be built
 M_G77 = g77
 
-# there is no "native" or OS-provided compiler for Linux!
-# we use the Portland Group compilers, as that's what we've currently got
-# (in future we probably also want to test with the KAI/Intel compilers)
-ifdef PGI
-NATIVE_CC = pgcc
-NATIVE_CXX = pgCC
-COMPILERT_NATIVE_CC = $(shell $(NATIVE_CC) -V 2>/dev/null | grep '^pg' | head -1)
-COMPILERT_NATIVE_CXX = $(shell $(NATIVE_CXX) -V 2>/dev/null | grep '^pg' | head -1)
-endif
-
 #GNU_WARNING_FLAGS = -W -Wall
 TESTDRIVER_LDFLAGS = -liberty
 MUTATOR_CXXFLAGS += $(GNU_WARNING_FLAGS)
@@ -83,6 +73,8 @@ MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe
 LIBS_LIBTESTSUITE = -ldl
 
 STRIP_SO = strip -g
+
+TESTLIB_CC = bgxlc
 
 include ../make.module.tmpl
 
