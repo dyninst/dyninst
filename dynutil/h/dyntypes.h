@@ -126,7 +126,7 @@ namespace Dyninst
    typedef int PID;
    typedef int PROC_HANDLE;
    typedef int LWP;
-   typedef int THR_ID;
+   typedef long THR_ID;
 
 #define NULL_PID     -1
 #define NULL_LWP     -1

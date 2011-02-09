@@ -61,35 +61,37 @@ public:
     bool changePC(Address newPC);
 
     // Field accessors
-    dynthread_t getTid() const;
     int getIndex() const;
     int getLWP() const;
-    int_function *getStartFunc() const;
-    Address getStackAddr() const;
     PCProcess *getProc() const;
     bool isLive() const;
 
-    // Field mutators
-    void updateStartFunc(int_function *ifunc);
-    void updateStackAddr(Address stackStart);
-    void clearStackwalk();
+    // Thread info
+    dynthread_t getTid() const;
+    int_function *getStartFunc();
+    Address getStackAddr();
 
-    int_function *mapInitialFunc(int_function *ifunc);
+    void clearStackwalk();
 
 protected:
     PCThread(PCProcess *parent, int ind,
             ProcControlAPI::Thread::ptr thr);
 
     void markExited();
+    void setTid(dynthread_t tid);
     bool continueThread();
     bool isRunning();
     bool postIRPC(inferiorRPCinProgress *newRPC);
+    void findStartFunc();
+    void findStackTop();
+    void findSingleThreadInfo();
 
     PCProcess *proc_;
     ProcControlAPI::Thread::ptr pcThr_;
 
     int index_;
     Address stackAddr_;
+    Address startFuncAddr_;
     int_function *startFunc_;
 
     // When we run an inferior RPC we cache the stackwalk of the
@@ -97,6 +99,7 @@ protected:
     int_stackwalk cached_stackwalk_;
     int savedLWP_;
     dynthread_t savedTid_;
+    dynthread_t manuallySetTid_; // retrieved from the mutatee
 };
 
 #endif

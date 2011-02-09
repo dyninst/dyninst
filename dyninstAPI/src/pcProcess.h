@@ -299,6 +299,7 @@ protected:
           curThreadIndex_(0),
           reportedEvent_(false),
           savedPid_(pcProc->getPid()),
+          savedArch_(pcProc->getArchitecture()),
           analysisMode_(analysisMode), 
           memoryPageSize_(0),
           isAMcacheValid_(false),
@@ -345,6 +346,7 @@ protected:
           curThreadIndex_(0),
           reportedEvent_(false),
           savedPid_(pcProc->getPid()),
+          savedArch_(pcProc->getArchitecture()),
           analysisMode_(analysisMode), 
           memoryPageSize_(0),
           isAMcacheValid_(false),
@@ -393,6 +395,7 @@ protected:
           curThreadIndex_(0), // threads are created from ProcControl threads
           reportedEvent_(false),
           savedPid_(pcProc->getPid()),
+          savedArch_(pcProc->getArchitecture()),
           analysisMode_(parent->analysisMode_), 
           memoryPageSize_(parent->memoryPageSize_),
           isAMcacheValid_(parent->isAMcacheValid_),
@@ -414,7 +417,8 @@ protected:
           vsys_status_(parent->vsys_status_),
           auxv_parser_(parent->auxv_parser_),
           irpcTramp_(NULL), // filled after construction
-          inEventHandling_(false)
+          inEventHandling_(false),
+          stackwalker_(NULL)
     {
     }
 
@@ -437,6 +441,7 @@ protected:
     bool removeBreakpointAtMain();
     Address getLibcStartMainParam(PCThread *thread); // architecture-specific
     bool copyDanglingMemory(PCProcess *parent);
+    void invalidateMTCache();
 
     // RT library management
     bool loadRTLib();
@@ -482,14 +487,8 @@ protected:
     // Event Handling
     void triggerNormalExit(int exitcode);
 
-    // TODO this is temporary until ProcControl on Linux gives valid thread id's
-    PCThread *getThreadByLWP(Dyninst::LWP lwp);
-
     // Misc
 
-    // platform-specific, true if the OS says the process is running
-    static bool getOSRunningState(int pid); 
-    
     // platform-specific, populates the passed map, if the file descriptors differ
     static void redirectFds(int stdin_fd, int stdout_fd, int stderr_fd, 
             std::map<int, int> &result);
@@ -548,6 +547,7 @@ protected:
     // true when Dyninst has reported an event to ProcControlAPI for this process
     bool reportedEvent_; // indicates the process should remain stopped
     int savedPid_; // ProcControl doesn't keep around Process objects after exit
+    Dyninst::Architecture savedArch_;
 
     // Hybrid Analysis
     BPatch_hybridMode analysisMode_;

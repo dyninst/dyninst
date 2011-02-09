@@ -126,6 +126,8 @@ void PCEventHandler::main_wrapper(void *h) {
     handler->main();
 }
 
+static bool eventsQueued = false;
+
 void PCEventHandler::main() {
     setCallbackThreadID(DThread::self());
     proccontrol_printf("%s[%d]: ProcControlAPI callback handler started on thread %lx\n",
@@ -212,13 +214,24 @@ void PCEventHandler::main() {
 
         proccontrol_printf("%s[%d]: attempting to handle events via ProcControlAPI\n",
                 FILE__, __LINE__);
-        if( !Process::handleEvents(true) ) {
+        // Don't block for events -- we have already blocked in the select so
+        // we know events are available.
+        //
+        // Additionally, blocking could trigger a race where the user thread
+        // invokes a ProcControlAPI operation that implicitly does event
+        // handling and thus causing a deadlock where the callback thread waits
+        // indefinitely in ProcControlAPI and the user thread is waiting for 
+        // the callback thread to leave ProcControlAPI
+        if( !Process::handleEvents(false) ) {
             // Report errors but keep trying anyway
             proccontrol_printf("%s[%d]: error returned by Process::handleEvents\n",
                     FILE__, __LINE__);
-        }else{
+        }
+
+        if( eventsQueued ) {
             // Alert the user that events are now available
             BPatch::bpatch->signalNotificationFD();
+            eventsQueued = false;
         }
     }
 
@@ -327,15 +340,16 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
             break;
     }
 
-    if( queueEvent ) {
-        // If callback RPCs cause other events, need to make sure that the RPC thread is still continued
-        eventHandler->pendingCallbackLock_.lock();
-        if( eventHandler->pendingCallbackRPCs_.size() ) {
-            ret = Process::cb_ret_t(Process::cbThreadContinue);
-        }
-        eventHandler->pendingCallbackLock_.unlock();
+    // If callback RPCs cause other events, need to make sure that the RPC thread is still continued
+    eventHandler->pendingCallbackLock_.lock();
+    if( eventHandler->pendingCallbackRPCs_.size() ) {
+        ret = Process::cb_ret_t(Process::cbThreadContinue);
+    }
+    eventHandler->pendingCallbackLock_.unlock();
 
+    if( queueEvent ) {
         process->incPendingEvents();
+        eventsQueued = true;
 
         if( !isCallbackRPC ) {
             eventHandler->eventMailbox_->enqueue(ev);
@@ -473,10 +487,7 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
                     FILE__, __LINE__);
             // Still need to make sure ProcControl runs the process until it exits
             if( !ev->getProcess()->isTerminated() ) {
-                // XXX
-                // This not the correct way to do this, see bug 1123
-                Process::ptr tmpProc(
-                        dyn_detail::boost::const_pointer_cast<Process>(ev->getProcess()));
+                Process::ptr tmpProc(pc_const_cast<Process>(ev->getProcess()));
 
                 if( !tmpProc->continueProc() ) {
                     proccontrol_printf("%s[%d]: failed to continue exiting process\n",
@@ -533,9 +544,13 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
             // On Post-Exec, a new PCProcess is created
             ret = handleExec(ev->getEventExec(), &evProc);
             break;
+        case EventType::UserThreadCreate:
+        case EventType::LWPCreate:
         case EventType::ThreadCreate:
             ret = handleThreadCreate(ev->getEventNewThread(), evProc);
             break;
+        case EventType::UserThreadDestroy:
+        case EventType::LWPDestroy:
         case EventType::ThreadDestroy:
             ret = handleThreadDestroy(ev->getEventThreadDestroy(), evProc);
             break;
@@ -650,11 +665,7 @@ bool PCEventHandler::handleFork(EventFork::const_ptr ev, PCProcess *evProc) cons
     if( ev->getEventType().time() == EventType::Pre ) {
         // This is handled as an RT signal on all platforms for now
     }else{
-        // XXX
-        // This is not the way to do this -- once the enhancement in bug 1123
-        // is done, that is the correct way to do this
-        Process::ptr childPCProc(
-                dyn_detail::boost::const_pointer_cast<Process>(ev->getChildProcess()));
+        Process::ptr childPCProc(pc_const_cast<Process>(ev->getChildProcess()));
         PCProcess *childProc = PCProcess::setupForkedProcess(evProc, childPCProc);
         if( childProc == NULL ) {
             proccontrol_printf("%s[%d]: failed to create process representation for child %d of process %d\n",
@@ -702,17 +713,29 @@ bool PCEventHandler::handleExec(EventExec::const_ptr ev, PCProcess **evProc) con
 }
 
 bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr ev, PCProcess *evProc) const {
-    BPatch_process *bpproc = BPatch::bpatch->getProcessByPid(evProc->getPid());
-    if( bpproc == NULL ) {
-        proccontrol_printf("%s[%d]: failed to locate BPatch_process for process %d\n",
-                FILE__, __LINE__, evProc->getPid());
-        return false;
+    if( !ev->getNewThread()->haveUserThreadInfo() ) {
+        proccontrol_printf("%s[%d]: no user thread info for thread %d/%d, postponing thread create\n",
+                FILE__, __LINE__, evProc->getPid(), ev->getLWP());
+        return true;
     }
 
     Thread::ptr pcThr = pc_const_cast<Thread>(ev->getNewThread());
     if( pcThr == Thread::ptr() ) {
         proccontrol_printf("%s[%d]: failed to locate ProcControl thread for new thread %d/%d\n",
                 FILE__, __LINE__, evProc->getPid(), ev->getLWP());
+        return false;
+    }
+
+    if( evProc->getThread(pcThr->getTID()) != NULL ) {
+        proccontrol_printf("%s[%d]: thread already created with TID 0x%lx, ignoring thread create\n",
+                FILE__, __LINE__, pcThr->getTID());
+        return true;
+    }
+
+    BPatch_process *bpproc = BPatch::bpatch->getProcessByPid(evProc->getPid());
+    if( bpproc == NULL ) {
+        proccontrol_printf("%s[%d]: failed to locate BPatch_process for process %d\n",
+                FILE__, __LINE__, evProc->getPid());
         return false;
     }
 
@@ -741,13 +764,13 @@ bool PCEventHandler::handleThreadDestroy(EventThreadDestroy::const_ptr ev, PCPro
             return false;
         }
 
-        // TODO
-        // Convert this to use PCProcess::getThread(tid) when ProcControl produces valid tid's
-        PCThread *exitThread = evProc->getThreadByLWP(ev->getThread()->getLWP());
+        PCThread *exitThread = evProc->getThread(ev->getThread()->getTID());
         if( exitThread == NULL ) {
-            proccontrol_printf("%s[%d]: failed to locate internal thread representation for thread %d/%d\n",
+            // Depending on the platform, we could get lwp and user thread events, so ignore any
+            // unknown thread destroy events (they correspond to lwp destroy events)
+            proccontrol_printf("%s[%d]: failed to locate internal thread representation for thread %d/%d, ignoring event\n",
                     FILE__, __LINE__, evProc->getPid(), ev->getThread()->getLWP());
-            return false;
+            return true;
         }
 
         BPatch::bpatch->registerThreadExit(evProc, exitThread);
@@ -758,7 +781,7 @@ bool PCEventHandler::handleThreadDestroy(EventThreadDestroy::const_ptr ev, PCPro
 }
 
 bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) const {
-    proccontrol_printf("%s[%d]: process %d/%d received signal %d\n",
+    proccontrol_printf("%s[%d]: thread %d/%d received signal %d\n",
             FILE__, __LINE__, ev->getProcess()->getPid(), ev->getThread()->getLWP(),
             ev->getSignal());
 
@@ -1251,6 +1274,9 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
         proccontrol_printf("%s[%d]: removed map object: %s\n", FILE__, __LINE__, toDelete[i]->debugString().c_str());
         evProc->removeASharedObject(toDelete[i]);
     }
+
+    // A thread library may have been loaded -- mt_cache state needs to be re-evaluated
+    evProc->invalidateMTCache();
 
     return true;
 }

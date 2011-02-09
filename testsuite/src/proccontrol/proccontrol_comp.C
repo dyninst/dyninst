@@ -292,6 +292,7 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
       error = true;
    }
 
+
    return !error;
 }
 
@@ -390,6 +391,13 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
       }
    }
    procs.clear();
+
+   for(std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); ++i) {
+       if( close(i->second) == -1 ) {
+           logerror("Could not close connected socket\n");
+           error = true;
+       }
+   }
 
    return error ? FAILED : PASSED;
 }

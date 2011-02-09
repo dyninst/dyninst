@@ -1156,7 +1156,8 @@ bool thread_db_thread::fetchThreadInfo() {
    if (!result) {
       return false;
    }
-   tinfo_initialized = true;
+
+   if( tinfo.ti_tid ) tinfo_initialized = true;
    return true;
 }
 

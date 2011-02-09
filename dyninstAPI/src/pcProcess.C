@@ -123,9 +123,6 @@ PCProcess *PCProcess::attachProcess(const string &progpath, int pid,
 {
     startup_cerr << "Attaching to process " << pid << endl;
 
-    // This needs to be determined before attaching
-    bool runningWhenAttached = getOSRunningState(pid);
-
     Process::ptr tmpPcProc = Process::attachProcess(pid, progpath);
 
     if( !tmpPcProc ) {
@@ -145,7 +142,7 @@ PCProcess *PCProcess::attachProcess(const string &progpath, int pid,
 
     tmpPcProc->setData(ret);
 
-    ret->runningWhenAttached_ = runningWhenAttached;
+    ret->runningWhenAttached_ = tmpPcProc->allThreadsRunningWhenAttached();
     ret->file_ = tmpPcProc->libraries().getExecutable()->getName();
 
     if( !ret->bootstrapProcess() ) {
@@ -331,9 +328,6 @@ bool PCProcess::bootstrapProcess() {
     startup_printf("%s[%d]: attempting to bootstrap process %d\n", 
             FILE__, __LINE__, getPid());
 
-    // Create the initial threads
-    createInitialThreads();
-
     if( !wasCreatedViaFork() ) {
         // Initialize the inferior heaps
         initializeHeap();
@@ -349,6 +343,9 @@ bool PCProcess::bootstrapProcess() {
             return false;
         }
     }
+
+    // Create the initial threads
+    createInitialThreads();
 
     // Initialize StackwalkerAPI
     if ( !createStackwalker() )
@@ -433,21 +430,6 @@ bool PCProcess::bootstrapProcess() {
     costAddr_ = obsCostVec[0]->getAddress();
     assert(costAddr_);
 
-    // Register the initial threads
-    startup_printf("%s[%d]: registering initial threads with RT library\n",
-            FILE__, __LINE__);
-    for(map<dynthread_t, PCThread *>::iterator i = threadsByTid_.begin();
-            i != threadsByTid_.end(); ++i)
-    {
-        if( !registerThread(i->second) ) {
-            startup_printf("%s[%d]: bootstrap failed while registering threads with RT library\n",
-                    FILE__, __LINE__);
-            return false;
-        }
-    }
-    startup_printf("%s[%d]: finished registering initial threads with RT library\n",
-            FILE__, __LINE__);
-
     if( !wasCreatedViaFork() ) {
         // Install system call tracing
         startup_printf("%s[%d]: installing default Dyninst instrumentation into process %d\n", 
@@ -514,6 +496,33 @@ bool PCProcess::bootstrapProcess() {
             }
         }
     }
+
+    // Register the initial threads
+    startup_printf("%s[%d]: registering initial threads with RT library\n",
+            FILE__, __LINE__);
+    vector<pair<dynthread_t, PCThread *> > toUpdate;
+    for(map<dynthread_t, PCThread *>::iterator i = threadsByTid_.begin();
+            i != threadsByTid_.end(); ++i)
+    {
+        if( !registerThread(i->second) ) {
+            startup_printf("%s[%d]: bootstrap failed while registering threads with RT library\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+
+        // If the information available has improved, update the mapping to reflect this
+        if( i->first != i->second->getTid() ) toUpdate.push_back(*i);
+    }
+
+    for(vector<pair<dynthread_t, PCThread *> >::iterator i = toUpdate.begin();
+            i != toUpdate.end(); ++i)
+    {
+        threadsByTid_.erase(i->first);
+        threadsByTid_.insert(make_pair(i->second->getTid(), i->second));
+    }
+
+    startup_printf("%s[%d]: finished registering initial threads with RT library\n",
+            FILE__, __LINE__);
 
     // use heuristics to set hybrid analysis mode
     if (BPatch_heuristicMode == analysisMode_) {
@@ -655,6 +664,9 @@ void PCProcess::createInitialThreads() {
 
     for(ThreadPool::iterator i = pcThreads.begin(); i != pcThreads.end(); ++i) {
         if( *i == pcThreads.getInitialThread() ) continue;
+
+        // Wait to create threads until they have user thread information available
+        if( !(*i)->haveUserThreadInfo() ) continue;
 
         PCThread *newThr = PCThread::createPCThread(this, *i);
         addThread(newThr);
@@ -1512,6 +1524,8 @@ bool PCProcess::registerThread(PCThread *thread) {
         return false;
     }
 
+    thread->setTid((dynthread_t)retval);
+
     return true;
 }
 
@@ -1574,6 +1588,9 @@ PCEventHandler * PCProcess::getPCEventHandler() const {
 bool PCProcess::walkStacks(pdvector<pdvector<Frame> > &stackWalks) {
     bool needToContinue = false;
     bool retval = true;
+
+    // sanity check
+    if( stackwalker_ == NULL ) return false;
 
     // Process needs to be stopped before doing a stackwalk
     if( !isStopped() ) {
@@ -3426,8 +3443,7 @@ Address PCProcess::length() const {
 }
 
 Architecture PCProcess::getArch() const {
-    if( pcProc_ == Process::ptr() ) return Dyninst::Arch_none;
-    return pcProc_->getArchitecture();
+    return savedArch_;
 }
 
 bool PCProcess::multithread_ready(bool ignoreIfMtNotSet) {
@@ -3461,6 +3477,8 @@ void PCProcess::setDesiredProcessState(PCProcess::processState_t pc) {
 bool PCProcess::walkStack(pdvector<Frame> &stackWalk,
                           PCThread *thread)
 {
+  if( stackwalker_ == NULL ) return false;
+
   vector<Dyninst::Stackwalker::Frame> swWalk;
 
   if (!stackwalker_->walkStack(swWalk, thread->getLWP()))
@@ -3699,16 +3717,6 @@ void PCProcess::triggerNormalExit(int exitcode) {
     setExiting(true);
 }
 
-PCThread *PCProcess::getThreadByLWP(Dyninst::LWP lwp) {
-    for(std::map<dynthread_t, PCThread *>::iterator i = threadsByTid_.begin();
-            i != threadsByTid_.end(); ++i)
-    {
-        if( i->second->getLWP() == lwp ) return i->second;
-    }
-
-    return NULL;
-}
-
 // Debugging only
 bool PCProcess::setBreakpoint(Address addr) {
     Breakpoint::ptr brkPt = Breakpoint::newBreakpoint();
@@ -3832,6 +3840,12 @@ bool PCProcess::continueSyncRPCThreads() {
 }
 
 bool PCProcess::registerTrapMapping(Address from, Address to) {
+    if( installedCtrlBrkpts.count(from) != 0 ) {
+        proccontrol_printf("%s[%d]: there already exists a ctrl transfer breakpoint from "
+                "0x%lx\n", FILE__, __LINE__, from);
+        return true;
+    }
+
     Breakpoint::ptr newBreak = Breakpoint::newTransferBreakpoint(to);
 
     if( !pcProc_->addBreakpoint(from, newBreak) ) {
@@ -3859,6 +3873,10 @@ bool PCProcess::unregisterTrapMapping(Address from) {
     installedCtrlBrkpts.erase(breakIter);
 
     return true;
+}
+
+void PCProcess::invalidateMTCache() {
+    mt_cache_result_ = not_cached;
 }
 
 StackwalkSymLookup::StackwalkSymLookup(PCProcess *p)

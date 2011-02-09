@@ -2476,7 +2476,7 @@ int_thread *int_thread::createThread(int_process *proc,
                                      bool initial_thrd)
 {
    int_thread *newthr = createThreadPlat(proc, thr_id, lwp_id, initial_thrd);
-   pthrd_printf("Creating %s thread %d/%d, thr_id = %d\n", 
+   pthrd_printf("Creating %s thread %d/%d, thr_id = %lu\n", 
                 initial_thrd ? "initial" : "new",
                 proc->getPid(), newthr->getLWP(), thr_id);
    proc->threadPool()->addThread(newthr);

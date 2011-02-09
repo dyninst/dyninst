@@ -142,11 +142,16 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid) {
 /*
  * Invoked by the mutator on thread creation
  */
-int DYNINSTregisterThread(dyntid_t tid, unsigned index) {
+unsigned long DYNINSTregisterThread(dyntid_t tid, unsigned index) {
     unsigned hash_id, orig;
-    unsigned tid_val = (unsigned long) tid;
+    unsigned long tid_val = (unsigned long) tid;
 
-    int retval = 1;
+    unsigned long retval = (unsigned long)dyn_pthread_self();
+    assert(retval != 0 );
+
+    if( tid_val != retval ) {
+        tid_val = retval;
+    }
 
     if( tc_lock_lock(&DYNINST_index_lock) == DYNINST_DEAD_LOCK ) {
        rtdebug_printf("%s[%d]:  DEADLOCK HERE tid %lu \n", __FILE__, __LINE__, 
@@ -225,7 +230,7 @@ int DYNINSTthreadIndex() {
     rtdebug_printf("%s[%d]:  welcome to DYNINSTthreadIndex()\n", __FILE__, __LINE__);
     if (!DYNINSThasInitialized) return 0;
 
-    tid = (dyntid_t) ((unsigned long)dyn_lwp_self()); // XXX change to dyn_pthread_self once using tid's
+    tid = (dyntid_t) ((unsigned long)dyn_pthread_self());
     rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): tid = %lu\n", __FILE__, __LINE__,
                    (unsigned long) tid);
     if (tid == (dyntid_t) DYNINST_SINGLETHREADED) return 0;

@@ -42,10 +42,6 @@ using namespace Dyninst::ProcControlAPI;
 
 // Functions for all Unices //
 
-int_function *PCThread::mapInitialFunc(int_function *ifunc) {
-    return ifunc;
-}
-
 bool PCProcess::hideDebugger()
 {
     return false;

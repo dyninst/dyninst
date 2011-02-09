@@ -99,38 +99,6 @@ bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers)
  *   pid (executablename) state ...
  * where state is a character.  Returns '\0' on error.
  **/
-static char getState(int pid) {
-    char procName[64];
-    char sstat[256];
-    char *status;
-    int paren_level = 1;
-
-    sprintf(procName,"/proc/%d/stat", pid);
-    FILE *sfile = P_fopen(procName, "r");
-    if (sfile == NULL) return '\0';
-    fread( sstat, 1, 256, sfile );
-    fclose( sfile );
-    sstat[255] = '\0';
-    status = sstat;
-
-    while (*status != '\0' && *(status++) != '(') ;
-    while (*status != '\0' && paren_level != 0) {
-        if (*status == '(') paren_level++;
-        if (*status == ')') paren_level--;
-        status++;
-    }
-
-    while (*status == ' ') status++;
-    return *status;
-}
-
-bool PCProcess::getOSRunningState(int pid) {
-    char result = getState(pid);
-    if (result == '\0') {
-        return false;
-    }
-    return (result != 'T');
-}
 
 static const Address lowest_addr = 0x0;
 void PCProcess::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
