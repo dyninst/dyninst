@@ -189,8 +189,9 @@ bool IA_IAPI::isTailCall(Function * /*context*/,unsigned int) const
     if(curInsn()->getCategory() == c_BranchInsn ||
        curInsn()->getCategory() == c_CallInsn)
     {
-        std::map<Address, Instruction::Ptr>::const_iterator prevIter =
-                allInsns.find(current);
+        //std::map<Address, Instruction::Ptr>::const_iterator prevIter =
+                //allInsns.find(current);
+        allInsns_t::const_iterator prevIter = curInsnIter;
         --prevIter;
         Instruction::Ptr prevInsn = prevIter->second;
         if(prevInsn->getOperation().getID() == e_leave)

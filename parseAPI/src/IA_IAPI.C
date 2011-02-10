@@ -66,13 +66,15 @@ IA_IAPI::IA_IAPI(const IA_IAPI &rhs)
      cachedLinkerStubState(rhs.cachedLinkerStubState),
      hascftstatus(rhs.hascftstatus),
      tailCall(rhs.tailCall) {
-   curInsnIter = allInsns.find(rhs.curInsnIter->first);
+   //curInsnIter = allInsns.find(rhs.curInsnIter->first);
+    curInsnIter = allInsns.end()-1;
 }
 
 IA_IAPI &IA_IAPI::operator=(const IA_IAPI &rhs) {
    dec = rhs.dec;
    allInsns = rhs.allInsns;
-   curInsnIter = allInsns.find(rhs.curInsnIter->first);
+   //curInsnIter = allInsns.find(rhs.curInsnIter->first);
+   curInsnIter = allInsns.end()-1;
    validCFT = rhs.validCFT;
    cachedCFT = rhs.cachedCFT;
    validLinkerStubState = rhs.validLinkerStubState;
@@ -136,9 +138,45 @@ IA_IAPI::IA_IAPI(InstructionDecoder dec_,
 {
     hascftstatus.first = false;
     tailCall.first = false;
-    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
+
+    //boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
+    curInsnIter =
+        allInsns.insert(
+            allInsns.end(),
+            std::make_pair(current, dec.decode()));
+
     initASTs();
 }
+
+void
+IA_IAPI::reset(
+    InstructionDecoder dec_,
+    Address start,
+    CodeObject *o,
+    CodeRegion *r,
+    InstructionSource *isrc,
+    Block * curBlk_)
+{
+    // reset the base
+    InstructionAdapter::reset(start,o,r,isrc,curBlk_);
+
+    dec = dec_;
+    validCFT = false;
+    cachedCFT = 0;
+    validLinkerStubState = false; 
+    hascftstatus.first = false;
+    tailCall.first = false;
+
+    allInsns.clear();
+
+    curInsnIter =
+        allInsns.insert(
+            allInsns.end(),
+            std::make_pair(current, dec.decode()));
+
+    initASTs();
+}
+
 
 void IA_IAPI::advance()
 {
@@ -149,7 +187,12 @@ void IA_IAPI::advance()
     }
     InstructionAdapter::advance();
     current += curInsn()->size();
-    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
+
+    curInsnIter =
+        allInsns.insert(
+            allInsns.end(),
+            std::make_pair(current, dec.decode()));
+
     if(!curInsn())
     {
         parsing_printf("......WARNING: after advance at 0x%lx, curInsn() NULL\n", current);
@@ -168,13 +211,13 @@ void IA_IAPI::retreat()
         return;
     }
     InstructionAdapter::retreat();
-    std::map<Address,Instruction::Ptr>::iterator remove = curInsnIter;
+    allInsns_t::iterator remove = curInsnIter;
     if(curInsnIter != allInsns.begin()) {
         --curInsnIter;
         allInsns.erase(remove);
         current = curInsnIter->first;
         if(curInsnIter != allInsns.begin()) {
-            std::map<Address,Instruction::Ptr>::iterator pit = curInsnIter;
+            allInsns_t::iterator pit = curInsnIter;
             --pit;
             previous = curInsnIter->first;
         } else {

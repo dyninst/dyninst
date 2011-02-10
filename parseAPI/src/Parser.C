@@ -584,6 +584,7 @@ namespace {
 void
 Parser::parse_frame(ParseFrame & frame, bool recursive) {
     /** Persistent intermediate state **/
+    dyn_detail::boost::shared_ptr<InstructionAdapter_t> ahPtr;
     ParseFrame::worklist_t & worklist = frame.worklist;
     dyn_hash_map<Address, Block *> & leadersToBlock = frame.leadersToBlock;
     Address & curAddr = frame.curAddr;
@@ -605,6 +606,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         parsing_printf("[%s] ==== resuming parse of frame %lx ====\n",
             FILE__,frame.func->addr());
     }
+
 
     frame.set_status(ParseFrame::PROGRESS);
 
@@ -790,8 +792,14 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
          (const unsigned char *)(func->isrc()->getPtrToInstruction(curAddr));
         InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
 
-        InstructionAdapter_t ah(dec, curAddr, func->obj(), 
+        if(!ahPtr)
+            ahPtr.reset(new InstructionAdapter_t(dec, curAddr, func->obj(), 
+                                cur->region(), func->isrc(), cur));
+        else
+            ahPtr->reset(dec,curAddr,func->obj(),
                                 cur->region(), func->isrc(), cur);
+       
+        InstructionAdapter_t & ah = *ahPtr; 
 #else        
         InstrucIter iter(curAddr, size, func->isrc());
         InstructionAdapter_t ah(iter, 
@@ -854,9 +862,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             ParseCallback::insn_details insn_det;
             insn_det.insn = &ah;
 	     
-                parsing_printf("[%s:%d] curAddr 0x%lx \n",
-                    FILE__,__LINE__,curAddr);
-
 	    if (func->_is_leaf_function) {
 		Address ret_addr;
 	    	func->_is_leaf_function = !(insn_det.insn->isReturnAddrSave(ret_addr));
