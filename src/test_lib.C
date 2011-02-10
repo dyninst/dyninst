@@ -42,6 +42,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #include <string>
 #include <vector>
