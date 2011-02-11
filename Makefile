@@ -50,7 +50,7 @@ fullSystem += dynC_API
 Build_list += dynC_API
 
 allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI dynC_API
-allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem depGraphAPI stackwalk proccontrol
+allSubdirs	= $(allCoreSubdirs) parseThat $(testsuites) valueAdded/sharedMem depGraphAPI stackwalk proccontrol
 
 
 # We're not building the new test suite on all platforms yet
