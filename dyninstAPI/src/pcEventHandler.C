@@ -38,6 +38,7 @@
 #include "registerSpace.h"
 
 #include "proccontrol/h/Mailbox.h"
+#include "proccontrol/h/PCErrors.h"
 
 #include <set>
 #include <queue>
@@ -224,8 +225,9 @@ void PCEventHandler::main() {
         // the callback thread to leave ProcControlAPI
         if( !Process::handleEvents(false) ) {
             // Report errors but keep trying anyway
-            proccontrol_printf("%s[%d]: error returned by Process::handleEvents\n",
-                    FILE__, __LINE__);
+            proccontrol_printf("%s[%d]: error returned by Process::handleEvents: %s\n",
+                    FILE__, __LINE__,
+                    getLastErrorMsg());
         }
 
         if( eventsQueued ) {

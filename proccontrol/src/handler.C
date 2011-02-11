@@ -729,16 +729,6 @@ Handler::handler_ret_t HandleThreadDestroy::handleEvent(Event::ptr ev)
    int_process *proc = ev->getProcess()->llproc();
    if (ev->getEventType().time() == EventType::Pre) {
       pthrd_printf("Handling pre-thread destroy for %d\n", thrd->getLWP());
-      thrd->setExiting(true);
-
-      // If there is a pending stop, need to handle it here because there is
-      // no guarantee that the stop will ever be received
-      if( thrd->hasPendingStop() ) {
-          thrd->setInternalState(int_thread::stopped);
-          if (thrd->hasPendingUserStop()) {
-              thrd->setUserState(int_thread::stopped);
-          }
-      }
       return ret_success;
    }
 

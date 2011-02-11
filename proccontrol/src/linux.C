@@ -983,7 +983,7 @@ void linux_thread::setOptions()
       int result = do_ptrace((pt_req) PTRACE_SETOPTIONS, lwp, NULL, 
                           (void *) options);
       if (result == -1) {
-         pthrd_printf("Failed to set options for %d: %s\n", tid, strerror(errno));
+         pthrd_printf("Failed to set options for %lu: %s\n", tid, strerror(errno));
       }
    }   
 }
@@ -1632,6 +1632,48 @@ void LinuxHandleNewThr::getEventTypesHandled(std::vector<EventType> &etypes)
 {
    etypes.push_back(EventType(EventType::None, EventType::ThreadCreate));
    etypes.push_back(EventType(EventType::None, EventType::Bootstrap));
+}
+
+LinuxHandleLWPDestroy::LinuxHandleLWPDestroy()
+    : Handler("Linux LWP Destroy")
+{
+}
+
+LinuxHandleLWPDestroy::~LinuxHandleLWPDestroy()
+{
+}
+
+Handler::handler_ret_t LinuxHandleLWPDestroy::handleEvent(Event::ptr ev) {
+    int_thread *thrd = ev->getThread()->llthrd();
+
+    // This handler is necessary because SIGSTOPS cannot be sent to pre-destroyed
+    // threads -- these stops will never be delivered to the debugger
+    //
+    // Setting the exiting state in the thread will avoid any waiting for pending stops
+    // on this thread
+
+    thrd->setExiting(true);
+
+    // If there is a pending stop, need to handle it here because there is
+    // no guarantee that the stop will ever be received
+    if( thrd->hasPendingStop() ) {
+        thrd->setInternalState(int_thread::stopped);
+        if (thrd->hasPendingUserStop()) {
+            thrd->setUserState(int_thread::stopped);
+        }
+    }
+
+    return ret_success;
+}
+
+int LinuxHandleLWPDestroy::getPriority() const
+{
+    return PostPlatformPriority;
+}
+
+void LinuxHandleLWPDestroy::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+    etypes.push_back(EventType(EventType::Pre, EventType::LWPDestroy));
 }
 
 HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)

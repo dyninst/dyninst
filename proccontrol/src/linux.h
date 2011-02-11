@@ -200,4 +200,14 @@ class LinuxHandleNewThr : public Handler
    void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
+class LinuxHandleLWPDestroy : public Handler
+{
+ public:
+     LinuxHandleLWPDestroy();
+     virtual ~LinuxHandleLWPDestroy();
+     virtual handler_ret_t handleEvent(Event::ptr ev);
+     virtual int getPriority() const;
+     void getEventTypesHandled(std::vector<EventType> &etypes);
+};
+
 #endif
