@@ -2443,8 +2443,7 @@ tests_module('fucompp', 'instruction').
 
 
 % ProcessControlAPI Tests
-pcPlatforms(P) :- platform('x86_64', 'linux', _, P).
-pcPlatforms(P) :- platform('i386', 'linux', _, P).
+pcPlatforms(P) :- platform(_, 'linux', _, P).
 pcPlatforms(P) :- platform('i386', 'freebsd', _,P).
 pcPlatforms(P) :- platform('x86_64', 'freebsd', _,P).
 
