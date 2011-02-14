@@ -696,7 +696,6 @@ bool SignalHandler::handleEvent(EventRecord &ev)
 		       "trap to 0x%lx\n", FILE__, __LINE__, ev.address, 
 		       target_addr);
          ev.lwp->changePC(target_addr, NULL);
-		 cerr << "SPRINGBOARD: PC CHANGE " << hex << ev.address << " -> " << target_addr << dec << endl;
          if (ev.lwp->isSingleStepping()) {
             fprintf(stderr, "Trap mapping 0x%lx -> 0x%lx\n",
                     ev.address, target_addr);

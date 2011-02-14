@@ -1201,7 +1201,6 @@ mapped_module* mapped_object::getDefaultModule()
 // KEVINTODO: this would be much cheaper if we stored pairs of split blocks, 
 bool mapped_object::splitIntLayer()
 {
-
 #if ! defined (cap_instruction_api)
     // not implemented (or needed, for now) on non-instruction API platforms
     return false;
@@ -1410,7 +1409,7 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
     using namespace SymtabAPI;
     using namespace ParseAPI;
 
-	vector<ParseAPI::CodeObject::NewEdgeToParse> edgesInThisObject;
+    vector<ParseAPI::CodeObject::NewEdgeToParse> edgesInThisObject;
 
 /* 0. Make sure memory for the target is up to date */
 

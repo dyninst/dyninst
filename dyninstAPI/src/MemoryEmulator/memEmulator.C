@@ -244,8 +244,6 @@ void MemoryEmulator::removeRegion(Region *reg, Address base) {
 }
 
 void MemoryEmulator::addRegion(Address start, unsigned size, Address shift) {
-   cerr << "MemoryEmulator: adding region " << hex << start << " : " << size << " /w/ shift " << shift << dec << endl;
-
     if (size == 0) return;
    //debug();
    //cerr << endl;
@@ -537,9 +535,6 @@ void MemoryEmulator::removeSpringboards(const int_block *bbi)
          << bbi->start() << " " << bbi->end() << ")" << dec <<endl;
     SymtabAPI::Region * reg = 
         ((ParseAPI::SymtabCodeRegion*)bbi->func()->ifunc()->region())->symRegion();
-    if (springboards_[reg].find((bbi->llb()->start() - reg->getMemOffset())) == springboards_[reg].end()) {
-        cerr << "ERROR IN DELETING SPRINGBOARD!" << endl; // could just mean that the block is shared
-    }
     springboards_[reg].erase(bbi->llb()->start() - reg->getMemOffset());
     if (springboards_[reg].empty()) springboards_.erase(reg);
 }

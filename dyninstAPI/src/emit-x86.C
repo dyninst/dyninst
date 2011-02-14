@@ -1915,10 +1915,23 @@ void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPointType
       loc.offset = 0;
    }
 
-   if (pt_type != callSite) {
-      //Return value before any parameters
-      loc.offset += 8;
+   switch (op) {
+      case getParamOp:
+         if (pt_type != callSite) {
+            //Return value before any parameters
+            loc.offset += 8;
+         }
+         break;
+      case getParamAtCallOp:
+         break;
+      case getParamAtEntryOp:
+         loc.offset += 8;
+         break;
+      default:
+         assert(0);
+         break;
    }
+
    loc.offset += (param_num-6)*8;
    if (!addr_of)
       emitMovRMToReg64(dest, loc.reg.reg(), loc.offset, 8, gen);

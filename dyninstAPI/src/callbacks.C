@@ -368,7 +368,7 @@ process* SyncCallback::getProcess() const
 {
     return NULL;
 }
-process * StopThreadCallback::getProcess() const
+process * StopThreadCallback::getProcess()
 {
     return point->getFunction()->getProc()->lowlevel_process();
 }

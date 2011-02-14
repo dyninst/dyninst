@@ -68,8 +68,8 @@ AddressSpace::AddressSpace () :
     trampGuardBase_(NULL),
     up_ptr_(NULL),
     costAddr_(0),
-    emulateMem_(true),
-    emulatePC_(true)
+    emulateMem_(false),
+    emulatePC_(false)
 {
    memEmulator_ = new MemoryEmulator(this);
    if ( getenv("DYNINST_EMULATE_MEMORY") ) {
@@ -267,7 +267,6 @@ int AddressSpace::findFreeIndex(unsigned size, int type, Address lo, Address hi)
 }
 
 void AddressSpace::addHeap(heapItem *h) {
-    cerr << "addHeap " << hex << h->addr << " -> " << h->addr + h->length << endl;
     heap_.bufferPool.push_back(h);
     heapItem *h2 = new heapItem(h);
     h2->status = HEAPfree;
@@ -1422,7 +1421,6 @@ bool AddressSpace::relocate() {
   updateMemEmulator();
 
   modifiedFunctions_.clear();
-  cerr << "Done with relocation!" << endl;
   return ret;
 }
 
@@ -1574,7 +1572,6 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   cm->transform(c);
 
   if (emulatePC_) {
-      sensitivity_cerr << "Applying PCSens transformer" << endl;
       PCSensitiveTransformer v(this, cm->priorityMap());
       cm->transform(v);
   } else {
@@ -1583,7 +1580,6 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   }
 
   if (emulateMem_) {
-      cerr << "Memory emulator" << endl;
       MemEmulatorTransformer m;
       cm->transform(m);
   }
@@ -1696,8 +1692,6 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
 
 bool AddressSpace::patchCode(CodeMover::Ptr cm,
 			     SpringboardBuilder::Ptr spb) {
-                     cerr << "patchCode" << endl;
-
    SpringboardMap &p = cm->sBoardMap(this);
   
   // A SpringboardMap has three priority sets: Required, Suggested, and
