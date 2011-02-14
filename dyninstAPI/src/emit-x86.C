@@ -1889,7 +1889,7 @@ void EmitterAMD64::emitGetRetAddr(Register dest, codeGen &gen)
 }
 
 
-void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, opCode, bool addr_of, codeGen &gen)
+void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, opCode op, bool addr_of, codeGen &gen)
 {
    if (!addr_of && param_num < 6) {
       emitLoadOrigRegister(amd64_arg_regs[param_num], dest, gen);

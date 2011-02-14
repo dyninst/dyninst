@@ -77,7 +77,7 @@ baseTrampInstance::baseTrampInstance(baseTramp *tramp) :
 // Fork constructor
 baseTrampInstance::baseTrampInstance(const baseTrampInstance *parBTI,
                                      baseTramp *cBT,
-                                     process *child) :
+                                     process */*child*/) :
     trampAddr_(parBTI->trampAddr_),
     trampPostOffset(parBTI->trampPostOffset),
     saveStartOffset(parBTI->saveStartOffset), 

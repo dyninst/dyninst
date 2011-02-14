@@ -1862,7 +1862,7 @@ int_function *instPoint::findCallee() {
    return NULL;
 }
 
-bool process::setMemoryAccessRights(Address start, Address size, int rights)
+bool process::setMemoryAccessRights(Address, Address, int)
 {
     assert(0 && "IMPLEMENTED FOR WINDOWS ONLY"); 
 }
