@@ -40,6 +40,7 @@
 
 #include "BPatch.h"
 #include "BPatch_Vector.h"
+#include "BPatch_point.h"
 
 #include "test_lib.h"
 #include "dyninst_comp.h"
