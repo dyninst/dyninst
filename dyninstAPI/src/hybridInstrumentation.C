@@ -47,7 +47,9 @@
 
 using namespace Dyninst;
 
+
 /* Callback wrapper funcs */
+#if defined os_windows
 static void virtualFreeAddrCB_wrapper(BPatch_point *point, void *calc)
 {
 	dynamic_cast<BPatch_process *>(point->getFunction()->getProc())->
@@ -65,6 +67,7 @@ static void virtualFreeCB_wrapper(BPatch_point *point, void *calc)
 	dynamic_cast<BPatch_process *>(point->getFunction()->getProc())->
 		getHybridAnalysis()->virtualFreeCB(point, calc);
 }
+#endif
 static void badTransferCB_wrapper(BPatch_point *point, void *calc) 
 { 
     dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
@@ -581,8 +584,6 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                     // that reads the address to which the program will return 
                     // from the CONTEXT of the exception, which is the 3rd argument
                     // to windows structured exception handlers
-                    Address contextPCaddr = 
-                        handlerFunctions[(Address)func->getBaseAddr()].faultPCaddr;
                     calcSnippet = new BPatch_constExpr(0xbaadc0de);
                     interp = BPatch_noInterp;
                 }
@@ -1420,10 +1421,11 @@ HybridAnalysis::synchMap_post()
     return synchMap_post_;
 }
 
+#if defined (os_windows)
 int
 HybridAnalysis::getOrigPageRights(Address addr)
 {
-    int origPerms;
+    int origPerms=0;
     using namespace SymtabAPI;
     mapped_object *obj = proc()->lowlevel_process()->findObject(addr);
     Region * reg = obj->parse_img()->getObject()->
@@ -1447,6 +1449,9 @@ HybridAnalysis::getOrigPageRights(Address addr)
     }
     return origPerms;
 }
+#else 
+int HybridAnalysis::getOrigPageRights(Address) { assert(0); return 0; }
+#endif
 
 void HybridAnalysis::addReplacedFuncs
 (std::vector<std::pair<BPatch_function*,BPatch_function*> > &repFs)

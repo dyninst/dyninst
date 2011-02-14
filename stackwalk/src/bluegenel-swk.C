@@ -36,6 +36,7 @@
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/procstate.h"
 #include "stackwalk/src/symtab-swk.h"
+#include "stackwalk/src/libstate.h"
 
 #include <string>
 
@@ -55,17 +56,39 @@ using namespace std;
 namespace Dyninst {
   namespace Stackwalker {
 
+     static string deref_link(const char *path) {
+        char buffer[PATH_MAX];
+        char *p = realpath(path, buffer);
+        return p ? string(p) : string("");
+     }
+
     // ============================================================ //
     // ProcDebugBG
     // This is the factor function that initially creates a BGL stackwalker.
     // ============================================================ //
-    ProcDebug *ProcDebugBG::createProcDebugBG(PID pid, const string& executable) {
+    ProcDebug *ProcDebugBG::createProcDebugBG(PID pid, string executable) {
       return new ProcDebugBGL(pid, executable);
     }
 
     ProcDebugBGL::ProcDebugBGL(PID pid, std::string exe) : ProcDebugBG(pid, exe) { }
     
     ProcDebugBGL::~ProcDebugBGL() { }
+
+    bool ProcDebugBGL::debug_post_attach(ThreadState *) {
+       if (executable_path.empty()) {
+          char *jobid = getenv("BG_JOBID");
+          if (jobid) {
+             ostringstream linkstream;
+             linkstream << "/jobs/" << jobid << "/exe";
+     
+             string linkname(linkstream.str());
+             executable_path = deref_link(linkname.c_str());
+             sw_printf("[%s:%u] - Set executable path to %s\n", __FILE__, __LINE__, executable_path.c_str());
+          }
+       }
+       library_tracker = new StaticBinaryLibState(this, executable_path);
+       return true;
+    }
 
   } // namespace Stackwalker
 } // namespace Dyninst

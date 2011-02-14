@@ -348,9 +348,9 @@ class StackAnalysis {
     void summarize();
 
     void fixpoint();
-    
-    void createIntervals();
 
+    void createIntervals();
+    
     void createEntryInput(RegisterState &input);
     void meetInputs(ParseAPI::Block *b, RegisterState &input);
     void meet(const RegisterState &source, RegisterState &accum);

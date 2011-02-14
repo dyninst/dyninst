@@ -106,7 +106,7 @@ namespace Dyninst {
     }
 
 
-    ProcSelf::ProcSelf() : ProcessState(getpid()) {
+    ProcSelf::ProcSelf(std::string exe_path) : ProcessState(getpid(), exe_path) {
       proc_self_unsupported(__FILE__, __LINE__);
     }
 
@@ -159,7 +159,7 @@ namespace Dyninst {
     }
 
 
-    ProcDebug *ProcDebug::newProcDebug(const std::string &, const std::vector<std::string> &) {
+    ProcDebug *ProcDebug::newProcDebug(std::string, const std::vector<std::string> &) {
       setLastError(err_unsupported, "Executable launch not supported on BlueGene");
       return NULL;
     }
@@ -427,7 +427,7 @@ namespace Dyninst {
     }
 
 
-    bool ProcDebugBG::debug_create(const std::string &, const std::vector<std::string> &) 
+    bool ProcDebugBG::debug_create(std::string, const std::vector<std::string> &) 
     {
       setLastError(err_unsupported, "Create mode not supported on BlueGene");
       return false;
@@ -527,7 +527,7 @@ namespace Dyninst {
         sw_printf("[%s:%u] - Process %d attached\n", __FILE__, __LINE__, pid);
         assert(state() == ps_neonatal);
         for_all_threads(set_state(ps_attached_intermediate));
-        //debug_pause(NULL); //immediately after debug_attach, pause the process.
+        debug_pause(NULL); //immediately after debug_attach, pause the process.
         break;
       case dbg_detached:
 	sw_printf("[%s:%u] - Process %d detached\n", __FILE__, __LINE__, pid);

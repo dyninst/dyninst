@@ -225,13 +225,13 @@ Slicer::sliceInternalAux(
         // otherwise search down this new path
         if(!f.valid || visited.size() > 50*g->size()) {
             widenAll(g,dir,cand);
-        }
+	}
         else {
 
-            sliceInternalAux(g,dir,p,f,false,visited,cache);
-
-            // absorb the down-slice cache into this node's cache
-            cache[cand.addr()].merge(cache[f.addr()]);
+	  sliceInternalAux(g,dir,p,f,false,visited,cache);
+	  
+	  // absorb the down-slice cache into this node's cache
+	  cache[cand.addr()].merge(cache[f.addr()]);
         }
     }
    

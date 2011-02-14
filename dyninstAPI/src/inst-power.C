@@ -3422,8 +3422,8 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
 	} else {
 		// Move address of the variable into the register - load effective address
 		//dest = effective address of pc+offset ;
-                insnCodeGen::generateImm (gen, CAUop, dest, 0, BOT_HI (offset));
-                insnCodeGen::generateImm (gen, ORILop, dest, dest, BOT_LO (offset));
+                insnCodeGen::generateImm (gen, CAUop, dest, 0, BOT_HI (varOffset));
+                insnCodeGen::generateImm (gen, ORILop, dest, dest, BOT_LO (varOffset));
           	insnCodeGen::generateAddReg (gen, CAXop, dest, dest, scratchReg);
 	}
    }

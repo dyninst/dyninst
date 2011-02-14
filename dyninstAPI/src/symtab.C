@@ -158,7 +158,7 @@ extern unsigned enable_pd_sharedobj_debug;
 
 int codeBytesSeen = 0;
 
-#if defined(ppc32_linux)
+#if defined(ppc32_linux) || defined(ppc32_bgp)
 
 #include <dataflowAPI/h/slicing.h>
 #include <dataflowAPI/h/SymEval.h>
@@ -341,7 +341,7 @@ namespace {
  */
 void image::findMain()
 {
-#if defined(ppc32_linux)
+#if defined(ppc32_linux) || defined(ppc32_bgp)
     using namespace Dyninst::InstructionAPI;
 
     if(!desc_.isSharedObject())
@@ -1599,6 +1599,9 @@ image::image(fileDescriptor &desc,
    // look for `main' or something similar to recognize a.outs
    startup_printf("%s[%d]:  before determineImageType\n", FILE__, __LINE__);
    determineImageType();
+   if (isDyninstRTLib()) { // don't parse gaps in the runtime library
+       parseGaps_ = false;
+   }
             
    // And symtab variables
    addSymtabVariables();

@@ -271,7 +271,7 @@ void RoseInsnPPCFactory::massageOperands(const InstructionAPI::Instruction::Ptr 
   // but we handle it cleanly here.
   if(!operands[0].isWritten() && operands.size() >= 2 &&
      operands[1].isWritten() && !operands[1].writesMemory()) {
-    std::cerr << "swapping RS and RA in " << insn->format() << std::endl;
+    //std::cerr << "swapping RS and RA in " << insn->format() << std::endl;
     std::swap(operands[0], operands[1]);
   }
   if(opcode == power_op_cmp ||

@@ -177,7 +177,7 @@ public:
     BPatch_function *,findFunctionByEntry,(Dyninst::Address entry));
 
 
-    // FIXME: This (undocumented) method only works for function entry addresses.
+    // FIXME: This method is (undocumented) 
     API_EXPORT(Int, (addr, funcs, notify_on_failure, incUninstrumentable),
 
     BPatch_Vector<BPatch_function *> *,

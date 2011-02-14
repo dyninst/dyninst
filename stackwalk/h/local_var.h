@@ -41,9 +41,28 @@
 #include "procstate.h"
 #include "walker.h"
 
+#include <string>
+#include <map>
+
 using namespace Dyninst;
 using namespace SymtabAPI;
 using namespace Stackwalker;
+
+static Symtab *getSymtabForName(std::string name)
+{
+   static std::map<std::string, Symtab *> symtabs;
+   std::map<std::string, Symtab *>::iterator i;
+   
+   i = symtabs.find(name);
+   if (i != symtabs.end()) {
+      return i->second;
+   }
+
+   Symtab *obj = NULL;
+   Symtab::openFile(obj, name);
+   symtabs[name] = obj;
+   return obj;
+}
 
 class LVReader : public MemRegReader
 {
@@ -104,7 +123,7 @@ class LVReader : public MemRegReader
       void *symtab_v;
       std::string lib;
       g.getLibOffset(lib, offset, symtab_v);
-      Symtab *symtab = (Symtab *)(symtab_v);
+      Symtab *symtab = getSymtabForName(lib);
       if (!symtab)
          return false;
       
@@ -122,7 +141,6 @@ class LVReader : public MemRegReader
    virtual ~LVReader() {}
 };
 
-
 /**
  * Given a StackwalkerAPI frame, return the SymtabAPI function
  * that created the frame.
@@ -135,8 +153,7 @@ static Dyninst::SymtabAPI::Function *getFunctionForFrame(Frame f)
    bool result = f.getLibOffset(lib_name, offset, symtab_v);
    if (!result || !symtab_v)
       return NULL;
-   Symtab *symtab = (Symtab *) symtab_v;
-   
+   Symtab *symtab = getSymtabForName(lib_name);
    Function *func;
    result = symtab->getContainingFunction(offset, func);
    if (!result)
@@ -213,9 +230,9 @@ static int getLocalVariableValue(localVar *var,
       case storageReg:
       case storageRegOffset: {
          MachRegisterVal reg_value;
-         MachRegister reg = loc.reg;
+         MachRegister reg = loc.mr_reg;
          if (loc.stClass == storageRegOffset && loc.reg == -1) {
-            reg = MachRegister::getFramePointer();
+            reg = MachRegister::getFramePointer(proc->getAddressWidth() == 4 ? Arch_x86 : Arch_x86_64);
          }
          
          LVReader r(proc, frame, &swalk, thrd);

@@ -66,6 +66,7 @@
 #include "mapped_object.h"
 
 #include <sstream>
+#include "Parsing.h"
 
 BPatch_addressSpace::BPatch_addressSpace() :
    image(NULL)
@@ -147,10 +148,12 @@ BPatch_variableExpr *BPatch_addressSpace::findOrCreateVariable(int_variable *v,
 
    if (!type) {
       SymtabAPI::Type *stype = v->ivar()->svar()->getType();
-      if (stype)
+
+      if (stype){
          type = BPatch_type::findOrCreateType(stype);
-      else
-         type = BPatch::bpatch->type_Untyped;
+      }else{
+         type = BPatch::bpatch->type_Untyped;	
+      }
    }
    
    BPatch_variableExpr *var = BPatch_variableExpr::makeVariableExpr(this, v, type);
@@ -262,8 +265,6 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
        BPatch_normalMode != 
        handle->mtHandles_[0]->instP()->func()->obj()->hybridMode())
    {
-       BPatch_function *bpfunc = findOrCreateBPFunc(
-           handle->mtHandles_[0]->instP()->func(), NULL);
        if (handle->mtHandles_.size() > 1) {
            mal_printf("ERROR: Removing snippet that is installed in "
 	            	  "multiple miniTramps %s[%d]\n",FILE__,__LINE__);
@@ -488,7 +489,7 @@ bool BPatch_addressSpace::getSourceLinesInt( unsigned long addr,
  * happens in the original object.
  */
 
-BPatch_variableExpr *BPatch_addressSpace::mallocInt(int n)
+BPatch_variableExpr *BPatch_addressSpace::mallocInt(int n, std::string name)
 {
    std::vector<AddressSpace *> as;
    assert(BPatch::bpatch != NULL);
@@ -496,10 +497,11 @@ BPatch_variableExpr *BPatch_addressSpace::mallocInt(int n)
    assert(as.size());
    void *ptr = (void *) as[0]->inferiorMalloc(n, dataHeap);
    if (!ptr) return NULL;
-   std::stringstream namestr;
-   namestr << "dyn_malloc_0x" << std::hex << ptr << "_" << n << "_bytes";
-   std::string name = namestr.str();
-   
+   if(name.empty()){
+      std::stringstream namestr;
+      namestr << "dyn_malloc_0x" << std::hex << ptr << "_" << n << "_bytes";
+      name = namestr.str();
+   }
    BPatch_type *type = BPatch::bpatch->createScalar(name.c_str(), n);
 
    return BPatch_variableExpr::makeVariableExpr(this, as[0], name, ptr,
@@ -523,7 +525,7 @@ BPatch_variableExpr *BPatch_addressSpace::mallocInt(int n)
  *     is not currently possible.
  */
 
-BPatch_variableExpr *BPatch_addressSpace::mallocByType(const BPatch_type &type)
+BPatch_variableExpr *BPatch_addressSpace::mallocByType(const BPatch_type &type, std::string name)
 {
    std::vector<AddressSpace *> as;
    assert(BPatch::bpatch != NULL);
@@ -532,10 +534,13 @@ BPatch_variableExpr *BPatch_addressSpace::mallocByType(const BPatch_type &type)
    BPatch_type &t = const_cast<BPatch_type &>(type);
    void *mem = (void *) as[0]->inferiorMalloc(t.getSize(), dataHeap);
    if (!mem) return NULL;
-   std::stringstream namestr;
-   namestr << "dyn_malloc_0x" << std::hex << mem << "_" << type.getName();
-   std::string name = namestr.str();
-   return BPatch_variableExpr::makeVariableExpr(this, as[0], name, mem, &t);
+   if(name.empty()){
+      std::stringstream namestr;
+      namestr << "dyn_malloc_0x" << std::hex << mem << "_" << type.getName();
+      name = namestr.str();
+   }
+   BPatch_variableExpr *varExpr = BPatch_variableExpr::makeVariableExpr(this, as[0], name, mem, &t);
+   return varExpr;
 }
 
 
@@ -567,13 +572,34 @@ BPatch_variableExpr *BPatch_addressSpace::createVariableInt(std::string name,
     getAS(as);
     assert(as.size());
 
-    return BPatch_variableExpr::makeVariableExpr(this, 
+//dynC added feature
+    if(strstr(name.c_str(), "dynC") == name.c_str()){
+       void *mem = (void *) as[0]->inferiorMalloc(type->getSize(), dataHeap);
+       if (!mem) return NULL;
+       BPatch_variableExpr *varExpr = BPatch_variableExpr::makeVariableExpr(this, as[0], name, mem, type);
+       BPatch_module *mod = image->findOrCreateModule(varExpr->intvar->mod());
+       assert(mod);
+       mod->var_map[varExpr->intvar] = varExpr;
+       return varExpr;
+    }
+
+    BPatch_variableExpr *varExpr = BPatch_variableExpr::makeVariableExpr(this, 
                                                  as[0],
                                                  name,
                                                  (void *)addr, 
                                                  type);
+
+    return varExpr;
 }
 
+/*
+ * BPatch_addressSpace::findFunctionByAddr
+ *
+ * Returns the function that contains the specified address, or NULL if the
+ * address is not within a function.
+ *
+ * addr		The address to use for the lookup.
+ */
 BPatch_function *BPatch_addressSpace::findFunctionByAddrInt(void *addr)
 {
    std::vector<AddressSpace *> as;
@@ -755,13 +781,13 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetWhen(const BPatch_snippet
 {
    BPatch_Vector<BPatch_point *> points;
    points.push_back(&point);
-
    return insertSnippetAtPointsWhen(expr,
          points,
          when,
          order);
 }
 
+extern int dyn_debug_ast;   
 
 /*
  * BPatch_addressSpace::insertSnippet
@@ -780,8 +806,10 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
 								    BPatch_callWhen when,
 								    BPatch_snippetOrder order)
 {
+ 
+  BPatchSnippetHandle *retHandle = new BPatchSnippetHandle(this);
 
-   if (dyn_debug_inst) {
+  if (dyn_debug_inst) {
       BPatch_function *f;
       for (unsigned i=0; i<points.size(); i++) {
          f = points[i]->getFunction();
@@ -792,9 +820,9 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
                sname, points[i]->getAddress(), (int) when, (int) order);
 
       }
-   }
+  }
 
-   if (BPatch::bpatch->isTypeChecked()) {
+  if (BPatch::bpatch->isTypeChecked()) {
       if (expr.ast_wrapper->checkType() == BPatch::bpatch->type_Error) {
 	fprintf(stderr, "[%s:%u] - Type error inserting instrumentation\n",
 		FILE__, __LINE__);
@@ -807,8 +835,6 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
      fprintf(stderr, "%s[%d]:  request to insert snippet at zero points!\n", FILE__, __LINE__);
       return false;
    }
-
-   BPatchSnippetHandle *ret = new BPatchSnippetHandle(this);
 
    for (unsigned i = 0; i < points.size(); i++) {
       BPatch_point *bppoint = points[i];
@@ -829,7 +855,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       if (!BPatchToInternalArgs(bppoint, when, order, ipWhen, ipOrder)) {
 	fprintf(stderr, "[%s:%u] - BPatchToInternalArgs failed for point %d\n",
                FILE__, __LINE__, i);
-         return NULL;
+         return retHandle;
       }
 
       miniTramp *mini = bppoint->point->addInst(expr.ast_wrapper,
@@ -839,17 +865,17 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
 						false);
 
       if (mini) {
-	ret->mtHandles_.push_back(mini);
-	bppoint->recordSnippet(when, order, ret);
+	retHandle->mtHandles_.push_back(mini);
+	bppoint->recordSnippet(when, order, retHandle);
       }
    }
 
    if (pendingInsertions == NULL) {
      // Trigger it now
      bool tmp;
-     finalizeInsertionSet(false, &tmp);
+     finalizeInsertionSet(false, &tmp); //KEVINTODO: do we really want this?
    }   
-   return ret;
+   return retHandle;
 }
 
 

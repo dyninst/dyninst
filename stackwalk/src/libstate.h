@@ -45,7 +45,7 @@ class swkProcessReader : public ProcessReader {
  private:
    ProcessState *procstate;
  public:
-   swkProcessReader(ProcessState *pstate, const std::string& executable_);
+   swkProcessReader(ProcessState *pstate, std::string executable_);
    virtual bool start();
    virtual bool ReadMem(Address inTraced, void *inSelf, unsigned amount);
    virtual bool GetReg(Dyninst::MachRegister, Dyninst::MachRegisterVal&) { return false; }
@@ -77,6 +77,20 @@ class TrackLibState : public LibraryState {
    virtual void notifyOfUpdate();
    virtual Address getLibTrapAddress();
    virtual ~TrackLibState();
+};
+
+class StaticBinaryLibState : public LibraryState {
+   LibAddrPair the_exe;
+ public:
+   StaticBinaryLibState(ProcessState *parent, std::string executable = "");
+   ~StaticBinaryLibState();
+   virtual bool getLibraryAtAddr(Address addr, LibAddrPair &olib);
+   virtual bool getLibraries(std::vector<LibAddrPair> &olibs);
+   virtual bool getLibc(LibAddrPair &lc);
+   virtual bool getLibthread(LibAddrPair &lt);
+   virtual bool getAOut(LibAddrPair &ao);
+   virtual void notifyOfUpdate();
+   virtual Address getLibTrapAddress();
 };
 
 SymbolReaderFactory *getDefaultSymbolReader();

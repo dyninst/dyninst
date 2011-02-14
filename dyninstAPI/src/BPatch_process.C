@@ -1815,7 +1815,6 @@ unsigned char * BPatch_process::makeShadowPage(Dyninst::Address pageAddr)
 
     Address shadowAddr = pageAddr;
     if (llproc->isMemoryEmulated()) {
-        int shadowRights=0;
         bool valid = false;
         boost::tie(valid, shadowAddr) = llproc->getMemEm()->translate(pageAddr);
         assert(valid);
@@ -1868,7 +1867,7 @@ void BPatch_process::overwriteAnalysisUpdate
 
     if ( !changedCode ) {
         // update the mapped data for the overwritten ranges
-        llproc->updateCodeBytes(owPages,owRegions);
+        llproc->updateCodeBytes(owRegions);
         return;
     }
 
@@ -1899,7 +1898,7 @@ void BPatch_process::overwriteAnalysisUpdate
     }
 
     // update the mapped data for the overwritten ranges
-    llproc->updateCodeBytes(owPages,owRegions);
+    llproc->updateCodeBytes(owRegions);
 
     finalizeInsertionSet(false);
 

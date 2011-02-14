@@ -758,7 +758,7 @@ void instruction::get_register_operands()
         }
 
   if (reads.size() > 8)
-     fprintf(stderr, "%s[%d]:  WARNING:  unexpected size %ld for read registers\n", FILE__, __LINE__, reads.size());
+     fprintf(stderr, "%s[%d]:  WARNING:  unexpected size %ld for read registers\n", FILE__, __LINE__, (long int) reads.size());
 
   for (unsigned int i = 0; i < reads.size(); ++i) {
      if (reads[i].getNumber() == -1)
@@ -772,7 +772,7 @@ void instruction::get_register_operands()
 
 
   if (writes.size() > 6)
-     fprintf(stderr, "%s[%d]:  WARNING:  unexpected size %ld for write registers\n", FILE__, __LINE__, writes.size());
+     fprintf(stderr, "%s[%d]:  WARNING:  unexpected size %ld for write registers\n", FILE__, __LINE__, (long int) writes.size());
 
   for (unsigned int i = 0; i < writes.size(); ++i) {
      if (writes[i].getNumber() == -1)

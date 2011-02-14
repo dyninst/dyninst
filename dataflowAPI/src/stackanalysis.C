@@ -73,27 +73,28 @@ AnnotationClass <StackAnalysis::Intervals> Stack_Anno(std::string("Stack_Anno"))
 
 bool StackAnalysis::analyze()
 {
-   df_init_debug();
 
-   stackanalysis_printf("Beginning stack analysis for function %s\n",
-                        func->name().c_str());
-   
-   stackanalysis_printf("\tSummarizing block effects\n");
-   summarizeBlocks();
-   
-   stackanalysis_printf("\tPerforming fixpoint analysis\n");
-   fixpoint();
-   
-   stackanalysis_printf("\tCreating SP interval tree\n");
-   summarize();
-   
-   func->addAnnotation(intervals_, Stack_Anno);
-   
-   if (df_debug_stackanalysis) {
-      debug();
-   }
-   
-   stackanalysis_printf("Finished stack analysis for function %s\n",
+  df_init_debug();
+
+  stackanalysis_printf("Beginning stack analysis for function %s\n",
+		       func->name().c_str());
+
+    stackanalysis_printf("\tSummarizing block effects\n");
+    summarizeBlocks();
+    
+    stackanalysis_printf("\tPerforming fixpoint analysis\n");
+    fixpoint();
+
+    stackanalysis_printf("\tCreating SP interval tree\n");
+    summarize();
+
+    func->addAnnotation(intervals_, Stack_Anno);
+
+    if (df_debug_stackanalysis) {
+        debug();
+    }
+
+    stackanalysis_printf("Finished stack analysis for function %s\n",
 			 func->name().c_str());
    return true;
 }
@@ -319,17 +320,16 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
        case e_popfd:
           handlePushPopFlags(sign, xferFuncs);
           break;
-	   case e_pushad:
-		   sign = -1;
-		   handlePushPopRegs(sign, xferFuncs);
+       case e_pushad:
+           sign = -1;
+           handlePushPopRegs(sign, xferFuncs);
            break;
-	   case e_popad:
+       case e_popad:
            // This nukes all registers
            handleDefault(insn, xferFuncs);
-		   break;
-	   case power_op_si:
-          sign = -1;
+           break;
        case power_op_addi:
+       case power_op_addic:
           handlePowerAddSub(insn, sign, xferFuncs);
           break;
        case power_op_stwu:

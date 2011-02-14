@@ -8,11 +8,14 @@ using namespace Dyninst::InstructionAPI;
 
 SymEvalPolicy::SymEvalPolicy(Result_t &r,
 			     Address a,
-			     Dyninst::Architecture ac) :
+			     Dyninst::Architecture ac,
+                             Instruction::Ptr insn) :
   res(r),
   arch(ac),
   addr(a),
-  ip_(Handle<32>(wrap(Absloc::makePC(arch)))) {
+  ip_(Handle<32>(wrap(Absloc::makePC(arch)))),
+  failedTranslate_(false),
+  insn_(insn) {
 
   // We also need to build aaMap FTW!!!
   for (Result_t::iterator iter = r.begin();
@@ -35,6 +38,23 @@ SymEvalPolicy::SymEvalPolicy(Result_t &r,
   }
 }
   
+void SymEvalPolicy::undefinedInstruction(SgAsmx86Instruction *) {
+   undefinedInstructionCommon();
+}
+
+void SymEvalPolicy::undefinedInstruction(SgAsmPowerpcInstruction *) {
+   // Log insn details here
+
+   undefinedInstructionCommon();
+}
+
+void SymEvalPolicy::undefinedInstructionCommon() {
+   for (std::map<Absloc, Assignment::Ptr>::iterator iter = aaMap.begin();
+        iter != aaMap.end(); ++iter) {
+      res[iter->second] = getBottomAST();
+   }
+   failedTranslate_ = true;
+}
 
 void SymEvalPolicy::startInstruction(SgAsmx86Instruction *) {
 }

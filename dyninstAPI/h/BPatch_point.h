@@ -189,6 +189,11 @@ public:
     bool patchPostCallArea();
     // End internal functions
 
+    //Added for DynC...
+    API_EXPORT(Int, (),
+	       
+    BPatch_addressSpace *, getAddressSpace, ());
+    
 
     // Get the loop ID
     API_EXPORT(Int, (),

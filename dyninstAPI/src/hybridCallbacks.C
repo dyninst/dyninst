@@ -234,7 +234,6 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
         bpatchSignalHandlerCB(point,signum,&handlerAddrs);
     }
 }
-#endif
 
 
 /* Invoked for every signal handler function, adjusts the value of the saved 
@@ -453,6 +452,7 @@ void HybridAnalysis::virtualFreeCB(BPatch_point *, void *t) {
 	virtualFreeAddr_ = 0;
 	return;
 }
+#endif
 
 /* CASES (sub-numbering are cases too)
  * 1. the target address is in a shared library
@@ -490,7 +490,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     tmstruct = localtime( &tstruct );
     strftime(timeStr, 64, "%X", tmstruct);
 
-    printf("badTransferCB %lx=>%lx %s\n\n", point->getAddress(), target, timeStr);
+    printf("badTransferCB %lx=>%lx %s\n\n", pointAddr, target, timeStr);
 
     BPatch_module * targMod = proc()->findModuleByAddr(target);
     if (!targMod) {
@@ -548,7 +548,6 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             mal_printf("stopThread instrumentation found call %lx=>%lx, "
                       "parsing at call target %s[%d]\n",
                      (long)point->getAddress(), target,FILE__,__LINE__);
-            if (target == 0xe80004) DebugBreak();
             if (!analyzeNewFunction( point,target,true,false )) {
                 //this happens for some single-instruction functions
                 mal_printf("WARNING: parse of call target %lx=>%lx failed %s[%d]\n",

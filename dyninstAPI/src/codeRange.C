@@ -485,7 +485,7 @@ void codeRangeTree::clear() {
 }
 
 #define PRINT_COMMA if (print_comma) fprintf(stderr, ", "); print_comma = true
-void codeRange::print_range(Address addr) {
+void codeRange::print_range(Address) {
    bool print_comma = false;
    image *img_ptr = is_image();
    mapped_object *mapped_ptr = is_mapped_object();

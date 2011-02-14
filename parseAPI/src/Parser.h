@@ -116,6 +116,7 @@ class Parser {
     // functions
     Function * findFuncByEntry(CodeRegion * cr, Address entry);
     int findFuncs(CodeRegion * cr, Address addr, set<Function*> & funcs);
+    int findFuncs(CodeRegion * cr, Address start, Address end, set<Function*> & funcs);
 
     // blocks
     Block * findBlockByEntry(CodeRegion * cr, Address entry);

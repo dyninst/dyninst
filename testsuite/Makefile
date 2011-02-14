@@ -1,4 +1,4 @@
-SUBDIRS = i386-unknown-linux2.4 rs6000-ibm-aix5.1 x86_64-unknown-linux2.4 sparc-sun-solaris2.8 sparc-sun-solaris2.9 ppc32_linux \
+SUBDIRS = ppc32_bgp i386-unknown-linux2.4 rs6000-ibm-aix5.1 x86_64-unknown-linux2.4 sparc-sun-solaris2.8 sparc-sun-solaris2.9 ppc32_linux \
 ppc64_linux i386-unknown-freebsd7.2 amd64-unknown-freebsd7.2
 SUBDIR_WINDOWS = i386-unknown-nt4.0
 

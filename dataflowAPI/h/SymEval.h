@@ -316,38 +316,45 @@ class  SymEval {
 public:
     typedef std::map<Assignment::Ptr, AST::Ptr> Result_t;
     typedef dyn_detail::boost::shared_ptr<SliceNode> SliceNodePtr;
+    typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
 public:
+  typedef enum {
+     FAILED,
+     WIDEN_NODE,
+     FAILED_TRANSLATION,
+     SKIPPED_INPUT,
+     SUCCESS } Retval_t;
+
   // Return type: mapping AbsRegions to ASTs
   // We then can map Assignment::AbsRegions to 
   // SymEval::AbsRegions and come up with the answer
   // static const AST::Ptr Placeholder;
   //
   // Single version: hand in an Assignment, get an AST
-  DATAFLOW_EXPORT static AST::Ptr expand(const Assignment::Ptr &assignment);
+    DATAFLOW_EXPORT static std::pair<AST::Ptr, bool> expand(const Assignment::Ptr &assignment);
 
   // Hand in a set of Assignments
   // get back a map of Assignments->ASTs
   // We assume the assignments are prepped in the input; whatever
   // they point to is discarded.
-  DATAFLOW_EXPORT static void expand(Result_t &res, bool applyVisitors = true);
+  DATAFLOW_EXPORT static bool expand(Result_t &res, 
+                                     std::set<InstructionPtr> &failedInsns,
+                                     bool applyVisitors = true);
 
   // Hand in a Graph (of SliceNodes, natch) and get back a Result;
   // prior results from the Graph
   // are substituted into anything that uses them.
-  DATAFLOW_EXPORT static void expand(Graph::Ptr slice, Result_t &res);
+  DATAFLOW_EXPORT static Retval_t expand(Graph::Ptr slice, Result_t &res);
   
  private:
 
- typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
-
   // Symbolically evaluate an instruction and assign 
   // an AST representation to every written absloc
-  static void expandInsn(const InstructionPtr insn,
+ static bool expandInsn(const InstructionPtr insn,
 			 const uint64_t addr,
 			 Result_t& res);
 
-  static bool process(SliceNodePtr ptr, Result_t &dbase, std::set<Edge::Ptr> &skipEdges);
-
+  static Retval_t process(SliceNodePtr ptr, Result_t &dbase, std::set<Edge::Ptr> &skipEdges);
   static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func, ParseAPI::Block *block);
 };
 

@@ -63,7 +63,7 @@ namespace Dyninst {
     // ProcDebugBG
     // This is the factor function that initially creates a BGP stackwalker.
     // ============================================================ //
-    ProcDebug *ProcDebugBG::createProcDebugBG(PID pid, const string& executable) {
+    ProcDebug *ProcDebugBG::createProcDebugBG(PID pid, string executable) {
       return new ProcDebugBGP(pid, executable);
     }
 
@@ -101,6 +101,8 @@ namespace Dyninst {
       library_tracker = new DefaultLibState(this);
 #   endif
 */
+      if (!library_tracker)
+         setDefaultLibraryTracker();
       // This should really be checking for exceptions, since the above are constructors.
       if (!library_tracker) {
         sw_printf("[%s:%u] - PID %d failed to create library tracker\n", __FILE__, __LINE__, pid);

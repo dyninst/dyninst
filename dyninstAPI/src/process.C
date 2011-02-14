@@ -3273,8 +3273,6 @@ bool process::writeDataWord(void *inTracedProcess, unsigned size,
 bool process::writeDataSpace(void *inTracedProcess, unsigned size,
                              const void *inSelf) 
 {
-    Address tmp = (Address) inTracedProcess;
-    
    bool needToCont = false;
 
    if (!isAttached()) return false;
@@ -4471,7 +4469,6 @@ Address process::stopThreadCtrlTransfer
         instPoint *callPt = NULL;
         int_block *callBBI = NULL;
 
-        bool tampered = false;
         if ( reverseDefensiveMap_.find(target,callPt) ) {
             // a. 
             cerr << "\t Found in defensive map" << endl;
@@ -4730,8 +4727,7 @@ bool process::getOverwrittenBlocks
 
 // distribute the work to mapped_objects
 void process::updateCodeBytes
-    ( const map<Dyninst::Address,unsigned char*>& owPages, //input
-      const list<pair<Address,Address> >&owRanges ) //input
+    ( const list<pair<Address,Address> >&owRanges ) //input
 {
     std::map<mapped_object *,list<pair<Address,Address> >*> objRanges;
     list<pair<Address,Address> >::const_iterator rIter = owRanges.begin();

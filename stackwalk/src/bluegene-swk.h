@@ -85,7 +85,7 @@ namespace Dyninst {
       virtual bool pollForNewThreads();
 
       // unsupported -- stub will fail!
-      virtual bool debug_create(const std::string &, const std::vector<std::string> &);
+      virtual bool debug_create(std::string, const std::vector<std::string> &);
 
       ///
       /// This implements basic BG debugger event -> stackwalker event translation.  It's
@@ -121,7 +121,7 @@ namespace Dyninst {
       /// Creation function for making platform-specific ProcDebugBG
       /// Need to include an implementation of this in any build that includes 
       /// ProcDebugBG.
-      static ProcDebug *createProcDebugBG(PID pid, const std::string& executable);
+      static ProcDebug *createProcDebugBG(PID pid, std::string executable);
 
       /// Clears this process's memory read cache along with register caches 
       /// from all of its threads.

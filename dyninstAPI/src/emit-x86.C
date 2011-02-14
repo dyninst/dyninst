@@ -816,11 +816,13 @@ static void emitRex(bool is_64, Register* r, Register* x, Register* b, codeGen &
        emitSimpleInsn(rex, gen);
 }
 
+#if 0
 /* build the MOD/RM byte of an instruction */
 static unsigned char makeModRMbyte(unsigned Mod, unsigned Reg, unsigned RM)
 {
    return static_cast<unsigned char>(((Mod & 0x3) << 6) + ((Reg & 0x7) << 3) + (RM & 0x7));
 }
+#endif
 
 void EmitterIA32::emitStoreImm(Address addr, int imm, codeGen &gen, bool /*noCost*/) 
 {
@@ -1887,7 +1889,7 @@ void EmitterAMD64::emitGetRetAddr(Register dest, codeGen &gen)
 }
 
 
-void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, opCode op, bool addr_of, codeGen &gen)
+void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, opCode, bool addr_of, codeGen &gen)
 {
    if (!addr_of && param_num < 6) {
       emitLoadOrigRegister(amd64_arg_regs[param_num], dest, gen);
@@ -1967,7 +1969,9 @@ void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, boo
 
         //Get the current PC.
         Register dest = gen.rs()->getScratchRegister(gen);
+#if 0
         GET_PTR(patch_start, gen);
+#endif
         emitMovPCRMToReg64(dest, 0, 8, gen, false);
 
         //Add the distance from the current PC to the end of this
@@ -1977,8 +1981,10 @@ void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, boo
 
         // The last 4 bytes of a LEA instruction hold the offset constant.
         // Mark this as the location to patch.
+#if 0
         GET_PTR(insn, gen);
         void *patch_loc = (void *)(insn - sizeof(int));
+#endif
 
         //Create a patch to fill in the end of the baseTramp to the above
         // LEA instruction when it becomes known.
@@ -2090,8 +2096,11 @@ void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, boo
     gen.rs()->setStackHeight( saved_stack_height );
 }
 
-void EmitterAMD64::emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
+void EmitterAMD64::emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen)
 {
+   // Support for using ESP that has been moved is unimplemented.
+
+   assert(stackShift == 0);
   Register use_a = Null_Register;
   Register use_b = Null_Register;
 

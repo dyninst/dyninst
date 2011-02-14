@@ -423,8 +423,6 @@ void MemoryEmulator::synchShadowOrig(bool toOrig)
             assert(0);
         }
 
-        Address cp_start = 0;
-
         std::map<Address,int>::const_iterator sit = springboards_[reg].begin();
         for (; sit != springboards_[reg].end(); sit++) {
 
