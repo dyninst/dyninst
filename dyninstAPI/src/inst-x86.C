@@ -593,6 +593,8 @@ void registerSpace::initialize64() {
     returnRead64_[REGNUM_R13] = true;
     returnRead64_[REGNUM_R14] = true;
     returnRead64_[REGNUM_R15] = true;
+    returnRead64_[REGNUM_XMM0] = true;
+    returnRead64_[REGNUM_XMM1] = true;
 
     //returnRead64_[REGNUM_R10] = true;
     
@@ -604,6 +606,15 @@ void registerSpace::initialize64() {
     callRead64_[REGNUM_R9] = true;
     callRead64_[REGNUM_RDI] = true;
     callRead64_[REGNUM_RSI] = true;
+    
+    callRead64_[REGNUM_XMM0] = true;
+    callRead64_[REGNUM_XMM1] = true;
+    callRead64_[REGNUM_XMM2] = true;
+    callRead64_[REGNUM_XMM3] = true;
+    callRead64_[REGNUM_XMM4] = true;
+    callRead64_[REGNUM_XMM5] = true;
+    callRead64_[REGNUM_XMM6] = true;
+    callRead64_[REGNUM_XMM7] = true;
 
     // Anything in those four is not preserved across a call...
     // So we copy this as a shorthand then augment it
@@ -617,7 +628,6 @@ void registerSpace::initialize64() {
     for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) 
         callWritten64_[i] = true;
 
-    // What about floating point?
 
     // And assume a syscall reads or writes _everything_
     syscallRead64_ = getBitArray().set();
@@ -2357,7 +2367,9 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/,
        //Get the current PC.
        Register dest = gen.rs()->getScratchRegister(gen);
        RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+#if 0
        GET_PTR(patch_start, gen);
+#endif
        emitMovPCRMToReg(dest_r, 0, gen, false);
 
        //Add the distance from the current PC to the end of this
@@ -2367,9 +2379,10 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/,
 
        // The last 4 bytes of a LEA instruction hold the offset constant.
        // Mark this as the location to patch.
+#if 0
        GET_PTR(insn, gen);
        void *patch_loc = (void *)(insn - sizeof(int));
-
+#endif
        //Create a patch to fill in the end of the baseTramp to the above
        // LEA instruction when it becomes known.
        assert(0 && "Implement me!");

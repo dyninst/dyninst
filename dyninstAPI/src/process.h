@@ -709,8 +709,7 @@ public:
   // synch modified mapped objects with current memory contents
   mapped_object *createObjectNoFile(Address addr);
   void updateCodeBytes
-      ( const std::map<Dyninst::Address,unsigned char*>& owPages,
-        const std::list<std::pair<Address,Address> >&owRegions );
+      ( const std::list<std::pair<Address,Address> >&owRegions );
 
   // misc
   bool hideDebugger();
@@ -720,6 +719,8 @@ public:
   bool isExploratoryModeOn();
   bool isRuntimeHeapAddr(Address addr);
   bool setMemoryAccessRights(Address start, Address size, int rights);
+  bool getMemoryAccessRights(Address start, Address size, int rights);
+
 
  private:
   BPatch_hybridMode analysisMode_;

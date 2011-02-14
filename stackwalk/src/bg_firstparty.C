@@ -34,6 +34,8 @@
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/swk_errors.h"
 
+#include "common/h/SymLite-elf.h"
+
 #include "stackwalk/src/sw.h"
 
 #include <assert.h>
@@ -42,8 +44,8 @@
 using namespace Dyninst;
 using namespace Stackwalker;
 
-ProcSelf::ProcSelf() :
-   ProcessState(getpid())
+ProcSelf::ProcSelf(std::string exec_path) :
+   ProcessState(getpid(), exec_path)
 {
 }
 
@@ -92,3 +94,18 @@ bool ProcSelf::getDefaultThread(THR_ID &default_tid)
 void BottomOfStackStepperImpl::initialize()
 {
 }
+
+void BottomOfStackStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_t)
+{
+}
+
+SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
+{
+   static SymElfFactory symelffact;
+   return &symelffact;
+}
+
+bool TrackLibState::updateLibsArch() {
+   return true;
+}
+

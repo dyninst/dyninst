@@ -185,58 +185,18 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
 
 int RTuntranslatedEntryCounter;
 
-static const int TO_SHADOW=0;
-static const int TO_ORIG=1;
-
-void RTcopyData(int direction)
-{
-    /* For each element in MemoryMapper, copy any non-excluded memory */
-    volatile int guard2 = RTmemoryMapper.guard2;
-    int i;
-    
-    do {
-        guard2 = RTmemoryMapper.guard2;
-
-        for (i = 0; i < RTmemoryMapper.size; ++i) 
-        {
-            MemoryMapperCopyElement *copyPtr = RTmemoryMapper.elements[i].copyList;
-            fprintf(stderr, "Got copy ptr of %p\n", copyPtr);
-            if (copyPtr != NULL) {
-                while (copyPtr->start != 0)
-                {                    
-                    long source = copyPtr->start;
-                    long target = copyPtr->start;
-                    if (direction == TO_SHADOW) 
-                        target += RTmemoryMapper.elements[i].shift;
-                    else 
-                        source += RTmemoryMapper.elements[i].shift;
-                    fprintf(stderr, "Copying 0x%lx to 0x%lx, %d bytes\n", source, target, copyPtr->size);
-                    memcpy((void *)target, (void *)source, copyPtr->size);
-                    copyPtr++;
-                }
-            }
-        }
-    } while (guard2 != RTmemoryMapper.guard1);
-}
-
-
-extern void DYNINST_stopThread (void * pointAddr, void *callBackID, void *flags, void *calculation);
-
 void RThandleShadow(void *direction, void *pointAddr, void *callbackID, void *flags, void *calculation) {
     if ((int)direction == 1) {
         if (RTuntranslatedEntryCounter == 0) {
             // Entering a system call...
             DYNINST_stopThread(pointAddr, callbackID, flags, (void *)1);
-            //RTcopyData(TO_ORIG);
         }
         RTuntranslatedEntryCounter++;
     }
     else {
         RTuntranslatedEntryCounter--;
-
         if (RTuntranslatedEntryCounter == 0) {
             DYNINST_stopThread(pointAddr, callbackID, flags, (void *)0);
-            //RTcopyData(TO_SHADOW);
         }
     }
 }

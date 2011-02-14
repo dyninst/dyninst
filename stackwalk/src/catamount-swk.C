@@ -42,7 +42,7 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-SymbolLookup *Walker::createDefaultSymLookup(const std::string &)
+SymbolLookup *Walker::createDefaultSymLookup(std::string)
 {
    sw_printf("[%s:%u] - Warning, no symbol lookup on this platform\n",
               __FILE__, __LINE__);
@@ -57,7 +57,7 @@ ProcDebug *ProcDebug::newProcDebug(PID, std::string)
    return NULL;
 }
 
-ProcDebug *ProcDebug::newProcDebug(const std::string &, 
+ProcDebug *ProcDebug::newProcDebug(std::string, 
                                    const std::vector<std::string> &)
 {
    setLastError(err_unsupported, "Third party stackwalking not supported on " \
@@ -81,8 +81,8 @@ bool Walker::createDefaultSteppers()
   return true;
 }
 
-ProcSelf::ProcSelf() :
-   ProcessState()
+ProcSelf::ProcSelf(std::string exe_path) :
+   ProcessState(getpid(), exe_path)
 {
 }
 

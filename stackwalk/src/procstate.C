@@ -70,8 +70,9 @@ public:
 
 std::map<Dyninst::PID, ProcessState *> ProcessState::proc_map;
 
-ProcessState::ProcessState(Dyninst::PID pid_) :
-   library_tracker(NULL)
+ProcessState::ProcessState(Dyninst::PID pid_, std::string executable_path_) :
+   library_tracker(NULL),
+   executable_path(executable_path_)
 {
    std::map<PID, ProcessState *>::iterator i = proc_map.find(pid_);
    if (i != proc_map.end())
@@ -110,10 +111,7 @@ void ProcessState::setDefaultLibraryTracker()
 {
   if (library_tracker) return;
 
-  std::string execp("");
-  ProcDebug *pd = dynamic_cast<ProcDebug *>(this);
-  if (pd) 
-     execp = pd->getExecutablePath();
+  std::string execp = getExecutablePath();
   library_tracker = new TrackLibState(this, execp);
 }
 
@@ -133,26 +131,25 @@ int ProcDebug::pipe_in = -1;
 int ProcDebug::pipe_out = -1;
 
 ProcDebug::ProcDebug(PID p, string exe) : 
-  ProcessState(p),
+  ProcessState(p, exe),
   initial_thread(NULL),
   active_thread(NULL),
-  executable_path(exe),
   sigfunc(NULL)
 {
   initial_thread = ThreadState::createThreadState(this);
   threads[initial_thread->getTid()] = initial_thread;   
 }
 
-ProcDebug::ProcDebug(const std::string & /*executable*/, 
+ProcDebug::ProcDebug(std::string executable, 
                      const std::vector<std::string> & /*argv*/) : 
-   ProcessState(0),
+   ProcessState(0, executable),
    initial_thread(NULL),
    active_thread(NULL),
    sigfunc(NULL)
 {
 }
 
-bool ProcDebug::create(const string &executable, 
+bool ProcDebug::create(string executable, 
                        const vector<string> &argv)
 {
   bool result = debug_create(executable, argv);
@@ -808,7 +805,7 @@ void ProcDebug::registerSignalCallback(sig_callback_func f)
    sigfunc = f;
 }
 
-const string& ProcDebug::getExecutablePath() {
+string ProcessState::getExecutablePath() {
   return executable_path;
 }
 
@@ -890,3 +887,4 @@ void ThreadState::clearPendingStop() {
 bool ThreadState::hasPendingStop() {
   return pending_sigstops != 0;
 }
+

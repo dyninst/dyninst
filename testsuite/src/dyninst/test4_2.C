@@ -41,6 +41,7 @@
 #include "BPatch.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
+#include "BPatch_point.h"
 #include "BPatch_snippet.h"
 
 #include "test_lib.h"

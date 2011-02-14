@@ -515,8 +515,8 @@ namespace Dyninst
 	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
 	      break;
 	    default:
-                fprintf(stderr, "ERROR: unhandled entry %s\n", found->second.writtenFlags[j].name());
-	      assert(0);
+               fprintf(stderr, "ERROR: unhandled entry %s\n", found->second.writtenFlags[j].name().c_str());
+               assert(0);
 	    }
 	  }
 	}

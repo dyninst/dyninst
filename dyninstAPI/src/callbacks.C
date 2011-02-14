@@ -364,7 +364,7 @@ bool UserEventCallback::operator()(BPatch_process *process, void *buffer, int bu
 }
 
 
-process* SyncCallback::getProcess()
+process* SyncCallback::getProcess() const
 {
     return NULL;
 }
@@ -372,7 +372,7 @@ process * StopThreadCallback::getProcess() const
 {
     return point->getFunction()->getProc()->lowlevel_process();
 }
-process * CodeOverwriteCallback::getProcess() 
+process * CodeOverwriteCallback::getProcess() const
 {
     return proc;
 }

@@ -512,9 +512,15 @@ BPatch_module::findFunctionByAddressInt(void *addr, BPatch_Vector<BPatch_functio
       bool notify_on_failure, 
       bool incUninstrumentable)
 {
-   if (!isValid()) return NULL;
+   if (!isValid()) {
+      if (notify_on_failure) {
+         using namespace std;
+         string msg = string("Module is not valid: ") + string(mod->fileName());
+         BPatch_reportError(BPatchSerious, 100, msg.c_str());
+      }
+      return NULL;
+   }
 
-   int_function *pdfunc = NULL;
    BPatch_function *bpfunc = NULL;
    std::set<int_function *> ifuncs;
    mod->findFuncsByAddr((Address) addr, ifuncs);
@@ -529,6 +535,12 @@ BPatch_module::findFunctionByAddressInt(void *addr, BPatch_Vector<BPatch_functio
            }
         }
    }
+   if (funcs.empty() && notify_on_failure) {
+       std::string msg = std::string("No functions at: "
+           + (Address)addr + mod->fileName());
+       BPatch_reportError(BPatchSerious, 100, msg.c_str());
+   }
+
    return &funcs;
 }
 
@@ -592,6 +604,8 @@ bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
         using namespace ParseAPI;
         vector<pair<int_block*,Edge*> > deadFuncCallers; // build up list of live callers
         Address funcAddr = func->getAddress();
+        mal_printf("Removing function at %lx from mod %s\n", funcAddr, 
+                   mod->fileName().c_str());
 
         // nuke all call edges, assert that there's a sink edge, otherwise we'll 
         // have to fill in the code for direct transfers, creating unresolved points

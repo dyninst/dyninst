@@ -931,9 +931,6 @@ bool dyn_lwp::readTextSpace(const void *inTraced, u_int amount, void *inSelf) {
 
 bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 {
-    if ((Address)inTraced <= 0xc30000 && ((Address)inTraced + amount) >= 0xc30000) {
-        cerr << "writeDataSpace [" << hex << (Address) inTraced << "," << (Address) inTraced + amount << "]" << dec << endl;
-    }
     DWORD nbytes;
     handleT procHandle = getProcessHandle();
     bool res = WriteProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
@@ -1033,6 +1030,11 @@ bool process::setMemoryAccessRights
     }
     stoppedlwp->changeMemoryProtections(start, size, rights, true);
     return true;
+}
+
+bool process::getMemoryAccessRights(Address start, Address size, int rights)
+{
+   assert(0 && "Unimplemented!");
 }
 
 int dyn_lwp::changeMemoryProtections

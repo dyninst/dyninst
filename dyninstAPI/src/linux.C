@@ -52,7 +52,7 @@
 #include <sys/resource.h>
 #include <math.h> // for floor()
 #include <unistd.h>
-#include <string>
+//#include <string>
 
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/symtab.h"

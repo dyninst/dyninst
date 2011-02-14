@@ -247,7 +247,7 @@ DynParseCallback::unresolved_cf(Function *f,Address addr,unresolved_details*det)
 #endif
 
 void
-DynParseCallback::abruptEnd_cf(Address addr,ParseAPI::Block *b,default_details*det)
+DynParseCallback::abruptEnd_cf(Address addr,ParseAPI::Block *b,default_details*)
 {
     image_instPoint * p =
         new image_instPoint(addr,
@@ -334,7 +334,7 @@ DynParseCallback::interproc_cf(Function*f,Block *b,Address addr,interproc_detail
     if(p)
         _img->addInstPoint(p);
 
-#if defined(ppc32_linux)
+#if defined(ppc32_linux) || defined(ppc32_bgp)
     if(det->type == interproc_details::call) {
         image_func * ifunc = static_cast<image_func*>(f);
         _img->updatePltFunc(ifunc,det->data.call.target);

@@ -572,7 +572,7 @@ void int_function::setHandlerFaultAddrAddr(Address faa, bool set)
 // relocated address, similar to instPoint::instrSideEffect.
 // Also, make sure that we update our mapped view of memory, 
 // we may have overwritten memory that was previously not code
-void int_function::fixHandlerReturnAddr(Address faultAddr)
+void int_function::fixHandlerReturnAddr(Address /*faultAddr*/)
 {
     if ( !proc()->proc() || ! handlerFaultAddrAddr_ ) {
         assert(0);
@@ -1159,9 +1159,6 @@ bool int_function::getOverlappingFuncs(int_block *block,
 	for (Address i = llB->start(); i < llB->end(); ++i) {
 		llB->obj()->findBlocks(llB->region(), i, overlappingBlocks);
 	}
-	if (overlappingBlocks.size() > 1) {
-		int i = 3;
-	}
 	// We now have all of the overlapping ParseAPI blocks. Get the set of 
 	// ParseAPI::Functions containing each and up-map to int_functions
 	for (std::set<ParseAPI::Block *>::iterator iter = overlappingBlocks.begin();
@@ -1209,7 +1206,6 @@ std::string int_function::get_name() const
 {
    return symTabName();
 }
-
 
 void int_function::getNewInstrumentation(std::set<instPoint *> &ret) {
     for (unsigned i = 0; i < entryPoints_.size(); i++) {

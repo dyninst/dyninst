@@ -1,0 +1,3 @@
+//welcome to testStatements3
+
+printf("Exit: %d\n", dyninst`return_value);

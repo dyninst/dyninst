@@ -41,6 +41,10 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debug.h"
 
+extern int dyn_debug_ast;
+
+
+
 #if defined(cap_instruction_api)
 #include "Instruction.h"
 using namespace Dyninst::InstructionAPI;
@@ -92,14 +96,70 @@ AstNode::AstNode() {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
+
+//   dyn_debug_ast = 0;
    referenceCount = 0;
    useCount = 0;
    // "operands" is left as an empty vector
    size = 4;
    bptype = NULL;
    doTypeCheck = true;
-
+   lineNum = 0;
+   columnNum = 0;
+   lineInfoSet = false;
+   columnInfoSet = false;
 }
+
+//The following methods are for error reporting in dynC_API
+
+// Returns the line number at which the ast was declared
+int AstNode::getLineNum(){
+   return lineNum;
+}
+
+// Sets the line number at which the ast was declared
+void AstNode::setLineNum(int ln){
+   lineInfoSet = true;
+   lineNum = ln;
+}
+
+// Returns the column number at which the ast was declared
+int AstNode::getColumnNum(){
+   return columnNum;
+}
+
+// Sets the column number at which the ast was declared
+void AstNode::setColumnNum(int cn){
+   columnInfoSet = true;
+   columnNum = cn;
+}
+
+char * AstNode::getSnippetName(){
+   return snippetName;
+}
+
+void AstNode::setSnippetName(char *n){
+   if(n != NULL){
+//      printf(":::%s\n", n);
+      snippetName = n;
+      snippetNameSet = true;
+   }
+}
+
+bool AstNode::hasLineInfo(){
+   return lineInfoSet;
+}
+
+
+bool AstNode::hasColumnInfo(){
+   return columnInfoSet;
+}
+
+bool AstNode::hasNameInfo(){
+   return snippetNameSet;
+}
+
+//////////////////////////////////////////////////////
 
 AstNodePtr AstNode::nullNode() {
     return AstNodePtr(new AstNullNode());
@@ -145,7 +205,7 @@ AstNodePtr AstNode::funcCallNode(const std::string &func, pdvector<AstNodePtr > 
 
       if (ifunc == NULL) 
       {
-         fprintf(stderr, "Bitch whine moan\n");
+         fprintf(stderr, "Bitch whine moan\n"); 
          fprintf(stderr, "%s[%d]: Can't find function %s\n", FILE__, __LINE__, func.c_str());
          return AstNodePtr();
       }
@@ -259,7 +319,7 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNode
     if (op == timesOp) {
         if (roperand->getoType() == undefOperandType) {
             // ...
-        }
+       }
         else if (roperand->getoType() != Constant) {
             AstNodePtr temp = roperand;
             roperand = loperand;
@@ -428,6 +488,7 @@ AstMemoryNode::AstMemoryNode(memoryType mem,
     doTypeCheck = BPatch::bpatch->isTypeChecked();
 };
 
+
 AstNodePtr AstNode::threadIndexNode() {
     // We use one of these across all platforms, since it
     // devolves into a process-specific function node. 
@@ -500,7 +561,7 @@ Address AstMiniTrampNode::generateTramp(codeGen &gen,
     trampCost = preamble->maxCost() + minCost();
 
     costAst->setOValue((void *) (long) trampCost);
-    
+   
     if (!preamble->generateCode(gen, noCost)) {
         fprintf(stderr, "[%s:%d] WARNING: failure to generate miniTramp preamble\n", __FILE__, __LINE__);
     }
@@ -744,6 +805,7 @@ bool AstNullNode::generateCode_phase2(codeGen &gen, bool,
    
     return true;
 }
+
 
 bool AstLabelNode::generateCode_phase2(codeGen &gen, bool,
                                        Address &retAddr,
@@ -2154,13 +2216,13 @@ void AstNode::print() const {
     } else if (type == callNode) {
       cerr << "(" << callee;
       for (unsigned u = 0; u < operands.size(); u++)
-	operands[u]->print();
+         operands[u]->print();
       fprintf(stderr,")\n");
     } else if (type == sequenceNode_t) {
-      if (loperand) loperand->print();
-      fprintf(stderr,",");
-      if (roperand) roperand->print();
-      fprintf(stderr,"\n");
+       if (loperand) loperand->print();
+       fprintf(stderr,",");
+       if (roperand) roperand->print();
+       fprintf(stderr,"\n");
     }
   }
 }
@@ -2180,8 +2242,8 @@ BPatch_type *AstOperatorNode::checkType() {
     if ((loperand || roperand) && getType()) {
 	// something has already set the type for us.
 	// this is likely an expression for array access
-	ret = const_cast<BPatch_type *>(getType());
-	return ret;
+       ret = const_cast<BPatch_type *>(getType());
+       return ret;
     }
 
     if (loperand) lType = loperand->checkType();
@@ -2191,8 +2253,8 @@ BPatch_type *AstOperatorNode::checkType() {
     if (eoperand) eType = eoperand->checkType();
 
     if (lType == BPatch::bpatch->type_Error ||
-	rType == BPatch::bpatch->type_Error)
-	errorFlag = true;
+        rType == BPatch::bpatch->type_Error)
+       errorFlag = true;
     
     switch (op) {
     case ifOp:
@@ -2229,21 +2291,22 @@ BPatch_type *AstOperatorNode::checkType() {
     assert (ret != NULL);
 
     if (errorFlag && doTypeCheck) {
-	ret = BPatch::bpatch->type_Error;
+       ret = BPatch::bpatch->type_Error;
     } else if (errorFlag) {
-	ret = BPatch::bpatch->type_Untyped;
+       ret = BPatch::bpatch->type_Untyped;
     }
 
 #if defined(ASTDEBUG)
     // it would be useful to have some indication of what the type applied to
     // (currently it appears to be copious amounts of contextless junk)
     if (ret) {
-	logLine(" type is ");
-	if (ret->getName()) 
-	     logLine(ret->getName());
-	else
-	     logLine(" <NULL Name String>");
-	logLine("\n");
+       logLine(" type is ");
+       if (ret->getName()){ 
+          logLine(ret->getName());
+       } else {
+          logLine(" <NULL Name String>");
+          logLine("\n");
+       }
     }
 #endif
 
@@ -2262,16 +2325,16 @@ BPatch_type *AstOperandNode::checkType()
     assert(BPatch::bpatch != NULL);	/* We'll use this later. */
 
     if (operand_ && getType()) {
-	// something has already set the type for us.
-	// this is likely an expression for array access
-	ret = const_cast<BPatch_type *>(getType());
-	return ret;
+       // something has already set the type for us.
+       // this is likely an expression for array access
+       ret = const_cast<BPatch_type *>(getType());
+       return ret;
     }
     
     if (operand_) type = operand_->checkType();
 
     if (type == BPatch::bpatch->type_Error)
-	errorFlag = true;
+       errorFlag = true;
     
     if (oType == DataIndir) {
         // XXX Should really be pointer to lType -- jkh 7/23/99
@@ -2293,9 +2356,9 @@ BPatch_type *AstOperandNode::checkType()
     assert(ret != NULL);
 
     if (errorFlag && doTypeCheck) {
-	ret = BPatch::bpatch->type_Error;
+       ret = BPatch::bpatch->type_Error;
     } else if (errorFlag) {
-	ret = BPatch::bpatch->type_Untyped;
+       ret = BPatch::bpatch->type_Untyped;
     }
 
 #if defined(ASTDEBUG)
@@ -2339,9 +2402,9 @@ BPatch_type *AstCallNode::checkType() {
     assert(ret != NULL);
 
     if (errorFlag && doTypeCheck) {
-	ret = BPatch::bpatch->type_Error;
+       ret = BPatch::bpatch->type_Error;
     } else if (errorFlag) {
-	ret = BPatch::bpatch->type_Untyped;
+       ret = BPatch::bpatch->type_Untyped;
     }
 
 #if defined(ASTDEBUG)
@@ -2593,6 +2656,21 @@ void AstNode::getChildren(pdvector<AstNodePtr > &) {
 #endif
 }
 
+void AstNode::setChildren(pdvector<AstNodePtr > &) {
+#if 0
+    fprintf(stderr, "Undefined call to setChildren for type: ");
+    if (dynamic_cast<AstNullNode *>(this)) fprintf(stderr, "nullNode\n");
+    else if (dynamic_cast<AstOperatorNode *>(this)) fprintf(stderr, "operatorNode\n");
+    else if (dynamic_cast<AstOperandNode *>(this)) fprintf(stderr, "operandNode\n");
+    else if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
+    else if (dynamic_cast<AstReplacementNode *>(this)) fprintf(stderr, "replacementNode\n");
+    else if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
+    else if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
+    else if (dynamic_cast<AstMiniTrampNode *>(this)) fprintf(stderr, "miniTrampNode\n");
+    else if (dynamic_cast<AstMemoryNode *>(this)) fprintf(stderr, "memoryNode\n");
+    else fprintf(stderr, "unknownNode\n");
+#endif
+}
 
 void AstOperatorNode::getChildren(pdvector<AstNodePtr > &children) {
     if (loperand) children.push_back(loperand);
@@ -2600,8 +2678,65 @@ void AstOperatorNode::getChildren(pdvector<AstNodePtr > &children) {
     if (eoperand) children.push_back(eoperand);
 }
 
+void AstOperatorNode::setChildren(pdvector<AstNodePtr > &children){
+   int count = (loperand ? 1 : 0) + (roperand ? 1 : 0) + (eoperand ? 1 : 0); 
+   if ((int)children.size() == count){
+      //memory management?
+      if (loperand) loperand = children[0];
+      if (roperand) roperand = children[1];
+      if (eoperand) eoperand = children[2];
+   }else{
+      fprintf(stderr, "OPERATOR setChildren given bad arguments. Wanted:%d , given:%d\n", count, (int)children.size());      
+   }
+}
+
+AstNodePtr AstOperatorNode::deepCopy(){
+   AstNodePtr copy = operatorNode(op, (loperand ? loperand->deepCopy() : loperand),
+                                  (roperand ? roperand->deepCopy() : roperand),
+                                  (eoperand ? eoperand->deepCopy() : eoperand));
+   copy->setType(bptype);
+   copy->setTypeChecking(doTypeCheck);
+
+   copy->setLineNum(getLineNum());
+   copy->setColumnNum(getColumnNum());
+   copy->setSnippetName(snippetName);
+
+/* TODO: Impliment this copy.
+   copy->columnInfoSet = columnInfoSet
+   copy->lineInfoSet = lineInfoSet;
+*/
+   return copy;
+}
+
 void AstOperandNode::getChildren(pdvector<AstNodePtr > &children) {
     if (operand_) children.push_back(operand_);
+}
+
+void AstOperandNode::setChildren(pdvector<AstNodePtr > &children){
+   if (children.size() == 1){
+      //memory management?
+      operand_ = children[0];
+   }else{
+      fprintf(stderr, "OPERAND setChildren given bad arguments. Wanted:%d , given:%d\n", 1,  (int)children.size());      
+   }
+}
+
+AstNodePtr AstOperandNode::deepCopy(){
+   AstOperandNode * copy = new AstOperandNode();
+   copy->oType = oType;
+   copy->oValue = oValue; //this might need to be copied deeper
+   copy->oVar = oVar;
+   if(operand_) copy->operand_ = operand_->deepCopy();
+
+   copy->setType(bptype);
+   copy->setTypeChecking(doTypeCheck);
+
+   copy->setLineNum(getLineNum());
+   copy->lineInfoSet = lineInfoSet;
+   copy->setColumnNum(getColumnNum());
+   copy->columnInfoSet = columnInfoSet;
+   copy->setSnippetName(getSnippetName());
+   return AstNodePtr(copy);
 }
 
 void AstCallNode::getChildren(pdvector<AstNodePtr > &children) {
@@ -2609,18 +2744,150 @@ void AstCallNode::getChildren(pdvector<AstNodePtr > &children) {
         children.push_back(args_[i]);
 }
 
+void AstCallNode::setChildren(pdvector<AstNodePtr > &children){
+   if (children.size() == args_.size()){
+      //memory management?
+      for (unsigned i = 0; i < args_.size(); i++){
+         AstNodePtr * newNode = new AstNodePtr(children[i]);
+         args_.push_back(*newNode);
+         args_.erase(args_.begin() + i + 1);
+      }
+   }else{
+      fprintf(stderr, "CALL setChildren given bad arguments. Wanted:%d , given:%d\n",  (int)args_.size(),  (int)children.size());      
+   }
+}
+
+AstNodePtr AstCallNode::deepCopy(){
+   pdvector<AstNodePtr> empty_args;
+
+   AstCallNode * copy;
+
+   if(func_name_.empty()){
+      copy = new AstCallNode();
+   }else{
+      copy = new AstCallNode(func_name_, empty_args);
+   }
+//   copy->func_name_ = func_name_;
+   copy->func_addr_ = func_addr_; 
+   copy->func_ = func_;
+
+   for(unsigned int i = 0; i < args_.size(); ++i){
+      copy->args_.push_back(args_[i]->deepCopy());
+   }
+  
+   copy->callReplace_ = callReplace_;
+   copy->constFunc_ = constFunc_;
+
+   copy->setType(bptype);
+   copy->setTypeChecking(doTypeCheck);
+
+   copy->setLineNum(getLineNum());
+   copy->lineInfoSet = lineInfoSet;
+   copy->setColumnNum(getColumnNum());
+   copy->columnInfoSet = columnInfoSet;
+   copy->setSnippetName(getSnippetName());
+   copy->snippetNameSet = snippetNameSet;
+
+   return AstNodePtr(copy);
+}
+
 void AstSequenceNode::getChildren(pdvector<AstNodePtr > &children) {
     for (unsigned i = 0; i < sequence_.size(); i++)
         children.push_back(sequence_[i]);
+}
+
+void AstSequenceNode::setChildren(pdvector<AstNodePtr > &children){
+   if (children.size() == sequence_.size()){
+      //memory management?
+      for (unsigned i = 0; i < sequence_.size(); i++){
+         AstNodePtr * newNode = new AstNodePtr(children[i]);
+         sequence_.push_back(*newNode);
+         sequence_.erase(sequence_.begin() + i + 1);
+      }
+   }else{
+      fprintf(stderr, "SEQ setChildren given bad arguments. Wanted:%d , given:%d\n", (int)sequence_.size(),  (int)children.size());      
+   }
+}
+
+AstNodePtr AstSequenceNode::deepCopy(){
+   AstSequenceNode * copy = new AstSequenceNode();
+   for(unsigned int i = 0; i < sequence_.size(); ++i){
+      copy->sequence_.push_back(sequence_[i]->deepCopy());
+   }
+
+   copy->setType(bptype);
+   copy->setTypeChecking(doTypeCheck);
+
+   copy->setLineNum(getLineNum());
+   copy->lineInfoSet = lineInfoSet;
+   copy->setColumnNum(getColumnNum());
+   copy->columnInfoSet = columnInfoSet;
+   copy->setSnippetName(getSnippetName());
+   copy->snippetNameSet = snippetNameSet;
+
+   return AstNodePtr(copy);
 }
 
 void AstVariableNode::getChildren(pdvector<AstNodePtr > &children) {
     ast_wrappers_[index]->getChildren(children);
 }
 
+void AstVariableNode::setChildren(pdvector<AstNodePtr > &children){
+   ast_wrappers_[index]->setChildren(children);
+}
+
+AstNodePtr AstVariableNode::deepCopy(){
+   AstVariableNode * copy = new AstVariableNode();
+   copy->index = index;
+   copy->ranges_ = ranges_; //i'm not sure about this one. (it's a vector)
+   for(unsigned int i = 0; i < ast_wrappers_.size(); ++i){
+      copy->ast_wrappers_.push_back(ast_wrappers_[i]->deepCopy());
+   }
+
+   copy->setType(bptype);
+   copy->setTypeChecking(doTypeCheck);
+
+   copy->setLineNum(getLineNum());
+   copy->lineInfoSet = lineInfoSet;
+   copy->setColumnNum(getColumnNum());
+   copy->columnInfoSet = columnInfoSet;
+   copy->setSnippetName(getSnippetName());
+   copy->snippetNameSet = snippetNameSet;
+
+   return AstNodePtr(copy);
+}
+
 void AstMiniTrampNode::getChildren(pdvector<AstNodePtr > &children) {
     children.push_back(ast_);
 }
+
+void AstMiniTrampNode::setChildren(pdvector<AstNodePtr > &children){
+   if (children.size() == 1){
+      //memory management?
+      ast_ = children[0];
+   }else{
+ fprintf(stderr, "MINITRAMP setChildren given bad arguments. Wanted:%d , given:%d\n", 1,  (int)children.size());      
+   }
+}
+
+AstNodePtr AstMiniTrampNode::deepCopy(){
+   AstMiniTrampNode * copy = new AstMiniTrampNode();
+   copy->inline_ = inline_;
+   copy->ast_ = ast_->deepCopy();
+
+   copy->setType(bptype);
+   copy->setTypeChecking(doTypeCheck);
+
+   copy->setLineNum(getLineNum());
+   copy->lineInfoSet = lineInfoSet;
+   copy->setColumnNum(getColumnNum());
+   copy->columnInfoSet = columnInfoSet;
+   copy->setSnippetName(getSnippetName());
+   copy->snippetNameSet = snippetNameSet;
+
+   return AstNodePtr(copy);
+}
+
 
 void AstOperatorNode::setVariableAST(codeGen &g) {
     if(loperand) loperand->setVariableAST(g);
@@ -2675,9 +2942,11 @@ bool AstCallNode::containsFuncCall() const {
    return true;
 }
 
+
 bool AstReplacementNode::containsFuncCall() const {
    return true;
 }
+
 
 bool AstOperatorNode::containsFuncCall() const {
 	if (loperand && loperand->containsFuncCall()) return true;
@@ -3012,10 +3281,11 @@ unsigned regTracker_t::astHash(AstNode* const &ast) {
 }
 
 void AstNode::debugPrint(unsigned level) {
+
     if (!dyn_debug_ast) return;
     
     for (unsigned i = 0; i < level; i++) fprintf(stderr, "%s", " ");
-    
+   
     std::string type;
     if (dynamic_cast<AstNullNode *>(this)) type = "nullNode";
     else if (dynamic_cast<AstOperatorNode *>(this)) type = "operatorNode";
@@ -3028,7 +3298,7 @@ void AstNode::debugPrint(unsigned level) {
     else if (dynamic_cast<AstMiniTrampNode *>(this)) type = "miniTrampNode";
     else if (dynamic_cast<AstMemoryNode *>(this)) type = "memoryNode";
     else type = "unknownNode";
-    
+
     ast_printf("Node %s: ptr %p, useCount is %d, canBeKept %d, type %s\n", type.c_str(), this, useCount, canBeKept(), getType() ? getType()->getName() : "<NULL TYPE>");
 
     pdvector<AstNodePtr> children;

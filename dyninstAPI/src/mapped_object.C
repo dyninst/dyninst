@@ -1201,12 +1201,10 @@ mapped_module* mapped_object::getDefaultModule()
 // KEVINTODO: this would be much cheaper if we stored pairs of split blocks, 
 bool mapped_object::splitIntLayer()
 {
-
 #if ! defined (cap_instruction_api)
     // not implemented (or needed, for now) on non-instruction API platforms
     return false;
 #else
-    Address baseAddr = codeBase();
     set<int_function*> splitFuncs;
     using namespace InstructionAPI;
     // iterates through the blocks that were created during block splitting
@@ -1411,12 +1409,11 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
     using namespace SymtabAPI;
     using namespace ParseAPI;
 
-	vector<ParseAPI::CodeObject::NewEdgeToParse> edgesInThisObject;
+    vector<ParseAPI::CodeObject::NewEdgeToParse> edgesInThisObject;
 
 /* 0. Make sure memory for the target is up to date */
 
     // Do various checks and set edge types, if necessary
-    Address loadAddr = codeBase();
     for (unsigned idx=0; idx < stubs.size(); idx++) {
 		mapped_object *targ_obj = proc()->findObject(stubs[idx].trg);
 		assert(targ_obj);
@@ -2175,9 +2172,6 @@ bool mapped_object::isExploratoryModeOn()
 
 void mapped_object::addProtectedPage(Address pageAddr)
 {
-	if (pageAddr == 0x401000) {
-		int i = 3;
-	}
     map<Address,WriteableStatus>::iterator iter = protPages_.find(pageAddr);
     if (protPages_.end() == iter) {
         protPages_[pageAddr] = PROTECTED;

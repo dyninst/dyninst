@@ -119,6 +119,11 @@ private:
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
+
+  public:
+   //dynC internal use only
+   bool hasParamDebugInfo();
+
 public:
     virtual	~BPatch_function();
 

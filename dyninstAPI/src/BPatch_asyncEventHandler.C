@@ -675,7 +675,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 		assert(process_fds[i].sock != INVALID_PDSOCKET);
 		FD_SET(process_fds[i].sock, &readSet);
 		FD_SET(process_fds[i].sock, &errSet);
-		if (process_fds[i].sock > (unsigned)width)
+		if (process_fds[i].sock > width)
 			width = process_fds[i].sock;
 	}
 	else

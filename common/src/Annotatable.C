@@ -212,7 +212,7 @@ Dyninst::AnnotationClassBase* AnnotationClassBase::findAnnotationClass(unsigned 
 {
 	if(id > annotation_types->size())
 	{
-		fprintf(stderr, "%s[%d]:  cannot find annotation class base for id %d, max is %ld\n", FILE__, __LINE__, id, annotation_types->size());
+		fprintf(stderr, "%s[%d]:  cannot find annotation class base for id %d, max is %ld\n", FILE__, __LINE__, id, (long int) annotation_types->size());
 		return NULL;
 	}
 	if (NULL == (*annotation_types)[id])

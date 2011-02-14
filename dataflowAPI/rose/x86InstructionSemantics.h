@@ -215,6 +215,7 @@ struct X86InstructionSemantics {
                 abort();
             }
         }
+        return number<8>(0); // error case
     }
 
     /* Returns a 16-bit value described by an instruction operand. */
@@ -266,6 +267,7 @@ struct X86InstructionSemantics {
                 abort();
             }
         }
+        return number<16>(0); //error case
     }
 
     /* Returns a 32-bit value described by an instruction operand. */
@@ -327,6 +329,7 @@ struct X86InstructionSemantics {
                 abort();
             }
         }
+        return number<32>(0); //error case
     }
 
     /* Replaces the least significant byte of a general purpose register with a new value. */

@@ -36,7 +36,6 @@
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_enums.h"
-
 #include "BPatch_instruction.h" // for register type
 
 #include "BPatch_callbacks.h"
@@ -54,6 +53,7 @@ class AddressSpace;
 class miniTrampHandle;
 class miniTramp;
 class BPatch;
+class BPatch_image;
 
 class int_function;
 struct batchInsertionRecord;
@@ -89,7 +89,7 @@ private:
 #pragma warning(pop)    
 #endif
 
-    //  a flag for catchuo
+    //  a flag for catchup
     bool catchupNeeded;
     //  and a list of threads to apply catchup to
     BPatch_Vector<BPatch_thread *> catchup_threads;
@@ -170,7 +170,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
 
  protected:
   virtual void getAS(std::vector<AddressSpace *> &as) = 0;
-
+  
  public:
 
   BPatch_addressSpace();
@@ -325,15 +325,15 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     //  
     //  Allocate memory for a new variable in the mutatee process
 
-    API_EXPORT(Int, (n),
-    BPatch_variableExpr *,malloc,(int n));
+    API_EXPORT(Int, (n, name),
+               BPatch_variableExpr *,malloc,(int n, std::string name = std::string("")));
 
     //  BPatch_addressSpace::malloc
     //  
     //  Allocate memory for a new variable in the mutatee process
 
-    API_EXPORT(ByType, (type),
-    BPatch_variableExpr *,malloc,(const BPatch_type &type));
+    API_EXPORT(ByType, (type, name),
+               BPatch_variableExpr *,malloc,(const BPatch_type &type, std::string name = std::string("")));
 
     API_EXPORT(Int, (at_addr, type, var_name, in_module),
     BPatch_variableExpr *, createVariable,(Dyninst::Address at_addr, 
