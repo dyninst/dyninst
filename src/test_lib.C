@@ -701,8 +701,10 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
          for (unsigned int i=0; argv[i] != NULL; i++) {
             attach_argv.push_back(argv[i]);
          }
-         attach_argv.push_back(const_cast<char *>("-attach"));
-         attach_argv.push_back(fdstr);
+			if (attach) {
+         	attach_argv.push_back(const_cast<char *>("-attach"));
+         	attach_argv.push_back(fdstr);
+			}
       }
       char **attach_argv_cstr = (char **) malloc((attach_argv.size()+1) * sizeof(char *));
       for (unsigned int i=0; i<attach_argv.size(); i++) {
