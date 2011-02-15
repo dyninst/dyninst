@@ -633,7 +633,9 @@ namespace Dyninst
       DEF_REGISTER(cr5,    626 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(cr6,    627 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(cr7,    628 | SPR | Arch_ppc32, "ppc32");
-      DEF_REGISTER(cr,     629 | SPR | Arch_ppc32, "ppc32");      
+      DEF_REGISTER(cr,     629 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(or3,    630 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(trap,   631 | SPR | Arch_ppc32, "ppc32");      
    }
    namespace ppc64 {
       const signed int GPR   = 0x00010000;
@@ -800,7 +802,9 @@ namespace Dyninst
       DEF_REGISTER(cr5,    626 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(cr6,    627 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(cr7,    628 | SPR | Arch_ppc64, "ppc64");
-      DEF_REGISTER(cr,     629 | SPR | Arch_ppc64, "ppc64");      
+      DEF_REGISTER(cr,     629 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(or3,    630 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(trap,   631 | SPR | Arch_ppc64, "ppc64");      
    }
 }
 

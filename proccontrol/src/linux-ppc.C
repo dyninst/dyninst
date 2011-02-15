@@ -29,34 +29,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* implementation of arch_process class for x86 (both 32-bit and 64-bit) */
+#include <cassert>
 
-#include "arch_process.h"
+#include "linux.h"
 
-arch_process::arch_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
-        std::map<int, int> f) :
-  int_process(p, e, a, envp, f)
-{
+/* ptrace code specific to Linux ppc */
+
+bool linux_thread::getSegmentBase(Dyninst::MachRegister, Dyninst::MachRegisterVal &) {
+    assert(!"This is not implemented on this architecture");
+    return false;
 }
-
-arch_process::arch_process(Dyninst::PID pid_, int_process *p) :
-  int_process(pid_, p)
-{
-}
-
-arch_process::~arch_process()
-{
-}
-
-unsigned arch_process::plat_breakpointSize()
-{
-  assert(getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86);
-  return 1;
-}
-
-void arch_process::plat_breakpointBytes(char *buffer)
-{
-  assert(getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86);
-  buffer[0] = 0xcc;
-}
-

@@ -743,7 +743,7 @@ freebsd_process::freebsd_process(Dyninst::PID p, std::string e, std::vector<std:
   thread_db_process(p, e, a, envp, f),
   sysv_process(p, e, a, envp, f),
   unix_process(p, e, a, envp, f),
-  x86_process(p, e, a, envp, f)
+  arch_process(p, e, a, envp, f)
 {
 }
 
@@ -752,7 +752,7 @@ freebsd_process::freebsd_process(Dyninst::PID pid_, int_process *p) :
   thread_db_process(pid_, p),
   sysv_process(pid_, p),
   unix_process(pid_, p),
-  x86_process(pid_, p)
+  arch_process(pid_, p)
 {
 }
 
@@ -1717,3 +1717,48 @@ const unsigned char x86_call_munmap[] = {
 0x90                                            //nop
 };
 const unsigned int x86_call_munmap_size = sizeof(x86_call_munmap);
+
+// These are unused on FreeBSD right now but still need to be defined
+
+const unsigned int ppc32_mmap_flags_hi_position = 0;
+const unsigned int ppc32_mmap_flags_lo_position = 0;
+const unsigned int ppc32_mmap_size_hi_position = 0;
+const unsigned int ppc32_mmap_size_lo_position = 0;
+const unsigned int ppc32_mmap_addr_hi_position = 0;
+const unsigned int ppc32_mmap_addr_lo_position = 0;
+const unsigned char ppc32_call_mmap[] = {};
+const unsigned int ppc32_call_mmap_size = 0;
+
+const unsigned int ppc32_munmap_size_hi_position = 0;
+const unsigned int ppc32_munmap_size_lo_position = 0;
+const unsigned int ppc32_munmap_addr_hi_position = 0;
+const unsigned int ppc32_munmap_addr_lo_position = 0;
+const unsigned char ppc32_call_munmap[] = {};
+const unsigned int ppc32_call_munmap_size = 0;
+
+const unsigned int ppc64_mmap_flags_highest_position = 0;
+const unsigned int ppc64_mmap_flags_higher_position = 0;
+const unsigned int ppc64_mmap_flags_hi_position = 0;
+const unsigned int ppc64_mmap_flags_lo_position = 0;
+const unsigned int ppc64_mmap_size_highest_position = 0;
+const unsigned int ppc64_mmap_size_higher_position = 0;
+const unsigned int ppc64_mmap_size_hi_position = 0;
+const unsigned int ppc64_mmap-size_lo_position = 0;
+const unsigned int ppc64_mmap_addr_highest_position = 0;
+const unsigned int ppc64_mmap_addr_higher_position = 0;
+const unsigned int ppc64_mmap_addr_hi_position = 0;
+const unsigned int ppc64_mmap_addr_lo_position = 0;
+const unsigned char ppc64_call_mmap[] = {};
+const unsigned int ppc64_call_mmap_size = 0;
+
+const unsigned int ppc64_munmap_size_highest_position = 0;
+const unsigned int ppc64_munmap_size_higher_position = 0;
+const unsigned int ppc64_munmap_size_hi_position = 0;
+const unsigned int ppc64_munmap_size_lo_position = 0;
+const unsigned int ppc64_munmap_addr_highest_position = 0;
+const unsigned int ppc64_munmap_addr_higher_position = 0;
+const unsigned int ppc64_munmap_addr_hi_position = 0;
+const unsigned int ppc64_munmap_addr_lo_position = 0;
+const unsigned char ppc64_call_munmap[] = {};
+const unsigned int ppc64_call_munmap_size = 0;
+

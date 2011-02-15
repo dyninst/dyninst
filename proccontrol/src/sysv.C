@@ -32,7 +32,6 @@
 #include "dynutil/h/dyntypes.h"
 #include "sysv.h"
 #include "irpc.h"
-#include "snippets.h"
 
 #if defined(os_linux)
 #include "common/h/linuxKludges.h"

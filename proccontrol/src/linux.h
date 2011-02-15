@@ -10,13 +10,12 @@
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/sysv.h"
 #include "proccontrol/src/unix.h"
-#include "proccontrol/src/x86_process.h"
+#include "proccontrol/src/arch_process.h"
 #include "proccontrol/src/int_thread_db.h"
 #include "common/h/dthread.h"
 #include <sys/types.h>
 #include <sys/ptrace.h>
 #include <linux/ptrace.h>
-#include <asm/ldt.h>
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -64,7 +63,7 @@ class DecoderLinux : public Decoder
    Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class linux_process : public sysv_process, public unix_process, public x86_process, public thread_db_process
+class linux_process : public sysv_process, public unix_process, public arch_process, public thread_db_process
 {
  public:
    linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 

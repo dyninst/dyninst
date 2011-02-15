@@ -251,6 +251,16 @@ bool unix_process::plat_collectAllocationResult(int_thread *thr, reg_response::p
          assert(result);
          break;
       }
+      case Arch_ppc32: {
+         bool result = thr->getRegister(ppc32::r3, resp);
+         assert(result);
+         break;
+      }
+      case Arch_ppc64: {
+         bool result = thr->getRegister(ppc64::r3, resp);
+         assert(result);
+         break;
+      }
       default:
          assert(0);
          break;
@@ -262,54 +272,93 @@ bool unix_process::plat_createAllocationSnippet(Dyninst::Address addr, bool use_
                                                 void* &buffer, unsigned long &buffer_size, 
                                                 unsigned long &start_offset)
 {
-   const void *buf_tmp = NULL;
-   unsigned addr_size = 0;
-   unsigned addr_pos = 0;
-   unsigned flags_pos = 0;
-   unsigned size_pos = 0;
-
    int flags = MAP_ANONYMOUS | MAP_PRIVATE;
    if (use_addr) 
       flags |= MAP_FIXED;
    else
       addr = 0x0;
 
-   switch (getTargetArch())
-   {
-      case Arch_x86_64:
-         buf_tmp = x86_64_call_mmap;
-         buffer_size = x86_64_call_mmap_size;
-         start_offset = x86_64_mmap_start_position;
-         addr_pos = x86_64_mmap_addr_position;
-         flags_pos = x86_64_mmap_flags_position;
-         size_pos = x86_64_mmap_size_position;
-         addr_size = 8;
-         break;
-      case Arch_x86:
-         buf_tmp = x86_call_mmap;
-         buffer_size = x86_call_mmap_size;
-         start_offset = x86_mmap_start_position;
-         addr_pos = x86_mmap_addr_position;
-         flags_pos = x86_mmap_flags_position;
-         size_pos = x86_mmap_size_position;
-         addr_size = 4;
-         break;
-      default:
-         assert(0);
-   }
-   
-   buffer = malloc(buffer_size);
-   memcpy(buffer, buf_tmp, buffer_size);
+   if( getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86_64 ) {
+       const void *buf_tmp = NULL;
+       unsigned addr_size = 0;
+       unsigned addr_pos = 0;
+       unsigned flags_pos = 0;
+       unsigned size_pos = 0;
 
-   //Assuming endianess of debugger and debugee match.
-   *((unsigned int *) (((char *) buffer)+size_pos)) = size;
-   *((unsigned int *) (((char *) buffer)+flags_pos)) = flags;
-   if (addr_size == 8)
-      *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
-   else if (addr_size == 4)
-      *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
-   else 
-      assert(0);
+       switch (getTargetArch())
+       {
+          case Arch_x86_64:
+             buf_tmp = x86_64_call_mmap;
+             buffer_size = x86_64_call_mmap_size;
+             start_offset = x86_64_mmap_start_position;
+             addr_pos = x86_64_mmap_addr_position;
+             flags_pos = x86_64_mmap_flags_position;
+             size_pos = x86_64_mmap_size_position;
+             addr_size = 8;
+             break;
+          case Arch_x86:
+             buf_tmp = x86_call_mmap;
+             buffer_size = x86_call_mmap_size;
+             start_offset = x86_mmap_start_position;
+             addr_pos = x86_mmap_addr_position;
+             flags_pos = x86_mmap_flags_position;
+             size_pos = x86_mmap_size_position;
+             addr_size = 4;
+             break;
+          default:
+             assert(0);
+       }
+       
+       buffer = malloc(buffer_size);
+       memcpy(buffer, buf_tmp, buffer_size);
+
+       //Assuming endianess of debugger and debugee match.
+       *((unsigned int *) (((char *) buffer)+size_pos)) = size;
+       *((unsigned int *) (((char *) buffer)+flags_pos)) = flags;
+       if (addr_size == 8)
+          *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
+       else if (addr_size == 4)
+          *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
+       else 
+          assert(0);
+   }else if( getTargetArch() == Arch_ppc32 ) {
+       buffer = malloc(ppc32_call_mmap_size);
+       memcpy(buffer, ppc32_call_mmap, ppc32_call_mmap_size);
+
+       start_offset = ppc32_mmap_start_position;
+       buffer_size = ppc32_call_mmap_size;
+
+       // Assuming endianess of debugger and debuggee match
+       *((uint16_t *) (((char *) buffer)+ppc32_mmap_size_hi_position)) = (uint16_t)(size >> 16);
+       *((uint16_t *) (((char *) buffer)+ppc32_mmap_size_lo_position)) = (uint16_t)size;
+       *((uint16_t *) (((char *) buffer)+ppc32_mmap_flags_hi_position)) = (uint16_t)(flags >> 16);
+       *((uint16_t *) (((char *) buffer)+ppc32_mmap_flags_lo_position)) = (uint16_t)flags;
+       *((uint16_t *) (((char *) buffer)+ppc32_mmap_addr_hi_position)) = (uint16_t)(addr >> 16);
+       *((uint16_t *) (((char *) buffer)+ppc32_mmap_addr_lo_position)) = (uint16_t)addr;
+   }else if( getTargetArch() == Arch_ppc64 ) {
+       buffer = malloc(ppc64_call_mmap_size);
+       memcpy(buffer, ppc64_call_mmap, ppc64_call_mmap_size);
+
+       start_offset = ppc64_mmap_start_position;
+       buffer_size = ppc64_call_mmap_size;
+
+       // Assuming endianess of debugger and debuggee match
+       *((uint16_t *) (((char *) buffer)+ppc64_mmap_size_highest_position)) = (uint16_t)((uint64_t)size >> 48);
+       *((uint16_t *) (((char *) buffer)+ppc64_mmap_size_higher_position)) = (uint16_t)((uint64_t)size >> 32);
+       *((uint16_t *) (((char *) buffer)+ppc64_mmap_size_hi_position)) = (uint16_t)(size >> 16);
+       *((uint16_t *) (((char *) buffer)+ppc64_mmap_size_lo_position)) = (uint16_t)size;
+       *((uint16_t *) (((char *) buffer)+ppc64_mmap_flags_highest_position)) = (uint16_t)((uint64_t)flags >> 48);
+       *((uint16_t *) (((char *) buffer)+ppc64_mmap_flags_higher_position)) = (uint16_t)((uint64_t)flags >> 32);
+       *((uint16_t *) (((char *) buffer)+ppc64_mmap_flags_hi_position)) = (uint16_t)(flags >> 16);
+       *((uint16_t *) (((char *) buffer)+ppc64_mmap_flags_lo_position)) = (uint16_t)flags;
+       *((uint16_t *) (((char *) buffer)+ppc64_mmap_addr_highest_position)) = (uint16_t)((uint64_t)addr >> 48);
+       *((uint16_t *) (((char *) buffer)+ppc64_mmap_addr_higher_position)) = (uint16_t)((uint64_t)addr >> 32);
+       *((uint16_t *) (((char *) buffer)+ppc64_mmap_addr_hi_position)) = (uint16_t)(addr >> 16);
+       *((uint16_t *) (((char *) buffer)+ppc64_mmap_addr_lo_position)) = (uint16_t)addr;
+   }else{
+       assert(0);
+   }
+
    return true;
 }
 
@@ -318,44 +367,77 @@ bool unix_process::plat_createDeallocationSnippet(Dyninst::Address addr,
                                             unsigned long &buffer_size, 
                                             unsigned long &start_offset)
 {
-   const void *buf_tmp = NULL;
-   unsigned addr_size = 0;
-   unsigned addr_pos = 0;
-   unsigned size_pos = 0;
+   if( getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86 ) {
+       const void *buf_tmp = NULL;
+       unsigned addr_size = 0;
+       unsigned addr_pos = 0;
+       unsigned size_pos = 0;
 
-   switch (getTargetArch())
-   {
-      case Arch_x86_64:
-         buf_tmp = x86_64_call_munmap;
-         buffer_size = x86_64_call_munmap_size;
-         start_offset = x86_64_munmap_start_position;
-         addr_pos = x86_64_munmap_addr_position;
-         size_pos = x86_64_munmap_size_position;
-         addr_size = 8;
-         break;
-      case Arch_x86:
-         buf_tmp = x86_call_munmap;
-         buffer_size = x86_call_munmap_size;
-         start_offset = x86_munmap_start_position;
-         addr_pos = x86_munmap_addr_position;
-         size_pos = x86_munmap_size_position;
-         addr_size = 4;
-         break;
-      default:
-         assert(0);
+       switch (getTargetArch())
+       {
+          case Arch_x86_64:
+             buf_tmp = x86_64_call_munmap;
+             buffer_size = x86_64_call_munmap_size;
+             start_offset = x86_64_munmap_start_position;
+             addr_pos = x86_64_munmap_addr_position;
+             size_pos = x86_64_munmap_size_position;
+             addr_size = 8;
+             break;
+          case Arch_x86:
+             buf_tmp = x86_call_munmap;
+             buffer_size = x86_call_munmap_size;
+             start_offset = x86_munmap_start_position;
+             addr_pos = x86_munmap_addr_position;
+             size_pos = x86_munmap_size_position;
+             addr_size = 4;
+             break;
+          default:
+             assert(0);
+       }
+       
+       buffer = malloc(buffer_size);
+       memcpy(buffer, buf_tmp, buffer_size);
+
+       //Assuming endianess of debugger and debugee match.
+       *((unsigned int *) (((char *) buffer)+size_pos)) = size;
+       if (addr_size == 8)
+          *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
+       else if (addr_size == 4)
+          *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
+       else 
+          assert(0);
+   }else if( getTargetArch() == Arch_ppc32 ) {
+       buffer = malloc(ppc32_call_munmap_size);
+       memcpy(buffer, ppc32_call_munmap, ppc32_call_munmap_size);
+
+       buffer_size = ppc32_call_munmap_size;
+       start_offset = ppc32_munmap_start_position;
+
+       // Assuming endianess of debugger and debuggee match
+       *((uint16_t *) (((char *) buffer)+ppc32_munmap_size_hi_position)) = (uint16_t)(size >> 16);
+       *((uint16_t *) (((char *) buffer)+ppc32_munmap_size_lo_position)) = (uint16_t)size;
+       *((uint16_t *) (((char *) buffer)+ppc32_munmap_addr_hi_position)) = (uint16_t)(addr >> 16);
+       *((uint16_t *) (((char *) buffer)+ppc32_munmap_addr_lo_position)) = (uint16_t)addr;
+   }else if( getTargetArch() == Arch_ppc64 ) {
+       buffer = malloc(ppc64_call_munmap_size);
+       memcpy(buffer, ppc64_call_munmap, ppc64_call_munmap_size);
+
+       buffer_size = ppc64_call_munmap_size;
+       start_offset = ppc64_munmap_start_position;
+
+       // Assuming endianess of debugger and debuggee match
+       *((uint16_t *) (((char *) buffer)+ppc64_munmap_size_highest_position)) = (uint16_t)((uint64_t)size >> 48);
+       *((uint16_t *) (((char *) buffer)+ppc64_munmap_size_higher_position)) = (uint16_t)((uint64_t)size >> 32);
+       *((uint16_t *) (((char *) buffer)+ppc64_munmap_size_hi_position)) = (uint16_t)(size >> 16);
+       *((uint16_t *) (((char *) buffer)+ppc64_munmap_size_lo_position)) = (uint16_t)size;
+       *((uint16_t *) (((char *) buffer)+ppc64_munmap_addr_highest_position)) = (uint16_t)((uint64_t)addr >> 48);
+       *((uint16_t *) (((char *) buffer)+ppc64_munmap_addr_higher_position)) = (uint16_t)((uint64_t)addr >> 32);
+       *((uint16_t *) (((char *) buffer)+ppc64_munmap_addr_hi_position)) = (uint16_t)(addr >> 16);
+       *((uint16_t *) (((char *) buffer)+ppc64_munmap_addr_lo_position)) = (uint16_t)addr;
+   }else{
+       assert(0);
    }
-   
-   buffer = malloc(buffer_size);
-   memcpy(buffer, buf_tmp, buffer_size);
 
-   //Assuming endianess of debugger and debugee match.
-   *((unsigned int *) (((char *) buffer)+size_pos)) = size;
-   if (addr_size == 8)
-      *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
-   else if (addr_size == 4)
-      *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
-   else 
-      assert(0);
    return true;
 }
 

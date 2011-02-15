@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* implementation of arch_process class for x86 (both 32-bit and 64-bit) */
+/* implementation of arch_process class for ppc (both 32-bit and 64-bit) */
 
 #include "arch_process.h"
 
@@ -50,13 +50,15 @@ arch_process::~arch_process()
 
 unsigned arch_process::plat_breakpointSize()
 {
-  assert(getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86);
-  return 1;
+  assert(getTargetArch() == Arch_ppc64 || getTargetArch() == Arch_ppc32);
+  return 4;
 }
 
 void arch_process::plat_breakpointBytes(char *buffer)
 {
-  assert(getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86);
-  buffer[0] = 0xcc;
+  assert(getTargetArch() == Arch_ppc64 || getTargetArch() == Arch_ppc32);
+  buffer[0] = 0x7d;
+  buffer[1] = 0x82;
+  buffer[2] = 0x10;
+  buffer[3] = 0x08;
 }
-

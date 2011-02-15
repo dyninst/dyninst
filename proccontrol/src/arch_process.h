@@ -29,34 +29,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* implementation of arch_process class for x86 (both 32-bit and 64-bit) */
 
-#include "arch_process.h"
+#if !defined(arch_process_h_)
+#define arch_process_h_
 
-arch_process::arch_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
-        std::map<int, int> f) :
-  int_process(p, e, a, envp, f)
+#include "int_process.h"
+
+class arch_process : virtual public int_process
 {
-}
+ public:
+  arch_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+          std::vector<std::string> envp, std::map<int, int> f);
+  arch_process(Dyninst::PID pid_, int_process *p) ;
+  virtual ~arch_process();
 
-arch_process::arch_process(Dyninst::PID pid_, int_process *p) :
-  int_process(pid_, p)
-{
-}
+  virtual unsigned plat_breakpointSize();
+  virtual void plat_breakpointBytes(char *buffer);
+};
 
-arch_process::~arch_process()
-{
-}
-
-unsigned arch_process::plat_breakpointSize()
-{
-  assert(getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86);
-  return 1;
-}
-
-void arch_process::plat_breakpointBytes(char *buffer)
-{
-  assert(getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86);
-  buffer[0] = 0xcc;
-}
-
+#endif
