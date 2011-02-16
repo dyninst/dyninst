@@ -655,7 +655,6 @@ bool PCProcess::createStackwalker()
   }
   startup_printf("Stackwalker stepper %p is a BottomOfStackStepper\n", stepper);
 
-  /* TODO finish AnalysisStepper and enable this
   stepper = new AnalysisStepper(stackwalker_);
   if (!stackwalker_->addStepper(stepper))
   {
@@ -663,7 +662,6 @@ bool PCProcess::createStackwalker()
     return false;
   }
   startup_printf("Stackwalker stepper %p is an AnalysisStepper\n", stepper);
-  */
 
   return true;
 }

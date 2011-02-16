@@ -419,7 +419,7 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrameArch(height_pair_t height,
    Address fp_addr = 0;
    Address fp_loc = 0;
    if (fp_height != StackAnalysis::Height::bottom) {
-      fp_loc = ret_loc + fp_height.height() - proc->getAddressWidth();
+      fp_loc = ret_loc + fp_height.height() + proc->getAddressWidth();
       result = proc->readMem(&fp_addr, fp_loc, proc->getAddressWidth());
       if (result) {
          out.setFP(fp_addr);
