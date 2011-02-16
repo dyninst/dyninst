@@ -1375,7 +1375,6 @@ private:
             return false;
          }
 
-         fprintf(stderr, "Entering header read\n");
          int headerRc = read( fd, ((unsigned char *)&msg.header)+headerBytesRead, headerBytesToRead - headerBytesRead );
 
          if ( headerRc == 0 ) {
@@ -1407,9 +1406,7 @@ private:
             return false;
          }
 
-         fprintf(stderr, "Entering payload read\n");
          int payloadRc = read( fd, ((unsigned char *)&msg.dataArea)+payloadBytesRead, msg.header.dataLength - payloadBytesRead );
-         fprintf(stderr, "Read %d of %u bytes\n", payloadRc, (unsigned) msg.header.dataLength);
 
          if ( payloadRc == 0 ) {
             // End of file

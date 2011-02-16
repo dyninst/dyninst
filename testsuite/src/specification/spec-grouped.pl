@@ -2479,7 +2479,7 @@ mutator('pc_launch', ['pc_launch.C']).
 test_runmode('pc_launch', 'dynamic').
 test_threadmode('pc_launch', 'Threading').
 test_processmode('pc_launch', 'Processes').
-test_start_state('pc_launch', 'stopped').
+test_start_state('pc_launch', 'selfattach').
 tests_module('pc_launch', 'proccontrol').
 mutatee('pc_launch', ['pc_launch_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_launch', Libs) :- pcMutateeLibs(Libs).
@@ -2492,7 +2492,7 @@ mutator('pc_thread_cont', ['pc_thread_cont.C']).
 test_runmode('pc_thread_cont', 'dynamic').
 test_threadmode('pc_thread_cont', 'Threading').
 test_processmode('pc_thread_cont', 'Processes').
-test_start_state('pc_thread_cont', 'stopped').
+test_start_state('pc_thread_cont', 'selfattach').
 tests_module('pc_thread_cont', 'proccontrol').
 mutatee('pc_thread_cont', ['pc_thread_cont_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_thread_cont', Libs) :- pcMutateeLibs(Libs).
@@ -2505,7 +2505,7 @@ mutator('pc_breakpoint', ['pc_breakpoint.C']).
 test_runmode('pc_breakpoint', 'dynamic').
 test_threadmode('pc_breakpoint', 'Threading').
 test_processmode('pc_breakpoint', 'Processes').
-test_start_state('pc_breakpoint', 'stopped').
+test_start_state('pc_breakpoint', 'selfattach').
 tests_module('pc_breakpoint', 'proccontrol').
 mutatee('pc_breakpoint', ['pc_breakpoint_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_breakpoint', Libs) :- pcMutateeLibs(Libs).
@@ -2518,7 +2518,7 @@ mutator('pc_library', ['pc_library.C']).
 test_runmode('pc_library', 'dynamic').
 test_threadmode('pc_library', 'Threading').
 test_processmode('pc_library', 'Processes').
-test_start_state('pc_library', 'stopped').
+test_start_state('pc_library', 'selfattach').
 tests_module('pc_library', 'proccontrol').
 mutatee('pc_library', ['pc_library_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_library', Libs) :- pcMutateeLibs(Libs).
@@ -2531,7 +2531,7 @@ mutator('pc_singlestep', ['pc_singlestep.C']).
 test_runmode('pc_singlestep', 'dynamic').
 test_threadmode('pc_singlestep', 'Threading').
 test_processmode('pc_singlestep', 'Processes').
-test_start_state('pc_singlestep', 'stopped').
+test_start_state('pc_singlestep', 'selfattach').
 tests_module('pc_singlestep', 'proccontrol').
 mutatee('pc_singlestep', ['pc_singlestep_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_singlestep', Libs) :- pcMutateeLibs(Libs).
@@ -2544,7 +2544,7 @@ mutator('pc_thread', ['pc_thread.C']).
 test_runmode('pc_thread', 'dynamic').
 test_threadmode('pc_thread', 'Threading').
 test_processmode('pc_thread', 'Processes').
-test_start_state('pc_thread', 'stopped').
+test_start_state('pc_thread', 'selfattach').
 tests_module('pc_thread', 'proccontrol').
 mutatee('pc_thread', ['pc_thread_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_thread', Libs) :- pcMutateeLibs(Libs).
@@ -2561,7 +2561,7 @@ mutator('pc_fork', ['pc_fork.C']).
 test_runmode('pc_fork', 'dynamic').
 test_threadmode('pc_fork', 'Threading').
 test_processmode('pc_fork', 'Processes').
-test_start_state('pc_fork', 'stopped').
+test_start_state('pc_fork', 'selfattach').
 tests_module('pc_fork', 'proccontrol').
 mutatee('pc_fork', ['pc_fork_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_fork', Libs) :- pcMutateeLibs(Libs).
@@ -2577,7 +2577,7 @@ mutator('pc_fork_exec', ['pc_fork_exec.C']).
 test_runmode('pc_fork_exec', 'dynamic').
 test_threadmode('pc_fork_exec', 'Threading').
 test_processmode('pc_fork_exec', 'Processes').
-test_start_state('pc_fork_exec', 'stopped').
+test_start_state('pc_fork_exec', 'selfattach').
 tests_module('pc_fork_exec', 'proccontrol').
 mutatee('pc_fork_exec', ['pc_fork_exec_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_fork_exec', Libs) :- pcMutateeLibs(Libs).
@@ -2593,7 +2593,7 @@ mutator('pc_irpc', ['pc_irpc.C']).
 test_runmode('pc_irpc', 'dynamic').
 test_threadmode('pc_irpc', 'Threading').
 test_processmode('pc_irpc', 'Processes').
-test_start_state('pc_irpc', 'stopped').
+test_start_state('pc_irpc', 'selfattach').
 tests_module('pc_irpc', 'proccontrol').
 mutatee('pc_irpc', ['pc_irpc_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_irpc', Libs) :- pcMutateeLibs(Libs).
@@ -3128,7 +3128,10 @@ compiler_static_link('g++', P, '-static') :- platform(_,'freebsd', _,P).
 compiler_static_link('gcc', P, '-static') :- platform(_,'freebsd', _,P).
 compiler_static_link('bg_g++', P, '-static') :- platform(_,'bluegene', _, P).
 compiler_static_link('bg_gcc', P, '-static') :- platform(_,'bluegene', _, P).
-compiler_dynamic_link(_, _, '').
+
+compiler_dynamic_link('bg_g++', P, '-dynamic') :- platform(_, 'bluegene', _, P).
+compiler_dynamic_link('bg_gcc', P, '-dynamic') :- platform(_, 'bluegene', _, P).
+
 
 % Specify the standard flags for each compiler
 comp_std_flags_str('gcc', '$(CFLAGS)').
@@ -3419,10 +3422,8 @@ test_runmode(Test, 'binary') :- test_runmode(Test, 'static').
 % runmode_platform(?Platform, ?Runmode)
 % This specifies what platforms support which runmodes, essentially
 % specify binary rewriter support for Dyninst
-runmode_platform(P, 'createProcess') :- platform(_, OS, _, P),
-	OS \= 'bluegene'.
-runmode_platform(P, 'useAttach') :- platform(_, OS, _, P),
-	OS \= 'bluegene'.
+runmode_platform(P, 'createProcess') :- platform(_, _, _, P).
+runmode_platform(P, 'useAttach') :- platform(_, _, _, P).
 runmode_platform(P, 'binary') :- platform('i386', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('x86_64', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('power', 'linux', _, P).

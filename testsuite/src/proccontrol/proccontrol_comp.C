@@ -13,6 +13,12 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#include <set>
+#include <vector>
+#include <map>
+
+using namespace std;
+
 TEST_DLL_EXPORT ComponentTester *componentTesterFactory()
 {
    return (ComponentTester *) new ProcControlComponent();
@@ -38,6 +44,7 @@ test_results_t ProcControlMutator::pre_init(ParameterDict &param)
 }
 
 ProcControlComponent::ProcControlComponent() :
+   use_mem_communication(false),
    sockfd(0),
    sockname(NULL),
    notification_fd(-1)
@@ -69,8 +76,8 @@ bool ProcControlComponent::checkThread(const Thread &thread)
 #define MAX_ARGS 128
 Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &params)
 {
-   std::vector<std::string> vargs;
-   std::string exec_name;   
+   vector<string> vargs;
+   string exec_name;   
    getMutateeParams(group, params, exec_name, vargs);
 
    Process::ptr proc = Process::ptr();
@@ -93,8 +100,8 @@ Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &
    else if (group->createmode == USEATTACH) {
       Dyninst::PID pid = getMutateePid(group);
       if (!pid) {
-         std::string mutateeString = launchMutatee(exec_name, vargs, group, params);
-         if (mutateeString == std::string("")) {
+         string mutateeString = launchMutatee(exec_name, vargs, group, params);
+         if (mutateeString == string("")) {
             logerror("Error creating attach process\n");
             return Process::ptr();
          }
@@ -159,9 +166,9 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       snprintf(socket_buffer, 4095, "%s %s", param["socket_type"]->getString(), 
                param["socket_name"]->getString());
       int socket_buffer_len = strlen(socket_buffer);
-      std::string exec_name;
+      string exec_name;
       Dyninst::Offset exec_addr = 0;
-      for (std::vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) 
+      for (vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) 
       {
          Process::ptr proc = *j;
          Library::ptr lib = proc->libraries().getExecutable();
@@ -180,7 +187,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
                error = true;
                continue;
             }
-            Symbol_t sym = reader->getSymbolByName(std::string("MutatorSocket"));
+            Symbol_t sym = reader->getSymbolByName(string("MutatorSocket"));
             if (!reader->isValidSymbol(sym))
             {
                logerror("Could not find MutatorSocket symbol in executable\n");
@@ -189,7 +196,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
             }
             sym_offset = reader->getSymbolOffset(sym);
 
-            sym = reader->getSymbolByName(std::string("expected_pid"));
+            sym = reader->getSymbolByName(string("expected_pid"));
             if (reader->isValidSymbol(sym))
             {
                pid_sym_offset = reader->getSymbolOffset(sym);
@@ -208,7 +215,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
    registerEventCounter(thread_create);
 
    int num_procs = 0;
-   for (std::vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
+   for (vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
       bool result = (*j)->continueProc();
       num_procs++;
       if (!result) {
@@ -263,7 +270,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
    }
    else if (group->createmode == USEATTACH)
    {
-      for (std::vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
+      for (vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
          Process::ptr proc = *j;
 #if !defined(os_bg_test)
          if (proc->threads().size() != num_threads+1) {
@@ -280,7 +287,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
    }
 
    if (group->state != RUNNING) {
-      std::map<Process::ptr, int>::iterator i;
+      map<Process::ptr, int>::iterator i;
       for (i = process_socks.begin(); i != process_socks.end(); i++) {
          bool result = i->first->stopProc();
          if (!result) {
@@ -364,7 +371,7 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
    Process::registerEventCallback(EventType(EventType::Exit), on_exit);
    do {
       hasRunningProcs = false;
-      for (std::vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
+      for (vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
          Process::ptr p = *i;
          if (!p->isTerminated()) {
             bool result = block_for_events();
@@ -379,7 +386,7 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
       }
    } while(hasRunningProcs);
 
-   for (std::vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
+   for (vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
       Process::ptr p = *i;
       if (!p->isTerminated()) {
          logerror("Process did not terminate\n");
@@ -417,9 +424,9 @@ test_results_t ProcControlComponent::test_teardown(TestInfo *test, ParameterDict
    return PASSED;
 }
 
-std::string ProcControlComponent::getLastErrorMsg()
+string ProcControlComponent::getLastErrorMsg()
 {
-   return std::string("");
+   return string("");
 }
 
 ProcControlComponent::~ProcControlComponent()
@@ -428,6 +435,9 @@ ProcControlComponent::~ProcControlComponent()
 
 bool ProcControlComponent::setupServerSocket(ParameterDict &param)
 {
+   if (use_mem_communication) {
+      return true;
+   }
    sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
    if (sockfd == -1) {
       fprintf(stderr, "Unable to create socket: %s\n", strerror(errno));
@@ -464,7 +474,10 @@ bool ProcControlComponent::setupServerSocket(ParameterDict &param)
 
 bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
 {
-   std::vector<int> socks;
+   if (use_mem_communication) {
+      return true;
+   }
+   vector<int> socks;
    assert(num == 1 || !attach_sock);  //If attach_sock, then num == 1
 
    while (socks.size() < num) {
@@ -523,7 +536,7 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
          logerror("Received bad code in handshake message\n");
          return false;
       }
-      std::map<Dyninst::PID, Process::ptr>::iterator j = process_pids.find(msg.pid);
+      map<Dyninst::PID, Process::ptr>::iterator j = process_pids.find(msg.pid);
       if (j == process_pids.end()) {
          if (attach_sock) {
             *attach_sock = socks[i];
@@ -558,14 +571,89 @@ bool ProcControlComponent::cleanSocket()
    return true;
 }
 
+struct commInfo {
+   static Address recv_buffer_addr;
+   static Address send_buffer_addr;
+   static Address recv_buffer_size_addr;
+   static Address send_buffer_size_addr;
+   static string sym_exec_name;
+   Address lookupSym(string symname, SymReader *reader);
+
+   commInfo(Process::ptr p);
+
+   Process::ptr proc;
+   bool is_accessed;
+   bool is_done;
+   bool was_stopped;
+};
+
+Address commInfo::recv_buffer_addr;
+Address commInfo::send_buffer_addr;
+Address commInfo::recv_buffer_size_addr;
+Address commInfo::send_buffer_size_addr;
+string commInfo::sym_exec_name;
+
+commInfo::commInfo(Process::ptr p) :
+   proc(p),
+   is_accessed(false),
+   is_done(false),
+   was_stopped(false)
+{
+   string exec_name = proc->libraries().getExecutable()->getName();
+   if (sym_exec_name != exec_name) {
+      sym_exec_name = exec_name;
+      SymbolReaderFactory *fact = proc->getDefaultSymbolReader();
+      assert(fact);
+      SymReader *reader = fact->openSymbolReader(exec_name);
+      assert(reader);
+      recv_buffer_addr = lookupSym("recv_buffer", reader);
+      send_buffer_addr = lookupSym("send_buffer", reader);
+      send_buffer_size_addr = lookupSym("send_buffer_size", reader);
+      send_buffer_size_addr = lookupSym("recv_buffer_size", reader);
+      fact->closeSymbolReader(reader);
+   }
+}
+
+Address commInfo::lookupSym(string symname, SymReader *reader)
+{
+   Symbol_t sym = reader->getSymbolByName(symname);
+   assert(reader->isValidSymbol(sym));
+   return (Address) reader->getSymbolOffset(sym);
+}
+
+
 bool ProcControlComponent::recv_message(unsigned char *msg, unsigned msg_size, Process::ptr p)
 {
-  return recv_message(msg, msg_size, process_socks[p]);
+   if (use_mem_communication) {
+      bool recv_done = false;
+      commInfo cinfo(p);
+      for (unsigned i=0; i<RECV_TIMEOUT; i++) {
+         bool result = recv_message_mem(msg, msg_size, recv_done, cinfo);
+         if (!result) return false;
+         if (recv_done)
+            break;
+         sleep(1);
+      }
+      if (recv_done)
+         return true;
+      logerror("Timed out while in recv_message\n");
+      return false;
+   }
+   return recv_message(msg, msg_size, process_socks[p]);
 }
 
 bool ProcControlComponent::send_message(unsigned char *msg, unsigned msg_size, Process::ptr p)
 {
-  return send_message(msg, msg_size, process_socks[p]);
+   if (use_mem_communication) {
+      bool send_done = false;
+      commInfo cinfo(p);
+      do {
+         bool result = send_message_mem(msg, msg_size, send_done, cinfo);
+         if (!result) return false;
+      } while (!send_done);
+      return true;
+   }
+   return send_message(msg, msg_size, process_socks[p]);
 }
 
 bool ProcControlComponent::recv_message(unsigned char *msg, unsigned msg_size, int sfd)
@@ -580,7 +668,7 @@ bool ProcControlComponent::recv_message(unsigned char *msg, unsigned msg_size, i
       FD_SET(sfd, &readset);
       FD_SET(notification_fd, &readset);
       struct timeval timeout;
-      timeout.tv_sec = 15;
+      timeout.tv_sec = RECV_TIMEOUT;
       timeout.tv_usec = 0;
       do {
          result = select(nfds, &readset, &writeset, &exceptset, &timeout);
@@ -619,10 +707,179 @@ bool ProcControlComponent::recv_message(unsigned char *msg, unsigned msg_size, i
    return true;
 }
 
+bool ProcControlComponent::send_message_mem(unsigned char *msg, uint32_t msg_size, bool &send_done, commInfo &info)
+{
+   bool result;
+   if (info.is_done) {
+      return true;
+   }
+   send_done = false;
+
+   info.was_stopped = info.proc->allThreadsStopped();
+   if (!info.was_stopped) {
+      result = info.proc->stopProc();
+      if (!result) {
+         logerror("Unable to stop process for send\n");
+         return false;
+      }
+   }
+   uint32_t send_buffer_size;
+   result = info.proc->readMemory(&send_buffer_size, info.send_buffer_size_addr, sizeof(uint32_t));
+   if (!result) {
+      logerror("Unable to read memory in send\n");
+      return false;
+   }
+   assert(send_buffer_size = 0);
+   if (!send_buffer_size) {
+      logerror("Attempted to send twice before a recieve\n");
+      return false;
+   }
+   result = info.proc->writeMemory(info.send_buffer_addr, msg, msg_size);
+   if (!result) {
+      logerror("Unable to write buffer in send\n");
+      return false;
+   }
+   result = info.proc->writeMemory(info.send_buffer_size_addr, &msg_size, sizeof(uint32_t));
+   if (!result) {
+      logerror("Unable to write size in send\n");
+      return false;
+   }
+
+   if (info.was_stopped) {
+      result = info.proc->continueProc();
+      if (!result) {
+         logerror("Unable to continue process after send\n");
+         return false;
+      }
+   }
+
+   info.is_done = true;
+   return true;
+}
+
+bool ProcControlComponent::recv_message_mem(unsigned char *msg, unsigned msg_size, bool &recv_done, commInfo &info)
+{
+   bool result;
+   if (info.is_done) {
+      return true;
+   }
+   recv_done = false;
+   
+   info.was_stopped = info.proc->allThreadsStopped();
+   if (!info.was_stopped) {
+      result = info.proc->stopProc();
+      if (!result) {
+         logerror("Unable to stop process for send\n");
+         return false;
+      }
+   }
+   
+   uint32_t recv_buffer_size;
+   result = info.proc->readMemory(&recv_buffer_size, info.recv_buffer_size_addr, sizeof(uint32_t));
+   if (!result) {
+      logerror("Unable to read size memory in recv\n");
+      return false;
+   }
+   if (recv_buffer_size) {
+      assert(recv_buffer_size == msg_size);
+      result = info.proc->readMemory(msg, info.recv_buffer_addr, recv_buffer_size);
+      if (!result) {
+         logerror("Unable to read buffer memory in recv\n");
+         return false;
+      }
+      uint32_t zero = 0;
+      result = info.proc->writeMemory(info.recv_buffer_size_addr, &zero, sizeof(uint32_t));
+      if (!result) {
+         logerror("Unable to write buffer size in recv\n");
+         return false;
+      }
+      recv_done = true;
+   }
+   
+   if (info.was_stopped) {
+      result = info.proc->continueProc();
+      if (!result) {
+         logerror("Unable to continue process after send\n");
+         return false;
+      }
+   }
+   info.is_done = true;
+   return true;
+}
+
+bool ProcControlComponent::recv_broadcast_mem(unsigned char *msg, unsigned msg_size)
+{
+   typedef pair<commInfo *, int> compair_t;
+   typedef set<compair_t> commprocs_set_t;
+
+   commprocs_set_t commProcs;
+   unsigned j = 0;
+   for (map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); i++, j++)
+      commProcs.insert(compair_t(new commInfo(i->first), j));
+   
+   int timeout_count = 0;
+   for (;;) {
+      for (commprocs_set_t::iterator i = commProcs.begin(); i != commProcs.end(); i++) {
+         bool recv_done = false;
+         bool result = recv_message_mem(msg + (msg_size * i->second), msg_size, recv_done, *i->first);
+         if (!result) return false;
+         if (recv_done) {
+            delete i->first;
+            commProcs.erase(i);
+            timeout_count = 0;
+         }
+      }
+      if (!commProcs.size()) 
+         return true;
+      if (timeout_count == RECV_TIMEOUT) {
+         logerror("Timeout while receiving broadcast\n");
+         return false;
+      }
+      timeout_count++;
+      sleep(1);
+   }
+   
+}
+
+bool ProcControlComponent::send_broadcast_mem(unsigned char *msg, unsigned msg_size)
+{
+   typedef set<commInfo *> commprocs_set_t;
+
+   commprocs_set_t commProcs;
+   unsigned j =0;
+   for (map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); i++, j++)
+      commProcs.insert(new commInfo(i->first));
+   
+   int timeout_count = 0;
+   for (;;) {
+      for (commprocs_set_t::iterator i = commProcs.begin(); i != commProcs.end(); i++) {
+         bool send_done = false;
+         bool result = send_message_mem(msg, msg_size, send_done, **i);
+         if (!result) return false;
+         if (send_done) {
+            delete *i;
+            commProcs.erase(i);
+            timeout_count = 0;
+         }
+      }
+      if (!commProcs.size()) 
+         return true;
+      if (timeout_count == RECV_TIMEOUT) {
+         logerror("Timeout while receiving broadcast\n");
+         return false;
+      }
+      timeout_count++;
+      sleep(1);
+   }
+}
+
 bool ProcControlComponent::recv_broadcast(unsigned char *msg, unsigned msg_size)
 {
+   if (use_mem_communication) {
+      return recv_broadcast_mem(msg, msg_size);
+   }
    unsigned char *cur_pos = msg;
-   for (std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); i++) {
+   for (map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); i++) {
       bool result = recv_message(cur_pos, msg_size, i->second);
       if (!result) 
          return false;
@@ -646,7 +903,7 @@ bool ProcControlComponent::send_message(unsigned char *msg, unsigned msg_size, i
 bool ProcControlComponent::send_broadcast(unsigned char *msg, unsigned msg_size)
 {
    unsigned char *cur_pos = msg;
-   for (std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); i++) {
+   for (map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); i++) {
       bool result = send_message(msg, msg_size, i->second);
       if (!result) 
          return false;
@@ -663,7 +920,7 @@ bool ProcControlComponent::block_for_events()
    FD_SET(notification_fd, &readset);
 
    struct timeval timeout;
-   timeout.tv_sec = 15;
+   timeout.tv_sec = RECV_TIMEOUT;
    timeout.tv_usec = 0;
    int result;
    do {

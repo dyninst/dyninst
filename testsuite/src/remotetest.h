@@ -115,3 +115,4 @@ class RemoteOutputDriver : public TestOutputDriver {
    virtual void finalizeOutput();
 };
 
+bool sendRawString(Connection *c, std::string s);

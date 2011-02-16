@@ -148,7 +148,7 @@ void updateResumeLogCompleted(const char *resumelogname) {
   }
 }
 
-void setLabel(unsigned int label_ndx, char *label) {
+void setLabel(char *label) {
   /* TODO Fix me so group mutatees work */
   if (max_tests > 1) {
     output->log(STDERR, "Group mutatees not enabled yet\n");
@@ -164,11 +164,10 @@ static int useAttach = FALSE;
 
 void handleAttach()
 {
-   char ch = 'T';
 #if defined(os_bg_test)
    return;
-   struct timeval start_time;
 #elif !defined(os_windows_test)
+   char ch = 'T';
    struct timeval start_time;
    if (!useAttach) return;
    if (write(pfd, &ch, sizeof(char)) != sizeof(char)) {
@@ -181,6 +180,7 @@ void handleAttach()
    gettimeofday(&start_time, NULL);
 
 #else
+   char ch = 'T';
    LPCTSTR pipeName = "\\\\.\\pipe\\mutatee_signal_pipe";
    DWORD bytes_written = 0;
    BOOL wrote_ok = FALSE;
@@ -227,7 +227,7 @@ void handleAttach()
    flushOutputLog();
 
    while (!checkIfAttached()) {
-#if !defined(os_windows_test)
+#if !defined(os_windows_test) && !defined(os_bg_test)
       struct timeval present_time;
       gettimeofday(&present_time, NULL);
       if (present_time.tv_sec > (start_time.tv_sec + 30))
@@ -328,7 +328,7 @@ int main(int iargc, char *argv[])
             exit(-1);
          }
          i += 1;
-         setLabel(label_count, argv[i]);
+         setLabel(argv[i]);
          label_count += 1;
       } else if (!strcmp(argv[i], "-print-labels")) {
          print_labels = TRUE;
@@ -352,6 +352,10 @@ int main(int iargc, char *argv[])
       } else if (!strcmp(argv[i], "-uniqueid")) {
          i += 1;
          unique_id = atoi(argv[i]);
+      } else if (!strcmp(argv[i], "-signal_file")) {
+         i += 1;
+         FILE *f = fopen(argv[i], "w");
+         fclose(f);
       } else {
          /* Let's just ignore unrecognized parameters.  They might be
           * important to a specific test.

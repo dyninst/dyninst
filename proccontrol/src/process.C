@@ -3424,6 +3424,11 @@ Library::ptr int_library::getUpPtr() const
 
 void int_library::markAsCleanable()
 {
+   //The destruction of the Library may destroy 'this', which
+   //can cause an invalid heap write in the 'up_lib = Library::ptr()'
+   //assignment.  By keeping a second reference around (delay_any_clean)
+   //we make sure that up_lib is cleaned after it's assigned.
+   Library::ptr delay_any_clean = up_lib;
    up_lib = Library::ptr();
 }
 
