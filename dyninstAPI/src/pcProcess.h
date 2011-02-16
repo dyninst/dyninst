@@ -65,8 +65,6 @@
 #define RPC_RUN_WHEN_DONE 1
 #define RPC_STOP_WHEN_DONE 2
 
-typedef enum { vsys_unknown, vsys_unused, vsys_notfound, vsys_found } syscallStatus_t;
-
 class multiTramp;
 class bblInstance;
 
@@ -169,6 +167,8 @@ public:
     void installInstrRequests(const pdvector<instMapping*> &requests);
     bool uninstallMutations();
     bool reinstallMutations();
+    Address getTOCoffsetInfo(Address dest); // platform-specific
+    Address getTOCoffsetInfo(int_function *func); // platform-specific
 
     // iRPC interface
     bool postIRPC(AstNodePtr action,
@@ -239,32 +239,12 @@ public:
 
     Address setAOutLoadAddress(fileDescriptor &desc); // platform-specific
 
-    // Syscall tracing (all architecture specific)
-    bool getSysCallParameters(const ProcControlAPI::RegisterPool &regs, long *params, int numparams);
-    int getSysCallNumber(const ProcControlAPI::RegisterPool &regs);
-    long getSysCallReturnValue(const ProcControlAPI::RegisterPool &regs);
-    Address getSysCallProgramCounter(const ProcControlAPI::RegisterPool &regs);
-    bool isMmapSysCall(int callnum);
-    Offset getMmapLength(int, const ProcControlAPI::RegisterPool &regs);
-
     // Stackwalking internals
     bool walkStack(pdvector<Frame> &stackWalk, PCThread *thread);
     bool getActiveFrame(Frame &frame, PCThread *thread);
 
-    Address getVsyscallText() { return vsyscall_text_; }
-    void setVsyscallText(Address addr) { vsyscall_text_ = addr; }
-    Address getVsyscallStart() { return vsyscall_start_; }
-    Dyninst::SymtabAPI::Symtab *getVsyscallObject() { return vsyscall_obj_; }
-    void setVsyscallObject(SymtabAPI::Symtab *obj) { vsyscall_obj_ = obj; }
-    void setVsyscallRange(Address start, Address end) 
-        { vsyscall_start_ = start; vsyscall_end_ = end; }
-    syscallStatus_t getVsyscallStatus() { return vsys_status_; }
-    void setVsyscallStatus(syscallStatus_t s) { vsys_status_ = s; }
-    Address getVsyscallEnd() { return vsyscall_end_; }
-
     void addSignalHandler(Address, unsigned);
     bool isInSignalHandler(Address addr);
-    bool readAuxvInfo();
 
 protected:
     typedef enum {
@@ -314,12 +294,6 @@ protected:
           rtLibLoadHeap_(0),
           mt_cache_result_(not_cached),
           isInDebugSuicide_(false),
-          vsyscall_text_(0),
-          vsyscall_start_(0),
-          vsyscall_obj_(NULL),
-          vsyscall_end_(0),
-          vsys_status_(vsys_unknown),
-          auxv_parser_(NULL),
           irpcTramp_(NULL),
           inEventHandling_(false),
           stackwalker_(NULL)
@@ -361,12 +335,6 @@ protected:
           rtLibLoadHeap_(0),
           mt_cache_result_(not_cached),
           isInDebugSuicide_(false),
-          vsyscall_text_(0),
-          vsyscall_start_(0),
-          vsyscall_obj_(NULL),
-          vsyscall_end_(0),
-          vsys_status_(vsys_unknown),
-          auxv_parser_(NULL),
           irpcTramp_(NULL),
           inEventHandling_(false),
           stackwalker_(NULL)
@@ -410,12 +378,6 @@ protected:
           rtLibLoadHeap_(parent->rtLibLoadHeap_),
           mt_cache_result_(parent->mt_cache_result_),
           isInDebugSuicide_(parent->isInDebugSuicide_),
-          vsyscall_text_(parent->vsyscall_text_),
-          vsyscall_start_(parent->vsyscall_start_),
-          vsyscall_obj_(parent->vsyscall_obj_),
-          vsyscall_end_(parent->vsyscall_end_),
-          vsys_status_(parent->vsys_status_),
-          auxv_parser_(parent->auxv_parser_),
           irpcTramp_(NULL), // filled after construction
           inEventHandling_(false),
           stackwalker_(NULL)
@@ -583,14 +545,6 @@ protected:
     mt_cache_result_t mt_cache_result_;
 
     bool isInDebugSuicide_; // Single stepping is only valid in this context
-
-    // Stackwalking properties
-    Address vsyscall_text_;
-    Address vsyscall_start_;
-    SymtabAPI::Symtab *vsyscall_obj_;
-    Address vsyscall_end_;
-    syscallStatus_t vsys_status_;
-    AuxvParser *auxv_parser_;
 
     // Misc.
     baseTramp *irpcTramp_;

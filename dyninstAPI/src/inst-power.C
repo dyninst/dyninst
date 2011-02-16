@@ -53,13 +53,11 @@
 #include "dyninstAPI/src/instPoint.h" // class instPoint
 #include "dyninstAPI/src/debug.h"
 #include "common/h/debugOstream.h"
-#include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_collections.h"
-#include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/function.h"
@@ -2574,7 +2572,7 @@ bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 		int_function *&target_pdf, Address base_addr) 
 {
 
-	if (status() == exited) return false;
+	if (isTerminated()) return false;
 
 	// if the relocationEntry has not been bound yet, then the value
 	// at rel_addr is the address of the instruction immediately following

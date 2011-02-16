@@ -40,6 +40,7 @@
 #include "BPatch.h"
 #include "mapped_module.h"
 #include "baseTramp.h"
+#include "registerSpace.h"
 
 #include "common/h/pathName.h"
 
@@ -2829,7 +2830,7 @@ void PCProcess::updateActiveMultis() {
                         blocks = & activebbi->func()->blocks();
                     set<int_basicBlock*,int_basicBlock::compare>::const_iterator
                         bIter = blocks->begin();
-                    for(;
+                    for( ;
                         bIter != blocks->end() &&
                         activebbi->version() >= (int)(*bIter)->instances().size();
                         bIter++);

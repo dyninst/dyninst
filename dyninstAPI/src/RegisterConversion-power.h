@@ -29,31 +29,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// $Id: linux-power.h,v 1.4 2007/08/09 18:22:21 ssuen Exp $
+#if !defined(REGISTER_CONVERSION_POWER_H)
+#define REGISTER_CONVERSION_POWER_H
 
-#if !defined(os_linux) || !defined(arch_power)
-#error "invalid architecture-os inclusion"
-#endif
-
-#ifndef LINUX_POWER_HDR
-#define LINUX_POWER_HDR
-
+#include "Register.h"
 #include "common/h/Types.h"
 
-// floor of inferior malloc address range within a single branch of x
-// for 32-bit ELF PowerPC mutatees
-extern Address region_lo(const Address x);
+Dyninst::MachRegister convertRegID(Register reg, Dyninst::Architecture);
 
-// floor of inferior malloc address range within a single branch of x
-// for 64-bit ELF PowerPC mutatees
-extern Address region_lo_64(const Address x);
-
-// ceiling of inferior malloc address range within a single branch of x
-// for 32-bit ELF PowerPC mutatees
-extern Address region_hi(const Address x);
-
-// ceiling of inferior malloc address range within a single branch of x
-// for 64-bit ELF PowerPC mutatees
-extern Address region_hi_64(const Address x);
-
-#endif
+#endif 

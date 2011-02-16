@@ -36,6 +36,7 @@
 #include "pcProcess.h"
 #include "mapped_object.h"
 #include "registerSpace.h"
+#include "RegisterConversion.h"
 
 #include "proccontrol/h/Mailbox.h"
 #include "proccontrol/h/PCErrors.h"
@@ -48,28 +49,6 @@ using std::queue;
 using std::set;
 
 using namespace Dyninst::ProcControlAPI;
-
-#if defined(arch_x86) || defined(arch_x86_64)
-#include "RegisterConversion-x86.h"
-#elif defined(arch_power)
-static MachRegister convertRegID(Register r, Dyninst::Architecture arch) {
-    // TODO this probably isn't right
-    assert( arch == Arch_ppc32 || arch == Arch_ppc64 );
-
-    if( r == registerSpace::xer ) return ppc32::xer;
-    if( r == registerSpace::lr  ) return ppc32::lr;
-    if( r == registerSpace::mq  ) return ppc32::mq;
-    if( r == registerSpace::ctr ) return ppc32::ctr;
-    if( r == registerSpace::cr  ) return ppc32::cr0;
-    if( r >= registerSpace::r0 && r <= registerSpace::r31 )
-        return r - registerSpace::r0 + ppc32::r0;
-    if( r >= registerSpace::fpr0 && r <= registerSpace::fpr31 )
-        return r - registerSpace::r31 + ppc32::r31;
-
-    assert(!"Register not handled");
-    return InvalidReg;
-}
-#endif
 
 PCEventMailbox::PCEventMailbox()
 {
