@@ -97,7 +97,7 @@ Address PCProcess::getLibcStartMainParam(PCThread *trappingThread) {
        targetAddr = regs[x86::esp] + addrWidth;
    }
 
-   if( !readDataSpace((void *)targetAddr, addrWidth, (void *)&mainaddr) ) {
+   if( !readDataSpace((const void *)targetAddr, addrWidth, (void *)&mainaddr, false) ) {
        proccontrol_printf("%s[%d]: failed to read address of main out of libc\n",
                FILE__, __LINE__);
    }
@@ -105,12 +105,12 @@ Address PCProcess::getLibcStartMainParam(PCThread *trappingThread) {
    return mainaddr;
 }
 
-Address PCProcess::getTOCoffsetInfo(Address dest) {
+Address PCProcess::getTOCoffsetInfo(Address) {
     assert(!"This function is unimplemented");
     return 0;
 }
 
-Address PCProcess::getTOCoffsetInfo(int_function *func) {
+Address PCProcess::getTOCoffsetInfo(int_function *) {
     assert(!"This function is unimplemented");
     return 0;
 }

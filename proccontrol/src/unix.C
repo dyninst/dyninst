@@ -278,7 +278,7 @@ bool unix_process::plat_createAllocationSnippet(Dyninst::Address addr, bool use_
    else
       addr = 0x0;
 
-   if( getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86_64 ) {
+   if( getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86 ) {
        const void *buf_tmp = NULL;
        unsigned addr_size = 0;
        unsigned addr_pos = 0;
