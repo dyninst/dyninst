@@ -74,7 +74,7 @@ std::pair<AST::Ptr, bool> SymEval::expand(const Assignment::Ptr &assignment) {
 }
 
 bool SymEval::expand(Result_t &res, 
-                     std::set<Instruction::Ptr> &failedInsns,
+                     std::set<InstructionPtr> &failedInsns,
                      bool applyVisitors) {
   // Symbolic evaluation works off an Instruction
   // so we have something to hand to ROSE. 
@@ -264,10 +264,12 @@ class ExpandOrder {
     set<SliceNode::Ptr> done;
 };
 
+//  DATAFLOW_EXPORT static Retval_t 
+//  expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res);
 
 // Do the previous, but use a Graph as a guide for
 // performing forward substitution on the AST results
-SymEval::Retval_t SymEval::expand(Graph::Ptr slice, Result_t &res) {
+SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res) {
    bool failedTranslation = false;
    bool skippedInput = false;
 

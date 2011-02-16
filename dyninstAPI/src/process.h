@@ -719,7 +719,7 @@ public:
   bool isExploratoryModeOn();
   bool isRuntimeHeapAddr(Address addr);
   bool setMemoryAccessRights(Address start, Address size, int rights);
-  bool getMemoryAccessRights(Address start, Address size, int rights);
+  int getMemoryAccessRights(Address start, Address size);
 
 
  private:

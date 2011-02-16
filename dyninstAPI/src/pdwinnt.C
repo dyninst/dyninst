@@ -1032,9 +1032,10 @@ bool process::setMemoryAccessRights
     return true;
 }
 
-bool process::getMemoryAccessRights(Address start, Address size, int rights)
+int process::getMemoryAccessRights(Address start, Address size)
 {
    assert(0 && "Unimplemented!");
+   return 0;
 }
 
 int dyn_lwp::changeMemoryProtections

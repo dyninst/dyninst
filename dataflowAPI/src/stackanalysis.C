@@ -151,9 +151,9 @@ void StackAnalysis::summarizeBlocks() {
       else {
 		  next = block->end();
       }
-
       // Fills in insnEffects[off]
       TransferFuncs &xferFuncs = insnEffects[block][off];
+
       computeInsnEffects(block, insn, off,
                          xferFuncs);
       bFunc.add(xferFuncs);

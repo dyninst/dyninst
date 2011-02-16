@@ -407,7 +407,6 @@ bool CFAtom::generateCall(CodeBuffer &buffer,
 			  Instruction::Ptr insn) {
   if (!to) {
     // This can mean an inter-module branch...
-   // DebugBreak();
     return true;
   }
 
