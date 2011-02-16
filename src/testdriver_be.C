@@ -120,6 +120,40 @@ void init_lmon(int *argc, char ***argv)
 }
 #endif
 
+static void getPortAndHostname(int argc, char *argv[], int &port, std::string &hostname)
+{
+   for (unsigned i=0; i<argc; i++) {
+      if (strcmp(argv[i], "-hostname") == 0) {
+         hostname = argv[++i];
+      }
+      if (strcmp(argv[i], "-port") == 0) {
+         port = atoi(argv[++i]);
+      }
+   }
+}
+
+static bool receiveArgs(Connection &connection, int &new_argc, char** &new_argv)
+{
+   std::vector<char *> args;
+   char *buffer = NULL;
+   bool result = connection.recv_message(buffer);
+   if (!result)
+      return false;
+   assert(strncmp(buffer, "A:", 2) == 0);
+
+   char *entry;
+   for (entry = strtok(buffer+2, " "); entry != NULL; entry = strtok(NULL, " "))
+      args.push_back(entry);
+
+   new_argc = args.size();
+   new_argv = (char **) malloc((new_argc+1) * sizeof(char *));
+   for (unsigned i=0; i<new_argc; i++) {
+      new_argv[i] = strdup(args[i]);
+   }
+   new_argv[new_argc] = NULL;
+   return true;
+}
+
 int main(int argc, char *argv[])
 {
    ParameterDict params;
@@ -169,12 +203,9 @@ int main(int argc, char *argv[])
 
    init_lmon(&argc, &argv);
 
-   parseArgs(argc, argv, params);
-   getGroupList(groups, params);
-
-   int port = params["port"]->getInt();
-   string hostname = params["hostname"]->getString();
-
+   int port;
+   string hostname;
+   getPortAndHostname(argc, argv, port, hostname);
    if (port == 0 || !hostname.length()) {
       log_printf("[%s:%u] - No connection info.  port = %d, hostname = %s\n",
               __FILE__, __LINE__, port, hostname.c_str());
@@ -189,13 +220,30 @@ int main(int argc, char *argv[])
       if (debug_log) fclose(debug_log);
       return -1;
    }
-   
+
    RemoteOutputDriver remote_output(&connection);
    setOutput(&remote_output);
 
-   RemoteBE remotebe(groups, &connection);
 
    log_printf("[%s:%u] - Connection established--ready to recv\n", __FILE__, __LINE__);
+   int new_argc;
+   char **new_argv;
+
+#if defined(os_bg_test)
+   bool bresult = receiveArgs(connection, new_argc, new_argv);
+   if (!bresult) {
+      log_printf("[%s:%u] - Unable to receive argument list\n", __FILE__, __LINE__);
+      return -1;
+   }
+#else
+   new_argc = argc;
+   new_argv = argv;
+#endif
+
+   parseArgs(new_argc, new_argv, params);
+   getGroupList(groups, params);
+   
+   RemoteBE remotebe(groups, &connection);
 
    for (;;) {
       char *buffer = NULL;

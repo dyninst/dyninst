@@ -86,7 +86,8 @@ char **gargv;
 
 void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups, 
                            ParameterDict &params);
-int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon_args[], bool attach);
+int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon_args[], bool attach, int &l_pid);
+bool collectInvocation(pid_t mpirun_pid, int session);
 
 int setupLogs(ParameterDict &params);
 
@@ -376,13 +377,21 @@ void tests_breakpoint()
   //Breakpoint here to get a binary with test libraries loaded.
 }
 
+int lmon_session = -1;
+int launcher_pid = -1;
 static void clearConnection()
 {
    Connection *con = getConnection();
-   if (!con)
-      return;
-   delete con;
-   setConnection(NULL);
+   if (con) {
+      delete con;
+      setConnection(NULL);
+   }
+
+   if (lmon_session != -1) {
+      collectInvocation(launcher_pid, lmon_session);
+   }
+   lmon_session = -1;
+   launcher_pid = -1;
 }
 
 bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
@@ -427,21 +436,41 @@ bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
    driver_args.push_back(hostname);
    driver_args.push_back("-port");
    driver_args.push_back(port_s);
+#if !defined(os_bg_test)
+   //Work-around BG bug where you have a limited number of command line args.
+   // We'll send the arguments over the network connection down below.
    for (unsigned i=0; i<gargc; i++) {
       driver_args.push_back(gargv[i]);
    }
+#endif
    char **c_driver_args = getCParams(driver_exec, driver_args);
 
-   fprintf(stderr, "[%s:%u] - Driver exec: %s\n", __FILE__, __LINE__, driver_exec.c_str());
-
    bool attach_mode = (group->createmode == USEATTACH);
-   int result_i = LMONInvoke(group, params, c_mutatee_args, c_driver_args, attach_mode);
+   lmon_session = LMONInvoke(group, params, c_mutatee_args, c_driver_args, attach_mode, launcher_pid);
 
    result = con->server_accept();
    if (!result) {
       fprintf(stderr, "Failed to accept connection from client\n");
       return false;
    }
+
+#if defined(os_bg_test)
+   //See above comment on BG bug
+   std::string arg_str("A:");
+   unsigned i = 0;
+   for (;;) {
+      arg_str += gargv[i++];
+      if (i >= gargc)
+         break;
+      arg_str += " ";
+
+   }
+   result = sendRawString(con, arg_str);
+   if (!result) {
+      return false;
+   }
+#endif
+   return true;
 }
 
 void executeGroup(RunGroup *group,
@@ -547,6 +576,7 @@ void executeGroup(RunGroup *group,
       reportTestResult(group, group->tests[i]);
    }
 
+   clearConnection();
 }
 
 void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups, 

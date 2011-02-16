@@ -47,6 +47,15 @@ typedef struct {
    void *data;
 } datagram;
 
+#define MESSAGE_BUFFER_SIZE 4096
+#define MESSAGE_TIMEOUT 30
+volatile char recv_buffer[MESSAGE_BUFFER_SIZE];
+volatile char send_buffer[MESSAGE_BUFFER_SIZE];
+volatile uint32_t recv_buffer_size;
+volatile uint32_t send_buffer_size;
+volatile uint32_t needs_pc_comm;
+volatile uint32_t timeout;
+
 static testlock_t thread_startup_lock;
 
 void *ThreadTrampoline(void *d)
@@ -205,6 +214,7 @@ int finiProcControlTest(int expected_ret_code)
    return has_error ? -1 : 0;
 }
 
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -216,6 +226,10 @@ static char *socket_name = NULL;
 void getSocketInfo()
 {
    int count = 0;
+
+   if (needs_pc_comm)
+      return;
+
    while (MutatorSocket[0] == '\0') {
       sleep(1);
       count++;
@@ -230,9 +244,34 @@ void getSocketInfo()
    *space = '\0';
 }
 
+void sigalarm_handler(int sig)
+{
+   assert(sig == SIGALRM);
+   timeout = 1;
+}
+
+void setTimeoutAlarm()
+{
+   static int set_alarm_handler = 0;
+   if (!set_alarm_handler) {
+      set_alarm_handler = 1;
+      signal(SIGALRM, sigalarm_handler);
+   }
+   timeout = 0;
+   alarm(MESSAGE_TIMEOUT);
+}
+
+void resetTimeoutAlarm()
+{
+   alarm(0);
+}
+
 int initMutatorConnection()
 {
    int result;
+
+   if (needs_pc_comm)
+      return 0;
 
    if (strcmp(socket_type, "un_socket") == 0) {
       sockfd = socket(PF_UNIX, SOCK_STREAM, 0);
@@ -244,6 +283,7 @@ int initMutatorConnection()
       memset(&server_addr, 0, sizeof(struct sockaddr_un));
       server_addr.sun_family = PF_UNIX;
       strncpy(server_addr.sun_path, socket_name, 108);
+      fprintf(stderr, "[%s:%u] - Connecting here\n", __FILE__, __LINE__);
       result = connect(sockfd, (struct sockaddr *) &server_addr, sizeof(struct sockaddr_un));
       if (result != 0) {
          perror("Failed to connect to server");
@@ -255,6 +295,22 @@ int initMutatorConnection()
 
 int send_message(unsigned char *msg, size_t msg_size)
 {
+   if (needs_pc_comm) {
+      assert(msg_size < MESSAGE_BUFFER_SIZE);
+      assert(!send_buffer_size);
+      memcpy((void *) send_buffer, msg, msg_size);
+      send_buffer_size = msg_size;
+      
+      setTimeoutAlarm();
+      while (send_buffer_size && !timeout);
+      resetTimeoutAlarm();
+      if (send_buffer_size) {
+         logerror("Timed out in mutatee send_message\n");
+         exit(-1);
+      }
+      return 0;
+   }
+
    int result;
    result = send(sockfd, msg, msg_size, 0);
    if (result == -1) {
@@ -266,8 +322,31 @@ int send_message(unsigned char *msg, size_t msg_size)
 
 int recv_message(unsigned char *msg, size_t msg_size)
 {
+   if (needs_pc_comm) {
+      int set_alarm = 0;
+      //Sockets won't work now... Communicate by having ProccontrolAPI
+      // read and write into the process
+      if (!recv_buffer_size) {
+         setTimeoutAlarm();
+         set_alarm = 1;
+      }
+      while (!recv_buffer_size && !timeout);
+      if (set_alarm) {
+         resetTimeoutAlarm();
+      }
+      if (!recv_buffer_size) {
+         logerror("Timed out in mutatee recv_message\n");
+         exit(-1);
+      }
+      assert(msg_size < MESSAGE_BUFFER_SIZE);
+      assert(msg_size == recv_buffer_size);
+      memcpy((void *) msg, (void *) recv_buffer, msg_size);
+      recv_buffer_size = 0;
+      return 0;
+   }
+
    int result = -1;
-   while( result != msg_size && result != 0 ) {
+   while( result != (int) msg_size && result != 0 ) {
        result = recv(sockfd, msg, msg_size, MSG_WAITALL);
 
        if (result == -1 && errno != EINTR ) {

@@ -858,7 +858,6 @@ void RemoteBE::setenv_on_local(char *message)
 
 void RemoteBE::dispatchExit(char *message)
 {
-   *((int *) 0x0) = 0x0;
    exit(0);
 }
 
@@ -1157,12 +1156,12 @@ bool Connection::recv_message(char* &buffer)
 
    result = recv(fd, cur_buffer, msg_size, MSG_WAITALL);
    if (result == -1) {
-     debug_printf("[%s:%u] - Error receiving data on socket\n", __FILE__, __LINE__);
+      debug_printf("[%s:%u] - Error receiving data on socket\n", __FILE__, __LINE__);
       return false;
    }
 
    buffer = cur_buffer;
-  debug_printf("[%d] - Recv of buffer %s\n", getpid(), buffer);
+   debug_printf("[%d] - Recv of buffer %s\n", getpid(), buffer);
 
    return true;
 }
@@ -1267,7 +1266,6 @@ bool Connection::client_connect()
    addr.sin_family = AF_INET;
    addr.sin_port = htons(port); 
    iaddr.s_addr = htonl(*((int *) host->h_addr_list[0]));
-   //inet_aton("172.16.126.164", &iaddr);
    addr.sin_addr = iaddr;
    debug_printf("Connecting to %d.%d.%d.%d:%d\n", 
                 (int) (((char *) &addr.sin_addr)[0]),
@@ -1383,4 +1381,10 @@ static char *my_strtok(char *str, const char *delim)
    }
    
    return strtok_r(my_str, delim, &save_ptr);
+}
+
+bool sendRawString(Connection *c, std::string s) {
+   MessageBuffer mb;
+   mb.add(s.c_str(), s.length());
+   return c->send_message(mb);
 }
