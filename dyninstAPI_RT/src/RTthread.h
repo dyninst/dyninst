@@ -40,7 +40,7 @@ int dyn_lwp_self();        /*LWP used by the kernel identifier*/
 int dyn_pid_self();        /*PID identifier representing the containing process*/
 
 int DYNINSTthreadIndex();
-int DYNINSTregisterThread(dyntid_t tid, unsigned index);
+unsigned long DYNINSTregisterThread(dyntid_t tid, unsigned index);
 int DYNINSTunregisterThread(dyntid_t tid);
 
 void DYNINST_initialize_index_list();

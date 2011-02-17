@@ -144,6 +144,11 @@ class AddressSpace : public InstructionSource {
 
     bool isInferiorAllocated(Address block);
 
+    // Allow the AddressSpace to update any extra bookkeeping for trap-based
+    // instrumentation
+    virtual bool registerTrapMapping(Address from, Address to) = 0;
+    virtual bool unregisterTrapMapping(Address from) = 0;
+
     // We need a mechanism to track what exists at particular addresses in the
     // address space - both for lookup and to ensure that there are no collisions.
     // We have a multitude of ways to "muck with" the application (function replacement,

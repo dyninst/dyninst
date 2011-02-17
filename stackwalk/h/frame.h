@@ -62,6 +62,7 @@ protected:
   
   const Frame *prev_frame;
   FrameStepper *stepper;
+  FrameStepper *next_stepper;
   Walker *walker;
   THR_ID originating_thread;
   
@@ -85,7 +86,6 @@ protected:
   void setRA(Dyninst::MachRegisterVal);
   void setSP(Dyninst::MachRegisterVal);
   void setFP(Dyninst::MachRegisterVal);
-  void setPrevFrame(const Frame*);
   void setThread(THR_ID);
   
   location_t getRALocation() const;
@@ -105,6 +105,7 @@ protected:
   
   const Frame *getPrevFrame() const;
   FrameStepper *getStepper() const;
+  FrameStepper *getNextStepper() const;
   Walker *getWalker() const;
   THR_ID getThread() const;
 

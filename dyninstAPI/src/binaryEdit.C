@@ -1042,3 +1042,6 @@ bool BinaryEdit::needsPIC()
    // absolute addresses.
    return (symtab->getLoadAddress() == 0);  
 }
+
+bool BinaryEdit::registerTrapMapping(Address, Address) { return true; }
+bool BinaryEdit::unregisterTrapMapping(Address) { return true; }

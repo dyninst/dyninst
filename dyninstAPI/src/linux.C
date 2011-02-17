@@ -42,6 +42,7 @@
 #include "mapped_object.h"
 #include "mapped_module.h"
 #include "linux.h"
+#include <dlfcn.h>
 
 #include "common/h/headers.h"
 #include "common/h/linuxKludges.h"
@@ -99,38 +100,6 @@ bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers)
  *   pid (executablename) state ...
  * where state is a character.  Returns '\0' on error.
  **/
-static char getState(int pid) {
-    char procName[64];
-    char sstat[256];
-    char *status;
-    int paren_level = 1;
-
-    sprintf(procName,"/proc/%d/stat", pid);
-    FILE *sfile = P_fopen(procName, "r");
-    if (sfile == NULL) return '\0';
-    fread( sstat, 1, 256, sfile );
-    fclose( sfile );
-    sstat[255] = '\0';
-    status = sstat;
-
-    while (*status != '\0' && *(status++) != '(') ;
-    while (*status != '\0' && paren_level != 0) {
-        if (*status == '(') paren_level++;
-        if (*status == ')') paren_level--;
-        status++;
-    }
-
-    while (*status == ' ') status++;
-    return *status;
-}
-
-bool PCProcess::getOSRunningState(int pid) {
-    char result = getState(pid);
-    if (result == '\0') {
-        return false;
-    }
-    return (result != 'T');
-}
 
 static const Address lowest_addr = 0x0;
 void PCProcess::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
@@ -363,8 +332,7 @@ Address PCProcess::findFunctionToHijack()
       const char *func_name = DYNINST_LOAD_HIJACK_FUNCTIONS[i];
 
       pdvector<int_function *> hijacks;
-      if (!findFuncsByAll(func_name, hijacks))
-          return 0;
+      if (!findFuncsByAll(func_name, hijacks)) continue;
       codeBase = hijacks[0]->getAddress();
 
       if (codeBase)
@@ -377,6 +345,180 @@ Address PCProcess::findFunctionToHijack()
 
   return codeBase;
 } /* end findFunctionToHijack() */
+
+#define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
+
+const char *DL_OPEN_FUNC_USER = NULL;
+const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
+const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
+const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
+
+bool PCProcess::postRTLoadCleanup() {
+    if( rtLibLoadHeap_ ) {
+        if( !pcProc_->freeMemory(rtLibLoadHeap_) ) {
+            startup_printf("%s[%d]: failed to free memory used for RT library load\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+        rtLibLoadHeap_ = 0;
+    }
+    return true;
+}
+
+AstNodePtr PCProcess::createLoadRTAST() {
+    pdvector<int_function *> dlopen_funcs;
+
+    // allow user to override default dlopen func names
+    // with env. var
+
+    DL_OPEN_FUNC_USER = getenv("DYNINST_DLOPEN_FUNC");
+
+    if( DL_OPEN_FUNC_USER ) {
+        findFuncsByAll(DL_OPEN_FUNC_USER, dlopen_funcs);
+    }
+
+    bool useHiddenFunction = false;
+    if( dlopen_funcs.size() == 0 ) {
+        if( !findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs) ) {
+            useHiddenFunction = true;
+            if( !findFuncsByAll(DL_OPEN_FUNC_NAME, dlopen_funcs) ) {
+                pdvector<int_function *> dlopen_int_funcs;
+                // If we can't find the do_dlopen function (because this library
+                // is stripped, for example), try searching for the internal
+                // _dl_open function and find the do_dlopen function by examining
+                // the functions that call it. This depends on the do_dlopen
+                // function having been parsed (though its name is not known)
+                // through speculative parsing.
+                if(findFuncsByAll(DL_OPEN_FUNC_INTERNAL, dlopen_int_funcs)) {
+                    if(dlopen_int_funcs.size() > 1) {
+                        startup_printf("%s[%d] warning: found %d matches for %s\n",
+                                       __FILE__,__LINE__,dlopen_int_funcs.size(),
+                                       DL_OPEN_FUNC_INTERNAL);
+                    }
+                    dlopen_int_funcs[0]->getStaticCallers(dlopen_funcs);
+                    if(dlopen_funcs.size() > 1) {
+                        startup_printf("%s[%d] warning: found %d do_dlopen candidates\n",
+                                       __FILE__,__LINE__,dlopen_funcs.size());
+                    }
+
+                    if(dlopen_funcs.size() > 0) {
+                        // give it a name
+                        dlopen_funcs[0]->addSymTabName("do_dlopen",true);
+                    }
+                }else{
+                    startup_printf("%s[%d]: failed to find dlopen function to load RT lib\n",
+                                   FILE__, __LINE__);
+                    return AstNodePtr();
+                }
+            }
+        }
+    }
+
+    assert( dlopen_funcs.size() != 0 );
+
+    if (dlopen_funcs.size() > 1) {
+        logLine("WARNING: More than one dlopen found, using the first\n");
+    }
+
+    int_function *dlopen_func = dlopen_funcs[0];
+
+    if( !useHiddenFunction ) {
+        // For now, we cannot use inferiorMalloc because that requires the RT library
+        // Hopefully, we can transition inferiorMalloc to use ProcControlAPI for 
+        // allocating memory
+        rtLibLoadHeap_ = pcProc_->mallocMemory(dyninstRT_name.length());
+        if( !rtLibLoadHeap_ ) {
+            startup_printf("%s[%d]: failed to allocate memory for RT library load\n",
+                    FILE__, __LINE__);
+            return AstNodePtr();
+        }
+
+        if( !writeDataSpace((char *)rtLibLoadHeap_, dyninstRT_name.length(), dyninstRT_name.c_str()) ) {
+            startup_printf("%s[%d]: failed to write RT lib name into mutatee\n",
+                    FILE__, __LINE__);
+            return AstNodePtr();
+        }
+
+        pdvector<AstNodePtr> args;
+        args.push_back(AstNode::operandNode(AstNode::Constant, (void *)rtLibLoadHeap_));
+        args.push_back(AstNode::operandNode(AstNode::Constant, (void *)DLOPEN_MODE));
+
+        return AstNode::funcCallNode(dlopen_func, args);
+    }
+    pdvector<AstNodePtr> sequence;
+
+    AstNodePtr unprotectStackAST = createUnprotectStackAST();
+    if( unprotectStackAST == AstNodePtr() ) {
+        startup_printf("%s[%d]: failed to generate unprotect stack AST\n",
+                FILE__, __LINE__);
+        return AstNodePtr();
+    }
+
+    sequence.push_back(unprotectStackAST);
+
+    startup_printf("%s[%d]: Creating AST to call libc's internal dlopen\n", FILE__, __LINE__);
+    struct libc_dlopen_args_32 {
+        uint32_t namePtr;
+        uint32_t mode;
+        uint32_t linkMapPtr;
+    };
+
+    struct libc_dlopen_args_64 {
+        uint64_t namePtr;
+        uint32_t mode;
+        uint64_t linkMapPtr;
+    };
+
+    // Construct the argument to the internal function
+    struct libc_dlopen_args_32 args32;
+    struct libc_dlopen_args_64 args64;
+
+    unsigned argsSize = 0;
+    void *argsPtr;
+    if( getAddressWidth() == 4 ) {
+        argsSize = sizeof(args32);
+        argsPtr = &args32;
+    }else{
+        argsSize = sizeof(args64);
+        argsPtr = &args64;
+    }
+
+    // Allocate memory for the arguments
+    rtLibLoadHeap_ = pcProc_->mallocMemory(dyninstRT_name.length()+1 + argsSize);
+    if( !rtLibLoadHeap_ ) {
+        startup_printf("%s[%d]: failed to allocate memory for RT library load\n",
+                FILE__, __LINE__);
+        return AstNodePtr();
+    }
+
+    if( !writeDataSpace((char *)rtLibLoadHeap_, dyninstRT_name.length()+1, dyninstRT_name.c_str()) ) {
+        startup_printf("%s[%d]: failed to write RT lib name into mutatee\n",
+                FILE__, __LINE__);
+        return AstNodePtr();
+    }
+
+    if( getAddressWidth() == 4 ) {
+        args32.namePtr = (uint32_t)rtLibLoadHeap_;
+        args32.mode = DLOPEN_MODE;
+    }else{
+        args64.namePtr = (uint64_t)rtLibLoadHeap_;
+        args64.mode = DLOPEN_MODE;
+    }
+
+    Address argsAddr = rtLibLoadHeap_ + dyninstRT_name.length()+1;
+    if( !writeDataSpace((char *) argsAddr, argsSize, argsPtr) ) {
+        startup_printf("%s[%d]: failed to write arguments to libc dlopen\n",
+                FILE__, __LINE__);
+        return AstNodePtr();
+    }
+
+    pdvector<AstNodePtr> args;
+    args.push_back(AstNode::operandNode(AstNode::Constant, (void *)argsAddr));
+
+    sequence.push_back(AstNode::funcCallNode(dlopen_func, args));
+
+    return AstNode::sequenceNode(sequence);
+}
 
 /**
  * Searches for function in order, with preference given first
@@ -583,25 +725,6 @@ bool BinaryEdit::archSpecificMultithreadCapable() {
     }
 
     return false;
-}
-
-bool PCProcess::readAuxvInfo()
-{
-   if (auxv_parser_) return false;
-
-   auxv_parser_ = AuxvParser::createAuxvParser(getPid(), getAddressWidth());
-   if (!auxv_parser_) {
-      startup_printf("%s[%u]: - ERROR, failed to parse Auxv\n", FILE__, __LINE__);
-      vsys_status_ = vsys_notfound;
-      return false;
-   }
-
-   vsyscall_start_ = auxv_parser_->getVsyscallBase();
-   vsyscall_end_ = auxv_parser_->getVsyscallEnd();
-   vsyscall_text_ = auxv_parser_->getVsyscallText();
-   vsys_status_ = vsys_found;
-
-   return true;
 }
 
 // Temporary remote debugger interface.

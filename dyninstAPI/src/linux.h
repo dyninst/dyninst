@@ -41,7 +41,6 @@ class PCProcess;
 
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
-#include "common/h/parseauxv.h"
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Archive.h"
 
@@ -51,12 +50,6 @@ class PCProcess;
 #define SIGNAL_HANDLER	 "__restore"
 #else
 #define SIGNAL_HANDLER   "__restore_rt"
-#endif
-
-#if defined(arch_x86) || defined(arch_x86_64)
-Address getRegValueAtFrame(void *ehf, Address pc, int reg, 
-                           Address *reg_map,
-                           PCProcess *p, bool *error);
 #endif
 
 #if defined(i386_unknown_linux2_0) \
@@ -76,7 +69,5 @@ Address getRegValueAtFrame(void *ehf, Address pc, int reg,
 
 bool get_linux_version(int &major, int &minor, int &subvers);
 bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers);
-
-void calcVSyscallFrame(PCProcess *p);
 
 #endif

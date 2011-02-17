@@ -133,6 +133,60 @@ static void createBuffer(Process::ptr proc,
          start_offset = 4;
          break;
       }
+      case Dyninst::Arch_ppc32: {
+         buffer_size = 6*4;
+         buffer = (unsigned char *)malloc(buffer_size);
+         uint32_t addr32 = (uint32_t) calltarg;
+         // nop
+         buffer[0] = 0x60; buffer[1] = 0x00; buffer[2] = 0x00; buffer[3] = 0x00;
+         // lis r0, 0
+         buffer[4] = 0x3c; buffer[5] = 0x00; buffer[6] = 0x00; buffer[7] = 0x00;
+         // ori r0, r0, 0
+         buffer[8] = 0x60; buffer[9] = 0x00; buffer[10] = 0x00; buffer[11] = 0x00;
+         // mtctr r0
+         buffer[12] = 0x7c; buffer[13] = 0x09; buffer[14] = 0x03; buffer[15] = 0xa6;
+         // bctrl
+         buffer[16] = 0x4e; buffer[17] = 0x80; buffer[18] = 0x04; buffer[19] = 0x21;
+         // trap
+         buffer[20] = 0x7d; buffer[21] = 0x82; buffer[22] = 0x10; buffer[23] = 0x08;
+         start_offset = 4;
+
+         // copy address into buffer
+         *((uint16_t *) (buffer + 6)) = (uint16_t)(addr32 >> 16);
+         *((uint16_t *) (buffer + 10)) = (uint16_t)addr32;
+         break;
+      }
+      case Dyninst::Arch_ppc64: {
+         buffer_size = 9*4;
+         buffer = (unsigned char *)malloc(buffer_size);
+         // nop
+         buffer[0] = 0x60; buffer[1] = 0x00; buffer[2] = 0x00; buffer[3] = 0x00;
+         // lis r0, 0
+         buffer[4] = 0x3c; buffer[5] = 0x00; buffer[6] = 0x00; buffer[7] = 0x00;
+         // ori r0, r0, 0
+         buffer[8] = 0x60; buffer[9] = 0x00; buffer[10] = 0x00; buffer[11] = 0x00;
+         // rldicr r0, r0, 32, 31
+         buffer[12] = 0x78; buffer[13] = 0x00; buffer[14] = 0x07; buffer[15] = 0xc6;
+         // oris r0, r0, 0
+         buffer[16] = 0x64; buffer[17] = 0x00; buffer[18] = 0x00; buffer[19] = 0x00;
+         // ori r0, r0, 0
+         buffer[20] = 0x60; buffer[21] = 0x00; buffer[22] = 0x00; buffer[23] = 0x00;
+         // mtctr
+         buffer[24] = 0x7c; buffer[25] = 0x09; buffer[26] = 0x03; buffer[27] = 0xa6;
+         // bctrl
+         buffer[28] = 0x4e; buffer[29] = 0x80; buffer[30] = 0x04; buffer[31] = 0x21;
+         // trap
+         buffer[4] = 0x7d; buffer[5] = 0x82; buffer[6] = 0x10; buffer[7] = 0x08;
+         start_offset = 4;
+
+         // copy address to buffer
+         *((uint16_t *) (buffer + 6)) = (uint16_t)((uint64_t)calltarg >> 48);
+         *((uint16_t *) (buffer + 10)) = (uint16_t)((uint64_t)calltarg >> 32);
+         *((uint16_t *) (buffer + 18)) = (uint16_t)(calltarg >> 16);
+         *((uint16_t *) (buffer + 22)) = (uint16_t)(calltarg);
+
+         break;
+      }
       default:
          assert(0);
    }
@@ -248,8 +302,20 @@ const char *ts_str() {
 
 static bool post_irpc(Thread::const_ptr thr)
 {
-   Process::ptr proc = thr->getProcess();
-   proc_info_t &p = pinfo[proc];
+   Process::const_ptr proc = thr->getProcess();
+   Process::ptr proc_nc = Process::ptr();
+
+   //bad hack to remove const from process
+   for (std::map<Process::ptr, proc_info_t>::iterator i = pinfo.begin(); 
+        i != pinfo.end(); i++) {
+      if (proc == i->first) {
+         proc_nc = i->first;
+         break;
+      }
+   }
+   assert(proc_nc);
+   
+   proc_info_t &p = pinfo[proc_nc];
 
       //for (vector<rpc_data_t *>::iterator j = p.rpcs.begin(); j != p.rpcs.end(); j++) 
    for (unsigned j = 0; j < p.rpcs.size(); j++)
@@ -378,7 +444,7 @@ void pc_irpcMutator::runIRPCs() {
         i != tinfo.end(); i++)
    {
       Thread::const_ptr thr = i->first;
-      Process::ptr proc = thr->getProcess();
+      Process::const_ptr proc = thr->getProcess();
       thread_info_t &t = i->second;
 
       int num_to_post_now = (post_time == post_all_once) ? NUM_IRPCS : 1;

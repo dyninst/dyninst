@@ -425,6 +425,7 @@ bool Walker::walkStackFromFrame(std::vector<Frame> &stackwalk,
         result = false;
         goto done;
      }
+     stackwalk.back().next_stepper = cur_frame.getStepper();
      stackwalk.push_back(cur_frame);
    }       
 
@@ -435,8 +436,16 @@ bool Walker::walkStackFromFrame(std::vector<Frame> &stackwalk,
       return false;
    }
 
+   for (std::vector<Frame>::iterator swi = stackwalk.begin();
+        swi != stackwalk.end();
+        ++swi)
+   {
+     swi->prev_frame = NULL;
+   }
+
    sw_printf("[%s:%u] - Finished walking callstack from frame, result = %s\n",
              __FILE__, __LINE__, result ? "true" : "false");
+
    return result;
 }
 
@@ -461,7 +470,7 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
       return false;
    }
 
-   out.setPrevFrame(&in);
+   out.prev_frame = &in;
 
    FrameStepper *last_stepper = NULL;
    for (;;)
@@ -520,8 +529,6 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
       sw_printf("[%s:%u] - Call to postStackwalk failed\n", __FILE__, __LINE__);
       return false;
    }
-   sw_printf("[%s:%u] - Finished walking callstack, result = %s\n",
-             __FILE__, __LINE__, result ? "true" : "false");
 
    return result;
 }

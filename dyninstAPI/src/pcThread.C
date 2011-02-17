@@ -32,6 +32,9 @@
 #include "pcProcess.h"
 #include "pcThread.h"
 #include "debug.h"
+#include "function.h"
+#include "mapped_module.h"
+#include "dyninst.h"
 
 using namespace Dyninst::ProcControlAPI;
 
@@ -40,11 +43,15 @@ PCThread::PCThread(PCProcess *parent, int ind,
     proc_(parent),
     pcThr_(thr),
     index_(ind),
-    stackAddr_(0),
+    stackAddr_(thr->getStackBase()),
+    startFuncAddr_(thr->getStartFunction()),
     startFunc_(NULL),
     savedLWP_(thr->getLWP()),
-    savedTid_(thr->getLWP()) // TODO use actual TID provided by ProcControlAPI
+    savedTid_(thr->getTID()),
+    manuallySetTid_(0)
 {
+    findStartFunc();
+    findStackTop();
 }
 
 PCThread *PCThread::createPCThread(PCProcess *parent, Thread::ptr thr)
@@ -57,7 +64,16 @@ PCThread *PCThread::createPCThread(PCProcess *parent, Thread::ptr thr)
 
 dynthread_t PCThread::getTid() const {
     if( pcThr_ == Thread::ptr() ) return savedTid_;
-    return (dynthread_t)pcThr_->getLWP();
+    THR_ID pcTid = pcThr_->getTID();
+    if( pcTid == NULL_THR_ID || pcTid == 0 ) {
+        if( manuallySetTid_ == DYNINST_SINGLETHREADED ) return 0;
+        return manuallySetTid_;
+    }
+    return pcTid;
+}
+
+void PCThread::setTid(dynthread_t tid) {
+    manuallySetTid_ = tid;
 }
 
 int PCThread::getIndex() const {
@@ -69,20 +85,64 @@ int PCThread::getLWP() const {
     return pcThr_->getLWP();
 }
 
-int_function *PCThread::getStartFunc() const {
+void PCThread::findSingleThreadInfo() {
+    assert( startFuncAddr_ == 0 || stackAddr_ == 0 );
+
+    pdvector<Frame> stackWalk;
+    if( !walkStack(stackWalk) ) return;
+
+    proccontrol_printf("%s[%d]: searching stackwalk for initial func and stack top\n",
+            FILE__, __LINE__);
+
+    int pos = stackWalk.size() - 1;
+    while( (stackAddr_ == 0 || startFuncAddr_ == 0) && pos >= 0 ) {
+        if( dyn_debug_proccontrol ) {
+            cerr << stackWalk[pos] << endl;
+        }
+
+        if( stackAddr_ == 0 ) stackAddr_ = (Address) stackWalk[pos].getSP();
+        if( startFuncAddr_ == 0 ) {
+            int_function *tmpFunc = stackWalk[pos].getFunc();
+            if( tmpFunc != NULL ) {
+                mapped_module *mod = tmpFunc->mod();
+                if( mod && !mod->obj()->isSystemLib(mod->obj()->fullName()) ) {
+                    startFuncAddr_ = tmpFunc->ifunc()->getOffset();
+                }
+            }
+        }
+        pos--;
+    }
+}
+
+void PCThread::findStartFunc() {
+    // If this thread has exited, it is too late to determine this info
+    if( pcThr_ == Thread::ptr() ) return;
+        
+    startFuncAddr_ = pcThr_->getStartFunction();
+    if( startFuncAddr_ == 0 ) findSingleThreadInfo();
+
+    // If still haven't found the starting address, don't try to find the function
+    if( startFuncAddr_ == 0 ) return;
+
+    startFunc_ = proc_->findFuncByAddr(startFuncAddr_);
+}
+
+int_function *PCThread::getStartFunc() {
+    if( startFunc_ == NULL ) findStartFunc();
     return startFunc_;
 }
 
-Address PCThread::getStackAddr() const {
+void PCThread::findStackTop() {
+    // If this thread has exited, it is too late to determine this info
+    if( pcThr_ == Thread::ptr() ) return;
+
+    stackAddr_ = pcThr_->getStackBase();
+    if( stackAddr_ == 0 ) findSingleThreadInfo();
+}
+
+Address PCThread::getStackAddr() {
+    if( stackAddr_ == 0 ) findStackTop();
     return stackAddr_;
-}
-
-void PCThread::updateStartFunc(int_function *ifunc) {
-    startFunc_ = ifunc;
-}
-
-void PCThread::updateStackAddr(Address stackStart) {
-    stackAddr_ = stackStart;
 }
 
 PCProcess *PCThread::getProc() const {
@@ -132,7 +192,6 @@ bool PCThread::getRegisters(RegisterPool &regs, bool /* includeFP */) {
 
 bool PCThread::changePC(Address newPC) {
     if( pcThr_ == Thread::ptr() ) return false;
-
     return pcThr_->setRegister(MachRegister::getPC(proc_->getArch()), newPC);
 }
 
@@ -146,10 +205,13 @@ void PCThread::markExited() {
 }
 
 bool PCThread::isRunning() {
+    if( pcThr_ == Thread::ptr() ) return false;
     return pcThr_->isRunning();
 }
 
 bool PCThread::continueThread() {
+    if( pcThr_ == Thread::ptr() ) return false;
+
     clearStackwalk();
     proc_->invalidateActiveMultis();
 
@@ -166,5 +228,6 @@ bool PCThread::continueThread() {
 }
 
 bool PCThread::postIRPC(inferiorRPCinProgress *newRPC) {
+    if( pcThr_ == Thread::ptr() ) return false;
     return pcThr_->postIRPC(newRPC->rpc);
 }

@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS CXXCPP EGREP LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC BUILD_XLC GNU_DEMANGLER USE_LIBERTY LINK_LIBERTY LIBIBERTY_LIB_DIR LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBDWARF_HAS_SET_FRAME LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR DEFAULT_COMPONENT build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS CXXCPP EGREP LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC BUILD_XLC GNU_DEMANGLER USE_LIBERTY LINK_LIBERTY LIBIBERTY_LIB_DIR LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBDWARF_HAS_SET_FRAME THREADDB_INC_DIR THREADDB_LIB_DIR THREADDB_STATIC THREADDB_DYNAMIC HAVE_THREADDB LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LAUNCHMON_INC_DIR LAUNCHMON_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -855,6 +855,9 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-package-base     Base directory to look for packages
+  --with-default-component
+                          Valid values: DyninstAPI, SymtabAPI, InstructionAPI,
+                          ProcControlAPI, ParseAPI, default
   --with-tcl83            Use Tcl/Tk 8.3
   --with-tcltk-incdir     TCL/TK include directory
   --with-tcltk-libdir     TCL/TK library directory
@@ -866,10 +869,14 @@ Optional Packages:
   --with-libiberty-libdir LIBIBERTY library directory
   --with-libdwarf-incdir  LIBDWARF include directory
   --with-libdwarf-libdir  LIBDWARF library directory
+  --with-threaddb-incdir  THREADDB include directory
+  --with-threaddb-libdir  THREADDB library directory
   --with-libxml2-incdir   LIBXML2 include directory
   --with-libxml2-libdir   LIBXML2 library directory
   --with-libunwind-incdir LIBUNWIND include directory
   --with-libunwind-libdir LIBUNWIND library directory
+  --with-launchmon-incdir Launchmon include directory
+  --with-launchmon-libdir Launchmon library directory
   --with-libflex-libdir   Absolute path to flex library
 
 Some influential environment variables:
@@ -2212,6 +2219,13 @@ fi;
 #LIBIBERTY_LIB_DIR="/usr/lib";
 
 
+# Check whether --with-default-component or --without-default-component was given.
+if test "${with_default_component+set}" = set; then
+  withval="$with_default_component"
+  DEFAULT_COMPONENT="${withval}";
+else
+  DEFAULT_COMPONENT=`cat autodyninst/default_component`;
+fi;
 
 # Check whether --with-tcl83 or --without-tcl83 was given.
 if test "${with_tcl83+set}" = set; then
@@ -2545,6 +2559,7 @@ fi
 
 
 
+
 # Make sure we can run config.sub.
 $ac_config_sub sun4 >/dev/null 2>&1 ||
   { { echo "$as_me:$LINENO: error: cannot run $ac_config_sub" >&5
@@ -2614,10 +2629,55 @@ if test "${enable_gnu_demangler+set}" = set; then
   GNU_DEMANGLER="true"
 fi;
 
+if test "x$DEFAULT_COMPONENT" = "xInstructionAPI"; then
+   { echo "$as_me:$LINENO: InstructionAPI, not requiring libelf..." >&5
+echo "$as_me: InstructionAPI, not requiring libelf..." >&6;}
+   SUPPRESS_LIBELF_REQ="true"
+   { echo "$as_me:$LINENO: InstructionAPI, not requiring thread_db..." >&5
+echo "$as_me: InstructionAPI, not requiring thread_db..." >&6;}
+   SUPPRESS_THREADDB_REQ="true"
+   { echo "$as_me:$LINENO: InstructionAPI, not requiring libdwarf..." >&5
+echo "$as_me: InstructionAPI, not requiring libdwarf..." >&6;}
+   SUPPRESS_LIBDWARF_REQ="true"
+fi
+if test "x$DEFAULT_COMPONENT" = "xSymtabAPI"; then
+   { echo "$as_me:$LINENO: SymtabAPI, not requiring thread_db..." >&5
+echo "$as_me: SymtabAPI, not requiring thread_db..." >&6;}
+   SUPPRESS_THREADDB_REQ="true"
+fi
+if test "x$DEFAULT_COMPONENT" = "xParseAPI"; then
+   { echo "$as_me:$LINENO: ParseAPI, not requiring thread_db..." >&5
+echo "$as_me: ParseAPI, not requiring thread_db..." >&6;}
+   SUPPRESS_THREADDB_REQ="true"
+fi
+if test "x$DEFAULT_COMPONENT" = "xProcControlAPI"; then
+   { echo "$as_me:$LINENO: ProcControlAPI, not requiring libdwarf..." >&5
+echo "$as_me: ProcControlAPI, not requiring libdwarf..." >&6;}
+   SUPPRESS_LIBDWARF_REQ="true"
+fi
+if test "`echo $host_os | cut -b-5`" = "linux" ; then
+  if test "x$PLATFORM" = "xppc32_bgp_ion"; then
+   { echo "$as_me:$LINENO: BG/P, thread_db required..." >&5
+echo "$as_me: BG/P, thread_db required..." >&6;}
+  elif test "x$PLATFORM" = "xppc32_bgl_ion"; then
+   { echo "$as_me:$LINENO: BG/L, thread_db required..." >&5
+echo "$as_me: BG/L, thread_db required..." >&6;}
+  else
+   { echo "$as_me:$LINENO: Linux, not requiring thread_db..." >&5
+echo "$as_me: Linux, not requiring thread_db..." >&6;}
+   SUPPRESS_THREADDB_REQ="true"
+  fi
+fi
+
+if test "`echo $host_os | cut -b-3`" = "aix" ; then
+   { echo "$as_me:$LINENO: AIX, not requiring thread_db..." >&5
+echo "$as_me: AIX, not requiring thread_db..." >&6;}
+   SUPPRESS_THREADDB_REQ="true"
+fi
+
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
    { echo "$as_me:$LINENO: AIX system, skipping libelf..." >&5
 echo "$as_me: AIX system, skipping libelf..." >&6;}
-
 else
 
 # Check whether --with-libelf-incdir or --without-libelf-incdir was given.
@@ -2632,12 +2692,13 @@ if test "${with_libelf_libdir+set}" = set; then
   LIBELF_LIB_DIR="${withval}";
 fi;
 
-   CXXFLAGS_HOLD=$CXXFLAGS;
-   CXXFLAGS="$CXXFLAGS -I$LIBELF_INC_DIR";
-   CPPFLAGS_HOLD=$CPPFLAGS;
-   CPPFLAGS="$CPPFLAGS -I$LIBELF_INC_DIR";
+   if test "x$SUPPRESS_LIBELF_REQ" = "x"; then
+      CXXFLAGS_HOLD=$CXXFLAGS;
+      CXXFLAGS="$CXXFLAGS -I$LIBELF_INC_DIR";
+      CPPFLAGS_HOLD=$CPPFLAGS;
+      CPPFLAGS="$CPPFLAGS -I$LIBELF_INC_DIR";
 
-   ac_ext=cc
+      ac_ext=cc
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
@@ -3264,8 +3325,8 @@ if test `eval echo '${'$as_ac_Header'}'` = yes; then
 echo "$as_me: ELF include directory: $LIBELF_INC_DIR" >&6;}
 else
   CXXFLAGS="$CXXFLAGS -I$LIBELF_INC_DIR/libelf";
-         CPPFLAGS="$CPPFLAGS -I$LIBELF_INC_DIR/libelf";
-         as_ac_Header=`echo "ac_cv_header_$LIBELF_INC_DIR/libelf/libelf.h" | $as_tr_sh`
+            CPPFLAGS="$CPPFLAGS -I$LIBELF_INC_DIR/libelf";
+            as_ac_Header=`echo "ac_cv_header_$LIBELF_INC_DIR/libelf/libelf.h" | $as_tr_sh`
 if eval "test \"\${$as_ac_Header+set}\" = set"; then
   echo "$as_me:$LINENO: checking for $LIBELF_INC_DIR/libelf/libelf.h" >&5
 echo $ECHO_N "checking for $LIBELF_INC_DIR/libelf/libelf.h... $ECHO_C" >&6
@@ -3416,8 +3477,8 @@ fi
 fi
 
 
-   CXXFLAGS=$CXXFLAGS_HOLD;
-   CPPFLAGS=$CPPFLAGS_HOLD;
+      CXXFLAGS=$CXXFLAGS_HOLD;
+      CPPFLAGS=$CPPFLAGS_HOLD;
 
   if test "$LIBELF_LIB_DIR" = "" ; then
 
@@ -3672,6 +3733,7 @@ fi
   	LIB_TYPE_STATIC=`ls -H -1 $LIBELF_LIB_DIR | grep elf | grep '\.a' | wc | awk '{if($'2' > 0){print "true"} else {print ""}}'`
   fi
 
+   fi
    LIBELF_STATIC="$LIB_TYPE_STATIC"
    LIBELF_DYNAMIC="$LIB_TYPE_DYNAMIC"
 
@@ -3885,7 +3947,6 @@ fi
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
    { echo "$as_me:$LINENO: AIX system, skipping libdwarf..." >&5
 echo "$as_me: AIX system, skipping libdwarf..." >&6;}
-
 else
 
 # Check whether --with-libdwarf-incdir or --without-libdwarf-incdir was given.
@@ -3900,12 +3961,13 @@ if test "${with_libdwarf_libdir+set}" = set; then
   LIBDWARF_LIB_DIR="${withval}";
 fi;
 
-   CXXFLAGS_HOLD=$CXXFLAGS;
-   CXXFLAGS="$CXXFLAGS -I$LIBDWARF_INC_DIR";
-   CPPFLAGS_HOLD=$CPPFLAGS;
-   CPPFLAGS="$CPPFLAGS -I$LIBDWARF_INC_DIR";
+   if test "x$SUPPRESS_LIBDWARF_REQ" = "x"; then
+       CXXFLAGS_HOLD=$CXXFLAGS;
+       CXXFLAGS="$CXXFLAGS -I$LIBDWARF_INC_DIR";
+       CPPFLAGS_HOLD=$CPPFLAGS;
+       CPPFLAGS="$CPPFLAGS -I$LIBDWARF_INC_DIR";
 
-   as_ac_Header=`echo "ac_cv_header_$LIBDWARF_INC_DIR/libdwarf.h" | $as_tr_sh`
+       as_ac_Header=`echo "ac_cv_header_$LIBDWARF_INC_DIR/libdwarf.h" | $as_tr_sh`
 if eval "test \"\${$as_ac_Header+set}\" = set"; then
   echo "$as_me:$LINENO: checking for $LIBDWARF_INC_DIR/libdwarf.h" >&5
 echo $ECHO_N "checking for $LIBDWARF_INC_DIR/libdwarf.h... $ECHO_C" >&6
@@ -4048,8 +4110,8 @@ if test `eval echo '${'$as_ac_Header'}'` = yes; then
 echo "$as_me: DWARF include directory: $LIBDWARF_INC_DIR" >&6;}
 else
   CXXFLAGS="$CXXFLAGS -I$LIBDWARF_INC_DIR/libdwarf";
-         CPPFLAGS="$CPPFLAGS -I$LIBDWARF_INC_DIR/libdwarf";
-         as_ac_Header=`echo "ac_cv_header_$LIBDWARF_INC_DIR/libdwarf/libdwarf.h" | $as_tr_sh`
+                         CPPFLAGS="$CPPFLAGS -I$LIBDWARF_INC_DIR/libdwarf";
+                         as_ac_Header=`echo "ac_cv_header_$LIBDWARF_INC_DIR/libdwarf/libdwarf.h" | $as_tr_sh`
 if eval "test \"\${$as_ac_Header+set}\" = set"; then
   echo "$as_me:$LINENO: checking for $LIBDWARF_INC_DIR/libdwarf/libdwarf.h" >&5
 echo $ECHO_N "checking for $LIBDWARF_INC_DIR/libdwarf/libdwarf.h... $ECHO_C" >&6
@@ -4200,8 +4262,8 @@ fi
 fi
 
 
-   CXXFLAGS=$CXXFLAGS_HOLD;
-   CPPFLAGS=$CPPFLAGS_HOLD;
+       CXXFLAGS=$CXXFLAGS_HOLD;
+       CPPFLAGS=$CPPFLAGS_HOLD;
 
 
   if test "$LIBDWARF_LIB_DIR" = "" ; then
@@ -4457,6 +4519,8 @@ fi
   	LIB_TYPE_STATIC=`ls -H -1 $LIBDWARF_LIB_DIR | grep dwarf | grep '\.a' | wc | awk '{if($'2' > 0){print "true"} else {print ""}}'`
   fi
 
+   fi
+
    LIBDWARF_STATIC="$LIB_TYPE_STATIC"
    LIBDWARF_DYNAMIC="$LIB_TYPE_DYNAMIC"
 
@@ -4683,6 +4747,827 @@ fi
    LIBDWARF_HAS_SET_FRAME="$HAS_FEATURE"
 
 fi
+
+
+
+# Check whether --with-threaddb-incdir or --without-threaddb-incdir was given.
+if test "${with_threaddb_incdir+set}" = set; then
+  withval="$with_threaddb_incdir"
+  THREADDB_INC_DIR="${withval}";
+fi;
+
+# Check whether --with-threaddb-libdir or --without-threaddb-libdir was given.
+if test "${with_threaddb_libdir+set}" = set; then
+  withval="$with_threaddb_libdir"
+  THREADDB_LIB_DIR="${withval}";
+fi;
+CXXFLAGS_HOLD=$CXXFLAGS;
+CPPFLAGS_HOLD=$CPPFLAGS;
+LDFLAGS_HOLD=$LDFLAGS
+if test "x$THREADDB_INC_DIR" != "x"; then
+  CXXFLAGS="$CXXFLAGS -I$THREADDB_INC_DIR"
+  CPPFLAGS="$CPPFLAGS -I$THREADDB_INC_DIR"
+fi
+LDFLAGS="-shared -fPIC"
+HAVE_THREADDB="true"
+if test "x$SUPPRESS_THREADDB_REQ" = "x"; then
+    if test "${ac_cv_header_thread_db_h+set}" = set; then
+  echo "$as_me:$LINENO: checking for thread_db.h" >&5
+echo $ECHO_N "checking for thread_db.h... $ECHO_C" >&6
+if test "${ac_cv_header_thread_db_h+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+fi
+echo "$as_me:$LINENO: result: $ac_cv_header_thread_db_h" >&5
+echo "${ECHO_T}$ac_cv_header_thread_db_h" >&6
+else
+  # Is the header compilable?
+echo "$as_me:$LINENO: checking thread_db.h usability" >&5
+echo $ECHO_N "checking thread_db.h usability... $ECHO_C" >&6
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+$ac_includes_default
+#include <thread_db.h>
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_header_compiler=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_header_compiler=no
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
+echo "${ECHO_T}$ac_header_compiler" >&6
+
+# Is the header present?
+echo "$as_me:$LINENO: checking thread_db.h presence" >&5
+echo $ECHO_N "checking thread_db.h presence... $ECHO_C" >&6
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <thread_db.h>
+_ACEOF
+if { (eval echo "$as_me:$LINENO: \"$ac_cpp conftest.$ac_ext\"") >&5
+  (eval $ac_cpp conftest.$ac_ext) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } >/dev/null; then
+  if test -s conftest.err; then
+    ac_cpp_err=$ac_cxx_preproc_warn_flag
+    ac_cpp_err=$ac_cpp_err$ac_cxx_werror_flag
+  else
+    ac_cpp_err=
+  fi
+else
+  ac_cpp_err=yes
+fi
+if test -z "$ac_cpp_err"; then
+  ac_header_preproc=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+  ac_header_preproc=no
+fi
+rm -f conftest.err conftest.$ac_ext
+echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
+echo "${ECHO_T}$ac_header_preproc" >&6
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc:$ac_cxx_preproc_warn_flag in
+  yes:no: )
+    { echo "$as_me:$LINENO: WARNING: thread_db.h: accepted by the compiler, rejected by the preprocessor!" >&5
+echo "$as_me: WARNING: thread_db.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { echo "$as_me:$LINENO: WARNING: thread_db.h: proceeding with the compiler's result" >&5
+echo "$as_me: WARNING: thread_db.h: proceeding with the compiler's result" >&2;}
+    ac_header_preproc=yes
+    ;;
+  no:yes:* )
+    { echo "$as_me:$LINENO: WARNING: thread_db.h: present but cannot be compiled" >&5
+echo "$as_me: WARNING: thread_db.h: present but cannot be compiled" >&2;}
+    { echo "$as_me:$LINENO: WARNING: thread_db.h:     check for missing prerequisite headers?" >&5
+echo "$as_me: WARNING: thread_db.h:     check for missing prerequisite headers?" >&2;}
+    { echo "$as_me:$LINENO: WARNING: thread_db.h: see the Autoconf documentation" >&5
+echo "$as_me: WARNING: thread_db.h: see the Autoconf documentation" >&2;}
+    { echo "$as_me:$LINENO: WARNING: thread_db.h:     section \"Present But Cannot Be Compiled\"" >&5
+echo "$as_me: WARNING: thread_db.h:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { echo "$as_me:$LINENO: WARNING: thread_db.h: proceeding with the preprocessor's result" >&5
+echo "$as_me: WARNING: thread_db.h: proceeding with the preprocessor's result" >&2;}
+    { echo "$as_me:$LINENO: WARNING: thread_db.h: in the future, the compiler will take precedence" >&5
+echo "$as_me: WARNING: thread_db.h: in the future, the compiler will take precedence" >&2;}
+    (
+      cat <<\_ASBOX
+## ------------------------------- ##
+## Report this to bugs@dyninst.org ##
+## ------------------------------- ##
+_ASBOX
+    ) |
+      sed "s/^/$as_me: WARNING:     /" >&2
+    ;;
+esac
+echo "$as_me:$LINENO: checking for thread_db.h" >&5
+echo $ECHO_N "checking for thread_db.h... $ECHO_C" >&6
+if test "${ac_cv_header_thread_db_h+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_cv_header_thread_db_h=$ac_header_preproc
+fi
+echo "$as_me:$LINENO: result: $ac_cv_header_thread_db_h" >&5
+echo "${ECHO_T}$ac_cv_header_thread_db_h" >&6
+
+fi
+if test $ac_cv_header_thread_db_h = yes; then
+  { echo "$as_me:$LINENO: thread_db include directory: $THREADDB_INC_DIR" >&5
+echo "$as_me: thread_db include directory: $THREADDB_INC_DIR" >&6;}
+else
+  { { echo "$as_me:$LINENO: error: couldn't find thread_db.h" >&5
+echo "$as_me: error: couldn't find thread_db.h" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+
+
+  if test "$THREADDB_LIB_DIR" = "" ; then
+
+echo "$as_me:$LINENO: checking for td_ta_new in -lthread_db" >&5
+echo $ECHO_N "checking for td_ta_new in -lthread_db... $ECHO_C" >&6
+if test "${ac_cv_lib_thread_db_td_ta_new+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lthread_db  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char td_ta_new ();
+int
+main ()
+{
+td_ta_new ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_thread_db_td_ta_new=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_thread_db_td_ta_new=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_thread_db_td_ta_new" >&5
+echo "${ECHO_T}$ac_cv_lib_thread_db_td_ta_new" >&6
+if test $ac_cv_lib_thread_db_td_ta_new = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTHREAD_DB 1
+_ACEOF
+
+  LIBS="-lthread_db $LIBS"
+
+else
+  { { echo "$as_me:$LINENO: error: Can't find libthread_db." >&5
+echo "$as_me: error: Can't find libthread_db." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+  else
+    LIBS_HOLD=$LIBS
+    if test "" != "" ; then
+      LIBS="-L$THREADDB_LIB_DIR -L"
+
+echo "$as_me:$LINENO: checking for td_ta_new in -lthread_db" >&5
+echo $ECHO_N "checking for td_ta_new in -lthread_db... $ECHO_C" >&6
+if test "${ac_cv_lib_thread_db_td_ta_new+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lthread_db  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char td_ta_new ();
+int
+main ()
+{
+td_ta_new ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_thread_db_td_ta_new=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_thread_db_td_ta_new=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_thread_db_td_ta_new" >&5
+echo "${ECHO_T}$ac_cv_lib_thread_db_td_ta_new" >&6
+if test $ac_cv_lib_thread_db_td_ta_new = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTHREAD_DB 1
+_ACEOF
+
+  LIBS="-lthread_db $LIBS"
+
+else
+  { { echo "$as_me:$LINENO: error: Can't find libthread_db in $THREADDB_LIB_DIR" >&5
+echo "$as_me: error: Can't find libthread_db in $THREADDB_LIB_DIR" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+    else
+      LIBS="-L$THREADDB_LIB_DIR"
+
+echo "$as_me:$LINENO: checking for td_ta_new in -lthread_db" >&5
+echo $ECHO_N "checking for td_ta_new in -lthread_db... $ECHO_C" >&6
+if test "${ac_cv_lib_thread_db_td_ta_new+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lthread_db  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char td_ta_new ();
+int
+main ()
+{
+td_ta_new ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_thread_db_td_ta_new=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_thread_db_td_ta_new=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_thread_db_td_ta_new" >&5
+echo "${ECHO_T}$ac_cv_lib_thread_db_td_ta_new" >&6
+if test $ac_cv_lib_thread_db_td_ta_new = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTHREAD_DB 1
+_ACEOF
+
+  LIBS="-lthread_db $LIBS"
+
+else
+  { { echo "$as_me:$LINENO: error: Can't find libthread_db in $THREADDB_LIB_DIR" >&5
+echo "$as_me: error: Can't find libthread_db in $THREADDB_LIB_DIR" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+    fi
+    LIBS=$LIBS_HOLD
+  fi
+
+else
+    if test "${ac_cv_header_thread_db_h+set}" = set; then
+  echo "$as_me:$LINENO: checking for thread_db.h" >&5
+echo $ECHO_N "checking for thread_db.h... $ECHO_C" >&6
+if test "${ac_cv_header_thread_db_h+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+fi
+echo "$as_me:$LINENO: result: $ac_cv_header_thread_db_h" >&5
+echo "${ECHO_T}$ac_cv_header_thread_db_h" >&6
+else
+  # Is the header compilable?
+echo "$as_me:$LINENO: checking thread_db.h usability" >&5
+echo $ECHO_N "checking thread_db.h usability... $ECHO_C" >&6
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+$ac_includes_default
+#include <thread_db.h>
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_header_compiler=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_header_compiler=no
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
+echo "${ECHO_T}$ac_header_compiler" >&6
+
+# Is the header present?
+echo "$as_me:$LINENO: checking thread_db.h presence" >&5
+echo $ECHO_N "checking thread_db.h presence... $ECHO_C" >&6
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <thread_db.h>
+_ACEOF
+if { (eval echo "$as_me:$LINENO: \"$ac_cpp conftest.$ac_ext\"") >&5
+  (eval $ac_cpp conftest.$ac_ext) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } >/dev/null; then
+  if test -s conftest.err; then
+    ac_cpp_err=$ac_cxx_preproc_warn_flag
+    ac_cpp_err=$ac_cpp_err$ac_cxx_werror_flag
+  else
+    ac_cpp_err=
+  fi
+else
+  ac_cpp_err=yes
+fi
+if test -z "$ac_cpp_err"; then
+  ac_header_preproc=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+  ac_header_preproc=no
+fi
+rm -f conftest.err conftest.$ac_ext
+echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
+echo "${ECHO_T}$ac_header_preproc" >&6
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc:$ac_cxx_preproc_warn_flag in
+  yes:no: )
+    { echo "$as_me:$LINENO: WARNING: thread_db.h: accepted by the compiler, rejected by the preprocessor!" >&5
+echo "$as_me: WARNING: thread_db.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { echo "$as_me:$LINENO: WARNING: thread_db.h: proceeding with the compiler's result" >&5
+echo "$as_me: WARNING: thread_db.h: proceeding with the compiler's result" >&2;}
+    ac_header_preproc=yes
+    ;;
+  no:yes:* )
+    { echo "$as_me:$LINENO: WARNING: thread_db.h: present but cannot be compiled" >&5
+echo "$as_me: WARNING: thread_db.h: present but cannot be compiled" >&2;}
+    { echo "$as_me:$LINENO: WARNING: thread_db.h:     check for missing prerequisite headers?" >&5
+echo "$as_me: WARNING: thread_db.h:     check for missing prerequisite headers?" >&2;}
+    { echo "$as_me:$LINENO: WARNING: thread_db.h: see the Autoconf documentation" >&5
+echo "$as_me: WARNING: thread_db.h: see the Autoconf documentation" >&2;}
+    { echo "$as_me:$LINENO: WARNING: thread_db.h:     section \"Present But Cannot Be Compiled\"" >&5
+echo "$as_me: WARNING: thread_db.h:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { echo "$as_me:$LINENO: WARNING: thread_db.h: proceeding with the preprocessor's result" >&5
+echo "$as_me: WARNING: thread_db.h: proceeding with the preprocessor's result" >&2;}
+    { echo "$as_me:$LINENO: WARNING: thread_db.h: in the future, the compiler will take precedence" >&5
+echo "$as_me: WARNING: thread_db.h: in the future, the compiler will take precedence" >&2;}
+    (
+      cat <<\_ASBOX
+## ------------------------------- ##
+## Report this to bugs@dyninst.org ##
+## ------------------------------- ##
+_ASBOX
+    ) |
+      sed "s/^/$as_me: WARNING:     /" >&2
+    ;;
+esac
+echo "$as_me:$LINENO: checking for thread_db.h" >&5
+echo $ECHO_N "checking for thread_db.h... $ECHO_C" >&6
+if test "${ac_cv_header_thread_db_h+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_cv_header_thread_db_h=$ac_header_preproc
+fi
+echo "$as_me:$LINENO: result: $ac_cv_header_thread_db_h" >&5
+echo "${ECHO_T}$ac_cv_header_thread_db_h" >&6
+
+fi
+if test $ac_cv_header_thread_db_h = yes; then
+  { echo "$as_me:$LINENO: thread_db include directory: $THREADDB_INC_DIR" >&5
+echo "$as_me: thread_db include directory: $THREADDB_INC_DIR" >&6;}
+else
+  HAVE_THREADDB=""
+fi
+
+
+
+  if test "$THREADDB_LIB_DIR" = "" ; then
+
+echo "$as_me:$LINENO: checking for td_ta_new in -lthread_db" >&5
+echo $ECHO_N "checking for td_ta_new in -lthread_db... $ECHO_C" >&6
+if test "${ac_cv_lib_thread_db_td_ta_new+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lthread_db  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char td_ta_new ();
+int
+main ()
+{
+td_ta_new ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_thread_db_td_ta_new=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_thread_db_td_ta_new=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_thread_db_td_ta_new" >&5
+echo "${ECHO_T}$ac_cv_lib_thread_db_td_ta_new" >&6
+if test $ac_cv_lib_thread_db_td_ta_new = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTHREAD_DB 1
+_ACEOF
+
+  LIBS="-lthread_db $LIBS"
+
+else
+  HAVE_THREADDB=""
+fi
+
+  else
+    LIBS_HOLD=$LIBS
+    if test "" != "" ; then
+      LIBS="-L$THREADDB_LIB_DIR -L"
+
+echo "$as_me:$LINENO: checking for td_ta_new in -lthread_db" >&5
+echo $ECHO_N "checking for td_ta_new in -lthread_db... $ECHO_C" >&6
+if test "${ac_cv_lib_thread_db_td_ta_new+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lthread_db  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char td_ta_new ();
+int
+main ()
+{
+td_ta_new ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_thread_db_td_ta_new=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_thread_db_td_ta_new=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_thread_db_td_ta_new" >&5
+echo "${ECHO_T}$ac_cv_lib_thread_db_td_ta_new" >&6
+if test $ac_cv_lib_thread_db_td_ta_new = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTHREAD_DB 1
+_ACEOF
+
+  LIBS="-lthread_db $LIBS"
+
+else
+  HAVE_THREADDB=""
+fi
+
+    else
+      LIBS="-L$THREADDB_LIB_DIR"
+
+echo "$as_me:$LINENO: checking for td_ta_new in -lthread_db" >&5
+echo $ECHO_N "checking for td_ta_new in -lthread_db... $ECHO_C" >&6
+if test "${ac_cv_lib_thread_db_td_ta_new+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lthread_db  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char td_ta_new ();
+int
+main ()
+{
+td_ta_new ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_thread_db_td_ta_new=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_thread_db_td_ta_new=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_thread_db_td_ta_new" >&5
+echo "${ECHO_T}$ac_cv_lib_thread_db_td_ta_new" >&6
+if test $ac_cv_lib_thread_db_td_ta_new = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTHREAD_DB 1
+_ACEOF
+
+  LIBS="-lthread_db $LIBS"
+
+else
+  HAVE_THREADDB=""
+fi
+
+    fi
+    LIBS=$LIBS_HOLD
+  fi
+
+fi
+if test "x$HAVE_THREADDB" = "xtrue"; then
+
+  LIB_TYPE_DYNAMIC=`ls -H -1 $THREADDB_LIB_DIR | grep thread_db | grep '\.so' | wc | awk '{if($'2' > 0){print "true"} else {print ""}}'`
+  if test "$LIB_TYPE_DYNAMIC" = "true"; then
+	LIB_TYPE_STATIC=
+  else
+  	LIB_TYPE_STATIC=`ls -H -1 $THREADDB_LIB_DIR | grep thread_db | grep '\.a' | wc | awk '{if($'2' > 0){print "true"} else {print ""}}'`
+  fi
+
+fi
+CXXFLAGS=$CXXFLAGS_HOLD
+CPPFLAGS=$CPPFLAGS_HOLD
+LDFLAGS=$LDFLAGS_HOLD
+THREADDB_STATIC="$LIB_TYPE_STATIC"
+THREADDB_DYNAMIC="$LIB_TYPE_DYNAMIC"
+
+
 
 
 
@@ -5085,6 +5970,21 @@ rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
   CXXFLAGS=$CXXFLAGS_HOLD
 
 fi
+
+
+
+
+# Check whether --with-launchmon-incdir or --without-launchmon-incdir was given.
+if test "${with_launchmon_incdir+set}" = set; then
+  withval="$with_launchmon_incdir"
+  LAUNCHMON_INC_DIR="${withval}";
+fi;
+
+# Check whether --with-launchmon-libdir or --without-launchmon-libdir was given.
+if test "${with_launchmon_libdir+set}" = set; then
+  withval="$with_launchmon_libdir"
+  LAUNCHMON_LIB_DIR="${withval}";
+fi;
 
 
 
@@ -6176,6 +7076,7 @@ s,@_CXX_@,$_CXX_,;t t
 s,@USE_TCL83@,$USE_TCL83,;t t
 s,@TCLTK_INC_DIR@,$TCLTK_INC_DIR,;t t
 s,@TCLTK_LIB_DIR@,$TCLTK_LIB_DIR,;t t
+s,@DEFAULT_COMPONENT@,$DEFAULT_COMPONENT,;t t
 s,@build@,$build,;t t
 s,@build_cpu@,$build_cpu,;t t
 s,@build_vendor@,$build_vendor,;t t
@@ -6201,10 +7102,17 @@ s,@LIBDWARF_LIB_DIR@,$LIBDWARF_LIB_DIR,;t t
 s,@LIBDWARF_STATIC@,$LIBDWARF_STATIC,;t t
 s,@LIBDWARF_DYNAMIC@,$LIBDWARF_DYNAMIC,;t t
 s,@LIBDWARF_HAS_SET_FRAME@,$LIBDWARF_HAS_SET_FRAME,;t t
+s,@THREADDB_INC_DIR@,$THREADDB_INC_DIR,;t t
+s,@THREADDB_LIB_DIR@,$THREADDB_LIB_DIR,;t t
+s,@THREADDB_STATIC@,$THREADDB_STATIC,;t t
+s,@THREADDB_DYNAMIC@,$THREADDB_DYNAMIC,;t t
+s,@HAVE_THREADDB@,$HAVE_THREADDB,;t t
 s,@LIBXML2_INC_DIR@,$LIBXML2_INC_DIR,;t t
 s,@LIBXML2_LIB_DIR@,$LIBXML2_LIB_DIR,;t t
 s,@LIBUNWIND_INC_DIR@,$LIBUNWIND_INC_DIR,;t t
 s,@LIBUNWIND_LIB_DIR@,$LIBUNWIND_LIB_DIR,;t t
+s,@LAUNCHMON_INC_DIR@,$LAUNCHMON_INC_DIR,;t t
+s,@LAUNCHMON_LIB_DIR@,$LAUNCHMON_LIB_DIR,;t t
 s,@LIBFLEX_LIB_DIR@,$LIBFLEX_LIB_DIR,;t t
 s,@NASM@,$NASM,;t t
 s,@STACKPROT@,$STACKPROT,;t t

@@ -49,10 +49,7 @@ Frame::Frame() :
   proc_(NULL),
   thread_(NULL),
   range_(0),
-  frameType_(FRAME_unset),
-  uppermost_(false) {
-    stackwalk_cerr << "*** Null frame ***" << endl;
-}
+  uppermost_(false) {}
 
 Frame::Frame(const Dyninst::Stackwalker::Frame &swf,
 	     PCProcess *proc,
@@ -63,10 +60,7 @@ Frame::Frame(const Dyninst::Stackwalker::Frame &swf,
   proc_(proc),
   thread_(thread),
   range_(0),
-  frameType_(FRAME_unset),
-  uppermost_(uppermost) {
-  stackwalk_cerr << "Base frame:   " << (*this) << endl;
-}
+  uppermost_(uppermost) {}
 
 codeRange *Frame::getRange() {
   if (!range_) {
@@ -82,78 +76,6 @@ void Frame::setRange(codeRange *range) {
   assert(!range_ ||
 	 (range == range_));
   range_ = range;
-}
-
-bool Frame::isLastFrame() const
-{
-  return sw_frame_.isFrameComplete();
-}
-
-#if defined(os_linux) && defined(arch_x86)
-extern void calcVSyscallFrame(PCProcess *p);
-#endif
-
-void Frame::calcFrameType()
-{
-    // Can be called multiple times...
-    if (frameType_ != FRAME_unset) {
-        return;
-    }
-
-   int_function *func;
-   miniTrampInstance *mini;
-   multiTramp *multi;
-
-   // Without a process pointer, we're not going to get far.
-   if (!getProc())
-       return;
-
-   // Checking for a signal handler must go before the vsyscall check
-   // since (on Linux) the signal handler is _inside_ the vsyscall page.
-   if (getProc()->isInSignalHandler(getPC())) {
-     frameType_ = FRAME_signalhandler;
-     return;
-   }
-
-   // Better to have one function that has platform-specific IFDEFs
-   // than a stack of 90% equivalent functions
-#if defined(os_linux) && defined(arch_x86)
-   calcVSyscallFrame(getProc());
-   if ((getPC() >= getProc()->getVsyscallStart() && getPC() < getProc()->getVsyscallEnd()) || /* Hack for RH9 */ (getPC() >= 0xffffe000 && getPC() < 0xfffff000)) {
-     frameType_ = FRAME_syscall;
-     return;
-   }
-#endif   
-   
-   codeRange *range = getRange();
-
-   func = range->is_function();
-   multi = range->is_multitramp();
-   mini = range->is_minitramp();
-
-   if (mini != NULL) {
-       frameType_ = FRAME_instrumentation;
-       return;
-   }
-   else if (multi != NULL) {
-            frameType_ = FRAME_instrumentation;
-            return;
-   }
-   else if (func != NULL) {
-       frameType_ = FRAME_normal;
-       return;
-   }
-   else if (range->is_inferior_rpc()) {
-       frameType_ = FRAME_iRPC;
-       return;
-   }
-   else {
-     frameType_ = FRAME_unknown;
-     return;
-   }
-   assert(0 && "Unreachable");
-   frameType_ = FRAME_unset;
-   return;
 }
 
 // Get the instPoint corresponding with this frame
@@ -253,88 +175,73 @@ Address Frame::getUninstAddr() {
     }
 }
 
-
 ostream & operator << ( ostream & s, Frame & f ) {
-    f.calcFrameType();
-	codeRange * range = f.getRange();
-	int_function * func_ptr = range->is_function();
-        multiTramp *multi_ptr = range->is_multitramp();
-	miniTrampInstance * minitramp_ptr = range->is_minitramp();
+  codeRange * range = f.getRange();
+  int_function * func_ptr = range->is_function();
+  multiTramp *multi_ptr = range->is_multitramp();
+  miniTrampInstance * minitramp_ptr = range->is_minitramp();
 
-	s << "PC: 0x" << std::hex << f.getPC() << " ";
-	switch (f.frameType_) {
-	case FRAME_unset:
-	  s << "[UNSET FRAME TYPE]";
-	  break;
-	case FRAME_instrumentation:
-	  s << "[Instrumentation:";
-	  if (minitramp_ptr) {
-	    s << "mt from "
-	      << minitramp_ptr->baseTI->multiT->func()->prettyName();
-	  }
-	  else if (multi_ptr) {
-              baseTrampInstance *bti = multi_ptr->getBaseTrampInstanceByAddr(f.getPC());
-              if (bti) {
-                  s << "bt from ";
-              }
-              else {
-                  s << "multitramp from ";
-              }
-              
-              s << multi_ptr->func()->prettyName();
-	  }
+  s << "PC: 0x" << std::hex << f.getPC() << " ";
 
-          // And the address
-          s << std::hex << "/0x" << f.getUninstAddr();
-          s << "]" << std::dec;
-          
-	  break;
-	case FRAME_signalhandler:
-	  s << "[SIGNAL HANDLER]";
-	  break;
-	case FRAME_normal:
-	  if( func_ptr ) {
-	    s << "[" << func_ptr->prettyName() << "]";
-	  }
-	  break;
-	case FRAME_syscall:
-	  s << "[SYSCALL]";
-	  break;
-        case FRAME_iRPC:
-            s << "[iRPC]";
-            break;
-	case FRAME_unknown:
-	  s << "[UNKNOWN]";
-	  break;
-        default:
-            s << "[ERROR!]";
-            break;
-	}
-	s << " FP: 0x" << std::hex << f.getFP() << " SP: 0x" << f.getSP() << " PID: " << std::dec << f.getProc()->getPid() << " "; 
-	if( f.getThread() ) {
-   		s << "TID: " << f.getThread()->getTid() << " ";
-                s << "LWP: " << f.getThread()->getLWP() << " ";
-        }
-	
-	return s;
-	}
+  if (f.isInstrumentation())
+  {
+    s << "[Instrumentation:";
+    if (minitramp_ptr) {
+      s << "mt from "
+        << minitramp_ptr->baseTI->multiT->func()->prettyName();
+    }
+    else if (multi_ptr) {
+      baseTrampInstance *bti = multi_ptr->getBaseTrampInstanceByAddr(f.getPC());
+      if (bti) {
+        s << "bt from ";
+      }
+      else {
+        s << "multitramp from ";
+      }
+
+      s << multi_ptr->func()->prettyName();
+    }
+
+    // And the address
+    s << std::hex << "/0x" << f.getUninstAddr();
+    s << "]" << std::dec;
+  }
+  else if (f.isSignalFrame())
+  {
+    s << "[SIGNAL HANDLER]";
+  }
+  else 
+  {
+    if( func_ptr ) {
+      s << "[" << func_ptr->prettyName() << "]";
+    }
+  }
+
+  s << " FP: 0x" << std::hex << f.getFP() << " SP: 0x" << f.getSP() << " PID: " << std::dec << f.getProc()->getPid() << " "; 
+  if( f.getThread() ) {
+    s << "TID: " << f.getThread()->getTid() << " ";
+    s << "LWP: " << f.getThread()->getLWP() << " ";
+  }
+
+  return s;
+}
 
 bool Frame::isSignalFrame()
 { 
-    calcFrameType();
-    return frameType_ == FRAME_signalhandler;
+  if (sw_frame_.getNextStepper() &&
+      dynamic_cast<Dyninst::Stackwalker::SigHandlerStepper*>(sw_frame_.getNextStepper()))
+    return true;
+  else
+    return false;
 }
 
 bool Frame::isInstrumentation()
 { 
-    calcFrameType();
-    return frameType_ == FRAME_instrumentation;
-}
-
-bool Frame::isSyscall()
-{ 
-    calcFrameType();
-    return frameType_ == FRAME_syscall;
+  if (sw_frame_.getNextStepper() &&
+      dynamic_cast<Dyninst::Stackwalker::DyninstInstrStepper*>(sw_frame_.getNextStepper()))
+    return true;
+  else
+    return false;
 }
 
 Address Frame::getPClocation()

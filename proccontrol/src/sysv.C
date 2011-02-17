@@ -32,7 +32,6 @@
 #include "dynutil/h/dyntypes.h"
 #include "sysv.h"
 #include "irpc.h"
-#include "snippets.h"
 
 #if defined(os_linux)
 #include "common/h/linuxKludges.h"
@@ -400,7 +399,7 @@ bool sysv_process::plat_execed()
 {
    pthrd_printf("Rebuilding library trap mechanism after exec on %d\n", getPid());
    if (aout) {
-      // TODO safely delete aout
+      // aout has already been deleted in the forking process
       aout = NULL;
    }
    if (translator) {

@@ -2443,8 +2443,7 @@ tests_module('fucompp', 'instruction').
 
 
 % ProcessControlAPI Tests
-pcPlatforms(P) :- platform('x86_64', 'linux', _, P).
-pcPlatforms(P) :- platform('i386', 'linux', _, P).
+pcPlatforms(P) :- platform(_, 'linux', _, P).
 pcPlatforms(P) :- platform('i386', 'freebsd', _,P).
 pcPlatforms(P) :- platform('x86_64', 'freebsd', _,P).
 
@@ -2531,6 +2530,19 @@ tests_module('pc_singlestep', 'proccontrol').
 mutatee('pc_singlestep', ['pc_singlestep_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_singlestep', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_singlestep', _, Opt) :- member(Opt, ['none']).
+
+test('pc_thread', 'pc_thread', 'pc_thread').
+test_description('pc_thread', 'Thread Info').
+test_platform('pc_thread', Platform) :- pcPlatforms(Platform).
+mutator('pc_thread', ['pc_thread.C']).
+test_runmode('pc_thread', 'dynamic').
+test_threadmode('pc_thread', 'Threading').
+test_processmode('pc_thread', 'Processes').
+test_start_state('pc_thread', 'stopped').
+tests_module('pc_thread', 'proccontrol').
+mutatee('pc_thread', ['pc_thread_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_thread', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_thread', _, Opt) :- member(Opt, ['none']).
 
 test('pc_fork', 'pc_fork', 'pc_fork').
 test_description('pc_fork', 'Fork processes').

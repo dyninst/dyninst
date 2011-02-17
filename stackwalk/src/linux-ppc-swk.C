@@ -45,87 +45,6 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-unsigned ProcDebugLinux::getAddressWidth()
-{
-   return sizeof(void *);
-}
-
-#define USER_OFFSET_OF(register) ((signed int) &(((struct user *) NULL)->regs.register))
-
-static long int getRegOffset(Dyninst::MachRegister reg, int addr_width)
-{
-   switch (reg.val()) {
-      case Dyninst::iReturnAddr:
-      case Dyninst::ppc32::ipc:
-         return USER_OFFSET_OF(nip);
-      case Dyninst::iStackTop:
-         return -2;
-      case Dyninst::iFrameBase:
-      case Dyninst::ppc32::ir1:
-         return USER_OFFSET_OF(gpr[1]);
-   }
-   return -1;
-}
-
-bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg, 
-                                 Dyninst::THR_ID t, 
-                                 Dyninst::MachRegisterVal &val)
-{
-   long int result;
-   long int offset = getRegOffset(reg, getAddressWidth());
-   if (offset == -2) {
-     val = 0x0;
-     return true;
-   }
-   if (offset == -1) {
-     sw_printf("[%s:%u] - Request for unsupported register %s\n",
-	       __FILE__, __LINE__, reg.name());
-     setLastError(err_badparam, "Unknown register passed in reg field");
-     return false;
-   }
-   
-   sw_printf("[%s:%u] - Reading register %d at offset %ld\n", __FILE__, __LINE__, (int) reg, offset);
-   errno = 0;
-   result = ptrace(PTRACE_PEEKUSER, (pid_t) t, (void*) offset, NULL);
-   if (errno)
-   {
-      int errnum = errno;
-      sw_printf("[%s:%u] - Could not read gprs in %d: %s\n", 
-                __FILE__, __LINE__, t, strerror(errnum));
-      setLastError(err_procread, "Could not read registers from process");
-      return false;
-   }
-
-   val = result;
-
-   return true;
-}
-
-bool ProcDebugLinux::setRegValue(Dyninst::MachRegister reg, 
-                                 Dyninst::THR_ID t, 
-                                 Dyninst::MachRegisterVal val)
-{
-   int result;
-   long int offset = getRegOffset(reg, getAddressWidth());
-   if (offset < 0) {
-     sw_printf("[%s:%u] - Request for unsupported register %s\n",
-	       __FILE__, __LINE__, reg.name());
-     setLastError(err_badparam, "Unknown register passed in reg field");
-     return false;
-   }
-   
-   result = ptrace(PTRACE_POKEUSER, (pid_t) t, (void*) offset, (void *) val);
-   if (result == -1)
-   {
-      int errnum = errno;
-      sw_printf("[%s:%u] - Could not write to gprs in %d: %s\n", 
-                __FILE__, __LINE__, t, strerror(errnum));
-      setLastError(err_procread, "Could not write registers to process");
-      return false;
-   }
-   return true;
-}
-
 bool Walker::createDefaultSteppers()
 {
   FrameStepper *stepper;
@@ -142,11 +61,6 @@ bool Walker::createDefaultSteppers()
   return true;
 }
 
-Dyninst::Architecture ProcDebugLinux::getArchitecture()
-{
-   return Dyninst::Arch_ppc32;
-}
-
 gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &/*in*/, 
                                                     Frame &/*out*/)
 {
@@ -154,8 +68,4 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &/*in*/,
     * TODO: Implement me on non-x86 platforms.
     **/
    return gcf_not_me;
-}
-
-void ProcDebugLinux::detach_arch_cleanup()
-{
 }

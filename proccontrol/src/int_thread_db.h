@@ -31,16 +31,20 @@
 #if !defined(INT_THREAD_DB_H_)
 #define INT_THREAD_DB_H
 
+#include "proccontrol/src/int_process.h"
+
+#if defined(cap_thread_db)
+
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Decoder.h"
 #include "proccontrol/h/Handler.h"
-#include "proccontrol/src/int_process.h"
-#include "proccontrol/src/sysv.h"
 #include "proccontrol/src/int_handler.h"
 
+extern "C" {
 #include <thread_db.h>
-#include <proc_service.h>
+#include "proc_service_wrapper.h"
+}
 
 #include <map>
 using std::map;
@@ -59,20 +63,21 @@ class thread_db_thread;
 
 class thread_db_process : virtual public int_process
 {
+   friend class thread_db_thread;
 public:
-    thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
-            std::vector<std::string> envp, std::map<int, int> f);
+    thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, std::map<int, int> f);
     thread_db_process(Dyninst::PID pid_, int_process *p);
     virtual ~thread_db_process();
 
-    bool getEventsAtAddr(Dyninst::Address addr, thread_db_thread *eventThread,
-            vector<Event::ptr> &threadEvents);
+    bool decodeTdbBreakpoint(EventBreakpoint::ptr bp);
+    bool decodeTdbLWPExit(EventLWPDestroy::ptr lwp_ev);
+    bool decodeTdbLibLoad(EventLibrary::ptr lib_ev);
 
     /* helper functions for thread_db interactions */
 
     td_thragent_t *getThreadDBAgent();
     ps_err_e getSymbolAddr(const char *objName, const char *symName, 
-            psaddr_t *symbolAddr);
+                           psaddr_t *symbolAddr);
     virtual bool initThreadDB();
     virtual void freeThreadDBAgent();
     virtual bool getPostDestroyEvents(vector<Event::ptr> &events);
@@ -89,24 +94,33 @@ public:
     virtual bool post_attach();
     virtual bool post_create();
 
-    virtual bool plat_readProcMem(void *local,
-            Dyninst::Address remote, size_t size) = 0;
-    virtual bool plat_writeProcMem(void *local,
-            Dyninst::Address remote, size_t size) = 0;
-    virtual bool plat_getLWPInfo(lwpid_t lwp, void *lwpInfo) = 0;
-    virtual bool plat_contThread(lwpid_t lwp) = 0;
-    virtual bool plat_stopThread(lwpid_t lwp) = 0;
-    virtual string getThreadLibName(const char *symName) = 0;
-    virtual bool isSupportedThreadLib(const string &libName) = 0;
+    // Platform-dependent functionality (derived classes override)
+    virtual bool plat_getLWPInfo(lwpid_t lwp, void *lwpInfo);
 
+    virtual const char *getThreadLibName(const char *symName);
+    virtual bool isSupportedThreadLib(string libName);
+    int_thread *triggerThread() const;
+
+    bool initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info);
+    
+    bool updateTidInfo(vector<Event::ptr> &threadEvents);
+    bool needsTidUpdate();
+    
 protected:
+    Event::ptr decodeThreadEvent(td_event_msg_t *eventMsg);
+    bool handleThreadAttach(td_thrhandle_t *thr);
+
     static volatile bool thread_db_initialized;
+    bool thread_db_proc_initialized;
     static Mutex thread_db_init_lock;
 
     map<Dyninst::Address, pair<int_breakpoint *, EventType> > addr2Event;
     td_thragent_t *threadAgent;
 
     struct ps_prochandle *self;
+    int_thread *trigger_thread;
+
+    bool needs_tid_update;
 };
 
 /*
@@ -118,20 +132,31 @@ struct ps_prochandle {
 
 class thread_db_thread : public int_thread
 {
+    friend class ThreadDBCreateHandler;
+    friend class thread_db_process;
 public:
     thread_db_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
-
-    thread_db_thread();
     virtual ~thread_db_thread();
 
     Event::ptr getThreadEvent();
     bool setEventReporting(bool on);
+    bool fetchThreadInfo();
 
     bool plat_resume();
     bool plat_suspend();
     void markDestroyed();
     bool isDestroyed();
 
+    // Platform-dependent functionality
+    virtual bool plat_getThreadArea(int val, Dyninst::Address &addr);
+    virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
+
+    virtual bool haveUserThreadInfo();
+    virtual bool getTID(Dyninst::THR_ID &tid);
+    virtual bool getStartFuncAddress(Dyninst::Address &addr);
+    virtual bool getStackBase(Dyninst::Address &addr);
+    virtual bool getStackSize(unsigned long &size);
+    virtual bool getTLSPtr(Dyninst::Address &addr);
 protected:
     // Initialization of the thread handle cannot be performed until 
     // thread_db is loaded and initialized. When creating a process,
@@ -139,13 +164,17 @@ protected:
     // before thread_db is initialized so we lazily initialize the
     // thread handle
     bool initThreadHandle();
-
+    
     td_thrhandle_t *threadHandle;
+    td_thrinfo_t tinfo;
 
     // Since a thread destroy event happens at a breakpoint, the 
     // breakpoint needs to be cleaned up before the thread can be 
     // removed from the threadPool and deleted.
     bool destroyed;
+    bool tinfo_initialized;
+    bool thread_initialized;
+    bool threadHandle_alloced;
 };
 
 class ThreadDBCreateHandler : public Handler
@@ -177,5 +206,41 @@ public:
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);
 };
+
+typedef struct new_thread_data {
+  td_thrhandle_t *thr_handle;
+  td_thrinfo_t thr_info;
+} new_thread_data_t;
+
+#else
+
+class thread_db_thread : public int_thread
+{
+  public:
+    thread_db_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
+    virtual ~thread_db_thread();
+
+    virtual bool plat_getThreadArea(int val, Dyninst::Address &addr);
+    virtual bool haveUserThreadInfo();
+    virtual bool getTID(Dyninst::THR_ID &tid);
+    virtual bool getStartFuncAddress(Dyninst::Address &addr);
+    virtual bool getStackBase(Dyninst::Address &addr);
+    virtual bool getStackSize(unsigned long &size);
+    virtual bool getTLSPtr(Dyninst::Address &addr);
+};
+
+
+class thread_db_process : virtual public int_process
+{
+  public:
+    thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, std::map<int, int> f);
+    thread_db_process(Dyninst::PID pid_, int_process *p);
+    virtual ~thread_db_process();
+
+    bool decodeThreadBP(EventBreakpoint::ptr bp);
+    static void addThreadDBHandlers(HandlerPool *hpool);
+};
+
+#endif
 
 #endif

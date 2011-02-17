@@ -230,7 +230,10 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                      if (thread->getLWP() == proc->getPid())
                         event = Event::ptr(new EventExit(EventType::Pre, 0));
                      else {
-                        event = Event::ptr(new EventThreadDestroy(EventType::Pre));
+                        EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
+                        event = lwp_ev;
+                        event->setThread(thread->thread());
+                        lproc->decodeTdbLWPExit(lwp_ev);
                      }
                      thread->setExitingInGenerator(true);
                      break;
@@ -297,14 +300,23 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             if (ibp && ibp != thread->isClearingBreakpoint()) {
                pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(), 
                             thread->getLWP(), adjusted_addr);
-               event = Event::ptr(new EventBreakpoint(adjusted_addr, ibp));
+               EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(adjusted_addr, ibp));
+               event = event_bp;
+               event->setThread(thread->thread());
 
                if (adjusted_addr == lproc->getLibBreakpointAddr()) {
                   pthrd_printf("Breakpoint is library load/unload\n");
-                  Event::ptr lib_event = Event::ptr(new EventLibrary());
+                  EventLibrary::ptr lib_event = EventLibrary::ptr(new EventLibrary());
                   lib_event->setThread(thread->thread());
                   lib_event->setProcess(proc->proc());
+                  lproc->decodeTdbLibLoad(lib_event);
                   event->addSubservientEvent(lib_event);
+                  
+                  break;
+               }
+               if (lproc->decodeTdbBreakpoint(event_bp)) {
+                  pthrd_printf("Breakpoint was thread event\n");
+                  break;
                }
                break;
             }
@@ -362,8 +374,11 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       int exitcode = WEXITSTATUS(status);
       pthrd_printf("Decoded exit of thread %d/%d with code %d\n",
                    proc->getPid(), thread->getLWP(), exitcode);
-      event = Event::ptr(new EventThreadDestroy(EventType::Post));
+      EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
+      event = lwp_ev;
       event->setSyncType(Event::async);
+      event->setThread(thread->thread());
+      lproc->decodeTdbLWPExit(lwp_ev);
       thread->setGeneratorState(int_thread::exited);
    }
    else if (WIFEXITED(status) || WIFSIGNALED(status)) {
@@ -402,7 +417,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       if (parent->event_ext == PTRACE_EVENT_FORK)
          event = Event::ptr(new EventFork(child->pid));
       else if (parent->event_ext == PTRACE_EVENT_CLONE)
-         event = Event::ptr(new EventNewThread(child->pid));
+         event = Event::ptr(new EventNewLWP(child->pid));
       else 
          assert(0);
       event->setSyncType(Event::sync_thread);
@@ -518,12 +533,13 @@ Dyninst::Architecture linux_process::getTargetArch()
    return arch;
 }
 
-linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
-        std::map<int,int> f) :
+linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+                             std::vector<std::string> envp,  std::map<int,int> f) :
    int_process(p, e, a, envp, f),
    sysv_process(p, e, a, envp, f),
    unix_process(p, e, a, envp, f),
-   x86_process(p, e, a, envp, f)
+   arch_process(p, e, a, envp, f),
+   thread_db_process(p, e, a, envp, f)
 {
 }
 
@@ -531,7 +547,8 @@ linux_process::linux_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p),
    sysv_process(pid_, p),
    unix_process(pid_, p),
-   x86_process(pid_, p)
+   arch_process(pid_, p),
+   thread_db_process(pid_, p)
 {
 }
 
@@ -559,6 +576,9 @@ bool linux_process::plat_create_int()
 
    if (!pid)
    {
+      // Make sure cleanup on failure goes smoothly
+      ProcPool()->condvar()->unlock();
+
       //Child
       long int result = ptrace((pt_req) PTRACE_TRACEME, 0, 0, 0);
       if (result == -1)
@@ -572,6 +592,39 @@ bool linux_process::plat_create_int()
       plat_execv();
    }
    return true;
+}
+
+// Defaults to is running
+bool linux_process::plat_getOSRunningState(Dyninst::LWP lwp) const {
+    char proc_stat_name[128];
+    char sstat[256];
+    char *status;
+    int paren_level = 1;
+    
+    snprintf(proc_stat_name, 128, "/proc/%d/stat", lwp);
+    FILE *sfile = fopen(proc_stat_name, "r");
+
+    if (sfile == NULL) return true;
+    if( fread(sstat, 1, 256, sfile) == 0 ) {
+        pthrd_printf("Failed to read /proc/<pid>/stat file for %d\n",
+                pid);
+        return true;
+    }
+    fclose(sfile);
+
+    sstat[255] = '\0';
+    status = sstat;
+
+    while (*status != '\0' && *(status++) != '(') ;
+    while (*status != '\0' && paren_level != 0) {
+        if (*status == '(') paren_level++;
+        if (*status == ')') paren_level--;
+        status++;
+    }
+
+    while (*status == ' ') status++;
+
+    return (*status != 'T');
 }
 
 bool linux_process::plat_attach()
@@ -747,6 +800,11 @@ bool linux_process::needIndividualThreadAttach()
    return true;
 }
 
+bool linux_process::plat_supportLWPEvents() const
+{
+   return true;
+}
+
 bool linux_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
 {
    return findProcLWPs(pid, lwps);
@@ -882,7 +940,7 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
 }
 
 linux_thread::linux_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
-   int_thread(p, t, l)
+   thread_db_thread(p, t, l)
 {
 }
 
@@ -925,59 +983,12 @@ void linux_thread::setOptions()
       int result = do_ptrace((pt_req) PTRACE_SETOPTIONS, lwp, NULL, 
                           (void *) options);
       if (result == -1) {
-         pthrd_printf("Failed to set options for %d: %s\n", tid, strerror(errno));
+         pthrd_printf("Failed to set options for %lu: %s\n", tid, strerror(errno));
       }
    }   
 }
 
-bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
-{
-   switch (llproc()->getTargetArch())
-   {
-      case Arch_x86_64:
-         // TODO
-         // use ptrace_arch_prctl     
-         pthrd_printf("Segment bases on x86_64 not implemented\n");
-         return false;
-      case Arch_x86: {
-         MachRegister segmentSelectorReg;
-         MachRegisterVal segmentSelectorVal;
-         unsigned long entryNumber;
-         struct user_desc entryDesc;
 
-         switch (reg.val())
-         {
-            case x86::ifsbase: segmentSelectorReg = x86::fs; break;
-            case x86::igsbase: segmentSelectorReg = x86::gs; break;
-            default: {
-               pthrd_printf("Failed to get unrecognized segment base\n");
-               return false;
-            }
-         }
-
-         if (!plat_getRegister(segmentSelectorReg, segmentSelectorVal))
-         {
-           pthrd_printf("Failed to get segment base with selector %s\n", segmentSelectorReg.name());
-           return false;
-         }
-         entryNumber = segmentSelectorVal / 8;
-
-         pthrd_printf("Get segment base doing PTRACE with entry %lu\n", entryNumber);
-         long result = do_ptrace((pt_req) PTRACE_GET_THREAD_AREA, 
-                                 lwp, (void *) entryNumber, (void *) &entryDesc);
-         if (result == -1 && errno != 0) {
-            pthrd_printf("PTRACE to get segment base failed: %s\n", strerror(errno));
-            return false;
-         }
-
-         val = entryDesc.base_addr;
-         pthrd_printf("Got segment base: 0x%lx\n", val);
-         return true;
-      }
-      default:
-         assert(0);
-   }
-}
 
 bool linux_process::plat_individualRegAccess()
 {
@@ -1076,77 +1087,213 @@ static void init_dynreg_to_user()
       cur+= 8; //r14
       cur+= 8; //r13
       cur+= 8; //r12
-      dynreg_to_user[x86::ebp]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::ebx]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
+      dynreg_to_user[x86::ebp]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::ebx]   = make_pair(cur+=8, 4);
       cur+= 8; //r11
       cur+= 8; //r10
       cur+= 8; //r9
       cur+= 8; //r8
-      dynreg_to_user[x86::eax]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::ecx]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::edx]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::esi]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::edi]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::oeax]  = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::eip]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::cs]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::flags] = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::esp]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::ss]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::fsbase]= std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::gsbase]= std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::ds]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::es]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::fs]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::gs]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
+      dynreg_to_user[x86::eax]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::ecx]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::edx]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::esi]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::edi]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::oeax]  = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::eip]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::cs]    = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::flags] = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::esp]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::ss]    = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::fsbase]= make_pair(cur+=8, 4);
+      dynreg_to_user[x86::gsbase]= make_pair(cur+=8, 4);
+      dynreg_to_user[x86::ds]    = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::es]    = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::fs]    = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::gs]    = make_pair(cur+=8, 4);
    }
    else {
-      dynreg_to_user[x86::ebx]   = std::pair<unsigned int, unsigned int>(cur, 4);
-      dynreg_to_user[x86::ecx]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::edx]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::esi]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::edi]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::ebp]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::eax]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::ds]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::es]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::fs]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::gs]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::oeax]  = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::eip]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::cs]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::flags] = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::esp]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::ss]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
+      dynreg_to_user[x86::ebx]   = make_pair(cur, 4);
+      dynreg_to_user[x86::ecx]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::edx]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::esi]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::edi]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::ebp]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::eax]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::ds]    = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::es]    = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::fs]    = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::gs]    = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::oeax]  = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::eip]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::cs]    = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::flags] = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::esp]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::ss]    = make_pair(cur+=4, 4);
    }
    cur = 0;
-   dynreg_to_user[x86_64::r15]    = std::pair<unsigned int, unsigned int>(cur, 8);
-   dynreg_to_user[x86_64::r14]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r13]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r12]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rbp]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rbx]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r11]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r10]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r9]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r8]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rax]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rcx]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rdx]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rsi]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rdi]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::orax]   = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rip]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::cs]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::flags]  = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rsp]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::ss]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::fsbase] = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::gsbase] = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::ds]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::es]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::fs]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::gs]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
+   dynreg_to_user[x86_64::r15]    = make_pair(cur, 8);
+   dynreg_to_user[x86_64::r14]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r13]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r12]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rbp]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rbx]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r11]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r10]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r9]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r8]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rax]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rcx]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rdx]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rsi]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rdi]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::orax]   = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rip]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::cs]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::flags]  = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rsp]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::ss]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::fsbase] = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::gsbase] = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::ds]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::es]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::fs]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::gs]     = make_pair(cur+=8, 8);
+
+   cur = 0;
+   if(sizeof(void *) == 8 ) {
+       dynreg_to_user[ppc32::r0]        = make_pair(cur, 4);
+       dynreg_to_user[ppc32::r1]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r2]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r3]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r4]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r5]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r6]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r7]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r8]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r9]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r10]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r11]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r12]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r13]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r14]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r15]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r16]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r17]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r18]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r19]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r20]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r21]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r22]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r23]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r24]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r25]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r26]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r27]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r28]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r29]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r30]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r31]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::pc]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::msr]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::or3]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::ctr]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::lr]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::xer]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::cr]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::mq]         = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::trap]       = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::dar]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::dsisr]      = make_pair(cur+=8, 4);
+   }else{
+       dynreg_to_user[ppc32::r0]        = make_pair(cur, 4);
+       dynreg_to_user[ppc32::r1]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r2]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r3]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r4]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r5]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r6]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r7]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r8]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r9]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r10]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r11]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r12]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r13]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r14]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r15]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r16]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r17]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r18]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r19]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r20]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r21]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r22]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r23]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r24]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r25]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r26]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r27]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r28]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r29]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r30]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r31]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::pc]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::msr]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::or3]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::ctr]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::lr]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::xer]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::cr]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::mq]         = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::trap]       = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::dar]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::dsisr]      = make_pair(cur+=4, 4);
+   }
+   cur = 0;
+   dynreg_to_user[ppc64::r0]        = make_pair(cur, 8);
+   dynreg_to_user[ppc64::r1]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r2]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r3]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r4]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r5]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r6]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r7]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r8]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r9]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r10]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r11]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r12]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r13]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r14]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r15]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r16]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r17]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r18]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r19]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r20]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r21]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r22]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r23]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r24]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r25]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r26]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r27]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r28]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r29]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r30]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r31]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::pc]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::msr]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::or3]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::ctr]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::lr]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::xer]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::cr]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::mq]         = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::trap]       = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::dar]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::dsisr]      = make_pair(cur+=8, 8);
+
    initialized = true;
 
    init_lock.unlock();
@@ -1185,7 +1332,13 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
       const unsigned int offset = i->second.first;
       const unsigned int size = i->second.second;
       if (size == 4) {
-         val = *((uint32_t *) (user_area+offset));
+         if( sizeof(void *) == 8 ) {
+            // Avoid endian issues
+            uint64_t tmpVal = *((uint64_t *) (user_area+offset));
+            val = (uint32_t) tmpVal;
+         }else{
+            val = *((uint32_t *) (user_area+offset));
+         }
       }
       else if (size == 8) {
          val = *((uint64_t *) (user_area+offset));
@@ -1230,17 +1383,28 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    return true;
 }
 
-bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
-{
-   init_dynreg_to_user();
-
+bool linux_thread::plat_setAllRegisters(int_registerPool &regpool) {
    unsigned char user_area[MAX_USER_SIZE];
 
    //Fill in 'user_area' with the contents of regpool.
-   dynreg_to_user_t::iterator i;
+   if( !plat_convertToSystemRegs(regpool, user_area) ) return false;
+
+   int result = do_ptrace((pt_req) PTRACE_SETREGS, lwp, NULL, user_area);
+   if (result != 0) {
+      perr_printf("Error setting registers for %d\n", lwp);
+      setLastError(err_internal, "Could not read user area from thread");
+      return false;
+   }
+   pthrd_printf("Successfully set the values of all registers for %d\n", lwp);
+   return true;
+}
+
+bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, unsigned char *user_area) {
+   init_dynreg_to_user();
+
+   Architecture curplat = llproc()->getTargetArch();
    unsigned num_found = 0;
-   Dyninst::Architecture curplat = llproc()->getTargetArch();
-   for (i = dynreg_to_user.begin(); i != dynreg_to_user.end(); i++)
+   for (dynreg_to_user_t::const_iterator i = dynreg_to_user.begin(); i != dynreg_to_user.end(); i++)
    {
       const MachRegister reg = i->first;
       MachRegisterVal val;
@@ -1251,12 +1415,16 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
       const unsigned int size = i->second.second;
       assert(offset+size < MAX_USER_SIZE);
       
-      int_registerPool::reg_map_t::iterator j = regpool.regs.find(reg);
+      int_registerPool::reg_map_t::const_iterator j = regpool.regs.find(reg);
       assert(j != regpool.regs.end());
       val = j->second;
       
       if (size == 4) {
-         *((uint32_t *) (user_area+offset)) = (uint32_t) val;
+          if( sizeof(void *) == 8 ) {
+              *((uint64_t *) (user_area+offset)) = (uint64_t) val;
+          }else{
+              *((uint32_t *) (user_area+offset)) = (uint32_t) val;
+          }
       }
       else if (size == 8) {
          *((uint64_t *) (user_area+offset)) = (uint64_t) val;
@@ -1266,6 +1434,7 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
       }
       pthrd_printf("Register %s gets value %lx, offset %d\n", reg.name(), val, offset);
    }
+
    if (num_found != regpool.regs.size())
    {
       setLastError(err_badparam, "Invalid register set passed to setAllRegisters");
@@ -1275,13 +1444,6 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
    }
    assert(num_found == regpool.regs.size());
 
-   int result = do_ptrace((pt_req) PTRACE_SETREGS, lwp, NULL, user_area);
-   if (result != 0) {
-      perr_printf("Error setting registers for %d\n", lwp);
-      setLastError(err_internal, "Could not read user area from thread");
-      return false;
-   }
-   pthrd_printf("Successfully set the values of all registers for %d\n", lwp);
    return true;
 }
 
@@ -1404,6 +1566,64 @@ bool linux_thread::attach()
    return true;
 }
 
+#if !defined(ARCH_GET_FS)
+#define ARCH_GET_FS 0x1003
+#endif
+#if !defined(ARCH_GET_GS)
+#define ARCH_GET_GS 0x1004
+#endif
+#if !defined(PTRACE_GET_THREAD_AREA)
+#define PTRACE_GET_THREAD_AREA 25
+#endif
+#if !defined(PTRACE_ARCH_PRCTL)
+#define PTRACE_ARCH_PRCTL 30
+#endif
+#define FS_REG_NUM 25
+#define GS_REG_NUM 26
+
+bool linux_thread::plat_getThreadArea(int val, Dyninst::Address &addr)
+{
+   Dyninst::Architecture arch = llproc()->getTargetArch();
+   switch (arch) {
+      case Arch_x86: {
+         uint32_t addrv[4];
+         int result = do_ptrace((pt_req) PTRACE_GET_THREAD_AREA, lwp, (void *) val, &addrv);
+         if (result != 0) {
+            int error = errno;
+            perr_printf("Error doing PTRACE_GET_THREAD_AREA on %d/%d: %s\n", llproc()->getPid(), lwp, strerror(error));
+            setLastError(err_internal, "Error doing PTRACE_GET_THREAD_AREA\n");
+            return false;
+         }
+         addr = (Dyninst::Address) addrv[1];
+         break;
+      }
+      case Arch_x86_64: {
+         int op;
+         if (val == FS_REG_NUM)
+            op = ARCH_GET_FS;
+         else if (val == GS_REG_NUM)
+            op = ARCH_GET_GS;
+         else {
+            perr_printf("Bad value (%d) passed to plat_getThreadArea\n", val);
+            return false;
+         }
+         uint64_t addrv;
+         int result = do_ptrace((pt_req) PTRACE_ARCH_PRCTL, lwp, &addrv, (void *) op);
+         if (result != 0) {
+            int error = errno;
+            perr_printf("Error doing PTRACE_ARCH_PRCTL on %d/%d: %s\n", llproc()->getPid(), lwp, strerror(error));
+            setLastError(err_internal, "Error doing PTRACE_ARCH_PRCTL\n");
+            return false;
+         }
+         addr = (Dyninst::Address) addrv;
+         break;
+      }
+      default:
+         assert(0); //Should not be needed on non-x86
+   }
+   return true;
+}
+
 ArchEventLinux::ArchEventLinux(bool inter_) : 
    status(0),
    pid(NULL_PID),
@@ -1508,6 +1728,48 @@ void LinuxHandleNewThr::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::Bootstrap));
 }
 
+LinuxHandleLWPDestroy::LinuxHandleLWPDestroy()
+    : Handler("Linux LWP Destroy")
+{
+}
+
+LinuxHandleLWPDestroy::~LinuxHandleLWPDestroy()
+{
+}
+
+Handler::handler_ret_t LinuxHandleLWPDestroy::handleEvent(Event::ptr ev) {
+    int_thread *thrd = ev->getThread()->llthrd();
+
+    // This handler is necessary because SIGSTOPS cannot be sent to pre-destroyed
+    // threads -- these stops will never be delivered to the debugger
+    //
+    // Setting the exiting state in the thread will avoid any waiting for pending stops
+    // on this thread
+
+    thrd->setExiting(true);
+
+    // If there is a pending stop, need to handle it here because there is
+    // no guarantee that the stop will ever be received
+    if( thrd->hasPendingStop() ) {
+        thrd->setInternalState(int_thread::stopped);
+        if (thrd->hasPendingUserStop()) {
+            thrd->setUserState(int_thread::stopped);
+        }
+    }
+
+    return ret_success;
+}
+
+int LinuxHandleLWPDestroy::getPriority() const
+{
+    return PostPlatformPriority;
+}
+
+void LinuxHandleLWPDestroy::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+    etypes.push_back(EventType(EventType::Pre, EventType::LWPDestroy));
+}
+
 HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
 {
    static bool initialized = false;
@@ -1517,6 +1779,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
       initialized = true;
    }
    hpool->addHandler(lbootstrap);
+   thread_db_process::addThreadDBHandlers(hpool);
    return hpool;
 }
 
@@ -1761,3 +2024,120 @@ const unsigned char x86_call_munmap[] = {
 };
 const unsigned int x86_call_munmap_size = sizeof(x86_call_munmap);
 
+const unsigned int ppc32_mmap_flags_hi_position = 34;
+const unsigned int ppc32_mmap_flags_lo_position = 38;
+const unsigned int ppc32_mmap_size_hi_position = 18;
+const unsigned int ppc32_mmap_size_lo_position = 22;
+const unsigned int ppc32_mmap_addr_hi_position = 10;
+const unsigned int ppc32_mmap_addr_lo_position = 14;
+const unsigned int ppc32_mmap_start_position = 4;
+const unsigned char ppc32_call_mmap[] = {
+     0x60, 0x00, 0x00, 0x00,            // nop
+     0x38, 0x00, 0x00, 0x5a,            // li      r0,<syscall>
+     0x3c, 0x60, 0x00, 0x00,            // lis     r3,<addr_hi>
+     0x60, 0x63, 0x00, 0x00,            // ori     r3,r3,<addr_lo>
+     0x3c, 0x80, 0x00, 0x00,            // lis     r4,<size_hi>
+     0x60, 0x84, 0x00, 0x00,            // ori     r4,r4,<size_lo>
+     0x3c, 0xa0, 0x00, 0x00,            // lis     r5,<perms_hi>
+     0x60, 0xa5, 0x00, 0x07,            // ori     r5,r5,<perms_lo>
+     0x3c, 0xc0, 0x00, 0x00,            // lis     r6,<flags_hi>
+     0x60, 0xc6, 0x00, 0x00,            // ori     r6,r6,<flags_lo>
+     0x3c, 0xe0, 0xff, 0xff,            // lis     r7,<fd_hi>
+     0x60, 0xe7, 0xff, 0xff,            // ori     r7,r7,<fd_lo>
+     0x3d, 0x00, 0x00, 0x00,            // lis     r8,<offset>
+     0x44, 0x00, 0x00, 0x02,            // sc
+     0x7d, 0x82, 0x10, 0x08,            // trap
+     0x60, 0x00, 0x00, 0x00             // nop
+};
+const unsigned int ppc32_call_mmap_size = sizeof(ppc32_call_mmap);
+
+const unsigned int ppc32_munmap_size_hi_position = 18;
+const unsigned int ppc32_munmap_size_lo_position = 22;
+const unsigned int ppc32_munmap_addr_hi_position = 10;
+const unsigned int ppc32_munmap_addr_lo_position = 14;
+const unsigned int ppc32_munmap_start_position = 4;
+const unsigned char ppc32_call_munmap[] = {
+   0x60, 0x60, 0x60, 0x60,              // nop
+   0x38, 0x00, 0x00, 0x5b,              // li      r0,<syscall>
+   0x3c, 0x60, 0x00, 0x00,              // lis     r3,<addr_hi>
+   0x60, 0x63, 0x00, 0x00,              // ori     r3,r3,<addr_lo>
+   0x3c, 0x80, 0x00, 0x00,              // lis     r4,<size_hi>
+   0x60, 0x84, 0x00, 0x00,              // ori     r4,r4,<size_lo>
+   0x44, 0x00, 0x00, 0x02,              // sc
+   0x7d, 0x82, 0x10, 0x08,              // trap
+   0x60, 0x00, 0x00, 0x00               // nop
+};
+const unsigned int ppc32_call_munmap_size = sizeof(ppc32_call_munmap);
+
+const unsigned int ppc64_mmap_flags_highest_position = 70;
+const unsigned int ppc64_mmap_flags_higher_position = 74;
+const unsigned int ppc64_mmap_flags_hi_position = 82;
+const unsigned int ppc64_mmap_flags_lo_position = 86;
+const unsigned int ppc64_mmap_size_highest_position = 30;
+const unsigned int ppc64_mmap_size_higher_position = 34;
+const unsigned int ppc64_mmap_size_hi_position = 42;
+const unsigned int ppc64_mmap_size_lo_position = 46;
+const unsigned int ppc64_mmap_addr_highest_position = 10;
+const unsigned int ppc64_mmap_addr_higher_position = 14;
+const unsigned int ppc64_mmap_addr_hi_position = 22;
+const unsigned int ppc64_mmap_addr_lo_position = 26;
+const unsigned int ppc64_mmap_start_position = 4;
+const unsigned char ppc64_call_mmap[] = {
+   0x60, 0x00, 0x00, 0x00,              // nop
+   0x38, 0x00, 0x00, 0x5a,              // li      r0,<syscall>
+   0x3c, 0x60, 0x00, 0x00,              // lis     r3,<addr_highest>
+   0x60, 0x63, 0x00, 0x00,              // ori     r3,r3,<addr_higher>
+   0x78, 0x63, 0x07, 0xc6,              // rldicr  r3,r3,0x32,0x31,
+   0x64, 0x63, 0x00, 0x00,              // oris    r3,r3,<addr_hi>
+   0x60, 0x63, 0x00, 0x00,              // ori     r3,r3,<addr_lo>
+   0x3c, 0x80, 0x00, 0x00,              // lis     r4,<size_highest>
+   0x60, 0x84, 0x00, 0x00,              // ori     r4,r4,<size_higher>
+   0x78, 0x84, 0x07, 0xc6,              // rldicr  r4,r4,0x32,0x31,
+   0x64, 0x84, 0x00, 0x00,              // oris    r4,r4,<size_hi>
+   0x60, 0x84, 0x00, 0x00,              // ori     r4,r4,<size_lo>
+   0x3c, 0xa0, 0x00, 0x00,              // lis     r5,<perms_highest>
+   0x60, 0xa5, 0x00, 0x00,              // ori     r5,r5,<perms_higher>
+   0x78, 0xa5, 0x07, 0xc6,              // rldicr  r5,r5,0x32,0x31,
+   0x64, 0xa5, 0x00, 0x00,              // oris    r5,r5,<perms_hi>
+   0x60, 0xa5, 0x00, 0x07,              // ori     r5,r5,<perms_lo>
+   0x3c, 0xc0, 0x00, 0x00,              // lis     r6,<flags_highest>
+   0x60, 0xc6, 0x00, 0x00,              // ori     r6,r6,<flags_higher>
+   0x78, 0xc6, 0x07, 0xc6,              // rldicr  r6,r6,0x32,0x31,
+   0x64, 0xc6, 0x00, 0x00,              // oris    r6,r6,<flags_hi>
+   0x60, 0xc6, 0x00, 0x00,              // ori     r6,r6,<flags_lo>
+   0x3c, 0xe0, 0x00, 0x00,              // lis     r7,<fd=-1>
+   0x7c, 0xe7, 0x3b, 0xb8,              // nand    r7,r7,r7
+   0x3d, 0x00, 0x00, 0x00,              // lis     r8,<offset>
+   0x44, 0x00, 0x00, 0x02,              // sc      
+   0x7d, 0x82, 0x10, 0x08,              // trap
+   0x60, 0x00, 0x00, 0x00               // nop
+};
+const unsigned int ppc64_call_mmap_size = sizeof(ppc64_call_mmap);
+
+const unsigned int ppc64_munmap_size_highest_position = 30;
+const unsigned int ppc64_munmap_size_higher_position = 34;
+const unsigned int ppc64_munmap_size_hi_position = 42;
+const unsigned int ppc64_munmap_size_lo_position = 46;
+const unsigned int ppc64_munmap_addr_highest_position = 10;
+const unsigned int ppc64_munmap_addr_higher_position = 14;
+const unsigned int ppc64_munmap_addr_hi_position = 22;
+const unsigned int ppc64_munmap_addr_lo_position = 26;
+const unsigned int ppc64_munmap_start_position = 4;
+const unsigned char ppc64_call_munmap[] = {
+   0x60, 0x00, 0x00, 0x00,              // nop
+   0x38, 0x00, 0x00, 0x5b,              // li      r0,<syscall>
+   0x3c, 0x60, 0x00, 0x00,              // lis     r3,<addr_highest>
+   0x60, 0x63, 0x00, 0x00,              // ori     r3,r3,<addr_higher>
+   0x78, 0x63, 0x07, 0xc6,              // rldicr  r3,r3,0x32,0x31,
+   0x64, 0x63, 0x00, 0x00,              // oris    r3,r3,<addr_hi>
+   0x60, 0x63, 0x00, 0x00,              // ori     r3,r3,<addr_lo>
+   0x3c, 0x80, 0x00, 0x00,              // lis     r4,<size_highest>
+   0x60, 0x84, 0x00, 0x00,              // ori     r4,r4,<size_higher>
+   0x78, 0x84, 0x07, 0xc6,              // rldicr  r4,r4,0x32,0x31,
+   0x64, 0x84, 0x00, 0x00,              // oris    r4,r4,<size_hi>
+   0x60, 0x84, 0x00, 0x00,              // ori     r4,r4,<size_lo>
+   0x44, 0x00, 0x00, 0x02,              // sc      
+   0x7d, 0x82, 0x10, 0x08,              // trap
+   0x60, 0x00, 0x00, 0x00               // nop
+};
+const unsigned int ppc64_call_munmap_size = sizeof(ppc64_call_munmap);

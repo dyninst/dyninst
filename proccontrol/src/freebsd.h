@@ -39,7 +39,7 @@
 #include "proccontrol/src/int_thread_db.h"
 #include "proccontrol/src/unix.h"
 #include "proccontrol/src/sysv.h"
-#include "proccontrol/src/x86_process.h"
+#include "proccontrol/src/arch_process.h"
 
 #include "common/h/dthread.h"
 
@@ -83,7 +83,7 @@ public:
     Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class freebsd_process : public thread_db_process, public sysv_process, public unix_process, public x86_process
+class freebsd_process : public thread_db_process, public sysv_process, public unix_process, public arch_process
 {
 public:
     freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
@@ -95,7 +95,7 @@ public:
     virtual bool plat_attach();
     virtual bool plat_forked();
     virtual bool plat_execed();
-    virtual bool plat_detach();
+    virtual bool plat_detach(bool &needs_sync);
     virtual bool plat_terminate(bool &needs_sync);
 
     virtual bool plat_readMem(int_thread *thr, void *local,
@@ -116,15 +116,9 @@ public:
     virtual SymbolReaderFactory *plat_defaultSymReader();
 
     /* thread_db_process methods */
-    virtual string getThreadLibName(const char *symName);
-    virtual bool isSupportedThreadLib(const string &libName);
-    virtual bool plat_readProcMem(void *local,
-            Dyninst::Address remote, size_t size);
-    virtual bool plat_writeProcMem(void *local,
-            Dyninst::Address remote, size_t size);
+    virtual const char *getThreadLibName(const char *symName);
+    virtual bool isSupportedThreadLib(string libName);
     virtual bool plat_getLWPInfo(lwpid_t lwp, void *lwpInfo);
-    virtual bool plat_contThread(lwpid_t lwp);
-    virtual bool plat_stopThread(lwpid_t lwp);
     
 protected:
     string libThreadName;

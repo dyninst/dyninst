@@ -744,7 +744,7 @@ freebsd_process::freebsd_process(Dyninst::PID p, std::string e, std::vector<std:
   thread_db_process(p, e, a, envp, f),
   sysv_process(p, e, a, envp, f),
   unix_process(p, e, a, envp, f),
-  x86_process(p, e, a, envp, f)
+  arch_process(p, e, a, envp, f)
 {
 }
 
@@ -753,7 +753,7 @@ freebsd_process::freebsd_process(Dyninst::PID pid_, int_process *p) :
   thread_db_process(pid_, p),
   sysv_process(pid_, p),
   unix_process(pid_, p),
-  x86_process(pid_, p)
+  arch_process(pid_, p)
 {
 }
 
@@ -883,8 +883,9 @@ bool freebsd_process::plat_execed() {
     return true;
 }
 
-bool freebsd_process::plat_detach() {
+bool freebsd_process::plat_detach(bool &needs_sync) {
     pthrd_printf("PT_DETACH on %d\n", getPid());
+    needs_sync = false;
     if( 0 != ptrace(PT_DETACH, getPid(), (caddr_t)1, 0) ) {
         perr_printf("Failed to PT_DETACH on %d\n", getPid());
         setLastError(err_internal, "PT_DETACH operation failed\n");
@@ -914,27 +915,15 @@ bool freebsd_process::plat_terminate(bool &needs_sync) {
 }
 
 bool freebsd_process::plat_readMem(int_thread *thr, void *local, 
-                         Dyninst::Address remote, size_t size) 
+                                   Dyninst::Address remote, size_t size) 
 {
     return PtraceBulkRead(remote, size, local, thr->llproc()->getPid());
 }
 
-bool freebsd_process::plat_readProcMem(void *local, 
-        Dyninst::Address remote, size_t size)
-{
-    return PtraceBulkRead(remote, size, local, getPid());
-}
-
 bool freebsd_process::plat_writeMem(int_thread *thr, const void *local, 
-                          Dyninst::Address remote, size_t size) 
+                                    Dyninst::Address remote, size_t size) 
 {
     return PtraceBulkWrite(remote, size, local, thr->llproc()->getPid());
-}
-
-bool freebsd_process::plat_writeProcMem(void *local, 
-                          Dyninst::Address remote, size_t size) 
-{
-    return PtraceBulkWrite(remote, size, local, getPid());
 }
 
 bool freebsd_process::needIndividualThreadAttach() {
@@ -1017,35 +1006,7 @@ bool freebsd_process::plat_getLWPInfo(lwpid_t lwp, void *lwpInfo) {
     return true;
 }
 
-bool freebsd_process::plat_contThread(lwpid_t lwp) {
-    if( threadPool()->size() <= 1 ) return true;
-
-    pthrd_printf("Calling PT_RESUME on %d\n", lwp);
-    if( 0 != ptrace(PT_RESUME, lwp, (caddr_t)1, 0) ) {
-        perr_printf("Failed to resume lwp %d: %s\n",
-                lwp, strerror(errno));
-        setLastError(err_internal, "Failed to resume lwp");
-        return false;
-    }
-
-    return true;
-}
-
-bool freebsd_process::plat_stopThread(lwpid_t lwp) {
-    if( threadPool()->size() <= 1 ) return true;
-
-    pthrd_printf("Calling PT_SUSPEND on %d\n", lwp);
-    if( 0 != ptrace(PT_SUSPEND, lwp, (caddr_t)1, 0) ) {
-        perr_printf("Failed to suspend lwp %d: %s\n",
-                lwp, strerror(errno));
-        setLastError(err_internal, "Failed to suspend lwp");
-        return false;
-    }
-
-    return true;
-}
-
-string freebsd_process::getThreadLibName(const char *symName) {
+const char *freebsd_process::getThreadLibName(const char *symName) {
     // This hack is needed because the FreeBSD implementation doesn't
     // set the object name when looking for a symbol -- instead of
     // searching every library for the symbol, make some educated 
@@ -1062,10 +1023,10 @@ string freebsd_process::getThreadLibName(const char *symName) {
         libThreadName = "libthr.so";
     }
 
-    return libThreadName;
+    return libThreadName.c_str();
 }
 
-bool freebsd_process::isSupportedThreadLib(const string &libName) {
+bool freebsd_process::isSupportedThreadLib(string libName) {
     if( libName.find("libthr") != string::npos ) {
         return true;
     }else if( libName.find("libkse") != string::npos ) {
@@ -1757,3 +1718,48 @@ const unsigned char x86_call_munmap[] = {
 0x90                                            //nop
 };
 const unsigned int x86_call_munmap_size = sizeof(x86_call_munmap);
+
+// These are unused on FreeBSD right now but still need to be defined
+
+const unsigned int ppc32_mmap_flags_hi_position = 0;
+const unsigned int ppc32_mmap_flags_lo_position = 0;
+const unsigned int ppc32_mmap_size_hi_position = 0;
+const unsigned int ppc32_mmap_size_lo_position = 0;
+const unsigned int ppc32_mmap_addr_hi_position = 0;
+const unsigned int ppc32_mmap_addr_lo_position = 0;
+const unsigned char ppc32_call_mmap[] = {};
+const unsigned int ppc32_call_mmap_size = 0;
+
+const unsigned int ppc32_munmap_size_hi_position = 0;
+const unsigned int ppc32_munmap_size_lo_position = 0;
+const unsigned int ppc32_munmap_addr_hi_position = 0;
+const unsigned int ppc32_munmap_addr_lo_position = 0;
+const unsigned char ppc32_call_munmap[] = {};
+const unsigned int ppc32_call_munmap_size = 0;
+
+const unsigned int ppc64_mmap_flags_highest_position = 0;
+const unsigned int ppc64_mmap_flags_higher_position = 0;
+const unsigned int ppc64_mmap_flags_hi_position = 0;
+const unsigned int ppc64_mmap_flags_lo_position = 0;
+const unsigned int ppc64_mmap_size_highest_position = 0;
+const unsigned int ppc64_mmap_size_higher_position = 0;
+const unsigned int ppc64_mmap_size_hi_position = 0;
+const unsigned int ppc64_mmap-size_lo_position = 0;
+const unsigned int ppc64_mmap_addr_highest_position = 0;
+const unsigned int ppc64_mmap_addr_higher_position = 0;
+const unsigned int ppc64_mmap_addr_hi_position = 0;
+const unsigned int ppc64_mmap_addr_lo_position = 0;
+const unsigned char ppc64_call_mmap[] = {};
+const unsigned int ppc64_call_mmap_size = 0;
+
+const unsigned int ppc64_munmap_size_highest_position = 0;
+const unsigned int ppc64_munmap_size_higher_position = 0;
+const unsigned int ppc64_munmap_size_hi_position = 0;
+const unsigned int ppc64_munmap_size_lo_position = 0;
+const unsigned int ppc64_munmap_addr_highest_position = 0;
+const unsigned int ppc64_munmap_addr_higher_position = 0;
+const unsigned int ppc64_munmap_addr_hi_position = 0;
+const unsigned int ppc64_munmap_addr_lo_position = 0;
+const unsigned char ppc64_call_munmap[] = {};
+const unsigned int ppc64_call_munmap_size = 0;
+

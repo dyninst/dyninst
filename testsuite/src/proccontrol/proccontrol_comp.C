@@ -25,6 +25,11 @@ test_results_t ProcControlMutator::setup(ParameterDict &param)
    return PASSED;
 }
 
+test_results_t ProcControlMutator::pre_init(ParameterDict &param)
+{
+   return PASSED;
+}
+
 ProcControlComponent::ProcControlComponent() :
    sockfd(0),
    sockname(NULL),
@@ -194,11 +199,39 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
          }
       }
    
-      while (eventsRecieved[thread_create].size() < num_procs*num_threads) {
-         bool result = Process::handleEvents(true);
-         if (!result) {
-            logerror("Failed to handle events during thread create\n");
-            error = true;
+      bool support_user_threads = false;
+      bool support_lwps = false;
+#if defined(os_linux_test)
+      support_user_threads = true;
+      support_lwps = true;
+#elif defined(os_bg_test)
+      support_user_threads = true;
+      support_lwps = false;
+#elif defined(os_freebsd_test)
+      support_user_threads = true;
+      support_lwps = false;
+#endif
+      assert(support_user_threads || support_lwps);
+
+      if (support_lwps)
+      {
+         while (eventsRecieved[EventType(EventType::None, EventType::LWPCreate)].size() < num_procs*num_threads) {
+            bool result = Process::handleEvents(true);
+            if (!result) {
+               logerror("Failed to handle events during thread create\n");
+               error = true;
+            }
+         }
+      }
+
+      if (support_user_threads)
+      {
+         while (eventsRecieved[EventType(EventType::None, EventType::UserThreadCreate)].size() < num_procs*num_threads) {
+            bool result = Process::handleEvents(true);
+            if (!result) {
+               logerror("Failed to handle events during thread create\n");
+               error = true;
+            }
          }
       }
 
@@ -259,6 +292,7 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
       error = true;
    }
 
+
    return !error;
 }
 
@@ -284,6 +318,14 @@ test_results_t ProcControlComponent::group_setup(RunGroup *group, ParameterDict 
 
    me.setPtr(this);
    params["ProcControlComponent"] = &me;
+
+   for (unsigned j=0; j<group->tests.size(); j++) {
+      ProcControlMutator *mutator = static_cast<ProcControlMutator *>(group->tests[j]->mutator);
+      if (!mutator) continue;
+      test_results_t result = mutator->pre_init(params);
+      if (result == FAILED)
+         return FAILED;
+   }
 
    bool result = launchMutatees(group, params);
    if (!result) {
@@ -349,6 +391,13 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
       }
    }
    procs.clear();
+
+   for(std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); ++i) {
+       if( close(i->second) == -1 ) {
+           logerror("Could not close connected socket\n");
+           error = true;
+       }
+   }
 
    return error ? FAILED : PASSED;
 }
@@ -640,3 +689,37 @@ bool ProcControlComponent::block_for_events()
    return true;
 }
 
+bool ProcControlComponent::poll_for_events()
+{
+   bool bresult = Process::handleEvents(false);
+   return bresult;
+}
+
+Process::cb_ret_t on_breakpoint(Event::const_ptr ev) {
+    RegisterPool regs;
+    if( !ev->getThread()->getAllRegisters(regs) ) {
+        fprintf(stderr, "Failed to get registers on breakpoint\n");
+    }else{
+        fprintf(stderr, "Registers at breakpoint 0x%lx:\n", ev->getEventBreakpoint()->getAddress());
+        for(RegisterPool::iterator i = regs.begin(); i != regs.end(); i++) {
+            fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name(), (*i).second);
+        }
+    }
+
+    return Process::cbThreadContinue;
+}
+
+// To be called while debugging
+void insertBreakpoint(Process::ptr proc, Address addr) {
+    Breakpoint::ptr brkPt = Breakpoint::newBreakpoint();
+
+    Process::registerEventCallback(EventType::Breakpoint, on_breakpoint);
+
+    if( !proc->addBreakpoint(addr, brkPt) ) {
+        fprintf(stderr, "Failed to add breakpoint to process %d at addr 0x%lx\n",
+                proc->getPid(), addr);
+    }else{
+        fprintf(stderr, "Added breakpoint to process %d at addr 0x%lx\n",
+                proc->getPid(), addr);
+    }
+}

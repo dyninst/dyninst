@@ -52,6 +52,7 @@ Frame::Frame() :
   frame_complete(false),
   prev_frame(NULL),
   stepper(NULL),
+  next_stepper(NULL),
   walker(NULL),
   originating_thread(NULL_THR_ID)
 {
@@ -75,6 +76,7 @@ Frame::Frame(Walker *parent_walker) :
   frame_complete(false),
   prev_frame(NULL),
   stepper(NULL),
+  next_stepper(NULL),
   walker(parent_walker),
   originating_thread(NULL_THR_ID)
 {
@@ -283,6 +285,10 @@ FrameStepper *Frame::getStepper() const {
   return stepper;
 }
 
+FrameStepper *Frame::getNextStepper() const {
+  return next_stepper;
+}
+
 Walker *Frame::getWalker() const {
   return walker;
 }
@@ -330,11 +336,6 @@ bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*&) cons
 THR_ID Frame::getThread() const
 {
    return originating_thread;
-}
-
-void Frame::setPrevFrame(const Frame *pf)
-{
-  prev_frame = pf;
 }
 
 void Frame::setThread(THR_ID t)

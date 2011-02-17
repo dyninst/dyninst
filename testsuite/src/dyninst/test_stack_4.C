@@ -168,7 +168,7 @@ test_results_t test_stack_4_Mutator::executeTest() {
   }
 
   if (passedTest)
-    logerror("Passed test #3 (unwind through instrumented signal handler)\n");
+    logerror("Passed test #4 (unwind through instrumented signal handler)\n");
 
   /* Return the mutatee to its normal state. */
   appProc->continueExecution();
@@ -181,7 +181,7 @@ test_results_t test_stack_4_Mutator::executeTest() {
   if (passedTest)
     return PASSED;
   return FAILED;
-} /* end mutatorTest3() */
+} /* end mutatorTest4() */
 
 // External Interface
 test_results_t test_stack_4_Mutator::setup(ParameterDict &param) {

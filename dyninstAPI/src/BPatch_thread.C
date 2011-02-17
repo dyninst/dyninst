@@ -60,7 +60,7 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
 
    if (!llthread->walkStack(stackWalk) ) {
      proccontrol_printf("%s[%d]: failed to perform stackwalk on thread %d\n",
-             llthread->getLWP());
+             FILE__, __LINE__, llthread->getLWP());
      return false;
    }
 
@@ -84,9 +84,6 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
 
         if (!point)
         {
-          // DEBUG
-          fprintf(stderr, "DYN FRAME DEBUG: instrumentation but no point: %p\n", (void*)frame.getPC());
-
           isInstrumentation = false; 
         }
       }
@@ -134,114 +131,13 @@ int BPatch_thread::getLWPInt()
    return llthread->getLWP();
 }
 
-BPatch_function *BPatch_thread::getInitialFuncInt()
-{
-   if( !llthread->isLive() ) return NULL;
-
+BPatch_function *BPatch_thread::getInitialFuncInt() {
    int_function *ifunc = llthread->getStartFunc();
-
-   if (!ifunc) {
-       BPatch_Vector<BPatch_frame> stackWalk;
-
-       getCallStackInt(stackWalk);
-
-       unsigned long stack_start = 0;
-       BPatch_function *initial_func = NULL;
-       
-       int pos = stackWalk.size() - 1;
-
-       if( dyn_debug_startup ) {
-           for (unsigned foo = 0; foo < stackWalk.size(); foo++) {
-             BPatch_function *func = stackWalk[foo].findFunction();
-             fprintf(stderr, "Function at %d is %s\n", foo, func ? func->lowlevel_func()->symTabName().c_str() : "<NULL>");
-           }
-       }
-
-       //Consider stack_start as starting at the first
-       //function with a stack frame.
-       while ((!stack_start || !initial_func) && (pos >= 0)) {
-           if (!stack_start) {
-               stack_start = (unsigned long) stackWalk[pos].getFP();
-           }
-           if (!initial_func) {
-               BPatch_function *func = stackWalk[pos].findFunction();
-               BPatch_module *mod = func ? func->getModule() : NULL;
-               if (mod && !mod->isSystemLib())
-                   initial_func = func;	       
-           }
-           pos--;
-       }
-       
-#if defined(os_linux)
-       // RH9 once again does it half-right.  The "initial function" by our
-       // heuristics is start_thread, but in reality is actually the called
-       // function of this frame.
-       
-       if (initial_func && pos >= 0) {
-          // Check if function is in libpthread
-          char mname[2048], fname[2048], pfname[2048];
-          initial_func->getModule()->getName(mname, 2048);
-          initial_func->getName(fname, 2048);
-          if (strstr(mname, "libpthread.so")) {
-             initial_func = stackWalk[pos].findFunction();
-             stack_start = (unsigned long) stackWalk[pos].getFP();
-          } else if (!strcmp(fname,"start_thread") &&
-                     pos < (int) stackWalk.size() - 2 &&
-                     stackWalk[pos+2].findFunction() &&
-                     !strcmp(stackWalk[pos+2].findFunction()->getName(pfname, 2048), "clone")) {
-             initial_func = stackWalk[pos].findFunction();
-             stack_start = (unsigned long) stackWalk[pos].getFP();
-          }
-       }
-#endif
-
-       if (!llthread->getStackAddr())
-           llthread->updateStackAddr(stack_start);
-       if (initial_func)
-           llthread->updateStartFunc(initial_func->func);
-   }
-
-   // Try again...
-   ifunc = llthread->getStartFunc();
-   ifunc = llthread->mapInitialFunc(ifunc);
-
    if (!ifunc) return NULL;
-
    return proc->findOrCreateBPFunc(ifunc, NULL);
 }
 
-unsigned long BPatch_thread::getStackTopAddrInt()
-{
-   if( !llthread->isLive() ) return (unsigned long) -1;
-
-   if (llthread->getStackAddr() == 0) {
-       BPatch_Vector<BPatch_frame> stackWalk;
-
-       getCallStackInt(stackWalk);
-       unsigned long stack_start = 0;
-       BPatch_function *initial_func = NULL;
-       
-       int pos = stackWalk.size() - 1;
-       //Consider stack_start as starting at the first
-       //function with a stack frame.
-       while ((!stack_start || !initial_func) && (pos >= 0)) {
-           if (!stack_start)
-               stack_start = (unsigned long) stackWalk[pos].getFP();
-           if (!initial_func) {
-               initial_func = stackWalk[pos].findFunction();
-               if (initial_func) {
-                   char fname[2048];
-                   initial_func->getName(fname, 2048);
-                   //fprintf(stderr, "%s[%d]:  setting initial func to %s\n", FILE__, __LINE__, fname);
-               }
-           }
-           pos--;
-       }
-       llthread->updateStackAddr(stack_start);
-       if (initial_func)
-           llthread->updateStartFunc(initial_func->func);
-   }
-   
+unsigned long BPatch_thread::getStackTopAddrInt() {
    return llthread->getStackAddr();
 }
 
