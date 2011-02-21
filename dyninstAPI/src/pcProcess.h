@@ -389,6 +389,7 @@ protected:
     bool hasReachedBootstrapState(bootstrapState_t state) const;
     void setBootstrapState(bootstrapState_t newState);
     bool createStackwalker();
+    bool createStackwalkerSteppers(); // platform-specific
     void createInitialThreads();
     bool createInitialMappedObjects();
     bool getExecFileDescriptor(std::string filename,

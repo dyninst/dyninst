@@ -33,7 +33,7 @@ SRCS =          ../src/linux.C \
 		../src/syscall-linux.C \
 		../src/BPatch_memoryAccessAdapter.C \
 		../src/RegisterConversion-power.C \
-		../src/stackwalk-x86.C \
+		../src/stackwalk-ppc.C \
 		../src/frameChecker.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT

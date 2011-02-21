@@ -192,11 +192,50 @@ WandererHelper::~WandererHelper()
 
 gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &/*in*/, Frame &/*out*/, 
                                                           Address /*base*/, Address /*lib_base*/,
-                                                          unsigned /*size*/, unsigned /*stack_height*/,
-                                                          Address /*orig_ra*/,
-                                                          bool /*pEntryExit*/)
+                                                          unsigned /*size*/, unsigned /*stack_height*/)
 {
   return gcf_not_me;
+}
+
+gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Frame &out, 
+                                                            Address /*base*/, Address /*lib_base*/,
+                                                            unsigned /*size*/, unsigned stack_height,
+                                                            Address /*orig_ra*/, bool /*pEntryExit*/)
+{
+  bool result;
+  Address in_fp, out_ra;
+  ra_fp_pair_t ra_fp_pair;
+  location_t raLocation;
+
+  if (!in.getFP())
+    return gcf_stackbottom;
+
+  in_fp = in.getFP();
+  out.setSP(in_fp);
+  
+  // TODO make 64-bit compatible
+  result = getProcessState()->readMem(&ra_fp_pair, in_fp, 
+                                      sizeof(ra_fp_pair_t));
+  if (!result) {
+    sw_printf("[%s:%u] - Couldn't read frame from %lx\n", __FILE__, __LINE__, in_fp);
+    return gcf_error;
+  }
+  out.setFP(ra_fp_pair.out_fp);
+  
+  raLocation.location = loc_address;
+  raLocation.val.addr = in_fp + stack_height; // stack_height is the offset to the saved RA
+  out.setRALocation(raLocation);
+  
+  // TODO make 32-bit compatible
+  result = getProcessState()->readMem(&out_ra, raLocation.val.addr, 
+                                      sizeof(out_ra));
+  if (!result) {
+    sw_printf("[%s:%u] - Couldn't read instrumentation RA from %lx\n", __FILE__, __LINE__, raLocation.val.addr);
+    return gcf_error;
+  }
+  out.setRA(out_ra);
+
+  return gcf_success;
 }
 
 namespace Dyninst {

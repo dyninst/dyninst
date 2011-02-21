@@ -572,10 +572,6 @@ bool PCProcess::createStackwalker()
   using namespace Stackwalker;
   ProcDebug *procDebug = NULL;
   StackwalkSymLookup *symLookup = NULL;
-  FrameStepper *stepper = NULL;
-  StackwalkInstrumentationHelper *swInstrHelper = NULL;
-  DynFrameHelper *dynFrameHelper = NULL;
-  DynWandererHelper *dynWandererHelper = NULL;
 
   //Set SymbolReaderFactory in Stackwalker
   Walker::setSymbolReader(Dyninst::SymtabAPI::getSymtabReaderFactory());
@@ -600,70 +596,7 @@ bool PCProcess::createStackwalker()
     return false;
   }
 
-  // Create steppers, adding to walker
-
-  swInstrHelper = new StackwalkInstrumentationHelper(this);
-  stepper = new DyninstDynamicStepper(stackwalker_, swInstrHelper);
-  if (!stackwalker_->addStepper(stepper))
-  {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
-    return false;
-  }
-  startup_printf("Stackwalker stepper %p is a DyninstDynamicStepper\n", stepper);
-
-  stepper = new DebugStepper(stackwalker_);
-  if (!stackwalker_->addStepper(stepper))
-  {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
-    return false;
-  }
-  startup_printf("Stackwalker stepper %p is a DebugStepper\n", stepper);
-
-  dynFrameHelper = new DynFrameHelper(this);
-  stepper = new FrameFuncStepper(stackwalker_, dynFrameHelper);
-  if (!stackwalker_->addStepper(stepper))
-  {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
-    return false;
-  }
-  startup_printf("Stackwalker stepper %p is a FrameFuncStepper\n", stepper);
-
-  // create a separate helper to avoid double deletion
-  dynFrameHelper = new DynFrameHelper(this);
-  dynWandererHelper = new DynWandererHelper(this);
-  stepper = new StepperWanderer(stackwalker_, dynWandererHelper, dynFrameHelper);
-  if (!stackwalker_->addStepper(stepper))
-  {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
-    return false;
-  }
-  startup_printf("Stackwalker stepper %p is a WandererStepper\n", stepper);
-
-  stepper = new SigHandlerStepper(stackwalker_);
-  if (!stackwalker_->addStepper(stepper))
-  {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
-    return false;
-  }
-  startup_printf("Stackwalker stepper %p is a SigHandlerStepper\n", stepper);
-
-  stepper = new BottomOfStackStepper(stackwalker_);
-  if (!stackwalker_->addStepper(stepper))
-  {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
-    return false;
-  }
-  startup_printf("Stackwalker stepper %p is a BottomOfStackStepper\n", stepper);
-
-  stepper = new AnalysisStepper(stackwalker_);
-  if (!stackwalker_->addStepper(stepper))
-  {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
-    return false;
-  }
-  startup_printf("Stackwalker stepper %p is an AnalysisStepper\n", stepper);
-
-  return true;
+  return createStackwalkerSteppers();
 }
 
 void PCProcess::createInitialThreads() {
@@ -3894,6 +3827,40 @@ StackwalkSymLookup::StackwalkSymLookup(PCProcess *p)
 
 StackwalkSymLookup::~StackwalkSymLookup()
 {}
+
+bool StackwalkSymLookup::lookupAtAddr(Dyninst::Address addr, std::string &out_name, void* &out_value)
+{
+  mapped_object *mobj = proc_->findObject(addr);
+  codeRange *range = NULL;
+  int_function *func = NULL;
+  bool result = false;
+
+  // set out_name to the name of the function at this addr
+  // set out_value to be the codeRange* for this addr
+
+  if (mobj)
+  {
+    result = mobj->analyze();
+    assert(result);
+  }
+
+  range = proc_->findOrigByAddr(addr);
+
+  out_value = (void*) range;
+
+  func = range->is_function();
+
+  if (func)
+  {
+    out_name = func->prettyName();
+  }
+  else
+  {
+    out_name = string("[UNKNOWN]");
+  }
+  
+  return true;
+}
 
 StackwalkInstrumentationHelper::StackwalkInstrumentationHelper(PCProcess *p)
   : proc_(p)

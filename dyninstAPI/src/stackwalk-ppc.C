@@ -1,0 +1,189 @@
+/*
+ * Copyright (c) 1996-2009 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
+#include "debug.h"
+#include "pcProcess.h"
+#include "baseTramp.h"
+#include "multiTramp.h"
+#include "miniTramp.h"
+#include "function.h"
+#include "frameChecker.h"
+#include "inst-power.h"
+
+using namespace Dyninst;
+
+bool PCProcess::createStackwalkerSteppers()
+{
+  using namespace Stackwalker;
+
+  FrameStepper *stepper = NULL;
+  StackwalkInstrumentationHelper *swInstrHelper = NULL;
+
+  // Create steppers, adding to walker
+
+  swInstrHelper = new StackwalkInstrumentationHelper(this);
+  stepper = new DyninstDynamicStepper(stackwalker_, swInstrHelper);
+  if (!stackwalker_->addStepper(stepper))
+  {
+    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    return false;
+  }
+  startup_printf("Stackwalker stepper %p is a DyninstDynamicStepper\n", stepper);
+
+  // FrameFuncHelper not used on PPC
+  stepper = new FrameFuncStepper(stackwalker_);
+  if (!stackwalker_->addStepper(stepper))
+  {
+    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    return false;
+  }
+  startup_printf("Stackwalker stepper %p is a FrameFuncStepper\n", stepper);
+
+  return true;
+}
+
+bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
+                                                       Dyninst::Address * /*orig_ra*/,
+                                                       unsigned * stack_height,
+                                                       bool * /*entryExit*/)
+{
+  codeRange *range = NULL;
+  multiTramp *multi = NULL;
+  miniTrampInstance *mini = NULL;
+  baseTrampInstance *base = NULL;
+
+  range = proc_->findOrigByAddr(ra);
+  multi = range->is_multitramp();
+  mini = range->is_minitramp();
+
+  if (multi)
+  {
+    base = multi->getBaseTrampInstanceByAddr(ra);
+
+    if (base && !base->isInInstru(ra))
+    {
+      base = NULL;
+    }
+  }
+  else if (mini)
+  {
+    base = mini->baseTI;
+  }
+
+  if (base)
+  {
+    // set offset from instrumentation frame pointer to saved return address
+    *stack_height = TRAMP_SPR_OFFSET + STK_LR;
+
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+using namespace Stackwalker;
+
+FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr)
+{
+  FrameFuncHelper::alloc_frame_t result;
+
+/* NOT IMPLEMENTED
+  codeRange *range = proc_->findOrigByAddr(addr);
+  int_function *func = range->is_function();
+
+  result.first = FrameFuncHelper::unknown_t; // frame type
+  result.second = FrameFuncHelper::unknown_s; // frame state
+
+  if (func)
+  {
+    // Determine frame type
+    if (!func->hasNoStackFrame())
+    {
+      result.first = FrameFuncHelper::standard_frame;
+    }
+    else if (func->savesFramePointer())
+    {
+      result.first = FrameFuncHelper::savefp_only_frame;
+    }
+    else
+    {
+      result.first = FrameFuncHelper::no_frame;
+    }
+
+    // Determine frame state
+    if (FrameFuncHelper::standard_frame == result.first)
+    {
+      result.second = FrameFuncHelper::set_frame;
+
+      if (range && range->is_basicBlockInstance())
+      {
+        frameChecker fc((const unsigned char*)(proc_->getPtrToInstruction(addr)),
+                        range->get_size() - (addr - range->get_address()),
+                        proc_->getArch());
+        if (fc.isReturn() || fc.isStackPreamble())
+        {
+          result.second = FrameFuncHelper::unset_frame;
+        }
+        if (fc.isStackFrameSetup())
+        {
+          result.second = FrameFuncHelper::halfset_frame;
+        }
+      }
+    }
+  }
+*/  
+
+  return result;
+}
+
+bool DynWandererHelper::isPrevInstrACall(Address /*addr*/, Address &/*target*/)
+{
+  // NOT IMPLEMENTED
+  assert(0);
+  return false;
+}
+
+WandererHelper::pc_state DynWandererHelper::isPCInFunc(Address /*func_entry*/, Address /*pc*/)
+{
+  // NOT IMPLEMENTED
+  assert(0);
+  return WandererHelper::unknown_s;
+}
+
+bool DynWandererHelper::requireExactMatch()
+{
+  // NOT IMPLEMENTED
+  assert(0);
+  return false;
+}
+
