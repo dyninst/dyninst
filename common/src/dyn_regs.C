@@ -211,8 +211,9 @@ MachRegister MachRegister::getFramePointer(Dyninst::Architecture arch)
       case Arch_x86_64:
          return x86_64::rbp;
       case Arch_ppc32:
+         return ppc32::r1;
       case Arch_ppc64:
-         return FrameBase;
+         return ppc64::r1;
       case Arch_none:
          return InvalidReg;
    }
