@@ -238,7 +238,7 @@ bool Frame::isSignalFrame()
 bool Frame::isInstrumentation()
 { 
   if (sw_frame_.getNextStepper() &&
-      dynamic_cast<Dyninst::Stackwalker::DyninstInstrStepper*>(sw_frame_.getNextStepper()))
+      dynamic_cast<Dyninst::Stackwalker::DyninstDynamicStepper*>(sw_frame_.getNextStepper()))
     return true;
   else
     return false;

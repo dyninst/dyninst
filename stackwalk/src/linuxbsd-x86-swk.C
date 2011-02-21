@@ -118,10 +118,10 @@ bool Walker::createDefaultSteppers()
 
 static const int fp_offset_32 = 28;
 static const int pc_offset_32 = 60;
-static const int frame_size_32 = 728;
+static const int frame_size_32 = 736;
 static const int fp_offset_64 = 120;
 static const int pc_offset_64 = 168;
-static const int frame_size_64 = 1096;
+static const int frame_size_64 = 1088;
 
 gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 {
