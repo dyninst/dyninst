@@ -36,6 +36,7 @@
 #include "Process.h"
 #include <vector>
 #include <list>
+#include <string>
 
 #define SW_MAJOR 2
 #define SW_MINOR 1

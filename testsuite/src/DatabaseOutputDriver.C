@@ -35,6 +35,7 @@
 #include <sstream>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 #ifdef os_windows_test
@@ -229,8 +230,13 @@ void DatabaseOutputDriver::finalizeOutput() {
 		}
 #endif
 
-		std::string logHeader = userName + "@" + hostname + "\n\n";
-		
+		std::string logHeader = userName + "@" + hostname;
+                if (getenv("PLATFORM") != 0) {
+                    logHeader += "\nPLATFORM=";
+                    logHeader += getenv("PLATFORM");
+                }
+                logHeader += "\n\n";
+
 		FILE * sqlLog = fopen(sqlLogFilename.c_str(), "wb");
 		if (NULL == sqlLog) {
 			fprintf(stderr, "[%s:%u] - Error opening log file: %s\n",

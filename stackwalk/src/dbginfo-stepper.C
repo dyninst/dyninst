@@ -63,6 +63,7 @@ public:
    storageClass stClass;
    storageRefClass refClass;
    int reg;
+   MachRegister mr_reg;
    long frameOffset;
    Address lowPC;
    Address hiPC;
