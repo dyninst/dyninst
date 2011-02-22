@@ -3,7 +3,6 @@
 # Not intended to be a seperate makefile, but to be used in conjunction with
 # higher level, platform-specific makefiles in the build directories
 
-
 RM = rm -f
 RMDIR ?= rmdir
 M_GCC ?= purify $(GCC)
@@ -358,6 +357,7 @@ clean: clean_solo_mutatees dyninst_clean_solo_mutatees
 	@$(RM) $(LIBDYNINSTCOMP)
 	@$(RM) $(LIBSYMTABCOMP)
 	@$(RM) $(LIBINSTRUCTIONCOMP)
+	@$(RM) $(LIBPROCCONTROLCOMP)
 	@$(RM) $(DYNINST_TESTLIBS) $(DYNINST_STATIC_TESTLIBS) $(DYNINST_TESTLIBS_ABI) $(DYNINST_STATIC_TESTLIBS_ABI)
 	@$(RM) *.o
 	@$(RM) test11
@@ -394,41 +394,43 @@ drivers: test_driver runTests
 
 $(dyninst_OBJS_ALL_MUTATORS): %.o : dyninst/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $<
-	@$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/dyninst ../src/dyninst/$*.C
+	$(HIDE_COMP)$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/dyninst ../src/dyninst/$*.C
 $(symtab_OBJS_ALL_MUTATORS): %.o : symtab/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $<
-	@$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/symtab ../src/symtab/$*.C
+	$(HIDE_COMP)$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/symtab ../src/symtab/$*.C
 $(instruction_OBJS_ALL_MUTATORS): %.o : instruction/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $<
-	@$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/instruction ../src/instruction/$*.C
+	$(HIDE_COMP)$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/instruction ../src/instruction/$*.C
 $(proccontrol_OBJS_ALL_MUTATORS): %.o : proccontrol/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $<
-	@$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/proccontrol ../src/proccontrol/$*.C
+	$(HIDE_COMP)$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/proccontrol ../src/proccontrol/$*.C
+
+TESTLIB_CC ?= $(CC)
 
 $(DYNINST_TESTLIBS): %.so : dyninst/%.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
 	@echo Compiling $<
-	@$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
-	@$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
+	$(HIDE_COMP)$(TESTLIB_CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
 else
 	@echo Compiling $<
-	@$(CC) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
+	$(HIDE_COMP)$(TESTLIB_CC) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
 
 $(DYNINST_STATIC_TESTLIBS): %.a : dyninst/%.c $(DEPENDDIR)/%.dep
 	@echo Compiling $<
-	@$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
-	@$(AR) rcs $@ $*.o
+	$(HIDE_COMP)$(TESTLIB_CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(AR) rcs $@ $*.o
 
 ifdef M_ABI
 $(DYNINST_TESTLIBS_ABI): %_$(M_ABI).so : dyninst/%.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
 	@echo Compiling $<
-	@$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
-	@$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
+	$(HIDE_COMP)$(TESTLIB_CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
 else
 	@echo Compiling $<
-	@$(CC) $(M_ABI_FLAG) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
+	$(HIDE_COMP)$(CC) $(M_ABI_FLAG) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
 
 ifdef cap_instruction_api
@@ -437,58 +439,58 @@ endif
 
 $(DYNINST_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : dyninst/%.c $(DEPENDDIR)/%.dep
 	@echo Compiling $<
-	@$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
-	@$(AR) rcs $@ $*.o
+	$(HIDE_COMP)$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(AR) rcs $@ $*.o
 endif
 
 $(OBJS_TEMPLATES): %.o : ../src/%.C
 	@echo Compiling $<
-	@$(M_GXX) -c -o $@ $(CXXTFLAGS) -I../src/ ../src/$*.C
+	$(HIDE_COMP)$(M_GXX) -c -o $@ $(CXXTFLAGS) -I../src/ ../src/$*.C
 
 test_lib_templates.o : ../src/test_lib_templates.C
 	@echo Compiling $<
-	@$(M_GXX) -c -o $@ -fPIC $(CXXTFLAGS) -I../src/ ../src/$*.C
+	$(HIDE_COMP)$(M_GXX) -c -o $@ -fPIC $(CXXTFLAGS) -I../src/ ../src/$*.C
 
 $(OBJS_DYNINSTCOMP_LIB): %.o : ../src/dyninst/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $<
-	@$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/dyninst/$*.C
+	$(HIDE_COMP)$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/dyninst/$*.C
 
 $(OBJS_SYMTABCOMP_LIB): %.o : ../src/symtab/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $<
-	@$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/symtab/$*.C
+	$(HIDE_COMP)$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/symtab/$*.C
 
 $(OBJS_INSTRUCTIONCOMP_LIB): %.o : ../src/instruction/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $<
-	@$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/instruction/$*.C
+	$(HIDE_COMP)$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/instruction/$*.C
 
 $(OBJS_PROCCONTROLCOMP_LIB): %.o : ../src/proccontrol/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $<
-	@$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/proccontrol/$*.C
+	$(HIDE_COMP)$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/proccontrol/$*.C
 
 $(OBJS_LIBTESTSUITE): %.o : ../src/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $<
-	@$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
+	$(HIDE_COMP)$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
 $(LIBDYNINSTCOMP) : $(OBJS_DYNINSTCOMP_LIB) $(LIBTESTSUITE)
 	@echo Compiling $<
-	@$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lsymtabAPI \
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lsymtabAPI \
 -lcommon -linstructionAPI
 
 $(LIBSYMTABCOMP) : $(OBJS_SYMTABCOMP_LIB) $(LIBTESTSUITE)
 	@echo Compiling $<
-	@$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_SYMTABCOMP_LIB) -o $@ -L. -ltestSuite -lsymtabAPI -lcommon
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_SYMTABCOMP_LIB) -o $@ -L. -ltestSuite -lsymtabAPI -lcommon
 
 $(LIBINSTRUCTIONCOMP) : $(OBJS_INSTRUCTIONCOMP_LIB) $(LIBTESTSUITE)
 	@echo Compiling $<
-	@$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_INSTRUCTIONCOMP_LIB) -o $@ -L. -ltestSuite -linstructionAPI -lcommon
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_INSTRUCTIONCOMP_LIB) -o $@ -L. -ltestSuite -linstructionAPI -lcommon
 
 $(LIBPROCCONTROLCOMP) : $(OBJS_PROCCONTROLCOMP_LIB) $(LIBTESTSUITE)
 	@echo Compiling $<
-	@$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_PROCCONTROLCOMP_LIB) -o $@ -L. -ltestSuite -lpcontrol -lcommon
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_PROCCONTROLCOMP_LIB) -o $@ -L. -ltestSuite -lpcontrol -lcommon
 
 $(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h
 	@echo Compiling $<
-	@$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) test_lib_templates.o -o $@
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) test_lib_templates.o -o $@
 
 #
 # Native Fortran mutatees
@@ -560,29 +562,29 @@ endif
 
 runTests.o: ../src/runTests.C $(DEPENDDIR)/runTests.dep
 	@echo Compiling $<
-	@$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests.C
+	$(HIDE_COMP)$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests.C
 runTests_static.o: ../src/runTests.C $(DEPENDDIR)/runTests.dep
 	@echo Compiling $<
-	@$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) -DSTATIC_TEST_DRIVER ../src/runTests.C
+	$(HIDE_COMP)$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) -DSTATIC_TEST_DRIVER ../src/runTests.C
 
 runTests-utils.o: ../src/runTests-utils.C $(DEPENDDIR)/runTests-utils.dep
 	@echo Compiling $<
-	@$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests-utils.C
+	$(HIDE_COMP)$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests-utils.C
 
 runTests: runTests.o runTests-utils.o test_driver_templates.o 
 	@echo Linking $@
-	@$(CXX) $(CXXFLAGS) -o $@ runTests.o runTests-utils.o test_driver_templates.o 
+	$(HIDE_COMP)$(CXX) $(CXXFLAGS) -o $@ runTests.o runTests-utils.o test_driver_templates.o 
 runTests_static: runTests_static.o runTests-utils.o test_driver_templates.o 
 	@echo Linking $@
-	@$(CXX) $(CXXFLAGS) -o runTests runTests_static.o runTests-utils.o test_driver_templates.o 
+	$(HIDE_COMP)$(CXX) $(CXXFLAGS) -o runTests runTests_static.o runTests-utils.o test_driver_templates.o 
 
 test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
 	@echo Compiling $<
-	@$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
+	$(HIDE_COMP)$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
 test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 	@echo Compiling $<
-	@$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
+	$(HIDE_COMP)$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
 test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
 	@echo Linking $@ $(TESTDRIVER_LDFLAGS)
@@ -597,11 +599,11 @@ OUTPUT_DRIVERS = DatabaseOutputDriver.so
 
 DatabaseOutputDriver.o : ../src/DatabaseOutputDriver.C # $(DEPENDDIR)/DatabaseOutputDriver.dep
 	@echo Compiling $<
-	@$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
+	$(HIDE_COMP)$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
 DatabaseOutputDriver.so: DatabaseOutputDriver.o $(LIBTESTSUITE) # $(DEPENDDIR)/DatabaseOutputDriver.dep
 	@echo Linking $@
-	@$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) -L. -ltestSuite
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) -L. -ltestSuite
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
