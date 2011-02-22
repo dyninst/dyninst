@@ -500,7 +500,16 @@ static int computeAddrWidth(int pid)
    long int result = read(fd, buffer, sizeof(buffer));
    long int words_read = result / sizeof(uint32_t);
    int word_size = 8;
-   for (long int i=1; i<words_read; i+= 4)
+
+   // We want to check the highest 4 bytes of each integer
+   // On big-endian systems, these come first in memory
+#if defined(arch_power)
+   int start_index = 0;
+#else
+   int start_index = 1;
+#endif
+
+   for (long int i=start_index; i<words_read; i+= 4)
    {
       if (buffer[i] != 0) {
          word_size = 4;
