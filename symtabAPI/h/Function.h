@@ -53,7 +53,7 @@ class Type;
 
 class Function : public Aggregate, public Serializable, public AnnotatableSparse
 {
-   friend class Symtab;
+    friend class Symtab;
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
    
  private:

@@ -661,14 +661,12 @@ pattern_match( const char *p, const char *s, bool checkCase ) {
     }
 }
 
-
-
-struct SymbolCompareByAddr
+struct Dyninst::SymtabAPI::SymbolCompareByAddr
 {
-   bool operator()(Function *a, Function *b)
+    bool operator()(Function *a, Function *b)
     {
-       return (a->getOffset() < b->getOffset());
-   }
+       return (a->offset_ < b->offset_);
+    }
 };
 
 bool Symtab::getContainingFunction(Offset offset, Function* &func)
