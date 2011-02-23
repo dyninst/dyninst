@@ -42,21 +42,29 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-#if defined(os_linux) || defined(os_bg) && !defined(arch_64bit)
+#if defined(os_linux) || defined(os_bg)
 
 #define GET_FRAME_BASE(spr) __asm__("or %0, %%r1, %%r1\n" : "=r"(spr))
-typedef struct {
-   Address out_fp;
-   Address out_ra;
+typedef union {
+   struct {
+      uint32_t out_fp;
+      uint32_t out_ra;
+   } pair32;
+   struct {
+      uint64_t out_fp;
+      uint64_t out_ra;
+   } pair64;
 } ra_fp_pair_t;
 
 #elif defined(os_aix)
 
 #define GET_FRAME_BASE(spr) __asm__("or %0, 1, 1\n" : "=r"(spr))
-typedef struct {
-   Address out_fp;
-   Address unused;
-   Address out_ra;
+typedef union {
+   struct {
+      uint32_t out_fp;
+      uint32_t unused;
+      uint32_t out_ra;
+   } pair32;
 } ra_fp_pair_t;
 
 #else
@@ -86,7 +94,12 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
   }
 
   if (reg.isPC() || reg == Dyninst::ReturnAddr) {
-     val = fp_ra->out_ra;
+     if (getAddressWidth() == sizeof(uint64_t)) {
+       val = fp_ra->pair64.out_ra;
+     }
+     else {
+       val = fp_ra->pair32.out_ra;
+     }
      found_reg = true;
   }
 
@@ -115,38 +128,79 @@ FrameFuncStepperImpl::FrameFuncStepperImpl(Walker *w, FrameStepper *parent_,
 
 gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 {
-  Address in_fp, out_sp;
+  Address in_fp, out_sp, out_ra;
   bool result;
   ra_fp_pair_t ra_fp_pair;
+  unsigned addrWidth;
+
+  addrWidth = getProcessState()->getAddressWidth();
 
   if (!in.getFP())
     return gcf_stackbottom;
 
   in_fp = in.getFP();
 
+  // Assume a standard frame layout if no analysis is available
+  // TODO implement helper
+  /*
+  FrameFuncHelper::alloc_frame_t frame = make_pair(FrameFuncHelper::set_frame,
+                                                   FrameFuncHelper::standard_frame);
+  if (helper)
+  {
+    frame = helper->allocatesFrame(in.getRA());
+  }
+  */
+
   out_sp = in_fp;
   out.setSP(out_sp);
   
-  result = getProcessState()->readMem(&ra_fp_pair, in_fp, 
-                                      sizeof(ra_fp_pair_t));
+  if (sizeof(uint64_t) == addrWidth) {
+     result = getProcessState()->readMem(&ra_fp_pair.pair64, in_fp,
+                                         sizeof(ra_fp_pair.pair64));
+  }
+  else {
+     result = getProcessState()->readMem(&ra_fp_pair.pair32, in_fp, 
+                                         sizeof(ra_fp_pair.pair32));
+  }
   if (!result) {
     sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, in_fp);
     return gcf_error;
   }
-  out.setFP(ra_fp_pair.out_fp);
+  if (sizeof(uint64_t) == addrWidth) {
+    out.setFP(ra_fp_pair.pair64.out_fp);
+  }
+  else {
+    out.setFP(ra_fp_pair.pair32.out_fp);
+  }
 
-  result = getProcessState()->readMem(&ra_fp_pair, ra_fp_pair.out_fp, 
-                                      sizeof(ra_fp_pair_t));
+  if (sizeof(uint64_t) == addrWidth) {
+    result = getProcessState()->readMem(&ra_fp_pair.pair64, ra_fp_pair.pair64.out_fp, 
+                                        sizeof(ra_fp_pair.pair64));
+
+  }
+  else {
+    result = getProcessState()->readMem(&ra_fp_pair.pair32, ra_fp_pair.pair32.out_fp, 
+                                        sizeof(ra_fp_pair.pair32));
+  }
   if (!result) {
     sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__,
-	      ra_fp_pair.out_fp);
+	      out.getFP());
     return gcf_error;
   }
-  if (!ra_fp_pair.out_ra) {
+
+  if (sizeof(uint64_t) == addrWidth)
+  {
+    out_ra = ra_fp_pair.pair64.out_ra;
+  }
+  else {
+    out_ra = ra_fp_pair.pair32.out_ra;
+  }  
+
+  if (!out_ra) {
     return gcf_stackbottom;
   }
 
-  out.setRA(ra_fp_pair.out_ra);
+  out.setRA(out_ra);
 
   return gcf_success;
 }
@@ -206,6 +260,9 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
   Address in_fp, out_ra;
   ra_fp_pair_t ra_fp_pair;
   location_t raLocation;
+  unsigned addrWidth;
+
+  addrWidth = getProcessState()->getAddressWidth();
 
   if (!in.getFP())
     return gcf_stackbottom;
@@ -213,14 +270,24 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
   in_fp = in.getFP();
   out.setSP(in_fp);
   
-  // TODO make 64-bit compatible
-  result = getProcessState()->readMem(&ra_fp_pair, in_fp, 
-                                      sizeof(ra_fp_pair_t));
+  if (sizeof(uint64_t) == addrWidth) {
+    result = getProcessState()->readMem(&ra_fp_pair.pair64, in_fp, 
+                                        sizeof(ra_fp_pair.pair64));
+  }
+  else {
+    result = getProcessState()->readMem(&ra_fp_pair.pair32, in_fp, 
+                                        sizeof(ra_fp_pair.pair32));
+  }
   if (!result) {
     sw_printf("[%s:%u] - Couldn't read frame from %lx\n", __FILE__, __LINE__, in_fp);
     return gcf_error;
   }
-  out.setFP(ra_fp_pair.out_fp);
+  if (sizeof(uint64_t) == addrWidth) {
+    out.setFP(ra_fp_pair.pair64.out_fp);
+  }
+  else {
+    out.setFP(ra_fp_pair.pair32.out_fp);
+  }
   
   raLocation.location = loc_address;
   raLocation.val.addr = in_fp + stack_height; // stack_height is the offset to the saved RA

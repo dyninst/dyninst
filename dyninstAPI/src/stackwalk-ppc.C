@@ -46,6 +46,7 @@ bool PCProcess::createStackwalkerSteppers()
 
   FrameStepper *stepper = NULL;
   StackwalkInstrumentationHelper *swInstrHelper = NULL;
+  DynFrameHelper *dynFrameHelper = NULL;
 
   // Create steppers, adding to walker
 
@@ -59,7 +60,8 @@ bool PCProcess::createStackwalkerSteppers()
   startup_printf("Stackwalker stepper %p is a DyninstDynamicStepper\n", stepper);
 
   // FrameFuncHelper not used on PPC
-  stepper = new FrameFuncStepper(stackwalker_);
+  dynFrameHelper = new DynFrameHelper(this);
+  stepper = new FrameFuncStepper(stackwalker_, dynFrameHelper);
   if (!stackwalker_->addStepper(stepper))
   {
     startup_printf("Error adding Stackwalker stepper %p\n", stepper);
