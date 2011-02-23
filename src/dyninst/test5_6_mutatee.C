@@ -74,7 +74,12 @@ void test5_6_passed(int arg)
 
 void exception_test::call_cpp()
 {
-  throw sample_exception();
+  volatile int a; 
+  a = 0; 
+  if(!a) 
+  	throw sample_exception();
+  else
+  	return;
 }
 
 
