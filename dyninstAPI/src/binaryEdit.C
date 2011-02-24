@@ -492,7 +492,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 
       Symtab *symObj = mobj->parse_img()->getObject();
 
-      if( symObj->isStaticBinary() ) {
+      if( symObj->isStaticBinary() && isDirty() ) {
           if( !doStaticBinarySpecialCases() ) {
               return false;
           }
