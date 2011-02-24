@@ -325,7 +325,8 @@ static void checkThreadMsg(threadinfo tinfo, Process::ptr proc)
          has_error = true;
       }
       if (thr->getStartFunction() != (Dyninst::Address) tinfo.initial_func) {
-         logerror("Mismatched initial function\n");
+         logerror("Mismatched initial function (%lx != %lx)\n", (unsigned long)thr->getStartFunction(), 
+                 (unsigned long)tinfo.initial_func);
          has_error = true;
       }
       Dyninst::Address tls_addr = (Dyninst::Address) tinfo.tls_addr;

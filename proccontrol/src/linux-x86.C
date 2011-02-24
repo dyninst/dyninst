@@ -31,8 +31,6 @@
 
 #include "linux.h"
 
-/* ptrace code specific to Linux x86 */
-
 // This header is why this code is in a separate file
 #include <asm/ldt.h>
 #include <cerrno>
@@ -84,4 +82,8 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
       default:
          assert(0);
    }
+}
+
+bool linux_process::plat_convertToBreakpointAddress(psaddr_t &) {
+    return true;
 }

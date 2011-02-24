@@ -430,7 +430,7 @@ ifdef MAKE_SHARED_LIB
 	$(HIDE_COMP)$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
 else
 	@echo Compiling $<
-	$(HIDE_COMP)$(CC) $(M_ABI_FLAG) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
+	$(HIDE_COMP)$(CC) $(TESTLIB_FLAGS) $(M_ABI_FLAG) -I../src/ $(filter %.c,$^) -o $@
 endif
 
 ifdef cap_instruction_api

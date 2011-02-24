@@ -30,12 +30,34 @@
  */
 
 #include <cassert>
-
 #include "linux.h"
-
-/* ptrace code specific to Linux ppc */
 
 bool linux_thread::getSegmentBase(Dyninst::MachRegister, Dyninst::MachRegisterVal &) {
     assert(!"This is not implemented on this architecture");
     return false;
+}
+
+bool linux_process::plat_convertToBreakpointAddress(psaddr_t &addr) {
+    bool result = true;
+    if( getAddressWidth() == 8 ) {
+        psaddr_t tmpAddr = addr;
+        psaddr_t resultAddr = 0;
+
+        mem_response::ptr resp = mem_response::createMemResponse((char *) &resultAddr, sizeof(psaddr_t));
+        result = readMem((Dyninst::Address) tmpAddr, resp, triggerThread());
+
+        do {
+            if( !result ) break;
+
+            result = int_process::waitForAsyncEvent(resp);
+            if( !result || resp->hasError() ) {
+                result = false;
+                break;
+            }
+
+            addr = resultAddr;
+        }while(0);
+    }
+
+    return result;
 }

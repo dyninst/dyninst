@@ -102,6 +102,7 @@ class linux_process : public sysv_process, public unix_process, public arch_proc
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
    virtual bool plat_supportLWPEvents() const;
    virtual bool plat_getOSRunningState(Dyninst::LWP lwp) const;
+   virtual bool plat_convertToBreakpointAddress(psaddr_t &);
 };
 
 class linux_thread : public thread_db_thread
