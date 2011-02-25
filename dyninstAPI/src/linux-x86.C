@@ -115,6 +115,10 @@ Address PCProcess::getTOCoffsetInfo(int_function *) {
     return 0;
 }
 
+bool PCProcess::getOPDFunctionAddr(Address &) {
+    return true;
+}
+
 AstNodePtr PCProcess::createUnprotectStackAST() {
     startup_printf("%s[%d]: creating AST to call mprotect to unprotect libc stack protection variable\n",
             FILE__, __LINE__);

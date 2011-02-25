@@ -86,6 +86,22 @@ Address PCProcess::getTOCoffsetInfo(int_function *func) {
     return mobj->parse_img()->getObject()->getTOCoffset() + mobj->dataBase();
 }
 
+
+bool PCProcess::getOPDFunctionAddr(Address &addr) {
+    bool result = true;
+    if( getAddressWidth() == 8 ) {
+        Address resultAddr = 0;
+        if( !readDataSpace((const void *)addr, getAddressWidth(),
+                    (void *)&resultAddr, false) ) 
+        {
+            result = false;
+        }else{
+            addr = resultAddr;
+        }
+    }
+    return result;
+}
+
 AstNodePtr PCProcess::createUnprotectStackAST() {
     // This is not necessary on power
     return AstNode::nullNode();

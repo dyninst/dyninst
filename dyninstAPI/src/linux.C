@@ -188,7 +188,7 @@ bool PCProcess::hasPassedMain()
       //Strange... This shouldn't happen on a normal linux system
       startup_printf("[%s:%u] - Couldn't find /lib/ld-x.x.x in hasPassedMain\n",
                      FILE__, __LINE__);
-      return true;
+      return false;
    }
 
    std::string derefPath = deref_link(path);
@@ -228,10 +228,22 @@ bool PCProcess::hasPassedMain()
    if (!entry_addr) {
       startup_printf("[%s:%u] - No entry addr for %s\n", 
                      FILE__, __LINE__, path);
-      return true;
+      // assume we haven't reach main at this point
+      return false;
    }
 
    entry_addr += ldso_start_addr;
+
+   if( !getOPDFunctionAddr(entry_addr) ) {
+       startup_printf("[%s:%u] - failed to translate ld entry addr to actual entry\n",
+               FILE__, __LINE__);
+       // if we cannot to the translation, main hasn't reached this point
+       return false;
+   }
+
+   if( entry_addr < ldso_start_addr ) {
+       entry_addr += ldso_start_addr;
+   }
    
    lib_to_addr[path] = entry_addr;
    bool result = (entry_addr != current_pc);
