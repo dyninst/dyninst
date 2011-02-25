@@ -348,10 +348,17 @@ Address PCProcess::findFunctionToHijack()
   return codeBase;
 } /* end findFunctionToHijack() */
 
-#define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
+static int DLOPEN_MODE = RTLD_NOW | RTLD_GLOBAL;
+
+// Note: this is an internal libc flag -- it is only used
+// when libc and ld.so don't have symbols
+#ifndef __RTLD_DLOPEN
+#define __RTLD_DLOPEN 0x80000000
+#endif
 
 const char *DL_OPEN_FUNC_USER = NULL;
 const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
+const char DL_OPEN_LIBC_FUNC_EXPORTED[] = "__libc_dlopen_mode";
 const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
 const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
 
@@ -380,40 +387,58 @@ AstNodePtr PCProcess::createLoadRTAST() {
     }
 
     bool useHiddenFunction = false;
+    bool needsStackUnprotect = false;
     if( dlopen_funcs.size() == 0 ) {
-        if( !findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs) ) {
-            useHiddenFunction = true;
-            if( !findFuncsByAll(DL_OPEN_FUNC_NAME, dlopen_funcs) ) {
-                pdvector<int_function *> dlopen_int_funcs;
-                // If we can't find the do_dlopen function (because this library
-                // is stripped, for example), try searching for the internal
-                // _dl_open function and find the do_dlopen function by examining
-                // the functions that call it. This depends on the do_dlopen
-                // function having been parsed (though its name is not known)
-                // through speculative parsing.
-                if(findFuncsByAll(DL_OPEN_FUNC_INTERNAL, dlopen_int_funcs)) {
-                    if(dlopen_int_funcs.size() > 1) {
-                        startup_printf("%s[%d] warning: found %d matches for %s\n",
-                                       __FILE__,__LINE__,dlopen_int_funcs.size(),
-                                       DL_OPEN_FUNC_INTERNAL);
-                    }
-                    dlopen_int_funcs[0]->getStaticCallers(dlopen_funcs);
-                    if(dlopen_funcs.size() > 1) {
-                        startup_printf("%s[%d] warning: found %d do_dlopen candidates\n",
-                                       __FILE__,__LINE__,dlopen_funcs.size());
-                    }
+        do {
+            if( findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs) ) break;
 
-                    if(dlopen_funcs.size() > 0) {
-                        // give it a name
-                        dlopen_funcs[0]->addSymTabName("do_dlopen",true);
-                    }
-                }else{
-                    startup_printf("%s[%d]: failed to find dlopen function to load RT lib\n",
-                                   FILE__, __LINE__);
-                    return AstNodePtr();
+            // This approach will work if libc and the loader have symbols
+            // Note: this is more robust than the next approach
+            useHiddenFunction = true;
+            needsStackUnprotect = true;
+            if( findFuncsByAll(DL_OPEN_FUNC_NAME, dlopen_funcs) ) break;
+
+            // If libc and the loader don't have symbols, we need to take a
+            // different approach. We still need to the stack protection turned
+            // off, but since we don't have symbols we use an undocumented flag
+            // to turn off the stack protection
+            useHiddenFunction = false;
+            needsStackUnprotect = false;
+            DLOPEN_MODE |= __RTLD_DLOPEN;
+            if( findFuncsByAll(DL_OPEN_LIBC_FUNC_EXPORTED, dlopen_funcs) ) break;
+
+            useHiddenFunction = true;
+            needsStackUnprotect = true;
+            pdvector<int_function *> dlopen_int_funcs;
+            // If we can't find the do_dlopen function (because this library is
+            // stripped, for example), try searching for the internal _dl_open
+            // function and find the do_dlopen function by examining the
+            // functions that call it. This depends on the do_dlopen function
+            // having been parsed (though its name is not known) through
+            // speculative parsing.
+            if(findFuncsByAll(DL_OPEN_FUNC_INTERNAL, dlopen_int_funcs)) {
+                if(dlopen_int_funcs.size() > 1) {
+                    startup_printf("%s[%d] warning: found %d matches for %s\n",
+                                   __FILE__,__LINE__,dlopen_int_funcs.size(),
+                                   DL_OPEN_FUNC_INTERNAL);
                 }
+                dlopen_int_funcs[0]->getStaticCallers(dlopen_funcs);
+                if(dlopen_funcs.size() > 1) {
+                    startup_printf("%s[%d] warning: found %d do_dlopen candidates\n",
+                                   __FILE__,__LINE__,dlopen_funcs.size());
+                }
+
+                if(dlopen_funcs.size() > 0) {
+                    // give it a name
+                    dlopen_funcs[0]->addSymTabName("do_dlopen",true);
+                }
+                break;
             }
-        }
+
+            startup_printf("%s[%d]: failed to find dlopen function to load RT lib\n",
+                           FILE__, __LINE__);
+            return AstNodePtr();
+        }while(0);
     }
 
     assert( dlopen_funcs.size() != 0 );
@@ -423,6 +448,18 @@ AstNodePtr PCProcess::createLoadRTAST() {
     }
 
     int_function *dlopen_func = dlopen_funcs[0];
+
+    pdvector<AstNodePtr> sequence;
+    if( needsStackUnprotect ) {
+        AstNodePtr unprotectStackAST = createUnprotectStackAST();
+        if( unprotectStackAST == AstNodePtr() ) {
+            startup_printf("%s[%d]: failed to generate unprotect stack AST\n",
+                    FILE__, __LINE__);
+            return AstNodePtr();
+        }
+
+        sequence.push_back(unprotectStackAST);
+    }
 
     if( !useHiddenFunction ) {
         // For now, we cannot use inferiorMalloc because that requires the RT library
@@ -445,79 +482,68 @@ AstNodePtr PCProcess::createLoadRTAST() {
         args.push_back(AstNode::operandNode(AstNode::Constant, (void *)rtLibLoadHeap_));
         args.push_back(AstNode::operandNode(AstNode::Constant, (void *)DLOPEN_MODE));
 
-        return AstNode::funcCallNode(dlopen_func, args);
-    }
-    pdvector<AstNodePtr> sequence;
-
-    AstNodePtr unprotectStackAST = createUnprotectStackAST();
-    if( unprotectStackAST == AstNodePtr() ) {
-        startup_printf("%s[%d]: failed to generate unprotect stack AST\n",
-                FILE__, __LINE__);
-        return AstNodePtr();
-    }
-
-    sequence.push_back(unprotectStackAST);
-
-    startup_printf("%s[%d]: Creating AST to call libc's internal dlopen\n", FILE__, __LINE__);
-    struct libc_dlopen_args_32 {
-        uint32_t namePtr;
-        uint32_t mode;
-        uint32_t linkMapPtr;
-    };
-
-    struct libc_dlopen_args_64 {
-        uint64_t namePtr;
-        uint32_t mode;
-        uint64_t linkMapPtr;
-    };
-
-    // Construct the argument to the internal function
-    struct libc_dlopen_args_32 args32;
-    struct libc_dlopen_args_64 args64;
-
-    unsigned argsSize = 0;
-    void *argsPtr;
-    if( getAddressWidth() == 4 ) {
-        argsSize = sizeof(args32);
-        argsPtr = &args32;
+        sequence.push_back(AstNode::funcCallNode(dlopen_func, args));
     }else{
-        argsSize = sizeof(args64);
-        argsPtr = &args64;
+        startup_printf("%s[%d]: Creating AST to call libc's internal dlopen\n", FILE__, __LINE__);
+        struct libc_dlopen_args_32 {
+            uint32_t namePtr;
+            uint32_t mode;
+            uint32_t linkMapPtr;
+        };
+
+        struct libc_dlopen_args_64 {
+            uint64_t namePtr;
+            uint32_t mode;
+            uint64_t linkMapPtr;
+        };
+
+        // Construct the argument to the internal function
+        struct libc_dlopen_args_32 args32;
+        struct libc_dlopen_args_64 args64;
+
+        unsigned argsSize = 0;
+        void *argsPtr;
+        if( getAddressWidth() == 4 ) {
+            argsSize = sizeof(args32);
+            argsPtr = &args32;
+        }else{
+            argsSize = sizeof(args64);
+            argsPtr = &args64;
+        }
+
+        // Allocate memory for the arguments
+        rtLibLoadHeap_ = pcProc_->mallocMemory(dyninstRT_name.length()+1 + argsSize);
+        if( !rtLibLoadHeap_ ) {
+            startup_printf("%s[%d]: failed to allocate memory for RT library load\n",
+                    FILE__, __LINE__);
+            return AstNodePtr();
+        }
+
+        if( !writeDataSpace((char *)rtLibLoadHeap_, dyninstRT_name.length()+1, dyninstRT_name.c_str()) ) {
+            startup_printf("%s[%d]: failed to write RT lib name into mutatee\n",
+                    FILE__, __LINE__);
+            return AstNodePtr();
+        }
+
+        if( getAddressWidth() == 4 ) {
+            args32.namePtr = (uint32_t)rtLibLoadHeap_;
+            args32.mode = DLOPEN_MODE;
+        }else{
+            args64.namePtr = (uint64_t)rtLibLoadHeap_;
+            args64.mode = DLOPEN_MODE;
+        }
+
+        Address argsAddr = rtLibLoadHeap_ + dyninstRT_name.length()+1;
+        if( !writeDataSpace((char *) argsAddr, argsSize, argsPtr) ) {
+            startup_printf("%s[%d]: failed to write arguments to libc dlopen\n",
+                    FILE__, __LINE__);
+            return AstNodePtr();
+        }
+
+        pdvector<AstNodePtr> args;
+        args.push_back(AstNode::operandNode(AstNode::Constant, (void *)argsAddr));
+        sequence.push_back(AstNode::funcCallNode(dlopen_func, args));
     }
-
-    // Allocate memory for the arguments
-    rtLibLoadHeap_ = pcProc_->mallocMemory(dyninstRT_name.length()+1 + argsSize);
-    if( !rtLibLoadHeap_ ) {
-        startup_printf("%s[%d]: failed to allocate memory for RT library load\n",
-                FILE__, __LINE__);
-        return AstNodePtr();
-    }
-
-    if( !writeDataSpace((char *)rtLibLoadHeap_, dyninstRT_name.length()+1, dyninstRT_name.c_str()) ) {
-        startup_printf("%s[%d]: failed to write RT lib name into mutatee\n",
-                FILE__, __LINE__);
-        return AstNodePtr();
-    }
-
-    if( getAddressWidth() == 4 ) {
-        args32.namePtr = (uint32_t)rtLibLoadHeap_;
-        args32.mode = DLOPEN_MODE;
-    }else{
-        args64.namePtr = (uint64_t)rtLibLoadHeap_;
-        args64.mode = DLOPEN_MODE;
-    }
-
-    Address argsAddr = rtLibLoadHeap_ + dyninstRT_name.length()+1;
-    if( !writeDataSpace((char *) argsAddr, argsSize, argsPtr) ) {
-        startup_printf("%s[%d]: failed to write arguments to libc dlopen\n",
-                FILE__, __LINE__);
-        return AstNodePtr();
-    }
-
-    pdvector<AstNodePtr> args;
-    args.push_back(AstNode::operandNode(AstNode::Constant, (void *)argsAddr));
-
-    sequence.push_back(AstNode::funcCallNode(dlopen_func, args));
 
     return AstNode::sequenceNode(sequence);
 }
