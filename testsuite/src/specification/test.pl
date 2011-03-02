@@ -100,7 +100,7 @@ compiler_tuple(Name, Executable, DefString, Platforms, PresenceVar, OptStrings, 
     ),
     % Mutatee dynamic link flags, defaults to empty
     (
-        \+ compiler_static_link(Name, Platform, _) -> DynamicLink = '';
+        \+ compiler_dynamic_link(Name, Platform, _) -> DynamicLink = '';
         compiler_dynamic_link(Name, Platform, DynamicLink)
     ),
     StdFlags = [StdFlagsStr, MutFlagsStr, LinkFlagsStr],
