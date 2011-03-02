@@ -57,6 +57,7 @@ protected:
   mutable void *sym_value;
   mutable enum { nv_unset, nv_set, nv_err } name_val_set;
   
+  bool top_frame;
   bool bottom_frame;
   bool frame_complete;
   
@@ -68,6 +69,7 @@ protected:
   
   void setStepper(FrameStepper *newstep);
   void setWalker(Walker *newwalk);
+  void markTopFrame();
   void markBottomFrame();
   
   void setNameValue() const;
@@ -100,6 +102,7 @@ protected:
   bool getObject(void* &obj) const;
   bool getLibOffset(std::string &lib, Dyninst::Offset &offset, void* &symtab) const;
   
+  bool isTopFrame() const;
   bool isBottomFrame() const;
   bool isFrameComplete() const;
   
