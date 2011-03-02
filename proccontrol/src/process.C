@@ -362,7 +362,7 @@ bool int_process::post_forked()
    return true;
 }
 
-bool int_process::post_attach()
+bool int_process::initializeAddressSpace()
 {
    bool result = initLibraryMechanism();
    if (!result) {
@@ -386,13 +386,19 @@ bool int_process::post_attach()
          pthrd_printf("Failure refreshing libraries for %d\n", getPid());
          return false;
       }
+      pthrd_printf("Successfully initialized address space for %d\n", getPid());
       return true;
    }
 }
 
+bool int_process::post_attach()
+{
+   return initializeAddressSpace();
+}
+
 bool int_process::post_create()
 {
-   return initLibraryMechanism();
+   return initializeAddressSpace();
 }
 
 bool int_process::getThreadLWPs(std::vector<Dyninst::LWP> &)
@@ -3784,12 +3790,23 @@ LibraryPool::~LibraryPool()
 size_t LibraryPool::size() const
 {
    MTLock lock_this_func;
+   if (!proc) {
+      perr_printf("getExecutable on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return -1;
+   }
    return proc->numLibs();
 }
 
 Library::ptr LibraryPool::getLibraryByName(std::string s)
 {
    MTLock lock_this_func;
+   if (!proc) {
+      perr_printf("getLibraryByName on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return Library::ptr();
+   }
+
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
       return Library::ptr();
@@ -3799,6 +3816,12 @@ Library::ptr LibraryPool::getLibraryByName(std::string s)
 Library::const_ptr LibraryPool::getLibraryByName(std::string s) const
 {
    MTLock lock_this_func;
+   if (!proc) {
+      perr_printf("getLibraryByName on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return Library::ptr();
+   }
+
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
       return Library::const_ptr();
@@ -3807,12 +3830,24 @@ Library::const_ptr LibraryPool::getLibraryByName(std::string s) const
 
 Library::ptr LibraryPool::getExecutable()
 {
-   return getLibraryByName(proc->getExecutable());
+   MTLock lock_this_func;
+   if (!proc) {
+      perr_printf("getExecutabl on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return Library::ptr();
+   }
+   return proc->plat_getExecutable()->up_lib;
 }
 
 Library::const_ptr LibraryPool::getExecutable() const
 {
-   return getLibraryByName(proc->getExecutable());
+   MTLock lock_this_func;
+   if (!proc) {
+      perr_printf("getExecutable on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return Library::ptr();
+   }
+   return proc->plat_getExecutable()->up_lib;
 }
 
 LibraryPool::iterator::iterator()

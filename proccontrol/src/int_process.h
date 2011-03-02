@@ -105,6 +105,9 @@ class int_process
    bool attachThreads();
    virtual bool post_attach();
 
+
+   bool initializeAddressSpace();
+
   public:
    void setContSignal(int sig);
    int getContSignal() const;
@@ -236,6 +239,7 @@ class int_process
                                   std::set<response::ptr> &async_responses) = 0;
    virtual bool initLibraryMechanism() = 0;
    virtual bool plat_isStaticBinary() = 0;
+   virtual int_library *plat_getExecutable() = 0;
 
    virtual bool plat_supportLWPEvents() const;
    bool forceGeneratorBlock() const;

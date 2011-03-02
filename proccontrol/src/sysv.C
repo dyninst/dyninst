@@ -56,7 +56,8 @@ sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, map<int,i
    int_process(p, e, a, f),
    translator(NULL),
    lib_initialized(false),
-   procreader(NULL)
+   procreader(NULL),
+   aout(NULL)
 {
 }
 
@@ -66,6 +67,7 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    sysv_process *sp = dynamic_cast<sysv_process *>(p);
    breakpoint_addr = sp->breakpoint_addr;
    lib_initialized = sp->lib_initialized;
+   aout = sp->aout;
    if (sp->procreader)
       procreader = new PCProcReader(this);
    if (sp->translator)
@@ -386,6 +388,11 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
       mem->libs.erase(i++);
    }
 
+   if (!aout) {
+      LoadedLib *ll_aout = translator->getExecutable();
+      aout = (int_library *) (ll_aout ? ll_aout->getUpPtr() : NULL);
+   }
+
    procreader->clearBuffers();
    return true;
 }
@@ -414,4 +421,9 @@ bool sysv_process::plat_execed()
 bool sysv_process::plat_isStaticBinary()
 {
   return (breakpoint_addr == 0);
+}
+
+int_library *sysv_process::plat_getExecutable()
+{
+   return aout;
 }

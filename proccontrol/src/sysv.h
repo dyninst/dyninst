@@ -86,9 +86,11 @@ class sysv_process : virtual public int_process
    Dyninst::Address getLibBreakpointAddr() const;
 
    bool isLibraryTrap(Dyninst::Address trap_addr);
+
  protected:
    virtual bool plat_execed();
    virtual bool plat_isStaticBinary();
+   virtual int_library *plat_getExecutable();
 
    static int_breakpoint *lib_trap;
 
@@ -96,6 +98,8 @@ class sysv_process : virtual public int_process
    AddressTranslate *translator;
    bool lib_initialized;
    PCProcReader *procreader;
+  private:
+   int_library *aout;
 };
 
 #endif
