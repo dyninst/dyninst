@@ -142,9 +142,9 @@ char **getCParams(std::string executable, const std::vector<std::string> &args)
 static int fds[2];
 static bool fds_set = false;
 
-static void AddArchAttachArgs(std::vector<std::string> &args, create_mode_t cm)
+static void AddArchAttachArgs(std::vector<std::string> &args, create_mode_t cm, start_state_t gs)
 {
-   if (cm == USEATTACH)
+   if (cm == USEATTACH && gs != SELFATTACH)
    {
       /* Make a pipe that we will use to signal that the mutatee has started. */
       if (pipe(fds) != 0) {
@@ -340,9 +340,10 @@ bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_
    }
 
    create_mode_t cm = (create_mode_t) params["createmode"]->getInt();
-   AddArchAttachArgs(args, cm);
+   start_state_t gs = group->state;
+   AddArchAttachArgs(args, cm, gs);
 
-   if (cm == USEATTACH && group->state == SELFATTACH) {
+   if (cm == USEATTACH && gs == SELFATTACH) {
       args.push_back("-customattach");
    }
 
