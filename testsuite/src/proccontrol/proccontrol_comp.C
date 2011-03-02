@@ -44,7 +44,7 @@ test_results_t ProcControlMutator::pre_init(ParameterDict &param)
 }
 
 ProcControlComponent::ProcControlComponent() :
-   use_mem_communication(false),
+   use_mem_communication(true),
    sockfd(0),
    sockname(NULL),
    notification_fd(-1)
@@ -152,19 +152,23 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
          continue;
       }
       if (!factory) factory = proc->getDefaultSymbolReader();
+      assert(factory);
    }
 
    {
       /**
        * Set the socket name in each process
        **/
+      assert(num_processes);
       assert(factory);
       SymReader *reader = NULL;
       Dyninst::Offset sym_offset = 0, pid_sym_offset = 0;
       char socket_buffer[4096];
       memset(socket_buffer, 0, 4096);
-      snprintf(socket_buffer, 4095, "%s %s", param["socket_type"]->getString(), 
-               param["socket_name"]->getString());
+      if (param["socket_type"] && param["socket_name"]) {
+         snprintf(socket_buffer, 4095, "%s %s", param["socket_type"]->getString(), 
+                  param["socket_name"]->getString());
+      }
       int socket_buffer_len = strlen(socket_buffer);
       string exec_name;
       Dyninst::Offset exec_addr = 0;
@@ -278,6 +282,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
             error = true;
          }
 #else
+         //BlueGene OS spawns extra treads
          if (proc->threads().size() < num_threads+1) {
             logerror("Process has incorrect number of threads");
             error = true;
@@ -474,17 +479,20 @@ bool ProcControlComponent::setupServerSocket(ParameterDict &param)
 
 bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
 {
-   if (use_mem_communication) {
-      return true;
-   }
    vector<int> socks;
    assert(num == 1 || !attach_sock);  //If attach_sock, then num == 1
 
-   while (socks.size() < num) {
+   if (use_mem_communication) {
+      for (unsigned i=0; i<num; i++)
+         socks.push_back(-1);
+   }
+
+   
+   while (!use_mem_communication && socks.size() < num) {
       fd_set readset; FD_ZERO(&readset);
       fd_set writeset; FD_ZERO(&writeset);
       fd_set exceptset; FD_ZERO(&exceptset);
-
+      
       FD_SET(sockfd, &readset);
       FD_SET(notification_fd, &readset);
       int nfds = (sockfd > notification_fd ? sockfd : notification_fd)+1;
@@ -501,7 +509,7 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
          perror("Error in select");
          return false;
       }
-
+      
       if (FD_ISSET(sockfd, &readset))
       {
          struct sockaddr_un addr;
@@ -526,7 +534,11 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
 
    for (unsigned i=0; i<num; i++) {
       send_pid msg;
-      bool result = recv_message((unsigned char *) &msg, sizeof(send_pid), socks[i]);
+      bool result;
+      if (!use_mem_communication)
+         result = recv_message((unsigned char *) &msg, sizeof(send_pid), socks[i]);
+      else
+         result = recv_message((unsigned char *) &msg, sizeof(send_pid), procs[i]);
       if (!result) {
          logerror("Could not receive handshake pid\n");
          return false;
@@ -553,6 +565,10 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
 
 bool ProcControlComponent::cleanSocket()
 {
+   if (use_mem_communication) {
+      return true;
+   }
+
    if (!sockname)
       return false;
 
@@ -609,7 +625,7 @@ commInfo::commInfo(Process::ptr p) :
       recv_buffer_addr = lookupSym("recv_buffer", reader);
       send_buffer_addr = lookupSym("send_buffer", reader);
       send_buffer_size_addr = lookupSym("send_buffer_size", reader);
-      send_buffer_size_addr = lookupSym("recv_buffer_size", reader);
+      recv_buffer_size_addr = lookupSym("recv_buffer_size", reader);
       fact->closeSymbolReader(reader);
    }
 }
@@ -711,6 +727,7 @@ bool ProcControlComponent::send_message_mem(unsigned char *msg, uint32_t msg_siz
 {
    bool result;
    if (info.is_done) {
+      send_done = true;
       return true;
    }
    send_done = false;
@@ -723,29 +740,25 @@ bool ProcControlComponent::send_message_mem(unsigned char *msg, uint32_t msg_siz
          return false;
       }
    }
-   uint32_t send_buffer_size;
-   result = info.proc->readMemory(&send_buffer_size, info.send_buffer_size_addr, sizeof(uint32_t));
+   uint32_t recv_buffer_size;
+   result = info.proc->readMemory(&recv_buffer_size, info.recv_buffer_size_addr, sizeof(uint32_t));
    if (!result) {
       logerror("Unable to read memory in send\n");
       return false;
    }
-   assert(send_buffer_size = 0);
-   if (!send_buffer_size) {
-      logerror("Attempted to send twice before a recieve\n");
-      return false;
-   }
-   result = info.proc->writeMemory(info.send_buffer_addr, msg, msg_size);
+   assert(recv_buffer_size == 0);
+   result = info.proc->writeMemory(info.recv_buffer_addr, msg, msg_size);
    if (!result) {
       logerror("Unable to write buffer in send\n");
       return false;
    }
-   result = info.proc->writeMemory(info.send_buffer_size_addr, &msg_size, sizeof(uint32_t));
+   result = info.proc->writeMemory(info.recv_buffer_size_addr, &msg_size, sizeof(uint32_t));
    if (!result) {
       logerror("Unable to write size in send\n");
       return false;
    }
 
-   if (info.was_stopped) {
+   if (!info.was_stopped) {
       result = info.proc->continueProc();
       if (!result) {
          logerror("Unable to continue process after send\n");
@@ -754,6 +767,7 @@ bool ProcControlComponent::send_message_mem(unsigned char *msg, uint32_t msg_siz
    }
 
    info.is_done = true;
+   send_done = true;
    return true;
 }
 
@@ -761,6 +775,7 @@ bool ProcControlComponent::recv_message_mem(unsigned char *msg, unsigned msg_siz
 {
    bool result;
    if (info.is_done) {
+      recv_done = true;
       return true;
    }
    recv_done = false;
@@ -774,36 +789,36 @@ bool ProcControlComponent::recv_message_mem(unsigned char *msg, unsigned msg_siz
       }
    }
    
-   uint32_t recv_buffer_size;
-   result = info.proc->readMemory(&recv_buffer_size, info.recv_buffer_size_addr, sizeof(uint32_t));
+   uint32_t send_buffer_size;
+   result = info.proc->readMemory(&send_buffer_size, info.send_buffer_size_addr, sizeof(uint32_t));
    if (!result) {
       logerror("Unable to read size memory in recv\n");
       return false;
    }
-   if (recv_buffer_size) {
-      assert(recv_buffer_size == msg_size);
-      result = info.proc->readMemory(msg, info.recv_buffer_addr, recv_buffer_size);
+   if (send_buffer_size) {
+      assert(send_buffer_size == msg_size);
+      result = info.proc->readMemory(msg, info.send_buffer_addr, send_buffer_size);
       if (!result) {
          logerror("Unable to read buffer memory in recv\n");
          return false;
       }
       uint32_t zero = 0;
-      result = info.proc->writeMemory(info.recv_buffer_size_addr, &zero, sizeof(uint32_t));
+      result = info.proc->writeMemory(info.send_buffer_size_addr, &zero, sizeof(uint32_t));
       if (!result) {
          logerror("Unable to write buffer size in recv\n");
          return false;
       }
+      info.is_done = true;
       recv_done = true;
    }
    
-   if (info.was_stopped) {
+   if (!info.was_stopped) {
       result = info.proc->continueProc();
       if (!result) {
          logerror("Unable to continue process after send\n");
          return false;
       }
    }
-   info.is_done = true;
    return true;
 }
 
@@ -814,8 +829,8 @@ bool ProcControlComponent::recv_broadcast_mem(unsigned char *msg, unsigned msg_s
 
    commprocs_set_t commProcs;
    unsigned j = 0;
-   for (map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); i++, j++)
-      commProcs.insert(compair_t(new commInfo(i->first), j));
+   for (vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++, j++)
+      commProcs.insert(compair_t(new commInfo(*i), j));
    
    int timeout_count = 0;
    for (;;) {
@@ -846,9 +861,8 @@ bool ProcControlComponent::send_broadcast_mem(unsigned char *msg, unsigned msg_s
    typedef set<commInfo *> commprocs_set_t;
 
    commprocs_set_t commProcs;
-   unsigned j =0;
-   for (map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); i++, j++)
-      commProcs.insert(new commInfo(i->first));
+   for (vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++)
+      commProcs.insert(new commInfo(*i));
    
    int timeout_count = 0;
    for (;;) {
@@ -890,6 +904,7 @@ bool ProcControlComponent::recv_broadcast(unsigned char *msg, unsigned msg_size)
 
 bool ProcControlComponent::send_message(unsigned char *msg, unsigned msg_size, int sfd)
 {
+   assert(!use_mem_communication);
    int result = send(sfd, msg, msg_size, MSG_NOSIGNAL);
    if (result == -1) {
       char error_str[1024];
@@ -902,6 +917,9 @@ bool ProcControlComponent::send_message(unsigned char *msg, unsigned msg_size, i
 
 bool ProcControlComponent::send_broadcast(unsigned char *msg, unsigned msg_size)
 {
+   if (use_mem_communication) {
+      return send_broadcast_mem(msg, msg_size);
+   }
    unsigned char *cur_pos = msg;
    for (map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); i++) {
       bool result = send_message(msg, msg_size, i->second);

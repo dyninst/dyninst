@@ -53,7 +53,7 @@ volatile char recv_buffer[MESSAGE_BUFFER_SIZE];
 volatile char send_buffer[MESSAGE_BUFFER_SIZE];
 volatile uint32_t recv_buffer_size;
 volatile uint32_t send_buffer_size;
-volatile uint32_t needs_pc_comm;
+volatile uint32_t needs_pc_comm = 1;
 volatile uint32_t timeout;
 
 static testlock_t thread_startup_lock;
@@ -283,7 +283,6 @@ int initMutatorConnection()
       memset(&server_addr, 0, sizeof(struct sockaddr_un));
       server_addr.sun_family = PF_UNIX;
       strncpy(server_addr.sun_path, socket_name, 108);
-      fprintf(stderr, "[%s:%u] - Connecting here\n", __FILE__, __LINE__);
       result = connect(sockfd, (struct sockaddr *) &server_addr, sizeof(struct sockaddr_un));
       if (result != 0) {
          perror("Failed to connect to server");
@@ -300,7 +299,7 @@ int send_message(unsigned char *msg, size_t msg_size)
       assert(!send_buffer_size);
       memcpy((void *) send_buffer, msg, msg_size);
       send_buffer_size = msg_size;
-      
+    
       setTimeoutAlarm();
       while (send_buffer_size && !timeout);
       resetTimeoutAlarm();
