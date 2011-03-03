@@ -126,14 +126,14 @@ struct Config {
   bool no_fork;         // For IPC debugging.  See if we should run without monitor.
   bool recursive;       // Descend into children when processing directories.
   bool summary;         // Print instrumemnation summary on mutatee exit.
-  bool include_libs;    // Parse/Instrument shared libraries as well as program modules.
+  bool memcpu; // Print memory and CPU usage on mutatee exit.
+  bool include_libs; // Process shared libraries as well as program modules.
   bool use_attach;      // Attach to running process instead of forking new one.
   int  attach_pid;
   bool use_merge_tramp; // Use merge tramp for instrumentation.
-  bool use_save_world;  // Use save-the-world functionality.
   
   bool use_exe;  //Use seperate execitable file instead of the rewritten library. Used for executing rewritten shared libraries
-  bool use_process;  //Standard process style of instrumentation or binary edit
+  bool use_process;  //Standard in-core instrumentation or binary edit
    bool hunt_crashes; //Keep running until crash is found
    bool hunt_crashed; //True if process crashed
    int hunt_low;
@@ -142,7 +142,6 @@ struct Config {
    
   char writeFilePath[PATH_MAX];
   char exeFilePath[PATH_MAX];
-
 
   char *saved_mutatee;
   

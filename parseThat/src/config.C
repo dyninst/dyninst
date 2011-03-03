@@ -60,10 +60,10 @@ void configInit()
     config.no_fork = false;
     config.recursive = false;
     config.summary = false;
+    config.memcpu = false;
     config.include_libs = false;
     config.use_attach = false;
     config.use_merge_tramp = false;
-    config.use_save_world = false;
     config.saved_mutatee = NULL;
     config.use_process = true;
     config.use_exe = false;

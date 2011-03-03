@@ -112,12 +112,6 @@ dynHandle *mutatorInit(void)
 	}
     }
 
-    if (config.use_save_world) {
-	sendMsg(config.outfd, ID_INIT_SAVE_WORLD, INFO);
-	dh->proc->enableDumpPatchedImage();
-	sendMsg(config.outfd, ID_INIT_SAVE_WORLD, INFO, ID_PASS);
-    }
-
     sendMsg(config.outfd, ID_INIT_GET_IMAGE, INFO);
     dh->image = dh->proc->getImage();
     if (!dh->image) {

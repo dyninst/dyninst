@@ -40,7 +40,6 @@
 #include "ResumeLog.h"
 #include <stdlib.h>
 
-
 BPatch_process *startMutateeTestGeneric(BPatch *bpatch, const char *pathname, const char **child_argv, bool useAttach)
 {
    BPatch_process *appProc;
@@ -65,7 +64,7 @@ BPatch_process *startMutateeTestGeneric(BPatch *bpatch, const char *pathname, co
        if (appProc != NULL) {
            int pid = appProc->getPid();
            registerPID(pid); // Register PID for cleanup
-      }
+       }
    }
 
    return appProc;

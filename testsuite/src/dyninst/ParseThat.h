@@ -78,6 +78,7 @@ class ParseThat {
 	TESTLIB_DLL_EXPORT void suppress_ipc_messages() {suppress_ipc  = true;}
 	TESTLIB_DLL_EXPORT void set_verbosity(int v) {verbosity = v;}
 	TESTLIB_DLL_EXPORT void dont_fork() {nofork = true;}
+	TESTLIB_DLL_EXPORT void measure_usage() {measureUsage = true;}
 	TESTLIB_DLL_EXPORT void set_timeout(unsigned secs) {timeout_secs  = secs;}
 	TESTLIB_DLL_EXPORT void set_tracing() {do_trace = true;}
 	TESTLIB_DLL_EXPORT void set_tracesize(unsigned ntraces) {tracelength  = ntraces;}
@@ -113,6 +114,7 @@ class ParseThat {
 
 	bool suppress_ipc; //
 	bool nofork;
+	bool measureUsage;
 	unsigned verbosity; // presently can be 0-7
 	unsigned int timeout_secs;
 	bool do_trace;

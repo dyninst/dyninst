@@ -95,7 +95,7 @@ static void sigint_action(int sig, siginfo_t *siginfo, void *context) {
 void generateTestArgs(char **exec_args[], bool resume, bool useLog,
                       bool staticTests, string &logfile, int testLimit,
                       vector<char *> &child_argv, const char *pidFilename,
-                      const char *memcpu_name, std::string hostname);
+                      std::string hostname);
 
 int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
 {
@@ -185,15 +185,15 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
 }
 
 test_pid_t RunTest(unsigned int iteration, bool useLog, bool staticTests,
-            string logfile, int testLimit, vector<char *> child_argv,
-            const char *pidFilename, const char *memcpu_name,
-            std::string hostname) {
+                   string logfile, int testLimit, vector<char *> child_argv,
+                   const char *pidFilename, std::string hostname)
+{
    int retval = -1;
 
    char **exec_args = NULL;
 
    generateTestArgs(&exec_args, iteration > 0, useLog, staticTests, logfile,
-                    testLimit, child_argv, pidFilename, memcpu_name, hostname);
+                    testLimit, child_argv, pidFilename, hostname);
 
    if (hostname.length())
       sleep(1);
@@ -218,7 +218,7 @@ string ReplaceAllWith(const string &in, const string &replace, const string &wit
 void generateTestArgs(char **exec_args[], bool resume, bool useLog,
                       bool staticTests, string &logfile, int testLimit,
                       vector<char *> &child_argv, const char *pidFilename,
-                      const char *memcpu_name, std::string hostname) 
+                      std::string hostname)
 {
   vector<const char *> args;
 
@@ -244,11 +244,6 @@ void generateTestArgs(char **exec_args[], bool resume, bool useLog,
     args.push_back("-pidfile");
     args.push_back(pidFilename);
   }
-  if (memcpu_name && strlen(memcpu_name))
-  {
-     args.push_back("-memcpu");
-     args.push_back(memcpu_name);
-  }
   if (resume) {
     args.push_back("-use-resume");
   }
@@ -257,18 +252,9 @@ void generateTestArgs(char **exec_args[], bool resume, bool useLog,
     args.push_back("-logfile");
     args.push_back(const_cast<char *>(logfile.c_str()));
   }
+
   for (unsigned int i = 0; i < child_argv.size(); i++) {
-     if ((strcmp(child_argv[i], "-memcpu") == 0) ||
-         (strcmp(child_argv[i], "-cpumem") == 0))
-     {
-        if ((child_argv[i+1][0] != '-') || 
-            (child_argv[i+1][1] == '\0'))
-        {
-           i++;
-        }
-        continue;
-     }
-     args.push_back(child_argv[i]);
+      args.push_back(child_argv[i]);
   }
 
   // Copy the arguments from the vector to a new array

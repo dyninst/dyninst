@@ -54,7 +54,6 @@ const char *msgStr(messageID msgID)
     case ID_INIT_CREATE_PROCESS:	return "Forking mutatee process.";
     case ID_INIT_ATTACH_PROCESS:	return "Attaching to existing process.";
     case ID_INIT_MERGE_TRAMP:		return "Enabling merge tramp functionality.";
-    case ID_INIT_SAVE_WORLD:		return "Enabling Save-the-World functionality.";
     case ID_INIT_GET_IMAGE:		return "Retrieving BPatch_image object.";
 
     case ID_PARSE_MODULE:		return "Parsing image for module information.";
@@ -100,18 +99,18 @@ const char *msgStr(messageID msgID)
 
     case ID_RUN_CHILD:			return "Continuing execution of mutatee.";
     case ID_WAIT_TERMINATION:		return "Waiting for child termination.";
+    case ID_CHECK_TERMINATION:		return "Checking child termination status.";
     case ID_WAIT_STATUS_CHANGE:		return "Waiting for status change in child.";
     case ID_POLL_STATUS_CHANGE:		return "Polling for status change in child.";
     case ID_EXIT_CODE:			return "Mutatee exited normally.";
     case ID_EXIT_SIGNAL:		return "Mutatee terminated via signal.";
-    case ID_SAVE_WORLD:			return "Writing patched binary to disk.";
     case ID_DETACH_CHILD:		return "Detaching from mutatee and instructing it to continue.";
     case ID_STOP_CHILD:			return "Halting mutatee execution.";
 
     case ID_SUMMARY_INSERT:		return "Inserting information into summary report.";
 
     case ID_DATA_STRING:		return "Passing string to monitor.";
-    case ID_CRASH_HUNT_NUM_ACTIONS:       return "Counting number of hunt actions.";
+    case ID_CRASH_HUNT_NUM_ACTIONS:	return "Counting number of hunt actions.";
 
     default:				return "Unknown message ID";
     }

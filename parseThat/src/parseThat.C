@@ -79,11 +79,13 @@ bool runParseThat(int &bannerLen)
 {
    int pipefd[2];
 
-	//if (config.no_fork || !config.use_process) {
 	if (config.no_fork) {
-	    return launch_mutator();
+	    if (config.memcpu) track_usage();
+	    int result = launch_mutator();
+	    if (config.memcpu) report_usage();
+
+	    return result;
 	}
-	
 
 	if (pipe(pipefd) != 0) {
 	    dlog(ERR, "Error on pipe(): %s\n", strerror(errno));
@@ -107,8 +109,10 @@ bool runParseThat(int &bannerLen)
 
 	    // Register target in history records.
 	    if (config.record_enabled) {
-		if (!record_create(&config.curr_rec, config.target, config.argc, config.argv))
-		    dlog(WARN, "Error creating history record.  No history will be recorded for %s\n", config.target);
+	    if (!record_create(&config.curr_rec, config.target,
+			       config.argc, config.argv))
+		dlog(WARN, "Error creating history record for %s\n",
+		     config.target);
 
 		else if (!record_search(&config.curr_rec))
 		    record_update(&config.curr_rec);
@@ -131,7 +135,8 @@ bool runParseThat(int &bannerLen)
 	    // Reset signal handers so next child won't be affected.
 	    resetSigHandlers();
 
-	    fprintf(config.outfd, "[ Done processing %s ] %n", config.target, &bannerLen);
+	    fprintf(config.outfd, "[ Done processing %s ] %n",
+		    config.target, &bannerLen);
 	    while (++bannerLen < 80) fprintf(config.outfd, "-");
 	    fprintf(config.outfd, "\n");
 
@@ -151,24 +156,26 @@ bool runParseThat(int &bannerLen)
 	    // Start new process group.  Makes forced process shutdown easier.
 	    setpgid(0, 0);
 
-
 	    close(pipefd[0]); // Close (historically) read side of pipe.
 
-	    // Leave stdout open for mutatee, but if an output file was specified by user,
-	    // don't keep multiple descriptors open for it.
+	    // Leave stdout open for mutatee, but if an output file was specified
+	    // by user, don't keep multiple descriptors open for it.
 	    if (config.outfd != stdout) fclose(config.outfd);
 
 	    // Convert raw socket to stream based FILE *.
 	    errno = 0;
 	    config.outfd = fdopen(pipefd[1], "w");
 	    if (config.outfd == NULL) {
-		fprintf(stderr, "Error on fdopen() in mutator: %s\n", strerror(errno));
+		fprintf(stderr, "Error on fdopen() in mutator: %s\n",
+			strerror(errno));
 		fprintf(stderr, "*** Mutator exiting.\n");
 		exit(-2);
 	    }
 
-      int result = launch_mutator();
-      exit(result);
+	    if (config.memcpu) track_usage();
+	    int result = launch_mutator();
+	    if (config.memcpu) report_usage();
+	    exit(result);
 
 	} else {
 	    /* Fork Error Case */
@@ -179,25 +186,21 @@ bool runParseThat(int &bannerLen)
         if (config.abnormal_exit) {
            return -1;
         }
-        else
-           return 0;
+    else return 0;
 }
 
-bool runHunt_binaryEdit(){
-
+bool runHunt_binaryEdit()
+{
 	int result, status;
 	int pid = fork();
 	if (pid == 0) {
 		// child case
 		// run new binary
 		char * exeFile = (char *) malloc (1024);
-		if (config.use_exe)
-        {
-            sprintf(exeFile, "./%s", config.exeFilePath);
-        }
-		else
-        {
-            sprintf(exeFile, "./%s", config.writeFilePath);
+	if (config.use_exe) {
+	    sprintf(exeFile, "./%s", config.exeFilePath);
+	} else {
+	    sprintf(exeFile, "./%s", config.writeFilePath);
         }
 		int numargs = 0;
 		char **arg = (char **) malloc (2);
@@ -205,7 +208,6 @@ bool runHunt_binaryEdit(){
 
 		fprintf(stderr, "Executing new binary: \"%s", exeFile);
 		if (config.binary_args) {
-
 			char nargs[1024];
 	      		int offset = strcspn (config.binary_args, ":");
 			if(offset == 0) {
@@ -643,6 +645,10 @@ void parseArgs(int argc, char **argv)
                } else if (strcmp(ptr, "-merge-tramp") == 0) {
                   config.use_merge_tramp = true;
 
+               } else if (strcmp(ptr, "-memcpu") == 0 ||
+                          strcmp(ptr, "-cpumem") == 0) {
+                   config.memcpu = true;
+
                } else if (strcmp(ptr, "-only-func") == 0) {
                   if (!arg) {
                      fprintf(stderr, "--only-func requires a regular expression argument.\n");
@@ -667,14 +673,6 @@ void parseArgs(int argc, char **argv)
                } else if (strcmp(ptr, "-suppress-ipc") == 0) {
                   config.printipc = false;
 
-               } else if (strcmp(ptr, "-save-world") == 0) {
-                  // SPECIAL CASE.  User *MUST* use '--save-world=<filename>' form.
-                  // '--save-world <filename>' is ambiguous and cannot be parsed
-                  // reliably.
-                  if (!needShift) {
-                     if (arg) config.saved_mutatee = arg;
-                     config.use_save_world = true;
-                  }
                }  else if (strcmp(ptr, "-binary-edit") == 0) {
                   config.use_process = false;
                   config.trace_inst = false;
@@ -870,11 +868,6 @@ void parseArgs(int argc, char **argv)
       userError();
    }
 
-   if (config.use_save_world && config.runMode != SINGLE_BINARY) {
-      fprintf(stderr, "Save-the-world cannot be used with batch mode.\n");
-      userError();
-   }
-
    // Open output file descriptor.
    if (config.output_file) {
       errno = 0;
@@ -961,111 +954,67 @@ void parseArgs(int argc, char **argv)
    }
 }
 
-void usage(const char *progname)
+void usage(const char *pname)
 {
-    fprintf(stderr, "Usage: %s [options] <dir | prog> [prog_args]\n\n", progname);
-    fprintf(stderr, "Options:\n");
-    fprintf(stderr, "  -a, --all, --include-libs\n");
-    fprintf(stderr, "    Include shared libraries as targets for parsing and instrumentation.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -c <filename>\n");
-    fprintf(stderr, "    Specifies batch mode configuration file.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -f <library_name:function_name>\n");
-    fprintf(stderr, "    The function specified is used to generate instrumentation.\n");
-    fprintf(stderr, "    If this option is not specified, default instrumentation is generated.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -l <library name>\n");
-    fprintf(stderr, "    This option is used to load additional libraries\n");
-    fprintf(stderr, "    The library can be relative to a standard library directory or a full path\n");
-    fprintf(stderr, "    This option can be repeated multiple times\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -h\n");
-    fprintf(stderr, "    Enables history record logging.  Log files will be placed in:\n");
-    fprintf(stderr, "      %s/%s\n", "/tmp", HISTORY_RECORD_DIR_DEFAULT);
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  --help\n");
-    fprintf(stderr, "    Print this message.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -i <int>\n");
-    fprintf(stderr, "    Instrumentation level.  Valid parameters range from 0 to %d, where:\n", INST_MAX - 1);
-    fprintf(stderr, "      0 = No instrumentation\n");
-    fprintf(stderr, "      1 = Function entry instrumentation\n");
-    fprintf(stderr, "      2 = Function exit instrumentation\n");
-    fprintf(stderr, "      3 = Basic block instrumentation\n");
-    fprintf(stderr, "      4 = Memory read instrumentation\n");
-    fprintf(stderr, "      5 = Memory write instrumentation\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -m, --merge-tramp\n");
-    fprintf(stderr, "    Merge mini-tramps into base-tramps for more efficent instrumentation.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -o <filename>\n");
-    fprintf(stderr, "    Send all output from monitor to specified file.\n");
-    fprintf(stderr, "    NOTE: Mutator and mutatee output will not be sent to file.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  --binary-edit=<filename>\n");
-    fprintf(stderr, "    Use the binary rewriting feature to output a rewriten binary to");
-    fprintf(stderr, "    <filename>\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  --args=<number_of_arguments:comma-separated list of arguments>\n");
-    fprintf(stderr, "    While using runHunt, --args is used to specify a list of command line arguments\n");
-    fprintf(stderr, "    to run the rewritten bimary with.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -p <int>\n");
-    fprintf(stderr, "    Parse level.  Valid parameters range from 0 to %d, where:\n", PARSE_MAX - 1);
-    fprintf(stderr, "      0 = Parse for module data\n");
-    fprintf(stderr, "      1 = Parse for function data\n");
-    fprintf(stderr, "      2 = Parse for control flow graph data\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -P <int>, --pid=<int>\n");
-    fprintf(stderr, "    Attach to specified PID, instead of launching mutatee via fork()/exec().\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -r\n");
-    fprintf(stderr, "    Descend into subdirectories when processing directories.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -s, --summary\n");
-    fprintf(stderr, "    Print values of counters allocated for instrumentation on mutatee exit.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -S\n");
-    fprintf(stderr, "    Single-process mode.  Do not fork before launching mutatee.\n");
-    fprintf(stderr, "    Used mainly for internal %s debugging.\n", progname);
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -t <seconds>\n");
-    fprintf(stderr, "    Time limit before monitor forcibly kills mutator and mutatee.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -T [count], --trace[=count]\n");
-    fprintf(stderr, "    Have mutatee report progress at each function entry or exit.\n");
-    fprintf(stderr, "    If count > 0, only last [count] trace points will be reported.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -v [int]\n");
-    fprintf(stderr, "    Increase verbose level.  Each -v encountered will increment level.\n");
-    fprintf(stderr, "    You may also provide a parameter from 0 to %d.  DEFAULT = %d\n", VERBOSE_MAX - 1, (int)INFO);
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  --suppress-ipc\n");
-    fprintf(stderr, "    Disable IPC messages.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -q\n");
-    fprintf(stderr, "    Decrement verbose level.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  --use-transactions=<string>\n");
-    fprintf(stderr, "    Enable instrumentation transactions.  Valid parameters are:\n");
-    fprintf(stderr, "      func = Insert instrumentation once per function.\n");
-    fprintf(stderr, "      mod  = Insert instrumentation once per module.\n");
-    fprintf(stderr, "      proc = Insert instrumentation once per process.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  --only-mod=<regex>\n");
-    fprintf(stderr, "  --only-func=<regex>\n");
-    fprintf(stderr, "    Only parse/instrument modules or functions that match the\n");
-    fprintf(stderr, "    specified basic regular expression.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  --save-world=<filename>\n");
-    fprintf(stderr, "    Save mutatee to specified filename after instrumentation process.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  --skip-mod=<regex>\n");
-    fprintf(stderr, "  --skip-func=<regex>\n");
-    fprintf(stderr, "    Do not parse/instrument modules or functions that match the\n");
-    fprintf(stderr, "    specified basic regular expression.\n");
-    fprintf(stderr, "\n");
+    fprintf(stderr, "Usage: %s [options] <dir|prog> [prog_args]\n\n", pname);
+    fprintf(stderr, "Options:\n"
+"  -a, --all, --include-libs  Include shared libraries for instrumentation\n"
+"  --args=<number_of_arguments:comma-separated list of arguments>\n"
+"                             While using runHunt, --args is used to specify\n"
+"                               a list of command line arguments to run with\n"
+"                               the rewritten binary\n"
+"  --binary-edit=<filename>   Rewrite binary with instrumentation into\n"
+"                               <filename>\n"
+"  -c <filename>              Specifies batch mode configuration file\n"
+"  -f <library_name:function_name>\n"
+"                             Call the specified function at instrumentation\n"
+"                               points (Library is loaded if needed)\n"
+"  -h                         Enable history logging. Log files will be\n"
+"                               stored in /tmp/" HISTORY_RECORD_DIR_DEFAULT "\n"
+"  --help                     Print this message\n"
+"  -i <num>                   Instrumentation level:\n"
+"                               0 = No instrumentation\n"
+"                               1 = Function entry instrumentation\n"
+"                               2 = Function exit instrumentation\n"
+"                               3 = Basic block instrumentation\n"
+"                               4 = Memory read instrumentation\n"
+"                               5 = Memory write instrumentation\n"
+"  -l <library_name>          Force load specified library: can be relative\n"
+"                               to standard search path or full path\n"
+"  --memcpu, --cpumem         Print memory and CPU usage of mutator on exit\n"
+"  -m, --merge-tramp          Merge minitramps into basetramps (more efficent)\n"
+"  -o <filename>              Send all monitor output to specified file\n"
+"                               (Mutator and mutatee output not included)\n"
+"  --only-mod=<regex>, --only-func=<regex>\n"
+"                             Only consider modules or functions that match\n"
+"                               the specified basic regular expression\n"
+"  -p <num>                   Parse level:\n"
+"                               0 = Parse for module data\n"
+"                               1 = Parse for function data\n"
+"                               2 = Parse for control flow graph data\n"
+"  -P <int>, --pid=<id>       Attach to specified PID as mutatee\n"
+"  -q                         Decrease verboseness\n"
+"  -r                         Descend into subdirectories when processing\n"
+"                               directories\n"
+"  -s, --summary              Print values of counters allocated for\n"
+"                               instrumentation on mutatee exit\n"
+"  -S                         Single-process mode: Do not fork before\n"
+"                               starting mutatee. Internal use only\n"
+"  --skip-mod=<regex>, --skip-func=<regex>\n"
+"                             Do not consider modules or functions that\n"
+"                               match the specified basic regular expression\n"
+"  --suppress-ipc             Disable mutator to monitor IPC messages\n"
+"  -t <seconds>               Time limit before monitor kills mutator\n"
+"  -T [count], --trace[=num]  Report mutatee progress at each function entry\n"
+"                               on exit. If count > 0, only last [num] trace\n"
+"                               points will be reported\n"
+"  --use-transactions=<string>\n"
+"                             Enable instrumentation transactions:\n"
+"                               func = Per function insertion\n"
+"                               mod  = Per module insertion\n"
+"                               proc = Per process insertion\n"
+"  -v [num]                   Increase verboseness\n"
+);
 }
 
 void userError()
