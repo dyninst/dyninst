@@ -193,4 +193,5 @@ class Tempfile {
 #if defined (os_solaris_test) || defined (os_windows_test)
 TESTLIB_DLL_EXPORT int setenv(const char *envname, const char *envval, int);
 #endif
+
 #endif
