@@ -38,7 +38,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/types.h>
-#include <sys/stat.h>		// Needed for stat() call in parseArgs().
+#include <sys/stat.h>           // Needed for stat() call in parseArgs().
 #include <sys/wait.h>
 using namespace std;
 
@@ -57,338 +57,338 @@ bool runParseThat(int &bannerLen);
 
 int main(int argc, char **argv)
 {
-   int retval = 0;
+    int retval = 0;
     parseArgs(argc, argv);
 
-   if (config.hunt_crashes && !config.no_fork) {
-      getNextTarget();
-      return runHunt();
-   }
+    if (config.hunt_crashes && !config.no_fork) {
+        getNextTarget();
+        return runHunt();
+    }
 
-   int bannerLen = 0;
+    int bannerLen = 0;
     while (getNextTarget()) {
-       retval = runParseThat(bannerLen);
-   }
-   dlog(INFO, "Analysis complete.\n");
-   cleanupFinal();
+        retval = runParseThat(bannerLen);
+    }
+    dlog(INFO, "Analysis complete.\n");
+    cleanupFinal();
 
-   return retval;
+    return retval;
 }
 
 bool runParseThat(int &bannerLen)
 {
-   int pipefd[2];
+    int pipefd[2];
 
-	if (config.no_fork) {
-	    if (config.memcpu) track_usage();
-	    int result = launch_mutator();
-	    if (config.memcpu) report_usage();
+    if (config.no_fork) {
+        if (config.memcpu) track_usage();
+        int result = launch_mutator();
+        if (config.memcpu) report_usage();
 
-	    return result;
-	}
+        return result;
+    }
 
-	if (pipe(pipefd) != 0) {
-	    dlog(ERR, "Error on pipe(): %s\n", strerror(errno));
-	    exit(-2);
-	}
+    if (pipe(pipefd) != 0) {
+        dlog(ERR, "Error on pipe(): %s\n", strerror(errno));
+        exit(-2);
+    }
 
-	config.grandchildren.clear();
-	config.state = NORMAL;
+    config.grandchildren.clear();
+    config.state = NORMAL;
 
-	dlog(INFO, "[ Processing %s ] %n", config.target, &bannerLen);
-	while (++bannerLen < 80) dlog(INFO, "=");
-	dlog(INFO, "\n");
-	fflush(config.outfd);
+    dlog(INFO, "[ Processing %s ] %n", config.target, &bannerLen);
+    while (++bannerLen < 80) dlog(INFO, "=");
+    dlog(INFO, "\n");
+    fflush(config.outfd);
 
-	config.pid = fork();
-	if (config.pid > 0) {
-	    /**************************************************************
-	     * Parent Case
-	     */
-	    close(pipefd[1]); // Close (historically) write side of pipe.
+    config.pid = fork();
+    if (config.pid > 0) {
+        /**************************************************************
+         * Parent Case
+         */
+        close(pipefd[1]); // Close (historically) write side of pipe.
 
-	    // Register target in history records.
-	    if (config.record_enabled) {
-	    if (!record_create(&config.curr_rec, config.target,
-			       config.argc, config.argv))
-		dlog(WARN, "Error creating history record for %s\n",
-		     config.target);
+        // Register target in history records.
+        if (config.record_enabled) {
+            if (!record_create(&config.curr_rec, config.target,
+                               config.argc, config.argv))
+                dlog(WARN, "Error creating history record for %s\n",
+                     config.target);
 
-		else if (!record_search(&config.curr_rec))
-		    record_update(&config.curr_rec);
-	    }
-
-	    // Convert raw socket to stream based FILE *.
-	    errno = 0;
-	    FILE *infd = fdopen(pipefd[0], "r");
-	    if (infd == NULL) {
-		dlog(ERR, "Error on fdopen() in child: %s\n", strerror(errno));
-		dlog(ERR, "*** Child exiting.\n");
-		exit(-2);
-	    }
-
-	    // Only parent should have signal handlers modified.
-	    setSigHandlers();
-            
-	    launch_monitor(infd);
-
-	    // Reset signal handers so next child won't be affected.
-	    resetSigHandlers();
-
-	    fprintf(config.outfd, "[ Done processing %s ] %n",
-		    config.target, &bannerLen);
-	    while (++bannerLen < 80) fprintf(config.outfd, "-");
-	    fprintf(config.outfd, "\n");
-
-	    // Clean up any known processes we created.
-	    cleanupProcess();
-
-	    fclose(infd);
-
-	} else if (config.pid == 0) {
-	    /**************************************************************
-	     * Child Case
-	     */
-
-	    // Register to catch SIGINT
-	    setSigHandlers();
-
-	    // Start new process group.  Makes forced process shutdown easier.
-	    setpgid(0, 0);
-
-	    close(pipefd[0]); // Close (historically) read side of pipe.
-
-	    // Leave stdout open for mutatee, but if an output file was specified
-	    // by user, don't keep multiple descriptors open for it.
-	    if (config.outfd != stdout) fclose(config.outfd);
-
-	    // Convert raw socket to stream based FILE *.
-	    errno = 0;
-	    config.outfd = fdopen(pipefd[1], "w");
-	    if (config.outfd == NULL) {
-		fprintf(stderr, "Error on fdopen() in mutator: %s\n",
-			strerror(errno));
-		fprintf(stderr, "*** Mutator exiting.\n");
-		exit(-2);
-	    }
-
-	    if (config.memcpu) track_usage();
-	    int result = launch_mutator();
-	    if (config.memcpu) report_usage();
-	    exit(result);
-
-	} else {
-	    /* Fork Error Case */
-	    dlog(ERR, "Error on fork(): %s\n", strerror(errno));
-	    exit(-2);
-	}
-
-        if (config.abnormal_exit) {
-           return -1;
+            else if (!record_search(&config.curr_rec))
+                record_update(&config.curr_rec);
         }
+
+        // Convert raw socket to stream based FILE *.
+        errno = 0;
+        FILE *infd = fdopen(pipefd[0], "r");
+        if (infd == NULL) {
+            dlog(ERR, "Error on fdopen() in child: %s\n", strerror(errno));
+            dlog(ERR, "*** Child exiting.\n");
+            exit(-2);
+        }
+
+        // Only parent should have signal handlers modified.
+        setSigHandlers();
+
+        launch_monitor(infd);
+
+        // Reset signal handers so next child won't be affected.
+        resetSigHandlers();
+
+        fprintf(config.outfd, "[ Done processing %s ] %n",
+                config.target, &bannerLen);
+        while (++bannerLen < 80) fprintf(config.outfd, "-");
+        fprintf(config.outfd, "\n");
+
+        // Clean up any known processes we created.
+        cleanupProcess();
+
+        fclose(infd);
+
+    } else if (config.pid == 0) {
+        /**************************************************************
+         * Child Case
+         */
+
+        // Register to catch SIGINT
+        setSigHandlers();
+
+        // Start new process group.  Makes forced process shutdown easier.
+        setpgid(0, 0);
+
+        close(pipefd[0]); // Close (historically) read side of pipe.
+
+        // Leave stdout open for mutatee, but if an output file was specified
+        // by user, don't keep multiple descriptors open for it.
+        if (config.outfd != stdout) fclose(config.outfd);
+
+        // Convert raw socket to stream based FILE *.
+        errno = 0;
+        config.outfd = fdopen(pipefd[1], "w");
+        if (config.outfd == NULL) {
+            fprintf(stderr, "Error on fdopen() in mutator: %s\n",
+                    strerror(errno));
+            fprintf(stderr, "*** Mutator exiting.\n");
+            exit(-2);
+        }
+
+        if (config.memcpu) track_usage();
+        int result = launch_mutator();
+        if (config.memcpu) report_usage();
+        exit(result);
+
+    } else {
+        /* Fork Error Case */
+        dlog(ERR, "Error on fork(): %s\n", strerror(errno));
+        exit(-2);
+    }
+
+    if (config.abnormal_exit) {
+        return -1;
+    }
     else return 0;
 }
 
 bool runHunt_binaryEdit()
 {
-	int result, status;
-	int pid = fork();
-	if (pid == 0) {
-		// child case
-		// run new binary
-		char * exeFile = (char *) malloc (1024);
-	if (config.use_exe) {
-	    sprintf(exeFile, "./%s", config.exeFilePath);
-	} else {
-	    sprintf(exeFile, "./%s", config.writeFilePath);
+    int result, status;
+    int pid = fork();
+    if (pid == 0) {
+        // child case
+        // run new binary
+        char * exeFile = (char *) malloc (1024);
+        if (config.use_exe) {
+            sprintf(exeFile, "./%s", config.exeFilePath);
+        } else {
+            sprintf(exeFile, "./%s", config.writeFilePath);
         }
-		int numargs = 0;
-		char **arg = (char **) malloc (2);
-		arg[0] = exeFile;
+        int numargs = 0;
+        char **arg = (char **) malloc (2);
+        arg[0] = exeFile;
 
-		fprintf(stderr, "Executing new binary: \"%s", exeFile);
-		if (config.binary_args) {
-			char nargs[1024];
-	      		int offset = strcspn (config.binary_args, ":");
-			if(offset == 0) {
-				dlog(ERR, "\nInvalid format for command line arguments to the binary --args=<numArgs>:<comma-seperated args list>\n");
-				exit(-2);
-			}
-      			strncpy (nargs, config.binary_args, offset);
-        		nargs[offset] = '\0';
-			numargs = atoi(nargs);
+        fprintf(stderr, "Executing new binary: \"%s", exeFile);
+        if (config.binary_args) {
+            char nargs[1024];
+            int offset = strcspn (config.binary_args, ":");
+            if(offset == 0) {
+                dlog(ERR, "\nInvalid format for command line arguments to the binary --args=<numArgs>:<comma-seperated args list>\n");
+                exit(-2);
+            }
+            strncpy (nargs, config.binary_args, offset);
+            nargs[offset] = '\0';
+            numargs = atoi(nargs);
 
-			arg = (char **) realloc (arg, numargs+2);
+            arg = (char **) realloc (arg, numargs+2);
 
-			char *args = strchr(config.binary_args, ':');
-			args++;
-		
-			char *p = strtok(args, ",");
-			int i = 1;
-			while ( p != NULL && i <= numargs ) {
-				fprintf(stderr," %s", p);
-				arg[i] = p;
-				i++;
-				p = strtok(NULL, ",");
-			}
-			if (i <= numargs) {
-				dlog(ERR, "\nWrong number of arguments specified for executing binary. Expected %d but got only %d arguments\n", numargs, i-1);
-				exit(-2);
-			}
-		}
-			
-		fprintf(stderr,"\"\n");
-		arg[numargs+1] = NULL;
+            char *args = strchr(config.binary_args, ':');
+            args++;
+                
+            char *p = strtok(args, ",");
+            int i = 1;
+            while ( p != NULL && i <= numargs ) {
+                fprintf(stderr," %s", p);
+                arg[i] = p;
+                i++;
+                p = strtok(NULL, ",");
+            }
+            if (i <= numargs) {
+                dlog(ERR, "\nWrong number of arguments specified for executing binary. Expected %d but got only %d arguments\n", numargs, i-1);
+                exit(-2);
+            }
+        }
+                        
+        fprintf(stderr,"\"\n");
+        arg[numargs+1] = NULL;
 
-		result = execvp(exeFile, arg);
-		perror ("execvp failed");
-		abort();
-	} else if(pid < 0) {
-	        /* Fork Error Case */
-		dlog(ERR, "Error on runHunt fork(): %s\n", strerror(errno));
-		exit(-2);
-	}
+        result = execvp(exeFile, arg);
+        perror ("execvp failed");
+        abort();
+    } else if(pid < 0) {
+        /* Fork Error Case */
+        dlog(ERR, "Error on runHunt fork(): %s\n", strerror(errno));
+        exit(-2);
+    }
 
-	result = waitpid(pid,&status,0);
-	if ( WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-		printf(" Exiting non-zero \n");
-		return true;
-	}else if (WIFSIGNALED (status) && WTERMSIG(status) != 1) {
-		printf(" Exiting with  signal %d \n", WTERMSIG(status));
-		return true;
-	}
-	
-	return false;
+    result = waitpid(pid,&status,0);
+    if ( WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+        printf(" Exiting non-zero \n");
+        return true;
+    }else if (WIFSIGNALED (status) && WTERMSIG(status) != 1) {
+        printf(" Exiting with  signal %d \n", WTERMSIG(status));
+        return true;
+    }
+        
+    return false;
 }
 
 bool runHunt()
 {
-   int hard_low = -1;
-   int hard_high = -1;
-   int bannerLen = 0;
-   bool crash = false;
-   FILE *hunt_file = config.hunt_file;
-   std::queue<std::pair<int, int> > postponed_crashes;
+    int hard_low = -1;
+    int hard_high = -1;
+    int bannerLen = 0;
+    bool crash = false;
+    FILE *hunt_file = config.hunt_file;
+    std::queue<std::pair<int, int> > postponed_crashes;
 
-   if (config.hunt_low == -1 || config.hunt_high == -1) 
-   {
-      //Initial run over everything, get ranges.
-      runParseThat(bannerLen);
+    if (config.hunt_low == -1 || config.hunt_high == -1) 
+        {
+            //Initial run over everything, get ranges.
+            runParseThat(bannerLen);
 
-      if (!config.use_process) {
-      	crash = runHunt_binaryEdit();
-      }
-	
-      if (!config.hunt_crashed && !crash) {
-         fprintf(hunt_file, "No crashes detected in initial run\n");
-         goto done;
-      }
-      hard_low = config.hunt_low = 0;
-      hard_high = config.hunt_high;
+            if (!config.use_process) {
+                crash = runHunt_binaryEdit();
+            }
+        
+            if (!config.hunt_crashed && !crash) {
+                fprintf(hunt_file, "No crashes detected in initial run\n");
+                goto done;
+            }
+            hard_low = config.hunt_low = 0;
+            hard_high = config.hunt_high;
 
-      if (hard_high == -1) {
-         fprintf(hunt_file, "Mutator crash prevent range discovery, fix this first\n");
-         fflush(hunt_file);
-         goto done;
-      }
-   }
-   else if(config.hunt_high == config.hunt_low+1) {
-      //Initial run over everything, get ranges.
-      runParseThat(bannerLen);
+            if (hard_high == -1) {
+                fprintf(hunt_file, "Mutator crash prevent range discovery, fix this first\n");
+                fflush(hunt_file);
+                goto done;
+            }
+        }
+    else if(config.hunt_high == config.hunt_low+1) {
+        //Initial run over everything, get ranges.
+        runParseThat(bannerLen);
 
-      if (!config.use_process) {
-      	crash = runHunt_binaryEdit();
-      }
-      if (!crash) goto done;
-	
-   } else {
-      hard_low = config.hunt_low;
-      hard_high = config.hunt_high;
+        if (!config.use_process) {
+            crash = runHunt_binaryEdit();
+        }
+        if (!crash) goto done;
+        
+    } else {
+        hard_low = config.hunt_low;
+        hard_high = config.hunt_high;
     }
       
 
-   for (;;) {
-      int mid = (hard_low + hard_high) / 2;
+    for (;;) {
+        int mid = (hard_low + hard_high) / 2;
       
-      if (mid == hard_low) {
-         fprintf(hunt_file, "** Found Crash point at [%d, %d) **\n", 
-                 hard_low, hard_high);
-         fflush(hunt_file);
-         if (!postponed_crashes.size())
-            goto done;
-         std::pair<int, int> p = postponed_crashes.front();
-         postponed_crashes.pop();
-         hard_low = p.first;
-         hard_high = p.second;
-         continue;
-      }
+        if (mid == hard_low) {
+            fprintf(hunt_file, "** Found Crash point at [%d, %d) **\n", 
+                    hard_low, hard_high);
+            fflush(hunt_file);
+            if (!postponed_crashes.size())
+                goto done;
+            std::pair<int, int> p = postponed_crashes.front();
+            postponed_crashes.pop();
+            hard_low = p.first;
+            hard_high = p.second;
+            continue;
+        }
 
-      fprintf(hunt_file, "Crash is in interval [%d, %d)\n", hard_low, hard_high);
+        fprintf(hunt_file, "Crash is in interval [%d, %d)\n", hard_low, hard_high);
 
-      config.hunt_low = hard_low;
-      config.hunt_high = mid;
-      config.hunt_crashed = false;
+        config.hunt_low = hard_low;
+        config.hunt_high = mid;
+        config.hunt_crashed = false;
 
-      fprintf(hunt_file, "\tRunning interval [%d, %d)...", hard_low, mid);
-      fflush(hunt_file);
-      runParseThat(bannerLen);
-      crash = false;
-      if (!config.use_process) {
-      	crash = runHunt_binaryEdit();
-      }
+        fprintf(hunt_file, "\tRunning interval [%d, %d)...", hard_low, mid);
+        fflush(hunt_file);
+        runParseThat(bannerLen);
+        crash = false;
+        if (!config.use_process) {
+            crash = runHunt_binaryEdit();
+        }
 
-      bool low_half_crash = config.hunt_crashed || crash;
-      if (low_half_crash)
-         fprintf(hunt_file, "Crashed\n");
-      else
-         fprintf(hunt_file, "Success\n");
+        bool low_half_crash = config.hunt_crashed || crash;
+        if (low_half_crash)
+            fprintf(hunt_file, "Crashed\n");
+        else
+            fprintf(hunt_file, "Success\n");
 
-      config.hunt_low = mid;
-      config.hunt_high = hard_high;
-      fprintf(hunt_file, "\tRunning interval [%d, %d)...", mid, hard_high);
-      fflush(hunt_file);
-      runParseThat(bannerLen);
-      crash = false;
-      if (!config.use_process) {
-      	crash = runHunt_binaryEdit();
-      }
+        config.hunt_low = mid;
+        config.hunt_high = hard_high;
+        fprintf(hunt_file, "\tRunning interval [%d, %d)...", mid, hard_high);
+        fflush(hunt_file);
+        runParseThat(bannerLen);
+        crash = false;
+        if (!config.use_process) {
+            crash = runHunt_binaryEdit();
+        }
 
-      bool high_half_crash = config.hunt_crashed || crash;
-      if (high_half_crash)
-         fprintf(hunt_file, "Crashed\n");
-      else
-         fprintf(hunt_file, "Success\n");
+        bool high_half_crash = config.hunt_crashed || crash;
+        if (high_half_crash)
+            fprintf(hunt_file, "Crashed\n");
+        else
+            fprintf(hunt_file, "Success\n");
       
-      if (low_half_crash && !high_half_crash) {
-         hard_high = mid;
-      }
-      else if (!low_half_crash && high_half_crash) {
-         hard_low = mid;
-      }
-      else if (low_half_crash && high_half_crash) {
-         std::pair<int, int> p;
-         p.first = mid;
-         p.second = hard_high;
-         postponed_crashes.push(p);
+        if (low_half_crash && !high_half_crash) {
+            hard_high = mid;
+        }
+        else if (!low_half_crash && high_half_crash) {
+            hard_low = mid;
+        }
+        else if (low_half_crash && high_half_crash) {
+            std::pair<int, int> p;
+            p.first = mid;
+            p.second = hard_high;
+            postponed_crashes.push(p);
 
-         hard_high = mid;
-      }
-      else if (!low_half_crash && !high_half_crash) {
-         fprintf(hunt_file, "** Found Crash point at [%d, %d) **\n", 
-                 hard_low, hard_high);
-         fflush(hunt_file);
-         if (!postponed_crashes.size())
-            goto done;
-         std::pair<int, int> p = postponed_crashes.front();
-         postponed_crashes.pop();
-         hard_low = p.first;
-         hard_high = p.second;
-         continue;
-      }
-   }
+            hard_high = mid;
+        }
+        else if (!low_half_crash && !high_half_crash) {
+            fprintf(hunt_file, "** Found Crash point at [%d, %d) **\n", 
+                    hard_low, hard_high);
+            fflush(hunt_file);
+            if (!postponed_crashes.size())
+                goto done;
+            std::pair<int, int> p = postponed_crashes.front();
+            postponed_crashes.pop();
+            hard_low = p.first;
+            hard_high = p.second;
+            continue;
+        }
+    }
 
- done:
-   fclose(hunt_file);
+  done:
+    fclose(hunt_file);
     dlog(INFO, "Analysis complete.\n");
     cleanupFinal();
     return 0;
@@ -396,562 +396,562 @@ bool runHunt()
 
 void parseArgs(int argc, char **argv)
 {
-   int tempInt;
-   bool needShift;
-   char *arg;
+    int tempInt;
+    bool needShift;
+    char *arg;
 
-   if (argc < 2) {
-      fprintf(stderr, "Too few arguments.\n");
-      userError();
-   }
+    if (argc < 2) {
+        fprintf(stderr, "Too few arguments.\n");
+        userError();
+    }
 
-   configInit();
+    configInit();
 
-   int i = 0;
-   while (++i < argc && *argv[i] == '-') {
-     char *ptr = argv[i];
-      while (*(++ptr)) {
-         switch (*ptr) {
+    int i = 0;
+    while (++i < argc && *argv[i] == '-') {
+        char *ptr = argv[i];
+        while (*(++ptr)) {
+            switch (*ptr) {
             case 'a':
-               config.include_libs = true;
-               break;
+                config.include_libs = true;
+                break;
 
             case 'c':
-               if (++i < argc) {
-                  config.config_file = argv[i];
-                  config.runMode = BATCH_FILE;
+                if (++i < argc) {
+                    config.config_file = argv[i];
+                    config.runMode = BATCH_FILE;
 
-               } else {
-                  fprintf(stderr, "-c flag requires an argument.\n");
-                  userError();
-               }
-               break;
+                } else {
+                    fprintf(stderr, "-c flag requires an argument.\n");
+                    userError();
+                }
+                break;
 
-            case 'f':		
-               if (++i < argc) {
-                  config.inst_function = argv[i];
-                  if (strchr (config.inst_function, ':')) {
-                     config.instType = USER_FUNC;
-                  } else {
-                     fprintf(stderr, "-f flag requires an argument of the format library:function_name.\n");
-                     userError();
-                  }
-               } else {
-                  fprintf(stderr, "-f flag requires an argument of the format library:function_name.\n");
-                  userError();
-               }
-               break;
+            case 'f':           
+                if (++i < argc) {
+                    config.inst_function = argv[i];
+                    if (strchr (config.inst_function, ':')) {
+                        config.instType = USER_FUNC;
+                    } else {
+                        fprintf(stderr, "-f flag requires an argument of the format library:function_name.\n");
+                        userError();
+                    }
+                } else {
+                    fprintf(stderr, "-f flag requires an argument of the format library:function_name.\n");
+                    userError();
+                }
+                break;
 
             case 'h':
-               config.record_enabled = 1;
-               break;
+                config.record_enabled = 1;
+                break;
 
             case 'i':
-               if (isdigit(*(ptr + 1))) {
-                  config.inst_level = (InstLevel)strtol(++ptr, &arg, 0);
-                  ptr = arg - 1;
+                if (isdigit(*(ptr + 1))) {
+                    config.inst_level = (InstLevel)strtol(++ptr, &arg, 0);
+                    ptr = arg - 1;
 
-               } else if (++i < argc) {
-                  config.inst_level = (InstLevel)atoi(argv[i]);
+                } else if (++i < argc) {
+                    config.inst_level = (InstLevel)atoi(argv[i]);
 
-               } else {
-                  fprintf(stderr, "-i flag requires an argument.\n");
-                  userError();
-               }
+                } else {
+                    fprintf(stderr, "-i flag requires an argument.\n");
+                    userError();
+                }
 
-               if (config.inst_level == 0 && errno == EINVAL) {
-                  fprintf(stderr, "Invalid argument to -i flag: '%s'\n", argv[i]);
-                  userError();
-               }
+                if (config.inst_level == 0 && errno == EINVAL) {
+                    fprintf(stderr, "Invalid argument to -i flag: '%s'\n", argv[i]);
+                    userError();
+                }
 
-               if (config.inst_level < 0 || config.inst_level >= INST_MAX) {
-                  fprintf(stderr, "Invalid argument to -i flag.  Valid range is 0 through %d\n", INST_MAX - 1);
-                  userError();
-               }
-               break;
+                if (config.inst_level < 0 || config.inst_level >= INST_MAX) {
+                    fprintf(stderr, "Invalid argument to -i flag.  Valid range is 0 through %d\n", INST_MAX - 1);
+                    userError();
+                }
+                break;
 
             case 'm':
-               config.use_merge_tramp = true;
-               break;
+                config.use_merge_tramp = true;
+                break;
 
             case 'o':
-               if (++i < argc) {
-                  config.output_file = argv[i];
-                  config.outfd = NULL;
+                if (++i < argc) {
+                    config.output_file = argv[i];
+                    config.outfd = NULL;
 
-               } else {
-                  fprintf(stderr, "-o flag requires an argument.\n");
-                  userError();
-               }
-               break;
+                } else {
+                    fprintf(stderr, "-o flag requires an argument.\n");
+                    userError();
+                }
+                break;
 
             case 'p':
-               if (isdigit(*(ptr + 1))) {
-                  config.parse_level = (ParseLevel)strtol(++ptr, &arg, 0);
-                  ptr = arg - 1;
+                if (isdigit(*(ptr + 1))) {
+                    config.parse_level = (ParseLevel)strtol(++ptr, &arg, 0);
+                    ptr = arg - 1;
 
-               } else if (++i < argc) {
-                  config.parse_level = (ParseLevel)atoi(argv[i]);
+                } else if (++i < argc) {
+                    config.parse_level = (ParseLevel)atoi(argv[i]);
 
-               } else {
-                  fprintf(stderr, "-p flag requires an argument.\n");
-                  userError();
-               }
+                } else {
+                    fprintf(stderr, "-p flag requires an argument.\n");
+                    userError();
+                }
 
-               if (config.parse_level == 0 && errno == EINVAL) {
-                  fprintf(stderr, "Invalid argument to -p flag: '%s'\n", argv[i]);
-                  userError();
-               }
+                if (config.parse_level == 0 && errno == EINVAL) {
+                    fprintf(stderr, "Invalid argument to -p flag: '%s'\n", argv[i]);
+                    userError();
+                }
 
-               if (config.parse_level < 0 || config.parse_level >= PARSE_MAX) {
-                  fprintf(stderr, "Invalid argument to -p flag.  Valid range is 0 through %d\n", PARSE_MAX - 1);
-                  userError();
-               }
-               break;
+                if (config.parse_level < 0 || config.parse_level >= PARSE_MAX) {
+                    fprintf(stderr, "Invalid argument to -p flag.  Valid range is 0 through %d\n", PARSE_MAX - 1);
+                    userError();
+                }
+                break;
 
             case 'P':
-               if (isdigit(*(ptr + 1))) {
-                  config.attach_pid = strtol(++ptr, &arg, 0);
-                  ptr = arg - 1;
+                if (isdigit(*(ptr + 1))) {
+                    config.attach_pid = strtol(++ptr, &arg, 0);
+                    ptr = arg - 1;
 
-               } else if (++i < argc) {
-                  config.attach_pid = atoi(argv[i]);
+                } else if (++i < argc) {
+                    config.attach_pid = atoi(argv[i]);
 
-               } else {
-                  fprintf(stderr, "-P flag requires an argument.\n");
-                  userError();
-               }
+                } else {
+                    fprintf(stderr, "-P flag requires an argument.\n");
+                    userError();
+                }
 
-               if (config.attach_pid == 0) {
-                  fprintf(stderr, "Invalid argument to -P flag.\n");
-                  userError();
-               }
+                if (config.attach_pid == 0) {
+                    fprintf(stderr, "Invalid argument to -P flag.\n");
+                    userError();
+                }
 
-               config.use_attach = true;
-               break;
+                config.use_attach = true;
+                break;
 
             case 'r':
-               config.recursive = true;
-               break;
+                config.recursive = true;
+                break;
 
             case 's':
-               config.summary = true;
-               break;
+                config.summary = true;
+                break;
 
             case 'S':
-               config.no_fork = true;
-               break;
+                config.no_fork = true;
+                break;
 
             case 't':
-               errno = 0;
-               if (isdigit(*(ptr + 1))) {
-                  config.time_limit = strtol(++ptr, &arg, 0);
-                  ptr = arg - 1;
+                errno = 0;
+                if (isdigit(*(ptr + 1))) {
+                    config.time_limit = strtol(++ptr, &arg, 0);
+                    ptr = arg - 1;
 
-               } else if (++i < argc) {
-                  config.time_limit = atoi(argv[i]);
+                } else if (++i < argc) {
+                    config.time_limit = atoi(argv[i]);
 
-               } else {
-                  fprintf(stderr, "-t flag requires an argument.\n");
-                  userError();
-               }
+                } else {
+                    fprintf(stderr, "-t flag requires an argument.\n");
+                    userError();
+                }
 
-               if (config.time_limit == 0 && errno == EINVAL) {
-                  fprintf(stderr, "Invalid argument to -t flag: '%s'\n", argv[i]);
-                  userError();
-               }
-               break;
+                if (config.time_limit == 0 && errno == EINVAL) {
+                    fprintf(stderr, "Invalid argument to -t flag: '%s'\n", argv[i]);
+                    userError();
+                }
+                break;
 
             case 'T':
-               tempInt = 0;
-               if (isdigit(*(ptr + 1))) {
-                  tempInt = strtol(++ptr, &arg, 0);
-                  ptr = arg - 1;
+                tempInt = 0;
+                if (isdigit(*(ptr + 1))) {
+                    tempInt = strtol(++ptr, &arg, 0);
+                    ptr = arg - 1;
 
-               } else if (i+1 < argc && isdigit(*argv[i+1])) {
-                  tempInt = atoi(argv[++i]);
-               }
+                } else if (i+1 < argc && isdigit(*argv[i+1])) {
+                    tempInt = atoi(argv[++i]);
+                }
 
-               config.trace_count = (tempInt < 0 ? 0 : (unsigned int)tempInt);
-               if (config.use_process)
-                  config.trace_inst = true;
-               break;
+                config.trace_count = (tempInt < 0 ? 0 : (unsigned int)tempInt);
+                if (config.use_process)
+                    config.trace_inst = true;
+                break;
 
             case 'v':
-               if (isdigit(*(ptr + 1))) {
-                  config.verbose = strtol(++ptr, &arg, 0);
-                  ptr = arg - 1;
+                if (isdigit(*(ptr + 1))) {
+                    config.verbose = strtol(++ptr, &arg, 0);
+                    ptr = arg - 1;
 
-               } else if (i+1 < argc && isdigit(*argv[i+1])) {
-                  config.verbose = atoi(argv[++i]);
+                } else if (i+1 < argc && isdigit(*argv[i+1])) {
+                    config.verbose = atoi(argv[++i]);
 
-               } else {
-                  ++config.verbose;
-               }
+                } else {
+                    ++config.verbose;
+                }
 
-               if (config.verbose < 0 || config.verbose >= VERBOSE_MAX) {
-                  fprintf(stderr, "Invalid -v flag.  Valid range is 0 through %d\n", VERBOSE_MAX - 1);
-               }
+                if (config.verbose < 0 || config.verbose >= VERBOSE_MAX) {
+                    fprintf(stderr, "Invalid -v flag.  Valid range is 0 through %d\n", VERBOSE_MAX - 1);
+                }
 
-               break;
+                break;
 
             case 'q':
-               --config.verbose;
+                --config.verbose;
 
-               if (config.verbose < 0 || config.verbose >= VERBOSE_MAX) {
-                  fprintf(stderr, "Invalid -v flag.  Valid range is 0 through %d\n", VERBOSE_MAX - 1);
-               }
-               break;
+                if (config.verbose < 0 || config.verbose >= VERBOSE_MAX) {
+                    fprintf(stderr, "Invalid -v flag.  Valid range is 0 through %d\n", VERBOSE_MAX - 1);
+                }
+                break;
             case 'l':
-               if( ++i < argc ) {
-                  config.symbol_libraries.push_back(string(argv[i]));
-               }
-               break;
+                if( ++i < argc ) {
+                    config.symbol_libraries.push_back(string(argv[i]));
+                }
+                break;
             case '-':
-               needShift = false;
-               arg = strchr(ptr, '=');
-               if (arg) *(arg++) = '\0';
-               else if (i+1 < argc) {
-                  arg = argv[i+1];
-                  needShift = true;
-               }
+                needShift = false;
+                arg = strchr(ptr, '=');
+                if (arg) *(arg++) = '\0';
+                else if (i+1 < argc) {
+                    arg = argv[i+1];
+                    needShift = true;
+                }
 
-               if (strcmp(ptr, "-all") == 0 ||
-                   strcmp(ptr, "-include-libs") == 0) {
-                  config.include_libs = true;
+                if (strcmp(ptr, "-all") == 0 ||
+                    strcmp(ptr, "-include-libs") == 0) {
+                    config.include_libs = true;
 
-               } else if (strcmp(ptr, "-pid") == 0) {
-                  if (!arg) {
-                     fprintf(stderr, "--pid requires an integer argument.\n");
-                     userError();
+                } else if (strcmp(ptr, "-pid") == 0) {
+                    if (!arg) {
+                        fprintf(stderr, "--pid requires an integer argument.\n");
+                        userError();
 
-                  } else if (isdigit(*arg)) {
-                     config.attach_pid = strtol(arg, &arg, 0);
-                  }
+                    } else if (isdigit(*arg)) {
+                        config.attach_pid = strtol(arg, &arg, 0);
+                    }
 
-                  if (config.attach_pid == 0) {
-                     fprintf(stderr, "Invalid argument to --pid flag.\n");
-                     userError();
-                  }
-                  config.use_attach = true;
+                    if (config.attach_pid == 0) {
+                        fprintf(stderr, "Invalid argument to --pid flag.\n");
+                        userError();
+                    }
+                    config.use_attach = true;
 
-                  if (needShift) ++i;
-                  break;
-		    
-               } else if (strcmp(ptr, "-help") == 0) {
-                  usage(argv[0]);
-                  exit(0);
+                    if (needShift) ++i;
+                    break;
+                    
+                } else if (strcmp(ptr, "-help") == 0) {
+                    usage(argv[0]);
+                    exit(0);
 
-               } else if (strcmp(ptr, "-merge-tramp") == 0) {
-                  config.use_merge_tramp = true;
+                } else if (strcmp(ptr, "-merge-tramp") == 0) {
+                    config.use_merge_tramp = true;
 
-               } else if (strcmp(ptr, "-memcpu") == 0 ||
-                          strcmp(ptr, "-cpumem") == 0) {
-                   config.memcpu = true;
+                } else if (strcmp(ptr, "-memcpu") == 0 ||
+                           strcmp(ptr, "-cpumem") == 0) {
+                    config.memcpu = true;
 
-               } else if (strcmp(ptr, "-only-func") == 0) {
-                  if (!arg) {
-                     fprintf(stderr, "--only-func requires a regular expression argument.\n");
-                     userError();
-                  }
-                  if (!config.func_rules.insert(arg, RULE_ONLY))
-                     userError();
-                  if (needShift) ++i;
+                } else if (strcmp(ptr, "-only-func") == 0) {
+                    if (!arg) {
+                        fprintf(stderr, "--only-func requires a regular expression argument.\n");
+                        userError();
+                    }
+                    if (!config.func_rules.insert(arg, RULE_ONLY))
+                        userError();
+                    if (needShift) ++i;
 
-               } else if (strcmp(ptr, "-only-mod") == 0) {
-                  if (!arg) {
-                     fprintf(stderr, "--only-mod requires a regular expression argument.\n");
-                     userError();
-                  }
-                  if (!config.mod_rules.insert(arg, RULE_ONLY))
-                     userError();
-                  if (needShift) ++i;
+                } else if (strcmp(ptr, "-only-mod") == 0) {
+                    if (!arg) {
+                        fprintf(stderr, "--only-mod requires a regular expression argument.\n");
+                        userError();
+                    }
+                    if (!config.mod_rules.insert(arg, RULE_ONLY))
+                        userError();
+                    if (needShift) ++i;
 
-               } else if (strcmp(ptr, "-summary") == 0) {
-                  config.summary = true;
+                } else if (strcmp(ptr, "-summary") == 0) {
+                    config.summary = true;
 
-               } else if (strcmp(ptr, "-suppress-ipc") == 0) {
-                  config.printipc = false;
+                } else if (strcmp(ptr, "-suppress-ipc") == 0) {
+                    config.printipc = false;
 
-               }  else if (strcmp(ptr, "-binary-edit") == 0) {
-                  config.use_process = false;
-                  config.trace_inst = false;
-                  if (!arg) {
-                     fprintf(stderr, "--binary-edit requires a path argument\n");
-                     userError();
-                  }
-                  else
-                  {
-                     strcpy(config.writeFilePath,arg);
-                     printf("Write File Path is %s\n", config.writeFilePath);
-                  }
-               }  else if (strcmp(ptr, "-exe") == 0) {
-                  config.use_exe = true;
-                  if (!arg) {
-                     fprintf(stderr, "--binary-edit requires a path argument\n");
-                     userError();
-                  }
-                  else
-                  {
-                     strcpy(config.exeFilePath,arg);
-                     printf(" Executable Path is %s\n", config.exeFilePath);
-                  }
-               } else if (strcmp(ptr, "-args") == 0) {
-                  if (!arg) {
-                     fprintf(stderr, "-args requires an argument of the format <number_of_arguments:comma-seperated list of arguments>\n");
-                     userError();
-                  }
-                  else
-                  {
-                     if (!strchr (arg, ':')) {
+                }  else if (strcmp(ptr, "-binary-edit") == 0) {
+                    config.use_process = false;
+                    config.trace_inst = false;
+                    if (!arg) {
+                        fprintf(stderr, "--binary-edit requires a path argument\n");
+                        userError();
+                    }
+                    else
+                        {
+                            strcpy(config.writeFilePath,arg);
+                            printf("Write File Path is %s\n", config.writeFilePath);
+                        }
+                }  else if (strcmp(ptr, "-exe") == 0) {
+                    config.use_exe = true;
+                    if (!arg) {
+                        fprintf(stderr, "--binary-edit requires a path argument\n");
+                        userError();
+                    }
+                    else
+                        {
+                            strcpy(config.exeFilePath,arg);
+                            printf(" Executable Path is %s\n", config.exeFilePath);
+                        }
+                } else if (strcmp(ptr, "-args") == 0) {
+                    if (!arg) {
                         fprintf(stderr, "-args requires an argument of the format <number_of_arguments:comma-seperated list of arguments>\n");
                         userError();
-                     }
-                     config.binary_args = (char *) malloc (strlen(arg)+1);
-                     strcpy(config.binary_args,arg);
-                  }
-			
-               }  else if (strcmp(ptr, "-skip-func") == 0) {
-                  if (!arg) {
-                     fprintf(stderr, "--skip-func requires a regular expression argument.\n");
-                     userError();
-                  }
-                  if (!config.func_rules.insert(arg, RULE_SKIP))
-                     userError();
-                  if (needShift) ++i;
+                    }
+                    else
+                        {
+                            if (!strchr (arg, ':')) {
+                                fprintf(stderr, "-args requires an argument of the format <number_of_arguments:comma-seperated list of arguments>\n");
+                                userError();
+                            }
+                            config.binary_args = (char *) malloc (strlen(arg)+1);
+                            strcpy(config.binary_args,arg);
+                        }
+                        
+                }  else if (strcmp(ptr, "-skip-func") == 0) {
+                    if (!arg) {
+                        fprintf(stderr, "--skip-func requires a regular expression argument.\n");
+                        userError();
+                    }
+                    if (!config.func_rules.insert(arg, RULE_SKIP))
+                        userError();
+                    if (needShift) ++i;
 
-               } else if (strcmp(ptr, "-skip-mod") == 0) {
-                  if (!arg) {
-                     fprintf(stderr, "--skip-mod requires a regular expression argument.\n");
-                     userError();
-                  }
-                  if (!config.mod_rules.insert(arg, RULE_SKIP))
-                     userError();
-                  if (needShift) ++i;
-               } else if (strcmp(ptr, "-hunt") == 0) {
-                  config.hunt_crashes = true;
-                  if (arg) {
-                     config.hunt_file = fopen(arg, "w");
-                  }
-                  else {
-                     config.hunt_file = fopen(DEFAULT_HUNT_FILE, "w");
-                  }
-                  if (!config.hunt_file)
-                     config.hunt_file = stderr;
-               } else if (strcmp(ptr, "-hunt-low") == 0) {
-                  config.hunt_low = atoi(arg);
-               } else if (strcmp(ptr, "-hunt-high") == 0) {
-                  config.hunt_high = atoi(arg);
-               } else if (strcmp(ptr, "-trace") == 0) {
-                  tempInt = 0;
-                  if (isdigit(*arg)) {
-                     tempInt = strtol(arg, &arg, 0);
-                     if (needShift) ++i;
-                  }
+                } else if (strcmp(ptr, "-skip-mod") == 0) {
+                    if (!arg) {
+                        fprintf(stderr, "--skip-mod requires a regular expression argument.\n");
+                        userError();
+                    }
+                    if (!config.mod_rules.insert(arg, RULE_SKIP))
+                        userError();
+                    if (needShift) ++i;
+                } else if (strcmp(ptr, "-hunt") == 0) {
+                    config.hunt_crashes = true;
+                    if (arg) {
+                        config.hunt_file = fopen(arg, "w");
+                    }
+                    else {
+                        config.hunt_file = fopen(DEFAULT_HUNT_FILE, "w");
+                    }
+                    if (!config.hunt_file)
+                        config.hunt_file = stderr;
+                } else if (strcmp(ptr, "-hunt-low") == 0) {
+                    config.hunt_low = atoi(arg);
+                } else if (strcmp(ptr, "-hunt-high") == 0) {
+                    config.hunt_high = atoi(arg);
+                } else if (strcmp(ptr, "-trace") == 0) {
+                    tempInt = 0;
+                    if (isdigit(*arg)) {
+                        tempInt = strtol(arg, &arg, 0);
+                        if (needShift) ++i;
+                    }
 
-                  config.trace_count = (tempInt < 0 ? 0 : (unsigned int)tempInt);
-                  if (config.use_process)
-                     config.trace_inst = true;
+                    config.trace_count = (tempInt < 0 ? 0 : (unsigned int)tempInt);
+                    if (config.use_process)
+                        config.trace_inst = true;
 
-               } else if (strcmp(ptr, "-use-transactions") == 0) {
-                  if (!arg) {
-                     fprintf(stderr, "No argument supplied to --use-transactions.  Using per-function as default.\n");
-                     config.transMode = TRANS_FUNCTION;
-                  }
+                } else if (strcmp(ptr, "-use-transactions") == 0) {
+                    if (!arg) {
+                        fprintf(stderr, "No argument supplied to --use-transactions.  Using per-function as default.\n");
+                        config.transMode = TRANS_FUNCTION;
+                    }
 
-                  for (unsigned j = 0; arg[j]; ++j) arg[j] = tolower(arg[j]);
-                  if (strcmp(arg, "func") == 0) config.transMode = TRANS_FUNCTION;
-                  else if (strcmp(arg, "mod") == 0)  config.transMode = TRANS_MODULE;
-                  else if (strcmp(arg, "proc") == 0) config.transMode = TRANS_PROCESS;
-                  else {
-                     fprintf(stderr, "Invalid argument supplied to --use-transactions.  Valid arguments are func, mod, or proc.\n");
-                     userError();
-                  }
+                    for (unsigned j = 0; arg[j]; ++j) arg[j] = tolower(arg[j]);
+                    if (strcmp(arg, "func") == 0) config.transMode = TRANS_FUNCTION;
+                    else if (strcmp(arg, "mod") == 0)  config.transMode = TRANS_MODULE;
+                    else if (strcmp(arg, "proc") == 0) config.transMode = TRANS_PROCESS;
+                    else {
+                        fprintf(stderr, "Invalid argument supplied to --use-transactions.  Valid arguments are func, mod, or proc.\n");
+                        userError();
+                    }
 
-               } else if (strcmp(ptr, "-wtx-target") == 0) {
-                   BPatch_remoteWtxInfo *info;
-                   if (arg) {
-                       info = (BPatch_remoteWtxInfo *)
-                           malloc(sizeof(BPatch_remoteWtxInfo));
-                       memset(info, 0, sizeof(BPatch_remoteWtxInfo));
+                } else if (strcmp(ptr, "-wtx-target") == 0) {
+                    BPatch_remoteWtxInfo *info;
+                    if (arg) {
+                        info = (BPatch_remoteWtxInfo *)
+                            malloc(sizeof(BPatch_remoteWtxInfo));
+                        memset(info, 0, sizeof(BPatch_remoteWtxInfo));
 
-                       if (!strchr(arg, ':')) {
-                           info->target = arg;
+                        if (!strchr(arg, ':')) {
+                            info->target = arg;
 
-                       } else {
-                           info->target = strchr(arg, ':') + 1;
-                           info->host   = arg;
-                           *(strchr(arg, ':')) = '\0';
-                       }
-                       info->tool = "parseThat";
+                        } else {
+                            info->target = strchr(arg, ':') + 1;
+                            info->host   = arg;
+                            *(strchr(arg, ':')) = '\0';
+                        }
+                        info->tool = "parseThat";
 
-                       config.remoteHost = (BPatch_remoteHost *)
-                           malloc(sizeof(BPatch_remoteHost));
-                       config.remoteHost->type = BPATCH_REMOTE_DEBUG_WTX;
-                       config.remoteHost->info = info;
-                   }
-                   if (needShift) ++i;
+                        config.remoteHost = (BPatch_remoteHost *)
+                            malloc(sizeof(BPatch_remoteHost));
+                        config.remoteHost->type = BPATCH_REMOTE_DEBUG_WTX;
+                        config.remoteHost->info = info;
+                    }
+                    if (needShift) ++i;
 
-               } else {
-                  fprintf(stderr, "Unknown parameter: %s\n", ptr);
-                  userError();
-               }
+                } else {
+                    fprintf(stderr, "Unknown parameter: %s\n", ptr);
+                    userError();
+                }
 
-               ptr += strlen(ptr) - 1;
-               break;
+                ptr += strlen(ptr) - 1;
+                break;
 
             default:
-               fprintf(stderr, "Unknown parameter: -%c\n", *ptr);
-               userError();
-         }
-      }
-   }
-
-
-   // Prepare child arguments
-   if (i < argc) {
-      strncpy(config.target, argv[i], sizeof(config.target));
-      config.argv = argv + i - 1;
-      config.argc = argc - i;
-
-      // Shift argv array down one to make room for NULL
-      while (i < argc) {
-         argv[i - 1] = argv[i];
-         ++i;
-      }
-      argv[argc - 1] = NULL;
-
-      if (strrchr(config.target, '/'))
-         config.argv[0] = strrchr(config.target, '/') + 1;
-
-   } else {
-      config.argc = 0;
-      argv[argc - 1] = NULL;
-      config.argv = argv + argc - 1;
-   }
-
-   // Argument integrity checks
-   if (config.target[0] == '\0') {
-      if (config.use_attach)
-         fprintf(stderr, "Attach mode requries an image file in addition to process id.\n");
-      else
-         fprintf(stderr, "No directory or program specified.\n");
-      //userError();
-   }
-
-   // Determine run mode, if necessary.
-   if (config.runMode != BATCH_FILE && config.target[0] != '\0') {
-      errno = 0;
-      struct stat file_stat;
-      if (stat(config.target, &file_stat) != 0) {
-         fprintf(stderr, "Could not stat %s: %s\n", config.target, strerror(errno));
-         userError();
-      }
-
-      if ((file_stat.st_mode & S_IFMT) == S_IFDIR) {
-         // User specified a directory.
-         config.runMode = BATCH_DIRECTORY;
-
-      } else if ((file_stat.st_mode & S_IFMT) == S_IFREG) {
-         // User specified a file.
-         config.runMode = SINGLE_BINARY;
-
-      } else {
-         fprintf(stderr, "%s is not a directory or regular file. 0x%x\n", config.target, (file_stat.st_mode & S_IFMT));
-         userError();
-      }
-   }
-
-   // Catch run mode inconsistencies.
-   if (config.use_attach && config.runMode != SINGLE_BINARY) {
-      fprintf(stderr, "Attach flag cannot be used with batch mode.\n");
-      userError();
-   }
-
-   // Open output file descriptor.
-   if (config.output_file) {
-      errno = 0;
-      config.outfd = fopen(config.output_file, "w");
-      if (config.outfd == NULL) {
-         fprintf(stderr, "Could not open %s for writing: %s\n", config.output_file, strerror(errno));
-         userError();
-      }
-   }
-
-   if (config.runMode == BATCH_FILE && config.target[0] != '\0') {
-      fprintf(stderr, "Warning: Batch file specified.  Ignoring command line argument %s.\n", config.target);
-   }
-
-   // Create history record directory, if needed.
-   if (config.record_enabled) {
-      if (config.record_dir[0] == '\0') {
-         fprintf(stderr, "*\n* Environment variable HOME not defined.  Disabling history records.\n*\n");
-         config.record_enabled = false;
-          
-      } else {
-         errno = 0;
-         struct stat dir_stat;
-         if (stat(config.record_dir, &dir_stat) < 0) {
-            if (errno && errno == ENOENT) {
-               errno = 0;
-               mkdir(config.record_dir, S_IRUSR | S_IWUSR | S_IXUSR);
-               if (errno) {
-                  fprintf(stderr, "Could not create directory '%s': %s\n", config.record_dir, strerror(errno));
-                  userError();
-               }
-            } else {
-               fprintf(stderr, "Could not stat %s: %s\n", config.record_dir, strerror(errno));
-               userError();
+                fprintf(stderr, "Unknown parameter: -%c\n", *ptr);
+                userError();
             }
-             
-         } else if (!S_ISDIR(dir_stat.st_mode)) {
-            fprintf(stderr, "%s exists, but is not a directory.  History record disabled.\n", config.record_dir);
-            config.record_enabled = 0;
-         }
-      }
-   }
+        }
+    }
 
-   // Create named pipe, if needed.
-   if (config.trace_inst) {
-      if (config.pipe_filename[0] == '\0') {
-         fprintf(stderr, "*\n* Environment variable HOME not defined.  Disabling instrumentation tracing.\n*\n");
-         config.trace_inst = false;
+
+    // Prepare child arguments
+    if (i < argc) {
+        strncpy(config.target, argv[i], sizeof(config.target));
+        config.argv = argv + i - 1;
+        config.argc = argc - i;
+
+        // Shift argv array down one to make room for NULL
+        while (i < argc) {
+            argv[i - 1] = argv[i];
+            ++i;
+        }
+        argv[argc - 1] = NULL;
+
+        if (strrchr(config.target, '/'))
+            config.argv[0] = strrchr(config.target, '/') + 1;
+
+    } else {
+        config.argc = 0;
+        argv[argc - 1] = NULL;
+        config.argv = argv + argc - 1;
+    }
+
+    // Argument integrity checks
+    if (config.target[0] == '\0') {
+        if (config.use_attach)
+            fprintf(stderr, "Attach mode requries an image file in addition to process id.\n");
+        else
+            fprintf(stderr, "No directory or program specified.\n");
+        //userError();
+    }
+
+    // Determine run mode, if necessary.
+    if (config.runMode != BATCH_FILE && config.target[0] != '\0') {
+        errno = 0;
+        struct stat file_stat;
+        if (stat(config.target, &file_stat) != 0) {
+            fprintf(stderr, "Could not stat %s: %s\n", config.target, strerror(errno));
+            userError();
+        }
+
+        if ((file_stat.st_mode & S_IFMT) == S_IFDIR) {
+            // User specified a directory.
+            config.runMode = BATCH_DIRECTORY;
+
+        } else if ((file_stat.st_mode & S_IFMT) == S_IFREG) {
+            // User specified a file.
+            config.runMode = SINGLE_BINARY;
+
+        } else {
+            fprintf(stderr, "%s is not a directory or regular file. 0x%x\n", config.target, (file_stat.st_mode & S_IFMT));
+            userError();
+        }
+    }
+
+    // Catch run mode inconsistencies.
+    if (config.use_attach && config.runMode != SINGLE_BINARY) {
+        fprintf(stderr, "Attach flag cannot be used with batch mode.\n");
+        userError();
+    }
+
+    // Open output file descriptor.
+    if (config.output_file) {
+        errno = 0;
+        config.outfd = fopen(config.output_file, "w");
+        if (config.outfd == NULL) {
+            fprintf(stderr, "Could not open %s for writing: %s\n", config.output_file, strerror(errno));
+            userError();
+        }
+    }
+
+    if (config.runMode == BATCH_FILE && config.target[0] != '\0') {
+        fprintf(stderr, "Warning: Batch file specified.  Ignoring command line argument %s.\n", config.target);
+    }
+
+    // Create history record directory, if needed.
+    if (config.record_enabled) {
+        if (config.record_dir[0] == '\0') {
+            fprintf(stderr, "*\n* Environment variable HOME not defined.  Disabling history records.\n*\n");
+            config.record_enabled = false;
           
-      } else {
-         int retval = -1;
-         for (int j = 0; retval < 0; ++j) {
-            char *tmp_pipename = sprintf_static("%s.%d", config.pipe_filename, j);
-
+        } else {
             errno = 0;
-            retval = mkfifo(tmp_pipename, S_IRUSR | S_IWUSR | S_IXUSR);
-            if (errno) {
-               if (errno == EEXIST) continue;
-               fprintf(stderr, "Could not create named pipe '%s': %s\n", tmp_pipename, strerror(errno));
-               userError();
-
+            struct stat dir_stat;
+            if (stat(config.record_dir, &dir_stat) < 0) {
+                if (errno && errno == ENOENT) {
+                    errno = 0;
+                    mkdir(config.record_dir, S_IRUSR | S_IWUSR | S_IXUSR);
+                    if (errno) {
+                        fprintf(stderr, "Could not create directory '%s': %s\n", config.record_dir, strerror(errno));
+                        userError();
+                    }
+                } else {
+                    fprintf(stderr, "Could not stat %s: %s\n", config.record_dir, strerror(errno));
+                    userError();
+                }
+             
+            } else if (!S_ISDIR(dir_stat.st_mode)) {
+                fprintf(stderr, "%s exists, but is not a directory.  History record disabled.\n", config.record_dir);
+                config.record_enabled = 0;
             }
-            strncpy(config.pipe_filename, tmp_pipename, sizeof(config.pipe_filename));
-         }
-      }
-   }
+        }
+    }
 
-   // Enforce parse/instrumentation relationships
-   if (config.inst_level >= INST_BASIC_BLOCK && config.parse_level < PARSE_CFG)
-      config.parse_level = PARSE_CFG;
+    // Create named pipe, if needed.
+    if (config.trace_inst) {
+        if (config.pipe_filename[0] == '\0') {
+            fprintf(stderr, "*\n* Environment variable HOME not defined.  Disabling instrumentation tracing.\n*\n");
+            config.trace_inst = false;
+          
+        } else {
+            int retval = -1;
+            for (int j = 0; retval < 0; ++j) {
+                char *tmp_pipename = sprintf_static("%s.%d", config.pipe_filename, j);
 
-   if (config.inst_level >= INST_FUNC_ENTRY && config.parse_level < PARSE_FUNC)
-      config.parse_level = PARSE_FUNC;
+                errno = 0;
+                retval = mkfifo(tmp_pipename, S_IRUSR | S_IWUSR | S_IXUSR);
+                if (errno) {
+                    if (errno == EEXIST) continue;
+                    fprintf(stderr, "Could not create named pipe '%s': %s\n", tmp_pipename, strerror(errno));
+                    userError();
 
-   // Skip .so files unless --include-libs flag is specified.
-   if (!config.include_libs) {
-      config.mod_rules.insert("\\.so", RULE_SKIP, false);
-      config.mod_rules.insert("\\.a$", RULE_SKIP, false);
-   }
+                }
+                strncpy(config.pipe_filename, tmp_pipename, sizeof(config.pipe_filename));
+            }
+        }
+    }
 
-   if (config.no_fork && config.runMode != SINGLE_BINARY) {
-      fprintf(stderr, "Single (No-Fork) only compatible with a single binary mutatee.\n");
-      userError();
-   }
+    // Enforce parse/instrumentation relationships
+    if (config.inst_level >= INST_BASIC_BLOCK && config.parse_level < PARSE_CFG)
+        config.parse_level = PARSE_CFG;
+
+    if (config.inst_level >= INST_FUNC_ENTRY && config.parse_level < PARSE_FUNC)
+        config.parse_level = PARSE_FUNC;
+
+    // Skip .so files unless --include-libs flag is specified.
+    if (!config.include_libs) {
+        config.mod_rules.insert("\\.so", RULE_SKIP, false);
+        config.mod_rules.insert("\\.a$", RULE_SKIP, false);
+    }
+
+    if (config.no_fork && config.runMode != SINGLE_BINARY) {
+        fprintf(stderr, "Single (No-Fork) only compatible with a single binary mutatee.\n");
+        userError();
+    }
 }
 
 void usage(const char *pname)
