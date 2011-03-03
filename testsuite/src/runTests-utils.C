@@ -95,7 +95,7 @@ static void sigint_action(int sig, siginfo_t *siginfo, void *context) {
 void generateTestArgs(char **exec_args[], bool resume, bool useLog,
                       bool staticTests, string &logfile, int testLimit,
                       vector<char *> &child_argv, const char *pidFilename,
-                      const char *memcpu_name, std::string hostname);
+                      std::string hostname);
 
 int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
 {
@@ -112,18 +112,18 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
    sigalrm_a.sa_flags = SA_SIGINFO;
    sigaction(SIGALRM, &sigalrm_a, &old_sigalrm_a);
    alarm(timeout);
-   
+
    interrupted = false;
    sigint_a.sa_sigaction = sigint_action;
    sigemptyset(&(sigint_a.sa_mask));
    sigint_a.sa_flags = SA_SIGINFO;
    sigaction(SIGINT, &sigint_a, &old_sigint_a);
-   
+
    // I think I want to use wait() here instead of using a sleep loop
    // - There are issues with using sleep() and alarm()..
    // - I'll wait() and if the alarm goes off it will interrupt the waiting,
    //   so the end result should be the same
-   
+
    // Wait for one of the signals to fire
    for (;;) 
    {
@@ -137,7 +137,7 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
          // waitpid().  I'm not sure what to do about that.
          waiting_pid = wait(&child_status);
       }
-      
+
       if (timed_out || interrupted) {
          // Timed out..  timer.pl sets the return value to -1 for this case
          if (timed_out)
@@ -149,11 +149,22 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
             if (!test_drivers[i].pid)
                continue;
             kill(test_drivers[i].pid, SIGKILL);
-            waitpid(test_drivers[i].pid, NULL, 0);
+            if (waitpid(test_drivers[i].pid, NULL, 0) > 0) {
+                // Enable the possibility of restarting this test driver
+                test_drivers[i].pid = 0;
+            }
          }
          retval = interrupted ? -3 : -1;
          break;
+
+      } else if (waiting_pid < 0) {
+          // We have no children.  Probably because we reaped them.
+          // Let the outer calling function decide if we should exit
+          // or restart test_drivers.
+          retval = 0;
+          break;
       }
+
       if (WIFSIGNALED(child_status) || WIFEXITED(child_status))
       {
          int child_ret = 0;
@@ -185,15 +196,15 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
 }
 
 test_pid_t RunTest(unsigned int iteration, bool useLog, bool staticTests,
-            string logfile, int testLimit, vector<char *> child_argv,
-            const char *pidFilename, const char *memcpu_name,
-            std::string hostname) {
+                   string logfile, int testLimit, vector<char *> child_argv,
+                   const char *pidFilename, std::string hostname)
+{
    int retval = -1;
 
    char **exec_args = NULL;
 
    generateTestArgs(&exec_args, iteration > 0, useLog, staticTests, logfile,
-                    testLimit, child_argv, pidFilename, memcpu_name, hostname);
+                    testLimit, child_argv, pidFilename, hostname);
 
    if (hostname.length())
       sleep(1);
@@ -218,7 +229,7 @@ string ReplaceAllWith(const string &in, const string &replace, const string &wit
 void generateTestArgs(char **exec_args[], bool resume, bool useLog,
                       bool staticTests, string &logfile, int testLimit,
                       vector<char *> &child_argv, const char *pidFilename,
-                      const char *memcpu_name, std::string hostname) 
+                      std::string hostname)
 {
   vector<const char *> args;
 
@@ -244,11 +255,6 @@ void generateTestArgs(char **exec_args[], bool resume, bool useLog,
     args.push_back("-pidfile");
     args.push_back(pidFilename);
   }
-  if (memcpu_name && strlen(memcpu_name))
-  {
-     args.push_back("-memcpu");
-     args.push_back(memcpu_name);
-  }
   if (resume) {
     args.push_back("-use-resume");
   }
@@ -257,18 +263,9 @@ void generateTestArgs(char **exec_args[], bool resume, bool useLog,
     args.push_back("-logfile");
     args.push_back(const_cast<char *>(logfile.c_str()));
   }
+
   for (unsigned int i = 0; i < child_argv.size(); i++) {
-     if ((strcmp(child_argv[i], "-memcpu") == 0) ||
-         (strcmp(child_argv[i], "-cpumem") == 0))
-     {
-        if ((child_argv[i+1][0] != '-') || 
-            (child_argv[i+1][1] == '\0'))
-        {
-           i++;
-        }
-        continue;
-     }
-     args.push_back(child_argv[i]);
+      args.push_back(child_argv[i]);
   }
 
   // Copy the arguments from the vector to a new array

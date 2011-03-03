@@ -41,4 +41,7 @@ char *strcat_static(const char *, const char *);
 char *encodeStr(const char *);
 char *decodeStr(const char *, char ** = NULL);
 
+void track_usage();
+void report_usage();
+
 #endif

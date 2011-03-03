@@ -2841,7 +2841,10 @@ using namespace Dyninst::InstructionAPI;
 bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                                     pdvector<AstNodePtr> &args)
 {
-
+  static RegisterAST::Ptr ctr32(new RegisterAST(ppc32::ctr));
+  static RegisterAST::Ptr ctr64(new RegisterAST(ppc64::ctr));
+  static RegisterAST::Ptr lr32(new RegisterAST(ppc32::lr));
+  static RegisterAST::Ptr lr64(new RegisterAST(ppc64::lr));
     const Instruction::Ptr i = callSite->insn();
     Register branch_target = registerSpace::ignored;
 
@@ -2851,13 +2854,16 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
         curCFT != i->cft_end();
         ++curCFT)
     {
-        if(*(curCFT->target) == RegisterAST(ppc32::ctr))
+      if(curCFT->target->isUsed(ctr32) ||
+	 curCFT->target->isUsed(ctr64))
         {
             branch_target = registerSpace::ctr;
             break;
         }
-        else if(*(curCFT->target) == RegisterAST(ppc32::lr))
+      else if(curCFT->target->isUsed(lr32) ||
+	      curCFT->target->isUsed(lr64))
         {
+	  fprintf(stderr, "setting lr\n");
             branch_target = registerSpace::lr;
             break;
         }
@@ -2876,7 +2882,7 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
     }
     else
     {
-        return false;
+      return false;
     }
 }
 

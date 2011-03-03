@@ -59,10 +59,6 @@
 // Default name for the crash log file
 #define DEFAULT_CRASHLOG "crashlog"
 
-#define MEMCPU_DEFAULT_LOG "memcpu_tmp.log";
-const char *memcpu_name = NULL;
-const char *memcpu_orig_name = NULL;
-
 bool staticTests = false;
 bool useLog = false;
 string logfile;
@@ -81,46 +77,6 @@ char *scriptname;
 char *outputlog_name;
 int outputlog_pos = -1;
 FILE *outputlog_file = NULL;
-
-void parseMEMCPUFile()
-{
-   if (!memcpu_name || !memcpu_orig_name)
-      return;
-
-   signed long mem_total = 0, utime_total = 0, stime_total = 0;
-   FILE *f = fopen(memcpu_name, "r");
-   if (!f)
-      return;
-
-   for (;;)
-   {
-      signed long mem, utime, stime;
-      int res = fscanf(f, "mem=%ld\tutime=%ld\tstime=%ld\n",
-                       &mem, &utime, &stime);
-      if (res != 3)
-         break;
-      mem_total += mem;
-      utime_total += utime;
-      stime_total += stime;
-   }
-   fclose(f);
-   unlink(memcpu_name);
-
-   if (strcmp(memcpu_orig_name, "-") == 0)
-   {
-      f = stdout;
-   }
-   else {
-      f = fopen(memcpu_orig_name, "w");
-      if (!f)
-         return;
-   }
-   
-   fprintf(f, "mem=%ld\tutime=%ld\tstime=%ld\n",
-           mem_total, utime_total, stime_total);
-   if (f != stdout)
-      fclose(f);
-}
 
 #if !defined(os_linux_test)
 int getline(char **line, size_t *line_size, FILE *f)
@@ -209,24 +165,7 @@ void parseParameters(int argc, char *argv[])
          staticTests = true;
       } else if (strcmp(argv[i], "-dynamic") == 0) {
          staticTests = false;
-      }
-      else if ((strcmp(argv[i], "-memcpu") == 0) ||
-               (strcmp(argv[i], "-cpumem") == 0))
-      {
-         memcpu_name = MEMCPU_DEFAULT_LOG;
-         
-         if ((i+1 < argc) &&
-             (argv[i+1][0] != '-' || argv[i+1][1] == '\0'))
-         {
-            i++;
-            memcpu_orig_name = argv[i];
-         }
-         else
-         {
-            memcpu_orig_name = "-";
-         }
-      }
-      else if (strcmp(argv[i], "-j") == 0) {
+      } else if (strcmp(argv[i], "-j") == 0) {
          if (i+1 != argc)
             parallel_copies = atoi(argv[++i]);
          if (!parallel_copies) {
@@ -353,8 +292,6 @@ int main(int argc, char *argv[])
       test_drivers[i].child_argv = child_argv;
       if (pidFilename)
          test_drivers[i].pidFilename = pidFilename + std::string(".") + unique_s;
-      if (memcpu_name)
-         test_drivers[i].memcpu_name = memcpu_name + std::string(".") + unique_s;
 
       if (parallel_copies > 1)
       {
@@ -394,8 +331,9 @@ int main(int argc, char *argv[])
    {
       done = true;
       for (unsigned i=0; i<parallel_copies; i++) {         
-         if (test_drivers[i].last_result == NOTESTS) {
-            //This invocation is done
+         if (test_drivers[i].last_result == NOTESTS ||
+             test_drivers[i].last_result < 0) {
+            //This invocation is done or produced an error
             continue;
          }
          done = false;
@@ -411,7 +349,6 @@ int main(int argc, char *argv[])
                                        test_drivers[i].testLimit,
                                        test_drivers[i].child_argv,
                                        test_drivers[i].pidFilename.c_str(),
-                                       test_drivers[i].memcpu_name.c_str(),
                                        test_drivers[i].hostname);
          invocation++;
          if (test_drivers[i].pid < 0) {
@@ -425,9 +362,9 @@ int main(int argc, char *argv[])
       int driver = CollectTestResults(test_drivers, parallel_copies);
       if (driver == -3) {
          // User interrupted the test run; allow them a couple of seconds to do
-         // it again and kill runTests
+         // it again and kill runTests, or restart test_drivers.
          // TODO Make sure this is portable to Windows
-         fprintf(stderr, "Press ctrl-c again with-in 2 seconds to abort runTests.\n");
+         fprintf(stderr, "Press ctrl-c again within 2 seconds to abort runTests.\n");
          sleep(2);
       }
       if (driver == -1) {
@@ -459,8 +396,6 @@ int main(int argc, char *argv[])
             unlink(test_drivers[driver].outputlog.c_str());
          }
       }
-      
-      int ret_result = test_drivers[driver].last_result;
    }
 
    // Remove the PID file, now that we're done with it
@@ -485,7 +420,6 @@ int main(int argc, char *argv[])
 
    clear_resumelog();
 
-   parseMEMCPUFile();
    return 0;
 }
 
