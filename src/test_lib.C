@@ -42,6 +42,11 @@
 #include <errno.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <limits.h>
+
+#include <string>
+#include <vector>
+using namespace std;
 
 #if !defined(i386_unknown_nt4_0_test)
 #include <fnmatch.h>
@@ -359,7 +364,6 @@ bool inTestList(test_data_t &test, std::vector<char *> &test_list)
 
    return false;
 }
-
 
 // control debug printf statements
 void dprintf(const char *fmt, ...) {

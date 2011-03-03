@@ -105,7 +105,11 @@ static Process::cb_ret_t handle_new_thread(Thread::const_ptr thr)
    }
    all_tids.insert(pair<PID, THR_ID>(pid, tid));
 
-   if (lwp_cb_count && all_tids.find(pair<PID, LWP>(pid, lwp)) == all_lwps.end()) {
+   // In create mode, we won't be able to simulate an lwp create event for the
+   // initial thread before this callback occurs so ignore the initial thread
+   // -- this is valid because the initial lwp should never generate a callback
+   // and thus, we don't need to check that it occurred
+   if (lwp_cb_count && !thr->isInitialThread() && all_lwps.find(pair<PID, LWP>(pid, lwp)) == all_lwps.end()) {
       logerror("Error. LWPs supported, but no LWP callback before UserThread callback\n");
       has_error = true;
    }
@@ -321,7 +325,8 @@ static void checkThreadMsg(threadinfo tinfo, Process::ptr proc)
          has_error = true;
       }
       if (thr->getStartFunction() != (Dyninst::Address) tinfo.initial_func) {
-         logerror("Mismatched initial function\n");
+         logerror("Mismatched initial function (%lx != %lx)\n", (unsigned long)thr->getStartFunction(), 
+                 (unsigned long)tinfo.initial_func);
          has_error = true;
       }
       Dyninst::Address tls_addr = (Dyninst::Address) tinfo.tls_addr;

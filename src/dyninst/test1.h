@@ -68,9 +68,6 @@
 #define	TEST_PTR_SIZE	8
 #define	TEST_PTR		TEST_PTR_64BIT
 #define TEST_VAL     TEST_VAL_64BIT
-#define TEST_PTR_SIZE   4
-#define TEST_PTR                TEST_PTR_32BIT
-#define TEST_VAL     TEST_VAL_32BIT
 #elif defined(os_freebsd_test) && defined(arch_x86_64_test)
 #define TEST_PTR_SIZE   8
 #define TEST_PTR                TEST_PTR_64BIT
