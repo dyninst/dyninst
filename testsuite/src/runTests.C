@@ -331,8 +331,9 @@ int main(int argc, char *argv[])
    {
       done = true;
       for (unsigned i=0; i<parallel_copies; i++) {         
-         if (test_drivers[i].last_result == NOTESTS) {
-            //This invocation is done
+         if (test_drivers[i].last_result == NOTESTS ||
+             test_drivers[i].last_result < 0) {
+            //This invocation is done or produced an error
             continue;
          }
          done = false;
@@ -361,9 +362,9 @@ int main(int argc, char *argv[])
       int driver = CollectTestResults(test_drivers, parallel_copies);
       if (driver == -3) {
          // User interrupted the test run; allow them a couple of seconds to do
-         // it again and kill runTests
+         // it again and kill runTests, or restart test_drivers.
          // TODO Make sure this is portable to Windows
-         fprintf(stderr, "Press ctrl-c again with-in 2 seconds to abort runTests.\n");
+         fprintf(stderr, "Press ctrl-c again within 2 seconds to abort runTests.\n");
          sleep(2);
       }
       if (driver == -1) {
@@ -395,8 +396,6 @@ int main(int argc, char *argv[])
             unlink(test_drivers[driver].outputlog.c_str());
          }
       }
-      
-      int ret_result = test_drivers[driver].last_result;
    }
 
    // Remove the PID file, now that we're done with it

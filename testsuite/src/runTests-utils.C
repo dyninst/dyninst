@@ -112,18 +112,18 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
    sigalrm_a.sa_flags = SA_SIGINFO;
    sigaction(SIGALRM, &sigalrm_a, &old_sigalrm_a);
    alarm(timeout);
-   
+
    interrupted = false;
    sigint_a.sa_sigaction = sigint_action;
    sigemptyset(&(sigint_a.sa_mask));
    sigint_a.sa_flags = SA_SIGINFO;
    sigaction(SIGINT, &sigint_a, &old_sigint_a);
-   
+
    // I think I want to use wait() here instead of using a sleep loop
    // - There are issues with using sleep() and alarm()..
    // - I'll wait() and if the alarm goes off it will interrupt the waiting,
    //   so the end result should be the same
-   
+
    // Wait for one of the signals to fire
    for (;;) 
    {
@@ -137,7 +137,7 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
          // waitpid().  I'm not sure what to do about that.
          waiting_pid = wait(&child_status);
       }
-      
+
       if (timed_out || interrupted) {
          // Timed out..  timer.pl sets the return value to -1 for this case
          if (timed_out)
@@ -149,11 +149,22 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
             if (!test_drivers[i].pid)
                continue;
             kill(test_drivers[i].pid, SIGKILL);
-            waitpid(test_drivers[i].pid, NULL, 0);
+            if (waitpid(test_drivers[i].pid, NULL, 0) > 0) {
+                // Enable the possibility of restarting this test driver
+                test_drivers[i].pid = 0;
+            }
          }
          retval = interrupted ? -3 : -1;
          break;
+
+      } else if (waiting_pid < 0) {
+          // We have no children.  Probably because we reaped them.
+          // Let the outer calling function decide if we should exit
+          // or restart test_drivers.
+          retval = 0;
+          break;
       }
+
       if (WIFSIGNALED(child_status) || WIFEXITED(child_status))
       {
          int child_ret = 0;
