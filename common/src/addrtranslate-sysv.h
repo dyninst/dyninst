@@ -122,7 +122,7 @@ private:
    Address trap_addr;
    Address getTrapAddrFromRdebug();
 
-   LoadedLib *getLoadedLibByNameAddr(Address addr, std::string name);
+   LoadedLib *getLoadedLibByNameAddr(Address addr, std::string name, Address dynamic);
    typedef std::map<std::pair<Address, std::string>, LoadedLib *, LibCmp> sorted_libs_t;
    sorted_libs_t sorted_libs;
 

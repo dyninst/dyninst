@@ -50,7 +50,6 @@
 #include <map>
 
 typedef bool (*BPatchFunctionNameSieve)(const char *test,void *data);
-class process;
 class image;
 class int_variable;
 
@@ -74,7 +73,6 @@ class BPatch_statement;
 class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eventLock {
     friend class BPatch; // registerLoaded... callbacks
     friend class BPatch_module; // access to findOrCreate...
-    friend class process; // Which also needs findOrCreate because we upcall when a library is loaded.
     friend class BPatch_process;
     friend class BPatch_addressSpace;
     friend class BPatch_binaryEdit;

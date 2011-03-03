@@ -35,6 +35,13 @@
 #include <stdint.h>
 #include "libdwarf.h"
 
+typedef enum {
+   FE_Bad_Frame_Data = 15,   /* to coincide with equivalent SymtabError */
+   FE_No_Frame_Entry,
+   FE_Frame_Read_Error,
+   FE_No_Error
+} FrameErrors_t;
+
 typedef struct {
   Dwarf_Fde *fde_data;
   Dwarf_Signed fde_count;
@@ -63,17 +70,18 @@ class DwarfSW {
                            Dyninst::MachRegister reg, 
                            Dyninst::MachRegisterVal &reg_result,
                            Dyninst::Architecture arch,
-                           ProcessReader *reader);
+                           ProcessReader *reader,
+                           FrameErrors_t &err_result);
 };
 
-inline DwarfSW::DwarfSW(Dwarf_Debug dbg_, unsigned addr_width_) :
+DwarfSW::DwarfSW(Dwarf_Debug dbg_, unsigned addr_width_) :
    dbg(dbg_),
    addr_width(addr_width_),
    fde_dwarf_status(dwarf_status_uninitialized)
 {
 }
 
-inline DwarfSW::~DwarfSW()
+DwarfSW::~DwarfSW()
 {
    if (fde_dwarf_status != dwarf_status_ok) 
       return;
@@ -85,22 +93,25 @@ inline DwarfSW::~DwarfSW()
    }
 }
 
-inline bool DwarfSW::hasFrameDebugInfo()
+bool DwarfSW::hasFrameDebugInfo()
 {
    setupFdeData();
    return fde_dwarf_status == dwarf_status_ok;
 }
 
-inline bool DwarfSW::getRegValueAtFrame(Address pc, 
-                                        Dyninst::MachRegister reg,
-                                        Dyninst::MachRegisterVal &reg_result,
-                                        Dyninst::Architecture arch,
-                                        ProcessReader *reader)
+bool DwarfSW::getRegValueAtFrame(Address pc, 
+                                 Dyninst::MachRegister reg,
+                                 Dyninst::MachRegisterVal &reg_result,
+                                 Dyninst::Architecture arch,
+                                 ProcessReader *reader,
+                                 FrameErrors_t &err_result)
 {
 	int result;
 	Dwarf_Fde fde;
 	Dwarf_Addr lowpc, hipc;
 	Dwarf_Error err;
+
+        err_result = FE_No_Error;
 
 	/**
 	 * Initialize the FDE and CIE data.  This is only really done once, 
@@ -108,7 +119,7 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
     **/
    setupFdeData();
    if (!fde_data.size()) {
-      setSymtabError(Bad_Frame_Data);
+      err_result = FE_Bad_Frame_Data;
       return false;
    }
 
@@ -125,7 +136,7 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
                                    (Dwarf_Addr) pc, &fde, &lowpc, &hipc, &err);
       if (result == DW_DLV_ERROR)
       {
-         setSymtabError(Bad_Frame_Data);
+         err_result = FE_Bad_Frame_Data;
          return false;
       }
       else if (result == DW_DLV_OK) {
@@ -135,7 +146,7 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
    }
    if (!found)
    {
-      setSymtabError(No_Frame_Entry);
+      err_result = FE_No_Frame_Entry;
       return false;
    }
 
@@ -149,7 +160,7 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
       Dwarf_Cie cie;
       result = dwarf_get_cie_of_fde(fde, &cie, &err);
       if (result != DW_DLV_OK) {
-         setSymtabError(Bad_Frame_Data);
+         err_result = FE_Bad_Frame_Data;
          return false;
       }
 
@@ -157,7 +168,7 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
       result = dwarf_get_cie_info(cie, &bytes_in_cie, NULL, NULL, NULL, NULL, 
                                   &dwarf_reg, NULL, NULL, &err);
       if (result != DW_DLV_OK) {
-         setSymtabError(Bad_Frame_Data);
+         err_result = FE_Bad_Frame_Data;
          return false;
       }
    }
@@ -189,7 +200,7 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
                                                &block_ptr, &row_pc, &err);
    }
    if (result == DW_DLV_ERROR) {
-      setSymtabError(Bad_Frame_Data);
+      err_result = FE_Bad_Frame_Data;
       return false;
    }
 
@@ -204,15 +215,18 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
    if (value_type == DW_EXPR_OFFSET || value_type == DW_EXPR_VAL_OFFSET)
    {
       if (register_num == DW_FRAME_CFA_COL3) {
+         FrameErrors_t rec_err = FE_No_Error;
          bool bresult = getRegValueAtFrame(pc, Dyninst::FrameBase,
-                                           register_val, arch, reader);
-         if (!bresult) 
+                                           register_val, arch, reader, rec_err);
+         if (!bresult) {
+            err_result = rec_err;
             return false;
+         }
       }
       else if (register_num == DW_FRAME_SAME_VAL) {
          bool bresult = reader->GetReg(reg, register_val);
          if (!bresult) {
-            setSymtabError(Frame_Read_Error);
+            err_result = FE_Frame_Read_Error;
             return false;
          }
          reg_result = register_val;
@@ -222,7 +236,7 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
          Dyninst::MachRegister dyn_registr = DwarfToDynReg(register_num, arch);
          bool bresult = reader->GetReg(dyn_registr, register_val);
          if (!bresult) {
-            setSymtabError(Frame_Read_Error);
+            err_result = FE_Frame_Read_Error;
             return false;
          }
       }
@@ -262,7 +276,7 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
    }
    else
    {
-      setSymtabError(Bad_Frame_Data);
+      err_result = FE_Bad_Frame_Data;
       return false;
    }
    
@@ -279,7 +293,7 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
       reg_result = (Dyninst::MachRegisterVal) i;
    }
    if (!bresult) {
-      setSymtabError(Frame_Read_Error);
+      err_result = FE_Frame_Read_Error;
       return false;
    }
 

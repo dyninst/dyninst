@@ -40,7 +40,7 @@
 #include "util.h"
 #include "BPatch.h"
 #include "dyninstAPI/src/debug.h"
-#include "EventHandler.h"
+#include "eventLock.h"
 
 // Make a lock.
 
@@ -279,7 +279,7 @@ bool init_debug() {
     fprintf(stderr, "Enabling DyninstAPI forkexec debug\n");
     dyn_debug_forkexec = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_PROCCONTROL"))) {
+  if ( (p=getenv("DYNINST_DEBUG_DYNPC"))) {
     fprintf(stderr, "Enabling DyninstAPI process control debug\n");
     dyn_debug_proccontrol = 1;
   }

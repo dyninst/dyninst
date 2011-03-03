@@ -62,7 +62,6 @@ class TrackLibState : public LibraryState {
    swkProcessReader procreader;
    
    bool updateLibs();
-   bool updateLibsArch();
    bool refresh();
    std::vector<std::pair<LibAddrPair, unsigned> > arch_libs;
 
@@ -71,8 +70,6 @@ class TrackLibState : public LibraryState {
    TrackLibState(ProcessState *parent, std::string executable = "");
    virtual bool getLibraryAtAddr(Address addr, LibAddrPair &olib);
    virtual bool getLibraries(std::vector<LibAddrPair> &olibs);
-   virtual bool getLibc(LibAddrPair &lc);
-   virtual bool getLibthread(LibAddrPair &lt);
    virtual bool getAOut(LibAddrPair &ao);
    virtual void notifyOfUpdate();
    virtual Address getLibTrapAddress();

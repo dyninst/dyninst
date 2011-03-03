@@ -142,6 +142,9 @@ test_results_t DyninstComponent::program_setup(ParameterDict &params)
 
 test_results_t DyninstComponent::program_teardown(ParameterDict &params)
 {
+   delete bpatch;
+   bpatch = NULL;
+
    return PASSED;
 }
 

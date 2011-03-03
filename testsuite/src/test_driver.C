@@ -624,6 +624,24 @@ void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups,
       }
    }
 }
+         
+void teardownModule(Module *mod, RunGroup *group, ParameterDict &param) {
+    if( mod != NULL && mod->setupRun() && !group->disabled ) {
+        log_teststart(group->index, 0, program_teardown_rs);
+        test_results_t result = mod->tester->program_teardown(param);
+        log_testresult(result);
+
+        for (unsigned j=0; j < group->tests.size(); j++) {
+            if (!group->tests[j]->disabled) {
+                group->tests[j]->results[program_teardown_rs] = result;
+            }
+            reportTestResult(group, group->tests[j]);
+        }
+
+        mod->setSetupRun(false);
+        mod->setInitialized(false);
+    }
+}
 
 void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
 {
@@ -651,6 +669,9 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
 
    //measureStart();
 
+   Module *currentMod = groups[0]->mod;
+   RunGroup *lastGroup = groups[0];
+
    for (i = 0; i < groups.size(); i++) {
         if (groups[i]->disabled)
          continue;
@@ -664,6 +685,12 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
       int before_group = numUnreportedTests(groups[i]);
       if (!before_group)
          continue;
+
+      // Run program teardown once the module changes
+      if( groups[i]->mod != currentMod ) {
+        teardownModule(currentMod, lastGroup, param);
+        currentMod = groups[i]->mod;
+      }
 
       executeGroup(groups[i], groups, param);
       int after_group = numUnreportedTests(groups[i]);
@@ -685,27 +712,13 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
             break;
          }
       }
+      lastGroup = groups[i];
    }
 
-   unsigned final_group = i;
-   
-   for (i = 0; i < final_group; i++) {
-       Module *mod = groups[i]->mod;
-     if (!mod || !mod->isInitialized() || groups[i]->disabled)
-       continue;
-     
-     log_teststart(groups[i]->index, 0, program_teardown_rs);
-     test_results_t result = mod->tester->program_teardown(param);
-     log_testresult(result);
-
-     for (unsigned j=0; j < groups[i]->tests.size(); j++)
-     {
-       if (!groups[i]->tests[j]->disabled) {
-          groups[i]->tests[j]->results[program_teardown_rs] = result;
-       }
-       reportTestResult(groups[i], groups[i]->tests[j]);
-     }
-     mod->setInitialized(false);
+   if( i < groups.size() ) {
+    teardownModule(currentMod, groups[i], param);
+   }else{
+    teardownModule(currentMod, lastGroup, param);
    }
 
    if (!aborted_group) {      

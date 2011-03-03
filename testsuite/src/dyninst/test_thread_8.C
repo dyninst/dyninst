@@ -94,7 +94,7 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    dprintf(stderr, "%s[%d]:  welcome to newthr, error15 = %d\n", __FILE__, __LINE__, error15);
    unsigned my_dyn_id = thr->getBPatchID();
 
-   if (create_proc && (my_proc != proc))
+   if (create_proc && (my_proc != proc) && proc != NULL && my_proc != NULL)
    {
       logerror("[%s:%u] - Got invalid process\n", __FILE__, __LINE__);
       error15 = 1;
@@ -162,6 +162,7 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
    failed_tests = 2;
    error15 = 0;
 
+   proc = NULL;
    proc = getProcess();
    if (!proc)
       return error_exit();
@@ -202,7 +203,6 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
               __FILE__, __LINE__, thread_count, NUM_THREADS);
          return error_exit();
       }
-      P_sleep(1);
    }
 
    dprintf(stderr, "%s[%d]:  done waiting for thread creations\n", 
@@ -277,7 +277,9 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
          sync_code.push_back(&call_check_sync);
          BPatch_sequence *code = new BPatch_sequence(sync_code);
          dprintf(stderr, "%s[%d]: issuing oneTimeCode for tid %lu\n", __FILE__, __LINE__, tid);
+         proc->stopExecution();
          thr->oneTimeCode(*code);
+         proc->continueExecution();
          dprintf(stderr, "%s[%d]: finished oneTimeCode for tid %lu\n", __FILE__, __LINE__, tid);
       }
    }
@@ -353,6 +355,10 @@ test_results_t test_thread_8_Mutator::setup(ParameterDict &param) {
       create_proc = false;
    } else {
      create_proc = true;
+   }
+
+   if( param["debugPrint"]->getInt() != 0 ) {
+       debug_flag = true;
    }
 
    return PASSED;

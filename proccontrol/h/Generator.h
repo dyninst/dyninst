@@ -25,6 +25,7 @@ class Generator
 {
  public:
    static Generator *getDefaultGenerator();
+   static void stopDefaultGenerator();
    virtual bool getAndQueueEvent(bool block) = 0;
    virtual ~Generator();
    

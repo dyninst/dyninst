@@ -54,7 +54,6 @@
 
 #include "arch-forward-decl.h" // instruction
 
-class process;
 class AddressSpace;
 class instPoint;
 class int_function;

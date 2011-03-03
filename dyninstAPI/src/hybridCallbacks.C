@@ -36,7 +36,9 @@
 #include "BPatch_module.h"
 #include "instPoint.h"
 #include "function.h"
-
+#include "addressSpace.h"
+#include "pcProcess.h"
+#include "eventLock.h"
 
 void newCodeCB(std::vector<BPatch_function*> &newFuncs, 
                std::vector<BPatch_function*> &modFuncs)
@@ -365,7 +367,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             vector<BPatch_function*> targFuncs;
             proc()->getImage()->findFunction(target,targFuncs);
             unsigned i=0;
-            for(; i < targFuncs.size() && 
+            for( ; i < targFuncs.size() && 
                   (Address)targFuncs[i]->getBaseAddr() != target; 
                 i++);
 

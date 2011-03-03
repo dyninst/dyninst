@@ -101,26 +101,23 @@ test_results_t test_pt_ls_Mutator::executeTest()
 	std::vector<std::string> args;
 	args.push_back(std::string("/"));
 
-	test_results_t res = parseThat(cmd, args);
+        test_results_t res;
+        if(runmode == CREATE) {
+            res = parseThat(cmd, args);
+        }else if (runmode == DISK) {
+            res = parseThat2(cmd, args);
 
-	if (res != PASSED)
-		return res;
+            if (res == PASSED)
+            {
+                    //  parseThat2 _should_ execute the rewritten binary, but we also want to sanity
+                    //  check the execution.  At this (early) point, this is really just a crash detector
+                    //  since the parseThat output will not be present in the execution of the cmd
+                    //  when run w/out parseThat
 
-	if (runmode == DISK)
-	{
-		res = parseThat2(cmd, args);
-
-		if (res == PASSED)
-		{
-			//  parseThat2 _should_ execute the rewritten binary, but we also want to sanity
-			//  check the execution.  At this (early) point, this is really just a crash detector
-			//  since the parseThat output will not be present in the execution of the cmd
-			//  when run w/out parseThat
-
-			std::string stdout3(prefix + std::string("_stdout3"));
-			std::string stderr3(prefix + std::string("_stderr3"));
-			res = ParseThat::sys_execute(bin_outfile, args, stdout3, stderr3);
-		}
+                    std::string stdout3(prefix + std::string("_stdout3"));
+                    std::string stderr3(prefix + std::string("_stderr3"));
+                    res = ParseThat::sys_execute(bin_outfile, args, stdout3, stderr3);
+            }
 	}
 
 	return res;

@@ -32,7 +32,6 @@
 // $Id: replacedInstruction.C,v 1.11 2008/06/19 19:53:38 legendre Exp $
 
 #include "multiTramp.h"
-#include "process.h"
 #include "instPoint.h"
 #include "ast.h"
 
@@ -44,7 +43,7 @@
 
 replacedInstruction::replacedInstruction(const replacedInstruction *parRI,
                                          multiTramp *cMT,
-                                         process *child) :
+                                         AddressSpace *child) :
     relocatedCode(parRI, child),
     oldInsn_(NULL), // Fill in below...
     ast_(parRI->ast_),

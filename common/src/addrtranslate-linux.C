@@ -202,8 +202,10 @@ string AddressTranslateSysV::getExecName()
 
 LoadedLib *AddressTranslateSysV::getAOut()
 {
-   // TODO: shouldn't this just return exec if it's set?
+   if (exec)
+      return exec;
    LoadedLib *ll = new LoadedLib(getExecName(), 0);
    ll->setFactory(symfactory);
+   exec = ll;
    return ll;
 }

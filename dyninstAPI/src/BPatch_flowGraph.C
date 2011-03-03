@@ -46,9 +46,9 @@
 #include "BPatch_edge.h"
 
 #include "util.h"
-#include "process.h"
 #include "symtab.h"
 #include "instPoint.h"
+#include "debug.h"
 
 #if defined(cap_instruction_api)
 #include "Instruction.h"

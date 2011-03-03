@@ -30,12 +30,11 @@
  */
 
 #include "BPatch_eventLock.h"
-#include "mailbox.h"
-#include "BPatch_asyncEventHandler.h"
 #include "BPatch_thread.h"
 #include "BPatch_function.h"
 #include "BPatch_point.h"
 #include "common/h/Vector.h"
+#include "eventLock.h"
 
 #if !defined(os_windows)
 #include <pthread.h> // Trying native windows threads for now

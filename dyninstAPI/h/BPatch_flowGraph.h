@@ -44,7 +44,6 @@
 #include "BPatch_loopTreeNode.h"
 
 class int_function;
-class process;
 class AddressSpace;
 class BPatch_edge;
 

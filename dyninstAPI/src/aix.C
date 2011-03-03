@@ -86,156 +86,19 @@ extern "C" {
 extern int ioctl(int, int, ...);
 };
 
-// The frame threesome: normal (singlethreaded), thread (given a pthread ID),
-// and LWP (given an LWP/kernel thread).
-// The behavior is identical unless we're in a leaf node where
-// the LR is in a register, then it's different.
+bool PCProcess::skipHeap(const heapDescriptor &heap) {
+    // MT: I've seen problems writing into a "found" heap that
+    // is in the application heap (IE a dlopen'ed
+    // library). Since we don't have any problems getting
+    // memory there, I'm skipping any heap that is in 0x2.....
 
-Frame Frame::getCallerFrame()
-{
-  typedef struct {
-    unsigned oldFp;
-    unsigned savedCR;
-    unsigned savedLR;
-    unsigned compilerInfo;
-    unsigned binderInfo;
-    unsigned savedTOC;
-  } linkArea_t;
-  
-  const int savedLROffset=8;
-  //const int compilerInfoOffset=12;
-  
-  linkArea_t thisStackFrame;
-  linkArea_t lastStackFrame;
-  linkArea_t stackFrame;
-  Address basePCAddr;
-
-  Address newPC=0;
-  Address newFP=0;
-  Address newpcAddr=0;
-
-  // Are we in a leaf function?
-  bool isLeaf = false;
-  bool noFrame = false;
-
-  codeRange *range = getRange();
-  int_function *func = range->is_function();
-
-  if (uppermost_) {
-    if (func) {
-      // on Power architectures we want to know if it saves the return addr.
-      //isLeaf = func->isLeafFunc();
-      isLeaf = !func->savesReturnAddr();
-      noFrame = func->hasNoStackFrame();
+    if ((infHeaps[j].addr() > 0x20000000) &&
+        (infHeaps[j].addr() < 0xd0000000) &&
+        (infHeaps[j].type() == uncopiedHeap)) {
+        infmalloc_printf("... never mind, AIX skipped heap\n");
+        return true;
     }
-  }
-
-  // Get current stack frame link area
-  if (!getProc()->readDataSpace((caddr_t)fp_, sizeof(linkArea_t),
-                        (caddr_t)&thisStackFrame, false))
-    return Frame();
-
-  getProc()->readDataSpace((caddr_t) thisStackFrame.oldFp, sizeof(linkArea_t),
-			   (caddr_t) &lastStackFrame, false);
-  
-  if (noFrame) {
-    stackFrame = thisStackFrame;
-    basePCAddr = fp_;
-  }
-  else {
-    stackFrame = lastStackFrame;
-    basePCAddr = thisStackFrame.oldFp;
-  }
-
-  // See if we're in instrumentation
-  baseTrampInstance *bti = NULL;
-
-  if (range->is_multitramp()) {
-      bti = range->is_multitramp()->getBaseTrampInstanceByAddr(getPC());
-      if (bti) {
-          // If we're not in instru, then re-set this to NULL
-          if (!bti->isInInstru(getPC()))
-              bti = NULL;
-      }
-  }
-  else if (range->is_minitramp()) {
-      bti = range->is_minitramp()->baseTI;
-  }
-
-  if (bti) {
-      // Oy. We saved the LR in the middle of the tramp; so pull it out
-      // by hand.
-      newpcAddr = fp_ + TRAMP_SPR_OFFSET + STK_LR;         
-      newFP = thisStackFrame.oldFp;
-
-      if (!getProc()->readDataSpace((caddr_t) newpcAddr,
-                                    sizeof(Address),
-                                    (caddr_t) &newPC, false))
-          return Frame();
-
-      // Instrumentation makes its own frame; we want to skip the
-      // function frame if there is one as well.
-      instPoint *point = bti->baseT->instP();
-      assert(point); // Will only be null if we're in an inferior RPC, which can't be.
-
-      // If we're inside the function (callSite or arbitrary; bad assumption about
-      // arbitrary but we don't know exactly where the frame was constructed) and the
-      // function has a frame, tear it down as well.
-      if ((point->getPointType() == callSite ||
-          point->getPointType() == otherPoint) &&
-          !point->func()->hasNoStackFrame()) {
-          if (!getProc()->readDataSpace((caddr_t) thisStackFrame.oldFp,
-                                        sizeof(unsigned),
-                                        (caddr_t) &newFP, false))
-              return Frame();
-      }
-      // Otherwise must be at a reloc insn
-  }
-  else if (isLeaf) {
-      // isLeaf: get the LR from the register instead of saved location on the stack
-      if (lwp_ && lwp_->get_lwp_id()) {
-          dyn_saved_regs regs;
-          bool status = lwp_->getRegisters(&regs);
-          if (! status) {
-              return Frame();
-          }
-          newPC = regs.theIntRegs.__lr;
-          newpcAddr = (Address) 1; 
-          /* I'm using an address to signify a register */
-      }
-      else if (thread_ && thread_->get_tid()) {
-          cerr << "NOT IMPLEMENTED YET" << endl;
-      }
-      else { // normal
-          dyn_saved_regs regs;
-          bool status = getProc()->getRepresentativeLWP()->getRegisters(&regs);
-          if (!status) {
-              return Frame();
-          }
-          newPC = regs.theIntRegs.__lr;
-	  newpcAddr = (Address) 1;
-      }
-      
-
-      if (noFrame)
-          newFP = fp_;
-      else
-          newFP = thisStackFrame.oldFp;
-  }
-  else {
-      // Common case.
-      newPC = stackFrame.savedLR;
-      newpcAddr = basePCAddr + savedLROffset;
-      if (noFrame)
-	newFP = fp_;
-      else
-	newFP = thisStackFrame.oldFp;
-  }
-
-#ifdef DEBUG_STACKWALK
-  fprintf(stderr, "PC %x, FP %x\n", newPC, newFP);
-#endif
-  return Frame(newPC, newFP, 0, newpcAddr, this);
+    return false;
 }
 
 bool Frame::setPC(Address newpc) 
@@ -835,59 +698,6 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 	
 }
 
-
-#if defined (cap_save_the_world)
-void process::addLib(char* lname)
-{
-
-	BPatch_process *appThread = BPatch::bpatch->getProcessByPid(getPid());
-	BPatch_image *appImage = appThread->getImage();
-
-   BPatch_Vector<BPatch_point *> *mainFunc;
-
-	bool isTrampRecursive = BPatch::bpatch->isTrampRecursive();
-    BPatch::bpatch->setTrampRecursive( true ); //ccw 31 jan 2003
-    BPatch_Vector<BPatch_function *> bpfv;
-    if (NULL == appImage->findFunction("main", bpfv) || !bpfv.size()) { 
-      bperr("Unable to find function \"main\". Save the world will fail.\n");
-      return;
-   }
-
-   BPatch_function *mainFuncPtr =bpfv[0];
-   mainFunc = mainFuncPtr->findPoint(BPatch_entry);
-    
-   if (!mainFunc || ((*mainFunc).size() == 0)) {
-      bperr( "    Unable to find entry point to \"main.\"\n");
-      exit(1);
-   }
-
-   bpfv.clear();
-   if (NULL == appImage->findFunction("dlopen", bpfv) || !bpfv.size()) {
-      bperr("Unable to find function \"dlopen\". Save the world will fail.\n");
-      return;
-   }
-   BPatch_function *dlopen_func = bpfv[0];
-   
-   BPatch_Vector<BPatch_snippet *> dlopen_args;
-   BPatch_constExpr nameArg(lname);
-   BPatch_constExpr rtldArg(4);
-   
-   dlopen_args.push_back(&nameArg);
-   dlopen_args.push_back(&rtldArg);
-   
-   BPatch_funcCallExpr dlopenExpr(*dlopen_func, dlopen_args);
-   
-	//bperr(" inserting DLOPEN(%s)\n",lname);
-	requestTextMiniTramp = 1;
-   
-   appThread->insertSnippet(dlopenExpr, *mainFunc, BPatch_callBefore,
-                            BPatch_firstSnippet);
-	requestTextMiniTramp = 0;
-   
-	BPatch::bpatch->setTrampRecursive( isTrampRecursive ); //ccw 31 jan 2003
-}
-#endif
-
 bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); return false; }
 bool process::instrumentLibcStartMain() { assert(0); return false; }
 bool process::decodeStartupSysCalls(EventRecord &) { assert(0); return false; }
@@ -940,29 +750,6 @@ bool checkAllThreadsForBreakpoint(process *proc, Address break_addr)
           return true;
       }
   }
-  return false;
-}
-
-bool process::trapDueToDyninstLib(dyn_lwp *lwp)
-{
-  // Since this call requires a PTRACE, optimize it slightly
-  if (dyninstlib_brk_addr == 0x0) return false;
-
-  Frame active = lwp->getActiveFrame();
-  
-  if (active.getPC() == dyninstlib_brk_addr)
-      return true;
-
-  return false;
-}
-
-bool process::trapAtEntryPointOfMain(dyn_lwp *lwp, Address)
-{
-  if (main_brk_addr == 0x0) return false;
-
-  Frame active = lwp->getActiveFrame();
-  if (active.getPC() == main_brk_addr)
-      return true;
   return false;
 }
 

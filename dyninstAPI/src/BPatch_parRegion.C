@@ -29,33 +29,27 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "process.h"
-#include "EventHandler.h"
-#include "mailbox.h"
-#include "signalgenerator.h"
 #include "inst.h"
 #include "instP.h"
 #include "instPoint.h"
 #include "function.h" // int_function
 #include "codeRange.h"
-#include "dyn_thread.h"
 #include "miniTramp.h"
 
 #include "mapped_module.h"
 
 #include "BPatch_libInfo.h"
-#include "BPatch_asyncEventHandler.h"
 #include "BPatch.h"
 #include "BPatch_thread.h"
 #include "BPatch_function.h"
 #include "BPatch_parRegion.h"
+#include "addressSpace.h"
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 #else
 #include "parseAPI/src/InstrucIter.h"
 #endif
-#include "callbacks.h"
 
 BPatch_parRegion::BPatch_parRegion(int_parRegion * _parReg, BPatch_function * _func)
 {

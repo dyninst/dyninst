@@ -43,15 +43,13 @@
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/registerSpace.h"
 
-#include "dyninstAPI/src/binaryEdit.h"
+#include "dyninstAPI/src/pcProcess.h"
 
-// get_index...
-#include "dyninstAPI/src/dyn_thread.h"
+#include "dyninstAPI/src/binaryEdit.h"
 
 const int EmitterIA32::mt_offset = -4;
 #if defined(arch_x86_64)
@@ -1977,7 +1975,7 @@ void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, boo
         int disp = addr - (gen.currAddr()+5);
         emitJump(disp, gen);
     }
-    else if (dynamic_cast<process *>(gen.addrSpace())) {
+    else if (dynamic_cast<PCProcess *>(gen.addrSpace())) {
         //Dynamic instrumentation, emit an absolute jump (push/ret combo)
 
         // Clear the instrumentation stack.

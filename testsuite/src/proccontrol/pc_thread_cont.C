@@ -20,12 +20,15 @@ extern "C" DLLEXPORT TestMutator* pc_thread_cont_factory()
 
 static std::set<Thread::const_ptr> expected_exits;
 static std::set<Thread::const_ptr> expected_pre_exits;
+static std::set<Thread::const_ptr> expected_pre_lwp_exits;
 
 static bool cb_error = false;
 
 Process::cb_ret_t on_thread_exit(Event::const_ptr ev)
 {
-   if (ev->getEventType().code() != EventType::ThreadDestroy) {
+   if (   ev->getEventType().code() != EventType::ThreadDestroy
+       && ev->getEventType().code() != EventType::UserThreadDestroy
+       && ev->getEventType().code() != EventType::LWPDestroy ) {
       logerror("Got unexpected event type\n");
       cb_error = true;
       return Process::cbDefault;
@@ -34,11 +37,16 @@ Process::cb_ret_t on_thread_exit(Event::const_ptr ev)
    if (ev->getEventType().time() == EventType::Pre) {
       set<Thread::const_ptr>::iterator i = expected_pre_exits.find(ev->getThread());
       if (i == expected_pre_exits.end()) {
-         logerror("Got pre-exit for unknown thread\n");
-         cb_error = true;
-         return Process::cbDefault;         
+         set<Thread::const_ptr>::iterator j = expected_pre_lwp_exits.find(ev->getThread());
+         if( j == expected_pre_lwp_exits.end() ) {
+            logerror("Got pre-exit for unknown thread\n");
+            cb_error = true;
+            return Process::cbDefault;
+         }
+         expected_pre_lwp_exits.erase(j);
+      }else{
+        expected_pre_exits.erase(i);
       }
-      expected_pre_exits.erase(i);
       return Process::cbDefault;
    }
    else if (ev->getEventType().time() == EventType::Post) {
@@ -161,6 +169,7 @@ test_results_t pc_thread_contMutator::executeTest()
              
              expected_exits.insert(thrd);
              expected_pre_exits.insert(thrd);
+             expected_pre_lwp_exits.insert(thrd);
              bool result = thrd->continueThread();
              if (!result) {
                 logerror("Failed to continue thread\n");

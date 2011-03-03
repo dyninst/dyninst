@@ -48,7 +48,6 @@
 #include <stdio.h>
 #include <signal.h>
 
-class process;
 class BinaryEdit;
 class AddressSpace;
 class dyn_thread;
@@ -56,7 +55,6 @@ class miniTrampHandle;
 class miniTramp;
 class BPatch;
 class BPatch_thread;
-class BPatch_process;
 class BPatch_funcMap;
 class BPatch_instpMap;
 class int_function;

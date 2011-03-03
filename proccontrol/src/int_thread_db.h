@@ -65,7 +65,7 @@ class thread_db_process : virtual public int_process
 {
    friend class thread_db_thread;
 public:
-    thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f);
+    thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, std::map<int, int> f);
     thread_db_process(Dyninst::PID pid_, int_process *p);
     virtual ~thread_db_process();
 
@@ -94,7 +94,7 @@ public:
     virtual bool post_attach();
     virtual bool post_create();
 
-    //Currently FreeBSD only
+    // Platform-dependent functionality (derived classes override)
     virtual bool plat_getLWPInfo(lwpid_t lwp, void *lwpInfo);
     virtual const char *getThreadLibName(const char *symName);
     virtual bool isSupportedThreadLib(string libName);
@@ -108,6 +108,7 @@ public:
 protected:
     Event::ptr decodeThreadEvent(td_event_msg_t *eventMsg);
     bool handleThreadAttach(td_thrhandle_t *thr);
+    virtual bool plat_convertToBreakpointAddress(psaddr_t &addr);
 
     static volatile bool thread_db_initialized;
     bool thread_db_proc_initialized;
@@ -146,7 +147,9 @@ public:
     void markDestroyed();
     bool isDestroyed();
 
-    virtual bool thrdb_getThreadArea(int val, Dyninst::Address &addr);
+    // Platform-dependent functionality
+    virtual bool plat_getThreadArea(int val, Dyninst::Address &addr);
+    virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
 
     virtual bool haveUserThreadInfo();
     virtual bool getTID(Dyninst::THR_ID &tid);
@@ -217,7 +220,7 @@ class thread_db_thread : public int_thread
     thread_db_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
     virtual ~thread_db_thread();
 
-    virtual bool thrdb_getThreadArea(int val, Dyninst::Address &addr);
+    virtual bool plat_getThreadArea(int val, Dyninst::Address &addr);
     virtual bool haveUserThreadInfo();
     virtual bool getTID(Dyninst::THR_ID &tid);
     virtual bool getStartFuncAddress(Dyninst::Address &addr);
@@ -230,7 +233,7 @@ class thread_db_thread : public int_thread
 class thread_db_process : virtual public int_process
 {
   public:
-    thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f);
+    thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, std::map<int, int> f);
     thread_db_process(Dyninst::PID pid_, int_process *p);
     virtual ~thread_db_process();
 

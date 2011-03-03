@@ -47,6 +47,7 @@ namespace SymtabAPI {
 class Symtab;
 class Region;
 class FastParser;
+class DwarfHandle;
 
 class SymtabReaderFactory : public SymbolReaderFactory
 {
@@ -66,6 +67,7 @@ class SymtabReader : public SymReader {
    Symtab *symtab;
    int ref_count;
    std::vector<Region *> *mapped_regions;
+   DwarfHandle *dwarf_handle;
   public:
    SymtabReader(std::string file_);
    SymtabReader(const char *buffer, unsigned long size);
@@ -92,7 +94,9 @@ class SymtabReader : public SymReader {
    virtual bool isValidSection(Section_t sec);
 
    virtual Dyninst::Offset imageOffset();
-   virtual Dyninst::Offset dataOffset();   
+   virtual Dyninst::Offset dataOffset();  
+
+   void *getDebugInfo();
 };
 
 extern "C" {

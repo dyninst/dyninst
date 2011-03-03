@@ -584,6 +584,7 @@ namespace {
 void
 Parser::parse_frame(ParseFrame & frame, bool recursive) {
     /** Persistent intermediate state **/
+    dyn_detail::boost::shared_ptr<InstructionAdapter_t> ahPtr;
     ParseFrame::worklist_t & worklist = frame.worklist;
     dyn_hash_map<Address, Block *> & leadersToBlock = frame.leadersToBlock;
     Address & curAddr = frame.curAddr;
@@ -605,6 +606,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         parsing_printf("[%s] ==== resuming parse of frame %lx ====\n",
             FILE__,frame.func->addr());
     }
+
 
     frame.set_status(ParseFrame::PROGRESS);
 
@@ -721,6 +723,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     factory().free_edge(remove);
                     continue;
                 }
+
+                // Invalidate cache_valid for all sharing functions
+                invalidateContainingFuncs(func, ce->src());                
             }
         } else if(work->order() == ParseWorkElem::seed_addr) {
             cur = leadersToBlock[work->target()]; 
@@ -787,8 +792,14 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
          (const unsigned char *)(func->isrc()->getPtrToInstruction(curAddr));
         InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
 
-        InstructionAdapter_t ah(dec, curAddr, func->obj(), 
+        if(!ahPtr)
+            ahPtr.reset(new InstructionAdapter_t(dec, curAddr, func->obj(), 
+                                cur->region(), func->isrc(), cur));
+        else
+            ahPtr->reset(dec,curAddr,func->obj(),
                                 cur->region(), func->isrc(), cur);
+       
+        InstructionAdapter_t & ah = *ahPtr; 
 #else        
         InstrucIter iter(curAddr, size, func->isrc());
         InstructionAdapter_t ah(iter, 
@@ -851,9 +862,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             ParseCallback::insn_details insn_det;
             insn_det.insn = &ah;
 	     
-                parsing_printf("[%s:%d] curAddr 0x%lx \n",
-                    FILE__,__LINE__,curAddr);
-
 	    if (func->_is_leaf_function) {
 		Address ret_addr;
 	    	func->_is_leaf_function = !(insn_det.insn->isReturnAddrSave(ret_addr));
@@ -1380,4 +1388,30 @@ void
 Parser::remove_block(Dyninst::ParseAPI::Block *block)
 {
     _parse_data->remove_block(block);
+}
+
+void Parser::invalidateContainingFuncs(Function *owner, Block *b)
+{
+    CodeRegion * cr;
+    if(owner->region()->contains(b->start()))
+        cr = owner->region();
+    else
+        cr = _parse_data->reglookup(owner->region(),b->start());
+    region_data * rd = _parse_data->findRegion(cr);
+    
+
+    // Any functions holding b that have already been finalized
+    // need to have their caches invalidated so that they will
+    // find out that they have this new 'ret' block
+    std::set<Function*> prev_owners;
+    rd->findFuncs(b->start(),prev_owners);
+    for(std::set<Function*>::iterator oit = prev_owners.begin();
+        oit != prev_owners.end(); ++oit)
+    {
+        Function * po = *oit;
+        po->_cache_valid = false;
+        parsing_printf("[%s:%d] split of [%lx,%lx) invalidates cache of "
+                       "func at %lx\n",
+                       FILE__,__LINE__,b->start(),b->end(),po->addr());
+    }   
 }

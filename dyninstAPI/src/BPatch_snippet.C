@@ -45,15 +45,18 @@
 #include "BPatch_function.h"
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
+#include "BPatch_libInfo.h"
 
 #include "addressSpace.h"
 #include "mapped_object.h" // for savetheworld
 #include "mapped_module.h"
 #include "ast.h"
 #include "function.h"
-#include "process.h"
 #include "instPoint.h"
 #include "registerSpace.h"
+#include "debug.h"
+#include "pcProcess.h"
+#include "pcEventHandler.h"
 
 #include "symtabAPI/h/Type.h"
 #include "symtabAPI/h/Variable.h"
@@ -797,20 +800,6 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
 		to see if func is in a shared lib. if it
 		is marked that shared lib as dirtyCalled()
 	*/
-#if defined(cap_save_the_world)
-
-      AddressSpace *as = func.getAddSpace()->getAS();
-      process* proc = dynamic_cast<process *>(as);
-
-      //	process *proc = func.getProc()->llproc;
-	
-	// We can't define isSharedLib as constant everywhere, so strip
-	// the const definition here.
-	BPatch_function &stripFunc = const_cast<BPatch_function &> (func);
-	if( proc && proc->collectSaveWorldData && stripFunc.isSharedLib()){
-            stripFunc.lowlevel_func()->obj()->setDirtyCalled();
-	}
-#endif
 }
 
 /*
@@ -1590,17 +1579,16 @@ void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
     if (stopThread_cbs == NULL) {
         stopThread_cbs = new std::set<BPatchStopThreadCallback>;
     }
+
     std::set<BPatchStopThreadCallback>::iterator cbIter = 
         stopThread_cbs->find(bp_cb);
     if (cbIter == stopThread_cbs->end()) {
-       StopThreadCallback *cb = new StopThreadCallback(bp_cb);
-       cb->enableDelete(false);
        stopThread_cbs->insert(bp_cb);
-       getCBManager()->registerCallback(evtStopThread, cb);
+       BPatch::bpatch->stopThreadCallbacks.push_back(bp_cb);
     }
 
     // create callback ID argument
-    int cb_id = process::getStopThreadCB_ID((Address)bp_cb); 
+    int cb_id = BPatch::bpatch->info->getStopThreadCallbackID((Address)bp_cb); 
     AstNodePtr idNode = AstNode::operandNode(AstNode::Constant, (void*)(int) cb_id );
     BPatch_type *inttype = BPatch::bpatch->stdTypes->findType("int");
     assert(inttype != NULL);

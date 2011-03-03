@@ -45,7 +45,6 @@
 
 class mapped_module;
 
-class process;
 class BPatch_image;
 class BPatch_function;
 class BPatch_typeCollection;
@@ -71,7 +70,6 @@ extern BPatch_builtInTypeCollection * builtInTypes;
 
 class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_eventLock{
 
-    friend class process;
     friend class BPatch_function;
     friend class BPatch_flowGraph;
     friend class BPatch_image;

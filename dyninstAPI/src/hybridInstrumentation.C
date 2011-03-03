@@ -37,7 +37,7 @@
 #include "function.h"
 #include "instPoint.h"
 #include "debug.h"
-#include "process.h"
+#include "pcProcess.h"
 
 using namespace Dyninst;
 

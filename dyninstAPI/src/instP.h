@@ -100,7 +100,7 @@ extern unsigned generateAndWriteBranch(AddressSpace *proc, Address fromAddr, Add
 extern int flushPtrace();
 
 extern unsigned saveGPRegister(char *baseInsn, Address &base, Register reg);
-extern unsigned saveRestoreRegistersInBaseTramp(process *proc, baseTramp * bt, 
+extern unsigned saveRestoreRegistersInBaseTramp(AddressSpace *proc, baseTramp * bt, 
 						registerSpace * rs);
 
 extern void generateNoopField(unsigned size,

@@ -40,7 +40,7 @@
 #include "Instruction.h"
 #include "Expression.h"
 
-#include "dyninstAPI/src/stackanalysis.h"
+#include "dataflowAPI/h/stackanalysis.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/image-func.h"
 

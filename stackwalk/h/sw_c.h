@@ -55,6 +55,7 @@ unsigned long frameGetFramePointer(frame_t frame);
 unsigned long frameGetStackPointer(frame_t frame);
 int frameGetName(frame_t frame, char **buffer);
 int frameGetLibOffset(frame_t frame, char **libname, unsigned long *offset);
+int frameIsTopFrame(frame_t frame);
 int frameIsBottomFrame(frame_t frame);
 
 int freeStackwalk(frame_t *frames, unsigned int frames_size);

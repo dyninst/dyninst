@@ -54,7 +54,6 @@ class test3_7_Mutator : public DyninstMutator {
   int debugPrint;
   char *pathname;
   BPatch *bpatch;
-  const unsigned int TIMEOUT; // Timeout in seconds
 
 public:
   test3_7_Mutator();
@@ -67,7 +66,7 @@ extern "C" DLLEXPORT  TestMutator *test3_7_factory() {
 }
 
 test3_7_Mutator::test3_7_Mutator()
-  : pathname(NULL), bpatch(NULL), TIMEOUT(120) {
+  : pathname(NULL), bpatch(NULL) {
 #if defined(os_windows_test)
   expectedSignal = ExitedNormally;
 #else
@@ -179,13 +178,11 @@ test_results_t test3_7_Mutator::executeTest() {
    ////////////////////////////
    ////////////////////////////
 
-   // and wait for completion/timeout
-   int timeout = 0;
-   while (!doneFlag && (timeout < TIMEOUT)) {
-     P_sleep(1);
-     bpatch->pollForStatusChange();
-     timeout++;
+   // and wait for completion
+   while( !doneFlag ) {
+       bpatch->waitForStatusChange();
    }
+
    int test7err = false;
    if (!doneFlag) {
             logerror("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");

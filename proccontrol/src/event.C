@@ -177,6 +177,7 @@ std::string EventType::name() const
       STR_CASE(ChangePCStop);
       STR_CASE(Detached);
       STR_CASE(IntBootstrap);
+      STR_CASE(ForceTerminate);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -226,6 +227,21 @@ int EventCrash::getTermSignal() const
 }
          
 EventCrash::~EventCrash()
+{
+}
+
+EventForceTerminate::EventForceTerminate(int termsig_) :
+    EventTerminate(EventType(EventType::Post, EventType::ForceTerminate)),
+    termsig(termsig_)
+{
+}
+
+int EventForceTerminate::getTermSignal() const
+{
+   return termsig;
+}
+
+EventForceTerminate::~EventForceTerminate()
 {
 }
 
@@ -325,6 +341,12 @@ EventSignal::~EventSignal()
 int EventSignal::getSignal() const
 {
    return sig;
+}
+
+void EventSignal::clearSignal() const
+{
+    int_thread *thr = getThread()->llthrd();
+    thr->setContSignal(0);
 }
 
 EventBootstrap::EventBootstrap() :
@@ -718,11 +740,22 @@ void EventIntBootstrap::setData(void *d)
      return dyn_detail::boost::static_pointer_cast<const NAME>(shared_from_this()); \
    }
 
-DEFN_EVENT_CAST2(EventTerminate, Exit, Crash)
-DEFN_EVENT_CAST2(EventNewThread, ThreadCreate, LWPCreate)
-DEFN_EVENT_CAST2(EventThreadDestroy, ThreadDestroy, UserThreadDestroy)
+#define DEFN_EVENT_CAST3(NAME, TYPE, TYPE2, TYPE3) \
+   NAME::ptr Event::get ## NAME() {  \
+     if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2 && etype.code() != EventType::TYPE3) return NAME::ptr(); \
+     return dyn_detail::boost::static_pointer_cast<NAME>(shared_from_this()); \
+   } \
+   NAME::const_ptr Event::get ## NAME() const { \
+     if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2 && etype.code() != EventType::TYPE3) return NAME::const_ptr(); \
+     return dyn_detail::boost::static_pointer_cast<const NAME>(shared_from_this()); \
+   }
+
+DEFN_EVENT_CAST3(EventTerminate, Exit, Crash, ForceTerminate)
+DEFN_EVENT_CAST2(EventNewThread, UserThreadCreate, LWPCreate)
+DEFN_EVENT_CAST2(EventThreadDestroy, UserThreadDestroy, LWPDestroy)
 DEFN_EVENT_CAST(EventExit, Exit)
 DEFN_EVENT_CAST(EventCrash, Crash)
+DEFN_EVENT_CAST(EventForceTerminate, ForceTerminate)
 DEFN_EVENT_CAST(EventExec, Exec)
 DEFN_EVENT_CAST(EventStop, Stop)
 DEFN_EVENT_CAST(EventBreakpoint, Breakpoint)

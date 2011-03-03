@@ -34,13 +34,16 @@
 #include "symtabAPI/h/Symbol.h"
 #include "symtabAPI/h/Function.h"
 
+#include "symtabAPI/src/Object.h"
+
 using namespace Dyninst;
 using namespace SymtabAPI;
 
 SymtabReader::SymtabReader(std::string file_) :
    symtab(NULL),
    ref_count(1),
-   mapped_regions(NULL)
+   mapped_regions(NULL),
+   dwarf_handle(NULL)
 {
    Symtab::openFile(symtab, file_);
 }
@@ -48,7 +51,8 @@ SymtabReader::SymtabReader(std::string file_) :
 SymtabReader::SymtabReader(const char *buffer, unsigned long size) :
    symtab(NULL),
    ref_count(1),
-   mapped_regions(NULL)
+   mapped_regions(NULL),
+   dwarf_handle(NULL)
 {
    Symtab::openFile(symtab, const_cast<char *>(buffer), size);
 }
@@ -61,6 +65,9 @@ SymtabReader::~SymtabReader()
       Symtab::closeSymtab(symtab);
    symtab = NULL;
    mapped_regions = NULL;
+   if (dwarf_handle)
+     delete dwarf_handle;
+   dwarf_handle = NULL;
 }
 
 
@@ -232,6 +239,21 @@ bool SymtabReader::isValidSection(Section_t sec)
    return (sec.v1 != NULL);
 }
 
+void *SymtabReader::getDebugInfo()
+{
+#if defined(os_solaris) || defined(os_linux) || defined(os_bg_ion) || defined(os_freebsd) || defined(os_vxworks)
+  if (!dwarf_handle)
+  {
+    Object *obj = symtab->getObject();
+    dwarf_handle = new DwarfHandle(obj);
+  }
+  Dwarf_Debug dbg = *(dwarf_handle->dbg());
+  return (void *) dbg;
+#else
+  return NULL;
+#endif
+}
+
 SymtabReaderFactory::SymtabReaderFactory()
 {
 }
@@ -249,8 +271,9 @@ SymReader *SymtabReaderFactory::openSymbolReader(std::string pathname)
       return symtabreader;
    }
    SymtabReader *symtabreader = new SymtabReader(pathname);
-   if (!symtabreader) 
+   if (!symtabreader) { 
       return NULL;
+   }
    open_syms[pathname] = symtabreader;
    return symtabreader;
 }

@@ -69,6 +69,7 @@ class int_symbol;
 
 class Dyn_Symbol;
 class BinaryEdit;
+class PCProcess;
 class trampTrapMappings;
 
 // This file serves to define an "address space", a set of routines that 
@@ -89,7 +90,7 @@ class AddressSpace : public InstructionSource {
  public:
     
     // Down-conversion functions
-    process *proc();
+    PCProcess *proc();
     BinaryEdit *edit();
 
     // Read/write
@@ -142,6 +143,11 @@ class AddressSpace : public InstructionSource {
     bool inferiorReallocInternal(Address item, unsigned newSize);
 
     bool isInferiorAllocated(Address block);
+
+    // Allow the AddressSpace to update any extra bookkeeping for trap-based
+    // instrumentation
+    virtual bool registerTrapMapping(Address from, Address to) = 0;
+    virtual bool unregisterTrapMapping(Address from) = 0;
 
     // We need a mechanism to track what exists at particular addresses in the
     // address space - both for lookup and to ensure that there are no collisions.
@@ -372,7 +378,7 @@ class AddressSpace : public InstructionSource {
     // Clear things out (e.g., deleteProcess)
     void deleteAddressSpace();
     // Fork psuedo-constructor
-    void copyAddressSpace(process *parent);
+    void copyAddressSpace(AddressSpace *parent);
 
     // Aaand constructor/destructor
     AddressSpace();

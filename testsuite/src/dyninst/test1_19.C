@@ -144,7 +144,27 @@ test_results_t test1_19_Mutator::executeTest()
     appProc->continueExecution();
 
     // Wait for the callback to be called
-    while (!appProc->isTerminated() && !callbackFlag) ;
+    while (!appProc->isTerminated() && !callbackFlag) {
+        if( !BPatch::bpatch->waitForStatusChange() ) {
+            logerror("   FAILED: could not wait for callback to be called\n");
+            return FAILED;
+        }
+    }
+
+    if( !callbackFlag ) {
+        logerror("     FAILED: process %d terminated while waiting for async oneTimeCode\n",
+                appProc->getPid());
+        return FAILED;
+    }
+
+    // After the oneTimeCode is completed, there could be a crash due to bugs in
+    // the RPC code, wait for termination
+    while( !appProc->isTerminated() ) {
+        if( !BPatch::bpatch->waitForStatusChange() ) {
+            logerror("   FAILED: could not wait for process to terminate\n");
+            return FAILED;
+        }
+    }
 
     // Restore old callback (if there was one)
 	BPatch::bpatch->registerOneTimeCodeCallback(oldCallback);

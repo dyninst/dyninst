@@ -49,7 +49,6 @@
 class image_func;
 class int_function;
 class instPoint;
-class process;
 class image;
 
 class int_basicBlock;
@@ -380,7 +379,7 @@ class instPoint : public instPointBase {
     // Fork instPoint
     instPoint(instPoint *parP,
               int_basicBlock *childB,
-              process *childP);
+              AddressSpace *childP);
 
     // A lot of arbitrary/parse creation work can be shared
     static bool commonIPCreation(instPoint *newIP);
@@ -418,7 +417,7 @@ class instPoint : public instPointBase {
   static instPoint *createParsePoint(int_function *func,
                                      image_instPoint *img_p);
 
-  static instPoint *createForkedPoint(instPoint *p, int_basicBlock *child, process *childP);
+  static instPoint *createForkedPoint(instPoint *p, int_basicBlock *child, AddressSpace *childP);
 
   static int liveRegSize();
 

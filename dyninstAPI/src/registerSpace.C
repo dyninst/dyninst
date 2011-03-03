@@ -32,13 +32,13 @@
 // $Id: registerSpace.C,v 1.25 2008/10/27 17:23:53 mlam Exp $
 
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/addressSpace.h"
 
 #include "dyninstAPI/src/registerSpace.h"
 

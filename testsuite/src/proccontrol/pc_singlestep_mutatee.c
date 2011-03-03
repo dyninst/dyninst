@@ -135,7 +135,7 @@ int pc_singlestep_mutatee()
 
    addr_msg.code = SENDADDR_CODE;
    for (i = 0; i < NUM_FUNCS; i++) {
-      addr_msg.addr = (uint64_t) funcs[i];
+      addr_msg.addr = getFunctionPtr((unsigned long *)funcs[i]);
       result = send_message((unsigned char *) &addr_msg, sizeof(addr_msg));
       if (result == -1) {
          output->log(STDERR, "Failed to send addr message\n");
