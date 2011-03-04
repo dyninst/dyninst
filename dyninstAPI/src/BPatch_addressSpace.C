@@ -229,6 +229,16 @@ BPatch_Vector<BPatch_thread *> &BPatchSnippetHandle::getCatchupThreadsInt()
    return catchup_threads;
 }
 
+BPatch_function * BPatchSnippetHandle::getFuncInt()
+{
+    if (!mtHandles_.empty()) {
+        int_function *func = mtHandles_.back()->func();
+        BPatch_function *bpfunc = addSpace_->findOrCreateBPFunc(func,NULL);
+        return bpfunc;
+    }
+    return NULL;
+}
+
 
 BPatch_image * BPatch_addressSpace::getImageInt()
 {
@@ -247,6 +257,7 @@ BPatch_image * BPatch_addressSpace::getImageInt()
 
 bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
 {   
+   mal_printf("deleting snippet handle %p\n",handle);
    if (getTerminated()) return true;
 
    if (handle == NULL) {
@@ -282,7 +293,6 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
        bPoint->removeSnippet(handle);
      }
    
-   //delete handle; //KEVINTODO: fix this, add instrumentation-removal callback
    handle->mtHandles_.clear();
    
    if (pendingInsertions == NULL) {
@@ -291,6 +301,7 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
      finalizeInsertionSet(false, &tmp);
    }
 
+   //delete handle;
    return true;
 }
 
@@ -869,12 +880,12 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
 	bppoint->recordSnippet(when, order, retHandle);
       }
    }
-
    if (pendingInsertions == NULL) {
      // Trigger it now
      bool tmp;
      finalizeInsertionSet(false, &tmp); //KEVINTODO: do we really want this?
    }   
+ 
    return retHandle;
 }
 

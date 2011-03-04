@@ -277,7 +277,7 @@ bool BPatch_point::getCFTargets(BPatch_Vector<Address> &targets)
 {
     bool ret = true;
     if (point->isDynamic()) {
-        if (point->getSavedTargets(targets)) {
+        if (point->getCallAndBranchTargets(targets)) {
             return true;
         } else {
             return false;
@@ -382,11 +382,6 @@ Address BPatch_point::getCallFallThroughAddr()
     InstrucIter ii(point->addr(), point->proc());
     return ii.peekNext();
 #endif
-}
-
-bool BPatch_point::getSavedTargets(vector<Address> & targs)
-{
-    return point->getSavedTargets(targs);
 }
 
 void BPatch_point::attachMemAcc(BPatch_memoryAccess *newMemAcc) {

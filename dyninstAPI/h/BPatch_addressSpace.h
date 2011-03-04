@@ -109,6 +109,11 @@ public:
     // relocation.
     API_EXPORT(Int, (), bool, usesTrap, ());
 
+    // mtHandles_ is not empty, , returns the function that the 
+    // instrumentation was added to 
+    API_EXPORT(Int, (),
+    BPatch_function *, getFunc, ());
+
     API_EXPORT(Int, (),
     BPatch_addressSpace *, getAddressSpace, ());
 

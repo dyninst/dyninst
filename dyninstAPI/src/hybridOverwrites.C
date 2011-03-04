@@ -47,6 +47,7 @@
 #include "instPoint.h"
 #include "mapped_object.h"
 #include "mapped_module.h"
+#include "MemoryEmulator/memEmulator.h"
 
 using namespace Dyninst;
 
@@ -233,6 +234,7 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop,
             proc()->beginInsertionSet();
         }
         std::set<BPatchSnippetHandle*>::iterator sIter = loop->snippets.begin();
+        mal_printf("deleting snippets from loop %d\n",loop->getID());
         for (; sIter != loop->snippets.end(); sIter++) {
             proc()->deleteSnippet(*sIter);
         }
@@ -376,7 +378,7 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop(Address writeInsn)
         if ((*uIter)->isDynamic()) {
             long st = 0;
             vector<Address> targs;
-            if ((*uIter)->getSavedTargets(targs)) {
+            if ((*uIter)->llpoint()->getCallAndBranchTargets(targs)) {
                 st = * targs.begin();
             }
             BPatch_constExpr stSnip(st);
@@ -602,7 +604,7 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop(BPatch_function &func, Add
                 {
                     if ((*pIter)->isDynamic()) {
                         vector<Address> targs;
-                        if (!(*pIter)->getSavedTargets(targs)) {
+                        if (!(*pIter)->llpoint()->getCallAndBranchTargets(targs)) {
                             mal_printf("loop has an unresolved indirect transfer at %lx\n", 
                                     (*pIter)->getAddress());
                             hasUnresolved = true;
@@ -721,7 +723,7 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
             pIter++) 
         {
             vector<Address> targs;
-            (*pIter)->getSavedTargets(targs);
+            (*pIter)->llpoint()->getCallAndBranchTargets(targs);
             if (1 != targs.size()) {
                 loop->unresExits_.insert(*pIter);
                 hasUnresolved = true;
@@ -814,7 +816,7 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
                 // We've already checked that the transfer is uniquely 
                 // resolved, add the target.
                 vector<Address> targs;
-                (*pIter)->getSavedTargets(targs);
+                (*pIter)->llpoint()->getCallAndBranchTargets(targs);
                 assert(targs.size() == 1); 
                 mal_printf("loop %d has a resolved indirect transfer at %lx with "
                           "target %lx\n", loop->getID(), (*pIter)->getAddress(), 
@@ -982,15 +984,12 @@ void HybridAnalysisOW::makeShadow_setRights
  * 3. Remove loop instrumentation
  * 4. Free shadow pages 
  */
-#include "MemoryEmulator/memEmulator.h"
 
 void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 {
     Address pointAddr = (Address) point->getAddress();
     mal_printf("\noverwriteAnalysis(trigger=%lx, loopID=%d)\n", 
 		      pointAddr,(long)loopID_);
-
-    proc()->lowlevel_process()->getMemEm()->debug();
 
     // setup
     bool changedPages = false;
@@ -1065,29 +1064,23 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 
     if (changedCode) {
 
-        // build up list of mods to instrument by traversing the functions, or
-        // if there aren't any, by traversing the block list
+        // build up list of modified modules 
         std::set<BPatch_module*> mods;
-        if (!owFuncs.empty()) {
-            for(vector<BPatch_function*>::iterator fIter = owFuncs.begin();
-                fIter != owFuncs.end(); 
-                fIter++) 
-            {
-                mal_printf("modified function at %lx %s[%d]\n", 
-                          (*fIter)->getBaseAddr(),FILE__,__LINE__);
-    		    mods.insert( (*fIter)->getModule() );
-            }
-        } else {
-            // this case only arises if an overwrite eliminated a function 
-            // altogether and we chose not to add it to the modified
-            // functions list for that reason (e.g., MEW func 0x40e000)
-	        for (std::map<Address, unsigned char *>::iterator pIter 
-		            = loop->shadowMap.begin();
-                 pIter != loop->shadowMap.end();
-                 pIter++) 
-            {
-                mods.insert( proc()->findModuleByAddr( (*pIter).first ) );
-            }
+        for (std::map<Address, unsigned char *>::iterator pIter 
+	            = loop->shadowMap.begin();
+             pIter != loop->shadowMap.end();
+             pIter++) 
+        {
+            mods.insert( proc()->findModuleByAddr( (*pIter).first ) );
+        }
+
+        // debugging output
+        for(vector<BPatch_function*>::iterator fIter = owFuncs.begin();
+            fIter != owFuncs.end(); 
+            fIter++) 
+        {
+            mal_printf("modified function at %lx %s[%d]\n", 
+                      (*fIter)->getBaseAddr(),FILE__,__LINE__);
         }
 #if 0
         // remove loops with overwritten blocks 
@@ -1113,7 +1106,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
         for(;fIter != owFuncs.end(); fIter++) {   
             // this will already have happened internally, here we clear out 
             // our instrumentation datastructures
-            hybrid_->removeInstrumentation( *fIter,false );
+            hybrid_->removeInstrumentation( *fIter,false,false );
             (*fIter)->getCFG()->invalidate();
         }
 

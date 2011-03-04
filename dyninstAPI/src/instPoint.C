@@ -605,7 +605,7 @@ void instPoint::setBlock( int_block* newBlock )
     block_ = newBlock;
 }
 
-bool instPoint::getSavedTargets(vector<Address> & targs)
+bool instPoint::getCallAndBranchTargets(vector<Address> & targs)
 {
     using namespace ParseAPI;
     Block::edgelist & trgs = block()->llb()->targets();

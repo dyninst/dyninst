@@ -2738,6 +2738,11 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
          return false;
     case 1:
         faultBBI = faultFuncs[0]->findOneBlockByAddr(origAddr);
+        if (!faultBBI && origAddr != ev.address) {
+            fprintf(stderr, "ERROR: executed illegal instructions in post-"
+                    "control-transfer padding? %s[%d]\n",FILE__,__LINE__);
+            return false;
+        }
         break;
     default: 
         faultBBI = ev.proc->findActiveFuncByAddr(ev.address)->

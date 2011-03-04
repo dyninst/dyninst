@@ -214,7 +214,9 @@ void RThandleShadow(void *direction, void *pointAddr, void *callbackID, void *fl
         RTuntranslatedEntryCounter++;
     }
     else {
-        RTuntranslatedEntryCounter--;
+        if (RTuntranslatedEntryCounter > 0) {
+            RTuntranslatedEntryCounter--;
+        }
         if (RTuntranslatedEntryCounter == 0) {
             DYNINST_stopThread(pointAddr, callbackID, flags, (void *)0);
         }

@@ -47,6 +47,7 @@ class BPatch_process;
 class BPatch_point;
 class BPatch_thread;
 class HybridAnalysisOW;
+class DefenseReport;
 class BPatchSnippetHandle;
 class BPatch_basicBlock;
 class BPatch_basicBlockLoop;
@@ -98,7 +99,7 @@ public:
     static InternalSignalHandlerCallback getSignalHandlerCB();
     BPatch_module *getRuntimeLib() { return sharedlib_runtime; }
     void deleteSynchSnippet(SynchHandle *handle);
-    bool needsSynchronization(BPatch_point *point);
+    //bool needsSynchronization(BPatch_point *point);
     int getOrigPageRights(Dyninst::Address addr);
     void addReplacedFuncs(std::vector<std::pair<BPatch_function*,BPatch_function*> > &repFs);
 
@@ -149,7 +150,9 @@ private:
                                      const std::vector<int_block*> &blks);
     bool parseAfterCallAndInstrument(BPatch_point *callPoint, 
                         BPatch_function *calledFunc) ;
-    void removeInstrumentation(BPatch_function *func, bool useInsertionSet);
+    void removeInstrumentation(BPatch_function *func, 
+                               bool useInsertionSet, 
+                               bool handlesWereDeleted = false);
     int saveInstrumentationHandle(BPatch_point *point, 
                                   BPatchSnippetHandle *handle);
     bool hasEdge(BPatch_function *func, Dyninst::Address source, Dyninst::Address target);
@@ -168,10 +171,18 @@ private:
                              bool useInsertionSet );
     bool addIndirectEdgeIfNeeded(BPatch_point *srcPt, Dyninst::Address target);
 
+    // needs to call removeInstrumentation
+    friend void BPatch_process::overwriteAnalysisUpdate
+        ( std::map<Dyninst::Address,unsigned char*>& owPages, 
+          std::vector<Dyninst::Address>& deadBlockAddrs,
+          std::vector<BPatch_function*>& owFuncs,     
+          std::set<BPatch_function *> &monitorFuncs, 
+          bool &changedPages, bool &changedCode ); 
+
     // variables
     std::map<Dyninst::Address, ExceptionDetails> handlerFunctions; 
-    std::map < BPatch_function*, 
-               std::map<BPatch_point*,BPatchSnippetHandle*> *> * instrumentedFuncs;
+    std::map< BPatch_function*, 
+              std::map<BPatch_point*,BPatchSnippetHandle*> *> * instrumentedFuncs;
     std::map< BPatch_point* , SynchHandle* > synchMap_pre_; // maps from prePt
     std::map< BPatch_point* , SynchHandle* > synchMap_post_; // maps from postPt
     std::set< BPatch_function *> instShadowFuncs_;

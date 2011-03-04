@@ -217,7 +217,9 @@ DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
     ret = new image_edge((image_basicBlock*)src,
                          (image_basicBlock*)trg,
                          type);
-
+    //if (src->start() == 0x564c) {
+    //    printf("adding edge to 0x%lx\n",src->start());
+    //}
     //fprintf(stderr,"mkedge between Block %p and %p, img_bb: %p and %p\n",
         //src,trg,(image_basicBlock*)src,(image_basicBlock*)trg);
     edges_.add(*ret);
@@ -364,15 +366,19 @@ DynParseCallback::updateCodeBytes(Address target)
 }
 
 bool 
-DynParseCallback::loadAddr(Address absoluteAddr, Address & loadAddr) 
+DynParseCallback::absAddr(Address absoluteAddr, Address &load, CodeObject *&co) 
 { 
+    //KEVINTODO: assumes that there is only one process that contains _img
+    // and that that is the process in which the absolute address is
+    // defined
     std::vector<BPatch_process*> * procs = BPatch::bpatch->getProcesses();
     for (unsigned pidx=0; pidx < procs->size(); pidx++) {
         if ((*procs)[pidx]->lowlevel_process()->findObject(_img->desc())) {
             mapped_object * obj = (*procs)[pidx]->lowlevel_process()->
                 findObject(absoluteAddr);
             if (obj) {
-                loadAddr = obj->codeBase();
+                load = obj->codeBase();
+                co = obj->parse_img()->codeObject();
                 return true;
             }
             return false;

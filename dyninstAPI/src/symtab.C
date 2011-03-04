@@ -1278,7 +1278,6 @@ void image::deleteInstPoint(image_instPoint *p) {
 }
 
 void image::deleteInstPoints(ParseAPI::Block *b) {
-    std::list<image_instPoint *> toDelete;
     for (block_map_t::iterator iter = inst_pts_[b].begin();
         iter != inst_pts_[b].end(); ++iter) 
     {

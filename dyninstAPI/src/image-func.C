@@ -413,13 +413,30 @@ bool image_basicBlock::isEntryBlock(image_func * f) const
  * All edges of an exit block are the same: returns
  * or interprocedural branches
  */
-bool image_basicBlock::isExitBlock()
+bool image_basicBlock::isExitBlock() 
 {
     Block::edgelist & trgs = targets();
     if(!trgs.empty())
     {
         Edge * e = *trgs.begin();
         return e->interproc() || e->type() == RET;
+    }
+    return false;
+}
+
+bool image_basicBlock::isCallBlock() 
+{
+    Block::edgelist & trgs = targets();
+    if(!trgs.empty())
+    {
+        for (Block::edgelist::iterator eit = trgs.begin();
+             eit != trgs.end();
+             eit++) 
+        {
+            if ((*eit)->type() == CALL) {
+                return true;
+            }
+        }
     }
     return false;
 }

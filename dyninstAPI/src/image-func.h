@@ -94,6 +94,7 @@ class image_basicBlock : public codeRange, public ParseAPI::Block  {
     // cfg access & various predicates 
     bool isShared() const { return containingFuncs() > 1; }
     bool isExitBlock();
+    bool isCallBlock();
     bool isEntryBlock(image_func * f) const;
     image_func *getEntryFunc() const;  // func starting with this bock
 

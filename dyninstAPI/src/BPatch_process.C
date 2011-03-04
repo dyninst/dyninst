@@ -1570,7 +1570,7 @@ bool BPatch_process::triggerStopThread(instPoint *intPoint,
     // trigger all callbacks matching the snippet and event type
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtStopThread,cbs);
-    BPatch::bpatch->signalNotificationFD();//KEVINTODO: is this necessary for synchronous callbacks?
+    BPatch::bpatch->signalNotificationFD();
     StopThreadCallback *cb;    
     for (unsigned i = 0; i < cbs.size(); ++i) {
         cb = dynamic_cast<StopThreadCallback *>(cbs[i]);
@@ -1871,7 +1871,8 @@ void BPatch_process::overwriteAnalysisUpdate
         return;
     }
 
-    // identify the dead code 
+    // Identify the dead code:
+    // the contents of the following datastructures are defined in getDeadCode
     std::set<int_block*> delBBIs;
     std::map<int_function*,set<int_block*> > elimMap;
     std::list<int_function*> deadFuncs;
@@ -1885,6 +1886,7 @@ void BPatch_process::overwriteAnalysisUpdate
         fIter++) 
     {
         BPatch_function *bpfunc = findOrCreateBPFunc(fIter->first,NULL);
+        //hybridAnalysis_->removeInstrumentation(bpfunc,false,false);
         bpfunc->removeInstrumentation(false);
     }
 
@@ -1920,36 +1922,46 @@ void BPatch_process::overwriteAnalysisUpdate
         fit++) 
     {
         malware_cerr << "Removing instrumentation from dead func at " 
-            << (*fit)->getAddress() << endl;
+            << hex << (*fit)->getAddress() << dec << endl;
         llproc->getMemEm()->removeSpringboards(*fit);
     }
 
     // delete delBlocks
-    std::set<int_function*> modFuncs;
+    std::map<image_func*,vector<ParseAPI::Block*>*> modFuncs;
     for(set<int_block*>::iterator bit = delBBIs.begin(); 
         bit != delBBIs.end();
         bit++) 
     {
         mal_printf("Deleting block [%lx %lx) from func at %lx\n",
                    (*bit)->start(),(*bit)->end(),(*bit)->func()->getAddress());
-        int_function *bFunc = (*bit)->func();
-        modFuncs.insert(bFunc);
+        int_function *iFunc = (*bit)->func();
+        if (modFuncs.end() == modFuncs.find(iFunc->ifunc())) {
+            modFuncs[iFunc->ifunc()] = new vector<ParseAPI::Block*>();
+        }
+        modFuncs[iFunc->ifunc()]->push_back((*bit)->llb());
         if ((*bit)->getHighLevelBlock()) {
             ((BPatch_basicBlock*)(*bit)->getHighLevelBlock())
                 ->setlowlevel_block(NULL);
         }
         deadBlockAddrs.push_back((*bit)->start());
-        vector<ParseAPI::Block*> bSet; 
-        bSet.push_back((*bit)->llb());
-        bFunc->deleteBlock((*bit));
+        iFunc->deleteBlock((*bit));
         ParseAPI::Block *newEntry = NULL;
-        if (newFuncEntries.end() != newFuncEntries.find(bFunc)) {
-            newEntry = newFuncEntries[bFunc]->llb();
-            bFunc->ifunc()->setEntryBlock(newEntry);
+        if (newFuncEntries.end() != newFuncEntries.find(iFunc)) {
+            newEntry = newFuncEntries[iFunc]->llb();
+            iFunc->ifunc()->setEntryBlock(newEntry);
         }
-        bFunc->ifunc()->destroyBlocks(bSet); //KEVINTODO: doing this one by one is highly inefficient
     }
+    for (map<image_func*,vector<ParseAPI::Block*>*>::iterator 
+            fit = modFuncs.begin();
+         fit != modFuncs.end();
+         fit++)
+    {
+        fit->first->destroyBlocks(*(fit->second));
+        delete fit->second;
+    }
+    modFuncs.clear();
     mal_printf("Done deleting blocks\n"); 
+
     // delete completely dead functions
     map<int_block*,Address> deadFuncCallers; // build up list of live callers
     for(std::list<int_function*>::iterator fit = deadFuncs.begin(); 
@@ -2018,7 +2030,7 @@ void BPatch_process::overwriteAnalysisUpdate
             deadBlockAddrs.push_back((*bIter)->start());
         }
     }
-    mal_printf("Done deleting func-blocks\n");
+    mal_printf("Done deleting dead func blocks\n");
     //remove dead functions
     for(std::list<int_function*>::iterator fit = deadFuncs.begin(); 
         fit != deadFuncs.end(); 
@@ -2092,7 +2104,6 @@ void BPatch_process::overwriteAnalysisUpdate
         if (stubs[fit->first].size()) 
         {
             fit->first->obj()->parseNewEdges(stubs[fit->first]);
-            modFuncs.insert(fit->first);
         } 
         else if (newFuncEntries.end() == newFuncEntries.find(fit->first)) 
         {
@@ -2115,13 +2126,14 @@ void BPatch_process::overwriteAnalysisUpdate
     }
         
     // do a consistency check
-    for (set<int_function*>::iterator fit = modFuncs.begin(); 
-        fit != modFuncs.end(); 
+    for(std::map<int_function*,set<int_block*> >::iterator 
+        fit = elimMap.begin();
+        fit != elimMap.end();
         fit++) 
     {
-        (*fit)->ifunc()->blocks(); // force ParseAPI func finalization
-        (*fit)->addMissingBlocks();
-        assert((*fit)->consistency());
+        fit->first->ifunc()->blocks(); // force ParseAPI func finalization
+        fit->first->addMissingBlocks();
+        assert(fit->first->consistency());
     }
 }
 

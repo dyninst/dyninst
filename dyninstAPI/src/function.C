@@ -687,6 +687,7 @@ void int_function::removeFromAll()
         int_block *bbi = (*bIter);
         mal_printf("purged block [%lx %lx]\n",bbi->start(), bbi->end());
     }
+
     // delete blocks 
     for (bIter = blocks_.begin(); 
          bIter != blocks_.end();
@@ -707,11 +708,11 @@ void int_function::removeFromAll()
     unresolvedPoints_.clear();
     instPsByAddr_.clear();
 
-    // remove func & blocks from image, ParseAPI, & SymtabAPI datastructures
-    ifunc()->img()->deleteFunc(ifunc());
-
     // invalidates analyses related to this function
 	triggerModified();
+
+    // remove func & blocks from image, ParseAPI, & SymtabAPI datastructures
+    ifunc()->img()->deleteFunc(ifunc());
 
     delete(this);
 }

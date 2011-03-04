@@ -490,6 +490,44 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
                     }
                     if (pf->func->tampersStack() == TAMPER_ABS) 
                     {
+                        Address objLoad = 0;
+                        CodeObject *targObj = NULL;
+                        if (_pcb.absAddr(pf->func->_tamper_addr, 
+                                         objLoad, 
+                                         targObj)) 
+                        {
+                            if (targObj == &_obj) {
+                                ParseFrame * tf = getTamperAbsFrame(pf->func);
+                                if (tf && ! _parse_data->findFrame
+                                            (tf->func->region(),
+                                             tf->func->addr()) ) 
+                                {
+                                    init_frame(*tf);
+                                    frames.push_back(tf);
+                                    _parse_data->record_frame(tf);
+                                    _pcb.updateCodeBytes(pf->func->_tamper_addr
+                                                         - objLoad);
+                                }
+                                if (tf) {
+                                    mal_printf("adding TAMPER_ABS target %lx "
+                                               "frame\n", 
+                                               pf->func->_tamper_addr);
+                                    work.push_back(tf);
+                                }
+                            }
+                            else { // target is in another object
+                                mal_printf("adding TAMPER_ABS target %lx "
+                                           "in separate object at %lx\n", 
+                                           pf->func->_tamper_addr, objLoad);
+                                _obj.parse(pf->func->_tamper_addr - objLoad,
+                                           true);
+                            }
+                        }
+                        else {
+                            mal_printf("discarding invalid TAMPER_ABS target "
+                                       "%lx\n", pf->func->_tamper_addr);
+                        }
+#if 0
                         ParseFrame * tf = getTamperAbsFrame(pf->func);
                         if (tf) 
                         {
@@ -505,6 +543,7 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
                             }
                             work.push_back(tf);
                         }
+#endif
                     }
                 }
                 pf->cleanup();
@@ -617,7 +656,7 @@ Parser::finalize(Function *f)
             if (2 > (*eit)->src()->targets().size()) {
                 Block *ft = _parse_data->findBlock((*eit)->src()->region(),
                                                    (*eit)->src()->end());
-                if (ft) {
+                if (ft && f->_bmap.end() != HASHDEF(f->_bmap,ft->start()) {
                     link((*eit)->src(),ft,CALL_FT,false);
                 }
             }
@@ -1696,7 +1735,8 @@ Parser::getTamperAbsFrame(Function *tamperFunc)
 
     // get the binary's load address and subtract it
     Address loadAddr = 0;
-    if ( ! _pcb.loadAddr(tamperFunc->_tamper_addr, loadAddr) ) {
+    CodeObject *co = NULL;
+    if ( ! _pcb.absAddr(tamperFunc->_tamper_addr, loadAddr, co) ) {
         parsing_printf("WARNING: Failed to find object load address "
                        "for tampered return address 0x%lx\n", 
                        tamperFunc->_tamper_addr);
@@ -1707,14 +1747,17 @@ Parser::getTamperAbsFrame(Function *tamperFunc)
         return NULL; // failed to find object load address
     }
     Address target = tamperFunc->_tamper_addr - loadAddr;
-
+    set<CodeRegion*> targRegs;
+    co->cs()->findRegions(target, targRegs);
+    assert(1 == targRegs.size()); // we don't do analyze stack tampering on 
+                              // platforms that use archive files
     targFunc = _parse_data->get_func
-        (tamperFunc->region(), 
+        (*(targRegs.begin()), 
          target, 
          tamperFunc->src());
 
     if (!targFunc) {
-        targFunc = _parse_data->get_func(tamperFunc->region(),target,RT);
+        targFunc = _parse_data->get_func(*(targRegs.begin()),target,RT);
     }
 
     if(!targFunc) {

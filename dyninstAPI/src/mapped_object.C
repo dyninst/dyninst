@@ -2156,7 +2156,7 @@ bool mapped_object::isSystemLib(const std::string &objname)
        std::string::npos != lowname.find(".dll"))
       return true;
    if (std::string::npos != lowname.find(".dll"))
-       return true; // Anything that's a library is a-ok with us! KEVIN TODO
+       return true; // Anything that's a library is a-ok with us! KEVINTODO
 
 
 #endif

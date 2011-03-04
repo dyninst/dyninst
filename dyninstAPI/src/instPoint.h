@@ -317,7 +317,7 @@ class instPoint : public instPointBase {
 
   // returns the saved targets for the point, returning
   // false if there are none.  
-  bool getSavedTargets(std::vector<Address> &targs);
+  bool getCallAndBranchTargets(std::vector<Address> &targs);
   // returns false if it was already resolved
   void setResolved(bool);
   // needed for blocks that are split after the initial parse

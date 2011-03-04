@@ -378,12 +378,14 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
                         _obj->add_edge(edge->src(), NULL, CALL);
                     }
                 }
+                edge->trg()->removeSource( edge );
                 edge->src()->removeTarget( edge );
                 obj()->fact()->free_edge(edge);
             }
             for (unsigned tidx=0; tidx < dead->_targets.size(); tidx++) {
                 Edge *edge = dead->_targets[tidx];
                 edge->trg()->removeSource( edge );
+                edge->src()->removeTarget( edge );
                 obj()->fact()->free_edge(edge);
             }
         }

@@ -185,8 +185,7 @@ class Parser {
         ParseFrame&,
         Block*,
         InstructionAdapter_t&,
-        Address target,
-        EdgeTypeEnum etype);
+        Address target);
     void ProcessCallInsn(
         ParseFrame&,
         Block*,

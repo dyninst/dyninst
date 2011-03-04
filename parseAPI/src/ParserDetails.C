@@ -131,8 +131,7 @@ void Parser::ProcessUnresBranchEdge(
     ParseFrame & frame,
     Block * cur,
     InstructionAdapter_t & ah,
-    Address target,
-    EdgeTypeEnum type)
+    Address target)
 {
     ParseCallback::interproc_details det;
     det.ibuf = (unsigned char*)
@@ -147,11 +146,9 @@ void Parser::ProcessUnresBranchEdge(
     if (!valid) {
         det.data.unres.dynamic = true;
         det.data.unres.absolute_address = true;
-        link(cur,_sink,type,true);
     } else {
         det.data.unres.dynamic = false;
         det.data.unres.absolute_address = false;
-        link(cur,_sink,type,true);
     }
     _pcb.interproc_cf(frame.func,cur,ah.getAddr(),&det);
 }
@@ -390,7 +387,7 @@ void Parser::ProcessCFInsn(
         } 
         else if( unlikely(_obj.defensiveMode() && NOEDGE != curEdge->second) )
         {   
-            ProcessUnresBranchEdge(frame, cur, ah, curEdge->first, curEdge->second);
+            ProcessUnresBranchEdge(frame, cur, ah, curEdge->first);
             // invoke callback for: 
             // direct ctrl transfers with bad targets 
             // (calls will have been taken care of and indirect branches don't have outgoing edges)
@@ -417,7 +414,8 @@ void Parser::ProcessCFInsn(
     }
 
     if (unlikely(_obj.defensiveMode() && edges_out.empty() && has_unres)) {
-        ProcessUnresBranchEdge(frame, cur, ah, -1, INDIRECT);
+        link(cur, _sink, INDIRECT, true);
+        ProcessUnresBranchEdge(frame, cur, ah, -1);
     }
 
     if(ah.isDelaySlot())

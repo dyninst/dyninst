@@ -5086,7 +5086,7 @@ int_function *process::findActiveFuncByAddr(Address addr)
 
 bool process::patchPostCallArea(instPoint *callPt)
 {
-    cerr << "patchPostCallArea for point " << callPt->addr();
+    cerr << "patchPostCallArea for point " << hex << callPt->addr() << dec << endl;
     // 1) Find all the post-call patch areas that correspond to this 
     //    call point
     // 2) Generate and install the branches that will be inserted into 
@@ -5116,7 +5116,26 @@ bool process::generateRequiredPatches(instPoint *callPt,
     int_block *callbbi = callPt->block();
     assert(callPt->addr() < callbbi->end());
     int_block *ftbbi = callbbi->getFallthrough();
-    assert(ftbbi);
+    if (!ftbbi) {
+        // find the block at the next address, if there's no fallthrough block
+        set<int_block*> blks;
+        callbbi->func()->obj()->findBlocksByEntry(callbbi->end(),blks);
+        assert(!blks.empty());
+        ftbbi = *blks.begin();
+        if (blks.size() > 1) {
+            // if there's more than one block (i.e., it's shared), pick 
+            // the one that's the entry block of its function
+            for (set<int_block*>::iterator bit = blks.begin(); 
+                 bit != blks.end(); 
+                 bit++) 
+            {
+                if ((*bit)->start() == (*bit)->func()->getAddress()) {
+                    ftbbi = *bit;
+                    break;
+                }
+            }
+        }
+    }
     Relocation::CodeTracker::RelocatedElements reloc;
     CodeTrackers::reverse_iterator rit;
     for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++)
