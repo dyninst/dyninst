@@ -317,7 +317,7 @@ void DatabaseOutputDriver::writeSQLLog() {
    if (buf.rfind("RESULT:") == std::string::npos) {
        fprintf(out, "\nRESULT: %d", result);
        if (currTest && currTest->usage.has_data()) {
-           fprintf(out, "\nCPU: %ld.06ld\nMEMORY %ld",
+           fprintf(out, "\nCPU: %ld.%06ld\nMEMORY %ld",
                    currTest->usage.cpuUsage().tv_sec,
                    currTest->usage.cpuUsage().tv_usec,
                    currTest->usage.memUsage());
