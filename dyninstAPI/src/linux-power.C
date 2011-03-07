@@ -53,6 +53,7 @@
 const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
 const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
 const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
+const char DL_OPEN_LIBC_FUNC_EXPORTED[] = "__libc_dlopen_mode";
 
 #define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
 
@@ -827,8 +828,9 @@ bool process::loadDYNINSTlib()
 
     if (findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) {
         return loadDYNINSTlib_exported();
-    }
-    else {
+    }else if( findFuncsByAll(DL_OPEN_LIBC_FUNC_EXPORTED, dlopen_funcs)) {
+        return loadDYNINSTlib_exported();
+    }else {
         return loadDYNINSTlib_hidden();
     }
 }
@@ -856,7 +858,7 @@ bool process::loadDYNINSTlibCleanup(dyn_lwp *trappingLWP)
 
 
 
-bool process::loadDYNINSTlib_exported(const char *)
+bool process::loadDYNINSTlib_exported(const char *, int)
 {
     // This functions was implemented by mixing parts of
     // process::loadDYNINSTlib() in aix.C and
@@ -876,8 +878,10 @@ bool process::loadDYNINSTlib_exported(const char *)
 
     pdvector<int_function *> dlopen_funcs;
     if (!findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) {
-        startup_cerr << "Couldn't find method to load dynamic library" << endl;
-        return false;
+        if (!findFuncsByAll(DL_OPEN_LIBC_FUNC_EXPORTED, dlopen_funcs)) {
+            startup_cerr << "Couldn't find method to load dynamic library" << endl;
+            return false;
+        }
     }
 
     assert(dlopen_funcs.size() != 0);
