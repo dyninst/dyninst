@@ -316,7 +316,7 @@ bool Region::isTLS() const
 
 bool Region::isOffsetInRegion(const Offset &offset) const 
 {
-    return (offset >= diskOff_ && offset<=(diskOff_+diskSize_));
+    return (offset >= diskOff_ && offset<(diskOff_+diskSize_));
 }
 
 bool Region::isLoadable() const
