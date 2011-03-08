@@ -176,6 +176,16 @@ void setupSignalFD(ParameterDict &param)
    param["signal_fd_out"] = new ParamInt(fds[1]);
 }
 
+void resetSignalFD(ParameterDict &param)
+{
+   if (param["signal_fd_in"]) {
+      close(param["signal_fd_in"]->getInt());
+   }
+   if (param["signal_fd_out"]) {
+      close(param["signal_fd_out"]->getInt());
+   }
+}
+
 bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 {
    bool error = false;
@@ -425,6 +435,8 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
 {
    bool error = false;
    bool hasRunningProcs;
+
+   resetSignalFD(params);
 
    if (curgroup_self_cleaning)
       return PASSED;
