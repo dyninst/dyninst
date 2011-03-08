@@ -101,7 +101,7 @@ public:
     virtual bool isSupportedThreadLib(string libName);
     int_thread *triggerThread() const;
 
-    bool initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info);
+    thread_db_thread *initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info);
     
     bool updateTidInfo(vector<Event::ptr> &threadEvents);
     bool needsTidUpdate();
@@ -142,8 +142,6 @@ public:
     bool setEventReporting(bool on);
     bool fetchThreadInfo();
 
-    bool plat_resume();
-    bool plat_suspend();
     void markDestroyed();
     bool isDestroyed();
 
@@ -210,6 +208,7 @@ public:
 typedef struct new_thread_data {
   td_thrhandle_t *thr_handle;
   td_thrinfo_t thr_info;
+  bool threadHandle_alloced;
 } new_thread_data_t;
 
 #else

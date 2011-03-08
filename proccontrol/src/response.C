@@ -59,7 +59,7 @@ response::response() :
 
 response::~response()
 {
-   assert(state != ready || checked_ready);
+   assert(error || state != ready || checked_ready);
 }
 
 bool response::isReady() const

@@ -741,6 +741,9 @@ bool AddressTranslateSysV::refresh()
    }
 
    do {
+      if (!link_elm->is_valid())
+         goto done;
+
       if (!link_elm->l_name()) {
          if (read_abort) {
             result = false;
@@ -748,9 +751,6 @@ bool AddressTranslateSysV::refresh()
          }
          continue;
       }
-
-      if (!link_elm->is_valid())
-         goto done;
 
       string obj_name;
       LoadedLib *ll;

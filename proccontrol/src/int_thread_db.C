@@ -339,20 +339,13 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg)
       case TD_CREATE:
       {
          pthrd_printf("Decoded to user thread create of %d/%d\n", getPid(), lwp);
-#if defined(os_freebsd)
-         td_err_e errVal;
-         if( TD_OK != (errVal = td_thr_dbsuspend((const td_thrhandle_t *)eventMsg->th_p)) ) {
-            perr_printf("Failed suspend new thread via thread_db: %s(%d)\n",
-                        tdErr2Str(errVal), errVal);
-            return Event::ptr();
-         }
-#endif
          EventNewUserThread::ptr new_ev = EventNewUserThread::ptr(new EventNewUserThread());
          int_eventNewUserThread *iev = new_ev->getInternalEvent();
          
          new_thread_data_t *thrdata = (new_thread_data_t *) malloc(sizeof(new_thread_data_t));
-         thrdata->thr_handle = const_cast<td_thrhandle_t *>(eventMsg->th_p);
+         thrdata->thr_handle = new td_thrhandle_t(*(eventMsg->th_p));
          thrdata->thr_info = info;
+         thrdata->threadHandle_alloced = true;
 
          iev->raw_data = (void *) thrdata;
          iev->lwp = lwp;
@@ -474,7 +467,7 @@ bool thread_db_process::updateTidInfo(vector<Event::ptr> &threadEvents)
    return true;
 }
 
-bool thread_db_process::initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info)
+thread_db_thread *thread_db_process::initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info)
 {
    td_thrinfo_t tinfo;
    if (!info) {
@@ -490,7 +483,7 @@ bool thread_db_process::initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *
    if (!tdb_thread) { 
       perr_printf("Error.  Thread_db reports thread %d/%d, but couldn't find existing LWP\n",
                   getPid(), lwp);
-      return false;
+      return NULL;
    }
    pthrd_printf("thread_db handling thread create for %d/%d\n", getPid(), lwp);
    tdb_thread->threadHandle = thr;
@@ -507,18 +500,12 @@ bool thread_db_process::initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *
 
    tdb_thread->setEventReporting(true);
 
-   return true;
+   return tdb_thread;
 }
 
 
-bool thread_db_process::handleThreadAttach(td_thrhandle_t *thr)
-{
-#if defined(os_freebsd)
-   td_err_e errVal = td_thr_dbsuspend(handle);
-   if( TD_OK != errVal ) return false;
-#endif
-
-   return initThreadWithHandle(thr, NULL);
+bool thread_db_process::handleThreadAttach(td_thrhandle_t *thr) {
+    return ( (initThreadWithHandle(thr, NULL) == NULL) ? false : true );
 }
 
 bool thread_db_process::initThreadDB() {
@@ -576,6 +563,7 @@ bool thread_db_process::initThreadDB() {
           setLastError(err_internal, "Failed to get thread_db thread handle");
           delete tdb_thread->threadHandle;
           tdb_thread->threadHandle = NULL;
+          continue;
        }
        tdb_thread->threadHandle_alloced = true;
 
@@ -1003,8 +991,10 @@ Handler::handler_ret_t ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
        assert(tdb_proc);
        pthrd_printf("thread_db user create handler for %d/%d\n", tdb_proc->getPid(), threadEv->getLWP());
        
-       bool result = tdb_proc->initThreadWithHandle(thrdata->thr_handle, &thrdata->thr_info);
-       return result ? Handler::ret_success : Handler::ret_error;
+       thread_db_thread *newTdbThread = tdb_proc->initThreadWithHandle(thrdata->thr_handle, &thrdata->thr_info);
+       if( newTdbThread == NULL ) return Handler::ret_error;
+
+       if( thrdata->threadHandle_alloced ) newTdbThread->threadHandle_alloced = true;
     }
 
     return Handler::ret_success;
@@ -1034,10 +1024,12 @@ Handler::handler_ret_t ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
         pthrd_printf("Marking LWP %d destroyed\n", thrd->getLWP());
         thrd->markDestroyed();
     }else if( ev->getEventType().time() == EventType::Post) {
-        // TODO this needs to be reworked -- it isn't quite right
         // Need to make sure that the thread actually finishes and is cleaned up
         // by the OS
-        thrd->plat_resume();
+        if( !thrd->plat_resume() ) {
+            perr_printf("Failed to resume LWP %d\n", thrd->getLWP());
+            return Handler::ret_error;
+        }
     }
 
     return Handler::ret_success;
@@ -1117,7 +1109,7 @@ Event::ptr thread_db_thread::getThreadEvent() {
 bool thread_db_thread::setEventReporting(bool on) {
     if( !initThreadHandle() ) return false;
 
-    pthrd_printf("Enabled thread_db events for LWP %d\n", lwp);
+    pthrd_printf("Enabling thread_db events for LWP %d\n", lwp);
     td_err_e errVal = td_thr_event_enable(threadHandle, (on ? 1 : 0 ));
     if( TD_OK != errVal ) {
         perr_printf("Failed to enable events for LWP %d: %s(%d)\n",
@@ -1161,36 +1153,6 @@ bool thread_db_thread::fetchThreadInfo() {
    return true;
 }
 
-bool thread_db_thread::plat_resume() {
-    if( !initThreadHandle() ) return false;
-
-    td_err_e errVal = td_thr_dbresume(threadHandle);
-
-    if( TD_OK != errVal ) {
-        perr_printf("Failed to resume %d/%d: %s(%d)\n",
-                llproc()->getPid(), lwp, tdErr2Str(errVal), errVal);
-        setLastError(err_internal, "Failed to resume LWP");
-        return false;
-    }
-
-    return true;
-}
-
-bool thread_db_thread::plat_suspend() {
-    if( !initThreadHandle() ) return false;
-
-    td_err_e errVal = td_thr_dbsuspend(threadHandle);
-
-    if( TD_OK != errVal ) {
-        perr_printf("Failed to suspend %d/%d: %s(%d)\n",
-                llproc()->getPid(), lwp, tdErr2Str(errVal), errVal);
-        setLastError(err_internal, "Failed to suspend LWP");
-        return false;
-    }
-
-    return true;
-}
-
 void thread_db_thread::markDestroyed() {
     destroyed = true;
 }
@@ -1215,7 +1177,11 @@ bool thread_db_thread::getTID(Dyninst::THR_ID &tid)
    if (!fetchThreadInfo()) {
       return false;
    }
+#if defined(os_freebsd)
+   tid = (Dyninst::THR_ID) tinfo.ti_thread;
+#else
    tid = (Dyninst::THR_ID) tinfo.ti_tid;
+#endif
    return true;
 }
 

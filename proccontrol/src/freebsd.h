@@ -95,7 +95,7 @@ public:
     virtual bool plat_attach();
     virtual bool plat_forked();
     virtual bool plat_execed();
-    virtual bool plat_detach(bool &needs_sync);
+    virtual bool plat_detach();
     virtual bool plat_terminate(bool &needs_sync);
 
     virtual bool plat_readMem(int_thread *thr, void *local,
@@ -108,6 +108,7 @@ public:
     virtual Dyninst::Architecture getTargetArch();
     virtual bool plat_individualRegAccess();
     virtual bool plat_contProcess();
+    virtual bool plat_getOSRunningState(Dyninst::LWP lwp) const;
 
     virtual bool post_attach();
     virtual bool post_create();
@@ -139,6 +140,8 @@ public:
     virtual bool plat_setAllRegisters(int_registerPool &reg);
     virtual bool plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val);
     virtual bool attach();
+    virtual bool plat_suspend();
+    virtual bool plat_resume();
 
     /* FreeBSD-specific */
     virtual bool plat_setStep();

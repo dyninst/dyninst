@@ -681,7 +681,9 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    newthr->setGeneratorState(int_thread::stopped);
    newthr->setHandlerState(int_thread::stopped);
 
-   if( proc->hasQueuedProcStoppers() ) {
+   if(    proc->hasQueuedProcStoppers() 
+       || ev->getEventType().code() == EventType::UserThreadCreate ) 
+   {
        // The following ordering of problems causes problems: 
        // Breakpoint LWPCreate Stop
        //

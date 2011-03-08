@@ -426,52 +426,23 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                 if( ibp && ibp != thread->isClearingBreakpoint() ) {
                     pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(),
                             thread->getLWP(), adjusted_addr);
-                    event = Event::ptr(new EventBreakpoint(adjusted_addr, ibp));
+                    EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(adjusted_addr, ibp));
+                    event = event_bp;
+                    event->setThread(thread->thread());
 
                     if( adjusted_addr == lproc->getLibBreakpointAddr() ) {
                         pthrd_printf("Breakpoint is library load/unload\n");
-                        Event::ptr lib_event = Event::ptr(new EventLibrary());
+                        EventLibrary::ptr lib_event = EventLibrary::ptr(new EventLibrary());
                         lib_event->setThread(thread->thread());
                         lib_event->setProcess(proc->proc());
+                        lproc->decodeTdbLibLoad(lib_event);
                         event->addSubservientEvent(lib_event);
-                    }else{
-                        // Check for thread events
-                        vector<Event::ptr> threadEvents;
-                        if( lproc->getEventsAtAddr(adjusted_addr, lthread, threadEvents) ) {
-                            vector<Event::ptr>::iterator threadEventIter;
-                            for(threadEventIter = threadEvents.begin(); threadEventIter != threadEvents.end();
-                                    ++threadEventIter)
-                            {
-                                // An event is created for the initial thread, but this thread is already
-                                // created during bootstrap. Ignore any create events for threads that
-                                // are already created.
-                                if( (*threadEventIter)->getEventType().code() == EventType::ThreadCreate ) {
-                                    Dyninst::LWP createdLWP = (*threadEventIter)->getEventNewThread()->getLWP();
-                                    int_thread * newThread = ProcPool()->findThread(createdLWP);
-                                    if( NULL != newThread ) {
-                                        freebsd_thread *newlThread = static_cast<freebsd_thread *>(newThread);
-                                        pthrd_printf("Thread already created for %d/%d\n", proc->getPid(),
-                                                createdLWP);
+                        break;
+                    }
 
-                                        if( !newlThread->plat_resume() ) {
-                                            perr_printf("Failed to resume already created thread %d/%d\n", 
-                                                    proc->getPid(), createdLWP);
-                                            return false;
-                                        }
-
-                                        // Still need to enable events for it -- this can't be done during
-                                        // bootstrap because the thread_db library isn't guaranteed to 
-                                        // be initialized at bootstrap
-                                        newlThread->setEventReporting(true);
-                                        continue;
-                                    }
-                                }
-
-                                (*threadEventIter)->setThread(thread->thread());
-                                (*threadEventIter)->setProcess(proc->proc());
-                                event->addSubservientEvent(*threadEventIter);
-                            }
-                        }
+                    if (lproc->decodeTdbBreakpoint(event_bp)) {
+                        pthrd_printf("Breakpoint was thread event\n");
+                        break;
                     }
                     break;
                 }
@@ -846,6 +817,10 @@ bool freebsd_process::plat_create() {
     return true;
 }
 
+bool freebsd_process::plat_getOSRunningState(Dyninst::LWP) const {
+    return false;
+}
+
 bool freebsd_process::plat_attach() {
     pthrd_printf("Attaching to pid %d\n", pid);
     if( 0 != ptrace(PT_ATTACH, pid, (caddr_t)1, 0) ) {
@@ -883,9 +858,8 @@ bool freebsd_process::plat_execed() {
     return true;
 }
 
-bool freebsd_process::plat_detach(bool &needs_sync) {
+bool freebsd_process::plat_detach() {
     pthrd_printf("PT_DETACH on %d\n", getPid());
-    needs_sync = false;
     if( 0 != ptrace(PT_DETACH, getPid(), (caddr_t)1, 0) ) {
         perr_printf("Failed to PT_DETACH on %d\n", getPid());
         setLastError(err_internal, "PT_DETACH operation failed\n");
@@ -1325,6 +1299,34 @@ bool freebsd_thread::plat_stop() {
     return true;
 }
 
+bool freebsd_thread::plat_resume() {
+    if( llproc()->threadPool()->size() <= 1 ) return true;
+
+    pthrd_printf("Calling PT_RESUME on %d\n", lwp);
+    if( 0 != ptrace(PT_RESUME, lwp, (caddr_t)1, 0) ) {
+        perr_printf("Failed to resume lwp %d: %s\n",
+                lwp, strerror(errno));
+        setLastError(err_internal, "Failed to resume lwp");
+        return false;
+    }
+
+    return true;
+}
+
+bool freebsd_thread::plat_suspend() {
+    if( llproc()->threadPool()->size() <= 1 ) return true;
+
+    pthrd_printf("Calling PT_SUSPEND on %d\n", lwp);
+    if( 0 != ptrace(PT_SUSPEND, lwp, (caddr_t)1, 0) ) {
+        perr_printf("Failed to suspend lwp %d: %s\n",
+                lwp, strerror(errno));
+        setLastError(err_internal, "Failed to suspend lwp");
+        return false;
+    }
+
+    return true;
+}
+
 bool freebsd_thread::plat_cont() {
     pthrd_printf("Continuing thread %d/%d\n", 
             llproc()->getPid(), lwp);
@@ -1727,6 +1729,7 @@ const unsigned int ppc32_mmap_size_hi_position = 0;
 const unsigned int ppc32_mmap_size_lo_position = 0;
 const unsigned int ppc32_mmap_addr_hi_position = 0;
 const unsigned int ppc32_mmap_addr_lo_position = 0;
+const unsigned int ppc32_mmap_start_position = 0;
 const unsigned char ppc32_call_mmap[] = {};
 const unsigned int ppc32_call_mmap_size = 0;
 
@@ -1734,6 +1737,7 @@ const unsigned int ppc32_munmap_size_hi_position = 0;
 const unsigned int ppc32_munmap_size_lo_position = 0;
 const unsigned int ppc32_munmap_addr_hi_position = 0;
 const unsigned int ppc32_munmap_addr_lo_position = 0;
+const unsigned int ppc32_munmap_start_position = 0;
 const unsigned char ppc32_call_munmap[] = {};
 const unsigned int ppc32_call_munmap_size = 0;
 
@@ -1744,11 +1748,12 @@ const unsigned int ppc64_mmap_flags_lo_position = 0;
 const unsigned int ppc64_mmap_size_highest_position = 0;
 const unsigned int ppc64_mmap_size_higher_position = 0;
 const unsigned int ppc64_mmap_size_hi_position = 0;
-const unsigned int ppc64_mmap-size_lo_position = 0;
+const unsigned int ppc64_mmap_size_lo_position = 0;
 const unsigned int ppc64_mmap_addr_highest_position = 0;
 const unsigned int ppc64_mmap_addr_higher_position = 0;
 const unsigned int ppc64_mmap_addr_hi_position = 0;
 const unsigned int ppc64_mmap_addr_lo_position = 0;
+const unsigned int ppc64_mmap_start_position = 0;
 const unsigned char ppc64_call_mmap[] = {};
 const unsigned int ppc64_call_mmap_size = 0;
 
@@ -1760,6 +1765,7 @@ const unsigned int ppc64_munmap_addr_highest_position = 0;
 const unsigned int ppc64_munmap_addr_higher_position = 0;
 const unsigned int ppc64_munmap_addr_hi_position = 0;
 const unsigned int ppc64_munmap_addr_lo_position = 0;
+const unsigned int ppc64_munmap_start_position = 0;
 const unsigned char ppc64_call_munmap[] = {};
 const unsigned int ppc64_call_munmap_size = 0;
 
