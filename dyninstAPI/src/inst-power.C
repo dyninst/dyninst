@@ -2764,7 +2764,10 @@ void emitFuncJump(opCode             ,
     // Load TOC from SP + 3W
     restoreRegisterAtOffset(gen, 2, 3*gen.addrSpace()->getAddressWidth());
 
-    // Make sure we do not "restore" Count Register
+    // Make sure we do not "restore" Count Register or the return value r3
+    for (unsigned i = 0; i < gen.rs()->numGPRs(); ++i)
+        if (gen.rs()->GPRs()[i]->name == "r3")
+            gen.rs()->GPRs()[i]->liveState = registerSlot::live;
     gen.bti()->baseT->generateRestores(gen, gen.rs(), NULL);
 
     // Return...
