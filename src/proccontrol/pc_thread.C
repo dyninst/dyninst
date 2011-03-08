@@ -54,6 +54,7 @@ extern "C" DLLEXPORT TestMutator* pc_thread_factory()
 static bool has_lwp = false;
 static bool has_thr = false;
 static bool has_stack_info = true;
+static bool has_initial_func_info = true;
 static bool is_attach = false;
 static bool has_error = false;
 static int user_cb_count = 0;
@@ -63,7 +64,8 @@ static int lwp_exit_cb_count = 0;
 
 static set<pair<PID, THR_ID> > all_tids;
 static set<pair<PID, LWP> > all_lwps;
-static set<pair<PID, THR_ID> > dead_tids;
+static set<pair<PID, THR_ID> > pre_dead_tids;
+static set<pair<PID, THR_ID> > post_dead_tids;
 static set<pair<PID, LWP> > pre_dead_lwps;
 static set<pair<PID, LWP> > post_dead_lwps;
 static set<pair<PID, Address> > all_stack_addrs;
@@ -115,13 +117,13 @@ static Process::cb_ret_t handle_new_thread(Thread::const_ptr thr)
    }
    
    Dyninst::Address start_func = thr->getStartFunction();
-   if (!start_func && !thr->isInitialThread()) {
+   if (has_initial_func_info && !start_func && !thr->isInitialThread()) {
       logerror("Error.  Thread has no start function\n");
       has_error = true;
    }
 
    Dyninst::Address stack_addr = thr->getStackBase();
-   if (has_stack_info && !stack_addr) {
+   if (has_stack_info && !stack_addr && !thr->isInitialThread()) {
       logerror("Error.  Thread has no stack\n");
       has_error = true;
    }
@@ -132,7 +134,7 @@ static Process::cb_ret_t handle_new_thread(Thread::const_ptr thr)
    all_stack_addrs.insert(pair<PID, Address>(pid, stack_addr));
    
    unsigned long stack_size = thr->getStackSize();
-   if (has_stack_info && !stack_size) {
+   if (has_stack_info && !stack_size && !thr->isInitialThread()) {
       logerror("Error.  Stack has no size\n");
       has_error = true;
    }
@@ -169,7 +171,7 @@ static Process::cb_ret_t uthr_create(Event::const_ptr ev)
 
 static Process::cb_ret_t uthr_destroy(Event::const_ptr ev)
 {
-   user_exit_cb_count++;
+   if( ev->getEventType().time() == EventType::Pre ) user_exit_cb_count++;
 
    EventUserThreadDestroy::const_ptr tev = ev->getEventUserThreadDestroy();
    if (!tev) {
@@ -183,19 +185,33 @@ static Process::cb_ret_t uthr_destroy(Event::const_ptr ev)
    LWP lwp = thr->getLWP();
    THR_ID tid = thr->getTID();
    
-   if (dead_tids.find(pair<PID, THR_ID>(pid, tid)) != dead_tids.end())
-   {
-      logerror("Thread died twice\n");
-      has_error = true;
-   }
    if (all_tids.find(pair<PID, THR_ID>(pid, tid)) == all_tids.end())
    {
       logerror("Thread destroy on unknown thread\n");
       has_error = true;
    }
-   dead_tids.insert(pair<PID, THR_ID>(pid, tid));
 
-   logstatus("[User Delete] %d/%d: TID - 0x%lx\n", pid, lwp, tid);
+   char *pstr = NULL;
+   if (ev->getEventType().time() == EventType::Pre)
+   {
+      if (pre_dead_tids.find(pair<PID, THR_ID>(pid, tid)) != pre_dead_tids.end()) {
+         logerror("User Thread pre-died twice\n");
+         has_error = true;
+      }
+      pre_dead_tids.insert(pair<PID, THR_ID>(pid, tid));
+      pstr = "Pre-";
+   }
+   else if (ev->getEventType().time() == EventType::Post)
+   {
+      if (post_dead_tids.find(pair<PID, THR_ID>(pid, tid)) != post_dead_tids.end()) {
+         logerror("User Thread post-died twice\n");
+         has_error = true;
+      }
+      post_dead_tids.insert(pair<PID, THR_ID>(pid, tid));
+      pstr = "Post-";
+   }
+
+   logstatus("[%sUser Delete] %d/%d: TID - 0x%lx\n", pstr, pid, lwp, tid);
 
    return Process::cbDefault;
 }
@@ -324,7 +340,7 @@ static void checkThreadMsg(threadinfo tinfo, Process::ptr proc)
          logerror("Error.  Mismatched stack addresses\n");
          has_error = true;
       }
-      if (thr->getStartFunction() != (Dyninst::Address) tinfo.initial_func) {
+      if (has_initial_func_info && thr->getStartFunction() != (Dyninst::Address) tinfo.initial_func) {
          logerror("Mismatched initial function\n");
          has_error = true;
       }
@@ -350,7 +366,8 @@ test_results_t pc_threadMutator::pre_init(ParameterDict &param)
    all_stack_addrs.clear();
    all_tls.clear();
    all_initial_threads.clear();
-   dead_tids.clear();
+   pre_dead_tids.clear();
+   post_dead_tids.clear();
    pre_dead_lwps.clear();
    post_dead_lwps.clear();
 
@@ -361,6 +378,8 @@ test_results_t pc_threadMutator::pre_init(ParameterDict &param)
 #elif defined(os_freebsd_test)
    has_lwp = false;
    has_thr = true;
+   has_stack_info = false;
+   has_initial_func_info = false;
 #elif defined(os_bluegene_test)
    has_lwp = false;
    has_thr = true;

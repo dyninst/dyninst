@@ -64,6 +64,29 @@ int getlwp()
 }
 #endif
 
+#if defined(os_freebsd_test)
+#include <sys/types.h>
+#include <sys/syscall.h>
+
+int getlwp()
+{
+    static int gettid_not_valid = 0;
+    int result;
+
+    if( gettid_not_valid )
+        return getpid();
+
+    lwpid_t lwp_id;
+    result = syscall(SYS_thr_self, &lwp_id);
+    if( result && errno == ENOSYS ) {
+        gettid_not_valid = 1;
+        return getpid();
+    }
+
+    return lwp_id;
+}
+#endif
+
 static int sendThreadMsg(int initial_thrd)
 {
    int result;
