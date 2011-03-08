@@ -359,6 +359,14 @@ bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_
    else if (ts == MultiThreaded) 
       args.push_back("-mt");
 
+   int signal_fd = params["signal_fd_out"] ? params["signal_fd_out"]->getInt() : -1;
+   if (signal_fd != -1) {
+      char s[64];
+      snprintf(s, 64, "%d", signal_fd);
+      args.push_back("-signal_fd");
+      args.push_back(std::string(s));
+   }
+
    for (int i = 0; i < group->tests.size(); i++) {
       if (!group->tests[i]->disabled) {
          args.push_back("-run");

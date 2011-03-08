@@ -139,7 +139,7 @@ ModeGroup mode_args[] = {
    { "dynamiclink", LINKMODE,  defaultOn  },
    { "staticlink",  LINKMODE,  defaultOff },
    { "pic",         PICMODE,   defaultOn  },
-   { "nonpic",       PICMODE,   defaultOn  },
+   { "nonpic",      PICMODE,   defaultOff },
    { NULL,          NONE,      defaultOff } };
 
 static std::vector<char *> mutatee_list;
@@ -347,12 +347,12 @@ static int handleArgs(int argc, char *argv[])
       }
       else if (strcmp(argv[i], "-all") == 0)
       {
-         setAllOn(COMPILERS | RUNMODES | COMPS | ABI | THRDMODE | PROCMODE | LINKMODE, false);
+         setAllOn(COMPILERS | RUNMODES | COMPS | ABI | THRDMODE | PROCMODE | LINKMODE | PICMODE, false);
       }
       else if (strcmp(argv[i], "-full") == 0)
       {
          //Like -all, but with full optimization levels
-         setAllOn(COMPILERS | OPTLEVELS | RUNMODES | COMPS | ABI | THRDMODE | PROCMODE | LINKMODE, false);
+         setAllOn(COMPILERS | OPTLEVELS | RUNMODES | COMPS | ABI | THRDMODE | PROCMODE | LINKMODE | PICMODE, false);
       }
       else if (strcmp(argv[i], "-allcomp") == 0)
       {
@@ -568,12 +568,11 @@ static void setAllOn(int groups, bool force)
    for (unsigned i=0; mode_args[i].option != NULL; i++) {
       if (!(groups & mode_args[i].group))
          continue;
-      if (force && mode_args[i].mode == defaultOff) {
-         mode_args[i].mode = defaultOn;
-      }
-      else if (!force && (mode_args[i].mode == defaultOff ||
-                          mode_args[i].mode == explicitOff)) {
+      if (force) {
          mode_args[i].mode = explicitOn;
+      }
+      else if (mode_args[i].mode == defaultOff) {
+         mode_args[i].mode = defaultOn;
       }
    }
 }
@@ -600,7 +599,7 @@ static bool isModeParam(const char *param) {
 
    /**
     * All parameters in the same group, which aren't explicitOn, are
-    * set to defaultOn
+    * set to defaultOff
     **/
    int group = mode_args[i].group;
    for (i=0; mode_args[i].option != NULL; i++) 

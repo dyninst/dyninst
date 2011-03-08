@@ -40,6 +40,7 @@ thread_t threads[MAX_POSSIBLE_THREADS];
 int thread_results[MAX_POSSIBLE_THREADS];
 int num_threads;
 int sockfd;
+extern int signal_fd;
 
 typedef struct {
    thread_t thread_id;
@@ -53,7 +54,7 @@ volatile char recv_buffer[MESSAGE_BUFFER_SIZE];
 volatile char send_buffer[MESSAGE_BUFFER_SIZE];
 volatile uint32_t recv_buffer_size;
 volatile uint32_t send_buffer_size;
-volatile uint32_t needs_pc_comm = 1;
+volatile uint32_t needs_pc_comm = 0;
 volatile uint32_t timeout;
 
 static testlock_t thread_startup_lock;
@@ -176,6 +177,14 @@ int handshakeWithServer()
    return 0;
 }
 
+void pingSignalFD(int sfd)
+{
+   char c = 'X';
+   if (sfd == 0 || sfd == -1)
+      return;
+   write(sfd, &c, sizeof(char));
+}
+
 int releaseThreads()
 {
    if (num_threads == 0) {
@@ -197,6 +206,7 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
       fprintf(stderr, "Error initializing threads\n");
       return -1;
    }
+   pingSignalFD(signal_fd);
    getSocketInfo();
    result = initMutatorConnection();
    if (result != 0) {
@@ -252,13 +262,13 @@ void getSocketInfo()
 
    if (needs_pc_comm)
       return;
-
+   
    while (MutatorSocket[0] == '\0') {
-      sleep(1);
+      usleep(10000); //.01 seconds
       count++;
-      if (count >= 60) {
-         fprintf(stderr, "Mutatee timeout\n");
-         exit(-1);
+      if (count >= 60 * 100) { //1 minute
+         logerror("Mutatee timeout\n");
+         exit(-2);
       }
    }
    socket_type = (char *) MutatorSocket;
@@ -328,7 +338,7 @@ int send_message(unsigned char *msg, size_t msg_size)
       resetTimeoutAlarm();
       if (send_buffer_size) {
          logerror("Timed out in mutatee send_message\n");
-         exit(-1);
+         exit(-3);
       }
       return 0;
    }
@@ -358,7 +368,7 @@ int recv_message(unsigned char *msg, size_t msg_size)
       }
       if (!recv_buffer_size) {
          logerror("Timed out in mutatee recv_message\n");
-         exit(-1);
+         exit(-4);
       }
       assert(msg_size < MESSAGE_BUFFER_SIZE);
       assert(msg_size == recv_buffer_size);

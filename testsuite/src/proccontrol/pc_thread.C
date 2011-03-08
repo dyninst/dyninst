@@ -314,7 +314,7 @@ static void checkThreadMsg(threadinfo tinfo, Process::ptr proc)
    }
    Thread::ptr thr = *i;
    
-   if (has_thr) {
+   if (has_thr && thr->getTID() != -1) {
       if (thr->getTID() != (Dyninst::THR_ID) tinfo.tid) {
          logerror("Error.  Mismatched TID, %lx != %lx\n", (unsigned long) thr->getTID(), (unsigned long) tinfo.tid);
          has_error = true;
@@ -374,7 +374,7 @@ test_results_t pc_threadMutator::pre_init(ParameterDict &param)
    registerCB(EventType::LWPCreate, lwp_create);
    registerCB(EventType::LWPDestroy, lwp_destroy);
 
-   is_attach = (create_mode_t) param["useAttach"]->getInt() == USEATTACH;
+   is_attach = (create_mode_t) param["createmode"]->getInt() == USEATTACH;
    if (has_error) return FAILED;
    return PASSED;
 }
@@ -433,7 +433,7 @@ test_results_t pc_threadMutator::executeTest()
    int num_noninit_thrds = comp->num_processes * (comp->num_threads - 1);
 
    for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
-      for (unsigned j=0; j < comp->num_threads; j++) {
+      for (unsigned j=0; j < comp->num_threads+1; j++) {
          threadinfo tinfo;
          bool result = comp->recv_message((unsigned char *) &tinfo, sizeof(threadinfo), *i);
          if (!result) {

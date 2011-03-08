@@ -100,6 +100,8 @@ public:
    virtual test_results_t test_setup(TestInfo *test, ParameterDict &parms);
    virtual test_results_t test_teardown(TestInfo *test, ParameterDict &parms);
    virtual std::string getLastErrorMsg();
+
+   bool waitForSignalFD(int signal_fd);
 };
 
 // Base class for the mutator part of a test
