@@ -161,6 +161,7 @@ void setLabel(char *label) {
 static int pfd;
 static int custom_attach = 0;
 static int useAttach = FALSE;
+int signal_fd = 0;
 
 void handleAttach()
 {
@@ -356,6 +357,12 @@ int main(int iargc, char *argv[])
          i += 1;
          FILE *f = fopen(argv[i], "w");
          fclose(f);
+      } else if (!strcmp(argv[i], "-signal_fd")) {
+         signal_fd = atoi(argv[++i]);
+         if (!signal_fd) {
+            fprintf(stderr, "Invalid signal_fd value %s\n", argv[i]);
+            exit(-1);
+         }
       } else {
          /* Let's just ignore unrecognized parameters.  They might be
           * important to a specific test.
@@ -388,6 +395,7 @@ int main(int iargc, char *argv[])
    } else {
       setUseAttach(FALSE);
    }
+
    /* 
     * Run the tests and keep track of return values in case of test failure
     */

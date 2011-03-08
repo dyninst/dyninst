@@ -65,7 +65,7 @@
 const char *memcpu_name = NULL;
 const char *memcpu_orig_name = NULL;
 
-bool launch_mutatees = true;
+bool launch_mutatees = false;
 
 bool staticTests = false;
 bool useLog = false;

@@ -44,7 +44,7 @@ test_results_t ProcControlMutator::pre_init(ParameterDict &param)
 }
 
 ProcControlComponent::ProcControlComponent() :
-   use_mem_communication(true),
+   use_mem_communication(false),
    sockfd(0),
    sockname(NULL),
    notification_fd(-1)
@@ -70,6 +70,30 @@ bool ProcControlComponent::registerEventCounter(EventType et)
 
 bool ProcControlComponent::checkThread(const Thread &thread)
 {
+   return true;
+}
+
+bool ProcControlComponent::waitForSignalFD(int signal_fd)
+{
+   fd_set rd;
+   FD_ZERO(&rd);
+   FD_SET(signal_fd, &rd);
+   struct timeval timeout;
+   timeout.tv_sec = 30;
+   timeout.tv_usec = 0;
+
+   int result = select(signal_fd+1, &rd, NULL, NULL, &timeout);
+   if (result == -1) {
+      perror("Error during signal_fd select");
+      return false;
+   }
+   if (result == 0) {
+      logerror("Timeout while waiting for signal_fd\n");
+      return false;
+   }
+
+   char c;
+   read(signal_fd, &c, sizeof(char));
    return true;
 }
 
@@ -108,7 +132,19 @@ Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &
          registerMutatee(mutateeString);
          pid = getMutateePid(group);
       }
+      else {
+         assert(0);
+      }
       assert(pid);
+
+      int signal_fd = params["signal_fd_in"] ? params["signal_fd_in"]->getInt() : -1;
+      if (signal_fd != -1) {
+         bool result = waitForSignalFD(signal_fd);
+         if (!result) {
+            logerror("Timeout waiting for signalFD\n");
+            return Process::ptr();
+         }
+      }
 
       proc = Process::attachProcess(pid, group->mutatee);
       if (!proc) {
@@ -128,6 +164,18 @@ Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &
    return proc;
 }
 
+void setupSignalFD(ParameterDict &param)
+{
+   int fds[2];
+   int result = pipe(fds);
+   if (result == -1) {
+      perror("Pipe error");
+      exit(-1);
+   }
+   param["signal_fd_in"] = new ParamInt(fds[0]);
+   param["signal_fd_out"] = new ParamInt(fds[1]);
+}
+
 bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 {
    bool error = false;
@@ -143,11 +191,16 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       logerror("Failed to setup server side socket");
       return false;
    }
+
+#if !defined(os_bg) && !defined(os_windows)
+   setupSignalFD(param);
+#endif
    
    SymbolReaderFactory *factory = NULL;
    for (unsigned i=0; i<num_processes; i++) {
       Process::ptr proc = startMutatee(group, param);
       if (proc == NULL) {
+         logerror("Failed to start mutatee\n");
          error = true;
          continue;
       }
@@ -352,6 +405,8 @@ test_results_t ProcControlComponent::group_setup(RunGroup *group, ParameterDict 
          return FAILED;
    }
 
+   
+
    bool result = startMutatees(group, params);
    if (!result) {
       logerror("Failed to launch mutatees\n");
@@ -418,10 +473,12 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
    procs.clear();
 
    for(std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); ++i) {
-       if( close(i->second) == -1 ) {
-           logerror("Could not close connected socket\n");
-           error = true;
-       }
+      if ((i->second) == -1)
+         continue;
+      if( close(i->second) == -1 ) {
+         logerror("Could not close connected socket\n");
+         error = true;
+      }
    }
 
    return error ? FAILED : PASSED;
@@ -511,6 +568,7 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
       int result = select(nfds, &readset, &writeset, &exceptset, &timeout);
       if (result == 0) {
          logerror("Timeout while waiting for socket connect");
+         fprintf(stderr, "[%s:%u] - Have recieved %d / %d socks\n", __FILE__, __LINE__, socks.size(), num);
          return false;
       }
       if (result == -1) {
@@ -651,12 +709,12 @@ bool ProcControlComponent::recv_message(unsigned char *msg, unsigned msg_size, P
    if (use_mem_communication) {
       bool recv_done = false;
       commInfo cinfo(p);
-      for (unsigned i=0; i<RECV_TIMEOUT; i++) {
+      for (unsigned i=0; i<RECV_TIMEOUT * 100; i++) {
          bool result = recv_message_mem(msg, msg_size, recv_done, cinfo);
          if (!result) return false;
          if (recv_done)
             break;
-         sleep(1);
+         usleep(10000);
       }
       if (recv_done)
          return true;
@@ -744,7 +802,7 @@ bool ProcControlComponent::send_message_mem(unsigned char *msg, uint32_t msg_siz
    if (!info.was_stopped) {
       result = info.proc->stopProc();
       if (!result) {
-         logerror("Unable to stop process for send\n");
+         logerror("Unable to stop process for send\n", __FILE__, __LINE__);
          return false;
       }
    }
@@ -769,7 +827,7 @@ bool ProcControlComponent::send_message_mem(unsigned char *msg, uint32_t msg_siz
    if (!info.was_stopped) {
       result = info.proc->continueProc();
       if (!result) {
-         logerror("Unable to continue process after send\n");
+         logerror("Unable to continue process after send\n", __FILE__, __LINE__);
          return false;
       }
    }
@@ -854,12 +912,12 @@ bool ProcControlComponent::recv_broadcast_mem(unsigned char *msg, unsigned msg_s
       }
       if (!commProcs.size()) 
          return true;
-      if (timeout_count == RECV_TIMEOUT) {
+      if (timeout_count == RECV_TIMEOUT * 100) {
          logerror("Timeout while receiving broadcast\n");
          return false;
       }
       timeout_count++;
-      sleep(1);
+      usleep(10000);
    }
    
 }
@@ -886,12 +944,12 @@ bool ProcControlComponent::send_broadcast_mem(unsigned char *msg, unsigned msg_s
       }
       if (!commProcs.size()) 
          return true;
-      if (timeout_count == RECV_TIMEOUT) {
+      if (timeout_count == RECV_TIMEOUT * 100) {
          logerror("Timeout while receiving broadcast\n");
          return false;
       }
       timeout_count++;
-      sleep(1);
+      usleep(10000);
    }
 }
 
@@ -980,12 +1038,12 @@ bool ProcControlComponent::poll_for_events()
 }
 
 Process::cb_ret_t on_breakpoint(Event::const_ptr ev) {
-    RegisterPool regs;
+   Dyninst::ProcControlAPI::RegisterPool regs;
     if( !ev->getThread()->getAllRegisters(regs) ) {
         fprintf(stderr, "Failed to get registers on breakpoint\n");
     }else{
         fprintf(stderr, "Registers at breakpoint 0x%lx:\n", ev->getEventBreakpoint()->getAddress());
-        for(RegisterPool::iterator i = regs.begin(); i != regs.end(); i++) {
+        for(Dyninst::ProcControlAPI::RegisterPool::iterator i = regs.begin(); i != regs.end(); i++) {
             fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name(), (*i).second);
         }
     }
