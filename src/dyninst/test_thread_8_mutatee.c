@@ -86,6 +86,9 @@ void check_sync(thread_t sync_test)
       logerror("%s[%d]: ERROR: Thread %d [tid %lu] - mistakenly ran oneTimeCode for thread with tid %lu\n", __FILE__, __LINE__, id, thread_int(tid), thread_int(sync_test));
    else
       logerror("%s[%d]: ERROR: Thread %d [tid %lu] - sync_test is 0\n", __FILE__, __LINE__, id, thread_int(tid));
+
+   // Still let the threads exit, this will allow a faster failure than waiting for a timeout
+   ok_to_exit[id] = 1;
    sync_failure++;
 }
 

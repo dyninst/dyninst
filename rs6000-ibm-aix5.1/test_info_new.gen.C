@@ -12221,6 +12221,142 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
 #endif // defined(XLC)
   test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_gcc_32_pic_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "gcc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_gcc_32_none_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "gcc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_gcc_32_pic_low", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "gcc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: low, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_gcc_32_none_low", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "gcc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: low, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_gcc_32_pic_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "gcc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_gcc_32_none_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "gcc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_gcc_32_pic_max", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "gcc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_gcc_32_none_max", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "gcc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_xlc_32_none_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "xlc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_xlc_32_none_low", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "xlc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: low, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_xlc_32_none_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "xlc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_xlc_32_none_max", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "xlc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_g++_32_pic_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "g++", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_g++_32_none_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "g++", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_g++_32_pic_low", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "g++", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_g++_32_none_low", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "g++", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_g++_32_pic_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "g++", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_g++_32_none_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "g++", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_g++_32_pic_max", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "g++", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_g++_32_none_max", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "g++", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_xlC_32_none_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "xlC", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_xlC_32_none_low", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "xlC", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: low, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_xlC_32_none_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "xlC", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_stack_4.mutatee_solo_dynamic_xlC_32_none_max", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "xlC", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_stack_4", "test_stack_4", "test_stack_4.so", false, "{test: test_stack_4, mutator: test_stack_4, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_stack_4, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+  test_count = 0;
   rg = new RunGroup("test_callback_1.mutatee_solo_dynamic_gcc_32_pic_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_1", "test_callback_1", "test_callback_1.so", false, "{test: test_callback_1, mutator: test_callback_1, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_callback_1, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;

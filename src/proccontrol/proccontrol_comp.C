@@ -316,6 +316,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       error = true;
    }
 
+
    return !error;
 }
 
@@ -415,6 +416,13 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
       }
    }
    procs.clear();
+
+   for(std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); ++i) {
+       if( close(i->second) == -1 ) {
+           logerror("Could not close connected socket\n");
+           error = true;
+       }
+   }
 
    return error ? FAILED : PASSED;
 }
@@ -971,3 +979,31 @@ bool ProcControlComponent::poll_for_events()
    return bresult;
 }
 
+Process::cb_ret_t on_breakpoint(Event::const_ptr ev) {
+    RegisterPool regs;
+    if( !ev->getThread()->getAllRegisters(regs) ) {
+        fprintf(stderr, "Failed to get registers on breakpoint\n");
+    }else{
+        fprintf(stderr, "Registers at breakpoint 0x%lx:\n", ev->getEventBreakpoint()->getAddress());
+        for(RegisterPool::iterator i = regs.begin(); i != regs.end(); i++) {
+            fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name(), (*i).second);
+        }
+    }
+
+    return Process::cbThreadContinue;
+}
+
+// To be called while debugging
+void insertBreakpoint(Process::ptr proc, Address addr) {
+    Breakpoint::ptr brkPt = Breakpoint::newBreakpoint();
+
+    Process::registerEventCallback(EventType::Breakpoint, on_breakpoint);
+
+    if( !proc->addBreakpoint(addr, brkPt) ) {
+        fprintf(stderr, "Failed to add breakpoint to process %d at addr 0x%lx\n",
+                proc->getPid(), addr);
+    }else{
+        fprintf(stderr, "Added breakpoint to process %d at addr 0x%lx\n",
+                proc->getPid(), addr);
+    }
+}
