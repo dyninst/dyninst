@@ -44,6 +44,7 @@
 #include <fstream>
 #include <string>
 
+#include "dyninstAPI/src/vxworks.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/dyn_lwp.h"
@@ -1602,12 +1603,14 @@ bool dyn_lwp::changePC(Address loc, struct dyn_saved_regs */*ignored registers*/
     ctx.contextSubId = 0;
 
     loc = swapBytesIfNeeded(loc);
-    STATUS result = wtxRegsSet(wtxh, //WTX API handle
-                               &ctx, // WTX Context
-                               WTX_REG_SET_IU, // type of register set
-                               offsetof(struct dyn_saved_regs, sprs[3]), // first byte of register set
-                               sizeof(unsigned int), // number of bytes of register set
-                               &loc); // place holder for reg. values
+
+    STATUS result;
+    result = wtxRegsSet(wtxh, //WTX API handle
+                        &ctx, // WTX Context
+                        WTX_REG_SET_IU, // type of register set
+                        offsetof(struct dyn_saved_regs, iu[WTX_REG_IU_PC]), // first byte of register set
+                        sizeof(unsigned int), // number of bytes of register set
+                        &loc); // place holder for reg. values
 
     if (result != WTX_OK) {
         fprintf(stderr, "wtxRegsSet() error: %s\n", wtxErrMsgGet(wtxh));
@@ -1648,16 +1651,16 @@ Frame dyn_lwp::getActiveFrame()
                                &ctx, // WTX Context
                                WTX_REG_SET_IU, // type of register set
                                0x0, // first byte of register set
-                               sizeof(dyn_saved_regs), // number of bytes of register set
-                               &r); // place holder for reg. values
+                               sizeof(r.iu), // number of bytes of register set
+                               &r.iu); // place holder for reg. values
     if (result != WTX_OK) {
         fprintf(stderr, "Error on wtxRegsGet(): %s\n", wtxErrMsgGet(wtxh));
         return Frame();
     }
 
-    return Frame(swapBytesIfNeeded(r.sprs[ 3]), // PC
-                 swapBytesIfNeeded(r.gprs[31]), // FP
-                 swapBytesIfNeeded(r.gprs[ 1]), // SP
+    return Frame(swapBytesIfNeeded(r.iu[WTX_REG_IU_PC]),
+                 swapBytesIfNeeded(r.iu[WTX_REG_IU_FP]),
+                 swapBytesIfNeeded(r.iu[WTX_REG_IU_SP]),
                  proc_->getPid(), proc_, NULL, this, true);
 }
 
@@ -1672,8 +1675,8 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool /*includeFP*/)
                                &ctx, // WTX Context
                                WTX_REG_SET_IU, // type of register set
                                0x0, // first byte of register set
-                               sizeof(dyn_saved_regs), // number of bytes of register set
-                               regs); // place holder for reg. values
+                               sizeof(regs->iu), // number of bytes of register set
+                               regs->iu); // place holder for reg. values
     if (result != WTX_OK) {
         fprintf(stderr, "Error on wtxRegsGet(): %s\n", wtxErrMsgGet(wtxh));
         return false;
@@ -1701,8 +1704,8 @@ Address dyn_lwp::readRegister(Register reg)
     STATUS result = wtxRegsGet(wtxh, //WTX API handle
                                &ctx, // WTX Context
                                WTX_REG_SET_IU, // type of register set
-                               reg * instruction::size(), // first byte of register set
-                               instruction::size(), // number of bytes of register set
+                               reg * proc_->getAddressWidth(), // first byte of register set
+                               proc_->getAddressWidth(), // number of bytes of register set
                                &retval); // place holder for reg. values
     if (result != WTX_OK) {
         fprintf(stderr, "Error on wtxRegsGet(): %s\n", wtxErrMsgGet(wtxh));
@@ -1715,10 +1718,10 @@ Address dyn_lwp::readRegister(Register reg)
 bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool /*includeFP*/)
 {
     struct dyn_saved_regs newRegs;
-    const unsigned long *hostp = (const unsigned long *)&regs;
-    unsigned long *targp = (unsigned long *)&newRegs;
-    unsigned long *end  = targp + (sizeof(dyn_saved_regs) /
-                                   sizeof(unsigned long));
+    const unsigned int *hostp = regs.iu;
+    unsigned int *targp = newRegs.iu;
+    unsigned int *end  = targp + (sizeof(dyn_saved_regs) /
+                                  sizeof(unsigned int));
     while (targp < end) {
         *targp = swapBytesIfNeeded(*hostp);
         ++targp;
@@ -1734,8 +1737,8 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool /*includ
                                &ctx, // WTX Context
                                WTX_REG_SET_IU, // type of register set
                                0x0, // first byte of register set
-                               sizeof(dyn_saved_regs), // number of bytes of register set
-                               &newRegs); // place holder for reg. values
+                               sizeof(newRegs.iu), // number of bytes of register set
+                               &newRegs.iu); // place holder for reg. values
     if (result != WTX_OK) {
         fprintf(stderr, "Error on wtxRegsGet(): %s\n", wtxErrMsgGet(wtxh));
         return false;
@@ -2108,7 +2111,8 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs)
                             curr->moduleId, wtxErrMsgGet(wtxh));
                     assert(0);
                 }
-                if (strcmp(curr->moduleName, "/var/ftp/pub/vxWorks") == 0) {
+//                if (strcmp(curr->moduleName, "/var/ftp/pub/vxWorks") == 0) {
+                if (strstr(curr->moduleName, "/vxWorks")) {
                     curr->moduleName[0] = '['; // Force incremental parsing.
                     filename = curr->moduleName;
                 }

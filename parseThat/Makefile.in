@@ -64,6 +64,12 @@ LDFLAGS += $(DWARFFLAGS)
 LDFLAGS += $(ELFFLAGS)
 endif
 
+ifneq (, $(findstring vxworks, $(PLATFORM)))
+LIBS        += -ldwarf -lelf
+LDFLAGS += $(DWARFFLAGS)
+LDFLAGS += $(ELFFLAGS)
+endif
+
 ifneq (, $(findstring sparc, $(PLATFORM)))
 LIBS        += -lstdc++ -lsocket -lrt
 endif
@@ -88,7 +94,7 @@ ifneq (, $(findstring x86_64, $(PLATFORM)))
 LIBS        += -linstructionAPI
 endif
 
-ifneq (, $(findstring ppc32_linux, $(PLATFORM)))
+ifneq (, $(findstring ppc32, $(PLATFORM)))
 LIBS        += -linstructionAPI
 endif
 

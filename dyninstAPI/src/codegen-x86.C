@@ -50,6 +50,10 @@
 #include "instructionAPI/h/RegisterIDs.h"
 #include "pcrel.h"
 
+#if defined(os_vxworks)
+#include "common/h/wtxKludges.h"
+#endif
+
 using namespace std;
 using namespace boost::assign;
 using namespace Dyninst::InstructionAPI;
@@ -706,7 +710,7 @@ bool pcRelData::canPreApply()
 }
 
 bool insnCodeGen::generate(codeGen &gen,
-                           instruction & insn,
+                           instruction & origInsn,
                            AddressSpace *addrSpace,
                            Address origAddr, // Could be kept in the instruction class.
                            Address newAddr,
@@ -746,11 +750,34 @@ bool insnCodeGen::generate(codeGen &gen,
        
    */
 
-   const unsigned char *origInsn = insn.ptr();
-   unsigned insnType = insn.type();
-   unsigned insnSz = insn.size();
+   const unsigned char *origBuf = origInsn.ptr();
+   unsigned insnType = origInsn.type();
+   unsigned insnSz = origInsn.size();
    // This moves as we emit code
    unsigned char *newInsn = insnBuf;
+   instruction insn = origInsn;
+
+#if defined(os_vxworks)
+   // Deal with relocations.
+   unsigned char modInsn[32];
+   for (unsigned int i = 0; i < insnSz; ++i) {
+       Address targAddr;
+       if (relocationTarget(origAddr + i, &targAddr)) {
+           Offset insnDisp = targAddr;
+           if ((insnType & REL_B) ||
+               (insnType & REL_W) ||
+               (insnType & REL_D) ||
+               (insnType & REL_D_DATA)) {
+               insnDisp -= origAddr + insnSz;
+           }
+           memcpy(modInsn, origBuf, insnSz);
+           memcpy(modInsn + i, &insnDisp, sizeof(Address));
+           insn.setInstruction(modInsn);
+           origBuf = modInsn;
+           break;
+       }
+   }
+#endif
 
    // Check to see if we're doing the "get my PC" via a call
    // We do this first as those aren't "real" jumps.
@@ -887,7 +914,7 @@ bool insnCodeGen::generate(codeGen &gen,
 	 (insnType & REL_D_DATA))) {
      // Normal insn, not addr relative
      for (unsigned u = 0; u < insnSz; u++)
-       *newInsn++ = *origInsn++;
+       *newInsn++ = *origBuf++;
      SET_PTR(newInsn, gen);
      goto done;
    }

@@ -35,12 +35,12 @@
 #ifndef _ARCH_X86_H
 #define _ARCH_X86_H
 
+#include "common/h/Types.h"
 #include <stdio.h>
 #include <common/h/Vector.h>
 #include <set>
 #include <map>
 #include <vector>
-#include "common/h/Types.h"
 #include "dyn_regs.h"
 #include "instructionAPI/h/entryIDs.h"
 
@@ -770,6 +770,7 @@ COMMON_EXPORT Address get_target(const unsigned char *instr, unsigned type, unsi
 #define EXTENDED_0x83_AND 4
 #define EXTENDED_0x83_SUB 5
 
+unsigned int swapBytesIfNeeded(unsigned int i);
 
 class instruction {
  public:
@@ -870,7 +871,7 @@ class instruction {
   void print()
   {
       for (unsigned i = 0; i < size_; i++)
-	  fprintf(stderr, " %x", *(ptr_ + i));
+	  fprintf(stderr, " %02x", *(ptr_ + i));
       fprintf(stderr, "\n");
   }
 		  

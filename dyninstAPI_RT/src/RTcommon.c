@@ -275,7 +275,6 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
    memset(cacheLRUflags, 1, sizeof(char)*TARGET_CACHE_WIDTH);
    rtdebug_printf("%s[%d]:  leaving DYNINSTinit\n", __FILE__, __LINE__);
 }
-
  
 /**
  * Does what it's called. Used by the paradyn daemon as a default in certain 

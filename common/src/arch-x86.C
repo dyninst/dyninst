@@ -55,11 +55,20 @@
 #include "instructionAPI/h/Register.h"
 #include "dyn_regs.h"
 
+#if defined(os_vxworks)
+#include "common/h/wtxKludges.h"
+#endif
+
 using namespace std;
 using namespace boost::assign;
 using namespace Dyninst::InstructionAPI;
 
 namespace NS_x86 {
+
+unsigned int swapBytesIfNeeded(unsigned int i)
+{
+    return i;
+}
 
 // groups
 enum {
@@ -4105,6 +4114,12 @@ unsigned get_instruction(const unsigned char* addr, unsigned &insnType,
 // find the target of a jump or call
 Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 		   Address addr) {
+#if defined(os_vxworks)
+    Address ret;
+    // FIXME requires vxworks in Dyninst
+    if (relocationTarget(addr+1, &ret))
+        return ret;
+#endif
   int disp = displacement(instr, type);
   return (Address)(addr + size + disp);
 }

@@ -495,7 +495,6 @@ Parser::record_func(Function *f) {
     _parse_data->record_func(f);
 }
 
-
 void
 Parser::init_frame(ParseFrame & frame)
 {

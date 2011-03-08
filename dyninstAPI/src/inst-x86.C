@@ -653,7 +653,10 @@ int cpuidCall() {
     return result;
 }
 #endif
-#if !defined(x86_64_unknown_linux2_4) && !(defined(os_freebsd) && defined(arch_x86_64))
+
+#if !defined(x86_64_unknown_linux2_4)              \
+ && !(defined(os_freebsd) && defined(arch_x86_64)) \
+ && !defined(os_vxworks)
 bool xmmCapable()
 {
   int features = cpuidCall();
@@ -2248,6 +2251,57 @@ unsigned baseTramp::getBTCost() {
     return 83;
 }
 
+#if defined(os_vxworks)
+// VxWorks Kernel Modules don't use relocation entries so, until we enable
+// the binary rewriter on this platform, relocation entries are always bound.
+bool process::hasBeenBound(const SymtabAPI::relocationEntry &,
+                           int_function *&,
+                           Address )
+{
+    return true;
+}
+
+#else
+// hasBeenBound: returns true if the runtime linker has bound the
+// function symbol corresponding to the relocation entry in at the address
+// specified by entry and base_addr.  If it has been bound, then the callee 
+// function is returned in "target_pdf", else it returns false.
+bool process::hasBeenBound(const SymtabAPI::relocationEntry &entry, 
+			   int_function *&target_pdf, Address base_addr) {
+
+    if (status() == exited) return false;
+
+    // if the relocationEntry has not been bound yet, then the value
+    // at rel_addr is the address of the instruction immediately following
+    // the first instruction in the PLT entry (which is at the target_addr) 
+    // The PLT entries are never modified, instead they use an indirrect 
+    // jump to an address stored in the _GLOBAL_OFFSET_TABLE_.  When the 
+    // function symbol is bound by the runtime linker, it changes the address
+    // in the _GLOBAL_OFFSET_TABLE_ corresponding to the PLT entry
+
+    Address got_entry = entry.rel_addr() + base_addr;
+    Address bound_addr = 0;
+    if(!readDataSpace((const void*)got_entry, sizeof(Address), 
+			&bound_addr, true)){
+        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x, pid=%d\n (readDataSpace returns 0)",(unsigned)got_entry,getPid());
+	logLine(errorLine);
+	print_read_error_info(entry, target_pdf, base_addr);
+        return false;
+    }
+
+    if( !( bound_addr == (entry.target_addr()+6+base_addr)) ) {
+        // the callee function has been bound by the runtime linker
+	// find the function and return it
+        target_pdf = findFuncByAddr(bound_addr);
+	if(!target_pdf){
+            return false;
+	}
+        return true;	
+    }
+    return false;
+}
+#endif
+
 // Emit code to jump to function CALLEE without linking.  (I.e., when
 // CALLEE returns, it returns to the current caller.)
 void emitFuncJump(opCode op, 
@@ -2696,10 +2750,12 @@ void emitJump(unsigned disp32, codeGen &gen)
    SET_PTR(insn, gen);
 }
 
-#if defined(os_linux) || defined(os_freebsd)
+#if defined(os_linux)   \
+ || defined(os_freebsd) \
+ || defined(os_vxworks)
 
 // These functions were factored from linux-x86.C because
-// they are identical on Linux and FreeBSD
+// they are identical on Linux and FreeBSD and vxWorks
 
 int EmitterIA32::emitCallParams(codeGen &gen, 
                               const pdvector<AstNodePtr> &operands,
@@ -2746,5 +2802,4 @@ bool EmitterIA32::emitCallCleanup(codeGen &gen,
    }
    return true;
 }
-
 #endif

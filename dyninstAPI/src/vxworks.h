@@ -166,10 +166,82 @@ class WaitpidMux {
    bool hasFirstTimer(SignalGenerator *me);
 };
 
+#if defined(arch_power)
 struct dyn_saved_regs
-{  
-    long gprs[32];      // 32 general purpose registers plus most SPRs
-    long sprs[4];       // msr, lr, ctr, pc
+{
+    unsigned int iu[36]; // 36 regs in WTX_REG_SET_IU (Integer Unit)
 };
+
+enum dyn_wtx_iu_reg_map
+{
+    WTX_REG_R0 = 0,
+    WTX_REG_R1,
+    WTX_REG_R2,
+    WTX_REG_R3,
+    WTX_REG_R4,
+    WTX_REG_R5,
+    WTX_REG_R6,
+    WTX_REG_R7,
+    WTX_REG_R8,
+    WTX_REG_R9,
+    WTX_REG_R10,
+    WTX_REG_R11,
+    WTX_REG_R12,
+    WTX_REG_R13,
+    WTX_REG_R14,
+    WTX_REG_R15,
+    WTX_REG_R16,
+    WTX_REG_R17,
+    WTX_REG_R18,
+    WTX_REG_R19,
+    WTX_REG_R20,
+    WTX_REG_R21,
+    WTX_REG_R22,
+    WTX_REG_R23,
+    WTX_REG_R24,
+    WTX_REG_R25,
+    WTX_REG_R26,
+    WTX_REG_R27,
+    WTX_REG_R28,
+    WTX_REG_R29,
+    WTX_REG_R30,
+    WTX_REG_R31,
+    WTX_REG_MSR,
+    WTX_REG_LR,
+    WTX_REG_CTR,
+    WTX_REG_PC
+};
+
+#define WTX_REG_IU_PC WTX_REG_PC
+#define WTX_REG_IU_SP WTX_REG_R1
+#define WTX_REG_IU_FP WTX_REG_R31
+
+#elif defined(arch_x86)
+struct dyn_saved_regs
+{
+    unsigned int iu[12]; // 12 regs in WTX_REG_SET_IU (Integer Unit)
+};
+
+enum dyn_wtx_iu_reg_map
+{
+    WTX_REG_EDI = 0,
+    WTX_REG_ESI,
+    WTX_REG_EBP,
+    WTX_REG_ESP,
+    WTX_REG_EBX,
+    WTX_REG_EDX,
+    WTX_REG_ECX,
+    WTX_REG_EAX,
+    WTX_REG_EFLAGS,
+    WTX_REG_EIP,
+    WTX_REG_STATUS,
+    WTX_REG_UNKNOWN
+};
+
+#define WTX_REG_IU_PC WTX_REG_EIP
+#define WTX_REG_IU_SP WTX_REG_ESP
+#define WTX_REG_IU_FP WTX_REG_EBP
+
+#endif
 
 #endif

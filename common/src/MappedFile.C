@@ -315,10 +315,24 @@ bool MappedFile::map_file()
 
 #else
 
-   map_addr = mmap(0, file_size, PROT_READ, MAP_SHARED, fd, 0);
+   int mmap_prot  = PROT_READ;
+   int mmap_flags = MAP_SHARED;
+
+#if defined(os_vxworks)   
+   // VxWorks kernel modules have relocations which need to be
+   // overwritten in memory.
+   //
+   // XXX - We don't overwrite our memory image with relocations from the
+   // target memory space yet due to performance concerns.  If we decide
+   // to go this route, it would simplify a lot of the Dyninst internals.
+   mmap_prot  = PROT_READ | PROT_WRITE;
+   mmap_flags = MAP_PRIVATE;
+#endif
+
+   map_addr = mmap(0, file_size, mmap_prot, mmap_flags, fd, 0);
    if (MAP_FAILED == map_addr) {
-      sprintf(ebuf, "mmap(0, %lu, PROT_READ, MAP_SHARED, %d, 0): %s", 
-            file_size, fd, strerror(errno));
+      sprintf(ebuf, "mmap(0, %lu, prot=0x%x, flags=0x%x, %d, 0): %s", 
+            file_size, mmap_prot, mmap_flags, fd, strerror(errno));
       goto err;
    }
 
