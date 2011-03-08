@@ -55,7 +55,7 @@ namespace Dyninst
                 bool isMovAPSTable(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
                 std::pair<Address, Address> findThunkAndOffset(Dyninst::ParseAPI::Block * start);
                 bool isTableInsn(Dyninst::InstructionAPI::Instruction::Ptr i);
-                std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator findTableInsn();
+                IA_IAPI::allInsns_t::const_iterator findTableInsn();
                 boost::tuple<Dyninst::InstructionAPI::Instruction::Ptr,
                 Dyninst::InstructionAPI::Instruction::Ptr,
                 bool> findMaxSwitchInsn(Dyninst::ParseAPI::Block *start);

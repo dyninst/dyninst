@@ -62,7 +62,7 @@ private:
    mem_response::ptr memresult;
    Dyninst::Address pending_addr;
 public:
-   PCProcReader(sysv_process *proc_);
+   PCProcReader(sysv_process *proc_, unsigned long read_size = 0);
    virtual ~PCProcReader();
    virtual bool start();
    virtual bool isAsync();
@@ -75,7 +75,8 @@ class sysv_process : virtual public int_process
 {
    friend class PCProcReader;
  public:
-   sysv_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f);
+   sysv_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+           std::vector<std::string> envp, std::map<int,int> f);
    sysv_process(Dyninst::PID pid_, int_process *p);
    virtual ~sysv_process();
    virtual bool refresh_libraries(std::set<int_library *> &added_libs,
@@ -86,7 +87,6 @@ class sysv_process : virtual public int_process
    Dyninst::Address getLibBreakpointAddr() const;
 
    bool isLibraryTrap(Dyninst::Address trap_addr);
-
  protected:
    virtual bool plat_execed();
    virtual bool plat_isStaticBinary();
@@ -100,6 +100,7 @@ class sysv_process : virtual public int_process
    PCProcReader *procreader;
   private:
    int_library *aout;
+   static SymbolReaderFactory *symreader_factory;   
 };
 
 #endif

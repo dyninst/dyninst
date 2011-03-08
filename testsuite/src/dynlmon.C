@@ -229,22 +229,26 @@ static char **getLaunchParams(char *executable, char *args[], const char *num, c
 static char **getLaunchParams(char *executable, char *args[], const char *num, char *signal_file_name)
 {   
    int count = 0;
-   unsigned i;
+   unsigned i=0;
    for (char **counter = args; *counter; counter++, count++);
-   char **new_args = (char **) malloc(sizeof(char *) * (count+9));
-   new_args[0] = "mpirun";
-   new_args[1] = "-np";
-   new_args[2] = const_cast<char *>(num);
+   char **new_args = (char **) malloc(sizeof(char *) * (count+12));
+   new_args[i++] = "mpirun";
+   char *partition = getenv("DYNINST_BGP_PARTITION");
+   if (partition) {
+      new_args[i++] = "-nofree";
+      new_args[i++] = "-partition";
+      new_args[i++] = partition;
+   }
+   new_args[i++] = "-np";
+   new_args[i++] = const_cast<char *>(num);
    for (i=0; i<=count && args[i]; i++)
-      new_args[3+i] = args[i];
+      new_args[i++] = args[i];
    if (signal_file_name) {
-      new_args[3+i] = "-signal_file";
-      new_args[4+i] = signal_file_name;
-      new_args[5+i] = NULL;
+      new_args[i++] = "-signal_file";
+      new_args[i++] = signal_file_name;
    }
-   else {
-      new_args[3+i] = NULL;
-   }
+   new_args[i++] = NULL;
+
    return new_args;
 }
 #endif

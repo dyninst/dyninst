@@ -50,7 +50,6 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTheap-solaris.c \
 		   ../src/RTheap-svr4.c \
 			../src/RTthread.c \
-			../src/RTthread-index.c \
 			../src/RTthread-sparc-asm.S
 #			../src/RTmutatedBinary.c 
 #			../src/RTmutatedBinary_ELF.c 

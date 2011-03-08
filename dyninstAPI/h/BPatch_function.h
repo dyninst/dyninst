@@ -45,7 +45,6 @@
 // class BPatch_dependenceGraphNode;
 
 class int_function;
-class process;
 class InstrucIter;
 
 class BPatch_localVarCollection;

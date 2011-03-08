@@ -61,6 +61,11 @@ class InstructionAdapter
         InstructionAdapter(Address start, ParseAPI::CodeObject *o , 
             ParseAPI::CodeRegion* r, InstructionSource * isrc,  ParseAPI::Block *);
         virtual ~InstructionAdapter();
+
+    // Reset to just-constructed state
+    void reset(Address start, ParseAPI::CodeObject *o,
+        ParseAPI::CodeRegion *r, InstructionSource *isrc, ParseAPI::Block *);
+
     // Implemented
     virtual bool hasCFT() const = 0;
     virtual size_t getSize() const = 0;

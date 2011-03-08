@@ -33,6 +33,7 @@
 #define WALKER_H_
 
 #include "basetypes.h"
+#include "Process.h"
 #include <vector>
 #include <list>
 #include <string>
@@ -63,6 +64,7 @@ class Walker {
    StepperGroup *createDefaultStepperGroup();
    static ProcessState *createDefaultProcess(std::string exec_name = std::string(""));
    static ProcessState *createDefaultProcess(Dyninst::PID pid, std::string exe);
+   static ProcessState *createDefaultProcess(Dyninst::ProcControlAPI::Process::ptr proc);
    static bool createDefaultProcess(const std::vector<Dyninst::PID> &pids,
                                     std::vector<ProcDebug *> &pds);
    static ProcessState *createDefaultProcess(std::string exec_name, 
@@ -85,6 +87,7 @@ class Walker {
    static Walker *newWalker(Dyninst::PID pid,
                             std::string executable);
    static Walker *newWalker(Dyninst::PID pid);
+   static Walker *newWalker(Dyninst::ProcControlAPI::Process::ptr proc);
    static bool newWalker(const std::vector<Dyninst::PID> &pids,
                          std::vector<Walker *> &walkers_out,
                          std::string executable);
@@ -100,6 +103,12 @@ class Walker {
                             StepperGroup *grp = NULL,
                             SymbolLookup *lookup = NULL,
                             bool default_steppers = true);
+   
+   //Get the default symbol reader
+   static SymbolReaderFactory *getSymbolReader();
+
+   //Set the default symbol reader
+   static void setSymbolReader(SymbolReaderFactory *srf);
 
    //Collect a stackwalk
    bool walkStack(std::vector<Frame> &stackwalk, 
@@ -135,6 +144,7 @@ class Walker {
 
    virtual ~Walker();
  private:
+   static SymbolReaderFactory *symrfact;
    ProcessState *proc;
    SymbolLookup *lookup;
    bool creation_error;

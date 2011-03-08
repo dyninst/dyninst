@@ -75,25 +75,25 @@ typedef enum {
 } ObjectType;
 
 typedef enum { 
-   Obj_Parsing,
-               Syms_To_Functions,
-               Build_Function_Lists,
-               No_Such_Function,
-               No_Such_Variable,
-               No_Such_Module,
-               No_Such_Region,
-               No_Such_Symbol,
-	       No_Such_Member,
-	       Not_A_File,
-	       Not_An_Archive,
-               Duplicate_Symbol,
-	       Export_Error,
-               Emit_Error,
-	       Invalid_Flags,
-   Bad_Frame_Data,
+   Obj_Parsing = 0,
+   Syms_To_Functions,
+   Build_Function_Lists,
+   No_Such_Function,
+   No_Such_Variable,
+   No_Such_Module,
+   No_Such_Region,
+   No_Such_Symbol,
+   No_Such_Member,
+   Not_A_File,
+   Not_An_Archive,
+   Duplicate_Symbol,
+   Export_Error,
+   Emit_Error,
+   Invalid_Flags,
+   Bad_Frame_Data,      /* 15 */
    No_Frame_Entry,
    Frame_Read_Error,
-	       No_Error
+   No_Error
 } SymtabError;
 
 typedef struct{

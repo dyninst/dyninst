@@ -2283,8 +2283,13 @@ bool Object::getRegValueAtFrame(Address pc,
 		Dyninst::MachRegisterVal &reg_result,
 		MemRegReader *reader)
 {
+   FrameErrors_t frame_error = FE_No_Error;
+   bool result;
+
    dwarf.dbg();
-   return dwarf.sw->getRegValueAtFrame(pc, reg, reg_result, getArch(), reader);
+   result = dwarf.sw->getRegValueAtFrame(pc, reg, reg_result, getArch(), reader, frame_error);
+   setSymtabError((SymtabError) frame_error);
+   return result;
 }
 
 DwarfHandle::DwarfHandle(Object *obj_) :

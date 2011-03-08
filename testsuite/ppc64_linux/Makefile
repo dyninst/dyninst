@@ -72,7 +72,7 @@ TEST6_AS_SRC = test6LS-powerpc.S
 TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
 #TEST6_AS_OBJ_BASE_ASM = $(basename $(TEST6_AS_SRC))
 
-TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl
+TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl $(LDFLAGS)
 
 # see discussion in make.module.tmpl for the format of this variable
 MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe

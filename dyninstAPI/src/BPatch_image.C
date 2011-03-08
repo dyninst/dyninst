@@ -38,7 +38,6 @@
 #include <string.h>
 #include <string>
 
-#include "process.h"
 #include "instPoint.h"
 #include "instP.h"
 #include "function.h"
@@ -53,8 +52,10 @@
 #include "BPatch_libInfo.h"
 #include "BPatch_statement.h"
 #include "BPatch_function.h" 
+#include "debug.h"
 
 #include "addressSpace.h"
+#include "pcProcess.h"
 
 #include "parseAPI/h/CodeSource.h"
 
@@ -1304,7 +1305,7 @@ bool BPatch_image::readStringInt(Address addr, std::string &str, unsigned size_l
       result = as->readDataSpace((void *) (start_word + buffer_offset), word_size, 
                                  buffer + buffer_offset, false);
       if (!result) {
-         signal_printf("[%s:%u] - ERROR reading address %x for string\n",
+         proccontrol_printf("[%s:%u] - ERROR reading address %x for string\n",
                        FILE__, __LINE__, start_word + buffer_offset);
          bperr("Error reading from target process");
          goto done;
@@ -1315,7 +1316,7 @@ bool BPatch_image::readStringInt(Address addr, std::string &str, unsigned size_l
       if (size_limit && 
           size_limit < buffer_offset - start_offset) {
          buffer[size_limit + start_offset] = '\0';
-         signal_printf("[%s:%u] - WARN string read at %x exceeded size limit of %d",
+         proccontrol_printf("[%s:%u] - WARN string read at %x exceeded size limit of %d",
                        FILE__, __LINE__, addr, size_limit);
          bpwarn("String read exceeded size limit");
          break;

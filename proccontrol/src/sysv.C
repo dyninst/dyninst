@@ -32,7 +32,6 @@
 #include "dynutil/h/dyntypes.h"
 #include "sysv.h"
 #include "irpc.h"
-#include "snippets.h"
 
 #if defined(os_linux)
 #include "common/h/linuxKludges.h"
@@ -52,8 +51,8 @@ using namespace std;
 
 int_breakpoint *sysv_process::lib_trap = NULL;
 
-sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, map<int,int> f) :
-   int_process(p, e, a, f),
+sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, vector<string> envp, map<int,int> f) :
+   int_process(p, e, a, envp, f),
    translator(NULL),
    lib_initialized(false),
    procreader(NULL),
@@ -69,7 +68,7 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    lib_initialized = sp->lib_initialized;
    aout = sp->aout;
    if (sp->procreader)
-      procreader = new PCProcReader(this);
+      procreader = new PCProcReader(this, sp->procreader->async_read_align);
    if (sp->translator)
       translator = AddressTranslate::createAddressTranslator(pid_,
                                                              procreader,
@@ -88,9 +87,9 @@ sysv_process::~sysv_process()
    }
 }
 
-PCProcReader::PCProcReader(sysv_process *proc_) :
+PCProcReader::PCProcReader(sysv_process *proc_, unsigned long read_size) :
    proc(proc_),
-   async_read_align(proc->plat_getRecommendedReadSize()),
+   async_read_align(read_size ? read_size : proc->plat_getRecommendedReadSize()),
    pending_addr(0)
 {
 }
@@ -366,7 +365,7 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
                    ll->getCodeLoadAddr());
       if (!lib) {
          pthrd_printf("Creating new library object for %s\n", ll->getName().c_str());
-         lib = new int_library(ll->getName(), ll->getCodeLoadAddr());
+         lib = new int_library(ll->getName(), ll->getCodeLoadAddr(), ll->getDynamicAddr());
          assert(lib);
          added_libs.insert(lib);
          ll->setUpPtr((void *) lib);
@@ -405,6 +404,10 @@ Dyninst::Address sysv_process::getLibBreakpointAddr() const
 bool sysv_process::plat_execed()
 {
    pthrd_printf("Rebuilding library trap mechanism after exec on %d\n", getPid());
+   if (aout) {
+      // aout has already been deleted in the forking process
+      aout = NULL;
+   }
    if (translator) {
       delete translator;
       translator = NULL;
@@ -415,7 +418,31 @@ bool sysv_process::plat_execed()
    }
    breakpoint_addr = 0x0;
    lib_initialized = false;
-   return initLibraryMechanism();
+
+   bool result = initLibraryMechanism();
+   if (!result) {
+      pthrd_printf("Error initializing library mechanism\n");
+      return false;
+   }
+
+   std::set<int_library*> added, rmd;
+   for (;;) {
+      std::set<response::ptr> async_responses;
+      bool result = refresh_libraries(added, rmd, async_responses);
+      if (!result && !async_responses.empty()) {
+         result = waitForAsyncEvent(async_responses);
+         if (!result) {
+            pthrd_printf("Failure waiting for async completion\n");
+            return false;
+         }
+         continue;
+      }
+      if (!result) {
+         pthrd_printf("Failure refreshing libraries for %d\n", getPid());
+         return false;
+      }
+      return true;
+   }
 }
 
 bool sysv_process::plat_isStaticBinary()

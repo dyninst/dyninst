@@ -13,10 +13,12 @@ TARGET = libpcontrol.so
 
 LDFLAGS     += $(LIBDIR) -lcommon
 
-SRCS = 	../src/linux.C \
+SRCS =  ../src/linux.C \
+        ../src/linux-x86.C \
         ../src/sysv.C \
         ../src/unix.C \
         ../src/x86_process.C \
+		  ../src/ppc_process.C \
 		  ../src/notify_pipe.C \
         ../../common/src/dthread-unix.C
 

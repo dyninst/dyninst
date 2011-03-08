@@ -178,6 +178,51 @@ ps_err_e ps_lcontinue(struct ps_prochandle *handle, lwpid_t lwp) {
    return PS_OK;
 }
 
+ps_err_e ps_lgetregs(struct ps_prochandle *handle, lwpid_t lwp, prgregset_t regs) {
+    thread_db_process *proc = handle->thread_db_proc;
+    int_threadPool *tp = proc->threadPool();
+    assert(tp);
+    int_thread *llthr = tp->findThreadByLWP((Dyninst::LWP) lwp);
+    if (!llthr) {
+        perr_printf("ps_lgetregs is unable to find LWP %d in process %d\n",
+                lwp, proc->getPid());
+        return PS_ERR;
+    }
+
+    thread_db_thread *thr = static_cast<thread_db_thread *>(llthr);
+
+    pthrd_printf("thread_db reading registers on thread %d/%d\n",
+            proc->getPid(), thr->getLWP());
+
+    int_registerPool pool;
+    allreg_response::ptr resp = allreg_response::createAllRegResponse(&pool);
+
+    bool hadError = false;
+    do{
+        if( !thr->getAllRegisters(resp) ) {
+            hadError = true;
+            break;
+        }
+        if( !int_process::waitForAsyncEvent(resp) || resp->hasError() ) {
+            hadError = true;
+            break;
+        }
+
+        if( !thr->plat_convertToSystemRegs(pool, (unsigned char *)regs) ) {
+            hadError = true;
+            break;
+        }
+    }while(0);
+
+    if( hadError ) {
+        perr_printf("failed to read registers on thread %d/%d\n",
+                proc->getPid(), thr->getLWP());
+        return PS_ERR;
+    }
+
+    return PS_OK;
+}
+
 pid_t ps_getpid (struct ps_prochandle *ph)
 {
    return ph->thread_db_proc->getPid();
@@ -196,11 +241,6 @@ void	 ps_plog(const char *format, ...) {
 #define NA_IMPLEMENTED "This function is not implemented"
 
 ps_err_e ps_lgetfpregs(struct ps_prochandle *, lwpid_t, prfpregset_t *) {
-    assert(!NA_IMPLEMENTED);
-    return PS_ERR;
-}
-
-ps_err_e ps_lgetregs(struct ps_prochandle *, lwpid_t, prgregset_t) {
     assert(!NA_IMPLEMENTED);
     return PS_ERR;
 }
@@ -344,8 +384,8 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg)
 volatile bool thread_db_process::thread_db_initialized = false;
 Mutex thread_db_process::thread_db_init_lock;
 
-thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f) :
-  int_process(p, e, a, f),
+thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> envp, std::vector<std::string> a, std::map<int, int> f) :
+  int_process(p, e, a, envp, f),
   thread_db_proc_initialized(false),
   threadAgent(NULL),
   trigger_thread(NULL),
@@ -591,6 +631,12 @@ bool thread_db_process::initThreadDB() {
                 continue;
         }
 
+        if( !plat_convertToBreakpointAddress(notifyResult.u.bptaddr) ) {
+            perr_printf("Failed to determine breakpoint address\n");
+            setLastError(err_internal, "Failed to install new thread_db event breakpoint");
+            return false;
+        }
+
         int_breakpoint *newEventBrkpt = new int_breakpoint(Breakpoint::ptr());
         if( !addBreakpoint((Dyninst::Address)notifyResult.u.bptaddr,
                     newEventBrkpt))
@@ -609,6 +655,11 @@ bool thread_db_process::initThreadDB() {
         assert( insertIter.second && "event breakpoint address not unique" );
     }
 
+    return true;
+}
+
+bool thread_db_process::plat_convertToBreakpointAddress(psaddr_t &) {
+    // Default behavior is no translation
     return true;
 }
 
@@ -888,6 +939,13 @@ bool thread_db_process::plat_getLWPInfo(lwpid_t, void *)
    return false;
 }
 
+bool thread_db_thread::plat_convertToSystemRegs(const int_registerPool &,
+        unsigned char *)
+{
+    perr_printf("Attempt to use unsupported plat_convertToSystemRegs\n");
+    return true;
+}
+
 int_thread *thread_db_process::triggerThread() const
 {
    return trigger_thread;
@@ -1108,7 +1166,8 @@ bool thread_db_thread::fetchThreadInfo() {
    if (!result) {
       return false;
    }
-   tinfo_initialized = true;
+
+   if( tinfo.ti_tid ) tinfo_initialized = true;
    return true;
 }
 
@@ -1210,8 +1269,8 @@ bool thread_db_thread::getTLSPtr(Dyninst::Address &addr)
 
 //Empty place holder functions in-case we're built on a machine wihtout libthread_db.so
 
-thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f) : 
-   int_process(p, e, a, f)
+thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, std::map<int, int> f) : 
+   int_process(p, e, a, envp, f)
 {
 }
 
@@ -1241,6 +1300,10 @@ bool thread_db_process::decodeTdbLibLoad(EventLibrary::ptr)
 
 void thread_db_process::addThreadDBHandlers(HandlerPool *)
 {
+}
+
+bool thread_db_process::plat_convertToBreakpointAddress(psaddr_t &) {
+    return true;
 }
 
 thread_db_thread::thread_db_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) : 

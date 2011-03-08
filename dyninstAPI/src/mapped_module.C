@@ -36,7 +36,6 @@
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/debug.h"
-#include "process.h"
 #include <iomanip>
 #include <string>
 

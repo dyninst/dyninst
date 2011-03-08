@@ -554,6 +554,48 @@ Handler::handler_ret_t HandleCrash::handleEvent(Event::ptr ev)
    return ret_success;
 }
 
+HandleForceTerminate::HandleForceTerminate() :
+    Handler("ForceTerminate")
+{
+}
+
+HandleForceTerminate::~HandleForceTerminate()
+{
+}
+
+void HandleForceTerminate::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+    etypes.push_back(EventType(EventType::Post, EventType::ForceTerminate));
+}
+
+Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
+   int_process *proc = ev->getProcess()->llproc();
+   int_thread *thrd = ev->getThread()->llthrd();
+   assert(proc);
+   assert(thrd);
+   pthrd_printf("Handling force terminate for process %d on thread %d\n",
+                proc->getPid(), thrd->getLWP());
+   EventForceTerminate *event = static_cast<EventForceTerminate *>(ev.get());
+
+   proc->setCrashSignal(event->getTermSignal());
+   
+   ProcPool()->condvar()->lock();
+
+   proc->setState(int_process::exited);
+   ProcPool()->rmProcess(proc);
+
+   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->unlock();
+
+   if (int_process::in_waitHandleProc == proc) {
+      pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
+   } else {
+      delete proc;
+   }
+
+   return ret_success;
+}
+
 HandlePreExit::HandlePreExit() :
    Handler("Pre Exit")
 {
@@ -585,6 +627,16 @@ Handler::handler_ret_t HandlePreExit::handleEvent(Event::ptr ev)
          thread->desyncInternalState();
          thread->setInternalState(int_thread::running);
       }
+   }
+   thread->setExiting(true);
+
+   // If there is a pending stop, need to handle it here because there is
+   // no guarantee that the stop will ever be received
+   if( thread->hasPendingStop() ) {
+       thread->setInternalState(int_thread::stopped);
+       if (thread->hasPendingUserStop()) {
+          thread->setUserState(int_thread::stopped);
+       }
    }
 
    return ret_success;
@@ -627,11 +679,27 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    ProcPool()->condvar()->lock();
    
    int_thread *newthr = int_thread::createThread(proc, NULL_THR_ID, threadev->getLWP(), false);
-   //New threads start stopped, but inherit the user state of the creating
-   // thread (which should be 'running').
    newthr->setGeneratorState(int_thread::stopped);
    newthr->setHandlerState(int_thread::stopped);
-   newthr->setInternalState(thrd->getUserState());
+
+   if( proc->hasQueuedProcStoppers() ) {
+       // The following ordering of problems causes problems: 
+       // Breakpoint LWPCreate Stop
+       //
+       // Breakpoints require a whole process stop. However, an LWPCreate (this
+       // event) is interleaved between the Breakpoint and any stops required
+       // to handle the Breakpoint. Thus, the new thread isn't put into a
+       // stopped state because the parent thread isn't in a stopped state when
+       // this event is processed. 
+       //
+       // Make the necessary changes due to the postponed Breakpoint event
+       newthr->desyncInternalState();
+       newthr->setInternalState(int_thread::stopped);
+   }else{
+       //New threads start stopped, but inherit the user state of the creating
+       // thread (which should be 'running').
+       newthr->setInternalState(thrd->getUserState());
+   }
    newthr->setUserState(thrd->getUserState());
    
    ProcPool()->condvar()->signal();
@@ -832,8 +900,6 @@ Handler::handler_ret_t HandleSingleStep::handleEvent(Event::ptr ev)
    pthrd_printf("Handling event single step on %d/%d\n", 
                 ev->getProcess()->llproc()->getPid(),
                 ev->getThread()->llthrd()->getLWP());
-   ev->getThread()->llthrd()->setUserState(int_thread::stopped);
-   ev->getThread()->llthrd()->setInternalState(int_thread::stopped);
    return ret_success;
 }
 
@@ -891,11 +957,59 @@ Handler::handler_ret_t HandlePostBreakpoint::handleEvent(Event::ptr ev)
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thrd = ev->getThread()->llthrd();
 
-   /**
-    * TODO: Ctrl transfer breakpoints
-    **/
+   EventBreakpoint *evbp = static_cast<EventBreakpoint *>(ev.get());
+   installed_breakpoint *bp = evbp->installedbp();
+   int_eventBreakpoint *ibp = evbp->getInternal();
+
+   Breakpoint::const_ptr ctrlTransferBrkpt = Breakpoint::ptr();
+   std::vector<Breakpoint::const_ptr> hl_bps;
+   evbp->getBreakpoints(hl_bps);
+
+   for(std::vector<Breakpoint::const_ptr>::iterator i = hl_bps.begin();
+           i != hl_bps.end(); ++i)
+   {
+       if( (*i)->isCtrlTransfer() ) {
+           ctrlTransferBrkpt = *i;
+           break;
+       }
+   }
 
    /**
+    * Control transfer breakpoints
+    *
+    * Just change the PC of the thread that hit the breakpoint
+    **/
+   if( ctrlTransferBrkpt != Breakpoint::const_ptr() ) {
+       pthrd_printf("Handling control transfer breakpoint on thread %d/%d\n",
+               proc->getPid(), thrd->getLWP());
+
+       if( !ibp->pc_regset ) {
+           ibp->pc_regset = result_response::createResultResponse();
+           pthrd_printf("Setting PC to control transfer target at 0x%lx\n",
+                   ctrlTransferBrkpt->getToAddress());
+           MachRegister pcreg = MachRegister::getPC(proc->getTargetArch());
+           bool result = thrd->setRegister(pcreg, 
+                   (MachRegisterVal) ctrlTransferBrkpt->getToAddress(),
+                   ibp->pc_regset);
+           assert(result);
+       }
+
+       assert( ibp->pc_regset );
+
+       if( ibp->pc_regset->isPosted() && !ibp->pc_regset->isReady() ) {
+           pthrd_printf("Suspending breakpoint handling for control transfer pc set\n");
+           proc->handlerPool()->notifyOfPendingAsyncs(ibp->pc_regset, ev);
+           return ret_async;
+       }
+
+       proc->threadPool()->restoreInternalState(false);
+
+       return ret_success;
+   }
+
+   /**
+    * Normal breakpoints
+    *
     * Stop all other threads in the job while we remove the breakpoint, single step 
     * through the instruction and then resume the other threads
     **/
@@ -906,11 +1020,7 @@ Handler::handler_ret_t HandlePostBreakpoint::handleEvent(Event::ptr ev)
       if ((*i)->getInternalState() == int_thread::running && (*i)->getHandlerState() == int_thread::stopped)
          (*i)->setInternalState(int_thread::stopped);
    }
-
-   EventBreakpoint *evbp = static_cast<EventBreakpoint *>(ev.get());
-   installed_breakpoint *bp = evbp->installedbp();
-   int_eventBreakpoint *ibp = evbp->getInternal();
-
+   
    if (!ibp->set_singlestep) {
       pthrd_printf("Setting breakpoint thread to single step mode\n");
       thrd->setSingleStepMode(true);
@@ -928,7 +1038,7 @@ Handler::handler_ret_t HandlePostBreakpoint::handleEvent(Event::ptr ev)
    if (proc->plat_breakpointAdvancesPC() && !ibp->pc_regset) 
    {
       ibp->pc_regset = result_response::createResultResponse();
-      pthrd_printf("Restoring PC to original location location at %lx\n",
+      pthrd_printf("Restoring PC to original location at %lx\n",
                    bp->getAddr());
       MachRegister pcreg = MachRegister::getPC(proc->getTargetArch());
       bool result = thrd->setRegister(pcreg, (MachRegisterVal) bp->getAddr(), 
@@ -1289,7 +1399,18 @@ bool HandleCallbacks::handleCBReturn(Process::const_ptr proc, Thread::const_ptr 
          int_threadPool *tp = proc->llproc()->threadPool();
          for (int_threadPool::iterator j = tp->begin(); j != tp->end(); j++) {
             (*j)->setUserState(int_thread::stopped);
-            (*j)->setInternalState(int_thread::stopped);
+
+            if( (*j)->getHandlerState() == int_thread::running ) {
+                // sync cannot be set here or it will result in recursive event
+                // handling -- waitAndHandleEvents will take care of flushing out
+                // the stop
+                if( !(*j)->intStop(false) ) {
+                    // Silent for now
+                    perr_printf("Failed to issue stop to handle user CB return\n");
+                }
+            }else{
+                (*j)->setInternalState(int_thread::stopped);
+            }
          }
          break;
       }
@@ -1310,6 +1431,15 @@ bool HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_
          notify()->clearEvent();
       }
       return true;
+   }
+
+   // Make sure the user can operate on the process in the callback
+   // But if this is a PostCrash or PostExit, the underlying process and
+   // threads are already gone and thus no operations on them really make sense
+   int_thread::State savedUserState = int_thread::neonatal;
+   if( !ev->getProcess()->isTerminated() && ev->getThread()->llthrd() != NULL ) {
+       savedUserState = ev->getThread()->llthrd()->getUserState();
+       ev->getThread()->llthrd()->setUserState(int_thread::stopped);
    }
 
    //The following code loops over each callback registered for this event type
@@ -1335,10 +1465,16 @@ bool HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_
                    action_str(ret.child));
    }
 
-   //Given the callback return result, change the user state to the appropriate
-   // setting.
-   pthrd_printf("Handling return value for main process\n");
-   handleCBReturn(ev->getProcess(), ev->getThread(), parent_result);
+   // Now that the callback is over, return the state to what it was before the
+   // callback so the return value from the callback can be used to update the state
+   if( !ev->getProcess()->isTerminated() && ev->getThread()->llthrd() != NULL ) {
+      ev->getThread()->llthrd()->setUserState(savedUserState);
+
+      //Given the callback return result, change the user state to the appropriate
+      // setting.
+      pthrd_printf("Handling return value for main process\n");
+      handleCBReturn(ev->getProcess(), ev->getThread(), parent_result);
+   }
 
    pthrd_printf("Handling return value for child process/thread\n");
    Process::const_ptr child_proc = Process::const_ptr();
@@ -1378,6 +1514,10 @@ void HandleCallbacks::getRealEvents(EventType ev, std::vector<EventType> &out_ev
       case EventType::ThreadCreate:
          out_evs.push_back(EventType(ev.time(), EventType::UserThreadCreate));
          out_evs.push_back(EventType(ev.time(), EventType::LWPCreate));
+         break;
+      case EventType::ThreadDestroy:
+         out_evs.push_back(EventType(ev.time(), EventType::UserThreadDestroy));
+         out_evs.push_back(EventType(ev.time(), EventType::LWPDestroy));
          break;
       default:
          out_evs.push_back(ev);
@@ -1557,6 +1697,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static HandlePostExec *hpostexec = NULL;
    static HandleRPCInternal *hrpcinternal = NULL;
    static HandleAsync *hasync = NULL;
+   static HandleForceTerminate *hforceterm = NULL;
    static iRPCHandler *hrpc = NULL;
    if (!initialized) {
       hbootstrap = new HandleBootstrap();
@@ -1577,6 +1718,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hpostexec = new HandlePostExec();
       hasync = new HandleAsync();
       hrpcinternal = new HandleRPCInternal();
+      hforceterm = new HandleForceTerminate();
       initialized = true;
    }
    HandlerPool *hpool = new HandlerPool(p);
@@ -1598,6 +1740,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hpostexec);
    hpool->addHandler(hrpcinternal);
    hpool->addHandler(hasync);
+   hpool->addHandler(hforceterm);
    plat_createDefaultHandlerPool(hpool);
    return hpool;
 }

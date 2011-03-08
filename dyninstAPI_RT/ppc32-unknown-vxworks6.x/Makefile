@@ -36,7 +36,6 @@ ASFLAGS         += -c
 SRCS		+= ../src/RTposix.c \
 		   ../src/RTheap.c \
 		   ../src/RTthread.c \
-		   ../src/RTthread-index.c \
 		   ../src/RTvxworks.c \
 		   ../src/RTthread-powerpc.c \
 		   ../src/RTthread-powerpc-asm.S \

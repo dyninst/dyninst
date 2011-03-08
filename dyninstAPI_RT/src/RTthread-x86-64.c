@@ -95,10 +95,10 @@ int tc_lock_lock(tc_lock_t *tc)
       return DYNINST_DEAD_LOCK;
 
    while (1) {
-      if (tc->mutex == 0 && atomic_set(&tc->mutex))
-      {
-         tc->tid = me;
-         break;
+      int wasNotLocked = atomic_set(&tc->mutex);
+      if( wasNotLocked ) {
+          tc->tid = me;
+          break;
       }
    }
    return 0;

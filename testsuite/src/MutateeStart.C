@@ -405,9 +405,6 @@ int getMutateePid(RunGroup *group)
    std::map<int, std::string>::iterator i = spawned_mutatees.find(group->index);
    if (i == spawned_mutatees.end()) {
       i = spawned_mutatees.find(-1);
-      if (i != spawned_mutatees.end()) {
-         spawned_mutatees.erase(i);
-      }
    }
    if (i == spawned_mutatees.end())
       return 0;
@@ -418,6 +415,8 @@ int getMutateePid(RunGroup *group)
 
    sscanf(mutatee_string.c_str(), "%d:%d", &group_id, &pid);
    assert(group->index == group_id || group_id == -1);
+
+   spawned_mutatees.erase(i);
 
    return pid;
 }

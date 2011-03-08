@@ -77,7 +77,7 @@ class miniTrampInstance : public generatedCodeObject {
   miniTrampInstance(const miniTrampInstance *parMini,
                     baseTrampInstance *cBTI,
                     miniTramp *cMT,
-                    process *child);
+                    AddressSpace *child);
 
   // Inline replacing of code
   miniTrampInstance(const miniTrampInstance *origMTI,
@@ -141,12 +141,12 @@ class miniTramp {
             bool noCost);
   
   // Fork constructor
-  miniTramp(const miniTramp *parMini, baseTramp *childT, process *proc);
+  miniTramp(const miniTramp *parMini, baseTramp *childT, AddressSpace *proc);
   
   ~miniTramp();
 
   // Given a child address space, get the corresponding miniTramp to us.
-  miniTramp *getInheritedMiniTramp(process *child);
+  miniTramp *getInheritedMiniTramp(AddressSpace *child);
 
   // Catchup...
 

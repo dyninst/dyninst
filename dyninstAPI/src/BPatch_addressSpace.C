@@ -31,28 +31,23 @@
 
 #define BPATCH_FILE
 
-#include "process.h"
 #include "binaryEdit.h"
-#include "EventHandler.h"
-#include "mailbox.h"
-#include "signalgenerator.h"
 #include "inst.h"
 #include "instP.h"
 #include "instPoint.h"
 #include "function.h" // int_function
 #include "codeRange.h"
-#include "dyn_thread.h"
 #include "miniTramp.h"
 #include "addressSpace.h"
+#include "pcProcess.h"
+#include "debug.h"
 
 #include "mapped_module.h"
 
 #include "BPatch_libInfo.h"
-#include "BPatch_asyncEventHandler.h"
 #include "BPatch.h"
 #include "BPatch_thread.h"
 #include "BPatch_function.h"
-#include "callbacks.h"
 
 #include "BPatch_private.h"
 
@@ -222,6 +217,15 @@ BPatch_Vector<BPatch_thread *> &BPatchSnippetHandle::getCatchupThreadsInt()
    return catchup_threads;
 }
 
+// Return true if any sub-minitramp uses a trap? Other option
+// is "if all"...
+bool BPatchSnippetHandle::usesTrapInt() {
+    for (unsigned i = 0; i < mtHandles_.size(); i++) {
+        if (mtHandles_[i]->instrumentedViaTrap())
+            return true;
+    }
+    return false;
+}
 
 BPatch_image * BPatch_addressSpace::getImageInt()
 {
@@ -783,13 +787,13 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
          inst_printf("[%s:%u] - Type error inserting instrumentation\n",
                FILE__, __LINE__);
          expr.ast_wrapper->debugPrint();
-         return false;
+         return NULL;
       }
    }
 
    if (!points.size()) {
       inst_printf("%s[%d]:  request to insert snippet at zero points!\n", FILE__, __LINE__);
-      return false;
+      return NULL;
    }
 
 
@@ -842,7 +846,11 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       proc->beginInsertionSetInt();
       pendingInsertions->push_back(rec);
       // All the insertion work was moved here...
-      proc->finalizeInsertionSetInt(false);
+      if( !proc->finalizeInsertionSetInt(false) ) {
+          inst_printf("[%s:%u] - failed to finalize insertion set\n",
+                  FILE__, __LINE__);
+          return NULL;
+      }
    }
    return retHandle;
 }

@@ -35,9 +35,10 @@
 
 #define BPATCH_FILE
 
-#include "process.h"
 #include "function.h"
 #include "debug.h"
+#include "addressSpace.h"
+#include "pcProcess.h"
 #include "BPatch.h"
 #include "BPatch_module.h"
 #include "BPatch_libInfo.h"
@@ -825,6 +826,7 @@ bool BPatch_module::protectAnalyzedCode()
             }
         }
     }
+#if defined(os_windows)
     // get lwp from which we can call changeMemoryProtections
     process *proc = ((BPatch_process*)addSpace)->lowlevel_process();
     dyn_lwp *stoppedlwp = proc->query_for_stopped_lwp();
@@ -835,6 +837,8 @@ bool BPatch_module::protectAnalyzedCode()
             return false;
         }
     }
+#endif
+
     // aggregate adjacent pages into regions and apply protection
     std::set<Address>::iterator piter = pageAddrs.begin();
     std::set<Address>::iterator endIter;

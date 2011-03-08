@@ -37,7 +37,7 @@
 #include "common/h/headers.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/pcProcess.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/inst-power.h"
@@ -53,13 +53,11 @@
 #include "dyninstAPI/src/instPoint.h" // class instPoint
 #include "dyninstAPI/src/debug.h"
 #include "common/h/debugOstream.h"
-#include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_collections.h"
-#include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/function.h"
@@ -708,7 +706,7 @@ void setBRL(codeGen &gen,        //Instruction storage pointer
      //  If val == 0, then the instruction sequence is followed by a `nop'.
      //  If val != 0, then the instruction sequence is followed by a `brl'.
      //
-void resetBRL(process  *p,   //Process to write instructions into
+void resetBRL(AddressSpace  *p,   //Process to write instructions into
 	      Address   loc, //Address in process to write into
 	      unsigned  val) //Value to set link register
 {
@@ -835,7 +833,7 @@ void restoreFPSCR(codeGen &gen,       //Instruction storage pointer
      //////////////////////////////////////////////////////////////////////////
      //Writes out a `br' instruction
      //
-void resetBR(process  *p,    //Process to write instruction into
+void resetBR(AddressSpace  *p,    //Process to write instruction into
 	     Address   loc)  //Address in process to write into
 {
     instruction i = BRraw;
@@ -2557,7 +2555,7 @@ bool doNotOverflow(int value)
 // quite make sense. Given the target address, we can scan the function
 // lists until we find the desired function.
 
-bool process::hasBeenBound(const SymtabAPI::relocationEntry &,int_function *&, Address ) {
+bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &,int_function *&, Address ) {
   // What needs doing:
   // Locate call instruction
   // Decipher call instruction (static/dynamic call, global linkage code)
@@ -2570,11 +2568,11 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &,int_function *&, A
 // function symbol corresponding to the relocation entry in at the address
 // specified by entry and base_addr.  If it has been bound, then the callee 
 // function is returned in "target_pdf", else it returns false.
-bool process::hasBeenBound(const SymtabAPI::relocationEntry &entry, 
+bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry, 
 		int_function *&target_pdf, Address base_addr) 
 {
 
-	if (status() == exited) return false;
+	if (isTerminated()) return false;
 
 	// if the relocationEntry has not been bound yet, then the value
 	// at rel_addr is the address of the instruction immediately following
@@ -2588,7 +2586,7 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 	Address bound_addr = 0;
 	if (!readDataSpace((const void*)got_entry, sizeof(Address),
 				&bound_addr, true)){
-		sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x, pid=%d\n (readDataSpace returns 0)",(unsigned)got_entry,getPid());
+		sprintf(errorLine, "read error in PCProcess::hasBeenBound addr 0x%x, pid=%d\n (readDataSpace returns 0)",(unsigned)got_entry,getPid());
 		logLine(errorLine);
 		//print_read_error_info(entry, target_pdf, base_addr);
 		fprintf(stderr, "%s[%d]: %s\n", FILE__, __LINE__, errorLine);

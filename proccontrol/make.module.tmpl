@@ -69,6 +69,7 @@ SRCS	     +=	../src/event.C \
 		../src/int_thread_db.C
 
 IFLAGS       += -I../src -I../h
+LDFLAGS += -L../../common/$(PLATFORM)
 
 ifdef HAVE_THREAD_DB
 ifdef THREAD_DB_INC

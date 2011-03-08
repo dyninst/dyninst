@@ -105,17 +105,37 @@ public:
 class DyninstInstrStepperImpl : public FrameStepper {
  private:
    static std::map<SymReader *, bool> isRewritten;
-   FrameStepper *parent;
-  
+   DyninstInstrStepper *parent;
+
  public:
-   DyninstInstrStepperImpl(Walker *w, FrameStepper *p);
+   DyninstInstrStepperImpl(Walker *w, DyninstInstrStepper *p);
    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
-   gcframe_ret_t getCallerFrameArch(const Frame &in, Frame &out, Address base, Address lib_base, 
+   gcframe_ret_t getCallerFrameArch(const Frame &in, Frame &out, 
+                                    Address base, Address lib_base, 
 				    unsigned size, unsigned stack_height);
    virtual unsigned getPriority() const;
    virtual void registerStepperGroup(StepperGroup *group);
    virtual const char *getName() const;
    virtual ~DyninstInstrStepperImpl();
+};
+
+class DyninstDynamicStepperImpl : public FrameStepper {
+ private:
+   DyninstDynamicStepper *parent;
+   DyninstDynamicHelper *helper;
+   bool prevEntryExit; // remember if the previous frame was entry/exit instrumentation
+  
+ public:
+   DyninstDynamicStepperImpl(Walker *w, DyninstDynamicStepper *p, DyninstDynamicHelper *h);
+   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+   gcframe_ret_t getCallerFrameArch(const Frame &in, Frame &out, 
+                                    Address base, Address lib_base, 
+				    unsigned size, unsigned stack_height,
+                                    Address orig_ra, bool pEntryExit);
+   virtual unsigned getPriority() const;
+   virtual void registerStepperGroup(StepperGroup *group);
+   virtual const char *getName() const;
+   virtual ~DyninstDynamicStepperImpl();
 };
 
 }

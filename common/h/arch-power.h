@@ -694,7 +694,7 @@ typedef unsigned codeBufIndex_t;
 #define DinDSmask	0x0000fffc		// bits 16-29
 
 #define getRT(x) (((x) & RTmask) >> 21)
-#define getRA(x) (((x) & RAmask) >> 16)
+//#define getRA(x) (((x) & RAmask) >> 16)
 #define getRB(x) (((x) & RBmask) >> 11)
 #define getDinD(x) ((x) & DinDmask)
 #define getDinDS(x) ((x) & DinDSmask)

@@ -42,15 +42,43 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
+Frame::Frame() :
+  ra(0x0),
+  fp(0x0),
+  sp(0x0),
+  sym_value(NULL),
+  name_val_set(nv_unset),
+  top_frame(false),
+  bottom_frame(false),
+  frame_complete(false),
+  prev_frame(NULL),
+  stepper(NULL),
+  next_stepper(NULL),
+  walker(NULL),
+  originating_thread(NULL_THR_ID)
+{
+  ra_loc.location = loc_unknown;
+  ra_loc.val.addr = 0x0;
+  fp_loc.location = loc_unknown;
+  fp_loc.val.addr = 0x0;
+  sp_loc.location = loc_unknown;
+  sp_loc.val.addr = 0x0;
+  
+  sw_printf("[%s:%u] - Created null frame at %p\n", __FILE__, __LINE__, this);
+}
+
 Frame::Frame(Walker *parent_walker) :
   ra(0x0),
   fp(0x0),
   sp(0x0),
   sym_value(NULL),
   name_val_set(nv_unset),
+  top_frame(false),
   bottom_frame(false),
   frame_complete(false),
+  prev_frame(NULL),
   stepper(NULL),
+  next_stepper(NULL),
   walker(parent_walker),
   originating_thread(NULL_THR_ID)
 {
@@ -83,10 +111,31 @@ Frame *Frame::newFrame(Dyninst::MachRegisterVal pc, Dyninst::MachRegisterVal sp,
   return newframe;
 }
 
+bool Frame::operator==(const Frame &F) const
+{
+  return ((ra == F.ra) &&
+          (fp == F.fp) &&
+          (sp == F.sp) &&
+          (ra_loc == F.ra_loc) &&
+          (fp_loc == F.fp_loc) &&
+          (sp_loc == F.sp_loc) &&
+          (sym_name == F.sym_name) &&
+          (frame_complete == F.frame_complete) &&
+          (stepper == F.stepper) &&
+          (walker == F.walker) &&
+          (originating_thread == F.originating_thread));
+}
+
 void Frame::setStepper(FrameStepper *newstep) {
   sw_printf("[%s:%u] - Setting frame %p's stepper to %p\n", 
 	    __FILE__, __LINE__, this, newstep);
   stepper = newstep;
+}
+
+void Frame::markTopFrame() {
+  sw_printf("[%s:%u] - Marking frame %p as top\n",
+	    __FILE__, __LINE__, this);
+  top_frame = true;
 }
 
 void Frame::markBottomFrame() {
@@ -232,12 +281,24 @@ bool Frame::getObject(void* &obj) const {
   }
 }
 
+bool Frame::isTopFrame() const {
+  return top_frame;
+}
+
 bool Frame::isBottomFrame() const {
   return bottom_frame;
 }
-	
+
+const Frame *Frame::getPrevFrame() const {
+  return prev_frame;
+}
+
 FrameStepper *Frame::getStepper() const {
   return stepper;
+}
+
+FrameStepper *Frame::getNextStepper() const {
+  return next_stepper;
 }
 
 Walker *Frame::getWalker() const {
@@ -253,9 +314,9 @@ Frame::~Frame() {
 }
 
 #ifdef cap_stackwalker_use_symtab
-bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*& symtab)
+bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*& symtab) const
 #else
-bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*&)
+bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*&) const
 #endif
 {
   LibraryState *libstate = getWalker()->getProcessState()->getLibraryTracker();

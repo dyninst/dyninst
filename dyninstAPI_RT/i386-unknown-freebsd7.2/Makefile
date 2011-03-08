@@ -38,7 +38,6 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTheap.c \
 		   ../src/RTheap-freebsd.c \
 		   ../src/RTthread.c \
-	           ../src/RTthread-index.c \
 		   ../src/RTthread-x86.c \
 		   ../src/RTspace.S \
 		   ../src/RTsignal-x86.S \

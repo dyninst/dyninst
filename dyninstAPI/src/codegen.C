@@ -36,16 +36,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include "addressSpace.h"
-#include "process.h"
+#include "pcThread.h"
+#include "pcProcess.h"
 #include "common/h/Types.h"
-#include "common/h/parseauxv.h"
 #if defined (os_osf)
 #include <malloc.h>
 #endif
 #include "codegen.h"
 #include "util.h"
 #include "function.h"
-#include "dyn_thread.h"
 #include "instPoint.h"
 #include "registerSpace.h"
 #include "pcrel.h"
@@ -66,7 +65,6 @@ codeGen::codeGen() :
     allocated_(false),
     aSpace_(NULL),
     thr_(NULL),
-    lwp_(NULL),
     rs_(NULL),
     t_(NULL),
     addr_((Address)-1),
@@ -87,7 +85,6 @@ codeGen::codeGen(unsigned size) :
     allocated_(true),
     aSpace_(NULL),
     thr_(NULL),
-    lwp_(NULL),
     rs_(NULL),
 	t_(NULL),
     addr_((Address)-1),
@@ -120,7 +117,6 @@ codeGen::codeGen(const codeGen &g) :
     allocated_(g.allocated_),
     aSpace_(g.aSpace_),
     thr_(g.thr_),
-    lwp_(g.lwp_),
     rs_(g.rs_),
 	t_(g.t_),
     addr_(g.addr_),
@@ -156,7 +152,6 @@ codeGen &codeGen::operator=(const codeGen &g) {
     size_ = g.size_;
     allocated_ = g.allocated_;
     thr_ = g.thr_;
-    lwp_ = g.lwp_;
     isPadded_ = g.isPadded_;
     int bufferSize = size_ + (isPadded_ ? codeGenPadding : 0);
     obj_ = g.obj_;
@@ -402,7 +397,6 @@ void codeGen::applyTemplate(codeGen &c) {
 
     aSpace_ = c.aSpace_;
     thr_ = c.thr_;
-    lwp_ = c.lwp_;
     rs_ = c.rs_;
     addr_ = c.addr_;
     ip_ = c.ip_;
@@ -575,13 +569,7 @@ void toAddressPatch::set_address(Address a) {
 
 codeGen codeGen::baseTemplate;
 
-dyn_lwp *codeGen::lwp() {
-    if (lwp_) return lwp_;
-    if (thr_) return thr_->get_lwp();
-    return NULL;
-}
-
-dyn_thread *codeGen::thread() {
+PCThread *codeGen::thread() {
     return thr_;
 }
 
@@ -589,7 +577,7 @@ AddressSpace *codeGen::addrSpace() {
     if (aSpace_) { return aSpace_; }
     if (f_) { return f_->proc(); }
     if (ip_) { return ip_->proc(); }
-    if (thr_) { return thr_->get_proc(); }
+    if (thr_) { return thr_->getProc(); }
     return NULL;
 }
 

@@ -31,8 +31,9 @@
 
 #include "ppc_process.h"
 
-ppc_process::ppc_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f) :
-  int_process(p, e, a, f)
+ppc_process::ppc_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+                         std::vector<std::string> envp, std::map<int, int> f) :
+   int_process(p, e, a, envp, f)
 {
 }
 
@@ -47,13 +48,11 @@ ppc_process::~ppc_process()
 
 unsigned ppc_process::plat_breakpointSize()
 {
-  assert(getTargetArch() == Arch_ppc64 || getTargetArch() == Arch_ppc32);
   return 4;
 }
 
 void ppc_process::plat_breakpointBytes(char *buffer)
 {
-  assert(getTargetArch() == Arch_ppc64 || getTargetArch() == Arch_ppc32);
   buffer[0] = 0x7d;
   buffer[1] = 0x82;
   buffer[2] = 0x10;

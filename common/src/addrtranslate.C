@@ -146,6 +146,7 @@ LoadedLib::LoadedLib(string n, Address la) :
    name(n),
    load_addr(la),
    data_load_addr(0),
+   dynamic_addr(0),
    should_clean(false),
    symreader(NULL),
    symreader_factory(NULL),
@@ -180,6 +181,11 @@ Address LoadedLib::getCodeLoadAddr() const
 Address LoadedLib::getDataLoadAddr() const
 {
    return data_load_addr;
+}
+
+Address LoadedLib::getDynamicAddr() const
+{
+   return dynamic_addr;
 }
 
 void LoadedLib::setFactory(SymbolReaderFactory *factory)

@@ -57,23 +57,30 @@ protected:
   mutable void *sym_value;
   mutable enum { nv_unset, nv_set, nv_err } name_val_set;
   
+  bool top_frame;
   bool bottom_frame;
   bool frame_complete;
   
+  const Frame *prev_frame;
   FrameStepper *stepper;
+  FrameStepper *next_stepper;
   Walker *walker;
   THR_ID originating_thread;
   
   void setStepper(FrameStepper *newstep);
   void setWalker(Walker *newwalk);
+  void markTopFrame();
   void markBottomFrame();
   
   void setNameValue() const;
   
  public:
+  Frame();
   Frame(Walker *walker);
   static Frame *newFrame(Dyninst::MachRegisterVal ra, Dyninst::MachRegisterVal sp, Dyninst::MachRegisterVal fp, Walker *walker);
-  
+
+  bool operator==(const Frame &F) const;
+
   Dyninst::MachRegisterVal getRA() const;
   Dyninst::MachRegisterVal getSP() const;
   Dyninst::MachRegisterVal getFP() const;
@@ -93,12 +100,15 @@ protected:
   
   bool getName(std::string &str) const;
   bool getObject(void* &obj) const;
-  bool getLibOffset(std::string &lib, Dyninst::Offset &offset, void* &symtab);
+  bool getLibOffset(std::string &lib, Dyninst::Offset &offset, void* &symtab) const;
   
+  bool isTopFrame() const;
   bool isBottomFrame() const;
   bool isFrameComplete() const;
   
+  const Frame *getPrevFrame() const;
   FrameStepper *getStepper() const;
+  FrameStepper *getNextStepper() const;
   Walker *getWalker() const;
   THR_ID getThread() const;
 
