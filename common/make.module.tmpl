@@ -96,7 +96,7 @@ IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../instructionAPI/h
 ifdef USES_LIBELF
 SRCS         += ../../common/src/Elf_X.C
 IFLAGS       += -I$(LIBELF_INC)
-LIBS         += -lelf
+LIBS         += -L$(LIBELF_LIB) -lelf
 endif
 
 ifdef LIBXML2_INC
