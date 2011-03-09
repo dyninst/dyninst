@@ -119,51 +119,35 @@ FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr)
 {
   FrameFuncHelper::alloc_frame_t result;
 
-/* NOT IMPLEMENTED
   codeRange *range = proc_->findOrigByAddr(addr);
   int_function *func = range->is_function();
 
   result.first = FrameFuncHelper::unknown_t; // frame type
   result.second = FrameFuncHelper::unknown_s; // frame state
 
+  // This helper will only be used on the topmost frame
+
   if (func)
   {
-    // Determine frame type
-    if (!func->hasNoStackFrame())
+    if (!func->savesReturnAddr())
     {
-      result.first = FrameFuncHelper::standard_frame;
-    }
-    else if (func->savesFramePointer())
-    {
-      result.first = FrameFuncHelper::savefp_only_frame;
+      // Leaf function
+      result.second = FrameFuncHelper::unset_frame;
     }
     else
     {
+      result.second = FrameFuncHelper::set_frame;
+    }
+
+    if (func->hasNoStackFrame())
+    {
       result.first = FrameFuncHelper::no_frame;
     }
-
-    // Determine frame state
-    if (FrameFuncHelper::standard_frame == result.first)
+    else
     {
-      result.second = FrameFuncHelper::set_frame;
-
-      if (range && range->is_basicBlockInstance())
-      {
-        frameChecker fc((const unsigned char*)(proc_->getPtrToInstruction(addr)),
-                        range->get_size() - (addr - range->get_address()),
-                        proc_->getArch());
-        if (fc.isReturn() || fc.isStackPreamble())
-        {
-          result.second = FrameFuncHelper::unset_frame;
-        }
-        if (fc.isStackFrameSetup())
-        {
-          result.second = FrameFuncHelper::halfset_frame;
-        }
-      }
+      result.first = FrameFuncHelper::standard_frame;
     }
   }
-*/  
 
   return result;
 }

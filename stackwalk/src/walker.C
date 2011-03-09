@@ -338,6 +338,7 @@ void Walker::setSymbolReader(SymbolReaderFactory *srf)
   frame.setFP(fp); \
   frame.setSP(sp); \
   frame.setThread(thread); \
+  frame.markTopFrame(); \
   done_gifi: ; \
 }
 

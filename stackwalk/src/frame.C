@@ -48,6 +48,7 @@ Frame::Frame() :
   sp(0x0),
   sym_value(NULL),
   name_val_set(nv_unset),
+  top_frame(false),
   bottom_frame(false),
   frame_complete(false),
   prev_frame(NULL),
@@ -72,6 +73,7 @@ Frame::Frame(Walker *parent_walker) :
   sp(0x0),
   sym_value(NULL),
   name_val_set(nv_unset),
+  top_frame(false),
   bottom_frame(false),
   frame_complete(false),
   prev_frame(NULL),
@@ -128,6 +130,12 @@ void Frame::setStepper(FrameStepper *newstep) {
   sw_printf("[%s:%u] - Setting frame %p's stepper to %p\n", 
 	    __FILE__, __LINE__, this, newstep);
   stepper = newstep;
+}
+
+void Frame::markTopFrame() {
+  sw_printf("[%s:%u] - Marking frame %p as top\n",
+	    __FILE__, __LINE__, this);
+  top_frame = true;
 }
 
 void Frame::markBottomFrame() {
@@ -271,6 +279,10 @@ bool Frame::getObject(void* &obj) const {
 	      __FILE__, __LINE__, this);
     return false;
   }
+}
+
+bool Frame::isTopFrame() const {
+  return top_frame;
 }
 
 bool Frame::isBottomFrame() const {
