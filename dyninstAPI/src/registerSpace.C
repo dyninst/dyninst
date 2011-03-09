@@ -691,9 +691,6 @@ bool registerSpace::readProgramRegister(codeGen &gen,
     // so x86. 
     switch (src->spilledState) {
     case registerSlot::unspilled:
-	    printf(" emitMovRegToReg source %d dest %d \n", source, destination);
-		    printf(" emitMovRegToReg source %d dest %d GPR %d SPR %d \n", src->type, dest->type, registerSlot::GPR, registerSlot::SPR);
-			    printf(" emitMovRegToReg source %d dest %d \n", src->number, dest->number);
 
         gen.codeEmitter()->emitMoveRegToReg(src, dest, gen);
         return true;
