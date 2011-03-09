@@ -85,7 +85,7 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
         break;      
      default:
         sw_printf("[%s:%u] - Request for unsupported register %s\n",
-                  __FILE__, __LINE__, reg.name());
+                  __FILE__, __LINE__, reg.name().c_str());
         setLastError(err_badparam, "Unknown register passed in reg field");
   }
 
@@ -459,6 +459,8 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
     out.setFP(in.getFP());
     out.setSP(in.getSP()); //Not really correct, but difficult to compute and unlikely to matter
     out.setRALocation(unknownLocation);
+    sw_printf("[%s:%u] - DyninstDynamicStepper handled frameless instrumentation\n",
+              __FILE__, __LINE__);
     return gcf_success;
   }
 
@@ -489,6 +491,8 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
     out.setRA(ra_value);
     out.setFP(in.getFP()); // FP stays the same
     out.setSP(newRAAddr + addr_width);
+    sw_printf("[%s:%u] - DyninstDynamicStepper handled post entry/exit instrumentation\n",
+              __FILE__, __LINE__);
     return gcf_success;
   }
 
@@ -509,9 +513,13 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
       return gcf_error;
     }
 
+    sw_printf("[%s:%u] - Read SP %p from addr %p, using stack height of 0x%lx\n",
+              __FILE__, __LINE__, sp_value, sp_addr, stack_height);
     out.setSP(sp_value);
   }
 
+  sw_printf("[%s:%u] - DyninstDynamicStepper handled normal instrumentation\n",
+            __FILE__, __LINE__);
   return gcf_success;
 }
 

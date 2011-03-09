@@ -1355,7 +1355,7 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
       else {
          assert(0);
       }
-      pthrd_printf("Register %s has value %lx, offset %d\n", reg.name(), val, offset);
+      pthrd_printf("Register %s has value %lx, offset %d\n", reg.name().c_str(), val, offset);
       regpool.regs[reg] = val;
    }
    return true;
@@ -1371,7 +1371,7 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    init_dynreg_to_user();
    dynreg_to_user_t::iterator i = dynreg_to_user.find(reg);
    if (i == dynreg_to_user.end() || reg.getArchitecture() != llproc()->getTargetArch()) {
-      perr_printf("Recieved unexpected register %s on thread %d\n", reg.name(), lwp);
+      perr_printf("Recieved unexpected register %s on thread %d\n", reg.name().c_str(), lwp);
       setLastError(err_badparam, "Invalid register");
       return false;
    }
@@ -1388,7 +1388,7 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    }
    val = result;
 
-   pthrd_printf("Register %s has value 0x%lx\n", reg.name(), val);
+   pthrd_printf("Register %s has value 0x%lx\n", reg.name().c_str(), val);
    return true;
 }
 
@@ -1441,7 +1441,7 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
       else {
          assert(0);
       }
-      pthrd_printf("Register %s gets value %lx, offset %d\n", reg.name(), val, offset);
+      pthrd_printf("Register %s gets value %lx, offset %d\n", reg.name().c_str(), val, offset);
    }
 
    if (num_found != regpool.regs.size())
@@ -1465,7 +1465,7 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    {
       setLastError(err_badparam, "Invalid register passed to setRegister");
       perr_printf("User passed invalid register %s to plat_setRegister, arch is %x\n",
-                  reg.name(), (unsigned int) reg.getArchitecture());
+                  reg.name().c_str(), (unsigned int) reg.getArchitecture());
       return false;
    }
    
@@ -1483,12 +1483,12 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    else {
       assert(0);
    }
-   pthrd_printf("Set register %s (size %u, offset %u) to value %lx\n", reg.name(), size, offset, val);
+   pthrd_printf("Set register %s (size %u, offset %u) to value %lx\n", reg.name().c_str(), size, offset, val);
    if (result != 0) {
       int error = errno;
       setLastError(err_internal, "Could not set register value");
       perr_printf("Unable to set value of register %s in thread %d: %s\n",
-                  reg.name(), lwp, strerror(error));
+                  reg.name().c_str(), lwp, strerror(error));
       return false;
    }
    
