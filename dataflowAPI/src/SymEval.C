@@ -281,16 +281,18 @@ class ExpandOrder {
 
 bool vectorSort(SliceNode::Ptr ptr1, SliceNode::Ptr ptr2) {
 
-// Temporary fix for segfault when (*ptr).assign() is NULL 
-	 if (!(*ptr1).assign()) return 0;
-	 if (!(*ptr2).assign()) return 0;
+    AssignmentPtr assign1 = ptr1->assign();
+    AssignmentPtr assign2 = ptr2->assign();
 
-    Address addr1 = (*ptr1).assign()->addr();
-    Address addr2 = (*ptr2).assign()->addr();
+    if (!assign1) return true;
+    else if (!assign2) return false;
+
+    Address addr1 = assign1->addr();
+    Address addr2 = assign2->addr();
 
     if (addr1 == addr2) {
-        AbsRegion &out1 = (*ptr1).assign()->out();
-        AbsRegion &out2 = (*ptr2).assign()->out();
+        AbsRegion &out1 = assign1->out();
+        AbsRegion &out2 = assign2->out();
         if (out1 == out2) return true;
         else return out1 < out2;
     } else {
