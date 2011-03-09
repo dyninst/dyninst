@@ -237,11 +237,25 @@ Address int_function::baseAddr() const {
 // This needs to go away: how is "size" defined? Used bytes? End-start?
 
 unsigned int_function::getSize_NP()  {
-    blocks();
-    if (blocks_.size() == 0) return 0;
-            
-    return ((*blocks_.rbegin())->end() - 
-            (*blocks_.begin())->start());
+    if (BPatch_defensiveMode != obj()->hybridMode()) 
+    {
+        // defines size as end - start
+        blocks();
+        if (blocks_.size() == 0) return 0;
+        return ((*blocks_.rbegin())->end() - 
+                (*blocks_.begin())->start());
+
+    } 
+    else 
+    {
+        // defines size as used bytes
+        unsigned totalSize = 0;
+        vector<FuncExtent*> exts = ifunc()->extents();
+        for (unsigned i=0; i < exts.size(); i++) {
+            totalSize += (exts[i]->end() - exts[i]->start());
+        }
+        return totalSize;
+    }
 }
 
 void int_function::addArbitraryPoint(instPoint *insp) {

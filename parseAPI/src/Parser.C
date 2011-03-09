@@ -656,7 +656,7 @@ Parser::finalize(Function *f)
             if (2 > (*eit)->src()->targets().size()) {
                 Block *ft = _parse_data->findBlock((*eit)->src()->region(),
                                                    (*eit)->src()->end());
-                if (ft && f->_bmap.end() != HASHDEF(f->_bmap,ft->start()) {
+                if (ft && HASHDEF(f->_bmap,ft->start())) {
                     link((*eit)->src(),ft,CALL_FT,false);
                 }
             }

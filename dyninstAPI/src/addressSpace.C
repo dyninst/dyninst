@@ -1373,6 +1373,26 @@ void AddressSpace::revertRemovedFunctionCall(instPoint *point) {
   callRemovals_.erase(point);
 }
 
+int_function *AddressSpace::isFunctionReplaced(int_function *func) const
+{
+    FuncReplaceMap::const_iterator frit = functionReplacements_.find(func);
+    if (frit != functionReplacements_.end()) {
+        return frit->second;
+    }
+    return NULL;
+}
+
+int_function *AddressSpace::isFunctionReplacement(int_function *func) const
+{
+    FuncReplaceMap::const_iterator frit = functionReplacements_.begin();
+    for (; frit != functionReplacements_.end(); frit++) {
+        if (func == frit->second) {
+            return frit->first;
+        }
+    }
+    return NULL;
+}
+
 
 using namespace Dyninst;
 using namespace Relocation;

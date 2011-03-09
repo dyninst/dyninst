@@ -299,6 +299,9 @@ class AddressSpace : public InstructionSource {
     void revertReplacedCall(instPoint *point);
     void replaceFunction(int_function *oldfunc, int_function *newfunc);
     void revertReplacedFunction(int_function *oldfunc);
+    int_function *isFunctionReplaced(int_function *func) const;
+    int_function *isFunctionReplacement(int_function *func) const;
+
     void removeFunctionCall(instPoint *point);
     void revertRemovedFunctionCall(instPoint *point);
 

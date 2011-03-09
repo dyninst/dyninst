@@ -332,7 +332,9 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
         {
             if ((*iter)->type() != ParseAPI::CALL)
             {
-                cerr << "Overriding instrumentation for function " << func->getName() << " : detected odd incoming edge " << (*iter)->type() << endl;
+                cerr << "Overriding instrumentation for function " 
+                    << func->getName() << " : detected odd incoming edge " 
+                    << (*iter)->type() << endl;
                 instrumentReturns = true;
                 break;
             }
