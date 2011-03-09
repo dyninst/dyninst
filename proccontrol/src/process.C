@@ -1945,6 +1945,91 @@ int_thread::stopcont_ret_t int_thread::cont(bool user_cont, bool have_proc_lock)
       return sc_error;
    }
 
+   if( singleStep() && !isExiting()) {
+       if( plat_needsPCSaveBeforeSingleStep() ) {
+            reg_response::ptr pcResponse = reg_response::createRegResponse();
+            bool result = getRegister(MachRegister::getPC(llproc()->getTargetArch()), pcResponse);
+            if( !result ) {
+                perr_printf("Failed to save PC before single step\n");
+                setLastError(err_internal, "Single step failed\n");
+                return sc_error;
+            }
+
+            result = llproc()->waitForAsyncEvent(pcResponse);
+            if( !result ) {
+                pthrd_printf("Error waiting for async events\n");
+                setLastError(err_internal, "Single step failed\n");
+                return sc_error;
+            }
+
+            assert(pcResponse->isReady());
+            if( pcResponse->hasError() ) {
+                pthrd_printf("Async error getting PC register\n");
+                setLastError(err_internal, "Single step failed\n");
+                return sc_error;
+            }
+
+            pre_ss_pc = pcResponse->getResult();
+       }
+
+       vector<Address> breakAddrs;
+       bool result = plat_needsEmulatedSingleStep(breakAddrs);
+       if( !result ) {
+           perr_printf("Error. failed to determine if emulated single step was needed\n");
+           setLastError(err_internal, "Single step failed\n");
+           return sc_error;
+       }
+
+       // Indicates that an emulated single step is needed
+       if( breakAddrs.size() ) {
+           emulated_singlestep *newSingleStep = new emulated_singlestep(user_single_step, single_step);
+
+           for(vector<Address>::iterator i = breakAddrs.begin();
+                   i != breakAddrs.end(); ++i)
+           {
+               int_breakpoint *newBp = new int_breakpoint(Breakpoint::ptr());
+               newSingleStep->add(*i, newBp);
+           }
+
+           // Turn off single stepping
+           user_single_step = false;
+           single_step = false;
+
+           if( !llproc()->threadPool()->allStopped() ) {
+               if( user_cont ) {
+                   if( !llproc()->threadPool()->intStop(true) ) {
+                       perr_printf("Error. failed to stop process for emulated single step breakpoint insertion\n");
+                       setLastError(err_internal, "Single step failed\n");
+                       delete newSingleStep;
+                       return sc_error;
+                   }
+               }else{
+                   pthrd_printf("Postponing install of single step breakpoint until process stop\n");
+                   // Add a fake event to cause a process stop when we return
+                   // to event handling
+                   Event::ptr ssEv(new EventPrepSingleStep(newSingleStep));
+                   ssEv->setProcess(llproc()->proc());
+                   ssEv->setThread(thread());
+                   ssEv->setSyncType(Event::async);
+                   mbox()->enqueue(ssEv, true);
+
+                   return sc_success;
+               }
+           }
+
+           if( llproc()->threadPool()->allStopped() ) {
+               if( !newSingleStep->addToProcess(llproc()) ) {
+                   perr_printf("Error. failed to insert emulated single step breakpoint\n");
+                   setLastError(err_internal, "Single step failed\n");
+                   delete newSingleStep;
+                   return sc_error;
+               }
+
+               addEmulatedSingleStep(newSingleStep);
+           }
+       }
+   }
+
    if (!have_proc_lock) {
       ProcPool()->condvar()->lock();
    }
@@ -2451,7 +2536,8 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    handler_exiting_state(false),
    generator_exiting_state(false),
    clearing_breakpoint(false),
-   running_when_attached(true)
+   running_when_attached(true),
+   pre_ss_pc(0)
 {
    Thread::ptr new_thr(new Thread());
 
@@ -3025,6 +3111,38 @@ installed_breakpoint *int_thread::isClearingBreakpoint()
    return clearing_breakpoint;
 }
 
+
+bool int_thread::isEmulatingSingleStep()
+{
+    return (singlesteps.size() != 0);
+}
+
+void int_thread::addEmulatedSingleStep(emulated_singlestep *es) {
+    singlesteps.insert(es);
+}
+
+void int_thread::rmEmulatedSingleStep(emulated_singlestep *es) {
+    singlesteps.erase(es);
+}
+
+emulated_singlestep *int_thread::isEmulatedSingleStep(installed_breakpoint *bp) {
+    for(set<emulated_singlestep *>::iterator i = singlesteps.begin();
+            i != singlesteps.end(); ++i)
+    {
+        if( (*i)->containsBreakpoint(bp) ) return *i;
+    }
+
+    return NULL;
+}
+
+void int_thread::setPreSingleStepPC(MachRegisterVal pc) {
+    pre_ss_pc = pc;
+}
+
+MachRegisterVal int_thread::getPreSingleStepPC() const {
+    return pre_ss_pc;
+}
+
 int_thread *int_threadPool::findThreadByLWP(Dyninst::LWP lwp)
 {
    std::map<Dyninst::LWP, int_thread *>::iterator i = thrds_by_lwp.find(lwp);
@@ -3309,6 +3427,44 @@ bool installed_breakpoint::resume(int_process *proc, result_response::ptr async_
    return true;
 }
 
+bool installed_breakpoint::containsIntBreakpoint(int_breakpoint *bp) {
+    return (bps.count(bp) > 0);
+}
+
+void installed_breakpoint::addClearingThread(int_thread *thrd) {
+    clearingThreads.insert(thrd);
+}
+
+unsigned installed_breakpoint::getNumClearingThreads() const {
+    return clearingThreads.size();
+}
+
+bool installed_breakpoint::rmClearingThread(int_thread *thrd, bool &uninstalled, 
+        result_response::ptr async_resp)
+{
+    pthrd_printf("Removing clearing thread %d/%d from breakpoint at %lx\n",
+            thrd->llproc()->getPid(), thrd->getLWP(), addr);
+    uninstalled = false;
+    set<int_thread *>::iterator i = clearingThreads.find(thrd);
+    if( i == clearingThreads.end() ) {
+        perr_printf("Error. Failed to locate clearing thread in breakpoint\n");
+        return false;
+    }
+    clearingThreads.erase(i);
+
+    if (bps.empty() && clearingThreads.empty()) {
+        pthrd_printf("No more references left, uninstalling breakpoint\n");
+        uninstalled = false;
+        bool result = uninstall(thrd->llproc(), async_resp);
+        if (!result) {
+            perr_printf("Failed to remove breakpoint at %lx\n", addr);
+            setLastError(err_internal, "Could not remove breakpoint\n");
+            return false;
+        }
+    }
+    return true;
+}
+
 bool installed_breakpoint::addBreakpoint(int_breakpoint *bp)
 {
    if (bp->isCtrlTransfer()) {
@@ -3387,7 +3543,7 @@ bool installed_breakpoint::rmBreakpoint(int_process *proc, int_breakpoint *bp, b
       hl_bps.erase(j);
    }
 
-   if (bps.empty()) {
+   if (bps.empty() && clearingThreads.empty()) {
       empty = true;
       bool result = uninstall(proc, async_resp);
       if (!result) {
@@ -5629,4 +5785,74 @@ bool useHybridLWPControl(int_thread *thrd) {
 
 bool useHybridLWPControl() {
     return ( int_process::getThreadControlMode() == int_process::HybridLWPControl );
+}
+
+emulated_singlestep::emulated_singlestep(bool saved_user_single_step_, bool saved_single_step_)
+    : saved_user_single_step(saved_user_single_step_),
+      saved_single_step(saved_single_step_)
+{}
+
+emulated_singlestep::~emulated_singlestep() {
+    for(list<addr_bp_pair>::iterator i = bps.begin(); i != bps.end(); ++i) {
+        delete i->second;
+    }
+}
+
+bool emulated_singlestep::containsBreakpoint(installed_breakpoint *bp) const {
+    for(list<addr_bp_pair>::const_iterator i = bps.begin();
+            i != bps.end(); ++i)
+    {
+        if( bp->containsIntBreakpoint(i->second) ) return true;
+    }
+
+    return false;
+}
+
+bool emulated_singlestep::rmFromProcess(int_process *p, result_response::ptr async_resp) {
+    // Note: this function is written to be called from a handler and therefore, doesn't
+    // wait for results if the action is asynchronous
+    while( bps.size() ) {
+        addr_bp_pair curPair = bps.front();
+        bps.pop_front();
+
+        if( !p->rmBreakpoint(curPair.first, curPair.second, async_resp) ) return false;
+
+        // Wait for the current remove to be completed before moving onto the next one
+        if( async_resp->isPosted() && !async_resp->isReady() ) return true;
+
+        // Allow higher level code to handle error
+        if( async_resp->hasError() ) return true;
+
+        if( bps.size() ) {
+            async_resp = result_response::createResultResponse();
+        }
+    }
+
+    return true;
+}
+
+bool emulated_singlestep::addToProcess(int_process *p) {
+    for(list<addr_bp_pair>::iterator i = bps.begin();
+            i != bps.end(); ++i)
+    {
+        if( !p->addBreakpoint(i->first, i->second) ) return false;
+    }
+
+    return true;
+}
+
+void emulated_singlestep::add(Address addr, int_breakpoint *bp) {
+    bps.push_back(make_pair(addr, bp));
+}
+
+bool emulated_singlestep::savedSingleStepUserMode() const {
+    return saved_user_single_step;
+}
+
+bool emulated_singlestep::savedSingleStepMode() const {
+    return saved_single_step;
+}
+
+unsigned emulated_singlestep::breakpointCount() const {
+    return bps.size();
 }

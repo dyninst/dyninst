@@ -87,3 +87,11 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
 bool linux_process::plat_convertToBreakpointAddress(psaddr_t &) {
     return true;
 }
+
+bool linux_thread::plat_needsEmulatedSingleStep(std::vector<Address> &) {
+    return true;
+}
+
+bool linux_thread::plat_needsPCSaveBeforeSingleStep() {
+    return false;
+}

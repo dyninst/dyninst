@@ -41,6 +41,7 @@ class EventType
    static const int RPCInternal         = 501;
    static const int Async               = 502;
    static const int ChangePCStop        = 503; // Used for bug_freebsd_change_pc
+   static const int PrepSingleStep      = 504;
 
    //Users should define their own events at this value or higher.
    static const int MaxProcCtrlEvent    = 1000;

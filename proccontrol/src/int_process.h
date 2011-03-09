@@ -66,6 +66,7 @@ typedef std::list<int_iRPC_ptr> rpc_list_t;
 class installed_breakpoint;
 class int_library;
 class int_process;
+class emulated_singlestep;
 
 class mem_state
 {
@@ -448,6 +449,16 @@ class int_thread
    bool singleStep() const;   
    void markClearingBreakpoint(installed_breakpoint *bp);
    installed_breakpoint *isClearingBreakpoint();
+   virtual bool plat_needsPCSaveBeforeSingleStep() = 0;
+   void setPreSingleStepPC(Dyninst::MachRegisterVal pc);
+   Dyninst::MachRegisterVal getPreSingleStepPC() const;
+
+   // Emulating single steps with breakpoints
+   emulated_singlestep *isEmulatedSingleStep(installed_breakpoint *bp);
+   void addEmulatedSingleStep(emulated_singlestep *es);
+   void rmEmulatedSingleStep(emulated_singlestep *es);
+   bool isEmulatingSingleStep();
+   virtual bool plat_needsEmulatedSingleStep(std::vector<Dyninst::Address> &result) = 0;
 
    //RPC Management
    void addPostedRPC(int_iRPC_ptr rpc_);
@@ -559,6 +570,8 @@ class int_thread
    bool generator_exiting_state;
    installed_breakpoint *clearing_breakpoint;
    bool running_when_attached;
+   std::set<emulated_singlestep *> singlesteps;
+   MachRegisterVal pre_ss_pc;
 
    bool setAnyState(int_thread::State *from, int_thread::State to);
 
@@ -686,6 +699,7 @@ class installed_breakpoint
    mem_state::ptr memory;
    std::set<int_breakpoint *> bps;
    std::set<Breakpoint::ptr> hl_bps;
+   std::set<int_thread *> clearingThreads;
 
    char buffer[BP_BUFFER_SIZE];
    int buffer_size;
@@ -711,6 +725,7 @@ class installed_breakpoint
    bool prepBreakpoint(int_process *proc, mem_response::ptr mem_resp);
    bool insertBreakpoint(int_process *proc, result_response::ptr res_resp);
    bool addBreakpoint(int_breakpoint *bp);
+   bool containsIntBreakpoint(int_breakpoint *bp);
 
    bool rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empty, result_response::ptr async_resp);
    bool uninstall(int_process *proc, result_response::ptr async_resp);
@@ -719,6 +734,31 @@ class installed_breakpoint
 
    bool isInstalled() const;
    Dyninst::Address getAddr() const;
+   void addClearingThread(int_thread *thrd);
+   bool rmClearingThread(int_thread *thrd, bool &uninstalled, result_response::ptr async_resp);
+   unsigned getNumClearingThreads() const;
+};
+
+class emulated_singlestep {
+    // Breakpoints that are added and removed in a group to emulate
+    // a single step with breakpoints
+    private:
+        bool saved_user_single_step;
+        bool saved_single_step;
+        typedef std::pair<Address, int_breakpoint *> addr_bp_pair;
+        std::list<addr_bp_pair> bps;
+
+    public:
+        emulated_singlestep(bool saved_user_single_step_, bool saved_single_step_);
+        ~emulated_singlestep();
+
+        bool containsBreakpoint(installed_breakpoint *bp) const;
+        bool rmFromProcess(int_process *p, result_response::ptr async_resp);
+        bool addToProcess(int_process *p);
+        void add(Address addr, int_breakpoint *bp);
+        bool savedSingleStepUserMode() const;
+        bool savedSingleStepMode() const;
+        unsigned breakpointCount() const;
 };
 
 class int_notify {
