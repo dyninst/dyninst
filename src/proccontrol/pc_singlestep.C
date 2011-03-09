@@ -208,6 +208,7 @@ test_results_t pc_singlestepMutator::executeTest()
    std::set<Thread::ptr>::iterator i;
    for (i = singlestep_threads.begin(); i != singlestep_threads.end(); i++)
    {
+      logerror("Results for thread %d/%d\n", (*i)->getProcess()->getPid(), (*i)->getLWP());
       thread_info &ti = tinfo[*i];
       if (ti.steps == 0) {
          logerror("Thread did not recieve any single step events\n");
@@ -223,7 +224,7 @@ test_results_t pc_singlestepMutator::executeTest()
             continue;
          }
          if (ti.hit_funcs[j] == -1) {
-            logerror("Function entry was not singlestepped over\n");
+            logerror("Function %d entry was not singlestepped over\n", j);
             myerror = true;
          }
          if (j == BP_FUNC) {
