@@ -114,11 +114,17 @@ AnalysisStepperImpl::height_pair_t AnalysisStepperImpl::analyzeFunction(string n
       return err_height_pair;
    }
 
+   //Since there is only one region, there is only one block with the offset
+   set<ParseAPI::Block*> blocks;
+   obj->findBlocks(region, off, blocks);
+   assert(blocks.size() == 1);
+   ParseAPI::Block *block = *(blocks.begin());
+
    set<height_pair_t> heights;
    for (set<ParseAPI::Function *>::iterator i = funcs.begin(); i != funcs.end(); i++)
    {
       StackAnalysis analysis(*i);
-      heights.insert(height_pair_t(analysis.findSP(off), analysis.findFP(off)));
+      heights.insert(height_pair_t(analysis.findSP(block, off), analysis.findFP(block, off)));
    }
 
    sw_printf("[%s:%u] - Have %lu possible stack heights in %s at %lx:\n", __FILE__, __LINE__, heights.size(), name.c_str(), off);
@@ -134,6 +140,13 @@ AnalysisStepperImpl::height_pair_t AnalysisStepperImpl::analyzeFunction(string n
 
 gcframe_ret_t AnalysisStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 {
+   // For now, do not walk frames created by the Dyninst stepper
+   // as the stack pointer may not be correct
+   if (dynamic_cast<DyninstDynamicStepper*>(in.getStepper()))
+   {
+     return gcf_not_me;
+   }
+
    LibAddrPair libaddr;
    LibraryState *ls = getProcessState()->getLibraryTracker();
    if (!ls) {
@@ -143,7 +156,7 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 
    bool result = ls->getLibraryAtAddr(in.getRA(), libaddr);
    if (!result) {
-      sw_printf("[%s:%u] - Failed to get library at %lx\n", in.getRA());
+      sw_printf("[%s:%u] - Failed to get library at %lx\n", __FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
    
@@ -152,7 +165,7 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 
    height_pair_t height_pair = analyzeFunction(name, offset);
    if (height_pair == err_height_pair) {
-      sw_printf("Analysis failed on %s at %lx\n", name.c_str(), offset);
+      sw_printf("[%s:%u] - Analysis failed on %s at %lx\n", __FILE__, __LINE__, name.c_str(), offset);
       return gcf_not_me;
    }
 

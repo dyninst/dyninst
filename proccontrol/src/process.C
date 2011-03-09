@@ -2715,7 +2715,7 @@ bool int_thread::setAllRegisters(int_registerPool &pool, result_response::ptr re
 bool int_thread::getRegister(Dyninst::MachRegister reg, reg_response::ptr response)
 {
    bool ret_result = false;
-   pthrd_printf("Get register value for thread %d, register %s\n", lwp, reg.name());
+   pthrd_printf("Get register value for thread %d, register %s\n", lwp, reg.name().c_str());
    response->setRegThread(reg, this);
 
    if (!llproc()->plat_individualRegAccess())
@@ -2747,7 +2747,7 @@ bool int_thread::getRegister(Dyninst::MachRegister reg, reg_response::ptr respon
       MachRegisterVal val = 0;
       bool result = plat_getRegister(reg, val);
       if (!result) {
-         pthrd_printf("Error reading register value for %s on %d\n", reg.name(), lwp);
+         pthrd_printf("Error reading register value for %s on %d\n", reg.name().c_str(), lwp);
          response->markError(getLastError());
          goto done;
       }
@@ -2770,7 +2770,7 @@ bool int_thread::getRegister(Dyninst::MachRegister reg, reg_response::ptr respon
    }
 
    pthrd_printf("Returning register value %lx for register %s on %d\n", 
-                response->getResult(), reg.name(), lwp);
+                response->getResult(), reg.name().c_str(), lwp);
 
    ret_result = true;
   done:
@@ -2808,7 +2808,7 @@ bool int_thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal
       return true;
    }
 
-   pthrd_printf("Setting register %s for thread %d to %lx\n", reg.name(), getLWP(), val);
+   pthrd_printf("Setting register %s for thread %d to %lx\n", reg.name().c_str(), getLWP(), val);
    regpool_lock.lock();
 
    MachRegister base_register = reg.getBaseRegister();
@@ -2817,7 +2817,7 @@ bool int_thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal
       bool result = plat_setRegister(base_register, val);
       response->setResponse(result);
       if (!result) {
-         pthrd_printf("Error setting register %s\n", base_register.name());
+         pthrd_printf("Error setting register %s\n", base_register.name().c_str());
          goto done;
       }
    }

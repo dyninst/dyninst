@@ -350,7 +350,7 @@ public:
 
  static Retval_t process(SliceNodePtr ptr, Result_t &dbase, std::set<Edge::Ptr> &skipEdges);
   
-  static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func);
+ static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func, ParseAPI::Block *block);
 };
 
 };
