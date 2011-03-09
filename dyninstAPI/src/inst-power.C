@@ -2566,17 +2566,7 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &,int_function *&, A
   return false; // Haven't patched this up yet
 }
 
-#elif defined(os_vxworks)
-// VxWorks Kernel Modules don't use relocation entries so, until we enable
-// the binary rewriter on this platform, relocation entries are always bound.
-bool process::hasBeenBound(const SymtabAPI::relocationEntry &,
-                           int_function *&,
-                           Address )
-{
-    return true;
-}
-
-#else
+#elif !defined(os_vxworks)
 // hasBeenBound: returns true if the runtime linker has bound the
 // function symbol corresponding to the relocation entry in at the address
 // specified by entry and base_addr.  If it has been bound, then the callee 

@@ -1420,6 +1420,15 @@ mapped_object *process::createObjectNoFile(Address)
     return NULL;
 }
 
+// VxWorks Kernel Modules don't use relocation entries so, until we enable
+// the binary rewriter on this platform, relocation entries are always bound.
+bool process::hasBeenBound(const SymtabAPI::relocationEntry &,
+                           int_function *&,
+                           Address )
+{
+    return true;
+}
+
 // In process.C:
 // bool process::stop_(bool waitUntilStop) { assert(0); return false; }
 // bool process::continueProc_(int sig) { assert(0); return false; }
