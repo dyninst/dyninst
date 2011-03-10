@@ -50,6 +50,8 @@
 #include <sys/time.h>
 #include <sys/select.h>
 #include <sys/stat.h>
+#include <sys/select.h>
+
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <arpa/inet.h>
@@ -65,7 +67,6 @@ using namespace std;
 static BG_GPR_Num_t DynToBGGPRReg(Dyninst::MachRegister reg);
 static Dyninst::MachRegister BGGPRToDynReg(BG_GPR_Num_t bg_regnum);
 static bool BGSend(BG_Debugger_Msg &msg);
-static bool bg_fdHasData(int fd);
 
 static void register_for_crash(int pid);
 static void remove_for_crash(int pid);
@@ -132,7 +133,11 @@ GeneratorBlueGene::GeneratorBlueGene() :
       pthrd_printf("Creating debug port reader\n");
       dpr = new DebugPortReader();
    }
-
+   int result = pipe(restart_fds);
+   if (result == -1) {
+      perr_printf("Error creating restart FDs\n");
+      assert(0);
+   }
    decoders.insert(new DecoderBlueGene());
 }
 
@@ -162,45 +167,177 @@ bool GeneratorBlueGene::plat_skipGeneratorBlock()
    return result;
 }
 
+void GeneratorBlueGene::addHeldArchEvent(ArchEventBlueGene *ae)
+{
+   held_aes_lock.lock();
+   held_aes.push(ae);
+   held_aes_lock.unlock();
+
+   if (restart_fds[1] == -1) 
+      return;
+
+   char c = CHECK_HELD_AEVS;
+   int result;
+   do {
+      result = write(restart_fds[1], &c, sizeof(char));
+   } while (result == -1 && errno == EINTR);
+   if (result == -1) {
+      int error = errno;
+      perr_printf("Unable to write to restart_fd: %s\n", strerror(error));
+      restart_fds[0] = -1;
+      restart_fds[1] = -1;
+   }
+}
+
+ArchEventBlueGene *GeneratorBlueGene::getHeldArchEvent()
+{
+   ArchEventBlueGene *ret = NULL;
+   held_aes_lock.lock();
+   if (held_aes.empty()) {
+      ret = NULL;
+   }
+   else {
+      ret = held_aes.front();
+      held_aes.pop();
+      held_aes_lock.unlock();
+   }
+   held_aes_lock.unlock();
+   return ret;
+}
+
+static bool messageAllowedOnStoppedProc(const BG_Debugger_Msg &msg)
+{
+   switch (msg.header.messageType)
+   {
+      case GET_REG_ACK:
+      case GET_ALL_REGS_ACK:
+      case GET_MEM_ACK:
+      case SET_REG_ACK:
+      case SET_MEM_ACK:
+      case SINGLE_STEP_ACK:
+      case CONTINUE_ACK:
+      case KILL_ACK:
+      case ATTACH_ACK:
+      case DETACH_ACK:
+      case VERSION_MSG_ACK:
+      case THREAD_ALIVE_ACK:
+      case GET_PROCESS_DATA_ACK:
+      case SET_THREAD_OPS_ACK:
+      case GET_REGS_AND_FLOATS_ACK:
+      case GET_THREAD_ID_ACK:
+      case SET_DEBUG_REGS_ACK:
+      case GET_DEBUG_REGS_ACK:
+      case GET_THREAD_INFO_ACK:
+      case GET_AUX_VECTORS_ACK:
+      case GET_STACK_TRACE_ACK:
+      case END_DEBUG_ACK:
+      case GET_THREAD_DATA_ACK:
+      case SET_FLOAT_REG_ACK:
+      case GET_FLOAT_REG_ACK:
+      case GET_ALL_FLOAT_REGS_ACK:
+      case HOLD_THREAD_ACK:
+      case RELEASE_THREAD_ACK:
+      case SIGACTION_ACK:
+      case MAP_MEM_ACK:
+      case FAST_TRAP_ACK:
+      case DEBUG_IGNORE_SIG_ACK:
+         return true;
+      default:
+         return false;
+   }
+}
+
 ArchEvent *GeneratorBlueGene::getEvent(bool block)
 {
-   BG_Debugger_Msg *msg;
+   BG_Debugger_Msg *msg = NULL;
+   fd_set readfds;
+   struct timeval do_poll, *timeout;
+   do_poll.tv_sec = 0;
+   do_poll.tv_usec = 0;
+   timeout = block ? NULL : &do_poll;
    
-   if (!block && !bg_fdHasData(BG_DEBUGGER_READ_PIPE)) {
-      return NULL;
-   }
-   
-   msg = new BG_Debugger_Msg();
-   // Read an event from the debug filehandle.
-   pthrd_printf("Reading event from BG file descriptor %d\n", BG_DEBUGGER_READ_PIPE);
-   bool result = BG_Debugger_Msg::readFromFd(BG_DEBUGGER_READ_PIPE, *msg);
-   if (!result) {
-      pthrd_printf("Failure waiting for debug event\n");
-      delete msg;
-      return NULL;
-   }
-   
-   // extract process and thread id from the BG message.
-   pid_t pid = msg->header.nodeNumber;   
-   THR_ID tid = msg->header.thread;
-   int returnCode = msg->header.returnCode;
-   pthrd_printf("Received debug event %s from pid %d, tid %d, rc %d\n",
-             BG_Debugger_Msg::getMessageName(msg->header.messageType), pid, tid, returnCode);
-   if (dyninst_debug_proccontrol) {
-      dumpMessage(msg);
-   }
-   
-   if (returnCode > 0) {
-      // Print out a message if we get a return code we don't expect.  Consult the debugger header
-      // for the meanings of these.
-      pthrd_printf("Warning. Return code for %s on pid %d, tid %d was non-zero: %d\n",
-                BG_Debugger_Msg::getMessageName(msg->header.messageType), pid, tid,
-                msg->header.returnCode);
-   }
+   for (;;) {
+      FD_ZERO(&readfds);
+      FD_SET(BG_DEBUGGER_READ_PIPE, &readfds);
+      if (restart_fds[0] != -1)
+         FD_SET(restart_fds[0], &readfds);
+      int max_fd = (BG_DEBUGGER_READ_PIPE > restart_fds[0]) ? BG_DEBUGGER_READ_PIPE : restart_fds[0];
+      
+      int result = select(max_fd+1, &readfds, NULL, NULL, timeout);
+      if (result == -1) {
+         int error = errno;
+         if (error == EINTR)
+            continue;
+         perr_printf("Error calling select on debugger pipe %d and restart_fd %d\n", 
+                     BG_DEBUGGER_READ_PIPE, restart_fds[0]);
+         assert(0);
+      }
 
-   ArchEvent *aevent = new ArchEventBlueGene(msg);
-   assert(aevent);
-   return aevent;
+      if (result == 0) {
+         //Timeout
+         return NULL;
+      }
+      break;
+   }
+    
+  if (restart_fds[0] != -1 && FD_ISSET(restart_fds[0], &readfds)) {
+     char c;
+     int read_result;
+     do {
+        read_result = read(restart_fds[0], &c, sizeof(char));
+     } while (read_result == -1 && errno == EINTR);
+     if (read_result == -1) {
+        int error = errno;
+        perr_printf("Error reading from restart fd %d: %s\n", restart_fds[0], strerror(error));
+        restart_fds[0] = -1;
+        restart_fds[1] = -1;
+     }
+     
+     if (c == CHECK_HELD_AEVS) {
+        ArchEvent *aevent = static_cast<ArchEvent *>(getHeldArchEvent());
+        return aevent;
+     }
+     perr_printf("Unexpected restart_fd message: %c\n", c);
+     assert(0);
+  }
+
+  if (FD_ISSET(BG_DEBUGGER_READ_PIPE, &readfds)) {
+     // Read an event from the debug filehandle.
+     msg = new BG_Debugger_Msg();
+     pthrd_printf("Reading event from BG file descriptor %d\n", BG_DEBUGGER_READ_PIPE);     
+     bool result = BG_Debugger_Msg::readFromFd(BG_DEBUGGER_READ_PIPE, *msg);
+     if (!result) {
+        pthrd_printf("Failure waiting for debug event\n");
+        delete msg;
+        return NULL;
+     }
+     
+     // extract process and thread id from the BG message.
+     pid_t pid = msg->header.nodeNumber;   
+     THR_ID tid = msg->header.thread;
+     int returnCode = msg->header.returnCode;
+     pthrd_printf("Received debug event %s from pid %d, tid %ld, rc %d\n",
+                  BG_Debugger_Msg::getMessageName(msg->header.messageType), pid, 
+                  (signed long) tid, returnCode);
+     if (dyninst_debug_proccontrol) {
+        dumpMessage(msg);
+     }
+     
+     if (returnCode > 0) {
+        // Print out a message if we get a return code we don't expect.  Consult the debugger header
+        // for the meanings of these.
+        pthrd_printf("Warning. Return code for %s on pid %d, tid %ld was non-zero: %d\n",
+                     BG_Debugger_Msg::getMessageName(msg->header.messageType), pid,
+                     (signed long) tid, msg->header.returnCode);
+     }
+     
+     ArchEvent *aevent = new ArchEventBlueGene(msg);
+     assert(aevent);
+     return aevent;
+  }
+
+  assert(0);
+  return NULL;
 }
 
 Generator *Generator::getDefaultGenerator()
@@ -448,8 +585,29 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
    if (!thread) 
       thread = static_cast<bg_thread *>(proc->threadPool()->initialThread());
    
+   if (thread && thread->getGeneratorState() == int_thread::stopped &&
+       !messageAllowedOnStoppedProc(*archbg->getMsg()))
+   {
+      //We've recieved a non-ACK event on a stopped thread.  Unfortunately,
+      //the BG debug interface allows a stopped thread to throw events.  This
+      //seems to happen when two events happening simultaniously, or come from
+      //different sources (I've seen a single-step and a signal).
+      //
+      //The higher levels of ProcControlAPI don't like this.  Dead men should tell
+      //no tales and stopped processes should throw no events.  We'll hide this 
+      //behavior by recognizing when this happens, stashing the events away, 
+      //and then re-throwing them the next time the process is continued.
+      //
+      //These events will be known as held arch events.
+      pthrd_printf("non-ACK Event on stopped thread %d/%d.  Holding until continue\n",
+                   thread->getLWP(), proc->getPid());
+      proc->addHeldArchEvent(archbg);
+      return true;
+   }
+
    Event::ptr new_event;
    response::ptr resp;
+
 
    switch (msg->header.messageType) {
       case GET_REG_ACK:
@@ -683,7 +841,6 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
    }
    
    if (archE) {
-      pthrd_printf("Deleting ArchEvent: %p\n", archE);
       delete archE;
    }
    archE = NULL;
@@ -703,14 +860,16 @@ int_process *int_process::createProcess(Dyninst::PID p, std::string e)
 {
    std::map<int,int> f;
    std::vector<std::string> a;
-   bg_process *bgproc = new bg_process(p, e, a, f);
+   std::vector<std::string> envp;
+   bg_process *bgproc = new bg_process(p, e, a, envp, f);
    assert(bgproc);
    return static_cast<int_process *>(bgproc);
 }
 
-int_process *int_process::createProcess(std::string e, std::vector<std::string> a, std::map<int,int> f)
+int_process *int_process::createProcess(std::string e, std::vector<std::string> a, 
+                                        vector<string> envp, std::map<int,int> f)
 {
-   bg_process *bgproc = new bg_process(0, e, a, f);
+   bg_process *bgproc = new bg_process(0, e, a, envp, f);
    assert(bgproc);
    return static_cast<int_process *>(bgproc);
 }
@@ -725,21 +884,24 @@ int bg_process::protocol_version = -1;
 int bg_process::phys_procs = -1;
 int bg_process::virt_procs = -1;
 
-bg_process::bg_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f) :
-   int_process(p, e, a, f),
-   sysv_process(p, e, a, f),
-   ppc_process(p, e, a, f),
-   //thread_db_process(p, e, a, f)
-   bootstrap_state(bg_init)
+bg_process::bg_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+                       vector<string> envp, std::map<int, int> f) :
+   int_process(p, e, a, envp, f),
+   sysv_process(p, e, a, envp, f),
+   thread_db_process(p, e, envp, a, f),
+   ppc_process(p, e, a, envp, f),
+   bootstrap_state(bg_init),
+   pending_thread_alives(0)
 {
 }
 
 bg_process::bg_process(Dyninst::PID pid_, int_process *proc_) :
    int_process(pid_, proc_),
    sysv_process(pid_, proc_),
+   thread_db_process(pid_, proc_),
    ppc_process(pid_, proc_),
-   //thread_db_process(pid_, proc_),
-   bootstrap_state(bg_init)
+   bootstrap_state(bg_init),
+   pending_thread_alives(0)
 {
    assert(0); //No fork
 }
@@ -857,7 +1019,7 @@ bool bg_process::plat_readMemAsync(int_thread *, Dyninst::Address addr,
    return true;   
 }
 
-bool bg_process::plat_writeMemAsync(int_thread *, void *local, Dyninst::Address addr,
+bool bg_process::plat_writeMemAsync(int_thread *, const void *local, Dyninst::Address addr,
                                    size_t size, result_response::ptr resp)
 {
    pthrd_printf("Writing memory %lx +%lx on %d with response ID %d\n", 
@@ -884,7 +1046,7 @@ bool bg_process::plat_readMem(int_thread *, void *, Dyninst::Address, size_t)
    return false;
 }
 
-bool bg_process::plat_writeMem(int_thread *, void *, Dyninst::Address, size_t)
+bool bg_process::plat_writeMem(int_thread *, const void *, Dyninst::Address, size_t)
 {
    assert(0); //No synchronous IO
    return false;
@@ -1017,6 +1179,31 @@ unsigned bg_process::plat_getRecommendedReadSize()
    return 2048;
 }
 
+bool bg_process::plat_getOSRunningState(Dyninst::LWP) const 
+{
+   return true;
+}
+
+void bg_process::addHeldArchEvent(ArchEventBlueGene *ae)
+{
+   held_arch_events.push(ae);
+}
+
+bool bg_process::hasHeldArchEvent()
+{
+   return !held_arch_events.empty();
+}
+
+void bg_process::readyHeldArchEvent()
+{
+   ArchEventBlueGene *ae = held_arch_events.front();
+   held_arch_events.pop();
+
+   GeneratorBlueGene *gen = static_cast<GeneratorBlueGene *>(Generator::getDefaultGenerator());
+   gen->addHeldArchEvent(ae);
+}
+
+
 bool ProcessPool::LWPIDsAreUnique()
 {
    return false;
@@ -1041,7 +1228,7 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
 }
 
 bg_thread::bg_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
-   int_thread(p, t, l)
+   thread_db_thread(p, t, l)
 {
 }
 
@@ -1051,6 +1238,14 @@ bg_thread::~bg_thread()
 
 bool bg_thread::plat_cont()
 {
+   bg_process *bgproc = dynamic_cast<bg_process *>(llproc());
+   if (bgproc->hasHeldArchEvent()) 
+   {
+      pthrd_printf("Not really continuing thread %d/%d.  Held Arch event will be thrown instead\n",
+                   getLWP(), bgproc->getPid());
+      bgproc->readyHeldArchEvent();
+      return true;
+   }
    if (singleStep())
    {
       pthrd_printf("Sending SINGLESTEP to thread %d\%d\n", llproc()->getPid(), getLWP());
@@ -1352,7 +1547,6 @@ Handler::handler_ret_t HandleBGAttached::handleEvent(Event::ptr ev)
          //We got the PROCESS_DATA_ACK, which contains all the threads.
          pthrd_printf("Got PROCESS_DATA_ACK on %d\n", proc->getPid());
          BG_Debugger_Msg::DataArea *proc_data_ack = (BG_Debugger_Msg::DataArea *) evib->getData();
-         proc->has_procdata = true;
          proc->procdata = proc_data_ack->GET_PROCESS_DATA_ACK.processData;
          for (unsigned i=0; i<proc_data_ack->GET_PROCESS_DATA_ACK.numThreads; i++) {
             int lwp_id = proc_data_ack->GET_PROCESS_DATA_ACK.threadIDS[i];
@@ -1423,21 +1617,6 @@ static bool BGSend(BG_Debugger_Msg &msg)
       perr_printf("Failure sending message on BG pipe\n");
    }
    return result;
-}
-
-static bool bg_fdHasData(int fd) {
-   int result;
-   struct pollfd fds;
-   fds.fd = fd;
-   fds.events = POLLIN;
-   fds.revents = 0;
-   result = poll(&fds, 1, 0);
-   if (result == -1) {
-      int errnum = errno;
-      pthrd_printf("Unable to poll fd %d: %s\n", fd, strerror(errnum));
-      return false;
-   }
-   return (bool) (fds.revents & POLLIN);
 }
 
 static BG_GPR_Num_t DynToBGGPRReg(Dyninst::MachRegister reg)
@@ -1600,25 +1779,30 @@ bool DebugPortReader::init()
       goto done;
    }
 
-   fd = socket(PF_INET, SOCK_STREAM, 0);
-   if (fd == -1) {
-      pthrd_printf("Unable to create client for debug port: %s\n", strerror(errno));
-      goto done;
+   if (port_num > 0)
+   {
+      fd = socket(PF_INET, SOCK_STREAM, 0);
+      if (fd == -1) {
+         pthrd_printf("Unable to create client for debug port: %s\n", strerror(errno));
+         goto done;
+      }
+      
+      inet_aton("127.0.0.1", &iaddr);
+      bzero(&addr, sizeof(addr));
+      addr.sin_family = AF_INET;
+      addr.sin_port = htons(port_num);
+      addr.sin_addr = iaddr;
+      
+      pthrd_printf("Connecting to CIOD port\n");
+      result = connect(fd, (struct sockaddr *) &addr, sizeof(addr));
+      if (result == -1) {
+         pthrd_printf("Error connection to CIOD port: %s\n", strerror(errno));
+         goto done;
+      }
    }
-
-   inet_aton("127.0.0.1", &iaddr);
-   bzero(&addr, sizeof(addr));
-   addr.sin_family = AF_INET;
-   addr.sin_port = htons(port_num);
-   addr.sin_addr = iaddr;
-
-   pthrd_printf("Connecting to CIOD port\n");
-   result = connect(fd, (struct sockaddr *) &addr, sizeof(addr));
-   if (result == -1) {
-      pthrd_printf("Error connection to CIOD port: %s\n", strerror(errno));
-      goto done;
+   else {
+      fd = -1;
    }
-
    ret = true;
   done:
    initialized = true;
@@ -1667,7 +1851,7 @@ void DebugPortReader::mainLoop()
       }
 
       struct stat buf;
-      int sresult = stat("/g/g22/legendre/pc_force_shutdown", &buf);
+      int sresult = stat("/g/g0/legendre/pc_force_shutdown", &buf);
       if (sresult == 0) {
          pthrd_printf("Forcing shutdown\n");
          on_crash(0);
@@ -1684,7 +1868,7 @@ void DebugPortReader::mainLoop()
          break;
       }
       if (r == 0) {
-         perr_printf("CIOD shutdown the debug port\n");
+         pthrd_printf("CIOD shutdown the debug port\n");
          break;
       }
       buffer[r] = '\0';

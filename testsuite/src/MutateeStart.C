@@ -359,7 +359,7 @@ bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_
    else if (ts == MultiThreaded) 
       args.push_back("-mt");
 
-   int signal_fd = params["signal_fd_out"] ? params["signal_fd_out"]->getInt() : -1;
+   int signal_fd = params.find("signal_fd_out") != params.end() ? params["signal_fd_out"]->getInt() : -1;
    if (signal_fd != -1) {
       char s[64];
       snprintf(s, 64, "%d", signal_fd);

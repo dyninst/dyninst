@@ -191,10 +191,6 @@ Generator *Generator::getDefaultGenerator() {
     return static_cast<Generator *>(gen);
 }
 
-void Generator::stopDefaultGenerator() {
-    if( gen ) delete gen;
-}
-
 GeneratorFreeBSD::GeneratorFreeBSD() :
     GeneratorMT(std::string("FreeBSD Generator"))
 {

@@ -207,20 +207,12 @@ bool int_process::attach()
 
    // Determine the running state of all threads before attaching
    map<Dyninst::LWP, bool> runningStates;
+   bool have_runningStates;
    vector<Dyninst::LWP> lwps;
-   if( !getThreadLWPs(lwps) ) {
-       ProcPool()->condvar()->broadcast();
-       ProcPool()->condvar()->unlock();
-
-       pthrd_printf("Failed to determine lwps in %d\n", pid);
-       setLastError(err_internal, "Could not determine lwps for process");
-       return false;
-   }
-
-   for(vector<Dyninst::LWP>::iterator i = lwps.begin(); 
-           i != lwps.end(); ++i) 
-   {
-       runningStates.insert(make_pair(*i, plat_getOSRunningState(*i)));
+   have_runningStates = getThreadLWPs(lwps);
+   if (have_runningStates) {
+      for(vector<Dyninst::LWP>::iterator i = lwps.begin(); i != lwps.end(); ++i) 
+         runningStates.insert(make_pair(*i, plat_getOSRunningState(*i)));
    }
 
    pthrd_printf("Attaching to process %d\n", pid);
@@ -248,14 +240,15 @@ bool int_process::attach()
    ProcPool()->condvar()->unlock();
 
    // Now that all the threads are created, set their running states
-   for(int_threadPool::iterator i = threadPool()->begin();
-           i != threadPool()->end(); ++i)
-   {
-       map<Dyninst::LWP, bool>::iterator findIter = runningStates.find((*i)->getLWP());
-       assert(findIter != runningStates.end());
-       (*i)->setRunningWhenAttached(findIter->second);
+   if (have_runningStates) {
+      for(int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); ++i) 
+      {
+         map<Dyninst::LWP, bool>::iterator findIter = runningStates.find((*i)->getLWP());
+         assert(findIter != runningStates.end());
+         (*i)->setRunningWhenAttached(findIter->second);
+      }
    }
-
+      
    pthrd_printf("Wait for attach from process %d\n", pid);
    result = waitfor_startup();
    if (!result) {
@@ -2365,6 +2358,9 @@ bool int_thread::setAnyState(int_thread::State *from, int_thread::State to)
    pthrd_printf("Changing %s for %d/%d from %s to %s\n", s, llproc()->getPid(), lwp, 
                 stateStr(*from), stateStr(to));
    *from = to;
+
+   pthrd_printf("internal_state = %s, handler_state = %s, generator_state = %s\n", 
+                stateStr(internal_state), stateStr(handler_state), stateStr(generator_state));
 
    if (internal_state == stopped)  assert(handler_state == stopped || handler_state == exited );
    if (handler_state == stopped)   assert(generator_state == stopped || generator_state == exited);

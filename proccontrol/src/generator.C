@@ -44,6 +44,11 @@ Generator::~Generator()
    setState(exiting);
 }
 
+void Generator::stopDefaultGenerator() {
+   Generator *gen = Generator::getDefaultGenerator();
+   if (gen) delete gen;
+}
+
 void Generator::registerNewEventCB(void (*func)())
 {
    if (!cb_lock) cb_lock = new Mutex();

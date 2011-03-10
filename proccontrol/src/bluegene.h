@@ -53,10 +53,13 @@
 
 #define BG_INITIAL_THREAD_ID 5
 
-class bg_process : public sysv_process, public ppc_process
+class ArchEventBlueGene;
+
+class bg_process : public sysv_process, public thread_db_process, public ppc_process
 {
    friend class HandleBGAttached;
    friend class DecoderBlueGene;
+   friend class GeneratorBlueGene;
   private:
    enum {
       bg_init,
@@ -68,17 +71,19 @@ class bg_process : public sysv_process, public ppc_process
       bg_done
    } bootstrap_state;
 
-   bool has_procdata;
    DebuggerInterface::BG_Process_Data_t procdata;
    
    signed int pending_thread_alives;
    std::set<int> initial_lwps;
+   std::queue<ArchEventBlueGene *> held_arch_events;
+
   public:
    static int protocol_version;
    static int phys_procs;
    static int virt_procs;
 
-   bg_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f);
+   bg_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+              vector<string> envp, std::map<int, int> f);
    bg_process(Dyninst::PID pid_, int_process *proc_);
 
    virtual ~bg_process();
@@ -94,13 +99,13 @@ class bg_process : public sysv_process, public ppc_process
    virtual bool plat_needsAsyncIO() const;
    virtual bool plat_readMemAsync(int_thread *, Dyninst::Address addr, 
                                   mem_response::ptr result);
-   virtual bool plat_writeMemAsync(int_thread *thr, void *local, Dyninst::Address addr,
+   virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
                                    size_t size, result_response::ptr result);
    virtual bool plat_readMem(int_thread *thr, void *local, 
                              Dyninst::Address remote, size_t size);
-   virtual bool plat_writeMem(int_thread *thr, void *local, 
+   virtual bool plat_writeMem(int_thread *thr, const void *local, 
                               Dyninst::Address remote, size_t size);
-
+   virtual bool plat_getOSRunningState(Dyninst::LWP lwp) const;
    virtual bool needIndividualThreadAttach();
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
    virtual Dyninst::Architecture getTargetArch();
@@ -119,10 +124,14 @@ class bg_process : public sysv_process, public ppc_process
    virtual SymbolReaderFactory *plat_defaultSymReader();
    unsigned plat_getRecommendedReadSize();
 
+   void addHeldArchEvent(ArchEventBlueGene *ae);
+   bool hasHeldArchEvent();
+   void readyHeldArchEvent();
+
    static void getVersionInfo(int &protocol, int &phys, int &virt);
 };
 
-class bg_thread : public int_thread
+class bg_thread : public thread_db_thread
 {
   public:
    bg_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
@@ -165,7 +174,7 @@ class ArchEventBlueGene : public ArchEvent
 class DebugPortReader
 {
   private:
-   static const int port_num = 9000;
+   static const int port_num = 0; //9000
    DThread debug_port_thread;
    static DebugPortReader *me;
    bool shutdown;
@@ -181,10 +190,16 @@ class DebugPortReader
    void mainLoop();
 };
 
+#define CHECK_HELD_AEVS 'c'
 class GeneratorBlueGene : public GeneratorMT
 {
   private:
    DebugPortReader *dpr;
+   int restart_fds[2];
+   
+   Mutex held_aes_lock;
+   std::queue<ArchEventBlueGene *> held_aes;
+
   public:
    GeneratorBlueGene();
    virtual ~GeneratorBlueGene();
@@ -193,6 +208,9 @@ class GeneratorBlueGene : public GeneratorMT
    virtual bool canFastHandle();
    virtual ArchEvent *getEvent(bool block);
    virtual bool plat_skipGeneratorBlock();
+
+   void addHeldArchEvent(ArchEventBlueGene *ae);
+   ArchEventBlueGene *getHeldArchEvent();
 };
 
 class DecoderBlueGene : public Decoder

@@ -17,6 +17,11 @@
 #include <vector>
 #include <map>
 
+#if defined(os_bg_test)
+#define USE_MEM_COMM true
+#else
+#define USE_MEM_COMM false
+#endif
 using namespace std;
 
 TEST_DLL_EXPORT ComponentTester *componentTesterFactory()
@@ -44,7 +49,7 @@ test_results_t ProcControlMutator::pre_init(ParameterDict &param)
 }
 
 ProcControlComponent::ProcControlComponent() :
-   use_mem_communication(false),
+   use_mem_communication(USE_MEM_COMM),
    sockfd(0),
    sockname(NULL),
    notification_fd(-1)
@@ -132,13 +137,11 @@ Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &
          registerMutatee(mutateeString);
          pid = getMutateePid(group);
       }
-      else {
-         assert(0);
-      }
       assert(pid);
 
-      int signal_fd = params["signal_fd_in"] ? params["signal_fd_in"]->getInt() : -1;
-      if (signal_fd != -1) {
+      int signal_fd = params.find("signal_fd_in") != params.end() ? params["signal_fd_in"]->getInt() : -1;
+      if (signal_fd > 0) {
+         logerror("signal_fd is %d\n", signal_fd);
          bool result = waitForSignalFD(signal_fd);
          if (!result) {
             logerror("Timeout waiting for signalFD\n");
@@ -178,10 +181,10 @@ void setupSignalFD(ParameterDict &param)
 
 void resetSignalFD(ParameterDict &param)
 {
-   if (param["signal_fd_in"]) {
+   if (param.find("signal_fd_in") != param.end()) {
       close(param["signal_fd_in"]->getInt());
    }
-   if (param["signal_fd_out"]) {
+   if (param.find("signal_fd_out") != param.end()) {
       close(param["signal_fd_out"]->getInt());
    }
 }
@@ -189,23 +192,20 @@ void resetSignalFD(ParameterDict &param)
 bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 {
    bool error = false;
-   
+
    num_processes = 0;
    if (group->procmode == MultiProcess)
       num_processes = DEFAULT_NUM_PROCS;
    else
       num_processes = 1;
-
    bool result = setupServerSocket(param);
    if (!result) {
       logerror("Failed to setup server side socket");
       return false;
    }
-
-#if !defined(os_bg) && !defined(os_windows)
+#if !defined(os_bg_test) && !defined(os_windows_test)
    setupSignalFD(param);
 #endif
-   
    SymbolReaderFactory *factory = NULL;
    for (unsigned i=0; i<num_processes; i++) {
       Process::ptr proc = startMutatee(group, param);
@@ -217,7 +217,6 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       if (!factory) factory = proc->getDefaultSymbolReader();
       assert(factory);
    }
-
    {
       /**
        * Set the socket name in each process
@@ -225,10 +224,10 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       assert(num_processes);
       assert(factory);
       SymReader *reader = NULL;
-      Dyninst::Offset sym_offset = 0, pid_sym_offset = 0;
+      Dyninst::Offset sym_offset = 0;
       char socket_buffer[4096];
       memset(socket_buffer, 0, 4096);
-      if (param["socket_type"] && param["socket_name"]) {
+      if (param.find("socket_type") != param.end() && param.find("socket_name") != param.end()) {
          snprintf(socket_buffer, 4095, "%s %s", param["socket_type"]->getString(), 
                   param["socket_name"]->getString());
       }
@@ -262,19 +261,9 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
                continue;
             }
             sym_offset = reader->getSymbolOffset(sym);
-
-            sym = reader->getSymbolByName(string("expected_pid"));
-            if (reader->isValidSymbol(sym))
-            {
-               pid_sym_offset = reader->getSymbolOffset(sym);
-            }
          }
          Dyninst::Address addr = exec_addr + sym_offset;
          proc->writeMemory(addr, socket_buffer, socket_buffer_len+1);            
-         if (pid_sym_offset) {
-            int expected_pid = (int) proc->getPid();
-            proc->writeMemory(exec_addr + pid_sym_offset, &expected_pid, sizeof(int));
-         }
       }
    }
 
@@ -626,7 +615,15 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
          logerror("Received bad code in handshake message\n");
          return false;
       }
-      map<Dyninst::PID, Process::ptr>::iterator j = process_pids.find(msg.pid);
+      int pid;
+#if defined(os_bg_test)
+      //BG pids don't always seem to be consistent.
+      assert(use_mem_communication);
+      pid = procs[i]->getPid();
+#else
+      pid = msg.pid;
+#endif
+      map<Dyninst::PID, Process::ptr>::iterator j = process_pids.find(pid);
       if (j == process_pids.end()) {
          if (attach_sock) {
             *attach_sock = socks[i];

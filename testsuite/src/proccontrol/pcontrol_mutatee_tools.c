@@ -48,13 +48,20 @@ typedef struct {
    void *data;
 } datagram;
 
+#if defined(os_bg_test)
+#define USE_MEM_COMM 1
+#else
+#define USE_MEM_COMM 0
+#endif
+
+
 #define MESSAGE_BUFFER_SIZE 4096
 #define MESSAGE_TIMEOUT 30
 volatile char recv_buffer[MESSAGE_BUFFER_SIZE];
 volatile char send_buffer[MESSAGE_BUFFER_SIZE];
 volatile uint32_t recv_buffer_size;
 volatile uint32_t send_buffer_size;
-volatile uint32_t needs_pc_comm = 0;
+volatile uint32_t needs_pc_comm = USE_MEM_COMM;
 volatile uint32_t timeout;
 
 static testlock_t thread_startup_lock;
@@ -122,7 +129,6 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
    return 0;
 }
 
-volatile int expected_pid;
 
 uint64_t getFunctionPtr(unsigned long *ptr) {
     unsigned long tmpAddr;
@@ -151,11 +157,7 @@ int handshakeWithServer()
    int result;
    send_pid spid;
    spid.code = SEND_PID_CODE;
-#if defined(os_bg_test)
-   spid.pid = expected_pid;
-#else
    spid.pid = getpid();
-#endif
 
    result = send_message((unsigned char *) &spid, sizeof(send_pid));
    if (result == -1) {

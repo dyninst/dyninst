@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
 /*
    if (!getenv("LD_DEBUG")) {
       setenv("LD_DEBUG", "all", 1);
-      setenv("LD_DEBUG_OUTPUT", "/g/g22/legendre/ld_debug_output", 1);
+      setenv("LD_DEBUG_OUTPUT", "/g/g0/legendre/ld_debug_output", 1);
       execv(argv[0], argv);
    }
 */
@@ -183,18 +183,18 @@ int main(int argc, char *argv[])
    */
 
 /*
-   system("/bin/cp /lib/libm.so.6 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libgcc_s.so.1 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libc.so.6 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libdl.so.2 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/ld.so.1 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libnsl.so.1 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libnss_files.so.2 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libpthread.so.0 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libstdc++.so.6 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libthread_db.so.1 /g/g22/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libm.so.6 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libgcc_s.so.1 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libc.so.6 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libdl.so.2 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/ld.so.1 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libnsl.so.1 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libnss_files.so.2 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libpthread.so.0 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libstdc++.so.6 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
+   system("/bin/cp /lib/libthread_db.so.1 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
 */
-   debug_log = fopen("/g/g22/legendre/driver_output", "w");
+   debug_log = fopen("/g/g0/legendre/driver_output", "w");
    int debug_fd = fileno(debug_log);
    close(1);
    close(2);

@@ -77,11 +77,6 @@ Generator *Generator::getDefaultGenerator()
    return static_cast<Generator *>(gen);
 }
 
-void Generator::stopDefaultGenerator()
-{
-    if(gen) delete gen;
-}
-
 bool GeneratorLinux::initialize()
 {
    return true;

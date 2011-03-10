@@ -229,7 +229,7 @@ static char **getLaunchParams(char *executable, char *args[], const char *num, c
 static char **getLaunchParams(char *executable, char *args[], const char *num, char *signal_file_name)
 {   
    int count = 0;
-   unsigned i=0;
+   unsigned i=0, j=0;
    for (char **counter = args; *counter; counter++, count++);
    char **new_args = (char **) malloc(sizeof(char *) * (count+12));
    new_args[i++] = "mpirun";
@@ -241,8 +241,8 @@ static char **getLaunchParams(char *executable, char *args[], const char *num, c
    }
    new_args[i++] = "-np";
    new_args[i++] = const_cast<char *>(num);
-   for (i=0; i<=count && args[i]; i++)
-      new_args[i++] = args[i];
+   for (j=0; args[j]; j++)
+      new_args[i++] = args[j];
    if (signal_file_name) {
       new_args[i++] = "-signal_file";
       new_args[i++] = signal_file_name;
