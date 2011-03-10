@@ -609,7 +609,8 @@ class int_threadPool {
 
    int_thread *findThreadByLWP(Dyninst::LWP lwp);
    int_thread *initialThread() const;
-   bool allStopped();
+   bool allStopped(); //Tests internal state
+   bool allHandlerStopped();
    
    bool userCont();
    bool userStop();
@@ -723,6 +724,9 @@ class installed_breakpoint
 
    bool isInstalled() const;
    Dyninst::Address getAddr() const;
+
+   bool hasCtrlTransfer();
+   bool hasNonCtrlTransfer();
 };
 
 class int_notify {

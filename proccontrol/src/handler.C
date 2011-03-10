@@ -1002,7 +1002,8 @@ Handler::handler_ret_t HandlePostBreakpoint::handleEvent(Event::ptr ev)
            return ret_async;
        }
 
-       proc->threadPool()->restoreInternalState(false);
+       if (evbp->procStopper())
+          proc->threadPool()->restoreInternalState(false);
 
        return ret_success;
    }
@@ -1133,7 +1134,11 @@ Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
    thrd->markClearingBreakpoint(NULL);
    thrd->setInternalState(int_thread::stopped);
 
-   proc->threadPool()->restoreInternalState(false);
+   if (ev->getSyncType() != Event::sync_process && bp->hasNonCtrlTransfer()) {
+      //Not all breakpoints are proc stoppers.  This test needs to match a
+      // similar one in EventBreakpoint::procStopper
+       proc->threadPool()->restoreInternalState(false);
+   }
 
    return ret_success;
 }
