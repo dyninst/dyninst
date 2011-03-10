@@ -299,7 +299,18 @@ Dyninst::Address EventBreakpoint::getAddress() const
 
 bool EventBreakpoint::procStopper() const
 {
-   return true;
+   //This logic needs to exactly match a similar conditional test in
+   // HandleBreakpointClear::handleEvent
+
+   //Some platforms (BlueGene) already stop the whole process
+   //for a breakpoint, so we don't need to be an explicit
+   //procStopper.
+   if (getSyncType() == Event::sync_process)
+      return false;
+
+   //If the list of breakpoints is a sole control transfer bp, then
+   // we don't have to stop the whole process.
+   return ibp->hasNonCtrlTransfer();
 }
 
 void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::const_ptr> &bps) const

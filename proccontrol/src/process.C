@@ -861,32 +861,37 @@ bool int_process::waitAndHandleEvents(bool block)
       }
       gotEvent = true;
 
-      HandlerPool *hpool = ev->getProcess()->llproc()->handlerpool;
+      int_process *llproc = ev->getProcess()->llproc();
+      HandlerPool *hpool = llproc->handlerpool;
       
-      ev->getProcess()->llproc()->updateSyncState(ev, false);
+      llproc->updateSyncState(ev, false);
       if (ev->procStopper()) {
          /**
           * This event wants the process stopped before it gets handled.
           * We'll start that here, and then postpone the event until it's 
           * stopped.  It's up to the event to continue the process again.
           **/
-         int_process *proc = ev->getProcess()->llproc();
+         pthrd_printf("Event is a proc stopper, desyncing...\n");
+         int_process *proc = llproc;
          int_threadPool *tp = proc->threadPool();
          tp->desyncInternalState();
 
-         bool result = proc->threadPool()->intStop(false);
-         if (!result) {
-            pthrd_printf("Failed to stop process for event.\n");
+         if (!proc->threadPool()->allHandlerStopped()) {
+            pthrd_printf("Need to stop all threads in %d for procstopper\n", proc->getPid());
+            bool result = proc->threadPool()->intStop(false);
+            if (!result) {
+               pthrd_printf("Failed to stop process for event.\n");
+            }
+            else {
+               proc->addProcStopper(ev);
+            }
+            continue;
          }
-         else {
-            proc->addProcStopper(ev);
-         }
-         continue;
       }
     
       hpool->handleEvent(ev);
       
-      if (!ev->getProcess()->llproc())
+      if (!llproc)
       {
          //Special case event handling, the process cleaned itself
          // under this event (likely post-exit or post-crash), but was 
@@ -3094,6 +3099,15 @@ int_thread *int_threadPool::initialThread() const
    return initial_thread;
 }
 
+bool int_threadPool::allHandlerStopped()
+{
+   for (iterator i = begin(); i != end(); i++) {
+      if ((*i)->getHandlerState() != int_thread::stopped)
+         return false;
+   }
+   return true;
+}
+
 bool int_threadPool::allStopped()
 {
    for (iterator i = begin(); i != end(); i++) {
@@ -3454,6 +3468,28 @@ bool installed_breakpoint::rmBreakpoint(int_process *proc, int_breakpoint *bp, b
    }
    
    return true;
+}
+
+bool installed_breakpoint::hasCtrlTransfer()
+{
+   std::set<int_breakpoint *>::iterator i;
+   for (i = bps.begin(); i != bps.end(); i++) {
+      int_breakpoint *bp = *i;
+      if (bp->isCtrlTransfer())
+         return true;
+   }
+   return false;
+}
+
+bool installed_breakpoint::hasNonCtrlTransfer()
+{
+   std::set<int_breakpoint *>::iterator i;
+   for (i = bps.begin(); i != bps.end(); i++) {
+      int_breakpoint *bp = *i;
+      if (!bp->isCtrlTransfer())
+         return true;
+   }
+   return false;
 }
 
 Dyninst::Address installed_breakpoint::getAddr() const
