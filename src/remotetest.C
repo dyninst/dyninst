@@ -154,19 +154,22 @@ static void encodeParams(ParameterDict &params, MessageBuffer &buf)
             result += i->second->getString() + std::string(":");
          }
       }
-      if (dynamic_cast<ParamInt *>(i->second)) 
+      else if (dynamic_cast<ParamInt *>(i->second)) 
       {
          result += std::string("i:");
          char i_buffer[32];
          snprintf(i_buffer, 32, "%d:", i->second->getInt());
          result += i_buffer;
       }
-      if (dynamic_cast<ParamPtr *>(i->second)) 
+      else if (dynamic_cast<ParamPtr *>(i->second)) 
       {
          result += std::string("p:");
          char p_buffer[32];
          snprintf(p_buffer, 32, "%lu:", i->second->getPtr());
          result += p_buffer;
+      }
+      else {
+         result += std::string("n:0x0:"); //NULL Pointer if unset
       }
    }
    result += std::string(";");
@@ -211,7 +214,12 @@ static char *decodeParams(ParameterDict &params, char *buffer)
             params[key] = new ParamPtr((void *) val);
             break;
          }
+         case 'n': {
+            params[key];
+            break;
+         }
          default:
+            debug_printf("BAD: %s %s %s %s\n", cur, key, type, value);
             my_assert(0);
       }
       free(key);
