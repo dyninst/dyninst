@@ -45,6 +45,7 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <assert.h>
 
 #include "runTests-utils.h"
 #include "error.h"
@@ -327,12 +328,12 @@ int main(int argc, char *argv[])
    }
 
    bool done = false;
+   bool timeout = false;  // This should be pushed into test_driver.
    for (;;)
    {
       done = true;
-      for (unsigned i=0; i<parallel_copies; i++) {         
-         if (test_drivers[i].last_result == NOTESTS ||
-             test_drivers[i].last_result < 0) {
+      for (unsigned i=0; i<parallel_copies; i++) {
+         if (test_drivers[i].last_result == NOTESTS || timeout) {
             //This invocation is done or produced an error
             continue;
          }
@@ -367,7 +368,16 @@ int main(int argc, char *argv[])
          fprintf(stderr, "Press ctrl-c again within 2 seconds to abort runTests.\n");
          sleep(2);
       }
+      if (driver == -2) {
+          // We apparently have no children.  This may not be a possibility
+          // anymore after we added the timeout flag.  I'm not sure what to
+          // do in this case, though.  Both continuing and breaking are
+          // problematic.
+          assert(0 && "No children returned from waitpid.");
+      }
       if (driver == -1) {
+          // Timeout was encountered, and children were reaped.
+          timeout = true;
           for (unsigned idx=0; idx < parallel_copies; idx++) {
              test_drivers[idx].last_result = -1;
           }

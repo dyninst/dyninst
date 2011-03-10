@@ -161,7 +161,10 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
           // We have no children.  Probably because we reaped them.
           // Let the outer calling function decide if we should exit
           // or restart test_drivers.
-          retval = 0;
+          //
+          // This behavior has been seen before, but may not be a
+          // possibility after changes in runTests.C.
+          retval = -2;
           break;
       }
 
