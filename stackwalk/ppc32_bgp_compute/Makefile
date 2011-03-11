@@ -21,17 +21,17 @@ CXXFLAGS    += -I/bgsys/drivers/ppcfloor/arch/include
 
 CFLAGS          += $(MYFLAGS)
 TFLAGS          += $(MYFLAGS)
-VPATH = ../../common/src
 
 SRCS = ../src/ppc-swk.C \
-		 ../src/bg_firstparty.C \
-       ../src/firstparty.C \
-		 dyn_regs.C \
-		 addrtranslate.C \
-		 addrtranslate-sysv.C \
-		 addrtranslate-bluegenep.C \
-		 bluegeneKludges.C \
-		 string-regex.C
+		../src/bg_firstparty.C \
+		../../common/src/Elf_X.C \
+		../src/firstparty.C \
+		dyn_regs.C \
+		addrtranslate.C \
+		addrtranslate-sysv.C \
+		addrtranslate-bluegenep.C \
+		bluegeneKludges.C \
+		string-regex.C
 
 ifdef LIBELF_INC
 MYFLAGS += -I$(LIBELF_INC)
@@ -50,3 +50,6 @@ include ../make.module.tmpl
 # common targets like "clean", "install", etc.
 
 include ../../make.library.tmpl
+
+# Now make any necessary architecture specific changes to variables:
+VPATH += ../../common/src

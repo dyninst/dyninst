@@ -24,8 +24,8 @@ SRCS += 	../src/linux-swk.C \
 			../src/x86-swk.C \
 			../src/symtab-swk.C \
 			../src/dbginfo-stepper.C \
+			../../common/src/Elf_X.C \
 			../src/x86-wanderer.C
-
 
 ifdef LIBELF_INC
 MYFLAGS += -I$(LIBELF_INC)
@@ -51,5 +51,9 @@ AS		= as
 
 include ../../make.library.tmpl
 
+# Now make any necessary architecture specific changes to variables:
+VPATH += ../../common/src
+
 libstackwalk.a: $(OBJS)
 	ar rv libstackwalk.a $^
+

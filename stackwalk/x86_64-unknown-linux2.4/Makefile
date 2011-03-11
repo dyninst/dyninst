@@ -18,6 +18,7 @@ SRCS = 	../src/linux-swk.C \
 	../src/x86-swk.C \
 	../src/symtab-swk.C \
 	../src/dbginfo-stepper.C \
+	../../common/src/Elf_X.C \
 	../src/x86-wanderer.C
 
 
@@ -51,3 +52,6 @@ LIBS	+=
 CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 AS		= as
+
+# Now make any necessary architecture specific changes to variables:
+VPATH += ../../common/src
