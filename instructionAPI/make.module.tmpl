@@ -82,7 +82,7 @@ docs: $(SRCS)
 	cd ..; doxygen instructionAPI.conf
 	cd $(DOCDIR)/latex; ./manual-preproc.pl *.tex; $(MAKE) clean
 	$(MAKE) -C $(DOCDIR)/latex
-	cp $(DOCDIR)/latex/refman.pdf ../instructionProgGuide.pdf
+	cp $(DOCDIR)/latex/refman.pdf ../../../docs/instructionProgGuide.pdf
 
 
 
