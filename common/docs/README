@@ -1,1 +1,8 @@
-nothing here yet 8-)
+Paradyn Project Logos
+---------------------
+
+Do not use the PostScript version with FrameMaker, use the PDF.
+FrameMaker renders the PostScript version incorrectly such that
+it is off by one pixel, though this flaw is only visible when
+the resulting PDF is viewed at approximately 400%.
+
