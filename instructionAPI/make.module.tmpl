@@ -23,7 +23,7 @@ ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)
 CFLAGS		+= -fPIC -g
-CXXFLAGS	+= -fPIC $(G_PTHREAD) -felide-constructors -g -D_GLIBCXX_PROFILE
+CXXFLAGS	+= -fPIC $(G_PTHREAD) -felide-constructors -g
 else
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 LDFLAGS		+= -G

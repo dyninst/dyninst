@@ -225,7 +225,7 @@ BPatch_snippet *SnippetGenerator::findInstVariable(const char *mangledStub, cons
    //  BPatch_variableExpr *varExpr = NULL;
    BPatch_variableExpr *varExprGbl = NULL;
    for(unsigned int i = 0; i < vars->size(); ++i){
-      char *substr = strstr((*vars)[i]->getName(), mangledStub);
+      const char *substr = strstr((*vars)[i]->getName(), mangledStub);
       if(substr != NULL){
          return (*vars)[i];            
       }
