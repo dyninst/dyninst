@@ -566,6 +566,7 @@ struct syncRunStateRet_t {
 
 bool syncRunState(int_process *p, void *r)
 {
+   bool hasAsyncPending;
    int_threadPool *tp = p->threadPool();
    syncRunStateRet_t *ret = (syncRunStateRet_t *) r;
    assert(ret);
@@ -578,7 +579,8 @@ bool syncRunState(int_process *p, void *r)
       ret->hasRunningThread = true;
    }
 
-   if (p->handlerPool()->hasAsyncEvent()) {
+   hasAsyncPending = p->handlerPool()->hasAsyncEvent();
+   if (hasAsyncPending) {
       ret->hasAsyncEvent = true;
    }
 
@@ -633,7 +635,9 @@ bool syncRunState(int_process *p, void *r)
       }
 
       int_iRPC::ptr pstop_rpc = thr->hasRunningProcStopperRPC();
-      if (thr->hasPendingStop() && !thr->isExiting() && thr->getHandlerState() == int_thread::stopped) {
+      if (thr->hasPendingStop() && thr->getHandlerState() == int_thread::stopped &&
+          !hasAsyncPending && !thr->isExiting()) 
+      {
          pthrd_printf("Continuing thread %d/%d to clear out pending stop\n", 
                       thr->llproc()->getPid(), thr->getLWP());
 
@@ -1864,6 +1868,24 @@ bool int_thread::cont(bool user_cont)
       return true;
    }
 
+   if (llproc()->handlerPool()->hasAsyncEvent()) {
+      //We have async events in progress.  We'll simply set the internal or user state to 
+      //running, then let the event complete, where syncRunState will move the
+      //process into our desired state.
+      pthrd_printf("Thread has in-progress event, will continue latter.\n");
+      if (user_cont) {
+         result = setUserState(int_thread::running);
+      }
+      else {
+         result = setInternalState(int_thread::running);
+      }
+      if (!result) {
+         perr_printf("Failed to change user state\n");
+         setLastError(err_internal, "Failed to change state");
+      }
+      return true;
+   }
+
 /*
    if ( llproc()->plat_getThreadControlMode() == int_process::NoLWPControl ) {
       pthrd_printf("%s continuing entire process %d on thread operation on %d\n",
@@ -1876,7 +1898,7 @@ bool int_thread::cont(bool user_cont)
       }
    }
 */
-   if( llproc()->useHybridLWPControl() && user_cont && 
+   if(llproc()->useHybridLWPControl() && user_cont && 
        !llproc()->threadPool()->allStopped() )
    {
        // This thread control mode requires that all threads are stopped before
@@ -2021,6 +2043,8 @@ bool int_threadPool::intStop(bool sync)
 bool int_threadPool::stop(bool user_stop, bool sync)
 {
    bool stopped_something = false;
+   bool has_sync_rpc = false;
+   bool has_clearing_bp = false;
    bool had_error = false;
    bool needs_sync = false;
 
@@ -2056,8 +2080,29 @@ bool int_threadPool::stop(bool user_stop, bool sync)
             stopped_something = true;
             break;
       }
+
+      if (thr->isClearingBreakpoint()) {
+         has_clearing_bp = true;
+      }
+      if (thr->hasSyncRPC()) {
+         has_sync_rpc = true;
+      }
    }
 
+   if (sync && (has_clearing_bp || has_sync_rpc || proc()->handlerPool()->hasProcAsyncPending())) {
+      /**
+       * We'll make sure to block for events if there are certain types of
+       * events in progress.  The semantics of waitAndHandle say that we
+       * won't return if there are clearing breakpoints, async events, or sync 
+       * rpcs in flight.  This function is supposed to trigger a waitAndHandle 
+       * if called with the sync flag set.  However, we have an optimization that
+       * we don't actuall call waitAndHandle if no thread::stop operations returned
+       * sc_success_pending.  Here we're disabling this optimization if any of
+       * the above events are in flight.
+       **/
+      pthrd_printf("Forcing synchronization during stop due to in-flight event\n");
+      needs_sync = true;
+  }
 
 
    if (had_error) {
@@ -2074,6 +2119,7 @@ bool int_threadPool::stop(bool user_stop, bool sync)
    if (needs_sync && sync)
    {
       bool proc_exited;
+      pthrd_printf("Calling waitAndHandle under int_threadPool::stop\n");
       bool result = int_process::waitAndHandleForProc(true, proc(), proc_exited);
       if (proc_exited) {
          pthrd_printf("Process exited during stop\n");

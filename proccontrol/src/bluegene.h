@@ -152,8 +152,13 @@ class bg_thread : public thread_db_thread
    bool plat_setAllRegistersAsync(int_registerPool &pool, result_response::ptr result);
    virtual bool attach();   
 
-   virtual bool plat_suspend() { return true; }
-   virtual bool plat_resume() { return true; }
+   virtual bool plat_suspend();
+   virtual bool plat_resume();
+
+   bool decoderPendingStop();
+   void setDecoderPendingStop(bool b);
+  private:
+   bool decoderPendingStop_;
 };
 
 class ArchEventBlueGene : public ArchEvent

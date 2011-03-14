@@ -52,6 +52,7 @@ class EventAsync;
 class EventChangePCStop;
 class EventDetached;
 class EventIntBootstrap;
+class EventNop;
 
 class Event : public dyn_detail::boost::enable_shared_from_this<Event>
 {
@@ -166,6 +167,9 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
 
    dyn_detail::boost::shared_ptr<EventIntBootstrap> getEventIntBootstrap();
    dyn_detail::boost::shared_ptr<const EventIntBootstrap> getEventIntBootstrap() const;
+
+   dyn_detail::boost::shared_ptr<EventNop> getEventNop();
+   dyn_detail::boost::shared_ptr<const EventNop> getEventNop() const;
  protected:
    EventType etype;
    Thread::const_ptr thread;
@@ -542,6 +546,17 @@ class EventIntBootstrap : public Event
 
    void *getData() const;
    void setData(void *v);
+};
+
+class EventNop : public Event
+{
+   friend void dyn_detail::boost::checked_delete<EventNop>(EventNop *);
+   friend void dyn_detail::boost::checked_delete<const EventNop>(const EventNop *);
+ public:
+   typedef dyn_detail::boost::shared_ptr<EventNop> ptr;
+   typedef dyn_detail::boost::shared_ptr<const EventNop> const_ptr;
+   EventNop();
+   ~EventNop();
 };
 
 }

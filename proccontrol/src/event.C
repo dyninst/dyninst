@@ -607,7 +607,8 @@ const std::set<Library::ptr> &EventLibrary::libsRemoved() const
    return rmd_libs;
 }
 
-int_eventBreakpointClear::int_eventBreakpointClear() 
+int_eventBreakpointClear::int_eventBreakpointClear() :
+   cleared_singlestep(false)
 {
 }
 
@@ -731,6 +732,15 @@ void EventIntBootstrap::setData(void *d)
    data = d;
 }
 
+EventNop::EventNop() :
+   Event(EventType(EventType::None, EventType::Nop))
+{
+}
+
+EventNop::~EventNop()
+{
+}
+
 #define DEFN_EVENT_CAST(NAME, TYPE) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE) return NAME::ptr();  \
@@ -786,3 +796,4 @@ DEFN_EVENT_CAST(EventAsync, Async)
 DEFN_EVENT_CAST(EventChangePCStop, ChangePCStop)
 DEFN_EVENT_CAST(EventDetached, Detached)
 DEFN_EVENT_CAST(EventIntBootstrap, IntBootstrap)
+DEFN_EVENT_CAST(EventNop, Nop);

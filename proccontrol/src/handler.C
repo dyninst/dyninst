@@ -100,7 +100,7 @@ struct eh_cmp_func
    {
       //Async events go first
       if (a.first->getEventType().code() != EventType::Async ||
-          a.first->getEventType().code() != EventType::Async)
+          b.first->getEventType().code() != EventType::Async)
       {
          if (a.first->getEventType().code() == EventType::Async)
             return true;
@@ -296,6 +296,7 @@ bool HandlerPool::handleEvent(Event::ptr ev)
    for (set<Event::ptr>::iterator i = all_events.begin(); i != all_events.end(); i++)
    {
       Event::ptr ev = *i;
+      pthrd_printf("Examining event list.  Have event %s\n", ev->name().c_str());
       EventType etype = ev->getEventType();
       HandlerMap_t::iterator j = handlers.find(etype);
       if (j == handlers.end()) {
@@ -306,6 +307,9 @@ bool HandlerPool::handleEvent(Event::ptr ev)
       for (HandlerSet_t::iterator k = hset->begin(); k != hset->end(); k++)
       {
          Handler *hnd = *k;
+         pthrd_printf("Examining event/handler Have event %s on %s\n", 
+                      ev->name().c_str(), 
+                      hnd->getName().c_str());
          if (ev->handled_by.find(hnd) != ev->handled_by.end()) {
             pthrd_printf("Event %s has already been handled by %s\n",
                          ev->name().c_str(), hnd->getName().c_str());
@@ -1108,6 +1112,15 @@ Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
    pthrd_printf("Resuming breakpoint at %lx\n", bp->getAddr());
    bool result;
 
+   if (!int_bpc->cleared_singlestep) {
+      pthrd_printf("Restoring process state\n");
+      thrd->setSingleStepMode(false);
+      thrd->markClearingBreakpoint(NULL);
+      thrd->setInternalState(int_thread::stopped);
+      int_bpc->cleared_singlestep = true;
+   }
+
+
    if (!int_bpc->memwrite_bp_resume) {
       int_bpc->memwrite_bp_resume = result_response::createResultResponse();
       result = bp->resume(proc, int_bpc->memwrite_bp_resume);
@@ -1128,11 +1141,6 @@ Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
       pthrd_printf("Error resuming breakpoint\n");
       return ret_error;
    }
-
-   pthrd_printf("Restoring process state\n");
-   thrd->setSingleStepMode(false);
-   thrd->markClearingBreakpoint(NULL);
-   thrd->setInternalState(int_thread::stopped);
 
    if (ev->getSyncType() != Event::sync_process && bp->hasNonCtrlTransfer()) {
       //Not all breakpoints are proc stoppers.  This test needs to match a
@@ -1273,6 +1281,26 @@ Handler::handler_ret_t HandleAsync::handleEvent(Event::ptr ev)
 void HandleAsync::getEventTypesHandled(std::vector<EventType> &etypes)
 {
    etypes.push_back(EventType(EventType::None, EventType::Async));
+}
+
+HandleNop::HandleNop() :
+   Handler("Nop Handler")
+{
+}
+
+HandleNop::~HandleNop()
+{
+}
+
+Handler::handler_ret_t HandleNop::handleEvent(Event::ptr)
+{
+   //Trivial handler, by definition
+   return ret_success;
+}
+
+void HandleNop::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::None, EventType::Nop));
 }
 
 HandleCallbacks::HandleCallbacks() : 
@@ -1703,6 +1731,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static HandleRPCInternal *hrpcinternal = NULL;
    static HandleAsync *hasync = NULL;
    static HandleForceTerminate *hforceterm = NULL;
+   static HandleNop *hnop = NULL;
    static iRPCHandler *hrpc = NULL;
    if (!initialized) {
       hbootstrap = new HandleBootstrap();
@@ -1724,6 +1753,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hasync = new HandleAsync();
       hrpcinternal = new HandleRPCInternal();
       hforceterm = new HandleForceTerminate();
+      hnop = new HandleNop();
       initialized = true;
    }
    HandlerPool *hpool = new HandlerPool(p);
@@ -1746,7 +1776,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hrpcinternal);
    hpool->addHandler(hasync);
    hpool->addHandler(hforceterm);
+   hpool->addHandler(hnop);
    plat_createDefaultHandlerPool(hpool);
    return hpool;
 }
-

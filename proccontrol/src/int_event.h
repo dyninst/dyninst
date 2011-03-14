@@ -41,6 +41,7 @@ class int_eventBreakpointClear
    ~int_eventBreakpointClear();
 
    result_response::ptr memwrite_bp_resume;
+   bool cleared_singlestep;
 };
 
 class int_eventBreakpoint

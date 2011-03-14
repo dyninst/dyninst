@@ -60,6 +60,23 @@ const char *thrdName()
       return "U";
 }
 
+#include <sys/time.h>
+unsigned long gettod()
+{
+   static unsigned long long start = 0;
+   static bool start_set = false;
+   struct timeval val;
+   int result = gettimeofday(&val, NULL);
+   if (result == -1)
+      return 0;
+   unsigned long long t = (unsigned long long) (val.tv_usec / 1000);
+   if (!start_set) {
+      start_set = true;
+      start = t;
+   }
+   return (unsigned long) (t - start);
+}
+
 void setGeneratorThread(long t)
 {
    gen_thrd_id = t;

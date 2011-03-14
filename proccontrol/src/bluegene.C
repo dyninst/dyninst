@@ -565,8 +565,10 @@ Event::ptr DecoderBlueGene::decodeDecoderAsync(response::ptr resp)
    if (!result) {
       perr_printf("Unable to decode original event\n");
    }
-   assert(events.size() == 1);
-   return events[0];
+   assert(events.size() <= 1);
+   if (events.size() == 1)
+      return events[0];
+   return Event::ptr();
 }
 
 bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
@@ -608,22 +610,27 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
    Event::ptr new_event;
    response::ptr resp;
 
-
    switch (msg->header.messageType) {
       case GET_REG_ACK:
          new_event = decodeGetRegAck(msg, resp);
          if (!new_event)
             new_event = decodeDecoderAsync(resp);
+         if (!new_event)
+            return true;
          break;
       case GET_ALL_REGS_ACK:
          new_event = decodeGetAllRegAck(msg, resp);
          if (!new_event)
             new_event = decodeDecoderAsync(resp);
+         if (!new_event)
+            return true;
          break;
       case GET_MEM_ACK:
          new_event = decodeGetMemAck(msg, resp);
          if (!new_event)
             new_event = decodeDecoderAsync(resp);
+         if (!new_event)
+            return true;
          break;
       case SET_REG_ACK:
       case SET_MEM_ACK:
@@ -673,6 +680,7 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
       case SIGNAL_ENCOUNTERED: {
          int signo = msg->dataArea.SIGNAL_ENCOUNTERED.signal;
          int thrd_id = msg->header.thread;
+         bg_thread *initial_thread = static_cast<bg_thread *>(proc->threadPool()->initialThread());
          pthrd_printf("Decoding SIGNAL_ENCOUNTERED, signal = %d\n", signo);
 
          if (signo == SIGTRAP) {
@@ -680,7 +688,7 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
             pthrd_printf("Decoding SIGTRAP\n");
             bool result = getPC(pc_addr, thread, archbg);
             if (!result) {
-               //We are explicitely returing here rather than breaking.  We don't yet
+               //We are explicitely returning here rather than breaking.  We don't yet
                // want the archE to be deleted.
                pthrd_printf("PC register not yet available, postponing decode\n");
                return Event::ptr();
@@ -699,9 +707,15 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
                   EventLibrary::ptr lib_event = EventLibrary::ptr(new EventLibrary());
                   lib_event->setThread(thread->thread());
                   lib_event->setProcess(proc->proc());
-                  //proc->decodeTdbLibLoad(lib_event);
+                  lib_event->setSyncType(Event::sync_process);
                   new_event->addSubservientEvent(lib_event);
                }
+            }
+            if (!new_event) {
+               pthrd_printf("WARNING: Got a SIGTRAP at a non-breakpoint address %lx.  Very unusal " 
+                            "and probably a bug\n", pc_addr);
+               pthrd_printf("Decoding SIGTRAP to new EventSignal\n");
+               new_event = EventSignal::ptr(new EventSignal(signo));
             }
          }
          else if (signo == SINGLE_STEP_SIG) {
@@ -736,11 +750,18 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
             }
             pthrd_printf("Decoded SIGSTOP for process bootstrap\n");
             assert(proc->bootstrap_state == bg_process::bg_stop_pending);
-            new_event = EventIntBootstrap::ptr(new EventIntBootstrap());         
+            new_event = EventIntBootstrap::ptr(new EventIntBootstrap());
+            initial_thread->setDecoderPendingStop(false);
          }
-         else if (signo == SIGSTOP && proc->threadPool()->initialThread()->hasPendingStop()) {
+         else if (signo == SIGSTOP && initial_thread->decoderPendingStop())
+         {
             pthrd_printf("Recieved pending SIGSTOP on %d/%d\n", proc->getPid(), thread->getLWP());
             new_event = EventStop::ptr(new EventStop());
+            initial_thread->setDecoderPendingStop(false);
+         }
+         else if (signo == SIGSTOP) {
+            pthrd_printf("Found lost stop, turning into NOP event\n");
+            new_event = EventNop::ptr(new EventNop());
          }
          else {
             pthrd_printf("Decoded event to signal %d on %d/%d\n",
@@ -748,8 +769,20 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
             new_event = EventSignal::ptr(new EventSignal(signo));
          }
 
-         if (new_event)
+         if (new_event) {
             new_event->setSyncType(Event::sync_process);
+
+            if (initial_thread->decoderPendingStop()) {
+               pthrd_printf("Recieved other signal while waiting for stop.  Creating subservient "
+                            "EventStop on %d/%d\n", proc->getPid(), initial_thread->getLWP());
+               Event::ptr stop_event = EventStop::ptr(new EventStop());
+               stop_event->setThread(thread->thread());
+               stop_event->setProcess(proc->proc());
+               stop_event->setSyncType(Event::sync_process);
+               new_event->addSubservientEvent(stop_event);
+               initial_thread->setDecoderPendingStop(false);
+            }
+         }
          break;
       }
       case VERSION_MSG_ACK:
@@ -1228,7 +1261,8 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
 }
 
 bg_thread::bg_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
-   thread_db_thread(p, t, l)
+   thread_db_thread(p, t, l),
+   decoderPendingStop_(false)
 {
 }
 
@@ -1248,7 +1282,7 @@ bool bg_thread::plat_cont()
    }
    if (singleStep())
    {
-      pthrd_printf("Sending SINGLESTEP to thread %d\%d\n", llproc()->getPid(), getLWP());
+      pthrd_printf("Sending SINGLESTEP to thread %d/%d\n", llproc()->getPid(), getLWP());
       BG_Debugger_Msg msg(SINGLE_STEP, llproc()->getPid(), getLWP(), 0, 0);
       msg.header.dataLength = sizeof(msg.dataArea.SINGLE_STEP);
       bool result = BGSend(msg);
@@ -1312,6 +1346,7 @@ bool bg_thread::plat_stop()
       perr_printf("Error sending STOP message\n");
       return false;
    }
+   setDecoderPendingStop(true);
 
    return true;
 }
@@ -1409,6 +1444,27 @@ bool bg_thread::attach()
    setInternalState(stopped);
    setUserState(stopped);
    return true;
+}
+
+ 
+bool bg_thread::plat_suspend() 
+{ 
+   return true; 
+}
+
+bool bg_thread::plat_resume() 
+{ 
+   return true; 
+}
+
+bool bg_thread::decoderPendingStop()
+{
+   return decoderPendingStop_;
+}
+
+void bg_thread::setDecoderPendingStop(bool b)
+{
+   decoderPendingStop_ = b;
 }
 
 HandleBGAttached::HandleBGAttached() : 
