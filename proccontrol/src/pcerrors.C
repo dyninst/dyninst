@@ -69,7 +69,7 @@ unsigned long gettod()
    int result = gettimeofday(&val, NULL);
    if (result == -1)
       return 0;
-   unsigned long long t = (unsigned long long) (val.tv_usec / 1000);
+   unsigned long long t = (unsigned long long) ((val.tv_sec * 1000) + (val.tv_usec / 1000));
    if (!start_set) {
       start_set = true;
       start = t;
