@@ -217,23 +217,39 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
         Block *trgB = findBlockByEntry(*(regs.begin()), worklist[idx].target);
 
         if (trgB) {
-            add_edge(worklist[idx].source, trgB, worklist[idx].edge_type);
-            if (CALL == worklist[idx].edge_type) {
-                // if it's a call edge, add it to Function::_call_edges
-                // since we won't re-finalize the function
-                vector<Function*> funcs;
-                worklist[idx].source->getFuncs(funcs);
-                for(vector<Function*>::iterator fit = funcs.begin();
-                    fit != funcs.end();
-                    fit++) 
+            // don't add edges that already exist 
+            // (this could happen because of shared code)
+            bool edgeExists = false;
+            Block::edgelist & existingTs = worklist[idx].source->targets();
+            for (Block::edgelist::iterator tit = existingTs.begin();
+                 tit != existingTs.end();
+                 tit++)
+            {
+                if ((*tit)->trg() == trgB && 
+                    (*tit)->type() == worklist[idx].edge_type) 
                 {
-                    Block::edgelist & tedges = worklist[idx].source->targets();
-                    for(Block::edgelist::iterator eit = tedges.begin();
-                        eit != tedges.end();
-                        eit++)
+                    edgeExists = true;
+                }
+            }
+            if (!edgeExists) {
+                add_edge(worklist[idx].source, trgB, worklist[idx].edge_type);
+                if (CALL == worklist[idx].edge_type) {
+                    // if it's a call edge, add it to Function::_call_edges
+                    // since we won't re-finalize the function
+                    vector<Function*> funcs;
+                    worklist[idx].source->getFuncs(funcs);
+                    for(vector<Function*>::iterator fit = funcs.begin();
+                        fit != funcs.end();
+                        fit++) 
                     {
-                        if ((*eit)->trg() == trgB) {
-                            (*fit)->_call_edges.insert(*eit);
+                        Block::edgelist & tedges = worklist[idx].source->targets();
+                        for(Block::edgelist::iterator eit = tedges.begin();
+                            eit != tedges.end();
+                            eit++)
+                        {
+                            if ((*eit)->trg() == trgB) {
+                                (*fit)->_call_edges.insert(*eit);
+                            }
                         }
                     }
                 }

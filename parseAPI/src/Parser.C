@@ -729,7 +729,7 @@ Parser::init_frame(ParseFrame & frame)
             return;
         }
         if (split) {
-            _pcb.block_split(split,b);
+            _pcb.block_split(split,b,frame.func);
         }
     }
 
@@ -1497,11 +1497,16 @@ Parser::split_block(
         parsing_printf("[%s:%d] split of [%lx,%lx) invalidates cache of "
                 "func at %lx\n",
         FILE__,__LINE__,b->start(),b->end(),po->addr());
+
+        // if we're re-parsing in this function, inform user program of the split
+        //KEVINTODO: this should also happen in exploratory mode, once that's implemented
+        if (unlikely(po->obj()->defensiveMode())) {
+            _pcb.block_split(b,ret,po);
+        }
     }
-
-    // if we're re-parsing in this function, inform user program of the split
-    _pcb.block_split(b,ret);
-
+    if (unlikely(owner->obj()->defensiveMode())) {
+        _pcb.block_split(b,ret,owner);
+    }
     return ret;
  }
 

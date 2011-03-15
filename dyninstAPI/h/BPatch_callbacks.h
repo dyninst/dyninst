@@ -110,7 +110,7 @@ typedef void (*BPatchCodeOverwriteBeginCallback)
 //executing.  In many cases no code will have changed.  This function is only 
 //called if Dyninst's hybrid analysis mode is set to BPatch_defensiveMode.
 typedef void (*BPatchCodeOverwriteEndCallback)
-             (BPatch_Vector<Dyninst::Address> &deadBlockAddrs, 
+              (BPatch_Vector<std::pair<Dyninst::Address,int> > &deadBlocks, 
               BPatch_Vector<BPatch_function*> &owFuncs, 
               BPatch_Vector<BPatch_function*> &modFuncs, 
               BPatch_Vector<BPatch_function*> &newFuncs );

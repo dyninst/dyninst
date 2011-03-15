@@ -199,16 +199,19 @@ int_block *int_block::getFallthrough() const {
     NoSinkPredicate epred2(&epred);
     Block::edgelist & ib_outs = ib_->targets();
     Block::edgelist::iterator eit = ib_outs.begin(&epred2);
+    int_block *candidateFT = NULL;
     for( ; eit != ib_outs.end(); ++eit) {
         ParseAPI::Edge * e = *eit;
-        if(e->type() == FALLTHROUGH ||
-           e->type() == CALL_FT ||
-           e->type() == COND_NOT_TAKEN)
-        {
+        if(e->type() == CALL_FT) {
             return func()->findBlock(e->trg());
         }
+        else if(e->type() == FALLTHROUGH ||
+                e->type() == COND_NOT_TAKEN)
+        {
+            candidateFT = func()->findBlock(e->trg());
+        }
     }
-    return NULL;
+    return candidateFT;
 }
 
 int_block *int_block::getTarget() const {

@@ -356,8 +356,8 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
 
         // disconnect dead block from CFG (if not shared by other funcs)
         if (1 == dead->containingFuncs()) {
-            for (unsigned sidx=0; sidx < dead->_sources.size(); sidx++) {
-                Edge *edge = dead->_sources[sidx];
+            while ( ! dead->_sources.empty() ) {
+                Edge *edge = dead->_sources.back();
                 if (edge->type() == CALL) {
                     std::vector<Function *> funcs;
                     edge->src()->getFuncs(funcs);
@@ -378,14 +378,14 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
                         _obj->add_edge(edge->src(), NULL, CALL);
                     }
                 }
-                edge->trg()->removeSource( edge );
+                dead->_sources.pop_back();//i.e.,edge->_trg->removeSource(edge)
                 edge->src()->removeTarget( edge );
-                obj()->fact()->free_edge(edge);
+                obj()->fact()->free_edge( edge );
             }
-            for (unsigned tidx=0; tidx < dead->_targets.size(); tidx++) {
-                Edge *edge = dead->_targets[tidx];
+            while (!dead->_targets.empty()) {
+                Edge *edge = dead->_targets.back();
+                dead->_targets.pop_back();//i.e.,edge->_src->removeTarget(edge)
                 edge->trg()->removeSource( edge );
-                edge->src()->removeTarget( edge );
                 obj()->fact()->free_edge(edge);
             }
         }

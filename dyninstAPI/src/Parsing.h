@@ -109,7 +109,9 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   // defensive and exploratory mode callbacks
   void abruptEnd_cf(Address,ParseAPI::Block *,default_details*);
   void newfunction_retstatus(ParseAPI::Function*);
-  void block_split(ParseAPI::Block *first, ParseAPI::Block *second);
+  void block_split(ParseAPI::Block *first, 
+                   ParseAPI::Block *second, 
+                   ParseAPI::Function *func);
   void patch_nop_jump(Address);
   bool hasWeirdInsns(const ParseAPI::Function*) const;
   void foundWeirdInsns(ParseAPI::Function*);

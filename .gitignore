@@ -5,6 +5,11 @@ DEPENDS
 *.so
 *.so.1
 *.a
+*.tlog
+*.log
+*.rc
+*.filters
+*.lastbuildstate
 V_*
 *.obj
 *.ilk

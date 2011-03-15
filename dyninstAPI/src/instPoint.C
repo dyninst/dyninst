@@ -667,5 +667,7 @@ InstructionAPI::Instruction::Ptr instPoint::insn() {
             return insn_;
         }
     }
+    fprintf(stderr,"WARNING: failed to find instruction for point at %lx\n",
+            addr());
     return InstructionAPI::Instruction::Ptr();
 }

@@ -174,7 +174,7 @@ private:
     // needs to call removeInstrumentation
     friend void BPatch_process::overwriteAnalysisUpdate
         ( std::map<Dyninst::Address,unsigned char*>& owPages, 
-          std::vector<Dyninst::Address>& deadBlockAddrs,
+        std::vector<std::pair<Dyninst::Address,int> >& deadBlocks,
           std::vector<BPatch_function*>& owFuncs,     
           std::set<BPatch_function *> &monitorFuncs, 
           bool &changedPages, bool &changedCode ); 
@@ -317,9 +317,13 @@ public:
 
 private:
     // gets biggest loop without unresolved/multiply resolved indirect ctrl flow that it can find
-    BPatch_basicBlockLoop* getWriteLoop(BPatch_function &func, Dyninst::Address writeAddr);
+    BPatch_basicBlockLoop* getWriteLoop(BPatch_function &func, 
+                                        Dyninst::Address writeAddr, 
+                                        bool allowParentLoop = true);
 
-    // recursively add all functions that contain calls, 
+    BPatch_basicBlockLoop* getParentLoop(BPatch_function &func, Dyninst::Address writeAddr);
+
+// recursively add all functions that contain calls, 
     // return true if the function contains no unresolved control flow
     // and the function returns normally
     bool addFuncBlocks(owLoop *loop, std::set<BPatch_function*> &addFuncs, 
@@ -350,6 +354,12 @@ private:
     std::set<owLoop*> loops;
     std::map<Dyninst::Address,int> blockToLoop;//KEVINCOMMENT: makes non-guaranteed assumption that only one loop per block, would it be better to use the last instruction address?
     std::map<int, owLoop*> idToLoop;
+
+    // number of times a write instruction has hit, used to trigger
+    // stackwalks for finding inter-function loops when number of hits 
+    // exceeds a threshold
+    map<Dyninst::Address,int> writeHits;
+    static const int HIT_THRESHOLD = 0;
 
     BPatchCodeOverwriteBeginCallback bpatchBeginCB;
     BPatchCodeOverwriteEndCallback bpatchEndCB;

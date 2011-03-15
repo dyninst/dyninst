@@ -1850,7 +1850,7 @@ static bool hasWeirdEntryBytes(int_function *func)
 // 
 void BPatch_process::overwriteAnalysisUpdate
     ( std::map<Dyninst::Address,unsigned char*>& owPages, //input
-      std::vector<Dyninst::Address>& deadBlockAddrs, //output
+      std::vector<std::pair<Dyninst::Address,int> >& deadBlocks, //output
       std::vector<BPatch_function*>& owFuncs, //output: overwritten & modified
       std::set<BPatch_function *> &monitorFuncs, // output: those that call overwritten or modified funcs
       bool &changedPages, bool &changedCode) //output
@@ -1943,7 +1943,7 @@ void BPatch_process::overwriteAnalysisUpdate
             ((BPatch_basicBlock*)(*bit)->getHighLevelBlock())
                 ->setlowlevel_block(NULL);
         }
-        deadBlockAddrs.push_back((*bit)->start());
+        deadBlocks.push_back(pair<Address,int>((*bit)->start(),(*bit)->size()));
         iFunc->deleteBlock((*bit));
         ParseAPI::Block *newEntry = NULL;
         if (newFuncEntries.end() != newFuncEntries.find(iFunc)) {
@@ -2021,13 +2021,12 @@ void BPatch_process::overwriteAnalysisUpdate
         }
  
         // add blocks to deadBlockAddrs 
-
-        const int_function::BlockSet& 
-            deadBlocks = (*fit)->blocks();
+        const int_function::BlockSet& deadBs = (*fit)->blocks();
         set<int_block* ,int_block::compare>::const_iterator
-                bIter= deadBlocks.begin();
-        for (; bIter != deadBlocks.end(); bIter++) {
-            deadBlockAddrs.push_back((*bIter)->start());
+                bIter= deadBs.begin();
+        for (; bIter != deadBs.end(); bIter++) {
+            deadBlocks.push_back(pair<Address,int>((*bIter)->start(),
+                                                   (*bIter)->size()));
         }
     }
     mal_printf("Done deleting dead func blocks\n");

@@ -2223,28 +2223,30 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
     return ret;
 }
 
-void image::addSplitBlock(image_basicBlock *first, image_basicBlock *second) {
-
+void image::addSplitBlock(SplitBlock &sb) 
+{
     std::list<Address> toRemove;
-	splitBlocks_.insert(make_pair(first, second));
-    for (block_map_t::iterator iter = inst_pts_[first].begin(); iter != inst_pts_[first].end(); ++iter) {
-        if (iter->second->offset() >= second->start()) 
+	splitBlocks_.push_back(sb);
+    for (block_map_t::iterator iter = inst_pts_[sb.first].begin(); 
+         iter != inst_pts_[sb.first].end(); ++iter) 
+    {
+        if (iter->second->offset() >= sb.second->start()) 
         {
             // Move the point to the next block
-            iter->second->setBlock(second);
+            iter->second->setBlock(sb.second);
             // Remove from the first block's instPoint map
             toRemove.push_back(iter->first);
-            inst_pts_[second][iter->first] = iter->second;
+            inst_pts_[sb.second][iter->first] = iter->second;
         }
     }
     for (std::list<Address>::iterator iter = toRemove.begin(); iter != toRemove.end(); ++iter) 
     {
-        inst_pts_[first].erase(*iter);
+        inst_pts_[sb.first].erase(*iter);
     }
 }
 
 
-const image::SplitBlocks & image::getSplitBlocks() const
+const vector<image::SplitBlock> & image::getSplitBlocks() const
 {
     return splitBlocks_;
 }

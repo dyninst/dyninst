@@ -5103,7 +5103,7 @@ bool process::patchPostCallArea(instPoint *callPt)
     return true;
 }
 
-bool process::generateRequiredPatches(instPoint *callPt, 
+bool process::generateRequiredPatches(instPoint *callPoint, 
                                       AddrPairSet &patchAreas)
 {
     // We need to figure out where this patch should branch to.
@@ -5113,56 +5113,76 @@ bool process::generateRequiredPatches(instPoint *callPt,
     // 2) For each padding area, create a (padAddr,target) pair
 
     // 1)
-    int_block *callbbi = callPt->block();
-    assert(callPt->addr() < callbbi->end());
-    int_block *ftbbi = callbbi->getFallthrough();
-    if (!ftbbi) {
-        // find the block at the next address, if there's no fallthrough block
-        set<int_block*> blks;
-        callbbi->func()->obj()->findBlocksByEntry(callbbi->end(),blks);
-        assert(!blks.empty());
-        ftbbi = *blks.begin();
-        if (blks.size() > 1) {
-            // if there's more than one block (i.e., it's shared), pick 
-            // the one that's the entry block of its function
-            for (set<int_block*>::iterator bit = blks.begin(); 
-                 bit != blks.end(); 
-                 bit++) 
-            {
-                if ((*bit)->start() == (*bit)->func()->getAddress()) {
-                    ftbbi = *bit;
-                    break;
+
+    // ensure that we patch other callPts at the same address
+    vector<ParseAPI::Function*> callFuncs;
+    callPoint->block()->llb()->getFuncs(callFuncs);
+    for (vector<ParseAPI::Function*>::iterator fit = callFuncs.begin();
+         fit != callFuncs.end();
+         fit++)
+    {
+        int_function *callF = findFuncByInternalFunc((image_func*)*fit);
+        int_block *callB =callF->findBlockByEntry(callPoint->block()->start());
+        instPoint *callP = callF->findInstPByAddr(callPoint->addr());
+        if (!callP) {
+            callF->funcCalls();
+            callP = callF->findInstPByAddr(callPoint->addr());
+        }
+        assert(callP && callP->addr() < callB->end());
+        int_block *ftBlk = callB->getFallthrough();
+        if (!ftBlk) {
+            // find the block at the next address, if there's no fallthrough block
+            set<int_block*> blks;
+            callF->obj()->findBlocksByEntry(callB->end(),blks);
+            assert(!blks.empty());
+            ftBlk = *blks.begin();
+            if (blks.size() > 1) {
+                // if there's more than one block (i.e., it's shared), pick 
+                // the one that's the entry block of its function
+                for (set<int_block*>::iterator bit = blks.begin(); 
+                     bit != blks.end(); 
+                     bit++) 
+                {
+                    if ((*bit)->start() == (*bit)->func()->getAddress()) {
+                        ftBlk = *bit;
+                        break;
+                    }
                 }
             }
         }
-    }
-    Relocation::CodeTracker::RelocatedElements reloc;
-    CodeTrackers::reverse_iterator rit;
-    for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++)
-    {
-        if ((*rit).origToReloc(ftbbi->start(), ftbbi->func(), reloc)) {
-            break;
-        }
-    }
-    assert(rit != relocatedCode_.rend());
-    
-    Address to = (reloc.instrumentation ? reloc.instrumentation : reloc.instruction);
-
-    // 2) 
-    if (forwardDefensiveMap_.end() != forwardDefensiveMap_.find(callPt)) {
-        set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[callPt].begin();
-        for (; d_iter != forwardDefensiveMap_[callPt].end(); ++d_iter) 
+        Relocation::CodeTracker::RelocatedElements reloc;
+        CodeTrackers::reverse_iterator rit;
+        for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++)
         {
-          Address jumpAddr = d_iter->first;
-          patchAreas.insert(std::make_pair(jumpAddr, to));
-          mal_printf("patching post-call pad for %lx[%lx] with %lx %s[%d]\n",
-                     callbbi->end(), jumpAddr, to, FILE__,__LINE__);
+            if ((*rit).origToReloc(ftBlk->start(), ftBlk->func(), reloc)) {
+                break;
+            }
+        }
+        if (rit == relocatedCode_.rend()) {
+            mal_printf("WARNING: no relocs of call-fallthrough at %lx "
+                       "in func at %lx, will not patch its post-call "
+                       "padding\n", callP->addr(),callF->getAddress());
+            continue;
+        }
+        
+        Address to = (reloc.instrumentation ? reloc.instrumentation : reloc.instruction);
+
+        // 2) 
+        if (forwardDefensiveMap_.end() != forwardDefensiveMap_.find(callP)) {
+            set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[callP].begin();
+            for (; d_iter != forwardDefensiveMap_[callP].end(); ++d_iter) 
+            {
+              Address jumpAddr = d_iter->first;
+              patchAreas.insert(std::make_pair(jumpAddr, to));
+              mal_printf("patching post-call pad for %lx[%lx] with %lx %s[%d]\n",
+                         callB->end(), jumpAddr, to, FILE__,__LINE__);
+            }
         }
     }
-    if (!patchAreas.size()) {
-        mal_printf("no relocs to patch for call at %lx\n", callPt->addr());
+    if (patchAreas.empty()) {
+        mal_printf("no relocs to patch for call at %lx\n", callPoint->addr());
     }
-    return true;
+    return ! patchAreas.empty();
 }
 
 void process::generatePatchBranches(AddrPairSet &branchesNeeded) {

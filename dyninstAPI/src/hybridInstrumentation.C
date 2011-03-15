@@ -897,7 +897,8 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         {
             using namespace InstructionAPI;
             Address curFallThroughAddr = (*cIter)->getCallFallThroughAddr();
-            if (c_BranchInsn != (*cIter)->getInsnAtPoint()->getCategory() &&
+            if (NULL != (*cIter)->getInsnAtPoint() && 
+                c_BranchInsn != (*cIter)->getInsnAtPoint()->getCategory() &&
                 ! hasEdge((*cIter)->getFunction(), 
                            (Address)((*cIter)->llpoint()->block()->start()), 
                            curFallThroughAddr) &&
@@ -1056,9 +1057,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
     // fill in the post-call area with a patch 
     // (even if we didn't parse, we have to do this to get rid of the illegal instructions in the pad)
     proc()->finalizeInsertionSet(false);
-    if (!callPoint->patchPostCallArea()) {
-        success = false;
-    }
+    callPoint->patchPostCallArea(); 
 
     return success;
 }

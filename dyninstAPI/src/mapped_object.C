@@ -1198,37 +1198,28 @@ mapped_module* mapped_object::getDefaultModule()
 // and adjusts point->block pointers accordingly 
 // (original block halves are resized in addMissingBlock)
 //
-// KEVINTODO: this would be much cheaper if we stored pairs of split blocks, 
 bool mapped_object::splitIntLayer()
 {
 #if ! defined (cap_instruction_api)
     // not implemented (or needed, for now) on non-instruction API platforms
     return false;
 #else
-    set<int_function*> splitFuncs;
+    // split the functions
+    set<int_function*> splitFuncs; // for consistency checks
     using namespace InstructionAPI;
-    // iterates through the blocks that were created during block splitting
-    const image::SplitBlocks &splits = parse_img()->getSplitBlocks();
-    for (image::SplitBlocks::const_iterator bIter = splits.begin(); 
+    const vector<image::SplitBlock> &splits = parse_img()->getSplitBlocks();
+    for (vector<image::SplitBlock>::const_iterator bIter = splits.begin(); 
          bIter != splits.end(); bIter++) 
     {
-        // foreach function corresponding to the block
-        image_basicBlock *splitImgB = bIter->first;
-        vector<Function *> funcs;
-        splitImgB->getFuncs(funcs);
-        for (std::vector<Function*>::iterator fIter = funcs.begin();
-             fIter != funcs.end(); 
-             fIter++) {
-            image_func *imgFunc = static_cast<image_func*>(*fIter);
-            int_function *func = findFunction(imgFunc);
+        if (bIter->func->contains(bIter->first)) {
+            int_function *func = findFunction(bIter->func);
             assert(func);
-            func->splitBlock(bIter->first, bIter->second);
             splitFuncs.insert(func);
+            func->splitBlock(bIter->first, bIter->second);
         }
     }
 
-    // The new block should already be in the tracking data
-    // structures from when it was created
+    // do consistency checks
     for(set<int_function*>::iterator fit = splitFuncs.begin();
         fit != splitFuncs.end();
         fit++)
@@ -1506,7 +1497,8 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
 		}
 	}
  
-	/* 1. Clean up any edges we haven't done yet */
+	/* 1. Parse intra-object edges, after removing any edges that 
+          would be duplicates at the image-layer */
 	parse_img()->codeObject()->parseNewEdges(edgesInThisObject);
 
 /* 2. Register all newly created image_funcs as a result of new edge parsing */

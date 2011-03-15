@@ -217,7 +217,7 @@ DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
     ret = new image_edge((image_basicBlock*)src,
                          (image_basicBlock*)trg,
                          type);
-    //if (src->start() == 0x564c) {
+    //if (trg->start() == 0x9000) {
     //    printf("adding edge to 0x%lx\n",src->start());
     //}
     //fprintf(stderr,"mkedge between Block %p and %p, img_bb: %p and %p\n",
@@ -270,10 +270,12 @@ DynParseCallback::newfunction_retstatus(Function *func)
 }
 
 void
-DynParseCallback::block_split(Block *first, Block *second)
+DynParseCallback::block_split(Block *first, Block *second, Function *func)
 {
-   _img->addSplitBlock(static_cast<image_basicBlock *>(first),
-                       static_cast<image_basicBlock *>(second));
+    image::SplitBlock sb (static_cast<image_basicBlock *>(first),
+                          static_cast<image_basicBlock *>(second),
+                          static_cast<image_func*>(func));
+   _img->addSplitBlock(sb);
 }
 
 void DynParseCallback::block_delete(Block *b) {
