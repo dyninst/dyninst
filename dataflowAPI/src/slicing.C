@@ -295,7 +295,7 @@ Slicer::updateAndLink(
     else
         insn = cand.loc.rcurrent->first;
 
-    convertInstruction(insn,cand.addr(),cand.loc.func,assns);
+    convertInstruction(insn,cand.addr(),cand.loc.func,cand.loc.block,assns);
 
     for(unsigned i=0; i<assns.size(); ++i) {
         SliceFrame::ActiveMap::iterator ait = cand.active.begin();
@@ -846,7 +846,7 @@ Slicer::handleCallDetails(
     ParseAPI::Function * callee = cur.loc.func;
 
     long stack_depth = 0;
-    if(!getStackDepth(caller, caller_block->end(), stack_depth))
+    if(!getStackDepth(caller, caller_block, caller_block->end(), stack_depth))
         return false;
 
     // Increment the context
@@ -1035,7 +1035,7 @@ Slicer::handleCallDetailsBackward(
     Address callBlockLastInsn = callBlock->lastInsnAddr();
 
     long stack_depth;
-    if(!getStackDepth(caller,callBlockLastInsn,stack_depth)) {
+    if(!getStackDepth(caller, callBlock, callBlockLastInsn,stack_depth)) {
         return false;
     }
 
@@ -1103,7 +1103,7 @@ Slicer::handleReturnDetailsBackward(
     ParseAPI::Function * callee = cur.loc.func;
 
     long stack_depth;
-    if(!getStackDepth(caller,caller_block->end(),stack_depth)) {
+    if(!getStackDepth(caller, caller_block, caller_block->end(),stack_depth)) {
         return false;
     }
     
@@ -1219,10 +1219,10 @@ Graph::Ptr Slicer::backwardSlice(Predicates &predicates) {
   return sliceInternal(backward, predicates);
 }
 
-bool Slicer::getStackDepth(ParseAPI::Function *func, Address callAddr, long &height) {
+bool Slicer::getStackDepth(ParseAPI::Function *func, ParseAPI::Block *block, Address callAddr, long &height) {
   StackAnalysis sA(func);
 
-  StackAnalysis::Height heightSA = sA.findSP(callAddr);
+  StackAnalysis::Height heightSA = sA.findSP(block, callAddr);
 
   // Ensure that analysis has been performed.
 
@@ -1337,10 +1337,12 @@ std::string SliceNode::format() const {
 void Slicer::convertInstruction(Instruction::Ptr insn,
 				Address addr,
 				ParseAPI::Function *func,
+                                ParseAPI::Block *block,
 				std::vector<Assignment::Ptr> &ret) {
   converter.convert(insn,
 		    addr,
 		    func,
+                    block,
 		    ret);
   return;
 }

@@ -142,6 +142,8 @@ public:
     virtual bool attach();
     virtual bool plat_suspend();
     virtual bool plat_resume();
+    virtual bool plat_needsEmulatedSingleStep(vector<Dyninst::Address> &) { return true; }
+    virtual bool plat_needsPCSaveBeforeSingleStep() { return false; }
 
     /* FreeBSD-specific */
     virtual bool plat_setStep();

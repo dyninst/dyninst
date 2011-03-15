@@ -86,20 +86,17 @@ namespace Dyninst
     
     std::string RegisterAST::format(formatStyle) const
     {
-        const char* name = m_Reg.name();
-	//return name;
-        if(name)
-        {
-            std::string ret(name);
-            std::string::size_type substr = ret.rfind(':');
-            if(substr != std::string::npos)
-            {
-                ret = ret.substr(substr+1, ret.length());
-            }
-            std::transform(ret.begin(), ret.end(), ret.begin(), ::toupper);
-            return ret;
-        }
-        return "[NAME NOT FOUND]";
+       std::string name = m_Reg.name();
+       if (name == "") {
+          return "[NAME NOT FOUND]";
+       }
+       std::string::size_type substr = name.rfind(':');
+       if(substr != std::string::npos)
+       {
+          name = name.substr(substr+1, name.length());
+       }
+       std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+       return name;
     }
     RegisterAST RegisterAST::makePC(Dyninst::Architecture arch)
     {

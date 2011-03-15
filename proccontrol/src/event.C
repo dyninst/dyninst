@@ -176,6 +176,7 @@ std::string EventType::name() const
       STR_CASE(Async);
       STR_CASE(ChangePCStop);
       STR_CASE(ForceTerminate);
+      STR_CASE(PrepSingleStep);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -689,6 +690,24 @@ EventChangePCStop::~EventChangePCStop()
 {
 }
 
+EventPrepSingleStep::EventPrepSingleStep(emulated_singlestep *newSingleStep) :
+    Event(EventType(EventType::None, EventType::PrepSingleStep)), 
+    es(newSingleStep)
+{
+}
+
+EventPrepSingleStep::~EventPrepSingleStep()
+{
+}
+
+bool EventPrepSingleStep::procStopper() const {
+    return true;
+}
+
+emulated_singlestep *EventPrepSingleStep::getEmulatedSingleStep() const {
+    return es;
+}
+
 #define DEFN_EVENT_CAST(NAME, TYPE) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE) return NAME::ptr();  \
@@ -742,4 +761,5 @@ DEFN_EVENT_CAST(EventLibrary, Library)
 DEFN_EVENT_CAST(EventRPCInternal, RPCInternal)
 DEFN_EVENT_CAST(EventAsync, Async)
 DEFN_EVENT_CAST(EventChangePCStop, ChangePCStop)
+DEFN_EVENT_CAST(EventPrepSingleStep, PrepSingleStep)    
 

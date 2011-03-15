@@ -12,6 +12,7 @@
 
 class installed_breakpoint;
 class HandlerPool;
+class emulated_singlestep;
 
 namespace Dyninst {
 namespace ProcControlAPI {
@@ -50,6 +51,7 @@ class EventLibrary;
 class EventRPCInternal;
 class EventAsync;
 class EventChangePCStop;
+class EventPrepSingleStep;
 
 class Event : public dyn_detail::boost::enable_shared_from_this<Event>
 {
@@ -158,6 +160,9 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
 
    dyn_detail::boost::shared_ptr<EventChangePCStop> getEventChangePCStop();
    dyn_detail::boost::shared_ptr<const EventChangePCStop> getEventChangePCStop() const;
+
+   dyn_detail::boost::shared_ptr<EventPrepSingleStep> getEventPrepSingleStep();
+   dyn_detail::boost::shared_ptr<const EventPrepSingleStep> getEventPrepSingleStep() const;
 
  protected:
    EventType etype;
@@ -508,6 +513,22 @@ class EventChangePCStop : public Event
    typedef dyn_detail::boost::shared_ptr<const EventChangePCStop> const_ptr;
    EventChangePCStop();
    ~EventChangePCStop();
+};
+
+class EventPrepSingleStep : public Event
+{
+   friend void dyn_detail::boost::checked_delete<EventPrepSingleStep>(EventPrepSingleStep *);
+   friend void dyn_detail::boost::checked_delete<const EventPrepSingleStep>(const EventPrepSingleStep *);
+ private:
+   emulated_singlestep *es;
+ public:
+   typedef dyn_detail::boost::shared_ptr<EventPrepSingleStep> ptr;
+   typedef dyn_detail::boost::shared_ptr<const EventPrepSingleStep> const_ptr;
+   EventPrepSingleStep(emulated_singlestep *);
+   ~EventPrepSingleStep();
+
+   virtual bool procStopper() const;
+   emulated_singlestep *getEmulatedSingleStep() const;
 };
 
 }

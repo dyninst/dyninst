@@ -620,6 +620,12 @@ bool thread_db_process::initThreadDB() {
                 continue;
         }
 
+        if( !plat_convertToBreakpointAddress(notifyResult.u.bptaddr) ) {
+            perr_printf("Failed to determine breakpoint address\n");
+            setLastError(err_internal, "Failed to install new thread_db event breakpoint");
+            return false;
+        }
+
         int_breakpoint *newEventBrkpt = new int_breakpoint(Breakpoint::ptr());
         if( !addBreakpoint((Dyninst::Address)notifyResult.u.bptaddr,
                     newEventBrkpt))
@@ -638,6 +644,11 @@ bool thread_db_process::initThreadDB() {
         assert( insertIter.second && "event breakpoint address not unique" );
     }
 
+    return true;
+}
+
+bool thread_db_process::plat_convertToBreakpointAddress(psaddr_t &) {
+    // Default behavior is no translation
     return true;
 }
 
@@ -1256,6 +1267,10 @@ bool thread_db_process::decodeTdbLibLoad(EventLibrary::ptr)
 
 void thread_db_process::addThreadDBHandlers(HandlerPool *)
 {
+}
+
+bool thread_db_process::plat_convertToBreakpointAddress(psaddr_t &) {
+    return true;
 }
 
 thread_db_thread::thread_db_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) : 

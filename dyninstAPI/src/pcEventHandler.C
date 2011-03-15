@@ -824,7 +824,7 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
         }else{
             fprintf(stderr, "Registers at crash:\n");
             for(RegisterPool::iterator i = regs.begin(); i != regs.end(); i++) {
-                fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name(), (*i).second);
+                fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name().c_str(), (*i).second);
             }
         }
 
@@ -1321,7 +1321,7 @@ bool PCEventHandler::handleBreakpoint(EventBreakpoint::const_ptr ev, PCProcess *
                 }else{
                     fprintf(stderr, "Registers at breakpoint:\n");
                     for(RegisterPool::iterator i = regs.begin(); i != regs.end(); i++) {
-                        fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name(), (*i).second);
+                        fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name().c_str(), (*i).second);
                     }
                 }
             }

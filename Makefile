@@ -67,6 +67,7 @@ clean distclean:
 # Check that the main installation directories, etc., are ready for a build,
 # creating them if they don't already exist!
 ready:
+	@echo "[User:`whoami` Host:`hostname` Platform:$(PLATFORM) Date:`date '+%Y-%m-%d'`]"
 	+@for installdir in $(LIBRARY_DEST) $(PROGRAM_DEST) $(INCLUDE_DEST); do \
 	    if [ -d $$installdir ]; then			\
 		echo "Installation directory $$installdir exists...";	\

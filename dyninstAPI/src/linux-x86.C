@@ -115,7 +115,26 @@ Address PCProcess::getTOCoffsetInfo(int_function *) {
     return 0;
 }
 
+bool PCProcess::getOPDFunctionAddr(Address &) {
+    return true;
+}
+
 AstNodePtr PCProcess::createUnprotectStackAST() {
+    // Since we are punching our way down to an internal function, we
+    // may run into problems due to stack execute protection. Basically,
+    // glibc knows that it needs to be able to execute on the stack in
+    // in order to load libraries with dl_open(). It has code in
+    // _dl_map_object_from_fd (the workhorse of dynamic library loading)
+    // that unprotects a global, exported variable (__stack_prot), sets
+    // the execute flag, and reprotects it. This only happens, however,
+    // when the higher-level dl_open() functions (which we skip) are called,
+    // as they append an undocumented flag to the library open mode. Otherwise,
+    // assignment to the variable happens without protection, which will
+    // cause a fault.
+    //
+    // Instead of chasing the value of the undocumented flag, we will
+    // unprotect the __stack_prot variable ourselves (if we can find it).
+
     startup_printf("%s[%d]: creating AST to call mprotect to unprotect libc stack protection variable\n",
             FILE__, __LINE__);
 

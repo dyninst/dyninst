@@ -239,6 +239,16 @@ class HandleAsync : public Handler
    virtual void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
+class HandlePrepSingleStep : public Handler
+{
+    public:
+        HandlePrepSingleStep();
+        ~HandlePrepSingleStep();
+
+        virtual handler_ret_t handleEvent(Event::ptr ev);
+        virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+};
+
 class HandleCallbacks : public Handler
 {
   friend class HandlerPool;

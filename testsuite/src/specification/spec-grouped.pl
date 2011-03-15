@@ -362,7 +362,8 @@ mutator_requires_libs('test1_20', L) :-
         platform(Arch, _, _, P),
         (Arch = 'i386' -> L = ['instructionAPI'];
          Arch = 'x86_64' -> L = ['instructionAPI'];
-         Arch = 'power' -> L = ['instructionAPI'];
+         Arch = 'power32' -> L = ['instructionAPI'];
+         Arch = 'power64' -> L = ['instructionAPI'];
          Arch = 'powerpc' -> L = ['instructionAPI'];
          L = []
                 ).
@@ -447,7 +448,7 @@ test_description('init_fini_callback', 'Adds callbacks for rewritten module on l
     test_platform('init_fini_callback', Platform) :-
     platform(Arch, OS, _, Platform),
     member(OS, ['linux', 'freebsd', 'bluegene']),
-    member(Arch, ['i386', 'x86_64', 'power']).
+    member(Arch, ['i386', 'x86_64', 'power32', 'power64']).
 mutator('init_fini_callback', ['init_fini_callback.C']).
 mutatee('init_fini_callback', ['init_fini_callback_mutatee.c']).
 mutatee_requires_libs('init_fini_callback', Libs) :-
@@ -1091,7 +1092,7 @@ test_mem_mutatee_aux(P, Aux) :-
     (
         platform('sparc', 'solaris', _, P) -> Aux = ['test_mem_util.c',
                                                      'test6LS-sparc.S'];
-        platform('power', 'aix', _, P) -> Aux = ['test_mem_util.c',
+        platform('power32', 'aix', _, P) -> Aux = ['test_mem_util.c',
                                                  'test6LS-power.s'];
         platform('i386', 'linux', _, P) -> Aux = ['test_mem_util.c',
                                                   'test6LS-x86.asm'];
@@ -1101,14 +1102,16 @@ test_mem_mutatee_aux(P, Aux) :-
                                                   'test6LS-ia64.s'];
         platform('x86_64', 'linux', _, P) -> Aux = ['test_mem_util.c',
                                                     'test6LS-x86_64.s'];
-        platform('power', 'linux', _, P) -> Aux = ['test_mem_util.c',
+        platform('power32', 'linux', _, P) -> Aux = ['test_mem_util.c',
+                                                   'test6LS-powerpc.S'];
+        platform('power64', 'linux', _, P) -> Aux = ['test_mem_util.c',
                                                    'test6LS-powerpc.S']
     ).
 
 % Convenience rule for checking platforms for test_mem_*
 test_mem_platform(Platform) :-
         platform('sparc', 'solaris', _, Platform);
-        platform('power', 'aix', _, Platform);
+        platform('power32', 'aix', _, Platform);
         platform('i386', 'linux', _, Platform);
         platform('i386', 'windows', _, Platform);
         platform('ia64', 'linux', _, Platform);
@@ -1129,7 +1132,7 @@ spec_object_file(OFile, 'gcc', ['dyninst/test6LS-sparc.S'], [], [],
 
 spec_object_file(OFile, 'ibm_as', ['dyninst/test6LS-power.s'], [], [], []) :-
         current_platform(P),
-        platform('power', 'aix', _, P),
+        platform('power32', 'aix', _, P),
         member(OFile, ['test6LS-power_gcc_32_none', 'test6LS-power_gcc_32_low',
                        'test6LS-power_gcc_32_high', 'test6LS-power_gcc_32_max']).
 
@@ -2409,7 +2412,8 @@ test_description('power_decode', 'Tests the read & write sets of POWER instructi
 test_platform('power_decode', Platform) :-
         platform(Platform),
         platform('i386', _, _, Platform);
-        platform('power', _, _, Platform);
+        platform('power32', _, _, Platform);
+        platform('power64', _, _, Platform);
         platform('powerpc', _, _, Platform);
         platform('x86_64', _, _, Platform).
 mutator('power_decode', ['power_decode.C']).
@@ -2422,7 +2426,8 @@ test_description('power_cft', 'Tests the control flow targets of POWER instructi
 test_platform('power_cft', Platform) :-
         platform(Platform),
         platform('i386', _, _, Platform);
-        platform('power', _, _, Platform);
+        platform('power32', _, _, Platform);
+        platform('power64', _, _, Platform);
         platform('powerpc', _, _, Platform);
         platform('x86_64', _, _, Platform).
 mutator('power_cft', ['power_cft.C']).
@@ -2633,13 +2638,13 @@ platform('sparc', 'solaris', 'solaris2.8', 'sparc-sun-solaris2.8').
 platform('sparc', 'solaris', 'solaris2.9', 'sparc-sun-solaris2.9').
 platform('i386', 'windows', 'nt4.0', 'i386-unknown-nt4.0').
 platform('i386', 'windows', 'winXP', 'i386-unknown-winXP').
-platform('power', 'aix', 'aix5.1', 'rs6000-ibm-aix5.1').
-platform('power', 'aix', 'aix5.2', 'rs6000-ibm-aix64-5.2').
+platform('power32', 'aix', 'aix5.1', 'rs6000-ibm-aix5.1').
+platform('power32', 'aix', 'aix5.2', 'rs6000-ibm-aix64-5.2').
 platform('alpha', 'osf', 'osf5.1', 'alpha-dec-osf5.1').
 platform('x86_64', 'linux', 'linux2.4', 'x86_64-unknown-linux2.4').
-platform('power', 'linux', 'linux2.6', 'ppc64_linux').
-platform('power', 'linux', 'linux2.6', 'ppc32_linux').
-platform('power', 'bluegene', 'bluegenep', 'ppc32_bgp').
+platform('power64', 'linux', 'linux2.6', 'ppc64_linux').
+platform('power32', 'linux', 'linux2.6', 'ppc32_linux').
+platform('power32', 'bluegene', 'bluegenep', 'ppc32_bgp').
 platform('i386', 'freebsd', 'freebsd7.2', 'i386-unknown-freebsd7.2').
 platform('x86_64', 'freebsd', 'freebsd7.2', 'amd64-unknown-freebsd7.2').
 
@@ -2688,12 +2693,12 @@ whitelist([['platform', Platform], ['mutatee_abi', ABI]]) :-
     platform_abi(Platform, ABI).
 
 % platform_abi/2
-% All platforms support 32-bit mutatees except ia64
-% FIXME Does ppc64 support 32-bit mutatees?
+% All platforms support 32-bit mutatees except ia64, ppc64, and freebsd.
 platform_abi(Platform, 32) :-
     platform(Arch, _, _, Platform),
     Arch \= 'ia64',
-    Platform \= 'amd64-unknown-freebsd7.2'.
+    \+ member(Platform, ['amd64-unknown-freebsd7.2',
+                         'ppc64_linux']).
 
 % A smaller list of platforms with for 64-bit mutatees
 platform_abi('ia64-unknown-linux2.4', 64).
@@ -2813,7 +2818,7 @@ aux_compiler_for_platform(Platform, 'att_asm', 'gcc') :-
     % and we cant have multiple compilers use the same extension on a platform
     \+ member(OS, ['windows', 'aix', 'bluegene']).
 aux_compiler_for_platform(Platform, 'power_asm', 'ibm_as') :-
-        platform('power', 'aix', _, Platform).
+        platform('power32', 'aix', _, Platform).
 aux_compiler_for_platform(Platform, 'sparc_asm', 'gcc') :-
         platform('sparc', 'solaris', _, Platform).
 
@@ -3122,7 +3127,7 @@ comp_lang('ibm_as', 'power_asm').
 compiler_s('ibm_as', 'as').
 compiler_define_string('ibm_as', 'ibm_as').
 compiler_platform('ibm_as', Platform) :-
-    platform('power', 'aix', _, Platform).
+    platform('power32', 'aix', _, Platform).
 comp_std_flags_str('ibm_as', '').
 comp_mutatee_flags_str('ibm_as', '').
 mutatee_link_options('ibm_as', '').
@@ -3147,10 +3152,26 @@ compiler_platform_abi_s(Compiler, Platform, ABI, '') :-
     compiler_platform(Compiler, Platform),
     mutatee_abi(ABI),
     platform_abi(Platform, ABI),
-    \+ (member(Compiler, ['gcc', 'g++']), Platform = 'x86_64-unknown-linux2.4',
-        ABI = 32).
+    \+ ((member(Compiler, ['gcc', 'g++', 'icc', 'iCC', 'pgcc', 'pgCC']),
+         Platform = 'x86_64-unknown-linux2.4',
+         ABI = 32);
+        (member(Compiler, ['gcc', 'g++']),
+         Platform = 'ppc64_linux')).
+
 compiler_platform_abi_s(Compiler, 'x86_64-unknown-linux2.4', 32,
                         '-m32 -Di386_unknown_linux2_4 -Dm32_test') :-
+    member(Compiler, ['gcc', 'g++', 'icc', 'iCC']).
+compiler_platform_abi_s(Compiler, 'x86_64-unknown-linux2.4', 32,
+                        '-tp px -Di386_unknown_linux2_4 -Dm32_test') :-
+    member(Compiler, ['pgcc', 'pgCC']).
+%
+% PPC64 platform doesn't support 32-bit mutatees (yet).
+%
+%compiler_platform_abi_s(Compiler, 'ppc64_linux', 32,
+%                        '-m32 -Dppc32_linux -Dm32_test') :-
+%    member(Compiler, ['gcc', 'g++']).
+compiler_platform_abi_s(Compiler, 'ppc64_linux', 64,
+                        '-m64') :-
     member(Compiler, ['gcc', 'g++']).
 
 
@@ -3340,8 +3361,8 @@ runmode_platform(P, 'useAttach') :- platform(_, OS, _, P),
 	OS \= 'bluegene'.
 runmode_platform(P, 'binary') :- platform('i386', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('x86_64', 'linux', _, P).
-runmode_platform(P, 'binary') :- platform('power', 'linux', _, P).
-runmode_platform(P, 'binary') :- platform('power', 'bluegene', _,P).
+runmode_platform(P, 'binary') :- platform('power32', 'linux', _, P).
+runmode_platform(P, 'binary') :- platform('power32', 'bluegene', _,P).
 runmode_platform(P, 'binary') :- platform('i386', 'freebsd', _, P).
 runmode_platform(P, 'binary') :- platform('x86_64', 'freebsd', _,P).
 % runmode_platform(P, 'deserialize') :- platform(_, _, _, P).

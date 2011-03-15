@@ -375,6 +375,9 @@ inline void SymElf::createSymCache()
 {
    unsigned long sym_count = 0, cur_sym = 0, cur_sec = 0;
    
+   if (!cache && sym_sections)
+      return;
+
    assert(!cache);
    assert(!sym_sections);
    for (unsigned i=0; i < elf.e_shnum(); i++) 
@@ -389,8 +392,9 @@ inline void SymElf::createSymCache()
       sym_sections_size++;
    }
 
-   cache = (SymCacheEntry *) malloc(sym_count * sizeof(SymCacheEntry));
    sym_sections = (Elf_X_Shdr *) malloc(sym_sections_size * sizeof(Elf_X_Shdr));
+   if (sym_count)
+      cache = (SymCacheEntry *) malloc(sym_count * sizeof(SymCacheEntry));
    
    for (unsigned i=0; i < elf.e_shnum(); i++) 
    {
@@ -417,9 +421,10 @@ inline void SymElf::createSymCache()
       }
    }
    cache_size = cur_sym;
-   cache = (SymCacheEntry *) realloc(cache, cur_sym  * sizeof(SymCacheEntry)); //Size reduction
-
-   qsort(cache, cache_size, sizeof(SymCacheEntry), symcache_cmp);
+   if (cache)
+      cache = (SymCacheEntry *) realloc(cache, cur_sym  * sizeof(SymCacheEntry)); //Size reduction
+   if (cache)
+      qsort(cache, cache_size, sizeof(SymCacheEntry), symcache_cmp);
 }
 
 inline Symbol_t SymElf::lookupCachedSymbol(Dyninst::Offset off)
@@ -427,7 +432,13 @@ inline Symbol_t SymElf::lookupCachedSymbol(Dyninst::Offset off)
    unsigned min = 0;
    unsigned max = cache_size;
    unsigned cur = cache_size / 2;
+   Symbol_t ret;
    
+   if (!cache) {
+      ret.i2 = INVALID_SYM_CODE;
+      return ret;
+   }
+
    for (;;) {
       if (max == min || min+1 == max)
          break;
@@ -445,7 +456,6 @@ inline Symbol_t SymElf::lookupCachedSymbol(Dyninst::Offset off)
    }
    void *sym_ptr = cache[cur].symloc;
 
-   Symbol_t ret;
    for (unsigned i=0; i<sym_sections_size; i++) {
       Elf_X_Shdr &shdr = sym_sections[i];
       Elf_X_Data data = shdr.get_data();

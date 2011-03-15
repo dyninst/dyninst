@@ -289,6 +289,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             }
             adjusted_addr = adjustTrapAddr(addr, proc->getTargetArch());
 
+            Dyninst::MachRegisterVal pre_ss_pc = lthread->getPreSingleStepPC();
+
             if (rpcMgr()->isRPCTrap(thread, adjusted_addr)) {
                pthrd_printf("Decoded event to rpc completion on %d/%d at %lx\n",
                             proc->getPid(), thread->getLWP(), adjusted_addr);
@@ -297,12 +299,34 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             }
 
             installed_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
+
+            // Need to distinguish case where the thread is single-stepped to a
+            // breakpoint and when a single step hits a breakpoint.
+            //
+            // If no forward progress was made due to a single step, then a
+            // breakpoint was hit
+            if (thread->singleStep() && (pre_ss_pc != addr || !ibp)) {
+               installed_breakpoint *ibp = thread->isClearingBreakpoint();
+               if (ibp) {
+                  pthrd_printf("Decoded event to breakpoint cleanup\n");
+                  event = Event::ptr(new EventBreakpointClear(ibp));
+                  break;
+               } 
+               else{
+                  pthrd_printf("Decoded event to single step on %d/%d\n",
+                               proc->getPid(), thread->getLWP());
+                  event = Event::ptr(new EventSingleStep());
+                  break;
+               }
+            }
+            
             if (ibp && ibp != thread->isClearingBreakpoint()) {
                pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(), 
                             thread->getLWP(), adjusted_addr);
                EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(adjusted_addr, ibp));
                event = event_bp;
                event->setThread(thread->thread());
+               ibp->addClearingThread(thread);
 
                if (adjusted_addr == lproc->getLibBreakpointAddr()) {
                   pthrd_printf("Breakpoint is library load/unload\n");
@@ -311,30 +335,34 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                   lib_event->setProcess(proc->proc());
                   lproc->decodeTdbLibLoad(lib_event);
                   event->addSubservientEvent(lib_event);
-                  
                   break;
                }
                if (lproc->decodeTdbBreakpoint(event_bp)) {
                   pthrd_printf("Breakpoint was thread event\n");
                   break;
                }
+
+               if (thread->isEmulatingSingleStep() && thread->isEmulatedSingleStep(ibp)) {
+                   pthrd_printf("Breakpoint is emulated single step\n");
+                   installed_breakpoint *ibp = thread->isClearingBreakpoint();
+                   if( ibp ) {
+                       pthrd_printf("Decoded emulated single step to breakpoint cleanup\n");
+                       EventBreakpointClear::ptr bc_event = EventBreakpointClear::ptr(new EventBreakpointClear(ibp));
+                       bc_event->setThread(thread->thread());
+                       bc_event->setProcess(proc->proc());
+                       event->addSubservientEvent(bc_event);
+                   }else{
+                       pthrd_printf("Decoded emulated single step to normal single step\n");
+                       EventSingleStep::ptr ss_event = EventSingleStep::ptr(new EventSingleStep());
+                       ss_event->setThread(thread->thread());
+                       ss_event->setProcess(proc->proc());
+                       event->addSubservientEvent(ss_event);
+                   }
+               }
                break;
             }
-            if (thread->singleStep())
-            {
-               installed_breakpoint *ibp = thread->isClearingBreakpoint();
-               if (ibp) {
-                  pthrd_printf("Decoded event to breakpoint cleanup\n");
-                  event = Event::ptr(new EventBreakpointClear(ibp));
-                  break;
-               } 
-               else {
-                  pthrd_printf("Decoded event to single step on %d/%d\n",
-                               proc->getPid(), thread->getLWP());
-                  event = Event::ptr(new EventSingleStep());
-                  break;
-               }
-            }
+
+            break;
          }
          default:
             pthrd_printf("Decoded event to signal %d on %d/%d\n",
@@ -500,7 +528,16 @@ static int computeAddrWidth(int pid)
    long int result = read(fd, buffer, sizeof(buffer));
    long int words_read = result / sizeof(uint32_t);
    int word_size = 8;
-   for (long int i=1; i<words_read; i+= 4)
+
+   // We want to check the highest 4 bytes of each integer
+   // On big-endian systems, these come first in memory
+#if defined(arch_power)
+   int start_index = 0;
+#else
+   int start_index = 1;
+#endif
+
+   for (long int i=start_index; i<words_read; i+= 4)
    {
       if (buffer[i] != 0) {
          word_size = 4;
@@ -988,8 +1025,6 @@ void linux_thread::setOptions()
    }   
 }
 
-
-
 bool linux_process::plat_individualRegAccess()
 {
    return true;
@@ -1303,6 +1338,17 @@ static void init_dynreg_to_user()
 #define MAX_USER_SIZE (912+128)
 bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
 {
+#if defined(bug_registers_after_exit)
+   /* On some kernels, attempting to read registers from a thread in a pre-Exit
+    * state causes an oops
+    */
+   if( isExiting() ) {
+       perr_printf("Cannot reliably retrieve registers from an exited thread\n");
+       setLastError(err_exited, "Cannot retrieve registers from an exited thread");
+       return false;
+   }
+#endif
+
    volatile unsigned int sentinel1 = 0xfeedface;
    unsigned char user_area[MAX_USER_SIZE];
    volatile unsigned int sentinel2 = 0xfeedface;
@@ -1346,7 +1392,7 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
       else {
          assert(0);
       }
-      pthrd_printf("Register %s has value %lx, offset %d\n", reg.name(), val, offset);
+      pthrd_printf("Register %s has value %lx, offset %d\n", reg.name().c_str(), val, offset);
       regpool.regs[reg] = val;
    }
    return true;
@@ -1354,6 +1400,17 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
 
 bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
 {
+#if defined(bug_registers_after_exit)
+   /* On some kernels, attempting to read registers from a thread in a pre-Exit
+    * state causes an oops
+    */
+   if( isExiting() ) {
+       perr_printf("Cannot reliably retrieve registers from an exited thread\n");
+       setLastError(err_exited, "Cannot retrieve registers from an exited thread");
+       return false;
+   }
+#endif
+
    if (x86::fsbase == reg || x86::gsbase == reg 
        || x86_64::fsbase == reg || x86_64::gsbase == reg) {
       return getSegmentBase(reg, val);
@@ -1362,7 +1419,7 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    init_dynreg_to_user();
    dynreg_to_user_t::iterator i = dynreg_to_user.find(reg);
    if (i == dynreg_to_user.end() || reg.getArchitecture() != llproc()->getTargetArch()) {
-      perr_printf("Recieved unexpected register %s on thread %d\n", reg.name(), lwp);
+      perr_printf("Recieved unexpected register %s on thread %d\n", reg.name().c_str(), lwp);
       setLastError(err_badparam, "Invalid register");
       return false;
    }
@@ -1379,11 +1436,22 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    }
    val = result;
 
-   pthrd_printf("Register %s has value 0x%lx\n", reg.name(), val);
+   pthrd_printf("Register %s has value 0x%lx\n", reg.name().c_str(), val);
    return true;
 }
 
 bool linux_thread::plat_setAllRegisters(int_registerPool &regpool) {
+#if defined(bug_registers_after_exit)
+   /* On some kernels, attempting to read registers from a thread in a pre-Exit
+    * state causes an oops
+    */
+   if( isExiting() ) {
+       perr_printf("Cannot reliably retrieve registers from an exited thread\n");
+       setLastError(err_exited, "Cannot retrieve registers from an exited thread");
+       return false;
+   }
+#endif
+
    unsigned char user_area[MAX_USER_SIZE];
 
    //Fill in 'user_area' with the contents of regpool.
@@ -1432,7 +1500,7 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
       else {
          assert(0);
       }
-      pthrd_printf("Register %s gets value %lx, offset %d\n", reg.name(), val, offset);
+      pthrd_printf("Register %s gets value %lx, offset %d\n", reg.name().c_str(), val, offset);
    }
 
    if (num_found != regpool.regs.size())
@@ -1449,6 +1517,17 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
 
 bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val)
 {
+#if defined(bug_registers_after_exit)
+   /* On some kernels, attempting to read registers from a thread in a pre-Exit
+    * state causes an oops
+    */
+   if( isExiting() ) {
+       perr_printf("Cannot reliably retrieve registers from an exited thread\n");
+       setLastError(err_exited, "Cannot retrieve registers from an exited thread");
+       return false;
+   }
+#endif
+
    init_dynreg_to_user();
    dynreg_to_user_t::iterator i = dynreg_to_user.find(reg);
    if (reg.getArchitecture() != llproc()->getTargetArch() ||
@@ -1456,7 +1535,7 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    {
       setLastError(err_badparam, "Invalid register passed to setRegister");
       perr_printf("User passed invalid register %s to plat_setRegister, arch is %x\n",
-                  reg.name(), (unsigned int) reg.getArchitecture());
+                  reg.name().c_str(), (unsigned int) reg.getArchitecture());
       return false;
    }
    
@@ -1474,12 +1553,12 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    else {
       assert(0);
    }
-   pthrd_printf("Set register %s (size %u, offset %u) to value %lx\n", reg.name(), size, offset, val);
+   pthrd_printf("Set register %s (size %u, offset %u) to value %lx\n", reg.name().c_str(), size, offset, val);
    if (result != 0) {
       int error = errno;
       setLastError(err_internal, "Could not set register value");
       perr_printf("Unable to set value of register %s in thread %d: %s\n",
-                  reg.name(), lwp, strerror(error));
+                  reg.name().c_str(), lwp, strerror(error));
       return false;
    }
    

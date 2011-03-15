@@ -169,6 +169,7 @@ public:
     bool reinstallMutations();
     Address getTOCoffsetInfo(Address dest); // platform-specific
     Address getTOCoffsetInfo(int_function *func); // platform-specific
+    bool getOPDFunctionAddr(Address &opdAddr); // architecture-specific
 
     // iRPC interface
     bool postIRPC(AstNodePtr action,

@@ -54,6 +54,14 @@ using namespace InstructionAPI;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InsnAdapter;
 
+static RegisterAST::Ptr ppc32_R11 (new RegisterAST (ppc32::r11));
+static RegisterAST::Ptr ppc32_LR  (new RegisterAST (ppc32::lr));
+static RegisterAST::Ptr ppc32_SP  (new RegisterAST (ppc32::r1));
+
+static RegisterAST::Ptr ppc64_R11 (new RegisterAST (ppc64::r11));
+static RegisterAST::Ptr ppc64_LR  (new RegisterAST (ppc64::lr));
+static RegisterAST::Ptr ppc64_SP  (new RegisterAST (ppc64::r1));
+
 bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr) const
 {
     return false;
@@ -63,8 +71,6 @@ bool IA_IAPI::isNop() const
 {
     return false;
 }
-
-
 
 bool IA_IAPI::isThunk() const {
     return false;
@@ -93,32 +99,6 @@ bool IA_IAPI::isTailCall(Function* /*context*/,unsigned int) const
         parsing_printf("\ttoo few insns to detect tail call\n");
         return tailCall.second;
     }
-/*
-    if(curInsn()->getCategory() == c_BranchInsn ||
-       curInsn()->getCategory() == c_CallInsn)
-    {
-        std::map<Address, Instruction::Ptr>::const_iterator prevIter =
-                allInsns.find(current);
-        --prevIter;
-        Instruction::Ptr prevInsn = prevIter->second;
-        if(prevInsn->getOperation().getID() == e_leave)
-        {
-            parsing_printf("\tprev insn was leave, TAIL CALL\n");
-            tailCall.second = true;
-            return tailCall.second;
-        }
-        if(prevInsn->getOperation().getID() == e_pop)
-        {
-            if(prevInsn->isWritten(framePtr[_isrc->getArch()]))
-            {
-                parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn->format().c_str());
-                tailCall.second = true;
-                return tailCall.second;
-            }
-            parsing_printf("\tprev insn was %s, not tail call\n", prevInsn->format().c_str());
-        }
-    }
-*/
     tailCall.second = false;
     return tailCall.second;
 
@@ -175,18 +155,17 @@ bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Func
           DataflowAPI::SymEval::Result_t slRes;
           DataflowAPI::SymEval::expand(slGraph,slRes);
           pcDef = slRes[*ait];
-	  if (!pcDef) assert(0);
-	  /*
-  	 for (DataflowAPI::SymEval::Result_t::const_iterator r_iter = slRes.begin();
-       		r_iter != slRes.end(); ++r_iter) {
-    		cout << "-----------------" << endl;
-    		cout << r_iter->first->format();
-    		cout << " == ";
-    		cout << (r_iter->second ? r_iter->second->format() : "<NULL>") << endl;
-
-    	}
-*/
-        break;
+          /*
+          for (DataflowAPI::SymEval::Result_t::const_iterator r_iter = slRes.begin();
+               r_iter != slRes.end(); ++r_iter) {
+              cout << "-----------------" << endl;
+              cout << r_iter->first->format();
+              cout << " == ";
+              cout << (r_iter->second ? r_iter->second->format() : "<NULL>") << endl;
+          }
+          */
+          if (!pcDef) assert(0);
+          break;
       }
   }
 
@@ -201,10 +180,13 @@ bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Func
 
 bool IA_IAPI::isReturnAddrSave(Address& retAddr) const
 {
-  // FIXME it seems as though isReturnAddrSave won't work for PPC64
-  static RegisterAST::Ptr ppc_theLR (new RegisterAST (ppc32::lr));
-  static RegisterAST::Ptr ppc_stackPtr (new RegisterAST (ppc32::r1));
-  static RegisterAST::Ptr ppc_gpr0 (new RegisterAST (ppc32::r0));
+  RegisterAST::Ptr regLR, regSP;
+  switch (_isrc->getArch()) {
+  case Arch_ppc32: regLR = ppc32_LR; regSP = ppc32_SP; break;
+  case Arch_ppc64: regLR = ppc64_LR; regSP = ppc64_SP; break;
+  default: assert(0 && "Inappropriate _isrc architechture.");
+  }
+
   std::set < RegisterAST::Ptr > regs;
   RegisterAST::Ptr destLRReg;
   bool foundMFLR = false;
@@ -215,32 +197,33 @@ bool IA_IAPI::isReturnAddrSave(Address& retAddr) const
     parsing_printf("\t\tchecking insn %s \n", ci->format().c_str());
 
   if (ci->getOperation ().getID () == power_op_mfspr &&
-      ci->isRead (ppc_theLR))
+      ci->isRead (regLR))
     {
       foundMFLR = true;
       ci->getWriteSet (regs);
       if (regs.size () != 1)
 	{
-	  parsing_printf ("expected mtspr to read 1 register, insn is %s\n",
-			  ci->format ().c_str ());
+	  parsing_printf ("mfspr wrote %d registers instead of 1. insn: %s\n",
+			  regs.size (), ci->format ().c_str ());
 	  return 0;
 	}
       destLRReg = *(regs.begin ());
       retAddr = getAddr();
-      parsing_printf ("Found MFLR saved in %s at 0x%lx \n", destLRReg->format ().c_str (), getAddr());
+      parsing_printf ("Found MFLR saved in %s at 0x%lx\n",
+                      destLRReg->format ().c_str (), getAddr());
     }
 
   if (foundMFLR)
     {
 
       // walk to first control flow transfer instruction, looking
-      // for a save of gpr0
+      // for a save of destLRReg
       IA_IAPI copy (dec, getAddr (), _obj, _cr, _isrc, _curBlk);
       while (!copy.hasCFT () && copy.curInsn ())
 	{
 	  ci = copy.curInsn ();
 	  if (ci->writesMemory () &&
-	      ci->isRead (ppc_stackPtr) && ci->isRead (destLRReg))
+	      ci->isRead (regSP) && ci->isRead (destLRReg))
 	    {
 	      ret = true;
 	      break;
@@ -254,8 +237,7 @@ bool IA_IAPI::isReturnAddrSave(Address& retAddr) const
 	  ++cnt;
 	}
     }
-  parsing_printf ("[%s:%d] isReturnAddrSave examined %d instructions - returning %d \n",
-		  FILE__, __LINE__, cnt, ret);
+  parsing_printf ("[%s:%d] isReturnAddrSave examined %d instructions - returning %d \n", FILE__, __LINE__, cnt, ret);
   return ret;
 }
 
@@ -276,17 +258,21 @@ bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI:
     {
       parsing_printf ("\t LR saved for %s \n", func->name().c_str());
       // Check for lwz from Stack - mtlr - blr 
-      static RegisterAST::Ptr ppc_theLR (new RegisterAST (ppc32::lr));
-      static RegisterAST::Ptr ppc_stackPtr (new RegisterAST (ppc32::r1));
-      static RegisterAST::Ptr ppc_gpr0 (new RegisterAST (ppc32::r0));
-      static RegisterAST::Ptr ppc_gpr11 (new RegisterAST (ppc32::r11));
+      RegisterAST::Ptr regLR, regSP, reg11;
+      switch (_isrc->getArch()) {
+      case Arch_ppc32:
+          regLR = ppc32_LR; regSP = ppc32_SP; reg11 = ppc32_R11; break;
+      case Arch_ppc64:
+          regLR = ppc64_LR; regSP = ppc64_SP; reg11 = ppc64_R11; break;
+      default: assert(0 && "Inappropriate _isrc architechture.");
+      }
+
       std::set < RegisterAST::Ptr > regs;
       RegisterAST::Ptr sourceLRReg;
 
       Instruction::Ptr ci = curInsn ();
-      int foundMTLR = false;
-      std::map < Address,
-      Dyninst::InstructionAPI::Instruction::Ptr >::reverse_iterator iter;
+      bool foundMTLR = false;
+      allInsns_t::reverse_iterator iter;
       Address blockStart = currBlk->start ();
       const unsigned char *b =
 	(const unsigned char *) (this->_isrc->
@@ -303,7 +289,7 @@ bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI:
 	  parsing_printf ("\t\tchecking insn 0x%x: %s \n", iter->first,
 		  iter->second->format ().c_str ());
 	  if (iter->second->getOperation ().getID () == power_op_mtspr &&
-	      iter->second->isWritten (ppc_theLR))
+	      iter->second->isWritten (regLR))
 	    {
 	      iter->second->getReadSet (regs);
 	      if (regs.size () != 1)
@@ -320,16 +306,16 @@ bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI:
 	    }
 	  else if (foundMTLR &&
 		   iter->second->readsMemory () &&
-		   (iter->second->isRead (ppc_stackPtr) ||
-		    (iter->second->isRead (ppc_gpr11))) &&
+		   (iter->second->isRead (regSP) ||
+		    (iter->second->isRead (reg11))) &&
 		   iter->second->isWritten (sourceLRReg))
 	    {
 	      parsing_printf ("\t\t\t **** Found lwz - RETURNING TRUE\n");
 	      return true;
 	    }
 	}
-	
-      parsing_printf (" Slicing for Addr 0x%lx startAddr 0x%lx ret adrr 0x%lx func %s\n",
+
+      parsing_printf (" Slicing for Addr 0x%lx startAddr 0x%lx ret addr 0x%lx func %s\n",
 	      getAddr (), currBlk->start (), func->_ret_addr, func->name().c_str());
       if (sliceReturn(currBlk, func->_ret_addr, func)) {
 	parsing_printf ("\t\t\t **** Slicing - is a return instruction\n");

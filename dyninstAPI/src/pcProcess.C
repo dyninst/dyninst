@@ -895,6 +895,12 @@ bool PCProcess::loadRTLib() {
         return false;
     }
 
+    if( runtime_lib.size() == 0 ) {
+        startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
+                __LINE__);
+        return false;
+    }
+
     startup_printf("%s[%d]: finished running RPC to load RT library\n", FILE__, __LINE__);
 
     if( !postRTLoadCleanup() ) {

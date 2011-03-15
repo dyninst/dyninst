@@ -102,6 +102,7 @@ class linux_process : public sysv_process, public unix_process, public arch_proc
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
    virtual bool plat_supportLWPEvents() const;
    virtual bool plat_getOSRunningState(Dyninst::LWP lwp) const;
+   virtual bool plat_convertToBreakpointAddress(psaddr_t &);
 };
 
 class linux_thread : public thread_db_thread
@@ -130,6 +131,8 @@ class linux_thread : public thread_db_thread
                                       result_response::ptr result);
    virtual bool plat_getThreadArea(int val, Dyninst::Address &addr);
    virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
+   virtual bool plat_needsEmulatedSingleStep(vector<Dyninst::Address> &result);
+   virtual bool plat_needsPCSaveBeforeSingleStep();
 
    // Needed by HybridLWPControl, unused on Linux
    virtual bool plat_resume() { return true; }
@@ -137,7 +140,7 @@ class linux_thread : public thread_db_thread
 
    void setOptions();
    bool getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
-
+   
    static void fake_async_main(void *);
 };
 
