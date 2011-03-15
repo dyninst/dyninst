@@ -108,6 +108,28 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
    return 0;
 }
 
+uint64_t getFunctionPtr(unsigned long *ptr) {
+    unsigned long tmpAddr;
+#if defined(arch_power_test) && defined(arch_64bit_test)
+    /* need to dereference function pointers before sending them to mutator */
+    tmpAddr = *ptr;
+#else
+    tmpAddr = (unsigned long)ptr;
+#endif
+    return (uint64_t)tmpAddr;
+}
+
+uint64_t getTOCValue(unsigned long *ptr) {
+    unsigned long tmpAddr;
+#if defined(arch_power_test) && defined(arch_64bit_test)
+    /* need to get the TOC value from the opd */
+    tmpAddr = ptr[1];
+#else
+    tmpAddr = (unsigned long)ptr;
+#endif
+    return (uint64_t)tmpAddr;
+}
+
 int handshakeWithServer()
 {
    int result;

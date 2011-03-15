@@ -77,11 +77,19 @@ int pc_irpc_mutatee()
    }
 
    addr_msg.code = SENDADDR_CODE;
-   addr_msg.addr = (uint64_t) irpc_calltarg;
+   addr_msg.addr = getFunctionPtr((unsigned long *)irpc_calltarg);
    result = send_message((unsigned char *) &addr_msg, sizeof(addr_msg));
    if (result == -1) {
       output->log(STDERR, "Failed to send func addr message\n");
       return -1;
+   }
+
+   // Only needed on ppc64, nop on other architectures
+   addr_msg.addr = getTOCValue((unsigned long *)irpc_calltarg);
+   result = send_message((unsigned char *) &addr_msg, sizeof(addr_msg));
+   if (result == -1) {
+       output->log(STDERR, "Failed to send func addr message\n");
+       return -1;
    }
 
    addr_msg.addr = (uint64_t) &val;

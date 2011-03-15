@@ -51,4 +51,7 @@ int releaseThreads();
 int send_message(unsigned char *msg, size_t msg_size);
 int recv_message(unsigned char *msg, size_t msg_size);
 
+uint64_t getFunctionPtr(unsigned long *ptr);
+uint64_t getTOCValue(unsigned long *ptr);
+
 #endif

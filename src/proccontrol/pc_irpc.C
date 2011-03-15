@@ -69,6 +69,7 @@ struct rpc_data_t {
 struct proc_info_t {
    Dyninst::Address val;
    Dyninst::Address irpc_calltarg;
+   Dyninst::Address irpc_tocval;
    std::vector<rpc_data_t *> rpcs;
    proc_info_t() : val(0), irpc_calltarg(0) {}
    void clear() {
@@ -157,7 +158,8 @@ static void createBuffer(Process::ptr proc,
          break;
       }
       case Dyninst::Arch_ppc64: {
-         buffer_size = 9*4;
+         Dyninst::Address tocval = p.irpc_tocval;
+         buffer_size = 15*4;
          buffer = (unsigned char *)malloc(buffer_size);
          // nop
          buffer[0] = 0x60; buffer[1] = 0x00; buffer[2] = 0x00; buffer[3] = 0x00;
@@ -173,10 +175,22 @@ static void createBuffer(Process::ptr proc,
          buffer[20] = 0x60; buffer[21] = 0x00; buffer[22] = 0x00; buffer[23] = 0x00;
          // mtctr
          buffer[24] = 0x7c; buffer[25] = 0x09; buffer[26] = 0x03; buffer[27] = 0xa6;
+         // lis r2, 0
+         buffer[28] = 0x3c; buffer[29] = 0x40; buffer[30] = 0x00; buffer[31] = 0x00;
+         // ori     r2,r2,0
+         buffer[32] = 0x60; buffer[33] = 0x42; buffer[34] = 0x00; buffer[35] = 0x00;
+         // rldicr  r2,r2,32,31
+         buffer[36] = 0x78; buffer[37] = 0x42; buffer[38] = 0x07; buffer[39] = 0xc6;
+         // oris    r2,r2,0
+         buffer[40] = 0x64; buffer[41] = 0x42; buffer[42] = 0x00; buffer[43] = 0x00;
+         // ori     r2,r2,0
+         buffer[44] = 0x60; buffer[45] = 0x42; buffer[46] = 0x00; buffer[47] = 0x00;
+         // li      r11,0
+         buffer[48] = 0x39; buffer[49] = 0x60; buffer[50] = 0x00; buffer[51] = 0x00;
          // bctrl
-         buffer[28] = 0x4e; buffer[29] = 0x80; buffer[30] = 0x04; buffer[31] = 0x21;
+         buffer[52] = 0x4e; buffer[53] = 0x80; buffer[54] = 0x04; buffer[55] = 0x21;
          // trap
-         buffer[4] = 0x7d; buffer[5] = 0x82; buffer[6] = 0x10; buffer[7] = 0x08;
+         buffer[56] = 0x7d; buffer[57] = 0x82; buffer[58] = 0x10; buffer[59] = 0x08;
          start_offset = 4;
 
          // copy address to buffer
@@ -185,6 +199,11 @@ static void createBuffer(Process::ptr proc,
          *((uint16_t *) (buffer + 18)) = (uint16_t)(calltarg >> 16);
          *((uint16_t *) (buffer + 22)) = (uint16_t)(calltarg);
 
+         // copy TOC value into buffer
+         *((uint16_t *) (buffer + 30)) = (uint16_t)((uint64_t)tocval >> 48);
+         *((uint16_t *) (buffer + 34)) = (uint16_t)((uint64_t)tocval >> 32);
+         *((uint16_t *) (buffer + 42)) = (uint16_t)(tocval >> 16);
+         *((uint16_t *) (buffer + 46)) = (uint16_t)(tocval);
          break;
       }
       default:
@@ -692,6 +711,18 @@ test_results_t pc_irpcMutator::executeTest()
          myerror = true;
       }
       p.irpc_calltarg = addr.addr;
+
+      result = comp->recv_message((unsigned char *) &addr, sizeof(send_addr),
+              proc);
+      if(!result) {
+          logerror("Failed to receive addr message\n");
+          myerror = true;
+      }
+      if( addr.code != SENDADDR_CODE ) {
+          logerror("Unexpected addr code\n");
+          myerror = true;
+      }
+      p.irpc_tocval = addr.addr;
 
       result = comp->recv_message((unsigned char *) &addr, sizeof(send_addr), 
                                   proc);
