@@ -104,7 +104,38 @@ public:
     
     bool updateTidInfo(vector<Event::ptr> &threadEvents);
     bool needsTidUpdate();
-    
+
+    //The types for thread_db functions we will call
+    typedef td_err_e (*td_init_t)(void);
+    typedef td_err_e (*td_ta_new_t)(struct ps_prochandle *, td_thragent_t **);
+    typedef td_err_e (*td_ta_delete_t)(td_thragent_t *);
+    typedef td_err_e (*td_ta_event_addr_t)(const td_thragent_t *, td_event_e, td_notify_t *);
+    typedef td_err_e (*td_ta_set_event_t)(const td_thragent_t *, td_thr_events_t *);
+    typedef td_err_e (*td_ta_event_getmsg_t)(const td_thragent_t *, td_event_msg_t *);
+    typedef td_err_e (*td_ta_map_lwp2thr_t)(const td_thragent_t *, lwpid_t, td_thrhandle_t *);
+    typedef td_err_e (*td_thr_get_info_t)(const td_thrhandle_t *, td_thrinfo_t *);
+    typedef td_err_e (*td_thr_event_enable_t)(const td_thrhandle_t *, int);
+    typedef td_err_e (*td_thr_set_event_t)(const td_thrhandle_t *, td_thr_events_t *);
+    typedef td_err_e (*td_thr_event_getmsg_t)(const td_thrhandle_t *, td_event_msg_t *);
+    typedef td_err_e (*td_thr_dbsuspend_t)(const td_thrhandle_t *);
+    typedef td_err_e (*td_thr_dbresume_t)(const td_thrhandle_t *);
+
+    //Function pointers to the thread_db functions
+    static bool loadedThreadDBLibrary();
+    static td_init_t p_td_init;
+    static td_ta_new_t p_td_ta_new;
+    static td_ta_delete_t p_td_ta_delete;
+    static td_ta_event_addr_t p_td_ta_event_addr;
+    static td_ta_set_event_t p_td_ta_set_event;
+    static td_ta_event_getmsg_t p_td_ta_event_getmsg;
+    static td_ta_map_lwp2thr_t p_td_ta_map_lwp2thr;
+    static td_thr_get_info_t p_td_thr_get_info;
+    static td_thr_event_enable_t p_td_thr_event_enable;
+    static td_thr_set_event_t p_td_thr_set_event;
+    static td_thr_event_getmsg_t p_td_thr_event_getmsg;
+    static td_thr_dbsuspend_t p_td_thr_dbsuspend;
+    static td_thr_dbresume_t p_td_thr_dbresume;
+
 protected:
     Event::ptr decodeThreadEvent(td_event_msg_t *eventMsg);
     bool handleThreadAttach(td_thrhandle_t *thr);
@@ -121,6 +152,10 @@ protected:
     int_thread *trigger_thread;
 
     bool needs_tid_update;
+    
+ private:
+    static bool tdb_loaded;
+    static bool tdb_loaded_result;
 };
 
 /*

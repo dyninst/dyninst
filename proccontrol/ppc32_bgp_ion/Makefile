@@ -15,7 +15,7 @@ include ../../make.config
 
 LDFLAGS     += $(LIBDIR) -lcommon
 
-SRCS = 	../src/bluegene.C \
+SRCS =  ../src/bluegene.C \
         ../src/notify_pipe.C \
         ../src/sysv.C \
         ../src/ppc_process.C \
