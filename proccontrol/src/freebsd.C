@@ -429,6 +429,7 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                     EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(adjusted_addr, ibp));
                     event = event_bp;
                     event->setThread(thread->thread());
+                    ibp->addClearingThread(thread);
 
                     if( adjusted_addr == lproc->getLibBreakpointAddr() ) {
                         pthrd_printf("Breakpoint is library load/unload\n");
@@ -1300,7 +1301,7 @@ bool freebsd_thread::plat_stop() {
 }
 
 bool freebsd_thread::plat_resume() {
-    if( llproc()->threadPool()->hadMultipleThreads() ) return true;
+    if( !llproc()->threadPool()->hadMultipleThreads() ) return true;
 
     pthrd_printf("Calling PT_RESUME on %d\n", lwp);
     if( 0 != ptrace(PT_RESUME, lwp, (caddr_t)1, 0) ) {
@@ -1314,7 +1315,7 @@ bool freebsd_thread::plat_resume() {
 }
 
 bool freebsd_thread::plat_suspend() {
-    if( llproc()->threadPool()->hadMultipleThreads() ) return true;
+    if( !llproc()->threadPool()->hadMultipleThreads() ) return true;
 
     pthrd_printf("Calling PT_SUSPEND on %d\n", lwp);
     if( 0 != ptrace(PT_SUSPEND, lwp, (caddr_t)1, 0) ) {
@@ -1516,7 +1517,7 @@ bool freebsd_thread::plat_getAllRegisters(int_registerPool &regpool) {
         }else{
             assert(!"Unknown address width");
         }
-        pthrd_printf("Register %s has value 0x%lx, offset 0x%x\n", reg.name(), (unsigned long)val, offset);
+        pthrd_printf("Register %s has value 0x%lx, offset 0x%x\n", reg.name().c_str(), (unsigned long)val, offset);
         regpool.regs[reg] = val;
     }
 
@@ -1586,7 +1587,7 @@ bool freebsd_thread::plat_setAllRegisters(int_registerPool &regpool) {
             assert(!"Unknown address width");
         }
 
-        pthrd_printf("Register %s gets value 0x%lx, offset 0x%x\n", reg.name(), (unsigned long)val, offset);
+        pthrd_printf("Register %s gets value 0x%lx, offset 0x%x\n", reg.name().c_str(), (unsigned long)val, offset);
     }
 
     if (num_found != regpool.regs.size()) {
