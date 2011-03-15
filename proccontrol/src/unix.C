@@ -394,3 +394,13 @@ Dyninst::Address unix_process::plat_mallocExecMemory(Dyninst::Address min, unsig
     free(maps);
     return result;
 }
+
+bool unix_process::plat_supportFork()
+{
+   return true;
+}
+
+bool unix_process::plat_supportExec()
+{
+   return true;
+}

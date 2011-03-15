@@ -1011,13 +1011,15 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
 bool thread_db_process::post_create() {
     if( !int_process::post_create() ) return false;
 
-    return initThreadDB();
+    initThreadDB(); //swallow errors.  We don't bring everything down if thread_db fails
+    return true;
 }
 
 bool thread_db_process::post_attach() {
     if( !int_process::post_attach() ) return false;
 
-    return initThreadDB();
+    initThreadDB();
+    return true;
 }
 
 bool thread_db_process::getPostDestroyEvents(vector<Event::ptr> &events) { 
@@ -1064,6 +1066,14 @@ bool thread_db_process::plat_getLWPInfo(lwpid_t, void *)
 {
    perr_printf("Attempt to use unsupported plat_getLWPInfo\n");
    return false;
+}
+
+bool thread_db_process::plat_supportThreadEvents()
+{
+   if (!loadedThreadDBLibrary()) {
+      return false;
+   }
+   return true;
 }
 
 bool thread_db_thread::plat_convertToSystemRegs(const int_registerPool &,
@@ -1449,6 +1459,11 @@ void thread_db_process::addThreadDBHandlers(HandlerPool *)
 
 bool thread_db_process::plat_convertToBreakpointAddress(psaddr_t &) {
     return true;
+}
+
+bool thread_db_process::plat_supportThreadEvents()
+{
+   return false;
 }
 
 thread_db_thread::thread_db_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) : 

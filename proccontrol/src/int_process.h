@@ -238,6 +238,11 @@ class int_process
    static bool isInCB();
    static void setInCB(bool b);
 
+   virtual bool plat_supportThreadEvents();
+   virtual bool plat_supportLWPEvents();
+   virtual bool plat_supportFork();
+   virtual bool plat_supportExec();
+
    int_library *getLibraryByName(std::string s) const;
    size_t numLibs() const;
    virtual bool refresh_libraries(std::set<int_library *> &added_libs,
@@ -248,7 +253,6 @@ class int_process
    virtual bool plat_isStaticBinary() = 0;
    virtual int_library *plat_getExecutable() = 0;
 
-   virtual bool plat_supportLWPEvents() const;
    bool forceGeneratorBlock() const;
    void setForceGeneratorBlock(bool b);
 

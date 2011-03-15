@@ -854,14 +854,14 @@ bool linux_process::needIndividualThreadAttach()
    return true;
 }
 
-bool linux_process::plat_supportLWPEvents() const
-{
-   return true;
-}
-
 bool linux_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
 {
    return findProcLWPs(pid, lwps);
+}
+
+bool linux_process::plat_supportLWPEvents()
+{
+   return true;
 }
 
 int_process::ThreadControlMode linux_process::plat_getThreadControlMode() const {

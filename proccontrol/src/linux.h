@@ -100,9 +100,9 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool plat_individualRegAccess();
    virtual bool plat_contProcess() { return true; }
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
-   virtual bool plat_supportLWPEvents() const;
    virtual int_process::ThreadControlMode plat_getThreadControlMode() const;
    virtual bool plat_convertToBreakpointAddress(psaddr_t &);
+   virtual bool plat_supportLWPEvents();
   protected:
    int computeAddrWidth(Dyninst::Architecture me);
 };

@@ -1550,11 +1550,6 @@ bool int_process::plat_needsAsyncIO() const
    return false;
 }
 
-bool int_process::plat_supportLWPEvents() const
-{
-   return false;
-}
-
 bool int_process::plat_readMemAsync(int_thread *, Dyninst::Address, 
                                     mem_response::ptr )
 {
@@ -1625,6 +1620,26 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
          assert(0);
       }
    }
+}
+
+bool int_process::plat_supportThreadEvents()
+{
+   return false;
+}
+
+bool int_process::plat_supportLWPEvents()
+{
+   return false;
+}
+
+bool int_process::plat_supportFork()
+{
+   return false;
+}
+
+bool int_process::plat_supportExec()
+{
+   return false;
 }
 
 int_process::~int_process()
@@ -4709,6 +4724,47 @@ Dyninst::Architecture Process::getArchitecture() const
    }
    return llproc_->getTargetArch();
 }
+
+bool Process::supportsLWPEvents() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("Support query on deleted process\n");
+      return false;
+   }
+   return llproc_->plat_supportLWPEvents();
+}
+
+bool Process::supportsUserThreadEvents() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("Support query on deleted process\n");
+      return false;
+   }
+   return llproc_->plat_supportThreadEvents();
+}
+
+bool Process::supportsFork() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("Support query on deleted process\n");
+      return false;
+   }
+   return llproc_->plat_supportFork();
+}
+
+bool Process::supportsExec() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("Support query on deleted process\n");
+      return false;
+   }
+   return llproc_->plat_supportExec();
+}
+
 
 Dyninst::Address Process::mallocMemory(size_t size, Dyninst::Address addr)
 {

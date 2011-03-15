@@ -305,6 +305,14 @@ class Process
    Dyninst::Architecture getArchitecture() const;
 
    /**
+    * Query what kind of events this process supports
+    **/
+   bool supportsLWPEvents() const;
+   bool supportsUserThreadEvents() const;
+   bool supportsFork() const;
+   bool supportsExec() const;
+
+   /**
     * Control process
     **/
    bool continueProc();

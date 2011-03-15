@@ -94,6 +94,8 @@ public:
     virtual bool post_attach();
     virtual bool post_create();
 
+    virtual bool plat_supportThreadEvents();
+
     // Platform-dependent functionality (derived classes override)
     virtual bool plat_getLWPInfo(lwpid_t lwp, void *lwpInfo);
     virtual const char *getThreadLibName(const char *symName);
