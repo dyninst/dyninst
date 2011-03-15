@@ -483,6 +483,9 @@ protected:
 
     // Debugging
     bool setBreakpoint(Address addr);
+    void writeDebugDataSpace(void *inTracedProcess, u_int amount,
+            const void *inSelf);
+    bool startDebugger(); // platform-specific
 
     // Fields //
 

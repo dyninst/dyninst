@@ -41,6 +41,7 @@ class PCProcess;
 
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
+#include "common/h/linuxKludges.h"
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Archive.h"
 

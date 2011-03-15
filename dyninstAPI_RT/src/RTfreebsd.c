@@ -168,7 +168,7 @@ void DYNINSTsafeBreakPoint()
     if( DYNINSTstaticMode ) return;
 
     DYNINST_break_point_event = 2;
-    tkill(getpid(), dyn_lwp_self(), SIGSTOP);
+    kill(getpid(), SIGSTOP);
 }
 
 #if !defined(DYNINST_RT_STATIC_LIB)

@@ -1601,11 +1601,14 @@ bool AddressSpace::canUseTraps()
    if (binEdit && binEdit->getMappedObject()->parse_img()->getObject()->isStaticBinary())
    	return false;
 
+   PCProcess *pcProc = dynamic_cast<PCProcess *>(this);
+   if( pcProc ) return useTraps_;
+
 #if !defined(cap_mutatee_traps)
    return false;
-#endif
-   
+#else
    return useTraps_;
+#endif
 }
 
 void AddressSpace::setUseTraps(bool usetraps)

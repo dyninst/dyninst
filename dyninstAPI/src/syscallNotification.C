@@ -31,10 +31,6 @@
 
 // $Id: syscall-linux.C,v 1.20 2008/05/28 17:14:19 legendre Exp $
 
-#define FORK_FUNC "__libc_fork"
-#define EXEC_FUNC "execve"
-#define EXIT_FUNC "_exit"
-
 #include "dyninstAPI/src/miniTramp.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/inst.h"
@@ -87,7 +83,7 @@ bool syscallNotification::installPreFork() {
     if( cbCase == PCEventHandler::BreakpointOnly ||
         cbCase == PCEventHandler::BothCallbackBreakpoint )
     {
-        preForkInst = new instMapping(FORK_FUNC,
+        preForkInst = new instMapping(getForkFuncName(),
                                       "DYNINST_instForkEntry",
                                       FUNC_ENTRY);
         preForkInst->dontUseTrampGuard();
@@ -114,7 +110,7 @@ bool syscallNotification::installPostFork() {
         cbCase == PCEventHandler::BothCallbackBreakpoint )
     {
         AstNodePtr returnVal = AstNode::operandNode(AstNode::ReturnVal, (void *)0);
-        postForkInst = new instMapping(FORK_FUNC, "DYNINST_instForkExit",
+        postForkInst = new instMapping(getForkFuncName(), "DYNINST_instForkExit",
                                        FUNC_EXIT|FUNC_ARG,
                                        returnVal);
         postForkInst->dontUseTrampGuard();
@@ -143,7 +139,7 @@ bool syscallNotification::installPreExec() {
         cbCase == PCEventHandler::BothCallbackBreakpoint )
     {
         AstNodePtr arg0 = AstNode::operandNode(AstNode::Param, (void *)0);
-        preExecInst = new instMapping(EXEC_FUNC, "DYNINST_instExecEntry",
+        preExecInst = new instMapping(getExecFuncName(), "DYNINST_instExecEntry",
                                        FUNC_ENTRY|FUNC_ARG,
                                        arg0);
         preExecInst->dontUseTrampGuard();
@@ -178,7 +174,7 @@ bool syscallNotification::installPreExit() {
         cbCase == PCEventHandler::BothCallbackBreakpoint )
     {
         AstNodePtr arg0 = AstNode::operandNode(AstNode::Param, (void *)0);
-        preExitInst = new instMapping(EXIT_FUNC, "DYNINST_instExitEntry",
+        preExitInst = new instMapping(getExitFuncName(), "DYNINST_instExitEntry",
                                       FUNC_ENTRY|FUNC_ARG,
                                       arg0);
         preExitInst->dontUseTrampGuard();

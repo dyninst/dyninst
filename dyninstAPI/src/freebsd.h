@@ -38,20 +38,13 @@
 
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
+#include "common/h/freebsdKludges.h"
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Archive.h"
 
 #define SIGNAL_HANDLER "no_signal_handler"
 
-class AuxvParser;
-
 class PCProcess;
-
-#if defined(arch_x86) || defined(arch_x86_64)
-Address getRegValueAtFrame(void *ehf, Address pc, int reg, 
-                           Address *reg_map,
-                           PCProcess *p, bool *error);
-#endif
 
 #if defined(arch_x86) || defined(arch_x86_64)
 #include "freebsd-x86.h"

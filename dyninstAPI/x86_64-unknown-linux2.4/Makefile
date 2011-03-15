@@ -36,7 +36,8 @@ SRCS =          ../src/linux.C \
 		../src/frameChecker.C \
 		../src/RegisterConversion-x86.C \
 		../src/BPatch_memoryAccessAdapter.C \
-		../src/IAPI_to_AST.C 
+		../src/IAPI_to_AST.C  \
+		../src/pcProcess-x86.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG

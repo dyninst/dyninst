@@ -3047,6 +3047,10 @@ bool int_threadPool::allStopped()
    return true;
 }
 
+bool int_threadPool::hadMultipleThreads() const {
+    return had_multiple_threads;
+}
+
 void int_threadPool::addThread(int_thread *thrd)
 {
    Dyninst::LWP lwp = thrd->getLWP();
@@ -3055,6 +3059,10 @@ void int_threadPool::addThread(int_thread *thrd)
    thrds_by_lwp[lwp] = thrd;
    threads.push_back(thrd);
    hl_threads.push_back(thrd->thread());
+
+   if( threads.size() > 1 ) {
+       had_multiple_threads = true;
+   }
 }
 
 void int_threadPool::rmThread(int_thread *thrd)
@@ -3120,7 +3128,7 @@ ThreadPool *int_threadPool::pool() const
 }
 
 int_threadPool::int_threadPool(int_process *p) :
-   proc_(p)
+   proc_(p), had_multiple_threads(false)
 {
    up_pool = new ThreadPool();
    up_pool->threadpool = this;

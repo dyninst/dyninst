@@ -1300,7 +1300,7 @@ bool freebsd_thread::plat_stop() {
 }
 
 bool freebsd_thread::plat_resume() {
-    if( llproc()->threadPool()->size() <= 1 ) return true;
+    if( llproc()->threadPool()->hadMultipleThreads() ) return true;
 
     pthrd_printf("Calling PT_RESUME on %d\n", lwp);
     if( 0 != ptrace(PT_RESUME, lwp, (caddr_t)1, 0) ) {
@@ -1314,7 +1314,7 @@ bool freebsd_thread::plat_resume() {
 }
 
 bool freebsd_thread::plat_suspend() {
-    if( llproc()->threadPool()->size() <= 1 ) return true;
+    if( llproc()->threadPool()->hadMultipleThreads() ) return true;
 
     pthrd_printf("Calling PT_SUSPEND on %d\n", lwp);
     if( 0 != ptrace(PT_SUSPEND, lwp, (caddr_t)1, 0) ) {
@@ -1335,10 +1335,7 @@ bool freebsd_thread::plat_cont() {
 
     setSignalStopped(false);
 
-    // Calling resume only makes sense for processes with multiple threads
-    if( llproc()->threadPool()->size() > 1 ) {
-        if( !plat_resume() ) return false;
-    }
+    if( !plat_resume() ) return false;
 
     // Because all signals stop the whole process, only one thread should
     // have a non-zero continue signal

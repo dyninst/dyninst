@@ -37,6 +37,7 @@
 #include "mapped_object.h"
 #include "registerSpace.h"
 #include "RegisterConversion.h"
+#include "function.h"
 
 #include "proccontrol/h/Mailbox.h"
 #include "proccontrol/h/PCErrors.h"
@@ -707,6 +708,13 @@ bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr ev, PCProcess 
         return false;
     }
 
+    // Ignore events for the initial thread
+    if( pcThr->isInitialThread() ) {
+        proccontrol_printf("%s[%d]: event corresponds to initial thread, ignoring thread create\n",
+                FILE__, __LINE__, evProc->getPid(), ev->getLWP());
+        return true;
+    }
+
     if( evProc->getThread(pcThr->getTID()) != NULL ) {
         proccontrol_printf("%s[%d]: thread already created with TID 0x%lx, ignoring thread create\n",
                 FILE__, __LINE__, pcThr->getTID());
@@ -835,16 +843,40 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
         // User specifies the action, defaults to core dump
         // (which corresponds to standard Dyninst behavior)
         if(dyn_debug_crash_debugger) {
+            if( string(dyn_debug_crash_debugger).find("gdb") != string::npos ) {
+                // If for whatever reason this fails, fall back on sleep
+                dyn_debug_crash_debugger = "sleep";
+
+                do{
+                    // Stop the process on detach 
+                    pdvector<int_function *> breakpointFuncs;
+                    if( !evProc->findFuncsByAll("DYNINSTsafeBreakPoint", breakpointFuncs) ) {
+                        fprintf(stderr, "Failed to find function DYNINSTsafeBreakPoint\n");
+                        break;
+                    }
+
+                    int_function *safeBreakpoint = breakpointFuncs[0];
+                    if( !ev->getThread()->setRegister(MachRegister::getPC(evProc->getArch()), 
+                                safeBreakpoint->getAddress()) ) 
+                    {
+                        fprintf(stderr, "Failed to set PC to 0x%lx\n", safeBreakpoint->getAddress());
+                        break;
+                    }
+
+                    // Detach the process
+                    if( !evProc->detachProcess(true) ) {
+                        fprintf(stderr, "Failed to detach from process %d\n", evProc->getPid());
+                        break;
+                    }
+
+                    // Spawn the debugger to attach to the process
+                    assert( evProc->startDebugger() );
+                }while(0);
+            }
+
             if( string(dyn_debug_crash_debugger) == string("sleep") ) {
                 static volatile int spin = 1;
                 while(spin) sleep(1);
-            }else if( string(dyn_debug_crash_debugger) == string("gdb") ) {
-                // TODO
-                // Insert instrumentation to stop the process on detach
-
-                // Detach the process
-
-                // Exec the debugger
             }
         }
     }

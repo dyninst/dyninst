@@ -45,12 +45,7 @@ endif
 OBJS         = $(SRCS:%.C=%.o)
 
 CXXFLAGS    += -Wall
-LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -lparseAPI
-
-# FreeBSD doesn't need to be linked with libiberty
-ifeq (, $(findstring freebsd, $(PLATFORM)))
-LIBS += -liberty -lpcontrol -lstackwalk
-endif
+LIBS        += -ldyninstAPI -lsymtabAPI -lparseAPI -lpcontrol -lstackwalk -lcommon -liberty
 
 ifneq (, $(findstring solaris, $(PLATFORM)))
 LIBS        += -ldwarf  -lelf
@@ -59,7 +54,7 @@ LDFLAGS += $(ELFFLAGS)
 endif
 
 ifneq (, $(findstring linux, $(PLATFORM)))
-LIBS        += -lpcontrol -ldwarf -lelf
+LIBS        += -ldwarf -lelf
 LDFLAGS += $(DWARFFLAGS)
 LDFLAGS += $(ELFFLAGS)
 endif

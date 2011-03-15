@@ -586,6 +586,7 @@ class int_threadPool {
    int_thread *initial_thread;
    int_process *proc_;
    ThreadPool *up_pool;
+   bool had_multiple_threads;
  public:
    int_threadPool(int_process *p);
    ~int_threadPool();
@@ -596,6 +597,7 @@ class int_threadPool {
    void restoreInternalState(bool sync);
    void desyncInternalState();
    void clear();
+   bool hadMultipleThreads() const;
 
    typedef std::vector<int_thread *>::iterator iterator;
    iterator begin() { return threads.begin(); }

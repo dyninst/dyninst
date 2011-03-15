@@ -1278,6 +1278,40 @@ void PCProcess::markExited() {
     pcProc_ = Process::ptr();
 }
 
+void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
+        const void *inSelf)
+{
+    static unsigned write_no = 0;
+
+    if( !dyn_debug_write ) return;
+
+    write_printf("const unsigned char ");
+    switch(getArch()) {
+        case Arch_x86:
+            write_printf("x86_");
+            break;
+        case Arch_x86_64:
+            write_printf("amd64_");
+            break;
+        case Arch_ppc32:
+        case Arch_ppc64:
+            write_printf("power_");
+            break;
+        default:
+            write_printf("unknown_");
+            break;
+    }
+    write_printf("%lx_%d_%u[] = {", inTracedProcess, getPid(), write_no++);
+
+    const unsigned char *buffer = (const unsigned char *)inSelf;
+    for(unsigned i = 0; i < amount-1; ++i) {
+        if( amount && (i % 10 == 0) ) write_printf("\n");
+        write_printf("0x%02hhx, ", buffer[i]);
+    }
+    if(amount) write_printf("0x%02hhx", buffer[amount-1]);
+    write_printf("\n};\n");
+}
+
 bool PCProcess::writeDataSpace(void *inTracedProcess,
                     u_int amount, const void *inSelf)
 {
@@ -1299,6 +1333,8 @@ bool PCProcess::writeDataSpace(void *inTracedProcess,
             result = false;
         }
     }
+
+    if( result && dyn_debug_write ) writeDebugDataSpace(inTracedProcess, amount, inSelf);
 
     return result;
 }
@@ -1349,7 +1385,11 @@ bool PCProcess::readDataWord(const void *inTracedProcess, u_int amount,
 bool PCProcess::writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf)
 {
     if( isTerminated() ) return false;
-    return pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
+    bool result = pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
+
+    if( result && dyn_debug_write ) writeDebugDataSpace(inTracedProcess, amount, inSelf);
+
+    return result;
 }
 
 bool PCProcess::writeTextWord(void *inTracedProcess, u_int amount, const void *inSelf)
@@ -1357,7 +1397,11 @@ bool PCProcess::writeTextWord(void *inTracedProcess, u_int amount, const void *i
     if( isTerminated() ) return false;
 
     // XXX see writeDataWord above
-    return pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
+    bool result = pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
+
+    if( result && dyn_debug_write ) writeDebugDataSpace(inTracedProcess, amount, inSelf);
+
+    return result;
 }
 
 bool PCProcess::readTextSpace(const void *inTracedProcess, u_int amount,

@@ -31,9 +31,9 @@
 
 // $Id: syscall-linux.C,v 1.20 2008/05/28 17:14:19 legendre Exp $
 
-#define FORK_FUNC "__libc_fork"
+#define FORK_FUNC "fork"
 #define EXEC_FUNC "execve"
-#define EXIT_FUNC "_exit"
+#define EXIT_FUNC "exit"
 
 #include "dyninstAPI/src/syscallNotification.h"
 
