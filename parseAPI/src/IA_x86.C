@@ -404,7 +404,7 @@ bool IA_IAPI::isFakeCall() const
                 //mal_printf("Saw enter instruction at %lx in isFakeCall, "
                 //           "quitting early, assuming not fake "
                 //           "%s[%d]\n",curAddr, FILE__,__LINE__);
-                //KEVIN: unhandled case, but not essential for correct analysis
+                // unhandled case, but not essential for correct analysis
                 delete ah;
                 return false;
                 break;
@@ -412,7 +412,7 @@ bool IA_IAPI::isFakeCall() const
                 mal_printf("WARNING: saw leave instruction "
                            "at %lx that is not handled by isFakeCall %s[%d]\n",
                            curAddr, FILE__,__LINE__);
-                //KEVIN: unhandled, not essential for correct analysis, would
+                // unhandled, not essential for correct analysis, would
                 // be a red flag if there wasn't an enter ins'n first and 
                 // we didn't end in a return instruction
                 break;
@@ -464,13 +464,11 @@ bool IA_IAPI::isFakeCall() const
                 break;
             }
             default: {
-                //KEVINTODO: remove this assert
                 fprintf(stderr,"WARNING: in isFakeCall non-push/pop "
                         "ins'n at %lx (in first block of function at "
                         "%lx) modifies the sp by an unknown amount. "
                         "%s[%d]\n", ah->getAddr(), entry, 
                         FILE__, __LINE__);
-                assert(0); // what stack-altering instruction is this?
                 break;
             } // end default block
             } // end switch

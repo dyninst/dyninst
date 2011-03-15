@@ -424,30 +424,13 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             if ( curPoint->getFunction()->getModule()->isExploratoryModeOn() ) {
                 handle = proc()->insertSnippet
                     (*dynamicTransferSnippet, *curPoint, BPatch_lastSnippet);
-            } else { // e.g., libc's initterm function KEVINTODO: make this more robust
+            } else { // e.g., libc's initterm function KEVINTODO: make this more robust, add other callbacks
                 BPatch_boolExpr condition(BPatch_lt, dynTarget, 
                                           BPatch_constExpr((long)(unsigned long)0x50000000));
                 BPatch_ifExpr ifSmallThenStop(condition, *dynamicTransferSnippet);
                 handle = proc()->insertSnippet
                     (ifSmallThenStop, *curPoint, BPatch_lastSnippet);
             }
-#if 0
-            // Replaced by entry/exit instrumentation pairs
-
-            // if memory is emulated, and we don't know that it doesn't go to 
-            // a non-instrumented library, add a callback to synchShadowOrigCB_wrapper
-            if ( proc()->lowlevel_process()->isMemoryEmulated() && 
-                 needsSynchronization(curPoint) )
-            {
-                mal_printf("preSync: Adding pre- and post- synch instrumentation to 0x%lx (0x%l)\n",
-                           (Address)curPoint->getAddress(), curPoint);
-                BPatchSnippetHandle *handle = proc()->insertSnippet
-                    (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(1)), 
-                     *curPoint,
-                     BPatch_lastSnippet);
-                synchMap_pre_[curPoint] = new SynchHandle(curPoint, handle);
-            }
-#endif
         } 
         else { // static ctrl flow
 
@@ -1164,10 +1147,6 @@ bool HybridAnalysis::analyzeNewFunction( BPatch_point *source,
     }
     proc()->getImage()->clearNewCodeRegions();
 
-    //KEVINTODO: add edges for direct calls as well
-    //if (source->llpoint()->block()->llb()->isCallBlock() || 
-    //    BPatch_exit == source->getPointType()) 
-    //{
     if (source->isDynamic() || BPatch_exit == source->getPointType()) {
         addIndirectEdgeIfNeeded(source,target);
     }

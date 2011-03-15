@@ -771,7 +771,7 @@ int ast_printf_int(const char *format, ...)
 
 int write_printf_int(const char *format, ...)
 {
-  if (1 || /*KEVINTODO: revert this*/ !dyn_debug_write) return 0;
+  if (!dyn_debug_write) return 0;
   if (NULL == format) return -1;
 
   debugPrintLock->_Lock(FILE__, __LINE__);

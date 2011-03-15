@@ -250,14 +250,6 @@ void registerSpace::initialize32() {
        callRead_[i] = false;
     }
     callWritten_ = syscallWritten_;
-
-// IF DEFINED KEVIN FUNKY MODE
-	returnRead_ = callRead_;
-	// Doesn't exist, but should
-	//returnWritten_ = callWritten_;
-// ENDIF DEFINED KEVIN FUNKY MODE
-
-
 #endif
 
     allRegs_ = getBitArray().set();
@@ -2246,7 +2238,7 @@ int getInsnCost(opCode op)
    } else if (op == getRetValOp) {
       return (1+1);
    } else if (op == getRetAddrOp) { 
-      return (1); //kevintodo: is this right?
+      return (1); 
    } else if (op == getParamOp) {
       return(1+1);
    } else {

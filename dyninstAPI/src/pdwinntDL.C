@@ -116,7 +116,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
      // discover structure of new DLL, and incorporate into our
      // list of known DLLs
      BPatch_hybridMode mode = proc->getHybridMode();
-     //KEVINTODO: re-enable this // if (BPatch_defensiveMode != mode || mapped_object::isSystemLib(imageName))
+     //KEVINTODO: re-enable this once isSystemLib is working // if (BPatch_defensiveMode != mode || mapped_object::isSystemLib(imageName))
          mode = BPatch_normalMode;
      mapped_object *newobj = mapped_object::createMappedObject(desc, proc, mode);
      if (!newobj) {

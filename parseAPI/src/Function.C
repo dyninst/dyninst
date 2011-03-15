@@ -389,7 +389,6 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
                 obj()->fact()->free_edge(edge);
             }
         }
-        // KEVINTODO
         // Moved remove_block farther down to guard against shared code
     }
 
@@ -482,7 +481,7 @@ Function::tampersStack(bool recalculate)
 
                 Slicer slicer(*ait,*bit,this);
                 Graph::Ptr slGraph = slicer.backwardSlice(preds);
-                if (dyn_debug_malware && 0) {
+                if (dyn_debug_malware) {
                     stringstream graphDump;
                     graphDump << "sliceDump_" << this->name() << "_" 
                               << hex << retnAddr << dec << ".dot";

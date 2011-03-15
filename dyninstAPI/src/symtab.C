@@ -769,35 +769,6 @@ void image::findMain()
                linkedFile->addSymbol(startSym);
            }
            syms.clear();
-#if 0 //KEVIN: this makes no sense, why would we parse at arbitrary locations?
-           if(!linkedFile->findSymbol(syms,"winStart",Symbol::ST_UNKNOWN, SymtabAPI::mangledName)) {
-               //make up a func name for the start of the text section
-               Symbol *sSym = new Symbol( "winStart", 
-                                          Symbol::ST_FUNCTION,
-                                          Symbol::SL_GLOBAL,
-                                          Symbol::SV_DEFAULT, 
-                                          imageOffset_,
-                                          linkedFile->getDefaultModule(),
-                                          linkedFile->findEnclosingRegion(imageOffset_), 
-                                          UINT_MAX );
-               linkedFile->addSymbol(sSym);
-           }
-           syms.clear();
-           if(!linkedFile->findSymbol(syms,"winFini",Symbol::ST_UNKNOWN, SymtabAPI::mangledName)) {
-               //make up one for the end of the text section
-               Address end_text = imageOffset_ + linkedFile->imageLength() - 1;
-               Symbol *fSym = new Symbol( "winFini", 
-                                          Symbol::ST_FUNCTION,
-                                          Symbol::SL_GLOBAL, 
-                                          Symbol::SV_DEFAULT, 
-                                          end_text, 
-                                          linkedFile->getDefaultModule(),
-                                          linkedFile->findEnclosingRegion(end_text),
-                                          UINT_MAX );
-               linkedFile->addSymbol(fSym);
-           }
-           syms.clear();
-#endif
            // add entry point as main given that nothing else was found
            startup_printf("[%s:%u] - findmain could not find symbol "
                           "for main, using binary entry point %x\n",

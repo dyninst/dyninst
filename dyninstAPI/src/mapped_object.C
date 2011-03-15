@@ -1623,7 +1623,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
         free( mappedPtr );
     }
 
-    // KEVINTODO: find a cleaner solution than taking over the mapped files
+    // swap out rawDataPtr for the mapped file
     static_cast<SymtabCodeSource*>(cObj->cs())->
         resizeRegion( reg, reg->getMemSize() );
     reg->setPtrToRawData( regBuf , copySize );
@@ -1639,18 +1639,6 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
                                      - codeAbs() );
 
     }
-
-    // KEVINTODO: what?  why is this necessary?, I've killed it for now, delete if no failures
-    // 
-    //// now update all of the other regions
-    //std::vector<SymtabAPI::Region*> regions;
-    //parse_img()->getObject()->getCodeRegions(regions);
-    //for(unsigned rIdx=0; rIdx < regions.size(); rIdx++) {
-    //    SymtabAPI::Region *curReg = regions[rIdx];
-    //    if (curReg != reg) {
-    //        updateCodeBytes(curReg);
-    //    }
-    //}
 }
 
 // 1. use other update functions to update non-code areas of mapped files, 

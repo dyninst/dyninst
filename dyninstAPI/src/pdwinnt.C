@@ -783,8 +783,10 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             faultObj = ev.proc->findObject(origAddr);
         }
         if (!faultObj || BPatch_defensiveMode == faultObj->hybridMode()) {
-            // KEVINTODO: we're emulating the instruction, pop saved regs off of the stack and into the appropriate registers, 
-            // KEVINTODO: signalHandlerEntry will have to fix up the saved context information on the stack 
+            // KEVINTODO: we're emulating the instruction, pop saved regs off 
+            // of the stack and into the appropriate registers,
+            // signalHandlerEntry will have to fix up the saved 
+            // context information on the stack 
             assert(1 || "stack imbalance and bad reg values resulting from incomplete memory emulation of instruction that caused a fault");
         }
     }
@@ -1013,14 +1015,7 @@ bool process::setMemoryAccessRights
     mal_printf("setMemoryAccessRights to %x [%lx %lx]\n", rights, start, start+size);
     // get lwp from which we can call changeMemoryProtections
     dyn_lwp *stoppedlwp = query_for_stopped_lwp();
-    if ( ! stoppedlwp ) {
-        assert(0); //KEVINTODO: I don't think this code is right, it doesn't resume the stopped lwp
-        bool wasRunning = true;
-        stoppedlwp = stop_an_lwp(&wasRunning);
-        if ( ! stoppedlwp ) {
-        return false;
-        }
-    }
+    assert( stoppedlwp );
     if (PAGE_EXECUTE_READWRITE == rights || PAGE_READWRITE == rights) {
         mapped_object *obj = findObject(start);
         int page_size = getMemoryPageSize();
@@ -2893,10 +2888,9 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
         ev.proc->flushAddressCache_RT(writtenFuncs[0]->obj());
 
         if (writtenFuncs.size() > 1) {
-            fprintf(stderr, "WARNING: overwrote shared code, we may not "
-                    "handle this correctly %lx->%lx[%lx] %s[%d]\n",
+            fprintf(stderr, "WARNING: overwrote shared code, this case is "
+                    "sparsely tested %lx->%lx[%lx] %s[%d]\n",
                     ev.address, writtenAddr, origWritten, FILE__,__LINE__);
-            //assert(0 && "overwrote shared code"); //KEVINTODO: test this case
         }
     }
 

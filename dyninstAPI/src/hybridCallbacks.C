@@ -621,7 +621,6 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         //   to the return address
 
         Address returnAddr = target;
-#if 1
         using namespace ParseAPI;
         pair<Block*, Address> returningCallB(NULL,0); // there could be multiple blocks, but 
                                                  // parseAfterCallAndInstrument will 
@@ -786,7 +785,6 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                     parseAfterCallAndInstrument( *pit, NULL );
                 }
             }
-            
         }
 
         // 3.2.2 else parse the return addr as a new function
@@ -822,87 +820,6 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             }
         }
 
-#else
-        Address returnAddr = target;
-        BPatch_point *callPoint = NULL;
-        proc()->findFunctionsByAddr( ( (Address)returnAddr - 1 ) , callFuncs );
-        if ( !callFuncs.empty() ) {
-            // get the call point whose fallthrough addr matches the ret target
-            vector<BPatch_point *> *callPoints = 
-                callFuncs[0]->findPoint(BPatch_subroutine);
-            for (int pIdx = callPoints->size() -1; pIdx >= 0; pIdx--) {
-                if ((*callPoints)[pIdx]->getCallFallThroughAddr() == returnAddr) {
-                    callPoint = (*callPoints)[pIdx];
-                    break;
-                }
-            }
-			if (!callPoint) {
-				// It's possible that this was an entry point that overlapped with
-				// the call site. Dyninst doesn't handle that well...
-				vector<BPatch_point *> *entryPoints = callFuncs[0]->findPoint(BPatch_entry);
-				for (int pIdx = entryPoints->size() - 1; pIdx >= 0; pIdx--) {
-					if ((*entryPoints)[pIdx]->getCallFallThroughAddr() == returnAddr) {
-						callPoint = (*entryPoints)[pIdx];
-						break;
-					}
-				}
-			}
-
-            if (callPoint && callFuncs.size() > 1) {
-                //KEVINTODO: implement this case
-                mal_printf("ERROR: callPoint %lx is shared, test this case\n",
-                           callPoint->getAddress());
-            } 
-        }
-
-        // 3.2.1 if point->func() was called by callPoint, point->func() 
-        // returns normally, tell parseAfterCallAndInstrument to parse after 
-        // other callers to point->func()
-
-        if (callPoint) {
-            BPatch_function *calledFunc = NULL;
-            vector<Address> targs;
-            callPoint->getCallAndBranchTargets(targs);
-            // unfortunately, because of pc emulation, if the return point is 
-            // shared we may have flipped between functions that share the 
-            // return point, so check all shared called funcs
-            vector<ParseAPI::Function*> retfuncs;
-            point->llpoint()->block()->llb()->getFuncs(retfuncs);
-            Address base = point->llpoint()->func()->obj()->codeBase();
-            for (unsigned tidx=0; !calledFunc && tidx < targs.size(); tidx++) {
-                for (unsigned fidx=0; !calledFunc && fidx < retfuncs.size(); fidx++) {
-                    if (targs[tidx] == (base + retfuncs[fidx]->addr()) ) {
-                        calledFunc = proc()->findOrCreateBPFunc(
-                            point->llpoint()->func()->obj()->
-                            findFunction(static_cast<image_func*>(retfuncs[fidx])),
-                            NULL);
-                    }
-                }
-            }
-            mal_printf("stopThread instrumentation found return at %lx, "
-                      "parsing return addr %lx as fallthrough of call "
-                      "instruction at %lx %s[%d]\n", (long)point->getAddress(), 
-                      target,callPoint->getAddress(),FILE__,__LINE__);
-            if (point->getFunction() != calledFunc) {
-                cerr << "Warning: new code believes the callee was " << (calledFunc ? calledFunc->getName() : "<NULL>") << " and not original " << (point ? point->getFunction()->getName() : "<NULL>") << endl;
-            }
-            //parseAfterCallAndInstrument( callPoint, point->getFunction() );
-            parseAfterCallAndInstrument( callPoint, calledFunc );
-        }
-
-        // 3.2.2 else parse the return addr as a new function
-        else {
-            if ( point->getFunction()->getModule()->isExploratoryModeOn() ) {
-                // otherwise we've instrumented a function in trusted library
-                // because we want to catch its callbacks into our code, but in
-                // the process are catching calls into other modules
-                mal_printf("hybridCallbacks.C[%d] Observed abuse of normal return "
-                        "instruction semantics for insn at %lx target %lx\n",
-                        __LINE__, point->getAddress(), returnAddr);
-            }
-            analyzeNewFunction( point, returnAddr, true , true );
-        }
-#endif
         // 3. return
         return;
     }

@@ -881,9 +881,9 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       }
    }
    if (pendingInsertions == NULL) {
-     // Trigger it now
+     // There's no insertion set, instrument now
      bool tmp;
-     finalizeInsertionSet(false, &tmp); //KEVINTODO: do we really want this?
+     finalizeInsertionSet(false, &tmp);
    }   
  
    return retHandle;
