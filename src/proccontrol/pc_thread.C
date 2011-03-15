@@ -383,6 +383,14 @@ test_results_t pc_threadMutator::executeTest()
 {
    std::vector<Process::ptr>::iterator i;
 
+   for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
+      Process::ptr proc = *i;
+      if (!proc->supportsUserThreadEvents()) {
+         logerror("System does not support user thread events\n");
+         return SKIPPED;
+      }
+   }
+   
    if (is_attach) {
       //If attaching then we missed all of the thread callbacks.  Run them.
       for (i = comp->procs.begin(); i != comp->procs.end(); i++) {

@@ -288,18 +288,10 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
    }
    
    if (group->createmode == CREATE) {
-      bool support_user_threads = false;
-      bool support_lwps = false;
-#if defined(os_linux_test)
-      support_user_threads = true;
-      support_lwps = true;
-#elif defined(os_bg_test)
-      support_user_threads = true;
-      support_lwps = false;
-#elif defined(os_freebsd_test)
-      support_user_threads = true;
-      support_lwps = false;
-#endif
+      Process::ptr a_proc = *procs.begin();
+      bool support_user_threads = a_proc->supportsUserThreadEvents();
+      bool support_lwps = a_proc->supportsLWPEvents();
+
       assert(support_user_threads || support_lwps);
 
       if (support_lwps)
@@ -334,7 +326,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
             error = true;
          }
 #else
-         //BlueGene OS spawns extra treads
+         //BlueGene OS spawns extra threads
          if (proc->threads().size() < num_threads+1) {
             logerror("Process has incorrect number of threads");
             error = true;
