@@ -32,6 +32,8 @@ test/*
 autodyninst/autom4te.cache/*
 autom4te.cache/*
 patch*
+!patch.h
+!patch.C
 testsuite/*/binaries/*
 parseThat/*/Makefile
 parseThat/*/parseThat
