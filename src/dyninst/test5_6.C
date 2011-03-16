@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -84,6 +84,18 @@ test_results_t test5_6_Mutator::executeTest() {
   }
 
   while (index < bound) {
+    if ((func = (*point6_1)[index]->getCalledFunction()) == NULL) {
+      index++;
+      continue;
+    }
+    char fn[256];
+    func->getName(fn, 256);
+	 logerror("Index %d bound %d function %s\n", index, bound, fn);
+	 index ++;
+ }
+ index = 0;
+  while (index < bound) {
+  	
     if ((func = (*point6_1)[index]->getCalledFunction()) == NULL) {
       index++;
       continue;
