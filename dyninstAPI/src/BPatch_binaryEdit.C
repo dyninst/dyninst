@@ -83,7 +83,6 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
    BPatch_addressSpace(),
    creation_error(false)
 {
-printf(" BPatch_binaryEdit constructor \n");
   pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
  
   pdvector<std::string> argv_vec;
@@ -109,8 +108,6 @@ printf(" BPatch_binaryEdit constructor \n");
   origBinEdit->getDyninstRTLibName();
   std::string rt_name = origBinEdit->dyninstRT_name;
 	
-	printf(" Dyninst RunTime Library %s \n", rt_name.c_str());
-
   // Load the RT library and create the collection of BinaryEdits that represent it
   std::map<std::string, BinaryEdit *> rtlibs = origBinEdit->openResolvedLibraryName(rt_name);
   std::map<std::string, BinaryEdit *>::iterator rtlibs_it;
@@ -121,7 +118,6 @@ printf(" BPatch_binaryEdit constructor \n");
           creation_error = true;
           return;
       }
-	   printf(" rt library %s \n", rtlibs_it->first.c_str());
       rtLib.push_back(rtlibs_it->second);
       // Ensure that the correct type of library is loaded
       if(    rtlibs_it->second->getMappedObject()->isSharedLib() 
@@ -145,7 +141,6 @@ printf(" BPatch_binaryEdit constructor \n");
 
   std::map<std::string, BinaryEdit*>::iterator i, j;
   for(i = llBinEdits.begin(); i != llBinEdits.end(); i++) {
-	   printf(" llBIN library %s \n", (*i).first.c_str());
      (*i).second->setupRTLibrary(rtLib);
   }
 
@@ -204,7 +199,6 @@ void BPatch_binaryEdit::BPatch_binaryEdit_dtor()
 
 bool BPatch_binaryEdit::writeFileInt(const char * outFile)
 {
-	printf(" write file %s \n", outFile);
     assert(pendingInsertions);
 
     // This should be a parameter...
@@ -372,7 +366,6 @@ bool BPatch_binaryEdit::finalizeInsertionSetInt(bool /*atomic*/, bool * /*modifi
 
 bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
 {
-	printf(" loadLibraryInt %s \n", libname);
    std::map<std::string, BinaryEdit*> libs = origBinEdit->openResolvedLibraryName(libname);
    std::map<std::string, BinaryEdit*>::iterator lib_it;
    for(lib_it = libs.begin(); lib_it != libs.end(); ++lib_it) {

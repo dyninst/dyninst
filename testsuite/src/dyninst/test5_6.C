@@ -90,18 +90,6 @@ test_results_t test5_6_Mutator::executeTest() {
     }
     char fn[256];
     func->getName(fn, 256);
-	 logerror("Index %d bound %d function %s\n", index, bound, fn);
-	 index ++;
- }
- index = 0;
-  while (index < bound) {
-  	
-    if ((func = (*point6_1)[index]->getCalledFunction()) == NULL) {
-      index++;
-      continue;
-    }
-    char fn[256];
-    func->getName(fn, 256);
     if (!strcmp("sample_exception::response", func->getName(fn, 256))) {
       BPatch_Vector<BPatch_point *> *point6_2 = func->findPoint(BPatch_exit);
       assert(point6_2);
