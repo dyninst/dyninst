@@ -562,7 +562,12 @@ void StackAnalysis::handleLeave(TransferFuncs &xferFuncs) {
    // This is... mov esp, ebp; pop ebp.
    // Handle it as such.
 
-   xferFuncs.push_back(TransferFunc::aliasFunc(fp(), sp()));
+   // mov esp, ebp;
+    TransferFunc func = TransferFunc::aliasFunc(fp(), sp());
+    func.delta = word_size;
+    xferFuncs.push_back(func);
+    
+   // pop ebp
    xferFuncs.push_back(TransferFunc::bottomFunc(fp()));
 }
 
