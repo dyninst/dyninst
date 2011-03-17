@@ -379,13 +379,18 @@ bool DecoderBlueGene::getProcAndThread(ArchEventBlueGene *archbg, bg_process* &p
    return true;
 }
 
-Event::ptr DecoderBlueGene::decodeGetRegAck(BG_Debugger_Msg *msg, response::ptr &resp)
+Event::ptr DecoderBlueGene::decodeGetRegAck(BG_Debugger_Msg *msg, response::ptr &resp, bool &err)
 {
    pthrd_printf("Decode get reg ack with value 0x%lx\n", (unsigned long) msg->dataArea.GET_REG_ACK.value);
+   err = false;
    getResponses().lock();
    
    resp = getResponses().rmResponse(msg->header.sequence);
-   assert(resp);
+   if (!resp) {
+      getResponses().unlock();
+      err = true;
+      return Event::ptr();
+   }
    reg_response::ptr reg_resp = resp->getRegResponse();
    assert(reg_resp);
    reg_resp->postResponse(msg->dataArea.GET_REG_ACK.value);
@@ -401,13 +406,18 @@ Event::ptr DecoderBlueGene::decodeGetRegAck(BG_Debugger_Msg *msg, response::ptr 
    return ret;
 }
 
-Event::ptr DecoderBlueGene::decodeGetAllRegAck(BG_Debugger_Msg *msg, response::ptr &resp)
+Event::ptr DecoderBlueGene::decodeGetAllRegAck(BG_Debugger_Msg *msg, response::ptr &resp, bool &err)
 {
    pthrd_printf("Decoding get all reg ack\n");
+   err = false;
    getResponses().lock();
    
    resp = getResponses().rmResponse(msg->header.sequence);
-   assert(resp);
+   if (!resp) {
+      err = true;
+      getResponses().unlock();
+      return Event::ptr();
+   }
    allreg_response::ptr areg_resp = resp->getAllRegResponse();
    assert(areg_resp);
 
@@ -434,13 +444,18 @@ Event::ptr DecoderBlueGene::decodeGetAllRegAck(BG_Debugger_Msg *msg, response::p
    return ret;
 }
 
-Event::ptr DecoderBlueGene::decodeGetMemAck(BG_Debugger_Msg *msg, response::ptr &resp)
+Event::ptr DecoderBlueGene::decodeGetMemAck(BG_Debugger_Msg *msg, response::ptr &resp, bool &err)
 {
    pthrd_printf("Decoding get mem ack\n");
+   err = false;
    getResponses().lock();
    
    resp = getResponses().rmResponse(msg->header.sequence);
-   assert(resp);
+   if (!resp) {
+      err = true;
+      getResponses().unlock();
+      return Event::ptr();
+   }
    mem_response::ptr mem_resp = resp->getMemResponse();
    assert(mem_resp);
 
@@ -457,13 +472,18 @@ Event::ptr DecoderBlueGene::decodeGetMemAck(BG_Debugger_Msg *msg, response::ptr 
    return ret;
 }
 
-Event::ptr DecoderBlueGene::decodeResultAck(BG_Debugger_Msg *msg, response::ptr &resp)
+Event::ptr DecoderBlueGene::decodeResultAck(BG_Debugger_Msg *msg, response::ptr &resp, bool &err)
 {
    pthrd_printf("Decoding result ack\n");
+   err = false;
    getResponses().lock();
    
    resp = getResponses().rmResponse(msg->header.sequence);
-   assert(resp);
+   if (!resp) {
+      err = true;
+      getResponses().unlock();
+      return Event::ptr();
+   }
    result_response::ptr result_resp = resp->getResultResponse();
    assert(result_resp);
 
@@ -609,34 +629,38 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
 
    Event::ptr new_event;
    response::ptr resp;
+   bool decoder_err;
 
    switch (msg->header.messageType) {
       case GET_REG_ACK:
-         new_event = decodeGetRegAck(msg, resp);
-         if (!new_event)
-            new_event = decodeDecoderAsync(resp);
-         if (!new_event)
-            return true;
-         break;
       case GET_ALL_REGS_ACK:
-         new_event = decodeGetAllRegAck(msg, resp);
-         if (!new_event)
-            new_event = decodeDecoderAsync(resp);
-         if (!new_event)
-            return true;
-         break;
       case GET_MEM_ACK:
-         new_event = decodeGetMemAck(msg, resp);
-         if (!new_event)
-            new_event = decodeDecoderAsync(resp);
-         if (!new_event)
-            return true;
-         break;
       case SET_REG_ACK:
       case SET_MEM_ACK:
-         new_event = decodeResultAck(msg, resp);
+         decoder_err = false;
+         switch (msg->header.messageType) {
+            case GET_REG_ACK:
+               new_event = decodeGetRegAck(msg, resp, decoder_err);
+               break;
+            case GET_ALL_REGS_ACK:
+               new_event = decodeGetAllRegAck(msg, resp, decoder_err);
+               break;
+            case GET_MEM_ACK:
+               new_event = decodeGetMemAck(msg, resp, decoder_err);
+               break;
+            case SET_REG_ACK:
+            case SET_MEM_ACK:
+               new_event = decodeResultAck(msg, resp, decoder_err);
+               break;
+            default:
+               assert(0);
+         }
+         if (!new_event && decoder_err) 
+            break;
          if (!new_event)
             new_event = decodeDecoderAsync(resp);
+         if (!new_event)
+            return true;
          break;
       case SINGLE_STEP_ACK:
          pthrd_printf("Decoded SINGLE_STEP_ACK, dropping...\n");
@@ -811,13 +835,15 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
             new_event->setSyncType(Event::async);
          }
          break;
+      case GET_AUX_VECTORS_ACK:
+         pthrd_printf("Dropping GET_AUX_VECTORS_ACK\n");
+         break;
       case SET_THREAD_OPS_ACK:
       case GET_REGS_AND_FLOATS_ACK:
       case GET_THREAD_ID_ACK:
       case SET_DEBUG_REGS_ACK:
       case GET_DEBUG_REGS_ACK:
       case GET_THREAD_INFO_ACK:
-      case GET_AUX_VECTORS_ACK:
       case GET_STACK_TRACE_ACK:
       case END_DEBUG_ACK:
       case GET_THREAD_DATA_ACK:
@@ -1655,7 +1681,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
       initialized = true;
    }
    hpool->addHandler(bg_attach);
-   //thread_db_process::addThreadDBHandlers(hpool);
+   thread_db_process::addThreadDBHandlers(hpool);
    return hpool;
 }
 

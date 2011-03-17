@@ -310,11 +310,10 @@ ps_err_e ps_get_thread_area(const struct ps_prochandle *phandle, lwpid_t lwp, in
 #endif
 
 #if defined(THREAD_DB_PATH)
-#define THREAD_DB_PATH_STR2(x) #x
+#define THREAD_DB_PATH_STR THREAD_DB_PATH
 #else
-#define THREAD_DB_PATH_STR2(x) NULL
+#define THREAD_DB_PATH_STR NULL
 #endif
-#define THREAD_DB_PATH_STR THREAD_DB_PATH_STR2(THREAD_DB_PATH)
 
 thread_db_process::td_init_t thread_db_process::p_td_init;
 thread_db_process::td_ta_new_t thread_db_process::p_td_ta_new;
@@ -961,6 +960,7 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
     SymReader *objSymReader = NULL;
     int_library *lib = NULL;
     
+    pthrd_printf("thread_db getSymbolAddr(%s, %s)\n", objName ? objName : "NULL", symName ? symName : "NULL");
     if (plat_isStaticBinary()) {
        // For static executables, we need to search the executable instead of the
        // thread library. 
@@ -983,8 +983,7 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
     }
 
     if( NULL == lib ) {
-       perr_printf("Failed to find loaded library\n");
-       setLastError(err_internal, "Failed to find loaded library");
+       pthrd_printf("Didn't yet find loaded thread library\n");
        return PS_ERR;
     }
 
@@ -1099,7 +1098,7 @@ ThreadDBLibHandler::~ThreadDBLibHandler()
 
 Handler::handler_ret_t ThreadDBLibHandler::handleEvent(Event::ptr ev) {
    if (!thread_db_process::loadedThreadDBLibrary()) {
-      pthrd_printf("Failed to load thread_db.  Not running handlers");
+      pthrd_printf("Failed to load thread_db.  Not running handlers\n");
       return Handler::ret_success;
    }
 

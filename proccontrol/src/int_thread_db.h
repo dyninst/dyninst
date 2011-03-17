@@ -42,7 +42,13 @@
 #include "proccontrol/src/int_handler.h"
 
 extern "C" {
+
+#if !defined(THREAD_DB_INC)
 #include <thread_db.h>
+#else
+#include THREAD_DB_INC
+#endif
+
 #include "proc_service_wrapper.h"
 }
 

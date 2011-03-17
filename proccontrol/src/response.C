@@ -212,7 +212,11 @@ response::ptr responses_pending::rmResponse(unsigned int id)
 {
    //cvar lock should already be held.
    std::map<unsigned int, response::ptr>::iterator i = pending.find(id);
-   assert(i != pending.end());
+   if (i == pending.end()) {
+      //I've seen this happen on BlueGene, it sometimes throws duplicate ACKs
+      pthrd_printf("Unknown response.  Recieved duplicate ACK message on BlueGene?\n");
+      return response::ptr();
+   }
    response::ptr result = (*i).second;
 
    pending.erase(i);

@@ -228,10 +228,10 @@ class DecoderBlueGene : public Decoder
    virtual unsigned getPriority() const;
    virtual bool decode(ArchEvent *archE, std::vector<Event::ptr> &events);
    
-   Event::ptr decodeGetRegAck(DebuggerInterface::BG_Debugger_Msg *msg, response::ptr & resp);
-   Event::ptr decodeGetAllRegAck(DebuggerInterface::BG_Debugger_Msg *msg, response::ptr & resp);
-   Event::ptr decodeGetMemAck(DebuggerInterface::BG_Debugger_Msg *msg, response::ptr & resp);
-   Event::ptr decodeResultAck(DebuggerInterface::BG_Debugger_Msg *msg, response::ptr & resp);
+   Event::ptr decodeGetRegAck(DebuggerInterface::BG_Debugger_Msg *msg, response::ptr & resp, bool &err);
+   Event::ptr decodeGetAllRegAck(DebuggerInterface::BG_Debugger_Msg *msg, response::ptr & resp, bool &err);
+   Event::ptr decodeGetMemAck(DebuggerInterface::BG_Debugger_Msg *msg, response::ptr & resp, bool &err);
+   Event::ptr decodeResultAck(DebuggerInterface::BG_Debugger_Msg *msg, response::ptr & resp, bool &err);
    Event::ptr decodeAsyncAck(response::ptr resp);
 
    bool getPC(Address &addr, int_thread *thr, ArchEventBlueGene *cur_event);
