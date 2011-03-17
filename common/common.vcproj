@@ -843,6 +843,10 @@
 				RelativePath="..\dynutil\h\SymReader.h"
 				>
 			</File>
+            <File
+                RelativePath="..\dynutil\h\entryIDs.h"
+                >
+            </File>
 			<File
 				RelativePath=".\h\Time.h"
 				>

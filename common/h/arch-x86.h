@@ -42,7 +42,7 @@
 #include <map>
 #include <vector>
 #include "dyn_regs.h"
-#include "instructionAPI/h/entryIDs.h"
+#include "entryIDs.h"
 
 #include "common/h/ia32_locations.h"
 

@@ -52,7 +52,6 @@
 #include "boost/assign/std/set.hpp"
 
 #include "common/h/arch-x86.h"
-#include "instructionAPI/h/Register.h"
 #include "dyn_regs.h"
 
 #if defined(os_vxworks)
@@ -61,7 +60,6 @@
 
 using namespace std;
 using namespace boost::assign;
-using namespace Dyninst::InstructionAPI;
 
 namespace NS_x86 {
 
@@ -4671,7 +4669,7 @@ bool instruction::getUsedRegs(pdvector<int> &regs) {
          regs.push_back(regused);
       }
       else if (op.admet == am_reg) {
-	using namespace Dyninst::InstructionAPI;
+	//using namespace Dyninst::InstructionAPI;
          //The instruction implicitely references a memory instruction
          switch (op.optype) {
              case x86::iah:   

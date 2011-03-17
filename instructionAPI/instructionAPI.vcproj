@@ -500,10 +500,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\h\entryIDs.h"
-				>
-			</File>
-			<File
 				RelativePath=".\h\Expression.h"
 				>
 			</File>
