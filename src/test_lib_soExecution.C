@@ -90,7 +90,7 @@ static void* openSO(const char *soname)
    if (!fullSoPath) {
       fullSoPath = strdup(soname);
    }
-   void *handle = dlopen(fullSoPath, RTLD_NOW);
+   void *handle = dlopen(fullSoPath, RTLD_NOW | RTLD_GLOBAL);
    ::free(fullSoPath);
    if (!handle) {
       fprintf(stderr, "Error opening lib: %s\n", soname);
