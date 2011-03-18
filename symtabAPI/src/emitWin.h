@@ -62,6 +62,7 @@ class emitWin{
     unsigned int NumOfAllowedSecInDosHeader();
     PIMAGE_SECTION_HEADER CreateSecHeader(unsigned int size,PIMAGE_SECTION_HEADER preSecHdr);
     bool AlignSection(PIMAGE_SECTION_HEADER p);
+    bool writeImpTable(Symtab*);
     bool isMoveAhead;//variable indicating whether or not we need to move things ahead to Dos Stub Area
 
 	void (*err_func_)(const char*);

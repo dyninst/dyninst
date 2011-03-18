@@ -62,11 +62,15 @@
 #endif
 #include <dbghelp.h>
 
-using namespace std;
 namespace Dyninst{
 namespace SymtabAPI{
 
 class ExceptionBlock;
+
+typedef struct{
+	char* name;
+	IMAGE_IMPORT_DESCRIPTOR id;
+}IMPORT_ENTRY;
 
 /************************************************************************
  * class Object
@@ -109,7 +113,7 @@ class Object : public AObject
             void	SetSize( DWORD cb )					{ size = cb; }
 
             void DefineSymbol( dyn_hash_map<std::string, std::vector< Symbol *> >& syms,
-                               map<Symbol *, std::string> &symsToMods,
+                               std::map<Symbol *, std::string> &symsToMods,
                                const std::string& modName ) const;
 	};
 
@@ -130,7 +134,7 @@ class Object : public AObject
 		}
 
             void DefineSymbols( dyn_hash_map<std::string, std::vector< Symbol *> >& syms,
-                                map<Symbol *, std::string> &symsToMods,
+                                std::map<Symbol *, std::string> &symsToMods,
                                 const std::string& modName ) const;
             std::string GetName( void ) const		{ return name; }
             const std::vector<intSymbol*>& GetSymbols( void )	const		{ return syms; }
@@ -161,7 +165,7 @@ class Object : public AObject
 
             void DefineSymbols( const Object* obj,
                                 dyn_hash_map<std::string, std::vector< Symbol *> > & syms,
-                                map<Symbol *, std::string> &symsToMods ) const;
+                                std::map<Symbol *, std::string> &symsToMods ) const;
             void BuildSymbolMap( const Object* obj ) const; 
 
             std::string GetName( void ) const            { return name; }
@@ -207,11 +211,23 @@ class Object : public AObject
     SYMTAB_EXPORT bool emitDriver(Symtab *obj, std::string fName, 
 		std::vector<Symbol *>&allSymbols, unsigned flag);
 	SYMTAB_EXPORT unsigned int getSecAlign() const {return SecAlignment;}
-	 virtual char *mem_image() const 
-  {
-     assert(mf);
-     return (char *)mf->base_addr();
-  }
+    virtual char *mem_image() const 
+    {
+        assert(mf);
+        return (char *)mf->base_addr();
+    }
+
+    SYMTAB_EXPORT DWORD ImageOffset2SectionNum(DWORD dwRO);
+    SYMTAB_EXPORT PIMAGE_SECTION_HEADER ImageOffset2Section(DWORD dwRO);
+    SYMTAB_EXPORT PIMAGE_SECTION_HEADER ImageRVA2Section(DWORD dwRVA);
+    SYMTAB_EXPORT DWORD RVA2Offset(DWORD dwRVA);
+    SYMTAB_EXPORT DWORD Offset2RVA(DWORD dwRO);
+    SYMTAB_EXPORT std::vector<IMPORT_ENTRY> getImportTable(){return image_import_descriptor;}
+    SYMTAB_EXPORT void setNewImpTableAddr(Offset addr);
+    SYMTAB_EXPORT Offset getNewImpTableAddr();
+    SYMTAB_EXPORT unsigned int getNewImpTableSize();
+    SYMTAB_EXPORT void addReference(Offset, std::string, std::string);
+    SYMTAB_EXPORT std::map<Offset, std::pair<std::string, std::string> > & getRefs() { return ref; }
 
 private:
     SYMTAB_EXPORT void    ParseSymbolInfo( bool );
@@ -226,6 +242,13 @@ private:
     PIMAGE_NT_HEADERS   peHdr;      // PE file headers
     PIMAGE_OPTIONAL_HEADER optHdr;
 	unsigned int SecAlignment; //Section Alignment
+
+	//structure of import table
+	std::vector<IMPORT_ENTRY> image_import_descriptor;
+	Offset newImpTableAddr;
+
+	//external reference info
+	std::map<Offset,std::pair<std::string, std::string> > ref;
 
 	unsigned int textSectionId;		// id of .text segment (section)
 	unsigned int dataSectionId;		// id of .data segment (section)

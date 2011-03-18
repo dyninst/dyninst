@@ -36,7 +36,6 @@
 #include <iostream>
 #include <dbghelp.h>
 
-//extern void symtab_log_perror(const char *msg);
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -77,7 +76,129 @@ bool emitWin::AlignSection(PIMAGE_SECTION_HEADER p){
     return true;
 }
 
+bool emitWin::writeImpTable(Symtab* obj){
+	std::vector<IMPORT_ENTRY> oldImp = obj_nt->getImportTable();
+	//for(unsigned int i=0; i<oldImp.size(); i++)
+	//	printf("%s\n", oldImp[i].name);
+
+	//alloc space for old import table
+	unsigned long oldImpSize = (oldImp.size())*sizeof(IMAGE_IMPORT_DESCRIPTOR);
+	char* oldIT = (char*)GlobalAlloc(GMEM_FIXED|GMEM_ZEROINIT,oldImpSize);
+
+	//copy the content of old import table
+	for(unsigned int i=0; i<oldImp.size(); i++){
+		memcpy(oldIT+i*sizeof(IMAGE_IMPORT_DESCRIPTOR), &oldImp[i].id, sizeof(IMAGE_IMPORT_DESCRIPTOR));
+	}
+
+	//look for the .dyninst section
+	Region *dynSec = NULL;
+    obj->findRegion(dynSec, ".dyninstInst");
+	assert(dynSec);
+	//printf("old dyn section size: %d\n", dynSec->getDiskSize());
+
+	//declare a variable to indicate the place to put the string of lib and func
+	Offset strOff = dynSec->getMemOffset()+dynSec->getDiskSize()+oldImpSize;
+	//printf("MemOffset (%x) is correct?\n",strOff);
+	std::map<Offset, std::pair<string, string> > ref = obj_nt->getRefs();
+	std::map<Offset, std::pair<string, string> >::iterator it;
+
+	//info is a vector to store the pointer of name and function name
+	std::vector<std::pair<char*, unsigned long> >info;
+
+	//alloc space for new added import descriptor
+	unsigned long newImpSize =(ref.size()+1)*sizeof(IMAGE_IMPORT_DESCRIPTOR);
+	char *newIT = (char*) GlobalAlloc(GMEM_FIXED|GMEM_ZEROINIT, newImpSize);
+	strOff +=newImpSize;
+	unsigned int pos=0;
+	for(it=ref.begin(); it!=ref.end(); it++){
+		IMAGE_IMPORT_DESCRIPTOR newID;
+		newID.ForwarderChain=0;
+		newID.TimeDateStamp=0;
+		newID.OriginalFirstThunk = 0;
+		newID.FirstThunk = (*it).first;
+		//printf("IAT address: %x\n", newID.FirstThunk);
+
+		//look through the old import table to check if the library has been there
+		bool isExisting = false;
+		for(unsigned int i=0; i<oldImp.size(); i++){
+
+			//if already been there, use the same of RVA of name
+			if(strcmp(oldImp[i].name, (*it).second.first.c_str()) == 0){
+				isExisting = true;
+				newID.Name = oldImp[i].id.Name;
+				break;
+			}
+		}	
+
+		char* ptrLib;
+		unsigned long strLen;
+		//otherwise, it's a new library
+		if(!isExisting){
+			newID.Name = strOff;
+			strLen =(*it).second.first.size();
+			//library name must be '\0' terminated, so len plus one
+			ptrLib = (char*) GlobalAlloc(GMEM_FIXED|GMEM_ZEROINIT, strLen+1);
+			memcpy(ptrLib,(*it).second.first.c_str(), strLen);
+			info.push_back(std::pair<char*,unsigned long> (ptrLib, strLen+1));
+			strOff+=(strLen+1);
+		}
+
+		memcpy(newIT+pos*sizeof(IMAGE_IMPORT_DESCRIPTOR),(char*)&newID, sizeof(IMAGE_IMPORT_DESCRIPTOR));
+
+		//write the pointer to function name into (*it).first
+		Offset o = (Offset)((char*)dynSec->getPtrToRawData())+(*it).first-dynSec->getMemOffset();
+		printf("Offset to write the pointer to function name: %x\n", o);
+		memcpy(((char*)dynSec->getPtrToRawData())+(*it).first-dynSec->getMemOffset(), (char*)&strOff, 4);
+		strLen = (*it).second.second.size();
+	
+		//functin name must start with a two byte hint
+		//function name also '0\' terminated
+		ptrLib = (char*)GlobalAlloc(GMEM_FIXED|GMEM_ZEROINIT, 2+strLen+1);
+		memcpy(ptrLib+2, (*it).second.second.c_str(), strLen);
+		info.push_back(std::pair<char*, unsigned long> (ptrLib, strLen+3));
+		strOff+=(2+strLen+1);
+
+		pos++;
+	}
+
+	//create a new space to hold the .dyninst secetion and update import table
+	char* ptrDyn = (char*)GlobalAlloc(GMEM_FIXED|GMEM_ZEROINIT, strOff-dynSec->getMemOffset());
+	Offset ptrToWrite = 0;
+	//first, the .dyninstInst section
+	memcpy(ptrDyn+ptrToWrite, (char*)dynSec->getPtrToRawData(), dynSec->getDiskSize());
+	ptrToWrite+=dynSec->getDiskSize();
+	//then, the original import table
+	memcpy(ptrDyn+ptrToWrite, oldIT, oldImpSize);
+	ptrToWrite += oldImpSize;
+	//then the added import descriptor
+	memcpy(ptrDyn+ptrToWrite, newIT, newImpSize);
+	ptrToWrite += newImpSize;
+
+	//then IAT and etc.
+	std::vector<std::pair<char*, unsigned long> >::iterator info_it;
+	for(info_it = info.begin(); info_it!=info.end(); info_it++){
+		memcpy(ptrDyn+ptrToWrite, (*info_it).first, (*info_it).second);
+		ptrToWrite += (*info_it).second;
+		GlobalFree((*info_it).first);
+	}
+
+	//printf("dyninstInst mem offset: %lu\n", dynSec->getMemOffset());
+	obj_nt->setNewImpTableAddr(dynSec->getMemOffset()+dynSec->getDiskSize());
+    //update .dyninst section
+	dynSec->setPtrToRawData(ptrDyn, (unsigned long)ptrToWrite);
+	//finally free space allocated by GlobalAlloc
+	GlobalFree(oldIT);
+	GlobalFree(newIT);
+	//printf("new dyn section size: %d\n", dynSec->getDiskSize());
+
+	return true;
+}
+
 bool emitWin::driver(Symtab *obj, std::string fName){
+	//if external references exist, write the import info.
+	if(!obj_nt->getRefs().empty())
+		writeImpTable(obj);
+
 	Offset MoveAheadOffset=0;
     //get the number of new added sections
     std::vector<Region *> newregs;
@@ -218,6 +339,12 @@ bool emitWin::driver(Symtab *obj, std::string fName){
     NTHeader->OptionalHeader.SizeOfImage = secHdrs[secHdrs.size()-1]->VirtualAddress + 
         secHdrs[secHdrs.size()-1]->Misc.VirtualSize;
 
+	//if move the import table, update its address
+	if(!obj_nt->getRefs().empty()){
+		NTHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress=obj_nt->getNewImpTableAddr();
+		printf("new import table address: %lu\n", obj_nt->getNewImpTableAddr());
+	}
+
     memcpy(pMem+writeOffset, NTHeader,sizeof(IMAGE_NT_HEADERS));
     //if bound import table is not empty, update its virtual address
     if(bit_addr != 0){
@@ -244,20 +371,7 @@ bool emitWin::driver(Symtab *obj, std::string fName){
     if(bit_addr != 0){
         memcpy(pMem+dwFirstSectionHeaderOffset + secHdrs.size()*sizeof(IMAGE_SECTION_HEADER),
             (char*)(base_addr+bit_addr), bit_size);
-    }
-
-
-        //WriteFile(hFile, secHdrs[i],sizeof(IMAGE_SECTION_HEADER), &dwByteWritten, NULL);
-        //printf("section header%d:%lu, %lu\n", i,sizeof(IMAGE_SECTION_HEADER), dwByteWritten);
-    //}   
-
-    //write sections
-    //for(unsigned int i=0; i<secHdrs.size(); i++){
-    //    SetFilePointer(hFile,secHdrs[0]->PointerToRawData,NULL,FILE_BEGIN);
-    //    WriteFile(hFile, regs[i]->getPtrToRawData(),regs[i]->getDiskSize(),&dwByteWritten, NULL);
-    //    printf("section %d:%lu, %lu\n", i,regs[i]->getDiskSize(), dwByteWritten);
-    //}
-   
+    }   
 
     //move the file pointer to beginning to write
     DWORD dwByteWritten =0;
@@ -272,31 +386,6 @@ bool emitWin::driver(Symtab *obj, std::string fName){
 
     return true;
 }
-
-/*
-void emitWin::AlignSections(){
-    PIMAGE_NT_HEADERS pNTHeader = obj_nt -> GetImageHeader();
-    std::vector<PIMAGE_SECTION_HEADER> sectionHeader = obj_nt ->getSectionHeaders();
-    std::vector<PIMAGE_SECTION_HEADER>::iterator iter;
-   
-    for(iter = sectionHeader.begin(); iter != sectionHeader.end(); iter++)
-    {
-        iter->VirtualAddress = PEAlign(iter->VirtualAddress,
-            pNTHeader->OptionalHeader.SectionAlignment);
-
-        iter->Misc.VirtualSize=PEAlign(iter->Misc.VirtualSize,
-            pNTHeader->OptionalHeader.SectionAlignment);
-
-        iter->PointerToRawData=PEAlign(iter->PointerToRawData,
-            pNTHeader->OptionalHeader.FileAlignment);
-
-        iter->SizeOfRawData=PEAlign(iter->SizeOfRawData,
-            pNTHeader->OptionalHeader.FileAlignment);
-    }
-    pNTHeader->OptionalHeader.SizeOfImage=sectionHeader.end()->VirtualAddress+
-        sectionHeader.end()->Misc.VirtualSize;
-}
-*/
 
 
 /*In windows PE file, there are two alignments:

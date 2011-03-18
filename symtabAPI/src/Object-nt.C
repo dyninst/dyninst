@@ -726,6 +726,30 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
    else
       is_aout_ = true;
 
+   //retrieve import table information
+   //1. get the RVA of import table from Data directory
+   DWORD dwITrva = peHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+   printf("Import Table RVA: %lx\n", dwITrva);
+   //2. get the offset in disk file
+   DWORD dwIToffset = RVA2Offset(dwITrva);
+   printf("import table disk offset: %lx\n", dwIToffset);
+
+   PIMAGE_IMPORT_DESCRIPTOR import_d = (PIMAGE_IMPORT_DESCRIPTOR)(((char*)mf->base_addr())+dwIToffset);
+
+   while(import_d ->Name != NULL && import_d->FirstThunk !=NULL){
+      IMAGE_IMPORT_DESCRIPTOR tmp;
+      memcpy(&tmp, import_d, sizeof(IMAGE_IMPORT_DESCRIPTOR));
+      IMPORT_ENTRY ie;
+      ie.id = tmp;
+      char* str = (char*)(((char*)mf->base_addr())+RVA2Offset(import_d->Name));
+      ie.name = (char*)malloc(sizeof(char)*strlen(str));
+      memcpy(ie.name, str, strlen(str)+1);
+      image_import_descriptor.push_back(ie);
+      printf("%s\n",ie.name);
+      import_d ++;
+   }
+   //cout<<"size of import table"<<image_import_descriptor.size()<<endl;
+
    SecAlignment = peHdr ->OptionalHeader.SectionAlignment;
    unsigned int nSections = peHdr->FileHeader.NumberOfSections;
    no_of_sections_ = nSections;
@@ -1993,9 +2017,99 @@ bool AObject::getSegments(vector<Segment> &segs) const
 }
 
 bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&allSymbols, 
-						unsigned flag) {
+						unsigned flag) 
+{
 	emitWin *em = new emitWin((PCHAR)GetMapAddr(), this, err_func_);
 	return em -> driver(obj, fName);
+}
+
+void Object::setNewImpTableAddr(Offset addr){
+	newImpTableAddr = addr;
+}
+
+Offset Object::getNewImpTableAddr(){
+	return newImpTableAddr;
+}
+
+unsigned int Object::getNewImpTableSize(){
+	return (image_import_descriptor.size()+1)*20;
+}
+
+void Object::addReference(Offset off, std::string lib, std::string fun){
+	ref[off]=std::pair<string,string>(lib, fun);
+	//func.push_back(std::pair<string, string>(lib,fun));
+}
+						
+// retrieve Section Number for an image offset
+// dwRO - the image offset to calculate
+// returns -1 if an error occurred else returns the corresponding section number
+DWORD Object::ImageOffset2SectionNum(DWORD dwRO)
+{
+	PIMAGE_SECTION_HEADER sectionHeader = (PIMAGE_SECTION_HEADER)((DWORD)peHdr + sizeof(IMAGE_NT_HEADERS));
+	unsigned int SecCount = peHdr ->FileHeader.NumberOfSections;
+	for(unsigned int i=0;i < SecCount; i++)
+	{
+		if((dwRO>=sectionHeader->PointerToRawData) && (dwRO<(sectionHeader->PointerToRawData+sectionHeader->SizeOfRawData)))
+		{
+			return (i);
+		}
+		sectionHeader++;
+	}
+	return(-1);
+}
+
+PIMAGE_SECTION_HEADER Object::ImageOffset2Section(DWORD dwRO)
+{
+	PIMAGE_SECTION_HEADER sectionHeader = (PIMAGE_SECTION_HEADER)((DWORD)peHdr + sizeof(IMAGE_NT_HEADERS));
+	unsigned int SecCount = peHdr ->FileHeader.NumberOfSections;
+
+	for(unsigned int i=0;i<SecCount;i++)
+	{
+		if((dwRO>=sectionHeader->PointerToRawData) && (dwRO<(sectionHeader->PointerToRawData+sectionHeader->SizeOfRawData)))
+		{
+			return sectionHeader;
+		}
+		sectionHeader++;
+	}
+	return(NULL);
+}
+
+PIMAGE_SECTION_HEADER Object::ImageRVA2Section(DWORD dwRVA)
+{
+	PIMAGE_SECTION_HEADER sectionHeader = (PIMAGE_SECTION_HEADER)((DWORD)peHdr + sizeof(IMAGE_NT_HEADERS));
+	unsigned int SecCount = peHdr ->FileHeader.NumberOfSections;
+
+	for(unsigned int i=0;i<SecCount;i++)
+	{
+		if((dwRVA>=sectionHeader->VirtualAddress) && (dwRVA<=(sectionHeader->VirtualAddress+sectionHeader->SizeOfRawData)))
+		{
+			return sectionHeader;
+		}
+		sectionHeader++;
+	}
+	return(NULL);
+}
+
+DWORD Object::RVA2Offset(DWORD dwRVA)
+{
+	DWORD offset;
+	PIMAGE_SECTION_HEADER section = ImageRVA2Section(dwRVA);
+	if(section==NULL)
+	{
+		return(0);
+	}
+	offset=dwRVA+section->PointerToRawData-section->VirtualAddress;
+	return offset;
+}
+
+DWORD Object::Offset2RVA(DWORD dwRO)
+{
+	PIMAGE_SECTION_HEADER section = ImageOffset2Section(dwRO);
+	if(section==NULL)
+	{
+		return(0);
+	}
+	return(dwRO+section->VirtualAddress-section->PointerToRawData);
 }
 
 bool Region::isStandardCode()
