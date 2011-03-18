@@ -4465,7 +4465,8 @@ Address process::stopThreadCtrlTransfer
         // b. We're in an analyzed fallthrough block
         // c. The stack was tampered with and we need the (mod_pc - pc) 
         //    offset to figure out where we should be
-        cerr << "Looking for matches to incoming address " << hex << target << dec << endl;
+        malware_cerr << "Looking for matches to incoming address " 
+            << hex << target << dec << endl;
         instPoint *callPt = NULL;
         int_block *callBBI = NULL;
 
@@ -4672,7 +4673,8 @@ bool process::getOverwrittenBlocks
         if (isMemoryEmulated()) {
             bool valid = false;
             boost::tie(valid,readAddr) = getMemEm()->translate(curPageAddr);
-			cerr << "\t\t Reading from shadow page " << hex << readAddr << " instead of original " << curPageAddr << endl;
+			malware_cerr << "\t\t Reading from shadow page " << hex << readAddr 
+                << " instead of original " << curPageAddr << endl;
             assert(valid);
         }
         readTextSpace((void*)readAddr, MEM_PAGE_SIZE, memVersion);
@@ -4684,8 +4686,8 @@ bool process::getOverwrittenBlocks
                 regionStart = curPageAddr+mIdx;
             } else if (foundStart && curShadow[mIdx] == memVersion[mIdx]) {
                 foundStart = false;
-				cerr << "\t\t Adding overwritten range " << hex << regionStart << " -> " << curPageAddr + mIdx << dec << endl;
-
+				malware_cerr << "\t\t Adding overwritten range " << hex << regionStart 
+                    << " -> " << curPageAddr + mIdx << dec << endl;
                 overwrittenRanges.push_back(
                     pair<Address,Address>(regionStart,curPageAddr+mIdx));
             }
@@ -4693,7 +4695,8 @@ bool process::getOverwrittenBlocks
         if (foundStart) {
 
             foundStart = false;
-			cerr << "\t\t Adding overwritten range " << hex << regionStart << " -> " << curPageAddr + MEM_PAGE_SIZE << dec << endl;
+			malware_cerr << "\t\t Adding overwritten range " << hex << regionStart 
+                << " -> " << curPageAddr + MEM_PAGE_SIZE << dec << endl;
 
             overwrittenRanges.push_back(
                 pair<Address,Address>(regionStart,curPageAddr+MEM_PAGE_SIZE));
@@ -5086,7 +5089,7 @@ int_function *process::findActiveFuncByAddr(Address addr)
 
 bool process::patchPostCallArea(instPoint *callPt)
 {
-    cerr << "patchPostCallArea for point " << hex << callPt->addr() << dec << endl;
+    malware_cerr << "patchPostCallArea for point " << hex << callPt->addr() << dec << endl;
     // 1) Find all the post-call patch areas that correspond to this 
     //    call point
     // 2) Generate and install the branches that will be inserted into 

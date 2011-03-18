@@ -882,9 +882,10 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
             Address curFallThroughAddr = (*cIter)->getCallFallThroughAddr();
             if (NULL != (*cIter)->getInsnAtPoint() && 
                 c_BranchInsn != (*cIter)->getInsnAtPoint()->getCategory() &&
+                BPatch_defensiveMode == (*cIter)->llpoint()->func()->obj()->hybridMode() &&
                 ! hasEdge((*cIter)->getFunction(), 
-                           (Address)((*cIter)->llpoint()->block()->start()), 
-                           curFallThroughAddr) &&
+                          (Address)((*cIter)->llpoint()->block()->start()), 
+                          curFallThroughAddr) &&
                 dupFuncCheck.find((*cIter)->getFunction()) == dupFuncCheck.end())
             {
                 mal_printf("%s[%d] Function call at 0x%lx is returning, adding edge "

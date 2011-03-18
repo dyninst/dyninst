@@ -539,7 +539,8 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *bti, codeGen &ge
                     gen.rs()->anyLiveFPRsAtEntry()     &&
                     bt->isConservative()               &&
                     !bt->optimized_out_guards );
-    bool alignStack = false;//KEVINTODO: RE-ENABLE THIS...useFPRs || !bti || bti->checkForFuncCalls();
+    //bool alignStack = false; //KEVINTOD: test what happens once Ray's stuff is enabled
+    bool alignStack = useFPRs || !bti || bti->checkForFuncCalls();
 
     if (alignStack) {
         emitStackAlign(funcJumpSlotSize, gen);
@@ -1562,7 +1563,7 @@ void EmitterAMD64::emitStoreFrameRelative(Address offset, Register src, Register
 
 void EmitterAMD64::emitStoreRelative(Register src, Address offset, Register base, int /* size */, codeGen &gen) {
     emitMovRegToRM64(base, 
-                     offset*gen.addrSpace()->getAddressWidth(), 
+                     offset, 
                      src, 
                      gen.addrSpace()->getAddressWidth(),
                      gen);
@@ -2744,8 +2745,10 @@ Address Emitter::getInterModuleFuncAddr(int_function *func, codeGen& gen)
     if (!relocation_address) {
         // inferiorMalloc addr location and initialize to zero
         relocation_address = binEdit->inferiorMalloc(jump_slot_size);
-        unsigned int dat = 0;
-        binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, &dat);
+        unsigned char* dat = (unsigned char*) malloc(jump_slot_size); //KEVINTODO: commit to head
+        memset(dat,0,jump_slot_size);
+        binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, dat);
+        free(dat);
 
         // add write new relocation symbol/entry
         binEdit->addDependentRelocation(relocation_address, referring);

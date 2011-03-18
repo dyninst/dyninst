@@ -128,7 +128,7 @@ image_func::image_func(
 image_func::~image_func() 
 {
     /* FIXME */ 
-  fprintf(stderr,"SCREAMING FIT IN UNIMPL ~image_func()\n");
+  mal_printf("~image_func() for func at %lx\n",_start);
   delete usedRegisters;
 }
 

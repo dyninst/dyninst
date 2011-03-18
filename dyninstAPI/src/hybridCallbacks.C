@@ -536,8 +536,12 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         assert(0);
     }
 
+    if (targMod == point->getFunction()->getModule() && targMod->isSystemLib()) {
+        return;
+    }
+
 // 1. the target address is in a shared library
-    if ( targMod != point->getFunction()->getModule() ) 
+    if ( targMod != point->getFunction()->getModule()) 
     {
         // process the edge, decide if we should instrument target function
         bool doMoreProcessing = processInterModuleEdge(point, target, targMod);

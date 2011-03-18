@@ -249,14 +249,13 @@ void StackAnalysis::summarize() {
 			// TODO: try to collapse these in some intelligent fashion
 			(*intervals_)[block][off] = input;
 
-			RegisterState old = input;
 			for (TransferFuncs::iterator iter2 = xferFuncs.begin();
 				iter2 != xferFuncs.end(); ++iter2) {
-					input[iter2->target] = iter2->apply(old);
+					input[iter2->target] = iter2->apply(input);
 			}
 		}
 		(*intervals_)[block][block->end()] = input;
-		assert(input == blockOutputs[block]);
+        assert(input == blockOutputs[block]);
 	}
 }
 
@@ -490,9 +489,10 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, int sign, TransferFuncs
    xferFuncs.push_back(TransferFunc::deltaFunc(sp(), delta));
 
    // Let's get whatever was popped (if it was)
-   if (insn->getOperation().getID() == e_pop) {
+   if (insn->getOperation().getID() == e_pop &&
+       !insn->writesMemory()) {
       MachRegister reg = sp();
-      
+
       std::set<RegisterAST::Ptr> written;
       insn->getWriteSet(written);
       for (std::set<RegisterAST::Ptr>::iterator iter = written.begin(); 
@@ -553,7 +553,11 @@ void StackAnalysis::handleLeave(TransferFuncs &xferFuncs) {
    // This is... mov esp, ebp; pop ebp.
    // Handle it as such.
 
-   xferFuncs.push_back(TransferFunc::aliasFunc(fp(), sp()));
+   // mov esp, ebp;
+    xferFuncs.push_back(TransferFunc::aliasFunc(fp(), sp()));
+    
+   // pop ebp
+    xferFuncs.push_back(TransferFunc::deltaFunc(sp(), word_size)); 
    xferFuncs.push_back(TransferFunc::bottomFunc(fp()));
 }
 
@@ -927,9 +931,10 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
          input.delta = alias.delta;
 	  }
 	  else {
-		  input.delta = Height::top;
+		  input.delta = delta;
 	  }
-	  return;
+      
+      return;
    }
    if (isDelta()) {
       // A delta can apply cleanly to anything, since Height += handles top/bottom
@@ -962,7 +967,7 @@ void StackAnalysis::SummaryFunc::add(TransferFuncs &xferFuncs) {
       TransferFunc &func = *iter;
 
       func.accumulate(accumFuncs);
-   validate();
+      validate();
    }
 
 }

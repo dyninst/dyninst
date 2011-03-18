@@ -646,9 +646,7 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getParentLoop(BPatch_function &func, Ad
                 for (vector<BPatch_point*>::iterator pit2 = callPs.begin(); 
                      pit2 != callPs.end(); pit2++) 
                 {
-                    if ( pit != pit2 && 
-                         ! curL->containsAddressInclusive((Address)(*pit2)->getAddress()) ) 
-                    {
+                    if ( ! curL->containsAddressInclusive((Address)(*pit2)->getAddress()) ) {
                         containsAllCalls = false;
                     }
                 }
@@ -693,7 +691,7 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop
         if ((*lIter)->containsAddressInclusive(writeAddr) && 
             (!writeLoop || writeLoop->hasAncestor(*lIter))) 
         {
-            // set writeLoop if the curloop has no indirect control transfers
+            // set writeLoop if the curloop has no indirect or non-returning control transfers
             bool hasUnresolved = false;
             (*lIter)->getLoopBasicBlocks(loopBlocks);
             for (vector<BPatch_basicBlock*>::iterator bIter= loopBlocks.begin(); 
@@ -703,11 +701,12 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop
                 Address blockStart = (*bIter)->getStartAddress();
                 if (blockToLoop.find(blockStart) != blockToLoop.end()) {
                     // this block corresponds to another instrumented loop!
-                    fprintf(stderr,"WARNING: block [%lx %lx] in loop overlaps with "
+                    mal_printf("WARNING: block [%lx %lx] in loop overlaps with "
                             "existing loop %d %s[%d]\n", blockStart, 
                             (*bIter)->getEndAddress(), 
                             blockToLoop[blockStart], FILE__,__LINE__);
                 }
+
                 (*bIter)->getAllPoints(blockPoints);
                 for (vector<BPatch_point*>::iterator pIter= blockPoints.begin(); 
                     pIter != blockPoints.end(); 
@@ -810,6 +809,16 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
             bIter != fBlocks.end(); 
             bIter++) 
         {
+            // check to see if the block has a non-returning call
+            if ((*bIter)->lowlevel_block()->llb()->isCallBlock() && 
+                NULL == (*bIter)->lowlevel_block()->getFallthrough()) 
+            {
+                mal_printf("loop %d calls func %lx which has a non-returning "
+                           "call at %lx %s[%d]\n", loop->getID(), 
+                           (*fIter)->getBaseAddr(), 
+                           (*bIter)->getLastInsnAddress(), FILE__,__LINE__);
+                hasUnresolved = true;
+            }
             // add the block to the new loop's datastructures
             Address blockStart = (*bIter)->getStartAddress();
             if (blockToLoop.find(blockStart) != blockToLoop.end() && 
@@ -830,8 +839,8 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
         // unresolved ctrl flow, then set flag and clear vector
         (*fIter)->getUnresolvedControlTransfers(unresolvedCF);
         for (vector<BPatch_point*>::iterator pIter = unresolvedCF.begin(); 
-            pIter != unresolvedCF.end(); 
-            pIter++) 
+             !hasUnresolved && pIter != unresolvedCF.end(); 
+             pIter++) 
         {
             vector<Address> targs;
             (*pIter)->llpoint()->getCallAndBranchTargets(targs);
@@ -842,12 +851,6 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
                            "transfer at %lx that resolves to %d targets "
                            "%s[%d]\n", loop->getID(), (*fIter)->getBaseAddr(), 
                            (*pIter)->getAddress(), targs.size(), FILE__,__LINE__);
-            //} else if (hybrid()->needsSynchronization(*pIter)) {
-            //    hasUnresolved = true;
-            //    mal_printf("loop %d calls func %lx which has an indirect "
-            //              "transfer at %lx that needs synchronization "
-            //              "%s[%d]\n", loop->getID(), (*fIter)->getBaseAddr(), 
-            //              (*pIter)->getAddress(), FILE__,__LINE__);
             } else {
                 // add target function if it's not in seenFuncs
                 addLoopFunc(proc()->findFunctionByEntry(targs[0]), seenFuncs, nextAddFuncs);
@@ -1243,7 +1246,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
     }
     proc()->finalizeInsertionSet(false);
     proc()->protectAnalyzedCode();
-    cerr << "overWriteAnalysis returns" << endl;
+    malware_cerr << "overWriteAnalysis returns" << endl;
 }
 #endif
 
@@ -1322,40 +1325,18 @@ void HybridAnalysisOW::overwriteSignalCB
             loop->setWriteTarget(0);
         } 
 
-        // if this is not a real loop, this may be a new write instruction 
-        // in the existing loop and we will need to instrument after that 
-        // write instruction.  
-        // While we're at it, we check to see if the function has been
-        // updated, in which case we can swith to loop-based instrumentation
-        if ( ! loop->isRealLoop() ) {
-            // if there is a new write instruction in the block that hasn't 
-            // been instrumented, instrument after the new write instruction
-            if (loop->writeInsns.end() == 
-                loop->writeInsns.find(faultInsnAddr))
-            {
-                assert(0); // KEVINTODO: expunge this code, it should not be 
-                           // reachable, since we instrument immediately after 
-                           // the write instruction and single-instruction loops
-                           // do not get re-used
-                mal_printf("hit new uninstrumented write instruction in existing loop\n");
-                loop->writeInsns.insert(faultInsnAddr);
-                loop->instrumentOneWrite(faultInsnAddr,faultFuncs);
-            } 
-        }
-
         // if the write is to same page as the write instruction and we didn't
         // already know that it does this, instrument the loop with bounds 
         // checks
-        else if( pageAddress <= faultInsnAddr &&
-                 faultInsnAddr < (pageAddress + pageSize) &&
-                 ! loop->writesOwnPage() )
+        if( loop->isRealLoop() && 
+            pageAddress <= faultInsnAddr &&
+            faultInsnAddr < (pageAddress + pageSize) &&
+            ! loop->writesOwnPage() )
         {
             loop->setWritesOwnPage(true);
-            if ( loop->isRealLoop() ) {
-                mal_printf("discovered that loop %d writes to one of its code pages, "
-                           "will add write-bounds instrumentation\n", loop->getID());
-                loop->instrumentLoopWritesWithBoundsCheck();
-            }
+            mal_printf("discovered that loop %d writes to one of its code pages, "
+                       "will add write-bounds instrumentation\n", loop->getID());
+            loop->instrumentLoopWritesWithBoundsCheck();
         }
 
         makeShadow_setRights(writeTarget, loop);
@@ -1450,7 +1431,7 @@ bool HybridAnalysisOW::registerCodeOverwriteCallbacks
 {
     bpatchBeginCB = cbBegin;
     bpatchEndCB = cbEnd;
-    return true;//KEVINTODO: these functions should all fail if the hybrid mode is wrong
+    return true;
 }
 
 bool HybridAnalysisOW::removeCodeOverwriteCallbacks()
