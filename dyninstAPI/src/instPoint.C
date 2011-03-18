@@ -658,8 +658,8 @@ InstructionAPI::Instruction::Ptr instPoint::insn() {
 
     int_block::InsnInstances insns;
     block()->getInsnInstances(insns);
-    for (int_block::InsnInstances::iterator iter = insns.begin();
-        iter != insns.end(); ++iter) 
+    for (int_block::InsnInstances::reverse_iterator iter = insns.rbegin();
+        iter != insns.rend(); ++iter) 
     {
         if (iter->second == addr())
         {

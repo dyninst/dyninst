@@ -272,6 +272,7 @@ DynParseCallback::newfunction_retstatus(Function *func)
 void
 DynParseCallback::block_split(Block *first, Block *second, Function *func)
 {
+    _img->fixSplitPoints(first,second);
     image::SplitBlock sb (static_cast<image_basicBlock *>(first),
                           static_cast<image_basicBlock *>(second),
                           static_cast<image_func*>(func));

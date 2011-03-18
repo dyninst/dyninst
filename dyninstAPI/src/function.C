@@ -470,7 +470,7 @@ void int_function::setPointResolved(instPoint *point, bool resolve)
     assert( point == findInstPByAddr(point->addr()) );
 }
 
-// finds new entry point, sets the argument to the new 
+// finds new entry point, sets the argument to the new entry
 int_block * int_function::setNewEntryPoint()
 {
     int_block *newEntry = NULL;
@@ -481,23 +481,23 @@ int_block * int_function::setNewEntryPoint()
     for (bIter = blocks_.begin(); 
          bIter != blocks_.end(); 
          bIter++) 
-        {
-            SingleContext epred(ifunc(),true,true);
-            Block::edgelist & ib_ins = (*bIter)->llb()->sources();
-            Block::edgelist::iterator eit = ib_ins.begin(&epred);
-            if (eit == ib_ins.end()) {
-                if (NULL != newEntry) {
-                    fprintf(stderr,"ERROR: multiple blocks in function %lx "
-                        "have no incoming edges: [%lx %lx) and [%lx %lx)\n",
-                        getAddress(), newEntry->llb()->start(),
-                        newEntry->llb()->start() + newEntry->llb()->end(),
-                        (*bIter)->llb()->start(),
-                        (*bIter)->llb()->start() + (*bIter)->llb()->end());
-                } else {
-                    newEntry = *bIter;
-                }
+    {
+        ParseAPI::Intraproc epred;
+        Block::edgelist & ib_ins = (*bIter)->llb()->sources();
+        Block::edgelist::iterator eit = ib_ins.begin(&epred);
+        if (eit == ib_ins.end()) {
+            if (NULL != newEntry) {
+                fprintf(stderr,"ERROR: multiple blocks in function %lx "
+                    "have no incoming edges: [%lx %lx) and [%lx %lx)\n",
+                    getAddress(), newEntry->llb()->start(),
+                    newEntry->llb()->start() + newEntry->llb()->end(),
+                    (*bIter)->llb()->start(),
+                    (*bIter)->llb()->start() + (*bIter)->llb()->end());
+            } else {
+                newEntry = *bIter;
             }
         }
+    }
     if( ! newEntry ) {
         newEntry = *blocks_.begin();
     }
@@ -521,9 +521,6 @@ int_block * int_function::setNewEntryPoint()
     }
 	assert(point);
     entryPoints_.push_back(point);
-
-    // change function base address
-    addr_ = newEntry->start();
     return newEntry;
 }
 

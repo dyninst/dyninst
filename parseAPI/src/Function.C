@@ -321,31 +321,31 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
 
         // remove dead block from _return_blocks and its call edges from vector
         Block::edgelist & outs = dead->targets();
-        found = false;
         for (Block::edgelist::iterator oit = outs.begin();
-             !found && outs.end() != oit; 
+             outs.end() != oit; 
              oit++ ) 
         {
             switch((*oit)->type()) {
-                case CALL:
+                case CALL: {
+                    bool foundEdge = false;
                     for (set<Edge*>::iterator cit = _call_edges.begin(); 
                          _call_edges.end() != cit;
                          cit++) 
                     {
                         if (*oit == *cit) {
-                            found = true;
+                            foundEdge = true;
                             _call_edges.erase(cit);
                             break;
                         }
                     }
-                    assert(found || (*oit)->sinkEdge());
+                    assert(foundEdge || (*oit)->sinkEdge());
                     break;
+                }
                 case RET:
                     _return_blocks.erase(std::remove(_return_blocks.begin(),
                                                      _return_blocks.end(),
                                                      dead),
                                          _return_blocks.end());
-                    found = true;
                     break;
                 default:
                     break;

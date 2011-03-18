@@ -194,6 +194,7 @@ EdgeTypeEnum int_block::getSourceEdgeType(int_block *source) const {
     return NOEDGE;
 }
 
+// returns fallthrough block, with a preference for CALL_FT blocks
 int_block *int_block::getFallthrough() const {
     SingleContext epred(func()->ifunc(),true,true);
     NoSinkPredicate epred2(&epred);

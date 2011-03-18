@@ -1241,6 +1241,28 @@ void image::deleteFunc(image_func *func)
 
 }
 
+// re-assign b1 blocks to b2 if the split requires it
+void image::fixSplitPoints(ParseAPI::Block *b1, ParseAPI::Block *b2)
+{
+    instp_map_t::iterator iit = inst_pts_.find(b1);
+    if (iit == inst_pts_.end()) {
+        return;
+    }
+    for (block_map_t::iterator bit = iit->second.begin(); 
+         bit != iit->second.end(); 
+         bit++) 
+    {
+        if (bit->first > b1->lastInsnAddr()) {
+            image_instPoint *pt = bit->second;
+            assert(bit->first <= b2->lastInsnAddr());
+            pt->setBlock(b2);
+            addInstPoint(pt);// will add point under b2
+        }
+    }
+    iit->second.clear();
+    inst_pts_.erase(iit);
+}
+
 void image::deleteInstPoint(image_instPoint *p) {
     cerr << "Erasing instPoint at " << hex << p->offset() << dec << endl;
 

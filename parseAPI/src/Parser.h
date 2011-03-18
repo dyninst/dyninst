@@ -178,6 +178,9 @@ class Parser {
 
     void parse_frames(std::vector<ParseFrame *> &, bool);
     void parse_frame(ParseFrame & frame,bool);
+
+    // defensive parsing details
+    void tamper_post_processing(std::vector<ParseFrame *>&, ParseFrame *);
     ParseFrame * getTamperAbsFrame(Function *tamperFunc);
 
     /* implementation of the parsing loop */

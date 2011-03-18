@@ -122,6 +122,196 @@ getBlockInsns(Block &blk, std::set<Address> &addrs)
     } 
 }
 
+/* called in defensive mode to create parseFrames at tampered addresses 
+   for functions that return TAMPER_ABS. */
+ParseFrame * 
+Parser::getTamperAbsFrame(Function *tamperFunc)
+{
+    assert(TAMPER_ABS == tamperFunc->tampersStack());
+    Function * targFunc = NULL;
+
+    // get the binary's load address and subtract it
+    Address loadAddr = 0;
+    CodeObject *co = NULL;
+    if ( ! _pcb.absAddr(tamperFunc->_tamper_addr, loadAddr, co) ) {
+        parsing_printf("WARNING: Failed to find object load address "
+                       "for tampered return address 0x%lx\n", 
+                       tamperFunc->_tamper_addr);
+        mal_printf("WARNING: Failed to find object load address "
+                   "for tampered return address 0x%lx\n", 
+                   tamperFunc->_tamper_addr);
+        tamperFunc->_tamper = TAMPER_NONZERO;
+        return NULL; // failed to find object load address
+    }
+    Address target = tamperFunc->_tamper_addr - loadAddr;
+    set<CodeRegion*> targRegs;
+    co->cs()->findRegions(target, targRegs);
+    assert(1 == targRegs.size()); // we don't do analyze stack tampering on 
+                              // platforms that use archive files
+    targFunc = _parse_data->get_func
+        (*(targRegs.begin()), 
+         target, 
+         tamperFunc->src());
+
+    if (!targFunc) {
+        targFunc = _parse_data->get_func(*(targRegs.begin()),target,RT);
+    }
+
+    if(!targFunc) {
+        mal_printf("ERROR: could not create function at tamper "
+                   "addr %lx\n",target);
+        return NULL;
+    }
+
+    ParseFrame * pf = NULL;
+    CodeRegion *reg = targFunc->region();
+
+    ParseFrame::Status exist = _parse_data->frameStatus(reg, target);
+    switch(exist) {
+    case ParseFrame::FRAME_ERROR:
+    case ParseFrame::PROGRESS:
+        fprintf(stderr,"ERROR: function frame at %lx in bad state, can't "
+                "add edge; status=%d\n",target, exist);
+        return NULL;
+        break;
+    case ParseFrame::PARSED:
+        fprintf(stderr,"ERROR: function frame at %lx already parsed, can't "
+                "add edge; status=%d\n",target, exist);
+        return NULL;
+        break;
+    case ParseFrame::BAD_LOOKUP:
+        // create new frame
+        pf = _parse_data->findFrame(reg, target);
+        assert( !pf );
+        pf = new ParseFrame(targFunc,_parse_data);
+        break;
+    case ParseFrame::UNPARSED:
+    case ParseFrame::CALL_BLOCKED:
+        pf = _parse_data->findFrame(reg, target);
+        if ( !pf ) {
+            fprintf(stderr,"ERROR: no function frame at %lx for frame "
+                    "that should exist, can't add edge; status=%d\n",
+                    target, exist);
+            return NULL;
+        }
+        break;
+    default:
+        assert(0);
+    }
+        
+    // make a temp edge
+    Function::blocklist & ret_blks = tamperFunc->returnBlocks();
+    for (Function::blocklist::iterator bit = ret_blks.begin(); 
+         bit != ret_blks.end(); 
+         bit++)
+    {
+        Edge *edge = link_tempsink(*bit, CALL);
+
+        // create new bundle since we're not adding CALL,CALL_FT edge pairs
+        ParseWorkBundle *bundle = new ParseWorkBundle();
+        pf->work_bundles.push_back(bundle);
+        bundle->add(
+            new ParseWorkElem(
+                bundle,
+                edge,
+                target,
+                true,
+                true)
+          );
+    }
+
+    return pf;
+}
+
+// Param pf tampers with its stack by a relative or absolute amount. 
+// In the first case, adjust CALL_FT target edge if there is one
+// In the second case, add a new ParseFrame to the worklist or 
+// trigger parsing in the target object. 
+void
+Parser::tamper_post_processing(vector<ParseFrame *> & work, ParseFrame *pf)
+{
+    // tampers with stack by relative amount: 
+    // adjust CALL_FT target edge if there is one
+    for (unsigned widx = 0; 
+         pf->func->tampersStack() == TAMPER_REL && 
+         widx < work.size(); 
+         widx++) 
+    {
+        if (work[widx]->status() == ParseFrame::CALL_BLOCKED &&
+            pf->func == work[widx]->call_target) 
+        {
+            for (unsigned bidx=0 ; 
+                 bidx < work[widx]->work_bundles.size(); 
+                 bidx++) 
+            {
+                const vector<ParseWorkElem*> &elems = 
+                    work[widx]->work_bundles[bidx]->elems();
+                bool rightBundle = false;
+                ParseWorkElem * ftEdge = NULL;
+                for (unsigned eix=0; eix < elems.size(); eix++)
+                {
+                    if (NULL == elems[eix]->edge()) 
+                    {
+                        continue;
+                    }
+                    if (elems[eix]->edge()->type() == CALL &&
+                        elems[eix]->target()==pf->func->addr())
+                    {
+                        rightBundle = true;
+                    }
+                    else if (elems[eix]->edge()->type() == CALL_FT)
+                    {
+                        ftEdge = elems[eix];
+                    }
+                }
+                if (rightBundle && ftEdge) 
+                {
+                    ftEdge->setTarget(ftEdge->target() + 
+                                      pf->func->_tamper_addr);
+                }
+            }
+        }
+    }
+    // create frame for TAMPER_ABS target in this object or parse
+    // in target object 
+    if (pf->func->tampersStack() == TAMPER_ABS) 
+    {
+        Address objLoad = 0;
+        CodeObject *targObj = NULL;
+        if (_pcb.absAddr(pf->func->_tamper_addr, 
+                         objLoad, 
+                         targObj)) 
+        {
+            if (targObj == &_obj) { // target is in this object, add frame
+                ParseFrame * tf = getTamperAbsFrame(pf->func);
+                if (tf && ! _parse_data->findFrame(tf->func->region(),
+                                                   tf->func->addr()) ) 
+                {
+                    init_frame(*tf);
+                    frames.push_back(tf);
+                    _parse_data->record_frame(tf);
+                    _pcb.updateCodeBytes(pf->func->_tamper_addr - objLoad);
+                }
+                if (tf) {
+                    mal_printf("adding TAMPER_ABS target %lx frame\n", 
+                               pf->func->_tamper_addr);
+                    work.push_back(tf);
+                }
+            }
+            else { // target is in another object, parse there
+                mal_printf("adding TAMPER_ABS target %lx "
+                           "in separate object at %lx\n", 
+                           pf->func->_tamper_addr, objLoad);
+                _obj.parse(pf->func->_tamper_addr - objLoad, true);
+            }
+        }
+        else {
+            mal_printf("discarding invalid TAMPER_ABS target %lx\n", 
+                       pf->func->_tamper_addr);
+        }
+    }
+}
+
 
 /*
  * Extra handling for bad jump instructions

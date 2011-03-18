@@ -369,10 +369,11 @@ class image : public codeRange {
    const pdvector<image_variable*> &getAllVariables();
 
    image_instPoint * getInstPoint(ParseAPI::Block *, Address addr);
-   bool addInstPoint(image_instPoint*p);
    void getInstPoints(ParseAPI::Block *,
                       pdvector<image_instPoint*> &points); 
+   bool addInstPoint(image_instPoint*p);
    void deleteInstPoints(ParseAPI::Block *b);
+   void fixSplitPoints(ParseAPI::Block *b1,ParseAPI::Block *b2);
 
 
    //-----------DEFENSIVE-MODE CODE------------//
