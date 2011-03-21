@@ -2888,7 +2888,14 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
       break;
     case t_prefixedSSE:
       sseidx = gotit->tabidx;
-      assert(addr[0] == 0x0F);
+      if(addr[0] != 0x0F)
+      {
+          // all valid SSE insns will have 0x0F as their first byte after prefix
+          instruct.size += 1;
+          addr += 1;
+          instruct.entry = &invalid;
+          return instruct;
+      }
       idx = addr[1];
       gotit = &twoByteMap[idx];
       nxtab = gotit->otable;
