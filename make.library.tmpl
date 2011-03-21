@@ -33,7 +33,7 @@ STATIC_OBJS +=  $(filter %_nopic.o, $(patsubst %.C, %_nopic.o, $(filter %.C,$(no
 		$(patsubst %.c, %_nopic.o, $(filter %.c,$(notdir $(SRCS)))) \
 		$(patsubst %.y, %_nopic.o, $(filter %.y,$(notdir $(SRCS)))) \
 		$(patsubst %.l, %_nopic.o, $(filter %.l,$(notdir $(SRCS)))) \
-		$(patsubst %.s, %_nopic.o, $(filter %.s,$(notdir $(SRCS)))) \
+		$(patsubst %.s, %_nopic.o, $(filter %.s,$(notdir $(SRC)))) \
 		$(patsubst %.S, %_nopic.o, $(filter %.S,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%_nopic.o))
 
@@ -157,12 +157,12 @@ ifndef OVERRIDE_INSTALL
 install: install_generic
 endif
 
-%.C: %.y
-	$(YACC) $(YFLAGS) $<
-	$(MV) y.tab.c $@
+# %.C: %.y
+# 	$(YACC) $(YFLAGS) $<
+# 	$(MV) y.tab.c $@
 
-%.C: %.l
-	$(LEX) -t $(LFLAGS) $< > $@
+# %.C: %.l
+# 	$(LEX) -t $(LFLAGS) $< > $@
 
 #
 # dependency generation definitions
@@ -183,7 +183,7 @@ ifndef DEPENDFLAGS
   DEPENDFLAGS = -MM
 endif
 
-DEPENDS: $(SRCS)
+DEPENDS:
 	@echo "Building depends files"
 	@touch DEPENDS
 #	@$(MAKE) $(SRCS)

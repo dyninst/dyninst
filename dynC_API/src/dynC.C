@@ -31,6 +31,7 @@
 //command.C
 #include "dynC.h"
 #include "ast.h"
+#include "snippetGen.h"
 
 #define BASE_TEN 10
 extern BPatch_snippet *parse_result;
@@ -72,12 +73,12 @@ namespace dynC_API{
             parse_result->ast_wrapper->debugPrint();
             dyn_debug_ast = 0;
          }
-         delete mutName;
-         delete mutS;
+         free(mutName);
+         free(mutS);
          return parse_result;
       }
-      delete mutName;
-      delete mutS;
+      free(mutName);
+      free(mutS);
       return NULL; //error
    }
 
@@ -102,67 +103,82 @@ namespace dynC_API{
             parse_result->ast_wrapper->debugPrint();
             dyn_debug_ast = 0;
          }
-         delete mutS;
-         delete mutName;
+         free(mutS);
+         free(mutName);
          return parse_result;
       }
-      delete mutS;
-      delete mutName;
+      free(mutS);
+      free(mutName);
       return NULL; //error
    }
 
    BPatch_snippet * createSnippet(FILE *f, BPatch_point &point, const char *name){
       std::string fileString;
-      char line[128];
       if(f == NULL){
          fprintf(stderr, "Error: Unable to open file\n");
          return NULL;
       }
-      while(fgets(line, 128, f) != NULL)
+      char c;
+      while((c = fgetc(f)) != EOF)
       {
-         fileString += line;
+         fileString += c;
       }
-      return createSnippet(strdup(fileString.c_str()), point, name);
+      rewind(f);
+
+      char *cstr = strdup(fileString.c_str());
+      BPatch_snippet *retSn = createSnippet(cstr, point, name);
+      free(cstr);
+      return retSn;
    }
 
 
    BPatch_snippet * createSnippet(FILE *f, BPatch_addressSpace &addSpace, const char *name){
       std::string fileString;
-      char line[128];
       if(f == NULL){
          fprintf(stderr, "Error: Unable to open file\n");
          return NULL;
       }
-      while(fgets(line, 128, f) != NULL)
+      char c;
+      while((c = fgetc(f)) != EOF)
       {
-         fileString += line;
+         fileString += c;
       }
-      return createSnippet(strdup(fileString.c_str()), addSpace, name);
+      rewind(f);
+      char *cstr = strdup(fileString.c_str());
+      BPatch_snippet *retSn = createSnippet(cstr, addSpace, name);
+      free(cstr);
+      return retSn;
    }
 
-   std::string mangle(const char *varName, BPatch_point *point, const char *typeName){
+   BPatch_snippet * createSnippet(std::string str, BPatch_point &point, const char *name){
+      char *cstr = strdup(str.c_str());
+      BPatch_snippet *retSn = createSnippet(cstr, point, name);
+      free(cstr);
+      return retSn;
+   }
+
+
+   BPatch_snippet * createSnippet(std::string str, BPatch_addressSpace &addSpace, const char *name){
+      char *cstr = strdup(str.c_str());
+      BPatch_snippet *retSn = createSnippet(cstr, addSpace, name);
+      free(cstr);
+      return retSn;      
+   }
+
+
+   std::string mangle(const char *varName, const char *snippetName, const char *typeName){
       std::stringstream namestr;
-      namestr << varNameBase << varName << "_0x" << (point == NULL ? 0 : point->getAddress());
+      namestr << varNameBase << varName << "_" << snippetName;
       namestr << "_" << typeName;
       std::string retName = namestr.str();
       return retName;
    }
 
-/* Old version
-   std::string mangle(const char *varName, const char *snippetName, const char *typeName, const bool isGlobal){
+   std::string getMangledStub(const char *varName, const char *snippetName){
       std::stringstream namestr;
-      namestr << varNameBase << varName << "_" << point;
-      namestr << "_" << typeName;
-      namestr << "_" << (isGlobal ? "global" : "local");
+      namestr << varNameBase << varName << "_" << snippetName;
       std::string retName = namestr.str();
       return retName;
    }
-*/
-   std::string getMangledStub(const char *varName, BPatch_point *point){
-      std::stringstream namestr;
-//      namestr << varNameBase << varName << "_";
-      namestr << varNameBase << varName << "_0x" << (point == NULL ? 0 : point->getAddress());
-      std::string retName = namestr.str();
-      return retName;
-   }   
+
 }

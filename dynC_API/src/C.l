@@ -89,9 +89,7 @@ char|int|long|float|double|short|void|bool { yylval.sval = strdup(yytext); retur
 
 "local" { return(LOCAL); }
 "param" { return(PARAM); }
-"thread" { return(THREAD); }
 "global" { return(GLOBAL); }
-"machine" { return(MACHINE); }
 "dyninst" { return(DYNINST); }
 "inst" { return(INST); }
 "inf" { return(INF); }

@@ -73,8 +73,7 @@ lex.$(DYNCNAME).C: ../src/C.l $(DYNCNAME).tab.h
 	mv lex.$(DYNCNAME).c lex.$(DYNCNAME).C
 	mv lex.$(DYNCNAME).C ../src/
 
-#$(DYNCNAME).tab.h: $(DYNCNAME).tab.C 
-#	mv $(DYNCNAME).tab.h ../h/
+$(DYNCNAME).tab.h: $(DYNCNAME).tab.C 
 
 $(DYNCNAME).tab.C: ../src/C.y
 	$(YACC) $(YACCFLAGS) ../src/C.y
