@@ -38,7 +38,7 @@ class int_block;
 class instPoint;
 
 namespace Dyninst {
-namespace PatchAPI {
+namespace Relocation {
 
 class Modification : public Transformer {
   public:
@@ -46,15 +46,15 @@ class Modification : public Transformer {
     // to include that file.
     typedef std::list<TracePtr> TraceList;
     //typedef std::map<Address, TraceList> TraceMap;
-    typedef std::map<Block *, TracePtr> TraceMap;
+    typedef std::map<int_block *, TracePtr> TraceMap;
     // These three mimic definitions in addressSpace.h
-    typedef std::map<instPoint *, Function *> ext_CallReplaceMap;
-    typedef std::map<Function *, Function *> ext_FuncReplaceMap;
+    typedef std::map<instPoint *, int_function *> ext_CallReplaceMap;
+    typedef std::map<int_function *, int_function *> ext_FuncReplaceMap;
     typedef std::set<instPoint *> ext_CallRemovalSet;
 
-    typedef std::map<const Block *, std::pair<Function *, instPoint *> > CallReplaceMap;
-    typedef std::map<const Block *, Function *> FuncReplaceMap;
-    typedef std::set<const Block *> CallRemovalSet;
+    typedef std::map<const int_block *, std::pair<int_function *, instPoint *> > CallReplaceMap;
+    typedef std::map<const int_block *, int_function *> FuncReplaceMap;
+    typedef std::set<const int_block *> CallRemovalSet;
 
     virtual bool processTrace(TraceList::iterator &);
 
@@ -66,8 +66,8 @@ class Modification : public Transformer {
 
   private:
 
-    void replaceCall(TracePtr block, int_block *target, instPoint *cur);
-    void replaceFunction(TracePtr block, int_block *target);
+    void replaceCall(TracePtr block, int_function *target, instPoint *cur);
+    void replaceFunction(TracePtr block, int_function *target);
     void removeCall(TracePtr block);
 
     CallReplaceMap callRep_;

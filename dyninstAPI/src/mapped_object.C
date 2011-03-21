@@ -1451,7 +1451,7 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
             }
 
             int_block::InsnInstances insns;
-            stubs[idx].src->getInsnInstances(insns);
+            stubs[idx].src->getInsns(insns);
             switch (insns.back().first->getCategory()) {
             case c_CallInsn:
                 if (stubs[idx].trg == stubs[idx].src->end()) 
@@ -1526,7 +1526,6 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
 
 /* 3. Add img-level blocks and points to int-level datastructures */
        func->addMissingBlocks();
-       func->addMissingPoints();
     }
 
 /* 5. fix mapping of split blocks that have points */
@@ -2255,3 +2254,12 @@ void mapped_object::addEmulInsn(Address insnAddr, Register effectiveAddrReg)
     emulInsns_[insnAddr] = pair<Register,void*>(effectiveAddrReg,(void *)0);
 }
 
+std::string mapped_object::getCalleeName(int_block *b) {
+   std::map<int_block *, std::string>::iterator iter = calleeNames_.find(b);
+   if (iter != calleeNames_.end()) return iter->second;
+   return std::string();
+}
+
+void mapped_object::setCalleeName(int_block *b, std::string s) {
+   calleeNames_[b] = s;
+}

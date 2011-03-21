@@ -34,59 +34,58 @@
 
 #include "Atom.h"
 
-namespace Dyninst {
-namespace PatchAPI {
+class instPoint;
 
-class Inst : public Atom {
+namespace Dyninst {
+namespace Relocation {
+
+class InstAtom : public Atom {
  public:
-  typedef dyn_detail::boost::shared_ptr<Inst> Ptr;
+  typedef dyn_detail::boost::shared_ptr<InstAtom> Ptr;
 
   // I believe I can patch in the current code generation
   // system here...
-  static Ptr create();
+  static Ptr create(instPoint *i);
 
-  Inst() {};
+     InstAtom(instPoint *i) : point_(i) {};
 
   // This sucks. It seriously sucks. But hey...
   // this points to all the baseTramps with instrumentation
   // at this point. This can be 0, 1, or 2 - 2 if we have
   // post instruction + pre instruction instrumentation.
 
-  void addBaseTramp(baseTramp *b);
   bool empty() const;
 
   bool generate(const codeGen &, const Trace *, CodeBuffer &);
   
-  TrackerElement *tracker(baseTrampInstance *) const;
+  TrackerElement *tracker() const;
 
-  virtual ~Inst();
+  virtual ~InstAtom();
 
   virtual std::string format() const;
 
  private:
+  instPoint *point_;
 
-  std::list<baseTrampInstance *> baseTramps_;
-
-  std::list<baseTramp *> removedTramps_;
 };
 
-struct InstPatch : public Patch {
-  InstPatch(baseTrampInstance *a) : base(a) {};
+struct InstAtomPatch : public Patch {
+  InstAtomPatch(baseTramp *a) : tramp(a) {};
   
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
   virtual unsigned estimate(codeGen &templ);
-  virtual ~InstPatch();
+  virtual ~InstAtomPatch();
 
-  baseTrampInstance *base;
+  baseTramp *tramp;
 };
 
-struct RemovedInstPatch : public Patch {
-  RemovedInstPatch(baseTramp *a) : base(a) {};
+struct RemovedInstAtomPatch : public Patch {
+  RemovedInstAtomPatch(baseTramp *a) : tramp(a) {};
    virtual bool apply(codeGen &gen, CodeBuffer *);
    virtual unsigned estimate(codeGen &templ);
-   virtual ~RemovedInstPatch() {};
+   virtual ~RemovedInstAtomPatch() {};
    
-   baseTramp *base;
+   baseTramp *tramp;
 };
 
 

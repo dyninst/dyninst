@@ -198,14 +198,12 @@ static bool replaceHandler(int_function *origHandler, int_function *newHandler,
         int_symbol *newList, const std::string &listRelName)
 {
     // Add instrumentation to replace the function
-    const pdvector<instPoint *> &entries = origHandler->funcEntries();
-    AstNodePtr funcJump = AstNode::funcReplacementNode(const_cast<int_function *>(newHandler));
-    for(unsigned j = 0; j < entries.size(); ++j) {
-        miniTramp *mini = entries[j]->instrument(funcJump,
-                callPreInsn, orderFirstAtPoint, true, false);
-        if( !mini ) return false;
-    }
-
+   instPoint *entry = origHandler->entryPoint();
+   AstNodePtr funcJump = AstNode::funcReplacementNode(const_cast<int_function *>(newHandler));
+   miniTramp *mini = entry->push_front(funcJump);
+   origHandler->proc()->relocate();
+    
+    
     /* create the special relocation for the new list -- search the RT library for
      * the symbol
      */

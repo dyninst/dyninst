@@ -33,7 +33,7 @@
 
 #include "Transformer.h"
 #include "Movement-analysis.h"
-#include "patchapi_debug.h"
+#include "../patchapi_debug.h"
 #include "../Atoms/Atom.h"
 #include "dyninstAPI/src/function.h"
 #include "../Atoms/CFAtom.h"
@@ -49,7 +49,7 @@
 
 using namespace std;
 using namespace Dyninst;
-using namespace PatchAPI;
+using namespace Relocation;
 using namespace InstructionAPI;
 using namespace SymtabAPI;
 

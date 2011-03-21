@@ -35,9 +35,10 @@
 #include "dyninstAPI/src/codegen.h"
 
 #include "dyninstAPI/src/addressSpace.h"
+#include "dyninstAPI/src/function.h"
 
 using namespace Dyninst;
-using namespace PatchAPI;
+using namespace Relocation;
 
 const int SpringboardBuilder::Allocated(0);
 const int SpringboardBuilder::UnallocatedStart(1);
@@ -62,7 +63,7 @@ SpringboardBuilder::Ptr SpringboardBuilder::createFunc(FuncSet::const_iterator b
   if (!ret) return ret;
   int id = UnallocatedStart;
   for (; begin != end; ++begin) {
-     Function *func = *begin;
+     int_function *func = *begin;
      if (!ret->addTraces(func->blocks().begin(), func->blocks().end(), id++)) {
         return Ptr();
      }
@@ -138,19 +139,19 @@ bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end, int funcID) {
   // can do our thang.
   for (; begin != end; ++begin) {
     bool useBlock = true;
-    Block *bbl = (*begin);
+    int_block *bbl = (*begin);
 
     // don't add block if it's shared and the entry point of another function
-    if (bbl->isShared()) {
+    if (bbl->hasSharedBase()) {
         using namespace ParseAPI;
-        ParseAPI::Block *llb = bbl->block();
+        ParseAPI::Block *llb = bbl->llb();
 
         std::vector<ParseAPI::Function*> funcs;
         llb->getFuncs(funcs);
         for (vector<ParseAPI::Function*>::iterator fit = funcs.begin();
              fit != funcs.end(); ++fit) 
         {
-           if ((*fit) == bbl->func()->func()) continue;
+           if ((*fit) == bbl->func()->ifunc()) continue;
            if ((*fit)->entry() == llb) {
               useBlock = false;
               break;
@@ -222,7 +223,6 @@ bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end, int funcID) {
   return true;
 }
 
-extern bool disassemble_reloc;
 SpringboardBuilder::generateResult_t 
 SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 					const SpringboardReq &r,
@@ -230,8 +230,6 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    codeGen gen;
    
    bool usedTrap = false;
-   if (disassemble_reloc) cerr << "Springboard: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
-
    generateBranch(r.from, r.destinations.begin()->second, gen);
 
    if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {

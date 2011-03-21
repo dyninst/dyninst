@@ -41,10 +41,7 @@
 class AddressSpace;
 
 namespace Dyninst {
-namespace PatchAPI {
-
-class Block;
-class Function;
+namespace Relocation {
 
 typedef enum {
    MIN_PRIORITY,
@@ -65,14 +62,14 @@ typedef enum {
 struct SpringboardReq {
    Address from;
    Priority priority;
-   typedef std::map<Block *, Address> Destinations;
+   typedef std::map<int_block *, Address> Destinations;
    Destinations destinations;
    bool checkConflicts;
    bool includeRelocatedCopies;
    bool fromRelocatedCode;
    bool useTrap;
    SpringboardReq(const Address a, const Address b, 
-                  const Priority c, Block *d, 
+                  const Priority c, int_block *d, 
                   bool e, 
                   bool f, 
                   bool g,
@@ -93,7 +90,7 @@ struct SpringboardReq {
       fromRelocatedCode(false),
       useTrap(false) {};
     void addReq (const Address a, const Address b,
-                        const Priority c, Block *d,
+                        const Priority c, int_block *d,
                         bool e, bool f, bool g, bool i) 
     {
         // This mechanism handles overlapping functions, where
@@ -137,7 +134,7 @@ class SpringboardBuilder;
    }
 
    void addFromOrigCode(Address from, Address to, 
-                        Priority p, Block *bbl) {
+                        Priority p, int_block *bbl) {
 // This uses the default constructor if it isn't already there.
       sBoardMap_[p][from].addReq(from, to, p, bbl, true, true, false, false);
    }
@@ -153,7 +150,7 @@ class SpringboardBuilder;
                                            true, false);
    };
    
-   void addRaw(Address from, Address to, Priority p, Block *bbl,
+   void addRaw(Address from, Address to, Priority p, int_block *bbl,
                bool checkConflicts, bool includeRelocatedCopies, bool fromRelocatedCode,
                bool useTrap) {
       sBoardMap_[p][from] = SpringboardReq(from, to, p, bbl,
@@ -180,7 +177,7 @@ class SpringboardBuilder {
 
  public:
   typedef dyn_detail::boost::shared_ptr<SpringboardBuilder> Ptr;
-  typedef std::set<Function *> FuncSet;
+  typedef std::set<int_function *> FuncSet;
 
   template <typename TraceIter> 
     static Ptr create(TraceIter begin, TraceIter end, AddressSpace *addrSpace); 

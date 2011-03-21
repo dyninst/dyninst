@@ -1238,7 +1238,6 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                   retReg = allocateAndKeep(gen, noCost);
                Register temp = gen.rs()->getScratchRegister(gen, noCost);
                addr = (Address) loperand->getOValue();
-	    
                emitVload(loadFrameAddr, addr, temp, retReg, gen,
                          noCost, gen.rs(), size, gen.point(), gen.addrSpace());
                break;
@@ -1601,7 +1600,6 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    case FrameAddr:
        addr = (Address) oValue;
        temp = gen.rs()->allocateRegister(gen, noCost);
-       
        emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
        gen.rs()->freeRegister(temp);
        break;
@@ -1662,7 +1660,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point());
         if (bpoint == NULL) {
             fprintf(stderr, "ERROR: Unable to find BPatch point for internal point %p/0x%lx\n",
-                    gen.point(), gen.point()->addr());
+                    gen.point(), gen.point()->insnAddr());
         }
         assert(bpoint);
         ma = bpoint->getMemoryAccess();
@@ -1965,7 +1963,7 @@ bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
     if (retReg == REG_NULL) return false;
 
     emitVload(loadConstOp, 
-              (Address) gen.point()->addr(),
+              (Address) gen.point()->nextExecutedAddr(),
               retReg, retReg, gen, noCost);
     return true;
 }
@@ -2918,7 +2916,7 @@ void AstVariableNode::setVariableAST(codeGen &gen){
         index = 0;
         return;
     }
-    Address addr = gen.point()->addr();     //Offset of inst point from function base address
+    Address addr = gen.point()->nextExecutedAddr();     //Offset of inst point from function base address
     for(unsigned i=0; i< ranges_->size();i++){
         if((*ranges_)[i].first<=addr && addr<(*ranges_)[i].second)
             index = i;

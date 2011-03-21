@@ -63,7 +63,6 @@ class int_block;
 class int_block;
 class image;
 class mapped_object;
-class baseTrampInstance;
 class image_func;
 class signal_handler_location;
 class functionReplacement;

@@ -105,8 +105,8 @@ class EmitterPOWER : public Emitter {
     virtual void emitRestoreFlags(codeGen &, unsigned) { assert(0); }
     // Built-in offset...
     virtual void emitRestoreFlagsFromStackSlot(codeGen &) { assert(0); }
-    virtual bool emitBTSaves(baseTramp*, baseTrampInstance*, codeGen &) { assert(0); return true;}
-    virtual bool emitBTRestores(baseTramp*, baseTrampInstance *, codeGen &) { assert(0); return true; }
+    virtual bool emitBTSaves(baseTramp*, codeGen &) { assert(0); return true;}
+    virtual bool emitBTRestores(baseTramp*, codeGen &) { assert(0); return true; }
     virtual void emitStoreImm(Address, int, codeGen &, bool) { assert(0); }
     virtual void emitAddSignedImm(Address, int, codeGen &, bool) { assert(0); }
     virtual int Register_DWARFtoMachineEnc(int) { assert(0); return 0;}

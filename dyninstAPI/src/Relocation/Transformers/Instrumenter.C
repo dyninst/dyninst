@@ -33,7 +33,7 @@
 
 #include "Transformer.h"
 #include "Instrumenter.h"
-#include "patchapi_debug.h"
+#include "../patchapi_debug.h"
 #include "../Atoms/Atom.h"
 #include "../Atoms/Target.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -43,228 +43,298 @@
 
 using namespace std;
 using namespace Dyninst;
-using namespace PatchAPI;
+using namespace Relocation;
 using namespace InstructionAPI;
 
 
 bool Instrumenter::processTrace(TraceList::iterator &iter) {
-  //relocation_cerr << "Instrumenter, processing block " 
-		  //<< std::hex << (*iter)->origAddr() << std::dec << endl;
-  
-   if ((*iter)->block() == NULL)
-    return true;
+   // Hoo boy. Fun for the whole family...
+   //
+   // This transformer needs to create instrumentation blocks throughout the 
+   // provided CFG (of Traces). We consider two classes of added
+   // instrumentation:
+   // Block insertion instrumentation (function entry, edge, post-call);
+   // Block augmentation instrumentation (block entry, pre/post insn, pre-call).
+   //
+   // Block insertion instrumentation adds a new block (Trace) to the CFG
+   // that contains the instrumentation code. We will need to edit edges
+   // to get this to work. 
+   //
+   // Block augmentation instrumentation just inserts a new Atom into the trace;
+   // this is comparitively trivial. 
 
-  // Basic concept: iterate over all of our instructions and look
-  // up the instPoint for that instruction. If it exists, prepend
-  // or append an instrumentation element at the appropriate
-  // point in the list.
-  
-  // TODO: edge instrumentation... that will require modifying
-  // the block list as well as elements within a block. 
+   // Let's rack up which instPoints exist for us. 
+   Trace::Ptr trace = *iter;
+   relocation_cerr << "Instrumenter called on trace " << trace->id() << endl;
+   if (!trace->block()) {
+      relocation_cerr << "\tNo block, assuming inst, skipping" << endl;
+      return true; // An inst block or something
+   }
+   
 
-  baseTramp *pre = NULL;
-  baseTramp *post = NULL;
-  instPoint *point = NULL;
 
-  AtomList &elements = (*iter)->elements();
+   // Let's run with non-block-inserting first...
+   // This should be block inserting, but for now we're claiming just-before-return. 
+   // Also, we tend to use a "highest container gets executed first" model,
+   // which means we instrument the _lowest_ levels first. 
+   if (!insnInstrumentation(trace)) return false;
+   if (!preCallInstrumentation(trace)) return false;
+   if (!blockEntryInstrumentation(trace)) return false;
+   if (!funcExitInstrumentation(trace)) return false;
 
-  Address prevAddr = (Address) -1;
+   // And on to the graph modification shtuff. 
+   if (!postCallInstrumentation(trace)) return false;
+   if (!edgeInstrumentation(trace)) return false;
+   if (!funcEntryInstrumentation(trace)) return false;
 
-  for (AtomList::iterator e_iter = elements.begin();
-       e_iter != elements.end(); ++e_iter) {
-    // We're inserting an Inst element before us (if there is a baseTramp
-    // with something interesting, that is). 
-
-    // Assertion: we have no Inst elements already
-    Address addr = (*e_iter)->addr();
-    if (addr == 0) {
-       //relocation_cerr << "Skipping Atom with address 0" << endl;
-       continue;
-    }
-    if (addr == prevAddr) {
-       // This is a hack - we can split a single instruction into a sequence
-       // of Atoms that should be treated as one WRT instrumentation. 
-       // Otherwise we get multiple copies of each instPoint for each new
-       // Atom. We _really_ should have a "group" Atom, or a 1:1 restriction,
-       // but I don't have time to fix that now.
-       //relocation_cerr << "Skipping Atom with same addr as previous" << endl;
-       continue;
-    }
-    prevAddr = addr;
-
-    // CFAtoms can have an address even if they were invented.
-    // We need a "virtual" boolean... but for now just check whether
-    // there's an instruction there. 
-    if (!(*e_iter)->insn()) {
-       //relocation_cerr << "Skipping Atom with no insn" << endl;
-       continue;
-    }
-    //relocation_cerr << "  Checking for point at " << std::hex << addr << std::dec << endl;
-
-    point = (*iter)->block()->func()->findInstPByAddr(addr);
-
-    if (point) {
-        pre = point->preBaseTramp();
-    }
-    else {
-        pre = NULL;
-    }
-
-    //relocation_cerr << "   Found instrumentation at addr " 
-		   // << std::hex << addr << std::dec
-           // << (post ? (post->empty() ? "<POST EMPTY>" : "<POST>") : "<NO POST>")
-           // << (pre ? (pre->empty() ? "<PRE EMPTY>" : "<PRE>") : "<NO PRE>") << endl;
-    
-    Inst::Ptr inst = Inst::create();
-    inst->addBaseTramp(post);
-
-    inst->addBaseTramp(pre);
-
-    if (!inst->empty())
-      elements.insert(e_iter, inst);
-    // Otherwise it silently disappears...
-
-    if (point) {
-        post = point->postBaseTramp();
-    }
-    else {
-        post = NULL;
-    }
-  }
-
-  // Edge instrumentation time
-  // Only the final point can have edge instrumentation;
-  // this includes the postBaseTramp (for fallthrough)
-  // or a targetBaseTramp (for taken edges)
-
-  if (point) {
-    relocation_cerr << "   Trailing <point>, checking edge instrumentation" << endl;
-    baseTramp *target = point->targetBaseTramp();
-    // post is still assigned from above
-    if (!target &&
-	!post) {
-      //relocation_cerr << "   ... neither target nor post, no edge" << endl;
-      return true;
-    }
-
-    // Get the stuff we need: a CFAtom for the last instruction
-    CFAtom::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFAtom>(elements.back());
-    assert(cf);
-
-    if (post) {
-      relocation_cerr << "   ... fallthrough inst @ " << hex << point->addr() << dec << ", adding" << endl;
-      if (!addEdgeInstrumentation(post,
-				  cf,
-				  CFAtom::Fallthrough,
-                  After,
-				  *iter))
-	return false;
-    }
-    if (target) {
-       relocation_cerr << "   ... target inst, adding" << endl;
-      if (!addEdgeInstrumentation(target,
-				  cf,
-				  CFAtom::Taken,
-                  Before,
-				  *iter))
-	return false;
-    }
-  }
-  return true;
-}
-
-bool Instrumenter::postprocess(TraceList &bl) {
-  // Yuck iteration... anyone have a better idea?
-
-  relocation_cerr << "Instrumenter: postProcess "  << edgeTraces_.size() << endl;
-  
-  if (edgeTraces_.empty()) {
-    //relocation_cerr << "  ... nothing to do, returning" << endl;
-    return true;
-  }
-
-  for (TraceList::iterator iter = bl.begin();
-       iter != bl.end(); ++iter) {
-
-    // Try pre-insertion
-    EdgeTraces::iterator pre = edgeTraces_.find(std::make_pair(*iter, Before));
-    if (pre != edgeTraces_.end()) {
-      relocation_cerr << "     Inserting " << pre->second.size() << " pre blocks" << endl;
-      bl.insert(iter, pre->second.begin(), pre->second.end());
-    }
-    // And post-insertion?
-    EdgeTraces::iterator post = edgeTraces_.find(std::make_pair(*iter, After));
-    if (post != edgeTraces_.end()) {
-      // Game the main iterator here...
-      ++iter; // To get successor
-      bl.insert(iter, post->second.begin(), post->second.end());
-      // We're now one too far; back up so the for loop will
-      // move us forward.
-      --iter;
-    }
-
-  }
-  return true;
+   return true;
 }
 
 
-bool Instrumenter::addEdgeInstrumentation(baseTramp *tramp,
-					  CFAtom::Ptr cf,
-					  Address dest,
-                      When when,
-					  Trace::Ptr cur) {
-  if (tramp->empty()) return true;
-  relocation_cerr << "Adding edge inst" << endl;
-  // We handle edge instrumentation by creating a new Trace and
-  // wiring it in in the appropriate place. The actual adding is
-  // done later, since we can't modify the list from here. 
-  // What we can do is leave a marker of _where_ it should be 
-  // inserted. 
+bool Instrumenter::insnInstrumentation(Trace::Ptr trace) {
+   // We're going to unify pre- and post- instruction instrumentation
+   // into a single pass for efficiency. 
+   const std::map<Address, instPoint *> &prePoints = trace->block()->findPoints(instPoint::PreInsn);
+   const std::map<Address, instPoint *> &postPoints = trace->block()->findPoints(instPoint::PostInsn);
+   
+   std::map<Address, instPoint *>::const_iterator pre = prePoints.begin();
+   std::map<Address, instPoint *>::const_iterator post = postPoints.begin();
+   
+   Trace::AtomList::iterator elem = trace->elements().begin();
 
-  Trace::Ptr inst = Trace::create(tramp);
-  Target<Trace::Ptr> *t = new Target<Trace::Ptr>(inst);
+   while ((pre != prePoints.end()) ||
+          (post != postPoints.end())) {
+      Address preAddr = 0;
+      if (pre != prePoints.end()) {
+         preAddr = pre->first;
+      }
+      Address postAddr = 0;
+      if (post != postPoints.end()) {
+         postAddr = post->first;
+      }
 
-  // 1) Find the appropriate successor S of the current block B
-  // 2) Set the fallthrough successor of the instrumentation block I to S
-  // 3) Set the appropriate successor of S to I
-  // 4) Add the inst block to the "add this to the list" list.
+      assert(elem != trace->elements().end());
 
-  // 1)
-  CFAtom::DestinationMap::iterator d_iter = cf->destMap_.find(dest);
-  // What if someone requested edge instrumentation for an edge that
-  // doesn't exist? Oopsie.
-  if (d_iter == cf->destMap_.end()) {
-    delete t;
-    return true;
-  }
+      Address next;
+      if (preAddr == 0) next = postAddr;
+      else if (postAddr == 0) next = preAddr;
+      else next = (preAddr < postAddr) ? preAddr : postAddr;
 
-  // 2)
-  // Keep this info for later...
-  TargetInt *target = d_iter->second;
+      while ((*elem)->addr() == 0 ||
+             (*elem)->addr() < next) {
+         ++elem;
+         assert(elem != trace->elements().end());
+      }
 
-  CFAtom::Ptr postCF = CFAtom::create(cf->block());
-  // Give this a valid destination
-  postCF->updateAddr(cf->addr());
-  postCF->addDestination(CFAtom::Fallthrough, target);
-  inst->elements().push_back(postCF);
+      if (preAddr == (*elem)->addr()) {
+         if (!pre->second->empty()) {
+            Atom::Ptr inst = makeInstrumentation(pre->second);
+            if (!inst) return false;
+            trace->elements().insert(elem, inst);
+         }
+         ++pre;
+      }
+      if (postAddr == (*elem)->addr()) {
+         if (!post->second->empty()) {
+            Trace::AtomList::iterator tmp = elem;
+            ++tmp;
+            Atom::Ptr inst = makeInstrumentation(post->second);
+            if (!inst) return false;
+            trace->elements().insert(tmp, inst);
+         }
+         ++post;
+      }
+   }
 
-  // 3)
-  d_iter->second = t;    
-  
-  // 4) 
-  // It's more efficient branch-wise to put a block in
-  // before its target rather than after this; 
-  // however, if we aren't moving the target then we 
-  // fall back.
-  Trace::Ptr insertPoint;
-  Target<Trace::Ptr> *targ = dynamic_cast<Target<Trace::Ptr> *>(target);
-  if ((when == Before) && targ) {
-    edgeTraces_[std::make_pair(targ->t(), Before)].push_back(inst);
-  }
-  else {
-      // Sorry, can't do it before a non-relocated trace
-    edgeTraces_[std::make_pair(cur, After)].push_back(inst);
-  }
+   return true;
+}
 
-  return true;
+bool Instrumenter::preCallInstrumentation(Trace::Ptr trace) {
+   instPoint *call = trace->func()->findPoint(instPoint::PreCall, trace->block());
+   if (!call || call->empty()) return true;
+
+   Trace::AtomList &elements = trace->elements();
+   // For now, we're inserting this instrumentation immediately before the last instruction
+   // in the list of elements. 
+   Atom::Ptr inst = makeInstrumentation(call);
+   if (!inst) return false;
+
+   inst.swap(elements.back());
+   elements.push_back(inst);
+
+   return true;
+}
+
+bool Instrumenter::funcExitInstrumentation(Trace::Ptr trace) {
+   // TODO: do this right :)
+   instPoint *exit = trace->func()->findPoint(instPoint::FunctionExit, trace->block());
+   if (!exit || exit->empty()) return true;
+
+   Trace::AtomList &elements = trace->elements();
+   // For now, we're inserting this instrumentation immediately before the last instruction
+   // in the list of elements. 
+   Trace::AtomList::reverse_iterator riter = elements.rbegin();
+   Atom::Ptr inst = makeInstrumentation(exit);
+   if (!inst) return false;
+
+   inst.swap(elements.back());
+   elements.push_back(inst);
+
+   return true;
+}
+
+bool Instrumenter::blockEntryInstrumentation(Trace::Ptr trace) {
+   instPoint *entry = trace->block()->findPoint(instPoint::BlockEntry);
+   if (!entry || entry->empty()) return true;
+
+   Trace::AtomList &elements = trace->elements();
+   // Block entry instrumentation goes in before all instructions. 
+   Atom::Ptr inst = makeInstrumentation(entry);
+   if (!inst) return false;
+
+   elements.push_front(inst);
+   return true;
+}
+
+bool Instrumenter::postCallInstrumentation(Trace::Ptr trace) {
+   // We want to insert instrumentation that will execute after the call returns
+   // but before any other function code does. This can effectively be 
+   // modeled as edge instrumentation, as follows:
+   //
+   // C -> PC goes to C -> Inst -> PC, with any other edges into PC left
+   // unmodified. 
+   // The way we do this is by redirecting the call fallthrough edge of
+   // C (DEFENSIVE TODO) to a new Trace. 
+   instPoint *post = trace->block()->findPoint(instPoint::PostCall);
+   if (!post || post->empty()) return true;
+   
+   Atom::Ptr inst = makeInstrumentation(post);
+
+   Address postCallAddr = trace->block()->end();
+   int_block *FT = trace->block()->getFallthrough();
+   if (FT) postCallAddr = FT->start();
+
+   Trace::Ptr instTrace = Trace::create(inst, postCallAddr, FT ? FT : trace->block()); 
+
+   // Edge redirection time. The call fallthrough edge from trace needs
+   // to be updated to point to instTarget instead, and instTrace needs
+   // a Fallthrough-typed edge to the previous target.
+   assert(trace->getTargets(ParseAPI::CALL_FT).size() == 1);
+   // We always create a call fallthrough. Might
+   // be sink typed, but we _always_ create a call fallthrough.
+   
+   // Magic function that does the insertion
+   if (!trace->interposeTarget(ParseAPI::CALL_FT, instTrace)) return false;
+
+   edgeTraces_[std::make_pair(trace, After)].push_back(instTrace);
+
+   return true;
+}
+
+
+bool Instrumenter::funcEntryInstrumentation(Trace::Ptr trace) {
+   relocation_cerr << "\tFuncEntryInst for trace " << trace->id() << endl;
+   instPoint *entry = trace->func()->findPoint(instPoint::FunctionEntry, 
+                                               trace->block());
+   if (!entry || entry->empty()) return true;
+
+   // Transformation time. We have an entry block E with two types
+   // of incoming edges; interprocedural (call) and intraprocedural.
+   // We want to create a new trace, I, and redirect all interprocedural
+   // edges from E to I. 
+   // Problem is, we have to consider non-relocated code as well. We
+   // reach the entry points of functions via springboards from a
+   // block's original location to its relocated location. However, we
+   // want to redirect that springboard to the instrumentation block.
+   // Rather than having to track everywhere that a trace may possibly
+   // have been added, we're going to replace the element list in the
+   // entry trace (E) with instrumentation, and create a new E' that 
+   // contains original code. This is kind of roundabout, but...
+   // yeah. 
+   relocation_cerr << "\t\tDoing work" << endl;
+   Trace::Ptr newTrace = trace->split(trace->elements().begin());
+
+   // Can't assert this as there is probably a CFAtom in the old
+   // trace, but leaving for reference
+   //assert(trace->elements().empty());
+   trace->setAsInstrumentationTrace();
+
+   Atom::Ptr inst = makeInstrumentation(entry);
+   trace->elements().push_front(inst);
+   
+   // Okay, we just split the trace in half. We still need to redirect 
+   // edges.
+   trace->moveSources(ParseAPI::COND_TAKEN, newTrace);
+   trace->moveSources(ParseAPI::COND_NOT_TAKEN, newTrace);
+   trace->moveSources(ParseAPI::INDIRECT, newTrace);
+   trace->moveSources(ParseAPI::DIRECT, newTrace);
+   trace->moveSources(ParseAPI::FALLTHROUGH, newTrace);
+   trace->moveSources(ParseAPI::CALL_FT, newTrace);
+   trace->moveSources(ParseAPI::CATCH, newTrace);
+   trace->moveSources(ParseAPI::RET, newTrace);
+   
+   edgeTraces_[std::make_pair(trace, After)].push_back(newTrace);
+   return true;
+}
+
+bool Instrumenter::edgeInstrumentation(Trace::Ptr trace) {
+   // Comparitively simple given the previous functions...
+   int_block *block = trace->block();
+   if (!block) {
+      cerr << "WTF: " << trace->id() << endl;
+   }
+   assert(block);
+   const int_block::edgelist &targets = block->targets();
+   for (int_block::edgelist::iterator iter = targets.begin();
+        iter != targets.end(); ++iter) {
+      instPoint *point = (*iter)->findPoint(instPoint::Edge);
+      if (!point || point->empty()) continue;
+
+      Atom::Ptr inst = makeInstrumentation(point);
+      Trace::Ptr instTrace = Trace::create(inst, (*iter)->trg()->start(), (*iter)->trg());
+
+      if (!trace->interposeTarget(*iter, instTrace)) return false;
+
+      // If the edge's target is also a trace, put us in before them. 
+      // If not, add us after the current block.
+      TraceMap::const_iterator oldTarget = traceMap_.find((*iter)->trg());
+      if (oldTarget != traceMap_.end()) {
+         edgeTraces_[std::make_pair(oldTarget->second, Before)].push_back(instTrace);
+      }
+      else {
+         edgeTraces_[std::make_pair(trace, After)].push_back(instTrace);
+      }
+   }
+   return true;
+}
+
+Atom::Ptr Instrumenter::makeInstrumentation(instPoint *point) {
+   assert(!point->empty());
+
+   InstAtom::Ptr inst = InstAtom::create(point);
+
+   return inst;
+}
+
+bool Instrumenter::postprocess(TraceList &l) {
+   relocation_cerr << "Instrumenter::postprocess, " << edgeTraces_.size() << " new Traces to add" << endl;
+   if (edgeTraces_.empty()) return true;
+
+   for (TraceList::iterator iter = l.begin();
+        iter != l.end(); ++iter) {
+      EdgeTraces::iterator pre = edgeTraces_.find(std::make_pair(*iter, Before));
+      if (pre != edgeTraces_.end()) {
+         relocation_cerr << "\tAdding " << pre->second.size() << " traces before " << (*iter)->id() << endl;
+         l.insert(iter, pre->second.begin(), pre->second.end());
+      }
+      
+      EdgeTraces::iterator post = edgeTraces_.find(std::make_pair(*iter, After));
+      if (post != edgeTraces_.end()) {
+         TraceList::iterator iter2 = iter;
+         ++iter2;
+         relocation_cerr << "\tAdding " << post->second.size() << " traces after " << (*iter)->id() << endl;
+         l.insert(iter2, post->second.begin(), post->second.end());
+      }
+   }
+   return true;
 }

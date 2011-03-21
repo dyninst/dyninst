@@ -160,31 +160,20 @@ registerSpace *registerSpace::savedRegSpace(AddressSpace *proc) {
     return ret;
 }
 
-registerSpace *registerSpace::actualRegSpace(instPoint *iP, 
-                                             callWhen 
-#if defined(cap_liveness)
-                                             when 
-#endif
-                                             ) 
+registerSpace *registerSpace::actualRegSpace(instPoint *iP) 
 {
-    // KEVIN TODO
-    // We just can't trust liveness in defensive mode. 
-    return conservativeRegSpace(iP->proc());
 #if defined(cap_liveness)
-    if (BPatch::bpatch->livenessAnalysisOn()) {
-        assert(iP);
-        registerSpace *ret = NULL;
+   if (BPatch::bpatch->livenessAnalysisOn()) {
+      assert(iP);
+      registerSpace *ret = NULL;
+      
 
-        liveness_printf("%s[%d] Asking for actualRegSpace for iP at 0x%lx, dumping info:\n",
-                        FILE__, __LINE__, iP->addr());
-        liveness_cerr << iP->liveRegisters(when) << endl;
-
-        ret = getRegisterSpace(iP->proc());
-        ret->specializeSpace(iP->liveRegisters(when));
-
-        ret->cleanSpace();
-        return ret;
-    }
+      ret = getRegisterSpace(iP->proc());
+      ret->specializeSpace(iP->liveRegisters());
+      
+      ret->cleanSpace();
+      return ret;
+   }
 #endif
     // Use one of the other registerSpaces...
     // If we're entry/exit/call site, return the optimistic version
@@ -1158,6 +1147,15 @@ void registerSpace::spillReal(RealRegister r, codeGen &gen)
       return;
    if (!regState()[r.reg()].contains)
       return;
+
+   if (regState()[r.reg()].contains->refCount == 0 &&
+       !regState()[r.reg()].contains->keptValue) {
+      // Sure, it's spilled...
+      freeReal(r);
+      return;
+   }
+
+   cerr << "Spilling a register" << endl;
    regs_been_spilled.insert(regState()[r.reg()].contains);
    spillToVReg(r, regState()[r.reg()].contains, gen);
    freeReal(r);

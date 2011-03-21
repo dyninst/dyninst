@@ -63,7 +63,7 @@
 class codeGen;
 
 namespace Dyninst {
-namespace PatchAPI {
+namespace Relocation {
         
 // The input grammar to the CodeBuffer is [PIC|nonPIC]*. However, it is safe to accumulate
 // between adjacent PICs, so we can simplify this to ((PIC*)nonPIC)*. This drives our internal

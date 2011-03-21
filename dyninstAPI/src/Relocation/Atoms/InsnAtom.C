@@ -38,7 +38,7 @@
 #include <string>
 
 using namespace Dyninst;
-using namespace PatchAPI;
+using namespace Relocation;
 using namespace InstructionAPI;
 
 /////////////////////////
@@ -50,7 +50,7 @@ bool InsnAtom::generate(const codeGen &,
   return true;
 }
 
-TrackerElement *InsnAtom::tracker(PatchAPI::Block *block) const {
+TrackerElement *InsnAtom::tracker(int_block *block) const {
   OriginalTracker *e = new OriginalTracker(addr_, block);
   return e;
 }

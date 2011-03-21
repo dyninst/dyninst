@@ -42,7 +42,7 @@
 #include "dyninstAPI/src/addressSpace.h"
 
 using namespace Dyninst;
-using namespace PatchAPI;
+using namespace Relocation;
 using namespace InstructionAPI;
 
 const int CodeBuffer::Label::INVALID = -1;

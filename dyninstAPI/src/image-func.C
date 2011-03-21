@@ -242,60 +242,9 @@ image_basicBlock::~image_basicBlock() {
 
 }
 
-int image_instPoint_count = 0;
-
-image_instPoint::image_instPoint(Address offset,
-                                 ParseAPI::Block *b,
-                                 image * img,
-                                 instPointType_t type) :
-    instPointBase(type),
-    offset_(offset),
-    block_(b),
-    image_(img),
-    callee_(NULL),
-    callTarget_(0),
-    isUnres_(false),
-    isDynamic_(0)
-{
-#if defined(ROUGH_MEMORY_PROFILE)
-    image_instPoint_count++;
-    if ((image_instPoint_count % 100) == 0)
-        fprintf(stderr, "image_instPoint_count: %d (%d)\n",
-                image_instPoint_count,
-                image_instPoint_count*sizeof(image_instPoint));
-#endif
-}
-
-image_instPoint::image_instPoint(Address offset,
-                                 ParseAPI::Block *b,
-                                 image * img,
-                                 Address callTarget,
-                                 bool isDynamic,
-                                 bool isAbsolute,
-                                 instPointType_t ptType, 
-                                 bool isUnresolved) :
-    instPointBase(ptType),
-    offset_(offset),
-    block_(b),
-    image_(img),
-    callee_(reinterpret_cast<image_func*>(-1)),
-    callTarget_(callTarget),
-    targetIsAbsolute_(isAbsolute),
-    isUnres_(isUnresolved),
-    isDynamic_(isDynamic)
-{
-#if defined(ROUGH_MEMORY_PROFILE)
-    image_instPoint_count++;
-    if ((image_instPoint_count % 100) == 0)
-        fprintf(stderr, "image_instPoint_count: %d (%d)\n",
-                image_instPoint_count, image_instPoint_count * sizeof(image_instPoint));
-#endif
-    if (isDynamic_)
-        assert(callTarget_ == 0 || callTarget_ == -1);
-}
 
 void image_basicBlock::debugPrint() {
-    // no looping if we're not printing anything
+   // no looping if we're not printing anything
     if(!dyn_debug_parsing)
         return;
 
@@ -326,45 +275,6 @@ void image_basicBlock::debugPrint() {
                        t, trg->blockNumber_,
                        static_cast<image_edge*>(*tit)->getTypeString());
         ++t;
-    }
-}
-
-image_func*
-image_instPoint::getCallee() const
-{
-    if(getPointType() != callSite)
-        return NULL;
-    if(callee_ != reinterpret_cast<image_func*>(-1))
-        return callee_;
-
-    callee_ = NULL;
-
-    if(callTarget_) {
-        callee_ = image_->findFuncByEntry(callTarget_);
-        if(callee_) {
-            parsing_printf("[%s:%d] bound call instpoint %lx to %lx\n",
-                FILE__,__LINE__,offset_,callee_->addr());
-        }
-    } 
-    return callee_;
-}
-
-// merge any otherP information that was unset in this point, we need 
-// to do this since there can only be one point at a given address and
-// we create entryPoints and exit points without initializing CF info
-void image_instPoint::mergePoint(image_instPoint *otherP)
-{
-    isUnres_ = isUnres_ || otherP->isUnresolved();
-    isDynamic_ = isDynamic_ || otherP->isDynamic();
-
-    if (!getCallee() && otherP->getCallee()) {
-        setCallee(otherP->getCallee());
-        setCalleeName(otherP->getCalleeName());
-    }
-    if (!callTarget() && otherP->callTarget()) {
-        ipType_ = otherP->getPointType();
-        callTarget_ = otherP->callTarget();
-        targetIsAbsolute_ = otherP->targetIsAbsolute();
     }
 }
 
@@ -464,101 +374,6 @@ void image_func::addParRegion(Address begin, Address end, parRegType t)
     iPar->setLastInsn(end);
     parRegionsList.push_back(iPar);
 }
-
-/*
- * Instpoint queries -- instpoints are stored at the image level
- */
-void 
-image_func::funcEntries(pdvector<image_instPoint*> &points)
-{
-    // there can be only one
-    image_instPoint * p = img()->getInstPoint(entryBlock(), addr());
-
-    if (!p && instLevel_ != UNINSTRUMENTABLE) {
-       // We can create these lazily...
-       p = new image_instPoint(addr(),
-                               entryBlock(),
-                               img(), 
-                               functionEntry);
-       img()->addInstPoint(p);
-    }
-    points.push_back(p);
-
-}
-void 
-image_func::funcExits(pdvector<image_instPoint*> &points)
-{
-    vector<image_instPoint *> allPoints;
-    // Inefficient as hell...
-    for (ParseAPI::Function::blocklist::iterator b_iter = blocks().begin();
-        b_iter != blocks().end(); ++b_iter) 
-    {
-        img()->getInstPoints(*b_iter, allPoints);
-    }
-
-    for (vector<image_instPoint *>::iterator iter = allPoints.begin();
-        iter != allPoints.end(); ++iter) 
-    {
-        if ((*iter)->getPointType() == functionExit)
-            points.push_back(*iter);
-    }
-}
-
-void 
-image_func::funcCalls(pdvector<image_instPoint*> &points)
-{
-    vector<image_instPoint *> allPoints;
-    // Inefficient as hell...
-    for (ParseAPI::Function::blocklist::iterator b_iter = blocks().begin();
-        b_iter != blocks().end(); ++b_iter) 
-    {
-        img()->getInstPoints(*b_iter, allPoints);
-    }
-
-    for (vector<image_instPoint *>::iterator iter = allPoints.begin();
-        iter != allPoints.end(); ++iter) 
-    {
-        if ((*iter)->getPointType() == callSite)
-            points.push_back(*iter);
-    }
-}
-
-void image_func::funcUnresolvedControlFlow(pdvector<image_instPoint*> & points)
-{
-    vector<image_instPoint *> allPoints;
-    // Inefficient as hell...
-    for (ParseAPI::Function::blocklist::iterator b_iter = blocks().begin();
-        b_iter != blocks().end(); ++b_iter) 
-    {
-        img()->getInstPoints(*b_iter, allPoints);
-    }
-
-    for (vector<image_instPoint *>::iterator iter = allPoints.begin();
-        iter != allPoints.end(); ++iter) 
-    {
-        if ((*iter)->isUnresolved())
-            points.push_back(*iter);
-    }
-}
-
-void image_func::funcAbruptEnds(pdvector<image_instPoint*> & points)
-{
-    vector<image_instPoint *> allPoints;
-    // Inefficient as hell...
-    for (ParseAPI::Function::blocklist::iterator b_iter = blocks().begin();
-        b_iter != blocks().end(); ++b_iter) 
-    {
-        img()->getInstPoints(*b_iter, allPoints);
-    }
-
-    for (vector<image_instPoint *>::iterator iter = allPoints.begin();
-        iter != allPoints.end(); ++iter) 
-    {
-        if ((*iter)->getPointType() == abruptEnd)
-            points.push_back(*iter);
-    }
-}
-
 
 #if defined(cap_instruction_api)
 void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> >&instances) {
@@ -740,14 +555,43 @@ ParseAPI::FuncReturnStatus image_func::init_retstatus() const
 }
 
 void image_func::destroyBlocks(std::vector<ParseAPI::Block *> &blocks) {
-    // Delete instPoints, then call ParseAPI::Func::deleteBlocks
-    for (unsigned i = 0; i < blocks.size(); ++i) {
-        img()->deleteInstPoints(blocks[i]);
-    }
-    deleteBlocks(blocks);
+   deleteBlocks(blocks);
 }
 
 void image_func::setHasWeirdInsns(bool wi)
 {
-    hasWeirdInsns_ = wi;
+   hasWeirdInsns_ = wi;
+}
+
+image_func *image_basicBlock::getCallee() {
+   for (edgelist::iterator iter = targets().begin(); iter != targets().end(); ++iter) {
+      if ((*iter)->type() == ParseAPI::CALL) {
+         image_basicBlock *t = static_cast<image_basicBlock *>((*iter)->trg());
+         return t->getEntryFunc();
+      }
+   }
+   return NULL;
+}
+
+std::pair<bool, Address> image_basicBlock::callTarget() {
+   using namespace InstructionAPI;
+   Offset off = lastInsnOffset();
+   const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);
+   if (ptr == NULL) return std::make_pair(false, 0);
+   InstructionDecoder d(ptr, endOffset() - lastInsnOffset(), obj()->cs()->getArch());
+   Instruction::Ptr insn = d.decode();
+
+   // Bind PC to that insn
+   // We should build a free function to do this...
+   
+   Expression::Ptr cft = insn->getControlFlowTarget();
+   if (cft) {
+      Expression::Ptr pc(new RegisterAST(MachRegister::getPC(obj()->cs()->getArch())));
+      cft->bind(pc.get(), Result(u64, lastInsnAddr()));
+      Result res = cft->eval();
+      if (!res.defined) return std::make_pair(false, 0);
+   
+      return std::make_pair(true, res.convert<Address>());
+   }
+   return std::make_pair(false, 0);
 }

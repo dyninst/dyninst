@@ -2750,8 +2750,6 @@ static void ia32_translate_for_64(ia32_entry** gotit_ptr)
 	*gotit_ptr == &oneByteMap[0x62] || // bound gv, ma
 	*gotit_ptr == &oneByteMap[0x82] || // group 1 eb/ib
 	*gotit_ptr == &oneByteMap[0x9A] || // call ap
-	*gotit_ptr == &oneByteMap[0x9E] || // sahf
-	*gotit_ptr == &oneByteMap[0x9F] || // lahf
 	*gotit_ptr == &oneByteMap[0xC4] || // les gz, mp
 	*gotit_ptr == &oneByteMap[0xC5] || // lds gz, mp
 	*gotit_ptr == &oneByteMap[0xCE] || // into

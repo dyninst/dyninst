@@ -31,7 +31,7 @@
 
 #include "RelDataAtom.h"
 #include "instructionAPI/h/Instruction.h"
-#include "patchapi_debug.h"
+#include "../patchapi_debug.h"
 #include "CFG.h"
 #include "Trace.h"
 
@@ -39,7 +39,7 @@
 #include "../CodeBuffer.h"
 
 using namespace Dyninst;
-using namespace PatchAPI;
+using namespace Relocation;
 using namespace InstructionAPI;
 
 RelDataAtom::Ptr RelDataAtom::create(Instruction::Ptr insn,
@@ -49,7 +49,7 @@ RelDataAtom::Ptr RelDataAtom::create(Instruction::Ptr insn,
   return Ptr(new RelDataAtom(insn, addr, target));
 }
 
-TrackerElement *RelDataAtom::tracker(Block *b) const {
+TrackerElement *RelDataAtom::tracker(int_block *b) const {
    EmulatorTracker *e = new EmulatorTracker(addr_, b);
   return e;
 }

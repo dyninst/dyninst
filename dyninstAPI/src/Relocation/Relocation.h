@@ -43,15 +43,15 @@
 #include "dyninstAPI/src/codegen.h" // codeGen structure
 
 namespace Dyninst {
-namespace PatchAPI {
+namespace Relocation {
 
 class CodeMover;
 class SpringboardMap;
 struct SpringboardReq;
 class SpringboardBuilder;
 
-typedef dyn_detail::boost::shared_ptr<Dyninst::PatchAPI::CodeMover> CodeMoverPtr;
-typedef dyn_detail::boost::shared_ptr<Dyninst::PatchAPI::SpringboardBuilder> SpringboardBuilderPtr;
+typedef dyn_detail::boost::shared_ptr<Dyninst::Relocation::CodeMover> CodeMoverPtr;
+typedef dyn_detail::boost::shared_ptr<Dyninst::Relocation::SpringboardBuilder> SpringboardBuilderPtr;
 
 };
 };

@@ -33,9 +33,10 @@
 #define _PATCHAPI_REL_DATA_ATOM_H_
 
 #include "Atom.h"
+class int_block;
 
 namespace Dyninst {
-namespace PatchAPI {
+namespace Relocation {
 // Represents generation for a PC-relative
 // memory load/store
 
@@ -45,7 +46,7 @@ class RelDataAtom : public Atom {
 
    virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
 
-   TrackerElement *tracker(Block *) const;
+   TrackerElement *tracker(int_block *) const;
   
    static Ptr create(InstructionAPI::Instruction::Ptr insn,
 		     Address addr,

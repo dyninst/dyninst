@@ -257,7 +257,7 @@ extern Address getMaxBranch();
 
 // find these internal functions before finding any other functions
 // extern dictionary_hash<std::string, unsigned> tagDict;
-extern dictionary_hash <std::string, unsigned> primitiveCosts;
+extern std::map<std::string, unsigned> primitiveCosts; 
 
 bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f);
 

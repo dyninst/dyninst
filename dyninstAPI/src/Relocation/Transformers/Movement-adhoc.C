@@ -31,17 +31,18 @@
 
 #include "Transformer.h"
 #include "Movement-adhoc.h"
-#include "patchapi_debug.h"
+#include "../patchapi_debug.h"
 #include "../Atoms/Atom.h"
 #include "../Atoms/RelDataAtom.h"
 #include "../Atoms/CFAtom.h"
 #include "../Atoms/PCAtom.h"
+#include "../Atoms/Trace.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 
 using namespace std;
 using namespace Dyninst;
-using namespace PatchAPI;
+using namespace Relocation;
 using namespace InstructionAPI;
 
 
@@ -50,7 +51,7 @@ bool adhocMovementTransformer::processTrace(TraceList::iterator &b_iter) {
   // and "get PC" operations and replace them
   // with dedicated Atoms
 
-  Trace::AtomList &elements = (*b_iter)->elements();
+   Trace::AtomList &elements = (*b_iter)->elements();
 
   relocation_cerr << "PCRelTrans: processing block " 
 		  << (*b_iter).get() << " with "
@@ -80,7 +81,7 @@ bool adhocMovementTransformer::processTrace(TraceList::iterator &b_iter) {
       // Two options: a memory reference or a indirect call. The indirect call we 
       // just want to set target in the CFAtom, as it has the hardware to handle
       // control flow. Generic memory references get their own atoms. How nice. 
-      Atom::Ptr replacement = PCRelativeData::create((*iter)->insn(),
+      Atom::Ptr replacement = RelDataAtom::create((*iter)->insn(),
                                                      (*iter)->addr(),
                                                      target);
       (*iter).swap(replacement);
@@ -88,7 +89,7 @@ bool adhocMovementTransformer::processTrace(TraceList::iterator &b_iter) {
     }
     else if (isGetPC(*iter, aloc, target)) {
 
-      Atom::Ptr replacement = GetPC::create((*iter)->insn(),
+      Atom::Ptr replacement = PCAtom::create((*iter)->insn(),
 					       (*iter)->addr(),
 					       aloc,
 					       target);
@@ -101,30 +102,14 @@ bool adhocMovementTransformer::processTrace(TraceList::iterator &b_iter) {
 	(*iter).swap(replacement);
       }
       else {
-	CFAtom::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFAtom>(*iter);
-	// We don't want to be doing this pre-CF-creation...
-	assert(cf); 
-	
-	// Ignore a taken edge, but create a new CFAtom with the
-	// required fallthrough edge
-	CFAtom::DestinationMap::iterator dest = cf->destMap_.find(CFAtom::Fallthrough);
-	if (dest != cf->destMap_.end()) {
-	  CFAtom::Ptr newCF = CFAtom::create((*b_iter)->bbl());
-	  // Explicitly do _NOT_ reuse old information - this is just a branch
-	  newCF->updateAddr(cf->addr());
-
-	  newCF->destMap_[CFAtom::Fallthrough] = dest->second;
-
-	  // And since we delete destMap_ elements, NUKE IT from the original!
-	  cf->destMap_.erase(dest);
-
-	  // Before we forget: swap in the GetPC for the current element
-	  (*iter).swap(replacement);
-
-	  elements.push_back(newCF);
-	  // Go ahead and skip it...
-	  iter++;
-	}
+         // Remove the taken edge from the trace, as we're removing
+         // the call and replacing it with a GetPC operation. 
+         bool removed = (*b_iter)->removeTargets(ParseAPI::CALL);
+         assert(removed);
+            
+         // Before we forget: swap in the GetPC for the current element
+         (*iter).swap(replacement);            
+         break;
       }
     }
   }

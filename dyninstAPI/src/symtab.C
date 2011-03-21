@@ -38,7 +38,6 @@
 
 #include "symtab.h"
 #include "common/h/arch.h"
-#include "instPoint.h"
 #include "parRegion.h"
 #include "util.h"
 #include "inst.h"
@@ -981,39 +980,6 @@ pdmodule *image::findModule(const string &name, bool wildcard)
    return NULL;
 }
 
-image_instPoint *
-image::getInstPoint(ParseAPI::Block *b, Address addr)
-{
-    analyzeIfNeeded();
-    instp_map_t::iterator iit = inst_pts_.find(b);
-    if(iit == inst_pts_.end())
-        return NULL;
-    block_map_t::iterator iter = iit->second.find(addr);
-    if (iter == iit->second.end()) 
-        return NULL;
-    return iter->second;
-}
-void
-image::getInstPoints(Block *b,
-    pdvector<image_instPoint *> & points)
-{
-    analyzeIfNeeded();
-    instp_map_t::iterator iit = inst_pts_.find(b);
-    if (iit == inst_pts_.end()) return;
-    for (block_map_t::iterator iter = iit->second.begin(); iter != iit->second.end(); ++iter)
-    {
-        points.push_back(iter->second);
-    }
-}
-
-bool
-image::addInstPoint(image_instPoint *newP)
-{
-    inst_pts_[newP->block()][newP->offset()] = newP;
-
-    return true;
-}
-
 CodeObject::funclist &
 image::getAllFunctions()
 {
@@ -1268,23 +1234,6 @@ void image::deleteFunc(image_func *func)
     // and delete the function
     codeObject()->deleteFunc(func);
 
-}
-
-void image::deleteInstPoint(image_instPoint *p) {
-    cerr << "Erasing instPoint at " << hex << p->offset() << dec << endl;
-
-    inst_pts_[p->block()].erase(p->offset());
-   delete p;
-}
-
-void image::deleteInstPoints(ParseAPI::Block *b) {
-    std::list<image_instPoint *> toDelete;
-    for (block_map_t::iterator iter = inst_pts_[b].begin();
-        iter != inst_pts_[b].end(); ++iter) 
-    {
-        delete iter->second;
-    }
-    inst_pts_.erase(b);
 }
 
 void image::analyzeIfNeeded() {
@@ -1581,8 +1530,6 @@ image::image(fileDescriptor &desc,
 
    bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
-   // XXX FIXME having this static member in instPointBase
-   //     prevents support of multiple architectures simultaneously
 
    // Continue ParseAPI init
    img_fact_ = new DynCFGFactory(this);
@@ -1630,15 +1577,6 @@ image::~image()
       delete parallelRegions[i];
     parallelRegions.clear();
 
-    // free instPoints
-    for (instp_map_t::iterator iter = inst_pts_.begin(); iter != inst_pts_.end(); ++iter)
-    {
-        for (block_map_t::iterator iter2 = iter->second.begin(); iter2 != iter->second.end(); ++iter2)
-        {
-            delete iter2->second;
-        }
-    }
-    
     // Finally, remove us from the image list.
     for (i = 0; i < allImages.size(); i++) {
         if (allImages[i] == this)
@@ -2228,20 +2166,6 @@ void image::addSplitBlock(image_basicBlock *first, image_basicBlock *second) {
 
     std::list<Address> toRemove;
 	splitBlocks_.insert(make_pair(first, second));
-    for (block_map_t::iterator iter = inst_pts_[first].begin(); iter != inst_pts_[first].end(); ++iter) {
-        if (iter->second->offset() >= second->start()) 
-        {
-            // Move the point to the next block
-            iter->second->setBlock(second);
-            // Remove from the first block's instPoint map
-            toRemove.push_back(iter->first);
-            inst_pts_[second][iter->first] = iter->second;
-        }
-    }
-    for (std::list<Address>::iterator iter = toRemove.begin(); iter != toRemove.end(); ++iter) 
-    {
-        inst_pts_[first].erase(*iter);
-    }
 }
 
 

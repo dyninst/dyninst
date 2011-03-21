@@ -66,6 +66,8 @@ using namespace NS_power;
 
 #include <sys/poll.h>
 
+#include "boost/tuple/tuple.hpp"
+
 /////////////////////////////////////////////////////////////////////////////
 /// Massive amounts of signal handling code
 /////////////////////////////////////////////////////////////////////////////
@@ -1751,47 +1753,39 @@ bool process::hideDebugger()
 // callee is not set.  If the callee function cannot be found, (ex. function
 // pointers, or other indirect calls), it returns false.
 // Returns false on error (ex. process doesn't contain this instPoint).
-int_function *instPoint::findCallee() {
-   // Already been bound
-   if (callee_) {
-      return callee_;
-   }  
+//
+// HACK: made an int_function method to remove from instPoint class...
 
-   /*  if (ipType_ != callSite) {
-      // Assert?
-      return NULL; 
-      }*/
-   if (isDynamic()) {
-      return NULL;
-   }
+int_function *int_function::findCallee(int_block *callBlock) {
+   std::map<int_block *, int_function *>::iterator iter = callees_.find(callBlock);
+   if (iter != callees_.end()) return iter->second;
 
-   if( img_p_ == NULL ) return NULL;
-
-   assert(img_p_);
-   image_func *icallee = img_p_->getCallee(); 
+   image_func *icallee = callBlock->llb()->getCallee();
    if (icallee && !icallee->isPLTFunction()) {
-     callee_ = proc()->findFuncByInternalFunc(icallee);
-     //callee_ may be NULL if the function is unloaded
-
-       //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
-     return callee_;
+      int_function *callee = proc()->findFuncByInternalFunc(icallee);
+      callees_[callBlock] = callee;
+      //callee_ may be NULL if the function is unloaded
+      
+      //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
+      return callee;
    }
 
    // Do this the hard way - an inter-module jump
    // get the target address of this function
-   Address target_addr = img_p_->callTarget();
-   if(!target_addr) {
+   Address target_addr; bool success;
+   boost::tie(success, target_addr) = callBlock->llb()->callTarget();
+   if(!success) {
       // this is either not a call instruction or an indirect call instr
       // that we can't get the target address
-       //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
+      //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
       return NULL;
    }
-
+   
    // get the relocation information for this image
-   Symtab *obj = func()->obj()->parse_img()->getObject();
+   Symtab *sym = obj()->parse_img()->getObject();
    pdvector<relocationEntry> fbt;
    vector <relocationEntry> fbtvector;
-   if (!obj->getFuncBindingTable(fbtvector)) {
+   if (!sym->getFuncBindingTable(fbtvector)) {
 
        //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
         return NULL;
@@ -1802,8 +1796,8 @@ int_function *instPoint::findCallee() {
     * because the function binding table holds relocations used by the dynamic
     * linker
     */
-   if (!fbtvector.size() && !obj->isStaticBinary() && 
-           obj->getObjectType() != obj_RelocatableFile ) 
+   if (!fbtvector.size() && !sym->isStaticBinary() && 
+           sym->getObjectType() != obj_RelocatableFile ) 
    {
       fprintf(stderr, "%s[%d]:  WARN:  zero func bindings\n", FILE__, __LINE__);
    }
@@ -1811,9 +1805,8 @@ int_function *instPoint::findCallee() {
    for (unsigned index=0; index< fbtvector.size();index++)
         fbt.push_back(fbtvector[index]);
   
-   Address base_addr = func()->obj()->codeBase();
-   dictionary_hash<Address, std::string> *pltFuncs =
-       func()->ifunc()->img()->getPltFuncs();
+   Address base_addr = obj()->codeBase();
+   dictionary_hash<Address, std::string> *pltFuncs = ifunc()->img()->getPltFuncs();
 
    // find the target address in the list of relocationEntries
    if (pltFuncs->defines(target_addr)) {
@@ -1825,10 +1818,9 @@ int_function *instPoint::findCallee() {
             // linker
             int_function *target_pdf = 0;
             if (proc()->hasBeenBound(fbt[i], target_pdf, base_addr)) {
-               callee_ = target_pdf;
-               img_p_->setCalleeName(target_pdf->symTabName());
-               //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
-               return callee_;  // target has been bound
+               callees_[callBlock] = target_pdf;
+               obj()->setCalleeName(callBlock, target_pdf->symTabName());
+               return target_pdf;
             }
          }
       }
@@ -1836,11 +1828,11 @@ int_function *instPoint::findCallee() {
       const char *target_name = (*pltFuncs)[target_addr].c_str();
       process *dproc = dynamic_cast<process *>(proc());
       BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
-      img_p_->setCalleeName(std::string(target_name));
+      obj()->setCalleeName(callBlock, std::string(target_name));
       pdvector<int_function *> pdfv;
       if (dproc) {
-         bool found = proc()->findFuncsByMangled(target_name, pdfv);
-         if (found) {
+         if (proc()->findFuncsByMangled(target_name, pdfv)) {
+            callees_[callBlock] = pdfv[0];
             return pdfv[0];
          }
       }
@@ -1848,8 +1840,8 @@ int_function *instPoint::findCallee() {
          std::vector<BinaryEdit *>::iterator i;
          for (i = bedit->getSiblings().begin(); i != bedit->getSiblings().end(); i++)
          {
-            bool found = (*i)->findFuncsByMangled(target_name, pdfv);
-            if (found) {
+            if ((*i)->findFuncsByMangled(target_name, pdfv)) {
+               callees_[callBlock] = pdfv[0];
                return pdfv[0];
             }
          }
@@ -1857,7 +1849,7 @@ int_function *instPoint::findCallee() {
       else 
          assert(0);
    }
-
+   
    //fprintf(stderr, "%s[%d]:  returning NULL: target addr = %p\n", FILE__, __LINE__, (void *)target_addr);
    return NULL;
 }

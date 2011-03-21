@@ -43,13 +43,13 @@
 // Remove when I'm done debugging this...
 //#include "dyninstAPI/src/baseTramp.h"
 
-class baseTrampInstance;
+class baseTramp;
+class int_function;
+class int_block;
 
 namespace Dyninst {
-namespace PatchAPI {
+namespace Relocation {
 class CodeTracker;
-class Block;
-class Function;
 
 class TrackerElement {
   friend class CodeTracker;
@@ -59,7 +59,7 @@ class TrackerElement {
     emulated,
     instrumentation
   } type_t;
-  TrackerElement(Address o, Block *b) 
+  TrackerElement(Address o, int_block *b) 
       : orig_(o), reloc_(0), size_(0), 
       block_(b) {assert(o); assert(b);};
   virtual ~TrackerElement() {};
@@ -71,7 +71,7 @@ class TrackerElement {
   Address orig() const { return orig_; };
   Address reloc() const { return reloc_; };
   unsigned size() const { return size_; };
-  Block *block() const { return block_; };
+  int_block *block() const { return block_; };
 
   void setReloc(Address reloc) { reloc_ = reloc; };
   void setSize(unsigned size) { size_ = size; }
@@ -82,12 +82,12 @@ class TrackerElement {
   Address orig_;
   Address reloc_;
   unsigned size_;
-  Block *block_;
+  int_block *block_;
 };
 
 class OriginalTracker : public TrackerElement {
  public:
-  OriginalTracker(Address orig, Block *b) :
+  OriginalTracker(Address orig, int_block *b) :
   TrackerElement(orig, b) {};
   virtual ~OriginalTracker() {};
 
@@ -110,7 +110,7 @@ class OriginalTracker : public TrackerElement {
 
 class EmulatorTracker : public TrackerElement {
  public:
- EmulatorTracker(Address orig, Block *b) : 
+ EmulatorTracker(Address orig, int_block *b) : 
   TrackerElement(orig, b) {};
   virtual ~EmulatorTracker() {};
 
@@ -132,7 +132,7 @@ class EmulatorTracker : public TrackerElement {
 
 class InstTracker : public TrackerElement {
  public:
-  InstTracker(Address orig, baseTrampInstance *baseT, Block *b) :
+  InstTracker(Address orig, baseTramp *baseT, int_block *b) :
    TrackerElement(orig, b), baseT_(baseT) {};
   virtual ~InstTracker() {};
 
@@ -148,10 +148,10 @@ class InstTracker : public TrackerElement {
   }
 
   virtual type_t type() const { return TrackerElement::instrumentation; };
-  baseTrampInstance *baseT() const { return baseT_; };
+  baseTramp *baseT() const { return baseT_; };
 
  private:
-  baseTrampInstance *baseT_;
+  baseTramp *baseT_;
 };
 
 class CodeTracker {
@@ -182,8 +182,8 @@ class CodeTracker {
   CodeTracker() {};
   ~CodeTracker() {};
 
-  bool origToReloc(Address origAddr, Function *func, RelocatedElements &relocs) const;
-  bool relocToOrig(Address relocAddr, Address &orig, Block *&block, baseTrampInstance *&baseT) const;
+  bool origToReloc(Address origAddr, int_function *func, RelocatedElements &relocs) const;
+  bool relocToOrig(Address relocAddr, Address &orig, int_block *&block, baseTramp *&baseT) const;
 
   TrackerElement *findByReloc(Address relocAddr) const;
 
@@ -212,6 +212,6 @@ class CodeTracker {
 };
 
 std::ostream &
-operator<<(std::ostream &os, const Dyninst::PatchAPI::TrackerElement &e);
+operator<<(std::ostream &os, const Dyninst::Relocation::TrackerElement &e);
 
 #endif

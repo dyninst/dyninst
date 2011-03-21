@@ -328,8 +328,6 @@ class rpcMgr {
     // Prevent launchRPCs from being entered recursively
     bool recursionGuard;
 
-    baseTramp *irpcTramp;
-    
   public:
    rpcMgr(process *proc);
    rpcMgr(rpcMgr *parRpcMgr, process *child);

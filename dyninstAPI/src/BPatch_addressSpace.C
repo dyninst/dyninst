@@ -124,8 +124,10 @@ BPatch_point *BPatch_addressSpace::findOrCreateBPPoint(BPatch_function *bpfunc,
    if (mod->instp_map.count(ip)) 
       return mod->instp_map[ip];
 
-   if (pointType == BPatch_locUnknownLocation)
+   if (pointType == BPatch_locUnknownLocation) {
+      cerr << "Error: point type not specified!" << endl;
       return NULL;
+   }
 
    AddressSpace *lladdrSpace = ip->func()->proc();
    if (!bpfunc) 
@@ -263,7 +265,7 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
    // executing on the call stack
    if ( handle->getProcess() && handle->mtHandles_.size() > 0 && 
        BPatch_normalMode != 
-       handle->mtHandles_[0]->instP()->func()->obj()->hybridMode())
+        handle->mtHandles_[0]->instP()->func()->obj()->hybridMode())
    {
        if (handle->mtHandles_.size() > 1) {
            mal_printf("ERROR: Removing snippet that is installed in "
@@ -277,7 +279,7 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
        instPoint *iPoint = handle->mtHandles_[i]->instP();
        handle->mtHandles_[i]->uninstrument();
        BPatch_point *bPoint = findOrCreateBPPoint(NULL, iPoint, 
-           BPatch_point::convertInstPointType_t(iPoint->getPointType()));
+                                                  BPatch_point::convertInstPointType_t(iPoint->type()));
        assert(bPoint);
        bPoint->removeSnippet(handle);
      }
@@ -306,28 +308,11 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
 bool BPatch_addressSpace::replaceCodeInt(BPatch_point *point,
       BPatch_snippet *snippet) 
 {
-   if (!getMutationsActive())
-      return false;
+   // Need to reevaluate how this code works. I don't think it should be
+   // point-based, though. 
 
-   if (!point) {
-      return false;
-   }
-   if (getTerminated()) {
-      return true;
-   }
-
-   if (point->edge_) {
-      return false;
-   }
-
-   if (!point->point->replaceCode(snippet->ast_wrapper)) return false;
-
-   if (pendingInsertions == NULL) {
-     // Trigger it now
-     bool tmp;
-     finalizeInsertionSet(false, &tmp);
-   }   
-   return true;
+   assert(0);
+   return false;
 }
 
 /*
@@ -857,12 +842,13 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
                FILE__, __LINE__, i);
          return retHandle;
       }
-
-      miniTramp *mini = bppoint->point->addInst(expr.ast_wrapper,
-						ipWhen,
-						ipOrder,
-						BPatch::bpatch->isTrampRecursive(), 
-						false);
+      miniTramp *mini;
+      if (ipOrder == orderFirstAtPoint) {         
+         mini = bppoint->point->push_front(expr.ast_wrapper);
+      }
+      else {
+         mini = bppoint->point->push_back(expr.ast_wrapper);
+      }
 
       if (mini) {
 	retHandle->mtHandles_.push_back(mini);

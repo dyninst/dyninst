@@ -39,10 +39,10 @@
 namespace Dyninst {
 namespace Relocation {
 
-class CopyInsn;
+class InsnAtom;
 
 class MemEmulatorTransformer : public Transformer {
-  typedef dyn_detail::boost::shared_ptr<CopyInsn> CopyInsnPtr;
+  typedef dyn_detail::boost::shared_ptr<InsnAtom> InsnAtomPtr;
  public:
   typedef std::map<Register, TracePtr> TranslatorMap;
 
@@ -57,19 +57,19 @@ class MemEmulatorTransformer : public Transformer {
 
  private:
 
-  AtomPtr createReplacement(CopyInsnPtr reloc,
+  AtomPtr createReplacement(InsnAtomPtr reloc,
 			       int_function *func, int_block *);
 
-  bool canRewriteMemInsn(CopyInsnPtr reloc,
+  bool canRewriteMemInsn(InsnAtomPtr reloc,
 			 int_function *func);
 
-  bool isSensitive(CopyInsnPtr reloc, 
+  bool isSensitive(InsnAtomPtr reloc, 
 		   int_function *func,
 		   int_block *block);
 
   void createTranslator(Register r);
 
-  bool override(CopyInsnPtr reloc);
+  bool override(InsnAtomPtr reloc);
 
   TranslatorMap translators_;
 

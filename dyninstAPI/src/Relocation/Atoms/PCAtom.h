@@ -37,9 +37,11 @@
 // Define where the PC value is supposed to go
 #include "dataflowAPI/h/Absloc.h"
 
-namespace Dyninst {
-namespace PatchAPI {
+class int_block;
 
+
+namespace Dyninst {
+namespace Relocation {
 
 class PCAtom : public Atom {
  public:
@@ -51,7 +53,7 @@ class PCAtom : public Atom {
 		     Address thunk = 0);
    virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
 
-   TrackerElement *tracker(Block *) const;
+   TrackerElement *tracker(int_block *) const;
 
    virtual ~PCAtom() {};
    virtual std::string format() const;

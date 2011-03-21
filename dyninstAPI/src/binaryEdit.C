@@ -963,32 +963,29 @@ bool BinaryEdit::replaceTrapHandler() {
     getAllFunctions(allFuncs);
     bool replaced = false;
     for (unsigned i = 0; i < allFuncs.size(); i++) {
-        int_function *func = allFuncs[i];
-        
+        int_function *func = allFuncs[i];        
         assert(func);
-        const pdvector<instPoint *> &calls = func->funcCalls();
-
-        for (unsigned j = 0; j < calls.size(); j++) {
-            instPoint *point = calls[j];
-            
-            std::string calleeName = point->getCalleeName();
-
-            if ((calleeName == "sigaction") ||
-                (calleeName == "_sigaction") ||
-                (calleeName == "__sigaction")) {
-	      replaceFunctionCall(point, dyn_sigaction);
-	      replaced = true;
-            }
-            else if ((calleeName == "signal") ||
-                     (calleeName == "_signal") ||
-                     (calleeName == "__signal"))
-            {
-	      replaceFunctionCall(point, dyn_sigaction);
-	      replaced = true;
-            }
+        for (int_function::BlockSet::const_iterator iter = func->blocks().begin();
+             iter != func->blocks().end(); ++iter) {
+           if ((*iter)->containsCall()) {
+              std::string calleeName = (*iter)->calleeName();
+              
+              if ((calleeName == "sigaction") ||
+                  (calleeName == "_sigaction") ||
+                  (calleeName == "__sigaction")) {
+                 replaceFunctionCall((*iter)->preCallPoint(), dyn_sigaction);
+                 replaced = true;
+              }
+              else if ((calleeName == "signal") ||
+                       (calleeName == "_signal") ||
+                       (calleeName == "__signal"))
+              {
+                 replaceFunctionCall((*iter)->preCallPoint(), dyn_sigaction);
+                 replaced = true;
+              }
+           }
         }
     }
-
     if (!replaced) return true;
 
     return relocate();

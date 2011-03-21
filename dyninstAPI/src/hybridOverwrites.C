@@ -410,11 +410,13 @@ void HybridAnalysisOW::owLoop::instrumentOneWrite(Address writeInsnAddr,
 
     for (unsigned fidx =0; fidx < writeFuncs.size(); fidx++) 
     {
-        // create instrumentation points
-        BPatch_point * writePoint = hybridow_->proc()->getImage()->
-                createInstPointAtAddr((void*)writeInsnAddr, 
-                                      NULL, 
-                                      writeFuncs[fidx]);
+       // We can afford to be really slow and precise in the lookup, as this is the
+       // very, very, very uncommon case.
+       int_block *block = writeFuncs[fidx]->lowlevel_func()->findOneBlockByAddr(writeInsnAddr);
+       if (!block) continue;
+       instPoint *ip = block->postInsnPoint(writeInsnAddr);
+       BPatch_point *writePoint = hybridow_->proc()->findOrCreateBPPoint(writeFuncs[fidx],
+                                                                         ip);
 
         // instrument and store the snippet handle
         BPatchSnippetHandle *snippetHandle = hybridow_->proc()->insertSnippet
@@ -1305,46 +1307,6 @@ void HybridAnalysisOW::overwriteSignalCB
         // While we're at it, we check to see if the function has been
         // updated, in which case we can swith to loop-based instrumentation
         if ( ! loop->isRealLoop() ) {
-#if 0 // this can never execute since nothing ever sets codeChanged
-            // see if the function's analysis has been updated, and if there
-            // is now a loop surrounding the write instruction, scrap our
-            // current instrumentation and instrument the loop
-            if ( loop->codeChanged && 1 == faultFuncs.size()) {
-
-                mal_printf("updating the loop in response to code changes\n");
-                BPatch_basicBlockLoop * bpLoop = 
-                    getWriteLoop(*faultFuncs[0], faultInsnAddr);
-                if (bpLoop) {
-                    // scrap the current loop instrumentation and instrument 
-                    // the new loop instead
-                    writeTarget = loop->getWriteTarget();
-                    deleteLoop(loop,false);
-                    loop = new owLoop(this,writeTarget);
-                    set<int> overlappingLoops;
-                    // use current counter for now as we may choose not to 
-                    // use the new loop 
-                    if (setLoopBlocks(loop, 
-                                      bpLoop, 
-                                      overlappingLoops) 
-                        &&
-                        ( 0 == overlappingLoops.size() || 
-                          removeOverlappingLoops(loop, overlappingLoops)))
-                    {   // use the new loop
-                        loop->instrumentOverwriteLoop(faultInsnAddr);
-                        mal_printf("new overwrite loop %d %d[%d]\n", 
-                                   loop->getID(), FILE__,__LINE__);
-                    } else {
-                        // this loop is unsafe to instrument, go back to 
-                        // single block instrumentation
-                        loop->instrumentOneWrite(faultInsnAddr,faultFuncs);
-                        fprintf(stderr,"failed to expand to loop-based "
-                                "instrumentation %s[%d]\n",
-                                FILE__,__LINE__);
-                    }
-                }
-            }
-            else 
-#endif
             // if there is a new write instruction in the block that hasn't 
             // been instrumented, instrument after the new write instruction
             if (loop->writeInsns.end() == 
@@ -1354,9 +1316,6 @@ void HybridAnalysisOW::overwriteSignalCB
                            // reachable, since we instrument immediately after 
                            // the write instruction and single-instruction loops
                            // do not get re-used
-                mal_printf("hit new uninstrumented write instruction in existing loop\n");
-                loop->writeInsns.insert(faultInsnAddr);
-                loop->instrumentOneWrite(faultInsnAddr,faultFuncs);
             } 
         }
 
@@ -1372,46 +1331,11 @@ void HybridAnalysisOW::overwriteSignalCB
                 mal_printf("discovered that loop %d writes to one of its code pages, "
                            "will add write-bounds instrumentation\n", loop->getID());
                 loop->instrumentLoopWritesWithBoundsCheck();
-#if 0
-                //re-invoke overwriteSignalCB
-                int_function *llfunc = faultFuncs[0]->lowlevel_func();
-                instPoint *pt = llfunc->findInstPByAddr(faultInsnAddr);
-                if (!pt) {
-                    llfunc->funcCalls();
-                    llfunc->funcEntries();
-                    llfunc->funcExits();
-                    llfunc->funcUnresolvedControlFlow();
-                    pt = llfunc->findInstPByAddr(faultInsnAddr);
-                    if (!pt) {
-                        pt = instPoint::createArbitraryInstPoint(
-                            faultInsnAddr, proc()->lowlevel_process(), llfunc);
-                    }
-                }
-                assert(pt);
-                BPatch_point *writePoint = proc()->findOrCreateBPPoint(
-                    faultFuncs[0], 
-                    pt, 
-                    BPatch_point::convertInstPointType_t(pt->getPointType()));
-                deleteLoop(loop, true, writePoint);
-                overwriteSignalCB(faultInsnAddr, writeTarget);
-                proc()->finalizeInsertionSet(false);
-                return;
-#endif
             }
         }
 
         makeShadow_setRights(writeTarget, loop);
         loop->setActive(true);
-#if 0
-        if (!loop->isActive()) {
-            if (!loop->isRealLoop()) {
-                loop->instrumentOneWrite(faultInsnAddr,faultFuncs);
-            } else {
-                loop->instrumentOverwriteLoop(faultInsnAddr);
-            }
-            loop->setActive(true);
-        }
-#endif
         proc()->finalizeInsertionSet(false);
         return;
     }

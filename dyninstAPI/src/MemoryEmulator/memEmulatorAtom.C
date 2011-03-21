@@ -76,7 +76,7 @@ bool MemEmulator::initialize(const codeGen &templ, const Trace *t) {
 	scratch.allocate(128);
 	scratch.applyTemplate(templ);
 
-	block = t->bbl();
+	block = t->block();
 
 	effAddr = Null_Register;
 	stackOffset = 0;
@@ -758,7 +758,7 @@ bool MemEmulatorPatch::apply(codeGen &gen,
                              CodeBuffer *) {
    relocation_cerr << "MemEmulatorPatch::apply @ " << hex << gen.currAddr() << dec << endl;
    relocation_cerr << "\tSource reg " << source_ << endl;
-   assert(!gen.bti());
+   assert(!gen.bt());
 
    // Two debugging assists
    ::emitPushImm(gen.currAddr(), gen);
@@ -1194,10 +1194,10 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
        ::emitPush(RealRegister(effAddr2_), prepatch);
 	   stackShift_ -= 4;
    }
-   buffer.addPIC(prepatch, tracker(t->bbl()));
+   buffer.addPIC(prepatch, tracker(t->block()));
 
    buffer.addPatch(new MemEmulatorPatch(effAddr_, addr_, getTranslatorAddr(prepatch, true)),
-                   tracker(t->bbl()));
+                   tracker(t->block()));
 
        prepatch.setIndex(0);
    if (usesTwo) {
@@ -1205,9 +1205,9 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
 	  stackShift_ += 4;
       ::emitPush(RealRegister(effAddr_), prepatch);
 	  stackShift_ -= 4;
-      buffer.addPIC(prepatch, tracker(t->bbl()));
+      buffer.addPIC(prepatch, tracker(t->block()));
       buffer.addPatch(new MemEmulatorPatch(effAddr2_, addr_, getTranslatorAddr(prepatch, true)),
-                   tracker(t->bbl()));
+                   tracker(t->block()));
       prepatch.setIndex(0);
       ::emitPop(RealRegister(effAddr_), prepatch);
 	  stackShift_ += 4;
@@ -1266,7 +1266,7 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
    // And clean up
    if (!trailingTeardown(prepatch)) return false;
 
-   buffer.addPIC(prepatch, tracker(t->bbl()));
+   buffer.addPIC(prepatch, tracker(t->block()));
    
    return true;
 }

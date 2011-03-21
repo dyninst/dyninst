@@ -31,7 +31,7 @@
 
 #include "Transformer.h"
 #include "Modification.h"
-#include "patchapi_debug.h"
+#include "../patchapi_debug.h"
 #include "../Atoms/Target.h"
 #include "../Atoms/Atom.h"
 #include "../Atoms/CFAtom.h"
@@ -42,7 +42,7 @@
 
 using namespace std;
 using namespace Dyninst;
-using namespace PatchAPI;
+using namespace Relocation;
 
 Modification::Modification(const ext_CallReplaceMap &callRepl,
 			   const ext_FuncReplaceMap &funcRepl,
@@ -50,12 +50,12 @@ Modification::Modification(const ext_CallReplaceMap &callRepl,
   for (ext_CallReplaceMap::const_iterator iter = callRepl.begin();
        iter != callRepl.end(); ++iter) {
     int_block *bbl = iter->first->block();
-    callRep_[bbl] = std::make_pair<int_block *, instPoint *>(iter->second, iter->first);
+    callRep_[bbl] = std::make_pair<int_function *, instPoint *>(iter->second, iter->first);
   }
 
   for (ext_FuncReplaceMap::const_iterator iter = funcRepl.begin();
        iter != funcRepl.end(); ++iter) {
-    int_block *bbl = iter->first->entry();
+     int_block *bbl = iter->first->entryBlock();
     funcRep_[bbl] = iter->second;
   }
 
@@ -76,17 +76,17 @@ bool Modification::processTrace(TraceList::iterator &iter) {
 
   Trace::Ptr block = *iter;
   
-  CallReplaceMap::iterator c_rep = callRep_.find(block->bbl());
+  CallReplaceMap::iterator c_rep = callRep_.find(block->block());
   if (c_rep != callRep_.end()) {
     replaceCall(block, c_rep->second.first, c_rep->second.second);
   }
 
-  FuncReplaceMap::iterator f_rep = funcRep_.find(block->bbl());
+  FuncReplaceMap::iterator f_rep = funcRep_.find(block->block());
   if (f_rep != funcRep_.end()) {
     replaceFunction(block, f_rep->second);
   }
 
-  CallRemovalSet::iterator c_rem = callRem_.find(block->bbl());
+  CallRemovalSet::iterator c_rem = callRem_.find(block->block());
   if (c_rem != callRem_.end()) {
     removeCall(block);
   }
@@ -94,8 +94,10 @@ bool Modification::processTrace(TraceList::iterator &iter) {
   return true;
 }
 
-void Modification::replaceCall(TracePtr block, int_block *target, instPoint *cur) {
+void Modification::replaceCall(TracePtr block, int_function *target, instPoint *cur) {
   Trace::AtomList &elements = block->elements();
+
+  cerr << "Warning: skipping replacement of call" << endl;
 
   CFAtom::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFAtom>(elements.back());
 
@@ -109,7 +111,7 @@ void Modification::replaceCall(TracePtr block, int_block *target, instPoint *cur
 		  << " with a call to " << target->prettyName() << " @"
 		  << hex << target->getAddress() << dec << endl;
 
-  if (block->bbl()->func()->obj() == target->obj()) {
+  if (block->block()->func()->obj() == target->obj()) {
     // In the same mapped object; we can do an efficient replace that just
     // modifies the call distance. 
     CFAtom::DestinationMap::iterator d_iter = cf->destMap_.find(CFAtom::Taken);
@@ -134,17 +136,20 @@ void Modification::replaceCall(TracePtr block, int_block *target, instPoint *cur
 }
 
 
-void Modification::replaceFunction(TracePtr block, int_block *to) {
+void Modification::replaceFunction(TracePtr block, int_function *to) {
     // We replace the original function with a jump to the new function.
     // Did I say "jump"? I meant "CFAtom". 
 
     // No reason to keep the rest of the stuff, and we often assume CFAtoms are
     // the last thing in the list.
+   
+   cerr << "Warning: skipping function replacement" << endl;
 
+#if 0
     block->elements().clear();
 
-    CFAtom::Ptr cf = CFAtom::create(block->bbl());
-    cf->updateAddr(block->bbl()->start());
+    CFAtom::Ptr cf = CFAtom::create(block->block());
+    cf->updateAddr(block->block()->start());
 
     int_block *dest = to->entryBlock();
     assert(dest);
@@ -167,7 +172,7 @@ void Modification::replaceFunction(TracePtr block, int_block *to) {
 
   // And now to create a AtomTramp. Let's see if we can find one
   // in the function...
-  int_block *from = block->bbl()->func();
+  int_block *from = block->block()->func();
   const vector<instPoint *> &entries = from->funcEntries();
   assert(!entries.empty());
   for (unsigned i = 0; i < entries.size(); ++i) {
@@ -177,11 +182,17 @@ void Modification::replaceFunction(TracePtr block, int_block *to) {
 			true,
 			false);
   }
+
+#endif
 }
 
 
 void Modification::removeCall(TracePtr block) {
   const Trace::AtomList &elements = block->elements();
+
+  cerr << "Warning: skipping removal of call" << endl;
+  return;
+
 
   CFAtom::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFAtom>(elements.back());
 

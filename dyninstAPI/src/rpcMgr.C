@@ -67,10 +67,6 @@ rpcMgr::rpcMgr(process *proc) :
     lwps_(rpcLwpHash),
     recursionGuard(false)
 {
-    // We use a base tramp skeleton to generate iRPCs.
-    irpcTramp = new baseTramp(NULL, callUnset);
-    irpcTramp->rpcMgr_ = this;
-    irpcTramp->setRecursive(true);
 }
 
 // Fork constructor. For each thread/LWP in the parent, check to 
@@ -82,11 +78,6 @@ rpcMgr::rpcMgr(rpcMgr *pRM, process *child) :
     lwps_(rpcLwpHash),
     recursionGuard(pRM->recursionGuard)
 {
-    // We use a base tramp skeleton to generate iRPCs.
-    irpcTramp = new baseTramp(NULL, callUnset);
-    irpcTramp->rpcMgr_ = this;
-    irpcTramp->setRecursive(true);
-
     // Make all necessary thread and LWP managelets.
 
     for (unsigned i = 0; i < pRM->thrs_.size(); i++) {
@@ -198,7 +189,6 @@ rpcMgr::rpcMgr(rpcMgr *pRM, process *child) :
 }
     
 rpcMgr::~rpcMgr() {
-    delete irpcTramp;
 }
 
 // post RPC toDo for process
@@ -798,9 +788,13 @@ Address rpcMgr::createRPCImage(AstNodePtr action,
    // already done a GETREGS and we'll restore with a SETREGS, right?
    // unsigned char insnBuffer[4096];
     codeGen irpcBuf(MAX_IRPC_SIZE);
+    
+    baseTramp *irpcTramp = baseTramp::create(this, action);
+
     irpcBuf.setAddrSpace(proc());
     irpcBuf.setLWP(lwp);
     irpcBuf.setThread(thr);
+    irpcBuf.setBT(irpcTramp);
     
     irpcBuf.setRegisterSpace(registerSpace::irpcRegSpace(proc()));
 
@@ -899,6 +893,9 @@ Address rpcMgr::createRPCImage(AstNodePtr action,
       bperr( "0x%x\n", ((int *)insnBuffer)[i]);
       bperr("\n\n\n\n\n");
     */
+
+    //cerr << "IRPC:" << endl;
+    //cerr << irpcBuf.format() << endl;
     
     if (!proc_->writeDataSpace((void*)tempTrampBase, irpcBuf.used(), irpcBuf.start_ptr())) {
         // should put up a nice error dialog window
@@ -921,6 +918,7 @@ Address rpcMgr::createRPCImage(AstNodePtr action,
     startAddr += proc()->getAddressWidth();
 #endif
 
+    delete irpcTramp;
     return tempTrampBase;
 }
 
@@ -928,9 +926,8 @@ Address rpcMgr::createRPCImage(AstNodePtr action,
 
 bool rpcMgr::emitInferiorRPCheader(codeGen &gen) 
 {
-    assert(irpcTramp);
     gen.beginTrackRegDefs();
-    irpcTramp->generateSaves(gen, gen.rs(), NULL);
+    gen.bt()->generateSaves(gen, gen.rs());
     return true;
 }
 
@@ -945,10 +942,7 @@ bool rpcMgr::emitInferiorRPCtrailer(codeGen &gen,
         insnCodeGen::generateTrap(gen);
         justAfter_stopForResultOffset = gen.used();
     }
-    assert(irpcTramp);
-    //irpcTramp->generateBT(gen);
-    // Should already be built by the call to generateBT in emit... header
-    irpcTramp->generateRestores(gen, gen.rs(), NULL);
+    gen.bt()->generateRestores(gen, gen.rs());
 
     breakOffset = gen.used();
     insnCodeGen::generateTrap(gen);

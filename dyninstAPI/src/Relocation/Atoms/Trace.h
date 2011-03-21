@@ -35,6 +35,7 @@
 #include "dyn_detail/boost/shared_ptr.hpp" // shared_ptr
 #include "common/h/Types.h" // Address
 #include "dyninstAPI/src/codegen.h" // codeGen
+#include "dyninstAPI/src/function.h"
 #include "instructionAPI/h/Instruction.h" // Instruction::Ptr
 #include "CFG.h"
 
@@ -42,9 +43,11 @@
 
 class baseTramp;
 class baseTrampInstance;
+class int_block;
+class int_function;
 
 namespace Dyninst {
-namespace PatchAPI {
+namespace Relocation {
 
 class Transformer;
 class Atom;
@@ -72,18 +75,22 @@ class Trace {
    typedef std::list<Atom::Ptr> AtomList;
    typedef dyn_detail::boost::shared_ptr<Trace> Ptr;
    typedef std::list<Patch *> Patches;
+   typedef std::list<TargetInt *> Targets;
 
-   static Ptr create(PatchAPI::Block *block);
-   static Ptr create(Atom::Ptr atom, Address a, PatchAPI::Function *func);
-   bool linkTraces(std::map<Block *, Trace::Ptr> &traces);
+   // Standard creation
+   static Ptr create(int_block *block);
+   // Nonstandard creation; we need the block to be able to 
+   // provide tracking data structures for later
+   static Ptr create(Atom::Ptr atom, Address a, int_block *block);
+   bool linkTraces(std::map<int_block *, Trace::Ptr> &traces);
    void determineNecessaryBranches(Trace *successor);
 
    Address origAddr() const { return origAddr_; }
    int id() const { return id_; }
-   Block *block() const { return block_; }
-   Function *func() const;
+   int_block *block() const { return block_; }
+   int_function *func() const { return block_->func(); }
    std::string format() const;
-   Label getLabel() { assert(label_ != -1);  return label_; };
+   Label getLabel() const { assert(label_ != -1);  return label_; };
    
    // Non-const for use by transformer classes
    AtomList &elements() { return elements_; }
@@ -93,40 +100,63 @@ class Trace {
    bool applyPatches(codeGen &gen, bool &regenerate, unsigned &totalSize, int &shift);
    bool extractTrackers(CodeTracker &);
    bool generate(const codeGen &templ, CodeBuffer &buffer);
-   
-   
+
+   // Transforms an edge S -> T (where S == this) to 
+   // S -> I -> T (where I -> T has type fallthrough)
+   bool interposeTarget(ParseAPI::EdgeTypeEnum type, 
+                        Trace::Ptr newTarget); 
+   bool moveSources(ParseAPI::EdgeTypeEnum type,
+                    Trace::Ptr newSource);
+   bool interposeTarget(int_edge *e,
+                        Trace::Ptr newTarget);
+   Targets &getTargets(ParseAPI::EdgeTypeEnum type);
+   bool removeTargets(ParseAPI::EdgeTypeEnum type);
+
+   // Splits the trace immediately before the provided iterator.
+   Trace::Ptr split(AtomList::iterator where);
+
+   // Used when we're really monkeying with the traces. Turns this
+   // into something that will detect as instrumentation. 
+   void setAsInstrumentationTrace();
+
+   // Set up the CFAtom with our out-edges
+   bool finalizeCF();
+
  private:
    
-  Trace(Block *block)
-     :origAddr_(block->start()),
+  Trace(int_block *block)
+     : origAddr_(block->start()),
       block_(block),
-      func_(block->func()),
       id_(TraceID++),
       label_(-1) {};
-  Trace(Address origAddr, Function *func)
-     :origAddr_(origAddr),
-      block_(NULL),
-      func_(func),
+   Trace(Address a, int_block *b)
+      :origAddr_(a),
+      block_(b),
       id_(TraceID++),
       label_(-1) { 
    };
 
-   struct Successor {
-   Successor() : addr(0), type(ParseAPI::NOEDGE), target(NULL) {};
-      Address addr;
-      ParseAPI::EdgeTypeEnum type;
-      TargetInt *target;
-   };
-   typedef std::list<Successor> Successors;
+   typedef enum {
+      InEdge,
+      OutEdge } EdgeDirection;
 
    void createCFAtom();
-   void getSuccessors(Successors &, const std::map<Block *, Trace::Ptr> &traces);
+   void getPredecessors(const std::map<int_block *, Trace::Ptr> &traces);
+   void getSuccessors(const std::map<int_block *, Trace::Ptr> &traces);
+   void processEdge(EdgeDirection e, int_edge *edge, const std::map<int_block *, Trace::Ptr> &traces);
+
    void preserveBlockGap();
    std::pair<bool, Address> getJumpTarget();
 
+   void replaceInEdge(ParseAPI::EdgeTypeEnum type,
+                      Trace *oldSource,
+                      TargetInt *newSource);
+   void replaceOutEdge(ParseAPI::EdgeTypeEnum type,
+                      Trace *oldTarget,
+                      TargetInt *newTarget);
+
    Address origAddr_;
-   Block *block_;
-   Function *func_;  
+   int_block *block_;
    int id_;
    Label label_;  
    
@@ -135,6 +165,12 @@ class Trace {
    // equivalents
    CFAtomPtr cfAtom_;
    Patches patches_;
+
+   // We're building a mini-CFG, so might as well make it obvious. 
+   // Also, this lets us reassign edges. We sort by edge type. 
+   std::map<ParseAPI::EdgeTypeEnum, Targets > inEdges_;
+   std::map<ParseAPI::EdgeTypeEnum, Targets > outEdges_;
+
 };
 
 };

@@ -230,7 +230,7 @@ unsigned char jccOpcodeFromRelOp(unsigned op);
 // XMM registers
 bool xmmCapable();
 
-void emitBTRegRestores32(baseTrampInstance *bti, codeGen &gen);
+void emitBTRegRestores32(baseTramp *bti, codeGen &gen);
 
 struct stackItem {
    enum stackItem_t {

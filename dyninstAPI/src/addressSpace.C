@@ -62,6 +62,8 @@
 // Implementations of non-virtual functions in the address space
 // class.
 
+using namespace Dyninst;
+
 AddressSpace::AddressSpace () :
     trapMapping(this),
     useTraps_(true),
@@ -1226,7 +1228,7 @@ bool AddressSpace::findFuncsByAddr(Address addr, std::set<int_function*> &funcs,
 {
     if (includeReloc) {
         // Check that first
-        baseTrampInstance *bti;
+        baseTramp *bti;
         int_block *block;
         Address oAddr;
         if (getRelocInfo(addr, oAddr, block, bti)) {
@@ -1245,7 +1247,7 @@ bool AddressSpace::findBlocksByAddr(Address addr, std::set<int_block *> &blocks,
     bool ret = obj->findBlocksByAddr(addr, blocks);
     if (ret || !includeReloc)
         return ret;
-    baseTrampInstance *bti;
+    baseTramp *bti;
     int_block *block;
     Address oAddr;
     if (getRelocInfo(addr, oAddr, block, bti)) {
@@ -1424,8 +1426,6 @@ bool AddressSpace::relocate() {
   return ret;
 }
 
-extern bool GLOBAL_DISASSEMBLY;
-extern bool disassemble_reloc;
 // iter is some sort of functions
 bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address nearTo) {
   if (begin == end) {
@@ -1441,8 +1441,11 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   CodeMover::Ptr cm = CodeMover::create(relocatedCode_.back());
   if (!cm->addFunctions(begin, end)) return false;
 
+
   SpringboardBuilder::Ptr spb = SpringboardBuilder::createFunc(begin, end, this);
 
+  relocation_cerr << "Debugging CodeMover (pre-transform)" << endl;
+  relocation_cerr << cm->format() << endl;
   transform(cm);
 
   relocation_cerr << "Debugging CodeMover" << endl;
@@ -1455,11 +1458,19 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
     return false;
   }
 
-  if (disassemble_reloc || dyn_debug_reloc || dyn_debug_write) {
+  if (dyn_debug_reloc || dyn_debug_write) {
       using namespace InstructionAPI;
       // Print out the buffer we just created
       cerr << "DUMPING RELOCATION BUFFER " << hex 
            << cm->blockMap().begin()->first->start() << dec << endl;
+#if 0
+      unsigned char *cur = (unsigned char *) cm->ptr();
+      unsigned tmp = 0;
+      while (tmp < cm->size()) {
+         cerr << hex << baseAddr + tmp << ": " << (unsigned) cur[tmp] << endl;
+         tmp++;
+      }
+#endif
       Address base = baseAddr;
       InstructionDecoder deco
         (cm->ptr(),cm->size(),getArch());
@@ -1470,8 +1481,8 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
         insn = deco.decode();
       }
       cerr << dec;
-	  cerr << endl;
-	  cerr << cm->format() << endl;
+      cerr << endl;
+      cerr << cm->format() << endl;
   }
 
 
@@ -1512,7 +1523,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 		  mal_printf("Attempting to change PC: current addr is 0x%lx\n", relocAddr);
           Address pcOrig=0;
           vector<int_function *> origFuncs;
-          baseTrampInstance *bti=NULL;
+          baseTramp *bti=NULL;
           mapped_object *pcobj = findObject(tframe.getPC());
           if (pcobj && mapped_object::isSystemLib(pcobj->fileName())) {
               mal_printf("\tIn system lib, not changing\n");
@@ -1568,13 +1579,8 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 
 bool AddressSpace::transform(CodeMover::Ptr cm) {
 
-  if (emulatePC_) {
-      PCSensitiveTransformer v(this, cm->priorityMap());
-      cm->transform(v);
-  } else {
-      adhocMovementTransformer a(this);
-      cm->transform(a);
-  }
+   adhocMovementTransformer a(this);
+   cm->transform(a);
 
   if (emulateMem_) {
       MemEmulatorTransformer m;
@@ -1588,8 +1594,8 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   cm->transform(mod);
 
   // Add instrumentation
-  //cerr << "Inst transformer" << endl;
-  Instrumenter i;
+  relocation_cerr << "Inst transformer" << endl;
+  Instrumenter i(cm->blockMap());
   cm->transform(i);
 
   return true;
@@ -1736,7 +1742,7 @@ void AddressSpace::getRelocAddrs(Address orig,
 bool AddressSpace::getAddrInfo(Address relocAddr,
                 				Address &origAddr,
 		                		vector<int_function *> &origFuncs,
-				                baseTrampInstance *&baseT) 
+				                baseTramp *&baseT) 
 {
     std::set<int_function *> tmpFuncs;
     if (findFuncsByAddr(relocAddr, tmpFuncs)) {
@@ -1759,9 +1765,9 @@ bool AddressSpace::getAddrInfo(Address relocAddr,
 
 
 bool AddressSpace::getRelocInfo(Address relocAddr,
-                				Address &origAddr,
+                                Address &origAddr,
                                 int_block *&origBlock,
-                                baseTrampInstance *&baseT) 
+                                baseTramp *&baseT) 
 {
   baseT = NULL;
   origBlock = NULL;
@@ -1804,13 +1810,9 @@ void AddressSpace::addDefensivePad(int_block *callBlock, Address padStart, unsig
   // We want to register these in terms of a int_block that the pad ends, but 
   // the CFG can change out from under us; therefore, for lookup we use an instPoint
   // as they are invariant. 
-   
-   instPoint *point = callBlock->func()->findInstPByAddr(callBlock->last());
-   if (!point) {
-       callBlock->func()->funcCalls();
-       point = callBlock->func()->findInstPByAddr(callBlock->last());
-   }
-   if (!point) {
+   instPoint *point = callBlock->preCallPoint();
+
+   if (!point || point->empty()) {
        // Kevin didn't instrument it so we don't care :)
        return;
    }
@@ -1903,8 +1905,8 @@ AddressSpace::getStubs(const std::list<int_block *> &owBBIs,
         SingleContext epred_((*deadIter)->func()->ifunc(),true,true);
         Intraproc epred(&epred_);
         image_basicBlock *curImgBlock = (*deadIter)->llb();
-        Block::edgelist & sourceEdges = curImgBlock->sources();
-        Block::edgelist::iterator eit = sourceEdges.begin(&epred);
+        ParseAPI::Block::edgelist & sourceEdges = curImgBlock->sources();
+        ParseAPI::Block::edgelist::iterator eit = sourceEdges.begin(&epred);
         Address baseAddr = (*deadIter)->start() 
             - curImgBlock->firstInsnOffset();
 

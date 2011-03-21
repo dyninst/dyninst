@@ -36,7 +36,7 @@
 #include "Trace.h"
 
 namespace Dyninst {
-namespace PatchAPI {
+namespace Relocation {
 
 // Wraps an object that can serve as a  control flow target. This
 // may include existing code objects (a block or function)
@@ -95,13 +95,13 @@ class Target : public TargetInt{
 };
 
 template <>
-  class Target<Trace::Ptr> : public TargetInt {
+  class Target<Trace *> : public TargetInt {
  public:
    //Address addr() const { return t_->curAddr(); }
 
-  Target(Trace::Ptr t) : t_(t) {}
-  ~Target() {}
-  const Trace::Ptr &t() const { return t_; };
+  Target(Trace * t) : t_(t) {}
+   ~Target() {}
+   Trace * t() const { return t_; };
   Address origAddr() const { return t_->origAddr(); };
   
   virtual type_t type() const { return TraceTarget; };
@@ -112,22 +112,22 @@ template <>
      return ret.str();
   }
   
-  virtual bool matches(Trace *t) const { return (t_.get() == t); }
+  virtual bool matches(Trace *t) const { return (t_ == t); }
 
   int label(CodeBuffer *) const { return t_->getLabel(); };
   
  private:
-  const Trace::Ptr t_;
+  Trace * t_;
 };
 
 template <>
-class Target<Block *> : public TargetInt {
+class Target<int_block *> : public TargetInt {
  public:
    //Address addr() const { return t_->firstInsnAddr(); }
- Target(Block *t) : t_(t) {}
+ Target(int_block *t) : t_(t) {}
   ~Target() {}
 
-  Block *t() const { return t_; };
+  int_block *t() const { return t_; };
 
   virtual type_t type() const { return BlockTarget; };
 
@@ -142,7 +142,7 @@ class Target<Block *> : public TargetInt {
   int label(CodeBuffer *) const;
 
  private:
-  Block *t_;
+  int_block *t_;
 };
 
 

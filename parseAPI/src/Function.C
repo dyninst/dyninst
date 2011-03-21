@@ -175,10 +175,12 @@ Function::blocks_int()
             }
 
             if(e->type() == RET) {
+               link_return = true;
                 if (obj()->defensiveMode()) {
                     if (_tamper != TAMPER_UNSET && _tamper != TAMPER_NONE) continue;
                 }
-				_rs = RETURN;
+                
+                _rs = RETURN;
                 continue;
             }
 

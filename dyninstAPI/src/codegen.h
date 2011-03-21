@@ -78,7 +78,6 @@ class Emitter;
 class pcRelRegion;
 class int_function;
 class generatedCodeObject;
-class baseTrampInstance;
 class baseTramp;
 class int_block;
 
@@ -180,6 +179,8 @@ class codeGen {
     // Since we have a known size
     void fillRemaining(int fillType);
 
+    std::string format() const;
+
     //Add a new PCRelative region that should be generated after 
     // addresses are fixed
     void addPCRelRegion(pcRelRegion *reg);
@@ -218,7 +219,7 @@ class codeGen {
     void setCodeEmitter(Emitter *emitter) { emitter_ = emitter; }
     void setFunction(int_function *f) { f_ = f; }
     void setObj(generatedCodeObject *object) { obj_ = object; }
-    void setBTI(baseTrampInstance *i) { bti_ = i; }
+    void setBT(baseTramp *i) { bt_ = i; }
     void setInInstrumentation(bool i) { inInstrumentation_ = i; }
 
     dyn_lwp *lwp() const;
@@ -227,7 +228,7 @@ class codeGen {
     AddressSpace *addrSpace() const;
     Address startAddr() const { return addr_; }
     instPoint *point() const;
-    baseTrampInstance *bti() const { return bti_; }
+    baseTramp *bt() const { return bt_; }
     int_function *func() const;
     registerSpace *rs() const;
     regTracker_t *tracker() const;
@@ -283,7 +284,7 @@ class codeGen {
     Address addr_;
     instPoint *ip_;
     int_function *f_;
-    baseTrampInstance *bti_;
+    baseTramp *bt_;
     bool isPadded_;
 
     bitArray regsDefined_;

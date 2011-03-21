@@ -34,8 +34,10 @@
 
 #include "Atom.h"
 
+class int_block;
+
 namespace Dyninst {
-namespace PatchAPI {
+namespace Relocation {
 
 class InsnAtom : public Atom {
  public:
@@ -45,7 +47,7 @@ class InsnAtom : public Atom {
                         const Trace *,
                         CodeBuffer &);
 
-  TrackerElement *tracker(PatchAPI::Block *) const;
+  TrackerElement *tracker(int_block *) const;
 
   static Ptr create(InstructionAPI::Instruction::Ptr insn,
 		    Address addr);

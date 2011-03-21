@@ -39,7 +39,7 @@
 
 
 namespace Dyninst {
-namespace PatchAPI {
+namespace Relocation {
 class RelocInsn;
 // Identify PC-relative memory accesses and replace
 // them with a dedicated Atom

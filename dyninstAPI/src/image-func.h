@@ -58,7 +58,6 @@ using namespace Dyninst;
 class pdmodule;
 
 class image_basicBlock;
-class image_instPoint;
 class image_edge;
 
 #if !defined(ESSENTIAL_PARSING_ENUMS)
@@ -97,10 +96,18 @@ class image_basicBlock : public codeRange, public ParseAPI::Block  {
     bool isEntryBlock(image_func * f) const;
     image_func *getEntryFunc() const;  // func starting with this bock
 
+    bool unresolvedCF() const { return unresolvedCF_; }
+    bool abruptEnd() const { return abruptEnd_; }
+
     // misc utility
     int id() const { return blockNumber_; }
     void debugPrint();
     image *img();
+    
+    // Find callees
+    image_func *getCallee();
+    // Returns the address of our callee (if we're a call block, of course)
+    std::pair<bool, Address> callTarget();
 
     // instrumentation-related
     bool canBeRelocated() const { return canBeRelocated_; }
@@ -146,6 +153,9 @@ class image_basicBlock : public codeRange, public ParseAPI::Block  {
     bool needsRelocation_;
     int blockNumber_;
     bool canBeRelocated_; // some blocks contain uninstrumentable constructs
+
+    bool unresolvedCF_;
+    bool abruptEnd_;
 
 #if defined(cap_liveness)
     /* Liveness analysis variables */
@@ -286,13 +296,6 @@ class image_func : public ParseAPI::Function
    // Instpoints!
    ////////////////////////////////////////////////
 
-   void funcEntries(pdvector<image_instPoint*> &);
-   void funcExits(pdvector<image_instPoint*> &);
-   void funcCalls(pdvector<image_instPoint*> &);
-   // statically unresolvable control flow points
-   void funcUnresolvedControlFlow(pdvector<image_instPoint*> &);
-   void funcAbruptEnds(pdvector<image_instPoint*> &); 
-  
    // Initiate parsing on this function
    bool parse();
  

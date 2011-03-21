@@ -225,40 +225,9 @@ DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
     return ret;
 }
 
-#if 0
-void
-DynParseCallback::unresolved_cf(Function *f,Address addr,unresolved_details*det)
-{
-    image_instPoint * p =
-        new image_instPoint(
-            addr,
-            _img,
-            det->data.call.target,
-            det->data.call.dynamic_call,
-            det->data.call.absolute_address,
-            otherPoint,
-            true);
-
-    if (det->isbranch && !_img->codeObject()->defensiveMode())
-    	static_cast<image_func*>(f)->setInstLevel(UNINSTRUMENTABLE);
-
-    _img->addInstPoint(p);
-}
-#endif
-
 void
 DynParseCallback::abruptEnd_cf(Address addr,ParseAPI::Block *b,default_details*)
 {
-    image_instPoint * p =
-        new image_instPoint(addr,
-                            b,
-                            _img,
-                            abruptEnd);
-
-    // check for instrumentability? FIXME
-    // ah.getInstLevel or something
-
-    _img->addInstPoint(p);
 }
 
 void
@@ -275,7 +244,7 @@ DynParseCallback::block_split(Block *first, Block *second)
 }
 
 void DynParseCallback::block_delete(Block *b) {
-    _img->deleteInstPoints(b);
+
 }
 
 void
@@ -292,48 +261,6 @@ DynParseCallback::patch_nop_jump(Address addr)
 void
 DynParseCallback::interproc_cf(Function*f,Block *b,Address addr,interproc_details*det)
 {
-    image_instPoint * p = NULL;
-    switch(det->type) {
-        case interproc_details::ret:
-           p = new image_instPoint(addr,
-                                   b,
-                                   _img,
-                                   functionExit);
-           break;
-        case interproc_details::call:
-           p = new image_instPoint(addr,
-                                   b,
-                                   _img,
-                                   det->data.call.target,
-                                   det->data.call.dynamic_call,
-                                   det->data.call.absolute_address,
-                                   callSite,
-                                   false);
-           break;
-        case interproc_details::unres_call:
-        case interproc_details::unres_branch:
-           p = new image_instPoint(addr,
-                                   b,
-                                   _img,
-                                   det->data.unres.target,
-                                   det->data.unres.dynamic,
-                                   det->data.unres.absolute_address,
-                                   (det->type == interproc_details::unres_call) ? callSite : otherPoint,
-                                   true);
-           break;
-       case interproc_details::branch_interproc:
-          p = new image_instPoint(addr,
-                                  b,
-                                  _img,
-                                  functionExit);
-          break;
-       default:
-          assert(0);
-    };
-    
-    if(p)
-        _img->addInstPoint(p);
-
 #if defined(ppc32_linux) || defined(ppc32_bgp)
     if(det->type == interproc_details::call) {
         image_func * ifunc = static_cast<image_func*>(f);

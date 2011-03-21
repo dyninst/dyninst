@@ -93,16 +93,16 @@ class Emitter {
 
     virtual void emitGetRetVal(Register dest, bool addr_of, codeGen &gen) = 0;
     virtual void emitGetRetAddr(Register dest, codeGen &gen) = 0;
-    virtual void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, opCode op, bool addr_of, codeGen &gen) = 0;
-    virtual void emitFuncJump(int_function *f, instPointType_t ptType, bool callOp, codeGen &gen) = 0;
+    virtual void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen) = 0;
+    virtual void emitFuncJump(int_function *f, instPoint::Type ptType, bool callOp, codeGen &gen) = 0;
     virtual void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen) = 0;
     virtual void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen) = 0;
     virtual void emitPushFlags(codeGen &gen) = 0;
     virtual void emitRestoreFlags(codeGen &gen, unsigned offset) = 0;
     // Built-in offset...
     virtual void emitRestoreFlagsFromStackSlot(codeGen &gen) = 0;
-    virtual bool emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &gen) = 0;
-    virtual bool emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen &gen) = 0;
+    virtual bool emitBTSaves(baseTramp* bt, codeGen &gen) = 0;
+    virtual bool emitBTRestores(baseTramp* bt, codeGen &gen) = 0;
     virtual void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost) = 0;
     virtual void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost) = 0;
     virtual bool emitPush(codeGen &, Register) = 0;

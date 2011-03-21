@@ -148,13 +148,17 @@ public:
     void getAbruptEndPoints(BPatch_Vector<BPatch_point *> &abruptEnds);
     void getCallerPoints(BPatch_Vector<BPatch_point*>& callerPoints);
     void getAllPoints(BPatch_Vector<BPatch_point*>& allPoints);
+
+    void getEntryPoints(BPatch_Vector<BPatch_point *> &entryPoints);
+    void getExitPoints(BPatch_Vector<BPatch_point *> &entryPoints);
+    void getCallPoints(BPatch_Vector<BPatch_point *> &entryPoints);
+
     bool setHandlerFaultAddrAddr(Dyninst::Address addr, bool set);
     void fixHandlerReturnAddr(Dyninst::Address addr);
     bool removeInstrumentation(bool useInsertionSet);
     bool parseNewEdge(Dyninst::Address source, Dyninst::Address target);
     void relocateFunction();
     bool getSharedFuncs(std::set<BPatch_function*> &funcs);
-    BPatch_point * getPoint(Dyninst::Address addr);
 
     void addParam(Dyninst::SymtabAPI::localVar *lvar);
 

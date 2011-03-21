@@ -35,17 +35,20 @@
 #include "Transformer.h"
 
 namespace Dyninst {
-namespace PatchAPI {
+namespace Relocation {
 
 class Instrumenter : public Transformer {
  public:
+  // Mirrors definition in CodeMover
+  typedef std::map<int_block *, TracePtr> TraceMap;
+   
   virtual bool processTrace(TraceList::iterator &);
-  virtual bool postprocess(TraceList &l);
-
-  Instrumenter() {};
-
+  virtual bool postprocess(TraceList &);
+  
+  Instrumenter(const TraceMap &t) : traceMap_(t) {};
+  
   virtual ~Instrumenter() {};
-
+  
  private:
   typedef enum {
     Before,
@@ -55,13 +58,19 @@ class Instrumenter : public Transformer {
   typedef std::map<InsertPoint, TraceList> EdgeTraces;
   typedef dyn_detail::boost::shared_ptr<CFAtom> CFAtomPtr;
 
+  bool funcEntryInstrumentation(TracePtr trace);
+  bool funcExitInstrumentation(TracePtr trace);
+  bool blockEntryInstrumentation(TracePtr trace);
+  bool edgeInstrumentation(TracePtr trace);
+  bool preCallInstrumentation(TracePtr trace);
+  bool postCallInstrumentation(TracePtr trace);
+  bool insnInstrumentation(TracePtr trace);
+
   EdgeTraces edgeTraces_;
 
-  bool addEdgeInstrumentation(baseTramp *tramp,
-            			      CFAtomPtr cf,
-		            	      Address dest,
-                              When when,
-			                  TracePtr cur);
+  AtomPtr makeInstrumentation(instPoint *point);
+
+  const TraceMap &traceMap_;
 
 };
 

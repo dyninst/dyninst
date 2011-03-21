@@ -39,7 +39,7 @@ typedef dyn_detail::boost::shared_ptr<AstNode> AstNodePtr;
 class instPoint;
 
 namespace Dyninst {
-namespace PatchAPI {
+namespace Relocation {
 
 class ASTAtom : public Atom {
  public:

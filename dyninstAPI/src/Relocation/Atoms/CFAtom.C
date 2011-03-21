@@ -35,7 +35,7 @@
 
 #include "instructionAPI/h/Instruction.h"
 
-#include "patchapi_debug.h"
+#include "../patchapi_debug.h"
 
 #include "../CodeTracker.h"
 #include "../CodeBuffer.h"
@@ -52,7 +52,7 @@
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/mapped_object.h"
 using namespace Dyninst;
-using namespace PatchAPI;
+using namespace Relocation;
 using namespace InstructionAPI;
 
 ///////////////////////
@@ -64,8 +64,8 @@ const Address CFAtom::Taken(2);
 
 // Case 1: an empty trace ender for traces that do not
 // end in a CF-category instruction
-CFAtom::Ptr CFAtom::create() {
-   CFAtom::Ptr ptr = Ptr(new CFAtom());
+CFAtom::Ptr CFAtom::create(Address a) {
+   CFAtom::Ptr ptr = Ptr(new CFAtom(a));
    return ptr;
 }
 
@@ -127,7 +127,13 @@ bool CFAtom::generate(const codeGen &templ,
    // Indirect branch:
    //   1) Just go for it... we have no control, really
 
-   Block *block = trace->block();
+   if (destMap_.empty() && !isIndirect_) {
+      // No successors at all? Well, it happens if
+      // we hit a halt...
+      return true;
+   }
+
+   int_block *block = trace->block();
 
    typedef enum {
       Illegal,
@@ -164,6 +170,16 @@ bool CFAtom::generate(const codeGen &templ,
             iter = destMap_.find(Fallthrough);
             fallthrough = true;
          }
+         if (iter == destMap_.end()) {
+            cerr << "Error in CFAtom from trace " << trace->id()
+                 << ", could not find target for single control transfer" << endl;
+            cerr << "\t DestMap dump:" << endl;
+            for (DestinationMap::iterator d = destMap_.begin(); 
+                 d != destMap_.end(); ++d) {
+               cerr << "\t\t " << d->first << " : " << d->second->format() << endl;
+            }
+         }
+            
          assert(iter != destMap_.end());
 
          TargetInt *target = iter->second;
@@ -275,8 +291,10 @@ CFAtom::~CFAtom() {
    }
 }
 
-TrackerElement *CFAtom::tracker(Block *block) const {
+TrackerElement *CFAtom::tracker(int_block *block) const {
    assert(addr_ != 1);
+   assert(addr_);
+   assert(block);
    EmulatorTracker *e = new EmulatorTracker(addr_, block);
    return e;
 }
@@ -287,36 +305,39 @@ TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
       assert(0);
    }
 
-   Function *destFunc = NULL;
+   int_block *destBlock = NULL;
    switch (dest->type()) {
       case TargetInt::TraceTarget: {
-         Target<Trace::Ptr> *targ = static_cast<Target<Trace::Ptr> *>(dest);
-         destFunc = targ->t()->func();
-         assert(destFunc);
+         Target<Trace *> *targ = static_cast<Target<Trace *> *>(dest);
+         assert(targ);
+         assert(targ->t());
+         destBlock = targ->t()->block();
+         assert(destBlock);
          break;
       }
       case TargetInt::BlockTarget:
-         destFunc = (static_cast<Target<Block *> *>(dest))->t()->func();
-         assert(destFunc);
+         
+         destBlock = (static_cast<Target<int_block *> *>(dest))->t();
+         assert(destBlock);
          break;
       default:
          assert(0);
          break;
    }
-   EmulatorTracker *e = new EmulatorTracker(dest->origAddr(), destFunc->entry());
+   EmulatorTracker *e = new EmulatorTracker(dest->origAddr(), destBlock);
    return e;
 }
 
-TrackerElement *CFAtom::addrTracker(Address addr, Block *block) const {
+TrackerElement *CFAtom::addrTracker(Address addr, int_block *block) const {
    EmulatorTracker *e = new EmulatorTracker(addr, block);
    return e;
 }
 
 void CFAtom::addDestination(Address index, TargetInt *dest) {
-   // Annoying required copy... 
-   if (!dest) {
-      printf("adding bad dest\n");
-   }
+   assert(dest);
+   relocation_cerr << "CFAtom @ " << std::hex << addr() << ", adding destination " << dest->format()
+                   << " / " << index << std::dec << endl;
+
    destMap_[index] = dest;
 }
 
@@ -332,7 +353,7 @@ TargetInt *CFAtom::getDestination(Address dest) const {
 bool CFAtom::generateBranch(CodeBuffer &buffer,
 			    TargetInt *to,
 			    Instruction::Ptr insn,
-                            PatchAPI::Block *curBlock,
+                            int_block *curBlock,
 			    bool fallthrough) {
    assert(to);
    if (!to->necessary()) return true;
@@ -346,7 +367,7 @@ bool CFAtom::generateBranch(CodeBuffer &buffer,
    // == size) back up the codeGen and shrink us down.
 
    CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to, addr_);
-   if (fallthrough) {
+   if (fallthrough || curBlock == NULL) {
       buffer.addPatch(newPatch, destTracker(to));
    }
    else {
@@ -358,7 +379,7 @@ bool CFAtom::generateBranch(CodeBuffer &buffer,
 
 bool CFAtom::generateCall(CodeBuffer &buffer,
 			  TargetInt *to,
-                          Block *curBlock,
+                          int_block *curBlock,
 			  Instruction::Ptr insn) {
    if (!to) {
       // This can mean an inter-module branch...
@@ -374,7 +395,7 @@ bool CFAtom::generateCall(CodeBuffer &buffer,
 
 bool CFAtom::generateConditionalBranch(CodeBuffer &buffer,
 				       TargetInt *to,
-                                       Block *curBlock,
+                                       int_block *curBlock,
 				       Instruction::Ptr insn) {
    assert(to);
 
@@ -386,7 +407,7 @@ bool CFAtom::generateConditionalBranch(CodeBuffer &buffer,
 
 bool CFAtom::generateIndirect(CodeBuffer &buffer,
                               Register reg,
-                              Block *curBlock,
+                              int_block *curBlock,
                               Instruction::Ptr insn) {
    // Two possibilities here: either copying an indirect jump w/o
    // changes, or turning an indirect call into an indirect jump because
@@ -459,7 +480,7 @@ bool CFAtom::generateIndirect(CodeBuffer &buffer,
 bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
                                   Register reg,
                                   Instruction::Ptr insn,
-                                  Block *curBlock,
+                                  int_block *curBlock,
 				  Address origAddr) 
 {
    // I'm pretty sure that anything that can get translated will be

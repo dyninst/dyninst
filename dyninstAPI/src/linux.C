@@ -1706,23 +1706,14 @@ bool process::initMT()
       return false;
    }
    //Instrument
+   // Do we want to move this to bpatch?
+   
    for (i=0; i<thread_init_funcs.size(); i++)
    {
       pdvector<AstNodePtr> args;
       AstNodePtr ast = AstNode::funcCallNode(dummy_create, args);
-      const pdvector<instPoint *> &ips = thread_init_funcs[i]->funcEntries();
-      for (unsigned j=0; j<ips.size(); j++)
-      {
-         miniTramp *mt;
-         mt = ips[j]->instrument(ast, callPreInsn, orderFirstAtPoint, false, 
-                                 false);
-         if (!mt)
-         {
-            fprintf(stderr, "[%s:%d] - Couldn't instrument thread_create\n",
-                    __FILE__, __LINE__);
-         }
-         //TODO: Save the mt objects for detach
-      }
+      instPoint *entry = thread_init_funcs[i]->entryPoint();
+      miniTramp *mt = entry->push_front(ast);
    }
       
    //Find functions that are run on pthread exit
@@ -1749,21 +1740,13 @@ bool process::initMT()
    {
       pdvector<AstNodePtr> args;
       AstNodePtr ast = AstNode::funcCallNode(threadDestroy, args);
-      const pdvector<instPoint *> &ips = thread_dest_funcs[i]->funcExits();
-      for (unsigned j=0; j<ips.size(); j++)
-      {
-         miniTramp *mt;
-         mt = ips[j]->instrument(ast, callPreInsn, orderFirstAtPoint, false, 
-                                 false);
-         if (!mt)
-         {
-            fprintf(stderr, "[%s:%d] - Couldn't instrument thread_exit\n",
-                    __FILE__, __LINE__);
-         }
-         //TODO: Save the mt objects for detach
+      const int_function::BlockSet &exits = thread_dest_funcs[i]->exitBlocks();
+      for (int_function::BlockSet::iterator iter = exits.begin(); iter != exits.end(); ++iter) {
+         instPoint *exitPoint = thread_dest_funcs[i]->exitPoint(*iter);
+         miniTramp *mt = exitPoint->push_front(ast);
       }
    }
-
+   
 #if 0
    //Instrument
    for (i=0; i<thread_dest_funcs.size(); i++)
@@ -1821,6 +1804,9 @@ bool process::initMT()
               __FILE__, __LINE__);
       return false;
    }
+
+   // Actually cause instrumentation to go in
+   relocate();
 
    return true;
 }

@@ -47,27 +47,29 @@
 #include "Springboard.h"
 
 class codeGen;
+class int_block;
+class int_function;
 
 namespace Dyninst {
   class AddressMapper;
 
-namespace PatchAPI {
+namespace Relocation {
 
 class Trace;
 class Transformer;
 class CodeMover;
 class CodeTracker;
 
-typedef std::map<Block *, Priority> PriorityMap;
+typedef std::map<int_block *, Priority> PriorityMap;
 
 class CodeMover {
  public:
   typedef dyn_detail::boost::shared_ptr<CodeMover> Ptr;
   typedef dyn_detail::boost::shared_ptr<Trace> TracePtr;
   typedef std::list<TracePtr> TraceList;
-  typedef std::map<Block *, TracePtr> TraceMap;
-  typedef std::set<Function *> FuncSet;
-  typedef std::set<Block *> BlockSet;
+  typedef std::map<int_block *, TracePtr> TraceMap;
+  typedef std::set<int_function *> FuncSet;
+  typedef std::set<int_block *> BlockSet;
 
   // A generic mover of code; an instruction, a basic block, or
   // a function. This is the algorithm (fixpoint) counterpart
@@ -131,16 +133,18 @@ class CodeMover {
 
  private:
     
-  CodeMover(CodeTracker &t) : addr_(0), tracker_(t) {};
+  CodeMover(CodeTracker &t) : addr_(0), tracker_(t), tracesFinalized_(false) {};
 
   
   void setAddr(Address &addr) { addr_ = addr; }
   template <typename TraceIter>
     bool addTraces(TraceIter begin, TraceIter end);
 
-  bool addTrace(Block *block);
+  bool addTrace(int_block *block);
 
   void createInstrumentationSpringboards(AddressSpace *as);
+
+  void finalizeTraces();
 
   TraceList blocks_;
 
@@ -159,6 +163,8 @@ class CodeMover {
   CodeBuffer buffer_;
   codeGen &gen();
 
+  bool tracesFinalized_;
+  
 };
 
 

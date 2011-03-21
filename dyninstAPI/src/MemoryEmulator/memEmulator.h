@@ -32,6 +32,8 @@
 #if !defined(_MEMORY_EMULATOR_H_)
 #define _MEMORY_EMULATOR_H_
 
+#include "common/h/IntervalTree.h"
+
 class AddressSpace;
 class mapped_object;
 class int_variable;

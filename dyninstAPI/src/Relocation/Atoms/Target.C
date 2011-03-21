@@ -34,9 +34,9 @@
 #include "Target.h"
 
 using namespace Dyninst;
-using namespace PatchAPI;
+using namespace Relocation;
 
-int Target<Block *>::label(CodeBuffer *buf) const {
+int Target<int_block *>::label(CodeBuffer *buf) const {
    return buf->defineLabel(t_->start());
 }
 

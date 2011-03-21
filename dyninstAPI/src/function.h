@@ -47,6 +47,8 @@
 
 #include "dyn_detail/boost/shared_ptr.hpp"
 
+#include "block.h"
+
 class process;
 class mapped_module;
 class mapped_object;
@@ -66,6 +68,7 @@ class Frame;
 
 class int_function;
 class int_block;
+class int_edge;
 class funcMod;
 
 typedef enum callType {
@@ -76,88 +79,10 @@ typedef enum callType {
   thiscall_call
 } callType;
 
-class int_block {
-    friend class int_function;
-
- public:
-    int_block(image_basicBlock *ib, int_function *func);
-    int_block(const int_block *parent, int_function *func);
-    ~int_block();
-
-    // "Basic" block stuff
-    Address start() const;
-    Address end() const;
-    Address last() const;
-    unsigned size() const;
-
-    // Up-accessors
-    int_function *func() const;
-    AddressSpace *addrSpace() const;
-    AddressSpace *proc() const { return addrSpace(); }
-
-    // just because a block is an entry block doesn't mean it is
-    // an entry block that this block's function cares about
-    bool isEntryBlock() const;
-    bool isExitBlock() const { return ib_->isExitBlock(); }
-
-    // int_blocks are not shared, but their underlying blocks
-    // may be
-    bool hasSharedBase() const { return ib_->isShared(); }
-
-    void triggerModified();
-
-    image_basicBlock * llb() const { return ib_; }
-    
-    struct compare {
-        bool operator()(int_block * const &b1,
-                        int_block * const &b2) const {
-            if(b1->start() < b2->start()) return true;
-            if(b2->start() < b1->start()) return false;
-            assert(b1 == b2);
-            return false;
-        }
-    };
-
-    std::string format() const;
-
-#if defined(cap_instruction_api)
-    // TODO: this should be a map from addr to insn, really
-    typedef std::pair<InstructionAPI::Instruction::Ptr, Address> InsnInstance;
-    typedef std::vector<InsnInstance> InsnInstances;
-    void getInsnInstances(InsnInstances &instances) const;
-    std::string disassemble() const;
-#endif
-
-    void *getPtrToInstruction(Address addr) const;
-
-    // The int_* layer doesn't have edges. That's really annoying, but
-    // I'm not sure we really need them. Also, I don't want to pay the
-    // creation cost. 
-    void getSources(std::vector<int_block *> &) const;
-    void getTargets(std::vector<int_block *> &) const;
-    // Yay ugly!
-    EdgeTypeEnum getSourceEdgeType(int_block *source) const;
-    EdgeTypeEnum getTargetEdgeType(int_block *target) const;
-
-    // Shortcuts
-    int_block *getTarget() const;
-    int_block *getFallthrough() const;
-
-    bool containsCall();
-
-    int id() const;
-
-    void setHighLevelBlock(BPatch_basicBlock *newb);
-    BPatch_basicBlock *getHighLevelBlock() const;
-
- private:
-    BPatch_basicBlock *highlevel_block;
-    int_function *func_;
-    image_basicBlock *ib_;
-};
 
 class int_function : public patchTarget {
   friend class int_block;
+  friend class int_edge;
  public:
    //static std::string emptyString;
 
@@ -179,9 +104,10 @@ class int_function : public patchTarget {
    // this function) we make most methods passthroughs to the original
    // parsed version.
 
-   const string &symTabName() const;
+   const string &symTabName() const { return ifunc_->symTabName(); };
    const string &prettyName() const { return ifunc_->prettyName(); };
    const string &typedName() const { return ifunc_->typedName(); };
+   const string &name() const { return symTabName(); }
    
    const vector<string>& symTabNameVector() const { return ifunc_->symTabNameVector(); }
    const vector<string>& prettyNameVector() const { return ifunc_->prettyNameVector(); }
@@ -198,6 +124,7 @@ class int_function : public patchTarget {
    // May change when we relocate...
    Address getAddress() const {return addr_;}
    Address getPtrAddress() const {return ptrAddr_;}
+   Address addr() const { return addr_; }
 
    // Don't use this...
    unsigned getSize_NP();
@@ -238,6 +165,16 @@ class int_function : public patchTarget {
    typedef std::set<int_block *, int_block::compare> BlockSet;
    const BlockSet &blocks();
 
+   int_block *entryBlock();
+   const BlockSet &callBlocks();
+   const BlockSet &exitBlocks();
+
+   // Kevin's defensive mode shtuff
+   // Blocks that have a sink target, essentially. 
+   const BlockSet &unresolvedCF();
+   // Blocks where we provisionally stopped parsing because things looked weird.
+   const BlockSet &abruptEnds();
+
    // Perform a lookup (either linear or log(n)).
    bool findBlocksByAddr(Address addr, std::set<int_block *> &blocks);
    bool findBlocksByOffsetInFunc(Address offset, std::set<int_block *> &blocks) {
@@ -251,14 +188,12 @@ class int_function : public patchTarget {
    int_block *findBlockByEntry(Address addr);
    int_block *findOneBlockByAddr(Address Addr);
 
-   int_block *entryBlock();
 
    void findBlocksByRange(std::vector<int_block*> &funcs, 
                           Address start, Address end);
 
    void addMissingBlock(image_basicBlock *imgBlock);
    void addMissingBlocks();
-   void addMissingPoints();
 
    Offset addrToOffset(const Address addr) const;
    Address offsetToAddr(const Offset off) const; 
@@ -267,23 +202,25 @@ class int_function : public patchTarget {
    bool hasNoStackFrame() const {return ifunc_->hasNoStackFrame();}
    bool savesFramePointer() const {return ifunc_->savesFramePointer();}
 
-   //BPatch_flowGraph * getCFG();
-   //BPatch_loopTreeNode * getLoopTree();
+
+   ////////////////////////////////////////////////
+   // Legacy/inter-module calls. Arguably should be an 
+   // interprocedural edge, but I expect that would
+   // break all manner of things
+   ////////////////////////////////////////////////
+   int_function *findCallee(int_block *callBlock);
+
 
    ////////////////////////////////////////////////
    // Instpoints!
    ////////////////////////////////////////////////
 
-   void addArbitraryPoint(instPoint *insp);
+   instPoint *entryPoint();
+   instPoint *exitPoint(int_block *exitBlock);
 
-   const pdvector<instPoint*> &funcEntries();
-   // Note: the vector is constant, the instPoints aren't.
-   const pdvector<instPoint*> &funcExits();
-   const pdvector<instPoint*> &funcCalls();
-   const pdvector<instPoint*> &funcArbitraryPoints();
-   const std::set<instPoint*> &funcUnresolvedControlFlow();
-   const std::set<instPoint*> &funcAbruptEnds();
-   void setPointResolved(instPoint* resolvedPt, bool newval);
+   instPoint *findPoint(instPoint::Type type);
+   instPoint *findPoint(instPoint::Type type, int_block *block);
+   const std::map<Address, instPoint *> &findPoints(instPoint::Type type, int_block *block);
 
    bool isSignalHandler() {return handlerFaultAddr_ != 0;}
    Address getHandlerFaultAddr() {return handlerFaultAddr_;}
@@ -291,15 +228,6 @@ class int_function : public patchTarget {
    void fixHandlerReturnAddr(Address newAddr);
    void setHandlerFaultAddr(Address fa);
    void setHandlerFaultAddrAddr(Address faa, bool set);
-
-   instPoint *findInstPByAddr(Address addr);
-   // get instPoints of function that are known to call into this one
-   void getCallerPoints(std::vector<instPoint*>& callerPoints);
-
-   // And for adding... we map by address to instPoint
-   // as a single instPoint may have multiple instances
-   void registerInstPointAddr(Address addr, instPoint *inst);
-   void unregisterInstPointAddr(Address addr, instPoint *inst);
 
    bool isInstrumentable() const { return ifunc_->isInstrumentable(); }
 
@@ -361,6 +289,9 @@ class int_function : public patchTarget {
     // list of functions that call this function.
     void getStaticCallers(pdvector <int_function *> &callers);
 
+    // Similar to the above, but gives us the actual block
+    void getCallers(std::vector<int_block *> &callers);
+
    codeRange *copy() const;
 
 #if defined(arch_power)
@@ -377,7 +308,7 @@ class int_function : public patchTarget {
 #endif
 
 
-    bool removePoint(instPoint *point);
+   //bool removePoint(instPoint *point);
     void deleteBlock(int_block *block);
     void splitBlock(image_basicBlock *origBlock, image_basicBlock *newBlock);
 	void triggerModified();
@@ -407,21 +338,30 @@ class int_function : public patchTarget {
 
    ///////////////////// CFG and function body
    BlockSet blocks_; 
+   BlockSet callBlocks_;
+   BlockSet exitBlocks_;
+   int_block *entry_;
+
+   instPoint *entryPoint_; 
+   typedef std::map<int_block *, instPoint *> InstPointMap;
+   typedef std::map<Address, instPoint *> ArbitraryMapInt;
+   typedef std::map<int_block *, ArbitraryMapInt> ArbitraryMap;
+   typedef std::map<int_edge *, instPoint *> EdgePointMap;
+
+   InstPointMap exitPoints_;
+   InstPointMap preCallPoints_;
+   InstPointMap postCallPoints_;
+   InstPointMap blockEntryPoints_;
+   ArbitraryMap preInsnPoints_;
+   ArbitraryMap postInsnPoints_;
+   EdgePointMap edgePoints_;
 
    // We need some method of doing up-pointers
    typedef std::map<image_basicBlock *, int_block *> BlockMap;
    BlockMap blockMap_;
-
-   ///////////////////// Instpoints 
-
-   pdvector<instPoint*> entryPoints_;	/* place to instrument entry (often not addr) */
-   pdvector<instPoint*> exitPoints_;	/* return point(s). */
-   pdvector<instPoint*> callPoints_;	/* pointer to the calls */
-   pdvector<instPoint*> arbitraryPoints_;  /* arbitrary points */
-   std::set<instPoint*> unresolvedPoints_; /* statically unresolved ctrl flow */
-   std::set<instPoint*> abruptEnds_; /* block endpoints that end abruptly by 
-                                      running to the end of valid memory or by 
-                                      reaching an invalid instruction */
+   
+   typedef std::map<ParseAPI::Edge *, int_edge *> EdgeMap;
+   EdgeMap edgeMap_;
 
    Address handlerFaultAddr_; /* if this is a signal handler, faultAddr_ is 
                                  set to -1, or to the address of the fault 
@@ -442,18 +382,22 @@ class int_function : public patchTarget {
    int paramSize;
 #endif
 
-     // 
-    // Local instrumentation-based auxiliary functions
-    void getNewInstrumentation(std::set<instPoint *> &);
-    void getAnyInstrumentation(std::set<instPoint *> &);
-
-
     // Create and register
     int_block *createBlock(image_basicBlock *ib);
     int_block *createBlockFork(const int_block *parent);
+    int_edge *getEdge(ParseAPI::Edge *, int_block *src, int_block *trg);
+    void removeEdge(int_edge *e);
 
     void findPoints(int_block *, std::set<instPoint *> &foundPoints) const;
     bool validPoint(instPoint *) const;
+
+    // HACKITY!
+    std::map<int_block *, int_function *> callees_;
+
+    // Defensive mode
+    BlockSet unresolvedCF_;
+    BlockSet abruptEnds_;
+
 
 };
 

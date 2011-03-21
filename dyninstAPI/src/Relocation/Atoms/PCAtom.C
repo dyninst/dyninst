@@ -31,18 +31,18 @@
 
 #include "PCAtom.h"
 #include "instructionAPI/h/Instruction.h"
-#include "patchapi_debug.h"
+#include "../patchapi_debug.h"
 #include "Trace.h"
 #include "../CodeBuffer.h"
 #include "../CodeTracker.h"
-
+#include "dyninstAPI/src/function.h"
 
 #include "dyninstAPI/src/addressSpace.h" // For determining which type of getPC to emit
 #include "dyninstAPI/src/RegisterConversion-x86.h"
 
 
 using namespace Dyninst;
-using namespace PatchAPI;
+using namespace Relocation;
 using namespace InstructionAPI;
 
 ////////////////////////
@@ -53,7 +53,7 @@ PCAtom::Ptr PCAtom::create(Instruction::Ptr insn,
   return Ptr(new PCAtom(insn, addr, a, thunk));
 }
 
-TrackerElement *PCAtom::tracker(Block *b) const {
+TrackerElement *PCAtom::tracker(int_block *b) const {
   assert(addr_ != 1);
   EmulatorTracker *e = new EmulatorTracker(addr_, b);
   return e;

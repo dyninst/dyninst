@@ -100,16 +100,16 @@ public:
                          int frame_size, pdvector<Register> &extra_saves);
     void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
     void emitGetRetAddr(Register dest, codeGen &gen);
-    void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, opCode op, bool addr_of, codeGen &gen);
-    void emitFuncJump(int_function *f, instPointType_t ptType, bool callOp, codeGen &gen);
+    void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen);
+    void emitFuncJump(int_function *f, instPoint::Type ptType, bool callOp, codeGen &gen);
     void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen);
     void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
     void emitPushFlags(codeGen &gen);
     void emitRestoreFlags(codeGen &gen, unsigned offset);
     void emitRestoreFlagsFromStackSlot(codeGen &gen);
     void emitStackAlign(int offset, codeGen &gen);
-    bool emitBTSaves(baseTramp* bt, baseTrampInstance *, codeGen &gen);
-    bool emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen &gen);
+    bool emitBTSaves(baseTramp* bt, codeGen &gen);
+    bool emitBTRestores(baseTramp* bt, codeGen &gen);
     void emitLoadEffectiveAddress(Register base, Register index, unsigned int scale, int disp,
 				  Register dest, codeGen &gen);
     void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
@@ -210,16 +210,16 @@ public:
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
     void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
     void emitGetRetAddr(Register dest, codeGen &gen);
-    void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, opCode op, bool addr_of, codeGen &gen);
-    void emitFuncJump(int_function *f, instPointType_t ptType, bool callOp, codeGen &gen);
+    void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen);
+    void emitFuncJump(int_function *f, instPoint::Type ptType, bool callOp, codeGen &gen);
     void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen);
     void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
     void emitPushFlags(codeGen &gen);
     void emitRestoreFlags(codeGen &gen, unsigned offset);
     void emitRestoreFlagsFromStackSlot(codeGen &gen);
     void emitStackAlign(int offset, codeGen &gen);
-    bool emitBTSaves(baseTramp* bt, baseTrampInstance *, codeGen &gen);
-    bool emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen &gen);
+    bool emitBTSaves(baseTramp* bt, codeGen &gen);
+    bool emitBTRestores(baseTramp* bt, codeGen &gen);
     void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
     void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
     /* The DWARF register numbering does not correspond to the architecture's

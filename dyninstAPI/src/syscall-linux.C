@@ -184,6 +184,8 @@ bool syscallNotification::removePreFork() {
         // The miniTramp is deleted when the miniTramp is freed, so
         // we don't have to.
     }
+    proc->relocate();
+
     delete preForkInst;
     preForkInst = NULL;
     return true;
@@ -214,6 +216,8 @@ bool syscallNotification::removePostFork() {
         // The miniTramp is deleted when the miniTramp is freed, so
         // we don't have to.
     }
+    proc->relocate();
+
     delete postForkInst;
     postForkInst = NULL;
     return true;
@@ -243,6 +247,8 @@ bool syscallNotification::removePreExec() {
         // The miniTramp is deleted when the miniTramp is freed, so
         // we don't have to.
     }
+    proc->relocate();
+
     delete preExecInst;
     preExecInst = NULL;
     return true;
@@ -275,6 +281,8 @@ bool syscallNotification::removePreExit() {
         // The miniTramp is deleted when the miniTramp is freed, so
         // we don't have to.
     }
+    proc->relocate();
+
     delete preExitInst;
     preExitInst = NULL;
     return true;

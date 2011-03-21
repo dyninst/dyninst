@@ -283,6 +283,11 @@ public:
     int_function *findGlobalConstructorFunc(const std::string &ctorHandler);
     int_function *findGlobalDestructorFunc(const std::string &dtorHandler);
 
+    // We store callee names at the mapped_object level for
+    // efficiency
+    std::string getCalleeName(int_block *);
+    void setCalleeName(int_block *, std::string name);
+
     //
     //     PRIVATE DATA MEMBERS
     //				
@@ -361,6 +366,8 @@ private:
     char *getModulePart(std::string &full_path_name) ;
 
     bool memoryImg_;
+
+    std::map<int_block *, std::string> calleeNames_;
 };
 
 // Aggravation: a mapped object might very well occupy multiple "ranges". 

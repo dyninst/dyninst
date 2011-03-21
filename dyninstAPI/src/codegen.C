@@ -72,7 +72,7 @@ codeGen::codeGen() :
     addr_((Address)-1),
     ip_(NULL),
     f_(NULL),
-    bti_(NULL),
+    bt_(NULL),
     isPadded_(true),
     trackRegDefs_(false),
     inInstrumentation_(false), // save default
@@ -94,7 +94,7 @@ codeGen::codeGen(unsigned size) :
     addr_((Address)-1),
     ip_(NULL),
     f_(NULL),
-    bti_(NULL),
+    bt_(NULL),
     isPadded_(true),
     trackRegDefs_(false),
     inInstrumentation_(false),
@@ -128,7 +128,7 @@ codeGen::codeGen(const codeGen &g) :
     addr_(g.addr_),
     ip_(g.ip_),
     f_(g.f_),
-    bti_(g.bti_),
+    bt_(g.bt_),
     isPadded_(g.isPadded_),
     trackRegDefs_(g.trackRegDefs_),
     inInstrumentation_(g.inInstrumentation_),
@@ -429,7 +429,7 @@ void codeGen::applyTemplate(const codeGen &c) {
   t_ = c.t_;
   ip_ = c.ip_;
   f_ = c.f_;
-  bti_ = c.bti_;
+  bt_ = c.bt_;
   inInstrumentation_ = c.inInstrumentation_;
 }
 
@@ -703,3 +703,26 @@ void codeGen::registerDefensivePad(int_block *callBlock, Address padStart, unsig
   defensivePads_[callBlock] = Extent(padStart, padSize);
 }
 
+
+#include "InstructionDecoder.h"
+using namespace InstructionAPI;
+
+std::string codeGen::format() const {
+   if (!aSpace_) return "<codeGen>";
+
+   stringstream ret;
+
+   Address base = (addr_ != (Address)-1) ? addr_ : 0;
+   InstructionDecoder deco
+      (buffer_,used(),aSpace_->getArch());
+   Instruction::Ptr insn = deco.decode();
+   ret << hex;
+   while(insn) {
+      ret << "\t" << base << ": " << insn->format(base) << endl;
+      base += insn->size();
+      insn = deco.decode();
+   }
+   ret << dec;
+   return ret.str();
+};
+   

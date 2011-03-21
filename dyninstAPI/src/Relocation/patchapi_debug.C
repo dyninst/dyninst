@@ -31,6 +31,8 @@
 
 // $Id: debug.C,v 1.6 2008/02/23 02:09:05 jaw Exp $
 
+#include <stdio.h>
+#include <stdarg.h>
 #include <string>
 #include "patchapi_debug.h"
 

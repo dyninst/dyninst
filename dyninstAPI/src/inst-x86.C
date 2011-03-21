@@ -689,13 +689,13 @@ bool xmmCapable()
 }
 #endif
 
-bool baseTramp::generateSaves(codeGen& gen, registerSpace*, baseTrampInstance *inst) {
-   return gen.codeEmitter()->emitBTSaves(this, inst, gen);
+bool baseTramp::generateSaves(codeGen& gen, registerSpace*) {
+   return gen.codeEmitter()->emitBTSaves(this, gen);
 }
 
-bool baseTramp::generateRestores(codeGen &gen, registerSpace*, baseTrampInstance *inst) {
+bool baseTramp::generateRestores(codeGen &gen, registerSpace*) {
 
-   return gen.codeEmitter()->emitBTRestores(this, inst, gen);
+   return gen.codeEmitter()->emitBTRestores(this, gen);
 }
 
 /****************************************************************************/
@@ -1540,7 +1540,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
        case getParamAtEntryOp:
           // src1 is the number of the argument
           // dest is a register where we can store the value
-          gen.codeEmitter()->emitGetParam(dest, src1, location->getPointType(), op,
+          gen.codeEmitter()->emitGetParam(dest, src1, location->type(), op,
                                           get_addr_of, gen);
           if (!get_addr_of)
              return dest;
@@ -1651,7 +1651,7 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
          }
          assert(r);
          offset = r->saveOffset * addr_width;
-         if (!gen.bti() || gen.bti()->hasStackFrame()) {
+         if (!gen.bt() || gen.bt()->createdFrame) {
             reg = plat_bp;
             return stackItemLocation(plat_bp, offset);
          }
@@ -1669,7 +1669,7 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
       case stackItem::stacktop:
       {
          offset = gen.rs()->getInstFrameSize();
-         if (!gen.bti() || gen.bti()->hasStackFrame()) {
+         if (!gen.bt() || gen.bt()->createdFrame) {
             return stackItemLocation(plat_bp, offset);
          }
 
@@ -1677,7 +1677,7 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
          return stackItemLocation(plat_sp, offset);
       }
       case stackItem::framebase: {
-         if (!gen.bti() || gen.bti()->hasStackFrame()) {
+         if (!gen.bt() || gen.bt()->createdFrame) {
             return stackItemLocation(plat_bp, 0);
          }
          offset = gen.rs()->getStackHeight();
@@ -1709,7 +1709,7 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
       //Special handling for EBP with and without instr stack frame
       if (dest_r.reg() == -1)
          dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-      if (gen.bti() && gen.bti()->hasStackFrame()) {
+      if (gen.bt() && gen.bt()->createdFrame) {
          emitMovRMToReg(dest_r, RealRegister(REGNUM_EBP), 0, gen);
       }
       else {
@@ -1727,7 +1727,7 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
       if (dest_r.reg() == -1)
          dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-      if (!gen.bti() || gen.bti()->alignedStack())
+      if (!gen.bt() || gen.bt()->alignedStack)
           emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
       else
           emitLEA(loc.reg, RealRegister(Null_Register), 0,
@@ -1781,11 +1781,11 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, in
    
    // assuming 32-bit addressing (for now)
    
-   if (ra == REGNUM_ESP && !haverb && sc == 0 && gen.bti()) {
+   if (ra == REGNUM_ESP && !haverb && sc == 0 && gen.bt()) {
       //Optimization, common for push/pop
       RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-      if (!gen.bti() || gen.bti()->alignedStack())
+      if (!gen.bt() || gen.bt()->alignedStack)
           emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
       else
           emitLEA(loc.reg, RealRegister(Null_Register), 0,
@@ -2280,48 +2280,6 @@ int getInsnCost(opCode op)
    return 0;
 }
 
-
-//
-// return cost in cycles of executing at this point.  This is the cost
-//   of the base tramp if it is the first at this point or 0 otherwise.
-//
-// We now have multiple versions of instrumentation... so, how does this work?
-// We look for a local maximum.
-int instPoint::getPointCost()
-{
-  unsigned worstCost = 0;
-  assert(0);
-#if 0
-
-  for (unsigned i = 0; i < instances.size(); i++) {
-      if (instances[i]->multi()) {
-         if (instances[i]->multi()->usesTrap()) {
-            // Stop right here
-            // Actually, probably don't want this if the "always
-            // delivered" instrumentation happens
-            return 9000; // Estimated trap cost
-          }
-          else {
-              // Base tramp cost if we're first at point, otherwise
-              // free (someone else paid)
-              // Which makes no sense, since we're talking an entire instPoint.
-              // So if there is a multitramp hooked up we use the base tramp cost.
-              worstCost = 83; // Magic constant from before time
-          }
-      }
-      else {
-          // No multiTramp, so still free (we're not instrumenting here).
-      }
-  }
-#endif
-  return worstCost;
-}
-
-unsigned baseTramp::getBTCost() {
-    // Check this...
-    return 83;
-}
-
 // Emit code to jump to function CALLEE without linking.  (I.e., when
 // CALLEE returns, it returns to the current caller.)
 void emitFuncJump(opCode op, 
@@ -2332,20 +2290,20 @@ void emitFuncJump(opCode op,
    // This must mimic the generateRestores baseTramp method. 
     assert(op == funcJumpOp || op == funcCallOp);
 
-    instPointType_t ptType = loc->getPointType();
+    instPoint::Type ptType = loc->type();
     gen.codeEmitter()->emitFuncJump(callee, ptType, (op == funcCallOp), gen);
 }
 
 #define MAX_SINT ((signed int) (0x7fffffff))
 #define MIN_SINT ((signed int) (0x80000000))
-void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/,
+void EmitterIA32::emitFuncJump(int_function *f, instPoint::Type /*ptType*/,
                                bool callOp, codeGen &gen)
 {
    assert(gen.inInstrumentation());
 
     // This function assumes we aligned the stack, and hence the original
     // stack pointer value is stored at the top of our instrumentation stack.
-    assert(gen.bti()->alignedStack());
+    assert(gen.bt()->alignedStack);
 
     Address addr = f->getAddress();
     signed int disp = addr - (gen.currAddr()+5);
@@ -2387,7 +2345,7 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/,
        // LEA instruction when it becomes known.
        assert(0 && "Implement me!");
 #if 0
-       generatedCodeObject *nextobj = gen.bti()->nextObj()->nextObj();
+       generatedCodeObject *nextobj = gen.bt()->nextObj()->nextObj();
        assert(nextobj);
        int offset = ((unsigned long) patch_start) -
                     ((unsigned long) gen.start_ptr());
@@ -2424,7 +2382,7 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/,
        // jump distance.
 
        // Clear the instrumentation stack.
-       emitBTRestores(gen.bti()->baseT, gen.bti(), gen);
+       emitBTRestores(gen.bt(), gen);
 
        int disp = addr - (gen.currAddr()+5);
        emitJump(disp, gen);
@@ -2433,7 +2391,7 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/,
        //Dynamic instrumentation, emit an absolute jump (push/ret combo)
 
        // Clear the instrumentation stack.
-       emitBTRestores(gen.bti()->baseT, gen.bti(), gen);
+       emitBTRestores(gen.bt(), gen);
 
        GET_PTR(insn, gen);
        *insn++ = 0x68; /* push 32 bit immediate */
@@ -2445,7 +2403,7 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/,
     else if (dynamic_cast<BinaryEdit *>(gen.addrSpace())) {
        //Static instrumentation, calculate and store the target 
        // value to the top of our instrumentation stack and return to it.
-       assert(gen.bti() && gen.bti()->hasFuncJump());
+       assert(gen.bt() && gen.bt()->hasFuncJump());
 
        //Get address of target into realr
        Register reg = gen.rs()->getScratchRegister(gen);
@@ -2468,7 +2426,7 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/,
        emitMovRegToRM(origSP_r, 0, realr, gen);
 
        // Clear the instrumentation stack.
-       emitBTRestores(gen.bti()->baseT, gen.bti(), gen);
+       emitBTRestores(gen.bt(), gen);
 
        //The address should be left on the stack.  Just return now.
        GET_PTR(insn, gen);
@@ -2567,7 +2525,7 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
    assert(f.m_stack.size() == 1);
    args.push_back(f.m_stack[0]);
    args.push_back(AstNode::operandNode(AstNode::Constant,
-                                       (void *) callSite->addr()));
+                                       (void *) callSite->nextExecutedAddr()));
    inst_printf("%s[%d]:  Inserting dynamic call site instrumentation for %s\n",
                FILE__, __LINE__, cft->format().c_str());
    return true;
@@ -2608,11 +2566,6 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
 {
    Address val_to_write = f->getAddress();
    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   
-}
-
-int instPoint::liveRegSize()
-{
-  return maxGPR;
 }
 
 bool emitStoreConst(Address addr, int imm, codeGen &gen, bool noCost) {
@@ -2705,9 +2658,9 @@ void registerSpace::movVRegToReal(registerSlot *v_reg, RealRegister r, codeGen &
    emitMovRMToReg(r, loc.reg, loc.offset, gen);
 }
 
-void emitBTRegRestores32(baseTrampInstance *bti, codeGen &gen)
+void emitBTRegRestores32(baseTramp *bt, codeGen &gen)
 {
-   int numRegsUsed = bti ? bti->numDefinedRegs() : -1;
+   int numRegsUsed = bt ? bt->numDefinedRegs() : -1;
    if (numRegsUsed == -1 || 
        numRegsUsed > X86_REGS_SAVE_LIMIT) {
       emitSimpleInsn(POPAD, gen);

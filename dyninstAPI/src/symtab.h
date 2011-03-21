@@ -106,7 +106,6 @@ class module;
 class BPatch_flowGraph;
 class BPatch_loopTreeNode;
 class instPoint;
-class image_instPoint;
 
 // ParseAPI classes
 class DynCFGFactory;
@@ -368,19 +367,12 @@ class image : public codeRange {
    ParseAPI::CodeObject::funclist &getAllFunctions();
    const pdvector<image_variable*> &getAllVariables();
 
-   image_instPoint * getInstPoint(ParseAPI::Block *, Address addr);
-   bool addInstPoint(image_instPoint*p);
-   void getInstPoints(ParseAPI::Block *,
-                      pdvector<image_instPoint*> &points); 
-   void deleteInstPoints(ParseAPI::Block *b);
-
 
    //-----------DEFENSIVE-MODE CODE------------//
    BPatch_hybridMode hybridMode() const { return mode_; }
    // element removal
 
    void deleteFunc(image_func *func);
-   void deleteInstPoint(image_instPoint *p);
    void addSplitBlock(image_basicBlock *first,
                       image_basicBlock *second);
    typedef std::set<std::pair<image_basicBlock *, image_basicBlock *> > SplitBlocks;
@@ -503,11 +495,6 @@ class image : public codeRange {
 
    map<SymtabAPI::Module *, pdmodule *> mods_;
 
-   // instrumentation points by address
-   // NB this must be ordered
-   typedef map<Address, image_instPoint *> block_map_t;
-   typedef map<ParseAPI::Block *, block_map_t> instp_map_t;
-   instp_map_t inst_pts_;
 
    pdvector<image_variable *> everyUniqueVariable;
    pdvector<image_variable *> createdVariables;

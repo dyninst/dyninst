@@ -31,16 +31,17 @@
 
 #include "CodeTracker.h"
 #include "patchapi_debug.h"
-#include "CFG.h"
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/block.h"
 
 #include <iostream>
 
 using namespace Dyninst;
-using namespace PatchAPI;
+using namespace Relocation;
 using namespace std;
 
 bool CodeTracker::origToReloc(Address origAddr,
-                              Function *func,
+                              int_function *func,
                               RelocatedElements &reloc) const {
    BFM_citer iter = origToReloc_.find(func->addr());
    if (iter == origToReloc_.end()) return false;
@@ -55,8 +56,8 @@ bool CodeTracker::origToReloc(Address origAddr,
 
 bool CodeTracker::relocToOrig(Address relocAddr, 
                               Address &orig, 
-                              Block *&block,
-                              baseTrampInstance *&bti) const {
+                              int_block *&block,
+                              baseTramp *&bti) const {
   TrackerElement *e = NULL;
   if (!relocToOrig_.find(relocAddr, e))
     return false;
@@ -149,7 +150,7 @@ void CodeTracker::debug() {
   cerr << endl;
 }
 
-std::ostream &operator<<(std::ostream &os, const Dyninst::PatchAPI::TrackerElement &e) {
+std::ostream &operator<<(std::ostream &os, const Dyninst::Relocation::TrackerElement &e) {
   os << "Tracker(" << hex
      << e.orig() << "," << e.reloc() 
      << "," << dec << e.size();

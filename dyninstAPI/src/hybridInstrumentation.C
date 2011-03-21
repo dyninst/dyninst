@@ -809,43 +809,6 @@ bool HybridAnalysis::instrumentModules(bool useInsertionSet)
     return didInstrument;
 }
 
-// add instrumentation to trigger an original memory to shadow memory copy 
-// at blks, associated with an intermodule call at callPt
-void HybridAnalysis::origToShadowInstrumentation(BPatch_point *callPt, 
-                                                 const vector<int_block*> &blks)
-{
-    // Disabled in favor of entry/exit instrumentation
-    return;
-
-
-    proc()->beginInsertionSet();
-    for (vector<int_block*>::const_iterator bit = blks.begin();
-         bit != blks.end();
-         bit++) 
-    {
-        cerr << "\t For point " << hex << callPt->getAddress() << " calling into system lib, doing return inst at " << (*bit)->start() << dec << endl;
-        BPatch_function *bpFunc = proc()->findOrCreateBPFunc((*bit)->func(),NULL);
-        BPatch_point *ftPt = bpFunc->getPoint((*bit)->start());
-        cerr << "\t\t Instrumenting point " << hex << ftPt << "/" << ftPt->getAddress() << dec << endl;
-        assert(ftPt);
-        if (synchMap_post().end() == synchMap_post().find(ftPt)) {
-            BPatchSnippetHandle *handle = proc()->insertSnippet
-                (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(0)), 
-                 *ftPt,
-                 (ftPt->getPointType() == BPatch_locExit) ? BPatch_callAfter : BPatch_callBefore,
-                 BPatch_firstSnippet);
-            assert(handle);
-            cerr << "Adding handle to preSync @ " << hex << callPt << "/" << callPt->getAddress() << dec << endl;
-            synchMap_pre()[callPt]->setPostHandle(ftPt, handle);
-            synchMap_post()[ftPt] = synchMap_pre()[callPt];
-        }
-        else {
-            cerr << "\t\t Already have synch instrumentation, skipping" << endl;
-        }
-    }
-    proc()->finalizeInsertionSet(false);
-}
-
 /* Takes a point corresponding to a function call and continues the parse in 
  * the calling function after the call.  If there are other points that call
  * into this function resume parsing after those call functions as well. 
@@ -1145,12 +1108,10 @@ bool HybridAnalysis::hasEdge(BPatch_function *func, Address source, Address targ
 {
 // 0. first see if the edge needs to be parsed
     int_block *block = func->lowlevel_func()->findBlockByEntry(source);
-    pdvector<int_block *> targBlocks; 
-    block->getTargets(targBlocks);
-    for (unsigned bidx=0; bidx < targBlocks.size(); bidx++) {
-        if (target == targBlocks[bidx]->start()) {
-            return true; // already parsed this edge, we're done!
-        }
+    const int_block::edgelist &targets = block->targets();
+    for (int_block::edgelist::iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+       if ((*iter)->trg()->start() == target)
+          return true;
     }
     return false;
 }

@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "HeavyweightRelocater.h"
+#include "Relocation.h"
 #include "CodeMover.h"
 #include "Atoms/Atom.h"
 #include "Atoms/Trace.h"
@@ -45,9 +45,11 @@
 using namespace std;
 using namespace Dyninst;
 using namespace InstructionAPI;
-using namespace PatchAPI;
+using namespace Relocation;
 
 CodeMover::Ptr CodeMover::create(CodeTracker &t) {
+   init_debug_patchapi();
+
    // Make a CodeMover
    Ptr ret = Ptr(new CodeMover(t));
    if (!ret) 
@@ -60,20 +62,18 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
 			     FuncSet::const_iterator end) {
    // A vector of Functions is just an extended vector of basic blocks...
    for (; begin != end; ++begin) {
-      Function *func = *begin;
-#if TODO
+      int_function *func = *begin;
       if (!func->isInstrumentable()) {
          cerr << "Skipping func " << func->symTabName() << " that's uninstrumentable" << endl;
          continue;
       }
-#endif
-
+      relocation_cerr << "\tAdding function " << func->symTabName() << endl;
       if (!addTraces(func->blocks().begin(), func->blocks().end())) {
          return false;
       }
     
       // Add the function entry as Required in the priority map
-      Block *entry = func->entry();
+      int_block *entry = func->entryBlock();
       priorityMap_[entry] = Required;
    }
 
@@ -83,7 +83,7 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
 template <typename TraceIter>
 bool CodeMover::addTraces(TraceIter begin, TraceIter end) {
    for (; begin != end; ++begin) {
-      Block *bbl = (*begin);
+      int_block *bbl = (*begin);
       //relocation_cerr << "Creating Trace for bbl at " 
 //                      << std::hex << bbl->firstInsnAddr() << std::dec
       //                << endl;
@@ -101,7 +101,7 @@ bool CodeMover::addTraces(TraceIter begin, TraceIter end) {
    return true;
 }
 
-bool CodeMover::addTrace(Block *bbl) {
+bool CodeMover::addTrace(int_block *bbl) {
    //relocation_cerr << "Creating Trace for bbl at " 
 //                   << std::hex << bbl->firstInsnAddr() << std::dec
 //                   << endl;
@@ -118,10 +118,26 @@ bool CodeMover::addTrace(Block *bbl) {
 }
 
 
+void CodeMover::finalizeTraces() {
+   if (tracesFinalized_) return;
+
+   tracesFinalized_ = true;
+
+   for (TraceList::iterator i = blocks_.begin(); 
+        i != blocks_.end(); ++i) {
+      (*i)->linkTraces(blockMap_);
+   }
+}
+   
+
+
 ///////////////////////
 
 
 bool CodeMover::transform(Transformer &t) {
+   if (!tracesFinalized_)
+      finalizeTraces();
+
    bool ret = true; 
 
    t.preprocess(blocks_);
@@ -138,15 +154,17 @@ bool CodeMover::transform(Transformer &t) {
 bool CodeMover::initialize(const codeGen &templ) {
    buffer_.initialize(templ);
 
+   // If they never called transform() this can get missed.
+   if (!tracesFinalized_)
+      finalizeTraces();
+
    // Tell all the blocks to do their generation thang...
    for (TraceList::iterator i = blocks_.begin(); 
         i != blocks_.end(); ++i) {
-      // Grab the next block
-      TraceList::iterator tmp = i; tmp++;
-      Trace::Ptr next;
-      if (tmp != blocks_.end()) 
-         next = *tmp;
-      
+
+      if (!(*i)->finalizeCF()) 
+         return false;
+
       if (!(*i)->generate(templ, buffer_))
          return false; // Catastrophic failure
    }
@@ -211,7 +229,7 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
    if (sboardMap_.empty()) {
       for (PriorityMap::const_iterator iter = priorityMap_.begin();
            iter != priorityMap_.end(); ++iter) {
-         Block *bbl = iter->first;
+         int_block *bbl = iter->first;
          const Priority &p = iter->second;
 
          // the priority map may include things not in the block
@@ -251,15 +269,12 @@ string CodeMover::format() const {
 }
 
 void CodeMover::extractDefensivePads(AddressSpace *AS) {
-   assert(0 && "Unimplemented!");
    // Needs to be reworked for PatchAPI separation; possibly unnecessary due to 
    // augmented address lookup capability.
-#if 0
-   for (std::map<Block *, codeGen::Extent>::iterator iter = gen().getDefensivePads().begin();
+   for (std::map<int_block *, codeGen::Extent>::iterator iter = gen().getDefensivePads().begin();
         iter != gen().getDefensivePads().end(); ++iter) {
       AS->addDefensivePad(iter->first, iter->second.first, iter->second.second);
    }
-#endif
 }
 
 void CodeMover::createInstrumentationSpringboards(AddressSpace *as) {

@@ -145,8 +145,6 @@ private:
                             bool useInsertionSet, 
                             bool instrumentReturns=false,
                             bool syncShadow = false);
-    void origToShadowInstrumentation(BPatch_point *callPt, 
-                                     const std::vector<int_block*> &blks);
     bool parseAfterCallAndInstrument(BPatch_point *callPoint, 
                         BPatch_function *calledFunc) ;
     void removeInstrumentation(BPatch_function *func, bool useInsertionSet);

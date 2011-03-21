@@ -4410,31 +4410,6 @@ bool process::isRuntimeHeapAddr(Address addr)
     return false;
 }
 
-/* resolves jump and return transfers into rtlib */
-Address process::resolveJumpIntoRuntimeLib(instPoint *srcPt, Address reloc)
-{
-    Address orig = 0;
-    std::list<Address> srcRelocs;
-    getRelocAddrs(srcPt->addr(), srcPt->func(), srcRelocs, false);
-    for(list<Address>::iterator rit= srcRelocs.begin(); 
-        rit != srcRelocs.end(); 
-        rit++) 
-    {
-        Offset adjustment;
-        if ( (*rit) > srcPt->addr() ) {
-            adjustment = (*rit) - srcPt->addr();
-        } else {
-            adjustment = srcPt->addr() - (*rit);
-        }
-        mal_printf("translated indir target %lx to %lx %s[%d]\n",
-                   reloc, reloc - adjustment, FILE__,__LINE__);
-        if (srcPt->func()->obj() == findObject(reloc - adjustment)) {
-            orig = reloc - adjustment;
-        }
-    }
-    return orig;
-}
-
 
 /*    If calculation is a relocated address, translate it to the original addr
  *    case 1: The point is at a return instruction
@@ -4442,16 +4417,16 @@ Address process::resolveJumpIntoRuntimeLib(instPoint *srcPt, Address reloc)
  *    Mark returning functions as returning
  *    Save the targets of indirect control transfers (not regular returns)
  */
-Address process::stopThreadCtrlTransfer
-       (instPoint* intPoint, 
-        Address target)
+Address process::stopThreadCtrlTransfer (instPoint* intPoint, 
+                                         Address target)
 {
-    Address pointAddr = intPoint->addr();
+   Address pointAddr = intPoint->nextExecutedAddr();
 
     // if the point is a real return instruction and its target is a stack 
     // address, get the return address off of the stack 
-    if ( intPoint->isReturnInstruction() && 
-         ! intPoint->func()->isSignalHandler() ) 
+    if (intPoint->type() == instPoint::FunctionExit &&
+        intPoint->block()->isExit() &&
+        !intPoint->func()->isSignalHandler()) 
     {
         mal_printf("%s[%d]: return address is %lx\n", FILE__,
                     __LINE__,target);
@@ -4480,7 +4455,7 @@ Address process::stopThreadCtrlTransfer
             // if we're in the fallthrough block, match to call block, 
             // and if necessary, add fallthrough edge
             int_block *targBBI = NULL;
-            baseTrampInstance *bti = NULL;
+            baseTramp *bti = NULL;
             bool hasFT = getRelocInfo(target, unrelocTarget, targBBI, bti);
             assert(hasFT); // otherwise we should be in the defensive map
         }
@@ -4503,12 +4478,6 @@ Address process::stopThreadCtrlTransfer
         }
     }
 
-    if ( ! intPoint->isDynamic() && 
-           functionExit != intPoint->getPointType()) 
-    {
-        // remove unresolved status from point if it is a static ctrl transfer
-        intPoint->setResolved(true);
-    }
     return unrelocTarget;
 } 
 
@@ -4536,15 +4505,14 @@ bool process::handleStopThread(EventRecord &ev)
 
     int_block *pointBlock = NULL;
     Address pointAddr = relocPointAddr;
-    baseTrampInstance *pointbti = NULL;
+    baseTramp *pointbti = NULL;
     bool success = getRelocInfo(relocPointAddr, pointAddr, pointBlock, pointbti);
     if (!success) {
         assert(0);
         return false;
     }
     int_function *pointFunc = pointBlock->func();
-
-    instPoint *intPoint = pointFunc->findInstPByAddr(pointAddr);
+    instPoint *intPoint = pointbti->point();
     if (!intPoint) { 
         assert(0);
         return false; 
@@ -4817,7 +4785,7 @@ bool process::getDeadCode
         for (unsigned int j = 0; j < stack.size(); ++j) {
             Address origPC = 0;
             vector<int_function*> dontcare1;
-            baseTrampInstance *dontcare2 = NULL;
+            baseTramp *dontcare2 = NULL;
             getAddrInfo(stack[j].getPC(), origPC, dontcare1, dontcare2);
             pcs.push_back( origPC );
         }
@@ -5041,7 +5009,7 @@ int_function *process::findActiveFuncByAddr(Address addr)
             // if we're at a relocated address, we can translate 
             // back to the right function, if translation fails 
             // frameFunc will still be NULL
-            Address origAddr = framePC; baseTrampInstance *bti = NULL;
+            Address origAddr = framePC; baseTramp *bti = NULL;
             int_block *frameBlock = NULL;
             int_function *frameFunc = NULL;
             if (getRelocInfo(framePC, origAddr, frameBlock, bti)) {
@@ -5059,15 +5027,13 @@ int_function *process::findActiveFuncByAddr(Address addr)
                     cb_iter != callerBlocks.end(); ++cb_iter)
                 {
                     if (!(*cb_iter)->containsCall()) continue;
-                    instPoint *callPoint = (*cb_iter)->func()->findInstPByAddr((*cb_iter)->last());
-                    if (!callPoint) continue;
                     // We have a call point; now see if it called the entry of any function
                     // that maps to a curFunc.
                     for (std::set<int_function *>::iterator cf_iter = curFuncs.begin();
-                        cf_iter != curFuncs.end(); ++cf_iter) {
-                            if ((*cf_iter)->entryBlock()->start() == callPoint->callTarget()) {
-                                frameFunc = *cf_iter;
-                            }
+                         cf_iter != curFuncs.end(); ++cf_iter) {
+                       if ((*cf_iter) == (*cb_iter)->callee()) {
+                          frameFunc = *cf_iter;
+                       }
                     }
                 }
             }
@@ -5086,21 +5052,20 @@ int_function *process::findActiveFuncByAddr(Address addr)
 
 bool process::patchPostCallArea(instPoint *callPt)
 {
-    cerr << "patchPostCallArea for point " << callPt->addr();
-    // 1) Find all the post-call patch areas that correspond to this 
-    //    call point
-    // 2) Generate and install the branches that will be inserted into 
-    //    these patch areas
-
-    // 1...
-    AddrPairSet patchAreas;
-    if ( ! generateRequiredPatches(callPt, patchAreas) ) {
-        return false;
+   // 1) Find all the post-call patch areas that correspond to this 
+   //    call point
+   // 2) Generate and install the branches that will be inserted into 
+   //    these patch areas
+   
+   // 1...
+   AddrPairSet patchAreas;
+   if ( ! generateRequiredPatches(callPt, patchAreas) ) {
+      return false;
     }
-
-    // 2...
-    generatePatchBranches(patchAreas);
-    return true;
+   
+   // 2...
+   generatePatchBranches(patchAreas);
+   return true;
 }
 
 bool process::generateRequiredPatches(instPoint *callPt, 
@@ -5114,7 +5079,6 @@ bool process::generateRequiredPatches(instPoint *callPt,
 
     // 1)
     int_block *callbbi = callPt->block();
-    assert(callPt->addr() < callbbi->end());
     int_block *ftbbi = callbbi->getFallthrough();
     assert(ftbbi);
     Relocation::CodeTracker::RelocatedElements reloc;
@@ -5141,7 +5105,7 @@ bool process::generateRequiredPatches(instPoint *callPt,
         }
     }
     if (!patchAreas.size()) {
-        mal_printf("no relocs to patch for call at %lx\n", callPt->addr());
+       mal_printf("no relocs to patch for call at %lx\n", callPt->nextExecutedAddr());
     }
     return true;
 }
@@ -5271,53 +5235,38 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
             switch ( ( req->where & 0x7) ) {
             case FUNC_EXIT:
                 {
-                    const pdvector<instPoint*> func_rets = func->funcExits();
-                    for (unsigned j=0; j < func_rets.size(); j++) {
-                        miniTramp *mt = func_rets[j]->addInst(ast,
-                                                              req->when,
-                                                              req->order,
-                                                              (!req->useTrampGuard),
-                                                              false);
-                        if (mt) 
-                            minis.push_back(mt);
-                        else {
-                           fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
-                        }
-                    }
+                   for (int_function::BlockSet::iterator iter = func->exitBlocks().begin();
+                        iter != func->exitBlocks().end(); ++iter) {
+                      miniTramp *mt = func->exitPoint(*iter)->insert(req->order, ast);
+                      if (mt) 
+                         minis.push_back(mt);
+                      else {
+                         fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
+                      }
+                   }
                 }
                 break;
-            case FUNC_ENTRY:
-                {
-                    const pdvector<instPoint *> func_entries = func->funcEntries();
-                    for (unsigned k=0; k < func_entries.size(); k++) {
-                        miniTramp *mt = func_entries[k]->addInst(ast,
-                                                                 req->when,
-                                                                 req->order,
-                                                                 (!req->useTrampGuard),
-                                                                 false);
-                        if (mt) 
-                            minis.push_back(mt);
-                        else {
-                           fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
-                        }
-                    }
+               case FUNC_ENTRY:
+               {
+                  miniTramp *mt = func->entryPoint()->insert(req->order, ast);
+                  if (mt) 
+                     minis.push_back(mt);
+                  else {
+                     fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
+                  }
                 }
                 break;
             case FUNC_CALL:
                 {
-                    pdvector<instPoint*> func_calls = func->funcCalls();
-                    for (unsigned l=0; l < func_calls.size(); l++) {
-                        miniTramp *mt = func_calls[l]->addInst(ast,
-                                                               req->when,
-                                                               req->order,
-                                                               (!req->useTrampGuard),
-                                                               false);
-                        if (mt) 
-                            minis.push_back(mt);
-                        else {
-                           fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
-                        }
-                    }
+                   for (int_function::BlockSet::iterator iter = func->callBlocks().begin();
+                        iter != func->callBlocks().end(); ++iter) {
+                      miniTramp *mt = func->exitPoint(*iter)->insert(req->order, ast);
+                      if (mt) 
+                         minis.push_back(mt);
+                      else {
+                         fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
+                      }
+                   }
                 }
                 break;
             default:

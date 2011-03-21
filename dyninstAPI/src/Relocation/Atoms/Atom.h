@@ -43,13 +43,7 @@ class codeGen;
 
 namespace Dyninst {
 
-namespace PatchAPI {
-   class Block;
-   class Function;
-   class LoadedObject;
-};
-
-namespace PatchAPI {
+namespace Relocation {
 
 class Transformer;
 class Atom;

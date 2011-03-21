@@ -34,8 +34,10 @@
 
 #include "Atom.h"
 
+class int_block;
+
 namespace Dyninst {
-namespace PatchAPI {
+namespace Relocation {
  class LocalizeCF;
  class TargetInt;
  class Instrumenter;
@@ -58,7 +60,7 @@ class CFAtom : public Atom {
   typedef dyn_detail::boost::shared_ptr<CFAtom> Ptr;
   typedef std::map<Address, TargetInt *> DestinationMap;
 
-  static Ptr create();
+  static Ptr create(Address addr);
   static Ptr create(const Atom::Ptr info);
 
   bool generate(const codeGen &templ,
@@ -78,24 +80,24 @@ class CFAtom : public Atom {
   virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
 
 
-  void setGap(unsigned gap);
+  void setGap(unsigned gap) { gap_ = gap; }
   void setOrigTarget(Address a) { origTarget_ = a; }
 
  private:
-   CFAtom()
+   CFAtom(Address a)
       : isCall_(false),
      isConditional_(false),
      isIndirect_(false),
      gap_(0),
-     addr_(0), 
+     addr_(a), 
      origTarget_(0) {};
 
    CFAtom(InstructionAPI::Instruction::Ptr insn,
           Address addr);
 
-  TrackerElement *tracker(Block *block) const;
-  TrackerElement *destTracker(TargetInt *dest) const;
-  TrackerElement *addrTracker(Address addr, Block *block) const;
+   TrackerElement *tracker(int_block *block) const;
+   TrackerElement *destTracker(TargetInt *dest) const;
+   TrackerElement *addrTracker(Address addr, int_block *block) const;
 
   // These are not necessarily mutually exclusive. See also:
   // PPC conditional linking indirect branch, oy. 
@@ -129,29 +131,29 @@ class CFAtom : public Atom {
   bool generateBranch(CodeBuffer &gens,
 		      TargetInt *to,
 		      InstructionAPI::Instruction::Ptr insn,
-                      PatchAPI::Block *curBlock,
+                      int_block *curBlock,
 		      bool fallthrough);
 
   bool generateCall(CodeBuffer &gens,
 		    TargetInt *to,
-                    PatchAPI::Block *curBlock,
+                    int_block *curBlock,
 		    InstructionAPI::Instruction::Ptr insn); 
 
   bool generateConditionalBranch(CodeBuffer &gens,
 				 TargetInt *to,
-                                 PatchAPI::Block *curBlock,
+                                 int_block *curBlock,
 				 InstructionAPI::Instruction::Ptr insn); 
   // The Register holds the translated destination (if any)
   // TODO replace with the register IDs that Bill's building
   typedef unsigned Register;
   bool generateIndirect(CodeBuffer &gens,
 			Register reg,
-                        PatchAPI::Block *curBlock,
+                        int_block *curBlock,
 			InstructionAPI::Instruction::Ptr insn);
   bool generateIndirectCall(CodeBuffer &gens,
 			    Register reg,
 			    InstructionAPI::Instruction::Ptr insn,
-                            PatchAPI::Block *curBlock,
+                            int_block *curBlock,
 			    Address origAddr);
   
   bool generateAddressTranslator(CodeBuffer &buffer,
@@ -194,7 +196,7 @@ struct PaddingPatch : public Patch {
   // do statically, but the second requires a patch so that
   // we get notified of address finickiness.
 
-  PaddingPatch(unsigned size, bool registerDefensive, bool noop, PatchAPI::Block *b) 
+  PaddingPatch(unsigned size, bool registerDefensive, bool noop, int_block *b) 
      : size_(size), registerDefensive_(registerDefensive), noop_(noop), block_(b) {};
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
    virtual unsigned estimate(codeGen &templ);
@@ -203,7 +205,7 @@ struct PaddingPatch : public Patch {
    unsigned size_;
    bool registerDefensive_;
    bool noop_;
-   PatchAPI::Block *block_;
+   int_block *block_;
 };
 
 };

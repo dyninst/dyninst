@@ -554,6 +554,9 @@ void StackAnalysis::handleLeave(TransferFuncs &xferFuncs) {
    // Handle it as such.
 
    xferFuncs.push_back(TransferFunc::aliasFunc(fp(), sp()));
+
+   // And pop
+   xferFuncs.back().delta = word_size;
    xferFuncs.push_back(TransferFunc::bottomFunc(fp()));
 }
 

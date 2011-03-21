@@ -55,7 +55,7 @@ namespace Dyninst {
 
  class StackAST;
 
-namespace PatchAPI {
+namespace Relocation {
 
 class ExtPCSensVisitor : public ASTVisitor {
  public:

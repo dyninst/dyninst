@@ -61,6 +61,8 @@ enum EdgeTypeEnum {
     _edgetype_end_
 };
 
+std::string format(EdgeTypeEnum e);
+
 #define FLIST_BADNEXT ((void*)0x111)
 #define FLIST_BADPREV ((void*)0x222)
 
@@ -161,7 +163,11 @@ class Edge : public allocatable {
         return static_cast<EdgeTypeEnum>(_type._type_enum); 
     }
     bool sinkEdge() const { return _type._sink != 0; }
-    bool interproc() const { return _type._interproc != 0; }
+    bool interproc() const { 
+       return (_type._interproc != 0 ||
+               type() == CALL ||
+               type() == RET);
+    }
 
     PARSER_EXPORT void install();
 

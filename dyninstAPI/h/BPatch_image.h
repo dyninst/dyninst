@@ -179,30 +179,6 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
 
     BPatch_Vector<BPatch_variableExpr *> *,getGlobalVariables,());
 
-    //  BPatch_image::createInstPointAtAddr
-    //  
-    //  Returns a pointer to a BPatch_point object representing an
-    //  instrumentation point at the given address.
-    //  Returns NULL on failure.
-    API_EXPORT(Int, (address),
-
-    BPatch_point *,createInstPointAtAddr,(void *address));
-
-    //  BPatch_image::createInstPointAtAddr
-    //  
-    //  Returns a pointer to a BPatch_point object representing an
-    //  instrumentation point at the given address. If the BPatch_function
-    //  argument is given it has to be the function that address belongs to or NULL.
-    //  The function is used to bypass the function that the address belongs to
-    //  The alternative argument is used to retrieve the point if the new point
-    //  intersects with another already existing one.
-    //  Returns NULL on failure.
-    API_EXPORT(WithAlt, (address, alternative, bpf),
-
-    BPatch_point *,createInstPointAtAddr,(void *address,
-                                          BPatch_point** alternative, 
-                                          BPatch_function* bpf = NULL)); 
-
     //  BPatch_image::findFunction
     //  
     //  Returns a vector of functions matching <name>, if <name> is a regular

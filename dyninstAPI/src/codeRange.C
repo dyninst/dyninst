@@ -490,7 +490,7 @@ void codeRange::print_range(Address) {
    image *img_ptr = is_image();
    mapped_object *mapped_ptr = is_mapped_object();
 	int_function *func_ptr = is_function();
-   baseTrampInstance *base_ptr = NULL;
+   baseTramp *base_ptr = NULL;
    inferiorRPCinProgress *rpc_ptr = is_inferior_rpc();
 
    /**

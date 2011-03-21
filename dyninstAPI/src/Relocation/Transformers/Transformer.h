@@ -45,7 +45,7 @@ class baseTramp;
 
 namespace Dyninst {
 
-namespace PatchAPI {
+namespace Relocation {
 
 class Atom;
 class Trace;

@@ -124,41 +124,6 @@ void initDefaultPointFrequencyTable()
 /****************************************************************************/
 /****************************************************************************/
 
-/*
- * Get an estimate of the frequency for the passed instPoint.  
- *    This is not (always) the same as the function that contains the point.
- * 
- *  The function is selected as follows:
- *
- *  If the point is an entry or an exit return the function name.
- *  If the point is a call and the callee can be determined, return the called
- *     function.
- *  else return the funcation containing the point.
- *
- *  WARNING: This code contins arbitray values for func frequency (both user 
- *     and system).  This should be refined over time.
- *
- * Using 1000 calls sec to be one SD from the mean for most FPSPEC apps.
- *      -- jkh 6/24/94
- *
- */
-float getPointFrequency(instPoint *point)
-{
-
-    int_function *func = point->findCallee();
-    if (!func)
-        func = point->func();
-    
-    if (!funcFrequencyTable.defines(func->prettyName().c_str())) {
-        // Changing this value from 250 to 100 because predictedCost was
-        // too high - naim 07/18/96
-        return(100); 
-        
-    } else {
-        return (funcFrequencyTable[func->prettyName().c_str()]);
-    }
-}
-
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/

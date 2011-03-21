@@ -214,7 +214,7 @@ bool BPatch_basicBlockLoop::hasBlockExclusiveInt(BPatch_basicBlock*block)
 BPatch_basicBlock* BPatch_basicBlockLoop::getLoopHeadInt()
 {
     assert(backEdges.size());
-    return (* backEdges.begin())->target;
+    return (* backEdges.begin())->getTarget();
 }
 
 

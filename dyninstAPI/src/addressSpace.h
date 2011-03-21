@@ -43,8 +43,8 @@
 
 #include "parseAPI/h/CodeObject.h"
 #include "parseAPI/h/InstructionSource.h"
-//#include "Relocation/Relocation.h"
-//#include "Relocation/CodeTracker.h"
+#include "Relocation/Relocation.h"
+#include "Relocation/CodeTracker.h"
 
 class codeRange;
 class replacedFunctionCall;
@@ -73,6 +73,8 @@ class int_symbol;
 class Dyn_Symbol;
 class BinaryEdit;
 class trampTrapMappings;
+
+class baseTramp;
 
 namespace Dyninst {
    class MemoryEmulator;
@@ -410,12 +412,12 @@ class AddressSpace : public InstructionSource {
     bool getAddrInfo(Address relocAddr,//input
 		      Address &origAddr,
                      std::vector<int_function *> &origFuncs,
-                     baseTrampInstance *&baseTramp);
+                     baseTramp *&baseTramp);
 
     bool getRelocInfo(Address relocAddr,
 		      Address &origAddr,
 		      int_block *&origBlock,
-		      baseTrampInstance *&baseTramp);
+		      baseTramp *&baseTramp);
 		
     // defensive mode code // 
 
@@ -472,8 +474,6 @@ class AddressSpace : public InstructionSource {
     Address costAddr_;
 
     /////// New instrumentation system
-#if 0
-    // Moved to PatchAPI
     typedef std::list<Relocation::CodeTracker> CodeTrackers;
     CodeTrackers relocatedCode_;
 
@@ -508,7 +508,6 @@ class AddressSpace : public InstructionSource {
     void addModifiedRegion(mapped_object *obj);
 
     MemoryEmulator *memEmulator_;
-#endif
 
     bool emulateMem_;
     bool emulatePC_;

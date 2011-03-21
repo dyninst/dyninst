@@ -38,7 +38,7 @@
 class BPatch_flowGraph;
 class BPatch_basicBlock;
 class BPatch_point;
-
+class int_edge;
 
 // XXX ignores indirect jumps
 typedef enum { 
@@ -60,10 +60,9 @@ class BPATCH_DLL_EXPORT BPatch_edge : public BPatch_eventLock{
     // BPatch_edge::BPatch_edge
     //
     // constructor
-    API_EXPORT_CTOR(Int, (s,t,fg),
-
-    BPatch_edge,(BPatch_basicBlock *s, BPatch_basicBlock *t, 
-                 BPatch_flowGraph *fg));
+   API_EXPORT_CTOR(Int, (e),
+                   
+                   BPatch_edge,(int_edge *e));
 
     // BPatch_edge::~BPatch_edge
     //
@@ -82,20 +81,12 @@ class BPATCH_DLL_EXPORT BPatch_edge : public BPatch_eventLock{
     API_EXPORT(Int, (), BPatch_basicBlock *, getTarget, ());
     API_EXPORT(Int, (), BPatch_point *, getPoint, ());
     API_EXPORT(Int, (), BPatch_edgeType, getType, ());
-
-    BPatch_edgeType type;
-
-    BPatch_basicBlock *source;
-
-    BPatch_basicBlock *target;
-
-    BPatch_flowGraph *flowGraph;
-
-    BPatch_point *point;
-
+    API_EXPORT(Int, (), BPatch_flowGraph *, getFlowGraph, ());
  private:
 
     BPatch_point *createInstPointAtEdge();
+    BPatch_point *point;
+    int_edge *edge;
 
 };
 

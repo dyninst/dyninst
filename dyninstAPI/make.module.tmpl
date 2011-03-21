@@ -133,6 +133,7 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/mapped_module.C \
                 ../src/function.C \
                 ../src/block.C \
+                ../src/edge.C \
                 ../src/variable.C \
 		../src/util.C \
                 ../src/BPatch_instruction.C \
@@ -151,6 +152,7 @@ SRCS	     +=	../src/BPatch.C \
 		../src/Relocation/Atoms/ASTAtom.C \
 		../src/Relocation/Atoms/CFAtom.C \
 		../src/Relocation/Atoms/InsnAtom.C \
+		../src/Relocation/Atoms/InstAtom.C \
 		../src/Relocation/Atoms/PCAtom.C \
                 ../src/Relocation/Atoms/RelDataAtom.C \
                 ../src/Relocation/Atoms/Target.C \
@@ -158,10 +160,9 @@ SRCS	     +=	../src/BPatch.C \
 		../src/Relocation/Transformers/Instrumenter.C \
 		../src/Relocation/Transformers/Modification.C \
 		../src/Relocation/Transformers/Movement-adhoc.C \
-		../src/Relocation/Transformers/Movement-analysis.C \
-		../src/Relocation/AddressMapper.C \
 		../src/Relocation/CodeTracker.C \
                 ../src/Relocation/CodeBuffer.C \
+                ../src/Relocation/patchapi_debug.C \
                 ../src/MemoryEmulator/memEmulator.C \
                 ../src/MemoryEmulator/memEmulatorAtom.C \
                 ../src/MemoryEmulator/memEmulatorTransformer.C 

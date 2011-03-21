@@ -1526,11 +1526,7 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
 // Return true if any sub-minitramp uses a trap? Other option
 // is "if all"...
 bool BPatchSnippetHandle::usesTrapInt() {
-    for (unsigned i = 0; i < mtHandles_.size(); i++) {
-        if (mtHandles_[i]->instrumentedViaTrap())
-            return true;
-    }
-    return false;
+   return false;
 }
 
 /* BPatch::triggerStopThread
@@ -1561,7 +1557,7 @@ bool BPatch_process::triggerStopThread(instPoint *intPoint,
     // find the BPatch_point corresponding to the instrumentation point
     BPatch_function *bpFunc = findOrCreateBPFunc(intFunc, NULL);
     BPatch_procedureLocation bpPointType = 
-        BPatch_point::convertInstPointType_t(intPoint->getPointType());
+        BPatch_point::convertInstPointType_t(intPoint->type());
     BPatch_point *bpPoint = findOrCreateBPPoint(bpFunc, intPoint, bpPointType);
     if (!bpPoint) { 
         return false; 
@@ -1602,7 +1598,7 @@ bool BPatch_process::triggerSignalHandlerCB(instPoint *intPoint,
     // find the BPatch_point corresponding to the exception-raising instruction
     BPatch_function *bpFunc = findOrCreateBPFunc(intFunc, NULL);
     BPatch_procedureLocation bpPointType = 
-        BPatch_point::convertInstPointType_t(intPoint->getPointType());
+        BPatch_point::convertInstPointType_t(intPoint->type());
     BPatch_point *bpPoint = findOrCreateBPPoint(bpFunc, intPoint, bpPointType);
     if (!bpPoint) { return false; }
     // trigger all callbacks for this signal
@@ -1645,7 +1641,7 @@ bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
     BPatch_point *bpPoint = findOrCreateBPPoint(
         bpFunc,
         faultPoint,
-        BPatch_point::convertInstPointType_t(faultPoint->getPointType()));
+        BPatch_point::convertInstPointType_t(faultPoint->type()));
     BPatch::bpatch->signalNotificationFD();
     bool foundCallback = false;
     for (unsigned int i = 0; i < cbs.size(); ++i) 
@@ -1990,16 +1986,9 @@ void BPatch_process::overwriteAnalysisUpdate
                     if ( (*fit)->ifunc()->hasWeirdInsns() || 
                          hasWeirdEntryBytes(*fit) ) 
                     {
-                        // instrument caller--we'll parse when we hit the call
-                        instPoint *cPoint = cfunc->findInstPByAddr(cbbi->last());
-                        if (!cPoint) {
-                            cfunc->funcCalls();
-                            cPoint = cfunc->findInstPByAddr(cbbi->last());
-                        }
-
-                        cPoint->setResolved(false);
-
-                        monitorFuncs.insert(findOrCreateBPFunc(cfunc, NULL));
+                       instPoint *cPoint = cbbi->preCallPoint();
+                       
+                       monitorFuncs.insert(findOrCreateBPFunc(cfunc, NULL));
                     } else {
                         // parse right away
                         deadFuncCallers[cbbi] = funcAddr;
