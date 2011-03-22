@@ -1155,7 +1155,6 @@ void registerSpace::spillReal(RealRegister r, codeGen &gen)
       return;
    }
 
-   cerr << "Spilling a register" << endl;
    regs_been_spilled.insert(regState()[r.reg()].contains);
    spillToVReg(r, regState()[r.reg()].contains, gen);
    freeReal(r);

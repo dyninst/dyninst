@@ -72,6 +72,8 @@ class baseTramp {
     instPoint *instP() const { return point(); }
     AddressSpace *proc() const;
     
+    void initializeFlags();
+
     bool generateCode(codeGen &gen,
                       Address baseInMutatee);
 

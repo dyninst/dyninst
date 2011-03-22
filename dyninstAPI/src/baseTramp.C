@@ -96,6 +96,23 @@ baseTramp *baseTramp::fork(instPoint *, baseTramp *) {
    return NULL;
 }
 
+void baseTramp::initializeFlags() {
+   needsStackFrame_ = false;
+   threaded_ = false;
+   optimizationInfo_ = false;
+   savedFPRs = false;
+   createdFrame = false;
+   savedOrigAddr = false;
+   createdLocalSpace = false;
+   alignedStack = false;
+   savedFlags = false;
+   optimizedSavedRegs = false;
+   suppressGuards = false;
+   suppressThreads = false;
+   spilledRegisters = false;
+   stackHeight = 0;
+}
+
 bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
 {
 #if !defined(cap_tramp_liveness)
@@ -169,6 +186,8 @@ bool baseTramp::generateCode(codeGen &gen,
                              Address baseInMutatee) {
    inst_printf("baseTramp %p ::generateCode(%p, 0x%x, %d)\n",
                this, gen.start_ptr(), baseInMutatee, gen.used());
+
+   initializeFlags();
 
    doOptimizations();
     

@@ -2387,7 +2387,6 @@ void EmitterAMD64::emitStackAlign(int offset, codeGen &gen)
 
 bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
 {
-   cerr << "EMITBTSAVES" << endl;
    gen.setInInstrumentation(true);
 
    int instFrameSize = 0; // Tracks how much we are moving %rsp
