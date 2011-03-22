@@ -228,35 +228,34 @@ void StackAnalysis::fixpoint() {
 }
 
 void StackAnalysis::summarize() {
-	// Now that we know the actual inputs to each block,
-	// we create intervals by replaying the effects of each
-	// instruction. 
+    // Now that we know the actual inputs to each block,
+    // we create intervals by replaying the effects of each
+    // instruction. 
 
-	intervals_ = new Intervals();
+    intervals_ = new Intervals();
 
-	Function::blocklist & bs = func->blocks();
-	Function::blocklist::iterator bit = bs.begin();
-	for( ; bit != bs.end(); ++bit) {
-		Block *block = *bit;
-		RegisterState input = blockInputs[block];
+    Function::blocklist & bs = func->blocks();
+    Function::blocklist::iterator bit = bs.begin();
+    for( ; bit != bs.end(); ++bit) {
+        Block *block = *bit;
+        RegisterState input = blockInputs[block];
 
-		for (std::map<Offset, TransferFuncs>::iterator iter = insnEffects[block].begin(); 
-			iter != insnEffects[block].end(); ++iter) {
-			Offset off = iter->first;
-			TransferFuncs &xferFuncs = iter->second;
+        for (std::map<Offset, TransferFuncs>::iterator iter = insnEffects[block].begin(); 
+            iter != insnEffects[block].end(); ++iter) {
+            Offset off = iter->first;
+            TransferFuncs &xferFuncs = iter->second;
 
-			// TODO: try to collapse these in some intelligent fashion
-			(*intervals_)[block][off] = input;
+            // TODO: try to collapse these in some intelligent fashion
+            (*intervals_)[block][off] = input;
 
-			RegisterState old = input;
-			for (TransferFuncs::iterator iter2 = xferFuncs.begin();
-				iter2 != xferFuncs.end(); ++iter2) {
-					input[iter2->target] = iter2->apply(old);
-			}
-		}
-		(*intervals_)[block][block->end()] = input;
-		assert(input == blockOutputs[block]);
-	}
+            for (TransferFuncs::iterator iter2 = xferFuncs.begin();
+                iter2 != xferFuncs.end(); ++iter2) {
+                    input[iter2->target] = iter2->apply(input);
+            }
+        }
+        (*intervals_)[block][block->end()] = input;
+        assert(input == blockOutputs[block]);
+    }
 }
 
 void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
