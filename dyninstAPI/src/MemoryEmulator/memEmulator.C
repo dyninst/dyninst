@@ -557,3 +557,19 @@ void  MemoryEmulator::debug() const {
 	elements.clear();
 
 }
+
+void MemoryEmulator::addPOPAD(Address addr)
+{
+    emulatedPOPADs_.insert(addr);
+}
+
+bool MemoryEmulator::isEmulPOPAD(Address addr)
+{
+    Address orig = -1;
+    std::vector<int_function*> dontcare1;
+    baseTrampInstance *dontcare2;
+    if (!aS_->getAddrInfo(addr, orig, dontcare1, dontcare2)) {
+        assert(0);
+    }
+    return emulatedPOPADs_.end() != emulatedPOPADs_.find(orig);
+}

@@ -193,6 +193,12 @@ bool MemEmulator::generateViaOverride(CodeBuffer &buffer)
 		 }
 		 return true;
          break;
+      case e_popad:
+        if (!generatePOPAD(buffer)) {
+            assert(0);
+        }
+        return true;
+        break;
       default:
          break;
    }
@@ -527,6 +533,14 @@ bool MemEmulator::push(Register reg) {
 bool MemEmulator::pop(Register reg) {
 	::emitPop(RealRegister(reg), scratch);
 	stackOffset += 4;
+	return true;
+}
+
+// wrap whole thing in check that esp is outside of the stack segment? 
+bool MemEmulator::generatePOPAD(CodeBuffer &buffer) {
+   point_->func()->proc()->getMemEm()->addPOPAD(addr());
+	scratch.fill(1, codeGen::cgTrap);
+   buffer.addPIC(scratch, tracker());
 	return true;
 }
 

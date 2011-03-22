@@ -417,12 +417,6 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events) {
 
 bool SignalGenerator::decodeEvent(EventRecord &ev)
 {
-	if (ev.address == 0x1052ed19) {
-		int i = 3;
-	}
-	if (ev.info.dwDebugEventCode == 0x1) {
-		int i = 3;
-	}
    bool ret = false;
    switch (ev.info.dwDebugEventCode) {
      case EXCEPTION_DEBUG_EVENT:
@@ -570,18 +564,20 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
   }
   else if (BPatch_defensiveMode == ev.proc->getHybridMode()) {
      Frame activeFrame = ev.lwp->getActiveFrame();
-     if (!ev.proc->inEmulatedCode(activeFrame.getPC() - 1)) {
-        requested_wait_until_active = true;//i.e., return exception to mutatee
-        decodeHandlerCallback(ev);
-     }
-     else {
+     if (ev.proc->inEmulatedCode(activeFrame.getPC() - 1)) {
 	    requested_wait_until_active = false;
         ret = true;
-		ev.type = evtIgnore;
-		static bool debug1 = true;
-		if (debug1)
-		{
-			cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
+        if (ev.proc->getMemEm() && 
+            ev.proc->getMemEm()->isEmulPOPAD(ev.address)) 
+        {
+            ev.type = evtEmulatePOPAD;
+        } 
+        else 
+        {
+    		ev.type = evtIgnore;
+        }
+#if 0
+        cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
 				<< " (DEBUG:" 
 				<< "EAX: " << activeFrame.eax
 				<< ", ECX: " << activeFrame.ecx
@@ -603,7 +599,12 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 				cerr  << hex << activeFrame.esp + 4*i << ": "  << stackTOPVAL[i] << ", orig @ " << remapped << " in " << funcs.size() << "functions" << dec << endl;
 			}
 		}
+#endif
 	 }
+     else { // return exception to mutatee
+        requested_wait_until_active = true;//i.e., return exception to mutatee
+        decodeHandlerCallback(ev);
+     }
   }
   else {
 	  ev.type = evtCritical;
@@ -827,7 +828,7 @@ bool SignalGenerator::decodeException(EventRecord &ev)
    // trigger callback if we haven't resolved the signal and a 
    // signalHandlerCallback is registered
    if (!ret) {
-       requested_wait_until_active = true;//i.e., return exception to mutatee
+       requested_wait_until_active = true; //i.e., return signal to mutatee
        decodeHandlerCallback(ev);
        ret = true;
    }
@@ -2834,6 +2835,50 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     return true;
 }
 
+bool SignalHandler::handleEmulatePOPAD(EventRecord &ev)
+{
+#if 0
+    Address orig;
+    std::vector<int_function*> dontcare1;
+    baseTrampInstance *dontcare2;
+    if (!ev.proc->getAddrInfo(ev.address, orig, dontcare1, dontcare2)) {
+        assert(0);
+        return false;
+    }
+	mal_printf("handleEmulatePOPAD: 0x%lx[0x%lx]\n", 
+               orig, ev.address);
+#else
+	mal_printf("handleEmulatePOPAD: 0x%lx\n", ev.address);
+#endif
+
+    CONTEXT cont;
+    cont.ContextFlags = CONTEXT_FULL;
+    if (!GetThreadContext((HANDLE)ev.lwp->get_fd(), &cont)) {
+        assert(0);
+        return false;
+    }
+
+    int regsize = ev.proc->getAddressWidth();
+    unsigned char *regbuf = (unsigned char*) malloc(regsize * 8);
+    if (!ev.proc->readDataSpace((void*)cont.Esp, 
+                                regsize * 8, 
+                                (void*)regbuf, 
+                                true)) 
+    {
+        assert(0);
+        return false;
+    }
+
+    cont.Edi = regbuf[regsize*0];
+    cont.Esi = regbuf[regsize*1];
+    cont.Ebp = regbuf[regsize*2];
+    cont.Ebx = regbuf[regsize*4];
+    cont.Edx = regbuf[regsize*5];
+    cont.Ecx = regbuf[regsize*6];
+    cont.Eax = regbuf[regsize*7];
+    cont.Esp += regsize * 8;
+    return true;
+}
 
 /* An access violation occurred to a memory page that contains code
  * and was originally write-protected was protected 

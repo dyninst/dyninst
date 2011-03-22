@@ -12,6 +12,7 @@
 #include "dataflowAPI/h/stackanalysis.h"
 
 #include "parseAPI/h/CFG.h"
+#include "parseAPI/h/CodeObject.h"
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
@@ -221,8 +222,12 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
                                  0,
                                  func));
       }
-      else {
-	return AbsRegion(Absloc::Stack);
+      else if (func->obj()->defensiveMode()) {
+          // SP could point to the heap, we make the worst-case 
+          // assumption and will emulate all stack accesses
+          return AbsRegion(Absloc::Heap); 
+      } else {
+         return AbsRegion(Absloc::Stack);
       }
     }
 

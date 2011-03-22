@@ -334,8 +334,12 @@ namespace Dyninst
         nonOperandRegisterWrites[e_jp] = thePC;
         nonOperandRegisterWrites[e_js] = thePC;
         nonOperandRegisterWrites[e_jz] = thePC;
-	nonOperandMemoryReads[e_pop] = stackPointerAsExpr;
-	nonOperandMemoryWrites[e_push] = stackPointerAsExpr;
+        nonOperandMemoryReads[e_pop] = stackPointerAsExpr;
+        nonOperandMemoryReads[e_popa] = stackPointerAsExpr;
+        nonOperandMemoryReads[e_popad] = stackPointerAsExpr;
+        nonOperandMemoryWrites[e_push] = stackPointerAsExpr;
+        nonOperandMemoryWrites[e_pusha] = stackPointerAsExpr;
+        nonOperandMemoryWrites[e_pushad] = stackPointerAsExpr;
         nonOperandMemoryWrites[e_call] = stackPointerAsExpr;
         nonOperandMemoryReads[e_ret_near] = stackPointerAsExpr;
         nonOperandMemoryReads[e_ret_far] = stackPointerAsExpr;

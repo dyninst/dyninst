@@ -1541,6 +1541,12 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &)
     return false;
 }
 
+bool SignalHandler::handleEmulatePOPAD(EventRecord &)
+{
+    assert(0);//not implemented for unix 
+    return false;
+}
+
 mapped_object *process::createObjectNoFile(Address)
 {
     assert(0); //not implemented for unix

@@ -85,6 +85,9 @@ class MemEmulator : public Atom {
    // Handle ESI/EDI instructions
    bool generateESI_EDI(CodeBuffer &buffer);
 
+   // Handle POPAD instructions
+   bool generatePOPAD(CodeBuffer &buffer);
+
    // Drop in a trap for later debugging assistance
    void insertDebugMarker();
 

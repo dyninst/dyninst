@@ -729,10 +729,10 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
    //retrieve import table information
    //1. get the RVA of import table from Data directory
    DWORD dwITrva = peHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
-   printf("Import Table RVA: %lx\n", dwITrva);
+   //printf("Import Table RVA: %lx\n", dwITrva);
    //2. get the offset in disk file
    DWORD dwIToffset = RVA2Offset(dwITrva);
-   printf("import table disk offset: %lx\n", dwIToffset);
+   //printf("import table disk offset: %lx\n", dwIToffset);
 
    PIMAGE_IMPORT_DESCRIPTOR import_d = (PIMAGE_IMPORT_DESCRIPTOR)(((char*)mf->base_addr())+dwIToffset);
 
@@ -745,7 +745,7 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
       ie.name = (char*)malloc(sizeof(char)*strlen(str));
       memcpy(ie.name, str, strlen(str)+1);
       image_import_descriptor.push_back(ie);
-      printf("%s\n",ie.name);
+      //printf("%s\n",ie.name);
       import_d ++;
    }
    //cout<<"size of import table"<<image_import_descriptor.size()<<endl;

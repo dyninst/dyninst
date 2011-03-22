@@ -757,6 +757,10 @@ bool SignalHandler::handleEvent(EventRecord &ev)
             forwardSigToProcess(ev, continueHint);
         }
         break;
+    case evtEmulatePOPAD:
+        ret = handleEmulatePOPAD(ev);
+        continueHint = true;
+        break;
      // Now the /proc only
      // AIX clones some of these (because of fork/exec/load notification)
      case evtRPCSignal:

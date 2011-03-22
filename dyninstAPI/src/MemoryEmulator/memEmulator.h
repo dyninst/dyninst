@@ -69,6 +69,9 @@ class MemoryEmulator {
         int size);
     void synchShadowOrig(bool toOrig);
 
+    void addPOPAD(Address addr);
+    bool isEmulPOPAD(Address addr);
+
     static const int STACK_SHIFT_VAL=256;
 
 	void debug() const;
@@ -96,7 +99,7 @@ class MemoryEmulator {
    RegionMap addedRegions_;
 
    std::map<SymtabAPI::Region *, unsigned char *> saved;
-
+   std::set<Address> emulatedPOPADs_;
 };
 };
 
