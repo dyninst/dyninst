@@ -68,17 +68,15 @@ all: $(TARGET) $(EXTRA_LIBS)
 #../src/$(DYNCNAME).tab.C: ../src/C.y
 #../h/$(DYNCNAME).tab.h: ../src/$(DYNCNAME).tab.C
 
-lex.$(DYNCNAME).C: ../src/C.l $(DYNCNAME).tab.h
+../src/lex.$(DYNCNAME).C: ../src/C.l $(DYNCNAME).tab.h
 	$(LEX) $(LEXFLAGS) ../src/C.l
-	mv lex.$(DYNCNAME).c lex.$(DYNCNAME).C
-	mv lex.$(DYNCNAME).C ../src/
+	mv lex.$(DYNCNAME).c ../src/lex.$(DYNCNAME).C
 
 $(DYNCNAME).tab.h: $(DYNCNAME).tab.C 
 
-$(DYNCNAME).tab.C: ../src/C.y
+../src/$(DYNCNAME).tab.C: ../src/C.y
 	$(YACC) $(YACCFLAGS) ../src/C.y
-	mv $(DYNCNAME).tab.c $(DYNCNAME).tab.C
-	mv $(DYNCNAME).tab.C ../src/
+	mv $(DYNCNAME).tab.c ../src/$(DYNCNAME).tab.C
 	mv $(DYNCNAME).tab.h ../h/
 
 
