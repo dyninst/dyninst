@@ -565,16 +565,16 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
   else if (BPatch_defensiveMode == ev.proc->getHybridMode()) {
      Frame activeFrame = ev.lwp->getActiveFrame();
      if (ev.proc->inEmulatedCode(activeFrame.getPC() - 1)) {
-	    requested_wait_until_active = false;
+        requested_wait_until_active = false;
         ret = true;
         if (ev.proc->getMemEm() && 
-            ev.proc->getMemEm()->isEmulPOPAD(ev.address)) 
+            ev.proc->getMemEm()->isEmulPOPAD(activeFrame.getPC()-1)) 
         {
             ev.type = evtEmulatePOPAD;
         } 
         else 
         {
-    		ev.type = evtIgnore;
+            ev.type = evtIgnore;
         }
 #if 0
         cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
@@ -2858,9 +2858,14 @@ bool SignalHandler::handleEmulatePOPAD(EventRecord &ev)
         return false;
     }
 
+    Address emulatedSP = cont.Esp;
+    pair<bool,Address> transSP = ev.proc->getMemEm()->translate(cont.Esp);
+    if (transSP.first) {
+       emulatedSP = transSP.second;
+    }
     int regsize = ev.proc->getAddressWidth();
     unsigned char *regbuf = (unsigned char*) malloc(regsize * 8);
-    if (!ev.proc->readDataSpace((void*)cont.Esp, 
+    if (!ev.proc->readDataSpace((void*)emulatedSP, 
                                 regsize * 8, 
                                 (void*)regbuf, 
                                 true)) 
@@ -2869,14 +2874,27 @@ bool SignalHandler::handleEmulatePOPAD(EventRecord &ev)
         return false;
     }
 
-    cont.Edi = regbuf[regsize*0];
-    cont.Esi = regbuf[regsize*1];
-    cont.Ebp = regbuf[regsize*2];
-    cont.Ebx = regbuf[regsize*4];
-    cont.Edx = regbuf[regsize*5];
-    cont.Ecx = regbuf[regsize*6];
-    cont.Eax = regbuf[regsize*7];
+    cont.Edi = 0;
+    cont.Esi = 0;
+    cont.Ebp = 0;
+    cont.Ebx = 0;
+    cont.Edx = 0;
+    cont.Ecx = 0;
+    cont.Eax = 0;
+    for (int bidx =0; bidx < regsize; bidx++) {
+       cont.Edi = cont.Edi | (regbuf[regsize*0+bidx] << bidx*8);
+       cont.Esi = cont.Esi | (regbuf[regsize*1+bidx] << bidx*8);
+       cont.Ebp = cont.Ebp | (regbuf[regsize*2+bidx] << bidx*8);
+       cont.Ebx = cont.Ebx | (regbuf[regsize*4+bidx] << bidx*8);
+       cont.Edx = cont.Edx | (regbuf[regsize*5+bidx] << bidx*8);
+       cont.Ecx = cont.Ecx | (regbuf[regsize*6+bidx] << bidx*8);
+       cont.Eax = cont.Eax | (regbuf[regsize*7+bidx] << bidx*8);
+    }
     cont.Esp += regsize * 8;
+    if (!SetThreadContext((HANDLE)ev.lwp->get_fd(), &cont)) {
+       printf("SetThreadContext failed %s[%d]\n",FILE__,__LINE__);
+       return false;
+    }
     return true;
 }
 
