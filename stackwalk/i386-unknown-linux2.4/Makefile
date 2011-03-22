@@ -26,7 +26,8 @@ SRCS += 	../src/linux-swk.C \
 			../src/dbginfo-stepper.C \
 			../src/x86-wanderer.C \
 	                ../src/analysis_stepper.C \
-			../src/linuxbsd-swk.C
+			../src/linuxbsd-swk.C \
+			../src/linux-x86-swk.C
 
 
 ifdef LIBELF_INC
