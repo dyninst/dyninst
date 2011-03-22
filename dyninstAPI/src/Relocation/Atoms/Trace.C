@@ -67,7 +67,7 @@ using namespace InstructionAPI;
 
 int Trace::TraceID = 0;
 
-Trace::Ptr Trace::create(int_block *block) {
+Trace::Ptr Trace::create(block_instance *block) {
   if (!block) return Ptr();
 
   relocation_cerr << "Creating new Trace" << endl;
@@ -75,7 +75,7 @@ Trace::Ptr Trace::create(int_block *block) {
   Ptr newTrace = Ptr(new Trace(block));  
 
   // Get the list of instructions in the block
-  int_block::InsnInstances insns;
+  block_instance::InsnInstances insns;
   block->getInsns(insns);
 
   for (unsigned i = 0; i < insns.size(); ++i) {
@@ -98,7 +98,7 @@ Trace::Ptr Trace::create(int_block *block) {
   return newTrace;
 }
   
-Trace::Ptr Trace::create(Atom::Ptr p, Address a, int_block *block) {
+Trace::Ptr Trace::create(Atom::Ptr p, Address a, block_instance *block) {
   if (!p) return Ptr();
   Ptr newTrace = Ptr(new Trace(a, block));
   newTrace->elements_.push_back(p);
@@ -107,7 +107,7 @@ Trace::Ptr Trace::create(Atom::Ptr p, Address a, int_block *block) {
   return newTrace;
 }
 
-bool Trace::linkTraces(std::map<int_block *, Trace::Ptr> &traces) {
+bool Trace::linkTraces(std::map<block_instance *, Trace::Ptr> &traces) {
    // We want to build each Trace into a tangled web. Or at 
    // least build in links to successor Traces. This is pretty much
    // only for our internal code generation requirements;
@@ -151,7 +151,7 @@ void Trace::createCFAtom() {
    elements_.push_back(cfAtom_);
 }
 
-void Trace::getSuccessors(const std::map<int_block *, Trace::Ptr> &traces) {
+void Trace::getSuccessors(const std::map<block_instance *, Trace::Ptr> &traces) {
    // We're constructing a copy of a subgraph of the CFG. Initially we just copy the nodes
    // (aka Traces), but we also need to copy edges. There are three types of edges we care
    // care about:
@@ -159,22 +159,22 @@ void Trace::getSuccessors(const std::map<int_block *, Trace::Ptr> &traces) {
    // Edges to a block that does not correspond to a Trace (BlockEdges)
    // Edges to a raw address, caused by representing inter-CodeObject edges
    //   -- this last is a Defensive mode special.
-   const int_block::edgelist &targets = block_->targets();
-   for (int_block::edgelist::iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+   const block_instance::edgelist &targets = block_->targets();
+   for (block_instance::edgelist::iterator iter = targets.begin(); iter != targets.end(); ++iter) {
       processEdge(OutEdge, *iter, traces);
    }
 
 }
 
-void Trace::getPredecessors(const std::map<int_block *, Trace::Ptr> &traces) {
-   const int_block::edgelist &edges = block_->sources();
-   for (int_block::edgelist::iterator iter = edges.begin(); iter != edges.end(); ++iter) {
+void Trace::getPredecessors(const std::map<block_instance *, Trace::Ptr> &traces) {
+   const block_instance::edgelist &edges = block_->sources();
+   for (block_instance::edgelist::iterator iter = edges.begin(); iter != edges.end(); ++iter) {
       processEdge(InEdge, *iter, traces);
    }
 
 }
 
-void Trace::processEdge(EdgeDirection e, int_edge *edge, const std::map<int_block *, Trace::Ptr> &traces) {
+void Trace::processEdge(EdgeDirection e, edge_instance *edge, const std::map<block_instance *, Trace::Ptr> &traces) {
    TargetInt *target = NULL;
    ParseAPI::EdgeTypeEnum type = edge->type();
    // Maybe we want exception edges too?
@@ -213,14 +213,14 @@ void Trace::processEdge(EdgeDirection e, int_edge *edge, const std::map<int_bloc
       }
    }
    else {
-      int_block *block = (e == OutEdge) ? edge->trg() : edge->src();
+      block_instance *block = (e == OutEdge) ? edge->trg() : edge->src();
 
-      std::map<int_block *, Trace::Ptr>::const_iterator iter = traces.find(block);
+      std::map<block_instance *, Trace::Ptr>::const_iterator iter = traces.find(block);
       if (iter != traces.end()) {
          target = new Target<Trace *>(iter->second.get());
       }
       else {
-         target = new Target<int_block *>(block);
+         target = new Target<block_instance *>(block);
       }
    }
    if (target) {
@@ -247,14 +247,14 @@ void Trace::processEdge(EdgeDirection e, int_edge *edge, const std::map<int_bloc
 #define DEFENSIVE_GAP_SIZE 10
 
 void Trace::preserveBlockGap() {
-   const int_block::edgelist &targets = block_->targets();
-   for (int_block::edgelist::iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+   const block_instance::edgelist &targets = block_->targets();
+   for (block_instance::edgelist::iterator iter = targets.begin(); iter != targets.end(); ++iter) {
       if ((*iter)->type() == ParseAPI::CALL_FT ||
           (*iter)->type() == ParseAPI::FALLTHROUGH ||
           (*iter)->type() == ParseAPI::COND_NOT_TAKEN) {
          // Okay, I admit - I want to see this code trigger in the
          // fallthrough or cond_not_taken cases...
-         int_block *target = (*iter)->trg();
+         block_instance *target = (*iter)->trg();
          if (target) {
             cfAtom()->setGap(target->start() - block_->end());
             return;
@@ -452,7 +452,7 @@ bool Trace::moveSources(ParseAPI::EdgeTypeEnum type,
    return true;
 }
 
-bool Trace::interposeTarget(int_edge *edge, 
+bool Trace::interposeTarget(edge_instance *edge, 
                      Trace::Ptr newTrace) {
    assert(edge->src() == block());
    // Like interposeTarget /w/ a type, but for a
@@ -479,7 +479,7 @@ bool Trace::interposeTarget(int_edge *edge,
          return true;
       }
       else if ((*iter)->type() == TargetInt::BlockTarget) {
-         Target<int_block *> *t = static_cast<Target<int_block *> *>(*iter);
+         Target<block_instance *> *t = static_cast<Target<block_instance *> *>(*iter);
          if (t->t() != edge->trg()) continue;
 
          newTrace->outEdges_[ParseAPI::DIRECT].push_back(*iter);

@@ -1564,7 +1564,7 @@ bool OS::executableExists(const std::string &file)
    return (stat_result != -1);
 }
 
-int_function *dyn_thread::map_initial_func(int_function *ifunc) 
+func_instance *dyn_thread::map_initial_func(func_instance *ifunc) 
 {
     return ifunc;
 }
@@ -1736,7 +1736,7 @@ bool process::hideDebugger()
 #if defined(os_linux) || defined(os_freebsd)
 
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/image-func.h"
+#include "dyninstAPI/src/parse-cfg.h"
 #include "dyninstAPI/src/function.h"
 #include <elf.h>
 
@@ -1746,23 +1746,23 @@ bool process::hideDebugger()
 // findCallee: finds the function called by the instruction corresponding
 // to the instPoint "instr". If the function call has been bound to an
 // address, then the callee function is returned in "target" and the 
-// instPoint "callee" data member is set to pt to callee's int_function.  
+// instPoint "callee" data member is set to pt to callee's func_instance.  
 // If the function has not yet been bound, then "target" is set to the 
-// int_function associated with the name of the target function (this is 
+// func_instance associated with the name of the target function (this is 
 // obtained by the PLT and relocation entries in the image), and the instPoint
 // callee is not set.  If the callee function cannot be found, (ex. function
 // pointers, or other indirect calls), it returns false.
 // Returns false on error (ex. process doesn't contain this instPoint).
 //
-// HACK: made an int_function method to remove from instPoint class...
+// HACK: made an func_instance method to remove from instPoint class...
 
-int_function *int_function::findCallee(int_block *callBlock) {
-   std::map<int_block *, int_function *>::iterator iter = callees_.find(callBlock);
+func_instance *func_instance::findCallee(block_instance *callBlock) {
+   std::map<block_instance *, func_instance *>::iterator iter = callees_.find(callBlock);
    if (iter != callees_.end()) return iter->second;
 
-   image_func *icallee = callBlock->llb()->getCallee();
+   parse_func *icallee = callBlock->llb()->getCallee();
    if (icallee && !icallee->isPLTFunction()) {
-      int_function *callee = proc()->findFuncByInternalFunc(icallee);
+      func_instance *callee = proc()->findFuncByInternalFunc(icallee);
       callees_[callBlock] = callee;
       //callee_ may be NULL if the function is unloaded
       
@@ -1816,7 +1816,7 @@ int_function *int_function::findCallee(int_block *callBlock) {
             // check to see if this function has been bound yet...if the
             // PLT entry for this function has been modified by the runtime
             // linker
-            int_function *target_pdf = 0;
+            func_instance *target_pdf = 0;
             if (proc()->hasBeenBound(fbt[i], target_pdf, base_addr)) {
                callees_[callBlock] = target_pdf;
                obj()->setCalleeName(callBlock, target_pdf->symTabName());
@@ -1829,7 +1829,7 @@ int_function *int_function::findCallee(int_block *callBlock) {
       process *dproc = dynamic_cast<process *>(proc());
       BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
       obj()->setCalleeName(callBlock, std::string(target_name));
-      pdvector<int_function *> pdfv;
+      pdvector<func_instance *> pdfv;
       if (dproc) {
          if (proc()->findFuncsByMangled(target_name, pdfv)) {
             callees_[callBlock] = pdfv[0];

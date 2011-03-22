@@ -600,7 +600,7 @@ bool wtxCreateTask(const std::string &filename, WTX_MODULE_INFO *modinfo)
     // Drop back to symbol "main" if needed.
     if (!entryAddr) {
         wtxFindFunction("main", modinfo->moduleId, entryAddr);
-        //const pdvector <int_function *> *funcs;
+        //const pdvector <func_instance *> *funcs;
         //funcs = obj->findFuncVectorByMangled("main");
         //if (funcs && funcs->size())
         //    entryAddr = (*funcs)[0]->getAddress();
@@ -1442,7 +1442,7 @@ void emitCallRel32(unsigned /*disp32*/, unsigned char *& /*insn*/) { assert(0); 
 //static char getState(int /*pid*/) { assert(0); return 0; }
 //static std::string getNextLine(int /*fd*/) { assert(0); return ""; }
 
-bool isPLT(int_function * /*f*/) { assert(0); return false; }
+bool isPLT(func_instance * /*f*/) { assert(0); return false; }
 
 /* **********************************************************************
  * Class dyn_lwp Implementations
@@ -1750,7 +1750,7 @@ int dyn_lwp::changeMemoryProtections(Address , Offset , unsigned )
     return 0;
 }
 
-int_function *dyn_thread::map_initial_func(int_function * /*ifunc*/) { assert(0); }
+func_instance *dyn_thread::map_initial_func(func_instance * /*ifunc*/) { assert(0); }
 
 void loadNativeDemangler() { return; }
 
@@ -1763,14 +1763,14 @@ bool DebuggerInterface::bulkPtraceRead(void * /*inTraced*/, u_int /*nelem*/, voi
 // findCallee: finds the function called by the instruction corresponding
 // to the instPoint "instr". If the function call has been bound to an
 // address, then the callee function is returned in "target" and the 
-// instPoint "callee" data member is set to pt to callee's int_function.  
+// instPoint "callee" data member is set to pt to callee's func_instance.  
 // If the function has not yet been bound, then "target" is set to the 
-// int_function associated with the name of the target function (this is 
+// func_instance associated with the name of the target function (this is 
 // obtained by the PLT and relocation entries in the image), and the instPoint
 // callee is not set.  If the callee function cannot be found, (ex. function
 // pointers, or other indirect calls), it returns false.
 // Returns false on error (ex. process doesn't contain this instPoint).
-int_function *instPoint::findCallee()
+func_instance *instPoint::findCallee()
 {
     assert(0);
 #if 0
@@ -1788,11 +1788,11 @@ int_function *instPoint::findCallee()
 
     // Check if we parsed an intra-module static call
     assert(img_p_);
-    image_func *icallee = img_p_->getCallee();
+    parse_func *icallee = img_p_->getCallee();
     if (icallee) {
         // Now we have to look up our specialized version
         // Can't do module lookup because of DEFAULT_MODULE...
-        const pdvector<int_function *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName().c_str());
+        const pdvector<func_instance *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName().c_str());
         if (!possibles) {
             return NULL;
         }
@@ -1854,7 +1854,7 @@ int_function *instPoint::findCallee()
         }
         // Again, by definition, the function is not in owner.
         // So look it up.
-        int_function *pdf = proc()->findFuncByAddr(linkageTarget);
+        func_instance *pdf = proc()->findFuncByAddr(linkageTarget);
 
         if (pdf) {
             callee_ = pdf;
@@ -1889,7 +1889,7 @@ Address findFunctionToHijack(process * /*p*/) { assert(0); return 0; }
  * Searches for function in order, with preference given first 
  * to libpthread, then to libc, then to the process.
  **/
-//static void findThreadFuncs(process * /*p*/, std::string /*func*/, pdvector<int_function *> & /*result*/) { assert(0); return; }
+//static void findThreadFuncs(process * /*p*/, std::string /*func*/, pdvector<func_instance *> & /*result*/) { assert(0); return; }
 void dyninst_yield() { assert(0); return; }
 
 // ****** Support linux-specific forkNewProcess DBI callbacks ***** //

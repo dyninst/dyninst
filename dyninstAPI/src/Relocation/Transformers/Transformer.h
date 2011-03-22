@@ -38,9 +38,7 @@
 #include <map>
 #include <stack>
 
-#include "dyninstAPI/src/image-func.h" // EdgeTypeEnum
-
-class int_block;
+class block_instance;
 class baseTramp;
 
 namespace Dyninst {

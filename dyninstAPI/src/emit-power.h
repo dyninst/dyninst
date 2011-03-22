@@ -92,13 +92,13 @@ class EmitterPOWER : public Emitter {
 
     // This one we actually use now.
     virtual Register emitCall(opCode, codeGen &, const pdvector<AstNodePtr> &,
-			      bool, int_function *);
+			      bool, func_instance *);
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
 
     virtual void emitGetRetVal(Register, bool, codeGen &) { assert(0); }
     virtual void emitGetRetAddr(Register, bool, codeGen &) { assert(0); }
     virtual void emitGetParam(Register, Register, instPointType_t, bool, codeGen &) { assert(0); }
-    virtual void emitFuncJump(int_function*, instPointType_t, bool, codeGen &) { assert(0); }
+    virtual void emitFuncJump(func_instance*, instPointType_t, bool, codeGen &) { assert(0); }
     virtual void emitASload(int, int, int, long, Register, codeGen &) { assert(0); }
     virtual void emitCSload(int, int, int, long, Register, codeGen &) { assert(0); }
     virtual void emitPushFlags(codeGen &) { assert(0); }
@@ -114,11 +114,11 @@ class EmitterPOWER : public Emitter {
     virtual bool emitPop(codeGen &, Register) { assert(0); return true;}
     virtual bool emitAdjustStackPointer(int, codeGen &) { assert(0); return true;}
     
-    virtual bool clobberAllFuncCall(registerSpace *rs,int_function *callee);
+    virtual bool clobberAllFuncCall(registerSpace *rs,func_instance *callee);
 
  protected:
-    virtual bool emitCallInstruction(codeGen& /*gen*/, int_function* /*callee*/, bool /*setTOC*/, Address) = 0;
-    virtual Register emitCallReplacement(opCode ocode, codeGen &gen, bool noCost, int_function *callee) = 0;
+    virtual bool emitCallInstruction(codeGen& /*gen*/, func_instance* /*callee*/, bool /*setTOC*/, Address) = 0;
+    virtual Register emitCallReplacement(opCode ocode, codeGen &gen, bool noCost, func_instance *callee) = 0;
 };
 
 class EmitterPOWERDyn : public EmitterPOWER {
@@ -126,9 +126,9 @@ class EmitterPOWERDyn : public EmitterPOWER {
     virtual ~EmitterPOWERDyn() {};
 
  protected:
-    virtual bool emitCallInstruction(codeGen& /*gen*/, int_function* /*callee*/, bool /*setTOC*/, Address);
+    virtual bool emitCallInstruction(codeGen& /*gen*/, func_instance* /*callee*/, bool /*setTOC*/, Address);
     virtual Register emitCallReplacement(opCode ocode, codeGen &gen,
-                                 bool noCost, int_function *callee);
+                                 bool noCost, func_instance *callee);
 
 };
 
@@ -137,7 +137,7 @@ class EmitterPOWERStat : public EmitterPOWER {
     virtual ~EmitterPOWERStat() {};
  protected:
     virtual Register emitCallReplacement(opCode ocode, codeGen &gen,
-                                 bool noCost, int_function *callee);
+                                 bool noCost, func_instance *callee);
 };
 
 class EmitterPOWER32Dyn : public EmitterPOWERDyn {
@@ -150,7 +150,7 @@ class EmitterPOWER32Stat : public EmitterPOWERStat {
     virtual ~EmitterPOWER32Stat() {}
 
  protected:
-    virtual bool emitCallInstruction(codeGen& /*gen*/, int_function* /*callee*/, bool /*setTOC*/, Address);
+    virtual bool emitCallInstruction(codeGen& /*gen*/, func_instance* /*callee*/, bool /*setTOC*/, Address);
 };
 
 class EmitterPOWER64Dyn : public EmitterPOWERDyn {
@@ -164,7 +164,7 @@ class EmitterPOWER64Stat : public EmitterPOWERStat {
     virtual ~EmitterPOWER64Stat() {}
 
  protected:
-    virtual bool emitCallInstruction(codeGen& /*gen*/, int_function* /*callee*/, bool /*setTOC*/, Address);
+    virtual bool emitCallInstruction(codeGen& /*gen*/, func_instance* /*callee*/, bool /*setTOC*/, Address);
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address ) ;
 };
 

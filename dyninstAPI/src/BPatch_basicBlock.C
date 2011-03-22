@@ -55,7 +55,7 @@
 
 int bpatch_basicBlock_count = 0;
 
-BPatch_basicBlock::BPatch_basicBlock(int_block *ib, BPatch_flowGraph *fg):
+BPatch_basicBlock::BPatch_basicBlock(block_instance *ib, BPatch_flowGraph *fg):
    iblock(ib),
    flowGraph(fg),
    immediateDominates(NULL),
@@ -104,10 +104,10 @@ void BPatch_basicBlock::BPatch_basicBlock_dtor(){
 //returns the predecessors of the basic block in aset 
 void BPatch_basicBlock::getSourcesInt(BPatch_Vector<BPatch_basicBlock*>& srcs){
    BPatch_basicBlock *b;
-   pdvector<int_block *> in_blocks;
+   pdvector<block_instance *> in_blocks;
 
-   const int_block::edgelist &isrcs = iblock->sources();
-   for (int_block::edgelist::iterator iter = isrcs.begin(); iter != isrcs.end(); ++iter) {
+   const block_instance::edgelist &isrcs = iblock->sources();
+   for (block_instance::edgelist::iterator iter = isrcs.begin(); iter != isrcs.end(); ++iter) {
       b = (BPatch_basicBlock *) ((*iter)->src()->getHighLevelBlock());
       if (b) srcs.push_back(b);
    }
@@ -116,10 +116,10 @@ void BPatch_basicBlock::getSourcesInt(BPatch_Vector<BPatch_basicBlock*>& srcs){
 //returns the successors of the basic block in a set 
 void BPatch_basicBlock::getTargetsInt(BPatch_Vector<BPatch_basicBlock*>& tgrts){
    BPatch_basicBlock *b;
-   pdvector<int_block *> out_blocks;
+   pdvector<block_instance *> out_blocks;
 
-   const int_block::edgelist &itrgs = iblock->targets();
-   for (int_block::edgelist::iterator iter = itrgs.begin(); iter != itrgs.end(); ++iter) {
+   const block_instance::edgelist &itrgs = iblock->targets();
+   for (block_instance::edgelist::iterator iter = itrgs.begin(); iter != itrgs.end(); ++iter) {
       b = (BPatch_basicBlock *) ((*iter)->trg()->getHighLevelBlock());
       if (b) tgrts.push_back(b);
    }
@@ -533,7 +533,7 @@ void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
 
 BPatch_function * BPatch_basicBlock::getCallTarget()
 {
-   int_function *callee = lowlevel_block()->callee();
+   func_instance *callee = lowlevel_block()->callee();
    if (!callee) return NULL;
    return flowGraph->addSpace->findOrCreateBPFunc(callee, NULL);
 }

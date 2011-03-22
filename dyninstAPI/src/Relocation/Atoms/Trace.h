@@ -43,8 +43,8 @@
 
 class baseTramp;
 class baseTrampInstance;
-class int_block;
-class int_function;
+class block_instance;
+class func_instance;
 
 namespace Dyninst {
 namespace Relocation {
@@ -78,17 +78,17 @@ class Trace {
    typedef std::list<TargetInt *> Targets;
 
    // Standard creation
-   static Ptr create(int_block *block);
+   static Ptr create(block_instance *block);
    // Nonstandard creation; we need the block to be able to 
    // provide tracking data structures for later
-   static Ptr create(Atom::Ptr atom, Address a, int_block *block);
-   bool linkTraces(std::map<int_block *, Trace::Ptr> &traces);
+   static Ptr create(Atom::Ptr atom, Address a, block_instance *block);
+   bool linkTraces(std::map<block_instance *, Trace::Ptr> &traces);
    void determineNecessaryBranches(Trace *successor);
 
    Address origAddr() const { return origAddr_; }
    int id() const { return id_; }
-   int_block *block() const { return block_; }
-   int_function *func() const { return block_->func(); }
+   block_instance *block() const { return block_; }
+   func_instance *func() const { return block_->func(); }
    std::string format() const;
    Label getLabel() const { assert(label_ != -1);  return label_; };
    
@@ -107,7 +107,7 @@ class Trace {
                         Trace::Ptr newTarget); 
    bool moveSources(ParseAPI::EdgeTypeEnum type,
                     Trace::Ptr newSource);
-   bool interposeTarget(int_edge *e,
+   bool interposeTarget(edge_instance *e,
                         Trace::Ptr newTarget);
    Targets &getTargets(ParseAPI::EdgeTypeEnum type);
    bool removeTargets(ParseAPI::EdgeTypeEnum type);
@@ -124,12 +124,12 @@ class Trace {
 
  private:
    
-  Trace(int_block *block)
+  Trace(block_instance *block)
      : origAddr_(block->start()),
       block_(block),
       id_(TraceID++),
       label_(-1) {};
-   Trace(Address a, int_block *b)
+   Trace(Address a, block_instance *b)
       :origAddr_(a),
       block_(b),
       id_(TraceID++),
@@ -141,9 +141,9 @@ class Trace {
       OutEdge } EdgeDirection;
 
    void createCFAtom();
-   void getPredecessors(const std::map<int_block *, Trace::Ptr> &traces);
-   void getSuccessors(const std::map<int_block *, Trace::Ptr> &traces);
-   void processEdge(EdgeDirection e, int_edge *edge, const std::map<int_block *, Trace::Ptr> &traces);
+   void getPredecessors(const std::map<block_instance *, Trace::Ptr> &traces);
+   void getSuccessors(const std::map<block_instance *, Trace::Ptr> &traces);
+   void processEdge(EdgeDirection e, edge_instance *edge, const std::map<block_instance *, Trace::Ptr> &traces);
 
    void preserveBlockGap();
    std::pair<bool, Address> getJumpTarget();
@@ -156,7 +156,7 @@ class Trace {
                       TargetInt *newTarget);
 
    Address origAddr_;
-   int_block *block_;
+   block_instance *block_;
    int id_;
    Label label_;  
    

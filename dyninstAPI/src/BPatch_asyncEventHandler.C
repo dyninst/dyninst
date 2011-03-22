@@ -1068,7 +1068,7 @@ bool handleDynamicCall(process *llproc,
    BPatch_point *pt = monitored_points[callsite_addr];
 
    //  found the record(s), now find the function that was called
-   int_function *f = llproc->findOneFuncByAddr(func_addr);
+   func_instance *f = llproc->findOneFuncByAddr(func_addr);
 
    if (!f) 
    {

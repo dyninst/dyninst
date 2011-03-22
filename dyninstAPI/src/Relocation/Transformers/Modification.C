@@ -49,19 +49,19 @@ Modification::Modification(const ext_CallReplaceMap &callRepl,
 			   const ext_CallRemovalSet &callRem) {
   for (ext_CallReplaceMap::const_iterator iter = callRepl.begin();
        iter != callRepl.end(); ++iter) {
-    int_block *bbl = iter->first->block();
-    callRep_[bbl] = std::make_pair<int_function *, instPoint *>(iter->second, iter->first);
+    block_instance *bbl = iter->first->block();
+    callRep_[bbl] = std::make_pair<func_instance *, instPoint *>(iter->second, iter->first);
   }
 
   for (ext_FuncReplaceMap::const_iterator iter = funcRepl.begin();
        iter != funcRepl.end(); ++iter) {
-     int_block *bbl = iter->first->entryBlock();
+     block_instance *bbl = iter->first->entryBlock();
     funcRep_[bbl] = iter->second;
   }
 
   for (ext_CallRemovalSet::const_iterator iter = callRem.begin();
        iter != callRem.end(); ++iter) {
-    int_block *bbl = (*iter)->block();
+    block_instance *bbl = (*iter)->block();
     callRem_.insert(bbl);
   }
 }
@@ -94,7 +94,7 @@ bool Modification::processTrace(TraceList::iterator &iter) {
   return true;
 }
 
-void Modification::replaceCall(TracePtr block, int_function *target, instPoint *cur) {
+void Modification::replaceCall(TracePtr block, func_instance *target, instPoint *cur) {
   Trace::AtomList &elements = block->elements();
 
   cerr << "Warning: skipping replacement of call" << endl;
@@ -120,9 +120,9 @@ void Modification::replaceCall(TracePtr block, int_function *target, instPoint *
     // Don't leak target objects
     delete d_iter->second;
     
-    int_block *tbbl = target->entryBlock();
+    block_instance *tbbl = target->entryBlock();
     
-    Target<int_block *> *new_target = new Target<int_block *>(tbbl);
+    Target<block_instance *> *new_target = new Target<block_instance *>(tbbl);
     assert(new_target);
     
     d_iter->second = new_target;
@@ -136,7 +136,7 @@ void Modification::replaceCall(TracePtr block, int_function *target, instPoint *
 }
 
 
-void Modification::replaceFunction(TracePtr block, int_function *to) {
+void Modification::replaceFunction(TracePtr block, func_instance *to) {
     // We replace the original function with a jump to the new function.
     // Did I say "jump"? I meant "CFAtom". 
 
@@ -151,10 +151,10 @@ void Modification::replaceFunction(TracePtr block, int_function *to) {
     CFAtom::Ptr cf = CFAtom::create(block->block());
     cf->updateAddr(block->block()->start());
 
-    int_block *dest = to->entryBlock();
+    block_instance *dest = to->entryBlock();
     assert(dest);
 
-    cf->addDestination(CFAtom::Taken, new Target<int_block *>(dest));
+    cf->addDestination(CFAtom::Taken, new Target<block_instance *>(dest));
     block->elements().push_back(cf);
     return;
 
@@ -172,7 +172,7 @@ void Modification::replaceFunction(TracePtr block, int_function *to) {
 
   // And now to create a AtomTramp. Let's see if we can find one
   // in the function...
-  int_block *from = block->block()->func();
+  block_instance *from = block->block()->func();
   const vector<instPoint *> &entries = from->funcEntries();
   assert(!entries.empty());
   for (unsigned i = 0; i < entries.size(); ++i) {

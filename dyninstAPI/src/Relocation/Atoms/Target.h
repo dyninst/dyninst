@@ -121,13 +121,13 @@ template <>
 };
 
 template <>
-class Target<int_block *> : public TargetInt {
+class Target<block_instance *> : public TargetInt {
  public:
    //Address addr() const { return t_->firstInsnAddr(); }
- Target(int_block *t) : t_(t) {}
+ Target(block_instance *t) : t_(t) {}
   ~Target() {}
 
-  int_block *t() const { return t_; };
+  block_instance *t() const { return t_; };
 
   virtual type_t type() const { return BlockTarget; };
 
@@ -142,7 +142,7 @@ class Target<int_block *> : public TargetInt {
   int label(CodeBuffer *) const;
 
  private:
-  int_block *t_;
+  block_instance *t_;
 };
 
 

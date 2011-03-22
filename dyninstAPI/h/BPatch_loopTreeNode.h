@@ -38,7 +38,7 @@
 #include "BPatch_function.h"
 
 class BPatch_basicBlockLoop;
-class int_function;
+class func_instance;
 
 /** A class to represent the tree of nested loops and 
  *  callees (functions) in the control flow graph.
@@ -107,7 +107,7 @@ class BPATCH_DLL_EXPORT BPatch_loopTreeNode : public BPatch_eventLock {
 
     // A vector of functions called within the body of this loop (and
     // not the body of sub loops). 
-    BPatch_Vector<int_function *> callees;
+    BPatch_Vector<func_instance *> callees;
 
 };
 

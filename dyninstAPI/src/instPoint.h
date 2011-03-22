@@ -49,9 +49,9 @@
 #include "arch-forward-decl.h" // instruction
 
 
-class int_block;
-class int_function;
-class int_edge;
+class block_instance;
+class func_instance;
+class edge_instance;
 class baseTramp;
 
 class instPoint;
@@ -68,9 +68,9 @@ namespace Dyninst {
 #endif
 
 class instPoint {
-    friend class int_function;
-    friend class int_block;
-    friend class int_edge;
+    friend class func_instance;
+    friend class block_instance;
+    friend class edge_instance;
 
   public:
 // Types of points
@@ -98,20 +98,20 @@ class instPoint {
   private:
 
     // Function, block, instruction
-    static instPoint *funcEntry(int_function *);
-    static instPoint *funcExit(int_block *);
-    static instPoint *blockEntry(int_block *);
-    static instPoint *edge(int_edge *);
-    static instPoint *preInsn(int_block *, InstructionAPI::Instruction::Ptr, Address, bool trusted = false);
-    static instPoint *postInsn(int_block *, InstructionAPI::Instruction::Ptr, Address, bool trusted = false);
-    static instPoint *preCall(int_block *);
-    static instPoint *postCall(int_block *);
+    static instPoint *funcEntry(func_instance *);
+    static instPoint *funcExit(block_instance *);
+    static instPoint *blockEntry(block_instance *);
+    static instPoint *edge(edge_instance *);
+    static instPoint *preInsn(block_instance *, InstructionAPI::Instruction::Ptr, Address, bool trusted = false);
+    static instPoint *postInsn(block_instance *, InstructionAPI::Instruction::Ptr, Address, bool trusted = false);
+    static instPoint *preCall(block_instance *);
+    static instPoint *postCall(block_instance *);
     // Abrupt end? Should just be edge instrumentation, right?
     
-    instPoint(Type t, int_function *);
-    instPoint(Type t, int_block *b);
-    instPoint(Type t, int_edge *e);
-    instPoint(Type t, int_block *b, InstructionAPI::Instruction::Ptr i, Address a);
+    instPoint(Type t, func_instance *);
+    instPoint(Type t, block_instance *b);
+    instPoint(Type t, edge_instance *e);
+    instPoint(Type t, block_instance *b, InstructionAPI::Instruction::Ptr i, Address a);
 
     static instPoint *fork(instPoint *parent, AddressSpace *as);
 
@@ -128,10 +128,10 @@ class instPoint {
     baseTramp *tramp();
 
     AddressSpace *proc() const;
-    int_function *func() const;
+    func_instance *func() const;
     // These are optional
-    int_block *block() const { return block_; }
-    int_edge *edge() const { return edge_; }
+    block_instance *block() const { return block_; }
+    edge_instance *edge() const { return edge_; }
 
     // I'm commenting this out so that we don't reinvent the wheel. 
     // instPoints have two types of addresses. The first is "instrument
@@ -147,7 +147,7 @@ class instPoint {
     // instrumentation) and thus aren't strongly tied to 
     // a block give us the next block that will execute. 
     // Unlike block() above, this always works. 
-    int_block *nextExecutedBlock() const;
+    block_instance *nextExecutedBlock() const;
     Address nextExecutedAddr() const;
     
     Type type() const { return type_; }
@@ -170,9 +170,9 @@ class instPoint {
 
     Type type_;
 
-    int_function *func_;
-    int_block *block_;
-    int_edge *edge_;
+    func_instance *func_;
+    block_instance *block_;
+    edge_instance *edge_;
     InstructionAPI::Instruction::Ptr insn_;
     Address addr_;
     
@@ -182,7 +182,7 @@ class instPoint {
 
     void calcLiveness();
     // Will fill in insn if it's NULL-equivalent
-    static bool checkInsn(int_block *, 
+    static bool checkInsn(block_instance *, 
                           InstructionAPI::Instruction::Ptr &insn,
                           Address a);
 

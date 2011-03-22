@@ -222,7 +222,7 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
         if (DEBUG_LOOP) fprintf(stderr,"loop start iter\n");
 
         // instrument the head of the loop
-        int_block *llHead = loop->getLoopHead()->lowlevel_block();
+        block_instance *llHead = loop->getLoopHead()->lowlevel_block();
 
         // TODO FIXME: if we want this to work right we need an underlying loop
         // representation...
@@ -340,7 +340,7 @@ BPatch_flowGraph::getEntryBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& ebb)
 bool 
 BPatch_flowGraph::getExitBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& nbb)
 {
-   for (int_function::BlockSet::iterator iter = ll_func()->exitBlocks().begin();
+   for (func_instance::BlockSet::iterator iter = ll_func()->exitBlocks().begin();
         iter != ll_func()->exitBlocks().end(); ++iter) {
       nbb.push_back((*iter)->getHighLevelBlock());
    }
@@ -540,10 +540,10 @@ BPatch_flowGraph::getOuterLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 bool BPatch_flowGraph::createBasicBlocks()
 { 
     assert(ll_func());
-    // create blocks from int_blocks
-    const int_function::BlockSet&
+    // create blocks from block_instances
+    const func_instance::BlockSet&
         iblocks = ll_func()->blocks();
-    int_function::BlockSet::const_iterator ibIter;
+    func_instance::BlockSet::const_iterator ibIter;
     //for( unsigned int i = 0; i < iblocks.size(); i++ )
     for (ibIter = iblocks.begin(); 
          ibIter != iblocks.end(); 
@@ -553,8 +553,8 @@ bool BPatch_flowGraph::createBasicBlocks()
        allBlocks.insert(newblock);
        
        // Insert source/target edges
-       const int_block::edgelist &srcs = (*ibIter)->sources();
-       for (int_block::edgelist::iterator iter = srcs.begin(); iter != srcs.end(); ++iter) {
+       const block_instance::edgelist &srcs = (*ibIter)->sources();
+       for (block_instance::edgelist::iterator iter = srcs.begin(); iter != srcs.end(); ++iter) {
           // Skip interprocedural edges
           if ((*iter)->interproc()) continue;
           if (!(*iter)->bpedge()) {
@@ -564,8 +564,8 @@ bool BPatch_flowGraph::createBasicBlocks()
           newblock->incomingEdges.insert((*iter)->bpedge());
        }
        // Insert source/target edges
-       const int_block::edgelist &trgs = (*ibIter)->targets();
-       for (int_block::edgelist::iterator iter = trgs.begin(); iter != trgs.end(); ++iter) {
+       const block_instance::edgelist &trgs = (*ibIter)->targets();
+       for (block_instance::edgelist::iterator iter = trgs.begin(); iter != trgs.end(); ++iter) {
           // Skip interprocedural edges
           if ((*iter)->interproc()) continue;
           if (!(*iter)->bpedge()) {
@@ -822,7 +822,7 @@ void BPatch_flowGraph::findBBForBackEdge(BPatch_edge* backEdge,
    } STACK;
     
    STACK* stack = new STACK;
-   pdvector<int_block *> blocks;
+   pdvector<block_instance *> blocks;
    BPatch_basicBlock *pred;
 
    bbSet += backEdge->getTarget();
@@ -932,9 +932,9 @@ void BPatch_flowGraph::createLoopHierarchy()
 
    dfsCreateLoopHierarchy(loopRoot, outerLoops, "");
 
-   const int_function::BlockSet &blocks = ll_func()->blocks();
-   for (int_function::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
-      int_function *callee = (*iter)->callee();
+   const func_instance::BlockSet &blocks = ll_func()->blocks();
+   for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
+      func_instance *callee = (*iter)->callee();
       if (callee) {
          insertCalleeIntoLoopHierarchy(callee, (*iter)->last());
       }
@@ -945,7 +945,7 @@ void BPatch_flowGraph::createLoopHierarchy()
 // try to insert func into the appropriate spot in the loop tree based on
 // address ranges. if succesful return true, return false otherwise.
 bool BPatch_flowGraph::dfsInsertCalleeIntoLoopHierarchy(BPatch_loopTreeNode *node, 
-      int_function *callee,
+      func_instance *callee,
       unsigned long addr)
 {
    // if this node contains func then insert it
@@ -965,7 +965,7 @@ bool BPatch_flowGraph::dfsInsertCalleeIntoLoopHierarchy(BPatch_loopTreeNode *nod
 }
 
 
-void BPatch_flowGraph::insertCalleeIntoLoopHierarchy(int_function *callee,
+void BPatch_flowGraph::insertCalleeIntoLoopHierarchy(func_instance *callee,
       unsigned long addr)
 {
    // try to insert func into the loop hierarchy
@@ -1032,7 +1032,7 @@ bool BPatch_flowGraph::containsDynamicCallsitesInt()
    return (ll_func()->getNumDynamicCalls() > 0);
 }
 
-int_function *BPatch_flowGraph::ll_func() const {
+func_instance *BPatch_flowGraph::ll_func() const {
    return func_->lowlevel_func();
 }
 

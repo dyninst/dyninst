@@ -39,7 +39,7 @@
 #include "inst.h"
 #include "instP.h"
 #include "instPoint.h"
-#include "function.h" // int_function
+#include "function.h" // func_instance
 #include "codeRange.h"
 #include "dyn_thread.h"
 #include "miniTramp.h"
@@ -77,7 +77,7 @@ BPatch_addressSpace::~BPatch_addressSpace()
 {}
 
 
-BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(int_function* ifunc,
+BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(func_instance* ifunc,
                                                          BPatch_module *bpmod)
 {
    if (!bpmod)
@@ -165,7 +165,7 @@ BPatch_variableExpr *BPatch_addressSpace::findOrCreateVariable(int_variable *v,
                                                                
 
 
-BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, int_function *f)
+BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, func_instance *f)
 {
    BPatch_addressSpace *aS = (BPatch_addressSpace *)a->up_ptr();
    assert(aS);
@@ -173,7 +173,7 @@ BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, int_functi
 }
 
 BPatch_point *BPatch_addressSpace::createBPPointCB(AddressSpace *a, 
-                                                   int_function *f, 
+                                                   func_instance *f, 
                                                    instPoint *ip, int type)
 {
    BPatch_addressSpace *aS = (BPatch_addressSpace *)a->up_ptr();
@@ -591,7 +591,7 @@ BPatch_function *BPatch_addressSpace::findFunctionByAddrInt(void *addr)
 
    getAS(as);
    assert(as.size());
-   std::set<int_function *> funcs;
+   std::set<func_instance *> funcs;
    if (!as[0]->findFuncsByAddr((Address) addr, funcs)) {
       // if it's a mapped_object that has yet to be analyzed, 
       // trigger analysis and re-invoke this function
@@ -647,9 +647,9 @@ bool BPatch_addressSpace::findFuncsByRange(Address startAddr,
     // find the first code range in the region
     mapped_object* mobj = as[0]->findObject(startAddr);
     assert(mobj);
-    set<int_function*> intFuncs;
+    set<func_instance*> intFuncs;
     mobj->findFuncsByRange(startAddr,endAddr,intFuncs);
-    set<int_function*>::iterator fIter = intFuncs.begin();
+    set<func_instance*>::iterator fIter = intFuncs.begin();
     for (; fIter != intFuncs.end(); fIter++) {
         BPatch_function * bpfunc = findOrCreateBPFunc(*fIter,NULL);
         bpFuncs.insert(bpfunc);
@@ -676,12 +676,12 @@ bool BPatch_addressSpace::findFunctionsByAddrInt
     assert(as.size());
 
     // grab the funcs, return false if there aren't any
-    std::set<int_function*> intfuncs;
+    std::set<func_instance*> intfuncs;
     if (!as[0]->findFuncsByAddr( addr, intfuncs )) {
         return false;
     }
     // convert to BPatch_functions
-    for (std::set<int_function*>::iterator fiter=intfuncs.begin(); 
+    for (std::set<func_instance*>::iterator fiter=intfuncs.begin(); 
          fiter != intfuncs.end(); fiter++) 
     {
         funcs.push_back(findOrCreateBPFunc(*fiter, NULL));

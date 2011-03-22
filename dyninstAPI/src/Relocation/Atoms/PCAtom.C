@@ -53,7 +53,7 @@ PCAtom::Ptr PCAtom::create(Instruction::Ptr insn,
   return Ptr(new PCAtom(insn, addr, a, thunk));
 }
 
-TrackerElement *PCAtom::tracker(int_block *b) const {
+TrackerElement *PCAtom::tracker(block_instance *b) const {
   assert(addr_ != 1);
   EmulatorTracker *e = new EmulatorTracker(addr_, b);
   return e;

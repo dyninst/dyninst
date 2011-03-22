@@ -44,7 +44,7 @@
 //#include "BPatch_dependenceGraphNode.h"
 // class BPatch_dependenceGraphNode;
 
-class int_function;
+class func_instance;
 class process;
 class InstrucIter;
 
@@ -100,7 +100,7 @@ class BPATCH_DLL_EXPORT BPatch_function :
 
     BPatch_point* createMemInstPoint(void *addr, BPatch_memoryAccess* ma);
 
-    int_function *func;
+    func_instance *func;
     bool varsAndParamsValid;
 
 private:
@@ -128,13 +128,13 @@ public:
     virtual	~BPatch_function();
 
     // The following are for internal use by the library only:
-    int_function *lowlevel_func() const { return func; }
+    func_instance *lowlevel_func() const { return func; }
     BPatch_process *getProc() const;
     BPatch_addressSpace *getAddSpace() const { return addSpace; }
 
-    BPatch_function(BPatch_addressSpace *_addSpace, int_function *_func, 
+    BPatch_function(BPatch_addressSpace *_addSpace, func_instance *_func, 
                     BPatch_module *mod = NULL);
-    BPatch_function(BPatch_addressSpace *_addSpace, int_function *_func,
+    BPatch_function(BPatch_addressSpace *_addSpace, func_instance *_func,
                     BPatch_type * _retType, 
                     BPatch_module *);
     bool getSourceObj(BPatch_Vector<BPatch_sourceObj *> &);

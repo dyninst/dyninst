@@ -33,6 +33,7 @@
 #define _R_T_INSTRUMENTER_H_
 
 #include "Transformer.h"
+#include "dyninstAPI/src/instPoint.h"
 
 namespace Dyninst {
 namespace Relocation {
@@ -40,7 +41,7 @@ namespace Relocation {
 class Instrumenter : public Transformer {
  public:
   // Mirrors definition in CodeMover
-  typedef std::map<int_block *, TracePtr> TraceMap;
+  typedef std::map<block_instance *, TracePtr> TraceMap;
    
   virtual bool processTrace(TraceList::iterator &);
   virtual bool postprocess(TraceList &);

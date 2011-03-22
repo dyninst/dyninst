@@ -40,7 +40,7 @@
 #include "inst.h"
 #include "instP.h"
 #include "instPoint.h"
-#include "function.h" // int_function
+#include "function.h" // func_instance
 #include "codeRange.h"
 #include "dyn_thread.h"
 #include "miniTramp.h"
@@ -207,7 +207,7 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
     //bool atomic = false;
    
     // Define up here so we don't have gotos causing issues
-    std::set<int_function *> instrumentedFunctions;
+    std::set<func_instance *> instrumentedFunctions;
     
     // Two loops: first addInst, then generate/install/link
     pdvector<miniTramp *> workDone;

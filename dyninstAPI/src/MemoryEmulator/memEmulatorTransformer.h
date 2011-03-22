@@ -36,6 +36,8 @@
 #include "dataflowAPI/h/Absloc.h" // MemEmulator analysis
 #include "dataflowAPI/h/AbslocInterface.h" // And more of the same
 
+class func_instance;
+
 namespace Dyninst {
 namespace Relocation {
 
@@ -58,14 +60,14 @@ class MemEmulatorTransformer : public Transformer {
  private:
 
   AtomPtr createReplacement(InsnAtomPtr reloc,
-			       int_function *func, int_block *);
+			       func_instance *func, block_instance *);
 
   bool canRewriteMemInsn(InsnAtomPtr reloc,
-			 int_function *func);
+			 func_instance *func);
 
   bool isSensitive(InsnAtomPtr reloc, 
-		   int_function *func,
-		   int_block *block);
+		   func_instance *func,
+		   block_instance *block);
 
   void createTranslator(Register r);
 

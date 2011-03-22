@@ -46,7 +46,7 @@
 #include "parseAPI/h/InstructionSource.h"
 
 class fileDescriptor;
-class int_function;
+class func_instance;
 class memoryTracker;
 class depRelocation;
 
@@ -128,7 +128,7 @@ class BinaryEdit : public AddressSpace {
 
     // Default to "nope"
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
-                              int_function *&, 
+                              func_instance *&, 
                               Address) { return false; }
 
     // Should be easy if the process isn't _executing_ where
@@ -147,7 +147,7 @@ class BinaryEdit : public AddressSpace {
 
     bool writeFile(const std::string &newFileName);
     
-    virtual int_function *findOnlyOneFunction(const std::string &name,
+    virtual func_instance *findOnlyOneFunction(const std::string &name,
                                               const std::string &libname = "",
                                               bool search_rt_lib = true);
 

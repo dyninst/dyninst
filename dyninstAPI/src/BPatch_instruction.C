@@ -101,8 +101,8 @@ void *BPatch_instruction::getAddressInt()
 BPatch_point *BPatch_instruction::getInstPointInt()
 {
   //const unsigned char *insn_ptr = ((instruction *)instr)->ptr();
-  int_block *iblock = parent->iblock;
-  int_function *func = iblock->func();
+  block_instance *iblock = parent->iblock;
+  func_instance *func = iblock->func();
   AddressSpace *proc = func->proc();
 
   assert(proc);

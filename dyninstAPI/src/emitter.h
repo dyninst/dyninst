@@ -89,12 +89,12 @@ class Emitter {
     virtual bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen) = 0;
 
     virtual Register emitCall(opCode op, codeGen &gen, const pdvector<AstNodePtr> &operands,
-			      bool noCost, int_function *callee) = 0;
+			      bool noCost, func_instance *callee) = 0;
 
     virtual void emitGetRetVal(Register dest, bool addr_of, codeGen &gen) = 0;
     virtual void emitGetRetAddr(Register dest, codeGen &gen) = 0;
     virtual void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen) = 0;
-    virtual void emitFuncJump(int_function *f, instPoint::Type ptType, bool callOp, codeGen &gen) = 0;
+    virtual void emitFuncJump(func_instance *f, instPoint::Type ptType, bool callOp, codeGen &gen) = 0;
     virtual void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen) = 0;
     virtual void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen) = 0;
     virtual void emitPushFlags(codeGen &gen) = 0;
@@ -109,9 +109,9 @@ class Emitter {
     virtual bool emitPop(codeGen &, Register) = 0;
     virtual bool emitAdjustStackPointer(int index, codeGen &gen) = 0;
     
-    virtual bool clobberAllFuncCall(registerSpace *rs,int_function *callee) = 0;
+    virtual bool clobberAllFuncCall(registerSpace *rs,func_instance *callee) = 0;
 
-    Address getInterModuleFuncAddr(int_function *func, codeGen& gen);
+    Address getInterModuleFuncAddr(func_instance *func, codeGen& gen);
     Address getInterModuleVarAddr(const image_variable *var, codeGen& gen);
     //bool emitPIC(codeGen& /*gen*/, Address, Address );
 };

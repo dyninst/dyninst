@@ -39,7 +39,7 @@
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Vector.h"
-#include "image-func.h"
+#include "parse-cfg.h"
 #include "instPoint.h"
 #include "symtab.h"
 #include "parRegion.h"
@@ -55,7 +55,7 @@
 By parsing the function that actually sets up the parameters for the OMP
 region we discover informations such as what type of parallel region we're
 dealing with */
-bool image_func::parseOMPParent(image_parRegion * iPar, int desiredNum, int & currentSectionNum )
+bool parse_func::parseOMPParent(image_parRegion * iPar, int desiredNum, int & currentSectionNum )
 {
 #if !defined(cap_instruction_api)
    Address funcBegin = getOffset();
@@ -80,7 +80,7 @@ bool image_func::parseOMPParent(image_parRegion * iPar, int desiredNum, int & cu
          Address target = callFind.getBranchTargetAddress(&isAbsolute);
          image * im = img();
 
-         image_func *ppdf = im->findFuncByEntry(target);
+         parse_func *ppdf = im->findFuncByEntry(target);
 
          if (ppdf != NULL)
          {
@@ -110,7 +110,7 @@ bool image_func::parseOMPParent(image_parRegion * iPar, int desiredNum, int & cu
             OMP_PAR_DO, OMP_PAR_SECTIONS, OMP_MASTER, OMP_CRITICAL,
             OMP_BARRIER, OMP_ATOMIC, OMP_FLUSH, OMP_ORDERED */
          image * im = img();
-         image_func *ppdf = im->findFuncByEntry(target);
+         parse_func *ppdf = im->findFuncByEntry(target);
 	  
          if (ppdf != NULL)
          {
@@ -205,7 +205,7 @@ bool image_func::parseOMPParent(image_parRegion * iPar, int desiredNum, int & cu
 
 
 	
-std::string image_func::calcParentFunc(const image_func * imf,
+std::string parse_func::calcParentFunc(const parse_func * imf,
                                     pdvector<image_parRegion *> &/*pR*/)
 {
   /* We need to figure out the function that called the outlined
@@ -235,7 +235,7 @@ std::string image_func::calcParentFunc(const image_func * imf,
 }
 
 
-void image_func::parseOMP(image_parRegion * parReg, image_func * parentFunc, int & currentSectionNum)
+void parse_func::parseOMP(image_parRegion * parReg, parse_func * parentFunc, int & currentSectionNum)
 {  
   /* Each region is contained in a function, for the worksharing constructs
      usually the parralel region encompasses the entire function 
@@ -303,7 +303,7 @@ void image_func::parseOMP(image_parRegion * parReg, image_func * parentFunc, int
    parseOMPFunc(hasLoop);
 }	  
 
-void image_func::parseOMPFunc(bool hasLoop)
+void parse_func::parseOMPFunc(bool hasLoop)
 {
    if (OMPparsed_)
       return;
@@ -354,7 +354,7 @@ void image_func::parseOMPFunc(bool hasLoop)
             OMP_PAR_DO, OMP_PAR_SECTIONS, OMP_MASTER, OMP_CRITICAL,
             OMP_BARRIER, OMP_ATOMIC, OMP_FLUSH, OMP_ORDERED */
          image * im = img();
-         image_func *ppdf = im->findFuncByEntry(target);
+         parse_func *ppdf = im->findFuncByEntry(target);
          if (ppdf != NULL)
          {
             if (strstr(ppdf->symTabName().c_str(),"_xlsmp")!=NULL)
@@ -376,7 +376,7 @@ void image_func::parseOMPFunc(bool hasLoop)
                      {
                         Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
 			      
-                        image_func *ppdf2 = im->findFuncByEntry(target2);
+                        parse_func *ppdf2 = im->findFuncByEntry(target2);
                         if (ppdf2 != NULL)
                         {
                            if(strstr(ppdf2->symTabName().c_str(), "EndOrdered") !=NULL)
@@ -409,7 +409,7 @@ void image_func::parseOMPFunc(bool hasLoop)
                      {
                         Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
 			      
-                        image_func *ppdf2 = im->findFuncByEntry(target2);
+                        parse_func *ppdf2 = im->findFuncByEntry(target2);
                         if (ppdf2 != NULL)
                         {
                            if(strstr(ppdf2->symTabName().c_str(), "RelDefaultSLock") !=NULL)
@@ -434,7 +434,7 @@ void image_func::parseOMPFunc(bool hasLoop)
                      {
                         Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
 			      
-                        image_func *ppdf2 = im->findFuncByEntry(target2);
+                        parse_func *ppdf2 = im->findFuncByEntry(target2);
                         if (ppdf2 != NULL)
                         {
                            if(strstr(ppdf2->symTabName().c_str(), "RelDefaultSLock") !=NULL)
@@ -467,13 +467,13 @@ void image_func::parseOMPFunc(bool hasLoop)
    It returns true or false based on whether the function is a leaf function,
    since if it is not the function could call out to another function that
    clobbers more registers so more analysis would be needed */
-void image_func::calcUsedRegs()
+void parse_func::calcUsedRegs()
 {
    if (usedRegisters != NULL)
       return; 
    else
    {
-      usedRegisters = new image_func_registers();
+      usedRegisters = new parse_func_registers();
     using namespace Dyninst::InstructionAPI;
     std::set<RegisterAST::Ptr> writtenRegs;
 

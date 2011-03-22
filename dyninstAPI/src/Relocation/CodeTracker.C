@@ -41,7 +41,7 @@ using namespace Relocation;
 using namespace std;
 
 bool CodeTracker::origToReloc(Address origAddr,
-                              int_function *func,
+                              func_instance *func,
                               RelocatedElements &reloc) const {
    BFM_citer iter = origToReloc_.find(func->addr());
    if (iter == origToReloc_.end()) return false;
@@ -56,7 +56,7 @@ bool CodeTracker::origToReloc(Address origAddr,
 
 bool CodeTracker::relocToOrig(Address relocAddr, 
                               Address &orig, 
-                              int_block *&block,
+                              block_instance *&block,
                               baseTramp *&bti) const {
   TrackerElement *e = NULL;
   if (!relocToOrig_.find(relocAddr, e))

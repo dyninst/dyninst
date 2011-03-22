@@ -50,7 +50,7 @@ class HybridAnalysisOW;
 class BPatchSnippetHandle;
 class BPatch_basicBlock;
 class BPatch_basicBlockLoop;
-class int_block;
+class block_instance;
 
 #if !defined(os_windows)
 // Compatibility definitions
@@ -329,7 +329,7 @@ private:
                               owLoop *loop);
 
     bool isRealStore(Dyninst::Address insnAddr, 
-                     int_block *blk, 
+                     block_instance *blk, 
                      BPatch_function *func);
 
     // variables

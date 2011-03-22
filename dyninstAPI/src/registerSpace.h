@@ -51,7 +51,7 @@ class codeGen;
 class instPoint;
 class process;
 class AddressSpace;
-class image_basicBlock;
+class parse_block;
 class baseTramp;
 
 // A class to retain information about where the original register can be found. It can be in one of the following states: 

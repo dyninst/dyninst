@@ -37,14 +37,14 @@
 #include "parseAPI/src/InstrucIter.h"
 
 
-class image_func;
-class int_function;
+class parse_func;
+class func_instance;
 
 class InstrucIterFunction : public InstrucIter
 {
  public:
-  InstrucIterFunction(int_function* func);
-  InstrucIterFunction(Address start, int_function* func);
+  InstrucIterFunction(func_instance* func);
+  InstrucIterFunction(Address start, func_instance* func);
   InstrucIterFunction(const InstrucIterFunction& ii);
   
   virtual ~InstrucIterFunction() {};

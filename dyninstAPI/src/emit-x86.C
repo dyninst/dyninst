@@ -1589,7 +1589,7 @@ Update-12/06, njr, since we're going to a cached system we are just going to
 look at the first level and not do recursive, since we would have to also
 store and reexamine every call out instead of doing it on the fly like before*/
 bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
-				    int_function *callee)
+				    func_instance *callee)
 		   
 {
    if (callee == NULL) return false;
@@ -1623,7 +1623,7 @@ bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
 static Register amd64_arg_regs[] = {REGNUM_RDI, REGNUM_RSI, REGNUM_RDX, REGNUM_RCX, REGNUM_R8, REGNUM_R9};
 #define AMD64_ARG_REGS (sizeof(amd64_arg_regs) / sizeof(Register))
 Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodePtr> &operands,
-                                bool noCost, int_function *callee)
+                                bool noCost, func_instance *callee)
 {
    assert(op == callOp);
    pdvector <Register> srcs;
@@ -1795,7 +1795,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
    return ret;
 }
 
-bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, int_function *callee, Register) {
+bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, func_instance *callee, Register) {
     // make the call (using an indirect call)
     //emitMovImmToReg64(REGNUM_EAX, callee->getAddress(), true, gen);
     //emitSimpleInsn(0xff, gen); // group 5
@@ -1828,15 +1828,15 @@ bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, int_function *callee, Re
 }
 
 
-bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee, Register) {
+bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, func_instance *callee, Register) {
     //fprintf(stdout, "at emitCallInstruction: callee=%s\n", callee->prettyName().c_str());
 
     AddressSpace *addrSpace = gen.addrSpace();
     Address dest;
 
-    // find int_function reference in address space
+    // find func_instance reference in address space
     // (refresh func_map)
-    pdvector<int_function *> funcs;
+    pdvector<func_instance *> funcs;
     addrSpace->findFuncsByAll(callee->prettyName(), funcs);
 
     // test to see if callee is in a shared module
@@ -1957,7 +1957,7 @@ static void emitPushImm16_64(unsigned short imm, codeGen &gen)
 
 #define MAX_SINT ((signed int) (0x7fffffff))
 #define MIN_SINT ((signed int) (0x80000000))
-void EmitterAMD64::emitFuncJump(int_function *f, instPoint::Type /*ptType*/, bool callOp, codeGen &gen)
+void EmitterAMD64::emitFuncJump(func_instance *f, instPoint::Type /*ptType*/, bool callOp, codeGen &gen)
 {
    assert(gen.inInstrumentation());
 
@@ -2701,7 +2701,7 @@ bool EmitterAMD64::emitAdjustStackPointer(int index, codeGen &gen) {
 
 #endif /* end of AMD64-specific functions */
 
-Address Emitter::getInterModuleFuncAddr(int_function *func, codeGen& gen)
+Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
 {
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();
@@ -2715,7 +2715,7 @@ Address Emitter::getInterModuleFuncAddr(int_function *func, codeGen& gen)
         assert(!"Invalid function call (function info is missing)");
     }
 
-    // find the Symbol corresponding to the int_function
+    // find the Symbol corresponding to the func_instance
     std::vector<SymtabAPI::Symbol *> syms;
     func->ifunc()->func()->getSymbols(syms);
 
@@ -2805,7 +2805,7 @@ Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
     return relocation_address;
 }
 
-bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee, Register ret) 
+bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, func_instance *callee, Register ret) 
 {
    // make the call
    // we are using an indirect call here because we don't know the
@@ -2840,7 +2840,7 @@ bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee, Reg
    return true;
 }
 
-bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee, Register ret) {
+bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, func_instance *callee, Register ret) {
    AddressSpace *addrSpace = gen.addrSpace();
    Address dest;
 
@@ -2858,9 +2858,9 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee, Re
    gen.rs()->noteVirtualInReal(placeholder1, RealRegister(REGNUM_ECX));
    gen.rs()->noteVirtualInReal(placeholder2, RealRegister(REGNUM_EDX));
 
-   // find int_function reference in address space
+   // find func_instance reference in address space
    // (refresh func_map)
-   pdvector<int_function *> funcs;
+   pdvector<func_instance *> funcs;
    addrSpace->findFuncsByAll(callee->prettyName(), funcs);
    
    // test to see if callee is in a shared module

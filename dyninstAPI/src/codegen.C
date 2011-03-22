@@ -632,7 +632,7 @@ instPoint *codeGen::point() const {
     return ip_;
 }
 
-int_function *codeGen::func() const {
+func_instance *codeGen::func() const {
     if (f_) return f_;
     if (ip_) return ip_->func();
     return NULL;
@@ -694,7 +694,7 @@ Dyninst::Architecture codeGen::getArch() const {
   return Arch_none;
 }
 
-void codeGen::registerDefensivePad(int_block *callBlock, Address padStart, unsigned padSize) {
+void codeGen::registerDefensivePad(block_instance *callBlock, Address padStart, unsigned padSize) {
   // Register a match between a call instruction
   // and a padding area post-reloc-call for
   // control flow interception purposes.

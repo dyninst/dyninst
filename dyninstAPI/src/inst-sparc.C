@@ -481,7 +481,7 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
 // this by ensuring that the register context upon entry to CALLEE is
 // the register context of function we are instrumenting, popped once.
 void emitFuncJump(opCode op, codeGen &gen, 
-                  int_function *callee, AddressSpace * /*proc*/,
+                  func_instance *callee, AddressSpace * /*proc*/,
                   const instPoint *, bool)
 {
     assert(op == funcJumpOp);
@@ -763,7 +763,7 @@ void emitStorePreviousStackFrameRegister(Address,
 Register emitFuncCall(opCode op, 
 		      codeGen &gen, 
 		      pdvector<AstNodePtr> &operands, 
-		      bool noCost, int_function *callee)
+		      bool noCost, func_instance *callee)
 {
    assert(op == callOp || op == funcJumpOp);
    pdvector <Register> srcs;
@@ -1459,7 +1459,7 @@ int instPoint::liveRegSize()
 /**
  * Fills in an indirect function pointer at 'addr' to point to 'f'.
  **/
-bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
+bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
 {
    Address val_to_write = f->getAddress();
    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   

@@ -67,7 +67,7 @@ class baseTramp {
     static baseTramp *fork(instPoint *cPoint, baseTramp *parBT);
 
 
-    int_function *func() const;
+    func_instance *func() const;
     instPoint *point() const { return point_; }
     instPoint *instP() const { return point(); }
     AddressSpace *proc() const;

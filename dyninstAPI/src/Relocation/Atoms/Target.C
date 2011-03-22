@@ -36,7 +36,7 @@
 using namespace Dyninst;
 using namespace Relocation;
 
-int Target<int_block *>::label(CodeBuffer *buf) const {
+int Target<block_instance *>::label(CodeBuffer *buf) const {
    return buf->defineLabel(t_->start());
 }
 

@@ -95,9 +95,9 @@ class int_variable {
 };
 
 struct edgeStub {
-    edgeStub(int_block *s, Address t, EdgeTypeEnum y) 
+    edgeStub(block_instance *s, Address t, EdgeTypeEnum y) 
     { src = s; trg = t; type = y; }
-    int_block* src;
+    block_instance* src;
     Address trg;
     EdgeTypeEnum type;
 };
@@ -121,8 +121,8 @@ struct edgeStub {
 
 class mapped_object : public codeRange {
     friend class mapped_module; // for findFunction
-    friend class int_function;
-    friend class int_block; // Adds to codeRangesByAddr_
+    friend class func_instance;
+    friend class block_instance; // Adds to codeRangesByAddr_
  private:
     mapped_object();
     mapped_object(fileDescriptor fileDesc, 
@@ -140,7 +140,7 @@ class mapped_object : public codeRange {
     // Copy constructor: for forks
     mapped_object(const mapped_object *par_obj, process *child);
 
-    // Will delete all int_functions which were originally part of this object; including 
+    // Will delete all func_instances which were originally part of this object; including 
     // any that were relocated (we can always follow the "I was relocated" pointer).
     ~mapped_object();
 
@@ -192,12 +192,12 @@ class mapped_object : public codeRange {
 
     void getInferiorHeaps(vector<pair<string, Address> > &infHeaps);
 
-    bool findFuncsByAddr(const Address addr, std::set<int_function *> &funcs);
-    bool findBlocksByAddr(const Address addr, std::set<int_block *> &blocks);
-    int_function *findFuncByEntry(const Address addr);
-    bool findBlocksByEntry(const Address addr, std::set<int_block *> &blocks);
+    bool findFuncsByAddr(const Address addr, std::set<func_instance *> &funcs);
+    bool findBlocksByAddr(const Address addr, std::set<block_instance *> &blocks);
+    func_instance *findFuncByEntry(const Address addr);
+    bool findBlocksByEntry(const Address addr, std::set<block_instance *> &blocks);
 
-    int_block *findBlock(ParseAPI::Function *f, ParseAPI::Block *b);
+    block_instance *findBlock(ParseAPI::Function *f, ParseAPI::Block *b);
 
     // codeRange method
     void *getPtrToInstruction(Address addr) const;
@@ -205,7 +205,7 @@ class mapped_object : public codeRange {
 
     // Try to avoid using these if you can, since they'll trigger
     // parsing and allocation. 
-    bool getAllFunctions(pdvector<int_function *> &funcs);
+    bool getAllFunctions(pdvector<func_instance *> &funcs);
     bool getAllVariables(pdvector<int_variable *> &vars);
 
     const pdvector<mapped_module *> &getModules();
@@ -222,14 +222,14 @@ class mapped_object : public codeRange {
     void addProtectedPage(Address pageAddr); // adds to protPages_
     void removeProtectedPage(Address pageAddr);
     void removeEmptyPages();
-    void removeFunction(int_function *func);
+    void removeFunction(func_instance *func);
     bool splitIntLayer();
     bool findBlocksByRange(Address startAddr,
                           Address endAddr,
-                          std::list<int_block*> &pageBlocks);
+                          std::list<block_instance*> &pageBlocks);
     void findFuncsByRange(Address startAddr,
                           Address endAddr,
-                          std::set<int_function*> &pageFuncs);
+                          std::set<func_instance*> &pageFuncs);
     void addEmulInsn(Address insnAddr, Register effective_addr);
     bool isEmulInsn(Address insnAddr);
     Register getEmulInsnReg(Address insnAddr);
@@ -260,11 +260,11 @@ public:
     // Mangled: multiple modules with static/private functions and
     // we've lost the module name.
 
-    const pdvector<int_function *> *findFuncVectorByPretty(const std::string &funcname);
-    const pdvector<int_function *> *findFuncVectorByMangled(const std::string &funcname); 
+    const pdvector<func_instance *> *findFuncVectorByPretty(const std::string &funcname);
+    const pdvector<func_instance *> *findFuncVectorByMangled(const std::string &funcname); 
 
-    bool findFuncsByAddr(std::vector<int_function *> &funcs);
-    bool findBlocksByAddr(std::vector<int_block *> &blocks);
+    bool findFuncsByAddr(std::vector<func_instance *> &funcs);
+    bool findBlocksByAddr(std::vector<block_instance *> &blocks);
 
     const pdvector<int_variable *> *findVarVectorByPretty(const std::string &varname);
     const pdvector<int_variable *> *findVarVectorByMangled(const std::string &varname); 
@@ -275,18 +275,18 @@ public:
 	void setDirty(){ dirty_=true;}
 	bool isDirty() { return dirty_; }
 
-    int_function *findFunction(ParseAPI::Function *img_func);
+    func_instance *findFunction(ParseAPI::Function *img_func);
     int_variable *findVariable(image_variable *img_var);
 
     // These methods should be invoked to find the global constructor and
     // destructor functions in stripped, static binaries
-    int_function *findGlobalConstructorFunc(const std::string &ctorHandler);
-    int_function *findGlobalDestructorFunc(const std::string &dtorHandler);
+    func_instance *findGlobalConstructorFunc(const std::string &ctorHandler);
+    func_instance *findGlobalDestructorFunc(const std::string &dtorHandler);
 
     // We store callee names at the mapped_object level for
     // efficiency
-    std::string getCalleeName(int_block *);
-    void setCalleeName(int_block *, std::string name);
+    std::string getCalleeName(block_instance *);
+    void setCalleeName(block_instance *, std::string name);
 
     //
     //     PRIVATE DATA MEMBERS
@@ -311,12 +311,13 @@ private:
 
     pdvector<mapped_module *> everyModule;
 
-    typedef std::map<const image_func *, int_function *> FuncMap;
+    typedef std::map<const parse_func *, func_instance *> FuncMap;
     FuncMap everyUniqueFunction;
+
     dictionary_hash<const image_variable *, int_variable *> everyUniqueVariable;
 
-    dictionary_hash< std::string, pdvector<int_function *> * > allFunctionsByMangledName;
-    dictionary_hash< std::string, pdvector<int_function *> * > allFunctionsByPrettyName;
+    dictionary_hash< std::string, pdvector<func_instance *> * > allFunctionsByMangledName;
+    dictionary_hash< std::string, pdvector<func_instance *> * > allFunctionsByPrettyName;
 
     dictionary_hash< std::string, pdvector<int_variable *> * > allVarsByMangledName;
     dictionary_hash< std::string, pdvector<int_variable *> * > allVarsByPrettyName;
@@ -324,7 +325,7 @@ private:
     codeRangeTree codeRangesByAddr_;
 
     // And those call...
-    void addFunction(int_function *func);
+    void addFunction(func_instance *func);
     void addVariable(int_variable *var);
 
     // Add a name after-the-fact
@@ -332,7 +333,7 @@ private:
         mangledName = 1,
         prettyName = 2,
         typedName = 4 } nameType_t;
-    void addFunctionName(int_function *func, const std::string newName, nameType_t nameType);
+    void addFunctionName(func_instance *func, const std::string newName, nameType_t nameType);
 
     bool dirty_; // marks the shared object as dirty 
     bool dirtyCalled_;//see comment for setDirtyCalled
@@ -367,7 +368,7 @@ private:
 
     bool memoryImg_;
 
-    std::map<int_block *, std::string> calleeNames_;
+    std::map<block_instance *, std::string> calleeNames_;
 };
 
 // Aggravation: a mapped object might very well occupy multiple "ranges". 

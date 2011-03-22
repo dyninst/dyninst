@@ -43,7 +43,7 @@
 #include "BPatch_eventLock.h"
 #include "BPatch_loopTreeNode.h"
 
-class int_function;
+class func_instance;
 class process;
 class AddressSpace;
 class BPatch_edge;
@@ -68,7 +68,7 @@ class BPATCH_DLL_EXPORT BPatch_flowGraph :
   friend class BPatch_basicBlock;
   friend class BPatch_function;
   friend class dominatorCFG;
-  friend class int_function; // This is illegal here... keeps us from having to
+  friend class func_instance; // This is illegal here... keeps us from having to
                             // have a public constructor...  PDSEP
   friend std::ostream& operator<<(std::ostream&,BPatch_flowGraph&);
   friend void dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,
@@ -77,7 +77,7 @@ class BPATCH_DLL_EXPORT BPatch_flowGraph :
  
   BPatch_flowGraph (BPatch_function *func, bool &valid); 
 
-  int_function *ll_func() const;
+  func_instance *ll_func() const;
   bool isValid_;
 public:
 
@@ -216,10 +216,10 @@ public:
 			      bool outerMostOnly);
   
   bool dfsInsertCalleeIntoLoopHierarchy(BPatch_loopTreeNode *node, 
-                                        int_function *func,
+                                        func_instance *func,
                                         unsigned long addr);
 
-  void insertCalleeIntoLoopHierarchy(int_function * func, unsigned long addr);
+  void insertCalleeIntoLoopHierarchy(func_instance * func, unsigned long addr);
 
   void dfsPrintLoops(BPatch_loopTreeNode *n);
 

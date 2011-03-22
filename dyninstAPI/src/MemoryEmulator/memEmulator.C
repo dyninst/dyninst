@@ -518,18 +518,18 @@ void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size)
 
 }
 
-void MemoryEmulator::removeSpringboards(int_function * func) 
+void MemoryEmulator::removeSpringboards(func_instance * func) 
 {
     malware_cerr << "untracking springboards from deadfunc " << hex << func->getAddress() << dec << endl;
 
-    const set<int_block*,int_block::compare> & blocks = func->blocks();
-    set<int_block*,int_block::compare>::const_iterator bit = blocks.begin();
+    const set<block_instance*,block_instance::compare> & blocks = func->blocks();
+    set<block_instance*,block_instance::compare>::const_iterator bit = blocks.begin();
     for (; bit != blocks.end(); bit++) {
         removeSpringboards((*bit));
     }
 }
 
-void MemoryEmulator::removeSpringboards(const int_block *bbi) 
+void MemoryEmulator::removeSpringboards(const block_instance *bbi) 
 {
     malware_cerr << "  untracking springboards from deadblock [" << hex 
          << bbi->start() << " " << bbi->end() << ")" << dec <<endl;

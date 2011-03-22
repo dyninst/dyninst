@@ -782,14 +782,14 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
     // Should just check each relocated function and add a symbol
     // for it, since this is now totally broken.
 
-    int_function *currFunc = NULL;
+    func_instance *currFunc = NULL;
     codeRange *startRange = NULL;
 
     Address startAddr = 0;
     unsigned size = 0;
 
     for (unsigned i = 0; i < ranges.size(); i++) {
-        int_block *bbl = ranges[i]->is_basicBlockInstance();
+        block_instance *bbl = ranges[i]->is_basicBlockInstance();
 
         bool finishCurrentRegion = false;
         bool startNewRegion = false;
@@ -900,11 +900,11 @@ vector<BinaryEdit *> &BinaryEdit::rtLibrary()
    return rtlib;
 }
 
-int_function *BinaryEdit::findOnlyOneFunction(const std::string &name,
+func_instance *BinaryEdit::findOnlyOneFunction(const std::string &name,
                                               const std::string &libname,
                                               bool search_rt_lib)
 {
-   int_function *f = AddressSpace::findOnlyOneFunction(name, libname, search_rt_lib);
+   func_instance *f = AddressSpace::findOnlyOneFunction(name, libname, search_rt_lib);
    if (!f && search_rt_lib) {
       std::vector<BinaryEdit *>::iterator rtlib_it;
       for(rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
@@ -953,19 +953,19 @@ bool BinaryEdit::replaceTrapHandler() {
     // We haven't code generated yet, so we're working 
     // with addInst.
 
-    int_function *dyn_sigaction = findOnlyOneFunction("dyn_sigaction");
+    func_instance *dyn_sigaction = findOnlyOneFunction("dyn_sigaction");
     assert(dyn_sigaction);
 
-    int_function *dyn_signal = findOnlyOneFunction("dyn_signal");
+    func_instance *dyn_signal = findOnlyOneFunction("dyn_signal");
     assert(dyn_signal);
 
-    pdvector<int_function *> allFuncs;
+    pdvector<func_instance *> allFuncs;
     getAllFunctions(allFuncs);
     bool replaced = false;
     for (unsigned i = 0; i < allFuncs.size(); i++) {
-        int_function *func = allFuncs[i];        
+        func_instance *func = allFuncs[i];        
         assert(func);
-        for (int_function::BlockSet::const_iterator iter = func->blocks().begin();
+        for (func_instance::BlockSet::const_iterator iter = func->blocks().begin();
              iter != func->blocks().end(); ++iter) {
            if ((*iter)->containsCall()) {
               std::string calleeName = (*iter)->calleeName();

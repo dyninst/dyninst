@@ -858,7 +858,7 @@ bool dynamic_linking::installTracing()
   // function that implements them and writing 'return 0' over the top of
   // the function.
     startup_printf("... Looking for dl_check_caller...\n");
-    pdvector<int_function *> dlchecks;
+    pdvector<func_instance *> dlchecks;
     if (proc->findFuncsByMangled("_dl_check_caller",
                                  dlchecks)) {
         for (unsigned i = 0; i < dlchecks.size(); i++) {
@@ -870,7 +870,7 @@ bool dynamic_linking::installTracing()
     // And find the address of do_dlopen and set the RT library symbol correctly
     // TODO: check libc only
     // TODO: use replaceCall to do this right...
-    pdvector<int_function *> do_dlopens;
+    pdvector<func_instance *> do_dlopens;
     startup_printf("... Looking for do_dlopen...\n");
     if (proc->findFuncsByMangled("do_dlopen",
                                  do_dlopens)) {

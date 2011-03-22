@@ -114,7 +114,7 @@ bool HybridAnalysisOW::codeChangeCB
             vector<ParseAPI::Function*>::iterator fiter = funcs.begin();
             for ( ; fiter != funcs.end(); fiter++) {
                 Address fAddr = proc()->lowlevel_process()->
-                    findFuncByInternalFunc(dynamic_cast<image_func*>(*fiter))->
+                    findFuncByInternalFunc(dynamic_cast<parse_func*>(*fiter))->
                     getAddress();
                 std::vector<BPatch_function*>::iterator bfiter=modfuncs.begin();
                 for (; bfiter != modfuncs.end(); bfiter++) {
@@ -412,7 +412,7 @@ void HybridAnalysisOW::owLoop::instrumentOneWrite(Address writeInsnAddr,
     {
        // We can afford to be really slow and precise in the lookup, as this is the
        // very, very, very uncommon case.
-       int_block *block = writeFuncs[fidx]->lowlevel_func()->findOneBlockByAddr(writeInsnAddr);
+       block_instance *block = writeFuncs[fidx]->lowlevel_func()->findOneBlockByAddr(writeInsnAddr);
        if (!block) continue;
        instPoint *ip = block->postInsnPoint(writeInsnAddr);
        BPatch_point *writePoint = hybridow_->proc()->findOrCreateBPPoint(writeFuncs[fidx],
@@ -1182,7 +1182,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
                 //   if they contain code
                 process *llproc = proc()->lowlevel_process();
                 mapped_object *obj = llproc->findObject((*spIter).first);
-                std::list<int_block*> dontcare;
+                std::list<block_instance*> dontcare;
                 if (obj->findBlocksByRange((*spIter).first, 
                         (*spIter).first + llproc->getMemoryPageSize(),
                         dontcare))
@@ -1227,7 +1227,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 #endif
 
 
-bool HybridAnalysisOW::isRealStore(Address insnAddr, int_block *block, 
+bool HybridAnalysisOW::isRealStore(Address insnAddr, block_instance *block, 
                                    BPatch_function *func) 
 {
     using namespace InstructionAPI;
@@ -1238,7 +1238,7 @@ bool HybridAnalysisOW::isRealStore(Address insnAddr, int_block *block,
             			       proc()->lowlevel_process()->getArch());
     Instruction::Ptr insn = decoder.decode();
     assert(insn != NULL);
-    image_func *imgfunc = func->lowlevel_func()->ifunc(); 
+    parse_func *imgfunc = func->lowlevel_func()->ifunc(); 
     Address image_addr = func->lowlevel_func()->addrToOffset(insnAddr);
 
     std::vector<Assignment::Ptr> assignments;

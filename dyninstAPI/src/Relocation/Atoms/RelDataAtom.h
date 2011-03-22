@@ -33,7 +33,7 @@
 #define _PATCHAPI_REL_DATA_ATOM_H_
 
 #include "Atom.h"
-class int_block;
+class block_instance;
 
 namespace Dyninst {
 namespace Relocation {
@@ -46,7 +46,7 @@ class RelDataAtom : public Atom {
 
    virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
 
-   TrackerElement *tracker(int_block *) const;
+   TrackerElement *tracker(block_instance *) const;
   
    static Ptr create(InstructionAPI::Instruction::Ptr insn,
 		     Address addr,

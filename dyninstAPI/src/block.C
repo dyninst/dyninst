@@ -43,9 +43,7 @@
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-
-
-int_block::int_block(image_basicBlock *ib, int_function *func) 
+block_instance::block_instance(parse_block *ib, func_instance *func) 
   : highlevel_block(NULL),
     func_(func),
     block_(ib),
@@ -54,7 +52,7 @@ int_block::int_block(image_basicBlock *ib, int_function *func)
 {};
 
 // Fork constructor
-int_block::int_block(const int_block *parent, int_function *func) :
+block_instance::block_instance(const block_instance *parent, func_instance *func) :
     highlevel_block(NULL),
     func_(func),
     block_(parent->block_),
@@ -63,37 +61,37 @@ int_block::int_block(const int_block *parent, int_function *func) :
 {
 }
 
-int_block::~int_block() {}
+block_instance::~block_instance() {}
 
-Address int_block::start() const {
+Address block_instance::start() const {
     return block_->start() + func_->baseAddr();
 }
 
-Address int_block::end() const {
+Address block_instance::end() const {
     return block_->end() + func_->baseAddr();
 }
 
-Address int_block::last() const {
+Address block_instance::last() const {
     return block_->lastInsnAddr() + func_->baseAddr();
 }
 
-unsigned int_block::size() const {
+unsigned block_instance::size() const {
     return block_->size();
 }
 
-int_function *int_block::func() const { 
+func_instance *block_instance::func() const { 
     return func_;
 }
 
-AddressSpace *int_block::addrSpace() const { 
+AddressSpace *block_instance::addrSpace() const { 
     return func()->proc(); 
 }
 
-bool int_block::isEntry() const { 
+bool block_instance::isEntry() const { 
    return (this == func_->entryBlock());
 }
 
-std::string int_block::format() const {
+std::string block_instance::format() const {
     stringstream ret;
     ret << "BB(" 
         << hex << start()
@@ -103,7 +101,7 @@ std::string int_block::format() const {
 }
 
 #if defined(cap_instruction_api) 
-void int_block::getInsns(InsnInstances &instances) const {
+void block_instance::getInsns(InsnInstances &instances) const {
   instances.clear();
   llb()->getInsnInstances(instances);
   for (unsigned i = 0; i < instances.size(); ++i) {
@@ -111,7 +109,7 @@ void int_block::getInsns(InsnInstances &instances) const {
   }
 }
 
-std::string int_block::disassemble() const {
+std::string block_instance::disassemble() const {
     stringstream ret;
     InsnInstances instances;
     getInsns(instances);
@@ -122,14 +120,14 @@ std::string int_block::disassemble() const {
 }
 #endif
 
-void *int_block::getPtrToInstruction(Address addr) const {
+void *block_instance::getPtrToInstruction(Address addr) const {
     if (addr < start()) return NULL;
     if (addr > end()) return NULL;
     return func()->obj()->getPtrToInstruction(addr);
 }
 
 
-int_block *int_block::getFallthrough() {
+block_instance *block_instance::getFallthrough() {
    for (edgelist::iterator iter = targets().begin(); iter != targets().end(); ++iter) {
       if ((*iter)->type() == FALLTHROUGH ||
           (*iter)->type() == CALL_FT ||
@@ -140,7 +138,7 @@ int_block *int_block::getFallthrough() {
    return NULL;
 }
 
-int_block *int_block::getTarget() {
+block_instance *block_instance::getTarget() {
    for (edgelist::iterator iter = targets().begin(); iter != targets().end(); ++iter) {
       if ((*iter)->type() == CALL ||
           (*iter)->type() == DIRECT ||
@@ -151,16 +149,16 @@ int_block *int_block::getTarget() {
    return NULL;
 }
 
-void int_block::setHighLevelBlock(BPatch_basicBlock *newb)
+void block_instance::setHighLevelBlock(BPatch_basicBlock *newb)
 {
    highlevel_block = newb;
 }
 
-BPatch_basicBlock *int_block::getHighLevelBlock() const {
+BPatch_basicBlock *block_instance::getHighLevelBlock() const {
    return highlevel_block;
 }
 
-bool int_block::containsCall()
+bool block_instance::containsCall()
 {
     Block::edgelist & out_edges = llb()->targets();
     Block::edgelist::iterator eit = out_edges.begin();
@@ -172,7 +170,7 @@ bool int_block::containsCall()
     return false;
 }
 
-bool int_block::containsDynamicCall() {
+bool block_instance::containsDynamicCall() {
    Block::edgelist & out_edges = llb()->targets();
    Block::edgelist::iterator eit = out_edges.begin();
    for( ; eit != out_edges.end(); ++eit) {
@@ -183,17 +181,17 @@ bool int_block::containsDynamicCall() {
    return false;
 }
 
-int int_block::id() const {
+int block_instance::id() const {
     return llb()->id();
 }
 
 using namespace Dyninst::Relocation;
-void int_block::triggerModified() {
+void block_instance::triggerModified() {
     // Relocation info caching...
    //PCSensitiveTransformer::invalidateCache(this);
 }
 
-const int_block::edgelist &int_block::sources() {
+const block_instance::edgelist &block_instance::sources() {
    if (srcs_.empty()) {
       // Create edges
       for (ParseAPI::Block::edgelist::iterator iter = block_->sources().begin();
@@ -206,7 +204,7 @@ const int_block::edgelist &int_block::sources() {
          else {
             // Can lazily create the source block since it's in
             // our function.
-            int_edge *newEdge = int_edge::create(*iter, NULL, this);
+            edge_instance *newEdge = edge_instance::create(*iter, NULL, this);
             srcs_.push_back(newEdge);
          }
       }
@@ -214,7 +212,7 @@ const int_block::edgelist &int_block::sources() {
    return srclist_;
 }
 
-const int_block::edgelist &int_block::targets() {
+const block_instance::edgelist &block_instance::targets() {
    if (trgs_.empty()) {
       for (ParseAPI::Block::edgelist::iterator iter = block_->targets().begin();
            iter != block_->targets().end(); ++iter) {
@@ -228,7 +226,7 @@ const int_block::edgelist &int_block::targets() {
          else {
             // Can lazily create the source block since it's in
             // our function.
-           int_edge *newEdge = int_edge::create(*iter, this, NULL);
+           edge_instance *newEdge = edge_instance::create(*iter, this, NULL);
            trgs_.push_back(newEdge);
          }
       }
@@ -236,9 +234,18 @@ const int_block::edgelist &int_block::targets() {
    return trglist_;
 }
 
-void int_block::createInterproceduralEdges(ParseAPI::Edge *iedge, bool forwards, std::vector<int_edge 
+void block_instance::createInterproceduralEdges(ParseAPI::Edge *iedge, bool forwards, std::vector<edge_instance 
 *> &edges) {
   //   assert(iedge->interproc());
+
+   // This function has to handle two things
+   // 1) ParseAPI has blocks contained in multiple
+   // functions, which the int layer doesn't;
+   // 2) Interprocedural control flow. 
+   // 
+   // We map 1:n in all cases except forward
+   // calls, in which case we know which function
+   // we're calling. 
    
    // Let pT be the target block in the parseAPI
    // Let {f_1, ..., f_n} be the functions T is in
@@ -247,44 +254,55 @@ void int_block::createInterproceduralEdges(ParseAPI::Edge *iedge, bool forwards,
    if (!iblk) {
       assert(forwards); // Can't have sink in-edges
 
-      edges.push_back(int_edge::create(iedge, this, NULL));
+      edges.push_back(edge_instance::create(iedge, this, NULL));
       return;
    }
-   
+
+   // TODO: figure out how to handle sink blocks better... right
+   // now we're just ignoring them, and I'm not sure that's a
+   // great idea. 
+
    std::vector<ParseAPI::Function *> ifuncs;
-   iblk->getFuncs(ifuncs);
-   
+   if (forwards && iedge->type() == ParseAPI::CALL) {
+      parse_block *tmp = static_cast<parse_block *>(iblk);
+      parse_func *f = tmp->getEntryFunc();
+      if (f) ifuncs.push_back(f);
+   }
+   else {
+      iblk->getFuncs(ifuncs);
+   }   
+
    for (unsigned i = 0; i < ifuncs.size(); ++i) {
-      int_function *pfunc = obj()->findFunction(ifuncs[i]);
+      func_instance *pfunc = obj()->findFunction(ifuncs[i]);
       assert(pfunc);
-      int_block *pblock = pfunc->findBlock(iblk);
+      block_instance *pblock = pfunc->findBlock(iblk);
       assert(pblock);
-      int_edge *newEdge = NULL;
+      edge_instance *newEdge = NULL;
       if (forwards) 
-         newEdge = int_edge::create(iedge, this, pblock);
+         newEdge = edge_instance::create(iedge, this, pblock);
       else 
-         newEdge = int_edge::create(iedge, pblock, this);
+         newEdge = edge_instance::create(iedge, pblock, this);
       
       edges.push_back(newEdge);
    }
    return;
 }
 
-mapped_object *int_block::obj() const {
+mapped_object *block_instance::obj() const {
    return func()->obj();
 }
 
-int_function *int_block::callee() {
+func_instance *block_instance::callee() {
    return func()->findCallee(this);
 }
 
-std::string int_block::calleeName() {
+std::string block_instance::calleeName() {
    // How the heck do we do this again?
    return obj()->getCalleeName(this);
 }
 
-instPoint *int_block::entryPoint() {
-   int_function::InstPointMap::iterator iter = func()->blockEntryPoints_.find(this);
+instPoint *block_instance::entryPoint() {
+   func_instance::InstPointMap::iterator iter = func()->blockEntryPoints_.find(this);
    if (iter != func()->blockEntryPoints_.end()) return iter->second;
    
    instPoint *iP = instPoint::blockEntry(this);
@@ -292,8 +310,8 @@ instPoint *int_block::entryPoint() {
    return iP;
 }
 
-instPoint *int_block::preCallPoint() {
-   int_function::InstPointMap::iterator iter = func()->preCallPoints_.find(this);
+instPoint *block_instance::preCallPoint() {
+   func_instance::InstPointMap::iterator iter = func()->preCallPoints_.find(this);
    if (iter != func()->preCallPoints_.end()) return iter->second;
    
    instPoint *iP = instPoint::preCall(this);
@@ -301,8 +319,8 @@ instPoint *int_block::preCallPoint() {
    return iP;
 }
 
-instPoint *int_block::postCallPoint() {
-   int_function::InstPointMap::iterator iter = func()->postCallPoints_.find(this);
+instPoint *block_instance::postCallPoint() {
+   func_instance::InstPointMap::iterator iter = func()->postCallPoints_.find(this);
    if (iter != func()->postCallPoints_.end()) return iter->second;
    
    instPoint *iP = instPoint::postCall(this);
@@ -310,13 +328,13 @@ instPoint *int_block::postCallPoint() {
    return iP;
 }
 
-instPoint *int_block::preInsnPoint(Address addr) {
+instPoint *block_instance::preInsnPoint(Address addr) {
    assert(addr >= start());
    assert(addr < end());
 
-   int_function::ArbitraryMap::iterator iter = func()->preInsnPoints_.find(this);
+   func_instance::ArbitraryMap::iterator iter = func()->preInsnPoints_.find(this);
    if (iter != func()->preInsnPoints_.end()) {
-      int_function::ArbitraryMapInt::iterator iter2 = iter->second.find(addr);
+      func_instance::ArbitraryMapInt::iterator iter2 = iter->second.find(addr);
       if (iter2 != iter->second.end()) {
          return iter2->second;
       }
@@ -332,10 +350,10 @@ instPoint *int_block::preInsnPoint(Address addr) {
    return NULL;
 }
 
-instPoint *int_block::preInsnPoint(Address addr, InstructionAPI::Instruction::Ptr insn) {
-   int_function::ArbitraryMap::iterator iter = func()->preInsnPoints_.find(this);
+instPoint *block_instance::preInsnPoint(Address addr, InstructionAPI::Instruction::Ptr insn) {
+   func_instance::ArbitraryMap::iterator iter = func()->preInsnPoints_.find(this);
    if (iter != func()->preInsnPoints_.end()) {
-      int_function::ArbitraryMapInt::iterator iter2 = iter->second.find(addr);
+      func_instance::ArbitraryMapInt::iterator iter2 = iter->second.find(addr);
       if (iter2 != iter->second.end()) {
          return iter2->second;
       }
@@ -346,13 +364,13 @@ instPoint *int_block::preInsnPoint(Address addr, InstructionAPI::Instruction::Pt
    return iP;
 }
 
-instPoint *int_block::postInsnPoint(Address addr) {
+instPoint *block_instance::postInsnPoint(Address addr) {
    assert(addr > start());
    assert(addr < end());
 
-   int_function::ArbitraryMap::iterator iter = func()->postInsnPoints_.find(this);
+   func_instance::ArbitraryMap::iterator iter = func()->postInsnPoints_.find(this);
    if (iter != func()->postInsnPoints_.end()) {
-      int_function::ArbitraryMapInt::iterator iter2 = iter->second.find(addr);
+      func_instance::ArbitraryMapInt::iterator iter2 = iter->second.find(addr);
       if (iter2 != iter->second.end()) {
          return iter2->second;
       }
@@ -368,10 +386,10 @@ instPoint *int_block::postInsnPoint(Address addr) {
    return NULL;
 }
 
-instPoint *int_block::postInsnPoint(Address addr, InstructionAPI::Instruction::Ptr insn) {
-   int_function::ArbitraryMap::iterator iter = func()->postInsnPoints_.find(this);
+instPoint *block_instance::postInsnPoint(Address addr, InstructionAPI::Instruction::Ptr insn) {
+   func_instance::ArbitraryMap::iterator iter = func()->postInsnPoints_.find(this);
    if (iter != func()->postInsnPoints_.end()) {
-      int_function::ArbitraryMapInt::iterator iter2 = iter->second.find(addr);
+      func_instance::ArbitraryMapInt::iterator iter2 = iter->second.find(addr);
       if (iter2 != iter->second.end()) {
          return iter2->second;
       }
@@ -383,11 +401,11 @@ instPoint *int_block::postInsnPoint(Address addr, InstructionAPI::Instruction::P
 }
 
 
-instPoint *int_block::findPoint(instPoint::Type type) {
+instPoint *block_instance::findPoint(instPoint::Type type) {
    return func()->findPoint(type, this);
 }
 
-const std::map<Address, instPoint *> &int_block::findPoints(instPoint::Type type) {
+const std::map<Address, instPoint *> &block_instance::findPoints(instPoint::Type type) {
    return func()->findPoints(type, this);
 }
 

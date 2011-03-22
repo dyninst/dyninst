@@ -84,7 +84,7 @@ class BPatch_variableExpr;
 class BPatch_localVar;
 class BPatch_sourceObj;
 class BPatch_loopTreeNode;
-class int_function;
+class func_instance;
 class miniTramp;
 class instPoint;
 class BPatch_basicBlock;
@@ -102,7 +102,7 @@ template class BPatch_Vector<BPatch_module *>;
 template class BPatch_Vector<char *>;
 template class BPatch_Vector<BPatch_sourceObj *>;
 template class BPatch_Vector<BPatch_loopTreeNode *>;
-template class BPatch_Vector<int_function *>;
+template class BPatch_Vector<func_instance *>;
 template class BPatch_Vector<miniTramp *>;
 
 template class BPatch_Vector<const char *>;
@@ -122,7 +122,7 @@ template struct comparison<int>;
 template class BPatch_Set<int>;
 template class BPatch_Set<BPatch_opCode>;
 template class BPatch_Vector<BPatch_opCode>;
-template class BPatch_Set< int_function* , int_function::cmpAddr >;
+template class BPatch_Set< func_instance* , func_instance::cmpAddr >;
 
 
 class BPatch_basicBlock;

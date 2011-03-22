@@ -49,7 +49,7 @@ RelDataAtom::Ptr RelDataAtom::create(Instruction::Ptr insn,
   return Ptr(new RelDataAtom(insn, addr, target));
 }
 
-TrackerElement *RelDataAtom::tracker(int_block *b) const {
+TrackerElement *RelDataAtom::tracker(block_instance *b) const {
    EmulatorTracker *e = new EmulatorTracker(addr_, b);
   return e;
 }

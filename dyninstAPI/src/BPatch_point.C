@@ -226,7 +226,7 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
        return NULL;
    }
    
-   int_function *_func = point->block()->callee();
+   func_instance *_func = point->block()->callee();
    
    if (!_func) {
        parsing_printf("findCallee failed in getCalledFunction\n");
@@ -340,7 +340,7 @@ Address BPatch_point::getCallFallThroughAddr()
     assert(point);
     using namespace InstructionAPI;
     if (!point->block()) return 0;
-    int_block *ft = point->block()->getFallthrough();
+    block_instance *ft = point->block()->getFallthrough();
     if (ft) return ft->start();
     else return point->block()->end();
 }
@@ -537,7 +537,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
 
 
   // construct function call and insert
-  int_function * fb = func_to_use->lowlevel_func();
+  func_instance * fb = func_to_use->lowlevel_func();
 
   // Monitoring function
   AstNodePtr ast = AstNode::funcCallNode(fb, args);

@@ -545,7 +545,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 			std::vector<ParseAPI::Function *> funcs;
 			curPoint->llpoint()->block()->llb()->getFuncs(funcs);
 			for (unsigned f_iter = 0; f_iter < funcs.size(); ++f_iter) {
-				if (((image_func *)funcs[f_iter])->init_retstatus() != ParseAPI::RETURN ||
+				if (((parse_func *)funcs[f_iter])->init_retstatus() != ParseAPI::RETURN ||
 					funcs[f_iter]->tampersStack() == ParseAPI::TAMPER_NONZERO) 
                 {
                     instrument = true;
@@ -957,7 +957,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         for (unsigned fidx=0; fidx < imgFuncs.size(); fidx++) 
         {
             BPatch_function *func = proc()->findOrCreateBPFunc(
-                proc()->lowlevel_process()->findFuncByInternalFunc((image_func*)imgFuncs[fidx]),
+                proc()->lowlevel_process()->findFuncByInternalFunc((parse_func*)imgFuncs[fidx]),
                 NULL);
             removeInstrumentation(func, false);
             func->getCFG()->invalidate();
@@ -1033,7 +1033,7 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
         // rather than just blowing the function away of it
         // gets stomped in its entry block
         if (CALL == etype) {
-            int_function *tFunc = targObj->findFuncByEntry(target);
+            func_instance *tFunc = targObj->findFuncByEntry(target);
             assert(tFunc);
             if ( tFunc->ifunc()->hasWeirdInsns() ) {
                 malware_cerr << "Ignoring request as target function "
@@ -1107,9 +1107,9 @@ bool HybridAnalysis::analyzeNewFunction( BPatch_point *source,
 bool HybridAnalysis::hasEdge(BPatch_function *func, Address source, Address target)
 {
 // 0. first see if the edge needs to be parsed
-    int_block *block = func->lowlevel_func()->findBlockByEntry(source);
-    const int_block::edgelist &targets = block->targets();
-    for (int_block::edgelist::iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+    block_instance *block = func->lowlevel_func()->findBlockByEntry(source);
+    const block_instance::edgelist &targets = block->targets();
+    for (block_instance::edgelist::iterator iter = targets.begin(); iter != targets.end(); ++iter) {
        if ((*iter)->trg()->start() == target)
           return true;
     }

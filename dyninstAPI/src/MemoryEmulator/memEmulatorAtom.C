@@ -738,7 +738,7 @@ string MemEmulator::format() const {
 Address MemEmulator::getTranslatorAddr(bool wantShift) {
    if (wantShift) {
       // Function lookup time
-      int_function *func = scratch.addrSpace()->findOnlyOneFunction("RTtranslateMemoryShift");
+      func_instance *func = scratch.addrSpace()->findOnlyOneFunction("RTtranslateMemoryShift");
       // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
       if (!func) return 0;
       // assert(func);
@@ -746,7 +746,7 @@ Address MemEmulator::getTranslatorAddr(bool wantShift) {
    }
    else {
       // Function lookup time
-      int_function *func = scratch.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
+      func_instance *func = scratch.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
       // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
       if (!func) return 0;
       // assert(func);

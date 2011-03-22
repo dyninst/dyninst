@@ -46,7 +46,7 @@
 class BPatch_typeCollection;
 class BPatch_libInfo;
 class BPatch_module;
-class int_function;
+class func_instance;
 class process;
 
 //Keep old versions defined, that way someone can test if we're more
@@ -117,7 +117,7 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     friend class BPatch_process;
     friend class BPatch_point;
     friend class process;
-    friend class int_function;
+    friend class func_instance;
     friend class SignalHandler;
     friend class BPatch_asyncEventHandler;
     friend bool handleSigStopNInt(EventRecord &ev);

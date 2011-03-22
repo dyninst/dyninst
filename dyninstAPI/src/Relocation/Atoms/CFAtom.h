@@ -34,7 +34,7 @@
 
 #include "Atom.h"
 
-class int_block;
+class block_instance;
 
 namespace Dyninst {
 namespace Relocation {
@@ -95,9 +95,9 @@ class CFAtom : public Atom {
    CFAtom(InstructionAPI::Instruction::Ptr insn,
           Address addr);
 
-   TrackerElement *tracker(int_block *block) const;
+   TrackerElement *tracker(block_instance *block) const;
    TrackerElement *destTracker(TargetInt *dest) const;
-   TrackerElement *addrTracker(Address addr, int_block *block) const;
+   TrackerElement *addrTracker(Address addr, block_instance *block) const;
 
   // These are not necessarily mutually exclusive. See also:
   // PPC conditional linking indirect branch, oy. 
@@ -131,29 +131,29 @@ class CFAtom : public Atom {
   bool generateBranch(CodeBuffer &gens,
 		      TargetInt *to,
 		      InstructionAPI::Instruction::Ptr insn,
-                      int_block *curBlock,
+                      block_instance *curBlock,
 		      bool fallthrough);
 
   bool generateCall(CodeBuffer &gens,
 		    TargetInt *to,
-                    int_block *curBlock,
+                    block_instance *curBlock,
 		    InstructionAPI::Instruction::Ptr insn); 
 
   bool generateConditionalBranch(CodeBuffer &gens,
 				 TargetInt *to,
-                                 int_block *curBlock,
+                                 block_instance *curBlock,
 				 InstructionAPI::Instruction::Ptr insn); 
   // The Register holds the translated destination (if any)
   // TODO replace with the register IDs that Bill's building
   typedef unsigned Register;
   bool generateIndirect(CodeBuffer &gens,
 			Register reg,
-                        int_block *curBlock,
+                        block_instance *curBlock,
 			InstructionAPI::Instruction::Ptr insn);
   bool generateIndirectCall(CodeBuffer &gens,
 			    Register reg,
 			    InstructionAPI::Instruction::Ptr insn,
-                            int_block *curBlock,
+                            block_instance *curBlock,
 			    Address origAddr);
   
   bool generateAddressTranslator(CodeBuffer &buffer,
@@ -196,7 +196,7 @@ struct PaddingPatch : public Patch {
   // do statically, but the second requires a patch so that
   // we get notified of address finickiness.
 
-  PaddingPatch(unsigned size, bool registerDefensive, bool noop, int_block *b) 
+  PaddingPatch(unsigned size, bool registerDefensive, bool noop, block_instance *b) 
      : size_(size), registerDefensive_(registerDefensive), noop_(noop), block_(b) {};
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
    virtual unsigned estimate(codeGen &templ);
@@ -205,7 +205,7 @@ struct PaddingPatch : public Patch {
    unsigned size_;
    bool registerDefensive_;
    bool noop_;
-   int_block *block_;
+   block_instance *block_;
 };
 
 };

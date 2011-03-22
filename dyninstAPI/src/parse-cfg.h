@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
  
-// $Id: image-func.h,v 1.37 2008/09/03 06:08:44 jaw Exp $
+// $Id: parse-cfg.h,v 1.37 2008/09/03 06:08:44 jaw Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -57,7 +57,7 @@ using namespace Dyninst;
 
 class pdmodule;
 
-class image_basicBlock;
+class parse_block;
 class image_edge;
 
 #if !defined(ESSENTIAL_PARSING_ENUMS)
@@ -75,14 +75,14 @@ enum InstrumentableLevel {
 };
 #endif //!defined(ESSENTIAL_PARSING_ENUMS)
 
-class image_basicBlock : public codeRange, public ParseAPI::Block  {
-    friend class image_func;
+class parse_block : public codeRange, public ParseAPI::Block  {
+    friend class parse_func;
     friend class DynCFGFactory;
  private:
-    image_basicBlock(ParseAPI::CodeObject *, ParseAPI::CodeRegion*, Address);
+    parse_block(ParseAPI::CodeObject *, ParseAPI::CodeRegion*, Address);
  public:
-    image_basicBlock(image_func*,ParseAPI::CodeRegion*,Address);
-    ~image_basicBlock();
+    parse_block(parse_func*,ParseAPI::CodeRegion*,Address);
+    ~parse_block();
 
     // just pass through to Block
     Address firstInsnOffset() const;
@@ -93,8 +93,8 @@ class image_basicBlock : public codeRange, public ParseAPI::Block  {
     // cfg access & various predicates 
     bool isShared() const { return containingFuncs() > 1; }
     bool isExitBlock();
-    bool isEntryBlock(image_func * f) const;
-    image_func *getEntryFunc() const;  // func starting with this bock
+    bool isEntryBlock(parse_func * f) const;
+    parse_func *getEntryFunc() const;  // func starting with this bock
 
     bool unresolvedCF() const { return unresolvedCF_; }
     bool abruptEnd() const { return abruptEnd_; }
@@ -105,7 +105,7 @@ class image_basicBlock : public codeRange, public ParseAPI::Block  {
     image *img();
     
     // Find callees
-    image_func *getCallee();
+    parse_func *getCallee();
     // Returns the address of our callee (if we're a call block, of course)
     std::pair<bool, Address> callTarget();
 
@@ -121,8 +121,8 @@ class image_basicBlock : public codeRange, public ParseAPI::Block  {
 
     // etc.
     struct compare {
-        bool operator()(image_basicBlock * const &b1,
-                        image_basicBlock * const &b2) const {
+        bool operator()(parse_block * const &b1,
+                        parse_block * const &b2) const {
             if(b1->firstInsnOffset() < b2->firstInsnOffset())
                 return true;
             if(b2->firstInsnOffset() < b1->firstInsnOffset())
@@ -137,12 +137,12 @@ class image_basicBlock : public codeRange, public ParseAPI::Block  {
             return false;
         }
     };
-    typedef std::set<image_basicBlock *, image_basicBlock::compare> blockSet;
+    typedef std::set<parse_block *, parse_block::compare> blockSet;
 
 #if defined(cap_liveness)
-    const bitArray &getLivenessIn(image_func * context);
+    const bitArray &getLivenessIn(parse_func * context);
     // This is copied from the union of all successor blocks
-    const bitArray getLivenessOut(image_func * context);
+    const bitArray getLivenessOut(parse_func * context);
 #endif
 
 #if defined(cap_instruction_api)
@@ -168,38 +168,38 @@ class image_basicBlock : public codeRange, public ParseAPI::Block  {
     static InstructionCache cachedLivenessInfo;
     
  private:
-    void summarizeBlockLivenessInfo(image_func * context);
+    void summarizeBlockLivenessInfo(parse_func * context);
     // Returns true if any information changed; false otherwise
-    bool updateBlockLivenessInfo(image_func * context);
+    bool updateBlockLivenessInfo(parse_func * context);
 #endif
 
 
 };
 
 inline Address 
-image_basicBlock::firstInsnOffset() const {
+parse_block::firstInsnOffset() const {
     return ParseAPI::Block::start(); 
 }
 inline Address 
-image_basicBlock::lastInsnOffset() const {
+parse_block::lastInsnOffset() const {
     return ParseAPI::Block::lastInsnAddr();
 }
 inline Address 
-image_basicBlock::endOffset() const {
+parse_block::endOffset() const {
     return ParseAPI::Block::end();
 }
 inline Address 
-image_basicBlock::getSize() const {
+parse_block::getSize() const {
     return ParseAPI::Block::size();
 }
 
 void checkIfRelocatable (instruction insn, bool &canBeRelocated);
 
 class image_edge : public ParseAPI::Edge {
-    friend class image_basicBlock;
+    friend class parse_block;
  public:
-    image_edge(image_basicBlock *source, 
-               image_basicBlock *target, 
+    image_edge(parse_block *source, 
+               parse_block *target, 
                EdgeTypeEnum type) :
     ParseAPI::Edge(source,target,type)
    { }
@@ -207,30 +207,30 @@ class image_edge : public ParseAPI::Edge {
     // MSVC++ 2003 does not properly support covariant return types
     // in overloaded methods
 #if !defined _MSC_VER || _MSC_VER > 1310 
-   virtual image_basicBlock * src() const { return (image_basicBlock*)_source; }
-   virtual image_basicBlock * trg() const { return (image_basicBlock*)_target; }
+   virtual parse_block * src() const { return (parse_block*)_source; }
+   virtual parse_block * trg() const { return (parse_block*)_target; }
 #endif
 
    const char * getTypeString();
 };
 
 #include "ast.h"
-class image_func_registers {
+class parse_func_registers {
  public:
   std::set<Register> generalPurposeRegisters;
   std::set<Register> floatingPointRegisters;
   std::set<Register> specialPurposeRegisters;
 };
 
-class image_func : public ParseAPI::Function
+class parse_func : public ParseAPI::Function
 {
   friend class DynCFGFactory;
   friend class DynParseCallback;
   public:
    /* Annotatable requires a default constructor */
-   image_func() { }
+   parse_func() { }
   public:
-   image_func(SymtabAPI::Function *func, 
+   parse_func(SymtabAPI::Function *func, 
         pdmodule *m, 
         image *i, 
         ParseAPI::CodeObject * obj,
@@ -238,7 +238,7 @@ class image_func : public ParseAPI::Function
         InstructionSource * isrc,
         FuncSource src);
 
-   ~image_func();
+   ~parse_func();
 
    SymtabAPI::Function* getSymtabFunction() const{
       return  func_; 
@@ -263,7 +263,7 @@ class image_func : public ParseAPI::Function
    const vector<string> &typedNameVector() const {
        return func_->getAllTypedNames();
    }
-   void copyNames(image_func *duplicate);
+   void copyNames(parse_func *duplicate);
    // return true if the name is new (and therefore added)
    bool addSymTabName(std::string name, bool isPrimary = false);
    bool addPrettyName(std::string name, bool isPrimary = false);
@@ -279,7 +279,7 @@ class image_func : public ParseAPI::Function
 
    /*** Debugging output operators ***/
    ostream & operator<<(ostream &s) const;
-   friend ostream &operator<<(ostream &os, image_func &f);
+   friend ostream &operator<<(ostream &os, parse_func &f);
 
    /*** misc. accessors ***/
    pdmodule *pdmod() const { return mod_;}
@@ -315,9 +315,9 @@ class image_func : public ParseAPI::Function
    void destroyBlocks(std::vector<ParseAPI::Block *> &);
    
    void getReachableBlocks
-   ( const std::set<image_basicBlock*> &exceptBlocks, // input
-     const std::list<image_basicBlock*> &seedBlocks, // input
-     std::set<image_basicBlock*> &reachableBlocks ); // output
+   ( const std::set<parse_block*> &exceptBlocks, // input
+     const std::list<parse_block*> &seedBlocks, // input
+     std::set<parse_block*> &reachableBlocks ); // output
    ParseAPI::FuncReturnStatus init_retstatus() const;
    void setinit_retstatus(ParseAPI::FuncReturnStatus rs); //also sets retstatus
    bool hasWeirdInsns() { return hasWeirdInsns_; } // true if we stopped the 
@@ -332,8 +332,8 @@ class image_func : public ParseAPI::Function
    ////////////////////////////////////////////////
 
     struct compare {
-        bool operator()(image_func * const &f1,
-                        image_func * const &f2) const {
+        bool operator()(parse_func * const &f1,
+                        parse_func * const &f2) const {
             return (f1->getOffset() < f2->getOffset());
         }
     };
@@ -355,12 +355,12 @@ class image_func : public ParseAPI::Function
 
    bool containsSharedBlocks() const { return containsSharedBlocks_; }
 
-   image_basicBlock * entryBlock();
+   parse_block * entryBlock();
 
    /****** OpenMP Parsing Functions *******/
-   std::string calcParentFunc(const image_func * imf, pdvector<image_parRegion *> & pR);
-   void parseOMP(image_parRegion * parReg, image_func * parentFunc, int & currentSectionNum);
-   void parseOMPSectFunc(image_func * parentFunc);
+   std::string calcParentFunc(const parse_func * imf, pdvector<image_parRegion *> & pR);
+   void parseOMP(image_parRegion * parReg, parse_func * parentFunc, int & currentSectionNum);
+   void parseOMPSectFunc(parse_func * parentFunc);
    void parseOMPFunc(bool hasLoop);
    bool parseOMPParent(image_parRegion * iPar, int desiredNum, int & currentSectionNum);
    void addRegion(image_parRegion * iPar) { parRegionsList.push_back(iPar); }
@@ -397,7 +397,7 @@ class image_func : public ParseAPI::Function
 
    /////  Variables for liveness Analysis
    enum regUseState { unknown, used, unused };
-   image_func_registers * usedRegisters;
+   parse_func_registers * usedRegisters;
    regUseState containsFPRWrites_;   // floating point registers
    regUseState containsSPRWrites_;   // stack pointer registers
 
@@ -435,7 +435,7 @@ class image_func : public ParseAPI::Function
    bool isPLTFunction_;
 };
 
-typedef image_func *ifuncPtr;
+typedef parse_func *ifuncPtr;
 
 struct ifuncCmp
 {
@@ -450,15 +450,15 @@ struct ifuncCmp
 };
 
 inline Address 
-image_func::getOffset() const {
+parse_func::getOffset() const {
     return ParseAPI::Function::addr();
 }
 inline Address 
-image_func::getPtrOffset() const {
+parse_func::getPtrOffset() const {
     return func_->getFirstSymbol()->getPtrOffset();
 }
 inline unsigned 
-image_func::getSymTabSize() const { 
+parse_func::getSymTabSize() const { 
     return func_->getFirstSymbol()->getSize();
 }
 

@@ -186,7 +186,7 @@ class MemEmulator : public Atom {
    Register effAddr;
    int stackOffset;
    int effAddrSaveOffset;
-   int_block *block;
+   block_instance *block;
 
    bool usesESI;
    bool usesEDI;

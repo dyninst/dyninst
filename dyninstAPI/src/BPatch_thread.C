@@ -301,7 +301,7 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
    if (doa || is_deleted) {
       return NULL;
    }
-   int_function *ifunc = llthread->get_start_func();
+   func_instance *ifunc = llthread->get_start_func();
 
    if (!ifunc && llthread->get_indirect_start_addr())
    {

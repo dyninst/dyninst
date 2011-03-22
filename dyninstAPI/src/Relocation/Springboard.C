@@ -63,7 +63,7 @@ SpringboardBuilder::Ptr SpringboardBuilder::createFunc(FuncSet::const_iterator b
   if (!ret) return ret;
   int id = UnallocatedStart;
   for (; begin != end; ++begin) {
-     int_function *func = *begin;
+     func_instance *func = *begin;
      if (!ret->addTraces(func->blocks().begin(), func->blocks().end(), id++)) {
         return Ptr();
      }
@@ -139,7 +139,7 @@ bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end, int funcID) {
   // can do our thang.
   for (; begin != end; ++begin) {
     bool useBlock = true;
-    int_block *bbl = (*begin);
+    block_instance *bbl = (*begin);
 
     // don't add block if it's shared and the entry point of another function
     if (bbl->hasSharedBase()) {

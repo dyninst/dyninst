@@ -47,12 +47,12 @@
 
 template class dictionary_hash<unsigned int, unsigned int>;
 template class dictionary_hash<unsigned int, heapItem *>;
-template class dictionary_hash<unsigned int, int_function *>;
-class image_func;
-template class pdvector<image_func *>;
-template class dictionary_hash<std::string, pdvector<image_func *> *>;
-template class dictionary_hash<Address, image_func *>;
-template class dictionary_hash<const image_func *, int_function *>;
+template class dictionary_hash<unsigned int, func_instance *>;
+class parse_func;
+template class pdvector<parse_func *>;
+template class dictionary_hash<std::string, pdvector<parse_func *> *>;
+template class dictionary_hash<Address, parse_func *>;
+template class dictionary_hash<const parse_func *, func_instance *>;
 
 class int_variable;
 template class pdvector<int_variable *>;
@@ -82,9 +82,9 @@ template class dictionary_hash<Address, relocatedInstruction *>;
 class BPatch_point;
 template class dictionary_hash<const instPoint *, BPatch_point *>;
 
-class image_basicBlock;
-template class dictionary_hash<Address, image_basicBlock *>;
-template class  BPatch_Set<image_basicBlock *>;
+class parse_block;
+template class dictionary_hash<Address, parse_block *>;
+template class  BPatch_Set<parse_block *>;
 
 class fileDescriptor;
 template class pdvector<fileDescriptor>;
@@ -93,11 +93,11 @@ template class dictionary_hash<std::string, unsigned int>;
 template class dictionary_hash<std::string, std::string>;
 template class dictionary_hash<std::string, SymtabAPI::Symbol>;
 template class dictionary_hash<std::string, pdmodule *>;
-template class dictionary_hash<std::string, int_function *>;
+template class dictionary_hash<std::string, func_instance *>;
 //template class dictionary_hash<std::string, internalSym *>;
 
 template class dictionary_hash<std::string, pdvector<std::string> *>;
-template class dictionary_hash<std::string, pdvector<int_function *> *>;
+template class dictionary_hash<std::string, pdvector<func_instance *> *>;
 
 class BPatch_typeCollection;
 template class dictionary_hash<std::string, BPatch_typeCollection *>;
@@ -121,14 +121,14 @@ template class dictionary_hash<std::string, BPatch_type *>;
 template class dictionary_hash<int, BPatch_thread *>;
 template class dictionary_hash<int, BPatch_type *>;
 template class dictionary_hash<std::string, BPatch_localVar *>;
-template class dictionary_hash<int_function*, BPatch_function*>;
+template class dictionary_hash<func_instance*, BPatch_function*>;
 template class  dictionary_hash <Address, BPatch_variableExpr*>;
 template class dictionary_hash<Address, BPatch_point *>;
 
 template class dictionary_hash<u_int, Address>;
 template class dictionary_hash<Address, Address>;
 template class dictionary_hash<Address, heapItem *>;
-template class dictionary_hash<Address, int_function *>;
+template class dictionary_hash<Address, func_instance *>;
 template class dictionary_hash<Address, unsigned>;
 
 #include "dyn_lwp.h"
@@ -153,8 +153,8 @@ template class dictionary_hash< std::string, pdvector< SymtabAPI::Symbol > >;
 template class dictionary_hash<int, BPatch_process *>;
 template class pdvector<dictionary_hash <int, BPatch_process *>::entry>;
 
-template class dictionary_hash<const int_function *, BPatch_function *>;
-template class pdvector<dictionary_hash <const int_function *, BPatch_function *>::entry>;
+template class dictionary_hash<const func_instance *, BPatch_function *>;
+template class pdvector<dictionary_hash <const func_instance *, BPatch_function *>::entry>;
 
 class replacedFunctionCall;
 template class pdvector<replacedFunctionCall *>;

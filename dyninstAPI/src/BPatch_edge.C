@@ -79,7 +79,7 @@ BPatch_edge::getTypeInt()
 }
 
 
-void BPatch_edge::BPatch_edgeInt(int_edge *e)
+void BPatch_edge::BPatch_edgeInt(edge_instance *e)
 {
    assert(e);
    edge = e;

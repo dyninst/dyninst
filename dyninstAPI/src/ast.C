@@ -201,7 +201,7 @@ AstNodePtr AstNode::funcCallNode(const std::string &func, pdvector<AstNodePtr > 
 {
    if (addrSpace) 
    {
-      int_function *ifunc = addrSpace->findOnlyOneFunction(func.c_str());
+      func_instance *ifunc = addrSpace->findOnlyOneFunction(func.c_str());
 
       if (ifunc == NULL) 
       {
@@ -216,12 +216,12 @@ AstNodePtr AstNode::funcCallNode(const std::string &func, pdvector<AstNodePtr > 
       return AstNodePtr(new AstCallNode(func, args));
 }
 
-AstNodePtr AstNode::funcCallNode(int_function *func, pdvector<AstNodePtr > &args) {
+AstNodePtr AstNode::funcCallNode(func_instance *func, pdvector<AstNodePtr > &args) {
     if (func == NULL) return AstNodePtr();
     return AstNodePtr(new AstCallNode(func, args));
 }
 
-AstNodePtr AstNode::funcCallNode(int_function *func) {
+AstNodePtr AstNode::funcCallNode(func_instance *func) {
     if (func == NULL) return AstNodePtr();
     return AstNodePtr(new AstCallNode(func));
 }
@@ -230,7 +230,7 @@ AstNodePtr AstNode::funcCallNode(Address addr, pdvector<AstNodePtr > &args) {
     return AstNodePtr(new AstCallNode(addr, args));
 }
 
-AstNodePtr AstNode::funcReplacementNode(int_function *func, bool emitCall) {
+AstNodePtr AstNode::funcReplacementNode(func_instance *func, bool emitCall) {
     if (func == NULL) return AstNodePtr();
     return AstNodePtr(new AstReplacementNode(func, emitCall));
 }
@@ -388,7 +388,7 @@ AstOperandNode::AstOperandNode(operandType ot, const image_variable* iv) :
 }
 
 
-AstCallNode::AstCallNode(int_function *func,
+AstCallNode::AstCallNode(func_instance *func,
                          pdvector<AstNodePtr > &args) :
     AstNode(),
     func_addr_(0),
@@ -402,7 +402,7 @@ AstCallNode::AstCallNode(int_function *func,
     }
 }
 
-AstCallNode::AstCallNode(int_function *func) :
+AstCallNode::AstCallNode(func_instance *func) :
     AstNode(),
     func_addr_(0),
     func_(func),
@@ -1727,7 +1727,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
 #if defined(arch_x86) || defined(arch_x86_64)
     // Our "everything" is "floating point registers".
     // We also need a function object.
-    int_function *callee = func_;
+    func_instance *callee = func_;
     if (!callee) {
         // Painful lookup time
         callee = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
@@ -1746,7 +1746,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
     if (callReplace_) return true;
 
     // This code really doesn't work right now...
-    int_function *callee = func_;
+    func_instance *callee = func_;
     if (!callee) {
         // Painful lookup time
         callee = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
@@ -1773,10 +1773,10 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
     // dependent fn which calls it back for each operand... Have to
     // fix those as well to pass location...
 
-    int_function *use_func = func_;
+    func_instance *use_func = func_;
 
     if (!use_func && !func_addr_) {
-        // We purposefully don't cache the int_function object; the AST nodes
+        // We purposefully don't cache the func_instance object; the AST nodes
         // are process independent, and functions kinda are.
         use_func = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
         if (!use_func) {

@@ -41,7 +41,7 @@
 #include "codegen.h"
 #include "codeRange.h"
 #include "util.h"
-#include "image-func.h"
+#include "parse-cfg.h"
 
 #include "bitArray.h"
 
@@ -66,9 +66,9 @@ class instPoint;
 
 class Frame;
 
-class int_function;
-class int_block;
-class int_edge;
+class func_instance;
+class block_instance;
+class edge_instance;
 class funcMod;
 
 typedef enum callType {
@@ -80,22 +80,22 @@ typedef enum callType {
 } callType;
 
 
-class int_function : public patchTarget {
-  friend class int_block;
-  friend class int_edge;
+class func_instance : public patchTarget {
+  friend class block_instance;
+  friend class edge_instance;
  public:
    //static std::string emptyString;
 
    // Almost everything gets filled in later.
-   int_function(image_func *f,
+   func_instance(parse_func *f,
 		Address baseAddr,
                 mapped_module *mod);
 
-   int_function(const int_function *parent,
+   func_instance(const func_instance *parent,
                 mapped_module *child_mod,
                 process *childP);
 
-   ~int_function();
+   ~func_instance();
 
    ////////////////////////////////////////////////
    // Passthrough functions.
@@ -131,7 +131,7 @@ class int_function : public patchTarget {
 
    // Not defined here so we don't have to play header file magic
    // Not const; we can add names via the Dyninst layer
-   image_func *ifunc();
+   parse_func *ifunc();
    mapped_module *mod() const;
    mapped_object *obj() const;
    //process *proc() const;
@@ -140,7 +140,7 @@ class int_function : public patchTarget {
    // Necessary for BPatch_set which needs a structure with a ()
    // operator. Odd.
    struct cmpAddr {
-     int operator() (const int_function *f1, const int_function *f2) const {
+     int operator() (const func_instance *f1, const func_instance *f2) const {
        if (f1->getAddress() > f2->getAddress())
 	 return 1;
        else if (f1->getAddress() < f2->getAddress())
@@ -152,7 +152,7 @@ class int_function : public patchTarget {
 
    // extra debuggering info....
    ostream & operator<<(ostream &s) const;
-   friend ostream &operator<<(ostream &os, int_function &f);
+   friend ostream &operator<<(ostream &os, func_instance &f);
 
    ////////////////////////////////////////////////
    // Process-dependent (inter-module) parsing
@@ -162,10 +162,10 @@ class int_function : public patchTarget {
    // CFG and other function body methods
    ////////////////////////////////////////////////
 
-   typedef std::set<int_block *, int_block::compare> BlockSet;
+   typedef std::set<block_instance *, block_instance::compare> BlockSet;
    const BlockSet &blocks();
 
-   int_block *entryBlock();
+   block_instance *entryBlock();
    const BlockSet &callBlocks();
    const BlockSet &exitBlocks();
 
@@ -176,23 +176,23 @@ class int_function : public patchTarget {
    const BlockSet &abruptEnds();
 
    // Perform a lookup (either linear or log(n)).
-   bool findBlocksByAddr(Address addr, std::set<int_block *> &blocks);
-   bool findBlocksByOffsetInFunc(Address offset, std::set<int_block *> &blocks) {
+   bool findBlocksByAddr(Address addr, std::set<block_instance *> &blocks);
+   bool findBlocksByOffsetInFunc(Address offset, std::set<block_instance *> &blocks) {
        return findBlocksByAddr(offset + baseAddr(), blocks);
    }
-   bool findBlocksByOffset(Address offset, std::set<int_block *> &blocks) {
+   bool findBlocksByOffset(Address offset, std::set<block_instance *> &blocks) {
        return findBlocksByAddr(offsetToAddr(offset), blocks);
    }
 
-   int_block *findBlock(ParseAPI::Block *block);
-   int_block *findBlockByEntry(Address addr);
-   int_block *findOneBlockByAddr(Address Addr);
+   block_instance *findBlock(ParseAPI::Block *block);
+   block_instance *findBlockByEntry(Address addr);
+   block_instance *findOneBlockByAddr(Address Addr);
 
 
-   void findBlocksByRange(std::vector<int_block*> &funcs, 
+   void findBlocksByRange(std::vector<block_instance*> &funcs, 
                           Address start, Address end);
 
-   void addMissingBlock(image_basicBlock *imgBlock);
+   void addMissingBlock(parse_block *imgBlock);
    void addMissingBlocks();
 
    Offset addrToOffset(const Address addr) const;
@@ -208,7 +208,7 @@ class int_function : public patchTarget {
    // interprocedural edge, but I expect that would
    // break all manner of things
    ////////////////////////////////////////////////
-   int_function *findCallee(int_block *callBlock);
+   func_instance *findCallee(block_instance *callBlock);
 
 
    ////////////////////////////////////////////////
@@ -216,11 +216,11 @@ class int_function : public patchTarget {
    ////////////////////////////////////////////////
 
    instPoint *entryPoint();
-   instPoint *exitPoint(int_block *exitBlock);
+   instPoint *exitPoint(block_instance *exitBlock);
 
    instPoint *findPoint(instPoint::Type type);
-   instPoint *findPoint(instPoint::Type type, int_block *block);
-   const std::map<Address, instPoint *> &findPoints(instPoint::Type type, int_block *block);
+   instPoint *findPoint(instPoint::Type type, block_instance *block);
+   const std::map<Address, instPoint *> &findPoints(instPoint::Type type, block_instance *block);
 
    bool isSignalHandler() {return handlerFaultAddr_ != 0;}
    Address getHandlerFaultAddr() {return handlerFaultAddr_;}
@@ -254,26 +254,26 @@ class int_function : public patchTarget {
    // Code overlapping
    ////////////////////////////////////////////////
    // Get all functions that "share" the block. Actually, the
-   // int_block will not be shared (they are per function),
-   // but the underlying image_basicBlock records the sharing status. 
+   // block_instance will not be shared (they are per function),
+   // but the underlying parse_block records the sharing status. 
    // So dodge through to the image layer and find out that info. 
    // Returns true if such functions exist.
 
-   bool getSharingFuncs(int_block *b,
-                        std::set<int_function *> &funcs);
+   bool getSharingFuncs(block_instance *b,
+                        std::set<func_instance *> &funcs);
 
    // The same, but for any function that overlaps with any of
    // our basic blocks.
    // OPTIMIZATION: we're not checking all blocks, only an exit
    // point; this _should_ work :) but needs to change if we
    // ever do flow-sensitive parsing
-   bool getSharingFuncs(std::set<int_function *> &funcs);
+   bool getSharingFuncs(std::set<func_instance *> &funcs);
 
    // Slower version of the above that also finds functions that occupy
    // the same address range, even if they do not share blocks - this can
    // be caused by overlapping but disjoint assembly sequences
-   bool getOverlappingFuncs(std::set<int_function *> &funcs);
-   bool getOverlappingFuncs(int_block *b, std::set<int_function *> &funcs);
+   bool getOverlappingFuncs(std::set<func_instance *> &funcs);
+   bool getOverlappingFuncs(block_instance *b, std::set<func_instance *> &funcs);
 
    ////////////////////////////////////////////////
    // Misc
@@ -287,10 +287,10 @@ class int_function : public patchTarget {
 
     // Fill the <callers> vector with pointers to the statically-determined
     // list of functions that call this function.
-    void getStaticCallers(pdvector <int_function *> &callers);
+    void getStaticCallers(pdvector <func_instance *> &callers);
 
     // Similar to the above, but gives us the actual block
-    void getCallers(std::vector<int_block *> &callers);
+    void getCallers(std::vector<block_instance *> &callers);
 
    codeRange *copy() const;
 
@@ -302,28 +302,28 @@ class int_function : public patchTarget {
 
 #if defined(os_windows) 
    //Calling convention for this function
-   callType int_function::getCallingConvention();
+   callType func_instance::getCallingConvention();
    int getParamSize() { return paramSize; }
    void setParamSize(int s) { paramSize = s; }
 #endif
 
 
    //bool removePoint(instPoint *point);
-    void deleteBlock(int_block *block);
-    void splitBlock(image_basicBlock *origBlock, image_basicBlock *newBlock);
+    void deleteBlock(block_instance *block);
+    void splitBlock(parse_block *origBlock, parse_block *newBlock);
 	void triggerModified();
 
     void removeFromAll();
-    int_block *setNewEntryPoint();
-    void getReachableBlocks(const std::set<int_block*> &exceptBlocks,
-                            const std::list<int_block*> &seedBlocks,
-                            std::set<int_block*> &reachBlocks);//output
+    block_instance *setNewEntryPoint();
+    void getReachableBlocks(const std::set<block_instance*> &exceptBlocks,
+                            const std::list<block_instance*> &seedBlocks,
+                            std::set<block_instance*> &reachBlocks);//output
    
 
     // So we can assert(consistency());
     bool consistency() const;
 
-        // Convenience function for int_block; get the base address
+        // Convenience function for block_instance; get the base address
     // where we were loaded (AKA "int layer addr - image layer offset")
     Address baseAddr() const;
  private:
@@ -332,21 +332,21 @@ class int_function : public patchTarget {
    Address addr_; // Absolute address of the start of the function
    Address ptrAddr_; // Absolute address of the function descriptor, if exists
 
-   image_func *ifunc_;
+   parse_func *ifunc_;
    mapped_module *mod_; // This is really a dodge; translate a list of
-			// image_funcs to int_funcs
+			// parse_funcs to int_funcs
 
    ///////////////////// CFG and function body
    BlockSet blocks_; 
    BlockSet callBlocks_;
    BlockSet exitBlocks_;
-   int_block *entry_;
+   block_instance *entry_;
 
    instPoint *entryPoint_; 
-   typedef std::map<int_block *, instPoint *> InstPointMap;
+   typedef std::map<block_instance *, instPoint *> InstPointMap;
    typedef std::map<Address, instPoint *> ArbitraryMapInt;
-   typedef std::map<int_block *, ArbitraryMapInt> ArbitraryMap;
-   typedef std::map<int_edge *, instPoint *> EdgePointMap;
+   typedef std::map<block_instance *, ArbitraryMapInt> ArbitraryMap;
+   typedef std::map<edge_instance *, instPoint *> EdgePointMap;
 
    InstPointMap exitPoints_;
    InstPointMap preCallPoints_;
@@ -357,10 +357,10 @@ class int_function : public patchTarget {
    EdgePointMap edgePoints_;
 
    // We need some method of doing up-pointers
-   typedef std::map<image_basicBlock *, int_block *> BlockMap;
+   typedef std::map<parse_block *, block_instance *> BlockMap;
    BlockMap blockMap_;
    
-   typedef std::map<ParseAPI::Edge *, int_edge *> EdgeMap;
+   typedef std::map<ParseAPI::Edge *, edge_instance *> EdgeMap;
    EdgeMap edgeMap_;
 
    Address handlerFaultAddr_; /* if this is a signal handler, faultAddr_ is 
@@ -375,7 +375,7 @@ class int_function : public patchTarget {
    //////////////////////////  Parallel Regions 
    pdvector<int_parRegion*> parallelRegions_; /* pointer to the parallel regions */
 
-   void addint_block(int_block *instance);
+   void addblock_instance(block_instance *instance);
 
 #if defined(os_windows) 
    callType callingConv;
@@ -383,16 +383,16 @@ class int_function : public patchTarget {
 #endif
 
     // Create and register
-    int_block *createBlock(image_basicBlock *ib);
-    int_block *createBlockFork(const int_block *parent);
-    int_edge *getEdge(ParseAPI::Edge *, int_block *src, int_block *trg);
-    void removeEdge(int_edge *e);
+    block_instance *createBlock(parse_block *ib);
+    block_instance *createBlockFork(const block_instance *parent);
+    edge_instance *getEdge(ParseAPI::Edge *, block_instance *src, block_instance *trg);
+    void removeEdge(edge_instance *e);
 
-    void findPoints(int_block *, std::set<instPoint *> &foundPoints) const;
+    void findPoints(block_instance *, std::set<instPoint *> &foundPoints) const;
     bool validPoint(instPoint *) const;
 
     // HACKITY!
-    std::map<int_block *, int_function *> callees_;
+    std::map<block_instance *, func_instance *> callees_;
 
     // Defensive mode
     BlockSet unresolvedCF_;

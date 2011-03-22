@@ -78,7 +78,7 @@
 #endif
 
 AnnotationClass<image_variable> ImageVariableUpPtrAnno("ImageVariableUpPtrAnno");
-AnnotationClass<image_func> ImageFuncUpPtrAnno("ImageFuncUpPtrAnno");
+AnnotationClass<parse_func> ImageFuncUpPtrAnno("ImageFuncUpPtrAnno");
 pdvector<image*> allImages;
 
 using namespace std;
@@ -1222,7 +1222,7 @@ int image::destroy() {
     return refCount; 
 }
 
-void image::deleteFunc(image_func *func)
+void image::deleteFunc(parse_func *func)
 {
     // remove the function from symtabAPI
     SymtabAPI::Function *sym_func =NULL;
@@ -1285,13 +1285,13 @@ void image::analyzeImage() {
     continue;
       else
     {
-      // Every parallel region has the image_func that contains the
+      // Every parallel region has the parse_func that contains the
       //   region associated with it 
-            image_func * imf = const_cast<image_func*>(parReg->getAssociatedFunc());
+            parse_func * imf = const_cast<parse_func*>(parReg->getAssociatedFunc());
       
-      // Returns pointers to all potential image_funcs that correspond
+      // Returns pointers to all potential parse_funcs that correspond
       //   to what could be the parent OpenMP function for the region 
-      const pdvector<image_func *> *prettyNames =
+      const pdvector<parse_func *> *prettyNames =
         findFuncVectorByPretty(imf->calcParentFunc(imf, parallelRegions));
       
       //There may be more than one (or none) functions with that name, we take the first 
@@ -1600,14 +1600,14 @@ image::~image()
 #endif
 }
 
-bool pdmodule::findFunction( const std::string &name, pdvector<image_func *> &found ) {
+bool pdmodule::findFunction( const std::string &name, pdvector<parse_func *> &found ) {
     if (findFunctionByMangled(name, found))
         return true;
     return findFunctionByPretty(name, found);
 }
 
 bool pdmodule::findFunctionByMangled( const std::string &name,
-                                      pdvector<image_func *> &found)
+                                      pdvector<parse_func *> &found)
 {
     // For efficiency sake, we grab the image vector and strip out the
     // functions we want.
@@ -1615,7 +1615,7 @@ bool pdmodule::findFunctionByMangled( const std::string &name,
     // the problem is that BPatch goes by module and internal goes by image. 
     unsigned orig_size = found.size();
     
-    const pdvector<image_func *> *obj_funcs = imExec()->findFuncVectorByMangled(name.c_str());
+    const pdvector<parse_func *> *obj_funcs = imExec()->findFuncVectorByMangled(name.c_str());
     if (!obj_funcs) {
         return false;
     }
@@ -1633,7 +1633,7 @@ bool pdmodule::findFunctionByMangled( const std::string &name,
 
 
 bool pdmodule::findFunctionByPretty( const std::string &name,
-                                     pdvector<image_func *> &found)
+                                     pdvector<parse_func *> &found)
 {
     // For efficiency sake, we grab the image vector and strip out the
     // functions we want.
@@ -1641,7 +1641,7 @@ bool pdmodule::findFunctionByPretty( const std::string &name,
     // the problem is that BPatch goes by module and internal goes by image. 
     unsigned orig_size = found.size();
     
-    const pdvector<image_func *> *obj_funcs = imExec()->findFuncVectorByPretty(name);
+    const pdvector<parse_func *> *obj_funcs = imExec()->findFuncVectorByPretty(name);
     if (!obj_funcs) {
         return false;
     }
@@ -1664,7 +1664,7 @@ void pdmodule::dumpMangled(std::string &prefix) const
   CodeObject::funclist & allFuncs = imExec()->getAllFunctions();
   CodeObject::funclist::iterator fit = allFuncs.begin();
   for( ; fit != allFuncs.end(); ++fit) {
-      image_func * pdf = (image_func*)*fit;
+      parse_func * pdf = (parse_func*)*fit;
       if (pdf->pdmod() != this) continue;
 
       if( ! strncmp( pdf->symTabName().c_str(), prefix.c_str(), strlen( prefix.c_str() ) ) ) {
@@ -1677,7 +1677,7 @@ void pdmodule::dumpMangled(std::string &prefix) const
   cerr << endl;
 }
 
-image_func *image::addFunction(Address functionEntryAddr, const char *fName)
+parse_func *image::addFunction(Address functionEntryAddr, const char *fName)
  {
      set<CodeRegion *> regions;
      CodeRegion * region;
@@ -1718,7 +1718,7 @@ image_func *image::addFunction(Address functionEntryAddr, const char *fName)
      // Parse, but not recursively
      codeObject()->parse(functionEntryAddr, false); 
 
-     image_func * func = static_cast<image_func*>(
+     parse_func * func = static_cast<parse_func*>(
             codeObject()->findFuncByEntry(region,functionEntryAddr));
 
      if(NULL == func) {
@@ -1842,7 +1842,7 @@ image::findFuncs(const Address offset, set<Function *> & funcs) {
 #endif 
 }
 
-image_func *image::findFuncByEntry(const Address &entry) {
+parse_func *image::findFuncByEntry(const Address &entry) {
     analyzeIfNeeded();
 
     set<CodeRegion *> match;
@@ -1850,7 +1850,7 @@ image_func *image::findFuncByEntry(const Address &entry) {
     if(cnt == 0)
         return 0;
     else if(cnt == 1)
-        return (image_func*)obj_->findFuncByEntry(*match.begin(),entry);
+        return (parse_func*)obj_->findFuncByEntry(*match.begin(),entry);
 
 #if !defined(os_aix)
     fprintf(stderr,"[%s:%d] image::findFuncByEntry(entry) called on "
@@ -1860,7 +1860,7 @@ image_func *image::findFuncByEntry(const Address &entry) {
     return 0;
 #else
     CodeRegion * single = aix_region_hack(match,entry);
-    return (image_func*)obj_->findFuncByEntry(single,entry);
+    return (parse_func*)obj_->findFuncByEntry(single,entry);
 #endif 
 }
 
@@ -1891,16 +1891,16 @@ image::findBlocksByAddr(const Address addr, set<ParseAPI::Block *> & blocks )
 // Return the vector of functions associated with a pretty (demangled) name
 // Very well might be more than one!
 
-const pdvector<image_func *> *image::findFuncVectorByPretty(const std::string &name) {
+const pdvector<parse_func *> *image::findFuncVectorByPretty(const std::string &name) {
     //Have to change here
-    pdvector<image_func *>* res = new pdvector<image_func *>;
+    pdvector<parse_func *>* res = new pdvector<parse_func *>;
     vector<SymtabAPI::Function *> funcs;
     linkedFile->findFunctionsByName(funcs, name.c_str(), SymtabAPI::prettyName);
 
     for(unsigned index=0; index < funcs.size(); index++)
     {
         SymtabAPI::Function *symFunc = funcs[index];
-        image_func *imf = NULL;
+        parse_func *imf = NULL;
         
         if (!symFunc->getAnnotation(imf, ImageFuncUpPtrAnno)) {
             fprintf(stderr, "%s[%d]:  failed to getAnnotations here [%s]\n", FILE__, __LINE__,name.c_str());
@@ -1924,16 +1924,16 @@ const pdvector<image_func *> *image::findFuncVectorByPretty(const std::string &n
 // Return the vector of functions associated with a mangled name
 // Very well might be more than one! -- multiple static functions in different .o files
 
-const pdvector <image_func *> *image::findFuncVectorByMangled(const std::string &name)
+const pdvector <parse_func *> *image::findFuncVectorByMangled(const std::string &name)
 {
-    pdvector<image_func *>* res = new pdvector<image_func *>;
+    pdvector<parse_func *>* res = new pdvector<parse_func *>;
 
     vector<SymtabAPI::Function *> funcs;
     linkedFile->findFunctionsByName(funcs, name.c_str(), SymtabAPI::mangledName);
 
     for(unsigned index=0; index < funcs.size(); index++) {
         SymtabAPI::Function *symFunc = funcs[index];
-        image_func *imf = NULL;
+        parse_func *imf = NULL;
         
         if (!symFunc->getAnnotation(imf, ImageFuncUpPtrAnno)) {
             fprintf(stderr, "%s[%d]:  failed to getAnnotations here [%s]\n", FILE__, __LINE__, name.c_str());
@@ -2019,13 +2019,13 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const std::stri
   return NULL;*/
 }
 
-bool pdmodule::getFunctions(pdvector<image_func *> &funcs)  {
+bool pdmodule::getFunctions(pdvector<parse_func *> &funcs)  {
     unsigned curFuncSize = funcs.size();
 
     CodeObject::funclist & allFuncs = imExec()->getAllFunctions();
     CodeObject::funclist::iterator fit = allFuncs.begin();
     for( ; fit != allFuncs.end(); ++fit) {
-        image_func *f = (image_func*)*fit;
+        parse_func *f = (parse_func*)*fit;
         if (f->pdmod() == this)
             funcs.push_back(f);
     }
@@ -2162,7 +2162,7 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
     return ret;
 }
 
-void image::addSplitBlock(image_basicBlock *first, image_basicBlock *second) {
+void image::addSplitBlock(parse_block *first, parse_block *second) {
 
     std::list<Address> toRemove;
 	splitBlocks_.insert(make_pair(first, second));
@@ -2177,7 +2177,7 @@ void image::clearSplitBlocks()
 {
     splitBlocks_.clear();
 }
-const vector<image_basicBlock*> & image::getNewBlocks() const
+const vector<parse_block*> & image::getNewBlocks() const
 {
     return newBlocks_;
 }

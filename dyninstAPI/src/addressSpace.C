@@ -513,7 +513,7 @@ bool AddressSpace::inferiorExpandBlock(heapItem *h,
 /////////////////////////////////////////
 
 bool AddressSpace::findFuncsByAll(const std::string &funcname,
-                             pdvector<int_function *> &res,
+                             pdvector<func_instance *> &res,
                              const std::string &libname) { // = "", btw
     
     unsigned starting_entries = res.size(); // We'll return true if we find something
@@ -521,7 +521,7 @@ bool AddressSpace::findFuncsByAll(const std::string &funcname,
         if (libname == "" ||
             mapped_objects[i]->fileName() == libname.c_str() ||
             mapped_objects[i]->fullName() == libname.c_str()) {
-            const pdvector<int_function *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
+            const pdvector<func_instance *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
             if (pretty) {
                 // We stop at first match...
                 for (unsigned pm = 0; pm < pretty->size(); pm++) {
@@ -529,7 +529,7 @@ bool AddressSpace::findFuncsByAll(const std::string &funcname,
                 }
             }
             else {
-                const pdvector<int_function *> *mangled = mapped_objects[i]->findFuncVectorByMangled(funcname);
+                const pdvector<func_instance *> *mangled = mapped_objects[i]->findFuncVectorByMangled(funcname);
                 if (mangled) {
                     for (unsigned mm = 0; mm < mangled->size(); mm++) {
                         res.push_back((*mangled)[mm]);
@@ -544,7 +544,7 @@ bool AddressSpace::findFuncsByAll(const std::string &funcname,
 
 
 bool AddressSpace::findFuncsByPretty(const std::string &funcname,
-                             pdvector<int_function *> &res,
+                             pdvector<func_instance *> &res,
                              const std::string &libname) { // = "", btw
 
     unsigned starting_entries = res.size(); // We'll return true if we find something
@@ -553,7 +553,7 @@ bool AddressSpace::findFuncsByPretty(const std::string &funcname,
         if (libname == "" ||
             mapped_objects[i]->fileName() == libname.c_str() ||
             mapped_objects[i]->fullName() == libname.c_str()) {
-            const pdvector<int_function *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
+            const pdvector<func_instance *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
             if (pretty) {
                 // We stop at first match...
                 for (unsigned pm = 0; pm < pretty->size(); pm++) {
@@ -567,7 +567,7 @@ bool AddressSpace::findFuncsByPretty(const std::string &funcname,
 
 
 bool AddressSpace::findFuncsByMangled(const std::string &funcname,
-                                 pdvector<int_function *> &res,
+                                 pdvector<func_instance *> &res,
                                  const std::string &libname) { // = "", btw
     unsigned starting_entries = res.size(); // We'll return true if we find something
 
@@ -575,7 +575,7 @@ bool AddressSpace::findFuncsByMangled(const std::string &funcname,
         if (libname == "" ||
             mapped_objects[i]->fileName() == libname.c_str() ||
             mapped_objects[i]->fullName() == libname.c_str()) {
-            const pdvector<int_function *> *mangled = 
+            const pdvector<func_instance *> *mangled = 
                mapped_objects[i]->findFuncVectorByMangled(funcname);
             if (mangled) {
                 for (unsigned mm = 0; mm < mangled->size(); mm++) {
@@ -587,13 +587,13 @@ bool AddressSpace::findFuncsByMangled(const std::string &funcname,
     return res.size() != starting_entries;
 }
 
-int_function *AddressSpace::findOnlyOneFunction(const string &name,
+func_instance *AddressSpace::findOnlyOneFunction(const string &name,
                                                 const string &lib,
                                                 bool /*search_rt_lib*/) 
 {
     assert(mapped_objects.size());
 
-    pdvector<int_function *> allFuncs;
+    pdvector<func_instance *> allFuncs;
 
     if (!findFuncsByAll(name.c_str(), allFuncs, lib.c_str()))
         return NULL;
@@ -717,12 +717,12 @@ mapped_object *AddressSpace::findObject(const ParseAPI::CodeObject *co) const {
     return obj;
 }
 
-int_function *AddressSpace::findFuncByInternalFunc(image_func *ifunc) {
+func_instance *AddressSpace::findFuncByInternalFunc(parse_func *ifunc) {
     assert(ifunc);
   
     // Now we have to look up our specialized version
     // Can't do module lookup because of DEFAULT_MODULE...
-    pdvector<int_function *> possibles;
+    pdvector<func_instance *> possibles;
     if (!findFuncsByMangled(ifunc->symTabName().c_str(),
                             possibles))
         return NULL;
@@ -783,7 +783,7 @@ mapped_object *AddressSpace::findObject(fileDescriptor desc) const
 // getAllFunctions: returns a vector of all functions defined in the
 // a.out and in the shared objects
 
-void AddressSpace::getAllFunctions(pdvector<int_function *> &funcs) {
+void AddressSpace::getAllFunctions(pdvector<func_instance *> &funcs) {
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
         mapped_objects[i]->getAllFunctions(funcs);
     }
@@ -804,10 +804,10 @@ void AddressSpace::getAllModules(pdvector<mapped_module *> &mods){
 //Acts like findTargetFuncByAddr, but also finds the function if addr
 // is an indirect jump to a function.
 //I know this is an odd function, but darn I need it.
-int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
+func_instance *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
 
     Address addr2 = 0;
-    int_function *f = findOneFuncByAddr(addr);
+    func_instance *f = findOneFuncByAddr(addr);
     if (f)
         return f;
 
@@ -1224,12 +1224,12 @@ void trampTrapMappings::allocateTable()
 }
 
 // only works for unrelocated addresses
-bool AddressSpace::findFuncsByAddr(Address addr, std::set<int_function*> &funcs, bool includeReloc)
+bool AddressSpace::findFuncsByAddr(Address addr, std::set<func_instance*> &funcs, bool includeReloc)
 {
     if (includeReloc) {
         // Check that first
         baseTramp *bti;
-        int_block *block;
+        block_instance *block;
         Address oAddr;
         if (getRelocInfo(addr, oAddr, block, bti)) {
             funcs.insert(block->func());
@@ -1241,14 +1241,14 @@ bool AddressSpace::findFuncsByAddr(Address addr, std::set<int_function*> &funcs,
     return obj->findFuncsByAddr(addr, funcs);
 }
 
-bool AddressSpace::findBlocksByAddr(Address addr, std::set<int_block *> &blocks, bool includeReloc) {
+bool AddressSpace::findBlocksByAddr(Address addr, std::set<block_instance *> &blocks, bool includeReloc) {
    mapped_object *obj = findObject(addr);
     if (!obj) return false;
     bool ret = obj->findBlocksByAddr(addr, blocks);
     if (ret || !includeReloc)
         return ret;
     baseTramp *bti;
-    int_block *block;
+    block_instance *block;
     Address oAddr;
     if (getRelocInfo(addr, oAddr, block, bti)) {
         blocks.insert(block);
@@ -1257,15 +1257,15 @@ bool AddressSpace::findBlocksByAddr(Address addr, std::set<int_block *> &blocks,
     return false;
 }
 
-int_function *AddressSpace::findOneFuncByAddr(Address addr) {
-    std::set<int_function *> funcs;
+func_instance *AddressSpace::findOneFuncByAddr(Address addr) {
+    std::set<func_instance *> funcs;
     if (!findFuncsByAddr(addr, funcs)) return NULL;
     if (funcs.empty()) return NULL;
     if (funcs.size() == 1) return *(funcs.begin());
     // Arbitrarily pick one...
     Address last = 0;
-    int_function *ret = NULL;
-    for (std::set<int_function *>::iterator iter = funcs.begin();
+    func_instance *ret = NULL;
+    for (std::set<func_instance *>::iterator iter = funcs.begin();
         iter != funcs.end(); ++iter) {
             if (ret == NULL ||
                 ((*iter)->entryBlock()->start() > last)) {
@@ -1276,12 +1276,12 @@ int_function *AddressSpace::findOneFuncByAddr(Address addr) {
     return ret;
 }
 
-int_function *AddressSpace::findFuncByEntry(Address addr) {
-    std::set<int_function *> funcs;
+func_instance *AddressSpace::findFuncByEntry(Address addr) {
+    std::set<func_instance *> funcs;
     if (!findFuncsByAddr(addr, funcs)) return NULL;
     if (funcs.empty()) return NULL;
 
-    for (std::set<int_function *>::iterator iter = funcs.begin();
+    for (std::set<func_instance *>::iterator iter = funcs.begin();
         iter != funcs.end(); ++iter) {
         if ((*iter)->entryBlock()->start() == addr) {
             return *iter;
@@ -1314,7 +1314,7 @@ bool AddressSpace::needsPIC(int_variable *v)
    return needsPIC(v->mod()->proc());
 }
 
-bool AddressSpace::needsPIC(int_function *f)
+bool AddressSpace::needsPIC(func_instance *f)
 {
    return needsPIC(f->proc());
 }
@@ -1347,13 +1347,13 @@ bool AddressSpace::sameRegion(Address addr1, Address addr2)
 }
 ////////////////////////////////////////////////////////////////////////////////////////
 
-void AddressSpace::replaceFunctionCall(instPoint *point, int_function *newFunc) {
+void AddressSpace::replaceFunctionCall(instPoint *point, func_instance *newFunc) {
   // Just register it for later code generation
   callReplacements_[point] = newFunc;
   addModifiedFunction(point->func());
 }
 
-void AddressSpace::replaceFunction(int_function *oldfunc, int_function *newfunc) {
+void AddressSpace::replaceFunction(func_instance *oldfunc, func_instance *newfunc) {
   functionReplacements_[oldfunc] = newfunc;
   addModifiedFunction(oldfunc);
 }
@@ -1368,7 +1368,7 @@ void AddressSpace::revertReplacedCall(instPoint *point) {
   callReplacements_.erase(point);
   // TODO: need a "remove modified function"
 }
-void AddressSpace::revertReplacedFunction(int_function *oldfunc) {
+void AddressSpace::revertReplacedFunction(func_instance *oldfunc) {
   functionReplacements_.erase(oldfunc);
 }
 void AddressSpace::revertRemovedFunctionCall(instPoint *point) {
@@ -1522,7 +1522,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           Address relocAddr = tframe.getPC();
 		  mal_printf("Attempting to change PC: current addr is 0x%lx\n", relocAddr);
           Address pcOrig=0;
-          vector<int_function *> origFuncs;
+          vector<func_instance *> origFuncs;
           baseTramp *bti=NULL;
           mapped_object *pcobj = findObject(tframe.getPC());
           if (pcobj && mapped_object::isSystemLib(pcobj->fileName())) {
@@ -1533,7 +1533,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
               mal_printf("\tgetAddrInfo failed, not changing\n");
               continue;
 		  }
-          int_function *origFunc;
+          func_instance *origFunc;
           if (origFuncs.size() == 1) {
               origFunc = origFuncs[0];
           } else {
@@ -1720,7 +1720,7 @@ void AddressSpace::causeTemplateInstantiations() {
 }
 
 void AddressSpace::getRelocAddrs(Address orig, 
-                                 int_function *func,
+                                 func_instance *func,
                                  std::list<Address> &relocs,
                                  bool getInstrumentationAddrs) const {
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
@@ -1741,10 +1741,10 @@ void AddressSpace::getRelocAddrs(Address orig,
 
 bool AddressSpace::getAddrInfo(Address relocAddr,
                 				Address &origAddr,
-		                		vector<int_function *> &origFuncs,
+		                		vector<func_instance *> &origFuncs,
 				                baseTramp *&baseT) 
 {
-    std::set<int_function *> tmpFuncs;
+    std::set<func_instance *> tmpFuncs;
     if (findFuncsByAddr(relocAddr, tmpFuncs)) {
         origAddr = relocAddr;
         std::copy(tmpFuncs.begin(), tmpFuncs.end(), std::back_inserter(origFuncs));
@@ -1753,7 +1753,7 @@ bool AddressSpace::getAddrInfo(Address relocAddr,
     }
 
     // retrieve if relocated address
-    int_block *block;
+    block_instance *block;
     if (getRelocInfo(relocAddr, origAddr, block, baseT)) {
         origFuncs.push_back(block->func());
         return true;
@@ -1766,7 +1766,7 @@ bool AddressSpace::getAddrInfo(Address relocAddr,
 
 bool AddressSpace::getRelocInfo(Address relocAddr,
                                 Address &origAddr,
-                                int_block *&origBlock,
+                                block_instance *&origBlock,
                                 baseTramp *&baseT) 
 {
   baseT = NULL;
@@ -1800,14 +1800,14 @@ bool AddressSpace::inEmulatedCode(Address addr) {
   return false;
 }
 
-void AddressSpace::addModifiedFunction(int_function *func) {
+void AddressSpace::addModifiedFunction(func_instance *func) {
   assert(func->obj());
 
   modifiedFunctions_[func->obj()].insert(func);
 }
 
-void AddressSpace::addDefensivePad(int_block *callBlock, Address padStart, unsigned size) {
-  // We want to register these in terms of a int_block that the pad ends, but 
+void AddressSpace::addDefensivePad(block_instance *callBlock, Address padStart, unsigned size) {
+  // We want to register these in terms of a block_instance that the pad ends, but 
   // the CFG can change out from under us; therefore, for lookup we use an instPoint
   // as they are invariant. 
    instPoint *point = callBlock->preCallPoint();
@@ -1864,7 +1864,7 @@ void AddressSpace::invalidateMemory(Address addr, Address size) {
 
 	proc()->flushAddressCache_RT(addr, size);
 
-	std::set<int_function *> funcsToDelete;
+	std::set<func_instance *> funcsToDelete;
 	for (Address i = addr; i < (addr + size); ++i)
 	{
 		findFuncsByAddr(i, funcsToDelete);
@@ -1876,20 +1876,20 @@ void AddressSpace::invalidateMemory(Address addr, Address size) {
 // create stub edge set which is: all edges such that: 
 //     e->trg() in owBBIs and
 //     while e->src() in delBlocks try e->src()->sources()
-std::map<int_function*,vector<edgeStub> > 
-AddressSpace::getStubs(const std::list<int_block *> &owBBIs,
-                       const std::set<int_block*> &delBBIs,
-                       const std::list<int_function*> &deadFuncs)
+std::map<func_instance*,vector<edgeStub> > 
+AddressSpace::getStubs(const std::list<block_instance *> &owBBIs,
+                       const std::set<block_instance*> &delBBIs,
+                       const std::list<func_instance*> &deadFuncs)
 {
-    std::map<int_function*,vector<edgeStub> > stubs;
+    std::map<func_instance*,vector<edgeStub> > stubs;
     std::list<edgeStub> deadStubs;
     
-    for (list<int_block*>::const_iterator deadIter = owBBIs.begin();
+    for (list<block_instance*>::const_iterator deadIter = owBBIs.begin();
          deadIter != owBBIs.end(); 
          deadIter++) 
     {
         bool inDeadFunc = false;
-        for (list<int_function*>::const_iterator dfit = deadFuncs.begin();
+        for (list<func_instance*>::const_iterator dfit = deadFuncs.begin();
              dfit != deadFuncs.end(); dfit++) 
         {
             if ((*deadIter)->func() == *dfit) {
@@ -1904,7 +1904,7 @@ AddressSpace::getStubs(const std::list<int_block *> &owBBIs,
         using namespace ParseAPI;
         SingleContext epred_((*deadIter)->func()->ifunc(),true,true);
         Intraproc epred(&epred_);
-        image_basicBlock *curImgBlock = (*deadIter)->llb();
+        parse_block *curImgBlock = (*deadIter)->llb();
         ParseAPI::Block::edgelist & sourceEdges = curImgBlock->sources();
         ParseAPI::Block::edgelist::iterator eit = sourceEdges.begin(&epred);
         Address baseAddr = (*deadIter)->start() 
@@ -1912,9 +1912,9 @@ AddressSpace::getStubs(const std::list<int_block *> &owBBIs,
 
         // find all stub blocks for this edge
         for( ; eit != sourceEdges.end(); ++eit) {
-            image_basicBlock *sourceBlock = 
-                static_cast<image_basicBlock*>((*eit)->src());
-            int_block *src = (*deadIter)->func()->findBlockByEntry(baseAddr + sourceBlock->start());
+            parse_block *sourceBlock = 
+                static_cast<parse_block*>((*eit)->src());
+            block_instance *src = (*deadIter)->func()->findBlockByEntry(baseAddr + sourceBlock->start());
             assert(src);
 
             edgeStub st(src, 

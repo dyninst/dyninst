@@ -339,11 +339,11 @@ void HybridAnalysis::virtualFreeCB(BPatch_point *, void *t) {
 		return;
 	}
 
-	std::set<int_function *> deletedFuncs;
+	std::set<func_instance *> deletedFuncs;
 	for (Address i = virtualFreeAddr_; i < (virtualFreeAddr_ + virtualFreeSize_); ++i) {
 		proc()->lowlevel_process()->findFuncsByAddr(i, deletedFuncs);
 	}
-	for (std::set<int_function *>::iterator iter = deletedFuncs.begin();
+	for (std::set<func_instance *>::iterator iter = deletedFuncs.begin();
 		iter != deletedFuncs.end(); ++iter)
 	{
 		BPatch_function * bpfunc = proc()->findOrCreateBPFunc(*iter, NULL);
@@ -418,7 +418,7 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     // not just a big chunk of zeroes, in which case the first
     // 00 00 instruction will probably raise an exception
     using namespace ParseAPI;
-    int_function *pfunc = point->llpoint()->func();
+    func_instance *pfunc = point->llpoint()->func();
     CodeRegion *reg = pfunc->ifunc()->region();
     unsigned char * regptr = (unsigned char *) reg->getPtrToInstruction(reg->offset());
     Address regSize = reg->high() - reg->offset();
@@ -647,7 +647,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                     if (targs[tidx] == (base + retfuncs[fidx]->addr()) ) {
                         calledFunc = proc()->findOrCreateBPFunc(
                             point->llpoint()->func()->obj()->
-                            findFunction(static_cast<image_func*>(retfuncs[fidx])),
+                            findFunction(static_cast<parse_func*>(retfuncs[fidx])),
                             NULL);
                     }
                 }
@@ -732,7 +732,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         // manipulate init_retstatus so that we will instrument the function's 
         // return addresses, since this jump might be a tail call
         for (unsigned tidx=0; tidx < targFuncs.size(); tidx++) {
-            image_func *imgfunc = targFuncs[tidx]->lowlevel_func()->ifunc();
+            parse_func *imgfunc = targFuncs[tidx]->lowlevel_func()->ifunc();
             FuncReturnStatus initStatus = imgfunc->init_retstatus();
             if (ParseAPI::RETURN == initStatus) {
                 imgfunc->setinit_retstatus(ParseAPI::UNKNOWN);

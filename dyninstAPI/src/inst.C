@@ -46,7 +46,7 @@
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/image-func.h"
+#include "dyninstAPI/src/parse-cfg.h"
 #include "dyninstAPI/src/codegen.h"
 
 

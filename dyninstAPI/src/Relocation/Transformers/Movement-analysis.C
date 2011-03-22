@@ -78,7 +78,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
    }
 #endif
 
-   const int_block *bbl = (*b_iter)->bbl();
+   const block_instance *bbl = (*b_iter)->bbl();
   
   // Can be true if we see an instrumentation block...
   if (!bbl) return true;
@@ -243,8 +243,8 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
 
 bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
 					   Address addr,
-					   int_block *func,
-					   int_block *block,
+					   block_instance *func,
+					   block_instance *block,
 					   AssignList &sensitiveAssignments) {
   if (!(insn->getOperation().getID() == e_call)) return false;
   // FIXME for loopnz instruction
@@ -539,12 +539,12 @@ void PCSensitiveTransformer::handleThunkCall(TraceList::iterator &b_iter,
 
 void PCSensitiveTransformer::recordIntSensitive(Address addr) {
   // All we have from this is a raw address. Suck...
-  // Look up the int_blocks that map to this address. 
-  std::set<int_block *> funcs;
+  // Look up the block_instances that map to this address. 
+  std::set<block_instance *> funcs;
   addrSpace->findFuncsByAddr(addr, funcs);
 
-  for (std::set<int_block *>::iterator iter = funcs.begin(); iter != funcs.end(); ++iter) {
-    int_block *block = (*iter)->findBlockByEntry(addr);
+  for (std::set<block_instance *>::iterator iter = funcs.begin(); iter != funcs.end(); ++iter) {
+    block_instance *block = (*iter)->findBlockByEntry(addr);
     priMap[block] = Required;
   }
 }
@@ -628,13 +628,13 @@ void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
 }
 
 // TODO: fix t
-bool PCSensitiveTransformer::exceptionSensitive(Address a, const int_block *bbl) {
+bool PCSensitiveTransformer::exceptionSensitive(Address a, const block_instance *bbl) {
   // If we're within the try section of an exception, return true.
   // Otherwise return false.
   
   // First, convert a to an offset and dig out the Symtab of the
   // block we're looking at.
-  int_block *func = bbl->func();
+  block_instance *func = bbl->func();
   Offset o = func->addrToOffset(a);
   Symtab *symtab = func->obj()->parse_img()->getObject();
 
@@ -643,11 +643,11 @@ bool PCSensitiveTransformer::exceptionSensitive(Address a, const int_block *bbl)
   return symtab->findException(eBlock, o);      
 }
 
-void PCSensitiveTransformer::cacheAnalysis(const int_block *bbl, Address addr, bool intSens, bool extSens) {
+void PCSensitiveTransformer::cacheAnalysis(const block_instance *bbl, Address addr, bool intSens, bool extSens) {
    analysisCache_[bbl][addr] = std::make_pair(intSens, extSens);
 }
 
-bool PCSensitiveTransformer::queryCache(const int_block *bbl, Address addr, bool &intSens, bool &extSens) {
+bool PCSensitiveTransformer::queryCache(const block_instance *bbl, Address addr, bool &intSens, bool &extSens) {
 	//intSens = true;
 	//extSens = true;
 	//return true;
@@ -660,19 +660,19 @@ bool PCSensitiveTransformer::queryCache(const int_block *bbl, Address addr, bool
    return true;
 }
 
-void PCSensitiveTransformer::invalidateCache(const int_block *b) {
+void PCSensitiveTransformer::invalidateCache(const block_instance *b) {
    // Clear everything corresponding to an addr in the block;
    // overapproximation for shared functions and shared blocks,
    // but hey. 
 	analysisCache_.erase(b);
 }
 
-void PCSensitiveTransformer::invalidateCache(int_block *f) {
+void PCSensitiveTransformer::invalidateCache(block_instance *f) {
 	// We want to invalidate any cache results for f directly,
 	// as well as any for blocks that call f. 
 
-	const int_block::BlockSet &blocks = f->blocks();
-	for (int_block::BlockSet::const_iterator iter = blocks.begin();
+	const block_instance::BlockSet &blocks = f->blocks();
+	for (block_instance::BlockSet::const_iterator iter = blocks.begin();
 		iter != blocks.end(); ++iter) {
 			invalidateCache(*iter);
 	}

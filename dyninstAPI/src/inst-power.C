@@ -1350,7 +1350,7 @@ Update-12/06, njr, since we're going to a cached system we are just going to
 look at the first level and not do recursive, since we would have to also
 store and reexamine every call out instead of doing it on the fly like before*/
 bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
-                                       int_function * callee)
+                                       func_instance * callee)
 		   
 {
   unsigned i;
@@ -1422,14 +1422,14 @@ Register emitFuncCall(opCode, codeGen &, pdvector<AstNodePtr> &, bool, Address) 
 Register emitFuncCall(opCode op,
                       codeGen &gen,
                       pdvector<AstNodePtr> &operands, bool noCost,
-                      int_function *callee) {
+                      func_instance *callee) {
     return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
 }
 
 Register EmitterPOWERStat::emitCallReplacement(opCode /*ocode*/,
                                               codeGen &/*gen*/,
                                               bool /* noCost */,
-                                              int_function * /*callee*/) {
+                                              func_instance * /*callee*/) {
 	fprintf(stderr, "emitCallReplacement not implemented for binary rewriter \n");
 	assert (0);
 	return 0;
@@ -1438,7 +1438,7 @@ Register EmitterPOWERStat::emitCallReplacement(opCode /*ocode*/,
 Register EmitterPOWERDyn::emitCallReplacement(opCode ocode,
                                               codeGen &gen,
                                               bool /* noCost */,
-                                              int_function *callee) {
+                                              func_instance *callee) {
     // This takes care of the special case where we are replacing an existing
     // linking branch instruction.
     //
@@ -1477,7 +1477,7 @@ Register EmitterPOWERDyn::emitCallReplacement(opCode ocode,
     instruction blr(BRraw);
     insnCodeGen::generate(gen,blr);
 
-    int_function *caller = gen.point()->func();
+    func_instance *caller = gen.point()->func();
     Address toc_orig = gen.addrSpace()->proc()->getTOCoffsetInfo(caller);
     if (toc_new) {
         // Restore the original TOC value.
@@ -1497,7 +1497,7 @@ Register EmitterPOWERDyn::emitCallReplacement(opCode ocode,
 Register EmitterPOWER::emitCall(opCode ocode,
                                    codeGen &gen,
                                    const pdvector<AstNodePtr> &operands, bool noCost,
-                                   int_function *callee) {
+                                   func_instance *callee) {
 
     bool inInstrumentation = true;
 
@@ -2524,7 +2524,7 @@ bool doNotOverflow(int value)
 // quite make sense. Given the target address, we can scan the function
 // lists until we find the desired function.
 
-bool process::hasBeenBound(const SymtabAPI::relocationEntry &,int_function *&, Address ) {
+bool process::hasBeenBound(const SymtabAPI::relocationEntry &,func_instance *&, Address ) {
   // What needs doing:
   // Locate call instruction
   // Decipher call instruction (static/dynamic call, global linkage code)
@@ -2538,7 +2538,7 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &,int_function *&, A
 // specified by entry and base_addr.  If it has been bound, then the callee 
 // function is returned in "target_pdf", else it returns false.
 bool process::hasBeenBound(const SymtabAPI::relocationEntry &entry, 
-		int_function *&target_pdf, Address base_addr) 
+		func_instance *&target_pdf, Address base_addr) 
 {
 
 	if (status() == exited) return false;
@@ -2582,7 +2582,7 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 
 void emitFuncJump(opCode             , 
                   codeGen            &gen,
-                  int_function *func,
+                  func_instance *func,
                   AddressSpace       *proc,
                   const instPoint    *point,
                   bool)
@@ -2619,7 +2619,7 @@ void emitFuncJump(opCode             ,
     Address replacementTOC = 0;
     if(proc->proc()) {
     	currentTOC = proc->proc()->getTOCoffsetInfo(point->func());
-    	replacementTOC = proc->proc()->getTOCoffsetInfo(const_cast<int_function *>(func));
+    	replacementTOC = proc->proc()->getTOCoffsetInfo(const_cast<func_instance *>(func));
 
     	if (currentTOC &&
             (currentTOC != replacementTOC)) {
@@ -2847,7 +2847,7 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
     }
 }
 
-bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
+bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
 {
 #if defined(os_aix)
     Address buffer[3];
@@ -2927,7 +2927,7 @@ Emitter *AddressSpace::getEmitter()
  * XXX Is this a candidate to move into general parsing code, or is
  *     this properly a Dyninst-only technique?
  */
-bool image::updatePltFunc(image_func *caller_func, Address stub_addr)
+bool image::updatePltFunc(parse_func *caller_func, Address stub_addr)
 {
     unsigned int *stub;
     Address got2 = 0;
@@ -3220,7 +3220,7 @@ bool EmitterPOWERDyn::emitPIC(codeGen &gen, Address origAddr, Address relocAddr)
 
 }
 */
-bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, int_function* callee, bool /* setTOC */, Address) {
+bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, func_instance* callee, bool /* setTOC */, Address) {
 // 32 - No TOC 
 // if inter module, gen PIC code
 
@@ -3261,7 +3261,7 @@ bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, int_function* callee,
 }
 
 /*
-bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, int_function* callee, bool setTOC, Address) {
+bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, func_instance* callee, bool setTOC, Address) {
 // 32 - No TOC 
 // if inter module, gen PIC code
 
@@ -3277,13 +3277,13 @@ bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, int_function* callee,
     return true;
 }
 */
-bool EmitterPOWER64Stat::emitCallInstruction(codeGen& /*gen*/, int_function* /*callee*/, bool /*setTOC*/, Address) {
+bool EmitterPOWER64Stat::emitCallInstruction(codeGen& /*gen*/, func_instance* /*callee*/, bool /*setTOC*/, Address) {
    assert(0);
    return 0;
 }
 
 
-bool EmitterPOWERDyn::emitCallInstruction(codeGen &gen, int_function *callee, bool setTOC, Address toc_anchor) {
+bool EmitterPOWERDyn::emitCallInstruction(codeGen &gen, func_instance *callee, bool setTOC, Address toc_anchor) {
 
     bool needLongBranch = false;
     if (gen.startAddr() == (Address) -1) { // Unset...
@@ -3496,7 +3496,7 @@ void EmitterPOWER::emitMovPCToReg(Register dest, codeGen &gen)
 }
 
 
-Address Emitter::getInterModuleFuncAddr(int_function *func, codeGen& gen)
+Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
 {
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();
@@ -3507,7 +3507,7 @@ Address Emitter::getInterModuleFuncAddr(int_function *func, codeGen& gen)
         assert(!"Invalid function call (function info is missing)");
     }
 
-    // find the Symbol corresponding to the int_function
+    // find the Symbol corresponding to the func_instance
     std::vector<SymtabAPI::Symbol *> syms;
     func->ifunc()->func()->getSymbols(syms);
 

@@ -59,7 +59,7 @@ class BPatch_process;
 class BPatch_point;
 class BPatch_funcMap;
 class BPatch_instpMap;
-class int_function;
+class func_instance;
 class rpcMgr;
 struct batchInsertionRecord;
 

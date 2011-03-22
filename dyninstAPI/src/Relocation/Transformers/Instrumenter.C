@@ -211,7 +211,7 @@ bool Instrumenter::postCallInstrumentation(Trace::Ptr trace) {
    Atom::Ptr inst = makeInstrumentation(post);
 
    Address postCallAddr = trace->block()->end();
-   int_block *FT = trace->block()->getFallthrough();
+   block_instance *FT = trace->block()->getFallthrough();
    if (FT) postCallAddr = FT->start();
 
    Trace::Ptr instTrace = Trace::create(inst, postCallAddr, FT ? FT : trace->block()); 
@@ -279,13 +279,13 @@ bool Instrumenter::funcEntryInstrumentation(Trace::Ptr trace) {
 
 bool Instrumenter::edgeInstrumentation(Trace::Ptr trace) {
    // Comparitively simple given the previous functions...
-   int_block *block = trace->block();
+   block_instance *block = trace->block();
    if (!block) {
       cerr << "WTF: " << trace->id() << endl;
    }
    assert(block);
-   const int_block::edgelist &targets = block->targets();
-   for (int_block::edgelist::iterator iter = targets.begin();
+   const block_instance::edgelist &targets = block->targets();
+   for (block_instance::edgelist::iterator iter = targets.begin();
         iter != targets.end(); ++iter) {
       instPoint *point = (*iter)->findPoint(instPoint::Edge);
       if (!point || point->empty()) continue;

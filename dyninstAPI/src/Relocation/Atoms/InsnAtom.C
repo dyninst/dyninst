@@ -50,7 +50,7 @@ bool InsnAtom::generate(const codeGen &,
   return true;
 }
 
-TrackerElement *InsnAtom::tracker(int_block *block) const {
+TrackerElement *InsnAtom::tracker(block_instance *block) const {
   OriginalTracker *e = new OriginalTracker(addr_, block);
   return e;
 }

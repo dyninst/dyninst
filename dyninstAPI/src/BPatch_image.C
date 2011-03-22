@@ -207,7 +207,7 @@ BPatch_Vector<BPatch_parRegion *> *BPatch_image::getParRegionsInt(bool incUninst
 
 
    for (unsigned int i=0; i < (unsigned) procList.size(); i++) {
-      int_function * intF = procList[i]->lowlevel_func();
+      func_instance * intF = procList[i]->lowlevel_func();
       const pdvector<int_parRegion *> intPR = intF->parRegions();
 
       for (unsigned int j=0; j < (unsigned) intPR.size(); j++)
@@ -395,7 +395,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
 
    if (NULL == strpbrk(name, REGEX_CHARSET)) {
       //  usual case, no regex
-      pdvector<int_function *> foundIntFuncs;
+      pdvector<func_instance *> foundIntFuncs;
       for (unsigned i=0; i<as.size(); i++) {
          as[i]->findFuncsByAll(std::string(name), foundIntFuncs);
       }
@@ -458,13 +458,13 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
    // point, so it might as well be top-level. This is also an
    // excellent candidate for a "value-added" library.
 
-   pdvector<int_function *> all_funcs;
+   pdvector<func_instance *> all_funcs;
    for (unsigned i=0; i<as.size(); i++) {
       as[i]->getAllFunctions(all_funcs);
    }
 
    for (unsigned ai = 0; ai < all_funcs.size(); ai++) {
-      int_function *func = all_funcs[ai];
+      func_instance *func = all_funcs[ai];
       // If it matches, push onto the vector
       // Check all pretty names (and then all mangled names if 
       // there is no match)
@@ -547,7 +547,7 @@ BPatch_image::findFunctionWithSieve(BPatch_Vector<BPatch_function *> &funcs,
       void *user_data, int showError, 
       bool incUninstrumentable)
 {
-   pdvector<int_function *> all_funcs;
+   pdvector<func_instance *> all_funcs;
    std::vector<AddressSpace *> as;
    addSpace->getAS(as);
    assert(as.size());
@@ -556,7 +556,7 @@ BPatch_image::findFunctionWithSieve(BPatch_Vector<BPatch_function *> &funcs,
       as[i]->getAllFunctions(all_funcs);
 
    for (unsigned ai = 0; ai < all_funcs.size(); ai++) {
-      int_function *func = all_funcs[ai];
+      func_instance *func = all_funcs[ai];
       // If it matches, push onto the vector
       // Check all pretty names (and then all mangled names if there is no match)
       bool found_match = false;
@@ -619,7 +619,7 @@ BPatch_function *BPatch_image::findFunctionInt(unsigned long addr)
    std::vector<AddressSpace *> as;
    addSpace->getAS(as);
    assert(as.size());
-   int_function *ifunc = as[0]->findOneFuncByAddr(addr);
+   func_instance *ifunc = as[0]->findOneFuncByAddr(addr);
    if (!ifunc)
       return NULL;
 
@@ -630,7 +630,7 @@ bool BPatch_image::findFunctionInt(Dyninst::Address addr,
                                    BPatch_Vector<BPatch_function *> &funcs)
 {
    std::vector<AddressSpace *> as;
-   std::set<int_function *> ifuncs;
+   std::set<func_instance *> ifuncs;
    bool result;
 
    addSpace->getAS(as);
@@ -641,7 +641,7 @@ bool BPatch_image::findFunctionInt(Dyninst::Address addr,
       return false;
 
    assert(ifuncs.size());
-   for (std::set<int_function *>::iterator iter = ifuncs.begin();
+   for (std::set<func_instance *>::iterator iter = ifuncs.begin();
        iter != ifuncs.end(); ++iter) 
    {
       BPatch_function *bpfunc = addSpace->findOrCreateBPFunc(*iter, NULL);
@@ -1044,13 +1044,13 @@ bool BPatch_image::parseNewFunctionsInt
             allobjs[i]->parseNewFunctions(objEntries);
 
             /* 3. Construct list of modules affected by parsing */
-            const std::vector<image_basicBlock*> blocks = 
+            const std::vector<parse_block*> blocks = 
                 allobjs[i]->parse_img()->getNewBlocks();
             std::set<mapped_module*> mods;
             for (unsigned int j=0; j < blocks.size(); j++) {
                 blocks[j]->getFuncs(blockFuncs);
                 pdmodule *pdmod = 
-                    dynamic_cast<image_func*>(blockFuncs[0])->pdmod();
+                    dynamic_cast<parse_func*>(blockFuncs[0])->pdmod();
                 mods.insert( allobjs[i]->findModule(pdmod) );
                 blockFuncs.clear();
             }
@@ -1229,17 +1229,17 @@ void BPatch_image::getNewCodeRegions
     AddressSpace *as = asv[0];
     assert(as);
 
-    std::set<image_func*> newImgFuncs;
-    std::set<image_func*> modImgFuncs;
-    const std::vector<image_basicBlock*> blocks = 
+    std::set<parse_func*> newImgFuncs;
+    std::set<parse_func*> modImgFuncs;
+    const std::vector<parse_block*> blocks = 
         as->getAOut()->parse_img()->getNewBlocks();
     for (unsigned int bidx=0; bidx < blocks.size(); bidx++) {
-        image_basicBlock *curB = blocks[bidx];
+        parse_block *curB = blocks[bidx];
         vector<ParseAPI::Function*> bfuncs;
         curB->getFuncs(bfuncs);
         vector<ParseAPI::Function*>::iterator fIter = bfuncs.begin();
         for (; fIter !=  bfuncs.end(); fIter++) {
-            image_func *curFunc = dynamic_cast<image_func*>(*fIter);
+            parse_func *curFunc = dynamic_cast<parse_func*>(*fIter);
             if (curB == curFunc->entryBlock()) {
                 newImgFuncs.insert(curFunc);
             } else {
@@ -1247,7 +1247,7 @@ void BPatch_image::getNewCodeRegions
             }
         }
     }
-    std::set<image_func*>::iterator fIter = newImgFuncs.begin();
+    std::set<parse_func*>::iterator fIter = newImgFuncs.begin();
     for (; fIter !=  newImgFuncs.end(); fIter++) {
         newFuncs.push_back(addSpace->findOrCreateBPFunc
             (as->findFuncByInternalFunc(*fIter),NULL));

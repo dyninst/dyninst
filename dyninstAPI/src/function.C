@@ -43,7 +43,7 @@
 #include "MemoryEmulator/memEmulator.h"
 #include "Relocation/Transformers/Movement-analysis.h"
 
-//std::string int_function::emptyString("");
+//std::string func_instance::emptyString("");
 
 #include "Parsing.h"
 
@@ -51,10 +51,10 @@ using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::Relocation;
 
-int int_function_count = 0;
+int func_instance_count = 0;
 
 // 
-int_function::int_function(image_func *f,
+func_instance::func_instance(parse_func *f,
 			   Address baseAddr,
 			   mapped_module *mod) :
    addr_(baseAddr + f->getOffset()),
@@ -72,10 +72,10 @@ int_function::int_function(image_func *f,
 #endif
 {
 #if defined(ROUGH_MEMORY_PROFILE)
-    int_function_count++;
-    if ((int_function_count % 1000) == 0)
-        fprintf(stderr, "int_function_count: %d (%d)\n",
-                int_function_count, int_function_count*sizeof(int_function));
+    func_instance_count++;
+    if ((func_instance_count % 1000) == 0)
+        fprintf(stderr, "func_instance_count: %d (%d)\n",
+                func_instance_count, func_instance_count*sizeof(func_instance));
 #endif
 
     parsing_printf("%s: creating new proc-specific function at 0x%lx\n",
@@ -84,7 +84,7 @@ int_function::int_function(image_func *f,
     
 }
 
-int_function::int_function(const int_function *parFunc,
+func_instance::func_instance(const func_instance *parFunc,
                            mapped_module *childMod,
                            process *) :
     addr_(parFunc->addr_),
@@ -105,8 +105,8 @@ int_function::int_function(const int_function *parFunc,
      }
 }
 
-int_function::~int_function() { 
-    // int_blocks
+func_instance::~func_instance() { 
+    // block_instances
     BlockSet::iterator bIter = blocks_.begin();
     for (; bIter != blocks_.end(); bIter++) {
         delete *bIter;
@@ -117,8 +117,8 @@ int_function::~int_function() {
       
 }
 
-int_block *int_function::createBlock(image_basicBlock *ib) {
-    int_block *block = new int_block(ib, this);
+block_instance *func_instance::createBlock(parse_block *ib) {
+    block_instance *block = new block_instance(ib, this);
     blocks_.insert(block);
     blockMap_[ib] = block;
 
@@ -126,22 +126,22 @@ int_block *int_function::createBlock(image_basicBlock *ib) {
     return block;
 }
 
-int_block *int_function::createBlockFork(const int_block *parent)
+block_instance *func_instance::createBlockFork(const block_instance *parent)
 {
-    int_block *block = new int_block(parent, this);
+    block_instance *block = new block_instance(parent, this);
     blocks_.insert(block);
     blockMap_[parent->llb()] = block;
     return block;
 }
 
-Address int_function::baseAddr() const {
+Address func_instance::baseAddr() const {
     return obj()->codeBase();
 }
 
 
 // This needs to go away: how is "size" defined? Used bytes? End-start?
 
-unsigned int_function::getSize_NP()  {
+unsigned func_instance::getSize_NP()  {
     blocks();
     if (blocks_.size() == 0) return 0;
             
@@ -150,9 +150,9 @@ unsigned int_function::getSize_NP()  {
 }
 
 // finds new entry point, sets the argument to the new 
-int_block * int_function::setNewEntryPoint()
+block_instance * func_instance::setNewEntryPoint()
 {
-    int_block *newEntry = NULL;
+    block_instance *newEntry = NULL;
 
     // find block with no intraprocedural entry edges
     assert(blocks_.size());
@@ -188,7 +188,7 @@ int_block * int_function::setNewEntryPoint()
     }
 }
 
-void int_function::setHandlerFaultAddr(Address fa) 
+void func_instance::setHandlerFaultAddr(Address fa) 
 { 
     handlerFaultAddr_ = fa;
 }
@@ -197,7 +197,7 @@ void int_function::setHandlerFaultAddr(Address fa)
 // address is stored if "set" is true.  Accesses the fault address and 
 // translates it back to an original address if it corresponds to 
 // relocated code in the Dyninst heap 
-void int_function::setHandlerFaultAddrAddr(Address faa, bool set) 
+void func_instance::setHandlerFaultAddrAddr(Address faa, bool set) 
 { 
     if (set) {
         // save the faultAddrAddr
@@ -220,7 +220,7 @@ void int_function::setHandlerFaultAddrAddr(Address faa, bool set)
     if (proc()->proc()->isRuntimeHeapAddr(faultAddr)) {
 
         Address origAddr = faultAddr;
-        vector<int_function *> tmps;
+        vector<func_instance *> tmps;
         baseTramp *bti = NULL;
         bool success = proc()->getAddrInfo(faultAddr, origAddr, tmps, bti);
         assert(success);
@@ -234,7 +234,7 @@ void int_function::setHandlerFaultAddrAddr(Address faa, bool set)
 // relocated address, similar to instPoint::instrSideEffect.
 // Also, make sure that we update our mapped view of memory, 
 // we may have overwritten memory that was previously not code
-void int_function::fixHandlerReturnAddr(Address /*faultAddr*/)
+void func_instance::fixHandlerReturnAddr(Address /*faultAddr*/)
 {
     if ( !proc()->proc() || ! handlerFaultAddrAddr_ ) {
         assert(0);
@@ -243,8 +243,8 @@ void int_function::fixHandlerReturnAddr(Address /*faultAddr*/)
 #if 0 //KEVINTODO: this function doesn't work, I tried setting newPC to 0xdeadbeef and it had no impact on the program's behavior.  If the springboards work properly this code is unneeded
     // Do a straightfoward forward map of faultAddr
     // First, get the original address
-    int_function *func;
-    int_block *block; baseTrampInstance *ignored;
+    func_instance *func;
+    block_instance *block; baseTrampInstance *ignored;
     Address origAddr;
     if (!proc()->getRelocInfo(faultAddr, origAddr, block, ignored)) {
        func = dynamic_cast<process *>(proc())->findActiveFuncByAddr(faultAddr);
@@ -267,7 +267,7 @@ void int_function::fixHandlerReturnAddr(Address /*faultAddr*/)
 #endif
 }
 
-void int_function::findPoints(int_block *block,
+void func_instance::findPoints(block_instance *block,
                               std::set<instPoint *> &foundPoints) const {
    // What's better - iterate over all our point contaners 
    // looking for options, or run through instPsByAddr_...
@@ -283,7 +283,7 @@ void int_function::findPoints(int_block *block,
 
 // doesn't delete the ParseAPI::Block's, those are removed in a batch
 // call to the parseAPI
-void int_function::deleteBlock(int_block* block) 
+void func_instance::deleteBlock(block_instance* block) 
 {
    assert(0 && "TODO");
    
@@ -294,18 +294,18 @@ void int_function::deleteBlock(int_block* block)
     blocks_.erase(block);
     blockMap_.erase(block->llb());
 
-    // It appears that we delete the int_block before the image_basicBlock...
+    // It appears that we delete the block_instance before the parse_block...
     //assert(consistency());
     triggerModified();
 }
 
-void int_function::splitBlock(image_basicBlock *img_orig, 
-                              image_basicBlock *img_new) {
+void func_instance::splitBlock(parse_block *img_orig, 
+                              parse_block *img_new) {
     blocks();
-   int_block *origBlock = blockMap_[img_orig];
+   block_instance *origBlock = blockMap_[img_orig];
    assert(origBlock);
    
-   int_block *newBlock = blockMap_[img_new];
+   block_instance *newBlock = blockMap_[img_new];
    if (!newBlock) {
        newBlock = createBlock(img_new);
    }
@@ -371,10 +371,10 @@ void int_function::splitBlock(image_basicBlock *img_orig,
 
 // Remove funcs from:
 //   mapped_object & mapped_module datastructures
-//   addressSpace::textRanges codeRangeTree<int_function*> 
+//   addressSpace::textRanges codeRangeTree<func_instance*> 
 //   image-level & SymtabAPI datastructures
-//   BPatch_addressSpace::BPatch_funcMap <int_function -> BPatch_function>
-void int_function::removeFromAll() 
+//   BPatch_addressSpace::BPatch_funcMap <func_instance -> BPatch_function>
+void func_instance::removeFromAll() 
 {
     mal_printf("purging blocks_ of size = %d from func at %lx\n",
                blocks_.size(), getAddress());
@@ -384,7 +384,7 @@ void int_function::removeFromAll()
          bIter != blocks_.end(); 
          bIter++) 
     {
-        int_block *bbi = (*bIter);
+        block_instance *bbi = (*bIter);
         mal_printf("purged block [%lx %lx]\n",bbi->start(), bbi->end());
     }
     // delete blocks 
@@ -407,9 +407,9 @@ void int_function::removeFromAll()
     delete(this);
 }
 
-void int_function::addMissingBlock(image_basicBlock *missingB)
+void func_instance::addMissingBlock(parse_block *missingB)
 {
-   int_block *bbi = findBlock(missingB);
+   block_instance *bbi = findBlock(missingB);
    if (bbi) {
       assert(bbi->llb() == missingB);
       return;
@@ -420,28 +420,28 @@ void int_function::addMissingBlock(image_basicBlock *missingB)
 }
 
 
-/* Find image_basicBlocks that are missing from these datastructures and add
- * them.  The int_block constructor does pretty much all of the work in
+/* Find parse_blocks that are missing from these datastructures and add
+ * them.  The block_instance constructor does pretty much all of the work in
  * a chain of side-effects extending all the way into the mapped_object class
  * 
  * We have to take into account that additional parsing may cause basic block splitting,
  * in which case it is necessary not only to add new int-level blocks, but to update 
- * int_block and BPatch_basicBlock objects. 
+ * block_instance and BPatch_basicBlock objects. 
  */
-void int_function::addMissingBlocks()
+void func_instance::addMissingBlocks()
 {
     // A bit of a hack, but be sure that we've re-checked the blocks in the
-    // image_func as well.
+    // parse_func as well.
     ifunc_->invalidateCache();
 
    blocks();
    cerr << "addMissingBlocks for function " << hex << this << dec << endl;
    // Add new blocks
 
-   const vector<image_basicBlock*> & nblocks = obj()->parse_img()->getNewBlocks();
+   const vector<parse_block*> & nblocks = obj()->parse_img()->getNewBlocks();
    // add blocks by looking up new blocks, if it promises to be more 
    // efficient than looking through all of the llfunc's blocks
-   vector<image_basicBlock*>::const_iterator nit = nblocks.begin();
+   vector<parse_block*>::const_iterator nit = nblocks.begin();
    for( ; nit != nblocks.end(); ++nit) {
        if (ifunc()->contains(*nit)) {
            addMissingBlock(*nit);
@@ -457,25 +457,25 @@ void int_function::addMissingBlocks()
             bit++) 
        {
            if (!findBlock(*bit)) {
-               addMissingBlock(static_cast<image_basicBlock*>(*bit));
+               addMissingBlock(static_cast<parse_block*>(*bit));
            }
        }
    }
 }
 
-void int_function::getReachableBlocks(const set<int_block*> &exceptBlocks,
-                                      const list<int_block*> &seedBlocks,
-                                      set<int_block*> &reachBlocks)//output
+void func_instance::getReachableBlocks(const set<block_instance*> &exceptBlocks,
+                                      const list<block_instance*> &seedBlocks,
+                                      set<block_instance*> &reachBlocks)//output
 {
-    list<image_basicBlock*> imgSeeds;
-    for (list<int_block*>::const_iterator sit = seedBlocks.begin();
+    list<parse_block*> imgSeeds;
+    for (list<block_instance*>::const_iterator sit = seedBlocks.begin();
          sit != seedBlocks.end(); 
          sit++) 
     {
         imgSeeds.push_back((*sit)->llb());
     }
-    set<image_basicBlock*> imgExcept;
-    for (set<int_block*>::const_iterator eit = exceptBlocks.begin();
+    set<parse_block*> imgExcept;
+    for (set<block_instance*>::const_iterator eit = exceptBlocks.begin();
          eit != exceptBlocks.end(); 
          eit++) 
     {
@@ -483,10 +483,10 @@ void int_function::getReachableBlocks(const set<int_block*> &exceptBlocks,
     }
 
     // image-level function does the work
-    set<image_basicBlock*> imgReach;
+    set<parse_block*> imgReach;
     ifunc()->getReachableBlocks(imgExcept,imgSeeds,imgReach);
 
-    for (set<image_basicBlock*>::iterator rit = imgReach.begin();
+    for (set<parse_block*>::iterator rit = imgReach.begin();
          rit != imgReach.end(); 
          rit++) 
     {
@@ -494,8 +494,8 @@ void int_function::getReachableBlocks(const set<int_block*> &exceptBlocks,
     }
 }
 
-bool int_function::findBlocksByAddr(Address addr, 
-                                    std::set<int_block *> &blocks) 
+bool func_instance::findBlocksByAddr(Address addr, 
+                                    std::set<block_instance *> &blocks) 
 {
    this->blocks();
    bool ret = false;    
@@ -506,7 +506,7 @@ bool int_function::findBlocksByAddr(Address addr,
    }
    for (std::set<ParseAPI::Block *>::iterator iter = iblocks.begin(); 
         iter != iblocks.end(); ++iter) {
-      int_block *bbl = findBlock(*iter);
+      block_instance *bbl = findBlock(*iter);
       if (bbl) {
          ret = true; 
          blocks.insert(bbl);
@@ -518,59 +518,59 @@ bool int_function::findBlocksByAddr(Address addr,
    return ret;
 }
 
-int_block *int_function::findOneBlockByAddr(Address addr) {
-    std::set<int_block *> blocks;
+block_instance *func_instance::findOneBlockByAddr(Address addr) {
+    std::set<block_instance *> blocks;
     if (!findBlocksByAddr(addr, blocks)) {
         return NULL;
     }
-    for (std::set<int_block *>::iterator iter = blocks.begin();
+    for (std::set<block_instance *>::iterator iter = blocks.begin();
         iter != blocks.end(); ++iter) {
         // Walk this puppy and see if it matches our address.
-        int_block::InsnInstances insns;
+        block_instance::InsnInstances insns;
         (*iter)->getInsns(insns);
-        for (int_block::InsnInstances::iterator i_iter = insns.begin(); i_iter != insns.end(); ++i_iter) {
+        for (block_instance::InsnInstances::iterator i_iter = insns.begin(); i_iter != insns.end(); ++i_iter) {
             if (i_iter->second == addr) return *iter;
         }
     }
     return NULL;
 }
 
-int_block *int_function::findBlockByEntry(Address addr) {
-    std::set<int_block *> blocks;
+block_instance *func_instance::findBlockByEntry(Address addr) {
+    std::set<block_instance *> blocks;
     if (!findBlocksByAddr(addr, blocks)) {
         return NULL;
     }
-    for (std::set<int_block *>::iterator iter = blocks.begin();
+    for (std::set<block_instance *>::iterator iter = blocks.begin();
         iter != blocks.end(); ++iter) {
-        int_block *cand = *iter;
+        block_instance *cand = *iter;
         if (cand->start() == addr) return cand;
     }
     return NULL;
 }
 
-int_block *int_function::findBlock(ParseAPI::Block *block) {
+block_instance *func_instance::findBlock(ParseAPI::Block *block) {
    blocks();
-    image_basicBlock *iblock = static_cast<image_basicBlock *>(block);
+    parse_block *iblock = static_cast<parse_block *>(block);
     BlockMap::iterator iter = blockMap_.find(iblock);
     if (iter != blockMap_.end()) return iter->second;
     return NULL;
 }
 
 void print_func_vector_by_pretty_name(std::string prefix,
-				      pdvector<int_function *>*funcs) {
+				      pdvector<func_instance *>*funcs) {
     unsigned int i;
-    int_function *func;
+    func_instance *func;
     for(i=0;i<funcs->size();i++) {
       func = ((*funcs)[i]);
       cerr << prefix << func->prettyName() << endl;
     }
 }
 
-mapped_module *int_function::mod() const { return mod_; }
-mapped_object *int_function::obj() const { return mod()->obj(); }
-AddressSpace *int_function::proc() const { return obj()->proc(); }
+mapped_module *func_instance::mod() const { return mod_; }
+mapped_object *func_instance::obj() const { return mod()->obj(); }
+AddressSpace *func_instance::proc() const { return obj()->proc(); }
 
-const int_function::BlockSet &int_function::blocks()
+const func_instance::BlockSet &func_instance::blocks()
 {
     if (blocks_.empty()) {
         // defensiveMode triggers premature block list creation when it
@@ -580,21 +580,21 @@ const int_function::BlockSet &int_function::blocks()
         Function::blocklist::iterator sit = img_blocks.begin();
 
         for( ; sit != img_blocks.end(); ++sit) {
-            image_basicBlock *b = (image_basicBlock*)(*sit);
+            parse_block *b = (parse_block*)(*sit);
             createBlock(b);
         }
     }
     return blocks_;
 }
 
-const int_function::BlockSet &int_function::callBlocks() {
+const func_instance::BlockSet &func_instance::callBlocks() {
    // Check the list...
    if (callBlocks_.empty()) {
       const ParseAPI::Function::edgelist &callEdges = ifunc_->callEdges();
       for (ParseAPI::Function::edgelist::iterator iter = callEdges.begin();
            iter != callEdges.end(); ++iter) {
          ParseAPI::Block *src = (*iter)->src();
-         int_block *block = findBlock(src);
+         block_instance *block = findBlock(src);
          assert(block);
          callBlocks_.insert(block);
       }
@@ -602,7 +602,7 @@ const int_function::BlockSet &int_function::callBlocks() {
    return callBlocks_;
 }
 
-const int_function::BlockSet &int_function::exitBlocks() {
+const func_instance::BlockSet &func_instance::exitBlocks() {
    // Check the list...
    if (exitBlocks_.empty()) {
       const ParseAPI::Function::blocklist &exitBlocks = ifunc_->returnBlocks();
@@ -612,7 +612,7 @@ const int_function::BlockSet &int_function::exitBlocks() {
       for (ParseAPI::Function::blocklist::iterator iter = exitBlocks.begin();
            iter != exitBlocks.end(); ++iter) {
          ParseAPI::Block *iblock = (*iter);
-         int_block *block = findBlock(iblock);
+         block_instance *block = findBlock(iblock);
          assert(block);
          exitBlocks_.insert(block);
       }
@@ -625,7 +625,7 @@ const int_function::BlockSet &int_function::exitBlocks() {
    return exitBlocks_;
 }
 
-const int_function::BlockSet &int_function::unresolvedCF() {
+const func_instance::BlockSet &func_instance::unresolvedCF() {
    if (unresolvedCF_.empty()) {
       // A block has unresolved control flow if it has an indirect
       // out-edge. 
@@ -639,7 +639,7 @@ const int_function::BlockSet &int_function::unresolvedCF() {
    return unresolvedCF_;
 }
 
-const int_function::BlockSet &int_function::abruptEnds() {
+const func_instance::BlockSet &func_instance::abruptEnds() {
    if (abruptEnds_.empty()) {
       // A block has unresolved control flow if it has an indirect
       // out-edge. 
@@ -653,7 +653,7 @@ const int_function::BlockSet &int_function::abruptEnds() {
    return abruptEnds_;
 }
 
-int_block *int_function::entryBlock() {
+block_instance *func_instance::entryBlock() {
    if (!entry_) {
       if (!ifunc_->parsed()) {
          ifunc_->blocks();
@@ -665,7 +665,7 @@ int_block *int_function::entryBlock() {
    return entry_;
 }
 
-unsigned int_function::getNumDynamicCalls()
+unsigned func_instance::getNumDynamicCalls()
 {
    unsigned count=0;
    for (BlockSet::iterator iter = callBlocks().begin(); iter != callBlocks().end(); ++iter) {
@@ -678,7 +678,7 @@ unsigned int_function::getNumDynamicCalls()
 }
 
 
-void int_function::debugPrint() const {
+void func_instance::debugPrint() const {
     fprintf(stderr, "Function debug dump (%p):\n", this);
     fprintf(stderr, "  Symbol table names:\n");
     for (unsigned i = 0; i < symTabNameVector().size(); i++) {
@@ -704,7 +704,7 @@ void int_function::debugPrint() const {
          cb != blocks_.end(); 
          cb++) 
     {
-        int_block* orig = (*cb);
+        block_instance* orig = (*cb);
         fprintf(stderr, "  Block start 0x%lx, end 0x%lx\n", orig->start(),
                 orig->end());
     }
@@ -712,17 +712,17 @@ void int_function::debugPrint() const {
 
 // Add to internal
 // Add to mapped_object if a "new" name (true return from internal)
-void int_function::addSymTabName(const std::string name, bool isPrimary) {
+void func_instance::addSymTabName(const std::string name, bool isPrimary) {
     if (ifunc()->addSymTabName(name, isPrimary))
         obj()->addFunctionName(this, name, mapped_object::mangledName);
 }
 
-void int_function::addPrettyName(const std::string name, bool isPrimary) {
+void func_instance::addPrettyName(const std::string name, bool isPrimary) {
     if (ifunc()->addPrettyName(name, isPrimary))
         obj()->addFunctionName(this, name, mapped_object::prettyName);
 }
 
-void int_function::getStaticCallers(pdvector< int_function * > &callers)
+void func_instance::getStaticCallers(pdvector< func_instance * > &callers)
 {
     pdvector<image_edge *> ib_ins;
 
@@ -739,8 +739,8 @@ void int_function::getStaticCallers(pdvector< int_function * > &callers)
             vector<Function *>::iterator ifit = ifuncs.begin();
             for( ; ifit != ifuncs.end(); ++ifit)
             {   
-                int_function * f;
-                f = obj()->findFunction((image_func*)*ifit);
+                func_instance * f;
+                f = obj()->findFunction((parse_func*)*ifit);
                 
                 callers.push_back(f);
             }
@@ -748,15 +748,15 @@ void int_function::getStaticCallers(pdvector< int_function * > &callers)
     }
 }
 
-image_func *int_function::ifunc() {
+parse_func *func_instance::ifunc() {
     return ifunc_;
 }
 
 // Dig down to the low-level block of b, find the low-level functions
 // that share it, and map up to int-level functions and add them
 // to the funcs list.
-bool int_function::getSharingFuncs(int_block *b,
-                                   std::set<int_function *> & funcs)
+bool func_instance::getSharingFuncs(block_instance *b,
+                                   std::set<func_instance *> & funcs)
 {
     bool ret = false;
     if(!b->hasSharedBase())
@@ -766,8 +766,8 @@ bool int_function::getSharingFuncs(int_block *b,
     b->llb()->getFuncs(lfuncs);
     vector<Function *>::iterator fit = lfuncs.begin();
     for( ; fit != lfuncs.end(); ++fit) {
-        image_func *ll_func = static_cast<image_func*>(*fit);
-        int_function *hl_func = obj()->findFunction(ll_func);
+        parse_func *ll_func = static_cast<parse_func*>(*fit);
+        func_instance *hl_func = obj()->findFunction(ll_func);
         assert(hl_func);
 
         if (hl_func == this) continue;
@@ -783,7 +783,7 @@ bool int_function::getSharingFuncs(int_block *b,
 // able to check only exit points; but we definitely need to check _all_
 // exits so for now we're checking everything.
 
-bool int_function::getSharingFuncs(std::set<int_function *> &funcs) {
+bool func_instance::getSharingFuncs(std::set<func_instance *> &funcs) {
     bool ret = false;
 
     // Create the block list.
@@ -803,8 +803,8 @@ bool int_function::getSharingFuncs(std::set<int_function *> &funcs) {
 // Find functions that have overlapping, but disjoint, blocks in 
 // addition to shared blocks. Very slow!
 
-bool int_function::getOverlappingFuncs(int_block *block,
-                                       std::set<int_function *> &funcs) 
+bool func_instance::getOverlappingFuncs(block_instance *block,
+                                       std::set<func_instance *> &funcs) 
 {
 	ParseAPI::Block *llB = block->llb();
 	std::set<ParseAPI::Block *> overlappingBlocks;
@@ -812,7 +812,7 @@ bool int_function::getOverlappingFuncs(int_block *block,
 		llB->obj()->findBlocks(llB->region(), i, overlappingBlocks);
 	}
 	// We now have all of the overlapping ParseAPI blocks. Get the set of 
-	// ParseAPI::Functions containing each and up-map to int_functions
+	// ParseAPI::Functions containing each and up-map to func_instances
 	for (std::set<ParseAPI::Block *>::iterator iter = overlappingBlocks.begin();
 		iter != overlappingBlocks.end(); ++iter) {
 		std::vector<ParseAPI::Function *> llFuncs;
@@ -826,7 +826,7 @@ bool int_function::getOverlappingFuncs(int_block *block,
 	return (funcs.size() > 1);
 }
 
-bool int_function::getOverlappingFuncs(std::set<int_function *> &funcs) 
+bool func_instance::getOverlappingFuncs(std::set<func_instance *> &funcs) 
 {
     bool ret = false;
 
@@ -843,31 +843,31 @@ bool int_function::getOverlappingFuncs(std::set<int_function *> &funcs)
     return ret;
 }
 
-Address int_function::get_address() const 
+Address func_instance::get_address() const 
 {
    return getAddress();
 }
 
-unsigned int_function::get_size() const 
+unsigned func_instance::get_size() const 
 {
    assert(0);
    return 0x0;
 }
 
-std::string int_function::get_name() const
+std::string func_instance::get_name() const
 {
    return symTabName();
 }
 
-Offset int_function::addrToOffset(const Address addr) const { 
+Offset func_instance::addrToOffset(const Address addr) const { 
   return addr - (getAddress() - ifunc_->getOffset());
 }
 
-Address int_function::offsetToAddr(const Offset off ) const { 
+Address func_instance::offsetToAddr(const Offset off ) const { 
   return off + (getAddress() - ifunc_->getOffset());
 }
 
-const pdvector< int_parRegion* > &int_function::parRegions()
+const pdvector< int_parRegion* > &func_instance::parRegions()
 {
   if (parallelRegions_.size() > 0)
     return parallelRegions_;
@@ -882,12 +882,12 @@ const pdvector< int_parRegion* > &int_function::parRegions()
   return parallelRegions_;
 }
 
-bool int_function::validPoint(instPoint *p) const {
+bool func_instance::validPoint(instPoint *p) const {
    // TODO
    return true;
 }
 
-bool int_function::consistency() const {
+bool func_instance::consistency() const {
    // 1) Check for 1:1 block relationship in
    //    the block list and block map
    // 2) Check that all instPoints are in the
@@ -898,7 +898,7 @@ bool int_function::consistency() const {
    assert(blockMap_.size() == blocks_.size());
    for (ParseAPI::Function::blocklist::iterator iter = img_blocks.begin();
         iter != img_blocks.end(); ++iter) {
-      image_basicBlock *img_block = static_cast<image_basicBlock *>(*iter);
+      parse_block *img_block = static_cast<parse_block *>(*iter);
       BlockMap::const_iterator m_iter = blockMap_.find(img_block);
       assert(m_iter != blockMap_.end());
       assert(blocks_.find(m_iter->second) != blocks_.end());
@@ -907,17 +907,17 @@ bool int_function::consistency() const {
    return true;
 }
 
-void int_function::triggerModified() {
+void func_instance::triggerModified() {
 	// A single location to drop anything that needs to be
-	// informed when an int_function was updated.
+	// informed when an func_instance was updated.
 
     // invalidate liveness calculations
     ifunc()->invalidateLiveness();
 }
 
-int_edge *int_function::getEdge(ParseAPI::Edge *iedge, 
-                                int_block *src, 
-                                int_block *trg) {
+edge_instance *func_instance::getEdge(ParseAPI::Edge *iedge, 
+                                block_instance *src, 
+                                block_instance *trg) {
    EdgeMap::iterator iter = edgeMap_.find(iedge);
    if (iter != edgeMap_.end()) {
       // Consistency check
@@ -926,18 +926,18 @@ int_edge *int_function::getEdge(ParseAPI::Edge *iedge,
       return iter->second;
    }
    
-   int_edge *newEdge = new int_edge(iedge, src, trg);
+   edge_instance *newEdge = new edge_instance(iedge, src, trg);
    edgeMap_.insert(std::make_pair(iedge, newEdge));
    return newEdge;
 }
 
-void int_function::removeEdge(int_edge *e) {
+void func_instance::removeEdge(edge_instance *e) {
    edgeMap_.erase(e->edge());
 }
 
-void int_function::getCallers(std::vector<int_block *> &callers) {
+void func_instance::getCallers(std::vector<block_instance *> &callers) {
    // Follow the edges...
-   for (int_block::edgelist::iterator iter = entryBlock()->sources().begin();
+   for (block_instance::edgelist::iterator iter = entryBlock()->sources().begin();
         iter != entryBlock()->sources().end(); ++iter) {
       assert((*iter)->src());
       callers.push_back((*iter)->src());
@@ -946,15 +946,15 @@ void int_function::getCallers(std::vector<int_block *> &callers) {
 
 
 // Instpoints!
-instPoint *int_function::entryPoint() {
+instPoint *func_instance::entryPoint() {
    if (!entryPoint_) {
       entryPoint_ = instPoint::funcEntry(this);
    }
    return entryPoint_;
 }
 
-instPoint *int_function::exitPoint(int_block *block) {
-   std::map<int_block *, instPoint *>::iterator iter = exitPoints_.find(block);
+instPoint *func_instance::exitPoint(block_instance *block) {
+   std::map<block_instance *, instPoint *>::iterator iter = exitPoints_.find(block);
    if (iter != exitPoints_.end()) return iter->second;
    if (block->isExit()) {
       instPoint *iP = instPoint::funcExit(block);
@@ -964,14 +964,14 @@ instPoint *int_function::exitPoint(int_block *block) {
    return NULL;
 }
 
-instPoint *int_function::findPoint(instPoint::Type type) {
+instPoint *func_instance::findPoint(instPoint::Type type) {
    if (type == instPoint::FunctionEntry) {
       return entryPoint_;
    }
    return NULL;
 }
 
-instPoint *int_function::findPoint(instPoint::Type type, int_block *block) {
+instPoint *func_instance::findPoint(instPoint::Type type, block_instance *block) {
    switch (type) {
       case instPoint::FunctionEntry: {
          if (block != entry_) return NULL;
@@ -1002,7 +1002,7 @@ instPoint *int_function::findPoint(instPoint::Type type, int_block *block) {
    }
 }
 
-const std::map<Address, instPoint *> &int_function::findPoints(instPoint::Type type, int_block *block) {
+const std::map<Address, instPoint *> &func_instance::findPoints(instPoint::Type type, block_instance *block) {
    switch (type) {
       case instPoint::PreInsn:
          return preInsnPoints_[block];

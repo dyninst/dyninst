@@ -133,7 +133,7 @@ bool CFAtom::generate(const codeGen &templ,
       return true;
    }
 
-   int_block *block = trace->block();
+   block_instance *block = trace->block();
 
    typedef enum {
       Illegal,
@@ -291,7 +291,7 @@ CFAtom::~CFAtom() {
    }
 }
 
-TrackerElement *CFAtom::tracker(int_block *block) const {
+TrackerElement *CFAtom::tracker(block_instance *block) const {
    assert(addr_ != 1);
    assert(addr_);
    assert(block);
@@ -305,7 +305,7 @@ TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
       assert(0);
    }
 
-   int_block *destBlock = NULL;
+   block_instance *destBlock = NULL;
    switch (dest->type()) {
       case TargetInt::TraceTarget: {
          Target<Trace *> *targ = static_cast<Target<Trace *> *>(dest);
@@ -317,7 +317,7 @@ TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
       }
       case TargetInt::BlockTarget:
          
-         destBlock = (static_cast<Target<int_block *> *>(dest))->t();
+         destBlock = (static_cast<Target<block_instance *> *>(dest))->t();
          assert(destBlock);
          break;
       default:
@@ -328,7 +328,7 @@ TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
    return e;
 }
 
-TrackerElement *CFAtom::addrTracker(Address addr, int_block *block) const {
+TrackerElement *CFAtom::addrTracker(Address addr, block_instance *block) const {
    EmulatorTracker *e = new EmulatorTracker(addr, block);
    return e;
 }
@@ -353,7 +353,7 @@ TargetInt *CFAtom::getDestination(Address dest) const {
 bool CFAtom::generateBranch(CodeBuffer &buffer,
 			    TargetInt *to,
 			    Instruction::Ptr insn,
-                            int_block *curBlock,
+                            block_instance *curBlock,
 			    bool fallthrough) {
    assert(to);
    if (!to->necessary()) return true;
@@ -379,7 +379,7 @@ bool CFAtom::generateBranch(CodeBuffer &buffer,
 
 bool CFAtom::generateCall(CodeBuffer &buffer,
 			  TargetInt *to,
-                          int_block *curBlock,
+                          block_instance *curBlock,
 			  Instruction::Ptr insn) {
    if (!to) {
       // This can mean an inter-module branch...
@@ -395,7 +395,7 @@ bool CFAtom::generateCall(CodeBuffer &buffer,
 
 bool CFAtom::generateConditionalBranch(CodeBuffer &buffer,
 				       TargetInt *to,
-                                       int_block *curBlock,
+                                       block_instance *curBlock,
 				       Instruction::Ptr insn) {
    assert(to);
 
@@ -407,7 +407,7 @@ bool CFAtom::generateConditionalBranch(CodeBuffer &buffer,
 
 bool CFAtom::generateIndirect(CodeBuffer &buffer,
                               Register reg,
-                              int_block *curBlock,
+                              block_instance *curBlock,
                               Instruction::Ptr insn) {
    // Two possibilities here: either copying an indirect jump w/o
    // changes, or turning an indirect call into an indirect jump because
@@ -480,7 +480,7 @@ bool CFAtom::generateIndirect(CodeBuffer &buffer,
 bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
                                   Register reg,
                                   Instruction::Ptr insn,
-                                  int_block *curBlock,
+                                  block_instance *curBlock,
 				  Address origAddr) 
 {
    // I'm pretty sure that anything that can get translated will be
@@ -568,7 +568,7 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
    buffer.addPIC(patch, tracker());
    
    // Where are we going?
-   int_block *func = templ.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
+   block_instance *func = templ.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
    // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
    assert(func);
    

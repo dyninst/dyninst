@@ -32,6 +32,7 @@
 #if !defined(_R_T_MOVEMENT_ADHOC_H_)
 #define _R_T_MOVEMENT_ADHOC_H_
 
+class AddressSpace;
 
 #include "Transformer.h"
 
@@ -48,7 +49,7 @@ class adhocMovementTransformer : public Transformer {
  public:
   virtual bool processTrace(TraceList::iterator &);
 
- adhocMovementTransformer(AddressSpace *as) : addrSpace(as) {};
+  adhocMovementTransformer(AddressSpace *as) : addrSpace(as) {};
 
   virtual ~adhocMovementTransformer() {};
 

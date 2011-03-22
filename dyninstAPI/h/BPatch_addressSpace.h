@@ -55,7 +55,7 @@ class miniTramp;
 class BPatch;
 class BPatch_image;
 
-class int_function;
+class func_instance;
 struct batchInsertionRecord;
 
 typedef enum{
@@ -141,7 +141,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
   
  public:
     
-  BPatch_function *findOrCreateBPFunc(int_function *ifunc, 
+  BPatch_function *findOrCreateBPFunc(func_instance *ifunc, 
                                       BPatch_module *bpmod);
 
   BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, 
@@ -156,8 +156,8 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
   
   // These callbacks are triggered by lower-level code and forward
   // calls up to the findOrCreate functions.
-  static BPatch_function *createBPFuncCB(AddressSpace *p, int_function *f);
-  static BPatch_point *createBPPointCB(AddressSpace *p, int_function *f,
+  static BPatch_function *createBPFuncCB(AddressSpace *p, func_instance *f);
+  static BPatch_point *createBPPointCB(AddressSpace *p, func_instance *f,
 				       instPoint *ip, int type);
 
   BPatch_Vector<batchInsertionRecord *> *pendingInsertions;

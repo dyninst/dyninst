@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
  
-// $Id: image-func.C,v 1.60 2008/11/03 15:19:24 jaw Exp $
+// $Id: parse-cfg.C,v 1.60 2008/11/03 15:19:24 jaw Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -45,7 +45,7 @@
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-int image_func_count = 0;
+int parse_func_count = 0;
 
 const char * image_edge::getTypeString()
 {
@@ -83,7 +83,7 @@ const char * image_edge::getTypeString()
     }
 }
 
-image_func::image_func(
+parse_func::parse_func(
     SymtabAPI::Function *func, 
     pdmodule *m, 
     image *i, 
@@ -111,13 +111,13 @@ image_func::image_func(
   ,isPLTFunction_(false)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
-    image_func_count++;
-    if ((image_func_count % 100) == 0)
-        fprintf(stderr, "image_func_count: %d (%d)\n",
-                image_func_count, image_func_count*sizeof(image_func));
+    parse_func_count++;
+    if ((parse_func_count % 100) == 0)
+        fprintf(stderr, "parse_func_count: %d (%d)\n",
+                parse_func_count, parse_func_count*sizeof(parse_func));
 #endif
     _src = src;
-    extern AnnotationClass<image_func> ImageFuncUpPtrAnno;
+    extern AnnotationClass<parse_func> ImageFuncUpPtrAnno;
     if (!func_->addAnnotation(this, ImageFuncUpPtrAnno))
     {
        fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
@@ -125,14 +125,14 @@ image_func::image_func(
 }	
 
 
-image_func::~image_func() 
+parse_func::~parse_func() 
 {
     /* FIXME */ 
-  fprintf(stderr,"SCREAMING FIT IN UNIMPL ~image_func()\n");
+  fprintf(stderr,"SCREAMING FIT IN UNIMPL ~parse_func()\n");
   delete usedRegisters;
 }
 
-bool image_func::addSymTabName(std::string name, bool isPrimary) 
+bool parse_func::addSymTabName(std::string name, bool isPrimary) 
 {
     if(func_->addMangledName(name.c_str(), isPrimary)){
 	return true;
@@ -141,7 +141,7 @@ bool image_func::addSymTabName(std::string name, bool isPrimary)
     return false;
 }
 
-bool image_func::addPrettyName(std::string name, bool isPrimary) {
+bool parse_func::addPrettyName(std::string name, bool isPrimary) {
    if (func_->addPrettyName(name.c_str(), isPrimary)) {
       return true;
    }
@@ -149,7 +149,7 @@ bool image_func::addPrettyName(std::string name, bool isPrimary) {
    return false;
 }
 
-bool image_func::addTypedName(std::string name, bool isPrimary) {
+bool parse_func::addTypedName(std::string name, bool isPrimary) {
     // Count this as a pretty name in function lookup...
     if (func_->addTypedName(name.c_str(), isPrimary)) {
 	return true;
@@ -158,14 +158,14 @@ bool image_func::addTypedName(std::string name, bool isPrimary) {
     return false;
 }
 
-void image_func::changeModule(pdmodule *mod) {
+void parse_func::changeModule(pdmodule *mod) {
   // Called from buildFunctionLists, so we aren't entered in any 
   // module-level data structures. If this changes, UPDATE THE
   // FUNCTION.
   mod_ = mod;
 }
 
-bool image_func::isInstrumentableByFunctionName()
+bool parse_func::isInstrumentableByFunctionName()
 {
 #if defined(i386_unknown_solaris2_5)
     /* On Solaris, this function is called when a signal handler
@@ -183,7 +183,7 @@ bool image_func::isInstrumentableByFunctionName()
     return true;
 }
 
-Address image_func::getEndOffset() {
+Address parse_func::getEndOffset() {
     if (!parsed()) image_->analyzeIfNeeded();
     if(blocks().empty()) {
         fprintf(stderr,"error: end offset requested for empty function\n");
@@ -194,22 +194,22 @@ Address image_func::getEndOffset() {
 }
 
 
-const pdvector<image_parRegion *> &image_func::parRegions() {
+const pdvector<image_parRegion *> &parse_func::parRegions() {
   if (!parsed()) image_->analyzeIfNeeded();
   return parRegionsList;
 }
 
-bool image_func::isPLTFunction() {
+bool parse_func::isPLTFunction() {
     return obj()->cs()->linkage().find(addr()) !=
            obj()->cs()->linkage().end();
 }
 
-int image_basicBlock_count = 0;
+int parse_block_count = 0;
 
 /*
  * For CFGFactory::mksink only 
  */
-image_basicBlock::image_basicBlock(
+parse_block::parse_block(
         CodeObject * obj, 
         CodeRegion * reg,
         Address addr) :
@@ -220,8 +220,8 @@ image_basicBlock::image_basicBlock(
      
 }
 
-image_basicBlock::image_basicBlock(
-        image_func * func, 
+parse_block::parse_block(
+        parse_func * func, 
         CodeRegion * reg,
         Address firstOffset) :
     Block(func->obj(),reg,firstOffset),
@@ -231,19 +231,19 @@ image_basicBlock::image_basicBlock(
     // basic block IDs are unique within images.
     blockNumber_ = func->img()->getNextBlockID();
 #if defined(ROUGH_MEMORY_PROFILE)
-    image_basicBlock_count++;
-    if ((image_basicBlock_count % 100) == 0)
-        fprintf(stderr, "image_basicBlock_count: %d (%d)\n",
-                image_basicBlock_count, image_basicBlock_count*sizeof(image_basicBlock));
+    parse_block_count++;
+    if ((parse_block_count % 100) == 0)
+        fprintf(stderr, "parse_block_count: %d (%d)\n",
+                parse_block_count, parse_block_count*sizeof(parse_block));
 #endif
 }
 
-image_basicBlock::~image_basicBlock() {
+parse_block::~parse_block() {
 
 }
 
 
-void image_basicBlock::debugPrint() {
+void parse_block::debugPrint() {
    // no looping if we're not printing anything
     if(!dyn_debug_parsing)
         return;
@@ -259,7 +259,7 @@ void image_basicBlock::debugPrint() {
     Block::edgelist::iterator sit = srcs.begin();
     unsigned s = 0;
     for ( ; sit != srcs.end(); ++sit) {
-        image_basicBlock * src = static_cast<image_basicBlock*>((*sit)->src());
+        parse_block * src = static_cast<parse_block*>((*sit)->src());
         parsing_printf("    %d: block %d (%s)\n",
                        s, src->blockNumber_,
                        static_cast<image_edge*>(*sit)->getTypeString());
@@ -270,7 +270,7 @@ void image_basicBlock::debugPrint() {
     Block::edgelist::iterator tit = trgs.begin();
     unsigned t = 0;
     for( ; tit != trgs.end(); ++tit) {
-        image_basicBlock * trg = static_cast<image_basicBlock*>((*tit)->trg());
+        parse_block * trg = static_cast<parse_block*>((*tit)->trg());
         parsing_printf("    %d: block %d (%s)\n",
                        t, trg->blockNumber_,
                        static_cast<image_edge*>(*tit)->getTypeString());
@@ -278,7 +278,7 @@ void image_basicBlock::debugPrint() {
     }
 }
 
-void *image_basicBlock::getPtrToInstruction(Address addr) const {
+void *parse_block::getPtrToInstruction(Address addr) const {
     if (addr < start()) return NULL;
     if (addr >= end()) return NULL;
     // XXX all potential parent functions have the same image
@@ -289,7 +289,7 @@ void *image_basicBlock::getPtrToInstruction(Address addr) const {
    Why do we even bother returning NULL if the address is outside of this
    function? FIXME check whether we can do away with that.
 */
-void *image_func::getPtrToInstruction(Address addr) const {
+void *parse_func::getPtrToInstruction(Address addr) const {
     // The commented-out code checks whether the address is within
     // the bytes of this function (one of its basic blocks). Instead,
     // we do a fast path and just pass the request through to the image.
@@ -314,7 +314,7 @@ void *image_func::getPtrToInstruction(Address addr) const {
     return isrc()->getPtrToInstruction(addr);
 }
 
-bool image_basicBlock::isEntryBlock(image_func * f) const
+bool parse_block::isEntryBlock(parse_func * f) const
 {
     return f->entryBlock() == this;
 } 
@@ -323,7 +323,7 @@ bool image_basicBlock::isEntryBlock(image_func * f) const
  * All edges of an exit block are the same: returns
  * or interprocedural branches
  */
-bool image_basicBlock::isExitBlock()
+bool parse_block::isExitBlock()
 {
     Block::edgelist & trgs = targets();
     if(!trgs.empty())
@@ -334,16 +334,16 @@ bool image_basicBlock::isExitBlock()
     return false;
 }
 
-image *image_basicBlock::img()
+image *parse_block::img()
 {
     vector<Function*> funcs;
     getFuncs(funcs);
-    return static_cast<image_func*>(funcs[0])->img();
+    return static_cast<parse_func*>(funcs[0])->img();
 }
 
-image_func *image_basicBlock::getEntryFunc() const {
-    image_func *ret =
-        static_cast<image_func*>(obj()->findFuncByEntry(region(),start()));
+parse_func *parse_block::getEntryFunc() const {
+    parse_func *ret =
+        static_cast<parse_func*>(obj()->findFuncByEntry(region(),start()));
 
     // sanity check
     if(ret && ret->entryBlock() != this) {
@@ -354,19 +354,19 @@ image_func *image_basicBlock::getEntryFunc() const {
     return ret;
 }
 
-image_basicBlock * image_func::entryBlock() { 
+parse_block * parse_func::entryBlock() { 
     if (!parsed()) image_->analyzeIfNeeded();
-    return static_cast<image_basicBlock*>(entry());
+    return static_cast<parse_block*>(entry());
 }
 
-bool image_func::isLeafFunc() {
+bool parse_func::isLeafFunc() {
     if (!parsed())
         image_->analyzeIfNeeded();
 
     return !callEdges().empty();
 }
 
-void image_func::addParRegion(Address begin, Address end, parRegType t)
+void parse_func::addParRegion(Address begin, Address end, parRegType t)
 {
     image_parRegion * iPar = new image_parRegion(begin, this);
     iPar->setRegionType(t);
@@ -376,7 +376,7 @@ void image_func::addParRegion(Address begin, Address end, parRegType t)
 }
 
 #if defined(cap_instruction_api)
-void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> >&instances) {
+void parse_block::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> >&instances) {
     using namespace InstructionAPI;
     Offset off = firstInsnOffset();
     const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);
@@ -395,23 +395,23 @@ void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::In
  * Find the blocks that are reachable from the seed blocks 
  * if the except blocks are not part of the CFG
  */
-void image_func::getReachableBlocks
-(const std::set<image_basicBlock*> &exceptBlocks,
- const std::list<image_basicBlock*> &seedBlocks,
- std::set<image_basicBlock*> &reachBlocks)
+void parse_func::getReachableBlocks
+(const std::set<parse_block*> &exceptBlocks,
+ const std::list<parse_block*> &seedBlocks,
+ std::set<parse_block*> &reachBlocks)
 {
     using namespace ParseAPI;
     mal_printf("reachable blocks for func %lx from %d start blocks\n",
                addr(), seedBlocks.size());
 
     // init visited set with seed and except blocks
-    std::set<image_basicBlock*> visited;
+    std::set<parse_block*> visited;
     visited.insert(exceptBlocks.begin(), exceptBlocks.end());
     visited.insert(seedBlocks.begin(), seedBlocks.end());
 
     // add seed blocks to the worklist (unless the seed is in exceptBlocks)
-    std::list<image_basicBlock*> worklist;
-    for (list<image_basicBlock*>::const_iterator sit = seedBlocks.begin();
+    std::list<parse_block*> worklist;
+    for (list<parse_block*>::const_iterator sit = seedBlocks.begin();
          sit != seedBlocks.end();
          sit++) 
     {
@@ -426,11 +426,11 @@ void image_func::getReachableBlocks
     // seedBlocks) that are reachable through target edges to the
     // reachBlocks set
     while(worklist.size()) {
-        image_basicBlock *curBlock = worklist.front();
+        parse_block *curBlock = worklist.front();
         Block::edgelist & outEdges = curBlock->targets();
         Block::edgelist::iterator tIter = outEdges.begin();
         for (; tIter != outEdges.end(); tIter++) {
-            image_basicBlock *targB = (image_basicBlock*) (*tIter)->trg();
+            parse_block *targB = (parse_block*) (*tIter)->trg();
             if ( CALL != (*tIter)->type() &&
                  false == (*tIter)->sinkEdge() &&
                  visited.end() == visited.find(targB) )
@@ -456,17 +456,17 @@ void image_func::getReachableBlocks
  * Find the blocks that would become unreachable if we were to delete
  * the dead blocks.
  */
-void image_func::getUnreachableBlocks
-( std::set<image_basicBlock*> &deadBlocks,  // input
-  std::set<image_basicBlock*> &unreachable )// output
+void parse_func::getUnreachableBlocks
+( std::set<parse_block*> &deadBlocks,  // input
+  std::set<parse_block*> &unreachable )// output
 {
     using namespace ParseAPI;
     mal_printf("GetUnreachableBlocks for %d dead blocks\n",deadBlocks.size());
 
     // find all funcs containing dead blocks
-    std::set<image_func*> deadFuncs; 
+    std::set<parse_func*> deadFuncs; 
     vector<Function*> curfuncs;
-    for (set<image_basicBlock*>::iterator dIter = deadBlocks.begin();
+    for (set<parse_block*>::iterator dIter = deadBlocks.begin();
          dIter != deadBlocks.end(); 
          dIter++) 
     {
@@ -475,19 +475,19 @@ void image_func::getUnreachableBlocks
              fit != curfuncs.end();
              fit++) 
         {
-            deadFuncs.insert(dynamic_cast<image_func*>(*fit));
+            deadFuncs.insert(dynamic_cast<parse_func*>(*fit));
         }
         curfuncs.clear();
     }
 
     // add function entry blocks to the worklist and the visited set
-    std::set<image_basicBlock*> visited;
-    std::list<image_basicBlock*> worklist;
-    for(std::set<image_func*>::iterator fIter=deadFuncs.begin(); 
+    std::set<parse_block*> visited;
+    std::list<parse_block*> worklist;
+    for(std::set<parse_func*>::iterator fIter=deadFuncs.begin(); 
         fIter != deadFuncs.end();
         fIter++) 
     {
-        image_basicBlock *entryBlock = (*fIter)->entryBlock();
+        parse_block *entryBlock = (*fIter)->entryBlock();
         if (deadBlocks.end() == deadBlocks.find(entryBlock)) {
             visited.insert(entryBlock);
             worklist.push_back(entryBlock);
@@ -502,11 +502,11 @@ void image_func::getUnreachableBlocks
     // deadBlocks) that are reachable through target edges to the
     // visited set
     while(worklist.size()) {
-        image_basicBlock *curBlock = worklist.front();
+        parse_block *curBlock = worklist.front();
         Block::edgelist & outEdges = curBlock->targets();
         Block::edgelist::iterator tIter = outEdges.begin();
         for (; tIter != outEdges.end(); tIter++) {
-            image_basicBlock *targB = (image_basicBlock*) (*tIter)->trg();
+            parse_block *targB = (parse_block*) (*tIter)->trg();
             if ( CALL != (*tIter)->type() &&
                  deadBlocks.end() == deadBlocks.find(targB) && 
                  visited.end() == visited.find(targB) )
@@ -522,15 +522,15 @@ void image_func::getUnreachableBlocks
     } 
 
     // add all blocks in deadFuncs but not in "visited" to the unreachable set
-    for(std::set<image_func*>::iterator fIter=deadFuncs.begin(); 
+    for(std::set<parse_func*>::iterator fIter=deadFuncs.begin(); 
         fIter != deadFuncs.end();
         fIter++) 
     {
         Function::blocklist & blks = (*fIter)->blocks();
         Function::blocklist::iterator bIter = blks.begin();
         for( ; bIter != blks.end(); ++bIter) {
-            if (visited.end() == visited.find( (image_basicBlock*)(*bIter) )) {
-                unreachable.insert( (image_basicBlock*)(*bIter) );
+            if (visited.end() == visited.find( (parse_block*)(*bIter) )) {
+                unreachable.insert( (parse_block*)(*bIter) );
                 mal_printf("block [%lx %lx] is unreachable\n",
                            (*bIter)->start(), (*bIter)->end());
             }
@@ -539,14 +539,14 @@ void image_func::getUnreachableBlocks
 }
 #endif
 
-void image_func::setinit_retstatus(ParseAPI::FuncReturnStatus rs)
+void parse_func::setinit_retstatus(ParseAPI::FuncReturnStatus rs)
 {
     init_retstatus_ = rs;
     if (rs > retstatus()) {
         set_retstatus(rs);
     }
 }
-ParseAPI::FuncReturnStatus image_func::init_retstatus() const
+ParseAPI::FuncReturnStatus parse_func::init_retstatus() const
 {
     if (init_retstatus_ > retstatus()) {
         return retstatus();
@@ -554,26 +554,26 @@ ParseAPI::FuncReturnStatus image_func::init_retstatus() const
     return init_retstatus_;
 }
 
-void image_func::destroyBlocks(std::vector<ParseAPI::Block *> &blocks) {
+void parse_func::destroyBlocks(std::vector<ParseAPI::Block *> &blocks) {
    deleteBlocks(blocks);
 }
 
-void image_func::setHasWeirdInsns(bool wi)
+void parse_func::setHasWeirdInsns(bool wi)
 {
    hasWeirdInsns_ = wi;
 }
 
-image_func *image_basicBlock::getCallee() {
+parse_func *parse_block::getCallee() {
    for (edgelist::iterator iter = targets().begin(); iter != targets().end(); ++iter) {
       if ((*iter)->type() == ParseAPI::CALL) {
-         image_basicBlock *t = static_cast<image_basicBlock *>((*iter)->trg());
+         parse_block *t = static_cast<parse_block *>((*iter)->trg());
          return t->getEntryFunc();
       }
    }
    return NULL;
 }
 
-std::pair<bool, Address> image_basicBlock::callTarget() {
+std::pair<bool, Address> parse_block::callTarget() {
    using namespace InstructionAPI;
    Offset off = lastInsnOffset();
    const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);

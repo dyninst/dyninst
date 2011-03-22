@@ -350,8 +350,8 @@ bool process::handleTrapAtEntryPointOfMain(dyn_lwp *trappingLWP)
 bool process::insertTrapAtEntryPointOfMain()
 {
 
-   int_function *f_main = 0;
-   pdvector<int_function *> funcs;
+   func_instance *f_main = 0;
+   pdvector<func_instance *> funcs;
    //first check a.out for function symbol   
    bool res = findFuncsByPretty("main", funcs);
    if (!res)
@@ -716,7 +716,7 @@ bool process::instrumentLibcStartMain()
     addASharedObject(libc);
 
     // find __libc_startmain
-    const pdvector<int_function*> *funcs;
+    const pdvector<func_instance*> *funcs;
     funcs = libc->findFuncVectorByPretty("__libc_start_main");
     if(funcs->size() == 0 || (*funcs)[0] == NULL) {
         logLine( "Couldn't find __libc_start_main\n");
@@ -847,12 +847,12 @@ bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
     }
 
     // if gap parsing is on, check for a function at mainaddr, rename
-    // it to "main" and set main_function to its int_function
-    int_function* mainfunc = NULL;
+    // it to "main" and set main_function to its func_instance
+    func_instance* mainfunc = NULL;
     if (a_out->parse_img()->parseGaps()) {
         a_out->analyze();
         snprintf(namebuf,64,"gap_%lx", (long)mainaddr);
-        int_function* mainfunc = findOnlyOneFunction(namebuf,a_out->fileName());
+        func_instance* mainfunc = findOnlyOneFunction(namebuf,a_out->fileName());
         if (mainfunc) {
             mainfunc->addSymTabName("main", true);
             mainfunc->addPrettyName("main", true);
@@ -1132,7 +1132,7 @@ Address dyn_lwp::readRegister(Register /*reg*/) {
 
 
 void print_read_error_info(const relocationEntry entry, 
-      int_function *&target_pdf, Address base_addr) {
+      func_instance *&target_pdf, Address base_addr) {
 
     sprintf(errorLine, "  entry      : target_addr 0x%x\n",
 	    (unsigned)entry.target_addr());
@@ -1168,7 +1168,7 @@ void print_read_error_info(const relocationEntry entry,
 // specified by entry and base_addr.  If it has been bound, then the callee 
 // function is returned in "target_pdf", else it returns false.
 bool process::hasBeenBound(const relocationEntry &entry, 
-			   int_function *&target_pdf, Address base_addr) {
+			   func_instance *&target_pdf, Address base_addr) {
 
     if (status() == exited) return false;
 
@@ -1280,7 +1280,7 @@ bool AddressSpace::getDyninstRTLibName() {
 
 bool process::loadDYNINSTlib()
 {
-    pdvector<int_function *> dlopen_funcs;
+    pdvector<func_instance *> dlopen_funcs;
 
 	//  allow user to override default dlopen func names 
 	//  with env. var
@@ -1346,10 +1346,10 @@ bool process::loadDYNINSTlib_hidden() {
   Address dyninstlib_str_addr = 0;
   Address dlopen_call_addr = 0;
 
-  pdvector<int_function *> dlopen_funcs;
+  pdvector<func_instance *> dlopen_funcs;
   if (!findFuncsByAll(DL_OPEN_FUNC_NAME, dlopen_funcs))
   {
-    pdvector<int_function *> dlopen_int_funcs;                                    
+    pdvector<func_instance *> dlopen_int_funcs;                                    
     // If we can't find the do_dlopen function (because this library
     // is stripped, for example), try searching for the internal
     // _dl_open function and find the do_dlopen function by examining
@@ -1592,7 +1592,7 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 	Address dyninstlib_str_addr = 0;
 	Address dlopen_call_addr = 0;
 
-	pdvector<int_function *> dlopen_funcs;
+	pdvector<func_instance *> dlopen_funcs;
 
 	if (!findFuncsByAll(dlopen_name ? dlopen_name : DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) 
 	{
@@ -1722,7 +1722,7 @@ Address process::tryUnprotectStack(codeGen &buf, Address codeBase)
 
 	// mprotect READ/WRITE __stack_prot
 	pdvector<int_variable *> vars; 
-	pdvector<int_function *> funcs;
+	pdvector<func_instance *> funcs;
 
 	Address var_addr;
 	Address func_addr;
@@ -1753,7 +1753,7 @@ Address process::tryUnprotectStack(codeGen &buf, Address codeBase)
         return 0;
     }
 
-    int_function * mprot = funcs[0];
+    func_instance * mprot = funcs[0];
     func_addr = mprot->getAddress();
     ret_addr = codeBase + buf.used();
 

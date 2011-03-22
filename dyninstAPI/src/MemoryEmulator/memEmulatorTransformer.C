@@ -66,9 +66,9 @@ bool MemEmulatorTransformer::preprocess(TraceList &t) {
 bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
   if (!((*iter)->block())) return true;
   
-  // AssignmentConverter is written in terms of image_func,
+  // AssignmentConverter is written in terms of parse_func,
   // so translate
-  int_function *func = (*iter)->block()->func();
+  func_instance *func = (*iter)->block()->func();
   
 
   AtomList &elements = (*iter)->elements();
@@ -99,7 +99,7 @@ bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
 }
 
 bool MemEmulatorTransformer::canRewriteMemInsn(InsnAtom::Ptr reloc,
-					       int_function *func) {
+					       func_instance *func) {
   // Let's see if this is an instruction we can rewrite;
   // otherwise complain but let it through (for testing purposes)
    if (override(reloc))
@@ -161,8 +161,8 @@ bool MemEmulatorTransformer::override(InsnAtom::Ptr reloc) {
 }
 
 Atom::Ptr MemEmulatorTransformer::createReplacement(InsnAtom::Ptr reloc,
-                                                    int_function *func, 
-                                                    int_block *block) {
+                                                    func_instance *func, 
+                                                    block_instance *block) {
   // MemEmulators want instPoints. How unreasonable.
    instPoint *point = block->preInsnPoint(reloc->addr());
    if (!point) return Atom::Ptr();
@@ -175,9 +175,11 @@ Atom::Ptr MemEmulatorTransformer::createReplacement(InsnAtom::Ptr reloc,
    return memE;
 }
 
-bool MemEmulatorTransformer::isSensitive(InsnAtom::Ptr reloc, int_function *func, int_block *block) {
+bool MemEmulatorTransformer::isSensitive(InsnAtom::Ptr reloc, 
+                                         func_instance *func, 
+                                         block_instance *block) {
 
-  image_func *ifunc = func->ifunc();  
+   parse_func *ifunc = func->ifunc();  
   Address image_addr = func->addrToOffset(reloc->addr());
 
   std::vector<Assignment::Ptr> assignments;

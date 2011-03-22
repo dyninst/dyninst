@@ -47,8 +47,8 @@
 #include "Springboard.h"
 
 class codeGen;
-class int_block;
-class int_function;
+class block_instance;
+class func_instance;
 
 namespace Dyninst {
   class AddressMapper;
@@ -60,16 +60,16 @@ class Transformer;
 class CodeMover;
 class CodeTracker;
 
-typedef std::map<int_block *, Priority> PriorityMap;
+typedef std::map<block_instance *, Priority> PriorityMap;
 
 class CodeMover {
  public:
   typedef dyn_detail::boost::shared_ptr<CodeMover> Ptr;
   typedef dyn_detail::boost::shared_ptr<Trace> TracePtr;
   typedef std::list<TracePtr> TraceList;
-  typedef std::map<int_block *, TracePtr> TraceMap;
-  typedef std::set<int_function *> FuncSet;
-  typedef std::set<int_block *> BlockSet;
+  typedef std::map<block_instance *, TracePtr> TraceMap;
+  typedef std::set<func_instance *> FuncSet;
+  typedef std::set<block_instance *> BlockSet;
 
   // A generic mover of code; an instruction, a basic block, or
   // a function. This is the algorithm (fixpoint) counterpart
@@ -140,7 +140,7 @@ class CodeMover {
   template <typename TraceIter>
     bool addTraces(TraceIter begin, TraceIter end);
 
-  bool addTrace(int_block *block);
+  bool addTrace(block_instance *block);
 
   void createInstrumentationSpringboards(AddressSpace *as);
 

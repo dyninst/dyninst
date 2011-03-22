@@ -36,7 +36,7 @@
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Vector.h"
-#include "image-func.h"
+#include "parse-cfg.h"
 #include "instPoint.h"
 #include "mapped_object.h"
 #include "symtab.h"
@@ -52,7 +52,7 @@
 
 using namespace Dyninst::ParseAPI;
 
-bool image_func::writesFPRs(unsigned level) {
+bool parse_func::writesFPRs(unsigned level) {
     
     using namespace Dyninst::InstructionAPI;
     // Oh, we should be parsed by now...
@@ -71,7 +71,7 @@ bool image_func::writesFPRs(unsigned level) {
         Function::edgelist::iterator cit = calls.begin();
         for( ; cit != calls.end(); ++cit) {
             image_edge * ce = static_cast<image_edge*>(*cit);
-            image_func * ct = static_cast<image_func*>(
+            parse_func * ct = static_cast<parse_func*>(
                 obj()->findFuncByEntry(region(),ce->trg()->start()));
             if(ct && ct != this) {
                 if (ct->writesFPRs(level+1)) {
@@ -194,12 +194,12 @@ static const std::string DYNINST_DTOR_LIST("DYNINSTdtors_addr");
 static const std::string SYMTAB_CTOR_LIST_REL("__SYMTABAPI_CTOR_LIST__");
 static const std::string SYMTAB_DTOR_LIST_REL("__SYMTABAPI_DTOR_LIST__");
 
-static bool replaceHandler(int_function *origHandler, int_function *newHandler, 
+static bool replaceHandler(func_instance *origHandler, func_instance *newHandler, 
         int_symbol *newList, const std::string &listRelName)
 {
     // Add instrumentation to replace the function
    instPoint *entry = origHandler->entryPoint();
-   AstNodePtr funcJump = AstNode::funcReplacementNode(const_cast<int_function *>(newHandler));
+   AstNodePtr funcJump = AstNode::funcReplacementNode(const_cast<func_instance *>(newHandler));
    miniTramp *mini = entry->push_front(funcJump);
    origHandler->proc()->relocate();
     
@@ -246,25 +246,25 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
      */
 
     // First, find all the necessary symbol info.
-    int_function *globalCtorHandler = mobj->findGlobalConstructorFunc(LIBC_CTOR_HANDLER);
+    func_instance *globalCtorHandler = mobj->findGlobalConstructorFunc(LIBC_CTOR_HANDLER);
     if( !globalCtorHandler ) {
         logLine("failed to find libc constructor handler\n");
         return false;
     }
 
-    int_function *dyninstCtorHandler = findOnlyOneFunction(DYNINST_CTOR_HANDLER);
+    func_instance *dyninstCtorHandler = findOnlyOneFunction(DYNINST_CTOR_HANDLER);
     if( !dyninstCtorHandler ) {
         logLine("failed to find Dyninst constructor handler\n");
         return false;
     }
 
-    int_function *globalDtorHandler = mobj->findGlobalDestructorFunc(LIBC_DTOR_HANDLER);
+    func_instance *globalDtorHandler = mobj->findGlobalDestructorFunc(LIBC_DTOR_HANDLER);
     if( !globalDtorHandler ) {
         logLine("failed to find libc destructor handler\n");
         return false;
     }
 
-    int_function *dyninstDtorHandler = findOnlyOneFunction(DYNINST_DTOR_HANDLER);
+    func_instance *dyninstDtorHandler = findOnlyOneFunction(DYNINST_DTOR_HANDLER);
     if( !dyninstDtorHandler ) {
         logLine("failed to find Dyninst destructor handler\n");
         return false;
@@ -386,10 +386,10 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     return true;
 }
 
-int_function *mapped_object::findGlobalConstructorFunc(const std::string &ctorHandler) {
+func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorHandler) {
     using namespace Dyninst::InstructionAPI;
 
-    const pdvector<int_function *> *funcs = findFuncVectorByMangled(ctorHandler);
+    const pdvector<func_instance *> *funcs = findFuncVectorByMangled(ctorHandler);
     if( funcs != NULL ) {
         return funcs->at(0);
     }
@@ -488,7 +488,7 @@ int_function *mapped_object::findGlobalConstructorFunc(const std::string &ctorHa
         return NULL;
     }
 
-    int_function *ret;
+    func_instance *ret;
     if( (ret = findFuncByEntry(ctorAddress)) == NULL ) {
         logLine("unable to create representation for global constructor function\n");
         return NULL;
@@ -500,10 +500,10 @@ int_function *mapped_object::findGlobalConstructorFunc(const std::string &ctorHa
     return ret;
 }
 
-int_function *mapped_object::findGlobalDestructorFunc(const std::string &dtorHandler) {
+func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHandler) {
     using namespace Dyninst::InstructionAPI;
 
-    const pdvector<int_function *> *funcs = findFuncVectorByMangled(dtorHandler);
+    const pdvector<func_instance *> *funcs = findFuncVectorByMangled(dtorHandler);
     if( funcs != NULL ) {
         return funcs->at(0);
     }
@@ -594,7 +594,7 @@ int_function *mapped_object::findGlobalDestructorFunc(const std::string &dtorHan
     }
 
     // A targ stub should have been created at the address
-    int_function *ret = NULL;
+    func_instance *ret = NULL;
     if( (ret = findFuncByEntry(dtorAddress)) == NULL ) {
         logLine("unable to find global destructor function\n");
         return NULL;

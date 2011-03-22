@@ -64,8 +64,8 @@ class MemoryEmulator {
    std::pair<bool, Address> translateBackwards(Address addr);
    
     const std::map<Address,int> & getSpringboards(SymtabAPI::Region*) const;
-    void removeSpringboards(int_function* deadfunc);
-    void removeSpringboards(const int_block* deadBBI);
+    void removeSpringboards(func_instance* deadfunc);
+    void removeSpringboards(const block_instance* deadBBI);
     void addSpringboard(SymtabAPI::Region*, 
         Address offset,/*from start of region*/    
         int size);

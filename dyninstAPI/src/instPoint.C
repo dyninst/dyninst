@@ -50,7 +50,7 @@
 using namespace Dyninst::InstructionAPI;
 
 #include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/image-func.h"
+#include "dyninstAPI/src/parse-cfg.h"
 #include "common/h/arch.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/emitter.h"
@@ -61,24 +61,24 @@ using namespace Dyninst::InstructionAPI;
 
 // Creation methods!
 
-instPoint *instPoint::funcEntry(int_function *f) {
+instPoint *instPoint::funcEntry(func_instance *f) {
    return new instPoint(FunctionEntry, f);
 }
 
-instPoint *instPoint::funcExit(int_block *b) {
+instPoint *instPoint::funcExit(block_instance *b) {
    if (!b->isExit()) return NULL;
    return new instPoint(FunctionExit, b);
 }
 
-instPoint *instPoint::blockEntry(int_block *b) {
+instPoint *instPoint::blockEntry(block_instance *b) {
    return new instPoint(BlockEntry, b);
 }
 
-instPoint *instPoint::edge(int_edge *e) {
+instPoint *instPoint::edge(edge_instance *e) {
    return new instPoint(Edge, e);
 }
 
-instPoint *instPoint::preInsn(int_block *b,
+instPoint *instPoint::preInsn(block_instance *b,
                               Instruction::Ptr insn,
                               Address a,
                               bool trusted) {
@@ -89,7 +89,7 @@ instPoint *instPoint::preInsn(int_block *b,
    return new instPoint(PreInsn, b, insn, a);
 }
 
-instPoint *instPoint::postInsn(int_block *b,
+instPoint *instPoint::postInsn(block_instance *b,
                                Instruction::Ptr insn, 
                                Address a, 
                                bool trusted) {
@@ -99,17 +99,17 @@ instPoint *instPoint::postInsn(int_block *b,
    return new instPoint(PostInsn, b, insn, a);
 }
 
-instPoint *instPoint::preCall(int_block *b) {
+instPoint *instPoint::preCall(block_instance *b) {
    if (!b->containsCall()) return NULL;
    return new instPoint(PreCall, b);
 }
 
-instPoint *instPoint::postCall(int_block *b) {
+instPoint *instPoint::postCall(block_instance *b) {
    if (!b->containsCall()) return NULL;
    return new instPoint(PostCall, b);
 }
 
-instPoint::instPoint(Type t, int_function *f) :
+instPoint::instPoint(Type t, func_instance *f) :
    type_(t),
    func_(f),
    block_(NULL),
@@ -118,13 +118,13 @@ instPoint::instPoint(Type t, int_function *f) :
    recursive_(false),
    baseTramp_(NULL) {};
 
-instPoint::instPoint(Type t, int_block *b) :
+instPoint::instPoint(Type t, block_instance *b) :
    type_(t), func_(NULL), block_(b), edge_(NULL), addr_(0), recursive_(false), baseTramp_(NULL) {};
 
-instPoint::instPoint(Type t, int_edge *e) :
+instPoint::instPoint(Type t, edge_instance *e) :
    type_(t), func_(NULL), block_(NULL), edge_(e), addr_(0), recursive_(false), baseTramp_(NULL) {};
 
-instPoint::instPoint(Type t, int_block *b, Instruction::Ptr insn, Address a) :
+instPoint::instPoint(Type t, block_instance *b, Instruction::Ptr insn, Address a) :
    type_(t), func_(NULL), block_(b), edge_(NULL), insn_(insn), addr_(a), recursive_(false), baseTramp_(NULL) {};
 
 instPoint *instPoint::fork(instPoint *, AddressSpace *) {
@@ -152,7 +152,7 @@ AddressSpace *instPoint::proc() const {
    return func()->proc();
 }
 
-int_function *instPoint::func() const { 
+func_instance *instPoint::func() const { 
    if (func_) return func_;
    if (block_) return block_->func();
    if (edge_) return edge_->func();
@@ -207,10 +207,10 @@ void instPoint::erase(miniTramp *m) {
    }
 }
 
-bool instPoint::checkInsn(int_block *b,
+bool instPoint::checkInsn(block_instance *b,
                           Instruction::Ptr &insn,
                           Address a) {
-   int_block::InsnInstances insns;
+   block_instance::InsnInstances insns;
    b->getInsns(insns);
    for (unsigned i = 0; i < insns.size(); ++i) {
       if (a == insns[i].second) {
@@ -236,7 +236,7 @@ baseTramp *instPoint::tramp() {
 // In some cases we may not know; function exit points
 // and the like. In this case we return the current block
 // as a "well, this is what we've got..."
-int_block *instPoint::nextExecutedBlock() const {
+block_instance *instPoint::nextExecutedBlock() const {
    switch (type_) {
       case FunctionEntry:
          return func_->entryBlock();
@@ -275,7 +275,7 @@ Address instPoint::nextExecutedAddr() const {
       case PreCall:
          return block_->last();
       case PostCall: {
-         int_block *ft = block_->getFallthrough();
+         block_instance *ft = block_->getFallthrough();
          if (ft) 
             return ft->start();
          else 

@@ -53,7 +53,7 @@ class BPatch_builtInTypeCollection;
 class BPatch_addressSpace;
 class BPatch_process;
 class BPatch_statement;
-class int_function;
+class func_instance;
 class int_variable;
 class instPoint;
 class AddressSpace;
@@ -82,7 +82,7 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     friend class BPatch_addressSpace;
     friend class BPatch_statement;
 
-    typedef std::map<int_function*, BPatch_function*> BPatch_funcMap;
+    typedef std::map<func_instance*, BPatch_function*> BPatch_funcMap;
     typedef std::map<int_variable*, BPatch_variableExpr*> BPatch_varMap;
     typedef std::map<instPoint*, BPatch_point*> BPatch_instpMap;
     

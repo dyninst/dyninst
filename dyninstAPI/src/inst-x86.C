@@ -764,7 +764,7 @@ int tramp_pre_frame_size_64 = 8 + 16 * 8 + AMD64_RED_ZONE; // stack space alloca
 
 bool can_do_relocation(process *proc,
                        const pdvector<pdvector<Frame> > &stackWalks,
-                       int_function *instrumented_func)
+                       func_instance *instrumented_func)
 {
    bool can_do_reloc = true;
 
@@ -772,12 +772,12 @@ bool can_do_relocation(process *proc,
    // relocation
    Address begAddr = instrumented_func->getAddress();
    for (unsigned walk_itr = 0; walk_itr < stackWalks.size(); walk_itr++) {
-     pdvector<int_function *> stack_funcs =
+     pdvector<func_instance *> stack_funcs =
        proc->pcsToFuncs(stackWalks[walk_itr]);
      
      // for every frame in thread stack walk
      for(unsigned i=0; i<stack_funcs.size(); i++) {
-       int_function *stack_func = stack_funcs[i];
+       func_instance *stack_func = stack_funcs[i];
        Address pc = stackWalks[walk_itr][i].getPC();
        
        if( stack_func == instrumented_func ) {
@@ -1372,7 +1372,7 @@ Register emitFuncCall(opCode op,
                       codeGen &gen,
                       pdvector<AstNodePtr> &operands, 
                       bool noCost,
-                      int_function *callee)
+                      func_instance *callee)
 {
     Register reg = gen.codeEmitter()->emitCall(op, gen, operands, noCost, callee);
     return reg;
@@ -1391,7 +1391,7 @@ store and reexamine every call out instead of doing it on the fly like before*/
 // Should be a member of the registerSpace class?
 
 bool EmitterIA32::clobberAllFuncCall( registerSpace *rs,
-                                      int_function *callee)
+                                      func_instance *callee)
 		   
 {
   if (callee == NULL) return false;
@@ -1429,7 +1429,7 @@ void EmitterIA32::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 Register EmitterIA32::emitCall(opCode op, 
                                codeGen &gen,
                                const pdvector<AstNodePtr> &operands, 
-                               bool noCost, int_function *callee) {
+                               bool noCost, func_instance *callee) {
     bool inInstrumentation = true;
 #if 0
     if (gen.obj() &&
@@ -2284,7 +2284,7 @@ int getInsnCost(opCode op)
 // CALLEE returns, it returns to the current caller.)
 void emitFuncJump(opCode op, 
                   codeGen &gen,
-                  int_function *callee, AddressSpace *,
+                  func_instance *callee, AddressSpace *,
                   const instPoint *loc, bool)
 {
    // This must mimic the generateRestores baseTramp method. 
@@ -2296,7 +2296,7 @@ void emitFuncJump(opCode op,
 
 #define MAX_SINT ((signed int) (0x7fffffff))
 #define MIN_SINT ((signed int) (0x80000000))
-void EmitterIA32::emitFuncJump(int_function *f, instPoint::Type /*ptType*/,
+void EmitterIA32::emitFuncJump(func_instance *f, instPoint::Type /*ptType*/,
                                bool callOp, codeGen &gen)
 {
    assert(gen.inInstrumentation());
@@ -2541,7 +2541,7 @@ int getMaxJumpSize()
 
 // TODO: fix this so we don't screw future instrumentation of this
 // function. It's a cute little hack, but jeez.
-bool int_function::setReturnValue(int val)
+bool func_instance::setReturnValue(int val)
 {
     codeGen gen(16);
 
@@ -2562,7 +2562,7 @@ unsigned saveRestoreRegistersInBaseTramp(process * /*proc*/,
 /**
  * Fills in an indirect function pointer at 'addr' to point to 'f'.
  **/
-bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
+bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
 {
    Address val_to_write = f->getAddress();
    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   
@@ -2740,7 +2740,7 @@ void emitJump(unsigned disp32, codeGen &gen)
 
 int EmitterIA32::emitCallParams(codeGen &gen, 
                               const pdvector<AstNodePtr> &operands,
-                              int_function */*target*/, 
+                              func_instance */*target*/, 
                               pdvector<Register> &/*extra_saves*/, 
                               bool noCost)
 {
@@ -2771,7 +2771,7 @@ int EmitterIA32::emitCallParams(codeGen &gen,
 }
 
 bool EmitterIA32::emitCallCleanup(codeGen &gen,
-                                int_function * /*target*/, 
+                                func_instance * /*target*/, 
                                 int frame_size, 
                                 pdvector<Register> &/*extra_saves*/)
 {

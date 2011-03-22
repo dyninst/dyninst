@@ -80,7 +80,7 @@ typedef enum frameStatus_t {
 
 static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_height)
 {
-   int_function *func = NULL;
+   func_instance *func = NULL;
    extra_height = 0;
 
    mapped_object *mobj = p->findObject(pc);
@@ -99,7 +99,7 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
 
    // See if we're in instrumentation
    Address origAddr = pc;
-   int_block *block = NULL;
+   block_instance *block = NULL;
    baseTramp *bti = NULL;
    if (p->getRelocInfo(pc, 
                        origAddr,
@@ -141,10 +141,10 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
  **/
 static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
 {
-    std::set<int_block *> blocks;
+    std::set<block_instance *> blocks;
     proc->findBlocksByAddr(addr, blocks);
     if (!blocks.empty()) {
-        int_block *aBlock = *(blocks.begin());
+        block_instance *aBlock = *(blocks.begin());
         frameChecker fc((const unsigned char*)(proc->getPtrToInstruction(addr)),
 		      aBlock->size() - (addr - aBlock->start()),
 		      proc->getAOut()->parse_img()->codeObject()->cs()->getArch());
@@ -262,7 +262,7 @@ Frame Frame::getCallerFrame()
     int addr_size = getProc()->getAddressWidth();
     int extra_height = 0;
 
-    int_function *cur_func = getFunc();
+    func_instance *cur_func = getFunc();
 #if defined(os_linux)
     // assume _start is never called, so just return if we're there
     if (cur_func &&
@@ -491,7 +491,7 @@ Frame Frame::getCallerFrame()
    {
        baseTramp *bti = NULL;
        Address origAddr = 0;
-       int_block *tmp = NULL;
+       block_instance *tmp = NULL;
        bool success = getProc()->getRelocInfo(pc_, origAddr, tmp, bti);
        assert(success);
        newPC = origAddr;

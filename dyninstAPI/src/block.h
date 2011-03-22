@@ -1,25 +1,26 @@
-#include "image-func.h"
+#include "parse-cfg.h"
 #include "parseAPI/h/CFG.h"
 #include "instPoint.h" // For instPoint::Type
 
 #if !defined(_DYN_BLOCK_H_)
 #define _DYN_BLOCK_H_
 
-class int_block;
-class int_function;
+class block_instance;
+class func_instance;
 class BPatch_edge;
 
-class int_edge {
-   friend class int_block;
-   friend class int_function;
+class edge_instance {
+   friend class block_instance;
+   friend class func_instance;
 
   public:
-   static int_edge *create(ParseAPI::Edge *, int_block *src, int_block *trg);
-   static void destroy(int_edge *);
-   
+   static edge_instance *create(ParseAPI::Edge *, block_instance *src, block_instance *trg);
+   static void destroy(edge_instance *);
+
+
    ParseAPI::Edge *edge() const { return edge_; }
-   int_block *src();
-   int_block *trg();
+   block_instance *src();
+   block_instance *trg();
    ParseAPI::EdgeTypeEnum type() const { return edge_->type(); }
 
    bool sinkEdge() const { return edge_->sinkEdge(); }
@@ -31,18 +32,18 @@ class int_edge {
    instPoint *findPoint(instPoint::Type type);
 
    AddressSpace *proc();
-   int_function *func();
+   func_instance *func();
 
    BPatch_edge *bpedge() { return bpEdge_; }
    void setBPEdge(BPatch_edge *e) { bpEdge_ = e; }
 
   private:
-   int_edge(ParseAPI::Edge *edge, int_block *src, int_block *trg);
-   ~int_edge();
+   edge_instance(ParseAPI::Edge *edge, block_instance *src, block_instance *trg);
+   ~edge_instance();
 
    ParseAPI::Edge *edge_;
-   int_block *src_;
-   int_block *trg_;
+   block_instance *src_;
+   block_instance *trg_;
    
    BPatch_edge *bpEdge_;
 
@@ -51,38 +52,38 @@ class int_edge {
 // This is somewhat mangled, but allows Dyninst to access the
 // iteration predicates of Dyninst without having to go back and
 // template that code. Just wrap a ParseAPI predicate in a
-// EdgePredicateAdapter and *poof* you're using int_edges
+// EdgePredicateAdapter and *poof* you're using edge_instances
 // instead of ParseAPI edges...
 
 class EdgePredicateAdapter 
    : public ParseAPI::iterator_predicate <
   EdgePredicateAdapter,
-  int_edge *,
-  int_edge * > {
+  edge_instance *,
+  edge_instance * > {
   public:
   EdgePredicateAdapter() : int_(NULL) {};
   EdgePredicateAdapter(ParseAPI::EdgePredicate *intPred) : int_(intPred) {};
    virtual ~EdgePredicateAdapter() {};
-   virtual bool pred_impl(int_edge *e) const { return int_->pred_impl(e->edge()); };
+   virtual bool pred_impl(edge_instance *e) const { return int_->pred_impl(e->edge()); };
 
   private:
    ParseAPI::EdgePredicate *int_;
 };
 
-class int_block {
-    friend class int_function;
+class block_instance {
+    friend class func_instance;
 
  public:
     typedef ParseAPI::ContainerWrapper<
-       std::vector<int_edge *>,
-       int_edge *,
-       int_edge *,
+       std::vector<edge_instance *>,
+       edge_instance *,
+       edge_instance *,
        EdgePredicateAdapter> edgelist;
 
 
-    int_block(image_basicBlock *ib, int_function *func);
-    int_block(const int_block *parent, int_function *func);
-    ~int_block();
+    block_instance(parse_block *ib, func_instance *func);
+    block_instance(const block_instance *parent, func_instance *func);
+    ~block_instance();
 
     // "Basic" block stuff
     Address start() const;
@@ -91,7 +92,7 @@ class int_block {
     unsigned size() const;
 
     // Up-accessors
-    int_function *func() const;
+    func_instance *func() const;
     mapped_object *obj() const;
     AddressSpace *addrSpace() const;
     AddressSpace *proc() const { return addrSpace(); }
@@ -102,17 +103,17 @@ class int_block {
     bool isExit() const { return block_->isExitBlock(); }
     //bool isReturnBlock() const;
 
-    // int_blocks are not shared, but their underlying blocks
+    // block_instances are not shared, but their underlying blocks
     // may be
     bool hasSharedBase() const { return block_->isShared(); }
 
     void triggerModified();
 
-    image_basicBlock * llb() const { return block_; }
+    parse_block * llb() const { return block_; }
     
     struct compare {
-        bool operator()(int_block * const &b1,
-                        int_block * const &b2) const {
+        bool operator()(block_instance * const &b1,
+                        block_instance * const &b2) const {
             if(b1->start() < b2->start()) return true;
             if(b2->start() < b1->start()) return false;
             assert(b1 == b2);
@@ -126,9 +127,9 @@ class int_block {
     const edgelist &targets();
 
     // Shortcuts
-    int_block *getTarget();
-    int_block *getFallthrough();
-    int_function *callee();
+    block_instance *getTarget();
+    block_instance *getFallthrough();
+    func_instance *callee();
     std::string calleeName(); // 
 
     // IIIIINSTPOINTS!
@@ -168,17 +169,17 @@ class int_block {
 
  private:
     BPatch_basicBlock *highlevel_block;
-    int_function *func_;
-    image_basicBlock *block_;
+    func_instance *func_;
+    parse_block *block_;
 
-    std::vector<int_edge *> srcs_;
-    std::vector<int_edge *> trgs_;
+    std::vector<edge_instance *> srcs_;
+    std::vector<edge_instance *> trgs_;
 
     edgelist srclist_;
     edgelist trglist_;
 
     void createInterproceduralEdges(ParseAPI::Edge *, bool forward, 
-                                    std::vector<int_edge *> &edges);
+                                    std::vector<edge_instance *> &edges);
 };
 
 #endif

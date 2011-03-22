@@ -49,7 +49,7 @@ using namespace InstructionAPI;
 
 
 IA_IAPI::IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_, Address where_,
-                image_func* f)
+                parse_func* f)
     : InstructionAdapter(where_, f), dec(dec_),
     validCFT(false), cachedCFT(0)
 {
@@ -243,13 +243,13 @@ bool IA_IAPI::isInterruptOrSyscall() const
 
 void IA_IAPI::getNewEdges(
         std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,
-        image_basicBlock* currBlk,
+        parse_block* currBlk,
         unsigned int num_insns,
         dictionary_hash<Address,
         std::string> *pltFuncs) const
 {
     if(!context) {
-        fprintf(stderr, "[%s] getNewEdges not supported in non-image_func"
+        fprintf(stderr, "[%s] getNewEdges not supported in non-parse_func"
                         "context\n", FILE__);
         return;
     }
@@ -520,7 +520,7 @@ std::map<Address, Instruction::Ptr>::const_iterator IA_IAPI::findTableInsn() con
 }
         
 // This should only be called on a known indirect branch...
-bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
+bool IA_IAPI::parseJumpTable(parse_block* currBlk,
                              std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges) const
 {
     if(isIPRelativeBranch())
@@ -655,15 +655,15 @@ namespace detail
     {
         return e->getType() != ET_CALL;
     }
-    bool leadsToVisitedBlock(image_edge* e, const std::set<image_basicBlock*>& visited)
+    bool leadsToVisitedBlock(image_edge* e, const std::set<parse_block*>& visited)
     {
-        image_basicBlock* src = e->getSource();
+        parse_block* src = e->getSource();
         return visited.find(src) != visited.end();
     }
 };
 
 
-Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffset) const
+Address IA_IAPI::findThunkInBlock(parse_block* curBlock, Address& thunkOffset) const
 {
     const unsigned char* buf =
             (const unsigned char*)(img->getPtrToInstruction(curBlock->firstInsnOffset(), context));
@@ -757,12 +757,12 @@ Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffs
 }
 
 
-std::pair<Address, Address> IA_IAPI::findThunkAndOffset(image_basicBlock* start) const
+std::pair<Address, Address> IA_IAPI::findThunkAndOffset(parse_block* start) const
 {
-    std::set<image_basicBlock*> visited;
-    std::deque<image_basicBlock*> worklist;
+    std::set<parse_block*> visited;
+    std::deque<parse_block*> worklist;
     pdvector<image_edge*> sources;
-    image_basicBlock* curBlock;
+    parse_block* curBlock;
     worklist.insert(worklist.begin(), start);
     visited.insert(start);
     Address thunkOffset = 0;
@@ -798,13 +798,13 @@ std::pair<Address, Address> IA_IAPI::findThunkAndOffset(image_basicBlock* start)
 
 boost::tuple<Instruction::Ptr,
  Instruction::Ptr,
- bool> IA_IAPI::findMaxSwitchInsn(image_basicBlock *start) const
+ bool> IA_IAPI::findMaxSwitchInsn(parse_block *start) const
 {
-    std::set<image_basicBlock *> visited;
-    std::vector<image_basicBlock *> WL;
+    std::set<parse_block *> visited;
+    std::vector<parse_block *> WL;
     std::vector<image_edge *> sources;
     std::vector<image_edge *> targets;
-    image_basicBlock *curBlk;
+    parse_block *curBlk;
     int depth = 0;
 
     bool foundMaxSwitch = false;
@@ -891,7 +891,7 @@ boost::tuple<Instruction::Ptr,
             if(sources[i]->getType() == ET_CALL)
                 return boost::make_tuple(Instruction::Ptr(), Instruction::Ptr(), false);
 
-            image_basicBlock * src = sources[i]->getSource();
+            parse_block * src = sources[i]->getSource();
             if( (visited.find( src ) == visited.end())) {
                 WL.push_back(src);
             }

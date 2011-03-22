@@ -44,8 +44,8 @@
 //#include "dyninstAPI/src/baseTramp.h"
 
 class baseTramp;
-class int_function;
-class int_block;
+class func_instance;
+class block_instance;
 
 namespace Dyninst {
 namespace Relocation {
@@ -59,7 +59,7 @@ class TrackerElement {
     emulated,
     instrumentation
   } type_t;
-  TrackerElement(Address o, int_block *b) 
+  TrackerElement(Address o, block_instance *b) 
       : orig_(o), reloc_(0), size_(0), 
       block_(b) {assert(o); assert(b);};
   virtual ~TrackerElement() {};
@@ -71,7 +71,7 @@ class TrackerElement {
   Address orig() const { return orig_; };
   Address reloc() const { return reloc_; };
   unsigned size() const { return size_; };
-  int_block *block() const { return block_; };
+  block_instance *block() const { return block_; };
 
   void setReloc(Address reloc) { reloc_ = reloc; };
   void setSize(unsigned size) { size_ = size; }
@@ -82,12 +82,12 @@ class TrackerElement {
   Address orig_;
   Address reloc_;
   unsigned size_;
-  int_block *block_;
+  block_instance *block_;
 };
 
 class OriginalTracker : public TrackerElement {
  public:
-  OriginalTracker(Address orig, int_block *b) :
+  OriginalTracker(Address orig, block_instance *b) :
   TrackerElement(orig, b) {};
   virtual ~OriginalTracker() {};
 
@@ -110,7 +110,7 @@ class OriginalTracker : public TrackerElement {
 
 class EmulatorTracker : public TrackerElement {
  public:
- EmulatorTracker(Address orig, int_block *b) : 
+ EmulatorTracker(Address orig, block_instance *b) : 
   TrackerElement(orig, b) {};
   virtual ~EmulatorTracker() {};
 
@@ -132,7 +132,7 @@ class EmulatorTracker : public TrackerElement {
 
 class InstTracker : public TrackerElement {
  public:
-  InstTracker(Address orig, baseTramp *baseT, int_block *b) :
+  InstTracker(Address orig, baseTramp *baseT, block_instance *b) :
    TrackerElement(orig, b), baseT_(baseT) {};
   virtual ~InstTracker() {};
 
@@ -182,8 +182,8 @@ class CodeTracker {
   CodeTracker() {};
   ~CodeTracker() {};
 
-  bool origToReloc(Address origAddr, int_function *func, RelocatedElements &relocs) const;
-  bool relocToOrig(Address relocAddr, Address &orig, int_block *&block, baseTramp *&baseT) const;
+  bool origToReloc(Address origAddr, func_instance *func, RelocatedElements &relocs) const;
+  bool relocToOrig(Address relocAddr, Address &orig, block_instance *&block, baseTramp *&baseT) const;
 
   TrackerElement *findByReloc(Address relocAddr) const;
 

@@ -76,10 +76,10 @@ class regTracker_t;
 class AstNode;
 class Emitter;
 class pcRelRegion;
-class int_function;
+class func_instance;
 class generatedCodeObject;
 class baseTramp;
-class int_block;
+class block_instance;
 
 // Code generation
 // This class wraps the actual code generation mechanism: we keep a buffer
@@ -217,7 +217,7 @@ class codeGen {
     void setPoint(instPoint *i) { ip_ = i; }
     void setRegTracker(regTracker_t *t) { t_ = t; }
     void setCodeEmitter(Emitter *emitter) { emitter_ = emitter; }
-    void setFunction(int_function *f) { f_ = f; }
+    void setFunction(func_instance *f) { f_ = f; }
     void setObj(generatedCodeObject *object) { obj_ = object; }
     void setBT(baseTramp *i) { bt_ = i; }
     void setInInstrumentation(bool i) { inInstrumentation_ = i; }
@@ -229,7 +229,7 @@ class codeGen {
     Address startAddr() const { return addr_; }
     instPoint *point() const;
     baseTramp *bt() const { return bt_; }
-    int_function *func() const;
+    func_instance *func() const;
     registerSpace *rs() const;
     regTracker_t *tracker() const;
     Emitter *codeEmitter() const;
@@ -253,8 +253,8 @@ class codeGen {
     // SD-DYNINST
     // 
     typedef std::pair<Address, unsigned> Extent;
-    void registerDefensivePad(int_block *, Address, unsigned);
-    std::map<int_block *, Extent> &getDefensivePads() { return defensivePads_; }
+    void registerDefensivePad(block_instance *, Address, unsigned);
+    std::map<block_instance *, Extent> &getDefensivePads() { return defensivePads_; }
     
     // Immediate uninstrumentation
     void registerInstrumentation(baseTramp *bt, Address loc) { instrumentation_[bt] = loc; }
@@ -283,7 +283,7 @@ class codeGen {
     regTracker_t *t_;
     Address addr_;
     instPoint *ip_;
-    int_function *f_;
+    func_instance *f_;
     baseTramp *bt_;
     bool isPadded_;
 
@@ -297,7 +297,7 @@ class codeGen {
     std::vector<relocPatch> patches_;
     std::vector<pcRelRegion *> pcrels_;
 
-    std::map<int_block *, Extent> defensivePads_;
+    std::map<block_instance *, Extent> defensivePads_;
     std::map<baseTramp *, Address> instrumentation_;
     std::map<baseTramp *, Address> removedInstrumentation_;
 };

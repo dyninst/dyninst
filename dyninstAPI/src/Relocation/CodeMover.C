@@ -62,7 +62,7 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
 			     FuncSet::const_iterator end) {
    // A vector of Functions is just an extended vector of basic blocks...
    for (; begin != end; ++begin) {
-      int_function *func = *begin;
+      func_instance *func = *begin;
       if (!func->isInstrumentable()) {
          cerr << "Skipping func " << func->symTabName() << " that's uninstrumentable" << endl;
          continue;
@@ -73,7 +73,7 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
       }
     
       // Add the function entry as Required in the priority map
-      int_block *entry = func->entryBlock();
+      block_instance *entry = func->entryBlock();
       priorityMap_[entry] = Required;
    }
 
@@ -83,7 +83,7 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
 template <typename TraceIter>
 bool CodeMover::addTraces(TraceIter begin, TraceIter end) {
    for (; begin != end; ++begin) {
-      int_block *bbl = (*begin);
+      block_instance *bbl = (*begin);
       //relocation_cerr << "Creating Trace for bbl at " 
 //                      << std::hex << bbl->firstInsnAddr() << std::dec
       //                << endl;
@@ -101,7 +101,7 @@ bool CodeMover::addTraces(TraceIter begin, TraceIter end) {
    return true;
 }
 
-bool CodeMover::addTrace(int_block *bbl) {
+bool CodeMover::addTrace(block_instance *bbl) {
    //relocation_cerr << "Creating Trace for bbl at " 
 //                   << std::hex << bbl->firstInsnAddr() << std::dec
 //                   << endl;
@@ -229,7 +229,7 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
    if (sboardMap_.empty()) {
       for (PriorityMap::const_iterator iter = priorityMap_.begin();
            iter != priorityMap_.end(); ++iter) {
-         int_block *bbl = iter->first;
+         block_instance *bbl = iter->first;
          const Priority &p = iter->second;
 
          // the priority map may include things not in the block
@@ -271,7 +271,7 @@ string CodeMover::format() const {
 void CodeMover::extractDefensivePads(AddressSpace *AS) {
    // Needs to be reworked for PatchAPI separation; possibly unnecessary due to 
    // augmented address lookup capability.
-   for (std::map<int_block *, codeGen::Extent>::iterator iter = gen().getDefensivePads().begin();
+   for (std::map<block_instance *, codeGen::Extent>::iterator iter = gen().getDefensivePads().begin();
         iter != gen().getDefensivePads().end(); ++iter) {
       AS->addDefensivePad(iter->first, iter->second.first, iter->second.second);
    }

@@ -49,23 +49,23 @@ inferiorRPCinProgress * codeRange::is_inferior_rpc() {
 // This is a special case... the multitramp is the thing in the
 // codeRange tree, but people think of baseTramps.
 // So this is dangerous to use, actually.
-int_block *codeRange::is_basicBlockInstance() {
-    return dynamic_cast<int_block *>(this);
+block_instance *codeRange::is_basicBlockInstance() {
+    return dynamic_cast<block_instance *>(this);
 }
 
-int_function *codeRange::is_function() {
-    int_block *block = dynamic_cast<int_block *>(this);
+func_instance *codeRange::is_function() {
+    block_instance *block = dynamic_cast<block_instance *>(this);
     if (block)
         return block->func();
     return NULL;
 }
 
-image_func *codeRange::is_image_func() {
-   return dynamic_cast<image_func *>(this);
+parse_func *codeRange::is_parse_func() {
+   return dynamic_cast<parse_func *>(this);
 }
 
-image_basicBlock *codeRange::is_image_basicBlock() {
-    return dynamic_cast<image_basicBlock *>(this);
+parse_block *codeRange::is_parse_block() {
+    return dynamic_cast<parse_block *>(this);
 }
 
 image *codeRange::is_image() {
@@ -489,7 +489,7 @@ void codeRange::print_range(Address) {
    bool print_comma = false;
    image *img_ptr = is_image();
    mapped_object *mapped_ptr = is_mapped_object();
-	int_function *func_ptr = is_function();
+	func_instance *func_ptr = is_function();
    baseTramp *base_ptr = NULL;
    inferiorRPCinProgress *rpc_ptr = is_inferior_rpc();
 

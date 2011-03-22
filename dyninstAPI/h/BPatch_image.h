@@ -336,7 +336,7 @@ private:
 #pragma warning(pop)    
 #endif
 
-    // These private "find" functions convert from internal int_function
+    // These private "find" functions convert from internal func_instance
     // representation to the exported BPatch_Function type
     void findFunctionInImage(const char *name, image *img,
 			     BPatch_Vector<BPatch_function*> *funcs,

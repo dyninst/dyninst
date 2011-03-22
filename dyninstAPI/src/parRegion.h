@@ -49,7 +49,7 @@ class mapped_module;
 class mapped_object;
 
 class pdmodule;
-class image_func;
+class parse_func;
 
 /*
 typedef enum{
@@ -70,8 +70,8 @@ struct ltstr
 
 class image_parRegion : public codeRange {
  public:
-  image_parRegion(image_func * imageFunc);
-  image_parRegion(Address firstOffset, image_func * imageFunc);
+  image_parRegion(parse_func * imageFunc);
+  image_parRegion(Address firstOffset, parse_func * imageFunc);
  
   Address firstInsnOffset() const { return firstInsnOffset_; }
 
@@ -86,10 +86,10 @@ class image_parRegion : public codeRange {
 
   void setRegionType(parRegType rt); 
 
-  const image_func * getAssociatedFunc() const;
+  const parse_func * getAssociatedFunc() const;
 
-  void setParentFunc(image_func * parentFunc){parentIf_ = parentFunc;}
-  image_func * getParentFunc(){return parentIf_;}
+  void setParentFunc(parse_func * parentFunc){parentIf_ = parentFunc;}
+  parse_func * getParentFunc(){return parentIf_;}
 
   void setClause(const char * key, int value);
   int getClause(const char * key);
@@ -102,8 +102,8 @@ class image_parRegion : public codeRange {
   void decodeClauses(int bitmap);
 
  private:
-  image_func *regionIf_;
-  image_func *parentIf_;
+  parse_func *regionIf_;
+  parse_func *parentIf_;
   Address firstInsnOffset_;
   Address lastInsnOffset_;
   parRegType regionType;
@@ -114,7 +114,7 @@ class image_parRegion : public codeRange {
 
 class int_parRegion {
  public:
-  int_parRegion(image_parRegion *ip, Address baseAddr, int_function * );
+  int_parRegion(image_parRegion *ip, Address baseAddr, func_instance * );
   ~int_parRegion();
 
   Address firstInsnAddr() {return addr_;}
@@ -124,7 +124,7 @@ class int_parRegion {
   
   void printDetails() { ip_->printDetails(); }
 
-  const int_function * intFunc() { return intFunc_;}
+  const func_instance * intFunc() { return intFunc_;}
 
   int getClause(const char * key);
   Address getClauseLoc(const char * key);
@@ -134,7 +134,7 @@ class int_parRegion {
   Address addr_; /* Absolute address of start of region */
   Address endAddr_; /* Address of end of region */
 
-  int_function * intFunc_;
+  func_instance * intFunc_;
 
   image_parRegion *ip_;
 };

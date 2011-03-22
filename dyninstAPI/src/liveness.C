@@ -34,7 +34,7 @@
 #if defined(cap_liveness)
 
 #include "debug.h"
-#include "image-func.h"
+#include "parse-cfg.h"
 #include "function.h"
 #include "instPoint.h"
 #include "registerSpace.h"
@@ -55,8 +55,8 @@ using namespace Dyninst::InstructionAPI;
 #include "Parsing.h"
 using namespace Dyninst::ParseAPI;
 
-ReadWriteInfo calcRWSets(Instruction::Ptr insn, image_basicBlock* blk, unsigned width, Address a);
-InstructionCache image_basicBlock::cachedLivenessInfo = InstructionCache();
+ReadWriteInfo calcRWSets(Instruction::Ptr insn, parse_block* blk, unsigned width, Address a);
+InstructionCache parse_block::cachedLivenessInfo = InstructionCache();
 
   
 
@@ -110,7 +110,7 @@ void registerSpace::specializeSpace(const bitArray &liveRegs) {
    }
 }
 
-const bitArray &image_basicBlock::getLivenessIn(image_func * context) {
+const bitArray &parse_block::getLivenessIn(parse_func * context) {
     // Calculate if it hasn't been done already
     if (in.size() == 0)
         summarizeBlockLivenessInfo(context);
@@ -118,7 +118,7 @@ const bitArray &image_basicBlock::getLivenessIn(image_func * context) {
     return in;
 }
 
-const bitArray image_basicBlock::getLivenessOut(image_func * context) {
+const bitArray parse_block::getLivenessOut(parse_func * context) {
     bitArray out(in.size());
     assert(out.size());
     // ignore call, return edges
@@ -135,7 +135,7 @@ const bitArray image_basicBlock::getLivenessOut(image_func * context) {
         if ((*eit)->type() == CATCH) continue;
         
         // TODO: multiple entry functions and you?
-        out |= ((image_basicBlock*)(*eit)->trg())->getLivenessIn(context);
+        out |= ((parse_block*)(*eit)->trg())->getLivenessIn(context);
     }
     
     liveness_cerr << " Returning liveness " << endl;
@@ -147,7 +147,7 @@ const bitArray image_basicBlock::getLivenessOut(image_func * context) {
     return out;
 }
 
-void image_basicBlock::summarizeBlockLivenessInfo(image_func *context) 
+void parse_block::summarizeBlockLivenessInfo(parse_func *context) 
 {
    if(in.size())
    {
@@ -208,7 +208,7 @@ void image_basicBlock::summarizeBlockLivenessInfo(image_func *context)
 
 /* This is used to do fixed point iteration until 
    the in and out don't change anymore */
-bool image_basicBlock::updateBlockLivenessInfo(image_func * context) 
+bool parse_block::updateBlockLivenessInfo(parse_func * context) 
 {
   bool change = false;
 
@@ -239,15 +239,15 @@ bool image_basicBlock::updateBlockLivenessInfo(image_func * context)
 }
 
 // Calculate basic block summaries of liveness information
-// TODO: move this to an image_func level. 
+// TODO: move this to an parse_func level. 
 
-void image_func::calcBlockLevelLiveness() {
+void parse_func::calcBlockLevelLiveness() {
     if (livenessCalculated_) return;
 
     // Step 1: gather the block summaries
     Function::blocklist::iterator sit = blocks().begin();
     for( ; sit != blocks().end(); sit++) {
-        ((image_basicBlock*)(*sit))->summarizeBlockLivenessInfo(this);
+        ((parse_block*)(*sit))->summarizeBlockLivenessInfo(this);
     }
     
     // We now have block-level summaries of gen/kill info
@@ -257,7 +257,7 @@ void image_func::calcBlockLevelLiveness() {
     while (changed) {
         changed = false;
         for(sit = blocks().begin(); sit != blocks().end(); sit++) {
-            if (((image_basicBlock*)(*sit))->updateBlockLivenessInfo(this)) {
+            if (((parse_block*)(*sit))->updateBlockLivenessInfo(this)) {
                 changed = true;
             }
         }
@@ -468,7 +468,7 @@ int convertRegID(int in)
 
 #endif
 
-ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsigned int width,
+ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, parse_block* blk, unsigned int width,
                         Address a)
 {
   ReadWriteInfo ret;
