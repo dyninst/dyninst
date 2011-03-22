@@ -64,20 +64,16 @@ IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symta
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS) 
 
-#../src/lex.$(DYNCNAME).C: ../src/C.l ../h/$(DYNCNAME).tab.h
-#../src/$(DYNCNAME).tab.C: ../src/C.y
-#../h/$(DYNCNAME).tab.h: ../src/$(DYNCNAME).tab.C
-
-../src/lex.$(DYNCNAME).C: ../src/C.l $(DYNCNAME).tab.h
+# We use a separate target for regenerating Lex and Yacc source files because of 
+# inconsistent Lex and Yacc availability across platforms.
+regenerate:
 	$(LEX) $(LEXFLAGS) ../src/C.l
 	mv lex.$(DYNCNAME).c ../src/lex.$(DYNCNAME).C
-
-$(DYNCNAME).tab.h: $(DYNCNAME).tab.C 
-
-../src/$(DYNCNAME).tab.C: ../src/C.y
 	$(YACC) $(YACCFLAGS) ../src/C.y
 	mv $(DYNCNAME).tab.c ../src/$(DYNCNAME).tab.C
 	mv $(DYNCNAME).tab.h ../h/
+
+
 
 
 
