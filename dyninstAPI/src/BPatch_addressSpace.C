@@ -263,12 +263,10 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
        for (unsigned int i=0; i < handle->mtHandles_.size(); i++)
        {
            instPoint *iPoint = handle->mtHandles_[i]->instP();
-           //david:
-           printf("uninstrument() returns %s\n", handle->mtHandles_[i]->uninstrument() ? "true" : "false");
+           handle->mtHandles_[i]->uninstrument();
            BPatch_point *bPoint = findOrCreateBPPoint(NULL, iPoint);
            assert(bPoint);
-           //david:
-           printf("Point->deleteSnippet returns %s\n", bPoint->deleteSnippet(handle) ? "true" : "false");
+           bPoint->deleteSnippet(handle);
        }
 
        delete handle;

@@ -48,7 +48,6 @@ BPatch_snippet *SnippetGenerator::findOrCreateVariable(const char * name, const 
    
    BPatch_variableExpr *varExpr = image->findVariable(name, false);
    if(varExpr != NULL){
-      printf("var not null\n");
       return varExpr;
    }
    BPatch_type *bptype = image->findType(type);

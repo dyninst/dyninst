@@ -174,7 +174,7 @@ var_declaration: var_decl_modifiers IDENTIFIER
        //IDENTIFIER leaks, but how to fix b/c use of $0?
        std::string mangledName;
        mangledName = dynC_API::mangle($2, dynCSnippetName, $1.type);
-       printf("name : %s\n", mangledName.c_str());
+       if(verbose) printf("name : %s\n", mangledName.c_str());
        $$ = snippetGen->findOrCreateVariable(mangledName.c_str(), $1.type);
        if($$ == NULL){
           $$ = new BPatch_nullExpr();
@@ -196,7 +196,7 @@ var_declaration: var_decl_modifiers IDENTIFIER
     {   
       
        std::string mangledName = dynC_API::mangle($2, dynCSnippetName, $1.type);
-       printf("name : %s\n", mangledName.c_str());
+       if(verbose) printf("name : %s\n", mangledName.c_str());
        BPatch_snippet *alloc = snippetGen->findOrCreateVariable(mangledName.c_str(), $1.type);
        if(alloc == NULL){
           $$ = new BPatch_nullExpr();
@@ -210,11 +210,7 @@ var_declaration: var_decl_modifiers IDENTIFIER
 
        if($1.isStatic || $1.isGlobal){
           makeOneTimeStatementGbl(*$$);
-       }
-
-       //david changed this:
-       //makeOneTimeStatement(*$$);
-       
+       }       
     }
     | var_decl_modifiers IDENTIFIER '[' NUMBER ']' 
     {

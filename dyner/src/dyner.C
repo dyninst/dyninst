@@ -256,7 +256,7 @@ IPListElem::~IPListElem()
    free(statement);
    if (handle) {
       if (appProc){
-         printf("deleteSnippet returns %s\n", (appProc->deleteSnippet(handle) ? "true" : "false"));
+         appProc->deleteSnippet(handle);
       }
    }
 }
