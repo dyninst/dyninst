@@ -20,7 +20,7 @@ SRCS = 	../src/freebsd-swk.C \
 	../src/x86-wanderer.C \
 	../src/analysis_stepper.C \
 	../src/linuxbsd-swk.C \
-	../src/linuxbsd-x86-swk.C
+	../src/freebsd-x86-swk.C
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
