@@ -50,7 +50,7 @@ unsigned ProcDebugLinux::getAddressWidth()
    return sizeof(void *);
 }
 
-#define USER_OFFSET_OF(register) ((signed int) &(((struct user *) NULL)->regs.register))
+#define USER_OFFSET_OF(register) ((signed long) &(((struct user *) NULL)->regs.register))
 
 static long int getRegOffset(Dyninst::MachRegister reg, int addr_width)
 {
