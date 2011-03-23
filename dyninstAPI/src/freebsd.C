@@ -324,10 +324,39 @@ bool PCProcess::copyDanglingMemory(PCProcess *) {
     return true;
 }
 
-Address PCProcess::findFunctionToHijack() {
-    // TODO
-    return 0;
-}
+const unsigned int N_DYNINST_LOAD_HIJACK_FUNCTIONS = 4;
+const char DYNINST_LOAD_HIJACK_FUNCTIONS[][20] = {
+  "__libc_start_main",
+  "_init",
+  "_start",
+  "main"
+};
+
+/**
+ * Returns an address that we can use to write the code that executes
+ * dlopen on the runtime library.
+ **/
+Address PCProcess::findFunctionToHijack()
+{
+   Address codeBase = 0;
+   unsigned i;
+   for(i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
+      const char *func_name = DYNINST_LOAD_HIJACK_FUNCTIONS[i];
+
+      pdvector<int_function *> hijacks;
+      if (!findFuncsByAll(func_name, hijacks)) continue;
+      codeBase = hijacks[0]->getAddress();
+
+      if (codeBase)
+          break;
+   }
+   if( codeBase != 0 ) {
+     proccontrol_printf("%s[%d]: found hijack function %s = 0x%lx\n",
+           FILE__, __LINE__, DYNINST_LOAD_HIJACK_FUNCTIONS[i], codeBase);
+   }
+
+  return codeBase;
+} /* end findFunctionToHijack() */
 
 const int DLOPEN_MODE = RTLD_NOW | RTLD_GLOBAL;
 

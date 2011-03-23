@@ -844,9 +844,6 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
         // (which corresponds to standard Dyninst behavior)
         if(dyn_debug_crash_debugger) {
             if( string(dyn_debug_crash_debugger).find("gdb") != string::npos ) {
-                // If for whatever reason this fails, fall back on sleep
-                dyn_debug_crash_debugger = "sleep";
-
                 do{
                     // Stop the process on detach 
                     pdvector<int_function *> breakpointFuncs;
@@ -872,6 +869,9 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
                     // Spawn the debugger to attach to the process
                     assert( evProc->startDebugger() );
                 }while(0);
+
+                // If for whatever reason this fails, fall back on sleep
+                dyn_debug_crash_debugger = "sleep";
             }
 
             if( string(dyn_debug_crash_debugger) == string("sleep") ) {

@@ -213,7 +213,7 @@ bool int_process::attach()
        ProcPool()->condvar()->unlock();
 
        pthrd_printf("Failed to determine lwps in %d\n", pid);
-       setLastError(err_internal, "Could not determine lwps for process");
+       setLastError(err_noproc, "Could not attach to debuggee");
        return false;
    }
 

@@ -241,7 +241,7 @@ void insnCodeGen::generatePush64(codeGen &gen, Address val)
 {
   GET_PTR(insn, gen);
   for (int i = 3; i >= 0; i--) {
-    short word = static_cast<unsigned char>((val >> (16 * i)) & 0xffff);
+    short word = static_cast<short>((val >> (16 * i)) & 0xffff);
     *insn++ = 0x66; // operand size override
     *insn++ = 0x68; // push immediate (16-bits b/c of prefix)
     *(short *)insn = word;

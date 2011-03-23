@@ -1748,7 +1748,7 @@ Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
 
         default: // error - out of memory
             infmalloc_printf("%s[%d]: failed to allocate memory\n", FILE__, __LINE__);
-            if( err ) *err = false;
+            if( err ) *err = true;
             return 0;
         }
 

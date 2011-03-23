@@ -473,10 +473,12 @@ bool PCProcess::startDebugger() {
 
     const char *args[4];
     args[0] = dyn_debug_crash_debugger;
-    args[1] = "--pid";
+    args[1] = file_.c_str();
     args[2] = pidStr.str().c_str();
     args[3] = NULL;
 
+    proccontrol_printf("%s[%d]: Launching %s %s %s\n", FILE__, __LINE__,
+            args[0], args[1], args[2]);
     if( execv(args[0], (char **)args) == -1 ) {
         perror("execv");
         return false;

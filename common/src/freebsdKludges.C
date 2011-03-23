@@ -191,7 +191,6 @@ int sysctl_computeAddrWidth(pid_t pid) {
     size_t length;
     struct kinfo_proc *procInfo = getProcInfo(pid, length, false);
     if( NULL == procInfo ) {
-        fprintf(stderr, "Failed to determine address width of process %d\n", pid);
         return -1;
     }
 
@@ -208,7 +207,6 @@ bool sysctl_findProcLWPs(pid_t pid, std::vector<pid_t> &lwps) {
     size_t length;
     struct kinfo_proc *procInfo = getProcInfo(pid, length, true);
     if( NULL == procInfo ) {
-        fprintf(stderr, "Failed to determine LWP ids for process %d\n", pid);
         return false;
     }
 
@@ -225,7 +223,6 @@ lwpid_t sysctl_getInitialLWP(pid_t pid) {
     size_t length;
     struct kinfo_proc *procInfo = getProcInfo(pid, length, true);
     if( NULL == procInfo ) {
-        fprintf(stderr, "Failed to determine initial LWP for process %d\n", pid);
         return -1;
     }
 

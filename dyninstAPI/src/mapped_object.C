@@ -1944,6 +1944,13 @@ bool mapped_object::isSystemLib(const std::string &objname)
       return true;
 #endif
 
+#if defined(os_freebsd)
+   if(strstr(fname, "libc.so"))
+       return true;
+   if(strstr(fname, "libthr"))
+       return true;
+#endif
+
 #if defined(os_windows)
    if (strstr(fname, "kernel32.dll"))
       return true;
