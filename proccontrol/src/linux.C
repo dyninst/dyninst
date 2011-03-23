@@ -362,7 +362,6 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                break;
             }
 
-            break;
          }
          default:
             pthrd_printf("Decoded event to signal %d on %d/%d\n",

@@ -58,7 +58,6 @@
 #include <fcntl.h>
 #include <poll.h>
 
-#include "common/h/SymLite-elf.h"
 #include "common/h/parseauxv.h"
 #include "dynutil/h/dyn_regs.h"
 
