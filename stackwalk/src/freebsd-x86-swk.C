@@ -129,9 +129,9 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
    // FreeBSD signal handler tramps are in a static location
    // at the top of the user space stack
    if (addr_size == 4) {
-     group->addStepper(parent_stepper, 0xbfbfffb4, 0xbfbfffb4);
+     group->addStepper(parent_stepper, 0xbfbfffb4, 0xbfbfffb4+1);
    }
    else {
-     group->addStepper(parent_stepper, 0x00007fffffffffc4, 0x00007fffffffffc4);
+     group->addStepper(parent_stepper, 0x00007fffffffffc4, 0x00007fffffffffc4+1);
    }  
 }
