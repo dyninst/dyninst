@@ -907,6 +907,8 @@ bool linux_thread::plat_cont()
       return false;
    }
 
+   if( tmpSignal == continueSig_ ) continueSig_ = 0;
+
    return true;
 }
 

@@ -1343,6 +1343,7 @@ bool freebsd_thread::plat_cont() {
     // have a non-zero continue signal
     if( continueSig_ ) {
         llproc()->setContSignal(continueSig_);
+        continueSig_ = 0;
     }
 
     return true;
