@@ -1273,6 +1273,7 @@ bool freebsd_process::plat_contProcess() {
         setLastError(err_internal, "Low-level continue failed");
         return false;
     }
+    continueSig = 0;
 
 #if defined(bug_freebsd_missing_sigstop)
     // XXX this workaround doesn't always work
