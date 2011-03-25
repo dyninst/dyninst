@@ -1854,6 +1854,19 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, func_instance *callee, 
     return true;
 }
 
+void EmitterAMD64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
+   // create or retrieve jump slot
+   Address dest = getInterModuleFuncAddr(callee, gen);
+   GET_PTR(insn, gen);
+   *insn++ = 0xFF;
+   // Note: this is a combination of 00 (MOD), 100 (opcode extension), and 101
+   // (disp32)
+   *insn++ = 0x25;
+   *(unsigned int*)insn = dest - (gen.currAddr() + sizeof(unsigned int) + 2);
+   insn += sizeof(unsigned int);
+   SET_PTR(insn, gen);
+}
+
 void EmitterAMD64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
    // create or retrieve jump slot
    Address dest = getInterModuleFuncAddr(callee, gen);
@@ -2839,6 +2852,16 @@ void EmitterIA32Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
    emitMovPCRMToReg(RealRegister(REGNUM_EAX), dest-gen.currAddr(), gen);
    // emit call *(e_x)
    emitOpRegReg(CALL_RM_OPC1, RealRegister(CALL_RM_OPC2), 
+                RealRegister(REGNUM_EAX), gen);
+}
+
+void EmitterIA32Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
+  // create or retrieve jump slot
+   Address dest = getInterModuleFuncAddr(callee, gen);
+   // load register with address from jump slot
+   emitMovPCRMToReg(RealRegister(REGNUM_EAX), dest-gen.currAddr(), gen);
+   // emit call *(e_x)
+   emitOpRegReg(JUMP_RM_OPC1, RealRegister(JUMP_RM_OPC2), 
                 RealRegister(REGNUM_EAX), gen);
 }
 

@@ -753,6 +753,8 @@ COMMON_EXPORT Address get_target(const unsigned char *instr, unsigned type, unsi
 #define PUSH_RM_OPC2 (6)
 #define CALL_RM_OPC1 (0xFF)
 #define CALL_RM_OPC2 (2)
+#define JUMP_RM_OPC1 (0xFF)
+#define JUMP_RM_OPC2 (4)
 #define PUSH_EBP (0x50+REGNUM_EBP)
 #define SUB_REG_IMM32 (5)
 #define LEAVE (0xC9)

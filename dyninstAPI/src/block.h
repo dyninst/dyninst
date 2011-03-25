@@ -31,6 +31,7 @@ class edge_instance {
 
   private:
    edge_instance(ParseAPI::Edge *edge, block_instance *src, block_instance *trg);
+   edge_instance(const edge_instance *parent, mapped_object *child);
    ~edge_instance();
 
    ParseAPI::Edge *edge_;

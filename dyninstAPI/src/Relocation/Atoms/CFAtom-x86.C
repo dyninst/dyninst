@@ -12,6 +12,7 @@
 #include "../CodeBuffer.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/emit-x86.h"
+#include "dyninstAPI/src/registerSpace.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -219,17 +220,39 @@ bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
    // I'm copying the code from emitCallInstruction...
    
    
-   if (target->type() != TargetInt::BlockTarget) return false;
+   if (target->type() != TargetInt::BlockTarget) {
+      cerr << "Target type is " << target->type() << ", not block target" << endl;
+      return false;
+   }
    // And can only handle calls right now. That's a TODO...
-   if (type != Call) return false;
+   if (type != Call &&
+       type != Jump) {
+      cerr << "Attempt to make PLT of type " << type << " and can only handle calls or jumps" << endl;
+      return false;
+   }
 
    Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
    block_instance *tb = t->t();
 
    // We can (for now) only jump to functions
    func_instance *callee = tb->entryOfFunc();
-   if (!callee) return false;
-   gen.codeEmitter()->emitPLTCall(callee, gen);
+   if (!callee) {
+      cerr << "No callee, ret false" << endl;
+      return false;
+   }
+
+   // We need a registerSpace for this. For now, assume we're at
+   // a call boundary (as that's _really_ the only place we can
+   // be for now) and set it to the optimistic register space.
+   gen.setRegisterSpace(registerSpace::optimisticRegSpace(gen.addrSpace()));
+
+   if (type == Call) 
+      gen.codeEmitter()->emitPLTCall(callee, gen);
+   else if (type == Jump)
+      gen.codeEmitter()->emitPLTJump(callee, gen);
+   else
+      assert(0);
+
    return true;
 }
 

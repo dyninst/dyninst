@@ -299,7 +299,25 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
       assert(mod);
       everyModule.push_back(mod);
    }
+   
+   // Duplicate all copied blocks
+   for (BlockMap::const_iterator iter = s->blocks_.begin();
+        iter != s->blocks_.end(); ++iter) {
+      block_instance *newBlock = new block_instance(iter->second,
+                                                    this);
+                                                    
+      blocks_.insert(std::make_pair(iter->first, newBlock));
+   }
 
+   // And now edges
+   for (EdgeMap::const_iterator iter = s->edges_.begin();
+        iter != s->edges_.end(); ++iter) {
+      edge_instance *newEdge = new edge_instance(iter->second,
+                                                 this);
+      edges_.insert(std::make_pair(iter->first, newEdge));
+   }
+
+   // Aaand now functions
    for (FuncMap::const_iterator iter = s->everyUniqueFunction.begin();
        iter != s->everyUniqueFunction.end(); ++iter) {
       func_instance *parFunc = iter->second;
@@ -338,6 +356,16 @@ mapped_object::~mapped_object()
       delete everyModule[i];
    everyModule.clear();    
 
+   for (BlockMap::iterator iter = blocks_.begin(); iter != blocks_.end(); ++iter) {
+      delete iter->second;
+   }
+   blocks_.clear();
+
+   for (EdgeMap::iterator iter = edges_.begin(); iter != edges_.end(); ++iter) { 
+      delete iter->second;
+   }
+   edges_.clear();
+   
    for (FuncMap::iterator iter = everyUniqueFunction.begin(); iter != everyUniqueFunction.end(); ++iter) {
        delete iter->second;
    }

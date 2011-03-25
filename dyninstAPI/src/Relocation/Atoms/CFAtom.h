@@ -36,6 +36,7 @@
 
 class block_instance;
 class func_instance;
+class instPoint;
 
 namespace NS_x86 {
    class instruction;
