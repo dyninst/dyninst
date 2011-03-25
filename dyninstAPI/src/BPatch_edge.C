@@ -79,13 +79,13 @@ BPatch_edge::getTypeInt()
 }
 
 
-void BPatch_edge::BPatch_edgeInt(edge_instance *e)
+void BPatch_edge::BPatch_edgeInt(edge_instance *e, 
+   BPatch_flowGraph *FG)
 {
    assert(e);
    edge = e;
+   fg = FG;
    
-   e->setBPEdge(this);
-
    // point is set when this edge is instrumented. instAddr is set
    // when either this edge or its conditional buddy is instrumented
    point = NULL;    
@@ -103,22 +103,23 @@ void BPatch_edge::dumpInt()
 }
 
 BPatch_basicBlock *BPatch_edge::getSourceInt() {
-   return edge->src()->getHighLevelBlock();
+   return fg->findBlock(edge->src());
 }
 
 BPatch_basicBlock *BPatch_edge::getTargetInt() {
-   return edge->trg()->getHighLevelBlock();
+   return fg->findBlock(edge->trg());
 }
 
 BPatch_flowGraph *BPatch_edge::getFlowGraphInt() {
-   return getSourceInt()->getFlowGraph();
+   return fg;
 }
 
 BPatch_point *BPatch_edge::getPointInt()
 {
    if (!point) {
       BPatch_flowGraph *cfg = getFlowGraph();
-      instPoint *ip = edge->point();
+      instPoint *ip = instPoint::edge(cfg->ll_func(),
+                                      edge);
       AddressSpace *as = cfg->getllAddSpace();
       assert(as);
       

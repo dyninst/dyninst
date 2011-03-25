@@ -40,6 +40,10 @@
 #include "dyninstAPI/h/BPatch_enums.h"
 #include <list>
 
+class block_instance;
+class func_instance;
+class edge_instance;
+
 //  we really do not want to have this defined, but I'm defining it for the moment to get thru paradyn seperation
 #define CHECK_ALL_CALL_POINTS  // we depend on this for Paradyn
 
@@ -123,6 +127,8 @@ class mapped_object : public codeRange {
     friend class mapped_module; // for findFunction
     friend class func_instance;
     friend class block_instance; // Adds to codeRangesByAddr_
+    friend class edge_instance;
+
  private:
     mapped_object();
     mapped_object(fileDescriptor fileDesc, 
@@ -189,16 +195,16 @@ class mapped_object : public codeRange {
 
     mapped_module *getDefaultModule();
 
+    func_instance *findFuncByEntry(const Address addr);
+    func_instance *findFuncByEntry(const block_instance *blk);
 
     void getInferiorHeaps(vector<pair<string, Address> > &infHeaps);
 
     bool findFuncsByAddr(const Address addr, std::set<func_instance *> &funcs);
     bool findBlocksByAddr(const Address addr, std::set<block_instance *> &blocks);
-    func_instance *findFuncByEntry(const Address addr);
-    bool findBlocksByEntry(const Address addr, std::set<block_instance *> &blocks);
-
-    block_instance *findBlock(ParseAPI::Function *f, ParseAPI::Block *b);
-
+    block_instance *findBlockByEntry(const Address addr);
+    block_instance *findOneBlockByAddr(const Address addr);
+    
     // codeRange method
     void *getPtrToInstruction(Address addr) const;
     void *getPtrToData(Address addr) const;
@@ -224,6 +230,7 @@ class mapped_object : public codeRange {
     void removeEmptyPages();
     void removeFunction(func_instance *func);
     bool splitIntLayer();
+    void splitBlock(ParseAPI::Block *first, ParseAPI::Block *second);
     bool findBlocksByRange(Address startAddr,
                           Address endAddr,
                           std::list<block_instance*> &pageBlocks);
@@ -242,15 +249,6 @@ private:
     void expandCodeBytes(SymtabAPI::Region *reg);
     // end exploratory and defensive mode functions //
 public:
-
-
-#if defined(cap_save_the_world)
-    bool isinText(Address addr){ 
-        return ((addr >= codeBase_) && (addr < (codeBase_ + imageSize())));
-    }
-    void openedWithdlopen() { dlopenUsed = true; }; 
-    bool isopenedWithdlopen() { return dlopenUsed; };
-#endif
 
     bool  getSymbolInfo(const std::string &n, int_symbol &sym);
 
@@ -278,6 +276,10 @@ public:
     func_instance *findFunction(ParseAPI::Function *img_func);
     int_variable *findVariable(image_variable *img_var);
 
+    block_instance *findBlock(ParseAPI::Block *);
+    // If we already know the source or target hand them in for efficiency
+    edge_instance *findEdge(ParseAPI::Edge *, block_instance *src = NULL, block_instance *trg = NULL);
+
     // These methods should be invoked to find the global constructor and
     // destructor functions in stripped, static binaries
     func_instance *findGlobalConstructorFunc(const std::string &ctorHandler);
@@ -288,6 +290,7 @@ public:
     std::string getCalleeName(block_instance *);
     void setCalleeName(block_instance *, std::string name);
 
+  private:
     //
     //     PRIVATE DATA MEMBERS
     //				
@@ -311,7 +314,13 @@ private:
 
     pdvector<mapped_module *> everyModule;
 
-    typedef std::map<const parse_func *, func_instance *> FuncMap;
+    typedef std::map<const ParseAPI::Block *, block_instance *> BlockMap;
+    BlockMap blocks_;
+    
+    typedef std::map<const ParseAPI::Edge *, edge_instance *> EdgeMap;
+    EdgeMap edges_;
+
+    typedef std::map<const ParseAPI::Function *, func_instance *> FuncMap;
     FuncMap everyUniqueFunction;
 
     dictionary_hash<const image_variable *, int_variable *> everyUniqueVariable;

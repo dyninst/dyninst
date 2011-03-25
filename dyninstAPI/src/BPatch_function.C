@@ -301,7 +301,7 @@ bool BPatch_function::getMangledNamesInt(BPatch_Vector<const char *> &names)
  */
 void *BPatch_function::getBaseAddrInt()
 {
-  return (void *)func->getAddress();
+  return (void *)func->addr();
 }
 
 /*
@@ -311,7 +311,7 @@ void *BPatch_function::getBaseAddrInt()
  */
 unsigned int BPatch_function::getSizeInt() 
 {
-    return func->getSize_NP();
+   return -1;
 }
 
 /*
@@ -332,6 +332,9 @@ BPatch_type *BPatch_function::getReturnTypeInt()
 bool BPatch_function::parseNewEdge(Dyninst::Address source, 
                                    Dyninst::Address target)
 {
+   assert(0 && "TODO");
+   return false;
+#if 0
     // mark code bytes as needing an update
     if (BPatch_defensiveMode == func->obj()->hybridMode()) {
         func->obj()->setCodeBytesUpdated(false);
@@ -351,6 +354,7 @@ bool BPatch_function::parseNewEdge(Dyninst::Address source,
     }
 
     return true;
+#endif
 }
 
 // Removes all instrumentation and relocation from the function and 
@@ -404,7 +408,7 @@ void BPatch_function::getUnresolvedControlTransfers
       // We want to instrument before the last instruction, since we can pull out
       // the target at that point. Technically, we want to instrument the sink edge;
       // but we can't do that yet. 
-      instPoint *point = (*iter)->preInsnPoint((*iter)->last());
+      instPoint *point = instPoint::preInsn(func, *iter, (*iter)->last());
       BPatch_procedureLocation ptType = 
          BPatch_point::convertInstPointType_t(point->type());
       if (ptType == BPatch_locInstruction) {
@@ -430,7 +434,7 @@ void BPatch_function::getAbruptEndPoints
    const func_instance::BlockSet &blocks = func->abruptEnds();
    for (func_instance::BlockSet::iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
       // We just want to know if this code is executed, so use a "start of block" point.
-      instPoint *point = (*iter)->entryPoint();
+      instPoint *point = instPoint::blockEntry(func, *iter);
       BPatch_point *curPoint = addSpace->findOrCreateBPPoint
          (this, point, BPatch_locInstruction);
       
@@ -443,10 +447,10 @@ void BPatch_function::getAbruptEndPoints
 void BPatch_function::getCallerPoints(std::vector<BPatch_point*>& callerPoints)
 {   
    std::vector<block_instance *> callerBlocks;
-   func->getCallers(callerBlocks);
+   func->getCallerBlocks(std::back_inserter(callerBlocks));
    for (std::vector<block_instance *>::iterator iter = callerBlocks.begin(); 
         iter != callerBlocks.end(); ++iter) {
-      instPoint *point = (*iter)->preCallPoint();
+      instPoint *point = instPoint::preCall(func, *iter);
       BPatch_point *curPoint = addSpace->findOrCreateBPPoint
          (this, point, BPatch_locSubroutine);
       
@@ -459,7 +463,7 @@ void BPatch_function::getCallPoints(BPatch_Vector<BPatch_point *> &callPoints)
    const func_instance::BlockSet &blocks = func->callBlocks();
    for (func_instance::BlockSet::iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
       // We just want to know if this code is executed, so use a "start of block" point.
-      instPoint *point = (*iter)->preCallPoint();
+      instPoint *point = instPoint::preCall(func, *iter);
       BPatch_point *curPoint = addSpace->findOrCreateBPPoint
          (this, point, BPatch_locSubroutine);
       
@@ -470,7 +474,7 @@ void BPatch_function::getCallPoints(BPatch_Vector<BPatch_point *> &callPoints)
 void BPatch_function::getEntryPoints(BPatch_Vector<BPatch_point *> &entryPoints/*output*/)
 {
    BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, 
-                                                          func->entryPoint(),
+                                                          instPoint::funcEntry(func),
                                                           BPatch_locEntry);
    entryPoints.push_back(curPoint);
 }
@@ -483,7 +487,7 @@ void BPatch_function::getExitPoints(BPatch_Vector<BPatch_point *> &exitPoints)
 
    for (func_instance::BlockSet::iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
       // We just want to know if this code is executed, so use a "start of block" point.
-      instPoint *point = func->exitPoint(*iter);
+      instPoint *point = instPoint::funcExit(func, *iter);
       BPatch_point *curPoint = addSpace->findOrCreateBPPoint
          (this, point, BPatch_locExit);
       
@@ -717,7 +721,7 @@ BPatch_flowGraph* BPatch_function::getCFGInt()
         cfg = NULL;
         fprintf(stderr, "CFG is NULL for func %s at %lx %s[%d]\n", 
                 lowlevel_func()->symTabName().c_str(),
-                func->getAddress(),FILE__,__LINE__);
+                func->addr(),FILE__,__LINE__);
         return NULL;
     }
     return cfg;
@@ -1009,8 +1013,10 @@ const char *BPatch_function::addNameInt(const char *name,
 }
 
 unsigned int BPatch_function::getContiguousSizeInt() {
+   return 0;
+#if 0
    Address start, end;
-   start = func->getAddress();
+   start = func->addr();
    end = start + func->getSize_NP();
     
     block_instance* block = func->findBlockByEntry(start);
@@ -1019,6 +1025,7 @@ unsigned int BPatch_function::getContiguousSizeInt() {
        block = func->findBlockByEntry(end);
     }
     return end - start;
+#endif
 }
 
 bool BPatch_function::findOverlappingInt(BPatch_Vector<BPatch_function *> &funcs) {
@@ -1059,23 +1066,12 @@ void BPatch_function::relocateFunction()
 
 bool BPatch_function::getSharedFuncs(set<BPatch_function*> &sharedFuncs)
 {
-    if (!func->containsSharedBlocks()) {
-        return false;
-    }
-    const set<block_instance*,block_instance::compare> blocks = func->blocks();
-    std::set<block_instance*,block_instance::compare>::const_iterator bit;
-    for (bit = blocks.begin(); bit != blocks.end(); bit++) {
-        if((*bit)->hasSharedBase()) {
-            vector<ParseAPI::Function*> papiFuncs;
-            (*bit)->llb()->getFuncs(papiFuncs);
-            vector<ParseAPI::Function*>::iterator fit;
-            for (fit = papiFuncs.begin(); fit != papiFuncs.end(); fit++) {
-                func_instance *intFunc = func->proc()->findFuncByInternalFunc
-                    ( static_cast<parse_func*>(*fit) );
-                sharedFuncs.insert(getAddSpace()->
-                    findOrCreateBPFunc(intFunc, getModule()));
-            }
-        }
-    }
-    return true;
+   std::set<func_instance *> ishared;
+   if (!func->getSharingFuncs(ishared)) return false;
+   for (std::set<func_instance *>::iterator iter = ishared.begin();
+        iter != ishared.end(); ++iter) {
+      sharedFuncs.insert(getAddSpace()->findOrCreateBPFunc(*iter,
+                                                           getModule()));
+   }
+   return true;
 }

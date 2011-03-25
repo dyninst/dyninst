@@ -113,6 +113,7 @@ bool CodeBuffer::BufferElement::generate(CodeBuffer *buf,
    if (patch_) {
       // Now things get interesting
       if (!patch_->apply(gen, buf)) {
+         cerr << "Error: failed to apply patch!" << endl;
          return false;
       }
    }

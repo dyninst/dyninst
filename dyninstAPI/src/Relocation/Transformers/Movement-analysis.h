@@ -92,7 +92,7 @@ class PCSensitiveTransformer : public Transformer {
   typedef std::list<Assignment::Ptr> AssignList;
 
  public:
-  virtual bool processTrace(TraceList::iterator &);
+  virtual bool processTrace(TraceList::iterator &, const TraceMap &);
      PCSensitiveTransformer(AddressSpace *as, PriorityMap &p) 
         : aConverter(false), addrSpace(as), priMap(p),
      Sens_(0), extSens_(0), intSens_(0), thunk_(0), overApprox_(0), adhoc(as) {};

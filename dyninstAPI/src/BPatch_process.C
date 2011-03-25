@@ -1826,15 +1826,15 @@ static bool hasWeirdEntryBytes(func_instance *func)
 {
     using namespace SymtabAPI;
     Symtab *sym = func->obj()->parse_img()->getObject();
-    if (sym->findEnclosingRegion(func->getAddress()) 
+    if (sym->findEnclosingRegion(func->addr()) 
         != 
-        sym->findEnclosingRegion(func->getAddress()+1)) 
+        sym->findEnclosingRegion(func->addr()+1)) 
     {
         return false;
     }
     unsigned short ebytes;
-    memcpy(&ebytes,func->obj()->getPtrToInstruction(func->getAddress()),2);
-    //proc()->readDataSpace((void*)func->getAddress(), sizeof(short), &ebytes, false);
+    memcpy(&ebytes,func->obj()->getPtrToInstruction(func->addr()),2);
+    //proc()->readDataSpace((void*)func->addr(), sizeof(short), &ebytes, false);
 
     if (0 == ebytes) {
         return true;
@@ -1851,6 +1851,9 @@ void BPatch_process::overwriteAnalysisUpdate
       std::set<BPatch_function *> &monitorFuncs, // output: those that call overwritten or modified funcs
       bool &changedPages, bool &changedCode) //output
 {
+   assert(0 && "FIXME!");
+
+#if 0
 
     //1.  get the overwritten blocks and regions
     std::list<std::pair<Address,Address> > owRegions;
@@ -1916,7 +1919,7 @@ void BPatch_process::overwriteAnalysisUpdate
         fit++) 
     {
         malware_cerr << "Removing instrumentation from dead func at " 
-            << (*fit)->getAddress() << endl;
+            << (*fit)->addr() << endl;
         llproc->getMemEm()->removeSpringboards(*fit);
     }
 
@@ -1927,7 +1930,7 @@ void BPatch_process::overwriteAnalysisUpdate
         bit++) 
     {
         mal_printf("Deleting block [%lx %lx) from func at %lx\n",
-                   (*bit)->start(),(*bit)->end(),(*bit)->func()->getAddress());
+                   (*bit)->start(),(*bit)->end(),(*bit)->func()->addr());
         func_instance *bFunc = (*bit)->func();
         modFuncs.insert(bFunc);
         if ((*bit)->getHighLevelBlock()) {
@@ -1953,7 +1956,7 @@ void BPatch_process::overwriteAnalysisUpdate
         fit++) 
     {
         using namespace ParseAPI;
-        Address funcAddr = (*fit)->getAddress();
+        Address funcAddr = (*fit)->addr();
 
         // grab callers that aren't also dead
         Block::edgelist &callEdges = (*fit)->ifunc()->entryBlock()->sources();
@@ -2086,10 +2089,10 @@ void BPatch_process::overwriteAnalysisUpdate
         else if (newFuncEntries.end() == newFuncEntries.find(fit->first)) 
         {
             mal_printf("WARNING: didn't have any stub edges for overwritten "
-                       "func %lx\n", fit->first->getAddress());
+                       "func %lx\n", fit->first->addr());
             vector<edgeStub> svec;
             svec.push_back(edgeStub(
-                NULL, fit->first->getAddress(), ParseAPI::NOEDGE));
+                NULL, fit->first->addr(), ParseAPI::NOEDGE));
 		    fit->first->obj()->parseNewEdges(svec);
             assert(0);
         }
@@ -2112,6 +2115,7 @@ void BPatch_process::overwriteAnalysisUpdate
         (*fit)->addMissingBlocks();
         assert((*fit)->consistency());
     }
+#endif
 }
 
 

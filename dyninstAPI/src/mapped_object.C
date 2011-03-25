@@ -306,8 +306,7 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
       assert(parFunc->mod());
       mapped_module *mod = getOrCreateForkedModule(parFunc->mod());
       func_instance *newFunc = new func_instance(parFunc,
-                                               mod,
-                                               child);
+                                                 mod);
       addFunction(newFunc); 
    }
 
@@ -668,9 +667,8 @@ const int_variable *mapped_object::getVariable(const std::string &varname) {
     return NULL;
 }
 
-bool mapped_object::findBlocksByEntry(Address addr, std::set<block_instance *> &blocks)
+block_instance *mapped_object::findBlockByEntry(Address addr)
 {
-    bool retval = false;
     std::set<block_instance *> allBlocks;
     if (!findBlocksByAddr(addr, allBlocks)) return false;
     for (std::set<block_instance *>::iterator iter = allBlocks.begin();
@@ -678,11 +676,10 @@ bool mapped_object::findBlocksByEntry(Address addr, std::set<block_instance *> &
     {
         if ((*iter)->start() == addr)
         {
-            retval = true;
-            blocks.insert(*iter);
+           return *iter;
         }
     }
-    return retval;
+    return NULL;
 }
 
 
@@ -712,7 +709,7 @@ bool mapped_object::findBlocksByAddr(const Address addr, std::set<block_instance
         (*llb_iter)->getFuncs(ll_funcs);
         for (std::vector<ParseAPI::Function *>::iterator llf_iter = ll_funcs.begin();
             llf_iter != ll_funcs.end(); ++llf_iter) {
-           block_instance *block = findBlock(*llf_iter, *llb_iter);
+           block_instance *block = findBlock(*llb_iter);
            assert(block);
            blocks.insert(block);
         }
@@ -727,9 +724,9 @@ bool mapped_object::findFuncsByAddr(const Address addr, std::set<func_instance *
     std::set<block_instance *> blocks;
     if (!findBlocksByAddr(addr, blocks)) return false;
     for (std::set<block_instance *>::iterator iter = blocks.begin();
-        iter != blocks.end(); ++iter) {
-            ret = true;
-            funcs.insert((*iter)->func());
+         iter != blocks.end(); ++iter) {
+       (*iter)->getFuncs(std::inserter(funcs, funcs.end()));
+       ret = true;
     }
     return ret;
 }
@@ -742,17 +739,6 @@ func_instance *mapped_object::findFuncByEntry(const Address addr) {
       if ((*iter)->entryBlock()->start() == addr) return *iter;
    }
    return NULL;
-}
-
-block_instance *mapped_object::findBlock(ParseAPI::Function *ll_func, ParseAPI::Block *ll_block) {
-    func_instance *func = findFunction(ll_func);
-    if (!func) {
-       cerr << "Failed to find func_instance for ll_func!" << endl;
-       return NULL;
-    }
-    block_instance *block = func->findBlock(ll_block);
-    assert(block);
-    return block;
 }
 
 
@@ -1201,10 +1187,6 @@ mapped_module* mapped_object::getDefaultModule()
 // KEVINTODO: this would be much cheaper if we stored pairs of split blocks, 
 bool mapped_object::splitIntLayer()
 {
-#if ! defined (cap_instruction_api)
-    // not implemented (or needed, for now) on non-instruction API platforms
-    return false;
-#else
     set<func_instance*> splitFuncs;
     using namespace InstructionAPI;
     // iterates through the blocks that were created during block splitting
@@ -1212,32 +1194,12 @@ bool mapped_object::splitIntLayer()
     for (image::SplitBlocks::const_iterator bIter = splits.begin(); 
          bIter != splits.end(); bIter++) 
     {
-        // foreach function corresponding to the block
-        parse_block *splitImgB = bIter->first;
-        vector<Function *> funcs;
-        splitImgB->getFuncs(funcs);
-        for (std::vector<Function*>::iterator fIter = funcs.begin();
-             fIter != funcs.end(); 
-             fIter++) {
-            parse_func *imgFunc = static_cast<parse_func*>(*fIter);
-            func_instance *func = findFunction(imgFunc);
-            assert(func);
-            func->splitBlock(bIter->first, bIter->second);
-            splitFuncs.insert(func);
-        }
-    }
-
-    // The new block should already be in the tracking data
-    // structures from when it was created
-    for(set<func_instance*>::iterator fit = splitFuncs.begin();
-        fit != splitFuncs.end();
-        fit++)
-    {
-        assert((*fit)->consistency());
+      // foreach function corresponding to the block
+       parse_block *splitImgB = bIter->first;
+       splitBlock(bIter->first, bIter->second);
     }
 
     return true;
-#endif
 }
 
 // Grabs all block_instances corresponding to the region, taking special care 
@@ -1268,7 +1230,7 @@ bool mapped_object::findBlocksByRange(Address startAddr,
          func_instance *func = findFunction(ifunc);
          assert(func);
 
-         block_instance *bbl = func->findBlockByEntry(pB->start() + codeBase());
+         block_instance *bbl = findBlockByEntry(pB->start() + codeBase());
          assert(bbl);
          rangeBlocks.push_back(bbl);
       }
@@ -1284,7 +1246,7 @@ void mapped_object::findFuncsByRange(Address startAddr,
    findBlocksByRange(startAddr, endAddr, bbls);
    for (std::list<block_instance *>::iterator iter = bbls.begin();
         iter != bbls.end(); ++iter) {
-      pageFuncs.insert((*iter)->func());
+      (*iter)->getFuncs(std::inserter(pageFuncs, pageFuncs.end()));
    }
 }
 
@@ -1406,6 +1368,9 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
 */
 bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
 {
+   assert(0 && "TODO");
+   return false;
+#if 0
     using namespace SymtabAPI;
     using namespace ParseAPI;
 
@@ -1415,23 +1380,22 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
 
     // Do various checks and set edge types, if necessary
     for (unsigned idx=0; idx < stubs.size(); idx++) {
-		mapped_object *targ_obj = proc()->findObject(stubs[idx].trg);
-		assert(targ_obj);
-
-        // update target region if needed
-        if (BPatch_defensiveMode == hybridMode()) 
-        {
-            targ_obj->updateCodeBytesIfNeeded(stubs[idx].trg);
-        }
-
-        EdgeTypeEnum edgeType = stubs[idx].type;
-
-        // Determine if this stub already has been parsed
-        // Which means looking up a block at the target address
-        if (stubs[idx].src->func()->findBlockByEntry(stubs[idx].trg)) {
-            continue;
-        }
-
+       mapped_object *targ_obj = proc()->findObject(stubs[idx].trg);
+       assert(targ_obj);
+       
+       // update target region if needed
+       if (BPatch_defensiveMode == hybridMode()) 
+       {
+          targ_obj->updateCodeBytesIfNeeded(stubs[idx].trg);
+       }
+       
+       EdgeTypeEnum edgeType = stubs[idx].type;
+       
+       // Determine if this stub already has been parsed
+       // Which means looking up a block at the target address
+       if (targ_obj->findBlockByEntry(stubs[idx].trg)) {
+          continue;
+       }
 
         // Otherwise we don't have a target block, so we need to make one.
         if (stubs[idx].type == ParseAPI::NOEDGE) 
@@ -1450,9 +1414,11 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
                 }
             }
 
-            block_instance::InsnInstances insns;
+            block_instance::Insns insns;
             stubs[idx].src->getInsns(insns);
-            switch (insns.back().first->getCategory()) {
+            InstructionAPI::Instruction::Ptr cf = insns[stubs[idx].src->last()];
+            assert(cf);
+            switch (cf->getCategory()) {
             case c_CallInsn:
                 if (stubs[idx].trg == stubs[idx].src->end()) 
                 {
@@ -1473,7 +1439,7 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
                 {
                     edgeType = INDIRECT;
                 }
-                else if (!insns.back().first->allowsFallThrough())
+                else if (!cf->allowsFallThrough())
                 {
                     edgeType = DIRECT;
                 }
@@ -1543,6 +1509,7 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
     }
     
     return true;
+#endif
 }
 
 
@@ -2263,3 +2230,58 @@ std::string mapped_object::getCalleeName(block_instance *b) {
 void mapped_object::setCalleeName(block_instance *b, std::string s) {
    calleeNames_[b] = s;
 }
+
+// Missing
+// findEdge
+// findBlock
+// findOneBlockByAddr
+// splitBlock
+// findFuncByEntry
+// findBlock (again)
+
+edge_instance *mapped_object::findEdge(ParseAPI::Edge *e, 
+                                       block_instance *src,
+                                       block_instance *trg) {
+   EdgeMap::const_iterator iter = edges_.find(e);
+   if (iter != edges_.end()) return iter->second;
+
+   edge_instance *inst = new edge_instance(e,
+                                           src ? src : findBlock(e->src()),
+                                           trg ? trg : findBlock(e->trg()));
+   edges_[e] = inst;
+   return inst;
+}
+
+block_instance *mapped_object::findBlock(ParseAPI::Block *b) {
+   BlockMap::const_iterator iter = blocks_.find(b);
+   if (iter != blocks_.end()) return iter->second;
+   block_instance *inst = new block_instance(b, this);
+   blocks_[b] = inst;
+   return inst;
+}
+
+block_instance *mapped_object::findOneBlockByAddr(const Address addr) {
+   std::set<block_instance *> possibles;
+   findBlocksByAddr(addr, possibles);
+   for (std::set<block_instance *>::iterator iter = possibles.begin();
+        iter != possibles.end(); ++iter) {
+      block_instance::Insns insns;
+      (*iter)->getInsns(insns);
+      if (insns.find(addr) != insns.end()) {
+         return *iter;
+      }
+   }
+   return NULL;
+}
+
+void mapped_object::splitBlock(ParseAPI::Block *first, ParseAPI::Block *second) {
+   assert(0 && "TODO");
+}
+
+func_instance *mapped_object::findFuncByEntry(const block_instance *blk) {
+   parse_block *llb = static_cast<parse_block *>(blk->llb());
+   return findFunction(llb->getEntryFunc());
+}
+
+
+   

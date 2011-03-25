@@ -50,7 +50,7 @@ class MemEmulatorTransformer : public Transformer {
 
   virtual bool preprocess(TraceList &);
 
-  virtual bool processTrace(TraceList::iterator &);
+  virtual bool processTrace(TraceList::iterator &, const TraceMap &);
 
  MemEmulatorTransformer() :
   aConverter(false) {};

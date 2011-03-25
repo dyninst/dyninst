@@ -68,7 +68,7 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
          continue;
       }
       relocation_cerr << "\tAdding function " << func->symTabName() << endl;
-      if (!addTraces(func->blocks().begin(), func->blocks().end())) {
+      if (!addTraces(func->blocks().begin(), func->blocks().end(), func)) {
          return false;
       }
     
@@ -81,39 +81,21 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
 }
 
 template <typename TraceIter>
-bool CodeMover::addTraces(TraceIter begin, TraceIter end) {
+bool CodeMover::addTraces(TraceIter begin, TraceIter end, func_instance *f) {
    for (; begin != end; ++begin) {
-      block_instance *bbl = (*begin);
-      //relocation_cerr << "Creating Trace for bbl at " 
-//                      << std::hex << bbl->firstInsnAddr() << std::dec
-      //                << endl;
-      Trace::Ptr block = Trace::create(bbl);
-      if (!block)
-         return false;
-      blocks_.push_back(block);
-      blockMap_[bbl] = block;
-      //relocation_cerr << "  Updated block map: " 
-//                      << std::hex << bbl->firstInsnAddr() << std::dec
-        //              << "->" << block.get() << endl;
-
-      priorityMap_[bbl] = Suggested;
+      addTrace(*begin, f);
    }
    return true;
 }
 
-bool CodeMover::addTrace(block_instance *bbl) {
-   //relocation_cerr << "Creating Trace for bbl at " 
-//                   << std::hex << bbl->firstInsnAddr() << std::dec
-//                   << endl;
-   Trace::Ptr block = Trace::create(bbl);
+bool CodeMover::addTrace(block_instance *bbl, func_instance *f) {
+   Trace::Ptr block = Trace::create(bbl, f);
    if (!block)
       return false;
    blocks_.push_back(block);
    blockMap_[bbl] = block;
-   //relocation_cerr << "  Updated block map: " 
-//                   << std::hex << bbl->firstInsnAddr() << std::dec
-            //       << "->" << block.get() << endl;
-  
+   priorityMap_[bbl] = Suggested;
+      
    return true;
 }
 
@@ -143,7 +125,7 @@ bool CodeMover::transform(Transformer &t) {
    t.preprocess(blocks_);
    for (TraceList::iterator i = blocks_.begin(); 
         i != blocks_.end(); ++i) {
-      if (!t.processTrace(i))
+      if (!t.processTrace(i, blockMap_))
          ret = false;
    }
    t.postprocess(blocks_);
@@ -161,8 +143,10 @@ bool CodeMover::initialize(const codeGen &templ) {
    // Tell all the blocks to do their generation thang...
    for (TraceList::iterator i = blocks_.begin(); 
         i != blocks_.end(); ++i) {
-
-      if (!(*i)->finalizeCF()) 
+      TraceList::iterator next = i; ++next;
+      // We hand in the iterator so we can try and eliminate
+      // branches-to-next
+      if (!(*i)->finalizeCF((next == blocks_.end()) ? Trace::Ptr() : *next))
          return false;
 
       if (!(*i)->generate(templ, buffer_))

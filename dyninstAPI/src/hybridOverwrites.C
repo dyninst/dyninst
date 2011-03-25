@@ -114,8 +114,8 @@ bool HybridAnalysisOW::codeChangeCB
             vector<ParseAPI::Function*>::iterator fiter = funcs.begin();
             for ( ; fiter != funcs.end(); fiter++) {
                 Address fAddr = proc()->lowlevel_process()->
-                    findFuncByInternalFunc(dynamic_cast<parse_func*>(*fiter))->
-                    getAddress();
+                   findFuncByInternalFunc(dynamic_cast<parse_func*>(*fiter))->
+                   addr();
                 std::vector<BPatch_function*>::iterator bfiter=modfuncs.begin();
                 for (; bfiter != modfuncs.end(); bfiter++) {
                     if (fAddr == (Address)(*bfiter)->getBaseAddr()) {
@@ -412,9 +412,11 @@ void HybridAnalysisOW::owLoop::instrumentOneWrite(Address writeInsnAddr,
     {
        // We can afford to be really slow and precise in the lookup, as this is the
        // very, very, very uncommon case.
-       block_instance *block = writeFuncs[fidx]->lowlevel_func()->findOneBlockByAddr(writeInsnAddr);
+       block_instance *block = writeFuncs[fidx]->lowlevel_func()->obj()->findOneBlockByAddr(writeInsnAddr);
        if (!block) continue;
-       instPoint *ip = block->postInsnPoint(writeInsnAddr);
+       instPoint *ip = instPoint::postInsn(writeFuncs[fidx]->lowlevel_func(),
+                                           block,
+                                           writeInsnAddr);
        BPatch_point *writePoint = hybridow_->proc()->findOrCreateBPPoint(writeFuncs[fidx],
                                                                          ip);
 

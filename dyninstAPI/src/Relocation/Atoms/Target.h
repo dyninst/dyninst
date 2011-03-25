@@ -99,7 +99,7 @@ template <>
  public:
    //Address addr() const { return t_->curAddr(); }
 
-  Target(Trace * t) : t_(t) {}
+  Target(Trace * t) : t_(t) { assert(t_); }
    ~Target() {}
    Trace * t() const { return t_; };
   Address origAddr() const { return t_->origAddr(); };
@@ -108,7 +108,7 @@ template <>
   
   virtual string format() const { 
      stringstream ret;
-     ret << "B{" << t_->id() << "/" << (necessary() ? "+" : "-") << "}";
+     ret << "T{" << t_->id() << "/" << (necessary() ? "+" : "-") << "}";
      return ret.str();
   }
   
@@ -124,7 +124,7 @@ template <>
 class Target<block_instance *> : public TargetInt {
  public:
    //Address addr() const { return t_->firstInsnAddr(); }
- Target(block_instance *t) : t_(t) {}
+  Target(block_instance *t) : t_(t) { assert(t_); }
   ~Target() {}
 
   block_instance *t() const { return t_; };
@@ -135,7 +135,7 @@ class Target<block_instance *> : public TargetInt {
   
   virtual string format() const { 
     stringstream ret;
-    ret << "O{" << std::hex << t_->start() << "/" << (necessary() ? "+" : "-") << std::dec << "}";
+    ret << "B{" << std::hex << t_->start() << "/" << (necessary() ? "+" : "-") << std::dec << "}";
     return ret.str();
   }
 

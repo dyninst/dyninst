@@ -46,7 +46,8 @@
 
 int miniTramp::_id = 1;
 
-miniTramp::miniTramp(AstNodePtr ast, instPoint *point) : ast_(ast), point_(point) {};
+miniTramp::miniTramp(AstNodePtr ast, instPoint *point, bool recursive)
+   : ast_(ast), point_(point), recursive_(recursive) {};
 
 // Given a miniTramp parentMT, find the equivalent in the child
 // process (matching by the ID member). Fill in childMT.

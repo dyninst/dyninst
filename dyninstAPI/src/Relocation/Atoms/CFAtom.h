@@ -36,6 +36,10 @@
 
 class block_instance;
 
+namespace NS_x86 {
+   class instruction;
+}
+
 namespace Dyninst {
 namespace Relocation {
  class LocalizeCF;
@@ -44,6 +48,7 @@ namespace Relocation {
  class adhocMovementTransformer;
  class Fallthroughs;
  class Modification;
+ class Trace;
 
 class CFAtom : public Atom {
   friend class Transformer;
@@ -51,8 +56,8 @@ class CFAtom : public Atom {
   friend class Instrumenter; // For rewiring edge instrumentation
   friend class adhocMovementTransformer; // Also
   friend class PCSensitiveTransformer;
-  friend class Fallthroughs;
   friend class Modification;
+  friend class Trace;
  public:
   static const Address Fallthrough;
   static const Address Taken;
@@ -82,6 +87,7 @@ class CFAtom : public Atom {
 
   void setGap(unsigned gap) { gap_ = gap; }
   void setOrigTarget(Address a) { origTarget_ = a; }
+  unsigned gap() const { return gap_; };
 
  private:
    CFAtom(Address a)
@@ -185,6 +191,10 @@ struct CFPatch : public Patch {
   InstructionAPI::Instruction::Ptr orig_insn;
   TargetInt *target;
   Address origAddr_;  
+
+  private:
+  bool isPLT(codeGen &gen);
+  bool applyPLT(codeGen &gen, CodeBuffer *buf);
 };
 
 struct PaddingPatch : public Patch {

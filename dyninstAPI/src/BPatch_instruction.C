@@ -100,24 +100,19 @@ void *BPatch_instruction::getAddressInt()
 }
 BPatch_point *BPatch_instruction::getInstPointInt()
 {
-  //const unsigned char *insn_ptr = ((instruction *)instr)->ptr();
-  block_instance *iblock = parent->iblock;
-  func_instance *func = iblock->func();
-  AddressSpace *proc = func->proc();
-
-  assert(proc);
-  assert(func);
-
-  BPatch_addressSpace *bpproc = (BPatch_addressSpace *)proc->up_ptr();
-  assert(bpproc);
-
-  instPoint *point = iblock->preInsnPoint(addr);
-
-  BPatch_point *ret = bpproc->findOrCreateBPPoint(NULL, point, BPatch_locInstruction);
-
-  if (!ret)
-    fprintf(stderr, "%s[%d]:  getInstPoint failing!\n", FILE__, __LINE__);
-  return ret;
+   func_instance *ifunc = parent->ifunc();
+   AddressSpace *proc = ifunc->proc();
+   BPatch_addressSpace *bpproc = (BPatch_addressSpace *)proc->up_ptr();
+   assert(bpproc);
+   instPoint *point = instPoint::preInsn(ifunc,
+                                         parent->block(),
+                                         addr);
+   
+   BPatch_point *ret = bpproc->findOrCreateBPPoint(NULL, point, BPatch_locInstruction);
+   
+   if (!ret)
+      fprintf(stderr, "%s[%d]:  getInstPoint failing!\n", FILE__, __LINE__);
+   return ret;
 }
 
 std::string BPatch_register::nameInt() {

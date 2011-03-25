@@ -41,31 +41,33 @@ using namespace Relocation;
 using namespace std;
 
 bool CodeTracker::origToReloc(Address origAddr,
+                              block_instance *block,
                               func_instance *func,
                               RelocatedElements &reloc) const {
-   BFM_citer iter = origToReloc_.find(func->addr());
+   ForwardMap::const_iterator iter = origToReloc_.find(block->start());
    if (iter == origToReloc_.end()) return false;
+
+   FwdMapMiddle::const_iterator iter2 = iter->second.find((func ? func->addr() : 0));
+   if (iter2 == iter->second.end()) return false;
+
+   FwdMapInner::const_iterator iter3 = iter2->second.find(origAddr);
+   if (iter3 == iter2->second.end()) return false;
    
-   const ForwardsMap &fm = iter->second;
-   FM_citer iter2 = fm.find(origAddr);
-   if (iter2 == fm.end()) return false;
-   
-   reloc = iter2->second;
+   reloc = iter3->second;
    return true;
 }
 
 bool CodeTracker::relocToOrig(Address relocAddr, 
-                              Address &orig, 
-                              block_instance *&block,
-                              baseTramp *&bti) const {
+                              RelocInfo &ri) const {
   TrackerElement *e = NULL;
   if (!relocToOrig_.find(relocAddr, e))
-    return false;
-  orig = e->relocToOrig(relocAddr);
-  block = e->block();
+     return false;
+  ri.orig = e->relocToOrig(relocAddr);
+  ri.block = e->block();
+  ri.func = e->func();
   if (e->type() == TrackerElement::instrumentation) {
      InstTracker *i = static_cast<InstTracker *>(e);
-     bti = i->baseT();
+     ri.bt = i->baseT();
   }
 
   return true;
@@ -112,10 +114,10 @@ void CodeTracker::createIndices() {
     relocToOrig_.insert(e->reloc(), e->reloc() + e->size(), e);
 
    if (e->type() == TrackerElement::instrumentation) {
-      origToReloc_[e->block()->func()->addr()][e->orig()].instrumentation = e->reloc();
+      origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].instrumentation = e->reloc();
    }
    else {
-      origToReloc_[e->block()->func()->addr()][e->orig()].instruction = e->reloc();
+      origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].instruction = e->reloc();
    }
   }
 
@@ -125,17 +127,22 @@ void CodeTracker::createIndices() {
 void CodeTracker::debug() {
   cerr << "************ FORWARD MAPPING ****************" << endl;
 
-  for (BlockForwardsMap::iterator bfm_iter = origToReloc_.begin(); 
-       bfm_iter != origToReloc_.end(); ++bfm_iter) {
-     cerr << "\t Func @" << hex << bfm_iter->first << dec << endl;
-     for (ForwardsMap::iterator fm_iter = bfm_iter->second.begin();
-          fm_iter != bfm_iter->second.end(); ++fm_iter) {
-        cerr << "\t\t" << hex << fm_iter->first << " -> "
-             << fm_iter->second.instrumentation << "(instrumentation), " 
-             << fm_iter->second.instruction << "(instruction)" << dec << endl;
+  for (ForwardMap::const_iterator iter = origToReloc_.begin();
+       iter != origToReloc_.end(); ++iter) {
+     for (FwdMapMiddle::const_iterator iter2 = iter->second.begin();
+          iter2 != iter->second.end(); ++iter2) {
+        for (FwdMapInner::const_iterator iter3 = iter2->second.begin();
+             iter3 != iter2->second.end(); ++iter3) {
+           cerr << "\t\t" << hex \
+                << iter3->first 
+                << " -> " << iter3->second.instrumentation << "(bt), " 
+                << iter3->second.instruction << "(insn)"
+                << ", block @" << iter->first
+                << ", func @" << iter2->first << dec << endl;
+        }
      }
   }
-
+     
   cerr << "************ REVERSE MAPPING ****************" << endl;
 
   std::vector<ReverseMap::Entry> reverseEntries;
@@ -168,7 +175,7 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::Relocation::TrackerEle
     os << ",?";
     break;
   }
-  os << "," << e.block()->start() << "," << e.block()->func()->name();
+  os << "," << e.block()->start() << "," << (e.func() ? e.func()->name() : "<NOFUNC>");
   os << ")" << dec;
   return os;
 }

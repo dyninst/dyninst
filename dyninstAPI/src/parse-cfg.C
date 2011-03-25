@@ -375,19 +375,18 @@ void parse_func::addParRegion(Address begin, Address end, parRegType t)
     parRegionsList.push_back(iPar);
 }
 
-#if defined(cap_instruction_api)
-void parse_block::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> >&instances) {
-    using namespace InstructionAPI;
-    Offset off = firstInsnOffset();
-    const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);
-    if (ptr == NULL) return;
-    InstructionDecoder d(ptr, getSize(),obj()->cs()->getArch());
-    while (off < endOffset()) {
-      instances.push_back(std::make_pair(d.decode(), off));
-      off += instances.back().first->size();
-    }
+void parse_block::getInsns(Insns &insns, Address base) {
+   using namespace InstructionAPI;
+   Offset off = firstInsnOffset();
+   const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);
+   if (ptr == NULL) return;
+   InstructionDecoder d(ptr, getSize(),obj()->cs()->getArch());
+   while (off < endOffset()) {
+      Instruction::Ptr insn = d.decode();
+      insns[off + base] = insn;
+      off += insn->size();
+   }
 }
-#endif
 
 
 /* This function is static.

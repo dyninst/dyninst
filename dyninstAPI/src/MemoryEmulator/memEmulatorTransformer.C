@@ -63,13 +63,12 @@ bool MemEmulatorTransformer::preprocess(TraceList &t) {
 
 // Replace all memory accesses to a non-statically-determinable
 // location with an emulation sequence
-bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
+bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter, const TraceMap &) {
   if (!((*iter)->block())) return true;
   
   // AssignmentConverter is written in terms of parse_func,
   // so translate
-  func_instance *func = (*iter)->block()->func();
-  
+  func_instance *func = (*iter)->func();
 
   AtomList &elements = (*iter)->elements();
   
@@ -164,7 +163,7 @@ Atom::Ptr MemEmulatorTransformer::createReplacement(InsnAtom::Ptr reloc,
                                                     func_instance *func, 
                                                     block_instance *block) {
   // MemEmulators want instPoints. How unreasonable.
-   instPoint *point = block->preInsnPoint(reloc->addr());
+   instPoint *point = instPoint::preInsn(func, block, reloc->addr());
    if (!point) return Atom::Ptr();
    
    // Replace this instruction with a MemEmulator

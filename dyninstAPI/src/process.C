@@ -4424,8 +4424,8 @@ Address process::stopThreadCtrlTransfer (instPoint* intPoint,
 
     // if the point is a real return instruction and its target is a stack 
     // address, get the return address off of the stack 
-    if (intPoint->type() == instPoint::FunctionExit &&
-        intPoint->block()->isExit() &&
+    if (intPoint->type() == instPoint::FuncExit &&
+        intPoint->block()->isFuncExit() &&
         !intPoint->func()->isSignalHandler()) 
     {
         mal_printf("%s[%d]: return address is %lx\n", FILE__,
@@ -4454,10 +4454,9 @@ Address process::stopThreadCtrlTransfer (instPoint* intPoint,
             // b. 
             // if we're in the fallthrough block, match to call block, 
             // and if necessary, add fallthrough edge
-            block_instance *targBBI = NULL;
-            baseTramp *bti = NULL;
-            bool hasFT = getRelocInfo(target, unrelocTarget, targBBI, bti);
-            assert(hasFT); // otherwise we should be in the defensive map
+           AddressSpace::RelocInfo ri;
+           bool hasFT = getRelocInfo(target, ri);
+           assert(hasFT); // otherwise we should be in the defensive map
         }
         mal_printf("translated target %lx to %lx %s[%d]\n",
             target, unrelocTarget, FILE__, __LINE__);
@@ -4498,25 +4497,22 @@ bool process::handleStopThread(EventRecord &ev)
     /* 1a. The instrumentation point that triggered the stopThread event */
     Address relocPointAddr = // arg1
 #if defined (os_windows)
-       (Address) ev.fd;
+    (Address) ev.fd;
 #else
-       (Address) ev.info;
+    (Address) ev.info;
 #endif
 
-    block_instance *pointBlock = NULL;
-    Address pointAddr = relocPointAddr;
-    baseTramp *pointbti = NULL;
-    bool success = getRelocInfo(relocPointAddr, pointAddr, pointBlock, pointbti);
+    AddressSpace::RelocInfo ri;
+
+    bool success = getRelocInfo(relocPointAddr, ri);
     if (!success) {
-        assert(0);
-        return false;
+       assert(0);
+       return false;
     }
-    func_instance *pointFunc = pointBlock->func();
-    instPoint *intPoint = pointbti->point();
-    if (!intPoint) { 
-        assert(0);
-        return false; 
-    }
+    func_instance *pointFunc = ri.func; 
+    assert(pointFunc); // Must have done context instrumentation to get this
+    instPoint *intPoint = ri.bt->point();
+    assert(intPoint);
 
     // Read args 2,3 from the runtime library, as in decodeRTSignal,
     // didn't do it there since this is the only RT library event that
@@ -4576,11 +4572,11 @@ bool process::handleStopThread(EventRecord &ev)
     }
 
     mal_printf("handling stopThread %lx[%lx]=>%lx %s[%d]\n", 
-               pointAddr, relocPointAddr, (long)calculation, FILE__,__LINE__); 
+               ri.reloc, relocPointAddr, (long)calculation, FILE__,__LINE__); 
 
 /* 2. If the callbackID is negative, the calculation is meant to be
-      interpreted as the address of code, so we call stopThreadCtrlTransfer
-      to translate the target to an unrelocated address */
+   interpreted as the address of code, so we call stopThreadCtrlTransfer
+   to translate the target to an unrelocated address */
     bool interpFlag = false;
     if (callbackID < 0) {
         interpFlag = true;
@@ -4773,6 +4769,9 @@ bool process::getDeadCode
   std::list<func_instance*> &deadFuncs, //output: DeadF
   std::map<func_instance*,block_instance*> &newFuncEntries) //output: newF
 {
+   assert(0 && "TODO");
+   return false;
+#if 0
     // do a stackwalk to see which functions are currently executing
     pdvector<pdvector<Frame> >  stacks;
     pdvector<Address> pcs;
@@ -4799,11 +4798,11 @@ bool process::getDeadCode
          bIter != owBlocks.end(); 
          bIter++) 
     {
-        deadMap[(*bIter)->func()].insert(*bIter);
-        owBlockAddrs.insert((*bIter)->start());
-        if ((*bIter)->llb() == (*bIter)->func()->ifunc()->entry()) {
-            deadEntryFuncs.insert((*bIter)->func());
-        }
+       deadMap[(*bIter)->func()].insert(*bIter);
+       owBlockAddrs.insert((*bIter)->start());
+       if ((*bIter)->llb() == (*bIter)->func()->ifunc()->entry()) {
+          deadEntryFuncs.insert((*bIter)->func());
+       }
     }
 
     // for each modified function, calculate ex, ElimF, NewF, DelF
@@ -4883,6 +4882,7 @@ bool process::getDeadCode
     }
 
     return true;
+#endif
 }
 
 
@@ -5009,11 +5009,12 @@ func_instance *process::findActiveFuncByAddr(Address addr)
             // if we're at a relocated address, we can translate 
             // back to the right function, if translation fails 
             // frameFunc will still be NULL
-            Address origAddr = framePC; baseTramp *bti = NULL;
-            block_instance *frameBlock = NULL;
+            RelocInfo ri;
             func_instance *frameFunc = NULL;
-            if (getRelocInfo(framePC, origAddr, frameBlock, bti)) {
-                frameFunc = frameBlock->func();
+
+            if (getRelocInfo(framePC, ri) &&
+                ri.func) {
+               frameFunc = ri.func;
             }
             else if (j < (stack.size() - 1)) {
                 // Okay, crawl original code. 
@@ -5079,15 +5080,20 @@ bool process::generateRequiredPatches(instPoint *callPt,
 
     // 1)
     block_instance *callbbi = callPt->block();
-    block_instance *ftbbi = callbbi->getFallthrough();
+    block_instance *ftbbi = callbbi->getFallthroughBlock();
     assert(ftbbi);
+
+    std::vector<func_instance *> funcs;
+    ftbbi->getFuncs(std::back_inserter(funcs));
+
     Relocation::CodeTracker::RelocatedElements reloc;
     CodeTrackers::reverse_iterator rit;
-    for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++)
-    {
-        if ((*rit).origToReloc(ftbbi->start(), ftbbi->func(), reloc)) {
-            break;
-        }
+    for (unsigned i = 0; i < funcs.size(); ++i) {
+       for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++) {
+          if ((*rit).origToReloc(ftbbi->start(), ftbbi, funcs[i], reloc)) {
+             break;
+          }
+       }
     }
     assert(rit != relocatedCode_.rend());
     
@@ -5237,7 +5243,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                 {
                    for (func_instance::BlockSet::iterator iter = func->exitBlocks().begin();
                         iter != func->exitBlocks().end(); ++iter) {
-                      miniTramp *mt = func->exitPoint(*iter)->insert(req->order, ast);
+                      miniTramp *mt = instPoint::funcExit(func, *iter)->insert(req->order, ast, req->useTrampGuard);
                       if (mt) 
                          minis.push_back(mt);
                       else {
@@ -5248,7 +5254,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                 break;
                case FUNC_ENTRY:
                {
-                  miniTramp *mt = func->entryPoint()->insert(req->order, ast);
+                  miniTramp *mt = instPoint::funcEntry(func)->insert(req->order, ast, req->useTrampGuard);
                   if (mt) 
                      minis.push_back(mt);
                   else {
@@ -5260,7 +5266,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                 {
                    for (func_instance::BlockSet::iterator iter = func->callBlocks().begin();
                         iter != func->callBlocks().end(); ++iter) {
-                      miniTramp *mt = func->exitPoint(*iter)->insert(req->order, ast);
+                      miniTramp *mt = instPoint::preCall(func, *iter)->insert(req->order, ast, req->useTrampGuard);
                       if (mt) 
                          minis.push_back(mt);
                       else {

@@ -195,8 +195,8 @@ class SpringboardBuilder {
   static const int UnallocatedStart;
 
  SpringboardBuilder(AddressSpace *a) : addrSpace_(a), curRange_(UnallocatedStart) {};
-  template <typename TraceIter> 
-    bool addTraces(TraceIter begin, TraceIter end, int funcID);
+  template <typename BlockIter> 
+     bool addBlocks(BlockIter begin, BlockIter end, func_instance *func, int funcID);
 
   bool generateInt(std::list<codeGen> &springboards,
                    SpringboardMap &input,

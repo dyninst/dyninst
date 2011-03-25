@@ -48,28 +48,16 @@
 #include "dyn_detail/boost/shared_ptr.hpp"
 
 #include "block.h"
+#include "instPoint.h"
 
 class process;
 class mapped_module;
 class mapped_object;
 
-class BPatch_flowGraph;
-class BPatch_loopTreeNode;
-class BPatch_basicBlock;
-class BPatch_basicBlockLoop;
-
-class instPointInstance;
-
-#include "dyninstAPI/src/ast.h"
-
-class instPoint;
-
-class Frame;
-
 class func_instance;
 class block_instance;
 class edge_instance;
-class funcMod;
+class instPoint;
 
 typedef enum callType {
   unknown_call,
@@ -83,18 +71,18 @@ typedef enum callType {
 class func_instance : public patchTarget {
   friend class block_instance;
   friend class edge_instance;
+  friend class instPoint;
  public:
    //static std::string emptyString;
 
    // Almost everything gets filled in later.
-   func_instance(parse_func *f,
+  func_instance(parse_func *f,
 		Address baseAddr,
                 mapped_module *mod);
-
-   func_instance(const func_instance *parent,
-                mapped_module *child_mod,
-                process *childP);
-
+  
+  func_instance(const func_instance *parent,
+                mapped_module *child_mod);
+  
    ~func_instance();
 
    ////////////////////////////////////////////////
@@ -121,48 +109,24 @@ class func_instance : public patchTarget {
    void addSymTabName(const std::string name, bool isPrimary = false);
    void addPrettyName(const std::string name, bool isPrimary = false);
 
-   // May change when we relocate...
-   Address getAddress() const {return addr_;}
    Address getPtrAddress() const {return ptrAddr_;}
    Address addr() const { return addr_; }
 
-   // Don't use this...
-   unsigned getSize_NP();
-
    // Not defined here so we don't have to play header file magic
    // Not const; we can add names via the Dyninst layer
-   parse_func *ifunc();
-   mapped_module *mod() const;
+   parse_func *ifunc() { return ifunc_; }
+   mapped_module *mod() const { return mod_; }
    mapped_object *obj() const;
    //process *proc() const;
    AddressSpace *proc() const;
 
-   // Necessary for BPatch_set which needs a structure with a ()
-   // operator. Odd.
-   struct cmpAddr {
-     int operator() (const func_instance *f1, const func_instance *f2) const {
-       if (f1->getAddress() > f2->getAddress())
-	 return 1;
-       else if (f1->getAddress() < f2->getAddress())
-	 return -1;
-       else
-	 return 0;
-     }
-   };
-
-   // extra debuggering info....
-   ostream & operator<<(ostream &s) const;
-   friend ostream &operator<<(ostream &os, func_instance &f);
-
-   ////////////////////////////////////////////////
-   // Process-dependent (inter-module) parsing
-   ////////////////////////////////////////////////
+   std::string format() const;
 
    ////////////////////////////////////////////////
    // CFG and other function body methods
    ////////////////////////////////////////////////
+   typedef AddrOrderedBlockSet BlockSet;
 
-   typedef std::set<block_instance *, block_instance::compare> BlockSet;
    const BlockSet &blocks();
 
    block_instance *entryBlock();
@@ -175,33 +139,10 @@ class func_instance : public patchTarget {
    // Blocks where we provisionally stopped parsing because things looked weird.
    const BlockSet &abruptEnds();
 
-   // Perform a lookup (either linear or log(n)).
-   bool findBlocksByAddr(Address addr, std::set<block_instance *> &blocks);
-   bool findBlocksByOffsetInFunc(Address offset, std::set<block_instance *> &blocks) {
-       return findBlocksByAddr(offset + baseAddr(), blocks);
-   }
-   bool findBlocksByOffset(Address offset, std::set<block_instance *> &blocks) {
-       return findBlocksByAddr(offsetToAddr(offset), blocks);
-   }
-
-   block_instance *findBlock(ParseAPI::Block *block);
-   block_instance *findBlockByEntry(Address addr);
-   block_instance *findOneBlockByAddr(Address Addr);
-
-
-   void findBlocksByRange(std::vector<block_instance*> &funcs, 
-                          Address start, Address end);
-
-   void addMissingBlock(parse_block *imgBlock);
-   void addMissingBlocks();
-
    Offset addrToOffset(const Address addr) const;
-   Address offsetToAddr(const Offset off) const; 
-
 
    bool hasNoStackFrame() const {return ifunc_->hasNoStackFrame();}
    bool savesFramePointer() const {return ifunc_->savesFramePointer();}
-
 
    ////////////////////////////////////////////////
    // Legacy/inter-module calls. Arguably should be an 
@@ -209,18 +150,6 @@ class func_instance : public patchTarget {
    // break all manner of things
    ////////////////////////////////////////////////
    func_instance *findCallee(block_instance *callBlock);
-
-
-   ////////////////////////////////////////////////
-   // Instpoints!
-   ////////////////////////////////////////////////
-
-   instPoint *entryPoint();
-   instPoint *exitPoint(block_instance *exitBlock);
-
-   instPoint *findPoint(instPoint::Type type);
-   instPoint *findPoint(instPoint::Type type, block_instance *block);
-   const std::map<Address, instPoint *> &findPoints(instPoint::Type type, block_instance *block);
 
    bool isSignalHandler() {return handlerFaultAddr_ != 0;}
    Address getHandlerFaultAddr() {return handlerFaultAddr_;}
@@ -287,34 +216,23 @@ class func_instance : public patchTarget {
 
     // Fill the <callers> vector with pointers to the statically-determined
     // list of functions that call this function.
-    void getStaticCallers(pdvector <func_instance *> &callers);
-
-    // Similar to the above, but gives us the actual block
-    void getCallers(std::vector<block_instance *> &callers);
-
-   codeRange *copy() const;
+   template <class OutputIterator>
+      void getCallerBlocks(OutputIterator result); 
+   template <class OutputIterator>
+    void getCallerFuncs(OutputIterator result);
 
 #if defined(arch_power)
-   bool savesReturnAddr() const { return ifunc_->savesReturnAddr(); }
+    bool savesReturnAddr() const { return ifunc_->savesReturnAddr(); }
 #endif
-
-   void updateForFork(process *childProcess, const process *parentProcess);
-
+    
 #if defined(os_windows) 
-   //Calling convention for this function
-   callType func_instance::getCallingConvention();
-   int getParamSize() { return paramSize; }
-   void setParamSize(int s) { paramSize = s; }
+    //Calling convention for this function
+    callType func_instance::getCallingConvention();
+    int getParamSize() { return paramSize; }
+    void setParamSize(int s) { paramSize = s; }
 #endif
-
-
-   //bool removePoint(instPoint *point);
-    void deleteBlock(block_instance *block);
-    void splitBlock(parse_block *origBlock, parse_block *newBlock);
-	void triggerModified();
 
     void removeFromAll();
-    block_instance *setNewEntryPoint();
     void getReachableBlocks(const std::set<block_instance*> &exceptBlocks,
                             const std::list<block_instance*> &seedBlocks,
                             std::set<block_instance*> &reachBlocks);//output
@@ -323,9 +241,18 @@ class func_instance : public patchTarget {
     // So we can assert(consistency());
     bool consistency() const;
 
-        // Convenience function for block_instance; get the base address
-    // where we were loaded (AKA "int layer addr - image layer offset")
-    Address baseAddr() const;
+   instPoint *findPoint(instPoint::Type type, bool create);
+   instPoint *findPoint(instPoint::Type type, block_instance *b, bool create);
+   instPoint *findPoint(instPoint::Type type, block_instance *b, 
+                        Address a, InstructionAPI::Instruction::Ptr ptr, 
+                        bool trusted, bool create);
+   // And the "mass" version of the above
+   bool findInsnPoints(instPoint::Type type, block_instance *b,
+                       InsnInstpoints::const_iterator &begin,
+                       InsnInstpoints::const_iterator &end); 
+
+   instPoint *findPoint(instPoint::Type type, edge_instance *e, bool create);
+
  private:
 
    ///////////////////// Basic func info
@@ -337,40 +264,25 @@ class func_instance : public patchTarget {
 			// parse_funcs to int_funcs
 
    ///////////////////// CFG and function body
+
    BlockSet blocks_; 
    BlockSet callBlocks_;
    BlockSet exitBlocks_;
    block_instance *entry_;
+    // Defensive mode
+    BlockSet unresolvedCF_;
+    BlockSet abruptEnds_;
 
-   instPoint *entryPoint_; 
-   typedef std::map<block_instance *, instPoint *> InstPointMap;
-   typedef std::map<Address, instPoint *> ArbitraryMapInt;
-   typedef std::map<block_instance *, ArbitraryMapInt> ArbitraryMap;
-   typedef std::map<edge_instance *, instPoint *> EdgePointMap;
-
-   InstPointMap exitPoints_;
-   InstPointMap preCallPoints_;
-   InstPointMap postCallPoints_;
-   InstPointMap blockEntryPoints_;
-   ArbitraryMap preInsnPoints_;
-   ArbitraryMap postInsnPoints_;
-   EdgePointMap edgePoints_;
-
-   // We need some method of doing up-pointers
-   typedef std::map<parse_block *, block_instance *> BlockMap;
-   BlockMap blockMap_;
-   
-   typedef std::map<ParseAPI::Edge *, edge_instance *> EdgeMap;
-   EdgeMap edgeMap_;
+    ///////////////////// Function-level instPoints
+    FuncInstpoints points_;
+    std::map<block_instance *, BlockInstpoints> blockPoints_;
+    std::map<edge_instance *, EdgeInstpoints> edgePoints_;
+    
 
    Address handlerFaultAddr_; /* if this is a signal handler, faultAddr_ is 
                                  set to -1, or to the address of the fault 
                                  that last caused the handler to be invoked. */
    Address handlerFaultAddrAddr_; 
-
-   bool isBeingInstrumented_;
-
-   std::map<Address, instPoint *> instPsByAddr_;
 
    //////////////////////////  Parallel Regions 
    pdvector<int_parRegion*> parallelRegions_; /* pointer to the parallel regions */
@@ -381,26 +293,32 @@ class func_instance : public patchTarget {
    callType callingConv;
    int paramSize;
 #endif
-
-    // Create and register
-    block_instance *createBlock(parse_block *ib);
-    block_instance *createBlockFork(const block_instance *parent);
-    edge_instance *getEdge(ParseAPI::Edge *, block_instance *src, block_instance *trg);
-    void removeEdge(edge_instance *e);
-
-    void findPoints(block_instance *, std::set<instPoint *> &foundPoints) const;
-    bool validPoint(instPoint *) const;
-
-    // HACKITY!
-    std::map<block_instance *, func_instance *> callees_;
-
-    // Defensive mode
-    BlockSet unresolvedCF_;
-    BlockSet abruptEnds_;
-
-
 };
 
+template <class OutputIterator>
+void func_instance::getCallerBlocks(OutputIterator result)
+{
+   if(!ifunc_ || !ifunc_->entryBlock())
+      return;
+
+   const block_instance::edgelist &ins = entryBlock()->sources();
+   for (block_instance::edgelist::iterator iter = ins.begin();
+        iter != ins.end(); ++iter) {
+      *result = (*iter)->src();
+      ++result;
+   }
+}
+
+template <class OutputIterator> 
+void func_instance::getCallerFuncs(OutputIterator result)
+{
+   std::set<block_instance *> callerBlocks;
+   getCallerBlocks(std::inserter(callerBlocks, callerBlocks.end()));
+   for (std::set<block_instance *>::iterator iter = callerBlocks.begin();
+        iter != callerBlocks.end(); ++iter) {
+      (*iter)->getFuncs(result);
+   }
+}
 
 
 #endif /* FUNCTION_H */

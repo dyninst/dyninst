@@ -56,11 +56,6 @@ class generatedCodeObject;
 class baseTramp { 
     baseTramp();
 
-    typedef enum {
-       Unset,
-       Guarded,
-       Recursive } GuardState;
-
  public:
     static baseTramp *create(instPoint *p);
     static baseTramp *create(rpcMgr *r, AstNodePtr ast);
@@ -106,13 +101,12 @@ class baseTramp {
 
  private:
     // We keep two sets of flags. The first controls which features
-    // we enable in the base tramp, including the recursive guard,
+    // we enable in the base tramp, including:
     // multithread support, which classes of registers are saved, etc.
 
     // The second records (during code gen) what has been done so we
     // can undo it later. 
     
-    GuardState guardState_;
     cfjRet_t funcJumpState_;
     bool needsStackFrame_;
     bool threaded_;
@@ -144,7 +138,7 @@ class baseTramp {
     bitArray definedRegs;
 
     int funcJumpSlotSize();
-    bool guarded() { return guardState_ == Recursive; }
+    bool guarded() const;
     bool threaded() const;
     bool doOptimizations();
     bool makesCall();
@@ -152,7 +146,6 @@ class baseTramp {
 
     bool saveFPRs();
     void setNeedsFrame(bool);
-    bool getRecursive() const;
 };
 
 #define X86_REGS_SAVE_LIMIT 3

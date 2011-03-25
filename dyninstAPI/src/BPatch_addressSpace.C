@@ -336,8 +336,9 @@ bool BPatch_addressSpace::replaceFunctionCallInt(BPatch_point &point,
 
    assert(point.point && newFunc.lowlevel_func());
 
-   point.getAS()->replaceFunctionCall(point.point, 
-				      newFunc.lowlevel_func());
+   point.getAS()->modifyCall(point.point->block(), 
+                             newFunc.lowlevel_func(),
+                             point.point->func());
 
    if (pendingInsertions == NULL) {
      // Trigger it now
@@ -363,7 +364,7 @@ bool BPatch_addressSpace::removeFunctionCallInt(BPatch_point &point)
 
    assert(point.point);
 
-   point.getAS()->removeFunctionCall(point.point);
+   point.getAS()->removeCall(point.point->block(), point.point->func());
 
    if (pendingInsertions == NULL) {
      // Trigger it now
@@ -842,13 +843,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
                FILE__, __LINE__, i);
          return retHandle;
       }
-      miniTramp *mini;
-      if (ipOrder == orderFirstAtPoint) {         
-         mini = bppoint->point->push_front(expr.ast_wrapper);
-      }
-      else {
-         mini = bppoint->point->push_back(expr.ast_wrapper);
-      }
+      miniTramp *mini = bppoint->point->insert(ipOrder, expr.ast_wrapper, BPatch::bpatch->isTrampRecursive());
 
       if (mini) {
 	retHandle->mtHandles_.push_back(mini);

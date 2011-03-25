@@ -114,6 +114,11 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    /** the outgoing edges */
    BPatch_Set<BPatch_edge*> outgoingEdges;
 
+   BPatch_flowGraph *fg() const { return flowGraph; }
+   block_instance *block() const { return iblock; }
+   BPatch_function *func() const;
+   func_instance *ifunc() const;
+
  protected:
 
    /** constructor of class */

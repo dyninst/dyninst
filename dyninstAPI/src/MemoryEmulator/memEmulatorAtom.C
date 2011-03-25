@@ -49,6 +49,7 @@
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/Relocation/CodeBuffer.h"
+#include "common/h/arch-x86.h"
 
 #include "memEmulatorAtom.h"
 
@@ -56,6 +57,8 @@
 
 #include "boost/tuple/tuple.hpp"
 #include "memEmulator.h"
+
+
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
@@ -381,7 +384,7 @@ bool MemEmulator::determineEffAddr() {
 		effAddr = REGNUM_EDX;
 	}
 
-    block->func()->obj()->addEmulInsn(addr(),effAddr);
+        block->obj()->addEmulInsn(addr(),effAddr);
     
     return (useECX || useEDX);
 }
@@ -470,16 +473,18 @@ bool MemEmulator::restoreStack() {
 	return true;
 }
 
-bool MemEmulator::emulateOriginalInstruction() {
-	instruction ugly_insn(insn_->ptr());
+using namespace NS_x86;
 
-	if (!insnCodeGen::generateMem(scratch,
-		ugly_insn,
-		0, // ignored
-		0, // ignored
-		effAddr,
-		Null_Register))
-		return false;
+bool MemEmulator::emulateOriginalInstruction() {
+   NS_x86::instruction ugly_insn(insn_->ptr());
+
+   if (!insnCodeGen::generateMem(scratch,
+                                 ugly_insn,
+                                 0, // ignored
+                                 0, // ignored
+                                 effAddr,
+                                 Null_Register))
+      return false;
 
 	// Do we mess with the stack pointer?
 	if (insn_->getOperation().getID() == e_push) {
@@ -742,7 +747,7 @@ Address MemEmulator::getTranslatorAddr(bool wantShift) {
       // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
       if (!func) return 0;
       // assert(func);
-      return func->getAddress();
+      return func->addr();
    }
    else {
       // Function lookup time
@@ -750,7 +755,7 @@ Address MemEmulator::getTranslatorAddr(bool wantShift) {
       // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
       if (!func) return 0;
       // assert(func);
-      return func->getAddress();
+      return func->addr();
    }
 }
 

@@ -47,7 +47,8 @@ using namespace Relocation;
 using namespace InstructionAPI;
 
 
-bool Instrumenter::processTrace(TraceList::iterator &iter) {
+bool Instrumenter::processTrace(TraceList::iterator &iter, 
+                                const TraceMap &traceMap) {
    // Hoo boy. Fun for the whole family...
    //
    // This transformer needs to create instrumentation blocks throughout the 
@@ -84,32 +85,43 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
 
    // And on to the graph modification shtuff. 
    if (!postCallInstrumentation(trace)) return false;
-   if (!edgeInstrumentation(trace)) return false;
+   if (!edgeInstrumentation(trace, traceMap)) return false;
    if (!funcEntryInstrumentation(trace)) return false;
 
    return true;
 }
 
-
 bool Instrumenter::insnInstrumentation(Trace::Ptr trace) {
    // We're going to unify pre- and post- instruction instrumentation
    // into a single pass for efficiency. 
-   const std::map<Address, instPoint *> &prePoints = trace->block()->findPoints(instPoint::PreInsn);
-   const std::map<Address, instPoint *> &postPoints = trace->block()->findPoints(instPoint::PostInsn);
-   
-   std::map<Address, instPoint *>::const_iterator pre = prePoints.begin();
-   std::map<Address, instPoint *>::const_iterator post = postPoints.begin();
+   InsnInstpoints::const_iterator pre;
+   InsnInstpoints::const_iterator preEnd;
+   InsnInstpoints::const_iterator post;
+   InsnInstpoints::const_iterator postEnd;
+
+   bool instPre = false;
+   bool instPost = false;
+
+   if (trace->func()) {
+      instPre = trace->func()->findInsnPoints(instPoint::PreInsn, trace->block(),
+                                              pre, preEnd);
+      instPost = trace->func()->findInsnPoints(instPoint::PostInsn, trace->block(),
+                                               post, postEnd);
+   }
+   else {
+      assert(0 && "Unimplemented!");
+   }
    
    Trace::AtomList::iterator elem = trace->elements().begin();
 
-   while ((pre != prePoints.end()) ||
-          (post != postPoints.end())) {
+   while ((instPre && (pre != preEnd)) ||
+          (instPost && (post != postEnd))) {
       Address preAddr = 0;
-      if (pre != prePoints.end()) {
+      if (pre != preEnd) {
          preAddr = pre->first;
       }
       Address postAddr = 0;
-      if (post != postPoints.end()) {
+      if (post != postEnd) {
          postAddr = post->first;
       }
 
@@ -150,7 +162,10 @@ bool Instrumenter::insnInstrumentation(Trace::Ptr trace) {
 }
 
 bool Instrumenter::preCallInstrumentation(Trace::Ptr trace) {
-   instPoint *call = trace->func()->findPoint(instPoint::PreCall, trace->block());
+   instPoint *call = NULL;
+   if (trace->func()) {
+      call = trace->func()->findPoint(instPoint::PreCall, trace->block(), false);
+   }
    if (!call || call->empty()) return true;
 
    Trace::AtomList &elements = trace->elements();
@@ -167,7 +182,7 @@ bool Instrumenter::preCallInstrumentation(Trace::Ptr trace) {
 
 bool Instrumenter::funcExitInstrumentation(Trace::Ptr trace) {
    // TODO: do this right :)
-   instPoint *exit = trace->func()->findPoint(instPoint::FunctionExit, trace->block());
+   instPoint *exit = trace->func()->findPoint(instPoint::FuncExit, trace->block(), false);
    if (!exit || exit->empty()) return true;
 
    Trace::AtomList &elements = trace->elements();
@@ -184,7 +199,11 @@ bool Instrumenter::funcExitInstrumentation(Trace::Ptr trace) {
 }
 
 bool Instrumenter::blockEntryInstrumentation(Trace::Ptr trace) {
-   instPoint *entry = trace->block()->findPoint(instPoint::BlockEntry);
+   instPoint *entry = NULL;
+   if (trace->func()) {
+      entry = trace->func()->findPoint(instPoint::BlockEntry, trace->block(), false);
+   }
+
    if (!entry || entry->empty()) return true;
 
    Trace::AtomList &elements = trace->elements();
@@ -205,16 +224,20 @@ bool Instrumenter::postCallInstrumentation(Trace::Ptr trace) {
    // unmodified. 
    // The way we do this is by redirecting the call fallthrough edge of
    // C (DEFENSIVE TODO) to a new Trace. 
-   instPoint *post = trace->block()->findPoint(instPoint::PostCall);
+   instPoint *post = NULL;
+   if (trace->func()) {
+      post = trace->func()->findPoint(instPoint::PostCall, trace->block(), false);
+   }
+
    if (!post || post->empty()) return true;
    
    Atom::Ptr inst = makeInstrumentation(post);
 
    Address postCallAddr = trace->block()->end();
-   block_instance *FT = trace->block()->getFallthrough();
+   block_instance *FT = trace->block()->getFallthroughBlock();
    if (FT) postCallAddr = FT->start();
 
-   Trace::Ptr instTrace = Trace::create(inst, postCallAddr, FT ? FT : trace->block()); 
+   Trace::Ptr instTrace = Trace::create(inst, postCallAddr, FT ? FT : trace->block(), trace->func()); 
 
    // Edge redirection time. The call fallthrough edge from trace needs
    // to be updated to point to instTarget instead, and instTrace needs
@@ -234,8 +257,11 @@ bool Instrumenter::postCallInstrumentation(Trace::Ptr trace) {
 
 bool Instrumenter::funcEntryInstrumentation(Trace::Ptr trace) {
    relocation_cerr << "\tFuncEntryInst for trace " << trace->id() << endl;
-   instPoint *entry = trace->func()->findPoint(instPoint::FunctionEntry, 
-                                               trace->block());
+   instPoint *entry = NULL;
+   if (trace->func() &&
+       trace->func()->entryBlock() == trace->block()) {
+      entry = trace->func()->findPoint(instPoint::FuncEntry, false);
+   }
    if (!entry || entry->empty()) return true;
 
    // Transformation time. We have an entry block E with two types
@@ -277,7 +303,7 @@ bool Instrumenter::funcEntryInstrumentation(Trace::Ptr trace) {
    return true;
 }
 
-bool Instrumenter::edgeInstrumentation(Trace::Ptr trace) {
+bool Instrumenter::edgeInstrumentation(Trace::Ptr trace, const TraceMap &traceMap) {
    // Comparitively simple given the previous functions...
    block_instance *block = trace->block();
    if (!block) {
@@ -287,18 +313,21 @@ bool Instrumenter::edgeInstrumentation(Trace::Ptr trace) {
    const block_instance::edgelist &targets = block->targets();
    for (block_instance::edgelist::iterator iter = targets.begin();
         iter != targets.end(); ++iter) {
-      instPoint *point = (*iter)->findPoint(instPoint::Edge);
+      instPoint *point = NULL;
+      if (trace->func()) {
+         point = trace->func()->findPoint(instPoint::Edge, *iter, false);
+      }
       if (!point || point->empty()) continue;
 
       Atom::Ptr inst = makeInstrumentation(point);
-      Trace::Ptr instTrace = Trace::create(inst, (*iter)->trg()->start(), (*iter)->trg());
+      Trace::Ptr instTrace = Trace::create(inst, (*iter)->trg()->start(), (*iter)->trg(), trace->func());
 
       if (!trace->interposeTarget(*iter, instTrace)) return false;
 
       // If the edge's target is also a trace, put us in before them. 
       // If not, add us after the current block.
-      TraceMap::const_iterator oldTarget = traceMap_.find((*iter)->trg());
-      if (oldTarget != traceMap_.end()) {
+      TraceMap::const_iterator oldTarget = traceMap.find((*iter)->trg());
+      if (oldTarget != traceMap.end()) {
          edgeTraces_[std::make_pair(oldTarget->second, Before)].push_back(instTrace);
       }
       else {

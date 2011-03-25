@@ -55,7 +55,6 @@
 baseTramp::baseTramp() :
    point_(NULL),
    rpcMgr_(NULL),
-   guardState_(Unset),
    funcJumpState_(cfj_unset),
    needsStackFrame_(false),
    threaded_(false),
@@ -478,31 +477,13 @@ bool baseTramp::doOptimizations()
    needsStackFrame_ = usesReg;
    
    if (!hasFuncCall) {
-      guardState_ = Recursive;
-      threaded_ = false;
+      suppressThreads = true;
+      suppressGuards = true;
       return true;
    }
 
    return false;
 }
-
-bool baseTramp::getRecursive() const {
-    switch (guardState_) {
-    case Unset:
-        assert(0);
-        return false;
-        break;
-    case Recursive:
-        return true;
-        break;
-    case Guarded:
-        return false;
-        break;
-    }
-    assert(0);
-    return false;
-}
-
 
 bool baseTramp::threaded() const {
    if (!proc()->multithread_ready() || !threaded_)
@@ -555,12 +536,35 @@ bool baseTramp::saveFPRs() {
    }
 
    switch (point()->type()) {
-      case instPoint::FunctionEntry:
-      case instPoint::FunctionExit:
+      case instPoint::FuncEntry:
+      case instPoint::FuncExit:
       case instPoint::PreCall:
       case instPoint::PostCall:
          return false;
       default:
          return true;
    }
+}
+
+bool baseTramp::guarded() const {
+   if (suppressGuards) return false;
+
+   bool guarded = false;
+   bool recursive = false;
+
+   // See if any of our miniTramps are guarded
+   for (instPoint::iterator iter = point_->begin(); 
+        iter != point_->end(); ++iter) {
+      if ((*iter)->recursive())
+         recursive = true;
+      else
+         guarded = true;
+   }
+   if (recursive && guarded) {
+      cerr << "Warning: mix of recursive and guarded snippets @ " << point_
+           << ", picking guarded" << endl;
+      return true;
+   }
+   if (guarded) return true;
+   return false;
 }

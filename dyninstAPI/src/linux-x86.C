@@ -372,7 +372,7 @@ bool process::insertTrapAtEntryPointOfMain()
    }
    f_main = funcs[0];
    assert(f_main);
-   Address addr = f_main->getAddress();
+   Address addr = f_main->addr();
 
    // and now, insert trap
    // For some reason, using a trap breaks but using an illegal works. Anyone 
@@ -729,7 +729,7 @@ bool process::instrumentLibcStartMain()
         logLine( "__libc_start_main is not instrumentable\n");
         return false;
     }
-    Address addr = (*funcs)[0]->getAddress();
+    Address addr = (*funcs)[0]->addr();
     startup_printf("%s[%d]: Instrumenting libc.so:__libc_start_main() at 0x%x\n", 
                    FILE__, __LINE__, (int)addr);
 
@@ -858,7 +858,7 @@ bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
             mainfunc->addPrettyName("main", true);
             main_function = mainfunc;
             startup_printf("found main via gap parsing at %x in mapped_obj [%x %x]\n",
-                           (int)main_function->getAddress(),
+                           (int)main_function->addr(),
                            (int)a_out->getFileDesc().loadAddr(),
                            (int)(a_out->getFileDesc().loadAddr() + a_out->imageSize()));
         }
@@ -1156,7 +1156,7 @@ void print_read_error_info(const relocationEntry entry,
       logLine(errorLine);
       */
       sprintf(errorLine , "              addr 0x%x\n",
-	      (unsigned)target_pdf->getAddress());
+	      (unsigned)target_pdf->addr());
       logLine(errorLine);
     }
     sprintf(errorLine, "  base_addr  0x%x\n", (unsigned)base_addr);
@@ -1368,7 +1368,7 @@ bool process::loadDYNINSTlib_hidden() {
                            __FILE__,__LINE__,dlopen_int_funcs.size(),
                            DL_OPEN_FUNC_INTERNAL);
         }
-        dlopen_int_funcs[0]->getStaticCallers(dlopen_funcs);
+      dlopen_int_funcs[0]->getCallerFuncs(std::back_inserter(dlopen_funcs));
         if(dlopen_funcs.size() > 1)
         {
             startup_printf("%s[%d] warning: found %d do_dlopen candidates\n",
@@ -1389,7 +1389,7 @@ bool process::loadDYNINSTlib_hidden() {
       return false;
     } 
 
-  Address dlopen_addr = dlopen_funcs[0]->getAddress();
+  Address dlopen_addr = dlopen_funcs[0]->addr();
 
   assert(dyninstRT_name.length() < BYTES_TO_SAVE);
   // We now fill in the scratch code buffer with appropriate data
@@ -1607,7 +1607,7 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 		logLine("WARNING: More than one dlopen found, using the first\n");
 	}
 
-	Address dlopen_addr = dlopen_funcs[0]->getAddress();
+	Address dlopen_addr = dlopen_funcs[0]->addr();
 
 	// We now fill in the scratch code buffer with appropriate data
 	codeGen scratchCodeBuffer(MAX_IRPC_SIZE);
@@ -1754,7 +1754,7 @@ Address process::tryUnprotectStack(codeGen &buf, Address codeBase)
     }
 
     func_instance * mprot = funcs[0];
-    func_addr = mprot->getAddress();
+    func_addr = mprot->addr();
     ret_addr = codeBase + buf.used();
 
 #if defined(arch_x86_64)

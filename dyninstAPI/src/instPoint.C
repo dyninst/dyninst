@@ -59,55 +59,50 @@ using namespace Dyninst::InstructionAPI;
 #include "dyninstAPI/src/emit-x86.h"
 #endif
 
-// Creation methods!
-
 instPoint *instPoint::funcEntry(func_instance *f) {
-   return new instPoint(FunctionEntry, f);
+   return f->findPoint(FuncEntry, true);
 }
 
-instPoint *instPoint::funcExit(block_instance *b) {
-   if (!b->isExit()) return NULL;
-   return new instPoint(FunctionExit, b);
+instPoint *instPoint::funcExit(func_instance *f, block_instance *b) {
+   return f->findPoint(FuncExit, b, true);
 }
 
-instPoint *instPoint::blockEntry(block_instance *b) {
-   return new instPoint(BlockEntry, b);
+instPoint *instPoint::blockEntry(func_instance *f, block_instance *b) {
+   return f->findPoint(BlockEntry, b, true);
 }
 
-instPoint *instPoint::edge(edge_instance *e) {
-   return new instPoint(Edge, e);
+instPoint *instPoint::blockExit(func_instance *f, block_instance *b) {
+   return f->findPoint(BlockExit, b, true);
 }
 
-instPoint *instPoint::preInsn(block_instance *b,
-                              Instruction::Ptr insn,
+instPoint *instPoint::preCall(func_instance *f, block_instance *b) {
+   return f->findPoint(PreCall, b, true);
+}
+
+instPoint *instPoint::postCall(func_instance *f, block_instance *b) {
+   return f->findPoint(PostCall, b, true);
+}
+
+instPoint *instPoint::edge(func_instance *f, edge_instance *e) {
+   return f->findPoint(Edge, e, true);
+}
+
+instPoint *instPoint::preInsn(func_instance *f, 
+                              block_instance *b, 
                               Address a,
+                              InstructionAPI::Instruction::Ptr ptr, 
                               bool trusted) {
-   if (!trusted || !insn) {
-      if (!checkInsn(b, insn, a)) return NULL;
-   }
-   
-   return new instPoint(PreInsn, b, insn, a);
+   return f->findPoint(PreInsn, b, a, ptr, trusted, true);
 }
 
-instPoint *instPoint::postInsn(block_instance *b,
-                               Instruction::Ptr insn, 
-                               Address a, 
+instPoint *instPoint::postInsn(func_instance *f, 
+                               block_instance *b, 
+                               Address a,
+                               InstructionAPI::Instruction::Ptr ptr, 
                                bool trusted) {
-   if (!trusted || !insn) {
-      if (!checkInsn(b, insn, a)) return NULL;
-   }
-   return new instPoint(PostInsn, b, insn, a);
+   return f->findPoint(PostInsn, b, a, ptr, trusted, true);
 }
 
-instPoint *instPoint::preCall(block_instance *b) {
-   if (!b->containsCall()) return NULL;
-   return new instPoint(PreCall, b);
-}
-
-instPoint *instPoint::postCall(block_instance *b) {
-   if (!b->containsCall()) return NULL;
-   return new instPoint(PostCall, b);
-}
 
 instPoint::instPoint(Type t, func_instance *f) :
    type_(t),
@@ -115,17 +110,16 @@ instPoint::instPoint(Type t, func_instance *f) :
    block_(NULL),
    edge_(NULL),
    addr_(0),
-   recursive_(false),
    baseTramp_(NULL) {};
 
-instPoint::instPoint(Type t, block_instance *b) :
-   type_(t), func_(NULL), block_(b), edge_(NULL), addr_(0), recursive_(false), baseTramp_(NULL) {};
+instPoint::instPoint(Type t, block_instance *b, func_instance *f) :
+   type_(t), func_(f), block_(b), edge_(NULL), addr_(0), baseTramp_(NULL) {};
 
-instPoint::instPoint(Type t, edge_instance *e) :
-   type_(t), func_(NULL), block_(NULL), edge_(e), addr_(0), recursive_(false), baseTramp_(NULL) {};
+instPoint::instPoint(Type t, edge_instance *e, func_instance *f) :
+   type_(t), func_(f), block_(NULL), edge_(e), addr_(0), baseTramp_(NULL) {};
 
-instPoint::instPoint(Type t, block_instance *b, Instruction::Ptr insn, Address a) :
-   type_(t), func_(NULL), block_(b), edge_(NULL), insn_(insn), addr_(a), recursive_(false), baseTramp_(NULL) {};
+instPoint::instPoint(Type t, block_instance *b, Instruction::Ptr insn, Address a, func_instance *f) :
+   type_(t), func_(f), block_(b), edge_(NULL), insn_(insn), addr_(a), baseTramp_(NULL) {};
 
 instPoint *instPoint::fork(instPoint *, AddressSpace *) {
    assert(0);
@@ -139,6 +133,8 @@ instPoint::~instPoint() {
    for (iterator iter = begin(); iter != end(); ++iter)
       delete *iter;
    tramps_.clear();
+   if (baseTramp_) delete baseTramp_;
+
 };
 
 
@@ -154,21 +150,19 @@ AddressSpace *instPoint::proc() const {
 
 func_instance *instPoint::func() const { 
    if (func_) return func_;
-   if (block_) return block_->func();
-   if (edge_) return edge_->func();
-   assert(0); return NULL;
+   return NULL;
 }
 
-miniTramp *instPoint::push_front(AstNodePtr ast) {
-   miniTramp *newTramp = new miniTramp(ast, this);
+miniTramp *instPoint::push_front(AstNodePtr ast, bool recursive) {
+   miniTramp *newTramp = new miniTramp(ast, this, recursive);
    tramps_.push_front(newTramp);
    markModified();
 
    return newTramp;
 }
 
-miniTramp *instPoint::push_back(AstNodePtr ast) {
-   miniTramp *newTramp = new miniTramp(ast, this);
+miniTramp *instPoint::push_back(AstNodePtr ast, bool recursive) {
+   miniTramp *newTramp = new miniTramp(ast, this, recursive);
    tramps_.push_back(newTramp);
 
    markModified();
@@ -176,8 +170,8 @@ miniTramp *instPoint::push_back(AstNodePtr ast) {
    return newTramp;
 }
 
-miniTramp *instPoint::insert(iterator loc, AstNodePtr ast) {
-   miniTramp *newTramp = new miniTramp(ast, this);
+miniTramp *instPoint::insert(iterator loc, AstNodePtr ast, bool recursive) {
+   miniTramp *newTramp = new miniTramp(ast, this, recursive);
    tramps_.insert(loc, newTramp);
 
    markModified();
@@ -185,9 +179,9 @@ miniTramp *instPoint::insert(iterator loc, AstNodePtr ast) {
    return newTramp;
 }
 
-miniTramp *instPoint::insert(callOrder order, AstNodePtr ast) {
-   if (order == orderFirstAtPoint) return push_front(ast);
-   else return push_back(ast);
+miniTramp *instPoint::insert(callOrder order, AstNodePtr ast, bool recursive) {
+   if (order == orderFirstAtPoint) return push_front(ast, recursive);
+   else return push_back(ast, recursive);
 }
 
 void instPoint::erase(iterator loc) {
@@ -210,14 +204,12 @@ void instPoint::erase(miniTramp *m) {
 bool instPoint::checkInsn(block_instance *b,
                           Instruction::Ptr &insn,
                           Address a) {
-   block_instance::InsnInstances insns;
+   block_instance::Insns insns;
    b->getInsns(insns);
-   for (unsigned i = 0; i < insns.size(); ++i) {
-      if (a == insns[i].second) {
-         // Check equality...
-         insn = insns[i].first;
-         return true;
-      }
+   block_instance::Insns::iterator iter = insns.find(a);
+   if (iter != insns.end()) {
+      insn = iter->second;
+      return true;
    }
    return false;
 }
@@ -238,18 +230,24 @@ baseTramp *instPoint::tramp() {
 // as a "well, this is what we've got..."
 block_instance *instPoint::nextExecutedBlock() const {
    switch (type_) {
-      case FunctionEntry:
+      case FuncEntry:
          return func_->entryBlock();
       case Edge:
          return edge_->trg();
       case PreInsn:
       case PostInsn:
-      case FunctionExit:
+      case FuncExit:
       case BlockEntry:
       case PreCall:
          return block_;
-      case PostCall:
-        return block_->getFallthrough();
+      case PostCall: {
+         edge_instance *ftE = block_->getFallthrough();
+         if (ftE &&
+             (!ftE->sinkEdge()))
+            return ftE->trg();
+         else
+            return NULL;
+      }
       default:
          return NULL;
    }
@@ -258,9 +256,9 @@ block_instance *instPoint::nextExecutedBlock() const {
 Address instPoint::nextExecutedAddr() const {
    // As the above, but our best guess at an address
    switch (type_) {
-      case FunctionEntry:
+      case FuncEntry:
          return func_->addr();
-      case FunctionExit:
+      case FuncExit:
          // Not correct, but as close as we can get
          return block_->last(); 
       case BlockEntry:
@@ -275,10 +273,11 @@ Address instPoint::nextExecutedAddr() const {
       case PreCall:
          return block_->last();
       case PostCall: {
-         block_instance *ft = block_->getFallthrough();
-         if (ft) 
-            return ft->start();
-         else 
+         edge_instance *ftE = block_->getFallthrough();
+         if (ftE &&
+             (!ftE->sinkEdge()))
+            return ftE->trg()->start();
+         else
             return block_->end();
       }
       default:
@@ -288,4 +287,82 @@ Address instPoint::nextExecutedAddr() const {
 
 void instPoint::markModified() {
    proc()->addModifiedFunction(func());
+}
+
+BlockInstpoints::~BlockInstpoints() {
+   if (entry) delete entry;
+   if (exit) delete exit;
+   if (preCall) delete preCall;
+   if (postCall) delete postCall;
+   for (InsnInstpoints::iterator iter = preInsn.begin();
+        iter != preInsn.end(); ++iter) {
+      if (iter->second) delete iter->second;
+   }
+
+   for (InsnInstpoints::iterator iter = postInsn.begin();
+        iter != postInsn.end(); ++iter) {
+      if (iter->second) delete iter->second;
+   }
+}
+
+FuncInstpoints::~FuncInstpoints() {
+   if (entry) delete entry;
+   for (std::map<block_instance *, instPoint *>::iterator iter = exits.begin();
+        iter != exits.end(); ++iter) {
+      if (iter->second) delete iter->second;
+   }
+}
+
+std::string instPoint::format() const {
+   stringstream ret;
+   ret << "iP(";
+   switch(type_) {
+      case FuncEntry:
+         ret << "FEntry";
+         break;
+      case FuncExit:
+         ret << "FExit";
+         break;
+      case BlockEntry:
+         ret << "BEntry";
+         break;
+      case BlockExit:
+         ret << "BExit";
+         break;
+      case Edge:
+         ret << "E";
+         break;
+      case PreInsn:
+         ret << "PreI";
+         break;
+      case PostInsn:
+         ret << "PostI";
+         break;
+      case PreCall:
+         ret << "PreC";
+         break;
+      case PostCall:
+         ret << "PostC";
+         break;
+      default:
+         ret << "???";
+         break;
+   }
+   if (func_) {
+      ret << ", Func(" << func_->name() << ")";
+   }
+   if (block_) {
+      ret << ", Block(" << hex << block_->start() << dec << ")";
+   }
+   if (edge_) {
+      ret << ", Edge";
+   }
+   if (addr_) {
+      ret << ", Addr(" << hex << addr_ << dec << ")";
+   }
+   if (insn_) {
+      ret << ", Insn(" << insn_->format() << ")";
+   }
+   ret << ")";
+   return ret.str();
 }

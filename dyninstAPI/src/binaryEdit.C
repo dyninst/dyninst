@@ -775,8 +775,7 @@ Address BinaryEdit::getDependentRelocationAddr(Symbol *referring) {
 void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
                                      Region *newSec,
                                      Module *newMod) {
-
-
+#if 0
     pdvector<codeRange *> ranges;
     // FIXME: fill this in
     // Should just check each relocated function and add a symbol
@@ -796,7 +795,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
         bool extendCurrentRegion = false;
 
         if (bbl) {
-            if (bbl->func() != currFunc) {
+           if (bbl->func() != currFunc) {
                 finishCurrentRegion = true;
                 startNewRegion = true;
             }
@@ -840,6 +839,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
             size += ranges[i]->get_size() + (ranges[i]->get_address() - (startAddr + size));
         }
     }
+#endif
 }
     
 void BinaryEdit::markDirty()
@@ -973,14 +973,14 @@ bool BinaryEdit::replaceTrapHandler() {
               if ((calleeName == "sigaction") ||
                   (calleeName == "_sigaction") ||
                   (calleeName == "__sigaction")) {
-                 replaceFunctionCall((*iter)->preCallPoint(), dyn_sigaction);
+                 modifyCall(*iter, dyn_sigaction, func);
                  replaced = true;
               }
               else if ((calleeName == "signal") ||
                        (calleeName == "_signal") ||
                        (calleeName == "__signal"))
               {
-                 replaceFunctionCall((*iter)->preCallPoint(), dyn_sigaction);
+                 modifyCall(*iter, dyn_sigaction, func);
                  replaced = true;
               }
            }

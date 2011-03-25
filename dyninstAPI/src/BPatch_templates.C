@@ -122,8 +122,6 @@ template struct comparison<int>;
 template class BPatch_Set<int>;
 template class BPatch_Set<BPatch_opCode>;
 template class BPatch_Vector<BPatch_opCode>;
-template class BPatch_Set< func_instance* , func_instance::cmpAddr >;
-
 
 class BPatch_basicBlock;
 class BPatch_basicBlockLoop;

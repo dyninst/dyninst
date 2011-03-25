@@ -98,18 +98,15 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
 #endif
 
    // See if we're in instrumentation
-   Address origAddr = pc;
-   block_instance *block = NULL;
-   baseTramp *bti = NULL;
+   AddressSpace::RelocInfo ri;
+   
    if (p->getRelocInfo(pc, 
-                       origAddr,
-                       block,
-                       bti)) {
+                       ri)) {
       // Find out whether we've got a saved
       // state or not
-      if (bti) {
-         extra_height = bti->stackHeight;
-         if (bti->needsFrame()) {
+      if (ri.bt) {
+         extra_height = ri.bt->stackHeight;
+         if (ri.bt->needsFrame()) {
             return frame_tramp;
          }
          else {
@@ -118,7 +115,7 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
       }
    }
    else {
-       func = p->findOneFuncByAddr(origAddr);
+      func = p->findOneFuncByAddr(pc);
    }
 
    if (func == NULL) {
@@ -172,8 +169,8 @@ static bool isInEntryExitInstrumentation(Frame f)
   instPoint *p = f.getPoint();
   if (!p) return false;
   
-  if (p->type() == instPoint::FunctionEntry ||
-      p->type() == instPoint::FunctionExit)
+  if (p->type() == instPoint::FuncEntry ||
+      p->type() == instPoint::FuncExit)
      // Not sure yet if function exit will be preInst or postInst...
      return true;
   return false;
@@ -266,7 +263,7 @@ Frame Frame::getCallerFrame()
 #if defined(os_linux)
     // assume _start is never called, so just return if we're there
     if (cur_func &&
-       cur_func->getAddress() == getProc()->getAOut()->parse_img()->getObject()->getEntryOffset()) {
+        cur_func->addr() == getProc()->getAOut()->parse_img()->getObject()->getEntryOffset()) {
       stackwalk_printf("%s[%d]: stack walk at entry of a.out (_start), returning null frame\n", FILE__, __LINE__);
        return Frame();
     }
@@ -489,12 +486,10 @@ Frame Frame::getCallerFrame()
    }
    else if (status == frameless_tramp)
    {
-       baseTramp *bti = NULL;
-       Address origAddr = 0;
-       block_instance *tmp = NULL;
-       bool success = getProc()->getRelocInfo(pc_, origAddr, tmp, bti);
+      AddressSpace::RelocInfo ri;
+       bool success = getProc()->getRelocInfo(pc_, ri);
        assert(success);
-       newPC = origAddr;
+       newPC = ri.orig;
        newFP = fp_;
        newSP = sp_; //Not really correct, but difficult to compute and unlikely to matter
        pcLoc = 0x0;

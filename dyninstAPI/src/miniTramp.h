@@ -61,7 +61,7 @@ class miniTramp {
 
   public:
 
-  miniTramp(AstNodePtr ast, instPoint *point);
+  miniTramp(AstNodePtr ast, instPoint *point, bool recursive);
   
   ~miniTramp() {};
 
@@ -73,11 +73,12 @@ class miniTramp {
   instPoint *instP() const { return point_; }
 
   AstNodePtr ast() const { return ast_; }
+  bool recursive() const { return recursive_; }
 
   private:
   AstNodePtr ast_;
   instPoint *point_;
-
+  bool recursive_;
 
 };
 

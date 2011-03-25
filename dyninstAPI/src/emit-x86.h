@@ -101,7 +101,7 @@ public:
     void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
     void emitGetRetAddr(Register dest, codeGen &gen);
     void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen);
-    void emitFuncJump(func_instance *f, instPoint::Type ptType, bool callOp, codeGen &gen);
+    void emitFuncJump(func_instance *f, instPoint::Type ptType, codeGen &gen);
     void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen);
     void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
     void emitPushFlags(codeGen &gen);
@@ -142,6 +142,8 @@ class EmitterIA32Stat : public EmitterIA32 {
  public:
 
     ~EmitterIA32Stat() {};
+
+    void emitPLTCall(func_instance *dest, codeGen &gen);
     
  protected:
     bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
@@ -211,7 +213,7 @@ public:
     void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
     void emitGetRetAddr(Register dest, codeGen &gen);
     void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen);
-    void emitFuncJump(func_instance *f, instPoint::Type ptType, bool callOp, codeGen &gen);
+    void emitFuncJump(func_instance *f, instPoint::Type ptType, codeGen &gen);
     void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen);
     void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
     void emitPushFlags(codeGen &gen);
@@ -252,6 +254,8 @@ class EmitterAMD64Stat : public EmitterAMD64 {
  public:
     ~EmitterAMD64Stat() {};
     
+    void emitPLTCall(func_instance *dest, codeGen &gen);
+
     bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };

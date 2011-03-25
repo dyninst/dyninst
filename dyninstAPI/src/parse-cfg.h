@@ -145,9 +145,10 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     const bitArray getLivenessOut(parse_func * context);
 #endif
 
-#if defined(cap_instruction_api)
-    void getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> > &instances);
-#endif
+    typedef std::map<Offset, InstructionAPI::Instruction::Ptr> Insns;
+    // The provided parameter is a magic offset to add to each instruction's
+    // address; we do this to avoid a copy when getting Insns from block_instances
+    void getInsns(Insns &instances, Address offset = 0);
 
  private:
     bool needsRelocation_;

@@ -78,23 +78,24 @@ class Trace {
    typedef std::list<TargetInt *> Targets;
 
    // Standard creation
-   static Ptr create(block_instance *block);
+   static Ptr create(block_instance *block, func_instance *func);
    // Nonstandard creation; we need the block to be able to 
    // provide tracking data structures for later
-   static Ptr create(Atom::Ptr atom, Address a, block_instance *block);
+   static Ptr create(Atom::Ptr atom, Address a, block_instance *block, func_instance *func);
    bool linkTraces(std::map<block_instance *, Trace::Ptr> &traces);
    void determineNecessaryBranches(Trace *successor);
 
    Address origAddr() const { return origAddr_; }
    int id() const { return id_; }
+   func_instance *func() const { return func_; }
    block_instance *block() const { return block_; }
-   func_instance *func() const { return block_->func(); }
+   mapped_object *obj() const;
    std::string format() const;
    Label getLabel() const { assert(label_ != -1);  return label_; };
    
    // Non-const for use by transformer classes
    AtomList &elements() { return elements_; }
-   CFAtomPtr cfAtom() { return cfAtom_; }
+   CFAtomPtr &cfAtom() { return cfAtom_; }
 
    // Code generation
    bool applyPatches(codeGen &gen, bool &regenerate, unsigned &totalSize, int &shift);
@@ -111,6 +112,8 @@ class Trace {
                         Trace::Ptr newTarget);
    Targets &getTargets(ParseAPI::EdgeTypeEnum type);
    bool removeTargets(ParseAPI::EdgeTypeEnum type);
+   bool removeTargets();
+
 
    // Splits the trace immediately before the provided iterator.
    Trace::Ptr split(AtomList::iterator where);
@@ -120,18 +123,20 @@ class Trace {
    void setAsInstrumentationTrace();
 
    // Set up the CFAtom with our out-edges
-   bool finalizeCF();
+   bool finalizeCF(Trace::Ptr next);
 
  private:
    
-  Trace(block_instance *block)
+  Trace(block_instance *block, func_instance *f)
      : origAddr_(block->start()),
       block_(block),
+      func_(f),
       id_(TraceID++),
       label_(-1) {};
-   Trace(Address a, block_instance *b)
+  Trace(Address a, block_instance *b, func_instance *f)
       :origAddr_(a),
       block_(b),
+      func_(f),
       id_(TraceID++),
       label_(-1) { 
    };
@@ -154,11 +159,18 @@ class Trace {
    void replaceOutEdge(ParseAPI::EdgeTypeEnum type,
                       Trace *oldTarget,
                       TargetInt *newTarget);
+   bool isNecessary(TargetInt *target,
+                    ParseAPI::EdgeTypeEnum edgeType,
+                    Trace::Ptr next);
 
    Address origAddr_;
    block_instance *block_;
+   // If we're a func-specific copy
+   func_instance *func_; 
+
    int id_;
    Label label_;  
+
    
    AtomList elements_;
    // This is convienient to avoid tons of dynamic_cast

@@ -227,7 +227,8 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
         // TODO FIXME: if we want this to work right we need an underlying loop
         // representation...
         BPatch_point *p = getAddSpace()->findOrCreateBPPoint(func_,
-                                                             llHead->entryPoint());
+                                                             instPoint::blockEntry(loop->getLoopHead()->ifunc(),
+                                                                                   llHead));
         p->overrideType(BPatch_locLoopStartIter);
 	p->setLoop(loop);
 	points->push_back(p);
@@ -328,7 +329,7 @@ BPatch_flowGraph::getAllBasicBlocksSTL(std::set<BPatch_basicBlock*>& abb)
 bool
 BPatch_flowGraph::getEntryBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& ebb) 
 {
-   ebb.push_back(ll_func()->entryBlock()->getHighLevelBlock());
+   ebb.push_back(findBlock(ll_func()->entryBlock()));
 
    return true;
 }
@@ -342,7 +343,7 @@ BPatch_flowGraph::getExitBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& nbb)
 {
    for (func_instance::BlockSet::iterator iter = ll_func()->exitBlocks().begin();
         iter != ll_func()->exitBlocks().end(); ++iter) {
-      nbb.push_back((*iter)->getHighLevelBlock());
+      nbb.push_back(findBlock(*iter));
    }
    return true;
 }
@@ -549,30 +550,24 @@ bool BPatch_flowGraph::createBasicBlocks()
          ibIter != iblocks.end(); 
          ibIter++) 
     {
-       BPatch_basicBlock *newblock = new BPatch_basicBlock(*ibIter, this);
+       BPatch_basicBlock *newblock = findBlock(*ibIter);
        allBlocks.insert(newblock);
-       
+
        // Insert source/target edges
        const block_instance::edgelist &srcs = (*ibIter)->sources();
        for (block_instance::edgelist::iterator iter = srcs.begin(); iter != srcs.end(); ++iter) {
           // Skip interprocedural edges
           if ((*iter)->interproc()) continue;
-          if (!(*iter)->bpedge()) {
-             BPatch_edge *e = new BPatch_edge(*iter);
-             assert((*iter)->bpedge() == e);
-          }
-          newblock->incomingEdges.insert((*iter)->bpedge());
+          BPatch_edge *e = findEdge(*iter);
+          newblock->incomingEdges.insert(e);
        }
        // Insert source/target edges
        const block_instance::edgelist &trgs = (*ibIter)->targets();
        for (block_instance::edgelist::iterator iter = trgs.begin(); iter != trgs.end(); ++iter) {
           // Skip interprocedural edges
           if ((*iter)->interproc()) continue;
-          if (!(*iter)->bpedge()) {
-             BPatch_edge *e = new BPatch_edge(*iter);
-             assert((*iter)->bpedge() == e);
-          }
-          newblock->outgoingEdges.insert((*iter)->bpedge());
+          BPatch_edge *e = findEdge(*iter);
+          newblock->outgoingEdges.insert(e);
        }
     }
 
@@ -1048,3 +1043,21 @@ void BPatch_flowGraph::invalidate()
 
 bool BPatch_flowGraph::isValidInt() { return isValid_; }
  
+BPatch_basicBlock *BPatch_flowGraph::findBlock(block_instance *inst) {
+   std::map<const block_instance *, BPatch_basicBlock *>::const_iterator iter = blockMap_.find(inst);
+   if (iter != blockMap_.end()) return iter->second;
+
+   BPatch_basicBlock *newBlock = new BPatch_basicBlock(inst, this);
+   blockMap_[inst] = newBlock;
+   return newBlock;
+}
+
+BPatch_edge *BPatch_flowGraph::findEdge(edge_instance *inst) {
+   // This is more complicated.
+   std::map<const edge_instance *, BPatch_edge *>::const_iterator iter = edgeMap_.find(inst);
+   if (iter != edgeMap_.end()) return iter->second;
+
+   BPatch_edge *edge = new BPatch_edge(inst, this);
+   edgeMap_[inst] = edge;
+   return edge;   
+}

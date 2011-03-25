@@ -30,9 +30,8 @@
  */
  
 #include "function.h"
-
+#include "parse-cfg.h"
 #include "process.h"
-#include "instPoint.h"
 
 #include "mapped_object.h"
 #include "mapped_module.h"
@@ -43,120 +42,129 @@
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-block_instance::block_instance(parse_block *ib, func_instance *func) 
-  : highlevel_block(NULL),
-    func_(func),
-    block_(ib),
-    srclist_(srcs_),
-    trglist_(trgs_)
-{};
+block_instance::block_instance(ParseAPI::Block *ib, 
+                               mapped_object *obj) 
+   : obj_(obj),
+     block_(static_cast<parse_block *>(ib)),
+     srclist_(srcs_),
+     trglist_(trgs_)
+{
+   // We create edges lazily
+};
 
 // Fork constructor
-block_instance::block_instance(const block_instance *parent, func_instance *func) :
-    highlevel_block(NULL),
-    func_(func),
-    block_(parent->block_),
-    srclist_(srcs_),
-    trglist_(trgs_)
-{
+block_instance::block_instance(const block_instance *parent, mapped_object *childObj) 
+   : obj_(childObj),
+     block_(parent->block_),
+     srclist_(srcs_),
+     trglist_(trgs_) {
+   // We also need to copy edges.
+   // Thing is, those blocks may not exist yet...
+   // So we wait, and do edges after all blocks have
+   // been created
 }
 
 block_instance::~block_instance() {}
 
 Address block_instance::start() const {
-    return block_->start() + func_->baseAddr();
+   return block_->start() + obj_->codeBase();
 }
 
 Address block_instance::end() const {
-    return block_->end() + func_->baseAddr();
+   return block_->end() + obj_->codeBase();
 }
 
 Address block_instance::last() const {
-    return block_->lastInsnAddr() + func_->baseAddr();
+   return block_->lastInsnAddr() + obj_->codeBase();
 }
 
 unsigned block_instance::size() const {
-    return block_->size();
-}
-
-func_instance *block_instance::func() const { 
-    return func_;
+   return block_->size();
 }
 
 AddressSpace *block_instance::addrSpace() const { 
-    return func()->proc(); 
-}
-
-bool block_instance::isEntry() const { 
-   return (this == func_->entryBlock());
+    return obj()->proc(); 
 }
 
 std::string block_instance::format() const {
     stringstream ret;
-    ret << "BB(" 
+    ret << "BB[" 
         << hex << start()
-        << ".." 
-        << end() << dec << endl;
+        << "," 
+        << end() << dec
+        << "]" << endl;
     return ret.str();
 }
 
-#if defined(cap_instruction_api) 
-void block_instance::getInsns(InsnInstances &instances) const {
-  instances.clear();
-  llb()->getInsnInstances(instances);
-  for (unsigned i = 0; i < instances.size(); ++i) {
-      instances[i].second += func()->baseAddr();
-  }
+void block_instance::getInsns(Insns &instances) const {
+   instances.clear();
+   llb()->getInsns(instances, obj()->codeBase());
+}
+
+InstructionAPI::Instruction::Ptr block_instance::getInsn(Address a) const {
+   Insns insns;
+   getInsns(insns);
+   return insns[a];
 }
 
 std::string block_instance::disassemble() const {
     stringstream ret;
-    InsnInstances instances;
+    Insns instances;
     getInsns(instances);
-    for (unsigned i = 0; i < instances.size(); ++i) {
-        ret << "\t" << hex << instances[i].second << ": " << instances[i].first->format() << dec << endl;
+    for (Insns::iterator iter = instances.begin(); 
+         iter != instances.end(); ++iter) {
+       ret << "\t" << hex << iter->first << ": " << iter->second->format() << dec << endl;
     }
     return ret.str();
 }
-#endif
 
 void *block_instance::getPtrToInstruction(Address addr) const {
     if (addr < start()) return NULL;
     if (addr > end()) return NULL;
-    return func()->obj()->getPtrToInstruction(addr);
+    return obj()->getPtrToInstruction(addr);
 }
 
 
-block_instance *block_instance::getFallthrough() {
+edge_instance *block_instance::getFallthrough() {
    for (edgelist::iterator iter = targets().begin(); iter != targets().end(); ++iter) {
       if ((*iter)->type() == FALLTHROUGH ||
           (*iter)->type() == CALL_FT ||
           (*iter)->type() == COND_NOT_TAKEN) { 
-         return (*iter)->trg();
+         return *iter;
       }
    }
    return NULL;
 }
 
-block_instance *block_instance::getTarget() {
+block_instance *block_instance::getFallthroughBlock() {
+   edge_instance *ft = getFallthrough();
+   if (ft &&
+       !ft->sinkEdge()) 
+      return ft->trg();
+   else
+      return NULL;
+}
+
+edge_instance *block_instance::getTarget() {
    for (edgelist::iterator iter = targets().begin(); iter != targets().end(); ++iter) {
       if ((*iter)->type() == CALL ||
           (*iter)->type() == DIRECT ||
           (*iter)->type() == COND_TAKEN) { 
-         return (*iter)->trg();
+         return *iter;
       }
    }
    return NULL;
 }
 
-void block_instance::setHighLevelBlock(BPatch_basicBlock *newb)
-{
-   highlevel_block = newb;
+block_instance *block_instance::getTargetBlock() {
+   edge_instance *t = getFallthrough();
+   if (t &&
+       !t->sinkEdge()) 
+      return t->trg();
+   else
+      return NULL;
 }
 
-BPatch_basicBlock *block_instance::getHighLevelBlock() const {
-   return highlevel_block;
-}
 
 bool block_instance::containsCall()
 {
@@ -196,17 +204,10 @@ const block_instance::edgelist &block_instance::sources() {
       // Create edges
       for (ParseAPI::Block::edgelist::iterator iter = block_->sources().begin();
            iter != block_->sources().end(); ++iter) {
-         // We need to copy interprocedural edges to ensure that we de-overlap
-         // code in functions. We do this here. 
-         if ((*iter)->interproc()) {
-            createInterproceduralEdges(*iter, false, srcs_);
-         }
-         else {
-            // Can lazily create the source block since it's in
-            // our function.
-            edge_instance *newEdge = edge_instance::create(*iter, NULL, this);
-            srcs_.push_back(newEdge);
-         }
+         // edge_instance takes care of looking up whether we've already
+         // created this thing. 
+         edge_instance *newEdge = obj()->findEdge(*iter, NULL, this);
+         srcs_.push_back(newEdge);
       }
    }
    return srclist_;
@@ -216,84 +217,11 @@ const block_instance::edgelist &block_instance::targets() {
    if (trgs_.empty()) {
       for (ParseAPI::Block::edgelist::iterator iter = block_->targets().begin();
            iter != block_->targets().end(); ++iter) {
-         // We need to copy interprocedural edges to ensure that we de-overlap
-         // code in functions. We do this here.
-        //XXX: this doesn't work!
-        //         if ((*iter)->interproc()) {
-         if ((*iter)->interproc()) {
-            createInterproceduralEdges(*iter, true, trgs_);
-         }
-         else {
-            // Can lazily create the source block since it's in
-            // our function.
-           edge_instance *newEdge = edge_instance::create(*iter, this, NULL);
-           trgs_.push_back(newEdge);
-         }
-      }
+         edge_instance *newEdge = obj()->findEdge(*iter, this, NULL);
+         trgs_.push_back(newEdge);
+     }
    }
    return trglist_;
-}
-
-void block_instance::createInterproceduralEdges(ParseAPI::Edge *iedge, bool forwards, std::vector<edge_instance 
-*> &edges) {
-  //   assert(iedge->interproc());
-
-   // This function has to handle two things
-   // 1) ParseAPI has blocks contained in multiple
-   // functions, which the int layer doesn't;
-   // 2) Interprocedural control flow. 
-   // 
-   // We map 1:n in all cases except forward
-   // calls, in which case we know which function
-   // we're calling. 
-   
-   // Let pT be the target block in the parseAPI
-   // Let {f_1, ..., f_n} be the functions T is in
-   // We create blocks t_i for each function f_i
-   ParseAPI::Block *iblk = (forwards) ? iedge->trg() : iedge->src();
-   if (!iblk) {
-      assert(forwards); // Can't have sink in-edges
-
-      edges.push_back(edge_instance::create(iedge, this, NULL));
-      return;
-   }
-
-   // TODO: figure out how to handle sink blocks better... right
-   // now we're just ignoring them, and I'm not sure that's a
-   // great idea. 
-
-   std::vector<ParseAPI::Function *> ifuncs;
-   if (forwards && iedge->type() == ParseAPI::CALL) {
-      parse_block *tmp = static_cast<parse_block *>(iblk);
-      parse_func *f = tmp->getEntryFunc();
-      if (f) ifuncs.push_back(f);
-   }
-   else {
-      iblk->getFuncs(ifuncs);
-   }   
-
-   for (unsigned i = 0; i < ifuncs.size(); ++i) {
-      func_instance *pfunc = obj()->findFunction(ifuncs[i]);
-      assert(pfunc);
-      block_instance *pblock = pfunc->findBlock(iblk);
-      assert(pblock);
-      edge_instance *newEdge = NULL;
-      if (forwards) 
-         newEdge = edge_instance::create(iedge, this, pblock);
-      else 
-         newEdge = edge_instance::create(iedge, pblock, this);
-      
-      edges.push_back(newEdge);
-   }
-   return;
-}
-
-mapped_object *block_instance::obj() const {
-   return func()->obj();
-}
-
-func_instance *block_instance::callee() {
-   return func()->findCallee(this);
 }
 
 std::string block_instance::calleeName() {
@@ -301,111 +229,28 @@ std::string block_instance::calleeName() {
    return obj()->getCalleeName(this);
 }
 
-instPoint *block_instance::entryPoint() {
-   func_instance::InstPointMap::iterator iter = func()->blockEntryPoints_.find(this);
-   if (iter != func()->blockEntryPoints_.end()) return iter->second;
-   
-   instPoint *iP = instPoint::blockEntry(this);
-   func()->blockEntryPoints_[this] = iP;
-   return iP;
-}
-
-instPoint *block_instance::preCallPoint() {
-   func_instance::InstPointMap::iterator iter = func()->preCallPoints_.find(this);
-   if (iter != func()->preCallPoints_.end()) return iter->second;
-   
-   instPoint *iP = instPoint::preCall(this);
-   func()->preCallPoints_[this] = iP;
-   return iP;
-}
-
-instPoint *block_instance::postCallPoint() {
-   func_instance::InstPointMap::iterator iter = func()->postCallPoints_.find(this);
-   if (iter != func()->postCallPoints_.end()) return iter->second;
-   
-   instPoint *iP = instPoint::postCall(this);
-   func()->postCallPoints_[this] = iP;
-   return iP;
-}
-
-instPoint *block_instance::preInsnPoint(Address addr) {
-   assert(addr >= start());
-   assert(addr < end());
-
-   func_instance::ArbitraryMap::iterator iter = func()->preInsnPoints_.find(this);
-   if (iter != func()->preInsnPoints_.end()) {
-      func_instance::ArbitraryMapInt::iterator iter2 = iter->second.find(addr);
-      if (iter2 != iter->second.end()) {
-         return iter2->second;
-      }
-   }
-   
-   InsnInstances insns;
-   getInsns(insns);
-   for (InsnInstances::iterator iter = insns.begin(); iter != insns.end(); ++iter) {
-      if (iter->second == addr) {
-         return preInsnPoint(iter->second, iter->first);
-      }
-   }
-   return NULL;
-}
-
-instPoint *block_instance::preInsnPoint(Address addr, InstructionAPI::Instruction::Ptr insn) {
-   func_instance::ArbitraryMap::iterator iter = func()->preInsnPoints_.find(this);
-   if (iter != func()->preInsnPoints_.end()) {
-      func_instance::ArbitraryMapInt::iterator iter2 = iter->second.find(addr);
-      if (iter2 != iter->second.end()) {
-         return iter2->second;
-      }
-   }
-   
-   instPoint *iP = instPoint::preInsn(this, insn, addr, true);
-   func()->preInsnPoints_[this][addr] = iP;
-   return iP;
-}
-
-instPoint *block_instance::postInsnPoint(Address addr) {
-   assert(addr > start());
-   assert(addr < end());
-
-   func_instance::ArbitraryMap::iterator iter = func()->postInsnPoints_.find(this);
-   if (iter != func()->postInsnPoints_.end()) {
-      func_instance::ArbitraryMapInt::iterator iter2 = iter->second.find(addr);
-      if (iter2 != iter->second.end()) {
-         return iter2->second;
-      }
-   }
-
-   InsnInstances insns;
-   getInsns(insns);
-   for (InsnInstances::iterator iter = insns.begin(); iter != insns.end(); ++iter) {
-      if (iter->second == addr) {
-         return postInsnPoint(addr, iter->first);
-      }
-   }
-   return NULL;
-}
-
-instPoint *block_instance::postInsnPoint(Address addr, InstructionAPI::Instruction::Ptr insn) {
-   func_instance::ArbitraryMap::iterator iter = func()->postInsnPoints_.find(this);
-   if (iter != func()->postInsnPoints_.end()) {
-      func_instance::ArbitraryMapInt::iterator iter2 = iter->second.find(addr);
-      if (iter2 != iter->second.end()) {
-         return iter2->second;
-      }
-   }
-
-   instPoint *iP = instPoint::postInsn(this, insn, addr, true);
-   func()->postInsnPoints_[this][addr] = iP;
-   return iP;
+void block_instance::updateCallTarget(func_instance *func) {
+   // Update a sink-typed call edge to
+   // have an inter-module target
+   edge_instance *e = getTarget();
+   assert(e->sinkEdge());
+   e->trg_ = func->entryBlock();
 }
 
 
-instPoint *block_instance::findPoint(instPoint::Type type) {
-   return func()->findPoint(type, this);
+func_instance *block_instance::entryOfFunc() const {
+   parse_block *b = static_cast<parse_block *>(llb());
+   parse_func *e = b->getEntryFunc();
+   if (!e) return NULL;
+   return obj()->findFunction(e);
 }
 
-const std::map<Address, instPoint *> &block_instance::findPoints(instPoint::Type type) {
-   return func()->findPoints(type, this);
+bool block_instance::isFuncExit() const {
+   parse_block *b = static_cast<parse_block *>(llb());
+   return b->isExitBlock();
+}
+
+func_instance *block_instance::findFunction(ParseAPI::Function *p) {
+   return obj()->findFunction(p);
 }
 

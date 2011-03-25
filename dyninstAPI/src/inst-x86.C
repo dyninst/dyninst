@@ -770,7 +770,7 @@ bool can_do_relocation(process *proc,
 
    // for every vectors of frame, ie. thread stack walk, make sure can do
    // relocation
-   Address begAddr = instrumented_func->getAddress();
+   Address begAddr = instrumented_func->addr();
    for (unsigned walk_itr = 0; walk_itr < stackWalks.size(); walk_itr++) {
      pdvector<func_instance *> stack_funcs =
        proc->pcsToFuncs(stackWalks[walk_itr]);
@@ -2288,16 +2288,16 @@ void emitFuncJump(opCode op,
                   const instPoint *loc, bool)
 {
    // This must mimic the generateRestores baseTramp method. 
-    assert(op == funcJumpOp || op == funcCallOp);
+    assert(op == funcJumpOp);
 
     instPoint::Type ptType = loc->type();
-    gen.codeEmitter()->emitFuncJump(callee, ptType, (op == funcCallOp), gen);
+    gen.codeEmitter()->emitFuncJump(callee, ptType, gen);
 }
 
 #define MAX_SINT ((signed int) (0x7fffffff))
 #define MIN_SINT ((signed int) (0x80000000))
 void EmitterIA32::emitFuncJump(func_instance *f, instPoint::Type /*ptType*/,
-                               bool callOp, codeGen &gen)
+                               codeGen &gen)
 {
    assert(gen.inInstrumentation());
 
@@ -2305,72 +2305,18 @@ void EmitterIA32::emitFuncJump(func_instance *f, instPoint::Type /*ptType*/,
     // stack pointer value is stored at the top of our instrumentation stack.
     assert(gen.bt()->alignedStack);
 
-    Address addr = f->getAddress();
+    Address addr = f->addr();
     signed int disp = addr - (gen.currAddr()+5);
     int saved_stack_height = gen.rs()->getStackHeight();
 
     RealRegister enull = RealRegister(Null_Register);
     Register origSP = REG_NULL;
     RealRegister origSP_r;
-    if (callOp || dynamic_cast<BinaryEdit *>(gen.addrSpace())) {
+    if (dynamic_cast<BinaryEdit *>(gen.addrSpace())) {
         // We'll need a dedicated register for these cases.
         // Allocate it now, before we ask for scratch registers.
         origSP = gen.rs()->allocateRegister(gen, true);
         origSP_r = gen.rs()->loadVirtualForWrite(origSP, gen);
-    }
-
-    if (callOp) {
-       //Set up a slot on the stack for the return address
-
-       //Get the current PC.
-       Register dest = gen.rs()->getScratchRegister(gen);
-       RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-#if 0
-       GET_PTR(patch_start, gen);
-#endif
-       emitMovPCRMToReg(dest_r, 0, gen, false);
-
-       //Add the distance from the current PC to the end of this
-       // baseTramp (which isn't known yet).  We use a ridiculously
-       // large offset (2<<30) to force a 32-bit displacement.
-       emitLEA(dest_r, enull, 0, 2<<30, dest_r, gen);
-
-       // The last 4 bytes of a LEA instruction hold the offset constant.
-       // Mark this as the location to patch.
-#if 0
-       GET_PTR(insn, gen);
-       void *patch_loc = (void *)(insn - sizeof(int));
-#endif
-       //Create a patch to fill in the end of the baseTramp to the above
-       // LEA instruction when it becomes known.
-       assert(0 && "Implement me!");
-#if 0
-       generatedCodeObject *nextobj = gen.bt()->nextObj()->nextObj();
-       assert(nextobj);
-       int offset = ((unsigned long) patch_start) -
-                    ((unsigned long) gen.start_ptr());
-       relocPatch newPatch(patch_loc, nextobj, relocPatch::pcrel, &gen, 
-                           offset, sizeof(int));
-       gen.addPatch(newPatch);
-#endif
-
-       // Store the computed return address into the top stack slot.
-       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-       emitMovRMToReg(origSP_r, loc.reg, loc.offset, gen);
-       emitMovRegToRM(origSP_r, -4, dest_r, gen);
-
-       // Modify the original stored stack pointer so our return address isn't
-       // overwritten.  The BinaryEdit case needs a second stack slot to store
-       // the target address for long jumps.
-       int slotSpace = -4;
-       if (dynamic_cast<BinaryEdit *>(gen.addrSpace()) // Binary edit case &&
-           && (f->proc() != gen.addrSpace() ||         // !Short jump case
-               !gen.startAddr() ||
-               disp >= MAX_SINT || disp <= MIN_SINT)) {
-          slotSpace = -8;
-       }
-       emitLEA(origSP_r, enull, 0, slotSpace, origSP_r, gen);
-       emitMovRegToRM(loc.reg, loc.offset, origSP_r, gen);
     }
 
     if (f->proc() == gen.addrSpace() &&
@@ -2515,17 +2461,18 @@ void emitStorePreviousStackFrameRegister(Address register_num,
 // First AST node: target of the call
 // Second AST node: source of the call
 // This can handle indirect control transfers as well 
-bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
+bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction::Ptr insn,
+                                          Address addr, 
                                           pdvector<AstNodePtr> &args)
 {
    using namespace Dyninst::InstructionAPI;        
-   Expression::Ptr cft = callSite->insn()->getControlFlowTarget();
+   Expression::Ptr cft = insn->getControlFlowTarget();
    ASTFactory f;
    cft->apply(&f);
    assert(f.m_stack.size() == 1);
    args.push_back(f.m_stack[0]);
    args.push_back(AstNode::operandNode(AstNode::Constant,
-                                       (void *) callSite->nextExecutedAddr()));
+                                       (void *) addr));
    inst_printf("%s[%d]:  Inserting dynamic call site instrumentation for %s\n",
                FILE__, __LINE__, cft->format().c_str());
    return true;
@@ -2545,11 +2492,10 @@ bool func_instance::setReturnValue(int val)
 {
     codeGen gen(16);
 
-    Address addr = getAddress();
     emitMovImmToReg(RealRegister(REGNUM_EAX), val, gen);
     emitSimpleInsn(0xc3, gen); //ret
     
-    return proc()->writeTextSpace((void *) addr, gen.used(), gen.start_ptr());
+    return proc()->writeTextSpace((void *) addr(), gen.used(), gen.start_ptr());
 }
 
 unsigned saveRestoreRegistersInBaseTramp(process * /*proc*/, 
@@ -2564,7 +2510,7 @@ unsigned saveRestoreRegistersInBaseTramp(process * /*proc*/,
  **/
 bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
 {
-   Address val_to_write = f->getAddress();
+   Address val_to_write = f->addr();
    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   
 }
 

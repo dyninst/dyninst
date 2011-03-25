@@ -71,7 +71,7 @@ bool PCSensitiveTransformer::analysisRequired(TraceList::iterator &b_iter) {
    return false;
 }
 
-bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
+bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter, const TraceMap &) {
 #if 0
    if (!analysisRequired(b_iter)) {
       return adhoc.processTrace(b_iter);

@@ -54,10 +54,7 @@ block_instance *codeRange::is_basicBlockInstance() {
 }
 
 func_instance *codeRange::is_function() {
-    block_instance *block = dynamic_cast<block_instance *>(this);
-    if (block)
-        return block->func();
-    return NULL;
+   return NULL;
 }
 
 parse_func *codeRange::is_parse_func() {

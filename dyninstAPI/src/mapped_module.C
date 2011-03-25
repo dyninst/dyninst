@@ -69,7 +69,7 @@ const pdvector<func_instance *> &mapped_module::getAllFunctions()
             fprintf(stderr,"%u %s 0x%lx\n",
                 i,
                 everyUniqueFunction[i]->symTabName().c_str(),
-                everyUniqueFunction[i]->getAddress());
+                everyUniqueFunction[i]->addr());
         }
         fprintf(stderr,"pdfuncs[]:\n");
         for(unsigned i=0;i<pdfuncs.size();++i) {
@@ -322,8 +322,9 @@ bool mapped_module::findFuncsByAddr(const Address addr,
    return (funcs.size() > size);
 }
 
+#if 0
 bool mapped_module::findBlocksByAddr(const Address addr,
-                                    std::set<block_instance *> &blocks) {
+                                     std::set<block_instance *> &blocks) {
    std::set<block_instance *> allBlocks;
    unsigned size = blocks.size();
    if (!obj()->findBlocksByAddr(addr, allBlocks)) return false;
@@ -333,6 +334,7 @@ bool mapped_module::findBlocksByAddr(const Address addr,
    }
    return (blocks.size() > size);
 }
+#endif
 
 void mapped_module::getAnalyzedCodePages(std::set<Address> & pages)
 {

@@ -43,10 +43,10 @@ class Instrumenter : public Transformer {
   // Mirrors definition in CodeMover
   typedef std::map<block_instance *, TracePtr> TraceMap;
    
-  virtual bool processTrace(TraceList::iterator &);
+  virtual bool processTrace(TraceList::iterator &, const TraceMap &);
   virtual bool postprocess(TraceList &);
   
-  Instrumenter(const TraceMap &t) : traceMap_(t) {};
+  Instrumenter() {};
   
   virtual ~Instrumenter() {};
   
@@ -62,7 +62,7 @@ class Instrumenter : public Transformer {
   bool funcEntryInstrumentation(TracePtr trace);
   bool funcExitInstrumentation(TracePtr trace);
   bool blockEntryInstrumentation(TracePtr trace);
-  bool edgeInstrumentation(TracePtr trace);
+  bool edgeInstrumentation(TracePtr trace, const TraceMap &map);
   bool preCallInstrumentation(TracePtr trace);
   bool postCallInstrumentation(TracePtr trace);
   bool insnInstrumentation(TracePtr trace);
@@ -70,9 +70,6 @@ class Instrumenter : public Transformer {
   EdgeTraces edgeTraces_;
 
   AtomPtr makeInstrumentation(instPoint *point);
-
-  const TraceMap &traceMap_;
-
 };
 
 };

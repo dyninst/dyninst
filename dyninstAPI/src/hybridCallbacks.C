@@ -583,7 +583,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         if ( proc()->findFunctionsByAddr( target,callFuncs ) ) {
             for (unsigned i = 0; i < callFuncs.size(); ++i) 
             {
-                if (callFuncs[i]->lowlevel_func()->findBlockByEntry(target))
+               if (callFuncs[i]->lowlevel_func()->obj()->findBlockByEntry(target))
                 {
                     return;
                 }

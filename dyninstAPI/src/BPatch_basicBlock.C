@@ -72,8 +72,6 @@ BPatch_basicBlock::BPatch_basicBlock(block_instance *ib, BPatch_flowGraph *fg):
         fprintf(stderr, "bpatch_basicBlock_count: %d (%d)\n",
                 bpatch_basicBlock_count, bpatch_basicBlock_count*sizeof(BPatch_basicBlock));
 #endif
-
-   ib->setHighLevelBlock(this);
 }
 
 //destructor of the class BPatch_basicBlock
@@ -108,7 +106,10 @@ void BPatch_basicBlock::getSourcesInt(BPatch_Vector<BPatch_basicBlock*>& srcs){
 
    const block_instance::edgelist &isrcs = iblock->sources();
    for (block_instance::edgelist::iterator iter = isrcs.begin(); iter != isrcs.end(); ++iter) {
-      b = (BPatch_basicBlock *) ((*iter)->src()->getHighLevelBlock());
+      // We don't include interprocedural predecessors in the BPatch layer
+      if ((*iter)->interproc()) continue;
+
+      b = flowGraph->findBlock((*iter)->src());
       if (b) srcs.push_back(b);
    }
 }
@@ -120,7 +121,10 @@ void BPatch_basicBlock::getTargetsInt(BPatch_Vector<BPatch_basicBlock*>& tgrts){
 
    const block_instance::edgelist &itrgs = iblock->targets();
    for (block_instance::edgelist::iterator iter = itrgs.begin(); iter != itrgs.end(); ++iter) {
-      b = (BPatch_basicBlock *) ((*iter)->trg()->getHighLevelBlock());
+      // We don't include interprocedural predecessors in the BPatch layer
+      if ((*iter)->interproc()) continue;
+
+      b = flowGraph->findBlock((*iter)->trg());
       if (b) tgrts.push_back(b);
    }
 }
@@ -434,45 +438,39 @@ struct findInsns : public insnPredicate
 BPatch_point* BPatch_basicBlock::findEntryPointInt()
 {
    return flowGraph->getAddSpace()->findOrCreateBPPoint(flowGraph->getFunction(),
-                                                        lowlevel_block()->entryPoint());
+                                                        instPoint::blockEntry(ifunc(), block()));
 }
 
 // This should be edge instrumentation... 
 BPatch_point* BPatch_basicBlock::findExitPointInt()
 {
    return flowGraph->getAddSpace()->findOrCreateBPPoint(flowGraph->getFunction(),
-                                                        lowlevel_block()->preInsnPoint(lowlevel_block()->last()));
+                                                        instPoint::blockExit(ifunc(), block()));
 }
         
 BPatch_Vector<BPatch_point*>*
 BPatch_basicBlock::findPointByPredicate(insnPredicate& f)
 {
    BPatch_Vector<BPatch_point*>* ret = new BPatch_Vector<BPatch_point*>;
-   std::vector<std::pair<Dyninst::InstructionAPI::Instruction::Ptr, Address> > insns;
-   getInstructions(insns);
-   for(std::vector<std::pair<Dyninst::InstructionAPI::Instruction::Ptr, Address> >::iterator curInsn = insns.begin();
-       curInsn != insns.end();
-       ++curInsn) {
-      if(f(curInsn->first)) {
-         instPoint *p = lowlevel_block()->preInsnPoint(curInsn->second, curInsn->first);
+   block_instance::Insns insns;
+   block()->getInsns(insns);
+   for (block_instance::Insns::iterator iter = insns.begin();
+        iter != insns.end(); ++iter) {
+      if(f(iter->second)) {
+         instPoint *p = instPoint::preInsn(ifunc(), block(), iter->first, iter->second, true);
          BPatch_point *tmp = flowGraph->getAddSpace()->findOrCreateBPPoint(flowGraph->getFunction(),
                                                                            p,
                                                                            BPatch_locInstruction);
-         if(!tmp)
-         {
-#if defined(cap_instruction_api)
-              fprintf(stderr, "WARNING: failed to create instpoint for load/store/prefetch %s at 0x%lx\n",
-                      curInsn->first->format().c_str(), curInsn->second);
-#endif //defined(cap_instruction_api)
-           }
-           else
-           {
-              ret->push_back(tmp);
-           }
-        }
-    }
-    return ret;
-    
+         if(!tmp) {
+            fprintf(stderr, "WARNING: failed to create instpoint for load/store/prefetch %s at 0x%lx\n",
+                    iter->second->format().c_str(), iter->first);
+         }
+         else {
+            ret->push_back(tmp);
+         }
+      }
+   }
+   return ret;
 }
         
 BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<BPatch_opCode>& ops) 
@@ -520,12 +518,14 @@ BPatch_point *BPatch_basicBlock::convertPoint(instPoint *pt)
 //
 void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
 {
-   instPoint *entry = iblock->entryPoint();
-   instPoint *preCall = iblock->preCallPoint();
+   instPoint *entry = instPoint::blockEntry(ifunc(), iblock);
+   instPoint *preCall = instPoint::preCall(ifunc(), iblock);
    // Exit 'point'?
-   instPoint *exit = iblock->func()->exitPoint(iblock);
+   instPoint *postCall = instPoint::postCall(ifunc(), iblock);
+   instPoint *exit = instPoint::blockExit(ifunc(), iblock);
 
    if (entry) bpPoints.push_back(convertPoint(entry));
+   // TODO bind pre- and post-call together
    if (preCall) bpPoints.push_back(convertPoint(preCall));
    if (exit) bpPoints.push_back(convertPoint(exit));
 }
@@ -621,14 +621,17 @@ int BPatch_basicBlock::blockNo() const
 }
 
 bool BPatch_basicBlock::isEntryBlockInt() CONST_EXPORT {
-   return iblock->isEntry();
+   return (iblock->entryOfFunc() == ifunc());
 }
 
 bool BPatch_basicBlock::isExitBlockInt() CONST_EXPORT {
-   return iblock->isExit();
+   return iblock->isFuncExit();
 }
 
 BPatch_flowGraph *BPatch_basicBlock::getFlowGraphInt() CONST_EXPORT {
   return flowGraph;
 }
 
+func_instance *BPatch_basicBlock::ifunc() CONST_EXPORT {
+   return flowGraph->ll_func(); 
+}

@@ -138,9 +138,9 @@ class CodeMover {
   
   void setAddr(Address &addr) { addr_ = addr; }
   template <typename TraceIter>
-    bool addTraces(TraceIter begin, TraceIter end);
+     bool addTraces(TraceIter begin, TraceIter end, func_instance *f);
 
-  bool addTrace(block_instance *block);
+  bool addTrace(block_instance *block, func_instance *f);
 
   void createInstrumentationSpringboards(AddressSpace *as);
 

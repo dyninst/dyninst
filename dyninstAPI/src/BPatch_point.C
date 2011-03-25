@@ -242,7 +242,7 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
  */
 bool BPatch_point::getCFTargets(BPatch_Vector<Address> &targets)
 {
-   assert(0);
+   assert(0 && "TODO");
    return false;
 #if 0
     bool ret = true;
@@ -340,8 +340,8 @@ Address BPatch_point::getCallFallThroughAddr()
     assert(point);
     using namespace InstructionAPI;
     if (!point->block()) return 0;
-    block_instance *ft = point->block()->getFallthrough();
-    if (ft) return ft->start();
+    edge_instance *fte = point->block()->getFallthrough();
+    if (fte && !fte->sinkEdge()) return fte->trg()->start();
     else return point->block()->end();
 }
 
@@ -529,8 +529,9 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   // The callback takes two arguments: the first is the (address of the) callee,
   // the second the (address of the) callsite. 
 
+  InstructionAPI::Instruction::Ptr insn = point->block()->getInsn(point->block()->last());
   pdvector<AstNodePtr> args;
-  if (!lladdSpace->getDynamicCallSiteArgs(point, args))
+  if (!lladdSpace->getDynamicCallSiteArgs(insn, point->block()->last(), args))
       return NULL;
   if (args.size() != 2)
       return NULL;
@@ -550,7 +551,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
 				     true,
 				     false);
 #endif
-  miniTramp *res = point->push_back(ast);
+  miniTramp *res = point->push_back(ast, true);
 
   if (addSpace->pendingInsertions == NULL) {
     // Trigger it now
@@ -691,9 +692,9 @@ BPatch_procedureLocation BPatch_point::convertInstPointType_t(int intType)
 {
     BPatch_procedureLocation ret = (BPatch_procedureLocation)-1;
     switch((instPoint::Type) intType) {
-       case instPoint::FunctionEntry:
+       case instPoint::FuncEntry:
           return BPatch_locEntry;
-       case instPoint::FunctionExit:
+       case instPoint::FuncExit:
           return BPatch_locExit;
        case instPoint::PreCall:
        case instPoint::PostCall:
@@ -781,7 +782,7 @@ AddressSpace *BPatch_point::getAS()
 
 bool BPatch_point::isReturnInstruction()
 {
-   return point->type() == instPoint::FunctionExit;
+   return point->type() == instPoint::FuncExit;
 }
 
 bool BPatch_point::patchPostCallArea()

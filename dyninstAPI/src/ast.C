@@ -1989,42 +1989,40 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
                                             bool noCost,
                                             Address & retAddr,
                                             Register &retReg) {
+   if (gen.point()->type() != instPoint::PreCall &&
+       gen.point()->type() != instPoint::FuncExit &&
+       gen.point()->type() != instPoint::PreInsn) return false;
 
-#if defined(cap_instruction_api)
-    if(gen.point()->insn()->getCategory() == c_ReturnInsn) {
-#else
-    InstrucIter instruc(gen.point()->addr(), gen.addrSpace());
-    if (instruc.isAReturnInstruction()) {
-#endif        
-    // if this is a return instruction our AST reads the top stack value
-        if (retReg == REG_NULL) {
-            retReg = allocateAndKeep(gen, noCost);
-        }
-        if (retReg == REG_NULL) return false;
-
+   InstructionAPI::Instruction::Ptr insn = gen.point()->block()->getInsn(gen.point()->block()->last());
+   if (insn->getCategory() == c_ReturnInsn) {
+      // if this is a return instruction our AST reads the top stack value
+      if (retReg == REG_NULL) {
+         retReg = allocateAndKeep(gen, noCost);
+      }
+      if (retReg == REG_NULL) return false;
+      
 #if defined (arch_x86)
-        emitVload(loadRegRelativeOp, 
-                  (Address) sizeof(Address), 
-                  REGNUM_ESP, 
-                  retReg, 
-                  gen, noCost);
+      emitVload(loadRegRelativeOp, 
+                (Address) sizeof(Address), 
+                REGNUM_ESP, 
+                retReg, 
+                gen, noCost);
 #else 
-        assert(0); //TODO: unimplemented
+      assert(0); //TODO: unimplemented
 #endif
-        return true;
-    }
-    else {// this is a dynamic ctrl flow instruction, have
-          // getDynamicCallSiteArgs generate the necessary AST
-        pdvector<AstNodePtr> args;
-        if (!gen.addrSpace()->getDynamicCallSiteArgs
-            (const_cast<instPoint*>(gen.point()),args)) {
-            return false;
-        }
-		if (!args[0]->generateCode_phase2(gen, noCost, retAddr, retReg)) {
-			return false;
-			}
-		return true;			
-	}
+      return true;
+   }
+   else {// this is a dynamic ctrl flow instruction, have
+      // getDynamicCallSiteArgs generate the necessary AST
+      pdvector<AstNodePtr> args;
+      if (!gen.addrSpace()->getDynamicCallSiteArgs(insn, gen.point()->block()->last(), args)) {
+         return false;
+      }
+      if (!args[0]->generateCode_phase2(gen, noCost, retAddr, retReg)) {
+         return false;
+      }
+      return true;			
+   }
 }
 
 

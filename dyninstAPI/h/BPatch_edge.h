@@ -60,9 +60,9 @@ class BPATCH_DLL_EXPORT BPatch_edge : public BPatch_eventLock{
     // BPatch_edge::BPatch_edge
     //
     // constructor
-   API_EXPORT_CTOR(Int, (e),
+   API_EXPORT_CTOR(Int, (e, fg),
                    
-                   BPatch_edge,(edge_instance *e));
+                   BPatch_edge,(edge_instance *e, BPatch_flowGraph *fg));
 
     // BPatch_edge::~BPatch_edge
     //
@@ -87,6 +87,7 @@ class BPATCH_DLL_EXPORT BPatch_edge : public BPatch_eventLock{
     BPatch_point *createInstPointAtEdge();
     BPatch_point *point;
     edge_instance *edge;
+    BPatch_flowGraph *fg;
 
 };
 

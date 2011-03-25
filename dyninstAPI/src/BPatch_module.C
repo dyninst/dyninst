@@ -603,7 +603,7 @@ bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
         // delete completely dead functions
         using namespace ParseAPI;
         vector<pair<block_instance*,Edge*> > deadFuncCallers; // build up list of live callers
-        Address funcAddr = func->getAddress();
+        Address funcAddr = func->addr();
         mal_printf("Removing function at %lx from mod %s\n", funcAddr, 
                    mod->fileName().c_str());
 

@@ -1755,25 +1755,21 @@ bool process::hideDebugger()
 // Returns false on error (ex. process doesn't contain this instPoint).
 //
 // HACK: made an func_instance method to remove from instPoint class...
+// FURTHER HACK: made a block_instance method so we can share blocks
 
-func_instance *func_instance::findCallee(block_instance *callBlock) {
-   std::map<block_instance *, func_instance *>::iterator iter = callees_.find(callBlock);
-   if (iter != callees_.end()) return iter->second;
+func_instance *block_instance::callee() {
+   // See if we've already done this
+   edge_instance *tEdge = getTarget();
+   if (!tEdge) return NULL;
 
-   parse_func *icallee = callBlock->llb()->getCallee();
-   if (icallee && !icallee->isPLTFunction()) {
-      func_instance *callee = proc()->findFuncByInternalFunc(icallee);
-      callees_[callBlock] = callee;
-      //callee_ may be NULL if the function is unloaded
-      
-      //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
-      return callee;
+   if (!tEdge->sinkEdge()) {
+      return obj()->findFuncByEntry(tEdge->trg());
    }
-
+   
    // Do this the hard way - an inter-module jump
    // get the target address of this function
    Address target_addr; bool success;
-   boost::tie(success, target_addr) = callBlock->llb()->callTarget();
+   boost::tie(success, target_addr) = llb()->callTarget();
    if(!success) {
       // this is either not a call instruction or an indirect call instr
       // that we can't get the target address
@@ -1786,10 +1782,9 @@ func_instance *func_instance::findCallee(block_instance *callBlock) {
    pdvector<relocationEntry> fbt;
    vector <relocationEntry> fbtvector;
    if (!sym->getFuncBindingTable(fbtvector)) {
-
-       //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
-        return NULL;
-        }
+      //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
+      return NULL;
+   }
 
    /**
     * Object files and static binaries will not have a function binding table
@@ -1803,10 +1798,10 @@ func_instance *func_instance::findCallee(block_instance *callBlock) {
    }
 
    for (unsigned index=0; index< fbtvector.size();index++)
-        fbt.push_back(fbtvector[index]);
-  
+      fbt.push_back(fbtvector[index]);
+   
    Address base_addr = obj()->codeBase();
-   dictionary_hash<Address, std::string> *pltFuncs = ifunc()->img()->getPltFuncs();
+   dictionary_hash<Address, std::string> *pltFuncs = obj()->parse_img()->getPltFuncs();
 
    // find the target address in the list of relocationEntries
    if (pltFuncs->defines(target_addr)) {
@@ -1818,8 +1813,8 @@ func_instance *func_instance::findCallee(block_instance *callBlock) {
             // linker
             func_instance *target_pdf = 0;
             if (proc()->hasBeenBound(fbt[i], target_pdf, base_addr)) {
-               callees_[callBlock] = target_pdf;
-               obj()->setCalleeName(callBlock, target_pdf->symTabName());
+               updateCallTarget(target_pdf);
+               obj()->setCalleeName(this, target_pdf->symTabName());
                return target_pdf;
             }
          }
@@ -1828,11 +1823,13 @@ func_instance *func_instance::findCallee(block_instance *callBlock) {
       const char *target_name = (*pltFuncs)[target_addr].c_str();
       process *dproc = dynamic_cast<process *>(proc());
       BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
-      obj()->setCalleeName(callBlock, std::string(target_name));
+      obj()->setCalleeName(this, std::string(target_name));
       pdvector<func_instance *> pdfv;
+
+      // See if we can name lookup
       if (dproc) {
          if (proc()->findFuncsByMangled(target_name, pdfv)) {
-            callees_[callBlock] = pdfv[0];
+            updateCallTarget(pdfv[0]);
             return pdfv[0];
          }
       }
@@ -1841,7 +1838,7 @@ func_instance *func_instance::findCallee(block_instance *callBlock) {
          for (i = bedit->getSiblings().begin(); i != bedit->getSiblings().end(); i++)
          {
             if ((*i)->findFuncsByMangled(target_name, pdfv)) {
-               callees_[callBlock] = pdfv[0];
+               updateCallTarget(pdfv[0]);
                return pdfv[0];
             }
          }

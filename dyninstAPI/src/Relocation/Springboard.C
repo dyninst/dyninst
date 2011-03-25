@@ -44,14 +44,14 @@ const int SpringboardBuilder::Allocated(0);
 const int SpringboardBuilder::UnallocatedStart(1);
 std::set<Address> SpringboardBuilder::relocTraps_; 
 
-template <typename TraceIter> 
-SpringboardBuilder::Ptr SpringboardBuilder::create(TraceIter begin,
-						   TraceIter end,
+template <typename BlockIter> 
+SpringboardBuilder::Ptr SpringboardBuilder::create(BlockIter begin,
+						   BlockIter end,
 						   AddressSpace *as) {
   Ptr ret = Ptr(new SpringboardBuilder(as));
   if (!ret) return ret;
 
-  if (!ret->addTraces(begin, end, UnallocatedStart)) return Ptr();
+  if (!ret->addBlocks(begin, end, NULL, UnallocatedStart)) return Ptr();
   return ret;
 }
 
@@ -64,7 +64,7 @@ SpringboardBuilder::Ptr SpringboardBuilder::createFunc(FuncSet::const_iterator b
   int id = UnallocatedStart;
   for (; begin != end; ++begin) {
      func_instance *func = *begin;
-     if (!ret->addTraces(func->blocks().begin(), func->blocks().end(), id++)) {
+     if (!ret->addBlocks(func->blocks().begin(), func->blocks().end(), func, id++)) {
         return Ptr();
      }
   }
@@ -133,91 +133,71 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
    return true;
 }
 
-template <typename TraceIter>
-bool SpringboardBuilder::addTraces(TraceIter begin, TraceIter end, int funcID) {
+template <typename BlockIter>
+bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance *f, int funcID) {
   // TODO: map these addresses to relocated blocks as well so we 
   // can do our thang.
   for (; begin != end; ++begin) {
     bool useBlock = true;
     block_instance *bbl = (*begin);
 
-    // don't add block if it's shared and the entry point of another function
-    if (bbl->hasSharedBase()) {
-        using namespace ParseAPI;
-        ParseAPI::Block *llb = bbl->llb();
-
-        std::vector<ParseAPI::Function*> funcs;
-        llb->getFuncs(funcs);
-        for (vector<ParseAPI::Function*>::iterator fit = funcs.begin();
-             fit != funcs.end(); ++fit) 
-        {
-           if ((*fit) == bbl->func()->ifunc()) continue;
-           if ((*fit)->entry() == llb) {
-              useBlock = false;
-              break;
-           }
-        }
-        int dontcare;
-        if (useBlock && validRanges_.find(bbl->start(),dontcare)) {
-            // if we're replacing a shared block that is already
-            // in validRanges_, remove it before adding bbl
-            validRanges_.remove(bbl->start());
-        }
+    if (bbl->containingFuncs() &&
+        f && 
+        bbl != f->entryBlock()) {
+       continue;
     }
-    if (useBlock) {
-        // Check for overlapping blocks. Lovely.
-        Address LB, UB; int id;
-        Address lastRangeStart = bbl->start();
-        for (Address lookup = bbl->start(); lookup < bbl->end(); ) 
-        {/* there may be more than one range that overlaps with bbl, 
-          * so we update lookup and lastRangeStart to after each conflict
-          * to match UB, and loop until lookup >= bbl->end()
-          */
-            if (validRanges_.find(lookup, LB, UB, id)) 
-            {
-                /* The ranges overlap and we must split them into non-
-                 * overlapping ranges, possible range splits are listed
-                 * below:
-                 *
-                 * [LB UB)                     already in validRanges_, remove if it gets split
-                 * [LB bbl->start())
-                 * [bbl->start() LB)
-                 * [lastRangeStart LB)         when bbl overlaps multiple ranges and LB is for an N>1 range
-                 * [bbl->start() UB)           possible if LB < bbl->start()
-                 * [lastRangeStart UB)         possible if LB < bbl->start() and bbl overlaps multiple ranges
-                 * [LB bbl->end())             if last existing range includes bbl->end()
-                 * [bbl->end() UB)             if last existing range includes bbl->end()
-                 * [UB bbl->end())             don't add until after loop exits as there might be more overlapping ranges
-                 */
-                if (LB < bbl->start()) { 
-                    validRanges_.remove(LB); // replace [LB UB)...
-                    validRanges_.insert(LB, bbl->start(), funcID); // with  [LB bbl->start())
-                    if (UB <= bbl->end()) { // [bbl->start() UB)
-                         validRanges_.insert(bbl->start(), UB, funcID);
-                    } else { // [bbl->start() bbl->end()) or [lastRangeStart bbl->end()) and [bbl->end() UB) 
-                         validRanges_.insert(bbl->start(), bbl->end(), funcID);
-                         validRanges_.insert(bbl->end(), UB, funcID);
-                    }
-                } 
-                else {
-                    if (lastRangeStart < LB) { // add [bbl->start() LB) or [lastRangeStart LB)
-                        validRanges_.insert(lastRangeStart, LB, funcID);
-                    }
-                    if (UB > bbl->end()) { // [LB bbl->end()) and [bbl->end() UB) 
-                         validRanges_.insert(LB, bbl->end(), funcID);
-                         validRanges_.insert(bbl->end(), UB, funcID);
-                    } // otherwise [LB UB) is already in validRanges_
-                }
-                lookup = UB;
-                lastRangeStart = UB;
-            }
-            else {
-                lookup++;
-            }
-        }
-        if (lastRangeStart < bbl->end()) { // [bbl->start() bbl->end()) or [UB bbl->end())
-            validRanges_.insert(lastRangeStart, bbl->end(), funcID);
-        }
+    // Check for overlapping blocks. Lovely.
+    Address LB, UB; int id;
+    Address lastRangeStart = bbl->start();
+    for (Address lookup = bbl->start(); lookup < bbl->end(); ) 
+    {/* there may be more than one range that overlaps with bbl, 
+      * so we update lookup and lastRangeStart to after each conflict
+      * to match UB, and loop until lookup >= bbl->end()
+      */
+       if (validRanges_.find(lookup, LB, UB, id)) 
+       {
+          /* The ranges overlap and we must split them into non-
+           * overlapping ranges, possible range splits are listed
+           * below:
+           *
+           * [LB UB)                     already in validRanges_, remove if it gets split
+           * [LB bbl->start())
+           * [bbl->start() LB)
+           * [lastRangeStart LB)         when bbl overlaps multiple ranges and LB is for an N>1 range
+           * [bbl->start() UB)           possible if LB < bbl->start()
+           * [lastRangeStart UB)         possible if LB < bbl->start() and bbl overlaps multiple ranges
+           * [LB bbl->end())             if last existing range includes bbl->end()
+           * [bbl->end() UB)             if last existing range includes bbl->end()
+           * [UB bbl->end())             don't add until after loop exits as there might be more overlapping ranges
+           */
+          if (LB < bbl->start()) { 
+             validRanges_.remove(LB); // replace [LB UB)...
+             validRanges_.insert(LB, bbl->start(), funcID); // with  [LB bbl->start())
+             if (UB <= bbl->end()) { // [bbl->start() UB)
+                validRanges_.insert(bbl->start(), UB, funcID);
+             } else { // [bbl->start() bbl->end()) or [lastRangeStart bbl->end()) and [bbl->end() UB) 
+                validRanges_.insert(bbl->start(), bbl->end(), funcID);
+                validRanges_.insert(bbl->end(), UB, funcID);
+             }
+          } 
+          else {
+             if (lastRangeStart < LB) { // add [bbl->start() LB) or [lastRangeStart LB)
+                validRanges_.insert(lastRangeStart, LB, funcID);
+             }
+             if (UB > bbl->end()) { // [LB bbl->end()) and [bbl->end() UB) 
+                validRanges_.insert(LB, bbl->end(), funcID);
+                validRanges_.insert(bbl->end(), UB, funcID);
+             } // otherwise [LB UB) is already in validRanges_
+          }
+          lookup = UB;
+          lastRangeStart = UB;
+       }
+       else {
+          lookup++;
+       }
+    }
+    if (lastRangeStart < bbl->end()) { // [bbl->start() bbl->end()) or [UB bbl->end())
+       validRanges_.insert(lastRangeStart, bbl->end(), funcID);
     }
   }
   return true;

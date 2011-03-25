@@ -41,6 +41,8 @@
 #include "dyninstAPI/src/trapMappings.h"
 #include <list>
 
+#include "common/h/IntervalTree.h"
+
 #include "parseAPI/h/CodeObject.h"
 #include "parseAPI/h/InstructionSource.h"
 #include "Relocation/Relocation.h"
@@ -78,6 +80,11 @@ class baseTramp;
 
 namespace Dyninst {
    class MemoryEmulator;
+
+   namespace InstructionAPI {
+      class Instruction;
+   }
+   
 };
 
 // This file serves to define an "address space", a set of routines that 
@@ -96,6 +103,16 @@ namespace Dyninst {
 
 class AddressSpace : public InstructionSource {
  public:
+
+   // This is a little complex, so let me explain my logic
+   // Map from B -> F_c -> F
+   // B identifies a call site
+   // F_c identifies an (optional) function context for the replacement
+   //   ... if F_c is not specified, we use NULL
+   // F specifies the replacement callee; if we want to remove the call entirely,
+   // also use NULL
+   typedef std::map<block_instance *, std::map<func_instance *, func_instance *> > CallModMap;
+   typedef std::map<func_instance *, func_instance *> FuncReplaceMap;
     
     // Down-conversion functions
     process *proc();
@@ -154,18 +171,6 @@ class AddressSpace : public InstructionSource {
 
 
     bool isInferiorAllocated(Address block);
-
-    // These are being obsoleted since they are _dangerous_ to use.
-
-#if 0
-    void addOrigRange(codeRange *range);
-
-
-    void removeOrigRange(codeRange *range);
-
-
-    codeRange *findOrigByAddr(Address addr);
-#endif
 
     bool getDyninstRTLibName();
 
@@ -297,15 +302,16 @@ class AddressSpace : public InstructionSource {
     // instPoint isn't const; it may get an updated list of
     // instances since we generate them lazily.
     // Shouldn't this be an instPoint member function?
-    void replaceFunctionCall(instPoint *point, func_instance *newFunc);
-    void revertReplacedCall(instPoint *point);
+    void modifyCall(block_instance *callBlock, func_instance *newCallee, func_instance *context = NULL);
+    void revertCall(block_instance *callBlock, func_instance *context = NULL);
     void replaceFunction(func_instance *oldfunc, func_instance *newfunc);
     void revertReplacedFunction(func_instance *oldfunc);
-    void removeFunctionCall(instPoint *point);
-    void revertRemovedFunctionCall(instPoint *point);
+    void removeCall(block_instance *callBlock, func_instance *context = NULL);
 
     // And this....
-    bool getDynamicCallSiteArgs(instPoint *callSite, 
+    typedef dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
+    bool getDynamicCallSiteArgs(InstructionPtr insn,
+                                Address addr,
                                 pdvector<AstNodePtr> &args);
 
     // Default to "nope"
@@ -404,6 +410,7 @@ class AddressSpace : public InstructionSource {
     // Get the list of addresses an address (in a block) 
     // has been relocated to.
     void getRelocAddrs(Address orig,
+                       block_instance *block,
                        func_instance *func,
                        std::list<Address> &relocs,
                        bool getInstrumentationAddrs) const;
@@ -413,12 +420,9 @@ class AddressSpace : public InstructionSource {
 		      Address &origAddr,
                      std::vector<func_instance *> &origFuncs,
                      baseTramp *&baseTramp);
-
+    typedef Relocation::CodeTracker::RelocInfo RelocInfo;
     bool getRelocInfo(Address relocAddr,
-		      Address &origAddr,
-		      block_instance *&origBlock,
-		      baseTramp *&baseTramp);
-		
+                      RelocInfo &relocInfo);
     // defensive mode code // 
 
     void causeTemplateInstantiations();
@@ -439,6 +443,7 @@ class AddressSpace : public InstructionSource {
     void addInstrumentationInstance(baseTramp *bt, Address addr);
 
     void addModifiedFunction(func_instance *func);
+    void addModifiedBlock(block_instance *block);
 
     void updateMemEmulator();
     bool isMemoryEmulated() { return emulateMem_; }
@@ -496,12 +501,8 @@ class AddressSpace : public InstructionSource {
     std::map<baseTramp *, std::set<Address> > instrumentationInstances_;
 
     // Track desired function replacements/removals/call replacements
-    typedef std::map<instPoint *, func_instance *> CallReplaceMap;
-    CallReplaceMap callReplacements_;
-    typedef std::map<func_instance *, func_instance *> FuncReplaceMap;
+    CallModMap callModifications_;
     FuncReplaceMap functionReplacements_;
-    typedef std::set<instPoint *> CallRemovalSet;
-    CallRemovalSet callRemovals_;
 
 
     void addAllocatedRegion(Address start, unsigned size);

@@ -76,9 +76,10 @@ class instPoint {
 // Types of points
     typedef enum {
        None,
-       FunctionEntry,
-       FunctionExit,
+       FuncEntry,
+       FuncExit,
        BlockEntry,
+       BlockExit,
        Edge,
        PreInsn,
        PostInsn,
@@ -92,31 +93,55 @@ class instPoint {
     typedef Minitramps::iterator iterator;
     typedef Minitramps::const_iterator const_iterator;
 
-    // Creation methods are explicitly private, since you should never
-    // be creating an instPoint without some element of the CFG to tie
-    // it to - and all the CFG elements are friends. 
-  private:
-
-    // Function, block, instruction
+  public:
+    // The compleat list of instPoint creation methods
     static instPoint *funcEntry(func_instance *);
-    static instPoint *funcExit(block_instance *);
+    static instPoint *funcExit(func_instance *, block_instance *exitPoint);
+
+#if 0
+    // Commenting these out for now to be sure I get things right, since nothing
+    // in Dyninst uses them yet. 
     static instPoint *blockEntry(block_instance *);
     static instPoint *edge(edge_instance *);
-    static instPoint *preInsn(block_instance *, InstructionAPI::Instruction::Ptr, Address, bool trusted = false);
-    static instPoint *postInsn(block_instance *, InstructionAPI::Instruction::Ptr, Address, bool trusted = false);
+    static instPoint *preInsn(block_instance *, Address, 
+                              InstructionAPI::Instruction::Ptr = InstructionAPI::Instruction::Ptr(),
+                              bool trusted = false);
+    static instPoint *postInsn(block_instance *, Address, 
+                               InstructionAPI::Instruction::Ptr = InstructionAPI::Instruction::Ptr(),
+                               bool trusted = false);
     static instPoint *preCall(block_instance *);
     static instPoint *postCall(block_instance *);
-    // Abrupt end? Should just be edge instrumentation, right?
-    
-    instPoint(Type t, func_instance *);
-    instPoint(Type t, block_instance *b);
-    instPoint(Type t, edge_instance *e);
-    instPoint(Type t, block_instance *b, InstructionAPI::Instruction::Ptr i, Address a);
+#endif
 
-    static instPoint *fork(instPoint *parent, AddressSpace *as);
+    // Now with added context!
+    // We can restrict instrumentation to a particular instance of a block, edge,
+    // or instruction by additionally specifying a function for context.
+    static instPoint *blockEntry(func_instance *, block_instance *);
+    static instPoint *blockExit(func_instance *, block_instance *);
+    static instPoint *edge(func_instance *, edge_instance *);
+    static instPoint *preInsn(func_instance *,
+                              block_instance *, 
+                              Address,
+                              InstructionAPI::Instruction::Ptr = InstructionAPI::Instruction::Ptr(), 
+                              bool trusted = false);
+    static instPoint *postInsn(func_instance *,
+                               block_instance *, Address,
+                               InstructionAPI::Instruction::Ptr = InstructionAPI::Instruction::Ptr(),
+                               bool trusted = false);
+    static instPoint *preCall(func_instance *,
+                              block_instance *);
+    static instPoint *postCall(func_instance *,
+                               block_instance *);
 
     ~instPoint();
+                               
+  private:    
+    instPoint(Type t, func_instance *);
+    instPoint(Type t, block_instance *b, func_instance *f);
+    instPoint(Type t, edge_instance *e, func_instance *f);
+    instPoint(Type t, block_instance *b, InstructionAPI::Instruction::Ptr i, Address a, func_instance *f);
 
+    static instPoint *fork(instPoint *parent, AddressSpace *as);
 
  public:
     
@@ -140,7 +165,7 @@ class instPoint {
 
     //Address addr() const;
     Address insnAddr() const { return addr_; }
-    InstructionAPI::Instruction::Ptr insn() const { return insn_; }
+    InstructionAPI::Instruction::Ptr insn() { return insn_; }
 
     // This is for address tracking... if we're between
     // blocks (e.g., post-call, function exit, or edge
@@ -152,18 +177,17 @@ class instPoint {
     
     Type type() const { return type_; }
 
-    miniTramp *push_front(AstNodePtr ast);
-    miniTramp *push_back(AstNodePtr ast);
-    miniTramp *insert(iterator, AstNodePtr);
-    miniTramp *insert(callOrder order, AstNodePtr);
+    miniTramp *push_front(AstNodePtr ast, bool recursive);
+    miniTramp *push_back(AstNodePtr ast, bool recursive);
+    miniTramp *insert(iterator, AstNodePtr, bool recursive);
+    miniTramp *insert(callOrder order, AstNodePtr, bool recursive);
     void erase(iterator);
     void erase(miniTramp *);
     bool empty() const;
 
     bitArray liveRegisters();
-
-    void setRecursionGuard(bool b) { recursive_ = b; }
-    bool recursionGuard() { return recursive_; }
+    
+    std::string format() const;
 
  private:
     void markModified();
@@ -186,9 +210,35 @@ class instPoint {
                           InstructionAPI::Instruction::Ptr &insn,
                           Address a);
 
-    bool recursive_; 
-
     baseTramp *baseTramp_;
 };
+
+typedef std::map<Address, instPoint *> InsnInstpoints;
+
+struct BlockInstpoints {
+   instPoint *entry;
+   instPoint *exit;
+   InsnInstpoints preInsn;
+   InsnInstpoints postInsn;
+   instPoint *preCall;
+   instPoint *postCall;
+BlockInstpoints() : entry(NULL), exit(NULL), preCall(NULL), postCall(NULL) {};
+   ~BlockInstpoints();
+};
+
+struct EdgeInstpoints {
+   instPoint *point;
+EdgeInstpoints() : point(NULL) {};
+   ~EdgeInstpoints() { if (point) delete point; };
+};
+
+struct FuncInstpoints {
+   instPoint *entry;
+   std::map<block_instance *, instPoint *> exits;
+FuncInstpoints() : entry(NULL) {};
+   ~FuncInstpoints();
+};
+
+
 
 #endif /* _INST_POINT_H_ */

@@ -81,11 +81,6 @@
 
 #include "dynamiclinking.h"
 
-#if defined (cap_save_the_world)
-#include "dyninstAPI/src/addLibraryLinux.h"
-#include "dyninstAPI/src/writeBackElf.h"
-// #include "saveSharedLibrary.h" 
-#endif
 #include "symtabAPI/h/Symtab.h"
 using namespace Dyninst::SymtabAPI;
 
@@ -109,6 +104,7 @@ using namespace Dyninst::SymtabAPI;
 #if defined(PTRACEDEBUG) && !defined(PTRACEDEBUG_ALWAYS)
 static bool debug_ptrace = false;
 #endif
+
 
 WaitpidMux SignalGenerator::waitpid_mux;
 
@@ -1643,7 +1639,7 @@ Address findFunctionToHijack(process *p)
       pdvector<func_instance *> hijacks;
       if (!p->findFuncsByAll(func_name, hijacks))
           return 0;
-      codeBase = hijacks[0]->getAddress();
+      codeBase = hijacks[0]->addr();
 
       if (codeBase)
           break;
@@ -1712,8 +1708,7 @@ bool process::initMT()
    {
       pdvector<AstNodePtr> args;
       AstNodePtr ast = AstNode::funcCallNode(dummy_create, args);
-      instPoint *entry = thread_init_funcs[i]->entryPoint();
-      miniTramp *mt = entry->push_front(ast);
+      instPoint::funcEntry(thread_init_funcs[i])->push_front(ast, true);
    }
       
    //Find functions that are run on pthread exit
@@ -1742,30 +1737,9 @@ bool process::initMT()
       AstNodePtr ast = AstNode::funcCallNode(threadDestroy, args);
       const func_instance::BlockSet &exits = thread_dest_funcs[i]->exitBlocks();
       for (func_instance::BlockSet::iterator iter = exits.begin(); iter != exits.end(); ++iter) {
-         instPoint *exitPoint = thread_dest_funcs[i]->exitPoint(*iter);
-         miniTramp *mt = exitPoint->push_front(ast);
+         instPoint::funcExit(thread_dest_funcs[i], *iter)->push_front(ast, true);
       }
    }
-   
-#if 0
-   //Instrument
-   for (i=0; i<thread_dest_funcs.size(); i++)
-   {
-      pdvector<AstNodePtr > args;
-      AstNode call_thread_destroy(threadDestroy, args);
-      AstNodePtr ast = &call_thread_destroy;
-      miniTrampHandle *mthandle;
-      instPoint *ip = thread_dest_funcs[i]->funcEntry(this);
-
-      result = addInstFunc(this, mthandle, ip, ast, callPostInsn, 
-                           orderFirstAtPoint, true, true, true);
-      if (result != success_res)
-      {
-         fprintf(stderr, "[%s:%d] - Couldn't instrument thread_destroy\n",
-                 __FILE__, __LINE__);
-      }
-   }
-#endif
      
    /**
     * Have dyn_pthread_self call the actual pthread_self
@@ -1792,7 +1766,7 @@ bool process::initMT()
          func_instance *ps = pthread_self_funcs[j];
          fprintf(stderr, "[%s:%u] - %s in module %s at %lx\n", __FILE__, __LINE__,
                  ps->prettyName().c_str(), ps->mod()->fullName().c_str(), 
-                 ps->getAddress());
+                 ps->addr());
       }
       return false;
    }   

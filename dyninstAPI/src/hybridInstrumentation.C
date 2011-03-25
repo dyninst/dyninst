@@ -1107,13 +1107,14 @@ bool HybridAnalysis::analyzeNewFunction( BPatch_point *source,
 bool HybridAnalysis::hasEdge(BPatch_function *func, Address source, Address target)
 {
 // 0. first see if the edge needs to be parsed
-    block_instance *block = func->lowlevel_func()->findBlockByEntry(source);
-    const block_instance::edgelist &targets = block->targets();
-    for (block_instance::edgelist::iterator iter = targets.begin(); iter != targets.end(); ++iter) {
-       if ((*iter)->trg()->start() == target)
-          return true;
-    }
-    return false;
+
+   block_instance *block = func->lowlevel_func()->obj()->findBlockByEntry(source);
+   const block_instance::edgelist &targets = block->targets();
+   for (block_instance::edgelist::iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+      if ((*iter)->trg()->start() == target)
+         return true;
+   }
+   return false;
 }
 
 // Does not reinsert instrumentation.  

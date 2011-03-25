@@ -67,23 +67,24 @@ using namespace InstructionAPI;
 
 int Trace::TraceID = 0;
 
-Trace::Ptr Trace::create(block_instance *block) {
+Trace::Ptr Trace::create(block_instance *block, func_instance *func) {
   if (!block) return Ptr();
 
   relocation_cerr << "Creating new Trace" << endl;
 
-  Ptr newTrace = Ptr(new Trace(block));  
+  Ptr newTrace = Ptr(new Trace(block, func));  
 
   // Get the list of instructions in the block
-  block_instance::InsnInstances insns;
+  block_instance::Insns insns;
   block->getInsns(insns);
 
-  for (unsigned i = 0; i < insns.size(); ++i) {
+  for (block_instance::Insns::iterator iter = insns.begin();
+       iter != insns.end(); ++iter) {
     relocation_cerr << "  Adding instruction " 
-		    << std::hex << insns[i].second << std::dec
-		    << " " << insns[i].first->format() << endl;
+		    << std::hex << iter->first << std::dec
+		    << " " << iter->second->format() << endl;
 
-    Atom::Ptr ptr = InsnAtom::create(insns[i].first, insns[i].second);
+    Atom::Ptr ptr = InsnAtom::create(iter->second, iter->first);
 
     if (!ptr) {
       // And this will clean up all of the created elements. Nice. 
@@ -93,14 +94,17 @@ Trace::Ptr Trace::create(block_instance *block) {
     newTrace->elements_.push_back(ptr);
   }
 
+  // TODO: this should be done just before code generation, 
+  // not up front; however, several transformers depend
+  // on this behavior
   newTrace->createCFAtom();
   
   return newTrace;
 }
   
-Trace::Ptr Trace::create(Atom::Ptr p, Address a, block_instance *block) {
+Trace::Ptr Trace::create(Atom::Ptr p, Address a, block_instance *block, func_instance *f) {
   if (!p) return Ptr();
-  Ptr newTrace = Ptr(new Trace(a, block));
+  Ptr newTrace = Ptr(new Trace(a, block, f));
   newTrace->elements_.push_back(p);
   newTrace->createCFAtom();
 
@@ -496,7 +500,24 @@ Trace::Targets &Trace::getTargets(ParseAPI::EdgeTypeEnum type) {
    return outEdges_[type];
 }
 
+bool Trace::removeTargets() {
+   for (std::map<ParseAPI::EdgeTypeEnum, Targets>::iterator iter = outEdges_.begin();
+        iter != outEdges_.end(); ++iter) {
+      for (Targets::iterator iter2 = iter->second.begin(); 
+           iter2 != iter->second.end(); ++iter2) {
+         delete *iter2;
+      }
+   }
+   outEdges_.clear();
+   return true;
+}
+
 bool Trace::removeTargets(ParseAPI::EdgeTypeEnum type) {
+   Targets &t = outEdges_[type];
+   for (Targets::iterator iter = t.begin(); iter != t.end(); ++iter) {
+      delete *iter;
+   }
+   
    outEdges_.erase(type);
    return true;
 }
@@ -558,7 +579,7 @@ Trace::Ptr Trace::split(AtomList::iterator where) {
    // after it to the new trace. 
    // Don't use block creation because it pulls in
    // all the Atoms in the block...
-   Trace::Ptr newTrace = Ptr(new Trace(block()));
+   Trace::Ptr newTrace = Ptr(new Trace(block(), func()));
 
    TargetInt *newTarget = new Target<Trace *>(newTrace.get());
 
@@ -623,7 +644,7 @@ Trace::Ptr Trace::split(AtomList::iterator where) {
    return newTrace;
 }
 
-bool Trace::finalizeCF() {
+bool Trace::finalizeCF(Trace::Ptr next) {
    if (!cfAtom_) {
       cerr << "Warning: trace has no CFAtom!" << endl;
       cerr << format() << endl;
@@ -655,8 +676,38 @@ bool Trace::finalizeCF() {
             assert(oe_iter->first == ParseAPI::INDIRECT);
             index = (*iter)->origAddr();
          }
+
          cfAtom_->addDestination(index, *iter);
+         (*iter)->setNecessary(isNecessary(*iter, oe_iter->first, next));
       }
    }
+   
    return true;
+}
+
+bool Trace::isNecessary(TargetInt *target,
+                        ParseAPI::EdgeTypeEnum edgeType,
+                        Trace::Ptr next) {
+   if (!next) return true;
+
+   // Code copied from the old Fallthrough transformer
+
+   // Case 1: if we're a single direct branch, be sure we don't
+   // elide, or the CFG gets messed up. 
+   // ... or does it...
+   if (elements_.size() == 1 &&
+       (edgeType == ParseAPI::DIRECT ||
+        edgeType == ParseAPI::COND_TAKEN))
+      return true;
+
+   // Case 2: keep calls, d00d
+   if (edgeType == ParseAPI::CALL) return true;
+   
+   // Case 3: if the CFAtom wants a gap, a gap it gets
+   if (cfAtom_->gap() != 0) return true;
+
+   // And finally, case 4: if the next trace isn't our target, keep it
+   if (!target->matches(next.get())) return true;
+
+   return false;
 }

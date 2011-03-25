@@ -34,11 +34,10 @@
 #include "../patchapi_debug.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/instPoint.h"
-
-#include "../CodeTracker.h"
 #include "../CodeBuffer.h"
 #include "CFG.h"
 #include <string>
+#include "../CodeTracker.h"
 
 using namespace Dyninst;
 using namespace Relocation;

@@ -138,7 +138,7 @@ const bitArray parse_block::getLivenessOut(parse_func * context) {
         out |= ((parse_block*)(*eit)->trg())->getLivenessIn(context);
     }
     
-    liveness_cerr << " Returning liveness " << endl;
+    liveness_cerr << " Returning liveness for out " << endl;
     liveness_cerr << "  ?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
     liveness_cerr << "  ?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
     liveness_cerr << "  " << out << endl;
@@ -299,11 +299,15 @@ void instPoint::calcLiveness() {
    // the great equalizer.
 
    Address addr;
+   // For "pre"-instruction we subtract one from the address. This is done
+   // because liveness is calculated backwards; therefore, accumulating
+   // up to <addr> is actually the liveness _after_ that instruction, not
+   // before. Since we compare using > below, -1 means it will trigger. 
 
    switch(type()) {
       // First, don't be dumb if we're looking at (effectively) an initial
       // instruction of a CFG element.
-      case FunctionEntry:
+      case FuncEntry:
          liveRegs_ = func()->entryBlock()->llb()->getLivenessIn(func()->ifunc());
          return;
       case BlockEntry:
@@ -312,7 +316,13 @@ void instPoint::calcLiveness() {
       case Edge:
          liveRegs_ = edge()->trg()->llb()->getLivenessIn(func()->ifunc());
          return;
-      case FunctionExit:
+      case FuncExit:
+         // It would be great to use getLivenessOut, but it doesn't work
+         // because we rely on the _return instruction_ to do liveness
+         // calcs. Instead, we assign addr_ to ->last(). 
+         // ... and subtract 1 so that we get pre-insn liveness.
+         addr = block()->last() - 1;
+         break;
       case PostCall:
          liveRegs_ = block()->llb()->getLivenessOut(func()->ifunc());
          return;
@@ -322,7 +332,7 @@ void instPoint::calcLiveness() {
             liveRegs_ = block()->llb()->getLivenessIn(func()->ifunc());
             return;
          }
-         else addr = addr_;
+         else addr = addr_ - 1;
          break;
       case PostInsn:
          if (addr_ == block()->last()) {
@@ -330,11 +340,11 @@ void instPoint::calcLiveness() {
             return;
          }
          else {
-            addr = addr_ + insn_->size();
+            addr = addr_;
          }
          break;
       case PreCall:
-         addr = block()->last();
+         addr = block()->last() - 1;
          break;
       default:
          assert(0);
@@ -385,10 +395,6 @@ void instPoint::calcLiveness() {
    liveness_printf("%s[%d] instPoint calcLiveness: %d, 0x%lx, 0x%lx\n", 
                    FILE__, __LINE__, current != blockAddrs.rend(), *current, addr);
 
-   if (*current == addr) {
-      liveRegs_ = working;
-   }
-   
    while(current != blockAddrs.rend() && *current > addr)
    {
       ReadWriteInfo rwAtCurrent;
@@ -406,15 +412,12 @@ void instPoint::calcLiveness() {
       liveness_cerr << "Post:   " << working << endl;
       
       ++current;
-      if (*current == addr) {
-         liveRegs_ = working;
-         break;
-      }      
    }
+   assert(!working.empty());
+
+   liveRegs_ = working;
    stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
 
-   assert(!working.empty());
-   assert(!liveRegs_.empty());
    return;
 }
 
