@@ -34,11 +34,11 @@
 #include <vector>
 #include <string>
 #include <algorithm>
-#include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "unistd.h"
 #include "BPatch.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"

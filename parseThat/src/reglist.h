@@ -32,7 +32,7 @@
 #define __REGLIST_H__
 
 #include <vector>
-#include <regex.h>
+#include <boost/regex.h>
 #include <stdlib.h>
 #include <sys/types.h>
 
