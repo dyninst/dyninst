@@ -35,6 +35,7 @@
 #include "Atom.h"
 
 class block_instance;
+class func_instance;
 
 namespace NS_x86 {
    class instruction;
@@ -101,9 +102,9 @@ class CFAtom : public Atom {
    CFAtom(InstructionAPI::Instruction::Ptr insn,
           Address addr);
 
-   TrackerElement *tracker(block_instance *block) const;
+   TrackerElement *tracker(const Trace *) const;
    TrackerElement *destTracker(TargetInt *dest) const;
-   TrackerElement *addrTracker(Address addr, block_instance *block) const;
+   TrackerElement *addrTracker(Address addr, const Trace *) const;
 
   // These are not necessarily mutually exclusive. See also:
   // PPC conditional linking indirect branch, oy. 
@@ -137,29 +138,29 @@ class CFAtom : public Atom {
   bool generateBranch(CodeBuffer &gens,
 		      TargetInt *to,
 		      InstructionAPI::Instruction::Ptr insn,
-                      block_instance *curBlock,
+                      const Trace *trace,
 		      bool fallthrough);
 
   bool generateCall(CodeBuffer &gens,
 		    TargetInt *to,
-                    block_instance *curBlock,
+                    const Trace *trace,
 		    InstructionAPI::Instruction::Ptr insn); 
 
   bool generateConditionalBranch(CodeBuffer &gens,
 				 TargetInt *to,
-                                 block_instance *curBlock,
+                                 const Trace *trace,
 				 InstructionAPI::Instruction::Ptr insn); 
   // The Register holds the translated destination (if any)
   // TODO replace with the register IDs that Bill's building
   typedef unsigned Register;
   bool generateIndirect(CodeBuffer &gens,
 			Register reg,
-                        block_instance *curBlock,
+                        const Trace *trace,
 			InstructionAPI::Instruction::Ptr insn);
   bool generateIndirectCall(CodeBuffer &gens,
 			    Register reg,
 			    InstructionAPI::Instruction::Ptr insn,
-                            block_instance *curBlock,
+                            const Trace *trace,
 			    Address origAddr);
   
   bool generateAddressTranslator(CodeBuffer &buffer,

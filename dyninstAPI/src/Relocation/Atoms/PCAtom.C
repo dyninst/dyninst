@@ -53,9 +53,9 @@ PCAtom::Ptr PCAtom::create(Instruction::Ptr insn,
   return Ptr(new PCAtom(insn, addr, a, thunk));
 }
 
-TrackerElement *PCAtom::tracker(block_instance *b) const {
+TrackerElement *PCAtom::tracker(const Trace *t) const {
   assert(addr_ != 1);
-  EmulatorTracker *e = new EmulatorTracker(addr_, b);
+  EmulatorTracker *e = new EmulatorTracker(addr_, t->block(), t->func());
   return e;
 }
 
@@ -83,11 +83,11 @@ bool PCAtom::PCtoStack(const codeGen &templ, const Trace *t, CodeBuffer &buffer)
       newInsn.insert(newInsn.end(),
                      tmp,
                      tmp+sizeof(unsigned int));
-      buffer.addPIC(newInsn, tracker(t->block()));
+      buffer.addPIC(newInsn, tracker(t));
    }
    else {
       IPPatch *newPatch = new IPPatch(IPPatch::Push, addr_ + insn_->size());
-      buffer.addPatch(newPatch, tracker(t->block()));
+      buffer.addPatch(newPatch, tracker(t));
    }	
    
   return true;
@@ -108,11 +108,11 @@ bool PCAtom::PCtoReg(const codeGen &templ, const Trace *t, CodeBuffer &buffer) {
      newInsn.insert(newInsn.end(),
                     tmp,
                     tmp + sizeof(unsigned int));
-     buffer.addPIC(newInsn, tracker(t->block()));
+     buffer.addPIC(newInsn, tracker(t));
   }
   else {
     IPPatch *newPatch = new IPPatch(IPPatch::Reg, addr_ + insn_->size(), reg, thunkAddr_);
-    buffer.addPatch(newPatch, tracker(t->block()));
+    buffer.addPatch(newPatch, tracker(t));
   }
   return true;
 }

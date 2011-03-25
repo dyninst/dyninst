@@ -53,7 +53,7 @@ class PCAtom : public Atom {
 		     Address thunk = 0);
    virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
 
-   TrackerElement *tracker(block_instance *) const;
+   TrackerElement *tracker(const Trace *t) const;
 
    virtual ~PCAtom() {};
    virtual std::string format() const;

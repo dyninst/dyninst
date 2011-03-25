@@ -130,8 +130,6 @@ bool CFAtom::generate(const codeGen &templ,
       return true;
    }
 
-   block_instance *block = trace->block();
-
    typedef enum {
       Illegal,
       Single,
@@ -186,7 +184,7 @@ bool CFAtom::generate(const codeGen &templ,
             if (!generateBranch(buffer,
                                 target,
                                 insn_,
-                                block,
+                                trace,
                                 fallthrough)) {
                return false;
             }
@@ -205,7 +203,7 @@ bool CFAtom::generate(const codeGen &templ,
             relocation_cerr << "  ... generating call" << endl;
             if (!generateCall(buffer,
                               destMap_[Taken],
-                              block,
+                              trace,
                               insn_))
                return false;
          }
@@ -214,7 +212,7 @@ bool CFAtom::generate(const codeGen &templ,
             relocation_cerr << "  ... generating conditional branch" << endl;
             if (!generateConditionalBranch(buffer,
                                            destMap_[Taken],
-                                           block,
+                                           trace,
                                            insn_))
                return false;
          }
@@ -228,7 +226,7 @@ bool CFAtom::generate(const codeGen &templ,
                if (!generateBranch(buffer, 
                                    ft,
                                    insn_,
-                                   block,
+                                   trace,
                                    true)) {
                   return false;
                }
@@ -246,7 +244,7 @@ bool CFAtom::generate(const codeGen &templ,
             if (!generateIndirectCall(buffer, 
                                       reg, 
                                       insn_, 
-                                      block,
+                                      trace,
                                       addr_)) 
                return false;
             // We may be putting another block in between this
@@ -257,13 +255,13 @@ bool CFAtom::generate(const codeGen &templ,
                if (!generateBranch(buffer,
                                    destMap_[Fallthrough],
                                    Instruction::Ptr(),
-                                   block,
+                                   trace,
                                    true)) 
                   return false;
             }
          }
          else {
-            if (!generateIndirect(buffer, reg, block, insn_))
+            if (!generateIndirect(buffer, reg, trace, insn_))
                return false;
          }
          break;
@@ -274,7 +272,9 @@ bool CFAtom::generate(const codeGen &templ,
    if (gap_) {
       // We don't know what the callee does to the return addr,
       // so we'll catch it at runtime. 
-      buffer.addPatch(new PaddingPatch(gap_, true, false, block), addrTracker(addr_ + size(), block));
+      buffer.addPatch(new PaddingPatch(gap_, true, false, trace->block()), 
+                      addrTracker(addr_ + size(), 
+                                  trace));
    }
   
    return true;
@@ -288,11 +288,10 @@ CFAtom::~CFAtom() {
    }
 }
 
-TrackerElement *CFAtom::tracker(block_instance *block) const {
+TrackerElement *CFAtom::tracker(const Trace *trace) const {
    assert(addr_ != 1);
    assert(addr_);
-   assert(block);
-   EmulatorTracker *e = new EmulatorTracker(addr_, block);
+   EmulatorTracker *e = new EmulatorTracker(addr_, trace->block(), trace->func());
    return e;
 }
 
@@ -303,17 +302,18 @@ TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
    }
 
    block_instance *destBlock = NULL;
+   func_instance *destFunc = NULL;
    switch (dest->type()) {
       case TargetInt::TraceTarget: {
          Target<Trace *> *targ = static_cast<Target<Trace *> *>(dest);
          assert(targ);
          assert(targ->t());
          destBlock = targ->t()->block();
+         destFunc = targ->t()->func();
          assert(destBlock);
          break;
       }
       case TargetInt::BlockTarget:
-         
          destBlock = (static_cast<Target<block_instance *> *>(dest))->t();
          assert(destBlock);
          break;
@@ -321,12 +321,12 @@ TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
          assert(0);
          break;
    }
-   EmulatorTracker *e = new EmulatorTracker(dest->origAddr(), destBlock);
+   EmulatorTracker *e = new EmulatorTracker(dest->origAddr(), destBlock, destFunc);
    return e;
 }
 
-TrackerElement *CFAtom::addrTracker(Address addr, block_instance *block) const {
-   EmulatorTracker *e = new EmulatorTracker(addr, block);
+TrackerElement *CFAtom::addrTracker(Address addr, const Trace *trace) const {
+   EmulatorTracker *e = new EmulatorTracker(addr, trace->block(), trace->func());
    return e;
 }
 
@@ -350,7 +350,7 @@ TargetInt *CFAtom::getDestination(Address dest) const {
 bool CFAtom::generateBranch(CodeBuffer &buffer,
 			    TargetInt *to,
 			    Instruction::Ptr insn,
-                            block_instance *curBlock,
+                            const Trace *trace,
 			    bool fallthrough) {
    assert(to);
    if (!to->necessary()) return true;
@@ -364,11 +364,11 @@ bool CFAtom::generateBranch(CodeBuffer &buffer,
    // == size) back up the codeGen and shrink us down.
 
    CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to, addr_);
-   if (fallthrough || curBlock == NULL) {
+   if (fallthrough || trace->block() == NULL) {
       buffer.addPatch(newPatch, destTracker(to));
    }
    else {
-      buffer.addPatch(newPatch, tracker(curBlock));
+      buffer.addPatch(newPatch, tracker(trace));
    }
   
    return true;
@@ -376,7 +376,7 @@ bool CFAtom::generateBranch(CodeBuffer &buffer,
 
 bool CFAtom::generateCall(CodeBuffer &buffer,
 			  TargetInt *to,
-                          block_instance *curBlock,
+                          const Trace *trace,
 			  Instruction::Ptr insn) {
    if (!to) {
       // This can mean an inter-module branch...
@@ -385,19 +385,19 @@ bool CFAtom::generateCall(CodeBuffer &buffer,
    }
 
    CFPatch *newPatch = new CFPatch(CFPatch::Call, insn, to, addr_);
-   buffer.addPatch(newPatch, tracker(curBlock));
+   buffer.addPatch(newPatch, tracker(trace));
 
    return true;
 }
 
 bool CFAtom::generateConditionalBranch(CodeBuffer &buffer,
 				       TargetInt *to,
-                                       block_instance *curBlock,
+                                       const Trace *trace,
 				       Instruction::Ptr insn) {
    assert(to);
 
    CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, addr_);
-   buffer.addPatch(newPatch, tracker(curBlock));
+   buffer.addPatch(newPatch, tracker(trace));
 
    return true;
 }

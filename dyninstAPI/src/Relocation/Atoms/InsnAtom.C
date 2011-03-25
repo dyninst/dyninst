@@ -46,13 +46,13 @@ using namespace InstructionAPI;
 bool InsnAtom::generate(const codeGen &, 
                         const Trace *t,
                         CodeBuffer &buffer) {
-   buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t->block()));
+   buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t));
   return true;
 }
 
-TrackerElement *InsnAtom::tracker(block_instance *block) const {
-  OriginalTracker *e = new OriginalTracker(addr_, block);
-  return e;
+TrackerElement *InsnAtom::tracker(const Trace *t) const {
+   OriginalTracker *e = new OriginalTracker(addr_, t->block(), t->func());
+   return e;
 }
 
 InsnAtom::Ptr InsnAtom::create(Instruction::Ptr insn,

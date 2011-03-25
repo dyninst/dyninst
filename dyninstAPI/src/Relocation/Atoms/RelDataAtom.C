@@ -49,8 +49,8 @@ RelDataAtom::Ptr RelDataAtom::create(Instruction::Ptr insn,
   return Ptr(new RelDataAtom(insn, addr, target));
 }
 
-TrackerElement *RelDataAtom::tracker(block_instance *b) const {
-   EmulatorTracker *e = new EmulatorTracker(addr_, b);
+TrackerElement *RelDataAtom::tracker(const Trace *t) const {
+   EmulatorTracker *e = new EmulatorTracker(addr_, t->block(), t->func());
   return e;
 }
 
@@ -70,7 +70,7 @@ bool RelDataAtom::generate(const codeGen &,
 		  <<"," << target_ << std::dec << ")" << endl;
 
   RelDataPatch *newPatch = new RelDataPatch(insn_, target_);
-  buffer.addPatch(newPatch, tracker(t->block()));
+  buffer.addPatch(newPatch, tracker(t));
 
   return true;
 }

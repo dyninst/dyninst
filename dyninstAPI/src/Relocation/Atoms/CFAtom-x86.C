@@ -21,7 +21,7 @@ using namespace NS_x86;
 
 bool CFAtom::generateIndirect(CodeBuffer &buffer,
                               Register reg,
-                              block_instance *curBlock,
+                              const Trace *trace,
                               Instruction::Ptr insn) {
    // Two possibilities here: either copying an indirect jump w/o
    // changes, or turning an indirect call into an indirect jump because
@@ -37,7 +37,7 @@ bool CFAtom::generateIndirect(CodeBuffer &buffer,
       GET_PTR(insn, gen);
       *insn++ = 0xC3; // RET
       SET_PTR(insn, gen);
-      buffer.addPIC(gen, tracker(curBlock));
+      buffer.addPIC(gen, tracker(trace));
       return true;
    }
    NS_x86::instruction ugly_insn(insn->ptr());
@@ -86,7 +86,7 @@ bool CFAtom::generateIndirect(CodeBuffer &buffer,
    // TODO: don't ignore reg...
    // Indirect branches don't use the PC and so are
    // easy - we just copy 'em.
-   buffer.addPIC(raw, tracker(curBlock));
+   buffer.addPIC(raw, tracker(trace));
 
    return true;
 }
@@ -96,7 +96,7 @@ bool CFAtom::generateIndirect(CodeBuffer &buffer,
 bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
                                   Register reg,
                                   Instruction::Ptr insn,
-                                  block_instance *curBlock,
+                                  const Trace *trace,
 				  Address origAddr) 
 {
    // I'm pretty sure that anything that can get translated will be
@@ -111,10 +111,10 @@ bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
       CFPatch *newPatch = new CFPatch(CFPatch::Data, insn, 
                                       new Target<Address>(origTarget_),
                                       addr_);
-      buffer.addPatch(newPatch, tracker(curBlock));
+      buffer.addPatch(newPatch, tracker(trace));
    }
    else {
-      buffer.addPIC(insn->ptr(), insn->size(), tracker(curBlock));
+      buffer.addPIC(insn->ptr(), insn->size(), tracker(trace));
    }
    
    return true;

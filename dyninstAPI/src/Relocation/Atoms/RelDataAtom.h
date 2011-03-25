@@ -46,7 +46,7 @@ class RelDataAtom : public Atom {
 
    virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
 
-   TrackerElement *tracker(block_instance *) const;
+   TrackerElement *tracker(const Trace *t) const;
   
    static Ptr create(InstructionAPI::Instruction::Ptr insn,
 		     Address addr,

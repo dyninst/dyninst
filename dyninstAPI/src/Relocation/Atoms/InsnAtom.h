@@ -35,6 +35,7 @@
 #include "Atom.h"
 
 class block_instance;
+class func_instance;
 
 namespace Dyninst {
 namespace Relocation {
@@ -47,7 +48,7 @@ class InsnAtom : public Atom {
                         const Trace *,
                         CodeBuffer &);
 
-  TrackerElement *tracker(block_instance *) const;
+  TrackerElement *tracker(const Trace *trace) const;
 
   static Ptr create(InstructionAPI::Instruction::Ptr insn,
 		    Address addr);
