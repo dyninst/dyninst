@@ -2046,15 +2046,7 @@ bool process::setAOut(fileDescriptor &desc)
 }
 
 // Here's the list of functions to look for:
-#define NUMBER_OF_MAIN_POSSIBILITIES 7
-char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20] = {
-    "main",
-    "DYNINST_pltMain",
-    "_main",
-    "WinMain",
-    "_WinMain",
-    "wWinMain",
-    "_wWinMain"};
+extern char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20];
 
 bool process::setMainFunction() 
 {
@@ -4939,9 +4931,9 @@ void process::flushAddressCache_RT(Address start, unsigned size)
         std::string arg_str ("DYNINST_target_cache");
         pdvector<int_variable *> vars;
         if ( ! findVarsByAll(arg_str, vars) ) {
-            fprintf(stderr, "%s[%d]:  cannot find var %s\n", 
+           fprintf(stderr, "WARNING: %s[%d]:  cannot find var %s\n", 
                     FILE__, __LINE__, arg_str.c_str());
-            assert(0);
+            return;
         }
         if (vars.size() != 1) {
             fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 

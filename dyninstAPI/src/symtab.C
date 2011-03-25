@@ -92,6 +92,16 @@ using Dyninst::SymtabAPI::Region;
 using Dyninst::SymtabAPI::Variable;
 using Dyninst::SymtabAPI::Module;
 
+char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20] = {
+    "main",
+    "DYNINST_pltMain",
+    "_main",
+    "WinMain",
+    "_WinMain",
+    "wWinMain",
+    "_wWinMain",
+    "tls_cb_0"};
+
 string fileDescriptor::emptyString(string(""));
 fileDescriptor::fileDescriptor() {
     // This shouldn't be called... must be public for pdvector, though
@@ -731,16 +741,6 @@ void image::findMain()
 
 #elif defined(i386_unknown_nt4_0)
 
-#define NUMBER_OF_MAIN_POSSIBILITIES 7
-   char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20] = {
-       "main",
-       "DYNINST_pltMain",
-       "_main",
-       "WinMain",
-       "_WinMain",
-       "wWinMain",
-       "_wWinMain"};
-   
    if(linkedFile->isExec()) {
        vector <Symbol *>syms;
        vector<SymtabAPI::Function *> funcs;
@@ -754,8 +754,7 @@ void image::findMain()
                break;
            }
        }
-       if (!found_main) {
-           syms.clear();
+       if (found_main) {
            if(!linkedFile->findSymbol(syms,"start",Symbol::ST_UNKNOWN, SymtabAPI::mangledName)) {
                //use 'start' for mainCRTStartup.
                Symbol *startSym = new Symbol( "start", 
@@ -769,6 +768,8 @@ void image::findMain()
                linkedFile->addSymbol(startSym);
            }
            syms.clear();
+       } 
+       else {
            // add entry point as main given that nothing else was found
            startup_printf("[%s:%u] - findmain could not find symbol "
                           "for main, using binary entry point %x\n",
@@ -1565,11 +1566,6 @@ image::image(fileDescriptor &desc,
         }
     } nuke_heap;
     filt = &nuke_heap;
-
-   //Now add Main and Dynamic Symbols if they are not present
-   startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
-   findMain();
-
 
    bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);

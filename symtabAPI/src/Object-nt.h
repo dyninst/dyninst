@@ -234,6 +234,7 @@ private:
     SYMTAB_EXPORT void    parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &);
     SYMTAB_EXPORT void    FindInterestingSections( bool, bool );
     Region *          findEnclosingRegion(const Offset where);
+    void AddTLSFunctions();
 
     Offset baseAddr;     // location of this object in mutatee address space
 

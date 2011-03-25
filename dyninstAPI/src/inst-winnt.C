@@ -134,16 +134,18 @@ int_function *instPoint::findCallee()
       // is eventually called.
       
       // get the target address of the call
-        Expression::Ptr cft = insn()->getControlFlowTarget();
-		static Expression* theIP = new RegisterAST(x86::eip);
-        cft->bind(theIP, Result(s32, addr()));
-        Result r = cft->eval();
-		assert(r.defined);
-		Address callTarget = r.convert<Address>();
-		parsing_printf(" **** instPoint::findCallee() callTarget = 0x%lx, insn = %s\n", callTarget, insn()->format().c_str());
+      if (insn() == NULL) return NULL;
+      Expression::Ptr cft = insn()->getControlFlowTarget();
+      if (cft == NULL) return NULL;
+      static Expression* theIP = new RegisterAST(x86::eip);
+      cft->bind(theIP, Result(s32, addr()));
+      Result r = cft->eval();
+      assert(r.defined);
+      Address callTarget = r.convert<Address>();
+      parsing_printf(" **** instPoint::findCallee() callTarget = 0x%lx, insn = %s\n", callTarget, insn()->format().c_str());
 
-        int_function *func = proc()->findOneFuncByAddr(callTarget);
-        if (func == NULL) return NULL;
+      int_function *func = proc()->findOneFuncByAddr(callTarget);
+      if (func == NULL) return NULL;
       
 	  /*
        * Handle the idiom discussed above, of calls to an entry in the ILT

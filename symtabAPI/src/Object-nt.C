@@ -569,6 +569,65 @@ BOOL CALLBACK SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
    return TRUE;
 }
 
+// Ensure that the optional header has a TLS directory entry
+// calculate the TLS directory address and make sure it's valid
+// calculate the address of the TLS callback array and make sure it's valid
+// for each TLS callback, add a function symbol
+void Object::AddTLSFunctions()
+{
+   // ensure that the optional header has a TLS directory entry
+   if (peHdr->OptionalHeader.NumberOfRvaAndSizes < 10) {
+      return;
+   }
+
+   // calculate the TLS directory address and make sure it's valid
+   Address imgBase = peHdr->OptionalHeader.ImageBase;
+   Offset tlsMemOff = peHdr->OptionalHeader.DataDirectory[9].VirtualAddress;
+   unsigned long tlsSize = peHdr->OptionalHeader.DataDirectory[9].Size;
+   Region *secn = findEnclosingRegion(tlsMemOff);
+   if (!secn || (tlsMemOff - secn->getMemOffset()) > secn->getDiskSize()) {
+      return;
+   }
+   Offset tlsDiskOff = tlsMemOff 
+      + (Offset)secn->getDiskOffset() 
+      - (Offset)secn->getMemOffset();
+   IMAGE_TLS_DIRECTORY *tlsDir = (IMAGE_TLS_DIRECTORY*) 
+      ( tlsDiskOff + (Offset)mf->base_addr() );
+
+   // calculate the address of the TLS callback array and make sure it's valid
+   secn = findEnclosingRegion(tlsDir->AddressOfCallBacks - imgBase);
+   Offset cbOffSec = tlsDir->AddressOfCallBacks 
+      - secn->getMemOffset() 
+      - imgBase;
+   if (!secn || cbOffSec > secn->getDiskSize()) {
+      return;
+   }
+   Offset cbOffDisk = cbOffSec + secn->getDiskOffset();
+   PIMAGE_TLS_CALLBACK *tlsCBs = (PIMAGE_TLS_CALLBACK*) 
+      ( cbOffDisk + (Offset)mf->base_addr() );
+   unsigned maxCBs = (secn->getDiskSize() - cbOffSec) / sizeof(PIMAGE_TLS_CALLBACK);
+
+   // for each TLS callback, add a function symbol
+   for (unsigned tidx=0; tidx < maxCBs && tlsCBs[tidx] != NULL ; tidx++) {
+      Offset funcOff = ((Address) tlsCBs[tidx]) - imgBase;
+      secn = findEnclosingRegion(funcOff);
+      if (!secn) {
+         continue;
+      }
+      Offset baseAddr = 0;
+      Object::File *pFile = curModule->GetDefaultFile();
+      char funcName [128];
+      snprintf(funcName, 128, "tls_cb_%d", tidx);
+      pFile->AddSymbol( new Object::intSymbol
+                       ( funcName,
+                         funcOff,
+                         Symbol::ST_FUNCTION,
+                         Symbol::SL_GLOBAL,
+                         0, // unknown size
+                         secn ));
+   }
+}
+
 /*
  * This function finds all the global symbols
  * in a module and all of the source files. (i.e. so this function would find
@@ -787,23 +846,26 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
    for( unsigned int i = 0; i < nSections; i++ ) {
       // rawDataPtr should be set to be zero if the amount of raw data
       // for the section is zero
-      void *rawDataPtr = 0;
+
+      Offset diskOffset = 0; 
       if (pScnHdr->SizeOfRawData != 0) {
          // the loader rounds PointerToRawData to the previous fileAlignment 
          // boundary  (usually 512 bytes)
-         rawDataPtr = (void*)
+         diskOffset = (Offset)
              ((pScnHdr->PointerToRawData / peHdr->OptionalHeader.FileAlignment) 
-              * peHdr->OptionalHeader.FileAlignment + (unsigned long) mapAddr);
+              * peHdr->OptionalHeader.FileAlignment);
       }
       Offset secSize = (pScnHdr->Misc.VirtualSize > pScnHdr->SizeOfRawData) ? 
           pScnHdr->Misc.VirtualSize : pScnHdr->SizeOfRawData;
       if (alloc_syms)
           regions_.push_back
-              (new Region(i+1, (const char *)pScnHdr->Name, 
-                          pScnHdr->Misc.PhysicalAddress, 
+              (new Region(i+1, 
+                          (const char *)pScnHdr->Name,
+                          diskOffset,
                           pScnHdr->SizeOfRawData,
-                          pScnHdr->VirtualAddress, secSize,
-                          (char *)rawDataPtr, 
+                          pScnHdr->VirtualAddress, 
+                          secSize,
+                          (char *)(diskOffset + (Offset)mapAddr), 
                           getRegionPerms(pScnHdr->Characteristics),
                           getRegionType(pScnHdr->Characteristics)));
 //        regions_.push_back(new Section(i, (const char*)pScnHdr->Name, 
@@ -975,6 +1037,9 @@ Object::Object(MappedFile *mf_,
     peHdr( NULL )
 {
    FindInterestingSections(alloc_syms, defensive);
+   if (alloc_syms && defensive) {
+      AddTLSFunctions();
+   }
    ParseSymbolInfo(alloc_syms);
 }
 

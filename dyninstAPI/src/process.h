@@ -1156,8 +1156,4 @@ inline void process::independentLwpControlInit() { }
 #endif
 
 extern pdvector<process *> processVec;
-
-#define NUMBER_OF_MAIN_POSSIBILITIES 7
-extern char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20];
-
 #endif

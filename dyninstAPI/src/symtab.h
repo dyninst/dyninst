@@ -92,6 +92,8 @@ typedef bool (*functionNameSieve_t)(const char *test,void *data);
 #define USER_MODULE "USER_MODULE"
 #define LIBRARY_MODULE	"LIBRARY_MODULE"
 
+#define NUMBER_OF_MAIN_POSSIBILITIES 8
+
 class image;
 class lineTable;
 class image_func;
@@ -130,7 +132,11 @@ class fileDescriptor {
         dynamic_(dynamic),
         shared_(isShared),
         pid_(0),
-        loadAddr_(0)
+        loadAddr_(0),
+        procHandle_(0),
+        fileHandle_(0),
+        length_(0),
+        rawPtr_(0)
         {}
 
      ~fileDescriptor() {}
