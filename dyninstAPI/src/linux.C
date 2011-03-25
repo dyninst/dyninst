@@ -179,7 +179,7 @@ Address PCProcess::findFunctionToHijack()
   return codeBase;
 } /* end findFunctionToHijack() */
 
-static int DLOPEN_MODE = RTLD_NOW | RTLD_GLOBAL;
+static const int DLOPEN_MODE = RTLD_NOW | RTLD_GLOBAL;
 
 // Note: this is an internal libc flag -- it is only used
 // when libc and ld.so don't have symbols
@@ -208,6 +208,8 @@ bool PCProcess::postRTLoadCleanup() {
 AstNodePtr PCProcess::createLoadRTAST() {
     pdvector<int_function *> dlopen_funcs;
 
+    int mode = DLOPEN_MODE;
+
     // allow user to override default dlopen func names with env. var
 
     DL_OPEN_FUNC_USER = getenv("DYNINST_DLOPEN_FUNC");
@@ -234,7 +236,7 @@ AstNodePtr PCProcess::createLoadRTAST() {
             // to turn off the stack protection
             useHiddenFunction = false;
             needsStackUnprotect = false;
-            DLOPEN_MODE |= __RTLD_DLOPEN;
+            mode |= __RTLD_DLOPEN;
             if( findFuncsByAll(DL_OPEN_LIBC_FUNC_EXPORTED, dlopen_funcs) ) break;
 
             useHiddenFunction = true;
@@ -310,7 +312,7 @@ AstNodePtr PCProcess::createLoadRTAST() {
 
         pdvector<AstNodePtr> args;
         args.push_back(AstNode::operandNode(AstNode::Constant, (void *)rtLibLoadHeap_));
-        args.push_back(AstNode::operandNode(AstNode::Constant, (void *)DLOPEN_MODE));
+        args.push_back(AstNode::operandNode(AstNode::Constant, (void *)mode));
 
         sequence.push_back(AstNode::funcCallNode(dlopen_func, args));
     }else{
@@ -357,10 +359,10 @@ AstNodePtr PCProcess::createLoadRTAST() {
 
         if( getAddressWidth() == 4 ) {
             args32.namePtr = (uint32_t)rtLibLoadHeap_;
-            args32.mode = DLOPEN_MODE;
+            args32.mode = mode;
         }else{
             args64.namePtr = (uint64_t)rtLibLoadHeap_;
-            args64.mode = DLOPEN_MODE;
+            args64.mode = mode;
         }
 
         Address argsAddr = rtLibLoadHeap_ + dyninstRT_name.length()+1;
