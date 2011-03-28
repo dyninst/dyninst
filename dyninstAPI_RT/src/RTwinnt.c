@@ -49,6 +49,7 @@
 #include <sys/stat.h>
 #include <io.h>
 #include <stdio.h>
+#include <assert.h>
 //#include <winsock2.h>
 
 /************************************************************************
@@ -276,6 +277,73 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
 */
 int DYNINST_am_initial_thread(dyntid_t tid) {
     return (tid == initial_thread_tid);
+}
+
+extern unsigned long dyninstTrapTableUsed;
+extern unsigned long dyninstTrapTableVersion;
+extern trapMapping_t *dyninstTrapTable;
+extern unsigned long dyninstTrapTableIsSorted;
+
+LONG dyn_trapHandler(PEXCEPTION_POINTERS e)
+{
+   void *trap_to=0;
+   void *orig_ip=0;
+   fprintf(stderr,"RTLIB: In dyn_trapHandler for exception type 0x%lx at 0x%lx\n",
+           e->ExceptionRecord->ExceptionCode, 
+           e->ExceptionRecord->ExceptionAddress);
+
+   if (EXCEPTION_BREAKPOINT != e->ExceptionRecord->ExceptionCode) {
+      return EXCEPTION_CONTINUE_SEARCH;
+   }
+
+   // Find the new IP we're going to and substitute. Leave everything else untouched.
+   if (DYNINSTstaticMode) {
+      fprintf(stderr,"ERROR: handling of trap instrumentation w/ static "
+              "rewriting is not implemented\n");
+      assert(0 && "static windows rewriting not implemented");
+   }
+   else {
+      fprintf(stderr,"RTLIB: calling dyninstTrapTranslate(\n\t0x%lx, \n\t"
+              "0x%lx, \n\t0x%lx, \n\t0x%lx, \n\t0x%lx)\n", orig_ip, 
+              &dyninstTrapTableUsed, &dyninstTrapTableVersion,
+              &dyninstTrapTable, &dyninstTrapTableIsSorted);
+      trap_to = dyninstTrapTranslate(orig_ip, 
+                                     &dyninstTrapTableUsed,
+                                     &dyninstTrapTableVersion,
+                                     (volatile trapMapping_t **) &dyninstTrapTable,
+                                     &dyninstTrapTableIsSorted);
+   }
+   fprintf(stderr,"RTLIB: changing Eip from trap at 0x%lx to 0x%lx\n", 
+           e->ContextRecord->Eip, trap_to);
+   e->ContextRecord->Eip = (long) trap_to;
+   return EXCEPTION_CONTINUE_EXECUTION;
+}
+
+PVOID fake_AVEH_handle;
+/* registers the trap handler by calling AddVectoredExceptionHandler
+ */
+int DYNINSTinitializeTrapHandler()
+{
+   fake_AVEH_handle = AddVectoredExceptionHandler
+      (RT_TRUE, (PVECTORED_EXCEPTION_HANDLER)dyn_trapHandler);
+   fprintf(stderr,"RTLIB: added vectored trap handler\n");
+   return fake_AVEH_handle != 0;
+}
+
+PVOID dyn_AddVectoredExceptionHandler
+(ULONG isFirst, PVECTORED_EXCEPTION_HANDLER handler)
+{
+   PVOID handlerHandle;
+   if (isFirst) {
+      RemoveVectoredExceptionHandler(fake_AVEH_handle);
+      handlerHandle = AddVectoredExceptionHandler(isFirst,handler);
+      fake_AVEH_handle = AddVectoredExceptionHandler
+         (isFirst,(PVECTORED_EXCEPTION_HANDLER)dyn_trapHandler);
+   }
+   else {
+      handlerHandle = AddVectoredExceptionHandler(isFirst,handler);
+   }
+   return handlerHandle;
 }
 
 extern int fakeTickCount;

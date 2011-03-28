@@ -1396,20 +1396,16 @@ Parser::split_block(
         oit != prev_owners.end(); ++oit)
     {
         Function * po = *oit;
-        po->_cache_valid = false;
-        parsing_printf("[%s:%d] split of [%lx,%lx) invalidates cache of "
-                "func at %lx\n",
-        FILE__,__LINE__,b->start(),b->end(),po->addr());
-
-        // if we're re-parsing in this function, inform user program of the split
-        //KEVINTODO: this should also happen in exploratory mode, once that's implemented
-        if (unlikely(po->obj()->defensiveMode())) {
-            _pcb.block_split(b,ret,po);
+        if (po->_cache_valid) {
+           po->_cache_valid = false;
+           parsing_printf("[%s:%d] split of [%lx,%lx) invalidates cache of "
+                   "func at %lx\n",
+           FILE__,__LINE__,b->start(),b->end(),po->addr());
         }
     }
-    if (unlikely(owner->obj()->defensiveMode())) {
-        _pcb.block_split(b,ret,owner);
-    }
+    // KEVINTODO: study performance impact of this callback
+    _pcb.block_split(b,ret,owner); // fix point->block pointer, if any
+
     return ret;
  }
 

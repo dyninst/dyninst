@@ -113,6 +113,7 @@ class CodeObject {
     PARSER_EXPORT CFGFactory * fact() const { return _fact; }
     PARSER_EXPORT bool defensiveMode() { return defensive; }
     PARSER_EXPORT void deleteFunc(Function *);
+    PARSER_EXPORT bool isIATcall(Address insn, std::string &calleeName);
 
     /*
      * Calling finalize() forces completion of all on-demand

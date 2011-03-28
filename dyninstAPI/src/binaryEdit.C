@@ -946,22 +946,25 @@ bool BinaryEdit::usedATrap() {
     return (!trapMapping.empty());
 }
 
+// Find all calls to sigaction equivalents and replace with
+// calls to dyn_<sigaction_equivalent_name>. 
 bool BinaryEdit::replaceTrapHandler() {
-    // Find all calls to sigaction and replace with
-    // calls to dyn_sigaction. 
 
-    // We haven't code generated yet, so we're working 
-    // with addInst.
-
-    int_function *dyn_sigaction = findOnlyOneFunction("dyn_sigaction");
-    assert(dyn_sigaction);
-
-    int_function *dyn_signal = findOnlyOneFunction("dyn_signal");
-    assert(dyn_signal);
+    vector<string> sigaction_names;
+    OS::get_sigaction_names(sigaction_names);
 
     pdvector<int_function *> allFuncs;
     getAllFunctions(allFuncs);
-    bool replaced = false;
+
+    for (unsigned nidx = 0; nidx < sigaction_names.size(); nidx++) 
+    {
+    // find replacement function
+    std::stringstream repname;
+    repname << "dyn_" << sigaction_names[nidx];
+    int_function *repfunc = findOnlyOneFunction(repname.str().c_str());
+    assert(repfunc);
+    
+    // replace all callsites to current sigaction function
     for (unsigned i = 0; i < allFuncs.size(); i++) {
         int_function *func = allFuncs[i];
         
@@ -970,28 +973,25 @@ bool BinaryEdit::replaceTrapHandler() {
 
         for (unsigned j = 0; j < calls.size(); j++) {
             instPoint *point = calls[j];
-            
-            std::string calleeName = point->getCalleeName();
 
-            if ((calleeName == "sigaction") ||
-                (calleeName == "_sigaction") ||
-                (calleeName == "__sigaction")) {
-	      replaceFunctionCall(point, dyn_sigaction);
-	      replaced = true;
-            }
-            else if ((calleeName == "signal") ||
-                     (calleeName == "_signal") ||
-                     (calleeName == "__signal"))
+            // the function name could have up to two underscores
+            // prepended (e.g., sigaction, _sigaction, __sigaction),
+            // try all three possibilities for each name
+            std::string calleeName = point->getCalleeName();
+            std::string sigactName = sigaction_names[nidx];
+            for (int num_s=0; 
+                 num_s <= 2; 
+                 num_s++, sigactName.append(string("_"),0,1)) 
             {
-	      replaceFunctionCall(point, dyn_sigaction);
-	      replaced = true;
+               if (calleeName == sigactName) {
+                  replaceFunctionCall(point, repfunc);
+                  break;
+               }
             }
         }
-    }
-
-    if (!replaced) return true;
-
-    return relocate();
+    } // for each func in the rewritten binary
+    } // for each sigaction-equivalent function to replace
+    return true;
 }
 
 bool BinaryEdit::needsPIC()

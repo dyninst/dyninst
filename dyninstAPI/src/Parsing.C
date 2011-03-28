@@ -68,6 +68,14 @@ using namespace Dyninst::InstructionAPI;
 #define record_block_alloc(s) do { } while(0)
 #endif
 
+#ifdef __GNUC__
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
+#else
+#define likely(x) x
+#define unlikely(x) x
+#endif
+
 void DynCFGFactory::dump_stats()
 {
     fprintf(stderr,"===DynCFGFactory for image %p===\n",_img);
@@ -273,10 +281,12 @@ void
 DynParseCallback::block_split(Block *first, Block *second, Function *func)
 {
     _img->fixSplitPoints(first,second);
-    image::SplitBlock sb (static_cast<image_basicBlock *>(first),
-                          static_cast<image_basicBlock *>(second),
-                          static_cast<image_func*>(func));
-   _img->addSplitBlock(sb);
+    if (unlikely(_img->hybridMode())) {
+       image::SplitBlock sb (static_cast<image_basicBlock *>(first),
+                             static_cast<image_basicBlock *>(second),
+                             static_cast<image_func*>(func));
+      _img->addSplitBlock(sb);
+    }
 }
 
 void DynParseCallback::block_delete(Block *b) {

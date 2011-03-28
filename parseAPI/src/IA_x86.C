@@ -507,25 +507,25 @@ bool IA_IAPI::isFakeCall() const
     return false;
 }
 
-const char* IA_IAPI::isIATcall() const
+bool IA_IAPI::isIATcall(std::string &calleeName) const
 {
     if (!isDynamicCall()) {
-        return NULL;
+        return false;
     }
 
     if (!curInsn()->readsMemory()) {
-        return NULL;
+        return false;
     }
 
     std::set<Expression::Ptr> memReads;
     curInsn()->getMemoryReadOperands(memReads);
     if (memReads.size() != 1) {
-        return NULL;
+        return false;
     }
 
     Result memref = (*memReads.begin())->eval();
     if (!memref.defined) {
-        return NULL;
+        return false;
     }
     Address entryAddr = memref.convert<Address>();
 
@@ -535,24 +535,24 @@ const char* IA_IAPI::isIATcall() const
     }
     
     if (!_obj->cs()->isValidAddress(entryAddr)) {
-        return NULL;
+        return false;
     }
 
     // calculate the address of the ASCII string pointer, 
     // skip over the IAT entry's two-byte hint
     void * asciiPtr = _obj->cs()->getPtrToInstruction(entryAddr);
     if (!asciiPtr) {
-        return NULL;
+        return false;
     }
     Address funcAsciiAddr = 2 + *(Address*) asciiPtr;
     if (!_obj->cs()->isValidAddress(funcAsciiAddr)) {
-        return NULL;
+        return false;
     }
 
     // see if it's really a string that could be a function name
     char *funcAsciiPtr = (char*) _obj->cs()->getPtrToData(funcAsciiAddr);
     if (!funcAsciiPtr) {
-        return NULL;
+        return false;
     }
     char cur = 'a';
     int count=0;
@@ -564,10 +564,11 @@ const char* IA_IAPI::isIATcall() const
             ((cur >= 'A' && cur <= 'z') ||
              (cur >= '0' && cur <= '9')));
     if (cur != 0 || count <= 1) 
-        return NULL;
+        return false;
 
     mal_printf("found IAT call at %lx to %s\n", current, funcAsciiPtr);
-    return funcAsciiPtr;
+    calleeName = string(funcAsciiPtr);
+    return true;
 }
 
 bool IA_IAPI::isNopJump() const

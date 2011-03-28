@@ -101,7 +101,8 @@ class IA_IAPI : public InstructionAdapter {
         virtual bool isCall() const;
         virtual bool isReturnAddrSave(Address &ret_addr) const;
         virtual bool isNopJump() const;
-	virtual bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const;
+        virtual bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const;
+        bool isIATcall(std::string &calleeName) const;
 private:
         virtual bool isRealCall() const;
         virtual bool isThunk() const;
@@ -111,7 +112,6 @@ private:
         bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
         virtual bool isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block* currBlk) const;
         bool isFakeCall() const;
-        const char *isIATcall() const;
         bool isLinkerStub() const;
 
 

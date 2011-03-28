@@ -3220,6 +3220,11 @@ bool OS::executableExists(const std::string &file) {
    return (stat_result != -1);
 }
 
+void OS::get_sigaction_names(std::vector<std::string> &names)
+{
+   names.push_back(string("AddVectoredExceptionHandler"));
+}
+
 int_function *dyn_thread::map_initial_func(int_function *ifunc) {
     if (!ifunc || strcmp(ifunc->prettyName().c_str(), "mainCRTStartup"))
         return ifunc;

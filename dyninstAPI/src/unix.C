@@ -1402,6 +1402,13 @@ bool OS::execute_file(char *path) {
    return (result != -1);
 }
 
+void OS::get_sigaction_names(std::vector<std::string> &names)
+{
+   names.push_back(string("sigaction"));
+   names.push_back(string("signal"));
+}
+
+
 #ifndef CASE_RETURN_STR
 #define CASE_RETURN_STR(x) case x: return #x
 #endif
@@ -1625,6 +1632,8 @@ bool SignalGenerator::isInstTrap(const EventRecord &ev, const Frame &af)
     **/
    return (ev.proc->last_single_step == af.getPC() - 1);
 }
+
+std::string sigaction_name_NP()
 
 #if defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
 

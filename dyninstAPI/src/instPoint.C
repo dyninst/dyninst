@@ -595,6 +595,17 @@ std::string instPoint::getCalleeName()
    int_function *f = findCallee();
    if (f)
       return f->symTabName();
+
+#if defined(os_windows)
+   mapped_object *obj = block()->func()->obj();
+   string calleeName;
+   if (obj->parse_img()->codeObject()->
+        isIATcall(addr() - obj->codeBase(), calleeName)) 
+   {
+      return calleeName;
+   }
+#endif
+
    return img_p_->getCalleeName();
 }
 

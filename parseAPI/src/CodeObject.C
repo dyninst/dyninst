@@ -288,3 +288,33 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
     return true;
 }
 
+// set things up to pass through to IA_IAPI
+bool CodeObject::isIATcall(Address insnAddr, std::string &calleeName)
+{
+   // find region
+   std::set<CodeRegion*> regs;
+   cs()->findRegions(insnAddr, regs);
+   if (regs.size() != 1) {
+      return false;
+   }
+   CodeRegion *reg = *regs.begin();
+
+   // find block
+   std::set<Block*> blocks;
+   findBlocks(reg, insnAddr, blocks);
+   if (blocks.empty()) {
+      return false;
+   }
+   Block *blk = *blocks.begin();
+
+   const unsigned char* bufferBegin = 
+      (const unsigned char *)(cs()->getPtrToInstruction(insnAddr));
+   using namespace InstructionAPI;
+   InstructionDecoder dec = InstructionDecoder(bufferBegin,
+      InstructionDecoder::maxInstructionLength, reg->getArch());
+   InstructionAdapter_t ah = InstructionAdapter_t(
+      dec, insnAddr, this, reg, cs(), blk);
+
+   return ah.isIATcall(calleeName);
+}
+
