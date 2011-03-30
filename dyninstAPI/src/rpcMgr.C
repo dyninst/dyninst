@@ -926,6 +926,7 @@ Address rpcMgr::createRPCImage(AstNodePtr action,
 
 bool rpcMgr::emitInferiorRPCheader(codeGen &gen) 
 {
+
     gen.beginTrackRegDefs();
     gen.bt()->generateSaves(gen, gen.rs());
     return true;

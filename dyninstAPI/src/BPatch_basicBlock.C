@@ -438,14 +438,16 @@ struct findInsns : public insnPredicate
 BPatch_point* BPatch_basicBlock::findEntryPointInt()
 {
    return flowGraph->getAddSpace()->findOrCreateBPPoint(flowGraph->getFunction(),
-                                                        instPoint::blockEntry(ifunc(), block()));
+                                                        instPoint::blockEntry(ifunc(), block()),
+                                                        BPatch_locBasicBlockEntry);
 }
 
 // This should be edge instrumentation... 
 BPatch_point* BPatch_basicBlock::findExitPointInt()
 {
    return flowGraph->getAddSpace()->findOrCreateBPPoint(flowGraph->getFunction(),
-                                                        instPoint::blockExit(ifunc(), block()));
+                                                        instPoint::blockExit(ifunc(), block()),
+                                                        BPatch_locBasicBlockExit);
 }
         
 BPatch_Vector<BPatch_point*>*

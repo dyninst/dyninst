@@ -1615,7 +1615,7 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
   }
 
   while (1) {
-    relocation_cerr << "   Attempting to allocate " << cm->size() << "bytes" << endl;
+     relocation_cerr << "   Attempting to allocate " << cm->size() << "bytes" << endl;
     unsigned size = cm->size();
     if (!size) {
         // This can happen if the only thing being moved are control flow instructions
@@ -1624,17 +1624,15 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
         size = 1;
     }
     baseAddr = inferiorMalloc(size, anyHeap, nearTo);
-    relocation_cerr << "   inferiorMalloc returned " 
-		    << std::hex << baseAddr << std::dec << endl;
-
-
+    
+    
     relocation_cerr << "   Calling CodeMover::relocate" << endl;
     if (!cm->relocate(baseAddr)) {
-      // Whoa
-      relocation_cerr << "   ERROR: CodeMover failed relocation!" << endl;
-      return 0;
+       // Whoa
+       relocation_cerr << "   ERROR: CodeMover failed relocation!" << endl;
+       return 0;
     }
-
+    
     // Either attempt to expand or shrink...
     relocation_cerr << "   Calling inferiorRealloc to fit new size " << cm->size() 
 		    << ", current base addr is " 
@@ -1649,9 +1647,6 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
       break;
     }
   }
-
-  relocation_cerr << "   ... fixpoint finished, returning baseAddr " 
-		  << std::hex << baseAddr << std::dec << endl;
 
   //addrMap.debug();
 
@@ -1833,16 +1828,16 @@ void AddressSpace::addInstrumentationInstance(baseTramp *bt,
 }
 
 void AddressSpace::addAllocatedRegion(Address start, unsigned size) {
-   memEmulator_->addAllocatedRegion(start, size);
+   //memEmulator_->addAllocatedRegion(start, size);
 }
 
 void AddressSpace::addModifiedRegion(mapped_object *obj) {
-    memEmulator_->addRegion(obj);
+   //memEmulator_->addRegion(obj);
    return;
 }
 
 void AddressSpace::updateMemEmulator() {
-   memEmulator_->update();
+   //memEmulator_->update();
 }
 
 MemoryEmulator * AddressSpace::getMemEm() {

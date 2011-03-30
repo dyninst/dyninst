@@ -3285,7 +3285,7 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
 	    break;
 	  case 7:
 	    mac->size = 8;
-	    mac->write = true;
+	    mac->write = true; 
 	    break;
 	  }
 	  break; }
@@ -3447,8 +3447,8 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
     }
   }
   else { // 32-bit or 64-bit, may have SIB
-    if(mod == 3)
-      return 0; // only registers, no SIB
+     if(mod == 3)
+        return 0; // only registers, no SIB
     bool hassib = rm == 4;
     unsigned int nsib = 0;
     unsigned char sib;

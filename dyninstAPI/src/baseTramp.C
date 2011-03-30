@@ -69,7 +69,8 @@ baseTramp::baseTramp() :
    suppressGuards(false),
    suppressThreads(false),
    spilledRegisters(false),
-   stackHeight(0)
+   stackHeight(0),
+   skippedRedZone(false)
 {
 }
 
@@ -110,6 +111,7 @@ void baseTramp::initializeFlags() {
    suppressThreads = false;
    spilledRegisters = false;
    stackHeight = 0;
+   skippedRedZone = false;
 }
 
 bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
@@ -150,7 +152,10 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
       {
          saved_unneeded++;
          regalloc_printf("[%s:%u] - baseTramp saved unneeded register %d, "
-                         "suggesting regen\n", __FILE__, __LINE__, reg->number);
+                         "suggesting regen (%d, %d, %d)\n", __FILE__, __LINE__, reg->number,
+                         reg->spilledState,
+                         (definedRegs[reg->encoding()] ? 1 : 0),
+                         reg->offLimits);
       }
       if (!reg->liveState == registerSlot::spilled &&
           definedRegs[reg->encoding()])
@@ -426,10 +431,11 @@ bool baseTramp::checkForFuncCalls()
 {
    if (ast_)
       return ast_->containsFuncCall();
-   assert(point_);
-   for (instPoint::iterator iter = point_->begin(); 
-        iter != point_->end(); ++iter) {
-      if ((*iter)->ast()->containsFuncCall()) return true;
+   if (point_) {
+      for (instPoint::iterator iter = point_->begin(); 
+           iter != point_->end(); ++iter) {
+         if ((*iter)->ast()->containsFuncCall()) return true;
+      }
    }
    return false;
 }
@@ -509,6 +515,8 @@ int baseTramp::numDefinedRegs()
 
 int baseTramp::funcJumpSlotSize()
 {
+   return 0;
+#if 0
    switch (checkForFuncJumps()) {
       case cfj_unset: assert(0);
       case cfj_none: return 0;
@@ -517,6 +525,7 @@ int baseTramp::funcJumpSlotSize()
    }
    assert(0);
    return 0;
+#endif
 }
 
 bool baseTramp::makesCall() {

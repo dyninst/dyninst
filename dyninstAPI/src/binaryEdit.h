@@ -194,6 +194,8 @@ class BinaryEdit : public AddressSpace {
 
     bool inferiorMallocStatic(unsigned size);
 
+    Address maxAllocedAddr();
+
     bool createMemoryBackingStore(mapped_object *obj);
 
     bool initialize();

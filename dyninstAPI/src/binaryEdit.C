@@ -228,6 +228,8 @@ bool BinaryEdit::inferiorRealloc(Address item, unsigned newsize)
   if (!result)
     return false;
 
+  maxAllocedAddr();
+
   codeRange *obj;
   result = memoryTracker_->find(item, obj);
   assert(result);
@@ -351,6 +353,7 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &mem
     }
        
     newBinaryEdit->highWaterMark_ = linkedFile->getFreeOffset(50*1024*1024);
+    cerr << "Set HWM to " << newBinaryEdit->highWaterMark_ << endl;
     newBinaryEdit->lowWaterMark_ = newBinaryEdit->highWaterMark_;
 
     newBinaryEdit->makeInitAndFiniIfNeeded();
@@ -549,10 +552,14 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          fprintf(stderr, "ERROR:  unable to open/reinstrument previously instrumented binary %s!\n", newFileName.c_str());
          return false;
       }
-        
+      Address HWM = maxAllocedAddr();
+
+      cerr << "Adding a new region with size " <<  HWM - lowWaterMark_ << endl;
+      cerr << "\t High: " << HWM << " and low " << lowWaterMark_ << endl;
+      
       symObj->addRegion(lowWaterMark_,
                         newSectionPtr,
-                        highWaterMark_ - lowWaterMark_,
+                        HWM - lowWaterMark_,
                         ".dyninstInst",
                         Region::RT_TEXTDATA,
                         true);
@@ -658,6 +665,21 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
    return true;
 }
 
+Address BinaryEdit::maxAllocedAddr() {
+   inferiorFreeCompact();
+   Address hi = 0;
+
+   for (dictionary_hash<Address, heapItem *>::iterator iter = heap_.heapActive.begin();
+        iter != heap_.heapActive.end(); ++iter) {
+      Address localHi = (*iter)->addr + (*iter)->length;
+      cerr << "Heap item [" << hex << (*iter)->addr << "," << localHi << dec 
+           << "], " << (*iter)->length << " bytes" << endl;
+      if (localHi > hi) hi = localHi;
+   }
+   return hi;
+}
+
+
 bool BinaryEdit::inferiorMallocStatic(unsigned size) {
     // Should be set by now
     assert(highWaterMark_ != 0);
@@ -694,6 +716,7 @@ bool BinaryEdit::inferiorMallocStatic(unsigned size) {
     }
 
     highWaterMark_ += size;
+    cerr << "Increased HWM to " <<  highWaterMark_ << endl;
 
     return true;
 }

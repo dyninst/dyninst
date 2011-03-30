@@ -96,6 +96,8 @@ bool CodeBuffer::BufferElement::empty() {
    return true;
 }
 
+unsigned totalPadding = 0;
+
 bool CodeBuffer::BufferElement::generate(CodeBuffer *buf,
                                          codeGen &gen,
                                          int &shift,
@@ -118,13 +120,15 @@ bool CodeBuffer::BufferElement::generate(CodeBuffer *buf,
       }
    }
    unsigned newSize = gen.getDisplacement(start, gen.getIndex());
+
    if (newSize > size_) {
       shift += newSize - size_;
       size_ = newSize;
       regenerate = true;
    }
-   else {
+   else if (newSize < size_) {
       // We don't want sizes to decrease or we can get stuck in generation
+      totalPadding += (size_ - newSize);
       gen.fill(size_ - newSize, codeGen::cgNOP);
    }
 
@@ -209,12 +213,10 @@ void CodeBuffer::addPIC(const unsigned char *input, unsigned size, TrackerElemen
 
 void CodeBuffer::addPIC(const void *input, unsigned size, TrackerElement *tracker) {
    addPIC((const unsigned char *)input, size, tracker);
-   size_ += size;
 }
 
 void CodeBuffer::addPIC(const codeGen &input, TrackerElement *tracker) {
    addPIC(input.start_ptr(), input.used(), tracker);
-   size_ += input.used();
 }
 
 void CodeBuffer::addPIC(Buffer buf, TrackerElement *tracker) {
@@ -254,7 +256,8 @@ bool CodeBuffer::generate(Address baseAddr) {
       shift_ = 0;
       gen_.invalidate();
       gen_.allocate(size_);
-      
+      totalPadding = 0;
+
       for (Buffers::iterator iter = buffers_.begin();
            iter != buffers_.end(); ++iter) {
          bool regenerate = false;

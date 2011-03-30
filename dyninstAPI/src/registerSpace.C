@@ -513,9 +513,6 @@ bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
 bool registerSpace::checkVolatileRegisters(codeGen &gen,
                                            registerSlot::livenessState_t state)
 {
-	// FIXME for non-defensive-mode
-	return true;
-	
 	if (addr_width == 8) {
         for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
             if (registers_[i]->liveState == state)
@@ -546,12 +543,23 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen)
     // Okay, save.
     if (addr_width == 8) {
         // save flags (PUSHFQ)
-        emitSimpleInsn(0x9C, gen);
-
-        // And mark flags as spilled.
-        for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
-            registers_[i]->liveState = registerSlot::spilled;
-        }
+       //emitSimpleInsn(0x9C, gen);
+       if (registers_[REGNUM_SF]->liveState == registerSlot::live ||
+           registers_[REGNUM_ZF]->liveState == registerSlot::live ||
+           registers_[REGNUM_AF]->liveState == registerSlot::live ||
+           registers_[REGNUM_PF]->liveState == registerSlot::live ||
+           registers_[REGNUM_CF]->liveState == registerSlot::live) {
+          emitSimpleInsn(0x9f, gen);
+          registers_[REGNUM_SF]->liveState = registerSlot::spilled;
+          registers_[REGNUM_ZF]->liveState = registerSlot::spilled;
+          registers_[REGNUM_AF]->liveState = registerSlot::spilled;
+          registers_[REGNUM_PF]->liveState = registerSlot::spilled;
+          registers_[REGNUM_CF]->liveState = registerSlot::spilled;
+       }
+       if (registers_[REGNUM_OF]->liveState == registerSlot::live) {
+          emitSaveO(gen);
+          registers_[REGNUM_OF]->liveState = registerSlot::spilled;
+       }
 
     } else {
         assert(addr_width == 4);
@@ -563,6 +571,7 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen)
         //emitSimpleInsn(PUSHFD, gen);
         registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState =
             registerSlot::spilled;
+ 
     }
 
     savedFlagSize = addr_width;
@@ -583,10 +592,16 @@ bool registerSpace::restoreVolatileRegisters(codeGen &gen)
 
     // Okay, restore.
     if (addr_width == 8) {
-        // restore flags (POPFQ)
-        emitSimpleInsn(0x9D, gen);
-
-        // Don't care about their state...
+       if (registers_[REGNUM_OF]->liveState == registerSlot::spilled) {
+          emitRestoreO(gen);
+       }
+       if (registers_[REGNUM_SF]->liveState == registerSlot::spilled ||
+           registers_[REGNUM_ZF]->liveState == registerSlot::spilled ||
+           registers_[REGNUM_AF]->liveState == registerSlot::spilled ||
+           registers_[REGNUM_PF]->liveState == registerSlot::spilled ||
+           registers_[REGNUM_CF]->liveState == registerSlot::spilled) {
+          emitSimpleInsn(0x9e, gen);
+       }
 
     } else {
         assert(addr_width == 4);
@@ -595,6 +610,7 @@ bool registerSpace::restoreVolatileRegisters(codeGen &gen)
         emitSimpleInsn(0x9E, gen);
         emitPop(RealRegister(REGNUM_EAX), gen);
         // State stays at spilled, which is incorrect - but will never matter.
+
     }
 
     return true;

@@ -381,8 +381,10 @@ void parse_block::getInsns(Insns &insns, Address base) {
    const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);
    if (ptr == NULL) return;
    InstructionDecoder d(ptr, getSize(),obj()->cs()->getArch());
+
    while (off < endOffset()) {
       Instruction::Ptr insn = d.decode();
+
       insns[off + base] = insn;
       off += insn->size();
    }

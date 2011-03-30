@@ -125,7 +125,8 @@ class baseTramp {
     bool suppressThreads;
     bool spilledRegisters;
     int  stackHeight;
-
+    bool skippedRedZone;
+    
     bool validOptimizationInfo() { return optimizationInfo_; }
     bool hasFuncJump() { return funcJumpState_ > cfj_none; }
 

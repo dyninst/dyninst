@@ -177,6 +177,7 @@ bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
       Result res = exp->eval();
       if (!res.defined) {
 	cerr << "ERROR: failed bind/eval at " << std::hex << ptr->addr() << endl;
+        continue;
       }
       assert(res.defined);
       target = res.convert<Address>();
@@ -190,7 +191,6 @@ bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
   // memory-topping deref stops eval...
   vector<Operand> operands;
   ptr->insn()->getOperands(operands);
-  
   for (vector<Operand>::iterator iter = operands.begin();
        iter != operands.end(); ++iter) {
     // If we can bind the PC, then we're in the operand

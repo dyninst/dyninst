@@ -81,7 +81,6 @@ string InstAtom::format() const {
 // Could be a lot smarter here...
 bool InstAtomPatch::apply(codeGen &gen, CodeBuffer *) {
    relocation_cerr << "\t\t InstAtomPatch::apply " << this << " /w/ tramp " << tramp << endl;
-
   gen.registerInstrumentation(tramp, gen.currAddr());
 
   return tramp->generateCode(gen, gen.currAddr());

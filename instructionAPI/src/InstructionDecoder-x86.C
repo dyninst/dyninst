@@ -37,7 +37,7 @@
 #include "common/h/arch-x86.h"
 #include "Register.h"
 #include "Dereference.h"
-#include "Immediate.h"
+#include "Immediate.h" 
 #include "BinaryFunction.h"
 #include "common/h/singleton_object_pool.h"
 
@@ -203,7 +203,7 @@ namespace Dyninst
       Expression::Ptr InstructionDecoder_x86::makeModRMExpression(const InstructionDecoder::buffer& b,
 								  unsigned int opType)
     {
-        unsigned int regType = op_d;
+       unsigned int regType = op_d;
         Result_Type aw = ia32_is_mode_64() ? u32 : u64;
         if(ia32_is_mode_64())
         {
@@ -368,8 +368,13 @@ namespace Dyninst
                         return make_shared(singleton_object_pool<Immediate>::construct(Result(s16,
                                            *((const dword_t*)(b.start + disp_pos)))));
                     }
-                    else
-                    {
+                    // TODO FIXME; this was decoding wrong, but I'm not sure
+                    // why...
+                    else if (locs->modrm_rm == 5) {
+                        assert(b.start + disp_pos + 4 <= b.end);
+                        return make_shared(singleton_object_pool<Immediate>::construct(Result(s32,
+                                           *((const dword_t*)(b.start + disp_pos)))));
+                    } else {
                         assert(b.start + disp_pos + 1 <= b.end);
                         return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
                     }
@@ -660,7 +665,7 @@ namespace Dyninst
 						  const Instruction* insn_to_complete, 
 						  bool isRead, bool isWritten)
     {
-      bool isCFT = false;
+       bool isCFT = false;
       bool isCall = false;
       bool isConditional = false;
       InsnCategory cat = insn_to_complete->getCategory();
@@ -1071,7 +1076,7 @@ namespace Dyninst
     
       bool InstructionDecoder_x86::decodeOperands(const Instruction* insn_to_complete)
     {
-        int imm_index = 0; // handle multiple immediate operands
+       int imm_index = 0; // handle multiple immediate operands
         if(!decodedInstruction) return false;
         unsigned int opsema = decodedInstruction->getEntry()->opsema & 0xFF;
 	InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());

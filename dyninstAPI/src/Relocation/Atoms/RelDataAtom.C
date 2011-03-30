@@ -69,7 +69,7 @@ bool RelDataAtom::generate(const codeGen &,
 		  << "," << std::hex << addr_ 
 		  <<"," << target_ << std::dec << ")" << endl;
 
-  RelDataPatch *newPatch = new RelDataPatch(insn_, target_);
+  RelDataPatch *newPatch = new RelDataPatch(insn_, target_, addr_);
   buffer.addPatch(newPatch, tracker(t));
 
   return true;
@@ -83,9 +83,7 @@ string RelDataAtom::format() const {
 
 bool RelDataPatch::apply(codeGen &gen, CodeBuffer *) {
   instruction ugly_insn(orig_insn->ptr());
-  pcRelData pcr(target_addr, ugly_insn);
-  pcr.gen = &gen;
-  pcr.apply(gen.currAddr());
+  if (!insnCodeGen::modifyData(target_addr, ugly_insn, gen)) return false;
   return true;
 }
 

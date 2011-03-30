@@ -126,6 +126,7 @@ BPatch_point *BPatch_addressSpace::findOrCreateBPPoint(BPatch_function *bpfunc,
 
    if (pointType == BPatch_locUnknownLocation) {
       cerr << "Error: point type not specified!" << endl;
+      assert(0);
       return NULL;
    }
 

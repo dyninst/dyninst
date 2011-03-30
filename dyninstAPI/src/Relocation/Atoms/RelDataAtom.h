@@ -72,8 +72,8 @@ class RelDataAtom : public Atom {
 
 
 struct RelDataPatch : public Patch {
- RelDataPatch(InstructionAPI::Instruction::Ptr a, Address b) :
-  orig_insn(a), target_addr(b) {};
+  RelDataPatch(InstructionAPI::Instruction::Ptr a, Address b, Address o) :
+   orig_insn(a), target_addr(b), orig(o) {};
   
   virtual bool apply(codeGen &gen, CodeBuffer *buffer);
   virtual unsigned estimate(codeGen &templ);
@@ -81,6 +81,7 @@ struct RelDataPatch : public Patch {
   
   InstructionAPI::Instruction::Ptr orig_insn;
   Address target_addr;
+  Address orig;
 };
 
 

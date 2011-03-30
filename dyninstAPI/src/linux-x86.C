@@ -1426,6 +1426,9 @@ bool process::loadDYNINSTlib_hidden() {
   // Sync with whatever we've put in so far.
   dlopen_call_addr = codeBase + scratchCodeBuffer.used();
 
+  baseTramp *baseT = baseTramp::create(theRpcMgr, AstNodePtr());
+  scratchCodeBuffer.setBT(baseT);
+
   if( !theRpcMgr->emitInferiorRPCheader(scratchCodeBuffer) ) {
     startup_cerr << "Couldn't emit inferior RPC header" << endl;
     return false;
@@ -1518,6 +1521,7 @@ bool process::loadDYNINSTlib_hidden() {
     startup_cerr << "Couldn't emit inferior RPC trailer" << endl;
     return false;
   }
+  delete baseT;
   dyninstlib_brk_addr = codeBase + breakOffset;
 
   startup_printf("(%d) dyninst lib string addr at 0x%x\n", getPid(), dyninstlib_str_addr);
@@ -1627,6 +1631,9 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
         // Now the real code
 	dlopen_call_addr = codeBase + scratchCodeBuffer.used();
 
+        baseTramp *baseT = baseTramp::create(theRpcMgr, AstNodePtr());
+        scratchCodeBuffer.setBT(baseT);
+
         if( !theRpcMgr->emitInferiorRPCheader(scratchCodeBuffer) ) {
             startup_cerr << "Couldn't emit inferior RPC header" << endl;
             return false;
@@ -1673,6 +1680,8 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
             startup_cerr << "Couldn't emit inferior RPC trailer" << endl;
             return false;
         }
+        delete baseT;
+
         dyninstlib_brk_addr = codeBase + breakOffset;
 
 	if (!readDataSpace((void *)codeBase,
