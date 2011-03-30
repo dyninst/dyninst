@@ -23,6 +23,7 @@ MYFLAGS += -fPIC
 endif
 endif
 
+LDFLAGS += -L$(TO_CORE)/common/$(PLATFORM) -L$(LIBRARY_DEST)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared
