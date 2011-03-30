@@ -9,7 +9,7 @@ LDFLAGS      = @LDFLAGS@
 DWARFFLAGS      = @DWARFFLAGS@
 ELFFLAGS      = @ELFFLAGS@
 LIBS         = @LIBS@
-
+DEMANGLER_LINK = @LIBERTYFLAGS@
 prefix       = @prefix@
 PLATFORM    ?= @build@
 DYNINST_VER  = @DYNINST_VER@
@@ -47,10 +47,7 @@ OBJS         = $(SRCS:%.C=%.o)
 CXXFLAGS    += -Wall
 LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -lparseAPI
 
-# FreeBSD doesn't need to be linked with libiberty
-ifeq (, $(findstring freebsd, $(PLATFORM)))
-LIBS += -liberty
-endif
+LDFLAGS += $(DEMANGLER_LINK)
 
 ifneq (, $(findstring solaris, $(PLATFORM)))
 LIBS        += -ldwarf  -lelf
