@@ -17,6 +17,7 @@ CXXFLAGS	     += $(USEFULWARNINGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/dynuti
 LDFLAGS += -L$(TO_CORE)/dyninstAPI/$(PLATFORM) -L$(TO_CORE)/common/$(PLATFORM)
 LDFLAGS += -L$(TO_CORE)/symtabAPI/$(PLATFORM) -L$(TO_CORE)/instructionAPI/$(PLATFORM) -L$(LIBRARY_DEST)
 LDFLAGS += -lcommon -lsymtabAPI -ldyninstAPI
+LDFLAGS += -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
 
 LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
@@ -31,7 +32,7 @@ endif #sparc
 endif #USES_NATIVE
 
 ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
-    LDFLAGS += -linstructionAPI
+    LDFLAGS += -linstructionAPI -L../../instructionAPI/$(PLATFORM)
 endif
 
 TO_INC   = ../h
