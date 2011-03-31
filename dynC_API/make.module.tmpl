@@ -14,7 +14,9 @@ DYNCNAME = dynC
 CFLAGS		     += $(USEFULWARNINGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/dynutil/h
 CXXFLAGS	     += $(USEFULWARNINGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/dynutil/h
 
-LDFLAGS += -L$(TO_CORE)/dyninstAPI/$(PLATFORM) -L$(TO_CORE)/common/$(PLATFORM) -L$(TO_CORE)/symtabAPI/$(PLATFORM) -L$(TO_CORE)/instructionAPI/$(PLATFORM) -L$(LIBRARY_DEST) -lcommon -lsymtabAPI -ldyninstAPI
+LDFLAGS += -L$(TO_CORE)/dyninstAPI/$(PLATFORM) -L$(TO_CORE)/common/$(PLATFORM)
+LDFLAGS += -L$(TO_CORE)/symtabAPI/$(PLATFORM) -L$(TO_CORE)/instructionAPI/$(PLATFORM) -L$(LIBRARY_DEST)
+LDFLAGS += -lcommon -lsymtabAPI -ldyninstAPI
 
 LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
