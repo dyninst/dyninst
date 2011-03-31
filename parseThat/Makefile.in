@@ -47,7 +47,8 @@ OBJS         = $(SRCS:%.C=%.o)
 CXXFLAGS    += -Wall
 LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -lparseAPI
 
-LDFLAGS += $(DEMANGLER_LINK)
+# The echo will remove the quotes
+LDFLAGS += $(shell echo $(DEMANGLER_LINK))
 
 ifneq (, $(findstring solaris, $(PLATFORM)))
 LIBS        += -ldwarf  -lelf
