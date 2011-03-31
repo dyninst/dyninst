@@ -28,12 +28,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#if defined(sparc_sun_solaris2_4_test) \
- || defined(alpha_dec_osf4_0_test) \
- || defined(i386_unknown_linux2_0_test) \
+#if defined(i386_unknown_linux2_0_test) \
  || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
- || defined(i386_unknown_solaris2_5_test) \
- || defined(ia64_unknown_linux2_4_test) \
  || defined(os_aix_test) \
  || defined(os_linux_test) \
  || defined(os_freebsd_test) /* better off using os #defines than whole platforms */

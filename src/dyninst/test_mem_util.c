@@ -80,64 +80,6 @@ unsigned int bcListCC[1000];
 void* eaExpCC[1000];
 unsigned int bcExpCC[1000];
 
-#ifdef sparc_sun_solaris2_4_test
-/* const */ unsigned int loadExp=15;
-/* const */ unsigned int storeExp=13;
-/* const */ unsigned int prefeExp=2;
-/* const */ unsigned int accessExp=26;
-/* const */ unsigned int accessExpCC=26;
-
-unsigned int bcExp[] = { 4,1,2,8,4,1,1,  4,8,4,  4,4,8,8,16,
-                         0,0,  1,2,4,8,  4,8,16,4,8 };
-
-int eaExpOffset[] =    { 0,3,2,0,0,3,3,  0,0,0,  0,0,0,0,0,
-                         0,0,  7,6,4,0,  0,0,0,4,0 };
-
-/* _inline */ void init_test_data()
-{
-  int i=0;
-
-  /*
-  dprintf("&divarw = %p\n", &divarw);
-  dprintf("&dfvars = %p\n", &dfvars);
-  dprintf("&dfvard = %p\n", &dfvard);
-  dprintf("&dfvarq = %p\n", &dfvarq);
-  */
-
-  for(; i<10; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
-
-  for(; i<12; ++i)
-    eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
-
-  for(; i<14; ++i)
-    eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
-
-  for(; i<17; ++i)
-    eaExp[i] = (void*)((unsigned long)&dfvarq + eaExpOffset[i]);
-
-  for(; i<21; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
-
-  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
-  ++i;
-
-  eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
-  ++i;
-
-  eaExp[i] = (void*)((unsigned long)&dfvarq + eaExpOffset[i]);
-  ++i;
-
-  for(; i<26; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
-
-  /* Duplicate the stream for cc */
-  for(i=0; i<accessExp; ++i) {
-    eaExpCC[i] = eaExp[i];
-    bcExpCC[i] = bcExp[i];
-  }
-}
-#endif /* defined(sparc_sun_solaris2_4_test) */
 
 #ifdef rs6000_ibm_aix4_1_test
 const unsigned int loadExp=41;
@@ -706,41 +648,6 @@ void reduce(const struct reduction x)
 
 #endif /* defined(x86_64_unknown_linux2_4_test) */
 
-#ifdef ia64_unknown_linux2_4_test
-unsigned int bcExp[] = { 8, 8, 8,  8, 8, 8,  8, 16, 16, 0, 0, 0 };
-unsigned int bcExpCC_init[] = { 8, 8, 8,  8, 8, 8,  8, 16, 16, 0, 0, 0 };
-
-void init_test_data()
-{
-  memcpy(bcExpCC, bcExpCC_init, sizeof (bcExpCC_init));
-}
-#endif /* defined(ia64_unknown_linux2_4_test) */
-
-#ifdef mips_sgi_irix6_4_test
-long loadsnstores(long x, long y, long z)
-{
-  return x + y + z;
-}
-
-unsigned int bcExp[] = { 0 };
-
-void init_test_data()
-{
-}
-#endif /* defined(mips_sgi_irix6_4_test) */
-
-#ifdef alpha_dec_osf4_0_test
-long loadsnstores(long x, long y, long z)
-{
-  return x + y + z;
-}
-
-unsigned int bcExp[] = { 0 };
-
-void init_test_data()
-{
-}
-#endif /* defined(alpha_dec_osf4_0_test) */
 
 #if defined(arch_power_test) && defined(os_linux_test)
 

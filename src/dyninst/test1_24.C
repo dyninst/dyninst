@@ -67,14 +67,10 @@ test_results_t test1_24_Mutator::executeTest()
 	}
 
 	// This test is skipped on some (no?) platforms
-#if !defined(sparc_sun_solaris2_4_test) \
-	&& !defined(rs6000_ibm_aix4_1_test) \
-	&& !defined(alpha_dec_osf4_0_test) \
+#if !defined(rs6000_ibm_aix4_1_test) \
 	&& !defined(i386_unknown_linux2_0_test) \
 	&& !defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
-	&& !defined(i386_unknown_solaris2_5_test) \
 	&& !defined(i386_unknown_nt4_0_test) \
-	&& !defined(ia64_unknown_linux2_4_test) \
 	&& !defined(os_linux_test) /* Use OS #define instead of platform - Greg */ \
         && !defined(os_freebsd_test)
 	return SKIPPED;

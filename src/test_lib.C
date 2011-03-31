@@ -67,8 +67,7 @@ using namespace std;
 
 // Blind inclusion from test9.C
 #if defined(i386_unknown_linux2_0_test) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(sparc_sun_solaris2_4)
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 #include <sys/types.h>
 #include <sys/wait.h>
 #endif
