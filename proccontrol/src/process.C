@@ -3447,6 +3447,10 @@ unsigned installed_breakpoint::getNumClearingThreads() const {
     return clearingThreads.size();
 }
 
+unsigned installed_breakpoint::getNumIntBreakpoints() const {
+    return bps.size();
+}
+
 bool installed_breakpoint::rmClearingThread(int_thread *thrd, bool &uninstalled, 
         result_response::ptr async_resp)
 {
@@ -3462,7 +3466,7 @@ bool installed_breakpoint::rmClearingThread(int_thread *thrd, bool &uninstalled,
 
     if (bps.empty() && clearingThreads.empty()) {
         pthrd_printf("No more references left, uninstalling breakpoint\n");
-        uninstalled = false;
+        uninstalled = true;
         bool result = uninstall(thrd->llproc(), async_resp);
         if (!result) {
             perr_printf("Failed to remove breakpoint at %lx\n", addr);
@@ -3559,6 +3563,8 @@ bool installed_breakpoint::rmBreakpoint(int_process *proc, int_breakpoint *bp, b
          setLastError(err_internal, "Could not remove breakpoint\n");
          return false;
       }
+   }else{
+       async_resp->setResponse(true);
    }
    
    return true;

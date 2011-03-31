@@ -300,27 +300,26 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 
             installed_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
 
+            installed_breakpoint *clearingbp = thread->isClearingBreakpoint();
+            if(thread->singleStep() && clearingbp) {
+                pthrd_printf("Decoded event to breakpoint cleanup\n");
+                event = Event::ptr(new EventBreakpointClear(clearingbp));
+                break;
+            }
+
             // Need to distinguish case where the thread is single-stepped to a
             // breakpoint and when a single step hits a breakpoint.
             //
             // If no forward progress was made due to a single step, then a
             // breakpoint was hit
-            if (thread->singleStep() && (pre_ss_pc != addr || !ibp)) {
-               installed_breakpoint *ibp = thread->isClearingBreakpoint();
-               if (ibp) {
-                  pthrd_printf("Decoded event to breakpoint cleanup\n");
-                  event = Event::ptr(new EventBreakpointClear(ibp));
-                  break;
-               } 
-               else{
-                  pthrd_printf("Decoded event to single step on %d/%d\n",
-                               proc->getPid(), thread->getLWP());
-                  event = Event::ptr(new EventSingleStep());
-                  break;
-               }
+            if (thread->singleStep() && ( (pre_ss_pc != 0 && pre_ss_pc != addr) || !ibp)) {
+               pthrd_printf("Decoded event to single step on %d/%d\n",
+                       proc->getPid(), thread->getLWP());
+               event = Event::ptr(new EventSingleStep());
+               break;
             }
             
-            if (ibp && ibp != thread->isClearingBreakpoint()) {
+            if (ibp && ibp != clearingbp) {
                pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(), 
                             thread->getLWP(), adjusted_addr);
                EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(adjusted_addr, ibp));

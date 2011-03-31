@@ -739,6 +739,7 @@ class installed_breakpoint
    void addClearingThread(int_thread *thrd);
    bool rmClearingThread(int_thread *thrd, bool &uninstalled, result_response::ptr async_resp);
    unsigned getNumClearingThreads() const;
+   unsigned getNumIntBreakpoints() const;
 };
 
 class emulated_singlestep {
