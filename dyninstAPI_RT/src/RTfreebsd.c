@@ -259,7 +259,6 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
 
 /* XXX This current only works for amd64 FreeBSD -- needs some ifdefs for i386 */
 
-extern void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoint);
 extern unsigned long dyninstTrapTableUsed;
 extern unsigned long dyninstTrapTableVersion;
 extern trapMapping_t *dyninstTrapTable;

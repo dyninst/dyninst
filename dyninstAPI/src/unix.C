@@ -39,6 +39,8 @@
 #include "pcThread.h"
 #include "function.h"
 
+#include "common/h/pathName.h"
+
 #include <sstream>
 
 extern char **environ;
@@ -380,14 +382,6 @@ bool PCProcess::getExecFileDescriptor(string filename,
     return true;
 }
 
-static 
-char *deref_link(const char *path) {
-    static char buffer[PATH_MAX], *p;
-    buffer[PATH_MAX-1] = '\0';
-    p = realpath(path, buffer);
-    return p;
-}
-
 /**
  * Strategy:  The program entry point is in /lib/ld-2.x.x at the 
  * _start function.  Get the current PC, parse /lib/ld-2.x.x, and 
@@ -417,7 +411,7 @@ bool PCProcess::hasPassedMain()
       return true;
    }
 
-   std::string derefPath = deref_link(path);
+   std::string derefPath = resolve_file_path(path);
 
    // Search for the dynamic linker in the loaded libraries
    const LibraryPool &libraries = pcProc_->libraries();

@@ -818,7 +818,6 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
     if( bpproc == NULL ) {
         proccontrol_printf("%s[%d]: failed to locate BPatch_process for process %d\n",
                 FILE__, __LINE__, evProc->getPid());
-        return false;
     }
 
     if( shouldStopForSignal(ev->getSignal()) ) {
@@ -830,8 +829,7 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
         ev->clearSignal();
     }
 
-
-    bpproc->setLastSignal(ev->getSignal());
+    if( bpproc ) bpproc->setLastSignal(ev->getSignal());
 
     // Debugging only
     if(    (dyn_debug_proccontrol || dyn_debug_crash)
@@ -910,6 +908,8 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
     // Check whether the signal was sent from the RT library by checking variables
     // in the library -- if we cannot be determine whether this signal came from
     // the RT library, assume it did not.
+    
+    if( evProc->runtime_lib.size() == 0 ) return NotRTSignal;
 
     Address sync_event_breakpoint_addr = evProc->getRTEventBreakpointAddr();
     Address sync_event_id_addr = evProc->getRTEventIdAddr();

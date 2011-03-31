@@ -1070,7 +1070,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
     changedSinceLastGeneration_ = false;
     
     //debugBreakpoint();
-   
+      
     return true;
 }
 
@@ -1730,6 +1730,13 @@ multiTramp::mtErrorCode_t multiTramp::generateMultiTramp()
     // Relocation...
     if (branchSize_ > instSize_)
         return mtTryRelocation;
+
+    if( dyn_debug_disassemble ) {
+        fprintf(stderr, "\nJump buf:\n");
+        jumpBuf_.format(proc()->getArch());
+        fprintf(stderr, "\nMultitramp:\n");
+        generatedMultiT_.format(proc()->getArch());
+    }
 
     return mtSuccess;
 }

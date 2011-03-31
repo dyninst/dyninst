@@ -44,6 +44,7 @@
 #include "dynutil/h/dyn_regs.h"
 #include "dynutil/h/dyntypes.h"
 #include "common/h/SymLite-elf.h"
+#include "common/h/pathName.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Event.h"
@@ -682,17 +683,6 @@ bool linux_process::plat_attach()
    return true;
 }
 
-static std::string deref_link(const char *path)
-{
-   char *p = realpath(path, NULL);
-   if (p == NULL) {
-      return std::string();
-   }
-   std::string sp = p;
-   free(p);
-   return sp;
-}
-
 bool linux_process::plat_execed()
 {
    bool result = sysv_process::plat_execed();
@@ -701,7 +691,7 @@ bool linux_process::plat_execed()
 
    char proc_exec_name[128];
    snprintf(proc_exec_name, 128, "/proc/%d/exe", getPid());
-   executable = deref_link(proc_exec_name);
+   executable = resolve_file_path(proc_exec_name);
    return true;
 }
 

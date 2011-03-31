@@ -221,6 +221,9 @@ class codeGen {
     void markRegDefined(Register r);
     bool isRegDefined(Register r);
 
+    // Prints the disassembly to standard error for debugging purposes
+    void format(Architecture arch);
+
     void setPCRelUseCount(int c) { pc_rel_use_count = c; }
     int getPCRelUseCount() const { return pc_rel_use_count; }
  private:

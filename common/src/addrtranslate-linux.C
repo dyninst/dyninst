@@ -180,21 +180,12 @@ bool AddressTranslateSysV::setAddressSize()
    return true;
 }
 
-static char *deref_link(const char *path)
-{
-   static char buffer[PATH_MAX], *p;
-   buffer[PATH_MAX-1] = '\0';
-   p = realpath(path, buffer);
-   return p;
-}
-
-
 string AddressTranslateSysV::getExecName() 
 {
    if (exec_name.empty()) {
       char name[64];
       snprintf(name, 64, "/proc/%d/exe", pid);
-      exec_name = std::string(deref_link(name));
+      exec_name = resolve_file_path(name);
    }
    return exec_name;
 }

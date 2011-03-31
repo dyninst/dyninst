@@ -47,6 +47,7 @@
 
 #include "common/h/headers.h"
 #include "common/h/freebsdKludges.h"
+#include "common/h/pathName.h"
 
 #include "symtabAPI/h/Symtab.h"
 using namespace Dyninst::SymtabAPI;
@@ -159,14 +160,6 @@ bool BinaryEdit::archSpecificMultithreadCapable() {
     return false;
 }
 
-static 
-char *deref_link(const char *path) {
-    static char buffer[PATH_MAX], *p;
-    buffer[PATH_MAX-1] = '\0';
-    p = realpath(path, buffer);
-    return p;
-}
-
 bool AddressSpace::getDyninstRTLibName() {
    startup_printf("dyninstRT_name: %s\n", dyninstRT_name.c_str());
     if (dyninstRT_name.length() == 0) {
@@ -226,7 +219,7 @@ bool AddressSpace::getDyninstRTLibName() {
                      std::string(modifier) +
                      std::string(suffix);
 
-    dyninstRT_name = deref_link(dyninstRT_name.c_str());
+    dyninstRT_name = resolve_file_path(dyninstRT_name.c_str());
 
     startup_printf("Dyninst RT Library name set to '%s'\n",
             dyninstRT_name.c_str());
@@ -375,7 +368,7 @@ bool PCProcess::postRTLoadCleanup() {
 }
 
 AstNodePtr PCProcess::createLoadRTAST() {
-    pdvector<int_function *> dlopen_funcs;
+    vector<int_function *> dlopen_funcs;
 
     // allow user to override default dlopen func names with env. var
 
@@ -393,14 +386,31 @@ AstNodePtr PCProcess::createLoadRTAST() {
         }
     }
 
-    assert( dlopen_funcs.size() != 0 );
+    // We need to make sure that the correct dlopen function is being used -- the
+    // dlopen in the runtime linker. A symbol for dlopen exists in ld.so even
+    // when it is stripped so we should always find that version of dlopen
+    const char *runtimeLdPath = 
+        getAOut()->parse_img()->getObject()->getInterpreterName();
+    std::string derefRuntimeLdPath = resolve_file_path(runtimeLdPath);
 
-    if( dlopen_funcs.size() > 1 ) {
-        startup_printf("WARNING: more than one dlopen found, using the first\n");
+    int_function *dlopen_func = NULL;
+    for(vector<int_function *>::iterator i = dlopen_funcs.begin();
+            i != dlopen_funcs.end(); ++i)
+    {
+        int_function *tmpFunc = *i;
+        std::string derefPath = resolve_file_path(tmpFunc->obj()->fullName().c_str());
+        if( derefPath == derefRuntimeLdPath ) {
+            dlopen_func = tmpFunc;
+            break;
+        }
     }
 
-    int_function *dlopen_func = dlopen_funcs[0];
-
+    if( dlopen_func == NULL ) {
+        startup_printf("%s[%d]: failed to find correct dlopen function\n",
+                FILE__, __LINE__);
+        return AstNodePtr();
+    }
+    
     rtLibLoadHeap_ = pcProc_->mallocMemory(dyninstRT_name.length());
     if( !rtLibLoadHeap_ ) {
         startup_printf("%s[%d]: failed to allocate memory for RT library load\n",

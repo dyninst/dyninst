@@ -49,6 +49,10 @@
 #include "registerSpace.h"
 #include "pcrel.h"
 
+#if defined(cap_instruction_api)
+#include "instructionAPI/h/InstructionDecoder.h"
+#endif
+
 #if defined(arch_x86) || defined(arch_x86_64)
 #define CODE_GEN_OFFSET_SIZE 1
 #else
@@ -632,4 +636,18 @@ void codeGen::markRegDefined(Register r) {
 bool codeGen::isRegDefined(Register r) {
    assert(trackRegDefs_);
    return regsDefined_[r];
+}
+
+void codeGen::format(Architecture arch) {
+#if defined(cap_instruction_api)
+    using namespace InstructionAPI;
+    InstructionDecoder id(start_ptr(), used(), arch);
+
+    Instruction::Ptr curInstr;
+    curInstr = id.decode();
+    while( curInstr.get() && curInstr->isValid() ) {
+        fprintf(stderr, "%s\n", curInstr->format().c_str());
+        curInstr = id.decode();
+    }
+#endif
 }

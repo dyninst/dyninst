@@ -74,6 +74,7 @@ extern int dyn_stats_ptrace;
 extern int dyn_stats_parse;
 extern int dyn_debug_crash;
 extern int dyn_debug_rtlib;
+extern int dyn_debug_disassemble;
 
 extern char *dyn_debug_crash_debugger;
 

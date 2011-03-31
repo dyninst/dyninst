@@ -48,6 +48,7 @@
 
 #include "common/h/parseauxv.h"
 #include "common/h/headers.h"
+#include "common/h/pathName.h"
 
 #include "common/h/addrtranslate.h"
 #include "common/src/addrtranslate-sysv.h"
@@ -274,16 +275,6 @@ template<class link_map_X>
 bool link_map_dyn<link_map_X>::load_link(Address addr) 
 {
    return proc->ReadMem(addr, &link_elm, sizeof(link_elm));
-}
-
-static const char *deref_link(const char *path)
-{
-   static char buffer[PATH_MAX], *p;
-   buffer[PATH_MAX-1] = '\0';
-   p = realpath(path, buffer);
-   if (!p)
-      return path;
-   return p;
 }
 
 ProcessReaderSelf::ProcessReaderSelf() :
@@ -794,10 +785,10 @@ bool AddressTranslateSysV::refresh()
                           __FILE__, __LINE__, getExecName().c_str(), text);
          continue;
       }
-      obj_name = deref_link(link_elm->l_name());
+      obj_name = resolve_file_path(link_elm->l_name());
 
       // Don't re-add the executable, it has already been added
-      if( getExecName() == string(deref_link(obj_name.c_str())) )
+      if( obj_name.empty() || getExecName() == obj_name )
           continue;
 
       ll = getLoadedLibByNameAddr(text, obj_name, dynamic);
@@ -855,7 +846,7 @@ FCNode::FCNode(string f, dev_t d, ino_t i, SymbolReaderFactory *factory_) :
    symreader(NULL),
    factory(factory_)
 {
-   filename = deref_link(f.c_str());
+   filename = resolve_file_path(f.c_str());
 }
 
 string FCNode::getFilename() {
