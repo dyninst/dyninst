@@ -271,6 +271,27 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
                     hasCtrlTransfer = true;
                     break;
                 }
+
+                // Explicit synchronization unnecessary here
+                if( (*i) == process->getBreakpointAtMain() ) {
+                    // We need to remove the breakpoint in the ProcControl callback to ensure
+                    // the breakpoint is not automatically suspended and resumed
+                    startup_printf("%s[%d]: removing breakpoint at main\n", FILE__, __LINE__);
+                    if( !process->removeBreakpointAtMain() ) {
+                        proccontrol_printf("%s[%d]: failed to remove main breakpoint in event handling\n",
+                                FILE__, __LINE__);
+                        ev = Event::const_ptr(new Event(EventType::Error));
+                    }
+
+                    // If we are in the midst of bootstrapping, update the state to indicate
+                    // that we have hit the breakpoint at main
+                    if( !process->hasReachedBootstrapState(PCProcess::bs_readyToLoadRTLib) ) {
+                        process->setBootstrapState(PCProcess::bs_readyToLoadRTLib);
+                    }
+
+                    // Need to pass the event on the user thread to indicate to that the breakpoint
+                    // at main was hit
+                }
             }
 
             if( hasCtrlTransfer ) {
@@ -1294,36 +1315,15 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
     return true;
 }
 
-bool PCEventHandler::handleBreakpoint(EventBreakpoint::const_ptr ev, PCProcess *evProc) const {
-    vector<Breakpoint::const_ptr> bps;
-    ev->getBreakpoints(bps);
-    
-    // Breakpoint dispatch
-    for(vector<Breakpoint::const_ptr>::const_iterator i = bps.begin(); i != bps.end(); ++i) {
-        if( (*i) == evProc->getBreakpointAtMain() ) {
-            startup_printf("%s[%d]: removing breakpoint at main\n", FILE__, __LINE__);
-            if( !evProc->removeBreakpointAtMain() ) {
-                proccontrol_printf("%s[%d]: failed to remove main breakpoint in event handling\n",
-                        FILE__, __LINE__);
-                return false;
-            }
-
-            // If we are in the midst of bootstrapping, update the state to indicate
-            // that we have hit the breakpoint at main
-            if( !evProc->hasReachedBootstrapState(PCProcess::bs_readyToLoadRTLib) ) {
-                evProc->setBootstrapState(PCProcess::bs_readyToLoadRTLib);
-            }
+bool PCEventHandler::handleBreakpoint(EventBreakpoint::const_ptr ev, PCProcess *) const {
+    if( dyn_debug_proccontrol ) {
+        RegisterPool regs;
+        if( !ev->getThread()->getAllRegisters(regs) ) {
+            fprintf(stderr, "%s[%d]: Failed to get registers at breakpoint\n", FILE__, __LINE__);
         }else{
-            if( dyn_debug_proccontrol ) {
-                RegisterPool regs;
-                if( !ev->getThread()->getAllRegisters(regs) ) {
-                    fprintf(stderr, "%s[%d]: Failed to get registers at breakpoint\n", FILE__, __LINE__);
-                }else{
-                    fprintf(stderr, "Registers at breakpoint:\n");
-                    for(RegisterPool::iterator i = regs.begin(); i != regs.end(); i++) {
-                        fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name().c_str(), (*i).second);
-                    }
-                }
+            fprintf(stderr, "Registers at breakpoint:\n");
+            for(RegisterPool::iterator i = regs.begin(); i != regs.end(); i++) {
+                fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name().c_str(), (*i).second);
             }
         }
     }
