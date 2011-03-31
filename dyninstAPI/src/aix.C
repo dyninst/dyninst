@@ -66,9 +66,6 @@
 #include "dyninstAPI/h/BPatch_process.h"
 #include "dyninstAPI/h/BPatch_function.h"
 
-// FIXME remove and remove InstrucIter references
-#include "parseAPI/src/InstrucIter.h"
-
 #include "mapped_module.h"
 #include "mapped_object.h"
 
@@ -835,58 +832,6 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 	
 }
 
-
-#if defined (cap_save_the_world)
-void process::addLib(char* lname)
-{
-
-	BPatch_process *appThread = BPatch::bpatch->getProcessByPid(getPid());
-	BPatch_image *appImage = appThread->getImage();
-
-   BPatch_Vector<BPatch_point *> *mainFunc;
-
-	bool isTrampRecursive = BPatch::bpatch->isTrampRecursive();
-    BPatch::bpatch->setTrampRecursive( true ); //ccw 31 jan 2003
-    BPatch_Vector<BPatch_function *> bpfv;
-    if (NULL == appImage->findFunction("main", bpfv) || !bpfv.size()) { 
-      bperr("Unable to find function \"main\". Save the world will fail.\n");
-      return;
-   }
-
-   BPatch_function *mainFuncPtr =bpfv[0];
-   mainFunc = mainFuncPtr->findPoint(BPatch_entry);
-    
-   if (!mainFunc || ((*mainFunc).size() == 0)) {
-      bperr( "    Unable to find entry point to \"main.\"\n");
-      exit(1);
-   }
-
-   bpfv.clear();
-   if (NULL == appImage->findFunction("dlopen", bpfv) || !bpfv.size()) {
-      bperr("Unable to find function \"dlopen\". Save the world will fail.\n");
-      return;
-   }
-   BPatch_function *dlopen_func = bpfv[0];
-   
-   BPatch_Vector<BPatch_snippet *> dlopen_args;
-   BPatch_constExpr nameArg(lname);
-   BPatch_constExpr rtldArg(4);
-   
-   dlopen_args.push_back(&nameArg);
-   dlopen_args.push_back(&rtldArg);
-   
-   BPatch_funcCallExpr dlopenExpr(*dlopen_func, dlopen_args);
-   
-	//bperr(" inserting DLOPEN(%s)\n",lname);
-	requestTextMiniTramp = 1;
-   
-   appThread->insertSnippet(dlopenExpr, *mainFunc, BPatch_callBefore,
-                            BPatch_firstSnippet);
-	requestTextMiniTramp = 0;
-   
-	BPatch::bpatch->setTrampRecursive( isTrampRecursive ); //ccw 31 jan 2003
-}
-#endif
 
 bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); return false; }
 bool process::instrumentLibcStartMain() { assert(0); return false; }
@@ -1733,15 +1678,6 @@ int_function *instPoint::findCallee() {
         return NULL;
     }
         
-#if !defined(cap_instruction_api)
-    InstrucIter targetIter(callTarget(), proc());
-    if (!targetIter.getInstruction().valid()) {
-        return NULL;
-    }
-    Address toc_offset = 0;
-
-    if (targetIter.isInterModuleCallSnippet(toc_offset)) {
-#else
     using namespace Dyninst::InstructionAPI;
     const unsigned char* buffer = (const unsigned char*)(proc()->getPtrToInstruction(callTarget()));
     parsing_printf("Checking for linkage at addr 0x%lx\n", callTarget());
@@ -1765,7 +1701,6 @@ int_function *instPoint::findCallee() {
         assert(child_as_expr);
         child_as_expr->bind(r2.get(), Result(u32, 0));
         toc_offset = child_as_expr->eval().convert<Address>();
-#endif
         Address TOC_addr = (func()->obj()->parse_img()->getObject())->getTOCoffset();
         
         // We need to read out of memory rather than disk... so this is a call to

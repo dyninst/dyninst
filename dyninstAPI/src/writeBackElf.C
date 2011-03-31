@@ -32,8 +32,7 @@
 /* -*- Mode: C; indent-tabs-mode: true -*- */
 /* $Id: writeBackElf.C,v 1.34 2008/06/20 22:00:05 legendre Exp $ */
 
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
+#if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 
 #include "dyninstAPI/src/process.h"

@@ -128,10 +128,8 @@ class bblInstance : public codeRange {
     int_basicBlock *block() const;
     int version() const;
 
-#if defined(cap_instruction_api)
     void getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr,
 			  Address> > &instances) const;
-#endif
 
 #if defined(cap_relocation)
     // Get the most space necessary to relocate this basic block,
@@ -510,10 +508,6 @@ class int_function : public patchTarget {
     void getStaticCallers(pdvector <int_function *> &callers);
 
    codeRange *copy() const;
-
-#if defined(sparc_sun_solaris2_4)
-   bool is_o7_live(){ return ifunc_->is_o7_live(); }
-#endif
 
 #if defined(arch_power)
    bool savesReturnAddr() const { return ifunc_->savesReturnAddr(); }

@@ -40,13 +40,9 @@
 #include "codeRange.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/multiTramp.h"
-#if defined(cap_instruction_api)
 #include "common/h/arch.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "instructionAPI/h/Instruction.h"
-#else
-#include "parseAPI/src/InstrucIter.h"
-#endif
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/patch.h"
 
@@ -845,7 +841,6 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
    // Keep a running count of how big things are...
    maxSize() = 0;
    minSize() = 0;
-#if defined(cap_instruction_api)
    using namespace Dyninst::InstructionAPI;
    unsigned char* buffer = reinterpret_cast<unsigned char*>(orig->proc()->getPtrToInstruction(orig->firstInsnAddr()));
    InstructionDecoder d(buffer, orig->getSize(), func()->ifunc()->isrc()->getArch());
@@ -874,28 +869,6 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
    }
    
   
-#else
-   InstrucIter insnIter(orig->firstInsnAddr(),orig->getSize(),orig->proc());
-   while (insnIter.hasMore()) {
-     instruction *insnPtr = insnIter.getInsnPtr();
-     assert(insnPtr);
-     //reloc_info_t::relocInsn *reloc = new reloc_info_t::relocInsn;
-     reloc_info_t::relocInsn::Ptr reloc =
-        dyn_detail::boost::make_shared<reloc_info_t::relocInsn>();
-
-     reloc->origAddr = *insnIter;
-     reloc->relocAddr = 0;
-     reloc->origInsn = insnPtr;
-     reloc->origPtr = insnPtr->ptr();
-     reloc->relocTarget = 0;
-     reloc->relocSize = 0;
-
-     relocs().push_back(reloc);
-
-     maxSize() += insnPtr->spaceToRelocate();
-     insnIter++;
-   }
-#endif //defined(cap_instruction_api)
 
    // Apply any hanging-around relocations from our previous instance
    for (i = 0; i < orig->appliedMods().size(); i++) {

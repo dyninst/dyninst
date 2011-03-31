@@ -1160,12 +1160,6 @@ mapped_module* mapped_object::getDefaultModule()
 // and adjusts point->block pointers accordingly 
 bool mapped_object::splitIntLayer()
 {
-
-#if ! defined (cap_instruction_api)
-    // not implemented (or needed, for now) on non-instruction API platforms
-    return false;
-#else
-
     using namespace InstructionAPI;
     // iterates through the blocks that were created during block splitting
     std::set< image_basicBlock* > splits = parse_img()->getSplitBlocks();
@@ -1275,7 +1269,6 @@ bool mapped_object::splitIntLayer()
 
     return true;
 
-#endif
 }
 
 

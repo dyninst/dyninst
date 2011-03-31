@@ -47,17 +47,13 @@
 
 #include "common/h/arch.h"
 
-#if !defined(cap_instruction_api)
-#include "parseAPI/h/InstrucIter.h"
-#endif
-
 /*
 By parsing the function that actually sets up the parameters for the OMP
 region we discover informations such as what type of parallel region we're
 dealing with */
 bool image_func::parseOMPParent(image_parRegion * iPar, int desiredNum, int & currentSectionNum )
 {
-#if !defined(cap_instruction_api)
+#if 0 //!defined(cap_instruction_api)
    Address funcBegin = getOffset();
    InstrucIter ah(funcBegin, this);
    InstrucIter callFind(funcBegin, this);
@@ -315,7 +311,7 @@ void image_func::parseOMPFunc(bool hasLoop)
    for (int i = 0; i < 11; i++)
       regValues[i] = -1;
   
-#if !defined(cap_instruction_api)
+#if 0//!defined(cap_instruction_api)
    Address funcBegin = getOffset();
    InstrucIter ah(funcBegin, this);
    while (ah.hasMore())

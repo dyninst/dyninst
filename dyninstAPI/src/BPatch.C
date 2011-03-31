@@ -2189,7 +2189,6 @@ void BPatch::getBPatchVersionInt(int &major, int &minor, int &subminor)
 }
 
 BPatch_binaryEdit *BPatch::openBinaryInt(const char *path, bool openDependencies /* = false */) {
-	printf(" opening binary %s \n", path);
    BPatch_binaryEdit *editor = new BPatch_binaryEdit(path, openDependencies);
    if (!editor)
       return NULL;

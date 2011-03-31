@@ -32,8 +32,7 @@
 #include "saveSharedLibrary.h"
 #include "util.h"
 
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
+#if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 
 saveSharedLibrary::saveSharedLibrary(sharedLibrary sharedLib, char* newname){

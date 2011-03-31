@@ -56,12 +56,7 @@ class int_function;
 class multiTramp;
 class AddressSpace; // process superclass
 
-#if defined( cap_unwind )
-#include <libunwind.h>
-#define UNW_INFO_TYPE unw_dyn_region_info_t
-#else
 #define UNW_INFO_TYPE void
-#endif
 
 class generatedCodeObject : public codeRange {
  public:
@@ -284,22 +279,14 @@ class relocatedInstruction : public relocatedCode {
                          process *child);
     // Like the first constructor (with an instruction argument), but filling it in
     // from the original address.  We're smart, we can do that.
-#if defined(cap_instruction_api)
     relocatedInstruction(const unsigned char *insnPtr, Address o,
 			 Address f,
 			 Address t,
 			 multiTramp *m);
-#endif    
     ~relocatedInstruction();
 
     instruction *insn;
 
-#if defined(arch_sparc)
-    // We wrap delay slots; not going to allow instrumentation
-    // of them (as it's a pain)
-    instruction *ds_insn;
-    instruction *agg_insn;
-#endif
 
     Address origAddr_;
     Address fromAddr_;
@@ -677,10 +664,6 @@ class multiTramp : public generatedCodeObject {
   bool generateTrapToTramp(codeGen &gen);
   bool fillJumpBuf(codeGen &gen);
   
-#if defined( cap_unwind )
-  unw_dyn_info_t * unwindInformation;
-#endif /* defined( cap_unwind ) */
-
   bool changedSinceLastGeneration_;
 
   trampEnd *trampEnd_;

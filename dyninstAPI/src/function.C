@@ -39,7 +39,6 @@
 #include "mapped_object.h"
 #include "mapped_module.h"
 #include "InstructionDecoder.h"
-#include "parseAPI/src/InstrucIter.h"
 
 #if defined(cap_relocation)
 #include "reloc-func.h"
@@ -617,20 +616,12 @@ Address int_function::setNewEntryPoint(int_basicBlock *& newEntry)
     int insn_size = 0;
     unsigned char * insn_buf = (unsigned char *) obj()->getPtrToInstruction
         (newEntry->origInstance()->firstInsnAddr());
-#if defined(cap_instruction_api)
     using namespace InstructionAPI;
     InstructionDecoder dec
         (insn_buf,InstructionDecoder::maxInstructionLength,proc()->getArch());
     Instruction::Ptr insn = dec.decode();
     if(insn)
         insn_size = insn->size();
-#else
-    InstrucIter ah(newEntry->origInstance()->firstInsnAddr(),
-                   newEntry->origInstance()->getSize(),
-                   proc());
-    instruction insn = ah.getInstruction();
-    insn_size = insn.size();
-#endif
     image_instPoint *imgPoint = new image_instPoint(
         newEntry->llb()->firstInsnOffset(),
         insn_buf,
@@ -2364,7 +2355,6 @@ const pdvector< int_parRegion* > &int_function::parRegions()
   return parallelRegions_;
 }
 
-#if defined(cap_instruction_api) 
 void bblInstance::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >&instances) const {
   instances.clear();
   block()->llb()->getInsnInstances(instances);
@@ -2372,14 +2362,6 @@ void bblInstance::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruc
     instances[i].second += firstInsnAddr_ - block()->llb()->start();
   }
 }
-#endif
-#if 0
-int_basicBlock *int_function::findBlockByImage(image_basicBlock *block) {
-  unsigned img_id = block->id();
-  unsigned int_id = blockIDmap[img_id];
-  return blockList[int_id];
-}
-#endif
 
 
 /* removes all function blocks in the specified range

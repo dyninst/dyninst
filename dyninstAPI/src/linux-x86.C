@@ -74,10 +74,6 @@
 
 #include <sstream>
 
-#if defined (cap_save_the_world)
-#include "dyninstAPI/src/addLibraryLinux.h"
-#include "dyninstAPI/src/writeBackElf.h"
-#endif
 #include "dyninstAPI/src/debuggerinterface.h"
 
 #include "dyninstAPI/src/ast.h"

@@ -37,11 +37,7 @@
 #include "instPoint.h"
 #include "process.h"
 #include "function.h"
-#if defined(cap_instruction_api)
 #include "instructionAPI/h/InstructionDecoder.h"
-#else
-#include "parseAPI/src/InstrucIter.h"
-#endif // defined(cap_instruction_api)
 #include "BPatch.h"
 // Need codebuf_t, Address
 #include "codegen.h"
@@ -383,7 +379,6 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 #endif
     if (!done) {
 
-#if defined(cap_instruction_api)
       size_t offset = 0;
       using namespace Dyninst::InstructionAPI;
       const unsigned char* relocatedInsnBuffer =
@@ -406,57 +401,8 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 	reloc->setPrevious(prev);
 	prev = reloc;	
 	offset += decoder.decode()->size();
-	#if defined(arch_sparc)
-	#error "Instruction API not implemented for SPARC yet"
-	// delay slot handling goes here
-	#endif
       }
       
-#else
-      for (InstrucIter insnIter(startAddr, size, proc);
-	   insnIter.hasMore(); 
-	   insnIter++) {
-        instruction *insn = insnIter.getInsnPtr();
-        Address insnAddr = *insnIter;
-	
-        relocatedInstruction *reloc = new relocatedInstruction(insn, 
-							       insnAddr,
-							       insnAddr, 
-							       0,
-							       newMulti);
-        newMulti->insns_[insnAddr] = reloc;
-        
-        if (prev) {
-	  prev->setFallthrough(reloc);
-        }
-        else {
-	  // Other initialization?
-	  newMulti->setFirstInsn(reloc);
-        }
-        reloc->setPrevious(prev);
-        prev = reloc;
-        
-        // SPARC!
-#if defined(arch_sparc)
-        // Just to avoid cluttering this up
-        // If we have a delay slot, grab the next insn and aggregate,
-        // if it exists. These functions advance the iterator; effectively
-        // we're gluing delay slot and jump together.
-        
-        if (insn->isDCTI()) {
-	  instruction *ds, *agg;
-	  insnIter.getAndSkipDSandAgg(ds, agg);
-
-	  if (ds) {
-	    reloc->ds_insn = ds;
-	  }
-	  if (agg) {
-	    reloc->agg_insn = agg;
-	  }
-        }
-#endif // defined(arch_sparc)
-      } 
-#endif // defined(cap_instruction_api)  
     }
 
     assert(prev);
@@ -544,17 +490,12 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
 
         
         startAddr = instAddr;
-#if defined(cap_instruction_api)
 	using namespace Dyninst::InstructionAPI;
 	InstructionDecoder decoder((unsigned char*)(proc->getPtrToInstruction(instAddr)),
 				   InstructionDecoder::maxInstructionLength,
 				   proc->getArch());
         Instruction::Ptr instInsn = decoder.decode();
 	size = instInsn->size();
-#else
-        InstrucIter ah(instAddr,proc);
-        size = ah.getInstruction().size();
-#endif // defined(cap_instruction_api)
         basicBlock = false;
         return true;
     }
@@ -747,9 +688,6 @@ multiTramp::multiTramp(Address addr,
     previousInsnAddrs_(NULL),
     generatedMultiT_(),
     savedCodeBuf_(NULL),
-#if defined( cap_unwind )
-    unwindInformation(NULL),	
-#endif /* defined( cap_unwind ) */    
     changedSinceLastGeneration_(false),
     trampEnd_(NULL),
     isActive_(false),
@@ -790,9 +728,6 @@ multiTramp::multiTramp(multiTramp *oM) :
     generatedMultiT_(), // Not copied
     jumpBuf_(), // Not copied
     savedCodeBuf_(NULL),
-#if defined( cap_unwind )
-    unwindInformation(NULL),	
-#endif /* defined( cap_unwind ) */    
     changedSinceLastGeneration_(true),
     trampEnd_(NULL),
     isActive_(false),
@@ -821,9 +756,6 @@ multiTramp::multiTramp(const multiTramp *parMulti, process *child) :
     generatedMultiT_(parMulti->generatedMultiT_),
     jumpBuf_(parMulti->jumpBuf_),
     savedCodeBuf_(NULL),
-#if defined( cap_unwind )
-    unwindInformation(NULL),	
-#endif /* defined( cap_unwind ) */    
     changedSinceLastGeneration_(parMulti->changedSinceLastGeneration_),
     trampEnd_(),
     isActive_(false),
@@ -1018,39 +950,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
     generatedMultiT_.setIndex(0);
 
     UNW_INFO_TYPE **unwind_region = NULL; 
-#if defined( cap_unwind )
-	/* Initialize the unwind information structure. */
-	if( unwindInformation != NULL ) { free( unwindInformation ); }
-    unwindInformation = (unw_dyn_info_t *)calloc( 1, sizeof( unw_dyn_info_t ) );
-    assert( unwindInformation != NULL );
-    
-    unwindInformation->format = UNW_INFO_FORMAT_DYNAMIC;
-    unwindInformation->prev = NULL;
-    unwindInformation->next = NULL;
-    
-    unwindInformation->u.pi.name_ptr = (unw_word_t) "dynamic instrumentation";
-    unwindInformation->u.pi.handler = (Address) NULL;
-    
-    /* Generate the initial region, and then link it in.  This way,
-       we can pass around a region pointer reference. */
-    unw_dyn_region_info_t * initialRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
-    assert( initialRegion != NULL );
-    
-    /* Special format for point ALIAS: a zero-length region. */
-    initialRegion->insn_count = 0;
-    initialRegion->op_count = 2;
-    initialRegion->next = NULL;
-    
-    dyn_unw_printf( "%s[%d]: aliasing multitramp to 0x%lx\n", __FILE__, __LINE__, instAddr_ );
-    _U_dyn_op_alias( & initialRegion->op[0], _U_QP_TRUE, -1, instAddr_ );
-    _U_dyn_op_stop( & initialRegion->op[1] );
-    
-    unwindInformation->u.pi.regions = initialRegion;
-    
-    /* For the iterator, below. */
-    unwind_region = &initialRegion;
-#endif /* defined( cap_unwind ) */
-            
+           
     //Call ::generate(...) for each object
     generateCodeWorker(size_required, unwind_region);
 
@@ -1179,26 +1079,6 @@ bool multiTramp::installCode() {
                                               generatedMultiT_.start_ptr());
         if( success ) {
             proc()->addOrigRange(this);
-#if defined( cap_unwind )
-            static bool warned_buggy_libunwind = false;
-            if( unwindInformation != NULL ) {
-                unwindInformation->start_ip = trampAddr_;
-                unwindInformation->end_ip = trampAddr_ + trampSize_;
-                unwindInformation->gp = proc()->proc()->getTOCoffsetInfo( instAddr_ );
-            
-                dyn_unw_printf( "%s[%d]: registering multitramp unwind information for 0x%lx, at 0x%lx-0x%lx, GP 0x%lx\n",
-                                __FILE__, __LINE__, instAddr_, unwindInformation->start_ip, unwindInformation->end_ip,
-                                unwindInformation->gp );
-	            if( ! proc()->proc()->insertAndRegisterDynamicUnwindInformation( unwindInformation ) ) 
-                    {
-                        if(!warned_buggy_libunwind)
-                        {
-                            std::cerr << "Insertion of unwind information via libunwind failed; stack walks outside of instrumented areas may not behave as expected" << std::endl;
-                            warned_buggy_libunwind = true;
-                        }
-                    }
-            }
-#endif /* defined( cap_unwind ) */
         }
         else { return false; }
     }
@@ -2133,17 +2013,6 @@ relocatedInstruction::relocatedInstruction(const relocatedInstruction *parRI,
     targetOverride_(parRI->targetOverride_)
 {
     insn = parRI->insn->copy();
-#if defined(arch_sparc)
-    if (parRI->ds_insn)
-        ds_insn = parRI->ds_insn;
-    else
-        ds_insn = NULL;
-    if (parRI->agg_insn)
-        agg_insn = parRI->agg_insn;
-    else
-        agg_insn = NULL;
-#endif
-
 }
 
 
@@ -2507,58 +2376,11 @@ bool relocatedInstruction::generateCode(codeGen &gen,
        return false;
     }
 
-#if defined(arch_sparc) 
-    // We pin delay instructions.
-    if (insn->isDCTI()) {
-      if (ds_insn) {
-        inst_printf("... copying delay slot\n");
-        insnCodeGen::generate(gen,*ds_insn);
-      }
-      if (agg_insn) {
-        inst_printf("... copying aggregate\n");
-        insnCodeGen::generate(gen,*agg_insn);
-      }
-    }
-#endif
-
     size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
     generated_ = true;
     hasChanged_ = false;
   } /* end code generation */
     
-#if defined( cap_unwind )
-  /* FIXME: a relocated instruction could easily change the unwind state.
-     IA64-specific: can we ALIAS into the middle of bundles?
-     Generally, can a relocated instruction tell how far into a basic block (bundle) it is? */
-  dyn_unw_printf( "%s[%d]: aliasing relocated instruction to 0x%lx\n", __FILE__, __LINE__, multiT->instAddr() );
-  unw_dyn_region_info_t * aliasRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
-  assert( aliasRegion != NULL );
-  aliasRegion->insn_count = 0;
-  aliasRegion->op_count = 2;
-	
-  _U_dyn_op_alias( & aliasRegion->op[0], _U_QP_TRUE, -1, multiT->instAddr() );
-  _U_dyn_op_stop( & aliasRegion->op[1] );
-     
-  unw_dyn_region_info_t * relocatedRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 1 ) );
-  assert( relocatedRegion != NULL );
-    
-  relocatedRegion->op_count = 1;
-  _U_dyn_op_stop( & relocatedRegion->op[0] );
-		
-  /* size_ is in bytes. */
-#if defined( arch_ia64 )
-  relocatedRegion->insn_count = (size_ / 16) * 3;
-#else 	
-#error How do I know how many instructions are in the jump region?
-#endif /* defined( arch_ia64 ) */
-
-  /* The care and feeding of pointers. */
-  unw_dyn_region_info_t * prevRegion = * unwindInformation;
-  prevRegion->next = aliasRegion;
-  aliasRegion->next = relocatedRegion;
-  relocatedRegion->next = NULL;
-  * unwindInformation = relocatedRegion;
-#endif /* defined( cap_unwind ) */
   return true;
 }
 
@@ -2610,14 +2432,6 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
         // Yes... we'll just use a trap later
         return true;
     }
-#if defined(arch_sparc)
-    int dist = (trampAddr_ - instAddr_);
-    if (!instruction::offsetWithinRangeOfBranchInsn(dist) &&
-        func()->is_o7_live()) {
-        branchSize_ = (unsigned) -1;
-        return true;
-    }
-#endif
     insnCodeGen::generateBranch(gen, instAddr_, trampAddr_);
 
     branchSize_ = gen.used() - origUsed;
@@ -2665,11 +2479,7 @@ relocatedInstruction::relocatedInstruction(instruction *i,
                       multiTramp *m) :
    relocatedCode(),
    insn(i),
-#if defined(arch_sparc)
-   ds_insn(NULL),
-   agg_insn(NULL),
-#endif
-   origAddr_(o), 
+   origAddr_(o),
    fromAddr_(f), 
    targetAddr_(t),
    multiT(m), 
@@ -2681,25 +2491,17 @@ relocatedInstruction::relocatedInstruction(relocatedInstruction *prev,
                                            multiTramp *m) :
    relocatedCode(),
    insn(prev->insn),
-#if defined(arch_sparc)
-   ds_insn(prev->ds_insn),
-   agg_insn(prev->agg_insn),
-#endif
    origAddr_(prev->origAddr_), fromAddr_(prev->fromAddr_),
    targetAddr_(prev->targetAddr_),
    multiT(m),
    targetOverride_(prev->targetOverride_) 
 {
 }
-#if defined(cap_instruction_api)
+
 relocatedInstruction::relocatedInstruction(const unsigned char* insnPtr, Address o, Address f, Address t,
                       multiTramp *m) :
    relocatedCode(),
-#if defined(arch_sparc)
-   ds_insn(NULL),
-   agg_insn(NULL),
-#endif
-   origAddr_(o), 
+   origAddr_(o),
    fromAddr_(f), 
    targetAddr_(t),
    multiT(m), 
@@ -2709,7 +2511,6 @@ relocatedInstruction::relocatedInstruction(const unsigned char* insnPtr, Address
   insn = new instruction;
   insn->setInstruction(const_cast<codeBuf_t*>(buf), (Address)(o));
 }
-#endif
 
 replacedInstruction::replacedInstruction(const relocatedInstruction *i,
                                          AstNodePtr ast,

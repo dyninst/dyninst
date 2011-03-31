@@ -137,9 +137,7 @@ class image_basicBlock : public codeRange, public ParseAPI::Block  {
     const bitArray getLivenessOut(image_func * context);
 #endif
 
-#if defined(cap_instruction_api)
     void getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> > &instances);
-#endif
 
  private:
     bool needsRelocation_;
@@ -329,10 +327,6 @@ class image_func : public ParseAPI::Function
 
 #if defined(arch_x86) || defined(arch_x86_64)
    bool isTrueCallInsn(const instruction insn);
-#endif
-
-#if defined(sparc_sun_solaris2_4)
-   bool is_o7_live(){ return o7_live; }
 #endif
 
 #if defined(arch_power)

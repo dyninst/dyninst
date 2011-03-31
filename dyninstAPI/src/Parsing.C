@@ -30,12 +30,8 @@
  */
 #include <stdio.h>
 
-#if defined(cap_instruction_api)
 #include "InstructionDecoder.h"
 #include "Instruction.h"
-#else
-#include "parseAPI/src/InstrucIter.h"
-#endif
 
 #include "symtab.h"
 #include "image-func.h"
@@ -133,17 +129,11 @@ DynCFGFactory::mkfunc(
     // make an entry instpoint
     size_t insn_size = 0;
     unsigned char * insn_buf = (unsigned char *)isrc->getPtrToInstruction(addr);
-#if defined(cap_instruction_api)
     InstructionDecoder dec(insn_buf,InstructionDecoder::maxInstructionLength,
         isrc->getArch());
     Instruction::Ptr insn = dec.decode();
     if(insn)
         insn_size = insn->size();
-#else
-   InstrucIter ah(addr,isrc);
-   instruction insn = ah.getInstruction();
-   insn_size = insn.size();
-#endif
 
 #if defined(os_vxworks)
    // Relocatable objects (kernel modules) are instrumentable on VxWorks.

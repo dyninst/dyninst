@@ -163,7 +163,7 @@ bool dynamic_linking::getSharedObjects(pdvector<mapped_object *> &mapped_objects
     for (unsigned i = 0; i < descs.size(); i++) {
          if (!proc->findObject(descs[i]) && 
              !strstr(descs[i].file().c_str(),"ld.so.cache")) {
-#if 0
+#ifdef DEBUG_UNDEFINED
             fprintf(stderr, "DEBUG: match pattern %d, %d, %d, %d, %d\n",
                     descs[i].file() == proc->getAOut()->getFileDesc().file(),
                     descs[i].code() == proc->getAOut()->getFileDesc().code(),
@@ -175,10 +175,7 @@ bool dynamic_linking::getSharedObjects(pdvector<mapped_object *> &mapped_objects
                mapped_object::createMappedObject(descs[i], proc);
             if (newobj == NULL) continue;
             mapped_objects.push_back(newobj);
-#if defined(cap_save_the_world)
-            setlowestSObaseaddr(descs[i].code());
-#endif
-        }           
+        }
     }
     return true;
 } /* end getSharedObjects() */

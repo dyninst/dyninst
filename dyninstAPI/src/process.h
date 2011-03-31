@@ -80,11 +80,6 @@
 #endif
 
 
-#if defined( cap_unwind )
-#include <libunwind.h>
-#include <libunwind-ptrace.h>
-#endif /* defined( cap_unwind ) */
-
 #if defined(os_linux)
 #include "common/h/parseauxv.h"
 #endif
@@ -258,42 +253,9 @@ class process : public AddressSpace {
     void continueAfterNextStop() { continueAfterNextStop_ = true; }
     static process *findProcess(int pid);
 
-#if defined (cap_save_the_world) 
-    
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
-    char* dumpPatchedImage(std::string outFile);//ccw 28 oct 2001
-    
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4)
-    bool prelinkSharedLibrary(string originalLibNameFullPath, char* dirName, Address baseAddr);
-#endif
-    
-#if defined(sparc_sun_solaris2_4)  //ccw 10 mar 2004
-    bool dldumpSharedLibrary(std::string dyninstRT_name, char* directoryname);
-#endif
-    
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) \
- || defined(sparc_sun_solaris2_4)
-    char *saveWorldFindNewSharedLibraryName(string originalLibNameFullPath, char* dirName);
-    void setPrelinkCommand(char *command);
-#endif
-    
-#endif
-
-#else
-#if 0
-    char* dumpPatchedImage(std::string /*outFile*/) { return NULL; } 
-#endif
-#endif
-
-    bool applyMutationsToTextSection(char *textSection, unsigned textAddr, unsigned textSize);
-    
-    
     bool dumpImage(std::string outFile);
+
+
     
     //  SignalHandler::dumpMemory()
     //
@@ -367,30 +329,6 @@ class process : public AddressSpace {
     bool initTrampGuard();
     void saveWorldData(Address address, int size, const void* src);
     
-#if defined(cap_save_the_world)
-    
-    char* saveWorldFindDirectory();
-    
-    unsigned int saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
-                                         unsigned int &dyninst_SharedLibrariesSize,
-                                         char* directoryName, unsigned int &count);
-    char* saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibrariesSize);
-    
-    void saveWorldCreateHighMemSections(pdvector<imageUpdate*> &compactedHighmemUpdates, 
-                                        pdvector<imageUpdate*> &highmemUpdates,
-                                        void *newElf);
-    void saveWorldCreateDataSections(void* ptr);
-    void saveWorldAddSharedLibs(void *ptr);//ccw 14 may 2002
-    void saveWorldloadLibrary(std::string tmp, void *brk_ptr) {
-        loadLibraryUpdates.push_back(tmp);
-        loadLibraryBRKs.push_back(brk_ptr);
-    };
-    
-#if defined(os_aix)
-    void addLib(char *lname);//ccw 30 jul 2002
-#endif // os_aix
-    
-#endif // cap_save_the_world
     
     
     void writeDebugDataSpace(void *inTracedProcess, u_int amount, 
@@ -406,9 +344,6 @@ class process : public AddressSpace {
 
     bool writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
     bool writeTextWord(void *inTracedProcess, u_int amount, const void *inSelf);
-#if 0
-    bool writeTextWord(caddr_t inTracedProcess, int data);
-#endif
     bool readTextSpace(const void *inTracedProcess, u_int amount,
                        void *inSelf);
     bool readTextWord(const void *inTracedProcess, u_int amount,

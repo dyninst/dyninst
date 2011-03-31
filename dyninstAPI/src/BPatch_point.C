@@ -56,11 +56,7 @@
 #include "miniTramp.h"
 #include "function.h"
 
-#if defined(cap_instruction_api)
 #include "BPatch_memoryAccessAdapter.h"
-#else
-#include "parseAPI/src/InstrucIter.h"
-#endif
 
 #include "BPatch_edge.h"
 #include "ast.h"
@@ -318,7 +314,6 @@ Address BPatch_point::getCallFallThroughAddr()
         fprintf(stderr,"ERROR: requested fallthrough address for point at %lx "
                 "that is not a call %s[%d]\n", point->addr(), FILE__, __LINE__);
     }
-#if defined(cap_instruction_api)
     using namespace InstructionAPI;
     mapped_object *obj = point->func()->obj();
     InstructionDecoder dec(obj->getPtrToInstruction(point->addr()),
@@ -327,10 +322,6 @@ Address BPatch_point::getCallFallThroughAddr()
     Instruction::Ptr insn = dec.decode();
     assert(insn);
     return point->addr() + insn->size(); 
-#else 
-    InstrucIter ii(point->addr(), point->proc());
-    return ii.peekNext();
-#endif
 }
 
 Address BPatch_point::getSavedTarget()
@@ -358,32 +349,16 @@ const BPatch_memoryAccess *BPatch_point::getMemoryAccessInt()
     //      point->addr());
     assert(point);
     // Try to find it... we do so through an InstrucIter
-#if defined(cap_instruction_api)
     Dyninst::InstructionAPI::Instruction::Ptr i = getInsnAtPointInt();
     BPatch_memoryAccessAdapter converter;
     
     attachMemAcc(converter.convert(i, point->addr(), point->proc()->getAddressWidth() == 8));
     return memacc;
-#else
-    InstrucIter ii(point->addr(), point->proc());
-    BPatch_memoryAccess *ma = ii.isLoadOrStore();
-
-    attachMemAcc(ma);
-    return ma;
-#endif
 }
-#if defined(cap_instruction_api)
 InstructionAPI::Instruction::Ptr BPatch_point::getInsnAtPointInt()
 {
     return point->insn();
 }
-#else
-InstructionAPI::Instruction::Ptr BPatch_point::getInsnAtPointInt()
-{
-  return InstructionAPI::Instruction::Ptr();
-}
-
-#endif
 
 const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippetsInt() 
 {
@@ -599,17 +574,10 @@ int BPatch_point::getDisplacedInstructionsInt(int maxSize, void* insns)
     // We overwrite the entire basic block... 
 
     // So, we return the instruction "overwritten". Wrong, but what the heck...
-#if defined(cap_instruction_api)
     Dyninst::InstructionAPI::Instruction::Ptr insn(point->insn());
     unsigned size = (maxSize < (int)insn->size()) ? maxSize : insn->size();
     memcpy(insns, (const void *)insn->ptr(), size);
     return insn->size();
-#else
-    const instruction &insn = point->insn();
-    unsigned size = (maxSize < (int)insn.size()) ? maxSize : insn.size();
-    memcpy(insns, (const void *)insn.ptr(), size);
-    return insn.size();
-#endif
 }
 
 // This isn't a point member because it relies on instPoint.h, which
@@ -818,89 +786,12 @@ BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_addressSpace *addS
 }
 
 // findPoint refactoring
-#if defined(cap_instruction_api)
 BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_opCode>&,
                                                       InstrucIter &, 
                                                       BPatch_function *)
 {
     return NULL;
 }
-#else
-BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_opCode>& ops,
-                                        InstrucIter &ii, 
-                                        BPatch_function *bpf) 
-{
-    BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
-    
-    int osize = ops.size();
-    BPatch_opCode* opa = new BPatch_opCode[osize];
-    ops.elements(opa);
-    
-    bool findLoads = false, findStores = false, findPrefetch = false;
-    
-    for(int i=0; i<osize; ++i) {
-        switch(opa[i]) {
-        case BPatch_opLoad: findLoads = true; break;
-        case BPatch_opStore: findStores = true; break;	
-        case BPatch_opPrefetch: findPrefetch = true; break;	
-        }
-    }
-    delete[] opa;
-    
-    while(ii.hasMore()) {
-        
-        //inst = ii.getInstruction();
-        Address addr = *ii;     // XXX this gives the address *stored* by ii...
-        
-        BPatch_memoryAccess* ma = ii.isLoadOrStore();
-        
-        if(!ma)
-        {
-            //fprintf(stderr, "Nothing at 0x%lx\n", *ii);
-            ii++;
-            continue;
-        }
-        
-        //BPatch_addrSpec_NP start = ma.getStartAddr();
-        //BPatch_countSpec_NP count = ma.getByteCount();
-        //int imm = start.getImm();
-        //int ra  = start.getReg(0);
-        //int rb  = start.getReg(1);
-        //int cnt = count.getImm();
-        //short int fcn = ma.prefetchType();
-        bool add = false;
-        
-        if(findLoads && ma->hasALoad()) {
-            //fprintf(stderr, "Load at 0x%lx\n", *ii);
-            add = true;
-        }
-        else if (findStores && ma->hasAStore()) {
-            //fprintf(stderr, "Store at 0x%lx\n", *ii);
-            add = true;
-        }
-        else if (findPrefetch && ma->hasAPrefetch_NP()) {
-            //fprintf(stderr, "Prefetch at 0x%lx\n", *ii);
-            add = true;
-        }
-        ii++;
-        
-        if (add) {
-           BPatch_point *p = BPatch_point::createInstructionInstPoint(//bpf->getProc(),
-                                                                      bpf->getAddSpace(),  
-                                                                      (void *)addr,
-                                                                      bpf);
-           if (p) {
-              if (p->memacc == NULL)
-                 p->attachMemAcc(ma);
-              else
-                 delete ma;
-              result->push_back(p);
-           }
-        }
-    }
-    return result;
-}
-#endif
                                                           
 AddressSpace *BPatch_point::getAS()
 {

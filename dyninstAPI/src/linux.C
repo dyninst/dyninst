@@ -80,11 +80,6 @@
 
 #include "dynamiclinking.h"
 
-#if defined (cap_save_the_world)
-#include "dyninstAPI/src/addLibraryLinux.h"
-#include "dyninstAPI/src/writeBackElf.h"
-// #include "saveSharedLibrary.h" 
-#endif
 #include "symtabAPI/h/Symtab.h"
 using namespace Dyninst::SymtabAPI;
 

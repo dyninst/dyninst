@@ -34,9 +34,7 @@
 #include "function.h"
 #include "instPoint.h"
 
-#if defined(cap_instruction_api)
 #include "instructionAPI/h/InstructionDecoder.h"
-#endif //defined(cap_instruction_api)
 
 #include "symtab.h"
 #include "debug.h"
@@ -539,7 +537,6 @@ void image_func::funcAbruptEnds(pdvector<image_instPoint*> & points)
 }
 
 
-#if defined(cap_instruction_api)
 void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> >&instances) {
     using namespace InstructionAPI;
     Offset off = firstInsnOffset();
@@ -551,7 +548,6 @@ void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::In
         off += instances.back().first->size();
     }
 }
-#endif
 
 
 /* This function is static.

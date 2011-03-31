@@ -527,9 +527,6 @@ bool IA_IAPI::isLeave() const
 
 bool IA_IAPI::isDelaySlot() const
 {
-#if defined(arch_sparc)
-    assert(!"Implement delay slots on SPARC!");
-#endif
     return false;
 }
 

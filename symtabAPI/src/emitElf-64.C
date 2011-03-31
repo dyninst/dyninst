@@ -2016,8 +2016,6 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
          if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
 #if defined(arch_x86)
             rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_386_GLOB_DAT);
-#elif defined(arch_sparc)
-            //            rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_SPARC_GLOB_DAT);
 #elif defined(arch_x86_64)
             rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT);
 #elif defined(arch_power)
@@ -2026,8 +2024,6 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
          } else {
 #if defined(arch_x86)
             rels[j].r_info = ELF64_R_INFO(STN_UNDEF, R_386_GLOB_DAT);
-#elif defined(arch_sparc)
-            //            rels[j].r_info = ELF64_R_INFO(STN_UNDEF, R_SPARC_GLOB_DAT);
 #elif defined(arch_x86_64)
             rels[j].r_info = ELF64_R_INFO((unsigned long)STN_UNDEF, R_X86_64_GLOB_DAT);
 #elif defined(arch_power)
@@ -2043,8 +2039,6 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
          if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
 #if defined(arch_x86)
             relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_386_GLOB_DAT);
-#elif defined(arch_sparc)
-            //            relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_SPARC_GLOB_DAT);
 #elif defined(arch_x86_64)
             relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT);
 #elif defined(arch_power)
@@ -2053,8 +2047,6 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
          } else {
 #if defined(arch_x86)
             relas[k].r_info = ELF64_R_INFO(STN_UNDEF, R_386_GLOB_DAT);
-#elif defined(arch_sparc)
-            //            relas[k].r_info = ELF64_R_INFO(STN_UNDEF, R_SPARC_GLOB_DAT);
 #elif defined(arch_x86_64)
             relas[k].r_info = ELF64_R_INFO((unsigned long)STN_UNDEF, R_X86_64_GLOB_DAT);
 #elif defined(arch_power)

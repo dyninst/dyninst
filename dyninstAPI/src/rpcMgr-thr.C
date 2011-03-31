@@ -452,14 +452,6 @@ bool rpcThr::handleCompletedIRPC()
     dyn_lwp *lwp = thr_->get_lwp();
     assert(lwp);
 
-#if 0
-#if defined(sparc_sun_solaris2_4)    
-    if(mgr_->proc()->multithread_capable() && runningRPC_->isProcessRPC) {
-        mgr_->processingProcessRPC = false;
-    }
-#endif
-#endif
-
     inferiorrpc_printf("Completed thread RPC %d on thread %lu\n", runningRPC_->rpc->id, thr_->get_tid());
 
     // step 1) restore registers:

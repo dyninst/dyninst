@@ -43,12 +43,8 @@
 // Two-level codeRange structure
 #include "mapped_object.h"
 #include "mapped_module.h"
-#if defined(cap_instruction_api)
 #include "InstructionDecoder.h"
 #include "Instruction.h"
-#else
-#include "parseAPI/src/InstrucIter.h"
-#endif //defined(cap_instruction_api)
 
 // Implementations of non-virtual functions in the address space
 // class.
@@ -1118,7 +1114,6 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
     codeRange *range = findOrigByAddr(addr);
     if (!range->is_mapped_object()) 
         return NULL;
-#if defined(cap_instruction_api)
     using namespace Dyninst::InstructionAPI;
     InstructionDecoder decoder((const unsigned char*)getPtrToInstruction(addr),
             InstructionDecoder::maxInstructionLength,
@@ -1144,11 +1139,6 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
 	break;
       }
     }
-#else
-    InstrucIter ii(addr, this);
-    if (ii.isAJumpInstruction())
-        addr2 = ii.getBranchTargetAddress();
-#endif //defined(cap_instruction_api)
     return findFuncByAddr(addr2);
 }
 

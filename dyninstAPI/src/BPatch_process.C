@@ -29,10 +29,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifdef sparc_sun_solaris2_4
-#include <dlfcn.h>
-#endif
-
 #define BPATCH_FILE
 
 #include <string>
@@ -762,36 +758,6 @@ bool BPatch_process::dumpCoreInt(const char *file, bool terminate)
    return ret;
 }
 
-/*
- * BPatch_process::dumpPatchedImage
- *
- * Writes the mutated file back to disk,
- * in ELF format.
- */
-#if defined (cap_save_the_world)
-#if defined(os_solaris) || (defined(os_linux) && defined(arch_x86)) || defined(os_aix)
-char* BPatch_process::dumpPatchedImageInt(const char* file)
-{
-   bool was_stopped = isStopped();
-   bool had_unreportedStop = unreportedStop;
-   
-   stopExecution();
-   char* ret = llproc->dumpPatchedImage(file);
-   if (was_stopped) 
-      unreportedStop = had_unreportedStop;
-   else 
-      continueExecutionInt();
-
-   return ret;
-   return NULL;
-}
-#endif
-#else
-char* BPatch_process::dumpPatchedImageInt(const char*)
-{
-   return NULL;
-}
-#endif
 
 /*
  * BPatch_process::dumpImage

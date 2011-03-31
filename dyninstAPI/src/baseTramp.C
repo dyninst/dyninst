@@ -195,9 +195,6 @@ bool baseTrampInstance::shouldRegenBaseTramp(registerSpace *rs)
 #define POST_TRAMP_SIZE 4096
 
 baseTramp::baseTramp(instPoint *iP, callWhen when) :
-#if defined( cap_unwind )
-    baseTrampRegion( NULL ),
-#endif /* defined( cap_unwind ) */
     instP_(iP),
     rpcMgr_(NULL),
     firstMini(NULL),
@@ -213,51 +210,6 @@ baseTramp::baseTramp(instPoint *iP, callWhen when) :
 {
 }
 
-#if defined( cap_unwind )
-/* Duplicates the list headed by tail and appends it to head, returning the new end of the list.
-   If head is NULL, returns NULL.  If tail is NULL, returns head. */
-unw_dyn_region_info_t * appendRegionList( unw_dyn_region_info_t * head,  unw_dyn_region_info_t * tail ) {
-	if( head == NULL ) { return NULL; }
-	if( tail == NULL ) { return head; }
-    
-    unw_dyn_region_info_t * currentRegion = head;
-    unw_dyn_region_info_t * nextRegion = tail;
-    unw_dyn_region_info_t * newRegion = NULL;
-    
-	do {
-		/* Allocate. */
-		unsigned int nextRegionSize = _U_dyn_region_info_size( nextRegion->op_count );
-		newRegion = (unw_dyn_region_info_t *)malloc( nextRegionSize );
-		assert( newRegion != NULL );
-		
-		/* Copy. */
-		memcpy( newRegion, nextRegion, nextRegionSize );
-		
-		/* Link. */
-		currentRegion->next = newRegion;
-		
-		/* Iterate. */
-		currentRegion = newRegion;
-		nextRegion = currentRegion->next;
-		} while( nextRegion != NULL );
-
-    return currentRegion;        
-	} /* end duplicateRegionList() */
-	
-/* Returns the head of the duplicate list. */
-unw_dyn_region_info_t * duplicateRegionList( unw_dyn_region_info_t * head ) {
-	if( head == NULL ) { return NULL; }	
-
-	/* Duplicate the head and append the remainder to it. */
-	unsigned int headSize = _U_dyn_region_info_size( head->op_count );
-	unw_dyn_region_info_t * duplicateHead = (unw_dyn_region_info_t *)malloc( headSize );
-	assert( duplicateHead != NULL );
-	memcpy( duplicateHead, head, headSize );
-	
-	appendRegionList( duplicateHead, head->next ); 
-	return duplicateHead;
-	} /* end duplicateRegionList() */
-#endif /* defined( cap_unwind ) */
 
 baseTramp::baseTramp(const baseTramp *pt, process *child) :
     instP_(NULL),
@@ -271,9 +223,6 @@ baseTramp::baseTramp(const baseTramp *pt, process *child) :
     instVersion_(pt->instVersion_),
     when_(pt->when_)
 {
-#if defined( cap_unwind )
-    baseTrampRegion = duplicateRegionList( pt->baseTrampRegion );
-#endif /* defined( cap_unwind ) */
 
     // And copy minis
     miniTramp *parMini = NULL;
@@ -533,13 +482,6 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
     }
 
 
-#if defined(cap_unwind)
-      if (baseT->baseTrampRegion != NULL) {
-          free(baseT->baseTrampRegion);
-          baseT->baseTrampRegion = NULL;
-      }
-#endif
-
     trampAddr_ = gen.currAddr();
 
     // Sets up state in the codeGen object (and gen.rs())
@@ -562,25 +504,6 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
     baseT->generateRestores(gen, gen.rs(), this);
     restoreEndOffset = gen.used() - trampPostOffset;
     trampSize_ = gen.currAddr() - trampAddr_;
-
-    // And now to clean up after us
-    //if (minis) delete minis;
-    //if (trampGuardAddr) delete trampGuardAddr;
-    //if (baseTrampSequence) delete baseTrampSequence;
-    //if (baseTramp) delete baseTramp;
-
-#if defined( cap_unwind )
-	/* At the moment, AST nodes can /not/ modify unwind state.  (Whoo-hoo!)
-	   Therefore, to account for them, we just need to know how much code
-	   they generated... */
-    Address endSaves = saveEndOffset + gen.startAddr();
-    Address beginRestores = trampPostOffset + gen.startAddr();
-    baseT->baseTrampRegion->insn_count += ((beginRestores - endSaves)/16) * 3;
-    
-	/* appendRegionList() returns the last valid region it duplicated.
-	   This leaves unwindRegion pointing to the end of the list. */
-    * unwindRegion = appendRegionList( * unwindRegion, baseT->baseTrampRegion );
-#endif /* defined( cap_unwind ) */
 
     generated_ = true;
     hasChanged_ = false;

@@ -211,9 +211,6 @@ class baseTrampInstance : public generatedCodeObject {
 class baseTramp {
     friend class baseTrampInstance;
  public:
-#if defined( cap_unwind )
-   unw_dyn_region_info_t * baseTrampRegion;
-#endif
     Address origInstAddr(); // For faking an in-function address
 
     // Our instPoint

@@ -54,9 +54,6 @@
 #include "mapped_object.h"
 
 #include "common/h/Types.h"
-#if !defined(cap_instruction_api)
-#include "InstrucIter-Function.h"
-#endif
 
 
 
@@ -663,7 +660,6 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
   if (func == NULL) return NULL;
 
     if (!mod->isValid()) return NULL;
-#if defined(cap_instruction_api)
   // function is generally uninstrumentable (with current technology)
   if (func->funcEntries().size() == 0) return NULL;
 
@@ -684,12 +680,6 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
       
   }
   return ret;
-#else  
-  // Use an instruction iterator
-  InstrucIterFunction ii(func);
-    
-  return BPatch_point::getPoints(ops, ii, this);
-#endif
 }
 
 /*

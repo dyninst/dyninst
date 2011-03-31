@@ -41,9 +41,6 @@
 #include "BPatch_basicBlock.h"
 #include "process.h"
 #include "function.h"
-#if !defined(cap_instruction_api)
-#include "parseAPI/src/InstrucIter.h"
-#endif
 #include "BPatch_instruction.h"
 #include "Instruction.h"
 #include "InstructionDecoder.h"
@@ -360,7 +357,6 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
  * ops          The points within the basic block to return. A set of op codes
  *              defined in BPatch_opCode (BPatch_point.h)
  */
-#if defined(cap_instruction_api)
 using namespace Dyninst::InstructionAPI;
 bool isLoad(Instruction::Ptr i)
 {
@@ -431,7 +427,6 @@ struct findInsns : public insnPredicate
     bool findStores;
     bool findPrefetch;
 };
-#endif
         
 BPatch_point* BPatch_basicBlock::findEntryPointInt()
 {
@@ -462,10 +457,8 @@ BPatch_Vector<BPatch_point*>*
                     flowGraph->getBFunction());
             if(!tmp)
             {
-#if defined(cap_instruction_api)
                 fprintf(stderr, "WARNING: failed to create instpoint for load/store/prefetch %s at 0x%lx\n",
                     curInsn->first->format().c_str(), curInsn->second);
-#endif //defined(cap_instruction_api)
             }
             else
             {
@@ -484,26 +477,16 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<B
     if (!flowGraph->getBFunction()->func->isInstrumentable())
         return NULL;
     
-#if defined(cap_instruction_api)
     findInsns filter(ops);
     return findPointByPredicate(filter);
-#else
-    // Use an instruction iterator
-    InstrucIter ii(getStartAddress(),size(),flowGraph->getllAddSpace());
-    BPatch_function *func = flowGraph->getBFunction();
-    
-    return BPatch_point::getPoints(ops, ii, func);
-#endif
 }
 
-#if defined(cap_instruction_api)
 BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(bool(*filter)(Instruction::Ptr))
 {
 
     funcPtrPredicate filterPtr(filter);
     return findPointByPredicate(filterPtr);
 }
-#endif
 
 // does not return duplicates even if some points belong to multiple categories
 //
@@ -652,31 +635,10 @@ BPatch_function * BPatch_basicBlock::getCallTarget()
  * Returns a vector of the instructions contained within this block
  *
  */
-#if defined(cap_instruction_api)
 BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) {
   return NULL;
   
 }
-
-#else
-BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) {
-
-  if (!instructions) {
-
-    instructions = new BPatch_Vector<BPatch_instruction*>;
-    InstrucIter ii(getStartAddress(),size(),flowGraph->getllAddSpace());
-    
-    while(ii.hasMore()) {
-      BPatch_instruction *instr = ii.getBPInstruction();
-      instr->parent = this;
-      instructions->push_back(instr);
-      ii++;
-    }
-  }
-
-  return instructions;
-}
-#endif
 
 /*
  * BPatch_basicBlock::getInstructions
@@ -684,7 +646,6 @@ BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) 
  * Returns a vector of the instructions contained within this block
  *
  */
-#if defined(cap_instruction_api)
 bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& insns) {
   using namespace InstructionAPI;
 
@@ -716,17 +677,6 @@ bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAP
 
   return !insnInstances.empty();  
 }
-#else
-bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& /* insns */)
-{
-  return false;
-}
-
-bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >& /* insnInstances */)
-{
-  return false;
-}
-#endif // defined(cap_instruction_api)
 
 unsigned long BPatch_basicBlock::getStartAddressInt() CONST_EXPORT 
 {

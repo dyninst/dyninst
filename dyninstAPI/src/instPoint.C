@@ -46,14 +46,9 @@
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 
-#if defined(cap_instruction_api)
 #include "instructionAPI/h/InstructionDecoder.h"
 using namespace Dyninst::InstructionAPI;
 Dyninst::Architecture instPointBase::arch = Dyninst::Arch_none;
-
-#else
-#include "parseAPI/src/InstrucIter.h"
-#endif // defined(cap_instruction_api)
 
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/image-func.h"
@@ -236,7 +231,6 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
         fprintf(stderr, "%s[%d]: Address not in original basic block instance\n", FILE__, __LINE__);
         return NULL;
     }
-#if defined(cap_instruction_api)
     if (!proc->isValidAddress(bbl->firstInsnAddr())) return NULL;
 
     const unsigned char* buffer = reinterpret_cast<unsigned char*>(proc->getPtrToInstruction(bbl->firstInsnAddr()));
@@ -257,35 +251,6 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
                           i,
                           addr,
                           block);
-#if defined(arch_sparc)
-#error "Instruction API not yet implemented for SPARC, cap_instruction_api is illegal"
-#endif // defined(arch_sparc)
-#else
-    InstrucIter newIter(bbl->firstInsnAddr(),bbl->getSize(),bbl->proc());
-    while ((*newIter) < addr) newIter++;
-    if (*newIter != addr) {
-        inst_printf("Unaligned try for instruction iterator, ret null\n");
-        fprintf(stderr, "%s[%d]: Unaligned try for instruction iterator at %lx (block start %lx), ret null\n", 
-		FILE__, __LINE__, addr, bbl->firstInsnAddr());
-        return NULL; // Not aligned
-    }
-#if defined(arch_sparc)
-    // Can't instrument delay slots
-    if (newIter.hasPrev()) {
-      InstrucIter prevInsn(newIter);
-      prevInsn--;      
-      if (prevInsn.getInstruction().isDCTI()) {
-	inst_printf("%s[%d]:  can't instrument delay slot\n", FILE__, __LINE__);
-	fprintf(stderr, "%s[%d]:  can't instrument delay slot\n", FILE__, __LINE__);
-	return NULL;
-      }
-    }
-#endif // defined(arch_sparc)
-    newIP = new instPoint(proc,
-                          newIter.getInstruction(),
-                          addr,
-                          block);
-#endif // defined(cap_instruction_api)
     
     if (!commonIPCreation(newIP)) {
         delete newIP;
@@ -667,11 +632,7 @@ instPointInstance *instPoint::getInstInstance(Address addr) {
 int instPoint_count = 0;
 
 instPoint::instPoint(AddressSpace *proc,
-#if defined(cap_instruction_api)
     Dyninst::InstructionAPI::Instruction::Ptr insn,
-#else
-                        instruction insn,
-#endif
                      Address addr,
                      int_basicBlock *block) :
     instPointBase(insn, 
@@ -1301,7 +1262,6 @@ bool instPoint::isReturnInstruction()
         updateInstances();
     }
 
-#if defined(cap_instruction_api)
     using namespace InstructionAPI;
     InstructionDecoder decoder
         ( func()->obj()->getPtrToInstruction(addr()),
@@ -1309,10 +1269,6 @@ bool instPoint::isReturnInstruction()
           func()->proc()->getArch() );
     Instruction::Ptr curInsn = decoder.decode();
     return c_ReturnInsn == curInsn->getCategory();
-#else
-    InstrucIter iter(addr(),proc());
-    return iter.isAReturnInstruction();
-#endif
 }
 
 // returns false if the point was already resolved

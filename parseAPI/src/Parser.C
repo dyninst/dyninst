@@ -55,9 +55,7 @@
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
-#if defined(cap_instruction_api)
 using namespace Dyninst::InstructionAPI;
-#endif
 
 typedef std::pair< Address, EdgeTypeEnum > edge_pair_t;
 typedef vector< edge_pair_t > Edges_t;
@@ -518,19 +516,11 @@ Parser::init_frame(ParseFrame & frame)
     Address ia_start = frame.func->addr();
     unsigned size = 
      frame.codereg->offset() + frame.codereg->length() - ia_start;
-#if defined(cap_instruction_api)
     const unsigned char* bufferBegin =
      (const unsigned char *)(frame.func->isrc()->getPtrToInstruction(ia_start));
     InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
     InstructionAdapter_t ah(dec, ia_start, frame.func->obj(),
         frame.codereg, frame.func->isrc(), b);
-#else
-    InstrucIter iter(ia_start, size, frame.func->isrc());
-    InstructionAdapter_t ah(iter, 
-        frame.func->obj(),
-        frame.codereg,
-        frame.func->isrc(), b);
-#endif
     if(ah.isStackFramePreamble())
         frame.func->_no_stack_frame = false;
     frame.func->_saves_fp = ah.savesFP();
@@ -786,8 +776,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         //    function's if control flow has jumped to another region
         unsigned size = 
             cur->region()->offset() + cur->region()->length() - curAddr;
-#if defined(cap_instruction_api)
-        const unsigned char* bufferBegin = 
+        const unsigned char* bufferBegin =
          (const unsigned char *)(func->isrc()->getPtrToInstruction(curAddr));
         InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
 
@@ -799,11 +788,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                                 cur->region(), func->isrc(), cur);
        
         InstructionAdapter_t & ah = *ahPtr; 
-#else        
-        InstrucIter iter(curAddr, size, func->isrc());
-        InstructionAdapter_t ah(iter, 
-            func->obj(), cur->region(), func->isrc());
-#endif        
 
         using boost::tuples::tie;
         tie(nextBlockAddr,nextBlock) = get_next_block(frame,_parse_data);

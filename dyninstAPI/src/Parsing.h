@@ -116,7 +116,7 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   void interproc_cf(ParseAPI::Function*,Address,interproc_details*);
   void overlapping_blocks(ParseAPI::Block*,ParseAPI::Block*);
 
-#if defined(arch_power) || defined(arch_sparc)
+#if defined(arch_power)
   void instruction_cb(ParseAPI::Function*,Address,insn_details*);
 #endif
  private:

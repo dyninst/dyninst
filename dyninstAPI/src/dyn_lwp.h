@@ -42,11 +42,6 @@
 #include "syscalltrap.h"
 #include "signalhandler.h"
 
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_solaris2_5)
-#include <procfs.h>
-#endif
-
 #if defined(os_aix)
 #include <sys/procfs.h>
 #endif
