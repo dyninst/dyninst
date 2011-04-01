@@ -48,7 +48,7 @@ CXXFLAGS    += -Wall
 LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -lparseAPI
 
 # The echo will remove the quotes
-LDFLAGS += $(shell echo $(DEMANGLER_LINK))
+LIBS += $(shell echo $(DEMANGLER_LINK))
 
 ifneq (, $(findstring solaris, $(PLATFORM)))
 LIBS        += -ldwarf  -lelf
