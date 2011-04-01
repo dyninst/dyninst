@@ -34,7 +34,11 @@
 #include <sys/types.h>
 #include <sys/user.h>
 #include <sys/ptrace.h>
+#include <sys/proc.h>
 #include <libutil.h>
+
+#include <map>
+using std::map;
 
 #if defined(cap_gnu_demangler)
 #include <cxxabi.h>
@@ -245,6 +249,24 @@ lwpid_t sysctl_getInitialLWP(pid_t pid) {
 
     free(procInfo);
     return -1;
+}
+
+// returns true if the process is running
+bool sysctl_getRunningStates(pid_t pid, map<Dyninst::LWP, bool> &runningStates) {
+    size_t length;
+    struct kinfo_proc *procInfo = getProcInfo(pid, length, true);
+    if( NULL == procInfo ) {
+        return false;
+    }
+
+    int numEntries = length / procInfo->ki_structsize;
+
+    for(int i = 0; i < numEntries; ++i) {
+        runningStates.insert(std::make_pair(procInfo[i].ki_tid,
+                (procInfo[i].ki_flag & P_STOPPED) == 0));
+    }
+
+    return true;
 }
 
 static bool PtraceBulkAccess(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid, bool read) {

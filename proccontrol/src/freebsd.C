@@ -818,8 +818,14 @@ bool freebsd_process::plat_create() {
     return true;
 }
 
-bool freebsd_process::plat_getOSRunningState(Dyninst::LWP) const {
-    return false;
+bool freebsd_process::plat_getOSRunningStates(map<Dyninst::LWP, bool> &runningStates) {
+    if( !sysctl_getRunningStates(pid, runningStates) ) {
+        pthrd_printf("Unable to retrieve process information via sysctl for pid %d\n",
+                pid);
+        setLastError(err_noproc, "Unable to retrieve process information via sysctl\n");
+        return false;
+    }
+    return true;
 }
 
 bool freebsd_process::plat_attach() {

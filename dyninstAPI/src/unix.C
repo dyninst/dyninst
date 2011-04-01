@@ -390,10 +390,6 @@ bool PCProcess::getExecFileDescriptor(string filename,
 bool PCProcess::hasPassedMain() 
 {
    using namespace SymtabAPI;
-   // We only need to parse /lib/ld-2.x.x once for any process,
-   // so just do it once for any process.  We'll cache the result
-   // in lib_to_addr.
-   static dictionary_hash<string, Address> lib_to_addr(::Dyninst::stringhash);
    Symtab *ld_file = NULL;
    Address entry_addr, ldso_start_addr;
 
@@ -431,12 +427,6 @@ bool PCProcess::hasPassedMain()
        return false;
    }
 
-   if (lib_to_addr.defines(derefPath)) {
-      //We've already parsed this library.  Use those results.
-      Address start_in_ld = lib_to_addr[path];
-      return (start_in_ld != current_pc);
-   }
-
    //Open /lib/ld-x.x.x and find the entry point
    if (!Symtab::openFile(ld_file, derefPath)) {
       startup_printf("[%s:%u] - Unable to open %s in hasPassedMain\n", 
@@ -453,7 +443,6 @@ bool PCProcess::hasPassedMain()
 
    entry_addr += ldso_start_addr;
    
-   lib_to_addr[path] = entry_addr;
    bool result = (entry_addr != current_pc);
    startup_printf("[%s:%u] - hasPassedMain returning %d (%lx %lx)\n",
                   FILE__, __LINE__, (int) result, entry_addr, current_pc);

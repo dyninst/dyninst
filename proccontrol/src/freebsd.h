@@ -108,7 +108,7 @@ public:
     virtual Dyninst::Architecture getTargetArch();
     virtual bool plat_individualRegAccess();
     virtual bool plat_contProcess();
-    virtual bool plat_getOSRunningState(Dyninst::LWP lwp) const;
+    virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
 
     virtual bool post_attach();
     virtual bool post_create();

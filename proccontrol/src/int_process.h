@@ -221,8 +221,7 @@ class int_process
    virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
                                    size_t size, result_response::ptr result);
 
-   // true = running
-   virtual bool plat_getOSRunningState(Dyninst::LWP lwp) const = 0;
+   virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates) = 0;
 
    typedef enum {
        NoLWPControl = 0,

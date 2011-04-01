@@ -207,20 +207,10 @@ bool int_process::attach()
 
    // Determine the running state of all threads before attaching
    map<Dyninst::LWP, bool> runningStates;
-   vector<Dyninst::LWP> lwps;
-   if( !getThreadLWPs(lwps) ) {
+   if( !plat_getOSRunningStates(runningStates) ) {
        ProcPool()->condvar()->broadcast();
        ProcPool()->condvar()->unlock();
-
-       pthrd_printf("Failed to determine lwps in %d\n", pid);
-       setLastError(err_noproc, "Could not attach to debuggee");
        return false;
-   }
-
-   for(vector<Dyninst::LWP>::iterator i = lwps.begin(); 
-           i != lwps.end(); ++i) 
-   {
-       runningStates.insert(make_pair(*i, plat_getOSRunningState(*i)));
    }
 
    pthrd_printf("Attaching to process %d\n", pid);
@@ -254,8 +244,16 @@ bool int_process::attach()
            i != threadPool()->end(); ++i)
    {
        map<Dyninst::LWP, bool>::iterator findIter = runningStates.find((*i)->getLWP());
-       assert(findIter != runningStates.end());
-       (*i)->setRunningWhenAttached(findIter->second);
+
+       // There is a race that could be visible here where we are not
+       // guaranteed to determine the running state of all threads in a process
+       // before we attach -- if for some reason we don't know the running
+       // state, assume it was running
+       if( findIter == runningStates.end() ) {
+           (*i)->setRunningWhenAttached(true);
+       }else{
+           (*i)->setRunningWhenAttached(findIter->second);
+       }
    }
 
    pthrd_printf("Wait for attach from process %d\n", pid);
