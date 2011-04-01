@@ -288,7 +288,7 @@ namespace {
         // Get all of the assignments that happen in this instruction
         AssignmentConverter conv(true);
         vector<Assignment::Ptr> assigns;
-        conv.convert(r8_def,r8_def_addr,f,assigns);
+        conv.convert(r8_def,r8_def_addr,f,b,assigns);
 
         // find the one we care about (r8)
         vector<Assignment::Ptr>::iterator ait = assigns.begin();
