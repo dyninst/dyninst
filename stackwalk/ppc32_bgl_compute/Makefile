@@ -14,6 +14,15 @@ STATIC_COMPS = true;
 # in the paradyn tree.
 include ../../make.config 
 
+ifdef LIBELF_INC
+CXXFLAGS += -I$(LIBELF_INC)
+endif
+
+ifdef LIBELF_LIB
+LIBS += -L$(LIBELF_LIB)
+endif
+LIBS += -lelf
+
 # Now make any necessary architecture specific changes to variables:
 MYFLAGS         += -I../../common/src -I../../common/h
 CXXFLAGS        += $(MYFLAGS)
@@ -28,18 +37,9 @@ SRCS = ../src/ppc-swk.C \
 		 ../src/firstparty.C \
 		 dyn_regs.C \
 		 addrtranslate.C \
-		 addrtranslate-sysv.C \
-		 addrtranslate-bluegenep.C \
+		 addrtranslate-static.C \
 		 bluegeneKludges.C \
 		 string-regex.C
-
-ifdef LIBELF_INC
-MYFLAGS += -I$(LIBELF_INC)
-endif
-
-ifdef LIBELF_LIB
-LIBS += -L$(LIBELF_LIB) -lelf
-endif
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
