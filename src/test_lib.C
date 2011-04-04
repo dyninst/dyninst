@@ -960,7 +960,7 @@ void reportTestResult(RunGroup *group, TestInfo *test)
    test->result_reported = true;
 }
 
-#if defined(os_solaris_test) || defined(os_linux_test)
+#if defined(os_linux_test)
 #if !defined(cap_gnu_demangler_test)
 /**
  * Many linkers don't want to link the static libiberty.a unless
@@ -983,7 +983,7 @@ void use_liberty()
 #endif
 #endif
 
-#if defined (os_solaris_test) || defined (os_windows_test)
+#if defined (os_windows_test)
 //  solaris does not provide setenv, so we provide an ersatz replacement.
 // yes it's leaky, but we don't plan on using it too much, so who cares?
 int setenv(const char *envname, const char *envval, int)

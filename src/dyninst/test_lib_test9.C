@@ -211,16 +211,6 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 
 void sleep_ms(int ms) 
 {
-//#if defined(os_solaris_test) && (os_solaris_test < 9)
-#ifdef NOTDEF
-  if (ms < 1000) {
-    usleep(ms * 1000);
-  }
-  else {
-    sleep(ms / 1000);
-    usleep((ms % 1000) * 1000);
-  }
-#else
   struct timespec ts,rem;
   if (ms >= 1000) {
     ts.tv_sec = (int) ms / 1000;
@@ -243,6 +233,5 @@ void sleep_ms(int ms)
     }
     assert(0);
   }
-#endif
 }
 
