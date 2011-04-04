@@ -132,11 +132,7 @@ void *getFuncFromDLL(void *libhandle, char *func_name) {
 #else
 void *loadDynamicLibrary(char *name) {
     void *result;
-#if defined(os_solaris_test)
-    int dlopenMode = RTLD_NOW | RTLD_GLOBAL;
-#else
     int dlopenMode = RTLD_NOW;
-#endif
     result = dlopen(name, dlopenMode);
     if (!result) {
         perror("The mutatee couldn't load a dynamic library");
@@ -156,9 +152,7 @@ void *getFuncFromDLL(void *libhandle, char *func_name) {
 int test1_22_mutatee()
 {
     int retval = 0;
-#if defined(os_solaris_test) \
- || defined(alpha_dec_osf4_0_test) \
- || defined(os_linux_test) \
+#if defined(os_linux_test) \
  || defined(os_windows_test) \
  || defined(os_freebsd_test)
     /* libtestA.so should already be loaded (by the mutator), but we

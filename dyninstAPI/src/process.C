@@ -6047,7 +6047,7 @@ bool process::recognize_threads(process *parent)
 	// See comment below about Solaris threads.
 	// TODO: see if there is some mechanism of identifying the helper
 	// threads...
-#if defined(os_aix) || defined(os_solaris)
+#if defined(os_aix)
 	if (lwp->executingSystemCall()) {
             startup_printf("%s[%d]: LWP %d in a system call, skipping in recognize_threads\n",
                            FILE__, __LINE__, lwp_id);

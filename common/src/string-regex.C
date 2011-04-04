@@ -123,48 +123,8 @@ void dedemangle( char * demangled, char * result )
          {
             /* We've stumbled on something without a return value. */
 
-#ifdef os_solaris
-            /* ptr return types for native compiler don't seem to have a space
-               before the start of the func name (e.g. void*func_name(void*) ).
-
-               need to find last asterick before '(' and see if it's within
-               a template area. if not, then set resultBegins to next offset.
-            */
-            char *prefix = (char*)malloc(strlen(demangled));
-            if (prefix != NULL) 
-            {
-               strncpy(prefix, demangled, offset+1); 
-               prefix[offset+1] = '\0';
-               char *last_ast = strrchr(prefix, '*');            
-               if ( last_ast != NULL ) 
-               {
-                  unsigned last_ast_off = last_ast - prefix;
-                  if ( stop_template_offset ) 
-                  {
-                     if ( last_ast_off > start_template_offset &&
-                          last_ast_off < stop_template_offset ) 
-                     {
-                        // last '*' is in template, no return type
-                        offset = 0;
-                        resultBegins = demangled;
-                        free(prefix);
-                        break;
-                     }
-                  }
-                  // not in template, so last '*' must be end of return type
-                  resultBegins = demangled + last_ast_off + 1;
-                  offset = last_ast_off + 1;
-                  free(prefix);
-                  break;
-               }
-            }
-            // no '*', is actually no return type function
             offset = 0;
             resultBegins = demangled;
-#else
-            offset = 0;
-            resultBegins = demangled;
-#endif
             break;
          }
          else if ( !inTemplate && resultBegins[offset] == ' ' ) 

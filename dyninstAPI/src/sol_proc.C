@@ -841,20 +841,6 @@ bool dyn_lwp::realLWP_attach_()
       return false;
    }
 
-#if defined(os_solaris)
-   // Find out if we're the as lwp... see comment in dyn_lwp.h
-
-   pstatus_t procstatus;
-
-   if (!proc_->get_status(&procstatus)) {
-      // Uhh....
-      return true;
-   }
-
-   if ((unsigned)procstatus.pr_aslwpid == get_lwp_id()) 
-      is_as_lwp_ = true;
-#endif
-
    return true;
 }
 
@@ -865,12 +851,6 @@ bool dyn_lwp::representativeLWP_attach_()
    //sleep(3);
    sleep(2);
    //sleep(1);
-#endif
-#if defined (os_solaris)
-   struct timeval slp;
-   slp.tv_sec = 0;
-   slp.tv_usec = 50 /*ms*/ * 1000;
-   select(0, NULL, NULL, NULL, &slp);
 #endif
    /*
       Open the /proc file corresponding to process pid

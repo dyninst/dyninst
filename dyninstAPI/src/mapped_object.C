@@ -1867,13 +1867,6 @@ bool mapped_object::isSystemLib(const std::string &objname)
    if (strstr(fname, "libdyninstAPI_RT"))
       return true;
 
-#if defined(os_solaris)
-   // Solaris 2.8... we don't grab the initial func always,
-   // so fix up this code as well...
-   if (strstr(fname, "libthread"))
-      return true;
-#endif
-
 #if defined(os_linux)
    if (strstr(fname, "libc.so"))
       return true;

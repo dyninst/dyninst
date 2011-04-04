@@ -205,7 +205,6 @@ int func1_1()
   pthread_mutex_init(&real_lock, NULL);
 
   (*DYNINSTunlock_thelock)(&test1lock);
-#if !defined(os_solaris_test)
    /*  XXX this is nasty */
    /*  The way this is supposed to work is that we get a lock, then start a bunch of
        threads, which all try to get the same lock, pretty much as soon as they start.
@@ -223,18 +222,15 @@ int func1_1()
 /*
    int lockres = (*DYNINSTlock_thelock)(&test1lock); 
 */
-#endif
   lockres = (*DYNINSTlock_thelock)(&test1lock);
   createThreads(TEST1_THREADS, thread_main1, test1threads);
 
   sleep_ms(5);
 
   dprintf("%s[%d]:  doing initial unlock...\n", __FILE__, __LINE__);
-#if !defined(os_solaris_test)
-  /* (*DYNINSTunlock_thelock)(&test1lock); */ 
+  /* (*DYNINSTunlock_thelock)(&test1lock); */
 
-#endif
-   (*DYNINSTunlock_thelock)(&test1lock); 
+   (*DYNINSTunlock_thelock)(&test1lock);
   /*pthread_mutex_unlock(&real_lock); */
 
 #endif

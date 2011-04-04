@@ -73,9 +73,7 @@
 // /usr/include/procfs.h is the one we want, and /usr/include/sys/procfs.h
 // is the ioctl one. This makes it impossible to have a single include
 // line. 
-#if defined(os_solaris)
-#include <procfs.h>
-#elif defined(os_aix) || defined(os_osf) || defined(os_irix)
+#if defined(os_aix)
 #include <sys/procfs.h>
 #endif
 
@@ -286,10 +284,6 @@ class process : public AddressSpace {
     rpcMgr *getRpcMgr() const { return theRpcMgr; }
     
     bool getCurrPCVector(pdvector <Address> &currPCs);
-    
-#if defined(os_solaris) && (defined(arch_x86) || defined(arch_x86_64))
-    bool changeIntReg(int reg, Address addr);
-#endif
     
     void installInstrRequests(const pdvector<instMapping*> &requests);
 

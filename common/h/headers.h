@@ -53,10 +53,7 @@ typedef int (*xdr_wr_func)(void *, char *, int);
 
 #include "common/h/Types.h"
 
-#if defined(os_solaris)
-#include "common/h/solarisHeaders.h"
-
-#elif defined(os_linux) || defined(os_bgp) || defined(os_bg_ion)
+#if defined(os_linux) || defined(os_bgp) || defined(os_bg_ion)
 #include "common/h/linuxHeaders.h"
 
 #elif defined(os_freebsd)

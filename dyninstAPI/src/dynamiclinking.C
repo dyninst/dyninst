@@ -61,10 +61,6 @@ dynamic_linking::dynamic_linking(const dynamic_linking *pDL,
     r_brk_target_addr = pDL->r_brk_target_addr;
     previous_r_state = pDL->previous_r_state;
 #endif
-#if defined(os_solaris)
-    r_debug_addr = pDL->r_debug_addr;
-    r_state = pDL->r_state;
-#endif
     for (unsigned i = 0; i < pDL->sharedLibHooks_.size(); i++) {
         sharedLibHooks_.push_back(new sharedLibHook(pDL->sharedLibHooks_[i],
                                                     child));

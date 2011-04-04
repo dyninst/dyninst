@@ -42,15 +42,7 @@
 #include "util.h"
 #include "debug_parse.h"
 
-#if defined(os_solaris)
-// XXX old GCC versions on solaris cause problems with
-//     boost at Wisconsin.
-#define BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION
 #include <boost/tuple/tuple.hpp>
-#undef BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION
-#else
-#include <boost/tuple/tuple.hpp>
-#endif
 
 using namespace std;
 using namespace Dyninst;
