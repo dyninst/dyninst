@@ -83,8 +83,8 @@
      ERROR = 264,
      EOL = 265,
      SIZEOF = 266,
-     TRUE = 267,
-     FALSE = 268,
+     D_TRUE = 267,
+     D_FALSE = 268,
      PTR_OP = 269,
      INC_OP = 270,
      DEC_OP = 271,
@@ -168,8 +168,8 @@
 #define ERROR 264
 #define EOL 265
 #define SIZEOF 266
-#define TRUE 267
-#define FALSE 268
+#define D_TRUE 267
+#define D_FALSE 268
 #define PTR_OP 269
 #define INC_OP 270
 #define DEC_OP 271
@@ -719,15 +719,15 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,   157,   157,   172,   195,   219,   255,   294,   350,   355,
-     427,   433,   438,   446,   456,   461,   467,   472,   483,   491,
-     502,   504,   511,   528,   548,   553,   559,   568,   572,   579,
-     580,   585,   590,   595,   600,   605,   610,   615,   625,   631,
-     637,   658,   669,   681,   694,   705,   717,   731,   760,   787,
-     814,   835,   857,   881,   909,   915,   924,   930,   936,   937,
-     938,   939,  1013,  1019,  1024,  1030,  1036,  1042,  1048,  1054,
-    1060,  1066,  1072,  1078,  1084,  1093,  1094,  1103,  1109,  1115,
-    1121
+       0,   157,   157,   172,   195,   215,   251,   290,   346,   351,
+     423,   429,   434,   442,   452,   457,   463,   468,   479,   487,
+     498,   500,   507,   524,   544,   549,   555,   564,   568,   575,
+     576,   581,   586,   591,   596,   601,   606,   611,   621,   627,
+     633,   654,   665,   677,   690,   701,   713,   727,   756,   783,
+     810,   831,   853,   877,   905,   911,   920,   926,   932,   933,
+     934,   935,  1009,  1015,  1020,  1026,  1032,  1038,  1044,  1050,
+    1056,  1062,  1068,  1074,  1080,  1089,  1090,  1099,  1105,  1111,
+    1117
 };
 #endif
 
@@ -737,8 +737,8 @@ static const yytype_uint16 yyrline[] =
 static const char *const yytname[] =
 {
   "$end", "error", "$undefined", "KNOWN_ERROR_TOK", "IDENTIFIER",
-  "CONSTANT", "STRING", "TYPE", "NUMBER", "ERROR", "EOL", "SIZEOF", "TRUE",
-  "FALSE", "PTR_OP", "INC_OP", "DEC_OP", "LEFT_OP", "RIGHT_OP",
+  "CONSTANT", "STRING", "TYPE", "NUMBER", "ERROR", "EOL", "SIZEOF",
+  "D_TRUE", "D_FALSE", "PTR_OP", "INC_OP", "DEC_OP", "LEFT_OP", "RIGHT_OP",
   "LEFT_ASSIGN", "RIGHT_ASSIGN", "AND_ASSIGN", "XOR_ASSIGN", "OR_ASSIGN",
   "TYPE_NAME", "TYPEDEF", "EXTERN", "STATIC", "CHAR", "SHORT", "INT",
   "LONG", "SIGNED", "UNSIGNED", "FLOAT", "DOUBLE", "CONST", "VOID",
@@ -1851,7 +1851,7 @@ yyreduce:
        //IDENTIFIER leaks, but how to fix b/c use of $0?
        std::string mangledName;
        mangledName = dynC_API::mangle((yyvsp[(2) - (2)].sval), dynCSnippetName, (yyvsp[(1) - (2)].varSpec).type);
-       printf("name : %s\n", mangledName.c_str());
+       if(verbose) printf("name : %s\n", mangledName.c_str());
        (yyval.snippet) = snippetGen->findOrCreateVariable(mangledName.c_str(), (yyvsp[(1) - (2)].varSpec).type);
        if((yyval.snippet) == NULL){
           (yyval.snippet) = new BPatch_nullExpr();
@@ -1876,7 +1876,7 @@ yyreduce:
     {   
       
        std::string mangledName = dynC_API::mangle((yyvsp[(2) - (4)].sval), dynCSnippetName, (yyvsp[(1) - (4)].varSpec).type);
-       printf("name : %s\n", mangledName.c_str());
+       if(verbose) printf("name : %s\n", mangledName.c_str());
        BPatch_snippet *alloc = snippetGen->findOrCreateVariable(mangledName.c_str(), (yyvsp[(1) - (4)].varSpec).type);
        if(alloc == NULL){
           (yyval.snippet) = new BPatch_nullExpr();
@@ -1890,16 +1890,12 @@ yyreduce:
 
        if((yyvsp[(1) - (4)].varSpec).isStatic || (yyvsp[(1) - (4)].varSpec).isGlobal){
           makeOneTimeStatementGbl(*(yyval.snippet));
-       }
-
-       //david changed this:
-       //makeOneTimeStatement(*$$);
-       
+       }       
     ;}
     break;
 
   case 5:
-#line 220 "../src/C.y"
+#line 216 "../src/C.y"
     {
        //IDENTIFIER leaks, but how to fix b/c use of $0?
        if((yyvsp[(4) - (5)].ival) < 0){
@@ -1938,7 +1934,7 @@ yyreduce:
     break;
 
   case 6:
-#line 256 "../src/C.y"
+#line 252 "../src/C.y"
     {
        //IDENTIFIER leaks, but how to fix b/c use of $0?
        std::stringstream type;
@@ -1980,7 +1976,7 @@ yyreduce:
     break;
 
   case 7:
-#line 295 "../src/C.y"
+#line 291 "../src/C.y"
     {
        //IDENTIFIER leaks, but how to fix b/c use of $0?
        std::vector<BPatch_snippet *> argVect;
@@ -2037,7 +2033,7 @@ yyreduce:
     break;
 
   case 8:
-#line 351 "../src/C.y"
+#line 347 "../src/C.y"
     {
       YYSTYPE::VariableSpec rSpec = {false,false,false,false,false,false,false,false,(yyvsp[(1) - (1)].sval)};
       (yyval.varSpec) = rSpec;
@@ -2045,7 +2041,7 @@ yyreduce:
     break;
 
   case 9:
-#line 356 "../src/C.y"
+#line 352 "../src/C.y"
     {
       if ((yyvsp[(2) - (2)].varSpec).isStatic){
          //throw error: two static
@@ -2058,7 +2054,7 @@ yyreduce:
     break;
 
   case 10:
-#line 428 "../src/C.y"
+#line 424 "../src/C.y"
     { 
        if(verbose) printf("\n");
        (yyval.snippetList) = new BPatch_Vector<BPatch_snippet *>; 
@@ -2067,7 +2063,7 @@ yyreduce:
     break;
 
   case 11:
-#line 434 "../src/C.y"
+#line 430 "../src/C.y"
     {
        (yyvsp[(1) - (2)].snippetList)->push_back((yyvsp[(2) - (2)].snippet));
        (yyval.snippetList) = (yyvsp[(1) - (2)].snippetList);
@@ -2075,7 +2071,7 @@ yyreduce:
     break;
 
   case 12:
-#line 439 "../src/C.y"
+#line 435 "../src/C.y"
     {
        BPatch_sequence *seq = new BPatch_sequence(*(yyvsp[(2) - (3)].snippetList));
        makeOneTimeStatementGbl(*seq);
@@ -2086,7 +2082,7 @@ yyreduce:
     break;
 
   case 13:
-#line 447 "../src/C.y"
+#line 443 "../src/C.y"
     {
        BPatch_sequence seq = BPatch_sequence(*(yyvsp[(3) - (4)].snippetList));
        makeOneTimeStatementGbl(seq);
@@ -2096,7 +2092,7 @@ yyreduce:
     break;
 
   case 14:
-#line 457 "../src/C.y"
+#line 453 "../src/C.y"
     {
        (yyval.snippet) = new BPatch_nullExpr();
        actionTaken = false;
@@ -2104,7 +2100,7 @@ yyreduce:
     break;
 
   case 15:
-#line 462 "../src/C.y"
+#line 458 "../src/C.y"
     {
        yyerrorNoTok((yyvsp[(1) - (1)].context));
        (yyval.snippet) = new BPatch_nullExpr();
@@ -2113,14 +2109,14 @@ yyreduce:
     break;
 
   case 16:
-#line 468 "../src/C.y"
+#line 464 "../src/C.y"
     {
        (yyval.snippet) = (yyvsp[(1) - (2)].snippet);
     ;}
     break;
 
   case 17:
-#line 473 "../src/C.y"
+#line 469 "../src/C.y"
     {
        if(!actionTaken){
           yywarn("Statement does nothing!");
@@ -2133,7 +2129,7 @@ yyreduce:
     break;
 
   case 18:
-#line 484 "../src/C.y"
+#line 480 "../src/C.y"
     {
        if(verbose) printf(" if () ");
        (yyval.snippet) = new BPatch_ifExpr(*(yyvsp[(3) - (5)].boolExpr), *(yyvsp[(5) - (5)].snippet));
@@ -2143,7 +2139,7 @@ yyreduce:
     break;
 
   case 19:
-#line 492 "../src/C.y"
+#line 488 "../src/C.y"
     {
        if(verbose) printf(" if () else ");
        (yyval.snippet) = new BPatch_ifExpr(*(yyvsp[(3) - (7)].boolExpr), *(yyvsp[(5) - (7)].snippet), *(yyvsp[(7) - (7)].snippet));
@@ -2154,7 +2150,7 @@ yyreduce:
     break;
 
   case 21:
-#line 505 "../src/C.y"
+#line 501 "../src/C.y"
     {
         (yyval.snippet) = new BPatch_sequence(*(yyvsp[(2) - (3)].snippetList));
         delete (yyvsp[(2) - (3)].snippetList);
@@ -2162,7 +2158,7 @@ yyreduce:
     break;
 
   case 22:
-#line 512 "../src/C.y"
+#line 508 "../src/C.y"
     {
        //TODO: built in dyninst actions and (future) other snippet calls?
        if(strcmp((yyvsp[(3) - (6)].sval), "break") == 0){
@@ -2181,7 +2177,7 @@ yyreduce:
     break;
 
   case 23:
-#line 530 "../src/C.y"
+#line 526 "../src/C.y"
     { 
        BPatch_function *func = snippetGen->findFunction((yyvsp[(3) - (6)].sval), *(yyvsp[(5) - (6)].snippetList));
        if(func == NULL){
@@ -2199,7 +2195,7 @@ yyreduce:
     break;
 
   case 24:
-#line 548 "../src/C.y"
+#line 544 "../src/C.y"
     {
        //No parameters, return an empty vector
        (yyval.snippetList) = new BPatch_Vector<BPatch_snippet *>;
@@ -2207,7 +2203,7 @@ yyreduce:
     break;
 
   case 25:
-#line 554 "../src/C.y"
+#line 550 "../src/C.y"
     { 
        (yyval.snippetList) = new BPatch_Vector<BPatch_snippet *>; 
        (yyval.snippetList)->push_back((yyvsp[(1) - (1)].snippet));
@@ -2215,7 +2211,7 @@ yyreduce:
     break;
 
   case 26:
-#line 560 "../src/C.y"
+#line 556 "../src/C.y"
     { 
        if(verbose) printf(" , ");
        (yyvsp[(1) - (3)].snippetList)->push_back((yyvsp[(3) - (3)].snippet)); 
@@ -2224,21 +2220,21 @@ yyreduce:
     break;
 
   case 27:
-#line 569 "../src/C.y"
+#line 565 "../src/C.y"
     { 
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_eq, BPatch_constExpr(0), BPatch_constExpr(0));
     ;}
     break;
 
   case 28:
-#line 573 "../src/C.y"
+#line 569 "../src/C.y"
     {
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_ne, BPatch_constExpr(0), BPatch_constExpr(0));
     ;}
     break;
 
   case 30:
-#line 581 "../src/C.y"
+#line 577 "../src/C.y"
     {
        if(verbose) printf(" < ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_lt, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2246,7 +2242,7 @@ yyreduce:
     break;
 
   case 31:
-#line 586 "../src/C.y"
+#line 582 "../src/C.y"
     {
        if(verbose) printf(" > ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_gt, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2254,7 +2250,7 @@ yyreduce:
     break;
 
   case 32:
-#line 591 "../src/C.y"
+#line 587 "../src/C.y"
     {
        if(verbose) printf(" == ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_eq, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2262,7 +2258,7 @@ yyreduce:
     break;
 
   case 33:
-#line 596 "../src/C.y"
+#line 592 "../src/C.y"
     {
        if(verbose) printf(" <= ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_le, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2270,7 +2266,7 @@ yyreduce:
     break;
 
   case 34:
-#line 601 "../src/C.y"
+#line 597 "../src/C.y"
     {
        if(verbose) printf(" >= ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_ge, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2278,7 +2274,7 @@ yyreduce:
     break;
 
   case 35:
-#line 606 "../src/C.y"
+#line 602 "../src/C.y"
     {
        if(verbose) printf(" != ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_ne, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2286,7 +2282,7 @@ yyreduce:
     break;
 
   case 36:
-#line 611 "../src/C.y"
+#line 607 "../src/C.y"
     {
        if(verbose) printf(" AND ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_and, *(yyvsp[(1) - (3)].boolExpr), *(yyvsp[(3) - (3)].boolExpr));
@@ -2294,14 +2290,14 @@ yyreduce:
     break;
 
   case 37:
-#line 616 "../src/C.y"
+#line 612 "../src/C.y"
     {       if(verbose) printf(" OR ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_or, *(yyvsp[(1) - (3)].boolExpr), *(yyvsp[(3) - (3)].boolExpr));
     ;}
     break;
 
   case 38:
-#line 626 "../src/C.y"
+#line 622 "../src/C.y"
     {
       YYSTYPE::VariableSpec vSpec = {false,false,false,false,false,false,false,false,""};
       vSpec.isGlobal = true;
@@ -2310,7 +2306,7 @@ yyreduce:
     break;
 
   case 39:
-#line 632 "../src/C.y"
+#line 628 "../src/C.y"
     {
       YYSTYPE::VariableSpec vSpec = {false,false,false,false,false,false,false,false,""};
       vSpec.isLocal = true;
@@ -2319,7 +2315,7 @@ yyreduce:
     break;
 
   case 40:
-#line 638 "../src/C.y"
+#line 634 "../src/C.y"
     {
       YYSTYPE::VariableSpec vSpec = {false,false,false,false,false,false,false,false,""};
       vSpec.isParam = true;
@@ -2328,7 +2324,7 @@ yyreduce:
     break;
 
   case 41:
-#line 659 "../src/C.y"
+#line 655 "../src/C.y"
     {
        (yyval.snippet) = snippetGen->findInstVariable(dynC_API::getMangledStub((yyvsp[(1) - (1)].sval), dynCSnippetName).c_str(), (yyvsp[(1) - (1)].sval));
        if((yyval.snippet) == NULL){
@@ -2342,7 +2338,7 @@ yyreduce:
     break;
 
   case 42:
-#line 670 "../src/C.y"
+#line 666 "../src/C.y"
     {
        (yyval.snippet) = snippetGen->findInstVariable(dynC_API::getMangledStub((yyvsp[(2) - (2)].sval), dynCSnippetName).c_str(), (yyvsp[(2) - (2)].sval));
        if((yyval.snippet) == NULL){
@@ -2357,7 +2353,7 @@ yyreduce:
     break;
 
   case 43:
-#line 682 "../src/C.y"
+#line 678 "../src/C.y"
     {
        (yyval.snippet) = snippetGen->findInstVariable(dynC_API::getMangledStub((yyvsp[(2) - (2)].sval), dynCSnippetName).c_str(), (yyvsp[(2) - (2)].sval));
        if((yyval.snippet) == NULL){
@@ -2372,7 +2368,7 @@ yyreduce:
     break;
 
   case 44:
-#line 695 "../src/C.y"
+#line 691 "../src/C.y"
     {
        (yyval.snippet) = snippetGen->findAppVariable((yyvsp[(3) - (3)].sval));
        if((yyval.snippet) == NULL){
@@ -2386,7 +2382,7 @@ yyreduce:
     break;
 
   case 45:
-#line 706 "../src/C.y"
+#line 702 "../src/C.y"
     {
        (yyval.snippet) = snippetGen->findAppVariable((yyvsp[(4) - (4)].sval));
        if((yyval.snippet) == NULL){
@@ -2401,7 +2397,7 @@ yyreduce:
     break;
 
   case 46:
-#line 718 "../src/C.y"
+#line 714 "../src/C.y"
     {
        (yyval.snippet) = snippetGen->findAppVariable((yyvsp[(4) - (4)].sval));
        if((yyval.snippet) == NULL){
@@ -2416,7 +2412,7 @@ yyreduce:
     break;
 
   case 47:
-#line 732 "../src/C.y"
+#line 728 "../src/C.y"
     {
        //disallowed if there is no point specifier
        if(!(yyvsp[(1) - (3)].varSpec).isGlobal && snippetPoint == NULL){
@@ -2448,7 +2444,7 @@ yyreduce:
     break;
 
   case 48:
-#line 761 "../src/C.y"
+#line 757 "../src/C.y"
     {
        if(snippetPoint == NULL){
           yyerrorNoTok("Local variables not allowed when snippet point is unspecified.");
@@ -2477,7 +2473,7 @@ yyreduce:
     break;
 
   case 49:
-#line 788 "../src/C.y"
+#line 784 "../src/C.y"
     {
        if(snippetPoint == NULL){
           yyerrorNoTok("Local variables not allowed when snippet point is unspecified.");
@@ -2506,7 +2502,7 @@ yyreduce:
     break;
 
   case 50:
-#line 815 "../src/C.y"
+#line 811 "../src/C.y"
     {
        //special case for indexed parameters
        if(snippetPoint == NULL){
@@ -2530,7 +2526,7 @@ yyreduce:
     break;
 
   case 51:
-#line 836 "../src/C.y"
+#line 832 "../src/C.y"
     {
        //special case for indexed parameters
        if(snippetPoint == NULL){
@@ -2555,7 +2551,7 @@ yyreduce:
     break;
 
   case 52:
-#line 858 "../src/C.y"
+#line 854 "../src/C.y"
     {
        //special case for indexed parameters
        if(snippetPoint == NULL){
@@ -2581,7 +2577,7 @@ yyreduce:
     break;
 
   case 53:
-#line 882 "../src/C.y"
+#line 878 "../src/C.y"
     {
        //array referance
        //check for integer in arith_expression
@@ -2597,7 +2593,7 @@ yyreduce:
     break;
 
   case 54:
-#line 910 "../src/C.y"
+#line 906 "../src/C.y"
     { 
       if(verbose) printf(" %d ", (yyvsp[(1) - (1)].ival));
       BPatch_snippet * c = new BPatch_constExpr((yyvsp[(1) - (1)].ival));
@@ -2606,7 +2602,7 @@ yyreduce:
     break;
 
   case 55:
-#line 916 "../src/C.y"
+#line 912 "../src/C.y"
     { 
        if(verbose) printf(" %s ", (yyvsp[(1) - (1)].sval));
        BPatch_snippet * c = new BPatch_constExpr((yyvsp[(1) - (1)].sval));
@@ -2615,7 +2611,7 @@ yyreduce:
     break;
 
   case 56:
-#line 925 "../src/C.y"
+#line 921 "../src/C.y"
     {
         std::vector<std::pair<BPatch_snippet *, char *> > *cnlist = new std::vector<std::pair<BPatch_snippet *, char *> >();
         cnlist->push_back(*(yyvsp[(1) - (1)].snippetStringPair));
@@ -2624,7 +2620,7 @@ yyreduce:
     break;
 
   case 57:
-#line 931 "../src/C.y"
+#line 927 "../src/C.y"
     {
         (yyvsp[(1) - (3)].snippetStringListPair)->push_back(*(yyvsp[(3) - (3)].snippetStringPair));
         (yyval.snippetStringListPair) = (yyvsp[(1) - (3)].snippetStringListPair);
@@ -2632,17 +2628,17 @@ yyreduce:
     break;
 
   case 59:
-#line 937 "../src/C.y"
+#line 933 "../src/C.y"
     {(yyval.snippet) = (yyvsp[(1) - (1)].snippetStringPair)->first;}
     break;
 
   case 60:
-#line 938 "../src/C.y"
+#line 934 "../src/C.y"
     {(yyval.snippet) = new BPatch_nullExpr();;}
     break;
 
   case 61:
-#line 940 "../src/C.y"
+#line 936 "../src/C.y"
     {
        if(verbose) printf("dyninst`%s ", (yyvsp[(3) - (3)].sval));
        
@@ -2719,7 +2715,7 @@ yyreduce:
     break;
 
   case 62:
-#line 1014 "../src/C.y"
+#line 1010 "../src/C.y"
     {
        if(verbose) printf(" * ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_times, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2728,7 +2724,7 @@ yyreduce:
     break;
 
   case 63:
-#line 1020 "../src/C.y"
+#line 1016 "../src/C.y"
     {
        (yyval.snippet) = (yyvsp[(1) - (1)].snippet);
        actionTaken = true;
@@ -2736,7 +2732,7 @@ yyreduce:
     break;
 
   case 64:
-#line 1025 "../src/C.y"
+#line 1021 "../src/C.y"
     {
        if(verbose) printf(" = ");
 	    (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2745,7 +2741,7 @@ yyreduce:
     break;
 
   case 65:
-#line 1031 "../src/C.y"
+#line 1027 "../src/C.y"
     {
        if(verbose) printf(" += ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[(1) - (3)].snippet), BPatch_arithExpr(BPatch_plus, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet)));
@@ -2754,7 +2750,7 @@ yyreduce:
     break;
 
   case 66:
-#line 1037 "../src/C.y"
+#line 1033 "../src/C.y"
     {
        if(verbose) printf(" -= ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[(1) - (3)].snippet), BPatch_arithExpr(BPatch_minus, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet)));
@@ -2763,7 +2759,7 @@ yyreduce:
     break;
 
   case 67:
-#line 1043 "../src/C.y"
+#line 1039 "../src/C.y"
     {
        if(verbose) printf(" *= ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[(1) - (3)].snippet), BPatch_arithExpr(BPatch_times, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet)));
@@ -2772,7 +2768,7 @@ yyreduce:
     break;
 
   case 68:
-#line 1049 "../src/C.y"
+#line 1045 "../src/C.y"
     {
        if(verbose) printf(" /= ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[(1) - (3)].snippet), BPatch_arithExpr(BPatch_divide, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet)));
@@ -2781,7 +2777,7 @@ yyreduce:
     break;
 
   case 69:
-#line 1055 "../src/C.y"
+#line 1051 "../src/C.y"
     {
        if(verbose) printf(" %%= ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[(1) - (3)].snippet), BPatch_arithExpr(BPatch_minus, *(yyvsp[(1) - (3)].snippet), BPatch_arithExpr(BPatch_times, BPatch_arithExpr(BPatch_divide, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet)), *(yyvsp[(3) - (3)].snippet))));
@@ -2790,7 +2786,7 @@ yyreduce:
     break;
 
   case 70:
-#line 1061 "../src/C.y"
+#line 1057 "../src/C.y"
     {
        if(verbose) printf(" / ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_divide, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2799,7 +2795,7 @@ yyreduce:
     break;
 
   case 71:
-#line 1067 "../src/C.y"
+#line 1063 "../src/C.y"
     {
        if(verbose) printf(" %% ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_minus, *(yyvsp[(1) - (3)].snippet), BPatch_arithExpr(BPatch_times, BPatch_arithExpr(BPatch_divide, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet)), *(yyvsp[(3) - (3)].snippet)));
@@ -2808,7 +2804,7 @@ yyreduce:
     break;
 
   case 72:
-#line 1073 "../src/C.y"
+#line 1069 "../src/C.y"
     {
        if(verbose) printf(" + ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_plus, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2817,7 +2813,7 @@ yyreduce:
     break;
 
   case 73:
-#line 1079 "../src/C.y"
+#line 1075 "../src/C.y"
     {
        if(verbose) printf(" - ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_minus, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2826,7 +2822,7 @@ yyreduce:
     break;
 
   case 74:
-#line 1085 "../src/C.y"
+#line 1081 "../src/C.y"
     {
        if(dynamic_cast<BPatch_nullExpr *>((yyvsp[(1) - (3)].snippet))){
           printf("Picked second\n");
@@ -2838,12 +2834,12 @@ yyreduce:
     break;
 
   case 75:
-#line 1093 "../src/C.y"
+#line 1089 "../src/C.y"
     {(yyval.snippet) = (yyvsp[(2) - (3)].snippet);;}
     break;
 
   case 76:
-#line 1095 "../src/C.y"
+#line 1091 "../src/C.y"
     {
        (yyval.snippet) = (yyvsp[(1) - (1)].snippet);
        actionTaken = true;
@@ -2851,7 +2847,7 @@ yyreduce:
     break;
 
   case 77:
-#line 1104 "../src/C.y"
+#line 1100 "../src/C.y"
     {
        if(verbose) printf(" ++ ");
        BPatch_arithExpr addOne = BPatch_arithExpr(BPatch_assign, *(yyvsp[(1) - (2)].snippet), BPatch_arithExpr(BPatch_plus, *(yyvsp[(1) - (2)].snippet), BPatch_constExpr(1)));
@@ -2860,7 +2856,7 @@ yyreduce:
     break;
 
   case 78:
-#line 1110 "../src/C.y"
+#line 1106 "../src/C.y"
     {
        if(verbose) printf(" ++ ");
        BPatch_arithExpr addOne = BPatch_arithExpr(BPatch_assign, *(yyvsp[(2) - (2)].snippet), BPatch_arithExpr(BPatch_plus, *(yyvsp[(2) - (2)].snippet), BPatch_constExpr(1)));
@@ -2869,7 +2865,7 @@ yyreduce:
     break;
 
   case 79:
-#line 1116 "../src/C.y"
+#line 1112 "../src/C.y"
     {
        if(verbose) printf(" -- ");
        BPatch_arithExpr subOne = BPatch_arithExpr(BPatch_assign, *(yyvsp[(1) - (2)].snippet), BPatch_arithExpr(BPatch_minus, *(yyvsp[(1) - (2)].snippet), BPatch_constExpr(1)));
@@ -2878,7 +2874,7 @@ yyreduce:
     break;
 
   case 80:
-#line 1122 "../src/C.y"
+#line 1118 "../src/C.y"
     {
        if(verbose) printf(" -- ");
        BPatch_arithExpr subOne = BPatch_arithExpr(BPatch_assign, *(yyvsp[(2) - (2)].snippet), BPatch_arithExpr(BPatch_minus, *(yyvsp[(2) - (2)].snippet), BPatch_constExpr(1)));
@@ -2888,7 +2884,7 @@ yyreduce:
 
 
 /* Line 1267 of yacc.c.  */
-#line 2892 "dynC.tab.c"
+#line 2888 "dynC.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -3108,7 +3104,7 @@ yyreturn:
 }
 
 
-#line 1129 "../src/C.y"
+#line 1125 "../src/C.y"
 
 
 #include <stdio.h>

@@ -1287,12 +1287,12 @@ YY_RULE_SETUP
 case 22:
 YY_RULE_SETUP
 #line 87 "../src/C.l"
-{ return(TRUE); }
+{ return(D_TRUE); }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
 #line 88 "../src/C.l"
-{ return(FALSE); }
+{ return(D_FALSE); }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP

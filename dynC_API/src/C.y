@@ -105,7 +105,7 @@ std::vector<BPatch_snippet *> endSnippets;
 %token <ival> NUMBER
 %token <context> ERROR
 %token EOL
-%token SIZEOF TRUE FALSE
+%token SIZEOF D_TRUE D_FALSE
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP 
 %token LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
 %token XOR_ASSIGN OR_ASSIGN TYPE_NAME
@@ -561,11 +561,11 @@ param_list:
     ;
 
 
-bool_constant: TRUE 
+bool_constant: D_TRUE 
     { 
        $$ = new BPatch_boolExpr(BPatch_eq, BPatch_constExpr(0), BPatch_constExpr(0));
     }
-    | FALSE
+    | D_FALSE
     {
        $$ = new BPatch_boolExpr(BPatch_ne, BPatch_constExpr(0), BPatch_constExpr(0));
     }

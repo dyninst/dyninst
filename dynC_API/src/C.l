@@ -84,8 +84,8 @@ char|int|long|float|double|short|void|bool { yylval.sval = strdup(yytext); retur
 "static" { return(STATIC); }
 "switch" { return(SWITCH); }
 "typedef" { return(TYPEDEF); }
-"true" { return(TRUE); }
-"false" { return(FALSE); }
+"true" { return(D_TRUE); }
+"false" { return(D_FALSE); }
 
 "local" { return(LOCAL); }
 "param" { return(PARAM); }
