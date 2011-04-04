@@ -120,18 +120,26 @@ void PCEventHandler::main() {
 
     // Register callbacks before allowing the user thread to continue
 
-    // Any error in registration is a programming error
-    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::Crash), PCEventHandler::callbackMux) );
-    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::ForceTerminate), PCEventHandler::callbackMux) );
-    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::ThreadCreate), PCEventHandler::callbackMux) );
-    assert( Process::registerEventCallback(EventType(EventType::Pre, EventType::ThreadDestroy), PCEventHandler::callbackMux) );
+    vector<EventType> standardEvents;
+    standardEvents.push_back(EventType(EventType::Any, EventType::Crash));
+    standardEvents.push_back(EventType(EventType::Any, EventType::ForceTerminate));
+    standardEvents.push_back(EventType(EventType::Any, EventType::ThreadCreate));
+    standardEvents.push_back(EventType(EventType::Pre, EventType::ThreadDestroy));
     // Note: we do not care about EventStop's right now (these correspond to internal stops see bug 1121)
-    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::Signal), PCEventHandler::callbackMux) );
-    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::Library), PCEventHandler::callbackMux) );
+    standardEvents.push_back(EventType(EventType::Any, EventType::Signal));
+    standardEvents.push_back(EventType(EventType::Any, EventType::Library));
     // Note: we do not care about EventBootstrap's
-    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::Breakpoint), PCEventHandler::callbackMux) );
-    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::RPC), PCEventHandler::callbackMux) );
-    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::SingleStep), PCEventHandler::callbackMux) );
+    standardEvents.push_back(EventType(EventType::Any, EventType::Breakpoint));
+    standardEvents.push_back(EventType(EventType::Any, EventType::RPC));
+    standardEvents.push_back(EventType(EventType::Any, EventType::SingleStep));
+
+    for(vector<EventType>::iterator i = standardEvents.begin();
+            i != standardEvents.end(); ++i)
+    {
+        // Any error in registration is a programming error
+        bool registerResult = Process::registerEventCallback(*i, PCEventHandler::callbackMux);
+        assert( registerResult && "Failed to register event callback");
+    }
 
     // Check if callbacks should be registered for syscalls on this platform
     vector<EventType> syscallTypes;
@@ -147,9 +155,11 @@ void PCEventHandler::main() {
     {
         switch(getCallbackBreakpointCase(*i)) {
             case CallbackOnly:
-            case BothCallbackBreakpoint:
-                assert( Process::registerEventCallback(*i, PCEventHandler::callbackMux) );
+            case BothCallbackBreakpoint: {
+                bool registerResult = Process::registerEventCallback(*i, PCEventHandler::callbackMux);
+                assert( registerResult && "Failed to register event callback" );
                 break;
+            }
             default:
                 break;
         }
@@ -1315,8 +1325,8 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
     return true;
 }
 
-bool PCEventHandler::handleBreakpoint(EventBreakpoint::const_ptr ev, PCProcess *) const {
-    if( dyn_debug_proccontrol ) {
+bool PCEventHandler::handleBreakpoint(EventBreakpoint::const_ptr ev, PCProcess *evProc) const {
+    if( dyn_debug_proccontrol && evProc->isBootstrapped() ) {
         RegisterPool regs;
         if( !ev->getThread()->getAllRegisters(regs) ) {
             fprintf(stderr, "%s[%d]: Failed to get registers at breakpoint\n", FILE__, __LINE__);

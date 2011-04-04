@@ -560,6 +560,12 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
             event = Event::ptr(new EventExit(EventType::Post, exitcode));
         }else{
             int termsig = WTERMSIG(status);
+            if( int_thread::exited == thread->getGeneratorState() ) {
+                pthrd_printf("Decoded duplicate terminate event of process %d/%d with signal %d\n",
+                        proc->getPid(), thread->getLWP(), termsig);
+                return true;
+            }
+
             if( proc->wasForcedTerminated() ) {
                 pthrd_printf("Decoded event to force terminate of %d/%d\n",
                         proc->getPid(), thread->getLWP());

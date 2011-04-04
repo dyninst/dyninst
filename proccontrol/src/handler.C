@@ -1651,6 +1651,12 @@ bool HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_
                    action_str(ret.child));
    }
 
+   // Don't allow the user to change the state of forced terminated processes 
+   if( ev->getProcess()->llproc()->wasForcedTerminated() ) {
+       parent_result = Process::cbDefault;
+       child_result = Process::cbDefault;
+   }
+
    // Now that the callback is over, return the state to what it was before the
    // callback so the return value from the callback can be used to update the state
    if( !ev->getProcess()->isTerminated() && ev->getThread()->llthrd() != NULL ) {
@@ -1696,6 +1702,7 @@ void HandleCallbacks::getRealEvents(EventType ev, std::vector<EventType> &out_ev
       case EventType::Terminate:
          out_evs.push_back(EventType(ev.time(), EventType::Exit));
          out_evs.push_back(EventType(ev.time(), EventType::Crash));
+         out_evs.push_back(EventType(ev.time(), EventType::ForceTerminate));
          break;
       case EventType::ThreadCreate:
          out_evs.push_back(EventType(ev.time(), EventType::UserThreadCreate));
