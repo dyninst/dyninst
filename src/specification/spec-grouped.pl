@@ -2598,6 +2598,45 @@ mutatee('pc_irpc', ['pc_irpc_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_
 mutatee_requires_libs('pc_irpc', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_irpc', _, Opt) :- member(Opt, ['none']).
 
+test('pc_detach', 'pc_detach', 'pc_detach').
+test_description('pc_detach', 'Detach from processes').
+test_platform('pc_detach', Platform) :- pcPlatforms(Platform).
+mutator('pc_detach', ['pc_detach.C']).
+test_runmode('pc_detach', 'dynamic').
+test_threadmode('pc_detach', 'Threading').
+test_processmode('pc_detach', 'Processes').
+test_start_state('pc_detach', 'stopped').
+tests_module('pc_detach', 'proccontrol').
+mutatee('pc_detach', ['pc_detach_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_detach', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_detach', _, Opt) :- member(Opt, ['none']).
+
+test('pc_terminate', 'pc_terminate', 'pc_terminate').
+test_description('pc_terminate', 'Detach from processes').
+test_platform('pc_terminate', Platform) :- pcPlatforms(Platform).
+mutator('pc_terminate', ['pc_terminate.C']).
+test_runmode('pc_terminate', 'dynamic').
+test_threadmode('pc_terminate', 'Threading').
+test_processmode('pc_terminate', 'Processes').
+test_start_state('pc_terminate', 'stopped').
+tests_module('pc_terminate', 'proccontrol').
+mutatee('pc_terminate', ['pc_terminate_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_terminate', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_terminate', _, Opt) :- member(Opt, ['none']).
+
+test('pc_terminate_stopped', 'pc_terminate_stopped', 'pc_terminate_stopped').
+test_description('pc_terminate_stopped', 'Detach from processes').
+test_platform('pc_terminate_stopped', Platform) :- pcPlatforms(Platform).
+mutator('pc_terminate_stopped', ['pc_terminate_stopped.C']).
+test_runmode('pc_terminate_stopped', 'dynamic').
+test_threadmode('pc_terminate_stopped', 'Threading').
+test_processmode('pc_terminate_stopped', 'Processes').
+test_start_state('pc_terminate_stopped', 'stopped').
+tests_module('pc_terminate_stopped', 'proccontrol').
+mutatee('pc_terminate_stopped', ['pc_terminate_stopped_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_terminate_stopped', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_terminate_stopped', _, Opt) :- member(Opt, ['none']).
+
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its
 % mutatee in state State, with State in {stopped, running, selfstart}
