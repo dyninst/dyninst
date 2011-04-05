@@ -1004,7 +1004,6 @@ process::process(SignalGenerator *sh_, BPatch_hybridMode mode) :
     nextTrapIsExec(false),
     inExec_(false),
     theRpcMgr(NULL),
-    collectSaveWorldData(true),
     requestTextMiniTramp(false),
     traceLink(0),
     bootstrapState(unstarted_bs),
@@ -1549,7 +1548,6 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     nextTrapIsExec(parentProc->nextTrapIsExec),
     inExec_(parentProc->inExec_),
     theRpcMgr(NULL), // Set later
-    collectSaveWorldData(parentProc->collectSaveWorldData),
     requestTextMiniTramp(parentProc->requestTextMiniTramp),
     traceLink(childTrace_fd),
     bootstrapState(parentProc->bootstrapState),

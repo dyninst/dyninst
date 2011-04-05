@@ -1930,12 +1930,8 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
    return true;
 }
 
-/* 
- *	this function sets a flag in process that 
- *	forces the collection of data for saveworld.
- */
 void BPatch_process::enableDumpPatchedImageInt(){
-	llproc->collectSaveWorldData=true;
+    // deprecated; saveTheWorld is dead. Do nothing for now; kill later.
 }
 
 void BPatch_process::setExitedViaSignal(int signalnumber) 

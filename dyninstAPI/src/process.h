@@ -52,7 +52,6 @@
 #include "dyninstAPI/src/syscalltrap.h"
 #endif
 #include "dyninstAPI/src/codeRange.h"
-#include "dyninstAPI/src/imageUpdate.h"
 #include "dyninstAPI/src/infHeap.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/ast.h"
@@ -915,20 +914,8 @@ private:
   rpcMgr *theRpcMgr;
 
 
-  ///////////////////////////////
-  // Save The World
-  ///////////////////////////////
-  bool collectSaveWorldData;//this is set to collect data for
-				//save the world
-
-  pdvector<imageUpdate*> imageUpdates;//ccw 28 oct 2001
-  pdvector<imageUpdate*> highmemUpdates;//ccw 20 nov 2001
-  pdvector<dataUpdate*>  dataUpdates;//ccw 26 nov 2001
-  pdvector<std::string> loadLibraryCalls;//ccw 14 may 2002 
-  pdvector<std::string> loadLibraryUpdates;//ccw 14 may 2002
-  pdvector<void*> loadLibraryBRKs;
   int requestTextMiniTramp; //ccw 20 jul 2002
-	void setRequestTextMiniTramp(int flag){requestTextMiniTramp=flag;};
+  void setRequestTextMiniTramp(int flag){requestTextMiniTramp=flag;};
 
 
   // Pipe between mutator and mutatee
