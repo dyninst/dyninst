@@ -574,10 +574,7 @@ Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
    assert(thrd);
    pthrd_printf("Handling force terminate for process %d on thread %d\n",
                 proc->getPid(), thrd->getLWP());
-   EventForceTerminate *event = static_cast<EventForceTerminate *>(ev.get());
 
-   proc->setCrashSignal(event->getTermSignal());
-   
    ProcPool()->condvar()->lock();
 
    proc->setState(int_process::exited);
