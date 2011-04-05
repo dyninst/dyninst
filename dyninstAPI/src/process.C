@@ -4818,7 +4818,7 @@ bool process::getDeadCode
         }
     }
 
-    // group blocks by function
+    // group blocks by function and find functions with dead entry blocks
     std::map<int_function*,set<int_block*> > deadMap;
     std::set<int_function*> deadEntryFuncs;
     std::set<Address> owBlockAddrs;

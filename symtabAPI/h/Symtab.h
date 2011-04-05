@@ -287,6 +287,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT bool getLinkingResources(std::vector<Archive *> &libs);
 
    SYMTAB_EXPORT bool addExternalSymbolReference(Symbol *externalSym, Region *localRegion, relocationEntry localRel);
+   SYMTAB_EXPORT bool addTrapHeader_win(Address ptr);
 
    /***** Data Member Access *****/
    SYMTAB_EXPORT std::string file() const;

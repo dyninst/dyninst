@@ -2212,7 +2212,7 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
     return ret;
 }
 
-void image::addSplitBlock(SplitBlock &sb) 
+void image::addSplitBlock(BlockSplit &sb) 
 {
     std::list<Address> toRemove;
 	splitBlocks_.push_back(sb);
@@ -2235,7 +2235,7 @@ void image::addSplitBlock(SplitBlock &sb)
 }
 
 
-const vector<image::SplitBlock> & image::getSplitBlocks() const
+const vector<image::BlockSplit> & image::getSplitBlocks() const
 {
     return splitBlocks_;
 }

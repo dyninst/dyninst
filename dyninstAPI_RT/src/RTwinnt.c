@@ -36,6 +36,8 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "RTcommon.h"
 #include <windows.h>
+#include <Dbghelp.h>
+#include <Psapi.h>
 #include <stdio.h>
 #include <stdlib.h>
 //#define WIN32_LEAN_AND_MEAN
@@ -51,6 +53,12 @@
 #include <stdio.h>
 #include <assert.h>
 //#include <winsock2.h>
+
+extern unsigned long dyninstTrapTableUsed;
+extern unsigned long dyninstTrapTableVersion;
+extern trapMapping_t *dyninstTrapTable;
+extern unsigned long dyninstTrapTableIsSorted;
+extern void DYNINSTBaseInit();
 
 /************************************************************************
  * void DYNINSTbreakPoint(void)
@@ -97,6 +105,11 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
       DYNINSTinit(libdyninstAPI_RT_init_localCause, libdyninstAPI_RT_init_localPid,
                   libdyninstAPI_RT_init_maxthreads, libdyninstAPI_RT_init_debug_flag);
 
+#if defined(cap_mutatee_traps)
+   if (DYNINSTstaticMode) {
+      DYNINSTinitializeTrapHandler();
+   }
+#endif
 
    return 1; 
 }
@@ -279,40 +292,112 @@ int DYNINST_am_initial_thread(dyntid_t tid) {
     return (tid == initial_thread_tid);
 }
 
-extern unsigned long dyninstTrapTableUsed;
-extern unsigned long dyninstTrapTableVersion;
-extern trapMapping_t *dyninstTrapTable;
-extern unsigned long dyninstTrapTableIsSorted;
+// Check that the address is backed by a file,
+// get the binary's load address,
+// get the PE header, assuming there is one,
+// see if the last section has been tagged with "DYNINST_REWRITE"
+// get trap-table header from last binary section's end - label - size
+static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
+{
+   struct trap_mapping_header *header = NULL;
+   char fileName[ERROR_STRING_LENGTH];
+   DWORD actualNameLen = 0;
+   MEMORY_BASIC_INFORMATION memInfo;
+   int numSections = 0;
+   PIMAGE_NT_HEADERS peHdr = NULL;
+   PIMAGE_SECTION_HEADER curSecn = NULL;
+   int sidx=0;
+   fprintf(stderr, "getStaticTrapMap(%lx) is in file[%s]\n", addr, fileName);
 
+   //check that the address is backed by a file
+   actualNameLen = GetMappedFileName(GetCurrentProcess(), 
+                                     (LPVOID)addr, 
+                                     fileName, 
+                                     ERROR_STRING_LENGTH);
+   if (!actualNameLen) {
+      fileName[0] = '\0';
+      goto done; // no file mapped at trap address
+   }
+   fileName[ERROR_STRING_LENGTH-1] = '\0';
+
+   // get the binary's load address, size
+   if (!VirtualQuery((LPCVOID)&addr, &memInfo, sizeof(memInfo)) 
+       || MEM_COMMIT != memInfo.State) 
+   {
+      goto done; // shouldn't be possible given previous query, but hey
+   }
+
+   // get the PE header, assuming there is one
+   peHdr = ImageNtHeader( memInfo.BaseAddress );
+   if (!peHdr) {
+      goto done; // no pe header
+   }
+
+   // see if the last section has been tagged with "DYNINST_REWRITE"
+   numSections = peHdr->FileHeader.NumberOfSections;
+   curSecn = (PIMAGE_SECTION_HEADER)(((unsigned char*)peHdr) + 
+               sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER) +
+               peHdr->FileHeader.SizeOfOptionalHeader);
+   curSecn += numSections-1;
+   if ((sizeof(void*) + 16) < curSecn->SizeOfRawData) {
+      goto done; // last section is uninitialized, doesn't have trap table
+   }
+   if (0 != strncmp("DYNINST_REWRITE", 
+                    (char*)(curSecn->PointerToRawData + curSecn->SizeOfRawData - 16),
+                    15)) 
+   {
+      goto done; // doesn't have DYNINST_REWRITE label
+   }
+
+   // get trap-table header
+   header = (struct trap_mapping_header*) (curSecn->PointerToRawData 
+      + curSecn->SizeOfRawData 
+      - sizeof(void*) 
+      - 16);
+
+done: 
+   if (header) {
+      fprintf(stderr, "found trap map header at %lx: [%lx %lx]\n", 
+              (unsigned long) header, header->low_entry, header->high_entry);
+   } else {
+      fprintf(stderr, "ERROR: didn't find trap table\n");
+   }
+   return header;
+}
+
+// Find the target IP and substitute. Leave everything else untouched.
 LONG dyn_trapHandler(PEXCEPTION_POINTERS e)
 {
    void *trap_to=0;
-   void *orig_ip=0;
+   void *trap_addr = (void*) e->ExceptionRecord->ExceptionAddress;
+   unsigned long zero = 0;
+   unsigned long one = 1;
+   struct trap_mapping_header *hdr = NULL;
+   trapMapping_t *mapping = NULL;
+
    fprintf(stderr,"RTLIB: In dyn_trapHandler for exception type 0x%lx at 0x%lx\n",
-           e->ExceptionRecord->ExceptionCode, 
-           e->ExceptionRecord->ExceptionAddress);
+           e->ExceptionRecord->ExceptionCode, trap_addr);
+
+   assert(DYNINSTstaticMode && "detach on the fly not implemented on Windows");
 
    if (EXCEPTION_BREAKPOINT != e->ExceptionRecord->ExceptionCode) {
       return EXCEPTION_CONTINUE_SEARCH;
    }
 
-   // Find the new IP we're going to and substitute. Leave everything else untouched.
-   if (DYNINSTstaticMode) {
-      fprintf(stderr,"ERROR: handling of trap instrumentation w/ static "
-              "rewriting is not implemented\n");
-      assert(0 && "static windows rewriting not implemented");
-   }
-   else {
-      fprintf(stderr,"RTLIB: calling dyninstTrapTranslate(\n\t0x%lx, \n\t"
-              "0x%lx, \n\t0x%lx, \n\t0x%lx, \n\t0x%lx)\n", orig_ip, 
-              &dyninstTrapTableUsed, &dyninstTrapTableVersion,
-              &dyninstTrapTable, &dyninstTrapTableIsSorted);
-      trap_to = dyninstTrapTranslate(orig_ip, 
-                                     &dyninstTrapTableUsed,
-                                     &dyninstTrapTableVersion,
-                                     (volatile trapMapping_t **) &dyninstTrapTable,
-                                     &dyninstTrapTableIsSorted);
-   }
+   hdr = getStaticTrapMap((unsigned long) trap_addr);
+   assert(hdr);
+   mapping = &(hdr->traps[0]);
+
+   fprintf(stderr,"RTLIB: calling dyninstTrapTranslate(\n\t0x%lx, \n\t"
+           "0x%lx, \n\t0x%lx, \n\t0x%lx, \n\t0x%lx)\n", trap_addr, 
+           &dyninstTrapTableUsed, &dyninstTrapTableVersion,
+           &dyninstTrapTable, &dyninstTrapTableIsSorted);
+   trap_to = dyninstTrapTranslate(trap_addr,
+                                  (unsigned long *) &hdr->num_entries,
+                                  &zero, 
+                                  (volatile trapMapping_t **) &mapping,
+                                  &one);
+
    fprintf(stderr,"RTLIB: changing Eip from trap at 0x%lx to 0x%lx\n", 
            e->ContextRecord->Eip, trap_to);
    e->ContextRecord->Eip = (long) trap_to;

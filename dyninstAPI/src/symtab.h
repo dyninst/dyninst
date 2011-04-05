@@ -388,16 +388,9 @@ class image : public codeRange {
 
    void deleteFunc(image_func *func);
    void deleteInstPoint(image_instPoint *p);
-   typedef struct SplitBlock {
-       image_basicBlock *first;
-       image_basicBlock *second;
-       image_func *func;
-       SplitBlock(image_basicBlock *b1, image_basicBlock *b2, image_func *f) {
-           first = b1; second = b2; func = f;
-       }
-   };
-   void addSplitBlock(SplitBlock &blk);
-   const std::vector<SplitBlock> & getSplitBlocks() const;
+   typedef std::pair<image_basicBlock *,image_basicBlock *> BlockSplit;
+   void addSplitBlock(BlockSplit &blk);
+   const std::vector<BlockSplit> & getSplitBlocks() const;
    bool hasSplitBlocks() const { return !splitBlocks_.empty(); }
    void clearSplitBlocks();
    bool hasNewBlocks() const { return 0 < newBlocks_.size(); }
@@ -552,7 +545,7 @@ class image : public codeRange {
    vector<pair<string, Address> > dataHeaps_;
 
    // new element tracking
-   vector<SplitBlock> splitBlocks_;
+   vector<BlockSplit> splitBlocks_;
    vector<image_basicBlock*> newBlocks_;
    bool trackNewBlocks_;
 

@@ -1115,20 +1115,26 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
 
 
 // parse, add src-trg edge, instrument, and write-protect the code 
+// return true if we did any parsing
 bool HybridAnalysis::analyzeNewFunction( BPatch_point *source, 
                                          Address target, 
                                          bool doInstrumentation, 
                                          bool useInsertionSet )
 {
     // parse at the target
-    bool parsed = true;
+    bool parsed;
     vector<BPatch_module *> affectedMods;
-    vector<Address> targVec; // has only one element, used to conform to interface
-    targVec.push_back(target);
-    if (!proc()->getImage()->parseNewFunctions(affectedMods, targVec)) {
-        fprintf(stderr, "WARNING: call to parseNewFunctions failed to parse region "
-                "containing target addr %lx  %s[%d]\n", (long)target, FILE__, __LINE__);
-        parsed = false;
+    if (proc()->findFunctionByEntry(target)) {
+       parsed = false;
+    } else {
+       parsed = true;
+       vector<Address> targVec; // has only one element, used to conform to interface
+       targVec.push_back(target);
+       if (!proc()->getImage()->parseNewFunctions(affectedMods, targVec)) {
+           fprintf(stderr, "WARNING: call to parseNewFunctions failed to parse region "
+                   "containing target addr %lx  %s[%d]\n", (long)target, FILE__, __LINE__);
+           parsed = false;
+       }
     }
     
     // inform the mutator of the new code
@@ -1152,10 +1158,13 @@ bool HybridAnalysis::analyzeNewFunction( BPatch_point *source,
         addIndirectEdgeIfNeeded(source,target);
     }
 
-    // instrument all of the new modules and protect their code
-    for (unsigned i=0; i < affectedMods.size(); i++) {
+    // instrument all of the new modules and protect their code (if we parsed)
+    for (unsigned i=0; 
+         parsed && i < affectedMods.size(); 
+         i++) 
+    {
         if ( doInstrumentation  && affectedMods[i]->isExploratoryModeOn() ) {
-            instrumentModule(affectedMods[i],useInsertionSet);//also protects the code
+            instrumentModule(affectedMods[i],useInsertionSet);//also protects
         }
         else if (BPatch_defensiveMode == affectedMods[i]->getHybridMode()) {
             affectedMods[i]->setAnalyzedCodeWriteable(false); 

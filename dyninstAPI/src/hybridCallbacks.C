@@ -493,6 +493,114 @@ static int getCallPoints(ParseAPI::Block* blk,
     return points.size();
 }
 
+// Find the call blocks preceding the address that we're returning 
+// past, but only set set returningCallB if we can be sure that 
+// that we've found a call block that actually called the function
+// we're returning from 
+static void getCallBlocks(Address retAddr, 
+                   instPoint *retPoint,
+                   pair<ParseAPI::Block*, Address> & returningCallB, // output
+                   set<ParseAPI::Block*> & callBlocks) // output
+{
+   // find blocks at returnAddr -1 
+   using namespace ParseAPI;
+   process *llproc = retPoint->func()->proc()->proc();
+   mapped_object *callObj = llproc->findObject((Address)retAddr - 1);
+   image_func * retF = retPoint->func()->ifunc();
+   std::set<CodeRegion*> callRegs;
+   if (callObj) {
+      callObj->parse_img()->codeObject()->cs()->
+          findRegions(retAddr - 1 - callObj->codeBase(),callRegs);
+   }
+   if (!callRegs.empty()) {
+      callObj->parse_img()->codeObject()->
+          findBlocks(*callRegs.begin(), 
+                     retAddr - 1 - callObj->codeBase(),
+                     callBlocks);
+   }
+
+   // remove blocks at returnAddr -1 that either have no call from callBlocks,
+   // or that don't end at the correct address
+   for (set<Block*>::iterator bit = callBlocks.begin();
+       bit != callBlocks.end();)
+   {
+      if ((*bit)->end() == (retAddr - callObj->codeBase()) &&
+          ((image_basicBlock*)(*bit))->isCallBlock()) 
+      {
+          bit++;
+      }
+      else {
+          bit = callBlocks.erase(bit);
+      }
+   }
+
+   // set returningCallB, which must call the func that has the return
+   // ins'n, or call a function that tail-calls to the return func
+   for (set<Block*>::iterator bit = callBlocks.begin();
+       returningCallB.first == NULL && bit != callBlocks.end();
+       bit++) 
+   {
+      int_function *retFunc = retPoint->func();
+      if (BPatch_defensiveMode != retFunc->obj()->hybridMode()) {
+          int_function *origF = llproc->isFunctionReplacement(retFunc);
+          if (origF) {
+              retFunc = origF;
+          }
+      }
+
+      // check that the target function contains the return insn, 
+      // or that it tail-calls to the function containing the ret, 
+      // or that the return insn is in a replacement for the called 
+      // or tail-called func
+      Block::edgelist & trgs = (*bit)->targets();
+      for (Block::edgelist::iterator eit = trgs.begin();
+           eit != trgs.end(); 
+           eit++)
+      {
+          if ((*eit)->type() == ParseAPI::CALL && 
+              !(*eit)->sinkEdge()) 
+          {
+              Block *calledB = (*eit)->trg();
+              Function *calledF = calledB->obj()->
+                  findFuncByEntry(calledB->region(), calledB->start());
+              if (calledF == retFunc->ifunc() || 
+                  calledF->contains(retPoint->block()->llb()))
+              {
+                  returningCallB.first = *bit;
+                  returningCallB.second = calledB->start() + 
+                      llproc->findObject(calledB->obj())->codeBase();
+                  break; // calledF contains return instruction
+              }
+              // see if calledF tail-calls to func that has ret point
+              // or if calledF has been replaced, by hideDebugger
+              Function::edgelist & calls = calledF->callEdges();
+              for (Function::edgelist::iterator cit = calls.begin();
+                   cit != calls.end();
+                   cit++)
+              {
+                  if (!(*cit)->sinkEdge()) {
+                      Block *tailCalledB = (*cit)->trg();
+                      Function *tCalledF = tailCalledB->obj()->
+                          findFuncByEntry(tailCalledB->region(), 
+                                          tailCalledB->start());
+                      if (retFunc->ifunc() == tCalledF || 
+                          tCalledF->contains(retPoint->block()->llb()))
+                      {
+                          // make sure it really is a tail call
+                          // (i.e., the src has no CALL_FT)
+                          returningCallB.first = *bit;
+                          returningCallB.second = tailCalledB->start() + 
+                              llproc->findObject(tailCalledB->obj())->
+                              codeBase();
+                          break;
+                      }
+                  }
+              }
+          }
+      }
+   }
+}
+
 /* CASES (sub-numbering are cases too)
  * 1. the target address is in a shared library
  * 1.1 if it's a system library don't parse at the target, but if the point was marked 
@@ -626,117 +734,46 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
 
         Address returnAddr = target;
         using namespace ParseAPI;
-        pair<Block*, Address> returningCallB(NULL,0); // there could be multiple blocks, but 
-                                                 // parseAfterCallAndInstrument will 
-                                                 // find them; <callBlock,target>
-        process *llproc = proc()->lowlevel_process();
-        mapped_object *callObj = llproc->findObject((Address)returnAddr - 1);
-        image_func * retF = point->getFunction()->lowlevel_func()->ifunc();
-        std::set<CodeRegion*> callRegs;
+
+
+        // Find the call blocks preceding the address that we're returning 
+        // past, but only set set returningCallB if we can be sure that 
+        // that we've found a call block that actually called the function
+        // we're returning from 
+        pair<Block*, Address> returningCallB(NULL,0); 
         set<Block*> callBlocks;
-        if (callObj) {
-            callObj->parse_img()->codeObject()->cs()->
-                findRegions(returnAddr - 1 - callObj->codeBase(),callRegs);
-        }
-        if (!callRegs.empty()) {
-            callObj->parse_img()->codeObject()->
-                findBlocks(*callRegs.begin(), 
-                           returnAddr - 1 - callObj->codeBase(),
-                           callBlocks);
-        }
+        getCallBlocks(returnAddr,point->llpoint(), returningCallB, callBlocks);
 
-        // purge callBlocks of pretenders
-        for (set<Block*>::iterator bit = callBlocks.begin();
-             bit != callBlocks.end();)
-        {
-            if ((*bit)->end() == (returnAddr - callObj->codeBase()) &&
-                ((image_basicBlock*)(*bit))->isCallBlock()) 
-            {
-                bit++;
-            }
-            else {
-                bit = callBlocks.erase(bit);
-            }
-        }
-
-        // set returningCallB, which must call the func that has the return
-        // ins'n, or call a function that tail-calls to the return func
-        for (set<Block*>::iterator bit = callBlocks.begin();
-             returningCallB.first == NULL && bit != callBlocks.end();
-             bit++) 
-        {
-            int_function *retFunc = point->llpoint()->func();
-            if (BPatch_defensiveMode != retFunc->obj()->hybridMode()) {
-                int_function *origF = llproc->isFunctionReplacement(retFunc);
-                if (origF) {
-                    retFunc = origF;
-                }
-            }
-
-            // check that the target function contains the return insn, 
-            // or that it tail-calls to the function containing the ret, 
-            // or that the return insn is in a replacement for the called or tail-called func
-            Block::edgelist & trgs = (*bit)->targets();
-            for (Block::edgelist::iterator eit = trgs.begin();
-                 eit != trgs.end(); 
-                 eit++)
-            {
-                if ((*eit)->type() == ParseAPI::CALL && 
-                    !(*eit)->sinkEdge()) 
-                {
-                    Block *calledB = (*eit)->trg();
-                    Function *calledF = calledB->obj()->
-                        findFuncByEntry(calledB->region(), calledB->start());
-                    if (calledF == retFunc->ifunc() || 
-                        calledF->contains(point->llpoint()->block()->llb()))
-                    {
-                        returningCallB.first = *bit;
-                        returningCallB.second = calledB->start() + 
-                            llproc->findObject(calledB->obj())->codeBase();
-                        break; // calledF contains return instruction
-                    }
-                    // see if calledF tail-calls to func that has ret point
-                    // or if calledF has been replaced, by hideDebugger
-                    Function::edgelist & calls = calledF->callEdges();
-                    for (Function::edgelist::iterator cit = calls.begin();
-                         cit != calls.end();
-                         cit++)
-                    {
-                        if (!(*cit)->sinkEdge()) {
-                            Block *tailCalledB = (*cit)->trg();
-                            Function *tCalledF = tailCalledB->obj()->
-                                findFuncByEntry(tailCalledB->region(), 
-                                                tailCalledB->start());
-                            if (retFunc->ifunc() == tCalledF || 
-                                tCalledF->contains(point->llpoint()->
-                                                  block()->llb()))
-                            {
-                                // make sure it really is a tail call
-                                // (i.e., the src has no CALL_FT)
-                                returningCallB.first = *bit;
-                                returningCallB.second = tailCalledB->start() + 
-                                    llproc->findObject(tailCalledB->obj())->
-                                    codeBase();
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 3.2.1 if point->func() was called by returningCallB, point->func() 
-        // returns normally, if we haven't parsed the callFT already, 
-        // tell parseAfterCallAndInstrument to parse after 
-        // all callers to point->func()
+        // 3.2.1 parse at returnAddr as the fallthrough of the preceding
+        // call block, if there is one 
         if (!callBlocks.empty()) {
+
+            // we don't know if the function we called returns, so 
+            // invoke parseAfterCallAndInstrument with NULL as the
+            // called func, so we won't try to parse after other 
+            // callers to the called func, as it may not actually
+            // return in a normal fashion
+            if (NULL == returningCallB.first) {
+                vector<BPatch_point*> callPts; 
+                for (set<Block*>::iterator bit = callBlocks.begin(); 
+                     bit != callBlocks.end(); 
+                     bit++)
+                {
+                    getCallPoints(*bit, proc(), callPts);
+                }
+                for (vector<BPatch_point*>::iterator pit = callPts.begin(); 
+                     pit != callPts.end(); 
+                     pit++)
+                {
+                    parseAfterCallAndInstrument( *pit, NULL );
+                }
+            }
 
             // if the return address has been parsed as the entry point
             // of a block, patch post-call areas and return
-            if ( NULL != returningCallB.first && 
-                 returningCallB.first->obj()->findBlockByEntry(
-                    returningCallB.first->region(), 
-                    target))
+            else if ( returningCallB.first->obj()->findBlockByEntry(
+                          returningCallB.first->region(), 
+                          target))
             {
                 vector<BPatch_point*> callPts; 
                 getCallPoints(returningCallB.first, proc(), callPts);
@@ -744,8 +781,8 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                     callPts[j]->patchPostCallArea();
                 }
             }
-            else if (NULL != returningCallB.first) 
-            {   // parse at the call fallthrough
+
+            else { // parse at the call fallthrough
 
                 // find one callPoint, any other ones will 
                 // be found by parseAfterCallAndInstrument
@@ -770,28 +807,10 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                     parseAfterCallAndInstrument( callPoints[0], 
                                                  point->getFunction() );
                 }
-            } else { // we don't know if the function we called returns, so 
-                     // invoke parseAfterCallAndInstrument with NULL as the
-                     // called func, so we won't try to parse after other 
-                     // callers to the called func, as it may not actually
-                     // return in a normal fashion
-                vector<BPatch_point*> callPts; 
-                for (set<Block*>::iterator bit = callBlocks.begin(); 
-                     bit != callBlocks.end(); 
-                     bit++)
-                {
-                    getCallPoints(*bit, proc(), callPts);
-                }
-                for (vector<BPatch_point*>::iterator pit = callPts.begin(); 
-                     pit != callPts.end(); 
-                     pit++)
-                {
-                    parseAfterCallAndInstrument( *pit, NULL );
-                }
             }
         }
 
-        // 3.2.2 else parse the return addr as a new function
+        // 3.2.2 no call blocks, parse the return addr as a new function
         else {
             if ( point->getFunction()->getModule()->isExploratoryModeOn() ) {
                 // otherwise we've instrumented a function in trusted library

@@ -235,6 +235,7 @@ void DYNINSTBaseInit()
  *    Solaris: ld with -z initarray=libdyninstAPI_RT_init
  *    Linux: ld with -init libdyninstAPI_RT_init
  *           gcc with -Wl,-init -Wl,...
+ *    Windows: called from DllMain, which exists in lieu of libdyninstAPI_RT_init
  *
  * This is only called in the Dynamic instrumentation case.  Static
  * libraries don't call this.

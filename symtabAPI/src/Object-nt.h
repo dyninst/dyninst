@@ -67,11 +67,6 @@ namespace SymtabAPI{
 
 class ExceptionBlock;
 
-typedef struct{
-	char* name;
-	IMAGE_IMPORT_DESCRIPTOR id;
-}IMPORT_ENTRY;
-
 /************************************************************************
  * class Object
 ************************************************************************/
@@ -209,26 +204,28 @@ class Object : public AObject
     SYMTAB_EXPORT const std::vector<Offset> &getPossibleMains() const   { return possible_mains; }
     SYMTAB_EXPORT void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
     SYMTAB_EXPORT bool emitDriver(Symtab *obj, std::string fName, 
-		std::vector<Symbol *>&allSymbols, unsigned flag);
-	SYMTAB_EXPORT unsigned int getSecAlign() const {return SecAlignment;}
+		                            std::vector<Symbol *>&allSymbols, unsigned flag);
+    SYMTAB_EXPORT unsigned int getSecAlign() const {return SecAlignment;}
+    SYMTAB_EXPORT void insertPrereqLibrary(std::string lib);
     virtual char *mem_image() const 
     {
         assert(mf);
         return (char *)mf->base_addr();
     }
+    void setTrapHeader(Offset ptr);
+    Offset trapHeader();
 
     SYMTAB_EXPORT DWORD ImageOffset2SectionNum(DWORD dwRO);
     SYMTAB_EXPORT PIMAGE_SECTION_HEADER ImageOffset2Section(DWORD dwRO);
     SYMTAB_EXPORT PIMAGE_SECTION_HEADER ImageRVA2Section(DWORD dwRVA);
     SYMTAB_EXPORT DWORD RVA2Offset(DWORD dwRVA);
     SYMTAB_EXPORT DWORD Offset2RVA(DWORD dwRO);
-    SYMTAB_EXPORT std::vector<IMPORT_ENTRY> getImportTable(){return image_import_descriptor;}
-    SYMTAB_EXPORT void setNewImpTableAddr(Offset addr);
-    SYMTAB_EXPORT Offset getNewImpTableAddr();
-    SYMTAB_EXPORT unsigned int getNewImpTableSize();
     SYMTAB_EXPORT void addReference(Offset, std::string, std::string);
-    SYMTAB_EXPORT std::map<Offset, std::pair<std::string, std::string> > & getRefs() { return ref; }
+    SYMTAB_EXPORT std::map<std::string, std::map<Offset, std::string> > & getRefs() { return ref; }
 
+    std::map<std::string, IMAGE_IMPORT_DESCRIPTOR> & getImportDescriptorTable();
+    std::map<std::string, std::map<std::string, WORD> > & getHintNameTable();
+    PIMAGE_NT_HEADERS getPEHdr() { return peHdr; }
 private:
     SYMTAB_EXPORT void    ParseSymbolInfo( bool );
     SYMTAB_EXPORT void    parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &);
@@ -241,15 +238,15 @@ private:
     Offset imageBase; // Virtual Address at which the binary is loaded in its address space
 
     PIMAGE_NT_HEADERS   peHdr;      // PE file headers
-    PIMAGE_OPTIONAL_HEADER optHdr;
+    Offset trapHeaderPtr_; // address & size
 	unsigned int SecAlignment; //Section Alignment
 
 	//structure of import table
-	std::vector<IMPORT_ENTRY> image_import_descriptor;
-	Offset newImpTableAddr;
+	std::map<std::string, IMAGE_IMPORT_DESCRIPTOR> idt_;
+    std::map<std::string, std::map<std::string, WORD> > hnt_;
 
 	//external reference info
-	std::map<Offset,std::pair<std::string, std::string> > ref;
+   std::map<std::string,std::map<Offset, std::string> > ref;
 
 	unsigned int textSectionId;		// id of .text segment (section)
 	unsigned int dataSectionId;		// id of .data segment (section)

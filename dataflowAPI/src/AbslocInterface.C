@@ -224,7 +224,7 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
       }
       else if (func->obj()->defensiveMode()) {
           // SP could point to the heap, we make the worst-case 
-          // assumption and will emulate all stack accesses
+          // assumption and will emulate this stack access
           return AbsRegion(Absloc::Heap); 
       } else {
          return AbsRegion(Absloc::Stack);

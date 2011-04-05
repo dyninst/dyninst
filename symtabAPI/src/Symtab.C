@@ -3608,20 +3608,28 @@ SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 
 SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 {
-#if defined(os_linux) || defined(os_freebsd)
-	Object *obj = getObject();
+#if defined(os_aix)
+   return false;
+#endif
+
+   Object *obj = getObject();
 	if (!obj)
 	{
 		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
 		return false;
 	}
    size_t size = name.find_last_of("/");
+
+#if defined (os_windows)
+   size_t lastBS = name.find_last_of("\\");
+   if (lastBS > size) {
+      size = lastBS;
+   }
+#endif
+
    string filename = name.substr(size+1);
    obj->insertPrereqLibrary(filename);
    return true;
-#else
-   return false;
-#endif
 }
 
 SYMTAB_EXPORT bool Symtab::addSysVDynamic(long name, long value)
@@ -3670,6 +3678,19 @@ SYMTAB_EXPORT bool Symtab::addExternalSymbolReference(Symbol *externalSym, Regio
    explicitSymtabRefs_.insert(externalSym->getSymtab());
 
    return true;
+}
+
+// on windows we can't specify the trap table's location by adding a dynamic
+// symbol as we don on windows
+SYMTAB_EXPORT bool Symtab::addTrapHeader_win(Address ptr)
+{
+#if defined(os_windows)
+   getObject()->setTrapHeader(ptr);
+   return true;
+#else
+   assert(0);
+   return false;
+#endif
 }
 
 bool Symtab::getExplicitSymtabRefs(std::set<Symtab *> &refs) {

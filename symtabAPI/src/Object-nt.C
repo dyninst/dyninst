@@ -569,65 +569,6 @@ BOOL CALLBACK SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
    return TRUE;
 }
 
-// Ensure that the optional header has a TLS directory entry
-// calculate the TLS directory address and make sure it's valid
-// calculate the address of the TLS callback array and make sure it's valid
-// for each TLS callback, add a function symbol
-void Object::AddTLSFunctions()
-{
-   // ensure that the optional header has a TLS directory entry
-   if (peHdr->OptionalHeader.NumberOfRvaAndSizes < 10) {
-      return;
-   }
-
-   // calculate the TLS directory address and make sure it's valid
-   Address imgBase = peHdr->OptionalHeader.ImageBase;
-   Offset tlsMemOff = peHdr->OptionalHeader.DataDirectory[9].VirtualAddress;
-   unsigned long tlsSize = peHdr->OptionalHeader.DataDirectory[9].Size;
-   Region *secn = findEnclosingRegion(tlsMemOff);
-   if (!secn || (tlsMemOff - secn->getMemOffset()) > secn->getDiskSize()) {
-      return;
-   }
-   Offset tlsDiskOff = tlsMemOff 
-      + (Offset)secn->getDiskOffset() 
-      - (Offset)secn->getMemOffset();
-   IMAGE_TLS_DIRECTORY *tlsDir = (IMAGE_TLS_DIRECTORY*) 
-      ( tlsDiskOff + (Offset)mf->base_addr() );
-
-   // calculate the address of the TLS callback array and make sure it's valid
-   secn = findEnclosingRegion(tlsDir->AddressOfCallBacks - imgBase);
-   Offset cbOffSec = tlsDir->AddressOfCallBacks 
-      - secn->getMemOffset() 
-      - imgBase;
-   if (!secn || cbOffSec > secn->getDiskSize()) {
-      return;
-   }
-   Offset cbOffDisk = cbOffSec + secn->getDiskOffset();
-   PIMAGE_TLS_CALLBACK *tlsCBs = (PIMAGE_TLS_CALLBACK*) 
-      ( cbOffDisk + (Offset)mf->base_addr() );
-   unsigned maxCBs = (secn->getDiskSize() - cbOffSec) / sizeof(PIMAGE_TLS_CALLBACK);
-
-   // for each TLS callback, add a function symbol
-   for (unsigned tidx=0; tidx < maxCBs && tlsCBs[tidx] != NULL ; tidx++) {
-      Offset funcOff = ((Address) tlsCBs[tidx]) - imgBase;
-      secn = findEnclosingRegion(funcOff);
-      if (!secn) {
-         continue;
-      }
-      Offset baseAddr = 0;
-      Object::File *pFile = curModule->GetDefaultFile();
-      char funcName [128];
-      snprintf(funcName, 128, "tls_cb_%d", tidx);
-      pFile->AddSymbol( new Object::intSymbol
-                       ( funcName,
-                         funcOff,
-                         Symbol::ST_FUNCTION,
-                         Symbol::SL_GLOBAL,
-                         0, // unknown size
-                         secn ));
-   }
-}
-
 /*
  * This function finds all the global symbols
  * in a module and all of the source files. (i.e. so this function would find
@@ -717,6 +658,68 @@ done:
    delete curModule;
 }
 
+// Ensure that the optional header has a TLS directory entry
+// calculate the TLS directory address and make sure it's valid
+// calculate the address of the TLS callback array and make sure it's valid
+// for each TLS callback, add a function symbol
+void Object::AddTLSFunctions()
+{
+   // ensure that the optional header has a TLS directory entry
+   if (!peHdr || peHdr->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_TLS) {
+      return;
+   }
+
+   // calculate the TLS directory address and make sure it's valid
+   unsigned long tlsSize = peHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].Size;
+   if (!tlsSize) {
+      return;
+   }
+   Address imgBase = peHdr->OptionalHeader.ImageBase;
+   Offset tlsMemOff = peHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress;
+   Region *secn = findEnclosingRegion(tlsMemOff);
+   if (!secn || (tlsMemOff - secn->getMemOffset()) > secn->getDiskSize()) {
+      return;
+   }
+   Offset tlsDiskOff = tlsMemOff 
+      + (Offset)secn->getDiskOffset() 
+      - (Offset)secn->getMemOffset();
+   IMAGE_TLS_DIRECTORY *tlsDir = (IMAGE_TLS_DIRECTORY*) 
+      ( tlsDiskOff + (Offset)mf->base_addr() );
+
+   // calculate the address of the TLS callback array and make sure it's valid
+   secn = findEnclosingRegion(tlsDir->AddressOfCallBacks - imgBase);
+   Offset cbOffSec = tlsDir->AddressOfCallBacks 
+      - secn->getMemOffset() 
+      - imgBase;
+   if (!secn || cbOffSec > secn->getDiskSize()) {
+      return;
+   }
+   Offset cbOffDisk = cbOffSec + secn->getDiskOffset();
+   PIMAGE_TLS_CALLBACK *tlsCBs = (PIMAGE_TLS_CALLBACK*) 
+      ( cbOffDisk + (Offset)mf->base_addr() );
+   unsigned maxCBs = (secn->getDiskSize() - cbOffSec) / sizeof(PIMAGE_TLS_CALLBACK);
+
+   // for each TLS callback, add a function symbol
+   for (unsigned tidx=0; tidx < maxCBs && tlsCBs[tidx] != NULL ; tidx++) {
+      Offset funcOff = ((Address) tlsCBs[tidx]) - imgBase;
+      secn = findEnclosingRegion(funcOff);
+      if (!secn) {
+         continue;
+      }
+      Offset baseAddr = 0;
+      Object::File *pFile = curModule->GetDefaultFile();
+      char funcName [128];
+      snprintf(funcName, 128, "tls_cb_%d", tidx);
+      pFile->AddSymbol( new Object::intSymbol
+                       ( funcName,
+                         funcOff,
+                         Symbol::ST_FUNCTION,
+                         Symbol::SL_GLOBAL,
+                         0, // unknown size
+                         secn ));
+   }
+}
+
 Region::perm_t getRegionPerms(DWORD flags){
     if((flags & IMAGE_SCN_MEM_EXECUTE) && (flags & IMAGE_SCN_MEM_WRITE))
         return Region::RP_RWX;
@@ -737,6 +740,64 @@ Region::RegionType getRegionType(DWORD flags){
         return Region::RT_DATA;
     else
         return Region::RT_OTHER;
+}
+
+std::map<string, IMAGE_IMPORT_DESCRIPTOR> & Object::getImportDescriptorTable()
+{
+   if (!idt_.empty()) {
+      return idt_;
+   }
+
+   if (peHdr->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_IMPORT)
+      assert(0 && "PE header doesn't specify the IDT address");
+
+   //1. get the RVA of import table from Data directory
+   DWORD dwITrva = peHdr->OptionalHeader.
+      DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+   //printf("Import Table RVA: %lx\n", dwITrva);
+
+   //2. get the offset in disk file
+   DWORD dwIToffset = RVA2Offset(dwITrva);
+   //printf("import table disk offset: %lx\n", dwIToffset);
+
+   PIMAGE_IMPORT_DESCRIPTOR import_d = (PIMAGE_IMPORT_DESCRIPTOR)
+      (((char*)mf->base_addr())+dwIToffset);
+
+   while(import_d ->Name != NULL && import_d->FirstThunk !=NULL){
+      IMAGE_IMPORT_DESCRIPTOR ie;
+      memcpy(&ie, import_d, sizeof(IMAGE_IMPORT_DESCRIPTOR));
+      string str((char*)(((char*)mf->base_addr())+RVA2Offset(import_d->Name)));
+      idt_[str] = ie;
+      //printf("%s\n",ie.name);
+      import_d ++;
+   }
+   return idt_;
+   //cout<<"size of import table"<<image_import_descriptor.size()<<endl;
+}
+
+map<string, map<string, WORD> > & Object::getHintNameTable()
+{
+   if (!hnt_.empty()) {
+      return hnt_;
+   }
+
+   map<string, IMAGE_IMPORT_DESCRIPTOR> idt = getImportDescriptorTable();
+   for (map<string, IMAGE_IMPORT_DESCRIPTOR>::iterator dit = idt.begin();
+        dit != idt.end();
+        dit++) 
+   {
+      assert(sizeof(Offset) == getAddressWidth());
+      Offset * iat = (Offset*)((char*)mf->base_addr() + RVA2Offset(dit->second.FirstThunk));
+
+      for (unsigned idx=0; iat[idx] != 0; idx++) {
+         assert (0 == (0x80000000 & iat[idx])); //ensure IAT is not ordinal-based
+         IMAGE_IMPORT_BY_NAME *hintName = (IMAGE_IMPORT_BY_NAME *)
+            ((char*)mf->base_addr() + RVA2Offset(iat[idx]));
+         hnt_[dit->first][string((char*)hintName->Name)] = hintName->Hint;
+      }
+   }
+   
+   return hnt_;
 }
 
 void Object::FindInterestingSections(bool alloc_syms, bool defensive)
@@ -785,29 +846,7 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
    else
       is_aout_ = true;
 
-   //retrieve import table information
-   //1. get the RVA of import table from Data directory
-   DWORD dwITrva = peHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
-   //printf("Import Table RVA: %lx\n", dwITrva);
-   //2. get the offset in disk file
-   DWORD dwIToffset = RVA2Offset(dwITrva);
-   //printf("import table disk offset: %lx\n", dwIToffset);
-
-   PIMAGE_IMPORT_DESCRIPTOR import_d = (PIMAGE_IMPORT_DESCRIPTOR)(((char*)mf->base_addr())+dwIToffset);
-
-   while(import_d ->Name != NULL && import_d->FirstThunk !=NULL){
-      IMAGE_IMPORT_DESCRIPTOR tmp;
-      memcpy(&tmp, import_d, sizeof(IMAGE_IMPORT_DESCRIPTOR));
-      IMPORT_ENTRY ie;
-      ie.id = tmp;
-      char* str = (char*)(((char*)mf->base_addr())+RVA2Offset(import_d->Name));
-      ie.name = (char*)malloc(sizeof(char)*strlen(str));
-      memcpy(ie.name, str, strlen(str)+1);
-      image_import_descriptor.push_back(ie);
-      //printf("%s\n",ie.name);
-      import_d ++;
-   }
-   //cout<<"size of import table"<<image_import_descriptor.size()<<endl;
+   getImportDescriptorTable(); //save the binary's original table, we may change it later
 
    SecAlignment = peHdr ->OptionalHeader.SectionAlignment;
    unsigned int nSections = peHdr->FileHeader.NumberOfSections;
@@ -1034,7 +1073,8 @@ Object::Object(MappedFile *mf_,
                void (*err_func)(const char *), bool alloc_syms) :
     AObject(mf_, mfd, err_func),
     curModule( NULL ),
-    peHdr( NULL )
+    peHdr( NULL ),
+    trapHeaderPtr_( 0 )
 {
    FindInterestingSections(alloc_syms, defensive);
    if (alloc_syms && defensive) {
@@ -2088,21 +2128,9 @@ bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&allSymb
 	return em -> driver(obj, fName);
 }
 
-void Object::setNewImpTableAddr(Offset addr){
-	newImpTableAddr = addr;
-}
-
-Offset Object::getNewImpTableAddr(){
-	return newImpTableAddr;
-}
-
-unsigned int Object::getNewImpTableSize(){
-	return (image_import_descriptor.size()+1)*20;
-}
-
+// automatically discards duplicates
 void Object::addReference(Offset off, std::string lib, std::string fun){
-	ref[off]=std::pair<string,string>(lib, fun);
-	//func.push_back(std::pair<string, string>(lib,fun));
+   ref[lib][off] = fun;
 }
 						
 // retrieve Section Number for an image offset
@@ -2177,7 +2205,23 @@ DWORD Object::Offset2RVA(DWORD dwRO)
 	return(dwRO+section->VirtualAddress-section->PointerToRawData);
 }
 
-bool Region::isStandardCode()
+void Object::setTrapHeader(Offset addr)
+{
+   trapHeaderPtr_ = addr;
+}
+Offset Object::trapHeader()
+{
+   return trapHeaderPtr_;
+}
+
+void Object::insertPrereqLibrary(std::string lib)
+{
+   // look at wherever it is we check to see if we need to relocate the import table & IAT
+   // first check that you can force a library include with an empty list of functions
+   ref[lib] = std::map<Offset, std::string>();
+}
+
+ bool Region::isStandardCode()
 {
    return (getRegionPermissions() == RP_RX ||
            getRegionPermissions() == RP_RWX);
@@ -2187,3 +2231,58 @@ Dyninst::Architecture Object::getArch()
 {
    return Dyninst::Arch_x86;
 }
+
+
+
+/*
+	for(it=ref.begin(); it!=ref.end(); it++){
+		IMAGE_IMPORT_DESCRIPTOR newID;
+		newID.ForwarderChain=0;
+		newID.TimeDateStamp=0;
+		newID.OriginalFirstThunk = 0;
+		newID.FirstThunk = (*it).first;
+		//printf("IAT address: %x\n", newID.FirstThunk);
+
+		//look through the old import table to check if the library has been there
+		bool isExisting = false;
+		for(unsigned int i=0; i<oldImp.size(); i++){
+
+			//if already been there, use the same of RVA of name
+			if(strcmp(oldImp[i].name, (*it).second.first.c_str()) == 0){
+				isExisting = true;
+				newID.Name = oldImp[i].id.Name;
+				break;
+			}
+		}	
+
+		char* ptrLib;
+		unsigned long strLen;
+		//otherwise, it's a new library
+		if(!isExisting){
+			newID.Name = strOff;
+			strLen =(*it).second.first.size();
+			//library name must be '\0' terminated, so len plus one
+			ptrLib = (char*) GlobalAlloc(GMEM_FIXED|GMEM_ZEROINIT, strLen+1);
+			memcpy(ptrLib,(*it).second.first.c_str(), strLen);
+			info.push_back(std::pair<char*,unsigned long> (ptrLib, strLen+1));
+			strOff+=(strLen+1);
+		}
+
+		memcpy(newIT+pos*sizeof(IMAGE_IMPORT_DESCRIPTOR),(char*)&newID, sizeof(IMAGE_IMPORT_DESCRIPTOR));
+
+		//write the pointer to function name into (*it).first
+		Offset o = (Offset)((char*)dynSec->getPtrToRawData())+(*it).first-dynSec->getMemOffset();
+		printf("Offset to write the pointer to function name: %x\n", o);
+		memcpy(((char*)dynSec->getPtrToRawData())+(*it).first-dynSec->getMemOffset(), (char*)&strOff, 4);
+		strLen = (*it).second.second.size();
+	
+		//functin name must start with a two byte hint
+		//function name also '0\' terminated
+		ptrLib = (char*)GlobalAlloc(GMEM_FIXED|GMEM_ZEROINIT, 2+strLen+1);
+		memcpy(ptrLib+2, (*it).second.second.c_str(), strLen);
+		info.push_back(std::pair<char*, unsigned long> (ptrLib, strLen+3));
+		strOff+=(2+strLen+1);
+
+		pos++;
+	}
+*/

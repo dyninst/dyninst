@@ -402,6 +402,9 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
                        "than deleting it, refcount is now %d %s[%d]\n", dead->start(), 
                        dead->end(), dead->_func_cnt, FILE__,__LINE__);
         } else {
+            mal_printf("disconnecting & freeing block [%lx %lx) refcount=%d\n", 
+                       dead->start(), dead->end(), dead->_func_cnt);
+
             // remove from internal parsing datastructures
             obj()->parser->remove_block(dead);
 
@@ -523,9 +526,10 @@ Function::tampersStack(bool recalculate)
                 fprintf(stderr, "WARNING! Unhandled case in stackTamper "
                         "analysis, func at %lx has distinct tamperAddrs "
                         "%d:%lx %d:%lx at different return instructions, "
-                        "discarding second tamperAddr %s[%d]\n", 
+                        "setting to TAMPER_NONZERO %s[%d]\n", 
                         this->addr(), _tamper,_tamper_addr, curtamper, 
                         curTamperAddr, FILE__, __LINE__);
+                _tamper = TAMPER_NONZERO; // let instrumentation take care of it
             }
         }
         assgns.clear();
@@ -537,21 +541,6 @@ Function::tampersStack(bool recalculate)
         _tamper = TAMPER_NONZERO;
     }
 
-    //if (TAMPER_ABS == _tamper) {
-        //Address loadAddr = 0;
-        //if (_tamper_addr <  obj()->cs()->loadAddress()) {
-        //    _tamper = TAMPER_NONZERO;
-        //}
-        //else {
-        //    _tamper_addr -= obj()->cs()->loadAddress();
-        //    if (! obj()->cs()->isCode(_tamper_addr)) {
-        //        mal_printf("WARNING: function at %lx tampers its stack to point at "
-        //                   "invalid address 0x%lx %s[%d]\n", _start, _tamper_addr,
-        //                   FILE__,__LINE__);
-        //        _tamper = TAMPER_NONZERO;
-        //    }
-        //}
-    //}
     if ( TAMPER_NONE != _tamper && TAMPER_REL != _tamper && RETURN == _rs ) {
         _rs = NORETURN;
     }

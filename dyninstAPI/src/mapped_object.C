@@ -1207,15 +1207,21 @@ bool mapped_object::splitIntLayer()
     // split the functions
     set<int_function*> splitFuncs; // for consistency checks
     using namespace InstructionAPI;
-    const vector<image::SplitBlock> &splits = parse_img()->getSplitBlocks();
-    for (vector<image::SplitBlock>::const_iterator bIter = splits.begin(); 
+    const vector<image::BlockSplit> &splits = parse_img()->getSplitBlocks();
+    for (vector<image::BlockSplit>::const_iterator bIter = splits.begin(); 
          bIter != splits.end(); bIter++) 
     {
-        if (bIter->func->contains(bIter->first)) {
-            int_function *func = findFunction(bIter->func);
-            assert(func);
-            splitFuncs.insert(func);
-            func->splitBlock(bIter->first, bIter->second);
+        vector<Function*> funcs;
+        bIter->second->getFuncs(funcs);
+        for (vector<Function*>::iterator fit = funcs.begin(); 
+             fit != funcs.end(); fit++) 
+        {
+           if ((*fit)->contains(bIter->first)) {
+               int_function *func = findFunction(*fit);
+               assert(func);
+               splitFuncs.insert(func);
+               func->splitBlock(bIter->first, bIter->second);
+           }
         }
     }
 

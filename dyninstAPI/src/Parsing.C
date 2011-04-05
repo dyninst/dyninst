@@ -278,13 +278,12 @@ DynParseCallback::newfunction_retstatus(Function *func)
 }
 
 void
-DynParseCallback::block_split(Block *first, Block *second, Function *func)
+DynParseCallback::block_split(Block *first, Block *second)
 {
     _img->fixSplitPoints(first,second);
     if (unlikely(_img->hybridMode())) {
-       image::SplitBlock sb (static_cast<image_basicBlock *>(first),
-                             static_cast<image_basicBlock *>(second),
-                             static_cast<image_func*>(func));
+       image::BlockSplit sb (static_cast<image_basicBlock *>(first),
+                             static_cast<image_basicBlock *>(second));
       _img->addSplitBlock(sb);
     }
 }

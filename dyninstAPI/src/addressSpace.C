@@ -73,7 +73,7 @@ AddressSpace::AddressSpace () :
 {
    memEmulator_ = new MemoryEmulator(this);
    if ( getenv("DYNINST_EMULATE_MEMORY") ) {
-       printf("emulating memory\n");
+       printf("emulating memory & pc\n");
        emulateMem_ = true;
        emulatePC_ = true;
    }
@@ -1218,6 +1218,9 @@ void trampTrapMappings::allocateTable()
    if( !symtab->isStaticBinary() ) {
        symtab->addSysVDynamic(DT_DYNINST, table_header);
        symtab->addLibraryPrereq(proc()->dyninstRT_name);
+#if defined (os_windows)
+       symtab->addTrapHeader_win((Address)table_header);
+#endif
    }
 }
 

@@ -633,7 +633,7 @@ Parser::init_frame(ParseFrame & frame)
             return;
         }
         if (split) {
-            _pcb.block_split(split,b,frame.func);
+            _pcb.block_split(split,b);
         }
     }
 
@@ -1404,7 +1404,7 @@ Parser::split_block(
         }
     }
     // KEVINTODO: study performance impact of this callback
-    _pcb.block_split(b,ret,owner); // fix point->block pointer, if any
+    _pcb.block_split(b,ret); // fix point->block pointer, if any
 
     return ret;
  }
