@@ -128,41 +128,6 @@ bool int_process::waitfor_startup()
    }
 }
 
-bool int_process::multi_attach(std::vector<int_process *> &pids)
-{
-   bool result;
-   bool had_error = false;
-   std::vector<int_process *>::iterator i;
-
-#define for_each_procdebug(func, err_msg)                      \
-   for (i = pids.begin(); i != pids.end(); i++) {              \
-      int_process *pd = (*i);                                  \
-      if (!pd)                                                 \
-         continue;                                             \
-      result = pd->func();                                     \
-      if (!result) {                                           \
-         pthrd_printf("Could not %s to %d", err_msg, pd->pid); \
-         delete pd;                                            \
-         *i = NULL;                                            \
-         had_error = true;                                     \
-      }                                                        \
-   }
-
-   ProcPool()->condvar()->lock();
-
-   for_each_procdebug(plat_attach, "attach");
-   //MATT TODO: Add to ProcPool
-
-   ProcPool()->condvar()->broadcast();
-   ProcPool()->condvar()->unlock();
-
-   for_each_procdebug(waitfor_startup, "wait for attach");
-
-   for_each_procdebug(post_attach, "post attach");
-
-   return had_error;
-}
-
 bool int_process::attachThreads()
 {
    if (!needIndividualThreadAttach())
@@ -213,8 +178,18 @@ bool int_process::attach()
        return false;
    }
 
+   bool allStopped = true;
+   for(map<Dyninst::LWP, bool>::iterator i = runningStates.begin();
+           i != runningStates.end(); ++i)
+   {
+       if( i->second ) {
+           allStopped = false;
+           break;
+       }
+   }
+
    pthrd_printf("Attaching to process %d\n", pid);
-   bool result = plat_attach();
+   bool result = plat_attach(allStopped);
    if (!result) {
       ProcPool()->condvar()->broadcast();
       ProcPool()->condvar()->unlock();
@@ -784,7 +759,7 @@ bool int_process::waitAndHandleEvents(bool block)
        * Check for possible error combinations from syncRunState
        **/
       bool hasAsyncPending = HandlerPool::hasProcAsyncPending();
-      if (!ret.hasRunningThread && !hasAsyncPending) {
+      if (!ret.hasRunningThread && !hasAsyncPending && !mbox()->hasUserEvent()) {
          if (gotEvent) {
             //We've successfully handled an event, but no longer have any running threads
             pthrd_printf("Returning after handling events, no threads running\n");
@@ -837,7 +812,7 @@ bool int_process::waitAndHandleEvents(bool block)
 
       if (ev == Event::ptr())
       {
-         if (block && gotEvent) {
+         if (gotEvent) {
             pthrd_printf("Returning after handling events\n");
             goto done;
          }

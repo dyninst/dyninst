@@ -62,7 +62,8 @@ Event::Event(EventType etype_, Thread::ptr thread_) :
    proc(thread ? thread->getProcess() : Process::ptr()),
    stype(unset),
    master_event(Event::ptr()),
-   suppress_cb(false)
+   suppress_cb(false),
+   user_event(false)
 {
 }
 
@@ -84,6 +85,14 @@ void Event::setThread(Thread::const_ptr t) {
 
 void Event::setProcess(Process::const_ptr p) {
    proc = p;
+}
+
+void Event::setUserEvent(bool b) {
+    user_event = b;
+}
+
+bool Event::userEvent() const {
+    return user_event;
 }
 
 bool Event::canFastHandle() const
@@ -452,8 +461,8 @@ EventLWPDestroy::~EventLWPDestroy()
 {
 }
 
-EventFork::EventFork(Dyninst::PID pid_) :
-   Event(EventType(EventType::Post, EventType::Fork)),
+EventFork::EventFork(EventType::Time time_, Dyninst::PID pid_) :
+   Event(EventType(time_, EventType::Fork)),
    pid(pid_)
 {
 }
@@ -761,5 +770,5 @@ DEFN_EVENT_CAST(EventLibrary, Library)
 DEFN_EVENT_CAST(EventRPCInternal, RPCInternal)
 DEFN_EVENT_CAST(EventAsync, Async)
 DEFN_EVENT_CAST(EventChangePCStop, ChangePCStop)
-DEFN_EVENT_CAST(EventPrepSingleStep, PrepSingleStep)    
+DEFN_EVENT_CAST(EventPrepSingleStep, PrepSingleStep)
 

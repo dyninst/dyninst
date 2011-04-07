@@ -821,7 +821,11 @@ Handler::handler_ret_t HandlePostFork::handleEvent(Event::ptr ev)
    pthrd_printf("Handling fork for parent %d to child %d\n",
                 parent_proc->getPid(), child_pid);
 
-   int_process *child_proc = int_process::createProcess(child_pid, parent_proc);
+   int_process *child_proc = ProcPool()->findProcByPid(child_pid);
+   if( child_proc == NULL ) {
+       child_proc = int_process::createProcess(child_pid, parent_proc);
+   }
+
    assert(child_proc);
    return child_proc->forked() ? ret_success : ret_error;
 }
@@ -1652,7 +1656,7 @@ bool HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_
    }
 
    // Don't allow the user to change the state of forced terminated processes 
-   if( ev->getProcess()->llproc()->wasForcedTerminated() ) {
+   if( ev->getProcess()->llproc() && ev->getProcess()->llproc()->wasForcedTerminated() ) {
        parent_result = Process::cbDefault;
        child_result = Process::cbDefault;
    }

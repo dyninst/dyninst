@@ -860,6 +860,8 @@ static const unsigned MAX_THREADS = 32; // Should match MAX_THREADS in RTcommon.
 bool PCProcess::loadRTLib() {
     // Check if the RT library has already been loaded
     if( runtime_lib.size() != 0 ) {
+        startup_printf("%s[%d]: RT library already loaded\n",
+                FILE__, __LINE__);
         if( !wasCreatedViaFork() ) {
             // Need to still initialize the library
             if( !iRPCDyninstInit() ) return false;
@@ -3720,6 +3722,43 @@ bool PCProcess::setBreakpoint(Address addr) {
 
     return true;
 }
+
+bool PCProcess::launchDebugger() {
+    // Stop the process on detach 
+    pdvector<int_function *> breakpointFuncs;
+    if( !findFuncsByAll("DYNINSTsafeBreakPoint", breakpointFuncs) ) {
+        fprintf(stderr, "Failed to find function DYNINSTsafeBreakPoint\n");
+        return false;
+    }
+
+    int_function *safeBreakpoint = breakpointFuncs[0];
+    for(map<dynthread_t, PCThread *>::iterator i = threadsByTid_.begin();
+            i != threadsByTid_.end(); ++i)
+    {
+        if( !i->second->pcThr_->setRegister(MachRegister::getPC(getArch()),
+                    safeBreakpoint->getAddress()) )
+        {
+            fprintf(stderr, "Failed to set PC to 0x%lx\n", 
+                    safeBreakpoint->getAddress());
+            return false;
+        }
+    }
+
+    // Detach the process
+    if( !detachProcess(true) ) {
+        fprintf(stderr, "Failed to detach from process %d\n", getPid());
+        return false;
+    }
+
+    if( !startDebugger() ) {
+        fprintf(stderr, "Failed to start debugger on process %d\n", getPid());
+        return false;
+    }
+
+    return true;
+}
+
+// End debugging
 
 static
 Address getVarAddr(PCProcess *proc, std::string str) {

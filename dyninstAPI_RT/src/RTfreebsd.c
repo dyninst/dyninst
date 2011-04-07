@@ -168,7 +168,15 @@ void DYNINSTsafeBreakPoint()
     if( DYNINSTstaticMode ) return;
 
     DYNINST_break_point_event = 2;
-    kill(getpid(), SIGSTOP);
+    sigset_t emptyset;
+    sigemptyset(&emptyset);
+
+    // There is a bug with attaching to a stopped process on FreeBSD This
+    // achieves the same result as long as Dyninst attaches to the process when
+    // it is in sigsuspend
+    while( DYNINST_break_point_event ) {
+        sigsuspend(&emptyset);
+    }
 }
 
 #if !defined(DYNINST_RT_STATIC_LIB)

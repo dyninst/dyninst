@@ -17,6 +17,7 @@ public:
    virtual Event::ptr dequeue(bool block) = 0;
    virtual Event::ptr peek() = 0;
    virtual unsigned int size() = 0;
+   virtual bool hasUserEvent() = 0;
 };
 
 extern Mailbox* mbox();

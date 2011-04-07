@@ -83,7 +83,7 @@ public:
     Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class freebsd_process : public thread_db_process, public sysv_process, public unix_process, public arch_process
+class freebsd_process : public sysv_process, public unix_process, public arch_process, public thread_db_process
 {
 public:
     freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
@@ -92,7 +92,7 @@ public:
     virtual ~freebsd_process();
 
     virtual bool plat_create();
-    virtual bool plat_attach();
+    virtual bool plat_attach(bool allStopped);
     virtual bool plat_forked();
     virtual bool plat_execed();
     virtual bool plat_detach();
@@ -116,6 +116,12 @@ public:
     virtual bool initKQueueEvents();
     virtual SymbolReaderFactory *plat_defaultSymReader();
 
+    /* handling forks on FreeBSD */
+    virtual bool forked();
+    virtual bool isForking() const;
+    virtual void setForking(bool b);
+    virtual freebsd_process *getParent();
+
     /* thread_db_process methods */
     virtual const char *getThreadLibName(const char *symName);
     virtual bool isSupportedThreadLib(string libName);
@@ -123,6 +129,8 @@ public:
     
 protected:
     string libThreadName;
+    bool forking;
+    freebsd_process *parent;
 };
 
 class freebsd_thread : public thread_db_thread
@@ -206,5 +214,15 @@ public:
     void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 #endif
+
+class FreeBSDPreForkHandler : public Handler
+{
+public:
+    FreeBSDPreForkHandler();
+    ~FreeBSDPreForkHandler();
+    virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
+    virtual int getPriority() const;
+    void getEventTypesHandled(std::vector<EventType> &etypes);
+};
 
 #endif

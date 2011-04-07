@@ -73,7 +73,7 @@ class linux_process : public sysv_process, public unix_process, public arch_proc
 
    virtual bool plat_create();
    virtual bool plat_create_int();
-   virtual bool plat_attach();   
+   virtual bool plat_attach(bool allStopped);   
    virtual bool plat_forked();
    virtual bool plat_execed();
    virtual bool plat_detach();

@@ -442,7 +442,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       assert(thread);
       proc = thread->llproc();
       if (parent->event_ext == PTRACE_EVENT_FORK)
-         event = Event::ptr(new EventFork(child->pid));
+         event = Event::ptr(new EventFork(EventType::Post, child->pid));
       else if (parent->event_ext == PTRACE_EVENT_CLONE)
          event = Event::ptr(new EventNewLWP(child->pid));
       else 
@@ -679,7 +679,7 @@ bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runnin
     return true;
 }
 
-bool linux_process::plat_attach()
+bool linux_process::plat_attach(bool)
 {
    pthrd_printf("Attaching to pid %d\n", pid);
    int result = do_ptrace((pt_req) PTRACE_ATTACH, pid, NULL, NULL);

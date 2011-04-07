@@ -114,8 +114,6 @@ using namespace ProcControlAPI;
  * See the Stop, Bootstrap event handlers and the post_attach
  * function for more detailed comments.
  *
- * TODO submit a problem report to FreeBSD devs for this
- *
  * --- bug_freebsd_change_pc ---
  *
  * Here is the scenario:
@@ -142,9 +140,6 @@ using namespace ProcControlAPI;
  * ChangePCStop, which is only defined on platforms this bug affects.
  *  
  * See the ChangePCHandler as well for more info.
- *
- * TODO submit a problem report (or possibly a feature request) to 
- * FreeBSD devs for this
  *
  * --- bug_freebsd_lost_signal ---
  *
@@ -178,6 +173,12 @@ using namespace ProcControlAPI;
  * the OS could deschedule the ProcControl process and the debuggee could hit a
  * breakpoint or finish an iRPC, resulting in ProcControl's model of the debuggee
  * being inconsistent).
+ *
+ * --- bug_freebsd_attach_stop ---
+ *
+ * When attaching to a stopped process on FreeBSD, the stopped process is resumed on
+ * attach. This isn't the expected behavior. The best we can do is send a signal to
+ * the debuggee after attach to allow us to regain control of the debuggee.
  */
 
 static GeneratorFreeBSD *gen = NULL;
@@ -389,6 +390,17 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                     break;
                 }
 
+                if( lproc->isForking() ) {
+                    event = Event::ptr(new EventFork(EventType::Post, proc->getPid()));
+
+                    // Need to maintain consistent behavior across platforms
+                    freebsd_process *parent = lproc->getParent();
+                    assert(parent);
+                    event->setProcess(parent->proc());
+                    event->setThread(parent->threadPool()->initialThread()->thread());
+                    break;
+                }
+    
                 // Relying on fall through for bootstrap and other SIGSTOPs
             }
             case SIGTRAP: {
@@ -593,8 +605,13 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
         if( event && event->getSyncType() == Event::unset)
             event->setSyncType(Event::sync_process);
 
-        event->setThread(thread->thread());
-        event->setProcess(proc->proc());
+        if( event->getThread() == Thread::ptr() ) {
+            event->setThread(thread->thread());
+        }
+
+        if( event->getProcess() == Process::ptr() ) {
+            event->setProcess(proc->proc());
+        }
         events.push_back(event);
     }
 
@@ -673,6 +690,7 @@ int_thread *int_thread::createThreadPlat(int_process *proc, Dyninst::THR_ID thr_
 HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
     static bool initialized = false;
     static FreeBSDStopHandler *lstop = NULL;
+    static FreeBSDPreForkHandler *luserfork = NULL;
 
 #if defined(bug_freebsd_mt_suspend)
     static FreeBSDPostStopHandler *lpoststop = NULL;
@@ -685,6 +703,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
 
     if( !initialized ) {
         lstop = new FreeBSDStopHandler();
+        luserfork = new FreeBSDPreForkHandler();
 
 #if defined(bug_freebsd_mt_suspend)
         lpoststop = new FreeBSDPostStopHandler();
@@ -698,6 +717,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
         initialized = true;
     }
     hpool->addHandler(lstop);
+    hpool->addHandler(luserfork);
 
 #if defined(bug_freebsd_mt_suspend)
     hpool->addHandler(lpoststop);
@@ -719,19 +739,23 @@ bool ProcessPool::LWPIDsAreUnique() {
 freebsd_process::freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
         std::map<int, int> f) :
   int_process(p, e, a, envp, f),
-  thread_db_process(p, e, a, envp, f),
   sysv_process(p, e, a, envp, f),
   unix_process(p, e, a, envp, f),
-  arch_process(p, e, a, envp, f)
+  arch_process(p, e, a, envp, f),
+  thread_db_process(p, e, a, envp, f),
+  forking(false),
+  parent(NULL)
 {
 }
 
 freebsd_process::freebsd_process(Dyninst::PID pid_, int_process *p) :
   int_process(pid_, p),
-  thread_db_process(pid_, p),
   sysv_process(pid_, p),
   unix_process(pid_, p),
-  arch_process(pid_, p)
+  arch_process(pid_, p),
+  thread_db_process(pid_, p),
+  forking(false),
+  parent(dynamic_cast<freebsd_process *>(p))
 {
 }
 
@@ -834,7 +858,7 @@ bool freebsd_process::plat_getOSRunningStates(map<Dyninst::LWP, bool> &runningSt
     return true;
 }
 
-bool freebsd_process::plat_attach() {
+bool freebsd_process::plat_attach(bool allStopped) {
     pthrd_printf("Attaching to pid %d\n", pid);
     if( 0 != ptrace(PT_ATTACH, pid, (caddr_t)1, 0) ) {
         int errnum = errno;
@@ -848,10 +872,44 @@ bool freebsd_process::plat_attach() {
         }
         return false;
     }
+
+#if defined(bug_freebsd_attach_stop)
+    if(allStopped) {
+        if( !tkill(pid, threadPool()->initialThread()->getLWP(), SIGUSR2) ) {
+            perr_printf("Failed to send signal to process %d after attach\n",
+                    pid);
+            return false;
+        }
+    }
+#endif
+
     return true;
 }
 
 bool freebsd_process::plat_forked() {
+    return true;
+}
+
+bool freebsd_process::forked() {
+    setForking(false);
+
+    ProcPool()->condvar()->lock();
+
+    if( !attachThreads() ) {
+        pthrd_printf("Failed to attach to threads in %d\n", pid);
+        setLastError(err_internal, "Could not attach to process' threads");
+        return false;
+    }
+
+    ProcPool()->condvar()->broadcast();
+    ProcPool()->condvar()->unlock();
+
+    if( !post_forked() ) {
+        pthrd_printf("Post-fork failed on %d\n", pid);
+        setLastError(err_internal, "Error handling forked process");
+        return false;
+    }
+
     return true;
 }
 
@@ -1023,6 +1081,18 @@ bool freebsd_process::isSupportedThreadLib(string libName) {
     return false;
 }
 
+bool freebsd_process::isForking() const {
+    return forking;
+}
+
+void freebsd_process::setForking(bool b) {
+    forking = b;
+}
+
+freebsd_process *freebsd_process::getParent() {
+    return parent;
+}
+
 FreeBSDStopHandler::FreeBSDStopHandler() 
     : Handler("FreeBSD Stop Handler")
 {}
@@ -1139,6 +1209,68 @@ void FreeBSDBootstrapHandler::getEventTypesHandled(std::vector<EventType> &etype
     etypes.push_back(EventType(EventType::None, EventType::Bootstrap));
 }
 #endif
+
+FreeBSDPreForkHandler::FreeBSDPreForkHandler() 
+    : Handler("FreeBSD Pre-Fork Handler")
+{}
+
+FreeBSDPreForkHandler::~FreeBSDPreForkHandler()
+{}
+
+Handler::handler_ret_t FreeBSDPreForkHandler::handleEvent(Event::ptr ev) {
+    EventFork::ptr evFork = ev->getEventFork();
+    int_process *parent = evFork->getProcess()->llproc();
+
+    // Need to create and partially bootstrap the new process
+    // -- the rest of the bootstrap needs to occur after the attach
+    int_process *child_proc = int_process::createProcess(evFork->getPID(), parent);
+    assert(child_proc);
+
+    ProcPool()->condvar()->lock();
+
+    int_thread *initial_thread;
+    initial_thread = int_thread::createThread(child_proc, NULL_THR_ID, NULL_LWP, true);
+
+    ProcPool()->addProcess(child_proc);
+
+    ProcPool()->condvar()->broadcast();
+    ProcPool()->condvar()->unlock();
+
+    // Need to attach to the newly created process
+    map<Dyninst::LWP, bool> runningStates;
+    if( !child_proc->plat_getOSRunningStates(runningStates) ) {
+        perr_printf("Failed to determine running state of child process %d\n",
+                evFork->getPID());
+        return Handler::ret_error;
+    }
+
+    bool allStopped = true;
+    for(map<Dyninst::LWP, bool>::iterator i = runningStates.begin();
+            i != runningStates.end(); ++i)
+    {
+        if( i->second ) {
+            allStopped = false;
+            break;
+        }
+    }
+
+    freebsd_process *child_fproc = dynamic_cast<freebsd_process *>(child_proc);
+    child_fproc->setForking(true);
+    if( !child_fproc->plat_attach(allStopped) ) {
+        perr_printf("Failed to attach to child process %d\n", evFork->getPID());
+        return Handler::ret_error;
+    }
+
+    return Handler::ret_success;
+}
+
+int FreeBSDPreForkHandler::getPriority() const {
+    return DefaultPriority;
+}
+
+void FreeBSDPreForkHandler::getEventTypesHandled(std::vector<EventType> &etypes) {
+    etypes.push_back(EventType(EventType::Pre, EventType::Fork));
+}
 
 /*
  * In the bootstrap handler, SIGSTOPs where issued to all threads. This function

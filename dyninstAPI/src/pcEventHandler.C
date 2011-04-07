@@ -107,6 +107,8 @@ void PCEventHandler::main_wrapper(void *h) {
     handler->main();
 }
 
+// Set by callbacks - ProcControlAPI guarantees only one thread will
+// execute a callback at a time
 static bool eventsQueued = false;
 
 void PCEventHandler::main() {
@@ -492,7 +494,12 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
         return false;
     }
 
-    if( ev->getEventType().code() != EventType::ForceTerminate ) {
+
+    if( !(   ev->getEventType().code() == EventType::ForceTerminate 
+          || ev->getEventType().code() == EventType::Crash
+          || (ev->getEventType().code() == EventType::Exit &&
+              ev->getEventType().time() == EventType::Pre) ) ) 
+    {
         // This means we already saw the entry to exit event and we can no longer
         // operate on the process, so ignore the event
         if( evProc->isTerminated() ) {
@@ -686,6 +693,28 @@ bool PCEventHandler::handleFork(EventFork::const_ptr ev, PCProcess *evProc) cons
             return false;
         }
 
+        switch(getCallbackBreakpointCase(EventType(EventType::Post, EventType::Fork))) {
+            case BreakpointOnly:
+            case BothCallbackBreakpoint: {
+                Address event_breakpoint_addr = childProc->getRTEventBreakpointAddr();
+                if( !event_breakpoint_addr ) {
+                    proccontrol_printf("%s[%d]: failed to unset breakpoint event flag in process %d\n",
+                            FILE__, __LINE__, childProc->getPid());
+                    return false;
+                }
+
+                int zero = 0;
+                if( !childProc->writeDataWord((void *)event_breakpoint_addr, sizeof(int), &zero) ) {
+                    proccontrol_printf("%s[%d]: failed to unset breakpoint event flag in process %d\n",
+                            FILE__, __LINE__, childProc->getPid());
+                    return false;
+                }
+                break;
+            }
+            default:
+                break;
+        }
+
         BPatch::bpatch->registerForkedProcess(evProc, childProc);
 
         childProc->setInEventHandling(false);
@@ -873,31 +902,7 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
         // (which corresponds to standard Dyninst behavior)
         if(dyn_debug_crash_debugger) {
             if( string(dyn_debug_crash_debugger).find("gdb") != string::npos ) {
-                do{
-                    // Stop the process on detach 
-                    pdvector<int_function *> breakpointFuncs;
-                    if( !evProc->findFuncsByAll("DYNINSTsafeBreakPoint", breakpointFuncs) ) {
-                        fprintf(stderr, "Failed to find function DYNINSTsafeBreakPoint\n");
-                        break;
-                    }
-
-                    int_function *safeBreakpoint = breakpointFuncs[0];
-                    if( !ev->getThread()->setRegister(MachRegister::getPC(evProc->getArch()), 
-                                safeBreakpoint->getAddress()) ) 
-                    {
-                        fprintf(stderr, "Failed to set PC to 0x%lx\n", safeBreakpoint->getAddress());
-                        break;
-                    }
-
-                    // Detach the process
-                    if( !evProc->detachProcess(true) ) {
-                        fprintf(stderr, "Failed to detach from process %d\n", evProc->getPid());
-                        break;
-                    }
-
-                    // Spawn the debugger to attach to the process
-                    assert( evProc->startDebugger() );
-                }while(0);
+                evProc->launchDebugger();
 
                 // If for whatever reason this fails, fall back on sleep
                 dyn_debug_crash_debugger = "sleep";
@@ -1023,7 +1028,7 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
             case BothCallbackBreakpoint:
                 proccontrol_printf("%s[%d]: reporting fork exit event to ProcControlAPI\n",
                         FILE__, __LINE__);
-                newEvt = Event::ptr(new EventFork((Dyninst::PID)arg1));
+                newEvt = Event::ptr(new EventFork(EventType::Pre, (Dyninst::PID)arg1));
                 break;
             default:
                 break;
@@ -1121,6 +1126,7 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
 
         // In the callback thread, the process and thread are stopped
         newEvt->setSyncType(Event::sync_process);
+        newEvt->setUserEvent(true);
 
         ProcControlAPI::mbox()->enqueue(newEvt);
     }
@@ -1260,6 +1266,8 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
         proccontrol_printf("%s[%d]: new mapped object: %s\n", FILE__, __LINE__, newObj->debugString().c_str());
         evProc->addASharedObject(newObj);
 
+        // TODO special handling for libc on Linux (breakpoint at __libc_start_main if cannot find main)
+
         // special handling for the RT library
         dataAddress = (*i)->getLoadAddress();
         if( evProc->usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
@@ -1275,14 +1283,13 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
             assert( evProc->runtime_lib.size() == 0 );
 
             evProc->runtime_lib.insert(newObj);
-        }
-
-        // TODO special handling for libc on Linux (breakpoint at __libc_start_main if cannot find main)
-
-        // Register the new modules with the BPatch layer
-        const pdvector<mapped_module *> &modlist = newObj->getModules();
-        for(unsigned i = 0; i < modlist.size(); ++i) {
-            BPatch::bpatch->registerLoadedModule(evProc, modlist[i]);
+            // Don't register the runtime library with the BPatch layer
+        }else{
+            // Register the new modules with the BPatch layer
+            const pdvector<mapped_module *> &modlist = newObj->getModules();
+            for(unsigned i = 0; i < modlist.size(); ++i) {
+                BPatch::bpatch->registerLoadedModule(evProc, modlist[i]);
+            }
         }
     }
 

@@ -104,7 +104,7 @@ class int_process
    virtual bool post_create();
 
    bool attach();
-   virtual bool plat_attach() = 0;
+   virtual bool plat_attach(bool allStopped) = 0;
    bool attachThreads();
    virtual bool post_attach();
 
@@ -114,7 +114,7 @@ class int_process
    bool continueProcess();
    virtual bool plat_contProcess() = 0;
 
-   bool forked();
+   virtual bool forked();
   protected:
    virtual bool plat_forked() = 0;
    virtual bool post_forked();
@@ -129,7 +129,6 @@ class int_process
    virtual bool needIndividualThreadAttach() = 0;
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
 
-   static bool multi_attach(std::vector<int_process *> &pids);
    bool waitfor_startup();
 
    void setPid(Dyninst::PID pid);

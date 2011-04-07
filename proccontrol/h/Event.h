@@ -89,6 +89,8 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
    virtual bool triggersCB() const;
    virtual bool canFastHandle() const;
    virtual bool procStopper() const;
+   virtual bool userEvent() const;
+   virtual void setUserEvent(bool b);
    Event::weak_ptr subservientTo() const;
    void addSubservientEvent(Event::ptr ev);
 
@@ -173,6 +175,7 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
    Event::weak_ptr master_event;
    std::set<Handler *> handled_by;
    bool suppress_cb;
+   bool user_event;
 };
 
 class EventTerminate : public Event
@@ -346,7 +349,7 @@ class EventFork : public Event
   public:
    typedef dyn_detail::boost::shared_ptr<EventFork> ptr;
    typedef dyn_detail::boost::shared_ptr<const EventFork> const_ptr;
-   EventFork(Dyninst::PID pid_);
+   EventFork(EventType::Time time_, Dyninst::PID pid_);
    virtual ~EventFork();
    Dyninst::PID getPID() const;
    Process::const_ptr getChildProcess() const;
