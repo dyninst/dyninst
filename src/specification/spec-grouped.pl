@@ -1105,7 +1105,11 @@ test_mem_mutatee_aux(P, Aux) :-
         platform('power32', 'linux', _, P) -> Aux = ['test_mem_util.c',
                                                    'test6LS-powerpc.S'];
         platform('power64', 'linux', _, P) -> Aux = ['test_mem_util.c',
-                                                   'test6LS-powerpc.S']
+                                                   'test6LS-powerpc.S'];
+        platform('i386', 'freebsd', _, P) -> Aux = ['test_mem_util.c',
+                                                   'test6LS-x86.asm'];
+        platform('amd64', 'freebsd', _, P) -> Aux = ['test_mem_util.c',
+                                                    'test6LS-x86_64.s']
     ).
 
 % Convenience rule for checking platforms for test_mem_*
@@ -1115,7 +1119,9 @@ test_mem_platform(Platform) :-
         platform('i386', 'linux', _, Platform);
         platform('i386', 'windows', _, Platform);
         platform('ia64', 'linux', _, Platform);
-        platform('x86_64', 'linux', _, Platform).
+        platform('x86_64', 'linux', _, Platform);
+        platform('i386', 'freebsd', _, Platform);
+        platform('x86_64', 'freebsd', _, Platform).
 
 % Special flags for asm files on Solaris
 spec_object_file(OFile, 'gcc', ['dyninst/test6LS-sparc.S'], [], [],
@@ -2848,7 +2854,8 @@ aux_compiler_for_platform(Platform, 'c', 'gcc') :-
 aux_compiler_for_platform(Platform, 'fortran', 'gfortran') :-
     platform('i386', 'linux', _, Platform).
 aux_compiler_for_platform(Platform, 'nasm_asm', 'nasm') :-
-    platform('i386', 'linux', _, Platform).
+    platform('i386', OS, _, Platform),
+    member(OS, ['freebsd', 'linux']).
 aux_compiler_for_platform(Platform, 'masm_asm', 'masm') :-
     platform('i386', 'windows', _, Platform).
 aux_compiler_for_platform(Platform, 'att_asm', 'gcc') :-
@@ -3141,7 +3148,8 @@ mutatee_link_options('gfortran', '$(MUTATEE_G77_LDFLAGS)').
 comp_lang('nasm', 'nasm_asm').
 compiler_define_string('nasm', 'nasm').
 compiler_platform('nasm', Platform) :-
-    platform('i386', 'linux', _, Platform). % NASM runs on x86 Linux
+    platform('i386', OS, _, Platform), % NASM runs on x86 Linux, FreeBSD
+    member(OS, ['freebsd', 'linux']).
 comp_std_flags_str('nasm', '-f elf -dPLATFORM=$(PLATFORM)').
 comp_mutatee_flags_str('nasm', '').
 mutatee_link_options('nasm', '').
