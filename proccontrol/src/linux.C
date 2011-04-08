@@ -646,16 +646,16 @@ bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runnin
         char *status;
         int paren_level = 1;
         
-        snprintf(proc_stat_name, 128, "/proc/%d/stat", lwp);
+        snprintf(proc_stat_name, 128, "/proc/%d/stat", *i);
         FILE *sfile = fopen(proc_stat_name, "r");
 
         if (sfile == NULL) {
-            ptrhd_printf("Failed to open /proc/%d/stat file\n", lwp);
+            pthrd_printf("Failed to open /proc/%d/stat file\n", *i);
             setLastError(err_noproc, "Failed to find /proc files for debuggee");
             return false;
         }
         if( fread(sstat, 1, 256, sfile) == 0 ) {
-            pthrd_printf("Failed to read /proc/%d/stat file \n", lwp);
+            pthrd_printf("Failed to read /proc/%d/stat file \n", *i);
             setLastError(err_noproc, "Failed to find /proc files for debuggee");
             return false;
         }

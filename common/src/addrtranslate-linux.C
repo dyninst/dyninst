@@ -33,6 +33,7 @@
 #include "common/src/addrtranslate-sysv.h"
 #include "common/h/linuxKludges.h"
 #include "common/h/parseauxv.h"
+#include "common/h/pathName.h"
 
 #include <cstdio>
 #include <linux/limits.h>
