@@ -1105,7 +1105,11 @@ test_mem_mutatee_aux(P, Aux) :-
         platform('power32', 'linux', _, P) -> Aux = ['test_mem_util.c',
                                                    'test6LS-powerpc.S'];
         platform('power64', 'linux', _, P) -> Aux = ['test_mem_util.c',
-                                                   'test6LS-powerpc.S']
+                                                   'test6LS-powerpc.S'];
+        platform('i386', 'freebsd', _, P) -> Aux = ['test_mem_util.c',
+                                                   'test6LS-x86.asm'];
+        platform('amd64', 'freebsd', _, P) -> Aux = ['test_mem_util.c',
+                                                    'test6LS-x86_64.s']
     ).
 
 % Convenience rule for checking platforms for test_mem_*
@@ -1115,7 +1119,9 @@ test_mem_platform(Platform) :-
         platform('i386', 'linux', _, Platform);
         platform('i386', 'windows', _, Platform);
         platform('ia64', 'linux', _, Platform);
-        platform('x86_64', 'linux', _, Platform).
+        platform('x86_64', 'linux', _, Platform);
+        platform('i386', 'freebsd', _, Platform);
+        platform('x86_64', 'freebsd', _, Platform).
 
 % Special flags for asm files on Solaris
 spec_object_file(OFile, 'gcc', ['dyninst/test6LS-sparc.S'], [], [],
@@ -2598,6 +2604,45 @@ mutatee('pc_irpc', ['pc_irpc_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_
 mutatee_requires_libs('pc_irpc', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_irpc', _, Opt) :- member(Opt, ['none']).
 
+test('pc_detach', 'pc_detach', 'pc_detach').
+test_description('pc_detach', 'Detach from processes').
+test_platform('pc_detach', Platform) :- pcPlatforms(Platform).
+mutator('pc_detach', ['pc_detach.C']).
+test_runmode('pc_detach', 'dynamic').
+test_threadmode('pc_detach', 'Threading').
+test_processmode('pc_detach', 'Processes').
+test_start_state('pc_detach', 'stopped').
+tests_module('pc_detach', 'proccontrol').
+mutatee('pc_detach', ['pc_detach_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_detach', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_detach', _, Opt) :- member(Opt, ['none']).
+
+test('pc_terminate', 'pc_terminate', 'pc_terminate').
+test_description('pc_terminate', 'Detach from processes').
+test_platform('pc_terminate', Platform) :- pcPlatforms(Platform).
+mutator('pc_terminate', ['pc_terminate.C']).
+test_runmode('pc_terminate', 'dynamic').
+test_threadmode('pc_terminate', 'Threading').
+test_processmode('pc_terminate', 'Processes').
+test_start_state('pc_terminate', 'stopped').
+tests_module('pc_terminate', 'proccontrol').
+mutatee('pc_terminate', ['pc_terminate_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_terminate', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_terminate', _, Opt) :- member(Opt, ['none']).
+
+test('pc_terminate_stopped', 'pc_terminate_stopped', 'pc_terminate_stopped').
+test_description('pc_terminate_stopped', 'Detach from processes').
+test_platform('pc_terminate_stopped', Platform) :- pcPlatforms(Platform).
+mutator('pc_terminate_stopped', ['pc_terminate_stopped.C']).
+test_runmode('pc_terminate_stopped', 'dynamic').
+test_threadmode('pc_terminate_stopped', 'Threading').
+test_processmode('pc_terminate_stopped', 'Processes').
+test_start_state('pc_terminate_stopped', 'stopped').
+tests_module('pc_terminate_stopped', 'proccontrol').
+mutatee('pc_terminate_stopped', ['pc_terminate_stopped_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_terminate_stopped', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_terminate_stopped', _, Opt) :- member(Opt, ['none']).
+
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its
 % mutatee in state State, with State in {stopped, running, selfstart}
@@ -2809,7 +2854,8 @@ aux_compiler_for_platform(Platform, 'c', 'gcc') :-
 aux_compiler_for_platform(Platform, 'fortran', 'gfortran') :-
     platform('i386', 'linux', _, Platform).
 aux_compiler_for_platform(Platform, 'nasm_asm', 'nasm') :-
-    platform('i386', 'linux', _, Platform).
+    platform('i386', OS, _, Platform),
+    member(OS, ['freebsd', 'linux']).
 aux_compiler_for_platform(Platform, 'masm_asm', 'masm') :-
     platform('i386', 'windows', _, Platform).
 aux_compiler_for_platform(Platform, 'att_asm', 'gcc') :-
@@ -3102,7 +3148,8 @@ mutatee_link_options('gfortran', '$(MUTATEE_G77_LDFLAGS)').
 comp_lang('nasm', 'nasm_asm').
 compiler_define_string('nasm', 'nasm').
 compiler_platform('nasm', Platform) :-
-    platform('i386', 'linux', _, Platform). % NASM runs on x86 Linux
+    platform('i386', OS, _, Platform), % NASM runs on x86 Linux, FreeBSD
+    member(OS, ['freebsd', 'linux']).
 comp_std_flags_str('nasm', '-f elf -dPLATFORM=$(PLATFORM)').
 comp_mutatee_flags_str('nasm', '').
 mutatee_link_options('nasm', '').
