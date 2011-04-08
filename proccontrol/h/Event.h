@@ -368,7 +368,8 @@ class EventSignal : public Event
    virtual ~EventSignal();
 
    int getSignal() const;
-   void clearSignal() const;
+   void setThreadSignal(int newSignal) const;
+   void clearThreadSignal() const;
 };
 
 class EventBootstrap : public Event

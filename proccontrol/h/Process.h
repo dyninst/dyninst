@@ -340,6 +340,8 @@ class Thread
    friend class ::int_thread;
    int_thread *llthread_;
    thread_exitstate *exitstate_;
+   void *userData_;
+
    Thread();
    ~Thread();
    friend void dyn_detail::boost::checked_delete<Thread>(Thread *);
@@ -385,6 +387,9 @@ class Thread
    bool postIRPC(IRPC::ptr irpc) const;
    bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
    IRPC::const_ptr getRunningIRPC() const;
+
+   void *getData() const;
+   void setData(void *p);
 };
 
 class ThreadPool

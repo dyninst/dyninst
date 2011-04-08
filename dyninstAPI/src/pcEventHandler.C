@@ -268,6 +268,14 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
                 ret = Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
             }
             break;
+        case EventType::Signal: {
+            EventSignal::const_ptr evSignal = ev->getEventSignal();
+
+            // Don't deliver any signals to the process unless we explicitly choose
+            // to decide it is correct
+            evSignal->clearThreadSignal();
+            break;
+        }
         case EventType::Breakpoint: {
             // Control transfer breakpoints are used for trap-based instrumentation
             // No user interaction is required
@@ -850,8 +858,7 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
         return true;
     }
 
-    // ProcControlAPI internally forwards signals to processes, just make a note at the
-    // BPatch layer that the signal was received
+    bool shouldForwardSignal = true;
 
     BPatch_process *bpproc = BPatch::bpatch->getProcessByPid(evProc->getPid());
     if( bpproc == NULL ) {
@@ -863,11 +870,10 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
         proccontrol_printf("%s[%d]: signal %d is stop signal, leaving process stopped\n",
                 FILE__, __LINE__, ev->getSignal());
         evProc->setDesiredProcessState(PCProcess::ps_stopped);
-
-        // Don't deliver stop signals to the process
-        ev->clearSignal();
+        shouldForwardSignal = false;
     }
 
+    // Tell the BPatch layer we received a signal
     if( bpproc ) bpproc->setLastSignal(ev->getSignal());
 
     // Debugging only
@@ -913,6 +919,11 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
                 while(spin) sleep(1);
             }
         }
+    }
+
+    if( shouldForwardSignal ) {
+        // Now, explicitly set the signal to be delivered to the process
+        ev->setThreadSignal(ev->getSignal());
     }
 
     return true;
@@ -1131,8 +1142,6 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
         ProcControlAPI::mbox()->enqueue(newEvt);
     }
 
-    // Don't deliver any of the RT library signals to the process
-    ev->clearSignal();
     return IsRTSignal;
 }
 

@@ -4832,7 +4832,8 @@ bool Process::rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
 
 Thread::Thread() :
    llthread_(NULL),
-   exitstate_(NULL)
+   exitstate_(NULL),
+   userData_(NULL)
 {
 }
 
@@ -4842,6 +4843,14 @@ Thread::~Thread()
       delete exitstate_;
       exitstate_ = NULL;
    }
+}
+
+void *Thread::getData() const {
+    return userData_;
+}
+
+void Thread::setData(void *p) {
+    userData_ = p;
 }
 
 Process::const_ptr Thread::getProcess() const

@@ -351,10 +351,16 @@ int EventSignal::getSignal() const
    return sig;
 }
 
-void EventSignal::clearSignal() const
+void EventSignal::clearThreadSignal() const
 {
     int_thread *thr = getThread()->llthrd();
     thr->setContSignal(0);
+}
+
+void EventSignal::setThreadSignal(int newSignal) const 
+{
+    int_thread *thr = getThread()->llthrd();
+    thr->setContSignal(newSignal);
 }
 
 EventBootstrap::EventBootstrap() :
