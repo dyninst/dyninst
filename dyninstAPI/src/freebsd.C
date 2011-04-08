@@ -268,6 +268,8 @@ PCEventHandler::getCallbackBreakpointCase(EventType et) {
             break;
        case EventType::Exec:
             switch(et.time()) {
+                case EventType::Pre:
+                    return BreakpointOnly;
                 case EventType::Post:
                     return CallbackOnly;
                 default:

@@ -822,6 +822,12 @@ bool freebsd_process::post_create() {
     return initKQueueEvents();
 }
 
+bool freebsd_process::post_forked() {
+    if( !unix_process::post_forked() ) return false;
+
+    return initKQueueEvents();
+}
+
 bool freebsd_process::plat_create() {
     pid = fork();
     if( -1 == pid ) {

@@ -246,6 +246,12 @@ do { \
   } \
 } while (0)
 
+#if defined(os_freebsd_test)
+const char *threadLibName = "libthr";
+#else
+const char *threadLibName = "libpthread";
+#endif
+
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test_thread_5_Mutator::executeTest() {
   test8done = false;
@@ -273,7 +279,7 @@ test_results_t test_thread_5_Mutator::executeTest() {
 
   //  instrument events having to do with mutex init, lock, unlock, destroy
   //  with messaging functions in libtest12.so
-  BPatch_module *libpthread = appImage->findModule("libpthread",true);
+  BPatch_module *libpthread = appImage->findModule(threadLibName,true);
   assert(libpthread);
 
   BPatch_function *mutInit = findFunction("createLock", appImage,TESTNO, TESTDESC);
@@ -315,11 +321,8 @@ test_results_t test_thread_5_Mutator::executeTest() {
   appThread->getProcess()->continueExecution();
 
   //  wait until we have received the desired number of events
-  //  (or timeout happens)
-  while(!test8err && !test8done && (timeout < TIMEOUT)) {
-    sleep_ms(SLEEP_INTERVAL/*ms*/);
-    timeout += SLEEP_INTERVAL;
-    bpatch->pollForStatusChange();
+  while(!test8err && !test8done) {
+    bpatch->waitForStatusChange();
   }
 
   if (timeout >= TIMEOUT) {

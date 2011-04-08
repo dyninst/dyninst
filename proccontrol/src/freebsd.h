@@ -120,6 +120,7 @@ public:
     virtual bool forked();
     virtual bool isForking() const;
     virtual void setForking(bool b);
+    virtual bool post_forked();
     virtual freebsd_process *getParent();
 
     /* thread_db_process methods */
