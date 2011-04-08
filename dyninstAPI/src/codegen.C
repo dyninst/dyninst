@@ -56,7 +56,7 @@
 #define CODE_GEN_OFFSET_SIZE (instruction::size())
 #endif
 
-const unsigned int codeGenPadding = 256;
+const unsigned int codeGenPadding = (4*1024);
 
 codeGen::codeGen() :
     buffer_(NULL),
@@ -263,7 +263,6 @@ void codeGen::copy(const void *b, const unsigned size) {
 
 void codeGen::copy(const std::vector<unsigned char> &buf) {
    assert(buffer_);
-
    realloc(used() + buf.size());
    
    unsigned char * ptr = (unsigned char *)cur_ptr();
@@ -332,7 +331,7 @@ void codeGen::update(codeBuf_t *ptr) {
 	  cerr << "Used too much extra: " << used() - size_ << " bytes" << endl;
 	  assert(0 && "Overflow in codeGen");
         }
-	realloc(used());
+	realloc(2*used());
     }
 
     assert(used() <= size_);

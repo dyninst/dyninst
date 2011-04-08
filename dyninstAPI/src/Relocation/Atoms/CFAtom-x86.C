@@ -20,6 +20,14 @@ using namespace InstructionAPI;
 
 using namespace NS_x86;
 
+CFPatch::CFPatch(Type a,
+                 InstructionAPI::Instruction::Ptr b,
+                 TargetInt *c,
+                 Address d) :
+   type(a), orig_insn(b), target(c), origAddr_(d) {
+   ugly_insn = new NS_x86::instruction(b->ptr());
+}
+
 bool CFAtom::generateIndirect(CodeBuffer &buffer,
                               Register reg,
                               const Trace *trace,
@@ -41,7 +49,6 @@ bool CFAtom::generateIndirect(CodeBuffer &buffer,
       buffer.addPIC(gen, tracker(trace));
       return true;
    }
-   NS_x86::instruction ugly_insn(insn->ptr());
    ia32_locations loc;
    ia32_memacc memacc[3];
    ia32_condition cond;
@@ -138,13 +145,12 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
    relocation_cerr << "\t\t CFPatch::apply, type " << type << ", origAddr " << hex << origAddr_ 
                    << ", and label " << dec << targetLabel << endl;
    if (orig_insn) {
-      NS_x86::instruction ugly_insn(orig_insn->ptr());
       relocation_cerr << "\t\t\t Currently at " << hex << gen.currAddr() << " and targeting predicted " << buf->predictedAddr(targetLabel) << dec << endl;
       switch(type) {
          case CFPatch::Jump: {
             relocation_cerr << "\t\t\t Generating CFPatch::Jump from " 
                             << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;
-            if (!insnCodeGen::modifyJump(buf->predictedAddr(targetLabel), ugly_insn, gen)) {
+            if (!insnCodeGen::modifyJump(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                cerr << "Failed to modify jump" << endl;
                return false;
             }
@@ -153,21 +159,21 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
          case CFPatch::JCC: {
             relocation_cerr << "\t\t\t Generating CFPatch::JCC from " 
                             << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;            
-            if (!insnCodeGen::modifyJcc(buf->predictedAddr(targetLabel), ugly_insn, gen)) {
+            if (!insnCodeGen::modifyJcc(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                cerr << "Failed to modify conditional jump" << endl;
                return false;
             }
             return true;            
          }
          case CFPatch::Call: {
-            if (!insnCodeGen::modifyCall(buf->predictedAddr(targetLabel), ugly_insn, gen)) {
+            if (!insnCodeGen::modifyCall(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                cerr << "Failed to modify call" << endl;
                return false;
             }
             return true;
          }
          case CFPatch::Data: {
-            if (!insnCodeGen::modifyData(buf->predictedAddr(targetLabel), ugly_insn, gen)) {
+            if (!insnCodeGen::modifyData(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                cerr << "Failed to modify data" << endl;
                return false;
             }

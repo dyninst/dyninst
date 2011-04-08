@@ -123,6 +123,36 @@ bool Trace::linkTraces(std::map<block_instance *, Trace::Ptr> &traces) {
    return true;
 }
 
+bool Trace::determineSpringboards(PriorityMap &p) {
+   // We _require_ a springboard if:
+   // 1) We are a function entry block;
+   // 2) We are the target of an indirect branch;
+   // 3) We are the target of an edge not from a trace. 
+
+   if (func_ &&
+       func_->entryBlock() == block_) {
+      p[block_] = Required;
+      return true;
+   }
+   if (inEdges_.find(ParseAPI::INDIRECT) != inEdges_.end()) {
+      p[block_] = Required;
+      return true;
+   }
+   // Slow crawl
+   for (std::map<ParseAPI::EdgeTypeEnum, Targets>::const_iterator iter = inEdges_.begin();
+        iter != inEdges_.end(); ++iter) {
+      for (Targets::const_iterator iter2 = iter->second.begin(); 
+          iter2 != iter->second.end(); ++iter2) {
+         if ((*iter2)->type() != TargetInt::TraceTarget) {
+            p[block_] = Required;
+            return true;
+         }
+      }
+   }
+   return true;
+}
+
+
 void Trace::createCFAtom() {
    // If the last instruction in the trace is a CF instruction 
    // (jump, call, etc.) wrap it in a CFAtom pointer and replace.

@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 1996-2009 Barton P. Miller
  * 
@@ -730,4 +729,45 @@ instPoint *func_instance::findPoint(instPoint::Type type,
                                     this);
    edgePoints_[e].point = point;
    return point;
+}
+
+bool func_instance::isInstrumentable() { 
+   return ifunc_->isInstrumentable();
+
+   if (!ifunc_->isInstrumentable()) return false;
+
+   // Hack: avoid things that throw exceptions
+   // Make sure we parsed calls
+   callBlocks();
+   for (BlockSet::iterator iter = callBlocks_.begin(); iter != callBlocks_.end(); ++iter) {      
+      if ((*iter)->calleeName().find("cxa_throw") != std::string::npos) {
+         cerr << "Func " << symTabName() << " found exception ret false" << endl;
+         return false;
+      }
+      func_instance *callee = (*iter)->callee();
+      
+      cerr << "Func " << symTabName() << " @ " << hex 
+           << (*iter)->start() << ", callee " << (*iter)->calleeName() << dec << endl;
+      
+      if (!callee) {
+         cerr << "Warning: null callee" << endl;
+         continue;
+      }
+      cerr << "Checking callee named " << callee->symTabName() << endl;
+
+      if (callee->symTabName().find("cxa_throw") != std::string::npos) {
+         cerr << "Func " << symTabName() << " found exception ret false" << endl;
+         return false;
+      }
+
+      // TEMPORARY HACKAGE because we're not picking up names for
+      // PLT functions?
+      if (callee->symTabName().find("402700") != std::string::npos) {
+         cerr << "Func " << symTabName() << " found exception ret false" << endl;
+         return false;
+      }
+
+   }
+   return true;
+
 }

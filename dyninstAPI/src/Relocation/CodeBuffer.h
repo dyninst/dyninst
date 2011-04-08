@@ -143,7 +143,8 @@ class CodeBuffer {
    CodeBuffer();
    ~CodeBuffer();
    
-   void initialize(const codeGen &templ);
+   void initialize(const codeGen &templ, unsigned numBlocks);
+   
    int getLabel();
    int defineLabel(Address addr);
    void addPIC(const unsigned char *input, unsigned size, TrackerElement *tracker);
@@ -179,7 +180,8 @@ class CodeBuffer {
 
    int curIteration_;
 
-   typedef std::map<int, Label> Labels;
+   //typedef std::map<int, Label> Labels;
+   typedef std::vector<Label> Labels;
 
    Labels labels_;
    int curLabelID_;

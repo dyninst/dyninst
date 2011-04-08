@@ -126,12 +126,13 @@ bool CodeBuffer::BufferElement::generate(CodeBuffer *buf,
       size_ = newSize;
       regenerate = true;
    }
+#if 0
    else if (newSize < size_) {
-      // We don't want sizes to decrease or we can get stuck in generation
-      totalPadding += (size_ - newSize);
-      gen.fill(size_ - newSize, codeGen::cgNOP);
+      shift -= size_ - newSize;
+      size_ = newSize;
+      regenerate = true;
    }
-
+#endif
    //relocation_cerr << "BufferElement::generate, new size " << size_ << endl;
 
    return true;
@@ -175,8 +176,12 @@ CodeBuffer::CodeBuffer()
 
 CodeBuffer::~CodeBuffer() {};
 
-void CodeBuffer::initialize(const codeGen &templ) {
+void CodeBuffer::initialize(const codeGen &templ, unsigned numBlocks) {
    gen_.applyTemplate(templ);
+   cerr << "Reserving " << numBlocks+1 << " labels" << endl;
+   // We don't start labels at 0.
+   labels_.resize(numBlocks+2);
+   cerr << "... now at size " << labels_.size() << endl;
 }
 
 int CodeBuffer::getLabel() {
@@ -188,6 +193,8 @@ int CodeBuffer::getLabel() {
       buffers_.push_back(BufferElement());
    }
    buffers_.back().setLabelID(id);
+
+   if (id >= labels_.size()) labels_.resize(id+1);
 
    // Fill in our data structures as well
    labels_[id] = Label(Label::Relative, id, size_);
@@ -202,6 +209,7 @@ int CodeBuffer::defineLabel(Address addr) {
    // Since it doesn't move it isn't part of the BufferElement sequence.
    
    // Instead, we update the Labels structure directly
+   if (id >= labels_.size()) labels_.resize(id+1);
    labels_[id] = Label(Label::Absolute, id, addr);
    return id;
 }
@@ -293,29 +301,27 @@ void CodeBuffer::disassemble() const {
 }
 
 void CodeBuffer::updateLabel(int id, Address offset, bool &regenerate) {
-   Labels::iterator iter = labels_.find(id);
-   if (iter == labels_.end()) return;
-   if (!iter->second.valid()) return;
+   if (id == -1) return;
 
-   if (id == -1) {
-      cerr << "Illegal ID that wasn't caught by validity check, spinning" << endl;
-      cerr << "Label info @ " << id << ":" << endl;
-      cerr << "\t" << labels_[id].addr << endl;
-      cerr << "\t" << labels_[id].iteration << endl;
-      cerr << "\t" << labels_[id].type << endl;
-      while(1);
+
+   if (id >= labels_.size()) {
+      cerr << "ERROR: id of " << id << " but only " << labels_.size() << " labels!" << endl;
    }
+   assert(id < labels_.size());
+   assert(id > 0);
+   Label &l = labels_[id];
+   if (!l.valid()) return;
 
    //relocation_cerr << "\t Updating label " << id 
 //                   << " -> " << hex << offset << dec << endl;
-   if (iter->second.addr != offset) {
+   if (l.addr != offset) {
       //relocation_cerr << "\t\t Old value " << hex << labels_[id].addr
 //                      << ", regenerating!" << dec << endl;
       regenerate = true;
    }
-   iter->second.addr = offset;
-   iter->second.iteration++;
-   iter->second.type = Label::Estimate;
+   l.addr = offset;
+   l.iteration++;
+   l.type = Label::Estimate;
 }
 
 Address CodeBuffer::getLabelAddr(int id) {
@@ -325,10 +331,12 @@ Address CodeBuffer::getLabelAddr(int id) {
 }
 
 Address CodeBuffer::predictedAddr(int id) {
-   Labels::iterator iter = labels_.find(id);
-   assert(iter != labels_.end());
-
-   Label &label = iter->second;
+   if (id >= labels_.size()) {
+      cerr << "ERROR: id of " << id << " but only " << labels_.size() << " labels!" << endl;
+   }
+   assert(id < labels_.size());
+   assert(id > 0);
+   Label &label = labels_[id];
    switch(label.type) {
       case Label::Absolute:
          //relocation_cerr << "\t\t Requested predicted addr for " << id

@@ -38,6 +38,7 @@
 #include "dyninstAPI/src/function.h"
 #include "instructionAPI/h/Instruction.h" // Instruction::Ptr
 #include "CFG.h"
+#include "dyninstAPI/src/Relocation/CodeMover.h"
 
 #include <list> // stl::list
 
@@ -83,6 +84,7 @@ class Trace {
    // provide tracking data structures for later
    static Ptr create(Atom::Ptr atom, Address a, block_instance *block, func_instance *func);
    bool linkTraces(std::map<block_instance *, Trace::Ptr> &traces);
+   bool determineSpringboards(PriorityMap &p);
    void determineNecessaryBranches(Trace *successor);
 
    Address origAddr() const { return origAddr_; }

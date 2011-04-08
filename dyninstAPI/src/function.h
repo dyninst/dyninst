@@ -158,7 +158,7 @@ class func_instance : public patchTarget {
    void setHandlerFaultAddr(Address fa);
    void setHandlerFaultAddrAddr(Address faa, bool set);
 
-   bool isInstrumentable() const { return ifunc_->isInstrumentable(); }
+   bool isInstrumentable();
 
    Address get_address() const;
    unsigned get_size() const;

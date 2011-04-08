@@ -182,8 +182,7 @@ struct CFPatch : public Patch {
  CFPatch(Type a, 
          InstructionAPI::Instruction::Ptr b, 
          TargetInt *c,
-	 Address d = 0) :
-  type(a), orig_insn(b), target(c), origAddr_(d) {};
+	 Address d = 0);
   
   virtual bool apply(codeGen &gen, CodeBuffer *buf);
   virtual unsigned estimate(codeGen &templ);
@@ -193,6 +192,7 @@ struct CFPatch : public Patch {
   InstructionAPI::Instruction::Ptr orig_insn;
   TargetInt *target;
   Address origAddr_;  
+  NS_x86::instruction *ugly_insn;
 
   private:
   bool isPLT(codeGen &gen);

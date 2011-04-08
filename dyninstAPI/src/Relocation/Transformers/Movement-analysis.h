@@ -43,6 +43,9 @@
 #include "Movement-adhoc.h"
 #include "../CodeMover.h"
 
+class parse_block;
+class parse_func;
+
 namespace Dyninst {
 
 // ROSE symeval AST types
@@ -108,8 +111,8 @@ class PCSensitiveTransformer : public Transformer {
 
   bool isPCSensitive(InstructionAPI::Instruction::Ptr insn,
 		     Address addr,
-		     block_instance *func,
-			 block_instance *block,
+		     func_instance *func,
+                     block_instance *block,
 		     AssignList &sensitiveAssignment);
   Graph::Ptr forwardSlice(Assignment::Ptr ptr,
 			  parse_block *block,

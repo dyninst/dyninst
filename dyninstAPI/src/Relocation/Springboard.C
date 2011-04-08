@@ -141,11 +141,6 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance
     bool useBlock = true;
     block_instance *bbl = (*begin);
 
-    if (bbl->containingFuncs() &&
-        f && 
-        bbl != f->entryBlock()) {
-       continue;
-    }
     // Check for overlapping blocks. Lovely.
     Address LB, UB; int id;
     Address lastRangeStart = bbl->start();
@@ -197,7 +192,17 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance
        }
     }
     if (lastRangeStart < bbl->end()) { // [bbl->start() bbl->end()) or [UB bbl->end())
-       validRanges_.insert(lastRangeStart, bbl->end(), funcID);
+       if (lastRangeStart == bbl->start() &&
+           (bbl->end() - bbl->start()) < 5 &&
+           f &&
+           *begin == f->entryBlock() &&
+           f->blocks().size() == 1) {
+          //cerr << "Overriding small function of size " << bbl->end() - bbl->start() << " to 5 bytes" << endl;
+          validRanges_.insert(bbl->start(), bbl->start() + 5, funcID);
+       }
+       else {
+          validRanges_.insert(lastRangeStart, bbl->end(), funcID);
+       }
     }
   }
   return true;
@@ -215,6 +220,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
       // Errr...
       // Fine. Let's do the trap thing. 
+
       usedTrap = true;
       generateTrap(r.from, r.destinations.begin()->second, gen);
 	  //cerr << hex << "Generated springboard trap: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;

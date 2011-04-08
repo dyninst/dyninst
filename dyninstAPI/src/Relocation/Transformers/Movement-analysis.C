@@ -47,6 +47,8 @@
 
 #include "dataflowAPI/h/slicing.h"
 
+#include "../Atoms/Trace.h"
+
 using namespace std;
 using namespace Dyninst;
 using namespace Relocation;
@@ -54,6 +56,8 @@ using namespace InstructionAPI;
 using namespace SymtabAPI;
 
 using namespace DataflowAPI;
+
+#define sensitivity_cerr if(0) cerr
 
 PCSensitiveTransformer::AnalysisCache PCSensitiveTransformer::analysisCache_;
 
@@ -78,8 +82,9 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter, const Tra
    }
 #endif
 
-   const block_instance *bbl = (*b_iter)->bbl();
-  
+   const block_instance *block = (*b_iter)->block();
+   const func_instance *func = (*b_iter)->func();
+
   // Can be true if we see an instrumentation block...
   if (!bbl) return true;
   
@@ -119,8 +124,8 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter, const Tra
     // This function also returns the sensitive assignments
     if (!isPCSensitive(insn,
 		       addr,
-		       (*b_iter)->bbl()->func(),
-			   (*b_iter)->bbl(),
+                       func,
+                       block,
 		       sensitiveAssignments)) {
       //cerr << "Instruction " << insn->format() << " not PC sensitive, skipping" << endl;
       continue;
@@ -157,8 +162,8 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter, const Tra
 		//cerr << "Forward slice from " << (*a_iter)->format() << hex << " @ " << addr << " (parse of " << (*a_iter)->addr() << dec << ") in func " << bbl->func()->prettyName() << endl;
           
           Graph::Ptr slice = forwardSlice(*a_iter,
-                                          bbl->llb(),
-                                          bbl->func()->ifunc());
+                                          block->llb(),
+                                          func->ifunc());
           
           if (!slice) {
              // Safe assumption, as always
@@ -236,7 +241,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter, const Tra
 		  insn, 
 		  addr);
     }
-    cacheAnalysis(bbl, addr, intSens, extSens);
+    cacheAnalysis(block, addr, intSens, extSens);
   }
   return true;
 }

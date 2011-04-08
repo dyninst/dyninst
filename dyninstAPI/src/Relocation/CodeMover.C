@@ -108,6 +108,7 @@ void CodeMover::finalizeTraces() {
    for (TraceList::iterator i = blocks_.begin(); 
         i != blocks_.end(); ++i) {
       (*i)->linkTraces(blockMap_);
+      (*i)->determineSpringboards(priorityMap_);
    }
 }
    
@@ -134,7 +135,7 @@ bool CodeMover::transform(Transformer &t) {
 }
 
 bool CodeMover::initialize(const codeGen &templ) {
-   buffer_.initialize(templ);
+   buffer_.initialize(templ, blocks_.size());
 
    // If they never called transform() this can get missed.
    if (!tracesFinalized_)

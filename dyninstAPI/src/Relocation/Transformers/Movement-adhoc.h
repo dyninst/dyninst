@@ -62,6 +62,7 @@ class adhocMovementTransformer : public Transformer {
   bool isGetPC(AtomPtr ptr,
 	       Absloc &aloc,
 	       Address &thunkAddr);
+
   // Used for finding call targets
   AddressSpace *addrSpace;
 };

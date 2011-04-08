@@ -836,6 +836,21 @@ void emitAddMem(Address addr, int imm, codeGen &gen) {
    // mode for the add instruction.  So I'm just writing raw bytes.
 
    GET_PTR(insn, gen);
+   if (imm < 128 && imm > -127) {
+      if (gen.rs()->getAddressWidth() == 8)
+         *insn++ = 0x48; // REX byte for a quad-add
+      *insn++ = 0x83;
+      *insn++ = 0x04;
+      *insn++ = 0x25;
+
+      *((int *)insn) = addr; //Write address
+      insn += sizeof(int);
+
+      *insn++ = (char) imm;
+      SET_PTR(insn, gen);
+      return;
+   }
+
    if (imm == 1) {
       if (gen.rs()->getAddressWidth() == 4)
       {
@@ -2439,12 +2454,14 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
    // Save flags if we need to
    if (saveFlags) {
       gen.rs()->saveVolatileRegisters(gen);
-
+#if 0
+      // TODO FIXME: commenting out for SPECs
       if (!bt || (bt->validOptimizationInfo() && bt->definedRegs[REGNUM_RAX])) {
          emitPushReg64(REGNUM_RAX, gen); 
          num_saved++;
          num_to_save++; // ;)
       }
+#endif
       // Need a "defined, but not by us silly"
       gen.markRegDefined(REGNUM_RAX);
 
@@ -2596,8 +2613,10 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
 
    // Restore flags
    if (restoreFlags) {
+#if 0
       if (!bt || (bt->validOptimizationInfo() && bt->definedRegs[REGNUM_RAX]))
          emitPopReg64(REGNUM_RAX, gen);
+#endif
       gen.rs()->restoreVolatileRegisters(gen);
    }
 

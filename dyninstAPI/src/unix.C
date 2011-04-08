@@ -1760,9 +1760,13 @@ bool process::hideDebugger()
 func_instance *block_instance::callee() {
    // See if we've already done this
    edge_instance *tEdge = getTarget();
-   if (!tEdge) return NULL;
+   if (!tEdge) {
+      cerr << "Warning: failed to get target edge in callee()" << endl;
+      return NULL;
+   }
 
    if (!tEdge->sinkEdge()) {
+      cerr << "No sink edge, returning findFunc" << endl;
       return obj()->findFuncByEntry(tEdge->trg());
    }
    
@@ -1771,6 +1775,7 @@ func_instance *block_instance::callee() {
    Address target_addr; bool success;
    boost::tie(success, target_addr) = llb()->callTarget();
    if(!success) {
+      cerr << "Failed to calc call target" << endl;
       // this is either not a call instruction or an indirect call instr
       // that we can't get the target address
       //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
@@ -1783,6 +1788,7 @@ func_instance *block_instance::callee() {
    vector <relocationEntry> fbtvector;
    if (!sym->getFuncBindingTable(fbtvector)) {
       //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
+      cerr << "Failed to get func binding table" << endl;
       return NULL;
    }
 
