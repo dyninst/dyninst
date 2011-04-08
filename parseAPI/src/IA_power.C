@@ -146,7 +146,7 @@ bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Func
                              InstructionDecoder::maxInstructionLength, 
                              _cr->getArch() );
   Instruction::Ptr retn = retdec.decode();
-  converter.convert(retn, retnAddr, func, assgns);
+  converter.convert(retn, retnAddr, func, bit, assgns);
   for (ait = assgns.begin(); assgns.end() != ait; ait++) {
       AbsRegion & outReg = (*ait)->out();
       if ( outReg.absloc().isPC() ) {
