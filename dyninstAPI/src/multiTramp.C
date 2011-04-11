@@ -343,7 +343,6 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
     // representations (with new targets and sizes. Oy.)
 
     bool done = false;
-#if defined(cap_relocation)
     if (bbl->version() > 0) {
         done = true;
       // Relocated!
@@ -376,7 +375,6 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
         prev = reloc;
       }
     }
-#endif
     if (!done) {
 
       size_t offset = 0;

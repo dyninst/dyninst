@@ -54,7 +54,6 @@ class int_basicBlock;
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
-#if defined(cap_relocation)
 #include "reloc-func.h"
 
 
@@ -109,17 +108,6 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
 	needReloc.pop_back();
 	i--; // reprocess  
       }
-#if 0
-        else
-        {
-            reloc_printf("Forcing dependant relocation of %p\n",
-                         needReloc[i]);
-            // always version 0?
-            if (!needReloc[i]->relocationGenerateInt(needReloc[i]->enlargeMods(),
-                                                     0,needReloc))
-                ret = false;
-        }
-#endif
     }
 
     reloc_printf("%s[%d]: RELOCATION GENERATE FOR %s, returning %s, %d in needReloc\n",
@@ -1067,9 +1055,6 @@ bool enlargeBlock::update(int_basicBlock *block,
     return false;
 }
 
-
-#endif // cap_relocation
-
 functionReplacement::functionReplacement(int_basicBlock *sourceBlock,
                                          int_basicBlock *targetBlock,
                                          unsigned sourceVersion /* =0 */,
@@ -1102,11 +1087,6 @@ bool functionReplacement::generateFuncRepJump(pdvector<int_function *> &needRelo
     assert(sourceBlock_);
     assert(targetBlock_);
     assert(jumpToRelocated == NULL);
-
-#if !defined(cap_relocation)
-    assert(sourceVersion_ == 0);
-    assert(targetVersion_ == 0);
-#endif
 
     usesTrap_ = false;
 
@@ -1252,11 +1232,6 @@ bool functionReplacement::generateFuncRepTrap(pdvector<int_function *> &needRelo
     assert(usesTrap_ == false);
 
     usesTrap_ = true;
-
-#if !defined(cap_relocation)
-    assert(sourceVersion_ == 0);
-    assert(targetVersion_ == 0);
-#endif
 
     // TODO: if check modules and do ToC if not the same one.
 

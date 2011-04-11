@@ -116,11 +116,7 @@ trampEnd::trampEnd(multiTramp *multi, Address target) :
 {}
 
 Address relocatedInstruction::originalTarget() const {
-#if defined(cap_relocation)
-    if (targetAddr_) return targetAddr_;
-#else
-    assert(targetAddr_ == 0);
-#endif
+  if (targetAddr_) return targetAddr_;
   return insn->getTarget(origAddr_);
 }
 

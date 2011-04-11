@@ -40,9 +40,7 @@
 #include "mapped_module.h"
 #include "InstructionDecoder.h"
 
-#if defined(cap_relocation)
 #include "reloc-func.h"
-#endif
 
 //std::string int_function::emptyString("");
 
@@ -65,11 +63,9 @@ int_function::int_function(image_func *f,
     handlerFaultAddrAddr_(0), 
     isBeingInstrumented_(false),
     instPsByAddr_(addrHash4),
-#if defined(cap_relocation)
     generatedVersion_(0),
     installedVersion_(0),
     linkedVersion_(0),
-#endif
     version_(0)
 #if defined(os_windows) 
    , callingConv(unknown_call)
@@ -114,11 +110,9 @@ int_function::int_function(const int_function *parFunc,
     handlerFaultAddrAddr_(0), 
     isBeingInstrumented_(parFunc->isBeingInstrumented_),
     instPsByAddr_(addrHash4),
-#if defined(cap_relocation)
     generatedVersion_(parFunc->generatedVersion_),
     installedVersion_(parFunc->installedVersion_),
     linkedVersion_(parFunc->linkedVersion_),
-#endif
     version_(parFunc->version_)
  {
      unsigned i; // Windows hates "multiple definitions"
@@ -232,14 +226,12 @@ int_function::~int_function() {
         delete *bIter;
     }
 
-#if defined(cap_relocation)
     for (unsigned i = 0; i < enlargeMods_.size(); i++)
         delete enlargeMods_[i];
 #if defined (cap_use_pdvector)
     enlargeMods_.zap();
 #else
     enlargeMods_.clear();
-#endif
 #endif
     
     for (unsigned i = 0; i < parallelRegions_.size(); i++)
@@ -1437,9 +1429,7 @@ const pdvector<bblInstance *> &int_basicBlock::instances() const {
 int bblInstance_count = 0;
 
 bblInstance::bblInstance(Address start, Address last, Address end, int_basicBlock *parent, int version) : 
-#if defined(cap_relocation)
     reloc_info(NULL),
-#endif
     firstInsnAddr_(start),
     lastInsnAddr_(last),
     blockEndAddr_(end),
@@ -1459,9 +1449,7 @@ bblInstance::bblInstance(Address start, Address last, Address end, int_basicBloc
 };
 
 bblInstance::bblInstance(int_basicBlock *parent, int version) : 
-#if defined(cap_relocation)
     reloc_info(NULL),
-#endif
     firstInsnAddr_(0),
     lastInsnAddr_(0),
     blockEndAddr_(0),
@@ -1473,19 +1461,15 @@ bblInstance::bblInstance(int_basicBlock *parent, int version) :
 };
 
 bblInstance::bblInstance(const bblInstance *parent, int_basicBlock *block) :
-#if defined(cap_relocation)
     reloc_info(NULL),
-#endif
     firstInsnAddr_(parent->firstInsnAddr_),
     lastInsnAddr_(parent->lastInsnAddr_),
     blockEndAddr_(parent->blockEndAddr_),
     block_(block),
     version_(parent->version_) {
-#if defined(cap_relocation)
-   if (parent->reloc_info) {
+    if (parent->reloc_info) {
       reloc_info = new reloc_info_t(parent->reloc_info, block);
    }
-#endif
 
     // If the bblInstance is the original version, add to the mapped_object
     // code range; if it is the product of relocation, add it to the
@@ -1497,10 +1481,8 @@ bblInstance::bblInstance(const bblInstance *parent, int_basicBlock *block) :
 }
 
 bblInstance::~bblInstance() {
-#if defined(cap_relocation)
    if (reloc_info)
       delete reloc_info;
-#endif
 }
 
 int_basicBlock *bblInstance::block() const {
@@ -1566,7 +1548,6 @@ Address bblInstance::equivAddr(int newVersion, Address addr) const {
         return translAddr;
     }
 
-#if defined(cap_relocation)
 
     // account for possible prior deletion of the int_basicBlock in 
     // exploratory mode
@@ -1605,8 +1586,6 @@ Address bblInstance::equivAddr(int newVersion, Address addr) const {
                                                         equivAddr(0,addr));
     }
 
-#endif
-
     if (!translAddr) {
         fprintf(stderr,"ERROR: returning 0 in equivAddr, called on bblInstance"
                 " at %lx for new version %d in function at %lx %s[%d]\n", 
@@ -1621,7 +1600,6 @@ void *bblInstance::getPtrToInstruction(Address addr) const {
     if (addr < firstInsnAddr_) return NULL;
     if (addr >= blockEndAddr_) return NULL;
 
-#if defined(cap_relocation)
     if (version_ > 0) {
       // We might be relocated...
       if (getGeneratedBlock() != NULL) {
@@ -1629,19 +1607,14 @@ void *bblInstance::getPtrToInstruction(Address addr) const {
         return getGeneratedBlock().get_ptr(addr);
       }
     }
-#endif
     
     return func()->obj()->getPtrToInstruction(addr);
 
 }
 
 void *bblInstance::get_local_ptr() const {
-#if defined(cap_relocation)
-    if (!reloc_info) return NULL; 
+    if (!reloc_info) return NULL;
     return reloc_info->generatedBlock_.start_ptr();
-#else
-    return NULL;
-#endif
 }
 
 int bblInstance::version() const 
@@ -1649,7 +1622,6 @@ int bblInstance::version() const
    return version_;
 }
 
-#if defined(cap_relocation)
 
 const void *bblInstance::getPtrToOrigInstruction(Address addr) const {
   if (version_ > 0) {
@@ -1841,8 +1813,6 @@ bblInstance::reloc_info_t::~reloc_info_t() {
    // jumpToBlock is deleted by the process....
 };
 
-#endif
-
 int_basicBlock *functionReplacement::source() { 
    return sourceBlock_; 
 }
@@ -1922,9 +1892,6 @@ bool int_function::getOverlappingFuncs(pdvector<int_function *> &funcs) {
 
 Address int_function::get_address() const 
 {
-#if !defined(cap_relocation)
-   return getAddress();
-#else
    if (!entryPoints_.size())
       return getAddress();
    
@@ -1932,7 +1899,6 @@ Address int_function::get_address() const
    int_basicBlock *block = entryPoint->block();
    bblInstance *inst = block->instVer(installedVersion_);
    return inst->firstInsnAddr();
-#endif 
 }
 
 unsigned int_function::get_size() const 
@@ -2111,7 +2077,6 @@ bool int_function::performInstrumentation(bool stopOnFailure,
       return false;
     }
 
-#if defined(cap_relocation)
     // Step 2: is relocation necessary?
     if (relocationRequired) {
         // Yar.
@@ -2176,7 +2141,6 @@ bool int_function::performInstrumentation(bool stopOnFailure,
         mal_printf("%s[%d] relocating function at %lx\n", 
                    __FILE__,__LINE__,getAddress());
     }
-#endif
 
     // Okay, back to what we were doing...
     

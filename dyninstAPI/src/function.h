@@ -131,7 +131,6 @@ class bblInstance : public codeRange {
     void getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr,
 			  Address> > &instances) const;
 
-#if defined(cap_relocation)
     // Get the most space necessary to relocate this basic block,
     // using worst-case analysis.
     bool relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods);
@@ -159,9 +158,7 @@ class bblInstance : public codeRange {
     unsigned &minSize();
     Address getFuncRelocBase() { return reloc_info->funcRelocBase_; }
     void setFuncRelocBase(Address frb) { reloc_info->funcRelocBase_ = frb; }
-#endif
 
-#if defined(cap_relocation)
     class reloc_info_t {
     public:       
        unsigned maxSize_;
@@ -211,7 +208,6 @@ class bblInstance : public codeRange {
     functionReplacement *getJumpToBlock() const;
 
     reloc_info_t *reloc_info;
-#endif
 
     Address firstInsnAddr_;
     Address lastInsnAddr_;
@@ -515,7 +511,6 @@ class int_function : public patchTarget {
 
    void updateForFork(process *childProcess, const process *parentProcess);
 
-#if defined(cap_relocation)
    // These are defined in reloc-func.C to keep large chunks of
    // functionality separate!
 
@@ -554,9 +549,7 @@ class int_function : public patchTarget {
 
    pdvector<funcMod *> &enlargeMods() { return enlargeMods_; }
 
-#endif
-
-#if defined(os_windows) 
+#if defined(os_windows)
    //Calling convention for this function
    callType int_function::getCallingConvention();
    int getParamSize() { return paramSize; }
@@ -606,7 +599,6 @@ class int_function : public patchTarget {
    //////////////////////////  Parallel Regions 
    pdvector<int_parRegion*> parallelRegions_; /* pointer to the parallel regions */
 
-#if defined(cap_relocation)
    // Status tracking variables
    int generatedVersion_;
    int installedVersion_;
@@ -626,7 +618,6 @@ class int_function : public patchTarget {
    bool relocationGenerateInt(pdvector<funcMod *> &mods, 
                               int version,
                               pdvector<int_function *> &needReloc);
-#endif
 
    // Used to sync with instPoints
    int version_;

@@ -567,12 +567,9 @@ bool instPoint::checkInst(pdvector<Address> &checkPCs)
             }
         }
     }
-#if defined(cap_relocation)
     // Yay check relocation
     if (!func()->relocationCheck(checkPCs))
         return false;
-#endif
-
     return true;
 }
 
@@ -1043,8 +1040,6 @@ instPointInstance::result_t instPointInstance::generateInst() {
     // This allows us to regenerate multiTramps without having to 
     // worry about changing pointers.
 
-#if defined(cap_relocation)
-
     // We may need to relocate if either of the following is true:
     // 1) The block we instrumented is shared; we relocate to eliminate
     // the sharing.
@@ -1069,31 +1064,10 @@ instPointInstance::result_t instPointInstance::generateInst() {
         return mTrampTooBig;
     }
 
-#endif
-
     return generateSucceeded;
 }
 
 instPointInstance::result_t instPointInstance::installInst() {
-#if 0
-#if defined(cap_relocation)
-    // This is harmless to call if there isn't a relocation in-flight
-
-    reloc_printf("%s[%d]: instPointInstance calling relocationInstall for primary func %s\n",
-                 FILE__, __LINE__, func()->prettyName().c_str());
-
-    func()->relocationInstall();
-
-    // the original relocation may force others; install them too
-    for(unsigned i=0; i < force_reloc.size(); i++)
-    {
-        reloc_printf("%s[%d]: instPointInstance calling relocationInstall for forced func %s\n",
-                     FILE__, __LINE__, force_reloc[i]->prettyName().c_str());
-        force_reloc[i]->relocationInstall();
-    }
-#endif
-#endif
-
     if (!multi()) {
         // Alternative: keep a set of sequence #s for generated/
         // installed/linked. We tried to generate and failed (prolly
@@ -1112,20 +1086,6 @@ instPointInstance::result_t instPointInstance::installInst() {
 }
 
 instPointInstance::result_t instPointInstance::linkInst() {
-#if 0
-#if defined(cap_relocation)
-    // This is ignored (for now), is handled in updateInstInstances...
-    pdvector<codeRange *> overwrittenObjs;
-    // This is harmless to call if there isn't a relocation in-flight
-    func()->relocationLink(overwrittenObjs);
-
-    for(unsigned i=0; i < force_reloc.size(); i++)
-    {
-        force_reloc[i]->relocationLink(overwrittenObjs);
-    }
-#endif
-#endif
-
     if (!multi()) return noMultiTramp;
     
     if (multi()->linkMultiTramp() != multiTramp::mtSuccess) {
