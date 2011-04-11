@@ -81,7 +81,7 @@ static void self_signal()
 
 static void self_signal()
 {
-   return kill(getpid(), SIGUSR1);
+   kill(getpid(), SIGUSR1);
 }
 
 #endif
