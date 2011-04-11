@@ -52,6 +52,12 @@ class codeRange;
 class replacedFunctionCall;
 
 class func_instance;
+class block_instance;
+class edge_instance;
+
+class parse_func;
+class parse_block;
+
 struct edgeStub;
 class int_variable;
 class mapped_module;
@@ -243,8 +249,10 @@ class AddressSpace : public InstructionSource {
     func_instance *findFuncByEntry(Address addr);
 
     // And a lookup by "internal" function to find clones during fork...
-    func_instance *findFuncByInternalFunc(parse_func *ifunc);
-    
+    func_instance *findFunction(parse_func *ifunc);
+    block_instance *findBlock(parse_block *iblock);
+    edge_instance *findEdge(ParseAPI::Edge *iedge);
+
     //findJumpTargetFuncByAddr Acts like findFunc, but if it fails,
     // checks if 'addr' is a jump to a function.
     func_instance *findJumpTargetFuncByAddr(Address addr);
@@ -503,7 +511,6 @@ class AddressSpace : public InstructionSource {
     // Track desired function replacements/removals/call replacements
     CallModMap callModifications_;
     FuncReplaceMap functionReplacements_;
-
 
     void addAllocatedRegion(Address start, unsigned size);
     void addModifiedRegion(mapped_object *obj);

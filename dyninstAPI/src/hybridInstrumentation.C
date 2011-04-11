@@ -957,7 +957,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         for (unsigned fidx=0; fidx < imgFuncs.size(); fidx++) 
         {
             BPatch_function *func = proc()->findOrCreateBPFunc(
-                proc()->lowlevel_process()->findFuncByInternalFunc((parse_func*)imgFuncs[fidx]),
+                proc()->lowlevel_process()->findFunction((parse_func*)imgFuncs[fidx]),
                 NULL);
             removeInstrumentation(func, false);
             func->getCFG()->invalidate();

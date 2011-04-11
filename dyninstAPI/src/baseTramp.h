@@ -59,7 +59,7 @@ class baseTramp {
  public:
     static baseTramp *create(instPoint *p);
     static baseTramp *create(rpcMgr *r, AstNodePtr ast);
-    static baseTramp *fork(instPoint *cPoint, baseTramp *parBT);
+    static baseTramp *fork(baseTramp *parBT, AddressSpace *child);
 
 
     func_instance *func() const;

@@ -133,6 +133,8 @@ class instPoint {
     static instPoint *postCall(func_instance *,
                                block_instance *);
 
+
+    static instPoint *fork(instPoint *parent, AddressSpace *as);
     ~instPoint();
                                
   private:    
@@ -140,8 +142,6 @@ class instPoint {
     instPoint(Type t, block_instance *b, func_instance *f);
     instPoint(Type t, edge_instance *e, func_instance *f);
     instPoint(Type t, block_instance *b, InstructionAPI::Instruction::Ptr i, Address a, func_instance *f);
-
-    static instPoint *fork(instPoint *parent, AddressSpace *as);
 
  public:
     

@@ -33,12 +33,53 @@
 #include "patchapi_debug.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/block.h"
+#include "dyninstAPI/src/addressSpace.h"
 
 #include <iostream>
 
 using namespace Dyninst;
 using namespace Relocation;
 using namespace std;
+
+CodeTracker::~CodeTracker() {
+   // Pile of deallocatable stuff
+   for (TrackerList::iterator iter = trackers_.begin();
+        iter != trackers_.end(); ++iter) {
+      delete (*iter);
+   }
+}
+
+CodeTracker CodeTracker::fork(CodeTracker &parent, 
+                              AddressSpace *child) {
+   // Duplicate our tracking data structures.
+   CodeTracker newCT;
+   for (TrackerList::iterator iter = parent.trackers_.begin();
+        iter != parent.trackers_.end(); ++iter) {
+      TrackerElement *pE = *iter;
+      TrackerElement *cE = NULL;
+      block_instance *cB = child->findBlock(pE->block()->llb());
+      func_instance *cF = (pE->func() ? child->findFunction(pE->func()->ifunc()) : NULL);
+      switch (pE->type()) {
+         case TrackerElement::original:
+            cE = new OriginalTracker(pE->orig(), cB, cF);
+            break;
+         case TrackerElement::emulated:
+            cE = new EmulatorTracker(pE->orig(), cB, cF);
+            break;
+         case TrackerElement::instrumentation: {
+            InstTracker *pI = static_cast<InstTracker *>(pE);
+            baseTramp *bt = baseTramp::fork(pI->baseT(), child);
+            cE = new InstTracker(pE->orig(), bt, cB, cF);
+            break;
+         }
+      }
+      cE->setReloc(pE->reloc());
+      cE->setSize(pE->size());
+      newCT.addTracker(cE);
+   }
+   return newCT;
+}
+
 
 bool CodeTracker::origToReloc(Address origAddr,
                               block_instance *block,

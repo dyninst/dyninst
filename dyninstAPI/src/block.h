@@ -8,6 +8,7 @@
 
 class block_instance;
 class func_instance;
+class parse_func;
 class BPatch_edge;
 class mapped_object;
 
@@ -21,7 +22,7 @@ class edge_instance {
    block_instance *src() const { return src_; }
    block_instance *trg() const { return trg_; }
    ParseAPI::EdgeTypeEnum type() const { return edge_->type(); }
-
+   
    bool sinkEdge() const { return edge_->sinkEdge(); }
    bool interproc() const { return edge_->interproc() || 
          (edge_->type() == ParseAPI::CALL) || 
@@ -33,7 +34,7 @@ class edge_instance {
    edge_instance(ParseAPI::Edge *edge, block_instance *src, block_instance *trg);
    edge_instance(const edge_instance *parent, mapped_object *child);
    ~edge_instance();
-
+   
    ParseAPI::Edge *edge_;
    block_instance *src_;
    block_instance *trg_;

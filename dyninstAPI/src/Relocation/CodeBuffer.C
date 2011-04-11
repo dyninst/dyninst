@@ -178,10 +178,8 @@ CodeBuffer::~CodeBuffer() {};
 
 void CodeBuffer::initialize(const codeGen &templ, unsigned numBlocks) {
    gen_.applyTemplate(templ);
-   cerr << "Reserving " << numBlocks+1 << " labels" << endl;
    // We don't start labels at 0.
    labels_.resize(numBlocks+2);
-   cerr << "... now at size " << labels_.size() << endl;
 }
 
 int CodeBuffer::getLabel() {

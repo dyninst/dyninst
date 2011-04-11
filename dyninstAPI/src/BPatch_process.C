@@ -1967,7 +1967,7 @@ void BPatch_process::overwriteAnalysisUpdate
                 vector<ParseAPI::Function*> cFuncs;
                 cBlk->getFuncs(cFuncs);
                 for (unsigned fix=0; fix < cFuncs.size(); fix++) {
-                    func_instance *cfunc = llproc->findFuncByInternalFunc(
+                    func_instance *cfunc = llproc->findFunction(
                         (parse_func*)(cFuncs[fix]));
                     block_instance *cbbi = cfunc->findBlock(cBlk);
                     if (delBBIs.end() != delBBIs.find(cbbi)) {

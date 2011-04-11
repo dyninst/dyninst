@@ -121,8 +121,40 @@ instPoint::instPoint(Type t, edge_instance *e, func_instance *f) :
 instPoint::instPoint(Type t, block_instance *b, Instruction::Ptr insn, Address a, func_instance *f) :
    type_(t), func_(f), block_(b), edge_(NULL), insn_(insn), addr_(a), baseTramp_(NULL) {};
 
-instPoint *instPoint::fork(instPoint *, AddressSpace *) {
-   assert(0);
+instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
+   // Return the equivalent instPoint within the child process
+   func_instance *f = parent->func_ ? child->findFunction(parent->func_->ifunc()) : NULL;
+   block_instance *b = parent->block_ ? child->findBlock(parent->block_->llb()) : NULL;
+   edge_instance *e = parent->edge_ ? child->findEdge(parent->edge_->edge()) : NULL;
+   Instruction::Ptr i = parent->insn_;
+   Address a = parent->addr_;
+
+   switch(parent->type_) {
+      case None:
+         assert(0);
+         break;
+      case FuncEntry:
+         return funcEntry(f);
+      case FuncExit:
+         return funcExit(f, b);
+      case BlockEntry:
+         return blockEntry(f, b);
+      case BlockExit:
+         return blockExit(f, b);
+      case Edge:
+         return edge(f, e);
+      case PreInsn:
+         return preInsn(f, b, a, i, true);
+      case PostInsn:
+         return postInsn(f, b, a, i, true);
+      case PreCall:
+         return preCall(f, b);
+      case PostCall:
+         return postCall(f, b);
+      case OtherPoint:
+         assert(0);
+         break;
+   }
    return NULL;
 }
 

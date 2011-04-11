@@ -1250,14 +1250,14 @@ void BPatch_image::getNewCodeRegions
     std::set<parse_func*>::iterator fIter = newImgFuncs.begin();
     for (; fIter !=  newImgFuncs.end(); fIter++) {
         newFuncs.push_back(addSpace->findOrCreateBPFunc
-            (as->findFuncByInternalFunc(*fIter),NULL));
+            (as->findFunction(*fIter),NULL));
     }
     // elements in modImgFuncs may also be in newImgFuncs, don't add such
     // functions
     for (fIter = modImgFuncs.begin(); fIter !=  modImgFuncs.end(); fIter++) {
         if (newImgFuncs.end() == newImgFuncs.find(*fIter)) {
             modFuncs.push_back(addSpace->findOrCreateBPFunc
-                (as->findFuncByInternalFunc(*fIter),NULL));
+                (as->findFunction(*fIter),NULL));
         }
     }
 }

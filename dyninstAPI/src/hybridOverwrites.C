@@ -114,7 +114,7 @@ bool HybridAnalysisOW::codeChangeCB
             vector<ParseAPI::Function*>::iterator fiter = funcs.begin();
             for ( ; fiter != funcs.end(); fiter++) {
                 Address fAddr = proc()->lowlevel_process()->
-                   findFuncByInternalFunc(dynamic_cast<parse_func*>(*fiter))->
+                   findFunction(dynamic_cast<parse_func*>(*fiter))->
                    addr();
                 std::vector<BPatch_function*>::iterator bfiter=modfuncs.begin();
                 for (; bfiter != modfuncs.end(); bfiter++) {

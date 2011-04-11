@@ -90,10 +90,17 @@ baseTramp *baseTramp::create(rpcMgr *r, AstNodePtr a) {
    return bt;
 }
 
-baseTramp *baseTramp::fork(instPoint *, baseTramp *) {
-   // err...
-   assert(0);
-   return NULL;
+baseTramp *baseTramp::fork(baseTramp *parent, AddressSpace *child) {
+   if (parent->point()) {
+      instPoint *childPoint = instPoint::fork(parent->point(), child);
+      baseTramp *newBT = create(childPoint);
+      return newBT;
+   }
+   else {
+      // bugger...
+      assert(0 && "Illegal call to baseTramp::fork!");
+      return NULL;
+   }
 }
 
 void baseTramp::initializeFlags() {

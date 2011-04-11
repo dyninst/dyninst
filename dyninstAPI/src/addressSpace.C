@@ -70,19 +70,21 @@ AddressSpace::AddressSpace () :
     trampGuardBase_(NULL),
     up_ptr_(NULL),
     costAddr_(0),
+    memEmulator_(NULL),
     emulateMem_(false),
     emulatePC_(false)
 {
-   memEmulator_ = new MemoryEmulator(this);
    if ( getenv("DYNINST_EMULATE_MEMORY") ) {
        printf("emulating memory\n");
+       memEmulator_ = new MemoryEmulator(this);
        emulateMem_ = true;
        emulatePC_ = true;
    }
 }
 
 AddressSpace::~AddressSpace() {
-   delete memEmulator_;
+   if (memEmulator_)
+      delete memEmulator_;
 }
 
 process *AddressSpace::proc() {
@@ -130,6 +132,38 @@ void AddressSpace::copyAddressSpace(process *parent) {
     // Trap mappings
     /////////////////////////
     trapMapping.copyTrapMappings(& (parent->trapMapping));
+
+    /////////////////////////
+    // Overly complex code tracking system
+    /////////////////////////
+    for (CodeTrackers::iterator iter = parent->relocatedCode_.begin();
+         iter != parent->relocatedCode_.end(); ++iter) {
+       relocatedCode_.push_back(Relocation::CodeTracker::fork(*iter, this));
+    }
+    
+    // Let's assume we're not forking _in the middle of instrumentation_
+    // (good Lord), and so leave modifiedFunctions_ alone.
+    for (CallModMap::iterator iter = parent->callModifications_.begin(); 
+         iter != parent->callModifications_.end(); ++iter) {
+       // Need to forward map the lot
+       block_instance *newB = findBlock(iter->first->llb());
+       for (std::map<func_instance *, func_instance *>::iterator iter2 = iter->second.begin();
+            iter2 != iter->second.end(); ++iter2) {
+          func_instance *context = (iter2->first == NULL) ? NULL : findFunction(iter2->first->ifunc());
+          func_instance *target = (iter2->second == NULL) ? NULL : findFunction(iter2->second->ifunc());
+          callModifications_[newB][context] = target;
+       }
+    }
+    for (FuncReplaceMap::iterator iter = parent->functionReplacements_.begin();
+         iter != parent->functionReplacements_.end(); ++iter) {
+       func_instance *from = findFunction(iter->first->ifunc());
+       func_instance *to = findFunction(iter->second->ifunc());
+       functionReplacements_[from] = to;
+    }
+
+    if (memEmulator_) assert(0 && "FIXME!");
+    emulateMem_ = parent->emulateMem_;
+    emulatePC_ = parent->emulatePC_;
 }
 
 void AddressSpace::deleteAddressSpace() {
@@ -717,24 +751,21 @@ mapped_object *AddressSpace::findObject(const ParseAPI::CodeObject *co) const {
     return obj;
 }
 
-func_instance *AddressSpace::findFuncByInternalFunc(parse_func *ifunc) {
+func_instance *AddressSpace::findFunction(parse_func *ifunc) {
     assert(ifunc);
-  
-    // Now we have to look up our specialized version
-    // Can't do module lookup because of DEFAULT_MODULE...
-    pdvector<func_instance *> possibles;
-    if (!findFuncsByMangled(ifunc->symTabName().c_str(),
-                            possibles))
-        return NULL;
 
-    assert(possibles.size());
-  
-    for (unsigned i = 0; i < possibles.size(); i++) {
-        if (possibles[i]->ifunc() == ifunc) {
-            return possibles[i];
-        }
-    }
-    return NULL;
+    return findObject(ifunc->obj())->findFunction(ifunc);
+}
+
+block_instance *AddressSpace::findBlock(parse_block *iblk) {
+    assert(iblk);
+
+    return findObject(iblk->obj())->findBlock(iblk);
+}
+
+edge_instance *AddressSpace::findEdge(ParseAPI::Edge *iedge) {
+   assert(iedge);
+   return findObject(iedge->src()->obj())->findEdge(iedge);
 }
 
 // findModule: returns the module associated with mod_name 
@@ -1686,11 +1717,11 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
         Address objBase = obj->codeBase();
         SymtabAPI::Region * reg = obj->parse_img()->getObject()->
             findEnclosingRegion(iter->startAddr() - objBase);
-        getMemEm()->addSpringboard(
-            reg, 
-            iter->startAddr() - objBase - reg->getMemOffset(),
-            iter->used());
-     }
+        if (memEmulator_)
+           memEmulator_->addSpringboard(reg, 
+                                        iter->startAddr() - objBase - reg->getMemOffset(),
+                                        iter->used());
+    }
   }
 
   return true;
@@ -1828,16 +1859,16 @@ void AddressSpace::addInstrumentationInstance(baseTramp *bt,
 }
 
 void AddressSpace::addAllocatedRegion(Address start, unsigned size) {
-   //memEmulator_->addAllocatedRegion(start, size);
+   if (memEmulator_) memEmulator_->addAllocatedRegion(start, size);
 }
 
 void AddressSpace::addModifiedRegion(mapped_object *obj) {
-   //memEmulator_->addRegion(obj);
+   if (memEmulator_) memEmulator_->addRegion(obj);
    return;
 }
 
 void AddressSpace::updateMemEmulator() {
-   //memEmulator_->update();
+   if (memEmulator_) memEmulator_->update();
 }
 
 MemoryEmulator * AddressSpace::getMemEm() {
@@ -1853,7 +1884,7 @@ void AddressSpace::invalidateMemory(Address addr, Address size) {
 	// set permissions on the deallocated range. 
 	return;
 
-	getMemEm()->removeRegion(addr, size);
+	if (memEmulator_) memEmulator_->removeRegion(addr, size);
 
 	proc()->flushAddressCache_RT(addr, size);
 

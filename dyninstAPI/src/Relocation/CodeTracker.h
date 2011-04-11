@@ -47,6 +47,7 @@
 class baseTramp;
 class func_instance;
 class block_instance;
+class AddressSpace;
 
 namespace Dyninst {
 namespace Relocation {
@@ -184,7 +185,9 @@ class CodeTracker {
 
 
   CodeTracker() {};
-  ~CodeTracker() {};
+  ~CodeTracker();
+
+  static CodeTracker fork(CodeTracker &parent, AddressSpace *child);
 
   struct RelocInfo {
      Address orig;
