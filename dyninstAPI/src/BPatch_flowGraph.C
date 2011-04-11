@@ -76,13 +76,6 @@ BPatch_flowGraph::BPatch_flowGraph(BPatch_function *func,
    // them. The dominator information will also be filled
    valid = true;
 
-   unsigned tmpSize = func->getSize();
-   if(!tmpSize){
-      fprintf(stderr, "Func has no size!\n");
-      valid = false;
-      return;
-   }
-
    if (!createBasicBlocks()) {
       fprintf(stderr, "Failed to make basic blocks!\n");
       valid = false;

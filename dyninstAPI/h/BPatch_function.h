@@ -222,18 +222,6 @@ public:
 
     void *,getBaseAddr,(void));
 
-    //  BPatch_function::getSize
-    //  Returns the size of the function in bytes (end of last block - start of first block)
-    API_EXPORT(Int, (),
-
-    unsigned int,getSize,());
-
-    //  BPatch_function::getSize
-    //  Returns the number of contiguous bytes a function takes up following its entry point
-    //   This may be different from getSize if the function is disjoint
-    API_EXPORT(Int, (),
-    unsigned int,getContiguousSize,());
-
     //  BPatch_function::getReturnType
     //  Returns the <BPatch_type> return type of this function
 
@@ -354,42 +342,15 @@ public:
     //  Get the underlying ParseAPI Function
     API_EXPORT( Int, (), Dyninst::ParseAPI::Function *, getParseAPIFunc, () );
 
-#ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Int, (start, end),
 
     bool,getLineNumbers,(unsigned int &start, unsigned int &end));
 
-    API_EXPORT(Int, (),
-
-    void *,getAddress,());
-
     API_EXPORT(Int, (start, end),
-
     bool,getAddressRange,(void * &start, void * &end));
 
-    API_EXPORT(Int, (),
-
-    BPatch_type *,returnType,());
-
-    API_EXPORT_V(Int, (vect),
-
-    void,getIncPoints,(BPatch_Vector<BPatch_point *> &vect));
-
-    API_EXPORT(Int, (),
-
-    int,getMangledNameLen,());
-
-    API_EXPORT_V(Int, (points),
-
-    void,getExcPoints,(BPatch_Vector<BPatch_point*> &points));
-
-
-    API_EXPORT(DPCL, (),
-
-    const char *,getName,());
-
-
-#endif
+    API_EXPORT(Int, (start, end),
+               bool,getAddressRange,(Dyninst::Address &start, Dyninst::Address &end));
 };
 
 #endif /* _BPatch_function_h_ */

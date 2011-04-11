@@ -305,16 +305,6 @@ void *BPatch_function::getBaseAddrInt()
 }
 
 /*
- * BPatch_function::getSize
- *
- * Returns the size of the function in bytes.
- */
-unsigned int BPatch_function::getSizeInt() 
-{
-   return -1;
-}
-
-/*
  * BPatch_function::getReturnType
  *
  * Returns the return type of the function.
@@ -917,45 +907,25 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
 
 } /* end getFunctionRef() */
 
-#ifdef IBM_BPATCH_COMPAT
-
-bool BPatch_function::getLineNumbersInt(unsigned int &start, unsigned int &end) {
-  char name[256];
-  unsigned int length = 255;
-  return getLineAndFileInt(start, end, name, length);
-}
-
-void *BPatch_function::getAddressInt() { return getBaseAddr(); }
-    
 bool BPatch_function::getAddressRangeInt(void * &start, void * &end) {
-	start = getBaseAddr();
-	unsigned long temp = (unsigned long) start;
-	end = (void *) (temp + getSize());
-
-	return true;
+   Address s, e;
+   bool ret = getAddressRange(s, e);
+   start = (void *)s;
+   end = (void *)e;
+   return ret;
 }
 
-//BPatch_type *BPatch_function::returnType() { return retType; }
-void BPatch_function::getIncPointsInt(BPatch_Vector<BPatch_point *> &vect) 
-{
-    BPatch_Vector<BPatch_point *> *v1 = findPoint(BPatch_allLocations);
-    if (v1) {
-	for (unsigned int i=0; i < v1->size(); i++) {
-	    vect.push_back((*v1)[i]);
-	}
-    }
+bool BPatch_function::getAddressRangeInt(Dyninst::Address &start, Dyninst::Address &end) {
+   start = func->addr();
+   
+   // end is a little tougher
+   end = func->addr();
+   for (func_instance::BlockSet::iterator iter = func->blocks().begin();
+        iter != func->blocks().end(); ++iter) {
+      end = (end < (*iter)->end()) ? (*iter)->end() : end;
+   }
+   return true;
 }
-
-int	BPatch_function::getMangledNameLenInt() { return 1024; }
-
-void BPatch_function::getExcPointsInt(BPatch_Vector<BPatch_point*> &points) {
-  points.clear();
-  abort();
-  return;
-};
-
-
-#endif
 
 /*
  * BPatch_function::isInstrumentable
@@ -1010,22 +980,6 @@ const char *BPatch_function::addNameInt(const char *name,
                               isPrimary);
     }
     return name;
-}
-
-unsigned int BPatch_function::getContiguousSizeInt() {
-   return 0;
-#if 0
-   Address start, end;
-   start = func->addr();
-   end = start + func->getSize_NP();
-    
-    block_instance* block = func->findBlockByEntry(start);
-    while (block != NULL) {
-       end = block->end();
-       block = func->findBlockByEntry(end);
-    }
-    return end - start;
-#endif
 }
 
 bool BPatch_function::findOverlappingInt(BPatch_Vector<BPatch_function *> &funcs) {
