@@ -947,6 +947,16 @@ bool freebsd_process::plat_detach() {
 bool freebsd_process::plat_terminate(bool &needs_sync) {
     pthrd_printf("Terminating process %d\n", getPid());
     if( threadPool()->allStopped() ) {
+        for(int_threadPool::iterator i = threadPool()->begin();
+                i != threadPool()->end(); ++i)
+        {
+            if( !(*i)->plat_resume() ) {
+                perr_printf("Failed to resume thread %d/%d\n", getPid(), (*i)->getLWP());
+                setLastError(err_internal, "Resume failed\n");
+                return false;
+            }
+        }
+
         if( 0 != ptrace(PT_KILL, getPid(), (caddr_t)1, 0) ) {
             perr_printf("Failed to PT_KILL process %d\n", getPid());
             setLastError(err_internal, "PT_KILL operation failed\n");
