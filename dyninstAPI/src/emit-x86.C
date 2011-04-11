@@ -2422,6 +2422,9 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
    if (saveOrigAddr) {
       num_to_save++; //Stack slot for return value, no actual save though
    }
+   if (saveFlags) {
+      num_to_save++;
+   }
          
    bool skipRedZone = (num_to_save > 0) || alignStack || saveOrigAddr || createFrame;
 
@@ -2454,14 +2457,10 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
    // Save flags if we need to
    if (saveFlags) {
       gen.rs()->saveVolatileRegisters(gen);
-      if (!bt || (bt->validOptimizationInfo() && bt->definedRegs[REGNUM_RAX])) {
-         emitPushReg64(REGNUM_RAX, gen); 
-         num_saved++;
-         num_to_save++; // ;)
-      }
+      emitPushReg64(REGNUM_RAX, gen); 
+      num_saved++;
       // Need a "defined, but not by us silly"
       gen.markRegDefined(REGNUM_RAX);
-
    }
 
    // push a return address for stack walking
@@ -2520,6 +2519,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
       gen.rs()->incStack(extra_space);
    }
    extra_space_check = extra_space;
+
 
    if (useFPRs) {
       // need to save the floating point state (x87, MMX, SSE)
@@ -2610,8 +2610,7 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
 
    // Restore flags
    if (restoreFlags) {
-      if (!bt || (bt->validOptimizationInfo() && bt->definedRegs[REGNUM_RAX]))
-         emitPopReg64(REGNUM_RAX, gen);
+      emitPopReg64(REGNUM_RAX, gen);
       gen.rs()->restoreVolatileRegisters(gen);
    }
 

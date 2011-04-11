@@ -1704,7 +1704,8 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
   for (std::list<codeGen>::iterator iter = patches.begin();
        iter != patches.end(); ++iter) 
   {
-      if (!writeTextSpace((void *)iter->startAddr(),
+     relocation_cerr << "Writing springboard @ " << hex << iter->startAddr() << endl;
+        if (!writeTextSpace((void *)iter->startAddr(),
           iter->used(),
           iter->start_ptr())) 
       {

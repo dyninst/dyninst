@@ -1655,7 +1655,7 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
             reg = plat_bp;
             return stackItemLocation(plat_bp, offset);
          }
-
+         
          offset += gen.rs()->getStackHeight();
          return stackItemLocation(plat_sp, offset);
       }
