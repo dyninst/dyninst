@@ -697,7 +697,7 @@ bool BPatch_module::getSourceLinesInt(unsigned long addr,
 
    if (!stmod->getSourceLines(lines_ll, addr - mod->obj()->codeBase()))
    {
-	   return false;
+      return false;
    }
 
    for (unsigned int j = 0; j < lines_ll.size(); ++j)

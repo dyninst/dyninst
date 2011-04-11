@@ -591,10 +591,11 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                     // case 1: the point is at a return instruction
                     interp = BPatch_interpAsReturnAddr;
                     calcSnippet = & retAddrSnippet;
+                    Address s, e;
+                    func->getAddressRange(s, e);
                     mal_printf("monitoring return from func[%lx %lx] at %lx\n", 
-                                (long)func->getBaseAddr(), 
-                                (long)func->getBaseAddr() + func->getSize(), 
-                                (long)curPoint->getAddress());
+                               s, e,
+                               (long)curPoint->getAddress());
                 }
                 else if (curPoint->isDynamic()) {
                     // case 2: above check ensures that this is not a return 

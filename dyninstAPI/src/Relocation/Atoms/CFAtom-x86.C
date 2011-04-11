@@ -25,7 +25,11 @@ CFPatch::CFPatch(Type a,
                  TargetInt *c,
                  Address d) :
    type(a), orig_insn(b), target(c), origAddr_(d) {
-   ugly_insn = new NS_x86::instruction(b->ptr());
+   if (b)
+      ugly_insn = new NS_x86::instruction(b->ptr());
+   else
+      ugly_insn = NULL;
+   // New branches don't get an original instruction...
 }
 
 bool CFAtom::generateIndirect(CodeBuffer &buffer,

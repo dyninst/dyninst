@@ -2454,14 +2454,11 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
    // Save flags if we need to
    if (saveFlags) {
       gen.rs()->saveVolatileRegisters(gen);
-#if 0
-      // TODO FIXME: commenting out for SPECs
       if (!bt || (bt->validOptimizationInfo() && bt->definedRegs[REGNUM_RAX])) {
          emitPushReg64(REGNUM_RAX, gen); 
          num_saved++;
          num_to_save++; // ;)
       }
-#endif
       // Need a "defined, but not by us silly"
       gen.markRegDefined(REGNUM_RAX);
 
@@ -2613,10 +2610,8 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
 
    // Restore flags
    if (restoreFlags) {
-#if 0
       if (!bt || (bt->validOptimizationInfo() && bt->definedRegs[REGNUM_RAX]))
          emitPopReg64(REGNUM_RAX, gen);
-#endif
       gen.rs()->restoreVolatileRegisters(gen);
    }
 

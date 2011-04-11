@@ -117,6 +117,7 @@ class func_instance : public patchTarget {
    parse_func *ifunc() { return ifunc_; }
    mapped_module *mod() const { return mod_; }
    mapped_object *obj() const;
+
    //process *proc() const;
    AddressSpace *proc() const;
 

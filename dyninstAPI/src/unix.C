@@ -1761,12 +1761,10 @@ func_instance *block_instance::callee() {
    // See if we've already done this
    edge_instance *tEdge = getTarget();
    if (!tEdge) {
-      cerr << "Warning: failed to get target edge in callee()" << endl;
       return NULL;
    }
 
    if (!tEdge->sinkEdge()) {
-      cerr << "No sink edge, returning findFunc" << endl;
       return obj()->findFuncByEntry(tEdge->trg());
    }
    

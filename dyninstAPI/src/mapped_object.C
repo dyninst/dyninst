@@ -815,7 +815,6 @@ bool mapped_object::getAllVariables(pdvector<int_variable *> &vars) {
 func_instance *mapped_object::findFunction(ParseAPI::Function *papi_func) {
     parse_func *img_func = static_cast<parse_func *>(papi_func);
     if (!img_func) {
-        fprintf(stderr, "Warning: findFunction with null img_func\n");
         return NULL;
     }
     assert(img_func->getSymtabFunction());
