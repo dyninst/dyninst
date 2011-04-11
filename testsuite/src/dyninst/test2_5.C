@@ -88,16 +88,5 @@ test_results_t test2_5_Mutator::executeTest()
 
     setExpectError(DYNINST_NO_ERROR);
 
-    // Let the mutatee continue
-    BPatch_variableExpr *expr5_1 =
-      appImage->findVariable("test2_5_spinning");
-    if (expr5_1 == NULL) {
-      logerror("**Failed** test #5 (look up nonexistent function)\n");
-      logerror("    Unable to locate test2_5_spinning\n");
-      result = FAILED;
-    } 
-    int pvalue = 0;
-    expr5_1->writeValue(&pvalue);
-
     return result;
 }
