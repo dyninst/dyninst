@@ -38,7 +38,7 @@
 using namespace Dyninst;
 using namespace std;
  
-bool Graph::printDOT(const std::string fileName) {
+bool Graph::printDOT(const std::string& fileName) {
     FILE *file = fopen(fileName.c_str(), "w");
     if (file == NULL) {
         return false;
@@ -53,13 +53,13 @@ bool Graph::printDOT(const std::string fileName) {
     entryNodes(entryBegin, entryEnd);
 
      // Initialize visitor worklist
-    for (NodeIterator iter = entryBegin; iter != entryEnd; iter++) {
+    for (NodeIterator iter = entryBegin; iter != entryEnd; ++iter) {
         worklist.push(*iter);
     }
 
     // Put the entry nodes on their own (minimum) rank
     fprintf(file, "  { rank = min;");
-    for (NodeIterator iter = entryBegin; iter != entryEnd; iter++) {
+    for (NodeIterator iter = entryBegin; iter != entryEnd; ++iter) {
       fprintf(file, "\"%p\"; ", (*iter).get());
     }
     fprintf(file, "}\n");
@@ -69,7 +69,7 @@ bool Graph::printDOT(const std::string fileName) {
 
     // Put the entry nodes on their own (minimum) rank
     fprintf(file, "  { rank = max;");
-    for (NodeIterator iter = exitBegin; iter != exitEnd; iter++) {
+    for (NodeIterator iter = exitBegin; iter != exitEnd; ++iter) {
       fprintf(file, "\"%p\"; ", (*iter).get());
     }
     fprintf(file, "}\n");
@@ -98,7 +98,7 @@ bool Graph::printDOT(const std::string fileName) {
         NodeIterator outBegin, outEnd;
         source->outs(outBegin, outEnd);
 
-        for (; outBegin != outEnd; outBegin++) {
+        for (; outBegin != outEnd; ++outBegin) {
             Node::Ptr target = *outBegin;
             if (!target->DOTinclude()) continue;
             //fprintf(file, "\t %s -> %s;\n", source->DOTname().c_str(), target->DOTname().c_str());
