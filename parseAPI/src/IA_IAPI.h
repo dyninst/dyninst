@@ -70,7 +70,7 @@ class IA_IAPI : public InstructionAdapter
           Address start, ParseAPI::CodeObject *o,
           ParseAPI::CodeRegion *r, InstructionSource *isrc, ParseAPI::Block *);
 
-        Dyninst::InstructionAPI::Instruction::Ptr getInstruction();
+        virtual Dyninst::InstructionAPI::Instruction::Ptr getInstruction() const;
     
         virtual bool hasCFT() const;
         virtual size_t getSize() const;

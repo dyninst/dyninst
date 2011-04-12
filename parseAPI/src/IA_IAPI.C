@@ -533,7 +533,7 @@ bool IA_IAPI::isDelaySlot() const
     return false;
 }
 
-Instruction::Ptr IA_IAPI::getInstruction()
+Instruction::Ptr IA_IAPI::getInstruction() const
 {
     return curInsn();
 }
