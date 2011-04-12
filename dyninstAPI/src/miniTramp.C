@@ -53,6 +53,17 @@ miniTramp::miniTramp(AstNodePtr ast, instPoint *point, bool recursive)
 // process (matching by the ID member). Fill in childMT.
   
 miniTramp *miniTramp::getInheritedMiniTramp(process *childProc) {
+   instPoint *cPoint = instPoint::fork(point_, childProc);
+   // Find the equivalent miniTramp...
+   assert(point_->size() == cPoint->size());
+   instPoint::iterator c_iter = cPoint->begin();
+   for (instPoint::iterator iter = point_->begin();
+        iter != point_->end();
+        ++iter) {
+      if (*iter == this) return *c_iter;
+      ++c_iter;
+   }
+
    assert(0);
    return NULL;
 }

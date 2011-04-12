@@ -129,33 +129,54 @@ instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
    Instruction::Ptr i = parent->insn_;
    Address a = parent->addr_;
 
+   instPoint *point = NULL;
+
    switch(parent->type_) {
       case None:
          assert(0);
          break;
       case FuncEntry:
-         return funcEntry(f);
+         point = funcEntry(f);
+         break;
       case FuncExit:
-         return funcExit(f, b);
+         point = funcExit(f, b);
+         break;
       case BlockEntry:
-         return blockEntry(f, b);
+         point = blockEntry(f, b);
+         break;
       case BlockExit:
-         return blockExit(f, b);
+         point = blockExit(f, b);
+         break;
       case Edge:
-         return edge(f, e);
+         point = edge(f, e);
+         break;
       case PreInsn:
-         return preInsn(f, b, a, i, true);
+         point = preInsn(f, b, a, i, true);
+         break;
       case PostInsn:
-         return postInsn(f, b, a, i, true);
+         point = postInsn(f, b, a, i, true);
+         break;
       case PreCall:
-         return preCall(f, b);
+         point = preCall(f, b);
+         break;
       case PostCall:
-         return postCall(f, b);
+         point = postCall(f, b);
+         break;
       case OtherPoint:
          assert(0);
          break;
    }
-   return NULL;
+   assert(point->empty() || 
+          point->size() == parent->size());
+   if (point->empty()) {
+      for (const_iterator iter = parent->begin(); iter != parent->end(); ++iter) {
+         point->push_back((*iter)->ast(), (*iter)->recursive());
+      }
+   }
+
+   point->liveRegs_ = parent->liveRegs_;
+
+   return point;
 }
 
 
@@ -175,6 +196,7 @@ instPoint::iterator instPoint::end() { return tramps_.end(); }
 instPoint::const_iterator instPoint::begin() const { return tramps_.begin(); }
 instPoint::const_iterator instPoint::end() const { return tramps_.end(); }
 bool instPoint::empty() const { return tramps_.empty(); }
+unsigned instPoint::size() const { return tramps_.size(); }
 
 AddressSpace *instPoint::proc() const { 
    return func()->proc();

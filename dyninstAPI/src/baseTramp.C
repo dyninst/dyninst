@@ -93,7 +93,7 @@ baseTramp *baseTramp::create(rpcMgr *r, AstNodePtr a) {
 baseTramp *baseTramp::fork(baseTramp *parent, AddressSpace *child) {
    if (parent->point()) {
       instPoint *childPoint = instPoint::fork(parent->point(), child);
-      baseTramp *newBT = create(childPoint);
+      baseTramp *newBT = childPoint->tramp();
       return newBT;
    }
    else {

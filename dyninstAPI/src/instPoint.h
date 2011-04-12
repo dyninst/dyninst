@@ -184,6 +184,7 @@ class instPoint {
     void erase(iterator);
     void erase(miniTramp *);
     bool empty() const;
+    unsigned size() const;
 
     bitArray liveRegisters();
     
