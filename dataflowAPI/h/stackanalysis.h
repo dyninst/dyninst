@@ -538,7 +538,7 @@ class StackAnalysis {
                 region(re) {};
             ~Node() {
                 for (std::map<Range, Node *>::iterator i = children.begin(); 
-                     i != children.end(); i++) {
+                     i != children.end(); ++i) {
                     if (i->second)
                         delete i->second;
                 }

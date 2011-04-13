@@ -211,7 +211,7 @@ bool regexEquiv(const char *str_,  const char *s, bool checkCase )
 	// Deal with errors
 	if ( err != 0 && err != REG_NOMATCH ) 
    {
-		char errbuf[80];
+		char errbuf[80] = "";
 		regerror( err, &r, errbuf, 80 );
 		//cerr << "string_ll::regexEquiv -- " << errbuf << endl;
 	}

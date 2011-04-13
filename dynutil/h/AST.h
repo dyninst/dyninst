@@ -201,7 +201,7 @@ class COMMON_EXPORT AST : public dyn_detail::boost::enable_shared_from_this<AST>
 
   virtual AST::Ptr child(unsigned) const {				
     assert(0);								
-    return AST::Ptr();							
+    return Ptr();							
   }								       
 
   bool equals(AST::Ptr rhs) {

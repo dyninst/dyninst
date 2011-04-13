@@ -87,7 +87,7 @@ bool MachRegister::isValid() const {
    return (reg != InvalidReg.reg);
 }
 
-MachRegisterVal MachRegister::getSubRegValue(const MachRegister subreg, 
+MachRegisterVal MachRegister::getSubRegValue(const MachRegister& subreg, 
                                              MachRegisterVal &orig) const
 {
    if (subreg.reg == reg || 

@@ -77,7 +77,7 @@ std::vector<Symbol *> *Symtab::findSymbolByOffset(Offset o)
 	return &(iter->second);
 }
 
-bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string name,
+bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
                         Symbol::SymbolType sType, NameType nameType,
                         bool isRegex, bool checkCase)
 {

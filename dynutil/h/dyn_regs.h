@@ -65,7 +65,7 @@ namespace Dyninst
       MachRegister getBaseRegister() const;
       Architecture getArchitecture() const;
       bool isValid() const;
-      MachRegisterVal getSubRegValue(const MachRegister subreg, MachRegisterVal &orig) const;
+      MachRegisterVal getSubRegValue(const MachRegister& subreg, MachRegisterVal &orig) const;
 
       const char *name() const;
       unsigned int size() const;
