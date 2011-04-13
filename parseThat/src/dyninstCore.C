@@ -1019,7 +1019,7 @@ bool generateInstrumentation(dynHandle *dh, BPatch_function *func, BPatch_snippe
       instFunction++;
 
       BPatch_Vector<BPatch_function *> funcs;
-      if( NULL ==  dh->image->findFunction(instFunction, funcs) || !funcs.size() || NULL == funcs[0]){
+      if( NULL ==  dh->image->findFunction(instFunction, funcs, false, true, true) || !funcs.size() || NULL == funcs[0]){
          sendMsg(config.outfd, ID_INST_FIND_POINTS, VERB3, ID_FAIL,
                  "Unable to find function");
          return false;;

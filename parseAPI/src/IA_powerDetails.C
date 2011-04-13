@@ -561,7 +561,7 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
 
   parsing_printf("%s[%d]: checking for max switch...\n", FILE__, __LINE__);
   bool foundBranch = false;
-  std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::reverse_iterator iter;
+  IA_IAPI::allInsns_t::reverse_iterator iter;
   for(iter = prevBlock.allInsns.rbegin(); iter != prevBlock.allInsns.rend(); iter++)
 
     {

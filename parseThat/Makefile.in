@@ -127,7 +127,7 @@ clean:
 	rm -f parseThat *.o *.so
 
 distclean: clean
-	rm Makefile
+	rm Makefile config.log config.status
 
 ready:
 	@echo "Begin parseThat build for $(PLATFORM)"

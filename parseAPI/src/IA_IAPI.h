@@ -64,6 +64,10 @@ class IA_IAPI : public InstructionAdapter {
 
 		virtual ~IA_IAPI() {
         }
+        void reset(Dyninst::InstructionAPI::InstructionDecoder dec_,
+          Address start, ParseAPI::CodeObject *o,
+          ParseAPI::CodeRegion *r, InstructionSource *isrc, ParseAPI::Block *);
+
         Dyninst::InstructionAPI::Instruction::Ptr getInstruction();
     
         virtual bool hasCFT() const;
@@ -116,9 +120,25 @@ private:
 
 
         Dyninst::InstructionAPI::InstructionDecoder dec;
-        std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr> allInsns;
+
+        /*
+         * Decoded instruction cache: contains the linear
+         * sequence of instructions decoded by the decoder
+         * underlying this adapter.
+         * 
+         * - curInsnIter == *(allInsns.end()-1)
+         * - (super)->current = curInsnIter->first
+         */
+public:
+        typedef std::vector< 
+            std::pair<Address, 
+            Dyninst::InstructionAPI::Instruction::Ptr> 
+        > allInsns_t;
+private:
+        allInsns_t allInsns;
         Dyninst::InstructionAPI::Instruction::Ptr curInsn() const;
-        std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::iterator curInsnIter;
+        allInsns_t::iterator curInsnIter;
+
         mutable bool validCFT;
         mutable std::pair<bool, Address> cachedCFT;
         mutable bool validLinkerStubState;

@@ -53,14 +53,18 @@ class Module;
 class Symtab; 
 class Region; 
 class Aggregate; 
+struct SymbolCompareByAddr;
 
 class Aggregate /*: public AnnotatableSparse  */
 {
     friend class Symtab;
+    friend struct SymbolCompareByAddr;
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
+
  protected:
       SYMTAB_EXPORT Aggregate();
       SYMTAB_EXPORT Aggregate(Symbol *sym);
+
    public:
       
       virtual ~Aggregate() {};
@@ -108,6 +112,8 @@ class Aggregate /*: public AnnotatableSparse  */
       Module *module_;
 
       std::vector<Symbol *> symbols_;
+      Symbol *firstSymbol;  // cached for speed
+      Offset offset_;       // cached for speed
 
       std::vector<std::string> mangledNames_;
       std::vector<std::string> prettyNames_;

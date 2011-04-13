@@ -50,6 +50,28 @@ InstructionAdapter::InstructionAdapter(Address start, CodeObject *o, CodeRegion 
 {
 }
 
+void
+InstructionAdapter::reset(
+    Address start,
+    CodeObject *o,
+    CodeRegion *r,
+    InstructionSource *isrc,
+    Block *curBlk)
+{
+    current = start;
+    previous = (Address)-1;    
+    parsedJumpTable = false;
+    successfullyParsedJumpTable = false;
+    isDynamicCall_ = false;
+    checkedDynamicCall_ = false;
+    isInvalidCallTarget_ = false;
+    checkedInvalidCallTarget_ = false;
+    _obj = o;
+    _cr = r;
+    _isrc = isrc;
+    _curBlk = curBlk;
+}
+
 InstructionAdapter::~InstructionAdapter()
 {
 }

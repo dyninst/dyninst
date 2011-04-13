@@ -99,32 +99,6 @@ bool IA_IAPI::isTailCall(Function* /*context*/,unsigned int) const
         parsing_printf("\ttoo few insns to detect tail call\n");
         return tailCall.second;
     }
-/*
-    if(curInsn()->getCategory() == c_BranchInsn ||
-       curInsn()->getCategory() == c_CallInsn)
-    {
-        std::map<Address, Instruction::Ptr>::const_iterator prevIter =
-                allInsns.find(current);
-        --prevIter;
-        Instruction::Ptr prevInsn = prevIter->second;
-        if(prevInsn->getOperation().getID() == e_leave)
-        {
-            parsing_printf("\tprev insn was leave, TAIL CALL\n");
-            tailCall.second = true;
-            return tailCall.second;
-        }
-        if(prevInsn->getOperation().getID() == e_pop)
-        {
-            if(prevInsn->isWritten(framePtr[_isrc->getArch()]))
-            {
-                parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn->format().c_str());
-                tailCall.second = true;
-                return tailCall.second;
-            }
-            parsing_printf("\tprev insn was %s, not tail call\n", prevInsn->format().c_str());
-        }
-    }
-*/
     tailCall.second = false;
     return tailCall.second;
 
@@ -298,8 +272,7 @@ bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI:
 
       Instruction::Ptr ci = curInsn ();
       bool foundMTLR = false;
-      std::map < Address,
-      Dyninst::InstructionAPI::Instruction::Ptr >::reverse_iterator iter;
+      allInsns_t::reverse_iterator iter;
       Address blockStart = currBlk->start ();
       const unsigned char *b =
 	(const unsigned char *) (this->_isrc->
