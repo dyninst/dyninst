@@ -953,12 +953,7 @@ map_entries *getLinuxMaps(int pid, unsigned &maps_size) {
       assert(cur_pos <= cur_size);
       if (cur_size == cur_pos) {
          cur_size *= 2;
-	 char* old_buffer = buffer;
          buffer = (char *) realloc(buffer, cur_size);
-	 if(buffer != old_buffer)
-	 {
-	   free(old_buffer);
-	 }
          if (!buffer) {
             goto done_err;
          }
