@@ -439,6 +439,6 @@ int main(int iargc, char *argv[])
    if ((outlog != NULL) && (outlog != stdout)) {
       fclose(outlog);
    }
-
+   
    exit( retval);
 }

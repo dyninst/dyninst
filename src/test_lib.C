@@ -42,6 +42,11 @@
 #include <errno.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <limits.h>
+
+#include <string>
+#include <vector>
+using namespace std;
 
 #if !defined(i386_unknown_nt4_0_test)
 #include <fnmatch.h>
@@ -605,73 +610,6 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
       sprintf(fdstr, "%d", fds[1]);
    }
 
-
-   const char **attach_argv;
-
-   bool bgp_test = false;
-   int BGP_MAX_ARGS=13;
-   char *platform = getenv("PLATFORM");
-   if(strcmp(platform, "ppc32_bgp") == 0)
-		bgp_test = true;
-
-   if (bgp_test) {
-	  attach_argv = (const char**)malloc(sizeof(char *) * BGP_MAX_ARGS);
-	  attach_argv[0] = const_cast<char *>("-nofree");
-	  attach_argv[1] = const_cast<char *>("-partition");
-	  char *partition = getenv("DYNINST_BGP_PARTITION");
-	  if(partition == NULL) partition = "BGB1";
-	  attach_argv[2] = const_cast<char *>( partition);
-	  attach_argv[3] = const_cast<char *>("-np");
-	  attach_argv[4] = const_cast<char *>("1");
-	  attach_argv[5] = const_cast<char *>("-env");
-
-	  char *dyninst_base = getenv("DYNINST_ROOT");
-	  if (dyninst_base == NULL)
-		fprintf(stderr,	" DYNINST_ROOT is not set!! ");
-	  char *ldpath = (char *) malloc (1024);
-	  sprintf(ldpath, "LD_LIBRARY_PATH=%s/dyninst/testsuite/%s/binaries:.:%s/%s/lib:${LD_LIBRARY_PATH}", dyninst_base, platform, dyninst_base, platform);
-	  attach_argv[6] = const_cast<char *>(ldpath);
-
-	  char *binedit_dir = BINEDIT_DIRNAME;
-	  char cwd[1024]; 
-	  getcwd(cwd, 1024);
-	  strcat(cwd, binedit_dir);
-	  attach_argv[7] = const_cast<char *>("-cwd");
-	  attach_argv[8] = const_cast<char *>(cwd);
-
-	  attach_argv[9] = const_cast<char *>("-exe");
-	  attach_argv[10] = const_cast<char *>(pathname);
-	  attach_argv[11] = const_cast<char *>("-args");
-	  char *args = (char*) malloc (2048);
-	  strcpy(args ,"\"");
-
-	  for (int j = 0; argv[j] != NULL; j++){
-		strcat(args, argv[j]);
-		strcat(args, " ");
-	  }
-	  strcat(args, "\"");
-	  attach_argv[12] =  const_cast<char *>(args);
-
-	  attach_argv[BGP_MAX_ARGS] = NULL;
-
-	} else {
-
-	  int i;
-	  for (i = 0; argv[i] != NULL; i++) ;
-	  // i now contains the count of elements in argv
-	  attach_argv = (const char**)malloc(sizeof(char *) * (i + 3));
-	  // attach_argv is length i + 3 (including space for NULL)
-
-	  for (i = 0; argv[i] != NULL; i++)
-	     attach_argv[i] = argv[i];
-	  if (attach)
-	  {
-	     attach_argv[i++] = const_cast<char*>("-attach");
-	     attach_argv[i++] = fdstr;
-	  }
-	  attach_argv[i++] = NULL;
-	}
-
    int pid;
    if (attach)
       pid = fork_mutatee();
@@ -709,29 +647,90 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
          strcat(new_ld_path, ":");
       }
       setenv("LD_LIBRARY_PATH", new_ld_path, 1);
+      ld_path = new_ld_path;
 
-	  //fprintf(stderr, "%s[%d]:  before exec '%s':  LD_LIBRARY_PATH='%s'\n", 
-	  //FILE__, __LINE__, pathname, getenv("LD_LIBRARY_PATH"));
+      vector<string> attach_argv;
+      char *platform = getenv("PLATFORM");
+      bool bgp_test = strcmp(platform ? platform : "", "ppc32_bgp") == 0;
+      if (bgp_test) {
+         //attach_argv.push_back("mpirun");
+         char *partition = getenv("DYNINST_BGP_PARTITION");
+         //if(partition == NULL) partition = "BGB1";
+         if (partition) {
+            attach_argv.push_back("-nofree");
+            attach_argv.push_back("-partition");
+            attach_argv.push_back(string(partition));
+         }
+         attach_argv.push_back("-np");
+         attach_argv.push_back("1");
+         attach_argv.push_back("-env");
+         
+         char *cwd_cstr = (char *) malloc(PATH_MAX);
+         getcwd(cwd_cstr, PATH_MAX);
+         string cwd = cwd_cstr;
+         free(cwd_cstr);
+         
+         char *dyninst_base_cstr = realpath(string(cwd + "/../../../").c_str(), NULL);
+         string dyninst_base = dyninst_base_cstr;
+         free(dyninst_base_cstr);
+         
+         char *ld_lib_path = getenv("LD_LIBRARY_PATH");
+         string ldpath = "LD_LIBRARY_PATH=" + dyninst_base + "/dyninst/testsuite/" + 
+            platform + "/binaries:.:" + dyninst_base + "/" + platform + "/lib";
+         if (ld_lib_path)
+            ldpath += string(":") + ld_lib_path;
+         attach_argv.push_back(ldpath);
+         
+         attach_argv.push_back("-cwd");
+         attach_argv.push_back(cwd + BINEDIT_DIRNAME);
+         
+         attach_argv.push_back("-exe");
+         attach_argv.push_back(pathname);
+         attach_argv.push_back("-args");
+         
+         string args = "\"";
+         for (unsigned j=0; argv[j] != NULL; j++) {
+            args += argv[j];
+            if (argv[j+1])
+               args += " ";
+         }
+         args += "\"";
+         attach_argv.push_back(args);
+      }
+      else {
+         for (unsigned int i=0; argv[i] != NULL; i++) {
+            attach_argv.push_back(argv[i]);
+         }
+			if (attach) {
+         	attach_argv.push_back(const_cast<char *>("-attach"));
+         	attach_argv.push_back(fdstr);
+			}
+      }
+      char **attach_argv_cstr = (char **) malloc((attach_argv.size()+1) * sizeof(char *));
+      for (unsigned int i=0; i<attach_argv.size(); i++) {
+         attach_argv_cstr[i] = const_cast<char *>(attach_argv[i].c_str());
+      }
+      attach_argv_cstr[attach_argv.size()] = NULL;
 
-if(bgp_test) {
-
-      dprintf(" running mpirun ");
-      for (int i = 0 ; i < BGP_MAX_ARGS ; i++)
-          dprintf(" %s", attach_argv[i]);
-      dprintf(" \n");
-
-      execvp("mpirun", (char * const *)attach_argv);
-      logerror("%s[%d]:  Exec failed!\n", FILE__, __LINE__);
-      exit(-1);
-}else{
-      execvp(pathname, (char * const *)attach_argv);
-      char *newname = (char *) malloc(strlen(pathname) + 3);
-      strcpy(newname, "./");
-      strcat(newname, pathname);
-      execvp(newname, (char * const *)attach_argv);
-      logerror("%s[%d]:  Exec failed!\n", FILE__, __LINE__);
-      exit(-1);
-}
+      if(bgp_test) {
+         
+         dprintf("running mpirun:");
+         for (int i = 0 ; i < attach_argv.size(); i++)
+            dprintf(" %s", attach_argv_cstr[i]);
+         dprintf("\n");
+         
+         execvp("mpirun", (char * const *)attach_argv_cstr);
+         logerror("%s[%d]:  Exec failed!\n", FILE__, __LINE__);
+         exit(-1);
+      }else{
+         execvp(pathname, (char * const *)attach_argv_cstr);
+         char *newname = (char *) malloc(strlen(pathname) + 3);
+         strcpy(newname, "./");
+         strcat(newname, pathname);
+         execvp(newname, (char * const *)attach_argv_cstr);
+         logerror("%s[%d]:  Exec failed!\n", FILE__, __LINE__);
+         exit(-1);
+      }
 
    } else if (pid < 0) {
       return -1;

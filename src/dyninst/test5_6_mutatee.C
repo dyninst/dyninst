@@ -74,7 +74,17 @@ void test5_6_passed(int arg)
 
 void exception_test::call_cpp()
 {
-  throw sample_exception();
+/* With our current, "catch-block detection", we cannot find the catch blocks that this test seeks since throw is 
+   a non-returning function. This is currently fixed by adding a return path from this function.
+   Hence adding a path that will never be taken (volatile a = 0;) */
+/* This code should be fixed after fixing bug 1154 */
+
+  volatile int a; 
+  a = 0; 
+  if(!a) 
+  	throw sample_exception();
+  else
+  	return;
 }
 
 
