@@ -170,7 +170,7 @@ class CFAtom : public Atom {
 
 };
 
-struct CFPatch : public Patch {
+struct CFPatch_x86 : public Patch {
   // What type of patch are we?
   typedef enum {
     Jump,
@@ -179,14 +179,14 @@ struct CFPatch : public Patch {
     Data } Type;
   // Data: RIP-relative expression for the destination
 
- CFPatch(Type a, 
+ CFPatch_x86(Type a, 
          InstructionAPI::Instruction::Ptr b, 
          TargetInt *c,
 	 Address d = 0);
   
   virtual bool apply(codeGen &gen, CodeBuffer *buf);
   virtual unsigned estimate(codeGen &templ);
-  virtual ~CFPatch() {};
+  virtual ~CFPatch_x86() {};
 
   Type type;
   InstructionAPI::Instruction::Ptr orig_insn;

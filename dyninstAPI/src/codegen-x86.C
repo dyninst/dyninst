@@ -750,13 +750,13 @@ bool pcRelData::canPreApply()
    return (gen->startAddr() != 0x0);
 }
 
-bool insnCodeGen::generate(codeGen &gen,
-                           instruction & insn,
-                           AddressSpace *addrSpace,
-                           Address origAddr, // Could be kept in the instruction class.
-                           Address newAddr,
-                           patchTarget *fallthroughOverride,
-                           patchTarget *targetOverride) 
+bool insnCodeGen::generate(codeGen &,
+                           instruction &,
+                           AddressSpace *,
+                           Address , // Could be kept in the instruction class.
+                           Address ,
+                           patchTarget *,
+                           patchTarget *) 
 {
    return false;
 }

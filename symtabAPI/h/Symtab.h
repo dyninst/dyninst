@@ -94,10 +94,14 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT Symtab(unsigned char *mem_image, size_t image_size, 
                         const std::string &name, bool defensive_binary, bool &err);
 
+   typedef enum {
+      NotDefensive,
+      Defensive} def_t; 
+
    SYMTAB_EXPORT static bool openFile(Symtab *&obj, std::string filename, 
-                                      bool defensive_binary=false);
-   SYMTAB_EXPORT static bool openFile(Symtab *&obj, unsigned char *mem_image, size_t size, 
-                                      const std::string &name, bool defensive_binary=false);
+                                      def_t defensive_binary = NotDefensive);
+   SYMTAB_EXPORT static bool openFile(Symtab *&obj, void *mem_image, size_t size, 
+                                      std::string name, def_t defensive_binary = NotDefensive);
    SYMTAB_EXPORT static Symtab *findOpenSymtab(std::string filename);
    SYMTAB_EXPORT static bool closeSymtab(Symtab *);
 

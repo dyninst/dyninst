@@ -1708,7 +1708,7 @@ bool process::initMT()
    {
       pdvector<AstNodePtr> args;
       AstNodePtr ast = AstNode::funcCallNode(dummy_create, args);
-      instPoint::funcEntry(thread_init_funcs[i])->push_front(ast, true);
+      instPoint::funcEntry(thread_init_funcs[i])->push_front(ast, false);
    }
       
    //Find functions that are run on pthread exit
@@ -1737,7 +1737,7 @@ bool process::initMT()
       AstNodePtr ast = AstNode::funcCallNode(threadDestroy, args);
       const func_instance::BlockSet &exits = thread_dest_funcs[i]->exitBlocks();
       for (func_instance::BlockSet::iterator iter = exits.begin(); iter != exits.end(); ++iter) {
-         instPoint::funcExit(thread_dest_funcs[i], *iter)->push_front(ast, true);
+         instPoint::funcExit(thread_dest_funcs[i], *iter)->push_front(ast, false);
       }
    }
      

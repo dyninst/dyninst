@@ -363,7 +363,7 @@ bool CFAtom::generateBranch(CodeBuffer &buffer,
    // the next instruction. So if we ever see that (a branch of offset
    // == size) back up the codeGen and shrink us down.
 
-   CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to, addr_);
+   CFPatch_x86 *newPatch = new CFPatch_x86(CFPatch_x86::Jump, insn, to, addr_);
    if (fallthrough || trace->block() == NULL) {
       buffer.addPatch(newPatch, destTracker(to));
    }
@@ -384,7 +384,7 @@ bool CFAtom::generateCall(CodeBuffer &buffer,
       return true;
    }
 
-   CFPatch *newPatch = new CFPatch(CFPatch::Call, insn, to, addr_);
+   CFPatch_x86 *newPatch = new CFPatch_x86(CFPatch_x86::Call, insn, to, addr_);
    buffer.addPatch(newPatch, tracker(trace));
 
    return true;
@@ -396,7 +396,7 @@ bool CFAtom::generateConditionalBranch(CodeBuffer &buffer,
 				       Instruction::Ptr insn) {
    assert(to);
 
-   CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, addr_);
+   CFPatch_x86 *newPatch = new CFPatch_x86(CFPatch_x86::JCC, insn, to, addr_);
    buffer.addPatch(newPatch, tracker(trace));
 
    return true;
@@ -549,7 +549,7 @@ unsigned CFAtom::size() const
 // Patching!
 /////////////////////////
 
-unsigned CFPatch::estimate(codeGen &) {
+unsigned CFPatch_x86::estimate(codeGen &) {
    if (orig_insn) {
       return orig_insn->size();
    }

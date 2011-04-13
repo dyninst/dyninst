@@ -310,6 +310,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    // Let's build the tramp guard addr (if we want it)
    AstNodePtr threadIndex;
    AstNodePtr trampGuardAddr;
+
    if (guarded() &&
        minis->containsFuncCall() &&
        (proc()->trampGuardAST() != AstNodePtr())) {
@@ -319,6 +320,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
       // Now, the guard flag. 
       // If we're multithreaded, we need to index off
       // the base address.
+
       if (!threaded()) {
          // ...
       }
@@ -499,7 +501,7 @@ bool baseTramp::doOptimizations()
 }
 
 bool baseTramp::threaded() const {
-   if (!proc()->multithread_ready() || !threaded_)
+   if (!proc()->multithread_ready())
       return false;
    return true;
 }
@@ -564,6 +566,7 @@ bool baseTramp::saveFPRs() {
 
 bool baseTramp::guarded() const {
    if (suppressGuards) return false;
+   if (!point_) return false; // iRPCs never guarded
 
    bool guarded = false;
    bool recursive = false;

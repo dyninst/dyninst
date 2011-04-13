@@ -20,7 +20,7 @@ using namespace InstructionAPI;
 
 using namespace NS_x86;
 
-CFPatch::CFPatch(Type a,
+CFPatch_x86::CFPatch_x86(Type a,
                  InstructionAPI::Instruction::Ptr b,
                  TargetInt *c,
                  Address d) :
@@ -120,7 +120,7 @@ bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
       // This was an IP-relative call that we moved to a new location.
       assert(origTarget_);
 
-      CFPatch *newPatch = new CFPatch(CFPatch::Data, insn, 
+      CFPatch_x86 *newPatch = new CFPatch_x86(CFPatch_x86::Data, insn, 
                                       new Target<Address>(origTarget_),
                                       addr_);
       buffer.addPatch(newPatch, tracker(trace));
@@ -132,7 +132,7 @@ bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
    return true;
 }
 
-bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
+bool CFPatch_x86::apply(codeGen &gen, CodeBuffer *buf) {
    // Question 1: are we doing an inter-module static control transfer?
    // If so, things get... complicated
    if (isPLT(gen)) {
@@ -146,13 +146,13 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
    // Otherwise this is a classic, and therefore easy.
    int targetLabel = target->label(buf);
 
-   relocation_cerr << "\t\t CFPatch::apply, type " << type << ", origAddr " << hex << origAddr_ 
+   relocation_cerr << "\t\t CFPatch_x86::apply, type " << type << ", origAddr " << hex << origAddr_ 
                    << ", and label " << dec << targetLabel << endl;
    if (orig_insn) {
       relocation_cerr << "\t\t\t Currently at " << hex << gen.currAddr() << " and targeting predicted " << buf->predictedAddr(targetLabel) << dec << endl;
       switch(type) {
-         case CFPatch::Jump: {
-            relocation_cerr << "\t\t\t Generating CFPatch::Jump from " 
+         case CFPatch_x86::Jump: {
+            relocation_cerr << "\t\t\t Generating CFPatch_x86::Jump from " 
                             << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;
             if (!insnCodeGen::modifyJump(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                cerr << "Failed to modify jump" << endl;
@@ -160,8 +160,8 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
             }
             return true;
          }
-         case CFPatch::JCC: {
-            relocation_cerr << "\t\t\t Generating CFPatch::JCC from " 
+         case CFPatch_x86::JCC: {
+            relocation_cerr << "\t\t\t Generating CFPatch_x86::JCC from " 
                             << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;            
             if (!insnCodeGen::modifyJcc(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                cerr << "Failed to modify conditional jump" << endl;
@@ -169,14 +169,14 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
             }
             return true;            
          }
-         case CFPatch::Call: {
+         case CFPatch_x86::Call: {
             if (!insnCodeGen::modifyCall(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                cerr << "Failed to modify call" << endl;
                return false;
             }
             return true;
          }
-         case CFPatch::Data: {
+         case CFPatch_x86::Data: {
             if (!insnCodeGen::modifyData(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                cerr << "Failed to modify data" << endl;
                return false;
@@ -187,10 +187,10 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
    }
    else {
       switch(type) {
-         case CFPatch::Jump:
+         case CFPatch_x86::Jump:
             insnCodeGen::generateBranch(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
             break;
-         case CFPatch::Call:
+         case CFPatch_x86::Call:
             insnCodeGen::generateCall(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
             break;
          default:
@@ -201,7 +201,7 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
    return true;
 }
 
-bool CFPatch::isPLT(codeGen &gen) {
+bool CFPatch_x86::isPLT(codeGen &gen) {
    if (!gen.addrSpace()->edit()) return false;
 
    // We need to PLT if we're in two different 
@@ -224,7 +224,7 @@ bool CFPatch::isPLT(codeGen &gen) {
       return false;
 }
 
-bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
+bool CFPatch_x86::applyPLT(codeGen &gen, CodeBuffer *) {
    // We should try and keep any prefixes that were on the instruction. 
    // However... yeah, right. I'm not that good with x86. So instead
    // I'm copying the code from emitCallInstruction...

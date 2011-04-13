@@ -1421,7 +1421,7 @@ image::image(fileDescriptor &desc,
    string file = desc_.file().c_str();
    if( desc_.member().empty() ) {
        startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
-       if( !SymtabAPI::Symtab::openFile(linkedFile, file, BPatch_defensiveMode == mode) ) {
+       if( !SymtabAPI::Symtab::openFile(linkedFile, file, (BPatch_defensiveMode == mode ? Symtab::Defensive : Symtab::NotDefensive)) ) {
            err = true;
            return;
        }

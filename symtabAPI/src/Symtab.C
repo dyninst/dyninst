@@ -34,6 +34,9 @@
 #include <assert.h>
 #include <string.h>
 #include <algorithm>
+#include <iostream>
+#include <iomanip>
+#include <sstream>
 
 #include "common/h/Timer.h"
 #include "common/h/debugOstream.h"
@@ -1963,9 +1966,8 @@ Symtab *Symtab::importBin(std::string file)
 #endif
 }
 
-
-bool Symtab::openFile(Symtab *&obj, unsigned char *mem_image, size_t size, 
-                      const std::string &name, bool def_bin)
+bool Symtab::openFile(Symtab *&obj, void *mem_image, size_t size, 
+                      std::string name, def_t def_bin)
 {
    bool err = false;
 #if defined(TIMED_PARSE)
@@ -1973,7 +1975,7 @@ bool Symtab::openFile(Symtab *&obj, unsigned char *mem_image, size_t size,
    gettimeofday(&starttime, NULL);
 #endif
 
-   obj = new Symtab(mem_image, size, name, def_bin, err);
+   obj = new Symtab((unsigned char *) mem_image, size, name, (def_bin == Defensive), err);
 
 #if defined(TIMED_PARSE)
     struct timeval endtime;
@@ -2037,7 +2039,7 @@ Symtab *Symtab::findOpenSymtab(std::string filename)
 	return NULL;
 }
 
-bool Symtab::openFile(Symtab *&obj, std::string filename, bool def_binary)
+bool Symtab::openFile(Symtab *&obj, std::string filename, def_t def_binary)
 {
    bool err = false;
 #if defined(TIMED_PARSE)
@@ -2083,7 +2085,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename, bool def_binary)
 #endif
 #endif
 
-   obj = new Symtab(filename, def_binary, err);
+   obj = new Symtab(filename, (def_binary == Defensive), err);
 
 #if defined(TIMED_PARSE)
    struct timeval endtime;
@@ -2744,7 +2746,7 @@ SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
     if (symsByMangledName.count(name) == 0) return false;
     // /* DEBUG
     if (symsByMangledName[name].size() != 1)
-        fprintf(stderr, "*** Found %d symbols with name %s.  Expecting 1.\n",
+        fprintf(stderr, "*** Found %u symbols with name %s.  Expecting 1.\n",
                 symsByMangledName[name].size(), name); // */
     Symbol *sym = symsByMangledName[name][0];
 

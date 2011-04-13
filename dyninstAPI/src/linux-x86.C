@@ -1091,9 +1091,11 @@ void calcVSyscallFrame(process *p)
   getVSyscallSignalSyms(buffer, dso_size, p);
 
   Symtab *obj;
-  bool result = Symtab::openFile(obj, buffer, dso_size);
+  bool result = Symtab::openFile(obj, (unsigned char *)buffer, dso_size, "vsyscall");
   if (result)
      p->setVsyscallObject(obj);
+  else
+     cerr << "ERROR: failed to create vsyscall object!" << endl;
   return;
 }
 
