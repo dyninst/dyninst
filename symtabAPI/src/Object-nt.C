@@ -742,7 +742,7 @@ Region::RegionType getRegionType(DWORD flags){
         return Region::RT_OTHER;
 }
 
-std::map<string, IMAGE_IMPORT_DESCRIPTOR> & Object::getImportDescriptorTable()
+std::vector<std::pair<string, IMAGE_IMPORT_DESCRIPTOR> > & Object::getImportDescriptorTable()
 {
    if (!idt_.empty()) {
       return idt_;
@@ -767,7 +767,7 @@ std::map<string, IMAGE_IMPORT_DESCRIPTOR> & Object::getImportDescriptorTable()
       IMAGE_IMPORT_DESCRIPTOR ie;
       memcpy(&ie, import_d, sizeof(IMAGE_IMPORT_DESCRIPTOR));
       string str((char*)(((char*)mf->base_addr())+RVA2Offset(import_d->Name)));
-      idt_[str] = ie;
+      idt_.push_back(pair<string,IMAGE_IMPORT_DESCRIPTOR>(str,ie));
       //printf("%s\n",ie.name);
       import_d ++;
    }
@@ -781,8 +781,8 @@ map<string, map<string, WORD> > & Object::getHintNameTable()
       return hnt_;
    }
 
-   map<string, IMAGE_IMPORT_DESCRIPTOR> idt = getImportDescriptorTable();
-   for (map<string, IMAGE_IMPORT_DESCRIPTOR>::iterator dit = idt.begin();
+   vector<pair<string, IMAGE_IMPORT_DESCRIPTOR> > idt = getImportDescriptorTable();
+   for (vector<pair<string, IMAGE_IMPORT_DESCRIPTOR> >::iterator dit = idt.begin();
         dit != idt.end();
         dit++) 
    {
@@ -847,6 +847,41 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
       is_aout_ = true;
 
    getImportDescriptorTable(); //save the binary's original table, we may change it later
+
+   //get exported functions
+   // note: there is an error in the PE specification regarding the export 
+   //       table Base.  The spec claims that you are supposed to subtract 
+   //       the Base to get correct ordinal indices into the Export Address 
+   //       table, but this is false, at least in the typical case for which 
+   //       Base=1, I haven't observed any binaries with different bases
+   if (!is_aout_ && peHdr->OptionalHeader.NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_EXPORT) {
+      assert(sizeof(Offset) == getAddressWidth());
+      Offset exportTableVA = peHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
+      IMAGE_EXPORT_DIRECTORY * exportTable = (IMAGE_EXPORT_DIRECTORY*) ((Offset)mapAddr + RVA2Offset(exportTableVA));
+      unsigned int exportSize = peHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].Size;
+      if (exportSize && exportTable && exportTable->AddressOfNames) {
+         Offset exportEnd = exportTableVA + exportSize;
+         int numNames = exportTable->NumberOfNames;
+         Offset *namePtrs = (Offset*) ((Offset)mapAddr + RVA2Offset(exportTable->AddressOfNames));
+         WORD *nameOrdMap = (WORD*) ((Offset)mapAddr + RVA2Offset(exportTable->AddressOfNameOrdinals));
+         Offset *funcAddrs = (Offset*) ((Offset)mapAddr + RVA2Offset(exportTable->AddressOfFunctions));
+         for (int nidx=0; nidx < numNames; nidx++) {
+            string fName = string((char*)((Offset)mapAddr + RVA2Offset(namePtrs[nidx])));
+            Offset fAddr = funcAddrs[ nameOrdMap[nidx] +1 - exportTable->Base ]; //+1 compensates for PE spec error
+            if (fAddr >= exportTableVA && fAddr < exportEnd) {
+               continue; // forwarded export
+            }
+            Symbol *sym = new Symbol(fName,
+               Symbol::ST_FUNCTION, 
+               Symbol::SL_GLOBAL, 
+               Symbol::SV_DEFAULT,
+               fAddr);
+            sym->setDynamic(true); // it's exported, equivalent to ELF dynamic syms
+            symbols_[fName].push_back(sym);
+            symsToModules_[sym] = curModule->GetName();
+         }
+      }
+   }
 
    SecAlignment = peHdr ->OptionalHeader.SectionAlignment;
    unsigned int nSections = peHdr->FileHeader.NumberOfSections;
@@ -2138,7 +2173,11 @@ void Object::addReference(Offset off, std::string lib, std::string fun){
 // returns -1 if an error occurred else returns the corresponding section number
 DWORD Object::ImageOffset2SectionNum(DWORD dwRO)
 {
-	PIMAGE_SECTION_HEADER sectionHeader = (PIMAGE_SECTION_HEADER)((DWORD)peHdr + sizeof(IMAGE_NT_HEADERS));
+   PIMAGE_SECTION_HEADER sectionHeader = 
+      (PIMAGE_SECTION_HEADER)((DWORD)peHdr 
+                              + sizeof(DWORD) // PE signature
+                              + sizeof(IMAGE_FILE_HEADER) 
+                              + peHdr->FileHeader.SizeOfOptionalHeader);
 	unsigned int SecCount = peHdr ->FileHeader.NumberOfSections;
 	for(unsigned int i=0;i < SecCount; i++)
 	{
@@ -2153,12 +2192,17 @@ DWORD Object::ImageOffset2SectionNum(DWORD dwRO)
 
 PIMAGE_SECTION_HEADER Object::ImageOffset2Section(DWORD dwRO)
 {
-	PIMAGE_SECTION_HEADER sectionHeader = (PIMAGE_SECTION_HEADER)((DWORD)peHdr + sizeof(IMAGE_NT_HEADERS));
+   PIMAGE_SECTION_HEADER sectionHeader = 
+      (PIMAGE_SECTION_HEADER)((DWORD)peHdr 
+                              + sizeof(DWORD) // PE signature
+                              + sizeof(IMAGE_FILE_HEADER) 
+                              + peHdr->FileHeader.SizeOfOptionalHeader);
 	unsigned int SecCount = peHdr ->FileHeader.NumberOfSections;
 
 	for(unsigned int i=0;i<SecCount;i++)
 	{
-		if((dwRO>=sectionHeader->PointerToRawData) && (dwRO<(sectionHeader->PointerToRawData+sectionHeader->SizeOfRawData)))
+		if((dwRO >= sectionHeader->PointerToRawData) && 
+           (dwRO < (sectionHeader->PointerToRawData + sectionHeader->SizeOfRawData)))
 		{
 			return sectionHeader;
 		}
@@ -2169,7 +2213,11 @@ PIMAGE_SECTION_HEADER Object::ImageOffset2Section(DWORD dwRO)
 
 PIMAGE_SECTION_HEADER Object::ImageRVA2Section(DWORD dwRVA)
 {
-	PIMAGE_SECTION_HEADER sectionHeader = (PIMAGE_SECTION_HEADER)((DWORD)peHdr + sizeof(IMAGE_NT_HEADERS));
+   PIMAGE_SECTION_HEADER sectionHeader = 
+      (PIMAGE_SECTION_HEADER)((DWORD)peHdr 
+                              + sizeof(DWORD) // PE signature
+                              + sizeof(IMAGE_FILE_HEADER) 
+                              + peHdr->FileHeader.SizeOfOptionalHeader);
 	unsigned int SecCount = peHdr ->FileHeader.NumberOfSections;
 
 	for(unsigned int i=0;i<SecCount;i++)
@@ -2216,8 +2264,7 @@ Offset Object::trapHeader()
 
 void Object::insertPrereqLibrary(std::string lib)
 {
-   // look at wherever it is we check to see if we need to relocate the import table & IAT
-   // first check that you can force a library include with an empty list of functions
+   // must include some function from the library for Windows to load it
    ref[lib] = std::map<Offset, std::string>();
 }
 

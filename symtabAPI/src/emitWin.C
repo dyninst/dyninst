@@ -86,18 +86,51 @@ static Region *getDyninstSection(Symtab *st)
    return regs.back();
 }
 
+static Offset copy_ILT_or_ALT(unsigned int idtIdx, 
+                             vector<pair<string,IMAGE_IMPORT_DESCRIPTOR> > &idt, 
+                             const vector<void*> &iltEntries, 
+                             const unsigned char *ptrDyn,
+                             Offset secOff, 
+                             Offset ptrToWrite,
+                             int addrWidth,
+                             bool isILT)
+{
+   assert(idtIdx < idt.size());
+   if (isILT) {
+      idt[idtIdx].second.OriginalFirstThunk = secOff + ptrToWrite;
+   } else {
+      idt[idtIdx].second.FirstThunk = secOff + ptrToWrite;;
+   }
+   idtIdx++;
+
+   for (vector<void*>::const_iterator eit = iltEntries.begin();
+        eit != iltEntries.end(); 
+        eit++)
+   {
+      if (0 == (*eit) && idtIdx < idt.size()) {
+         if (isILT) {
+            idt[idtIdx].second.OriginalFirstThunk = secOff + ptrToWrite + addrWidth;
+         } else {
+            idt[idtIdx].second.FirstThunk = secOff + ptrToWrite + addrWidth;
+         }
+         idtIdx++;
+      }
+      memcpy((void*)(ptrDyn + ptrToWrite), &(*eit), addrWidth);
+      ptrToWrite += addrWidth;
+   }
+   return ptrToWrite;
+}
+
 
 /* Things that need to change:
  *
  * Tables
- *  - Move import descriptor table IF we're adding new libraries
- *  - Move entire import lookup table (may only need to move tables for 
-      expanded and new libraries, but we want it to match the IAT, which
-      probably needs to be all in one place)
- *  - Move entire Hint/Name table (there is one for the whole binary,
-      but functions should be grouped by library)
- *  - Move entire Import address table
- *  - Move entire list of library names (just b/c I'm moving everything else)
+ *  - Move import descriptor table even if we're not adding new libraries 
+      (orig. ILT, IAT, HNT tables are full, must point to additional entries)
+ *  - Add extra import lookup table entries (per-lib ILT's are NULL terminated)
+ *  - Add extra Hint/Name table entries (1 table for whole binary, but can split)
+ *  - Add extra import address table entries (can't move original entries)
+ *  - Add extra library names (duplicates are OK)
  * PE Header
  *  - fix Import (descriptor) table pointer
  *  - fix Import address table pointer
@@ -106,9 +139,9 @@ bool emitWin::writeImpTable(Symtab* obj)
 {
    bool ret = true; 
 
-   // populate Import descriptor table and Hint/Name Table with existing entries
-   map<string,IMAGE_IMPORT_DESCRIPTOR> & idt = obj_nt->getImportDescriptorTable();
-   map<string, map<string, WORD> > & hnt = obj_nt->getHintNameTable();
+   // populate Import descriptor table with existing entries
+   vector<pair<string,IMAGE_IMPORT_DESCRIPTOR> > & idt = obj_nt->getImportDescriptorTable();
+   int origIDTSize = idt.size();
 
    //get the dyninst section
    Region *dynSec = getDyninstSection(obj);
@@ -118,20 +151,19 @@ bool emitWin::writeImpTable(Symtab* obj)
 
    // for each new library in ref, create new IDT entry,
    // for each new function in ref, create new HNT entry
+   map<string, map<string, WORD> > hnt;
    for(map<string, map<Offset, string> >::iterator lit=ref.begin(); 
        lit != ref.end(); 
        lit++)
    {
-      if (idt.find(lit->first) == idt.end()) {
-         // add missing IDT entry
-         IMAGE_IMPORT_DESCRIPTOR newID;
-         newID.FirstThunk = NULL;    // ILT offset,      don't know yet
-         newID.ForwarderChain=0;
-         newID.Name = NULL;          // lib name offset, don't know yet
-         newID.OriginalFirstThunk=0; // IAT offset,      don't know yet
-         newID.TimeDateStamp=0;
-         idt[lit->first] = newID;
-      }
+      // add IDT entry
+      IMAGE_IMPORT_DESCRIPTOR newID;
+      newID.FirstThunk = NULL;       // IAT offset,      don't know yet
+      newID.ForwarderChain=0;
+      newID.Name = NULL;             // lib name offset, don't know yet
+      newID.OriginalFirstThunk=NULL; // ILT offset,      don't know yet
+      newID.TimeDateStamp=0;
+      idt.push_back(std::pair<string, IMAGE_IMPORT_DESCRIPTOR>(lit->first, newID));
 
       hnt[lit->first]; // add hnt entry for the library if needed 
       map<string, map<string, WORD> >::iterator libHNT = hnt.find(lit->first);
@@ -168,7 +200,7 @@ bool emitWin::writeImpTable(Symtab* obj)
       }
    }
    unsigned int idtSize = sizeof(IMAGE_IMPORT_DESCRIPTOR) * (idt.size() + 1);
-   unsigned int iltSize = (numImports + idt.size()) * obj->getAddressWidth();
+   unsigned int iltSize = (numImports + hnt.size()) * obj->getAddressWidth();
    unsigned int iatSize = iltSize;
    unsigned int secSize = dynSec->getDiskSize() + idtSize + iltSize + hntSize + iatSize + libNameSize;
    unsigned char* ptrDyn = (unsigned char*) GlobalAlloc(GMEM_FIXED|GMEM_ZEROINIT, secSize);
@@ -223,63 +255,43 @@ bool emitWin::writeImpTable(Symtab* obj)
    }
 
    // c. copy the ILT, set IDT pointers
-   map<string,IMAGE_IMPORT_DESCRIPTOR>::iterator dit = idt.begin();
-   assert(dit != idt.end());
-   dit->second.OriginalFirstThunk = dynSec->getMemOffset() + ptrToWrite;
-   dit++;
-   for (vector<void*>::iterator eit = iltEntries.begin();
-        eit != iltEntries.end(); 
-        eit++)
-   {
-      if (0 == (*eit) && dit != idt.end()) {
-         assert(dit != idt.end());
-         dit->second.OriginalFirstThunk = dynSec->getMemOffset() + ptrToWrite + obj->getAddressWidth();
-         dit++;
-      }
-      memcpy(ptrDyn + ptrToWrite,
-             &(*eit), 
-             obj->getAddressWidth());
-      ptrToWrite += obj->getAddressWidth();
-   }
+   ptrToWrite = copy_ILT_or_ALT(origIDTSize, 
+                                idt, 
+                                iltEntries, 
+                                ptrDyn,
+                                dynSec->getMemOffset(), 
+                                ptrToWrite, 
+                                obj->getAddressWidth(), 
+                                true); 
 
    // d. copy the IAT (identical to ILT), set IDT pointers
    Offset iatOffset = dynSec->getMemOffset() + ptrToWrite;
-   dit = idt.begin();
-   assert(dit != idt.end());
-   dit->second.FirstThunk = iatOffset;
-   dit++;
-   for (vector<void*>::iterator eit = iltEntries.begin();
-        eit != iltEntries.end(); 
-        eit++)
-   {
-      if (0 == (*eit) && dit != idt.end()) {
-         assert(dit != idt.end());
-         dit->second.FirstThunk = dynSec->getMemOffset() + ptrToWrite + obj->getAddressWidth();
-         dit++;
-      }
-      memcpy(ptrDyn + ptrToWrite,
-             &(*eit), 
-             obj->getAddressWidth());
-      ptrToWrite += obj->getAddressWidth();
-   }
+   ptrToWrite = copy_ILT_or_ALT(origIDTSize, 
+                                idt, 
+                                iltEntries, 
+                                ptrDyn,
+                                dynSec->getMemOffset(), 
+                                ptrToWrite, 
+                                obj->getAddressWidth(), 
+                                false); 
    assert(iatSize == (dynSec->getMemOffset() + ptrToWrite - iatOffset));
 
-   // e. copy the list of library names, set IDT pointers
-   for (map<string,IMAGE_IMPORT_DESCRIPTOR>::iterator lit = idt.begin();
-        lit != idt.end(); 
-        lit++)
-   {
-      lit->second.Name = dynSec->getMemOffset() + ptrToWrite;
-      int nameLen = lit->first.size() + 1; // include terminating \0
+   // e. create list of library names, set IDT pointers
+   for (int idtIdx = origIDTSize; idtIdx  != idt.size(); idtIdx++) {
+      idt[idtIdx].second.Name = dynSec->getMemOffset() + ptrToWrite;
+      int nameLen = idt[idtIdx].first.size() + 1; // include terminating \0
       memcpy(ptrDyn + ptrToWrite,
-             lit->first.c_str(), 
+             idt[idtIdx].first.c_str(), 
              nameLen);
       ptrToWrite += nameLen;
    }
 
    // f. copy the null-terminated IDT
    Offset idtOffset = dynSec->getMemOffset() + ptrToWrite;
-   for (dit = idt.begin(); dit != idt.end(); dit++) {
+   for (vector<pair<string,IMAGE_IMPORT_DESCRIPTOR> >::iterator dit = idt.begin(); 
+        dit != idt.end();
+        dit++)
+   {
       memcpy(ptrDyn + ptrToWrite,
              (void*)& dit->second, 
              sizeof(IMAGE_IMPORT_DESCRIPTOR));
@@ -297,11 +309,6 @@ bool emitWin::writeImpTable(Symtab* obj)
       obj_nt->getPEHdr()->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size = idtSize;
    } else {
       ret = false;
-   }
-   // fix PE header import address table address & size
-   if (obj_nt->getPEHdr()->OptionalHeader.NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_IAT) {
-      obj_nt->getPEHdr()->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress = iatOffset;
-      obj_nt->getPEHdr()->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].Size = iatSize;
    }
 
    return ret;
@@ -503,8 +510,7 @@ bool emitWin::driver(Symtab *obj, std::string fName){
     memcpy(pMem + lastSec->PointerToRawData + lastSec->SizeOfRawData, 
            (void*) &trapHead, 
            obj->getAddressWidth());
-    memcpy(pMem + lastSec->PointerToRawData + lastSec->SizeOfRawData 
-           + obj->getAddressWidth(), 
+    memcpy(pMem + lastSec->PointerToRawData + lastSec->SizeOfRawData + obj->getAddressWidth(), 
            "DYNINST_REWRITE", 
            16);
 

@@ -1897,12 +1897,22 @@ bool dyn_lwp::representativeLWP_attach_() {
 void dyn_lwp::realLWP_detach_()
 {
    assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
+   if (!DebugActiveProcessStop(getPid())) {
+      int errNo = GetLastError();
+      fprintf(stderr, "Couldn't detach from %d Error %d:\n", getPid(), errNo);
+      printSysError(errNo);
+   }
    return;
 }
 
 void dyn_lwp::representativeLWP_detach_()
 {
    assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
+   if (!DebugActiveProcessStop(getPid())) {
+      int errNo = GetLastError();
+      fprintf(stderr, "Couldn't detach from %d Error %d:\n", getPid(), errNo);
+      printSysError(errNo);
+   }
    return;
 }
 

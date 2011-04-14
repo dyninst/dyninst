@@ -95,6 +95,7 @@ class Object : public AObject
                 : name(_name),
                 addr(_addr),
                 type(_type),
+                linkage(_linkage),
                 size(_size),
                 region(_region)
 		{}
@@ -223,7 +224,7 @@ class Object : public AObject
     SYMTAB_EXPORT void addReference(Offset, std::string, std::string);
     SYMTAB_EXPORT std::map<std::string, std::map<Offset, std::string> > & getRefs() { return ref; }
 
-    std::map<std::string, IMAGE_IMPORT_DESCRIPTOR> & getImportDescriptorTable();
+    std::vector<std::pair<std::string, IMAGE_IMPORT_DESCRIPTOR> > & getImportDescriptorTable();
     std::map<std::string, std::map<std::string, WORD> > & getHintNameTable();
     PIMAGE_NT_HEADERS getPEHdr() { return peHdr; }
 private:
@@ -242,7 +243,7 @@ private:
 	unsigned int SecAlignment; //Section Alignment
 
 	//structure of import table
-	std::map<std::string, IMAGE_IMPORT_DESCRIPTOR> idt_;
+    std::vector<std::pair<std::string, IMAGE_IMPORT_DESCRIPTOR> > idt_;
     std::map<std::string, std::map<std::string, WORD> > hnt_;
 
 	//external reference info

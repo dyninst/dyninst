@@ -3618,17 +3618,50 @@ SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
 		return false;
 	}
+   // remove forward slashes and back slashes
    size_t size = name.find_last_of("/");
-
-#if defined (os_windows)
    size_t lastBS = name.find_last_of("\\");
    if (lastBS > size) {
       size = lastBS;
    }
-#endif
 
    string filename = name.substr(size+1);
+
+#if ! defined(os_windows) 
    obj->insertPrereqLibrary(filename);
+#else 
+   // must add a symbol for an exported function belonging to the library 
+   // to get the Windows loader to load the library
+
+   Symtab *symtab = Symtab::findOpenSymtab(name);
+   if (!symtab) {
+      if (!Symtab::openFile(symtab, name)) {
+         return false;
+      }
+   }
+   
+   // find an exported function
+   vector<Symbol*> funcs;
+   symtab->getAllSymbolsByType(funcs, Symbol::ST_FUNCTION);
+   vector<Symbol*>::iterator fit = funcs.begin(); 
+   for (; fit != funcs.end() && !(*fit)->isInDynSymtab(); fit++);
+   if (fit == funcs.end()) {
+      return false;
+   }
+   
+   string funcName = string((*fit)->getPrettyName());
+   if (funcName.empty()) {
+      funcName = string((*fit)->getMangledName());
+      if (funcName.empty()) {
+         assert(0);
+         return false;
+      }
+   }
+   symtab->getObject()->addReference((*fit)->getOffset(), 
+                                     name, 
+                                     funcName);
+   obj->addReference((*fit)->getOffset(), filename, funcName);
+#endif
    return true;
 }
 
