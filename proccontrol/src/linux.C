@@ -886,10 +886,9 @@ bool linux_thread::plat_cont()
    // Don't continue the thread with the pending signal if there is a pending stop.
    // Wait until the user sees the signal event to deliver the signal to the process.
    //
-   // This also applies to iRPCs
    
    int tmpSignal = continueSig_;
-   if( hasPendingStop() || runningRPC() ) {
+   if( hasPendingStop() ) {
        tmpSignal = 0;
    }
 
