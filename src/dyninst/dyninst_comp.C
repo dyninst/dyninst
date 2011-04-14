@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -101,6 +101,8 @@ DyninstComponent::DyninstComponent() :
 
 test_results_t DyninstComponent::program_setup(ParameterDict &params)
 {
+   if (measure) um_program.start();  // Measure resource usage.
+
    bpatch = new BPatch();
    if (!bpatch)
       return FAILED;
@@ -109,6 +111,8 @@ test_results_t DyninstComponent::program_setup(ParameterDict &params)
    setBPatch(bpatch);
 
    bpatch->registerErrorCallback(errorFunc);
+
+   if (measure) um_program.end();  // Measure resource usage.
 
    ParamInt *debugprint = dynamic_cast<ParamInt *>(params["debugPrint"]);
    if (debugprint) {
@@ -172,6 +176,8 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
 
    if (group->mutatee && group->state != SELFSTART)
    {
+      if (measure) um_group.start(); // Measure resource usage.
+
       // If test requires mutatee, start it up for the test
       // The mutatee doesn't need to print a test label for complex tests
       if (group->useAttach != DISK)
@@ -190,6 +196,7 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
                                       verboseFormat, printLabels, debugPrint,
                                       getPIDFilename(),
                                       mutatee_resumelog, uniqueid);
+
          if (!appProc) {
             getOutput()->log(STDERR, "Skipping test because startup failed\n");
             err_msg = std::string("Unable to run test program: ") + 
@@ -218,6 +225,8 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
          appProc = NULL;
          appAddrSpace = (BPatch_addressSpace*) appBinEdit;         
       }
+
+      if (measure) um_group.end(); // Measure resource usage.
 
       bp_appThread.setPtr(appThread);
       params["appThread"] = &bp_appThread;
@@ -386,9 +395,10 @@ DyninstComponent::~DyninstComponent()
 }
 
 // All the constructor does is set the instance fields to NULL
-DyninstMutator::DyninstMutator() {
-  appThread = NULL;
-  appImage = NULL;
+DyninstMutator::DyninstMutator() :
+    appThread(NULL),
+    appImage(NULL)
+{
 }
 
 DyninstMutator::~DyninstMutator() {

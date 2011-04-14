@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -65,7 +65,7 @@ string SimpleShellEscape(string &str)
 // Sets up the command string to run the tests and executes test_driver
 test_pid_t RunTest(unsigned int iteration, bool useLog, bool staticTests,
 			std::string logfile, int testLimit, std::vector<char *> child_argv,
-			const char *pidFilename, const char * /*memcpu_file*/, std::string /*hostname*/) {
+			const char *pidFilename, std::string /*hostname*/) {
 	string shellString;
 
 	generateTestString(iteration > 0, useLog, staticTests, logfile,
