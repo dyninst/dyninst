@@ -353,7 +353,6 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &mem
     }
        
     newBinaryEdit->highWaterMark_ = linkedFile->getFreeOffset(50*1024*1024);
-    cerr << "Set HWM to " << newBinaryEdit->highWaterMark_ << endl;
     newBinaryEdit->lowWaterMark_ = newBinaryEdit->highWaterMark_;
 
     newBinaryEdit->makeInitAndFiniIfNeeded();
@@ -554,9 +553,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       }
       Address HWM = maxAllocedAddr();
 
-      cerr << "Adding a new region with size " <<  HWM - lowWaterMark_ << endl;
-      cerr << "\t High: " << HWM << " and low " << lowWaterMark_ << endl;
-      
+
       symObj->addRegion(lowWaterMark_,
                         newSectionPtr,
                         HWM - lowWaterMark_,
@@ -716,7 +713,6 @@ bool BinaryEdit::inferiorMallocStatic(unsigned size) {
     }
 
     highWaterMark_ += size;
-    cerr << "Increased HWM to " <<  highWaterMark_ << endl;
 
     return true;
 }

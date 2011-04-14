@@ -104,9 +104,9 @@ class CodeBuffer {
       Label() 
       : type(Invalid), id(0), iteration(0), addr(0) {};
       Label(Type a, Id b, Address c)
-      : type(a), id(b), iteration(0), addr(c) { assert(id != (unsigned) -1); };
+      : type(a), id(b), iteration(0), addr(c) { assert(id != INVALID); };
       ~Label() {};
-      bool valid() { return type != INVALID; };
+      bool valid() { return type != Invalid; };
    };
 
    class BufferElement {
