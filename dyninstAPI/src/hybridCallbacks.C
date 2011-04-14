@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -339,11 +339,11 @@ void HybridAnalysis::virtualFreeCB(BPatch_point *, void *t) {
 		return;
 	}
 
-	std::set<int_function *> deletedFuncs;
+	std::set<func_instance *> deletedFuncs;
 	for (Address i = virtualFreeAddr_; i < (virtualFreeAddr_ + virtualFreeSize_); ++i) {
 		proc()->lowlevel_process()->findFuncsByAddr(i, deletedFuncs);
 	}
-	for (std::set<int_function *>::iterator iter = deletedFuncs.begin();
+	for (std::set<func_instance *>::iterator iter = deletedFuncs.begin();
 		iter != deletedFuncs.end(); ++iter)
 	{
 		BPatch_function * bpfunc = proc()->findOrCreateBPFunc(*iter, NULL);
@@ -415,7 +415,7 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     // not just a big chunk of zeroes, in which case the first
     // 00 00 instruction will probably raise an exception
     using namespace ParseAPI;
-    int_function *pfunc = point->llpoint()->func();
+    func_instance *pfunc = point->llpoint()->func();
     CodeRegion *reg = pfunc->ifunc()->region();
     unsigned char * regptr = (unsigned char *) reg->getPtrToInstruction(reg->offset());
     Address regSize = reg->high() - reg->offset();
@@ -447,9 +447,6 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     // add the new edge to the program, parseNewEdgeInFunction will figure
     // out whether to extend the current function or parse as a new one. 
     parseNewEdgeInFunction(point, nextInsn, false);
-
-    //make sure we don't re-instrument
-    point->setResolved();
 
     // re-instrument the module 
     instrumentModules(false);
@@ -850,7 +847,8 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     // 4. else case: the point is a jump/branch 
         proc()->beginInsertionSet();
         // 4.1 if the point is a direct branch, remove any instrumentation
-        if ( !point->llpoint()->isDynamic() ) {
+        if (!point->llpoint()->block() &&
+            !point->llpoint()->block()->containsDynamicCall()) {
             BPatch_function *func = point->getFunction();
             if (instrumentedFuncs->end() != instrumentedFuncs->find(func)
                 &&
@@ -898,7 +896,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         // manipulate init_retstatus so that we will instrument the function's 
         // return addresses, since this jump might be a tail call
         for (unsigned tidx=0; tidx < targFuncs.size(); tidx++) {
-            image_func *imgfunc = targFuncs[tidx]->lowlevel_func()->ifunc();
+            parse_func *imgfunc = targFuncs[tidx]->lowlevel_func()->ifunc();
             FuncReturnStatus initStatus = imgfunc->init_retstatus();
             if (ParseAPI::RETURN == initStatus) {
                 imgfunc->setinit_retstatus(ParseAPI::UNKNOWN);

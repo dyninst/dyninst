@@ -32,13 +32,14 @@
 #include "Relocation.h"
 #include "CodeMover.h"
 #include "Atoms/Atom.h"
-
-#include "dyninstAPI/src/function.h" // int_block, int_basicTrace, int_function...
+#include "Atoms/Trace.h"
 
 #include "instructionAPI/h/InstructionDecoder.h" // for debug
-#include "dyninstAPI/src/addressSpace.h" // Also for debug
 
-#include "dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/addressSpace.h" // Also for debug
+#include "dyninstAPI/src/function.h"
+
+#include "patchapi_debug.h"
 #include "CodeTracker.h"
 
 using namespace std;
@@ -46,7 +47,9 @@ using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace Relocation;
 
-CodeMover::Ptr CodeMover::create(CodeTracker &t) {
+CodeMover::Ptr CodeMover::create(CodeTracker *t) {
+   init_debug_patchapi();
+
    // Make a CodeMover
    Ptr ret = Ptr(new CodeMover(t));
    if (!ret) 
@@ -59,19 +62,18 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
 			     FuncSet::const_iterator end) {
    // A vector of Functions is just an extended vector of basic blocks...
    for (; begin != end; ++begin) {
-      int_function *func = *begin;
-
+      func_instance *func = *begin;
       if (!func->isInstrumentable()) {
          cerr << "Skipping func " << func->symTabName() << " that's uninstrumentable" << endl;
          continue;
       }
-
-      if (!addTraces(func->blocks().begin(), func->blocks().end())) {
+      relocation_cerr << "\tAdding function " << func->symTabName() << endl;
+      if (!addTraces(func->blocks().begin(), func->blocks().end(), func)) {
          return false;
       }
     
       // Add the function entry as Required in the priority map
-      int_block *entry = func->entryBlock();
+      block_instance *entry = func->entryBlock();
       priorityMap_[entry] = Required;
    }
 
@@ -79,53 +81,52 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
 }
 
 template <typename TraceIter>
-bool CodeMover::addTraces(TraceIter begin, TraceIter end) {
+bool CodeMover::addTraces(TraceIter begin, TraceIter end, func_instance *f) {
    for (; begin != end; ++begin) {
-      int_block *bbl = (*begin);
-      //relocation_cerr << "Creating Trace for bbl at " 
-//                      << std::hex << bbl->firstInsnAddr() << std::dec
-      //                << endl;
-      Trace::Ptr block = Trace::create(bbl);
-      if (!block)
-         return false;
-      blocks_.push_back(block);
-      blockMap_[bbl] = block;
-      //relocation_cerr << "  Updated block map: " 
-//                      << std::hex << bbl->firstInsnAddr() << std::dec
-        //              << "->" << block.get() << endl;
-
-      priorityMap_[bbl] = Suggested;
+      addTrace(*begin, f);
    }
    return true;
 }
 
-bool CodeMover::addTrace(int_block *bbl) {
-   //relocation_cerr << "Creating Trace for bbl at " 
-//                   << std::hex << bbl->firstInsnAddr() << std::dec
-//                   << endl;
-   Trace::Ptr block = Trace::create(bbl);
+bool CodeMover::addTrace(block_instance *bbl, func_instance *f) {
+   Trace::Ptr block = Trace::create(bbl, f);
    if (!block)
       return false;
    blocks_.push_back(block);
    blockMap_[bbl] = block;
-   //relocation_cerr << "  Updated block map: " 
-//                   << std::hex << bbl->firstInsnAddr() << std::dec
-            //       << "->" << block.get() << endl;
-  
+   priorityMap_[bbl] = Suggested;
+      
    return true;
 }
+
+
+void CodeMover::finalizeTraces() {
+   if (tracesFinalized_) return;
+
+   tracesFinalized_ = true;
+
+   for (TraceList::iterator i = blocks_.begin(); 
+        i != blocks_.end(); ++i) {
+      (*i)->linkTraces(blockMap_);
+      (*i)->determineSpringboards(priorityMap_);
+   }
+}
+   
 
 
 ///////////////////////
 
 
 bool CodeMover::transform(Transformer &t) {
+   if (!tracesFinalized_)
+      finalizeTraces();
+
    bool ret = true; 
 
    t.preprocess(blocks_);
    for (TraceList::iterator i = blocks_.begin(); 
         i != blocks_.end(); ++i) {
-      if (!t.processTrace(i))
+      if (!t.processTrace(i, blockMap_))
          ret = false;
    }
    t.postprocess(blocks_);
@@ -134,17 +135,21 @@ bool CodeMover::transform(Transformer &t) {
 }
 
 bool CodeMover::initialize(const codeGen &templ) {
-   buffer_.initialize(templ);
+   buffer_.initialize(templ, blocks_.size());
+
+   // If they never called transform() this can get missed.
+   if (!tracesFinalized_)
+      finalizeTraces();
 
    // Tell all the blocks to do their generation thang...
    for (TraceList::iterator i = blocks_.begin(); 
         i != blocks_.end(); ++i) {
-      // Grab the next block
-      TraceList::iterator tmp = i; tmp++;
-      Trace::Ptr next;
-      if (tmp != blocks_.end()) 
-         next = *tmp;
-      
+      TraceList::iterator next = i; ++next;
+      // We hand in the iterator so we can try and eliminate
+      // branches-to-next
+      if (!(*i)->finalizeCF((next == blocks_.end()) ? Trace::Ptr() : *next))
+         return false;
+
       if (!(*i)->generate(templ, buffer_))
          return false; // Catastrophic failure
    }
@@ -209,7 +214,7 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
    if (sboardMap_.empty()) {
       for (PriorityMap::const_iterator iter = priorityMap_.begin();
            iter != priorityMap_.end(); ++iter) {
-         int_block *bbl = iter->first;
+         block_instance *bbl = iter->first;
          const Priority &p = iter->second;
 
          // the priority map may include things not in the block
@@ -249,7 +254,9 @@ string CodeMover::format() const {
 }
 
 void CodeMover::extractDefensivePads(AddressSpace *AS) {
-   for (std::map<int_block *, codeGen::Extent>::iterator iter = gen().getDefensivePads().begin();
+   // Needs to be reworked for PatchAPI separation; possibly unnecessary due to 
+   // augmented address lookup capability.
+   for (std::map<block_instance *, codeGen::Extent>::iterator iter = gen().getDefensivePads().begin();
         iter != gen().getDefensivePads().end(); ++iter) {
       AS->addDefensivePad(iter->first, iter->second.first, iter->second.second);
    }
@@ -257,7 +264,7 @@ void CodeMover::extractDefensivePads(AddressSpace *AS) {
 
 void CodeMover::createInstrumentationSpringboards(AddressSpace *as) {
    return;
-
+#if 0
   for (std::map<baseTramp *, Address>::iterator iter = gen().getInstrumentation().begin();
         iter != gen().getInstrumentation().end(); ++iter) {
       std::set<Address>::iterator begin, end;
@@ -280,4 +287,5 @@ void CodeMover::createInstrumentationSpringboards(AddressSpace *as) {
 //                         << *begin << " -> " << iter->second << dec << endl;
       }
    }
+#endif
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -92,8 +92,15 @@ using namespace Dyninst::SymtabAPI;
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
+// Note: this is an internal libc flag -- it is only used
+// when libc and ld.so don't have symbols
+#ifndef __RTLD_DLOPEN
+#define __RTLD_DLOPEN 0x80000000
+#endif
+
 const char *DL_OPEN_FUNC_USER = NULL;
 const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
+const char DL_OPEN_LIBC_FUNC_EXPORTED[] = "__libc_dlopen_mode";
 const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
 const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
 
@@ -350,8 +357,8 @@ bool process::handleTrapAtEntryPointOfMain(dyn_lwp *trappingLWP)
 bool process::insertTrapAtEntryPointOfMain()
 {
 
-   int_function *f_main = 0;
-   pdvector<int_function *> funcs;
+   func_instance *f_main = 0;
+   pdvector<func_instance *> funcs;
    //first check a.out for function symbol   
    bool res = findFuncsByPretty("main", funcs);
    if (!res)
@@ -372,7 +379,7 @@ bool process::insertTrapAtEntryPointOfMain()
    }
    f_main = funcs[0];
    assert(f_main);
-   Address addr = f_main->getAddress();
+   Address addr = f_main->addr();
 
    // and now, insert trap
    // For some reason, using a trap breaks but using an illegal works. Anyone 
@@ -716,7 +723,7 @@ bool process::instrumentLibcStartMain()
     addASharedObject(libc);
 
     // find __libc_startmain
-    const pdvector<int_function*> *funcs;
+    const pdvector<func_instance*> *funcs;
     funcs = libc->findFuncVectorByPretty("__libc_start_main");
     if(funcs->size() == 0 || (*funcs)[0] == NULL) {
         logLine( "Couldn't find __libc_start_main\n");
@@ -729,7 +736,7 @@ bool process::instrumentLibcStartMain()
         logLine( "__libc_start_main is not instrumentable\n");
         return false;
     }
-    Address addr = (*funcs)[0]->getAddress();
+    Address addr = (*funcs)[0]->addr();
     startup_printf("%s[%d]: Instrumenting libc.so:__libc_start_main() at 0x%x\n", 
                    FILE__, __LINE__, (int)addr);
 
@@ -847,18 +854,18 @@ bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
     }
 
     // if gap parsing is on, check for a function at mainaddr, rename
-    // it to "main" and set main_function to its int_function
-    int_function* mainfunc = NULL;
+    // it to "main" and set main_function to its func_instance
+    func_instance* mainfunc = NULL;
     if (a_out->parse_img()->parseGaps()) {
         a_out->analyze();
         snprintf(namebuf,64,"gap_%lx", (long)mainaddr);
-        int_function* mainfunc = findOnlyOneFunction(namebuf,a_out->fileName());
+        func_instance* mainfunc = findOnlyOneFunction(namebuf,a_out->fileName());
         if (mainfunc) {
             mainfunc->addSymTabName("main", true);
             mainfunc->addPrettyName("main", true);
             main_function = mainfunc;
             startup_printf("found main via gap parsing at %x in mapped_obj [%x %x]\n",
-                           (int)main_function->getAddress(),
+                           (int)main_function->addr(),
                            (int)a_out->getFileDesc().loadAddr(),
                            (int)(a_out->getFileDesc().loadAddr() + a_out->imageSize()));
         }
@@ -1091,9 +1098,11 @@ void calcVSyscallFrame(process *p)
   getVSyscallSignalSyms(buffer, dso_size, p);
 
   Symtab *obj;
-  bool result = Symtab::openFile(obj, buffer, dso_size);
+  bool result = Symtab::openFile(obj, (unsigned char *)buffer, dso_size, "vsyscall");
   if (result)
      p->setVsyscallObject(obj);
+  else
+     cerr << "ERROR: failed to create vsyscall object!" << endl;
   return;
 }
 
@@ -1132,7 +1141,7 @@ Address dyn_lwp::readRegister(Register /*reg*/) {
 
 
 void print_read_error_info(const relocationEntry entry, 
-      int_function *&target_pdf, Address base_addr) {
+      func_instance *&target_pdf, Address base_addr) {
 
     sprintf(errorLine, "  entry      : target_addr 0x%x\n",
 	    (unsigned)entry.target_addr());
@@ -1156,7 +1165,7 @@ void print_read_error_info(const relocationEntry entry,
       logLine(errorLine);
       */
       sprintf(errorLine , "              addr 0x%x\n",
-	      (unsigned)target_pdf->getAddress());
+	      (unsigned)target_pdf->addr());
       logLine(errorLine);
     }
     sprintf(errorLine, "  base_addr  0x%x\n", (unsigned)base_addr);
@@ -1168,7 +1177,7 @@ void print_read_error_info(const relocationEntry entry,
 // specified by entry and base_addr.  If it has been bound, then the callee 
 // function is returned in "target_pdf", else it returns false.
 bool process::hasBeenBound(const relocationEntry &entry, 
-			   int_function *&target_pdf, Address base_addr) {
+			   func_instance *&target_pdf, Address base_addr) {
 
     if (status() == exited) return false;
 
@@ -1280,7 +1289,7 @@ bool AddressSpace::getDyninstRTLibName() {
 
 bool process::loadDYNINSTlib()
 {
-    pdvector<int_function *> dlopen_funcs;
+    pdvector<func_instance *> dlopen_funcs;
 
 	//  allow user to override default dlopen func names 
 	//  with env. var
@@ -1291,7 +1300,7 @@ bool process::loadDYNINSTlib()
 	{
 		if (findFuncsByAll(DL_OPEN_FUNC_USER, dlopen_funcs)) 
 		{
-			bool ok =  loadDYNINSTlib_exported(DL_OPEN_FUNC_USER);
+			bool ok =  loadDYNINSTlib_exported(DL_OPEN_FUNC_USER, DLOPEN_MODE);
 
 			if (ok) 
 				return true;
@@ -1302,10 +1311,15 @@ bool process::loadDYNINSTlib()
 
     if (findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) 
 	{
-		return loadDYNINSTlib_exported(DL_OPEN_FUNC_EXPORTED);
+		return loadDYNINSTlib_exported(DL_OPEN_FUNC_EXPORTED, DLOPEN_MODE);
     } 
-    else 
-	{
+    else if( findFuncsByAll(DL_OPEN_LIBC_FUNC_EXPORTED, dlopen_funcs) ) {
+            // If libc and the loader don't have symbols, we need to take a
+            // different approach. We still need to the stack protection turned
+            // off, but since we don't have symbols we use an undocumented flag
+            // to turn off the stack protection
+            return loadDYNINSTlib_exported(DL_OPEN_LIBC_FUNC_EXPORTED, DLOPEN_MODE | __RTLD_DLOPEN);
+    }else{
 		return loadDYNINSTlib_hidden();
     }
 }
@@ -1346,10 +1360,10 @@ bool process::loadDYNINSTlib_hidden() {
   Address dyninstlib_str_addr = 0;
   Address dlopen_call_addr = 0;
 
-  pdvector<int_function *> dlopen_funcs;
+  pdvector<func_instance *> dlopen_funcs;
   if (!findFuncsByAll(DL_OPEN_FUNC_NAME, dlopen_funcs))
   {
-    pdvector<int_function *> dlopen_int_funcs;                                    
+    pdvector<func_instance *> dlopen_int_funcs;                                    
     // If we can't find the do_dlopen function (because this library
     // is stripped, for example), try searching for the internal
     // _dl_open function and find the do_dlopen function by examining
@@ -1368,7 +1382,7 @@ bool process::loadDYNINSTlib_hidden() {
                            __FILE__,__LINE__,dlopen_int_funcs.size(),
                            DL_OPEN_FUNC_INTERNAL);
         }
-        dlopen_int_funcs[0]->getStaticCallers(dlopen_funcs);
+      dlopen_int_funcs[0]->getCallerFuncs(std::back_inserter(dlopen_funcs));
         if(dlopen_funcs.size() > 1)
         {
             startup_printf("%s[%d] warning: found %d do_dlopen candidates\n",
@@ -1389,7 +1403,7 @@ bool process::loadDYNINSTlib_hidden() {
       return false;
     } 
 
-  Address dlopen_addr = dlopen_funcs[0]->getAddress();
+  Address dlopen_addr = dlopen_funcs[0]->addr();
 
   assert(dyninstRT_name.length() < BYTES_TO_SAVE);
   // We now fill in the scratch code buffer with appropriate data
@@ -1425,6 +1439,9 @@ bool process::loadDYNINSTlib_hidden() {
 
   // Sync with whatever we've put in so far.
   dlopen_call_addr = codeBase + scratchCodeBuffer.used();
+
+  baseTramp *baseT = baseTramp::create(theRpcMgr, AstNodePtr());
+  scratchCodeBuffer.setBT(baseT);
 
   if( !theRpcMgr->emitInferiorRPCheader(scratchCodeBuffer) ) {
     startup_cerr << "Couldn't emit inferior RPC header" << endl;
@@ -1518,6 +1535,7 @@ bool process::loadDYNINSTlib_hidden() {
     startup_cerr << "Couldn't emit inferior RPC trailer" << endl;
     return false;
   }
+  delete baseT;
   dyninstlib_brk_addr = codeBase + breakOffset;
 
   startup_printf("(%d) dyninst lib string addr at 0x%x\n", getPid(), dyninstlib_str_addr);
@@ -1574,7 +1592,7 @@ bool process::loadDYNINSTlib_hidden() {
   return true;
 }
 
-bool process::loadDYNINSTlib_exported(const char *dlopen_name)
+bool process::loadDYNINSTlib_exported(const char *dlopen_name, int mode)
 {
 	// dlopen takes two arguments:
 	// const char *libname;
@@ -1592,7 +1610,7 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 	Address dyninstlib_str_addr = 0;
 	Address dlopen_call_addr = 0;
 
-	pdvector<int_function *> dlopen_funcs;
+	pdvector<func_instance *> dlopen_funcs;
 
 	if (!findFuncsByAll(dlopen_name ? dlopen_name : DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) 
 	{
@@ -1607,7 +1625,7 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 		logLine("WARNING: More than one dlopen found, using the first\n");
 	}
 
-	Address dlopen_addr = dlopen_funcs[0]->getAddress();
+	Address dlopen_addr = dlopen_funcs[0]->addr();
 
 	// We now fill in the scratch code buffer with appropriate data
 	codeGen scratchCodeBuffer(MAX_IRPC_SIZE);
@@ -1627,6 +1645,9 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
         // Now the real code
 	dlopen_call_addr = codeBase + scratchCodeBuffer.used();
 
+        baseTramp *baseT = baseTramp::create(theRpcMgr, AstNodePtr());
+        scratchCodeBuffer.setBT(baseT);
+
         if( !theRpcMgr->emitInferiorRPCheader(scratchCodeBuffer) ) {
             startup_cerr << "Couldn't emit inferior RPC header" << endl;
             return false;
@@ -1637,7 +1658,7 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 	if (!mode64bit) 
 	{
 		// Push mode
-		emitPushImm(DLOPEN_MODE, scratchCodeBuffer);
+		emitPushImm(mode, scratchCodeBuffer);
 
 		// Push string addr
 		emitPushImm(dyninstlib_str_addr, scratchCodeBuffer);
@@ -1654,7 +1675,7 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 	else 
 	{
 		// Set mode
-		emitMovImmToReg64(REGNUM_RSI, DLOPEN_MODE, false, scratchCodeBuffer);
+		emitMovImmToReg64(REGNUM_RSI, mode, false, scratchCodeBuffer);
 		// Set string addr
 		emitMovImmToReg64(REGNUM_RDI, dyninstlib_str_addr, true,
 				scratchCodeBuffer);
@@ -1673,6 +1694,8 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
             startup_cerr << "Couldn't emit inferior RPC trailer" << endl;
             return false;
         }
+        delete baseT;
+
         dyninstlib_brk_addr = codeBase + breakOffset;
 
 	if (!readDataSpace((void *)codeBase,
@@ -1722,7 +1745,7 @@ Address process::tryUnprotectStack(codeGen &buf, Address codeBase)
 
 	// mprotect READ/WRITE __stack_prot
 	pdvector<int_variable *> vars; 
-	pdvector<int_function *> funcs;
+	pdvector<func_instance *> funcs;
 
 	Address var_addr;
 	Address func_addr;
@@ -1753,8 +1776,8 @@ Address process::tryUnprotectStack(codeGen &buf, Address codeBase)
         return 0;
     }
 
-    int_function * mprot = funcs[0];
-    func_addr = mprot->getAddress();
+    func_instance * mprot = funcs[0];
+    func_addr = mprot->addr();
     ret_addr = codeBase + buf.used();
 
 #if defined(arch_x86_64)

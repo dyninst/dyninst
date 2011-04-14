@@ -33,6 +33,7 @@
 #if !defined(_R_CODE_MOVER_H_)
 #define _R_CODE_MOVER_H_
 
+#include "CFG.h"
 #include "dyn_detail/boost/shared_ptr.hpp"
 #include "common/h/Types.h"
 #include <list>
@@ -45,9 +46,9 @@
 #include "CodeBuffer.h"
 #include "Springboard.h"
 
-class int_function;
-class int_basicTrace;
 class codeGen;
+class block_instance;
+class func_instance;
 
 namespace Dyninst {
   class AddressMapper;
@@ -57,18 +58,18 @@ namespace Relocation {
 class Trace;
 class Transformer;
 class CodeMover;
-  class CodeTracker;
+class CodeTracker;
 
-  typedef std::map<int_block *, Priority> PriorityMap;
+typedef std::map<block_instance *, Priority> PriorityMap;
 
 class CodeMover {
  public:
   typedef dyn_detail::boost::shared_ptr<CodeMover> Ptr;
   typedef dyn_detail::boost::shared_ptr<Trace> TracePtr;
   typedef std::list<TracePtr> TraceList;
-  typedef std::map<int_block *, TracePtr> TraceMap;
-  typedef std::set<int_function *> FuncSet;
-  typedef std::set<int_block *> BlockSet;
+  typedef std::map<block_instance *, TracePtr> TraceMap;
+  typedef std::set<func_instance *> FuncSet;
+  typedef std::set<block_instance *> BlockSet;
 
   // A generic mover of code; an instruction, a basic block, or
   // a function. This is the algorithm (fixpoint) counterpart
@@ -84,7 +85,7 @@ class CodeMover {
   // We take a CodeTracker as a reference parameter so that we don't 
   // have to copy it on output; CodeMovers are designed to be discarded
   // while CodeTrackers survive.
-  static Ptr create(CodeTracker &);
+  static Ptr create(CodeTracker *);
 
   bool addFunctions(FuncSet::const_iterator begin, FuncSet::const_iterator end);
 
@@ -132,21 +133,21 @@ class CodeMover {
 
  private:
     
-  CodeMover(CodeTracker &t) : addr_(0), tracker_(t) {};
+  CodeMover(CodeTracker *t) : addr_(0), tracker_(t), tracesFinalized_(false) {};
 
   
   void setAddr(Address &addr) { addr_ = addr; }
   template <typename TraceIter>
-    bool addTraces(TraceIter begin, TraceIter end);
+     bool addTraces(TraceIter begin, TraceIter end, func_instance *f);
 
-  bool addTrace(int_block *block);
+  bool addTrace(block_instance *block, func_instance *f);
 
   void createInstrumentationSpringboards(AddressSpace *as);
 
+  void finalizeTraces();
+
   TraceList blocks_;
-  // We also want to have a map from a int_block
-  // to a Trace so we can wire together jumps within
-  // moved code
+
   TraceMap blockMap_;
 
   Address addr_;
@@ -157,11 +158,13 @@ class CodeMover {
   
   SpringboardMap sboardMap_;
 
-  CodeTracker &tracker_;
+  CodeTracker *tracker_;
 
   CodeBuffer buffer_;
   codeGen &gen();
 
+  bool tracesFinalized_;
+  
 };
 
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -132,7 +132,7 @@ class mapped_object;
 class mapped_module;
 class dynamic_linking;
 class int_variable;
-class int_function;
+class func_instance;
 
 class rpcMgr;
 class syscallNotification;
@@ -312,7 +312,7 @@ class process : public AddressSpace {
     // this is only used on aix so far - naim
     // And should really be defined in a arch-dependent place, not process.h - bernat
     Address getTOCoffsetInfo(Address);
-    Address getTOCoffsetInfo(int_function *);
+    Address getTOCoffsetInfo(func_instance *);
     
     bool dyninstLibAlreadyLoaded() { return runtime_lib.size() != 0; }
     
@@ -478,8 +478,8 @@ class process : public AddressSpace {
 #endif
 
 #if defined(os_windows)
-  bool instrumentThreadInitialFunc(int_function *f);
-  pdvector<int_function *> initial_thread_functions;
+  bool instrumentThreadInitialFunc(func_instance *f);
+  pdvector<func_instance *> initial_thread_functions;
   bool setBeingDebuggedFlag(bool debuggerPresent);
 #endif
 
@@ -554,7 +554,7 @@ class process : public AddressSpace {
   bool loadDYNINSTlib();
 #if defined(os_linux)
   // If dlopen is present, use it. Otherwise, call a libc-internal function
-  bool loadDYNINSTlib_exported(const char *dlopen_name = NULL);
+  bool loadDYNINSTlib_exported(const char *dlopen_name = NULL, int mode = 0);
   bool loadDYNINSTlib_hidden();
 
   // Unprotect stack if necessary for runtime library loading
@@ -608,7 +608,7 @@ class process : public AddressSpace {
   bool removeASharedObject(mapped_object *);
 
   // getMainFunction: returns the main function for this process
-  int_function *getMainFunction() const { return main_function; }
+  func_instance *getMainFunction() const { return main_function; }
 
  private:
   enum mt_cache_result { not_cached, cached_mt_true, cached_mt_false };
@@ -633,7 +633,7 @@ class process : public AddressSpace {
 
   // No function is pushed onto return vector if address can't be resolved
   // to a function
-  pdvector<int_function *>pcsToFuncs(pdvector<Frame> stackWalk);
+  pdvector<func_instance *>pcsToFuncs(pdvector<Frame> stackWalk);
 
   bool mappedObjIsDeleted(mapped_object *mobj);
 
@@ -669,7 +669,7 @@ class process : public AddressSpace {
   //////////////////////////////////////////////
 
   // active instrumentation tracking stuff
-  int_function *findActiveFuncByAddr(Address addr);
+  func_instance *findActiveFuncByAddr(Address addr);
 
   typedef std::pair<Address, Address> AddrPair;
   typedef std::set<AddrPair> AddrPairSet;
@@ -678,9 +678,9 @@ class process : public AddressSpace {
   struct ActiveDefensivePad {
     Address activePC;
     Address padStart;
-    int_block *callBlock;
-    int_block *ftBlock;
-  ActiveDefensivePad(Address a, Address b, int_block *c, int_block *d) : 
+    block_instance *callBlock;
+    block_instance *ftBlock;
+  ActiveDefensivePad(Address a, Address b, block_instance *c, block_instance *d) : 
     activePC(a), padStart(b), callBlock(c), ftBlock(d) {};
   };
   typedef std::list<ActiveDefensivePad> ADPList;
@@ -697,13 +697,13 @@ public:
   bool getOverwrittenBlocks
       ( std::map<Address, unsigned char *>& overwrittenPages,//input
         std::list<std::pair<Address,Address> >& overwrittenRegions,//output
-        std::list<int_block *> &writtenBBIs);//output
+        std::list<block_instance *> &writtenBBIs);//output
   bool getDeadCode
-    ( const std::list<int_block*> &owBlocks, // input
-      std::set<int_block*> &delBlocks, //output: Del(for all f)
-      std::map<int_function*,set<int_block*> > &elimMap, //output: elimF
-      std::list<int_function*> &deadFuncs, //output: DeadF
-      std::map<int_function*,int_block*> &newFuncEntries); //output: newF
+    ( const std::list<block_instance*> &owBlocks, // input
+      std::set<block_instance*> &delBlocks, //output: Del(for all f)
+      std::map<func_instance*,set<block_instance*> > &elimMap, //output: elimF
+      std::list<func_instance*> &deadFuncs, //output: DeadF
+      std::map<func_instance*,block_instance*> &newFuncEntries); //output: newF
   unsigned getMemoryPageSize() const { return memoryPageSize_; }
 
   // synch modified mapped objects with current memory contents
@@ -728,7 +728,6 @@ public:
 
   //stopThread instrumentation
   Address stopThreadCtrlTransfer(instPoint* intPoint, Address target);
-  Address resolveJumpIntoRuntimeLib(instPoint* srcPoint, Address target);
   static int stopThread_ID_counter;
   static dictionary_hash< Address, unsigned > stopThread_callbacks;
 
@@ -875,7 +874,7 @@ private:
     // function symbol corresponding to the relocation entry in at the address 
     // specified by entry and base_addr.  If it has been bound, then the callee 
     // function is returned in "target_pdf", else it returns false. 
-    virtual bool hasBeenBound(const SymtabAPI::relocationEntry &entry, int_function *&target_pdf, 
+    virtual bool hasBeenBound(const SymtabAPI::relocationEntry &entry, func_instance *&target_pdf, 
                               Address base_addr) ;
  private:
 
@@ -945,8 +944,8 @@ private:
   // for example, if attached.
   processState stateWhenAttached_;
 
-  int_function *main_function; // Usually, but not always, "main"
-  int_function *thread_index_function;
+  func_instance *main_function; // Usually, but not always, "main"
+  func_instance *thread_index_function;
   dyn_thread *lastForkingThread;
 
   ///////////////////////////////

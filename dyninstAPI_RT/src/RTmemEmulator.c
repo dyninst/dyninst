@@ -46,6 +46,8 @@
 /* Code to assist in remapping memory operations that were affected
  * by our instrumentation */
 
+extern void DYNINST_stopThread(void *, void *, void *, void *);
+
 struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0};
 extern FILE *stOut;
 

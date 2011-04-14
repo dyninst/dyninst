@@ -43,6 +43,9 @@
 #include "Movement-adhoc.h"
 #include "../CodeMover.h"
 
+class parse_block;
+class parse_func;
+
 namespace Dyninst {
 
 // ROSE symeval AST types
@@ -92,7 +95,7 @@ class PCSensitiveTransformer : public Transformer {
   typedef std::list<Assignment::Ptr> AssignList;
 
  public:
-  virtual bool processTrace(TraceList::iterator &);
+  virtual bool processTrace(TraceList::iterator &, const TraceMap &);
      PCSensitiveTransformer(AddressSpace *as, PriorityMap &p) 
         : aConverter(false), addrSpace(as), priMap(p),
      Sens_(0), extSens_(0), intSens_(0), thunk_(0), overApprox_(0), adhoc(as) {};
@@ -100,20 +103,20 @@ class PCSensitiveTransformer : public Transformer {
 
   virtual bool postprocess(TraceList &);
 
-  static void invalidateCache(int_function *);
-  static void invalidateCache(const int_block *);
+  static void invalidateCache(block_instance *);
+  static void invalidateCache(const block_instance *);
 
  private:
   bool analysisRequired(TraceList::iterator &);
 
   bool isPCSensitive(InstructionAPI::Instruction::Ptr insn,
 		     Address addr,
-		     int_function *func,
-			 int_block *block,
+		     func_instance *func,
+                     block_instance *block,
 		     AssignList &sensitiveAssignment);
   Graph::Ptr forwardSlice(Assignment::Ptr ptr,
-			  image_basicBlock *block,
-			  image_func *func);
+			  parse_block *block,
+			  parse_func *func);
   bool determineSensitivity(Graph::Ptr slice,
 			    bool &intSens,
 			    bool &extSens);
@@ -130,12 +133,12 @@ class PCSensitiveTransformer : public Transformer {
 		   InstructionAPI::Instruction::Ptr insn,
 		   Address addr);
   
-  bool exceptionSensitive(Address addr, const int_block *bbl);
+  bool exceptionSensitive(Address addr, const block_instance *bbl);
 
   bool isSyscall(InstructionAPI::Instruction::Ptr insn, Address addr);
 
-  static void cacheAnalysis(const int_block *bbl, Address addr, bool intSens, bool extSens);
-  static bool queryCache(const int_block *bbl, Address addr, bool &intSens, bool &extSens);
+  static void cacheAnalysis(const block_instance *bbl, Address addr, bool intSens, bool extSens);
+  static bool queryCache(const block_instance *bbl, Address addr, bool &intSens, bool &extSens);
 
 
   AssignmentConverter aConverter;
@@ -155,7 +158,7 @@ class PCSensitiveTransformer : public Transformer {
   adhocMovementTransformer adhoc;
   typedef std::pair<bool, bool> CacheData;
   typedef std::map<Address, CacheData> CacheEntry;
-  typedef std::map<const int_block *, CacheEntry > AnalysisCache;
+  typedef std::map<const block_instance *, CacheEntry > AnalysisCache;
   static AnalysisCache analysisCache_;
   
 };

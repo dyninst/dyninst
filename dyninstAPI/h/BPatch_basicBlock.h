@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -43,9 +43,9 @@
 //#include "BPatch_edge.h"
 
 class image;
-class int_function;
+class func_instance;
 class instPoint;
-class int_block;
+class block_instance;
 class BPatch_point;
 class BPatch_edge;
 class BPatch_function;
@@ -81,13 +81,13 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 	friend class TarjanDominator;
 	friend class dominatorCFG;
 	friend class InstrucIter;
-	friend class int_function;
+	friend class func_instance;
         friend class BPatch_instruction;
 	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlock&);
 
  private:
    /** the internal basic block structure **/
-   int_block *iblock;
+   block_instance *iblock;
 
    /** the flow graph that contains this basic block */
    BPatch_flowGraph *flowGraph;
@@ -114,10 +114,15 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    /** the outgoing edges */
    BPatch_Set<BPatch_edge*> outgoingEdges;
 
+   BPatch_flowGraph *fg() const { return flowGraph; }
+   block_instance *block() const { return iblock; }
+   BPatch_function *func() const;
+   func_instance *ifunc() const;
+
  protected:
 
    /** constructor of class */
-   BPatch_basicBlock(int_block *ib, BPatch_flowGraph *fg);
+   BPatch_basicBlock(block_instance *ib, BPatch_flowGraph *fg);
 
 
    
@@ -128,9 +133,9 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    
    // Internal functions. Don't use these unless you know what you're
    // doing.
-   int_block *lowlevel_block()  { return iblock; }
+   block_instance *lowlevel_block()  { return iblock; }
 
-   void setlowlevel_block(int_block *b)  { iblock = b; }
+   void setlowlevel_block(block_instance *b)  { iblock = b; }
    void  getAllPoints(std::vector<BPatch_point*>& allPoints);
    BPatch_point *convertPoint(instPoint *pt);
    BPatch_function *getCallTarget();

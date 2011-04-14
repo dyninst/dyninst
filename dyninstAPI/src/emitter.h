@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -89,31 +89,34 @@ class Emitter {
     virtual bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen) = 0;
 
     virtual Register emitCall(opCode op, codeGen &gen, const pdvector<AstNodePtr> &operands,
-			      bool noCost, int_function *callee) = 0;
+			      bool noCost, func_instance *callee) = 0;
 
     virtual void emitGetRetVal(Register dest, bool addr_of, codeGen &gen) = 0;
     virtual void emitGetRetAddr(Register dest, codeGen &gen) = 0;
-    virtual void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, opCode op, bool addr_of, codeGen &gen) = 0;
-    virtual void emitFuncJump(int_function *f, instPointType_t ptType, bool callOp, codeGen &gen) = 0;
+    virtual void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen) = 0;
+    virtual void emitFuncJump(func_instance *f, instPoint::Type ptType, codeGen &gen) = 0;
     virtual void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen) = 0;
     virtual void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen) = 0;
     virtual void emitPushFlags(codeGen &gen) = 0;
     virtual void emitRestoreFlags(codeGen &gen, unsigned offset) = 0;
     // Built-in offset...
     virtual void emitRestoreFlagsFromStackSlot(codeGen &gen) = 0;
-    virtual bool emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &gen) = 0;
-    virtual bool emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen &gen) = 0;
+    virtual bool emitBTSaves(baseTramp* bt, codeGen &gen) = 0;
+    virtual bool emitBTRestores(baseTramp* bt, codeGen &gen) = 0;
     virtual void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost) = 0;
     virtual void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost) = 0;
     virtual bool emitPush(codeGen &, Register) = 0;
     virtual bool emitPop(codeGen &, Register) = 0;
     virtual bool emitAdjustStackPointer(int index, codeGen &gen) = 0;
     
-    virtual bool clobberAllFuncCall(registerSpace *rs,int_function *callee) = 0;
+    virtual bool clobberAllFuncCall(registerSpace *rs,func_instance *callee) = 0;
 
-    Address getInterModuleFuncAddr(int_function *func, codeGen& gen);
+    Address getInterModuleFuncAddr(func_instance *func, codeGen& gen);
     Address getInterModuleVarAddr(const image_variable *var, codeGen& gen);
     //bool emitPIC(codeGen& /*gen*/, Address, Address );
+
+    virtual void emitPLTCall(func_instance *, codeGen &) { assert(0); }
+    virtual void emitPLTJump(func_instance *, codeGen &) { assert(0); }
 };
 
 #endif

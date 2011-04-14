@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -62,25 +62,29 @@
 // Implementations of non-virtual functions in the address space
 // class.
 
+using namespace Dyninst;
+
 AddressSpace::AddressSpace () :
     trapMapping(this),
     useTraps_(true),
     trampGuardBase_(NULL),
     up_ptr_(NULL),
     costAddr_(0),
+    memEmulator_(NULL),
     emulateMem_(false),
     emulatePC_(false)
 {
-   memEmulator_ = new MemoryEmulator(this);
    if ( getenv("DYNINST_EMULATE_MEMORY") ) {
        printf("emulating memory & pc\n");
+       memEmulator_ = new MemoryEmulator(this);
        emulateMem_ = true;
        emulatePC_ = true;
    }
 }
 
 AddressSpace::~AddressSpace() {
-   delete memEmulator_;
+   if (memEmulator_)
+      delete memEmulator_;
 }
 
 process *AddressSpace::proc() {
@@ -128,6 +132,41 @@ void AddressSpace::copyAddressSpace(process *parent) {
     // Trap mappings
     /////////////////////////
     trapMapping.copyTrapMappings(& (parent->trapMapping));
+
+    /////////////////////////
+    // Overly complex code tracking system
+    /////////////////////////
+    for (CodeTrackers::iterator iter = parent->relocatedCode_.begin();
+         iter != parent->relocatedCode_.end(); ++iter) {
+       // Efficiency; this avoids a spurious copy of the entire
+       // CodeTracker. 
+
+       relocatedCode_.push_back(Relocation::CodeTracker::fork(*iter, this));
+    }
+    
+    // Let's assume we're not forking _in the middle of instrumentation_
+    // (good Lord), and so leave modifiedFunctions_ alone.
+    for (CallModMap::iterator iter = parent->callModifications_.begin(); 
+         iter != parent->callModifications_.end(); ++iter) {
+       // Need to forward map the lot
+       block_instance *newB = findBlock(iter->first->llb());
+       for (std::map<func_instance *, func_instance *>::iterator iter2 = iter->second.begin();
+            iter2 != iter->second.end(); ++iter2) {
+          func_instance *context = (iter2->first == NULL) ? NULL : findFunction(iter2->first->ifunc());
+          func_instance *target = (iter2->second == NULL) ? NULL : findFunction(iter2->second->ifunc());
+          callModifications_[newB][context] = target;
+       }
+    }
+    for (FuncReplaceMap::iterator iter = parent->functionReplacements_.begin();
+         iter != parent->functionReplacements_.end(); ++iter) {
+       func_instance *from = findFunction(iter->first->ifunc());
+       func_instance *to = findFunction(iter->second->ifunc());
+       functionReplacements_[from] = to;
+    }
+
+    if (memEmulator_) assert(0 && "FIXME!");
+    emulateMem_ = parent->emulateMem_;
+    emulatePC_ = parent->emulatePC_;
 }
 
 void AddressSpace::deleteAddressSpace() {
@@ -145,10 +184,23 @@ void AddressSpace::deleteAddressSpace() {
 
     mapped_objects.clear();
 
+    runtime_lib.clear();
+
     trampGuardBase_ = NULL;
+    trampGuardAST_ = AstNodePtr();
 
     // up_ptr_ is untouched
     costAddr_ = 0;
+
+    relocatedCode_.clear();
+    modifiedFunctions_.clear();
+    forwardDefensiveMap_.clear();
+    reverseDefensiveMap_.clear();
+    instrumentationInstances_.clear();
+    callModifications_.clear();
+    functionReplacements_.clear();
+    if (memEmulator_) delete memEmulator_;
+    memEmulator_ = NULL;
 }
 
 
@@ -511,7 +563,7 @@ bool AddressSpace::inferiorExpandBlock(heapItem *h,
 /////////////////////////////////////////
 
 bool AddressSpace::findFuncsByAll(const std::string &funcname,
-                             pdvector<int_function *> &res,
+                             pdvector<func_instance *> &res,
                              const std::string &libname) { // = "", btw
     
     unsigned starting_entries = res.size(); // We'll return true if we find something
@@ -519,7 +571,7 @@ bool AddressSpace::findFuncsByAll(const std::string &funcname,
         if (libname == "" ||
             mapped_objects[i]->fileName() == libname.c_str() ||
             mapped_objects[i]->fullName() == libname.c_str()) {
-            const pdvector<int_function *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
+            const pdvector<func_instance *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
             if (pretty) {
                 // We stop at first match...
                 for (unsigned pm = 0; pm < pretty->size(); pm++) {
@@ -527,7 +579,7 @@ bool AddressSpace::findFuncsByAll(const std::string &funcname,
                 }
             }
             else {
-                const pdvector<int_function *> *mangled = mapped_objects[i]->findFuncVectorByMangled(funcname);
+                const pdvector<func_instance *> *mangled = mapped_objects[i]->findFuncVectorByMangled(funcname);
                 if (mangled) {
                     for (unsigned mm = 0; mm < mangled->size(); mm++) {
                         res.push_back((*mangled)[mm]);
@@ -542,7 +594,7 @@ bool AddressSpace::findFuncsByAll(const std::string &funcname,
 
 
 bool AddressSpace::findFuncsByPretty(const std::string &funcname,
-                             pdvector<int_function *> &res,
+                             pdvector<func_instance *> &res,
                              const std::string &libname) { // = "", btw
 
     unsigned starting_entries = res.size(); // We'll return true if we find something
@@ -551,7 +603,7 @@ bool AddressSpace::findFuncsByPretty(const std::string &funcname,
         if (libname == "" ||
             mapped_objects[i]->fileName() == libname.c_str() ||
             mapped_objects[i]->fullName() == libname.c_str()) {
-            const pdvector<int_function *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
+            const pdvector<func_instance *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
             if (pretty) {
                 // We stop at first match...
                 for (unsigned pm = 0; pm < pretty->size(); pm++) {
@@ -565,7 +617,7 @@ bool AddressSpace::findFuncsByPretty(const std::string &funcname,
 
 
 bool AddressSpace::findFuncsByMangled(const std::string &funcname,
-                                 pdvector<int_function *> &res,
+                                 pdvector<func_instance *> &res,
                                  const std::string &libname) { // = "", btw
     unsigned starting_entries = res.size(); // We'll return true if we find something
 
@@ -573,7 +625,7 @@ bool AddressSpace::findFuncsByMangled(const std::string &funcname,
         if (libname == "" ||
             mapped_objects[i]->fileName() == libname.c_str() ||
             mapped_objects[i]->fullName() == libname.c_str()) {
-            const pdvector<int_function *> *mangled = 
+            const pdvector<func_instance *> *mangled = 
                mapped_objects[i]->findFuncVectorByMangled(funcname);
             if (mangled) {
                 for (unsigned mm = 0; mm < mangled->size(); mm++) {
@@ -585,13 +637,13 @@ bool AddressSpace::findFuncsByMangled(const std::string &funcname,
     return res.size() != starting_entries;
 }
 
-int_function *AddressSpace::findOnlyOneFunction(const string &name,
+func_instance *AddressSpace::findOnlyOneFunction(const string &name,
                                                 const string &lib,
                                                 bool /*search_rt_lib*/) 
 {
     assert(mapped_objects.size());
 
-    pdvector<int_function *> allFuncs;
+    pdvector<func_instance *> allFuncs;
 
     if (!findFuncsByAll(name.c_str(), allFuncs, lib.c_str()))
         return NULL;
@@ -715,24 +767,21 @@ mapped_object *AddressSpace::findObject(const ParseAPI::CodeObject *co) const {
     return obj;
 }
 
-int_function *AddressSpace::findFuncByInternalFunc(image_func *ifunc) {
+func_instance *AddressSpace::findFunction(parse_func *ifunc) {
     assert(ifunc);
-  
-    // Now we have to look up our specialized version
-    // Can't do module lookup because of DEFAULT_MODULE...
-    pdvector<int_function *> possibles;
-    if (!findFuncsByMangled(ifunc->symTabName().c_str(),
-                            possibles))
-        return NULL;
 
-    assert(possibles.size());
-  
-    for (unsigned i = 0; i < possibles.size(); i++) {
-        if (possibles[i]->ifunc() == ifunc) {
-            return possibles[i];
-        }
-    }
-    return NULL;
+    return findObject(ifunc->obj())->findFunction(ifunc);
+}
+
+block_instance *AddressSpace::findBlock(parse_block *iblk) {
+    assert(iblk);
+
+    return findObject(iblk->obj())->findBlock(iblk);
+}
+
+edge_instance *AddressSpace::findEdge(ParseAPI::Edge *iedge) {
+   assert(iedge);
+   return findObject(iedge->src()->obj())->findEdge(iedge);
 }
 
 // findModule: returns the module associated with mod_name 
@@ -781,7 +830,7 @@ mapped_object *AddressSpace::findObject(fileDescriptor desc) const
 // getAllFunctions: returns a vector of all functions defined in the
 // a.out and in the shared objects
 
-void AddressSpace::getAllFunctions(pdvector<int_function *> &funcs) {
+void AddressSpace::getAllFunctions(pdvector<func_instance *> &funcs) {
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
         mapped_objects[i]->getAllFunctions(funcs);
     }
@@ -802,10 +851,10 @@ void AddressSpace::getAllModules(pdvector<mapped_module *> &mods){
 //Acts like findTargetFuncByAddr, but also finds the function if addr
 // is an indirect jump to a function.
 //I know this is an odd function, but darn I need it.
-int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
+func_instance *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
 
     Address addr2 = 0;
-    int_function *f = findOneFuncByAddr(addr);
+    func_instance *f = findOneFuncByAddr(addr);
     if (f)
         return f;
 
@@ -1224,49 +1273,54 @@ void trampTrapMappings::allocateTable()
    }
 }
 
-// only works for unrelocated addresses
-bool AddressSpace::findFuncsByAddr(Address addr, std::set<int_function*> &funcs, bool includeReloc)
+bool AddressSpace::findFuncsByAddr(Address addr, std::set<func_instance*> &funcs, bool includeReloc)
 {
-    if (includeReloc) {
-        // Check that first
-        baseTrampInstance *bti;
-        int_block *block;
-        Address oAddr;
-        if (getRelocInfo(addr, oAddr, block, bti)) {
-            funcs.insert(block->func());
-            return true;
-        }
-    }
+   if (includeReloc) {
+      RelocInfo ri;
+      if (getRelocInfo(addr, ri)) {
+         if (ri.func) {
+            // We cloned for some reason. Nifty.
+            funcs.insert(ri.func);
+         }
+         else {
+            // We copied a block sans function context, so...
+            // grab everyone
+            ri.block->getFuncs(std::inserter(funcs, funcs.end()));
+         }
+         return true;
+      }
+   }
     mapped_object *obj = findObject(addr);
     if (!obj) return false;
     return obj->findFuncsByAddr(addr, funcs);
 }
 
-bool AddressSpace::findBlocksByAddr(Address addr, std::set<int_block *> &blocks, bool includeReloc) {
+bool AddressSpace::findBlocksByAddr(Address addr, std::set<block_instance *> &blocks, bool includeReloc) {
+   if (includeReloc) {
+      RelocInfo ri;
+      if (getRelocInfo(addr, ri)) {
+         blocks.insert(ri.block);
+         return true;
+      }
+   }
+
    mapped_object *obj = findObject(addr);
-    if (!obj) return false;
-    bool ret = obj->findBlocksByAddr(addr, blocks);
-    if (ret || !includeReloc)
-        return ret;
-    baseTrampInstance *bti;
-    int_block *block;
-    Address oAddr;
-    if (getRelocInfo(addr, oAddr, block, bti)) {
-        blocks.insert(block);
-        return true;
-    }
-    return false;
+   if (!obj) return false;
+   bool ret = obj->findBlocksByAddr(addr, blocks);
+   if (ret || !includeReloc)
+      return ret;
+   return false;
 }
 
-int_function *AddressSpace::findOneFuncByAddr(Address addr) {
-    std::set<int_function *> funcs;
+func_instance *AddressSpace::findOneFuncByAddr(Address addr) {
+    std::set<func_instance *> funcs;
     if (!findFuncsByAddr(addr, funcs)) return NULL;
     if (funcs.empty()) return NULL;
     if (funcs.size() == 1) return *(funcs.begin());
     // Arbitrarily pick one...
     Address last = 0;
-    int_function *ret = NULL;
-    for (std::set<int_function *>::iterator iter = funcs.begin();
+    func_instance *ret = NULL;
+    for (std::set<func_instance *>::iterator iter = funcs.begin();
         iter != funcs.end(); ++iter) {
             if (ret == NULL ||
                 ((*iter)->entryBlock()->start() > last)) {
@@ -1277,12 +1331,12 @@ int_function *AddressSpace::findOneFuncByAddr(Address addr) {
     return ret;
 }
 
-int_function *AddressSpace::findFuncByEntry(Address addr) {
-    std::set<int_function *> funcs;
+func_instance *AddressSpace::findFuncByEntry(Address addr) {
+    std::set<func_instance *> funcs;
     if (!findFuncsByAddr(addr, funcs)) return NULL;
     if (funcs.empty()) return NULL;
 
-    for (std::set<int_function *>::iterator iter = funcs.begin();
+    for (std::set<func_instance *>::iterator iter = funcs.begin();
         iter != funcs.end(); ++iter) {
         if ((*iter)->entryBlock()->start() == addr) {
             return *iter;
@@ -1315,7 +1369,7 @@ bool AddressSpace::needsPIC(int_variable *v)
    return needsPIC(v->mod()->proc());
 }
 
-bool AddressSpace::needsPIC(int_function *f)
+bool AddressSpace::needsPIC(func_instance *f)
 {
    return needsPIC(f->proc());
 }
@@ -1348,32 +1402,33 @@ bool AddressSpace::sameRegion(Address addr1, Address addr2)
 }
 ////////////////////////////////////////////////////////////////////////////////////////
 
-void AddressSpace::replaceFunctionCall(instPoint *point, int_function *newFunc) {
+void AddressSpace::modifyCall(block_instance *block, func_instance *newFunc, func_instance *context) {
   // Just register it for later code generation
-  callReplacements_[point] = newFunc;
-  addModifiedFunction(point->func());
+   callModifications_[block][context] = newFunc;
+   if (context) addModifiedFunction(context);
+   else addModifiedBlock(block);
 }
 
-void AddressSpace::replaceFunction(int_function *oldfunc, int_function *newfunc) {
+void AddressSpace::replaceFunction(func_instance *oldfunc, func_instance *newfunc) {
   functionReplacements_[oldfunc] = newfunc;
   addModifiedFunction(oldfunc);
 }
 
-void AddressSpace::removeFunctionCall(instPoint *point) {
-  callRemovals_.insert(point);
-  addModifiedFunction(point->func());
+void AddressSpace::removeCall(block_instance *block, func_instance *context) {
+   modifyCall(block, NULL, context);
 }
 
-// Why not be able to revert?
-void AddressSpace::revertReplacedCall(instPoint *point) {
-  callReplacements_.erase(point);
-  // TODO: need a "remove modified function"
+void AddressSpace::revertCall(block_instance *block, func_instance *context) {
+   if (callModifications_.find(block) != callModifications_.end()) {
+      callModifications_[block].erase(context);
+   }
+   if (context) addModifiedFunction(context);
+   else addModifiedBlock(block);
 }
-void AddressSpace::revertReplacedFunction(int_function *oldfunc) {
-  functionReplacements_.erase(oldfunc);
-}
-void AddressSpace::revertRemovedFunctionCall(instPoint *point) {
-  callRemovals_.erase(point);
+
+void AddressSpace::revertReplacedFunction(func_instance *oldfunc) {
+   functionReplacements_.erase(oldfunc);
+   addModifiedFunction(oldfunc);
 }
 
 int_function *AddressSpace::isFunctionReplaced(int_function *func) const
@@ -1447,8 +1502,6 @@ bool AddressSpace::relocate() {
   return ret;
 }
 
-extern bool GLOBAL_DISASSEMBLY;
-extern bool disassemble_reloc;
 // iter is some sort of functions
 bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address nearTo) {
   if (begin == end) {
@@ -1458,14 +1511,15 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   // Create a CodeMover covering these functions
   //cerr << "Creating a CodeMover" << endl;
 
-  // Attempting to reduce copies...
-  CodeTracker t;
-  relocatedCode_.push_back(t);
+  relocatedCode_.push_back(new CodeTracker());
   CodeMover::Ptr cm = CodeMover::create(relocatedCode_.back());
   if (!cm->addFunctions(begin, end)) return false;
 
+
   SpringboardBuilder::Ptr spb = SpringboardBuilder::createFunc(begin, end, this);
 
+  relocation_cerr << "Debugging CodeMover (pre-transform)" << endl;
+  relocation_cerr << cm->format() << endl;
   transform(cm);
 
   relocation_cerr << "Debugging CodeMover" << endl;
@@ -1478,11 +1532,19 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
     return false;
   }
 
-  if (disassemble_reloc || dyn_debug_reloc || dyn_debug_write) {
+  if (dyn_debug_reloc || dyn_debug_write) {
       using namespace InstructionAPI;
       // Print out the buffer we just created
       cerr << "DUMPING RELOCATION BUFFER " << hex 
            << cm->blockMap().begin()->first->start() << dec << endl;
+#if 0
+      unsigned char *cur = (unsigned char *) cm->ptr();
+      unsigned tmp = 0;
+      while (tmp < cm->size()) {
+         cerr << hex << baseAddr + tmp << ": " << (unsigned) cur[tmp] << endl;
+         tmp++;
+      }
+#endif
       Address base = baseAddr;
       InstructionDecoder deco
         (cm->ptr(),cm->size(),getArch());
@@ -1493,8 +1555,8 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
         insn = deco.decode();
       }
       cerr << dec;
-	  cerr << endl;
-	  cerr << cm->format() << endl;
+      cerr << endl;
+      cerr << cm->format() << endl;
   }
 
 
@@ -1515,7 +1577,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   }
 
   // Build the address mapping index
-  relocatedCode_.back().createIndices();
+  relocatedCode_.back()->createIndices();
     
   // Kevin's stuff
   cm->extractDefensivePads(this);
@@ -1532,77 +1594,48 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           // translate thread's active PC to orig addr
           Frame tframe = (*titer)->getActiveFrame();
           Address relocAddr = tframe.getPC();
-		  mal_printf("Attempting to change PC: current addr is 0x%lx\n", relocAddr);
-          Address pcOrig=0;
-          vector<int_function *> origFuncs;
-          baseTrampInstance *bti=NULL;
-          mapped_object *pcobj = findObject(tframe.getPC());
-          if (pcobj && mapped_object::isSystemLib(pcobj->fileName())) {
-              mal_printf("\tIn system lib, not changing\n");
-              continue;
-          }
-          if (!getAddrInfo(tframe.getPC(), pcOrig, origFuncs, bti)) {
-              mal_printf("\tgetAddrInfo failed, not changing\n");
-              continue;
-		  }
-          int_function *origFunc;
-          if (origFuncs.size() == 1) {
-              origFunc = origFuncs[0];
-          } else {
-              mal_printf("WARNING: active pc %lx is in a shared function we've"
-                         " modified but we don't know which, stackwalking to "
-                         "find out %s[%d]\n", pcOrig, FILE__,__LINE__);
-              origFunc = proc()->findActiveFuncByAddr(pcOrig);
-          }
-          // if the PC matches a modified function, change the PC
-          for (FuncSet::const_iterator fit = begin; fit != end; fit++) {
-              if ((*fit)->findOneBlockByAddr(pcOrig)) {
-                 // HACK: if we're in the middle of an emulation block, add that
-                 // offset to where we transfer to. 
-                 TrackerElement *te = NULL;
-                 for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
-                      iter != relocatedCode_.end(); ++iter) {
-                    te = iter->findByReloc(relocAddr);
-                    if (te) break;
-                 }
-                 Address offset = 0;
-                 if (te && te->type() == TrackerElement::emulated) {
-                    offset = relocAddr - te->reloc();
-                    assert(offset < te->size());
-                 }
+          mal_printf("Attempting to change PC: current addr is 0x%lx\n", relocAddr);
 
-                 list<Address> relocPCs;
-                 getRelocAddrs(pcOrig, origFunc, relocPCs, false);
-                 if (relocPCs.size()) {
-                    (*titer)->get_lwp()->changePC(relocPCs.back() + offset,NULL);
-                    mal_printf("Pulling active frame PC into newest relocation "
-                               "orig[%lx], cur[%lx], new[%lx (0x%lx + 0x%lx)] %s[%d]\n", pcOrig, 
-                               tframe.getPC(), relocPCs.back() + offset, relocPCs.back(), offset,
-                               FILE__,__LINE__);
-                    break;
-                 }
-              }
+          RelocInfo ri;
+          if (!getRelocInfo(relocAddr, ri)) continue; // Not in instrumentation already
+
+          // HACK: if we're in the middle of an emulation block, add that
+          // offset to where we transfer to. 
+          TrackerElement *te = NULL;
+          for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
+               iter != relocatedCode_.end(); ++iter) {
+             te = (*iter)->findByReloc(relocAddr);
+             if (te) break;
+          }
+
+          Address offset = 0;
+          if (te && te->type() == TrackerElement::emulated) {
+             offset = relocAddr - te->reloc();
+             assert(offset < te->size());
+          }
+          
+          list<Address> relocPCs;
+          getRelocAddrs(ri.orig, ri.block, ri.func, relocPCs, false);
+          if (relocPCs.size()) {
+             (*titer)->get_lwp()->changePC(relocPCs.back() + offset,NULL);
+             mal_printf("Pulling active frame PC into newest relocation "
+                        "orig[%lx], cur[%lx], new[%lx (0x%lx + 0x%lx)] %s[%d]\n", ri.orig, 
+                        tframe.getPC(), relocPCs.back() + offset, relocPCs.back(), offset,
+                        FILE__,__LINE__);
+             break;
           }
       }
   }
-
+  
   return true;
 }
 
 bool AddressSpace::transform(CodeMover::Ptr cm) {
-  // Ensure each block ends with an appropriate CFElement
-  CFAtomCreator c;
-  cm->transform(c);
 
-  if (emulatePC_) {
-      PCSensitiveTransformer v(this, cm->priorityMap());
-      cm->transform(v);
-  } else {
-      adhocMovementTransformer a(this);
-      cm->transform(a);
-  }
+   adhocMovementTransformer a(this);
+   cm->transform(a);
 
-  if (emulateMem_) {
+   if (emulateMem_) {
       MemEmulatorTransformer m;
       cm->transform(m);
   }
@@ -1610,33 +1643,13 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   // Insert whatever binary modifications are desired
   // Right now needs to go before Instrumenters because we use
   // instrumentation for function replacement.
-  Modification mod(callReplacements_, functionReplacements_, callRemovals_);
+  Modification mod(callModifications_, functionReplacements_);
   cm->transform(mod);
 
-  // Localize control transfers
-  //cerr << "  Applying control flow localization" << endl;
-  LocalizeCF t(cm->blockMap(), 
-	       cm->priorityMap());
-  cm->transform(t);
-
-  // Add in pads after all calls that have an unknown return status. We want this
-  // to occur pre-instrumentation so that we can ensure instrumentation still gets
-  // executed properly.
-
-  DefensiveTransformer defTrans;
-  cm->transform(defTrans);
-
-
   // Add instrumentation
-  // For ease of edge instrumentation this should occur post-LocalCFTransformer-age
-  //cerr << "Inst transformer" << endl;
+  relocation_cerr << "Inst transformer" << endl;
   Instrumenter i;
   cm->transform(i);
-
-  // And remove unnecessary jumps. This needs to be last.
-  Fallthroughs f;
-  cm->transform(f);
-
 
   return true;
 
@@ -1670,7 +1683,7 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
   }
 
   while (1) {
-    relocation_cerr << "   Attempting to allocate " << cm->size() << "bytes" << endl;
+     relocation_cerr << "   Attempting to allocate " << cm->size() << "bytes" << endl;
     unsigned size = cm->size();
     if (!size) {
         // This can happen if the only thing being moved are control flow instructions
@@ -1679,17 +1692,15 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
         size = 1;
     }
     baseAddr = inferiorMalloc(size, anyHeap, nearTo);
-    relocation_cerr << "   inferiorMalloc returned " 
-		    << std::hex << baseAddr << std::dec << endl;
-
-
+    
+    
     relocation_cerr << "   Calling CodeMover::relocate" << endl;
     if (!cm->relocate(baseAddr)) {
-      // Whoa
-      relocation_cerr << "   ERROR: CodeMover failed relocation!" << endl;
-      return 0;
+       // Whoa
+       relocation_cerr << "   ERROR: CodeMover failed relocation!" << endl;
+       return 0;
     }
-
+    
     // Either attempt to expand or shrink...
     relocation_cerr << "   Calling inferiorRealloc to fit new size " << cm->size() 
 		    << ", current base addr is " 
@@ -1704,9 +1715,6 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
       break;
     }
   }
-
-  relocation_cerr << "   ... fixpoint finished, returning baseAddr " 
-		  << std::hex << baseAddr << std::dec << endl;
 
   //addrMap.debug();
 
@@ -1733,7 +1741,8 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
   for (std::list<codeGen>::iterator iter = patches.begin();
        iter != patches.end(); ++iter) 
   {
-      if (!writeTextSpace((void *)iter->startAddr(),
+     relocation_cerr << "Writing springboard @ " << hex << iter->startAddr() << endl;
+        if (!writeTextSpace((void *)iter->startAddr(),
           iter->used(),
           iter->start_ptr())) 
       {
@@ -1746,11 +1755,11 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
         Address objBase = obj->codeBase();
         SymtabAPI::Region * reg = obj->parse_img()->getObject()->
             findEnclosingRegion(iter->startAddr() - objBase);
-        getMemEm()->addSpringboard(
-            reg, 
-            iter->startAddr() - objBase - reg->getMemOffset(),
-            iter->used());
-     }
+        if (memEmulator_)
+           memEmulator_->addSpringboard(reg, 
+                                        iter->startAddr() - objBase - reg->getMemOffset(),
+                                        iter->used());
+    }
   }
 
   return true;
@@ -1760,13 +1769,14 @@ void AddressSpace::causeTemplateInstantiations() {
 }
 
 void AddressSpace::getRelocAddrs(Address orig, 
-                                 int_function *func,
+                                 block_instance *block,
+                                 func_instance *func,
                                  std::list<Address> &relocs,
                                  bool getInstrumentationAddrs) const {
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
        iter != relocatedCode_.end(); ++iter) {
     Relocation::CodeTracker::RelocatedElements reloc;
-    if (iter->origToReloc(orig, func, reloc)) {
+    if ((*iter)->origToReloc(orig, block, func, reloc)) {
       // Pick instrumentation if it's there, otherwise use the reloc instruction
       if (reloc.instrumentation && getInstrumentationAddrs) {
         relocs.push_back(reloc.instrumentation);
@@ -1780,48 +1790,47 @@ void AddressSpace::getRelocAddrs(Address orig,
 }      
 
 bool AddressSpace::getAddrInfo(Address relocAddr,
-                				Address &origAddr,
-		                		vector<int_function *> &origFuncs,
-				                baseTrampInstance *&baseT) 
+                               Address &origAddr,
+                               vector<func_instance *> &origFuncs,
+                               baseTramp *&baseT) 
 {
-    std::set<int_function *> tmpFuncs;
-    if (findFuncsByAddr(relocAddr, tmpFuncs)) {
-        origAddr = relocAddr;
-        std::copy(tmpFuncs.begin(), tmpFuncs.end(), std::back_inserter(origFuncs));
-        baseT = NULL;
-        return true;
-    }
-
-    // retrieve if relocated address
-    int_block *block;
-    if (getRelocInfo(relocAddr, origAddr, block, baseT)) {
-        origFuncs.push_back(block->func());
-        return true;
-    }
-
-    return false;
-
+   CodeTracker::RelocInfo ri;
+   if (getRelocInfo(relocAddr, ri)) {
+      origAddr = ri.orig;
+      baseT = ri.bt;
+      if (ri.func)
+         origFuncs.push_back(ri.func);
+      else {
+         // We copied a block sans function context, so...
+         // grab everyone
+         ri.block->getFuncs(std::back_inserter(origFuncs));
+      }
+      return true;
+   }      
+   
+   std::set<func_instance *> tmpFuncs;
+   if (findFuncsByAddr(relocAddr, tmpFuncs)) {
+      origAddr = relocAddr;
+      std::copy(tmpFuncs.begin(), tmpFuncs.end(), std::back_inserter(origFuncs));
+      baseT = NULL;
+      return true;
+   }
+      
+   return false;
 }
 
 
 bool AddressSpace::getRelocInfo(Address relocAddr,
-                				Address &origAddr,
-                                int_block *&origBlock,
-                                baseTrampInstance *&baseT) 
-{
-  baseT = NULL;
-  origBlock = NULL;
+                                RelocInfo &ri) {
   bool ret = false;
   // address is relocated (or bad), check relocation maps
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
-       iter != relocatedCode_.end(); ++iter) 
-  {
-     if (iter->relocToOrig(relocAddr, origAddr, origBlock, baseT)) {
-		 assert(!ret);
-		 ret = true;
+       iter != relocatedCode_.end(); ++iter) {
+     if ((*iter)->relocToOrig(relocAddr, ri)) {
+        assert(!ret);
+        ret = true;
      }
   }
-
   return ret;
 }
 
@@ -1829,7 +1838,7 @@ bool AddressSpace::inEmulatedCode(Address addr) {
   // address is relocated (or bad), check relocation maps
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
        iter != relocatedCode_.end(); ++iter)  {
-     TrackerElement *te = iter->findByReloc(addr);
+     TrackerElement *te = (*iter)->findByReloc(addr);
      if (te) {
         if (te->type() == TrackerElement::emulated ||
             te->type() == TrackerElement::instrumentation) {
@@ -1840,23 +1849,32 @@ bool AddressSpace::inEmulatedCode(Address addr) {
   return false;
 }
 
-void AddressSpace::addModifiedFunction(int_function *func) {
+void AddressSpace::addModifiedFunction(func_instance *func) {
   assert(func->obj());
 
   modifiedFunctions_[func->obj()].insert(func);
 }
 
-void AddressSpace::addDefensivePad(int_block *callBlock, Address padStart, unsigned size) {
-  // We want to register these in terms of a int_block that the pad ends, but 
+void AddressSpace::addModifiedBlock(block_instance *block) {
+   // TODO someday this will decouple from functions. Until
+   // then...
+   std::list<func_instance *> tmp;
+   block->getFuncs(std::back_inserter(tmp));
+   for (std::list<func_instance *>::iterator iter = tmp.begin();
+        iter != tmp.end(); ++iter) {
+      addModifiedFunction(*iter);
+   }
+}
+
+
+void AddressSpace::addDefensivePad(block_instance *callBlock, Address padStart, unsigned size) {
+  // We want to register these in terms of a block_instance that the pad ends, but 
   // the CFG can change out from under us; therefore, for lookup we use an instPoint
   // as they are invariant. 
-   
-   instPoint *point = callBlock->func()->findInstPByAddr(callBlock->last());
-   if (!point) {
-       callBlock->func()->funcCalls();
-       point = callBlock->func()->findInstPByAddr(callBlock->last());
-   }
-   if (!point) {
+   assert(0 && "TODO");
+   instPoint *point = instPoint::preCall(NULL, callBlock);
+
+   if (!point || point->empty()) {
        // Kevin didn't instrument it so we don't care :)
        return;
    }
@@ -1879,16 +1897,16 @@ void AddressSpace::addInstrumentationInstance(baseTramp *bt,
 }
 
 void AddressSpace::addAllocatedRegion(Address start, unsigned size) {
-   memEmulator_->addAllocatedRegion(start, size);
+   if (memEmulator_) memEmulator_->addAllocatedRegion(start, size);
 }
 
 void AddressSpace::addModifiedRegion(mapped_object *obj) {
-    memEmulator_->addRegion(obj);
+   if (memEmulator_) memEmulator_->addRegion(obj);
    return;
 }
 
 void AddressSpace::updateMemEmulator() {
-   memEmulator_->update();
+   if (memEmulator_) memEmulator_->update();
 }
 
 MemoryEmulator * AddressSpace::getMemEm() {
@@ -1904,11 +1922,11 @@ void AddressSpace::invalidateMemory(Address addr, Address size) {
 	// set permissions on the deallocated range. 
 	return;
 
-	getMemEm()->removeRegion(addr, size);
+	if (memEmulator_) memEmulator_->removeRegion(addr, size);
 
 	proc()->flushAddressCache_RT(addr, size);
 
-	std::set<int_function *> funcsToDelete;
+	std::set<func_instance *> funcsToDelete;
 	for (Address i = addr; i < (addr + size); ++i)
 	{
 		findFuncsByAddr(i, funcsToDelete);
@@ -1920,26 +1938,29 @@ void AddressSpace::invalidateMemory(Address addr, Address size) {
 // create stub edge set which is: all edges such that: 
 //     e->trg() in owBBIs and
 //     while e->src() in delBlocks try e->src()->sources()
-std::map<int_function*,vector<edgeStub> > 
-AddressSpace::getStubs(const std::list<int_block *> &owBBIs,
-                       const std::set<int_block*> &delBBIs,
-                       const std::list<int_function*> &deadFuncs)
+std::map<func_instance*,vector<edgeStub> > 
+AddressSpace::getStubs(const std::list<block_instance *> &owBBIs,
+                       const std::set<block_instance*> &delBBIs,
+                       const std::list<func_instance*> &deadFuncs)
 {
-    std::map<int_function*,vector<edgeStub> > stubs;
+    std::map<func_instance*,vector<edgeStub> > stubs;
+    assert(0 && "TODO");
+#if 0
+
     std::list<edgeStub> deadStubs;
     
-    for (list<int_block*>::const_iterator deadIter = owBBIs.begin();
+    for (list<block_instance*>::const_iterator deadIter = owBBIs.begin();
          deadIter != owBBIs.end(); 
          deadIter++) 
     {
         bool inDeadFunc = false;
-        for (list<int_function*>::const_iterator dfit = deadFuncs.begin();
+        for (list<func_instance*>::const_iterator dfit = deadFuncs.begin();
              dfit != deadFuncs.end(); dfit++) 
         {
-            if ((*deadIter)->func() == *dfit) {
-                inDeadFunc = true;
-                break;
-            }
+           if ((*deadIter)->func() == *dfit) {
+              inDeadFunc = true;
+              break;
+           }
         }
         if (inDeadFunc) {
             continue;
@@ -1948,17 +1969,17 @@ AddressSpace::getStubs(const std::list<int_block *> &owBBIs,
         using namespace ParseAPI;
         SingleContext epred_((*deadIter)->func()->ifunc(),true,true);
         Intraproc epred(&epred_);
-        image_basicBlock *curImgBlock = (*deadIter)->llb();
-        Block::edgelist & sourceEdges = curImgBlock->sources();
-        Block::edgelist::iterator eit = sourceEdges.begin(&epred);
+        parse_block *curImgBlock = (*deadIter)->llb();
+        ParseAPI::Block::edgelist & sourceEdges = curImgBlock->sources();
+        ParseAPI::Block::edgelist::iterator eit = sourceEdges.begin(&epred);
         Address baseAddr = (*deadIter)->start() 
             - curImgBlock->firstInsnOffset();
 
         // find all stub blocks for this edge
         for( ; eit != sourceEdges.end(); ++eit) {
-            image_basicBlock *sourceBlock = 
-                static_cast<image_basicBlock*>((*eit)->src());
-            int_block *src = (*deadIter)->func()->findBlockByEntry(baseAddr + sourceBlock->start());
+            parse_block *sourceBlock = 
+                static_cast<parse_block*>((*eit)->src());
+            block_instance *src = (*deadIter)->func()->findBlockByEntry(baseAddr + sourceBlock->start());
             assert(src);
 
             edgeStub st(src, 
@@ -1969,6 +1990,6 @@ AddressSpace::getStubs(const std::list<int_block *> &owBBIs,
             } 
         }
     }
-
+#endif
     return stubs;
 }

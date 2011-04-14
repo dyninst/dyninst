@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -50,116 +50,36 @@ class AstNode;
 class AstMiniTrampNode;
 class AddressSpace;
 
-typedef void (*miniTrampFreeCallback)(void *, miniTramp *);
+//typedef void (*miniTrampFreeCallback)(void *, miniTramp *);
 
 class miniTramp {
   friend class instPoint;
     // Global numbering of minitramps
   static int _id;
 
-  miniTramp();
+  miniTramp() {};
 
   public:
 
-  miniTramp(callWhen when_,
-            AstNodePtr ast,
-	    baseTramp *base,
-            bool noCost);
+  miniTramp(AstNodePtr ast, instPoint *point, bool recursive);
   
-  // Fork constructor
-  miniTramp(const miniTramp *parMini, baseTramp *childT, process *proc);
-  
-  ~miniTramp();
+  ~miniTramp() {};
+
+  bool uninstrument();
 
   // Given a child address space, get the corresponding miniTramp to us.
   miniTramp *getInheritedMiniTramp(process *child);
 
-  // Catchup...
+  instPoint *instP() const { return point_; }
 
-  // Returns true if newMT is "after" (later in the chain) than the
-  // curMT (and we're out-of-lining), _OR_ if the miniTramps
-  // are generated in-line (in which case we miss it
-  // completely). TODO: in-line needs to update this.
-  
-  static bool catchupRequired(miniTramp *curMT, miniTramp *newMT, bool active);
+  AstNodePtr ast() const { return ast_; }
+  bool recursive() const { return recursive_; }
 
-  // Generate the code necessary
-  // We use a single global image of a minitramp.
-  bool generateMT(registerSpace *rs);
-  codeGen miniTrampCode_;
-  
-  // The delete operator, just without delete. Uninstruments minis.
-  bool uninstrument();
+  private:
+  AstNodePtr ast_;
+  instPoint *point_;
+  bool recursive_;
 
-  unsigned get_size() const {
-    assert(returnOffset);
-    return returnOffset;
-  }
-
-  // Returns true if we were put in via a trap. Actually... returns if
-  // all miniTrampInstances have multiTramps that were trapped to.
-  // Since we can relocate (and not use a trap in one instance, but 
-  // do in another).
-  bool instrumentedViaTrap() const;
-
-  // Register a callback for when the mini is finally deleted...
-  void registerCallback(miniTrampFreeCallback cb, void *data) {
-    callback = cb;
-    callbackData = data;
-  };
-
-
-  // Returns true if all's well.
-  bool checkMTStatus();
-
-  int ID;                    // used to match up miniTramps in forked procs
-  Address returnOffset;      // Offset from base to the return addr
-  unsigned size_;
-
-  // Base tramp we're installed at
-  baseTramp *baseT;
-
-  // Sucks it out of the baseTramp
-  instPoint *instP() const;
-  int_function *func() const;
-
-  // instPs can go away... keep a local process pointer to let us
-  // use it in the future.
-
-  AddressSpace *proc_;
-
-  AddressSpace *proc() const { return proc_; }
-
-  // This is nice for back-tracking.
-  callWhen when; /* Pre or post */
-
-  int cost;		     // cost in cycles of this inst req.
-  bool noCost_;
-
-  /**
-   * When cleaning up minitramps and minitramp instances we could be doing a 
-   * bottom-up cleanup (delete an instance, which deletes a minitramp) during gc
-   * or top-down cleanup (delete a minitramp, which deletes an instance) when 
-   * instrumentation is removing.  If topDownDelete_ is set to true, we're removing
-   * instrumentation and the minitramp instance should not delete it's minitramp.
-   **/
-  bool topDownDelete_; 
-
-  // Make sure all jumps are consistent...
-  bool correctMTJumps();
-
-  // Previous and next minitramps
-  miniTramp *prev;
-  miniTramp *next;
-
-  // Material to check when deleting this miniTramp
-  miniTrampFreeCallback callback; /* Callback to be made when
-					instance is deleted */
-  void *callbackData;                /* Associated data */
-
-  bool deleteInProgress; // Don't double-delete
-
-  AstMiniTrampNodePtr ast_; // For regenerating miniTs
 };
 
 

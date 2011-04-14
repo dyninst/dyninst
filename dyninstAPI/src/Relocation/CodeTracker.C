@@ -30,8 +30,10 @@
  */
 
 #include "CodeTracker.h"
-#include "dyninstAPI/src/function.h" // for debug purposes
-#include "dyninstAPI/src/debug.h"
+#include "patchapi_debug.h"
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/block.h"
+#include "dyninstAPI/src/addressSpace.h"
 
 #include <iostream>
 
@@ -39,32 +41,74 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace std;
 
+CodeTracker::~CodeTracker() {
+   // Pile of deallocatable stuff
+   for (TrackerList::iterator iter = trackers_.begin();
+        iter != trackers_.end(); ++iter) {
+      delete (*iter);
+   }
+}
+
+CodeTracker *CodeTracker::fork(CodeTracker *parent, 
+                              AddressSpace *child) {
+   // Duplicate our tracking data structures.
+   CodeTracker *newCT = new CodeTracker();
+   for (TrackerList::iterator iter = parent->trackers_.begin();
+        iter != parent->trackers_.end(); ++iter) {
+      TrackerElement *pE = *iter;
+      TrackerElement *cE = NULL;
+      block_instance *cB = child->findBlock(pE->block()->llb());
+      func_instance *cF = (pE->func() ? child->findFunction(pE->func()->ifunc()) : NULL);
+      switch (pE->type()) {
+         case TrackerElement::original:
+            cE = new OriginalTracker(pE->orig(), cB, cF);
+            break;
+         case TrackerElement::emulated:
+            cE = new EmulatorTracker(pE->orig(), cB, cF);
+            break;
+         case TrackerElement::instrumentation: {
+            InstTracker *pI = static_cast<InstTracker *>(pE);
+            baseTramp *bt = baseTramp::fork(pI->baseT(), child);
+            cE = new InstTracker(pE->orig(), bt, cB, cF);
+            break;
+         }
+      }
+      cE->setReloc(pE->reloc());
+      cE->setSize(pE->size());
+      newCT->addTracker(cE);
+   }
+   return newCT;
+}
+
+
 bool CodeTracker::origToReloc(Address origAddr,
-			                  int_function *func,
-			                  RelocatedElements &reloc) const {
-  BFM_citer iter = origToReloc_.find(func->getAddress());
-  if (iter == origToReloc_.end()) return false;
+                              block_instance *block,
+                              func_instance *func,
+                              RelocatedElements &reloc) const {
+   ForwardMap::const_iterator iter = origToReloc_.find(block->start());
+   if (iter == origToReloc_.end()) return false;
 
-  const ForwardsMap &fm = iter->second;
-  FM_citer iter2 = fm.find(origAddr);
-  if (iter2 == fm.end()) return false;
+   FwdMapMiddle::const_iterator iter2 = iter->second.find((func ? func->addr() : 0));
+   if (iter2 == iter->second.end()) return false;
 
-  reloc = iter2->second;
-  return true;
+   FwdMapInner::const_iterator iter3 = iter2->second.find(origAddr);
+   if (iter3 == iter2->second.end()) return false;
+   
+   reloc = iter3->second;
+   return true;
 }
 
 bool CodeTracker::relocToOrig(Address relocAddr, 
-			                  Address &orig, 
-			                  int_block *&block,
-                              baseTrampInstance *&bti) const {
+                              RelocInfo &ri) const {
   TrackerElement *e = NULL;
   if (!relocToOrig_.find(relocAddr, e))
-    return false;
-  orig = e->relocToOrig(relocAddr);
-  block = e->block();
+     return false;
+  ri.orig = e->relocToOrig(relocAddr);
+  ri.block = e->block();
+  ri.func = e->func();
   if (e->type() == TrackerElement::instrumentation) {
      InstTracker *i = static_cast<InstTracker *>(e);
-     bti = i->baseT();
+     ri.bt = i->baseT();
   }
 
   return true;
@@ -111,30 +155,35 @@ void CodeTracker::createIndices() {
     relocToOrig_.insert(e->reloc(), e->reloc() + e->size(), e);
 
    if (e->type() == TrackerElement::instrumentation) {
-      origToReloc_[e->block()->func()->getAddress()][e->orig()].instrumentation = e->reloc();
+      origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].instrumentation = e->reloc();
    }
    else {
-      origToReloc_[e->block()->func()->getAddress()][e->orig()].instruction = e->reloc();
+      origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].instruction = e->reloc();
    }
   }
 
-  if (dyn_debug_reloc) debug();
+  if (patch_debug_relocation) debug();
 }
 
 void CodeTracker::debug() {
   cerr << "************ FORWARD MAPPING ****************" << endl;
 
-  for (BlockForwardsMap::iterator bfm_iter = origToReloc_.begin(); 
-       bfm_iter != origToReloc_.end(); ++bfm_iter) {
-     cerr << "\t Func @" << hex << bfm_iter->first << dec << endl;
-     for (ForwardsMap::iterator fm_iter = bfm_iter->second.begin();
-          fm_iter != bfm_iter->second.end(); ++fm_iter) {
-        cerr << "\t\t" << hex << fm_iter->first << " -> "
-             << fm_iter->second.instrumentation << "(instrumentation), " 
-             << fm_iter->second.instruction << "(instruction)" << dec << endl;
+  for (ForwardMap::const_iterator iter = origToReloc_.begin();
+       iter != origToReloc_.end(); ++iter) {
+     for (FwdMapMiddle::const_iterator iter2 = iter->second.begin();
+          iter2 != iter->second.end(); ++iter2) {
+        for (FwdMapInner::const_iterator iter3 = iter2->second.begin();
+             iter3 != iter2->second.end(); ++iter3) {
+           cerr << "\t\t" << hex \
+                << iter3->first 
+                << " -> " << iter3->second.instrumentation << "(bt), " 
+                << iter3->second.instruction << "(insn)"
+                << ", block @" << iter->first
+                << ", func @" << iter2->first << dec << endl;
+        }
      }
   }
-
+     
   cerr << "************ REVERSE MAPPING ****************" << endl;
 
   std::vector<ReverseMap::Entry> reverseEntries;
@@ -167,7 +216,7 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::Relocation::TrackerEle
     os << ",?";
     break;
   }
-  os << "," << e.block()->start() << "," << e.block()->func()->symTabName();
+  os << "," << e.block()->start() << "," << (e.func() ? e.func()->name() : "<NOFUNC>");
   os << ")" << dec;
   return os;
 }

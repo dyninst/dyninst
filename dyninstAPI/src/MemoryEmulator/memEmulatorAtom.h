@@ -33,6 +33,7 @@
 #define _R_E_MEM_EMULATOR_H_
 
 #include "dyninstAPI/src/Relocation/Atoms/Atom.h"
+#include "dyninstAPI/src/codegen.h"
 #include <stack>
 class registerSlot;
 
@@ -188,7 +189,7 @@ class MemEmulator : public Atom {
    Register effAddr;
    int stackOffset;
    int effAddrSaveOffset;
-   int_block *block;
+   block_instance *block;
 
    bool usesESI;
    bool usesEDI;

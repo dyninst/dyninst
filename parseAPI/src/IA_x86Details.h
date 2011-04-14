@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -55,7 +55,7 @@ namespace Dyninst
                 bool isMovAPSTable(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
                 std::pair<Address, Address> findThunkAndOffset(Dyninst::ParseAPI::Block * start);
                 bool isTableInsn(Dyninst::InstructionAPI::Instruction::Ptr i);
-                std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator findTableInsn();
+                IA_IAPI::allInsns_t::const_iterator findTableInsn();
                 boost::tuple<Dyninst::InstructionAPI::Instruction::Ptr,
                 Dyninst::InstructionAPI::Instruction::Ptr,
                 bool> findMaxSwitchInsn(Dyninst::ParseAPI::Block *start);

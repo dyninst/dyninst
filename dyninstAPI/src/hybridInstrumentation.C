@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -525,7 +525,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 			std::vector<ParseAPI::Function *> funcs;
 			curPoint->llpoint()->block()->llb()->getFuncs(funcs);
 			for (unsigned f_iter = 0; f_iter < funcs.size(); ++f_iter) {
-				if (((image_func *)funcs[f_iter])->init_retstatus() != ParseAPI::RETURN ||
+				if (((parse_func *)funcs[f_iter])->init_retstatus() != ParseAPI::RETURN ||
 					funcs[f_iter]->tampersStack() == ParseAPI::TAMPER_NONZERO) 
                 {
                     instrument = true;
@@ -571,10 +571,11 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                     // case 1: the point is at a return instruction
                     interp = BPatch_interpAsReturnAddr;
                     calcSnippet = & retAddrSnippet;
+                    Address s, e;
+                    func->getAddressRange(s, e);
                     mal_printf("monitoring return from func[%lx %lx] at %lx\n", 
-                                (long)func->getBaseAddr(), 
-                                (long)func->getBaseAddr() + func->getSize(), 
-                                (long)curPoint->getAddress());
+                               s, e,
+                               (long)curPoint->getAddress());
                 }
                 else if (curPoint->isDynamic()) {
                     // case 2: above check ensures that this is not a return 
@@ -816,43 +817,6 @@ bool HybridAnalysis::instrumentModules(bool useInsertionSet)
     return didInstrument;
 }
 
-// add instrumentation to trigger an original memory to shadow memory copy 
-// at blks, associated with an intermodule call at callPt
-void HybridAnalysis::origToShadowInstrumentation(BPatch_point *callPt, 
-                                                 const vector<int_block*> &blks)
-{
-    // Disabled in favor of entry/exit instrumentation
-    return;
-
-
-    proc()->beginInsertionSet();
-    for (vector<int_block*>::const_iterator bit = blks.begin();
-         bit != blks.end();
-         bit++) 
-    {
-        cerr << "\t For point " << hex << callPt->getAddress() << " calling into system lib, doing return inst at " << (*bit)->start() << dec << endl;
-        BPatch_function *bpFunc = proc()->findOrCreateBPFunc((*bit)->func(),NULL);
-        BPatch_point *ftPt = bpFunc->getPoint((*bit)->start());
-        cerr << "\t\t Instrumenting point " << hex << ftPt << "/" << ftPt->getAddress() << dec << endl;
-        assert(ftPt);
-        if (synchMap_post().end() == synchMap_post().find(ftPt)) {
-            BPatchSnippetHandle *handle = proc()->insertSnippet
-                (BPatch_stopThreadExpr(synchShadowOrigCB_wrapper, BPatch_constExpr(0)), 
-                 *ftPt,
-                 (ftPt->getPointType() == BPatch_locExit) ? BPatch_callAfter : BPatch_callBefore,
-                 BPatch_firstSnippet);
-            assert(handle);
-            cerr << "Adding handle to preSync @ " << hex << callPt << "/" << callPt->getAddress() << dec << endl;
-            synchMap_pre()[callPt]->setPostHandle(ftPt, handle);
-            synchMap_post()[ftPt] = synchMap_pre()[callPt];
-        }
-        else {
-            cerr << "\t\t Already have synch instrumentation, skipping" << endl;
-        }
-    }
-    proc()->finalizeInsertionSet(false);
-}
-
 /* Takes a point corresponding to a function call and continues the parse in 
  * the calling function after the call.  If there are other points that call
  * into this function resume parsing after those call functions as well. 
@@ -1010,7 +974,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         for (unsigned fidx=0; fidx < imgFuncs.size(); fidx++) 
         {
             BPatch_function *func = proc()->findOrCreateBPFunc(
-                proc()->lowlevel_process()->findFuncByInternalFunc((image_func*)imgFuncs[fidx]),
+                proc()->lowlevel_process()->findFunction((parse_func*)imgFuncs[fidx]),
                 NULL);
             removeInstrumentation(func, false, false);
             func->getCFG()->invalidate();
@@ -1092,7 +1056,7 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
         // rather than just blowing the function away of it
         // gets stomped in its entry block
         if (CALL == etype) {
-            int_function *tFunc = targObj->findFuncByEntry(target);
+            func_instance *tFunc = targObj->findFuncByEntry(target);
             assert(tFunc);
             if ( tFunc->ifunc()->hasWeirdInsns() ) {
                 malware_cerr << "Ignoring request as target function "
@@ -1177,15 +1141,14 @@ bool HybridAnalysis::analyzeNewFunction( BPatch_point *source,
 bool HybridAnalysis::hasEdge(BPatch_function *func, Address source, Address target)
 {
 // 0. first see if the edge needs to be parsed
-    int_block *block = func->lowlevel_func()->findBlockByEntry(source);
-    pdvector<int_block *> targBlocks; 
-    block->getTargets(targBlocks);
-    for (unsigned bidx=0; bidx < targBlocks.size(); bidx++) {
-        if (target == targBlocks[bidx]->start()) {
-            return true; // already parsed this edge, we're done!
-        }
-    }
-    return false;
+
+   block_instance *block = func->lowlevel_func()->obj()->findBlockByEntry(source);
+   const block_instance::edgelist &targets = block->targets();
+   for (block_instance::edgelist::iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+      if ((*iter)->trg()->start() == target)
+         return true;
+   }
+   return false;
 }
 
 // Does not reinsert instrumentation.  

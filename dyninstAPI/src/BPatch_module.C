@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -338,7 +338,7 @@ bool BPatch_module::getProceduresInt(BPatch_Vector<BPatch_function*> &funcs,
       return false;
 
    if (!full_func_parse || func_map.size() != mod->getFuncVectorSize()) {
-      const pdvector<int_function*> &funcs = mod->getAllFunctions();
+      const pdvector<func_instance*> &funcs = mod->getAllFunctions();
       for (unsigned i=0; i<funcs.size(); i++) {
          if (!func_map.count(funcs[i])) {
             addSpace->findOrCreateBPFunc(funcs[i], this);
@@ -361,7 +361,7 @@ bool BPatch_module::getProceduresInt(BPatch_Vector<BPatch_function*> &funcs,
  * Returns a vector of BPatch_function* with the same name that is provided or
  * NULL if no function with that name is in the module.  This function
  * searches the BPatch_function vector of the module followed by
- * the int_function of the module.  If a int_function is found
+ * the func_instance of the module.  If a func_instance is found
  * a BPatch_function is created and added to the BPatch_function vector of
  * the module.
  * name The name of function to look up.
@@ -389,7 +389,7 @@ BPatch_module::findFunctionInt(const char *name,
    // Do we want regex?
    if (dont_use_regex 
          ||  (NULL == strpbrk(name, REGEX_CHARSET))) {
-      pdvector<int_function *> int_funcs;
+      pdvector<func_instance *> int_funcs;
       if (mod->findFuncVectorByPretty(name, int_funcs)) {
          for (unsigned piter = 0; piter < int_funcs.size(); piter++) {
             if (incUninstrumentable || int_funcs[piter]->isInstrumentable()) 
@@ -446,10 +446,10 @@ BPatch_module::findFunctionInt(const char *name,
       // point, so it might as well be top-level. This is also an
       // excellent candidate for a "value-added" library.
 
-      const pdvector<int_function *> &int_funcs = mod->getAllFunctions();
+      const pdvector<func_instance *> &int_funcs = mod->getAllFunctions();
 
       for (unsigned ai = 0; ai < int_funcs.size(); ai++) {
-         int_function *func = int_funcs[ai];
+         func_instance *func = int_funcs[ai];
          // If it matches, push onto the vector
          // Check all pretty names (and then all mangled names if there is no match)
          bool found_match = false;
@@ -522,12 +522,12 @@ BPatch_module::findFunctionByAddressInt(void *addr, BPatch_Vector<BPatch_functio
    }
 
    BPatch_function *bpfunc = NULL;
-   std::set<int_function *> ifuncs;
+   std::set<func_instance *> ifuncs;
    mod->findFuncsByAddr((Address) addr, ifuncs);
 
-   for (std::set<int_function *>::iterator iter = ifuncs.begin(); 
+   for (std::set<func_instance *>::iterator iter = ifuncs.begin(); 
        iter != ifuncs.end(); ++iter) {
-        int_function *pdfunc = *iter; 
+        func_instance *pdfunc = *iter; 
         if (incUninstrumentable || pdfunc->isInstrumentable()) {
            bpfunc = addSpace->findOrCreateBPFunc(pdfunc, this);
           if (bpfunc) {
@@ -551,7 +551,7 @@ BPatch_function * BPatch_module::findFunctionByMangledInt(const char *mangled_na
 
    BPatch_function *bpfunc = NULL;
 
-   pdvector<int_function *> int_funcs;
+   pdvector<func_instance *> int_funcs;
    std::string mangled_str(mangled_name);
 
    if (!mod->findFuncVectorByMangled(mangled_str,
@@ -563,7 +563,7 @@ BPatch_function * BPatch_module::findFunctionByMangledInt(const char *mangled_na
             FILE__, __LINE__, mangled_name);
    }
 
-   int_function *pdfunc = int_funcs[0];
+   func_instance *pdfunc = int_funcs[0];
 
    if (incUninstrumentable || pdfunc->isInstrumentable()) {
       bpfunc = addSpace->findOrCreateBPFunc(pdfunc, this);
@@ -580,7 +580,7 @@ bool BPatch_module::dumpMangledInt(char * prefix)
 
 bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
 {
-    int_function *func = bpfunc->lowlevel_func();
+    func_instance *func = bpfunc->lowlevel_func();
 
     bool foundIt = false;
     BPatch_funcMap::iterator fmap_iter = func_map.find(func);
@@ -593,7 +593,7 @@ bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
     }
 
     if (deepRemoval) {
-        std::map<int_function*,int_block*> newFuncEntries;
+        std::map<func_instance*,block_instance*> newFuncEntries;
 
         //remove instrumentation from dead function
         bpfunc->removeInstrumentation(true);
@@ -602,8 +602,8 @@ bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
 
         // delete completely dead functions
         using namespace ParseAPI;
-        vector<pair<int_block*,Edge*> > deadFuncCallers; // build up list of live callers
-        Address funcAddr = func->getAddress();
+        vector<pair<block_instance*,Edge*> > deadFuncCallers; // build up list of live callers
+        Address funcAddr = func->addr();
         mal_printf("Removing function at %lx from mod %s\n", funcAddr, 
                    mod->fileName().c_str());
 
@@ -697,7 +697,7 @@ bool BPatch_module::getSourceLinesInt(unsigned long addr,
 
    if (!stmod->getSourceLines(lines_ll, addr - mod->obj()->codeBase()))
    {
-	   return false;
+      return false;
    }
 
    for (unsigned int j = 0; j < lines_ll.size(); ++j)

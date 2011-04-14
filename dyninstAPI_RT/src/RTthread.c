@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -232,7 +232,7 @@ void DYNINSTthreadDestroy()
 volatile int DYNINST_dummy_create_var;
 void DYNINST_dummy_create()
 {
-   /*   fprintf(stderr, "[%s:%u] - In DYNINST_dummy_create\n", __FILE__, __LINE__);*/
+   /*fprintf(stderr, "[%s:%u] - In DYNINST_dummy_create\n", __FILE__, __LINE__);*/
    DYNINST_dummy_create_var++;
 }
 

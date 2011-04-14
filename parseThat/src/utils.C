@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -33,10 +33,16 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <unistd.h>
 
 #include "config.h"
 #include "utils.h"
 #include "log.h"
+#include "ipc.h"
 
 #define MAX_RETRY 10
 #define INITIAL_STRLEN 1024
@@ -256,4 +262,94 @@ char *decodeStr(const char *s, char **end_ptr)
 
     if (end_ptr) *end_ptr = const_cast<char *>(s + i + 1);
     return buf;
+}
+
+static struct rusage ru_start;
+static void mark_usage(struct rusage *ru)
+{
+    getrusage(RUSAGE_SELF, ru);
+
+    struct stat s;
+    if (!ru->ru_maxrss && stat("/proc/self/status", &s) == 0) {
+        unsigned long vmRSS  = 0;
+
+        FILE *fp = fopen("/proc/self/status", "r");
+        if (!fp) return;
+
+        char buf[1024] = {0};
+        char *ptr = buf, *end = buf + sizeof(buf) - 1;
+        while (!feof(fp) && !ferror(fp)) {
+            int i = fread(ptr, sizeof(char), end - ptr, fp);
+            ptr[i+1] = '\0';
+
+            ptr = strstr(buf, "VmRSS:");
+            if (ptr) sscanf(ptr, "VmRSS: %lu", &vmRSS);
+
+            if (!feof(fp) && !ferror(fp)) {
+                ptr = strrchr(buf, '\n');
+                if (!ptr++) break;
+
+                for (i = 0; ptr + i < end; ++i) buf[i] = ptr[i];
+                ptr = buf + i;
+            }
+        }
+        fclose(fp);
+
+        if (vmRSS)
+            ru->ru_maxrss = vmRSS;
+    }
+}
+
+void track_usage()
+{
+    mark_usage(&ru_start);
+}
+
+#ifndef timersub
+#define timersub(b, a, r) \
+do { \
+    (r)->tv_sec = (b)->tv_sec - (a)->tv_sec;\
+    (r)->tv_usec = (b)->tv_usec -(a)->tv_usec;\
+    if((r)->tv_usec < 0) {\
+        (r)->tv_sec--;\
+        (r)->tv_usec += 1000000;\
+    } \
+} while(0)
+#endif
+
+#ifndef timeradd
+#define timeradd(b, a, r) \
+do { \
+    (r)->tv_sec = (b)->tv_sec + (a)->tv_sec;\
+    (r)->tv_usec = (b)->tv_usec + (a)->tv_usec;\
+    if((r)->tv_usec > 1000000) {\
+        (r)->tv_sec += (r)->tv_usec / 1000000;\
+        (r)->tv_usec = (r)->tv_usec % 1000000;\
+    } \
+} while(0)
+#endif
+
+void report_usage()
+{
+    struct rusage ru_end;
+    mark_usage(&ru_end);
+
+    timeval total_cpu;
+    timersub(&ru_end.ru_utime, &ru_start.ru_utime, &ru_end.ru_utime);
+    timersub(&ru_end.ru_stime, &ru_start.ru_stime, &ru_end.ru_stime);
+    timeradd(&ru_end.ru_utime, &ru_end.ru_stime, &total_cpu);
+    long total_mem = (ru_end.ru_maxrss - ru_start.ru_maxrss);
+    char cpubuf[32], membuf[32];
+    snprintf(cpubuf, sizeof(cpubuf), "CPU: %ld.%06ld",
+             total_cpu.tv_sec, total_cpu.tv_usec);
+    snprintf(membuf, sizeof(membuf), "MEMORY: %ld", total_mem);
+
+    if (config.printipc || !config.no_fork) {
+        sendMsg(config.outfd, ID_DATA_STRING, INFO, ID_INFO, cpubuf);
+        sendMsg(config.outfd, ID_DATA_STRING, INFO, ID_INFO, membuf);
+
+    } else if (config.no_fork) {
+        // Directly print if --suppress-ipc and -S options are used.
+        fprintf(config.outfd, "%s\n%s\n", cpubuf, membuf);
+    }
 }

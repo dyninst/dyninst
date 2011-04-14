@@ -31,12 +31,13 @@
 
 #include "ASTAtom.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/debug.h"
+#include "../patchapi_debug.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/instPoint.h"
-
-#include "../CodeTracker.h"
 #include "../CodeBuffer.h"
+#include "CFG.h"
+#include <string>
+#include "../CodeTracker.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -54,8 +55,8 @@ bool ASTAtom::generate(const codeGen &,
 }
 
 TrackerElement *ASTAtom::tracker() const {
-   OriginalTracker *e = new OriginalTracker(point_->addr(), point_->block());
-  return e;
+   OriginalTracker *e = new OriginalTracker(point_->nextExecutedAddr(), point_->block());
+   return e;
 }
 
 string ASTAtom::format() const {
@@ -65,7 +66,7 @@ string ASTAtom::format() const {
 // Could be a lot smarter here...
 bool AstPatch::apply(codeGen &gen, CodeBuffer *) {
   relocation_cerr << "\t\t AstPatch::apply" << endl;
-  registerSpace *localRegSpace = registerSpace::actualRegSpace(point, callPreInsn);
+  registerSpace *localRegSpace = registerSpace::actualRegSpace(point);
   gen.setRegisterSpace(localRegSpace);
 
   return ast->generateCode(gen, true);

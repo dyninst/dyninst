@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// A quick header file defining externally visible types from the Relocation
+// A quick header file defining externally visible types from the PatchAPI
 // namespace. This allows us to reduce cross-pollination of header files.
 
 

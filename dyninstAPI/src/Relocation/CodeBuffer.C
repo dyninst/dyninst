@@ -33,7 +33,7 @@
 #include "CodeTracker.h"
 #include "Atoms/Atom.h" //  Currently Patch is defined here; we may want to move it.
 
-#include "dyninstAPI/src/debug.h"
+#include "patchapi_debug.h"
 #include "dyninstAPI/src/codegen.h"
 #include <iostream>
 
@@ -45,7 +45,7 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
-const int CodeBuffer::Label::INVALID = -1;
+const unsigned CodeBuffer::Label::INVALID = (unsigned) -1;
 
 CodeBuffer::BufferElement::BufferElement() : addr_(0), size_(0), patch_(NULL), labelID_(Label::INVALID) {};
 
@@ -76,7 +76,7 @@ void CodeBuffer::BufferElement::setPatch(Patch *patch,
    patch_ = patch;
 }
 
-void CodeBuffer::BufferElement::setLabelID(int id) {
+void CodeBuffer::BufferElement::setLabelID(unsigned id) {
    assert(labelID_ == Label::INVALID);
    labelID_ = id;
 }
@@ -96,6 +96,8 @@ bool CodeBuffer::BufferElement::empty() {
    return true;
 }
 
+unsigned totalPadding = 0;
+
 bool CodeBuffer::BufferElement::generate(CodeBuffer *buf,
                                          codeGen &gen,
                                          int &shift,
@@ -113,26 +115,30 @@ bool CodeBuffer::BufferElement::generate(CodeBuffer *buf,
    if (patch_) {
       // Now things get interesting
       if (!patch_->apply(gen, buf)) {
+         cerr << "Error: failed to apply patch!" << endl;
          return false;
       }
    }
    unsigned newSize = gen.getDisplacement(start, gen.getIndex());
+
    if (newSize > size_) {
       shift += newSize - size_;
       size_ = newSize;
       regenerate = true;
    }
-   else {
-      // We don't want sizes to decrease or we can get stuck in generation
-      gen.fill(size_ - newSize, codeGen::cgNOP);
+#if 0
+   else if (newSize < size_) {
+      shift -= size_ - newSize;
+      size_ = newSize;
+      regenerate = true;
    }
-
+#endif
    //relocation_cerr << "BufferElement::generate, new size " << size_ << endl;
 
    return true;
 }
 
-bool CodeBuffer::BufferElement::extractTrackers(CodeTracker &t) {
+bool CodeBuffer::BufferElement::extractTrackers(CodeTracker *t) {
    // Update tracker information (address, size) and add it to the
    // CodeTracker we were handed in.
 
@@ -158,7 +164,7 @@ bool CodeBuffer::BufferElement::extractTrackers(CodeTracker &t) {
       Address relocAddr = iter->first + addr_;
       e->setReloc(relocAddr);
       e->setSize(size);
-      t.addTracker(e);
+      t->addTracker(e);
    }
 
    //relocation_cerr << "*** End tracker extraction from BufferElement" << endl;
@@ -170,12 +176,14 @@ CodeBuffer::CodeBuffer()
 
 CodeBuffer::~CodeBuffer() {};
 
-void CodeBuffer::initialize(const codeGen &templ) {
+void CodeBuffer::initialize(const codeGen &templ, unsigned numBlocks) {
    gen_.applyTemplate(templ);
+   // We don't start labels at 0.
+   labels_.resize(numBlocks+2);
 }
 
-int CodeBuffer::getLabel() {
-   int id = curLabelID_++;
+unsigned CodeBuffer::getLabel() {
+   unsigned id = curLabelID_++;
    // Labels must begin BufferElements, so if the current BufferElement
    // has anything in it, create a new one
    if (buffers_.empty() ||
@@ -184,19 +192,22 @@ int CodeBuffer::getLabel() {
    }
    buffers_.back().setLabelID(id);
 
+   if (id >= labels_.size()) labels_.resize(id+1);
+
    // Fill in our data structures as well
    labels_[id] = Label(Label::Relative, id, size_);
    
    return id;
 }
 
-int CodeBuffer::defineLabel(Address addr) {
+unsigned CodeBuffer::defineLabel(Address addr) {
    // A label for something that will not move
-   int id = curLabelID_++;
+   unsigned id = curLabelID_++;
 
    // Since it doesn't move it isn't part of the BufferElement sequence.
    
    // Instead, we update the Labels structure directly
+   if (id >= labels_.size()) labels_.resize(id+1);
    labels_[id] = Label(Label::Absolute, id, addr);
    return id;
 }
@@ -208,12 +219,10 @@ void CodeBuffer::addPIC(const unsigned char *input, unsigned size, TrackerElemen
 
 void CodeBuffer::addPIC(const void *input, unsigned size, TrackerElement *tracker) {
    addPIC((const unsigned char *)input, size, tracker);
-   size_ += size;
 }
 
 void CodeBuffer::addPIC(const codeGen &input, TrackerElement *tracker) {
    addPIC(input.start_ptr(), input.used(), tracker);
-   size_ += input.used();
 }
 
 void CodeBuffer::addPIC(Buffer buf, TrackerElement *tracker) {
@@ -234,7 +243,7 @@ CodeBuffer::BufferElement &CodeBuffer::current() {
    return buffers_.back();
 }
 
-bool CodeBuffer::extractTrackers(CodeTracker &t) {
+bool CodeBuffer::extractTrackers(CodeTracker *t) {
    for (Buffers::iterator iter = buffers_.begin();
         iter != buffers_.end(); ++iter) {
       if (!iter->extractTrackers(t)) return false;
@@ -253,7 +262,8 @@ bool CodeBuffer::generate(Address baseAddr) {
       shift_ = 0;
       gen_.invalidate();
       gen_.allocate(size_);
-      
+      totalPadding = 0;
+
       for (Buffers::iterator iter = buffers_.begin();
            iter != buffers_.end(); ++iter) {
          bool regenerate = false;
@@ -288,43 +298,43 @@ void CodeBuffer::disassemble() const {
    }
 }
 
-void CodeBuffer::updateLabel(int id, Address offset, bool &regenerate) {
-   Labels::iterator iter = labels_.find(id);
-   if (iter == labels_.end()) return;
-   if (!iter->second.valid()) return;
+void CodeBuffer::updateLabel(unsigned id, Address offset, bool &regenerate) {
+   if (id == -1) return;
 
-   if (id == -1) {
-      cerr << "Illegal ID that wasn't caught by validity check, spinning" << endl;
-      cerr << "Label info @ " << id << ":" << endl;
-      cerr << "\t" << labels_[id].addr << endl;
-      cerr << "\t" << labels_[id].iteration << endl;
-      cerr << "\t" << labels_[id].type << endl;
-      while(1);
+
+   if (id >= labels_.size()) {
+      cerr << "ERROR: id of " << id << " but only " << labels_.size() << " labels!" << endl;
    }
+   assert(id < labels_.size());
+   assert(id > 0);
+   Label &l = labels_[id];
+   if (!l.valid()) return;
 
    //relocation_cerr << "\t Updating label " << id 
 //                   << " -> " << hex << offset << dec << endl;
-   if (iter->second.addr != offset) {
+   if (l.addr != offset) {
       //relocation_cerr << "\t\t Old value " << hex << labels_[id].addr
 //                      << ", regenerating!" << dec << endl;
       regenerate = true;
    }
-   iter->second.addr = offset;
-   iter->second.iteration++;
-   iter->second.type = Label::Estimate;
+   l.addr = offset;
+   l.iteration++;
+   l.type = Label::Estimate;
 }
 
-Address CodeBuffer::getLabelAddr(int id) {
+Address CodeBuffer::getLabelAddr(unsigned id) {
    assert(generated_);
    shift_ = 0;
    return predictedAddr(id);
 }
 
-Address CodeBuffer::predictedAddr(int id) {
-   Labels::iterator iter = labels_.find(id);
-   assert(iter != labels_.end());
-
-   Label &label = iter->second;
+Address CodeBuffer::predictedAddr(unsigned id) {
+   if (id >= labels_.size()) {
+      cerr << "ERROR: id of " << id << " but only " << labels_.size() << " labels!" << endl;
+   }
+   assert(id < labels_.size());
+   assert(id > 0);
+   Label &label = labels_[id];
    switch(label.type) {
       case Label::Absolute:
          //relocation_cerr << "\t\t Requested predicted addr for " << id

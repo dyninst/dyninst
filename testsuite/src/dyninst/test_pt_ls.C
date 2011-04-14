@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -38,6 +38,7 @@
  * #Notes:
  */
 
+#include <cstdio>
 #include "BPatch.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
@@ -69,60 +70,89 @@ extern "C" DLLEXPORT TestMutator *test_pt_ls_factory()
 test_results_t test_pt_ls_Mutator::executeTest() 
 {
     char *binedit_dir = get_binedit_dir();
-	std::string prefix = std::string(binedit_dir) + std::string("/test_pt_ls");
-	std::string bin_outfile;
-	ParseThat parseThat;
-	parseThat.pt_output_redirect(prefix + std::string("_output1"));
-	parseThat.cmd_stdout_redirect(prefix + std::string("_stdout1"));
-	parseThat.cmd_stderr_redirect(prefix + std::string("_stderr1"));
+    std::string prefix = std::string(binedit_dir) + std::string("/test_pt_ls");
+    std::string bin_outfile;
+    ParseThat parseThat;
+    parseThat.pt_output_redirect(prefix + std::string("_output1"));
+    parseThat.cmd_stdout_redirect(prefix + std::string("_stdout1"));
+    parseThat.cmd_stderr_redirect(prefix + std::string("_stderr1"));
+    if (monitor) parseThat.measure_usage();
 
-	ParseThat parseThat2;
-	parseThat2.pt_output_redirect(prefix + std::string("_output2"));
-	parseThat2.cmd_stdout_redirect(prefix + std::string("_stdout2"));
-	parseThat2.cmd_stderr_redirect(prefix + std::string("_stderr2"));
+    ParseThat parseThat2;
+    parseThat2.pt_output_redirect(prefix + std::string("_output2"));
+    parseThat2.cmd_stdout_redirect(prefix + std::string("_stdout2"));
+    parseThat2.cmd_stderr_redirect(prefix + std::string("_stderr2"));
 
-	switch (runmode)
-	{
-		case CREATE:
-			break;
-		case USEATTACH:
-			return SKIPPED;
-		case DISK:
-			bin_outfile = prefix + std::string("_mutatee_out");
-			parseThat2.use_rewriter(bin_outfile);
-			break;
-		default:
-			fprintf(stderr, "%s[%d]:  bad runmode %d\n", FILE__, __LINE__, runmode);
-			return FAILED;
-	};
+    switch (runmode) {
+    case CREATE:
+        break;
+    case USEATTACH:
+        return SKIPPED;
+    case DISK:
+        bin_outfile = prefix + std::string("_mutatee_out");
+        parseThat2.use_rewriter(bin_outfile);
+        break;
+    default:
+        fprintf(stderr, "%s[%d]:  bad runmode %d\n", FILE__, __LINE__,
+                runmode);
+        return FAILED;
+    };
 
-	std::string cmd("/bin/ls");
+    std::string cmd("/bin/ls");
 
-	std::vector<std::string> args;
-	args.push_back(std::string("/"));
+    std::vector<std::string> args;
+    args.push_back(std::string("/"));
 
-	test_results_t res = parseThat(cmd, args);
+    test_results_t res;
+    if (runmode == CREATE) {
+        res = parseThat(cmd, args);
+    } else if (runmode == DISK) {
+        res = parseThat2(cmd, args);
 
-	if (res != PASSED)
-		return res;
+        if (res == PASSED) {
+            // parseThat2 _should_ execute the rewritten binary, but we
+            // also want to sanity check the execution.  At this (early)
+            // point, this is really just a crash detector since the
+            // parseThat output will not be present in the execution of
+            // the cmd when run w/out parseThat
 
-	if (runmode == DISK)
-	{
-		res = parseThat2(cmd, args);
+            std::string stdout3(prefix + std::string("_stdout3"));
+            std::string stderr3(prefix + std::string("_stderr3"));
+            res = ParseThat::sys_execute(bin_outfile, args, stdout3, stderr3);
+        }
+    }
 
-		if (res == PASSED)
-		{
-			//  parseThat2 _should_ execute the rewritten binary, but we also want to sanity
-			//  check the execution.  At this (early) point, this is really just a crash detector
-			//  since the parseThat output will not be present in the execution of the cmd
-			//  when run w/out parseThat
+    if (res == PASSED && monitor) {
+        // Memory and CPU from parseThat went to stdout, which is now
+        // saved in XXXX__output1.  Read the file, get the values, and
+        // store them in the variable "test".
+        std::string filename = prefix + std::string("_output1");
+        FILE *fp = fopen(filename.c_str(), "r");
+        if (fp) {
+            timeval c;
+            unsigned long m;
+            char buf[4096] = {0}, *ptr;
 
-			std::string stdout3(prefix + std::string("_stdout3"));
-			std::string stderr3(prefix + std::string("_stderr3"));
-			res = ParseThat::sys_execute(bin_outfile, args, stdout3, stderr3);
-		}
-	}
+            // We only need to check the tail end of the output file.
+            fseek(fp, 0, SEEK_END);
+            if (fseek(fp, -(sizeof(buf)-1), SEEK_CUR) != 0) rewind(fp);
+            fread(buf, sizeof(char), sizeof(buf)-1, fp);
 
-	return res;
+            ptr = strstr(buf, "CPU:");
+            if (ptr && sscanf(ptr, "CPU: %ld.%ld", &c.tv_sec, &c.tv_usec)==2) {
+                monitor->set(c);
+                monitor->complete();
+            }
+
+            ptr = strstr(buf, "MEMORY:");
+            if (ptr && sscanf(ptr, "MEMORY: %lu", &m)==1) {
+                monitor->set(m);
+                monitor->complete();
+            }
+
+            fclose(fp);
+        }
+    }
+
+    return res;
 }
-

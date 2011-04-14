@@ -35,12 +35,14 @@
 #include "memEmulatorTransformer.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/Relocation/Atoms/Atom.h"
-#include "dyninstAPI/src/Relocation/Atoms/CopyInsn.h"
+#include "dyninstAPI/src/Relocation/Atoms/InsnAtom.h"
 #include "memEmulatorAtom.h"
 #include "dyninstAPI/src/instPoint.h" // Memory insn modelling requirement.
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/h/BPatch_enums.h"
 #include <iomanip>
+#include "dyninstAPI/src/Relocation/Atoms/Trace.h"
+
 using namespace std;
 using namespace Dyninst;
 using namespace Relocation;
@@ -61,25 +63,24 @@ bool MemEmulatorTransformer::preprocess(TraceList &t) {
 
 // Replace all memory accesses to a non-statically-determinable
 // location with an emulation sequence
-bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
-  if (!((*iter)->bbl())) return true;
+bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter, const TraceMap &) {
+  if (!((*iter)->block())) return true;
   
-  // AssignmentConverter is written in terms of image_func,
+  // AssignmentConverter is written in terms of parse_func,
   // so translate
-  int_function *func = (*iter)->bbl()->func();
-  
+  func_instance *func = (*iter)->func();
 
   AtomList &elements = (*iter)->elements();
   
   for (AtomList::iterator e_iter = elements.begin();
        e_iter != elements.end(); ++e_iter) {
     // If we're not an instruction then skip...
-    CopyInsn::Ptr reloc = dyn_detail::boost::dynamic_pointer_cast<CopyInsn>(*e_iter);
-    if (!reloc) continue;
+     InsnAtom::Ptr reloc = dyn_detail::boost::dynamic_pointer_cast<Relocation::InsnAtom>(*e_iter);
+     if (!reloc) continue;
 
     relocation_cerr << "Memory emulation considering addr " << hex << reloc->addr() << dec << endl;
 
-    if (BPatch_defensiveMode != func->obj()->hybridMode() || !isSensitive(reloc, func, (*iter)->bbl())) {
+    if (BPatch_defensiveMode != func->obj()->hybridMode() || !isSensitive(reloc, func, (*iter)->block())) {
         relocation_cerr << "\t Not sensitive, skipping" << endl;
         continue;
     }
@@ -88,7 +89,7 @@ bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
        continue;
     }
 
-    Atom::Ptr replacement = createReplacement(reloc, func, (*iter)->bbl());
+    Atom::Ptr replacement = createReplacement(reloc, func, (*iter)->block());
     if (!replacement) return false;
     
     (*e_iter).swap(replacement);
@@ -96,8 +97,8 @@ bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
   return true;
 }
 
-bool MemEmulatorTransformer::canRewriteMemInsn(CopyInsn::Ptr reloc,
-					       int_function *func) {
+bool MemEmulatorTransformer::canRewriteMemInsn(InsnAtom::Ptr reloc,
+					       func_instance *func) {
   // Let's see if this is an instruction we can rewrite;
   // otherwise complain but let it through (for testing purposes)
    if (override(reloc))
@@ -118,7 +119,7 @@ bool MemEmulatorTransformer::canRewriteMemInsn(CopyInsn::Ptr reloc,
   return true;
 }
 
-bool MemEmulatorTransformer::override(CopyInsn::Ptr reloc) {
+bool MemEmulatorTransformer::override(InsnAtom::Ptr reloc) {
     unsigned char *buf = (unsigned char *)reloc->insn()->ptr();
     if ((unsigned char) 0xa0 <= buf[0] && 
         buf[0] <= (unsigned char) 0xa3) { 
@@ -159,30 +160,26 @@ bool MemEmulatorTransformer::override(CopyInsn::Ptr reloc) {
    return false;
 }
 
-Atom::Ptr MemEmulatorTransformer::createReplacement(CopyInsn::Ptr reloc,
-						       int_function *func, int_block *block) {
+Atom::Ptr MemEmulatorTransformer::createReplacement(InsnAtom::Ptr reloc,
+                                                    func_instance *func, 
+                                                    block_instance *block) {
   // MemEmulators want instPoints. How unreasonable.
-  instPoint *point = func->findInstPByAddr(reloc->addr());
-  if (!point) {
-    // bleah...
-    point = instPoint::createArbitraryInstPoint(reloc->addr(),
-						func->proc(),
-						func, block, true);
-    point->setInsn(reloc->insn());
-  }
-  if (!point) return Atom::Ptr();
-  
-  // Replace this instruction with a MemEmulator
-  Atom::Ptr memE = MemEmulator::create(reloc->insn(),
-				       reloc->addr(),
-				       point);
-  
-  return memE;
+   instPoint *point = instPoint::preInsn(func, block, reloc->addr());
+   if (!point) return Atom::Ptr();
+   
+   // Replace this instruction with a MemEmulator
+   Atom::Ptr memE = MemEmulator::create(reloc->insn(),
+                                        reloc->addr(),
+                                        point);
+   
+   return memE;
 }
 
-bool MemEmulatorTransformer::isSensitive(CopyInsn::Ptr reloc, int_function *func, int_block *block) {
+bool MemEmulatorTransformer::isSensitive(InsnAtom::Ptr reloc, 
+                                         func_instance *func, 
+                                         block_instance *block) {
 
-  image_func *ifunc = func->ifunc();  
+   parse_func *ifunc = func->ifunc();  
   Address image_addr = func->addrToOffset(reloc->addr());
 
   std::vector<Assignment::Ptr> assignments;

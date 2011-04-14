@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -51,7 +51,7 @@ class DefenseReport;
 class BPatchSnippetHandle;
 class BPatch_basicBlock;
 class BPatch_basicBlockLoop;
-class int_block;
+class block_instance;
 
 #if !defined(os_windows)
 // Compatibility definitions
@@ -146,8 +146,6 @@ private:
                             bool useInsertionSet, 
                             bool instrumentReturns=false,
                             bool syncShadow = false);
-    void origToShadowInstrumentation(BPatch_point *callPt, 
-                                     const std::vector<int_block*> &blks);
     bool parseAfterCallAndInstrument(BPatch_point *callPoint, 
                         BPatch_function *calledFunc) ;
     void removeInstrumentation(BPatch_function *func, 
@@ -346,7 +344,7 @@ private:
                               owLoop *loop);
 
     bool isRealStore(Dyninst::Address insnAddr, 
-                     int_block *blk, 
+                     block_instance *blk, 
                      BPatch_function *func);
 
     // variables

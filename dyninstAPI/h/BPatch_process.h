@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -58,7 +58,7 @@ class BPatch_process;
 class BPatch_point;
 class BPatch_funcMap;
 class BPatch_instpMap;
-class int_function;
+class func_instance;
 class rpcMgr;
 class HybridAnalysis;
 struct batchInsertionRecord;
@@ -271,9 +271,9 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     // this function should go away as soon as Paradyn links against Dyninst
     process *lowlevel_process() { return llproc; }
     // These internal funcs trigger callbacks registered to matching events
-    bool triggerStopThread(instPoint *intPoint, int_function *intFunc, 
+    bool triggerStopThread(instPoint *intPoint, func_instance *intFunc, 
                             int cb_ID, void *retVal);
-    bool triggerSignalHandlerCB(instPoint *point, int_function *func, long signum, 
+    bool triggerSignalHandlerCB(instPoint *point, func_instance *func, long signum, 
                                BPatch_Vector<Dyninst::Address> *handlers); 
     bool triggerCodeOverwriteCB(instPoint * faultPoint,
                                 Dyninst::Address faultTarget); 

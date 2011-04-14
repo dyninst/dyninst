@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -112,43 +112,6 @@ void initDefaultPointFrequencyTable()
     fclose(fp);
 #endif
 }
-
-/*
- * Get an etimate of the frequency for the passed instPoint.  
- *    This is not (always) the same as the function that contains the point.
- * 
- *  The function is selected as follows:
- *
- *  If the point is an entry or an exit return the function name.
- *  If the point is a call and the callee can be determined, return the called
- *     function.
- *  else return the funcation containing the point.
- *
- *  WARNING: This code contins arbitray values for func frequency (both user 
- *     and system).  This should be refined over time.
- *
- * Using 1000 calls sec to be one SD from the mean for most FPSPEC apps.
- *	-- jkh 6/24/94
- *
- */
-float getPointFrequency(instPoint *point)
-{
-
-    int_function *func;
-
-    func = point->findCallee();
-    if (!func)
-        func = point->func();
-    
-    if (!funcFrequencyTable.defines(func->prettyName().c_str())) {
-        // Changing this value from 250 to 100 because predictedCost was
-        // too high - naim 07/18/96
-        return(100);
-    } else {
-        return (funcFrequencyTable[func->prettyName().c_str()]);
-    }
-}
-
 
 int instPoint::liveRegSize()
 {
@@ -1387,7 +1350,7 @@ Update-12/06, njr, since we're going to a cached system we are just going to
 look at the first level and not do recursive, since we would have to also
 store and reexamine every call out instead of doing it on the fly like before*/
 bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
-                                       int_function * callee)
+                                       func_instance * callee)
 		   
 {
   unsigned i;
@@ -1459,14 +1422,14 @@ Register emitFuncCall(opCode, codeGen &, pdvector<AstNodePtr> &, bool, Address) 
 Register emitFuncCall(opCode op,
                       codeGen &gen,
                       pdvector<AstNodePtr> &operands, bool noCost,
-                      int_function *callee) {
+                      func_instance *callee) {
     return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
 }
 
 Register EmitterPOWERStat::emitCallReplacement(opCode /*ocode*/,
                                               codeGen &/*gen*/,
                                               bool /* noCost */,
-                                              int_function * /*callee*/) {
+                                              func_instance * /*callee*/) {
 	fprintf(stderr, "emitCallReplacement not implemented for binary rewriter \n");
 	assert (0);
 	return 0;
@@ -1475,7 +1438,7 @@ Register EmitterPOWERStat::emitCallReplacement(opCode /*ocode*/,
 Register EmitterPOWERDyn::emitCallReplacement(opCode ocode,
                                               codeGen &gen,
                                               bool /* noCost */,
-                                              int_function *callee) {
+                                              func_instance *callee) {
     // This takes care of the special case where we are replacing an existing
     // linking branch instruction.
     //
@@ -1514,7 +1477,7 @@ Register EmitterPOWERDyn::emitCallReplacement(opCode ocode,
     instruction blr(BRraw);
     insnCodeGen::generate(gen,blr);
 
-    int_function *caller = gen.point()->func();
+    func_instance *caller = gen.point()->func();
     Address toc_orig = gen.addrSpace()->proc()->getTOCoffsetInfo(caller);
     if (toc_new) {
         // Restore the original TOC value.
@@ -1534,7 +1497,7 @@ Register EmitterPOWERDyn::emitCallReplacement(opCode ocode,
 Register EmitterPOWER::emitCall(opCode ocode,
                                    codeGen &gen,
                                    const pdvector<AstNodePtr> &operands, bool noCost,
-                                   int_function *callee) {
+                                   func_instance *callee) {
 
     bool inInstrumentation = true;
 
@@ -1883,8 +1846,25 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
                             (src1 - 8) * sizeof(int) +
                             PARAM_OFFSET(addrWidth);
             } else {
-                stkOffset = TRAMP_FRAME_SIZE_64 +
-                            (src1 - 8) * sizeof(long) +
+	      // Linux ABI says:
+	      // Parameters go in the "argument save area", which starts at
+	      // PARAM_OFFSET(...). However, we'd save argument _0_ at the base
+	      // of it, so the first 8 slots are normally empty (as they go in
+	      // registers). To get the 9th, etc. argument you want
+	      // PARAM_OFFSET(...) + (8 * arg number) instead of
+	      // 8 * (arg_number - 8)
+	      // We can't test on AIX as of this writing; previously the 64-bit ppc
+	      // AIX code was subtracting 8 from the argument number.
+	      // Preserving that behavior here; failures will be reflected in test 1_36.
+#if defined(os_aix)
+	      int stackSlot =
+		src1 - 8;
+#else
+	      int stackSlot =
+		src1;
+#endif
+	      stkOffset = TRAMP_FRAME_SIZE_64 +
+                            stackSlot * sizeof(long) +
                             PARAM_OFFSET(addrWidth);
             }
 
@@ -2561,7 +2541,7 @@ bool doNotOverflow(int value)
 // quite make sense. Given the target address, we can scan the function
 // lists until we find the desired function.
 
-bool process::hasBeenBound(const SymtabAPI::relocationEntry &,int_function *&, Address ) {
+bool process::hasBeenBound(const SymtabAPI::relocationEntry &,func_instance *&, Address ) {
   // What needs doing:
   // Locate call instruction
   // Decipher call instruction (static/dynamic call, global linkage code)
@@ -2569,13 +2549,14 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &,int_function *&, A
   // Lookup target
   return false; // Haven't patched this up yet
 }
-#else
+
+#elif !defined(os_vxworks)
 // hasBeenBound: returns true if the runtime linker has bound the
 // function symbol corresponding to the relocation entry in at the address
 // specified by entry and base_addr.  If it has been bound, then the callee 
 // function is returned in "target_pdf", else it returns false.
 bool process::hasBeenBound(const SymtabAPI::relocationEntry &entry, 
-		int_function *&target_pdf, Address base_addr) 
+		func_instance *&target_pdf, Address base_addr) 
 {
 
 	if (status() == exited) return false;
@@ -2619,7 +2600,7 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 
 void emitFuncJump(opCode             , 
                   codeGen            &gen,
-                  int_function *func,
+                  func_instance *func,
                   AddressSpace       *proc,
                   const instPoint    *point,
                   bool)
@@ -2656,7 +2637,7 @@ void emitFuncJump(opCode             ,
     Address replacementTOC = 0;
     if(proc->proc()) {
     	currentTOC = proc->proc()->getTOCoffsetInfo(point->func());
-    	replacementTOC = proc->proc()->getTOCoffsetInfo(const_cast<int_function *>(func));
+    	replacementTOC = proc->proc()->getTOCoffsetInfo(const_cast<func_instance *>(func));
 
     	if (currentTOC &&
             (currentTOC != replacementTOC)) {
@@ -2768,7 +2749,10 @@ void emitFuncJump(opCode             ,
     // Load TOC from SP + 3W
     restoreRegisterAtOffset(gen, 2, 3*gen.addrSpace()->getAddressWidth());
 
-    // Make sure we do not "restore" Count Register
+    // Make sure we do not "restore" Count Register or the return value r3
+    for (unsigned i = 0; i < gen.rs()->numGPRs(); ++i)
+        if (gen.rs()->GPRs()[i]->name == "r3")
+            gen.rs()->GPRs()[i]->liveState = registerSlot::live;
     gen.bti()->baseT->generateRestores(gen, gen.rs(), NULL);
 
     // Return...
@@ -2845,7 +2829,10 @@ using namespace Dyninst::InstructionAPI;
 bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                                     pdvector<AstNodePtr> &args)
 {
-
+  static RegisterAST::Ptr ctr32(new RegisterAST(ppc32::ctr));
+  static RegisterAST::Ptr ctr64(new RegisterAST(ppc64::ctr));
+  static RegisterAST::Ptr lr32(new RegisterAST(ppc32::lr));
+  static RegisterAST::Ptr lr64(new RegisterAST(ppc64::lr));
     const Instruction::Ptr i = callSite->insn();
     Register branch_target = registerSpace::ignored;
 
@@ -2855,13 +2842,16 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
         curCFT != i->cft_end();
         ++curCFT)
     {
-        if(*(curCFT->target) == RegisterAST(ppc32::ctr))
+      if(curCFT->target->isUsed(ctr32) ||
+	 curCFT->target->isUsed(ctr64))
         {
             branch_target = registerSpace::ctr;
             break;
         }
-        else if(*(curCFT->target) == RegisterAST(ppc32::lr))
+      else if(curCFT->target->isUsed(lr32) ||
+	      curCFT->target->isUsed(lr64))
         {
+	  fprintf(stderr, "setting lr\n");
             branch_target = registerSpace::lr;
             break;
         }
@@ -2880,11 +2870,11 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
     }
     else
     {
-        return false;
+      return false;
     }
 }
 
-bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
+bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
 {
 #if defined(os_aix)
     Address buffer[3];
@@ -2964,7 +2954,7 @@ Emitter *AddressSpace::getEmitter()
  * XXX Is this a candidate to move into general parsing code, or is
  *     this properly a Dyninst-only technique?
  */
-bool image::updatePltFunc(image_func *caller_func, Address stub_addr)
+bool image::updatePltFunc(parse_func *caller_func, Address stub_addr)
 {
     unsigned int *stub;
     Address got2 = 0;
@@ -3257,7 +3247,7 @@ bool EmitterPOWERDyn::emitPIC(codeGen &gen, Address origAddr, Address relocAddr)
 
 }
 */
-bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, int_function* callee, bool /* setTOC */, Address) {
+bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, func_instance* callee, bool /* setTOC */, Address) {
 // 32 - No TOC 
 // if inter module, gen PIC code
 
@@ -3298,7 +3288,7 @@ bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, int_function* callee,
 }
 
 /*
-bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, int_function* callee, bool setTOC, Address) {
+bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, func_instance* callee, bool setTOC, Address) {
 // 32 - No TOC 
 // if inter module, gen PIC code
 
@@ -3314,13 +3304,13 @@ bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, int_function* callee,
     return true;
 }
 */
-bool EmitterPOWER64Stat::emitCallInstruction(codeGen& /*gen*/, int_function* /*callee*/, bool /*setTOC*/, Address) {
+bool EmitterPOWER64Stat::emitCallInstruction(codeGen& /*gen*/, func_instance* /*callee*/, bool /*setTOC*/, Address) {
    assert(0);
    return 0;
 }
 
 
-bool EmitterPOWERDyn::emitCallInstruction(codeGen &gen, int_function *callee, bool setTOC, Address toc_anchor) {
+bool EmitterPOWERDyn::emitCallInstruction(codeGen &gen, func_instance *callee, bool setTOC, Address toc_anchor) {
 
     bool needLongBranch = false;
     if (gen.startAddr() == (Address) -1) { // Unset...
@@ -3533,7 +3523,7 @@ void EmitterPOWER::emitMovPCToReg(Register dest, codeGen &gen)
 }
 
 
-Address Emitter::getInterModuleFuncAddr(int_function *func, codeGen& gen)
+Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
 {
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();
@@ -3544,7 +3534,7 @@ Address Emitter::getInterModuleFuncAddr(int_function *func, codeGen& gen)
         assert(!"Invalid function call (function info is missing)");
     }
 
-    // find the Symbol corresponding to the int_function
+    // find the Symbol corresponding to the func_instance
     std::vector<SymtabAPI::Symbol *> syms;
     func->ifunc()->func()->getSymbols(syms);
 

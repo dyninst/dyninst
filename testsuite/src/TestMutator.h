@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -32,18 +32,25 @@
 #define TEST_MUTATOR_H
 
 #include "test_lib.h"
+#include "test_info_new.h"
 
 // Base class for the mutator part of a test
 class TestMutator {
 public: 
-  TESTLIB_DLL_EXPORT TestMutator();
+  TESTLIB_DLL_EXPORT TestMutator() : monitor(NULL) {};
   TESTLIB_DLL_EXPORT virtual bool hasCustomExecutionPath();
   TESTLIB_DLL_EXPORT virtual test_results_t setup(ParameterDict &param);
   TESTLIB_DLL_EXPORT virtual test_results_t executeTest();
   TESTLIB_DLL_EXPORT virtual test_results_t postExecution();
   TESTLIB_DLL_EXPORT virtual test_results_t teardown();
-  TESTLIB_DLL_EXPORT virtual ~TestMutator();
+  TESTLIB_DLL_EXPORT virtual ~TestMutator() {};
+
+  TESTLIB_DLL_EXPORT virtual void measureUsage(UsageMonitor *m) {monitor = m;};
+
+protected:
+  UsageMonitor *monitor;
 };
+
 extern "C" {
 TESTLIB_DLL_EXPORT TestMutator *TestMutator_factory();
 }

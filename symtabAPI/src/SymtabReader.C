@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -50,8 +50,9 @@ SymtabReader::SymtabReader(const char *buffer, unsigned long size) :
    ref_count(1),
    mapped_regions(NULL)
 {
-   Symtab::openFile(symtab, (unsigned char*)const_cast<char *>(buffer), 
-                    size, symtab->file(), symtab->isDefensiveBinary());
+   Symtab::openFile(symtab, const_cast<char *>(buffer), 
+                    size, symtab->file(), 
+                    (symtab->isDefensiveBinary() ? Symtab::Defensive : Symtab::NotDefensive));
 }
 
 SymtabReader::~SymtabReader()

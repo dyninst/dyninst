@@ -32,6 +32,8 @@
 #if !defined(_MEMORY_EMULATOR_H_)
 #define _MEMORY_EMULATOR_H_
 
+#include "common/h/IntervalTree.h"
+
 class AddressSpace;
 class mapped_object;
 class int_variable;
@@ -62,8 +64,8 @@ class MemoryEmulator {
    std::pair<bool, Address> translateBackwards(Address addr);
    
     const std::map<Address,int> & getSpringboards(SymtabAPI::Region*) const;
-    void removeSpringboards(int_function* deadfunc);
-    void removeSpringboards(const int_block* deadBBI);
+    void removeSpringboards(func_instance* deadfunc);
+    void removeSpringboards(const block_instance* deadBBI);
     void addSpringboard(SymtabAPI::Region*, 
         Address offset,/*from start of region*/    
         int size);

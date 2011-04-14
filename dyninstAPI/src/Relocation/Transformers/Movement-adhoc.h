@@ -32,6 +32,7 @@
 #if !defined(_R_T_MOVEMENT_ADHOC_H_)
 #define _R_T_MOVEMENT_ADHOC_H_
 
+class AddressSpace;
 
 #include "Transformer.h"
 
@@ -46,9 +47,9 @@ class RelocInsn;
 class adhocMovementTransformer : public Transformer {
   typedef dyn_detail::boost::shared_ptr<RelocInsn> RelocInsnPtr;
  public:
-  virtual bool processTrace(TraceList::iterator &);
+  virtual bool processTrace(TraceList::iterator &, const TraceMap &);
 
- adhocMovementTransformer(AddressSpace *as) : addrSpace(as) {};
+  adhocMovementTransformer(AddressSpace *as) : addrSpace(as) {};
 
   virtual ~adhocMovementTransformer() {};
 
@@ -61,6 +62,7 @@ class adhocMovementTransformer : public Transformer {
   bool isGetPC(AtomPtr ptr,
 	       Absloc &aloc,
 	       Address &thunkAddr);
+
   // Used for finding call targets
   AddressSpace *addrSpace;
 };

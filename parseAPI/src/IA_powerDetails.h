@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -45,7 +45,6 @@ namespace Dyninst
         {
             class TOCandOffsetExtractor;
         }
-        class IA_IAPI;
         
         class IA_powerDetails : public IA_platformDetails
         {
@@ -63,7 +62,9 @@ namespace Dyninst
                 
                 dyn_detail::boost::shared_ptr<detail::TOCandOffsetExtractor> toc_visitor;
 		std::set<int> dfgregs;
-                std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator patternIter;
+                //std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator patternIter;
+                IA_IAPI::allInsns_t::const_iterator patternIter;
+                
                 bool tableIsRelative;
                 Address tableStartAddress;
                 Address adjustTableStartAddress;

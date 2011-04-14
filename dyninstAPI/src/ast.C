@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -201,7 +201,7 @@ AstNodePtr AstNode::funcCallNode(const std::string &func, pdvector<AstNodePtr > 
 {
    if (addrSpace) 
    {
-      int_function *ifunc = addrSpace->findOnlyOneFunction(func.c_str());
+      func_instance *ifunc = addrSpace->findOnlyOneFunction(func.c_str());
 
       if (ifunc == NULL) 
       {
@@ -216,12 +216,12 @@ AstNodePtr AstNode::funcCallNode(const std::string &func, pdvector<AstNodePtr > 
       return AstNodePtr(new AstCallNode(func, args));
 }
 
-AstNodePtr AstNode::funcCallNode(int_function *func, pdvector<AstNodePtr > &args) {
+AstNodePtr AstNode::funcCallNode(func_instance *func, pdvector<AstNodePtr > &args) {
     if (func == NULL) return AstNodePtr();
     return AstNodePtr(new AstCallNode(func, args));
 }
 
-AstNodePtr AstNode::funcCallNode(int_function *func) {
+AstNodePtr AstNode::funcCallNode(func_instance *func) {
     if (func == NULL) return AstNodePtr();
     return AstNodePtr(new AstCallNode(func));
 }
@@ -230,7 +230,7 @@ AstNodePtr AstNode::funcCallNode(Address addr, pdvector<AstNodePtr > &args) {
     return AstNodePtr(new AstCallNode(addr, args));
 }
 
-AstNodePtr AstNode::funcReplacementNode(int_function *func, bool emitCall) {
+AstNodePtr AstNode::funcReplacementNode(func_instance *func, bool emitCall) {
     if (func == NULL) return AstNodePtr();
     return AstNodePtr(new AstReplacementNode(func, emitCall));
 }
@@ -388,7 +388,7 @@ AstOperandNode::AstOperandNode(operandType ot, const image_variable* iv) :
 }
 
 
-AstCallNode::AstCallNode(int_function *func,
+AstCallNode::AstCallNode(func_instance *func,
                          pdvector<AstNodePtr > &args) :
     AstNode(),
     func_addr_(0),
@@ -402,7 +402,7 @@ AstCallNode::AstCallNode(int_function *func,
     }
 }
 
-AstCallNode::AstCallNode(int_function *func) :
+AstCallNode::AstCallNode(func_instance *func) :
     AstNode(),
     func_addr_(0),
     func_(func),
@@ -1238,7 +1238,6 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                   retReg = allocateAndKeep(gen, noCost);
                Register temp = gen.rs()->getScratchRegister(gen, noCost);
                addr = (Address) loperand->getOValue();
-	    
                emitVload(loadFrameAddr, addr, temp, retReg, gen,
                          noCost, gen.rs(), size, gen.point(), gen.addrSpace());
                break;
@@ -1601,7 +1600,6 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    case FrameAddr:
        addr = (Address) oValue;
        temp = gen.rs()->allocateRegister(gen, noCost);
-       
        emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
        gen.rs()->freeRegister(temp);
        break;
@@ -1662,7 +1660,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point());
         if (bpoint == NULL) {
             fprintf(stderr, "ERROR: Unable to find BPatch point for internal point %p/0x%lx\n",
-                    gen.point(), gen.point()->addr());
+                    gen.point(), gen.point()->insnAddr());
         }
         assert(bpoint);
         ma = bpoint->getMemoryAccess();
@@ -1729,7 +1727,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
 #if defined(arch_x86) || defined(arch_x86_64)
     // Our "everything" is "floating point registers".
     // We also need a function object.
-    int_function *callee = func_;
+    func_instance *callee = func_;
     if (!callee) {
         // Painful lookup time
         callee = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
@@ -1748,7 +1746,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
     if (callReplace_) return true;
 
     // This code really doesn't work right now...
-    int_function *callee = func_;
+    func_instance *callee = func_;
     if (!callee) {
         // Painful lookup time
         callee = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
@@ -1775,10 +1773,10 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
     // dependent fn which calls it back for each operand... Have to
     // fix those as well to pass location...
 
-    int_function *use_func = func_;
+    func_instance *use_func = func_;
 
     if (!use_func && !func_addr_) {
-        // We purposefully don't cache the int_function object; the AST nodes
+        // We purposefully don't cache the func_instance object; the AST nodes
         // are process independent, and functions kinda are.
         use_func = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
         if (!use_func) {
@@ -1965,7 +1963,7 @@ bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
     if (retReg == REG_NULL) return false;
 
     emitVload(loadConstOp, 
-              (Address) gen.point()->addr(),
+              (Address) gen.point()->nextExecutedAddr(),
               retReg, retReg, gen, noCost);
     return true;
 }
@@ -1991,42 +1989,40 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
                                             bool noCost,
                                             Address & retAddr,
                                             Register &retReg) {
+   if (gen.point()->type() != instPoint::PreCall &&
+       gen.point()->type() != instPoint::FuncExit &&
+       gen.point()->type() != instPoint::PreInsn) return false;
 
-#if defined(cap_instruction_api)
-    if(gen.point()->insn()->getCategory() == c_ReturnInsn) {
-#else
-    InstrucIter instruc(gen.point()->addr(), gen.addrSpace());
-    if (instruc.isAReturnInstruction()) {
-#endif        
-    // if this is a return instruction our AST reads the top stack value
-        if (retReg == REG_NULL) {
-            retReg = allocateAndKeep(gen, noCost);
-        }
-        if (retReg == REG_NULL) return false;
-
+   InstructionAPI::Instruction::Ptr insn = gen.point()->block()->getInsn(gen.point()->block()->last());
+   if (insn->getCategory() == c_ReturnInsn) {
+      // if this is a return instruction our AST reads the top stack value
+      if (retReg == REG_NULL) {
+         retReg = allocateAndKeep(gen, noCost);
+      }
+      if (retReg == REG_NULL) return false;
+      
 #if defined (arch_x86)
-        emitVload(loadRegRelativeOp, 
-                  (Address) sizeof(Address), 
-                  REGNUM_ESP, 
-                  retReg, 
-                  gen, noCost);
+      emitVload(loadRegRelativeOp, 
+                (Address) sizeof(Address), 
+                REGNUM_ESP, 
+                retReg, 
+                gen, noCost);
 #else 
-        assert(0); //TODO: unimplemented
+      assert(0); //TODO: unimplemented
 #endif
-        return true;
-    }
-    else {// this is a dynamic ctrl flow instruction, have
-          // getDynamicCallSiteArgs generate the necessary AST
-        pdvector<AstNodePtr> args;
-        if (!gen.addrSpace()->getDynamicCallSiteArgs
-            (const_cast<instPoint*>(gen.point()),args)) {
-            return false;
-        }
-		if (!args[0]->generateCode_phase2(gen, noCost, retAddr, retReg)) {
-			return false;
-			}
-		return true;			
-	}
+      return true;
+   }
+   else {// this is a dynamic ctrl flow instruction, have
+      // getDynamicCallSiteArgs generate the necessary AST
+      pdvector<AstNodePtr> args;
+      if (!gen.addrSpace()->getDynamicCallSiteArgs(insn, gen.point()->block()->last(), args)) {
+         return false;
+      }
+      if (!args[0]->generateCode_phase2(gen, noCost, retAddr, retReg)) {
+         return false;
+      }
+      return true;			
+   }
 }
 
 
@@ -2918,7 +2914,7 @@ void AstVariableNode::setVariableAST(codeGen &gen){
         index = 0;
         return;
     }
-    Address addr = gen.point()->addr();     //Offset of inst point from function base address
+    Address addr = gen.point()->nextExecutedAddr();     //Offset of inst point from function base address
     for(unsigned i=0; i< ranges_->size();i++){
         if((*ranges_)[i].first<=addr && addr<(*ranges_)[i].second)
             index = i;

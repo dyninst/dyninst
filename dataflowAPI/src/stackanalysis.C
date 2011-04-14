@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -538,7 +538,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, int sign, TransferFuncs 
 	   // FIXME: IAPI is treating the operand as unsigned, and thus a <long> conversion
 	   // comes out as a small positive number if the offset is negative. 
 	   // This should fix it...
-      long delta = sign * (long) res.convert<char>();
+      long delta = sign * (long) res.convert<unsigned char>();
       stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %lx\n", delta);
       xferFuncs.push_back(TransferFunc::deltaFunc(sp(), delta));   
    }

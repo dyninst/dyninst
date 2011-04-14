@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -115,8 +115,8 @@ bool HybridAnalysisOW::codeChangeCB
             vector<ParseAPI::Function*>::iterator fiter = funcs.begin();
             for ( ; fiter != funcs.end(); fiter++) {
                 Address fAddr = proc()->lowlevel_process()->
-                    findFuncByInternalFunc(dynamic_cast<image_func*>(*fiter))->
-                    getAddress();
+                   findFunction(dynamic_cast<parse_func*>(*fiter))->
+                   addr();
                 std::vector<BPatch_function*>::iterator bfiter=modfuncs.begin();
                 for (; bfiter != modfuncs.end(); bfiter++) {
                     if (fAddr == (Address)(*bfiter)->getBaseAddr()) {
@@ -412,11 +412,15 @@ void HybridAnalysisOW::owLoop::instrumentOneWrite(Address writeInsnAddr,
 
     for (unsigned fidx =0; fidx < writeFuncs.size(); fidx++) 
     {
-        // create instrumentation points
-        BPatch_point * writePoint = hybridow_->proc()->getImage()->
-                createInstPointAtAddr((void*)writeInsnAddr, 
-                                      NULL, 
-                                      writeFuncs[fidx]);
+       // We can afford to be really slow and precise in the lookup, as this is the
+       // very, very, very uncommon case.
+       block_instance *block = writeFuncs[fidx]->lowlevel_func()->obj()->findOneBlockByAddr(writeInsnAddr);
+       if (!block) continue;
+       instPoint *ip = instPoint::postInsn(writeFuncs[fidx]->lowlevel_func(),
+                                           block,
+                                           writeInsnAddr);
+       BPatch_point *writePoint = hybridow_->proc()->findOrCreateBPPoint(writeFuncs[fidx],
+                                                                         ip);
 
         // instrument and store the snippet handle
         BPatchSnippetHandle *snippetHandle = hybridow_->proc()->insertSnippet
@@ -1251,7 +1255,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 #endif
 
 
-bool HybridAnalysisOW::isRealStore(Address insnAddr, int_block *block, 
+bool HybridAnalysisOW::isRealStore(Address insnAddr, block_instance *block, 
                                    BPatch_function *func) 
 {
     using namespace InstructionAPI;
@@ -1262,7 +1266,7 @@ bool HybridAnalysisOW::isRealStore(Address insnAddr, int_block *block,
             			       proc()->lowlevel_process()->getArch());
     Instruction::Ptr insn = decoder.decode();
     assert(insn != NULL);
-    image_func *imgfunc = func->lowlevel_func()->ifunc(); 
+    parse_func *imgfunc = func->lowlevel_func()->ifunc(); 
     Address image_addr = func->lowlevel_func()->addrToOffset(insnAddr);
 
     std::vector<Assignment::Ptr> assignments;

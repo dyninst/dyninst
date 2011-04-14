@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -52,14 +52,21 @@
 #include "boost/assign/std/set.hpp"
 
 #include "common/h/arch-x86.h"
-#include "instructionAPI/h/Register.h"
 #include "dyn_regs.h"
+
+#if defined(os_vxworks)
+#include "common/h/wtxKludges.h"
+#endif
 
 using namespace std;
 using namespace boost::assign;
-using namespace Dyninst::InstructionAPI;
 
 namespace NS_x86 {
+
+unsigned int swapBytesIfNeeded(unsigned int i)
+{
+    return i;
+}
 
 // groups
 enum {
@@ -2750,8 +2757,6 @@ static void ia32_translate_for_64(ia32_entry** gotit_ptr)
 	*gotit_ptr == &oneByteMap[0x62] || // bound gv, ma
 	*gotit_ptr == &oneByteMap[0x82] || // group 1 eb/ib
 	*gotit_ptr == &oneByteMap[0x9A] || // call ap
-	*gotit_ptr == &oneByteMap[0x9E] || // sahf
-	*gotit_ptr == &oneByteMap[0x9F] || // lahf
 	*gotit_ptr == &oneByteMap[0xC4] || // les gz, mp
 	*gotit_ptr == &oneByteMap[0xC5] || // lds gz, mp
 	*gotit_ptr == &oneByteMap[0xCE] || // into
@@ -2843,7 +2848,14 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
       break;
     case t_prefixedSSE:
       sseidx = gotit->tabidx;
-      assert(addr[0] == 0x0F);
+      if(addr[0] != 0x0F)
+      {
+          // all valid SSE insns will have 0x0F as their first byte after prefix
+          instruct.size += 1;
+          addr += 1;
+          instruct.entry = &invalid;
+          return instruct;
+      }
       idx = addr[1];
       gotit = &twoByteMap[idx];
       nxtab = gotit->otable;
@@ -3287,7 +3299,7 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
 	    break;
 	  case 7:
 	    mac->size = 8;
-	    mac->write = true;
+	    mac->write = true; 
 	    break;
 	  }
 	  break; }
@@ -3449,8 +3461,8 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
     }
   }
   else { // 32-bit or 64-bit, may have SIB
-    if(mod == 3)
-      return 0; // only registers, no SIB
+     if(mod == 3)
+        return 0; // only registers, no SIB
     bool hassib = rm == 4;
     unsigned int nsib = 0;
     unsigned char sib;
@@ -4075,6 +4087,12 @@ unsigned get_instruction(const unsigned char* addr, unsigned &insnType,
 // find the target of a jump or call
 Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 		   Address addr) {
+#if defined(os_vxworks)
+    Address ret;
+    // FIXME requires vxworks in Dyninst
+    if (relocationTarget(addr+1, &ret))
+        return ret;
+#endif
   int disp = displacement(instr, type);
   return (Address)(addr + size + disp);
 }
@@ -4626,7 +4644,7 @@ bool instruction::getUsedRegs(pdvector<int> &regs) {
          regs.push_back(regused);
       }
       else if (op.admet == am_reg) {
-	using namespace Dyninst::InstructionAPI;
+	//using namespace Dyninst::InstructionAPI;
          //The instruction implicitely references a memory instruction
          switch (op.optype) {
              case x86::iah:   

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -1249,7 +1249,6 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 	vector<AstNodePtr> variableASTs;
 	vector<pair<Offset, Offset> > *ranges = new vector<pair<Offset, Offset> >;
 	vector<Dyninst::SymtabAPI::VariableLocation> &locs = lv->getSymtabVar()->getLocationLists();
-
 	for (unsigned i=0; i<locs.size(); i++)
 	{
 		AstNodePtr variableAst;

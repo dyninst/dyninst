@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -58,18 +58,17 @@
 
 typedef enum { TREE_RED, TREE_BLACK } color_t;
 
-class int_function;
-class int_block;
-class int_block;
+class func_instance;
+class block_instance;
+class block_instance;
 class image;
 class mapped_object;
-class baseTrampInstance;
-class image_func;
+class parse_func;
 class signal_handler_location;
 class functionReplacement;
 class replacedFunctionCall;
 class inferiorRPCinProgress;
-class image_basicBlock;
+class parse_block;
 
 class codeRange : public patchTarget {
   public:
@@ -93,18 +92,18 @@ class codeRange : public patchTarget {
     // so some people who don't like dynamic_cast don't have to be troubled
     // by it's use
     
-    // This is actually a fake; we don't have int_functions as
+    // This is actually a fake; we don't have func_instances as
     // code ranges. However, there are many times we want to know
     // if we're in a function, and this suffices. We actually do a
     // basic block lookup, then transform that into a function.
-    int_function *is_function();
-    int_block *is_basicBlock();
-    int_block *is_basicBlockInstance();
+    func_instance *is_function();
+    block_instance *is_basicBlock();
+    block_instance *is_basicBlockInstance();
 
     image *is_image();
     mapped_object *is_mapped_object();
-    image_func *is_image_func();
-    image_basicBlock *is_image_basicBlock();
+    parse_func *is_parse_func();
+    parse_block *is_parse_block();
     signal_handler_location *is_signal_handler_location();
     inferiorRPCinProgress *is_inferior_rpc();
 

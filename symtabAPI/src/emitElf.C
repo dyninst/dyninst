@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -990,7 +990,7 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
      */
   
     Elf32_Phdr * insert_phdr = NULL;
-   if(createNewPhdr && !added_new_sec) { 
+   if(createNewPhdr && !added_new_sec && firstNewLoadSec) { 
        	if(i+1 == oldEhdr->e_phnum) {
             // insert at end of phdrs
             insert_phdr = newPhdr+1;

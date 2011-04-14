@@ -40,12 +40,14 @@
 #include <set>
 #include <list>
 #include "common/h/IntervalTree.h"
+
 // Remove when I'm done debugging this...
 //#include "dyninstAPI/src/baseTramp.h"
 
-class int_block;
-class baseTrampInstance;
-class int_function;
+class baseTramp;
+class func_instance;
+class block_instance;
+class AddressSpace;
 
 namespace Dyninst {
 namespace Relocation {
@@ -59,9 +61,9 @@ class TrackerElement {
     emulated,
     instrumentation
   } type_t;
-  TrackerElement(Address o, int_block *b) 
+  TrackerElement(Address o, block_instance *b, func_instance *f = NULL) 
       : orig_(o), reloc_(0), size_(0), 
-      block_(b) {assert(o); assert(b);};
+     block_(b), func_(f) {assert(o); assert(b);};
   virtual ~TrackerElement() {};
 
   virtual Address relocToOrig(Address reloc) const = 0;
@@ -71,7 +73,8 @@ class TrackerElement {
   Address orig() const { return orig_; };
   Address reloc() const { return reloc_; };
   unsigned size() const { return size_; };
-  int_block *block() const { return block_; };
+  block_instance *block() const { return block_; };
+  func_instance *func() const { return func_; };
 
   void setReloc(Address reloc) { reloc_ = reloc; };
   void setSize(unsigned size) { size_ = size; }
@@ -82,13 +85,14 @@ class TrackerElement {
   Address orig_;
   Address reloc_;
   unsigned size_;
-  int_block *block_;
+  block_instance *block_;
+  func_instance *func_;
 };
 
 class OriginalTracker : public TrackerElement {
  public:
-  OriginalTracker(Address orig, int_block *b) :
-  TrackerElement(orig, b) {};
+  OriginalTracker(Address orig, block_instance *b, func_instance *f = NULL) :
+   TrackerElement(orig, b, f) {};
   virtual ~OriginalTracker() {};
 
   virtual Address relocToOrig(Address reloc) const {
@@ -110,8 +114,8 @@ class OriginalTracker : public TrackerElement {
 
 class EmulatorTracker : public TrackerElement {
  public:
- EmulatorTracker(Address orig, int_block *b) : 
-  TrackerElement(orig, b) {};
+  EmulatorTracker(Address orig, block_instance *b, func_instance *f = NULL) : 
+   TrackerElement(orig, b, f) {};
   virtual ~EmulatorTracker() {};
 
   virtual Address relocToOrig(Address reloc) const {
@@ -132,8 +136,8 @@ class EmulatorTracker : public TrackerElement {
 
 class InstTracker : public TrackerElement {
  public:
-  InstTracker(Address orig, baseTrampInstance *baseT, int_block *b) :
-   TrackerElement(orig, b), baseT_(baseT) {};
+  InstTracker(Address orig, baseTramp *baseT, block_instance *b, func_instance *f = NULL) :
+   TrackerElement(orig, b, f), baseT_(baseT) {};
   virtual ~InstTracker() {};
 
   virtual Address relocToOrig(Address reloc) const {
@@ -148,10 +152,10 @@ class InstTracker : public TrackerElement {
   }
 
   virtual type_t type() const { return TrackerElement::instrumentation; };
-  baseTrampInstance *baseT() const { return baseT_; };
+  baseTramp *baseT() const { return baseT_; };
 
  private:
-  baseTrampInstance *baseT_;
+  baseTramp *baseT_;
 };
 
 class CodeTracker {
@@ -162,28 +166,40 @@ class CodeTracker {
   RelocatedElements() : instruction(0), instrumentation(0) {};
   };
 
-  // I'd like to use an int_function * as a unique key element, but
-  // really can't because int_functions can be deleted and recreated.
+  // I'd like to use a block * as a unique key element, but
+  // really can't because blocks can be deleted and recreated.
   // Instead, I'm using their entry address - that's the address
   // in BlockForwardsMap. 
   // The ForwardsMap address is a straightforward "what's the data at this
   // particular address".
 
-  typedef Address UniqueFunctionID;
+  typedef Address FunctionEntryID;
+  typedef Address BlockEntryID;
 
   typedef std::list<TrackerElement *> TrackerList;
-  typedef std::map<Address, RelocatedElements> ForwardsMap;
-  typedef ForwardsMap::const_iterator FM_citer;
-  typedef std::map<UniqueFunctionID, ForwardsMap> BlockForwardsMap;
-  typedef BlockForwardsMap::const_iterator BFM_citer;
+  typedef std::map<Address, RelocatedElements> FwdMapInner;
+  typedef std::map<FunctionEntryID, FwdMapInner> FwdMapMiddle;
+  typedef std::map<BlockEntryID, FwdMapMiddle> ForwardMap;
+
   typedef class IntervalTree<Address, TrackerElement *> ReverseMap;
 
 
   CodeTracker() {};
-  ~CodeTracker() {};
+  ~CodeTracker();
 
-  bool origToReloc(Address origAddr, int_function *func, RelocatedElements &relocs) const;
-  bool relocToOrig(Address relocAddr, Address &orig, int_block *&block, baseTrampInstance *&baseT) const;
+  static CodeTracker *fork(CodeTracker *parent, AddressSpace *child);
+
+  struct RelocInfo {
+     Address orig;
+     Address reloc;
+     block_instance *block;
+     func_instance *func;
+     baseTramp *bt; 
+  RelocInfo() : orig(0), reloc(0), block(NULL), func(NULL), bt(NULL) {};
+  };
+
+  bool origToReloc(Address origAddr, block_instance *block, func_instance *func, RelocatedElements &relocs) const;
+  bool relocToOrig(Address relocAddr, RelocInfo &ri) const;
 
   TrackerElement *findByReloc(Address relocAddr) const;
 
@@ -200,9 +216,9 @@ class CodeTracker {
 
  private:
 
-  // We make this int_function specific to handle shared
+  // We make this block specific to handle shared
   // code
-  BlockForwardsMap origToReloc_;
+  ForwardMap origToReloc_;
   ReverseMap relocToOrig_;
 
   TrackerList trackers_;

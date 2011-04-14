@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -50,7 +50,7 @@ unsigned ProcDebugLinux::getAddressWidth()
    return sizeof(void *);
 }
 
-#define USER_OFFSET_OF(register) ((signed int) &(((struct user *) NULL)->regs.register))
+#define USER_OFFSET_OF(register) ((signed long) &(((struct user *) NULL)->regs.register))
 
 static long int getRegOffset(Dyninst::MachRegister reg, int addr_width)
 {

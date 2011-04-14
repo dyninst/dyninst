@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -52,6 +52,7 @@
 const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
 const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
 const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
+const char DL_OPEN_LIBC_FUNC_EXPORTED[] = "__libc_dlopen_mode";
 
 #define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
 
@@ -489,7 +490,7 @@ Frame Frame::getCallerFrame()
   bool noFrame = false;
 
   codeRange *range = getRange();
-  int_function *func = range->is_function();
+  func_instance *func = range->is_function();
 
   if (uppermost_) {
     if (func) {
@@ -768,8 +769,8 @@ bool process::handleTrapAtEntryPointOfMain(dyn_lwp *trappingLWP)
 bool process::insertTrapAtEntryPointOfMain()
 {
     // copied from aix.C
-    int_function *f_main = NULL;
-    pdvector<int_function *> funcs;
+    func_instance *f_main = NULL;
+    pdvector<func_instance *> funcs;
     bool res = findFuncsByPretty("main", funcs);
     if (!res) {
         // we can't instrument main - naim
@@ -822,12 +823,13 @@ Address process::getLibcStartMainParam(dyn_lwp *) { assert(0); }
 
 bool process::loadDYNINSTlib()
 {
-    pdvector<int_function *> dlopen_funcs;
+    pdvector<func_instance *> dlopen_funcs;
 
     if (findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) {
         return loadDYNINSTlib_exported();
-    }
-    else {
+    }else if( findFuncsByAll(DL_OPEN_LIBC_FUNC_EXPORTED, dlopen_funcs)) {
+        return loadDYNINSTlib_exported();
+    }else {
         return loadDYNINSTlib_hidden();
     }
 }
@@ -855,7 +857,7 @@ bool process::loadDYNINSTlibCleanup(dyn_lwp *trappingLWP)
 
 
 
-bool process::loadDYNINSTlib_exported(const char *)
+bool process::loadDYNINSTlib_exported(const char *, int)
 {
     // This functions was implemented by mixing parts of
     // process::loadDYNINSTlib() in aix.C and
@@ -873,10 +875,12 @@ bool process::loadDYNINSTlib_exported(const char *)
     Address dyninstlib_str_addr = 0;
     Address dlopen_call_addr = 0;
 
-    pdvector<int_function *> dlopen_funcs;
+    pdvector<func_instance *> dlopen_funcs;
     if (!findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) {
-        startup_cerr << "Couldn't find method to load dynamic library" << endl;
-        return false;
+        if (!findFuncsByAll(DL_OPEN_LIBC_FUNC_EXPORTED, dlopen_funcs)) {
+            startup_cerr << "Couldn't find method to load dynamic library" << endl;
+            return false;
+        }
     }
 
     assert(dlopen_funcs.size() != 0);
@@ -884,7 +888,7 @@ bool process::loadDYNINSTlib_exported(const char *)
         logLine("WARNING: More than one dlopen found, using the first\n");
     }
     //Address dlopen_addr = dlopen_funcs[0]->getAddress();
-    int_function *dlopen_func = dlopen_funcs[0];  //aix.C
+    func_instance *dlopen_func = dlopen_funcs[0];  //aix.C
 
     // We now fill in the scratch code buffer with appropriate data
     codeGen scratchCodeBuffer(BYTES_TO_SAVE);
@@ -1008,10 +1012,10 @@ bool process::loadDYNINSTlib_hidden() {
   Address dlopen_call_addr = 0;
   Address do_dlopen_struct_addr = 0;
 
-  pdvector<int_function *> dlopen_funcs;
+  pdvector<func_instance *> dlopen_funcs;
   if (!findFuncsByAll(DL_OPEN_FUNC_NAME, dlopen_funcs))
   {
-    pdvector<int_function *> dlopen_int_funcs;
+    pdvector<func_instance *> dlopen_int_funcs;
 
     // If we can't find the do_dlopen function (because this library
     // is stripped, for example), try searching for the internal
@@ -1053,7 +1057,7 @@ bool process::loadDYNINSTlib_hidden() {
   }
 
   Address dlopen_addr = dlopen_funcs[0]->getAddress();
-  int_function *dlopen_func = dlopen_funcs[0];  //aix.C
+  func_instance *dlopen_func = dlopen_funcs[0];  //aix.C
 
   assert(dyninstRT_name.length() < BYTES_TO_SAVE);
   startup_cerr << "Dyninst RT lib name: " << dyninstRT_name << endl;

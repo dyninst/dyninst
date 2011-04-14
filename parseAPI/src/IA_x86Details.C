@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -187,7 +187,7 @@ bool IA_x86Details::isTableInsn(Instruction::Ptr i)
     return false;
 }
         
-std::map<Address, Instruction::Ptr>::const_iterator IA_x86Details::findTableInsn() 
+IA_IAPI::allInsns_t::const_iterator IA_x86Details::findTableInsn() 
 {
     // Check whether the jump is our table insn!
     Expression::Ptr cft = currentBlock->curInsn()->getControlFlowTarget();
@@ -204,12 +204,11 @@ std::map<Address, Instruction::Ptr>::const_iterator IA_x86Details::findTableInsn
             if(z.isDefined() && z.getResult())
             {
                 parsing_printf("\tAddress in jump\n");
-                return currentBlock->allInsns.find(currentBlock->current);
+                return currentBlock->curInsnIter;
             }
         }
     }
-    std::map<Address, Instruction::Ptr>::const_iterator c =
-            currentBlock->allInsns.find(currentBlock->current);
+    IA_IAPI::allInsns_t::const_iterator c = currentBlock->curInsnIter;
     while(!isTableInsn(c->second) && c != currentBlock->allInsns.begin())
     {
         --c;
@@ -220,6 +219,28 @@ std::map<Address, Instruction::Ptr>::const_iterator IA_x86Details::findTableInsn
     }
     return currentBlock->allInsns.end();
 }
+
+namespace {
+    IA_IAPI::allInsns_t::const_iterator 
+    search_insn_vec(Address a, IA_IAPI::allInsns_t const& v)
+    {
+        if(v.empty())
+            return v.end();
+        int first = 0;
+        int last = v.size()-1;
+        while(last >= first) {
+            int c = (first+last)/2;
+            if(v[c].first == a)
+                return v.begin() + c;
+            else if(a < v[c].first)
+                last = c-1;
+            else
+                first = c+1;
+        }
+        return v.end();
+    }
+}
+
         
 // This should only be called on a known indirect branch...
 bool IA_x86Details::parseJumpTable(Block* currBlk,
@@ -237,7 +258,7 @@ bool IA_x86Details::parseJumpTable(Block* currBlk,
     bool foundJCCAlongTaken = false;
     Instruction::Ptr tableInsn;
     Address tableInsnAddr;
-    std::map<Address, Instruction::Ptr>::const_iterator tableLoc = findTableInsn();
+    IA_IAPI::allInsns_t::const_iterator tableLoc = findTableInsn();
     if(tableLoc == currentBlock->allInsns.end())
     {
         parsing_printf("\tunable to find table insn\n");
@@ -257,8 +278,23 @@ bool IA_x86Details::parseJumpTable(Block* currBlk,
     boost::tie(thunkInsnAddr, thunkOffset) = findThunkAndOffset(currBlk);
     if(thunkInsnAddr != 0)
     {
-        std::map<Address, Instruction::Ptr>::const_iterator thunkLoc =
-                currentBlock->allInsns.find(thunkInsnAddr);
+        /*
+         * FIXME
+         * Noticed 2/8/2011
+         *
+         * Although findThunkAndOffset looks outside of the current block,
+         * this code only looks at the instructions within the current
+         * block. One of these things is the wrong thing to do.
+         * I don't understand what the goal of this code is; clearly thorough
+         * code review is required. --nater
+         */
+
+        // XXX this is the only place where an actual search 
+        //     through allInsns is required; as per the previous 
+        //     comment, I think something is wrong here anyway
+        IA_IAPI::allInsns_t::const_iterator thunkLoc =
+            search_insn_vec(thunkInsnAddr,currentBlock->allInsns);
+
         if(thunkLoc != currentBlock->allInsns.end())
         {
             if(thunkLoc->second && thunkLoc->second->getOperation().getID() == e_lea)
@@ -281,7 +317,7 @@ bool IA_x86Details::parseJumpTable(Block* currBlk,
     {
         return false;
     }
-    std::map<Address, Instruction::Ptr>::const_iterator cur = currentBlock->allInsns.find(currentBlock->current);
+    IA_IAPI::allInsns_t::const_iterator cur = currentBlock->curInsnIter;
     
     while(tableLoc != cur)
     {
@@ -366,8 +402,10 @@ bool IA_x86Details::parseJumpTable(Block* currBlk,
         }
     }
     Address tableBase = getTableAddress(tableInsn, tableInsnAddr, thunkOffset);
-    std::map<Address, Instruction::Ptr>::const_iterator findSubtract =
-            currentBlock->allInsns.find(tableInsnAddr);
+
+    IA_IAPI::allInsns_t::const_iterator findSubtract =
+        search_insn_vec(tableInsnAddr,currentBlock->allInsns);
+
     int offsetMultiplier = 1;
     while(findSubtract->first < currentBlock->current)
     {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -103,15 +103,6 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
 
 private:
     
-    static BPatch_point* createInstructionInstPoint(//BPatch_process *proc,
-                                                    BPatch_addressSpace *addSpace,
-						    void*address,
-                                                    BPatch_function* bpf = NULL);
-    // Create a set of points, all that match a given op in the given instruciter.
-
-    static BPatch_Vector<BPatch_point *> *getPoints(const BPatch_Set<BPatch_opCode> &ops,
-                                                    InstrucIter &ii,
-                                                    BPatch_function *bpf);
     BPatch_addressSpace *addSpace;
     AddressSpace *lladdSpace;
     BPatch_function	*func;
@@ -178,13 +169,12 @@ public:
 
     // Internal functions, DO NOT USE.
     // Hack to get edge information. DO NOT USE.
-    const BPatch_edge *edge() const { return edge_; }
+    BPatch_edge *edge() const { return edge_; }
     bool isReturnInstruction();
     static BPatch_procedureLocation convertInstPointType_t(int intType);
     instPoint *llpoint() { return point; } 
     bool getCFTargets(BPatch_Vector<Dyninst::Address> &targets);
     Dyninst::Address getCallFallThroughAddr();
-    void setResolved();
     bool patchPostCallArea();
     // End internal functions
 

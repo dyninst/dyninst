@@ -29,6 +29,7 @@ extern "C" {
 std::string lineStr;
 static char *input_str = NULL;  
 
+
 int yycolumn = 0;
 
 extern bool fatalError;
@@ -83,14 +84,12 @@ char|int|long|float|double|short|void|bool { yylval.sval = strdup(yytext); retur
 "static" { return(STATIC); }
 "switch" { return(SWITCH); }
 "typedef" { return(TYPEDEF); }
-"true" { return(TRUE); }
-"false" { return(FALSE); }
+"true" { return(D_TRUE); }
+"false" { return(D_FALSE); }
 
 "local" { return(LOCAL); }
 "param" { return(PARAM); }
-"thread" { return(THREAD); }
 "global" { return(GLOBAL); }
-"machine" { return(MACHINE); }
 "dyninst" { return(DYNINST); }
 "inst" { return(INST); }
 "inf" { return(INF); }

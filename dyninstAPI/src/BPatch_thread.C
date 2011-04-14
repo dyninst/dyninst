@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -301,7 +301,7 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
    if (doa || is_deleted) {
       return NULL;
    }
-   int_function *ifunc = llthread->get_start_func();
+   func_instance *ifunc = llthread->get_start_func();
 
    if (!ifunc && llthread->get_indirect_start_addr())
    {

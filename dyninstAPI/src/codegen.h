@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -43,12 +43,9 @@ using namespace NS_sparc;
 #elif defined(arch_power)
 #include "codegen-power.h"
 using namespace NS_power;
-#elif defined(i386_unknown_solaris2_5) \
-   || defined(i386_unknown_nt4_0) \
-   || defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4) \
-   || (defined(os_freebsd) \
-       && (defined(arch_x86) || defined(arch_x86_64)))
+#elif defined(i386_unknown_nt4_0) \
+   || defined(arch_x86)           \
+   || defined(arch_x86_64)
 #include "codegen-x86.h"
 using namespace NS_x86;
 #else
@@ -76,11 +73,10 @@ class regTracker_t;
 class AstNode;
 class Emitter;
 class pcRelRegion;
-class int_function;
+class func_instance;
 class generatedCodeObject;
-class baseTrampInstance;
 class baseTramp;
-class int_block;
+class block_instance;
 
 // Code generation
 // This class wraps the actual code generation mechanism: we keep a buffer
@@ -180,6 +176,8 @@ class codeGen {
     // Since we have a known size
     void fillRemaining(int fillType);
 
+    std::string format() const;
+
     //Add a new PCRelative region that should be generated after 
     // addresses are fixed
     void addPCRelRegion(pcRelRegion *reg);
@@ -216,9 +214,9 @@ class codeGen {
     void setPoint(instPoint *i) { ip_ = i; }
     void setRegTracker(regTracker_t *t) { t_ = t; }
     void setCodeEmitter(Emitter *emitter) { emitter_ = emitter; }
-    void setFunction(int_function *f) { f_ = f; }
+    void setFunction(func_instance *f) { f_ = f; }
     void setObj(generatedCodeObject *object) { obj_ = object; }
-    void setBTI(baseTrampInstance *i) { bti_ = i; }
+    void setBT(baseTramp *i) { bt_ = i; }
     void setInInstrumentation(bool i) { inInstrumentation_ = i; }
 
     dyn_lwp *lwp() const;
@@ -227,8 +225,8 @@ class codeGen {
     AddressSpace *addrSpace() const;
     Address startAddr() const { return addr_; }
     instPoint *point() const;
-    baseTrampInstance *bti() const { return bti_; }
-    int_function *func() const;
+    baseTramp *bt() const { return bt_; }
+    func_instance *func() const;
     registerSpace *rs() const;
     regTracker_t *tracker() const;
     Emitter *codeEmitter() const;
@@ -252,8 +250,8 @@ class codeGen {
     // SD-DYNINST
     // 
     typedef std::pair<Address, unsigned> Extent;
-    void registerDefensivePad(int_block *, Address, unsigned);
-    std::map<int_block *, Extent> &getDefensivePads() { return defensivePads_; }
+    void registerDefensivePad(block_instance *, Address, unsigned);
+    std::map<block_instance *, Extent> &getDefensivePads() { return defensivePads_; }
     
     // Immediate uninstrumentation
     void registerInstrumentation(baseTramp *bt, Address loc) { instrumentation_[bt] = loc; }
@@ -282,8 +280,8 @@ class codeGen {
     regTracker_t *t_;
     Address addr_;
     instPoint *ip_;
-    int_function *f_;
-    baseTrampInstance *bti_;
+    func_instance *f_;
+    baseTramp *bt_;
     bool isPadded_;
 
     bitArray regsDefined_;
@@ -296,7 +294,7 @@ class codeGen {
     std::vector<relocPatch> patches_;
     std::vector<pcRelRegion *> pcrels_;
 
-    std::map<int_block *, Extent> defensivePads_;
+    std::map<block_instance *, Extent> defensivePads_;
     std::map<baseTramp *, Address> instrumentation_;
     std::map<baseTramp *, Address> removedInstrumentation_;
 };

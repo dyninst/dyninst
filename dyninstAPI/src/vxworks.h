@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2004 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -8,35 +8,25 @@
  * obligation to supply such updates or modifications or any other
  * form of support to you.
  * 
- * This license is for research uses.  For such uses, there is no
- * charge. We define "research use" to mean you may freely use it
- * inside your organization for whatever purposes you see fit. But you
- * may not re-distribute Paradyn or parts of Paradyn, in any form
- * source or binary (including derivatives), electronic or otherwise,
- * to any other organization or entity without our permission.
- * 
- * (for other uses, please contact us at paradyn@cs.wisc.edu)
- * 
- * All warranties, including without limitation, any warranty of
- * merchantability or fitness for a particular purpose, are hereby
- * excluded.
- * 
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
  * 
- * Even if advised of the possibility of such damages, under no
- * circumstances shall we (or any other person or entity with
- * proprietary rights in the software licensed hereunder) be liable
- * to you or any third party for direct, indirect, or consequential
- * damages of any character regardless of type of action, including,
- * without limitation, loss of profits, loss of use, loss of good
- * will, or computer failure or malfunction.  You agree to indemnify
- * us (and any other person or entity with proprietary rights in the
- * software licensed hereunder) for any and all liability it may
- * incur to third parties resulting from your use of Paradyn.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 // $Id: linux.h,v 1.37 2007/12/04 18:05:24 legendre Exp $
@@ -166,10 +156,82 @@ class WaitpidMux {
    bool hasFirstTimer(SignalGenerator *me);
 };
 
+#if defined(arch_power)
 struct dyn_saved_regs
-{  
-    long gprs[32];      // 32 general purpose registers plus most SPRs
-    long sprs[4];       // msr, lr, ctr, pc
+{
+    unsigned int iu[36]; // 36 regs in WTX_REG_SET_IU (Integer Unit)
 };
+
+enum dyn_wtx_iu_reg_map
+{
+    WTX_REG_R0 = 0,
+    WTX_REG_R1,
+    WTX_REG_R2,
+    WTX_REG_R3,
+    WTX_REG_R4,
+    WTX_REG_R5,
+    WTX_REG_R6,
+    WTX_REG_R7,
+    WTX_REG_R8,
+    WTX_REG_R9,
+    WTX_REG_R10,
+    WTX_REG_R11,
+    WTX_REG_R12,
+    WTX_REG_R13,
+    WTX_REG_R14,
+    WTX_REG_R15,
+    WTX_REG_R16,
+    WTX_REG_R17,
+    WTX_REG_R18,
+    WTX_REG_R19,
+    WTX_REG_R20,
+    WTX_REG_R21,
+    WTX_REG_R22,
+    WTX_REG_R23,
+    WTX_REG_R24,
+    WTX_REG_R25,
+    WTX_REG_R26,
+    WTX_REG_R27,
+    WTX_REG_R28,
+    WTX_REG_R29,
+    WTX_REG_R30,
+    WTX_REG_R31,
+    WTX_REG_MSR,
+    WTX_REG_LR,
+    WTX_REG_CTR,
+    WTX_REG_PC
+};
+
+#define WTX_REG_IU_PC WTX_REG_PC
+#define WTX_REG_IU_SP WTX_REG_R1
+#define WTX_REG_IU_FP WTX_REG_R31
+
+#elif defined(arch_x86)
+struct dyn_saved_regs
+{
+    unsigned int iu[12]; // 12 regs in WTX_REG_SET_IU (Integer Unit)
+};
+
+enum dyn_wtx_iu_reg_map
+{
+    WTX_REG_EDI = 0,
+    WTX_REG_ESI,
+    WTX_REG_EBP,
+    WTX_REG_ESP,
+    WTX_REG_EBX,
+    WTX_REG_EDX,
+    WTX_REG_ECX,
+    WTX_REG_EAX,
+    WTX_REG_EFLAGS,
+    WTX_REG_EIP,
+    WTX_REG_STATUS,
+    WTX_REG_UNKNOWN
+};
+
+#define WTX_REG_IU_PC WTX_REG_EIP
+#define WTX_REG_IU_SP WTX_REG_ESP
+#define WTX_REG_IU_FP WTX_REG_EBP
+
+#endif
 
 #endif

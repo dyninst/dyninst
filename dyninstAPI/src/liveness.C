@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -34,7 +34,7 @@
 #if defined(cap_liveness)
 
 #include "debug.h"
-#include "image-func.h"
+#include "parse-cfg.h"
 #include "function.h"
 #include "instPoint.h"
 #include "registerSpace.h"
@@ -55,8 +55,8 @@ using namespace Dyninst::InstructionAPI;
 #include "Parsing.h"
 using namespace Dyninst::ParseAPI;
 
-ReadWriteInfo calcRWSets(Instruction::Ptr insn, image_basicBlock* blk, unsigned width, Address a);
-InstructionCache image_basicBlock::cachedLivenessInfo = InstructionCache();
+ReadWriteInfo calcRWSets(Instruction::Ptr insn, parse_block* blk, unsigned width, Address a);
+InstructionCache parse_block::cachedLivenessInfo = InstructionCache();
 
   
 
@@ -75,42 +75,42 @@ void registerSpace::specializeSpace(const bitArray &liveRegs) {
     // to the liveRegs input set. We handle this as a special case, and
     // look only for the flags representation (which is used to set
     // the IA32_FLAG_VIRTUAL_REGISTER "register"
-    assert(liveRegs.size() == getBitArray().size());
-    if (addr_width == 4) {
-        for (unsigned i = 1; i <= NUM_VIRTUAL_REGISTERS; i++) {
-            registers_[i]->liveState = registerSlot::dead;
-        }
-        registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState = registerSlot::dead;
-        for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
-            if (liveRegs[i]) {
-                registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState = registerSlot::live;
-                break;
-            }
-        }
-
-	for (unsigned i = 0; i < realRegisters_.size(); ++i) {
-	  if (liveRegs[realRegisters_[i]->number])
+   assert(liveRegs.size() == getBitArray().size());
+   if (addr_width == 4) {
+      for (unsigned i = 1; i <= NUM_VIRTUAL_REGISTERS; i++) {
+         registers_[i]->liveState = registerSlot::dead;
+      }
+      registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState = registerSlot::dead;
+      for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
+         if (liveRegs[i]) {
+            registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState = registerSlot::live;
+            break;
+         }
+      }
+      
+      for (unsigned i = 0; i < realRegisters_.size(); ++i) {
+         if (liveRegs[realRegisters_[i]->number])
 	    realRegisters_[i]->liveState = registerSlot::live;
-	  else
+         else
 	    realRegisters_[i]->liveState = registerSlot::dead;
-	}
-
-        // All we care about for now.
-        return;
-    }
+      }
+      
+      // All we care about for now.
+      return;
+   }
 #endif
-    assert(liveRegs.size() == getBitArray().size());
-    for (regDictIter i = registers_.begin(); i != registers_.end(); i++) {
-        if (liveRegs[i.currval()->number])
-            i.currval()->liveState = registerSlot::live;
-        else
-        {
-            i.currval()->liveState = registerSlot::dead;
-        }
-    }
+   assert(liveRegs.size() == getBitArray().size());
+   for (regDictIter i = registers_.begin(); i != registers_.end(); i++) {
+      if (liveRegs[i.currval()->number])
+         i.currval()->liveState = registerSlot::live;
+      else
+      {
+         i.currval()->liveState = registerSlot::dead;
+      }
+   }
 }
 
-const bitArray &image_basicBlock::getLivenessIn(image_func * context) {
+const bitArray &parse_block::getLivenessIn(parse_func * context) {
     // Calculate if it hasn't been done already
     if (in.size() == 0)
         summarizeBlockLivenessInfo(context);
@@ -118,7 +118,7 @@ const bitArray &image_basicBlock::getLivenessIn(image_func * context) {
     return in;
 }
 
-const bitArray image_basicBlock::getLivenessOut(image_func * context) {
+const bitArray parse_block::getLivenessOut(parse_func * context) {
     bitArray out(in.size());
     assert(out.size());
     // ignore call, return edges
@@ -135,10 +135,10 @@ const bitArray image_basicBlock::getLivenessOut(image_func * context) {
         if ((*eit)->type() == CATCH) continue;
         
         // TODO: multiple entry functions and you?
-        out |= ((image_basicBlock*)(*eit)->trg())->getLivenessIn(context);
+        out |= ((parse_block*)(*eit)->trg())->getLivenessIn(context);
     }
     
-    liveness_cerr << " Returning liveness " << endl;
+    liveness_cerr << " Returning liveness for out " << endl;
     liveness_cerr << "  ?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
     liveness_cerr << "  ?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
     liveness_cerr << "  " << out << endl;
@@ -147,7 +147,7 @@ const bitArray image_basicBlock::getLivenessOut(image_func * context) {
     return out;
 }
 
-void image_basicBlock::summarizeBlockLivenessInfo(image_func *context) 
+void parse_block::summarizeBlockLivenessInfo(parse_func *context) 
 {
    if(in.size())
    {
@@ -208,7 +208,7 @@ void image_basicBlock::summarizeBlockLivenessInfo(image_func *context)
 
 /* This is used to do fixed point iteration until 
    the in and out don't change anymore */
-bool image_basicBlock::updateBlockLivenessInfo(image_func * context) 
+bool parse_block::updateBlockLivenessInfo(parse_func * context) 
 {
   bool change = false;
 
@@ -239,15 +239,15 @@ bool image_basicBlock::updateBlockLivenessInfo(image_func * context)
 }
 
 // Calculate basic block summaries of liveness information
-// TODO: move this to an image_func level. 
+// TODO: move this to an parse_func level. 
 
-void image_func::calcBlockLevelLiveness() {
+void parse_func::calcBlockLevelLiveness() {
     if (livenessCalculated_) return;
 
     // Step 1: gather the block summaries
     Function::blocklist::iterator sit = blocks().begin();
     for( ; sit != blocks().end(); sit++) {
-        ((image_basicBlock*)(*sit))->summarizeBlockLivenessInfo(this);
+        ((parse_block*)(*sit))->summarizeBlockLivenessInfo(this);
     }
     
     // We now have block-level summaries of gen/kill info
@@ -257,7 +257,7 @@ void image_func::calcBlockLevelLiveness() {
     while (changed) {
         changed = false;
         for(sit = blocks().begin(); sit != blocks().end(); sit++) {
-            if (((image_basicBlock*)(*sit))->updateBlockLivenessInfo(this)) {
+            if (((parse_block*)(*sit))->updateBlockLivenessInfo(this)) {
                 changed = true;
             }
         }
@@ -276,9 +276,10 @@ void image_func::calcBlockLevelLiveness() {
 void instPoint::calcLiveness() {
    // Assume that the presence of information means we
    // did this already.
-   if (postLiveRegisters_.size()) {
+   if (liveRegs_.size()) {
       return;
    }
+
    // First, ensure that the block liveness is done.
    func()->ifunc()->calcBlockLevelLiveness();
 
@@ -289,17 +290,71 @@ void instPoint::calcLiveness() {
      //Unresolved indirect jumps could go anywhere.  
      //We'll be the most conservative possible in these cases, since
      //we're missing control flow.
-     postLiveRegisters_ = (registerSpace::getRegisterSpace(width)->getAllRegs());
-     return;
+      liveRegs_ = (registerSpace::getRegisterSpace(width)->getAllRegs());
+      return;
+   }
+
+   // This gets interesting with the new point definition, as "where" we are
+   // really depends on the type of point. We're going to use an address as
+   // the great equalizer.
+
+   Address addr;
+   // For "pre"-instruction we subtract one from the address. This is done
+   // because liveness is calculated backwards; therefore, accumulating
+   // up to <addr> is actually the liveness _after_ that instruction, not
+   // before. Since we compare using > below, -1 means it will trigger. 
+
+   switch(type()) {
+      // First, don't be dumb if we're looking at (effectively) an initial
+      // instruction of a CFG element.
+      case FuncEntry:
+         liveRegs_ = func()->entryBlock()->llb()->getLivenessIn(func()->ifunc());
+         return;
+      case BlockEntry:
+         liveRegs_ = block()->llb()->getLivenessIn(func()->ifunc());
+         return;
+      case Edge:
+         liveRegs_ = edge()->trg()->llb()->getLivenessIn(func()->ifunc());
+         return;
+      case FuncExit:
+         // It would be great to use getLivenessOut, but it doesn't work
+         // because we rely on the _return instruction_ to do liveness
+         // calcs. Instead, we assign addr_ to ->last(). 
+         // ... and subtract 1 so that we get pre-insn liveness.
+         addr = block()->last() - 1;
+         break;
+      case PostCall:
+         liveRegs_ = block()->llb()->getLivenessOut(func()->ifunc());
+         return;
+
+      case PreInsn:
+         if (addr_ == block()->start()) {
+            liveRegs_ = block()->llb()->getLivenessIn(func()->ifunc());
+            return;
+         }
+         else addr = addr_ - 1;
+         break;
+      case PostInsn:
+         if (addr_ == block()->last()) {
+            liveRegs_ = block()->llb()->getLivenessOut(func()->ifunc());
+            return;
+         }
+         else {
+            addr = addr_;
+         }
+         break;
+      case PreCall:
+         addr = block()->last() - 1;
+         break;
+      default:
+         assert(0);
+         break;
    }
 
    // We know: 
    //    liveness _out_ at the block level:
-   const bitArray &block_out = block()->llb()->getLivenessOut(func()->ifunc());
-
-   postLiveRegisters_ = block_out;
-
-   assert(postLiveRegisters_.size());
+   bitArray working = block()->llb()->getLivenessOut(func()->ifunc());
+   assert(!working.empty());
 
    // We now want to do liveness analysis for straight-line code. 
         
@@ -332,118 +387,45 @@ void instPoint::calcLiveness() {
    } while(curInsnAddr < blockEnd);
     
     
-   // We iterate backwards over instructions in the block. 
+   // We iterate backwards over instructions in the block, as liveness is 
+   // a backwards flow process.
 
    std::vector<Address>::reverse_iterator current = blockAddrs.rbegin();
 
-   //liveness_printf("%s[%d] instPoint calcLiveness: %d, 0x%lx, 0x%lx\n", 
-   //                FILE__, __LINE__, current != blockAddrs.rend(), *current, addr());
+   liveness_printf("%s[%d] instPoint calcLiveness: %d, 0x%lx, 0x%lx\n", 
+                   FILE__, __LINE__, current != blockAddrs.rend(), *current, addr);
 
-   while(current != blockAddrs.rend() && *current > addr())
+   while(current != blockAddrs.rend() && *current > addr)
    {
-      // Cache it in the instPoint we just covered (if such exists)
-      instPoint *possiblePoint = func()->findInstPByAddr(*current);
-      if (possiblePoint) {
-         if (possiblePoint->postLiveRegisters_.size() == 0) {
-            possiblePoint->postLiveRegisters_ = postLiveRegisters_;
-         }
-      }
-      
       ReadWriteInfo rwAtCurrent;
-      if(block()->llb()->cachedLivenessInfo.getLivenessInfo(*current, func()->ifunc(), rwAtCurrent))
-      {
-	liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
-			FILE__, __LINE__, addr(), *current);
-        //liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
-        //liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
-        liveness_cerr << "Pre:    " << postLiveRegisters_ << endl;
-	
-	postLiveRegisters_ &= (~rwAtCurrent.written);
-	postLiveRegisters_ |= rwAtCurrent.read;
-	liveness_cerr << "Post:   " << postLiveRegisters_ << endl;
-      
-	++current;
-      }
-      else
-      {
-	Instruction::Ptr tmp = decoder.decode((const unsigned char*)(block()->getPtrToInstruction(*current)));
-	rwAtCurrent = calcRWSets(tmp, block()->llb(), width, *current);
-	assert(!"SERIOUS ERROR: read/write info cache state inconsistent");
-	liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
-			FILE__, __LINE__, addr(), *current);
-	liveness_cerr << "Pre:  " << postLiveRegisters_ << endl;
-	
-	postLiveRegisters_ &= (~rwAtCurrent.written);
-	postLiveRegisters_ |= rwAtCurrent.read;
-	liveness_cerr << "Post: " << postLiveRegisters_ << endl;
-	
-	++current;
-      }
-      
-   }
-   stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
+      if(!block()->llb()->cachedLivenessInfo.getLivenessInfo(*current, func()->ifunc(), rwAtCurrent))
+         assert(0);
 
-   assert(postLiveRegisters_.size());
+      liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
+                      FILE__, __LINE__, addr, *current);
+      //liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
+      //liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
+      liveness_cerr << "Pre:    " << working << endl;
+      
+      working &= (~rwAtCurrent.written);
+      working |= rwAtCurrent.read;
+      liveness_cerr << "Post:   " << working << endl;
+      
+      ++current;
+   }
+   assert(!working.empty());
+
+   liveRegs_ = working;
+   stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
 
    return;
 }
 
 
 // It'd be nice to do the calcLiveness here, but it's defined as const...
-bitArray instPoint::liveRegisters(callWhen when) {
-    // postLiveRegisters_ is our _output_ liveness. If the 
-    // instrumentation is pre-point, we need to update it with
-    // the effects of this instruction.
-
-    unsigned width = func()->ifunc()->img()->getObject()->getAddressWidth();
-
-    // Override: if we have an unparsed jump table in the _function_,
-    // return "everything could be live".
-    if (func()->ifunc()->instLevel() == HAS_BR_INDIR ||
-        func()->ifunc()->instLevel() == UNINSTRUMENTABLE) {
-        bitArray allOn(registerSpace::getBitArray().size());
-        allOn.set();
-        return allOn;
-    }
-        
-    calcLiveness();
-
-    if ((when == callPostInsn) ||
-        (when == callBranchTargetInsn)) {
-        return postLiveRegisters_;
-    }
-    assert(when == callPreInsn);
-
-    bitArray ret(postLiveRegisters_);
-
-    ReadWriteInfo curInsnRW;
-    if(!block()->llb()->cachedLivenessInfo.getLivenessInfo(addr(), func()->ifunc(), curInsnRW))
-    {
-      using namespace Dyninst::InstructionAPI;
-      const unsigned char* bufferToDecode =
-              reinterpret_cast<const unsigned char*>(proc()->getPtrToInstruction(addr()));
-      InstructionDecoder decoder(bufferToDecode, 
-            InstructionDecoder::maxInstructionLength,
-            func()->ifunc()->isrc()->getArch());
-      Instruction::Ptr currentInsn = decoder.decode(bufferToDecode);
-
-      curInsnRW = calcRWSets(currentInsn, block()->llb(), width, addr());
-
-    }
-    
-    ret &= (~curInsnRW.written);
-    if (when == callPreInsn)
-      ret |= curInsnRW.read;
-
-    liveness_printf("Liveness out for instruction at 0x%lx\n",
-                      addr());
-    //liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
-    //liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
-    liveness_cerr << "Read    " << curInsnRW.read << endl;
-    liveness_cerr << "Written " << curInsnRW.written << endl;
-    liveness_cerr << "Live    " << ret << endl;
-
-    return ret;
+bitArray instPoint::liveRegisters() {
+   calcLiveness();
+   return liveRegs_;
 }
 
 #if defined(arch_power)
@@ -489,7 +471,7 @@ int convertRegID(int in)
 
 #endif
 
-ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsigned int width,
+ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, parse_block* blk, unsigned int width,
                         Address a)
 {
   ReadWriteInfo ret;

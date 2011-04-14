@@ -33,11 +33,11 @@
 
 #include "Transformer.h"
 #include "Movement-analysis.h"
-#include "dyninstAPI/src/debug.h"
+#include "../patchapi_debug.h"
 #include "../Atoms/Atom.h"
 #include "dyninstAPI/src/function.h"
 #include "../Atoms/CFAtom.h"
-#include "../Atoms/GetPC.h"
+#include "../Atoms/PCAtom.h"
 #include "dataflowAPI/h/stackanalysis.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "symtabAPI/h/Symtab.h" 
@@ -47,6 +47,8 @@
 
 #include "dataflowAPI/h/slicing.h"
 
+#include "../Atoms/Trace.h"
+
 using namespace std;
 using namespace Dyninst;
 using namespace Relocation;
@@ -54,6 +56,8 @@ using namespace InstructionAPI;
 using namespace SymtabAPI;
 
 using namespace DataflowAPI;
+
+#define sensitivity_cerr if(0) cerr
 
 PCSensitiveTransformer::AnalysisCache PCSensitiveTransformer::analysisCache_;
 
@@ -71,15 +75,16 @@ bool PCSensitiveTransformer::analysisRequired(TraceList::iterator &b_iter) {
    return false;
 }
 
-bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
+bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter, const TraceMap &) {
 #if 0
    if (!analysisRequired(b_iter)) {
       return adhoc.processTrace(b_iter);
    }
 #endif
 
-   const int_block *bbl = (*b_iter)->bbl();
-  
+   const block_instance *block = (*b_iter)->block();
+   const func_instance *func = (*b_iter)->func();
+
   // Can be true if we see an instrumentation block...
   if (!bbl) return true;
   
@@ -119,8 +124,8 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
     // This function also returns the sensitive assignments
     if (!isPCSensitive(insn,
 		       addr,
-		       (*b_iter)->bbl()->func(),
-			   (*b_iter)->bbl(),
+                       func,
+                       block,
 		       sensitiveAssignments)) {
       //cerr << "Instruction " << insn->format() << " not PC sensitive, skipping" << endl;
       continue;
@@ -157,8 +162,8 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
 		//cerr << "Forward slice from " << (*a_iter)->format() << hex << " @ " << addr << " (parse of " << (*a_iter)->addr() << dec << ") in func " << bbl->func()->prettyName() << endl;
           
           Graph::Ptr slice = forwardSlice(*a_iter,
-                                          bbl->llb(),
-                                          bbl->func()->ifunc());
+                                          block->llb(),
+                                          func->ifunc());
           
           if (!slice) {
              // Safe assumption, as always
@@ -236,15 +241,15 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
 		  insn, 
 		  addr);
     }
-    cacheAnalysis(bbl, addr, intSens, extSens);
+    cacheAnalysis(block, addr, intSens, extSens);
   }
   return true;
 }
 
 bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
 					   Address addr,
-					   int_function *func,
-					   int_block *block,
+					   block_instance *func,
+					   block_instance *block,
 					   AssignList &sensitiveAssignments) {
   if (!(insn->getOperation().getID() == e_call)) return false;
   // FIXME for loopnz instruction
@@ -539,12 +544,12 @@ void PCSensitiveTransformer::handleThunkCall(TraceList::iterator &b_iter,
 
 void PCSensitiveTransformer::recordIntSensitive(Address addr) {
   // All we have from this is a raw address. Suck...
-  // Look up the int_blocks that map to this address. 
-  std::set<int_function *> funcs;
+  // Look up the block_instances that map to this address. 
+  std::set<block_instance *> funcs;
   addrSpace->findFuncsByAddr(addr, funcs);
 
-  for (std::set<int_function *>::iterator iter = funcs.begin(); iter != funcs.end(); ++iter) {
-    int_block *block = (*iter)->findBlockByEntry(addr);
+  for (std::set<block_instance *>::iterator iter = funcs.begin(); iter != funcs.end(); ++iter) {
+    block_instance *block = (*iter)->findBlockByEntry(addr);
     priMap[block] = Required;
   }
 }
@@ -628,13 +633,13 @@ void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
 }
 
 // TODO: fix t
-bool PCSensitiveTransformer::exceptionSensitive(Address a, const int_block *bbl) {
+bool PCSensitiveTransformer::exceptionSensitive(Address a, const block_instance *bbl) {
   // If we're within the try section of an exception, return true.
   // Otherwise return false.
   
   // First, convert a to an offset and dig out the Symtab of the
   // block we're looking at.
-  int_function *func = bbl->func();
+  block_instance *func = bbl->func();
   Offset o = func->addrToOffset(a);
   Symtab *symtab = func->obj()->parse_img()->getObject();
 
@@ -643,11 +648,11 @@ bool PCSensitiveTransformer::exceptionSensitive(Address a, const int_block *bbl)
   return symtab->findException(eBlock, o);      
 }
 
-void PCSensitiveTransformer::cacheAnalysis(const int_block *bbl, Address addr, bool intSens, bool extSens) {
+void PCSensitiveTransformer::cacheAnalysis(const block_instance *bbl, Address addr, bool intSens, bool extSens) {
    analysisCache_[bbl][addr] = std::make_pair(intSens, extSens);
 }
 
-bool PCSensitiveTransformer::queryCache(const int_block *bbl, Address addr, bool &intSens, bool &extSens) {
+bool PCSensitiveTransformer::queryCache(const block_instance *bbl, Address addr, bool &intSens, bool &extSens) {
 	//intSens = true;
 	//extSens = true;
 	//return true;
@@ -660,19 +665,19 @@ bool PCSensitiveTransformer::queryCache(const int_block *bbl, Address addr, bool
    return true;
 }
 
-void PCSensitiveTransformer::invalidateCache(const int_block *b) {
+void PCSensitiveTransformer::invalidateCache(const block_instance *b) {
    // Clear everything corresponding to an addr in the block;
    // overapproximation for shared functions and shared blocks,
    // but hey. 
 	analysisCache_.erase(b);
 }
 
-void PCSensitiveTransformer::invalidateCache(int_function *f) {
+void PCSensitiveTransformer::invalidateCache(block_instance *f) {
 	// We want to invalidate any cache results for f directly,
 	// as well as any for blocks that call f. 
 
-	const int_function::BlockSet &blocks = f->blocks();
-	for (int_function::BlockSet::const_iterator iter = blocks.begin();
+	const block_instance::BlockSet &blocks = f->blocks();
+	for (block_instance::BlockSet::const_iterator iter = blocks.begin();
 		iter != blocks.end(); ++iter) {
 			invalidateCache(*iter);
 	}

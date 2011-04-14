@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -92,7 +92,7 @@ bool Frame::isLastFrame() const
    return false;
 }
 
-#if defined(os_linux) && defined(arch_x86)
+#if defined(os_linux)
 extern void calcVSyscallFrame(process *p);
 #endif
 
@@ -118,7 +118,7 @@ void Frame::calcFrameType()
   
   // Better to have one function that has platform-specific IFDEFs
   // than a stack of 90% equivalent functions
-#if defined(os_linux) && defined(arch_x86)
+#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
   calcVSyscallFrame(getProc());
   if ((pc_ >= getProc()->getVsyscallStart() && pc_ < getProc()->getVsyscallEnd()) || /* Hack for RH9 */ (pc_ >= 0xffffe000 && pc_ < 0xfffff000)) {
     frameType_ = syscall;
@@ -134,20 +134,16 @@ void Frame::calcFrameType()
  
   // Check for instrumentation
 
-  baseTrampInstance *bti;
-  Address origPC = 42;
-  int_block *tmp;
+  AddressSpace::RelocInfo ri;
   if (getProc()->getRelocInfo(pc_,
-			                  origPC,
-                              tmp,
-			                  bti)) {
-    if (bti) {
-      frameType_ = instrumentation;
-    }
-    else {
-      frameType_ = normal;
-    }
-    return;
+                              ri)) {
+     if (ri.bt) {
+        frameType_ = instrumentation;
+     }
+     else {
+        frameType_ = normal;
+     }
+     return;
   }
 
   frameType_ = unset;
@@ -162,34 +158,23 @@ instPoint *Frame::getPoint() {
 }
 
 baseTramp *Frame::getBaseTramp() {
-  baseTrampInstance *bti = NULL;
-  Address origPC;
-  int_block *tmp;
+   AddressSpace::RelocInfo ri;
   if (getProc()->getRelocInfo(pc_,
-			                  origPC,
-                              tmp,
-			                  bti)) {
-    if (bti) {
-      return bti->baseT;
-    }
+                              ri)) {
+     if (ri.bt) return ri.bt;
   }
   return NULL;
 }  
 
-int_function *Frame::getFunc() {
+func_instance *Frame::getFunc() {
   return getProc()->findOneFuncByAddr(getUninstAddr());
 }
 
 Address Frame::getUninstAddr() {
-  
-  baseTrampInstance *bti;
-  Address origPC;
-  int_block *tmp;
+   AddressSpace::RelocInfo ri;
   if (getProc()->getRelocInfo(pc_,
-			                  origPC,
-                              tmp,
-			                  bti)) {
-    return origPC;
+                              ri)) {
+     return ri.orig;
   }
   return pc_;
 }
