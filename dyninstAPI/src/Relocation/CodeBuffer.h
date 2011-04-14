@@ -87,7 +87,7 @@ class CodeBuffer {
          Absolute,
          Relative,
          Estimate } Type;
-      typedef int Id;
+      typedef unsigned Id;
 
       Type type;
       Id id;
@@ -99,12 +99,12 @@ class CodeBuffer {
       // an offset, or an estimated address.
       Address addr;
 
-      static const int INVALID;
+      static const unsigned INVALID;
 
       Label() 
       : type(Invalid), id(0), iteration(0), addr(0) {};
       Label(Type a, Id b, Address c)
-      : type(a), id(b), iteration(0), addr(c) { assert(id != -1); };
+      : type(a), id(b), iteration(0), addr(c) { assert(id != (unsigned) -1); };
       ~Label() {};
       bool valid() { return type != INVALID; };
    };
@@ -113,7 +113,7 @@ class CodeBuffer {
      public:
       BufferElement();
       ~BufferElement();
-      void setLabelID(int id);
+      void setLabelID(unsigned id);
       void addPIC(const unsigned char *input, unsigned size, TrackerElement *tracker);
       void addPIC(const Buffer &buffer, TrackerElement *tracker);
       void setPatch(Patch *patch, TrackerElement *tracker);
@@ -124,7 +124,7 @@ class CodeBuffer {
                     codeGen &gen,
                     int &shift,
                     bool &regenerate);
-      bool extractTrackers(CodeTracker &t);
+      bool extractTrackers(CodeTracker *t);
 
      private:
       void addTracker(TrackerElement *tracker);
@@ -133,7 +133,7 @@ class CodeBuffer {
       unsigned size_;
       Buffer buffer_;
       Patch *patch_;
-      int labelID_;
+      unsigned labelID_;
       // Here the Offset is an offset within the buffer, starting at 0.
       typedef std::map<Offset, TrackerElement *> Trackers;
       Trackers trackers_;
@@ -145,23 +145,23 @@ class CodeBuffer {
    
    void initialize(const codeGen &templ, unsigned numBlocks);
    
-   int getLabel();
-   int defineLabel(Address addr);
+   unsigned getLabel();
+   unsigned defineLabel(Address addr);
    void addPIC(const unsigned char *input, unsigned size, TrackerElement *tracker);
    void addPIC(const void *input, unsigned size, TrackerElement *tracker);
    void addPIC(const codeGen &gen, TrackerElement *tracker);
    void addPIC(const Buffer buf, TrackerElement *tracker);
    void addPatch(Patch *patch, TrackerElement *tracker);
-   bool extractTrackers(CodeTracker &t);
+   bool extractTrackers(CodeTracker *t);
 
    unsigned size() const;
    void *ptr() const;
 
    bool generate(Address baseAddr);
-   void updateLabel(int id, Address addr, bool &regenerate);
+   void updateLabel(unsigned id, Address addr, bool &regenerate);
    
-   Address predictedAddr(int labelID);
-   Address getLabelAddr(int labelID);
+   Address predictedAddr(unsigned labelID);
+   Address getLabelAddr(unsigned labelID);
 
    void disassemble() const;
 

@@ -68,6 +68,7 @@ func_instance::func_instance(parse_func *f,
    , paramSize(0)
 #endif
 {
+   assert(f);
 #if defined(ROUGH_MEMORY_PROFILE)
     func_instance_count++;
     if ((func_instance_count % 1000) == 0)
@@ -93,6 +94,7 @@ func_instance::func_instance(const func_instance *parFunc,
    , paramSize(parFunc->paramSize)
 #endif
 {
+   assert(ifunc_);
    // According to contract /w/ the mapped_object
    // all blocks have already been constructed. 
    // Do we duplicate the parent or wait? I'm

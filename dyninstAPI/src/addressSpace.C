@@ -138,6 +138,9 @@ void AddressSpace::copyAddressSpace(process *parent) {
     /////////////////////////
     for (CodeTrackers::iterator iter = parent->relocatedCode_.begin();
          iter != parent->relocatedCode_.end(); ++iter) {
+       // Efficiency; this avoids a spurious copy of the entire
+       // CodeTracker. 
+
        relocatedCode_.push_back(Relocation::CodeTracker::fork(*iter, this));
     }
     
@@ -181,10 +184,23 @@ void AddressSpace::deleteAddressSpace() {
 
     mapped_objects.clear();
 
+    runtime_lib.clear();
+
     trampGuardBase_ = NULL;
+    trampGuardAST_ = AstNodePtr();
 
     // up_ptr_ is untouched
     costAddr_ = 0;
+
+    relocatedCode_.clear();
+    modifiedFunctions_.clear();
+    forwardDefensiveMap_.clear();
+    reverseDefensiveMap_.clear();
+    instrumentationInstances_.clear();
+    callModifications_.clear();
+    functionReplacements_.clear();
+    if (memEmulator_) delete memEmulator_;
+    memEmulator_ = NULL;
 }
 
 
@@ -1472,9 +1488,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   // Create a CodeMover covering these functions
   //cerr << "Creating a CodeMover" << endl;
 
-  // Attempting to reduce copies...
-  CodeTracker t;
-  relocatedCode_.push_back(t);
+  relocatedCode_.push_back(new CodeTracker());
   CodeMover::Ptr cm = CodeMover::create(relocatedCode_.back());
   if (!cm->addFunctions(begin, end)) return false;
 
@@ -1540,7 +1554,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   }
 
   // Build the address mapping index
-  relocatedCode_.back().createIndices();
+  relocatedCode_.back()->createIndices();
     
   // Kevin's stuff
   cm->extractDefensivePads(this);
@@ -1567,7 +1581,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           TrackerElement *te = NULL;
           for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
                iter != relocatedCode_.end(); ++iter) {
-             te = iter->findByReloc(relocAddr);
+             te = (*iter)->findByReloc(relocAddr);
              if (te) break;
           }
 
@@ -1739,7 +1753,7 @@ void AddressSpace::getRelocAddrs(Address orig,
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
        iter != relocatedCode_.end(); ++iter) {
     Relocation::CodeTracker::RelocatedElements reloc;
-    if (iter->origToReloc(orig, block, func, reloc)) {
+    if ((*iter)->origToReloc(orig, block, func, reloc)) {
       // Pick instrumentation if it's there, otherwise use the reloc instruction
       if (reloc.instrumentation && getInstrumentationAddrs) {
         relocs.push_back(reloc.instrumentation);
@@ -1789,7 +1803,7 @@ bool AddressSpace::getRelocInfo(Address relocAddr,
   // address is relocated (or bad), check relocation maps
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
        iter != relocatedCode_.end(); ++iter) {
-     if (iter->relocToOrig(relocAddr, ri)) {
+     if ((*iter)->relocToOrig(relocAddr, ri)) {
         assert(!ret);
         ret = true;
      }
@@ -1801,7 +1815,7 @@ bool AddressSpace::inEmulatedCode(Address addr) {
   // address is relocated (or bad), check relocation maps
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
        iter != relocatedCode_.end(); ++iter)  {
-     TrackerElement *te = iter->findByReloc(addr);
+     TrackerElement *te = (*iter)->findByReloc(addr);
      if (te) {
         if (te->type() == TrackerElement::emulated ||
             te->type() == TrackerElement::instrumentation) {

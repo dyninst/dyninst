@@ -487,7 +487,7 @@ class AddressSpace : public InstructionSource {
     Address costAddr_;
 
     /////// New instrumentation system
-    typedef std::list<Relocation::CodeTracker> CodeTrackers;
+    typedef std::list<Relocation::CodeTracker *> CodeTrackers;
     CodeTrackers relocatedCode_;
 
     bool transform(Dyninst::Relocation::CodeMoverPtr cm);

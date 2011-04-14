@@ -49,12 +49,12 @@ CodeTracker::~CodeTracker() {
    }
 }
 
-CodeTracker CodeTracker::fork(CodeTracker &parent, 
+CodeTracker *CodeTracker::fork(CodeTracker *parent, 
                               AddressSpace *child) {
    // Duplicate our tracking data structures.
-   CodeTracker newCT;
-   for (TrackerList::iterator iter = parent.trackers_.begin();
-        iter != parent.trackers_.end(); ++iter) {
+   CodeTracker *newCT = new CodeTracker();
+   for (TrackerList::iterator iter = parent->trackers_.begin();
+        iter != parent->trackers_.end(); ++iter) {
       TrackerElement *pE = *iter;
       TrackerElement *cE = NULL;
       block_instance *cB = child->findBlock(pE->block()->llb());
@@ -75,7 +75,7 @@ CodeTracker CodeTracker::fork(CodeTracker &parent,
       }
       cE->setReloc(pE->reloc());
       cE->setSize(pE->size());
-      newCT.addTracker(cE);
+      newCT->addTracker(cE);
    }
    return newCT;
 }

@@ -5090,7 +5090,7 @@ bool process::generateRequiredPatches(instPoint *callPt,
     CodeTrackers::reverse_iterator rit;
     for (unsigned i = 0; i < funcs.size(); ++i) {
        for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++) {
-          if ((*rit).origToReloc(ftbbi->start(), ftbbi, funcs[i], reloc)) {
+          if ((*rit)->origToReloc(ftbbi->start(), ftbbi, funcs[i], reloc)) {
              break;
           }
        }

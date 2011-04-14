@@ -45,7 +45,7 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
-const int CodeBuffer::Label::INVALID = -1;
+const unsigned CodeBuffer::Label::INVALID = (unsigned) -1;
 
 CodeBuffer::BufferElement::BufferElement() : addr_(0), size_(0), patch_(NULL), labelID_(Label::INVALID) {};
 
@@ -76,7 +76,7 @@ void CodeBuffer::BufferElement::setPatch(Patch *patch,
    patch_ = patch;
 }
 
-void CodeBuffer::BufferElement::setLabelID(int id) {
+void CodeBuffer::BufferElement::setLabelID(unsigned id) {
    assert(labelID_ == Label::INVALID);
    labelID_ = id;
 }
@@ -138,7 +138,7 @@ bool CodeBuffer::BufferElement::generate(CodeBuffer *buf,
    return true;
 }
 
-bool CodeBuffer::BufferElement::extractTrackers(CodeTracker &t) {
+bool CodeBuffer::BufferElement::extractTrackers(CodeTracker *t) {
    // Update tracker information (address, size) and add it to the
    // CodeTracker we were handed in.
 
@@ -164,7 +164,7 @@ bool CodeBuffer::BufferElement::extractTrackers(CodeTracker &t) {
       Address relocAddr = iter->first + addr_;
       e->setReloc(relocAddr);
       e->setSize(size);
-      t.addTracker(e);
+      t->addTracker(e);
    }
 
    //relocation_cerr << "*** End tracker extraction from BufferElement" << endl;
@@ -182,8 +182,8 @@ void CodeBuffer::initialize(const codeGen &templ, unsigned numBlocks) {
    labels_.resize(numBlocks+2);
 }
 
-int CodeBuffer::getLabel() {
-   int id = curLabelID_++;
+unsigned CodeBuffer::getLabel() {
+   unsigned id = curLabelID_++;
    // Labels must begin BufferElements, so if the current BufferElement
    // has anything in it, create a new one
    if (buffers_.empty() ||
@@ -200,9 +200,9 @@ int CodeBuffer::getLabel() {
    return id;
 }
 
-int CodeBuffer::defineLabel(Address addr) {
+unsigned CodeBuffer::defineLabel(Address addr) {
    // A label for something that will not move
-   int id = curLabelID_++;
+   unsigned id = curLabelID_++;
 
    // Since it doesn't move it isn't part of the BufferElement sequence.
    
@@ -243,7 +243,7 @@ CodeBuffer::BufferElement &CodeBuffer::current() {
    return buffers_.back();
 }
 
-bool CodeBuffer::extractTrackers(CodeTracker &t) {
+bool CodeBuffer::extractTrackers(CodeTracker *t) {
    for (Buffers::iterator iter = buffers_.begin();
         iter != buffers_.end(); ++iter) {
       if (!iter->extractTrackers(t)) return false;
@@ -298,7 +298,7 @@ void CodeBuffer::disassemble() const {
    }
 }
 
-void CodeBuffer::updateLabel(int id, Address offset, bool &regenerate) {
+void CodeBuffer::updateLabel(unsigned id, Address offset, bool &regenerate) {
    if (id == -1) return;
 
 
@@ -322,13 +322,13 @@ void CodeBuffer::updateLabel(int id, Address offset, bool &regenerate) {
    l.type = Label::Estimate;
 }
 
-Address CodeBuffer::getLabelAddr(int id) {
+Address CodeBuffer::getLabelAddr(unsigned id) {
    assert(generated_);
    shift_ = 0;
    return predictedAddr(id);
 }
 
-Address CodeBuffer::predictedAddr(int id) {
+Address CodeBuffer::predictedAddr(unsigned id) {
    if (id >= labels_.size()) {
       cerr << "ERROR: id of " << id << " but only " << labels_.size() << " labels!" << endl;
    }

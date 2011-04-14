@@ -163,7 +163,7 @@ IA_IAPI::reset(
 
     dec = dec_;
     validCFT = false;
-    cachedCFT = 0;
+    cachedCFT = make_pair(false, 0);
     validLinkerStubState = false; 
     hascftstatus.first = false;
     tailCall.first = false;

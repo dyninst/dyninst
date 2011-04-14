@@ -85,7 +85,7 @@ class CodeMover {
   // We take a CodeTracker as a reference parameter so that we don't 
   // have to copy it on output; CodeMovers are designed to be discarded
   // while CodeTrackers survive.
-  static Ptr create(CodeTracker &);
+  static Ptr create(CodeTracker *);
 
   bool addFunctions(FuncSet::const_iterator begin, FuncSet::const_iterator end);
 
@@ -133,7 +133,7 @@ class CodeMover {
 
  private:
     
-  CodeMover(CodeTracker &t) : addr_(0), tracker_(t), tracesFinalized_(false) {};
+  CodeMover(CodeTracker *t) : addr_(0), tracker_(t), tracesFinalized_(false) {};
 
   
   void setAddr(Address &addr) { addr_ = addr; }
@@ -158,7 +158,7 @@ class CodeMover {
   
   SpringboardMap sboardMap_;
 
-  CodeTracker &tracker_;
+  CodeTracker *tracker_;
 
   CodeBuffer buffer_;
   codeGen &gen();

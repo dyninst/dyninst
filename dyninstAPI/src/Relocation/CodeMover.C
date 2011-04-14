@@ -47,7 +47,7 @@ using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace Relocation;
 
-CodeMover::Ptr CodeMover::create(CodeTracker &t) {
+CodeMover::Ptr CodeMover::create(CodeTracker *t) {
    init_debug_patchapi();
 
    // Make a CodeMover

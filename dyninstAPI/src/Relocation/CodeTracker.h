@@ -187,7 +187,7 @@ class CodeTracker {
   CodeTracker() {};
   ~CodeTracker();
 
-  static CodeTracker fork(CodeTracker &parent, AddressSpace *child);
+  static CodeTracker *fork(CodeTracker *parent, AddressSpace *child);
 
   struct RelocInfo {
      Address orig;
