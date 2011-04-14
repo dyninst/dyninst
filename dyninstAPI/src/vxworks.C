@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2004 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -8,35 +8,25 @@
  * obligation to supply such updates or modifications or any other
  * form of support to you.
  * 
- * This license is for research uses.  For such uses, there is no
- * charge. We define "research use" to mean you may freely use it
- * inside your organization for whatever purposes you see fit. But you
- * may not re-distribute Paradyn or parts of Paradyn, in any form
- * source or binary (including derivatives), electronic or otherwise,
- * to any other organization or entity without our permission.
- * 
- * (for other uses, please contact us at paradyn@cs.wisc.edu)
- * 
- * All warranties, including without limitation, any warranty of
- * merchantability or fitness for a particular purpose, are hereby
- * excluded.
- * 
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
  * 
- * Even if advised of the possibility of such damages, under no
- * circumstances shall we (or any other person or entity with
- * proprietary rights in the software licensed hereunder) be liable
- * to you or any third party for direct, indirect, or consequential
- * damages of any character regardless of type of action, including,
- * without limitation, loss of profits, loss of use, loss of good
- * will, or computer failure or malfunction.  You agree to indemnify
- * us (and any other person or entity with proprietary rights in the
- * software licensed hereunder) for any and all liability it may
- * incur to third parties resulting from your use of Paradyn.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 // $Id: vxworks.C,v 1.279 2008/09/03 06:08:44 jaw Exp $
@@ -44,6 +34,7 @@
 #include <fstream>
 #include <string>
 
+#include "dyninstAPI/src/vxworks.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/dyn_lwp.h"
@@ -1419,6 +1410,15 @@ mapped_object *process::createObjectNoFile(Address)
     return NULL;
 }
 
+// VxWorks Kernel Modules don't use relocation entries so, until we enable
+// the binary rewriter on this platform, relocation entries are always bound.
+bool process::hasBeenBound(const SymtabAPI::relocationEntry &,
+                           int_function *&,
+                           Address )
+{
+    return true;
+}
+
 // In process.C:
 // bool process::stop_(bool waitUntilStop) { assert(0); return false; }
 // bool process::continueProc_(int sig) { assert(0); return false; }
@@ -1602,12 +1602,14 @@ bool dyn_lwp::changePC(Address loc, struct dyn_saved_regs */*ignored registers*/
     ctx.contextSubId = 0;
 
     loc = swapBytesIfNeeded(loc);
-    STATUS result = wtxRegsSet(wtxh, //WTX API handle
-                               &ctx, // WTX Context
-                               WTX_REG_SET_IU, // type of register set
-                               offsetof(struct dyn_saved_regs, sprs[3]), // first byte of register set
-                               sizeof(unsigned int), // number of bytes of register set
-                               &loc); // place holder for reg. values
+
+    STATUS result;
+    result = wtxRegsSet(wtxh, //WTX API handle
+                        &ctx, // WTX Context
+                        WTX_REG_SET_IU, // type of register set
+                        offsetof(struct dyn_saved_regs, iu[WTX_REG_IU_PC]), // first byte of register set
+                        sizeof(unsigned int), // number of bytes of register set
+                        &loc); // place holder for reg. values
 
     if (result != WTX_OK) {
         fprintf(stderr, "wtxRegsSet() error: %s\n", wtxErrMsgGet(wtxh));
@@ -1648,16 +1650,16 @@ Frame dyn_lwp::getActiveFrame()
                                &ctx, // WTX Context
                                WTX_REG_SET_IU, // type of register set
                                0x0, // first byte of register set
-                               sizeof(dyn_saved_regs), // number of bytes of register set
-                               &r); // place holder for reg. values
+                               sizeof(r.iu), // number of bytes of register set
+                               &r.iu); // place holder for reg. values
     if (result != WTX_OK) {
         fprintf(stderr, "Error on wtxRegsGet(): %s\n", wtxErrMsgGet(wtxh));
         return Frame();
     }
 
-    return Frame(swapBytesIfNeeded(r.sprs[ 3]), // PC
-                 swapBytesIfNeeded(r.gprs[31]), // FP
-                 swapBytesIfNeeded(r.gprs[ 1]), // SP
+    return Frame(swapBytesIfNeeded(r.iu[WTX_REG_IU_PC]),
+                 swapBytesIfNeeded(r.iu[WTX_REG_IU_FP]),
+                 swapBytesIfNeeded(r.iu[WTX_REG_IU_SP]),
                  proc_->getPid(), proc_, NULL, this, true);
 }
 
@@ -1672,8 +1674,8 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool /*includeFP*/)
                                &ctx, // WTX Context
                                WTX_REG_SET_IU, // type of register set
                                0x0, // first byte of register set
-                               sizeof(dyn_saved_regs), // number of bytes of register set
-                               regs); // place holder for reg. values
+                               sizeof(regs->iu), // number of bytes of register set
+                               regs->iu); // place holder for reg. values
     if (result != WTX_OK) {
         fprintf(stderr, "Error on wtxRegsGet(): %s\n", wtxErrMsgGet(wtxh));
         return false;
@@ -1701,8 +1703,8 @@ Address dyn_lwp::readRegister(Register reg)
     STATUS result = wtxRegsGet(wtxh, //WTX API handle
                                &ctx, // WTX Context
                                WTX_REG_SET_IU, // type of register set
-                               reg * instruction::size(), // first byte of register set
-                               instruction::size(), // number of bytes of register set
+                               reg * proc_->getAddressWidth(), // first byte of register set
+                               proc_->getAddressWidth(), // number of bytes of register set
                                &retval); // place holder for reg. values
     if (result != WTX_OK) {
         fprintf(stderr, "Error on wtxRegsGet(): %s\n", wtxErrMsgGet(wtxh));
@@ -1715,10 +1717,10 @@ Address dyn_lwp::readRegister(Register reg)
 bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool /*includeFP*/)
 {
     struct dyn_saved_regs newRegs;
-    const unsigned long *hostp = (const unsigned long *)&regs;
-    unsigned long *targp = (unsigned long *)&newRegs;
-    unsigned long *end  = targp + (sizeof(dyn_saved_regs) /
-                                   sizeof(unsigned long));
+    const unsigned int *hostp = regs.iu;
+    unsigned int *targp = newRegs.iu;
+    unsigned int *end  = targp + (sizeof(dyn_saved_regs) /
+                                  sizeof(unsigned int));
     while (targp < end) {
         *targp = swapBytesIfNeeded(*hostp);
         ++targp;
@@ -1734,8 +1736,8 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool /*includ
                                &ctx, // WTX Context
                                WTX_REG_SET_IU, // type of register set
                                0x0, // first byte of register set
-                               sizeof(dyn_saved_regs), // number of bytes of register set
-                               &newRegs); // place holder for reg. values
+                               sizeof(newRegs.iu), // number of bytes of register set
+                               &newRegs.iu); // place holder for reg. values
     if (result != WTX_OK) {
         fprintf(stderr, "Error on wtxRegsGet(): %s\n", wtxErrMsgGet(wtxh));
         return false;
@@ -2108,7 +2110,8 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs)
                             curr->moduleId, wtxErrMsgGet(wtxh));
                     assert(0);
                 }
-                if (strcmp(curr->moduleName, "/var/ftp/pub/vxWorks") == 0) {
+//                if (strcmp(curr->moduleName, "/var/ftp/pub/vxWorks") == 0) {
+                if (strstr(curr->moduleName, "/vxWorks")) {
                     curr->moduleName[0] = '['; // Force incremental parsing.
                     filename = curr->moduleName;
                 }

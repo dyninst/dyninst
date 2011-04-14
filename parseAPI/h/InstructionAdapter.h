@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -32,10 +32,12 @@
 #if !defined(INSTRUCTION_ADAPTER_H)
 #define INSTRUCTION_ADAPTER_H
 
-#include "dynutil/h/dyntypes.h"
+#include "dyntypes.h"
 
-#include "parseAPI/h/CodeObject.h"
-#include "parseAPI/h/CFG.h"
+#include "CodeObject.h"
+#include "CFG.h"
+
+#include "Instruction.h"
 
 #if !defined(ESSENTIAL_PARSING_ENUMS)
 #define ESSENTIAL_PARSING_ENUMS
@@ -67,6 +69,7 @@ class InstructionAdapter
         ParseAPI::CodeRegion *r, InstructionSource *isrc, ParseAPI::Block *);
 
     // Implemented
+    virtual InstructionAPI::Instruction::Ptr getInstruction() const = 0;
     virtual bool hasCFT() const = 0;
     virtual size_t getSize() const = 0;
     virtual bool isFrameSetupInsn() const = 0;

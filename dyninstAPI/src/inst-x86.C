@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -671,7 +671,10 @@ int cpuidCall() {
     return result;
 }
 #endif
-#if !defined(x86_64_unknown_linux2_4) && !(defined(os_freebsd) && defined(arch_x86_64))
+
+#if !defined(x86_64_unknown_linux2_4)              \
+ && !(defined(os_freebsd) && defined(arch_x86_64)) \
+ && !defined(os_vxworks)
 bool xmmCapable()
 {
   int features = cpuidCall();
@@ -2679,10 +2682,12 @@ void emitJump(unsigned disp32, codeGen &gen)
    SET_PTR(insn, gen);
 }
 
-#if defined(os_linux) || defined(os_freebsd)
+#if defined(os_linux)   \
+ || defined(os_freebsd) \
+ || defined(os_vxworks)
 
 // These functions were factored from linux-x86.C because
-// they are identical on Linux and FreeBSD
+// they are identical on Linux and FreeBSD and vxWorks
 
 int EmitterIA32::emitCallParams(codeGen &gen, 
                               const pdvector<AstNodePtr> &operands,
@@ -2726,5 +2731,4 @@ bool EmitterIA32::emitCallCleanup(codeGen &gen,
    gen.rs()->incStack(-1 * frame_size);
    return true;
 }
-
 #endif

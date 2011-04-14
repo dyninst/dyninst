@@ -23,6 +23,7 @@ include ../../make.config
 # Now make any necessary architecture specific changes to variables:
 
 SRCS =          ../src/Object-elf.C \
+		../../common/src/Elf_X.C \
 		../src/Archive.C \
 		../src/Archive-elf.C \
 		../src/parseDwarf.C \
@@ -85,3 +86,6 @@ include ../make.module.tmpl
 # common targets like "clean", "install", etc.
 
 include ../../make.library.tmpl
+
+# Now make any necessary architecture specific changes to variables:
+VPATH += ../../common/src

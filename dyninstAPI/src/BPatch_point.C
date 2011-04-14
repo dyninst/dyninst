@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -500,8 +500,11 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
 {
   BPatch_function *func_to_use = user_cb;
 
-  if (!func->getModule()->isValid()) return NULL;
-
+  if (!func->getModule()->isValid()) {
+    fprintf(stderr, "%s[%d]: invalid module, cannot monitor\n",
+	    FILE__, __LINE__);
+    return NULL;
+  }
   if ( !isDynamic() ) {
     fprintf(stderr, "%s[%d]:  call site is not dynamic, cannot monitor\n", 
             __FILE__, __LINE__ );

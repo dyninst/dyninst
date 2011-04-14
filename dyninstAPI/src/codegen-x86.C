@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -50,7 +50,9 @@
 #include "instructionAPI/h/RegisterIDs.h"
 #include "pcrel.h"
 
-#include "dyninstAPI/src/pcrel.h"
+#if defined(os_vxworks)
+#include "common/h/wtxKludges.h"
+#endif
 
 using namespace std;
 using namespace boost::assign;
@@ -758,6 +760,7 @@ bool insnCodeGen::generate(codeGen &,
                            patchTarget *,
                            patchTarget *) 
 {
+   assert(0 && "Deprecated");
    return false;
 }
 

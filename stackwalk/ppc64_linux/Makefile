@@ -17,6 +17,7 @@ TARGET = libstackwalk.so
 LDFLAGS     += $(LIBDIR) -lcommon -ldl
 
 SRCS = 	../src/linux-swk.C \
+	../../common/src/Elf_X.C \
 	../src/linux-ppc-swk.C \
 	../src/ppc-swk.C \
 	../src/symtab-swk.C
@@ -35,3 +36,6 @@ include ../make.module.tmpl
 # common targets like "clean", "install", etc.
 
 include ../../make.library.tmpl
+
+# Now make any necessary architecture specific changes to variables:
+VPATH += ../../common/src

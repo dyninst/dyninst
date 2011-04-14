@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -606,7 +606,7 @@ bool IA_IAPI::isDelaySlot() const
     return false;
 }
 
-Instruction::Ptr IA_IAPI::getInstruction()
+Instruction::Ptr IA_IAPI::getInstruction() const
 {
     return curInsn();
 }
@@ -659,14 +659,20 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
 
     Result actualTarget = callTarget->eval();
 #if defined(os_vxworks)
-    if (actualTarget.convert<Address>() == current) {
+
+    int reloc_target = current;
+#if defined(arch_x86)
+    ++reloc_target;
+#endif
+
+    if (actualTarget.convert<Address>() == reloc_target) {
         // We have a zero offset branch.  Consider relocation information.
         SymtabCodeRegion *scr = dynamic_cast<SymtabCodeRegion *>(_cr);
         SymtabCodeSource *scs = dynamic_cast<SymtabCodeSource *>(_obj->cs());
 
         if (!scr && scs) {
             set<CodeRegion *> regions;
-            assert( scs->findRegions(current, regions) == 1 );
+            assert( scs->findRegions(reloc_target, regions) == 1 );
             scr = dynamic_cast<SymtabCodeRegion *>(*regions.begin());
         }
 
@@ -676,7 +682,7 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
                 scr->symRegion()->getRelocations();
 
             for (unsigned i = 0; i < relocs.size(); ++i) {
-                if (relocs[i].rel_addr() == current) {
+                if (relocs[i].rel_addr() == reloc_target) {
                     sym = relocs[i].getDynSym();
                     if (sym && sym->getOffset()) {
                         parsing_printf(" <reloc hit> ");

@@ -24,6 +24,10 @@ AC_ARG_WITH(elf-lib,
             [AS_HELP_STRING([--with-elf-include],[Directory to look for libelf])],
             [ELF_LIB="${withval}"],)
 
+AC_ARG_WITH(liberty-lib,
+            [AS_HELP_STRING([--with-liberty-lib],[Link string to use for libiberty])],
+            [LIBERTY_LIB="${withval}"],)
+
 if test -n ${DYNINST_ROOT}; then
    # Add search paths to CPPFLAGS and LDFLAGS.
    if test -z ${DYNINST_LIB}; then
@@ -37,6 +41,7 @@ fi
 AC_SUBST([LDFLAGS], ["-L${DYNINST_LIB} ${LDFLAGS}"])
 AC_SUBST([DWARFFLAGS], ["-L${DWARF_LIB}"])
 AC_SUBST([ELFFLAGS], ["-L${ELF_LIB}"])
+AC_SUBST([LIBERTYFLAGS], ["${LIBERTY_LIB}"])
 AC_SUBST([CPPFLAGS], ["-I${DYNINST_INC} ${CPPFLAGS}"])
 
 # Generate host string.

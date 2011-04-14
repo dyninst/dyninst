@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -1846,8 +1846,25 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
                             (src1 - 8) * sizeof(int) +
                             PARAM_OFFSET(addrWidth);
             } else {
-                stkOffset = TRAMP_FRAME_SIZE_64 +
-                            (src1 - 8) * sizeof(long) +
+	      // Linux ABI says:
+	      // Parameters go in the "argument save area", which starts at
+	      // PARAM_OFFSET(...). However, we'd save argument _0_ at the base
+	      // of it, so the first 8 slots are normally empty (as they go in
+	      // registers). To get the 9th, etc. argument you want
+	      // PARAM_OFFSET(...) + (8 * arg number) instead of
+	      // 8 * (arg_number - 8)
+	      // We can't test on AIX as of this writing; previously the 64-bit ppc
+	      // AIX code was subtracting 8 from the argument number.
+	      // Preserving that behavior here; failures will be reflected in test 1_36.
+#if defined(os_aix)
+	      int stackSlot =
+		src1 - 8;
+#else
+	      int stackSlot =
+		src1;
+#endif
+	      stkOffset = TRAMP_FRAME_SIZE_64 +
+                            stackSlot * sizeof(long) +
                             PARAM_OFFSET(addrWidth);
             }
 
@@ -2532,7 +2549,8 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &,func_instance *&, 
   // Lookup target
   return false; // Haven't patched this up yet
 }
-#else
+
+#elif !defined(os_vxworks)
 // hasBeenBound: returns true if the runtime linker has bound the
 // function symbol corresponding to the relocation entry in at the address
 // specified by entry and base_addr.  If it has been bound, then the callee 
@@ -2731,7 +2749,10 @@ void emitFuncJump(opCode             ,
     // Load TOC from SP + 3W
     restoreRegisterAtOffset(gen, 2, 3*gen.addrSpace()->getAddressWidth());
 
-    // Make sure we do not "restore" Count Register
+    // Make sure we do not "restore" Count Register or the return value r3
+    for (unsigned i = 0; i < gen.rs()->numGPRs(); ++i)
+        if (gen.rs()->GPRs()[i]->name == "r3")
+            gen.rs()->GPRs()[i]->liveState = registerSlot::live;
     gen.bti()->baseT->generateRestores(gen, gen.rs(), NULL);
 
     // Return...
@@ -2808,7 +2829,10 @@ using namespace Dyninst::InstructionAPI;
 bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                                     pdvector<AstNodePtr> &args)
 {
-
+  static RegisterAST::Ptr ctr32(new RegisterAST(ppc32::ctr));
+  static RegisterAST::Ptr ctr64(new RegisterAST(ppc64::ctr));
+  static RegisterAST::Ptr lr32(new RegisterAST(ppc32::lr));
+  static RegisterAST::Ptr lr64(new RegisterAST(ppc64::lr));
     const Instruction::Ptr i = callSite->insn();
     Register branch_target = registerSpace::ignored;
 
@@ -2818,13 +2842,16 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
         curCFT != i->cft_end();
         ++curCFT)
     {
-        if(*(curCFT->target) == RegisterAST(ppc32::ctr))
+      if(curCFT->target->isUsed(ctr32) ||
+	 curCFT->target->isUsed(ctr64))
         {
             branch_target = registerSpace::ctr;
             break;
         }
-        else if(*(curCFT->target) == RegisterAST(ppc32::lr))
+      else if(curCFT->target->isUsed(lr32) ||
+	      curCFT->target->isUsed(lr64))
         {
+	  fprintf(stderr, "setting lr\n");
             branch_target = registerSpace::lr;
             break;
         }
@@ -2843,7 +2870,7 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
     }
     else
     {
-        return false;
+      return false;
     }
 }
 

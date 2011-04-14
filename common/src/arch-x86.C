@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -52,14 +52,21 @@
 #include "boost/assign/std/set.hpp"
 
 #include "common/h/arch-x86.h"
-#include "instructionAPI/h/Register.h"
 #include "dyn_regs.h"
+
+#if defined(os_vxworks)
+#include "common/h/wtxKludges.h"
+#endif
 
 using namespace std;
 using namespace boost::assign;
-using namespace Dyninst::InstructionAPI;
 
 namespace NS_x86 {
+
+unsigned int swapBytesIfNeeded(unsigned int i)
+{
+    return i;
+}
 
 // groups
 enum {
@@ -2841,7 +2848,14 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
       break;
     case t_prefixedSSE:
       sseidx = gotit->tabidx;
-      assert(addr[0] == 0x0F);
+      if(addr[0] != 0x0F)
+      {
+          // all valid SSE insns will have 0x0F as their first byte after prefix
+          instruct.size += 1;
+          addr += 1;
+          instruct.entry = &invalid;
+          return instruct;
+      }
       idx = addr[1];
       gotit = &twoByteMap[idx];
       nxtab = gotit->otable;
@@ -4073,6 +4087,12 @@ unsigned get_instruction(const unsigned char* addr, unsigned &insnType,
 // find the target of a jump or call
 Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 		   Address addr) {
+#if defined(os_vxworks)
+    Address ret;
+    // FIXME requires vxworks in Dyninst
+    if (relocationTarget(addr+1, &ret))
+        return ret;
+#endif
   int disp = displacement(instr, type);
   return (Address)(addr + size + disp);
 }
@@ -4624,7 +4644,7 @@ bool instruction::getUsedRegs(pdvector<int> &regs) {
          regs.push_back(regused);
       }
       else if (op.admet == am_reg) {
-	using namespace Dyninst::InstructionAPI;
+	//using namespace Dyninst::InstructionAPI;
          //The instruction implicitely references a memory instruction
          switch (op.optype) {
              case x86::iah:   

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -320,18 +320,38 @@ bool parse_block::isEntryBlock(parse_func * f) const
 } 
 
 /*
- * All edges of an exit block are the same: returns
- * or interprocedural branches
+ * True if the block has a return edge, or a call that does
+ * not return (i.e., a tail call or non-returning call)
  */
 bool parse_block::isExitBlock()
 {
     Block::edgelist & trgs = targets();
-    if(!trgs.empty())
-    {
-        Edge * e = *trgs.begin();
-        return e->interproc() || e->type() == RET;
+    if(trgs.empty()) {
+        return false;
     }
-    return false;
+
+    Edge * e = *trgs.begin();
+    if (e->type() == RET) {
+        return true;
+    }
+
+    if (!e->interproc()) {
+        return false;
+    }
+
+    if (e->type() == CALL && trgs.size() > 1) {
+        // there's a CALL edge and at least one other edge, 
+        // it's an exit block if there is no CALL_FT edge
+        for(Block::edgelist::iterator eit = ++(trgs.begin());
+            eit != trgs.end();
+            eit++)
+        {
+            if ((*eit)->type() == CALL_FT && !(*eit)->sinkEdge()) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 image *parse_block::img()

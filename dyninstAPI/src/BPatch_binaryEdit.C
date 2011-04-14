@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -108,7 +108,7 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
 
   origBinEdit->getDyninstRTLibName();
   std::string rt_name = origBinEdit->dyninstRT_name;
-
+	
   // Load the RT library and create the collection of BinaryEdits that represent it
   std::map<std::string, BinaryEdit *> rtlibs = origBinEdit->openResolvedLibraryName(rt_name);
   std::map<std::string, BinaryEdit *>::iterator rtlibs_it;
@@ -119,7 +119,6 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
           creation_error = true;
           return;
       }
-
       rtLib.push_back(rtlibs_it->second);
       // Ensure that the correct type of library is loaded
       if(    rtlibs_it->second->getMappedObject()->isSharedLib() 

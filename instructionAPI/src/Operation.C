@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -335,8 +335,12 @@ namespace Dyninst
         nonOperandRegisterWrites[e_js] = thePC;
         nonOperandRegisterWrites[e_jz] = thePC;
 	nonOperandMemoryReads[e_pop] = stackPointerAsExpr;
-	nonOperandMemoryWrites[e_push] = stackPointerAsExpr;
-        nonOperandMemoryWrites[e_call] = stackPointerAsExpr;
+    nonOperandMemoryReads[e_popa] = stackPointerAsExpr;
+    nonOperandMemoryReads[e_popad] = stackPointerAsExpr;
+    nonOperandMemoryWrites[e_push] = stackPointerAsExpr;
+    nonOperandMemoryWrites[e_pusha] = stackPointerAsExpr;
+    nonOperandMemoryWrites[e_pushad] = stackPointerAsExpr;
+    nonOperandMemoryWrites[e_call] = stackPointerAsExpr;
         nonOperandMemoryReads[e_ret_near] = stackPointerAsExpr;
         nonOperandMemoryReads[e_ret_far] = stackPointerAsExpr;
 	nonOperandMemoryReads[e_leave] = stackPointerAsExpr;

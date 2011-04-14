@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -92,8 +92,15 @@ using namespace Dyninst::SymtabAPI;
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
+// Note: this is an internal libc flag -- it is only used
+// when libc and ld.so don't have symbols
+#ifndef __RTLD_DLOPEN
+#define __RTLD_DLOPEN 0x80000000
+#endif
+
 const char *DL_OPEN_FUNC_USER = NULL;
 const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
+const char DL_OPEN_LIBC_FUNC_EXPORTED[] = "__libc_dlopen_mode";
 const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
 const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
 
@@ -1293,7 +1300,7 @@ bool process::loadDYNINSTlib()
 	{
 		if (findFuncsByAll(DL_OPEN_FUNC_USER, dlopen_funcs)) 
 		{
-			bool ok =  loadDYNINSTlib_exported(DL_OPEN_FUNC_USER);
+			bool ok =  loadDYNINSTlib_exported(DL_OPEN_FUNC_USER, DLOPEN_MODE);
 
 			if (ok) 
 				return true;
@@ -1304,10 +1311,15 @@ bool process::loadDYNINSTlib()
 
     if (findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) 
 	{
-		return loadDYNINSTlib_exported(DL_OPEN_FUNC_EXPORTED);
+		return loadDYNINSTlib_exported(DL_OPEN_FUNC_EXPORTED, DLOPEN_MODE);
     } 
-    else 
-	{
+    else if( findFuncsByAll(DL_OPEN_LIBC_FUNC_EXPORTED, dlopen_funcs) ) {
+            // If libc and the loader don't have symbols, we need to take a
+            // different approach. We still need to the stack protection turned
+            // off, but since we don't have symbols we use an undocumented flag
+            // to turn off the stack protection
+            return loadDYNINSTlib_exported(DL_OPEN_LIBC_FUNC_EXPORTED, DLOPEN_MODE | __RTLD_DLOPEN);
+    }else{
 		return loadDYNINSTlib_hidden();
     }
 }
@@ -1580,7 +1592,7 @@ bool process::loadDYNINSTlib_hidden() {
   return true;
 }
 
-bool process::loadDYNINSTlib_exported(const char *dlopen_name)
+bool process::loadDYNINSTlib_exported(const char *dlopen_name, int mode)
 {
 	// dlopen takes two arguments:
 	// const char *libname;
@@ -1646,7 +1658,7 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 	if (!mode64bit) 
 	{
 		// Push mode
-		emitPushImm(DLOPEN_MODE, scratchCodeBuffer);
+		emitPushImm(mode, scratchCodeBuffer);
 
 		// Push string addr
 		emitPushImm(dyninstlib_str_addr, scratchCodeBuffer);
@@ -1663,7 +1675,7 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 	else 
 	{
 		// Set mode
-		emitMovImmToReg64(REGNUM_RSI, DLOPEN_MODE, false, scratchCodeBuffer);
+		emitMovImmToReg64(REGNUM_RSI, mode, false, scratchCodeBuffer);
 		// Set string addr
 		emitMovImmToReg64(REGNUM_RDI, dyninstlib_str_addr, true,
 				scratchCodeBuffer);

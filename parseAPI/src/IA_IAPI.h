@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -68,7 +68,7 @@ class IA_IAPI : public InstructionAdapter {
           Address start, ParseAPI::CodeObject *o,
           ParseAPI::CodeRegion *r, InstructionSource *isrc, ParseAPI::Block *);
 
-        Dyninst::InstructionAPI::Instruction::Ptr getInstruction();
+        virtual Dyninst::InstructionAPI::Instruction::Ptr getInstruction() const;
     
         virtual bool hasCFT() const;
         virtual size_t getSize() const;

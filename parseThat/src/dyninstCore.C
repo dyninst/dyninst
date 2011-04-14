@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -104,7 +104,6 @@ void stateBasedPrint(message *msgData, statusID prevStat, statusID currStat, int
                case ID_PARSE_MODULE: dlog(priority, "Found %d module(s).\n", msgData->int_data); break;
                case ID_PARSE_FUNC: dlog(priority, "Found %d function(s).\n", msgData->int_data); break;
                case ID_INST_GET_FUNCS: dlog(priority, "Retrieved %d function(s).\n", msgData->int_data); break;
-               case ID_SAVE_WORLD: dlog(priority, "Mutated binary saved as '%s'.\n", msgData->str_data); break;
                default: dlog(priority, "done.\n"); break;
             }
             return;
@@ -510,18 +509,6 @@ int launch_mutator()
          dynEndTransaction(dh);
    }
 
-   if (config.use_save_world && config.use_process) {
-      sendMsg(config.outfd, ID_SAVE_WORLD, INFO);
-      char *destdir = dh->proc->dumpPatchedImage(config.saved_mutatee);
-      if (!destdir) {
-         sendMsg(config.outfd, ID_SAVE_WORLD, INFO, ID_FAIL,
-                 "BPatch_process::dumpPatchedImage() returned NULL");
-      } else {
-         sendMsg(config.outfd, ID_SAVE_WORLD, INFO, ID_PASS,
-                 strcat_static(destdir, config.saved_mutatee));
-      }
-   }
-    
    if (config.hunt_crashes) {
       sendMsg(config.outfd, ID_CRASH_HUNT_NUM_ACTIONS, INFO, ID_INFO, numInstsAllowed);
    }
@@ -587,13 +574,17 @@ int launch_mutator()
       // All processing complete.  Loop indefinitly until exit handler called.
       //
       sendMsg(config.outfd, ID_WAIT_TERMINATION, INFO);
-      while (!dh->proc->isTerminated()) {
+      while (1) {
+         sendMsg(config.outfd, ID_CHECK_TERMINATION, INFO);
+         bool dead = dh->proc->isTerminated();
+         sendMsg(config.outfd, ID_CHECK_TERMINATION, INFO, ID_PASS);
+         if (dead) break;
+
          sendMsg(config.outfd, ID_WAIT_STATUS_CHANGE, DEBUG);
          if (!dh->bpatch->waitForStatusChange())
             sendMsg(config.outfd, ID_WAIT_STATUS_CHANGE, DEBUG, ID_FAIL);
          else
             sendMsg(config.outfd, ID_WAIT_STATUS_CHANGE, DEBUG, ID_PASS);
-         sendMsg(config.outfd, ID_WAIT_TERMINATION, INFO, ID_PASS);
       }
       sendMsg(config.outfd, ID_WAIT_TERMINATION, INFO, ID_PASS);
    }

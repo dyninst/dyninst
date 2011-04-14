@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -284,7 +284,6 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
    fakeTickCount=0;
    /* Memory emulation */
 }
-
  
 /**
  * Does what it's called. Used by the paradyn daemon as a default in certain 

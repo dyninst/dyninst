@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -201,7 +201,14 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
       default:
          fprintf(out, "UNKNOWN");
    }
-   
+
+   if (last_test && last_test->usage.has_data()) {
+       fprintf(out, " (CPU: %ld.%06ld MEMORY: %ld)",
+               last_test->usage.cpuUsage().tv_sec,
+               last_test->usage.cpuUsage().tv_usec,
+               last_test->usage.memUsage());
+   }
+
    if (print_stage && stage != -1)
    {
      switch ( (test_runstate_t) stage)
