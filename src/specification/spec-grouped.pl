@@ -705,6 +705,8 @@ test_platform('test_write_param', 'x86_64-unknown-linux2.4').
 test_platform('test_write_param', 'i386-unknown-nt4.0').
 test_platform('test_write_param', 'rs6000-ibm-aix5.1').
 test_platform('test_write_param', 'ia64-unknown-linux2.4').
+test_platform('test_write_param', 'i386-unknown-freebsd7.2').
+test_platform('test_write_param', 'amd64-unknown-freebsd7.2').
 % Theoretically implemented on Solaris, but test doesn't pass, so disabling until/unless we decide it's worth fixing.
 % test_platform('test_write_param', 'sparc-sun-solaris2.9').
 groupable_test('test_write_param').
@@ -1108,7 +1110,7 @@ test_mem_mutatee_aux(P, Aux) :-
                                                    'test6LS-powerpc.S'];
         platform('i386', 'freebsd', _, P) -> Aux = ['test_mem_util.c',
                                                    'test6LS-x86.asm'];
-        platform('amd64', 'freebsd', _, P) -> Aux = ['test_mem_util.c',
+        platform('x86_64', 'freebsd', _, P) -> Aux = ['test_mem_util.c',
                                                     'test6LS-x86_64.s']
     ).
 
