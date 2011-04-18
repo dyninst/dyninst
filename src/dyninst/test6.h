@@ -99,7 +99,7 @@ const unsigned int naxses = 91;
 const unsigned int naxses = 12;
 #endif
 
-#ifdef x86_64_unknown_linux2_4_test
+#if defined(x86_64_unknown_linux2_4_test) || defined(amd64_unknown_freebsd7_0_test)
 const unsigned int naxses = 100;
 #endif
 

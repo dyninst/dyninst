@@ -495,7 +495,7 @@ void init_test_data()
 }
 #endif /* defined(i386_unknown_linux2_0_test) || defined(i386_unknown_nt4_0_test) */
 
-#ifdef x86_64_unknown_linux2_4_test
+#if defined(x86_64_unknown_linux2_4_test) || defined(amd64_unknown_freebsd7_0_test)
 unsigned int loadExp = 75;
 unsigned int storeExp = 28;
 unsigned int prefeExp = 2;
