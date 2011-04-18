@@ -210,7 +210,7 @@ int eaExpOffset[] =    { 0, 17,3,1,2,  0,4,2,0,  2,2,2,2,  0,4,4,4,
 }
 #endif /* defined(rs6000_ibm_aix4_1_test) */
 
-#if defined(i386_unknown_linux2_0_test)
+#if defined(i386_unknown_linux2_0_test) || (defined(os_freebsd_test) && defined(arch_x86_test))
 unsigned int loadExp=67;
 unsigned int storeExp=27;
 unsigned int prefeExp=2;
@@ -241,7 +241,8 @@ const struct reduction ccRed = { 0, 0, 0, 1, 91 };
 #endif
 
 #if defined(i386_unknown_linux2_0_test) \
- || defined(i386_unknown_nt4_0_test)
+ || defined(i386_unknown_nt4_0_test) \
+ || (defined(os_freebsd_test) && defined(arch_x86_test))
 
 
 int eaExpOffset[] =    { /* 0-3 */ 0,0,0,0,

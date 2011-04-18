@@ -25,7 +25,6 @@ include ../../make.config
 
 SRCS =          ../src/freebsd.C \
 		../src/freebsd-x86.C \
-		../src/dynamiclinking.C \
 		../src/cpuid-x86.S \
                 ../src/inst-x86.C \
 		../src/emit-x86.C \

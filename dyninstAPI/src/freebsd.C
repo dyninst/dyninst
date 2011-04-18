@@ -285,6 +285,10 @@ void PCProcess::inferiorMallocConstraints(Address near, Address &lo, Address &hi
         inferiorHeapType /* type */ )
 {
     if(near) {
+#if !defined(arch_x86_64) && !defined(arch_power)
+        lo = region_lo(near);
+        hi = region_hi(near);
+#else
         if( getAddressWidth() == 8 ) {
             lo = region_lo_64(near);
             hi = region_hi_64(near);
@@ -292,6 +296,7 @@ void PCProcess::inferiorMallocConstraints(Address near, Address &lo, Address &hi
             lo = region_lo(near);
             hi = region_hi(near);
         }
+#endif
     }
 }
 

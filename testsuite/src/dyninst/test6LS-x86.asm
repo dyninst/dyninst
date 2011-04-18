@@ -38,6 +38,42 @@
     int 0x80       ;  call linux kernel
 %endmacro
 
+%elifidn PLATFORM,i386-unknown-freebsd7.2
+; assuming freebsd==elf
+%macro global_function 1
+; nasm elf extension for type/size symbol info... there MUST be a blank after "function"!
+    global %1:function (%1.end - %1)
+%endmacro
+%macro global_data 2
+    global %1:data (%2)
+%endmacro
+%macro saymsg 1
+;write our message to stdout
+    mov edx,len_%1
+    mov ecx,msg_%1
+    mov ebx,1      ; stdout
+    mov eax,4      ; sys_write
+    int 0x80       ; call linux kernel
+%endmacro
+
+%elifidn PLATFORM,amd64-unknown-freebsd7.2
+; assuming freebsd==elf
+%macro global_function 1
+; nasm elf extension for type/size symbol info... there MUST be a blank after "
+    global %1:function (%1.end - %1)
+%endmacro
+%macro global_data 2
+    global %1:data (%2)
+%endmacro
+%macro saymsg 1
+; write our message to stdout
+    mov edx,len_%1
+    mov ecx,msg_%1
+    mov ebx,1      ;  stdout
+    mov eax,4      ;  sys_write
+    int 0x80       ;  call linux kernel
+%endmacro
+
 ; assuming nt==win32
 %elifidn PLATFORM,i386-unknown-nt4.0 
 
