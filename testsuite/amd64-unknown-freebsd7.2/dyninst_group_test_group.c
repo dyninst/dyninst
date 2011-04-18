@@ -27,6 +27,7 @@ extern int test1_23_mutatee();
 extern int test1_20_mutatee();
 extern int test1_21_mutatee();
 extern int test1_39_mutatee();
+extern int test_write_param_mutatee();
 extern int test1_38_mutatee();
 extern int test1_10_mutatee();
 extern int test1_31_mutatee();
@@ -68,6 +69,7 @@ mutatee_call_info_t mutatee_funcs[] = {
   {"test1_20", test1_20_mutatee, GROUPED, "test1_20"},
   {"test1_21", test1_21_mutatee, GROUPED, "test1_21"},
   {"test1_39", test1_39_mutatee, GROUPED, "test1_39"},
+  {"test_write_param", test_write_param_mutatee, GROUPED, "test_write_param"},
   {"test1_38", test1_38_mutatee, GROUPED, "test1_38"},
   {"test1_10", test1_10_mutatee, GROUPED, "test1_10"},
   {"test1_31", test1_31_mutatee, GROUPED, "test1_31"},
@@ -85,9 +87,9 @@ mutatee_call_info_t mutatee_funcs[] = {
   {"test1_16", test1_16_mutatee, GROUPED, "test1_16"}
 };
 
-int max_tests = 39;
-int runTest[39];
-int passedTest[39];
+int max_tests = 40;
+int runTest[40];
+int passedTest[40];
 #ifdef __cplusplus
 }
 #endif
