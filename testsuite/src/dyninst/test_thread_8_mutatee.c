@@ -155,22 +155,18 @@ void *init_func(void *arg)
 {
    int id = *((int*)arg);
    assert(arg != NULL);
+
    threads_running[id] = 1;
+
    thr_func(arg);
    return NULL;
 }
 
-/* int main(int argc, char *argv[]) */
 int test_thread_8_mutatee() {
    unsigned i;
    int startedall = 0;
-#ifndef os_windows_test
-   char c = 'T';
-#endif
 
    thr_exits = 0;
-
-   /* parse_args(argc, argv); */
 
    /* create the workers */
    for (i=1; i<NTHRD; i++)
@@ -190,9 +186,8 @@ int test_thread_8_mutatee() {
       }
    }
 
-   /* give time for workers to run thr_loop */
-   while(thr_exits == 0)
-      schedYield();
+   // Allow the mutator to know when initialization has been finished
+   stop_process_();
 
    /* wait for worker exits */
    for (i=1; i<NTHRD; i++)

@@ -212,6 +212,16 @@ bool PCEventHandler::isCrashSignal(int signal) {
     }
 }
 
+bool PCEventHandler::isKillSignal(int signal) {
+    switch(signal) {
+        case SIGKILL:
+        case SIGTERM:
+            return true;
+        default:
+            return false;
+    }
+}
+
 bool PCEventHandler::isValidRTSignal(int signal, RTBreakpointVal breakpointVal, 
         Address arg1, int status)
 {

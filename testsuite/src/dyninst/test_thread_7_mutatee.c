@@ -76,8 +76,8 @@ void my_barrier(volatile int *br)
                  "tramp guards are incorrectly preventing some threads "
                  "from running\n",
                  __FILE__, __LINE__);
-	 /* FIXME Don't call exit()! */
-         exit(1);
+         // At least do something useful...
+         assert(0);
       }
       P_sleep(1);        
    }

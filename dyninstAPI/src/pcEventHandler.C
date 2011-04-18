@@ -272,8 +272,9 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
             EventSignal::const_ptr evSignal = ev->getEventSignal();
 
             // Don't deliver any signals to the process unless we explicitly choose
-            // to decide it is correct
-            evSignal->clearThreadSignal();
+            // to forward the signal to the process
+            if( !PCEventHandler::isKillSignal(evSignal->getSignal()) )
+                evSignal->clearThreadSignal();
             break;
         }
         case EventType::Breakpoint: {
