@@ -1473,11 +1473,18 @@ bool PCProcess::unregisterThread(dynthread_t tid) {
     the_args[0] = AstNode::operandNode(AstNode::Constant, (void*)(Address)tid);
     AstNodePtr unregisterAST = AstNode::funcCallNode("DYNINSTunregisterThread", the_args);
 
+    map<dynthread_t, PCThread *>::iterator result;
+    result = threadsByTid_.find(tid);
+
+    if( result == threadsByTid_.end() ) return false;
+
+    PCThread *toUnregister = result->second;
+
     Address retval = 0;
     if( !postIRPC(unregisterAST, 
                 NULL,  // no user data
                 (getDesiredProcessState() == ps_running), 
-                NULL,  // doesn't matter which thread
+                toUnregister,  
                 true,  // wait for completion
                 (void **)&retval,
                 false) ) // don't deliver callbacks 

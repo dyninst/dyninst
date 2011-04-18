@@ -254,6 +254,18 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
       }
    }
 
+   if( waitUntilStopped(bpatch, proc, 8, "test_thread_8: oneTimeCode") < 0 ){
+       logerror("[%s:%d] - Failed to wait for stop of threads\n",
+               __FILE__, __LINE__);
+       return error_exit();
+   }
+
+   if( !proc->continueExecution() ) {
+       logerror("[%s:%d] - failed to continue process after stop\n",
+               FILE__, __LINE__);
+       return error_exit();
+   }
+
    dprintf(stderr, "%s[%d]:  done waiting for thread creations\n", 
            __FILE__, __LINE__);
 
