@@ -49,11 +49,12 @@
 %endmacro
 %macro saymsg 1
 ;write our message to stdout
-    mov edx,len_%1
-    mov ecx,msg_%1
-    mov ebx,1      ; stdout
+    push len_%1
+    push msg_%1
+    push 1      ; stdout
     mov eax,4      ; sys_write
-    int 0x80       ; call linux kernel
+    push eax       ; required by calling convention
+    syscall
 %endmacro
 
 %elifidn PLATFORM,amd64-unknown-freebsd7.2
@@ -67,11 +68,11 @@
 %endmacro
 %macro saymsg 1
 ; write our message to stdout
-    mov edx,len_%1
-    mov ecx,msg_%1
-    mov ebx,1      ;  stdout
-    mov eax,4      ;  sys_write
-    int 0x80       ;  call linux kernel
+    mov rdx,len_%1
+    mov rsi,msg_%1
+    mov rdi,1      ;  stdout
+    mov rax,4      ;  sys_write
+    syscall
 %endmacro
 
 ; assuming nt==win32
