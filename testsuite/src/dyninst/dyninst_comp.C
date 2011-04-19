@@ -1275,7 +1275,9 @@ int instEffAddr(BPatch_addressSpace* as, const char* fname,
 
 #if defined(i386_unknown_linux2_0_test) \
 	|| defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
-	|| defined(i386_unknown_nt4_0_test)
+	|| defined(i386_unknown_nt4_0_test) \
+        || defined(amd64_unknown_freebsd7_0_test) \
+        || defined(i386_unknown_freebsd7_0_test)
 	BPatch_effectiveAddressExpr eae2(1);
 	const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
 
@@ -1369,7 +1371,9 @@ int instByteCnt(BPatch_addressSpace* as, const char* fname,
 
 #if defined(i386_unknown_linux2_0_test) \
 	|| defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
-	|| defined(i386_unknown_nt4_0_test)
+	|| defined(i386_unknown_nt4_0_test) \
+        || defined(amd64_unknown_freebsd7_0_test) \
+        || defined(i386_unknown_freebsd7_0_test)
 
         BPatch_bytesAccessedExpr bae2(1);
 	const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
