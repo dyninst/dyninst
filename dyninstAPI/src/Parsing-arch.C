@@ -46,7 +46,7 @@ using namespace Dyninst::ParseAPI;
 
 #if defined(arch_power)
 void 
-DynParseCallback::instruction_cb(Function*f,Address,insn_details*det)
+DynParseCallback::instruction_cb(Function*f,Block *,Address,insn_details*det)
 {
     parse_func * ifunc = static_cast<parse_func*>(f);
     /* In case we do callback from a place where the leaf function analysis has not been done */ 

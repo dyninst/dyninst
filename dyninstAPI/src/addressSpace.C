@@ -54,7 +54,7 @@
 #include "Relocation/Springboard.h"
 #include "Relocation/Transformers/Include.h"
 #include "Relocation/CodeTracker.h"
-#include "MemoryEmulator/memEmulatorTransformer.h"
+
 #include "MemoryEmulator/memEmulator.h"
 #include "parseAPI/h/CodeObject.h"
 #include <boost/tuple/tuple.hpp>
@@ -191,7 +191,10 @@ void AddressSpace::deleteAddressSpace() {
 
     // up_ptr_ is untouched
     costAddr_ = 0;
-
+    for (CodeTrackers::iterator iter = relocatedCode_.begin(); 
+	 iter != relocatedCode_.end(); ++iter) {
+      delete *iter;
+    }
     relocatedCode_.clear();
     modifiedFunctions_.clear();
     forwardDefensiveMap_.clear();
@@ -1514,14 +1517,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       // Print out the buffer we just created
       cerr << "DUMPING RELOCATION BUFFER " << hex 
            << cm->blockMap().begin()->first->start() << dec << endl;
-#if 0
-      unsigned char *cur = (unsigned char *) cm->ptr();
-      unsigned tmp = 0;
-      while (tmp < cm->size()) {
-         cerr << hex << baseAddr + tmp << ": " << (unsigned) cur[tmp] << endl;
-         tmp++;
-      }
-#endif
+
       Address base = baseAddr;
       InstructionDecoder deco
         (cm->ptr(),cm->size(),getArch());
@@ -1533,7 +1529,17 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       }
       cerr << dec;
       cerr << endl;
+      unsigned *cur = (unsigned *) cm->ptr();
+      unsigned tmp = 0;
+      while (tmp < (cm->size() / 4)) {
+	cerr << hex << baseAddr + (4*tmp) << ": " << cur[tmp] << endl;
+	if (cur[tmp] == 0x0) {
+	  assert(0);
+	}
+	tmp++;
+      }
       cerr << cm->format() << endl;
+
   }
 
 
@@ -1612,10 +1618,12 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
    adhocMovementTransformer a(this);
    cm->transform(a);
 
+#if defined(cap_mem_emulation)
    if (emulateMem_) {
       MemEmulatorTransformer m;
       cm->transform(m);
   }
+#endif
 
   // Insert whatever binary modifications are desired
   // Right now needs to go before Instrumenters because we use

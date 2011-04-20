@@ -143,8 +143,8 @@ class EmitterIA32Stat : public EmitterIA32 {
 
     ~EmitterIA32Stat() {};
 
-    virtual void emitPLTCall(func_instance *dest, codeGen &gen);
-    virtual void emitPLTJump(func_instance *dest, codeGen &gen);
+    virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
+    virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
     
  protected:
     bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
@@ -255,8 +255,8 @@ class EmitterAMD64Stat : public EmitterAMD64 {
  public:
     ~EmitterAMD64Stat() {};
     
-    virtual void emitPLTCall(func_instance *dest, codeGen &gen);
-    virtual void emitPLTJump(func_instance *dest, codeGen &gen);
+    virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
+    virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
 
     bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );

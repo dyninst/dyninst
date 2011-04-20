@@ -29,10 +29,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#if !defined(cap_mem_emulation)
+#include "memEmulatorStub.h"
+#else 
+
+
+
 #if !defined(_MEMORY_EMULATOR_H_)
 #define _MEMORY_EMULATOR_H_
 
 #include "common/h/IntervalTree.h"
+#include "dyninstAPI/src/MemoryEmulator/memEmulatorTransformer.h"
+#include "dyninstAPI/src/MemoryEmulator/memEmulatorAtom.h"
 
 class AddressSpace;
 class mapped_object;
@@ -102,4 +110,5 @@ class MemoryEmulator {
 };
 };
 
+#endif
 #endif

@@ -48,7 +48,7 @@ using namespace Dyninst::InstructionAPI;
 
 #if defined(arch_x86) || defined(arch_x86_64)
 // Special-casing for IA-32...
-#include "RegisterConversion-x86.h"
+#include "RegisterConversion.h"
 #include "inst-x86.h"
 #endif
 

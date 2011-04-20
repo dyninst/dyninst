@@ -776,6 +776,10 @@ class instruction {
         // Don't flip bits here.  Input is already in host byte order.
         insn_.raw = raw;
     }
+    // Pointer creation method
+    instruction(const void *ptr) {
+      insn_ = *((instructUnion *)ptr);
+    }
 
     instruction(const instruction &insn) :        insn_(insn.insn_) {};
     instruction(instructUnion &insn) :

@@ -121,8 +121,10 @@ bool adhocMovementTransformer::isPCDerefCF(Atom::Ptr ptr,
    Expression::Ptr cf = ptr->insn()->getControlFlowTarget();
    if (!cf) return false;
 
-   static Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(Arch_x86)));
-   static Expression::Ptr thePC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
+   static Expression::Ptr x86PC(new RegisterAST(MachRegister::getPC(Arch_x86)));
+   static Expression::Ptr x86PC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
+   static Expression::Ptr ppcPC(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
+   static Expression::Ptr ppcPC64(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
 
    // Okay, see if we're memory
    set<Expression::Ptr> mems;
@@ -131,16 +133,18 @@ bool adhocMovementTransformer::isPCDerefCF(Atom::Ptr ptr,
    for (set<Expression::Ptr>::const_iterator iter = mems.begin();
         iter != mems.end(); ++iter) {
       Expression::Ptr exp = *iter;
-      if (exp->bind(thePC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
-          exp->bind(thePC64.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
-         // Bind succeeded, eval to get target address
-         Result res = exp->eval();
-         if (!res.defined) {
-            cerr << "ERROR: failed bind/eval at " << std::hex << ptr->addr() << endl;if (ptr->insn()->getControlFlowTarget()) return false;
-         }
-         assert(res.defined);
-         target = res.convert<Address>();
-         break;
+      if (exp->bind(x86PC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
+          exp->bind(x86PC64.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
+          exp->bind(ppcPC.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
+          exp->bind(ppcPC64.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
+	// Bind succeeded, eval to get target address
+	Result res = exp->eval();
+	if (!res.defined) {
+	  cerr << "ERROR: failed bind/eval at " << std::hex << ptr->addr() << endl;if (ptr->insn()->getControlFlowTarget()) return false;
+	}
+	assert(res.defined);
+	target = res.convert<Address>();
+	break;
       }
    }
    if (target) return true;
@@ -156,23 +160,29 @@ bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
   if (ptr->insn()->getControlFlowTarget()) return false;
 
   // TODO FIXME
-  static Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(Arch_x86)));
-  static Expression::Ptr thePC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
-
-  if (!ptr->insn()->isRead(thePC) &&
-      !ptr->insn()->isRead(thePC64)) 
+  static Expression::Ptr x86PC(new RegisterAST(MachRegister::getPC(Arch_x86)));
+  static Expression::Ptr x86PC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
+  static Expression::Ptr ppcPC(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
+  static Expression::Ptr ppcPC64(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
+  
+  if (!ptr->insn()->isRead(x86PC) &&
+      !ptr->insn()->isRead(x86PC64) &&
+      !ptr->insn()->isRead(ppcPC) &&
+      !ptr->insn()->isRead(ppcPC64))
     return false;
 
   // Okay, see if we're memory
   set<Expression::Ptr> mems;
   ptr->insn()->getMemoryReadOperands(mems);
   ptr->insn()->getMemoryWriteOperands(mems);
-
   for (set<Expression::Ptr>::const_iterator iter = mems.begin();
        iter != mems.end(); ++iter) {
     Expression::Ptr exp = *iter;
-    if (exp->bind(thePC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
-	exp->bind(thePC64.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
+    cerr << "Memory-using PC reference: expression " << exp->format() << endl;
+    if (exp->bind(x86PC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
+	exp->bind(x86PC64.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
+	exp->bind(ppcPC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
+	exp->bind(ppcPC64.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
       // Bind succeeded, eval to get target address
       Result res = exp->eval();
       if (!res.defined) {
@@ -196,8 +206,10 @@ bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
     // If we can bind the PC, then we're in the operand
     // we want.
     Expression::Ptr exp = iter->getValue();
-    if (exp->bind(thePC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
-	exp->bind(thePC64.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
+    if (exp->bind(x86PC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
+	exp->bind(x86PC64.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
+	exp->bind(ppcPC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
+	exp->bind(ppcPC64.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
       // Bind succeeded, eval to get target address
       Result res = exp->eval();
       assert(res.defined);
@@ -215,7 +227,6 @@ bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
 bool adhocMovementTransformer::isGetPC(Atom::Ptr ptr,
 				       Absloc &aloc,
 				       Address &thunk) {
-
   // TODO:
   // Check for call + size;
   // Check for call to thunk.
@@ -229,12 +240,16 @@ bool adhocMovementTransformer::isGetPC(Atom::Ptr ptr,
   }
    
   // Bind current PC
-  static Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(Arch_x86)));
-  static Expression::Ptr thePC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
+  static Expression::Ptr x86PC(new RegisterAST(MachRegister::getPC(Arch_x86)));
+  static Expression::Ptr x86PC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
+  static Expression::Ptr ppcPC(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
+  static Expression::Ptr ppcPC64(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
 
   // Bind the IP, why not...
-  CFT->bind(thePC.get(), Result(u32, ptr->addr()));
-  CFT->bind(thePC64.get(), Result(u64, ptr->addr()));
+  CFT->bind(x86PC.get(), Result(u32, ptr->addr()));
+  CFT->bind(x86PC64.get(), Result(u64, ptr->addr()));
+  CFT->bind(ppcPC.get(), Result(u32, ptr->addr()));
+  CFT->bind(ppcPC64.get(), Result(u64, ptr->addr()));
 
   Result res = CFT->eval();
 

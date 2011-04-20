@@ -78,10 +78,10 @@ private:
         BPatchSnippetHandle *preHandle_;
         BPatchSnippetHandle *postHandle_;
    };
-    typedef struct ExceptionDetails {
+    typedef struct {
         Address faultPCaddr;
         bool isInterrupt;
-    };
+    } ExceptionDetails; 
 
 public:
 

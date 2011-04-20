@@ -46,7 +46,7 @@ using namespace InstructionAPI;
 bool InsnAtom::generate(const codeGen &, 
                         const Trace *t,
                         CodeBuffer &buffer) {
-   buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t));
+  buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t));
   return true;
 }
 

@@ -1869,7 +1869,7 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, func_instance *callee, 
    return true;
 }
 
-void EmitterAMD64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
+bool EmitterAMD64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
    // create or retrieve jump slot
    Address dest = getInterModuleFuncAddr(callee, gen);
    GET_PTR(insn, gen);
@@ -1882,7 +1882,7 @@ void EmitterAMD64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
    SET_PTR(insn, gen);
 }
 
-void EmitterAMD64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
+bool EmitterAMD64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
    // create or retrieve jump slot
    Address dest = getInterModuleFuncAddr(callee, gen);
    GET_PTR(insn, gen);
@@ -2872,7 +2872,7 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, func_instance *callee, R
    return true;
 }
 
-void EmitterIA32Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
+bool EmitterIA32Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
    // create or retrieve jump slot
    Address dest = getInterModuleFuncAddr(callee, gen);
    // load register with address from jump slot
@@ -2882,7 +2882,7 @@ void EmitterIA32Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
                 RealRegister(REGNUM_EAX), gen);
 }
 
-void EmitterIA32Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
+bool EmitterIA32Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
   // create or retrieve jump slot
    Address dest = getInterModuleFuncAddr(callee, gen);
    // load register with address from jump slot

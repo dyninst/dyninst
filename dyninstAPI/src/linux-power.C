@@ -489,8 +489,7 @@ Frame Frame::getCallerFrame()
   bool isLeaf = false;
   bool noFrame = false;
 
-  codeRange *range = getRange();
-  func_instance *func = range->is_function();
+  func_instance *func = getFunc();
 
   if (uppermost_) {
     if (func) {
@@ -533,20 +532,8 @@ Frame Frame::getCallerFrame()
       basePCAddr = thisStackFrame.elf32.oldFp;
   }
 
-  // See if we're in instrumentation
-  baseTrampInstance *bti = NULL;
-  
-  if (range->is_multitramp()) {
-      bti = range->is_multitramp()->getBaseTrampInstanceByAddr(getPC());
-      if (bti) {
-          // If we're not in instru, then re-set this to NULL
-          if (!bti->isInInstru(getPC()))
-              bti = NULL;
-      }
-  }
-  else if (range->is_minitramp()) {
-      bti = range->is_minitramp()->baseTI;
-  }
+  baseTramp *bti = getBaseTramp();
+
   if (bti) {
       // Oy. We saved the LR in the middle of the tramp; so pull it out
       // by hand.
@@ -571,28 +558,27 @@ Frame Frame::getCallerFrame()
 
       // Instrumentation makes its own frame; we want to skip the
       // function frame if there is one as well.
-      instPoint *point = bti->baseT->instP();
+      instPoint *point = bti->point();
       assert(point); // Will only be null if we're in an inferior RPC, which can't be.
       // If we're inside the function (callSite or arbitrary; bad assumption about
       // arbitrary but we don't know exactly where the frame was constructed) and the
       // function has a frame, tear it down as well.
-      if ((point->getPointType() == callSite ||
-          point->getPointType() == otherPoint) &&
-          !point->func()->hasNoStackFrame()) {
-        if (getProc()->getAddressWidth() == sizeof(uint64_t)) {
-          if (!getProc()->readDataSpace((caddr_t) (Address)
-                                        thisStackFrame.elf64.oldFp,
-                                        sizeof(newFP),
-                                        (caddr_t) &newFP, false))
-            return Frame();
-        }
-        else {
+      if (point->type() == instPoint::FuncEntry ||
+	  point->type() == instPoint::FuncExit) {
           uint32_t u32;
           if (!getProc()->readDataSpace((caddr_t) (Address)
                                         thisStackFrame.elf32.oldFp,
                                         sizeof(u32), (caddr_t) &u32, false))
             return Frame();
           newFP = u32;
+      }
+      else {
+        if (getProc()->getAddressWidth() == sizeof(uint64_t)) {
+          if (!getProc()->readDataSpace((caddr_t) (Address)
+                                        thisStackFrame.elf64.oldFp,
+                                        sizeof(newFP),
+                                        (caddr_t) &newFP, false))
+            return Frame();
         }
       }
       // Otherwise must be at a reloc insn
@@ -675,7 +661,6 @@ bool Frame::setPC(Address newpc) {
          return false;
    }
    pc_ = newpc;
-   range_ = NULL;
 
    return true;
 }
@@ -789,7 +774,7 @@ bool process::insertTrapAtEntryPointOfMain()
     f_main = funcs[0];
     assert(f_main);
 
-    Address addr = f_main->getAddress();
+    Address addr = f_main->addr();
 
     startup_printf("[%d]: inserting trap at 0x%x\n",
                    getPid(), addr);
@@ -1035,7 +1020,8 @@ bool process::loadDYNINSTlib_hidden() {
                            __FILE__,__LINE__,dlopen_int_funcs.size(),
                            DL_OPEN_FUNC_INTERNAL);
         }
-        dlopen_int_funcs[0]->getStaticCallers(dlopen_funcs);
+	dlopen_int_funcs[0]->getCallerFuncs(std::back_inserter(dlopen_funcs));
+
         if(dlopen_funcs.size() > 1)
         {
             startup_printf("%s[%d] warning: found %d do_dlopen candidates\n",
@@ -1056,7 +1042,7 @@ bool process::loadDYNINSTlib_hidden() {
       return false;
   }
 
-  Address dlopen_addr = dlopen_funcs[0]->getAddress();
+  Address dlopen_addr = dlopen_funcs[0]->addr();
   func_instance *dlopen_func = dlopen_funcs[0];  //aix.C
 
   assert(dyninstRT_name.length() < BYTES_TO_SAVE);

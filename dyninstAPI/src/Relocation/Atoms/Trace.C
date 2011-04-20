@@ -83,7 +83,6 @@ Trace::Ptr Trace::create(block_instance *block, func_instance *func) {
     relocation_cerr << "  Adding instruction " 
 		    << std::hex << iter->first << std::dec
 		    << " " << iter->second->format() << endl;
-
     Atom::Ptr ptr = InsnAtom::create(iter->second, iter->first);
 
     if (!ptr) {

@@ -53,7 +53,7 @@
 
 #include "memEmulatorAtom.h"
 
-#include "dyninstAPI/src/RegisterConversion-x86.h"
+#include "dyninstAPI/src/RegisterConversion.h"
 
 #include "boost/tuple/tuple.hpp"
 #include "memEmulator.h"

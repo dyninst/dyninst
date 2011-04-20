@@ -42,6 +42,16 @@ namespace NS_x86 {
    class instruction;
 }
 
+namespace NS_power {
+  class instruction;
+}
+
+#if defined(arch_x86) || defined(arch_x86_64)
+typedef NS_x86::instruction arch_insn;
+#else
+typedef NS_power::instruction arch_insn;
+#endif
+
 namespace Dyninst {
 namespace Relocation {
  class LocalizeCF;
@@ -170,7 +180,7 @@ class CFAtom : public Atom {
 
 };
 
-struct CFPatch_x86 : public Patch {
+struct CFPatch : public Patch {
   // What type of patch are we?
   typedef enum {
     Jump,
@@ -179,20 +189,20 @@ struct CFPatch_x86 : public Patch {
     Data } Type;
   // Data: RIP-relative expression for the destination
 
- CFPatch_x86(Type a, 
+ CFPatch(Type a, 
          InstructionAPI::Instruction::Ptr b, 
          TargetInt *c,
 	 Address d = 0);
   
   virtual bool apply(codeGen &gen, CodeBuffer *buf);
   virtual unsigned estimate(codeGen &templ);
-  virtual ~CFPatch_x86() {};
+  virtual ~CFPatch();
 
   Type type;
   InstructionAPI::Instruction::Ptr orig_insn;
   TargetInt *target;
   Address origAddr_;  
-  NS_x86::instruction *ugly_insn;
+  arch_insn *ugly_insn;
 
   private:
   bool isPLT(codeGen &gen);

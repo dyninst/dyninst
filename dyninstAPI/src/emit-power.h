@@ -96,10 +96,10 @@ class EmitterPOWER : public Emitter {
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
 
     virtual void emitGetRetVal(Register, bool, codeGen &) { assert(0); }
-    virtual void emitGetRetAddr(Register, bool, codeGen &) { assert(0); }
-    virtual void emitGetParam(Register, Register, instPointType_t, bool, codeGen &) { assert(0); }
-    virtual void emitFuncJump(func_instance*, instPointType_t, bool, codeGen &) { assert(0); }
-    virtual void emitASload(int, int, int, long, Register, codeGen &) { assert(0); }
+    virtual void emitGetRetAddr(Register, codeGen &) { assert(0); }
+    virtual void emitGetParam(Register, Register, instPoint::Type, opCode, bool, codeGen &) { assert(0); }
+    virtual void emitFuncJump(func_instance*, instPoint::Type, codeGen &) { assert(0); }
+    virtual void emitASload(int, int, int, long, Register, int, codeGen &) { assert(0); }
     virtual void emitCSload(int, int, int, long, Register, codeGen &) { assert(0); }
     virtual void emitPushFlags(codeGen &) { assert(0); }
     virtual void emitRestoreFlags(codeGen &, unsigned) { assert(0); }
@@ -135,6 +135,10 @@ class EmitterPOWERDyn : public EmitterPOWER {
 class EmitterPOWERStat : public EmitterPOWER {
  public:
     virtual ~EmitterPOWERStat() {};
+
+    virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
+    virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
+
  protected:
     virtual Register emitCallReplacement(opCode ocode, codeGen &gen,
                                  bool noCost, func_instance *callee);
