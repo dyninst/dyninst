@@ -90,6 +90,8 @@ const unsigned int naxses = 73;
 #if defined(arch_x86_test)
 #if defined(os_windows_test)
 const unsigned int naxses = 95;
+#elif defined(os_freebsd_test)
+const unsigned int naxses = 107;
 #else
 const unsigned int naxses = 91;
 #endif

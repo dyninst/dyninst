@@ -212,16 +212,33 @@ int eaExpOffset[] =    { 0, 17,3,1,2,  0,4,2,0,  2,2,2,2,  0,4,4,4,
 
 #if defined(i386_unknown_linux2_0_test) || (defined(os_freebsd_test) && defined(arch_x86_test))
 unsigned int loadExp=67;
+
+#if defined(i386_unknown_linux2_0_test)
 unsigned int storeExp=27;
-unsigned int prefeExp=2;
 unsigned int accessExp=94;
 unsigned int accessExpCC=93;
+#else
+unsigned int storeExp=43;
+unsigned int accessExp=110;
+unsigned int accessExpCC=109;
+#endif
+
+unsigned int prefeExp=2;
+#if defined(i386_unknown_linux2_0_test)
 const struct reduction mmxRed = { 2, 1, 0, 3, 49 };
 const struct reduction sseRed = { 2, 0, 1, 3, 53 };
 const struct reduction sse2Red = { 2, 0, 0, 2, 57 };
 const struct reduction amdRed = { 2, 0, 1, 3, 60 };
 
 const struct reduction ccRed = { 0, 0, 0, 1, 87 };
+#else
+const struct reduction mmxRed = { 2, 5, 0, 7, 49 };
+const struct reduction sseRed = { 2, 4, 1, 7, 57 };
+const struct reduction sse2Red = { 2, 4, 0, 6, 65 };
+const struct reduction amdRed = { 2, 4, 1, 7, 72 };
+
+const struct reduction ccRed = { 0, 0, 0, 1, 103 };
+#endif
 
 #else
 #if defined(i386_unknown_nt4_0_test)
@@ -254,24 +271,33 @@ int eaExpOffset[] =    { /* 0-3 */ 0,0,0,0,
                          /* 35 */ 0,
                          /* 36-47 */ 4,4,4,0,4,0,4,8,0,0,4,0,
                          /* 48 */ 0,
-#if defined(i386_unknown_nt4_0_test)
+#if defined(i386_unknown_nt4_0_test) 
 						0,
+#elif defined(i386_unknown_freebsd7_0_test)
+                                                0,0,0,0,
 #endif
 						 /* 49 */ 0,
                          /* 50-51 */ 8,0,
                          /* 52 */ 0,
 #if defined(i386_unknown_nt4_0_test)
 						0,
+#elif defined(i386_unknown_freebsd7_0_test)
+                                                0,0,0,0,
 #endif
                          /* 53-55 */ 0,0,0,
                          /* 56 */ 0,
 #if defined(i386_unknown_nt4_0_test)
 						0,
+#elif defined(i386_unknown_freebsd7_0_test)
+                                                0,0,0,0,
 #endif
                          /* 57-58 */ 0,0,
                          /* 59 */ 0,
 #if defined(i386_unknown_nt4_0_test)
 						0,
+#endif
+#if defined(i386_unknown_freebsd7_0_test)
+                                                0,0,0,0,
 #endif
                          /* 60-62 */ 0,8,0,
                          /* 63-69 */ 0,12,0,0,0,44,25,
@@ -284,21 +310,29 @@ int eaExpOffset[] =    { /* 0-3 */ 0,0,0,0,
 
 unsigned int bcExp[] = { 4,4,4,4,  4,4,4,4,4,4,4,  4,4,4,4,4,4,4,  4,
                          4,4,4,4,4,4,4,   4,4,4,4,4,4,4,4,4,   4,  4,4,1,1,4,4,4,4,4,1,4,4, 4,
-#if defined(i386_unknown_nt4_0_test)
+#if defined(i386_unknown_nt4_0_test) 
 					4,
+#elif defined(i386_unknown_freebsd7_0_test)
+                                  4,4,4,4,
 #endif
                          4,8,8, 4, 
 #if defined(i386_unknown_nt4_0_test)
 					4,
+#elif defined(i386_unknown_freebsd7_0_test)
+                                  4,4,4,4,
 #endif
 						 
 						 16,4,0, 4, 
 #if defined(i386_unknown_nt4_0_test)
 					4,
+#elif defined(i386_unknown_freebsd7_0_test)
+                                  4,4,4,4,
 #endif
 						 16,8, 4, 
 #if defined(i386_unknown_nt4_0_test)
 					4,
+#elif defined(i386_unknown_freebsd7_0_test)
+                                  4,4,4,4,
 #endif
 						 8,8,0,  12,4,16,16,49,4,4,  4,8,10,2,4,8,
                          4,8,10,2,4,8, 2,2,  28,28,  4,4,4,  4,4,4, 4,4, 4,4,4 };
@@ -409,6 +443,65 @@ void init_test_data()
   for(i=88; i<90; ++i)
     eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
   for(i=90; i<93; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+#elif defined(i386_unknown_freebsd7_0_test)
+  for(i=4; i<15; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]); /* skip ebp for now */
+  for(i=16; i<18; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  for(i=19; i<26; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  i=26;
+  eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  for(i=28; i<35; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  for(i=36; i<48; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  /* skip call @ i=48 (access 49)*/
+  /* skip saymsg @ i=49-52 (access 50-53) */
+  for(i=53; i<56; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  /* skip call @ i=56 (access 57) */
+  /* skip saymsg @ i=57-60 (access 58-61) */
+  for(i=61; i<63; ++i)
+    eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  i=63;
+  eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  /* skip call @ i=64 (access 65)*/
+  /* skip saymsg @ i=65-68 (access 66-69)*/
+  for(i=69; i<71; ++i)
+    eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  /* skip call @ i = 71 (access 72) */
+  /* skip saymsg @ i=72-75 (access 73-76) */
+  for(i=76; i<78; ++i)
+    eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  i=78;
+  eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  for(i=79; i<82; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  i=82; /* 2nd of mov */
+  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  for(i=83; i<86; ++i) /* scas, cmps */
+    eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
+  i=86;
+  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  i=87;
+  eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  i=88;
+  eaExp[i] = (void*)((unsigned long)&dfvart + eaExpOffset[i]);
+  for(i=89; i<92; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  i=92;
+  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  i=93;
+  eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  i=94;
+  eaExp[i] = (void*)((unsigned long)&dfvart + eaExpOffset[i]);
+  for(i=95; i<100; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  for(i=100; i<102; ++i)
+    eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
+  for(i=102; i<104; ++i)
     eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
 #else
   for(i=4; i<15; ++i)

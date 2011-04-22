@@ -54,7 +54,8 @@
     push 1      ; stdout
     mov eax,4      ; sys_write
     push eax       ; required by calling convention
-    syscall
+    int 0x80
+    lea esp, [esp+0x4]
 %endmacro
 
 %elifidn PLATFORM,amd64-unknown-freebsd7.2
