@@ -59,7 +59,7 @@ void check2()
     test_mem_2_passed = 1;
   } else {
     logerror("**Failed** test_mem_2 (store instrumentation)\n");
-    logerror("    store counter seems wrong.\n");
+    logerror("    store counter seems wrong (exp %u, act %u)\n", storeExp, storeCnt);
   }
 }
 
