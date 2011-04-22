@@ -538,8 +538,8 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
       }
       if (libpthread) {
          libpthread_restore = libpthread->getSymbolByName("__restore_rt");
-         if (!result) {
-            sw_printf("[%s:%u] - Unable to find restore_rt in libc\n",
+         if (!libpthread->isValidSymbol(libpthread_restore)) {
+            sw_printf("[%s:%u] - Unable to find restore_rt in libpthread\n",
                       __FILE__, __LINE__);
          }
          else {
