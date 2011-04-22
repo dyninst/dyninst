@@ -1173,8 +1173,9 @@ Handler::handler_ret_t HandleLibrary::handleEvent(Event::ptr ev)
    int_process *proc = ev->getProcess()->llproc();
    set<int_library *> ll_added, ll_rmd;
    set<response::ptr> async_responses;
-   bool result = proc->refresh_libraries(ll_added, ll_rmd, async_responses);
-   if (!result && !async_responses.empty()) {
+   bool async_pending = false;
+   bool result = proc->refresh_libraries(ll_added, ll_rmd, async_pending, async_responses);
+   if (!result && async_pending) {
       proc->handlerPool()->notifyOfPendingAsyncs(async_responses, ev);
       return ret_async;
    }

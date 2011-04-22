@@ -37,6 +37,7 @@
 #include "proccontrol/h/Event.h"
 
 #include "proccontrol/src/response.h"
+#include "proccontrol/src/memcache.h"
 
 #include "dynutil/h/dyn_regs.h"
 #include "dynutil/h/SymReader.h"
@@ -66,6 +67,25 @@ typedef std::list<int_iRPC_ptr> rpc_list_t;
 class installed_breakpoint;
 class int_library;
 class int_process;
+
+#if 1
+typedef enum {
+   aret_error,
+   aret_success,
+   aret_async 
+} async_ret_t;
+#else
+class async_ret_t
+{
+   int foo;
+   int bar;
+  public:
+   bool operator==(const async_ret_t &b);
+};
+async_ret_t aret_error;
+async_ret_t aret_success;
+async_ret_t aret_async;
+#endif
 
 class mem_state
 {
@@ -224,6 +244,7 @@ class int_process
                                   mem_response::ptr result);
    virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
                                    size_t size, result_response::ptr result);
+   memCache *getMemCache();
 
    // true = running
    virtual bool plat_getOSRunningState(Dyninst::LWP lwp) const = 0;
@@ -247,6 +268,7 @@ class int_process
    size_t numLibs() const;
    virtual bool refresh_libraries(std::set<int_library *> &added_libs,
                                   std::set<int_library *> &rmd_libs,
+                                  bool &waiting_for_async,
                                   std::set<response::ptr> &async_responses) = 0;
 
    virtual bool initLibraryMechanism() = 0;
@@ -288,6 +310,7 @@ class int_process
    std::map<Dyninst::Address, unsigned> exec_mem_cache;
    std::queue<Event::ptr> proc_stoppers;
    int continueSig;
+   memCache mem_cache;
 };
 
 /*
@@ -524,6 +547,10 @@ class int_thread
    Thread::ptr thread();
    bool useHybridLWPControl(bool check_mt = true) const;
 
+   typedef void(*continue_cb_t)(int_thread *thrd);
+   static void addContinueCB(continue_cb_t cb);
+   void triggerContinueCBs();
+
    //User level thread info
    void setTID(Dyninst::THR_ID tid_);
    virtual bool haveUserThreadInfo();
@@ -578,6 +605,8 @@ class int_thread
    bool cont(bool user_cont);
    stopcont_ret_t stop(bool user_stop);
    stopcont_ret_t cont(bool user_cont, bool has_proc_lock);
+
+   static std::set<continue_cb_t> continue_cbs;
 };
 
 class int_threadPool {
@@ -803,7 +832,7 @@ public:
 
 inline MTManager *mt() { 
    return MTManager::mt_; 
-};
+}
 
 class MTLock
 {

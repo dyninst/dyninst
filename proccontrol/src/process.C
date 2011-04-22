@@ -52,6 +52,7 @@ const map<int,int> Process::emptyFDs;
 const vector<string> Process::emptyEnvp;
 Process::thread_mode_t threadingMode = Process::GeneratorThreading;
 bool int_process::in_callback = false;
+std::set<int_thread::continue_cb_t> int_thread::continue_cbs;
 
 static const int ProcControl_major_version = 0;
 static const int ProcControl_minor_version = 1;
@@ -393,8 +394,9 @@ bool int_process::initializeAddressSpace()
    std::set<int_library*> added, rmd;
    for (;;) {
       std::set<response::ptr> async_responses;
-      result = refresh_libraries(added, rmd, async_responses);
-      if (!result && !async_responses.empty()) {
+      bool have_asyncs = false;
+      result = refresh_libraries(added, rmd, have_asyncs, async_responses);
+      if (!result && have_asyncs) {
          result = waitForAsyncEvent(async_responses);
          if (!result) {
             pthrd_printf("Failure waiting for async completion\n");
@@ -1029,7 +1031,8 @@ int_process::int_process(Dyninst::PID p, std::string e,
    forcedTermination(false),
    exitCode(0),
    mem(NULL),
-   continueSig(0)
+   continueSig(0),
+   mem_cache(this)
 {
    //Put any object initialization in 'initializeProcess', below.
 }
@@ -1048,7 +1051,8 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    forcedTermination(false),
    exitCode(p->exitCode),
    exec_mem_cache(exec_mem_cache),
-   continueSig(p->continueSig)
+   continueSig(p->continueSig),
+   mem_cache(this)
 {
    Process::ptr hlproc = Process::ptr(new Process());
    mem = new mem_state(*p->mem, this);
@@ -1564,6 +1568,11 @@ bool int_process::plat_writeMemAsync(int_thread *, const void *, Dyninst::Addres
    return false;
 }
 
+memCache *int_process::getMemCache()
+{
+   return &mem_cache;
+}
+
 void int_process::updateSyncState(Event::ptr ev, bool gen)
 {
    EventType etype = ev->getEventType();
@@ -2023,6 +2032,7 @@ int_thread::stopcont_ret_t int_thread::cont(bool user_cont, bool have_proc_lock)
 
    bool result = plat_cont();
    if (result) {
+      triggerContinueCBs();
       if( !useHybridLWPControl(false) ) {
           setInternalState(running);
           setHandlerState(running);
@@ -2342,6 +2352,18 @@ int_process *int_thread::llproc() const
 Dyninst::LWP int_thread::getLWP() const
 {
    return lwp;
+}
+
+void int_thread::addContinueCB(continue_cb_t cb)
+{
+   continue_cbs.insert(cb);
+}
+
+void int_thread::triggerContinueCBs()
+{
+   for (set<continue_cb_t>::iterator i = continue_cbs.begin(); i != continue_cbs.end(); i++) {
+      (*i)(this);
+   }
 }
 
 int_thread::State int_thread::getHandlerState() const

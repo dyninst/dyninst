@@ -109,11 +109,11 @@ namespace Dyninst
    //const.
 #define DEF_REGISTER(name, value, Arch) \
   const signed int i##name = (value); \
-  COMMON_EXPORT MachRegister name(i##name, Arch "::" #name);
+  COMMON_EXPORT MachRegister name(i##name, Arch "::" #name)
 #else
 #define DEF_REGISTER(name, value, Arch) \
   const signed int i##name = (value); \
-  COMMON_EXPORT extern MachRegister name;
+  COMMON_EXPORT extern MachRegister name
 
 #endif
 

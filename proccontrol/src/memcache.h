@@ -39,14 +39,39 @@
 
 class int_process;
 
+/**
+ * DON'T USE THE MEMCACHE FOR ARBITRARY MEMORY OPERATIONS.  
+ *
+ * This class is meant to assist the SysV parser and the 
+ * thread_db parser--where we're wrapping another library
+ * that is not async aware.  
+ * 
+ * The semantics are such that this class expects that
+ * reads and writes may be restarted, and will cache
+ * and not redo operations it has already seen.  This
+ * makes a difference when you do operations such as:
+ * 
+ * write 'A' -> 0x1000
+ * write 'B' -> 0x1000
+ * write 'A' -> 0x1000
+ *
+ * Under this class 0x1000 will contain 'B' after these three
+ * operations.  The second 'A' write would be detected to be a
+ * duplicated of the first and dropped.  We really do want these
+ * semantics if we're restarting operations (we expect a write 'B'
+ * will follow the second write 'A'), but this is inappropriate
+ * for general purpose use.
+ **/
 class memEntry {
    friend struct memEntry_cmp;
    friend class memCache;
   private:
    Dyninst::Address addr;
    char *buffer;
-   bool ready;
    bool had_error;
+   mem_response::ptr resp;
+   result_response::ptr res_resp;
+   unsigned long size;
 
   public:
    memEntry(Dyninst::Address a, unsigned long size);
@@ -54,6 +79,7 @@ class memEntry {
 
    Dyninst::Address getAddress() const;
    char *getBuffer() const;
+   unsigned long getSize() const;
 };
 
 class memCache {
@@ -61,8 +87,14 @@ class memCache {
    int_process *proc;
    typedef std::map<Dyninst::Address, memEntry *> mcache_t;
    mcache_t mem_cache;
-   std::map<mem_response::ptr, memEntry *> response_map;
+   mcache_t write_cache;
+
    unsigned int block_size;
+
+   long word_cache;
+   Dyninst::Address word_cache_addr;
+   bool word_cache_valid;
+   bool pending_async;
   public:
    memCache(int_process *p);
    ~memCache();
@@ -71,16 +103,29 @@ class memCache {
       ret_success,
       ret_async,
       ret_error
-   } readRet_t;
+   } memRet_t;
 
-   readRet_t readMemory(int_thread *thr, void *dest, Dyninst::Address src, unsigned long size, 
-                        std::set<mem_response::ptr> &resps); 
-   bool postReadResult(mem_response::ptr);
+   memRet_t readMemory(void *dest, Dyninst::Address src, unsigned long size, 
+                        std::set<mem_response::ptr> &resps, int_thread *thrd = NULL); 
+   memRet_t writeMemory(Dyninst::Address dest, void *src, unsigned long size, 
+                         std::set<result_response::ptr> &resps, int_thread *thrd = NULL); 
+   
    void clear();
+   bool hasPendingAsync();
+   void getPendingAsyncs(std::set<response::ptr> &resps);   
   private:
-   readRet_t readMemoryAsync(int_thread *thr, void *dest, Dyninst::Address src, unsigned long size, 
-                             std::set<mem_response::ptr> &resps); 
-   readRet_t readMemorySync(int_thread *thr, void *dest, Dyninst::Address src, unsigned long size); 
+   memRet_t readMemoryAsync(void *dest, Dyninst::Address src, unsigned long size, 
+                             std::set<mem_response::ptr> &resps,
+                             int_thread *reading_thread);
+   memRet_t readMemorySync(void *dest, Dyninst::Address src, unsigned long size,
+                            int_thread *reading_thread);
+   memRet_t writeMemoryAsync(Dyninst::Address dest, void *src, unsigned long size, 
+                             std::set<result_response::ptr> &resps, 
+                             int_thread *writing_thrd = NULL);
+   memRet_t writeMemorySync(Dyninst::Address dest, void *src, unsigned long size, 
+                            int_thread *writing_thrd = NULL);
+ 
+
 };
 
 #endif

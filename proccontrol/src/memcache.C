@@ -34,10 +34,10 @@
 
 using namespace std;
 
-memEntry::memEntry(Address a, unsigned long size) :
+memEntry::memEntry(Address a, unsigned long size_) :
    addr(a),
-   ready(false),
-   had_error(false)
+   had_error(false),
+   size(size_)
 {
    buffer = (char *) malloc(size);
 }
@@ -59,10 +59,29 @@ char *memEntry::getBuffer() const
    return buffer;
 }
 
+unsigned long memEntry::getSize() const
+{
+   return size;
+}
+
+void onContinueMemCache(int_thread *thr)
+{
+   thr->llproc()->getMemCache()->clear();
+}
+
 memCache::memCache(int_process *p) :
    proc(p),
-   block_size(p->plat_getRecommendedReadSize())
+   block_size(0),
+   word_cache(0),
+   word_cache_addr(0),
+   word_cache_valid(false),
+   pending_async(false)
 {
+   static bool registeredMemCacheClear = false;
+   if (!registeredMemCacheClear) {
+      registeredMemCacheClear = true;
+      int_thread::addContinueCB(onContinueMemCache);
+   }
 }
 
 memCache::~memCache()
@@ -70,20 +89,29 @@ memCache::~memCache()
    clear();
 }
 
-memCache::readRet_t memCache::readMemoryAsync(int_thread *thr, void *dest, Address src, unsigned long size, 
-                                              set<mem_response::ptr> &resps)
+void memCache::getPendingAsyncs(set<response::ptr> &resps)
 {
-   resps.clear();
-
-   for (map<mem_response::ptr, memEntry *>::iterator i = response_map.begin(); 
-        i != response_map.end(); i++) 
-   {
-      Address a = i->second->addr;
-      if (a >= src && a < src + size)
-         return ret_async;
+   for (mcache_t::iterator i = mem_cache.begin(); i != mem_cache.end(); i++) {
+      memEntry *entry = i->second;
+      if (!entry->resp || !entry->res_resp)
+         continue;
+      assert(!entry->resp && entry->res_resp);
+      response::ptr resp;
+      if (entry->resp)
+         resp = entry->resp;
+      else 
+         resp = entry->res_resp;
+      if (resp->isReady() || resp->hasError())
+         continue;
+      resps.insert(resp);
    }
+}
 
-   bool have_pending = false;
+memCache::memRet_t memCache::readMemoryAsync(void *dest, Address src, unsigned long size, 
+                                              set<mem_response::ptr> &resps,
+                                              int_thread *reading_thread)
+{
+   pending_async = false;
    bool had_error = false;
    
    Address start_block = src - (src % block_size);
@@ -91,31 +119,30 @@ memCache::readRet_t memCache::readMemoryAsync(int_thread *thr, void *dest, Addre
    for (Address cur = start_block; cur < src+size; cur += block_size) {
       mcache_t::iterator i = mem_cache.find(cur);
       if (i == mem_cache.end()) {
-         have_pending = true;
+         pending_async = true;
          memEntry *me = new memEntry(cur, block_size);
-         mem_response::ptr resp = mem_response::createMemResponse(me->getBuffer(), block_size);
-         bool result = proc->plat_readMemAsync(thr, cur, resp);
+         me->resp = mem_response::createMemResponse(me->getBuffer(), block_size);
+         bool result = proc->readMem(cur, me->resp, reading_thread);
          if (!result) {
-            pthrd_printf("Error caching read on %d/%d\n", proc->getPid(), thr->getLWP());
+            pthrd_printf("Error caching read on %d\n", proc->getPid());
             me->had_error = true;
          }
          mem_cache[cur] = me;
-         resps.insert(resp);
-         response_map[resp] = me;
+         resps.insert(me->resp);
          continue;
       }
       memEntry *me = i->second;
-      if (!me->ready) {
-         //This read was already ready and isn't complete
-         have_pending = true;
+      if (me->resp && !me->resp->isReady()) {
+         //This read was already posted and isn't ready
+         pending_async = true;
          continue;
       }
-      if (me->had_error) {
+      if (me->resp && me->resp->hasError()) {
          //This read had an error
          had_error = true;
          continue;
       }
-      if (!have_pending && !had_error) {
+      if (!pending_async && !had_error) {
          char *target_mem;
          unsigned long copy_size;
          char *src_mem;
@@ -127,8 +154,8 @@ memCache::readRet_t memCache::readMemoryAsync(int_thread *thr, void *dest, Addre
 
          Address me_start = me->addr;
          Address me_end = me->addr + block_size;
-         Address src_start = cur;
-         Address src_end = cur + size;
+         Address src_start = src;
+         Address src_end = src + size;
 
          //Compute intersection of i & curr
          Address intersect_start = me_start > src_start ? me_start : src_start;
@@ -144,49 +171,145 @@ memCache::readRet_t memCache::readMemoryAsync(int_thread *thr, void *dest, Addre
    
    if (had_error)
       return ret_error;
-   if (have_pending)
+   if (pending_async)
       return ret_async;
    return ret_success;
 }
 
-memCache::readRet_t memCache::readMemorySync(int_thread *thr, void *dest, Address src, unsigned long size)
+memCache::memRet_t memCache::readMemorySync(void *buffer, Address addr, unsigned long size,
+                                             int_thread *reading_thread)
 {
-   bool result = proc->plat_readMem(thr, dest, src, size);
-   if (!result)
-      return ret_error;
+   if (size != 1) {
+      mem_response::ptr memresult = mem_response::createMemResponse((char *) buffer, size);
+      bool result = proc->readMem(addr, memresult, reading_thread);
+      if (!result) {
+         pthrd_printf("Failed to read memory for proc reader\n");
+         return ret_error;
+      }
+      result = memresult->isReady();
+      assert(result);
+      return ret_success;
+   }
+
+   //Try to optimially handle a case where the calling code
+   // reads a string one char at a time.  This is mostly for
+   // ptrace platforms, but won't harm any others.
+   assert(size == 1);
+   Address aligned_addr = addr - (addr % sizeof(word_cache));
+   if (!word_cache_valid || aligned_addr != word_cache_addr) {
+      mem_response::ptr memresult = mem_response::createMemResponse((char *) &word_cache, sizeof(word_cache));
+      bool result = proc->readMem(aligned_addr, memresult, reading_thread);
+      if (!result) {
+         pthrd_printf("Failed to read memory for proc reader\n");
+         return ret_error;
+      }
+      result = memresult->isReady();
+      assert(result);
+      word_cache_addr = aligned_addr;
+      word_cache_valid = true;
+   }
+   *((char *) buffer) = ((char *) &word_cache)[addr - aligned_addr];
    return ret_success;
 }
 
-memCache::readRet_t memCache::readMemory(int_thread *thr, void *dest, Address src, unsigned long size, 
-                                         set<mem_response::ptr> &resps)
+memCache::memRet_t memCache::writeMemoryAsync(Dyninst::Address dest, void *src, unsigned long size, 
+                                              std::set<result_response::ptr> &resps,
+                                              int_thread *writing_thread)
 {
-   if (proc->plat_needsAsyncIO())
-      return readMemoryAsync(thr, dest, src, size, resps);
-   else
-      return readMemorySync(thr, dest, src, size);
+   pending_async = false;
+   pthrd_printf("Performing memCache::async_write to %lx/%lu on %d\n", dest, size, proc->getPid());
+   mcache_t::iterator i = write_cache.find(dest);
+   if (i != write_cache.end()) {
+      memEntry *me = i->second;
+      if (me->getSize() == size &&
+          !memcmp(me->getBuffer(), src, size))
+      {
+         pthrd_printf("Already performed this write... returning existing state\n");
+         assert(me->res_resp);
+         if (me->res_resp->hasError()) {
+            return ret_error;
+         }
+         if (!me->res_resp->isReady()) {
+            pending_async = true;
+            resps.insert(me->res_resp);
+            return ret_async;
+         }
+         return ret_success;
+      }
+   }
+
+   memEntry *me = new memEntry(dest, size);
+   memcpy(me->getBuffer(), src, size);
+   me->res_resp = result_response::createResultResponse();
+   write_cache[dest] = me;
+
+   bool result = proc->writeMem(src, dest, size, me->res_resp, writing_thread);
+   if (!result || me->res_resp->hasError()) {
+      pthrd_printf("Error writing memory\n");
+      return ret_error;
+   }
+   if (!me->res_resp->isReady()) {
+      pthrd_printf("Async result while writing memory\n");
+      pending_async = true;
+      resps.insert(me->res_resp);
+      return ret_async;
+   }
+   return ret_success;
 }
 
-bool memCache::postReadResult(mem_response::ptr resp)
+memCache::memRet_t memCache::writeMemorySync(Dyninst::Address dest, void *src, unsigned long size,
+                                             int_thread *write_thread)
 {
-   map<mem_response::ptr, memEntry *>::iterator i = response_map.find(resp);
-   assert(i != response_map.end());
+   result_response::ptr resp = result_response::createResultResponse();
+   bool result = proc->writeMem(src, dest, size, resp, write_thread);
+   if (!result) {
+      pthrd_printf("Error writing memory at %lx/%lu on %d\n",
+                   dest, size, proc->getPid());
+      return ret_error;
+   }
+   result = resp->isReady();
+   assert(result);
+   return ret_success;
+}
 
-   memEntry *me = i->second;
-   if (resp->hasError())
-      me->had_error = true;
-   else if (resp->isReady())
-      me->ready = true;
-   
-   response_map.erase(i);
-   return true;
+memCache::memRet_t memCache::readMemory(void *dest, Address src, unsigned long size, 
+                                         set<mem_response::ptr> &resps, int_thread *thrd)
+{
+   if (!block_size) 
+      block_size = proc->plat_getRecommendedReadSize();
+   if (proc->plat_needsAsyncIO())
+      return readMemoryAsync(dest, src, size, resps, thrd);
+   else
+      return readMemorySync(dest, src, size, thrd);
+}
+
+memCache::memRet_t memCache::writeMemory(Dyninst::Address dest, void *src, unsigned long size,
+                                         std::set<result_response::ptr> &resps, int_thread *thrd)
+{
+   if (!block_size)
+      block_size = proc->plat_getRecommendedReadSize();
+   if (proc->plat_needsAsyncIO())
+      return writeMemoryAsync(dest, src, size, resps, thrd);
+   else
+      return writeMemorySync(dest, src, size, thrd);
 }
 
 void memCache::clear()
 {
-   assert(response_map.empty());
-
+   pthrd_printf("Clearing memCache\n");
    for (mcache_t::iterator i = mem_cache.begin(); i != mem_cache.end(); i++)
       delete i->second;
    mem_cache.clear();
+
+   for (mcache_t::iterator i = write_cache.begin(); i != write_cache.end(); i++)
+      delete i->second;
+   write_cache.clear();
+
+   word_cache_valid = false;
+   pending_async = false;
+}
+
+bool memCache::hasPendingAsync() {
+   return pending_async;
 }
 

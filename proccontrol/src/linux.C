@@ -304,14 +304,31 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                   EventLibrary::ptr lib_event = EventLibrary::ptr(new EventLibrary());
                   lib_event->setThread(thread->thread());
                   lib_event->setProcess(proc->proc());
+                  lib_event->setSyncType(Event::sync_thread);
                   lproc->decodeTdbLibLoad(lib_event);
                   event->addSubservientEvent(lib_event);
                   
                   break;
                }
-               if (lproc->decodeTdbBreakpoint(event_bp)) {
-                  pthrd_printf("Breakpoint was thread event\n");
-                  break;
+               for (;;) {
+                  async_ret_t result = lproc->decodeTdbBreakpoint(event_bp);
+                  if (result == aret_error) {
+                     //Not really an error, just how we say that it isn't
+                     // a breakpoint.
+                     break;
+                  }
+                  if (result == aret_success) {
+                     //decodeTdbBreakpoint added a subservient event if this hits
+                     pthrd_printf("Breakpoint was thread event\n");
+                     break;
+                  }
+                  if (result == aret_async) {
+                     pthrd_printf("decodeTdbBreakpoint returned async\n");
+                     set<response::ptr> resps;
+                     lproc->getMemCache()->getPendingAsyncs(resps);;
+                     int_process::waitForAsyncEvent(resps);
+                     continue;
+                  }
                }
                break;
             }

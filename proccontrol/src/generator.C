@@ -266,7 +266,7 @@ void GeneratorMT::main()
 {
    while (!isExitingState()) {
       bool result = getAndQueueEventInt(true);
-      if (!result) {
+      if (!result && !isExitingState()) {
          pthrd_printf("Error return in getAndQueueEventInt\n");
       }
    }
