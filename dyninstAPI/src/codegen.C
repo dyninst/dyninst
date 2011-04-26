@@ -56,7 +56,8 @@
 #define CODE_GEN_OFFSET_SIZE (instruction::size())
 #endif
 
-const unsigned int codeGenPadding = (4*1024);
+const unsigned int codeGenPadding = (128);
+const unsigned int codeGenMinAlloc = (4 * 1024);
 
 codeGen::codeGen() :
     buffer_(NULL),
@@ -227,10 +228,14 @@ void codeGen::invalidate() {
     isPadded_ = false;
 }
 
+bool codeGen::verify() {
+    return true;
+}
+
 void codeGen::finalize() {
     assert(buffer_);
     assert(size_);
-
+    cerr << "FINALIZE!" << endl;
     applyPatches();
     if (size_ == offset_) return;
     if (offset_ == 0) {
@@ -245,13 +250,18 @@ void codeGen::finalize() {
 }
 
 void codeGen::copy(const void *b, const unsigned size, const codeBufIndex_t index) {
+  if (size == 0) return;
+
   codeBufIndex_t current = getIndex();
   setIndex(index);
   copy(b, size);
   setIndex(current);
+
 }
 
 void codeGen::copy(const void *b, const unsigned size) {
+  if (size == 0) return;
+
   assert(buffer_);
   
   realloc(used() + size);
@@ -262,6 +272,8 @@ void codeGen::copy(const void *b, const unsigned size) {
 }
 
 void codeGen::copy(const std::vector<unsigned char> &buf) {
+  if (buf.empty()) return;
+
    assert(buffer_);
    realloc(used() + buf.size());
    
@@ -280,6 +292,23 @@ void codeGen::copy(codeGen &gen) {
   offset_ += gen.offset_;
   assert(used() <= size_);
 }
+
+void codeGen::copyAligned(const void *b, const unsigned size) {
+  if (size == 0) return;
+
+  assert(buffer_);
+  
+  realloc(used() + size);
+
+  memcpy(cur_ptr(), b, size);
+
+  unsigned alignedSize = size;
+  alignedSize += (CODE_GEN_OFFSET_SIZE - (alignedSize % CODE_GEN_OFFSET_SIZE));
+
+  moveIndex(alignedSize);
+}
+
+
 
 // codeBufIndex_t stores in platform-specific units.
 unsigned codeGen::used() const {
@@ -357,6 +386,7 @@ codeBufIndex_t codeGen::getIndex() const {
 }
 
 void codeGen::moveIndex(int disp) {
+
     int cur = getIndex() * CODE_GEN_OFFSET_SIZE;
     cur += disp;
     if (cur % CODE_GEN_OFFSET_SIZE) {
@@ -441,9 +471,13 @@ void codeGen::setAddrSpace(AddressSpace *a)
 void codeGen::realloc(unsigned newSize) {  
    if (newSize <= size_) return;
 
-   size_ = newSize;
-   max_ = size_ + codeGenPadding;
+   unsigned increment = newSize - size_;
+   if (increment < codeGenMinAlloc) increment = codeGenMinAlloc;
+
+   size_ += increment;
+   max_ += increment;
    buffer_ = (codeBuf_t *)::realloc(buffer_, max_);
+   
    assert(buffer_);
 }
 
@@ -717,7 +751,7 @@ std::string codeGen::format() const {
    Instruction::Ptr insn = deco.decode();
    ret << hex;
    while(insn) {
-      ret << "\t" << base << ": " << insn->format(base) << endl;
+     ret << "\t" << base << ": " << insn->format(base) << " / " << *((unsigned *)insn->ptr()) << endl;
       base += insn->size();
       insn = deco.decode();
    }

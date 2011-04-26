@@ -460,8 +460,8 @@ class AddressSpace : public InstructionSource {
     bool isMemoryEmulated() { return emulateMem_; }
     bool emulatingPC() { return emulatePC_; }
     MemoryEmulator *getMemEm();
-	void invalidateMemory(Address base, Address size);
-    
+    void invalidateMemory(Address base, Address size);
+
  protected:
 
     // inferior malloc support functions

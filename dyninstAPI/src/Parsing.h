@@ -122,7 +122,7 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   void block_delete(ParseAPI::Block *b);
 
 #if defined(arch_power) || defined(arch_sparc)
-  void instruction_cb(ParseAPI::Function*,Address,insn_details*);
+  void instruction_cb(ParseAPI::Function*, ParseAPI::Block *,Address,insn_details*);
 #endif
  private:
     image * _img;

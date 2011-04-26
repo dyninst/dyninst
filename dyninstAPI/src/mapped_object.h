@@ -354,11 +354,11 @@ private:
     bool analyzed_; // Prevent multiple adds
 
     // exploratory and defensive mode variables
-    typedef enum WriteableStatus {
+    typedef enum  {
         PROTECTED,
         REPROTECTED,
         UNPROTECTED,
-    };
+    } WriteableStatus;
     BPatch_hybridMode analysisMode_;
     map<Address,WriteableStatus> protPages_;
     std::set<SymtabAPI::Region*> expansionCheckedRegions_;

@@ -174,9 +174,11 @@ bool CodeMover::relocate(Address addr) {
    addr_ = addr;
 
    if (!buffer_.generate(addr)) return false;
-   
-   buffer_.extractTrackers(tracker_);
+   return true;
+}
 
+bool CodeMover::finalize() {     
+   buffer_.extractTrackers(tracker_);
    return true;
 }
 

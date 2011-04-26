@@ -59,12 +59,17 @@ class TrackerElement {
   typedef enum {
     original,
     emulated,
-    instrumentation
+    instrumentation,
+    padding
   } type_t;
+
   TrackerElement(Address o, block_instance *b, func_instance *f = NULL) 
       : orig_(o), reloc_(0), size_(0), 
-     block_(b), func_(f) {assert(o); assert(b);};
-  virtual ~TrackerElement() {};
+     block_(b), func_(f) {
+     assert(o); assert(b);
+  };
+  virtual ~TrackerElement() {
+  };
 
   virtual Address relocToOrig(Address reloc) const = 0;
   virtual Address origToReloc(Address orig) const = 0;
@@ -81,7 +86,8 @@ class TrackerElement {
 
 
  protected:
-  TrackerElement() {};
+  TrackerElement() { assert(0); };
+  TrackerElement(const TrackerElement &)  { assert(0); };
   Address orig_;
   Address reloc_;
   unsigned size_;
@@ -158,12 +164,37 @@ class InstTracker : public TrackerElement {
   baseTramp *baseT_;
 };
 
+class PaddingTracker : public TrackerElement {
+ public:
+  PaddingTracker(Address orig, unsigned pad, block_instance *b, func_instance *f = NULL) :
+   TrackerElement(orig, b, f), pad_(pad) {assert(0);};
+   virtual ~PaddingTracker() {assert(0);};
+
+  virtual Address relocToOrig(Address reloc) const {
+    assert(reloc >= reloc_);
+    assert(reloc < (reloc_ + size_));
+    return orig_;
+  }
+
+  virtual Address origToReloc(Address orig) const {
+    assert(orig == orig_);
+    return reloc_;
+  }
+
+  virtual type_t type() const { return TrackerElement::padding; };
+  unsigned pad() const { return pad_; }
+
+ private:
+  unsigned pad_; 
+};
+
 class CodeTracker {
  public:
   struct RelocatedElements {
     Address instruction;
     Address instrumentation;
-  RelocatedElements() : instruction(0), instrumentation(0) {};
+     Address pad;
+  RelocatedElements() : instruction(0), instrumentation(0), pad(0) {};
   };
 
   // I'd like to use a block * as a unique key element, but
@@ -184,7 +215,8 @@ class CodeTracker {
   typedef class IntervalTree<Address, TrackerElement *> ReverseMap;
 
 
-  CodeTracker() {};
+  CodeTracker();
+
   ~CodeTracker();
 
   static CodeTracker *fork(CodeTracker *parent, AddressSpace *child);
@@ -194,8 +226,9 @@ class CodeTracker {
      Address reloc;
      block_instance *block;
      func_instance *func;
-     baseTramp *bt; 
-  RelocInfo() : orig(0), reloc(0), block(NULL), func(NULL), bt(NULL) {};
+     baseTramp *bt;
+     unsigned pad;
+  RelocInfo() : orig(0), reloc(0), block(NULL), func(NULL), bt(NULL), pad(0) {};
   };
 
   bool origToReloc(Address origAddr, block_instance *block, func_instance *func, RelocatedElements &relocs) const;

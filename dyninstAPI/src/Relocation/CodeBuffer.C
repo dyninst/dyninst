@@ -47,6 +47,7 @@ using namespace InstructionAPI;
 
 const unsigned CodeBuffer::Label::INVALID = (unsigned) -1;
 
+
 CodeBuffer::BufferElement::BufferElement() : addr_(0), size_(0), patch_(NULL), labelID_(Label::INVALID) {};
 
 CodeBuffer::BufferElement::~BufferElement() {
@@ -125,6 +126,9 @@ bool CodeBuffer::BufferElement::generate(CodeBuffer *buf,
       shift += newSize - size_;
       size_ = newSize;
       regenerate = true;
+   }
+   else {
+      gen.fill(size_ - newSize, codeGen::cgNOP);
    }
 #if 0
    else if (newSize < size_) {

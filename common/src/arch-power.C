@@ -271,3 +271,7 @@ Address instruction::getBranchOffset() const {
     return 0;
 
 }
+
+unsigned instruction::opcode() const {
+  return MDFORM_OP(*this);
+}

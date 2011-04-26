@@ -98,6 +98,7 @@ func_instance::func_instance(const func_instance *parFunc,
    ptrAddr_(parFunc->ptrAddr_),
    ifunc_(parFunc->ifunc_),
    mod_(childMod),
+   entry_(NULL),
    handlerFaultAddr_(0),
    handlerFaultAddrAddr_(0)
 #if defined(os_windows)

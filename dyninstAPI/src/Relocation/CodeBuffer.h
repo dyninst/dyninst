@@ -110,6 +110,7 @@ class CodeBuffer {
    };
 
    class BufferElement {
+      friend class CodeBuffer;
      public:
       BufferElement();
       ~BufferElement();

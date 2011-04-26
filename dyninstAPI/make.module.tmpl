@@ -37,6 +37,12 @@ ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
 	LDFLAGS += -linstructionAPI
 endif
 
+ifneq ($(findstring cap_mem_emulation,$(CAP_DEF)),)
+      	SRCS += ../src/MemoryEmulator/memEmulator.C \
+	        ../src/MemoryEmulator/memEmulatorTransformer.C \
+		../src/MemoryEmulator/memEmulatorAtom.C 
+endif
+
 LDFLAGS += -lpthread -lsymtabAPI -lcommon -lparseAPI
 
 LDFLAGS     += -L../../common/$(PLATFORM) 
@@ -77,6 +83,8 @@ SRCS         += ../src/BPatch_templates.C \
 		../src/templates2.C 
 
 endif
+
+
 
 SRCS	     +=	../src/BPatch.C \
 		../src/BPatch_image.C \
@@ -162,10 +170,7 @@ SRCS	     +=	../src/BPatch.C \
 		../src/Relocation/Transformers/Movement-adhoc.C \
 		../src/Relocation/CodeTracker.C \
                 ../src/Relocation/CodeBuffer.C \
-                ../src/Relocation/patchapi_debug.C \
-                ../src/MemoryEmulator/memEmulator.C \
-                ../src/MemoryEmulator/memEmulatorAtom.C \
-                ../src/MemoryEmulator/memEmulatorTransformer.C 
+                ../src/Relocation/patchapi_debug.C 
 
 TO_INC   = ../h
 PUBLIC_H = BPatch_addressSpace.h \

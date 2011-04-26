@@ -65,8 +65,10 @@ typedef dyn_detail::boost::shared_ptr<Assignment> AssignmentPtr;
 class Graph;
 typedef dyn_detail::boost::shared_ptr<Graph> GraphPtr;
 
-class InstructionAPI::Instruction;
-typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+ namespace InstructionAPI {
+   class Instruction;
+ }
+ typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
 
 // Used in temp slicer; should probably
 // replace OperationNodes when we fix up

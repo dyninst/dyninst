@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "RegisterConversion-x86.h"
+#include "RegisterConversion.h"
 #include "inst-x86.h"
 
 #include <map>

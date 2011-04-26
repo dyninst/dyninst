@@ -38,6 +38,7 @@
 #include "instPoint.h"
 #include "function.h"
 #include "MemoryEmulator/memEmulator.h"
+
 #include "mapped_object.h"
 
 void newCodeCB(std::vector<BPatch_function*> &newFuncs, 

@@ -273,8 +273,8 @@ bool CFAtom::generate(const codeGen &templ,
       // We don't know what the callee does to the return addr,
       // so we'll catch it at runtime. 
       buffer.addPatch(new PaddingPatch(gap_, true, false, trace->block()), 
-                      addrTracker(addr_ + size(), 
-                                  trace));
+                      padTracker(addr_, gap_,
+                                 trace));
    }
   
    return true;
@@ -330,6 +330,11 @@ TrackerElement *CFAtom::addrTracker(Address addr, const Trace *trace) const {
    return e;
 }
 
+TrackerElement *CFAtom::padTracker(Address addr, unsigned size, const Trace *trace) const {
+   PaddingTracker *p = new PaddingTracker(addr, size, trace->block(), trace->func());
+   return p;
+}
+
 void CFAtom::addDestination(Address index, TargetInt *dest) {
    assert(dest);
    relocation_cerr << "CFAtom @ " << std::hex << addr() << ", adding destination " << dest->format()
@@ -363,7 +368,7 @@ bool CFAtom::generateBranch(CodeBuffer &buffer,
    // the next instruction. So if we ever see that (a branch of offset
    // == size) back up the codeGen and shrink us down.
 
-   CFPatch_x86 *newPatch = new CFPatch_x86(CFPatch_x86::Jump, insn, to, addr_);
+   CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to, addr_);
    if (fallthrough || trace->block() == NULL) {
       buffer.addPatch(newPatch, destTracker(to));
    }
@@ -384,7 +389,7 @@ bool CFAtom::generateCall(CodeBuffer &buffer,
       return true;
    }
 
-   CFPatch_x86 *newPatch = new CFPatch_x86(CFPatch_x86::Call, insn, to, addr_);
+   CFPatch *newPatch = new CFPatch(CFPatch::Call, insn, to, addr_);
    buffer.addPatch(newPatch, tracker(trace));
 
    return true;
@@ -396,7 +401,7 @@ bool CFAtom::generateConditionalBranch(CodeBuffer &buffer,
 				       Instruction::Ptr insn) {
    assert(to);
 
-   CFPatch_x86 *newPatch = new CFPatch_x86(CFPatch_x86::JCC, insn, to, addr_);
+   CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, addr_);
    buffer.addPatch(newPatch, tracker(trace));
 
    return true;
@@ -549,7 +554,23 @@ unsigned CFAtom::size() const
 // Patching!
 /////////////////////////
 
-unsigned CFPatch_x86::estimate(codeGen &) {
+CFPatch::CFPatch(Type a,
+                 InstructionAPI::Instruction::Ptr b,
+                 TargetInt *c,
+                 Address d) :
+   type(a), orig_insn(b), target(c), origAddr_(d) {
+   if (b)
+      ugly_insn = new instruction(b->ptr());
+   else
+      ugly_insn = NULL;
+   // New branches don't get an original instruction...
+}
+
+CFPatch::~CFPatch() { 
+  if (ugly_insn) delete ugly_insn;
+}
+
+unsigned CFPatch::estimate(codeGen &) {
    if (orig_insn) {
       return orig_insn->size();
    }
@@ -558,10 +579,7 @@ unsigned CFPatch_x86::estimate(codeGen &) {
 
 bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
    //cerr << "PaddingPatch::apply, current addr " << hex << gen.currAddr() << ", size " << size_ << ", registerDefensive " << (registerDefensive_ ? "<true>" : "<false>") << dec << endl;
-   if (registerDefensive_) {
-      assert(0 && "Unimplemented!");
-   }
-   if (noop_) {
+   if (1 || noop_) {
       gen.fill(size_, codeGen::cgNOP);
    }
    else if ( 0 == (size_ % 2) ) {

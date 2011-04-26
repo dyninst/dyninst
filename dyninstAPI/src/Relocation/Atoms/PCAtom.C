@@ -38,8 +38,10 @@
 #include "dyninstAPI/src/function.h"
 
 #include "dyninstAPI/src/addressSpace.h" // For determining which type of getPC to emit
-#include "dyninstAPI/src/RegisterConversion-x86.h"
+#include "dyninstAPI/src/RegisterConversion.h"
+#include "dyninstAPI/src/registerSpace.h"
 
+#include "dyninstAPI/src/emitter.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -65,7 +67,7 @@ bool PCAtom::generate(const codeGen &templ, const Trace *trace, CodeBuffer &buff
 
   switch (a_.type()) {
   case Absloc::Stack:
-     return PCtoStack(templ, trace, buffer);
+     return PCtoReturnAddr(templ, trace, buffer);
   case Absloc::Register:
      return PCtoReg(templ, trace, buffer);
   default:
@@ -74,21 +76,56 @@ bool PCAtom::generate(const codeGen &templ, const Trace *trace, CodeBuffer &buff
   }
 }
 
-bool PCAtom::PCtoStack(const codeGen &templ, const Trace *t, CodeBuffer &buffer) {
-   if(templ.addrSpace()->proc()) {
-      std::vector<unsigned char> newInsn;
-      newInsn.push_back(0x68); // push
-      Address EIP = addr_ + insn_->size();
-      unsigned char *tmp = (unsigned char *) &EIP;
-      newInsn.insert(newInsn.end(),
-                     tmp,
-                     tmp+sizeof(unsigned int));
-      buffer.addPIC(newInsn, tracker(t));
-   }
-   else {
-      IPPatch *newPatch = new IPPatch(IPPatch::Push, addr_ + insn_->size());
-      buffer.addPatch(newPatch, tracker(t));
-   }	
+bool PCAtom::PCtoReturnAddr(const codeGen &templ, const Trace *t, CodeBuffer &buffer) {
+  if(templ.addrSpace()->proc()) {
+    std::vector<unsigned char> newInsn;
+#if defined(arch_x86) || defined(arch_x86_64)
+    newInsn.push_back(0x68); // push
+    Address EIP = addr_ + insn_->size();
+    unsigned char *tmp = (unsigned char *) &EIP;
+    newInsn.insert(newInsn.end(),
+		   tmp,
+		   tmp+sizeof(unsigned int));
+    buffer.addPIC(newInsn, tracker(t));
+#else
+    // We want to get a value into LR, which is the return address.
+    // Fun for the whole family... we need a spare register. Argh!
+
+    codeGen gen(16);
+    
+    // Must be in LR
+    instPoint *point = templ.point();
+    // If we do not have a point then we have to invent one
+    if (!point || 
+	(point->type() != instPoint::PreInsn &&
+	 point->insnAddr() != addr())) {
+      point = instPoint::preInsn(t->func(), t->block(), addr(), insn(), true);
+    }
+    assert(point);
+    
+    registerSpace *rs = registerSpace::actualRegSpace(point);
+    gen.setRegisterSpace(rs);
+    
+    int stackSize = 0;
+    pdvector<Register> freeReg;
+    pdvector<Register> excludeReg;
+    
+    Address origRet = addr() + insn()->size();
+    Register scratch = gen.rs()->getScratchRegister(gen, true);
+    if (scratch == REG_NULL) {
+      stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
+      assert(stackSize == 1);
+      scratch = freeReg[0];
+    }
+    insnCodeGen::loadImmIntoReg(gen, scratch, origRet);
+    insnCodeGen::generateMoveToLR(gen, scratch);
+    buffer.addPIC(gen, tracker(t));
+#endif
+  }
+  else {
+    IPPatch *newPatch = new IPPatch(IPPatch::Push, addr_, insn_, t->block(), t->func());
+    buffer.addPatch(newPatch, tracker(t));
+  }	
    
   return true;
 }
@@ -98,6 +135,7 @@ bool PCAtom::PCtoReg(const codeGen &templ, const Trace *t, CodeBuffer &buffer) {
   Register reg = convertRegID(a_.reg(), ignored);
 
   if(templ.addrSpace()->proc()) {
+#if defined(arch_x86) || defined(arch_x86_64)
      std::vector<unsigned char> newInsn;
      newInsn.push_back(static_cast<unsigned char>(0xb8 + reg));
      // MOV family, destination of the register encoded by
@@ -109,9 +147,15 @@ bool PCAtom::PCtoReg(const codeGen &templ, const Trace *t, CodeBuffer &buffer) {
                     tmp,
                     tmp + sizeof(unsigned int));
      buffer.addPIC(newInsn, tracker(t));
+#else
+     // Move immediate to register?
+     codeGen gen(16);
+     insnCodeGen::loadImmIntoReg(gen, reg, addr_);
+     buffer.addPIC(gen, tracker(t));
+#endif
   }
   else {
-    IPPatch *newPatch = new IPPatch(IPPatch::Reg, addr_ + insn_->size(), reg, thunkAddr_);
+    IPPatch *newPatch = new IPPatch(IPPatch::Reg, addr_, reg, thunkAddr_, insn_, t->block(), t->func());
     buffer.addPatch(newPatch, tracker(t));
   }
   return true;
@@ -131,27 +175,10 @@ string PCAtom::format() const {
 bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
   relocation_cerr << "\t\t IPPatch::apply" << endl;
 
-  // We want to generate orig_value into the appropriate location.
+  // We want to generate addr (as modified) into the appropriate location.
+  // TODO get rid of the #ifdef here...
 
-  if (0 && (type == Reg) && thunk) {
-    // Let's try this...
-    insnCodeGen::generateCall(gen,
-			      gen.currAddr(),
-			      thunk); 
-    // Okay, now we'll be getting back the wrong number.
-    Address retAddr = gen.currAddr();
-    if (type != Reg) {
-      cerr << "Aborting at IPPatch, orig_value " << hex << orig_value << " and thunk " << thunk << endl;
-    }
-    assert(type == Reg);
-    emitLEA(RealRegister(reg),
-	    RealRegister(Null_Register),
-	    0,
-	    orig_value - retAddr,
-	    RealRegister(reg),
-	    gen);
-  }
-  else {
+#if defined(arch_x86) || defined(arch_x86_64) 
     GET_PTR(newInsn, gen); 
     
     *newInsn = 0xE8;
@@ -160,7 +187,7 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
     *temp = 0;
     newInsn += sizeof(uint32_t);
     SET_PTR(newInsn, gen);
-    Address offset = orig_value - gen.currAddr();
+    Address offset = addr - gen.currAddr() + insn->size();
     REGET_PTR(newInsn, gen);
     *newInsn = 0x81;
     newInsn++;
@@ -178,11 +205,66 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
       *newInsn++ = static_cast<unsigned char>(0x58 + reg); // POP family
     }
     SET_PTR(newInsn, gen);
-  }
+#else
+    // For dynamic we can do this in-line
+    assert(gen.addrSpace()->edit());
 
-  return true;
+    // Must be in LR
+    assert(reg == registerSpace::lr);
+
+    instPoint *point = gen.point();
+    // If we do not have a point then we have to invent one
+    if (!point || 
+	(point->type() != instPoint::PreInsn &&
+	 point->insnAddr() != addr)) {
+      point = instPoint::preInsn(func, block, addr, insn, true);
+    }
+    assert(point);
+    
+    registerSpace *rs = registerSpace::actualRegSpace(point);
+    gen.setRegisterSpace(rs);
+    
+    int stackSize = 0;
+    pdvector<Register> freeReg;
+    pdvector<Register> excludeReg;
+    
+    Register scratchPCReg = gen.rs()->getScratchRegister(gen, true);
+    excludeReg.push_back(scratchPCReg);
+    Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
+    
+    if ((scratchPCReg == REG_NULL) && (scratchReg == REG_NULL)) {
+      excludeReg.clear();
+      stackSize = insnCodeGen::createStackFrame(gen, 2, freeReg, excludeReg);
+      assert(stackSize == 2);
+      scratchPCReg = freeReg[0];
+      scratchReg = freeReg[1];
+      
+    } else if (scratchReg == REG_NULL && scratchPCReg != REG_NULL) {
+      stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
+      assert(stackSize == 1);
+      scratchReg = freeReg[0];
+    } 
+    
+    //scratchPCReg == NULL && scratchReg != NULL - not a valid case 
+    //since getScratchRegister works in order
+    
+    // relocaAddr may have moved if we added instructions to setup a new stack frame
+    Address newRelocAddr = gen.currAddr();
+    
+    insnCodeGen::generateBranch(gen, gen.currAddr(),  gen.currAddr()+4, true); // blrl
+    insnCodeGen::generateMoveFromLR(gen, scratchPCReg); // mflr
+    
+    Address varOffset = addr - newRelocAddr;
+    gen.emitter()->emitCallRelative(scratchReg, varOffset, scratchPCReg, gen);
+    insnCodeGen::generateMoveToLR(gen, scratchReg);
+
+    if( stackSize > 0) {
+      insnCodeGen::removeStackFrame(gen); 
+    }
+#endif
+    return true;
 }
-
+    
 unsigned IPPatch::estimate(codeGen &) {
    // should be the minimum required since we expand
    // but never contract

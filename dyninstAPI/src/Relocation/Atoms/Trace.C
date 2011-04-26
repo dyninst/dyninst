@@ -83,7 +83,6 @@ Trace::Ptr Trace::create(block_instance *block, func_instance *func) {
     relocation_cerr << "  Adding instruction " 
 		    << std::hex << iter->first << std::dec
 		    << " " << iter->second->format() << endl;
-
     Atom::Ptr ptr = InsnAtom::create(iter->second, iter->first);
 
     if (!ptr) {
@@ -278,7 +277,11 @@ void Trace::processEdge(EdgeDirection e, edge_instance *edge, const std::map<blo
 // to preserve that gap if it exists, and to make life easy we bundle
 // it into the CFAtom.
 
+#if defined(arch_x86) || defined(arch_x86_64)
 #define DEFENSIVE_GAP_SIZE 10
+#else
+#define DEFENSIVE_GAP_SIZE 12
+#endif
 
 void Trace::preserveBlockGap() {
    const block_instance::edgelist &targets = block_->targets();

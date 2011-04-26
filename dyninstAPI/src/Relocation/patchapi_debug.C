@@ -33,6 +33,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include <string>
 #include "patchapi_debug.h"
 

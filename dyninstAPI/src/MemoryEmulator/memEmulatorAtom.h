@@ -29,6 +29,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#if !defined(cap_mem_emulation)
+#error
+#endif
+
+
 #if !defined (_R_E_MEM_EMULATOR_H_)
 #define _R_E_MEM_EMULATOR_H_
 

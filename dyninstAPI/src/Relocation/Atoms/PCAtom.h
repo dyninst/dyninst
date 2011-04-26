@@ -38,7 +38,7 @@
 #include "dataflowAPI/h/Absloc.h"
 
 class block_instance;
-
+class func_instance;
 
 namespace Dyninst {
 namespace Relocation {
@@ -72,7 +72,7 @@ class PCAtom : public Atom {
      thunkAddr_(thunkAddr) {};
 
 
-   bool PCtoStack(const codeGen &templ, const Trace *, CodeBuffer &);
+   bool PCtoReturnAddr(const codeGen &templ, const Trace *, CodeBuffer &);
    bool PCtoReg(const codeGen &templ, const Trace *, CodeBuffer &);
 
    InstructionAPI::Instruction::Ptr insn_;
@@ -86,19 +86,28 @@ struct IPPatch : public Patch {
   typedef enum {
     Push, 
     Reg } Type;
- IPPatch(Type a, Address b) : 
-  type(a), orig_value(b), reg((Register)-1), thunk(0) {};
- IPPatch(Type a, Address b, Register c, Address d) :
-  type(a), orig_value(b), reg(c), thunk(d) {};
+ IPPatch(Type a, Address b, InstructionAPI::Instruction::Ptr c,
+	 block_instance *d, func_instance *e) : 
+  type(a), addr(b), reg((Register)-1), 
+    thunk(0), 
+    insn(c), block(d), func(e) {};
+ IPPatch(Type a, Address b, Register c, Address d,
+	 InstructionAPI::Instruction::Ptr e, block_instance *f, func_instance *g) :
+  type(a), addr(b), reg(c), thunk(d), 
+    insn(e), block(f), func(g) {};
 
   virtual bool apply(codeGen &gen, CodeBuffer *buf);
   virtual unsigned estimate(codeGen &templ);
   virtual ~IPPatch() {};
   
   Type type;
-  Address orig_value;
+  Address addr;
   Register reg;
   Address thunk;
+  // Necessary for live registers
+  InstructionAPI::Instruction::Ptr insn;
+  block_instance *block;
+  func_instance *func;
 };
 
 
