@@ -229,13 +229,6 @@ void codeGen::invalidate() {
 }
 
 bool codeGen::verify() {
-    int cur = getIndex() * CODE_GEN_OFFSET_SIZE;
-    unsigned *tmp = (unsigned *) buffer_;
-    for (unsigned i = 0; i < (cur / 4) -1; ++i) {
-      if (tmp[i] == 0x0) {
-	cerr << "Error: found zero word at index " << i << endl;
-      }
-    }
     return true;
 }
 

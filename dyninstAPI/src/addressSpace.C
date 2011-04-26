@@ -193,7 +193,7 @@ void AddressSpace::deleteAddressSpace() {
     costAddr_ = 0;
     for (CodeTrackers::iterator iter = relocatedCode_.begin(); 
 	 iter != relocatedCode_.end(); ++iter) {
-      delete *iter;
+       delete *iter;
     }
     relocatedCode_.clear();
     modifiedFunctions_.clear();

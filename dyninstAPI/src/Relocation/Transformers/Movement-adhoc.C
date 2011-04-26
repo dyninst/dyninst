@@ -178,7 +178,6 @@ bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
   for (set<Expression::Ptr>::const_iterator iter = mems.begin();
        iter != mems.end(); ++iter) {
     Expression::Ptr exp = *iter;
-    cerr << "Memory-using PC reference: expression " << exp->format() << endl;
     if (exp->bind(x86PC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
 	exp->bind(x86PC64.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
 	exp->bind(ppcPC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||

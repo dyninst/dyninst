@@ -126,6 +126,9 @@ bool CodeBuffer::BufferElement::generate(CodeBuffer *buf,
       size_ = newSize;
       regenerate = true;
    }
+   else {
+      gen.fill(size_ - newSize, codeGen::cgNOP);
+   }
 #if 0
    else if (newSize < size_) {
       shift -= size_ - newSize;

@@ -18,107 +18,18 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
-using namespace NS_x86;
-
-bool CFAtom::generateIndirect(CodeBuffer &buffer,
-                              Register reg,
-                              const Trace *trace,
-                              Instruction::Ptr insn) {
-   // Two possibilities here: either copying an indirect jump w/o
-   // changes, or turning an indirect call into an indirect jump because
-   // we've had the isCall_ flag overridden.
-
-   if (reg != Null_Register) {
-      // Whatever was there doesn't matter.
-      // Only thing we can handle right now is a "we left the destination
-      // at the top of the stack, go get 'er Tiger!"
-      assert(reg == REGNUM_ESP);
-      codeGen gen(1);
-      //gen.fill(1, codeGen::cgTrap);
-      GET_PTR(insn, gen);
-      *insn++ = 0xC3; // RET
-      SET_PTR(insn, gen);
-      buffer.addPIC(gen, tracker(trace));
-      return true;
-   }
-   ia32_locations loc;
-   ia32_memacc memacc[3];
-   ia32_condition cond;
-
-   ia32_instruction orig_instr(memacc, &cond, &loc);
-   ia32_decode(IA32_FULL_DECODER, (unsigned char *)insn->ptr(), orig_instr);
-   const unsigned char *ptr = (const unsigned char *)insn->ptr();
-
-   std::vector<unsigned char> raw (ptr,
-                                   ptr + insn->size());
-
-   // Opcode might get modified;
-   // 0xe8 -> 0xe9 (call Jz -> jmp Jz)
-   // 0xff xx010xxx -> 0xff xx100xxx (call Ev -> jmp Ev)
-   // 0xff xx011xxx -> 0xff xx101xxx (call Mp -> jmp Mp)
-
-   bool fiddle_mod_rm = false;
-   for (unsigned i = loc.num_prefixes; 
-        i < loc.num_prefixes + (unsigned) loc.opcode_size;
-        ++i) {
-      switch(raw[i]) {
-         case 0xE8:
-            raw[i] = 0xE9;
-            break;
-         case 0xFF:
-            fiddle_mod_rm = true;
-            break;
-         default:
-            break;
-      }
-   }
-
-   for (int i = loc.num_prefixes + (int) loc.opcode_size; 
-        i < (int) insn->size(); 
-        ++i) {
-      if ((i == loc.modrm_position) &&
-          fiddle_mod_rm) {
-         raw[i] |= 0x20;
-         raw[i] &= ~0x10;
-      }
-   } 
-  
-   // TODO: don't ignore reg...
-   // Indirect branches don't use the PC and so are
-   // easy - we just copy 'em.
-   buffer.addPIC(raw, tracker(trace));
-
-   return true;
+CFPatch::CFPatch(Type a,
+                 InstructionAPI::Instruction::Ptr b,
+                 TargetInt *c,
+                 Address d) :
+   type(a), orig_insn(b), target(c), origAddr_(d) {
+   if (b)
+      ugly_insn = new NS_x86::instruction(b->ptr());
+   else
+      ugly_insn = NULL;
+   // New branches don't get an original instruction...
 }
 
-
-
-bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
-                                  Register reg,
-                                  Instruction::Ptr insn,
-                                  const Trace *trace,
-				  Address origAddr) 
-{
-   // I'm pretty sure that anything that can get translated will be
-   // turned into a push/jump combo already. 
-   assert(reg == Null_Register);
-   // Check this to see if it's RIP-relative
-   NS_x86::instruction ugly_insn(insn->ptr());
-   if (ugly_insn.type() & REL_D_DATA) {
-      // This was an IP-relative call that we moved to a new location.
-      assert(origTarget_);
-
-      CFPatch *newPatch = new CFPatch(CFPatch::Data, insn, 
-                                      new Target<Address>(origTarget_),
-                                      addr_);
-      buffer.addPatch(newPatch, tracker(trace));
-   }
-   else {
-      buffer.addPIC(insn->ptr(), insn->size(), tracker(trace));
-   }
-   
-   return true;
-}
 
 bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
    // Question 1: are we doing an inter-module static control transfer?

@@ -41,12 +41,18 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace std;
 
+CodeTracker::CodeTracker() {
+   cerr << "Creating CodeTracker " << hex << this << dec << endl;
+};
+
 CodeTracker::~CodeTracker() {
+   cerr << "Deleting CodeTracker " << hex << this << dec << endl;
    // Pile of deallocatable stuff
    for (TrackerList::iterator iter = trackers_.begin();
         iter != trackers_.end(); ++iter) {
       delete (*iter);
    }
+   trackers_.clear();
 }
 
 CodeTracker *CodeTracker::fork(CodeTracker *parent, 
@@ -70,6 +76,11 @@ CodeTracker *CodeTracker::fork(CodeTracker *parent,
             InstTracker *pI = static_cast<InstTracker *>(pE);
             baseTramp *bt = baseTramp::fork(pI->baseT(), child);
             cE = new InstTracker(pE->orig(), bt, cB, cF);
+            break;
+         }
+         case TrackerElement::padding: {
+            PaddingTracker *pP = static_cast<PaddingTracker *>(pE);
+            cE = new PaddingTracker(pE->orig(), pP->pad(), cB, cF);
             break;
          }
       }
@@ -110,6 +121,10 @@ bool CodeTracker::relocToOrig(Address relocAddr,
      InstTracker *i = static_cast<InstTracker *>(e);
      ri.bt = i->baseT();
   }
+  if (e->type() == TrackerElement::padding) {
+     PaddingTracker *p = static_cast<PaddingTracker *>(e);
+     ri.pad = p->pad(); 
+  }
 
   return true;
 }
@@ -133,8 +148,14 @@ void CodeTracker::addTracker(TrackerElement *e) {
       if (e->orig() == last->orig() &&
           e->type() == last->type()) {
          if (false) relocation_cerr << "OVERLAPPING TRACKERS, combining...." << endl;
-		 if (false) relocation_cerr << "\t Current: " << *last << endl;
-		 if (false) relocation_cerr << "\t New: " << *e << endl;
+         if (false) relocation_cerr << "\t Current: " << *last << endl;
+         if (false) relocation_cerr << "\t New: " << *e << endl;
+         if (e->reloc() != (last->reloc() + last->size())) {
+            cerr << "Error: mismatch in addresses; old ended at " << hex << last->reloc() + last->size() 
+                 << " and new at " << e->reloc() << endl;
+            cerr << "\t" << *last << endl;
+            cerr << "\t" << *e << endl;
+         }
          assert(e->reloc() == (last->reloc() + last->size()));
          last->setSize(last->size() + e->size());
          return;
@@ -156,6 +177,9 @@ void CodeTracker::createIndices() {
 
    if (e->type() == TrackerElement::instrumentation) {
       origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].instrumentation = e->reloc();
+   }
+   else if (e->type() == TrackerElement::padding) {
+      origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].pad = e->reloc();
    }
    else {
       origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].instruction = e->reloc();
@@ -211,6 +235,9 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::Relocation::TrackerEle
     break;
   case TrackerElement::instrumentation:
     os << ",i"; 
+    break;
+  case TrackerElement::padding:
+    os << ",p";
     break;
   default:
     os << ",?";

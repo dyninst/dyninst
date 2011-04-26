@@ -273,8 +273,8 @@ bool CFAtom::generate(const codeGen &templ,
       // We don't know what the callee does to the return addr,
       // so we'll catch it at runtime. 
       buffer.addPatch(new PaddingPatch(gap_, true, false, trace->block()), 
-                      addrTracker(addr_ + size(), 
-                                  trace));
+                      padTracker(addr_, gap_,
+                                 trace));
    }
   
    return true;
@@ -328,6 +328,11 @@ TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
 TrackerElement *CFAtom::addrTracker(Address addr, const Trace *trace) const {
    EmulatorTracker *e = new EmulatorTracker(addr, trace->block(), trace->func());
    return e;
+}
+
+TrackerElement *CFAtom::padTracker(Address addr, unsigned size, const Trace *trace) const {
+   PaddingTracker *p = new PaddingTracker(addr, size, trace->block(), trace->func());
+   return p;
 }
 
 void CFAtom::addDestination(Address index, TargetInt *dest) {
@@ -574,10 +579,7 @@ unsigned CFPatch::estimate(codeGen &) {
 
 bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
    //cerr << "PaddingPatch::apply, current addr " << hex << gen.currAddr() << ", size " << size_ << ", registerDefensive " << (registerDefensive_ ? "<true>" : "<false>") << dec << endl;
-   if (registerDefensive_) {
-      assert(0 && "Unimplemented!");
-   }
-   if (noop_) {
+   if (1 || noop_) {
       gen.fill(size_, codeGen::cgNOP);
    }
    else if ( 0 == (size_ % 2) ) {

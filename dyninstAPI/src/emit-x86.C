@@ -1880,6 +1880,7 @@ bool EmitterAMD64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
    *(unsigned int*)insn = dest - (gen.currAddr() + sizeof(unsigned int) + 2);
    insn += sizeof(unsigned int);
    SET_PTR(insn, gen);
+   return true;
 }
 
 bool EmitterAMD64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
@@ -1891,6 +1892,7 @@ bool EmitterAMD64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
    *(unsigned int*)insn = dest - (gen.currAddr() + sizeof(unsigned int) + 2);
    insn += sizeof(unsigned int);
    SET_PTR(insn, gen);
+   return true;
 }
 
 
@@ -2880,6 +2882,7 @@ bool EmitterIA32Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
    // emit call *(e_x)
    emitOpRegReg(CALL_RM_OPC1, RealRegister(CALL_RM_OPC2), 
                 RealRegister(REGNUM_EAX), gen);
+   return true;
 }
 
 bool EmitterIA32Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
@@ -2890,6 +2893,7 @@ bool EmitterIA32Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
    // emit call *(e_x)
    emitOpRegReg(JUMP_RM_OPC1, RealRegister(JUMP_RM_OPC2), 
                 RealRegister(REGNUM_EAX), gen);
+   return true;
 }
 
 void EmitterIA32::emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int /*size*/, codeGen &gen, Address offset)

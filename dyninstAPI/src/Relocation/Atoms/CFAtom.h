@@ -106,7 +106,7 @@ class CFAtom : public Atom {
       : isCall_(false),
      isConditional_(false),
      isIndirect_(false),
-     gap_(0),
+     gap_(10),
      addr_(a), 
      origTarget_(0) {};
 
@@ -116,6 +116,8 @@ class CFAtom : public Atom {
    TrackerElement *tracker(const Trace *) const;
    TrackerElement *destTracker(TargetInt *dest) const;
    TrackerElement *addrTracker(Address addr, const Trace *) const;
+   TrackerElement *padTracker(Address addr, unsigned size, const Trace *) const;
+   
 
   // These are not necessarily mutually exclusive. See also:
   // PPC conditional linking indirect branch, oy. 
