@@ -1163,6 +1163,13 @@ bool ProcDebugLinux::detach(bool leave_stopped)
       }
       lib_load_trap = 0x0;
    }
+
+   if (leave_stopped) {
+      kill(getProcessId(), SIGSTOP);
+   }
+   result = detach_thread(getProcessId(), leave_stopped);
+   if (!result)
+      error = true;
    
    for (thread_map_t::iterator i = threads.begin(); i != threads.end(); i++)
    {
@@ -1177,10 +1184,6 @@ bool ProcDebugLinux::detach(bool leave_stopped)
       delete thread_state;
    }
    threads.clear();
-
-   result = detach_thread(getProcessId(), leave_stopped);
-   if (!result)
-      error = true;
 
    detach_arch_cleanup();
 
@@ -1389,8 +1392,8 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
       }
       if (libpthread) {
          libpthread_restore = libpthread->getSymbolByName("__restore_rt");
-         if (!result) {
-            sw_printf("[%s:%u] - Unable to find restore_rt in libc\n",
+         if (!libpthread->isValidSymbol(libpthread_restore)) {
+            sw_printf("[%s:%u] - Unable to find restore_rt in libpthread\n",
                       __FILE__, __LINE__);
          }
          else {
