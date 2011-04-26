@@ -42,11 +42,9 @@ using namespace Relocation;
 using namespace std;
 
 CodeTracker::CodeTracker() {
-   cerr << "Creating CodeTracker " << hex << this << dec << endl;
 };
 
 CodeTracker::~CodeTracker() {
-   cerr << "Deleting CodeTracker " << hex << this << dec << endl;
    // Pile of deallocatable stuff
    for (TrackerList::iterator iter = trackers_.begin();
         iter != trackers_.end(); ++iter) {
@@ -137,6 +135,7 @@ TrackerElement *CodeTracker::findByReloc(Address addr) const {
 }
 
 void CodeTracker::addTracker(TrackerElement *e) {
+
   // We should look into being more efficient by collapsing ranges
   // of relocated code into a single OriginalTracker
 

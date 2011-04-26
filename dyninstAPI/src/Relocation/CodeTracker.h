@@ -62,10 +62,14 @@ class TrackerElement {
     instrumentation,
     padding
   } type_t;
+
   TrackerElement(Address o, block_instance *b, func_instance *f = NULL) 
       : orig_(o), reloc_(0), size_(0), 
-     block_(b), func_(f) {assert(o); assert(b);};
-  virtual ~TrackerElement() {};
+     block_(b), func_(f) {
+     assert(o); assert(b);
+  };
+  virtual ~TrackerElement() {
+  };
 
   virtual Address relocToOrig(Address reloc) const = 0;
   virtual Address origToReloc(Address orig) const = 0;
@@ -82,7 +86,8 @@ class TrackerElement {
 
 
  protected:
-  TrackerElement() {};
+  TrackerElement() { assert(0); };
+  TrackerElement(const TrackerElement &)  { assert(0); };
   Address orig_;
   Address reloc_;
   unsigned size_;
@@ -162,8 +167,8 @@ class InstTracker : public TrackerElement {
 class PaddingTracker : public TrackerElement {
  public:
   PaddingTracker(Address orig, unsigned pad, block_instance *b, func_instance *f = NULL) :
-   TrackerElement(orig, b, f), pad_(pad) {};
-  virtual ~PaddingTracker() {};
+   TrackerElement(orig, b, f), pad_(pad) {assert(0);};
+   virtual ~PaddingTracker() {assert(0);};
 
   virtual Address relocToOrig(Address reloc) const {
     assert(reloc >= reloc_);

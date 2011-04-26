@@ -1700,6 +1700,10 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
       break;
     }
   }
+  
+  if (!cm->finalize()) {
+     return 0;
+  }
 
   //addrMap.debug();
 

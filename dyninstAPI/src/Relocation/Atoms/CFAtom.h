@@ -106,7 +106,7 @@ class CFAtom : public Atom {
       : isCall_(false),
      isConditional_(false),
      isIndirect_(false),
-     gap_(10),
+     gap_(0),
      addr_(a), 
      origTarget_(0) {};
 

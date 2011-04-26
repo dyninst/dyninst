@@ -102,6 +102,8 @@ class CodeMover {
   // codeGen-carried information
   bool relocate(Address addr);
 
+  bool finalize();
+
   // Aaand debugging functionality
   void disassemble() const;
 
