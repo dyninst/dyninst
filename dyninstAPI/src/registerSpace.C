@@ -39,8 +39,8 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debug.h"
-#include "DyninstAPI/src/function.h"
-#include "DyninstAPI/src/mapped_object.h"
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/registerSpace.h"
 
 #include "dyninstAPI/h/BPatch.h"

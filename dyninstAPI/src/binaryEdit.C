@@ -977,37 +977,40 @@ bool BinaryEdit::replaceTrapHandler() {
 
     for (unsigned nidx = 0; nidx < sigaction_names.size(); nidx++) 
     {
-    // find replacement function
-    std::stringstream repname;
-    repname << "dyn_" << sigaction_names[nidx];
-    int_function *repfunc = findOnlyOneFunction(repname.str().c_str());
-    assert(repfunc);
+        // find replacement function
+        std::stringstream repname;
+        repname << "dyn_" << sigaction_names[nidx];
+        func_instance *repfunc = findOnlyOneFunction(repname.str().c_str());
+        assert(repfunc);
     
-    // replace all callsites to current sigaction function
-    for (unsigned i = 0; i < allFuncs.size(); i++) {
-        func_instance *func = allFuncs[i];        
-        assert(func);
-        for (func_instance::BlockSet::const_iterator iter = func->blocks().begin();
-             iter != func->blocks().end(); ++iter) {
-           if ((*iter)->containsCall()) {
+        // replace all callsites to current sigaction function
+        for (unsigned i = 0; i < allFuncs.size(); i++) {
+            func_instance *func = allFuncs[i];        
+            assert(func);
 
-            // the function name could have up to two underscores
-            // prepended (e.g., sigaction, _sigaction, __sigaction),
-            // try all three possibilities for each name
-            std::string calleeName = (*iter)->calleeName();
-            std::string sigactName = sigaction_names[nidx];
-            for (int num_s=0; 
-                 num_s <= 2; 
-                 num_s++, sigactName.append(string("_"),0,1)) {
-               if (calleeName == sigactName) {
-                  modifyCall(*iter, dyn_sigaction, repfunc);
-                  break;
-               }
-            }
-        }
-    } // for each func in the rewritten binary
-    } // for each sigaction-equivalent function to replace
-    return true;
+            for (func_instance::BlockSet::const_iterator iter = func->blocks().begin();
+                 iter != func->blocks().end(); ++iter) 
+            {
+                if ((*iter)->containsCall()) {
+
+                    // the function name could have up to two underscores
+                    // prepended (e.g., sigaction, _sigaction, __sigaction),
+                    // try all three possibilities for each name
+                    std::string calleeName = (*iter)->calleeName();
+                    std::string sigactName = sigaction_names[nidx];
+                    for (int num_s=0; 
+                         num_s <= 2; 
+                         num_s++, sigactName.append(string("_"),0,1)) {
+                        if (calleeName == sigactName) {
+                            modifyCall(*iter, repfunc, func);
+                            break;
+                        }
+                    }
+                }
+            } // for each func in the rewritten binary
+        } // for each sigaction-equivalent function to replace
+        return true;
+    }
 }
 
 bool BinaryEdit::needsPIC()

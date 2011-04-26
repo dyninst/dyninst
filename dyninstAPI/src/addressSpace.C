@@ -1431,7 +1431,7 @@ void AddressSpace::revertReplacedFunction(func_instance *oldfunc) {
    addModifiedFunction(oldfunc);
 }
 
-int_function *AddressSpace::isFunctionReplaced(int_function *func) const
+func_instance *AddressSpace::isFunctionReplaced(func_instance *func) const
 {
     FuncReplaceMap::const_iterator frit = functionReplacements_.find(func);
     if (frit != functionReplacements_.end()) {
@@ -1440,7 +1440,7 @@ int_function *AddressSpace::isFunctionReplaced(int_function *func) const
     return NULL;
 }
 
-int_function *AddressSpace::isFunctionReplacement(int_function *func) const
+func_instance *AddressSpace::isFunctionReplacement(func_instance *func) const
 {
     FuncReplaceMap::const_iterator frit = functionReplacements_.begin();
     for (; frit != functionReplacements_.end(); frit++) {

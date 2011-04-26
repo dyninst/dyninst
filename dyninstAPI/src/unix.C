@@ -53,7 +53,6 @@
 #include "dyninstAPI/src/instP.h"
 #include "common/h/stats.h"
 
-
 // Forwarding a signal sets BPatch-level shtuff
 #include "BPatch.h"
 #include "BPatch_process.h"
@@ -1635,8 +1634,6 @@ bool SignalGenerator::isInstTrap(const EventRecord &ev, const Frame &af)
    return (ev.proc->last_single_step == af.getPC() - 1);
 }
 
-std::string sigaction_name_NP()
-
 #if defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
 
 #include "dyninstAPI/src/binaryEdit.h"
@@ -1747,6 +1744,7 @@ bool process::hideDebugger()
 {
     return false;
 }
+
 
 #if defined(os_linux) || defined(os_freebsd)
 
@@ -1993,3 +1991,4 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
 }
 
 #endif
+

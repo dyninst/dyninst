@@ -173,7 +173,6 @@ public:
     bool isReturnInstruction();
     static BPatch_procedureLocation convertInstPointType_t(int intType);
     instPoint *llpoint() { return point; } 
-    bool getCFTargets(BPatch_Vector<Dyninst::Address> &targets);
     Dyninst::Address getCallFallThroughAddr();
     bool patchPostCallArea();
     // End internal functions

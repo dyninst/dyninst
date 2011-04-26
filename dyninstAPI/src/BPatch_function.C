@@ -510,12 +510,6 @@ bool BPatch_function::setHandlerFaultAddrAddr
     return false;
 }
 
-void BPatch_function::fixHandlerReturnAddr(Dyninst::Address addr)
-{
-    func->fixHandlerReturnAddr(addr);    
-}
-
-
 /*
  * BPatch_function::getModule
  *

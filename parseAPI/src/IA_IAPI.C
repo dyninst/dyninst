@@ -451,7 +451,8 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
         {
             if (!success || isDynamicCall()) 
             {
-               if ( ! isIATcall(std::string()) )
+                std::string empty;
+               if ( ! isIATcall(empty) )
                     ftEdge = false;
             }
             else if ( ! _isrc->isValidAddress(target) )

@@ -378,7 +378,9 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop(Address writeInsn)
         if ((*uIter)->isDynamic()) {
             long st = 0;
             vector<Address> targs;
-            if ((*uIter)->llpoint()->getCallAndBranchTargets(targs)) {
+            if (hybridow_->hybrid_->getCallAndBranchTargets
+                ((*uIter)->llpoint()->block(), targs)) 
+            {
                 st = * targs.begin();
             }
             BPatch_constExpr stSnip(st);
@@ -603,7 +605,7 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getParentLoop(BPatch_function &func, Ad
                 vector<BPatch_basicBlockLoop*> callWriteLoops;
                 BPatch_basicBlockLoop* firstNoCallLoop = NULL;
                 for (unsigned fidx=1; fidx < stacks[writeStackIdx].size(); fidx++) {
-                    int_function *curIntF = stacks[writeStackIdx][fidx].getFunc();
+                    func_instance *curIntF = stacks[writeStackIdx][fidx].getFunc();
                     if (!curIntF) {
                         break; // we haven't parsed at the function's call
                                // fallthrough address, if there is a loop here
@@ -614,8 +616,8 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getParentLoop(BPatch_function &func, Ad
                         findOrCreateBPFunc(curIntF, NULL);
                     // translate PC to unrelocated version
                     Address origPC = stacks[writeStackIdx][fidx].getPC();
-                    vector<int_function*> tmp1;
-                    baseTrampInstance *tmp2;
+                    vector<func_instance*> tmp1;
+                    baseTramp *tmp2;
                     proc()->lowlevel_process()->getAddrInfo
                         (stacks[writeStackIdx][fidx].getPC(),origPC,tmp1,tmp2);
                     // get loop
@@ -718,7 +720,7 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop
                 {
                     if ((*pIter)->isDynamic()) {
                         vector<Address> targs;
-                        if (!(*pIter)->llpoint()->getCallAndBranchTargets(targs)) {
+                        if (!hybrid_->getCallAndBranchTargets((*pIter)->llpoint()->block(),targs)) {
                             mal_printf("loop has an unresolved indirect transfer at %lx\n", 
                                     (*pIter)->getAddress());
                             hasUnresolved = true;
@@ -847,7 +849,7 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
              pIter++) 
         {
             vector<Address> targs;
-            (*pIter)->llpoint()->getCallAndBranchTargets(targs);
+            hybrid_->getCallAndBranchTargets((*pIter)->llpoint()->block(), targs);
             if (1 != targs.size()) {
                 loop->unresExits_.insert(*pIter);
                 hasUnresolved = true;
@@ -934,7 +936,7 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
                 // We've already checked that the transfer is uniquely 
                 // resolved, add the target.
                 vector<Address> targs;
-                (*pIter)->llpoint()->getCallAndBranchTargets(targs);
+                hybrid_->getCallAndBranchTargets((*pIter)->llpoint()->block(), targs);
                 assert(targs.size() == 1); 
                 mal_printf("loop %d has a resolved indirect transfer at %lx with "
                           "target %lx\n", loop->getID(), (*pIter)->getAddress(), 

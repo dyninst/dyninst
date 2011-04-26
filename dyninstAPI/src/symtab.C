@@ -2133,10 +2133,8 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
 
 // KEVINTODO: deleted fixSplitPoints, somewhere those points are being tracked and the split needs to happen, we used to track (point,block) pairs because of overlapping blocks, not sure what that has changed to
 
-void image::addSplitBlock(parse_block *first, parse_block *second) {
-
-    std::list<Address> toRemove;
-    splitBlocks_.insert(make_pair(first, second));
+void image::addSplitBlock(BlockSplit &split) {
+    splitBlocks_.push_back(split);
 }
 
 

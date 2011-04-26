@@ -339,32 +339,6 @@ Address instPoint::nextExecutedAddr() const {
    }
 }
 
-bool instPoint::getCallAndBranchTargets(vector<Address> & targs) //KEVINTODO: move this to another class
-{
-    using namespace ParseAPI;
-    Block::edgelist & trgs = block()->llb()->targets();
-    for (Block::edgelist::iterator eit = trgs.begin();
-         eit != trgs.end();
-         eit++)
-    {
-        if ( !(*eit)->sinkEdge() && 
-             FALLTHROUGH != (*eit)->type() &&
-             CALL_FT != (*eit)->type() &&
-             NOEDGE != (*eit)->type() /* &&
-             INDIRECT != (*eit)->type()*/) 
-        {
-            Block *trg = (*eit)->trg();
-            mapped_object *targObj = proc()->findObject(trg->obj());
-            if (!targObj) {
-                // Ouch incomplete cleanup!
-                continue;
-            }
-            targs.push_back(trg->start()+targObj->codeBase());
-        }
-    }
-    return ! targs.empty();
-}
-
 void instPoint::markModified() {
    proc()->addModifiedFunction(func());
 }

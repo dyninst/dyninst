@@ -80,7 +80,7 @@ func_instance::func_instance(parse_func *f,
                    symTabName().c_str(), addr_);
 }
 
-unsigned int_function::footprint()  {
+unsigned func_instance::footprint() {
     unsigned totalSize = 0;
     vector<FuncExtent*> exts = ifunc()->extents();
     for (unsigned i=0; i < exts.size(); i++) {
@@ -142,7 +142,7 @@ block_instance * func_instance::setNewEntryPoint()
             if (NULL != newEntry) {
                 fprintf(stderr,"ERROR: multiple blocks in function %lx "
                     "have no incoming edges: [%lx %lx) and [%lx %lx)\n",
-                    getAddress(), newEntry->llb()->start(),
+                    addr_, newEntry->llb()->start(),
                     newEntry->llb()->start() + newEntry->llb()->end(),
                     (*bIter)->llb()->start(),
                     (*bIter)->llb()->start() + (*bIter)->llb()->end());
@@ -159,21 +159,6 @@ block_instance * func_instance::setNewEntryPoint()
 
     assert(!newEntry->llb()->isShared()); //KEVINTODO: unimplemented case
 
-    image_instPoint *imgPoint = new image_instPoint(
-        newEntry->llb()->firstInsnOffset(),
-        newEntry->llb(),
-        ifunc()->img(),
-        functionEntry);
-    ifunc()->img()->addInstPoint(imgPoint);
-
-    // create and add an entry point for the int_func
-    instPoint *point = 
-        findInstPByAddr( newEntry->start() );
-    if (NULL == point) {
-        point = instPoint::createParsePoint(this, imgPoint);
-    }
-	assert(point);
-    entryPoints_.push_back(point);
     return newEntry;
 }
 
@@ -219,43 +204,6 @@ void func_instance::setHandlerFaultAddrAddr(Address faa, bool set)
     }
 }
 
-// Set the handler return addr to the most recent instrumented or
-// relocated address, similar to instPoint::instrSideEffect.
-// Also, make sure that we update our mapped view of memory, 
-// we may have overwritten memory that was previously not code
-void func_instance::fixHandlerReturnAddr(Address /*faultAddr*/)
-{
-    if ( !proc()->proc() || ! handlerFaultAddrAddr_ ) {
-        assert(0);
-        return;
-    }
-#if 0 //KEVINTODO: this function doesn't work, I tried setting newPC to 0xdeadbeef and it had no impact on the program's behavior.  If the springboards work properly this code is unneeded
-    // Do a straightfoward forward map of faultAddr
-    // First, get the original address
-    func_instance *func;
-    block_instance *block; baseTrampInstance *ignored;
-    Address origAddr;
-    if (!proc()->getRelocInfo(faultAddr, origAddr, block, ignored)) {
-       func = dynamic_cast<process *>(proc())->findActiveFuncByAddr(faultAddr);
-       origAddr = faultAddr;
-    }
-    else {
-       func = block->func();
-    }
-    std::list<Address> relocAddrs;
-    proc()->getRelocAddrs(origAddr, func, relocAddrs, true);
-    Address newPC = (!relocAddrs.empty() ? relocAddrs.back() : origAddr);
-    
-    if (newPC != faultAddr) {
-       if(!proc()->writeDataSpace((void*)handlerFaultAddrAddr_, 
-                                  sizeof(Address), 
-                                  (void*)&newPC)) {
-          assert(0);
-       }
-    }
-#endif
-}
-
 // Remove funcs from:
 //   mapped_object & mapped_module datastructures
 //   addressSpace::textRanges codeRangeTree<func_instance*> 
@@ -285,38 +233,16 @@ void func_instance::removeFromAll()
  */
 void func_instance::addMissingBlocks()
 {
-   assert(0 && "KEVINTODO: also, addMissingBlock has been deleted"); 
-    // A bit of a hack, but be sure that we've re-checked the blocks in the
-    // parse_func as well.
-    ifunc_->invalidateCache();
-
-   blocks();
    cerr << "addMissingBlocks for function " << hex << this << dec << endl;
+
+   assert(0 && "KEVINTODO: need to clear block set, or add missing blocks, but getNewBlocks would have to be a func->block map"); 
+
+   // A bit of a hack, but be sure that we've re-checked the blocks in the
+   // parse_func as well.
+   ifunc_->invalidateCache();
+
    // Add new blocks
-
-   const vector<parse_block*> & nblocks = obj()->parse_img()->getNewBlocks();
-   // add blocks by looking up new blocks, if it promises to be more 
-   // efficient than looking through all of the llfunc's blocks
-   vector<parse_block*>::const_iterator nit = nblocks.begin();
-   for( ; nit != nblocks.end(); ++nit) {
-       if (ifunc()->contains(*nit)) {
-           addMissingBlock(*nit);
-       }
-   }
-
-   if (ifunc()->blocks().size() > blocks_.size()) { //not just the else case!
-       // we may have parsed into an existing function and added its blocks 
-       // to ours, or this may just be a more efficient lookup method
-       Function::blocklist & iblks = ifunc()->blocks();
-       for (Function::blocklist::iterator bit = iblks.begin(); 
-            bit != iblks.end(); 
-            bit++) 
-       {
-           if (!findBlock(*bit)) {
-               addMissingBlock(static_cast<parse_block*>(*bit));
-           }
-       }
-   }
+   //const vector<parse_block*> & nblocks = obj()->parse_img()->getNewBlocks();
 }
 
 void func_instance::getReachableBlocks(const set<block_instance*> &exceptBlocks,
@@ -346,7 +272,7 @@ void func_instance::getReachableBlocks(const set<block_instance*> &exceptBlocks,
          rit != imgReach.end(); 
          rit++) 
     {
-        reachBlocks.insert( findBlock(*rit) );
+        reachBlocks.insert( obj()->findBlock(*rit) );
     }
 }
 

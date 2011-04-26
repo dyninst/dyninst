@@ -249,7 +249,7 @@ DynParseCallback::newfunction_retstatus(Function *func)
 void
 DynParseCallback::block_split(Block *first, Block *second)
 {
-    _img->fixSplitPoints(first,second);
+    //KEVINTODO: what happened to the block->instPoint pointers? need to update them _img->fixSplitPoints(first,second);
     if (unlikely(_img->hybridMode())) {
        image::BlockSplit sb (static_cast<parse_block *>(first),
                              static_cast<parse_block *>(second));

@@ -169,6 +169,11 @@ private:
                              bool useInsertionSet );
     bool addIndirectEdgeIfNeeded(BPatch_point *srcPt, Dyninst::Address target);
 
+    // utility functions that could go in another class, but that no one else 
+    // really needs
+    bool getCallAndBranchTargets(block_instance *block, std::vector<Address> & targs);
+    bool getCFTargets(BPatch_point *point, vector<Address> &targets);
+
     // needs to call removeInstrumentation
     friend void BPatch_process::overwriteAnalysisUpdate
         ( std::map<Dyninst::Address,unsigned char*>& owPages, 

@@ -354,7 +354,7 @@ bool parse_block::isExitBlock()
     return true;
 }
 
-bool image_basicBlock::isCallBlock() //KEVINTODO: I think I can delete this
+bool parse_block::isCallBlock() //KEVINTODO: I think I can delete this
 {
     Block::edgelist & trgs = targets();
     if(!trgs.empty())

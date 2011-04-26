@@ -304,7 +304,7 @@ bool HybridAnalysis::canUseCache(BPatch_point *pt)
 #if 0
     if (ret && proc()->lowlevel_process()->isMemoryEmulated()) {
         vector<Address> targs;
-        pt->getCallAndBranchTargets(targs);
+        getCallAndBranchTargets(pt->block(),targs);
         if (1 == targs.size() && 
             pt->llpoint()->func()->obj() == 
             proc()->lowlevel_process()->findObject(targs[0]))
@@ -437,7 +437,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             // IAT entries wind up as static points but have no target, we 
             // don't need to instrument them
             vector<Address> targets;
-            if (!curPoint->getCFTargets(targets)) {
+            if (!getCFTargets(curPoint, targets)) {
                 mal_printf("ERROR: Could not get target for static point[%d] "
                        "[%lx] -> [?]\n", pidx, (long)curPoint->getAddress());
                 continue;
@@ -542,10 +542,10 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                      (*instrumentedFuncs)[func]->find(curPoint) 
                     ||
                      ( ( curPoint->isReturnInstruction() || curPoint->isDynamic()) &&
-                       ! curPoint->getCFTargets(targets) ) ) 
-				{
-					continue;
-				}
+                       ! getCFTargets(curPoint,targets) ) ) 
+                {
+                    continue;
+                }
 
                 // instrument the point, start insertion set, set interpretation 
                 // type according to the type of instruction we're instrumenting,
@@ -917,7 +917,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         vector<Address> targs;
         if (!proc()->lowlevel_process()->isMemoryEmulated()) {
             reInstrument = true;
-        } else if (callPoint->getCallAndBranchTargets(targs)) {
+        } else if (getCallAndBranchTargets(callPoint->block(), targs)) {
             reInstrument = true;
             Address objStart = callPoint->llpoint()->func()->obj()->codeBase();
             Address objEnd = objStart 
@@ -1028,7 +1028,7 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
 
         mal_printf("Adding indirect edge %lx->%lx", 
                    (Address)sourcePt->getAddress(), target);
-        int_function *tFunc = targObj->findFuncByEntry(target);
+        func_instance *tFunc = targObj->findFuncByEntry(target);
 
         // edge does not exist, determine desired edge type
 		EdgeTypeEnum etype;
@@ -1039,7 +1039,7 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
             etype = RET;
             mal_printf(" of type RET\n");
         } else {
-            int_function *tFunc = targObj->findFuncByEntry(target);
+            func_instance *tFunc = targObj->findFuncByEntry(target);
             Block *srcBlk = sourcePt->llpoint()->block()->llb();
             if (tFunc && !tFunc->ifunc()->contains(srcBlk)) {
                 etype = CALL; // this edge is an indirect tail call
@@ -1335,7 +1335,7 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
 bool HybridAnalysis::needsSynchronization(BPatch_point *point)
 {
     vector<Address> targs;
-    point->getCallAndBranchTargets(targs);
+    getCallAndBranchTargets(point->block(),targs);
 
     if (targs.empty()) { 
         ParseAPI::Block::edgelist & outEdges = point->llpoint()->block()->llb()->targets();
@@ -1435,3 +1435,132 @@ void HybridAnalysis::addReplacedFuncs
         replacedFuncs_[repFs[ridx].first] = repFs[ridx].second;
     }
 }
+
+bool HybridAnalysis::getCallAndBranchTargets(block_instance *block, 
+                                             std::vector<Address> & targs)
+{
+    using namespace ParseAPI;
+    Block::edgelist & trgs = block->llb()->targets();
+    for (Block::edgelist::iterator eit = trgs.begin();
+         eit != trgs.end();
+         eit++)
+    {
+        if ( !(*eit)->sinkEdge() && 
+             FALLTHROUGH != (*eit)->type() &&
+             CALL_FT != (*eit)->type() &&
+             NOEDGE != (*eit)->type() /* &&
+             INDIRECT != (*eit)->type()*/) 
+        {
+            Block *trg = (*eit)->trg();
+            mapped_object *targObj = proc()->lowlevel_process()->findObject(trg->obj());
+            if (!targObj) {
+                // Ouch incomplete cleanup!
+                continue;
+            }
+            targs.push_back(trg->start()+targObj->codeBase());
+        }
+    }
+    return ! targs.empty();
+}
+
+
+/*  BPatch_point::getCFTargets
+ *  Returns true if the point corresponds to a control flow
+ *  instruction whose target can be statically determined, in which
+ *  case "target" is set to the targets of the control flow instruction
+ */
+bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
+{
+   assert(0 && "KEVINTODO");
+
+    bool ret = true;
+    if (point->isDynamic()) {
+        if (getCallAndBranchTargets(point->llpoint()->block(), targets)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+#if 0
+    switch(point->getPointType()) 
+    {
+      case callSite: 
+      {
+        Address targ = point->callTarget();
+        if (targ) {
+            targets.push_back(targ);
+        } else {
+            ret = false;
+        }
+        break;
+      }
+      case abruptEnd:
+        targets.push_back( point->block()->end() );
+        break;
+      default: 
+      { // branch or jump. 
+        // don't miss targets to invalid addresses 
+        // (these get linked to the sink block by ParseAPI)
+        using namespace ParseAPI;
+        Address baseAddr = point->block()->start() 
+                         - point->block()->llb()->start();
+        Block::edgelist & trgs = point->block()->llb()->targets();
+        Block::edgelist::iterator iter = trgs.begin();
+        mapped_object *obj = point->func()->obj();
+        Architecture arch = point->proc()->getArch();
+
+        for ( ; iter != trgs.end(); iter++) {
+            if ( ! (*iter)->sinkEdge() ) {
+                targets.push_back( baseAddr + (*iter)->trg()->start() );
+            } else {
+                // if this is a cond'l branch taken or direct 
+                // edge, decode the instruction to get its target, 
+                // otherwise we won't find a target for this insn
+                switch((*iter)->type()) {
+                case INDIRECT:
+                    break;
+                case COND_NOT_TAKEN:
+                case FALLTHROUGH:
+                    if (point->proc()->proc() && 
+                        BPatch_defensiveMode == 
+                        point->proc()->proc()->getHybridMode()) 
+                    {
+                        assert( 0 && "should be an abrupt end point");
+                    }
+                    break;
+                default:
+                { // this is a cond'l taken or jump target
+#if defined(cap_instruction_api)
+                using namespace InstructionAPI;
+                RegisterAST::Ptr thePC = RegisterAST::Ptr
+                    ( new RegisterAST( MachRegister::getPC( arch ) ) );
+
+                void *ptr = obj->getPtrToInstruction(point->addr());
+                assert(ptr);
+                InstructionDecoder dec
+                    (ptr, InstructionDecoder::maxInstructionLength, arch);
+                Instruction::Ptr insn = dec.decode();
+                Expression::Ptr trgExpr = insn->getControlFlowTarget();
+                    // FIXME: templated bind()
+                trgExpr->bind(thePC.get(), 
+                              Result(s64, point->block()->llb()->lastInsnOffset()));
+                Result actualTarget = trgExpr->eval();
+                if(actualTarget.defined)
+                {
+                    Address targ = actualTarget.convert<Address>() + baseAddr;
+                    targets.push_back( targ );
+                }
+                break;
+                } // end default case
+                } // end edge-type switch
+#endif
+            }
+        }
+        break;
+      }
+    }
+
+    return ret;
+#endif
+}
+

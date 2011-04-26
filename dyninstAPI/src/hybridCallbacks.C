@@ -438,7 +438,7 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     // parse, immediately after the current block
     vector<Address> *targets = new vector<Address>;
     Address nextInsn =0;
-    point->getCFTargets(*targets);
+    getCFTargets(point,*targets);
     assert(!targets->empty());
     nextInsn = (*targets)[0];
     delete(targets);
@@ -454,11 +454,11 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
 }
 #endif
 
-static int getCallPoints(ParseAPI::Block* blk, 
+static int getPreCallPoints(ParseAPI::Block* blk, 
                          BPatch_process *proc, 
                          vector<BPatch_point*> &points) 
 {
-    if (!((image_basicBlock*)blk)->isCallBlock()) {
+    if (!((parse_block*)blk)->isCallBlock()) {
         return 0;
     }
 
@@ -473,13 +473,8 @@ static int getCallPoints(ParseAPI::Block* blk,
          fit != pFuncs.end(); 
          fit++) 
     {
-        int_function *iFunc = 
-            llproc->findFuncByInternalFunc((image_func*)(*fit));
-        instPoint * iPoint = iFunc->findInstPByAddr(ptAddr);
-        if (!iPoint) {
-            iFunc->funcCalls();
-            iPoint = iFunc->findInstPByAddr(ptAddr);
-        }
+        func_instance *iFunc = llproc->findFunction((parse_func*)(*fit));
+        instPoint *iPoint = instPoint::preCall(iFunc, iFunc->obj()->findBlock(blk));
         if (iPoint) {
             BPatch_function *bpFunc = proc->findOrCreateBPFunc(iFunc,NULL);
             BPatch_point *bpPoint = proc->findOrCreateBPPoint(
@@ -503,7 +498,7 @@ static void getCallBlocks(Address retAddr,
    using namespace ParseAPI;
    process *llproc = retPoint->func()->proc()->proc();
    mapped_object *callObj = llproc->findObject((Address)retAddr - 1);
-   image_func * retF = retPoint->func()->ifunc();
+   parse_func * retF = retPoint->func()->ifunc();
    std::set<CodeRegion*> callRegs;
    if (callObj) {
       callObj->parse_img()->codeObject()->cs()->
@@ -522,12 +517,13 @@ static void getCallBlocks(Address retAddr,
        bit != callBlocks.end();)
    {
       if ((*bit)->end() == (retAddr - callObj->codeBase()) &&
-          ((image_basicBlock*)(*bit))->isCallBlock()) 
+          ((parse_block*)(*bit))->isCallBlock()) 
       {
           bit++;
       }
       else {
-          bit = callBlocks.erase(bit);
+          callBlocks.erase(bit);
+          bit = callBlocks.begin();
       }
    }
 
@@ -537,9 +533,9 @@ static void getCallBlocks(Address retAddr,
        returningCallB.first == NULL && bit != callBlocks.end();
        bit++) 
    {
-      int_function *retFunc = retPoint->func();
+      func_instance *retFunc = retPoint->func();
       if (BPatch_defensiveMode != retFunc->obj()->hybridMode()) {
-          int_function *origF = llproc->isFunctionReplacement(retFunc);
+          func_instance *origF = llproc->isFunctionReplacement(retFunc);
           if (origF) {
               retFunc = origF;
           }
@@ -756,7 +752,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                      bit != callBlocks.end(); 
                      bit++)
                 {
-                    getCallPoints(*bit, proc(), callPts);
+                    getPreCallPoints(*bit, proc(), callPts);
                 }
                 for (vector<BPatch_point*>::iterator pit = callPts.begin(); 
                      pit != callPts.end(); 
@@ -773,7 +769,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                           target))
             {
                 vector<BPatch_point*> callPts; 
-                getCallPoints(returningCallB.first, proc(), callPts);
+                getPreCallPoints(returningCallB.first, proc(), callPts);
                 for (unsigned j=0; j < callPts.size(); j++) {
                     callPts[j]->patchPostCallArea();
                 }
@@ -784,7 +780,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                 // find one callPoint, any other ones will 
                 // be found by parseAfterCallAndInstrument
                 vector<BPatch_point*> callPoints;
-                getCallPoints(returningCallB.first, proc(), callPoints);
+                getPreCallPoints(returningCallB.first, proc(), callPoints);
                 assert(!callPoints.empty());
 
                 mal_printf("stopThread instrumentation found return at %lx, "
@@ -830,7 +826,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                  bit != callBlocks.end(); 
                  bit++)
             {
-                getCallPoints(*bit, proc(), callPoints);
+                getPreCallPoints(*bit, proc(), callPoints);
             }
             for (vector<BPatch_point*>::iterator pit = callPoints.begin(); 
                  pit != callPoints.end(); 

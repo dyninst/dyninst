@@ -131,11 +131,7 @@ class fileDescriptor {
         dynamic_(dynamic),
         shared_(isShared),
         pid_(0),
-        loadAddr_(0),
-        procHandle_(0),
-        fileHandle_(0),
-        length_(0),
-        rawPtr_(0)
+        loadAddr_(0)
         {}
 
      ~fileDescriptor() {}
@@ -373,34 +369,14 @@ class image : public codeRange {
    ParseAPI::CodeObject::funclist &getAllFunctions();
    const pdvector<image_variable*> &getAllVariables();
 
-<<<<<<< HEAD:dyninstAPI/src/symtab.h
-   image_instPoint * getInstPoint(ParseAPI::Block *, Address addr);
-   void getInstPoints(ParseAPI::Block *,
-                      pdvector<image_instPoint*> &points); 
-   bool addInstPoint(image_instPoint*p);
-   void deleteInstPoints(ParseAPI::Block *b);
-   void fixSplitPoints(ParseAPI::Block *b1,ParseAPI::Block *b2);
-
-=======
->>>>>>> NewInstpoint:dyninstAPI/src/symtab.h
-
    //-----------DEFENSIVE-MODE CODE------------//
    BPatch_hybridMode hybridMode() const { return mode_; }
    // element removal
 
-<<<<<<< HEAD:dyninstAPI/src/symtab.h
-   void deleteFunc(image_func *func);
-   void deleteInstPoint(image_instPoint *p);
-   typedef std::pair<image_basicBlock *,image_basicBlock *> BlockSplit;
+   typedef std::pair<parse_block *,parse_block *> BlockSplit;
    void addSplitBlock(BlockSplit &blk);
    const std::vector<BlockSplit> & getSplitBlocks() const;
-=======
    void deleteFunc(parse_func *func);
-   void addSplitBlock(parse_block *first,
-                      parse_block *second);
-   typedef std::set<std::pair<parse_block *, parse_block *> > SplitBlocks;
-   const SplitBlocks & getSplitBlocks() const;
->>>>>>> NewInstpoint:dyninstAPI/src/symtab.h
    bool hasSplitBlocks() const { return !splitBlocks_.empty(); }
    void clearSplitBlocks();
    bool hasNewBlocks() const { return 0 < newBlocks_.size(); }
@@ -550,13 +526,8 @@ class image : public codeRange {
    vector<pair<string, Address> > dataHeaps_;
 
    // new element tracking
-<<<<<<< HEAD:dyninstAPI/src/symtab.h
    vector<BlockSplit> splitBlocks_;
-   vector<image_basicBlock*> newBlocks_;
-=======
-   SplitBlocks splitBlocks_;
    vector<parse_block*> newBlocks_;
->>>>>>> NewInstpoint:dyninstAPI/src/symtab.h
    bool trackNewBlocks_;
 
    int refCount;

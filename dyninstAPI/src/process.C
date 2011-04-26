@@ -5048,7 +5048,7 @@ func_instance *process::findActiveFuncByAddr(Address addr)
 
 bool process::patchPostCallArea(instPoint *callPt)
 {
-    malware_cerr << "patchPostCallArea for point " << hex << callPt->addr() << dec << endl;
+   //malware_cerr << "patchPostCallArea for point " << hex << callPt->addr() << dec << endl;
    // 1) Find all the post-call patch areas that correspond to this 
    //    call point
    // 2) Generate and install the branches that will be inserted into 
@@ -5068,6 +5068,7 @@ bool process::patchPostCallArea(instPoint *callPt)
 bool process::generateRequiredPatches(instPoint *callPoint, 
                                       AddrPairSet &patchAreas)
 {
+#if 0 //KEVINTODO: re-design the datastructures used by getAddrInfo to return patch areas
     // We need to figure out where this patch should branch to.
     // To do that, we're going to:
     // 1) Forward map the entry of the ft block to
@@ -5083,25 +5084,21 @@ bool process::generateRequiredPatches(instPoint *callPoint,
          fit != callFuncs.end();
          fit++)
     {
-        int_function *callF = findFuncByInternalFunc((image_func*)*fit);
-        int_block *callB =callF->findBlockByEntry(callPoint->block()->start());
+        func_instance *callF = findFunction((parse_func*)*fit);
+        block_instance *callB = callPoint->block();
         instPoint *callP = callF->findInstPByAddr(callPoint->addr());
-        if (!callP) {
-            callF->funcCalls();
-            callP = callF->findInstPByAddr(callPoint->addr());
-        }
-        assert(callP && callP->addr() < callB->end());
-        int_block *ftBlk = callB->getFallthrough();
+        assert(callP && callP->insnAddr() < callB->end());
+        block_instance *ftBlk = callB->getFallthrough();
         if (!ftBlk) {
             // find the block at the next address, if there's no fallthrough block
-            set<int_block*> blks;
+            set<block_instance*> blks;
             callF->obj()->findBlocksByEntry(callB->end(),blks);
              assert(!blks.empty());
             ftBlk = *blks.begin();
             if (blks.size() > 1) {
                 // if there's more than one block (i.e., it's shared), pick 
                 // the one that's the entry block of its function
-                for (set<int_block*>::iterator bit = blks.begin(); 
+                for (set<block_instance*>::iterator bit = blks.begin(); 
                      bit != blks.end(); 
                      bit++) 
                 {
@@ -5144,6 +5141,7 @@ bool process::generateRequiredPatches(instPoint *callPoint,
     if (patchAreas.empty()) {
        mal_printf("no relocs to patch for call at %lx\n", callPt->nextExecutedAddr());
     }
+#endif
     return ! patchAreas.empty();
 }
 

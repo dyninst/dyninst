@@ -135,10 +135,17 @@ class func_instance : public patchTarget {
    const BlockSet &exitBlocks();
 
    // Kevin's defensive mode shtuff
-   // Blocks that have a sink target, essentially. 
-   const BlockSet &unresolvedCF();
-   // Blocks where we provisionally stopped parsing because things looked weird.
-   const BlockSet &abruptEnds();
+   const BlockSet &unresolvedCF();// Blocks that have a sink target, essentially
+   const BlockSet &abruptEnds(); // Blocks where we provisionally stopped 
+                                 // parsing because things looked weird.
+   void addMissingBlocks();
+   block_instance * setNewEntryPoint();
+   // kevin signal-handler information
+   bool isSignalHandler() {return handlerFaultAddr_ != 0;}
+   Address getHandlerFaultAddr() {return handlerFaultAddr_;}
+   Address getHandlerFaultAddrAddr() {return handlerFaultAddrAddr_;}
+   void setHandlerFaultAddr(Address fa);
+   void setHandlerFaultAddrAddr(Address faa, bool set);
 
    Offset addrToOffset(const Address addr) const;
 
@@ -152,17 +159,11 @@ class func_instance : public patchTarget {
    ////////////////////////////////////////////////
    func_instance *findCallee(block_instance *callBlock);
 
-   bool isSignalHandler() {return handlerFaultAddr_ != 0;}
-   Address getHandlerFaultAddr() {return handlerFaultAddr_;}
-   Address getHandlerFaultAddrAddr() {return handlerFaultAddrAddr_;}
-   void fixHandlerReturnAddr(Address newAddr);
-   void setHandlerFaultAddr(Address fa);
-   void setHandlerFaultAddrAddr(Address faa, bool set);
-
    bool isInstrumentable();
 
    Address get_address() const;
    unsigned get_size() const;
+   unsigned footprint(); // not const, calls ifunc()->extents()
    std::string get_name() const;
    
 #if defined(arch_x86) || defined(arch_x86_64)

@@ -154,7 +154,6 @@ public:
     void getCallPoints(BPatch_Vector<BPatch_point *> &entryPoints);
 
     bool setHandlerFaultAddrAddr(Dyninst::Address addr, bool set);
-    void fixHandlerReturnAddr(Dyninst::Address addr);
     bool removeInstrumentation(bool useInsertionSet);
     bool parseNewEdge(Dyninst::Address source, Dyninst::Address target);
     void relocateFunction();

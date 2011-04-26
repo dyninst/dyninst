@@ -235,7 +235,7 @@ BPatch_Vector<BPatch_thread *> &BPatchSnippetHandle::getCatchupThreadsInt()
 BPatch_function * BPatchSnippetHandle::getFuncInt()
 {
     if (!mtHandles_.empty()) {
-        int_function *func = mtHandles_.back()->func();
+        func_instance *func = mtHandles_.back()->instP()->func();
         BPatch_function *bpfunc = addSpace_->findOrCreateBPFunc(func,NULL);
         return bpfunc;
     }

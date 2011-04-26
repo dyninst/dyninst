@@ -566,8 +566,8 @@ void MemoryEmulator::addPOPAD(Address addr)
 bool MemoryEmulator::isEmulPOPAD(Address addr)
 {
     Address orig = -1;
-    std::vector<int_function*> dontcare1;
-    baseTrampInstance *dontcare2;
+    std::vector<func_instance*> dontcare1;
+    baseTramp *dontcare2;
     if (!aS_->getAddrInfo(addr, orig, dontcare1, dontcare2)) {
         assert(0);
     }
