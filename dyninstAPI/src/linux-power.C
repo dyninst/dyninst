@@ -883,7 +883,7 @@ bool process::loadDYNINSTlib_exported(const char *, int)
 
     // The library name goes first
     dyninstlib_str_addr = codeBase;
-    scratchCodeBuffer.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
+    scratchCodeBuffer.copyAligned(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
 
     // Need a register space                                           //aix.C
     // make sure this syncs with inst-power.C                          //aix.C
@@ -1055,7 +1055,7 @@ bool process::loadDYNINSTlib_hidden() {
 
   // First copy the RT library name
   dyninstlib_str_addr = codeBase + scratchCodeBuffer.used();
-  scratchCodeBuffer.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
+  scratchCodeBuffer.copyAligned(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
 
   startup_printf("(%d) dyninst str addr at 0x%x\n", getPid(),
                                                     dyninstlib_str_addr);

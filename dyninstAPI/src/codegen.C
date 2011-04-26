@@ -293,6 +293,23 @@ void codeGen::copy(codeGen &gen) {
   assert(used() <= size_);
 }
 
+void codeGen::copyAligned(const void *b, const unsigned size) {
+  if (size == 0) return;
+
+  assert(buffer_);
+  
+  realloc(used() + size);
+
+  memcpy(cur_ptr(), b, size);
+
+  unsigned alignedSize = size;
+  alignedSize += (CODE_GEN_OFFSET_SIZE - (alignedSize % CODE_GEN_OFFSET_SIZE));
+
+  moveIndex(alignedSize);
+}
+
+
+
 // codeBufIndex_t stores in platform-specific units.
 unsigned codeGen::used() const {
     return offset_ * CODE_GEN_OFFSET_SIZE;
