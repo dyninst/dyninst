@@ -98,13 +98,12 @@ verbose_log(Address currAddr, Edges_t::iterator & curEdge)
 }
 } // anonymous namespace
 
+// XXX this code was introduced but is unused
+#if 0
 static void 
 getBlockInsns(Block &blk, std::set<Address> &addrs)
 {
     unsigned bufSize = blk.size();
-	if (blk.start() == 0x1256) {
-		int i = 3;
-	}
 #if defined(cap_instruction_api)
     using namespace InstructionAPI;
     const unsigned char* bufferBegin = (const unsigned char *)
@@ -122,6 +121,8 @@ getBlockInsns(Block &blk, std::set<Address> &addrs)
         addrs.insert(ah.getAddr());
     } 
 }
+#endif
+
 /*
  * Extra handling of return instructions
  */

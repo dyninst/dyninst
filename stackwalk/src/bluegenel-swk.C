@@ -47,6 +47,7 @@
 #include <signal.h>
 #include <sys/poll.h>
 #include <assert.h>
+#include <sstream>
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;

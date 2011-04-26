@@ -37,5 +37,17 @@
 
 inline const char * P_strrchr (const char *P_STRING, int C) {return (strrchr(P_STRING, C));}
 inline char * P_strrchr (char *P_STRING, int C) {return (strrchr(P_STRING, C));}
+inline void * P_memcpy (void *A1, const void *A2, size_t SIZE)
+    { return memcpy( A1, A2, SIZE ); }
 
+/* The following values are taken from demangle.h in binutils */
+#define DMGL_PARAMS      (1 << 0)       /* Include function args */
+#define DMGL_ANSI        (1 << 1)       /* Include const, volatile, etc */
+
+#define DMGL_ARM         (1 << 11)      /* Use C++ ARM name mangling */ 
+
+extern "C" char *cplus_demangle(char *, int);
+extern void dedemangle( char * demangled, char * dedemangled );
+extern char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
+				bool includeTypes = false );
 #endif // _bgl_compute_headers_h

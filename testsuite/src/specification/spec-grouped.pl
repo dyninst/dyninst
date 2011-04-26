@@ -2432,6 +2432,19 @@ test_start_state('fucompp', 'stopped').
 tests_module('fucompp', 'instruction').
 
 
+test('mov_size_details', 'mov_size_details', none).                                                 
+test_description('mov_size_details', 'Tests the sizes of mov AST elements.').                          
+test_platform('mov_size_details', Platform) :-                                                                 
+        platform(Platform),                                                                                               
+        platform('i386', _, _, Platform);                                                                                
+        platform('x86_64', _, _, Platform).                                                                              
+mutator('mov_size_details', ['mov_size_details.C']).                                                
+test_runmode('mov_size_details', 'createProcess').                                                             
+test_start_state('mov_size_details', 'stopped').                                                               
+tests_module('mov_size_details', 'instruction').                                                             
+
+
+
 % ProcessControlAPI Tests
 pcPlatforms(P) :- platform('x86_64', 'linux', _, P).
 pcPlatforms(P) :- platform('i386', 'linux', _, P).

@@ -98,7 +98,6 @@ namespace Dyninst
       
                 ia32_locations* locs;
                 NS_x86::ia32_instruction* decodedInstruction;
-                bool is32BitMode;
                 bool sizePrefixPresent;
                 bool addrSizePrefixPresent;
         };

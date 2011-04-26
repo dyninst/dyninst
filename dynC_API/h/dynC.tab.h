@@ -48,8 +48,8 @@
      ERROR = 264,
      EOL = 265,
      SIZEOF = 266,
-     TRUE = 267,
-     FALSE = 268,
+     D_TRUE = 267,
+     D_FALSE = 268,
      PTR_OP = 269,
      INC_OP = 270,
      DEC_OP = 271,
@@ -133,8 +133,8 @@
 #define ERROR 264
 #define EOL 265
 #define SIZEOF 266
-#define TRUE 267
-#define FALSE 268
+#define D_TRUE 267
+#define D_FALSE 268
 #define PTR_OP 269
 #define INC_OP 270
 #define DEC_OP 271
