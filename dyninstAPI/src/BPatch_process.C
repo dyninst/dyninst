@@ -2239,7 +2239,7 @@ void BPatch_process::printDefensiveStatsInt()
             << hex << funcTablePos << dec << endl;
     }
 
-//#if 0
+#if 0
     int calls = 0; //done
     int dynCalls = 0; //done
     int multiTargetCalls = 0; //done
@@ -2334,5 +2334,5 @@ void HybridAnalysis::getCallBlocks(Address retAddr,
         }
     }
     HybridAnalysis::AnalysisStats *stats = hybridAnalysis_->getStats();
-//#endif
+#endif
 }
