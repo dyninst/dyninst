@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -611,7 +611,6 @@ Parser::record_func(Function *f) {
     _parse_data->record_func(f);
 }
 
-
 void
 Parser::init_frame(ParseFrame & frame)
 {
@@ -707,6 +706,7 @@ namespace {
 void
 Parser::parse_frame(ParseFrame & frame, bool recursive) {
     /** Persistent intermediate state **/
+    dyn_detail::boost::shared_ptr<InstructionAdapter_t> ahPtr;
     ParseFrame::worklist_t & worklist = frame.worklist;
     dyn_hash_map<Address, Block *> & leadersToBlock = frame.leadersToBlock;
     Address & curAddr = frame.curAddr;
@@ -728,6 +728,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         parsing_printf("[%s] ==== resuming parse of frame %lx ====\n",
             FILE__,frame.func->addr());
     }
+
 
     frame.set_status(ParseFrame::PROGRESS);
 

@@ -32,11 +32,7 @@
 // Convenience header file so we don't have to pull in each one individually.
 
 #include "Transformer.h"
-#include "Movement-adhoc.h"
-#include "ControlFlow.h"
 #include "Instrumenter.h"
-#include "CF_Localization.h"
-#include "Movement-analysis.h"
-#include "Fallthroughs.h"
 #include "Modification.h"
-#include "Defensive.h"
+#include "Movement-adhoc.h"
+#include "Movement-analysis.h"

@@ -29,6 +29,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#if !defined(cap_mem_emulation)
+#error
+#endif
+
 #if !defined(_R_T_EMULATE_MEMORY_H_)
 #define _R_T_EMULATE_MEMORY_H_
 
@@ -36,19 +40,21 @@
 #include "dataflowAPI/h/Absloc.h" // MemEmulator analysis
 #include "dataflowAPI/h/AbslocInterface.h" // And more of the same
 
+class func_instance;
+
 namespace Dyninst {
 namespace Relocation {
 
-class CopyInsn;
+class InsnAtom;
 
 class MemEmulatorTransformer : public Transformer {
-  typedef dyn_detail::boost::shared_ptr<CopyInsn> CopyInsnPtr;
+  typedef dyn_detail::boost::shared_ptr<InsnAtom> InsnAtomPtr;
  public:
   typedef std::map<Register, TracePtr> TranslatorMap;
 
   virtual bool preprocess(TraceList &);
 
-  virtual bool processTrace(TraceList::iterator &);
+  virtual bool processTrace(TraceList::iterator &, const TraceMap &);
 
  MemEmulatorTransformer() :
   aConverter(false) {};
@@ -57,19 +63,19 @@ class MemEmulatorTransformer : public Transformer {
 
  private:
 
-  AtomPtr createReplacement(CopyInsnPtr reloc,
-			       int_function *func, int_block *);
+  AtomPtr createReplacement(InsnAtomPtr reloc,
+			       func_instance *func, block_instance *);
 
-  bool canRewriteMemInsn(CopyInsnPtr reloc,
-			 int_function *func);
+  bool canRewriteMemInsn(InsnAtomPtr reloc,
+			 func_instance *func);
 
-  bool isSensitive(CopyInsnPtr reloc, 
-		   int_function *func,
-		   int_block *block);
+  bool isSensitive(InsnAtomPtr reloc, 
+		   func_instance *func,
+		   block_instance *block);
 
   void createTranslator(Register r);
 
-  bool override(CopyInsnPtr reloc);
+  bool override(InsnAtomPtr reloc);
 
   TranslatorMap translators_;
 

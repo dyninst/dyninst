@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
 #include "inst.h"
 #include "instP.h"
 #include "instPoint.h"
-#include "function.h" // int_function
+#include "function.h" // func_instance
 #include "codeRange.h"
 #include "dyn_thread.h"
 #include "miniTramp.h"
@@ -77,7 +77,7 @@ BPatch_addressSpace::~BPatch_addressSpace()
 {}
 
 
-BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(int_function* ifunc,
+BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(func_instance* ifunc,
                                                          BPatch_module *bpmod)
 {
    if (!bpmod)
@@ -124,8 +124,11 @@ BPatch_point *BPatch_addressSpace::findOrCreateBPPoint(BPatch_function *bpfunc,
    if (mod->instp_map.count(ip)) 
       return mod->instp_map[ip];
 
-   if (pointType == BPatch_locUnknownLocation)
+   if (pointType == BPatch_locUnknownLocation) {
+      cerr << "Error: point type not specified!" << endl;
+      assert(0);
       return NULL;
+   }
 
    AddressSpace *lladdrSpace = ip->func()->proc();
    if (!bpfunc) 
@@ -163,7 +166,7 @@ BPatch_variableExpr *BPatch_addressSpace::findOrCreateVariable(int_variable *v,
                                                                
 
 
-BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, int_function *f)
+BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, func_instance *f)
 {
    BPatch_addressSpace *aS = (BPatch_addressSpace *)a->up_ptr();
    assert(aS);
@@ -171,7 +174,7 @@ BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, int_functi
 }
 
 BPatch_point *BPatch_addressSpace::createBPPointCB(AddressSpace *a, 
-                                                   int_function *f, 
+                                                   func_instance *f, 
                                                    instPoint *ip, int type)
 {
    BPatch_addressSpace *aS = (BPatch_addressSpace *)a->up_ptr();
@@ -232,7 +235,7 @@ BPatch_Vector<BPatch_thread *> &BPatchSnippetHandle::getCatchupThreadsInt()
 BPatch_function * BPatchSnippetHandle::getFuncInt()
 {
     if (!mtHandles_.empty()) {
-        int_function *func = mtHandles_.back()->func();
+        func_instance *func = mtHandles_.back()->instP()->func();
         BPatch_function *bpfunc = addSpace_->findOrCreateBPFunc(func,NULL);
         return bpfunc;
     }
@@ -274,7 +277,7 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
    // executing on the call stack
    if ( handle->getProcess() && handle->mtHandles_.size() > 0 && 
        BPatch_normalMode != 
-       handle->mtHandles_[0]->instP()->func()->obj()->hybridMode())
+        handle->mtHandles_[0]->instP()->func()->obj()->hybridMode())
    {
        if (handle->mtHandles_.size() > 1) {
            mal_printf("ERROR: Removing snippet that is installed in "
@@ -288,7 +291,7 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
        instPoint *iPoint = handle->mtHandles_[i]->instP();
        handle->mtHandles_[i]->uninstrument();
        BPatch_point *bPoint = findOrCreateBPPoint(NULL, iPoint, 
-           BPatch_point::convertInstPointType_t(iPoint->getPointType()));
+                                                  BPatch_point::convertInstPointType_t(iPoint->type()));
        assert(bPoint);
        bPoint->removeSnippet(handle);
      }
@@ -317,28 +320,11 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
 bool BPatch_addressSpace::replaceCodeInt(BPatch_point *point,
       BPatch_snippet *snippet) 
 {
-   if (!getMutationsActive())
-      return false;
+   // Need to reevaluate how this code works. I don't think it should be
+   // point-based, though. 
 
-   if (!point) {
-      return false;
-   }
-   if (getTerminated()) {
-      return true;
-   }
-
-   if (point->edge_) {
-      return false;
-   }
-
-   if (!point->point->replaceCode(snippet->ast_wrapper)) return false;
-
-   if (pendingInsertions == NULL) {
-     // Trigger it now
-     bool tmp;
-     finalizeInsertionSet(false, &tmp);
-   }   
-   return true;
+   assert(0);
+   return false;
 }
 
 /*
@@ -362,8 +348,9 @@ bool BPatch_addressSpace::replaceFunctionCallInt(BPatch_point &point,
 
    assert(point.point && newFunc.lowlevel_func());
 
-   point.getAS()->replaceFunctionCall(point.point, 
-				      newFunc.lowlevel_func());
+   point.getAS()->modifyCall(point.point->block(), 
+                             newFunc.lowlevel_func(),
+                             point.point->func());
 
    if (pendingInsertions == NULL) {
      // Trigger it now
@@ -389,7 +376,7 @@ bool BPatch_addressSpace::removeFunctionCallInt(BPatch_point &point)
 
    assert(point.point);
 
-   point.getAS()->removeFunctionCall(point.point);
+   point.getAS()->removeCall(point.point->block(), point.point->func());
 
    if (pendingInsertions == NULL) {
      // Trigger it now
@@ -617,7 +604,7 @@ BPatch_function *BPatch_addressSpace::findFunctionByAddrInt(void *addr)
 
    getAS(as);
    assert(as.size());
-   std::set<int_function *> funcs;
+   std::set<func_instance *> funcs;
    if (!as[0]->findFuncsByAddr((Address) addr, funcs)) {
       // if it's a mapped_object that has yet to be analyzed, 
       // trigger analysis and re-invoke this function
@@ -673,9 +660,9 @@ bool BPatch_addressSpace::findFuncsByRange(Address startAddr,
     // find the first code range in the region
     mapped_object* mobj = as[0]->findObject(startAddr);
     assert(mobj);
-    set<int_function*> intFuncs;
+    set<func_instance*> intFuncs;
     mobj->findFuncsByRange(startAddr,endAddr,intFuncs);
-    set<int_function*>::iterator fIter = intFuncs.begin();
+    set<func_instance*>::iterator fIter = intFuncs.begin();
     for (; fIter != intFuncs.end(); fIter++) {
         BPatch_function * bpfunc = findOrCreateBPFunc(*fIter,NULL);
         bpFuncs.insert(bpfunc);
@@ -702,12 +689,12 @@ bool BPatch_addressSpace::findFunctionsByAddrInt
     assert(as.size());
 
     // grab the funcs, return false if there aren't any
-    std::set<int_function*> intfuncs;
+    std::set<func_instance*> intfuncs;
     if (!as[0]->findFuncsByAddr( addr, intfuncs )) {
         return false;
     }
     // convert to BPatch_functions
-    for (std::set<int_function*>::iterator fiter=intfuncs.begin(); 
+    for (std::set<func_instance*>::iterator fiter=intfuncs.begin(); 
          fiter != intfuncs.end(); fiter++) 
     {
         funcs.push_back(findOrCreateBPFunc(*fiter, NULL));
@@ -868,12 +855,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
                FILE__, __LINE__, i);
          return retHandle;
       }
-
-      miniTramp *mini = bppoint->point->addInst(expr.ast_wrapper,
-						ipWhen,
-						ipOrder,
-						BPatch::bpatch->isTrampRecursive(), 
-						false);
+      miniTramp *mini = bppoint->point->insert(ipOrder, expr.ast_wrapper, BPatch::bpatch->isTrampRecursive());
 
       if (mini) {
 	retHandle->mtHandles_.push_back(mini);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -198,8 +198,9 @@ bool IA_IAPI::isTailCall(Function * /*context*/,unsigned int) const
     if(curInsn()->getCategory() == c_BranchInsn ||
        curInsn()->getCategory() == c_CallInsn)
     {
-        std::map<Address, Instruction::Ptr>::const_iterator prevIter =
-                allInsns.find(current);
+        //std::map<Address, Instruction::Ptr>::const_iterator prevIter =
+                //allInsns.find(current);
+        allInsns_t::const_iterator prevIter = curInsnIter;
         --prevIter;
         Instruction::Ptr prevInsn = prevIter->second;
         if(prevInsn->getOperation().getID() == e_leave)

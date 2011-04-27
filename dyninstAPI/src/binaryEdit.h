@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -46,7 +46,7 @@
 #include "parseAPI/h/InstructionSource.h"
 
 class fileDescriptor;
-class int_function;
+class func_instance;
 class memoryTracker;
 class depRelocation;
 
@@ -128,7 +128,7 @@ class BinaryEdit : public AddressSpace {
 
     // Default to "nope"
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
-                              int_function *&, 
+                              func_instance *&, 
                               Address) { return false; }
 
     // Should be easy if the process isn't _executing_ where
@@ -147,7 +147,7 @@ class BinaryEdit : public AddressSpace {
 
     bool writeFile(const std::string &newFileName);
     
-    virtual int_function *findOnlyOneFunction(const std::string &name,
+    virtual func_instance *findOnlyOneFunction(const std::string &name,
                                               const std::string &libname = "",
                                               bool search_rt_lib = true);
 
@@ -193,6 +193,8 @@ class BinaryEdit : public AddressSpace {
     static bool getResolvedLibraryPath(const std::string &filename, std::vector<std::string> &paths);
 
     bool inferiorMallocStatic(unsigned size);
+
+    Address maxAllocedAddr();
 
     bool createMemoryBackingStore(mapped_object *obj);
 

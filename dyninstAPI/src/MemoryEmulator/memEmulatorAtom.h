@@ -29,10 +29,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#if !defined(cap_mem_emulation)
+#error
+#endif
+
+
 #if !defined (_R_E_MEM_EMULATOR_H_)
 #define _R_E_MEM_EMULATOR_H_
 
 #include "dyninstAPI/src/Relocation/Atoms/Atom.h"
+#include "dyninstAPI/src/codegen.h"
 #include <stack>
 class registerSlot;
 
@@ -188,7 +194,7 @@ class MemEmulator : public Atom {
    Register effAddr;
    int stackOffset;
    int effAddrSaveOffset;
-   int_block *block;
+   block_instance *block;
 
    bool usesESI;
    bool usesEDI;

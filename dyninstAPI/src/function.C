@@ -1,6 +1,5 @@
-
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -43,7 +42,7 @@
 #include "MemoryEmulator/memEmulator.h"
 #include "Relocation/Transformers/Movement-analysis.h"
 
-//std::string int_function::emptyString("");
+//std::string func_instance::emptyString("");
 
 #include "Parsing.h"
 
@@ -51,429 +50,84 @@ using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::Relocation;
 
-int int_function_count = 0;
+int func_instance_count = 0;
 
 // 
-int_function::int_function(image_func *f,
-			   Address baseAddr,
-			   mapped_module *mod) :
-    ifunc_(f),
-    mod_(mod),
-    handlerFaultAddr_(0),
-    handlerFaultAddrAddr_(0), 
-    isBeingInstrumented_(false)
+func_instance::func_instance(parse_func *f,
+                             Address baseAddr,
+                             mapped_module *mod) :
+   addr_(baseAddr + f->getOffset()),
+   ptrAddr_(f->getPtrOffset() ? f->getPtrOffset() + baseAddr : 0),
+   ifunc_(f),
+   mod_(mod),
+   entry_(NULL),
+   handlerFaultAddr_(0),
+   handlerFaultAddrAddr_(0)
 #if defined(os_windows) 
    , callingConv(unknown_call)
    , paramSize(0)
 #endif
 {
+   assert(f);
 #if defined(ROUGH_MEMORY_PROFILE)
-    int_function_count++;
-    if ((int_function_count % 1000) == 0)
-        fprintf(stderr, "int_function_count: %d (%d)\n",
-                int_function_count, int_function_count*sizeof(int_function));
+    func_instance_count++;
+    if ((func_instance_count % 1000) == 0)
+        fprintf(stderr, "func_instance_count: %d (%d)\n",
+                func_instance_count, func_instance_count*sizeof(func_instance));
 #endif
-
-    addr_ = f->getOffset() + baseAddr;
-    ptrAddr_ = (f->getPtrOffset() ? f->getPtrOffset() + baseAddr : 0);
 
     parsing_printf("%s: creating new proc-specific function at 0x%lx\n",
                    symTabName().c_str(), addr_);
-
-     // We delay the creation of instPoints until they are requested;
-    // this saves memory, and really, until something is asked for we
-    // don't need it.  TODO: creation of an arbitrary instPoint should
-    // trigger instPoint creation; someone may create an arbitrary at
-    // a entry/exit/callsite.
-
-    // Same with the flowGraph; we clone it from the image_func when
-    // we need it.
-    
-    /* IA-64: create the cached allocs lazily. */
 }
 
-int_function::int_function(const int_function *parFunc,
-                           mapped_module *childMod,
-                           process *childP) :
-    addr_(parFunc->addr_),
-    ptrAddr_(parFunc->ptrAddr_),
-    ifunc_(parFunc->ifunc_),
-    mod_(childMod),
-    handlerFaultAddr_(0),
-    handlerFaultAddrAddr_(0), 
-    isBeingInstrumented_(parFunc->isBeingInstrumented_)
- {
-     unsigned i; // Windows hates "multiple definitions"
-
-     // Construct the raw blocks_;
-     for (BlockSet::const_iterator bIter = parFunc->blocks_.begin();
-          bIter != parFunc->blocks_.end(); bIter++) 
-     {
-         createBlockFork((*bIter));
-     }
-     
-     for (i = 0; i < parFunc->entryPoints_.size(); i++) {
-         instPoint *parP = parFunc->entryPoints_[i];
-         int_block *block = findBlockByEntry(parP->block()->start());
-         assert(block);
-         instPoint *childIP = instPoint::createForkedPoint(parP, block, childP);
-         entryPoints_.push_back(childIP);
-     }
-
-     for (i = 0; i < parFunc->exitPoints_.size(); i++) {
-         instPoint *parP = parFunc->exitPoints_[i];
-         int_block *block = findBlockByEntry(parP->block()->start());
-         assert(block);
-         instPoint *childIP = instPoint::createForkedPoint(parP, block, childP);
-         exitPoints_.push_back(childIP);
-     }
-
-     for (i = 0; i < parFunc->callPoints_.size(); i++) {
-         instPoint *parP = parFunc->callPoints_[i];
-         int_block *block = findBlockByEntry(parP->block()->start());
-         assert(block);
-         instPoint *childIP = instPoint::createForkedPoint(parP, block, childP);
-         callPoints_.push_back(childIP);
-     }
-
-     for (i = 0; i < parFunc->arbitraryPoints_.size(); i++) {
-         instPoint *parP = parFunc->arbitraryPoints_[i];
-         int_block *block = findBlockByEntry(parP->block()->start());
-         assert(block);
-         instPoint *childIP = instPoint::createForkedPoint(parP, block, childP);
-         arbitraryPoints_.push_back(childIP);
-     }
-
-     set<instPoint*>::const_iterator pIter;
-     for(pIter = parFunc->unresolvedPoints_.begin(); 
-         pIter != parFunc->unresolvedPoints_.end(); pIter++) 
-     {
-         instPoint *parP = *pIter;
-         int_block *block = findBlockByEntry(parP->block()->start());
-         assert(block);
-         instPoint *childIP = instPoint::createForkedPoint(parP, block, childP);
-         unresolvedPoints_.insert(childIP);
-     }
-
-     for(pIter = parFunc->abruptEnds_.begin(); 
-         pIter != parFunc->abruptEnds_.end(); pIter++) 
-     {
-         instPoint *parP = *pIter;
-         int_block *block = findBlockByEntry(parP->block()->start());
-         assert(block);
-         instPoint *childIP = instPoint::createForkedPoint(parP, block, childP);
-         abruptEnds_.insert(childIP);
-     }
+unsigned func_instance::footprint() {
+    unsigned totalSize = 0;
+    vector<FuncExtent*> exts = ifunc()->extents();
+    for (unsigned i=0; i < exts.size(); i++) {
+        totalSize += (exts[i]->end() - exts[i]->start());
+    }
+    return totalSize;
 }
 
-int_function::~int_function() { 
-    // ifunc_ doesn't keep tabs on us, so don't need to let it know.
-    // mod_ is cleared by the mapped_object
-    // blocks_ isn't allocated
+//KEVINTODO: add parse-level to int-level callbacks to update instpoint lists 
+// of callBlock, exitBlock, entryBlock, etc.  
 
-    // instPoints are process level (should be deleted here and refcounted)
-    // DEMO: incorrectly delete instPoints here
+func_instance::func_instance(const func_instance *parFunc,
+                             mapped_module *childMod) :
+   addr_(parFunc->addr_),
+   ptrAddr_(parFunc->ptrAddr_),
+   ifunc_(parFunc->ifunc_),
+   mod_(childMod),
+   entry_(NULL),
+   handlerFaultAddr_(0),
+   handlerFaultAddrAddr_(0)
+#if defined(os_windows)
+   , callingConv(parFunc->callingConv)
+   , paramSize(parFunc->paramSize)
+#endif
+{
+   assert(ifunc_);
+   // According to contract /w/ the mapped_object
+   // all blocks have already been constructed. 
+   // Do we duplicate the parent or wait? I'm
+   // tempted to wait, just because of the common
+   // fork/exec case. 
+   
+}
 
-    // some points are in multiple categories, keep the pointers around
-    // in delPoints so we don't double-free
-    std::set<instPoint*> delPoints;
-
-    for (unsigned i = 0; i < entryPoints_.size(); i++) {
-        delPoints.insert(entryPoints_[i]);
-    }
-    for (unsigned i = 0; i < exitPoints_.size(); i++) {
-        delPoints.insert(exitPoints_[i]);
-    }
-    for (unsigned i = 0; i < callPoints_.size(); i++) {
-        delPoints.insert(callPoints_[i]);
-    }
-    for (unsigned i = 0; i < arbitraryPoints_.size(); i++) {
-        delPoints.insert(arbitraryPoints_[i]);
-    }
-    set<instPoint*>::iterator pIter = unresolvedPoints_.begin();
-    for(; pIter != unresolvedPoints_.end(); ++pIter) {
-        delPoints.insert(*pIter);
-    }
-    for (pIter = abruptEnds_.begin(); pIter != abruptEnds_.end(); ++pIter) {
-        delPoints.insert(*pIter);
-    }
-    for (pIter = delPoints.begin(); delPoints.end() != pIter; ++pIter) {
-       delete (*pIter);
-    }
-
-    // int_blocks
-    BlockSet::iterator bIter = blocks_.begin();
-    for (; bIter != blocks_.end(); bIter++) {
-        delete *bIter;
-    }
-
+func_instance::~func_instance() { 
+   // We don't delete blocks, since they're shared between functions
+   // We _do_ delete context instPoints, though
+   // Except that should get taken care of normally since the
+   // structures are static. 
     for (unsigned i = 0; i < parallelRegions_.size(); i++)
       delete parallelRegions_[i];
-      
 }
 
-int_block *int_function::createBlock(image_basicBlock *ib) {
-    int_block *block = new int_block(ib, this);
-    blocks_.insert(block);
-    blockMap_[ib] = block;
-
-       
-    return block;
-}
-
-int_block *int_function::createBlockFork(const int_block *parent)
+// finds new entry point, sets entry block to the new entry
+block_instance * func_instance::setNewEntryPoint()
 {
-    int_block *block = new int_block(parent, this);
-    blocks_.insert(block);
-    blockMap_[parent->llb()] = block;
-    return block;
-}
-
-Address int_function::baseAddr() const {
-    return obj()->codeBase();
-}
-
-
-// This needs to go away: how is "size" defined? Used bytes? End-start?
-
-unsigned int_function::getSize_NP()  {
-    if (BPatch_defensiveMode != obj()->hybridMode()) 
-    {
-        // defines size as end - start
-        blocks();
-        if (blocks_.size() == 0) return 0;
-        return ((*blocks_.rbegin())->end() - 
-                (*blocks_.begin())->start());
-
-    } 
-    else 
-    {
-        // defines size as used bytes
-        unsigned totalSize = 0;
-        vector<FuncExtent*> exts = ifunc()->extents();
-        for (unsigned i=0; i < exts.size(); i++) {
-            totalSize += (exts[i]->end() - exts[i]->start());
-        }
-        return totalSize;
-    }
-}
-
-void int_function::addArbitraryPoint(instPoint *insp) {
-    arbitraryPoints_.push_back(insp);
-}
-
-const pdvector<instPoint *> &int_function::funcEntries() {
-    pdvector<image_instPoint *> img_entries;
-    if (entryPoints_.size() == 0 || obj()->isExploratoryModeOn()) {
-        entryPoints_.clear();
-
-        ifunc_->funcEntries(img_entries);
-	    if (img_entries.empty()) {
-	      cerr << "Warning: function " << prettyName() << " has no parsed entry points" << endl;
-	    }
-#if defined (cap_use_pdvector)
-        entryPoints_.reserve_exact(img_entries.size());
-#endif
-        for (unsigned i = 0; i < img_entries.size(); i++) {
-            instPoint *point = instPoint::createParsePoint(this,
-                                                            img_entries[i]);
-            if (!point) continue; // Can happen if we double-create
-            assert(point);
-            entryPoints_.push_back(point);
-        }
-#if defined (cap_use_pdvector)
-        entryPoints_.reserve_exact(entryPoints_.size());
-#endif
-    }
-    if (entryPoints_.size() != 1) {
-       cerr << "Error: function " << prettyName() << ":" << obj()->fullName() <<" has " << entryPoints_.size() << " points!" << endl;
-    }
-    assert(entryPoints_.size() == 1);
-    return entryPoints_;
-}
-
-const pdvector<instPoint*> &int_function::funcExits() {
-    if (exitPoints_.size() == 0 || obj()->isExploratoryModeOn()) {
-        exitPoints_.clear();
-        pdvector<image_instPoint *> img_exits;
-        ifunc_->funcExits(img_exits);
-#if defined (cap_use_pdvector)
-        exitPoints_.reserve_exact(img_exits.size());
-#endif
-        
-        for (unsigned i = 0; i < img_exits.size(); i++) {
-            instPoint *point = instPoint::createParsePoint(this,
-                                                            img_exits[i]);
-            if (!point) continue; // Can happen if we double-create
-
-            assert(point);
-            exitPoints_.push_back(point);
-        }
-    }
-#if defined (cap_use_pdvector)
-    exitPoints_.reserve_exact(exitPoints_.size());
-#endif
-    return exitPoints_;
-}
-
-const pdvector<instPoint*> &int_function::funcCalls() {
-    if (callPoints_.size() == 0 || obj()->isExploratoryModeOn()) {
-        //KEVINTODO: exploratory mode can be made more efficient by making 
-        // callPoints a set and not clearing it in that mode
-        callPoints_.clear();
-        pdvector<image_instPoint *> img_calls;
-        ifunc_->funcCalls(img_calls);
-#if defined (cap_use_pdvector)
-        callPoints_.reserve_exact(img_calls.size());
-#endif
-        
-        for (unsigned i = 0; i < img_calls.size(); i++) {
-            instPoint *point = instPoint::createParsePoint(this,
-                                                           img_calls[i]);
-            if (!point) continue; // Can happen if we double-create
-            callPoints_.push_back(point);
-        }
-    }
-#if defined (cap_use_pdvector)
-    callPoints_.reserve_exact(callPoints_.size());
-#endif
-    return callPoints_;
-}
-
-const pdvector<instPoint*> &int_function::funcArbitraryPoints() {
-  // We add these per-process, so there's no chance to have
-  // a parse-level list
-    return arbitraryPoints_;
-}
-
-const std::set<instPoint*> &int_function::funcUnresolvedControlFlow() 
-{
-    if ( ! unresolvedPoints_.empty() && ! obj()->isExploratoryModeOn() ) {
-        return unresolvedPoints_;
-    }
-    pdvector<image_instPoint*> imgPoints;
-    ifunc()->funcUnresolvedControlFlow( imgPoints );
-    if ( unresolvedPoints_.size() != imgPoints.size() ) {
-
-        // convert image_instPoints to instPoints, add to set
-        pdvector<image_instPoint*>::iterator pIter = imgPoints.begin();
-        while (pIter != imgPoints.end()) {
-            // find or create the new instPoint and add it to the vector
-            instPoint *curPoint = instPoint::createParsePoint(this, *pIter);
-            if (curPoint) unresolvedPoints_.insert(curPoint); // std::set eliminates duplicates
-            pIter++;
-        }
-    }
-    return unresolvedPoints_;
-}
-
-const set<instPoint*> &int_function::funcAbruptEnds() 
-{
-    if ( ! abruptEnds_.size() && ! obj()->isExploratoryModeOn() ) {
-        return abruptEnds_;
-    }
-
-    pdvector<image_instPoint*> imgPoints;
-    ifunc()->funcAbruptEnds( imgPoints );
-    if (abruptEnds_.size() != imgPoints.size()) {
-
-        // convert image_instPoints to instPoints, add to set
-        pdvector<image_instPoint*>::iterator pIter = imgPoints.begin();
-        while (pIter != imgPoints.end()) {
-
-            // find or create the new instPoint and add it to the vector
-            instPoint *curPoint;
-            Address ptAddr = (*pIter)->offset() 
-                                   + getAddress() 
-                                   - ifunc()->getOffset();
-            if (instPsByAddr_.find(ptAddr) != instPsByAddr_.end()) {
-                curPoint = instPsByAddr_[ptAddr];
-            } else {
-                curPoint = instPoint::createParsePoint(this, *pIter);
-            }
-            abruptEnds_.insert(curPoint); // std::set eliminates duplicates
-            pIter++;
-        }
-    }
-    return abruptEnds_;
-}
-
-// TODO: POINT TYPES CANNOT BE SINGULAR! We end up looking in the wrong vector and failing...
-
-bool int_function::removePoint(instPoint *point) 
-{
-    bool foundPoint = false;
-    instPsByAddr_.erase(point->addr());
-
-    for (unsigned i = 0; i < entryPoints_.size(); i++) {
-        if (entryPoints_[i] == point) {
-            entryPoints_[i] = entryPoints_.back();
-            entryPoints_.pop_back();
-            foundPoint = true;
-        }
-    }
-    for (unsigned i = 0; i < exitPoints_.size(); i++) {
-        if (exitPoints_[i]->addr() == point->addr()) {
-            exitPoints_[i] = exitPoints_.back();
-            exitPoints_.pop_back();
-            foundPoint = true;
-        }
-    }
-    for (unsigned i = 0; i < callPoints_.size(); i++) {
-        if (callPoints_[i] == point) {
-            callPoints_[i] = callPoints_.back();
-            callPoints_.pop_back();
-            foundPoint = true;
-        }
-    }
-    for (unsigned i = 0; i < arbitraryPoints_.size(); i++) {
-        if (arbitraryPoints_[i] == point) {
-            arbitraryPoints_[i] = arbitraryPoints_.back();
-            arbitraryPoints_.pop_back();
-            foundPoint = true;
-        }
-    }
-
-    if (abruptEnds_.find(point) != abruptEnds_.end()) {
-        abruptEnds_.erase(point);
-        foundPoint = true;
-    }
-
-    if (unresolvedPoints_.find(point) != unresolvedPoints_.end()) {
-        unresolvedPoints_.erase(point);
-        foundPoint = true;
-    }
-
-    return foundPoint;
-}
-
-void int_function::setPointResolved(instPoint *point, bool resolve)
-{
-    // look in unresolved points
-    set<instPoint*>::iterator pIter = unresolvedPoints_.find( point );
-    if (unresolvedPoints_.end() != pIter) {
-        if (resolve) {
-            unresolvedPoints_.erase(pIter);
-        }
-    } else {
-        if (resolve) {
-            // check among the abruptEnd points
-            pIter = abruptEnds_.find( point );
-            if (abruptEnds_.end() != pIter) {
-                abruptEnds_.erase(pIter);
-            }
-        } else {
-            unresolvedPoints_.insert(point);
-        }
-    }
-    // make sure the point is still accessible
-    assert( point == findInstPByAddr(point->addr()) );
-}
-
-// finds new entry point, sets the argument to the new entry
-int_block * int_function::setNewEntryPoint()
-{
-    int_block *newEntry = NULL;
+    block_instance *newEntry = NULL;
 
     // find block with no intraprocedural entry edges
     assert(blocks_.size());
@@ -489,7 +143,7 @@ int_block * int_function::setNewEntryPoint()
             if (NULL != newEntry) {
                 fprintf(stderr,"ERROR: multiple blocks in function %lx "
                     "have no incoming edges: [%lx %lx) and [%lx %lx)\n",
-                    getAddress(), newEntry->llb()->start(),
+                    addr_, newEntry->llb()->start(),
                     newEntry->llb()->start() + newEntry->llb()->end(),
                     (*bIter)->llb()->start(),
                     (*bIter)->llb()->start() + (*bIter)->llb()->end());
@@ -506,25 +160,10 @@ int_block * int_function::setNewEntryPoint()
 
     assert(!newEntry->llb()->isShared()); //KEVINTODO: unimplemented case
 
-    image_instPoint *imgPoint = new image_instPoint(
-        newEntry->llb()->firstInsnOffset(),
-        newEntry->llb(),
-        ifunc()->img(),
-        functionEntry);
-    ifunc()->img()->addInstPoint(imgPoint);
-
-    // create and add an entry point for the int_func
-    instPoint *point = 
-        findInstPByAddr( newEntry->start() );
-    if (NULL == point) {
-        point = instPoint::createParsePoint(this, imgPoint);
-    }
-	assert(point);
-    entryPoints_.push_back(point);
     return newEntry;
 }
 
-void int_function::setHandlerFaultAddr(Address fa) 
+void func_instance::setHandlerFaultAddr(Address fa) 
 { 
     handlerFaultAddr_ = fa;
 }
@@ -533,7 +172,7 @@ void int_function::setHandlerFaultAddr(Address fa)
 // address is stored if "set" is true.  Accesses the fault address and 
 // translates it back to an original address if it corresponds to 
 // relocated code in the Dyninst heap 
-void int_function::setHandlerFaultAddrAddr(Address faa, bool set) 
+void func_instance::setHandlerFaultAddrAddr(Address faa, bool set) 
 { 
     if (set) {
         // save the faultAddrAddr
@@ -556,8 +195,8 @@ void int_function::setHandlerFaultAddrAddr(Address faa, bool set)
     if (proc()->proc()->isRuntimeHeapAddr(faultAddr)) {
 
         Address origAddr = faultAddr;
-        vector<int_function *> tmps;
-        baseTrampInstance *bti = NULL;
+        vector<func_instance *> tmps;
+        baseTramp *bti = NULL;
         bool success = proc()->getAddrInfo(faultAddr, origAddr, tmps, bti);
         assert(success);
         assert( proc()->writeDataSpace((void*)faa, 
@@ -566,311 +205,60 @@ void int_function::setHandlerFaultAddrAddr(Address faa, bool set)
     }
 }
 
-// Set the handler return addr to the most recent instrumented or
-// relocated address, similar to instPoint::instrSideEffect.
-// Also, make sure that we update our mapped view of memory, 
-// we may have overwritten memory that was previously not code
-void int_function::fixHandlerReturnAddr(Address /*faultAddr*/)
-{
-    if ( !proc()->proc() || ! handlerFaultAddrAddr_ ) {
-        assert(0);
-        return;
-    }
-#if 0 //KEVINTODO: this function doesn't work, I tried setting newPC to 0xdeadbeef and it had no impact on the program's behavior.  If the springboards work properly this code is unneeded
-    // Do a straightfoward forward map of faultAddr
-    // First, get the original address
-    int_function *func;
-    int_block *block; baseTrampInstance *ignored;
-    Address origAddr;
-    if (!proc()->getRelocInfo(faultAddr, origAddr, block, ignored)) {
-       func = dynamic_cast<process *>(proc())->findActiveFuncByAddr(faultAddr);
-       origAddr = faultAddr;
-    }
-    else {
-       func = block->func();
-    }
-    std::list<Address> relocAddrs;
-    proc()->getRelocAddrs(origAddr, func, relocAddrs, true);
-    Address newPC = (!relocAddrs.empty() ? relocAddrs.back() : origAddr);
-    
-    if (newPC != faultAddr) {
-       if(!proc()->writeDataSpace((void*)handlerFaultAddrAddr_, 
-                                  sizeof(Address), 
-                                  (void*)&newPC)) {
-          assert(0);
-       }
-    }
-#endif
-}
-
-void int_function::findPoints(int_block *block,
-                              std::set<instPoint *> &foundPoints) const {
-   // What's better - iterate over all our point contaners 
-   // looking for options, or run through instPsByAddr_...
-
-   for (Address a = block->start(); a < block->end(); ++a) {
-      std::map<Address, instPoint *>::const_iterator p_iter = instPsByAddr_.find(a);
-      if ((p_iter != instPsByAddr_.end()) &&
-          (p_iter->second->block() == block)) {
-         foundPoints.insert(p_iter->second);
-      }
-   }
-}
-
-// doesn't delete the ParseAPI::Block's, those are removed in a batch
-// call to the parseAPI
-void int_function::deleteBlock(int_block* block) 
-{
-
-   // init stuff
-   assert(block && this == block->func());
-   
-    // Find the points that reside in this block. 
-    std::set<instPoint *> foundPoints;
-    findPoints(block, foundPoints);
-    
-    // And delete them
-    for (std::set<instPoint *>::iterator iter = foundPoints.begin();
-         iter != foundPoints.end(); ++iter) {
-       removePoint(*iter);
-    }
-
-    blocks_.erase(block);
-    blockMap_.erase(block->llb());
-
-    // It appears that we delete the int_block before the image_basicBlock...
-    //assert(consistency());
-    triggerModified();
-}
-
-void int_function::splitBlock(image_basicBlock *img_orig, 
-                              image_basicBlock *img_new) {
-    blocks();
-   int_block *origBlock = blockMap_[img_orig];
-   assert(origBlock);
-   
-   int_block *newBlock = blockMap_[img_new];
-   if (!newBlock) {
-       newBlock = createBlock(img_new);
-   }
-   // Also adds to trackers
-   
-   // Move all instPoints that were contained in orig and should be
-   // contained in newBlock...
-   for (Address a = newBlock->start(); a < newBlock->end(); ++a) {
-      std::map<Address, instPoint *>::const_iterator p_iter = instPsByAddr_.find(a);
-      if ((p_iter != instPsByAddr_.end()) &&
-          (p_iter->second->block() == origBlock)) {
-            p_iter->second->setBlock(newBlock);
-      }
-   }
-   	triggerModified();
-}
-
 // Remove funcs from:
 //   mapped_object & mapped_module datastructures
-//   addressSpace::textRanges codeRangeTree<int_function*> 
+//   addressSpace::textRanges codeRangeTree<func_instance*> 
 //   image-level & SymtabAPI datastructures
-//   BPatch_addressSpace::BPatch_funcMap <int_function -> BPatch_function>
-void int_function::removeFromAll() 
+//   BPatch_addressSpace::BPatch_funcMap <func_instance -> BPatch_function>
+void func_instance::removeFromAll() 
 {
     mal_printf("purging blocks_ of size = %d from func at %lx\n",
-               blocks_.size(), getAddress());
+               blocks_.size(), addr());
 
-    BlockSet::const_iterator bIter;
-    for (bIter = blocks_.begin(); 
-         bIter != blocks_.end(); 
-         bIter++) 
-    {
-        int_block *bbi = (*bIter);
-        mal_printf("purged block [%lx %lx]\n",bbi->start(), bbi->end());
-    }
+    //KEVINTODO: this function was completely gutted, it used to delete the int_blocks, and call delete on the parse-level function, the object removes the blocks now, does anyone delete the ParseAPI func? 
 
-    // delete blocks 
-    for (bIter = blocks_.begin(); 
-         bIter != blocks_.end();
-         bIter = blocks_.begin()) 
-    {
-        deleteBlock(*bIter);// removes block from blocks_ too
-    }
     // remove from mapped_object & mapped_module datastructures
     obj()->removeFunction(this);
     mod()->removeFunction(this);
 
-    // remove points
-    entryPoints_.clear();
-    callPoints_.clear();
-    exitPoints_.clear();
-    arbitraryPoints_.clear();
-    abruptEnds_.clear();
-    unresolvedPoints_.clear();
-    instPsByAddr_.clear();
-
-    // invalidates analyses related to this function
-	triggerModified();
-
-    // remove func & blocks from image, ParseAPI, & SymtabAPI datastructures
-    ifunc()->img()->deleteFunc(ifunc());
-
     delete(this);
 }
 
-void int_function::addMissingBlock(image_basicBlock *missingB)
-{
-   int_block *bbi = findBlock(missingB);
-   if (bbi) {
-      assert(bbi->llb() == missingB);
-      return;
-    }
-   
-    cerr << "Function " << hex << this << " @ " << getAddress() << " adding block " << missingB->start() << " (" << missingB << ")" << dec << endl;
-   createBlock(missingB);
-}
-
-
-/* Find image_basicBlocks that are missing from these datastructures and add
- * them.  The int_block constructor does pretty much all of the work in
+/* Find parse_blocks that are missing from these datastructures and add
+ * them.  The block_instance constructor does pretty much all of the work in
  * a chain of side-effects extending all the way into the mapped_object class
  * 
  * We have to take into account that additional parsing may cause basic block splitting,
  * in which case it is necessary not only to add new int-level blocks, but to update 
- * int_block and BPatch_basicBlock objects. 
+ * block_instance and BPatch_basicBlock objects. 
  */
-void int_function::addMissingBlocks()
+void func_instance::addMissingBlocks()
 {
-    // A bit of a hack, but be sure that we've re-checked the blocks in the
-    // image_func as well.
-    ifunc_->invalidateCache();
-
-   blocks();
    cerr << "addMissingBlocks for function " << hex << this << dec << endl;
+
+   assert(0 && "KEVINTODO: need to clear block set, or add missing blocks, but getNewBlocks would have to be a func->block map"); 
+
+   // A bit of a hack, but be sure that we've re-checked the blocks in the
+   // parse_func as well.
+   ifunc_->invalidateCache();
+
    // Add new blocks
-
-   const vector<image_basicBlock*> & nblocks = obj()->parse_img()->getNewBlocks();
-   // add blocks by looking up new blocks, if it promises to be more 
-   // efficient than looking through all of the llfunc's blocks
-   vector<image_basicBlock*>::const_iterator nit = nblocks.begin();
-   for( ; nit != nblocks.end(); ++nit) {
-       if (ifunc()->contains(*nit)) {
-           addMissingBlock(*nit);
-       }
-   }
-
-   if (ifunc()->blocks().size() > blocks_.size()) { //not just the else case!
-       // we may have parsed into an existing function and added its blocks 
-       // to ours, or this may just be a more efficient lookup method
-       Function::blocklist & iblks = ifunc()->blocks();
-       for (Function::blocklist::iterator bit = iblks.begin(); 
-            bit != iblks.end(); 
-            bit++) 
-       {
-           if (!findBlock(*bit)) {
-               addMissingBlock(static_cast<image_basicBlock*>(*bit));
-           }
-       }
-   }
+   //const vector<parse_block*> & nblocks = obj()->parse_img()->getNewBlocks();
 }
 
-/* trigger search in image_layer points vectors to be added to int_level 
- * datastructures
- */
-void int_function::addMissingPoints()
+void func_instance::getReachableBlocks(const set<block_instance*> &exceptBlocks,
+                                      const list<block_instance*> &seedBlocks,
+                                      set<block_instance*> &reachBlocks)//output
 {
-    // the "true" parameter causes the helper functions to search for new 
-    // points in the image, bypassing cached points
-    funcEntries();
-    funcExits();
-    funcCalls();
-    funcUnresolvedControlFlow();
-    funcAbruptEnds();
-}
-
-// get instPoints of known function calls into this one
-void int_function::getCallerPoints(std::vector<instPoint*>& callerPoints)
-{
-    image_basicBlock *entryLLB = entryBlock()->llb();
-    const ParseAPI::Block::edgelist &sources = entryLLB->sources();
-    for (ParseAPI::Block::edgelist::iterator iter = sources.begin();
-        iter != sources.end(); ++iter) {
-        std::vector<ParseAPI::Function *> llFuncs;
-        (*iter)->src()->getFuncs(llFuncs);
-        for (std::vector<ParseAPI::Function *>::iterator f_iter = llFuncs.begin();
-            f_iter != llFuncs.end(); ++f_iter) {
-            int_function *caller = proc()->findFuncByInternalFunc(static_cast<image_func *>(*f_iter));
-            int_block *callerBlock = caller->findBlock((*iter)->src());
-            caller->funcCalls();
-            instPoint *callPoint = caller->findInstPByAddr(callerBlock->last());
-            if (callPoint) {
-                callerPoints.push_back(callPoint);
-            }
-        }
-    }
-}
-
-
-instPoint *int_function::findInstPByAddr(Address addr) {
-    // This only finds instPoints that have been previously created...
-    // so don't bother parsing. 
-    
-    if (instPsByAddr_.find(addr) != instPsByAddr_.end())
-        return instPsByAddr_[addr];
-
-    // The above should have been sufficient... however, if we forked and have
-    // a baseTramp that does not contain instrumentation, then there will never
-    // be a instPointInstance created, and so no entry in instPsByAddr_. Argh.
-    // So, if the lookup above failed, do the slow search through entries, 
-    // exits, and calls - arbitraries should already exist.
-    for (unsigned i = 0; i < entryPoints_.size(); i++) {
-	if (entryPoints_[i]->addr() == addr) {
-            instPsByAddr_[addr] = entryPoints_[i];
-            return entryPoints_[i];
-        }
-    }
-    for (unsigned i = 0; i < exitPoints_.size(); i++) {
-	if (exitPoints_[i]->addr() == addr) {
-            instPsByAddr_[addr] = exitPoints_[i];
-            return exitPoints_[i];
-        }
-    }
-    for (unsigned i = 0; i < callPoints_.size(); i++) {
-	if (callPoints_[i]->addr() == addr) {
-            instPsByAddr_[addr] = callPoints_[i];
-            return callPoints_[i];
-        }
-    }
-    std::set< instPoint* >::iterator pIter = unresolvedPoints_.begin();
-    while ( pIter != unresolvedPoints_.end() ) {
-        if ( (*pIter)->addr() == addr ) {
-            instPsByAddr_[addr] = *pIter;
-            return *pIter;
-        }
-        pIter++;
-    }
-    pIter = abruptEnds_.begin();
-    while ( pIter != abruptEnds_.end() ) {
-        if ( (*pIter)->addr() == addr ) {
-            instPsByAddr_[addr] = *pIter;
-            return *pIter;
-        }
-        pIter++;
-    }
-
-    return NULL;
-}
-
-void int_function::getReachableBlocks(const set<int_block*> &exceptBlocks,
-                                      const list<int_block*> &seedBlocks,
-                                      set<int_block*> &reachBlocks)//output
-{
-    list<image_basicBlock*> imgSeeds;
-    for (list<int_block*>::const_iterator sit = seedBlocks.begin();
+    list<parse_block*> imgSeeds;
+    for (list<block_instance*>::const_iterator sit = seedBlocks.begin();
          sit != seedBlocks.end(); 
          sit++) 
     {
         imgSeeds.push_back((*sit)->llb());
     }
-    set<image_basicBlock*> imgExcept;
-    for (set<int_block*>::const_iterator eit = exceptBlocks.begin();
+    set<parse_block*> imgExcept;
+    for (set<block_instance*>::const_iterator eit = exceptBlocks.begin();
          eit != exceptBlocks.end(); 
          eit++) 
     {
@@ -878,109 +266,31 @@ void int_function::getReachableBlocks(const set<int_block*> &exceptBlocks,
     }
 
     // image-level function does the work
-    set<image_basicBlock*> imgReach;
+    set<parse_block*> imgReach;
     ifunc()->getReachableBlocks(imgExcept,imgSeeds,imgReach);
 
-    for (set<image_basicBlock*>::iterator rit = imgReach.begin();
+    for (set<parse_block*>::iterator rit = imgReach.begin();
          rit != imgReach.end(); 
          rit++) 
     {
-        reachBlocks.insert( findBlock(*rit) );
+        reachBlocks.insert( obj()->findBlock(*rit) );
     }
-}
-
-bool int_function::findBlocksByAddr(Address addr, 
-                                    std::set<int_block *> &blocks) 
-{
-   this->blocks();
-   bool ret = false;    
-   Address offset = addr-baseAddr();
-   std::set<ParseAPI::Block *> iblocks;
-   if (!ifunc()->img()->findBlocksByAddr(offset, iblocks)) {
-       return false;
-   }
-   for (std::set<ParseAPI::Block *>::iterator iter = iblocks.begin(); 
-        iter != iblocks.end(); ++iter) {
-      int_block *bbl = findBlock(*iter);
-      if (bbl) {
-         ret = true; 
-         blocks.insert(bbl);
-      }
-      // It's okay for this to fail if we're in the middle of a CFG
-      // modification. 
-
-   }
-   return ret;
-}
-
-int_block *int_function::findOneBlockByAddr(Address addr) {
-    std::set<int_block *> blocks;
-    if (!findBlocksByAddr(addr, blocks)) {
-        return NULL;
-    }
-    for (std::set<int_block *>::iterator iter = blocks.begin();
-        iter != blocks.end(); ++iter) {
-        // Walk this puppy and see if it matches our address.
-        int_block::InsnInstances insns;
-        (*iter)->getInsnInstances(insns);
-        for (int_block::InsnInstances::iterator i_iter = insns.begin(); i_iter != insns.end(); ++i_iter) {
-            if (i_iter->second == addr) return *iter;
-        }
-    }
-    return NULL;
-}
-
-int_block *int_function::findBlockByEntry(Address addr) {
-    std::set<int_block *> blocks;
-    if (!findBlocksByAddr(addr, blocks)) {
-        return NULL;
-    }
-    for (std::set<int_block *>::iterator iter = blocks.begin();
-        iter != blocks.end(); ++iter) {
-        int_block *cand = *iter;
-        if (cand->start() == addr) return cand;
-    }
-    return NULL;
-}
-
-int_block *int_function::findBlock(ParseAPI::Block *block) {
-   blocks();
-    image_basicBlock *iblock = static_cast<image_basicBlock *>(block);
-    BlockMap::iterator iter = blockMap_.find(iblock);
-    if (iter != blockMap_.end()) return iter->second;
-    return NULL;
-}
-
-
-void int_function::registerInstPointAddr(Address addr, instPoint *inst) {
-    instPoint *oldInstP = findInstPByAddr(addr);
-    if (oldInstP) assert(inst == oldInstP);
-
-    instPsByAddr_[addr] = inst;
-}
-
-void int_function::unregisterInstPointAddr(Address addr, instPoint* inst) {
-    instPoint *oldInstP = findInstPByAddr(addr);
-    assert(oldInstP == inst);
-
-    instPsByAddr_.erase(addr);
 }
 
 void print_func_vector_by_pretty_name(std::string prefix,
-				      pdvector<int_function *>*funcs) {
+				      pdvector<func_instance *>*funcs) {
     unsigned int i;
-    int_function *func;
+    func_instance *func;
     for(i=0;i<funcs->size();i++) {
       func = ((*funcs)[i]);
       cerr << prefix << func->prettyName() << endl;
     }
 }
 
-mapped_module *int_function::mod() const { return mod_; }
-mapped_object *int_function::obj() const { return mod()->obj(); }
-AddressSpace *int_function::proc() const { return obj()->proc(); }
+mapped_object *func_instance::obj() const { return mod()->obj(); }
+AddressSpace *func_instance::proc() const { return obj()->proc(); }
 
-const int_function::BlockSet &int_function::blocks()
+const func_instance::BlockSet &func_instance::blocks()
 {
     if (blocks_.empty()) {
         // defensiveMode triggers premature block list creation when it
@@ -990,42 +300,101 @@ const int_function::BlockSet &int_function::blocks()
         Function::blocklist::iterator sit = img_blocks.begin();
 
         for( ; sit != img_blocks.end(); ++sit) {
-            image_basicBlock *b = (image_basicBlock*)(*sit);
-            createBlock(b);
+            parse_block *b = (parse_block*)(*sit);
+            blocks_.insert(obj()->findBlock(b));
         }
     }
     return blocks_;
 }
 
-
-
-int_block *int_function::entryBlock() {
-    if (!ifunc_->parsed()) {
-        ifunc_->blocks();
-    }
-	ParseAPI::Block *iEntry = ifunc_->entry();
-	if (!iEntry) return NULL;
-	return findBlock(iEntry);
+const func_instance::BlockSet &func_instance::callBlocks() {
+   // Check the list...
+   if (callBlocks_.empty()) {
+      const ParseAPI::Function::edgelist &callEdges = ifunc_->callEdges();
+      for (ParseAPI::Function::edgelist::iterator iter = callEdges.begin();
+           iter != callEdges.end(); ++iter) {
+         ParseAPI::Block *src = (*iter)->src();
+         block_instance *block = obj()->findBlock(src);
+         assert(block);
+         callBlocks_.insert(block);
+      }
+   }
+   return callBlocks_;
 }
 
-unsigned int_function::getNumDynamicCalls()
+const func_instance::BlockSet &func_instance::exitBlocks() {
+   // Check the list...
+   if (exitBlocks_.empty()) {
+      const ParseAPI::Function::blocklist &exitBlocks = ifunc_->returnBlocks();
+      for (ParseAPI::Function::blocklist::iterator iter = exitBlocks.begin();
+           iter != exitBlocks.end(); ++iter) {
+         ParseAPI::Block *iblock = (*iter);
+         block_instance *block = obj()->findBlock(iblock);
+         assert(block);
+         exitBlocks_.insert(block);
+      }
+   }
+
+   return exitBlocks_;
+}
+
+const func_instance::BlockSet &func_instance::unresolvedCF() {
+   if (unresolvedCF_.empty()) {
+      // A block has unresolved control flow if it has an indirect
+      // out-edge. 
+      blocks();
+      for (BlockSet::iterator iter = blocks_.begin(); iter != blocks_.end(); ++iter) {
+         if ((*iter)->llb()->unresolvedCF()) {
+            unresolvedCF_.insert(*iter);
+         }
+      }
+   }
+   return unresolvedCF_;
+}
+
+const func_instance::BlockSet &func_instance::abruptEnds() {
+   if (abruptEnds_.empty()) {
+      // A block has unresolved control flow if it has an indirect
+      // out-edge. 
+      blocks();
+      for (BlockSet::iterator iter = blocks_.begin(); iter != blocks_.end(); ++iter) {
+         if ((*iter)->llb()->abruptEnd()) {
+            abruptEnds_.insert(*iter);
+         }
+      }
+   }
+   return abruptEnds_;
+}
+
+block_instance *func_instance::entryBlock() {
+   if (!entry_) {
+      ParseAPI::Block *iEntry = ifunc_->entry();
+      if (!iEntry) {
+         // Might not be parsed yet...
+         blocks();
+         iEntry = ifunc_->entry();
+      }
+      assert(iEntry);
+
+      entry_ = obj()->findBlock(iEntry);
+   }
+   return entry_;
+}
+
+unsigned func_instance::getNumDynamicCalls()
 {
    unsigned count=0;
-   pdvector<instPoint *> callPoints = funcCalls();
-
-   for (unsigned i=0; i<callPoints.size(); i++)
-   {
-      if (callPoints[i]->isDynamic())
-          count++;
+   for (BlockSet::iterator iter = callBlocks().begin(); iter != callBlocks().end(); ++iter) {
+      if ((*iter)->containsDynamicCall()) {
+         count++;
+      }
    }
+
    return count;
 }
 
-const string &int_function::symTabName() const { 
-    return ifunc_->symTabName(); 
-}
 
-void int_function::debugPrint() const {
+void func_instance::debugPrint() const {
     fprintf(stderr, "Function debug dump (%p):\n", this);
     fprintf(stderr, "  Symbol table names:\n");
     for (unsigned i = 0; i < symTabNameVector().size(); i++) {
@@ -1039,7 +408,7 @@ void int_function::debugPrint() const {
     for (unsigned k = 0; k < typedNameVector().size(); k++) {
         fprintf(stderr, "    %s\n", typedNameVector()[k].c_str());
     }
-    fprintf(stderr, "  Address: 0x%lx\n", getAddress());
+    fprintf(stderr, "  Address: 0x%lx\n", addr());
     fprintf(stderr, "  Internal pointer: %p\n", ifunc_);
     fprintf(stderr, "  Object: %s (%p), module: %s (%p)\n", 
             obj()->fileName().c_str(), 
@@ -1051,7 +420,7 @@ void int_function::debugPrint() const {
          cb != blocks_.end(); 
          cb++) 
     {
-        int_block* orig = (*cb);
+        block_instance* orig = (*cb);
         fprintf(stderr, "  Block start 0x%lx, end 0x%lx\n", orig->start(),
                 orig->end());
     }
@@ -1059,62 +428,31 @@ void int_function::debugPrint() const {
 
 // Add to internal
 // Add to mapped_object if a "new" name (true return from internal)
-void int_function::addSymTabName(const std::string name, bool isPrimary) {
+void func_instance::addSymTabName(const std::string name, bool isPrimary) {
     if (ifunc()->addSymTabName(name, isPrimary))
         obj()->addFunctionName(this, name, mapped_object::mangledName);
 }
 
-void int_function::addPrettyName(const std::string name, bool isPrimary) {
+void func_instance::addPrettyName(const std::string name, bool isPrimary) {
     if (ifunc()->addPrettyName(name, isPrimary))
         obj()->addFunctionName(this, name, mapped_object::prettyName);
 }
 
-void int_function::getStaticCallers(pdvector< int_function * > &callers)
-{
-    pdvector<image_edge *> ib_ins;
-
-    if(!ifunc_ || !ifunc_->entryBlock())
-        return;
-
-    Block::edgelist & ins = ifunc_->entryBlock()->sources();
-    Block::edgelist::iterator eit = ins.begin();
-    for( ; eit != ins.end(); ++eit) {
-        if((*eit)->type() == CALL)
-        {   
-            vector<Function *> ifuncs;
-            (*eit)->src()->getFuncs(ifuncs);
-            vector<Function *>::iterator ifit = ifuncs.begin();
-            for( ; ifit != ifuncs.end(); ++ifit)
-            {   
-                int_function * f;
-                f = obj()->findFunction((image_func*)*ifit);
-                
-                callers.push_back(f);
-            }
-        }
-    }
-}
-
-image_func *int_function::ifunc() {
-    return ifunc_;
-}
 
 // Dig down to the low-level block of b, find the low-level functions
 // that share it, and map up to int-level functions and add them
 // to the funcs list.
-bool int_function::getSharingFuncs(int_block *b,
-                                   std::set<int_function *> & funcs)
+bool func_instance::getSharingFuncs(block_instance *b,
+                                   std::set<func_instance *> & funcs)
 {
     bool ret = false;
-    if(!b->hasSharedBase())
-        return ret;
 
     vector<Function *> lfuncs;
     b->llb()->getFuncs(lfuncs);
     vector<Function *>::iterator fit = lfuncs.begin();
     for( ; fit != lfuncs.end(); ++fit) {
-        image_func *ll_func = static_cast<image_func*>(*fit);
-        int_function *hl_func = obj()->findFunction(ll_func);
+        parse_func *ll_func = static_cast<parse_func*>(*fit);
+        func_instance *hl_func = obj()->findFunction(ll_func);
         assert(hl_func);
 
         if (hl_func == this) continue;
@@ -1130,7 +468,7 @@ bool int_function::getSharingFuncs(int_block *b,
 // able to check only exit points; but we definitely need to check _all_
 // exits so for now we're checking everything.
 
-bool int_function::getSharingFuncs(std::set<int_function *> &funcs) {
+bool func_instance::getSharingFuncs(std::set<func_instance *> &funcs) {
     bool ret = false;
 
     // Create the block list.
@@ -1150,8 +488,8 @@ bool int_function::getSharingFuncs(std::set<int_function *> &funcs) {
 // Find functions that have overlapping, but disjoint, blocks in 
 // addition to shared blocks. Very slow!
 
-bool int_function::getOverlappingFuncs(int_block *block,
-										std::set<int_function *> &funcs) 
+bool func_instance::getOverlappingFuncs(block_instance *block,
+                                       std::set<func_instance *> &funcs) 
 {
 	ParseAPI::Block *llB = block->llb();
 	std::set<ParseAPI::Block *> overlappingBlocks;
@@ -1159,7 +497,7 @@ bool int_function::getOverlappingFuncs(int_block *block,
 		llB->obj()->findBlocks(llB->region(), i, overlappingBlocks);
 	}
 	// We now have all of the overlapping ParseAPI blocks. Get the set of 
-	// ParseAPI::Functions containing each and up-map to int_functions
+	// ParseAPI::Functions containing each and up-map to func_instances
 	for (std::set<ParseAPI::Block *>::iterator iter = overlappingBlocks.begin();
 		iter != overlappingBlocks.end(); ++iter) {
 		std::vector<ParseAPI::Function *> llFuncs;
@@ -1173,7 +511,7 @@ bool int_function::getOverlappingFuncs(int_block *block,
 	return (funcs.size() > 1);
 }
 
-bool int_function::getOverlappingFuncs(std::set<int_function *> &funcs) 
+bool func_instance::getOverlappingFuncs(std::set<func_instance *> &funcs) 
 {
     bool ret = false;
 
@@ -1190,106 +528,16 @@ bool int_function::getOverlappingFuncs(std::set<int_function *> &funcs)
     return ret;
 }
 
-Address int_function::get_address() const 
-{
-   return getAddress();
-}
-
-unsigned int_function::get_size() const 
-{
-   assert(0);
-   return 0x0;
-}
-
-std::string int_function::get_name() const
+std::string func_instance::get_name() const
 {
    return symTabName();
 }
 
-void int_function::getNewInstrumentation(std::set<instPoint *> &ret) {
-    for (unsigned i = 0; i < entryPoints_.size(); i++) {
-        if (entryPoints_[i]->hasNewInstrumentation()) {
-            ret.insert(entryPoints_[i]);
-        }
-    }
-    for (unsigned i = 0; i < exitPoints_.size(); i++) {
-        if (exitPoints_[i]->hasNewInstrumentation()) {
-            ret.insert(exitPoints_[i]);
-        }
-    }
-    for (unsigned i = 0; i < callPoints_.size(); i++) {
-        if (callPoints_[i]->hasNewInstrumentation()) {
-            ret.insert(callPoints_[i]);
-        }
-    }
-    for (unsigned i = 0; i < arbitraryPoints_.size(); i++) {
-        if (arbitraryPoints_[i]->hasNewInstrumentation()) {
-            ret.insert(arbitraryPoints_[i]);
-        }
-    }
-    std::set< instPoint* >::iterator pIter = unresolvedPoints_.begin();
-    while ( pIter != unresolvedPoints_.end() ) {
-        if ( (*pIter)->hasNewInstrumentation() ) {
-            ret.insert( *pIter );
-        }
-        pIter++;
-    }
-    pIter = abruptEnds_.begin();
-    while ( pIter != abruptEnds_.end() ) {
-        if ( (*pIter)->hasNewInstrumentation() ) {
-            ret.insert( *pIter );
-        }
-        pIter++;
-    }
+Offset func_instance::addrToOffset(const Address a) const { 
+   return a - (addr() - ifunc_->getOffset());
 }
 
-void int_function::getAnyInstrumentation(std::set<instPoint *> &ret) {
-    for (unsigned i = 0; i < entryPoints_.size(); i++) {
-        if (entryPoints_[i]->hasAnyInstrumentation()) {
-            ret.insert(entryPoints_[i]);
-        }
-    }
-    for (unsigned i = 0; i < exitPoints_.size(); i++) {
-        if (exitPoints_[i]->hasAnyInstrumentation()) {
-            ret.insert(exitPoints_[i]);
-        }
-    }
-    for (unsigned i = 0; i < callPoints_.size(); i++) {
-        if (callPoints_[i]->hasAnyInstrumentation()) {
-            ret.insert(callPoints_[i]);
-        }
-    }
-    for (unsigned i = 0; i < arbitraryPoints_.size(); i++) {
-        if (arbitraryPoints_[i]->hasAnyInstrumentation()) {
-            ret.insert(arbitraryPoints_[i]);
-        }
-    }
-    std::set< instPoint* >::iterator pIter = unresolvedPoints_.begin();
-    while ( pIter != unresolvedPoints_.end() ) {
-        if ( (*pIter)->hasAnyInstrumentation() ) {
-            ret.insert( *pIter );
-        }
-        pIter++;
-    }
-    pIter = abruptEnds_.begin();
-    while ( pIter != abruptEnds_.end() ) {
-        if ( (*pIter)->hasAnyInstrumentation() ) {
-            ret.insert( *pIter );
-        }
-        pIter++;
-    }
-}
-
-
-Offset int_function::addrToOffset(const Address addr) const { 
-  return addr - (getAddress() - ifunc_->getOffset());
-}
-
-Address int_function::offsetToAddr(const Offset off ) const { 
-  return off + (getAddress() - ifunc_->getOffset());
-}
-
-const pdvector< int_parRegion* > &int_function::parRegions()
+const pdvector< int_parRegion* > &func_instance::parRegions()
 {
   if (parallelRegions_.size() > 0)
     return parallelRegions_;
@@ -1304,14 +552,8 @@ const pdvector< int_parRegion* > &int_function::parRegions()
   return parallelRegions_;
 }
 
-bool int_function::validPoint(instPoint *p) const {
-   // check whether the instPoint is correct
-   assert(p->block()->start() <= p->addr());
-   assert(p->block()->end() > p->addr());
-   return true;
-}
 
-bool int_function::consistency() const {
+bool func_instance::consistency() const {
    // 1) Check for 1:1 block relationship in
    //    the block list and block map
    // 2) Check that all instPoints are in the
@@ -1319,43 +561,204 @@ bool int_function::consistency() const {
 
    const ParseAPI::Function::blocklist &img_blocks = ifunc_->blocks();
    assert(img_blocks.size() == blocks_.size());
-   assert(blockMap_.size() == blocks_.size());
    for (ParseAPI::Function::blocklist::iterator iter = img_blocks.begin();
         iter != img_blocks.end(); ++iter) {
-      image_basicBlock *img_block = static_cast<image_basicBlock *>(*iter);
-      BlockMap::const_iterator m_iter = blockMap_.find(img_block);
-      assert(m_iter != blockMap_.end());
-      assert(blocks_.find(m_iter->second) != blocks_.end());
+      parse_block *img_block = static_cast<parse_block *>(*iter);
+      block_instance *b_inst = obj()->findBlock(img_block);
+      assert(blocks_.find(b_inst) != blocks_.end());
    }
 
-   // Instpoints
-   for (unsigned i = 0; i < entryPoints_.size(); ++i) {
-      assert(validPoint(entryPoints_[i]));
-   }
-   for (unsigned i = 0; i < exitPoints_.size(); ++i) {
-      assert(validPoint(exitPoints_[i]));
-   }
-   for (unsigned i = 0; i < callPoints_.size(); ++i) {
-      assert(validPoint(callPoints_[i]));
-   }
-   for (unsigned i = 0; i < arbitraryPoints_.size(); ++i) {
-      assert(validPoint(arbitraryPoints_[i]));
-   }
-   for (std::set<instPoint *>::const_iterator iter = unresolvedPoints_.begin();
-        iter != unresolvedPoints_.end(); ++iter) {
-      assert(validPoint(*iter));
-   }
-   for (std::set<instPoint *>::const_iterator iter = abruptEnds_.begin();
-        iter != abruptEnds_.end(); ++iter) {
-      assert(validPoint(*iter));
-   }
    return true;
 }
 
-void int_function::triggerModified() {
-	// A single location to drop anything that needs to be
-	// informed when an int_function was updated.
+Address func_instance::get_address() const { assert(0); return 0; }
+unsigned func_instance::get_size() const { assert(0); return 0; }
 
-    // invalidate liveness calculations
-    ifunc()->invalidateLiveness();
+instPoint *func_instance::findPoint(instPoint::Type type, bool create) {
+   assert(type == instPoint::FuncEntry);
+   if (points_.entry) return points_.entry;
+   if (!create) return NULL;
+   points_.entry = new instPoint(instPoint::FuncEntry, this);
+   return points_.entry;
+}
+
+instPoint *func_instance::findPoint(instPoint::Type type, block_instance *b, bool create) {
+   if (type == instPoint::FuncExit) {
+      std::map<block_instance *, instPoint *>::iterator iter = points_.exits.find(b);
+      if (iter != points_.exits.end()) return iter->second;
+      if (!create) return NULL;
+      instPoint *point = new instPoint(instPoint::FuncExit, b, this);
+      points_.exits[b] = point;
+      return point;
+   }
+   std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
+  
+   switch(type) {
+      case instPoint::BlockEntry: {
+         if (iter != blockPoints_.end()) {
+            if (iter->second.entry) return iter->second.entry;
+         }
+         if (!create) return NULL;
+         instPoint *point = new instPoint(instPoint::BlockEntry, b, this);
+         blockPoints_[b].entry = point;
+         return point;
+      }
+      case instPoint::BlockExit: {
+         if (iter != blockPoints_.end()) {
+            if (iter->second.exit) return iter->second.exit;
+         }
+         if (!create) return NULL;
+         instPoint *point = new instPoint(instPoint::BlockExit, b, this);
+         blockPoints_[b].exit = point;
+         return point;
+      }
+      case instPoint::PreCall: {
+         if (iter != blockPoints_.end()) {
+            if (iter->second.preCall) return iter->second.preCall;
+         }
+         if (!create) return NULL;
+         instPoint *point = new instPoint(instPoint::PreCall, b, this);
+         blockPoints_[b].preCall = point;
+         return point;
+      }
+      case instPoint::PostCall: {
+         if (iter != blockPoints_.end()) {
+            if (iter->second.postCall) return iter->second.postCall;
+         }
+         if (!create) return NULL;
+         instPoint *point = new instPoint(instPoint::PostCall, b, this);
+         blockPoints_[b].postCall = point;
+         return point;
+      }
+      default:
+         return NULL;
+   }
+   return NULL;
+}
+
+instPoint *func_instance::findPoint(instPoint::Type type,
+                                    block_instance *b,
+                                    Address a, InstructionAPI::Instruction::Ptr ptr, 
+                                    bool trusted, bool create) {
+   std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
+
+   switch (type) {
+      case instPoint::PreInsn: {
+         if (iter != blockPoints_.end()) {
+            std::map<Address, instPoint *>::iterator iter2 = iter->second.preInsn.find(a);
+            if (iter2 != iter->second.preInsn.end()) {
+               return iter2->second;
+            }
+         }
+         if (!create) return NULL;
+         if (!trusted || !ptr) {
+            ptr = b->getInsn(a);
+            if (!ptr) return NULL;
+         }
+         instPoint *point = new instPoint(instPoint::PreInsn,
+                                          b, ptr, a, this);
+         blockPoints_[b].preInsn[a] = point;
+         return point;
+      }
+      case instPoint::PostInsn: {
+         if (iter != blockPoints_.end()) {
+            std::map<Address, instPoint *>::iterator iter2 = iter->second.postInsn.find(a);
+            if (iter2 != iter->second.postInsn.end()) {
+               return iter2->second;
+            }
+         }
+         if (!create) return NULL;
+         if (!trusted || !ptr) {
+            ptr = b->getInsn(a);
+            if (!ptr) return NULL;
+         }
+         instPoint *point = new instPoint(instPoint::PostInsn,
+                                          b, ptr, a, this);
+         blockPoints_[b].postInsn[a] = point;
+         return point;
+      }
+      default:
+         return NULL;
+   }
+   return NULL;   
+}
+
+bool func_instance::findInsnPoints(instPoint::Type type,
+                                   block_instance *b,
+                                   InsnInstpoints::const_iterator &begin,
+                                   InsnInstpoints::const_iterator &end) {
+   std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
+   if (iter == blockPoints_.end()) return false;
+
+   switch(type) {
+      case instPoint::PreInsn:
+         begin = iter->second.preInsn.begin();
+         end = iter->second.preInsn.end();
+         return true;
+      case instPoint::PostInsn:
+         begin = iter->second.postInsn.begin();
+         end = iter->second.postInsn.end();
+         return true;
+      default:
+         return false;
+   }
+   return false;
+}
+
+instPoint *func_instance::findPoint(instPoint::Type type,
+                                    edge_instance *e,
+                                    bool create) {
+   if (type != instPoint::Edge) return NULL;
+   
+   std::map<edge_instance *, EdgeInstpoints>::iterator iter = edgePoints_.find(e);
+   if (iter != edgePoints_.end()) {
+      if (iter->second.point) return iter->second.point;
+   }
+   if (!create) return NULL;
+   instPoint *point = new instPoint(instPoint::Edge,
+                                    e, 
+                                    this);
+   edgePoints_[e].point = point;
+   return point;
+}
+
+bool func_instance::isInstrumentable() { 
+   return ifunc_->isInstrumentable();
+
+   if (!ifunc_->isInstrumentable()) return false;
+
+   // Hack: avoid things that throw exceptions
+   // Make sure we parsed calls
+   callBlocks();
+   for (BlockSet::iterator iter = callBlocks_.begin(); iter != callBlocks_.end(); ++iter) {      
+      if ((*iter)->calleeName().find("cxa_throw") != std::string::npos) {
+         cerr << "Func " << symTabName() << " found exception ret false" << endl;
+         return false;
+      }
+      func_instance *callee = (*iter)->callee();
+      
+      cerr << "Func " << symTabName() << " @ " << hex 
+           << (*iter)->start() << ", callee " << (*iter)->calleeName() << dec << endl;
+      
+      if (!callee) {
+         cerr << "Warning: null callee" << endl;
+         continue;
+      }
+      cerr << "Checking callee named " << callee->symTabName() << endl;
+
+      if (callee->symTabName().find("cxa_throw") != std::string::npos) {
+         cerr << "Func " << symTabName() << " found exception ret false" << endl;
+         return false;
+      }
+
+      // TEMPORARY HACKAGE because we're not picking up names for
+      // PLT functions?
+      if (callee->symTabName().find("402700") != std::string::npos) {
+         cerr << "Func " << symTabName() << " found exception ret false" << endl;
+         return false;
+      }
+
+   }
+   return true;
+
 }

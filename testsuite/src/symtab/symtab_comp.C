@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -55,9 +55,12 @@ test_results_t SymtabComponent::program_teardown(ParameterDict &params)
 
 test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &params)
 {
-   symtab = NULL;
+	symtab = NULL;
 	//mutatee_p.setString(group->mutatee);
 	compiler_p.setString(group->compiler);
+
+	if (measure) um_group.start();  // Measure resource usage.
+
 #if defined (cap_serialization_test)
 	if (group->useAttach == DESERIALIZE)
 		return SKIPPED;
@@ -179,6 +182,8 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
    {
       symtab_ptr.setPtr(NULL);
    }
+
+   if (measure) um_group.end();  // Measure resource usage.
 
    params["Symtab"] = &symtab_ptr;
    params["useAttach"]->setInt(group->useAttach);

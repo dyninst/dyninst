@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -44,7 +44,7 @@
 #include "inst.h"
 #include "instP.h"
 #include "instPoint.h"
-#include "function.h" // int_function
+#include "function.h" // func_instance
 #include "codeRange.h"
 #include "dyn_thread.h"
 #include "miniTramp.h"
@@ -1525,11 +1525,7 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
 // Return true if any sub-minitramp uses a trap? Other option
 // is "if all"...
 bool BPatchSnippetHandle::usesTrapInt() {
-    for (unsigned i = 0; i < mtHandles_.size(); i++) {
-        if (mtHandles_[i]->instrumentedViaTrap())
-            return true;
-    }
-    return false;
+   return false;
 }
 
 /* BPatch::triggerStopThread
@@ -1555,12 +1551,12 @@ bool BPatchSnippetHandle::usesTrapInt() {
  *    callback is triggered for every stopThread snippet instance.
  */
 bool BPatch_process::triggerStopThread(instPoint *intPoint, 
-         int_function *intFunc, int cb_ID, void *retVal)
+         func_instance *intFunc, int cb_ID, void *retVal)
 {
     // find the BPatch_point corresponding to the instrumentation point
     BPatch_function *bpFunc = findOrCreateBPFunc(intFunc, NULL);
     BPatch_procedureLocation bpPointType = 
-        BPatch_point::convertInstPointType_t(intPoint->getPointType());
+        BPatch_point::convertInstPointType_t(intPoint->type());
     BPatch_point *bpPoint = findOrCreateBPPoint(bpFunc, intPoint, bpPointType);
     if (!bpPoint) { 
         return false; 
@@ -1596,12 +1592,12 @@ bool BPatch_process::triggerStopThread(instPoint *intPoint,
  * 
  */
 bool BPatch_process::triggerSignalHandlerCB(instPoint *intPoint, 
-        int_function *intFunc, long signum, BPatch_Vector<Address> *handlers)
+        func_instance *intFunc, long signum, BPatch_Vector<Address> *handlers)
 {
     // find the BPatch_point corresponding to the exception-raising instruction
     BPatch_function *bpFunc = findOrCreateBPFunc(intFunc, NULL);
     BPatch_procedureLocation bpPointType = 
-        BPatch_point::convertInstPointType_t(intPoint->getPointType());
+        BPatch_point::convertInstPointType_t(intPoint->type());
     BPatch_point *bpPoint = findOrCreateBPPoint(bpFunc, intPoint, bpPointType);
     if (!bpPoint) { return false; }
     // trigger all callbacks for this signal
@@ -1644,7 +1640,7 @@ bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
     BPatch_point *bpPoint = findOrCreateBPPoint(
         bpFunc,
         faultPoint,
-        BPatch_point::convertInstPointType_t(faultPoint->getPointType()));
+        BPatch_point::convertInstPointType_t(faultPoint->type()));
     BPatch::bpatch->signalNotificationFD();
     bool foundCallback = false;
     for (unsigned int i = 0; i < cbs.size(); ++i) 
@@ -1825,19 +1821,19 @@ unsigned char * BPatch_process::makeShadowPage(Dyninst::Address pageAddr)
 }
 
 // is the first instruction: [00 00] add byte ptr ds:[eax],al ? 
-static bool hasWeirdEntryBytes(int_function *func)
+static bool hasWeirdEntryBytes(func_instance *func)
 {
     using namespace SymtabAPI;
     Symtab *sym = func->obj()->parse_img()->getObject();
-    if (sym->findEnclosingRegion(func->getAddress()) 
+    if (sym->findEnclosingRegion(func->addr()) 
         != 
-        sym->findEnclosingRegion(func->getAddress()+1)) 
+        sym->findEnclosingRegion(func->addr()+1)) 
     {
         return false;
     }
     unsigned short ebytes;
-    memcpy(&ebytes,func->obj()->getPtrToInstruction(func->getAddress()),2);
-    //proc()->readDataSpace((void*)func->getAddress(), sizeof(short), &ebytes, false);
+    memcpy(&ebytes,func->obj()->getPtrToInstruction(func->addr()),2);
+    //proc()->readDataSpace((void*)func->addr(), sizeof(short), &ebytes, false);
 
     if (0 == ebytes) {
         return true;
@@ -1854,10 +1850,13 @@ void BPatch_process::overwriteAnalysisUpdate
       std::set<BPatch_function *> &monitorFuncs, // output: those that call overwritten or modified funcs
       bool &changedPages, bool &changedCode) //output
 {
+   assert(0 && "FIXME!");
+
+#if 0
 
     //1.  get the overwritten blocks and regions
     std::list<std::pair<Address,Address> > owRegions;
-    std::list<int_block *> owBBIs;
+    std::list<block_instance *> owBBIs;
     llproc->getOverwrittenBlocks(owPages, owRegions, owBBIs);
     changedPages = ! owRegions.empty();
     changedCode = ! owBBIs.empty();
@@ -1870,17 +1869,16 @@ void BPatch_process::overwriteAnalysisUpdate
         return;
     }
 
-    // Identify the dead code:
-    // the contents of the following datastructures are defined in getDeadCode
-    std::set<int_block*> delBBIs;
-    std::map<int_function*,set<int_block*> > elimMap;
-    std::list<int_function*> deadFuncs;
-    std::map<int_function*,int_block*> newFuncEntries;
+    // Identify the dead code
+    std::set<block_instance*> delBBIs;
+    std::map<func_instance*,set<block_instance*> > elimMap;
+    std::list<func_instance*> deadFuncs;
+    std::map<func_instance*,block_instance*> newFuncEntries;
     llproc->getDeadCode(owBBIs,delBBIs,elimMap,deadFuncs,newFuncEntries); 
 
     // remove instrumentation from affected funcs
     beginInsertionSet();
-    for(std::map<int_function*,set<int_block*> >::iterator fIter = elimMap.begin();
+    for(std::map<func_instance*,set<block_instance*> >::iterator fIter = elimMap.begin();
         fIter != elimMap.end(); 
         fIter++) 
     {
@@ -1890,7 +1888,7 @@ void BPatch_process::overwriteAnalysisUpdate
     }
 
     //remove instrumentation from dead functions
-    for(std::list<int_function*>::iterator fit = deadFuncs.begin(); 
+    for(std::list<func_instance*>::iterator fit = deadFuncs.begin(); 
         fit != deadFuncs.end(); 
         fit++) 
     {
@@ -1906,34 +1904,34 @@ void BPatch_process::overwriteAnalysisUpdate
     // create stub edge set which is: all edges such that: 
     //     e->trg() in owBBIs and
     //     while e->src() in delBlocks try e->src()->sources()
-    std::map<int_function*,vector<edgeStub> > stubs = 
+    std::map<func_instance*,vector<edgeStub> > stubs = 
        llproc->getStubs(owBBIs,delBBIs,deadFuncs);
 
     // remove dead springboards
-    for(set<int_block*>::iterator bit = delBBIs.begin(); 
+    for(set<block_instance*>::iterator bit = delBBIs.begin(); 
         bit != delBBIs.end();
         bit++) 
     {
         llproc->getMemEm()->removeSpringboards(*bit);
     }
-    for(list<int_function*>::iterator fit = deadFuncs.begin(); 
+    for(list<func_instance*>::iterator fit = deadFuncs.begin(); 
         fit != deadFuncs.end();
         fit++) 
     {
         malware_cerr << "Removing instrumentation from dead func at " 
-            << hex << (*fit)->getAddress() << dec << endl;
+            << hex << (*fit)->addr() << dec << endl;
         llproc->getMemEm()->removeSpringboards(*fit);
     }
 
     // delete delBlocks
-    std::map<image_func*,vector<ParseAPI::Block*>*> modFuncs;
-    for(set<int_block*>::iterator bit = delBBIs.begin(); 
+    std::map<parse_func*,vector<ParseAPI::Block*>*> modFuncs;
+    for(set<block_instance*>::iterator bit = delBBIs.begin(); 
         bit != delBBIs.end();
         bit++) 
     {
         mal_printf("Deleting block [%lx %lx) from func at %lx\n",
-                   (*bit)->start(),(*bit)->end(),(*bit)->func()->getAddress());
-        int_function *iFunc = (*bit)->func();
+                   (*bit)->start(),(*bit)->end(),(*bit)->func()->addr());
+        func_instance *iFunc = (*bit)->func();
         if (modFuncs.end() == modFuncs.find(iFunc->ifunc())) {
             modFuncs[iFunc->ifunc()] = new vector<ParseAPI::Block*>();
         }
@@ -1962,31 +1960,31 @@ void BPatch_process::overwriteAnalysisUpdate
     mal_printf("Done deleting blocks\n"); 
 
     // delete completely dead functions
-    map<int_block*,Address> deadFuncCallers; // build up list of live callers
-    for(std::list<int_function*>::iterator fit = deadFuncs.begin(); 
+    map<block_instance*,Address> deadFuncCallers; // build up list of live callers
+    for(std::list<func_instance*>::iterator fit = deadFuncs.begin(); 
         fit != deadFuncs.end(); 
         fit++) 
     {
         using namespace ParseAPI;
-        Address funcAddr = (*fit)->getAddress();
+        Address funcAddr = (*fit)->addr();
 
         // grab callers that aren't also dead
         Block::edgelist &callEdges = (*fit)->ifunc()->entryBlock()->sources();
         Block::edgelist::iterator eit = callEdges.begin();
         for( ; eit != callEdges.end(); ++eit) {
             if (CALL == (*eit)->type()) {// includes tail calls
-                image_basicBlock *cBlk = (image_basicBlock*)((*eit)->src());
+                parse_block *cBlk = (parse_block*)((*eit)->src());
                 vector<ParseAPI::Function*> cFuncs;
                 cBlk->getFuncs(cFuncs);
                 for (unsigned fix=0; fix < cFuncs.size(); fix++) {
-                    int_function *cfunc = llproc->findFuncByInternalFunc(
-                        (image_func*)(cFuncs[fix]));
-                    int_block *cbbi = cfunc->findBlock(cBlk);
+                    func_instance *cfunc = llproc->findFunction(
+                        (parse_func*)(cFuncs[fix]));
+                    block_instance *cbbi = cfunc->findBlock(cBlk);
                     if (delBBIs.end() != delBBIs.find(cbbi)) {
                         continue;
                     }
                     bool isFuncDead = false;
-                    for (std::list<int_function*>::iterator dfit = deadFuncs.begin();
+                    for (std::list<func_instance*>::iterator dfit = deadFuncs.begin();
                          dfit != deadFuncs.end(); 
                          dfit++) 
                     {
@@ -2001,16 +1999,9 @@ void BPatch_process::overwriteAnalysisUpdate
                     if ( (*fit)->ifunc()->hasWeirdInsns() || 
                          hasWeirdEntryBytes(*fit) ) 
                     {
-                        // instrument caller--we'll parse when we hit the call
-                        instPoint *cPoint = cfunc->findInstPByAddr(cbbi->last());
-                        if (!cPoint) {
-                            cfunc->funcCalls();
-                            cPoint = cfunc->findInstPByAddr(cbbi->last());
-                        }
-
-                        cPoint->setResolved(false);
-
-                        monitorFuncs.insert(findOrCreateBPFunc(cfunc, NULL));
+                       instPoint *cPoint = cbbi->preCallPoint();
+                       
+                       monitorFuncs.insert(findOrCreateBPFunc(cfunc, NULL));
                     } else {
                         // parse right away
                         deadFuncCallers[cbbi] = funcAddr;
@@ -2020,8 +2011,8 @@ void BPatch_process::overwriteAnalysisUpdate
         }
  
         // add blocks to deadBlockAddrs 
-        const int_function::BlockSet& deadBs = (*fit)->blocks();
-        set<int_block* ,int_block::compare>::const_iterator
+        const func_instance::BlockSet& deadBs = (*fit)->blocks();
+        set<block_instance* ,block_instance::compare>::const_iterator
                 bIter= deadBs.begin();
         for (; bIter != deadBs.end(); bIter++) {
             deadBlocks.push_back(pair<Address,int>((*bIter)->start(),
@@ -2030,7 +2021,7 @@ void BPatch_process::overwriteAnalysisUpdate
     }
     mal_printf("Done deleting dead func blocks\n");
     //remove dead functions
-    for(std::list<int_function*>::iterator fit = deadFuncs.begin(); 
+    for(std::list<func_instance*>::iterator fit = deadFuncs.begin(); 
         fit != deadFuncs.end(); 
         fit++) 
     {
@@ -2045,7 +2036,7 @@ void BPatch_process::overwriteAnalysisUpdate
     set<Address> reParsedFuncs;
     vector<BPatch_module*> dontcare; 
     vector<Address> targVec; 
-    for (map<int_block*,Address>::iterator bit = deadFuncCallers.begin();
+    for (map<block_instance*,Address>::iterator bit = deadFuncCallers.begin();
          bit != deadFuncCallers.end();
          bit++) 
     {
@@ -2079,11 +2070,11 @@ void BPatch_process::overwriteAnalysisUpdate
     }
 
     // set new entry points for functions with NewF blocks
-    for (std::map<int_function*,int_block*>::iterator nit = newFuncEntries.begin();
+    for (std::map<func_instance*,block_instance*>::iterator nit = newFuncEntries.begin();
          nit != newFuncEntries.end();
          nit++)
     {
-        int_block *entry = nit->first->setNewEntryPoint();
+        block_instance *entry = nit->first->setNewEntryPoint();
         if (entry != nit->second) {
             mal_printf("For overwritten executing func chose entry "
                        "block %lx rather than active block %lx %s %d\n",
@@ -2093,7 +2084,7 @@ void BPatch_process::overwriteAnalysisUpdate
     }
 
     //3. parse new code, one overwritten function at a time
-    for(std::map<int_function*,set<int_block*> >::iterator 
+    for(std::map<func_instance*,set<block_instance*> >::iterator 
         fit = elimMap.begin();
         fit != elimMap.end();
         fit++) 
@@ -2106,10 +2097,10 @@ void BPatch_process::overwriteAnalysisUpdate
         else if (newFuncEntries.end() == newFuncEntries.find(fit->first)) 
         {
             mal_printf("WARNING: didn't have any stub edges for overwritten "
-                       "func %lx\n", fit->first->getAddress());
+                       "func %lx\n", fit->first->addr());
             vector<edgeStub> svec;
             svec.push_back(edgeStub(
-                NULL, fit->first->getAddress(), ParseAPI::NOEDGE));
+                NULL, fit->first->addr(), ParseAPI::NOEDGE));
 		    fit->first->obj()->parseNewEdges(svec);
             assert(0);
         }
@@ -2124,7 +2115,7 @@ void BPatch_process::overwriteAnalysisUpdate
     }
         
     // do a consistency check
-    for(std::map<int_function*,set<int_block*> >::iterator 
+    for(std::map<func_instance*,set<int_block*> >::iterator 
         fit = elimMap.begin();
         fit != elimMap.end();
         fit++) 
@@ -2133,6 +2124,7 @@ void BPatch_process::overwriteAnalysisUpdate
         fit->first->addMissingBlocks();
         assert(fit->first->consistency());
     }
+#endif
 }
 
 

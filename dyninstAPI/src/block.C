@@ -30,9 +30,8 @@
  */
  
 #include "function.h"
-
+#include "parse-cfg.h"
 #include "process.h"
-#include "instPoint.h"
 
 #include "mapped_object.h"
 #include "mapped_module.h"
@@ -43,203 +42,131 @@
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-int_block::int_block(image_basicBlock *ib, int_function *func) 
-  : highlevel_block(NULL),
-    func_(func),
-    ib_(ib) {};
+block_instance::block_instance(ParseAPI::Block *ib, 
+                               mapped_object *obj) 
+   : obj_(obj),
+     block_(static_cast<parse_block *>(ib)),
+     srclist_(srcs_),
+     trglist_(trgs_)
+{
+   // We create edges lazily
+};
 
 // Fork constructor
-int_block::int_block(const int_block *parent, int_function *func) :
-    highlevel_block(NULL),
-    func_(func),
-    ib_(parent->ib_)
-{}
-
-int_block::~int_block() {}
-
-Address int_block::start() const {
-    return ib_->start() + func_->baseAddr();
+block_instance::block_instance(const block_instance *parent, mapped_object *childObj) 
+   : obj_(childObj),
+     block_(parent->block_),
+     srclist_(srcs_),
+     trglist_(trgs_) {
+   // We also need to copy edges.
+   // Thing is, those blocks may not exist yet...
+   // So we wait, and do edges after all blocks have
+   // been created
 }
 
-Address int_block::end() const {
-    return ib_->end() + func_->baseAddr();
+block_instance::~block_instance() {}
+
+Address block_instance::start() const {
+   return block_->start() + obj_->codeBase();
 }
 
-Address int_block::last() const {
-    return ib_->lastInsnAddr() + func_->baseAddr();
+Address block_instance::end() const {
+   return block_->end() + obj_->codeBase();
 }
 
-unsigned int_block::size() const {
-    return ib_->size();
+Address block_instance::last() const {
+   return block_->lastInsnAddr() + obj_->codeBase();
 }
 
-int_function *int_block::func() const { 
-    return func_;
+unsigned block_instance::size() const {
+   return block_->size();
 }
 
-AddressSpace *int_block::addrSpace() const { 
-    return func()->proc(); 
+AddressSpace *block_instance::addrSpace() const { 
+    return obj()->proc(); 
 }
 
-bool int_block::isEntryBlock() const { 
-    return ib_->isEntryBlock(func_->ifunc());
-}
-
-std::string int_block::format() const {
+std::string block_instance::format() const {
     stringstream ret;
-    ret << "BB(" 
+    ret << "BB[" 
         << hex << start()
-        << ".." 
-        << end() << dec << endl;
+        << "," 
+        << end() << dec
+        << "]" << endl;
     return ret.str();
 }
 
-#if defined(cap_instruction_api) 
-void int_block::getInsnInstances(InsnInstances &instances) const {
-  instances.clear();
-  llb()->getInsnInstances(instances);
-  for (unsigned i = 0; i < instances.size(); ++i) {
-      instances[i].second += func()->baseAddr();
-  }
+void block_instance::getInsns(Insns &instances) const {
+   instances.clear();
+   llb()->getInsns(instances, obj()->codeBase());
 }
 
-std::string int_block::disassemble() const {
+InstructionAPI::Instruction::Ptr block_instance::getInsn(Address a) const {
+   Insns insns;
+   getInsns(insns);
+   return insns[a];
+}
+
+std::string block_instance::disassemble() const {
     stringstream ret;
-    InsnInstances instances;
-    getInsnInstances(instances);
-    for (unsigned i = 0; i < instances.size(); ++i) {
-        ret << "\t" << hex << instances[i].second << ": " << instances[i].first->format() << dec << endl;
+    Insns instances;
+    getInsns(instances);
+    for (Insns::iterator iter = instances.begin(); 
+         iter != instances.end(); ++iter) {
+       ret << "\t" << hex << iter->first << ": " << iter->second->format() << dec << endl;
     }
     return ret.str();
 }
-#endif
 
-void *int_block::getPtrToInstruction(Address addr) const {
+void *block_instance::getPtrToInstruction(Address addr) const {
     if (addr < start()) return NULL;
     if (addr > end()) return NULL;
-    return func()->obj()->getPtrToInstruction(addr);
+    return obj()->getPtrToInstruction(addr);
 }
 
-// Note that code sharing is masked at this level. That is, edges
-// to and from a block that do not originate from the low-level function
-// that this block's int_function represents will not be included in
-// the returned block collection
-void int_block::getSources(std::vector<int_block *> &ins) const {
-
-    /* Only allow edges that are within this current function; hide sharing */
-    /* Also avoid CALL and RET edges */
-
-    SingleContext epred(func()->ifunc(),true,true);
-    Intraproc epred2(&epred);
-
-    Block::edgelist & ib_ins = ib_->sources();
-    Block::edgelist::iterator eit = ib_ins.begin(&epred2);
-
-    for( ; eit != ib_ins.end(); ++eit) {
-        // FIXME debugging assert
-        assert((*eit)->type() != CALL && (*eit)->type() != RET);
-
-        image_basicBlock * sb = (image_basicBlock*)(*eit)->src();
-        int_block *sblock = func()->findBlock(sb);
-        if (!sblock) {
-            fprintf(stderr,"ERROR: no corresponding intblock for "
-                    "imgblock #%d at 0x%lx %s[%d]\n", ib_->id(),
-                    ib_->firstInsnOffset(),FILE__,__LINE__); 
-            assert(0);
-        }
-        ins.push_back( sblock );
-    }
+edge_instance *block_instance::getFallthrough() {
+   block_instance *candidateFT = NULL;
+   for (edgelist::iterator iter = targets().begin(); iter != targets().end(); ++iter) {
+      if ((*iter)->type() == FALLTHROUGH ||
+          (*iter)->type() == CALL_FT ||
+          (*iter)->type() == COND_NOT_TAKEN) { 
+         return *iter;
+      }
+   }
+   return NULL;
 }
 
-void int_block::getTargets(pdvector<int_block *> &outs) const {
-    SingleContext epred(func()->ifunc(),true,true);
-    Intraproc epred2(&epred);
-    NoSinkPredicate epred3(&epred2);
-
-    Block::edgelist & ib_outs = ib_->targets();
-    Block::edgelist::iterator eit = ib_outs.begin(&epred3);
-
-    for( ; eit != ib_outs.end(); ++eit) {
-        // FIXME debugging assert
-        assert((*eit)->type() != CALL && (*eit)->type() != RET);
-        image_basicBlock * tb = (image_basicBlock*)(*eit)->trg();
-        int_block* tblock = func()->findBlock(tb);
-        if (!tblock) {
-            fprintf(stderr,"ERROR: no corresponding intblock for "
-                    "imgblock #%d at 0x%lx %s[%d]\n", ib_->id(),
-                    ib_->firstInsnOffset(),FILE__,__LINE__);                    
-            assert(0);
-        }
-        outs.push_back(tblock);
-    }
+block_instance *block_instance::getFallthroughBlock() {
+   edge_instance *ft = getFallthrough();
+   if (ft &&
+       !ft->sinkEdge()) 
+      return ft->trg();
+   else
+      return NULL;
 }
 
-EdgeTypeEnum int_block::getTargetEdgeType(int_block * target) const {
-    SingleContext epred(func()->ifunc(),true,true);
-    Block::edgelist & ib_outs = ib_->targets();
-    Block::edgelist::iterator eit = ib_outs.begin(&epred);
-    for( ; eit != ib_outs.end(); ++eit)
-        if((*eit)->trg() == target->ib_)
-            return (*eit)->type();
-    return NOEDGE;
+edge_instance *block_instance::getTarget() {
+   for (edgelist::iterator iter = targets().begin(); iter != targets().end(); ++iter) {
+      if ((*iter)->type() == CALL ||
+          (*iter)->type() == DIRECT ||
+          (*iter)->type() == COND_TAKEN) { 
+         return *iter;
+      }
+   }
+   return NULL;
 }
 
-EdgeTypeEnum int_block::getSourceEdgeType(int_block *source) const {
-    SingleContext epred(func()->ifunc(),true,true);
-    Block::edgelist & ib_ins = ib_->sources();
-    Block::edgelist::iterator eit = ib_ins.begin(&epred);
-    for( ; eit != ib_ins.end(); ++eit)
-        if((*eit)->src() == source->ib_)
-            return (*eit)->type();
-    return NOEDGE;
+block_instance *block_instance::getTargetBlock() {
+   edge_instance *t = getFallthrough();
+   if (t &&
+       !t->sinkEdge()) 
+      return t->trg();
+   else
+      return NULL;
 }
 
-// returns fallthrough block, with a preference for CALL_FT blocks
-int_block *int_block::getFallthrough() const {
-    SingleContext epred(func()->ifunc(),true,true);
-    NoSinkPredicate epred2(&epred);
-    Block::edgelist & ib_outs = ib_->targets();
-    Block::edgelist::iterator eit = ib_outs.begin(&epred2);
-    int_block *candidateFT = NULL;
-    for( ; eit != ib_outs.end(); ++eit) {
-        ParseAPI::Edge * e = *eit;
-        if(e->type() == CALL_FT) {
-            return func()->findBlock(e->trg());
-        }
-        else if(e->type() == FALLTHROUGH ||
-                e->type() == COND_NOT_TAKEN)
-        {
-            candidateFT = func()->findBlock(e->trg());
-        }
-    }
-    return candidateFT;
-}
 
-int_block *int_block::getTarget() const {
-    SingleContext epred(func()->ifunc(),true,true);
-    NoSinkPredicate epred2(&epred);
-    Block::edgelist & ib_outs = ib_->targets();
-    Block::edgelist::iterator eit = ib_outs.begin(&epred2);
-    for( ; eit != ib_outs.end(); ++eit) {
-        ParseAPI::Edge * e = *eit;
-        if(e->type() == DIRECT||
-           e->type() == COND_TAKEN)
-        {
-            return func()->findBlock(e->trg());
-        }
-    }
-    return NULL;
-}
-void int_block::setHighLevelBlock(BPatch_basicBlock *newb)
-{
-   highlevel_block = newb;
-}
-
-BPatch_basicBlock *int_block::getHighLevelBlock() const {
-   return highlevel_block;
-}
-
-bool int_block::containsCall()
+bool block_instance::containsCall()
 {
     Block::edgelist & out_edges = llb()->targets();
     Block::edgelist::iterator eit = out_edges.begin();
@@ -251,12 +178,78 @@ bool int_block::containsCall()
     return false;
 }
 
-int int_block::id() const {
+bool block_instance::containsDynamicCall() {
+   Block::edgelist & out_edges = llb()->targets();
+   Block::edgelist::iterator eit = out_edges.begin();
+   for( ; eit != out_edges.end(); ++eit) {
+      if ( CALL == (*eit)->type() && ((*eit)->sinkEdge())) {
+         return true;
+      }
+   }
+   return false;
+}
+
+int block_instance::id() const {
     return llb()->id();
 }
 
 using namespace Dyninst::Relocation;
-void int_block::triggerModified() {
+void block_instance::triggerModified() {
     // Relocation info caching...
-    PCSensitiveTransformer::invalidateCache(this);
+   //PCSensitiveTransformer::invalidateCache(this);
 }
+
+const block_instance::edgelist &block_instance::sources() {
+   if (srcs_.empty()) {
+      // Create edges
+      for (ParseAPI::Block::edgelist::iterator iter = block_->sources().begin();
+           iter != block_->sources().end(); ++iter) {
+         // edge_instance takes care of looking up whether we've already
+         // created this thing. 
+         edge_instance *newEdge = obj()->findEdge(*iter, NULL, this);
+         srcs_.push_back(newEdge);
+      }
+   }
+   return srclist_;
+}
+
+const block_instance::edgelist &block_instance::targets() {
+   if (trgs_.empty()) {
+      for (ParseAPI::Block::edgelist::iterator iter = block_->targets().begin();
+           iter != block_->targets().end(); ++iter) {
+         edge_instance *newEdge = obj()->findEdge(*iter, this, NULL);
+         trgs_.push_back(newEdge);
+     }
+   }
+   return trglist_;
+}
+
+std::string block_instance::calleeName() {
+   // How the heck do we do this again?
+   return obj()->getCalleeName(this);
+}
+
+void block_instance::updateCallTarget(func_instance *func) {
+   // Update a sink-typed call edge to
+   // have an inter-module target
+   edge_instance *e = getTarget();
+   assert(e->sinkEdge());
+   e->trg_ = func->entryBlock();
+}
+
+func_instance *block_instance::entryOfFunc() const {
+   parse_block *b = static_cast<parse_block *>(llb());
+   parse_func *e = b->getEntryFunc();
+   if (!e) return NULL;
+   return obj()->findFunction(e);
+}
+
+bool block_instance::isFuncExit() const {
+   parse_block *b = static_cast<parse_block *>(llb());
+   return b->isExitBlock();
+}
+
+func_instance *block_instance::findFunction(ParseAPI::Function *p) {
+   return obj()->findFunction(p);
+}
+

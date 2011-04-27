@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -48,6 +48,28 @@ InstructionAdapter::InstructionAdapter(Address start, CodeObject *o, CodeRegion 
     //context(NULL), 
     _obj(o), _cr(r), _isrc(isrc), _curBlk(curBlk)
 {
+}
+
+void
+InstructionAdapter::reset(
+    Address start,
+    CodeObject *o,
+    CodeRegion *r,
+    InstructionSource *isrc,
+    Block *curBlk)
+{
+    current = start;
+    previous = (Address)-1;    
+    parsedJumpTable = false;
+    successfullyParsedJumpTable = false;
+    isDynamicCall_ = false;
+    checkedDynamicCall_ = false;
+    isInvalidCallTarget_ = false;
+    checkedInvalidCallTarget_ = false;
+    _obj = o;
+    _cr = r;
+    _isrc = isrc;
+    _curBlk = curBlk;
 }
 
 InstructionAdapter::~InstructionAdapter()

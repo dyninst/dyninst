@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -35,7 +35,7 @@
 #include "Register.h"
 #include "Dereference.h"
 #if defined(arch_x86) || defined(arch_x86_64)
-#include "RegisterConversion-x86.h"
+#include "RegisterConversion.h"
 #endif
 
 using namespace Dyninst::InstructionAPI;

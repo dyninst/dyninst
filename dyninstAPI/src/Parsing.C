@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -38,7 +38,7 @@
 #endif
 
 #include "symtab.h"
-#include "image-func.h"
+#include "parse-cfg.h"
 #include "instPoint.h"
 #include "Parsing.h"
 #include "debug.h"
@@ -118,7 +118,7 @@ DynCFGFactory::mkfunc(
     CodeRegion * reg,
     InstructionSource * isrc)
 {
-    image_func * ret;
+    parse_func * ret;
     SymtabAPI::Symtab * st;
     SymtabAPI::Function * stf;
     pdmodule * pdmod;
@@ -134,7 +134,7 @@ DynCFGFactory::mkfunc(
         pdmod = _img->getOrCreateModule(stf->getModule());
     assert(stf);
 
-    ret = new image_func(stf,pdmod,_img,obj,reg,isrc,src);
+    ret = new parse_func(stf,pdmod,_img,obj,reg,isrc,src);
     funcs_.add(*ret);
 
     if(obj->cs()->linkage().find(ret->addr()) != obj->cs()->linkage().end())
@@ -189,11 +189,11 @@ DynCFGFactory::mkfunc(
 
 Block *
 DynCFGFactory::mkblock(Function * f, CodeRegion *r, Address addr) {
-    image_basicBlock * ret;
+    parse_block * ret;
 
     record_block_alloc(false);
 
-    ret = new image_basicBlock((image_func*)f,r,addr);
+    ret = new parse_block((parse_func*)f,r,addr);
     //fprintf(stderr,"mkbloc(%lx, %lx) produced %p\n",f->addr(),addr,ret);
     blocks_.add(*ret);
 
@@ -207,11 +207,11 @@ DynCFGFactory::mkblock(Function * f, CodeRegion *r, Address addr) {
 }
 Block *
 DynCFGFactory::mksink(CodeObject *obj, CodeRegion *r) {
-    image_basicBlock * ret;
+    parse_block * ret;
 
     record_block_alloc(true);
 
-    ret = new image_basicBlock(obj,r,numeric_limits<Address>::max());
+    ret = new parse_block(obj,r,numeric_limits<Address>::max());
     blocks_.add(*ret);
     return ret;
 }
@@ -222,74 +222,43 @@ DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
 
     record_edge_alloc(type,false); // FIXME can't tell if it's a sink
 
-    ret = new image_edge((image_basicBlock*)src,
-                         (image_basicBlock*)trg,
+    ret = new image_edge((parse_block*)src,
+                         (parse_block*)trg,
                          type);
     //if (trg->start() == 0x9000) {
     //    printf("adding edge to 0x%lx\n",src->start());
     //}
     //fprintf(stderr,"mkedge between Block %p and %p, img_bb: %p and %p\n",
-        //src,trg,(image_basicBlock*)src,(image_basicBlock*)trg);
+        //src,trg,(parse_block*)src,(parse_block*)trg);
     edges_.add(*ret);
 
     return ret;
 }
 
-#if 0
-void
-DynParseCallback::unresolved_cf(Function *f,Address addr,unresolved_details*det)
-{
-    image_instPoint * p =
-        new image_instPoint(
-            addr,
-            _img,
-            det->data.call.target,
-            det->data.call.dynamic_call,
-            det->data.call.absolute_address,
-            otherPoint,
-            true);
-
-    if (det->isbranch && !_img->codeObject()->defensiveMode())
-    	static_cast<image_func*>(f)->setInstLevel(UNINSTRUMENTABLE);
-
-    _img->addInstPoint(p);
-}
-#endif
-
 void
 DynParseCallback::abruptEnd_cf(Address addr,ParseAPI::Block *b,default_details*)
 {
-    image_instPoint * p =
-        new image_instPoint(addr,
-                            b,
-                            _img,
-                            abruptEnd);
-
-    // check for instrumentability? FIXME
-    // ah.getInstLevel or something
-
-    _img->addInstPoint(p);
 }
 
 void
 DynParseCallback::newfunction_retstatus(Function *func)
 {
-    dynamic_cast<image_func*>(func)->setinit_retstatus( func->retstatus() );
+    dynamic_cast<parse_func*>(func)->setinit_retstatus( func->retstatus() );
 }
 
 void
 DynParseCallback::block_split(Block *first, Block *second)
 {
-    _img->fixSplitPoints(first,second);
+    //KEVINTODO: what happened to the block->instPoint pointers? need to update them _img->fixSplitPoints(first,second);
     if (unlikely(_img->hybridMode())) {
-       image::BlockSplit sb (static_cast<image_basicBlock *>(first),
-                             static_cast<image_basicBlock *>(second));
+       image::BlockSplit sb (static_cast<parse_block *>(first),
+                             static_cast<parse_block *>(second));
       _img->addSplitBlock(sb);
     }
 }
 
 void DynParseCallback::block_delete(Block *b) {
-    _img->deleteInstPoints(b);
+
 }
 
 void
@@ -306,51 +275,9 @@ DynParseCallback::patch_nop_jump(Address addr)
 void
 DynParseCallback::interproc_cf(Function*f,Block *b,Address addr,interproc_details*det)
 {
-    image_instPoint * p = NULL;
-    switch(det->type) {
-        case interproc_details::ret:
-           p = new image_instPoint(addr,
-                                   b,
-                                   _img,
-                                   functionExit);
-           break;
-        case interproc_details::call:
-           p = new image_instPoint(addr,
-                                   b,
-                                   _img,
-                                   det->data.call.target,
-                                   det->data.call.dynamic_call,
-                                   det->data.call.absolute_address,
-                                   callSite,
-                                   false);
-           break;
-        case interproc_details::unres_call:
-        case interproc_details::unres_branch:
-           p = new image_instPoint(addr,
-                                   b,
-                                   _img,
-                                   det->data.unres.target,
-                                   det->data.unres.dynamic,
-                                   det->data.unres.absolute_address,
-                                   (det->type == interproc_details::unres_call) ? callSite : otherPoint,
-                                   true);
-           break;
-       case interproc_details::branch_interproc:
-          p = new image_instPoint(addr,
-                                  b,
-                                  _img,
-                                  functionExit);
-          break;
-       default:
-          assert(0);
-    };
-    
-    if(p)
-        _img->addInstPoint(p);
-
 #if defined(ppc32_linux) || defined(ppc32_bgp)
     if(det->type == interproc_details::call) {
-        image_func * ifunc = static_cast<image_func*>(f);
+        parse_func * ifunc = static_cast<parse_func*>(f);
         _img->updatePltFunc(ifunc,det->data.call.target);
     }
 #else
@@ -364,8 +291,8 @@ DynParseCallback::overlapping_blocks(Block*b1,Block*b2)
     parsing_printf("[%s:%d] blocks [%lx,%lx) and [%lx,%lx) overlap"
                    "inconsistently\n",
         FILE__,__LINE__,b1->start(),b1->end(),b2->start(),b2->end());
-    static_cast<image_basicBlock*>(b1)->markAsNeedingRelocation();
-    static_cast<image_basicBlock*>(b2)->markAsNeedingRelocation();
+    static_cast<parse_block*>(b1)->markAsNeedingRelocation();
+    static_cast<parse_block*>(b2)->markAsNeedingRelocation();
 }
 
 extern bool codeBytesUpdateCB(void *objCB, Address targ);
@@ -402,7 +329,7 @@ DynParseCallback::absAddr(Address absoluteAddr, Address &load, CodeObject *&co)
 bool
 DynParseCallback::hasWeirdInsns(const ParseAPI::Function* func) const
 {
-    return static_cast<image_func*>
+    return static_cast<parse_func*>
         (const_cast<ParseAPI::Function*>
             (func))->hasWeirdInsns();
 }
@@ -410,6 +337,6 @@ DynParseCallback::hasWeirdInsns(const ParseAPI::Function* func) const
 void 
 DynParseCallback::foundWeirdInsns(ParseAPI::Function* func)
 {
-    static_cast<image_func*>(func)->setHasWeirdInsns(true);
+    static_cast<parse_func*>(func)->setHasWeirdInsns(true);
 }
 

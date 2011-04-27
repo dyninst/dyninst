@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -38,6 +38,7 @@
 #include "instPoint.h"
 #include "function.h"
 #include "MemoryEmulator/memEmulator.h"
+
 #include "mapped_object.h"
 
 void newCodeCB(std::vector<BPatch_function*> &newFuncs, 
@@ -339,11 +340,11 @@ void HybridAnalysis::virtualFreeCB(BPatch_point *, void *t) {
 		return;
 	}
 
-	std::set<int_function *> deletedFuncs;
+	std::set<func_instance *> deletedFuncs;
 	for (Address i = virtualFreeAddr_; i < (virtualFreeAddr_ + virtualFreeSize_); ++i) {
 		proc()->lowlevel_process()->findFuncsByAddr(i, deletedFuncs);
 	}
-	for (std::set<int_function *>::iterator iter = deletedFuncs.begin();
+	for (std::set<func_instance *>::iterator iter = deletedFuncs.begin();
 		iter != deletedFuncs.end(); ++iter)
 	{
 		BPatch_function * bpfunc = proc()->findOrCreateBPFunc(*iter, NULL);
@@ -415,7 +416,7 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     // not just a big chunk of zeroes, in which case the first
     // 00 00 instruction will probably raise an exception
     using namespace ParseAPI;
-    int_function *pfunc = point->llpoint()->func();
+    func_instance *pfunc = point->llpoint()->func();
     CodeRegion *reg = pfunc->ifunc()->region();
     unsigned char * regptr = (unsigned char *) reg->getPtrToInstruction(reg->offset());
     Address regSize = reg->high() - reg->offset();
@@ -438,7 +439,7 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     // parse, immediately after the current block
     vector<Address> *targets = new vector<Address>;
     Address nextInsn =0;
-    point->getCFTargets(*targets);
+    getCFTargets(point,*targets);
     assert(!targets->empty());
     nextInsn = (*targets)[0];
     delete(targets);
@@ -448,20 +449,17 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     // out whether to extend the current function or parse as a new one. 
     parseNewEdgeInFunction(point, nextInsn, false);
 
-    //make sure we don't re-instrument
-    point->setResolved();
-
     // re-instrument the module 
     instrumentModules(false);
     proc()->finalizeInsertionSet(false);
 }
 #endif
 
-static int getCallPoints(ParseAPI::Block* blk, 
+static int getPreCallPoints(ParseAPI::Block* blk, 
                          BPatch_process *proc, 
                          vector<BPatch_point*> &points) 
 {
-    if (!((image_basicBlock*)blk)->isCallBlock()) {
+    if (!((parse_block*)blk)->isCallBlock()) {
         return 0;
     }
 
@@ -476,13 +474,8 @@ static int getCallPoints(ParseAPI::Block* blk,
          fit != pFuncs.end(); 
          fit++) 
     {
-        int_function *iFunc = 
-            llproc->findFuncByInternalFunc((image_func*)(*fit));
-        instPoint * iPoint = iFunc->findInstPByAddr(ptAddr);
-        if (!iPoint) {
-            iFunc->funcCalls();
-            iPoint = iFunc->findInstPByAddr(ptAddr);
-        }
+        func_instance *iFunc = llproc->findFunction((parse_func*)(*fit));
+        instPoint *iPoint = instPoint::preCall(iFunc, iFunc->obj()->findBlock(blk));
         if (iPoint) {
             BPatch_function *bpFunc = proc->findOrCreateBPFunc(iFunc,NULL);
             BPatch_point *bpPoint = proc->findOrCreateBPPoint(
@@ -506,7 +499,7 @@ void HybridAnalysis::getCallBlocks(Address retAddr,
    using namespace ParseAPI;
    process *llproc = retPoint->func()->proc()->proc();
    mapped_object *callObj = llproc->findObject((Address)retAddr - 1);
-   image_func * retF = retPoint->func()->ifunc();
+   parse_func * retF = retPoint->func()->ifunc();
    std::set<CodeRegion*> callRegs;
    if (callObj) {
       callObj->parse_img()->codeObject()->cs()->
@@ -525,12 +518,13 @@ void HybridAnalysis::getCallBlocks(Address retAddr,
        bit != callBlocks.end();)
    {
       if ((*bit)->end() == (retAddr - callObj->codeBase()) &&
-          ((image_basicBlock*)(*bit))->isCallBlock()) 
+          ((parse_block*)(*bit))->isCallBlock()) 
       {
           bit++;
       }
       else {
-          bit = callBlocks.erase(bit);
+          callBlocks.erase(bit);
+          bit = callBlocks.begin();
       }
    }
 
@@ -540,9 +534,9 @@ void HybridAnalysis::getCallBlocks(Address retAddr,
        returningCallB.first == NULL && bit != callBlocks.end();
        bit++) 
    {
-      int_function *retFunc = retPoint->func();
+      func_instance *retFunc = retPoint->func();
       if (BPatch_defensiveMode != retFunc->obj()->hybridMode()) {
-          int_function *origF = llproc->isFunctionReplacement(retFunc);
+          func_instance *origF = llproc->isFunctionReplacement(retFunc);
           if (origF) {
               retFunc = origF;
           }
@@ -759,7 +753,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                      bit != callBlocks.end(); 
                      bit++)
                 {
-                    getCallPoints(*bit, proc(), callPts);
+                    getPreCallPoints(*bit, proc(), callPts);
                 }
                 for (vector<BPatch_point*>::iterator pit = callPts.begin(); 
                      pit != callPts.end(); 
@@ -776,7 +770,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                           target))
             {
                 vector<BPatch_point*> callPts; 
-                getCallPoints(returningCallB.first, proc(), callPts);
+                getPreCallPoints(returningCallB.first, proc(), callPts);
                 for (unsigned j=0; j < callPts.size(); j++) {
                     callPts[j]->patchPostCallArea();
                 }
@@ -787,7 +781,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                 // find one callPoint, any other ones will 
                 // be found by parseAfterCallAndInstrument
                 vector<BPatch_point*> callPoints;
-                getCallPoints(returningCallB.first, proc(), callPoints);
+                getPreCallPoints(returningCallB.first, proc(), callPoints);
                 assert(!callPoints.empty());
 
                 mal_printf("stopThread instrumentation found return at %lx, "
@@ -833,7 +827,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                  bit != callBlocks.end(); 
                  bit++)
             {
-                getCallPoints(*bit, proc(), callPoints);
+                getPreCallPoints(*bit, proc(), callPoints);
             }
             for (vector<BPatch_point*>::iterator pit = callPoints.begin(); 
                  pit != callPoints.end(); 
@@ -850,7 +844,8 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     // 4. else case: the point is a jump/branch 
         proc()->beginInsertionSet();
         // 4.1 if the point is a direct branch, remove any instrumentation
-        if ( !point->llpoint()->isDynamic() ) {
+        if (!point->llpoint()->block() &&
+            !point->llpoint()->block()->containsDynamicCall()) {
             BPatch_function *func = point->getFunction();
             if (instrumentedFuncs->end() != instrumentedFuncs->find(func)
                 &&
@@ -898,7 +893,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         // manipulate init_retstatus so that we will instrument the function's 
         // return addresses, since this jump might be a tail call
         for (unsigned tidx=0; tidx < targFuncs.size(); tidx++) {
-            image_func *imgfunc = targFuncs[tidx]->lowlevel_func()->ifunc();
+            parse_func *imgfunc = targFuncs[tidx]->lowlevel_func()->ifunc();
             FuncReturnStatus initStatus = imgfunc->init_retstatus();
             if (ParseAPI::RETURN == initStatus) {
                 imgfunc->setinit_retstatus(ParseAPI::UNKNOWN);

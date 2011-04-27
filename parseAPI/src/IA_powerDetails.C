@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -561,7 +561,7 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
 
   parsing_printf("%s[%d]: checking for max switch...\n", FILE__, __LINE__);
   bool foundBranch = false;
-  std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::reverse_iterator iter;
+  IA_IAPI::allInsns_t::reverse_iterator iter;
   for(iter = prevBlock.allInsns.rbegin(); iter != prevBlock.allInsns.rend(); iter++)
 
     {

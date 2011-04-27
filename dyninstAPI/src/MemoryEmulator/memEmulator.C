@@ -518,23 +518,23 @@ void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size)
 
 }
 
-void MemoryEmulator::removeSpringboards(int_function * func) 
+void MemoryEmulator::removeSpringboards(func_instance * func) 
 {
-    malware_cerr << "untracking springboards from deadfunc " << hex << func->getAddress() << dec << endl;
+   malware_cerr << "untracking springboards from deadfunc " << hex << func->addr() << dec << endl;
 
-    const set<int_block*,int_block::compare> & blocks = func->blocks();
-    set<int_block*,int_block::compare>::const_iterator bit = blocks.begin();
-    for (; bit != blocks.end(); bit++) {
-        removeSpringboards((*bit));
-    }
+   const func_instance::BlockSet & blocks = func->blocks();
+   func_instance::BlockSet::const_iterator bit = blocks.begin();
+   for (; bit != blocks.end(); bit++) {
+      removeSpringboards((*bit));
+   }
 }
 
-void MemoryEmulator::removeSpringboards(const int_block *bbi) 
+void MemoryEmulator::removeSpringboards(const block_instance *bbi) 
 {
     malware_cerr << "  untracking springboards from deadblock [" << hex 
          << bbi->start() << " " << bbi->end() << ")" << dec <<endl;
     SymtabAPI::Region * reg = 
-        ((ParseAPI::SymtabCodeRegion*)bbi->func()->ifunc()->region())->symRegion();
+       ((ParseAPI::SymtabCodeRegion*)bbi->llb()->region())->symRegion();
     springboards_[reg].erase(bbi->llb()->start() - reg->getMemOffset());
     if (springboards_[reg].empty()) springboards_.erase(reg);
 }
@@ -566,8 +566,8 @@ void MemoryEmulator::addPOPAD(Address addr)
 bool MemoryEmulator::isEmulPOPAD(Address addr)
 {
     Address orig = -1;
-    std::vector<int_function*> dontcare1;
-    baseTrampInstance *dontcare2;
+    std::vector<func_instance*> dontcare1;
+    baseTramp *dontcare2;
     if (!aS_->getAddrInfo(addr, orig, dontcare1, dontcare2)) {
         assert(0);
     }

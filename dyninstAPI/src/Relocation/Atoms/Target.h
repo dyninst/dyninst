@@ -33,6 +33,7 @@
 #define _R_E_TARGET_H_
 
 #include "Atom.h"
+#include "Trace.h"
 
 namespace Dyninst {
 namespace Relocation {
@@ -72,7 +73,7 @@ class TargetInt {
 
   virtual type_t type() const { return Illegal; };
   
-  virtual bool matches(Trace::Ptr) const { return false; }
+  virtual bool matches(Trace *) const { return false; }
   virtual int label(CodeBuffer *) const { return -1; }
 
   protected:
@@ -94,39 +95,39 @@ class Target : public TargetInt{
 };
 
 template <>
-  class Target<Trace::Ptr> : public TargetInt {
+  class Target<Trace *> : public TargetInt {
  public:
    //Address addr() const { return t_->curAddr(); }
 
-  Target(Trace::Ptr t) : t_(t) {}
-  ~Target() {}
-  const Trace::Ptr &t() const { return t_; };
+  Target(Trace * t) : t_(t) { assert(t_); }
+   ~Target() {}
+   Trace * t() const { return t_; };
   Address origAddr() const { return t_->origAddr(); };
   
   virtual type_t type() const { return TraceTarget; };
   
   virtual string format() const { 
      stringstream ret;
-     ret << "B{" << t_->id() << "/" << (necessary() ? "+" : "-") << "}";
+     ret << "T{" << t_->id() << "/" << (necessary() ? "+" : "-") << "}";
      return ret.str();
   }
   
-  virtual bool matches(Trace::Ptr t) const { return (t_ == t); }
+  virtual bool matches(Trace *t) const { return (t_ == t); }
 
   int label(CodeBuffer *) const { return t_->getLabel(); };
   
  private:
-  const Trace::Ptr t_;
+  Trace * t_;
 };
 
 template <>
-class Target<int_block *> : public TargetInt {
+class Target<block_instance *> : public TargetInt {
  public:
    //Address addr() const { return t_->firstInsnAddr(); }
- Target(int_block *t) : t_(t) {}
+  Target(block_instance *t) : t_(t) { assert(t_); }
   ~Target() {}
 
-  int_block *t() const { return t_; };
+  block_instance *t() const { return t_; };
 
   virtual type_t type() const { return BlockTarget; };
 
@@ -134,14 +135,14 @@ class Target<int_block *> : public TargetInt {
   
   virtual string format() const { 
     stringstream ret;
-    ret << "O{" << std::hex << t_->start() << "/" << (necessary() ? "+" : "-") << std::dec << "}";
+    ret << "B{" << std::hex << t_->start() << "/" << (necessary() ? "+" : "-") << std::dec << "}";
     return ret.str();
   }
 
   int label(CodeBuffer *) const;
 
  private:
-  int_block *t_;
+  block_instance *t_;
 };
 
 

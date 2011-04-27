@@ -32,11 +32,11 @@
 #include "Atom.h"
 #include "ASTAtom.h"
 #include "CFAtom.h"
-#include "GetPC.h"
-#include "Instrumentation.h"
-#include "MemoryEmulator.h"
-#include "RelData.h"
-#include "CopyInsn.h"
+#include "InsnAtom.h"
+#include "InstAtom.h"
+#include "PCAtom.h"
+#include "RelDataAtom.h"
+#include "Trace.h"
 #include "Target.h"
 
 

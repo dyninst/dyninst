@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -67,13 +67,15 @@ IA_IAPI::IA_IAPI(const IA_IAPI &rhs)
      cachedLinkerStubState(rhs.cachedLinkerStubState),
      hascftstatus(rhs.hascftstatus),
      tailCall(rhs.tailCall) {
-   curInsnIter = allInsns.find(rhs.curInsnIter->first);
+   //curInsnIter = allInsns.find(rhs.curInsnIter->first);
+    curInsnIter = allInsns.end()-1;
 }
 
 IA_IAPI &IA_IAPI::operator=(const IA_IAPI &rhs) {
    dec = rhs.dec;
    allInsns = rhs.allInsns;
-   curInsnIter = allInsns.find(rhs.curInsnIter->first);
+   //curInsnIter = allInsns.find(rhs.curInsnIter->first);
+   curInsnIter = allInsns.end()-1;
    validCFT = rhs.validCFT;
    cachedCFT = rhs.cachedCFT;
    validLinkerStubState = rhs.validLinkerStubState;
@@ -137,9 +139,45 @@ IA_IAPI::IA_IAPI(InstructionDecoder dec_,
 {
     hascftstatus.first = false;
     tailCall.first = false;
-    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
+
+    //boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
+    curInsnIter =
+        allInsns.insert(
+            allInsns.end(),
+            std::make_pair(current, dec.decode()));
+
     initASTs();
 }
+
+void
+IA_IAPI::reset(
+    InstructionDecoder dec_,
+    Address start,
+    CodeObject *o,
+    CodeRegion *r,
+    InstructionSource *isrc,
+    Block * curBlk_)
+{
+    // reset the base
+    InstructionAdapter::reset(start,o,r,isrc,curBlk_);
+
+    dec = dec_;
+    validCFT = false;
+    cachedCFT = make_pair(false, 0);
+    validLinkerStubState = false; 
+    hascftstatus.first = false;
+    tailCall.first = false;
+
+    allInsns.clear();
+
+    curInsnIter =
+        allInsns.insert(
+            allInsns.end(),
+            std::make_pair(current, dec.decode()));
+
+    initASTs();
+}
+
 
 void IA_IAPI::advance()
 {
@@ -150,7 +188,12 @@ void IA_IAPI::advance()
     }
     InstructionAdapter::advance();
     current += curInsn()->size();
-    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
+
+    curInsnIter =
+        allInsns.insert(
+            allInsns.end(),
+            std::make_pair(current, dec.decode()));
+
     if(!curInsn())
     {
         parsing_printf("......WARNING: after advance at 0x%lx, curInsn() NULL\n", current);
@@ -169,13 +212,13 @@ bool IA_IAPI::retreat()
         return false;
     }
     InstructionAdapter::retreat();
-    std::map<Address,Instruction::Ptr>::iterator remove = curInsnIter;
+    allInsns_t::iterator remove = curInsnIter;
     if(curInsnIter != allInsns.begin()) {
         --curInsnIter;
         allInsns.erase(remove);
         current = curInsnIter->first;
         if(curInsnIter != allInsns.begin()) {
-            std::map<Address,Instruction::Ptr>::iterator pit = curInsnIter;
+            allInsns_t::iterator pit = curInsnIter;
             --pit;
             previous = curInsnIter->first;
         } else {
@@ -408,7 +451,8 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
         {
             if (!success || isDynamicCall()) 
             {
-               if ( ! isIATcall(std::string()) )
+                std::string empty;
+               if ( ! isIATcall(empty) )
                     ftEdge = false;
             }
             else if ( ! _isrc->isValidAddress(target) )
@@ -563,7 +607,7 @@ bool IA_IAPI::isDelaySlot() const
     return false;
 }
 
-Instruction::Ptr IA_IAPI::getInstruction()
+Instruction::Ptr IA_IAPI::getInstruction() const
 {
     return curInsn();
 }
@@ -616,14 +660,20 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
 
     Result actualTarget = callTarget->eval();
 #if defined(os_vxworks)
-    if (actualTarget.convert<Address>() == current) {
+
+    int reloc_target = current;
+#if defined(arch_x86)
+    ++reloc_target;
+#endif
+
+    if (actualTarget.convert<Address>() == reloc_target) {
         // We have a zero offset branch.  Consider relocation information.
         SymtabCodeRegion *scr = dynamic_cast<SymtabCodeRegion *>(_cr);
         SymtabCodeSource *scs = dynamic_cast<SymtabCodeSource *>(_obj->cs());
 
         if (!scr && scs) {
             set<CodeRegion *> regions;
-            assert( scs->findRegions(current, regions) == 1 );
+            assert( scs->findRegions(reloc_target, regions) == 1 );
             scr = dynamic_cast<SymtabCodeRegion *>(*regions.begin());
         }
 
@@ -633,7 +683,7 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
                 scr->symRegion()->getRelocations();
 
             for (unsigned i = 0; i < relocs.size(); ++i) {
-                if (relocs[i].rel_addr() == current) {
+                if (relocs[i].rel_addr() == reloc_target) {
                     sym = relocs[i].getDynSym();
                     if (sym && sym->getOffset()) {
                         parsing_printf(" <reloc hit> ");

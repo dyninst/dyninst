@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,8 +39,8 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debug.h"
-#include "DyninstAPI/src/function.h"
-#include "DyninstAPI/src/mapped_object.h"
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/registerSpace.h"
 
 #include "dyninstAPI/h/BPatch.h"
@@ -161,32 +161,24 @@ registerSpace *registerSpace::savedRegSpace(AddressSpace *proc) {
     return ret;
 }
 
-registerSpace *registerSpace::actualRegSpace(instPoint *iP, 
-                                             callWhen 
-#if defined(cap_liveness)
-                                             when 
-#endif
-                                             ) 
+registerSpace *registerSpace::actualRegSpace(instPoint *iP) 
 {
     // We just can't trust liveness in defensive mode. 
     if (BPatch_defensiveMode == iP->func()->obj()->hybridMode()) {
         return conservativeRegSpace(iP->proc());
     }
 #if defined(cap_liveness)
-    if (BPatch::bpatch->livenessAnalysisOn()) {
-        assert(iP);
-        registerSpace *ret = NULL;
+   if (BPatch::bpatch->livenessAnalysisOn()) {
+      assert(iP);
+      registerSpace *ret = NULL;
+      
 
-        liveness_printf("%s[%d] Asking for actualRegSpace for iP at 0x%lx, dumping info:\n",
-                        FILE__, __LINE__, iP->addr());
-        liveness_cerr << iP->liveRegisters(when) << endl;
-
-        ret = getRegisterSpace(iP->proc());
-        ret->specializeSpace(iP->liveRegisters(when));
-
-        ret->cleanSpace();
-        return ret;
-    }
+      ret = getRegisterSpace(iP->proc());
+      ret->specializeSpace(iP->liveRegisters());
+      
+      ret->cleanSpace();
+      return ret;
+   }
 #endif
     // Use one of the other registerSpaces...
     // If we're entry/exit/call site, return the optimistic version
@@ -526,9 +518,6 @@ bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
 bool registerSpace::checkVolatileRegisters(codeGen &gen,
                                            registerSlot::livenessState_t state)
 {
-	// FIXME for non-defensive-mode
-	return true;
-	
 	if (addr_width == 8) {
         for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
             if (registers_[i]->liveState == state)
@@ -559,12 +548,23 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen)
     // Okay, save.
     if (addr_width == 8) {
         // save flags (PUSHFQ)
-        emitSimpleInsn(0x9C, gen);
-
-        // And mark flags as spilled.
-        for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
-            registers_[i]->liveState = registerSlot::spilled;
-        }
+       //emitSimpleInsn(0x9C, gen);
+       if (registers_[REGNUM_SF]->liveState == registerSlot::live ||
+           registers_[REGNUM_ZF]->liveState == registerSlot::live ||
+           registers_[REGNUM_AF]->liveState == registerSlot::live ||
+           registers_[REGNUM_PF]->liveState == registerSlot::live ||
+           registers_[REGNUM_CF]->liveState == registerSlot::live) {
+          emitSimpleInsn(0x9f, gen);
+          registers_[REGNUM_SF]->liveState = registerSlot::spilled;
+          registers_[REGNUM_ZF]->liveState = registerSlot::spilled;
+          registers_[REGNUM_AF]->liveState = registerSlot::spilled;
+          registers_[REGNUM_PF]->liveState = registerSlot::spilled;
+          registers_[REGNUM_CF]->liveState = registerSlot::spilled;
+       }
+       if (registers_[REGNUM_OF]->liveState == registerSlot::live) {
+          emitSaveO(gen);
+          registers_[REGNUM_OF]->liveState = registerSlot::spilled;
+       }
 
     } else {
         assert(addr_width == 4);
@@ -576,6 +576,7 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen)
         //emitSimpleInsn(PUSHFD, gen);
         registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState =
             registerSlot::spilled;
+ 
     }
 
     savedFlagSize = addr_width;
@@ -596,10 +597,16 @@ bool registerSpace::restoreVolatileRegisters(codeGen &gen)
 
     // Okay, restore.
     if (addr_width == 8) {
-        // restore flags (POPFQ)
-        emitSimpleInsn(0x9D, gen);
-
-        // Don't care about their state...
+       if (registers_[REGNUM_OF]->liveState == registerSlot::spilled) {
+          emitRestoreO(gen);
+       }
+       if (registers_[REGNUM_SF]->liveState == registerSlot::spilled ||
+           registers_[REGNUM_ZF]->liveState == registerSlot::spilled ||
+           registers_[REGNUM_AF]->liveState == registerSlot::spilled ||
+           registers_[REGNUM_PF]->liveState == registerSlot::spilled ||
+           registers_[REGNUM_CF]->liveState == registerSlot::spilled) {
+          emitSimpleInsn(0x9e, gen);
+       }
 
     } else {
         assert(addr_width == 4);
@@ -608,6 +615,7 @@ bool registerSpace::restoreVolatileRegisters(codeGen &gen)
         emitSimpleInsn(0x9E, gen);
         emitPop(RealRegister(REGNUM_EAX), gen);
         // State stays at spilled, which is incorrect - but will never matter.
+
     }
 
     return true;
@@ -741,9 +749,6 @@ bool registerSpace::readProgramRegister(codeGen &gen,
     // so x86. 
     switch (src->spilledState) {
     case registerSlot::unspilled:
-	    printf(" emitMovRegToReg source %d dest %d \n", source, destination);
-		    printf(" emitMovRegToReg source %d dest %d GPR %d SPR %d \n", src->type, dest->type, registerSlot::GPR, registerSlot::SPR);
-			    printf(" emitMovRegToReg source %d dest %d \n", src->number, dest->number);
 
         gen.codeEmitter()->emitMoveRegToReg(src, dest, gen);
         return true;
@@ -1160,6 +1165,14 @@ void registerSpace::spillReal(RealRegister r, codeGen &gen)
       return;
    if (!regState()[r.reg()].contains)
       return;
+
+   if (regState()[r.reg()].contains->refCount == 0 &&
+       !regState()[r.reg()].contains->keptValue) {
+      // Sure, it's spilled...
+      freeReal(r);
+      return;
+   }
+
    regs_been_spilled.insert(regState()[r.reg()].contains);
    spillToVReg(r, regState()[r.reg()].contains, gen);
    freeReal(r);

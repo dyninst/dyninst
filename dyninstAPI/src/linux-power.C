@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -52,6 +52,7 @@
 const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
 const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
 const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
+const char DL_OPEN_LIBC_FUNC_EXPORTED[] = "__libc_dlopen_mode";
 
 #define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
 
@@ -488,8 +489,7 @@ Frame Frame::getCallerFrame()
   bool isLeaf = false;
   bool noFrame = false;
 
-  codeRange *range = getRange();
-  int_function *func = range->is_function();
+  func_instance *func = getFunc();
 
   if (uppermost_) {
     if (func) {
@@ -532,20 +532,8 @@ Frame Frame::getCallerFrame()
       basePCAddr = thisStackFrame.elf32.oldFp;
   }
 
-  // See if we're in instrumentation
-  baseTrampInstance *bti = NULL;
-  
-  if (range->is_multitramp()) {
-      bti = range->is_multitramp()->getBaseTrampInstanceByAddr(getPC());
-      if (bti) {
-          // If we're not in instru, then re-set this to NULL
-          if (!bti->isInInstru(getPC()))
-              bti = NULL;
-      }
-  }
-  else if (range->is_minitramp()) {
-      bti = range->is_minitramp()->baseTI;
-  }
+  baseTramp *bti = getBaseTramp();
+
   if (bti) {
       // Oy. We saved the LR in the middle of the tramp; so pull it out
       // by hand.
@@ -570,28 +558,27 @@ Frame Frame::getCallerFrame()
 
       // Instrumentation makes its own frame; we want to skip the
       // function frame if there is one as well.
-      instPoint *point = bti->baseT->instP();
+      instPoint *point = bti->point();
       assert(point); // Will only be null if we're in an inferior RPC, which can't be.
       // If we're inside the function (callSite or arbitrary; bad assumption about
       // arbitrary but we don't know exactly where the frame was constructed) and the
       // function has a frame, tear it down as well.
-      if ((point->getPointType() == callSite ||
-          point->getPointType() == otherPoint) &&
-          !point->func()->hasNoStackFrame()) {
-        if (getProc()->getAddressWidth() == sizeof(uint64_t)) {
-          if (!getProc()->readDataSpace((caddr_t) (Address)
-                                        thisStackFrame.elf64.oldFp,
-                                        sizeof(newFP),
-                                        (caddr_t) &newFP, false))
-            return Frame();
-        }
-        else {
+      if (point->type() == instPoint::FuncEntry ||
+	  point->type() == instPoint::FuncExit) {
           uint32_t u32;
           if (!getProc()->readDataSpace((caddr_t) (Address)
                                         thisStackFrame.elf32.oldFp,
                                         sizeof(u32), (caddr_t) &u32, false))
             return Frame();
           newFP = u32;
+      }
+      else {
+        if (getProc()->getAddressWidth() == sizeof(uint64_t)) {
+          if (!getProc()->readDataSpace((caddr_t) (Address)
+                                        thisStackFrame.elf64.oldFp,
+                                        sizeof(newFP),
+                                        (caddr_t) &newFP, false))
+            return Frame();
         }
       }
       // Otherwise must be at a reloc insn
@@ -674,7 +661,6 @@ bool Frame::setPC(Address newpc) {
          return false;
    }
    pc_ = newpc;
-   range_ = NULL;
 
    return true;
 }
@@ -768,8 +754,8 @@ bool process::handleTrapAtEntryPointOfMain(dyn_lwp *trappingLWP)
 bool process::insertTrapAtEntryPointOfMain()
 {
     // copied from aix.C
-    int_function *f_main = NULL;
-    pdvector<int_function *> funcs;
+    func_instance *f_main = NULL;
+    pdvector<func_instance *> funcs;
     bool res = findFuncsByPretty("main", funcs);
     if (!res) {
         // we can't instrument main - naim
@@ -788,7 +774,7 @@ bool process::insertTrapAtEntryPointOfMain()
     f_main = funcs[0];
     assert(f_main);
 
-    Address addr = f_main->getAddress();
+    Address addr = f_main->addr();
 
     startup_printf("[%d]: inserting trap at 0x%x\n",
                    getPid(), addr);
@@ -822,12 +808,13 @@ Address process::getLibcStartMainParam(dyn_lwp *) { assert(0); }
 
 bool process::loadDYNINSTlib()
 {
-    pdvector<int_function *> dlopen_funcs;
+    pdvector<func_instance *> dlopen_funcs;
 
     if (findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) {
         return loadDYNINSTlib_exported();
-    }
-    else {
+    }else if( findFuncsByAll(DL_OPEN_LIBC_FUNC_EXPORTED, dlopen_funcs)) {
+        return loadDYNINSTlib_exported();
+    }else {
         return loadDYNINSTlib_hidden();
     }
 }
@@ -855,7 +842,7 @@ bool process::loadDYNINSTlibCleanup(dyn_lwp *trappingLWP)
 
 
 
-bool process::loadDYNINSTlib_exported(const char *)
+bool process::loadDYNINSTlib_exported(const char *, int)
 {
     // This functions was implemented by mixing parts of
     // process::loadDYNINSTlib() in aix.C and
@@ -873,10 +860,12 @@ bool process::loadDYNINSTlib_exported(const char *)
     Address dyninstlib_str_addr = 0;
     Address dlopen_call_addr = 0;
 
-    pdvector<int_function *> dlopen_funcs;
+    pdvector<func_instance *> dlopen_funcs;
     if (!findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) {
-        startup_cerr << "Couldn't find method to load dynamic library" << endl;
-        return false;
+        if (!findFuncsByAll(DL_OPEN_LIBC_FUNC_EXPORTED, dlopen_funcs)) {
+            startup_cerr << "Couldn't find method to load dynamic library" << endl;
+            return false;
+        }
     }
 
     assert(dlopen_funcs.size() != 0);
@@ -884,7 +873,7 @@ bool process::loadDYNINSTlib_exported(const char *)
         logLine("WARNING: More than one dlopen found, using the first\n");
     }
     //Address dlopen_addr = dlopen_funcs[0]->getAddress();
-    int_function *dlopen_func = dlopen_funcs[0];  //aix.C
+    func_instance *dlopen_func = dlopen_funcs[0];  //aix.C
 
     // We now fill in the scratch code buffer with appropriate data
     codeGen scratchCodeBuffer(BYTES_TO_SAVE);
@@ -894,7 +883,7 @@ bool process::loadDYNINSTlib_exported(const char *)
 
     // The library name goes first
     dyninstlib_str_addr = codeBase;
-    scratchCodeBuffer.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
+    scratchCodeBuffer.copyAligned(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
 
     // Need a register space                                           //aix.C
     // make sure this syncs with inst-power.C                          //aix.C
@@ -1008,10 +997,10 @@ bool process::loadDYNINSTlib_hidden() {
   Address dlopen_call_addr = 0;
   Address do_dlopen_struct_addr = 0;
 
-  pdvector<int_function *> dlopen_funcs;
+  pdvector<func_instance *> dlopen_funcs;
   if (!findFuncsByAll(DL_OPEN_FUNC_NAME, dlopen_funcs))
   {
-    pdvector<int_function *> dlopen_int_funcs;
+    pdvector<func_instance *> dlopen_int_funcs;
 
     // If we can't find the do_dlopen function (because this library
     // is stripped, for example), try searching for the internal
@@ -1031,7 +1020,8 @@ bool process::loadDYNINSTlib_hidden() {
                            __FILE__,__LINE__,dlopen_int_funcs.size(),
                            DL_OPEN_FUNC_INTERNAL);
         }
-        dlopen_int_funcs[0]->getStaticCallers(dlopen_funcs);
+	dlopen_int_funcs[0]->getCallerFuncs(std::back_inserter(dlopen_funcs));
+
         if(dlopen_funcs.size() > 1)
         {
             startup_printf("%s[%d] warning: found %d do_dlopen candidates\n",
@@ -1052,8 +1042,8 @@ bool process::loadDYNINSTlib_hidden() {
       return false;
   }
 
-  Address dlopen_addr = dlopen_funcs[0]->getAddress();
-  int_function *dlopen_func = dlopen_funcs[0];  //aix.C
+  Address dlopen_addr = dlopen_funcs[0]->addr();
+  func_instance *dlopen_func = dlopen_funcs[0];  //aix.C
 
   assert(dyninstRT_name.length() < BYTES_TO_SAVE);
   startup_cerr << "Dyninst RT lib name: " << dyninstRT_name << endl;
@@ -1065,7 +1055,7 @@ bool process::loadDYNINSTlib_hidden() {
 
   // First copy the RT library name
   dyninstlib_str_addr = codeBase + scratchCodeBuffer.used();
-  scratchCodeBuffer.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
+  scratchCodeBuffer.copyAligned(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
 
   startup_printf("(%d) dyninst str addr at 0x%x\n", getPid(),
                                                     dyninstlib_str_addr);

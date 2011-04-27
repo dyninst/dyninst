@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -50,7 +50,7 @@ class instPoint;
 class miniTramp;
 class baseTramp;
 class process;
-class int_function;
+class func_instance;
 class metricFocusNode;
 class codeGen;
 class registerSpace;
@@ -73,7 +73,7 @@ int getPointCost(process *proc, const instPoint *point);
 
 
 /* return the function asociated with a point. */
-int_function *getFunction(instPoint *point);
+func_instance *getFunction(instPoint *point);
 
 /*
  * struct to define a list of inst requests 
@@ -231,7 +231,7 @@ void emitCSload(const BPatch_countSpec_NP *as, Register dest, codeGen &gen, bool
 Register emitFuncCall(opCode op, codeGen &gen,
                       pdvector<AstNodePtr> &operands,
 					  bool noCost, 
-                      int_function *func);
+                      func_instance *func);
 
 // Obsolete version that uses an address. DON'T USE THIS or expect it to survive.
 Register emitFuncCall(opCode op, codeGen &gen,
@@ -257,9 +257,9 @@ extern Address getMaxBranch();
 
 // find these internal functions before finding any other functions
 // extern dictionary_hash<std::string, unsigned> tagDict;
-extern dictionary_hash <std::string, unsigned> primitiveCosts;
+extern std::map<std::string, unsigned> primitiveCosts; 
 
-bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f);
+bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f);
 
 /**
  * A set of optimized emiters for common idioms.  Return 

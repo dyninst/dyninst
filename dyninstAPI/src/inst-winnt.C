@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -106,13 +106,13 @@ void initPrimitiveCost()
 
 // hasBeenBound: returns false
 // dynamic linking not implemented on this platform
-bool process::hasBeenBound(const SymtabAPI::relocationEntry &,int_function *&, Address ) {
+bool process::hasBeenBound(const SymtabAPI::relocationEntry &,func_instance *&, Address ) {
     return false;
 }
 
 // findCallee: returns false unless callee is already set in instPoint
 // dynamic linking not implemented on this platform
-int_function *instPoint::findCallee() 
+func_instance *instPoint::findCallee() 
 {
    // Already been bound
    if (callee_) {
@@ -144,7 +144,7 @@ int_function *instPoint::findCallee()
       Address callTarget = r.convert<Address>();
       parsing_printf(" **** instPoint::findCallee() callTarget = 0x%lx, insn = %s\n", callTarget, insn()->format().c_str());
 
-      int_function *func = proc()->findOneFuncByAddr(callTarget);
+      func_instance *func = proc()->findOneFuncByAddr(callTarget);
       if (func == NULL) return NULL;
       
 	  /*
@@ -170,7 +170,7 @@ int_function *instPoint::findCallee()
           {
               Address targAddr = r.convert<Address>();
 				parsing_printf(" **** instPoint::findCallee() targAddr = 0x%lx\n", targAddr);
-              int_function *target = proc()->findFuncByEntry(targAddr);
+              func_instance *target = proc()->findFuncByEntry(targAddr);
               if(target)
               {
                   callee_ = target;
@@ -234,7 +234,7 @@ int_function *instPoint::findCallee()
             // see whether we already know anything about the target
             // this may be the case with implicitly-loaded and delay-loaded
             // DLLs, and it is possible with other types of indirect calls
-            int_function *target = proc()->findFuncByEntry( targetAddr );
+            func_instance *target = proc()->findFuncByEntry( targetAddr );
                           
             // we need to handle the delay-loaded function case specially,
             // since we want the actual target function, not the temporary

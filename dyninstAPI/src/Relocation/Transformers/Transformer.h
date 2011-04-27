@@ -38,9 +38,7 @@
 #include <map>
 #include <stack>
 
-#include "dyninstAPI/src/image-func.h" // EdgeTypeEnum
-
-class int_block;
+class block_instance;
 class baseTramp;
 
 namespace Dyninst {
@@ -72,11 +70,12 @@ class Transformer {
   typedef std::list<AtomPtr> AtomList;
   typedef dyn_detail::boost::shared_ptr<Trace> TracePtr;
   typedef std::list<TracePtr> TraceList;
+  typedef std::map<block_instance *, TracePtr> TraceMap;
 
   virtual bool preprocess(TraceList &) { return true;}
   virtual bool postprocess(TraceList &) { return true; }
 
-  virtual bool processTrace(TraceList::iterator &) { return true; }
+  virtual bool processTrace(TraceList::iterator &, const TraceMap &) { return true; }
     
 
 

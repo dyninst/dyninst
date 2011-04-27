@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -55,7 +55,7 @@
 
 int bpatch_basicBlock_count = 0;
 
-BPatch_basicBlock::BPatch_basicBlock(int_block *ib, BPatch_flowGraph *fg):
+BPatch_basicBlock::BPatch_basicBlock(block_instance *ib, BPatch_flowGraph *fg):
    iblock(ib),
    flowGraph(fg),
    immediateDominates(NULL),
@@ -72,8 +72,6 @@ BPatch_basicBlock::BPatch_basicBlock(int_block *ib, BPatch_flowGraph *fg):
         fprintf(stderr, "bpatch_basicBlock_count: %d (%d)\n",
                 bpatch_basicBlock_count, bpatch_basicBlock_count*sizeof(BPatch_basicBlock));
 #endif
-
-   ib->setHighLevelBlock(this);
 }
 
 //destructor of the class BPatch_basicBlock
@@ -104,13 +102,14 @@ void BPatch_basicBlock::BPatch_basicBlock_dtor(){
 //returns the predecessors of the basic block in aset 
 void BPatch_basicBlock::getSourcesInt(BPatch_Vector<BPatch_basicBlock*>& srcs){
    BPatch_basicBlock *b;
-   pdvector<int_block *> in_blocks;
-   unsigned i;
+   pdvector<block_instance *> in_blocks;
 
-   iblock->getSources(in_blocks);
-   for (i=0; i<in_blocks.size(); i++)
-   {
-      b = (BPatch_basicBlock *) in_blocks[i]->getHighLevelBlock();
+   const block_instance::edgelist &isrcs = iblock->sources();
+   for (block_instance::edgelist::iterator iter = isrcs.begin(); iter != isrcs.end(); ++iter) {
+      // We don't include interprocedural predecessors in the BPatch layer
+      if ((*iter)->interproc()) continue;
+
+      b = flowGraph->findBlock((*iter)->src());
       if (b) srcs.push_back(b);
    }
 }
@@ -118,13 +117,14 @@ void BPatch_basicBlock::getSourcesInt(BPatch_Vector<BPatch_basicBlock*>& srcs){
 //returns the successors of the basic block in a set 
 void BPatch_basicBlock::getTargetsInt(BPatch_Vector<BPatch_basicBlock*>& tgrts){
    BPatch_basicBlock *b;
-   pdvector<int_block *> out_blocks;
-   unsigned i;
+   pdvector<block_instance *> out_blocks;
 
-   iblock->getTargets(out_blocks);
-   for (i=0; i<out_blocks.size(); i++)
-   {
-      b = (BPatch_basicBlock *) out_blocks[i]->getHighLevelBlock();
+   const block_instance::edgelist &itrgs = iblock->targets();
+   for (block_instance::edgelist::iterator iter = itrgs.begin(); iter != itrgs.end(); ++iter) {
+      // We don't include interprocedural predecessors in the BPatch layer
+      if ((*iter)->interproc()) continue;
+
+      b = flowGraph->findBlock((*iter)->trg());
       if (b) tgrts.push_back(b);
    }
 }
@@ -437,46 +437,42 @@ struct findInsns : public insnPredicate
         
 BPatch_point* BPatch_basicBlock::findEntryPointInt()
 {
-    return BPatch_point::createInstructionInstPoint(flowGraph->getAddSpace(), (void*)this->getStartAddressInt(),
-        flowGraph->getFunction());
+   return flowGraph->getAddSpace()->findOrCreateBPPoint(flowGraph->getFunction(),
+                                                        instPoint::blockEntry(ifunc(), block()),
+                                                        BPatch_locBasicBlockEntry);
 }
 
+// This should be edge instrumentation... 
 BPatch_point* BPatch_basicBlock::findExitPointInt()
 {
-    return BPatch_point::createInstructionInstPoint(flowGraph->getAddSpace(), (void*)this->getEndAddressInt(),
-            flowGraph->getFunction());
+   return flowGraph->getAddSpace()->findOrCreateBPPoint(flowGraph->getFunction(),
+                                                        instPoint::blockExit(ifunc(), block()),
+                                                        BPatch_locBasicBlockExit);
 }
         
 BPatch_Vector<BPatch_point*>*
-    BPatch_basicBlock::findPointByPredicate(insnPredicate& f)
+BPatch_basicBlock::findPointByPredicate(insnPredicate& f)
 {
-    BPatch_Vector<BPatch_point*>* ret = new BPatch_Vector<BPatch_point*>;
-    std::vector<std::pair<Dyninst::InstructionAPI::Instruction::Ptr, Address> > insns;
-    getInstructions(insns);
-    for(std::vector<std::pair<Dyninst::InstructionAPI::Instruction::Ptr, Address> >::iterator curInsn = insns.begin();
-        curInsn != insns.end();
-        ++curInsn)
-    {
-//        fprintf(stderr, "Checking insn at 0x%lx...", curInsn->second);
-        if(f(curInsn->first))
-        {
-            BPatch_point* tmp = BPatch_point::createInstructionInstPoint(flowGraph->getAddSpace(), (void*) curInsn->second,
-                    flowGraph->getFunction());
-            if(!tmp)
-            {
-#if defined(cap_instruction_api)
-                fprintf(stderr, "WARNING: failed to create instpoint for load/store/prefetch %s at 0x%lx\n",
-                    curInsn->first->format().c_str(), curInsn->second);
-#endif //defined(cap_instruction_api)
-            }
-            else
-            {
-                ret->push_back(tmp);
-            }
-        }
-    }
-    return ret;
-    
+   BPatch_Vector<BPatch_point*>* ret = new BPatch_Vector<BPatch_point*>;
+   block_instance::Insns insns;
+   block()->getInsns(insns);
+   for (block_instance::Insns::iterator iter = insns.begin();
+        iter != insns.end(); ++iter) {
+      if(f(iter->second)) {
+         instPoint *p = instPoint::preInsn(ifunc(), block(), iter->first, iter->second, true);
+         BPatch_point *tmp = flowGraph->getAddSpace()->findOrCreateBPPoint(flowGraph->getFunction(),
+                                                                           p,
+                                                                           BPatch_locInstruction);
+         if(!tmp) {
+            fprintf(stderr, "WARNING: failed to create instpoint for load/store/prefetch %s at 0x%lx\n",
+                    iter->second->format().c_str(), iter->first);
+         }
+         else {
+            ret->push_back(tmp);
+         }
+      }
+   }
+   return ret;
 }
         
 BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<BPatch_opCode>& ops) 
@@ -511,13 +507,11 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(bool(*filter)(Inst
 BPatch_point *BPatch_basicBlock::convertPoint(instPoint *pt)
 {
     BPatch_point *bpPt = NULL;
-    if (iblock->start() <= pt->addr()
-        && iblock->end() > pt->addr()) 
-    {
-        bpPt = flowGraph->getFunction()->getAddSpace()->findOrCreateBPPoint
-            ( flowGraph->getFunction(), 
-              pt, 
-              BPatch_point::convertInstPointType_t(pt->getPointType()) );
+    if (iblock == pt->block()) {
+       bpPt = flowGraph->getFunction()->getAddSpace()->findOrCreateBPPoint
+          ( flowGraph->getFunction(), 
+            pt, 
+            BPatch_point::convertInstPointType_t(pt->type()) );
     }
     return bpPt;
 }
@@ -526,94 +520,24 @@ BPatch_point *BPatch_basicBlock::convertPoint(instPoint *pt)
 //
 void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
 {
-    set<BPatch_point*> dupCheck;
-    pdvector<instPoint*> blockPoints = iblock->func()->funcEntries();
-    unsigned pIdx;
-    for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
-        BPatch_point *point = convertPoint(blockPoints[pIdx]);
-        if (point && dupCheck.end() == dupCheck.find(point)) {
-            dupCheck.insert(point);
-            bpPoints.push_back(point);
-        }
-    }
+   instPoint *entry = instPoint::blockEntry(ifunc(), iblock);
+   instPoint *preCall = instPoint::preCall(ifunc(), iblock);
+   // Exit 'point'?
+   instPoint *postCall = instPoint::postCall(ifunc(), iblock);
+   instPoint *exit = instPoint::blockExit(ifunc(), iblock);
 
-    blockPoints = iblock->func()->funcExits();
-    for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
-        BPatch_point *point = convertPoint(blockPoints[pIdx]);
-        if (point && dupCheck.end() == dupCheck.find(point)) {
-            dupCheck.insert(point);
-            bpPoints.push_back(point);
-        }
-    }
-    blockPoints = iblock->func()->funcCalls();
-    for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
-        BPatch_point *point = convertPoint(blockPoints[pIdx]);
-        if (point && dupCheck.end() == dupCheck.find(point)) {
-            dupCheck.insert(point);
-            bpPoints.push_back(point);
-        }
-    }
-    blockPoints = iblock->func()->funcArbitraryPoints();
-    for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
-        BPatch_point *point = convertPoint(blockPoints[pIdx]);
-        if (point && dupCheck.end() == dupCheck.find(point)) {
-            dupCheck.insert(point);
-            bpPoints.push_back(point);
-        }
-    }
-    set<instPoint*> pointSet = iblock->func()->funcUnresolvedControlFlow();
-    set<instPoint*>::iterator pIter = pointSet.begin();
-    for (; pIter != pointSet.end(); pIter++) {
-        BPatch_point *point = convertPoint(*pIter);
-        if (point && dupCheck.end() == dupCheck.find(point)) {
-            dupCheck.insert(point);
-            bpPoints.push_back(point);
-        }
-    }
-    pointSet = iblock->func()->funcAbruptEnds();
-    for (pIter = pointSet.begin(); pIter != pointSet.end(); pIter++) {
-        BPatch_point *point = convertPoint(*pIter);
-        if (point && dupCheck.end() == dupCheck.find(point)) {
-            dupCheck.insert(point);
-            bpPoints.push_back(point);
-        }
-    }
+   if (entry) bpPoints.push_back(convertPoint(entry));
+   // TODO bind pre- and post-call together
+   if (preCall) bpPoints.push_back(convertPoint(preCall));
+   if (exit) bpPoints.push_back(convertPoint(exit));
 }
 
 
 BPatch_function * BPatch_basicBlock::getCallTarget()
 {
-    image_instPoint* imgPt = iblock->func()->ifunc()->img()->getInstPoint
-        ( iblock->llb(), iblock->llb()->lastInsnAddr() );
-    if ( ! imgPt || callSite != imgPt->getPointType() ) {
-        return NULL;
-    }
-    Address baseAddr = iblock->func()->obj()->codeBase();
-    Address targetAddr = imgPt->callTarget() + baseAddr;
-
-    BPatch_module *targMod = flowGraph->addSpace->findModuleByAddr(targetAddr);
-    if (!targMod) {
-        return NULL;
-    }
-
-    BPatch_function * targFunc = targMod->findFunctionByEntry(targetAddr);
-
-    if (!targFunc && imgPt->isDynamic()) { 
-        // if this is an indirect call, use its saved target
-        Address pointAddr =  imgPt->offset() + baseAddr;
-        instPoint *intCallPoint = iblock->func()->findInstPByAddr(pointAddr);
-        if (!intCallPoint) {
-            iblock->func()->funcCalls();
-            intCallPoint = iblock->func()->findInstPByAddr(pointAddr);
-        }
-        assert(intCallPoint);
-        set<Address> targs;
-        if ( 1 == targs.size() ) 
-        {
-            targFunc = flowGraph->addSpace->findFunctionByEntry( * targs.begin() );
-        }
-    }
-    return targFunc;
+   func_instance *callee = lowlevel_block()->callee();
+   if (!callee) return NULL;
+   return flowGraph->addSpace->findOrCreateBPFunc(callee, NULL);
 }
 
 
@@ -623,39 +547,6 @@ BPatch_function * BPatch_basicBlock::getCallTarget()
  * Returns a vector of the instructions contained within this block
  *
  */
-#if defined(cap_instruction_api)
-BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) {
-  return NULL;
-  
-}
-
-#else
-BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) {
-
-  if (!instructions) {
-
-    instructions = new BPatch_Vector<BPatch_instruction*>;
-    InstrucIter ii(getStartAddress(),size(),flowGraph->getllAddSpace());
-    
-    while(ii.hasMore()) {
-      BPatch_instruction *instr = ii.getBPInstruction();
-      instr->parent = this;
-      instructions->push_back(instr);
-      ii++;
-    }
-  }
-
-  return instructions;
-}
-#endif
-
-/*
- * BPatch_basicBlock::getInstructions
- *
- * Returns a vector of the instructions contained within this block
- *
- */
-#if defined(cap_instruction_api)
 bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& insns) {
   using namespace InstructionAPI;
 
@@ -687,17 +578,6 @@ bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAP
 
   return !insnInstances.empty();  
 }
-#else
-bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& /* insns */)
-{
-  return false;
-}
-
-bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >& /* insnInstances */)
-{
-  return false;
-}
-#endif // defined(cap_instruction_api)
 
 unsigned long BPatch_basicBlock::getStartAddressInt() CONST_EXPORT 
 {
@@ -743,14 +623,17 @@ int BPatch_basicBlock::blockNo() const
 }
 
 bool BPatch_basicBlock::isEntryBlockInt() CONST_EXPORT {
-   return iblock->isEntryBlock();
+   return (iblock->entryOfFunc() == ifunc());
 }
 
 bool BPatch_basicBlock::isExitBlockInt() CONST_EXPORT {
-   return iblock->isExitBlock();
+   return iblock->isFuncExit();
 }
 
 BPatch_flowGraph *BPatch_basicBlock::getFlowGraphInt() CONST_EXPORT {
   return flowGraph;
 }
 
+func_instance *BPatch_basicBlock::ifunc() CONST_EXPORT {
+   return flowGraph->ll_func(); 
+}

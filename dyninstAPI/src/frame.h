@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -44,7 +44,7 @@ class dyn_lwp;
 
 class instPoint;
 class miniTramp;
-class int_function;
+class func_instance;
 class baseTramp;
 
 class Frame {
@@ -147,7 +147,7 @@ class Frame {
 
   instPoint *getPoint();
   baseTramp *getBaseTramp();
-  int_function *getFunc();
+  func_instance *getFunc();
 
   bool	   isSignalFrame();
   bool 	   isInstrumentation();

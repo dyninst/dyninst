@@ -49,13 +49,16 @@
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/Relocation/CodeBuffer.h"
+#include "common/h/arch-x86.h"
 
 #include "memEmulatorAtom.h"
 
-#include "dyninstAPI/src/RegisterConversion-x86.h"
+#include "dyninstAPI/src/RegisterConversion.h"
 
 #include "boost/tuple/tuple.hpp"
 #include "memEmulator.h"
+
+
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
@@ -76,7 +79,7 @@ bool MemEmulator::initialize(const codeGen &templ, const Trace *t) {
 	scratch.allocate(128);
 	scratch.applyTemplate(templ);
 
-	block = t->bbl();
+	block = t->block();
 
 	effAddr = Null_Register;
 	stackOffset = 0;
@@ -387,7 +390,7 @@ bool MemEmulator::determineEffAddr() {
 		effAddr = REGNUM_EDX;
 	}
 
-    block->func()->obj()->addEmulInsn(addr(),effAddr);
+        block->obj()->addEmulInsn(addr(),effAddr);
     
     return (useECX || useEDX);
 }
@@ -476,16 +479,18 @@ bool MemEmulator::restoreStack() {
 	return true;
 }
 
-bool MemEmulator::emulateOriginalInstruction() {
-	instruction ugly_insn(insn_->ptr());
+using namespace NS_x86;
 
-	if (!insnCodeGen::generateMem(scratch,
-		ugly_insn,
-		0, // ignored
-		0, // ignored
-		effAddr,
-		Null_Register))
-		return false;
+bool MemEmulator::emulateOriginalInstruction() {
+   NS_x86::instruction ugly_insn(insn_->ptr());
+
+   if (!insnCodeGen::generateMem(scratch,
+                                 ugly_insn,
+                                 0, // ignored
+                                 0, // ignored
+                                 effAddr,
+                                 Null_Register))
+      return false;
 
 	// Do we mess with the stack pointer?
 	if (insn_->getOperation().getID() == e_push) {
@@ -752,19 +757,19 @@ string MemEmulator::format() const {
 Address MemEmulator::getTranslatorAddr(bool wantShift) {
    if (wantShift) {
       // Function lookup time
-      int_function *func = scratch.addrSpace()->findOnlyOneFunction("RTtranslateMemoryShift");
+      func_instance *func = scratch.addrSpace()->findOnlyOneFunction("RTtranslateMemoryShift");
       // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
       if (!func) return 0;
       // assert(func);
-      return func->getAddress();
+      return func->addr();
    }
    else {
       // Function lookup time
-      int_function *func = scratch.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
+      func_instance *func = scratch.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
       // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
       if (!func) return 0;
       // assert(func);
-      return func->getAddress();
+      return func->addr();
    }
 }
 
@@ -772,7 +777,7 @@ bool MemEmulatorPatch::apply(codeGen &gen,
                              CodeBuffer *) {
    relocation_cerr << "MemEmulatorPatch::apply @ " << hex << gen.currAddr() << dec << endl;
    relocation_cerr << "\tSource reg " << source_ << endl;
-   assert(!gen.bti());
+   assert(!gen.bt());
 
    // Two debugging assists
    ::emitPushImm(gen.currAddr(), gen);
@@ -1208,10 +1213,10 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
        ::emitPush(RealRegister(effAddr2_), prepatch);
 	   stackShift_ -= 4;
    }
-   buffer.addPIC(prepatch, tracker(t->bbl()));
+   buffer.addPIC(prepatch, tracker(t->block()));
 
    buffer.addPatch(new MemEmulatorPatch(effAddr_, addr_, getTranslatorAddr(prepatch, true)),
-                   tracker(t->bbl()));
+                   tracker(t->block()));
 
        prepatch.setIndex(0);
    if (usesTwo) {
@@ -1219,9 +1224,9 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
 	  stackShift_ += 4;
       ::emitPush(RealRegister(effAddr_), prepatch);
 	  stackShift_ -= 4;
-      buffer.addPIC(prepatch, tracker(t->bbl()));
+      buffer.addPIC(prepatch, tracker(t->block()));
       buffer.addPatch(new MemEmulatorPatch(effAddr2_, addr_, getTranslatorAddr(prepatch, true)),
-                   tracker(t->bbl()));
+                   tracker(t->block()));
       prepatch.setIndex(0);
       ::emitPop(RealRegister(effAddr_), prepatch);
 	  stackShift_ += 4;
@@ -1280,7 +1285,7 @@ bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuf
    // And clean up
    if (!trailingTeardown(prepatch)) return false;
 
-   buffer.addPIC(prepatch, tracker(t->bbl()));
+   buffer.addPIC(prepatch, tracker(t->block()));
    
    return true;
 }

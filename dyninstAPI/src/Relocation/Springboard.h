@@ -37,8 +37,11 @@
 #include "common/h/IntervalTree.h"
 #include "dynutil/h/dyntypes.h"
 #include "Transformers/Transformer.h" // Priority enum
+#include "dyninstAPI/src/codegen.h"
 
 class AddressSpace;
+
+class func_instance;
 
 namespace Dyninst {
 namespace Relocation {
@@ -62,14 +65,14 @@ typedef enum {
 struct SpringboardReq {
    Address from;
    Priority priority;
-   typedef std::map<int_block *, Address> Destinations;
+   typedef std::map<block_instance *, Address> Destinations;
    Destinations destinations;
    bool checkConflicts;
    bool includeRelocatedCopies;
    bool fromRelocatedCode;
    bool useTrap;
    SpringboardReq(const Address a, const Address b, 
-                  const Priority c, int_block *d, 
+                  const Priority c, block_instance *d, 
                   bool e, 
                   bool f, 
                   bool g,
@@ -90,7 +93,7 @@ struct SpringboardReq {
       fromRelocatedCode(false),
       useTrap(false) {};
     void addReq (const Address a, const Address b,
-                        const Priority c, int_block *d,
+                        const Priority c, block_instance *d,
                         bool e, bool f, bool g, bool i) 
     {
         // This mechanism handles overlapping functions, where
@@ -134,7 +137,7 @@ class SpringboardBuilder;
    }
 
    void addFromOrigCode(Address from, Address to, 
-                        Priority p, int_block *bbl) {
+                        Priority p, block_instance *bbl) {
 // This uses the default constructor if it isn't already there.
       sBoardMap_[p][from].addReq(from, to, p, bbl, true, true, false, false);
    }
@@ -150,7 +153,7 @@ class SpringboardBuilder;
                                            true, false);
    };
    
-   void addRaw(Address from, Address to, Priority p, int_block *bbl,
+   void addRaw(Address from, Address to, Priority p, block_instance *bbl,
                bool checkConflicts, bool includeRelocatedCopies, bool fromRelocatedCode,
                bool useTrap) {
       sBoardMap_[p][from] = SpringboardReq(from, to, p, bbl,
@@ -177,7 +180,7 @@ class SpringboardBuilder {
 
  public:
   typedef dyn_detail::boost::shared_ptr<SpringboardBuilder> Ptr;
-  typedef std::set<int_function *> FuncSet;
+  typedef std::set<func_instance *> FuncSet;
 
   template <typename TraceIter> 
     static Ptr create(TraceIter begin, TraceIter end, AddressSpace *addrSpace); 
@@ -192,8 +195,8 @@ class SpringboardBuilder {
   static const int UnallocatedStart;
 
  SpringboardBuilder(AddressSpace *a) : addrSpace_(a), curRange_(UnallocatedStart) {};
-  template <typename TraceIter> 
-    bool addTraces(TraceIter begin, TraceIter end, int funcID);
+  template <typename BlockIter> 
+     bool addBlocks(BlockIter begin, BlockIter end, func_instance *func, int funcID);
 
   bool generateInt(std::list<codeGen> &springboards,
                    SpringboardMap &input,

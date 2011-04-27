@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -230,7 +230,7 @@ unsigned char jccOpcodeFromRelOp(unsigned op);
 // XMM registers
 bool xmmCapable();
 
-void emitBTRegRestores32(baseTrampInstance *bti, codeGen &gen);
+void emitBTRegRestores32(baseTramp *bti, codeGen &gen);
 
 struct stackItem {
    enum stackItem_t {

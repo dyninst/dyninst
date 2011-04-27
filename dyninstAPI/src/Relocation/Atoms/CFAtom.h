@@ -34,6 +34,24 @@
 
 #include "Atom.h"
 
+class block_instance;
+class func_instance;
+class instPoint;
+
+namespace NS_x86 {
+   class instruction;
+}
+
+namespace NS_power {
+  class instruction;
+}
+
+#if defined(arch_x86) || defined(arch_x86_64)
+typedef NS_x86::instruction arch_insn;
+#else
+typedef NS_power::instruction arch_insn;
+#endif
+
 namespace Dyninst {
 namespace Relocation {
  class LocalizeCF;
@@ -42,6 +60,7 @@ namespace Relocation {
  class adhocMovementTransformer;
  class Fallthroughs;
  class Modification;
+ class Trace;
 
 class CFAtom : public Atom {
   friend class Transformer;
@@ -49,8 +68,8 @@ class CFAtom : public Atom {
   friend class Instrumenter; // For rewiring edge instrumentation
   friend class adhocMovementTransformer; // Also
   friend class PCSensitiveTransformer;
-  friend class Fallthroughs;
   friend class Modification;
+  friend class Trace;
  public:
   static const Address Fallthrough;
   static const Address Taken;
@@ -58,66 +77,61 @@ class CFAtom : public Atom {
   typedef dyn_detail::boost::shared_ptr<CFAtom> Ptr;
   typedef std::map<Address, TargetInt *> DestinationMap;
 
+  static Ptr create(Address addr);
+  static Ptr create(const Atom::Ptr info);
+
   bool generate(const codeGen &templ,
                 const Trace *,
                 CodeBuffer &buffer);
-
-  TrackerElement *tracker() const;
-  TrackerElement *destTracker(TargetInt *dest) const;
-  TrackerElement *addrTracker(Address addr) const;
-
-  // Factory function... we create these first,
-  // then fill them in.
-  static Ptr create(int_block *);
-		    
-  void updateInsn(InstructionAPI::Instruction::Ptr insn);
-  void updateAddr(Address addr);
-
-  void updateInfo(CFAtom::Ptr old);
-
-  void setCall() { isCall_ = true; };
-  void setConditional() { isConditional_ = true; };
-  void setIndirect() { isIndirect_ = true; };
-  void setPostCallPadding(unsigned i) { postCallPadding_ = i; }
 
   virtual ~CFAtom();
 
   // Owns the provided *dest parameter
   void addDestination(Address index, TargetInt *dest);
   TargetInt *getDestination(Address dest) const;
+  const DestinationMap &destinations() const { return destMap_; }
 
   virtual std::string format() const;
 
   virtual Address addr() const { return addr_; }
   virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
-  virtual unsigned size() const;
-  int_block *block() const { return block_; }
-  bool needsPostCallPadding() const { return postCallPadding_ != 0; }
-  void setOrigTarget(Address addr) { origTarget_ = addr; }
+
+
+  void setGap(unsigned gap) { gap_ = gap; }
+  void setOrigTarget(Address a) { origTarget_ = a; }
+  unsigned gap() const { return gap_; };
 
  private:
-  CFAtom(int_block *block)
-     : isCall_(false),
+   CFAtom(Address a)
+      : isCall_(false),
      isConditional_(false),
      isIndirect_(false),
-     postCallPadding_(0),
-     addr_(0),
-     origTarget_(0),
-     block_(block) {};
+     gap_(0),
+     addr_(a), 
+     origTarget_(0) {};
 
+   CFAtom(InstructionAPI::Instruction::Ptr insn,
+          Address addr);
+
+   TrackerElement *tracker(const Trace *) const;
+   TrackerElement *destTracker(TargetInt *dest) const;
+   TrackerElement *addrTracker(Address addr, const Trace *) const;
+   TrackerElement *padTracker(Address addr, unsigned size, const Trace *) const;
+   
+
+  // These are not necessarily mutually exclusive. See also:
+  // PPC conditional linking indirect branch, oy. 
   bool isCall_;
   bool isConditional_;
   bool isIndirect_;
 
-  unsigned postCallPadding_;
+  unsigned gap_;
 
   InstructionAPI::Instruction::Ptr insn_;
   Address addr_;
-  Address origTarget_; 
 
-  // An expression that represents how the PC is determined
-  // Should be a single register, but who are we to judge?
-  InstructionAPI::Expression::Ptr targetExpr_;
+  // If we were a PC-relative indirect store that data here
+  Address origTarget_;
 
   // A map from input values (for some representation of input
   // values) to Targets
@@ -130,9 +144,6 @@ class CFAtom : public Atom {
   // to split these up.
   DestinationMap destMap_;
 
-  int_block *block_;
-
-  //
   // These should move to a CodeGenerator class or something...
   // But for now they can go here
   // The Instruction input allows pulling out ancillary data (e.g.,
@@ -140,24 +151,29 @@ class CFAtom : public Atom {
   bool generateBranch(CodeBuffer &gens,
 		      TargetInt *to,
 		      InstructionAPI::Instruction::Ptr insn,
+                      const Trace *trace,
 		      bool fallthrough);
 
   bool generateCall(CodeBuffer &gens,
 		    TargetInt *to,
+                    const Trace *trace,
 		    InstructionAPI::Instruction::Ptr insn); 
 
   bool generateConditionalBranch(CodeBuffer &gens,
 				 TargetInt *to,
+                                 const Trace *trace,
 				 InstructionAPI::Instruction::Ptr insn); 
   // The Register holds the translated destination (if any)
   // TODO replace with the register IDs that Bill's building
   typedef unsigned Register;
   bool generateIndirect(CodeBuffer &gens,
 			Register reg,
+                        const Trace *trace,
 			InstructionAPI::Instruction::Ptr insn);
   bool generateIndirectCall(CodeBuffer &gens,
 			    Register reg,
 			    InstructionAPI::Instruction::Ptr insn,
+                            const Trace *trace,
 			    Address origAddr);
   
   bool generateAddressTranslator(CodeBuffer &buffer,
@@ -178,17 +194,21 @@ struct CFPatch : public Patch {
  CFPatch(Type a, 
          InstructionAPI::Instruction::Ptr b, 
          TargetInt *c,
-	 Address d = 0) :
-  type(a), orig_insn(b), target(c), origAddr_(d) {};
+	 Address d = 0);
   
   virtual bool apply(codeGen &gen, CodeBuffer *buf);
   virtual unsigned estimate(codeGen &templ);
-  virtual ~CFPatch() {};
+  virtual ~CFPatch();
 
   Type type;
   InstructionAPI::Instruction::Ptr orig_insn;
   TargetInt *target;
   Address origAddr_;  
+  arch_insn *ugly_insn;
+
+  private:
+  bool isPLT(codeGen &gen);
+  bool applyPLT(codeGen &gen, CodeBuffer *buf);
 };
 
 struct PaddingPatch : public Patch {
@@ -200,7 +220,7 @@ struct PaddingPatch : public Patch {
   // do statically, but the second requires a patch so that
   // we get notified of address finickiness.
 
-  PaddingPatch(unsigned size, bool registerDefensive, bool noop, int_block *b) 
+  PaddingPatch(unsigned size, bool registerDefensive, bool noop, block_instance *b) 
      : size_(size), registerDefensive_(registerDefensive), noop_(noop), block_(b) {};
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
    virtual unsigned estimate(codeGen &templ);
@@ -209,7 +229,7 @@ struct PaddingPatch : public Patch {
    unsigned size_;
    bool registerDefensive_;
    bool noop_;
-   int_block *block_;
+   block_instance *block_;
 };
 
 };

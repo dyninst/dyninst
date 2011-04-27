@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -64,7 +64,11 @@ class IA_IAPI : public InstructionAdapter {
 
 		virtual ~IA_IAPI() {
         }
-        Dyninst::InstructionAPI::Instruction::Ptr getInstruction();
+        void reset(Dyninst::InstructionAPI::InstructionDecoder dec_,
+          Address start, ParseAPI::CodeObject *o,
+          ParseAPI::CodeRegion *r, InstructionSource *isrc, ParseAPI::Block *);
+
+        virtual Dyninst::InstructionAPI::Instruction::Ptr getInstruction() const;
     
         virtual bool hasCFT() const;
         virtual size_t getSize() const;
@@ -116,9 +120,25 @@ private:
 
 
         Dyninst::InstructionAPI::InstructionDecoder dec;
-        std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr> allInsns;
+
+        /*
+         * Decoded instruction cache: contains the linear
+         * sequence of instructions decoded by the decoder
+         * underlying this adapter.
+         * 
+         * - curInsnIter == *(allInsns.end()-1)
+         * - (super)->current = curInsnIter->first
+         */
+public:
+        typedef std::vector< 
+            std::pair<Address, 
+            Dyninst::InstructionAPI::Instruction::Ptr> 
+        > allInsns_t;
+private:
+        allInsns_t allInsns;
         Dyninst::InstructionAPI::Instruction::Ptr curInsn() const;
-        std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::iterator curInsnIter;
+        allInsns_t::iterator curInsnIter;
+
         mutable bool validCFT;
         mutable std::pair<bool, Address> cachedCFT;
         mutable bool validLinkerStubState;

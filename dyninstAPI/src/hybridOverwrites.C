@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -115,8 +115,8 @@ bool HybridAnalysisOW::codeChangeCB
             vector<ParseAPI::Function*>::iterator fiter = funcs.begin();
             for ( ; fiter != funcs.end(); fiter++) {
                 Address fAddr = proc()->lowlevel_process()->
-                    findFuncByInternalFunc(dynamic_cast<image_func*>(*fiter))->
-                    getAddress();
+                   findFunction(dynamic_cast<parse_func*>(*fiter))->
+                   addr();
                 std::vector<BPatch_function*>::iterator bfiter=modfuncs.begin();
                 for (; bfiter != modfuncs.end(); bfiter++) {
                     if (fAddr == (Address)(*bfiter)->getBaseAddr()) {
@@ -378,7 +378,9 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop(Address writeInsn)
         if ((*uIter)->isDynamic()) {
             long st = 0;
             vector<Address> targs;
-            if ((*uIter)->llpoint()->getCallAndBranchTargets(targs)) {
+            if (hybridow_->hybrid_->getCallAndBranchTargets
+                ((*uIter)->llpoint()->block(), targs)) 
+            {
                 st = * targs.begin();
             }
             BPatch_constExpr stSnip(st);
@@ -412,11 +414,15 @@ void HybridAnalysisOW::owLoop::instrumentOneWrite(Address writeInsnAddr,
 
     for (unsigned fidx =0; fidx < writeFuncs.size(); fidx++) 
     {
-        // create instrumentation points
-        BPatch_point * writePoint = hybridow_->proc()->getImage()->
-                createInstPointAtAddr((void*)writeInsnAddr, 
-                                      NULL, 
-                                      writeFuncs[fidx]);
+       // We can afford to be really slow and precise in the lookup, as this is the
+       // very, very, very uncommon case.
+       block_instance *block = writeFuncs[fidx]->lowlevel_func()->obj()->findOneBlockByAddr(writeInsnAddr);
+       if (!block) continue;
+       instPoint *ip = instPoint::postInsn(writeFuncs[fidx]->lowlevel_func(),
+                                           block,
+                                           writeInsnAddr);
+       BPatch_point *writePoint = hybridow_->proc()->findOrCreateBPPoint(writeFuncs[fidx],
+                                                                         ip);
 
         // instrument and store the snippet handle
         BPatchSnippetHandle *snippetHandle = hybridow_->proc()->insertSnippet
@@ -599,7 +605,7 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getParentLoop(BPatch_function &func, Ad
                 vector<BPatch_basicBlockLoop*> callWriteLoops;
                 BPatch_basicBlockLoop* firstNoCallLoop = NULL;
                 for (unsigned fidx=1; fidx < stacks[writeStackIdx].size(); fidx++) {
-                    int_function *curIntF = stacks[writeStackIdx][fidx].getFunc();
+                    func_instance *curIntF = stacks[writeStackIdx][fidx].getFunc();
                     if (!curIntF) {
                         break; // we haven't parsed at the function's call
                                // fallthrough address, if there is a loop here
@@ -610,8 +616,8 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getParentLoop(BPatch_function &func, Ad
                         findOrCreateBPFunc(curIntF, NULL);
                     // translate PC to unrelocated version
                     Address origPC = stacks[writeStackIdx][fidx].getPC();
-                    vector<int_function*> tmp1;
-                    baseTrampInstance *tmp2;
+                    vector<func_instance*> tmp1;
+                    baseTramp *tmp2;
                     proc()->lowlevel_process()->getAddrInfo
                         (stacks[writeStackIdx][fidx].getPC(),origPC,tmp1,tmp2);
                     // get loop
@@ -714,7 +720,7 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop
                 {
                     if ((*pIter)->isDynamic()) {
                         vector<Address> targs;
-                        if (!(*pIter)->llpoint()->getCallAndBranchTargets(targs)) {
+                        if (!hybrid_->getCallAndBranchTargets((*pIter)->llpoint()->block(),targs)) {
                             mal_printf("loop has an unresolved indirect transfer at %lx\n", 
                                     (*pIter)->getAddress());
                             hasUnresolved = true;
@@ -843,7 +849,7 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
              pIter++) 
         {
             vector<Address> targs;
-            (*pIter)->llpoint()->getCallAndBranchTargets(targs);
+            hybrid_->getCallAndBranchTargets((*pIter)->llpoint()->block(), targs);
             if (1 != targs.size()) {
                 loop->unresExits_.insert(*pIter);
                 hasUnresolved = true;
@@ -930,7 +936,7 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
                 // We've already checked that the transfer is uniquely 
                 // resolved, add the target.
                 vector<Address> targs;
-                (*pIter)->llpoint()->getCallAndBranchTargets(targs);
+                hybrid_->getCallAndBranchTargets((*pIter)->llpoint()->block(), targs);
                 assert(targs.size() == 1); 
                 mal_printf("loop %d has a resolved indirect transfer at %lx with "
                           "target %lx\n", loop->getID(), (*pIter)->getAddress(), 
@@ -1251,7 +1257,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 #endif
 
 
-bool HybridAnalysisOW::isRealStore(Address insnAddr, int_block *block, 
+bool HybridAnalysisOW::isRealStore(Address insnAddr, block_instance *block, 
                                    BPatch_function *func) 
 {
     using namespace InstructionAPI;
@@ -1262,7 +1268,7 @@ bool HybridAnalysisOW::isRealStore(Address insnAddr, int_block *block,
             			       proc()->lowlevel_process()->getArch());
     Instruction::Ptr insn = decoder.decode();
     assert(insn != NULL);
-    image_func *imgfunc = func->lowlevel_func()->ifunc(); 
+    parse_func *imgfunc = func->lowlevel_func()->ifunc(); 
     Address image_addr = func->lowlevel_func()->addrToOffset(insnAddr);
 
     std::vector<Assignment::Ptr> assignments;

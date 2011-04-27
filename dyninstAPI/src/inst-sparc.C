@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -123,41 +123,6 @@ void initDefaultPointFrequencyTable()
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-
-/*
- * Get an estimate of the frequency for the passed instPoint.  
- *    This is not (always) the same as the function that contains the point.
- * 
- *  The function is selected as follows:
- *
- *  If the point is an entry or an exit return the function name.
- *  If the point is a call and the callee can be determined, return the called
- *     function.
- *  else return the funcation containing the point.
- *
- *  WARNING: This code contins arbitray values for func frequency (both user 
- *     and system).  This should be refined over time.
- *
- * Using 1000 calls sec to be one SD from the mean for most FPSPEC apps.
- *      -- jkh 6/24/94
- *
- */
-float getPointFrequency(instPoint *point)
-{
-
-    int_function *func = point->findCallee();
-    if (!func)
-        func = point->func();
-    
-    if (!funcFrequencyTable.defines(func->prettyName().c_str())) {
-        // Changing this value from 250 to 100 because predictedCost was
-        // too high - naim 07/18/96
-        return(100); 
-        
-    } else {
-        return (funcFrequencyTable[func->prettyName().c_str()]);
-    }
-}
 
 /****************************************************************************/
 /****************************************************************************/
@@ -516,7 +481,7 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
 // this by ensuring that the register context upon entry to CALLEE is
 // the register context of function we are instrumenting, popped once.
 void emitFuncJump(opCode op, codeGen &gen, 
-                  int_function *callee, AddressSpace * /*proc*/,
+                  func_instance *callee, AddressSpace * /*proc*/,
                   const instPoint *, bool)
 {
     assert(op == funcJumpOp);
@@ -798,7 +763,7 @@ void emitStorePreviousStackFrameRegister(Address,
 Register emitFuncCall(opCode op, 
 		      codeGen &gen, 
 		      pdvector<AstNodePtr> &operands, 
-		      bool noCost, int_function *callee)
+		      bool noCost, func_instance *callee)
 {
    assert(op == callOp || op == funcJumpOp);
    pdvector <Register> srcs;
@@ -1494,7 +1459,7 @@ int instPoint::liveRegSize()
 /**
  * Fills in an indirect function pointer at 'addr' to point to 'f'.
  **/
-bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
+bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
 {
    Address val_to_write = f->getAddress();
    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   

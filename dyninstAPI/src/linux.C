@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -81,11 +81,6 @@
 
 #include "dynamiclinking.h"
 
-#if defined (cap_save_the_world)
-#include "dyninstAPI/src/addLibraryLinux.h"
-#include "dyninstAPI/src/writeBackElf.h"
-// #include "saveSharedLibrary.h" 
-#endif
 #include "symtabAPI/h/Symtab.h"
 using namespace Dyninst::SymtabAPI;
 
@@ -109,6 +104,7 @@ using namespace Dyninst::SymtabAPI;
 #if defined(PTRACEDEBUG) && !defined(PTRACEDEBUG_ALWAYS)
 static bool debug_ptrace = false;
 #endif
+
 
 WaitpidMux SignalGenerator::waitpid_mux;
 
@@ -1375,7 +1371,7 @@ bool process::dumpImage( std::string )
 }
 
 //Returns true if the function is part of the PLT table
-bool isPLT(int_function *f)
+bool isPLT(func_instance *f)
 {
     Symtab *obj = f->mod()->obj()->parse_img()->getObject();
     Region *sec;
@@ -1640,10 +1636,10 @@ Address findFunctionToHijack(process *p)
    for(i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
       const char *func_name = DYNINST_LOAD_HIJACK_FUNCTIONS[i];
 
-      pdvector<int_function *> hijacks;
+      pdvector<func_instance *> hijacks;
       if (!p->findFuncsByAll(func_name, hijacks))
           return 0;
-      codeBase = hijacks[0]->getAddress();
+      codeBase = hijacks[0]->addr();
 
       if (codeBase)
           break;
@@ -1657,7 +1653,7 @@ Address findFunctionToHijack(process *p)
  * to libpthread, then to libc, then to the process.
  **/
 static void findThreadFuncs(process *p, std::string func, 
-                            pdvector<int_function *> &result)
+                            pdvector<func_instance *> &result)
 {
    bool found = false;
    mapped_module *lpthread = p->findModule("libpthread*", true);
@@ -1688,7 +1684,7 @@ bool process::initMT()
     * Instrument thread_create with calls to DYNINST_dummy_create
     **/
    //Find create_thread
-   pdvector<int_function *> thread_init_funcs;
+   pdvector<func_instance *> thread_init_funcs;
    findThreadFuncs(this, "create_thread", thread_init_funcs);
    findThreadFuncs(this, "start_thread", thread_init_funcs);
    if (thread_init_funcs.size() < 1)
@@ -1698,7 +1694,7 @@ bool process::initMT()
       return false;
    }
    //Find DYNINST_dummy_create
-   int_function *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
+   func_instance *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
    if (!dummy_create)
    {
      fprintf(stderr, "[%s:%d] - Couldn't find DYNINST_dummy_create",
@@ -1706,27 +1702,17 @@ bool process::initMT()
       return false;
    }
    //Instrument
+   // Do we want to move this to bpatch?
+   
    for (i=0; i<thread_init_funcs.size(); i++)
    {
       pdvector<AstNodePtr> args;
       AstNodePtr ast = AstNode::funcCallNode(dummy_create, args);
-      const pdvector<instPoint *> &ips = thread_init_funcs[i]->funcEntries();
-      for (unsigned j=0; j<ips.size(); j++)
-      {
-         miniTramp *mt;
-         mt = ips[j]->instrument(ast, callPreInsn, orderFirstAtPoint, false, 
-                                 false);
-         if (!mt)
-         {
-            fprintf(stderr, "[%s:%d] - Couldn't instrument thread_create\n",
-                    __FILE__, __LINE__);
-         }
-         //TODO: Save the mt objects for detach
-      }
+      instPoint::funcEntry(thread_init_funcs[i])->push_front(ast, false);
    }
       
    //Find functions that are run on pthread exit
-   pdvector<int_function *> thread_dest_funcs;
+   pdvector<func_instance *> thread_dest_funcs;
    findThreadFuncs(this, "__pthread_do_exit", thread_dest_funcs);
    findThreadFuncs(this, "pthread_exit", thread_dest_funcs);
    findThreadFuncs(this, "deallocate_tsd", thread_dest_funcs);
@@ -1737,7 +1723,7 @@ bool process::initMT()
       return false;
    }
    //Find DYNINSTthreadDestroy
-   int_function *threadDestroy = findOnlyOneFunction("DYNINSTthreadDestroy");
+   func_instance *threadDestroy = findOnlyOneFunction("DYNINSTthreadDestroy");
    if (!threadDestroy)
    {
       fprintf(stderr, "[%s:%d] - Couldn't find DYNINSTthreadDestroy",
@@ -1749,40 +1735,11 @@ bool process::initMT()
    {
       pdvector<AstNodePtr> args;
       AstNodePtr ast = AstNode::funcCallNode(threadDestroy, args);
-      const pdvector<instPoint *> &ips = thread_dest_funcs[i]->funcExits();
-      for (unsigned j=0; j<ips.size(); j++)
-      {
-         miniTramp *mt;
-         mt = ips[j]->instrument(ast, callPreInsn, orderFirstAtPoint, false, 
-                                 false);
-         if (!mt)
-         {
-            fprintf(stderr, "[%s:%d] - Couldn't instrument thread_exit\n",
-                    __FILE__, __LINE__);
-         }
-         //TODO: Save the mt objects for detach
+      const func_instance::BlockSet &exits = thread_dest_funcs[i]->exitBlocks();
+      for (func_instance::BlockSet::iterator iter = exits.begin(); iter != exits.end(); ++iter) {
+         instPoint::funcExit(thread_dest_funcs[i], *iter)->push_front(ast, false);
       }
    }
-
-#if 0
-   //Instrument
-   for (i=0; i<thread_dest_funcs.size(); i++)
-   {
-      pdvector<AstNodePtr > args;
-      AstNode call_thread_destroy(threadDestroy, args);
-      AstNodePtr ast = &call_thread_destroy;
-      miniTrampHandle *mthandle;
-      instPoint *ip = thread_dest_funcs[i]->funcEntry(this);
-
-      result = addInstFunc(this, mthandle, ip, ast, callPostInsn, 
-                           orderFirstAtPoint, true, true, true);
-      if (result != success_res)
-      {
-         fprintf(stderr, "[%s:%d] - Couldn't instrument thread_destroy\n",
-                 __FILE__, __LINE__);
-      }
-   }
-#endif
      
    /**
     * Have dyn_pthread_self call the actual pthread_self
@@ -1798,7 +1755,7 @@ bool process::initMT()
    assert(ptself_syms.size() == 1);
    Address dyn_pthread_self = ptself_syms[0]->getAddress();
    //Find pthread_self
-   pdvector<int_function *> pthread_self_funcs;
+   pdvector<func_instance *> pthread_self_funcs;
    findThreadFuncs(this, "pthread_self", pthread_self_funcs);   
    if (pthread_self_funcs.size() != 1)
    {
@@ -1806,10 +1763,10 @@ bool process::initMT()
               __FILE__, __LINE__, (long) pthread_self_funcs.size());
       for (unsigned j=0; j<pthread_self_funcs.size(); j++)
       {
-         int_function *ps = pthread_self_funcs[j];
+         func_instance *ps = pthread_self_funcs[j];
          fprintf(stderr, "[%s:%u] - %s in module %s at %lx\n", __FILE__, __LINE__,
                  ps->prettyName().c_str(), ps->mod()->fullName().c_str(), 
-                 ps->getAddress());
+                 ps->addr());
       }
       return false;
    }   
@@ -1821,6 +1778,9 @@ bool process::initMT()
               __FILE__, __LINE__);
       return false;
    }
+
+   // Actually cause instrumentation to go in
+   relocate();
 
    return true;
 }
@@ -2559,7 +2519,7 @@ bool BinaryEdit::archSpecificMultithreadCapable() {
     if( mobj->isStaticExec() ) {
         int numSymsFound = 0;
         for(int i = 0; i < NUM_PTHREAD_SYMS; ++i) {
-            const pdvector<int_function *> *tmpFuncs = 
+            const pdvector<func_instance *> *tmpFuncs = 
                 mobj->findFuncVectorByPretty(pthreadSyms[i]);
             if( tmpFuncs != NULL && tmpFuncs->size() ) numSymsFound++;
         }

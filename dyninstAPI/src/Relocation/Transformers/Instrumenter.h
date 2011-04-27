@@ -33,19 +33,23 @@
 #define _R_T_INSTRUMENTER_H_
 
 #include "Transformer.h"
+#include "dyninstAPI/src/instPoint.h"
 
 namespace Dyninst {
 namespace Relocation {
 
 class Instrumenter : public Transformer {
  public:
-  virtual bool processTrace(TraceList::iterator &);
-  virtual bool postprocess(TraceList &l);
-
+  // Mirrors definition in CodeMover
+  typedef std::map<block_instance *, TracePtr> TraceMap;
+   
+  virtual bool processTrace(TraceList::iterator &, const TraceMap &);
+  virtual bool postprocess(TraceList &);
+  
   Instrumenter() {};
-
+  
   virtual ~Instrumenter() {};
-
+  
  private:
   typedef enum {
     Before,
@@ -55,14 +59,17 @@ class Instrumenter : public Transformer {
   typedef std::map<InsertPoint, TraceList> EdgeTraces;
   typedef dyn_detail::boost::shared_ptr<CFAtom> CFAtomPtr;
 
+  bool funcEntryInstrumentation(TracePtr trace);
+  bool funcExitInstrumentation(TracePtr trace);
+  bool blockEntryInstrumentation(TracePtr trace);
+  bool edgeInstrumentation(TracePtr trace, const TraceMap &map);
+  bool preCallInstrumentation(TracePtr trace);
+  bool postCallInstrumentation(TracePtr trace);
+  bool insnInstrumentation(TracePtr trace);
+
   EdgeTraces edgeTraces_;
 
-  bool addEdgeInstrumentation(baseTramp *tramp,
-            			      CFAtomPtr cf,
-		            	      Address dest,
-                              When when,
-			                  TracePtr cur);
-
+  AtomPtr makeInstrumentation(instPoint *point);
 };
 
 };

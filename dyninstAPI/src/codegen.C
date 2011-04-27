@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -56,7 +56,8 @@
 #define CODE_GEN_OFFSET_SIZE (instruction::size())
 #endif
 
-const unsigned int codeGenPadding = 256;
+const unsigned int codeGenPadding = (128);
+const unsigned int codeGenMinAlloc = (4 * 1024);
 
 codeGen::codeGen() :
     buffer_(NULL),
@@ -72,7 +73,7 @@ codeGen::codeGen() :
     addr_((Address)-1),
     ip_(NULL),
     f_(NULL),
-    bti_(NULL),
+    bt_(NULL),
     isPadded_(true),
     trackRegDefs_(false),
     inInstrumentation_(false), // save default
@@ -94,7 +95,7 @@ codeGen::codeGen(unsigned size) :
     addr_((Address)-1),
     ip_(NULL),
     f_(NULL),
-    bti_(NULL),
+    bt_(NULL),
     isPadded_(true),
     trackRegDefs_(false),
     inInstrumentation_(false),
@@ -128,7 +129,7 @@ codeGen::codeGen(const codeGen &g) :
     addr_(g.addr_),
     ip_(g.ip_),
     f_(g.f_),
-    bti_(g.bti_),
+    bt_(g.bt_),
     isPadded_(g.isPadded_),
     trackRegDefs_(g.trackRegDefs_),
     inInstrumentation_(g.inInstrumentation_),
@@ -227,10 +228,14 @@ void codeGen::invalidate() {
     isPadded_ = false;
 }
 
+bool codeGen::verify() {
+    return true;
+}
+
 void codeGen::finalize() {
     assert(buffer_);
     assert(size_);
-
+    cerr << "FINALIZE!" << endl;
     applyPatches();
     if (size_ == offset_) return;
     if (offset_ == 0) {
@@ -245,13 +250,18 @@ void codeGen::finalize() {
 }
 
 void codeGen::copy(const void *b, const unsigned size, const codeBufIndex_t index) {
+  if (size == 0) return;
+
   codeBufIndex_t current = getIndex();
   setIndex(index);
   copy(b, size);
   setIndex(current);
+
 }
 
 void codeGen::copy(const void *b, const unsigned size) {
+  if (size == 0) return;
+
   assert(buffer_);
   
   realloc(used() + size);
@@ -262,8 +272,9 @@ void codeGen::copy(const void *b, const unsigned size) {
 }
 
 void codeGen::copy(const std::vector<unsigned char> &buf) {
-   assert(buffer_);
+  if (buf.empty()) return;
 
+   assert(buffer_);
    realloc(used() + buf.size());
    
    unsigned char * ptr = (unsigned char *)cur_ptr();
@@ -281,6 +292,23 @@ void codeGen::copy(codeGen &gen) {
   offset_ += gen.offset_;
   assert(used() <= size_);
 }
+
+void codeGen::copyAligned(const void *b, const unsigned size) {
+  if (size == 0) return;
+
+  assert(buffer_);
+  
+  realloc(used() + size);
+
+  memcpy(cur_ptr(), b, size);
+
+  unsigned alignedSize = size;
+  alignedSize += (CODE_GEN_OFFSET_SIZE - (alignedSize % CODE_GEN_OFFSET_SIZE));
+
+  moveIndex(alignedSize);
+}
+
+
 
 // codeBufIndex_t stores in platform-specific units.
 unsigned codeGen::used() const {
@@ -332,7 +360,7 @@ void codeGen::update(codeBuf_t *ptr) {
 	  cerr << "Used too much extra: " << used() - size_ << " bytes" << endl;
 	  assert(0 && "Overflow in codeGen");
         }
-	realloc(used());
+	realloc(2*used());
     }
 
     assert(used() <= size_);
@@ -358,6 +386,7 @@ codeBufIndex_t codeGen::getIndex() const {
 }
 
 void codeGen::moveIndex(int disp) {
+
     int cur = getIndex() * CODE_GEN_OFFSET_SIZE;
     cur += disp;
     if (cur % CODE_GEN_OFFSET_SIZE) {
@@ -429,7 +458,7 @@ void codeGen::applyTemplate(const codeGen &c) {
   t_ = c.t_;
   ip_ = c.ip_;
   f_ = c.f_;
-  bti_ = c.bti_;
+  bt_ = c.bt_;
   inInstrumentation_ = c.inInstrumentation_;
 }
 
@@ -442,9 +471,13 @@ void codeGen::setAddrSpace(AddressSpace *a)
 void codeGen::realloc(unsigned newSize) {  
    if (newSize <= size_) return;
 
-   size_ = newSize;
-   max_ = size_ + codeGenPadding;
+   unsigned increment = newSize - size_;
+   if (increment < codeGenMinAlloc) increment = codeGenMinAlloc;
+
+   size_ += increment;
+   max_ += increment;
    buffer_ = (codeBuf_t *)::realloc(buffer_, max_);
+   
    assert(buffer_);
 }
 
@@ -632,7 +665,7 @@ instPoint *codeGen::point() const {
     return ip_;
 }
 
-int_function *codeGen::func() const {
+func_instance *codeGen::func() const {
     if (f_) return f_;
     if (ip_) return ip_->func();
     return NULL;
@@ -694,7 +727,7 @@ Dyninst::Architecture codeGen::getArch() const {
   return Arch_none;
 }
 
-void codeGen::registerDefensivePad(int_block *callBlock, Address padStart, unsigned padSize) {
+void codeGen::registerDefensivePad(block_instance *callBlock, Address padStart, unsigned padSize) {
   // Register a match between a call instruction
   // and a padding area post-reloc-call for
   // control flow interception purposes.
@@ -703,3 +736,26 @@ void codeGen::registerDefensivePad(int_block *callBlock, Address padStart, unsig
   defensivePads_[callBlock] = Extent(padStart, padSize);
 }
 
+
+#include "InstructionDecoder.h"
+using namespace InstructionAPI;
+
+std::string codeGen::format() const {
+   if (!aSpace_) return "<codeGen>";
+
+   stringstream ret;
+
+   Address base = (addr_ != (Address)-1) ? addr_ : 0;
+   InstructionDecoder deco
+      (buffer_,used(),aSpace_->getArch());
+   Instruction::Ptr insn = deco.decode();
+   ret << hex;
+   while(insn) {
+     ret << "\t" << base << ": " << insn->format(base) << " / " << *((unsigned *)insn->ptr()) << endl;
+      base += insn->size();
+      insn = deco.decode();
+   }
+   ret << dec;
+   return ret.str();
+};
+   

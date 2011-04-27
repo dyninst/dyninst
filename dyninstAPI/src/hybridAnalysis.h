@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -51,7 +51,7 @@ class DefenseReport;
 class BPatchSnippetHandle;
 class BPatch_basicBlock;
 class BPatch_basicBlockLoop;
-class int_block;
+class block_instance;
 
 #if !defined(os_windows)
 // Compatibility definitions
@@ -79,10 +79,10 @@ private:
         BPatchSnippetHandle *preHandle_;
         BPatchSnippetHandle *postHandle_;
    };
-    typedef struct ExceptionDetails {
+    typedef struct {
         Address faultPCaddr;
         bool isInterrupt;
-    };
+    } ExceptionDetails; 
 
 public:
 
@@ -174,8 +174,6 @@ private:
                             bool useInsertionSet, 
                             bool instrumentReturns=false,
                             bool syncShadow = false);
-    void origToShadowInstrumentation(BPatch_point *callPt, 
-                                     const std::vector<int_block*> &blks);
     bool parseAfterCallAndInstrument(BPatch_point *callPoint, 
                         BPatch_function *calledFunc) ;
     void removeInstrumentation(BPatch_function *func, 
@@ -198,6 +196,11 @@ private:
                              bool doInstrumentation , 
                              bool useInsertionSet );
     bool addIndirectEdgeIfNeeded(BPatch_point *srcPt, Dyninst::Address target);
+
+    // utility functions that could go in another class, but that no one else 
+    // really needs
+    bool getCallAndBranchTargets(block_instance *block, std::vector<Address> & targs);
+    bool getCFTargets(BPatch_point *point, vector<Address> &targets);
 
     // needs to call removeInstrumentation
     friend void BPatch_process::overwriteAnalysisUpdate
@@ -375,7 +378,7 @@ private:
                               owLoop *loop);
 
     bool isRealStore(Dyninst::Address insnAddr, 
-                     int_block *blk, 
+                     block_instance *blk, 
                      BPatch_function *func);
 
     // variables

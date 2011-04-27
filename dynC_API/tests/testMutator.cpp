@@ -89,7 +89,7 @@ int main(){
         printf("entry point %d is null \n", i);
      }
      char str[] = "printf(\"Flow!\\n\");"; 
-     BPatch_snippet *retSnippet = dynC_API::createSnippet(str, *(*entry_points)[i], "entrySnippet");
+     BPatch_snippet *retSnippet = dynC_API::createSnippet(fileString, *(*entry_points)[i], "entrySnippet");
      if (retSnippet != NULL){
         appProc->insertSnippet(*retSnippet, *(*entry_points)[i]);       
      }

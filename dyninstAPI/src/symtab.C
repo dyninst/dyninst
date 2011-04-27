@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -38,7 +38,6 @@
 
 #include "symtab.h"
 #include "common/h/arch.h"
-#include "instPoint.h"
 #include "parRegion.h"
 #include "util.h"
 #include "inst.h"
@@ -79,7 +78,7 @@
 #endif
 
 AnnotationClass<image_variable> ImageVariableUpPtrAnno("ImageVariableUpPtrAnno");
-AnnotationClass<image_func> ImageFuncUpPtrAnno("ImageFuncUpPtrAnno");
+AnnotationClass<parse_func> ImageFuncUpPtrAnno("ImageFuncUpPtrAnno");
 pdvector<image*> allImages;
 
 using namespace std;
@@ -298,7 +297,7 @@ namespace {
         // Get all of the assignments that happen in this instruction
         AssignmentConverter conv(true);
         vector<Assignment::Ptr> assigns;
-        conv.convert(r8_def,r8_def_addr,f,assigns);
+        conv.convert(r8_def,r8_def_addr,f,b,assigns);
 
         // find the one we care about (r8)
         vector<Assignment::Ptr>::iterator ait = assigns.begin();
@@ -953,39 +952,6 @@ pdmodule *image::findModule(const string &name, bool wildcard)
    return NULL;
 }
 
-image_instPoint *
-image::getInstPoint(ParseAPI::Block *b, Address addr)
-{
-    analyzeIfNeeded();
-    instp_map_t::iterator iit = inst_pts_.find(b);
-    if(iit == inst_pts_.end())
-        return NULL;
-    block_map_t::iterator iter = iit->second.find(addr);
-    if (iter == iit->second.end()) 
-        return NULL;
-    return iter->second;
-}
-void
-image::getInstPoints(Block *b,
-    pdvector<image_instPoint *> & points)
-{
-    analyzeIfNeeded();
-    instp_map_t::iterator iit = inst_pts_.find(b);
-    if (iit == inst_pts_.end()) return;
-    for (block_map_t::iterator iter = iit->second.begin(); iter != iit->second.end(); ++iter)
-    {
-        points.push_back(iter->second);
-    }
-}
-
-bool
-image::addInstPoint(image_instPoint *newP)
-{
-    inst_pts_[newP->block()][newP->offset()] = newP;
-
-    return true;
-}
-
 CodeObject::funclist &
 image::getAllFunctions()
 {
@@ -1228,7 +1194,7 @@ int image::destroy() {
     return refCount; 
 }
 
-void image::deleteFunc(image_func *func)
+void image::deleteFunc(parse_func *func)
 {
     // remove the function from symtabAPI
     SymtabAPI::Function *sym_func =NULL;
@@ -1240,44 +1206,6 @@ void image::deleteFunc(image_func *func)
     // and delete the function
     codeObject()->deleteFunc(func);
 
-}
-
-// re-assign b1 blocks to b2 if the split requires it
-void image::fixSplitPoints(ParseAPI::Block *b1, ParseAPI::Block *b2)
-{
-    instp_map_t::iterator iit = inst_pts_.find(b1);
-    if (iit == inst_pts_.end()) {
-        return;
-    }
-    for (block_map_t::iterator bit = iit->second.begin(); 
-         bit != iit->second.end(); 
-         bit++) 
-    {
-        if (bit->first > b1->lastInsnAddr()) {
-            image_instPoint *pt = bit->second;
-            assert(bit->first <= b2->lastInsnAddr());
-            pt->setBlock(b2);
-            addInstPoint(pt);// will add point under b2
-        }
-    }
-    iit->second.clear();
-    inst_pts_.erase(iit);
-}
-
-void image::deleteInstPoint(image_instPoint *p) {
-    cerr << "Erasing instPoint at " << hex << p->offset() << dec << endl;
-
-    inst_pts_[p->block()].erase(p->offset());
-   delete p;
-}
-
-void image::deleteInstPoints(ParseAPI::Block *b) {
-    for (block_map_t::iterator iter = inst_pts_[b].begin();
-        iter != inst_pts_[b].end(); ++iter) 
-    {
-        delete iter->second;
-    }
-    inst_pts_.erase(b);
 }
 
 void image::analyzeIfNeeded() {
@@ -1329,13 +1257,13 @@ void image::analyzeImage() {
     continue;
       else
     {
-      // Every parallel region has the image_func that contains the
+      // Every parallel region has the parse_func that contains the
       //   region associated with it 
-            image_func * imf = const_cast<image_func*>(parReg->getAssociatedFunc());
+            parse_func * imf = const_cast<parse_func*>(parReg->getAssociatedFunc());
       
-      // Returns pointers to all potential image_funcs that correspond
+      // Returns pointers to all potential parse_funcs that correspond
       //   to what could be the parent OpenMP function for the region 
-      const pdvector<image_func *> *prettyNames =
+      const pdvector<parse_func *> *prettyNames =
         findFuncVectorByPretty(imf->calcParentFunc(imf, parallelRegions));
       
       //There may be more than one (or none) functions with that name, we take the first 
@@ -1403,6 +1331,7 @@ image::image(fileDescriptor &desc,
    nativeCompiler(false),    
    obj_(NULL),
    cs_(NULL),
+   filt(NULL),
    img_fact_(NULL),
    parse_cb_(NULL),
    nextBlockID_(0),
@@ -1464,7 +1393,7 @@ image::image(fileDescriptor &desc,
    string file = desc_.file().c_str();
    if( desc_.member().empty() ) {
        startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
-       if( !SymtabAPI::Symtab::openFile(linkedFile, file, BPatch_defensiveMode == mode) ) {
+       if( !SymtabAPI::Symtab::openFile(linkedFile, file, (BPatch_defensiveMode == mode ? Symtab::Defensive : Symtab::NotDefensive)) ) {
            err = true;
            return;
        }
@@ -1569,8 +1498,6 @@ image::image(fileDescriptor &desc,
 
    bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
-   // XXX FIXME having this static member in instPointBase
-   //     prevents support of multiple architectures simultaneously
 
    // Continue ParseAPI init
    img_fact_ = new DynCFGFactory(this);
@@ -1618,15 +1545,6 @@ image::~image()
       delete parallelRegions[i];
     parallelRegions.clear();
 
-    // free instPoints
-    for (instp_map_t::iterator iter = inst_pts_.begin(); iter != inst_pts_.end(); ++iter)
-    {
-        for (block_map_t::iterator iter2 = iter->second.begin(); iter2 != iter->second.end(); ++iter2)
-        {
-            delete iter2->second;
-        }
-    }
-    
     // Finally, remove us from the image list.
     for (i = 0; i < allImages.size(); i++) {
         if (allImages[i] == this)
@@ -1650,14 +1568,14 @@ image::~image()
 #endif
 }
 
-bool pdmodule::findFunction( const std::string &name, pdvector<image_func *> &found ) {
+bool pdmodule::findFunction( const std::string &name, pdvector<parse_func *> &found ) {
     if (findFunctionByMangled(name, found))
         return true;
     return findFunctionByPretty(name, found);
 }
 
 bool pdmodule::findFunctionByMangled( const std::string &name,
-                                      pdvector<image_func *> &found)
+                                      pdvector<parse_func *> &found)
 {
     // For efficiency sake, we grab the image vector and strip out the
     // functions we want.
@@ -1665,7 +1583,7 @@ bool pdmodule::findFunctionByMangled( const std::string &name,
     // the problem is that BPatch goes by module and internal goes by image. 
     unsigned orig_size = found.size();
     
-    const pdvector<image_func *> *obj_funcs = imExec()->findFuncVectorByMangled(name.c_str());
+    const pdvector<parse_func *> *obj_funcs = imExec()->findFuncVectorByMangled(name.c_str());
     if (!obj_funcs) {
         return false;
     }
@@ -1683,7 +1601,7 @@ bool pdmodule::findFunctionByMangled( const std::string &name,
 
 
 bool pdmodule::findFunctionByPretty( const std::string &name,
-                                     pdvector<image_func *> &found)
+                                     pdvector<parse_func *> &found)
 {
     // For efficiency sake, we grab the image vector and strip out the
     // functions we want.
@@ -1691,7 +1609,7 @@ bool pdmodule::findFunctionByPretty( const std::string &name,
     // the problem is that BPatch goes by module and internal goes by image. 
     unsigned orig_size = found.size();
     
-    const pdvector<image_func *> *obj_funcs = imExec()->findFuncVectorByPretty(name);
+    const pdvector<parse_func *> *obj_funcs = imExec()->findFuncVectorByPretty(name);
     if (!obj_funcs) {
         return false;
     }
@@ -1714,7 +1632,7 @@ void pdmodule::dumpMangled(std::string &prefix) const
   CodeObject::funclist & allFuncs = imExec()->getAllFunctions();
   CodeObject::funclist::iterator fit = allFuncs.begin();
   for( ; fit != allFuncs.end(); ++fit) {
-      image_func * pdf = (image_func*)*fit;
+      parse_func * pdf = (parse_func*)*fit;
       if (pdf->pdmod() != this) continue;
 
       if( ! strncmp( pdf->symTabName().c_str(), prefix.c_str(), strlen( prefix.c_str() ) ) ) {
@@ -1727,7 +1645,7 @@ void pdmodule::dumpMangled(std::string &prefix) const
   cerr << endl;
 }
 
-image_func *image::addFunction(Address functionEntryAddr, const char *fName)
+parse_func *image::addFunction(Address functionEntryAddr, const char *fName)
  {
      set<CodeRegion *> regions;
      CodeRegion * region;
@@ -1768,7 +1686,7 @@ image_func *image::addFunction(Address functionEntryAddr, const char *fName)
      // Parse, but not recursively
      codeObject()->parse(functionEntryAddr, false); 
 
-     image_func * func = static_cast<image_func*>(
+     parse_func * func = static_cast<parse_func*>(
             codeObject()->findFuncByEntry(region,functionEntryAddr));
 
      if(NULL == func) {
@@ -1892,7 +1810,7 @@ image::findFuncs(const Address offset, set<Function *> & funcs) {
 #endif 
 }
 
-image_func *image::findFuncByEntry(const Address &entry) {
+parse_func *image::findFuncByEntry(const Address &entry) {
     analyzeIfNeeded();
 
     set<CodeRegion *> match;
@@ -1900,7 +1818,7 @@ image_func *image::findFuncByEntry(const Address &entry) {
     if(cnt == 0)
         return 0;
     else if(cnt == 1)
-        return (image_func*)obj_->findFuncByEntry(*match.begin(),entry);
+        return (parse_func*)obj_->findFuncByEntry(*match.begin(),entry);
 
 #if !defined(os_aix)
     fprintf(stderr,"[%s:%d] image::findFuncByEntry(entry) called on "
@@ -1910,7 +1828,7 @@ image_func *image::findFuncByEntry(const Address &entry) {
     return 0;
 #else
     CodeRegion * single = aix_region_hack(match,entry);
-    return (image_func*)obj_->findFuncByEntry(single,entry);
+    return (parse_func*)obj_->findFuncByEntry(single,entry);
 #endif 
 }
 
@@ -1941,16 +1859,16 @@ image::findBlocksByAddr(const Address addr, set<ParseAPI::Block *> & blocks )
 // Return the vector of functions associated with a pretty (demangled) name
 // Very well might be more than one!
 
-const pdvector<image_func *> *image::findFuncVectorByPretty(const std::string &name) {
+const pdvector<parse_func *> *image::findFuncVectorByPretty(const std::string &name) {
     //Have to change here
-    pdvector<image_func *>* res = new pdvector<image_func *>;
+    pdvector<parse_func *>* res = new pdvector<parse_func *>;
     vector<SymtabAPI::Function *> funcs;
     linkedFile->findFunctionsByName(funcs, name.c_str(), SymtabAPI::prettyName);
 
     for(unsigned index=0; index < funcs.size(); index++)
     {
         SymtabAPI::Function *symFunc = funcs[index];
-        image_func *imf = NULL;
+        parse_func *imf = NULL;
         
         if (!symFunc->getAnnotation(imf, ImageFuncUpPtrAnno)) {
             fprintf(stderr, "%s[%d]:  failed to getAnnotations here [%s]\n", FILE__, __LINE__,name.c_str());
@@ -1974,16 +1892,16 @@ const pdvector<image_func *> *image::findFuncVectorByPretty(const std::string &n
 // Return the vector of functions associated with a mangled name
 // Very well might be more than one! -- multiple static functions in different .o files
 
-const pdvector <image_func *> *image::findFuncVectorByMangled(const std::string &name)
+const pdvector <parse_func *> *image::findFuncVectorByMangled(const std::string &name)
 {
-    pdvector<image_func *>* res = new pdvector<image_func *>;
+    pdvector<parse_func *>* res = new pdvector<parse_func *>;
 
     vector<SymtabAPI::Function *> funcs;
     linkedFile->findFunctionsByName(funcs, name.c_str(), SymtabAPI::mangledName);
 
     for(unsigned index=0; index < funcs.size(); index++) {
         SymtabAPI::Function *symFunc = funcs[index];
-        image_func *imf = NULL;
+        parse_func *imf = NULL;
         
         if (!symFunc->getAnnotation(imf, ImageFuncUpPtrAnno)) {
             fprintf(stderr, "%s[%d]:  failed to getAnnotations here [%s]\n", FILE__, __LINE__, name.c_str());
@@ -2069,13 +1987,13 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const std::stri
   return NULL;*/
 }
 
-bool pdmodule::getFunctions(pdvector<image_func *> &funcs)  {
+bool pdmodule::getFunctions(pdvector<parse_func *> &funcs)  {
     unsigned curFuncSize = funcs.size();
 
     CodeObject::funclist & allFuncs = imExec()->getAllFunctions();
     CodeObject::funclist::iterator fit = allFuncs.begin();
     for( ; fit != allFuncs.end(); ++fit) {
-        image_func *f = (image_func*)*fit;
+        parse_func *f = (parse_func*)*fit;
         if (f->pdmod() == this)
             funcs.push_back(f);
     }
@@ -2212,26 +2130,11 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
     return ret;
 }
 
-void image::addSplitBlock(BlockSplit &sb) 
-{
-    std::list<Address> toRemove;
-	splitBlocks_.push_back(sb);
-    for (block_map_t::iterator iter = inst_pts_[sb.first].begin(); 
-         iter != inst_pts_[sb.first].end(); ++iter) 
-    {
-        if (iter->second->offset() >= sb.second->start()) 
-        {
-            // Move the point to the next block
-            iter->second->setBlock(sb.second);
-            // Remove from the first block's instPoint map
-            toRemove.push_back(iter->first);
-            inst_pts_[sb.second][iter->first] = iter->second;
-        }
-    }
-    for (std::list<Address>::iterator iter = toRemove.begin(); iter != toRemove.end(); ++iter) 
-    {
-        inst_pts_[sb.first].erase(*iter);
-    }
+
+// KEVINTODO: deleted fixSplitPoints, somewhere those points are being tracked and the split needs to happen, we used to track (point,block) pairs because of overlapping blocks, not sure what that has changed to
+
+void image::addSplitBlock(BlockSplit &split) {
+    splitBlocks_.push_back(split);
 }
 
 
@@ -2243,7 +2146,7 @@ void image::clearSplitBlocks()
 {
     splitBlocks_.clear();
 }
-const vector<image_basicBlock*> & image::getNewBlocks() const
+const vector<parse_block*> & image::getNewBlocks() const
 {
     return newBlocks_;
 }

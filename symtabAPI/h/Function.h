@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -53,7 +53,7 @@ class Type;
 
 class Function : public Aggregate, public Serializable, public AnnotatableSparse
 {
-   friend class Symtab;
+    friend class Symtab;
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
    
  private:

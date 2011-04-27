@@ -20,8 +20,8 @@ include $(TO_CORE)/make.config
 # Now make any necessary architecture specific changes to variables:
 
 #if M_ABI is defined, secondary ABI specific mutatees will be built
-M_ABI = m32
-M_ABI_FLAG = -m32 -D$(PLATFORM) -Dm32_test
+#M_ABI = m32
+#M_ABI_FLAG = -m32 -D$(PLATFORM) -Dm32_test
 
 #if M_G77 is defined, g77 mutatees will be built
 #M_G77 = g77
@@ -48,6 +48,10 @@ MUTATEE_CXXFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
 MUTATEE_USE_LIBDL_SELECTIVELY = true
 MUTATEE_LIBS =
 MUTATEE_LDFLAGS_GNU += -Wl,-export-dynamic
+MUTATEE_LDFLAGS_NATIVE += -Wl,-export-dynamic
+
+MUTATEE_LDFLAGS_GNU    += -ldl $(LDFLAGS)
+MUTATEE_LDFLAGS_NATIVE += -ldl $(LDFLAGS)
 
 COMMA=,
 MUTATEE_G77_FFLAGS += -D$(PLATFORM) -DF77 -fno-second-underscore -g

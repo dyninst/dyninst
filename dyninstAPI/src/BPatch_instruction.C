@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -100,45 +100,19 @@ void *BPatch_instruction::getAddressInt()
 }
 BPatch_point *BPatch_instruction::getInstPointInt()
 {
-  //const unsigned char *insn_ptr = ((instruction *)instr)->ptr();
-  int_block *iblock = parent->iblock;
-  AddressSpace *proc = iblock->proc();
-  int_function *func = iblock->func();
-
-  assert(proc);
-  assert(func);
-
-  //BPatch_process *bpproc = (BPatch_process *)proc->up_ptr();
-  
-  BPatch_addressSpace *bpproc = (BPatch_addressSpace *)proc->up_ptr();
-  //  assert(bpproc); 
-  assert(bpproc);
-
-  // If it's in an uninstrumentable function, just return an error.
-  if ( !func || !((int_function*)func)->isInstrumentable()){
-    fprintf(stderr, "%s[%d]:  function is not instrumentable\n", FILE__, __LINE__);
-    return NULL;
-  }
-
- /* See if there is an instPoint at this address */
-  instPoint *p = NULL;
-
-  if ((p = func->findInstPByAddr((Address)addr))) {
-    return bpproc->findOrCreateBPPoint(NULL, p, BPatch_locInstruction);
-  }
-
-  /* We don't have an instPoint for this address, so make one. */
-  instPoint *newInstP = instPoint::createArbitraryInstPoint((Address)addr, proc, func);
-  
-  if (!newInstP) {
-     fprintf(stderr, "%s[%d]:  createArbitraryInstPoint for %p failed\n", FILE__, __LINE__, (void *) addr);
-     return NULL;
-  }
-  BPatch_point *ret = bpproc->findOrCreateBPPoint(NULL, newInstP, BPatch_locInstruction);
-
-  if (!ret)
-    fprintf(stderr, "%s[%d]:  getInstPoint failing!\n", FILE__, __LINE__);
-  return ret;
+   func_instance *ifunc = parent->ifunc();
+   AddressSpace *proc = ifunc->proc();
+   BPatch_addressSpace *bpproc = (BPatch_addressSpace *)proc->up_ptr();
+   assert(bpproc);
+   instPoint *point = instPoint::preInsn(ifunc,
+                                         parent->block(),
+                                         addr);
+   
+   BPatch_point *ret = bpproc->findOrCreateBPPoint(NULL, point, BPatch_locInstruction);
+   
+   if (!ret)
+      fprintf(stderr, "%s[%d]:  getInstPoint failing!\n", FILE__, __LINE__);
+   return ret;
 }
 
 std::string BPatch_register::nameInt() {

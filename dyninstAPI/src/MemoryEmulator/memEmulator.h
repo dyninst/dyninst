@@ -29,8 +29,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#if !defined(cap_mem_emulation)
+#include "memEmulatorStub.h"
+#else 
+
+
+
 #if !defined(_MEMORY_EMULATOR_H_)
 #define _MEMORY_EMULATOR_H_
+
+#include "common/h/IntervalTree.h"
+#include "dyninstAPI/src/MemoryEmulator/memEmulatorTransformer.h"
+#include "dyninstAPI/src/MemoryEmulator/memEmulatorAtom.h"
 
 class AddressSpace;
 class mapped_object;
@@ -62,8 +72,8 @@ class MemoryEmulator {
    std::pair<bool, Address> translateBackwards(Address addr);
    
     const std::map<Address,int> & getSpringboards(SymtabAPI::Region*) const;
-    void removeSpringboards(int_function* deadfunc);
-    void removeSpringboards(const int_block* deadBBI);
+    void removeSpringboards(func_instance* deadfunc);
+    void removeSpringboards(const block_instance* deadBBI);
     void addSpringboard(SymtabAPI::Region*, 
         Address offset,/*from start of region*/    
         int size);
@@ -103,4 +113,5 @@ class MemoryEmulator {
 };
 };
 
+#endif
 #endif

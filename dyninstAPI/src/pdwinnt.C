@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -167,7 +167,7 @@ bool SignalHandler::handleThreadCreate(EventRecord &ev, bool &continueHint)
    Address initial_func = 0, stack_top = 0;
    BPatch_process *bproc = (BPatch_process *) ev.proc->up_ptr();
    HANDLE lwpid = ev.info.u.CreateThread.hThread;
-   int_function *func = NULL;
+   func_instance *func = NULL;
    int tid = ev.info.dwThreadId;
    
    //Create the lwp early on Windows
@@ -593,7 +593,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
             for (int i = 0; i < 200; ++i) 
             {
                 Address remapped = 0;
-                vector<int_function *> funcs;
+                vector<func_instance *> funcs;
                 baseTrampInstance *bti;
 				ev.proc->getAddrInfo(stackTOPVAL[i], remapped, funcs, bti);
 				cerr  << hex << activeFrame.esp + 4*i << ": "  << stackTOPVAL[i] << ", orig @ " << remapped << " in " << funcs.size() << "functions" << dec << endl;
@@ -631,7 +631,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
     case 0: // bad read
         if (dyn_debug_malware) {
             Address origAddr = ev.address;
-            vector<int_function *> funcs;
+            vector<func_instance *> funcs;
             baseTrampInstance *bti = NULL;
             ev.proc->getAddrInfo(ev.address, origAddr, funcs, bti);
             mal_printf("bad read in pdwinnt.C %lx[%lx]=>%lx [%d]\n",
@@ -647,7 +647,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
                 pdvector<Frame> &stack = stacks[i];
                 for (unsigned int j = 0; j < stack.size(); ++j) {
                     Address origPC = 0;
-                    vector<int_function*> dontcare1;
+                    vector<func_instance*> dontcare1;
                     baseTrampInstance *dontcare2 = NULL;
                     ev.proc->getAddrInfo(stack[j].getPC(), origPC, dontcare1, dontcare2);
                     mal_printf("frame %d: %lx[%lx]\n", j, stack[j].getPC(), origPC);
@@ -664,7 +664,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
 
     case 1: {// bad write 
         Address origAddr = ev.address;
-        vector<int_function *> writefuncs;
+        vector<func_instance *> writefuncs;
         baseTrampInstance *bti = NULL;
         bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
         if (dyn_debug_malware) {
@@ -674,7 +674,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
 			boost::tie(valid, shadowAddr) = ev.proc->getMemEm()->translateBackwards(violationAddr);
 
 			cerr << "Overwrite insn @ " << hex << origAddr << endl;
-            vector<int_function *> writefuncs;
+            vector<func_instance *> writefuncs;
             baseTrampInstance *bti = NULL;
             bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
             if (success) {
@@ -761,7 +761,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
     default:
         if (dyn_debug_malware) {
             Address origAddr = ev.address;
-            vector<int_function *> funcs;
+            vector<func_instance *> funcs;
             baseTrampInstance *bti = NULL;
             ev.proc->getAddrInfo(ev.address, origAddr, funcs, bti);
             mal_printf("weird exception in pdwinnt.C illegal instruction or "
@@ -776,7 +776,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
         // see if we were executing in defensive code whose memory access 
         // would have been emulated
         Address origAddr = ev.address;
-        vector<int_function *> writefuncs;
+        vector<func_instance *> writefuncs;
         baseTrampInstance *bti = NULL;
         bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
         mapped_object *faultObj = NULL;
@@ -1176,7 +1176,7 @@ void dyn_lwp::dumpRegisters()
 bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 {    
   if (dyn_debug_malware) {
-      std::set<int_function *> funcs;
+      std::set<func_instance *> funcs;
       proc()->findFuncsByAddr(addr, funcs, true);
       cerr << "CHANGEPC to addr " << hex << addr;
       cerr << " to func " << (funcs.empty() ? "<UNKNOWN>" :
@@ -1920,7 +1920,7 @@ void dyn_lwp::representativeLWP_detach_()
 bool process::insertTrapAtEntryPointOfMain() {
   mapped_object *aout = getAOut();
   SymtabAPI::Symtab *aout_obj = aout->parse_img()->getObject();
-  pdvector<int_function *> funcs;
+  pdvector<func_instance *> funcs;
   Address min_addr = 0xffffffff;
   Address max_addr = 0x0;
   bool result;
@@ -2311,7 +2311,7 @@ void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
    * 'this' parameter is passed in ECX, others are passed in the stack
    * Cleanup Callee cleans up the stack before returning
  **/
-callType int_function::getCallingConvention() {
+callType func_instance::getCallingConvention() {
     const char *name = symTabName().c_str();
     const int buffer_size = 1024;
     char buffer[buffer_size];
@@ -2394,7 +2394,7 @@ static void emitNeededCallRestores(codeGen &gen, pdvector<Register> &saves);
 
 int EmitterIA32::emitCallParams(codeGen &gen, 
                               const pdvector<AstNodePtr> &operands,
-                              int_function *target, 
+                              func_instance *target, 
                               pdvector<Register> &extra_saves, 
                               bool noCost)
 {
@@ -2502,7 +2502,7 @@ int EmitterIA32::emitCallParams(codeGen &gen,
     return estimatedFrameSize;
 }
 
-bool EmitterIA32::emitCallCleanup(codeGen &gen, int_function *target, 
+bool EmitterIA32::emitCallCleanup(codeGen &gen, func_instance *target, 
                      int frame_size, pdvector<Register> &extra_saves)
 {
     callType call_conv = target->getCallingConvention();
@@ -2656,7 +2656,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
             ev.what, ev.address, FILE__, __LINE__);
 
     Address origAddr = ev.address;
-    vector<int_function*> faultFuncs;
+    vector<func_instance*> faultFuncs;
     baseTrampInstance *bti = NULL;
     ev.proc->getAddrInfo(ev.address, origAddr, faultFuncs, bti);
     cerr << "Address " << hex << ev.address << " maps to address " << origAddr << dec << endl;
@@ -2736,7 +2736,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     //     register before stomping its effective address computation, 
     //     restore the original register value
 
-    int_block *faultBBI = NULL;
+    block_instance *faultBBI = NULL;
     switch( faultFuncs.size() ) {
     case 0: 
         fprintf(stderr,"ERROR: Failed to find a valid instruction for fault "
@@ -2825,7 +2825,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
          hIter != handlers.end(); 
          hIter++) 
     {
-        int_function *hfunc = ev.proc->findOneFuncByAddr(*hIter);
+        func_instance *hfunc = ev.proc->findOneFuncByAddr(*hIter);
         if (hfunc) {
             using namespace ParseAPI;
             hfunc->setHandlerFaultAddr(point->addr());
@@ -2942,7 +2942,7 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
     // 2. Flush the runtime cache if we overwrote any code
     // Produce warning message if we've overwritten weird types of code: 
     Address origWritten = writtenAddr;
-    vector<int_function *> writtenFuncs;
+    vector<func_instance *> writtenFuncs;
     baseTrampInstance *bti = NULL;
     bool success = ev.proc->getAddrInfo(writtenAddr, 
                                         origWritten, 
@@ -2970,7 +2970,7 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
     // 3. Find the instruction that caused the violation and determine 
     //    its address in unrelocated code
     Address origWrite = ev.address;
-    vector<int_function *> writeFuncs;
+    vector<func_instance *> writeFuncs;
     success = ev.proc->getAddrInfo(ev.address, origWrite, writeFuncs, bti);
     if (!success) {
         // this is an error case, meaning that we're executing 
@@ -2987,7 +2987,7 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
     }
 
     // 4. Create an instPoint for the write
-    int_function *writeFunc;
+    func_instance *writeFunc;
     if (writeFuncs.size() == 1) {
         writeFunc = writeFuncs[0];
     } else { 
@@ -3235,18 +3235,18 @@ void OS::get_sigaction_names(std::vector<std::string> &names)
    names.push_back(string("AddVectoredExceptionHandler"));
 }
 
-int_function *dyn_thread::map_initial_func(int_function *ifunc) {
+func_instance *dyn_thread::map_initial_func(func_instance *ifunc) {
     if (!ifunc || strcmp(ifunc->prettyName().c_str(), "mainCRTStartup"))
         return ifunc;
 
     //mainCRTStartup is not a real initial function.  Use main, if it exists.
-    const pdvector<int_function *> *mains = proc->getAOut()->findFuncVectorByPretty("main");
+    const pdvector<func_instance *> *mains = proc->getAOut()->findFuncVectorByPretty("main");
     if (!mains || !mains->size())
         return ifunc;
     return (*mains)[0];
 }
 
-bool process::instrumentThreadInitialFunc(int_function *f) {
+bool process::instrumentThreadInitialFunc(func_instance *f) {
     if (!f)
         return false;
 
@@ -3255,7 +3255,7 @@ bool process::instrumentThreadInitialFunc(int_function *f) {
             return true;
     }
     }
-    int_function *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
+    func_instance *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
     if (!dummy_create)
     {
       return false;

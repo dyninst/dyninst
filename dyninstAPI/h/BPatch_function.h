@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -44,7 +44,7 @@
 //#include "BPatch_dependenceGraphNode.h"
 // class BPatch_dependenceGraphNode;
 
-class int_function;
+class func_instance;
 class process;
 class InstrucIter;
 
@@ -100,7 +100,7 @@ class BPATCH_DLL_EXPORT BPatch_function :
 
     BPatch_point* createMemInstPoint(void *addr, BPatch_memoryAccess* ma);
 
-    int_function *func;
+    func_instance *func;
     bool varsAndParamsValid;
 
 private:
@@ -128,13 +128,13 @@ public:
     virtual	~BPatch_function();
 
     // The following are for internal use by the library only:
-    int_function *lowlevel_func() const { return func; }
+    func_instance *lowlevel_func() const { return func; }
     BPatch_process *getProc() const;
     BPatch_addressSpace *getAddSpace() const { return addSpace; }
 
-    BPatch_function(BPatch_addressSpace *_addSpace, int_function *_func, 
+    BPatch_function(BPatch_addressSpace *_addSpace, func_instance *_func, 
                     BPatch_module *mod = NULL);
-    BPatch_function(BPatch_addressSpace *_addSpace, int_function *_func,
+    BPatch_function(BPatch_addressSpace *_addSpace, func_instance *_func,
                     BPatch_type * _retType, 
                     BPatch_module *);
     bool getSourceObj(BPatch_Vector<BPatch_sourceObj *> &);
@@ -148,13 +148,16 @@ public:
     void getAbruptEndPoints(BPatch_Vector<BPatch_point *> &abruptEnds);
     void getCallerPoints(BPatch_Vector<BPatch_point*>& callerPoints);
     void getAllPoints(BPatch_Vector<BPatch_point*>& allPoints);
+
+    void getEntryPoints(BPatch_Vector<BPatch_point *> &entryPoints);
+    void getExitPoints(BPatch_Vector<BPatch_point *> &entryPoints);
+    void getCallPoints(BPatch_Vector<BPatch_point *> &entryPoints);
+
     bool setHandlerFaultAddrAddr(Dyninst::Address addr, bool set);
-    void fixHandlerReturnAddr(Dyninst::Address addr);
     bool removeInstrumentation(bool useInsertionSet);
     bool parseNewEdge(Dyninst::Address source, Dyninst::Address target);
     void relocateFunction();
     bool getSharedFuncs(std::set<BPatch_function*> &funcs);
-    BPatch_point * getPoint(Dyninst::Address addr);
 
     void addParam(Dyninst::SymtabAPI::localVar *lvar);
 
@@ -217,18 +220,6 @@ public:
     API_EXPORT(Int, (),
 
     void *,getBaseAddr,(void));
-
-    //  BPatch_function::getSize
-    //  Returns the size of the function in bytes (end of last block - start of first block)
-    API_EXPORT(Int, (),
-
-    unsigned int,getSize,());
-
-    //  BPatch_function::getSize
-    //  Returns the number of contiguous bytes a function takes up following its entry point
-    //   This may be different from getSize if the function is disjoint
-    API_EXPORT(Int, (),
-    unsigned int,getContiguousSize,());
 
     //  BPatch_function::getReturnType
     //  Returns the <BPatch_type> return type of this function
@@ -350,42 +341,15 @@ public:
     //  Get the underlying ParseAPI Function
     API_EXPORT( Int, (), Dyninst::ParseAPI::Function *, getParseAPIFunc, () );
 
-#ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Int, (start, end),
 
     bool,getLineNumbers,(unsigned int &start, unsigned int &end));
 
-    API_EXPORT(Int, (),
-
-    void *,getAddress,());
-
     API_EXPORT(Int, (start, end),
-
     bool,getAddressRange,(void * &start, void * &end));
 
-    API_EXPORT(Int, (),
-
-    BPatch_type *,returnType,());
-
-    API_EXPORT_V(Int, (vect),
-
-    void,getIncPoints,(BPatch_Vector<BPatch_point *> &vect));
-
-    API_EXPORT(Int, (),
-
-    int,getMangledNameLen,());
-
-    API_EXPORT_V(Int, (points),
-
-    void,getExcPoints,(BPatch_Vector<BPatch_point*> &points));
-
-
-    API_EXPORT(DPCL, (),
-
-    const char *,getName,());
-
-
-#endif
+    API_EXPORT(Int, (start, end),
+               bool,getAddressRange,(Dyninst::Address &start, Dyninst::Address &end));
 };
 
 #endif /* _BPatch_function_h_ */

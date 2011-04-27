@@ -35,19 +35,18 @@
 
 #include "instructionAPI/h/Instruction.h"
 
-#include "dyninstAPI/src/debug.h"
+#include "../patchapi_debug.h"
 
 #include "../CodeTracker.h"
 #include "../CodeBuffer.h"
 
 
+#if defined(MEMORY_EMULATION_LAYER)
 #include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-
 #include "dyninstAPI/src/MemoryEmulator/memEmulatorAtom.h"
-#include "dyninstAPI/src/inst-x86.h"
-#include "dyninstAPI/src/addressSpace.h"
-#include "dyninstAPI/src/mapped_object.h"
+#endif
+
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
@@ -59,211 +58,241 @@ using namespace InstructionAPI;
 const Address CFAtom::Fallthrough(1);
 const Address CFAtom::Taken(2);
 
-bool CFAtom::generate(const codeGen &templ,
-                      const Trace *,
-                      CodeBuffer &buffer)
-{
-  // We need to create jumps to wherever our successors are
-  // We can assume the addresses returned by our Targets
-  // are valid, since we'll fixpoint until those stabilize. 
-  //
-  // There are the following cases:
-  //
-  // No explicit control flow/unconditional direct branch:
-  //   1) One target
-  //   2) Generate a branch unless it's unnecessary
-  // Conditional branch:
-  //   1) Two targets
-  //   2) Use stored instruction to generate correct condition
-  //   3) Generate a fallthrough "branch" if necessary
-  // Call:
-  //   1) Two targets (call and natural successor)
-  //   2) As above, except make sure call bit is flipped on
-  // Indirect branch:
-  //   1) Just go for it... we have no control, really
-  
-  // First check: if we're not an indirect branch
-  // and we have no known successors return immediately.
-
-						  
-  if (!isIndirect_ && destMap_.empty()) {
-	  // DEFENSIVE MODE: drop in an illegal instruction
-	  // so that we're sure to notice this. We may have stopped
-	  // early due to a believed garbage parse.
-	  codeGen gen(10);
-	  gen.fill(10, codeGen::cgIllegal);
-	  buffer.addPIC(gen, tracker());
-      return true;
-	  }
-
-
-  // TODO: address translation on an indirect branch...
-
-  typedef enum {
-    Illegal,
-    Single,
-    Taken_FT,
-    Indirect } Options;
-  
-  Options opt = Illegal;
-
-  if (isIndirect_) {
-    opt = Indirect;
-    relocation_cerr << "  generating CFAtom as indirect branch" << endl;
-  }
-  else if (isConditional_ || isCall_) {
-    opt = Taken_FT;
-    relocation_cerr << "  generating CFAtom as call or conditional branch" << endl;
-  }
-  else {
-    opt = Single;
-    relocation_cerr << "  generating CFAtom as direct branch" << endl;
-  }
-
-  switch (opt) {
-  case Single: {
-
-    assert(!isIndirect_);
-    assert(!isConditional_);
-    assert(!isCall_);
-
-    // Check for a taken destination first.
-    bool fallthrough = false;
-    DestinationMap::iterator iter = destMap_.find(Taken);
-    if (iter == destMap_.end()) {
-        iter = destMap_.find(Fallthrough);
-        fallthrough = true;
-    }
-    assert(iter != destMap_.end());
-
-    TargetInt *target = iter->second;
-    assert(target);
-
-    if (target->necessary()) {
-      if (!generateBranch(buffer,
-			  target,
-			  insn_,
-			  fallthrough)) {
-				  return false;
-	  }
-	}
-    else {
-      relocation_cerr << "    target reported unnecessary" << endl;
-    }
-    break;
-  }
-  case Taken_FT: {
-    // This can be either a call (with an implicit fallthrough as shown by
-    // the FUNLINK) or a conditional branch.
-    if (isCall_) {
-      // Well, that kinda explains things
-      assert(!isConditional_);
-      relocation_cerr << "  ... generating call" << endl;
-      if (!generateCall(buffer,
-			destMap_[Taken],
-			insn_))
-	return false;
-    }
-    else {
-      assert(!isCall_);
-      relocation_cerr << "  ... generating conditional branch" << endl;
-      if (!generateConditionalBranch(buffer,
-				     destMap_[Taken],
-				     insn_))
-                     return false;
-    }
-
-    // Not necessary by design - fallthroughs are always to the next generated
-    // We can have calls that don't return and thus don't have funlink edges
-    
-
-    if (destMap_.find(Fallthrough) != destMap_.end()) {
-      TargetInt *ft = destMap_[Fallthrough];
-      if (ft->necessary()) {
-	if (!generateBranch(buffer, 
-			    ft,
-			    insn_,
-			    true)) {
-	  return false;
-	}
-      }
-    }
-    break;
-  }
-  case Indirect: {
-/*
-  for (DestinationMap::iterator iter = destMap_.begin();
-  iter != destMap_.end(); ++iter) {
-  if (iter->second->type() == TargetInt::TraceTarget) {
-  requireTranslation = true;
-  break;
-  }
-  }
-*/
-    Register reg = Null_Register; /* = originalRegister... */
-	// Originally for use in helping with jump tables, I'm taking
-	// this for the memory emulation effort. Huzzah!
-	if (!generateAddressTranslator(buffer, templ, reg))
-          return false;
-    if (isCall_) {
-       if (!generateIndirectCall(buffer, 
-                                 reg, 
-                                 insn_, 
-                                 addr_)) 
-			return false;
-        // We may be putting another block in between this
-        // one and its fallthrough due to edge instrumentation
-        // So if there's the possibility for a return put in
-        // a fallthrough branch
-        if (destMap_.find(Fallthrough) != destMap_.end()) {
-			if (!generateBranch(buffer,
-					    destMap_[Fallthrough],
-					    Instruction::Ptr(),
-					    true)) 
-			  return false;
-			}
-		}
-    else {
-		if (!generateIndirect(buffer, reg, insn_))
-			return false;
-    }
-    break;
-  }
-  default:
-    assert(0);
-  }
-  if (postCallPadding_ != 0) {
-     if (postCallPadding_ == (unsigned) -1) {
-        // We don't know what the callee does to the return addr,
-        // so we'll catch it at runtime. 
-        // The "10" is arbitrary.
-         buffer.addPatch(new PaddingPatch(10, true, false, block_), addrTracker(addr_ + size()));
-     }
-     else {
-        // Make up for stack tampering
-        buffer.addPatch(new PaddingPatch(postCallPadding_, false, true, block_), addrTracker(addr_ + size()));
-     }
-  }
-  
-  return true;
+// Case 1: an empty trace ender for traces that do not
+// end in a CF-category instruction
+CFAtom::Ptr CFAtom::create(Address a) {
+   CFAtom::Ptr ptr = Ptr(new CFAtom(a));
+   return ptr;
 }
 
-CFAtom::Ptr CFAtom::create(int_block *b) {
-  return Ptr(new CFAtom(b));
+// Case 2: wrap a CF-category instruction
+CFAtom::Ptr CFAtom::create(Atom::Ptr atom) {
+   CFAtom::Ptr ptr = Ptr(new CFAtom(atom->insn(), atom->addr()));
+   return ptr;
+}
+
+CFAtom::CFAtom(InstructionAPI::Instruction::Ptr insn, Address addr)  :
+   isCall_(false), 
+   isConditional_(false), 
+   isIndirect_(false),
+   gap_(0),
+   insn_(insn),
+   addr_(addr) {
+   
+   if (insn->getCategory() == c_CallInsn) {
+      // Calls have a fallthrough but are not conditional.
+      // TODO: conditional calls work how?
+
+      isCall_ = true;
+   } else if (insn->allowsFallThrough()) {
+      isConditional_ = true;
+   }
+   
+   // Can we have a better way of doing this, please?
+   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn_->getArch())));
+   Expression::Ptr exp = insn_->getControlFlowTarget();
+
+   exp->bind(thePC.get(), Result(u64, addr_));
+   Result res = exp->eval();
+   if (!res.defined) {
+      isIndirect_ = true;
+   }
+}
+
+
+bool CFAtom::generate(const codeGen &templ,
+                      const Trace *trace,
+                      CodeBuffer &buffer)
+{
+   // We need to create jumps to wherever our successors are
+   // We can assume the addresses returned by our Targets
+   // are valid, since we'll fixpoint until those stabilize. 
+   //
+   // There are the following cases:
+   //
+   // No explicit control flow/unconditional direct branch:
+   //   1) One target
+   //   2) Generate a branch unless it's unnecessary
+   // Conditional branch:
+   //   1) Two targets
+   //   2) Use stored instruction to generate correct condition
+   //   3) Generate a fallthrough "branch" if necessary
+   // Call:
+   //   1) Two targets (call and natural successor)
+   //   2) As above, except make sure call bit is flipped on
+   // Indirect branch:
+   //   1) Just go for it... we have no control, really
+   relocation_cerr << "CFAtom generation for " << trace->id() << endl;
+   if (destMap_.empty() && !isIndirect_) {
+      // No successors at all? Well, it happens if
+      // we hit a halt...
+      relocation_cerr << "CFAtom /w/ no successors, ret true" << endl;
+      return true;
+   }
+
+   typedef enum {
+      Illegal,
+      Single,
+      Taken_FT,
+      Indirect } Options;
+  
+   Options opt = Illegal;
+
+   if (isIndirect_) {
+      opt = Indirect;
+      relocation_cerr << "  generating CFAtom as indirect branch" << endl;
+   }
+   else if (isConditional_ || isCall_) {
+      opt = Taken_FT;
+      relocation_cerr << "  generating CFAtom as call or conditional branch" << endl;
+   }
+   else {
+      opt = Single;
+      relocation_cerr << "  generating CFAtom as direct branch" << endl;
+   }
+
+   switch (opt) {
+      case Single: {
+
+         assert(!isIndirect_);
+         assert(!isConditional_);
+         assert(!isCall_);
+
+         // Check for a taken destination first.
+         bool fallthrough = false;
+         DestinationMap::iterator iter = destMap_.find(Taken);
+         if (iter == destMap_.end()) {
+            iter = destMap_.find(Fallthrough);
+            fallthrough = true;
+         }
+         if (iter == destMap_.end()) {
+            cerr << "Error in CFAtom from trace " << trace->id()
+                 << ", could not find target for single control transfer" << endl;
+            cerr << "\t DestMap dump:" << endl;
+            for (DestinationMap::iterator d = destMap_.begin(); 
+                 d != destMap_.end(); ++d) {
+               cerr << "\t\t " << d->first << " : " << d->second->format() << endl;
+            }
+         }
+            
+         assert(iter != destMap_.end());
+
+         TargetInt *target = iter->second;
+         assert(target);
+
+         if (target->necessary()) {
+            if (!generateBranch(buffer,
+                                target,
+                                insn_,
+                                trace,
+                                fallthrough)) {
+               return false;
+            }
+         }
+         else {
+            relocation_cerr << "    target reported unnecessary" << endl;
+         }
+         break;
+      }
+      case Taken_FT: {
+         // This can be either a call (with an implicit fallthrough as shown by
+         // the FUNLINK) or a conditional branch.
+         if (isCall_) {
+            // Well, that kinda explains things
+            assert(!isConditional_);
+            relocation_cerr << "  ... generating call" << endl;
+            if (!generateCall(buffer,
+                              destMap_[Taken],
+                              trace,
+                              insn_))
+               return false;
+         }
+         else {
+            assert(!isCall_);
+            relocation_cerr << "  ... generating conditional branch" << endl;
+            if (!generateConditionalBranch(buffer,
+                                           destMap_[Taken],
+                                           trace,
+                                           insn_))
+               return false;
+         }
+
+         // Not necessary by design - fallthroughs are always to the next generated
+         // We can have calls that don't return and thus don't have funlink edges
+    
+         if (destMap_.find(Fallthrough) != destMap_.end()) {
+            TargetInt *ft = destMap_[Fallthrough];
+            if (ft->necessary()) {
+               if (!generateBranch(buffer, 
+                                   ft,
+                                   insn_,
+                                   trace,
+                                   true)) {
+                  return false;
+               }
+            }
+         }
+         break;
+      }
+      case Indirect: {
+         Register reg = Null_Register; /* = originalRegister... */
+         // Originally for use in helping with jump tables, I'm taking
+         // this for the memory emulation effort. Huzzah!
+         if (!generateAddressTranslator(buffer, templ, reg))
+            return false;
+         if (isCall_) {
+            if (!generateIndirectCall(buffer, 
+                                      reg, 
+                                      insn_, 
+                                      trace,
+                                      addr_)) 
+               return false;
+            // We may be putting another block in between this
+            // one and its fallthrough due to edge instrumentation
+            // So if there's the possibility for a return put in
+            // a fallthrough branch
+            if (destMap_.find(Fallthrough) != destMap_.end()) {
+               if (!generateBranch(buffer,
+                                   destMap_[Fallthrough],
+                                   Instruction::Ptr(),
+                                   trace,
+                                   true)) 
+                  return false;
+            }
+         }
+         else {
+            if (!generateIndirect(buffer, reg, trace, insn_))
+               return false;
+         }
+         break;
+      }
+      default:
+         assert(0);
+   }
+   if (gap_) {
+      // We don't know what the callee does to the return addr,
+      // so we'll catch it at runtime. 
+      buffer.addPatch(new PaddingPatch(gap_, true, false, trace->block()), 
+                      padTracker(addr_, gap_,
+                                 trace));
+   }
+  
+   return true;
 }
 
 CFAtom::~CFAtom() {
-  // Delete all Targets in our map
-  for (DestinationMap::iterator i = destMap_.begin(); 
-       i != destMap_.end(); ++i) {
-    delete i->second;
-  }
+   // Delete all Targets in our map
+   for (DestinationMap::iterator i = destMap_.begin(); 
+        i != destMap_.end(); ++i) {
+      delete i->second;
+   }
 }
 
-TrackerElement *CFAtom::tracker() const {
-  assert(addr_ != 1);
-  EmulatorTracker *e = new EmulatorTracker(addr_, block());
-  return e;
+TrackerElement *CFAtom::tracker(const Trace *trace) const {
+   assert(addr_ != 1);
+   assert(addr_);
+   EmulatorTracker *e = new EmulatorTracker(addr_, trace->block(), trace->func());
+   return e;
 }
 
 TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
@@ -272,266 +301,109 @@ TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
       assert(0);
    }
 
-   int_function *destFunc = NULL;
+   block_instance *destBlock = NULL;
+   func_instance *destFunc = NULL;
    switch (dest->type()) {
       case TargetInt::TraceTarget: {
-         Target<Trace::Ptr> *targ = static_cast<Target<Trace::Ptr> *>(dest);
+         Target<Trace *> *targ = static_cast<Target<Trace *> *>(dest);
+         assert(targ);
+         assert(targ->t());
+         destBlock = targ->t()->block();
          destFunc = targ->t()->func();
-         assert(destFunc);
+         assert(destBlock);
          break;
       }
       case TargetInt::BlockTarget:
-         destFunc = (static_cast<Target<int_block *> *>(dest))->t()->func();
-         assert(destFunc);
+         destBlock = (static_cast<Target<block_instance *> *>(dest))->t();
+         assert(destBlock);
          break;
       default:
          assert(0);
          break;
    }
-   EmulatorTracker *e = new EmulatorTracker(dest->origAddr(), destFunc->entryBlock());
+   EmulatorTracker *e = new EmulatorTracker(dest->origAddr(), destBlock, destFunc);
    return e;
 }
 
-TrackerElement *CFAtom::addrTracker(Address addr) const {
-   EmulatorTracker *e = new EmulatorTracker(addr, block());
+TrackerElement *CFAtom::addrTracker(Address addr, const Trace *trace) const {
+   EmulatorTracker *e = new EmulatorTracker(addr, trace->block(), trace->func());
    return e;
+}
+
+TrackerElement *CFAtom::padTracker(Address addr, unsigned size, const Trace *trace) const {
+   PaddingTracker *p = new PaddingTracker(addr, size, trace->block(), trace->func());
+   return p;
 }
 
 void CFAtom::addDestination(Address index, TargetInt *dest) {
-  // Annoying required copy... 
-  if (!dest) {
-      printf("adding bad dest\n");
-  }
-  destMap_[index] = dest;
+   assert(dest);
+   relocation_cerr << "CFAtom @ " << std::hex << addr() << ", adding destination " << dest->format()
+                   << " / " << index << std::dec << endl;
+
+   destMap_[index] = dest;
 }
 
 TargetInt *CFAtom::getDestination(Address dest) const {
-    CFAtom::DestinationMap::const_iterator d_iter = destMap_.find(dest);
-    if (d_iter != destMap_.end()) {
-        return d_iter->second;
-    }
-    return NULL;
+   CFAtom::DestinationMap::const_iterator d_iter = destMap_.find(dest);
+   if (d_iter != destMap_.end()) {
+      return d_iter->second;
+   }
+   return NULL;
 }
 
-void CFAtom::updateInsn(Instruction::Ptr insn) {
-
-  relocation_cerr << "Updating CFAtom off insn " << insn->format() << endl;
-
-  insn_ = insn;
-
-  isConditional_ = isCall_ = isIndirect_ = false;
-
-  // And set type flags based on what the instruction was
-  // If it allows fallthrough it must be conditional...
-  if (insn->allowsFallThrough()) {
-    relocation_cerr << "... allows fallthrough, setting isConditional" << endl;
-    isConditional_ = true;
-  }
-  // Calls show up as fallthrough-capable, which is true
-  // (kind of) for parsing but _really_ not what we want
-  // to identify conditional branches...
-  if (insn->getCategory() == c_CallInsn) {
-    relocation_cerr << "... is call, setting isCall and unsetting isConditional" << endl;
-    isCall_ = true;
-    isConditional_ = false;
-  }
-
-  // And here's the annoying bit - we can't directly determine
-  // whether something is indirect. Bill suggests getting the 
-  // control flow target, binding *something* as the PC, and
-  // evaluating it. I think that sucks. 
-
-  // TODO FIXME
-  static Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(Arch_x86)));
-  static Expression::Ptr thePC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
-
-  Expression::Ptr exp = insn->getControlFlowTarget();
-  
-  // Bind the IP, why not...
-  exp->bind(thePC.get(), Result(u32, addr_));
-  exp->bind(thePC64.get(), Result(u64, addr_));
-
-  Result res = exp->eval();
-  if (!res.defined) {
-    relocation_cerr << "... cannot statically resolve, setting isIndirect" << endl;
-    isIndirect_ = true;
-  }
-  // EMXIF ODOT
-
-}
-
-void CFAtom::updateAddr(Address addr) {
-  assert(addr != 1);
-  addr_ = addr;
-}
-
-void CFAtom::updateInfo(CFAtom::Ptr old) {
-   // Pull all misc. info out
-   // Don't pull insn, as we often want to override
-   addr_ = old->addr_;
-   // Don't pull destMap...
-   block_ = old->block_;
-   postCallPadding_ = old->postCallPadding_;
-
-   // Don't copy isCall/isConditional/isIndirect
-}
 
 bool CFAtom::generateBranch(CodeBuffer &buffer,
 			    TargetInt *to,
 			    Instruction::Ptr insn,
+                            const Trace *trace,
 			    bool fallthrough) {
-  assert(to);
-  if (!to->necessary()) return true;
+   assert(to);
+   if (!to->necessary()) return true;
 
-  // We can put in an unconditional branch as an ender for 
-  // a block that doesn't have a real branch. So if we don't have
-  // an instruction generate a "generic" branch
+   // We can put in an unconditional branch as an ender for 
+   // a block that doesn't have a real branch. So if we don't have
+   // an instruction generate a "generic" branch
 
-  // We can see a problem where we want to branch to (effectively) 
-  // the next instruction. So if we ever see that (a branch of offset
-  // == size) back up the codeGen and shrink us down.
+   // We can see a problem where we want to branch to (effectively) 
+   // the next instruction. So if we ever see that (a branch of offset
+   // == size) back up the codeGen and shrink us down.
 
-  CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to, addr_);
-  if (fallthrough) {
-     buffer.addPatch(newPatch, destTracker(to));
-  }
-  else {
-     buffer.addPatch(newPatch, tracker());
-  }
+   CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to, addr_);
+   if (fallthrough || trace->block() == NULL) {
+      buffer.addPatch(newPatch, destTracker(to));
+   }
+   else {
+      buffer.addPatch(newPatch, tracker(trace));
+   }
   
-  return true;
+   return true;
 }
 
 bool CFAtom::generateCall(CodeBuffer &buffer,
 			  TargetInt *to,
+                          const Trace *trace,
 			  Instruction::Ptr insn) {
-  if (!to) {
-    // This can mean an inter-module branch...
-    return true;
-  }
+   if (!to) {
+      // This can mean an inter-module branch...
+      // DebugBreak();
+      return true;
+   }
 
-  CFPatch *newPatch = new CFPatch(CFPatch::Call, insn, to, addr_);
-  buffer.addPatch(newPatch, tracker());
+   CFPatch *newPatch = new CFPatch(CFPatch::Call, insn, to, addr_);
+   buffer.addPatch(newPatch, tracker(trace));
 
-  return true;
+   return true;
 }
 
 bool CFAtom::generateConditionalBranch(CodeBuffer &buffer,
 				       TargetInt *to,
+                                       const Trace *trace,
 				       Instruction::Ptr insn) {
-  assert(to);
+   assert(to);
 
-  CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, addr_);
-  buffer.addPatch(newPatch, tracker());
+   CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, addr_);
+   buffer.addPatch(newPatch, tracker(trace));
 
-  return true;
-}
-
-bool CFAtom::generateIndirect(CodeBuffer &buffer,
-                              Register reg,
-                              Instruction::Ptr insn) {
-  // Two possibilities here: either copying an indirect jump w/o
-  // changes, or turning an indirect call into an indirect jump because
-  // we've had the isCall_ flag overridden.
-
-  if (reg != Null_Register) {
-	  // Whatever was there doesn't matter.
-	  // Only thing we can handle right now is a "we left the destination
-	  // at the top of the stack, go get 'er Tiger!"
-	  assert(reg == REGNUM_ESP);
-	  codeGen gen(1);
-      //gen.fill(1, codeGen::cgTrap);
-      GET_PTR(insn, gen);
-      *insn++ = 0xC3; // RET
-      SET_PTR(insn, gen);
-	  buffer.addPIC(gen, tracker());
-	  return true;
-  }
-  instruction ugly_insn(insn->ptr());
-  ia32_locations loc;
-  ia32_memacc memacc[3];
-  ia32_condition cond;
-
-  ia32_instruction orig_instr(memacc, &cond, &loc);
-  ia32_decode(IA32_FULL_DECODER, (unsigned char *)insn->ptr(), orig_instr);
-  const unsigned char *ptr = (const unsigned char *)insn->ptr();
-
-  std::vector<unsigned char> raw (ptr,
-                                  ptr + insn->size());
-
-  // Opcode might get modified;
-  // 0xe8 -> 0xe9 (call Jz -> jmp Jz)
-  // 0xff xx010xxx -> 0xff xx100xxx (call Ev -> jmp Ev)
-  // 0xff xx011xxx -> 0xff xx101xxx (call Mp -> jmp Mp)
-
-  bool fiddle_mod_rm = false;
-  for (unsigned i = loc.num_prefixes; 
-       i < loc.num_prefixes + (unsigned) loc.opcode_size;
-       ++i) {
-     switch(raw[i]) {
-        case 0xE8:
-           raw[i] = 0xE9;
-           break;
-        case 0xFF:
-           fiddle_mod_rm = true;
-           break;
-        default:
-           break;
-     }
-  }
-
-  for (int i = loc.num_prefixes + (int) loc.opcode_size; 
-       i < (int) insn->size(); 
-       ++i) {
-     if ((i == loc.modrm_position) &&
-         fiddle_mod_rm) {
-        raw[i] |= 0x20;
-        raw[i] &= ~0x10;
-     }
-  } 
-  
-  // TODO: don't ignore reg...
-  // Indirect branches don't use the PC and so are
-  // easy - we just copy 'em.
-#if 0
-  codeGen gen(1);
-  gen.fill(1, codeGen::cgTrap);
-  buffer.addPIC(gen, tracker());
-#endif
-  buffer.addPIC(raw, tracker());
-
-  return true;
-}
-
-bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
-                                  Register reg,
-                                  Instruction::Ptr insn,
-				  Address origAddr) 
-{
-   // I'm pretty sure that anything that can get translated will be
-   // turned into a push/jump combo already. 
-   assert(reg == Null_Register);
-   // Check this to see if it's RIP-relative
-   instruction ugly_insn(insn->ptr());
-   if (ugly_insn.type() & REL_D_DATA) {
-      // This was an IP-relative call that we moved to a new location.
-      assert(origTarget_);
-
-      CFPatch *newPatch = new CFPatch(CFPatch::Data, insn, 
-                                      new Target<Address>(origTarget_),
-                                      addr_);
-      buffer.addPatch(newPatch, tracker());
-   }
-   else {
-#if 0
-       codeGen gen;
-       gen.fill(1, codeGen::cgTrap);
-       gen.copy(insn->ptr(), insn->size());
-       buffer.addPIC(gen, tracker());
-#endif
-       buffer.addPIC(insn->ptr(), insn->size(), tracker());
-   }
-   
    return true;
 }
 
@@ -539,9 +411,11 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
                                        const codeGen &templ,
                                        Register &reg) 
 {
-    if (!templ.addrSpace()->isMemoryEmulated() ||
-        BPatch_defensiveMode != block()->func()->obj()->hybridMode())
-       return true;
+   return true;
+#if 0
+   if (!templ.addrSpace()->isMemoryEmulated() ||
+       BPatch_defensiveMode != block()->func()->obj()->hybridMode())
+      return true;
 
    if (insn_->getOperation().getID() == e_ret_near ||
        insn_->getOperation().getID() == e_ret_far) {
@@ -576,8 +450,8 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
    // Step 3: LEA this sucker into ECX.
    const BPatch_addrSpec_NP *start = acc->getStartAddr(0);
    if (start->getReg(0) == REGNUM_ESP ||
-	   start->getReg(1) == REGNUM_ESP) {
-	  cerr << "ERROR: CF insn that uses the stack pointer! " << insn_->format() << endl;
+       start->getReg(1) == REGNUM_ESP) {
+      cerr << "ERROR: CF insn that uses the stack pointer! " << insn_->format() << endl;
    }
 
    int stackShift = -16;
@@ -597,7 +471,7 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
    buffer.addPIC(patch, tracker());
    
    // Where are we going?
-   int_function *func = templ.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
+   block_instance *func = templ.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
    // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
    assert(func);
    
@@ -636,227 +510,82 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
    buffer.addPIC(patch, tracker());
    reg = REGNUM_ESP;
    return true;
+#endif
+}
+
+std::string CFAtom::format() const {
+   stringstream ret;
+   ret << "CFAtom(" << std::hex;
+   ret << addr_ << ",";
+   if (isIndirect_) ret << "<ind>";
+   if (isConditional_) ret << "<cond>";
+   if (isCall_) ret << "<call>";
+		     
+   for (DestinationMap::const_iterator iter = destMap_.begin();
+        iter != destMap_.end();
+        ++iter) {
+      switch (iter->first) {
+         case Fallthrough:
+            ret << "FT";
+            break;
+         case Taken:
+            ret << "T";
+            break;
+         default:
+            ret << iter->first;
+            break;
+      }
+      ret << "->" << (iter->second ? iter->second->format() : "<NULL>") << ",";
+   }
+   ret << std::dec << ")";
+   return ret.str();
 }
 
 #if 0
-// Try this at some point
-    if (!templ.addrSpace()->isMemoryEmulated() ||
-        BPatch_defensiveMode != block()->func()->obj()->hybridMode())
-       return true;
-
-   if (insn_->getOperation().getID() == e_ret_near ||
-       insn_->getOperation().getID() == e_ret_far) {
-      // Oops!
-      return true;
-   }
-   if (!insn_->readsMemory()) {
-      return true;
-   }
-   
-   BPatch_memoryAccessAdapter converter;
-   BPatch_memoryAccess *acc = converter.convert(insn_, addr_, false);
-   if (!acc) {
-      reg = Null_Register;
-      return true;
-   }
-   cerr << "Generating addr translate @ " << hex << addr_ << dec << endl;
-   codeGen patch(128);
-   patch.applyTemplate(templ);
-   
-   // TODO: we probably want this in a form that doesn't stomp the stack...
-   // But we can probably get away with this for now. Check that.
-
-   // Record how much we've moved ESP by (if the memory deref cares)
-   int stackShift = 0;
-
-   int priorStackShift = 0;
-   // If we're push/jmp emulating the call then isCall will be false; in this case account for the push.
-   if (!isCall_ && insn_->getCategory() == c_CallInsn) priorStackShift -= 4;
-
-   // step 1: Shift us down
-   ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, -1*MemoryEmulator::STACK_SHIFT_VAL, RealRegister(REGNUM_ESP), patch);
-   stackShift -= MemoryEmulator::STACK_SHIFT_VAL;
-
-   // step 2: save registers that will be affected by the call
-   int restoreOffset = stackShift;
-   ::emitPush(RealRegister(REGNUM_EDX), patch); stackShift -= 4;
-   ::emitPush(RealRegister(REGNUM_ECX), patch); stackShift -= 4;
-   ::emitPush(RealRegister(REGNUM_EAX), patch); stackShift -= 4;
-   emitSimpleInsn(0x9f, patch);
-   emitSaveO(patch);
-   ::emitPush(RealRegister(REGNUM_EAX), patch); stackShift -= 4;
-
-   // Step 3: LEA this sucker into ECX.
-   const BPatch_addrSpec_NP *start = acc->getStartAddr(0);
-   if (start->getReg(0) == REGNUM_ESP ||
-	   start->getReg(1) == REGNUM_ESP) {
-	  cerr << "ERROR: CF insn that uses the stack pointer! " << insn_->format() << endl;
-   }
-
-   emitASload(start, REGNUM_EDX, stackShift + priorStackShift, patch, true);   
-   
-   // This might look a lot like a memEmulatorAtom. That's, well, because it
-   // is. 
-   buffer.addPIC(patch, tracker());
-   
-   // Where are we going?
-   int_function *func = templ.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
-   // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
-   assert(func);
-   
-   // Now we start stealing from memEmulatorAtom. We need to call our translation function,
-   // which means a non-PIC patch to the CodeBuffer. I don't feel like rewriting everything,
-   // so there we go.
-   buffer.addPatch(new MemEmulatorPatch(REGNUM_EDX, REGNUM_EDX, addr_, func->getAddress()),
-                   tracker());
-   patch.setIndex(0);
-   
-   // Restore flags
-   ::emitPop(RealRegister(REGNUM_EAX), patch); stackShift += 4;
-   emitRestoreO(patch);
-   emitSimpleInsn(0x9E, patch);
-   ::emitPop(RealRegister(REGNUM_EAX), patch); stackShift += 4;
-   ::emitPop(RealRegister(REGNUM_ECX), patch); stackShift += 4;
-   // Don't restore EDX...
-
-   // EDX now holds the pointer to the destination...
-   // Dereference
-   ::emitMovRMToReg(RealRegister(REGNUM_EDX),
-                    RealRegister(REGNUM_EDX),
-                    0,
-                    patch);
-   // Reset ESP to what it should be; STACK_SHIFT_VAL + 4 (as we haven't popped edx)
-   ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, -1*stackShift, RealRegister(REGNUM_ESP), patch);
-   stackShift = 0;
-   // Push EDX
-   ::emitPush(RealRegister(REGNUM_EDX), patch); stackShift -= 4;
-   // And now we need to restore EDX, which is at restoreOffset - stackShift
-   ::emitMovRMToReg(RealRegister(REGNUM_EDX), RealRegister(REGNUM_ESP), restoreOffset - stackShift, patch);
-
-   // And tell our people to use the top of the stack
-   // for their work.
-   // TODO: trust liveness and leave this in a register. 
-
-   buffer.addPIC(patch, tracker());
-   reg = REGNUM_ESP;
-   return true;
-#endif
-
-
-std::string CFAtom::format() const {
-  stringstream ret;
-  ret << "CFAtom(" << std::hex;
-  ret << addr_ << ",";
-  if (isIndirect_) ret << "<ind>";
-  if (isConditional_) ret << "<cond>";
-  if (isCall_) ret << "<call>";
-		     
-  for (DestinationMap::const_iterator iter = destMap_.begin();
-       iter != destMap_.end();
-       ++iter) {
-    switch (iter->first) {
-    case Fallthrough:
-      ret << "FT";
-      break;
-    case Taken:
-      ret << "T";
-      break;
-    default:
-      ret << iter->first;
-      break;
-    }
-    ret << "->" << (iter->second ? iter->second->format() : "<NULL>") << ",";
-  }
-  ret << std::dec << ")";
-  return ret.str();
-}
-
 unsigned CFAtom::size() const
 { 
-    if (insn_ != NULL) 
-        return insn_->size(); 
-    return 0;
+   if (insn_ != NULL) 
+      return insn_->size(); 
+   return 0;
 }
+#endif
 
 /////////////////////////
 // Patching!
 /////////////////////////
 
-bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
-   int targetLabel = target->label(buf);
+CFPatch::CFPatch(Type a,
+                 InstructionAPI::Instruction::Ptr b,
+                 TargetInt *c,
+                 Address d) :
+   type(a), orig_insn(b), target(c), origAddr_(d) {
+   if (b)
+      ugly_insn = new instruction(b->ptr());
+   else
+      ugly_insn = NULL;
+   // New branches don't get an original instruction...
+}
 
-   relocation_cerr << "\t\t CFPatch::apply, type " << type << ", origAddr " << hex << origAddr_ 
-                   << ", and label " << dec << targetLabel << endl;
-   if (orig_insn) {
-      instruction ugly_insn(orig_insn->ptr());
-      switch(type) {
-         case CFPatch::Jump: {
-            pcRelJump pcr(buf->predictedAddr(targetLabel), ugly_insn);
-            pcr.gen = &gen;
-            pcr.apply(gen.currAddr());
-            relocation_cerr << "\t\t\t Generating CFPatch::Jump from " 
-                            << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;
-            break;
-         }
-         case CFPatch::JCC: {
-            pcRelJCC pcr(buf->predictedAddr(targetLabel), ugly_insn);
-            pcr.gen = &gen;
-            pcr.apply(gen.currAddr());
-            
-            relocation_cerr << "\t\t\t Generating CFPatch::JCC from " 
-                            << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;            
-            break;
-         }
-         case CFPatch::Call: {
-            pcRelCall pcr(buf->predictedAddr(targetLabel), ugly_insn);
-            pcr.gen = &gen;
-            pcr.apply(gen.currAddr());
-            break;
-         }
-         case CFPatch::Data: {
-            pcRelData pcr(buf->predictedAddr(targetLabel), ugly_insn);
-            pcr.gen = &gen;
-            pcr.apply(gen.currAddr());
-            break;
-         }
-      }
-   }
-   else {
-      switch(type) {
-         case CFPatch::Jump:
-            insnCodeGen::generateBranch(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
-            break;
-         case CFPatch::Call:
-            insnCodeGen::generateCall(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
-            break;
-         default:
-            assert(0);
-      }
-   }
-   
-   return true;
+CFPatch::~CFPatch() { 
+  if (ugly_insn) delete ugly_insn;
 }
 
 unsigned CFPatch::estimate(codeGen &) {
-  if (orig_insn) {
-     return orig_insn->size();
-  }
-  return 0;
+   if (orig_insn) {
+      return orig_insn->size();
+   }
+   return 0;
 }
 
 bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
-    //cerr << "PaddingPatch::apply, current addr " << hex << gen.currAddr() << ", size " << size_ << ", registerDefensive " << (registerDefensive_ ? "<true>" : "<false>") << dec << endl;
-    if (registerDefensive_) {
-      assert(block_);
-      gen.registerDefensivePad(block_, gen.currAddr(), 10);
+   //cerr << "PaddingPatch::apply, current addr " << hex << gen.currAddr() << ", size " << size_ << ", registerDefensive " << (registerDefensive_ ? "<true>" : "<false>") << dec << endl;
+   if (1 || noop_) {
+      gen.fill(size_, codeGen::cgNOP);
    }
-    if (noop_) {
-        gen.fill(size_, codeGen::cgNOP);
-    }
-    else if ( 0 == (size_ % 2) ) {
-            gen.fill(size_, codeGen::cgIllegal);
+   else if ( 0 == (size_ % 2) ) {
+      gen.fill(size_, codeGen::cgIllegal);
    } else {
-       gen.fill(size_, codeGen::cgTrap);
+      gen.fill(size_, codeGen::cgTrap);
    }
    //cerr << "\t After filling, current addr " << hex << gen.currAddr() << dec << endl;
    //gen.fill(10, codeGen::cgNOP);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -46,7 +46,7 @@
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/image-func.h"
+#include "dyninstAPI/src/parse-cfg.h"
 #include "dyninstAPI/src/codegen.h"
 
 
@@ -54,17 +54,13 @@
  * return the time required to execute the passed primitive.
  *
  */
+std::map<std::string, unsigned> primitiveCosts;
+
 unsigned getPrimitiveCost(const std::string &name)
 {
-
-    static bool init=false;
-
-    if (!init) { init = 1; initPrimitiveCost(); }
-
-    if (!primitiveCosts.defines(name)) {
-      return 1;
-    } else
-      return (primitiveCosts[name]);
+   std::map<string, unsigned>::iterator iter = primitiveCosts.find(name);
+   if (iter != primitiveCosts.end()) return iter->second;
+   return 1;
 }
 
 

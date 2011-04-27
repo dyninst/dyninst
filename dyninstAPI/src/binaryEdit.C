@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -227,6 +227,8 @@ bool BinaryEdit::inferiorRealloc(Address item, unsigned newsize)
   bool result = inferiorReallocInternal(item, newsize);
   if (!result)
     return false;
+
+  maxAllocedAddr();
 
   codeRange *obj;
   result = memoryTracker_->find(item, obj);
@@ -467,7 +469,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 
       Symtab *symObj = mobj->parse_img()->getObject();
 
-      if( symObj->isStaticBinary() ) {
+      if( symObj->isStaticBinary() && isDirty() ) {
           if( !doStaticBinarySpecialCases() ) {
               return false;
           }
@@ -549,10 +551,12 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          fprintf(stderr, "ERROR:  unable to open/reinstrument previously instrumented binary %s!\n", newFileName.c_str());
          return false;
       }
-        
+      Address HWM = maxAllocedAddr();
+
+
       symObj->addRegion(lowWaterMark_,
                         newSectionPtr,
-                        highWaterMark_ - lowWaterMark_,
+                        HWM - lowWaterMark_,
                         ".dyninstInst",
                         Region::RT_TEXTDATA,
                         true);
@@ -657,6 +661,21 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       }
    return true;
 }
+
+Address BinaryEdit::maxAllocedAddr() {
+   inferiorFreeCompact();
+   Address hi = 0;
+
+   for (dictionary_hash<Address, heapItem *>::iterator iter = heap_.heapActive.begin();
+        iter != heap_.heapActive.end(); ++iter) {
+      Address localHi = (*iter)->addr + (*iter)->length;
+      cerr << "Heap item [" << hex << (*iter)->addr << "," << localHi << dec 
+           << "], " << (*iter)->length << " bytes" << endl;
+      if (localHi > hi) hi = localHi;
+   }
+   return hi;
+}
+
 
 bool BinaryEdit::inferiorMallocStatic(unsigned size) {
     // Should be set by now
@@ -775,28 +794,27 @@ Address BinaryEdit::getDependentRelocationAddr(Symbol *referring) {
 void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
                                      Region *newSec,
                                      Module *newMod) {
-
-
+#if 0
     pdvector<codeRange *> ranges;
     // FIXME: fill this in
     // Should just check each relocated function and add a symbol
     // for it, since this is now totally broken.
 
-    int_function *currFunc = NULL;
+    func_instance *currFunc = NULL;
     codeRange *startRange = NULL;
 
     Address startAddr = 0;
     unsigned size = 0;
 
     for (unsigned i = 0; i < ranges.size(); i++) {
-        int_block *bbl = ranges[i]->is_basicBlockInstance();
+        block_instance *bbl = ranges[i]->is_basicBlockInstance();
 
         bool finishCurrentRegion = false;
         bool startNewRegion = false;
         bool extendCurrentRegion = false;
 
         if (bbl) {
-            if (bbl->func() != currFunc) {
+           if (bbl->func() != currFunc) {
                 finishCurrentRegion = true;
                 startNewRegion = true;
             }
@@ -840,6 +858,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
             size += ranges[i]->get_size() + (ranges[i]->get_address() - (startAddr + size));
         }
     }
+#endif
 }
     
 void BinaryEdit::markDirty()
@@ -900,11 +919,11 @@ vector<BinaryEdit *> &BinaryEdit::rtLibrary()
    return rtlib;
 }
 
-int_function *BinaryEdit::findOnlyOneFunction(const std::string &name,
+func_instance *BinaryEdit::findOnlyOneFunction(const std::string &name,
                                               const std::string &libname,
                                               bool search_rt_lib)
 {
-   int_function *f = AddressSpace::findOnlyOneFunction(name, libname, search_rt_lib);
+   func_instance *f = AddressSpace::findOnlyOneFunction(name, libname, search_rt_lib);
    if (!f && search_rt_lib) {
       std::vector<BinaryEdit *>::iterator rtlib_it;
       for(rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
@@ -953,45 +972,45 @@ bool BinaryEdit::replaceTrapHandler() {
     vector<string> sigaction_names;
     OS::get_sigaction_names(sigaction_names);
 
-    pdvector<int_function *> allFuncs;
+    pdvector<func_instance *> allFuncs;
     getAllFunctions(allFuncs);
 
     for (unsigned nidx = 0; nidx < sigaction_names.size(); nidx++) 
     {
-    // find replacement function
-    std::stringstream repname;
-    repname << "dyn_" << sigaction_names[nidx];
-    int_function *repfunc = findOnlyOneFunction(repname.str().c_str());
-    assert(repfunc);
+        // find replacement function
+        std::stringstream repname;
+        repname << "dyn_" << sigaction_names[nidx];
+        func_instance *repfunc = findOnlyOneFunction(repname.str().c_str());
+        assert(repfunc);
     
-    // replace all callsites to current sigaction function
-    for (unsigned i = 0; i < allFuncs.size(); i++) {
-        int_function *func = allFuncs[i];
-        
-        assert(func);
-        const pdvector<instPoint *> &calls = func->funcCalls();
+        // replace all callsites to current sigaction function
+        for (unsigned i = 0; i < allFuncs.size(); i++) {
+            func_instance *func = allFuncs[i];        
+            assert(func);
 
-        for (unsigned j = 0; j < calls.size(); j++) {
-            instPoint *point = calls[j];
-
-            // the function name could have up to two underscores
-            // prepended (e.g., sigaction, _sigaction, __sigaction),
-            // try all three possibilities for each name
-            std::string calleeName = point->getCalleeName();
-            std::string sigactName = sigaction_names[nidx];
-            for (int num_s=0; 
-                 num_s <= 2; 
-                 num_s++, sigactName.append(string("_"),0,1)) 
+            for (func_instance::BlockSet::const_iterator iter = func->blocks().begin();
+                 iter != func->blocks().end(); ++iter) 
             {
-               if (calleeName == sigactName) {
-                  replaceFunctionCall(point, repfunc);
-                  break;
-               }
-            }
-        }
-    } // for each func in the rewritten binary
-    } // for each sigaction-equivalent function to replace
-    return true;
+                if ((*iter)->containsCall()) {
+
+                    // the function name could have up to two underscores
+                    // prepended (e.g., sigaction, _sigaction, __sigaction),
+                    // try all three possibilities for each name
+                    std::string calleeName = (*iter)->calleeName();
+                    std::string sigactName = sigaction_names[nidx];
+                    for (int num_s=0; 
+                         num_s <= 2; 
+                         num_s++, sigactName.append(string("_"),0,1)) {
+                        if (calleeName == sigactName) {
+                            modifyCall(*iter, repfunc, func);
+                            break;
+                        }
+                    }
+                }
+            } // for each func in the rewritten binary
+        } // for each sigaction-equivalent function to replace
+        return true;
+    }
 }
 
 bool BinaryEdit::needsPIC()

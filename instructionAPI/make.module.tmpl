@@ -7,7 +7,7 @@
 #
 
 SUITE_NAME	= Dyninst
-RELEASE_MAJOR	= 2
+RELEASE_MAJOR	= 7
 RELEASE_MINOR = 0
 
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
@@ -23,7 +23,7 @@ ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)
 CFLAGS		+= -fPIC -g
-CXXFLAGS	+= -fPIC $(G_PTHREAD) -felide-constructors -g -D_GLIBCXX_PROFILE
+CXXFLAGS	+= -fPIC $(G_PTHREAD) -felide-constructors -g
 else
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 LDFLAGS		+= -G
@@ -57,7 +57,6 @@ DOCDIR	= ../doc
 TO_INC = ../h
 PUBLIC_H =      BinaryFunction.h \
                 Dereference.h \
-                entryIDs.h \
                 Expression.h \
                 Immediate.h \
                 InstructionAST.h \
@@ -82,7 +81,7 @@ docs: $(SRCS)
 	cd ..; doxygen instructionAPI.conf
 	cd $(DOCDIR)/latex; ./manual-preproc.pl *.tex; $(MAKE) clean
 	$(MAKE) -C $(DOCDIR)/latex
-	cp $(DOCDIR)/latex/refman.pdf ../instructionProgGuide.v11.pdf
+	cp $(DOCDIR)/latex/refman.pdf ../../../docs/instructionProgGuide.pdf
 
 
 

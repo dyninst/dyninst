@@ -37,6 +37,12 @@ ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
 	LDFLAGS += -linstructionAPI
 endif
 
+ifneq ($(findstring cap_mem_emulation,$(CAP_DEF)),)
+      	SRCS += ../src/MemoryEmulator/memEmulator.C \
+	        ../src/MemoryEmulator/memEmulatorTransformer.C \
+		../src/MemoryEmulator/memEmulatorAtom.C 
+endif
+
 LDFLAGS += -lpthread -lsymtabAPI -lcommon -lparseAPI
 
 LDFLAGS     += -L../../common/$(PLATFORM) 
@@ -77,6 +83,8 @@ SRCS         += ../src/BPatch_templates.C \
 		../src/templates2.C 
 
 endif
+
+
 
 SRCS	     +=	../src/BPatch.C \
 		../src/BPatch_image.C \
@@ -128,11 +136,12 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/codeRange.C \
                 ../src/symtab.C \
                 ../src/dominator.C \
-                ../src/image-func.C \
+                ../src/parse-cfg.C \
                 ../src/mapped_object.C \
                 ../src/mapped_module.C \
                 ../src/function.C \
                 ../src/block.C \
+                ../src/edge.C \
                 ../src/variable.C \
 		../src/util.C \
                 ../src/BPatch_instruction.C \
@@ -149,28 +158,19 @@ SRCS	     +=	../src/BPatch.C \
 		../src/Relocation/CodeMover.C \
 		../src/Relocation/Springboard.C \
 		../src/Relocation/Atoms/ASTAtom.C \
-		../src/Relocation/Atoms/Atom.C \
 		../src/Relocation/Atoms/CFAtom.C \
-		../src/Relocation/Atoms/CopyInsn.C \
-                ../src/Relocation/Atoms/DefensivePadding.C \
-		../src/Relocation/Atoms/GetPC.C \
-		../src/Relocation/Atoms/Instrumentation.C \
-		../src/Relocation/Atoms/Padding.C \
-		../src/Relocation/Atoms/RelData.C \
-		../src/Relocation/Transformers/CF_Localization.C \
-		../src/Relocation/Transformers/ControlFlow.C \
-		../src/Relocation/Transformers/Defensive.C \
-		../src/Relocation/Transformers/Fallthroughs.C \
+		../src/Relocation/Atoms/InsnAtom.C \
+		../src/Relocation/Atoms/InstAtom.C \
+		../src/Relocation/Atoms/PCAtom.C \
+                ../src/Relocation/Atoms/RelDataAtom.C \
+                ../src/Relocation/Atoms/Target.C \
+                ../src/Relocation/Atoms/Trace.C \
 		../src/Relocation/Transformers/Instrumenter.C \
 		../src/Relocation/Transformers/Modification.C \
 		../src/Relocation/Transformers/Movement-adhoc.C \
-		../src/Relocation/Transformers/Movement-analysis.C \
-		../src/Relocation/AddressMapper.C \
 		../src/Relocation/CodeTracker.C \
                 ../src/Relocation/CodeBuffer.C \
-                ../src/MemoryEmulator/memEmulator.C \
-                ../src/MemoryEmulator/memEmulatorAtom.C \
-                ../src/MemoryEmulator/memEmulatorTransformer.C 
+                ../src/Relocation/patchapi_debug.C 
 
 TO_INC   = ../h
 PUBLIC_H = BPatch_addressSpace.h \

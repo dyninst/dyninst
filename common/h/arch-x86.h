@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -35,14 +35,14 @@
 #ifndef _ARCH_X86_H
 #define _ARCH_X86_H
 
+#include "common/h/Types.h"
 #include <stdio.h>
 #include <common/h/Vector.h>
 #include <set>
 #include <map>
 #include <vector>
-#include "common/h/Types.h"
 #include "dyn_regs.h"
-#include "instructionAPI/h/entryIDs.h"
+#include "entryIDs.h"
 
 #include "common/h/ia32_locations.h"
 
@@ -753,6 +753,8 @@ COMMON_EXPORT Address get_target(const unsigned char *instr, unsigned type, unsi
 #define PUSH_RM_OPC2 (6)
 #define CALL_RM_OPC1 (0xFF)
 #define CALL_RM_OPC2 (2)
+#define JUMP_RM_OPC1 (0xFF)
+#define JUMP_RM_OPC2 (4)
 #define PUSH_EBP (0x50+REGNUM_EBP)
 #define SUB_REG_IMM32 (5)
 #define LEAVE (0xC9)
@@ -767,6 +769,7 @@ COMMON_EXPORT Address get_target(const unsigned char *instr, unsigned type, unsi
 #define EXTENDED_0x81_CMP 7
 #define EXTENDED_0x83_AND 4
 
+unsigned int swapBytesIfNeeded(unsigned int i);
 
 class instruction {
  public:
@@ -867,7 +870,7 @@ class instruction {
   void print()
   {
       for (unsigned i = 0; i < size_; i++)
-	  fprintf(stderr, " %x", *(ptr_ + i));
+	  fprintf(stderr, " %02x", *(ptr_ + i));
       fprintf(stderr, "\n");
   }
 		  
@@ -933,8 +936,6 @@ COMMON_EXPORT bool insn_hasDisp32(unsigned ModRM);
 COMMON_EXPORT bool isStackFramePrecheck_msvs( const unsigned char *buffer );
 COMMON_EXPORT bool isStackFramePrecheck_gcc( const unsigned char *buffer );
 
-
+}; // namespace arch_x86
 
 #endif
-
-}; // namespace arch_x86

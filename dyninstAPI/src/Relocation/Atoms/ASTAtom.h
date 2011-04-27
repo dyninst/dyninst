@@ -36,6 +36,7 @@
 
 class AstNode;
 typedef dyn_detail::boost::shared_ptr<AstNode> AstNodePtr;
+class instPoint;
 
 namespace Dyninst {
 namespace Relocation {

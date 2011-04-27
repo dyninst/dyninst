@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 #include "dynutil/h/SymReader.h"
 #include "common/h/Elf_X.h"
 #include "common/h/headers.h"
@@ -375,6 +405,9 @@ inline void SymElf::createSymCache()
 {
    unsigned long sym_count = 0, cur_sym = 0, cur_sec = 0;
    
+   if (!cache && sym_sections)
+      return;
+
    assert(!cache);
    assert(!sym_sections);
    for (unsigned i=0; i < elf.e_shnum(); i++) 
@@ -389,8 +422,9 @@ inline void SymElf::createSymCache()
       sym_sections_size++;
    }
 
-   cache = (SymCacheEntry *) malloc(sym_count * sizeof(SymCacheEntry));
    sym_sections = (Elf_X_Shdr *) malloc(sym_sections_size * sizeof(Elf_X_Shdr));
+   if (sym_count)
+      cache = (SymCacheEntry *) malloc(sym_count * sizeof(SymCacheEntry));
    
    for (unsigned i=0; i < elf.e_shnum(); i++) 
    {
@@ -417,9 +451,10 @@ inline void SymElf::createSymCache()
       }
    }
    cache_size = cur_sym;
-   cache = (SymCacheEntry *) realloc(cache, cur_sym  * sizeof(SymCacheEntry)); //Size reduction
-
-   qsort(cache, cache_size, sizeof(SymCacheEntry), symcache_cmp);
+   if (cache)
+      cache = (SymCacheEntry *) realloc(cache, cur_sym  * sizeof(SymCacheEntry)); //Size reduction
+   if (cache)
+      qsort(cache, cache_size, sizeof(SymCacheEntry), symcache_cmp);
 }
 
 inline Symbol_t SymElf::lookupCachedSymbol(Dyninst::Offset off)
@@ -427,7 +462,13 @@ inline Symbol_t SymElf::lookupCachedSymbol(Dyninst::Offset off)
    unsigned min = 0;
    unsigned max = cache_size;
    unsigned cur = cache_size / 2;
+   Symbol_t ret;
    
+   if (!cache) {
+      ret.i2 = INVALID_SYM_CODE;
+      return ret;
+   }
+
    for (;;) {
       if (max == min || min+1 == max)
          break;
@@ -445,7 +486,6 @@ inline Symbol_t SymElf::lookupCachedSymbol(Dyninst::Offset off)
    }
    void *sym_ptr = cache[cur].symloc;
 
-   Symbol_t ret;
    for (unsigned i=0; i<sym_sections_size; i++) {
       Elf_X_Shdr &shdr = sym_sections[i];
       Elf_X_Data data = shdr.get_data();

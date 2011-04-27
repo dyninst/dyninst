@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -51,7 +51,8 @@ class codeGen;
 class instPoint;
 class process;
 class AddressSpace;
-class image_basicBlock;
+class parse_block;
+class baseTramp;
 
 // A class to retain information about where the original register can be found. It can be in one of the following states: 
 // 1) Unsaved, and available via the register itself;
@@ -197,7 +198,7 @@ class regState_t {
 };
 
 class registerSpace {
-   friend class baseTrampInstance;
+   friend class baseTramp;
  private:
     // A global mapping of register names to slots
     static registerSpace *globalRegSpace_;
@@ -215,7 +216,7 @@ class registerSpace {
     // IRPC-specific - everything live for now
     static registerSpace *irpcRegSpace(AddressSpace *proc);
     // Aaand instPoint-specific
-    static registerSpace *actualRegSpace(instPoint *iP, callWhen location);
+    static registerSpace *actualRegSpace(instPoint *iP);
     // DO NOT DELETE THESE. 
     static registerSpace *savedRegSpace(AddressSpace *proc);
 

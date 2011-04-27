@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,6 +39,10 @@
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/h/BPatch_enums.h"
 #include <list>
+
+class block_instance;
+class func_instance;
+class edge_instance;
 
 //  we really do not want to have this defined, but I'm defining it for the moment to get thru paradyn seperation
 #define CHECK_ALL_CALL_POINTS  // we depend on this for Paradyn
@@ -95,9 +99,9 @@ class int_variable {
 };
 
 struct edgeStub {
-    edgeStub(int_block *s, Address t, EdgeTypeEnum y) 
+    edgeStub(block_instance *s, Address t, EdgeTypeEnum y) 
     { src = s; trg = t; type = y; }
-    int_block* src;
+    block_instance* src;
     Address trg;
     EdgeTypeEnum type;
 };
@@ -121,8 +125,10 @@ struct edgeStub {
 
 class mapped_object : public codeRange {
     friend class mapped_module; // for findFunction
-    friend class int_function;
-    friend class int_block; // Adds to codeRangesByAddr_
+    friend class func_instance;
+    friend class block_instance; // Adds to codeRangesByAddr_
+    friend class edge_instance;
+
  private:
     mapped_object();
     mapped_object(fileDescriptor fileDesc, 
@@ -140,7 +146,7 @@ class mapped_object : public codeRange {
     // Copy constructor: for forks
     mapped_object(const mapped_object *par_obj, process *child);
 
-    // Will delete all int_functions which were originally part of this object; including 
+    // Will delete all func_instances which were originally part of this object; including 
     // any that were relocated (we can always follow the "I was relocated" pointer).
     ~mapped_object();
 
@@ -189,23 +195,23 @@ class mapped_object : public codeRange {
 
     mapped_module *getDefaultModule();
 
+    func_instance *findFuncByEntry(const Address addr);
+    func_instance *findFuncByEntry(const block_instance *blk);
 
     void getInferiorHeaps(vector<pair<string, Address> > &infHeaps);
 
-    bool findFuncsByAddr(const Address addr, std::set<int_function *> &funcs);
-    bool findBlocksByAddr(const Address addr, std::set<int_block *> &blocks);
-    int_function *findFuncByEntry(const Address addr);
-    bool findBlocksByEntry(const Address addr, std::set<int_block *> &blocks);
-
-    int_block *findBlock(ParseAPI::Function *f, ParseAPI::Block *b);
-
+    bool findFuncsByAddr(const Address addr, std::set<func_instance *> &funcs);
+    bool findBlocksByAddr(const Address addr, std::set<block_instance *> &blocks);
+    block_instance *findBlockByEntry(const Address addr);
+    block_instance *findOneBlockByAddr(const Address addr);
+    
     // codeRange method
     void *getPtrToInstruction(Address addr) const;
     void *getPtrToData(Address addr) const;
 
     // Try to avoid using these if you can, since they'll trigger
     // parsing and allocation. 
-    bool getAllFunctions(pdvector<int_function *> &funcs);
+    bool getAllFunctions(pdvector<func_instance *> &funcs);
     bool getAllVariables(pdvector<int_variable *> &vars);
 
     const pdvector<mapped_module *> &getModules();
@@ -222,14 +228,15 @@ class mapped_object : public codeRange {
     void addProtectedPage(Address pageAddr); // adds to protPages_
     void removeProtectedPage(Address pageAddr);
     void removeEmptyPages();
-    void removeFunction(int_function *func);
+    void removeFunction(func_instance *func);
     bool splitIntLayer();
+    void splitBlock(ParseAPI::Block *first, ParseAPI::Block *second);
     bool findBlocksByRange(Address startAddr,
                           Address endAddr,
-                          std::list<int_block*> &pageBlocks);
+                          std::list<block_instance*> &pageBlocks);
     void findFuncsByRange(Address startAddr,
                           Address endAddr,
-                          std::set<int_function*> &pageFuncs);
+                          std::set<func_instance*> &pageFuncs);
     void addEmulInsn(Address insnAddr, Register effective_addr);
     bool isEmulInsn(Address insnAddr);
     Register getEmulInsnReg(Address insnAddr);
@@ -243,15 +250,6 @@ private:
     // end exploratory and defensive mode functions //
 public:
 
-
-#if defined(cap_save_the_world)
-    bool isinText(Address addr){ 
-        return ((addr >= codeBase_) && (addr < (codeBase_ + imageSize())));
-    }
-    void openedWithdlopen() { dlopenUsed = true; }; 
-    bool isopenedWithdlopen() { return dlopenUsed; };
-#endif
-
     bool  getSymbolInfo(const std::string &n, int_symbol &sym);
 
     // All name lookup functions are vectorized, because you can have
@@ -260,11 +258,11 @@ public:
     // Mangled: multiple modules with static/private functions and
     // we've lost the module name.
 
-    const pdvector<int_function *> *findFuncVectorByPretty(const std::string &funcname);
-    const pdvector<int_function *> *findFuncVectorByMangled(const std::string &funcname); 
+    const pdvector<func_instance *> *findFuncVectorByPretty(const std::string &funcname);
+    const pdvector<func_instance *> *findFuncVectorByMangled(const std::string &funcname); 
 
-    bool findFuncsByAddr(std::vector<int_function *> &funcs);
-    bool findBlocksByAddr(std::vector<int_block *> &blocks);
+    bool findFuncsByAddr(std::vector<func_instance *> &funcs);
+    bool findBlocksByAddr(std::vector<block_instance *> &blocks);
 
     const pdvector<int_variable *> *findVarVectorByPretty(const std::string &varname);
     const pdvector<int_variable *> *findVarVectorByMangled(const std::string &varname); 
@@ -275,14 +273,24 @@ public:
 	void setDirty(){ dirty_=true;}
 	bool isDirty() { return dirty_; }
 
-    int_function *findFunction(ParseAPI::Function *img_func);
+    func_instance *findFunction(ParseAPI::Function *img_func);
     int_variable *findVariable(image_variable *img_var);
+
+    block_instance *findBlock(ParseAPI::Block *);
+    // If we already know the source or target hand them in for efficiency
+    edge_instance *findEdge(ParseAPI::Edge *, block_instance *src = NULL, block_instance *trg = NULL);
 
     // These methods should be invoked to find the global constructor and
     // destructor functions in stripped, static binaries
-    int_function *findGlobalConstructorFunc(const std::string &ctorHandler);
-    int_function *findGlobalDestructorFunc(const std::string &dtorHandler);
+    func_instance *findGlobalConstructorFunc(const std::string &ctorHandler);
+    func_instance *findGlobalDestructorFunc(const std::string &dtorHandler);
 
+    // We store callee names at the mapped_object level for
+    // efficiency
+    std::string getCalleeName(block_instance *);
+    void setCalleeName(block_instance *, std::string name);
+
+  private:
     //
     //     PRIVATE DATA MEMBERS
     //				
@@ -306,12 +314,19 @@ private:
 
     pdvector<mapped_module *> everyModule;
 
-    typedef std::map<const image_func *, int_function *> FuncMap;
+    typedef std::map<const ParseAPI::Block *, block_instance *> BlockMap;
+    BlockMap blocks_;
+    
+    typedef std::map<const ParseAPI::Edge *, edge_instance *> EdgeMap;
+    EdgeMap edges_;
+
+    typedef std::map<const ParseAPI::Function *, func_instance *> FuncMap;
     FuncMap everyUniqueFunction;
+
     dictionary_hash<const image_variable *, int_variable *> everyUniqueVariable;
 
-    dictionary_hash< std::string, pdvector<int_function *> * > allFunctionsByMangledName;
-    dictionary_hash< std::string, pdvector<int_function *> * > allFunctionsByPrettyName;
+    dictionary_hash< std::string, pdvector<func_instance *> * > allFunctionsByMangledName;
+    dictionary_hash< std::string, pdvector<func_instance *> * > allFunctionsByPrettyName;
 
     dictionary_hash< std::string, pdvector<int_variable *> * > allVarsByMangledName;
     dictionary_hash< std::string, pdvector<int_variable *> * > allVarsByPrettyName;
@@ -319,7 +334,7 @@ private:
     codeRangeTree codeRangesByAddr_;
 
     // And those call...
-    void addFunction(int_function *func);
+    void addFunction(func_instance *func);
     void addVariable(int_variable *var);
 
     // Add a name after-the-fact
@@ -327,7 +342,7 @@ private:
         mangledName = 1,
         prettyName = 2,
         typedName = 4 } nameType_t;
-    void addFunctionName(int_function *func, const std::string newName, nameType_t nameType);
+    void addFunctionName(func_instance *func, const std::string newName, nameType_t nameType);
 
     bool dirty_; // marks the shared object as dirty 
     bool dirtyCalled_;//see comment for setDirtyCalled
@@ -339,11 +354,11 @@ private:
     bool analyzed_; // Prevent multiple adds
 
     // exploratory and defensive mode variables
-    typedef enum WriteableStatus {
+    typedef enum  {
         PROTECTED,
         REPROTECTED,
         UNPROTECTED,
-    };
+    } WriteableStatus;
     BPatch_hybridMode analysisMode_;
     map<Address,WriteableStatus> protPages_;
     std::set<SymtabAPI::Region*> expansionCheckedRegions_;
@@ -361,6 +376,8 @@ private:
     char *getModulePart(std::string &full_path_name) ;
 
     bool memoryImg_;
+
+    std::map<block_instance *, std::string> calleeNames_;
 };
 
 // Aggravation: a mapped object might very well occupy multiple "ranges". 

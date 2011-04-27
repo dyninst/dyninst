@@ -9,7 +9,7 @@ LDFLAGS      = @LDFLAGS@
 DWARFFLAGS      = @DWARFFLAGS@
 ELFFLAGS      = @ELFFLAGS@
 LIBS         = @LIBS@
-
+DEMANGLER_LINK = @LIBERTYFLAGS@
 prefix       = @prefix@
 PLATFORM    ?= @build@
 DYNINST_VER  = @DYNINST_VER@
@@ -47,10 +47,8 @@ OBJS         = $(SRCS:%.C=%.o)
 CXXFLAGS    += -Wall
 LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -lparseAPI
 
-# FreeBSD doesn't need to be linked with libiberty
-ifeq (, $(findstring freebsd, $(PLATFORM)))
-LIBS += -liberty
-endif
+# The echo will remove the quotes
+LIBS += $(shell echo $(DEMANGLER_LINK))
 
 ifneq (, $(findstring solaris, $(PLATFORM)))
 LIBS        += -ldwarf  -lelf
@@ -59,6 +57,12 @@ LDFLAGS += $(ELFFLAGS)
 endif
 
 ifneq (, $(findstring linux, $(PLATFORM)))
+LIBS        += -ldwarf -lelf
+LDFLAGS += $(DWARFFLAGS)
+LDFLAGS += $(ELFFLAGS)
+endif
+
+ifneq (, $(findstring vxworks, $(PLATFORM)))
 LIBS        += -ldwarf -lelf
 LDFLAGS += $(DWARFFLAGS)
 LDFLAGS += $(ELFFLAGS)
@@ -88,7 +92,7 @@ ifneq (, $(findstring x86_64, $(PLATFORM)))
 LIBS        += -linstructionAPI
 endif
 
-ifneq (, $(findstring ppc32_linux, $(PLATFORM)))
+ifneq (, $(findstring ppc32, $(PLATFORM)))
 LIBS        += -linstructionAPI
 endif
 
@@ -127,7 +131,7 @@ clean:
 	rm -f parseThat *.o *.so
 
 distclean: clean
-	rm Makefile
+	rm Makefile config.log config.status
 
 ready:
 	@echo "Begin parseThat build for $(PLATFORM)"

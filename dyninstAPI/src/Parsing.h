@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -122,7 +122,7 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   void block_delete(ParseAPI::Block *b);
 
 #if defined(arch_power) || defined(arch_sparc)
-  void instruction_cb(ParseAPI::Function*,Address,insn_details*);
+  void instruction_cb(ParseAPI::Function*, ParseAPI::Block *,Address,insn_details*);
 #endif
  private:
     image * _img;

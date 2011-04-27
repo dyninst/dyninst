@@ -1,6 +1,37 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 //command.C
 #include "dynC.h"
 #include "ast.h"
+#include "snippetGen.h"
 
 #define BASE_TEN 10
 extern BPatch_snippet *parse_result;
@@ -8,8 +39,8 @@ extern BPatch_snippet *parse_result;
 extern "C" {
    void set_lex_input(char *s);
    int dynCparse();
-
 }
+
 extern char *dynCSnippetName;
 extern int dyn_debug_ast;
 extern SnippetGenerator *snippetGen;
@@ -42,12 +73,12 @@ namespace dynC_API{
             parse_result->ast_wrapper->debugPrint();
             dyn_debug_ast = 0;
          }
-         delete mutName;
-         delete mutS;
+         free(mutName);
+         free(mutS);
          return parse_result;
       }
-      delete mutName;
-      delete mutS;
+      free(mutName);
+      free(mutS);
       return NULL; //error
    }
 
@@ -72,67 +103,82 @@ namespace dynC_API{
             parse_result->ast_wrapper->debugPrint();
             dyn_debug_ast = 0;
          }
-         delete mutS;
-         delete mutName;
+         free(mutS);
+         free(mutName);
          return parse_result;
       }
-      delete mutS;
-      delete mutName;
+      free(mutS);
+      free(mutName);
       return NULL; //error
    }
 
    BPatch_snippet * createSnippet(FILE *f, BPatch_point &point, const char *name){
       std::string fileString;
-      char line[128];
       if(f == NULL){
          fprintf(stderr, "Error: Unable to open file\n");
          return NULL;
       }
-      while(fgets(line, 128, f) != NULL)
+      char c;
+      while((c = fgetc(f)) != EOF)
       {
-         fileString += line;
+         fileString += c;
       }
-      return createSnippet(strdup(fileString.c_str()), point, name);
+      rewind(f);
+
+      char *cstr = strdup(fileString.c_str());
+      BPatch_snippet *retSn = createSnippet(cstr, point, name);
+      free(cstr);
+      return retSn;
    }
 
 
    BPatch_snippet * createSnippet(FILE *f, BPatch_addressSpace &addSpace, const char *name){
       std::string fileString;
-      char line[128];
       if(f == NULL){
          fprintf(stderr, "Error: Unable to open file\n");
          return NULL;
       }
-      while(fgets(line, 128, f) != NULL)
+      char c;
+      while((c = fgetc(f)) != EOF)
       {
-         fileString += line;
+         fileString += c;
       }
-      return createSnippet(strdup(fileString.c_str()), addSpace, name);
+      rewind(f);
+      char *cstr = strdup(fileString.c_str());
+      BPatch_snippet *retSn = createSnippet(cstr, addSpace, name);
+      free(cstr);
+      return retSn;
    }
 
-   std::string mangle(const char *varName, BPatch_point *point, const char *typeName){
+   BPatch_snippet * createSnippet(std::string str, BPatch_point &point, const char *name){
+      char *cstr = strdup(str.c_str());
+      BPatch_snippet *retSn = createSnippet(cstr, point, name);
+      free(cstr);
+      return retSn;
+   }
+
+
+   BPatch_snippet * createSnippet(std::string str, BPatch_addressSpace &addSpace, const char *name){
+      char *cstr = strdup(str.c_str());
+      BPatch_snippet *retSn = createSnippet(cstr, addSpace, name);
+      free(cstr);
+      return retSn;      
+   }
+
+
+   std::string mangle(const char *varName, const char *snippetName, const char *typeName){
       std::stringstream namestr;
-      namestr << varNameBase << varName << "_0x" << (point == NULL ? 0 : point->getAddress());
+      namestr << varNameBase << varName << "_" << snippetName;
       namestr << "_" << typeName;
       std::string retName = namestr.str();
       return retName;
    }
 
-/* Old version
-   std::string mangle(const char *varName, const char *snippetName, const char *typeName, const bool isGlobal){
+   std::string getMangledStub(const char *varName, const char *snippetName){
       std::stringstream namestr;
-      namestr << varNameBase << varName << "_" << point;
-      namestr << "_" << typeName;
-      namestr << "_" << (isGlobal ? "global" : "local");
+      namestr << varNameBase << varName << "_" << snippetName;
       std::string retName = namestr.str();
       return retName;
    }
-*/
-   std::string getMangledStub(const char *varName, BPatch_point *point){
-      std::stringstream namestr;
-//      namestr << varNameBase << varName << "_";
-      namestr << varNameBase << varName << "_0x" << (point == NULL ? 0 : point->getAddress());
-      std::string retName = namestr.str();
-      return retName;
-   }   
+
 }
