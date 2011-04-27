@@ -550,6 +550,9 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     API_EXPORT(Int, (),
     bool,hideDebugger,());
 
+    API_EXPORT_V(Int, (),
+    void, printDefensiveStats, ());
+
     //  BPatch_process::enableDumpPatchedImage
     //  
     //  

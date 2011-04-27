@@ -86,13 +86,35 @@ private:
 
 public:
 
+    class AnalysisStats {
+      public: 
+        AnalysisStats() {
+            exceptions = 0;
+            winApiCallbacks = 0;
+            owCount = 0;
+            owBytes = 0;
+            owExecFunc = 0;
+            owFalseAlarm = 0;
+        }
+        int exceptions;
+        int winApiCallbacks;
+        int owCount;
+        int owBytes;
+        int owExecFunc;
+        int owFalseAlarm;
+    };
+
+
     HybridAnalysis(BPatch_hybridMode mode, BPatch_process *proc);
     ~HybridAnalysis();
 
     // sets up instrumentation, if there will be any
     bool init(); 
+
     // returns false if conversion has no effect or is not possible
     bool setMode(BPatch_hybridMode mode);
+
+    const HybridAnalysis::AnalysisStats * getStats() { return stats_; }
 
     HybridAnalysisOW * hybridOW() { return hybridow_; };
     BPatch_process *proc() { return proc_; };
@@ -102,6 +124,12 @@ public:
     //bool needsSynchronization(BPatch_point *point);
     int getOrigPageRights(Dyninst::Address addr);
     void addReplacedFuncs(std::vector<std::pair<BPatch_function*,BPatch_function*> > &repFs);
+
+    void getCallBlocks(Address retAddr, 
+                       instPoint *retPoint,
+                       pair<ParseAPI::Block*, Address> & returningCallB, // output
+                       set<ParseAPI::Block*> & callBlocks); // output
+
 
     std::map< BPatch_point* , SynchHandle* > & synchMap_pre();
     std::map< BPatch_point* , SynchHandle* > & synchMap_post();
@@ -192,6 +220,7 @@ private:
     BPatch_hybridMode mode_;
     BPatch_process *proc_;
     HybridAnalysisOW *hybridow_;
+    AnalysisStats *stats_;
 
     BPatchCodeDiscoveryCallback bpatchCodeDiscoveryCB;
     BPatchSignalHandlerCallback bpatchSignalHandlerCB;

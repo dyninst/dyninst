@@ -494,10 +494,10 @@ static int getCallPoints(ParseAPI::Block* blk,
 }
 
 // Find the call blocks preceding the address that we're returning 
-// past, but only set set returningCallB if we can be sure that 
+// past, but only set returningCallB if we can be sure that 
 // that we've found a call block that actually called the function
 // we're returning from 
-static void getCallBlocks(Address retAddr, 
+void HybridAnalysis::getCallBlocks(Address retAddr, 
                    instPoint *retPoint,
                    pair<ParseAPI::Block*, Address> & returningCallB, // output
                    set<ParseAPI::Block*> & callBlocks) // output

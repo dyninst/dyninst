@@ -70,7 +70,6 @@
 #include <boost/tuple/tuple.hpp>
 
 using namespace Dyninst;
-using namespace Dyninst::SymtabAPI;
 
 int BPatch_process::getAddressWidthInt(){
 	return llproc->getAddressWidth();
@@ -2157,4 +2156,183 @@ void BPatch_process::set_llproc(process *proc)
 {
     assert(NULL == llproc);
     llproc = proc;
+}
+
+void BPatch_process::printDefensiveStatsInt()
+{
+    // dump mapped files, plus names 
+
+    const vector<mapped_object*> objs = llproc->mappedObjects();
+    for (vector<mapped_object*>::const_iterator oit = objs.begin(); 
+         oit != objs.end(); 
+         oit++) 
+    {
+        mapped_object *obj = *oit;
+        if (BPatch_defensiveMode != obj->hybridMode()) {
+            continue;
+        }
+
+        std::stringstream outname;
+        outname << obj->fileName() << "_funcs.code";
+        FILE *outfile = fopen(outname.str().c_str(), "wb");
+        if (NULL == outfile) {
+            cerr << "ERROR: could not open binary dump file" << endl;
+            assert(0);
+        }
+        using namespace SymtabAPI;
+        vector<Region*> regs;
+        obj->parse_img()->getObject()->getMappedRegions(regs);
+        Offset endOffset = 0;
+        for (vector<Region*>::iterator rit = regs.begin(); 
+             rit != regs.end(); 
+             rit++) 
+        {
+            unsigned long diskSize = (*rit)->getDiskSize();
+            unsigned long memSize = (*rit)->getMemSize();
+            if (diskSize > 0) {
+                unsigned long writeLen = fwrite((*rit)->getPtrToRawData(),
+                                                1, diskSize, outfile);
+                if (writeLen < diskSize) {
+                    cerr << "ERROR: fwrite for binary dump failed" << endl;
+                    assert(0);
+                }
+            }
+            for (unsigned widx = diskSize; widx < memSize; widx++) {
+                if (EOF == fputc('\0',outfile)) {
+                    cerr << "ERROR: fputc write for binary dump failed" << endl;
+                    assert(0);
+                }
+            }
+        }
+        Offset funcTablePos = ftell(outfile);
+        vector<int_function*> funcs;
+        obj->getAllFunctions(funcs);
+        int addrWidth = sizeof(Offset); // not mutatee-side size, mutator side
+        for (vector<int_function*>::iterator fit = funcs.begin();
+             fit != funcs.end();
+             fit++) 
+        {
+            Offset fOffset = (*fit)->ifunc()->getOffset();
+            if (1 != fwrite(&fOffset, addrWidth, 1, outfile)) {
+                cerr << "ERROR: fwrite of func offset for binary dump failed" << endl;
+                assert(0);
+            }
+        }
+        // null-terminate the function table
+        Offset nullEntry = 0;
+        if (1 != fwrite(&nullEntry, addrWidth, 1, outfile)) {
+            assert(0);
+        }
+
+        // write in the pointer to the function table at offset 0
+        int numFuncs = funcs.size();
+        fseek(outfile, 0, SEEK_SET);
+        if (1 != fwrite(&funcTablePos, sizeof(Offset), 1, outfile)) {
+            assert(0);
+        }
+        //if (1 != fwrite(&addrWidth, sizeof(int), 1, outfile)) {
+        //    assert(0);
+        //}
+        fclose(outfile);
+        cout << "done dumping executable file " << outname.str() 
+            << ", with " << numFuncs << " functions, func table written at "
+            << hex << funcTablePos << dec << endl;
+    }
+
+//#if 0
+    int calls = 0; //done
+    int dynCalls = 0; //done
+    int multiTargetCalls = 0; //done
+    int dynJmps = 0;
+    int nonRetRets = 0;
+    int nonCallCalls = 0; // calls with known targets, that don't return KEVINTODO: currently includes calls that may return, that never executed
+    int sharedBlocks = 0;
+    int overlapBlocks = 0;
+    int overlapFuncs = 0;
+    int interleavedFuncs = 0;
+    int vaObjs = 0;
+
+    const vector<mapped_object*> objs = llproc->mappedObjects();
+    for (vector<mapped_object*>::const_iterator oit = objs.begin(); 
+         oit != objs.end(); 
+         oit++) 
+    {
+        if (BPatch_defensiveMode != (*oit)->hybridMode()) {
+            continue;
+        }
+        using namespace ParseAPI;
+        mapped_object *obj = *oit;
+        vector<func_instance*> funcs = obj->getAllFunctions();
+        for (vector<func_instance*>::iterator fit = funcs.begin(); 
+             fit != funcs.end(); 
+             fit++) 
+        {
+            func_instance *func = *fit;
+            BlockSet & blocks = func->blocks();
+            bool sharedFunc = false;
+            for (BlockSet::iterator bit = blocks.begin();
+                 bit != blocks.end();
+                 bit++) 
+            {
+                block_instance *block = *bit;
+                if (block->llb()->getFuncs().size() > 1) {
+                    sharedFunc = true;
+                    sharedBlocks++;
+                }
+                if (block->containsCall()) {
+                    calls++;
+                    if (block->containsDynamicCall()) {
+                        dynCalls++;
+                    }
+                    using namespace ParseAPI;
+                    int callTrgCount = 0;
+                    Block::edgelist &edges = block->llb()->targets();
+                    for (Block::edgelist::iterator eit = edges.begin();
+                         eit != edges.end();
+                         eit++)
+                    {
+                        if (!(*eit)->sinkEdge() && 
+                            ParseAPI::CALL == (*eit)->type()) 
+                        {
+                            callTrgCount++;
+                            if (callTrgCount == 0 && !block->getFallthrough()) {
+                                nonCallCalls++;
+                            }
+                        }
+                    }
+                    if (callTrgCount > 1) {
+                        multiTargetCalls++;
+                    }
+                }
+                else if (block->isFuncExit()) {
+                    Block::edgelist &edges = block->llb()->targets();
+                    for (Block::edgelist::iterator eit = edges.begin();
+                         eit != edges.end();
+                         eit++)
+                    {
+                        if (!(*eit)->sinkEdge() && 
+                            ParseAPI::RET == (*eit)->type()) 
+                        {
+                            vector<block_instance*> callBs;
+
+void HybridAnalysis::getCallBlocks(Address retAddr, 
+                   instPoint *retPoint,
+                   pair<ParseAPI::Block*, Address> & returningCallB, // output
+                   set<ParseAPI::Block*> & callBlocks) // output
+
+                            hybridAnalysis_->getCallBlocks(block,callBs);
+                            if (callBs.empty()) { 
+                                nonRetRets++;
+                            }
+                        }
+                    }
+                }
+            }
+            if (sharedFunc) {
+                sharedFuncs++;
+            }
+        }
+    }
+    HybridAnalysis::AnalysisStats *stats = hybridAnalysis_->getStats();
+//#endif
 }

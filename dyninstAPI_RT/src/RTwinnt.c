@@ -109,6 +109,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
    if (DYNINSTstaticMode) {
       DYNINSTinitializeTrapHandler();
    }
+   else {
+      fprintf(stderr,"DllMain: Runtime lib initialized for dynamic mode\n");
+   }
 #endif
 
    return 1; 
@@ -479,4 +482,5 @@ VOID __stdcall DYNINST_FakeGetSystemTime(LPSYSTEMTIME lpSystemTime)
     lpSystemTime->wMinute = 1;
     lpSystemTime->wSecond = 33;
     lpSystemTime->wMilliseconds = 855;
+    fprintf(stOut,"called DYNINST_FakeGetSystemTime()\n");
 }
