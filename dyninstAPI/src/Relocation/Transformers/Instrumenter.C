@@ -67,8 +67,7 @@ bool Instrumenter::processTrace(TraceList::iterator &iter,
    // Let's rack up which instPoints exist for us. 
    Trace::Ptr trace = *iter;
    relocation_cerr << "Instrumenter called on trace " << trace->id() << endl;
-   if (!trace->block()) {
-      relocation_cerr << "\tNo block, assuming inst, skipping" << endl;
+   if (!trace->origTrace()) {
       return true; // An inst block or something
    }
    
@@ -317,10 +316,8 @@ bool Instrumenter::funcEntryInstrumentation(Trace::Ptr trace) {
 
 bool Instrumenter::edgeInstrumentation(Trace::Ptr trace, const TraceMap &traceMap) {
    // Comparitively simple given the previous functions...
+   assert(trace->origTrace());
    block_instance *block = trace->block();
-   if (!block) {
-      cerr << "WTF: " << trace->id() << endl;
-   }
    assert(block);
    const block_instance::edgelist &targets = block->targets();
    for (block_instance::edgelist::iterator iter = targets.begin();

@@ -123,6 +123,7 @@ class Trace {
    // Used when we're really monkeying with the traces. Turns this
    // into something that will detect as instrumentation. 
    void setAsInstrumentationTrace();
+   bool origTrace() const { return origTrace_; }
 
    // Set up the CFAtom with our out-edges
    bool finalizeCF(Trace::Ptr next);
@@ -134,13 +135,16 @@ class Trace {
       block_(block),
       func_(f),
       id_(TraceID++),
-      label_(-1) {};
+      label_(-1),
+      origTrace_(true) {};
+   // Constructor for a trace inserted later
   Trace(Address a, block_instance *b, func_instance *f)
       :origAddr_(a),
       block_(b),
       func_(f),
       id_(TraceID++),
-      label_(-1) { 
+      label_(-1),
+      origTrace_(false) { 
    };
 
    typedef enum {
@@ -172,7 +176,7 @@ class Trace {
 
    int id_;
    Label label_;  
-
+   bool origTrace_;
    
    AtomList elements_;
    // This is convienient to avoid tons of dynamic_cast

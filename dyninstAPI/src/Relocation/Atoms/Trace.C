@@ -602,9 +602,7 @@ void Trace::replaceOutEdge(ParseAPI::EdgeTypeEnum type,
 }
 
 void Trace::setAsInstrumentationTrace() {
-   // This is a bit hacky...
-   origAddr_ = 0;
-   block_ = NULL;
+   origTrace_ = false;
 }
 
 Trace::Ptr Trace::split(AtomList::iterator where) {
