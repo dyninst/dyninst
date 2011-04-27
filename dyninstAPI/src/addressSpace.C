@@ -1529,15 +1529,6 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       }
       cerr << dec;
       cerr << endl;
-      unsigned *cur = (unsigned *) cm->ptr();
-      unsigned tmp = 0;
-      while (tmp < (cm->size() / 4)) {
-	cerr << hex << baseAddr + (4*tmp) << ": " << cur[tmp] << endl;
-	if (cur[tmp] == 0x0) {
-	  assert(0);
-	}
-	tmp++;
-      }
       cerr << cm->format() << endl;
 
   }

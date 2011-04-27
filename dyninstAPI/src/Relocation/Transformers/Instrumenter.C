@@ -230,12 +230,13 @@ bool Instrumenter::postCallInstrumentation(Trace::Ptr trace) {
    }
 
    if (!post || post->empty()) return true;
-   
+   relocation_cerr << "Adding post-call instrumentation to " << trace->id() << endl;
    Atom::Ptr inst = makeInstrumentation(post);
 
    Address postCallAddr = trace->block()->end();
    block_instance *FT = trace->block()->getFallthroughBlock();
    if (FT) postCallAddr = FT->start();
+   else relocation_cerr << "Odd: post-call inst with no fallthrough block" << endl;
 
    Trace::Ptr instTrace = Trace::create(inst, postCallAddr, FT ? FT : trace->block(), trace->func()); 
 
@@ -248,7 +249,7 @@ bool Instrumenter::postCallInstrumentation(Trace::Ptr trace) {
    
    // Magic function that does the insertion
    if (!trace->interposeTarget(ParseAPI::CALL_FT, instTrace)) return false;
-
+   relocation_cerr << "\tAdding AFTER trace to " << trace->id() << endl;
    edgeTraces_[std::make_pair(trace, After)].push_back(instTrace);
 
    return true;
@@ -256,7 +257,6 @@ bool Instrumenter::postCallInstrumentation(Trace::Ptr trace) {
 
 
 bool Instrumenter::funcEntryInstrumentation(Trace::Ptr trace) {
-   relocation_cerr << "\tFuncEntryInst for trace " << trace->id() << endl;
    instPoint *entry = NULL;
    if (trace->func() &&
        trace->func()->entryBlock() == trace->block()) {
@@ -264,6 +264,7 @@ bool Instrumenter::funcEntryInstrumentation(Trace::Ptr trace) {
    }
    if (!entry || entry->empty()) return true;
 
+   relocation_cerr << "Adding function entry at trace " << trace->id() << endl;
    // Transformation time. We have an entry block E with two types
    // of incoming edges; interprocedural (call) and intraprocedural.
    // We want to create a new trace, I, and redirect all interprocedural
@@ -277,8 +278,18 @@ bool Instrumenter::funcEntryInstrumentation(Trace::Ptr trace) {
    // entry trace (E) with instrumentation, and create a new E' that 
    // contains original code. This is kind of roundabout, but...
    // yeah. 
-   relocation_cerr << "\t\tDoing work" << endl;
    Trace::Ptr newTrace = trace->split(trace->elements().begin());
+
+   // One issue: the entry trace has now been assimilated by instrumentation
+   // and has screwed up all our edge instrumentation. 
+   // So move them...
+   relocation_cerr << "\tMoving AFTER traces from " << trace->id() << " to " << newTrace->id() << endl;
+   edgeTraces_[std::make_pair(newTrace, After)] = edgeTraces_[std::make_pair(trace, After)];
+   edgeTraces_.erase(std::make_pair(trace, After));
+
+   relocation_cerr << "\tMoving BEFORE traces from " << trace->id() << " to " << newTrace->id() << endl;
+   edgeTraces_[std::make_pair(newTrace, Before)] = edgeTraces_[std::make_pair(trace, Before)];
+   edgeTraces_.erase(std::make_pair(trace, Before));
 
    // Can't assert this as there is probably a CFAtom in the old
    // trace, but leaving for reference
@@ -299,6 +310,7 @@ bool Instrumenter::funcEntryInstrumentation(Trace::Ptr trace) {
    trace->moveSources(ParseAPI::CATCH, newTrace);
    trace->moveSources(ParseAPI::RET, newTrace);
    
+   relocation_cerr << "\tAdding AFTER trace to " << trace->id() << endl;
    edgeTraces_[std::make_pair(trace, After)].push_back(newTrace);
    return true;
 }
@@ -328,9 +340,11 @@ bool Instrumenter::edgeInstrumentation(Trace::Ptr trace, const TraceMap &traceMa
       // If not, add us after the current block.
       TraceMap::const_iterator oldTarget = traceMap.find((*iter)->trg());
       if (oldTarget != traceMap.end()) {
+         relocation_cerr << "\tAdding BEFORE trace to " << oldTarget->second->id() << endl;
          edgeTraces_[std::make_pair(oldTarget->second, Before)].push_back(instTrace);
       }
       else {
+         relocation_cerr << "\tAdding AFTER trace to " << trace->id() << endl;
          edgeTraces_[std::make_pair(trace, After)].push_back(instTrace);
       }
    }

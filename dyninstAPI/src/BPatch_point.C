@@ -75,9 +75,11 @@
  */
 BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace, 
                            BPatch_function *_func, instPoint *_point,
+                           instPoint *_secondary,
                            BPatch_procedureLocation _pointType,
                            AddressSpace *as) :
-   addSpace(_addSpace), lladdSpace(as), func(_func), point(_point), 
+   addSpace(_addSpace), lladdSpace(as), func(_func), 
+   point(_point), secondaryPoint(_secondary),
    pointType(_pointType), memacc(NULL), dynamic_point_monitor_func(NULL),
    edge_(NULL)
 {
@@ -112,7 +114,8 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
                            BPatch_function *_func, 
                            BPatch_edge *_edge, instPoint *_point,
                            AddressSpace *as) :
-   addSpace(_addSpace), lladdSpace(as), func(_func), point(_point), 
+   addSpace(_addSpace), lladdSpace(as), func(_func), 
+   point(_point), secondaryPoint(NULL),
    pointType(BPatch_locInstruction), memacc(NULL),
    dynamic_call_site_flag(0), dynamic_point_monitor_func(NULL),edge_(_edge)
 {
@@ -794,4 +797,14 @@ bool BPatch_point::patchPostCallArea()
         return point->proc()->proc()->patchPostCallArea(point);
     }
     return false;
+}
+
+instPoint *BPatch_point::getPoint(BPatch_callWhen when) {
+   switch(when) {
+      case BPatch_callBefore:
+      case BPatch_callUnset:
+         return point;
+      case BPatch_callAfter:
+         return (secondaryPoint ? secondaryPoint : point);
+   }
 }
