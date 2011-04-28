@@ -100,7 +100,10 @@ void Modification::replaceFunction(Trace::Ptr trace, const TraceMap &traceMap) {
 
    // See if we're the entry block
    if (trace->block() != trace->func()->entryBlock()) return;
-
+   relocation_cerr << "Performing function replacement in trace " << trace->id() 
+                   << " going to function " << iter->second->name() 
+                   << " /w/ entry block " 
+                   << (iter->second->entryBlock() ? iter->second->entryBlock()->start() : -1) << endl;
    // Okay, time to do work. 
    // Just update the out-edges (removing everything except
    // a... fallthrough, why not... to the replacement function)

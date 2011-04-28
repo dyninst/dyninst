@@ -223,8 +223,6 @@ class AstNode {
    static AstNodePtr funcCallNode(Address addr, pdvector<AstNodePtr > &args); // For when you absolutely need
    // to jump somewhere.
 
-   static AstNodePtr funcReplacementNode(func_instance *func, bool emitCall = false);
-
    static AstNodePtr insnNode(BPatch_instruction *insn);
 
    // Acquire the thread index value - a 0...n labelling of threads.
@@ -611,30 +609,6 @@ class AstCallNode : public AstNode {
     // "can be kept".
 };
 
-class AstReplacementNode : public AstNode {
- public:
-    AstReplacementNode(func_instance *rep, bool fcall) :
-        AstNode(),
-        replacement(rep),
-        genFuncCall_(fcall) {};
-
-    virtual bool canBeKept() const;
-    virtual bool containsFuncCall() const;
-    virtual cfjRet_t containsFuncJump() const;
-    virtual bool usesAppRegister() const;
- 
-
- private:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Address &retAddr,
-                                     Register &retReg);
-
-    func_instance *replacement;
-    AstReplacementNode() {};
-    bool genFuncCall_; //Make a call instead of a jump
-};
-
 
 class AstSequenceNode : public AstNode {
  public:
@@ -905,9 +879,6 @@ void emitStorePreviousStackFrameRegister(Address register_num,
                                          codeGen &gen,
                                          int size,
                                          bool noCost);
-void emitFuncJump(opCode op, codeGen &gen,
-                  func_instance *func, AddressSpace *addrSpace,
-                  const instPoint *loc, bool noCost);
 
 
 #endif /* AST_HDR */

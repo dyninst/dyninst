@@ -66,7 +66,7 @@ class TrackerElement {
   TrackerElement(Address o, block_instance *b, func_instance *f = NULL) 
       : orig_(o), reloc_(0), size_(0), 
      block_(b), func_(f) {
-     assert(o); assert(b);
+     assert(b);
   };
   virtual ~TrackerElement() {
   };

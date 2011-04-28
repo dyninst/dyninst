@@ -815,28 +815,6 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
 }
 
 /*
- * BPatch_funcJumpExpr::BPatch_funcJumpExpr
- *
- * Constructs a snippet representing a jump to a function without
- * linkage.
- *
- * func Identifies the function to jump to.  */
-void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
-    const BPatch_function &func)
-{
-   BPatch_funcJumpExprInt(func, false);
-}
-
-void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
-    const BPatch_function &func, bool genCall)
-{
-    ast_wrapper = AstNodePtr(AstNode::funcReplacementNode(func.lowlevel_func(), genCall));
-    assert(BPatch::bpatch != NULL);
-    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
-}
-
-
-/*
  * BPatch_ifExpr::BPatch_ifExpr
  *
  * Constructs a snippet representing a conditional expression.

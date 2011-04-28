@@ -389,6 +389,9 @@ block_instance *func_instance::entryBlock() {
       assert(iEntry);
 
       entry_ = obj()->findBlock(iEntry);
+      if (!entry_) {
+         cerr << "Couldn't find entry block for " << name() << endl;
+      }
    }
    return entry_;
 }

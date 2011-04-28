@@ -296,11 +296,6 @@ TrackerElement *CFAtom::tracker(const Trace *trace) const {
 }
 
 TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
-   if (dest->origAddr() == 0) {
-      cerr << "Error: no original address for target " << dest->format() << endl;
-      assert(0);
-   }
-
    block_instance *destBlock = NULL;
    func_instance *destFunc = NULL;
    switch (dest->type()) {

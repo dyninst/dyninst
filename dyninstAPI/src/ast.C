@@ -230,11 +230,6 @@ AstNodePtr AstNode::funcCallNode(Address addr, pdvector<AstNodePtr > &args) {
     return AstNodePtr(new AstCallNode(addr, args));
 }
 
-AstNodePtr AstNode::funcReplacementNode(func_instance *func, bool emitCall) {
-    if (func == NULL) return AstNodePtr();
-    return AstNodePtr(new AstReplacementNode(func, emitCall));
-}
-
 AstNodePtr AstNode::memoryNode(memoryType ma, int which) {
     return AstNodePtr(new AstMemoryNode(ma, which));
 }
@@ -784,7 +779,6 @@ bool AstNode::generateCode_phase2(codeGen &, bool,
     if (dynamic_cast<AstOperatorNode *>(this)) fprintf(stderr, "operatorNode\n");
     if (dynamic_cast<AstOperandNode *>(this)) fprintf(stderr, "operandNode\n");
     if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
-    if (dynamic_cast<AstReplacementNode *>(this)) fprintf(stderr, "replacementNode\n");
     if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
     if (dynamic_cast<AstVariableNode *>(this)) fprintf(stderr, "varNode\n");
     if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
@@ -819,22 +813,6 @@ bool AstLabelNode::generateCode_phase2(codeGen &gen, bool,
 
 	decUseCount(gen);
 
-    return true;
-}
-
-bool AstReplacementNode::generateCode_phase2(codeGen &gen, bool noCost,
-                                             Address &retAddr,
-                                             Register &retReg) {
-    retAddr = ADDR_NULL;
-    retReg = REG_NULL;
-    
-    assert(replacement);
-    
-    opCode op = genFuncCall_ ? funcCallOp : funcJumpOp;
-    emitFuncJump(op, gen, replacement, gen.addrSpace(),
-                 gen.point(), noCost);
-    
-    decUseCount(gen);
     return true;
 }
 
@@ -2478,7 +2456,6 @@ bool AstNode::accessesParam() {
     else if (dynamic_cast<AstOperatorNode *>(this)) fprintf(stderr, "operatorNode\n");
     else if (dynamic_cast<AstOperandNode *>(this)) fprintf(stderr, "operandNode\n");
     else if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
-    else if (dynamic_cast<AstReplacementNode *>(this)) fprintf(stderr, "replacementNode\n");
     else if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
     else if (dynamic_cast<AstVariableNode *>(this)) fprintf(stderr, "varNode\n");
     else if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
@@ -2610,10 +2587,6 @@ bool AstMiniTrampNode::canBeKept() const {
 	return ast_->canBeKept();
 }
 
-bool AstReplacementNode::canBeKept() const { 
-    return false;
-}
-
 bool AstMemoryNode::canBeKept() const {
 	// Despite our memory loads, we can be kept;
 	// we're loading off process state, which is defined
@@ -2643,7 +2616,6 @@ void AstNode::getChildren(pdvector<AstNodePtr > &) {
     else if (dynamic_cast<AstOperatorNode *>(this)) fprintf(stderr, "operatorNode\n");
     else if (dynamic_cast<AstOperandNode *>(this)) fprintf(stderr, "operandNode\n");
     else if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
-    else if (dynamic_cast<AstReplacementNode *>(this)) fprintf(stderr, "replacementNode\n");
     else if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
     else if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
     else if (dynamic_cast<AstMiniTrampNode *>(this)) fprintf(stderr, "miniTrampNode\n");
@@ -2659,7 +2631,6 @@ void AstNode::setChildren(pdvector<AstNodePtr > &) {
     else if (dynamic_cast<AstOperatorNode *>(this)) fprintf(stderr, "operatorNode\n");
     else if (dynamic_cast<AstOperandNode *>(this)) fprintf(stderr, "operandNode\n");
     else if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
-    else if (dynamic_cast<AstReplacementNode *>(this)) fprintf(stderr, "replacementNode\n");
     else if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
     else if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
     else if (dynamic_cast<AstMiniTrampNode *>(this)) fprintf(stderr, "miniTrampNode\n");
@@ -2939,10 +2910,6 @@ bool AstCallNode::containsFuncCall() const {
 }
 
 
-bool AstReplacementNode::containsFuncCall() const {
-   return true;
-}
-
 
 bool AstOperatorNode::containsFuncCall() const {
 	if (loperand && loperand->containsFuncCall()) return true;
@@ -3026,10 +2993,6 @@ cfjRet_t AstCallNode::containsFuncJump() const {
    return cfj_none;
 }
 
-cfjRet_t AstReplacementNode::containsFuncJump() const {
-   return genFuncCall_ ? cfj_call : cfj_jump;
-}
-
 cfjRet_t AstOperatorNode::containsFuncJump() const {
    cfjRet_t ret = cfj_none;
 	if (loperand) setCFJRet(ret, loperand->containsFuncJump());
@@ -3109,10 +3072,6 @@ bool AstCallNode::usesAppRegister() const {
    for (unsigned i=0; i<args_.size(); i++) {
       if (args_[i] && args_[i]->usesAppRegister()) return true;
    }
-   return false;
-}
-
-bool AstReplacementNode::usesAppRegister() const {
    return false;
 }
 
@@ -3287,7 +3246,6 @@ void AstNode::debugPrint(unsigned level) {
     else if (dynamic_cast<AstOperatorNode *>(this)) type = "operatorNode";
     else if (dynamic_cast<AstOperandNode *>(this)) type = "operandNode";
     else if (dynamic_cast<AstCallNode *>(this)) type = "callNode";
-    else if (dynamic_cast<AstReplacementNode *>(this)) type = "replacementNode";
     else if (dynamic_cast<AstSequenceNode *>(this)) type = "sequenceNode";
     else if (dynamic_cast<AstVariableNode *>(this)) type = "variableNode";
     else if (dynamic_cast<AstInsnNode *>(this)) type = "insnNode";

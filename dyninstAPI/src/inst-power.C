@@ -2496,16 +2496,9 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 
 #endif
 
-// Emit code to jump to function CALLEE without linking.  (I.e., when
-// CALLEE returns, it returns to the current caller.)
+#if 0
 
-void emitFuncJump(opCode             , 
-                  codeGen            &gen,
-                  func_instance *func,
-                  AddressSpace       *proc,
-                  const instPoint    *point,
-                  bool)
-{
+
     // POWER (for both Linux and AIX) is using the new instruction replacement
     // based method for replacing a function jump, and therefore we are 
     // *NOT* in a base tramp when this occurs.
@@ -2662,7 +2655,8 @@ void emitFuncJump(opCode             ,
     
     // Should be done.
     return;
-}
+#endif
+
 
 void emitLoadPreviousStackFrameRegister(Address register_num, 
                                         Register dest,
