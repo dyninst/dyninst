@@ -682,6 +682,9 @@ bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runnin
 bool linux_process::plat_attach(bool)
 {
    pthrd_printf("Attaching to pid %d\n", pid);
+
+   bool attachWillTriggerStop = plat_attachWillTriggerStop();
+
    int result = do_ptrace((pt_req) PTRACE_ATTACH, pid, NULL, NULL);
    if (result != 0) {
       int errnum = errno;
@@ -695,8 +698,50 @@ bool linux_process::plat_attach(bool)
       }
       return false;
    }
+
+   if ( !attachWillTriggerStop ) {
+       // Force the SIGSTOP delivered by the attach to be handled
+       pthrd_printf("Attach will not trigger stop, calling PTRACE_CONT to flush out stop\n");
+       int result = do_ptrace((pt_req) PTRACE_CONT, pid, NULL, NULL);
+       if( result != 0 ) {
+           int errnum = errno;
+           pthrd_printf("Unable to continue process %d to flush out attach: %s\n",
+                   pid, strerror(errnum));
+           return false;
+       }
+   }
    
    return true;
+}
+
+bool linux_process::plat_attachWillTriggerStop() {
+    char procName[64];
+    char cmd[256];
+    pid_t tmpPid;
+    char state;
+    int ttyNumber;
+
+    // Retrieve the state of the process and its controlling tty
+    snprintf(procName, 64, "/proc/%d/stat", pid);
+
+    FILE *sfile = fopen(procName, "r");
+    if ( sfile == NULL ) {
+        perr_printf("Failed to determine whether attach would trigger stop -- assuming it will\n");
+        return true;
+    }
+
+    fscanf(sfile, "%d %255s %c %d %d %d",
+            &tmpPid, cmd, &state,
+            &tmpPid, &tmpPid, &ttyNumber);
+    fclose(sfile);
+
+    // If the process is stopped and it has a controlling tty, an attach
+    // will not trigger a stop
+    if ( state == 'T' && ttyNumber != 0 ) {
+        return false;
+    }
+
+    return true;
 }
 
 bool linux_process::plat_execed()
