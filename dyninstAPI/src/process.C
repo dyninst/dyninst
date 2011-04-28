@@ -5272,7 +5272,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
             switch ( ( req->where & 0x7) ) {
             case FUNC_EXIT:
                 {
-                   for (func_instance::BlockSet::iterator iter = func->exitBlocks().begin();
+                   for (func_instance::BlockSet::const_iterator iter = func->exitBlocks().begin();
                         iter != func->exitBlocks().end(); ++iter) {
                       miniTramp *mt = instPoint::funcExit(func, *iter)->insert(req->order, ast, req->useTrampGuard);
                       if (mt) 
@@ -5295,7 +5295,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                 break;
             case FUNC_CALL:
                 {
-                   for (func_instance::BlockSet::iterator iter = func->callBlocks().begin();
+                   for (func_instance::BlockSet::const_iterator iter = func->callBlocks().begin();
                         iter != func->callBlocks().end(); ++iter) {
                       miniTramp *mt = instPoint::preCall(func, *iter)->insert(req->order, ast, req->useTrampGuard);
                       if (mt) 

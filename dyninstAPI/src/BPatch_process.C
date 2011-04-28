@@ -2197,10 +2197,10 @@ void BPatch_process::printDefensiveStatsInt()
             }
         }
         Offset funcTablePos = ftell(outfile);
-        vector<int_function*> funcs;
+        vector<func_instance*> funcs;
         obj->getAllFunctions(funcs);
         int addrWidth = sizeof(Offset); // not mutatee-side size, mutator side
-        for (vector<int_function*>::iterator fit = funcs.begin();
+        for (vector<func_instance*>::iterator fit = funcs.begin();
              fit != funcs.end();
              fit++) 
         {

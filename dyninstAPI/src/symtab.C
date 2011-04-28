@@ -1344,7 +1344,6 @@ image::image(fileDescriptor &desc,
    mode_(mode),
    arch(Dyninst::Arch_none)
 {
-
 #if defined(os_aix)
    archive = NULL;
    string file = desc_.file().c_str();
@@ -1427,14 +1426,18 @@ image::image(fileDescriptor &desc,
 #else
    string file = desc_.file();
    startup_printf("%s[%d]: opening file %s\n", FILE__, __LINE__, file.c_str());
+   Symtab::def_t symMode = Symtab::NotDefensive;
+   if (BPatch_defensiveMode == mode) {
+       symMode = Symtab::Defensive;
+   }
    if(desc.rawPtr()) {
-       linkedFile = new SymtabAPI::Symtab((unsigned char*)desc.rawPtr(), 
+       linkedFile = new Symtab((unsigned char*)desc.rawPtr(), 
                                           desc.length(), 
                                           desc.file(), 
-                                          BPatch_defensiveMode == mode,
+                                          symMode,
                                           err);
    } 
-   else if(!SymtabAPI::Symtab::openFile(linkedFile, file, BPatch_defensiveMode == mode)) 
+   else if(!Symtab::openFile(linkedFile, file, symMode)) 
    {
       err = true;
       return;

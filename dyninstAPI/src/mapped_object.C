@@ -2241,7 +2241,7 @@ std::string mapped_object::getCalleeName(block_instance *b) {
 
 #if defined(os_windows)
    string calleeName;
-   if (parse_img()->codeObject()->isIATcall(addr() - codeBase(), calleeName)) {
+   if (parse_img()->codeObject()->isIATcall(b->last() - codeBase(), calleeName)) {
       setCalleeName(b, calleeName);
       return calleeName;
    }

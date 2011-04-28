@@ -594,7 +594,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
             {
                 Address remapped = 0;
                 vector<func_instance *> funcs;
-                baseTrampInstance *bti;
+                baseTramp *bti;
 				ev.proc->getAddrInfo(stackTOPVAL[i], remapped, funcs, bti);
 				cerr  << hex << activeFrame.esp + 4*i << ": "  << stackTOPVAL[i] << ", orig @ " << remapped << " in " << funcs.size() << "functions" << dec << endl;
 			}
@@ -632,8 +632,8 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
         if (dyn_debug_malware) {
             Address origAddr = ev.address;
             vector<func_instance *> funcs;
-            baseTrampInstance *bti = NULL;
-            ev.proc->getAddrInfo(ev.address, origAddr, funcs, bti);
+            baseTramp *bt = NULL;
+            ev.proc->getAddrInfo(ev.address, origAddr, funcs, bt);
             mal_printf("bad read in pdwinnt.C %lx[%lx]=>%lx [%d]\n",
                        ev.address, origAddr, violationAddr,__LINE__);
             // detach so we can see what's going on 
@@ -648,7 +648,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
                 for (unsigned int j = 0; j < stack.size(); ++j) {
                     Address origPC = 0;
                     vector<func_instance*> dontcare1;
-                    baseTrampInstance *dontcare2 = NULL;
+                    baseTramp *dontcare2 = NULL;
                     ev.proc->getAddrInfo(stack[j].getPC(), origPC, dontcare1, dontcare2);
                     mal_printf("frame %d: %lx[%lx]\n", j, stack[j].getPC(), origPC);
                 }
@@ -665,8 +665,8 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
     case 1: {// bad write 
         Address origAddr = ev.address;
         vector<func_instance *> writefuncs;
-        baseTrampInstance *bti = NULL;
-        bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
+        baseTramp *bt = NULL;
+        bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bt);
         if (dyn_debug_malware) {
             Address origAddr = ev.address;
 			Address shadowAddr = 0;
@@ -675,7 +675,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
 
 			cerr << "Overwrite insn @ " << hex << origAddr << endl;
             vector<func_instance *> writefuncs;
-            baseTrampInstance *bti = NULL;
+            baseTramp *bti = NULL;
             bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
             if (success) {
                 fprintf(stderr,"---%s[%d] overwrite insn at %lx[%lx] in "
@@ -762,7 +762,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
         if (dyn_debug_malware) {
             Address origAddr = ev.address;
             vector<func_instance *> funcs;
-            baseTrampInstance *bti = NULL;
+            baseTramp *bti = NULL;
             ev.proc->getAddrInfo(ev.address, origAddr, funcs, bti);
             mal_printf("weird exception in pdwinnt.C illegal instruction or "
                        "access violation w/ code (%lx) %lx[%lx]=>%lx [%d]\n",
@@ -777,7 +777,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
         // would have been emulated
         Address origAddr = ev.address;
         vector<func_instance *> writefuncs;
-        baseTrampInstance *bti = NULL;
+        baseTramp *bti = NULL;
         bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
         mapped_object *faultObj = NULL;
         if (success) {
@@ -1930,8 +1930,8 @@ bool process::insertTrapAtEntryPointOfMain() {
       __FILE__, __LINE__);
   
   if (main_function) {
-	  //Address addr = main_function->getAddress() - aout_obj->getBaseAddress()+ aout->getFileDesc().loadAddr();
-     Address addr = main_function->getAddress();
+	  //Address addr = main_function->addr() - aout_obj->getBaseAddress()+ aout->getFileDesc().loadAddr();
+     Address addr = main_function->addr();
      startup_printf("[%s:%u] - insertTrapAtEntryPointOfMain found main at %x\n",
                     __FILE__, __LINE__, addr);
      result = readDataSpace((void *) addr, sizeof(trapInsn), &oldbyte, false);
@@ -2657,7 +2657,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
 
     Address origAddr = ev.address;
     vector<func_instance*> faultFuncs;
-    baseTrampInstance *bti = NULL;
+    baseTramp *bti = NULL;
     ev.proc->getAddrInfo(ev.address, origAddr, faultFuncs, bti);
     cerr << "Address " << hex << ev.address << " maps to address " << origAddr << dec << endl;
 
@@ -2737,13 +2737,14 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     //     restore the original register value
 
     block_instance *faultBBI = NULL;
+    func_instance *faultFunc = faultFuncs[0];
     switch( faultFuncs.size() ) {
     case 0: 
         fprintf(stderr,"ERROR: Failed to find a valid instruction for fault "
             "at %lx %s[%d] \n", ev.address, FILE__,__LINE__);
          return false;
     case 1:
-        faultBBI = faultFuncs[0]->findOneBlockByAddr(origAddr);
+        faultBBI = faultFunc->obj()->findOneBlockByAddr(origAddr);
         if (!faultBBI && origAddr != ev.address) {
             fprintf(stderr, "ERROR: executed illegal instructions in post-"
                     "control-transfer padding? %s[%d]\n",FILE__,__LINE__);
@@ -2751,14 +2752,14 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
         }
         break;
     default: 
-        faultBBI = ev.proc->findActiveFuncByAddr(ev.address)->
+        faultBBI = ev.proc->findActiveFuncByAddr(ev.address)->obj()->
                 findOneBlockByAddr(origAddr);
         break;
     }
     if (ev.proc->isMemoryEmulated() && 
-        BPatch_defensiveMode == faultFuncs[0]->obj()->hybridMode())
+        BPatch_defensiveMode == faultFunc->obj()->hybridMode())
     {
-        if (faultFuncs[0]->obj()->isEmulInsn(origAddr)) {
+        if (faultFunc->obj()->isEmulInsn(origAddr)) {
             void * val =0;
             assert( sizeof(void*) == ev.proc->getAddressWidth() );
             ev.proc->readDataSpace((void*)(activeFrame.getSP() + MemoryEmulator::STACK_SHIFT_VAL), 
@@ -2772,7 +2773,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
                     << ") getLastError: " << endl;
                 printSysError(GetLastError());
             }
-            Register reg = faultFuncs[0]->obj()->getEmulInsnReg(origAddr);
+            Register reg = faultFunc->obj()->getEmulInsnReg(origAddr);
             switch(reg) {
                 case REGNUM_ECX:
                     context.Ecx = (DWORD) val;
@@ -2804,21 +2805,21 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
 
     // 3. create instPoint at faulting instruction & trigger callback
 
-    instPoint *point = faultBBI->func()->findInstPByAddr(origAddr);
+    instPoint *point = faultFunc->findInstPByAddr(origAddr);
     if (!point) {
         point = instPoint::createArbitraryInstPoint
-                    (origAddr, proc, faultBBI->func());                
+                    (origAddr, proc, faultFunc);                
     }
     if (!point) {
         fprintf(stderr,"Failed to create an instPoint for faulting "
             "instruction at %lx[%lx] in function at %lx %s[%d]\n",
-            ev.address,origAddr,faultBBI->func()->getAddress(),FILE__,__LINE__);
+            ev.address,origAddr,faultFunc->addr(),FILE__,__LINE__);
         return false;
     }
 
     //4. cause callbacks registered for this event to be triggered, if any.
     ((BPatch_process*)proc->up_ptr())->triggerSignalHandlerCB
-            (point, faultBBI->func(), ev.what, &handlers);
+            (point, faultFunc, ev.what, &handlers);
 
     //5. mark parsed handlers as such, store fault addr info in the handlers
     for (vector<Address>::iterator hIter=handlers.begin(); 
@@ -2828,8 +2829,8 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
         func_instance *hfunc = ev.proc->findOneFuncByAddr(*hIter);
         if (hfunc) {
             using namespace ParseAPI;
-            hfunc->setHandlerFaultAddr(point->addr());
-            Address base = hfunc->getAddress() - hfunc->ifunc()->addr();
+            hfunc->setHandlerFaultAddr(origAddr);
+            Address base = hfunc->addr() - hfunc->ifunc()->addr();
             const vector<FuncExtent*> &exts = hfunc->ifunc()->extents();
             for (unsigned eix=0; eix < exts.size(); eix++) {
                 ev.proc->addSignalHandler(base + exts[eix]->start(),
@@ -2837,7 +2838,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
             }
         } else {
             fprintf(stderr, "WARNING: failed to parse handler at %lx for "
-                    "exception at %lx %s[%d]\n", *hIter, point->addr(), 
+                    "exception at %lx %s[%d]\n", *hIter, origAddr, 
                     FILE__,__LINE__);
         }
     }
@@ -2850,7 +2851,7 @@ bool SignalHandler::handleEmulatePOPAD(EventRecord &ev)
 #if 0
     Address orig;
     std::vector<int_function*> dontcare1;
-    baseTrampInstance *dontcare2;
+    baseTramp *dontcare2;
     if (!ev.proc->getAddrInfo(ev.address, orig, dontcare1, dontcare2)) {
         assert(0);
         return false;
@@ -2943,7 +2944,7 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
     // Produce warning message if we've overwritten weird types of code: 
     Address origWritten = writtenAddr;
     vector<func_instance *> writtenFuncs;
-    baseTrampInstance *bti = NULL;
+    baseTramp *bti = NULL;
     bool success = ev.proc->getAddrInfo(writtenAddr, 
                                         origWritten, 
                                         writtenFuncs, 
@@ -2998,11 +2999,13 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
         // it can't be a call or exit point, if it exists it's an 
         // entryPoint, or abruptEnd point (or an arbitrary point, but
         // those aren't created lazily
-        if (origWrite == writeFunc->getAddress()) {
-            writeFunc->funcEntries();
+        if (origWrite == writeFunc->addr()) {
+            //KEVINTODO: update the point cache another way 
+            // writeFunc->funcEntries();
             writePoint = writeFunc->findInstPByAddr(origWrite);
         } else {
-            writeFunc->funcAbruptEnds();
+            //KEVINTODO: update the point cache another way 
+            // writeFunc->funcAbruptEnds();
             writePoint = writeFunc->findInstPByAddr(origWrite);
         }
     }

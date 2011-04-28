@@ -401,7 +401,6 @@ void HybridAnalysis::signalHandlerExitCB(BPatch_point *point, void *)
     }
     analyzeNewFunction(point, (Address)resumePC, true, true);
 
-    point->getFunction()->fixHandlerReturnAddr((Address)resumePC);
     mal_printf("Exception handler exiting at %lx will resume execution at "
                 "%lx %s[%d]\n",
                 point->getAddress(), resumePC, FILE__,__LINE__);

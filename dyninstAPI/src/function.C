@@ -384,7 +384,7 @@ block_instance *func_instance::entryBlock() {
 unsigned func_instance::getNumDynamicCalls()
 {
    unsigned count=0;
-   for (BlockSet::iterator iter = callBlocks().begin(); iter != callBlocks().end(); ++iter) {
+   for (BlockSet::const_iterator iter = callBlocks().begin(); iter != callBlocks().end(); ++iter) {
       if ((*iter)->containsDynamicCall()) {
          count++;
       }

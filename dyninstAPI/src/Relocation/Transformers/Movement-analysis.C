@@ -86,7 +86,7 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter, const Tra
    const func_instance *func = (*b_iter)->func();
 
   // Can be true if we see an instrumentation block...
-  if (!bbl) return true;
+  if (!block) return true;
   
   Trace::AtomList &elements = (*b_iter)->elements();
   for (Trace::AtomList::iterator iter = elements.begin();
@@ -150,16 +150,16 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter, const Tra
       continue;
     }
 
-    if (exceptionSensitive(addr+insn->size(), bbl)) {
+    if (exceptionSensitive(addr+insn->size(), block)) {
       extSens = true;
       sensitivity_cerr << "Sensitive by exception @ " << hex << addr << dec << endl;
     }
 
-    if (!queryCache(bbl, addr, intSens, extSens)) {
+    if (!queryCache(block, addr, intSens, extSens)) {
        for (AssignList::iterator a_iter = sensitiveAssignments.begin();
             a_iter != sensitiveAssignments.end(); ++a_iter) {
           
-		//cerr << "Forward slice from " << (*a_iter)->format() << hex << " @ " << addr << " (parse of " << (*a_iter)->addr() << dec << ") in func " << bbl->func()->prettyName() << endl;
+		//cerr << "Forward slice from " << (*a_iter)->format() << hex << " @ " << addr << " (parse of " << (*a_iter)->addr() << dec << ") in func " << block->func()->prettyName() << endl;
           
           Graph::Ptr slice = forwardSlice(*a_iter,
                                           block->llb(),
@@ -248,8 +248,8 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter, const Tra
 
 bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
 					   Address addr,
-					   block_instance *func,
-					   block_instance *block,
+					   const block_instance *func,
+					   const block_instance *block,
 					   AssignList &sensitiveAssignments) {
   if (!(insn->getOperation().getID() == e_call)) return false;
   // FIXME for loopnz instruction
@@ -328,7 +328,7 @@ public:
       return false;
     }
     
-    image_func *f = static_cast<image_func *>(func);
+    parse_func *f = static_cast<parse_func *>(func);
     if (f && f->isPLTFunction()) {
       // Don't bother following
       return false;
@@ -346,8 +346,8 @@ public:
 };
 
 Graph::Ptr PCSensitiveTransformer::forwardSlice(Assignment::Ptr ptr,
-						image_basicBlock *block,
-						image_func *func) {
+						parse_block *block,
+						parse_func *func) {
   M_A_Predicates pred;
   Slicer slicer(ptr, block, func);
 
@@ -586,7 +586,7 @@ void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
 
     // Indirect, we put in a push/jump <reg> combination.
 
-    CFAtom::Ptr newCF = CFAtom::create((*b_iter)->bbl());
+    CFAtom::Ptr newCF = CFAtom::create((*b_iter)->block());
     newCF->updateInfo(cf);
 
     CFAtom::DestinationMap::iterator dest = cf->destMap_.find(CFAtom::Taken);
@@ -677,7 +677,7 @@ void PCSensitiveTransformer::invalidateCache(block_instance *f) {
 	// as well as any for blocks that call f. 
 
 	const block_instance::BlockSet &blocks = f->blocks();
-	for (block_instance::BlockSet::const_iterator iter = blocks.begin();
+	for (block_instance::BlockSet::iterator iter = blocks.begin();
 		iter != blocks.end(); ++iter) {
 			invalidateCache(*iter);
 	}

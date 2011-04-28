@@ -110,10 +110,10 @@ class PCSensitiveTransformer : public Transformer {
   bool analysisRequired(TraceList::iterator &);
 
   bool isPCSensitive(InstructionAPI::Instruction::Ptr insn,
-		     Address addr,
-		     func_instance *func,
-                     block_instance *block,
-		     AssignList &sensitiveAssignment);
+                     Address addr,
+                     const func_instance *func,
+                     const block_instance *block,
+                     AssignList &sensitiveAssignment);
   Graph::Ptr forwardSlice(Assignment::Ptr ptr,
 			  parse_block *block,
 			  parse_func *func);
