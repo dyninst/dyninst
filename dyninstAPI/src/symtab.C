@@ -437,9 +437,11 @@ void image::findMain()
         if (linkedFile->findFunctionsByName(funcs, "main") ||
             linkedFile->findFunctionsByName(funcs, "_main"))
             foundMain = true;
-        else if (linkedFile->findFunctionsByName(funcs, "_start"))
+
+        if (linkedFile->findFunctionsByName(funcs, "_start"))
             foundStart = true;
-        else if (linkedFile->findFunctionsByName(funcs, "_fini"))
+
+        if (linkedFile->findFunctionsByName(funcs, "_fini"))
             foundFini = true;
     
     	Region *textsec = NULL;
