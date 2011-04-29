@@ -1144,7 +1144,7 @@ bool HybridAnalysis::hasEdge(BPatch_function *func, Address source, Address targ
 
    block_instance *block = func->lowlevel_func()->obj()->findBlockByEntry(source);
    const block_instance::edgelist &targets = block->targets();
-   for (block_instance::edgelist::iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+   for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
       if ((*iter)->trg()->start() == target)
          return true;
    }

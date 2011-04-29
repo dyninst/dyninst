@@ -140,12 +140,15 @@ registerSpace *registerSpace::getRegisterSpace(AddressSpace *as) {
 registerSpace *registerSpace::conservativeRegSpace(AddressSpace *proc) {
     registerSpace *ret = getRegisterSpace(proc);
     ret->specializeSpace(arbitrary);
+    ret->initRealRegSpace();
     return ret;
 }
 
 registerSpace *registerSpace::optimisticRegSpace(AddressSpace *proc) {
     registerSpace *ret = getRegisterSpace(proc);
     ret->specializeSpace(ABI_boundary);
+    ret->initRealRegSpace();
+
     return ret;
 }
 
@@ -158,6 +161,7 @@ registerSpace *registerSpace::irpcRegSpace(AddressSpace *proc) {
 registerSpace *registerSpace::savedRegSpace(AddressSpace *proc) {
     registerSpace *ret = getRegisterSpace(proc);
     ret->specializeSpace(allSaved);
+    ret->initRealRegSpace();
     return ret;
 }
 
@@ -172,11 +176,11 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP)
       assert(iP);
       registerSpace *ret = NULL;
       
-
       ret = getRegisterSpace(iP->proc());
       ret->specializeSpace(iP->liveRegisters());
       
       ret->cleanSpace();
+      ret->initRealRegSpace();
       return ret;
    }
 #endif

@@ -201,3 +201,18 @@ void Edge::uninstall()
     _target->removeSource(this);
 }
 
+std::string format(EdgeTypeEnum e) {
+	switch(e) {
+		case CALL: return "call";
+		case COND_TAKEN: return "cond_taken";
+		case COND_NOT_TAKEN: return "cond_not_taken";
+		case INDIRECT: return "indirect";
+		case DIRECT: return "direct";
+		case FALLTHROUGH: return "fallthrough";
+		case CATCH: return "catch";
+		case CALL_FT: return "call_ft";
+		case RET: return "ret";
+		case NOEDGE: return "noedge";
+		default: return "<unknown>";
+	}
+}

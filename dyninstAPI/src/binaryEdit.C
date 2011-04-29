@@ -518,6 +518,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       memoryTracker_->elements(writes);
 
       for (unsigned i = 0; i < writes.size(); i++) {
+         assert(newSectionPtr);
          memoryTracker *tracker = dynamic_cast<memoryTracker *>(writes[i]);
          assert(tracker);
          //inst_printf("memory tracker: 0x%lx  load=0x%lx  size=%d  %s\n", 
@@ -551,74 +552,72 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          fprintf(stderr, "ERROR:  unable to open/reinstrument previously instrumented binary %s!\n", newFileName.c_str());
          return false;
       }
-      Address HWM = maxAllocedAddr();
-
 
       symObj->addRegion(lowWaterMark_,
                         newSectionPtr,
-                        HWM - lowWaterMark_,
+                        highWaterMark_ - lowWaterMark_,
                         ".dyninstInst",
                         Region::RT_TEXTDATA,
                         true);
-        
+      
       symObj->findRegion(newSec, ".dyninstInst");
       assert(newSec);
-
+      
       if (mobj == getAOut()) {
          // Add dynamic symbol relocations
          for (unsigned i=0; i < dependentRelocations.size(); i++) {
             Address to = dependentRelocations[i]->getAddress();
             Symbol *referring = dependentRelocations[i]->getReferring();
-
+            
             /*
-            if (!symObj->isStaticBinary() && !symObj->hasReldyn() && !symObj->hasReladyn()) {
-	      Address addr = referring->getOffset();
-	      bool result = writeDataSpace((void *) to, getAddressWidth(), &addr);
-	      assert(result);
-	      continue;
-	    }
+              if (!symObj->isStaticBinary() && !symObj->hasReldyn() && !symObj->hasReladyn()) {
+              Address addr = referring->getOffset();
+              bool result = writeDataSpace((void *) to, getAddressWidth(), &addr);
+              assert(result);
+              continue;
+              }
             */
-
+               
             // Create the relocationEntry
             relocationEntry localRel(to, referring->getMangledName(), referring,
-                    relocationEntry::getGlobalRelType(getAddressWidth()));
-
+                                     relocationEntry::getGlobalRelType(getAddressWidth()));
+            
             /*
-            if( mobj->isSharedLib() ) {
-                localRel.setRelAddr(to - mobj->imageOffset());
-            }
+              if( mobj->isSharedLib() ) {
+              localRel.setRelAddr(to - mobj->imageOffset());
+              }
             */
-
+            
             symObj->addExternalSymbolReference(referring, newSec, localRel);
-
-	    /*
-	    newSymbol = new Symbol(referring->getName(), 
-                                   Symbol::ST_FUNCTION, 
-                                   Symbol::SL_GLOBAL,
-                                   Symbol::SV_DEFAULT, 
-                                   (Address)0, 
-                                   symObj->getDefaultModule(),
-                                   NULL, 
-                                   8,
-                                   true, 
-                                   false);
-            symObj->addSymbol(newSymbol, referring);
-	    if (!symObj->hasReldyn() && symObj->hasReladyn()) {
-               newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel, Region::RT_RELA);
-            } else {
-               newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel);
-          }
-          */
+            
+            /*
+              newSymbol = new Symbol(referring->getName(), 
+              Symbol::ST_FUNCTION, 
+              Symbol::SL_GLOBAL,
+              Symbol::SV_DEFAULT, 
+              (Address)0, 
+              symObj->getDefaultModule(),
+              NULL, 
+              8,
+              true, 
+              false);
+              symObj->addSymbol(newSymbol, referring);
+              if (!symObj->hasReldyn() && symObj->hasReladyn()) {
+              newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel, Region::RT_RELA);
+              } else {
+              newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel);
+              }
+            */
          }
       }
-
+      
       pdvector<Symbol *> newSyms;
       buildDyninstSymbols(newSyms, newSec, symObj->getOrCreateModule("dyninstInst",
                                                                      lowWaterMark_));
       for (unsigned i = 0; i < newSyms.size(); i++) {
          symObj->addSymbol(newSyms[i]);
       }
-        
+      
       // Okay, now...
       // Hand textSection and newSection to DynSymtab.
         
@@ -632,26 +631,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
         
       // First, text
       assert(symObj);
-        
-#if 0
-      for (unsigned i = 0; i < oldSegs.size(); i++) {
-         if (oldSegs[i].data != newSegs[i].data) {
-            inst_printf("Data not equivalent, %d, %s  load=0x%lx\n", 
-			i, oldSegs[i].name.c_str(), oldSegs[i].loadaddr);
-	    
-            if (oldSegs[i].name == ".text" || 
-		memcmp(oldSegs[i].data, newSegs[i].data, oldSegs[i].size < newSegs[i].size ? oldSegs[i].size : newSegs[i].size)) {
-            //if ((oldSegs[i].name == ".text") 
-             //|| (oldSegs[i].name == ".data")) {
-               //inst_printf("  TEXT SEGMENT: old-base=0x%lx  old-size=%d  new-base=0x%lx  new-size=%d\n",
-               //oldSegs[i].data, oldSegs[i].size, newSegs[i].data, newSegs[i].size);
-               symObj->updateRegion(oldSegs[i].name.c_str(), newSegs[i].data,
-                                  newSegs[i].size);
-            }
-         }
-      }
-#endif        
-
+      
+      
       // And now we generate the new binary
       //if (!symObj->emit(newFileName.c_str())) {
       if (!symObj->emit(newFileName.c_str())) {
@@ -664,13 +645,11 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 
 Address BinaryEdit::maxAllocedAddr() {
    inferiorFreeCompact();
-   Address hi = 0;
+   Address hi = lowWaterMark_;
 
    for (dictionary_hash<Address, heapItem *>::iterator iter = heap_.heapActive.begin();
         iter != heap_.heapActive.end(); ++iter) {
       Address localHi = (*iter)->addr + (*iter)->length;
-      cerr << "Heap item [" << hex << (*iter)->addr << "," << localHi << dec 
-           << "], " << (*iter)->length << " bytes" << endl;
       if (localHi > hi) hi = localHi;
    }
    return hi;

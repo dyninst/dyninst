@@ -737,7 +737,6 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt,codeGen &gen)
     int extra_space = gen.rs()->getStackHeight();
     assert(extra_space == extra_space_check);
     if (!createFrame && extra_space) {
-       cerr << "LEAing " << extra_space << " bytes of extra space " << endl;
         emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
                 extra_space, RealRegister(REGNUM_ESP), gen);
     }
@@ -1989,104 +1988,6 @@ static void emitPushImm16_64(unsigned short imm, codeGen &gen)
    SET_PTR(insn, gen);
 }
 
-#define MAX_SINT ((signed int) (0x7fffffff))
-#define MIN_SINT ((signed int) (0x80000000))
-void EmitterAMD64::emitFuncJump(func_instance *f, instPoint::Type /*ptType*/, codeGen &gen)
-{
-   assert(gen.inInstrumentation());
-
-   // This function assumes we aligned the stack, and hence the original
-   // stack pointer value is stored at the top of our instrumentation stack.
-   assert(gen.bt()->alignedStack);
-   
-   Address addr = f->addr();
-   long int disp = addr - (gen.currAddr()+5);
-   int saved_stack_height = gen.rs()->getStackHeight();
-    
-   Register origSP = REG_NULL;
-   if (dynamic_cast<BinaryEdit *>(gen.addrSpace())) {
-      // We'll need a dedicated register for these cases.
-      // Allocate it now, before we ask for scratch registers.
-      origSP = gen.rs()->allocateRegister(gen, true);
-   }
-
-   if (f->proc() == gen.addrSpace() &&
-       gen.startAddr() &&
-       disp < (signed long) MAX_SINT &&
-       disp > (signed long) MIN_SINT)
-   {
-      //Same module or dynamic instrumentation and address and within
-      // jump distance.
-
-      // Clear the instrumentation stack.
-      emitBTRestores(gen.bt(), gen);
-
-      int disp = addr - (gen.currAddr()+5);
-      emitJump(disp, gen);
-   }
-   else if (dynamic_cast<process *>(gen.addrSpace())) {
-      //Dynamic instrumentation, emit an absolute jump (push/ret combo)
-
-      // Clear the instrumentation stack.
-      emitBTRestores(gen.bt(), gen);
-
-      emitPushImm16_64((unsigned short)(addr >> 48), gen);
-      emitPushImm16_64((unsigned short)((addr & 0x0000ffffffffffff) >> 32), gen);
-      emitPushImm16_64((unsigned short)((addr & 0x00000000ffffffff) >> 16), gen);
-      emitPushImm16_64((unsigned short) (addr & 0x000000000000ffff), gen);      
-      // and return
-      emitSimpleInsn(0xc3, gen);
-   }
-   else if (dynamic_cast<BinaryEdit *>(gen.addrSpace())) {
-      //Static instrumentation, calculate and store the target 
-      // value to the top of our instrumentation stack and return to it.
-      assert(gen.bt() && gen.bt()->hasFuncJump());
-
-      //Get address of target into reg
-      Register reg = gen.rs()->getScratchRegister(gen);
-      Address dest = getInterModuleFuncAddr(f, gen);
-      emitMovPCRMToReg64(reg, dest-gen.currAddr(), 8, gen, true);
-
-      if (!callOp) {
-         // Update the original %rsp at the top of our instrumentation stack
-         // to include space for our func jump slot.
-         stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-         emitMovRMToReg64(origSP, loc.reg.reg(), loc.offset, 8, gen);
-         emitLEA64(origSP, Null_Register, 0, -8, origSP, true, gen);
-         emitMovRegToRM64(loc.reg.reg(), loc.offset, origSP, 8, gen);
-      }
-
-      // At some point above, the address of the lowest (memory value)
-      // jumpSlot was placed in RealRegister origSP.  Store the address
-      // of the target in that memory address.
-      emitMovRegToRM64(origSP, 0, reg, 8, gen);
-
-      // Clear the instrumentation stack.
-      emitBTRestores(gen.bt(), gen);
-
-      //The address should be left on the stack.  Just return now.
-      GET_PTR(insn, gen);
-      *insn++ = 0xc3;
-      SET_PTR(insn, gen);
-   }
-   else {
-      assert(0 && "I don't know how to emit a funcJump for this addrSpace!");
-   }
-   GET_PTR(insn, gen);
-   *insn++ = 0x0f;
-   *insn++ = 0x0b;
-   SET_PTR(insn, gen);
-
-   if (origSP != REG_NULL) {
-      // We allocated a register to hold the original SP.  Free it.
-      gen.rs()->freeRegister(origSP);
-   }
-
-   // We emitted a BT restore sequence, which messed with our stack
-   // bookkeeping.  Restore it so any code that is generated after this
-   // point has a consistent stack state.
-   gen.rs()->setStackHeight( saved_stack_height );
-}
 
 void EmitterAMD64::emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen)
 {
@@ -2892,7 +2793,7 @@ bool EmitterIA32Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
    Address dest = getInterModuleFuncAddr(callee, gen);
    // load register with address from jump slot
    emitMovPCRMToReg(RealRegister(REGNUM_EAX), dest-gen.currAddr(), gen);
-   // emit call *(e_x)
+   // emit jump *(e_x)
    emitOpRegReg(JUMP_RM_OPC1, RealRegister(JUMP_RM_OPC2), 
                 RealRegister(REGNUM_EAX), gen);
    return true;

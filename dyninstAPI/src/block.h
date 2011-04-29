@@ -65,11 +65,8 @@ class block_instance {
    friend class mapped_object;
 
  public:
-    typedef ParseAPI::ContainerWrapper<
-       std::vector<edge_instance *>,
-       edge_instance *,
-       edge_instance *,
-       EdgePredicateAdapter> edgelist;
+	 typedef std::vector<edge_instance *> edges;
+	 typedef std::vector<edge_instance *> edgelist;
 
 
     block_instance(ParseAPI::Block *ib, mapped_object *obj);
@@ -139,11 +136,8 @@ class block_instance {
     mapped_object *obj_;
     parse_block *block_;
 
-    std::vector<edge_instance *> srcs_;
-    std::vector<edge_instance *> trgs_;
-
-    edgelist srclist_;
-    edgelist trglist_;
+    edges srcs_;
+    edges trgs_;
 
     BlockInstpoints points_;
 };

@@ -210,6 +210,7 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
     assert(gen.addrSpace()->edit());
 
     // Must be in LR
+    if (reg == -1) reg = registerSpace::lr;
     assert(reg == registerSpace::lr);
 
     instPoint *point = gen.point();

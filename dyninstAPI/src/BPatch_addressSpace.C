@@ -114,7 +114,8 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(func_instance* ifunc,
 
 
 BPatch_point *BPatch_addressSpace::findOrCreateBPPoint(BPatch_function *bpfunc,
-                              instPoint *ip, BPatch_procedureLocation pointType)
+                                                       instPoint *ip, 
+                                                       BPatch_procedureLocation pointType)
 {
    assert(ip);
    
@@ -135,7 +136,11 @@ BPatch_point *BPatch_addressSpace::findOrCreateBPPoint(BPatch_function *bpfunc,
       bpfunc = findOrCreateBPFunc(ip->func(), mod);
 
    assert(bpfunc->func == ip->func());
-   BPatch_point *pt = new BPatch_point(this, bpfunc, ip, pointType, lladdrSpace);
+   std::pair<instPoint *, instPoint *> pointsToUse = instPoint::getInstpointPair(ip);
+
+   BPatch_point *pt = new BPatch_point(this, bpfunc, 
+                                       pointsToUse.first, pointsToUse.second,
+                                       pointType, lladdrSpace);
    mod->instp_map[ip] = pt;
 
    return pt;
@@ -804,7 +809,6 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
 								    BPatch_callWhen when,
 								    BPatch_snippetOrder order)
 {
- 
   BPatchSnippetHandle *retHandle = new BPatchSnippetHandle(this);
 
   if (dyn_debug_inst) {
@@ -855,7 +859,8 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
                FILE__, __LINE__, i);
          return retHandle;
       }
-      miniTramp *mini = bppoint->point->insert(ipOrder, expr.ast_wrapper, BPatch::bpatch->isTrampRecursive());
+
+      miniTramp *mini = bppoint->getPoint(when)->insert(ipOrder, expr.ast_wrapper, BPatch::bpatch->isTrampRecursive());
 
       if (mini) {
 	retHandle->mtHandles_.push_back(mini);

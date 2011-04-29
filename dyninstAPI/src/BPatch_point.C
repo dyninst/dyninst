@@ -75,9 +75,11 @@
  */
 BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace, 
                            BPatch_function *_func, instPoint *_point,
+                           instPoint *_secondary,
                            BPatch_procedureLocation _pointType,
                            AddressSpace *as) :
-   addSpace(_addSpace), lladdSpace(as), func(_func), point(_point), 
+   addSpace(_addSpace), lladdSpace(as), func(_func), 
+   point(_point), secondaryPoint(_secondary),
    pointType(_pointType), memacc(NULL), dynamic_point_monitor_func(NULL),
    edge_(NULL)
 {
@@ -112,7 +114,8 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
                            BPatch_function *_func, 
                            BPatch_edge *_edge, instPoint *_point,
                            AddressSpace *as) :
-   addSpace(_addSpace), lladdSpace(as), func(_func), point(_point), 
+   addSpace(_addSpace), lladdSpace(as), func(_func), 
+   point(_point), secondaryPoint(NULL),
    pointType(BPatch_locInstruction), memacc(NULL),
    dynamic_call_site_flag(0), dynamic_point_monitor_func(NULL),edge_(_edge)
 {
@@ -211,26 +214,28 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
 {
    assert(point);
 
-   if (!func->getModule()->isValid()) return NULL;
+   if (!func->getModule()->isValid()) {
+	   return NULL;
+   }
    if (addSpace->getType() == TRADITIONAL_PROCESS) {
        BPatch_process *proc = dynamic_cast<BPatch_process *>(addSpace);
        mapped_object *obj = func->getModule()->lowlevel_mod()->obj();
        if (proc->lowlevel_process()->mappedObjIsDeleted(obj)) {
-           return NULL;
-   }
+		   return NULL;
+	   }
    }
    
    if (point->type() != instPoint::PreCall &&
        point->type() != instPoint::PostCall) {
        parsing_printf("findCallee failed in getCalledFunction- not a call site\n");
-       return NULL;
+	   return NULL;
    }
    
    func_instance *_func = point->block()->callee();
    
    if (!_func) {
        parsing_printf("findCallee failed in getCalledFunction\n");
-       return NULL;
+	   return NULL;
    }
    return addSpace->findOrCreateBPFunc(_func, NULL);
 }
@@ -688,4 +693,16 @@ bool BPatch_point::patchPostCallArea()
         return point->proc()->proc()->patchPostCallArea(point);
     }
     return false;
+}
+
+instPoint *BPatch_point::getPoint(BPatch_callWhen when) {
+   switch(when) {
+      case BPatch_callBefore:
+      case BPatch_callUnset:
+         return point;
+      case BPatch_callAfter:
+         return (secondaryPoint ? secondaryPoint : point);
+   }
+   assert(0);
+   return NULL;
 }

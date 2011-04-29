@@ -446,18 +446,18 @@ bool baseTramp::checkForFuncCalls()
    return false;
 }
 
-cfjRet_t baseTramp::checkForFuncJumps()
+bool baseTramp::hasFuncJump()
 {
    if (funcJumpState_ != cfj_unset)
-      return funcJumpState_;
-   
+      return (funcJumpState_ >= cfj_jump); 
+
    funcJumpState_ = cfj_none;
    if (ast_) {
       cfjRet_t tmp = ast_->containsFuncJump();
       if ((int) tmp > (int) funcJumpState_) {
          funcJumpState_ = tmp;
       }
-      return funcJumpState_;
+      return (funcJumpState_ >= cfj_jump);
    }
    for (instPoint::iterator iter = point_->begin(); 
         iter != point_->end(); ++iter) {
@@ -465,7 +465,7 @@ cfjRet_t baseTramp::checkForFuncJumps()
       if ((int) tmp > (int) funcJumpState_)
          funcJumpState_ = tmp;
    }
-   return funcJumpState_;
+   return (funcJumpState_ >= cfj_jump);
 }
 
 bool baseTramp::doOptimizations() 
@@ -522,16 +522,6 @@ int baseTramp::numDefinedRegs()
 int baseTramp::funcJumpSlotSize()
 {
    return 0;
-#if 0
-   switch (checkForFuncJumps()) {
-      case cfj_unset: assert(0);
-      case cfj_none: return 0;
-      case cfj_jump: return 1;
-      case cfj_call: return 2;
-   }
-   assert(0);
-   return 0;
-#endif
 }
 
 bool baseTramp::makesCall() {

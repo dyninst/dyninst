@@ -59,7 +59,7 @@ TrackerElement *ASTAtom::tracker() const {
    return e;
 }
 
-string ASTAtom::format() const {
+std::string ASTAtom::format() const {
   return "AST(*)";
 }
 

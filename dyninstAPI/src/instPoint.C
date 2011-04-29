@@ -121,6 +121,43 @@ instPoint::instPoint(Type t, edge_instance *e, func_instance *f) :
 instPoint::instPoint(Type t, block_instance *b, Instruction::Ptr insn, Address a, func_instance *f) :
    type_(t), func_(f), block_(b), edge_(NULL), insn_(insn), addr_(a), baseTramp_(NULL) {};
 
+
+// If there is a logical "pair" (e.g., before/after) of instPoints return them.
+// The return result is a pair of <before, after> 
+std::pair<instPoint *, instPoint *> instPoint::getInstpointPair(instPoint *i) {
+   switch(i->type()) {
+      case None:
+         assert(0);
+         return std::pair<instPoint *, instPoint *>(NULL, NULL);
+      case PreInsn:
+         return std::pair<instPoint *, instPoint *>(i, 
+                                                    postInsn(i->func(),
+                                                             i->block(),
+                                                             i->insnAddr(),
+                                                             i->insn(),
+                                                             true));
+      case PostInsn:
+         return std::pair<instPoint *, instPoint *>(preInsn(i->func(),
+                                                            i->block(),
+                                                            i->insnAddr(),
+                                                            i->insn(),
+                                                            true),
+                                                    i);
+      case PreCall:
+         return std::pair<instPoint *, instPoint *>(i,
+                                                    postCall(i->func(),
+                                                             i->block()));
+      case PostCall:
+         return std::pair<instPoint *, instPoint *>(preCall(i->func(),
+                                                            i->block()),
+                                                    i);
+      default:
+         return std::pair<instPoint *, instPoint *>(i, NULL);
+   }
+   assert(0);
+   return std::pair<instPoint *, instPoint *>(NULL, NULL);
+}
+
 instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
    // Return the equivalent instPoint within the child process
    func_instance *f = parent->func_ ? child->findFunction(parent->func_->ifunc()) : NULL;
