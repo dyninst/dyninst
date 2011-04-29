@@ -230,12 +230,12 @@ namespace Dyninst
       DEF_REGISTER(nt_,   NT      | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(flagf, FLAGF   | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(rf,    RF      | BIT   | FLAG | Arch_x86, "x86");
-      DEF_REGISTER(ds,    0x0     | FULL  | SEG  | Arch_x86, "x86");
-      DEF_REGISTER(es,    0x1     | FULL  | SEG  | Arch_x86, "x86");
-      DEF_REGISTER(fs,    0x2     | FULL  | SEG  | Arch_x86, "x86");
-      DEF_REGISTER(gs,    0x3     | FULL  | SEG  | Arch_x86, "x86");
-      DEF_REGISTER(cs,    0x4     | FULL  | SEG  | Arch_x86, "x86");
-      DEF_REGISTER(ss,    0x5     | FULL  | SEG  | Arch_x86, "x86");
+      DEF_REGISTER(ds,    0x0     | W_REG | SEG  | Arch_x86, "x86");
+      DEF_REGISTER(es,    0x1     | W_REG | SEG  | Arch_x86, "x86");
+      DEF_REGISTER(fs,    0x2     | W_REG | SEG  | Arch_x86, "x86");
+      DEF_REGISTER(gs,    0x3     | W_REG | SEG  | Arch_x86, "x86");
+      DEF_REGISTER(cs,    0x4     | W_REG | SEG  | Arch_x86, "x86");
+      DEF_REGISTER(ss,    0x5     | W_REG | SEG  | Arch_x86, "x86");
       DEF_REGISTER(oeax,  0x0     | FULL  | MISC | Arch_x86, "x86");
       DEF_REGISTER(fsbase, 0x1    | FULL  | MISC | Arch_x86, "x86");
       DEF_REGISTER(gsbase, 0x2    | FULL  | MISC | Arch_x86, "x86");

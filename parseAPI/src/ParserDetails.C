@@ -100,6 +100,7 @@ verbose_log(Address currAddr, Edges_t::iterator & curEdge)
 }
 } // anonymous namespace
 
+// XXX this code was introduced but is unused
 static void 
 getBlockInsns(Block &blk, std::set<Address> &addrs)
 {
@@ -121,7 +122,6 @@ getBlockInsns(Block &blk, std::set<Address> &addrs)
         addrs.insert(ah.getAddr());
     } 
 }
-
 
 /*
  * Extra handling for bad jump instructions
@@ -155,7 +155,6 @@ void Parser::ProcessUnresBranchEdge(
     }
     _pcb.interproc_cf(frame.func,cur,ah.getAddr(),&det);
 }
-
 
 /*
  * Extra handling of return instructions
