@@ -402,6 +402,7 @@ int codeGen::getDisplacement(codeBufIndex_t from, codeBufIndex_t to) {
 }
 
 Address codeGen::currAddr() const {
+  if(addr_ == (Address) -1) return (Address) -1;
   assert(addr_ != (Address) -1);
   return currAddr(addr_);
 }

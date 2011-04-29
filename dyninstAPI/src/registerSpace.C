@@ -147,6 +147,7 @@ registerSpace *registerSpace::optimisticRegSpace(AddressSpace *proc) {
     registerSpace *ret = getRegisterSpace(proc);
     ret->specializeSpace(ABI_boundary);
     ret->initRealRegSpace();
+
     return ret;
 }
 
@@ -170,7 +171,6 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP)
       assert(iP);
       registerSpace *ret = NULL;
       
-
       ret = getRegisterSpace(iP->proc());
       ret->specializeSpace(iP->liveRegisters());
       

@@ -1619,8 +1619,8 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   // Insert whatever binary modifications are desired
   // Right now needs to go before Instrumenters because we use
   // instrumentation for function replacement.
-  Modification mod(callModifications_, functionReplacements_);
-  cm->transform(mod);
+   Modification mod(callModifications_, functionReplacements_);
+   cm->transform(mod);
 
   // Add instrumentation
   relocation_cerr << "Inst transformer" << endl;

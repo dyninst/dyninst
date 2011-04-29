@@ -2550,61 +2550,61 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &entry,
                                                  gen.currAddr(),
                                                  func->addr());
 	} else  { // binary rewriter case 	
-    instPoint *point = gen.point();
-    if (!point) {
-        printf(" Point NOT AVAILABLE. We cannot instrument this point. skipping ...\n");
-	return;
-    }
-    assert(point);
-    bitArray liveRegs = point->liveRegisters();
-    if (liveRegs[registerSpace::ctr] == true)
-    {
-        printf(" COUNT REGISTER NOT AVAILABLE. We cannot instrument this point. skipping ...\n");
+	  instPoint *point = gen.point();
+	  if (!point) {
+	    printf(" Point NOT AVAILABLE. We cannot instrument this point. skipping ...\n");
+	    return;
+	  }
+	  assert(point);
+	  bitArray liveRegs = point->liveRegisters();
+	  if (liveRegs[registerSpace::ctr] == true)
+	    {
+	      printf(" COUNT REGISTER NOT AVAILABLE. We cannot instrument this point. skipping ...\n");
+	      return;
+	    }
+	  
+	  if (gen.func()->obj() == func->obj()) {	
+	    inst_printf("same module name %s \n", gen.func()->obj()->fileName().c_str());
+	    insnCodeGen::loadImmIntoReg(gen, 0, func->addr());
+	    insnCodeGen::generateMoveToCR(gen, 0);
+	    
+	    gen.bt()->generateRestores(gen, gen.rs());
+	    // And branch to CTR
+	    instruction btctr(BCTRraw);
+	    insnCodeGen::generate(gen,btctr);
+	    
+	  } else {
+	    Register scratchPCReg = gen.rs()->getScratchRegister(gen, true);
+	    assert (scratchPCReg != REG_NULL);
+	    insnCodeGen::generateBranch(gen, gen.currAddr(),  gen.currAddr()+4, true); // blrl
+	    insnCodeGen::generateMoveFromLR(gen, scratchPCReg); // mflr
+	    
+	    pdvector<Register> excludeReg;
+	    excludeReg.push_back(scratchPCReg);
+	    Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);	
+	    assert (scratchReg != REG_NULL);
+	    
+	    Address dest = gen.codeEmitter()->getInterModuleFuncAddr(func, gen);
+	    Address varOffset = dest - gen.currAddr()+4;
+	    
+	    inst_printf("diff module names %s %s dest 0x%lx offset 0x%lx\n", gen.func()->obj()->fileName().c_str(), func->obj()->fileName().c_str(), dest, varOffset);
+	    
+	    insnCodeGen::generateImm (gen, CAUop, scratchReg, 0, BOT_HI (varOffset));
+	    insnCodeGen::generateImm (gen, ORILop, scratchReg, scratchReg, BOT_LO (varOffset));
+	    insnCodeGen::generateLoadReg (gen, LXop, scratchReg, scratchReg, scratchPCReg);
+	    //insnCodeGen::generateAddReg (gen, CAXop, scratchReg, scratchReg, scratchPCReg);
+	    insnCodeGen::generateMoveToCR(gen, scratchReg);
+	    
+	    // Make sure we do not "restore" Count Register
+	    gen.bt()->generateRestores(gen, gen.rs());
+	    instruction btctr(BCTRraw);
+	    insnCodeGen::generate(gen,btctr);
+	  }
+	  
+	}
         return;
     }
 
-    if (gen.func()->obj() == func->obj()) {	
-      inst_printf("same module name %s \n", gen.func()->obj()->fileName().c_str());
-    insnCodeGen::loadImmIntoReg(gen, 0, func->addr());
-    insnCodeGen::generateMoveToCR(gen, 0);
-
-    gen.bt()->generateRestores(gen, gen.rs());
-    // And branch to CTR
-    instruction btctr(BCTRraw);
-    insnCodeGen::generate(gen,btctr);
-
-	} else {
-		Register scratchPCReg = gen.rs()->getScratchRegister(gen, true);
-	        assert (scratchPCReg != REG_NULL);
-         	insnCodeGen::generateBranch(gen, gen.currAddr(),  gen.currAddr()+4, true); // blrl
-         	insnCodeGen::generateMoveFromLR(gen, scratchPCReg); // mflr
-
-		pdvector<Register> excludeReg;
-		excludeReg.push_back(scratchPCReg);
-		Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);	
-		assert (scratchReg != REG_NULL);
-
-		Address dest = gen.codeEmitter()->getInterModuleFuncAddr(func, gen);
-        	Address varOffset = dest - gen.currAddr()+4;
-
-		inst_printf("diff module names %s %s dest 0x%lx offset 0x%lx\n", gen.func()->obj()->fileName().c_str(), func->obj()->fileName().c_str(), dest, varOffset);
-
-          	insnCodeGen::generateImm (gen, CAUop, scratchReg, 0, BOT_HI (varOffset));
-          	insnCodeGen::generateImm (gen, ORILop, scratchReg, scratchReg, BOT_LO (varOffset));
-          	insnCodeGen::generateLoadReg (gen, LXop, scratchReg, scratchReg, scratchPCReg);
-          	//insnCodeGen::generateAddReg (gen, CAXop, scratchReg, scratchReg, scratchPCReg);
-		insnCodeGen::generateMoveToCR(gen, scratchReg);
-
-		// Make sure we do not "restore" Count Register
-    		gen.bt()->generateRestores(gen, gen.rs());
-		instruction btctr(BCTRraw);
-		insnCodeGen::generate(gen,btctr);
-	}
-
-	}
-        return;
-    }
-    
     // Hard case...
     // 
     // Sketch of operations:
@@ -3156,14 +3156,17 @@ bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, func_instance* callee
   return true;
 }
 
+bool EmitterPOWERStat::emitPLTCommon(func_instance *callee, codeGen &gen) {
 
-// TODO 32/64-bit? 
-bool EmitterPOWERStat::emitPLTCall(func_instance *callee, codeGen &gen) {
   Register scratchPCReg = gen.rs()->getScratchRegister(gen, true);
+  assert(scratchPCReg);
   pdvector<Register> excludeReg;
   excludeReg.push_back(scratchPCReg);
   Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
-  assert ((scratchPCReg != REG_NULL) && (scratchReg != REG_NULL)) ;
+  if (scratchReg) {
+    // We can use r0 for this, since it's volatile. 
+    scratchReg = registerSpace::r0;
+  }
   
   Address dest = getInterModuleFuncAddr(callee, gen);
   
@@ -3176,35 +3179,25 @@ bool EmitterPOWERStat::emitPLTCall(func_instance *callee, codeGen &gen) {
   
   emitLoadRelative(scratchReg, varOffset, scratchPCReg, gen.addrSpace()->getAddressWidth(), gen);
   
-  insnCodeGen::generateMoveToLR(gen, scratchReg);
-  
-  instruction brl(BRLraw);
+  insnCodeGen::generateMoveToCR(gen, scratchReg);
+  return true;
+}
+
+
+// TODO 32/64-bit? 
+bool EmitterPOWERStat::emitPLTCall(func_instance *callee, codeGen &gen) {
+  emitPLTCommon(callee, gen);
+ 
+  instruction brl(BCTRLraw);
   insnCodeGen::generate(gen,brl);
   
   return true;
 }
 
 bool EmitterPOWERStat::emitPLTJump(func_instance *callee, codeGen &gen) {
-  Register scratchPCReg = gen.rs()->getScratchRegister(gen, true);
-  pdvector<Register> excludeReg;
-  excludeReg.push_back(scratchPCReg);
-  Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
-  assert ((scratchPCReg != REG_NULL) && (scratchReg != REG_NULL)) ;
+  emitPLTCommon(callee, gen);
   
-  Address dest = getInterModuleFuncAddr(callee, gen);
-  
-  inst_printf("emitCallInstruction addr 0x%lx curr adress 0x%lx offset %ld 0x%lx\n",
-	      dest, gen.currAddr(), dest - gen.currAddr()+4, dest - gen.currAddr()+4);
-  // Use scratchReg to set destination of the call...
-  
-  emitMovPCToReg(scratchPCReg, gen);
-  Address varOffset = dest - gen.currAddr()+4;
-  
-  emitLoadRelative(scratchReg, varOffset, scratchPCReg, gen.addrSpace()->getAddressWidth(), gen);
-  
-  insnCodeGen::generateMoveToLR(gen, scratchReg);
-  
-  instruction br(BRraw);
+  instruction br(BCTRraw);
   insnCodeGen::generate(gen,br);
   
   return true;
@@ -3490,6 +3483,7 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
 
         // add write new relocation symbol/entry
         binEdit->addDependentRelocation(relocation_address, referring);
+	cerr << "Adding a dependent relocation @" << hex << relocation_address << dec << endl;
     }
     return relocation_address;
 }

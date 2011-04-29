@@ -138,6 +138,8 @@ class EmitterPOWERStat : public EmitterPOWER {
     virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
     virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
 
+    bool emitPLTCommon(func_instance *dest, codeGen &gen);
+
  protected:
     virtual Register emitCallReplacement(opCode ocode, codeGen &gen,
                                  bool noCost, func_instance *callee);

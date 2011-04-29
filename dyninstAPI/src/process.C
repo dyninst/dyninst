@@ -3337,8 +3337,6 @@ bool process::readDataWord(const void *inTracedProcess, u_int size,
 bool process::readDataSpace(const void *inTracedProcess, u_int size,
                             void *inSelf, bool displayErrMsg) 
 {
-   assert(inTracedProcess != NULL);
-
    bool needToCont = false;
 
    if (!isAttached()) {
