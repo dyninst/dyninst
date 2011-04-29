@@ -140,6 +140,8 @@ class func_instance : public patchTarget {
    // Blocks where we provisionally stopped parsing because things looked weird.
    const BlockSet &abruptEnds();
 
+   block_instance *getBlock(const Address addr);
+
    Offset addrToOffset(const Address addr) const;
 
    bool hasNoStackFrame() const {return ifunc_->hasNoStackFrame();}
@@ -303,7 +305,7 @@ void func_instance::getCallerBlocks(OutputIterator result)
       return;
 
    const block_instance::edgelist &ins = entryBlock()->sources();
-   for (block_instance::edgelist::iterator iter = ins.begin();
+   for (block_instance::edgelist::const_iterator iter = ins.begin();
         iter != ins.end(); ++iter) {
       *result = (*iter)->src();
       ++result;

@@ -105,7 +105,7 @@ void BPatch_basicBlock::getSourcesInt(BPatch_Vector<BPatch_basicBlock*>& srcs){
    pdvector<block_instance *> in_blocks;
 
    const block_instance::edgelist &isrcs = iblock->sources();
-   for (block_instance::edgelist::iterator iter = isrcs.begin(); iter != isrcs.end(); ++iter) {
+   for (block_instance::edgelist::const_iterator iter = isrcs.begin(); iter != isrcs.end(); ++iter) {
       // We don't include interprocedural predecessors in the BPatch layer
       if ((*iter)->interproc()) continue;
 
@@ -120,7 +120,7 @@ void BPatch_basicBlock::getTargetsInt(BPatch_Vector<BPatch_basicBlock*>& tgrts){
    pdvector<block_instance *> out_blocks;
 
    const block_instance::edgelist &itrgs = iblock->targets();
-   for (block_instance::edgelist::iterator iter = itrgs.begin(); iter != itrgs.end(); ++iter) {
+   for (block_instance::edgelist::const_iterator iter = itrgs.begin(); iter != itrgs.end(); ++iter) {
       // We don't include interprocedural predecessors in the BPatch layer
       if ((*iter)->interproc()) continue;
 

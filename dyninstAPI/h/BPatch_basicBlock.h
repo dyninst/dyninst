@@ -289,9 +289,6 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    /** BPatch_basicBlock::getInstructions   */
 	/** return the instructions that belong to the block */
 
-   API_EXPORT(Int, (),
-             BPatch_Vector<BPatch_instruction *> *,getInstructions,());
-
    API_EXPORT(Int, (insns),
 	      bool, getInstructions, (std::vector<Dyninst::InstructionAPI::Instruction::Ptr>& insns));
    API_EXPORT(Addrs, (insnInstances),

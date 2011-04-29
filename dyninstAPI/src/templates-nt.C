@@ -178,10 +178,6 @@ template class pdvector<eventLock::lock_stack_elem>;
 template class pdvector<EventGate *>;
 template class pdvector<SignalHandler *>;
 
-
-class image_edge;
-template class  pdvector<image_edge*>;
-
 template class  dictionary_hash <int, int>;
 template class  pdvector<dictionary_hash<int,int>::entry >;
 
@@ -203,3 +199,10 @@ template class dictionary_hash<std::string, Statistic *>;
 
 class registerSlot;
 template class dictionary_hash<unsigned, registerSlot *>;
+
+#include "dyninstAPI/src/block.h"
+template class ParseAPI::ContainerWrapper<
+       std::vector<edge_instance *>,
+       edge_instance *,
+       edge_instance *,
+       EdgePredicateAdapter>;

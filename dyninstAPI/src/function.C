@@ -399,7 +399,7 @@ block_instance *func_instance::entryBlock() {
 unsigned func_instance::getNumDynamicCalls()
 {
    unsigned count=0;
-   for (BlockSet::iterator iter = callBlocks().begin(); iter != callBlocks().end(); ++iter) {
+   for (BlockSet::const_iterator iter = callBlocks().begin(); iter != callBlocks().end(); ++iter) {
       if ((*iter)->containsDynamicCall()) {
          count++;
       }
@@ -776,4 +776,13 @@ bool func_instance::isInstrumentable() {
    }
    return true;
 
+}
+
+block_instance *func_instance::getBlock(const Address addr) {
+	block_instance *block = obj()->findOneBlockByAddr(addr);
+	// Make sure it's one of ours
+	std::set<func_instance *> funcs;
+	block->getFuncs(std::inserter(funcs, funcs.end()));
+	if (funcs.find(this) != funcs.end()) return block;
+	return NULL;
 }

@@ -1163,6 +1163,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
    
    Register pointer_reg = (Register)-1;
      
+#if defined(arch_x86_64)	
    if (!is_disp32(newDisp+insnSz) && !is_addr32(targetAddr)) {
       // Case C: replace with 64-bit.
       is_data_abs64 = true;
@@ -1173,6 +1174,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
       emitMovImmToReg64(pointer_reg, targetAddr, true, gen);
       REGET_PTR(newInsn, gen);
    }
+#endif
 
    const unsigned char* origInsnStart = origInsn;
 
@@ -1231,10 +1233,12 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
    
    SET_PTR(newInsn, gen);
    
+#if defined(arch_x86_64)
    if (is_data_abs64) {
       // Cleanup on aisle pointer_reg...
       assert(pointer_reg != (Register)-1);
       emitPopReg64(pointer_reg, gen);
    }
+#endif
    return true;
 } 
