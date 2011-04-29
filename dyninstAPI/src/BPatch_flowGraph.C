@@ -334,7 +334,7 @@ BPatch_flowGraph::getEntryBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& ebb)
 bool 
 BPatch_flowGraph::getExitBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& nbb)
 {
-   for (func_instance::BlockSet::iterator iter = ll_func()->exitBlocks().begin();
+   for (func_instance::BlockSet::const_iterator iter = ll_func()->exitBlocks().begin();
         iter != ll_func()->exitBlocks().end(); ++iter) {
       nbb.push_back(findBlock(*iter));
    }
@@ -548,7 +548,7 @@ bool BPatch_flowGraph::createBasicBlocks()
 
        // Insert source/target edges
        const block_instance::edgelist &srcs = (*ibIter)->sources();
-       for (block_instance::edgelist::iterator iter = srcs.begin(); iter != srcs.end(); ++iter) {
+       for (block_instance::edgelist::const_iterator iter = srcs.begin(); iter != srcs.end(); ++iter) {
           // Skip interprocedural edges
           if ((*iter)->interproc()) continue;
           BPatch_edge *e = findEdge(*iter);
@@ -556,7 +556,7 @@ bool BPatch_flowGraph::createBasicBlocks()
        }
        // Insert source/target edges
        const block_instance::edgelist &trgs = (*ibIter)->targets();
-       for (block_instance::edgelist::iterator iter = trgs.begin(); iter != trgs.end(); ++iter) {
+       for (block_instance::edgelist::const_iterator iter = trgs.begin(); iter != trgs.end(); ++iter) {
           // Skip interprocedural edges
           if ((*iter)->interproc()) continue;
           BPatch_edge *e = findEdge(*iter);

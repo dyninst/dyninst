@@ -45,9 +45,7 @@ using namespace Dyninst::ParseAPI;
 block_instance::block_instance(ParseAPI::Block *ib, 
                                mapped_object *obj) 
    : obj_(obj),
-     block_(static_cast<parse_block *>(ib)),
-     srclist_(srcs_),
-     trglist_(trgs_)
+     block_(static_cast<parse_block *>(ib))
 {
    // We create edges lazily
 };
@@ -55,9 +53,7 @@ block_instance::block_instance(ParseAPI::Block *ib,
 // Fork constructor
 block_instance::block_instance(const block_instance *parent, mapped_object *childObj) 
    : obj_(childObj),
-     block_(parent->block_),
-     srclist_(srcs_),
-     trglist_(trgs_) {
+     block_(parent->block_) {
    // We also need to copy edges.
    // Thing is, those blocks may not exist yet...
    // So we wait, and do edges after all blocks have
@@ -126,7 +122,7 @@ void *block_instance::getPtrToInstruction(Address addr) const {
 
 
 edge_instance *block_instance::getFallthrough() {
-   for (edgelist::iterator iter = targets().begin(); iter != targets().end(); ++iter) {
+   for (edgelist::const_iterator iter = targets().begin(); iter != targets().end(); ++iter) {
       if ((*iter)->type() == FALLTHROUGH ||
           (*iter)->type() == CALL_FT ||
           (*iter)->type() == COND_NOT_TAKEN) { 
@@ -146,7 +142,7 @@ block_instance *block_instance::getFallthroughBlock() {
 }
 
 edge_instance *block_instance::getTarget() {
-   for (edgelist::iterator iter = targets().begin(); iter != targets().end(); ++iter) {
+   for (edgelist::const_iterator iter = targets().begin(); iter != targets().end(); ++iter) {
       if ((*iter)->type() == CALL ||
           (*iter)->type() == DIRECT ||
           (*iter)->type() == COND_TAKEN) { 
@@ -210,7 +206,7 @@ const block_instance::edgelist &block_instance::sources() {
          srcs_.push_back(newEdge);
       }
    }
-   return srclist_;
+   return srcs_;
 }
 
 const block_instance::edgelist &block_instance::targets() {
@@ -221,7 +217,7 @@ const block_instance::edgelist &block_instance::targets() {
          trgs_.push_back(newEdge);
      }
    }
-   return trglist_;
+   return trgs_;
 }
 
 std::string block_instance::calleeName() {

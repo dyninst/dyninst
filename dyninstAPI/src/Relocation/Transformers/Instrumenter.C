@@ -320,7 +320,7 @@ bool Instrumenter::edgeInstrumentation(Trace::Ptr trace, const TraceMap &traceMa
    block_instance *block = trace->block();
    assert(block);
    const block_instance::edgelist &targets = block->targets();
-   for (block_instance::edgelist::iterator iter = targets.begin();
+   for (block_instance::edgelist::const_iterator iter = targets.begin();
         iter != targets.end(); ++iter) {
       instPoint *point = NULL;
       if (trace->func()) {

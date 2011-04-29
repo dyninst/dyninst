@@ -214,28 +214,35 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
 {
    assert(point);
 
-   if (!func->getModule()->isValid()) return NULL;
+   if (!func->getModule()->isValid()) {
+	   return NULL;
+   }
    if (addSpace->getType() == TRADITIONAL_PROCESS) {
        BPatch_process *proc = dynamic_cast<BPatch_process *>(addSpace);
        mapped_object *obj = func->getModule()->lowlevel_mod()->obj();
        if (proc->lowlevel_process()->mappedObjIsDeleted(obj)) {
-           return NULL;
-   }
+		   return NULL;
+	   }
    }
    
    if (point->type() != instPoint::PreCall &&
        point->type() != instPoint::PostCall) {
        parsing_printf("findCallee failed in getCalledFunction- not a call site\n");
-       return NULL;
+	   return NULL;
    }
    
    func_instance *_func = point->block()->callee();
    
    if (!_func) {
        parsing_printf("findCallee failed in getCalledFunction\n");
-       return NULL;
+	   return NULL;
    }
    return addSpace->findOrCreateBPFunc(_func, NULL);
+}
+
+std::string BPatch_point::getCalledFunctionNameInt() {
+	assert(point->block());
+	return point->block()->obj()->getCalleeName(point->block());
 }
 
 /*  BPatch_point::getCFTargets
@@ -807,4 +814,6 @@ instPoint *BPatch_point::getPoint(BPatch_callWhen when) {
       case BPatch_callAfter:
          return (secondaryPoint ? secondaryPoint : point);
    }
+   assert(0);
+   return NULL;
 }

@@ -1453,7 +1453,7 @@ image::image(fileDescriptor &desc,
    fixup_offsets(file, linkedFile);
 
 #else
-   string file = desc_.file();
+	std::string file = desc_.file();
    startup_printf("%s[%d]: opening file %s\n", FILE__, __LINE__, file.c_str());
    if(desc.rawPtr()) {
        linkedFile = new SymtabAPI::Symtab((unsigned char*)desc.rawPtr(), 
@@ -1462,7 +1462,7 @@ image::image(fileDescriptor &desc,
                                           BPatch_defensiveMode == mode,
                                           err);
    } 
-   else if(!SymtabAPI::Symtab::openFile(linkedFile, file, BPatch_defensiveMode == mode)) 
+   else if(!SymtabAPI::Symtab::openFile(linkedFile, file, (BPatch_defensiveMode == mode) ? SymtabAPI::Symtab::Defensive : SymtabAPI::Symtab::NotDefensive))
    {
       err = true;
       return;

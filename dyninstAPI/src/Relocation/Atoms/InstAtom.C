@@ -74,7 +74,7 @@ bool InstAtom::generate(const codeGen &,
    return true;
 }
 
-string InstAtom::format() const {
+std::string InstAtom::format() const {
    return "InstAtom()";
 }
 

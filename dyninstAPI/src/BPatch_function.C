@@ -394,7 +394,7 @@ void BPatch_function::getUnresolvedControlTransfers
 (BPatch_Vector<BPatch_point *> &unresolvedCF/*output*/)
 {
    const func_instance::BlockSet &blocks = func->unresolvedCF();
-   for (func_instance::BlockSet::iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
+   for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
       // We want to instrument before the last instruction, since we can pull out
       // the target at that point. Technically, we want to instrument the sink edge;
       // but we can't do that yet. 
@@ -422,7 +422,7 @@ void BPatch_function::getAbruptEndPoints
 {
    
    const func_instance::BlockSet &blocks = func->abruptEnds();
-   for (func_instance::BlockSet::iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
+   for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
       // We just want to know if this code is executed, so use a "start of block" point.
       instPoint *point = instPoint::blockEntry(func, *iter);
       BPatch_point *curPoint = addSpace->findOrCreateBPPoint
@@ -451,7 +451,7 @@ void BPatch_function::getCallerPoints(std::vector<BPatch_point*>& callerPoints)
 void BPatch_function::getCallPoints(BPatch_Vector<BPatch_point *> &callPoints)
 {
    const func_instance::BlockSet &blocks = func->callBlocks();
-   for (func_instance::BlockSet::iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
+   for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
       // We just want to know if this code is executed, so use a "start of block" point.
       instPoint *point = instPoint::preCall(func, *iter);
       BPatch_point *curPoint = addSpace->findOrCreateBPPoint
@@ -475,7 +475,7 @@ void BPatch_function::getExitPoints(BPatch_Vector<BPatch_point *> &exitPoints)
    
    const func_instance::BlockSet &blocks = func->exitBlocks();
 
-   for (func_instance::BlockSet::iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
+   for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
       // We just want to know if this code is executed, so use a "start of block" point.
       instPoint *point = instPoint::funcExit(func, *iter);
       BPatch_point *curPoint = addSpace->findOrCreateBPPoint
@@ -920,7 +920,7 @@ bool BPatch_function::getAddressRangeInt(Dyninst::Address &start, Dyninst::Addre
    
    // end is a little tougher
    end = func->addr();
-   for (func_instance::BlockSet::iterator iter = func->blocks().begin();
+   for (func_instance::BlockSet::const_iterator iter = func->blocks().begin();
         iter != func->blocks().end(); ++iter) {
       end = (end < (*iter)->end()) ? (*iter)->end() : end;
    }

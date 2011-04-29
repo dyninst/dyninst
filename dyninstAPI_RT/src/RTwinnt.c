@@ -60,8 +60,10 @@
 void DYNINSTbreakPoint(void) {
   /* TODO: how do we stop all threads? */
     DYNINST_break_point_event = 1;
+	fprintf(stderr, "About to execute DebugBreak!\n");
     DebugBreak();
-    DYNINST_break_point_event = 0;
+	fprintf(stderr, "Back from DebugBreak!\n");
+	DYNINST_break_point_event = 0;
 }
 
 void DYNINSTsafeBreakPoint() {

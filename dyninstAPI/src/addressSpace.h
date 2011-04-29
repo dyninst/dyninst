@@ -253,6 +253,9 @@ class AddressSpace : public InstructionSource {
     block_instance *findBlock(parse_block *iblock);
     edge_instance *findEdge(ParseAPI::Edge *iedge);
 
+	// Fast lookups across all mapped_objects
+	func_instance *findFuncByEntry(const block_instance *block);
+
     //findJumpTargetFuncByAddr Acts like findFunc, but if it fails,
     // checks if 'addr' is a jump to a function.
     func_instance *findJumpTargetFuncByAddr(Address addr);
@@ -425,7 +428,7 @@ class AddressSpace : public InstructionSource {
 
 
     bool getAddrInfo(Address relocAddr,//input
-		      Address &origAddr,
+					  Address &origAddr,
                      std::vector<func_instance *> &origFuncs,
                      baseTramp *&baseTramp);
     typedef Relocation::CodeTracker::RelocInfo RelocInfo;

@@ -19,6 +19,9 @@ class MemoryEmulator {
   void update() {};
   void synchShadowOrig(bool) {};
   std::pair<bool, Address> translate(Address) { return std::make_pair(false, 0);  }
+  std::pair<bool, Address> translateBackwards(Address) { return std::make_pair(false, 0); }
+  static const int STACK_SHIFT_VAL = 0;
+  void debug() {};
 
 };
 };
