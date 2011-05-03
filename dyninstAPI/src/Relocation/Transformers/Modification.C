@@ -45,7 +45,7 @@ using namespace Dyninst;
 using namespace Relocation;
 
 Modification::Modification(const CallModMap &callMod,
-			   const FuncReplaceMap &funcRepl) :
+			   const FuncModMap &funcRepl) :
    callMods_(callMod), 
    funcReps_(funcRepl) {};
 
@@ -95,11 +95,12 @@ void Modification::replaceCall(Trace::Ptr trace, const TraceMap &traceMap) {
 }
 
 void Modification::replaceFunction(Trace::Ptr trace, const TraceMap &traceMap) {
-   FuncReplaceMap::const_iterator iter = funcReps_.find(trace->func());
-   if (iter == funcReps_.end()) return;
-
    // See if we're the entry block
    if (trace->block() != trace->func()->entryBlock()) return;
+
+   FuncModMap::const_iterator iter = funcReps_.find(trace->func());
+   if (iter == funcReps_.end()) return;
+
    relocation_cerr << "Performing function replacement in trace " << trace->id() 
                    << " going to function " << iter->second->name() 
                    << " /w/ entry block " 
@@ -110,6 +111,46 @@ void Modification::replaceFunction(Trace::Ptr trace, const TraceMap &traceMap) {
    trace->removeTargets();
    trace->getTargets(ParseAPI::FALLTHROUGH).push_back(getTarget(iter->second->entryBlock(), traceMap));
 
+   // And erase anything in the trace to be sure we immediately jump.
+   // Amusingly? Entry instrumentation of the function will still execute...
+   // Need to determine semantics of this and FIXME TODO
+   trace->elements().clear();
+
+   CFAtom::Ptr newCF = CFAtom::create(trace->block()->start());
+   trace->elements().push_back(newCF);
+   trace->cfAtom() = newCF;
+}
+
+void Modification::wrapFunction(Trace::Ptr trace, const TraceMap &traceMap) {
+   // See if we're the entry block
+   if (trace->block() != trace->func()->entryBlock()) return;
+
+   FuncModMap::const_iterator iter = funcWraps_.find(trace->func());
+   if (iter == funcWraps_.end()) return;
+
+   relocation_cerr << "Performing function wrapping in trace " << trace->id() 
+                   << " going to function " << iter->second->name() 
+                   << " /w/ entry block " 
+                   << (iter->second->entryBlock() ? iter->second->entryBlock()->start() : -1) << endl;
+
+   // Create a placeholder at the start of the old function that redirects execution
+   // to the wrapper instead
+   Trace::Ptr newTrace = trace->split(trace->elements().begin());
+   trace->removeTargets();
+   trace->getTargets(ParseAPI::FALLTHROUGH).push_back(getTarget(iter->second->entryBlock(), traceMap));
+
+   // Go through the wrapper and redirect all of its edges to the wrappee (that is, to trace)
+   // with edges to newtrace
+
+   const func_instance::BlockSet &wrapperBlocks = iter->second->blocks();
+   for (func_instance::BlockSet::const_iterator iter = wrapperBlocks.begin();
+        iter != wrapperBlocks().end(); ++iter) {
+      Trace::Ptr t = traceMap[*iter]; assert(t);
+      Trace::Edges &outs = t->getEdges();
+   }
+
+
+   
    // And erase anything in the trace to be sure we immediately jump.
    // Amusingly? Entry instrumentation of the function will still execute...
    // Need to determine semantics of this and FIXME TODO

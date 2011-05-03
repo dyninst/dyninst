@@ -55,12 +55,13 @@ class Modification : public Transformer {
     // Block (IDing a call site) -> func
     typedef AddressSpace::CallModMap CallModMap;
     // func -> func
-    typedef AddressSpace::FuncReplaceMap FuncReplaceMap;
+    typedef AddressSpace::FuncModMap FuncModMap;
 
     virtual bool processTrace(TraceList::iterator &, const TraceMap &);
 
     Modification(const CallModMap &callRepl,
-		 const FuncReplaceMap &funcRepl);
+		 const FuncModMap &funcRepl,
+                 const FuncModMap &funcWrap);
 
     virtual ~Modification() {};
 
@@ -72,7 +73,8 @@ class Modification : public Transformer {
     TargetInt *getTarget(block_instance *block, const TraceMap &);
 
     const CallModMap &callMods_;
-    const FuncReplaceMap &funcReps_;
+    const FuncModMap &funcReps_;
+    const FuncModMap &funcWraps_;
   };
 };
 };

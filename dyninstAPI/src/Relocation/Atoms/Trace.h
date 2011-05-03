@@ -77,6 +77,7 @@ class Trace {
    typedef dyn_detail::boost::shared_ptr<Trace> Ptr;
    typedef std::list<Patch *> Patches;
    typedef std::list<TargetInt *> Targets;
+   typedef std::map<ParseAPI::EdgeTypeEnum, Targets> Edges;
 
    // Standard creation
    static Ptr create(block_instance *block, func_instance *func);
@@ -113,7 +114,9 @@ class Trace {
    bool interposeTarget(edge_instance *e,
                         Trace::Ptr newTarget);
    Targets &getTargets(ParseAPI::EdgeTypeEnum type);
+
    bool removeTargets(ParseAPI::EdgeTypeEnum type);
+   
    bool removeTargets();
 
 
@@ -186,8 +189,8 @@ class Trace {
 
    // We're building a mini-CFG, so might as well make it obvious. 
    // Also, this lets us reassign edges. We sort by edge type. 
-   std::map<ParseAPI::EdgeTypeEnum, Targets > inEdges_;
-   std::map<ParseAPI::EdgeTypeEnum, Targets > outEdges_;
+   Edges inEdges_;
+   Edges outEdges_;
 
 };
 
