@@ -46,7 +46,8 @@ using namespace Relocation;
 using namespace InstructionAPI;
 
 
-bool adhocMovementTransformer::processTrace(TraceList::iterator &b_iter, const TraceMap &) {
+bool adhocMovementTransformer::processTrace(TraceList &blocks, const TraceMap &) {
+   for (TraceList::iterator b_iter = blocks.begin(); b_iter != blocks.end(); ++b_iter) {
   // Identify PC-relative data accesses
   // and "get PC" operations and replace them
   // with dedicated Atoms
@@ -113,6 +114,7 @@ bool adhocMovementTransformer::processTrace(TraceList::iterator &b_iter, const T
       }
     }
   }
+   }
   return true;
 }
 

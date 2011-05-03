@@ -116,8 +116,8 @@ class Trace {
    Targets &getTargets(ParseAPI::EdgeTypeEnum type);
 
    bool removeTargets(ParseAPI::EdgeTypeEnum type);
-   
    bool removeTargets();
+   bool replaceTarget(Trace::Ptr oldTarget, Trace::Ptr newTarget);
 
 
    // Splits the trace immediately before the provided iterator.

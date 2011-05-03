@@ -412,33 +412,30 @@ bool BPatch_addressSpace::replaceFunctionInt(BPatch_function &oldFunc,
     finalizeInsertionSet(false, &tmp);
   }
   return true;
-#if 0
+}
 
-  BPatch_Vector<BPatch_point *> *pts = oldFunc.findPoint(BPatch_entry);
-  
-  if (! pts || ! pts->size()) {
-    return false;
-  }
-
-  
-  
-   BPatch_funcJumpExpr fje(newFunc);
-   bool old_recursion_flag = BPatch::bpatch->isTrampRecursive();
-   BPatch::bpatch->setTrampRecursive( true );
-
-   // We replace functions by instrumenting the entry of OLDFUNC with
-   // a non-linking jump to NEWFUNC.  Calls to OLDFUNC do actually
-   // transfer to OLDFUNC, but then our jump shunts them to NEWFUNC.
-   // The non-linking jump ensures that when NEWFUNC returns, it
-   // returns directly to the caller of OLDFUNC.
-
-
-   BPatchSnippetHandle * result = insertSnippet(fje, *pts, BPatch_callBefore);
-
-   BPatch::bpatch->setTrampRecursive( old_recursion_flag );
-
-   return (NULL != result);
-#endif
+bool BPatch_addressSpace::wrapFunctionInt(BPatch_function &oldFunc,
+                                          BPatch_function &newFunc)
+{
+   assert(oldFunc.lowlevel_func() && newFunc.lowlevel_func());
+   if (!getMutationsActive())
+      return false;
+   
+   // Self replacement is a nop
+   // We should just test direct equivalence here...
+   if (oldFunc.lowlevel_func() == newFunc.lowlevel_func()) {
+      return true;
+   }
+   
+   if (!oldFunc.lowlevel_func()->proc()->wrapFunction(oldFunc.lowlevel_func(), newFunc.lowlevel_func()))
+      return false;
+   
+   if (pendingInsertions == NULL) {
+      // Trigger it now
+      bool tmp;
+      finalizeInsertionSet(false, &tmp);
+   }
+   return true;
 }
 
 

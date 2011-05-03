@@ -45,11 +45,13 @@ using namespace Dyninst;
 using namespace Relocation;
 
 Modification::Modification(const CallModMap &callMod,
-			   const FuncModMap &funcRepl) :
-   callMods_(callMod), 
-   funcReps_(funcRepl) {};
+			   const FuncModMap &funcRepl,
+			   const FuncModMap &funcWraps) :
+  callMods_(callMod), 
+  funcReps_(funcRepl),
+  funcWraps_(funcWraps) {};
 
-bool Modification::processTrace(TraceList::iterator &iter, const TraceMap &traceMap) {
+bool Modification::processTrace(TraceList &blocks, const TraceMap &traceMap) {
   // We define three types of program modification:
   // 1) Function call replacement; change the target of the corresponding
   //    call element
@@ -57,11 +59,21 @@ bool Modification::processTrace(TraceList::iterator &iter, const TraceMap &trace
   //    fallthrough edge
   // 3) Function replacement; TODO
 
-  Trace::Ptr trace = *iter;
-
-  replaceCall(trace, traceMap); 
-  replaceFunction(trace, traceMap);
-  return true;
+   for (TraceList::iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
+      Trace::Ptr trace = *iter;
+      
+      replaceCall(trace, traceMap); 
+      replaceFunction(trace, traceMap);
+      Trace::Ptr ret = wrapFunction(trace, traceMap);
+      if (ret) {
+         TraceList::iterator tmp = iter;
+         ++tmp;
+         blocks.insert(tmp, ret);
+         // Skip this one
+         ++iter;
+      }
+   }
+   return true;
 }
 
 void Modification::replaceCall(Trace::Ptr trace, const TraceMap &traceMap) {
@@ -121,22 +133,31 @@ void Modification::replaceFunction(Trace::Ptr trace, const TraceMap &traceMap) {
    trace->cfAtom() = newCF;
 }
 
-void Modification::wrapFunction(Trace::Ptr trace, const TraceMap &traceMap) {
+Trace::Ptr Modification::wrapFunction(Trace::Ptr trace, const TraceMap &traceMap) {
    // See if we're the entry block
-   if (trace->block() != trace->func()->entryBlock()) return;
+   if (trace->block() != trace->func()->entryBlock()) return Trace::Ptr();
 
    FuncModMap::const_iterator iter = funcWraps_.find(trace->func());
-   if (iter == funcWraps_.end()) return;
+   if (iter == funcWraps_.end()) return Trace::Ptr();
 
    relocation_cerr << "Performing function wrapping in trace " << trace->id() 
                    << " going to function " << iter->second->name() 
                    << " /w/ entry block " 
                    << (iter->second->entryBlock() ? iter->second->entryBlock()->start() : -1) << endl;
-
+   cerr << "Step 1" << endl;
    // Create a placeholder at the start of the old function that redirects execution
    // to the wrapper instead
    Trace::Ptr newTrace = trace->split(trace->elements().begin());
+   cerr << trace->format() << endl;
+   cerr << newTrace->format() << endl;
+
+   cerr << "Step 2" << endl;
    trace->removeTargets();
+
+   cerr << trace->format() << endl;
+   cerr << newTrace->format() << endl;
+   cerr << "Step 3" << endl;
+
    trace->getTargets(ParseAPI::FALLTHROUGH).push_back(getTarget(iter->second->entryBlock(), traceMap));
 
    // Go through the wrapper and redirect all of its edges to the wrappee (that is, to trace)
@@ -144,21 +165,15 @@ void Modification::wrapFunction(Trace::Ptr trace, const TraceMap &traceMap) {
 
    const func_instance::BlockSet &wrapperBlocks = iter->second->blocks();
    for (func_instance::BlockSet::const_iterator iter = wrapperBlocks.begin();
-        iter != wrapperBlocks().end(); ++iter) {
-      Trace::Ptr t = traceMap[*iter]; assert(t);
-      Trace::Edges &outs = t->getEdges();
+        iter != wrapperBlocks.end(); ++iter) {
+      TraceMap::const_iterator tmp = traceMap.find(*iter);
+      assert(tmp != traceMap.end());
+      cerr << "Replacing in" << endl;
+      cerr << tmp->second->format() << endl;
+      tmp->second->replaceTarget(trace, newTrace);
+      cerr << tmp->second->format() << endl;
    }
-
-
-   
-   // And erase anything in the trace to be sure we immediately jump.
-   // Amusingly? Entry instrumentation of the function will still execute...
-   // Need to determine semantics of this and FIXME TODO
-   trace->elements().clear();
-
-   CFAtom::Ptr newCF = CFAtom::create(trace->block()->start());
-   trace->elements().push_back(newCF);
-   trace->cfAtom() = newCF;
+   return newTrace;
 }
 
 TargetInt *Modification::getTarget(block_instance *block, const TraceMap &traceMap) {

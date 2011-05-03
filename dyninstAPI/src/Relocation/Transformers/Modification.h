@@ -57,7 +57,7 @@ class Modification : public Transformer {
     // func -> func
     typedef AddressSpace::FuncModMap FuncModMap;
 
-    virtual bool processTrace(TraceList::iterator &, const TraceMap &);
+    virtual bool processTrace(TraceList &, const TraceMap &);
 
     Modification(const CallModMap &callRepl,
 		 const FuncModMap &funcRepl,
@@ -69,6 +69,7 @@ class Modification : public Transformer {
 
     void replaceCall(TracePtr trace, const TraceMap &);
     void replaceFunction(TracePtr trace, const TraceMap &);
+    TracePtr wrapFunction(TracePtr trace, const TraceMap &);
 
     TargetInt *getTarget(block_instance *block, const TraceMap &);
 

@@ -124,11 +124,7 @@ bool CodeMover::transform(Transformer &t) {
    bool ret = true; 
 
    t.preprocess(blocks_);
-   for (TraceList::iterator i = blocks_.begin(); 
-        i != blocks_.end(); ++i) {
-      if (!t.processTrace(i, blockMap_))
-         ret = false;
-   }
+   t.processTrace(blocks_, blockMap_);
    t.postprocess(blocks_);
 
    return ret;

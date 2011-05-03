@@ -47,8 +47,9 @@ using namespace Relocation;
 using namespace InstructionAPI;
 
 
-bool Instrumenter::processTrace(TraceList::iterator &iter, 
+bool Instrumenter::processTrace(TraceList &blocks, 
                                 const TraceMap &traceMap) {
+   for (TraceList::iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
    // Hoo boy. Fun for the whole family...
    //
    // This transformer needs to create instrumentation blocks throughout the 
@@ -86,7 +87,7 @@ bool Instrumenter::processTrace(TraceList::iterator &iter,
    if (!postCallInstrumentation(trace)) return false;
    if (!edgeInstrumentation(trace, traceMap)) return false;
    if (!funcEntryInstrumentation(trace)) return false;
-
+   }
    return true;
 }
 

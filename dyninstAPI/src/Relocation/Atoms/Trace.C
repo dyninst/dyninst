@@ -160,6 +160,7 @@ void Trace::createCFAtom() {
 
    if (elements_.empty()) {
       cfAtom_ = CFAtom::create(origAddr_);
+      elements_.push_back(cfAtom_); 
       return;
    }
 
@@ -382,6 +383,7 @@ void Trace::determineNecessaryBranches(Trace *successor) {
 bool Trace::generate(const codeGen &templ,
                      CodeBuffer &buffer) {
    relocation_cerr << "Generating block " << id() << " orig @ " << hex << origAddr() << dec << endl;
+   relocation_cerr << "\t" << elements_.size() << " elements" << endl;
    
    // Register ourselves with the CodeBuffer and get a label
    label_ = buffer.getLabel();
@@ -534,14 +536,19 @@ Trace::Targets &Trace::getTargets(ParseAPI::EdgeTypeEnum type) {
 }
 
 bool Trace::removeTargets() {
+   cerr << "removeTargets in " << id() << endl;
+#if 0
    for (std::map<ParseAPI::EdgeTypeEnum, Targets>::iterator iter = outEdges_.begin();
         iter != outEdges_.end(); ++iter) {
       for (Targets::iterator iter2 = iter->second.begin(); 
            iter2 != iter->second.end(); ++iter2) {
+         cerr << "Deleting " << (*iter2)->format() << endl;
          delete *iter2;
       }
    }
+#endif
    outEdges_.clear();
+   cerr << "Cleared all edges" << endl;
    return true;
 }
 
@@ -554,6 +561,33 @@ bool Trace::removeTargets(ParseAPI::EdgeTypeEnum type) {
    outEdges_.erase(type);
    return true;
 }
+
+
+bool Trace::replaceTarget(Trace::Ptr oldTrace, Trace::Ptr newTrace) {
+   cerr << "Replacing target in trace" << endl;
+   cerr << format();
+   for (Edges::iterator iter = outEdges_.begin(); iter != outEdges_.end(); ++iter) {
+      Targets newTargs;
+      for (Targets::iterator t_iter = iter->second.begin(); t_iter != iter->second.end(); ++t_iter) {
+         if ((*t_iter)->type() != TargetInt::TraceTarget) {
+            newTargs.push_back(*t_iter);
+            continue;
+         }
+         Target<Trace *> *t = static_cast<Target<Trace *> *>(*t_iter);
+         if (t->t() != oldTrace.get()) {
+            newTargs.push_back(*t_iter);
+            continue;
+         }
+         delete t;
+         newTargs.push_back(new Target<Trace *>(newTrace.get()));
+      }
+      iter->second = newTargs;
+   }
+   cerr << "Replaced target" << endl;
+   cerr << format(); 
+   return true;
+}
+
 
 void Trace::replaceInEdge(ParseAPI::EdgeTypeEnum type,
                    Trace *oldSource,

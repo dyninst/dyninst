@@ -43,7 +43,7 @@ class Instrumenter : public Transformer {
   // Mirrors definition in CodeMover
   typedef std::map<block_instance *, TracePtr> TraceMap;
    
-  virtual bool processTrace(TraceList::iterator &, const TraceMap &);
+  virtual bool processTrace(TraceList &, const TraceMap &);
   virtual bool postprocess(TraceList &);
   
   Instrumenter() {};

@@ -157,7 +157,7 @@ void AddressSpace::copyAddressSpace(process *parent) {
           callModifications_[newB][context] = target;
        }
     }
-    for (FuncReplaceMap::iterator iter = parent->functionReplacements_.begin();
+    for (FuncModMap::iterator iter = parent->functionReplacements_.begin();
          iter != parent->functionReplacements_.end(); ++iter) {
        func_instance *from = findFunction(iter->first->ifunc());
        func_instance *to = findFunction(iter->second->ifunc());
@@ -1420,6 +1420,17 @@ void AddressSpace::replaceFunction(func_instance *oldfunc, func_instance *newfun
   addModifiedFunction(oldfunc);
 }
 
+bool AddressSpace::wrapFunction(func_instance *oldfunc, func_instance *newfunc) {
+   if (edit()) {
+      if (oldfunc->obj() != newfunc->obj()) return false;
+   }
+
+   functionWraps_[oldfunc] = newfunc;
+   addModifiedFunction(oldfunc);
+   addModifiedFunction(newfunc);
+   return true;
+}
+
 void AddressSpace::removeCall(block_instance *block, func_instance *context) {
    modifyCall(block, NULL, context);
 }
@@ -1625,7 +1636,7 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   // Insert whatever binary modifications are desired
   // Right now needs to go before Instrumenters because we use
   // instrumentation for function replacement.
-   Modification mod(callModifications_, functionReplacements_);
+   Modification mod(callModifications_, functionReplacements_, functionWraps_);
    cm->transform(mod);
 
   // Add instrumentation

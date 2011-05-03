@@ -75,7 +75,7 @@ class Transformer {
   virtual bool preprocess(TraceList &) { return true;}
   virtual bool postprocess(TraceList &) { return true; }
 
-  virtual bool processTrace(TraceList::iterator &, const TraceMap &) { return true; }
+  virtual bool processTrace(TraceList &, const TraceMap &) { return true; }
     
 
 

@@ -108,7 +108,7 @@ template <>
   
   virtual string format() const { 
      stringstream ret;
-     ret << "T{" << t_->id() << "/" << (necessary() ? "+" : "-") << "}";
+     ret << this << ":T{" << t_->id() << "/" << (necessary() ? "+" : "-") << "}";
      return ret.str();
   }
   
