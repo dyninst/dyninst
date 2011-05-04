@@ -95,7 +95,7 @@ PCProcReader::PCProcReader(sysv_process *proc_) :
 
 PCProcReader::~PCProcReader()
 {
-   clearBuffers();
+   proc->getMemCache()->clear();
 }
 
 bool PCProcReader::start()
@@ -106,11 +106,6 @@ bool PCProcReader::start()
 bool PCProcReader::done()
 {
    return true;
-}
-
-void PCProcReader::clearBuffers()
-{
-   proc->getMemCache()->clear();
 }
 
 bool PCProcReader::ReadMem(Address addr, void *buffer, unsigned size)
@@ -270,7 +265,6 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
       aout = (int_library *) (ll_aout ? ll_aout->getUpPtr() : NULL);
    }
 
-   procreader->clearBuffers();
    return true;
 }
 

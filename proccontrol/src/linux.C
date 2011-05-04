@@ -325,7 +325,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                   if (result == aret_async) {
                      pthrd_printf("decodeTdbBreakpoint returned async\n");
                      set<response::ptr> resps;
-                     lproc->getMemCache()->getPendingAsyncs(resps);;
+                     lproc->getMemCache()->getPendingAsyncs(resps);
+                     pthrd_printf("%d asyncs are pending\n", (int) resps.size());
                      int_process::waitForAsyncEvent(resps);
                      continue;
                   }

@@ -124,8 +124,7 @@ class memCache {
                              int_thread *writing_thrd = NULL);
    memRet_t writeMemorySync(Dyninst::Address dest, void *src, unsigned long size, 
                             int_thread *writing_thrd = NULL);
- 
-
+   void updateReadCacheWithWrite(Address dest, char *src, unsigned long size);
 };
 
 #endif

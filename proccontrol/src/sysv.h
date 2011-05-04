@@ -48,8 +48,6 @@ class PCProcReader : public ProcessReader
 private:
    sysv_process *proc;
    
-   void clearBuffers();
-
    std::set<mem_response::ptr> memresults;
 public:
    PCProcReader(sysv_process *proc_);

@@ -91,11 +91,16 @@ memCache::~memCache()
 
 void memCache::getPendingAsyncs(set<response::ptr> &resps)
 {
-   for (mcache_t::iterator i = mem_cache.begin(); i != mem_cache.end(); i++) {
+   for (mcache_t::iterator i = mem_cache.begin(); i != write_cache.end(); i++) {
+      if (i == mem_cache.end()) {
+         i = write_cache.begin();
+         if (i == write_cache.end())
+             break;
+      }
       memEntry *entry = i->second;
-      if (!entry->resp || !entry->res_resp)
+      if (!entry->resp && !entry->res_resp)
          continue;
-      assert(!entry->resp && entry->res_resp);
+      assert(entry->resp || entry->res_resp);
       response::ptr resp;
       if (entry->resp)
          resp = entry->resp;
@@ -104,6 +109,33 @@ void memCache::getPendingAsyncs(set<response::ptr> &resps)
       if (resp->isReady() || resp->hasError())
          continue;
       resps.insert(resp);
+   }
+
+}
+
+void memCache::updateReadCacheWithWrite(Address dest, char *src, unsigned long size)
+{
+   Address start_block = dest - (dest % block_size);
+   for (Address cur = start_block; cur < dest+size; cur += block_size) {
+      mcache_t::iterator i = mem_cache.find(cur);
+      if (i == mem_cache.end())
+         continue;
+      
+      Address write_start = dest;
+      Address write_end = dest + size;
+      Address read_start = cur;
+      Address read_end = cur + block_size;
+      
+      //Compute intersection of write and read
+      Address intersect_start = write_start > read_start ? write_start : read_start;
+      Address intersect_end = write_end < read_end ? write_end : read_end;
+      assert(intersect_start <= intersect_end);
+
+      char *target_mem = i->second->getBuffer() + (intersect_start - cur);
+      char *src_mem = src + (intersect_start - dest);
+      unsigned long copy_size = intersect_end - intersect_start;
+      
+      memcpy(target_mem, src_mem, copy_size);      
    }
 }
 
@@ -248,6 +280,8 @@ memCache::memRet_t memCache::writeMemoryAsync(Dyninst::Address dest, void *src, 
       pthrd_printf("Error writing memory\n");
       return ret_error;
    }
+   updateReadCacheWithWrite(dest, (char *) src, size);
+
    if (!me->res_resp->isReady()) {
       pthrd_printf("Async result while writing memory\n");
       pending_async = true;
