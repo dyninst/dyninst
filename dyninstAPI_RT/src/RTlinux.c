@@ -404,6 +404,8 @@ extern trapMapping_t *dyninstTrapTable;
 extern unsigned long dyninstTrapTableIsSorted;
 
 /**
+ * This comment is now obsolete, left for historic purposes
+ *
  * Called by the SIGTRAP handler, dyninstTrapHandler.  This function is 
  * closly intwined with dyninstTrapHandler, don't modify one without 
  * understanding the other.
