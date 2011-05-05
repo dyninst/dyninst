@@ -47,14 +47,9 @@ extern "C" {
 }
 
 #include <map>
-using std::map;
-using std::pair;
-
 #include <vector>
-using std::vector;
-
 #include <string>
-using std::string;
+#include <deque>
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -80,7 +75,8 @@ public:
                            psaddr_t *symbolAddr);
     virtual bool initThreadDB();
     virtual void freeThreadDBAgent();
-    virtual bool getPostDestroyEvents(vector<Event::ptr> &events);
+    virtual bool getPostDestroyEvents(std::vector<Event::ptr> &events);
+    virtual Event::ptr getEventForThread(thread_db_thread *thrd, EventType::Code code);
     static void addThreadDBHandlers(HandlerPool *hpool);
 
     /*
@@ -103,7 +99,7 @@ public:
 
     thread_db_thread *initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info);
     
-    bool updateTidInfo(vector<Event::ptr> &threadEvents);
+    bool updateTidInfo(std::vector<Event::ptr> &threadEvents);
     bool needsTidUpdate();
     
 protected:
@@ -122,6 +118,8 @@ protected:
     int_thread *trigger_thread;
 
     bool needs_tid_update;
+
+    std::deque<Event::ptr> savedEvents;
 };
 
 /*
@@ -139,7 +137,6 @@ public:
     thread_db_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
     virtual ~thread_db_thread();
 
-    Event::ptr getThreadEvent();
     bool setEventReporting(bool on);
     bool fetchThreadInfo();
 
@@ -176,6 +173,16 @@ protected:
     bool threadHandle_alloced;
 };
 
+class ThreadDBPreCreateHandler : public Handler
+{
+public:
+    ThreadDBPreCreateHandler();
+    virtual ~ThreadDBPreCreateHandler();
+    virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
+    virtual int getPriority() const;
+    void getEventTypesHandled(std::vector<EventType> &etypes);
+};
+
 class ThreadDBCreateHandler : public Handler
 {
 public:
@@ -183,7 +190,7 @@ public:
     virtual ~ThreadDBCreateHandler();
     virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
     virtual int getPriority() const;
-    void getEventTypesHandled(vector<EventType> &etypes);
+    void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
 class ThreadDBLibHandler : public Handler
