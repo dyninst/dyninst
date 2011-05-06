@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -43,6 +43,7 @@
 #include "BPatch_module.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_function.h"
+#include "BPatch_point.h"
 #include "BPatch_statement.h"
 #include "BPatch_collections.h"
 #include "symtabAPI/h/Type.h"    // For BPatch_type related stuff
@@ -338,7 +339,7 @@ bool BPatch_module::getProceduresInt(BPatch_Vector<BPatch_function*> &funcs,
       return false;
 
    if (!full_func_parse || func_map.size() != mod->getFuncVectorSize()) {
-      const pdvector<int_function*> &funcs = mod->getAllFunctions();
+      const pdvector<func_instance*> &funcs = mod->getAllFunctions();
       for (unsigned i=0; i<funcs.size(); i++) {
          if (!func_map.count(funcs[i])) {
             addSpace->findOrCreateBPFunc(funcs[i], this);
@@ -361,7 +362,7 @@ bool BPatch_module::getProceduresInt(BPatch_Vector<BPatch_function*> &funcs,
  * Returns a vector of BPatch_function* with the same name that is provided or
  * NULL if no function with that name is in the module.  This function
  * searches the BPatch_function vector of the module followed by
- * the int_function of the module.  If a int_function is found
+ * the func_instance of the module.  If a func_instance is found
  * a BPatch_function is created and added to the BPatch_function vector of
  * the module.
  * name The name of function to look up.
@@ -389,7 +390,7 @@ BPatch_module::findFunctionInt(const char *name,
    // Do we want regex?
    if (dont_use_regex 
          ||  (NULL == strpbrk(name, REGEX_CHARSET))) {
-      pdvector<int_function *> int_funcs;
+      pdvector<func_instance *> int_funcs;
       if (mod->findFuncVectorByPretty(name, int_funcs)) {
          for (unsigned piter = 0; piter < int_funcs.size(); piter++) {
             if (incUninstrumentable || int_funcs[piter]->isInstrumentable()) 
@@ -446,10 +447,10 @@ BPatch_module::findFunctionInt(const char *name,
       // point, so it might as well be top-level. This is also an
       // excellent candidate for a "value-added" library.
 
-      const pdvector<int_function *> &int_funcs = mod->getAllFunctions();
+      const pdvector<func_instance *> &int_funcs = mod->getAllFunctions();
 
       for (unsigned ai = 0; ai < int_funcs.size(); ai++) {
-         int_function *func = int_funcs[ai];
+         func_instance *func = int_funcs[ai];
          // If it matches, push onto the vector
          // Check all pretty names (and then all mangled names if there is no match)
          bool found_match = false;
@@ -512,29 +513,35 @@ BPatch_module::findFunctionByAddressInt(void *addr, BPatch_Vector<BPatch_functio
       bool notify_on_failure, 
       bool incUninstrumentable)
 {
-   if (!isValid()) return NULL;
-
-   int_function *pdfunc = NULL;
-   BPatch_function *bpfunc = NULL;
-
-   pdfunc = mod->findFuncByAddr((Address)addr);
-   if (!pdfunc) {
+   if (!isValid()) {
       if (notify_on_failure) {
-         char msg[1024];
-         sprintf(msg, "%s[%d]:  Module %s: unable to find function %p",
-               __FILE__, __LINE__, mod->fileName().c_str(), addr);
-         BPatch_reportError(BPatchSerious, 100, msg);
+         using namespace std;
+         string msg = string("Module is not valid: ") + string(mod->fileName());
+         BPatch_reportError(BPatchSerious, 100, msg.c_str());
       }
       return NULL;
    }
 
-   if (incUninstrumentable || pdfunc->isInstrumentable()) {
-      bpfunc = addSpace->findOrCreateBPFunc(pdfunc, this);
-      //bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
-      if (bpfunc) {
-         funcs.push_back(bpfunc);
-      }
+   BPatch_function *bpfunc = NULL;
+   std::set<func_instance *> ifuncs;
+   mod->findFuncsByAddr((Address) addr, ifuncs);
+
+   for (std::set<func_instance *>::iterator iter = ifuncs.begin(); 
+       iter != ifuncs.end(); ++iter) {
+        func_instance *pdfunc = *iter; 
+        if (incUninstrumentable || pdfunc->isInstrumentable()) {
+           bpfunc = addSpace->findOrCreateBPFunc(pdfunc, this);
+          if (bpfunc) {
+               funcs.push_back(bpfunc);
+           }
+        }
    }
+   if (funcs.empty() && notify_on_failure) {
+       std::string msg = std::string("No functions at: "
+           + (Address)addr + mod->fileName());
+       BPatch_reportError(BPatchSerious, 100, msg.c_str());
+   }
+
    return &funcs;
 }
 
@@ -545,7 +552,7 @@ BPatch_function * BPatch_module::findFunctionByMangledInt(const char *mangled_na
 
    BPatch_function *bpfunc = NULL;
 
-   pdvector<int_function *> int_funcs;
+   pdvector<func_instance *> int_funcs;
    std::string mangled_str(mangled_name);
 
    if (!mod->findFuncVectorByMangled(mangled_str,
@@ -557,7 +564,7 @@ BPatch_function * BPatch_module::findFunctionByMangledInt(const char *mangled_na
             FILE__, __LINE__, mangled_name);
    }
 
-   int_function *pdfunc = int_funcs[0];
+   func_instance *pdfunc = int_funcs[0];
 
    if (incUninstrumentable || pdfunc->isInstrumentable()) {
       bpfunc = addSpace->findOrCreateBPFunc(pdfunc, this);
@@ -570,6 +577,63 @@ bool BPatch_module::dumpMangledInt(char * prefix)
 {
    mod->dumpMangled(prefix);
    return true;
+}
+
+bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
+{
+    func_instance *func = bpfunc->lowlevel_func();
+
+    bool foundIt = false;
+    BPatch_funcMap::iterator fmap_iter = func_map.find(func);
+    if (func_map.end() != fmap_iter) {
+        foundIt = true;
+    }
+
+    if (!foundIt) {
+        return false;
+    }
+
+    if (deepRemoval) {
+        std::map<func_instance*,block_instance*> newFuncEntries;
+
+        //remove instrumentation from dead function
+        bpfunc->removeInstrumentation(true);
+        bool dontcare=false;
+        addSpace->finalizeInsertionSet(false,&dontcare);
+
+        // delete completely dead functions
+        using namespace ParseAPI;
+        vector<pair<block_instance*,Edge*> > deadFuncCallers; // build up list of live callers
+        Address funcAddr = func->addr();
+        mal_printf("Removing function at %lx from mod %s\n", funcAddr, 
+                   mod->fileName().c_str());
+
+        // nuke all call edges, assert that there's a sink edge, otherwise we'll 
+        // have to fill in the code for direct transfers, creating unresolved points
+        // at the source blocks
+        Block::edgelist &callEdges = func->ifunc()->entryBlock()->sources();
+        Block::edgelist::iterator eit = callEdges.begin();
+        CFGFactory *fact = func->ifunc()->img()->codeObject()->fact();
+        bool foundSinkEdge = false;
+        for( ; eit != callEdges.end(); ++eit) {
+            if ( (*eit)->sinkEdge() ) {
+                foundSinkEdge = true;
+            }
+            else if (CALL == (*eit)->type()) {// includes tail calls
+                (*eit)->uninstall();
+                fact->free_edge(*eit);
+            }
+        }
+        assert(foundSinkEdge);
+ 
+        //remove dead function
+        func->removeFromAll();
+
+    } // end deepRemoval
+
+    this->func_map.erase(fmap_iter);
+
+    return true;
 }
 
 void BPatch_module::parseTypes() 
@@ -634,7 +698,7 @@ bool BPatch_module::getSourceLinesInt(unsigned long addr,
 
    if (!stmod->getSourceLines(lines_ll, addr - mod->obj()->codeBase()))
    {
-	   return false;
+      return false;
    }
 
    for (unsigned int j = 0; j < lines_ll.size(); ++j)
@@ -773,7 +837,7 @@ BPatch_hybridMode BPatch_module::getHybridModeInt()
     if (!mod || !getAS()->proc()) {
         return BPatch_normalMode;
     }
-    return mod->obj()->getHybridMode();
+    return mod->obj()->hybridMode();
 }
 
 bool BPatch_module::isExploratoryModeOn()
@@ -782,7 +846,7 @@ bool BPatch_module::isExploratoryModeOn()
         return false;
     }
 
-    BPatch_hybridMode mode = mod->obj()->getHybridMode();
+    BPatch_hybridMode mode = mod->obj()->hybridMode();
     if (BPatch_exploratoryMode == mode || BPatch_defensiveMode == mode) 
         return true;
 
@@ -795,38 +859,23 @@ bool BPatch_module::isExploratoryModeOn()
  * actually wind up protecting anything, doesn't trigger analysis
  * in the module
  */ 
-bool BPatch_module::protectAnalyzedCode()
+bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
 {
-    assert( getAS()->proc() ); // only implemented for processes
+    // only implemented for processes and only needed for defensive 
+    // BPatch_modules
+    if ( !getAS()->proc() || BPatch_defensiveMode != getHybridMode() ) {
+        return false;
+    }
 
-    std::set<Address> pageAddrs;
-    int pageSize = getAS()->proc()->getMemoryPageSize();
-    if ( ! lowlevel_mod()->getFuncVectorSize() 
-        || lowlevel_mod()->obj()->isSharedLib()) {
-        return true; // don't trigger new analysis on the module
+    // see if we've analyzed code in the module without triggering analysis
+    if ( ! lowlevel_mod()->getFuncVectorSize() ) {
+        return true;
     }
+
     // build up list of memory pages that contain analyzed code
-    const pdvector<int_function *> funcs = lowlevel_mod()->getAllFunctions();
-    for (unsigned fidx=0; fidx < funcs.size(); fidx++) {
-        const std::set< int_basicBlock* , int_basicBlock::compare >&
-            blocks = funcs[fidx]->blocks();
-        set< int_basicBlock* , int_basicBlock::compare >::const_iterator bIter;
-        for (bIter = blocks.begin(); 
-            bIter != blocks.end(); 
-            bIter++) 
-        {
-            Address bStart, bEnd, pageStart, pageEnd;
-            bStart = (*bIter)->origInstance()->firstInsnAddr();
-            bEnd = (*bIter)->origInstance()->endAddr();
-            pageStart = (bStart / pageSize) * pageSize;
-            pageEnd = (bEnd / pageSize) * pageSize;
-            while (pageStart < bEnd) {
-                pageAddrs.insert(pageStart);
-                pageStart += pageSize;
-            }
-        }
-    }
-#if defined(os_windows)
+#if definded (os_windows)
+    std::set<Address> pageAddrs;
+    lowlevel_mod()->getAnalyzedCodePages(pageAddrs);
     // get lwp from which we can call changeMemoryProtections
     process *proc = ((BPatch_process*)addSpace)->lowlevel_process();
     dyn_lwp *stoppedlwp = proc->query_for_stopped_lwp();
@@ -839,28 +888,50 @@ bool BPatch_module::protectAnalyzedCode()
     }
 #endif
 
+    // add protected pages to the mapped_object's hash table, and
     // aggregate adjacent pages into regions and apply protection
     std::set<Address>::iterator piter = pageAddrs.begin();
-    std::set<Address>::iterator endIter;
-    Address start;
-    Address end;
+    int pageSize = getAS()->proc()->getMemoryPageSize();
     while (piter != pageAddrs.end()) {
+        Address start, end;
         start = (*piter);
         end = start + pageSize;
-        endIter = piter;
-        while (endIter != pageAddrs.end() && (*endIter) == end) {
+
+        while(1) // extend region if possible
+        {
+            // add the current page addr to mapped_object's hash table
+            // of protected code pages
+            if (writeable) {
+                mod->obj()->removeProtectedPage( *piter );
+            } else {
+                mod->obj()->addProtectedPage( *piter );
+            }
+
+            piter++;
+
+            if (pageAddrs.end() == piter) {
+                break; // last region
+            }
+            if ( end != (*piter) ) {
+                break; // there's a gap, add new region
+            }
+            // extend current region
             end += pageSize;
-            endIter++;
-        }
-        piter++;
+        } 
+
 #if defined(os_windows)
-        stoppedlwp->changeMemoryProtections(start, end - start, 
-                                            PAGE_EXECUTE_READ);
+        int newRights = PAGE_EXECUTE_READ;
+        if (writeable) {
+            newRights = PAGE_EXECUTE_READWRITE;
+        }
+        stoppedlwp->changeMemoryProtections(start, end - start, newRights, true);
+#else
+        assert(0 && "unimplemented!");
 #endif
+
     }
     return true;
 }
-
 
 Address BPatch_module::getLoadAddrInt()
 {
@@ -898,6 +969,16 @@ BPatchSnippetHandle* BPatch_module::insertFiniCallbackInt(BPatch_snippet& callba
             return addSpace->insertSnippet(callback, *((*fini_exit)[0]));
         }
     }
+    return NULL;
+}
+
+BPatch_function *BPatch_module::findFunctionByEntryInt(Dyninst::Address entry)
+{
+    BPatch_function* func = addSpace->findFunctionByEntry(entry);
+    if (func && func->getModule() == this) {
+        return func;
+    }
+
     return NULL;
 }
 

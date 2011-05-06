@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -210,7 +210,7 @@ bool PCProcess::instrumentLibcStartMain()
     addASharedObject(libc);
 
     // find __libc_startmain
-    const pdvector<int_function*> *funcs;
+    const pdvector<func_instance*> *funcs;
     funcs = libc->findFuncVectorByPretty("__libc_start_main");
     if(funcs->size() == 0 || (*funcs)[0] == NULL) {
         logLine( "Couldn't find __libc_start_main\n");
@@ -223,7 +223,7 @@ bool PCProcess::instrumentLibcStartMain()
         logLine( "__libc_start_main is not instrumentable\n");
         return false;
     }
-    Address addr = (*funcs)[0]->getAddress();
+    Address addr = (*funcs)[0]->addr();
     startup_printf("%s[%d]: Instrumenting libc.so:__libc_start_main() at 0x%x\n", 
                    FILE__, __LINE__, (int)addr);
 

@@ -18,7 +18,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="..\..\i386-unknown-nt4.0\lib"
+			OutputDirectory="i386-unknown-nt4.0"
 			IntermediateDirectory="i386-unknown-nt4.0"
 			ConfigurationType="2"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
@@ -44,7 +44,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="./h;..;../external;../dynutil/h;../symtabAPI/h"
-				PreprocessorDefinitions="_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;INSTRUCTION_LIB;snprintf=_snprintf"
+				PreprocessorDefinitions="WIN32;_DEBUG;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;INSTRUCTION_LIB;snprintf=_snprintf"
 				MinimalRebuild="false"
 				ExceptionHandling="1"
 				BasicRuntimeChecks="0"
@@ -53,7 +53,6 @@
 				BrowseInformation="0"
 				WarningLevel="3"
 				DebugInformationFormat="3"
-				DisableSpecificWarnings="4251;4503"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -95,7 +94,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo mkdir $(TargetDir)..\..\include&#x0D;&#x0A;mkdir $(TargetDir)..\..\include&#x0D;&#x0A;echo copy $(InputDir)h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;copy $(InputDir)h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;&#x0D;&#x0A;"
+				CommandLine="echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0&#x0D;&#x0A;echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;echo copy $(TargetDir)libinstructionAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)libinstructionAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;echo copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;echo mkdir $(TargetDir)..\..\..\include&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\include&#x0D;&#x0A;echo copy $(InputDir)h\*.h $(TargetDir)..\..\..\include&#x0D;&#x0A;copy $(InputDir)h\*.h $(TargetDir)..\..\..\include&#x0D;&#x0A;&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration

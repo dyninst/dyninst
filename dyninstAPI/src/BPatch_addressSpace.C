@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -35,7 +35,7 @@
 #include "inst.h"
 #include "instP.h"
 #include "instPoint.h"
-#include "function.h" // int_function
+#include "function.h" // func_instance
 #include "codeRange.h"
 #include "miniTramp.h"
 #include "addressSpace.h"
@@ -48,6 +48,7 @@
 #include "BPatch.h"
 #include "BPatch_thread.h"
 #include "BPatch_function.h"
+#include "BPatch_point.h"
 
 #include "BPatch_private.h"
 
@@ -56,6 +57,8 @@
 #include "BPatch_addressSpace.h"
 
 #include "BPatch_instruction.h"
+
+#include "mapped_object.h"
 
 #include <sstream>
 #include "Parsing.h"
@@ -69,7 +72,7 @@ BPatch_addressSpace::~BPatch_addressSpace()
 {}
 
 
-BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(int_function* ifunc,
+BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(func_instance* ifunc,
                                                          BPatch_module *bpmod)
 {
    if (!bpmod)
@@ -78,6 +81,7 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(int_function* ifunc,
    if (bpmod->func_map.count(ifunc)) {
       BPatch_function *bpf = bpmod->func_map[ifunc];
       assert(bpf);
+      assert(bpf->func == ifunc);
       return bpf;
    }
 
@@ -91,11 +95,13 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(int_function* ifunc,
    if (bpmod->func_map.count(ifunc)) {
       BPatch_function *bpf = bpmod->func_map[ifunc];
       assert(bpf);
+      assert(bpf->func == ifunc);
       return bpf;
    }
 
    BPatch_function *ret = new BPatch_function(this, ifunc, bpmod);
    assert( ret != NULL );
+   assert(ret->func == ifunc);
    return ret;
 }
 
@@ -103,7 +109,8 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(int_function* ifunc,
 
 
 BPatch_point *BPatch_addressSpace::findOrCreateBPPoint(BPatch_function *bpfunc,
-                              instPoint *ip, BPatch_procedureLocation pointType)
+                                                       instPoint *ip, 
+                                                       BPatch_procedureLocation pointType)
 {
    assert(ip);
    
@@ -113,14 +120,22 @@ BPatch_point *BPatch_addressSpace::findOrCreateBPPoint(BPatch_function *bpfunc,
    if (mod->instp_map.count(ip)) 
       return mod->instp_map[ip];
 
-   if (pointType == BPatch_locUnknownLocation)
+   if (pointType == BPatch_locUnknownLocation) {
+      cerr << "Error: point type not specified!" << endl;
+      assert(0);
       return NULL;
+   }
 
    AddressSpace *lladdrSpace = ip->func()->proc();
    if (!bpfunc) 
       bpfunc = findOrCreateBPFunc(ip->func(), mod);
 
-   BPatch_point *pt = new BPatch_point(this, bpfunc, ip, pointType, lladdrSpace);
+   assert(bpfunc->func == ip->func());
+   std::pair<instPoint *, instPoint *> pointsToUse = instPoint::getInstpointPair(ip);
+
+   BPatch_point *pt = new BPatch_point(this, bpfunc, 
+                                       pointsToUse.first, pointsToUse.second,
+                                       pointType, lladdrSpace);
    mod->instp_map[ip] = pt;
 
    return pt;
@@ -151,7 +166,7 @@ BPatch_variableExpr *BPatch_addressSpace::findOrCreateVariable(int_variable *v,
                                                                
 
 
-BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, int_function *f)
+BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, func_instance *f)
 {
    BPatch_addressSpace *aS = (BPatch_addressSpace *)a->up_ptr();
    assert(aS);
@@ -159,7 +174,7 @@ BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, int_functi
 }
 
 BPatch_point *BPatch_addressSpace::createBPPointCB(AddressSpace *a, 
-                                                   int_function *f, 
+                                                   func_instance *f, 
                                                    instPoint *ip, int type)
 {
    BPatch_addressSpace *aS = (BPatch_addressSpace *)a->up_ptr();
@@ -251,35 +266,44 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
        return false;
    }
 
-   if (handle->addSpace_ == this) {  
+   if (handle->addSpace_ != this) {
+     bperr("Error: wrong address space in deleteSnippet\n");
+     return false;
+   }
 
-       // if this is a process, check to see if the instrumentation is
-       // executing on the call stack
-       if ( handle->getProcess() ) {
-           handle->getProcess()->lowlevel_process()->updateActiveMultis();
-           if (handle->mtHandles_.size() > 1) {
-               mal_printf("ERROR: Removing snippet that is installed in "
-                          "multiple miniTramps %s[%d]\n",FILE__,__LINE__);
-           }
-       }
+   // if this is a process, check to see if the instrumentation is
+   // executing on the call stack
+   if ( handle->getProcess() && handle->mtHandles_.size() > 0 && 
+       BPatch_normalMode != 
+        handle->mtHandles_[0]->instP()->func()->obj()->hybridMode())
+   {
+       if (handle->mtHandles_.size() > 1) {
+           mal_printf("ERROR: Removing snippet that is installed in "
+	            	  "multiple miniTramps %s[%d]\n",FILE__,__LINE__);
+     }
+   }
+   
+   // uninstrument and remove snippet handle from point datastructures
+   for (unsigned int i=0; i < handle->mtHandles_.size(); i++)
+     {
+       instPoint *iPoint = handle->mtHandles_[i]->instP();
+       handle->mtHandles_[i]->uninstrument();
+       BPatch_point *bPoint = findOrCreateBPPoint(NULL, iPoint, 
+                                                  BPatch_point::convertInstPointType_t(iPoint->type()));
+       assert(bPoint);
+       bPoint->removeSnippet(handle);
+     }
+   
+   //delete handle; //KEVINTODO: fix this, add instrumentation-removal callback
+   handle->mtHandles_.clear();
+   
+   if (pendingInsertions == NULL) {
+     // Trigger it now
+     bool tmp;
+     finalizeInsertionSet(false, &tmp);
+   }
 
-       // uninstrument and remove snippet handle from point datastructures
-       for (unsigned int i=0; i < handle->mtHandles_.size(); i++)
-       {
-           instPoint *iPoint = handle->mtHandles_[i]->instP();
-           handle->mtHandles_[i]->uninstrument();
-           BPatch_point *bPoint = findOrCreateBPPoint(NULL, iPoint);
-           assert(bPoint);
-           bPoint->deleteSnippet(handle);
-       }
-
-       delete handle;
-       return true;
-   } 
-
-   // Handle isn't to a snippet instance in this process
-   bperr("Error: wrong address space in deleteSnippet\n");
-   return false;
+   return true;
 }
 
 /*
@@ -294,25 +318,12 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
 bool BPatch_addressSpace::replaceCodeInt(BPatch_point *point,
       BPatch_snippet *snippet) 
 {
-   if (!getMutationsActive())
-      return false;
+   // Need to reevaluate how this code works. I don't think it should be
+   // point-based, though. 
 
-   if (!point) {
-      return false;
-   }
-   if (getTerminated()) {
-      return true;
-   }
-
-   if (point->edge_) {
-      return false;
-   }
-
-
-   return point->point->replaceCode(snippet->ast_wrapper);
+   assert(0);
+   return false;
 }
-
-
 
 /*
  * BPatch_addressSpace::replaceFunctionCall
@@ -335,19 +346,16 @@ bool BPatch_addressSpace::replaceFunctionCallInt(BPatch_point &point,
 
    assert(point.point && newFunc.lowlevel_func());
 
-#if defined(arch_x86) || defined(arch_x86_64)
-   bool old_recursion_flag = BPatch::bpatch->isTrampRecursive();
-   BPatch::bpatch->setTrampRecursive( true );
+   point.getAS()->modifyCall(point.point->block(), 
+                             newFunc.lowlevel_func(),
+                             point.point->func());
 
-   BPatch_funcJumpExpr fjmp(newFunc, true);
-   insertSnippet(fjmp, point, BPatch_lastSnippet);
-   
-   BPatch::bpatch->setTrampRecursive( old_recursion_flag );
+   if (pendingInsertions == NULL) {
+     // Trigger it now
+     bool tmp;
+     finalizeInsertionSet(false, &tmp);
+   }
    return true;
-#else
-   return point.getAS()->replaceFunctionCall(point.point, 
-                                             newFunc.lowlevel_func());
-#endif
 }
 
 /*
@@ -366,7 +374,15 @@ bool BPatch_addressSpace::removeFunctionCallInt(BPatch_point &point)
 
    assert(point.point);
 
-   return point.getAS()->replaceFunctionCall(point.point, NULL);
+   point.getAS()->removeCall(point.point->block(), point.point->func());
+
+   if (pendingInsertions == NULL) {
+     // Trigger it now
+     bool tmp;
+     finalizeInsertionSet(false, &tmp);
+   }
+   
+   return true;
 }
 
 
@@ -382,38 +398,35 @@ bool BPatch_addressSpace::removeFunctionCallInt(BPatch_point &point)
 bool BPatch_addressSpace::replaceFunctionInt(BPatch_function &oldFunc,
       BPatch_function &newFunc)
 {
-  char oldname[1024];
-  char newname[1024];
-  oldFunc.getName(oldname, 1024);
-  newFunc.getName(newname, 1024);
-   assert(oldFunc.lowlevel_func() && newFunc.lowlevel_func());
-   if (!getMutationsActive())
-      return false;
+  assert(oldFunc.lowlevel_func() && newFunc.lowlevel_func());
+  if (!getMutationsActive())
+    return false;
+  
+  // Self replacement is a nop
+  // We should just test direct equivalence here...
+  if (oldFunc.lowlevel_func() == newFunc.lowlevel_func()) {
+    return true;
+  }
+  
+  oldFunc.lowlevel_func()->proc()->replaceFunction(oldFunc.lowlevel_func(), newFunc.lowlevel_func());
 
-   // Self replacement is a nop
-   // We should just test direct equivalence here...
-   if (oldFunc.lowlevel_func() == newFunc.lowlevel_func()) {
-      return true;
-   }
-
-   BPatch_Vector<BPatch_point *> *pts = oldFunc.findPoint(BPatch_entry);
-
-   if (! pts || ! pts->size()) {
-      return false;
-   }
-
-   BPatch_funcJumpExpr fje(newFunc);
-//#if defined(cap_instruction_replacement) && defined(arch_power)
+  if (pendingInsertions == NULL) {
+    // Trigger it now
+    bool tmp;
+    finalizeInsertionSet(false, &tmp);
+  }
+  return true;
 #if 0
-   // Replace the first instruction with fje
-   for (unsigned i = 0; i < pts->size(); i++) {
-       BPatch_point *point = (*pts)[i];
-       point->getPoint()->replaceCode(fje.ast_wrapper);
-   }
 
-   return true;
-#else
+  BPatch_Vector<BPatch_point *> *pts = oldFunc.findPoint(BPatch_entry);
+  
+  if (! pts || ! pts->size()) {
+    return false;
+  }
 
+  
+  
+   BPatch_funcJumpExpr fje(newFunc);
    bool old_recursion_flag = BPatch::bpatch->isTrampRecursive();
    BPatch::bpatch->setTrampRecursive( true );
 
@@ -583,32 +596,55 @@ BPatch_variableExpr *BPatch_addressSpace::createVariableInt(std::string name,
  *
  * addr		The address to use for the lookup.
  */
-
 BPatch_function *BPatch_addressSpace::findFunctionByAddrInt(void *addr)
 {
-   int_function *func;   
    std::vector<AddressSpace *> as;
 
    getAS(as);
    assert(as.size());
-   codeRange *range = as[0]->findOrigByAddr((Address) addr);
-   if (!range)
-      return NULL;
-
-   func = range->is_function();
-
-   if (!func) {
+   std::set<func_instance *> funcs;
+   if (!as[0]->findFuncsByAddr((Address) addr, funcs)) {
       // if it's a mapped_object that has yet to be analyzed, 
       // trigger analysis and re-invoke this function
-      if ( range->is_mapped_object() && 
-          ! ((mapped_object*)range)->isAnalyzed() ) {
-         ((mapped_object*)range)->analyze();
+       mapped_object *obj = as[0]->findObject((Address) addr);
+       if (obj &&
+           !obj->isAnalyzed()) {
+         obj->analyze();
          return findFunctionByAddrInt(addr);
       }
       return NULL;
    }
+   if (funcs.empty()) return NULL;
 
-   return findOrCreateBPFunc(func, NULL);
+   if (funcs.size() > 1) {
+       bpwarn("Warning: deprecated function findFunctionByAddr found "
+              "multiple functions sharing address 0x%lx, picking one at "
+              "random.  Use findFunctionByEntry or findFunctionsByAddr\n",
+              addr);
+   }
+
+   return findOrCreateBPFunc((*(funcs.begin())), NULL);
+}
+
+/*
+ *  BPatch_addressSpace::findFunctionByEntry
+ *  
+ *  Returns the function starting at the given address, or NULL if the
+ *  address is not within a function.
+ *
+ *  entry       The address to use for the lookup.
+ */
+BPatch_function *BPatch_addressSpace::findFunctionByEntryInt(Address entry)
+{
+    vector<BPatch_function*> funcs;
+    findFunctionsByAddr(entry, funcs);
+    vector<BPatch_function*>::iterator fit;
+    for (fit = funcs.begin(); fit != funcs.end(); fit++) {
+        if (entry == (Address)(*fit)->getBaseAddrInt()) {
+            return *fit;
+        }
+    }
+    return NULL;
 }
 
 bool BPatch_addressSpace::findFuncsByRange(Address startAddr,
@@ -622,9 +658,9 @@ bool BPatch_addressSpace::findFuncsByRange(Address startAddr,
     // find the first code range in the region
     mapped_object* mobj = as[0]->findObject(startAddr);
     assert(mobj);
-    set<int_function*> intFuncs;
+    set<func_instance*> intFuncs;
     mobj->findFuncsByRange(startAddr,endAddr,intFuncs);
-    set<int_function*>::iterator fIter = intFuncs.begin();
+    set<func_instance*>::iterator fIter = intFuncs.begin();
     for (; fIter != intFuncs.end(); fIter++) {
         BPatch_function * bpfunc = findOrCreateBPFunc(*fIter,NULL);
         bpFuncs.insert(bpfunc);
@@ -651,12 +687,12 @@ bool BPatch_addressSpace::findFunctionsByAddrInt
     assert(as.size());
 
     // grab the funcs, return false if there aren't any
-    std::vector<int_function*> intfuncs;
+    std::set<func_instance*> intfuncs;
     if (!as[0]->findFuncsByAddr( addr, intfuncs )) {
         return false;
     }
     // convert to BPatch_functions
-    for (std::vector<int_function*>::iterator fiter=intfuncs.begin(); 
+    for (std::set<func_instance*>::iterator fiter=intfuncs.begin(); 
          fiter != intfuncs.end(); fiter++) 
     {
         funcs.push_back(findOrCreateBPFunc(*fiter, NULL));
@@ -762,11 +798,10 @@ extern int dyn_debug_ast;
 
 // A lot duplicated from the single-point version. This is unfortunate.
 BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch_snippet &expr,
-      const BPatch_Vector<BPatch_point *> &points,
-      BPatch_callWhen when,
-      BPatch_snippetOrder order)
+								    const BPatch_Vector<BPatch_point *> &points,
+								    BPatch_callWhen when,
+								    BPatch_snippetOrder order)
 {
- 
   BPatchSnippetHandle *retHandle = new BPatchSnippetHandle(this);
 
   if (dyn_debug_inst) {
@@ -784,8 +819,8 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
 
   if (BPatch::bpatch->isTypeChecked()) {
       if (expr.ast_wrapper->checkType() == BPatch::bpatch->type_Error) {
-         inst_printf("[%s:%u] - Type error inserting instrumentation\n",
-               FILE__, __LINE__);
+	fprintf(stderr, "[%s:%u] - Type error inserting instrumentation\n",
+		FILE__, __LINE__);
          expr.ast_wrapper->debugPrint();
          return NULL;
       }
@@ -796,24 +831,15 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       return NULL;
    }
 
-
-   batchInsertionRecord *rec = new batchInsertionRecord;
-   rec->thread_ = NULL;
-   rec->snip = expr;
-   rec->trampRecursive_ = BPatch::bpatch->isTrampRecursive();
-  
-   rec->handle_ = retHandle;
-
    for (unsigned i = 0; i < points.size(); i++) {
-      BPatch_point *point = points[i];
+      BPatch_point *bppoint = points[i];
 
-      if (point->addSpace == NULL) {
+      if (bppoint->addSpace == NULL) {
          fprintf(stderr, "Error: attempt to use point with no process info\n");
          continue;
       }
 
-      if (dynamic_cast<BPatch_addressSpace *>(point->addSpace) != this) {
-         printf("Pt's addSpace: %p this:%p\n", dynamic_cast<BPatch_addressSpace *>(point->addSpace), this);
+      if (dynamic_cast<BPatch_addressSpace *>(bppoint->addSpace) != this) {
          fprintf(stderr, "Error: attempt to use point specific to a different process\n");
          continue;
       }        
@@ -821,37 +847,25 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       callWhen ipWhen;
       callOrder ipOrder;
 
-      if (!BPatchToInternalArgs(point, when, order, ipWhen, ipOrder)) {
-         inst_printf("[%s:%u] - BPatchToInternalArgs failed for point %d\n",
+      if (!BPatchToInternalArgs(bppoint, when, order, ipWhen, ipOrder)) {
+	fprintf(stderr, "[%s:%u] - BPatchToInternalArgs failed for point %d\n",
                FILE__, __LINE__, i);
          return retHandle;
       }
 
-      rec->points_.push_back(point);
-      rec->when_.push_back(ipWhen);
-      rec->order_ = ipOrder;
+      miniTramp *mini = bppoint->getPoint(when)->insert(ipOrder, expr.ast_wrapper, BPatch::bpatch->isTrampRecursive());
 
-      point->recordSnippet(when, order, retHandle);
-   }
-
-   assert(rec->points_.size() == rec->when_.size());
-
-   // Okey dokey... now see if we just tack it on, or insert now.
-   if (pendingInsertions) {
-      pendingInsertions->push_back(rec);
-   }
-   else {
-      BPatch_process *proc = dynamic_cast<BPatch_process *>(this);
-      assert(proc);
-      proc->beginInsertionSetInt();
-      pendingInsertions->push_back(rec);
-      // All the insertion work was moved here...
-      if( !proc->finalizeInsertionSetInt(false) ) {
-          inst_printf("[%s:%u] - failed to finalize insertion set\n",
-                  FILE__, __LINE__);
-          return NULL;
+      if (mini) {
+	retHandle->mtHandles_.push_back(mini);
+	bppoint->recordSnippet(when, order, retHandle);
       }
    }
+
+   if (pendingInsertions == NULL) {
+     // Trigger it now
+     bool tmp;
+     finalizeInsertionSet(false, &tmp); //KEVINTODO: do we really want this?
+   }   
    return retHandle;
 }
 
@@ -896,43 +910,29 @@ bool BPatch_addressSpace::isStaticExecutableInt() {
 #include "registerSpace.h"
 
 #if defined(cap_registers)
-bool BPatch_addressSpace::getRegistersInt(std::vector<BPatch_register> &regs, bool includeSPRs) {
+bool BPatch_addressSpace::getRegistersInt(std::vector<BPatch_register> &regs) {
+   if (registers_.size()) {
+       regs = registers_;
+       return true;
+   }
+
    std::vector<AddressSpace *> as;
 
    getAS(as);
    assert(as.size());
           
    registerSpace *rs = registerSpace::getRegisterSpace(as[0]);
-
-   unsigned rsize = rs->realRegs().size();
-   if (includeSPRs) {
-       rsize += rs->SPRs().size();
-   }
-   if (registers_.size() == rsize) {
-       // return cached vector if sizes match
-       regs = registers_;
-       return true;
-   }
-
-   registers_.clear();
+   
    for (unsigned i = 0; i < rs->realRegs().size(); i++) {
-       // always include GPRs
+       // Let's do just GPRs for now
        registerSlot *regslot = rs->realRegs()[i];
        registers_.push_back(BPatch_register(regslot->name, regslot->number));
-   }
-   if (includeSPRs) {
-       for (unsigned i = 0; i < rs->SPRs().size(); i++) {
-           // include SPRs if desired
-           registerSlot *regslot = rs->SPRs()[i];
-           registers_.push_back(BPatch_register(regslot->name, regslot->number));
-       }
    }
    regs = registers_;
    return true;
 }
 #else
-bool BPatch_addressSpace::getRegistersInt(std::vector<BPatch_register> &,
-                                          bool includeSPRs) {
+bool BPatch_addressSpace::getRegistersInt(std::vector<BPatch_register> &) {
     // Empty vector since we're not supporting register objects on
     // these platforms (yet)
    return false;

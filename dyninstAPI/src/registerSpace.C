@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -139,12 +139,15 @@ registerSpace *registerSpace::getRegisterSpace(AddressSpace *as) {
 registerSpace *registerSpace::conservativeRegSpace(AddressSpace *proc) {
     registerSpace *ret = getRegisterSpace(proc);
     ret->specializeSpace(arbitrary);
+    ret->initRealRegSpace();
     return ret;
 }
 
 registerSpace *registerSpace::optimisticRegSpace(AddressSpace *proc) {
     registerSpace *ret = getRegisterSpace(proc);
     ret->specializeSpace(ABI_boundary);
+    ret->initRealRegSpace();
+
     return ret;
 }
 
@@ -157,31 +160,24 @@ registerSpace *registerSpace::irpcRegSpace(AddressSpace *proc) {
 registerSpace *registerSpace::savedRegSpace(AddressSpace *proc) {
     registerSpace *ret = getRegisterSpace(proc);
     ret->specializeSpace(allSaved);
+    ret->initRealRegSpace();
     return ret;
 }
 
-registerSpace *registerSpace::actualRegSpace(instPoint *iP, 
-                                             callWhen 
-#if defined(cap_liveness)
-                                             when 
-#endif
-                                             ) 
+registerSpace *registerSpace::actualRegSpace(instPoint *iP) 
 {
 #if defined(cap_liveness)
-    if (BPatch::bpatch->livenessAnalysisOn()) {
-        assert(iP);
-        registerSpace *ret = NULL;
-
-        liveness_printf("%s[%d] Asking for actualRegSpace for iP at 0x%lx, dumping info:\n",
-                        FILE__, __LINE__, iP->addr());
-        liveness_cerr << iP->liveRegisters(when) << endl;
-
-        ret = getRegisterSpace(iP->proc());
-        ret->specializeSpace(iP->liveRegisters(when));
-
-        ret->cleanSpace();
-        return ret;
-    }
+   if (BPatch::bpatch->livenessAnalysisOn()) {
+      assert(iP);
+      registerSpace *ret = NULL;
+      
+      ret = getRegisterSpace(iP->proc());
+      ret->specializeSpace(iP->liveRegisters());
+      
+      ret->cleanSpace();
+      ret->initRealRegSpace();
+      return ret;
+   }
 #endif
     // Use one of the other registerSpaces...
     // If we're entry/exit/call site, return the optimistic version
@@ -274,18 +270,27 @@ void registerSpace::createRegSpaceInt(pdvector<registerSlot *> &registers,
         rs->registersByName[registers[i]->name] = registers[i]->number;
 
         switch (registers[i]->type) {
-        case registerSlot::GPR: 
-            rs->GPRs_.push_back(registers[i]);
-            break;
+        case registerSlot::GPR: {
+	  bool physical = true;
+#if defined(arch_x86) || defined(arch_x86_64)
+	  if (rs->addr_width == 4)
+	    physical = false;
+#endif
+	  if (physical) rs->physicalRegisters_[reg] = registers[i];
+
+	  rs->GPRs_.push_back(registers[i]);
+	  break;
+	}
         case registerSlot::FPR:
-            rs->FPRs_.push_back(registers[i]);
-            break;
+	  rs->FPRs_.push_back(registers[i]);
+	  break;
         case registerSlot::SPR:
-            rs->SPRs_.push_back(registers[i]);
-            break;
+	  rs->SPRs_.push_back(registers[i]);
+	  break;
         case registerSlot::realReg:
-            rs->realRegisters_.push_back(registers[i]);
-            break;
+	  rs->physicalRegisters_[reg] = registers[i];
+	  rs->realRegisters_.push_back(registers[i]);
+	  break;
         default:
             fprintf(stderr, "Error: no match for %d\n", registers[i]->type);
             assert(0);
@@ -324,63 +329,89 @@ bool registerSpace::trySpecificRegister(codeGen &gen, Register num,
 bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num,
 					     bool noCost) 
 {
+  regalloc_printf("Allocating specific register %d\n", num);
+
+  debugPrint();
+
     registerSlot *tmp;
     registers_.find(num, tmp);
-    if (!tmp) return false;
+    if (!tmp) {
+      regalloc_printf("Error: register does not exist!\n");
+      return false;
+    }
 
     registerSlot *reg = registers_[num];
-    if (reg->offLimits) return false;
-    else if (reg->refCount > 0) return false;
+    if (reg->offLimits) {
+      regalloc_printf("Error: register off limits!\n");
+      return false;
+    }
+    else if (reg->refCount > 0) {
+      regalloc_printf("Error: register currently in use!\n");
+      return false;
+    }
     else if (reg->liveState == registerSlot::live) {
-        if (!spillRegister(num, gen, noCost)) {
-            return false;
-        }
+      if (!spillRegister(num, gen, noCost)) { 
+	regalloc_printf("Error: specific register could not be spilled!\n");
+	return false;
+      }
     }
     else if (reg->keptValue) {
-        if (!stealRegister(num, gen, noCost)) return false;
+      if (!stealRegister(num, gen, noCost)) {
+	regalloc_printf("Error: register has cached value, unable to steal!\n");
+	return false;
+      }
     }
     
     reg->markUsed(true);
+    gen.markRegDefined(reg->number);
+      
 
     regalloc_printf("Allocated register %d\n", num);
 
     return true;
 }
 
-Register registerSpace::getScratchRegister(codeGen &gen, bool noCost) {
+Register registerSpace::getScratchRegister(codeGen &gen, bool noCost, bool realReg) {
     pdvector<Register> empty;
-    return getScratchRegister(gen, empty, noCost);
+    return getScratchRegister(gen, empty, noCost, realReg);
 }
 
-Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost) {
-   static int num_allocs = 0;
+Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost, bool realReg) {
+  static int num_allocs = 0;
+  
+  pdvector<registerSlot *> couldBeStolen;
+  pdvector<registerSlot *> couldBeSpilled;
+  
+  debugPrint();
 
-    pdvector<registerSlot *> couldBeStolen;
-    pdvector<registerSlot *> couldBeSpilled;
+  registerSlot *toUse = NULL;
 
-    debugPrint();
+  regalloc_printf("Allocating register: selection is %s\n",
+		  realReg ? (realRegisters_.empty() ? "GPRS" : "Real registers") : "GPRs");
 
-    registerSlot *toUse = NULL;
+  pdvector<registerSlot *> &regs = (realReg ? (realRegisters_.empty() ? GPRs_ : realRegisters_ ) : GPRs_ );
+  regalloc_printf("%d options in registers\n", regs.size());
 
-    for (unsigned i = 0; i < GPRs_.size(); i++) {
-        registerSlot *reg = GPRs_[i];
-
-        regalloc_printf("%s[%d]: getting scratch register, examining %d of %d: reg %d, offLimits %d, refCount %d, liveState %s, keptValue %d\n",
-                        FILE__, __LINE__, i, GPRs_.size(),
-                        reg->number,
-                        reg->offLimits,
-                        reg->refCount,
-                        (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::dead) ? "dead" : "spilled"),
-                        reg->keptValue);
-
-        bool found = false;
-        for (unsigned int i = 0; i < excluded.size(); ++i) {
-           Register &ex_reg = excluded[i];
-           if (reg->number == ex_reg) {
-              found = true;
-              break;
-           }
-        }
+  for (unsigned i = 0; i < regs.size(); i++) {
+    registerSlot *reg = regs[i];
+      
+    regalloc_printf("%s[%d]: getting scratch register, examining %d of %d: reg %d (%s), offLimits %d, refCount %d, liveState %s, keptValue %d\n",
+		    FILE__, __LINE__, i, regs.size(),
+		    reg->number,
+		    reg->name.c_str(),
+		    reg->offLimits,
+		    reg->refCount,
+		    (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::dead) ? "dead" : "spilled"),
+		    reg->keptValue);
+      
+    bool found = false;
+    for (unsigned int i = 0; i < excluded.size(); ++i) {
+      Register &ex_reg = excluded[i];
+      if (reg->number == ex_reg) {
+	found = true;
+	break;
+      }
+    }
 
         if (found) continue;
 
@@ -400,7 +431,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
         toUse = reg;
         break;
     }
-/*
+
     if (toUse == NULL) {
         // Argh. Let's assume spilling is cheaper
         for (unsigned i = 0; i < couldBeSpilled.size(); i++) {
@@ -410,7 +441,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
             }
         }
     }
-*/    
+    
     // Still?
     if (toUse == NULL) {
         for (unsigned i = 0; i < couldBeStolen.size(); i++) {
@@ -423,36 +454,43 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
 
     if (toUse == NULL) {
         // Crap.
-        debugPrint();
+      // debugPrint();
         return REG_NULL;
     }
 
     toUse->alloc_num = num_allocs;
     num_allocs++;
 
-    toUse->markUsed(false);
-    return toUse->number;
+  toUse->markUsed(false);
+
+  gen.markRegDefined(toUse->number);
+
+  return toUse->number;
 }
 
 Register registerSpace::allocateRegister(codeGen &gen, 
-                                         bool noCost) 
+                                         bool noCost,
+					 bool realReg) 
 {
-    regalloc_printf("Allocating and retaining register...\n");
-    Register reg = getScratchRegister(gen, noCost);
-    regalloc_printf("retaining register %d\n", reg);
-    if (reg == REG_NULL) return REG_NULL;
-
+  regalloc_printf("Allocating and retaining register...\n");
+  Register reg = getScratchRegister(gen, noCost, realReg);
+  regalloc_printf("retaining register %d\n", reg);
+  if (reg == REG_NULL) return REG_NULL;
+  if (realReg) {
+    physicalRegs(reg)->refCount = 1;
+  }
+  else {
     registers_[reg]->refCount = 1;
-    regalloc_printf("Allocated register %d\n", reg);
-    return reg;
+  }
+  regalloc_printf("Allocated register %d\n", reg);
+  return reg;
 }
 
-bool registerSpace::spillRegister(Register reg, codeGen &/*gen*/, bool /*noCost*/) {
-    assert(!registers_[reg]->offLimits);
+bool registerSpace::spillRegister(Register reg, codeGen &, bool /*noCost*/) {
+  assert(!registers_[reg]->offLimits);
 
-    assert(0 && "Unimplemented!");
-
-    return true;
+  //assert(0 && "Unimplemented!");
+  return false;
 }
 
 bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
@@ -479,7 +517,7 @@ bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
 bool registerSpace::checkVolatileRegisters(codeGen &gen,
                                            registerSlot::livenessState_t state)
 {
-    if (addr_width == 8) {
+	if (addr_width == 8) {
         for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
             if (registers_[i]->liveState == state)
                 return true;
@@ -509,12 +547,23 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen)
     // Okay, save.
     if (addr_width == 8) {
         // save flags (PUSHFQ)
-        emitSimpleInsn(0x9C, gen);
-
-        // And mark flags as spilled.
-        for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
-            registers_[i]->liveState = registerSlot::spilled;
-        }
+       //emitSimpleInsn(0x9C, gen);
+       if (registers_[REGNUM_SF]->liveState == registerSlot::live ||
+           registers_[REGNUM_ZF]->liveState == registerSlot::live ||
+           registers_[REGNUM_AF]->liveState == registerSlot::live ||
+           registers_[REGNUM_PF]->liveState == registerSlot::live ||
+           registers_[REGNUM_CF]->liveState == registerSlot::live) {
+          emitSimpleInsn(0x9f, gen);
+          registers_[REGNUM_SF]->liveState = registerSlot::spilled;
+          registers_[REGNUM_ZF]->liveState = registerSlot::spilled;
+          registers_[REGNUM_AF]->liveState = registerSlot::spilled;
+          registers_[REGNUM_PF]->liveState = registerSlot::spilled;
+          registers_[REGNUM_CF]->liveState = registerSlot::spilled;
+       }
+       if (registers_[REGNUM_OF]->liveState == registerSlot::live) {
+          emitSaveO(gen);
+          registers_[REGNUM_OF]->liveState = registerSlot::spilled;
+       }
 
     } else {
         assert(addr_width == 4);
@@ -526,6 +575,7 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen)
         //emitSimpleInsn(PUSHFD, gen);
         registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState =
             registerSlot::spilled;
+ 
     }
 
     savedFlagSize = addr_width;
@@ -546,10 +596,16 @@ bool registerSpace::restoreVolatileRegisters(codeGen &gen)
 
     // Okay, restore.
     if (addr_width == 8) {
-        // restore flags (POPFQ)
-        emitSimpleInsn(0x9D, gen);
-
-        // Don't care about their state...
+       if (registers_[REGNUM_OF]->liveState == registerSlot::spilled) {
+          emitRestoreO(gen);
+       }
+       if (registers_[REGNUM_SF]->liveState == registerSlot::spilled ||
+           registers_[REGNUM_ZF]->liveState == registerSlot::spilled ||
+           registers_[REGNUM_AF]->liveState == registerSlot::spilled ||
+           registers_[REGNUM_PF]->liveState == registerSlot::spilled ||
+           registers_[REGNUM_CF]->liveState == registerSlot::spilled) {
+          emitSimpleInsn(0x9e, gen);
+       }
 
     } else {
         assert(addr_width == 4);
@@ -558,6 +614,7 @@ bool registerSpace::restoreVolatileRegisters(codeGen &gen)
         emitSimpleInsn(0x9E, gen);
         emitPop(RealRegister(REGNUM_EAX), gen);
         // State stays at spilled, which is incorrect - but will never matter.
+
     }
 
     return true;
@@ -691,9 +748,6 @@ bool registerSpace::readProgramRegister(codeGen &gen,
     // so x86. 
     switch (src->spilledState) {
     case registerSlot::unspilled:
-	    printf(" emitMovRegToReg source %d dest %d \n", source, destination);
-		    printf(" emitMovRegToReg source %d dest %d GPR %d SPR %d \n", src->type, dest->type, registerSlot::GPR, registerSlot::SPR);
-			    printf(" emitMovRegToReg source %d dest %d \n", src->number, dest->number);
 
         gen.codeEmitter()->emitMoveRegToReg(src, dest, gen);
         return true;
@@ -753,14 +807,9 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
         registerSlot *frame = registers_[framePointer()];
         assert(frame);
 
-        // When this register was saved we stored its offset from the base
-        // pointer.  Use that to load it.
-        int addrWidth = gen.addrSpace()->getAddressWidth();
-        gen.codeEmitter()->emitStoreRelative(source,
-                                             addrWidth * dest->saveOffset,
-                                             framePointer(),
-                                             addrWidth,
-                                             gen);
+        // When this register was saved we stored its offset from the base pointer.
+        // Use that to load it. 
+        gen.codeEmitter()->emitStoreRelative(source, dest->saveOffset, framePointer(), gen.addrSpace()->getAddressWidth(), gen);
         return true;
         break;
     }
@@ -841,25 +890,31 @@ void registerSlot::debugPrint(const char *prefix) {
 }
 
 void registerSpace::debugPrint() {
-    if (!dyn_debug_regalloc) return;
-
-	// Dump out our data
-	fprintf(stderr, "Beginning debug print of registerSpace at %p...", this);
-	fprintf(stderr, "GPRs: %ld, FPRs: %ld, SPRs: %ld\n", 
-           (long) GPRs_.size(), (long) FPRs_.size(), (long) SPRs_.size());
-	fprintf(stderr, "Stack pointer is at %d\n",
-                currStackPointer);
-	fprintf(stderr, "Register dump:");
-	fprintf(stderr, "=====GPRs=====\n");
-	for (unsigned i = 0; i < GPRs_.size(); i++) {
-      GPRs_[i]->debugPrint("\t");
-   }
-	for (unsigned i = 0; i < FPRs_.size(); i++) {
-      FPRs_[i]->debugPrint("\t");
-   }
-	for (unsigned i = 0; i < SPRs_.size(); i++) {
-      SPRs_[i]->debugPrint("\t");
-   }
+  if (!dyn_debug_regalloc) return;
+  
+  // Dump out our data
+  fprintf(stderr, "Beginning debug print of registerSpace at %p...", this);
+  fprintf(stderr, "GPRs: %ld, FPRs: %ld, SPRs: %ld\n", 
+	  (long) GPRs_.size(), (long) FPRs_.size(), (long) SPRs_.size());
+  fprintf(stderr, "Stack pointer is at %d\n",
+	  currStackPointer);
+  fprintf(stderr, "Register dump:");
+  fprintf(stderr, "=====GPRs=====\n");
+  for (unsigned i = 0; i < GPRs_.size(); i++) {
+    GPRs_[i]->debugPrint("\t");
+  }
+  fprintf(stderr, "=====FPRs=====\n");
+  for (unsigned i = 0; i < FPRs_.size(); i++) {
+    FPRs_[i]->debugPrint("\t");
+  }
+  fprintf(stderr, "=====SPRs=====\n");
+  for (unsigned i = 0; i < SPRs_.size(); i++) {
+    SPRs_[i]->debugPrint("\t");
+  }
+  fprintf(stderr, "=====RealRegs=====\n");
+  for (unsigned i = 0; i < realRegisters_.size(); i++) {
+    realRegisters_[i]->debugPrint("\t");
+  }
 }
 
 bool registerSpace::markKeptRegister(Register reg) {
@@ -1109,6 +1164,14 @@ void registerSpace::spillReal(RealRegister r, codeGen &gen)
       return;
    if (!regState()[r.reg()].contains)
       return;
+
+   if (regState()[r.reg()].contains->refCount == 0 &&
+       !regState()[r.reg()].contains->keptValue) {
+      // Sure, it's spilled...
+      freeReal(r);
+      return;
+   }
+
    regs_been_spilled.insert(regState()[r.reg()].contains);
    spillToVReg(r, regState()[r.reg()].contains, gen);
    freeReal(r);
@@ -1392,6 +1455,7 @@ int registerSpace::getInstFrameSize() {
     return instFrameSize_;
 }
 
+
 #endif
 
 #if !defined(arch_x86) && !defined(arch_x86_64)
@@ -1449,14 +1513,4 @@ int registerSpace::getStackHeight()
 {
    return 0;
 }
-
-void registerSpace::setInstFrameSize(int) {
-    assert(0 && "Not implemented for this platform!");
-}
-
-int registerSpace::getInstFrameSize() {
-    assert(0 && "Not implemented for this platform!");
-    return 0;
-}
-
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -47,19 +47,17 @@ class COMPLIB_DLL_EXPORT InstructionMutator : public TestMutator {
      {
          bool operator()(const T& lhs, const T& rhs)
          {
-    // Non-nulls precede nulls
+             // Non-nulls precede nulls
              if(rhs.get() == NULL)
              {
                  return lhs.get() != NULL;
              }
              if(lhs.get() == NULL)
                  return false;
-    // Otherwise, dereference and compare
+             // Otherwise, dereference and compare
              return *lhs < *rhs;
          }
-  
      };
-
 
      typedef std::set<Dyninst::InstructionAPI::RegisterAST::Ptr,
         shared_ptr_lt<Dyninst::InstructionAPI::RegisterAST::Ptr> > registerSet;

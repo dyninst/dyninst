@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -431,9 +431,9 @@ void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
    void *orig_ip;
    void *trap_to;
 
-   orig_ip = UC_PC(context);
+   orig_ip = (void *) UC_PC(context);
    assert(orig_ip);
-
+   fprintf(stderr, "WTF trap! 0x%lx\n", orig_ip);
    // Find the new IP we're going to and substitute. Leave everything else untouched.
    if (DYNINSTstaticMode) {
       unsigned long zero = 0;

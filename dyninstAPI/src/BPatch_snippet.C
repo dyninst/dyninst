@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -46,6 +46,7 @@
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
 #include "BPatch_libInfo.h"
+#include "BPatch_point.h"
 
 #include "addressSpace.h"
 #include "mapped_object.h" // for savetheworld
@@ -803,28 +804,6 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
 }
 
 /*
- * BPatch_funcJumpExpr::BPatch_funcJumpExpr
- *
- * Constructs a snippet representing a jump to a function without
- * linkage.
- *
- * func Identifies the function to jump to.  */
-void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
-    const BPatch_function &func)
-{
-   BPatch_funcJumpExprInt(func, false);
-}
-
-void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
-    const BPatch_function &func, bool genCall)
-{
-    ast_wrapper = AstNodePtr(AstNode::funcReplacementNode(func.lowlevel_func(), genCall));
-    assert(BPatch::bpatch != NULL);
-    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
-}
-
-
-/*
  * BPatch_ifExpr::BPatch_ifExpr
  *
  * Constructs a snippet representing a conditional expression.
@@ -888,10 +867,26 @@ void BPatch_nullExpr::BPatch_nullExprInt()
  * n    The position of the parameter (0 is the first parameter, 1 the second,
  *      and so on).
  */
-void BPatch_paramExpr::BPatch_paramExprInt(int n)
+void BPatch_paramExpr::BPatch_paramExprInt(int n, BPatch_ploc loc)
 {
-    ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::Param,
-                                                             (void *)(long)n));
+    AstNode::operandType opType;
+    switch(loc) {
+        case (BPatch_ploc_guess):
+            opType = AstNode::Param;
+            break;
+        case (BPatch_ploc_call):
+            opType = AstNode::ParamAtCall;
+            break;
+        case (BPatch_ploc_entry):
+            opType = AstNode::ParamAtEntry;
+            break;
+        default:
+            assert(0);
+            break;
+    }
+
+    ast_wrapper = AstNodePtr(AstNode::operandNode(opType,
+                                                  (void *)(long)n));
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -912,6 +907,22 @@ void BPatch_retExpr::BPatch_retExprInt()
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
+
+
+/*
+ * BPatch_retAddrExpr::BPatch_retAddrExpr
+ *
+ * Construct a snippet representing a return value from the function in which
+ * the snippet is inserted.
+ *
+ */
+void BPatch_retAddrExpr::BPatch_retAddrExprInt()
+{
+    ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::ReturnAddr, (void *)0));
+    assert(BPatch::bpatch != NULL);
+    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
+
 
 /*
  * BPatch_registerExpr::BPatch_registerExpr
@@ -1205,7 +1216,6 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 	vector<AstNodePtr> variableASTs;
 	vector<pair<Offset, Offset> > *ranges = new vector<pair<Offset, Offset> >;
 	vector<Dyninst::SymtabAPI::VariableLocation> &locs = lv->getSymtabVar()->getLocationLists();
-
 	for (unsigned i=0; i<locs.size(); i++)
 	{
 		AstNodePtr variableAst;
@@ -1562,18 +1572,12 @@ bool BPatch_insnExpr::overrideStoreAddressInt(BPatch_snippet &s) {
    necessary that we limit StopThreadCallbacks creations like this. */
 static std::set<BPatchStopThreadCallback> *stopThread_cbs=NULL;
 
-/* BPatch_stopThreadExpr 
- *
- *  This snippet type stops the thread that executes it.  It
- *  evaluates a calculation snippet and triggers a callback to the
- *  user program with the result of the calculation and a pointer to
- *  the BPatch_point at which the snippet was inserted
- */
-void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
-      (const BPatchStopThreadCallback &bp_cb,
-       const BPatch_snippet &calculation,
-       bool useCache,
-       BPatch_stInterpret interp)
+static void constructorHelper(
+   const BPatchStopThreadCallback &bp_cb,
+   bool useCache,
+   BPatch_stInterpret interp,
+   AstNodePtr &idNode,
+   AstNodePtr &icNode)
 {
     //register the callback if it's new
     if (stopThread_cbs == NULL) {
@@ -1602,18 +1606,108 @@ void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
         ic += 2;
     else if (interp == BPatch_interpAsReturnAddr) 
         ic += 4;
-    AstNodePtr icNode = AstNode::operandNode(AstNode::Constant, (void*) ic );
+    icNode = AstNode::operandNode(AstNode::Constant, (void*) ic );
     icNode->setType(inttype);
-    
+}
+
+/* BPatch_stopThreadExpr 
+ *
+ *  This snippet type stops the thread that executes it.  It
+ *  evaluates a calculation snippet and triggers a callback to the
+ *  user program with the result of the calculation and a pointer to
+ *  the BPatch_point at which the snippet was inserted
+ */
+void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
+      (const BPatchStopThreadCallback &bp_cb,
+       const BPatch_snippet &calculation,
+       bool useCache,
+       BPatch_stInterpret interp)
+{
+    AstNodePtr idNode;
+    AstNodePtr icNode;
+    constructorHelper(bp_cb, useCache, interp, idNode, icNode);
+
     // set up funcCall args
     pdvector<AstNodePtr> ast_args;
-    ast_args.push_back(AstNode::originalAddrNode());
+    ast_args.push_back(AstNode::actualAddrNode());
     ast_args.push_back(idNode);
     ast_args.push_back(icNode);
     ast_args.push_back(calculation.ast_wrapper);
 
     // create func call & set type 
     ast_wrapper = AstNodePtr(AstNode::funcCallNode("DYNINST_stopThread", ast_args));
+    ast_wrapper->setType(BPatch::bpatch->type_Untyped);
+    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
+
+
+  // for internal use in conjunction with memory emulation and defensive 
+  // mode analysis
+BPatch_stopThreadExpr::BPatch_stopThreadExpr(
+   const BPatchStopThreadCallback &bp_cb,
+   const BPatch_snippet &calculation,
+   const mapped_object &obj,
+   bool useCache,
+   BPatch_stInterpret interp)
+{
+    AstNodePtr idNode;
+    AstNodePtr icNode;
+    constructorHelper(bp_cb, useCache, interp, idNode, icNode);
+    
+    Address objStart = obj.codeBase();
+    Address objEnd = objStart + obj.imageSize();
+    AstNodePtr objStartNode = AstNode::operandNode(
+        AstNode::Constant, (void*) objStart);
+    AstNodePtr objEndNode = AstNode::operandNode(
+        AstNode::Constant, (void*) objEnd);
+    BPatch_type *ulongtype = BPatch::bpatch->stdTypes->findType("unsigned long");
+    objStartNode->setType(ulongtype);
+    objEndNode->setType(ulongtype);
+
+    // set up funcCall args
+    pdvector<AstNodePtr> ast_args;
+    ast_args.push_back(AstNode::actualAddrNode());
+    ast_args.push_back(idNode);
+    ast_args.push_back(icNode);
+    ast_args.push_back(calculation.ast_wrapper);
+    ast_args.push_back(objStartNode);
+    ast_args.push_back(objEndNode);
+
+    // create func call & set type 
+    ast_wrapper = AstNodePtr(AstNode::funcCallNode("DYNINST_stopInterProc", ast_args));
+    ast_wrapper->setType(BPatch::bpatch->type_Untyped);
+    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
+
+
+void BPatch_shadowExpr::BPatch_shadowExprInt
+      (bool entry,
+      const BPatchStopThreadCallback &bp_cb,
+       const BPatch_snippet &calculation,
+       bool useCache,
+       BPatch_stInterpret interp)
+{
+    AstNodePtr idNode;
+    AstNodePtr icNode;
+    constructorHelper(bp_cb, useCache, interp, idNode, icNode);
+
+    // set up funcCall args
+    pdvector<AstNodePtr> ast_args;
+    if (entry) {
+        ast_args.push_back(AstNode::operandNode(AstNode::Constant, (void *)1));
+    }
+    else {
+        ast_args.push_back(AstNode::operandNode(AstNode::Constant, (void *)0));
+    }
+    ast_args.back()->setType(BPatch::bpatch->type_Untyped);
+
+    ast_args.push_back(AstNode::actualAddrNode());
+    ast_args.push_back(idNode);
+    ast_args.push_back(icNode);
+    ast_args.push_back(calculation.ast_wrapper);
+
+    // create func call & set type 
+    ast_wrapper = AstNodePtr(AstNode::funcCallNode("RThandleShadow", ast_args));
     ast_wrapper->setType(BPatch::bpatch->type_Untyped);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }

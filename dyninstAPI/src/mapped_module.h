@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -37,7 +37,7 @@
 class mapped_module;
 class mapped_object;
 
-class int_function;
+class func_instance;
 class int_variable;
 
 class parse_image;
@@ -77,20 +77,21 @@ class mapped_module {
 
       SymtabAPI::supportedLanguages language() const;
 
-      const pdvector<int_function *> &getAllFunctions();
+      const pdvector<func_instance *> &getAllFunctions();
       const pdvector<int_variable *> &getAllVariables();
 
       bool findFuncVectorByPretty(const std::string &funcname,
-            pdvector<int_function *> &funcs);
+            pdvector<func_instance *> &funcs);
 
       // Yeah, we can have multiple mangled matches -- for libraries there
       // is a single module. Even if we went multiple, we might not have
       // module information, and so we can get collisions.
       bool findFuncVectorByMangled(const std::string &funcname,
-            pdvector<int_function *> &funcs);
+            pdvector<func_instance *> &funcs);
 
-      int_function *findFuncByAddr(const Address &address);
-      codeRange *findCodeRangeByAddress(const Address &address);
+    bool findFuncsByAddr(const Address addr, std::set<func_instance *> &funcs);
+    bool findBlocksByAddr(const Address addr, std::set<block_instance *> &blocks);
+    void getAnalyzedCodePages(std::set<Address> & pages);
 
 
       void dumpMangled(std::string prefix) const;
@@ -112,11 +113,11 @@ class mapped_module {
             pdvector<Address> &addresses,
             bool exactMatch);
 
-      void addFunction(int_function *func);
+      void addFunction(func_instance *func);
       void addVariable(int_variable *var);
       int_variable* createVariable(std::string name, Address offset, int size);
       
-      void removeFunction(int_function *func);
+      void removeFunction(func_instance *func);
 
       static bool truncateLineFilenames;
       unsigned int getFuncVectorSize() { return everyUniqueFunction.size(); }
@@ -130,7 +131,7 @@ class mapped_module {
       mapped_module(mapped_object *obj,
             pdmodule *pdmod);
 
-      pdvector<int_function *> everyUniqueFunction;
+      pdvector<func_instance *> everyUniqueFunction;
       pdvector<int_variable *> everyUniqueVariable;
 };
 

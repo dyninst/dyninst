@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -40,6 +40,10 @@
 #include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/mapped_object.h"
+#include "dyninstAPI/src/inst-power.h"
+#include "dyninstAPI/src/baseTramp.h"
+#include "dyninstAPI/src/miniTramp.h"
+#include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/function.h"
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
@@ -47,6 +51,7 @@
 const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
 const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
 const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
+const char DL_OPEN_LIBC_FUNC_EXPORTED[] = "__libc_dlopen_mode";
 
 Address PCProcess::getLibcStartMainParam(PCThread *) {
     assert(!"This function is unimplemented");
@@ -86,7 +91,6 @@ Address PCProcess::getTOCoffsetInfo(int_function *func) {
     return mobj->parse_img()->getObject()->getTOCoffset() + mobj->dataBase();
 }
 
-
 bool PCProcess::getOPDFunctionAddr(Address &addr) {
     bool result = true;
     if( getAddressWidth() == 8 ) {
@@ -97,7 +101,7 @@ bool PCProcess::getOPDFunctionAddr(Address &addr) {
             result = false;
         }else{
             addr = resultAddr;
-        }
+       }
     }
     return result;
 }
@@ -129,7 +133,6 @@ bool Frame::setPC(Address newpc) {
          return false;
       sw_frame_.setRA(newpc32);
    }
-   range_ = NULL;
 
    return true;
 }

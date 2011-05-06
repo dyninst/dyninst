@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -117,6 +117,8 @@ int isMutatedExec = 0;
 // stopThread cache variables 
 char cacheLRUflags[TARGET_CACHE_WIDTH];
 void *DYNINST_target_cache[TARGET_CACHE_WIDTH][TARGET_CACHE_WAYS];
+FILE *stOut;
+int fakeTickCount;
 
 
 unsigned *DYNINST_tramp_guards;
@@ -217,6 +219,8 @@ void DYNINSTBaseInit()
 #endif
    DYNINST_initialize_index_list();
    DYNINSThasInitialized = 1;
+
+   RTuntranslatedEntryCounter = 0;
 }
 
 /**
@@ -266,13 +270,17 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
    DYNINST_bootstrap_info.pid = dyn_pid_self();
    DYNINST_bootstrap_info.ppid = pid;    
    DYNINST_bootstrap_info.event = cause;
+
+   /* defensive stuff */
    memset(DYNINST_target_cache, 
           0, 
           sizeof(void*) * TARGET_CACHE_WIDTH * TARGET_CACHE_WAYS);
    memset(cacheLRUflags, 1, sizeof(char)*TARGET_CACHE_WIDTH);
+   stOut = fopen("rtdump.txt","w");
    rtdebug_printf("%s[%d]:  leaving DYNINSTinit\n", __FILE__, __LINE__);
+   fakeTickCount=0;
+   /* Memory emulation */
 }
-
  
 /**
  * Does what it's called. Used by the paradyn daemon as a default in certain 
@@ -456,35 +464,67 @@ RT_Boolean cacheLookup(void *calculation)
 }
 
 /** 
- * Receives two snippets as arguments, stops the mutator, and sends
- * the arguments back to the mutator.  
+ * Receives two snippets as arguments and stops the mutatee
+ * while the mutator reads the arguments, saved to 
+ * DYNINST_synch_event... global variables. 
+ *
+ * if flag useCache==1, does a cache lookup and stops only
+ * if there is a cache miss
+ * 
  * The flags are: 
  * bit 0: useCache
  * bit 1: true if interpAsTarget
  * bit 2: true if interpAsReturnAddr
  **/     
+//#define STACKDUMP
 void DYNINST_stopThread (void * pointAddr, void *callBackID, 
                          void *flags, void *calculation)
 {
-    void* lookupAddr = calculation;
+	static int reentrant = 0;
+
     RT_Boolean isInCache = RT_FALSE;
+    
 
+	if (reentrant == 1) {
+		return;
+	}
+	reentrant = 1;
     tc_lock_lock(&DYNINST_trace_lock);
+    rtdebug_printf("RT_st: pt[%lx] flags[%lx] calc[%lx] ", 
+                   (long)pointAddr, (long)flags, (long)calculation);
 
-    // KEVINTODO: assumes there is always a pushf at the start of the basetramp
-    // if this is a return insn, we want to look up the address differently
-    if (5 == (((long)flags) & 0x05) ) { // mask stackAddr flag bit
-        lookupAddr = (void*)* ( ((unsigned long*)calculation) + 1 );
+#if 0 && defined STACKDUMP
+    //if (0 && ((unsigned long)calculation == 0x9746a3 || 
+    //          (unsigned long)calculation == 0x77dd761b))
+    //{
+        fprintf(stOut,"RT_st: %lx(%lx)\n", (long)pointAddr,&calculation);
+        fprintf(stOut,"at instr w/ targ=%lx\n",(long)calculation);
+        for (bidx=0; bidx < 0x100; bidx+=4) {
+            fprintf(stOut,"0x%x:  ", (int)stackBase+bidx);
+            fprintf(stOut,"%02hhx", stackBase[bidx]);
+            fprintf(stOut,"%02hhx", stackBase[bidx+1]);
+            fprintf(stOut,"%02hhx", stackBase[bidx+2]);
+            fprintf(stOut,"%02hhx", stackBase[bidx+3]);
+            fprintf(stOut,"\n");
+        }
+    //}
+    // fsg: read from 40a4aa, how did it become 40a380? 
+#endif
+
+    if ((((long)flags) & 0x04) ) { 
+        rtdebug_printf("ret-addr stopThread yields %lx", (long)calculation);
+        //fprintf(stderr,"[$0x%lx]\n", (long)calculation);
+    }
+
+    if (0 != (((long)flags) & 0x03)) {
+        // do the lookup if the useCache bit is set, or if it represents 
+        // the address of real code, so that we add the address to the cache 
+        // even if we will stop the thread if there's a cache hit
+        isInCache = cacheLookup(calculation);
     }
 
     // if the cache flag bit is not set, or if we get a cache miss, 
     // stop the thread so that we can call back to the mutatee
-    if (0 != (((long)flags) & 0x03)) {
-        // do the lookup if the useCache bit is set, or if it represents 
-        // the address of real code, so that we cache the address in the
-        // latter instance even we will stop the thread in event of a hit
-        isInCache = cacheLookup(lookupAddr);
-    }
     if (0 == (((long)flags) & 0x01) || 
         ! isInCache ) 
     {
@@ -502,6 +542,7 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
                 (void*) (-1 * (long)DYNINST_synch_event_arg2);
         }
 
+        rtdebug_printf("stopping! isInCache=%d\n", isInCache);
 
         /* Stop ourselves */
         DYNINSTbreakPoint();
@@ -514,10 +555,25 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
     }
 
     tc_lock_unlock(&DYNINST_trace_lock);
-
+	reentrant = 0;
     return;
 }
 
+// zeroes out the useCache flag if the call is interprocedural
+void DYNINST_stopInterProc(void * pointAddr, void *callBackID, 
+                           void *flags, void *calculation,
+                           void *objStart, void *objEnd)
+{
+#if defined STACKDUMP
+    fprintf(stOut,"RT_sip: calc=%lx objStart=%lx objEnd=%lx\n",
+            calculation, objStart, objEnd);
+    fflush(stOut);
+#endif
+    if (calculation < objStart || calculation >= objEnd) {
+        flags = (void*)(((int)flags) & 0xfffffffe);
+    }
+    DYNINST_stopThread(pointAddr, callBackID, flags, calculation);
+}
 
 // boundsArray is a sequence of (blockStart,blockEnd) pairs
 RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_, 
@@ -531,21 +587,34 @@ RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_,
     int idx = (int)arrayLen / 4 * 2; 
     int lowIdx = 0;
     int highIdx = (int)arrayLen;
+    //fprintf(stderr,"D_bc@%p: boundsArray=%p target=%lx idx=%d arrayLen=%d [%d]\n", (void*)DYNINST_boundsCheck, boundsArray_, writeTarget_, idx, arrayLen, __LINE__);
+    //rtdebug_printf("D_bc@%p: boundsArray=%p target=%lx idx=%d arrayLen=%d [%d]\n", (void*)DYNINST_boundsCheck, boundsArray_, writeTarget_, idx, arrayLen, __LINE__);
+    if ((unsigned long)boundsArray < 0x10000000) {
+        printf("D_bc: boundsArray_ = %lx, returning false\n",(unsigned long) boundsArray);
+        return RT_FALSE;
+    }
     while (lowIdx < highIdx) 
     {
+        if (idx > arrayLen || idx < 0)
+            rtdebug_printf("ERROR: out of bounds idx=%d, arrayLen = %d [%d]\n", idx, arrayLen, __LINE__);
+        rtdebug_printf("D_bc: low=%d high=%d arr[%d]=%lx [%d]\n", lowIdx, highIdx, idx, boundsArray[idx], __LINE__);
         if (writeTarget < boundsArray[idx]) {
+            rtdebug_printf("D_bc: [%d]\n", __LINE__);
             highIdx = idx;
             idx = (highIdx - lowIdx) / 4 * 2 + lowIdx;
         } 
         else if (boundsArray[idx+1] <= writeTarget) {
+            rtdebug_printf("D_bc: [%d]\n", __LINE__);
             lowIdx = idx+2;
             idx = (highIdx - lowIdx) / 4 * 2 + lowIdx;
         } 
         else {
+            rtdebug_printf("D_bc: callST=true [%d]\n", __LINE__);
             callStopThread = RT_TRUE;
             break;
         }
     }
+    rtdebug_printf("D_bc: boundsArray=%p ret=%d [%d]\n", boundsArray, callStopThread, __LINE__);
     return callStopThread;
 }
 

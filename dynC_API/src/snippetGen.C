@@ -1,8 +1,39 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 #include "snippetGen.h"  
 
 extern "C" {
-   std::string getErrorBase();
+   void getErrorBase(char *errbase, int length); 
 }
+
 
 BPatch_snippet *SnippetGenerator::findOrCreateVariable(const char * name, const char * type, const void * initialValue){
    lastError.str() = "";
@@ -225,7 +256,7 @@ BPatch_snippet *SnippetGenerator::findInstVariable(const char *mangledStub, cons
    //  BPatch_variableExpr *varExpr = NULL;
    BPatch_variableExpr *varExprGbl = NULL;
    for(unsigned int i = 0; i < vars->size(); ++i){
-      char *substr = strstr((*vars)[i]->getName(), mangledStub);
+      const char *substr = strstr((*vars)[i]->getName(), mangledStub);
       if(substr != NULL){
          return (*vars)[i];            
       }
@@ -309,7 +340,8 @@ BPatch_function *SnippetGenerator::findFunction(const char * name, std::vector<B
       }
    }
 
-   const char *errorHeader = getErrorBase().c_str();
+   char errorHeader[256];
+   getErrorBase(errorHeader, 256);
    if(noParamFunc != NULL && !setFunc){
          func = noParamFunc;
    }else if(!setFunc && foundDebugInfo){

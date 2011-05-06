@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -86,17 +86,17 @@ namespace Dyninst
     
     std::string RegisterAST::format(formatStyle) const
     {
-       std::string name = m_Reg.name();
-       if (name == "") {
-          return "[NAME NOT FOUND]";
-       }
-       std::string::size_type substr = name.rfind(':');
-       if(substr != std::string::npos)
-       {
-          name = name.substr(substr+1, name.length());
-       }
-       std::transform(name.begin(), name.end(), name.begin(), ::toupper);
-       return name;
+        std::string name = m_Reg.name();
+		{
+            std::string::size_type substr = name.rfind(':');
+            if(substr != std::string::npos)
+            {
+                name = name.substr(substr+1, name.length());
+            }
+            std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+            return name;
+        }
+        return "[NAME NOT FOUND]";
     }
     RegisterAST RegisterAST::makePC(Dyninst::Architecture arch)
     {

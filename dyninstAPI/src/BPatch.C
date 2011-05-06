@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -335,9 +335,6 @@ void BPatch::forceSaveFPRInt(bool x)
 {
   forceSaveFloatingPointsOn = x;
 }
-
-
-
 
 /*
  * BPatch::registerErrorCallbackInt
@@ -1002,6 +999,8 @@ void BPatch::registerUnloadedModule(PCProcess *process, mapped_module *mod) {
     BPatch_module *bpmod = bImage->findModule(mod);
     if (bpmod == NULL) return;
 
+    signalNotificationFD();
+    
     // For now we use the same callback for load and unload of library....
     if( dynLibraryCallback ) {
         dynLibraryCallback(bProc->threads[0], bpmod, false);
@@ -1156,6 +1155,10 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
 
    ret->triggerInitialThreadEvents();
 
+   if (ret->lowlevel_process()->isExploratoryModeOn()) {
+       ret->getHybridAnalysis()->init();
+   }
+
    return ret;
 }
 
@@ -1206,6 +1209,10 @@ BPatch_process *BPatch::processAttachInt
    }
 
    ret->triggerInitialThreadEvents();
+
+   if (ret->lowlevel_process()->isExploratoryModeOn()) {
+       ret->getHybridAnalysis()->init();
+   }
 
    return ret;
 }

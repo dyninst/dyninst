@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -37,14 +37,14 @@
 #include "parseAPI/src/InstrucIter.h"
 
 
-class image_func;
-class int_function;
+class parse_func;
+class func_instance;
 
 class InstrucIterFunction : public InstrucIter
 {
  public:
-  InstrucIterFunction(int_function* func);
-  InstrucIterFunction(Address start, int_function* func);
+  InstrucIterFunction(func_instance* func);
+  InstrucIterFunction(Address start, func_instance* func);
   InstrucIterFunction(const InstrucIterFunction& ii);
   
   virtual ~InstrucIterFunction() {};

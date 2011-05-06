@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -32,7 +32,6 @@
 #include "BPatch_eventLock.h"
 #include "BPatch_thread.h"
 #include "BPatch_function.h"
-#include "BPatch_point.h"
 #include "common/h/Vector.h"
 #include "eventLock.h"
 

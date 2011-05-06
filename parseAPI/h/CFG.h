@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -43,7 +43,7 @@
 #include "ParseContainers.h"
 
 #include "Annotatable.h"
-
+#include <iostream>
 namespace Dyninst {
 namespace ParseAPI {
 
@@ -60,6 +60,8 @@ enum EdgeTypeEnum {
     NOEDGE,
     _edgetype_end_
 };
+
+PARSER_EXPORT std::string format(EdgeTypeEnum e);
 
 #define FLIST_BADNEXT ((void*)0x111)
 #define FLIST_BADPREV ((void*)0x222)
@@ -152,12 +154,8 @@ class Edge : public allocatable {
  public:
     PARSER_EXPORT Edge(Block * source,
          Block * target,
-         EdgeTypeEnum type) :
-        _source(source),
-        _target(target),
-        _type(type,false) { }
-
-    PARSER_EXPORT virtual ~Edge() { }
+         EdgeTypeEnum type);
+     PARSER_EXPORT virtual ~Edge();
 
     PARSER_EXPORT virtual Block * src() const { return _source; }
     PARSER_EXPORT virtual Block * trg() const { return _target; }
@@ -165,9 +163,17 @@ class Edge : public allocatable {
         return static_cast<EdgeTypeEnum>(_type._type_enum); 
     }
     bool sinkEdge() const { return _type._sink != 0; }
-    bool interproc() const { return _type._interproc != 0; }
+    bool interproc() const { 
+       return (_type._interproc != 0 ||
+               type() == CALL ||
+               type() == RET);
+    }
 
     PARSER_EXPORT void install();
+
+    /* removes from blocks & finalized source functions if of type CALL */
+    PARSER_EXPORT void uninstall();
+
 
  friend class CFGFactory;
  friend class Parser;
@@ -458,10 +464,10 @@ class Function : public allocatable, public AnnotatableSparse {
     PARSER_EXPORT bool cleansOwnStack() const { return _cleans_stack; }
 
     /* Parse updates and obfuscation */
+    PARSER_EXPORT void setEntryBlock(Block *new_entry);
     PARSER_EXPORT void set_retstatus(FuncReturnStatus rs) { _rs = rs; }
-    PARSER_EXPORT void deleteBlocks( vector<Block*> & dead_funcs,
-                                     Block * new_entry );
-    PARSER_EXPORT StackTamper stackTamper() { return _tamper; }
+    PARSER_EXPORT void deleteBlocks( vector<Block*> dead_blocks );
+    PARSER_EXPORT StackTamper tampersStack(bool recalculate=false);
 
     struct less
     {
@@ -473,6 +479,10 @@ class Function : public allocatable, public AnnotatableSparse {
 
     /* Contiguous code segments of function */
     PARSER_EXPORT std::vector<FuncExtent *> const& extents();
+
+    /* This should not remain here - this is an experimental fix for
+       defensive mode CFG inconsistency */
+    void invalidateCache() { _cache_valid = false; }
 
  private:
     std::vector<Block *> const& blocks_int();
@@ -507,6 +517,7 @@ class Function : public allocatable, public AnnotatableSparse {
     /*** Internal parsing methods and state ***/
     void add_block(Block *b);
 
+    friend void Edge::uninstall();
     friend class Parser;
     friend class CFGFactory;
     friend class CodeObject;

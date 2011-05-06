@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -53,8 +53,9 @@ void IA_InstrucIter::advance()
     current = *ii;
 }
 
-void IA_InstrucIter::retreat()
+bool IA_InstrucIter::retreat()
 {
+    bool ret = ii.hasPrev();
     InstructionAdapter::retreat();
     --ii;
     if(ii.hasPrev())
@@ -62,6 +63,7 @@ void IA_InstrucIter::retreat()
     else
         previous = (Address)-1;
     current = *ii;
+    return ret;
 }
 
 size_t IA_InstrucIter::getSize() const
@@ -387,4 +389,9 @@ bool IA_InstrucIter::cleansStack() const
 bool IA_InstrucIter::isReturnAddrSave() const
 {
     return ii.isReturnValueSave();
+}
+
+bool IA_InstrucIter::isNopJump() const
+{
+    return false;
 }

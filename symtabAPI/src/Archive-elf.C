@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -132,7 +132,7 @@ bool Archive::parseMember(Symtab *&img, ArchiveMember *member)
         return false;
     }
 
-    bool success = Symtab::openFile(img, rawMember, rawSize);
+    bool success = Symtab::openFile(img, (void *)rawMember, rawSize, member->getName());
     if( !success ) {
         serr = Obj_Parsing;
         errMsg = "problem creating underlying Symtab object";
