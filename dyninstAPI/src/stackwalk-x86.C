@@ -103,6 +103,7 @@ bool PCProcess::createStackwalkerSteppers()
   }
   startup_printf("Stackwalker stepper %p is a BottomOfStackStepper\n", stepper);
 
+  /* Not ready for production yet
   stepper = new AnalysisStepper(stackwalker_);
   if (!stackwalker_->addStepper(stepper))
   {
@@ -110,6 +111,7 @@ bool PCProcess::createStackwalkerSteppers()
     return false;
   }
   startup_printf("Stackwalker stepper %p is an AnalysisStepper\n", stepper);
+  */
 
   return true;
 }

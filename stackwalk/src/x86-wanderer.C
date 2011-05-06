@@ -120,6 +120,8 @@ gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
             break;
         }
       }
+
+      if (found_exact_match) break;
       current_stack += addr_width;
       num_words_tried++;
    } while (num_words_tried < MAX_WANDERER_DEPTH);
