@@ -187,27 +187,6 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\src\addLibrary.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\addressSpace.C"
 				>
 				<FileConfiguration
@@ -1548,27 +1527,6 @@
 			</File>
 			<File
 				RelativePath=".\src\mapped_object.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\MapSymbols.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
