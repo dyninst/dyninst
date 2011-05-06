@@ -98,32 +98,6 @@ verbose_log(Address currAddr, Edges_t::iterator & curEdge)
 }
 } // anonymous namespace
 
-// XXX this code was introduced but is unused
-#if 0
-static void 
-getBlockInsns(Block &blk, std::set<Address> &addrs)
-{
-    unsigned bufSize = blk.size();
-<<<<<<< HEAD:parseAPI/src/ParserDetails.C
-#if defined(cap_instruction_api)
-=======
-	if (blk.start() == 0x1256) {
-		int i = 3;
-	}
->>>>>>> Removal of::parseAPI/src/ParserDetails.C
-    using namespace InstructionAPI;
-    const unsigned char* bufferBegin = (const unsigned char *)
-        (blk.obj()->cs()->getPtrToInstruction(blk.start()));
-    InstructionDecoder dec = InstructionDecoder
-        (bufferBegin, bufSize, blk.region()->getArch());
-    InstructionAdapter_t ah(dec, blk.start(), blk.obj(), blk.region(), blk.obj()->cs(), &blk);
-
-	for (; ah.getAddr() < blk.end(); ah.advance()) {
-        addrs.insert(ah.getAddr());
-    } 
-}
-#endif
-
 /*
  * Extra handling of return instructions
  */
