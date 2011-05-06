@@ -312,6 +312,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\dthread-win.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\dyn_regs.C"
 				>
 				<FileConfiguration

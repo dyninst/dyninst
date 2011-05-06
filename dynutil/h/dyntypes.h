@@ -117,6 +117,7 @@ namespace Dyninst
    typedef HANDLE PROC_HANDLE;
    typedef HANDLE LWP;
    typedef HANDLE THR_ID;
+   typedef DWORD psaddr_t; // for breakpoints; match the debug struct
 
 #define NULL_PID     INVALID_HANDLE_VALUE
 #define NULL_LWP     INVALID_HANDLE_VALUE

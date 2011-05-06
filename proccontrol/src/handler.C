@@ -157,7 +157,7 @@ void HandlerPool::notifyOfPendingAsyncs(const std::set<response::ptr> &asyncs, E
 {
    Event::ptr master_ev = getRealParent(ev);
       
-   for (set<response::ptr>::iterator i = asyncs.begin(); i != asyncs.end(); i++) {
+   for (set<response::ptr>::const_iterator i = asyncs.begin(); i != asyncs.end(); i++) {
       (*i)->setEvent(master_ev);
    }
 }
@@ -661,7 +661,7 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    EventNewThread *threadev = static_cast<EventNewThread *>(ev.get());
 
    pthrd_printf("Handle thread create for %d/%d with new thread %d\n",
-                proc->getPid(), thrd ? thrd->getLWP() : -1, threadev->getLWP());
+	   proc->getPid(), thrd ? thrd->getLWP() : (Dyninst::LWP)(-1), threadev->getLWP());
 
    if (ev->getEventType().code() == EventType::UserThreadCreate)  {
       //If we support both user and LWP thread creation, and we're doing a user
@@ -1636,7 +1636,7 @@ bool HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_
    pthrd_printf("Triggering callback for event '%s'\n", ev->name().c_str());
    Process::cb_action_t parent_result = Process::cbDefault;
    Process::cb_action_t child_result = Process::cbDefault;
-   std::set<Process::cb_func_t>::iterator j;
+   std::set<Process::cb_func_t>::const_iterator j;
    for (j = cbset.begin(); j != cbset.end(); j++, k++) {
       pthrd_printf("Triggering callback #%u for event '%s'\n", k, ev->name().c_str());
       int_process::setInCB(true);
@@ -1721,7 +1721,7 @@ void HandleCallbacks::getRealEvents(EventType ev, std::vector<EventType> &out_ev
 bool HandleCallbacks::registerCallback_int(EventType ev, Process::cb_func_t func)
 {
    pthrd_printf("Registering event %s with callback function %p\n", ev.name().c_str(), func);
-   std::set<EventType>::iterator i = alleventtypes.find(ev);
+   std::set<EventType, Dyninst::ProcControlAPI::eventtype_cmp>::iterator i = alleventtypes.find(ev);
    if (i == alleventtypes.end()) {
       pthrd_printf("Event %s does not have any handler\n", ev.name().c_str());
       return false;

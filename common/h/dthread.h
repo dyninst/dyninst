@@ -33,13 +33,14 @@
 #define DTHREAD_H_
 
 #include <stdlib.h>
+#include "util.h"
 
 #if !defined(os_windows)
 #define cap_pthreads
 #include <pthread.h>
 #endif
 
-class DThread {
+class COMMON_EXPORT DThread {
 #if defined(cap_pthreads)
    pthread_t thrd;
 #endif
@@ -55,7 +56,7 @@ class DThread {
    long id();
 };
 
-class Mutex {
+class COMMON_EXPORT Mutex {
    friend class CondVar;
 #if defined(cap_pthreads)
    pthread_mutex_t mutex;
@@ -68,7 +69,7 @@ class Mutex {
    bool unlock();
 };
 
-class CondVar {
+class COMMON_EXPORT CondVar {
 #if defined(cap_pthreads)
    pthread_cond_t cond;
 #endif
