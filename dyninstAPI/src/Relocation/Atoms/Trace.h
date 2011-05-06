@@ -40,10 +40,7 @@
 #include "CFG.h"
 #include "dyninstAPI/src/Relocation/CodeMover.h"
 
-#include <list> // stl::list
-
 class baseTramp;
-class baseTrampInstance;
 class block_instance;
 class func_instance;
 
@@ -51,21 +48,50 @@ namespace Dyninst {
 namespace Relocation {
 
 class Transformer;
-class Atom;
-class RelocInsn;
-class Inst;
-class CFAtom;
-class Trace;
 
 class TargetInt;
 
-struct Patch;
 class TrackerElement;
 class CodeTracker;
 class CodeBuffer;
 
 class CFAtom;
 typedef dyn_detail::boost::shared_ptr<CFAtom> CFAtomPtr;
+class Atom;
+typedef dyn_detail::boost::shared_ptr<Atom> AtomPtr;
+
+class RelocEdge;
+class Trace; 
+
+struct RelocEdge {
+   RelocEdge(TargetInt *s, TargetInt *t, ParseAPI::EdgeTypeEnum e) :
+     src(s), trg(t), type(e) {};
+
+   ~RelocEdge();
+
+   TargetInt *src;
+   TargetInt *trg;
+   ParseAPI::EdgeTypeEnum type;
+};
+
+struct RelocEdges {
+   RelocEdges() {};
+
+   typedef std::list<RelocEdge *>::iterator iterator;
+   typedef std::list<RelocEdge *>::const_iterator const_iterator;
+   iterator begin() { return edges.begin(); }
+   iterator end() { return edges.end(); }
+   const_iterator begin() const { return edges.begin(); }
+   const_iterator end() const { return edges.end(); }
+   void push_back(RelocEdge *e) { edges.push_back(e); }
+   void insert(RelocEdge *e) { edges.push_back(e); }
+
+   RelocEdge *find(ParseAPI::EdgeTypeEnum e);
+   void erase(RelocEdge *);
+   
+   bool contains(ParseAPI::EdgeTypeEnum e);
+   std::list<RelocEdge *> edges;
+};
 
 class Trace {
   friend class Transformer;
@@ -73,18 +99,29 @@ class Trace {
  public:
    typedef int Label;
    static int TraceID;
-   typedef std::list<Atom::Ptr> AtomList;
-   typedef dyn_detail::boost::shared_ptr<Trace> Ptr;
-   typedef std::list<Patch *> Patches;
-   typedef std::list<TargetInt *> Targets;
-   typedef std::map<ParseAPI::EdgeTypeEnum, Targets> Edges;
+   typedef std::list<AtomPtr> AtomList;
+   typedef enum {
+      Relocated,
+      Instrumentation,
+      Stub } Type;
 
    // Standard creation
-   static Ptr create(block_instance *block, func_instance *func);
-   // Nonstandard creation; we need the block to be able to 
-   // provide tracking data structures for later
-   static Ptr create(Atom::Ptr atom, Address a, block_instance *block, func_instance *func);
-   bool linkTraces(std::map<block_instance *, Trace::Ptr> &traces);
+   static Trace *createReloc(block_instance *block, func_instance *func);
+   // Instpoint creation
+   static Trace *createInst(instPoint *point, Address a, 
+                        block_instance *block, func_instance *func);
+   // Stub creation; we're creating an empty Trace associated
+   // with some other block/function/thing
+   static Trace *createStub(block_instance *block, func_instance *func);
+
+   Trace *next() { return next_; }
+   Trace *prev() { return prev_; }
+   ~Trace() {};
+
+   void setNext(Trace *next) { next_ = next; }
+   void setPrev(Trace *prev) { prev_ = prev; }
+
+   bool linkTraces(RelocGraph *cfg);
    bool determineSpringboards(PriorityMap &p);
    void determineNecessaryBranches(Trace *successor);
 
@@ -94,7 +131,7 @@ class Trace {
    block_instance *block() const { return block_; }
    mapped_object *obj() const;
    std::string format() const;
-   Label getLabel() const { assert(label_ != -1);  return label_; };
+   Label getLabel() const;
    
    // Non-const for use by transformer classes
    AtomList &elements() { return elements_; }
@@ -105,31 +142,14 @@ class Trace {
    bool extractTrackers(CodeTracker &);
    bool generate(const codeGen &templ, CodeBuffer &buffer);
 
-   // Transforms an edge S -> T (where S == this) to 
-   // S -> I -> T (where I -> T has type fallthrough)
-   bool interposeTarget(ParseAPI::EdgeTypeEnum type, 
-                        Trace::Ptr newTarget); 
-   bool moveSources(ParseAPI::EdgeTypeEnum type,
-                    Trace::Ptr newSource);
-   bool interposeTarget(edge_instance *e,
-                        Trace::Ptr newTarget);
-   Targets &getTargets(ParseAPI::EdgeTypeEnum type);
-
-   bool removeTargets(ParseAPI::EdgeTypeEnum type);
-   bool removeTargets();
-   bool replaceTarget(Trace::Ptr oldTarget, Trace::Ptr newTarget);
-
-
-   // Splits the trace immediately before the provided iterator.
-   Trace::Ptr split(AtomList::iterator where);
-
-   // Used when we're really monkeying with the traces. Turns this
-   // into something that will detect as instrumentation. 
-   void setAsInstrumentationTrace();
-   bool origTrace() const { return origTrace_; }
+   void setType(Type type);
+   Type type() const { return type_; }
 
    // Set up the CFAtom with our out-edges
-   bool finalizeCF(Trace::Ptr next);
+   bool finalizeCF();
+
+   RelocEdges *ins() { return &inEdges_; }
+   RelocEdges *outs() { return &outEdges_; }
 
  private:
    
@@ -139,7 +159,10 @@ class Trace {
       func_(f),
       id_(TraceID++),
       label_(-1),
-      origTrace_(true) {};
+      origTrace_(true),
+      prev_(NULL),
+      next_(NULL),
+      type_(Relocated) {};
    // Constructor for a trace inserted later
   Trace(Address a, block_instance *b, func_instance *f)
       :origAddr_(a),
@@ -147,7 +170,10 @@ class Trace {
       func_(f),
       id_(TraceID++),
       label_(-1),
-      origTrace_(false) { 
+      origTrace_(false),
+      prev_(NULL),
+      next_(NULL),
+      type_(Instrumentation) { 
    };
 
    typedef enum {
@@ -155,22 +181,15 @@ class Trace {
       OutEdge } EdgeDirection;
 
    void createCFAtom();
-   void getPredecessors(const std::map<block_instance *, Trace::Ptr> &traces);
-   void getSuccessors(const std::map<block_instance *, Trace::Ptr> &traces);
-   void processEdge(EdgeDirection e, edge_instance *edge, const std::map<block_instance *, Trace::Ptr> &traces);
+   void getPredecessors(RelocGraph *cfg);
+   void getSuccessors(RelocGraph *cfg);
+   void processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *cfg);
 
    void preserveBlockGap();
    std::pair<bool, Address> getJumpTarget();
 
-   void replaceInEdge(ParseAPI::EdgeTypeEnum type,
-                      Trace *oldSource,
-                      TargetInt *newSource);
-   void replaceOutEdge(ParseAPI::EdgeTypeEnum type,
-                      Trace *oldTarget,
-                      TargetInt *newTarget);
    bool isNecessary(TargetInt *target,
-                    ParseAPI::EdgeTypeEnum edgeType,
-                    Trace::Ptr next);
+                    ParseAPI::EdgeTypeEnum edgeType);
 
    Address origAddr_;
    block_instance *block_;
@@ -185,13 +204,20 @@ class Trace {
    // This is convienient to avoid tons of dynamic_cast
    // equivalents
    CFAtomPtr cfAtom_;
-   Patches patches_;
 
    // We're building a mini-CFG, so might as well make it obvious. 
    // Also, this lets us reassign edges. We sort by edge type. 
-   Edges inEdges_;
-   Edges outEdges_;
+   RelocEdges inEdges_;
+   RelocEdges outEdges_;
 
+   // We use the standard code generation mechanism of having a doubly-linked
+   // list overlaid on a graph. Use the list to traverse in layout order; use the graph
+   // to traverse in control flow order.
+
+   Trace *prev_;
+   Trace *next_;
+
+   Type type_;
 };
 
 };

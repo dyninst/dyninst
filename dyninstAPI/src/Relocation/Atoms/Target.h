@@ -51,6 +51,7 @@ namespace Relocation {
 // predictedAddr takes into account things moving during code generation
 
 class CodeBuffer;
+class RelocEdge;
 
 class TargetInt {
  public:
@@ -75,6 +76,12 @@ class TargetInt {
   
   virtual bool matches(Trace *) const { return false; }
   virtual int label(CodeBuffer *) const { return -1; }
+
+  virtual void addTargetEdge(RelocEdge *) {};
+  virtual void addSourceEdge(RelocEdge *) {};
+  virtual void removeTargetEdge(RelocEdge *) {};
+  virtual void removeSourceEdge(RelocEdge *) {};
+  virtual block_instance *block() { return NULL; }
 
   protected:
 
@@ -108,7 +115,7 @@ template <>
   
   virtual string format() const { 
      stringstream ret;
-     ret << this << ":T{" << t_->id() << "/" << (necessary() ? "+" : "-") << "}";
+     ret << "T{" << t_->id() << "/" << (necessary() ? "+" : "-") << "}";
      return ret.str();
   }
   
@@ -116,6 +123,12 @@ template <>
 
   int label(CodeBuffer *) const { return t_->getLabel(); };
   
+  virtual void addTargetEdge(RelocEdge *e);
+  virtual void addSourceEdge(RelocEdge *e);
+  virtual void removeTargetEdge(RelocEdge *e);
+  virtual void removeSourceEdge(RelocEdge *e);
+  virtual block_instance *block();
+
  private:
   Trace * t_;
 };
@@ -140,6 +153,7 @@ class Target<block_instance *> : public TargetInt {
   }
 
   int label(CodeBuffer *) const;
+  virtual block_instance *block() { return t_; }
 
  private:
   block_instance *t_;

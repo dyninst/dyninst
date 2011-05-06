@@ -39,23 +39,24 @@
 #include "../Atoms/Trace.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "instructionAPI/h/InstructionDecoder.h"
+#include "../RelocGraph.h"
+
 
 using namespace std;
-using namespace Dyninst;
+using namespace Dyninst; 
 using namespace Relocation;
 using namespace InstructionAPI;
 
 
-bool adhocMovementTransformer::processTrace(TraceList &blocks, const TraceMap &) {
-   for (TraceList::iterator b_iter = blocks.begin(); b_iter != blocks.end(); ++b_iter) {
+bool adhocMovementTransformer::process(Trace *cur, RelocGraph *cfg) {
   // Identify PC-relative data accesses
   // and "get PC" operations and replace them
   // with dedicated Atoms
 
-   Trace::AtomList &elements = (*b_iter)->elements();
+   Trace::AtomList &elements = cur->elements();
 
   relocation_cerr << "PCRelTrans: processing block " 
-		  << (*b_iter).get() << " with "
+		  << cur << " with "
 		  << elements.size() << " elements." << endl;
 
   for (Trace::AtomList::iterator iter = elements.begin();
@@ -63,7 +64,7 @@ bool adhocMovementTransformer::processTrace(TraceList &blocks, const TraceMap &)
     // Can I do in-place replacement? Apparently I can...
     // first insert new (before iter) and then remove iter
 
-    relocation_cerr << "    "
+    relocation_cerr << "\t"
 		    << std::hex << (*iter)->addr() << std::dec << endl;
 
     if (!((*iter)->insn())) continue;
@@ -105,7 +106,8 @@ bool adhocMovementTransformer::processTrace(TraceList &blocks, const TraceMap &)
       else {
          // Remove the taken edge from the trace, as we're removing
          // the call and replacing it with a GetPC operation. 
-         bool removed = (*b_iter)->removeTargets(ParseAPI::CALL);
+         Predicates::Interprocedural pred;
+         bool removed = cfg->removeEdge(pred, cur->outs());
          assert(removed);
             
          // Before we forget: swap in the GetPC for the current element
@@ -114,7 +116,6 @@ bool adhocMovementTransformer::processTrace(TraceList &blocks, const TraceMap &)
       }
     }
   }
-   }
   return true;
 }
 

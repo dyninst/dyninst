@@ -47,7 +47,7 @@ class RelocInsn;
 class adhocMovementTransformer : public Transformer {
   typedef dyn_detail::boost::shared_ptr<RelocInsn> RelocInsnPtr;
  public:
-  virtual bool processTrace(TraceList &, const TraceMap &);
+  virtual bool process(Trace *, RelocGraph *);
 
   adhocMovementTransformer(AddressSpace *as) : addrSpace(as) {};
 

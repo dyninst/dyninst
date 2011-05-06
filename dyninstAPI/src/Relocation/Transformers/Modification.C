@@ -37,6 +37,7 @@
 #include "../Atoms/CFAtom.h"
 #include "../Atoms/ASTAtom.h"
 #include "../Atoms/InstAtom.h"
+#include "../RelocGraph.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/function.h"
 
@@ -51,7 +52,7 @@ Modification::Modification(const CallModMap &callMod,
   funcReps_(funcRepl),
   funcWraps_(funcWraps) {};
 
-bool Modification::processTrace(TraceList &blocks, const TraceMap &traceMap) {
+bool Modification::process(Trace *cur, RelocGraph *cfg) {
   // We define three types of program modification:
   // 1) Function call replacement; change the target of the corresponding
   //    call element
@@ -59,130 +60,152 @@ bool Modification::processTrace(TraceList &blocks, const TraceMap &traceMap) {
   //    fallthrough edge
   // 3) Function replacement; TODO
 
-   for (TraceList::iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
-      Trace::Ptr trace = *iter;
-      
-      replaceCall(trace, traceMap); 
-      replaceFunction(trace, traceMap);
-      Trace::Ptr ret = wrapFunction(trace, traceMap);
-      if (ret) {
-         TraceList::iterator tmp = iter;
-         ++tmp;
-         blocks.insert(tmp, ret);
-         // Skip this one
-         ++iter;
-      }
-   }
+   if (!replaceCall(cur, cfg)) return false;
+   if (!replaceFunction(cur, cfg)) return false;
+   if (!wrapFunction(cur, cfg)) return false;
+
    return true;
 }
 
-void Modification::replaceCall(Trace::Ptr trace, const TraceMap &traceMap) {
+bool Modification::replaceCall(Trace *trace, RelocGraph *cfg) {
    // See if we have a modification for this point
    CallModMap::const_iterator iter = callMods_.find(trace->block());
-   if (iter == callMods_.end()) return;
+   if (iter == callMods_.end()) return true;
    std::map<func_instance *, func_instance *>::const_iterator iter2 = iter->second.find(trace->func());
-   if (iter2 == iter->second.end()) return;
+   if (iter2 == iter->second.end()) return true;
 
    func_instance *repl = iter2->second;
+
+   relocation_cerr << "Replacing call in trace " 
+                   << trace->id() << " with call to "
+                   << (repl ? repl->name() : "<NULL>")
+                   << ", " << hex 
+                   << (repl ? repl->addr() : 0)
+                   << dec << endl;
+      
    
    // Replace the call at the end of this trace /w/ repl (if non-NULL),
    // or elide completely (if NULL)
    // We do this via edge twiddling in the Trace
    
-   if (!repl) {
-      trace->removeTargets(ParseAPI::CALL);
-      return;
-   }
-   Trace::Targets &targets = trace->getTargets(ParseAPI::CALL);
-   for (Trace::Targets::iterator d_iter = targets.begin();
-        d_iter != targets.end(); ++d_iter) {
-      delete *d_iter;
-   }
-   targets.clear();
-   
-   block_instance *entry = repl->entryBlock();
-   assert(entry);
+   Predicates::Type pred(ParseAPI::CALL);
 
-   targets.push_back(getTarget(entry, traceMap));
+   if (!repl) {
+      if (!cfg->removeEdge(pred, trace->outs())) return false;
+      return true;
+   }
+   
+   Trace *target = cfg->find(repl->entryBlock());
+   if (target) {
+      if (!cfg->changeTargets(pred, trace->outs(), target)) return false;
+   }
+   else {
+      if (!cfg->changeTargets(pred, trace->outs(), repl->entryBlock())) return false;
+   }
+
+   return true;
 }
 
-void Modification::replaceFunction(Trace::Ptr trace, const TraceMap &traceMap) {
+bool Modification::replaceFunction(Trace *trace, RelocGraph *cfg) {
    // See if we're the entry block
-   if (trace->block() != trace->func()->entryBlock()) return;
+   if (trace->block() != trace->func()->entryBlock()) return true;
 
    FuncModMap::const_iterator iter = funcReps_.find(trace->func());
-   if (iter == funcReps_.end()) return;
+   if (iter == funcReps_.end()) return true;
 
    relocation_cerr << "Performing function replacement in trace " << trace->id() 
                    << " going to function " << iter->second->name() 
                    << " /w/ entry block " 
                    << (iter->second->entryBlock() ? iter->second->entryBlock()->start() : -1) << endl;
-   // Okay, time to do work. 
-   // Just update the out-edges (removing everything except
-   // a... fallthrough, why not... to the replacement function)
-   trace->removeTargets();
-   trace->getTargets(ParseAPI::FALLTHROUGH).push_back(getTarget(iter->second->entryBlock(), traceMap));
+   // Stub a jump to the replacement function
+   Trace *stub = makeTrace(iter->second->entryBlock(), 
+                           iter->second,
+                           cfg);
+   Trace *target = cfg->find(iter->second->entryBlock());
+   if (target) {
+      cfg->makeEdge(new Target<Trace *>(stub),
+                    new Target<Trace *>(target),
+                    ParseAPI::DIRECT);
+   }
+   else {
+      cfg->makeEdge(new Target<Trace *>(stub),
+                    new Target<block_instance *>(iter->second->entryBlock()),
+                    ParseAPI::DIRECT);
+   }
 
-   // And erase anything in the trace to be sure we immediately jump.
-   // Amusingly? Entry instrumentation of the function will still execute...
-   // Need to determine semantics of this and FIXME TODO
-   trace->elements().clear();
-
-   CFAtom::Ptr newCF = CFAtom::create(trace->block()->start());
-   trace->elements().push_back(newCF);
-   trace->cfAtom() = newCF;
+   // Redirect the springboard to the replacement function
+   cfg->setSpringboard(trace->block(), stub);
+   
+   // Redirect all call in-edges to the replacement function
+   Predicates::Interprocedural pred;
+   if (target)
+      if (!cfg->changeTargets(pred, trace->ins(), target)) return false;
+   else
+      if (!cfg->changeTargets(pred, trace->ins(), iter->second->entryBlock())) return false;
+   return true;
 }
 
-Trace::Ptr Modification::wrapFunction(Trace::Ptr trace, const TraceMap &traceMap) {
+bool Modification::wrapFunction(Trace *trace, RelocGraph *cfg) {
    // See if we're the entry block
-   if (trace->block() != trace->func()->entryBlock()) return Trace::Ptr();
+   if (trace->block() != trace->func()->entryBlock()) return true;
 
    FuncModMap::const_iterator iter = funcWraps_.find(trace->func());
-   if (iter == funcWraps_.end()) return Trace::Ptr();
+   if (iter == funcWraps_.end()) return true;
 
    relocation_cerr << "Performing function wrapping in trace " << trace->id() 
                    << " going to function " << iter->second->name() 
                    << " /w/ entry block " 
                    << (iter->second->entryBlock() ? iter->second->entryBlock()->start() : -1) << endl;
-   cerr << "Step 1" << endl;
-   // Create a placeholder at the start of the old function that redirects execution
-   // to the wrapper instead
-   Trace::Ptr newTrace = trace->split(trace->elements().begin());
-   cerr << trace->format() << endl;
-   cerr << newTrace->format() << endl;
 
-   cerr << "Step 2" << endl;
-   trace->removeTargets();
-
-   cerr << trace->format() << endl;
-   cerr << newTrace->format() << endl;
-   cerr << "Step 3" << endl;
-
-   trace->getTargets(ParseAPI::FALLTHROUGH).push_back(getTarget(iter->second->entryBlock(), traceMap));
-
-   // Go through the wrapper and redirect all of its edges to the wrappee (that is, to trace)
-   // with edges to newtrace
-
-   const func_instance::BlockSet &wrapperBlocks = iter->second->blocks();
-   for (func_instance::BlockSet::const_iterator iter = wrapperBlocks.begin();
-        iter != wrapperBlocks.end(); ++iter) {
-      TraceMap::const_iterator tmp = traceMap.find(*iter);
-      assert(tmp != traceMap.end());
-      cerr << "Replacing in" << endl;
-      cerr << tmp->second->format() << endl;
-      tmp->second->replaceTarget(trace, newTrace);
-      cerr << tmp->second->format() << endl;
-   }
-   return newTrace;
-}
-
-TargetInt *Modification::getTarget(block_instance *block, const TraceMap &traceMap) {
-   // See if there's a reloc copy
-   TraceMap::const_iterator t_iter = traceMap.find(block);
-   if (t_iter != traceMap.end()) {
-      return new Target<Trace *>(t_iter->second.get());
+   // This is a special case of replaceFunction; the predicate is "all calls except from the 
+   // wrapper are redirected". 
+   Trace *stub = makeTrace(iter->second->entryBlock(), 
+                           iter->second,
+                           cfg);
+   Trace *target = cfg->find(iter->second->entryBlock());
+   if (target) {
+      cfg->makeEdge(new Target<Trace *>(stub),
+                    new Target<Trace *>(target),
+                    ParseAPI::DIRECT);
    }
    else {
-      return new Target<block_instance *>(block);
+      cfg->makeEdge(new Target<Trace *>(stub),
+                    new Target<block_instance *>(iter->second->entryBlock()),
+                    ParseAPI::DIRECT);
    }
+                 
+
+   // TODO: have a more expressive representation of the wrapped function
+   cfg->setSpringboard(trace->block(), stub);
+   
+   WrapperPredicate pred(trace->func());
+   if (target)
+      if (!cfg->changeTargets(pred, trace->ins(), target)) return false;
+   else
+      if (!cfg->changeTargets(pred, trace->ins(), iter->second->entryBlock())) return false;
+   return true;
+}
+
+Trace *Modification::makeTrace(block_instance *block, func_instance *func, RelocGraph *cfg) {
+   Trace *t = cfg->find(block);
+   if (t) return t;
+
+   // Otherwise we need to make a stub Trace that jumps to this function; 
+   // this is annoying, but necessary. 
+   
+   t = Trace::createStub(block, func);
+   // Put it at the end, why not.
+   cfg->addTrace(t);
+   return t;
+}
+
+// TODO: make this mildly more efficient. On the other hand, is it a big deal?
+Modification::WrapperPredicate::WrapperPredicate(func_instance *f) 
+   : f_(f) {};
+
+
+bool Modification::WrapperPredicate::operator()(RelocEdge *e) {
+   if (e->src->type() != TargetInt::TraceTarget) return false;
+   Trace *t = static_cast<Target<Trace *> *>(e->src)->t();
+   return t->func() == f_;
 }

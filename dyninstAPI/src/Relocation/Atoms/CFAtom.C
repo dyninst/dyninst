@@ -281,16 +281,11 @@ bool CFAtom::generate(const codeGen &templ,
 }
 
 CFAtom::~CFAtom() {
-   // Delete all Targets in our map
-   for (DestinationMap::iterator i = destMap_.begin(); 
-        i != destMap_.end(); ++i) {
-      delete i->second;
-   }
+   // Don't delete the Targets; they're taken care of when we nuke the overall CFG. 
 }
 
 TrackerElement *CFAtom::tracker(const Trace *trace) const {
    assert(addr_ != 1);
-   assert(addr_);
    EmulatorTracker *e = new EmulatorTracker(addr_, trace->block(), trace->func());
    return e;
 }

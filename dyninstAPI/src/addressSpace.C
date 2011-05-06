@@ -1532,8 +1532,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   if (dyn_debug_reloc || dyn_debug_write) {
       using namespace InstructionAPI;
       // Print out the buffer we just created
-      cerr << "DUMPING RELOCATION BUFFER " << hex 
-           << cm->blockMap().begin()->first->start() << dec << endl;
+      cerr << "DUMPING RELOCATION BUFFER" << endl;
 
       Address base = baseAddr;
       InstructionDecoder deco
