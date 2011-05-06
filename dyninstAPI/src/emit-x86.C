@@ -2649,8 +2649,10 @@ Address Emitter::getInterModuleFuncAddr(int_function *func, codeGen& gen)
     if (!relocation_address) {
         // inferiorMalloc addr location and initialize to zero
         relocation_address = binEdit->inferiorMalloc(jump_slot_size);
-        unsigned int dat = 0;
-        binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, &dat);
+        unsigned char* dat = (unsigned char*) malloc(jump_slot_size);
+        memset(dat,0,jump_slot_size);
+        binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, dat);
+        free(dat);
 
         // add write new relocation symbol/entry
         binEdit->addDependentRelocation(relocation_address, referring);
