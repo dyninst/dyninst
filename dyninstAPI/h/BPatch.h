@@ -120,8 +120,6 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     friend class PCProcess;
     friend class func_instance;
 
-    BPatch_libInfo *info; 
-
     bool	typeCheckOn;
     int		lastError;
     bool	debugParseOn;
@@ -195,9 +193,11 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
    InternalCodeOverwriteCallback codeOverwriteCallback;
    
    BPatch_Vector<BPatchUserEventCallback> userEventCallbacks;
-   BPatch_Vector<BPatchStopThreadCallback> stopThreadCallbacks;
    
    public:  
+   BPatch_libInfo *info; 
+   BPatch_Vector<BPatchStopThreadCallback> stopThreadCallbacks;
+   
    /* And auxiliary functions for the above */
    /* These are NOT part of the API, do not use externally */
    void signalNotificationFD(); // Called when an event happens

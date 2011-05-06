@@ -1593,7 +1593,7 @@ static void constructorHelper(
 
     // create callback ID argument
     int cb_id = BPatch::bpatch->info->getStopThreadCallbackID((Address)bp_cb); 
-    AstNodePtr idNode = AstNode::operandNode(AstNode::Constant, (void*)(int) cb_id );
+    idNode = AstNode::operandNode(AstNode::Constant, (void*)(int) cb_id );
     BPatch_type *inttype = BPatch::bpatch->stdTypes->findType("int");
     assert(inttype != NULL);
     idNode->setType(inttype);

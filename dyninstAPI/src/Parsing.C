@@ -43,8 +43,8 @@
 #include "Parsing.h"
 #include "debug.h"
 #include "BPatch.h"
-#include "process.h"
 #include "mapped_object.h"
+#include "pcProcess.h"
 
 #if defined(os_aix) || defined(os_solaris)
 #include "parRegion.h"

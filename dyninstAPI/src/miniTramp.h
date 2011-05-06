@@ -49,6 +49,7 @@ class miniTramp;
 class AstNode;
 class AstMiniTrampNode;
 class AddressSpace;
+class PCProcess;
 
 class miniTramp {
   friend class instPoint;
@@ -66,7 +67,7 @@ class miniTramp {
   bool uninstrument();
 
   // Given a child address space, get the corresponding miniTramp to us.
-  miniTramp *getInheritedMiniTramp(process *child);
+  miniTramp *getInheritedMiniTramp(AddressSpace *child);
 
   instPoint *instP() const { return point_; }
 

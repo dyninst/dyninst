@@ -149,7 +149,6 @@ class func_instance : public patchTarget {
    // interprocedural edge, but I expect that would
    // break all manner of things
    ////////////////////////////////////////////////
-   func_instance *findCallee(block_instance *callBlock);
 
    bool isSignalHandler() {return handlerFaultAddr_ != 0;}
    Address getHandlerFaultAddr() {return handlerFaultAddr_;}

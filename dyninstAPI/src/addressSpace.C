@@ -1573,6 +1573,9 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       // adjust PC if active frame is in a modified function, this 
       // forces the instrumented version of the code to execute right 
       // away and is needed for code overwrites
+      
+      // KEVIN TODO
+      /*
       vector<dyn_thread*>::const_iterator titer;
       for (titer=proc()->threads.begin();
            titer != proc()->threads.end(); 
@@ -1612,6 +1615,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
              break;
           }
       }
+      */
   }
   
   return true;
@@ -1915,6 +1919,7 @@ void AddressSpace::invalidateMemory(Address addr, Address size) {
 	// set permissions on the deallocated range. 
 	return;
 
+        /*
 	if (memEmulator_) memEmulator_->removeRegion(addr, size);
 
 	proc()->flushAddressCache_RT(addr, size);
@@ -1924,6 +1929,7 @@ void AddressSpace::invalidateMemory(Address addr, Address size) {
 	{
 		findFuncsByAddr(i, funcsToDelete);
 	}
+        */
 
 }
 

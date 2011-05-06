@@ -235,10 +235,6 @@ BPatch_Vector<BPatch_thread *> &BPatchSnippetHandle::getCatchupThreadsInt()
 // Return true if any sub-minitramp uses a trap? Other option
 // is "if all"...
 bool BPatchSnippetHandle::usesTrapInt() {
-    for (unsigned i = 0; i < mtHandles_.size(); i++) {
-        if (mtHandles_[i]->instrumentedViaTrap())
-            return true;
-    }
     return false;
 }
 

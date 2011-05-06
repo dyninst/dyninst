@@ -41,7 +41,6 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "debug.h"
-#include "process.h"
 #include "mapped_object.h"
 #include "dyninstAPI/src/instPoint.h"
 
@@ -53,7 +52,6 @@
 // Normal constructor
 baseTramp::baseTramp() :
    point_(NULL),
-   rpcMgr_(NULL),
    funcJumpState_(cfj_unset),
    needsStackFrame_(false),
    threaded_(false),
@@ -79,13 +77,6 @@ baseTramp::~baseTramp() {
 baseTramp *baseTramp::create(instPoint *p) {
    baseTramp *bt = new baseTramp();
    bt->point_ = p;
-   return bt;
-}
-
-baseTramp *baseTramp::create(rpcMgr *r, AstNodePtr a) {
-   baseTramp *bt = new baseTramp();
-   bt->rpcMgr_ = r;
-   bt->ast_= a;
    return bt;
 }
 
@@ -319,7 +310,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
       else if (gen.thread()) {
          // Constant override...
          threadIndex = AstNode::operandNode(AstNode::Constant,
-                                            (void *)(long)gen.thread()->get_index());
+                                            (void *)(long)gen.thread()->getIndex());
       }
       else {
          // TODO: we can get clever with this, and have the generation of
@@ -423,8 +414,6 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
 AddressSpace *baseTramp::proc() const { 
    if (point_)
       return point_->proc();
-   if (rpcMgr_)
-      return rpcMgr_->proc();
    return NULL;
 }
 

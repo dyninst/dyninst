@@ -132,7 +132,7 @@ int BPatch_thread::getLWPInt()
 }
 
 BPatch_function *BPatch_thread::getInitialFuncInt() {
-   int_function *ifunc = llthread->getStartFunc();
+   func_instance *ifunc = llthread->getStartFunc();
    if (!ifunc) return NULL;
    return proc->findOrCreateBPFunc(ifunc, NULL);
 }

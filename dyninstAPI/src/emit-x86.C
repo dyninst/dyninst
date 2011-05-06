@@ -50,6 +50,7 @@
 #include "dyninstAPI/src/pcProcess.h"
 
 #include "dyninstAPI/src/binaryEdit.h"
+#include "dyninstAPI/src/symtab.h"
 
 const int EmitterIA32::mt_offset = -4;
 #if defined(arch_x86_64)

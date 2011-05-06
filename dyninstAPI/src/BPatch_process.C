@@ -806,7 +806,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
     return false;
   }
   
-  if ( ! statusIsStopped() ) {
+  if ( ! isStoppedInt() ) {
     shouldContinue = true;
     stopExecutionInt();
   }
@@ -1331,16 +1331,18 @@ bool BPatch_process::triggerSignalHandlerCB(instPoint *intPoint,
 bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint, 
                                             Address faultTarget)
 {
-    BPatch_function *func = findOrCreateBPFunc
-        (llproc->findActiveFuncByAddr(fault_instr),NULL);
-    assert(func);
-    BPatch_point *fault_point = image->createInstPointAtAddr
-        ((void*)fault_instr, NULL, func);
+    BPatch_function *bpFunc = findOrCreateBPFunc
+        (faultPoint->func(),NULL);
+    assert(bpFunc);
+    BPatch_point *bpPoint = findOrCreateBPPoint(
+        bpFunc,
+        faultPoint,
+        BPatch_point::convertInstPointType_t(faultPoint->type()));
 
     // Do the callback
     InternalCodeOverwriteCallback cb = BPatch::bpatch->codeOverwriteCallback;
     if( cb ) {
-        (*cb)(fault_point, viol_target);
+        (*cb)(bpPoint, faultTarget);
         return true;
     }
 
@@ -1839,10 +1841,4 @@ bool BPatch_process::protectAnalyzedCode()
        }
     }
     return false;
-}
-
-void BPatch_process::set_llproc(process *proc) 
-{
-    assert(NULL == llproc);
-    llproc = proc;
 }

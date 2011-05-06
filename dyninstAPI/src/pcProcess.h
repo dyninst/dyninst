@@ -44,7 +44,6 @@
 #include "addressSpace.h"
 #include "pcThread.h"
 #include "pcEventHandler.h"
-#include "BPatch_hybridAnalysis.h"
 #include "inst.h"
 #include "codeRange.h"
 #include "infHeap.h"
@@ -65,8 +64,7 @@
 #define RPC_RUN_WHEN_DONE 1
 #define RPC_STOP_WHEN_DONE 2
 
-class multiTramp;
-class bblInstance;
+class generatedCodeObject; // TODO clean up
 
 class PCProcess : public AddressSpace {
     // Why PCEventHandler is a friend
@@ -162,13 +160,12 @@ public:
     virtual bool inferiorRealloc(Dyninst::Address, unsigned int);
 
     // Instrumentation support
-    virtual void deleteGeneratedCode(generatedCodeObject *del);
     bool mappedObjIsDeleted(mapped_object *obj);
     void installInstrRequests(const pdvector<instMapping*> &requests);
     bool uninstallMutations();
     bool reinstallMutations();
     Address getTOCoffsetInfo(Address dest); // platform-specific
-    Address getTOCoffsetInfo(int_function *func); // platform-specific
+    Address getTOCoffsetInfo(func_instance *func); // platform-specific
     bool getOPDFunctionAddr(Address &opdAddr); // architecture-specific
 
     // iRPC interface
@@ -191,11 +188,12 @@ public:
     // code overwrites
     bool getOverwrittenBlocks(std::map<Address, unsigned char *>& overwrittenPages,//input
                               std::map<Address,Address>& overwrittenRegions,//output
-                              std::set<bblInstance *> &writtenBBIs); //output
-    bool getDeadCodeFuncs(std::set<bblInstance *> &deadBlocks, // input
-                          std::set<int_function*> &affectedFuncs, //output
-                          std::set<int_function*> &deadFuncs); //output
+                              std::set<block_instance *> &writtenBBIs); //output
+    bool getDeadCodeFuncs(std::set<block_instance *> &deadBlocks, // input
+                          std::set<func_instance*> &affectedFuncs, //output
+                          std::set<func_instance*> &deadFuncs); //output
     unsigned getMemoryPageSize() const;
+    bool patchPostCallArea(instPoint *) { return false;}
 
 
     // synch modified mapped objects with current memory contents
@@ -209,7 +207,7 @@ public:
     bool hideDebugger(); // platform-specific
 
     // Active instrumentation tracking
-    int_function *findActiveFuncByAddr(Address addr);
+    func_instance *findActiveFuncByAddr(Address addr);
     void getActiveMultiMap(std::map<Address, multiTramp *> &map);
     void updateActiveMultis();
     void addActiveMulti(multiTramp *multi);
@@ -218,11 +216,11 @@ public:
 
     // No function is pushed onto return vector if address can't be resolved
     // to a function
-    pdvector<int_function *> pcsToFuncs(pdvector<Frame> stackWalk);
+    pdvector<func_instance *> pcsToFuncs(pdvector<Frame> stackWalk);
 
     // architecture-specific
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &entry, 
-			   int_function *&target_pdf, Address base_addr);
+			   func_instance *&target_pdf, Address base_addr);
 
     // AddressSpace implementations //
     virtual Address offset() const;
@@ -299,9 +297,8 @@ protected:
           inEventHandling_(false),
           stackwalker_(NULL)
     {
-        irpcTramp_ = new baseTramp(NULL, callUnset);
-        irpcTramp_->setRecursive(true);
-        irpcTramp_->setIRPCTramp(true);
+        //irpcTramp_ = new baseTramp;
+        irpcTramp_ = NULL;
     }
 
     // Process attach constructor
@@ -340,9 +337,8 @@ protected:
           inEventHandling_(false),
           stackwalker_(NULL)
     {
-        irpcTramp_ = new baseTramp(NULL, callUnset);
-        irpcTramp_->setRecursive(true);
-        irpcTramp_->setIRPCTramp(true);
+        //irpcTramp_ = new baseTramp;
+        irpcTramp_ = NULL;
     }
 
     static PCProcess *setupForkedProcess(PCProcess *parent, ProcControlAPI::Process::ptr pcProc);
@@ -510,7 +506,7 @@ protected:
     bool createdViaAttach_;
     processState_t processState_;
     bootstrapState_t bootstrapState_;
-    int_function *main_function_;
+    func_instance *main_function_;
     int curThreadIndex_;
     // true when Dyninst has reported an event to ProcControlAPI for this process
     bool reportedEvent_; // indicates the process should remain stopped
@@ -525,7 +521,7 @@ protected:
     bool isAMcacheValid_;
     std::set<multiTramp *> activeMultis_;
     std::map<bblInstance *, Address> activeBBIs_;
-    std::map<int_function *, std::set<Address> *> am_funcRelocs_;
+    std::map<func_instance *, std::set<Address> *> am_funcRelocs_;
 
     codeRangeTree signalHandlerLocations_;
     pdvector<mapped_object *> deletedObjects_;

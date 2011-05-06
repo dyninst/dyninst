@@ -944,7 +944,7 @@ void BPatch::registerDynamicCallsiteEvent(BPatch_process *process, Address callT
         return;
     }
 
-    int_function *targetFunc = process->llproc->findFuncByAddr(callTarget);
+    func_instance *targetFunc = process->llproc->findOneFuncByAddr(callTarget);
     if( targetFunc == NULL ) {
         proccontrol_printf("%s[%d]: failed to find dynamic call target function\n",
                 FILE__, __LINE__);

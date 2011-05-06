@@ -110,7 +110,7 @@ Address PCProcess::getTOCoffsetInfo(Address) {
     return 0;
 }
 
-Address PCProcess::getTOCoffsetInfo(int_function *) {
+Address PCProcess::getTOCoffsetInfo(func_instance *) {
     assert(!"This function is unimplemented");
     return 0;
 }
@@ -142,7 +142,7 @@ AstNodePtr PCProcess::createUnprotectStackAST() {
 
     // mprotect READ/WRITE __stack_prot
     pdvector<int_variable *> vars;
-    pdvector<int_function *> funcs;
+    pdvector<func_instance *> funcs;
 
     Address var_addr;
     int size;
@@ -174,7 +174,7 @@ AstNodePtr PCProcess::createUnprotectStackAST() {
     }
 
     // mprotect: int mprotect(const void *addr, size_t len, int prot);
-    int_function *mprot = funcs[0];
+    func_instance *mprot = funcs[0];
     
     pdvector<AstNodePtr> args;
     args.push_back(AstNode::operandNode(AstNode::Constant, (void *)page_start));

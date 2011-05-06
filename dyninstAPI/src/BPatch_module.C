@@ -873,8 +873,8 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
     }
 
     // build up list of memory pages that contain analyzed code
-#if definded (os_windows)
     std::set<Address> pageAddrs;
+#if defined (os_windows)
     lowlevel_mod()->getAnalyzedCodePages(pageAddrs);
     // get lwp from which we can call changeMemoryProtections
     process *proc = ((BPatch_process*)addSpace)->lowlevel_process();

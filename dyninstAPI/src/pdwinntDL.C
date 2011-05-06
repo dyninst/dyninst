@@ -30,7 +30,6 @@
  */
 
 #include "dynamiclinking.h"
-#include "process.h"
 #include "signalhandler.h"
 #include "dyn_lwp.h"
 #include "mapped_object.h"

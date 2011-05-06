@@ -83,7 +83,7 @@ Address PCProcess::getTOCoffsetInfo(Address dest) {
     return TOCOffset + mobj->dataBase();
 }
 
-Address PCProcess::getTOCoffsetInfo(int_function *func) {
+Address PCProcess::getTOCoffsetInfo(func_instance *func) {
     if ( getAddressWidth() == 4 ) return 0;
 
     mapped_object *mobj = func->obj();

@@ -69,7 +69,6 @@ class BPatch_function;
 class BPatch_point;
 
 class Emitter;
-class generatedCodeObject;
 class fileDescriptor;
 
 using namespace Dyninst;
@@ -182,8 +181,6 @@ class AddressSpace : public InstructionSource {
     // instrumentation
     virtual bool registerTrapMapping(Address from, Address to) = 0;
     virtual bool unregisterTrapMapping(Address from) = 0;
-
-    bool isInferiorAllocated(Address block);
 
     bool getDyninstRTLibName();
 

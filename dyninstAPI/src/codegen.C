@@ -453,7 +453,6 @@ void codeGen::applyTemplate(const codeGen &c) {
   emitter_ = c.emitter_;
   aSpace_ = c.aSpace_;
   thr_ = c.thr_;
-  lwp_ = c.lwp_;
   rs_ = c.rs_;
   t_ = c.t_;
   ip_ = c.ip_;
@@ -675,10 +674,6 @@ regTracker_t *codeGen::tracker() const {
 
 Emitter *codeGen::codeEmitter() const {
     return emitter_;
-}
-
-generatedCodeObject *codeGen::obj() const {
-    return obj_;
 }
 
 void codeGen::beginTrackRegDefs()

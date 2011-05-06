@@ -47,8 +47,6 @@
 class miniTramp;
 class baseTramp;
 
-class generatedCodeObject;
-
 // Encapsulates the code generation techniques for a series
 // of minitramps. 
 

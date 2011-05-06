@@ -32,7 +32,6 @@
 #include "debug.h"
 #include "pcProcess.h"
 #include "baseTramp.h"
-#include "multiTramp.h"
 #include "miniTramp.h"
 #include "function.h"
 #include "frameChecker.h"

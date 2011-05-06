@@ -343,7 +343,7 @@ Address PCProcess::findFunctionToHijack()
    for(i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
       const char *func_name = DYNINST_LOAD_HIJACK_FUNCTIONS[i];
 
-      pdvector<int_function *> hijacks;
+      pdvector<func_instance *> hijacks;
       if (!findFuncsByAll(func_name, hijacks)) continue;
       codeBase = hijacks[0]->getAddress();
 
@@ -375,7 +375,7 @@ bool PCProcess::postRTLoadCleanup() {
 }
 
 AstNodePtr PCProcess::createLoadRTAST() {
-    vector<int_function *> dlopen_funcs;
+    vector<func_instance *> dlopen_funcs;
 
     // allow user to override default dlopen func names with env. var
 
@@ -400,11 +400,11 @@ AstNodePtr PCProcess::createLoadRTAST() {
         getAOut()->parse_img()->getObject()->getInterpreterName();
     std::string derefRuntimeLdPath = resolve_file_path(runtimeLdPath);
 
-    int_function *dlopen_func = NULL;
-    for(vector<int_function *>::iterator i = dlopen_funcs.begin();
+    func_instance *dlopen_func = NULL;
+    for(vector<func_instance *>::iterator i = dlopen_funcs.begin();
             i != dlopen_funcs.end(); ++i)
     {
-        int_function *tmpFunc = *i;
+        func_instance *tmpFunc = *i;
         std::string derefPath = resolve_file_path(tmpFunc->obj()->fullName().c_str());
         if( derefPath == derefRuntimeLdPath ) {
             dlopen_func = tmpFunc;
@@ -443,7 +443,7 @@ Address PCProcess::getTOCoffsetInfo(Address) {
     return 0;
 }
 
-Address PCProcess::getTOCoffsetInfo(int_function *) {
+Address PCProcess::getTOCoffsetInfo(func_instance *) {
     assert(!"This function is unimplemented");
     return 0;
 }

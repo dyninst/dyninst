@@ -48,7 +48,6 @@ Frame::Frame() :
   sw_frame_(Dyninst::Stackwalker::Frame()),
   proc_(NULL),
   thread_(NULL),
-  range_(0),
   uppermost_(false) {}
 
 Frame::Frame(const Dyninst::Stackwalker::Frame &swf,
@@ -59,24 +58,7 @@ Frame::Frame(const Dyninst::Stackwalker::Frame &swf,
   sw_frame_(swf),
   proc_(proc),
   thread_(thread),
-  range_(0),
   uppermost_(uppermost) {}
-
-codeRange *Frame::getRange() {
-  if (!range_) {
-    // First time... so get it and cache
-    if (!getProc())
-      return NULL;
-    range_ = getProc()->findOrigByAddr(getPC());
-  }
-  return range_;
-}
-
-void Frame::setRange(codeRange *range) {
-  assert(!range_ ||
-	 (range == range_));
-  range_ = range;
-}
 
 // Get the instPoint corresponding with this frame
 instPoint *Frame::getPoint() {
@@ -87,7 +69,7 @@ instPoint *Frame::getPoint() {
 
 baseTramp *Frame::getBaseTramp() {
    AddressSpace::RelocInfo ri;
-  if (getProc()->getRelocInfo(pc_,
+  if (getProc()->getRelocInfo(getPC(),
                               ri)) {
      if (ri.bt) return ri.bt;
   }
@@ -98,9 +80,10 @@ func_instance *Frame::getFunc() {
   return getProc()->findOneFuncByAddr(getUninstAddr());
 }
 
-Address Frame::getUninstAddr() {
+Address Frame::getUninstAddr() const {
   AddressSpace::RelocInfo ri;
-  if (getProc()->getRelocInfo(pc_,
+  Address pc = getPC();
+  if (getProc()->getRelocInfo(pc,
                               ri)) {
      return ri.orig;
   }
@@ -108,6 +91,8 @@ Address Frame::getUninstAddr() {
 }
 
 ostream & operator << ( ostream & s, Frame & f ) {
+  func_instance *func = NULL;
+
   s << "PC: 0x" << std::hex << f.getPC() << " ";
 
   if (f.isInstrumentation())
@@ -123,7 +108,8 @@ ostream & operator << ( ostream & s, Frame & f ) {
   }
   else 
   {
-    // TODO print function name
+    func = f.getFunc();
+    s << func->name();
   }
 
   s << " FP: 0x" << std::hex << f.getFP() << " SP: 0x" << f.getSP() << " PID: " << std::dec << f.getProc()->getPid() << " "; 

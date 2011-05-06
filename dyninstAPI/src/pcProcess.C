@@ -35,12 +35,12 @@
 #include "function.h"
 #include "os.h"
 #include "debug.h"
-#include "multiTramp.h"
 #include "instPoint.h"
 #include "BPatch.h"
 #include "mapped_module.h"
 #include "baseTramp.h"
 #include "registerSpace.h"
+#include "mapped_object.h"
 
 #include "common/h/pathName.h"
 
@@ -171,7 +171,7 @@ PCProcess *PCProcess::setupForkedProcess(PCProcess *parent, Process::ptr pcProc)
 
     // This requires the AddressSpace be copied from the parent
     ret->tracedSyscalls_ = new syscallNotification(parent->tracedSyscalls_, ret);
-    ret->irpcTramp_ = new baseTramp(parent->irpcTramp_, ret);
+    ret->irpcTramp_ = new baseTramp(*parent->irpcTramp_);
 
     // Check if RT library exists in child
     if( ret->runtime_lib.size() == 0 ) {
@@ -1879,93 +1879,7 @@ void PCProcess::gcInstrumentation() {
 
 // garbage collect instrumentation
 void PCProcess::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks) {
-    // Go through the list and try to clear out any
-    // instInstances that are freeable.
-    if (isTerminated()) return;
-
-    // This is seriously optimizable -- go by the stack walks first,
-    // and label each item as to whether it is deletable or not,
-    // then handle them all at once.
-
-    if (pendingGCInstrumentation_.size() == 0) return;
-
-    for (unsigned deletedIter = 0;
-            deletedIter < pendingGCInstrumentation_.size();
-            deletedIter++) {
-
-        generatedCodeObject *deletedInst = pendingGCInstrumentation_[deletedIter];
-        bool safeToDelete = true;
-
-        for (unsigned threadIter = 0;
-                threadIter < stackWalks.size();
-                threadIter++) {
-            pdvector<Frame> stackWalk = stackWalks[threadIter];
-            for (unsigned walkIter = 0;
-                    walkIter < stackWalk.size();
-                    walkIter++) {
-
-                Frame frame = stackWalk[walkIter];
-                codeRange *range = frame.getRange();
-
-                if (!range) {
-                    // Odd... couldn't find a match at this PC
-                    // Do we want to skip GCing in this case? Problem
-                    // is, we often see garbage at the end of stack walks.
-                    continue;
-                }
-                safeToDelete = deletedInst->safeToFree(range);
-
-                // If we can't delete, don't bother to continue checking
-                if (!safeToDelete)
-                    break;
-            }
-            // Same as above... pop out.
-            if (!safeToDelete)
-                break;
-        }
-        if (safeToDelete) {
-            // Delete from list of GCs
-            // Vector deletion is slow... so copy the last item in the list to
-            // the current position. We could also set this one to NULL, but that
-            // means the GC vector could get very, very large.
-
-            if (deletedInst->is_multitramp()) {
-                mal_printf("garbage collecting multi %p at %lx[%lx %lx] %s[%d]\n",
-                           deletedInst, ((multiTramp*)deletedInst)->instAddr(),
-                           deletedInst->get_address(),
-                           deletedInst->get_address() + deletedInst->get_size(),
-                           FILE__,__LINE__);
-            } else {
-                mal_printf("garbage collecting object %p at [%lx %lx] %s[%d]\n",
-                           deletedInst, deletedInst->get_address(),
-                           deletedInst->get_address() + deletedInst->get_size(),
-                           FILE__,__LINE__);
-            }
-
-            pendingGCInstrumentation_[deletedIter] =
-                pendingGCInstrumentation_.back();
-            // Lop off the last one
-            pendingGCInstrumentation_.pop_back();
-            // Back up iterator to cover the fresh one
-            deletedIter--;
-            delete deletedInst;
-        }
-    }
-}
-
-void PCProcess::deleteGeneratedCode(generatedCodeObject *delInst) {
-    // Add to the list and deal with it later.
-    // The question is then, when to GC. I'd suggest
-    // when we try to allocate memory, and leave
-    // it a public member that can be called when
-    // necessary
-
-    // Make sure we don't double-add
-    for (unsigned i = 0; i < pendingGCInstrumentation_.size(); i++)
-        if (pendingGCInstrumentation_[i] == delInst)
-            return;
-
-    pendingGCInstrumentation_.push_back(delInst);
+    return;
 }
 
 bool PCProcess::uninstallMutations() {
@@ -2051,7 +1965,7 @@ void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
     // the requests are per-inst, not per-function. So
     // accumulate functions, then generate afterwards.
 
-    vector<int_function *> instrumentedFuncs;
+    vector<func_instance *> instrumentedFuncs;
 
     for (unsigned lcv=0; lcv < requests.size(); lcv++) {
 
@@ -2061,7 +1975,7 @@ void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
         if(!multithread_capable() && req->is_MTonly())
             continue;
 
-        pdvector<int_function *> matchingFuncs;
+        pdvector<func_instance *> matchingFuncs;
 
         if (!findFuncsByAll(req->func, matchingFuncs, req->lib)) {
             inst_printf("%s[%d]: failed to find any functions matching %s (lib %s), returning failure from installInstrRequests\n", 
@@ -2074,7 +1988,7 @@ void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
         }
 
         for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
-            int_function *func = matchingFuncs[funcIter];
+            func_instance *func = matchingFuncs[funcIter];
             if (!func) {
                 inst_printf("%s[%d]: null int_func detected\n",
                     FILE__,__LINE__);
@@ -2491,7 +2405,7 @@ bool PCProcess::getOverwrittenBlocks
              && ! curObject->proc()->isCode((*rIter).second - 1) )
         {
             bblInstance *lastBBI = curBBIs.back();
-            int_function *lastFunc = lastBBI->func();
+            func_instance *lastFunc = lastBBI->func();
             const set<instPoint*> abruptEnds = lastFunc->funcAbruptEnds();
             set<instPoint*>::const_iterator aIter = abruptEnds.begin();
             while (aIter != abruptEnds.end()) {
@@ -2547,8 +2461,8 @@ void PCProcess::updateMappedFile
  */
 bool PCProcess::getDeadCodeFuncs
 ( std::set<bblInstance *> &deadBlocks, // we add unreachable blocks to this
-  std::set<int_function*> &affectedFuncs, //output
-  std::set<int_function*> &deadFuncs) //output
+  std::set<func_instance*> &affectedFuncs, //output
+  std::set<func_instance*> &deadFuncs) //output
 {
 
     // do a stackwalk to see if this function is currently executing
@@ -2644,7 +2558,7 @@ bool PCProcess::getDeadCodeFuncs
          fIter++)
     {
         bool inEntryBlock = false;
-        int_function *deadFunc = findFuncByInternalFunc(*fIter);
+        func_instance *deadFunc = findFuncByInternalFunc(*fIter);
         int_basicBlock *entryBlock = deadFunc->findBlockByAddr
             ((*fIter)->entryBlock()->firstInsnOffset()
              + (*fIter)->img()->desc().loadAddr());
@@ -2728,7 +2642,7 @@ void PCProcess::updateActiveMultis() {
     for (unsigned int i = 0; i < stacks.size(); ++i) {
         pdvector<Frame> &stack = stacks[i];
         mal_printf("updateActiveMultis stackwalk:\n");
-        int_function *calleeFunc = NULL;
+        func_instance *calleeFunc = NULL;
 
         // mark the multiTramps that contain calls as active
         for (unsigned int j = 0; j < stack.size(); ++j) {
@@ -2868,7 +2782,7 @@ void PCProcess::updateActiveMultis() {
                         inserter(prevActiveBBIs,
                                  prevActiveBBIs.begin()));
 
-    map<Address,int_function*> relocsToRemove;
+    map<Address,func_instance*> relocsToRemove;
 
     // for each multitramp that has become inactive:
     for (set<multiTramp*>::iterator mIter = prevActiveMultis.begin();
@@ -2988,7 +2902,7 @@ void PCProcess::updateActiveMultis() {
     }
 
     // remove the relocs that are safe to remove
-    for (map<Address,int_function*>::iterator rIter = relocsToRemove.begin();
+    for (map<Address,func_instance*>::iterator rIter = relocsToRemove.begin();
          rIter != relocsToRemove.end();
          rIter++)
     {
@@ -3296,11 +3210,11 @@ void PCProcess::fixupActiveStackTargets() {
  * address that's triggered a context switch back to Dyninst, either
  * through instrumentation or a signal
  */
-int_function *PCProcess::findActiveFuncByAddr(Address addr)
+func_instance *PCProcess::findActiveFuncByAddr(Address addr)
 {
     bblInstance *bbi = findOrigByAddr(addr)->is_basicBlockInstance();
     assert(bbi);
-    int_function *func = findFuncByAddr(addr);
+    func_instance *func = findFuncByAddr(addr);
     if (!func) {
         return NULL;
     }
@@ -3319,7 +3233,7 @@ int_function *PCProcess::findActiveFuncByAddr(Address addr)
         for (unsigned int i = 0; !foundFrame && i < stacks.size(); ++i) {
             pdvector<Frame> &stack = stacks[i];
             for (unsigned int j = 0; !foundFrame && j < stack.size(); ++j) {
-                int_function *frameFunc = NULL;
+                func_instance *frameFunc = NULL;
                 Frame *curFrame = &stack[j];
                 Address framePC = curFrame->getPC();
                 codeRange *pcRange = findOrigByAddr(framePC);
@@ -3397,12 +3311,12 @@ void PCProcess::debugSuicide() {
     }
 }
 
-pdvector<int_function *> PCProcess::pcsToFuncs(pdvector<Frame> stackWalk) {
-    pdvector <int_function *> ret;
+pdvector<func_instance *> PCProcess::pcsToFuncs(pdvector<Frame> stackWalk) {
+    pdvector <func_instance *> ret;
     unsigned i;
-    int_function *fn;
+    func_instance *fn;
     for(i=0;i<stackWalk.size();i++) {
-        fn = (int_function *)findFuncByAddr(stackWalk[i].getPC());
+        fn = (func_instance *)findFuncByAddr(stackWalk[i].getPC());
         // no reason to add a null function to ret
         if (fn != 0) ret.push_back(fn);
     }
@@ -3523,7 +3437,7 @@ bool PCProcess::getActiveFrame(Frame &frame, PCThread *thread)
  */
 bool PCProcess::triggerStopThread(Address pointAddress, int callbackID, void *calculation) {
     // get instPoint from point address
-    int_function *pointfunc = findActiveFuncByAddr(pointAddress);
+    func_instance *pointfunc = findActiveFuncByAddr(pointAddress);
     if (!pointfunc) {
         mal_printf("%s[%d]: failed to find active function at 0x%lx\n",
                 FILE__, __LINE__, pointAddress);
@@ -3561,7 +3475,7 @@ bool PCProcess::triggerStopThread(Address pointAddress, int callbackID, void *ca
  *    Save the targets of indirect control transfers (not regular returns)
  */
 Address PCProcess::stopThreadCtrlTransfer(instPoint *intPoint, Address target) {
-    int_function *pointfunc = intPoint->func();
+    func_instance *pointfunc = intPoint->func();
     Address pointAddress = intPoint->addr();
 
     // if the point is a real return instruction and its target is a stack
@@ -3732,13 +3646,13 @@ bool PCProcess::setBreakpoint(Address addr) {
 
 bool PCProcess::launchDebugger() {
     // Stop the process on detach 
-    pdvector<int_function *> breakpointFuncs;
+    pdvector<func_instance *> breakpointFuncs;
     if( !findFuncsByAll("DYNINSTsafeBreakPoint", breakpointFuncs) ) {
         fprintf(stderr, "Failed to find function DYNINSTsafeBreakPoint\n");
         return false;
     }
 
-    int_function *safeBreakpoint = breakpointFuncs[0];
+    func_instance *safeBreakpoint = breakpointFuncs[0];
     for(map<dynthread_t, PCThread *>::iterator i = threadsByTid_.begin();
             i != threadsByTid_.end(); ++i)
     {
@@ -3928,7 +3842,7 @@ bool StackwalkSymLookup::lookupAtAddr(Dyninst::Address addr, std::string &out_na
 {
   mapped_object *mobj = proc_->findObject(addr);
   codeRange *range = NULL;
-  int_function *func = NULL;
+  func_instance *func = NULL;
   bool result = false;
 
   // set out_name to the name of the function at this addr

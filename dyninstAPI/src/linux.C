@@ -162,9 +162,9 @@ Address PCProcess::findFunctionToHijack()
    for(i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
       const char *func_name = DYNINST_LOAD_HIJACK_FUNCTIONS[i];
 
-      pdvector<int_function *> hijacks;
+      pdvector<func_instance *> hijacks;
       if (!findFuncsByAll(func_name, hijacks)) continue;
-      codeBase = hijacks[0]->getAddress();
+      codeBase = hijacks[0]->addr();
 
       if (codeBase)
           break;
@@ -204,7 +204,7 @@ bool PCProcess::postRTLoadCleanup() {
 }
 
 AstNodePtr PCProcess::createLoadRTAST() {
-    pdvector<int_function *> dlopen_funcs;
+    pdvector<func_instance *> dlopen_funcs;
 
     int mode = DLOPEN_MODE;
 
@@ -239,7 +239,7 @@ AstNodePtr PCProcess::createLoadRTAST() {
 
             useHiddenFunction = true;
             needsStackUnprotect = true;
-            pdvector<int_function *> dlopen_int_funcs;
+            pdvector<func_instance *> dlopen_int_funcs;
             // If we can't find the do_dlopen function (because this library is
             // stripped, for example), try searching for the internal _dl_open
             // function and find the do_dlopen function by examining the
@@ -252,7 +252,7 @@ AstNodePtr PCProcess::createLoadRTAST() {
                                    __FILE__,__LINE__,dlopen_int_funcs.size(),
                                    DL_OPEN_FUNC_INTERNAL);
                 }
-                dlopen_int_funcs[0]->getStaticCallers(dlopen_funcs);
+                dlopen_int_funcs[0]->getCallerFuncs(std::back_inserter(dlopen_funcs));
                 if(dlopen_funcs.size() > 1) {
                     startup_printf("%s[%d] warning: found %d do_dlopen candidates\n",
                                    __FILE__,__LINE__,dlopen_funcs.size());
@@ -277,7 +277,7 @@ AstNodePtr PCProcess::createLoadRTAST() {
         logLine("WARNING: More than one dlopen found, using the first\n");
     }
 
-    int_function *dlopen_func = dlopen_funcs[0];
+    func_instance *dlopen_func = dlopen_funcs[0];
 
     pdvector<AstNodePtr> sequence;
     if( needsStackUnprotect ) {

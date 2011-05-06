@@ -111,6 +111,8 @@ class instPoint;
 class DynCFGFactory;
 class DynParseCallback;
 
+class PCProcess;
+
 // File descriptor information
 class fileDescriptor {
  public:

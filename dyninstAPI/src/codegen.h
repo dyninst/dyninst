@@ -71,7 +71,6 @@ class AstNode;
 class Emitter;
 class pcRelRegion;
 class func_instance;
-class generatedCodeObject;
 class PCThread;
 class baseTramp;
 class block_instance;
@@ -212,11 +211,10 @@ class codeGen {
     void setRegTracker(regTracker_t *t) { t_ = t; }
     void setCodeEmitter(Emitter *emitter) { emitter_ = emitter; }
     void setFunction(func_instance *f) { f_ = f; }
-    void setObj(generatedCodeObject *object) { obj_ = object; }
     void setBT(baseTramp *i) { bt_ = i; }
     void setInInstrumentation(bool i) { inInstrumentation_ = i; }
 
-    AddressSpace *addrSpace();
+    AddressSpace *addrSpace() const;
     PCThread *thread();
     Address startAddr() const { return addr_; }
     instPoint *point() const;
@@ -230,8 +228,6 @@ class codeGen {
     
 
     Dyninst::Architecture getArch() const;
-
-    generatedCodeObject *obj() const;
 
     void beginTrackRegDefs();
     void endTrackRegDefs();
@@ -285,7 +281,6 @@ class codeGen {
 
     bool inInstrumentation_;
 
-    generatedCodeObject *obj_;
 
     std::vector<relocPatch> patches_;
     std::vector<pcRelRegion *> pcrels_;

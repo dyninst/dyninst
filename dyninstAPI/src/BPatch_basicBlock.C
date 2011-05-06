@@ -51,6 +51,7 @@
 #include "BPatch_edge.h"
 #include "instPoint.h"
 #include "mapped_object.h"
+#include "addressSpace.h"
 
 int bpatch_basicBlock_count = 0;
 

@@ -54,6 +54,7 @@
 #include "mapped_object.h"
 #include "debug.h"
 #include "hybridAnalysis.h"
+#include "addressSpace.h"
 
 #include "common/h/Types.h"
 #if !defined(cap_instruction_api)

@@ -32,7 +32,6 @@
 #include "debug.h"
 #include "pcProcess.h"
 #include "baseTramp.h"
-#include "multiTramp.h"
 #include "miniTramp.h"
 #include "function.h"
 #include "frameChecker.h"
@@ -129,17 +128,9 @@ bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
                                                        bool *entryExit)
 {
   bool result;
-  codeRange *range = NULL;
-  multiTramp *multi = NULL;
-  miniTrampInstance *mini = NULL;
-  baseTrampInstance *base = NULL;
-  instPoint *instP = NULL;
-
-  int_function *func = NULL;
-
-
-
-
+  AddressSpace::RelocInfo ri;
+  baseTramp *base = NULL;
+  func_instance *func = NULL;
 
   *orig_ra = 0x0;
   *stack_height = 0;
@@ -152,60 +143,19 @@ bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
     return false;
   }
 
-  range = proc_->findOrigByAddr(ra);
-  multi = range->is_multitramp();
-  mini = range->is_minitramp();
-
-  func = range->is_function();
-
-  if (multi)
+  if (!proc_->getRelocInfo(ra, ri))
   {
-    base = multi->getBaseTrampInstanceByAddr(ra);
+    return false;
   }
 
-  if (base)
-  {
-    if (base->isInInstru(ra))
-    {
-      *stack_height = base->trampStackHeight();
-      if (!base->baseT->createFrame())
-      {
-        // Frameless instrumentation
-        *orig_ra = base->baseT->origInstAddr();
-      }
+  base = ri.bt;
+  func = ri.func;
 
-      result = true;
-    }
-
-    result = true;
-  }
-  else if (multi)
-  {
-
-  }
-  else if (mini)
-  {
-    result = true;
-  }
-
-  // Determine if this is entry/exit instrumentation
-  if ((base == NULL) && mini)
-  {
-    base = mini->baseTI;
-  }
-
-  if (base)
-  {
-    instP = base->baseT->instP();
-
-    if (instP && (instP->getPointType() == functionEntry ||
-                  instP->getPointType() == functionExit))
-    {
-      *entryExit = true;
-    }
-  }
-
-  // NOTE: Do not handle other, non-instrumentation functions with a stack frame
+  // return true if in instrumentation
+  // set orig ra if in frameless instrumentation
+  // set stack_height to base tramp stack height
+  // set entryExit if we're in entry or exit instrumentation
+       // base tramp type is entry or exit
 
   return result;
 }
@@ -215,8 +165,7 @@ using namespace Stackwalker;
 FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr)
 {
   FrameFuncHelper::alloc_frame_t result;
-  codeRange *range = proc_->findOrigByAddr(addr);
-  int_function *func = range->is_function();
+  func_instance *func = NULL; // TODO fix
 
   result.first = FrameFuncHelper::unknown_t; // frame type
   result.second = FrameFuncHelper::unknown_s; // frame state
@@ -242,6 +191,8 @@ FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr)
     {
       result.second = FrameFuncHelper::set_frame;
 
+      // TODO fix
+      /*
       if (range && range->is_basicBlockInstance())
       {
         frameChecker fc((const unsigned char*)(proc_->getPtrToInstruction(addr)),
@@ -256,6 +207,7 @@ FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr)
           result.second = FrameFuncHelper::halfset_frame;
         }
       }
+      */
     }
   }
   
@@ -264,144 +216,24 @@ FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr)
 
 bool DynWandererHelper::isPrevInstrACall(Address addr, Address &target)
 {
-    int_function *callee = NULL;
-    target = 0;
-
-    if (BPatch_defensiveMode != proc_->getHybridMode()) {
-        codeRange *range = proc_->findOrigByAddr(addr);
-        pdvector<instPoint *> callsites;
-
-        if (range == NULL)
-            return false;
-   
-        int_function *func_ptr = range->is_function();
-
-        if (func_ptr != NULL)
-            callsites = func_ptr->funcCalls();
-        else
-            return false;
-      
-        for (unsigned i = 0; i < callsites.size(); i++)
-            {
-                instPoint *site = callsites[i];
-
-                // Argh. We need to check for each call site in each
-                // instantiation of the function.
-                if (site->match(addr - site->insn()->size())) {
-                    callee = site->findCallee();
-
-                    if (callee)
-                    {
-                      target = callee->getAddress();
-                    }
-
-                    return true;
-                }
-            }   
-   
-        return false; 
+    std::set<func_instance *> funcs;
+    proc_->findFuncsByAddr(addr, funcs, true);
+    for (std::set<func_instance *>::iterator iter = funcs.begin();
+         iter != funcs.end(); ++iter) {
+        for (func_instance::BlockSet::const_iterator c_iter = (*iter)->callBlocks().begin();
+             c_iter != (*iter)->callBlocks().end(); ++c_iter) {
+            if ((*c_iter)->end() == addr) {
+                target = (*c_iter)->callee()->addr();
+                return true;
+            }
+        }
     }
-    else { // in defensive mode 
-
-        /*In defensive mode calls may be deemed to be non-returning at
-          parse time and there may be two additional complications:
-          1st, the addr may be in a multiTramp. 2nd, the block may
-          have been split, meaning that block->containsCall()
-          is not a reliable test.
-
-          General approach: 
-          find block at addr-1, then translate back to original
-          address and see if the block's last instruction is a call
-        */
-
-        codeRange *callRange = proc_->findOrigByAddr(addr-1);
-        bblInstance *callBBI = callRange->is_basicBlockInstance();
-        Address callAddr = 0; //address of call in original block instance
-
-        if (callRange->is_mapped_object()) {
-            callRange->is_mapped_object()->analyze();
-            callRange = proc_->findOrigByAddr(addr-1);
-            callBBI = callRange->is_basicBlockInstance();
-        }
-        if (!callRange) {
-            return false;
-        }
-
-        // if the range is a multi, set the callBBI and its post-call address
-        multiTramp *callMulti = callRange->is_multitramp();
-        if (callMulti) {
-            using namespace InstructionAPI;
-            addr = callMulti->instToUninstAddr(addr-1);//sets to addr of prev insn
-            callBBI = proc_->findOrigByAddr(addr)->is_basicBlockInstance();
-            if (!callBBI) {
-                return false; //stackwalking has gone bad
-            }
-            // get back to orig instruction addr
-            mapped_object *obj = callBBI->func()->obj();
-            InstructionDecoder dec(obj->getPtrToInstruction(addr),
-                                   InstructionDecoder::maxInstructionLength,
-                                   proc_->getArch());
-            Instruction::Ptr insn = dec.decode();
-            assert(insn);
-            addr += insn->size(); 
-        }
-
-        // if the range is a bbi, and it contains a call, and the call instruction
-        // matches the address, set callee and return true
-        if (callBBI && addr == callBBI->endAddr()) {
-
-            // if the block has no call, make sure it's not due to block splitting
-            if ( !callBBI->block()->containsCall() ) {
-                Address origAddr = callBBI->equivAddr(0,callBBI->lastInsnAddr());
-                callBBI = proc_->findOrigByAddr(origAddr)->is_basicBlockInstance();
-                if (callBBI && callBBI->block()->containsCall()) {
-                    callAddr = origAddr;//addr of orig call instruction
-                }
-            }
-            // if the block does contain a call, set callAddr if we haven't yet
-            if ( !callAddr && callBBI->block()->containsCall() ) {
-                callAddr = callBBI->equivAddr(0, callBBI->lastInsnAddr());
-            }
-        }
-
-        if (callAddr) {
-            instPoint *callPoint = callBBI->func()->findInstPByAddr( callAddr );
-            if (!callPoint) { // this is necessary, at least the first time
-                callBBI->func()->funcCalls();
-                callPoint = callBBI->func()->findInstPByAddr( callAddr );
-            }
-            if (!callPoint) {
-                assert(callBBI->func()->obj()->parse_img()->codeObject()->
-                       defensiveMode());
-                mal_printf("Warning, call at %lx, found while "
-                           "stackwalking, has no callpoint attached, does "
-                           "the target tamper with the call stack? %s[%d]\n", 
-                           callAddr, FILE__,__LINE__);
-                callee = callBBI->func();
-            } else {
-                callee = callPoint->findCallee();
-            }
-            if (NULL == callee && 
-                string::npos == callBBI->func()->get_name().find("DYNINSTbreakPoint"))
-                {
-                    mal_printf("WARNING: didn't find a callee for callPoint at "
-                               "%lx when stackwalking %s[%d]\n", callAddr, 
-                               FILE__,__LINE__);
-                }
-            if (callee)
-            {
-              target = callee->getAddress();
-            }
-            return true;
-        }
-        return false;
-    }
-
-  return false;
+    return false;
 }
 
 WandererHelper::pc_state DynWandererHelper::isPCInFunc(Address func_entry, Address pc)
 {
+/*
   int_function *callee_func = proc_->findFuncByAddr(func_entry),
                *cur_func    = proc_->findFuncByAddr(pc);
 
@@ -417,6 +249,8 @@ WandererHelper::pc_state DynWandererHelper::isPCInFunc(Address func_entry, Addre
   {
     return WandererHelper::outside_func;
   }
+*/
+    return WandererHelper::outside_func;
 }
 
 bool DynWandererHelper::requireExactMatch()

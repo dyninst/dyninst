@@ -141,16 +141,4 @@ typedef pthread_cond_t EventCond_t;
 #define INVALID_HANDLE_VALUE -1
 #endif
 
-#ifndef PAGE_READONLY
-#define PAGE_READONLY 4
-#endif
-
-#ifndef PAGE_EXECUTE_READ
-#define PAGE_EXECUTE_READ 5
-#endif
-
-#ifndef PAGE_EXECUTE_READWRITE
-#define PAGE_EXECUTE_READWRITE 7
-#endif
-
 #endif

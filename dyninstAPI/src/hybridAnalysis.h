@@ -39,7 +39,6 @@
 #include "dyntypes.h"
 #include "BPatch_enums.h"
 #include "BPatch_callbacks.h"
-#include "process.h"
 
 class BPatch_module;
 class BPatch_function;
@@ -79,7 +78,7 @@ private:
         BPatchSnippetHandle *postHandle_;
    };
     typedef struct {
-        Address faultPCaddr;
+        Dyninst::Address faultPCaddr;
         bool isInterrupt;
     } ExceptionDetails; 
 
@@ -183,7 +182,7 @@ private:
     BPatchCodeDiscoveryCallback bpatchCodeDiscoveryCB;
     BPatchSignalHandlerCallback bpatchSignalHandlerCB;
 
-	Address virtualFreeAddr_;
+        Dyninst::Address virtualFreeAddr_;
 	unsigned virtualFreeSize_;
 };
 

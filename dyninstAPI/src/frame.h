@@ -38,6 +38,10 @@
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
 
+#include "instPoint.h"
+#include "baseTramp.h"
+#include "function.h"
+
 #include "stackwalk/h/frame.h"
 
 class PCThread;
@@ -86,7 +90,7 @@ class Frame {
 
   Address  getPC() const { return (Address) sw_frame_.getRA(); }
   // New method: unwind instrumentation
-  Address  getUninstAddr(); // calls getRange so can't be const
+  Address  getUninstAddr() const;
   Address  getFP() const { return (Address) sw_frame_.getFP(); }
   Address  getSP() const { return (Address) sw_frame_.getSP(); }
   PCProcess *getProc() const { return proc_; }
