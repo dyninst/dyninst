@@ -114,7 +114,6 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
          break;
       }
    }
-   
    if (is_mt) {
       initLock(&thread_startup_lock);
       testLock(&thread_startup_lock);
@@ -171,6 +170,7 @@ int handshakeWithServer()
       fprintf(stderr, "Error recieving message\n");
       return -1;
    }
+
    if (shake.code != HANDSHAKE_CODE) {
       fprintf(stderr, "Recieved unexpected message\n");
       return -1;
