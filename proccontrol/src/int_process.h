@@ -68,25 +68,6 @@ class installed_breakpoint;
 class int_library;
 class int_process;
 
-#if 1
-typedef enum {
-   aret_error,
-   aret_success,
-   aret_async 
-} async_ret_t;
-#else
-class async_ret_t
-{
-   int foo;
-   int bar;
-  public:
-   bool operator==(const async_ret_t &b);
-};
-async_ret_t aret_error;
-async_ret_t aret_success;
-async_ret_t aret_async;
-#endif
-
 class mem_state
 {
   public:

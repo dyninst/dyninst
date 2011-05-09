@@ -112,21 +112,21 @@ bool PCProcReader::ReadMem(Address addr, void *buffer, unsigned size)
 {
    memCache *cache = proc->getMemCache();
 
-   if (!proc->translator && proc->plat_needsAsyncIO()) {
+   if (!proc->translator || proc->plat_needsAsyncIO()) {
       //Can happen if we read during initialization.  We'll fail to read,
       // and the addrtranslate layer will handle things properly.
       return false;
    }
 
    proc->translator->setReadAbort(false);
-   memCache::memRet_t ret = cache->readMemory(buffer, addr, size, memresults);
+   async_ret_t ret = cache->readMemory(buffer, addr, size, memresults);
    switch (ret) {
-      case memCache::ret_success:
+      case aret_success:
          return true;
-      case memCache::ret_async:
+      case aret_async:
          proc->translator->setReadAbort(true);
          return false;
-      case memCache::ret_error:
+      case aret_error:
          return false;
    }
    return true;

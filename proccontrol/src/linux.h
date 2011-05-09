@@ -1,7 +1,7 @@
 #if !defined(LINUX_H_)
 #define LINUX_H_
 
-#define debug_async_simulate
+//#define debug_async_simulate
 
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Event.h"

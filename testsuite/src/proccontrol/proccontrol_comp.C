@@ -353,6 +353,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
    }
 
    handshake shake;
+   fprintf(stderr, "[%s:%u] - HERE\n", __FILE__, __LINE__);
    shake.code = HANDSHAKE_CODE;
    result = send_broadcast((unsigned char *) &shake, sizeof(handshake));
    if (!result) {

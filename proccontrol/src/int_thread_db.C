@@ -63,18 +63,18 @@ ps_err_e ps_pread(struct ps_prochandle *handle, psaddr_t remote, void *local, si
                 (unsigned long)remote, (unsigned long)local, (int)size, llproc->getPid());
 
    llproc->resps.clear();
-   memCache::memRet_t result = llproc->getMemCache()->readMemory(local, (Address) remote, size,
-                                                                 llproc->resps,
-                                                                 llproc->triggerThread());
+   async_ret_t result = llproc->getMemCache()->readMemory(local, (Address) remote, size,
+                                                          llproc->resps,
+                                                          llproc->triggerThread());
    switch (result) {
-      case memCache::ret_success:
+      case aret_success:
          llproc->hasAsyncPending = false;
          return PS_OK;
-      case memCache::ret_async:
+      case aret_async:
          llproc->hasAsyncPending = true;
          pthrd_printf("Incomplete async read in thread_db read\n");
          return PS_ERR;
-      case memCache::ret_error:
+      case aret_error:
          llproc->hasAsyncPending = false;
          pthrd_printf("Unexpected read error in thread_db read\n");
          return PS_ERR;
@@ -97,20 +97,20 @@ ps_err_e ps_pwrite(struct ps_prochandle *handle, psaddr_t remote, const void *lo
 
     thread_db_process *proc = handle->thread_db_proc;
 
-    memCache::memRet_t result = proc->getMemCache()->writeMemory((Address) remote, 
-                                                                 const_cast<void *>(local), 
-                                                                 size, 
-                                                                 proc->res_resps, 
-                                                                 proc->triggerThread());
+    async_ret_t result = proc->getMemCache()->writeMemory((Address) remote, 
+                                                          const_cast<void *>(local), 
+                                                          size, 
+                                                          proc->res_resps, 
+                                                          proc->triggerThread());
     switch (result) {
-      case memCache::ret_success:
+      case aret_success:
          proc->hasAsyncPending = false;
          return PS_OK;
-      case memCache::ret_async:
+      case aret_async:
          proc->hasAsyncPending = true;
          pthrd_printf("Incomplete async write in thread_db write\n");
          return PS_ERR;
-      case memCache::ret_error:
+      case aret_error:
          proc->hasAsyncPending = false;
          pthrd_printf("Unexpected read error in thread_db write\n");
          return PS_ERR;
@@ -627,7 +627,7 @@ async_ret_t thread_db_process::initThreadWithHandle(td_thrhandle_t *thr, td_thri
          return aret_error;
       }
       if (result == aret_async) {
-         pthrd_printf("Returning async from initThreadWithHandle");
+         pthrd_printf("Returning async from nitThreadWithHandle\n");
          return aret_async;
       }
       info = &tinfo;
@@ -682,187 +682,187 @@ async_ret_t thread_db_process::initThreadDB() {
     // and this event occurs some time after process creation.
 
     // Make sure thread_db is initialized - only once for all instances
-    if( !thread_db_initialized ) {
-       thread_db_init_lock.lock();
-       if( !thread_db_initialized ) {
-          if (!loadedThreadDBLibrary()) {
-             setLastError(err_internal, "libthread_db was not loaded");
-             thread_db_init_lock.unlock();
-             return aret_error;
+   if( !thread_db_initialized ) {
+      thread_db_init_lock.lock();
+      if( !thread_db_initialized ) {
+         if (!loadedThreadDBLibrary()) {
+            setLastError(err_internal, "libthread_db was not loaded");
+            thread_db_init_lock.unlock();
+            return aret_error;
+         }
+         td_err_e errVal;
+         if( TD_OK != (errVal = p_td_init()) ) {
+            perr_printf("Failed to initialize libthread_db: %s(%d)\n",
+                        tdErr2Str(errVal), errVal);
+            setLastError(err_internal, "libthread_db initialization failed");
+            thread_db_init_lock.unlock();
+            return aret_error;
           }
-          td_err_e errVal;
-          if( TD_OK != (errVal = p_td_init()) ) {
-             perr_printf("Failed to initialize libthread_db: %s(%d)\n",
-                         tdErr2Str(errVal), errVal);
-             setLastError(err_internal, "libthread_db initialization failed");
-             thread_db_init_lock.unlock();
-             return aret_error;
-          }
-          pthrd_printf("Sucessfully initialized thread_db\n");
-          thread_db_initialized = true;
-       }
-       thread_db_init_lock.unlock();
-    }
-    if (thread_db_proc_initialized) {
-       return aret_success;
-    }
+         pthrd_printf("Sucessfully initialized thread_db\n");
+         thread_db_initialized = true;
+      }
+      thread_db_init_lock.unlock();
+   }
+   if (thread_db_proc_initialized) {
+      return aret_success;
+   }
+   
+   // Create the thread agent
+   td_err_e errVal;
+   if (!createdThreadAgent)
+   {
+      errVal = p_td_ta_new(self, &threadAgent);
+      switch(errVal) {
+         case TD_OK:
+            pthrd_printf("Retrieved thread agent from thread_db\n");
+            break;
+         case TD_NOLIBTHREAD:
+            pthrd_printf("Debuggee isn't multithreaded at this point, libthread_db not enabled\n");
+            return aret_success;
+         case TD_ERR:
+            if (getMemCache()->hasPendingAsync()) {
+               pthrd_printf("Postponing thread_db initialization for async\n");
+               return aret_async;
+            }
+         default:
+            perr_printf("Failed to create thread agent: %s(%d)\n",
+                        tdErr2Str(errVal), errVal);
+            thread_db_proc_initialized = true;
+            setLastError(err_internal, "Failed to create libthread_db agent");
+            return aret_error;
+      }
+      createdThreadAgent = true;
+   }
 
-    // Create the thread agent
-    td_err_e errVal;
-    if (!createdThreadAgent)
-    {
-       errVal = p_td_ta_new(self, &threadAgent);
-       switch(errVal) {
-          case TD_OK:
-             pthrd_printf("Retrieved thread agent from thread_db\n");
-             break;
-          case TD_NOLIBTHREAD:
-             pthrd_printf("Debuggee isn't multithreaded at this point, libthread_db not enabled\n");
-             return aret_success;
-          case TD_ERR:
-             if (getMemCache()->hasPendingAsync()) {
-                pthrd_printf("Postponing thread_db initialization for async\n");
-                return aret_async;
-             }
-          default:
-             perr_printf("Failed to create thread agent: %s(%d)\n",
-                         tdErr2Str(errVal), errVal);
-             thread_db_proc_initialized = true;
-             setLastError(err_internal, "Failed to create libthread_db agent");
-             return aret_error;
-       }
-       createdThreadAgent = true;
-    }
-
-    bool hasAsync = false;
-    set<td_thrhandle_t *> all_handles;
-    for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); i++) {
-       thread_db_thread *tdb_thread = static_cast<thread_db_thread *>(*i);
-
-       if (tdb_thread->threadHandle_alloced) {
-          all_handles.insert(tdb_thread->threadHandle);
-          continue;
-       }
-
-       if (!tdb_thread->threadHandle)
-          tdb_thread->threadHandle = new td_thrhandle_t;
-       
-       pthrd_printf("lwp2thr on %d/%d\n", tdb_thread->getLWP(), getPid());
-       errVal = p_td_ta_map_lwp2thr(getThreadDBAgent(), tdb_thread->getLWP(), tdb_thread->threadHandle);
-       if (errVal != TD_OK) {
-          if (getMemCache()->hasPendingAsync()) {
-             pthrd_printf("Hit async during lwp2thr\n");
-             hasAsync = true;
-             continue;
-          }
-          perr_printf("Failed to map LWP %d to thread_db thread: %s(%d)\n",
-                      tdb_thread->getLWP(), tdErr2Str(errVal), errVal);
-          setLastError(err_internal, "Failed to get thread_db thread handle");
-          delete tdb_thread->threadHandle;
-          tdb_thread->threadHandle = NULL;
-       }
-       tdb_thread->threadHandle_alloced = true;
-       all_handles.insert(tdb_thread->threadHandle);
-    }
-    if (hasAsync) {
-       pthrd_printf("Postponing lwp2thr for async\n");
-       return aret_async;
-    }
-
-    for (set<td_thrhandle_t *>::iterator i = all_handles.begin(); i != all_handles.end(); i++)
-    {
-       async_ret_t result = handleThreadAttach(*i);
-       if (result == aret_error) {
-          perr_printf("Error handling thread_db attach\n");
-          return aret_error;
-       }
-       if (result == aret_async) {
-          pthrd_printf("handleThreadAttach returned async in initThreadDB\n");
-          hasAsync = true;
-       }
-    }
-    if (hasAsync)
-       return aret_async;
-
-    // Enable all events
-    td_thr_events_t eventMask;
+   bool hasAsync = false;
+   set<td_thrhandle_t *> all_handles;
+   for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); i++) {
+      thread_db_thread *tdb_thread = static_cast<thread_db_thread *>(*i);
+      
+      if (tdb_thread->threadHandle_alloced) {
+         all_handles.insert(tdb_thread->threadHandle);
+         continue;
+      }
+      
+      if (!tdb_thread->threadHandle)
+         tdb_thread->threadHandle = new td_thrhandle_t;
+      
+      pthrd_printf("lwp2thr on %d/%d\n", tdb_thread->getLWP(), getPid());
+      errVal = p_td_ta_map_lwp2thr(getThreadDBAgent(), tdb_thread->getLWP(), tdb_thread->threadHandle);
+      if (errVal != TD_OK) {
+         if (getMemCache()->hasPendingAsync()) {
+            pthrd_printf("Hit async during lwp2thr\n");
+            hasAsync = true;
+            continue;
+         }
+         perr_printf("Failed to map LWP %d to thread_db thread: %s(%d)\n",
+                     tdb_thread->getLWP(), tdErr2Str(errVal), errVal);
+         setLastError(err_internal, "Failed to get thread_db thread handle");
+         delete tdb_thread->threadHandle;
+         tdb_thread->threadHandle = NULL;
+      }
+      tdb_thread->threadHandle_alloced = true;
+      all_handles.insert(tdb_thread->threadHandle);
+   }
+   if (hasAsync) {
+      pthrd_printf("Postponing lwp2thr for async\n");
+      return aret_async;
+   }
+   
+   for (set<td_thrhandle_t *>::iterator i = all_handles.begin(); i != all_handles.end(); i++)
+   {
+      async_ret_t result = handleThreadAttach(*i);
+      if (result == aret_error) {
+         perr_printf("Error handling thread_db attach\n");
+         return aret_error;
+      }
+      if (result == aret_async) {
+         pthrd_printf("handleThreadAttach returned async in initThreadDB\n");
+         hasAsync = true;
+      }
+   }
+   if (hasAsync)
+      return aret_async;
+   
+   // Enable all events
+   td_thr_events_t eventMask;
 #if defined(td_event_fillset)
-    td_event_fillset(&eventMask);
+   td_event_fillset(&eventMask);
 #else
 //Need to make td_event_fillset a function pointer if this hits
 #error td_event_fillset is not a macro on this platform
 #endif
 
-    errVal = p_td_ta_set_event(threadAgent, &eventMask);
-    if( TD_OK != errVal ) {
-       if (getMemCache()->hasPendingAsync()) {
-          pthrd_printf("Async return from td_ta_set_event in initThreadDB\n");
-          return aret_async;
-       }
-       perr_printf("Failed to enable events: %s(%d)\n",
-                   tdErr2Str(errVal), errVal);
-       setLastError(err_internal, "Failed to enable libthread_db events");
-       thread_db_proc_initialized = true;
-       return aret_error;
-    }
+   errVal = p_td_ta_set_event(threadAgent, &eventMask);
+   if( TD_OK != errVal ) {
+      if (getMemCache()->hasPendingAsync()) {
+         pthrd_printf("Async return from td_ta_set_event in initThreadDB\n");
+         return aret_async;
+      }
+      perr_printf("Failed to enable events: %s(%d)\n",
+                  tdErr2Str(errVal), errVal);
+      setLastError(err_internal, "Failed to enable libthread_db events");
+      thread_db_proc_initialized = true;
+      return aret_error;
+   }
 
     // Determine the addresses for all events
-    td_event_e allEvents[] = { TD_CATCHSIG, TD_CONCURRENCY, TD_CREATE,
-        TD_DEATH, TD_IDLE, TD_LOCK_TRY, TD_PREEMPT, TD_PRI_INHERIT,
-        TD_READY, TD_REAP, TD_SLEEP, TD_SWITCHFROM, TD_SWITCHTO,
-        TD_TIMEOUT };
+   td_event_e allEvents[] = { TD_CATCHSIG, TD_CONCURRENCY, TD_CREATE,
+                              TD_DEATH, TD_IDLE, TD_LOCK_TRY, TD_PREEMPT, TD_PRI_INHERIT,
+                              TD_READY, TD_REAP, TD_SLEEP, TD_SWITCHFROM, TD_SWITCHTO,
+                              TD_TIMEOUT };
 
-    for(unsigned i = 0; i < (sizeof(allEvents)/sizeof(td_event_e)); ++i) {
-        td_notify_t notifyResult;
-        errVal = p_td_ta_event_addr(threadAgent, allEvents[i], &notifyResult);
-
-        // This indicates that the event isn't supported
-        if( TD_OK != errVal ) continue;
-
-        assert( notifyResult.type == NOTIFY_BPT && "Untested notify type" );
-
-        EventType newEvent;
-        switch(allEvents[i]) {
-            case TD_CREATE:
-                newEvent = EventType(EventType::Post, EventType::ThreadCreate);
-                pthrd_printf("Installing breakpoint for thread creation events\n");
-                break;
-            case TD_DEATH:
-                newEvent = EventType(EventType::Post, EventType::ThreadDestroy);
-                pthrd_printf("Installing breakpoint for thread destroy events\n");
-                break;
-            default:
-                pthrd_printf("Unimplemented libthread_db event encountered. Skipping for now.\n");
-                continue;
-        }
-
-        if( !plat_convertToBreakpointAddress(notifyResult.u.bptaddr) ) {
-            perr_printf("Failed to determine breakpoint address\n");
-            setLastError(err_internal, "Failed to install new thread_db event breakpoint");
-            thread_db_proc_initialized = true;
-            return aret_error;
-        }
-
-        int_breakpoint *newEventBrkpt = new int_breakpoint(Breakpoint::ptr());
-        if( !addBreakpoint((Dyninst::Address)notifyResult.u.bptaddr,
-                    newEventBrkpt))
-        {
-            perr_printf("Failed to install new event breakpoint\n");
-            setLastError(err_internal, "Failed to install new thread_db event breakpoint");
-            delete newEventBrkpt;
-            thread_db_proc_initialized = true;
-            return aret_error;
-        }
-
-        pair<map<Dyninst::Address, pair<int_breakpoint *, EventType> >::iterator, bool> insertIter;
-        insertIter = addr2Event.insert(make_pair((Dyninst::Address)notifyResult.u.bptaddr,
-                    make_pair(newEventBrkpt, newEvent)));
-
-        assert( insertIter.second && "event breakpoint address not unique" );
-    }
-
-    thread_db_proc_initialized = true;
-    return aret_success;
+   for(unsigned i = 0; i < (sizeof(allEvents)/sizeof(td_event_e)); ++i) {
+      td_notify_t notifyResult;
+      errVal = p_td_ta_event_addr(threadAgent, allEvents[i], &notifyResult);
+      
+      // This indicates that the event isn't supported
+      if( TD_OK != errVal ) continue;
+      
+      assert( notifyResult.type == NOTIFY_BPT && "Untested notify type" );
+      
+      EventType newEvent;
+      switch(allEvents[i]) {
+         case TD_CREATE:
+            newEvent = EventType(EventType::Post, EventType::ThreadCreate);
+            pthrd_printf("Installing breakpoint for thread creation events\n");
+            break;
+         case TD_DEATH:
+            newEvent = EventType(EventType::Post, EventType::ThreadDestroy);
+            pthrd_printf("Installing breakpoint for thread destroy events\n");
+            break;
+         default:
+            pthrd_printf("Unimplemented libthread_db event encountered. Skipping for now.\n");
+            continue;
+      }
+      
+      if( !plat_convertToBreakpointAddress(notifyResult.u.bptaddr) ) {
+         perr_printf("Failed to determine breakpoint address\n");
+         setLastError(err_internal, "Failed to install new thread_db event breakpoint");
+         thread_db_proc_initialized = true;
+         return aret_error;
+      }
+      
+      int_breakpoint *newEventBrkpt = new int_breakpoint(Breakpoint::ptr());
+      if( !addBreakpoint((Dyninst::Address)notifyResult.u.bptaddr,
+                         newEventBrkpt))
+      {
+         perr_printf("Failed to install new event breakpoint\n");
+         setLastError(err_internal, "Failed to install new thread_db event breakpoint");
+         delete newEventBrkpt;
+         thread_db_proc_initialized = true;
+         return aret_error;
+      }
+      
+      pair<map<Dyninst::Address, pair<int_breakpoint *, EventType> >::iterator, bool> insertIter;
+      insertIter = addr2Event.insert(make_pair((Dyninst::Address)notifyResult.u.bptaddr,
+                                               make_pair(newEventBrkpt, newEvent)));
+      
+      assert( insertIter.second && "event breakpoint address not unique" );
+   }
+   
+   thread_db_proc_initialized = true;
+   return aret_success;
 }
 
 bool thread_db_process::plat_convertToBreakpointAddress(psaddr_t &) {
@@ -963,6 +963,13 @@ async_ret_t thread_db_process::decodeTdbBreakpoint(EventBreakpoint::ptr bp)
     vector<Event::ptr> threadEvents;
     trigger_thread = bp->getThread()->llthrd();
 
+    //The memcache is something of a versioned cache (kind of).  This call
+    // tells the memcache what version of memory to use when responding to
+    // this request.
+    //The latter call to condense() pairs with this call, telling the
+    // memcache when we're moving to the next version of memory.
+    getMemCache()->markToken(token_decode);
+
     if (needsTidUpdate()) {
        async_ret_t result = updateTidInfo(threadEvents);
        if (result == aret_error) {
@@ -1030,6 +1037,7 @@ async_ret_t thread_db_process::decodeTdbBreakpoint(EventBreakpoint::ptr bp)
        bp->addSubservientEvent(ev);
     }
     bp->setSuppressCB(true);
+    getMemCache()->condense();    
     return aret_success;
 }
 
@@ -1278,28 +1286,28 @@ Handler::handler_ret_t ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
       return Handler::ret_success;
    }
 
-    EventNewUserThread::ptr threadEv = ev->getEventNewUserThread();
-    if (threadEv->getInternalEvent()->needs_update) {
-       pthrd_printf("Updating user thread data for %d/%d in thread_db create handler\n",
-                    threadEv->getProcess()->llproc()->getPid(),
-                    threadEv->getNewThread()->llthrd()->getLWP());
-       new_thread_data_t *thrdata = (new_thread_data_t *) threadEv->getInternalEvent()->raw_data;
-       thread_db_process *tdb_proc = dynamic_cast<thread_db_process *>(ev->getProcess()->llproc());
-       assert(tdb_proc);
-       pthrd_printf("thread_db user create handler for %d/%d\n", tdb_proc->getPid(), threadEv->getLWP());
-       
-       async_ret_t result = tdb_proc->initThreadWithHandle(thrdata->thr_handle, &thrdata->thr_info);
-       if (result == aret_error) {
-          pthrd_printf("ThreadDBCreateHandler returning error\n");
-          return Handler::ret_error;
-       }
-       if (result == aret_async) {
-          pthrd_printf("ThreadDBCreateHandler returning async\n");
-          return Handler::ret_async;
-       }
-    }
-
-    return Handler::ret_success;
+   EventNewUserThread::ptr threadEv = ev->getEventNewUserThread();
+   if (threadEv->getInternalEvent()->needs_update) {
+      pthrd_printf("Updating user thread data for %d/%d in thread_db create handler\n",
+                   threadEv->getProcess()->llproc()->getPid(),
+                   threadEv->getNewThread()->llthrd()->getLWP());
+      thread_db_process *tdb_proc = dynamic_cast<thread_db_process *>(ev->getProcess()->llproc());
+      assert(tdb_proc);
+      new_thread_data_t *thrdata = (new_thread_data_t *) threadEv->getInternalEvent()->raw_data;
+      pthrd_printf("thread_db user create handler for %d/%d\n", tdb_proc->getPid(), threadEv->getLWP());
+      
+      async_ret_t result = tdb_proc->initThreadWithHandle(thrdata->thr_handle, &thrdata->thr_info);
+      if (result == aret_error) {
+         pthrd_printf("ThreadDBCreateHandler returning error\n");
+         return Handler::ret_error;
+      }
+      if (result == aret_async) {
+         pthrd_printf("ThreadDBCreateHandler returning async\n");
+         return Handler::ret_async;
+      }
+   }
+   
+   return Handler::ret_success;
 }
 
 int ThreadDBCreateHandler::getPriority() const {
@@ -1324,8 +1332,8 @@ Handler::handler_ret_t ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
       pthrd_printf("Failed to load thread_db.  Not running handlers");
       return Handler::ret_success;
    }
-
    thread_db_thread *thrd = static_cast<thread_db_thread *>(ev->getThread()->llthrd());
+
    if( ev->getEventType().time() == EventType::Pre) {
       pthrd_printf("Marking LWP %d destroyed\n", thrd->getLWP());
       thrd->markDestroyed();
