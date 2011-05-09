@@ -131,6 +131,7 @@ bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
   baseTramp *base = NULL;
   func_instance *func = NULL;
   instPoint *point = NULL;
+  Address orig = 0;
 
   *orig_ra = 0x0;
   *stack_height = 0;
