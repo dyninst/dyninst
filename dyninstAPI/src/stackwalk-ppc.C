@@ -32,7 +32,6 @@
 #include "debug.h"
 #include "pcProcess.h"
 #include "baseTramp.h"
-#include "miniTramp.h"
 #include "function.h"
 #include "frameChecker.h"
 #include "inst-power.h"
@@ -76,28 +75,15 @@ bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
                                                        unsigned * stack_height,
                                                        bool * /*entryExit*/)
 {
-  codeRange *range = NULL;
-  multiTramp *multi = NULL;
-  miniTrampInstance *mini = NULL;
-  baseTrampInstance *base = NULL;
+  AddressSpace::RelocInfo ri;
+  baseTramp *base = NULL;
 
-  range = proc_->findOrigByAddr(ra);
-  multi = range->is_multitramp();
-  mini = range->is_minitramp();
-
-  if (multi)
+  if (!proc_->getRelocInfo(ra, ri))
   {
-    base = multi->getBaseTrampInstanceByAddr(ra);
+    return false;
+  }
 
-    if (base && !base->isInInstru(ra))
-    {
-      base = NULL;
-    }
-  }
-  else if (mini)
-  {
-    base = mini->baseTI;
-  }
+  base = ri.bt;
 
   if (base)
   {
@@ -117,9 +103,7 @@ using namespace Stackwalker;
 FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr)
 {
   FrameFuncHelper::alloc_frame_t result;
-
-  codeRange *range = proc_->findOrigByAddr(addr);
-  int_function *func = range->is_function();
+  func_instance *func = findOneFuncByAddr(addr);
 
   result.first = FrameFuncHelper::unknown_t; // frame type
   result.second = FrameFuncHelper::unknown_s; // frame state
