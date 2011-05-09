@@ -32,7 +32,6 @@
 #include "debug.h"
 #include "pcProcess.h"
 #include "baseTramp.h"
-#include "miniTramp.h"
 #include "function.h"
 #include "frameChecker.h"
 
@@ -131,6 +130,7 @@ bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
   AddressSpace::RelocInfo ri;
   baseTramp *base = NULL;
   func_instance *func = NULL;
+  instPoint *point = NULL;
 
   *orig_ra = 0x0;
   *stack_height = 0;
@@ -150,12 +150,32 @@ bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
 
   base = ri.bt;
   func = ri.func;
+  orig = ri.orig;
 
-  // return true if in instrumentation
-  // set orig ra if in frameless instrumentation
-  // set stack_height to base tramp stack height
   // set entryExit if we're in entry or exit instrumentation
        // base tramp type is entry or exit
+
+  if (base)
+  {
+      result = true;
+
+      point = base->point();
+
+      *stack_height = base->stackHeight;
+      if (!base->needsFrame())
+      {
+        *orig_ra = orig;
+      }
+
+      if (point)
+      {
+        if ((point->type() == instPoint::FuncEntry) ||
+            (point->type() == instPoint::FuncExit))
+        {
+          *entryExit = 1;
+        }
+      }
+  }
 
   return result;
 }
@@ -165,7 +185,9 @@ using namespace Stackwalker;
 FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr)
 {
   FrameFuncHelper::alloc_frame_t result;
-  func_instance *func = NULL; // TODO fix
+  func_instance *func = proc_->findOneFuncByAddr(addr);
+  std::set<block_instance*> blocks;
+  block_instance *aBlock = NULL;
 
   result.first = FrameFuncHelper::unknown_t; // frame type
   result.second = FrameFuncHelper::unknown_s; // frame state
@@ -191,12 +213,13 @@ FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr)
     {
       result.second = FrameFuncHelper::set_frame;
 
-      // TODO fix
-      /*
-      if (range && range->is_basicBlockInstance())
+      proc_->findBlocksByAddr(addr, blocks);
+
+      if (!blocks.empty())
       {
+        aBlock = *(blocks.begin());
         frameChecker fc((const unsigned char*)(proc_->getPtrToInstruction(addr)),
-                        range->get_size() - (addr - range->get_address()),
+                        aBlock->size() - (addr - aBlock->start()),
                         proc_->getArch());
         if (fc.isReturn() || fc.isStackPreamble())
         {
@@ -207,7 +230,6 @@ FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr)
           result.second = FrameFuncHelper::halfset_frame;
         }
       }
-      */
     }
   }
   
@@ -233,9 +255,8 @@ bool DynWandererHelper::isPrevInstrACall(Address addr, Address &target)
 
 WandererHelper::pc_state DynWandererHelper::isPCInFunc(Address func_entry, Address pc)
 {
-/*
-  int_function *callee_func = proc_->findFuncByAddr(func_entry),
-               *cur_func    = proc_->findFuncByAddr(pc);
+  func_instance *callee_func = proc_->findOneFuncByAddr(func_entry),
+                *cur_func    = proc_->findOneFuncByAddr(pc);
 
   if (!callee_func || !cur_func)
   {
@@ -249,8 +270,6 @@ WandererHelper::pc_state DynWandererHelper::isPCInFunc(Address func_entry, Addre
   {
     return WandererHelper::outside_func;
   }
-*/
-    return WandererHelper::outside_func;
 }
 
 bool DynWandererHelper::requireExactMatch()
