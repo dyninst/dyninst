@@ -34,6 +34,7 @@
 #include "debug.h"
 #include "function.h"
 #include "mapped_module.h"
+#include "mapped_object.h"
 #include "dyninst.h"
 
 using namespace Dyninst::ProcControlAPI;
@@ -124,7 +125,7 @@ void PCThread::findStartFunc() {
     // If still haven't found the starting address, don't try to find the function
     if( startFuncAddr_ == 0 ) return;
 
-    startFunc_ = proc_->findFuncByAddr(startFuncAddr_);
+    startFunc_ = proc_->findOneFuncByAddr(startFuncAddr_);
 }
 
 func_instance *PCThread::getStartFunc() {
@@ -213,7 +214,6 @@ bool PCThread::continueThread() {
     if( pcThr_ == Thread::ptr() ) return false;
 
     clearStackwalk();
-    proc_->invalidateActiveMultis();
 
     proccontrol_printf("%s[%d]: continuing thread %d/%d\n", 
             FILE__, __LINE__, proc_->getPid(), getLWP());

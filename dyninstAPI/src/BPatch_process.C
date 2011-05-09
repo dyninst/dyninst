@@ -193,8 +193,9 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
    llproc->registerInstPointCallback(createBPPointCB);
    llproc->set_up_ptr(this);
 
-
    assert(BPatch::bpatch != NULL);
+   startup_cerr << "Registering process..." << endl;
+   BPatch::bpatch->registerProcess(this);
 
    // Create an initial thread
    startup_cerr << "Getting initial thread..." << endl;
@@ -1233,12 +1234,6 @@ void BPatch_process::triggerThreadCreate(PCThread *thread) {
   BPatch::bpatch->registerThreadCreate(this, newthr);
 }
 
-// Return true if any sub-minitramp uses a trap? Other option
-// is "if all"...
-bool BPatchSnippetHandle::usesTrapInt() {
-   return false;
-}
-
 /* BPatch::triggerStopThread
  *
  * Causes the execution of a callback in the mutator that was
@@ -1530,6 +1525,7 @@ unsigned char * BPatch_process::makeShadowPage(Dyninst::Address pageAddr)
 }
 
 // is the first instruction: [00 00] add byte ptr ds:[eax],al ? 
+/* commented out to squash warnings
 static bool hasWeirdEntryBytes(func_instance *func)
 {
     using namespace SymtabAPI;
@@ -1549,15 +1545,16 @@ static bool hasWeirdEntryBytes(func_instance *func)
     }
     return false;
 }
+*/
 
 // return true if the analysis changed
 // 
 void BPatch_process::overwriteAnalysisUpdate
-    ( std::map<Dyninst::Address,unsigned char*>& owPages, //input
-      std::vector<Dyninst::Address>& deadBlockAddrs, //output
-      std::vector<BPatch_function*>& owFuncs, //output: overwritten & modified
-      std::set<BPatch_function *> &monitorFuncs, // output: those that call overwritten or modified funcs
-      bool &changedPages, bool &changedCode) //output
+    ( std::map<Dyninst::Address,unsigned char*>& /* owPages */, //input
+      std::vector<Dyninst::Address>& /* deadBlockAddrs */, //output
+      std::vector<BPatch_function*>& /* owFuncs */, //output: overwritten & modified
+      std::set<BPatch_function *> & /* monitorFuncs */, // output: those that call overwritten or modified funcs
+      bool & /*changedPages*/, bool & /* changedCode */) //output
 {
    assert(0 && "FIXME!");
 

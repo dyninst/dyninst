@@ -32,7 +32,7 @@ SRCS =          ../src/linux.C \
 		../src/parse-power.C \
 		../src/syscall-linux.C \
 		../src/BPatch_memoryAccessAdapter.C \
-		../src/RegisterConversion-power.C \
+		../src/RegisterConversion-ppc.C \
 		../src/stackwalk-ppc.C \
 		../src/frameChecker.C
 		../src/Relocation/Atoms/CFAtom-ppc.C \

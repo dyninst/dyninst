@@ -1278,7 +1278,7 @@ bool mapped_object::splitIntLayer()
          bIter != splits.end(); bIter++) 
     {
       // foreach function corresponding to the block
-       parse_block *splitImgB = bIter->first;
+       // parse_block *splitImgB = bIter->first;
        splitBlock(bIter->first, bIter->second);
     }
 
@@ -1449,7 +1449,7 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
  * 4. fix up mapping of split blocks with points
  * 5. Add image points, as instPoints 
 */
-bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
+bool mapped_object::parseNewEdges(const std::vector<edgeStub> & /*stubs*/ )
 {
    assert(0 && "TODO");
    return false;
@@ -2364,7 +2364,7 @@ block_instance *mapped_object::findOneBlockByAddr(const Address addr) {
    return NULL;
 }
 
-void mapped_object::splitBlock(ParseAPI::Block *first, ParseAPI::Block *second) {
+void mapped_object::splitBlock(ParseAPI::Block * /*first*/, ParseAPI::Block * /*second*/) {
    assert(0 && "TODO");
 }
 
@@ -2372,6 +2372,3 @@ func_instance *mapped_object::findFuncByEntry(const block_instance *blk) {
    parse_block *llb = static_cast<parse_block *>(blk->llb());
    return findFunction(llb->getEntryFunc());
 }
-
-
-   

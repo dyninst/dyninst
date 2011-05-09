@@ -1588,11 +1588,11 @@ static void constructorHelper(
         stopThread_cbs->find(bp_cb);
     if (cbIter == stopThread_cbs->end()) {
        stopThread_cbs->insert(bp_cb);
-       BPatch::bpatch->stopThreadCallbacks.push_back(bp_cb);
+       BPatch::bpatch->registerStopThreadCallback(bp_cb);
     }
 
     // create callback ID argument
-    int cb_id = BPatch::bpatch->info->getStopThreadCallbackID((Address)bp_cb); 
+    int cb_id = BPatch::bpatch->getStopThreadCallbackID(bp_cb); 
     idNode = AstNode::operandNode(AstNode::Constant, (void*)(int) cb_id );
     BPatch_type *inttype = BPatch::bpatch->stdTypes->findType("int");
     assert(inttype != NULL);

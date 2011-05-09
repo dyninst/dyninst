@@ -320,8 +320,8 @@ BPatch_type *BPatch_function::getReturnTypeInt()
  * Parse new edge, 
  * Correct missing elements in BPatch-level datastructures
 */
-bool BPatch_function::parseNewEdge(Dyninst::Address source, 
-                                   Dyninst::Address target)
+bool BPatch_function::parseNewEdge(Dyninst::Address /*source*/, 
+                                   Dyninst::Address /*target*/)
 {
    assert(0 && "TODO");
    return false;

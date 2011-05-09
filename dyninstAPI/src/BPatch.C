@@ -1971,3 +1971,12 @@ BPatch_point *BPatch_libInfo::getMonitoredPoint(Address addr) {
 
     return monitoredPoints_[addr];
 }
+
+// Functions for accessing stop thread callback state
+void BPatch::registerStopThreadCallback(BPatchStopThreadCallback stopCB) {
+    stopThreadCallbacks.push_back(stopCB);
+}
+
+int BPatch::getStopThreadCallbackID(BPatchStopThreadCallback stopCB) {
+    return info->getStopThreadCallbackID((Address)stopCB);
+}

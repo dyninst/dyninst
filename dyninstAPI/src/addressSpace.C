@@ -1574,11 +1574,12 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       // forces the instrumented version of the code to execute right 
       // away and is needed for code overwrites
       
-      // KEVIN TODO
-      /*
-      vector<dyn_thread*>::const_iterator titer;
-      for (titer=proc()->threads.begin();
-           titer != proc()->threads.end(); 
+      vector<PCThread *> threads;
+      proc()->getThreads(threads);
+
+      vector<PCThread *>::const_iterator titer;
+      for (titer = threads.begin();
+           titer != threads.end(); 
            titer++) 
       {
           // translate thread's active PC to orig addr
@@ -1607,7 +1608,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           list<Address> relocPCs;
           getRelocAddrs(ri.orig, ri.block, ri.func, relocPCs, false);
           if (relocPCs.size()) {
-             (*titer)->get_lwp()->changePC(relocPCs.back() + offset,NULL);
+             (*titer)->changePC(relocPCs.back() + offset);
              mal_printf("Pulling active frame PC into newest relocation "
                         "orig[%lx], cur[%lx], new[%lx (0x%lx + 0x%lx)] %s[%d]\n", ri.orig, 
                         tframe.getPC(), relocPCs.back() + offset, relocPCs.back(), offset,
@@ -1615,7 +1616,6 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
              break;
           }
       }
-      */
   }
   
   return true;
@@ -1910,7 +1910,7 @@ MemoryEmulator * AddressSpace::getMemEm() {
     return memEmulator_;
 }
 
-void AddressSpace::invalidateMemory(Address addr, Address size) {
+void AddressSpace::invalidateMemory(Address /*addr*/, Address /*size*/) {
 	// To do list:
 	// Remove this section from the memory shadow
 	// Flush the RT cache of indirect transfers
@@ -1938,9 +1938,9 @@ void AddressSpace::invalidateMemory(Address addr, Address size) {
 //     e->trg() in owBBIs and
 //     while e->src() in delBlocks try e->src()->sources()
 std::map<func_instance*,vector<edgeStub> > 
-AddressSpace::getStubs(const std::list<block_instance *> &owBBIs,
-                       const std::set<block_instance*> &delBBIs,
-                       const std::list<func_instance*> &deadFuncs)
+AddressSpace::getStubs(const std::list<block_instance *> & /*owBBIs*/,
+                       const std::set<block_instance*> & /*delBBIs*/,
+                       const std::list<func_instance*> & /*deadFuncs*/)
 {
     std::map<func_instance*,vector<edgeStub> > stubs;
     assert(0 && "TODO");

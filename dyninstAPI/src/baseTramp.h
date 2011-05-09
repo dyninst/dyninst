@@ -46,6 +46,7 @@
 
 class miniTramp;
 class baseTramp;
+class AddressSpace;
 
 // Encapsulates the code generation techniques for a series
 // of minitramps. 
@@ -55,6 +56,7 @@ class baseTramp {
 
  public:
     static baseTramp *create(instPoint *p);
+    static baseTramp *createForIRPC(AddressSpace *as);
     static baseTramp *fork(baseTramp *parBT, AddressSpace *child);
 
     func_instance *func() const;
@@ -86,6 +88,7 @@ class baseTramp {
 
   private:
     instPoint *point_;
+    AddressSpace *as_;
 
     AstNodePtr ast_;
     

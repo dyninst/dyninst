@@ -251,7 +251,7 @@ std::string BPatch_point::getCalledFunctionNameInt() {
  *  instruction whose target can be statically determined, in which
  *  case "target" is set to the targets of the control flow instruction
  */
-bool BPatch_point::getCFTargets(BPatch_Vector<Address> &targets)
+bool BPatch_point::getCFTargets(BPatch_Vector<Address> & /*targets*/)
 {
    assert(0 && "TODO");
    return false;
@@ -356,7 +356,7 @@ Address BPatch_point::getCallFallThroughAddr()
     else return point->block()->end();
 }
 
-bool BPatch_point::getSavedTargets(vector<Address> & targs)
+bool BPatch_point::getSavedTargets(vector<Address> & /*targs*/)
 {
    assert(0);
    return false;
@@ -611,7 +611,7 @@ bool BPatch_point::stopMonitoringInt()
  * insns        A pointer to a buffer in which to return the instructions.
  */ 
 
-int BPatch_point::getDisplacedInstructionsInt(int maxSize, void* insns)
+int BPatch_point::getDisplacedInstructionsInt(int /*maxSize*/, void* /*insns*/)
 {
    return 0;
 }
@@ -700,7 +700,6 @@ bool BPatchToInternalArgs(BPatch_point *point,
 
 BPatch_procedureLocation BPatch_point::convertInstPointType_t(int intType)
 {
-    BPatch_procedureLocation ret = (BPatch_procedureLocation)-1;
     switch((instPoint::Type) intType) {
        case instPoint::FuncEntry:
           return BPatch_locEntry;

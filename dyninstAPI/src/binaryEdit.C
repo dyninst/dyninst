@@ -770,9 +770,9 @@ Address BinaryEdit::getDependentRelocationAddr(Symbol *referring) {
 // New: do this for one mapped object. 
 
 
-void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
-                                     Region *newSec,
-                                     Module *newMod) {
+void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> & /*newSyms*/, 
+                                     Region * /*newSec*/,
+                                     Module * /*newMod*/) {
 #if 0
     pdvector<codeRange *> ranges;
     // FIXME: fill this in

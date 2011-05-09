@@ -52,6 +52,7 @@
 // Normal constructor
 baseTramp::baseTramp() :
    point_(NULL),
+   as_(NULL),
    funcJumpState_(cfj_unset),
    needsStackFrame_(false),
    threaded_(false),
@@ -78,6 +79,15 @@ baseTramp *baseTramp::create(instPoint *p) {
    baseTramp *bt = new baseTramp();
    bt->point_ = p;
    return bt;
+}
+
+baseTramp *baseTramp::createForIRPC(AddressSpace *as) {
+    // We use baseTramps to generate save and restore code for iRPCs
+    // iRPCs don't have a corresponding instPoint so the AddressSpace
+    // needs to be specified
+    baseTramp *bt = new baseTramp();
+    bt->as_ = as;
+    return bt;
 }
 
 baseTramp *baseTramp::fork(baseTramp *parent, AddressSpace *child) {
@@ -414,6 +424,8 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
 AddressSpace *baseTramp::proc() const { 
    if (point_)
       return point_->proc();
+   if (as_)
+       return as_;
    return NULL;
 }
 

@@ -226,7 +226,7 @@ DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
 }
 
 void
-DynParseCallback::abruptEnd_cf(Address addr,ParseAPI::Block *b,default_details*)
+DynParseCallback::abruptEnd_cf(Address /*addr*/,ParseAPI::Block * /*b*/,default_details*)
 {
 }
 
@@ -243,7 +243,7 @@ DynParseCallback::block_split(Block *first, Block *second)
                        static_cast<parse_block *>(second));
 }
 
-void DynParseCallback::block_delete(Block *b) {
+void DynParseCallback::block_delete(Block * /*b*/) {
 
 }
 
@@ -259,7 +259,7 @@ DynParseCallback::patch_nop_jump(Address addr)
 }
 
 void
-DynParseCallback::interproc_cf(Function*f,Block *b,Address addr,interproc_details*det)
+DynParseCallback::interproc_cf(Function*f,Block * /*b*/,Address /*addr*/,interproc_details*)
 {
 #if defined(ppc32_linux) || defined(ppc32_bgp)
     if(det->type == interproc_details::call) {

@@ -116,9 +116,10 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     friend class BPatch_thread;
     friend class BPatch_process;
     friend class BPatch_point;
-    friend class BPatch_stopThreadExpr; // Registers a callback
     friend class PCProcess;
     friend class func_instance;
+
+    BPatch_libInfo *info; 
 
     bool	typeCheckOn;
     int		lastError;
@@ -193,11 +194,10 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
    InternalCodeOverwriteCallback codeOverwriteCallback;
    
    BPatch_Vector<BPatchUserEventCallback> userEventCallbacks;
-   
-   public:  
-   BPatch_libInfo *info; 
    BPatch_Vector<BPatchStopThreadCallback> stopThreadCallbacks;
-   
+
+   public:  
+      
    /* And auxiliary functions for the above */
    /* These are NOT part of the API, do not use externally */
    void signalNotificationFD(); // Called when an event happens
@@ -236,9 +236,10 @@ public:
            unsigned int bufsize);
 
     void registerDynamicCallsiteEvent(BPatch_process *process, Dyninst::Address callTarget,
-           Dyninst::Address callAddr); 
+           Dyninst::Address callAddr);
 
-    void launchDeferredOneTimeCode();
+    void registerStopThreadCallback(BPatchStopThreadCallback stopCB);
+    int getStopThreadCallbackID(BPatchStopThreadCallback stopCB);
 
     void registerLoadedModule(PCProcess *process, mapped_module *mod);
     void registerUnloadedModule(PCProcess *process, mapped_module *mod);

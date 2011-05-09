@@ -78,8 +78,7 @@ codeGen::codeGen() :
     bt_(NULL),
     isPadded_(true),
     trackRegDefs_(false),
-    inInstrumentation_(false), // save default
-    obj_(NULL)
+    inInstrumentation_(false) // save default
 {}
 
 // size is in bytes
@@ -99,8 +98,7 @@ codeGen::codeGen(unsigned size) :
     bt_(NULL),
     isPadded_(true),
     trackRegDefs_(false),
-    inInstrumentation_(false),
-    obj_(NULL)
+    inInstrumentation_(false)
 {
     buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
     if (!buffer_)
@@ -132,8 +130,7 @@ codeGen::codeGen(const codeGen &g) :
     bt_(g.bt_),
     isPadded_(g.isPadded_),
     trackRegDefs_(g.trackRegDefs_),
-    inInstrumentation_(g.inInstrumentation_),
-    obj_(g.obj_)
+    inInstrumentation_(g.inInstrumentation_)
 {
     if (size_ != 0) {
         assert(allocated_); 
@@ -164,8 +161,6 @@ codeGen &codeGen::operator=(const codeGen &g) {
     isPadded_ = g.isPadded_;
     int bufferSize = size_ + (isPadded_ ? codeGenPadding : 0);
     inInstrumentation_ = g.inInstrumentation_;
-    obj_ = g.obj_;
-    
 
     if (size_ != 0) {
        assert(allocated_); 

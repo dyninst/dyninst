@@ -1277,4 +1277,3 @@ void BPatch_image::clearNewCodeRegions()
         }
     }
 }
-

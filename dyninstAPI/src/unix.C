@@ -267,10 +267,16 @@ mapped_object *PCProcess::createObjectNoFile(Address) {
     return NULL;
 }
 
-int PCProcess::setMemoryAccessRights(Address start, Address size, int rights) {
+bool PCProcess::setMemoryAccessRights(Address start, Address size, int rights) {
     mal_printf("setMemoryAccessRights to %d [%lx %lx]\n", rights, start, start+size);
     assert(!"Not implemented yet");
-    return -1;
+    return false;
+}
+
+bool PCProcess::getMemoryAccessRights(Address start, Address size, int rights) {
+    mal_printf("getMemoryAccessRights to %d [%lx %lx]\n", rights, start, start+size);
+    assert(!"Not implemented yet");
+    return false;
 }
 
 void PCProcess::redirectFds(int stdin_fd, int stdout_fd, int stderr_fd,
@@ -599,6 +605,7 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
 #include "dyninstAPI/src/pcProcess.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/debug.h"
+#include "boost/tuple/tuple.hpp"
 #include <elf.h>
 
 #if defined(os_linux)
@@ -609,6 +616,116 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
 
 // The following functions were factored from linux.C to be used
 // on both Linux and FreeBSD
+
+// findCallee: finds the function called by the instruction corresponding
+// to the instPoint "instr". If the function call has been bound to an
+// address, then the callee function is returned in "target" and the 
+// instPoint "callee" data member is set to pt to callee's func_instance.  
+// If the function has not yet been bound, then "target" is set to the 
+// func_instance associated with the name of the target function (this is 
+// obtained by the PLT and relocation entries in the image), and the instPoint
+// callee is not set.  If the callee function cannot be found, (ex. function
+// pointers, or other indirect calls), it returns false.
+// Returns false on error (ex. process doesn't contain this instPoint).
+//
+// HACK: made an func_instance method to remove from instPoint class...
+// FURTHER HACK: made a block_instance method so we can share blocks
+func_instance *block_instance::callee() {
+   // See if we've already done this
+   edge_instance *tEdge = getTarget();
+   if (!tEdge) {
+      return NULL;
+   }
+
+   if (!tEdge->sinkEdge()) {
+      return obj()->findFuncByEntry(tEdge->trg());
+   }
+   
+   // Do this the hard way - an inter-module jump
+   // get the target address of this function
+   Address target_addr; bool success;
+   boost::tie(success, target_addr) = llb()->callTarget();
+   if(!success) {
+      // this is either not a call instruction or an indirect call instr
+      // that we can't get the target address
+      //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
+      return NULL;
+   }
+   
+   // get the relocation information for this image
+   Symtab *sym = obj()->parse_img()->getObject();
+   pdvector<relocationEntry> fbt;
+   vector <relocationEntry> fbtvector;
+   if (!sym->getFuncBindingTable(fbtvector)) {
+      //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
+      cerr << "Failed to get func binding table" << endl;
+      return NULL;
+   }
+
+   /**
+    * Object files and static binaries will not have a function binding table
+    * because the function binding table holds relocations used by the dynamic
+    * linker
+    */
+   if (!fbtvector.size() && !sym->isStaticBinary() && 
+           sym->getObjectType() != obj_RelocatableFile ) 
+   {
+      fprintf(stderr, "%s[%d]:  WARN:  zero func bindings\n", FILE__, __LINE__);
+   }
+
+   for (unsigned index=0; index< fbtvector.size();index++)
+      fbt.push_back(fbtvector[index]);
+   
+   Address base_addr = obj()->codeBase();
+   dictionary_hash<Address, std::string> *pltFuncs = obj()->parse_img()->getPltFuncs();
+
+   // find the target address in the list of relocationEntries
+   if (pltFuncs->defines(target_addr)) {
+      for (u_int i=0; i < fbt.size(); i++) {
+         if (fbt[i].target_addr() == target_addr) 
+         {
+            // check to see if this function has been bound yet...if the
+            // PLT entry for this function has been modified by the runtime
+            // linker
+            func_instance *target_pdf = 0;
+            if (proc()->hasBeenBound(fbt[i], target_pdf, base_addr)) {
+               updateCallTarget(target_pdf);
+               obj()->setCalleeName(this, target_pdf->symTabName());
+               return target_pdf;
+            }
+         }
+      }
+
+      const char *target_name = (*pltFuncs)[target_addr].c_str();
+      PCProcess *dproc = dynamic_cast<PCProcess *>(proc());
+      BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
+      obj()->setCalleeName(this, std::string(target_name));
+      pdvector<func_instance *> pdfv;
+
+      // See if we can name lookup
+      if (dproc) {
+         if (proc()->findFuncsByMangled(target_name, pdfv)) {
+            updateCallTarget(pdfv[0]);
+            return pdfv[0];
+         }
+      }
+      else if (bedit) {
+         std::vector<BinaryEdit *>::iterator i;
+         for (i = bedit->getSiblings().begin(); i != bedit->getSiblings().end(); i++)
+         {
+            if ((*i)->findFuncsByMangled(target_name, pdfv)) {
+               updateCallTarget(pdfv[0]);
+               return pdfv[0];
+            }
+         }
+      }
+      else 
+         assert(0);
+   }
+   
+   //fprintf(stderr, "%s[%d]:  returning NULL: target addr = %p\n", FILE__, __LINE__, (void *)target_addr);
+   return NULL;
+}
 
 void BinaryEdit::makeInitAndFiniIfNeeded()
 {
