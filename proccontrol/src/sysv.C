@@ -70,10 +70,14 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    aout = sp->aout;
    if (sp->procreader)
       procreader = new PCProcReader(this);
+   else
+      procreader = NULL;
    if (sp->translator)
       translator = AddressTranslate::createAddressTranslator(pid_,
                                                              procreader,
                                                              plat_defaultSymReader());
+   else
+      translator = NULL;
 }
 
 sysv_process::~sysv_process()

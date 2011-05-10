@@ -233,8 +233,9 @@ bool PtraceBulkRead(Address inTraced, unsigned size, const void *inSelf, int pid
    if (0 == size) {
       return true;
    }
-   
-   if ((cnt = ((Address)ap) % len)) {
+
+   cnt = inTraced % len;
+   if (cnt) {
       /* Start of request is not aligned. */
       unsigned char *p = (unsigned char*) &w;
       

@@ -484,10 +484,11 @@ async_ret_t memCache::writeMemorySync(Dyninst::Address dest, void *src, unsigned
 async_ret_t memCache::readMemory(void *dest, Address src, unsigned long size, 
                                  set<mem_response::ptr> &resps, int_thread *thrd)
 {
-   if (!block_size) 
-      block_size = proc->plat_getRecommendedReadSize();
-   if (proc->plat_needsAsyncIO())
+   if (proc->plat_needsAsyncIO()) {
+      if (!block_size) 
+         block_size = proc->plat_getRecommendedReadSize();
       return readMemoryAsync(dest, src, size, resps, thrd);
+   }
    else
       return readMemorySync(dest, src, size, thrd);
 }
@@ -495,10 +496,11 @@ async_ret_t memCache::readMemory(void *dest, Address src, unsigned long size,
 async_ret_t memCache::writeMemory(Dyninst::Address dest, void *src, unsigned long size,
                                   std::set<result_response::ptr> &resps, int_thread *thrd)
 {
-   if (!block_size)
-      block_size = proc->plat_getRecommendedReadSize();
-   if (proc->plat_needsAsyncIO())
+   if (proc->plat_needsAsyncIO()) {
+      if (!block_size)
+         block_size = proc->plat_getRecommendedReadSize();
       return writeMemoryAsync(dest, src, size, resps, thrd);
+   }
    else
       return writeMemorySync(dest, src, size, thrd);
 }
