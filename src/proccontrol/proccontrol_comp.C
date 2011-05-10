@@ -353,7 +353,6 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
    }
 
    handshake shake;
-   fprintf(stderr, "[%s:%u] - HERE\n", __FILE__, __LINE__);
    shake.code = HANDSHAKE_CODE;
    result = send_broadcast((unsigned char *) &shake, sizeof(handshake));
    if (!result) {
@@ -1039,31 +1038,3 @@ bool ProcControlComponent::poll_for_events()
    return bresult;
 }
 
-Process::cb_ret_t on_breakpoint(Event::const_ptr ev) {
-   Dyninst::ProcControlAPI::RegisterPool regs;
-    if( !ev->getThread()->getAllRegisters(regs) ) {
-        fprintf(stderr, "Failed to get registers on breakpoint\n");
-    }else{
-        fprintf(stderr, "Registers at breakpoint 0x%lx:\n", ev->getEventBreakpoint()->getAddress());
-        for(Dyninst::ProcControlAPI::RegisterPool::iterator i = regs.begin(); i != regs.end(); i++) {
-            fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name(), (*i).second);
-        }
-    }
-
-    return Process::cbThreadContinue;
-}
-
-// To be called while debugging
-void insertBreakpoint(Process::ptr proc, Address addr) {
-    Breakpoint::ptr brkPt = Breakpoint::newBreakpoint();
-
-    Process::registerEventCallback(EventType::Breakpoint, on_breakpoint);
-
-    if( !proc->addBreakpoint(addr, brkPt) ) {
-        fprintf(stderr, "Failed to add breakpoint to process %d at addr 0x%lx\n",
-                proc->getPid(), addr);
-    }else{
-        fprintf(stderr, "Added breakpoint to process %d at addr 0x%lx\n",
-                proc->getPid(), addr);
-    }
-}

@@ -13,17 +13,17 @@ extern "C" DLLEXPORT TestMutator* pc_fork_exec_factory()
   return new pc_fork_execMutator();
 }
 
-struct proc_info {
+struct proc_info_forkexec {
    bool is_exited;
    std::string executable;
 
-   proc_info() :
+   proc_info_forkexec() :
       is_exited(false)
    {
    }
 };
 
-static std::map<Process::const_ptr, proc_info> pinfo;
+static std::map<Process::const_ptr, proc_info_forkexec> pinfo;
 static bool myerror;
 #define EXIT_CODE 4
 
@@ -46,7 +46,7 @@ Process::cb_ret_t on_exec(Event::const_ptr ev)
 {
    EventExec::const_ptr eexec = ev->getEventExec();
    Process::const_ptr proc = ev->getProcess();
-   proc_info &pi = pinfo[proc];
+   proc_info_forkexec &pi = pinfo[proc];
 
    pi.executable = eexec->getExecPath();
 
@@ -74,7 +74,7 @@ Process::cb_ret_t on_fork(Event::const_ptr ev)
       return Process::cbDefault;
    }
 
-   proc_info &pi = pinfo[child_proc];
+   proc_info_forkexec &pi = pinfo[child_proc];
 
    if (child_proc->libraries().size() != parent_proc->libraries().size())
    {
@@ -97,12 +97,12 @@ Process::cb_ret_t on_exit(Event::const_ptr ev)
       myerror = true;
    }
    
-   map<Process::const_ptr, proc_info>::iterator i = pinfo.find(ev->getProcess());
+   map<Process::const_ptr, proc_info_forkexec>::iterator i = pinfo.find(ev->getProcess());
    if (i == pinfo.end()) {
       return Process::cbDefault;
    }
 
-   proc_info &pi = i->second;
+   proc_info_forkexec &pi = i->second;
    pi.is_exited = true;
    if (ee->getExitCode() != EXIT_CODE) {
       logerror("Process exited with unexpected code\n");
@@ -149,10 +149,10 @@ test_results_t pc_fork_execMutator::executeTest()
       myerror = true;
    }
 
-   map<Process::const_ptr, proc_info>::iterator i = pinfo.begin();
+   map<Process::const_ptr, proc_info_forkexec>::iterator i = pinfo.begin();
    for (; i != pinfo.end(); i++) {
       Process::const_ptr proc = i->first;
-      proc_info &pi = i->second;
+      proc_info_forkexec &pi = i->second;
 
       if (!pi.is_exited) {
          logerror("Process did not deliver exit callback\n");

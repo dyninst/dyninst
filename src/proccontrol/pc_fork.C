@@ -15,14 +15,15 @@ extern "C" DLLEXPORT TestMutator* pc_fork_factory()
   return new pc_forkMutator();
 }
 
-struct proc_info {
+
+struct proc_info_fork {
    bool got_breakpoint;
    bool is_threaded;
    bool is_exited;
    Process::const_ptr parent;
    Process::const_ptr child;
 
-   proc_info() :
+   proc_info_fork() :
       got_breakpoint(false),
       is_threaded(false),
       is_exited(false),
@@ -32,7 +33,7 @@ struct proc_info {
    }
 };
 
-static std::map<Dyninst::PID, proc_info> pinfo;
+static std::map<Dyninst::PID, proc_info_fork> pinfo;
 static bool myerror;
 static Breakpoint::ptr bp;
 #define EXIT_CODE 4
@@ -46,7 +47,7 @@ Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
       logerror("Got unexpected breakpoint\n");
       myerror = true;
    }
-   proc_info &pi = pinfo[ev->getProcess()->getPid()];
+   proc_info_fork &pi = pinfo[ev->getProcess()->getPid()];
    if (pi.got_breakpoint) {
       logerror("Breakpoint hit twice\n");
       myerror = true;
@@ -72,7 +73,7 @@ Process::cb_ret_t on_fork(Event::const_ptr ev)
       return Process::cbDefault;
    }
 
-   proc_info &pi = pinfo[child_proc->getPid()];
+   proc_info_fork &pi = pinfo[child_proc->getPid()];
    pi.is_threaded = child_proc->threads().size() > 1;
    pi.parent = parent_proc;
    pi.child = child_proc;
@@ -92,7 +93,7 @@ Process::cb_ret_t on_exit(Event::const_ptr ev)
       logerror("Exit event on not-exited process\n");
       myerror = true;
    }
-   proc_info &pi = pinfo[ev->getProcess()->getPid()];
+   proc_info_fork &pi = pinfo[ev->getProcess()->getPid()];
    pi.is_exited = true;
 
    return Process::cbDefault;
@@ -183,7 +184,7 @@ test_results_t pc_forkMutator::executeTest()
             break;
          }
          done = (fork_data.is_done != 0);
-         proc_info &pi = pinfo[fork_data.pid];
+         proc_info_fork &pi = pinfo[fork_data.pid];
          if (pi.parent != proc) {
             fprintf(stderr, "pi.parent = %p\n", pi.parent.get());
             fprintf(stderr, "proc = %p\n", proc.get());

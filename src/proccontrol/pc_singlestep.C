@@ -17,9 +17,9 @@ extern "C" DLLEXPORT TestMutator* pc_singlestep_factory()
 #define STOP_FUNC 3
 #define NUM_FUNCS 5
 
-struct proc_info {
+struct proc_info_ss {
    Address func[NUM_FUNCS];
-   proc_info()
+   proc_info_ss()
    {
       for (unsigned i=0; i<NUM_FUNCS; i++) {
          func[i] = 0x0;
@@ -44,7 +44,7 @@ struct thread_info {
 };
 
 std::map<Thread::const_ptr, thread_info> tinfo;
-std::map<Process::const_ptr, proc_info> pinfo;
+std::map<Process::const_ptr, proc_info_ss> pinfo;
 Breakpoint::ptr bp;
 
 static bool myerror;
@@ -81,7 +81,7 @@ Process::cb_ret_t on_singlestep(Event::const_ptr ev)
       myerror = true;
    }
 
-   proc_info &pi = pinfo[ev->getProcess()];
+   proc_info_ss &pi = pinfo[ev->getProcess()];
    thread_info &ti = tinfo[ev->getThread()];
 
    ti.steps++;
@@ -125,7 +125,7 @@ test_results_t pc_singlestepMutator::executeTest()
          myerror = true;
       }
 
-      proc_info &pi = pinfo[proc];
+      proc_info_ss &pi = pinfo[proc];
       Address funcs[NUM_FUNCS];
       for (unsigned j=0; j < NUM_FUNCS; j++)
       {
