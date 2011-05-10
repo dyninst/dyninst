@@ -209,6 +209,15 @@ struct CFPatch : public Patch {
   private:
   bool isPLT(codeGen &gen);
   bool applyPLT(codeGen &gen, CodeBuffer *buf);
+
+#if defined(arch_power)
+  // 64-bit PPC/Linux has a TOC register we need
+  // to maintain. That puts it in "special case"
+  // territory...
+  bool isSpecialCase(codeGen &gen);
+  bool handleSpecialCase(codeGen &gen);
+#endif
+
 };
 
 struct PaddingPatch : public Patch {

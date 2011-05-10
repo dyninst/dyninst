@@ -69,6 +69,12 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
       return true;
    }
 
+   if (isSpecialCase(gen)) {
+     if (!handleSpecialCase(gen)) {
+       return false;
+     }
+   }
+
    // Otherwise this is a classic, and therefore easy.
    int targetLabel = target->label(buf);
 
@@ -194,3 +200,34 @@ bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
    return true;
 }
 
+bool CFPatch::isSpecialCase(codeGen &gen) {
+  // 64-bit check
+  if (gen.addrSpace()->getAddressWidth() != 8) return false;
+
+  // See if this is inter-module, according to the target
+  // and gen
+  // Assuming an address target is not inter-module...
+  if (target->type() != TargetInt::BlockTarget) return false;
+
+  Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
+  if (t->t()->obj() == gen.func()->obj()) return false;
+  
+  return true;
+}
+
+bool CFPatch::handleSpecialCase(codeGen &gen) {
+  // Annoying, pain in the butt case...
+  assert(target->type() == TargetInt::BlockTarget);
+  Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
+
+
+  if (type == Jump)
+    return gen.codeEmitter()->emitTOCJump(t->t(), gen);
+  else if (type == Call)
+    return gen.codeEmitter()->emitTOCCall(t->t(), gen);
+  else {
+    assert(0);
+    return false;
+  }
+}
+    

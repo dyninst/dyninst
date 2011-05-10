@@ -3156,51 +3156,211 @@ bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, func_instance* callee
   return true;
 }
 
-bool EmitterPOWERStat::emitPLTCommon(func_instance *callee, codeGen &gen) {
+bool EmitterPOWER32Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
+  Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+  if (scratchReg == REG_NULL) return false;
 
-  Register scratchPCReg = gen.rs()->getScratchRegister(gen, true);
-  assert(scratchPCReg);
-  pdvector<Register> excludeReg;
-  excludeReg.push_back(scratchPCReg);
-  Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
-  if (scratchReg) {
-    // We can use r0 for this, since it's volatile. 
-    scratchReg = registerSpace::r0;
+
+  Register scratchLR = REG_NULL;
+  if (!call) {
+    std::vector<Register> excluded; excluded.push_back(scratchReg);
+    scratchLR = gen.rs()->getScratchRegister(gen, excluded, true);
+    if (scratchLR == REG_NULL) {
+      if (scratchReg == registerSpace::r0) return false;
+      // We can use r0 for this, since it's volatile. 
+      scratchReg = registerSpace::r0;
+    }
   }
-  
-  Address dest = getInterModuleFuncAddr(callee, gen);
-  
-  inst_printf("emitCallInstruction addr 0x%lx curr adress 0x%lx offset %ld 0x%lx\n",
-	      dest, gen.currAddr(), dest - gen.currAddr()+4, dest - gen.currAddr()+4);
-  // Use scratchReg to set destination of the call...
-  
-  emitMovPCToReg(scratchPCReg, gen);
+
+  if (!call) {
+    // Save the LR in scratchLR
+    insnCodeGen::generateMoveFromLR(gen, scratchLR);
+  }
+
+  // Generate the PLT call
+
+  Address dest = getInterModuleFuncAddr(callee, gen);  
+  emitMovPCToReg(scratchReg, gen);
   Address varOffset = dest - gen.currAddr()+4;
-  
-  emitLoadRelative(scratchReg, varOffset, scratchPCReg, gen.addrSpace()->getAddressWidth(), gen);
+  emitLoadRelative(scratchReg, varOffset, scratchReg, gen.addrSpace()->getAddressWidth(), gen);
   
   insnCodeGen::generateMoveToCR(gen, scratchReg);
+
+  if (!call) {
+    insnCodeGen::generateMoveToLR(gen, scratchLR);
+  }
+
+  if (!call) {
+    instruction br(BCTRraw);
+    insnCodeGen::generate(gen, br);
+  }
+  else {
+    instruction brl(BCTRLraw);
+    insnCodeGen::generate(gen, brl);
+  }
+
   return true;
 }
 
 
 // TODO 32/64-bit? 
-bool EmitterPOWERStat::emitPLTCall(func_instance *callee, codeGen &gen) {
-  emitPLTCommon(callee, gen);
- 
-  instruction brl(BCTRLraw);
-  insnCodeGen::generate(gen,brl);
+bool EmitterPOWER32Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
+  return emitPLTCommon(callee, true, gen);
+}
+
+bool EmitterPOWER32Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
+  return emitPLTCommon(callee, false, gen);
+}
+
+bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
+  // 64-bit is infinitely more complicated due to the need to set/reset
+  // the TOC pointer. This means that we're putting in a stub that gets
+  // returned to...
+
+  // However, we have two slots on the stack we can rely on using. Lucky us. 
+  // 
+  // Brief sketch:
+  //   Save current TOC at SP + 3W
+  //   (if call) Save current LR at SP + 4W
+  //   Set up new branch target in LR
+  //   Set up new TOC in R2
+  //   Call
+  //   if (call) Restore LR
+  //   Restore TOC
+
+  const unsigned TOCreg = 2;
+  const unsigned wordsize = gen.addrSpace()->getAddressWidth();
+
+  assert(0 && "need to determine correct TOC");
+
+  Address replacementTOC = 0;
+
+  assert(wordsize == 8);
+
+  // Save TOC
+  saveRegisterAtOffset(gen, TOCreg, 3*wordsize);
   
+  // Use TOC to access and save LR
+  if (call) {
+    insnCodeGen::generateMoveFromLR(gen, TOCreg);
+    saveRegisterAtOffset(gen, TOCreg, 4*wordsize);
+  }
+
+  // This won't work for the rewriter; that's a WIP according to Ray. 
+
+  // Assign new LR for branch. 
+  assert(0 && "This isn't correct");
+  emitVload(loadConstOp, callee->addr(), 2, 2, gen, false);
+  insnCodeGen::generateMoveToLR(gen, 2);
+
+  // Assign new TOC
+  emitVload(loadConstOp, replacementTOC, 2, 2, gen, false);
+
+  // Call
+  instruction brl(BRLraw);
+  insnCodeGen::generate(gen,brl);
+
+  // We're done with the replacement function, so restore TOC, LR, return
+    
+  // Load LR from SP + 4W to TOC
+  if (call) {
+    restoreRegisterAtOffset(gen, 2, 4*gen.addrSpace()->getAddressWidth());
+    insnCodeGen::generateMoveToLR(gen, 2);
+  }
+
+  // Load TOC from SP + 3W
+  restoreRegisterAtOffset(gen, 2, 3*gen.addrSpace()->getAddressWidth());
+
   return true;
 }
 
-bool EmitterPOWERStat::emitPLTJump(func_instance *callee, codeGen &gen) {
-  emitPLTCommon(callee, gen);
+
+// TODO 32/64-bit? 
+bool EmitterPOWER64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
+  return emitPLTCommon(callee, true, gen);
+}
+
+bool EmitterPOWER64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
+  return emitPLTCommon(callee, false, gen);
+}
+
+bool EmitterPOWER64Dyn::emitTOCCommon(block_instance *target, bool call, codeGen &gen) {
+  Address curTOC = gen.addrSpace()->proc()->getTOCoffsetInfo(gen.func());
+
+  std::vector<func_instance *> calleeFuncs;
+  target->getFuncs(std::back_inserter(calleeFuncs));
+  Address newTOC = gen.addrSpace()->proc()->getTOCoffsetInfo(calleeFuncs[0]);
+
+  if (curTOC == newTOC) {
+    // Easy...
+    if (call) {
+      insnCodeGen::generateCall(gen, gen.currAddr(), target->start());
+      return true;
+    } else {
+      insnCodeGen::generateBranch(gen, gen.currAddr(), target->start());
+      return true;
+    }
+  }
+
+  // Okay, we do this the hard way. 
+  // This is copied from the 64-bit static code; we should unify. 
+
+  // However, we have two slots on the stack we can rely on using. Lucky us. 
+  // 
+  // Brief sketch:
+  //   Save current TOC at SP + 3W
+  //   (if call) Save current LR at SP + 4W
+  //   Set up new branch target in LR
+  //   Set up new TOC in R2
+  //   Call
+  //   if (call) Restore LR
+  //   Restore TOC
+
+  const unsigned TOCreg = 2;
+  const unsigned wordsize = gen.addrSpace()->getAddressWidth();
+
+  assert(wordsize == 8);
+
+  // Save TOC
+  saveRegisterAtOffset(gen, TOCreg, 3*wordsize);
   
-  instruction br(BCTRraw);
-  insnCodeGen::generate(gen,br);
-  
+  // Use TOC to access and save LR
+  if (call) {
+    insnCodeGen::generateMoveFromLR(gen, TOCreg);
+    saveRegisterAtOffset(gen, TOCreg, 4*wordsize);
+  }
+
+  emitVload(loadConstOp, target->start(), 2, 2, gen, false);
+  insnCodeGen::generateMoveToLR(gen, 2);
+
+  // Assign new TOC
+  emitVload(loadConstOp, newTOC, 2, 2, gen, false);
+
+  // Call
+  instruction brl(BRLraw);
+  insnCodeGen::generate(gen,brl);
+
+  // We're done with the replacement function, so restore TOC, LR, return
+    
+  // Load LR from SP + 4W to TOC
+  if (call) {
+    restoreRegisterAtOffset(gen, 2, 4*wordsize);
+    insnCodeGen::generateMoveToLR(gen, 2);
+  }
+
+  // Load TOC from SP + 3W
+  restoreRegisterAtOffset(gen, 2, 3*wordsize);
+
   return true;
+}
+
+// TODO 32/64-bit? 
+bool EmitterPOWER64Dyn::emitTOCCall(block_instance *callee, codeGen &gen) {
+  return emitTOCCommon(callee, true, gen);
+}
+
+bool EmitterPOWER64Dyn::emitTOCJump(block_instance *callee, codeGen &gen) {
+  return emitTOCCommon(callee, false, gen);
 }
 
 /*
@@ -3471,7 +3631,6 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
             break;
         }
     }
-
     // have we added this relocation already?
     relocation_address = binEdit->getDependentRelocationAddr(referring);
 
@@ -3483,7 +3642,6 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
 
         // add write new relocation symbol/entry
         binEdit->addDependentRelocation(relocation_address, referring);
-	cerr << "Adding a dependent relocation @" << hex << relocation_address << dec << endl;
     }
     return relocation_address;
 }

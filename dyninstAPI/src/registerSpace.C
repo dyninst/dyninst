@@ -303,9 +303,9 @@ void registerSpace::createRegSpaceInt(pdvector<registerSlot *> &registers,
 bool registerSpace::trySpecificRegister(codeGen &gen, Register num, 
 					bool noCost)
 {
-    registerSlot *tmp;
-    registers_.find(num, tmp);
-    if (!tmp) return false;
+  registerSlot *tmp = NULL;
+  registers_.find(num, tmp);
+  if (!tmp) return false;
 
     registerSlot *reg = registers_[num];
     if (reg->offLimits) return false;
@@ -333,7 +333,7 @@ bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num,
 
   debugPrint();
 
-    registerSlot *tmp;
+  registerSlot *tmp = NULL;
     registers_.find(num, tmp);
     if (!tmp) {
       regalloc_printf("Error: register does not exist!\n");
