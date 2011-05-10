@@ -51,8 +51,8 @@ class Trace;
 class TargetInt;
 class CFAtom;
 class RelocInsn;
-class RelocEdge;
-class RelocEdges;
+struct RelocEdge;
+struct RelocEdges;
 class RelocGraph;
 
 // One of the things a Transformer 'returns' (modifies, really) is 

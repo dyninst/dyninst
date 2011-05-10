@@ -51,7 +51,7 @@ namespace Relocation {
 // predictedAddr takes into account things moving during code generation
 
 class CodeBuffer;
-class RelocEdge;
+struct RelocEdge;
 
 class TargetInt {
  public:

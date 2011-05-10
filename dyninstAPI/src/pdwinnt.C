@@ -3111,13 +3111,13 @@ bool process::instrumentThreadInitialFunc(func_instance *f) {
     func_instance *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
     if (!dummy_create)
     {
-      return false;
+		return false;
     } 
 
     pdvector<AstNodePtr> args;
     AstNodePtr call_dummy_create = AstNode::funcCallNode(dummy_create, args);
 	instPoint *entry = instPoint::funcEntry(f);
-	miniTramp *mt = entry->push_front(call_dummy_create, true);
+	miniTramp *mt = entry->push_front(call_dummy_create, false);
 	relocate();
     if (!mt) {
       fprintf(stderr, "[%s:%d] - Couldn't instrument thread_create\n",

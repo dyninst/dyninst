@@ -48,7 +48,7 @@ namespace Dyninst {
 namespace Relocation {
 
 class Trace;
-class RelocEdge;
+struct RelocEdge;
 class TargetInt;
 class Atom;
 typedef dyn_detail::boost::shared_ptr<Atom> AtomPtr;

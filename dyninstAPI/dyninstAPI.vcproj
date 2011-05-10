@@ -1944,6 +1944,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\RelocGraph.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\rpcMgr-lwp.C"
 				>
 				<FileConfiguration
@@ -2155,6 +2167,18 @@
 			</File>
 			<File
 				RelativePath=".\src\Relocation\Atoms\Trace.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\Transformer.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -2506,11 +2530,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Include.h"
+				RelativePath=".\src\Relocation\Transformers\Include.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Transformers\Include.h"
+				RelativePath=".\src\Relocation\Atoms\Include.h"
 				>
 			</File>
 			<File
@@ -2659,6 +2683,10 @@
 			</File>
 			<File
 				RelativePath=".\src\Relocation\Relocation.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\RelocGraph.h"
 				>
 			</File>
 			<File

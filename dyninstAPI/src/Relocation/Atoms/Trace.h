@@ -60,7 +60,7 @@ typedef dyn_detail::boost::shared_ptr<CFAtom> CFAtomPtr;
 class Atom;
 typedef dyn_detail::boost::shared_ptr<Atom> AtomPtr;
 
-class RelocEdge;
+struct RelocEdge;
 class Trace; 
 
 struct RelocEdge {
