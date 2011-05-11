@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 #if !defined(LINUX_H_)
 #define LINUX_H_
 
@@ -10,7 +40,8 @@
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/sysv.h"
 #include "proccontrol/src/unix.h"
-#include "proccontrol/src/arch_process.h"
+#include "proccontrol/src/x86_process.h"
+#include "proccontrol/src/ppc_process.h"
 #include "proccontrol/src/int_thread_db.h"
 #include "common/h/dthread.h"
 #include <sys/types.h>
@@ -63,7 +94,7 @@ class DecoderLinux : public Decoder
    Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class linux_process : public sysv_process, public unix_process, public arch_process, public thread_db_process
+class linux_process : public sysv_process, public unix_process, public thread_db_process
 {
  public:
    linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
@@ -73,11 +104,13 @@ class linux_process : public sysv_process, public unix_process, public arch_proc
 
    virtual bool plat_create();
    virtual bool plat_create_int();
-   virtual bool plat_attach();   
+   virtual bool plat_attach(bool allStopped);
+   virtual bool plat_attachWillTriggerStop();
    virtual bool plat_forked();
    virtual bool plat_execed();
    virtual bool plat_detach();
    virtual bool plat_terminate(bool &needs_sync);
+   virtual bool preTerminate();
 
 
    //The following async functions are only used if a linux debugging mode,
@@ -96,13 +129,36 @@ class linux_process : public sysv_process, public unix_process, public arch_proc
    virtual SymbolReaderFactory *plat_defaultSymReader();
    virtual bool needIndividualThreadAttach();
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
-   virtual Dyninst::Architecture getTargetArch();
    virtual bool plat_individualRegAccess();
    virtual bool plat_contProcess() { return true; }
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
    virtual bool plat_supportLWPEvents() const;
-   virtual bool plat_getOSRunningState(Dyninst::LWP lwp) const;
+   virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
    virtual bool plat_convertToBreakpointAddress(psaddr_t &);
+  protected:
+   int computeAddrWidth(Dyninst::Architecture me);
+};
+
+class linux_x86_process : public linux_process, public x86_process
+{
+  public:
+   linux_x86_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+           std::vector<std::string> envp, std::map<int,int> f);
+   linux_x86_process(Dyninst::PID pid_, int_process *p);
+   virtual ~linux_x86_process();
+
+   virtual Dyninst::Architecture getTargetArch();
+};
+
+class linux_ppc_process : public linux_process, public ppc_process
+{
+  public:
+   linux_ppc_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+           std::vector<std::string> envp, std::map<int,int> f);
+   linux_ppc_process(Dyninst::PID pid_, int_process *p);
+   virtual ~linux_ppc_process();
+
+   virtual Dyninst::Architecture getTargetArch();
 };
 
 class linux_thread : public thread_db_thread
@@ -139,6 +195,7 @@ class linux_thread : public thread_db_thread
    virtual bool plat_suspend() { return true; }
 
    void setOptions();
+   bool unsetOptions();
    bool getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
    
    static void fake_async_main(void *);

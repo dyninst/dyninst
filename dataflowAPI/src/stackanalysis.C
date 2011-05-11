@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -73,27 +73,28 @@ AnnotationClass <StackAnalysis::Intervals> Stack_Anno(std::string("Stack_Anno"))
 
 bool StackAnalysis::analyze()
 {
-   df_init_debug();
 
-   stackanalysis_printf("Beginning stack analysis for function %s\n",
-                        func->name().c_str());
-   
-   stackanalysis_printf("\tSummarizing block effects\n");
-   summarizeBlocks();
-   
-   stackanalysis_printf("\tPerforming fixpoint analysis\n");
-   fixpoint();
-   
-   stackanalysis_printf("\tCreating SP interval tree\n");
-   summarize();
-   
-   func->addAnnotation(intervals_, Stack_Anno);
-   
-   if (df_debug_stackanalysis) {
-      debug();
-   }
-   
-   stackanalysis_printf("Finished stack analysis for function %s\n",
+  df_init_debug();
+
+  stackanalysis_printf("Beginning stack analysis for function %s\n",
+		       func->name().c_str());
+
+    stackanalysis_printf("\tSummarizing block effects\n");
+    summarizeBlocks();
+    
+    stackanalysis_printf("\tPerforming fixpoint analysis\n");
+    fixpoint();
+
+    stackanalysis_printf("\tCreating SP interval tree\n");
+    summarize();
+
+    func->addAnnotation(intervals_, Stack_Anno);
+
+    if (df_debug_stackanalysis) {
+        debug();
+    }
+
+    stackanalysis_printf("Finished stack analysis for function %s\n",
 			 func->name().c_str());
    return true;
 }
@@ -319,17 +320,16 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
        case e_popfd:
           handlePushPopFlags(sign, xferFuncs);
           break;
-	   case e_pushad:
-		   sign = -1;
-		   handlePushPopRegs(sign, xferFuncs);
+       case e_pushad:
+           sign = -1;
+           handlePushPopRegs(sign, xferFuncs);
            break;
-	   case e_popad:
+       case e_popad:
            // This nukes all registers
            handleDefault(insn, xferFuncs);
-		   break;
-       case power_op_addic:
-          sign = -1;
+           break;
        case power_op_addi:
+       case power_op_addic:
           handlePowerAddSub(insn, sign, xferFuncs);
           break;
        case power_op_stwu:
@@ -360,36 +360,30 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
     std::set<Height> returnCleanVals;
 
     Function::blocklist &returnBlocks = func->returnBlocks();
-
-    if (returnBlocks.empty()) {
-       funcCleanAmounts[func] = Height::bottom;
+    Function::blocklist::iterator rets = returnBlocks.begin();
+    for (; rets != returnBlocks.end(); ++rets) {
+      Block *ret = *rets;
+      cur = (unsigned char *) ret->region()->getPtrToInstruction(ret->lastInsnAddr());
+      Instruction::Ptr insn = decoder.decode(cur);
+        
+      entryID what = insn->getOperation().getID();
+      if (what != e_ret_near)
+	continue;
+      
+      int val;
+      std::vector<Operand> ops;
+      insn->getOperands(ops);
+      if (ops.size() == 0) {
+	val = 0;
+      }
+      else {      
+	Result imm = ops[0].getValue()->eval();
+	assert(imm.defined);
+	val = (int) imm.val.s16val;
+      }
+      returnCleanVals.insert(Height(val));
     }
-    else {
-       Function::blocklist::iterator rets = returnBlocks.begin();
-       for (; rets != returnBlocks.end(); ++rets) {
-          Block *ret = *rets;
-          cur = (unsigned char *) ret->region()->getPtrToInstruction(ret->lastInsnAddr());
-          Instruction::Ptr insn = decoder.decode(cur);
-          
-          entryID what = insn->getOperation().getID();
-          if (what != e_ret_near)
-             continue;
-          
-          int val;
-          std::vector<Operand> ops;
-          insn->getOperands(ops);
-          if (ops.size() == 0) {
-             val = 0;
-          }
-          else {      
-             Result imm = ops[0].getValue()->eval();
-             assert(imm.defined);
-             val = (int) imm.val.s16val;
-          }
-          returnCleanVals.insert(Height(val));
-       }
-       funcCleanAmounts[func] = Height::meet(returnCleanVals);
-    }
+    funcCleanAmounts[func] = Height::meet(returnCleanVals);
 
     return funcCleanAmounts[func];
 }
@@ -548,7 +542,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, int sign, TransferFuncs 
 	   // comes out as a small positive number if the offset is negative. 
 	   // This should fix it...
       long delta = sign * (long) res.convert<unsigned char>();
-      stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: 0x%lx\n", delta);
+      stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %lx\n", delta);
       xferFuncs.push_back(TransferFunc::deltaFunc(sp(), delta));   
    }
    else {
@@ -562,12 +556,10 @@ void StackAnalysis::handleLeave(TransferFuncs &xferFuncs) {
    // This is... mov esp, ebp; pop ebp.
    // Handle it as such.
 
-   // mov esp, ebp;
-    TransferFunc func = TransferFunc::aliasFunc(fp(), sp());
-    func.delta = word_size;
-    xferFuncs.push_back(func);
-    
-   // pop ebp
+   xferFuncs.push_back(TransferFunc::aliasFunc(fp(), sp()));
+
+   // And pop
+   xferFuncs.back().delta = word_size;
    xferFuncs.push_back(TransferFunc::bottomFunc(fp()));
 }
 
@@ -858,7 +850,7 @@ StackAnalysis::Height StackAnalysis::TransferFunc::apply(const RegisterState &in
 		input = iter->second;
 	}
 	else {
-		input = Height::bottom;
+		input = Height::top;
 	}
 
    if (isAbs()) {
@@ -873,7 +865,7 @@ StackAnalysis::Height StackAnalysis::TransferFunc::apply(const RegisterState &in
       // Copy the input value from whatever we're an alias of.
 	  RegisterState::const_iterator iter2 = inputs.find(from);
 	  if (iter2 != inputs.end()) input = iter2->second;
-	  else input = Height::bottom;
+	  else input = Height::top;
    }
    if (isDelta()) {
       input += delta;
@@ -976,7 +968,7 @@ void StackAnalysis::SummaryFunc::add(TransferFuncs &xferFuncs) {
       TransferFunc &func = *iter;
 
       func.accumulate(accumFuncs);
-   validate();
+      validate();
    }
 
 }

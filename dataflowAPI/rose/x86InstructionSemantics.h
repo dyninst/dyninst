@@ -164,8 +164,8 @@ struct X86InstructionSemantics {
     }
 
     Word(32) readEffectiveAddress(SgAsmExpression* expr) {
-        assert (isSgAsmMemoryReferenceExpression(expr));
-        return read32(isSgAsmMemoryReferenceExpression(expr)->get_address());
+      assert (isSgAsmMemoryReferenceExpression(expr));
+      return read32(isSgAsmMemoryReferenceExpression(expr)->get_address());
     }
 
     /* Returns an eight-bit value desribed by an instruction operand. */

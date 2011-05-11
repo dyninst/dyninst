@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Process.h"
@@ -574,10 +604,7 @@ Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
    assert(thrd);
    pthrd_printf("Handling force terminate for process %d on thread %d\n",
                 proc->getPid(), thrd->getLWP());
-   EventForceTerminate *event = static_cast<EventForceTerminate *>(ev.get());
 
-   proc->setCrashSignal(event->getTermSignal());
-   
    ProcPool()->condvar()->lock();
 
    proc->setState(int_process::exited);
@@ -820,7 +847,11 @@ Handler::handler_ret_t HandlePostFork::handleEvent(Event::ptr ev)
    pthrd_printf("Handling fork for parent %d to child %d\n",
                 parent_proc->getPid(), child_pid);
 
-   int_process *child_proc = int_process::createProcess(child_pid, parent_proc);
+   int_process *child_proc = ProcPool()->findProcByPid(child_pid);
+   if( child_proc == NULL ) {
+       child_proc = int_process::createProcess(child_pid, parent_proc);
+   }
+
    assert(child_proc);
    return child_proc->forked() ? ret_success : ret_error;
 }
@@ -1162,119 +1193,122 @@ Handler::handler_ret_t HandleBreakpointRestore::handleEvent(Event::ptr ev)
    installed_breakpoint *bp = bpc->bp();
    int_eventBreakpointRestore *int_bpc = bpc->getInternal();
    Address breakpointAddr = bp->getAddr();
-
-
+   
+   
    pthrd_printf("Resuming breakpoint at %lx for %d/%d\n", bp->getAddr(), proc->getPid(), thrd->getLWP());
-
+   
    bool result;
    
    if (!int_bpc->memwrite_bp_resume) {
       int_bpc->memwrite_bp_resume = result_response::createResultResponse();
       result = bp->resume(proc, int_bpc->memwrite_bp_resume);
-              if (!result) {
-                 pthrd_printf("Error resuming breakpoint in handler\n");
-                 return ret_error;
-              }
-           }
-
-           assert(int_bpc->memwrite_bp_resume);
-           if (int_bpc->memwrite_bp_resume->isPosted() && !int_bpc->memwrite_bp_resume->isReady()) {
-              pthrd_printf("Postponing breakpoint clear while waiting for memwrite\n");
-              proc->handlerPool()->notifyOfPendingAsyncs(int_bpc->memwrite_bp_resume, ev);
-              return ret_async;
-           }
-
-           if (int_bpc->memwrite_bp_resume->hasError()) {
-              pthrd_printf("Error resuming breakpoint\n");
-              return ret_error;
-           }
-
+      if (!result) {
+         pthrd_printf("Error resuming breakpoint in handler\n");
+         return ret_error;
+      }
+   }
    
-
+   assert(int_bpc->memwrite_bp_resume);
+   if (int_bpc->memwrite_bp_resume->isPosted() && !int_bpc->memwrite_bp_resume->isReady()) {
+      pthrd_printf("Postponing breakpoint clear while waiting for memwrite\n");
+      proc->handlerPool()->notifyOfPendingAsyncs(int_bpc->memwrite_bp_resume, ev);
+      return ret_async;
+   }
+   
+   if (int_bpc->memwrite_bp_resume->hasError()) {
+      pthrd_printf("Error resuming breakpoint\n");
+      return ret_error;
+   }
+   
+   
+   
    bool uninstalled = false;
    if( !int_bpc->memwrite_bp_remove ) {
-       int_bpc->memwrite_bp_remove = result_response::createResultResponse();
-       if( !bp->rmClearingThread(thrd, uninstalled, int_bpc->memwrite_bp_remove) ) {
-           pthrd_printf("Error removing breakpoint in handler\n");
-           return ret_error;
-       }
-       
-       // If the thread was just removed from the breakpoint's collection,
-       // the breakpoint should be resumed
-       if( !uninstalled ) {
-           int_bpc->memwrite_bp_remove->isReady();
-           int_bpc->memwrite_bp_remove = result_response::ptr();
-       }
+      int_bpc->memwrite_bp_remove = result_response::createResultResponse();
+      if( !bp->rmClearingThread(thrd, uninstalled, int_bpc->memwrite_bp_remove) ) {
+         pthrd_printf("Error removing breakpoint in handler\n");
+         return ret_error;
+      }
+      
+      // If the thread was just removed from the breakpoint's collection,
+      // the breakpoint should be resumed
+      if( !uninstalled ) {
+         int_bpc->memwrite_bp_remove->isReady();
+         int_bpc->memwrite_bp_remove = result_response::ptr();
+      }
    }
-
+   
    emulated_singlestep *es;
    if (thrd->isEmulatingSingleStep() 
        && ( (es = thrd->isEmulatedSingleStep(bp)) != NULL) ) 
    {
-       pthrd_printf("Removing single step breakpoint\n");
-
-       assert( !uninstalled );
-       while( es->breakpointCount() ) { 
-           if( !int_bpc->memwrite_bp_resume ) {
-               int_bpc->memwrite_bp_resume = result_response::createResultResponse();
-               bool result = es->rmFromProcess(proc, int_bpc->memwrite_bp_resume);
-               if( !result ) {
-                   pthrd_printf("Error removing breakpoint in handler\n");
-                   return ret_error;
-               }
-           }
-
-           assert( int_bpc->memwrite_bp_resume );
-
-           if( int_bpc->memwrite_bp_resume->isPosted() && !int_bpc->memwrite_bp_resume->isReady() ) {
-               pthrd_printf("Suspending breakpoint removal for emulated single step\n");
-               proc->handlerPool()->notifyOfPendingAsyncs(int_bpc->memwrite_bp_resume, ev);
-               return ret_async;
-           }
-
-           if( int_bpc->memwrite_bp_resume->hasError() ) {
-               pthrd_printf("Error removing emulated single step\n");
+      pthrd_printf("Removing single step breakpoint\n");
+      
+      assert( !uninstalled );
+      while( es->breakpointCount() ) { 
+         if( !int_bpc->memwrite_bp_resume ) {
+            int_bpc->memwrite_bp_resume = result_response::createResultResponse();
+            bool result = es->rmFromProcess(proc, int_bpc->memwrite_bp_resume);
+            if( !result ) {
+               pthrd_printf("Error removing breakpoint in handler\n");
                return ret_error;
-           }
-
-           int_bpc->memwrite_bp_resume = result_response::ptr();
-       }
-
-       thrd->rmEmulatedSingleStep(es);
-       delete es;
+            }
+         }
+         
+         assert( int_bpc->memwrite_bp_resume );
+         
+         if( int_bpc->memwrite_bp_resume->isPosted() && !int_bpc->memwrite_bp_resume->isReady() ) {
+            pthrd_printf("Suspending breakpoint removal for emulated single step\n");
+            proc->handlerPool()->notifyOfPendingAsyncs(int_bpc->memwrite_bp_resume, ev);
+            return ret_async;
+         }
+         
+         if( int_bpc->memwrite_bp_resume->hasError() ) {
+            pthrd_printf("Error removing emulated single step\n");
+            return ret_error;
+         }
+         
+         int_bpc->memwrite_bp_resume = result_response::ptr();
+      }
+      
+      thrd->rmEmulatedSingleStep(es);
+      delete es;
    }
-
+   
    if( proc->getBreakpoint(breakpointAddr) != NULL ) {
-       if( int_bpc->memwrite_bp_remove ) {
-           if (int_bpc->memwrite_bp_remove->isPosted() && !int_bpc->memwrite_bp_remove->isReady()) {
-               pthrd_printf("Postponing breakpoint remove while waiting for memwrite\n");
-               proc->handlerPool()->notifyOfPendingAsyncs(int_bpc->memwrite_bp_remove, ev);
-               return ret_async;
-           }
-
-           if(int_bpc->memwrite_bp_remove->hasError()) {
-               pthrd_printf("Error resuming breakpoint\n");
-               return ret_error;
-           }
-
-           pthrd_printf("Breakpoint at %lx, removed instead of resumed\n", bp->getAddr());
-
-           // At this point, there are no more int_breakpoints that reference
-           // the installed_breakpoint and no more threads reference it, so
-           // it is safe to clean it up
-           delete bp;
-       }else{
-       }
+      if( int_bpc->memwrite_bp_remove ) {
+         if (int_bpc->memwrite_bp_remove->isPosted() && !int_bpc->memwrite_bp_remove->isReady()) {
+            pthrd_printf("Postponing breakpoint remove while waiting for memwrite\n");
+            proc->handlerPool()->notifyOfPendingAsyncs(int_bpc->memwrite_bp_remove, ev);
+            return ret_async;
+         }
+         
+         if(int_bpc->memwrite_bp_remove->hasError()) {
+            pthrd_printf("Error resuming breakpoint\n");
+            return ret_error;
+         }
+         
+         pthrd_printf("Breakpoint at %lx, removed instead of resumed\n", bp->getAddr());
+         
+         // At this point, there are no more int_breakpoints that reference
+         // the installed_breakpoint and no more threads reference it, so
+         // it is safe to clean it up
+         delete bp;
+      }else{
+      }
    }
    thrd->markClearingBreakpoint(NULL);
-
+   
    pthrd_printf("Restoring process state\n");
    thrd->setSingleStepMode(false);
    thrd->setInternalState(int_thread::stopped);
-
+   
    proc->threadPool()->restoreInternalState(false);
+}
 
-   return ret_success;
+int HandlePostBreakpoint::getPriority() const
+{
+   return Handler::PostCallbackPriority;
 }
 
 HandlePrepSingleStep::HandlePrepSingleStep() :
@@ -1604,6 +1638,12 @@ bool HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_
                    action_str(ret.child));
    }
 
+   // Don't allow the user to change the state of forced terminated processes 
+   if( ev->getProcess()->llproc() && ev->getProcess()->llproc()->wasForcedTerminated() ) {
+       parent_result = Process::cbDefault;
+       child_result = Process::cbDefault;
+   }
+
    // Now that the callback is over, return the state to what it was before the
    // callback so the return value from the callback can be used to update the state
    if( !ev->getProcess()->isTerminated() && ev->getThread()->llthrd() != NULL ) {
@@ -1649,6 +1689,7 @@ void HandleCallbacks::getRealEvents(EventType ev, std::vector<EventType> &out_ev
       case EventType::Terminate:
          out_evs.push_back(EventType(ev.time(), EventType::Exit));
          out_evs.push_back(EventType(ev.time(), EventType::Crash));
+         out_evs.push_back(EventType(ev.time(), EventType::ForceTerminate));
          break;
       case EventType::ThreadCreate:
          out_evs.push_back(EventType(ev.time(), EventType::UserThreadCreate));

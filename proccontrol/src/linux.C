@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,7 @@
 #include "dynutil/h/dyn_regs.h"
 #include "dynutil/h/dyntypes.h"
 #include "common/h/SymLite-elf.h"
+#include "common/h/pathName.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Event.h"
@@ -300,27 +301,26 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 
             installed_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
 
+            installed_breakpoint *clearingbp = thread->isClearingBreakpoint();
+            if(thread->singleStep() && clearingbp) {
+                pthrd_printf("Decoded event to breakpoint cleanup\n");
+                event = Event::ptr(new EventBreakpointClear(clearingbp));
+                break;
+            }
+
             // Need to distinguish case where the thread is single-stepped to a
             // breakpoint and when a single step hits a breakpoint.
             //
             // If no forward progress was made due to a single step, then a
             // breakpoint was hit
-            if (thread->singleStep() && (pre_ss_pc != addr || !ibp)) {
-               installed_breakpoint *ibp = thread->isClearingBreakpoint();
-               if (ibp) {
-                  pthrd_printf("Decoded event to breakpoint cleanup\n");
-                  event = Event::ptr(new EventBreakpointClear(ibp));
-                  break;
-               } 
-               else{
-                  pthrd_printf("Decoded event to single step on %d/%d\n",
-                               proc->getPid(), thread->getLWP());
-                  event = Event::ptr(new EventSingleStep());
-                  break;
-               }
+            if (thread->singleStep() && ( (pre_ss_pc != 0 && pre_ss_pc != addr) || !ibp)) {
+               pthrd_printf("Decoded event to single step on %d/%d\n",
+                       proc->getPid(), thread->getLWP());
+               event = Event::ptr(new EventSingleStep());
+               break;
             }
             
-            if (ibp && ibp != thread->isClearingBreakpoint()) {
+            if (ibp && ibp != clearingbp) {
                pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(), 
                             thread->getLWP(), adjusted_addr);
                EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(new int_EventBreakpoint(adjusted_addr, ibp)));
@@ -441,7 +441,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       assert(thread);
       proc = thread->llproc();
       if (parent->event_ext == PTRACE_EVENT_FORK)
-         event = Event::ptr(new EventFork(child->pid));
+         event = Event::ptr(new EventFork(EventType::Post, child->pid));
       else if (parent->event_ext == PTRACE_EVENT_CLONE)
          event = Event::ptr(new EventNewLWP(child->pid));
       else 
@@ -466,13 +466,19 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
    return true;
 }
 
+#if defined(arch_power)
+#define DEFAULT_PROCESS_TYPE linux_ppc_process
+#elif defined(arch_x86) || defined(arch_x86_64)
+#define DEFAULT_PROCESS_TYPE linux_x86_process
+#endif
+
 int_process *int_process::createProcess(Dyninst::PID p, std::string e)
 {
    std::vector<std::string> a;
    std::map<int,int> f;
    std::vector<std::string> envp;
    LinuxPtrace::getPtracer(); //Make sure ptracer thread is initialized
-   linux_process *newproc = new linux_process(p, e, a, envp, f);
+   linux_process *newproc = new DEFAULT_PROCESS_TYPE(p, e, a, envp, f);
    assert(newproc);
    return static_cast<int_process *>(newproc);
 }
@@ -481,21 +487,20 @@ int_process *int_process::createProcess(std::string e, std::vector<std::string> 
         std::map<int,int> f)
 {
    LinuxPtrace::getPtracer(); //Make sure ptracer thread is initialized
-   linux_process *newproc = new linux_process(0, e, a, envp, f);
+   linux_process *newproc = new DEFAULT_PROCESS_TYPE(0, e, a, envp, f);
    assert(newproc);
    return static_cast<int_process *>(newproc);
 }
 
 int_process *int_process::createProcess(Dyninst::PID pid_, int_process *p)
 {
-   linux_process *newproc = new linux_process(pid_, p);
+   linux_process *newproc = new DEFAULT_PROCESS_TYPE(pid_, p);
    assert(newproc);
    return static_cast<int_process *>(newproc);
 }
 
-static int computeAddrWidth(int pid)
+int linux_process::computeAddrWidth(Dyninst::Architecture me)
 {
-#if defined(arch_64bit)
    /**
     * It's surprisingly difficult to figure out the word size of a process
     * without looking at the files it loads (we want to avoid disk accesses).
@@ -515,7 +520,7 @@ static int computeAddrWidth(int pid)
    uint32_t buffer[256];
    char auxv_name[64];
    
-   snprintf(auxv_name, 64, "/proc/%d/auxv", pid);
+   snprintf(auxv_name, 64, "/proc/%d/auxv", getPid());
    int fd = open(auxv_name, O_RDONLY);
    if (fd == -1) { 
       pthrd_printf("Couldn't open %s to determine address width: %s",
@@ -529,11 +534,20 @@ static int computeAddrWidth(int pid)
 
    // We want to check the highest 4 bytes of each integer
    // On big-endian systems, these come first in memory
-#if defined(arch_power)
-   int start_index = 0;
-#else
-   int start_index = 1;
-#endif
+   int start_index;
+   switch (me) {
+      case Arch_x86:
+      case Arch_x86_64:
+         start_index = 1;
+         break;
+      case Arch_ppc32:
+      case Arch_ppc64:
+         start_index = 0;
+         break;
+      case Arch_none:
+      default:
+         assert(0);
+   }
 
    for (long int i=start_index; i<words_read; i+= 4)
    {
@@ -544,28 +558,6 @@ static int computeAddrWidth(int pid)
    }
    close(fd);
    return word_size;
-#else
-   return sizeof(void*);
-#endif
-}
-
-Dyninst::Architecture linux_process::getTargetArch()
-{
-   if (arch != Dyninst::Arch_none) {
-      return arch;
-   }
-   int addr_width = computeAddrWidth(getPid());
-   
-#if defined(arch_x86) || defined(arch_x86_64)
-   assert(addr_width == 4 || addr_width == 8);
-   arch = (addr_width == 4) ? Dyninst::Arch_x86 : Dyninst::Arch_x86_64;
-#elif defined(arch_power)
-   assert(addr_width == 4 || addr_width == 8);   
-   arch = (addr_width == 4) ? Dyninst::Arch_ppc32 : Dyninst::Arch_ppc64;
-#else
-   assert(0);
-#endif
-   return arch;
 }
 
 linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
@@ -573,7 +565,6 @@ linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::str
    int_process(p, e, a, envp, f),
    sysv_process(p, e, a, envp, f),
    unix_process(p, e, a, envp, f),
-   arch_process(p, e, a, envp, f),
    thread_db_process(p, e, a, envp, f)
 {
 }
@@ -582,7 +573,6 @@ linux_process::linux_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p),
    sysv_process(pid_, p),
    unix_process(pid_, p),
-   arch_process(pid_, p),
    thread_db_process(pid_, p)
 {
 }
@@ -629,42 +619,61 @@ bool linux_process::plat_create_int()
    return true;
 }
 
-// Defaults to is running
-bool linux_process::plat_getOSRunningState(Dyninst::LWP lwp) const {
-    char proc_stat_name[128];
-    char sstat[256];
-    char *status;
-    int paren_level = 1;
-    
-    snprintf(proc_stat_name, 128, "/proc/%d/stat", lwp);
-    FILE *sfile = fopen(proc_stat_name, "r");
-
-    if (sfile == NULL) return true;
-    if( fread(sstat, 1, 256, sfile) == 0 ) {
-        pthrd_printf("Failed to read /proc/<pid>/stat file for %d\n",
-                pid);
-        return true;
-    }
-    fclose(sfile);
-
-    sstat[255] = '\0';
-    status = sstat;
-
-    while (*status != '\0' && *(status++) != '(') ;
-    while (*status != '\0' && paren_level != 0) {
-        if (*status == '(') paren_level++;
-        if (*status == ')') paren_level--;
-        status++;
+bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates) {
+    vector<Dyninst::LWP> lwps;
+    if( !getThreadLWPs(lwps) ) {
+        pthrd_printf("Failed to determine lwps for process %d\n", getPid());
+        setLastError(err_noproc, "Failed to find /proc files for debuggee");
+        return false;
     }
 
-    while (*status == ' ') status++;
+    for(vector<Dyninst::LWP>::iterator i = lwps.begin();
+            i != lwps.end(); ++i)
+    {
+        char proc_stat_name[128];
+        char sstat[256];
+        char *status;
+        int paren_level = 1;
+        
+        snprintf(proc_stat_name, 128, "/proc/%d/stat", *i);
+        FILE *sfile = fopen(proc_stat_name, "r");
 
-    return (*status != 'T');
+        if (sfile == NULL) {
+            pthrd_printf("Failed to open /proc/%d/stat file\n", *i);
+            setLastError(err_noproc, "Failed to find /proc files for debuggee");
+            return false;
+        }
+        if( fread(sstat, 1, 256, sfile) == 0 ) {
+            pthrd_printf("Failed to read /proc/%d/stat file \n", *i);
+            setLastError(err_noproc, "Failed to find /proc files for debuggee");
+            return false;
+        }
+        fclose(sfile);
+
+        sstat[255] = '\0';
+        status = sstat;
+
+        while (*status != '\0' && *(status++) != '(') ;
+        while (*status != '\0' && paren_level != 0) {
+            if (*status == '(') paren_level++;
+            if (*status == ')') paren_level--;
+            status++;
+        }
+
+        while (*status == ' ') status++;
+
+        runningStates.insert(make_pair(*i, (*status != 'T')));
+    }
+
+    return true;
 }
 
-bool linux_process::plat_attach()
+bool linux_process::plat_attach(bool)
 {
    pthrd_printf("Attaching to pid %d\n", pid);
+
+   bool attachWillTriggerStop = plat_attachWillTriggerStop();
+
    int result = do_ptrace((pt_req) PTRACE_ATTACH, pid, NULL, NULL);
    if (result != 0) {
       int errnum = errno;
@@ -678,19 +687,50 @@ bool linux_process::plat_attach()
       }
       return false;
    }
+
+   if ( !attachWillTriggerStop ) {
+       // Force the SIGSTOP delivered by the attach to be handled
+       pthrd_printf("Attach will not trigger stop, calling PTRACE_CONT to flush out stop\n");
+       int result = do_ptrace((pt_req) PTRACE_CONT, pid, NULL, NULL);
+       if( result != 0 ) {
+           int errnum = errno;
+           pthrd_printf("Unable to continue process %d to flush out attach: %s\n",
+                   pid, strerror(errnum));
+           return false;
+       }
+   }
    
    return true;
 }
 
-static std::string deref_link(const char *path)
-{
-   char *p = realpath(path, NULL);
-   if (p == NULL) {
-      return std::string();
-   }
-   std::string sp = p;
-   free(p);
-   return sp;
+bool linux_process::plat_attachWillTriggerStop() {
+    char procName[64];
+    char cmd[256];
+    pid_t tmpPid;
+    char state;
+    int ttyNumber;
+
+    // Retrieve the state of the process and its controlling tty
+    snprintf(procName, 64, "/proc/%d/stat", pid);
+
+    FILE *sfile = fopen(procName, "r");
+    if ( sfile == NULL ) {
+        perr_printf("Failed to determine whether attach would trigger stop -- assuming it will\n");
+        return true;
+    }
+
+    fscanf(sfile, "%d %255s %c %d %d %d",
+            &tmpPid, cmd, &state,
+            &tmpPid, &tmpPid, &ttyNumber);
+    fclose(sfile);
+
+    // If the process is stopped and it has a controlling tty, an attach
+    // will not trigger a stop
+    if ( state == 'T' && ttyNumber != 0 ) {
+        return false;
+    }
+
+    return true;
 }
 
 bool linux_process::plat_execed()
@@ -701,7 +741,7 @@ bool linux_process::plat_execed()
 
    char proc_exec_name[128];
    snprintf(proc_exec_name, 128, "/proc/%d/exe", getPid());
-   executable = deref_link(proc_exec_name);
+   executable = resolve_file_path(proc_exec_name);
    return true;
 }
 
@@ -720,6 +760,66 @@ bool linux_process::plat_writeMem(int_thread *thr, const void *local,
                                   Dyninst::Address remote, size_t size)
 {
    return LinuxPtrace::getPtracer()->ptrace_write(remote, size, local, thr->getLWP());
+}
+
+linux_x86_process::linux_x86_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+                                     std::vector<std::string> envp, std::map<int,int> f) :
+   int_process(p, e, a, envp, f),
+   linux_process(p, e, a, envp, f),
+   x86_process(p, e, a, envp, f)
+{
+}
+
+linux_x86_process::linux_x86_process(Dyninst::PID pid_, int_process *p) :
+   int_process(pid_, p),
+   linux_process(pid_, p),
+   x86_process(pid_, p)
+{
+}
+
+
+linux_x86_process::~linux_x86_process()
+{
+}
+
+Dyninst::Architecture linux_x86_process::getTargetArch()
+{
+   if (arch != Dyninst::Arch_none) {
+      return arch;
+   }
+   int addr_width = computeAddrWidth(sizeof(void *) == 4 ? Arch_x86 : Arch_x86_64);
+   arch = (addr_width == 4) ? Dyninst::Arch_x86 : Dyninst::Arch_x86_64;
+   return arch;
+}
+
+linux_ppc_process::linux_ppc_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+                                     std::vector<std::string> envp, std::map<int,int> f) :
+   int_process(p, e, a, envp, f),
+   linux_process(p, e, a, envp, f),
+   ppc_process(p, e, a, envp, f)
+{
+}
+
+linux_ppc_process::linux_ppc_process(Dyninst::PID pid_, int_process *p) :
+   int_process(pid_, p),
+   linux_process(pid_, p),
+   ppc_process(pid_, p)
+{
+}
+
+
+linux_ppc_process::~linux_ppc_process()
+{
+}
+
+Dyninst::Architecture linux_ppc_process::getTargetArch()
+{
+   if (arch != Dyninst::Arch_none) {
+      return arch;
+   }
+   int addr_width = computeAddrWidth(sizeof(void *) == 4 ? Arch_ppc32 : Arch_ppc64);
+   arch = (addr_width == 4) ? Dyninst::Arch_ppc32 : Dyninst::Arch_ppc64;
+   return arch;
 }
 
 static std::vector<unsigned int> fake_async_msgs;
@@ -880,10 +980,9 @@ bool linux_thread::plat_cont()
    // Don't continue the thread with the pending signal if there is a pending stop.
    // Wait until the user sees the signal event to deliver the signal to the process.
    //
-   // This also applies to iRPCs
    
    int tmpSignal = continueSig_;
-   if( hasPendingStop() || runningRPC() ) {
+   if( hasPendingStop() ) {
        tmpSignal = 0;
    }
 
@@ -905,6 +1004,8 @@ bool linux_thread::plat_cont()
       setLastError(err_internal, "Low-level continue failed\n");
       return false;
    }
+
+   if( tmpSignal == continueSig_ ) continueSig_ = 0;
 
    return true;
 }
@@ -1023,6 +1124,19 @@ void linux_thread::setOptions()
    }   
 }
 
+bool linux_thread::unsetOptions()
+{
+    long options = 0;
+
+    int result = do_ptrace((pt_req) PTRACE_SETOPTIONS, lwp, NULL,
+            (void *) options);
+    if (result == -1) {
+        pthrd_printf("Failed to set options for %lu: %s\n", tid, strerror(errno));
+        return false;
+    }
+    return true;
+}
+
 bool linux_process::plat_individualRegAccess()
 {
    return true;
@@ -1067,6 +1181,47 @@ bool linux_process::plat_terminate(bool &needs_sync)
 
    needs_sync = true;
    return true;
+}
+
+bool linux_process::preTerminate() {
+#if defined(bug_force_terminate_failure)
+    // On some Linux versions (currently only identified on our power platform),
+    // a force terminate can fail to actually kill a process due to some OS level
+    // race condition. The result is that some threads in a process are stopped
+    // instead of exited and for some reason, continues will not continue the 
+    // process. This can be detected because some OS level structures (such as pipes)
+    // still exist for the terminated process
+
+    // It appears that this bug largely results from the pre-LWP destroy and pre-Exit
+    // events being delivered to the debugger, so we stop the process and disable these
+    // events for all threads in the process
+
+    if( !threadPool()->allStopped() ) {
+        pthrd_printf("Stopping process %d for pre-terminate handling\n",
+                getPid());
+        if( !threadPool()->userStop() ) {
+            perr_printf("Failed to stop process %d for pre-terminate handling\n",
+                    getPid());
+            return false;
+        }
+    }
+
+
+    for(int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end();
+            ++i)
+    {
+        linux_thread *thr = static_cast<linux_thread *>(*i);
+        pthrd_printf("Disabling syscall tracing events for thread %d/%d\n",
+                getPid(), thr->getLWP());
+        if( !thr->unsetOptions() ) {
+            perr_printf("Failed to unset options for thread %d/%d in pre-terminate handling\n",
+                    getPid(), thr->getLWP());
+            return false;
+        }
+    }
+#endif
+
+    return true;
 }
 
 Dyninst::Address linux_process::plat_mallocExecMemory(Dyninst::Address min, unsigned size) {

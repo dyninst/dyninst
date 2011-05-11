@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -141,16 +141,13 @@ typedef pthread_cond_t EventCond_t;
 #define INVALID_HANDLE_VALUE -1
 #endif
 
-#ifndef PAGE_READONLY
-#define PAGE_READONLY 4
-#endif
-
-#ifndef PAGE_EXECUTE_READ
-#define PAGE_EXECUTE_READ 5
-#endif
-
-#ifndef PAGE_EXECUTE_READWRITE
-#define PAGE_EXECUTE_READWRITE 7
-#endif
+// Hybrid Analysis Compatibility definitions
+#define PAGE_READ 1
+#define PAGE_WRITE 2
+#define PAGE_EXECUTE 4
+#define PAGE_READONLY PAGE_READ
+#define PAGE_READWRITE (PAGE_READ | PAGE_WRITE)
+#define PAGE_EXECUTE_READ (PAGE_READ | PAGE_EXECUTE)
+#define PAGE_EXECUTE_READWRITE (PAGE_READ | PAGE_EXECUTE | PAGE_WRITE)
 
 #endif

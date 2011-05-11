@@ -17,11 +17,8 @@ CONFIG_ARGS += "--with-dyninst-include=$(ABS_INCLUDE_DEST)"
 CONFIG_ARGS += "--with-dwarf-lib=$(ABS_LIBDWARF_DEST)"
 CONFIG_ARGS += "--with-elf-lib=$(ABS_LIBELF_DEST)"
 
-ifdef LINK_LIBERTY
-	CONFIG_LD_FLAGS += "-liberty"
-ifdef LIBIBERTY_LIB
-	CONFIG_LD_FLAGS += "-L$(LIBIBERTY_LIB)"
-endif
+ifdef DEMANGLER_EXEC_LINK
+CONFIG_ARGS += "--with-liberty-lib=\"$(DEMANGLER_EXEC_LINK)\""
 endif
 
 

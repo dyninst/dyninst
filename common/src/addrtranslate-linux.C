@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -33,6 +33,7 @@
 #include "common/src/addrtranslate-sysv.h"
 #include "common/h/linuxKludges.h"
 #include "common/h/parseauxv.h"
+#include "common/h/pathName.h"
 
 #include <cstdio>
 #include <linux/limits.h>
@@ -180,21 +181,12 @@ bool AddressTranslateSysV::setAddressSize()
    return true;
 }
 
-static char *deref_link(const char *path)
-{
-   static char buffer[PATH_MAX], *p;
-   buffer[PATH_MAX-1] = '\0';
-   p = realpath(path, buffer);
-   return p;
-}
-
-
 string AddressTranslateSysV::getExecName() 
 {
    if (exec_name.empty()) {
       char name[64];
       snprintf(name, 64, "/proc/%d/exe", pid);
-      exec_name = std::string(deref_link(name));
+      exec_name = resolve_file_path(name);
    }
    return exec_name;
 }

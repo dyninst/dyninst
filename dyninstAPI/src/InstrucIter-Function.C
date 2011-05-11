@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -33,7 +33,7 @@
 #include "common/h/arch.h"
 #include "InstrucIter-Function.h"
 #include "function.h"
-#include "image-func.h"
+#include "parse-cfg.h"
 #include <sstream>
 #include <ostream>
 #include <string>
@@ -67,14 +67,14 @@ void InstrucIterFunction::debugPrint() const
 }
 
 
-InstrucIterFunction::InstrucIterFunction(int_function* func) : InstrucIter()
+InstrucIterFunction::InstrucIterFunction(func_instance* func) : InstrucIter()
 {
   assert(func);
   std::transform(func->blocks().begin(), func->blocks().end(), std::back_inserter(subIters), makeIter);
   currentBlock = subIters.begin();
 }
 
-InstrucIterFunction::InstrucIterFunction(Address start, int_function* func) : InstrucIter()
+InstrucIterFunction::InstrucIterFunction(Address start, func_instance* func) : InstrucIter()
 {
   assert(func);
   std::transform(func->blocks().begin(), func->blocks().end(), std::back_inserter(subIters), makeIter);

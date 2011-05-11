@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -725,14 +725,26 @@ bool thread_db_process::decodeTdbLibLoad(EventLibrary::ptr lib_ev)
 }
 
 bool thread_db_process::decodeTdbBreakpoint(EventBreakpoint::ptr bp)
-{
+{ 
+    // Decoding thread_db events needs to be a two-step process:
+    // 1) Create events depending on the breakpoint address
+    //    Don't get events from thread_db as this can write to memory
+    //    and threads could currently be running -- introduces some race
+    //    conditions where the running threads could be modifying data
+    //    structures thread_db is accessing
+    //    Just create placeholder events that can later be filled in with
+    //    more information
+    // 2) Get events from thread_db in the handler for the event, at this
+    //    point all threads are stopped and it is safe to make changes to
+    //    memory because the parent event is a breakpoint and requires
+    //    that all threads are stopped
+
     Dyninst::Address addr = bp->getAddress();
     
     // Determine what type of event occurs at the specified address
     map<Dyninst::Address, pair<int_breakpoint *, EventType> >::iterator addrIter;
     addrIter = addr2Event.find(addr);
-    if( addrIter == addr2Event.end() ) 
-       return false;
+    if( addrIter == addr2Event.end() ) return false;
 
     vector<Event::ptr> threadEvents;
     trigger_thread = bp->getThread()->llthrd();
@@ -741,41 +753,26 @@ bool thread_db_process::decodeTdbBreakpoint(EventBreakpoint::ptr bp)
        updateTidInfo(threadEvents);
 
     EventType::Code ecode = addrIter->second.second.code();
-    switch(ecode) {
-        case EventType::ThreadCreate: 
-        case EventType::ThreadDestroy:
-        {
-            pthrd_printf("Address 0x%lx corresponds to a thread %s event.\n",
-                         addr, ecode == EventType::ThreadCreate ? "create" : "destroy");
-            // Need to ask via the thread_db agent for creation events. This
-            // could result in getting information about other events.  All of
-            // these events need to be handled.
-            td_event_msg_t threadMsg;
-            td_err_e msgErr = TD_OK;
-            while(msgErr == TD_OK) {
-                msgErr = td_ta_event_getmsg(threadAgent, &threadMsg);
-                if( msgErr == TD_OK ) {
-                    Event::ptr threadEvent = decodeThreadEvent(&threadMsg);
-                    if( threadEvent ) {
-                        threadEvents.push_back(threadEvent);
-                    }
-                }
-            }
+    pthrd_printf("Address 0x%lx corresponds to a thread %s event.\n",
+                  addr, ecode == EventType::ThreadCreate ? "create" : "destroy");
 
-            if( msgErr != TD_NOMSG ) {
-                perr_printf("Failed to retrieve thread event: %s(%d)\n",
-                        tdErr2Str(msgErr), msgErr);
-            }
+    switch(ecode) {
+        case EventType::ThreadCreate:
+            threadEvents.push_back(EventNewUserThread::ptr(new EventNewUserThread()));
             break;
-        }
+        case EventType::ThreadDestroy:
+            threadEvents.push_back(EventUserThreadDestroy::ptr(new EventUserThreadDestroy(EventType::Pre)));
+            break;
         default:
             pthrd_printf("Unimplemented libthread_db event encountered. Skipping for now.\n");
             break;
     }
     trigger_thread = NULL;
 
-    if (threadEvents.empty())
+    if (threadEvents.empty()) {
+       pthrd_printf("Failed to decode any thread events due to the breakpoint\n");
        return false;
+    }
 
     for (vector<Event::ptr>::iterator i = threadEvents.begin(); i != threadEvents.end(); i++) {
        Event::ptr ev = *i;
@@ -911,15 +908,18 @@ void thread_db_process::addThreadDBHandlers(HandlerPool *hpool) {
     static ThreadDBLibHandler *libHandler = NULL;
     static ThreadDBCreateHandler *createHandler = NULL;
     static ThreadDBDestroyHandler *destroyHandler = NULL;
+    static ThreadDBPreCreateHandler *preCreateHandler = NULL;
     if( !initialized ) {
         libHandler = new ThreadDBLibHandler();
         createHandler = new ThreadDBCreateHandler();
         destroyHandler = new ThreadDBDestroyHandler();
+        preCreateHandler = new ThreadDBPreCreateHandler();
         initialized = true;
     }
     hpool->addHandler(libHandler);
     hpool->addHandler(createHandler);
     hpool->addHandler(destroyHandler);
+    hpool->addHandler(preCreateHandler);
 }
 
 bool thread_db_process::plat_getLWPInfo(lwpid_t, void *) 
@@ -1020,6 +1020,55 @@ void ThreadDBCreateHandler::getEventTypesHandled(vector<EventType> &etypes) {
     etypes.push_back(EventType(EventType::None, EventType::UserThreadCreate));
 }
 
+ThreadDBPreCreateHandler::ThreadDBPreCreateHandler() :
+    Handler("thread_db Pre-Create Handler")
+{
+}
+
+ThreadDBPreCreateHandler::~ThreadDBPreCreateHandler()
+{
+}
+
+Handler::handler_ret_t ThreadDBPreCreateHandler::handleEvent(Event::ptr ev) {
+    EventNewUserThread::ptr newEv = ev->getEventNewUserThread();
+    int_eventNewUserThread *intEv = newEv->getInternalEvent();
+
+    // If this event was triggered by an info. update, we don't need to get retrieve any info
+    if( intEv->lwp == NULL_LWP ) {
+        // Need to retrieve information about new thread
+        thread_db_process *proc = dynamic_cast<thread_db_process *>(ev->getProcess()->llproc());
+        thread_db_thread *thrd = static_cast<thread_db_thread *>(ev->getThread()->llthrd());
+        Event::ptr tdbEv = proc->getEventForThread(thrd, EventType::UserThreadCreate);
+
+        if( tdbEv == Event::ptr() || tdbEv->getEventType().code() != EventType::UserThreadCreate ) {
+            perr_printf("Failed to retrieve create event for thread %d/%d\n",
+                    ev->getProcess()->getPid(), thrd->getLWP());
+            return Handler::ret_error;
+        }
+
+        // Fill in new information about the thread
+
+        // Populate the current event with info from the tdb event
+        EventNewUserThread::ptr tdbNewEv = tdbEv->getEventNewUserThread();
+        int_eventNewUserThread *tdbIntEv = tdbNewEv->getInternalEvent();
+
+        intEv->lwp = tdbIntEv->lwp;
+        intEv->raw_data = malloc(sizeof(new_thread_data_t));
+        memcpy(intEv->raw_data, tdbIntEv->raw_data, sizeof(new_thread_data_t));
+    }
+
+    // The current event now contains all the information provided by thread_db
+    return Handler::ret_success;
+}
+
+int ThreadDBPreCreateHandler::getPriority() const {
+    return PrePlatformPriority;
+}
+
+void ThreadDBPreCreateHandler::getEventTypesHandled(vector<EventType> &etypes) {
+    etypes.push_back(EventType(EventType::None, EventType::UserThreadCreate));
+}
+
 ThreadDBDestroyHandler::ThreadDBDestroyHandler() :
     Handler("thread_db Destroy Handler")
 {
@@ -1030,8 +1079,19 @@ ThreadDBDestroyHandler::~ThreadDBDestroyHandler()
 }
 
 Handler::handler_ret_t ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
+    thread_db_process *proc = dynamic_cast<thread_db_process *>(ev->getProcess()->llproc());
     thread_db_thread *thrd = static_cast<thread_db_thread *>(ev->getThread()->llthrd());
     if( ev->getEventType().time() == EventType::Pre) {
+        if( !thrd->isExitingInGenerator() && thrd->getGeneratorState() != int_thread::exited ) {
+            // Just need to clear events, no extra information is needed
+            Event::ptr tdbEv = proc->getEventForThread(thrd, EventType::UserThreadDestroy);
+            if( tdbEv == Event::ptr() || tdbEv->getEventType().code() != EventType::UserThreadDestroy) {
+                perr_printf("Failed to retrieve destroy event for thread %d/%d\n",
+                        ev->getProcess()->getPid(), thrd->getLWP());
+                return Handler::ret_error;
+            }
+        }
+
         pthrd_printf("Marking LWP %d destroyed\n", thrd->getLWP());
         thrd->markDestroyed();
     }else if( ev->getEventType().time() == EventType::Post) {
@@ -1094,27 +1154,62 @@ bool thread_db_thread::initThreadHandle() {
     return true;
 }
 
-Event::ptr thread_db_thread::getThreadEvent() {
-    if( !initThreadHandle() ) return Event::ptr();
-    thread_db_process *dbproc = dynamic_cast<thread_db_process *>(llproc());
+Event::ptr thread_db_process::getEventForThread(thread_db_thread *thrd, EventType::Code code) {
+    if( !thrd->initThreadHandle() ) return Event::ptr();
 
-    td_event_msg_t eventMsg;
+    // These specific calls into thread_db can modify the memory of the process
+    // and can introduce some race conditions if the platform allows memory reads
+    // while some threads are running
+    assert( threadPool()->allStopped() );
 
-    td_err_e errVal = td_thr_event_getmsg(threadHandle, &eventMsg);
+    // We need to save thread_db generated events because we need to use the
+    // process-level event retrieval call to get thread creation events (at
+    // least on some platforms). If we retrieve events we don't care about
+    // at this particular time, save for some other thread
 
-    if( TD_NOMSG == errVal ) {
-        pthrd_printf("No message available for LWP %d via thread_db\n", lwp);
+    td_event_msg_t evMsg;
+    td_err_e msgErr = TD_OK;
+    while(msgErr == TD_OK) {
+        msgErr = td_ta_event_getmsg(threadAgent, &evMsg);
+        if( msgErr == TD_OK ) {
+            Event::ptr newEvent = decodeThreadEvent(&evMsg);
+            if( newEvent ) {
+                savedEvents.push_back(newEvent);
+            }
+        }
+    }
+
+    if( msgErr != TD_NOMSG ) {
+        perr_printf("Failed to retrieve thread event: %s(%d)\n",
+                tdErr2Str(msgErr), msgErr);
         return Event::ptr();
     }
 
-    if( TD_OK != errVal ) {
-        perr_printf("Failed to get thread event message: %s(%d)\n",
-                tdErr2Str(errVal), errVal);
-        setLastError(err_internal, "Failed to get thread event message");
-        return Event::ptr();
+    // Search the saved events 
+    Event::ptr retEv;
+    deque<Event::ptr>::iterator toErase;
+    for(deque<Event::ptr>::iterator i = savedEvents.begin(); i != savedEvents.end(); ++i) {
+        if( (*i)->getEventType().code() == code ) {
+            if( code == EventType::UserThreadCreate ) {
+                // Thread creation events cannot be tied to a parent thread. If multiple
+                // thread creation events are pending, just choose the first one.
+                retEv = *i;
+                toErase = i;
+                break;
+            }else if( code == EventType::UserThreadDestroy ) {
+                if( (*i)->getThread()->llthrd() == thrd ) {
+                    retEv = *i;
+                    toErase = i;
+                }
+            }else{
+                assert(!"Unknown thread event requested");
+            }
+        }
     }
 
-    return dbproc->decodeThreadEvent(&eventMsg);
+    savedEvents.erase(toErase);
+
+    return retEv;
 }
 
 bool thread_db_thread::setEventReporting(bool on) {

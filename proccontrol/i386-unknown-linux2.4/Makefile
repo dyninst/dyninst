@@ -17,8 +17,8 @@ SRCS = 	../src/linux.C \
 	../src/linux-x86.C \
         ../src/sysv.C \
         ../src/unix.C \
-        ../src/x86_process.C \
-        ../../common/src/dthread-unix.C
+        ../../common/src/dthread-unix.C \
+	../../common/src/Elf_X.C
 
 ifdef LIBELF_INC
 MYFLAGS += -I$(LIBELF_INC)
@@ -43,6 +43,4 @@ include ../make.module.tmpl
 include ../../make.library.tmpl
 
 # Now make any necessary architecture specific changes to variables:
-
 VPATH += ../../common/src
-

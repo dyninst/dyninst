@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -152,7 +152,8 @@ static void init_test_data()
 #endif
 
 #if defined(i386_unknown_linux2_0_test) \
- || defined(i386_unknown_nt4_0_test)
+ || defined(i386_unknown_nt4_0_test) \
+ || (defined(os_freebsd_test) && defined(arch_x86_test))
 static const unsigned int nloads = 67;
 static BPatch_memoryAccess* loadList[nloads];
 

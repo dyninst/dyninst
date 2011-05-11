@@ -1,0 +1,237 @@
+/*
+ * Copyright (c) 1996-2009 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
+#if !defined (_R_E_CONTROL_FLOW_H_)
+#define _R_E_CONTROL_FLOW_H_
+
+#include "Atom.h"
+
+class block_instance;
+class func_instance;
+class instPoint;
+
+namespace NS_x86 {
+   class instruction;
+}
+
+namespace NS_power {
+  class instruction;
+}
+
+#if defined(arch_x86) || defined(arch_x86_64)
+typedef NS_x86::instruction arch_insn;
+#else
+typedef NS_power::instruction arch_insn;
+#endif
+
+namespace Dyninst {
+namespace Relocation {
+ class LocalizeCF;
+ class TargetInt;
+ class Instrumenter;
+ class adhocMovementTransformer;
+ class Fallthroughs;
+ class Modification;
+ class Trace;
+
+class CFAtom : public Atom {
+  friend class Transformer;
+  friend class LocalizeCF;
+  friend class Instrumenter; // For rewiring edge instrumentation
+  friend class adhocMovementTransformer; // Also
+  friend class PCSensitiveTransformer;
+  friend class Modification;
+  friend class Trace;
+ public:
+  static const Address Fallthrough;
+  static const Address Taken;
+
+  typedef dyn_detail::boost::shared_ptr<CFAtom> Ptr;
+  typedef std::map<Address, TargetInt *> DestinationMap;
+
+  static Ptr create(Address addr);
+  static Ptr create(const Atom::Ptr info);
+
+  bool generate(const codeGen &templ,
+                const Trace *,
+                CodeBuffer &buffer);
+
+  virtual ~CFAtom();
+
+  // Owns the provided *dest parameter
+  void addDestination(Address index, TargetInt *dest);
+  TargetInt *getDestination(Address dest) const;
+  const DestinationMap &destinations() const { return destMap_; }
+
+  virtual std::string format() const;
+
+  virtual Address addr() const { return addr_; }
+  virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
+
+
+  void setGap(unsigned gap) { gap_ = gap; }
+  void setOrigTarget(Address a) { origTarget_ = a; }
+  unsigned gap() const { return gap_; };
+
+ private:
+   CFAtom(Address a)
+      : isCall_(false),
+     isConditional_(false),
+     isIndirect_(false),
+     gap_(0),
+     addr_(a), 
+     origTarget_(0) {};
+
+   CFAtom(InstructionAPI::Instruction::Ptr insn,
+          Address addr);
+
+   TrackerElement *tracker(const Trace *) const;
+   TrackerElement *destTracker(TargetInt *dest) const;
+   TrackerElement *addrTracker(Address addr, const Trace *) const;
+   TrackerElement *padTracker(Address addr, unsigned size, const Trace *) const;
+   
+
+  // These are not necessarily mutually exclusive. See also:
+  // PPC conditional linking indirect branch, oy. 
+  bool isCall_;
+  bool isConditional_;
+  bool isIndirect_;
+
+  unsigned gap_;
+
+  InstructionAPI::Instruction::Ptr insn_;
+  Address addr_;
+
+  // If we were a PC-relative indirect store that data here
+  Address origTarget_;
+
+  // A map from input values (for some representation of input
+  // values) to Targets
+  // Used during code generation to determine whether we
+  // require some form of address translation. We currently have
+  // two cases: conditional and indirect control flow.
+  //  Conditional: <true> -> taken target; <false> -> fallthrough target
+  //  Indirect: <original address> -> corresponding target
+  // TBD: PPC has conditional indirect control flow, so we may want
+  // to split these up.
+  DestinationMap destMap_;
+
+  // These should move to a CodeGenerator class or something...
+  // But for now they can go here
+  // The Instruction input allows pulling out ancillary data (e.g.,
+  // conditions, prediction, etc.
+  bool generateBranch(CodeBuffer &gens,
+		      TargetInt *to,
+		      InstructionAPI::Instruction::Ptr insn,
+                      const Trace *trace,
+		      bool fallthrough);
+
+  bool generateCall(CodeBuffer &gens,
+		    TargetInt *to,
+                    const Trace *trace,
+		    InstructionAPI::Instruction::Ptr insn); 
+
+  bool generateConditionalBranch(CodeBuffer &gens,
+				 TargetInt *to,
+                                 const Trace *trace,
+				 InstructionAPI::Instruction::Ptr insn); 
+  // The Register holds the translated destination (if any)
+  // TODO replace with the register IDs that Bill's building
+  typedef unsigned Register;
+  bool generateIndirect(CodeBuffer &gens,
+			Register reg,
+                        const Trace *trace,
+			InstructionAPI::Instruction::Ptr insn);
+  bool generateIndirectCall(CodeBuffer &gens,
+			    Register reg,
+			    InstructionAPI::Instruction::Ptr insn,
+                            const Trace *trace,
+			    Address origAddr);
+  
+  bool generateAddressTranslator(CodeBuffer &buffer,
+                                 const codeGen &templ,
+				 Register &reg);  
+
+};
+
+struct CFPatch : public Patch {
+  // What type of patch are we?
+  typedef enum {
+    Jump,
+    JCC, 
+    Call,
+    Data } Type;
+  // Data: RIP-relative expression for the destination
+
+ CFPatch(Type a, 
+         InstructionAPI::Instruction::Ptr b, 
+         TargetInt *c,
+	 Address d = 0);
+  
+  virtual bool apply(codeGen &gen, CodeBuffer *buf);
+  virtual unsigned estimate(codeGen &templ);
+  virtual ~CFPatch();
+
+  Type type;
+  InstructionAPI::Instruction::Ptr orig_insn;
+  TargetInt *target;
+  Address origAddr_;  
+  arch_insn *ugly_insn;
+
+  private:
+  bool isPLT(codeGen &gen);
+  bool applyPLT(codeGen &gen, CodeBuffer *buf);
+};
+
+struct PaddingPatch : public Patch {
+  // For Kevin's defensive Dyninst, we want to append a
+  // padding area past the return point of calls that don't
+  // necessarily return to the normal places. This requires
+  // both a) an empty space in code gen and b) tracking that
+  // address in the process. The first is easy enough to
+  // do statically, but the second requires a patch so that
+  // we get notified of address finickiness.
+
+  PaddingPatch(unsigned size, bool registerDefensive, bool noop, block_instance *b) 
+     : size_(size), registerDefensive_(registerDefensive), noop_(noop), block_(b) {};
+   virtual bool apply(codeGen &gen, CodeBuffer *buf);
+   virtual unsigned estimate(codeGen &templ);
+   virtual ~PaddingPatch() {};
+   
+   unsigned size_;
+   bool registerDefensive_;
+   bool noop_;
+   block_instance *block_;
+};
+
+};
+};
+#endif

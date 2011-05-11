@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -243,8 +243,8 @@ bool process::handleTrapAtEntryPointOfMain(dyn_lwp *)
 bool process::insertTrapAtEntryPointOfMain()
 {
 
-    int_function *f_main = 0;
-    pdvector<int_function *> funcs;
+    func_instance *f_main = 0;
+    pdvector<func_instance *> funcs;
     
     //first check a.out for function symbol   
     bool res = findFuncsByPretty("main", funcs);
@@ -359,9 +359,9 @@ bool process::loadDYNINSTlib() {
     // attach to a running process.
     //Address codeBase = this->getImage()->codeOffset();
     // ...let's try "_start" instead
-    int_function *_startfn;
+    func_instance *_startfn;
     
-    pdvector<int_function *> funcs;
+    pdvector<func_instance *> funcs;
     bool res = findFuncsByPretty("_start", funcs);
     if (!res) {
         // we can't instrument main - naim
@@ -459,9 +459,9 @@ bool process::loadDYNINSTlibCleanup(dyn_lwp *)
   unsigned count = sizeof(savedCodeBuffer);
   //Address codeBase = getImage()->codeOffset();
 
-  int_function *_startfn;
+  func_instance *_startfn;
 
-    pdvector<int_function *> funcs;
+    pdvector<func_instance *> funcs;
     bool res = findFuncsByPretty("_start", funcs);
     if (!res) {
         // we can't instrument main - naim
@@ -533,7 +533,7 @@ bool Frame::setPC(Address newpc) {
 
 
 void print_read_error_info(const SymtabAPI::relocationEntry entry, 
-                           int_function *&target_pdf, Address base_addr) {
+                           func_instance *&target_pdf, Address base_addr) {
 
    sprintf(errorLine, "  entry      : target_addr 0x%lx\n",
            entry.target_addr());
@@ -564,7 +564,7 @@ void print_read_error_info(const SymtabAPI::relocationEntry entry,
 // specified by entry and base_addr.  If it has been bound, then the callee 
 // function is returned in "target_pdf", else it returns false.
 bool process::hasBeenBound(const SymtabAPI::relocationEntry &entry, 
-			   int_function *&target_pdf, Address base_addr) {
+			   func_instance *&target_pdf, Address base_addr) {
 
 // TODO: the x86 and sparc versions should really go in seperate files 
 #if defined(i386_unknown_solaris2_5)
@@ -645,7 +645,7 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 
     instruction third_insn(insnBuf);
 
-    // get address of bound function, and return the corr. int_function
+    // get address of bound function, and return the corr. func_instance
     if(((*next_insn).sethi.op == FMT2op) && ((*next_insn).sethi.op2 == SETHIop2)
 	&& ((*third_insn).rest.op == RESTop) && ((*third_insn).rest.i == 1)
 	&& ((*third_insn).rest.op3 == JMPLop3)) {
@@ -670,15 +670,15 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 // findCallee: finds the function called by the instruction corresponding
 // to the instPoint "instr". If the function call has been bound to an
 // address, then the callee function is returned in "target" and the 
-// instPoint "callee" data member is set to pt to callee's int_function.  
+// instPoint "callee" data member is set to pt to callee's func_instance.  
 // If the function has not yet been bound, then "target" is set to the 
-// int_function associated with the name of the target function (this is 
+// func_instance associated with the name of the target function (this is 
 // obtained by the PLT and relocation entries in the image), and the instPoint
 // callee is not set.  If the callee function cannot be found, (ex. function
 // pointers, or other indirect calls), it returns false.
 // Returns false on error (ex. process doesn't contain this instPoint).
 //
-int_function *instPoint::findCallee() {
+func_instance *instPoint::findCallee() {
 
    if(callee_) {
        return callee_;
@@ -694,11 +694,11 @@ int_function *instPoint::findCallee() {
 
     // Check if we parsed an intra-module static call
     assert(img_p_);
-    image_func *icallee = img_p_->getCallee();
+    parse_func *icallee = img_p_->getCallee();
     if (icallee) {
         // Now we have to look up our specialized version
         // Can't do module lookup because of DEFAULT_MODULE...
-        const pdvector<int_function *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName().c_str());
+        const pdvector<func_instance *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName().c_str());
         if (!possibles) {
             return NULL;
         }
@@ -741,14 +741,14 @@ int_function *instPoint::findCallee() {
             // check to see if this function has been bound yet...if the
             // PLT entry for this function has been modified by the runtime
             // linker
-            int_function *target_pdf = 0;
+            func_instance *target_pdf = 0;
             if(proc()->hasBeenBound((*fbt)[i], target_pdf, base_addr)) {
                 callee_ = target_pdf;
                 return callee_;
             } 
             else {
                 // just try to find a function with the same name as entry 
-                pdvector<int_function *> pdfv;
+                pdvector<func_instance *> pdfv;
                 bool found = proc()->findFuncsByMangled((*fbt)[i].name().c_str(), pdfv);
                 if(found) {
                     assert(pdfv.size());
@@ -774,7 +774,7 @@ int_function *instPoint::findCallee() {
  * to libpthread, then to libc, then to the process.
  **/
 static void findThreadFuncs(process *p, std::string func, 
-                            pdvector<int_function *> &result)
+                            pdvector<func_instance *> &result)
 {
    bool found = false;
    mapped_module *lpthread = p->findModule("libthread*", true);
@@ -810,7 +810,7 @@ bool process::initMT()
     /**
      * Instrument thread_create with calls to DYNINST_dummy_create
      **/
-    pdvector<int_function *> thread_init_funcs;
+    pdvector<func_instance *> thread_init_funcs;
     findThreadFuncs(this, "init_func", thread_init_funcs);
     if (thread_init_funcs.size() < 1) {
         //findThreadFuncs(this, "_lwp_start", thread_init_funcs);
@@ -827,7 +827,7 @@ bool process::initMT()
     }
 
     //Find DYNINST_dummy_create
-   int_function *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
+   func_instance *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
    if (!dummy_create) {
        fprintf(stderr, "[%s:%d] - Couldn't find DYNINST_dummy_create",
                __FILE__, __LINE__);
@@ -868,13 +868,13 @@ bool process::initMT()
 
 
    //Find pthread_self
-   pdvector<int_function *> pthread_self_funcs;
+   pdvector<func_instance *> pthread_self_funcs;
    findThreadFuncs(this, "thr_self", pthread_self_funcs);   
    if (pthread_self_funcs.size() != 1) {
        fprintf(stderr, "[%s:%d] - Found %d pthread_self functions, expected 1\n",
                __FILE__, __LINE__, pthread_self_funcs.size());
        for (unsigned j=0; j<pthread_self_funcs.size(); j++) {
-           int_function *ps = pthread_self_funcs[j];
+           func_instance *ps = pthread_self_funcs[j];
            fprintf(stderr, "[%s:%u] - %s in module %s at %lx\n", __FILE__, __LINE__,
                    ps->prettyName().c_str(), ps->mod()->fullName().c_str(), 
                    ps->getAddress());

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -69,68 +69,43 @@
 #include "Instruction.h"
 #include "InstructionDecoder.h"
 
+#include "mapped_object.h"
+
 /*
  * Private constructor, insn
  */
 BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace, 
                            BPatch_function *_func, instPoint *_point,
+                           instPoint *_secondary,
                            BPatch_procedureLocation _pointType,
                            AddressSpace *as) :
-   addSpace(_addSpace), lladdSpace(as), func(_func), point(_point), 
+   addSpace(_addSpace), lladdSpace(as), func(_func), 
+   point(_point), secondaryPoint(_secondary),
    pointType(_pointType), memacc(NULL), dynamic_point_monitor_func(NULL),
    edge_(NULL)
 {
-    if (_pointType == BPatch_subroutine)
-        dynamic_call_site_flag = 2; // dynamic status unknown
-    else
-        dynamic_call_site_flag = 0; // not a call site, so not a dynamic call site.
-    // I'd love to have a "loop" constructor, but the code structure
-    // doesn't work right. We create an entry point as a set of edge points,
-    // but not all edge points are loop points.
-    loop = NULL;
-    
-    // And check to see if there's already instrumentation there (from a fork, say)
-    
-    pdvector<miniTramp *> mts;
-    
-    // Preinsn
-    // TODO: this will grab _everything_, including internal instrumentation.
-    // We need a "type" flag on the miniTramp that specifies whether instru is
-    // internal, BPatch-internal (dynamic monitoring), or user-added.
+   assert(point->func() == _func->lowlevel_func());
 
-    baseTramp *bt = point->getBaseTramp(callPreInsn);
-    miniTramp *mt = NULL;
-
-    if (bt) mt = bt->firstMini;
-
-    while (mt) {
-        if (mt->instP() == point)
-            mts.push_back(mt);
-        mt = mt->next;
-    }
-
-    for(unsigned i=0; i<mts.size(); i++) {
-        BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
-        handle->addMiniTramp(mts[i]);
-        preSnippets.push_back(handle);
-    }
-    // And now post.
-    mts.clear();
-    mt = NULL;
-    
-    bt = point->getBaseTramp(callPostInsn);
-    if (bt) mt = bt->firstMini;
-    
-    while (mt) {
-        if (mt->instP() == point)
-            mts.push_back(mt);
-        mt = mt->next;
-    }
-    for(unsigned ii=0; ii<mts.size(); ii++) {
-        BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
-        handle->addMiniTramp(mts[ii]);
-        postSnippets.push_back(handle);
-    }
+   if (_pointType == BPatch_subroutine)
+      dynamic_call_site_flag = 2; // dynamic status unknown
+   else
+      dynamic_call_site_flag = 0; // not a call site, so not a dynamic call site.
+   // I'd love to have a "loop" constructor, but the code structure
+   // doesn't work right. We create an entry point as a set of edge points,
+   // but not all edge points are loop points.
+   loop = NULL;
+   
+   // And check to see if there's already instrumentation there (from a fork, say)
+   
+   // TODO: we either need to change BPatch_points to match the new instPoint model,
+   // or look up any other instPoints that might be in the area. I'd suggest 
+   // changing BPatch_points, because otherwise we get all sorts of weird from the
+   // function/block entry + first insn problem.
+   for (instPoint::iterator iter = point->begin(); iter != point->end(); ++iter) {
+      BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
+      handle->addMiniTramp(*iter);
+      preSnippets.push_back(handle);
+   }
 }
 
 /*
@@ -140,7 +115,8 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
                            BPatch_function *_func, 
                            BPatch_edge *_edge, instPoint *_point,
                            AddressSpace *as) :
-   addSpace(_addSpace), lladdSpace(as), func(_func), point(_point), 
+   addSpace(_addSpace), lladdSpace(as), func(_func), 
+   point(_point), secondaryPoint(NULL),
    pointType(BPatch_locInstruction), memacc(NULL),
    dynamic_call_site_flag(0), dynamic_point_monitor_func(NULL),edge_(_edge)
 {
@@ -153,27 +129,11 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
 
   // And check to see if there's already instrumentation there (from a fork, say)
 
-  pdvector<miniTramp *> mts;
-
-  // Preinsn
-  
-  baseTramp *bt = point->getBaseTramp(callPreInsn);
-  miniTramp *mt = NULL;
-  if (bt) mt = bt->firstMini;
-
-  while (mt) {
-      if (mt->instP() == point)
-          mts.push_back(mt);
-      mt = mt->next;
+  for (instPoint::iterator iter = point->begin(); iter != point->end(); ++iter) {
+     BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
+     handle->addMiniTramp(*iter);
+     preSnippets.push_back(handle);
   }
-  
-  for(unsigned i=0; i<mts.size(); i++) {
-      BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
-      handle->addMiniTramp(mts[i]);
-      preSnippets.push_back(handle);
-  }
-  // No post-insn
-
 }
 
 /*
@@ -255,32 +215,35 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
 {
    assert(point);
 
-   if (!func->getModule()->isValid()) return NULL;
+   if (!func->getModule()->isValid()) {
+	   return NULL;
+   }
    if (addSpace->getType() == TRADITIONAL_PROCESS) {
        BPatch_process *proc = dynamic_cast<BPatch_process *>(addSpace);
        mapped_object *obj = func->getModule()->lowlevel_mod()->obj();
        if (proc->lowlevel_process()->mappedObjIsDeleted(obj)) {
-           return NULL;
-   }
+		   return NULL;
+	   }
    }
    
-   if (point->getPointType() != callSite) {
+   if (point->type() != instPoint::PreCall &&
+       point->type() != instPoint::PostCall) {
        parsing_printf("findCallee failed in getCalledFunction- not a call site\n");
-       return NULL;
+	   return NULL;
    }
    
-   int_function *_func;
-   _func = point->findCallee();
+   func_instance *_func = point->block()->callee();
+   
    if (!_func) {
        parsing_printf("findCallee failed in getCalledFunction\n");
-       return NULL;
+	   return NULL;
    }
    return addSpace->findOrCreateBPFunc(_func, NULL);
 }
 
-std::string BPatch_point::getCalledFunctionNameInt()
-{
-  return point->getCalleeName();
+std::string BPatch_point::getCalledFunctionNameInt() {
+	assert(point->block());
+	return point->block()->obj()->getCalleeName(point->block());
 }
 
 /*  BPatch_point::getCFTargets
@@ -288,55 +251,115 @@ std::string BPatch_point::getCalledFunctionNameInt()
  *  instruction whose target can be statically determined, in which
  *  case "target" is set to the targets of the control flow instruction
  */
-bool BPatch_point::getCFTargets(BPatch_Vector<Address> &targets)
+bool BPatch_point::getCFTargets(BPatch_Vector<Address> & /*targets*/)
 {
+   assert(0 && "TODO");
+   return false;
+#if 0
+    bool ret = true;
     if (point->isDynamic()) {
-        if (point->getSavedTarget()) {
-            return point->getSavedTarget();
+        if (point->getSavedTargets(targets)) {
+            return true;
         } else {
             return false;
         }
     }
-    // callTarget() works for branches as well as calls
-    Address targ = point->callTarget();
-    if (!targ) {
-        // see if this point is an abrupt end point
-        if (abruptEnd == point->getPointType()) {
-            targets.push_back(point->block()->origInstance()->endAddr());
+    switch(point->getPointType()) 
+    {
+      case callSite: 
+      {
+        Address targ = point->callTarget();
+        if (targ) {
+            targets.push_back(targ);
+        } else {
+            ret = false;
         }
-        return false;
+        break;
+      }
+      case abruptEnd:
+        targets.push_back( point->block()->end() );
+        break;
+      default: 
+      { // branch or jump. 
+        // don't miss targets to invalid addresses 
+        // (these get linked to the sink block by ParseAPI)
+        using namespace ParseAPI;
+        Address baseAddr = point->block()->start() 
+                         - point->block()->llb()->start();
+        Block::edgelist & trgs = point->block()->llb()->targets();
+        Block::edgelist::iterator iter = trgs.begin();
+        mapped_object *obj = point->func()->obj();
+        Architecture arch = point->proc()->getArch();
+
+        for ( ; iter != trgs.end(); iter++) {
+            if ( ! (*iter)->sinkEdge() ) {
+                targets.push_back( baseAddr + (*iter)->trg()->start() );
+            } else {
+                // if this is a cond'l branch taken or direct 
+                // edge, decode the instruction to get its target, 
+                // otherwise we won't find a target for this insn
+                switch((*iter)->type()) {
+                case INDIRECT:
+                    break;
+                case COND_NOT_TAKEN:
+                case FALLTHROUGH:
+                    if (point->proc()->proc() && 
+                        BPatch_defensiveMode == 
+                        point->proc()->proc()->getHybridMode()) 
+                    {
+                        assert( 0 && "should be an abrupt end point");
+                    }
+                    break;
+                default:
+                { // this is a cond'l taken or jump target
+#if defined(cap_instruction_api)
+                using namespace InstructionAPI;
+                RegisterAST::Ptr thePC = RegisterAST::Ptr
+                    ( new RegisterAST( MachRegister::getPC( arch ) ) );
+
+                void *ptr = obj->getPtrToInstruction(point->addr());
+                assert(ptr);
+                InstructionDecoder dec
+                    (ptr, InstructionDecoder::maxInstructionLength, arch);
+                Instruction::Ptr insn = dec.decode();
+                Expression::Ptr trgExpr = insn->getControlFlowTarget();
+                    // FIXME: templated bind()
+                trgExpr->bind(thePC.get(), 
+                              Result(s64, point->block()->llb()->lastInsnOffset()));
+                Result actualTarget = trgExpr->eval();
+                if(actualTarget.defined)
+                {
+                    Address targ = actualTarget.convert<Address>() + baseAddr;
+                    targets.push_back( targ );
+                }
+                break;
+                } // end default case
+                } // end edge-type switch
+#endif
+            }
+        }
+        break;
+      }
     }
-    targets.push_back(targ);
-    return true;
+
+    return ret;
+#endif
 }
 
 Address BPatch_point::getCallFallThroughAddr()
 {
     assert(point);
-    if (point->getPointType() != callSite && 
-        ( point->addr() != point->block()->origInstance()->lastInsnAddr() )) 
-    {
-        fprintf(stderr,"ERROR: requested fallthrough address for point at %lx "
-                "that is not a call %s[%d]\n", point->addr(), FILE__, __LINE__);
-    }
-#if defined(cap_instruction_api)
     using namespace InstructionAPI;
-    mapped_object *obj = point->func()->obj();
-    InstructionDecoder dec(obj->getPtrToInstruction(point->addr()),
-                           InstructionDecoder::maxInstructionLength,
-                           point->proc()->getArch());
-    Instruction::Ptr insn = dec.decode();
-    assert(insn);
-    return point->addr() + insn->size(); 
-#else 
-    InstrucIter ii(point->addr(), point->proc());
-    return ii.peekNext();
-#endif
+    if (!point->block()) return 0;
+    edge_instance *fte = point->block()->getFallthrough();
+    if (fte && !fte->sinkEdge()) return fte->trg()->start();
+    else return point->block()->end();
 }
 
-Address BPatch_point::getSavedTarget()
+bool BPatch_point::getSavedTargets(vector<Address> & /*targs*/)
 {
-    return point->getSavedTarget();
+   assert(0);
+   return false;
 }
 
 void BPatch_point::attachMemAcc(BPatch_memoryAccess *newMemAcc) {
@@ -359,32 +382,18 @@ const BPatch_memoryAccess *BPatch_point::getMemoryAccessInt()
     //      point->addr());
     assert(point);
     // Try to find it... we do so through an InstrucIter
-#if defined(cap_instruction_api)
     Dyninst::InstructionAPI::Instruction::Ptr i = getInsnAtPointInt();
     BPatch_memoryAccessAdapter converter;
     
-    attachMemAcc(converter.convert(i, point->addr(), point->proc()->getAddressWidth() == 8));
+    attachMemAcc(converter.convert(i, point->insnAddr(), point->proc()->getAddressWidth() == 8));
     return memacc;
-#else
-    InstrucIter ii(point->addr(), point->proc());
-    BPatch_memoryAccess *ma = ii.isLoadOrStore();
-
-    attachMemAcc(ma);
-    return ma;
-#endif
 }
-#if defined(cap_instruction_api)
+
 InstructionAPI::Instruction::Ptr BPatch_point::getInsnAtPointInt()
 {
     return point->insn();
 }
-#else
-InstructionAPI::Instruction::Ptr BPatch_point::getInsnAtPointInt()
-{
-  return InstructionAPI::Instruction::Ptr();
-}
 
-#endif
 
 const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippetsInt() 
 {
@@ -419,17 +428,17 @@ bool BPatch_point::getLiveRegistersInt(std::vector<BPatch_register> &liveRegs)
 {
     // Good question: pre- or post-instruction? I'm going to assume pre-instruction.
 
-    bitArray live = point->liveRegisters(callPreInsn);
-    
-    std::vector<BPatch_register> allRegs;
-    addSpace->getRegisters(allRegs); 
-    
-    for (unsigned i = 0; i < allRegs.size(); i++) {
-        if (live[allRegs[i].number_])
-            liveRegs.push_back(allRegs[i]);
-    }
-    return true;
-
+   bitArray live = point->liveRegisters();
+   
+   std::vector<BPatch_register> allRegs;
+   addSpace->getRegisters(allRegs); 
+   
+   for (unsigned i = 0; i < allRegs.size(); i++) {
+      if (live[allRegs[i].number_])
+         liveRegs.push_back(allRegs[i]);
+   }
+   return true;
+   
 }
 #else
 bool BPatch_point::getLiveRegistersInt(std::vector<BPatch_register> &)
@@ -447,7 +456,7 @@ bool BPatch_point::getLiveRegistersInt(std::vector<BPatch_register> &)
  */
 void *BPatch_point::getAddressInt()
 {
-    return (void *)point->addr();
+    return (void *)point->nextExecutedAddr();
 }
 
 
@@ -461,9 +470,9 @@ void *BPatch_point::getAddressInt()
  */
 bool BPatch_point::usesTrap_NPInt()
 {
-  assert(point);
-  return false;
-  //return point->usesTrap();
+   assert(point);
+   return false;
+   //return point->usesTrap();
 }
 
 /*
@@ -474,17 +483,19 @@ bool BPatch_point::usesTrap_NPInt()
  */
 bool BPatch_point::isDynamicInt()
 {
-    if (!func->getModule()->isValid()) return false;
+   if (!point) return false;
 
-    if (dynamic_call_site_flag == 1) return true;
-    if (dynamic_call_site_flag == 0 &&
-        pointType == BPatch_subroutine) return false;
-    
-    bool is_dyn = point->isDynamic();
-    if (pointType == BPatch_subroutine) {
-        dynamic_call_site_flag = is_dyn ? 1 : 0;
-    }
-    return is_dyn;
+   switch (point->type()) {
+      case instPoint::PreCall:
+      case instPoint::PostCall:
+         return point->block()->containsDynamicCall();
+         break;
+      case instPoint::Edge: 
+         return point->edge()->sinkEdge();
+         break;
+      default:
+         return false;
+   }
 }
 
 /*
@@ -500,8 +511,11 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
 {
   BPatch_function *func_to_use = user_cb;
 
-  if (!func->getModule()->isValid()) return NULL;
-
+  if (!func->getModule()->isValid()) {
+    fprintf(stderr, "%s[%d]: invalid module, cannot monitor\n",
+	    FILE__, __LINE__);
+    return NULL;
+  }
   if ( !isDynamic() ) {
     fprintf(stderr, "%s[%d]:  call site is not dynamic, cannot monitor\n", 
             __FILE__, __LINE__ );
@@ -530,25 +544,35 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   // The callback takes two arguments: the first is the (address of the) callee,
   // the second the (address of the) callsite. 
 
+  InstructionAPI::Instruction::Ptr insn = point->block()->getInsn(point->block()->last());
   pdvector<AstNodePtr> args;
-  if (!lladdSpace->getDynamicCallSiteArgs(point, args))
+  if (!lladdSpace->getDynamicCallSiteArgs(insn, point->block()->last(), args))
       return NULL;
   if (args.size() != 2)
       return NULL;
 
 
   // construct function call and insert
-  int_function * fb = func_to_use->lowlevel_func();
+  func_instance * fb = func_to_use->lowlevel_func();
 
   // Monitoring function
   AstNodePtr ast = AstNode::funcCallNode(fb, args);
   
 
+#if 0
   miniTramp *res = point->instrument(ast,
 				     callPreInsn,
 				     orderLastAtPoint,
 				     true,
 				     false);
+#endif
+  miniTramp *res = point->push_back(ast, true);
+
+  if (addSpace->pendingInsertions == NULL) {
+    // Trigger it now
+    bool tmp;
+    addSpace->finalizeInsertionSet(false, &tmp);
+  }   
   
   if ( ! res ) {
      fprintf( stderr,"%s[%d]:  insertSnippet failed, cannot monitor call site\n",
@@ -587,23 +611,9 @@ bool BPatch_point::stopMonitoringInt()
  * insns        A pointer to a buffer in which to return the instructions.
  */ 
 
-int BPatch_point::getDisplacedInstructionsInt(int maxSize, void* insns)
+int BPatch_point::getDisplacedInstructionsInt(int /*maxSize*/, void* /*insns*/)
 {
-    // This is a stupid idea... but there's a test case, so make it happy.
-    // We overwrite the entire basic block... 
-
-    // So, we return the instruction "overwritten". Wrong, but what the heck...
-#if defined(cap_instruction_api)
-    Dyninst::InstructionAPI::Instruction::Ptr insn(point->insn());
-    unsigned size = (maxSize < (int)insn->size()) ? maxSize : insn->size();
-    memcpy(insns, (const void *)insn->ptr(), size);
-    return insn->size();
-#else
-    const instruction &insn = point->insn();
-    unsigned size = (maxSize < (int)insn.size()) ? maxSize : insn.size();
-    memcpy(insns, (const void *)insn.ptr(), size);
-    return insn.size();
-#endif
+   return 0;
 }
 
 // This isn't a point member because it relies on instPoint.h, which
@@ -622,7 +632,7 @@ bool BPatchToInternalArgs(BPatch_point *point,
       // "after" for an edge
       return false;
     }
-    switch(point->edge()->type) {
+    switch(point->edge()->getType()) {
     case CondJumpTaken:
     case UncondJump:
       ipWhen = callBranchTargetInsn;
@@ -632,7 +642,7 @@ bool BPatchToInternalArgs(BPatch_point *point,
       ipWhen = callPostInsn;
       break;
     default:
-      fprintf(stderr, "Unknown edge type %d\n", point->edge()->type);
+       fprintf(stderr, "Unknown edge type %d\n", point->edge()->getType());
       assert(0);
     }
   }
@@ -690,212 +700,90 @@ bool BPatchToInternalArgs(BPatch_point *point,
 
 BPatch_procedureLocation BPatch_point::convertInstPointType_t(int intType)
 {
-    BPatch_procedureLocation ret = (BPatch_procedureLocation)-1;
-    switch((instPointType_t) intType) {
-    case abruptEnd:
-    case otherPoint:
-    case noneType:
-        ret = BPatch_locInstruction;
-        break;
-    case functionEntry:
-        ret = BPatch_locEntry;
-        break;
-    case functionExit:
-        ret = BPatch_locExit;
-        break;
-    case callSite:
-        ret = BPatch_locSubroutine;
-        break;
-    default:
-        assert(0);
+    switch((instPoint::Type) intType) {
+       case instPoint::FuncEntry:
+          return BPatch_locEntry;
+       case instPoint::FuncExit:
+          return BPatch_locExit;
+       case instPoint::PreCall:
+       case instPoint::PostCall:
+          return BPatch_locSubroutine;
+       default:
+          return BPatch_locInstruction;
     }
-    return ret;
 }
 
 void BPatch_point::recordSnippet(BPatch_callWhen when,
                                  BPatch_snippetOrder order,
                                  BPatchSnippetHandle *handle) {
-    if (when == BPatch_callUnset) {
-        if (getPointType() == BPatch_exit)
-            when = BPatch_callAfter;
-        else
-            when = BPatch_callBefore;
-    }
+   if (when == BPatch_callUnset) {
+      if (getPointType() == BPatch_exit)
+         when = BPatch_callAfter;
+      else
+         when = BPatch_callBefore;
+   }
 
-    if (when == BPatch_callBefore)
-        if (order == BPatch_firstSnippet) {
+   if (when == BPatch_callBefore)
+      if (order == BPatch_firstSnippet) {
 #if !defined(USE_DEPRECATED_BPATCH_VECTOR)
-            preSnippets.insert(preSnippets.begin(), handle);
+         preSnippets.insert(preSnippets.begin(), handle);
 #else
-            preSnippets.push_front(handle);
+         preSnippets.push_front(handle);
 #endif
-        }
-        else {
-            preSnippets.push_back(handle);
-        }
-    else {
-        if (order == BPatch_firstSnippet) {
+      }
+      else {
+         preSnippets.push_back(handle);
+      }
+   else {
+      if (order == BPatch_firstSnippet) {
 #if !defined(USE_DEPRECATED_BPATCH_VECTOR)
-            postSnippets.insert(postSnippets.begin(), handle);
+         postSnippets.insert(postSnippets.begin(), handle);
 #else
-            postSnippets.push_front(handle);
+         postSnippets.push_front(handle);
 #endif
-        }
-        else {
-            postSnippets.push_back(handle);
-        }
-    }        
+      }
+      else {
+         postSnippets.push_back(handle);
+      }
+   }        
 
 }
 
 // Removes snippet from datastructures, doesn't actually remove the 
 // instrumentation.  Is invoked by BPatch_addressSpace::deleteSnippet
-bool BPatch_point::deleteSnippet(BPatchSnippetHandle *handle)
+bool BPatch_point::removeSnippet(BPatchSnippetHandle *handle)
 {
-    bool foundHandle = false;
+   bool foundHandle = false;
 
-    // this vector may not have been initialized
-    for (unsigned all = 0; all < allSnippets.size(); all++) {
-        if (handle == allSnippets[all]) {
-            if (all != allSnippets.size()-1) {
-                allSnippets[all] = allSnippets.back();
-            }
-            allSnippets.pop_back();
-            break;
-        }
-    }
-    for (unsigned pre = 0; !foundHandle && pre < preSnippets.size(); pre++) {
-        if (handle == preSnippets[pre]) {
-            if (pre != preSnippets.size()-1) {
-                preSnippets[pre] = preSnippets.back();
-            }
-            preSnippets.pop_back();
-            foundHandle = true;
-        }
-    }
-    for (unsigned post = 0; !foundHandle && post < postSnippets.size(); post++){
-        if (handle == postSnippets[post]) {
-            if (post != postSnippets.size()-1) {
-                postSnippets[post] = postSnippets.back();
-            }
-            postSnippets.pop_back();
-            foundHandle = true;
-        }
-    }
-    return foundHandle;
+   std::vector<BPatchSnippetHandle *>::iterator iter;
+
+   for (iter = allSnippets.begin(); iter != allSnippets.end(); ++iter) {
+      if (*iter == handle) {
+         allSnippets.erase(iter);
+         foundHandle = true;
+         break;
+      }
+   }
+
+   for (iter = preSnippets.begin(); iter != preSnippets.end(); ++iter) {
+      if (*iter == handle) {
+         preSnippets.erase(iter);
+         foundHandle = true;
+         break;
+      }
+   }
+
+   for (iter = postSnippets.begin(); iter != postSnippets.end(); ++iter) {
+      if (*iter == handle) {
+         postSnippets.erase(iter);
+         foundHandle = true;
+         break;
+      }
+   }
+
+   return foundHandle;
 }
 
-// Create an arbitrary BPatch point
-BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_addressSpace *addSpace,
-                                                       void *address,
-                                                       BPatch_function *bpf) 
-{
-
-    if (!bpf->getModule()->isValid()) {
-        fprintf(stderr, "WARNING: invalid module in createInstructionInstPoint\n");
-        return NULL;
-    }
-    // The useful prototype for instPoints:
-    // createArbitraryInstPoint(addr, proc);
-    
-    Address internalAddr = (Address) address;
-
-    instPoint *iPoint = instPoint::createArbitraryInstPoint(internalAddr,
-                                                            bpf->lladdSpace,
-                                                            bpf->lowlevel_func());
-
-    if (!iPoint) {
-        return NULL;
-    }
-    
-    return addSpace->findOrCreateBPPoint(bpf, iPoint, BPatch_arbitrary);
-}
-
-// findPoint refactoring
-#if defined(cap_instruction_api)
-BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_opCode>&,
-                                                      InstrucIter &, 
-                                                      BPatch_function *)
-{
-    return NULL;
-}
-#else
-BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_opCode>& ops,
-                                        InstrucIter &ii, 
-                                        BPatch_function *bpf) 
-{
-    BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
-    
-    int osize = ops.size();
-    BPatch_opCode* opa = new BPatch_opCode[osize];
-    ops.elements(opa);
-    
-    bool findLoads = false, findStores = false, findPrefetch = false;
-    
-    for(int i=0; i<osize; ++i) {
-        switch(opa[i]) {
-        case BPatch_opLoad: findLoads = true; break;
-        case BPatch_opStore: findStores = true; break;	
-        case BPatch_opPrefetch: findPrefetch = true; break;	
-        }
-    }
-    delete[] opa;
-    
-    while(ii.hasMore()) {
-        
-        //inst = ii.getInstruction();
-        Address addr = *ii;     // XXX this gives the address *stored* by ii...
-        
-        BPatch_memoryAccess* ma = ii.isLoadOrStore();
-        
-        if(!ma)
-        {
-            //fprintf(stderr, "Nothing at 0x%lx\n", *ii);
-            ii++;
-            continue;
-        }
-        
-        //BPatch_addrSpec_NP start = ma.getStartAddr();
-        //BPatch_countSpec_NP count = ma.getByteCount();
-        //int imm = start.getImm();
-        //int ra  = start.getReg(0);
-        //int rb  = start.getReg(1);
-        //int cnt = count.getImm();
-        //short int fcn = ma.prefetchType();
-        bool add = false;
-        
-        if(findLoads && ma->hasALoad()) {
-            //fprintf(stderr, "Load at 0x%lx\n", *ii);
-            add = true;
-        }
-        else if (findStores && ma->hasAStore()) {
-            //fprintf(stderr, "Store at 0x%lx\n", *ii);
-            add = true;
-        }
-        else if (findPrefetch && ma->hasAPrefetch_NP()) {
-            //fprintf(stderr, "Prefetch at 0x%lx\n", *ii);
-            add = true;
-        }
-        ii++;
-        
-        if (add) {
-           BPatch_point *p = BPatch_point::createInstructionInstPoint(//bpf->getProc(),
-                                                                      bpf->getAddSpace(),  
-                                                                      (void *)addr,
-                                                                      bpf);
-           if (p) {
-              if (p->memacc == NULL)
-                 p->attachMemAcc(ma);
-              else
-                 delete ma;
-              result->push_back(p);
-           }
-        }
-    }
-    return result;
-}
-#endif
-                                                          
 AddressSpace *BPatch_point::getAS()
 {
    return lladdSpace;
@@ -903,10 +791,25 @@ AddressSpace *BPatch_point::getAS()
 
 bool BPatch_point::isReturnInstruction()
 {
-    return point->isReturnInstruction();
+   return point->type() == instPoint::FuncExit;
 }
 
-void BPatch_point::setResolved()
+bool BPatch_point::patchPostCallArea()
 {
-    point->setResolved();
+    if (point->proc()->proc()) {
+        return point->proc()->proc()->patchPostCallArea(point);
+    }
+    return false;
+}
+
+instPoint *BPatch_point::getPoint(BPatch_callWhen when) {
+   switch(when) {
+      case BPatch_callBefore:
+      case BPatch_callUnset:
+         return point;
+      case BPatch_callAfter:
+         return (secondaryPoint ? secondaryPoint : point);
+   }
+   assert(0);
+   return NULL;
 }

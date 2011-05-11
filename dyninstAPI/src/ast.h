@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -56,7 +56,7 @@
 
 class AddressSpace;
 class instPoint;
-class int_function;
+class func_instance;
 class int_variable;
 
 class codeGen;
@@ -149,7 +149,10 @@ class AstNode {
                       DataReg,
                       DataIndir,
                       Param,
+                      ParamAtCall,
+                      ParamAtEntry,
                       ReturnVal, 
+                      ReturnAddr, // address of a return instruction
                       DataAddr,  // Used to represent a variable in memory
                       FrameAddr, // Calculate FP 
                       RegOffset, // Calculate *reg + offset; oValue is reg, loperand->oValue is offset. 
@@ -214,12 +217,10 @@ class AstNode {
                                   AstNodePtr e = AstNodePtr());
 
    static AstNodePtr funcCallNode(const std::string &func, pdvector<AstNodePtr > &args, AddressSpace *addrSpace = NULL);
-   static AstNodePtr funcCallNode(int_function *func, pdvector<AstNodePtr > &args);
-   static AstNodePtr funcCallNode(int_function *func); // Special case for function call replacement.
+   static AstNodePtr funcCallNode(func_instance *func, pdvector<AstNodePtr > &args);
+   static AstNodePtr funcCallNode(func_instance *func); // Special case for function call replacement.
    static AstNodePtr funcCallNode(Address addr, pdvector<AstNodePtr > &args); // For when you absolutely need
    // to jump somewhere.
-
-   static AstNodePtr funcReplacementNode(int_function *func, bool emitCall = false);
 
    static AstNodePtr insnNode(BPatch_instruction *insn);
 
@@ -520,7 +521,7 @@ class AstOperandNode : public AstNode {
         
     virtual BPatch_type	  *checkType();
 
-    virtual bool accessesParam(void) { return (oType == Param); };
+    virtual bool accessesParam(void) { return (oType == Param || oType == ParamAtEntry || oType == ParamAtCall); };
     virtual bool canBeKept() const;
         
     virtual void getChildren(pdvector<AstNodePtr> &children);
@@ -559,10 +560,10 @@ class AstOperandNode : public AstNode {
 
 class AstCallNode : public AstNode {
  public:
-    AstCallNode(int_function *func, pdvector<AstNodePtr>&args);
+    AstCallNode(func_instance *func, pdvector<AstNodePtr>&args);
     AstCallNode(const std::string &str, pdvector<AstNodePtr>&args);
     AstCallNode(Address addr, pdvector<AstNodePtr> &args);
-    AstCallNode(int_function *func);
+    AstCallNode(func_instance *func);
     
     ~AstCallNode() {}
 
@@ -597,7 +598,7 @@ class AstCallNode : public AstNode {
     const std::string func_name_;
     Address func_addr_;
     
-    int_function *func_;
+    func_instance *func_;
     pdvector<AstNodePtr> args_;
 
     bool callReplace_; // Node is intended for function call replacement
@@ -605,30 +606,6 @@ class AstCallNode : public AstNode {
     // input parameters, or can otherwise be guaranteed to not change
     // if executed multiple times in the same sequence - AKA 
     // "can be kept".
-};
-
-class AstReplacementNode : public AstNode {
- public:
-    AstReplacementNode(int_function *rep, bool fcall) :
-        AstNode(),
-        replacement(rep),
-        genFuncCall_(fcall) {};
-
-    virtual bool canBeKept() const;
-    virtual bool containsFuncCall() const;
-    virtual cfjRet_t containsFuncJump() const;
-    virtual bool usesAppRegister() const;
- 
-
- private:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Address &retAddr,
-                                     Register &retReg);
-
-    int_function *replacement;
-    AstReplacementNode() {};
-    bool genFuncCall_; //Make a call instead of a jump
 };
 
 
@@ -901,9 +878,6 @@ void emitStorePreviousStackFrameRegister(Address register_num,
                                          codeGen &gen,
                                          int size,
                                          bool noCost);
-void emitFuncJump(opCode op, codeGen &gen,
-                  int_function *func, AddressSpace *addrSpace,
-                  const instPoint *loc, bool noCost);
 
 
 #endif /* AST_HDR */

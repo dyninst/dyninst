@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -156,6 +156,9 @@ static void get_vars_addrs(BPatch_image* bip) // from mutatee
 #if arch_x86_test
 #if defined(i386_unknown_nt4_0_test)
 static const unsigned int nstores = 31;
+#elif defined(i386_unknown_freebsd7_0_test)
+// FreeBSD/x86 passes syscall arguments
+static const unsigned int nstores = 43;
 #else
 static const unsigned int nstores = 27;
 #endif
@@ -178,23 +181,51 @@ static void init_test_data()
   storeList[++k] = MK_ST((long)divarwp,-1,-1,4);   // s10
   storeList[++k] = MK_LS((long)divarwp+4,-1,-1,4);
   storeList[++k] = NULL;//MK_ST(-4,4,-1,4); // call
+
 #if defined(i386_unknown_nt4_0_test)
   storeList[++k] = NULL;//MK_ST(-4,4,-1,4); // call
+#elif defined(i386_unknown_freebsd7_0_test)
+  storeList[++k] = MK_ST(-4,4,-1,4);
+  storeList[++k] = MK_ST(-4,4,-1,4);
+  storeList[++k] = MK_ST(-4,4,-1,4);
+  storeList[++k] = MK_ST(-4,4,-1,4);
 #endif
+
   storeList[++k] = MK_STnt((long)divarwp,-1,-1,8); // s12
   //storeList[++k] = MK_ST(0,7,-1,4);
   storeList[++k] = NULL;//MK_ST(-4,4,-1,4); // call
+
 #if defined(i386_unknown_nt4_0_test)
   storeList[++k] = NULL;//MK_ST(-4,4,-1,4); // call
+#elif defined(i386_unknown_freebsd7_0_test)
+  storeList[++k] = MK_ST(-4,4,-1,4);
+  storeList[++k] = MK_ST(-4,4,-1,4);
+  storeList[++k] = MK_ST(-4,4,-1,4);
+  storeList[++k] = MK_ST(-4,4,-1,4);
 #endif
+
   storeList[++k] = NULL;//MK_ST(-4,4,-1,4); // call
+
 #if defined(i386_unknown_nt4_0_test)
   storeList[++k] = NULL;//MK_ST(-4,4,-1,4); // call
+#elif defined(i386_unknown_freebsd7_0_test)
+  storeList[++k] = MK_ST(-4,4,-1,4);
+  storeList[++k] = MK_ST(-4,4,-1,4);
+  storeList[++k] = MK_ST(-4,4,-1,4);
+  storeList[++k] = MK_ST(-4,4,-1,4);
 #endif
+
   storeList[++k] = NULL;//MK_ST(-4,4,-1,4); // call
+
 #if defined(i386_unknown_nt4_0_test)
   storeList[++k] = NULL;//MK_ST(-4,4,-1,4); // call
+#elif defined(i386_unknown_freebsd7_0_test)
+  storeList[++k] = MK_ST(-4,4,-1,4);
+  storeList[++k] = MK_ST(-4,4,-1,4);
+  storeList[++k] = MK_ST(-4,4,-1,4);
+  storeList[++k] = MK_ST(-4,4,-1,4);
 #endif
+
   storeList[++k] = new BPatch_memoryAccess(NULL,0,
 					   false, true,
                                            0, 7, -1, 0,

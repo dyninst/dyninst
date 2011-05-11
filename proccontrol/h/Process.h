@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -340,6 +340,8 @@ class Thread
    friend class ::int_thread;
    int_thread *llthread_;
    thread_exitstate *exitstate_;
+   void *userData_;
+
    Thread();
    ~Thread();
    friend void dyn_detail::boost::checked_delete<Thread>(Thread *);
@@ -385,6 +387,9 @@ class Thread
    bool postIRPC(IRPC::ptr irpc) const;
    bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
    IRPC::const_ptr getRunningIRPC() const;
+
+   void *getData() const;
+   void setData(void *p);
 };
 
 class ThreadPool

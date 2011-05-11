@@ -126,7 +126,7 @@ SRCS_DYNINSTTESTLIB = dyninst/libtestA.c \
 #                      dyninst/libInstMe.c \
 #                      dyninst/libLoadMe.c \
 
-dyninst_MUTATOR_FLAGS = -L. -ltestdyninst -ldyninstAPI
+dyninst_MUTATOR_FLAGS = -L. -ltestdyninst -ldyninstAPI 
 
 ifdef M_ABI
 DYNINST_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.so))
@@ -410,27 +410,27 @@ TESTLIB_CC ?= $(CC)
 $(DYNINST_TESTLIBS): %.so : dyninst/%.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
 	@echo Compiling $<
-	$(HIDE_COMP)$(TESTLIB_CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
-	$(HIDE_COMP)$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
+	$(HIDE_COMP)$(TESTLIB_CC) $(LDFLAGS) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(MAKE_SHARED_LIB) $(LDFLAGS) $(TESTLIB_FLAGS) $*.o -o $@
 else
 	@echo Compiling $<
-	$(HIDE_COMP)$(TESTLIB_CC) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
+	$(HIDE_COMP)$(TESTLIB_CC) $(LDFLAGS) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
 
 $(DYNINST_STATIC_TESTLIBS): %.a : dyninst/%.c $(DEPENDDIR)/%.dep
 	@echo Compiling $<
-	$(HIDE_COMP)$(TESTLIB_CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(TESTLIB_CC) $(LDFLAGS) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	$(HIDE_COMP)$(AR) rcs $@ $*.o
 
 ifdef M_ABI
 $(DYNINST_TESTLIBS_ABI): %_$(M_ABI).so : dyninst/%.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
 	@echo Compiling $<
-	$(HIDE_COMP)$(TESTLIB_CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
-	$(HIDE_COMP)$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
+	$(HIDE_COMP)$(TESTLIB_CC) $(LDFLAGS) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(MAKE_SHARED_LIB) $(LDFLAGS) $(TESTLIB_FLAGS) $*.o -o $@
 else
 	@echo Compiling $<
-	$(HIDE_COMP)$(CC) $(TESTLIB_FLAGS) $(M_ABI_FLAG) -I../src/ $(filter %.c,$^) -o $@
+	$(HIDE_COMP)$(CC) $(M_ABI_FLAG) $(LDFLAGS) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
 
 ifdef cap_instruction_api
@@ -439,7 +439,7 @@ endif
 
 $(DYNINST_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : dyninst/%.c $(DEPENDDIR)/%.dep
 	@echo Compiling $<
-	$(HIDE_COMP)$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(CC) -c $(CFLAGS) $(LDFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	$(HIDE_COMP)$(AR) rcs $@ $*.o
 endif
 

@@ -107,6 +107,8 @@ void PCEventHandler::main_wrapper(void *h) {
     handler->main();
 }
 
+// Set by callbacks - ProcControlAPI guarantees only one thread will
+// execute a callback at a time
 static bool eventsQueued = false;
 
 void PCEventHandler::main() {
@@ -120,18 +122,26 @@ void PCEventHandler::main() {
 
     // Register callbacks before allowing the user thread to continue
 
-    // Any error in registration is a programming error
-    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::Crash), PCEventHandler::callbackMux) );
-    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::ForceTerminate), PCEventHandler::callbackMux) );
-    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::ThreadCreate), PCEventHandler::callbackMux) );
-    assert( Process::registerEventCallback(EventType(EventType::Pre, EventType::ThreadDestroy), PCEventHandler::callbackMux) );
+    vector<EventType> standardEvents;
+    standardEvents.push_back(EventType(EventType::Any, EventType::Crash));
+    standardEvents.push_back(EventType(EventType::Any, EventType::ForceTerminate));
+    standardEvents.push_back(EventType(EventType::Any, EventType::ThreadCreate));
+    standardEvents.push_back(EventType(EventType::Pre, EventType::ThreadDestroy));
     // Note: we do not care about EventStop's right now (these correspond to internal stops see bug 1121)
-    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::Signal), PCEventHandler::callbackMux) );
-    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::Library), PCEventHandler::callbackMux) );
+    standardEvents.push_back(EventType(EventType::Any, EventType::Signal));
+    standardEvents.push_back(EventType(EventType::Any, EventType::Library));
     // Note: we do not care about EventBootstrap's
-    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::Breakpoint), PCEventHandler::callbackMux) );
-    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::RPC), PCEventHandler::callbackMux) );
-    assert( Process::registerEventCallback(EventType(EventType::Any, EventType::SingleStep), PCEventHandler::callbackMux) );
+    standardEvents.push_back(EventType(EventType::Any, EventType::Breakpoint));
+    standardEvents.push_back(EventType(EventType::Any, EventType::RPC));
+    standardEvents.push_back(EventType(EventType::Any, EventType::SingleStep));
+
+    for(vector<EventType>::iterator i = standardEvents.begin();
+            i != standardEvents.end(); ++i)
+    {
+        // Any error in registration is a programming error
+        bool registerResult = Process::registerEventCallback(*i, PCEventHandler::callbackMux);
+        assert( registerResult && "Failed to register event callback");
+    }
 
     // Check if callbacks should be registered for syscalls on this platform
     vector<EventType> syscallTypes;
@@ -147,9 +157,11 @@ void PCEventHandler::main() {
     {
         switch(getCallbackBreakpointCase(*i)) {
             case CallbackOnly:
-            case BothCallbackBreakpoint:
-                assert( Process::registerEventCallback(*i, PCEventHandler::callbackMux) );
+            case BothCallbackBreakpoint: {
+                bool registerResult = Process::registerEventCallback(*i, PCEventHandler::callbackMux);
+                assert( registerResult && "Failed to register event callback" );
                 break;
+            }
             default:
                 break;
         }
@@ -256,6 +268,15 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
                 ret = Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
             }
             break;
+        case EventType::Signal: {
+            EventSignal::const_ptr evSignal = ev->getEventSignal();
+
+            // Don't deliver any signals to the process unless we explicitly choose
+            // to forward the signal to the process
+            if( !PCEventHandler::isKillSignal(evSignal->getSignal()) )
+                evSignal->clearThreadSignal();
+            break;
+        }
         case EventType::Breakpoint: {
             // Control transfer breakpoints are used for trap-based instrumentation
             // No user interaction is required
@@ -270,6 +291,27 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
                 if( (*i)->isCtrlTransfer() ) {
                     hasCtrlTransfer = true;
                     break;
+                }
+
+                // Explicit synchronization unnecessary here
+                if( (*i) == process->getBreakpointAtMain() ) {
+                    // We need to remove the breakpoint in the ProcControl callback to ensure
+                    // the breakpoint is not automatically suspended and resumed
+                    startup_printf("%s[%d]: removing breakpoint at main\n", FILE__, __LINE__);
+                    if( !process->removeBreakpointAtMain() ) {
+                        proccontrol_printf("%s[%d]: failed to remove main breakpoint in event handling\n",
+                                FILE__, __LINE__);
+                        ev = Event::const_ptr(new Event(EventType::Error));
+                    }
+
+                    // If we are in the midst of bootstrapping, update the state to indicate
+                    // that we have hit the breakpoint at main
+                    if( !process->hasReachedBootstrapState(PCProcess::bs_readyToLoadRTLib) ) {
+                        process->setBootstrapState(PCProcess::bs_readyToLoadRTLib);
+                    }
+
+                    // Need to pass the event on the user thread to indicate to that the breakpoint
+                    // at main was hit
                 }
             }
 
@@ -461,7 +503,12 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
         return false;
     }
 
-    if( ev->getEventType().code() != EventType::ForceTerminate ) {
+
+    if( !(   ev->getEventType().code() == EventType::ForceTerminate 
+          || ev->getEventType().code() == EventType::Crash
+          || (ev->getEventType().code() == EventType::Exit &&
+              ev->getEventType().time() == EventType::Pre) ) ) 
+    {
         // This means we already saw the entry to exit event and we can no longer
         // operate on the process, so ignore the event
         if( evProc->isTerminated() ) {
@@ -655,6 +702,28 @@ bool PCEventHandler::handleFork(EventFork::const_ptr ev, PCProcess *evProc) cons
             return false;
         }
 
+        switch(getCallbackBreakpointCase(EventType(EventType::Post, EventType::Fork))) {
+            case BreakpointOnly:
+            case BothCallbackBreakpoint: {
+                Address event_breakpoint_addr = childProc->getRTEventBreakpointAddr();
+                if( !event_breakpoint_addr ) {
+                    proccontrol_printf("%s[%d]: failed to unset breakpoint event flag in process %d\n",
+                            FILE__, __LINE__, childProc->getPid());
+                    return false;
+                }
+
+                int zero = 0;
+                if( !childProc->writeDataWord((void *)event_breakpoint_addr, sizeof(int), &zero) ) {
+                    proccontrol_printf("%s[%d]: failed to unset breakpoint event flag in process %d\n",
+                            FILE__, __LINE__, childProc->getPid());
+                    return false;
+                }
+                break;
+            }
+            default:
+                break;
+        }
+
         BPatch::bpatch->registerForkedProcess(evProc, childProc);
 
         childProc->setInEventHandling(false);
@@ -790,27 +859,23 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
         return true;
     }
 
-    // ProcControlAPI internally forwards signals to processes, just make a note at the
-    // BPatch layer that the signal was received
+    bool shouldForwardSignal = true;
 
     BPatch_process *bpproc = BPatch::bpatch->getProcessByPid(evProc->getPid());
     if( bpproc == NULL ) {
         proccontrol_printf("%s[%d]: failed to locate BPatch_process for process %d\n",
                 FILE__, __LINE__, evProc->getPid());
-        return false;
     }
 
     if( shouldStopForSignal(ev->getSignal()) ) {
         proccontrol_printf("%s[%d]: signal %d is stop signal, leaving process stopped\n",
                 FILE__, __LINE__, ev->getSignal());
         evProc->setDesiredProcessState(PCProcess::ps_stopped);
-
-        // Don't deliver stop signals to the process
-        ev->clearSignal();
+        shouldForwardSignal = false;
     }
 
-
-    bpproc->setLastSignal(ev->getSignal());
+    // Tell the BPatch layer we received a signal
+    if( bpproc ) bpproc->setLastSignal(ev->getSignal());
 
     // Debugging only
     if(    (dyn_debug_proccontrol || dyn_debug_crash)
@@ -844,34 +909,10 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
         // (which corresponds to standard Dyninst behavior)
         if(dyn_debug_crash_debugger) {
             if( string(dyn_debug_crash_debugger).find("gdb") != string::npos ) {
+                evProc->launchDebugger();
+
                 // If for whatever reason this fails, fall back on sleep
                 dyn_debug_crash_debugger = "sleep";
-
-                do{
-                    // Stop the process on detach 
-                    pdvector<int_function *> breakpointFuncs;
-                    if( !evProc->findFuncsByAll("DYNINSTsafeBreakPoint", breakpointFuncs) ) {
-                        fprintf(stderr, "Failed to find function DYNINSTsafeBreakPoint\n");
-                        break;
-                    }
-
-                    int_function *safeBreakpoint = breakpointFuncs[0];
-                    if( !ev->getThread()->setRegister(MachRegister::getPC(evProc->getArch()), 
-                                safeBreakpoint->getAddress()) ) 
-                    {
-                        fprintf(stderr, "Failed to set PC to 0x%lx\n", safeBreakpoint->getAddress());
-                        break;
-                    }
-
-                    // Detach the process
-                    if( !evProc->detachProcess(true) ) {
-                        fprintf(stderr, "Failed to detach from process %d\n", evProc->getPid());
-                        break;
-                    }
-
-                    // Spawn the debugger to attach to the process
-                    assert( evProc->startDebugger() );
-                }while(0);
             }
 
             if( string(dyn_debug_crash_debugger) == string("sleep") ) {
@@ -879,6 +920,11 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
                 while(spin) sleep(1);
             }
         }
+    }
+
+    if( shouldForwardSignal ) {
+        // Now, explicitly set the signal to be delivered to the process
+        ev->setThreadSignal(ev->getSignal());
     }
 
     return true;
@@ -889,6 +935,8 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
     // Check whether the signal was sent from the RT library by checking variables
     // in the library -- if we cannot be determine whether this signal came from
     // the RT library, assume it did not.
+    
+    if( evProc->runtime_lib.size() == 0 ) return NotRTSignal;
 
     Address sync_event_breakpoint_addr = evProc->getRTEventBreakpointAddr();
     Address sync_event_id_addr = evProc->getRTEventIdAddr();
@@ -992,7 +1040,7 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
             case BothCallbackBreakpoint:
                 proccontrol_printf("%s[%d]: reporting fork exit event to ProcControlAPI\n",
                         FILE__, __LINE__);
-                newEvt = Event::ptr(new EventFork((Dyninst::PID)arg1));
+                newEvt = Event::ptr(new EventFork(EventType::Pre, (Dyninst::PID)arg1));
                 break;
             default:
                 break;
@@ -1090,12 +1138,11 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
 
         // In the callback thread, the process and thread are stopped
         newEvt->setSyncType(Event::sync_process);
+        newEvt->setUserEvent(true);
 
         ProcControlAPI::mbox()->enqueue(newEvt);
     }
 
-    // Don't deliver any of the RT library signals to the process
-    ev->clearSignal();
     return IsRTSignal;
 }
 
@@ -1229,6 +1276,8 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
         proccontrol_printf("%s[%d]: new mapped object: %s\n", FILE__, __LINE__, newObj->debugString().c_str());
         evProc->addASharedObject(newObj);
 
+        // TODO special handling for libc on Linux (breakpoint at __libc_start_main if cannot find main)
+
         // special handling for the RT library
         dataAddress = (*i)->getLoadAddress();
         if( evProc->usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
@@ -1244,14 +1293,13 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
             assert( evProc->runtime_lib.size() == 0 );
 
             evProc->runtime_lib.insert(newObj);
-        }
-
-        // TODO special handling for libc on Linux (breakpoint at __libc_start_main if cannot find main)
-
-        // Register the new modules with the BPatch layer
-        const pdvector<mapped_module *> &modlist = newObj->getModules();
-        for(unsigned i = 0; i < modlist.size(); ++i) {
-            BPatch::bpatch->registerLoadedModule(evProc, modlist[i]);
+            // Don't register the runtime library with the BPatch layer
+        }else{
+            // Register the new modules with the BPatch layer
+            const pdvector<mapped_module *> &modlist = newObj->getModules();
+            for(unsigned i = 0; i < modlist.size(); ++i) {
+                BPatch::bpatch->registerLoadedModule(evProc, modlist[i]);
+            }
         }
     }
 
@@ -1295,35 +1343,14 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
 }
 
 bool PCEventHandler::handleBreakpoint(EventBreakpoint::const_ptr ev, PCProcess *evProc) const {
-    vector<Breakpoint::const_ptr> bps;
-    ev->getBreakpoints(bps);
-    
-    // Breakpoint dispatch
-    for(vector<Breakpoint::const_ptr>::const_iterator i = bps.begin(); i != bps.end(); ++i) {
-        if( (*i) == evProc->getBreakpointAtMain() ) {
-            startup_printf("%s[%d]: removing breakpoint at main\n", FILE__, __LINE__);
-            if( !evProc->removeBreakpointAtMain() ) {
-                proccontrol_printf("%s[%d]: failed to remove main breakpoint in event handling\n",
-                        FILE__, __LINE__);
-                return false;
-            }
-
-            // If we are in the midst of bootstrapping, update the state to indicate
-            // that we have hit the breakpoint at main
-            if( !evProc->hasReachedBootstrapState(PCProcess::bs_readyToLoadRTLib) ) {
-                evProc->setBootstrapState(PCProcess::bs_readyToLoadRTLib);
-            }
+    if( dyn_debug_proccontrol && evProc->isBootstrapped() ) {
+        RegisterPool regs;
+        if( !ev->getThread()->getAllRegisters(regs) ) {
+            fprintf(stderr, "%s[%d]: Failed to get registers at breakpoint\n", FILE__, __LINE__);
         }else{
-            if( dyn_debug_proccontrol ) {
-                RegisterPool regs;
-                if( !ev->getThread()->getAllRegisters(regs) ) {
-                    fprintf(stderr, "%s[%d]: Failed to get registers at breakpoint\n", FILE__, __LINE__);
-                }else{
-                    fprintf(stderr, "Registers at breakpoint:\n");
-                    for(RegisterPool::iterator i = regs.begin(); i != regs.end(); i++) {
-                        fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name().c_str(), (*i).second);
-                    }
-                }
+            fprintf(stderr, "Registers at breakpoint:\n");
+            for(RegisterPool::iterator i = regs.begin(); i != regs.end(); i++) {
+                fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name().c_str(), (*i).second);
             }
         }
     }
@@ -1371,7 +1398,6 @@ bool PCEventHandler::handleRPC(EventRPC::const_ptr ev, PCProcess *evProc) const 
         rpcInProg->isComplete = true;
         evProc->removeSyncRPCThread(rpcInProg->thread);
     }else{
-        // evProc->removeOrigRange(rpcInProg);
         delete rpcInProg;
     }
 

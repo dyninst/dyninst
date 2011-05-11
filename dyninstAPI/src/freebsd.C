@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2010 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -47,6 +47,7 @@
 
 #include "common/h/headers.h"
 #include "common/h/freebsdKludges.h"
+#include "common/h/pathName.h"
 
 #include "symtabAPI/h/Symtab.h"
 using namespace Dyninst::SymtabAPI;
@@ -148,7 +149,7 @@ bool BinaryEdit::archSpecificMultithreadCapable() {
     if( mobj->isStaticExec() ) {
         int numSymsFound = 0;
         for(int i = 0; i < NUM_PTHREAD_SYMS; ++i) {
-            const pdvector<int_function *> *tmpFuncs = 
+            const pdvector<func_instance *> *tmpFuncs = 
                 mobj->findFuncVectorByPretty(pthreadSyms[i]);
             if( tmpFuncs != NULL && tmpFuncs->size() ) numSymsFound++;
         }
@@ -157,14 +158,6 @@ bool BinaryEdit::archSpecificMultithreadCapable() {
     }
 
     return false;
-}
-
-static 
-char *deref_link(const char *path) {
-    static char buffer[PATH_MAX], *p;
-    buffer[PATH_MAX-1] = '\0';
-    p = realpath(path, buffer);
-    return p;
 }
 
 bool AddressSpace::getDyninstRTLibName() {
@@ -226,7 +219,7 @@ bool AddressSpace::getDyninstRTLibName() {
                      std::string(modifier) +
                      std::string(suffix);
 
-    dyninstRT_name = deref_link(dyninstRT_name.c_str());
+    dyninstRT_name = resolve_file_path(dyninstRT_name.c_str());
 
     startup_printf("Dyninst RT Library name set to '%s'\n",
             dyninstRT_name.c_str());
@@ -275,6 +268,8 @@ PCEventHandler::getCallbackBreakpointCase(EventType et) {
             break;
        case EventType::Exec:
             switch(et.time()) {
+                case EventType::Pre:
+                    return BreakpointOnly;
                 case EventType::Post:
                     return CallbackOnly;
                 default:
@@ -290,6 +285,10 @@ void PCProcess::inferiorMallocConstraints(Address near, Address &lo, Address &hi
         inferiorHeapType /* type */ )
 {
     if(near) {
+#if !defined(arch_x86_64) && !defined(arch_power)
+        lo = region_lo(near);
+        hi = region_hi(near);
+#else
         if( getAddressWidth() == 8 ) {
             lo = region_lo_64(near);
             hi = region_hi_64(near);
@@ -297,6 +296,7 @@ void PCProcess::inferiorMallocConstraints(Address near, Address &lo, Address &hi
             lo = region_lo(near);
             hi = region_hi(near);
         }
+#endif
     }
 }
 
@@ -324,10 +324,39 @@ bool PCProcess::copyDanglingMemory(PCProcess *) {
     return true;
 }
 
-Address PCProcess::findFunctionToHijack() {
-    // TODO
-    return 0;
-}
+const unsigned int N_DYNINST_LOAD_HIJACK_FUNCTIONS = 4;
+const char DYNINST_LOAD_HIJACK_FUNCTIONS[][20] = {
+  "__libc_start_main",
+  "_init",
+  "_start",
+  "main"
+};
+
+/**
+ * Returns an address that we can use to write the code that executes
+ * dlopen on the runtime library.
+ **/
+Address PCProcess::findFunctionToHijack()
+{
+   Address codeBase = 0;
+   unsigned i;
+   for(i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
+      const char *func_name = DYNINST_LOAD_HIJACK_FUNCTIONS[i];
+
+      pdvector<func_instance *> hijacks;
+      if (!findFuncsByAll(func_name, hijacks)) continue;
+      codeBase = hijacks[0]->getAddress();
+
+      if (codeBase)
+          break;
+   }
+   if( codeBase != 0 ) {
+     proccontrol_printf("%s[%d]: found hijack function %s = 0x%lx\n",
+           FILE__, __LINE__, DYNINST_LOAD_HIJACK_FUNCTIONS[i], codeBase);
+   }
+
+  return codeBase;
+} /* end findFunctionToHijack() */
 
 const int DLOPEN_MODE = RTLD_NOW | RTLD_GLOBAL;
 
@@ -346,7 +375,7 @@ bool PCProcess::postRTLoadCleanup() {
 }
 
 AstNodePtr PCProcess::createLoadRTAST() {
-    pdvector<int_function *> dlopen_funcs;
+    vector<func_instance *> dlopen_funcs;
 
     // allow user to override default dlopen func names with env. var
 
@@ -364,14 +393,31 @@ AstNodePtr PCProcess::createLoadRTAST() {
         }
     }
 
-    assert( dlopen_funcs.size() != 0 );
+    // We need to make sure that the correct dlopen function is being used -- the
+    // dlopen in the runtime linker. A symbol for dlopen exists in ld.so even
+    // when it is stripped so we should always find that version of dlopen
+    const char *runtimeLdPath = 
+        getAOut()->parse_img()->getObject()->getInterpreterName();
+    std::string derefRuntimeLdPath = resolve_file_path(runtimeLdPath);
 
-    if( dlopen_funcs.size() > 1 ) {
-        startup_printf("WARNING: more than one dlopen found, using the first\n");
+    func_instance *dlopen_func = NULL;
+    for(vector<func_instance *>::iterator i = dlopen_funcs.begin();
+            i != dlopen_funcs.end(); ++i)
+    {
+        func_instance *tmpFunc = *i;
+        std::string derefPath = resolve_file_path(tmpFunc->obj()->fullName().c_str());
+        if( derefPath == derefRuntimeLdPath ) {
+            dlopen_func = tmpFunc;
+            break;
+        }
     }
 
-    int_function *dlopen_func = dlopen_funcs[0];
-
+    if( dlopen_func == NULL ) {
+        startup_printf("%s[%d]: failed to find correct dlopen function\n",
+                FILE__, __LINE__);
+        return AstNodePtr();
+    }
+    
     rtLibLoadHeap_ = pcProc_->mallocMemory(dyninstRT_name.length());
     if( !rtLibLoadHeap_ ) {
         startup_printf("%s[%d]: failed to allocate memory for RT library load\n",
@@ -397,7 +443,7 @@ Address PCProcess::getTOCoffsetInfo(Address) {
     return 0;
 }
 
-Address PCProcess::getTOCoffsetInfo(int_function *) {
+Address PCProcess::getTOCoffsetInfo(func_instance *) {
     assert(!"This function is unimplemented");
     return 0;
 }

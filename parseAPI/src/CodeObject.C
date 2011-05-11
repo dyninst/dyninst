@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -134,6 +134,12 @@ CodeObject::findBlockByEntry(CodeRegion * cr, Address addr)
     return parser->findBlockByEntry(cr, addr);
 }
 
+Block *
+CodeObject::findNextBlock(CodeRegion * cr, Address addr)
+{
+    return parser->findNextBlock(cr, addr);
+}
+
 int
 CodeObject::findBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks)
 {
@@ -155,7 +161,7 @@ CodeObject::parse(Address target, bool recursive) {
         fprintf(stderr,"FATAL: internal parser undefined\n");
         return;
     }
-    parser->parse_at(target,recursive,HINT);
+    parser->parse_at(target,recursive,ONDEMAND);
 }
 
 void
@@ -170,7 +176,11 @@ CodeObject::parseGaps(CodeRegion *cr) {
 void
 CodeObject::add_edge(Block * src, Block * trg, EdgeTypeEnum et)
 {
-    parser->link(src,trg,et,false);
+    if (trg == NULL) {
+        parser->link(src, parser->_sink, et, true);
+    } else {
+        parser->link(src,trg,et,false);
+    }
 }
 
 void
@@ -181,30 +191,84 @@ CodeObject::finalize() {
 void 
 CodeObject::deleteFunc(Function *func)
 {
+    mal_printf("deleting func at %lx, ptr=%p\n", func->addr(), func);
     assert(func->_cache_valid);
     parser->remove_func(func);
-    func->deleteBlocks(func->_blocks, NULL);
+    func->deleteBlocks(func->_blocks);
     fact()->free_func(func);
 }
 
+// Call this function on the CodeObject corresponding to the targets,
+// not the sources, if the edges are inter-module ones
+// 
 // create work elements and pass them to the parser
 bool 
-CodeObject::parseNewEdges( vector<Block*> & sources, 
-                           vector<Address> & targets,
-                           vector<EdgeTypeEnum> & edge_types )
+CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
 {
     vector< ParseWorkElem * > work_elems;
-    for (unsigned idx=0; idx < sources.size(); idx++) {
-        ParseWorkElem *elem = new ParseWorkElem
-            ( NULL, 
-              parser->link_tempsink(sources[idx], edge_types[idx]),
-              targets[idx],
-              true,
-              false );
-        work_elems.push_back(elem);
+    vector<std::pair<Address,CodeRegion*> > parsedTargs;
+    for (unsigned idx=0; idx < worklist.size(); idx++) {
+        // see if the target block already exists, in which case we can use
+        // add_edge
+        set<CodeRegion*> regs;
+        cs()->findRegions(worklist[idx].target,regs);
+        assert(1 == regs.size()); // at present this function doesn't support 
+                                  // ambiguous regions for the target address
+        Block *trgB = findBlockByEntry(*(regs.begin()), worklist[idx].target);
+
+        if (trgB) {
+            add_edge(worklist[idx].source, trgB, worklist[idx].edge_type);
+            if (CALL == worklist[idx].edge_type) {
+                // if it's a call edge, add it to Function::_call_edges
+                // since we won't re-finalize the function
+                vector<Function*> funcs;
+                worklist[idx].source->getFuncs(funcs);
+                for(vector<Function*>::iterator fit = funcs.begin();
+                    fit != funcs.end();
+                    fit++) 
+                {
+                    Block::edgelist & tedges = worklist[idx].source->targets();
+                    for(Block::edgelist::iterator eit = tedges.begin();
+                        eit != tedges.end();
+                        eit++)
+                    {
+                        if ((*eit)->trg() == trgB) {
+                            (*fit)->_call_edges.insert(*eit);
+                        }
+                    }
+                }
+            }
+        } 
+        else {
+            parsedTargs.push_back(pair<Address,CodeRegion*>(worklist[idx].target,
+                                                            *regs.begin()));
+            ParseWorkBundle *bundle = new ParseWorkBundle();
+            ParseWorkElem *elem = bundle->add(new ParseWorkElem
+                ( bundle, 
+                  parser->link_tempsink(worklist[idx].source, worklist[idx].edge_type),
+                  worklist[idx].target,
+                  true,
+                  false ));
+            work_elems.push_back(elem);
+        }
     }
 
     parser->parse_edges( work_elems );
 
+    if (defensiveMode()) {
+        // update tampersStack for modified funcs
+        for (unsigned idx=0; idx < parsedTargs.size(); idx++) {
+            set<Function*> tfuncs;
+            findFuncs(parsedTargs[idx].second, parsedTargs[idx].first, tfuncs);
+            for (set<Function*>::iterator fit = tfuncs.begin();
+                 fit != tfuncs.end();
+                 fit++) 
+            {
+                (*fit)->tampersStack(true);
+            }
+        }
+    }
+
     return true;
 }
+

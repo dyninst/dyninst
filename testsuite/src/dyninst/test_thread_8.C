@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -252,6 +252,18 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
               __FILE__, __LINE__, thread_count, NUM_THREADS);
          return error_exit();
       }
+   }
+
+   if( waitUntilStopped(bpatch, proc, 8, "test_thread_8: oneTimeCode") < 0 ){
+       logerror("[%s:%d] - Failed to wait for stop of threads\n",
+               __FILE__, __LINE__);
+       return error_exit();
+   }
+
+   if( !proc->continueExecution() ) {
+       logerror("[%s:%d] - failed to continue process after stop\n",
+               FILE__, __LINE__);
+       return error_exit();
    }
 
    dprintf(stderr, "%s[%d]:  done waiting for thread creations\n", 

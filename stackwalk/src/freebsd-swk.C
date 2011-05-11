@@ -72,7 +72,3 @@ int P_gettid() {
 bool LibraryState::updateLibsArch(std::vector<std::pair<LibAddrPair, unsigned int> > &) {
     return true;
 }
-
-void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group) {
-   group->addStepper(parent_stepper, 0, 0);
-}

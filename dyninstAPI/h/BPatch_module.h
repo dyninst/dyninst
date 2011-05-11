@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -35,7 +35,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_eventLock.h"
-#include "BPatch_hybridAnalysis.h"
+#include "BPatch_enums.h"
 #include "dyntypes.h"
 #include <vector>
 #include <map>
@@ -52,7 +52,7 @@ class BPatch_builtInTypeCollection;
 class BPatch_addressSpace;
 class BPatch_process;
 class BPatch_statement;
-class int_function;
+class func_instance;
 class int_variable;
 class instPoint;
 class AddressSpace;
@@ -80,7 +80,7 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     friend class BPatch_addressSpace;
     friend class BPatch_statement;
 
-    typedef std::map<int_function*, BPatch_function*> BPatch_funcMap;
+    typedef std::map<func_instance*, BPatch_function*> BPatch_funcMap;
     typedef std::map<int_variable*, BPatch_variableExpr*> BPatch_varMap;
     typedef std::map<instPoint*, BPatch_point*> BPatch_instpMap;
     
@@ -108,8 +108,9 @@ public:
     void setDefaultNamespacePrefix(char *name);    
     void handleUnload();
     bool isExploratoryModeOn();// true if exploratory or defensive mode is on
-    bool protectAnalyzedCode();// pages that have analyzed code become read-only
+    bool setAnalyzedCodeWriteable(bool writeable);//sets write perm's analyzed code pages
     bool isSystemLib();
+    bool removeFunction(BPatch_function*, bool deep_removal);
     // End functions for internal use only
   
     // BPatch_module::getName
@@ -167,14 +168,21 @@ public:
                           bool incUninstrumentable =false,
                           bool dont_use_regex = false));
 
-    // FIXME: This (undocumented) method only works for function entry addresses.
+
+    //  BPatch_addressSpace::findFunctionByEntry
+    //  Returns the function starting at the given address
+    API_EXPORT(Int, (entry),
+    BPatch_function *,findFunctionByEntry,(Dyninst::Address entry));
+
+
+    // FIXME: This method is (undocumented) 
     API_EXPORT(Int, (addr, funcs, notify_on_failure, incUninstrumentable),
 
     BPatch_Vector<BPatch_function *> *,
-      findFunctionByAddress,(void *addr,
-                             BPatch_Vector<BPatch_function *> &funcs,
-                             bool notify_on_failure = true,
-                             bool incUninstrumentable = false));
+    findFunctionByAddress,(void *addr,
+                           BPatch_Vector<BPatch_function *> &funcs,
+                           bool notify_on_failure = true,
+                           bool incUninstrumentable = false));
 
     // get the module types member (instead of directly accessing)
     API_EXPORT(Int, (), BPatch_typeCollection *, getModuleTypes, ());

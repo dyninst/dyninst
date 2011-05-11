@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -42,6 +42,7 @@
 
 #include "BPatch.h"
 #include "BPatch_Vector.h"
+#include "BPatch_point.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
 #include "BPatch_statement.h"
@@ -132,9 +133,7 @@ test_results_t test1_30_Mutator::executeTest() {
 	expr30_7->readValue(&n);
 	call30_1_line_no = (unsigned)(n+1);
 
-	//get the base addr and last addr of the function call30_1
-	baseAddr = (unsigned long)(call30_1func->getBaseAddr());
-	lastAddr = baseAddr + call30_1func->getSize();
+        call30_1func->getAddressRange(baseAddr, lastAddr);
 
 	//now write the base address and last address of the function
 	BPatch_variableExpr *expr30_8 = 

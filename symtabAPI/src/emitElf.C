@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,8 @@
 #if defined(os_solaris)
 #include <sys/link.h>
 #endif
+
+#include "common/h/pathName.h"
 
 #if defined(os_freebsd)
 #include "common/h/freebsdKludges.h"
@@ -90,21 +92,6 @@ static bool libelfso1Flag;
 static int libelfso1version_major;
 static int libelfso1version_minor;
 
-#if defined(os_linux) || defined(os_freebsd)
-static char *deref_link(const char *path)
-{
-   static char buffer[PATH_MAX], *p;
-   buffer[PATH_MAX-1] = '\0';
-   p = realpath(path, buffer);
-   return p;
-}
-#else
-static char *deref_link(const char *path)
-{
-   return const_cast<char *>(path);
-}
-#endif
-
 static void setVersion(){
   libelfso0Flag = false;
   libelfso1Flag = false;
@@ -116,8 +103,8 @@ static void setVersion(){
   for (unsigned i=0; i< nEntries; i++){
      if (!strstr(maps[i].path, "libelf"))
         continue;
-     char *real_file = deref_link(maps[i].path);
-     char *libelf_start = strstr(real_file, "libelf");
+     std::string real_file = resolve_file_path(maps[i].path);
+     char *libelf_start = strstr(real_file.c_str(), "libelf");
      int num_read, major, minor;
      num_read = sscanf(libelf_start, "libelf-%d.%d.so", &major, &minor);
      if (num_read == 2) {
@@ -990,7 +977,7 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
      */
   
     Elf32_Phdr * insert_phdr = NULL;
-   if(createNewPhdr && !added_new_sec) { 
+   if(createNewPhdr && !added_new_sec && firstNewLoadSec) { 
        	if(i+1 == oldEhdr->e_phnum) {
             // insert at end of phdrs
             insert_phdr = newPhdr+1;

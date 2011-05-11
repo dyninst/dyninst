@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,8 @@ using namespace Dyninst::InstructionAPI;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
+int HACKCOUNT = 0;
+
 Block::Block(CodeObject * o, CodeRegion *r, Address start) :
     _obj(o),
     _region(r),
@@ -55,7 +57,6 @@ Block::Block(CodeObject * o, CodeRegion *r, Address start) :
     _func_cnt(0),
     _parsed(false)
 {
-
 }
 
 Block::~Block()
@@ -169,4 +170,49 @@ void Edge::install()
 {
     src()->addTarget(this);
     trg()->addSource(this);
+}
+
+void Edge::uninstall()
+{
+    mal_printf("Uninstalling edge [%lx]->[%lx]\n", 
+               _source->lastInsnAddr(), _target->start());
+    // if it's a call edge, it's cached in the function object, remove it
+    if (CALL == type()) {
+        vector<Function*> srcFs;
+        _source->getFuncs(srcFs);
+        for (vector<Function*>::iterator fit = srcFs.begin(); 
+             fit != srcFs.end(); fit++) 
+        {
+            if ( ! (*fit)->_cache_valid ) {
+                continue;
+            }
+            for (set<Edge*>::iterator eit = (*fit)->_call_edges.begin();
+                 eit != (*fit)->_call_edges.end(); eit++) 
+            {
+                if (this == (*eit)) {
+                    (*fit)->_call_edges.erase(*eit);
+                    break;
+                }
+            }
+        }
+    }
+    // remove from source and target blocks
+    _source->removeTarget(this);
+    _target->removeSource(this);
+}
+
+std::string format(EdgeTypeEnum e) {
+	switch(e) {
+		case CALL: return "call";
+		case COND_TAKEN: return "cond_taken";
+		case COND_NOT_TAKEN: return "cond_not_taken";
+		case INDIRECT: return "indirect";
+		case DIRECT: return "direct";
+		case FALLTHROUGH: return "fallthrough";
+		case CATCH: return "catch";
+		case CALL_FT: return "call_ft";
+		case RET: return "ret";
+		case NOEDGE: return "noedge";
+		default: return "<unknown>";
+	}
 }

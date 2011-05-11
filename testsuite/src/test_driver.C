@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -161,7 +161,6 @@ int unique_id = 0;
 int max_unique_id = 0;
 char *humanlog_name = "-";
 char *crashlog_name = "crashlog";
-char *measureFileName = "-";
 std::vector<char *> mutatee_list;
 std::vector<char *> test_list;
 
@@ -218,62 +217,6 @@ int runScript(const char *name, ...) {
 #endif
 
 #if !defined(os_windows_test)
-//static void *mem_start;
-//static struct tms start_time;
-
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/time.h>
-
-#ifndef timersub
-#define timersub(b, a, r) \
-do { \
-    (r)->tv_sec = (b)->tv_sec - (a)->tv_sec;\
-    (r)->tv_usec = (b)->tv_usec -(a)->tv_usec;\
-    if((r)->tv_usec < 0) {\
-        (r)->tv_sec--;\
-        (r)->tv_usec += 1000000;\
-    } \
-} while(0)
-#endif
-
-class testMetrics
-{
-    public:
-    testMetrics(TestOutputDriver* d)
-    : driver(d)
-    {
-        if (!measureMEMCPU || !d)
-            return;
-
-        getrusage(RUSAGE_SELF, &start_time);
-    }
-    ~testMetrics()
-    {
-        if (!measureMEMCPU || !driver)
-            return;
-
-        //unsigned long mem_end = get_mem_usage();
-        struct rusage end_time;
-        getrusage(RUSAGE_SELF, &end_time);
-
-        //signed long mem_diff = mem_end - mem_start;
-        timeval utime, stime;
-        timersub(&end_time.ru_utime, &start_time.ru_utime, &utime);
-        timersub(&end_time.ru_stime, &start_time.ru_stime, &stime);
-        double ut, st;
-        ut = (double)(utime.tv_sec) + (double)(utime.tv_usec)/1000000;
-        st = (double)(stime.tv_sec) + (double)(stime.tv_usec)/1000000;
-        // If Linux ever fills out the full rusage structure, we'll capture the difference in high-water mark here.
-        // Right now, this should log zeroes for our memory usage...we're still getting the framework in at least.
-        // Note that RSS is measured in kB, so we'll scale...
-        driver->logMemory(1024 * (end_time.ru_maxrss - start_time.ru_maxrss));  
-        driver->logTime(ut + st);
-    }
-    private:
-        TestOutputDriver* driver;
-        struct rusage start_time;
-};
 
 void setupProcessGroup()
 {
@@ -285,12 +228,6 @@ void setupProcessGroup()
 }
 
 #else
-
-class testMetrics
-{
-    public:
-        testMetrics(TestOutputDriver*) {}
-};
 
 void setupProcessGroup()
 {
@@ -467,33 +404,36 @@ void executeTest(ComponentTester *tester,
         new_params.push_back(pstr);
     }
 
+    if(shouldRunTest(group, test))
     {
-        testMetrics m(getOutput());
+        if (measureMEMCPU) {
+            if (test->mutator)
+                test->mutator->measureUsage(&test->usage);
+            test->usage = tester->usage_info();
+            test->usage.start();
+        }
 
-        if(shouldRunTest(group, test))
-        {
-            log_teststart(group_num, test_num, test_setup_rs);
-            test->results[test_setup_rs] = tester->test_setup(test, param);
-            log_testresult(test->results[test_setup_rs]);
-        }
-        if(shouldRunTest(group, test))
-        {
-            log_teststart(group_num, test_num, test_execute_rs);
-            test->results[test_execute_rs] = test->mutator->executeTest();
-            log_testresult(test->results[test_execute_rs]);
-        }
-        if(shouldRunTest(group, test))
-        {
-            log_teststart(group_num, test_num, test_teardown_rs);
-            test->results[test_teardown_rs] = tester->test_teardown(test, param);
-            log_testresult(test->results[test_teardown_rs]);
-        }
+        log_teststart(group_num, test_num, test_setup_rs);
+        test->results[test_setup_rs] = tester->test_setup(test, param);
+        log_testresult(test->results[test_setup_rs]);
     }
-        
-    
+    if(shouldRunTest(group, test))
+    {
+        log_teststart(group_num, test_num, test_execute_rs);
+        test->results[test_execute_rs] = test->mutator->executeTest();
+        log_testresult(test->results[test_execute_rs]);
 
-   for (unsigned j=0; j<new_params.size(); j++)
-      delete new_params[j];
+        if (measureMEMCPU) test->usage.end();
+    }
+    if(shouldRunTest(group, test))
+    {
+        log_teststart(group_num, test_num, test_teardown_rs);
+        test->results[test_teardown_rs] = tester->test_teardown(test, param);
+        log_testresult(test->results[test_teardown_rs]);
+    }
+
+    for (unsigned j=0; j<new_params.size(); j++)
+        delete new_params[j];
 }
 
 void disableUnwantedTests(std::vector<RunGroup *> groups)
@@ -753,6 +693,7 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
    // setupMutatorsForRunGroup creates TestMutator objects and
    // sets a pointer in the TestInfo object to point to the TestMutator for
    // each test.
+
    int tests_found = setupMutatorsForRunGroup(group);
    if (tests_found <= 0)
       return;
@@ -781,6 +722,9 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
       if (shouldRunTest(group, group->tests[i]))
          testsRun++;
    }
+
+   // Reset group_setup usage data before we init a new group.
+   tester->clear_group_usage();
 
    log_teststart(groupnum, 0, group_setup_rs);
    result = tester->group_setup(group, param);
@@ -915,6 +859,9 @@ void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups,
    if (!initModule)
       return;
 
+   // Reset program_setup usage data before we init a new program.
+   group->mod->tester->clear_program_usage();
+
    log_teststart(group->index, 0, program_setup_rs);
    test_results_t result = group->mod->tester->program_setup(params);
    log_testresult(result);
@@ -1017,11 +964,14 @@ void startAllTests(std::vector<RunGroup *> &groups,
    RunGroup *lastGroup = groups[0];
 
    for (i = 0; i < groups.size(); i++) {
-        if (groups[i]->disabled)
+      if (groups[i]->disabled)
          continue;
 
       //If we fail then have the log resume us at this group
       log_resumepoint(i, 0);
+
+      if (measureMEMCPU)
+          groups[i]->mod->tester->measure_usage();
 
       initModuleIfNecessary(groups[i], groups, param);
 
@@ -1075,7 +1025,6 @@ void startAllTests(std::vector<RunGroup *> &groups,
      }
    }
       
-   //measureEnd();
    cleanPIDFile();
    return;
 } // startAllTests()
@@ -1599,19 +1548,6 @@ int parseArgs(int argc, char *argv[])
                (strcmp(argv[i], "-memcpu") == 0))
       {
          measureMEMCPU = true;
-         if (i+1 < argc)
-         {
-            if (argv[i+1][0] != '-')
-            {
-               i++;
-               measureFileName = argv[i];
-            }
-            else if (argv[i+1][1] == '\0')
-            {
-               i++;
-               measureFileName = "-";
-            }
-         }
       }
       else if ((strcmp(argv[i], "-enable-resume") == 0) ||
                (strcmp(argv[i], "-use-resume") == 0)) {

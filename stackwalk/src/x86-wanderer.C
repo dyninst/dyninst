@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -120,6 +120,8 @@ gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
             break;
         }
       }
+
+      if (found_exact_match) break;
       current_stack += addr_width;
       num_words_tried++;
    } while (num_words_tried < MAX_WANDERER_DEPTH);

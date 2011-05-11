@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2004 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -8,35 +8,25 @@
  * obligation to supply such updates or modifications or any other
  * form of support to you.
  * 
- * This license is for research uses.  For such uses, there is no
- * charge. We define "research use" to mean you may freely use it
- * inside your organization for whatever purposes you see fit. But you
- * may not re-distribute Paradyn or parts of Paradyn, in any form
- * source or binary (including derivatives), electronic or otherwise,
- * to any other organization or entity without our permission.
- * 
- * (for other uses, please contact us at paradyn@cs.wisc.edu)
- * 
- * All warranties, including without limitation, any warranty of
- * merchantability or fitness for a particular purpose, are hereby
- * excluded.
- * 
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
  * 
- * Even if advised of the possibility of such damages, under no
- * circumstances shall we (or any other person or entity with
- * proprietary rights in the software licensed hereunder) be liable
- * to you or any third party for direct, indirect, or consequential
- * damages of any character regardless of type of action, including,
- * without limitation, loss of profits, loss of use, loss of good
- * will, or computer failure or malfunction.  You agree to indemnify
- * us (and any other person or entity with proprietary rights in the
- * software licensed hereunder) for any and all liability it may
- * incur to third parties resulting from your use of Paradyn.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 // $Id: vxworks.C,v 1.279 2008/09/03 06:08:44 jaw Exp $
@@ -44,6 +34,7 @@
 #include <fstream>
 #include <string>
 
+#include "dyninstAPI/src/vxworks.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/dyn_lwp.h"
@@ -600,7 +591,7 @@ bool wtxCreateTask(const std::string &filename, WTX_MODULE_INFO *modinfo)
     // Drop back to symbol "main" if needed.
     if (!entryAddr) {
         wtxFindFunction("main", modinfo->moduleId, entryAddr);
-        //const pdvector <int_function *> *funcs;
+        //const pdvector <func_instance *> *funcs;
         //funcs = obj->findFuncVectorByMangled("main");
         //if (funcs && funcs->size())
         //    entryAddr = (*funcs)[0]->getAddress();
@@ -1405,6 +1396,15 @@ mapped_object *process::createObjectNoFile(Address)
     return NULL;
 }
 
+// VxWorks Kernel Modules don't use relocation entries so, until we enable
+// the binary rewriter on this platform, relocation entries are always bound.
+bool process::hasBeenBound(const SymtabAPI::relocationEntry &,
+                           func_instance *&,
+                           Address )
+{
+    return true;
+}
+
 // In process.C:
 // bool process::stop_(bool waitUntilStop) { assert(0); return false; }
 // bool process::continueProc_(int sig) { assert(0); return false; }
@@ -1427,7 +1427,7 @@ void emitCallRel32(unsigned /*disp32*/, unsigned char *& /*insn*/) { assert(0); 
 //static char getState(int /*pid*/) { assert(0); return 0; }
 //static std::string getNextLine(int /*fd*/) { assert(0); return ""; }
 
-bool isPLT(int_function * /*f*/) { assert(0); return false; }
+bool isPLT(func_instance * /*f*/) { assert(0); return false; }
 
 /* **********************************************************************
  * Class dyn_lwp Implementations
@@ -1587,12 +1587,14 @@ bool dyn_lwp::changePC(Address loc, struct dyn_saved_regs */*ignored registers*/
     ctx.contextSubId = 0;
 
     loc = swapBytesIfNeeded(loc);
-    STATUS result = wtxRegsSet(wtxh, //WTX API handle
-                               &ctx, // WTX Context
-                               WTX_REG_SET_IU, // type of register set
-                               offsetof(struct dyn_saved_regs, sprs[3]), // first byte of register set
-                               sizeof(unsigned int), // number of bytes of register set
-                               &loc); // place holder for reg. values
+
+    STATUS result;
+    result = wtxRegsSet(wtxh, //WTX API handle
+                        &ctx, // WTX Context
+                        WTX_REG_SET_IU, // type of register set
+                        offsetof(struct dyn_saved_regs, iu[WTX_REG_IU_PC]), // first byte of register set
+                        sizeof(unsigned int), // number of bytes of register set
+                        &loc); // place holder for reg. values
 
     if (result != WTX_OK) {
         fprintf(stderr, "wtxRegsSet() error: %s\n", wtxErrMsgGet(wtxh));
@@ -1630,8 +1632,8 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool /*includeFP*/)
                                &ctx, // WTX Context
                                WTX_REG_SET_IU, // type of register set
                                0x0, // first byte of register set
-                               sizeof(dyn_saved_regs), // number of bytes of register set
-                               regs); // place holder for reg. values
+                               sizeof(regs->iu), // number of bytes of register set
+                               regs->iu); // place holder for reg. values
     if (result != WTX_OK) {
         fprintf(stderr, "Error on wtxRegsGet(): %s\n", wtxErrMsgGet(wtxh));
         return false;
@@ -1659,8 +1661,8 @@ Address dyn_lwp::readRegister(Register reg)
     STATUS result = wtxRegsGet(wtxh, //WTX API handle
                                &ctx, // WTX Context
                                WTX_REG_SET_IU, // type of register set
-                               reg * instruction::size(), // first byte of register set
-                               instruction::size(), // number of bytes of register set
+                               reg * proc_->getAddressWidth(), // first byte of register set
+                               proc_->getAddressWidth(), // number of bytes of register set
                                &retval); // place holder for reg. values
     if (result != WTX_OK) {
         fprintf(stderr, "Error on wtxRegsGet(): %s\n", wtxErrMsgGet(wtxh));
@@ -1673,10 +1675,10 @@ Address dyn_lwp::readRegister(Register reg)
 bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool /*includeFP*/)
 {
     struct dyn_saved_regs newRegs;
-    const unsigned long *hostp = (const unsigned long *)&regs;
-    unsigned long *targp = (unsigned long *)&newRegs;
-    unsigned long *end  = targp + (sizeof(dyn_saved_regs) /
-                                   sizeof(unsigned long));
+    const unsigned int *hostp = regs.iu;
+    unsigned int *targp = newRegs.iu;
+    unsigned int *end  = targp + (sizeof(dyn_saved_regs) /
+                                  sizeof(unsigned int));
     while (targp < end) {
         *targp = swapBytesIfNeeded(*hostp);
         ++targp;
@@ -1692,8 +1694,8 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool /*includ
                                &ctx, // WTX Context
                                WTX_REG_SET_IU, // type of register set
                                0x0, // first byte of register set
-                               sizeof(dyn_saved_regs), // number of bytes of register set
-                               &newRegs); // place holder for reg. values
+                               sizeof(newRegs.iu), // number of bytes of register set
+                               &newRegs.iu); // place holder for reg. values
     if (result != WTX_OK) {
         fprintf(stderr, "Error on wtxRegsGet(): %s\n", wtxErrMsgGet(wtxh));
         return false;
@@ -1708,7 +1710,7 @@ int dyn_lwp::changeMemoryProtections(Address , Offset , unsigned )
     return 0;
 }
 
-int_function *dyn_thread::map_initial_func(int_function * /*ifunc*/) { assert(0); }
+func_instance *dyn_thread::map_initial_func(func_instance * /*ifunc*/) { assert(0); }
 
 void loadNativeDemangler() { return; }
 
@@ -1721,14 +1723,14 @@ bool DebuggerInterface::bulkPtraceRead(void * /*inTraced*/, u_int /*nelem*/, voi
 // findCallee: finds the function called by the instruction corresponding
 // to the instPoint "instr". If the function call has been bound to an
 // address, then the callee function is returned in "target" and the 
-// instPoint "callee" data member is set to pt to callee's int_function.  
+// instPoint "callee" data member is set to pt to callee's func_instance.  
 // If the function has not yet been bound, then "target" is set to the 
-// int_function associated with the name of the target function (this is 
+// func_instance associated with the name of the target function (this is 
 // obtained by the PLT and relocation entries in the image), and the instPoint
 // callee is not set.  If the callee function cannot be found, (ex. function
 // pointers, or other indirect calls), it returns false.
 // Returns false on error (ex. process doesn't contain this instPoint).
-int_function *instPoint::findCallee()
+func_instance *instPoint::findCallee()
 {
     assert(0);
 #if 0
@@ -1746,11 +1748,11 @@ int_function *instPoint::findCallee()
 
     // Check if we parsed an intra-module static call
     assert(img_p_);
-    image_func *icallee = img_p_->getCallee();
+    parse_func *icallee = img_p_->getCallee();
     if (icallee) {
         // Now we have to look up our specialized version
         // Can't do module lookup because of DEFAULT_MODULE...
-        const pdvector<int_function *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName().c_str());
+        const pdvector<func_instance *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName().c_str());
         if (!possibles) {
             return NULL;
         }
@@ -1812,7 +1814,7 @@ int_function *instPoint::findCallee()
         }
         // Again, by definition, the function is not in owner.
         // So look it up.
-        int_function *pdf = proc()->findFuncByAddr(linkageTarget);
+        func_instance *pdf = proc()->findFuncByAddr(linkageTarget);
 
         if (pdf) {
             callee_ = pdf;
@@ -1847,7 +1849,7 @@ Address findFunctionToHijack(process * /*p*/) { assert(0); return 0; }
  * Searches for function in order, with preference given first 
  * to libpthread, then to libc, then to the process.
  **/
-//static void findThreadFuncs(process * /*p*/, std::string /*func*/, pdvector<int_function *> & /*result*/) { assert(0); return; }
+//static void findThreadFuncs(process * /*p*/, std::string /*func*/, pdvector<func_instance *> & /*result*/) { assert(0); return; }
 void dyninst_yield() { assert(0); return; }
 
 // ****** Support linux-specific forkNewProcess DBI callbacks ***** //
@@ -2058,7 +2060,8 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs)
                             curr->moduleId, wtxErrMsgGet(wtxh));
                     assert(0);
                 }
-                if (strcmp(curr->moduleName, "/var/ftp/pub/vxWorks") == 0) {
+//                if (strcmp(curr->moduleName, "/var/ftp/pub/vxWorks") == 0) {
+                if (strstr(curr->moduleName, "/vxWorks")) {
                     curr->moduleName[0] = '['; // Force incremental parsing.
                     filename = curr->moduleName;
                 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -34,7 +34,11 @@
 #include <sys/types.h>
 #include <sys/user.h>
 #include <sys/ptrace.h>
+#include <sys/proc.h>
 #include <libutil.h>
+
+#include <map>
+using std::map;
 
 #if defined(cap_gnu_demangler)
 #include <cxxabi.h>
@@ -191,7 +195,6 @@ int sysctl_computeAddrWidth(pid_t pid) {
     size_t length;
     struct kinfo_proc *procInfo = getProcInfo(pid, length, false);
     if( NULL == procInfo ) {
-        fprintf(stderr, "Failed to determine address width of process %d\n", pid);
         return -1;
     }
 
@@ -208,7 +211,6 @@ bool sysctl_findProcLWPs(pid_t pid, std::vector<pid_t> &lwps) {
     size_t length;
     struct kinfo_proc *procInfo = getProcInfo(pid, length, true);
     if( NULL == procInfo ) {
-        fprintf(stderr, "Failed to determine LWP ids for process %d\n", pid);
         return false;
     }
 
@@ -225,7 +227,6 @@ lwpid_t sysctl_getInitialLWP(pid_t pid) {
     size_t length;
     struct kinfo_proc *procInfo = getProcInfo(pid, length, true);
     if( NULL == procInfo ) {
-        fprintf(stderr, "Failed to determine initial LWP for process %d\n", pid);
         return -1;
     }
 
@@ -248,6 +249,24 @@ lwpid_t sysctl_getInitialLWP(pid_t pid) {
 
     free(procInfo);
     return -1;
+}
+
+// returns true if the process is running
+bool sysctl_getRunningStates(pid_t pid, map<Dyninst::LWP, bool> &runningStates) {
+    size_t length;
+    struct kinfo_proc *procInfo = getProcInfo(pid, length, true);
+    if( NULL == procInfo ) {
+        return false;
+    }
+
+    int numEntries = length / procInfo->ki_structsize;
+
+    for(int i = 0; i < numEntries; ++i) {
+        runningStates.insert(std::make_pair(procInfo[i].ki_tid,
+                (procInfo[i].ki_flag & P_STOPPED) == 0));
+    }
+
+    return true;
 }
 
 static bool PtraceBulkAccess(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid, bool read) {

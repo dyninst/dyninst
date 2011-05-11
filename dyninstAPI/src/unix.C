@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -38,6 +38,8 @@
 #include "pcProcess.h"
 #include "pcThread.h"
 #include "function.h"
+
+#include "common/h/pathName.h"
 
 #include <sstream>
 
@@ -130,7 +132,7 @@ bool PCProcess::multithread_capable(bool ignoreIfMtNotSet) {
  * to libpthread, then to libc, then to the process.
  **/
 static void findThreadFuncs(PCProcess *p, std::string func,
-                            pdvector<int_function *> &result) {
+                            pdvector<func_instance *> &result) {
     bool found = false;
     mapped_module *lpthread = p->findModule("libpthread*", true);
     if (lpthread)
@@ -167,16 +169,16 @@ bool PCProcess::instrumentMTFuncs() {
     assert(ptself_syms.size() == 1);
     Address dyn_pthread_self = ptself_syms[0]->getAddress();
     //Find pthread_self
-    pdvector<int_function *> pthread_self_funcs;
+    pdvector<func_instance *> pthread_self_funcs;
     findThreadFuncs(this, "pthread_self", pthread_self_funcs);
     if (pthread_self_funcs.size() != 1) {
         fprintf(stderr, "[%s:%d] - Found %ld pthread_self functions, expected 1\n",
                 __FILE__, __LINE__, (long) pthread_self_funcs.size());
         for (unsigned j=0; j<pthread_self_funcs.size(); j++) {
-            int_function *ps = pthread_self_funcs[j];
+            func_instance *ps = pthread_self_funcs[j];
             fprintf(stderr, "[%s:%u] - %s in module %s at %lx\n", __FILE__, __LINE__,
                     ps->prettyName().c_str(), ps->mod()->fullName().c_str(),
-                    ps->getAddress());
+                    ps->addr());
         }
         return false;
     }
@@ -204,6 +206,16 @@ bool PCEventHandler::isCrashSignal(int signal) {
         case SIGILL:
         case SIGFPE:
         case SIGTRAP:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool PCEventHandler::isKillSignal(int signal) {
+    switch(signal) {
+        case SIGKILL:
+        case SIGTERM:
             return true;
         default:
             return false;
@@ -255,10 +267,16 @@ mapped_object *PCProcess::createObjectNoFile(Address) {
     return NULL;
 }
 
-int PCProcess::setMemoryAccessRights(Address start, Address size, int rights) {
+bool PCProcess::setMemoryAccessRights(Address start, Address size, int rights) {
     mal_printf("setMemoryAccessRights to %d [%lx %lx]\n", rights, start, start+size);
     assert(!"Not implemented yet");
-    return -1;
+    return false;
+}
+
+bool PCProcess::getMemoryAccessRights(Address start, Address size, int rights) {
+    mal_printf("getMemoryAccessRights to %d [%lx %lx]\n", rights, start, start+size);
+    assert(!"Not implemented yet");
+    return false;
 }
 
 void PCProcess::redirectFds(int stdin_fd, int stdout_fd, int stderr_fd,
@@ -380,14 +398,6 @@ bool PCProcess::getExecFileDescriptor(string filename,
     return true;
 }
 
-static 
-char *deref_link(const char *path) {
-    static char buffer[PATH_MAX], *p;
-    buffer[PATH_MAX-1] = '\0';
-    p = realpath(path, buffer);
-    return p;
-}
-
 /**
  * Strategy:  The program entry point is in /lib/ld-2.x.x at the 
  * _start function.  Get the current PC, parse /lib/ld-2.x.x, and 
@@ -396,12 +406,8 @@ char *deref_link(const char *path) {
 bool PCProcess::hasPassedMain() 
 {
    using namespace SymtabAPI;
-   // We only need to parse /lib/ld-2.x.x once for any process,
-   // so just do it once for any process.  We'll cache the result
-   // in lib_to_addr.
-   static dictionary_hash<string, Address> lib_to_addr(::Dyninst::stringhash);
    Symtab *ld_file = NULL;
-   Address entry_addr, ldso_start_addr;
+   Address entry_addr, ldso_start_addr = 0;
 
    //Get current PC
    Frame active_frame = initialThread_->getActiveFrame();
@@ -417,7 +423,7 @@ bool PCProcess::hasPassedMain()
       return true;
    }
 
-   std::string derefPath = deref_link(path);
+   std::string derefPath = resolve_file_path(path);
 
    // Search for the dynamic linker in the loaded libraries
    const LibraryPool &libraries = pcProc_->libraries();
@@ -437,12 +443,6 @@ bool PCProcess::hasPassedMain()
        return false;
    }
 
-   if (lib_to_addr.defines(derefPath)) {
-      //We've already parsed this library.  Use those results.
-      Address start_in_ld = lib_to_addr[path];
-      return (start_in_ld != current_pc);
-   }
-
    //Open /lib/ld-x.x.x and find the entry point
    if (!Symtab::openFile(ld_file, derefPath)) {
       startup_printf("[%s:%u] - Unable to open %s in hasPassedMain\n", 
@@ -459,7 +459,6 @@ bool PCProcess::hasPassedMain()
 
    entry_addr += ldso_start_addr;
    
-   lib_to_addr[path] = entry_addr;
    bool result = (entry_addr != current_pc);
    startup_printf("[%s:%u] - hasPassedMain returning %d (%lx %lx)\n",
                   FILE__, __LINE__, (int) result, entry_addr, current_pc);
@@ -473,10 +472,12 @@ bool PCProcess::startDebugger() {
 
     const char *args[4];
     args[0] = dyn_debug_crash_debugger;
-    args[1] = "--pid";
+    args[1] = file_.c_str();
     args[2] = pidStr.str().c_str();
     args[3] = NULL;
 
+    proccontrol_printf("%s[%d]: Launching %s %s %s\n", FILE__, __LINE__,
+            args[0], args[1], args[2]);
     if( execv(args[0], (char **)args) == -1 ) {
         perror("execv");
         return false;
@@ -596,7 +597,7 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
 #if defined(os_linux) || defined(os_freebsd)
 
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/image-func.h"
+#include "dyninstAPI/src/parse-cfg.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "symtabAPI/h/Symtab.h"
@@ -604,6 +605,7 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
 #include "dyninstAPI/src/pcProcess.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/debug.h"
+#include "boost/tuple/tuple.hpp"
 #include <elf.h>
 
 #if defined(os_linux)
@@ -618,77 +620,64 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
 // findCallee: finds the function called by the instruction corresponding
 // to the instPoint "instr". If the function call has been bound to an
 // address, then the callee function is returned in "target" and the 
-// instPoint "callee" data member is set to pt to callee's int_function.  
+// instPoint "callee" data member is set to pt to callee's func_instance.  
 // If the function has not yet been bound, then "target" is set to the 
-// int_function associated with the name of the target function (this is 
+// func_instance associated with the name of the target function (this is 
 // obtained by the PLT and relocation entries in the image), and the instPoint
 // callee is not set.  If the callee function cannot be found, (ex. function
 // pointers, or other indirect calls), it returns false.
 // Returns false on error (ex. process doesn't contain this instPoint).
-int_function *instPoint::findCallee() {
-   using namespace Dyninst::SymtabAPI;
-   // Already been bound
-   if (callee_) {
-      return callee_;
-   }  
-
-   /*  if (ipType_ != callSite) {
-      // Assert?
-      return NULL; 
-      }*/
-   if (isDynamic()) {
+//
+// HACK: made an func_instance method to remove from instPoint class...
+// FURTHER HACK: made a block_instance method so we can share blocks
+func_instance *block_instance::callee() {
+   // See if we've already done this
+   edge_instance *tEdge = getTarget();
+   if (!tEdge) {
       return NULL;
    }
 
-   if( img_p_ == NULL ) return NULL;
-
-   assert(img_p_);
-   image_func *icallee = img_p_->getCallee(); 
-   if (icallee && !icallee->isPLTFunction()) {
-     callee_ = proc()->findFuncByInternalFunc(icallee);
-     //callee_ may be NULL if the function is unloaded
-
-       //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
-     return callee_;
+   if (!tEdge->sinkEdge()) {
+      return obj()->findFuncByEntry(tEdge->trg());
    }
-
+   
    // Do this the hard way - an inter-module jump
    // get the target address of this function
-   Address target_addr = img_p_->callTarget();
-   if(!target_addr) {
+   Address target_addr; bool success;
+   boost::tie(success, target_addr) = llb()->callTarget();
+   if(!success) {
       // this is either not a call instruction or an indirect call instr
       // that we can't get the target address
-       //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
+      //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
       return NULL;
    }
-
+   
    // get the relocation information for this image
-   Symtab *obj = func()->obj()->parse_img()->getObject();
+   Symtab *sym = obj()->parse_img()->getObject();
    pdvector<relocationEntry> fbt;
    vector <relocationEntry> fbtvector;
-   if (!obj->getFuncBindingTable(fbtvector)) {
-
-       //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
-        return NULL;
-        }
+   if (!sym->getFuncBindingTable(fbtvector)) {
+      //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
+      cerr << "Failed to get func binding table" << endl;
+      return NULL;
+   }
 
    /**
     * Object files and static binaries will not have a function binding table
     * because the function binding table holds relocations used by the dynamic
     * linker
     */
-   if (!fbtvector.size() && !obj->isStaticBinary() && 
-           obj->getObjectType() != obj_RelocatableFile ) 
+   if (!fbtvector.size() && !sym->isStaticBinary() && 
+           sym->getObjectType() != obj_RelocatableFile ) 
    {
       fprintf(stderr, "%s[%d]:  WARN:  zero func bindings\n", FILE__, __LINE__);
    }
 
    for (unsigned index=0; index< fbtvector.size();index++)
-        fbt.push_back(fbtvector[index]);
-  
-   Address base_addr = func()->obj()->codeBase();
-   dictionary_hash<Address, std::string> *pltFuncs =
-       func()->ifunc()->img()->getPltFuncs();
+      fbt.push_back(fbtvector[index]);
+   
+   Address base_addr = obj()->codeBase();
+   dictionary_hash<Address, std::string> *pltFuncs = obj()->parse_img()->getPltFuncs();
 
    // find the target address in the list of relocationEntries
    if (pltFuncs->defines(target_addr)) {
@@ -698,12 +687,11 @@ int_function *instPoint::findCallee() {
             // check to see if this function has been bound yet...if the
             // PLT entry for this function has been modified by the runtime
             // linker
-            int_function *target_pdf = 0;
+            func_instance *target_pdf = 0;
             if (proc()->hasBeenBound(fbt[i], target_pdf, base_addr)) {
-               callee_ = target_pdf;
-               img_p_->setCalleeName(target_pdf->symTabName());
-               //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
-               return callee_;  // target has been bound
+               updateCallTarget(target_pdf);
+               obj()->setCalleeName(this, target_pdf->symTabName());
+               return target_pdf;
             }
          }
       }
@@ -711,11 +699,13 @@ int_function *instPoint::findCallee() {
       const char *target_name = (*pltFuncs)[target_addr].c_str();
       PCProcess *dproc = dynamic_cast<PCProcess *>(proc());
       BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
-      img_p_->setCalleeName(std::string(target_name));
-      pdvector<int_function *> pdfv;
+      obj()->setCalleeName(this, std::string(target_name));
+      pdvector<func_instance *> pdfv;
+
+      // See if we can name lookup
       if (dproc) {
-         bool found = proc()->findFuncsByMangled(target_name, pdfv);
-         if (found) {
+         if (proc()->findFuncsByMangled(target_name, pdfv)) {
+            updateCallTarget(pdfv[0]);
             return pdfv[0];
          }
       }
@@ -723,8 +713,8 @@ int_function *instPoint::findCallee() {
          std::vector<BinaryEdit *>::iterator i;
          for (i = bedit->getSiblings().begin(); i != bedit->getSiblings().end(); i++)
          {
-            bool found = (*i)->findFuncsByMangled(target_name, pdfv);
-            if (found) {
+            if ((*i)->findFuncsByMangled(target_name, pdfv)) {
+               updateCallTarget(pdfv[0]);
                return pdfv[0];
             }
          }
@@ -732,7 +722,7 @@ int_function *instPoint::findCallee() {
       else 
          assert(0);
    }
-
+   
    //fprintf(stderr, "%s[%d]:  returning NULL: target addr = %p\n", FILE__, __LINE__, (void *)target_addr);
    return NULL;
 }

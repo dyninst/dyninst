@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -54,7 +54,6 @@ enum messageID {
     ID_INIT_CREATE_PROCESS,
     ID_INIT_ATTACH_PROCESS,
     ID_INIT_MERGE_TRAMP,
-    ID_INIT_SAVE_WORLD,
     ID_INIT_GET_IMAGE,
     ID_POST_FORK,
 
@@ -102,12 +101,12 @@ enum messageID {
     ID_ALLOC_COUNTER,
 
     ID_RUN_CHILD,
-    ID_WAIT_TERMINATION, 
+    ID_WAIT_TERMINATION,
+    ID_CHECK_TERMINATION,
     ID_WAIT_STATUS_CHANGE,
     ID_POLL_STATUS_CHANGE,
     ID_EXIT_CODE,
     ID_EXIT_SIGNAL,
-    ID_SAVE_WORLD,
     ID_DETACH_CHILD,
     ID_STOP_CHILD,
 
@@ -140,7 +139,6 @@ message *readMsg(FILE *, message *);
 void printMsg(FILE *, messageID, int = 0);
 void sendMsg(FILE *, messageID, logLevel, statusID = ID_TEST, const char * = NULL);
 void sendMsg(FILE *, messageID, logLevel, statusID, int);
-void sendStr(FILE *, const char *fmt, ...);
 void killProcess(pid_t);
 void cleanupProcess();
 void cleanupFinal();

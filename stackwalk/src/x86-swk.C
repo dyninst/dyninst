@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -387,48 +387,67 @@ gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &in, Frame
 gcframe_ret_t AnalysisStepperImpl::getCallerFrameArch(height_pair_t height,
                                                       const Frame &in, Frame &out)
 {
-   Address in_sp = in.getSP();
-   StackAnalysis::Height pc_height = height.first;
+   Address in_sp = in.getSP(),
+           in_fp = in.getFP(),
+           out_sp = 0,
+           out_ra = 0,
+           out_ra_addr = 0,
+           out_fp = 0,
+           out_fp_addr = 0;
+   StackAnalysis::Height sp_height = height.first;
    StackAnalysis::Height fp_height = height.second;
+   location_t out_ra_loc, out_fp_loc;
 
    ProcessState *proc = getProcessState();
 
-   Address ret_addr = 0;
-   
-   if (pc_height == StackAnalysis::Height::bottom) {
+   if (sp_height == StackAnalysis::Height::bottom) {
       sw_printf("[%s:%u] - Analysis didn't find a stack height\n", 
                 __FILE__, __LINE__);
       return gcf_not_me;
    }
 
-   Address ret_loc = in_sp - pc_height.height() - proc->getAddressWidth();
+   // SP height is the distance from the last SP of the previous frame
+   // to the SP in this frame at the current offset.
+   // Since we are walking to the previous frame,
+   // we subtract this height to get the outgoing SP
+   out_sp = in_sp - sp_height.height();
 
-   bool result = proc->readMem(&ret_addr, ret_loc, proc->getAddressWidth());
+   // Since we know the outgoing SP,
+   // the outgoing RA must be located just below it
+   out_ra_addr = out_sp - proc->getAddressWidth();
+   out_ra_loc.location = loc_address;
+   out_ra_loc.val.addr = out_ra_addr;
+
+   bool result = proc->readMem(&out_ra, out_ra_addr, proc->getAddressWidth());
    if (!result) {
       sw_printf("[%s:%u] - Error reading from return location %lx on stack\n",
-                __FILE__, __LINE__, ret_addr);
+                __FILE__, __LINE__, out_ra_addr);
       return gcf_not_me;
    }
-   location_t ra_loc;
-   ra_loc.val.addr = ret_loc;
-   ra_loc.location = loc_address;
-   out.setRALocation(ra_loc);
-   out.setRA(ret_addr);
-   out.setSP(ret_loc + proc->getAddressWidth());
 
-   Address fp_addr = 0;
-   Address fp_loc = 0;
    if (fp_height != StackAnalysis::Height::bottom) {
-      fp_loc = ret_loc + fp_height.height() + proc->getAddressWidth();
-      result = proc->readMem(&fp_addr, fp_loc, proc->getAddressWidth());
-      if (result) {
-         out.setFP(fp_addr);
-         location_t fp_loc;
-         ra_loc.val.addr = fp_addr;
-         ra_loc.location = loc_address;
-         out.setFPLocation(fp_loc);
+      // FP height is the distance from the last SP of the previous frame
+      // to the FP in this frame at the current offset.
+      // If analysis finds this height,
+      // then out SP + FP height should equal in FP.
+      // We then assume that in FP points to out FP.
+      out_fp_addr = out_sp + fp_height.height();
+
+      if (out_fp_addr != in_fp) {
+         sw_printf(
+            "[%s:%u] - Warning - current FP %lx does not point to next FP located at %lx\n",
+            __FILE__, __LINE__, in_fp, out_fp_addr);
       }
-      else { 
+
+      result = proc->readMem(&out_fp, out_fp_addr, proc->getAddressWidth());
+      if (result) {
+         out_fp_loc.location = loc_address;
+         out_fp_loc.val.addr = out_fp_addr;
+
+         out.setFPLocation(out_fp_loc);
+         out.setFP(out_fp);
+      }
+      else {
          sw_printf("[%s:%u] - Failed to read FP value\n", __FILE__, __LINE__);
       }
    }
@@ -436,6 +455,10 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrameArch(height_pair_t height,
       sw_printf("[%s:%u] - Did not find frame pointer in analysis\n",
                 __FILE__, __LINE__);
    }
+
+   out.setSP(out_sp);
+   out.setRALocation(out_ra_loc);
+   out.setRA(out_ra);
 
    return gcf_success;
 }

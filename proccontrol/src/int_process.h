@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -104,7 +104,7 @@ class int_process
    virtual bool post_create();
 
    bool attach();
-   virtual bool plat_attach() = 0;
+   virtual bool plat_attach(bool allStopped) = 0;
    bool attachThreads();
    virtual bool post_attach();
 
@@ -114,7 +114,7 @@ class int_process
    bool continueProcess();
    virtual bool plat_contProcess() = 0;
 
-   bool forked();
+   virtual bool forked();
   protected:
    virtual bool plat_forked() = 0;
    virtual bool post_forked();
@@ -129,7 +129,6 @@ class int_process
    virtual bool needIndividualThreadAttach() = 0;
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
 
-   static bool multi_attach(std::vector<int_process *> &pids);
    bool waitfor_startup();
 
    void setPid(Dyninst::PID pid);
@@ -153,6 +152,7 @@ class int_process
    mem_state::ptr memory() const;
 
    bool detach(bool &should_clean);
+   virtual bool preTerminate();
    bool terminate(bool &needs_sync);
    void updateSyncState(Event::ptr ev, bool gen);
    virtual Dyninst::Architecture getTargetArch() = 0;
@@ -221,8 +221,7 @@ class int_process
    virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
                                    size_t size, result_response::ptr result);
 
-   // true = running
-   virtual bool plat_getOSRunningState(Dyninst::LWP lwp) const = 0;
+   virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates) = 0;
 
    typedef enum {
        NoLWPControl = 0,
@@ -764,6 +763,8 @@ class installed_breakpoint
    typedef std::set<int_breakpoint *>::iterator iterator;
    iterator begin();
    iterator end();
+
+   unsigned getNumIntBreakpoints() const;
 };
 
 class emulated_singlestep {

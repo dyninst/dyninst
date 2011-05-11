@@ -7,7 +7,7 @@
 #
 
 SUITE_NAME	= Dyninst
-RELEASE_MAJOR	= 1
+RELEASE_MAJOR	= 7
 RELEASE_MINOR = 0
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
@@ -73,7 +73,9 @@ SRCS +=	../../dataflowAPI/src/Absloc.C \
 	../../dataflowAPI/src/SymEval.C \
 	../../dataflowAPI/src/SymEvalPolicy.C \
 	../../dataflowAPI/src/templates.C \
-	../../dataflowAPI/src/Visitors.C
+	../../dataflowAPI/src/Visitors.C \
+	../src/StackTamperVisitor.C
+
 VPATH += ../../dataflowAPI/src
 VPATH += ../../dataflowAPI/h
 

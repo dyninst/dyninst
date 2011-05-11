@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -36,7 +36,7 @@
 #include "inst.h"
 #include "instP.h"
 #include "instPoint.h"
-#include "function.h" // int_function
+#include "function.h" // func_instance
 #include "codeRange.h"
 #include "miniTramp.h"
 
@@ -59,6 +59,7 @@
 #include "ast.h"
 
 #include "sys/stat.h"
+#include "mapped_object.h"
 
 /*
  * BPatch_binaryEdit::BPatch_binaryEdit
@@ -99,7 +100,7 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
 
   origBinEdit->getDyninstRTLibName();
   std::string rt_name = origBinEdit->dyninstRT_name;
-
+	
   // Load the RT library and create the collection of BinaryEdits that represent it
   std::map<std::string, BinaryEdit *> rtlibs = origBinEdit->openResolvedLibraryName(rt_name);
   std::map<std::string, BinaryEdit *>::iterator rtlibs_it;
@@ -110,7 +111,6 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
           creation_error = true;
           return;
       }
-
       rtLib.push_back(rtlibs_it->second);
       // Ensure that the correct type of library is loaded
       if(    rtlibs_it->second->getMappedObject()->isSharedLib() 
@@ -195,88 +195,27 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
     assert(pendingInsertions);
 
     // This should be a parameter...
-    bool atomic = false;
+    //bool atomic = false;
    
     // Define up here so we don't have gotos causing issues
-    std::set<int_function *> instrumentedFunctions;
+    std::set<func_instance *> instrumentedFunctions;
     
     // Two loops: first addInst, then generate/install/link
     pdvector<miniTramp *> workDone;
-    bool err = false;
+    //bool err = false;
 
-    for (unsigned i = 0; i < pendingInsertions->size(); i++) {
-        batchInsertionRecord *&bir = (*pendingInsertions)[i];
-        assert(bir);
-
-        // Don't handle thread inst yet...
-        assert(!bir->thread_);
-
-        if (!bir->points_.size()) {
-          fprintf(stderr, "%s[%d]:  WARN:  zero points for insertion record\n", FILE__, __LINE__);
-          fprintf(stderr, "%s[%d]:  failing to addInst\n", FILE__, __LINE__);
-        }
-
-        for (unsigned j = 0; j < bir->points_.size(); j++) {
-            BPatch_point *bppoint = bir->points_[j];
-            instPoint *point = bppoint->point;
-            callWhen when = bir->when_[j];
-            
-            miniTramp *mini = point->addInst(bir->snip.ast_wrapper,
-                                             when,
-                                             bir->order_,
-                                             bir->trampRecursive_,
-                                             false);
-            if (mini) {
-                workDone.push_back(mini);
-                // Add to snippet handle
-                bir->handle_->addMiniTramp(mini);
-            }
-            else {
-                err = true;
-                if (atomic) break;
-            }
-        }
-        if (atomic && err)
-            break;
+    // Iterate over our AddressSpaces, triggering relocation
+    // in each one.
+    std::vector<AddressSpace *> as;
+    getAS(as);
+    bool ret = true;
+    for (unsigned i = 0; i < as.size(); ++i) {
+      if (!as[i]->relocate()) ret = false;
     }
-    
-   if (atomic && err) goto cleanup;
 
-   // Having inserted the requests, we hand things off to functions to 
-   // actually do work. First, develop a list of unique functions. 
-
-   for (unsigned i = 0; i < pendingInsertions->size(); i++) {
-       batchInsertionRecord *&bir = (*pendingInsertions)[i];
-       for (unsigned j = 0; j < bir->points_.size(); j++) {
-           BPatch_point *bppoint = bir->points_[j];
-           instPoint *point = bppoint->point;
-           point->optimizeBaseTramps(bir->when_[j]);
-
-           instrumentedFunctions.insert(point->func());
-       }
-   }
-
-   for (std::set<int_function *>::iterator funcIter = instrumentedFunctions.begin();
-        funcIter != instrumentedFunctions.end();
-        funcIter++) {
-
-       pdvector<instPoint *> failedInstPoints;
-       (*funcIter)->performInstrumentation(atomic,
-                                           failedInstPoints); 
-       if (failedInstPoints.size() && atomic) {
-           err = true;
-           goto cleanup;
-       }
-   }
-
-   
    // Now that we've instrumented we can see if we need to replace the
    // trap handler.
    replaceTrapHandler();
-
-
-   if (atomic && err) 
-      goto cleanup;
 
    for(std::map<std::string, BinaryEdit*>::iterator i = llBinEdits.begin();
        i != llBinEdits.end(); i++) 
@@ -284,41 +223,20 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
       (*i).second->trapMapping.flush();
    }
 
-  cleanup:
-    bool ret = true;
-
-    if (atomic && err) {
-        // Something failed...   Cleanup...
-        for (unsigned k = 0; k < workDone.size(); k++) {
-            workDone[k]->uninstrument();
-        }
-        ret = false;
-    }
-
-    for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
-        batchInsertionRecord *&bir = (*pendingInsertions)[i];
-        assert(bir);
-        delete(bir);
-    }
-
-    pendingInsertions->clear();
-
-    if( !origBinEdit->writeFile(outFile) ) return false;
-
-    std::map<std::string, BinaryEdit *>::iterator curBinEdit;
-    for (curBinEdit = llBinEdits.begin(); curBinEdit != llBinEdits.end(); curBinEdit++) {
-       BinaryEdit *bin = (*curBinEdit).second;
-       if (bin == origBinEdit)
-          continue;
-       if (!bin->isDirty())
-          continue;
-       
-       std::string newname = bin->getMappedObject()->fileName();
-       if( !bin->writeFile(newname) ) return false;
-    }
-
-
-    return ret;
+   if( !origBinEdit->writeFile(outFile) ) return false;
+   
+   std::map<std::string, BinaryEdit *>::iterator curBinEdit;
+   for (curBinEdit = llBinEdits.begin(); curBinEdit != llBinEdits.end(); curBinEdit++) {
+     BinaryEdit *bin = (*curBinEdit).second;
+     if (bin == origBinEdit)
+       continue;
+     if (!bin->isDirty())
+       continue;
+     
+     std::string newname = bin->getMappedObject()->fileName();
+     if( !bin->writeFile(newname) ) return false;
+   }
+   return ret;
 }
 
 bool BPatch_binaryEdit::getType()

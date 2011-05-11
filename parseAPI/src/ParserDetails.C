@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,8 @@ using namespace Dyninst::ParseAPI;
 
 typedef std::pair< Address, EdgeTypeEnum > edge_pair_t;
 typedef vector< edge_pair_t > Edges_t;
+
+#define VERBOSE_EDGE_LOG
 
 namespace {
 
@@ -98,13 +100,11 @@ verbose_log(Address currAddr, Edges_t::iterator & curEdge)
 }
 } // anonymous namespace
 
+// XXX this code was introduced but is unused
 static void 
 getBlockInsns(Block &blk, std::set<Address> &addrs)
 {
     unsigned bufSize = blk.size();
-	if (blk.start() == 0x1256) {
-		int i = 3;
-	}
 #if defined(cap_instruction_api)
     using namespace InstructionAPI;
     const unsigned char* bufferBegin = (const unsigned char *)
@@ -122,6 +122,40 @@ getBlockInsns(Block &blk, std::set<Address> &addrs)
         addrs.insert(ah.getAddr());
     } 
 }
+
+/*
+ * Extra handling for bad jump instructions
+ */
+inline
+void Parser::ProcessUnresBranchEdge(
+    ParseFrame & frame,
+    Block * cur,
+    InstructionAdapter_t & ah,
+    Address target,
+    EdgeTypeEnum type)
+{
+    ParseCallback::interproc_details det;
+    det.ibuf = (unsigned char*)
+       frame.func->isrc()->getPtrToInstruction(ah.getAddr());
+    det.isize = ah.getSize();
+    det.data.unres.target = target;
+    det.type = ParseCallback::interproc_details::unres_branch;
+    det.data.unres.target = target;
+
+    bool valid; Address addr;
+    boost::tie(valid, addr) = ah.getCFT();
+    if (!valid) {
+        det.data.unres.dynamic = true;
+        det.data.unres.absolute_address = true;
+        link(cur,_sink,type,true);
+    } else {
+        det.data.unres.dynamic = false;
+        det.data.unres.absolute_address = false;
+        link(cur,_sink,type,true);
+    }
+    _pcb.interproc_cf(frame.func,cur,ah.getAddr(),&det);
+}
+
 /*
  * Extra handling of return instructions
  */
@@ -140,8 +174,9 @@ void Parser::ProcessReturnInsn(
     det.isize = ah.getSize();
     det.type = ParseCallback::interproc_details::ret;
 
-    _pcb.interproc_cf(frame.func,ah.getAddr(),&det);
+    _pcb.interproc_cf(frame.func, cur, ah.getAddr(),&det);
 }
+
 
 /*
  * Extra handling for literal call instructions
@@ -150,10 +185,11 @@ void Parser::ProcessReturnInsn(
 inline
 void Parser::ProcessCallInsn(
     ParseFrame & frame,
-    Block * /* cur */,
+    Block * cur,
     InstructionAdapter_t & ah,
     bool isDynamic,
     bool isAbsolute,
+    bool isResolved,
     Address target)
 {
     ParseCallback::interproc_details det;
@@ -162,15 +198,18 @@ void Parser::ProcessCallInsn(
     det.isize = ah.getSize();
     
     if(ah.isCall()) {
-        det.type = ParseCallback::interproc_details::call; 
         det.data.call.absolute_address = isAbsolute;
         det.data.call.dynamic_call = isDynamic;
         det.data.call.target = target;
+        if (likely(isResolved))
+            det.type = ParseCallback::interproc_details::call; 
+        else
+            det.type = ParseCallback::interproc_details::unres_call; 
     }
     else
         det.type = ParseCallback::interproc_details::branch_interproc;
     
-    _pcb.interproc_cf(frame.func,ah.getAddr(),&det);
+    _pcb.interproc_cf(frame.func,cur,ah.getAddr(),&det);
 }
 
 void Parser::ProcessCFInsn(
@@ -182,11 +221,68 @@ void Parser::ProcessCFInsn(
     Edges_t edges_out;
     ParseWorkBundle * bundle = NULL;
 
+
     // terminate the block at this address
     end_block(cur,ah);
     
     // Instruction adapter provides edge estimates from an instruction
     ah.getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries); 
+
+    if (unlikely(_obj.defensiveMode() && !ah.isCall() && edges_out.size())) {
+        // only parse branch edges that align with existing blocks
+        bool hasUnalignedEdge = false;
+        set<CodeRegion*> tregs;
+        set<Block*> tblocks;
+        set<Address> insns_cur;
+        for(Edges_t::iterator curEdge = edges_out.begin();
+            !hasUnalignedEdge && curEdge != edges_out.end(); 
+            ++curEdge)
+        {
+            if (cur->end() <= curEdge->first) {
+                continue;
+            }
+            _obj.cs()->findRegions(curEdge->first,tregs);
+            if (!tregs.empty()) {
+                _parse_data->findBlocks(*tregs.begin(),curEdge->first, tblocks);
+                for (set<Block*>::iterator bit= tblocks.begin(); 
+                     !hasUnalignedEdge && bit != tblocks.end(); 
+                     bit++) 
+                {
+                    if ((*bit)->end() <= cur->start() ||
+                        (*bit) == cur) 
+                    {
+                        continue;
+                    }
+                    set<Address> insns_tblk;
+                    getBlockInsns(**bit,insns_tblk);
+                    if (insns_cur.empty()) {
+                        getBlockInsns(*cur,insns_cur);
+                    }
+                    if ((*bit)->start() < cur->start()) {
+                        if (insns_tblk.end() == insns_tblk.find(cur->start())) {
+                            hasUnalignedEdge = true;
+                        } 
+                    } else if (insns_cur.end() == insns_cur.find((*bit)->start())) {
+                        hasUnalignedEdge = true;
+                    }
+                    if (hasUnalignedEdge) {
+                        mal_printf("Found unaligned blocks [%lx %lx) [%lx %lx), adding abruptEnd "
+                                   "point and killing out edges\n", cur->start(), cur->end(), 
+                                   (*bit)->start(), (*bit)->end());
+                    }
+                }
+            }
+        }
+        if (true == hasUnalignedEdge) {
+            edges_out.clear();
+            ParseCallback::default_details det(
+                (unsigned char*) cur->region()->getPtrToInstruction(cur->lastInsnAddr()),
+                cur->end() - cur->lastInsnAddr(),
+                true);
+            _pcb.abruptEnd_cf(cur->lastInsnAddr(),cur,&det);
+        }
+    }
+
     insn_ret = ah.getReturnStatus(frame.func,frame.num_insns); 
 
     // Update function return status if possible
@@ -195,12 +291,13 @@ void Parser::ProcessCFInsn(
 
     // Return instructions need extra processing
     if(insn_ret == RETURN)
-        ProcessReturnInsn(frame,cur,ah);
+       ProcessReturnInsn(frame,cur,ah);
 
     bool dynamic_call = ah.isDynamicCall();
     bool absolute_call = ah.isAbsoluteCall();
-    bool unresolved = ah.hasUnresolvedControlFlow(frame.func,frame.num_insns);
-    bool isBranch = false;
+    // unresolved is true for indirect calls, unresolved indirect branches, 
+    // and later on is set set to true for transfers to bad addresses
+    bool has_unres = ah.hasUnresolvedControlFlow(frame.func,frame.num_insns);
 
     parsing_printf("\t\t%d edges:\n",edges_out.size());
     for(Edges_t::iterator curEdge = edges_out.begin();
@@ -214,9 +311,11 @@ void Parser::ProcessCFInsn(
            !HASHDEF(plt_entries,curEdge->first))
         {
             if(curEdge->second != NOEDGE || !dynamic_call) {
-                unresolved = true;
-		isBranch = true;
+                has_unres = true;
                 resolvable_edge = false;
+                if (curEdge->second != -1 && _obj.defensiveMode()) 
+                    mal_printf("bad edge target at %lx type %d\n",
+                               curEdge->first, curEdge->second);
             }
         }
 
@@ -228,17 +327,14 @@ void Parser::ProcessCFInsn(
             // call callback
             resolvable_edge = resolvable_edge && !dynamic_call;
             ProcessCallInsn(frame,cur,ah,dynamic_call,
-                absolute_call,curEdge->first);
+                absolute_call,resolvable_edge,curEdge->first);
 
-            tailcall = !dynamic_call &&  
+            tailcall = !dynamic_call && 
                 ah.isTailCall(frame.func,frame.num_insns);
             if(resolvable_edge)
                 newedge = link_tempsink(cur,CALL);
             else {
                 newedge = link(cur,_sink,CALL,true);
-                if (frame.func->obj()->defensiveMode()) {
-                    unresolved = true;
-                }
             }
             if(!ah.isCall())
                 newedge->_type._interproc = true;
@@ -248,8 +344,9 @@ void Parser::ProcessCFInsn(
          */
         else
         {
-            if(resolvable_edge)
+            if(resolvable_edge) {
                 newedge = link_tempsink(cur,curEdge->second);
+            }
             else
                 newedge = link(cur,_sink,curEdge->second,true);
         }
@@ -277,18 +374,49 @@ void Parser::ProcessCFInsn(
             parsing_printf("[%s:%d] pushing %lx onto worklist\n",
                 FILE__,__LINE__,we->target());
             frame.pushWork(we);
+
+            if (unlikely(_obj.defensiveMode())) {
+                // update the underlying code bytes for CF targets
+                if (  CALL == curEdge->second
+                      || DIRECT == curEdge->second
+                      || COND_TAKEN == curEdge->second
+					  || NOEDGE == curEdge->second)
+                {
+
+                    _pcb.updateCodeBytes(curEdge->first);
+                }
+            }
+        } 
+        else if( unlikely(_obj.defensiveMode() && NOEDGE != curEdge->second) )
+        {   
+            ProcessUnresBranchEdge(frame, cur, ah, curEdge->first, curEdge->second);
+            // invoke callback for: 
+            // direct ctrl transfers with bad targets 
+            // (calls will have been taken care of and indirect branches don't have outgoing edges)
+            ParseCallback::interproc_details det;
+            det.ibuf = (unsigned char*)
+               frame.func->isrc()->getPtrToInstruction(ah.getAddr());
+            det.isize = ah.getSize();
+            det.data.unres.target = curEdge->first;
+            det.type = ParseCallback::interproc_details::unres_branch;
+            if (-1 == (long)det.data.unres.target) {
+                det.data.unres.target = 0;
+            }
+            bool valid; Address addr;
+            boost::tie(valid, addr) = ah.getCFT();
+            if (!valid) {
+                det.data.unres.dynamic = true;
+                det.data.unres.absolute_address = true;
+            } else {
+                det.data.unres.dynamic = false;
+                det.data.unres.absolute_address = false;
+            }
+            _pcb.interproc_cf(frame.func,cur,ah.getAddr(),&det);
         }
     }
 
-    /*
-     * Notification callback
-     */
-    if(unresolved)
-    {
-        ParseCallback::default_details det(
-         (unsigned char*)frame.func->isrc()->getPtrToInstruction(ah.getAddr()),
-         ah.getSize(), isBranch);
-        _pcb.unresolved_cf(frame.func,ah.getAddr(),&det);
+    if (unlikely(_obj.defensiveMode() && edges_out.empty() && has_unres)) {
+        ProcessUnresBranchEdge(frame, cur, ah, -1, INDIRECT);
     }
 
     if(ah.isDelaySlot())

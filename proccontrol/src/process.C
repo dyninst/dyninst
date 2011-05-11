@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -128,41 +128,6 @@ bool int_process::waitfor_startup()
    }
 }
 
-bool int_process::multi_attach(std::vector<int_process *> &pids)
-{
-   bool result;
-   bool had_error = false;
-   std::vector<int_process *>::iterator i;
-
-#define for_each_procdebug(func, err_msg)                      \
-   for (i = pids.begin(); i != pids.end(); i++) {              \
-      int_process *pd = (*i);                                  \
-      if (!pd)                                                 \
-         continue;                                             \
-      result = pd->func();                                     \
-      if (!result) {                                           \
-         pthrd_printf("Could not %s to %d", err_msg, pd->pid); \
-         delete pd;                                            \
-         *i = NULL;                                            \
-         had_error = true;                                     \
-      }                                                        \
-   }
-
-   ProcPool()->condvar()->lock();
-
-   for_each_procdebug(plat_attach, "attach");
-   //MATT TODO: Add to ProcPool
-
-   ProcPool()->condvar()->broadcast();
-   ProcPool()->condvar()->unlock();
-
-   for_each_procdebug(waitfor_startup, "wait for attach");
-
-   for_each_procdebug(post_attach, "post attach");
-
-   return had_error;
-}
-
 bool int_process::attachThreads()
 {
    if (!needIndividualThreadAttach())
@@ -207,24 +172,24 @@ bool int_process::attach()
 
    // Determine the running state of all threads before attaching
    map<Dyninst::LWP, bool> runningStates;
-   vector<Dyninst::LWP> lwps;
-   if( !getThreadLWPs(lwps) ) {
+   if( !plat_getOSRunningStates(runningStates) ) {
        ProcPool()->condvar()->broadcast();
        ProcPool()->condvar()->unlock();
-
-       pthrd_printf("Failed to determine lwps in %d\n", pid);
-       setLastError(err_internal, "Could not determine lwps for process");
        return false;
    }
 
-   for(vector<Dyninst::LWP>::iterator i = lwps.begin(); 
-           i != lwps.end(); ++i) 
+   bool allStopped = true;
+   for(map<Dyninst::LWP, bool>::iterator i = runningStates.begin();
+           i != runningStates.end(); ++i)
    {
-       runningStates.insert(make_pair(*i, plat_getOSRunningState(*i)));
+       if( i->second ) {
+           allStopped = false;
+           break;
+       }
    }
 
    pthrd_printf("Attaching to process %d\n", pid);
-   bool result = plat_attach();
+   bool result = plat_attach(allStopped);
    if (!result) {
       ProcPool()->condvar()->broadcast();
       ProcPool()->condvar()->unlock();
@@ -254,8 +219,16 @@ bool int_process::attach()
            i != threadPool()->end(); ++i)
    {
        map<Dyninst::LWP, bool>::iterator findIter = runningStates.find((*i)->getLWP());
-       assert(findIter != runningStates.end());
-       (*i)->setRunningWhenAttached(findIter->second);
+
+       // There is a race that could be visible here where we are not
+       // guaranteed to determine the running state of all threads in a process
+       // before we attach -- if for some reason we don't know the running
+       // state, assume it was running
+       if( findIter == runningStates.end() ) {
+           (*i)->setRunningWhenAttached(true);
+       }else{
+           (*i)->setRunningWhenAttached(findIter->second);
+       }
    }
 
    pthrd_printf("Wait for attach from process %d\n", pid);
@@ -786,7 +759,7 @@ bool int_process::waitAndHandleEvents(bool block)
        * Check for possible error combinations from syncRunState
        **/
       bool hasAsyncPending = HandlerPool::hasProcAsyncPending();
-      if (!ret.hasRunningThread && !hasAsyncPending) {
+      if (!ret.hasRunningThread && !hasAsyncPending && !mbox()->hasUserEvent()) {
          if (gotEvent) {
             //We've successfully handled an event, but no longer have any running threads
             pthrd_printf("Returning after handling events, no threads running\n");
@@ -839,7 +812,7 @@ bool int_process::waitAndHandleEvents(bool block)
 
       if (ev == Event::ptr())
       {
-         if (block && gotEvent) {
+         if (gotEvent) {
             pthrd_printf("Returning after handling events\n");
             goto done;
          }
@@ -980,6 +953,10 @@ bool int_process::terminate(bool &needs_sync)
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
    return !had_error;
+}
+
+bool int_process::preTerminate() {
+    return true;
 }
 
 int_process::int_process(Dyninst::PID p, std::string e,
@@ -3500,6 +3477,10 @@ unsigned installed_breakpoint::getNumClearingThreads() const {
     return clearingThreads.size();
 }
 
+unsigned installed_breakpoint::getNumIntBreakpoints() const {
+    return bps.size();
+}
+
 bool installed_breakpoint::rmClearingThread(int_thread *thrd, bool &uninstalled, 
         result_response::ptr async_resp)
 {
@@ -3515,7 +3496,7 @@ bool installed_breakpoint::rmClearingThread(int_thread *thrd, bool &uninstalled,
 
     if (bps.empty() && clearingThreads.empty()) {
         pthrd_printf("No more references left, uninstalling breakpoint\n");
-        uninstalled = false;
+        uninstalled = true;
         bool result = uninstall(thrd->llproc(), async_resp);
         if (!result) {
             perr_printf("Failed to remove breakpoint at %lx\n", addr);
@@ -3612,6 +3593,8 @@ bool installed_breakpoint::rmBreakpoint(int_process *proc, int_breakpoint *bp, b
          setLastError(err_internal, "Could not remove breakpoint\n");
          return false;
       }
+   }else{
+       async_resp->setResponse(true);
    }
    
    return true;
@@ -4568,6 +4551,13 @@ bool Process::terminate()
    }
 
    pthrd_printf("User terminating process %d\n", llproc_->getPid());
+
+   if( !llproc_->preTerminate() ) {
+       perr_printf("pre-terminate hook failed\n");
+       setLastError(err_internal, "Pre-terminate hook failed\n");
+       return false;
+   }
+
    bool needsSync = false;
    bool result = llproc_->terminate(needsSync);
    if (!result) {
@@ -4917,7 +4907,8 @@ bool Process::rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
 
 Thread::Thread() :
    llthread_(NULL),
-   exitstate_(NULL)
+   exitstate_(NULL),
+   userData_(NULL)
 {
 }
 
@@ -4927,6 +4918,14 @@ Thread::~Thread()
       delete exitstate_;
       exitstate_ = NULL;
    }
+}
+
+void *Thread::getData() const {
+    return userData_;
+}
+
+void Thread::setData(void *p) {
+    userData_ = p;
 }
 
 Process::const_ptr Thread::getProcess() const

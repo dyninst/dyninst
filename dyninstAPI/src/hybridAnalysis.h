@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -37,7 +37,7 @@
 #include <map>
 #include <vector>
 #include "dyntypes.h"
-#include "BPatch_hybridAnalysis.h"
+#include "BPatch_enums.h"
 #include "BPatch_callbacks.h"
 
 class BPatch_module;
@@ -49,10 +49,30 @@ class HybridAnalysisOW;
 class BPatchSnippetHandle;
 class BPatch_basicBlock;
 class BPatch_basicBlockLoop;
+class block_instance;
+
+#if !defined(os_windows)
+#endif
 
 /* There should only be one instance of this class, as for the BPatch class */
 class HybridAnalysis {
     friend class HybridAnalysisOW;
+
+private:
+    class SynchHandle {
+      public:
+        SynchHandle(BPatch_point* prePt, BPatchSnippetHandle* preHandle);
+        void setPostHandle(BPatch_point* postPt, BPatchSnippetHandle* postHandle);
+
+        BPatch_point *prePt_;
+        BPatch_point *postPt_;
+        BPatchSnippetHandle *preHandle_;
+        BPatchSnippetHandle *postHandle_;
+   };
+    typedef struct {
+        Dyninst::Address faultPCaddr;
+        bool isInterrupt;
+    } ExceptionDetails; 
 
 public:
 
@@ -68,15 +88,27 @@ public:
     BPatch_process *proc() { return proc_; };
     static InternalSignalHandlerCallback getSignalHandlerCB();
     BPatch_module *getRuntimeLib() { return sharedlib_runtime; }
+    void deleteSynchSnippet(SynchHandle *handle);
+    bool needsSynchronization(BPatch_point *point);
+    int getOrigPageRights(Dyninst::Address addr);
+    void addReplacedFuncs(std::vector<std::pair<BPatch_function*,BPatch_function*> > &repFs);
+
+    std::map< BPatch_point* , SynchHandle* > & synchMap_pre();
+    std::map< BPatch_point* , SynchHandle* > & synchMap_post();
 
     // callbacks
     bool isInLoop(Dyninst::Address blockAddr, bool activeOnly);
     void netFuncCB(BPatch_point *point, void *);
     void abruptEndCB(BPatch_point *point, void *);
-    void badTransferCB(BPatch_point *point, void *returnValue);
-    void signalHandlerEntryCB(BPatch_point *point, void *pcAddr);
+	void virtualFreeAddrCB(BPatch_point *point, void *);
+	void virtualFreeSizeCB(BPatch_point *point, void *);
+	void virtualFreeCB(BPatch_point *point, void *);
+	void badTransferCB(BPatch_point *point, void *returnValue);
+    void signalHandlerEntryCB(BPatch_point *point, Dyninst::Address excRecAddr);
+    void signalHandlerEntryCB2(BPatch_point *point, Dyninst::Address excCtxtAddr);
     void signalHandlerCB(BPatch_point *pt, long snum, std::vector<Dyninst::Address> &handlers);
-    void signalHandlerExitCB(BPatch_point *point, void *returnAddr);
+    void signalHandlerExitCB(BPatch_point *point, void *dontcare);
+    void synchShadowOrigCB(BPatch_point *point, bool toOrig);
     void overwriteSignalCB(Dyninst::Address faultInsnAddr, Dyninst::Address writeTarget);
 
     // callback registering functions
@@ -98,26 +130,42 @@ public:
 private:
 
     // instrumentation functions 
-    bool instrumentModules(bool useInsertionSet = true); 
-    bool instrumentModule(BPatch_module *mod, bool useInsertionSet = true); 
+    bool instrumentModules(bool useInsertionSet); 
+    bool instrumentModule(BPatch_module *mod, bool useInsertionSet); 
     bool instrumentFunction(BPatch_function *func, 
                             bool useInsertionSet, 
-                            bool instrumentReturns=false);
+                            bool instrumentReturns=false,
+                            bool syncShadow = false);
     bool parseAfterCallAndInstrument(BPatch_point *callPoint, 
-                        Dyninst::Address calledAddr, 
                         BPatch_function *calledFunc) ;
-    void removeInstrumentation(BPatch_function *func/*, removalType rmType*/);
-    int saveInstrumentationHandle(Dyninst::Address pointAddr, 
+    void removeInstrumentation(BPatch_function *func, bool useInsertionSet);
+    int saveInstrumentationHandle(BPatch_point *point, 
                                   BPatchSnippetHandle *handle);
+    bool hasEdge(BPatch_function *func, Dyninst::Address source, Dyninst::Address target);
+    bool processInterModuleEdge(BPatch_point *point, 
+                                Dyninst::Address target, 
+                                BPatch_module *targMod);
+    bool canUseCache(BPatch_point *pt);
 
     // parsing
-    void parseNewEdgeInFunction(BPatch_point *sourcePoint, Dyninst::Address target);
-    bool analyzeNewFunction( Dyninst::Address target , bool doInstrumentation );
+    void parseNewEdgeInFunction(BPatch_point *sourcePoint, 
+                                Dyninst::Address target,
+                                bool useInsertionSet);
+    bool analyzeNewFunction( BPatch_point *source, 
+                             Dyninst::Address target , 
+                             bool doInstrumentation , 
+                             bool useInsertionSet );
+    bool addIndirectEdgeIfNeeded(BPatch_point *srcPt, Dyninst::Address target);
 
     // variables
-    std::map<Dyninst::Address,Dyninst::Address> handlerFunctions; 
-    std::set<Dyninst::Address> *instrumentedFuncs;
-    std::map<Dyninst::Address,BPatchSnippetHandle*> *instrumentedPoints;
+    std::map<Dyninst::Address, ExceptionDetails> handlerFunctions; 
+    std::map < BPatch_function*, 
+               std::map<BPatch_point*,BPatchSnippetHandle*> *> * instrumentedFuncs;
+    std::map< BPatch_point* , SynchHandle* > synchMap_pre_; // maps from prePt
+    std::map< BPatch_point* , SynchHandle* > synchMap_post_; // maps from postPt
+    std::set< BPatch_function *> instShadowFuncs_;
+    std::set< std::string > skipShadowFuncs_;
+    std::map< BPatch_function *, BPatch_function *> replacedFuncs_;
     BPatch_module *sharedlib_runtime;
     BPatch_hybridMode mode_;
     BPatch_process *proc_;
@@ -126,6 +174,8 @@ private:
     BPatchCodeDiscoveryCallback bpatchCodeDiscoveryCB;
     BPatchSignalHandlerCallback bpatchSignalHandlerCB;
 
+        Dyninst::Address virtualFreeAddr_;
+	unsigned virtualFreeSize_;
 };
 
 
@@ -141,9 +191,10 @@ public:
                Dyninst::Address writeTarg);
         ~owLoop();
         static int getNextLoopId() { return ++IDcounter_; };
-        bool isActive() { return activeStatus_; };
-        bool writesOwnPage() { return writesOwnPage_; }
-        int getID() { return loopID_; }
+        bool isActive() const { return activeStatus_; };
+        bool writesOwnPage() const { return writesOwnPage_; }
+        bool isRealLoop() const { return realLoop_; }
+        int getID() const { return loopID_; }
         Dyninst::Address getWriteTarget() { return writeTarget_; }
         void setWriteTarget(Dyninst::Address targ);
         void setWritesOwnPage(bool wop);
@@ -157,10 +208,10 @@ public:
            2a.Instrument at loop exit edges
            2b.Instrument at unresolved edges in the loop 
          */
-        void instrumentOverwriteLoop(Dyninst::Address writeInsnAddr, 
-                                     std::set<BPatch_point*> &unresExits);
+        void instrumentOverwriteLoop(Dyninst::Address writeInsnAddr);
 
-        void instrumentOneWrite(Dyninst::Address writeInsnAddr);
+        void instrumentOneWrite(Dyninst::Address writeInsnAddr, 
+                                std::vector<BPatch_function*> writeFuncs);
 
         /*1. initialize necessary variables
           2. create bounds array for all blocks in the loop
@@ -180,6 +231,8 @@ public:
         std::set<Dyninst::Address> writeInsns;
         //loopblocks
         std::set<BPatch_basicBlock*,HybridAnalysis::blockcmp> blocks;
+        //unresolved control transfers that we treat as exit points
+        std::set<BPatch_point*> unresExits_;
     private:
         //write target, set to 0 if loop has multiple write targets
         Dyninst::Address writeTarget_;
@@ -187,6 +240,10 @@ public:
         bool activeStatus_;
         //loop writes own page
         bool writesOwnPage_;
+        // real loop if we're instrumenting loop exit edges, not immediately 
+        // after the write instruction
+        bool realLoop_;
+
         HybridAnalysisOW *hybridow_;
 
         int loopID_;
@@ -209,7 +266,9 @@ public:
     // overwrite loop functions
     bool hasLoopInstrumentation
         (bool activeOnly, BPatch_function &func, 
-        std::set<HybridAnalysisOW::owLoop*> *loops=NULL);
+         std::set<HybridAnalysisOW::owLoop*> *loops=NULL);
+    bool getActiveLoops(std::vector<HybridAnalysisOW::owLoop*> &active);
+    bool activeOverwritePages(std::set<Dyninst::Address> &pages);
 
     /* 1. Check for changes to the underlying code to see if this is safe to do
      * 2. If the loop is active, check for changes to the underlying data, and 
@@ -219,7 +278,9 @@ public:
      * return true if the loop was active
      */ 
     bool deleteLoop(HybridAnalysisOW::owLoop *loop, 
-                                   bool checkForChanges=true);
+                    bool useInsertionSet,
+                    BPatch_point *writePoint=NULL,
+                    bool uninstrument=true);
 
     /* Informs the mutator that an instruction will write to a page
     ` * that contains analyzed code.  
@@ -241,14 +302,12 @@ private:
     // and the function returns normally
     bool addFuncBlocks(owLoop *loop, std::set<BPatch_function*> &addFuncs, 
                        std::set<BPatch_function*> &seenFuncs,
-                       std::set<BPatch_point*> &exitPoints,
                        std::set<int> &overlappingLoops);
 
     // if writeLoop is null, return the whole function in the loop. 
     // returns true if we were able to identify all code in the loop
     bool setLoopBlocks(owLoop *loop, 
                        BPatch_basicBlockLoop *writeLoop,
-                       std::set<BPatch_point*> &exitPoints,
                        std::set<int> &overlappingLoops);
 
     //returns true if the loop blocks are a superset of the loop(s) it overlaps
@@ -260,29 +319,14 @@ private:
     void makeShadow_setRights(Dyninst::Address pageAddr,
                               owLoop *loop);
 
-    // variables
+    bool isRealStore(Dyninst::Address insnAddr, 
+                     block_instance *blk, 
+                     BPatch_function *func);
 
+    // variables
     HybridAnalysis *hybrid_;
     std::set<owLoop*> loops;
-#if 0
-    //loopid to snippets
-    std::map<int,std::set<BPatchSnippetHandle*>*> loopSnippets;
-    //loopid to shadows
-    std::map<int,std::map<Dyninst::Address,unsigned char *>*> loopShadowMap;
-    //loopid to write target
-    std::map<int,Dyninst::Address> loopWriteTarget;
-    //loopid to write instructions
-    std::map<int,std::set<Dyninst::Address>*> loopWriteInsns;
-    //loopid to loopblocks
-    std::map<int,std::set<BPatch_basicBlock*,HybridAnalysis::blockcmp>*> loopBlockMap;
-    //loopblockstarts to loopid: 
     std::map<Dyninst::Address,int> blockToLoop;//KEVINCOMMENT: makes non-guaranteed assumption that only one loop per block, would it be better to use the last instruction address?
-    //loop active status
-    std::map<int,bool> loopActiveStatus;
-    //loop writes own page
-    std::map<int,bool> loopWritesOwnPage;
-#endif
-    std::map<Dyninst::Address,int> blockToLoop;
     std::map<int, owLoop*> idToLoop;
 
     BPatchCodeOverwriteBeginCallback bpatchBeginCB;

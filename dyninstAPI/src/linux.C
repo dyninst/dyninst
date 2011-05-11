@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -94,17 +94,14 @@ bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers)
    return false;
 }
 
-/**
- * Return the state of the process from /proc/pid/stat.
- * File format is:
- *   pid (executablename) state ...
- * where state is a character.  Returns '\0' on error.
- **/
-
 void PCProcess::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
         inferiorHeapType /* type */ ) 
 {
     if (near) {
+#if !defined(arch_x86_64) && !defined(arch_power)
+        lo = region_lo(near);
+        hi = region_hi(near);
+#else
         if (getAddressWidth() == 8) {
             lo = region_lo_64(near);
             hi = region_hi_64(near);
@@ -112,6 +109,7 @@ void PCProcess::inferiorMallocConstraints(Address near, Address &lo, Address &hi
             lo = region_lo(near);
             hi = region_hi(near);
         }
+#endif
     }
 }
 
@@ -164,9 +162,9 @@ Address PCProcess::findFunctionToHijack()
    for(i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
       const char *func_name = DYNINST_LOAD_HIJACK_FUNCTIONS[i];
 
-      pdvector<int_function *> hijacks;
+      pdvector<func_instance *> hijacks;
       if (!findFuncsByAll(func_name, hijacks)) continue;
-      codeBase = hijacks[0]->getAddress();
+      codeBase = hijacks[0]->addr();
 
       if (codeBase)
           break;
@@ -179,7 +177,7 @@ Address PCProcess::findFunctionToHijack()
   return codeBase;
 } /* end findFunctionToHijack() */
 
-static int DLOPEN_MODE = RTLD_NOW | RTLD_GLOBAL;
+static const int DLOPEN_MODE = RTLD_NOW | RTLD_GLOBAL;
 
 // Note: this is an internal libc flag -- it is only used
 // when libc and ld.so don't have symbols
@@ -206,7 +204,9 @@ bool PCProcess::postRTLoadCleanup() {
 }
 
 AstNodePtr PCProcess::createLoadRTAST() {
-    pdvector<int_function *> dlopen_funcs;
+    pdvector<func_instance *> dlopen_funcs;
+
+    int mode = DLOPEN_MODE;
 
     // allow user to override default dlopen func names with env. var
 
@@ -234,12 +234,12 @@ AstNodePtr PCProcess::createLoadRTAST() {
             // to turn off the stack protection
             useHiddenFunction = false;
             needsStackUnprotect = false;
-            DLOPEN_MODE |= __RTLD_DLOPEN;
+            mode |= __RTLD_DLOPEN;
             if( findFuncsByAll(DL_OPEN_LIBC_FUNC_EXPORTED, dlopen_funcs) ) break;
 
             useHiddenFunction = true;
             needsStackUnprotect = true;
-            pdvector<int_function *> dlopen_int_funcs;
+            pdvector<func_instance *> dlopen_int_funcs;
             // If we can't find the do_dlopen function (because this library is
             // stripped, for example), try searching for the internal _dl_open
             // function and find the do_dlopen function by examining the
@@ -252,7 +252,7 @@ AstNodePtr PCProcess::createLoadRTAST() {
                                    __FILE__,__LINE__,dlopen_int_funcs.size(),
                                    DL_OPEN_FUNC_INTERNAL);
                 }
-                dlopen_int_funcs[0]->getStaticCallers(dlopen_funcs);
+                dlopen_int_funcs[0]->getCallerFuncs(std::back_inserter(dlopen_funcs));
                 if(dlopen_funcs.size() > 1) {
                     startup_printf("%s[%d] warning: found %d do_dlopen candidates\n",
                                    __FILE__,__LINE__,dlopen_funcs.size());
@@ -277,7 +277,7 @@ AstNodePtr PCProcess::createLoadRTAST() {
         logLine("WARNING: More than one dlopen found, using the first\n");
     }
 
-    int_function *dlopen_func = dlopen_funcs[0];
+    func_instance *dlopen_func = dlopen_funcs[0];
 
     pdvector<AstNodePtr> sequence;
     if( needsStackUnprotect ) {
@@ -310,7 +310,7 @@ AstNodePtr PCProcess::createLoadRTAST() {
 
         pdvector<AstNodePtr> args;
         args.push_back(AstNode::operandNode(AstNode::Constant, (void *)rtLibLoadHeap_));
-        args.push_back(AstNode::operandNode(AstNode::Constant, (void *)DLOPEN_MODE));
+        args.push_back(AstNode::operandNode(AstNode::Constant, (void *)mode));
 
         sequence.push_back(AstNode::funcCallNode(dlopen_func, args));
     }else{
@@ -357,10 +357,10 @@ AstNodePtr PCProcess::createLoadRTAST() {
 
         if( getAddressWidth() == 4 ) {
             args32.namePtr = (uint32_t)rtLibLoadHeap_;
-            args32.mode = DLOPEN_MODE;
+            args32.mode = mode;
         }else{
             args64.namePtr = (uint64_t)rtLibLoadHeap_;
-            args64.mode = DLOPEN_MODE;
+            args64.mode = mode;
         }
 
         Address argsAddr = rtLibLoadHeap_ + dyninstRT_name.length()+1;
@@ -508,7 +508,7 @@ bool BinaryEdit::archSpecificMultithreadCapable() {
     if( mobj->isStaticExec() ) {
         int numSymsFound = 0;
         for(int i = 0; i < NUM_PTHREAD_SYMS; ++i) {
-            const pdvector<int_function *> *tmpFuncs = 
+            const pdvector<func_instance *> *tmpFuncs = 
                 mobj->findFuncVectorByPretty(pthreadSyms[i]);
             if( tmpFuncs != NULL && tmpFuncs->size() ) numSymsFound++;
         }

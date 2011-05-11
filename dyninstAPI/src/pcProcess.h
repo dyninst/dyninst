@@ -44,7 +44,6 @@
 #include "addressSpace.h"
 #include "pcThread.h"
 #include "pcEventHandler.h"
-#include "BPatch_hybridAnalysis.h"
 #include "inst.h"
 #include "codeRange.h"
 #include "infHeap.h"
@@ -64,9 +63,6 @@
 #define RPC_LEAVE_AS_IS 0
 #define RPC_RUN_WHEN_DONE 1
 #define RPC_STOP_WHEN_DONE 2
-
-class multiTramp;
-class bblInstance;
 
 class PCProcess : public AddressSpace {
     // Why PCEventHandler is a friend
@@ -162,13 +158,12 @@ public:
     virtual bool inferiorRealloc(Dyninst::Address, unsigned int);
 
     // Instrumentation support
-    virtual void deleteGeneratedCode(generatedCodeObject *del);
     bool mappedObjIsDeleted(mapped_object *obj);
     void installInstrRequests(const pdvector<instMapping*> &requests);
     bool uninstallMutations();
     bool reinstallMutations();
     Address getTOCoffsetInfo(Address dest); // platform-specific
-    Address getTOCoffsetInfo(int_function *func); // platform-specific
+    Address getTOCoffsetInfo(func_instance *func); // platform-specific
     bool getOPDFunctionAddr(Address &opdAddr); // architecture-specific
 
     // iRPC interface
@@ -182,47 +177,78 @@ public:
                  bool isMemAlloc = false,
                  Address addr = 0);
 
-    // Hybrid Mode
+    /////////////////////////////////////////////
+    // Begin Exploratory and Defensive mode stuff
+    /////////////////////////////////////////////
     BPatch_hybridMode getHybridMode();
 
+// TODO FIXME
+#if defined(os_windows)
+    bool instrumentThreadInitialFunc(func_instance *f); // merge with instrumentMTFuncs
+    pdvector<func_instance *> initial_thread_functions;
+    bool setBeingDebuggedFlag(bool debuggerPresent);
+#endif
+
     // platform-specific
-    int setMemoryAccessRights(Address start, Address size, int rights);
+    bool setMemoryAccessRights(Address start, Address size, int rights);
+    bool getMemoryAccessRights(Address start, Address size, int rights);
 
     // code overwrites
-    bool getOverwrittenBlocks(std::map<Address, unsigned char *>& overwrittenPages,//input
-                              std::map<Address,Address>& overwrittenRegions,//output
-                              std::set<bblInstance *> &writtenBBIs); //output
-    bool getDeadCodeFuncs(std::set<bblInstance *> &deadBlocks, // input
-                          std::set<int_function*> &affectedFuncs, //output
-                          std::set<int_function*> &deadFuncs); //output
-    unsigned getMemoryPageSize() const;
+    bool getOverwrittenBlocks
+      ( std::map<Address, unsigned char *>& overwrittenPages,//input
+        std::list<std::pair<Address,Address> >& overwrittenRegions,//output
+        std::list<block_instance *> &writtenBBIs);//output
 
+    bool getDeadCode
+    ( const std::list<block_instance*> &owBlocks, // input
+      std::set<block_instance*> &delBlocks, //output: Del(for all f)
+      std::map<func_instance*,set<block_instance*> > &elimMap, //output: elimF
+      std::list<func_instance*> &deadFuncs, //output: DeadF
+      std::map<func_instance*,block_instance*> &newFuncEntries); //output: newF
+    unsigned getMemoryPageSize() const;
 
     // synch modified mapped objects with current memory contents
     mapped_object *createObjectNoFile(Address addr);
-    void updateMappedFile(std::map<Dyninst::Address,unsigned char*>& owPages,
-                          std::map<Address,Address> owRegions);
+    void updateCodeBytes( const std::list<std::pair<Address, Address> > &owRegions);
 
     bool isRuntimeHeapAddr(Address addr) const;
     bool isExploratoryModeOn() const;
 
     bool hideDebugger(); // platform-specific
+    void flushAddressCache_RT(Address start = 0, unsigned size = 0);
+    void flushAddressCache_RT(codeRange *range) { 
+        flushAddressCache_RT(range->get_address(), range->get_size());
+    }
 
     // Active instrumentation tracking
-    int_function *findActiveFuncByAddr(Address addr);
-    void getActiveMultiMap(std::map<Address, multiTramp *> &map);
-    void updateActiveMultis();
-    void addActiveMulti(multiTramp *multi);
-    void fixupActiveStackTargets();
-    void invalidateActiveMultis() { isAMcacheValid_ = false; }
+    typedef std::pair<Address, Address> AddrPair;
+    typedef std::set<AddrPair> AddrPairSet;
+    typedef std::set<Address> AddrSet;
+
+    struct ActiveDefensivePad {
+        Address activePC;
+        Address padStart;
+        block_instance *callBlock;
+        block_instance *ftBlock;
+        ActiveDefensivePad(Address a, Address b, block_instance *c, block_instance *d)
+            : activePC(a), padStart(b), callBlock(c), ftBlock(d) {};
+    };
+    typedef std::list<ActiveDefensivePad> ADPList;
+
+    bool patchPostCallArea(instPoint *point);
+    func_instance *findActiveFuncByAddr(Address addr);
+
+    /////////////////////////////////////////////
+    // End Exploratory and Defensive mode stuff
+    /////////////////////////////////////////////
 
     // No function is pushed onto return vector if address can't be resolved
     // to a function
-    pdvector<int_function *> pcsToFuncs(pdvector<Frame> stackWalk);
+    pdvector<func_instance *> pcsToFuncs(pdvector<Frame> stackWalk);
 
     // architecture-specific
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &entry, 
-			   int_function *&target_pdf, Address base_addr);
+			   func_instance *&target_pdf, Address base_addr);
 
     // AddressSpace implementations //
     virtual Address offset() const;
@@ -283,7 +309,6 @@ protected:
           savedArch_(pcProc->getArchitecture()),
           analysisMode_(analysisMode), 
           memoryPageSize_(0),
-          isAMcacheValid_(false),
           sync_event_id_addr_(0),
           sync_event_arg1_addr_(0),
           sync_event_arg2_addr_(0),
@@ -299,9 +324,7 @@ protected:
           inEventHandling_(false),
           stackwalker_(NULL)
     {
-        irpcTramp_ = new baseTramp(NULL, callUnset);
-        irpcTramp_->setRecursive(true);
-        irpcTramp_->setIRPCTramp(true);
+        irpcTramp_ = baseTramp::createForIRPC(this);
     }
 
     // Process attach constructor
@@ -324,7 +347,6 @@ protected:
           savedArch_(pcProc->getArchitecture()),
           analysisMode_(analysisMode), 
           memoryPageSize_(0),
-          isAMcacheValid_(false),
           sync_event_id_addr_(0),
           sync_event_arg1_addr_(0),
           sync_event_arg2_addr_(0),
@@ -340,9 +362,7 @@ protected:
           inEventHandling_(false),
           stackwalker_(NULL)
     {
-        irpcTramp_ = new baseTramp(NULL, callUnset);
-        irpcTramp_->setRecursive(true);
-        irpcTramp_->setIRPCTramp(true);
+        irpcTramp_ = baseTramp::createForIRPC(this);
     }
 
     static PCProcess *setupForkedProcess(PCProcess *parent, ProcControlAPI::Process::ptr pcProc);
@@ -367,7 +387,7 @@ protected:
           savedArch_(pcProc->getArchitecture()),
           analysisMode_(parent->analysisMode_), 
           memoryPageSize_(parent->memoryPageSize_),
-          isAMcacheValid_(parent->isAMcacheValid_),
+          RT_address_cache_addr_(parent->RT_address_cache_addr_),
           sync_event_id_addr_(parent->sync_event_id_addr_),
           sync_event_arg1_addr_(parent->sync_event_arg1_addr_),
           sync_event_arg2_addr_(parent->sync_event_arg2_addr_),
@@ -379,10 +399,10 @@ protected:
           rtLibLoadHeap_(parent->rtLibLoadHeap_),
           mt_cache_result_(parent->mt_cache_result_),
           isInDebugSuicide_(parent->isInDebugSuicide_),
-          irpcTramp_(NULL), // filled after construction
           inEventHandling_(false),
           stackwalker_(NULL)
     {
+        irpcTramp_ = baseTramp::createForIRPC(this);
     }
 
     // bootstrapping
@@ -440,13 +460,11 @@ protected:
     // platform-specific (TODO AIX is dataHeap, everything else is anyHeap)
     inferiorHeapType getDynamicHeapType() const; 
     
-    // garbage collection instrumentation
-    void gcInstrumentation();
-    void gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks);
-
     // Hybrid Mode
     bool triggerStopThread(Address pointAddress, int callbackID, void *calculation);
     Address stopThreadCtrlTransfer(instPoint *intPoint, Address target);
+    bool generateRequiredPatches(instPoint *callPt, AddrPairSet &);
+    void generatePatchBranches(AddrPairSet &);
 
     // Event Handling
     void triggerNormalExit(int exitcode);
@@ -461,6 +479,8 @@ protected:
     static bool setEnvPreload(pdvector<std::string> &envp, std::string fileName);
 
     bool isInDebugSuicide() const;
+
+    // Event handling support
     void setReportingEvent(bool b);
     bool hasReportedEvent() const;
     void setExecing(bool b);
@@ -486,6 +506,7 @@ protected:
     bool setBreakpoint(Address addr);
     void writeDebugDataSpace(void *inTracedProcess, u_int amount,
             const void *inSelf);
+    bool launchDebugger();
     bool startDebugger(); // platform-specific
 
     // Fields //
@@ -509,7 +530,7 @@ protected:
     bool createdViaAttach_;
     processState_t processState_;
     bootstrapState_t bootstrapState_;
-    int_function *main_function_;
+    func_instance *main_function_;
     int curThreadIndex_;
     // true when Dyninst has reported an event to ProcControlAPI for this process
     bool reportedEvent_; // indicates the process should remain stopped
@@ -521,15 +542,10 @@ protected:
     int memoryPageSize_;
 
     // Active instrumentation tracking
-    bool isAMcacheValid_;
-    std::set<multiTramp *> activeMultis_;
-    std::map<bblInstance *, Address> activeBBIs_;
-    std::map<int_function *, std::set<Address> *> am_funcRelocs_;
-
     codeRangeTree signalHandlerLocations_;
     pdvector<mapped_object *> deletedObjects_;
     std::vector<heapItem *> dyninstRT_heaps_;
-    pdvector<generatedCodeObject *> pendingGCInstrumentation_;
+    Address RT_address_cache_addr_;
 
     // Addresses of variables in RT library
     Address sync_event_id_addr_;

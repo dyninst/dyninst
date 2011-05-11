@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -72,7 +72,7 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    if (sp->translator)
       translator = AddressTranslate::createAddressTranslator(pid_,
                                                              procreader,
-                                                             plat_defaultSymReader());
+                                                             sp->plat_defaultSymReader());
 }
 
 sysv_process::~sysv_process()
@@ -238,7 +238,7 @@ bool PCProcReader::ReadMem(Address addr, void *buffer, unsigned size)
       bool result = proc->readMem(addr, memresult);
       if (!result) {
          pthrd_printf("Failed to read memory for proc reader\n");
-         return true;
+         return false;
       }
       result = memresult->isReady();
       assert(result);

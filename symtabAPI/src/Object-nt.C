@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -680,7 +680,7 @@ Region::RegionType getRegionType(DWORD flags){
         return Region::RT_OTHER;
 }
 
-void Object::FindInterestingSections(bool alloc_syms)
+void Object::FindInterestingSections(bool alloc_syms, bool defensive)
 {
    // now that we have the file mapped, look for 
    // the .text and .data sections
@@ -692,10 +692,11 @@ void Object::FindInterestingSections(bool alloc_syms)
       code_ptr_ = (char*)mapAddr;
       code_off_ = 0;
       HANDLE hFile = mf->getFileHandle();
-      code_len_ = (Offset) GetFileSize(hFile, NULL);
+      code_len_ = mf->size();
       is_aout_ = false;
       fprintf(stderr,"Adding Symtab object with no program header, will " 
-              "designate it as code, code_ptr_=%lx code_len_=%lx\n",code_ptr_,code_len_);
+              "designate it as code, code_ptr_=%lx code_len_=%lx\n",
+              code_ptr_,code_len_);
       if (alloc_syms) {
           Region *bufReg = new Region
                     (0, //region number
@@ -728,25 +729,36 @@ void Object::FindInterestingSections(bool alloc_syms)
    SecAlignment = peHdr ->OptionalHeader.SectionAlignment;
    unsigned int nSections = peHdr->FileHeader.NumberOfSections;
    no_of_sections_ = nSections;
+   Address prov_begin = (Address)-1;
+   Address prov_end = (Address)-1;
+   code_off_ = (Address)-1;
+   code_len_ = (Address)-1;
+
+   if (defensive) {
+       // add section for peHdr, determine the size taken up by the section 
+       // in the program's address space.  
+       unsigned long secSize = ( peHdr->OptionalHeader.SizeOfHeaders 
+                                 / peHdr->OptionalHeader.SectionAlignment ) 
+                              * peHdr->OptionalHeader.SectionAlignment;
+       if (  peHdr->OptionalHeader.SizeOfHeaders 
+           % peHdr->OptionalHeader.SectionAlignment ) 
+       {
+          secSize += peHdr->OptionalHeader.SectionAlignment;
+       }
+       prov_begin = 0;
+       prov_end = prov_begin + secSize;
+       regions_.push_back(
+           new Region(
+            0, "PROGRAM_HEADER", 0, peHdr->OptionalHeader.SizeOfHeaders, 
+            0, secSize, (char*)mapAddr,
+            getRegionPerms(IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_WRITE), 
+            getRegionType(IMAGE_SCN_CNT_CODE | IMAGE_SCN_CNT_INITIALIZED_DATA),
+            true));
+   }
+
    PIMAGE_SECTION_HEADER pScnHdr = (PIMAGE_SECTION_HEADER)(((char*)peHdr) + 
                                  sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER) +
                                  peHdr->FileHeader.SizeOfOptionalHeader);
-   // add section for peHdr, determine the size taken up by the section in the program's address space.  
-   unsigned long secSize = ( peHdr->OptionalHeader.SizeOfHeaders 
-                             / peHdr->OptionalHeader.SectionAlignment ) 
-                          * peHdr->OptionalHeader.SectionAlignment;
-   if (  peHdr->OptionalHeader.SizeOfHeaders 
-       % peHdr->OptionalHeader.SectionAlignment ) 
-   {
-      secSize += peHdr->OptionalHeader.SectionAlignment;
-   }
-   regions_.push_back
-       (new Region
-        (0, "PROGRAM_HEADER", 0, peHdr->OptionalHeader.SizeOfHeaders, 
-         0, secSize, (char*)mapAddr,
-         getRegionPerms(IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_WRITE), 
-         getRegionType(IMAGE_SCN_CNT_CODE | IMAGE_SCN_CNT_INITIALIZED_DATA), 
-         true));
    bool foundText = false;
    for( unsigned int i = 0; i < nSections; i++ ) {
       // rawDataPtr should be set to be zero if the amount of raw data
@@ -759,7 +771,7 @@ void Object::FindInterestingSections(bool alloc_syms)
              ((pScnHdr->PointerToRawData / peHdr->OptionalHeader.FileAlignment) 
               * peHdr->OptionalHeader.FileAlignment + (unsigned long) mapAddr);
       }
-      secSize = (pScnHdr->Misc.VirtualSize >= pScnHdr->SizeOfRawData) ? 
+      Offset secSize = (pScnHdr->Misc.VirtualSize > pScnHdr->SizeOfRawData) ? 
           pScnHdr->Misc.VirtualSize : pScnHdr->SizeOfRawData;
       if (alloc_syms)
           regions_.push_back
@@ -787,7 +799,19 @@ void Object::FindInterestingSections(bool alloc_syms)
          //code_len_    = pScnHdr->Misc.VirtualSize;
          code_len_ = ((pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize) ?
                       pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
+
          foundText = true;
+         if (prov_begin == -1) {
+             prov_begin = code_off_;
+             prov_end = code_off_ + code_len_;
+         } else {
+             if (prov_begin > code_off_) {
+                 prov_begin = code_off_;
+             }
+             if ( prov_end < (code_off_ + code_len_) ) {
+                  prov_end = (code_off_ + code_len_);
+             }
+         }
       }
       else if( strncmp( (const char*)pScnHdr->Name, ".data", 8 ) == 0 ) {
          // note that section numbers are one-based
@@ -797,8 +821,54 @@ void Object::FindInterestingSections(bool alloc_syms)
          data_off_    = pScnHdr->VirtualAddress;
          data_len_ = (pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize ?
                       pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
+         if (defensive) { // don't parse .data in a non-defensive binary
+             if (prov_begin == -1) {
+                prov_begin = data_off_;
+                prov_end = data_off_ + data_len_;
+             } else {
+                 if (prov_begin > data_off_) {
+                     prov_begin = data_off_;
+                 }
+                 if (prov_end < (data_off_ + data_len_)) {
+                     prov_end = (data_off_ + data_len_);
+                 }
+             }
+         }
+      }
+      else {
+         Offset sec_len = (pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize) ?
+                           pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize;
+         if (-1 == prov_begin) {
+            prov_begin = pScnHdr->VirtualAddress;
+            prov_end = prov_begin + sec_len;
+         } else {
+             if (prov_begin > pScnHdr->VirtualAddress) {
+                 prov_begin = pScnHdr->VirtualAddress;
+             }
+             if (prov_end < (pScnHdr->VirtualAddress + sec_len)) {
+                 prov_end = (pScnHdr->VirtualAddress + sec_len);
+             }
+         }
       }
       pScnHdr += 1;
+   } // end section for loop
+
+   if (-1 == code_len_ || defensive) {
+       // choose the smaller/larger of the two offsets/lengths, 
+       // if both are initialized (i.e., are not equal to -1)
+       if (code_off_ == -1)
+           code_off_ = prov_begin;
+       else if (prov_begin != -1 && 
+                code_off_ > prov_begin) 
+           code_off_ = prov_begin;
+
+       if (code_len_ == -1)
+           code_len_ = prov_end - code_off_;
+       else if (prov_end != -1 &&
+                code_len_ < (prov_end - code_off_))
+           code_len_ = (prov_end - code_off_);
+
+       assert(code_off_ != -1 && code_len_ != -1); // no sections in binary? 
    }
 }
 
@@ -858,9 +928,6 @@ bool Object::isText( const Offset addr ) const
 
 void fixup_filename(std::string &filename)
 {
-	if (strcmp(filename.c_str(), "ntdll.dll") == 0)
-		filename = "c:\\windows\\system32\\ntdll.dll";
-
 	if (filename.substr(0,22) == "\\Device\\HarddiskVolume") {
 		TCHAR volumePath[1024];
 		if (GetVolumePathName(filename.c_str(), volumePath, 1024)) {
@@ -877,12 +944,13 @@ void fixup_filename(std::string &filename)
 
 Object::Object(MappedFile *mf_,
                MappedFile *mfd,
+               bool defensive, 
                void (*err_func)(const char *), bool alloc_syms) :
     AObject(mf_, mfd, err_func),
     curModule( NULL ),
     peHdr( NULL )
 {
-   FindInterestingSections(alloc_syms);
+   FindInterestingSections(alloc_syms, defensive);
    ParseSymbolInfo(alloc_syms);
 }
 

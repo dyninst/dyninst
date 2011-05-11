@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -193,7 +193,7 @@ static void debug_print_location(const char *s, Frame *f, location_t val) {
               __FILE__, __LINE__, f, s, val.val.addr);
   else if (val.location == loc_register)
     sw_printf("[%s:%u] - Setting frame %p %s location to register %s\n",
-              __FILE__, __LINE__, f, s, val.val.reg.name());
+              __FILE__, __LINE__, f, s, val.val.reg.name().c_str());
   else if (val.location == loc_unknown)
      sw_printf("[%s:%u] - Setting frame %p %s location to unknown\n",
                __FILE__, __LINE__, f, s);

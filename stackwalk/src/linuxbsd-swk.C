@@ -291,6 +291,8 @@ void BottomOfStackStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_
    }
 }
 
+static const Dyninst::Address START_HEURISTIC_LENGTH = 43;
+
 void BottomOfStackStepperImpl::initialize()
 {
    ProcessState *proc = walker->getProcessState();
@@ -325,8 +327,11 @@ void BottomOfStackStepperImpl::initialize()
          if (aout->isValidSymbol(start_sym)) {
             Dyninst::Address start = aout->getSymbolOffset(start_sym)+aout_addr.second;
             Dyninst::Address end = aout->getSymbolSize(start_sym) + start;
-            if (start == end)
-               end = start + 43;
+            if (start == end) {
+               sw_printf("[%s:%u] - %s symbol has 0 length, using length of %lu\n",
+                       __FILE__, __LINE__, START_FUNC_NAME, START_HEURISTIC_LENGTH);
+               end = start + START_HEURISTIC_LENGTH;
+            }
             sw_printf("[%s:%u] - Bottom stepper taking %lx to %lx for start\n", 
                       __FILE__, __LINE__, start, end);
             ra_stack_tops.push_back(std::pair<Address, Address>(start, end));

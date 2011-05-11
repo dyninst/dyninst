@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -46,12 +46,9 @@ using namespace NS_sparc;
 #include "arch-power.h"
 using namespace NS_power;
 
-#elif defined(i386_unknown_solaris2_5) \
-   || defined(i386_unknown_nt4_0) \
-   || defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4) \
-   || (defined(os_freebsd) \
-       && (defined(arch_x86) || defined(arch_x86_64)))
+#elif defined(i386_unknown_nt4_0) \
+   || defined(arch_x86)           \
+   || defined(arch_x86_64)
 #include "arch-x86.h"
 using namespace NS_x86;
 

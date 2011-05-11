@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -36,6 +36,9 @@
 
 #include "symtabAPI/src/Object.h"
 
+#include <sstream>
+using std::stringstream;
+
 using namespace Dyninst;
 using namespace SymtabAPI;
 
@@ -54,7 +57,10 @@ SymtabReader::SymtabReader(const char *buffer, unsigned long size) :
    mapped_regions(NULL),
    dwarf_handle(NULL)
 {
-   Symtab::openFile(symtab, const_cast<char *>(buffer), size);
+   stringstream memName;
+   memName << "memory_" << (unsigned long)(buffer) << "_" << size;
+   Symtab::openFile(symtab, const_cast<char *>(buffer), 
+                    size, memName.str());
 }
 
 SymtabReader::~SymtabReader()
