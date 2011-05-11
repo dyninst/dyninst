@@ -79,6 +79,7 @@ class linux_process : public sysv_process, public unix_process, public arch_proc
    virtual bool plat_execed();
    virtual bool plat_detach();
    virtual bool plat_terminate(bool &needs_sync);
+   virtual bool preTerminate();
 
 
    //The following async functions are only used if a linux debugging mode,
@@ -140,6 +141,7 @@ class linux_thread : public thread_db_thread
    virtual bool plat_suspend() { return true; }
 
    void setOptions();
+   bool unsetOptions();
    bool getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
    
    static void fake_async_main(void *);

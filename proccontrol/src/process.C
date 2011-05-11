@@ -955,6 +955,10 @@ bool int_process::terminate(bool &needs_sync)
    return !had_error;
 }
 
+bool int_process::preTerminate() {
+    return true;
+}
+
 int_process::int_process(Dyninst::PID p, std::string e,
                          std::vector<std::string> a,
                          std::vector<std::string> envp,
@@ -4483,6 +4487,13 @@ bool Process::terminate()
    }
 
    pthrd_printf("User terminating process %d\n", llproc_->getPid());
+
+   if( !llproc_->preTerminate() ) {
+       perr_printf("pre-terminate hook failed\n");
+       setLastError(err_internal, "Pre-terminate hook failed\n");
+       return false;
+   }
+
    bool needsSync = false;
    bool result = llproc_->terminate(needsSync);
    if (!result) {

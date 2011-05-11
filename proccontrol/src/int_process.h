@@ -152,6 +152,7 @@ class int_process
    mem_state::ptr memory() const;
 
    bool detach(bool &should_clean);
+   virtual bool preTerminate();
    bool terminate(bool &needs_sync);
    void updateSyncState(Event::ptr ev, bool gen);
    virtual Dyninst::Architecture getTargetArch() = 0;
