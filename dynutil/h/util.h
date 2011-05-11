@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -100,6 +100,18 @@
     #endif
   #else
     #define DATAFLOW_EXPORT
+#endif
+#endif
+
+#if !defined(SYMEVAL_EXPORT)
+  #if defined(_MSC_VER)
+    #if defined(SYMEVAL_LIB)
+      #define SYMEVAL_EXPORT __declspec(dllexport)
+    #else
+      #define SYMEVAL_EXPORT __declspec(dllimport)
+    #endif
+  #else
+    #define SYMEVAL_EXPORT
 #endif
 #endif
 

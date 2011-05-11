@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -37,7 +37,7 @@
 #include "parseAPI/src/IA_InstrucIter.h"
 #endif
 
-#include "image-func.h"
+#include "parse-cfg.h"
 #include "Parsing.h"
 #include "debug.h"
 
@@ -46,9 +46,9 @@ using namespace Dyninst::ParseAPI;
 
 #if defined(arch_power)
 void 
-DynParseCallback::instruction_cb(Function*f,Address,insn_details*det)
+DynParseCallback::instruction_cb(Function*f,Block *,Address,insn_details*det)
 {
-    image_func * ifunc = static_cast<image_func*>(f);
+    parse_func * ifunc = static_cast<parse_func*>(f);
     /* In case we do callback from a place where the leaf function analysis has not been done */ 
     Address ret_addr = 0;
     if (f->_is_leaf_function) { 
@@ -63,7 +63,7 @@ DynParseCallback::instruction_cb(Function*f,Address,insn_details*det)
 void
 DynParseCallback::instruction_cb(Function*f,Address,insn_details*det)
 {
-    image_func * ifunc = static_cast<image_func*>(f);
+    parse_func * ifunc = static_cast<parse_func*>(f);
 
     // Check whether "07" is live, AKA we can't call safely.
     // Could we just always assume this?

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -151,9 +151,9 @@ void StackAnalysis::summarizeBlocks() {
       else {
 		  next = block->end();
       }
+
       // Fills in insnEffects[off]
       TransferFuncs &xferFuncs = insnEffects[block][off];
-
       computeInsnEffects(block, insn, off,
                          xferFuncs);
       bFunc.add(xferFuncs);
@@ -249,13 +249,14 @@ void StackAnalysis::summarize() {
 			// TODO: try to collapse these in some intelligent fashion
 			(*intervals_)[block][off] = input;
 
+			RegisterState old = input;
 			for (TransferFuncs::iterator iter2 = xferFuncs.begin();
 				iter2 != xferFuncs.end(); ++iter2) {
-					input[iter2->target] = iter2->apply(input);
+					input[iter2->target] = iter2->apply(old);
 			}
 		}
 		(*intervals_)[block][block->end()] = input;
-        assert(input == blockOutputs[block]);
+		assert(input == blockOutputs[block]);
 	}
 }
 
@@ -492,10 +493,9 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, int sign, TransferFuncs
    xferFuncs.push_back(TransferFunc::deltaFunc(sp(), delta));
 
    // Let's get whatever was popped (if it was)
-   if (insn->getOperation().getID() == e_pop &&
-       !insn->writesMemory()) {
+   if (insn->getOperation().getID() == e_pop) {
       MachRegister reg = sp();
-
+      
       std::set<RegisterAST::Ptr> written;
       insn->getWriteSet(written);
       for (std::set<RegisterAST::Ptr>::iterator iter = written.begin(); 
@@ -556,11 +556,10 @@ void StackAnalysis::handleLeave(TransferFuncs &xferFuncs) {
    // This is... mov esp, ebp; pop ebp.
    // Handle it as such.
 
-   // mov esp, ebp;
-    xferFuncs.push_back(TransferFunc::aliasFunc(fp(), sp()));
-    
-   // pop ebp
-    xferFuncs.push_back(TransferFunc::deltaFunc(sp(), word_size)); 
+   xferFuncs.push_back(TransferFunc::aliasFunc(fp(), sp()));
+
+   // And pop
+   xferFuncs.back().delta = word_size;
    xferFuncs.push_back(TransferFunc::bottomFunc(fp()));
 }
 
@@ -934,10 +933,9 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
          input.delta = alias.delta;
 	  }
 	  else {
-		  input.delta = delta;
+		  input.delta = Height::top;
 	  }
-      
-      return;
+	  return;
    }
    if (isDelta()) {
       // A delta can apply cleanly to anything, since Height += handles top/bottom

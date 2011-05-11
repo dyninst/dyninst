@@ -2,7 +2,7 @@ dnl == process this file with autoconf to produce a configure script ==
 
 
 AC_PREREQ(2.59)
-AC_INIT([Dyninst], [6.1], [bugs@dyninst.org], [dyninst])
+AC_INIT([Dyninst], [7.0], [bugs@dyninst.org], [dyninst])
 
 AC_PREFIX_DEFAULT(`pwd`/..)
 

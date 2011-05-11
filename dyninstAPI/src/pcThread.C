@@ -34,6 +34,7 @@
 #include "debug.h"
 #include "function.h"
 #include "mapped_module.h"
+#include "mapped_object.h"
 #include "dyninst.h"
 
 using namespace Dyninst::ProcControlAPI;
@@ -102,7 +103,7 @@ void PCThread::findSingleThreadInfo() {
 
         if( stackAddr_ == 0 ) stackAddr_ = (Address) stackWalk[pos].getSP();
         if( startFuncAddr_ == 0 ) {
-            int_function *tmpFunc = stackWalk[pos].getFunc();
+            func_instance *tmpFunc = stackWalk[pos].getFunc();
             if( tmpFunc != NULL ) {
                 mapped_module *mod = tmpFunc->mod();
                 if( mod && !mod->obj()->isSystemLib(mod->obj()->fullName()) ) {
@@ -124,10 +125,10 @@ void PCThread::findStartFunc() {
     // If still haven't found the starting address, don't try to find the function
     if( startFuncAddr_ == 0 ) return;
 
-    startFunc_ = proc_->findFuncByAddr(startFuncAddr_);
+    startFunc_ = proc_->findOneFuncByAddr(startFuncAddr_);
 }
 
-int_function *PCThread::getStartFunc() {
+func_instance *PCThread::getStartFunc() {
     if( startFunc_ == NULL ) findStartFunc();
     return startFunc_;
 }
@@ -213,7 +214,6 @@ bool PCThread::continueThread() {
     if( pcThr_ == Thread::ptr() ) return false;
 
     clearStackwalk();
-    proc_->invalidateActiveMultis();
 
     proccontrol_printf("%s[%d]: continuing thread %d/%d\n", 
             FILE__, __LINE__, proc_->getPid(), getLWP());

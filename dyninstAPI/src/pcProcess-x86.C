@@ -53,13 +53,12 @@ bool Frame::setPC(Address newpc) {
    if (!getProc()->writeDataSpace((void*)pcAddr, sizeof(Address), &newpc))
       return false;
    sw_frame_.setRA(newpc);
-   range_ = NULL;
 
    return true;
 }
 
 void print_read_error_info(const relocationEntry entry, 
-      int_function *&target_pdf, Address base_addr) {
+      func_instance *&target_pdf, Address base_addr) {
 
     sprintf(errorLine, "  entry      : target_addr 0x%x\n",
 	    (unsigned)entry.target_addr());
@@ -83,7 +82,7 @@ void print_read_error_info(const relocationEntry entry,
       logLine(errorLine);
       */
       sprintf(errorLine , "              addr 0x%x\n",
-	      (unsigned)target_pdf->getAddress());
+	      (unsigned)target_pdf->addr());
       logLine(errorLine);
     }
     sprintf(errorLine, "  base_addr  0x%x\n", (unsigned)base_addr);
@@ -95,7 +94,7 @@ void print_read_error_info(const relocationEntry entry,
 // specified by entry and base_addr.  If it has been bound, then the callee 
 // function is returned in "target_pdf", else it returns false.
 bool PCProcess::hasBeenBound(const relocationEntry &entry, 
-			   int_function *&target_pdf, Address base_addr) {
+			   func_instance *&target_pdf, Address base_addr) {
 
     if (isTerminated()) return false;
 
@@ -120,7 +119,7 @@ bool PCProcess::hasBeenBound(const relocationEntry &entry,
     if( !( bound_addr == (entry.target_addr()+6+base_addr)) ) {
         // the callee function has been bound by the runtime linker
 	// find the function and return it
-        target_pdf = findFuncByAddr(bound_addr);
+        target_pdf = findOneFuncByAddr(bound_addr);
 	if(!target_pdf){
             return false;
 	}

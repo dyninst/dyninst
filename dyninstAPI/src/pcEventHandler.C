@@ -1398,7 +1398,6 @@ bool PCEventHandler::handleRPC(EventRPC::const_ptr ev, PCProcess *evProc) const 
         rpcInProg->isComplete = true;
         evProc->removeSyncRPCThread(rpcInProg->thread);
     }else{
-        // evProc->removeOrigRange(rpcInProg);
         delete rpcInProg;
     }
 

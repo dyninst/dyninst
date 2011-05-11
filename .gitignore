@@ -31,7 +31,6 @@ config.status
 test/*
 autodyninst/autom4te.cache/*
 autom4te.cache/*
-patch*
 testsuite/*/binaries/*
 parseThat/*/Makefile
 parseThat/*/parseThat

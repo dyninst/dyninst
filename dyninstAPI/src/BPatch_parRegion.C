@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -32,7 +32,7 @@
 #include "inst.h"
 #include "instP.h"
 #include "instPoint.h"
-#include "function.h" // int_function
+#include "function.h" // func_instance
 #include "codeRange.h"
 #include "miniTramp.h"
 

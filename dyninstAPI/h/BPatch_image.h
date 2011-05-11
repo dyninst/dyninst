@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -15,7 +15,7 @@
  * defects for Paradyn.
  * 
  * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General PublicT
+ * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
  * 
@@ -35,9 +35,6 @@
 #include "BPatch_dll.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_Vector.h"
-//#include "BPatch_addressSpace.h"
-#include "BPatch_point.h"
-#include "BPatch_snippet.h"
 #include "BPatch_module.h"
 #include "BPatch_type.h"
 #include "BPatch_eventLock.h"
@@ -52,6 +49,7 @@
 typedef bool (*BPatchFunctionNameSieve)(const char *test,void *data);
 class image;
 class int_variable;
+class BPatch_point;
 
 #ifdef IBM_BPATCH_COMPAT
 
@@ -178,30 +176,6 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     API_EXPORT(Int, (),
 
     BPatch_Vector<BPatch_variableExpr *> *,getGlobalVariables,());
-
-    //  BPatch_image::createInstPointAtAddr
-    //  
-    //  Returns a pointer to a BPatch_point object representing an
-    //  instrumentation point at the given address.
-    //  Returns NULL on failure.
-    API_EXPORT(Int, (address),
-
-    BPatch_point *,createInstPointAtAddr,(void *address));
-
-    //  BPatch_image::createInstPointAtAddr
-    //  
-    //  Returns a pointer to a BPatch_point object representing an
-    //  instrumentation point at the given address. If the BPatch_function
-    //  argument is given it has to be the function that address belongs to or NULL.
-    //  The function is used to bypass the function that the address belongs to
-    //  The alternative argument is used to retrieve the point if the new point
-    //  intersects with another already existing one.
-    //  Returns NULL on failure.
-    API_EXPORT(WithAlt, (address, alternative, bpf),
-
-    BPatch_point *,createInstPointAtAddr,(void *address,
-                                          BPatch_point** alternative, 
-                                          BPatch_function* bpf = NULL)); 
 
     //  BPatch_image::findFunction
     //  
@@ -342,8 +316,6 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
 
 private:
     BPatch_addressSpace *addSpace;
-    BPatch_Vector<BPatch_module *> modlist;
-    BPatch_Vector<BPatch_module *> removed_list;
     BPatch_module *defaultModule;
 
     BPatch_module *findModule(mapped_module *base);
@@ -351,9 +323,18 @@ private:
     void removeModule(BPatch_module *mod);
     void removeAllModules();
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable:4251) 
+#endif
+    BPatch_Vector<BPatch_module *> modlist;
+    BPatch_Vector<BPatch_module *> removed_list;
     BPatch_Vector<BPatch_point *> unresolvedCF;
+#if defined(_MSC_VER)
+#pragma warning(pop)    
+#endif
 
-    // These private "find" functions convert from internal int_function
+    // These private "find" functions convert from internal func_instance
     // representation to the exported BPatch_Function type
     void findFunctionInImage(const char *name, image *img,
 			     BPatch_Vector<BPatch_function*> *funcs,

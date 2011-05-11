@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -115,7 +115,7 @@ int test1_37_mutatee() {
 void test1_37_inc1() { globalVariable37_1++; }
         
 /* At the end of normal execution, globalVariable37_1 should
-   hold 100 + 500 + ( 100 * 10 ) + ( 100 * 10 * 7 ) = 8600
+   hold 100 + ( 100 * 5 ) + ( 100 * 10 ) + ( 100 * 10 * 7 ) = 8600
     
    If we instrument the entry and exit edge of each loop with a call
    to test1_37_inc1, globalVariable37_1 should be increased by
@@ -127,7 +127,7 @@ void test1_37_call1() {
     int i, j, k, m;
 
     for (i = 0; i < 100; i++) {
-        globalVariable37_1++;
+      globalVariable37_1++;
 
         for (j = 0; j < 10; j++) {
             globalVariable37_1++;
@@ -175,7 +175,7 @@ void test1_37_call2() {
     while (i < 5) {
         while (j < 10) {
             do {
-                globalVariable37_2++;
+	      globalVariable37_2++;
                 i++; j++; k++;
             } while (k < 20);
         }

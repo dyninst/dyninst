@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -38,18 +38,26 @@
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
 
+#include "instPoint.h"
+#include "baseTramp.h"
+#include "function.h"
+
 #include "stackwalk/h/frame.h"
 
 class PCThread;
 class PCProcess;
-class codeRange;
-class instPoint;
-class miniTramp;
-class int_function;
 
 class Frame {
  public:
-  
+
+  typedef enum { unset, 
+		 instrumentation, 
+		 signalhandler, 
+		 normal, 
+		 syscall, 
+		 iRPC, 
+		 unknown } frameType_t;
+
   // default ctor (zero frame)
   Frame();
 
@@ -63,14 +71,12 @@ class Frame {
       sw_frame_(f.sw_frame_),
       proc_(f.proc_),
       thread_(f.thread_),
-      range_(f.range_),
       uppermost_(f.uppermost_) {};
 
   const Frame &operator=(const Frame &f) {
       sw_frame_ = f.sw_frame_;
       proc_ = f.proc_;
       thread_ = f.thread_;
-      range_ = f.range_;
       uppermost_ = f.uppermost_;
       return *this;
   }
@@ -84,24 +90,24 @@ class Frame {
 
   Address  getPC() const { return (Address) sw_frame_.getRA(); }
   // New method: unwind instrumentation
-  Address  getUninstAddr(); // calls getRange so can't be const
+  Address  getUninstAddr() const;
   Address  getFP() const { return (Address) sw_frame_.getFP(); }
   Address  getSP() const { return (Address) sw_frame_.getSP(); }
   PCProcess *getProc() const { return proc_; }
   PCThread *getThread() const { return thread_; }
   void setThread(PCThread *thrd) { thread_ = thrd; }
   bool     isUppermost() const { return uppermost_; }
+
+
+  instPoint *getPoint();
+  baseTramp *getBaseTramp();
+  func_instance *getFunc();
+
   bool	   isSignalFrame();
   bool 	   isInstrumentation();
   Address  getPClocation();
 
-  instPoint *getPoint(); // If we're in instrumentation returns the appropriate point
-  int_function *getFunc(); // As above
-
-  codeRange *getRange();
-  void setRange (codeRange *range); 
   friend std::ostream & operator << ( std::ostream & s, Frame & m );
-
   bool setPC(Address newpc);
 
 #if defined(arch_power)
@@ -113,7 +119,6 @@ class Frame {
   Dyninst::Stackwalker::Frame sw_frame_;        // StackwalkerAPI frame
   PCProcess *		proc_;				// We're only valid for a single process anyway
   PCThread *            thread_;                // User-level thread
-  codeRange *	range_;				// If we've done a by-address lookup, keep it here
   bool			uppermost_;
 };
 

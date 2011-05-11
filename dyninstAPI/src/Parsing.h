@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -107,17 +107,21 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   ~DynParseCallback() { }
 
   // defensive and exploratory mode callbacks
-  void unresolved_cf(ParseAPI::Function*,Address,default_details*);
-  void abruptEnd_cf(Address,default_details*);
+  void abruptEnd_cf(Address,ParseAPI::Block *,default_details*);
   void newfunction_retstatus(ParseAPI::Function*);
   void block_split(ParseAPI::Block *first, ParseAPI::Block *second);
-  void patch_jump_neg1(Address);
+  void patch_nop_jump(Address);
+  bool hasWeirdInsns(const ParseAPI::Function*) const;
+  void foundWeirdInsns(ParseAPI::Function*);
   // other callbacks
-  void interproc_cf(ParseAPI::Function*,Address,interproc_details*);
+  void interproc_cf(ParseAPI::Function*,ParseAPI::Block*,Address,interproc_details*);
   void overlapping_blocks(ParseAPI::Block*,ParseAPI::Block*);
+  bool updateCodeBytes(Address target); // updates if needed
+  bool loadAddr(Address absoluteAddr, Address & loadAddr);
+  void block_delete(ParseAPI::Block *b);
 
 #if defined(arch_power) || defined(arch_sparc)
-  void instruction_cb(ParseAPI::Function*,Address,insn_details*);
+  void instruction_cb(ParseAPI::Function*, ParseAPI::Block *,Address,insn_details*);
 #endif
  private:
     image * _img;

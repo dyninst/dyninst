@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -35,19 +35,21 @@
 #include <stdio.h>
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
+#include "BPatch_Set.h"
 #include "BPatch_thread.h"
 #include "BPatch_type.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_process.h"
-#include "BPatch_hybridAnalysis.h"
+#include "BPatch_enums.h"
+#include "BPatch_callbacks.h"
 
 class BPatch_typeCollection;
 class BPatch_libInfo;
 class BPatch_module;
-class int_function;
 class PCProcess;
 class PCThread;
 class PCEventHandler;
+class func_instance;
 
 //Keep old versions defined, that way someone can test if we're more
 // at or more recent than version 5.1 with '#if defined(DYNINST_5_1)'
@@ -114,9 +116,8 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     friend class BPatch_thread;
     friend class BPatch_process;
     friend class BPatch_point;
-    friend class BPatch_stopThreadExpr; // Registers a callback
-    friend class int_function;
     friend class PCProcess;
+    friend class func_instance;
 
     BPatch_libInfo *info; 
 
@@ -194,8 +195,9 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
    
    BPatch_Vector<BPatchUserEventCallback> userEventCallbacks;
    BPatch_Vector<BPatchStopThreadCallback> stopThreadCallbacks;
-   
+
    public:  
+      
    /* And auxiliary functions for the above */
    /* These are NOT part of the API, do not use externally */
    void signalNotificationFD(); // Called when an event happens
@@ -234,9 +236,10 @@ public:
            unsigned int bufsize);
 
     void registerDynamicCallsiteEvent(BPatch_process *process, Dyninst::Address callTarget,
-           Dyninst::Address callAddr); 
+           Dyninst::Address callAddr);
 
-    void launchDeferredOneTimeCode();
+    void registerStopThreadCallback(BPatchStopThreadCallback stopCB);
+    int getStopThreadCallbackID(BPatchStopThreadCallback stopCB);
 
     void registerLoadedModule(PCProcess *process, mapped_module *mod);
     void registerUnloadedModule(PCProcess *process, mapped_module *mod);
@@ -344,6 +347,7 @@ public:
 
     API_EXPORT(Int, (),
                int, livenessAnalysisDepth, ());
+
 
     //  User-specified callback functions...
 

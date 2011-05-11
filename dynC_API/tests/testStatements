@@ -1,1 +1,2 @@
-printf("Hi!\n");
+inf`printf("Hi!\n");
+inf`printf("Hi -> %p.\n", &inf`hi);

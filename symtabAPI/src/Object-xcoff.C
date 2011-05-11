@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -1373,7 +1373,7 @@ Object::Object(const Object& obj) :
 }
 
 
-Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *), Offset offset, bool alloc_syms) :
+Object::Object(MappedFile *mf_, MappedFile *mfd, bool, void (*err_func)(const char *), Offset offset, bool alloc_syms) :
    AObject(mf_, mfd, err_func), offset_(offset)
 {    
    fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());

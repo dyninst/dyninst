@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -383,6 +383,7 @@ namespace Dyninst
 	{
 	  std::stringstream ret;
 //	  ret << std::hex << "0x";
+	  ret << std::hex;
 	  switch(type)
 	  {
 	  case u8:
@@ -438,6 +439,7 @@ namespace Dyninst
 	    ret << "[ERROR: invalid type value!]";
 	    break;
 	  };
+      ret << std::dec;
 	  return ret.str();
 	}
       }

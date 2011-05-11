@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2007 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -26,7 +26,7 @@
  * 
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 #include <string>
@@ -102,7 +102,14 @@ bool SymEval::expand(Result_t &res,
          i->second = tmp2;
       }
    }
-   return (!failedInsns.size());
+   return (failedInsns.empty());
+}
+
+bool edgeSort(Edge::Ptr ptr1, Edge::Ptr ptr2) {
+    Address addr1 = ptr1->target()->addr();
+    Address addr2 = ptr2->target()->addr();
+
+    return (addr1 <= addr2);
 }
 
 void dfs(Node::Ptr source,
@@ -119,6 +126,13 @@ void dfs(Node::Ptr source,
    EdgeIterator b, e;
    source->outs(b, e);
 
+    vector<Edge::Ptr> edges;
+    for ( ; b!=e; ++b) {
+        Edge::Ptr edge = *b;
+        edges.push_back(edge);
+    }
+    std::stable_sort(edges.begin(), edges.end(), edgeSort);
+
    //state[source]++;
    std::map<Node::Ptr, int>::iterator ssit = state.find(source);
    if(ssit == state.end())
@@ -127,8 +141,9 @@ void dfs(Node::Ptr source,
    else
     (*ssit).second++;
 
-   for (; b != e; ++b) {
-      Edge::Ptr edge = *b;
+   vector<Edge::Ptr>::iterator eit = edges.begin();
+   for ( ; eit != edges.end(); ++eit) {
+      Edge::Ptr edge = *eit;
       Node::Ptr cur = edge->target();
 
       std::map<Node::Ptr, int>::iterator sit = state.find(cur);
@@ -264,6 +279,26 @@ class ExpandOrder {
     set<SliceNode::Ptr> done;
 };
 
+bool vectorSort(SliceNode::Ptr ptr1, SliceNode::Ptr ptr2) {
+
+    AssignmentPtr assign1 = ptr1->assign();
+    AssignmentPtr assign2 = ptr2->assign();
+
+    if (!assign1) return true;
+    else if (!assign2) return false;
+
+    Address addr1 = assign1->addr();
+    Address addr2 = assign2->addr();
+
+    if (addr1 == addr2) {
+        AbsRegion &out1 = assign1->out();
+        AbsRegion &out2 = assign2->out();
+        if (out1 == out2) return true;
+        else return out1 < out2;
+    } else {
+        return addr1 < addr2;
+    }
+}
 
 // Do the previous, but use a Graph as a guide for
 // performing forward substitution on the AST results
@@ -276,13 +311,25 @@ SymEval::Retval_t SymEval::expand(Graph::Ptr slice, Result_t &res) {
     NodeIterator gbegin, gend;
     slice->allNodes(gbegin, gend);
 
+    // First, we'll sort the nodes in some deterministic order so that the loop removal
+    // is deterministic
+    std::vector<SliceNode::Ptr> sortVector;
+    for ( ; gbegin != gend; ++gbegin) {
+        Node::Ptr ptr = *gbegin;
+        SliceNode::Ptr cur = dyn_detail::boost::static_pointer_cast<SliceNode>(ptr);
+        sortVector.push_back(cur);
+    }
+    std::stable_sort(sortVector.begin(), sortVector.end(), vectorSort);
+
     // Optimal ordering of search
     ExpandOrder worklist;
 
     std::queue<Node::Ptr> dfs_worklist;
-    for (; gbegin != gend; ++gbegin) {
-      Node::Ptr ptr = *gbegin;
-      dfs_worklist.push(ptr);
+    std::vector<SliceNode::Ptr>::iterator vit = sortVector.begin();
+    for ( ; vit != sortVector.end(); ++vit) {
+        SliceNode::Ptr ptr = *vit;
+        Node::Ptr cur = dyn_detail::boost::static_pointer_cast<Node>(ptr);
+        dfs_worklist.push(cur);
     }
 
     /* First, we'll do DFS to check for circularities in the graph;
@@ -376,7 +423,8 @@ SymEval::Retval_t SymEval::expand(Graph::Ptr slice, Result_t &res) {
 
 bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 			 const uint64_t addr,
-			 Result_t &res) {
+			 Result_t &res)
+{
 
    SymEvalPolicy policy(res, addr, insn->getArch(), insn);
 
@@ -419,7 +467,7 @@ SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
    bool skippedInput = false;
    bool success = false;
 
-    std::map<AbsRegion, std::set<Assignment::Ptr> > inputMap;
+    std::map<const AbsRegion*, std::set<Assignment::Ptr> > inputMap;
 
     expand_cerr << "Calling process on " << ptr->format() << endl;
 
@@ -446,7 +494,7 @@ SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
        
        expand_cerr << "Assigning input " << edge->data().format() 
                    << " from assignment " << assign->format() << endl;
-       inputMap[edge->data()].insert(assign);
+       inputMap[&edge->data()].insert(assign);
     }
     
     expand_cerr << "\t Input map has size " << inputMap.size() << endl;
@@ -459,7 +507,7 @@ SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
     //expand_cerr << "\t ... resulting in " << dbase.format() << endl;
 
     // We have an AST. Now substitute in all of its predecessors.
-    for (std::map<AbsRegion, std::set<Assignment::Ptr> >::iterator iter = inputMap.begin();
+    for (std::map<const AbsRegion*, std::set<Assignment::Ptr> >::iterator iter = inputMap.begin();
          iter != inputMap.end(); ++iter) {
       // If we have multiple secondary definitions, we:
       //   if all definitions are equal, use the first
@@ -486,7 +534,7 @@ SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
 
       
       // The region used by the current assignment...
-      const AbsRegion &reg = iter->first;
+      const AbsRegion &reg = *iter->first;
       
       // Create an AST around this one
       VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));

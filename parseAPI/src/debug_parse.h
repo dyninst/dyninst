@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -42,6 +42,8 @@ namespace ParseAPI {
     extern int dyn_debug_parsing;
     extern int dyn_debug_malware;
     extern int dyn_debug_initialized;
+
+#define parsing_cerr if (dyn_debug_parsing) cerr
 
 #if defined(__GNUC__)
 #define parsing_printf(format, args...) do { if(!dyn_debug_initialized || dyn_debug_parsing) parsing_printf_int(format, ## args); } while(0)

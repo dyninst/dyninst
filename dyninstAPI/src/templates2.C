@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -57,8 +57,8 @@ template class  dictionary_hash_iter <Address, Symbol*>;
 class pdmodule;
 template class  dictionary_hash_iter <std::string, pdmodule *>;
 
-class image_func;
-template class  dictionary_hash_iter <std::string, pdvector<image_func*>*>;
+class parse_func;
+template class  dictionary_hash_iter <std::string, pdvector<parse_func*>*>;
 
 class mapped_object;
 template class  pdvector<mapped_object *> ;

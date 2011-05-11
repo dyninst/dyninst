@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -183,3 +183,6 @@ bool Graph::isExitNode(NodePtr node) {
   return (exitNodes_.find(node) != exitNodes_.end());
 }
 
+unsigned Graph::size() const {
+   return nodes_.size();
+}

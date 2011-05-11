@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -1780,7 +1780,7 @@ bool ser_operation(SerializerBase *sb, ser_post_op_t &op, const char *tag)
 	{
 		gtranslate(sb, op, serPostOp2Str, tag);
 	}
-	catch (const Dyninst::SerializerError &err_)
+	catch (const Dyninst::SerializerError &)
 	{   
 		if (isEOF(sb))
 		{   

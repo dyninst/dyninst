@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,14 @@
 using namespace Dyninst;
 
 const Address Node::INVALID_ADDR = (Address) -1;
+
+void Node::addInEdge(const EdgePtr in) {
+   ins_.insert(in);
+}
+ 
+void Node::addOutEdge(const EdgePtr out) {
+   outs_.insert(out);
+}   
 
 void Node::ins(NodeIterator &begin, NodeIterator &end) {
     // Ins and outs are currently stored as sets of edges.

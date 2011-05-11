@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -40,5 +40,8 @@ char *strcat_static(char *, char *);
 char *strcat_static(const char *, const char *);
 char *encodeStr(const char *);
 char *decodeStr(const char *, char ** = NULL);
+
+void track_usage();
+void report_usage();
 
 #endif
