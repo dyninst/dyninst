@@ -53,14 +53,9 @@ extern "C" {
 }
 
 #include <map>
-using std::map;
-using std::pair;
-
 #include <vector>
-using std::vector;
-
 #include <string>
-using std::string;
+#include <deque>
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -90,7 +85,8 @@ public:
 
     async_ret_t initThreadDB();
     void freeThreadDBAgent();
-    bool getPostDestroyEvents(vector<Event::ptr> &events);
+    bool getPostDestroyEvents(std::vector<Event::ptr> &events);
+    virtual Event::ptr getEventForThread(thread_db_thread *thrd, EventType::Code code, bool &async);
     static void addThreadDBHandlers(HandlerPool *hpool);
 
     /*
@@ -114,7 +110,7 @@ public:
 
     async_ret_t initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info);
     
-    async_ret_t updateTidInfo(vector<Event::ptr> &threadEvents);
+    async_ret_t updateTidInfo(std::vector<Event::ptr> &threadEvents);
     bool needsTidUpdate();
 
     //The types for thread_db functions we will call
@@ -165,6 +161,8 @@ protected:
     int_thread *trigger_thread;
 
     bool needs_tid_update;
+    
+    std::deque<Event::ptr> savedEvents;
 
     std::set<mem_response::ptr> resps;
     std::set<result_response::ptr> res_resps;
@@ -230,6 +228,16 @@ protected:
     bool threadHandle_alloced;
 };
 
+class ThreadDBPreCreateHandler : public Handler
+{
+public:
+    ThreadDBPreCreateHandler();
+    virtual ~ThreadDBPreCreateHandler();
+    virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
+    virtual int getPriority() const;
+    void getEventTypesHandled(std::vector<EventType> &etypes);
+};
+
 class ThreadDBCreateHandler : public Handler
 {
 public:
@@ -237,7 +245,7 @@ public:
     virtual ~ThreadDBCreateHandler();
     virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
     virtual int getPriority() const;
-    void getEventTypesHandled(vector<EventType> &etypes);
+    void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
 class ThreadDBLibHandler : public Handler

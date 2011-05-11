@@ -68,16 +68,14 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    breakpoint_addr = sp->breakpoint_addr;
    lib_initialized = sp->lib_initialized;
    aout = sp->aout;
+   procreader = NULL;
    if (sp->procreader)
       procreader = new PCProcReader(this);
-   else
-      procreader = NULL;
+   translator = NULL;
    if (sp->translator)
       translator = AddressTranslate::createAddressTranslator(pid_,
                                                              procreader,
                                                              plat_defaultSymReader());
-   else
-      translator = NULL;
 }
 
 sysv_process::~sysv_process()
