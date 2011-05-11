@@ -276,7 +276,7 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
           0, 
           sizeof(void*) * TARGET_CACHE_WIDTH * TARGET_CACHE_WAYS);
    memset(cacheLRUflags, 1, sizeof(char)*TARGET_CACHE_WIDTH);
-   stOut = fopen("rtdump.txt","w");
+   // stOut = fopen("rtdump.txt","w");
    rtdebug_printf("%s[%d]:  leaving DYNINSTinit\n", __FILE__, __LINE__);
    fakeTickCount=0;
    /* Memory emulation */

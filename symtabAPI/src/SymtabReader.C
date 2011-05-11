@@ -36,6 +36,9 @@
 
 #include "symtabAPI/src/Object.h"
 
+#include <sstream>
+using std::stringstream;
+
 using namespace Dyninst;
 using namespace SymtabAPI;
 
@@ -54,9 +57,10 @@ SymtabReader::SymtabReader(const char *buffer, unsigned long size) :
    mapped_regions(NULL),
    dwarf_handle(NULL)
 {
+   stringstream memName;
+   memName << "memory_" << (unsigned long)(buffer) << "_" << size;
    Symtab::openFile(symtab, const_cast<char *>(buffer), 
-                    size, symtab->file(), 
-                    (symtab->isDefensiveBinary() ? Symtab::Defensive : Symtab::NotDefensive));
+                    size, memName.str());
 }
 
 SymtabReader::~SymtabReader()

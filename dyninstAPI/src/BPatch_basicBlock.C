@@ -86,11 +86,6 @@ void BPatch_basicBlock::BPatch_basicBlock_dtor(){
                 delete instructions;
 
         BPatch_Set<BPatch_edge *>::iterator eIter;
-        eIter = incomingEdges.begin();
-        while (eIter != incomingEdges.end()) {
-            delete (*eIter);
-            eIter++;
-        }
         eIter = outgoingEdges.begin();
         while (eIter != outgoingEdges.end()) {
             delete (*eIter);
