@@ -2190,9 +2190,9 @@ bool mapped_object::isSystemLib(const std::string &objname)
 #endif
 
 #if defined(os_freebsd)
-   if(strstr(fname, "libc.so"))
+   if(std::string::npos != lowname.find("libc.so"))
        return true;
-   if(strstr(fname, "libthr"))
+   if(std::string::npos != lowname.find("libthr"))
        return true;
 #endif
 

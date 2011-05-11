@@ -30,13 +30,14 @@ SRCS =          ../src/freebsd.C \
 		../src/codegen-x86.C \
                 ../src/unix.C \
 		../src/stackwalk-x86.C \
-		../src/image-x86.C \
 		../src/frameChecker.C \
 		../src/IAPI_to_AST.C \
 		../src/BPatch_memoryAccessAdapter.C \
 		../src/RegisterConversion-x86.C \
 		../src/pcProcess-x86.C \
-		../src/syscall-freebsd.C
+		../src/syscall-freebsd.C \
+		../src/parse-x86.C \
+		../src/Relocation/Atoms/CFAtom-x86.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG

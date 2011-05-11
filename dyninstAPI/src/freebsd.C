@@ -345,7 +345,7 @@ Address PCProcess::findFunctionToHijack()
 
       pdvector<func_instance *> hijacks;
       if (!findFuncsByAll(func_name, hijacks)) continue;
-      codeBase = hijacks[0]->getAddress();
+      codeBase = hijacks[0]->addr();
 
       if (codeBase)
           break;
