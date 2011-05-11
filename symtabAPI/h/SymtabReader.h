@@ -68,9 +68,11 @@ class SymtabReader : public SymReader {
    int ref_count;
    std::vector<Region *> *mapped_regions;
    DwarfHandle *dwarf_handle;
+   bool ownsSymtab;
   public:
    SymtabReader(std::string file_);
    SymtabReader(const char *buffer, unsigned long size);
+   SymtabReader(Symtab *s);
    virtual ~SymtabReader();
 
    virtual Symbol_t getSymbolByName(std::string symname);
