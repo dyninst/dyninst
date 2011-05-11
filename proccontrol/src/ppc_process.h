@@ -30,21 +30,23 @@
  */
 
 
-#if !defined(arch_process_h_)
-#define arch_process_h_
+#if !defined(ppc_process_h_)
+#define ppc_process_h_
 
 #include "int_process.h"
 
-class arch_process : virtual public int_process
+class ppc_process : virtual public int_process
 {
  public:
-  arch_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
-          std::vector<std::string> envp, std::map<int, int> f);
-  arch_process(Dyninst::PID pid_, int_process *p) ;
-  virtual ~arch_process();
+  ppc_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+              std::vector<std::string> envp, std::map<int, int> f);
+  ppc_process(Dyninst::PID pid_, int_process *p) ;
+  virtual ~ppc_process();
 
   virtual unsigned plat_breakpointSize();
   virtual void plat_breakpointBytes(char *buffer);
+  virtual bool plat_breakpointAdvancesPC() const;
 };
 
 #endif
+

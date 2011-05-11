@@ -741,7 +741,7 @@ freebsd_process::freebsd_process(Dyninst::PID p, std::string e, std::vector<std:
   int_process(p, e, a, envp, f),
   sysv_process(p, e, a, envp, f),
   unix_process(p, e, a, envp, f),
-  arch_process(p, e, a, envp, f),
+  x86_process(p, e, a, envp, f),
   thread_db_process(p, e, a, envp, f),
   forking(false),
   parent(NULL)
@@ -752,7 +752,7 @@ freebsd_process::freebsd_process(Dyninst::PID pid_, int_process *p) :
   int_process(pid_, p),
   sysv_process(pid_, p),
   unix_process(pid_, p),
-  arch_process(pid_, p),
+  x86_process(pid_, p),
   thread_db_process(pid_, p),
   forking(false),
   parent(dynamic_cast<freebsd_process *>(p))
