@@ -38,10 +38,11 @@ class EventType
    //Users do not recieve CBs for the below event types--ProcControlAPI internal
    static const int InternalEvents      = 500;
    static const int BreakpointClear     = 500;
-   static const int RPCInternal         = 501;
-   static const int Async               = 502;
-   static const int ChangePCStop        = 503; // Used for bug_freebsd_change_pc
-   static const int PrepSingleStep      = 504;
+   static const int BreakpointRestore   = 501;
+   static const int RPCInternal         = 502;
+   static const int Async               = 503;
+   static const int ChangePCStop        = 504; // Used for bug_freebsd_change_pc
+   static const int PrepSingleStep      = 505;
 
    //Users should define their own events at this value or higher.
    static const int MaxProcCtrlEvent    = 1000;

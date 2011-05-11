@@ -3267,7 +3267,9 @@ int_breakpoint::int_breakpoint(Breakpoint::ptr up) :
    up_bp(up),
    to(0x0),
    isCtrlTransfer_(false),
-   data(false)
+   data(false),
+   onetime_bp(false),
+   onetime_bp_hit(false)
 {
 }
 
@@ -3275,7 +3277,9 @@ int_breakpoint::int_breakpoint(Dyninst::Address to_, Breakpoint::ptr up) :
    up_bp(up),
    to(to_),
    isCtrlTransfer_(true),
-   data(false)
+   data(false),
+   onetime_bp(false),
+   onetime_bp_hit(false)
 {
 }
 
@@ -3306,6 +3310,42 @@ void int_breakpoint::setData(void *v)
 Breakpoint::weak_ptr int_breakpoint::upBreakpoint() const
 {
    return up_bp;
+}
+
+void int_breakpoint::setThreadSpecific(Thread::ptr p)
+{
+   thread_specific.insert(p);
+}
+
+void int_breakpoint::setOneTimeBreakpoint(bool b)
+{
+   onetime_bp = b;
+}
+
+void int_breakpoint::markOneTimeHit()
+{
+   assert(onetime_bp);
+   ontime_bp_hit = true;
+}
+
+bool int_breakpoint::isOneTimeBreakpoint() const
+{
+   return onetime_bp;
+}
+
+bool int_breakpoint::isOneTimeBreakpointHit() const
+{
+   return onetime_bp_hit;
+}
+
+bool int_breakpoint::isThreadSpecific() const
+{
+   return !thread_specific.empty();
+}
+
+bool int_breakpoint::isThreadSpecificTo(Thread::ptr p) const
+{
+   return thread_specific.find(p) != thread_specific.end();
 }
 
 installed_breakpoint::installed_breakpoint(mem_state::ptr memory_, Address addr_) :
@@ -3439,6 +3479,19 @@ bool installed_breakpoint::containsIntBreakpoint(int_breakpoint *bp) {
     return (bps.count(bp) > 0);
 }
 
+int_breakpoint *intalled_breakpoint::getCtrlTransferBP(int_thread *thrd)
+{
+   for (iterator i = begin(); i != end(); i++) {
+      int_breakpoint *bp = *i;
+      if (!bp->isCtrlTransfer())
+         continue;
+      if (thrd && bp->isThreadSpecific() && !bp->isThreadSpecificTo(thrd))
+         continue;
+      return bp;
+   }
+   return NULL;
+}
+
 void installed_breakpoint::addClearingThread(int_thread *thrd) {
     clearingThreads.insert(thrd);
 }
@@ -3568,6 +3621,17 @@ Dyninst::Address installed_breakpoint::getAddr() const
 {
    return addr;
 }
+
+installed_breakpoint::iterator installed_breakpoint::begin()
+{
+   return bps.begin();
+}
+
+installed_breakpoint::iterator installed_breakpoint::end()
+{
+   return bps.end();
+}
+
 
 int_library::int_library(std::string n, Dyninst::Address load_addr, Dyninst::Address dynamic_load_addr, Dyninst::Address data_load_addr, bool has_data_load_addr) :
    name(n),

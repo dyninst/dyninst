@@ -296,11 +296,6 @@ Dyninst::Address EventBreakpoint::getAddress() const
   return addr;
 }
 
-bool EventBreakpoint::procStopper() const
-{
-   return true;
-}
-
 void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::const_ptr> &bps) const
 {
    if (!ibp)
@@ -537,9 +532,8 @@ EventSingleStep::~EventSingleStep()
 {
 }
 
-EventBreakpointClear::EventBreakpointClear(installed_breakpoint *bp) :
-  Event(EventType(EventType::None, EventType::BreakpointClear)),
-  bp_(bp)
+EventBreakpointClear::EventBreakpointClear() :
+  Event(EventType(EventType::None, EventType::BreakpointClear))
 {
    int_bpc = new int_eventBreakpointClear();
 }
@@ -551,15 +545,34 @@ EventBreakpointClear::~EventBreakpointClear()
    int_bpc = NULL;
 }
 
-installed_breakpoint *EventBreakpointClear::bp() const
-{
-  return bp_;
-}
-
 int_eventBreakpointClear *EventBreakpointClear::getInternal() const
 {
    return int_bpc;
 }
+
+bool EventBreakpointClear::procStopper() const
+{
+   return true;
+}
+
+EventBreakpointRestore::EventBreakpointRestore() :
+  Event(EventType(EventType::None, EventType::BreakpointRestore))
+{
+   int_bpr = new int_eventBreakpointRestore();
+}
+
+EventBreakpointRestore::~EventBreakpointRestore()
+{
+   assert(int_bpr);
+   delete int_bpr;
+   int_bpr = NULL;
+}
+
+int_eventBreakpointRestore *EventBreakpointRestore::getInternal() const
+{
+   return int_bpr;
+}
+
 
 EventLibrary::EventLibrary(const std::set<Library::ptr> &added_libs_,
                            const std::set<Library::ptr> &rmd_libs_) :
@@ -595,7 +608,19 @@ const std::set<Library::ptr> &EventLibrary::libsRemoved() const
    return rmd_libs;
 }
 
-int_eventBreakpointClear::int_eventBreakpointClear() 
+int_eventBreakpoint::int_eventBreakpoint(Address a, installed_breakpoint *i) :
+   installed_breakpoint(i),
+   addr(a)
+{
+}
+
+int_eventBreakpoint::~int_eventBreakpoint()
+{
+}
+
+int_eventBreakpointClear::int_eventBreakpointClear() :
+   set_singlestep(false),
+   cached_bp_sets(false)
 {
 }
 
@@ -603,12 +628,54 @@ int_eventBreakpointClear::~int_eventBreakpointClear()
 {
 }
 
-int_eventBreakpoint::int_eventBreakpoint() :
-   set_singlestep(false)
+void int_eventBreakpointClear::getBPTypes(set<pair<installed_breakpoint *, int_thread *> > &bps_to_clear,
+                                          set<pair<installed_breakpoint *, int_thread *> > &bps_to_restore)
+{
+   if (cached_bp_sets) {
+      bps_to_clear = bps_to_clear_cached;
+      bps_to_restore = bps_to_restore_cached;
+      return;
+   }
+   cached_bp_sets = true;
+
+   for (set<Thread::ptr>::iterator i = clearing_threads.begin(); i != clearing_threads.end(); i++) {
+      Thread::ptr thr = *i;
+      if (!thr || !thr->llthrd()) {
+         pthrd_printf("Thread exited or detached before breakpoint clear\n");
+         continue;
+      }
+      int_thread *llthrd = thr->llthrd();
+
+      installed_breakpoint *ibp = llthr->isStoppedOnBP();
+      pthrd_printf("Checking what to do with breakpoint on Thread %d/%d\n", 
+                   thr->llproc()->getPid(), thr->getLWP());
+
+      if (!ibp->isInstalled()) {
+         pthrd_printf("Breakpoint not installed, not actually clearing or restoring\n");
+         continue;
+      }
+
+      pthrd_printf("Going to clear breakpoint\n");
+      bps_to_clear.insert(pair<installed_breakpoint *, int_thread *>(ibp, thr));
+
+      for (installed_breakpoint::iterator j = ibp->begin(); j != ibp->end(); j++) {
+         if (ibp->isOneTimeBreakpoint() && ibp->isOneTimeBreakpointHit()) {
+            pthrd_printf("One time breakpoint has been hit, not going to restore\n");
+            continue;
+         }
+         pthrd_printf("Found breakpoint to restore after clear\n");
+         bps_to_restore.insert(pair<installed_breakpoint *, int_thread *>(ibp, thr));
+         break;
+      }
+   }
+}
+
+
+int_eventBreakpointRestore::int_eventBreakpointRestore()
 {
 }
 
-int_eventBreakpoint::~int_eventBreakpoint()
+int_eventBreakpointRestore::~int_eventBreakpointRestore()
 {
 }
 

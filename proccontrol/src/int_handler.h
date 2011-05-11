@@ -188,22 +188,21 @@ class HandleBreakpoint : public Handler
   virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
-class HandlePostBreakpoint : public Handler
-{
- public:
-  HandlePostBreakpoint();
-  ~HandlePostBreakpoint();
-
-  virtual void getEventTypesHandled(vector<EventType> &etypes);
-  virtual handler_ret_t handleEvent(Event::ptr ev);
-  virtual int getPriority() const;
-};
-
 class HandleBreakpointClear : public Handler
 {
  public:
   HandleBreakpointClear();
   ~HandleBreakpointClear();
+
+  virtual void getEventTypesHandled(vector<EventType> &etypes);
+  virtual handler_ret_t handleEvent(Event::ptr ev);
+};
+
+class HandleBreakpointRestore : public Handler
+{
+ public:
+  HandleBreakpointRestore();
+  ~HandleBreakpointRestore();
 
   virtual void getEventTypesHandled(vector<EventType> &etypes);
   virtual handler_ret_t handleEvent(Event::ptr ev);

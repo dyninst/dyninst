@@ -253,6 +253,10 @@ class int_process
    std::string getExecutable() const;
    static bool isInCallback();
 
+   EventBreakpointClear::ptr getPendingBPClearEvent();
+   EventBreakpointClear::ptr newPendingBPClearEvent();
+   void clearPendingBPClearEvent();
+
    static int_process *in_waitHandleProc;
  protected:
    State state;
@@ -446,9 +450,12 @@ class int_thread
    void setSingleStepMode(bool s);
    bool singleStepUserMode() const;
    void setSingleStepUserMode(bool s);
-   bool singleStep() const;   
+   bool singleStep() const;
    void markClearingBreakpoint(installed_breakpoint *bp);
    installed_breakpoint *isClearingBreakpoint();
+   void markStoppedOnBP(installed_breakpoint *bp);
+   installed_breakpoint *isStoppedOnBP();
+
    virtual bool plat_needsPCSaveBeforeSingleStep() = 0;
    void setPreSingleStepPC(Dyninst::MachRegisterVal pc);
    Dyninst::MachRegisterVal getPreSingleStepPC() const;
@@ -679,6 +686,10 @@ class int_breakpoint
    Dyninst::Address to;
    bool isCtrlTransfer_;
    void *data;
+
+   bool onetime_bp;
+   bool onetime_bp_hit;
+   std::set<Thread::ptr> thread_specific;
  public:
    int_breakpoint(Breakpoint::ptr up);
    int_breakpoint(Dyninst::Address to, Breakpoint::ptr up);
@@ -689,6 +700,15 @@ class int_breakpoint
    Dyninst::Address getAddress(int_process *p) const;
    void *getData() const;
    void setData(void *v);
+   
+   void setOneTimeBreakpoint(bool b);
+   void markOneTimeHit();
+   bool isOneTimeBreakpoint() const;
+
+   void setThreadSpecific(Thread::ptr p);
+   bool isThreadSpecific() const;
+   bool isThreadSpecificTo(Thread::ptr p) const;
+   
    Breakpoint::weak_ptr upBreakpoint() const;
 };
 
@@ -728,7 +748,8 @@ class installed_breakpoint
    bool insertBreakpoint(int_process *proc, result_response::ptr res_resp);
    bool addBreakpoint(int_breakpoint *bp);
    bool containsIntBreakpoint(int_breakpoint *bp);
-
+   int_breakpoint *getCtrlTransferBP(int_thread *thread);
+   
    bool rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empty, result_response::ptr async_resp);
    bool uninstall(int_process *proc, result_response::ptr async_resp);
    bool suspend(int_process *proc, result_response::ptr result_resp);
@@ -739,6 +760,10 @@ class installed_breakpoint
    void addClearingThread(int_thread *thrd);
    bool rmClearingThread(int_thread *thrd, bool &uninstalled, result_response::ptr async_resp);
    unsigned getNumClearingThreads() const;
+
+   typedef std::set<int_breakpoint *>::iterator iterator;
+   iterator begin();
+   iterator end();
 };
 
 class emulated_singlestep {

@@ -30,9 +30,23 @@
  */
 
 #include "response.h"
+#include <set>
 
 namespace Dyninst {
 namespace ProcControlAPI {
+
+class int_eventBreakpoint
+{
+  public:
+   int_eventBreakpoint(Address a, installed_breakpoint *i);
+   ~int_eventBreakpoint();
+
+   installed_breakpoint *ibp;
+   Dyninst::Address addr;
+   result_response::ptr pc_regset;
+
+   std::set<Breakpoint::ptr> cb_bps;
+};
 
 class int_eventBreakpointClear
 {
@@ -40,19 +54,29 @@ class int_eventBreakpointClear
    int_eventBreakpointClear();
    ~int_eventBreakpointClear();
 
-   result_response::ptr memwrite_bp_resume;
-   result_response::ptr memwrite_bp_remove;
-};
+   std::set<result_response::ptr> memwrite_bp_suspend;
+   bool started_bp_suspends;
 
-class int_eventBreakpoint
+   bool set_singlestep;
+
+   std::set<Thread::ptr> clearing_threads;
+
+   void getBPTypes(set<installed_breakpoint *> &bps_to_clear,
+                   set<installed_breakpoint *> &bps_to_restore);
+   set<pair<installed_breakpoint *, int_thread *> > bps_to_clear_cached;
+   set<pair<installed_breakpoint *, int_thread *> > bps_to_restore_cached;
+   bool cached_bp_sets;
+                   
+};
+ 
+class int_eventBreakpointRestore
 {
   public:
-   int_eventBreakpoint();
-   ~int_eventBreakpoint();
+   int_eventBreakpointRestore();
+   ~int_eventBreakpointRestore();
 
-   result_response::ptr memwrite_bp_suspend;
-   result_response::ptr pc_regset;
-   bool set_singlestep;
+   result_response::ptr memwrite_bp_resume;
+   result_response::ptr memwrite_bp_remove;
 };
 
 class int_eventRPC {

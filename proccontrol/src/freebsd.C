@@ -426,10 +426,9 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                 if( ibp && ibp != thread->isClearingBreakpoint() ) {
                     pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(),
                             thread->getLWP(), adjusted_addr);
-                    EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(adjusted_addr, ibp));
+                    EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(new int_EventBreakpoint(adjusted_addr, ibp)));
                     event = event_bp;
                     event->setThread(thread->thread());
-                    ibp->addClearingThread(thread);
 
                     if( adjusted_addr == lproc->getLibBreakpointAddr() ) {
                         pthrd_printf("Breakpoint is library load/unload\n");
