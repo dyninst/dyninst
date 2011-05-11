@@ -43,8 +43,8 @@ struct thread_info {
    }
 };
 
-std::map<Thread::const_ptr, thread_info> tinfo;
-std::map<Process::const_ptr, proc_info_ss> pinfo;
+static std::map<Thread::const_ptr, thread_info> tinfo;
+static std::map<Process::const_ptr, proc_info_ss> pinfo;
 Breakpoint::ptr bp;
 
 static bool myerror;

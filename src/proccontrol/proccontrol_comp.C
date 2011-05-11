@@ -141,7 +141,6 @@ Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &
 
       int signal_fd = params.find("signal_fd_in") != params.end() ? params["signal_fd_in"]->getInt() : -1;
       if (signal_fd > 0) {
-         logerror("signal_fd is %d\n", signal_fd);
          bool result = waitForSignalFD(signal_fd);
          if (!result) {
             logerror("Timeout waiting for signalFD\n");
@@ -407,7 +406,7 @@ test_results_t ProcControlComponent::group_setup(RunGroup *group, ParameterDict 
    return PASSED;
 }
 
-Process::cb_ret_t on_exit(Event::const_ptr ev)
+Process::cb_ret_t pc_on_exit(Event::const_ptr ev)
 {
    return Process::cbDefault;
 }
@@ -422,7 +421,7 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
    if (curgroup_self_cleaning)
       return PASSED;
 
-   Process::registerEventCallback(EventType(EventType::Exit), on_exit);
+   Process::registerEventCallback(EventType(EventType::Exit), pc_on_exit);
    do {
       hasRunningProcs = false;
       for (vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {

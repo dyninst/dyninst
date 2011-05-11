@@ -75,7 +75,7 @@ extern FILE *debug_log;
 
 #include <link.h>
 
-static void* openSO(const char *soname)
+static void* openSO(const char *soname, bool local)
 {
    char *fullSoPath = NULL;
 #if defined(os_aix_test)
@@ -90,7 +90,7 @@ static void* openSO(const char *soname)
    if (!fullSoPath) {
       fullSoPath = strdup(soname);
    }
-   void *handle = dlopen(fullSoPath, RTLD_NOW | RTLD_GLOBAL);
+   void *handle = dlopen(fullSoPath, RTLD_NOW | (local ? RTLD_LOCAL : RTLD_GLOBAL));
    ::free(fullSoPath);
    if (!handle) {
       fprintf(stderr, "Error opening lib: %s\n", soname);
@@ -115,7 +115,7 @@ int setupMutatorsForRunGroup(RunGroup *group)
     
     const char *soname = test->soname;
 
-    void *handle = openSO(soname);
+    void *handle = openSO(soname, true);
     if (!handle) {
        getOutput()->log(STDERR, "Couldn't open %s\n", soname);
        return -1;
@@ -157,7 +157,7 @@ ComponentTester *Module::loadModuleLibrary()
 #else   
    snprintf(libname, 256, "libtest%s.so", name.c_str());
 #endif
-   libhandle = openSO(libname);
+   libhandle = openSO(libname, false);
    if (!libhandle)
       return NULL;
 

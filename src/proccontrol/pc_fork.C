@@ -86,7 +86,7 @@ Process::cb_ret_t on_fork(Event::const_ptr ev)
    return Process::cb_ret_t(Process::cbDefault, Process::cbProcContinue);
 }
 
-Process::cb_ret_t on_exit(Event::const_ptr ev)
+Process::cb_ret_t fork_test_on_exit(Event::const_ptr ev)
 {
    EventExit::const_ptr ee = ev->getEventExit();
    if (!ev->getProcess()->isExited()) {
@@ -107,7 +107,7 @@ test_results_t pc_forkMutator::executeTest()
 
    Process::registerEventCallback(EventType::Breakpoint, on_breakpoint);
    Process::registerEventCallback(EventType::Fork, on_fork);
-   Process::registerEventCallback(EventType(EventType::Post, EventType::Exit),on_exit);
+   Process::registerEventCallback(EventType(EventType::Post, EventType::Exit), fork_test_on_exit);
 
    for (std::vector<Process::ptr>::iterator i = comp->procs.begin(); 
         i != comp->procs.end(); i++) {
@@ -231,7 +231,7 @@ test_results_t pc_forkMutator::executeTest()
 
    Process::removeEventCallback(on_fork);
    Process::removeEventCallback(on_breakpoint);
-   Process::removeEventCallback(on_exit);
+   Process::removeEventCallback(fork_test_on_exit);
 
    return myerror ? FAILED : PASSED;
 }
