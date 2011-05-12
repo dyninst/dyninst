@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "InstAtom.h"
+#include "InstWidget.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "../patchapi_debug.h"
@@ -43,11 +43,11 @@ using namespace Dyninst;
 using namespace Relocation;
 
 
-InstAtom::Ptr InstAtom::create(instPoint *i) {
-  return Ptr(new InstAtom(i));
+InstWidget::Ptr InstWidget::create(instPoint *i) {
+  return Ptr(new InstWidget(i));
 }
 
-TrackerElement *InstAtom::tracker() const {
+TrackerElement *InstWidget::tracker() const {
    // Trackers need a base tramp and a block...
    // The block is "where we're going to" for edge instrumentation 
    // purposes. 
@@ -61,26 +61,26 @@ TrackerElement *InstAtom::tracker() const {
    return e;
 }
 
-InstAtom::~InstAtom() {
+InstWidget::~InstWidget() {
 }
 
-bool InstAtom::generate(const codeGen &,
-                    const Trace *,
+bool InstWidget::generate(const codeGen &,
+                    const RelocBlock *,
                     CodeBuffer &buffer) {
    // We should work baseTramp code generation into the CodeBuffer
    // system, but that's for future work...
-   InstAtomPatch *patch = new InstAtomPatch(point_->tramp());
+   InstWidgetPatch *patch = new InstWidgetPatch(point_->tramp());
    buffer.addPatch(patch, tracker());
    return true;
 }
 
-std::string InstAtom::format() const {
-   return "InstAtom()";
+std::string InstWidget::format() const {
+   return "InstWidget()";
 }
 
 // Could be a lot smarter here...
-bool InstAtomPatch::apply(codeGen &gen, CodeBuffer *) {
-   relocation_cerr << "\t\t InstAtomPatch::apply " << this << " /w/ tramp " << tramp << endl;
+bool InstWidgetPatch::apply(codeGen &gen, CodeBuffer *) {
+   relocation_cerr << "\t\t InstWidgetPatch::apply " << this << " /w/ tramp " << tramp << endl;
   gen.registerInstrumentation(tramp, gen.currAddr());
 
   
@@ -89,21 +89,21 @@ bool InstAtomPatch::apply(codeGen &gen, CodeBuffer *) {
   return ret;
 }
 
-unsigned InstAtomPatch::estimate(codeGen &) {
+unsigned InstWidgetPatch::estimate(codeGen &) {
    return 0;
 }
 
-InstAtomPatch::~InstAtomPatch() {
+InstWidgetPatch::~InstWidgetPatch() {
    // Don't delete the tramp because it belongs to 
    // an instPoint.
 }
 
-bool RemovedInstAtomPatch::apply(codeGen &gen, CodeBuffer *) {
+bool RemovedInstWidgetPatch::apply(codeGen &gen, CodeBuffer *) {
   // Just want to leave a marker here for later.
   gen.registerRemovedInstrumentation(tramp, gen.currAddr());
   return true;
 }
 
-unsigned RemovedInstAtomPatch::estimate(codeGen &) {
+unsigned RemovedInstWidgetPatch::estimate(codeGen &) {
    return 0;
 }

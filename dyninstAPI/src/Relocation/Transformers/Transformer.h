@@ -46,10 +46,10 @@ namespace Dyninst {
 
 namespace Relocation {
 
-class Atom;
-class Trace;
+class Widget;
+class RelocBlock;
 class TargetInt;
-class CFAtom;
+class CFWidget;
 class RelocInsn;
 struct RelocEdge;
 struct RelocEdges;
@@ -70,12 +70,12 @@ class RelocGraph;
  
 class Transformer {
  public:
-  typedef dyn_detail::boost::shared_ptr<Atom> AtomPtr;
-  typedef std::list<AtomPtr> AtomList;
-  typedef std::map<block_instance *, Trace *> TraceMap;
+  typedef dyn_detail::boost::shared_ptr<Widget> WidgetPtr;
+  typedef std::list<WidgetPtr> WidgetList;
+  typedef std::map<block_instance *, RelocBlock *> RelocBlockMap;
 
   virtual bool processGraph(RelocGraph *);
-  virtual bool process(Trace *, 
+  virtual bool process(RelocBlock *, 
                        RelocGraph *) = 0;
 
   virtual ~Transformer() {};

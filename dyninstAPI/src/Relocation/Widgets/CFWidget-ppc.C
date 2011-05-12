@@ -1,8 +1,8 @@
 // ppc-specific methods for generating control flow
 
-#include "CFAtom.h"
-#include "Atom.h"
-#include "Target.h"
+#include "CFWidget.h"
+#include "Widget.h"
+#include "../CFG/RelocTarget.h"
 
 #include "instructionAPI/h/Instruction.h"
 
@@ -20,9 +20,9 @@ using namespace InstructionAPI;
 
 using namespace NS_power;
 
-bool CFAtom::generateIndirect(CodeBuffer &buffer,
+bool CFWidget::generateIndirect(CodeBuffer &buffer,
                               Register,
-                              const Trace *trace,
+                              const RelocBlock *trace,
                               Instruction::Ptr insn) {
   // Copying an indirect jump; unlike x86 we don't do
   // call -> indirect conversion yet. 
@@ -41,10 +41,10 @@ bool CFAtom::generateIndirect(CodeBuffer &buffer,
 
 
 
-bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
+bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
                                   Register reg,
                                   Instruction::Ptr insn,
-                                  const Trace *trace,
+                                  const RelocBlock *trace,
 				  Address origAddr) 
 {
   NS_power::instruction ugly_insn(insn->ptr());
@@ -144,7 +144,7 @@ bool CFPatch::isPLT(codeGen &gen) {
 
    // First check the target type.
    if (target->type() != TargetInt::BlockTarget) {
-      // Either a Trace (which _must_ be local)
+      // Either a RelocBlock (which _must_ be local)
       // or an Address (which has to be local to be
       // meaningful); neither reqs PLT
       return false;

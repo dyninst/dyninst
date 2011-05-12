@@ -34,11 +34,11 @@
 
 
 
-// Infrastructure for the code generating Atoms; try to automate
+// Infrastructure for the code generating Widgets; try to automate
 // as much of the handling as we can.
 //
 // Background
-//  An Atom can generate two types of code: PIC and non-PIC. PIC code can be treated
+//  An Widget can generate two types of code: PIC and non-PIC. PIC code can be treated
 //  as a sequence of bytes that can be freely copied around, whereas non-PIC code must
 //  be tweaked whenever its address changes as part of code generation. Note, it is safe
 //  treat PIC code as non-PIC (though less than optimal); the reverse is not true. For

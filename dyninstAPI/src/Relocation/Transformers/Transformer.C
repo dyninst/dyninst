@@ -32,15 +32,15 @@
 
 #include "Transformer.h"
 #include "dyninstAPI/src/Relocation/CodeMover.h"
-#include "dyninstAPI/src/Relocation/Atoms/Trace.h"
-#include "dyninstAPI/src/Relocation/Atoms/Target.h"
-#include "../RelocGraph.h"
+#include "dyninstAPI/src/Relocation/CFG/RelocBlock.h"
+#include "dyninstAPI/src/Relocation/CFG/RelocTarget.h"
+#include "../CFG/RelocGraph.h"
 
 using namespace Dyninst;
 using namespace Relocation;
 
 bool Transformer::processGraph(RelocGraph *cfg) {
-   for (Trace *cur = cfg->head; cur != NULL; cur = cur->next()) {
+   for (RelocBlock *cur = cfg->head; cur != NULL; cur = cur->next()) {
       if (!process(cur, cfg)) {
          cerr << "Failed to transform trace " << cur->id() << endl;
          return false;

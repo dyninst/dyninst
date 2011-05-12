@@ -29,37 +29,53 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "ASTWidget.h"
+#include "dyninstAPI/src/ast.h"
+#include "../patchapi_debug.h"
+#include "dyninstAPI/src/registerSpace.h"
+#include "dyninstAPI/src/instPoint.h"
 #include "../CodeBuffer.h"
 #include "CFG.h"
-#include "Target.h"
+#include <string>
+#include "../CodeTracker.h"
 
 using namespace Dyninst;
 using namespace Relocation;
 
-int Target<block_instance *>::label(CodeBuffer *buf) const {
-   return buf->defineLabel(t_->start());
+ASTWidget::Ptr ASTWidget::create(AstNodePtr a, instPoint *b) {
+  return Ptr(new ASTWidget(a, b));
 }
 
-int Target<Address>::label(CodeBuffer *buf) const {
-   return buf->defineLabel(t_);
-}
-   
-void Target<Trace *>::addTargetEdge(RelocEdge *e) {
-   t_->outs()->insert(e);
-}
-
-void Target<Trace *>::addSourceEdge(RelocEdge *e) {
-   t_->ins()->insert(e);
+bool ASTWidget::generate(const codeGen &,
+                       const RelocBlock *,
+                       CodeBuffer &buffer) {
+  AstPatch *patch = new AstPatch(ast_, point_);
+  buffer.addPatch(patch, tracker());
+  return true;
 }
 
-void Target<Trace *>::removeTargetEdge(RelocEdge *e) {
-   t_->outs()->erase(e);
+TrackerElement *ASTWidget::tracker() const {
+   OriginalTracker *e = new OriginalTracker(point_->nextExecutedAddr(), point_->block());
+   return e;
 }
 
-void Target<Trace *>::removeSourceEdge(RelocEdge *e) {
-   t_->ins()->erase(e);
+std::string ASTWidget::format() const {
+  return "AST(*)";
 }
 
-block_instance *Target<Trace *>::block() { 
-   return t_->block();
+// Could be a lot smarter here...
+bool AstPatch::apply(codeGen &gen, CodeBuffer *) {
+  relocation_cerr << "\t\t AstPatch::apply" << endl;
+  registerSpace *localRegSpace = registerSpace::actualRegSpace(point);
+  gen.setRegisterSpace(localRegSpace);
+
+  return ast->generateCode(gen, true);
 }
+
+unsigned AstPatch::estimate(codeGen &) {
+   // Will force an extra run of codeGen,
+   // but that's okay
+   return 0;
+}
+
+AstPatch::~AstPatch() {}

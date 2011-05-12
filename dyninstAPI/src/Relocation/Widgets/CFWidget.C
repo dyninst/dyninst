@@ -29,9 +29,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "CFAtom.h"
-#include "Atom.h"
-#include "Target.h"
+#include "CFWidget.h"
+#include "Widget.h"
+#include "../CFG/RelocTarget.h"
 
 #include "instructionAPI/h/Instruction.h"
 
@@ -44,7 +44,7 @@
 #if defined(MEMORY_EMULATION_LAYER)
 #include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-#include "dyninstAPI/src/MemoryEmulator/memEmulatorAtom.h"
+#include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
 #endif
 
 using namespace Dyninst;
@@ -55,23 +55,23 @@ using namespace InstructionAPI;
 
 // Pick values that don't correspond to actual targets. I'm skipping
 // 0 because it's used all over the place as a null.
-const Address CFAtom::Fallthrough(1);
-const Address CFAtom::Taken(2);
+const Address CFWidget::Fallthrough(1);
+const Address CFWidget::Taken(2);
 
 // Case 1: an empty trace ender for traces that do not
 // end in a CF-category instruction
-CFAtom::Ptr CFAtom::create(Address a) {
-   CFAtom::Ptr ptr = Ptr(new CFAtom(a));
+CFWidget::Ptr CFWidget::create(Address a) {
+   CFWidget::Ptr ptr = Ptr(new CFWidget(a));
    return ptr;
 }
 
 // Case 2: wrap a CF-category instruction
-CFAtom::Ptr CFAtom::create(Atom::Ptr atom) {
-   CFAtom::Ptr ptr = Ptr(new CFAtom(atom->insn(), atom->addr()));
+CFWidget::Ptr CFWidget::create(Widget::Ptr atom) {
+   CFWidget::Ptr ptr = Ptr(new CFWidget(atom->insn(), atom->addr()));
    return ptr;
 }
 
-CFAtom::CFAtom(InstructionAPI::Instruction::Ptr insn, Address addr)  :
+CFWidget::CFWidget(InstructionAPI::Instruction::Ptr insn, Address addr)  :
    isCall_(false), 
    isConditional_(false), 
    isIndirect_(false),
@@ -110,8 +110,8 @@ CFAtom::CFAtom(InstructionAPI::Instruction::Ptr insn, Address addr)  :
 }
 
 
-bool CFAtom::generate(const codeGen &templ,
-                      const Trace *trace,
+bool CFWidget::generate(const codeGen &templ,
+                      const RelocBlock *trace,
                       CodeBuffer &buffer)
 {
    // We need to create jumps to wherever our successors are
@@ -132,11 +132,11 @@ bool CFAtom::generate(const codeGen &templ,
    //   2) As above, except make sure call bit is flipped on
    // Indirect branch:
    //   1) Just go for it... we have no control, really
-   relocation_cerr << "CFAtom generation for " << trace->id() << endl;
+   relocation_cerr << "CFWidget generation for " << trace->id() << endl;
    if (destMap_.empty() && !isIndirect_) {
       // No successors at all? Well, it happens if
       // we hit a halt...
-      relocation_cerr << "CFAtom /w/ no successors, ret true" << endl;
+      relocation_cerr << "CFWidget /w/ no successors, ret true" << endl;
       return true;
    }
 
@@ -150,15 +150,15 @@ bool CFAtom::generate(const codeGen &templ,
 
    if (isIndirect_) {
       opt = Indirect;
-      relocation_cerr << "  generating CFAtom as indirect branch" << endl;
+      relocation_cerr << "  generating CFWidget as indirect branch" << endl;
    }
    else if (isConditional_ || isCall_) {
       opt = Taken_FT;
-      relocation_cerr << "  generating CFAtom as call or conditional branch" << endl;
+      relocation_cerr << "  generating CFWidget as call or conditional branch" << endl;
    }
    else {
       opt = Single;
-      relocation_cerr << "  generating CFAtom as direct branch" << endl;
+      relocation_cerr << "  generating CFWidget as direct branch" << endl;
    }
 
    switch (opt) {
@@ -176,7 +176,7 @@ bool CFAtom::generate(const codeGen &templ,
             fallthrough = true;
          }
          if (iter == destMap_.end()) {
-            cerr << "Error in CFAtom from trace " << trace->id()
+            cerr << "Error in CFWidget from trace " << trace->id()
                  << ", could not find target for single control transfer" << endl;
             cerr << "\t DestMap dump:" << endl;
             for (DestinationMap::iterator d = destMap_.begin(); 
@@ -290,22 +290,22 @@ bool CFAtom::generate(const codeGen &templ,
    return true;
 }
 
-CFAtom::~CFAtom() {
+CFWidget::~CFWidget() {
    // Don't delete the Targets; they're taken care of when we nuke the overall CFG. 
 }
 
-TrackerElement *CFAtom::tracker(const Trace *trace) const {
+TrackerElement *CFWidget::tracker(const RelocBlock *trace) const {
    assert(addr_ != 1);
    EmulatorTracker *e = new EmulatorTracker(addr_, trace->block(), trace->func());
    return e;
 }
 
-TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
+TrackerElement *CFWidget::destTracker(TargetInt *dest) const {
    block_instance *destBlock = NULL;
    func_instance *destFunc = NULL;
    switch (dest->type()) {
-      case TargetInt::TraceTarget: {
-         Target<Trace *> *targ = static_cast<Target<Trace *> *>(dest);
+      case TargetInt::RelocBlockTarget: {
+         Target<RelocBlock *> *targ = static_cast<Target<RelocBlock *> *>(dest);
          assert(targ);
          assert(targ->t());
          destBlock = targ->t()->block();
@@ -325,26 +325,26 @@ TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
    return e;
 }
 
-TrackerElement *CFAtom::addrTracker(Address addr, const Trace *trace) const {
+TrackerElement *CFWidget::addrTracker(Address addr, const RelocBlock *trace) const {
    EmulatorTracker *e = new EmulatorTracker(addr, trace->block(), trace->func());
    return e;
 }
 
-TrackerElement *CFAtom::padTracker(Address addr, unsigned size, const Trace *trace) const {
+TrackerElement *CFWidget::padTracker(Address addr, unsigned size, const RelocBlock *trace) const {
    PaddingTracker *p = new PaddingTracker(addr, size, trace->block(), trace->func());
    return p;
 }
 
-void CFAtom::addDestination(Address index, TargetInt *dest) {
+void CFWidget::addDestination(Address index, TargetInt *dest) {
    assert(dest);
-   relocation_cerr << "CFAtom @ " << std::hex << addr() << ", adding destination " << dest->format()
+   relocation_cerr << "CFWidget @ " << std::hex << addr() << ", adding destination " << dest->format()
                    << " / " << index << std::dec << endl;
 
    destMap_[index] = dest;
 }
 
-TargetInt *CFAtom::getDestination(Address dest) const {
-   CFAtom::DestinationMap::const_iterator d_iter = destMap_.find(dest);
+TargetInt *CFWidget::getDestination(Address dest) const {
+   CFWidget::DestinationMap::const_iterator d_iter = destMap_.find(dest);
    if (d_iter != destMap_.end()) {
       return d_iter->second;
    }
@@ -352,10 +352,10 @@ TargetInt *CFAtom::getDestination(Address dest) const {
 }
 
 
-bool CFAtom::generateBranch(CodeBuffer &buffer,
+bool CFWidget::generateBranch(CodeBuffer &buffer,
 			    TargetInt *to,
 			    Instruction::Ptr insn,
-                            const Trace *trace,
+                            const RelocBlock *trace,
 			    bool fallthrough) {
    assert(to);
    if (!to->necessary()) return true;
@@ -380,9 +380,9 @@ bool CFAtom::generateBranch(CodeBuffer &buffer,
    return true;
 }
 
-bool CFAtom::generateCall(CodeBuffer &buffer,
+bool CFWidget::generateCall(CodeBuffer &buffer,
 			  TargetInt *to,
-                          const Trace *trace,
+                          const RelocBlock *trace,
 			  Instruction::Ptr insn) {
    if (!to) {
       // This can mean an inter-module branch...
@@ -397,9 +397,9 @@ bool CFAtom::generateCall(CodeBuffer &buffer,
    return true;
 }
 
-bool CFAtom::generateConditionalBranch(CodeBuffer &buffer,
+bool CFWidget::generateConditionalBranch(CodeBuffer &buffer,
 				       TargetInt *to,
-                                       const Trace *trace,
+                                       const RelocBlock *trace,
 				       Instruction::Ptr insn) {
    assert(to);
 
@@ -410,7 +410,7 @@ bool CFAtom::generateConditionalBranch(CodeBuffer &buffer,
    return true;
 }
 
-bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
+bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
                                        const codeGen &templ,
                                        Register &reg) 
 {
@@ -469,7 +469,7 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
    emitSaveO(patch);
    ::emitPush(RealRegister(REGNUM_EAX), patch);
    
-   // This might look a lot like a memEmulatorAtom. That's, well, because it
+   // This might look a lot like a memEmulatorWidget. That's, well, because it
    // is. 
    buffer.addPIC(patch, tracker());
    
@@ -478,7 +478,7 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
    // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
    assert(func);
    
-   // Now we start stealing from memEmulatorAtom. We need to call our translation function,
+   // Now we start stealing from memEmulatorWidget. We need to call our translation function,
    // which means a non-PIC patch to the CodeBuffer. I don't feel like rewriting everything,
    // so there we go.
    buffer.addPatch(new MemEmulatorPatch(REGNUM_ECX, REGNUM_ECX, addr_, func->getAddress()),
@@ -516,9 +516,9 @@ bool CFAtom::generateAddressTranslator(CodeBuffer &buffer,
 #endif
 }
 
-std::string CFAtom::format() const {
+std::string CFWidget::format() const {
    stringstream ret;
-   ret << "CFAtom(" << std::hex;
+   ret << "CFWidget(" << std::hex;
    ret << addr_ << ",";
    if (isIndirect_) ret << "<ind>";
    if (isConditional_) ret << "<cond>";
@@ -545,7 +545,7 @@ std::string CFAtom::format() const {
 }
 
 #if 0
-unsigned CFAtom::size() const
+unsigned CFWidget::size() const
 { 
    if (insn_ != NULL) 
       return insn_->size(); 

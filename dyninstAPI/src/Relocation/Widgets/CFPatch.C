@@ -1,7 +1,7 @@
 // x86-specific methods for generating control flow
 
-#include "CFAtom.h"
-#include "Atom.h"
+#include "CFWidget.h"
+#include "Widget.h"
 #include "Target.h"
 
 #include "instructionAPI/h/Instruction.h"
@@ -109,7 +109,7 @@ bool CFPatch::isPLT(codeGen &gen) {
 
    // First check the target type.
    if (target->type() != TargetInt::BlockTarget) {
-      // Either a Trace (which _must_ be local)
+      // Either a RelocBlock (which _must_ be local)
       // or an Address (which has to be local to be
       // meaningful); neither reqs PLT
       return false;

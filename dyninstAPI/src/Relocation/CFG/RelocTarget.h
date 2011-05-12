@@ -32,8 +32,8 @@
 #if !defined (_R_E_TARGET_H_)
 #define _R_E_TARGET_H_
 
-#include "Atom.h"
-#include "Trace.h"
+#include "../Widgets/Widget.h"
+#include "RelocBlock.h"
 
 namespace Dyninst {
 namespace Relocation {
@@ -57,7 +57,7 @@ class TargetInt {
  public:
   typedef enum {
     Illegal,
-    TraceTarget,
+    RelocBlockTarget,
     BlockTarget,
     AddrTarget, } type_t;
 
@@ -74,7 +74,7 @@ class TargetInt {
 
   virtual type_t type() const { return Illegal; };
   
-  virtual bool matches(Trace *) const { return false; }
+  virtual bool matches(RelocBlock *) const { return false; }
   virtual int label(CodeBuffer *) const { return -1; }
 
   virtual void addTargetEdge(RelocEdge *) {};
@@ -102,16 +102,16 @@ class Target : public TargetInt{
 };
 
 template <>
-  class Target<Trace *> : public TargetInt {
+  class Target<RelocBlock *> : public TargetInt {
  public:
    //Address addr() const { return t_->curAddr(); }
 
-  Target(Trace * t) : t_(t) { assert(t_); }
+  Target(RelocBlock * t) : t_(t) { assert(t_); }
    ~Target() {}
-   Trace * t() const { return t_; };
+   RelocBlock * t() const { return t_; };
   Address origAddr() const { return t_->origAddr(); };
   
-  virtual type_t type() const { return TraceTarget; };
+  virtual type_t type() const { return RelocBlockTarget; };
   
   virtual string format() const { 
      stringstream ret;
@@ -119,7 +119,7 @@ template <>
      return ret.str();
   }
   
-  virtual bool matches(Trace *t) const { return (t_ == t); }
+  virtual bool matches(RelocBlock *t) const { return (t_ == t); }
 
   int label(CodeBuffer *) const { return t_->getLabel(); };
   
@@ -130,7 +130,7 @@ template <>
   virtual block_instance *block();
 
  private:
-  Trace * t_;
+  RelocBlock * t_;
 };
 
 template <>

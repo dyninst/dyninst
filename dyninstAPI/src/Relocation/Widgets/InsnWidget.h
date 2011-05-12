@@ -32,7 +32,7 @@
 #if !defined (_PATCHAPI_INSN_ATOM_H_)
 #define _PATCHAPI_INSN_ATOM_H_
 
-#include "Atom.h"
+#include "Widget.h"
 
 class block_instance;
 class func_instance;
@@ -40,20 +40,20 @@ class func_instance;
 namespace Dyninst {
 namespace Relocation {
 
-class InsnAtom : public Atom {
+class InsnWidget : public Widget {
  public:
-  typedef dyn_detail::boost::shared_ptr<InsnAtom> Ptr;
+  typedef dyn_detail::boost::shared_ptr<InsnWidget> Ptr;
 
   virtual bool generate(const codeGen &,
-                        const Trace *,
+                        const RelocBlock *,
                         CodeBuffer &);
 
-  TrackerElement *tracker(const Trace *trace) const;
+  TrackerElement *tracker(const RelocBlock *trace) const;
 
   static Ptr create(InstructionAPI::Instruction::Ptr insn,
 		    Address addr);
 
-  virtual ~InsnAtom() {};
+  virtual ~InsnWidget() {};
 
   virtual std::string format() const;
 
@@ -62,7 +62,7 @@ class InsnAtom : public Atom {
   virtual unsigned size() const { return insn_->size(); }
 
  private:
-  InsnAtom(InstructionAPI::Instruction::Ptr insn,
+  InsnWidget(InstructionAPI::Instruction::Ptr insn,
 	    Address addr) : 
   insn_(insn), addr_(addr) {};
 

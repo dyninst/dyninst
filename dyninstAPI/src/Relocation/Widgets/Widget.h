@@ -29,63 +29,67 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined (_R_E_INSTRUMENTATION_H_)
-#define _R_E_INSTRUMENTATION_H_
+#if !defined(PATCHAPI_ATOM_H_)
+#define PATCHAPI_ATOM_H_
 
-#include "Atom.h"
+#include "dyn_detail/boost/shared_ptr.hpp" // shared_ptr
+#include "common/h/Types.h" // Address
+#include "instructionAPI/h/Instruction.h" // Instruction::Ptr
+#include <list> // stl::list
 
-class instPoint;
+class baseTramp;
+class baseTrampInstance;
+class codeGen;
 
 namespace Dyninst {
+
 namespace Relocation {
 
-class InstAtom : public Atom {
+class Transformer;
+class Widget;
+class RelocInsn;
+class Inst;
+class CFWidget;
+class RelocBlock;
+
+struct Patch;
+class TrackerElement;
+class CodeTracker;
+class CodeBuffer;
+
+// Widget code generation class
+class Widget {
+  friend class Transformer;
  public:
-  typedef dyn_detail::boost::shared_ptr<InstAtom> Ptr;
+  typedef dyn_detail::boost::shared_ptr<Widget> Ptr;
+  typedef dyn_detail::boost::shared_ptr<RelocBlock> RelocBlockPtr;
 
-  // I believe I can patch in the current code generation
-  // system here...
-  static Ptr create(instPoint *i);
+  Widget() {};
 
-     InstAtom(instPoint *i) : point_(i) {};
+  // A default value to make sure things don't go wonky.
+  virtual Address addr() const { return 0; }
+  virtual unsigned size() const { return 0; }
+  virtual InstructionAPI::Instruction::Ptr insn() const {
+    return InstructionAPI::Instruction::Ptr();
+  }
 
-  // This sucks. It seriously sucks. But hey...
-  // this points to all the baseTramps with instrumentation
-  // at this point. This can be 0, 1, or 2 - 2 if we have
-  // post instruction + pre instruction instrumentation.
+  // Make binary from the thing
+  // Current address (if we need it)
+  // is in the codeGen object.
+  virtual bool generate(const codeGen &templ,
+                        const RelocBlock *trace,
+                        CodeBuffer &buffer) = 0;
 
-  bool empty() const;
+  virtual std::string format() const = 0;
 
-  bool generate(const codeGen &, const Trace *, CodeBuffer &);
-  
-  TrackerElement *tracker() const;
-
-  virtual ~InstAtom();
-
-  virtual std::string format() const;
-
- private:
-  instPoint *point_;
-
+  virtual ~Widget() {};
 };
 
-struct InstAtomPatch : public Patch {
-  InstAtomPatch(baseTramp *a) : tramp(a) {};
-  
-   virtual bool apply(codeGen &gen, CodeBuffer *buf);
-  virtual unsigned estimate(codeGen &templ);
-  virtual ~InstAtomPatch();
-
-  baseTramp *tramp;
-};
-
-struct RemovedInstAtomPatch : public Patch {
-  RemovedInstAtomPatch(baseTramp *a) : tramp(a) {};
-   virtual bool apply(codeGen &gen, CodeBuffer *);
-   virtual unsigned estimate(codeGen &templ);
-   virtual ~RemovedInstAtomPatch() {};
-   
-   baseTramp *tramp;
+ // A generic code patching mechanism
+struct Patch {
+   virtual bool apply(codeGen &gen, CodeBuffer *buf) = 0;
+   virtual unsigned estimate(codeGen &templ) = 0;
+   virtual ~Patch() {};
 };
 
 

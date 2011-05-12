@@ -32,7 +32,7 @@
 #if !defined (_PATCHAPI_PC_ATOM_H_)
 #define _PATCHAPI_PC_ATOM_H_
 
-#include "Atom.h"
+#include "Widget.h"
 
 // Define where the PC value is supposed to go
 #include "dataflowAPI/h/Absloc.h"
@@ -43,26 +43,26 @@ class func_instance;
 namespace Dyninst {
 namespace Relocation {
 
-class PCAtom : public Atom {
+class PCWidget : public Widget {
  public:
-   typedef dyn_detail::boost::shared_ptr<PCAtom> Ptr;
+   typedef dyn_detail::boost::shared_ptr<PCWidget> Ptr;
 
    static Ptr create(InstructionAPI::Instruction::Ptr insn,
 		     Address addr,
 		     Absloc a,
 		     Address thunk = 0);
-   virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
+   virtual bool generate(const codeGen &, const RelocBlock *, CodeBuffer &);
 
-   TrackerElement *tracker(const Trace *t) const;
+   TrackerElement *tracker(const RelocBlock *t) const;
 
-   virtual ~PCAtom() {};
+   virtual ~PCWidget() {};
    virtual std::string format() const;
    virtual unsigned size() const { return insn_->size(); }
    virtual Address addr() const { return addr_; }
    virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
 
  private:
-   PCAtom(InstructionAPI::Instruction::Ptr insn,
+   PCWidget(InstructionAPI::Instruction::Ptr insn,
 	 Address addr,
 	 Absloc &a,
 	 Address thunkAddr = 0) : 
@@ -72,8 +72,8 @@ class PCAtom : public Atom {
      thunkAddr_(thunkAddr) {};
 
 
-   bool PCtoReturnAddr(const codeGen &templ, const Trace *, CodeBuffer &);
-   bool PCtoReg(const codeGen &templ, const Trace *, CodeBuffer &);
+   bool PCtoReturnAddr(const codeGen &templ, const RelocBlock *, CodeBuffer &);
+   bool PCtoReg(const codeGen &templ, const RelocBlock *, CodeBuffer &);
 
    InstructionAPI::Instruction::Ptr insn_;
    Address addr_;
