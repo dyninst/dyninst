@@ -171,6 +171,7 @@ test_results_t test1_22_Mutator::mutatorTest22()
 		return FAILED;
 	}
 
+
 	// Replace an a.out function with a shlib function
 	bpfv.clear();
 	char *fn3 = "test1_22_call3";
