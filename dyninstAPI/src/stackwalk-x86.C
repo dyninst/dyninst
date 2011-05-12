@@ -239,14 +239,24 @@ FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr)
 
 bool DynWandererHelper::isPrevInstrACall(Address addr, Address &target)
 {
+    // is the instruction just before the instruction at addr a call?
+    // if so, set target to be the function it calls
+     
     std::set<func_instance *> funcs;
+    func_instance *calleeFunc = NULL;
     proc_->findFuncsByAddr(addr, funcs, true);
     for (std::set<func_instance *>::iterator iter = funcs.begin();
          iter != funcs.end(); ++iter) {
         for (func_instance::BlockSet::const_iterator c_iter = (*iter)->callBlocks().begin();
              c_iter != (*iter)->callBlocks().end(); ++c_iter) {
             if ((*c_iter)->end() == addr) {
-                target = (*c_iter)->callee()->addr();
+                calleeFunc = (*c_iter)->callee();
+                if (calleeFunc) {
+                    target = calleeFunc->addr();
+                }
+                else {
+                    target = 0;
+                }
                 return true;
             }
         }
@@ -258,6 +268,10 @@ WandererHelper::pc_state DynWandererHelper::isPCInFunc(Address func_entry, Addre
 {
   func_instance *callee_func = proc_->findOneFuncByAddr(func_entry),
                 *cur_func    = proc_->findOneFuncByAddr(pc);
+
+  stackwalk_printf("[%s:%u] - DynWandererHelper called for func entry: %lx, pc: %lx - "
+                     "found callee func: %p, cur func: %p\n", __FILE__, __LINE__, 
+                     func_entry, pc, callee_func, cur_func);
 
   if (!callee_func || !cur_func)
   {

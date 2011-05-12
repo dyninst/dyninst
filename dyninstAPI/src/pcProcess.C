@@ -41,6 +41,7 @@
 #include "baseTramp.h"
 #include "registerSpace.h"
 #include "mapped_object.h"
+#include "symtab.h"
 
 #include "common/h/pathName.h"
 
@@ -274,6 +275,9 @@ PCProcess::~PCProcess() {
     signalHandlerLocations_.clear();
 
     trapMapping.clearTrapMappings();
+
+    if (symReaderFactory_) delete symReaderFactory_;
+    symReaderFactory_ = NULL;
 }
 
 /***************************************************************************
@@ -567,7 +571,12 @@ bool PCProcess::createStackwalker()
   StackwalkSymLookup *symLookup = NULL;
 
   //Set SymbolReaderFactory in Stackwalker
-  Walker::setSymbolReader(Dyninst::SymtabAPI::getSymtabReaderFactory());
+  if (!symReaderFactory_)
+  {
+    symReaderFactory_ = new DynSymReaderFactory(this);
+  }
+
+  Walker::setSymbolReader(symReaderFactory_);
 
   // Create ProcessState
   if (NULL == (procDebug = ProcDebug::newProcDebug(pcProc_)))
@@ -3268,3 +3277,42 @@ DynWandererHelper::DynWandererHelper(PCProcess *p)
 
 DynWandererHelper::~DynWandererHelper()
 {}
+
+DynSymReaderFactory::DynSymReaderFactory(AddressSpace *as) :
+    as_(as)
+{}
+
+DynSymReaderFactory::~DynSymReaderFactory()
+{}
+
+Dyninst::SymReader* DynSymReaderFactory::openSymbolReader(std::string pathname)
+{
+    mapped_object *mo = NULL;
+    image *img = NULL;
+    Dyninst::SymtabAPI::Symtab *st = NULL;
+    Dyninst::SymtabAPI::SymtabReader *sr = NULL;
+
+    // lookup mapped object
+    mo = as_->findObject(pathname);
+    if (mo)
+    {
+      img = mo->parse_img();
+      if (img)
+      {
+        st = img->getObject();
+        if (st)
+        {
+          sr = new Dyninst::SymtabAPI::SymtabReader(pathname);
+          return sr;
+        }
+      }
+    }
+
+    return Dyninst::SymtabAPI::SymtabReaderFactory::openSymbolReader(pathname);
+}
+
+Dyninst::SymReader* DynSymReaderFactory::openSymbolReader(const char *buffer, unsigned long size)
+{
+  return Dyninst::SymtabAPI::SymtabReaderFactory::openSymbolReader(buffer, size);
+}
+
