@@ -29,14 +29,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "Atom.h"
-#include "ASTAtom.h"
-#include "CFAtom.h"
-#include "InsnAtom.h"
-#include "InstAtom.h"
-#include "PCAtom.h"
-#include "RelDataAtom.h"
-#include "Trace.h"
-#include "Target.h"
+#include "Widget.h"
+#include "ASTWidget.h"
+#include "CFWidget.h"
+#include "InsnWidget.h"
+#include "InstWidget.h"
+#include "PCWidget.h"
+#include "RelDataWidget.h"
+#include "../CFG/RelocBlock.h"
+#include "../CFG/RelocTarget.h"
 
 

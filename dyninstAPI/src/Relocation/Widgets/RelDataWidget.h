@@ -29,70 +29,63 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(PATCHAPI_ATOM_H_)
-#define PATCHAPI_ATOM_H_
+#if !defined (_PATCHAPI_REL_DATA_ATOM_H_)
+#define _PATCHAPI_REL_DATA_ATOM_H_
 
-#include "dyn_detail/boost/shared_ptr.hpp" // shared_ptr
-#include "common/h/Types.h" // Address
-#include "instructionAPI/h/Instruction.h" // Instruction::Ptr
-#include <list> // stl::list
-
-class baseTramp;
-class baseTrampInstance;
-class codeGen;
+#include "Widget.h"
+class block_instance;
 
 namespace Dyninst {
-
 namespace Relocation {
+// Represents generation for a PC-relative
+// memory load/store
 
-class Transformer;
-class Atom;
-class RelocInsn;
-class Inst;
-class CFAtom;
-class Trace;
-
-struct Patch;
-class TrackerElement;
-class CodeTracker;
-class CodeBuffer;
-
-// Atom code generation class
-class Atom {
-  friend class Transformer;
+class RelDataWidget : public Widget {
  public:
-  typedef dyn_detail::boost::shared_ptr<Atom> Ptr;
-  typedef dyn_detail::boost::shared_ptr<Trace> TracePtr;
+   typedef dyn_detail::boost::shared_ptr<RelDataWidget> Ptr;
 
-  Atom() {};
+   virtual bool generate(const codeGen &, const RelocBlock *, CodeBuffer &);
 
-  // A default value to make sure things don't go wonky.
-  virtual Address addr() const { return 0; }
-  virtual unsigned size() const { return 0; }
-  virtual InstructionAPI::Instruction::Ptr insn() const {
-    return InstructionAPI::Instruction::Ptr();
-  }
+   TrackerElement *tracker(const RelocBlock *t) const;
+  
+   static Ptr create(InstructionAPI::Instruction::Ptr insn,
+		     Address addr,
+		     Address target);
 
-  // Make binary from the thing
-  // Current address (if we need it)
-  // is in the codeGen object.
-  virtual bool generate(const codeGen &templ,
-                        const Trace *trace,
-                        CodeBuffer &buffer) = 0;
+   virtual ~RelDataWidget() {};
 
-  virtual std::string format() const = 0;
+   virtual std::string format() const;
+   virtual unsigned size() const { return insn_->size(); }
+   virtual Address addr() const { return addr_; }
 
-  virtual ~Atom() {};
-};
+ private:
+   RelDataWidget(InstructionAPI::Instruction::Ptr insn,
+	       Address addr,
+	       Address target) : insn_(insn), addr_(addr), target_(target) {};
 
- // A generic code patching mechanism
-struct Patch {
-   virtual bool apply(codeGen &gen, CodeBuffer *buf) = 0;
-   virtual unsigned estimate(codeGen &templ) = 0;
-   virtual ~Patch() {};
+   InstructionAPI::Instruction::Ptr insn_;
+   Address addr_;
+   Address target_;
+   // Read vs. write doesn't matter now but might
+   // in the future.
 };
 
 
+struct RelDataPatch : public Patch {
+  RelDataPatch(InstructionAPI::Instruction::Ptr a, Address b, Address o) :
+   orig_insn(a), target_addr(b), orig(o) {};
+  
+  virtual bool apply(codeGen &gen, CodeBuffer *buffer);
+  virtual unsigned estimate(codeGen &templ);
+  virtual ~RelDataPatch() {};
+  
+  InstructionAPI::Instruction::Ptr orig_insn;
+  Address target_addr;
+  Address orig;
+};
+
+
 };
 };
+
 #endif

@@ -29,10 +29,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "PCAtom.h"
+#include "PCWidget.h"
 #include "instructionAPI/h/Instruction.h"
 #include "../patchapi_debug.h"
-#include "Trace.h"
+#include "../CFG/RelocBlock.h"
 #include "../CodeBuffer.h"
 #include "../CodeTracker.h"
 #include "dyninstAPI/src/function.h"
@@ -48,20 +48,20 @@ using namespace Relocation;
 using namespace InstructionAPI;
 
 ////////////////////////
-PCAtom::Ptr PCAtom::create(Instruction::Ptr insn,
+PCWidget::Ptr PCWidget::create(Instruction::Ptr insn,
 			 Address addr,
 			 Absloc a,
 			 Address thunk) {
-  return Ptr(new PCAtom(insn, addr, a, thunk));
+  return Ptr(new PCWidget(insn, addr, a, thunk));
 }
 
-TrackerElement *PCAtom::tracker(const Trace *t) const {
+TrackerElement *PCWidget::tracker(const RelocBlock *t) const {
   assert(addr_ != 1);
   EmulatorTracker *e = new EmulatorTracker(addr_, t->block(), t->func());
   return e;
 }
 
-bool PCAtom::generate(const codeGen &templ, const Trace *trace, CodeBuffer &buffer) {
+bool PCWidget::generate(const codeGen &templ, const RelocBlock *trace, CodeBuffer &buffer) {
   // Two options: top of stack (push origAddr) 
   // or into a register (/w/ a mov)
 
@@ -76,7 +76,7 @@ bool PCAtom::generate(const codeGen &templ, const Trace *trace, CodeBuffer &buff
   }
 }
 
-bool PCAtom::PCtoReturnAddr(const codeGen &templ, const Trace *t, CodeBuffer &buffer) {
+bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuffer &buffer) {
   if(templ.addrSpace()->proc()) {
     std::vector<unsigned char> newInsn;
 #if defined(arch_x86) || defined(arch_x86_64)
@@ -130,7 +130,7 @@ bool PCAtom::PCtoReturnAddr(const codeGen &templ, const Trace *t, CodeBuffer &bu
   return true;
 }
 
-bool PCAtom::PCtoReg(const codeGen &templ, const Trace *t, CodeBuffer &buffer) {
+bool PCWidget::PCtoReg(const codeGen &templ, const RelocBlock *t, CodeBuffer &buffer) {
   bool ignored;
   Register reg = convertRegID(a_.reg(), ignored);
 
@@ -161,9 +161,9 @@ bool PCAtom::PCtoReg(const codeGen &templ, const Trace *t, CodeBuffer &buffer) {
   return true;
 }
 
-string PCAtom::format() const {
+string PCWidget::format() const {
   stringstream ret;
-  ret << "PCAtom(" 
+  ret << "PCWidget(" 
       << std::hex << addr_ << std::dec;
   ret << "" << a_.format();
   return ret.str();

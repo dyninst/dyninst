@@ -228,7 +228,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\ASTAtom.C"
+				RelativePath=".\src\Relocation\Widgets\ASTWidget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -907,7 +907,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\CFAtom-x86.C"
+				RelativePath=".\src\Relocation\Widgets\CFWidget-x86.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -919,7 +919,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\CFAtom.C"
+				RelativePath=".\src\Relocation\Widgets\CFWidget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1407,7 +1407,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\InsnAtom.C"
+				RelativePath=".\src\Relocation\Widgets\InsnWidget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1482,7 +1482,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\InstAtom.C"
+				RelativePath=".\src\Relocation\Widgets\InstWidget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1792,7 +1792,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\PCAtom.C"
+				RelativePath=".\src\Relocation\Widgets\PCWidget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1899,7 +1899,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\RelDataAtom.C"
+				RelativePath=".\src\Relocation\Widgets\RelDataWidget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1911,7 +1911,19 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\RelocGraph.C"
+				RelativePath=".\src\Relocation\CFG\RelocGraph.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\CFG\RelocEdge.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -2101,7 +2113,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Target.C"
+				RelativePath=".\src\Relocation\CFG\RelocTarget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -2133,7 +2145,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Trace.C"
+				RelativePath=".\src\Relocation\CFG\RelocBlock.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -2221,11 +2233,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\ASTAtom.h"
+				RelativePath=".\src\Relocation\Widgets\ASTWidget.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Atom.h"
+				RelativePath=".\src\Relocation\Widgets\Widget.h"
 				>
 			</File>
 			<File
@@ -2385,7 +2397,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\CFAtom.h"
+				RelativePath=".\src\Relocation\Widgets\CFWidget.h"
 				>
 			</File>
 			<File
@@ -2501,7 +2513,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Include.h"
+				RelativePath=".\src\Relocation\Widgets\Include.h"
 				>
 			</File>
 			<File
@@ -2517,7 +2529,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\InsnAtom.h"
+				RelativePath=".\src\Relocation\Widgets\InsnWidget.h"
 				>
 			</File>
 			<File
@@ -2529,7 +2541,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\InstAtom.h"
+				RelativePath=".\src\Relocation\Widgets\InstWidget.h"
 				>
 			</File>
 			<File
@@ -2549,7 +2561,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Instrumentation.h"
+				RelativePath=".\src\Relocation\Widgets\Instrumentation.h"
 				>
 			</File>
 			<File
@@ -2629,7 +2641,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\PCAtom.h"
+				RelativePath=".\src\Relocation\Widgets\PCWidget.h"
 				>
 			</File>
 			<File
@@ -2649,7 +2661,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\RelDataAtom.h"
+				RelativePath=".\src\Relocation\Widgets\RelDataWidget.h"
 				>
 			</File>
 			<File
@@ -2657,7 +2669,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\RelocGraph.h"
+				RelativePath=".\src\Relocation\CFG\RelocGraph.h"
 				>
 			</File>
 			<File
@@ -2713,11 +2725,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Target.h"
+				RelativePath=".\src\Relocation\CFG\RelocTarget.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Trace.h"
+				RelativePath=".\src\Relocation\CFG\RelocBlock.h"
 				>
 			</File>
 			<File

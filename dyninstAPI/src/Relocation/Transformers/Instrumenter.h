@@ -41,7 +41,7 @@ namespace Relocation {
 class Instrumenter : public Transformer {
  public:
 
-  virtual bool process(Trace *cur, RelocGraph *);
+  virtual bool process(RelocBlock *cur, RelocGraph *);
   
   Instrumenter() {};
   
@@ -52,22 +52,22 @@ class Instrumenter : public Transformer {
     Before,
     After } When;
     
-  typedef std::pair<Trace *, When> InsertPoint;  
-  typedef std::map<InsertPoint, std::list<Trace *> > EdgeTraces;
-  typedef dyn_detail::boost::shared_ptr<CFAtom> CFAtomPtr;
+  typedef std::pair<RelocBlock *, When> InsertPoint;  
+  typedef std::map<InsertPoint, std::list<RelocBlock *> > EdgeRelocBlocks;
+  typedef dyn_detail::boost::shared_ptr<CFWidget> CFWidgetPtr;
 
-  // The instrumenters that can add new Traces have the CFG as an
+  // The instrumenters that can add new RelocBlocks have the CFG as an
   // argument
-  bool funcEntryInstrumentation(Trace *trace, RelocGraph *cfg);
-  bool edgeInstrumentation(Trace *trace, RelocGraph *cfg);
-  bool postCallInstrumentation(Trace *trace, RelocGraph *cfg);
+  bool funcEntryInstrumentation(RelocBlock *trace, RelocGraph *cfg);
+  bool edgeInstrumentation(RelocBlock *trace, RelocGraph *cfg);
+  bool postCallInstrumentation(RelocBlock *trace, RelocGraph *cfg);
 
-  bool funcExitInstrumentation(Trace *trace);
-  bool blockEntryInstrumentation(Trace *trace);
-  bool preCallInstrumentation(Trace *trace);
-  bool insnInstrumentation(Trace *trace);
+  bool funcExitInstrumentation(RelocBlock *trace);
+  bool blockEntryInstrumentation(RelocBlock *trace);
+  bool preCallInstrumentation(RelocBlock *trace);
+  bool insnInstrumentation(RelocBlock *trace);
 
-  AtomPtr makeInstrumentation(instPoint *point);
+  WidgetPtr makeInstrumentation(instPoint *point);
 
   struct CallFallthroughPredicate {
      bool operator()(RelocEdge *e);

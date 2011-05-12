@@ -35,7 +35,7 @@ SRCS =		../src/linux.C \
 		../src/parse-power.C \
 		../src/syscall-linux.C \
 		../src/BPatch_memoryAccessAdapter.C \
-		../src/Relocation/Atoms/CFAtom-ppc.C \
+		../src/Relocation/Widget/CFWidget-ppc.C \
 		../src/RegisterConversion-ppc.C
 #		../src/addLibraryLinux.C \
 #		../src/writeBackElf.C \

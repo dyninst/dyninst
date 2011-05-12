@@ -41,7 +41,7 @@ SRCS =          ../src/linux.C \
 		../src/IAPI_to_AST.C \
 		../src/BPatch_memoryAccessAdapter.C \
 		../src/RegisterConversion-x86.C \
-		../src/Relocation/Atoms/CFAtom-x86.C
+		../src/Relocation/Widget/CFWidget-x86.C
 #		../src/addLibraryLinux.C \
 #		../src/writeBackElf.C \
 #		../src/saveSharedLibrary.C \

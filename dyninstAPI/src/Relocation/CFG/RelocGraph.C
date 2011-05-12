@@ -30,7 +30,7 @@
  */
 
 #include "RelocGraph.h"
-#include "Atoms/Trace.h"
+#include "RelocBlock.h"
 
 
 using namespace Dyninst;
@@ -41,16 +41,16 @@ RelocGraph::~RelocGraph() {
       delete *iter;
    }
 
-   Trace *cur = head;
+   RelocBlock *cur = head;
    while (cur) {
-      Trace *next = cur->next();
+      RelocBlock *next = cur->next();
       delete cur;
       cur = next;
    }
 }
 
-void RelocGraph::addTrace(Trace *t) {
-   if (t->type() == Trace::Relocated) {
+void RelocGraph::addRelocBlock(RelocBlock *t) {
+   if (t->type() == RelocBlock::Relocated) {
       springboards[t->block()] = t;
       reloc[t->block()] = t;
    }
@@ -68,8 +68,8 @@ void RelocGraph::addTrace(Trace *t) {
    size++;
 }
 
-void RelocGraph::addTraceBefore(Trace *cur, Trace *t) {
-   if (t->type() == Trace::Relocated) {
+void RelocGraph::addRelocBlockBefore(RelocBlock *cur, RelocBlock *t) {
+   if (t->type() == RelocBlock::Relocated) {
       springboards[t->block()] = t;
       reloc[t->block()] = t;
    }
@@ -78,14 +78,14 @@ void RelocGraph::addTraceBefore(Trace *cur, Trace *t) {
       head = t;
    }
    else {
-      Trace *prev = cur->prev();
+      RelocBlock *prev = cur->prev();
       link(prev, t);
    }
    link(t, cur);
 }
 
-void RelocGraph::addTraceAfter(Trace *cur, Trace *t) {
-   if (t->type() == Trace::Relocated) {
+void RelocGraph::addRelocBlockAfter(RelocBlock *cur, RelocBlock *t) {
+   if (t->type() == RelocBlock::Relocated) {
       springboards[t->block()] = t;
       reloc[t->block()] = t;
    }
@@ -94,26 +94,26 @@ void RelocGraph::addTraceAfter(Trace *cur, Trace *t) {
       tail = t;
    }
    else {
-      Trace *next = cur->next();
+      RelocBlock *next = cur->next();
       link(t, next);
    }
    link(cur, t);
 }
 
    
-Trace *RelocGraph::find(block_instance *b) const {
+RelocBlock *RelocGraph::find(block_instance *b) const {
    Map::const_iterator iter = reloc.find(b);
    if (iter == reloc.end()) return NULL;
    return iter->second;
 }
 
-Trace *RelocGraph::findSpringboard(block_instance *b) const {
+RelocBlock *RelocGraph::findSpringboard(block_instance *b) const {
    Map::const_iterator iter = springboards.find(b);
    if (iter == springboards.end()) return NULL;
    return iter->second;
 }
 
-bool RelocGraph::setSpringboard(block_instance *from, Trace *to) {
+bool RelocGraph::setSpringboard(block_instance *from, RelocBlock *to) {
    if (springboards.find(from) == springboards.end()) return false;
    springboards[from] = to;
    return true;
@@ -149,22 +149,22 @@ void RelocGraph::removeTarget(RelocEdge *e) {
    e->trg = NULL;
 }
 
-void RelocGraph::link(Trace *s, Trace *t) {
+void RelocGraph::link(RelocBlock *s, RelocBlock *t) {
    if (s)
       s->setNext(t);
    if (t)
       t->setPrev(s);
 }
 
-bool RelocGraph::interpose(RelocEdge *e, Trace *trace) {
+bool RelocGraph::interpose(RelocEdge *e, RelocBlock *trace) {
    // Take s ->(e) t to
    // s ->(e) n, n ->(FT) t
 
    TargetInt *s = e->src;
    TargetInt *t = e->trg;
    // Targets aren't refcounted...
-   TargetInt *n1 = new Target<Trace *>(trace);
-   TargetInt *n2 = new Target<Trace *>(trace);
+   TargetInt *n1 = new Target<RelocBlock *>(trace);
+   TargetInt *n2 = new Target<RelocBlock *>(trace);
 
    makeEdge(s, n1, e->type);
    makeEdge(n2, t, ParseAPI::FALLTHROUGH);

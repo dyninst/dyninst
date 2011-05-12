@@ -55,7 +55,7 @@ namespace Dyninst {
 
 namespace Relocation {
 
-class Trace;
+class RelocBlock;
 class Transformer;
 class CodeMover;
 class CodeTracker;
@@ -132,14 +132,14 @@ class CodeMover {
   CodeMover(CodeTracker *t);
   
   void setAddr(Address &addr) { addr_ = addr; }
-  template <typename TraceIter>
-     bool addTraces(TraceIter begin, TraceIter end, func_instance *f);
+  template <typename RelocBlockIter>
+     bool addRelocBlocks(RelocBlockIter begin, RelocBlockIter end, func_instance *f);
 
-  bool addTrace(block_instance *block, func_instance *f);
+  bool addRelocBlock(block_instance *block, func_instance *f);
 
   void createInstrumentationSpringboards(AddressSpace *as);
 
-  void finalizeTraces();
+  void finalizeRelocBlocks();
 
   RelocGraph *cfg_;
 
@@ -156,7 +156,7 @@ class CodeMover {
   CodeBuffer buffer_;
   codeGen &gen();
 
-  bool tracesFinalized_;
+  bool finalized_;
   
 };
 

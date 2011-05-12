@@ -39,6 +39,7 @@
 #include "instructionAPI/h/Instruction.h" // Instruction::Ptr
 #include "CFG.h"
 #include "dyninstAPI/src/Relocation/CodeMover.h"
+#include "RelocEdge.h"
 
 class baseTramp;
 class block_instance;
@@ -55,75 +56,45 @@ class TrackerElement;
 class CodeTracker;
 class CodeBuffer;
 
-class CFAtom;
-typedef dyn_detail::boost::shared_ptr<CFAtom> CFAtomPtr;
-class Atom;
-typedef dyn_detail::boost::shared_ptr<Atom> AtomPtr;
+class CFWidget;
+typedef dyn_detail::boost::shared_ptr<CFWidget> CFWidgetPtr;
+class Widget;
+typedef dyn_detail::boost::shared_ptr<Widget> WidgetPtr;
 
 struct RelocEdge;
-class Trace; 
+struct RelocEdges;
 
-struct RelocEdge {
-   RelocEdge(TargetInt *s, TargetInt *t, ParseAPI::EdgeTypeEnum e) :
-     src(s), trg(t), type(e) {};
-
-   ~RelocEdge();
-
-   TargetInt *src;
-   TargetInt *trg;
-   ParseAPI::EdgeTypeEnum type;
-};
-
-struct RelocEdges {
-   RelocEdges() {};
-
-   typedef std::list<RelocEdge *>::iterator iterator;
-   typedef std::list<RelocEdge *>::const_iterator const_iterator;
-   iterator begin() { return edges.begin(); }
-   iterator end() { return edges.end(); }
-   const_iterator begin() const { return edges.begin(); }
-   const_iterator end() const { return edges.end(); }
-   void push_back(RelocEdge *e) { edges.push_back(e); }
-   void insert(RelocEdge *e) { edges.push_back(e); }
-
-   RelocEdge *find(ParseAPI::EdgeTypeEnum e);
-   void erase(RelocEdge *);
-   
-   bool contains(ParseAPI::EdgeTypeEnum e);
-   std::list<RelocEdge *> edges;
-};
-
-class Trace {
+class RelocBlock {
   friend class Transformer;
 
  public:
    typedef int Label;
-   static int TraceID;
-   typedef std::list<AtomPtr> AtomList;
+   static int RelocBlockID;
+   typedef std::list<WidgetPtr> WidgetList;
    typedef enum {
       Relocated,
       Instrumentation,
       Stub } Type;
 
    // Standard creation
-   static Trace *createReloc(block_instance *block, func_instance *func);
+   static RelocBlock *createReloc(block_instance *block, func_instance *func);
    // Instpoint creation
-   static Trace *createInst(instPoint *point, Address a, 
+   static RelocBlock *createInst(instPoint *point, Address a, 
                         block_instance *block, func_instance *func);
-   // Stub creation; we're creating an empty Trace associated
+   // Stub creation; we're creating an empty RelocBlock associated
    // with some other block/function/thing
-   static Trace *createStub(block_instance *block, func_instance *func);
+   static RelocBlock *createStub(block_instance *block, func_instance *func);
 
-   Trace *next() { return next_; }
-   Trace *prev() { return prev_; }
-   ~Trace() {};
+   RelocBlock *next() { return next_; }
+   RelocBlock *prev() { return prev_; }
+   ~RelocBlock() {};
 
-   void setNext(Trace *next) { next_ = next; }
-   void setPrev(Trace *prev) { prev_ = prev; }
+   void setNext(RelocBlock *next) { next_ = next; }
+   void setPrev(RelocBlock *prev) { prev_ = prev; }
 
-   bool linkTraces(RelocGraph *cfg);
+   bool linkRelocBlocks(RelocGraph *cfg);
    bool determineSpringboards(PriorityMap &p);
-   void determineNecessaryBranches(Trace *successor);
+   void determineNecessaryBranches(RelocBlock *successor);
 
    Address origAddr() const { return origAddr_; }
    int id() const { return id_; }
@@ -134,8 +105,8 @@ class Trace {
    Label getLabel() const;
    
    // Non-const for use by transformer classes
-   AtomList &elements() { return elements_; }
-   CFAtomPtr &cfAtom() { return cfAtom_; }
+   WidgetList &elements() { return elements_; }
+   CFWidgetPtr &cfWidget() { return cfWidget_; }
 
    // Code generation
    bool applyPatches(codeGen &gen, bool &regenerate, unsigned &totalSize, int &shift);
@@ -145,7 +116,7 @@ class Trace {
    void setType(Type type);
    Type type() const { return type_; }
 
-   // Set up the CFAtom with our out-edges
+   // Set up the CFWidget with our out-edges
    bool finalizeCF();
 
    RelocEdges *ins() { return &inEdges_; }
@@ -153,24 +124,24 @@ class Trace {
 
  private:
    
-  Trace(block_instance *block, func_instance *f)
+  RelocBlock(block_instance *block, func_instance *f)
      : origAddr_(block->start()),
       block_(block),
       func_(f),
-      id_(TraceID++),
+      id_(RelocBlockID++),
       label_(-1),
-      origTrace_(true),
+      origRelocBlock_(true),
       prev_(NULL),
       next_(NULL),
       type_(Relocated) {};
    // Constructor for a trace inserted later
-  Trace(Address a, block_instance *b, func_instance *f)
+  RelocBlock(Address a, block_instance *b, func_instance *f)
       :origAddr_(a),
       block_(b),
       func_(f),
-      id_(TraceID++),
+      id_(RelocBlockID++),
       label_(-1),
-      origTrace_(false),
+      origRelocBlock_(false),
       prev_(NULL),
       next_(NULL),
       type_(Instrumentation) { 
@@ -180,7 +151,7 @@ class Trace {
       InEdge,
       OutEdge } EdgeDirection;
 
-   void createCFAtom();
+   void createCFWidget();
    void getPredecessors(RelocGraph *cfg);
    void getSuccessors(RelocGraph *cfg);
    void processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *cfg);
@@ -198,12 +169,12 @@ class Trace {
 
    int id_;
    Label label_;  
-   bool origTrace_;
+   bool origRelocBlock_;
    
-   AtomList elements_;
+   WidgetList elements_;
    // This is convienient to avoid tons of dynamic_cast
    // equivalents
-   CFAtomPtr cfAtom_;
+   CFWidgetPtr cfWidget_;
 
    // We're building a mini-CFG, so might as well make it obvious. 
    // Also, this lets us reassign edges. We sort by edge type. 
@@ -214,8 +185,8 @@ class Trace {
    // list overlaid on a graph. Use the list to traverse in layout order; use the graph
    // to traverse in control flow order.
 
-   Trace *prev_;
-   Trace *next_;
+   RelocBlock *prev_;
+   RelocBlock *next_;
 
    Type type_;
 };

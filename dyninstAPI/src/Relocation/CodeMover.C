@@ -31,8 +31,8 @@
 
 #include "Relocation.h"
 #include "CodeMover.h"
-#include "Atoms/Atom.h"
-#include "Atoms/Trace.h"
+#include "Widgets/Widget.h"
+#include "CFG/RelocBlock.h"
 
 #include "instructionAPI/h/InstructionDecoder.h" // for debug
 
@@ -41,7 +41,7 @@
 
 #include "patchapi_debug.h"
 #include "CodeTracker.h"
-#include "RelocGraph.h"
+#include "CFG/RelocGraph.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -52,7 +52,7 @@ CodeMover::CodeMover(CodeTracker *t) :
    cfg_(new RelocGraph()),
    addr_(0),
    tracker_(t),
-   tracesFinalized_(false) {};
+   finalized_(false) {};
 
 CodeMover::Ptr CodeMover::create(CodeTracker *t) {
    init_debug_patchapi();
@@ -79,7 +79,7 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
          continue;
       }
       relocation_cerr << "\tAdding function " << func->symTabName() << endl;
-      if (!addTraces(func->blocks().begin(), func->blocks().end(), func)) {
+      if (!addRelocBlocks(func->blocks().begin(), func->blocks().end(), func)) {
          return false;
       }
     
@@ -91,32 +91,32 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
    return true;
 }
 
-template <typename TraceIter>
-bool CodeMover::addTraces(TraceIter begin, TraceIter end, func_instance *f) {
+template <typename RelocBlockIter>
+bool CodeMover::addRelocBlocks(RelocBlockIter begin, RelocBlockIter end, func_instance *f) {
    for (; begin != end; ++begin) {
-      addTrace(*begin, f);
+      addRelocBlock(*begin, f);
    }
    return true;
 }
 
-bool CodeMover::addTrace(block_instance *bbl, func_instance *f) {
-   Trace * block = Trace::createReloc(bbl, f);
+bool CodeMover::addRelocBlock(block_instance *bbl, func_instance *f) {
+   RelocBlock * block = RelocBlock::createReloc(bbl, f);
    if (!block)
       return false;
-   cfg_->addTrace(block);
+   cfg_->addRelocBlock(block);
 
    priorityMap_[bbl] = Suggested;
       
    return true;
 }
 
-void CodeMover::finalizeTraces() {
-   if (tracesFinalized_) return;
+void CodeMover::finalizeRelocBlocks() {
+   if (finalized_) return;
 
-   tracesFinalized_ = true;
+   finalized_ = true;
    
-   for (Trace *iter = cfg_->begin(); iter != cfg_->end(); iter = iter->next()) {
-      iter->linkTraces(cfg_);
+   for (RelocBlock *iter = cfg_->begin(); iter != cfg_->end(); iter = iter->next()) {
+      iter->linkRelocBlocks(cfg_);
       iter->determineSpringboards(priorityMap_);
    }
 }
@@ -127,8 +127,8 @@ void CodeMover::finalizeTraces() {
 
 
 bool CodeMover::transform(Transformer &t) {
-   if (!tracesFinalized_)
-      finalizeTraces();
+   if (!finalized_)
+      finalizeRelocBlocks();
 
    bool ret = true; 
 
@@ -141,11 +141,11 @@ bool CodeMover::initialize(const codeGen &templ) {
    buffer_.initialize(templ, cfg_->size);
 
    // If they never called transform() this can get missed.
-   if (!tracesFinalized_)
-      finalizeTraces();
+   if (!finalized_)
+      finalizeRelocBlocks();
    
    // Tell all the blocks to do their generation thang...
-   for (Trace *iter = cfg_->begin(); iter != cfg_->end(); iter = iter->next()) {
+   for (RelocBlock *iter = cfg_->begin(); iter != cfg_->end(); iter = iter->next()) {
       if (!iter->finalizeCF()) return false;
       
       if (!iter->generate(templ, buffer_))
@@ -219,7 +219,7 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
 
          // the priority map may include things not in the block
          // map...
-         Trace * trace = cfg_->findSpringboard(bbl);
+         RelocBlock * trace = cfg_->findSpringboard(bbl);
          if (!trace) continue;
          int labelID = trace->getLabel();
          Address to = buffer_.getLabelAddr(labelID);
@@ -242,7 +242,7 @@ string CodeMover::format() const {
   
    ret << "CodeMover() {" << endl;
 
-   for (Trace *iter = cfg_->begin(); iter != cfg_->end(); iter = iter->next()) {
+   for (RelocBlock *iter = cfg_->begin(); iter != cfg_->end(); iter = iter->next()) {
       ret << iter->format();
    }
    ret << "}" << endl;

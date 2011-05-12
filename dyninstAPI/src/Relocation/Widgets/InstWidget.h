@@ -29,63 +29,66 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined (_PATCHAPI_REL_DATA_ATOM_H_)
-#define _PATCHAPI_REL_DATA_ATOM_H_
+#if !defined (_R_E_INSTRUMENTATION_H_)
+#define _R_E_INSTRUMENTATION_H_
 
-#include "Atom.h"
-class block_instance;
+#include "Widget.h"
+
+class instPoint;
 
 namespace Dyninst {
 namespace Relocation {
-// Represents generation for a PC-relative
-// memory load/store
 
-class RelDataAtom : public Atom {
+class InstWidget : public Widget {
  public:
-   typedef dyn_detail::boost::shared_ptr<RelDataAtom> Ptr;
+  typedef dyn_detail::boost::shared_ptr<InstWidget> Ptr;
 
-   virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
+  // I believe I can patch in the current code generation
+  // system here...
+  static Ptr create(instPoint *i);
 
-   TrackerElement *tracker(const Trace *t) const;
+     InstWidget(instPoint *i) : point_(i) {};
+
+  // This sucks. It seriously sucks. But hey...
+  // this points to all the baseTramps with instrumentation
+  // at this point. This can be 0, 1, or 2 - 2 if we have
+  // post instruction + pre instruction instrumentation.
+
+  bool empty() const;
+
+  bool generate(const codeGen &, const RelocBlock *, CodeBuffer &);
   
-   static Ptr create(InstructionAPI::Instruction::Ptr insn,
-		     Address addr,
-		     Address target);
+  TrackerElement *tracker() const;
 
-   virtual ~RelDataAtom() {};
+  virtual ~InstWidget();
 
-   virtual std::string format() const;
-   virtual unsigned size() const { return insn_->size(); }
-   virtual Address addr() const { return addr_; }
+  virtual std::string format() const;
 
  private:
-   RelDataAtom(InstructionAPI::Instruction::Ptr insn,
-	       Address addr,
-	       Address target) : insn_(insn), addr_(addr), target_(target) {};
+  instPoint *point_;
 
-   InstructionAPI::Instruction::Ptr insn_;
-   Address addr_;
-   Address target_;
-   // Read vs. write doesn't matter now but might
-   // in the future.
 };
 
-
-struct RelDataPatch : public Patch {
-  RelDataPatch(InstructionAPI::Instruction::Ptr a, Address b, Address o) :
-   orig_insn(a), target_addr(b), orig(o) {};
+struct InstWidgetPatch : public Patch {
+  InstWidgetPatch(baseTramp *a) : tramp(a) {};
   
-  virtual bool apply(codeGen &gen, CodeBuffer *buffer);
+   virtual bool apply(codeGen &gen, CodeBuffer *buf);
   virtual unsigned estimate(codeGen &templ);
-  virtual ~RelDataPatch() {};
-  
-  InstructionAPI::Instruction::Ptr orig_insn;
-  Address target_addr;
-  Address orig;
+  virtual ~InstWidgetPatch();
+
+  baseTramp *tramp;
+};
+
+struct RemovedInstWidgetPatch : public Patch {
+  RemovedInstWidgetPatch(baseTramp *a) : tramp(a) {};
+   virtual bool apply(codeGen &gen, CodeBuffer *);
+   virtual unsigned estimate(codeGen &templ);
+   virtual ~RemovedInstWidgetPatch() {};
+   
+   baseTramp *tramp;
 };
 
 
 };
 };
-
 #endif

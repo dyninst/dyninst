@@ -34,23 +34,23 @@
 #include "Transformer.h"
 #include "Instrumenter.h"
 #include "../patchapi_debug.h"
-#include "../Atoms/Atom.h"
-#include "../Atoms/Target.h"
+#include "../Widgets/Widget.h"
+#include "../CFG/RelocTarget.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"
-#include "../Atoms/InstAtom.h"
-#include "../Atoms/CFAtom.h"
-#include "../RelocGraph.h"
+#include "../Widgets/InstWidget.h"
+#include "../Widgets/CFWidget.h"
+#include "../CFG/RelocGraph.h"
 
 using namespace std;
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
-bool Instrumenter::process(Trace *trace,
+bool Instrumenter::process(RelocBlock *trace,
                            RelocGraph *cfg) {
    assert(trace);
-   if (trace->type() != Trace::Relocated) {
+   if (trace->type() != RelocBlock::Relocated) {
       // One of ours!
       return true;
    }
@@ -58,16 +58,16 @@ bool Instrumenter::process(Trace *trace,
    // Hoo boy. Fun for the whole family...
    //
    // This transformer needs to create instrumentation blocks throughout the 
-   // provided CFG (of Traces). We consider two classes of added
+   // provided CFG (of RelocBlocks). We consider two classes of added
    // instrumentation:
    // Block insertion instrumentation (function entry, edge, post-call);
    // Block augmentation instrumentation (block entry, pre/post insn, pre-call).
    //
-   // Block insertion instrumentation adds a new block (Trace) to the CFG
+   // Block insertion instrumentation adds a new block (RelocBlock) to the CFG
    // that contains the instrumentation code. We will need to edit edges
    // to get this to work. 
    //
-   // Block augmentation instrumentation just inserts a new Atom into the trace;
+   // Block augmentation instrumentation just inserts a new Widget into the trace;
    // this is comparitively trivial. 
 
    // Let's run with non-block-inserting first...
@@ -86,7 +86,7 @@ bool Instrumenter::process(Trace *trace,
    return true;
 }
 
-bool Instrumenter::insnInstrumentation(Trace *trace) {
+bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
    // We're going to unify pre- and post- instruction instrumentation
    // into a single pass for efficiency. 
    InsnInstpoints::const_iterator pre;
@@ -107,7 +107,7 @@ bool Instrumenter::insnInstrumentation(Trace *trace) {
       assert(0 && "Unimplemented!");
    }
    
-   Trace::AtomList::iterator elem = trace->elements().begin();
+   RelocBlock::WidgetList::iterator elem = trace->elements().begin();
 
    while ((instPre && (pre != preEnd)) ||
           (instPost && (post != postEnd))) {
@@ -135,7 +135,7 @@ bool Instrumenter::insnInstrumentation(Trace *trace) {
 
       if (preAddr == (*elem)->addr()) {
          if (!pre->second->empty()) {
-            Atom::Ptr inst = makeInstrumentation(pre->second);
+            Widget::Ptr inst = makeInstrumentation(pre->second);
             if (!inst) return false;
             trace->elements().insert(elem, inst);
          }
@@ -143,9 +143,9 @@ bool Instrumenter::insnInstrumentation(Trace *trace) {
       }
       if (postAddr == (*elem)->addr()) {
          if (!post->second->empty()) {
-            Trace::AtomList::iterator tmp = elem;
+            RelocBlock::WidgetList::iterator tmp = elem;
             ++tmp;
-            Atom::Ptr inst = makeInstrumentation(post->second);
+            Widget::Ptr inst = makeInstrumentation(post->second);
             if (!inst) return false;
             trace->elements().insert(tmp, inst);
          }
@@ -156,17 +156,17 @@ bool Instrumenter::insnInstrumentation(Trace *trace) {
    return true;
 }
 
-bool Instrumenter::preCallInstrumentation(Trace *trace) {
+bool Instrumenter::preCallInstrumentation(RelocBlock *trace) {
    instPoint *call = NULL;
    if (trace->func()) {
       call = trace->func()->findPoint(instPoint::PreCall, trace->block(), false);
    }
    if (!call || call->empty()) return true;
 
-   Trace::AtomList &elements = trace->elements();
+   RelocBlock::WidgetList &elements = trace->elements();
    // For now, we're inserting this instrumentation immediately before the last instruction
    // in the list of elements. 
-   Atom::Ptr inst = makeInstrumentation(call);
+   Widget::Ptr inst = makeInstrumentation(call);
    if (!inst) return false;
 
    inst.swap(elements.back());
@@ -175,16 +175,16 @@ bool Instrumenter::preCallInstrumentation(Trace *trace) {
    return true;
 }
 
-bool Instrumenter::funcExitInstrumentation(Trace *trace) {
+bool Instrumenter::funcExitInstrumentation(RelocBlock *trace) {
    // TODO: do this right :)
    instPoint *exit = trace->func()->findPoint(instPoint::FuncExit, trace->block(), false);
    if (!exit || exit->empty()) return true;
 
-   Trace::AtomList &elements = trace->elements();
+   RelocBlock::WidgetList &elements = trace->elements();
    // For now, we're inserting this instrumentation immediately before the last instruction
    // in the list of elements. 
-   Trace::AtomList::reverse_iterator riter = elements.rbegin();
-   Atom::Ptr inst = makeInstrumentation(exit);
+   RelocBlock::WidgetList::reverse_iterator riter = elements.rbegin();
+   Widget::Ptr inst = makeInstrumentation(exit);
    if (!inst) return false;
 
    inst.swap(elements.back());
@@ -193,7 +193,7 @@ bool Instrumenter::funcExitInstrumentation(Trace *trace) {
    return true;
 }
 
-bool Instrumenter::blockEntryInstrumentation(Trace *trace) {
+bool Instrumenter::blockEntryInstrumentation(RelocBlock *trace) {
    instPoint *entry = NULL;
    if (trace->func()) {
       entry = trace->func()->findPoint(instPoint::BlockEntry, trace->block(), false);
@@ -201,16 +201,16 @@ bool Instrumenter::blockEntryInstrumentation(Trace *trace) {
 
    if (!entry || entry->empty()) return true;
 
-   Trace::AtomList &elements = trace->elements();
+   RelocBlock::WidgetList &elements = trace->elements();
    // Block entry instrumentation goes in before all instructions. 
-   Atom::Ptr inst = makeInstrumentation(entry);
+   Widget::Ptr inst = makeInstrumentation(entry);
    if (!inst) return false;
 
    elements.push_front(inst);
    return true;
 }
 
-bool Instrumenter::postCallInstrumentation(Trace *trace, RelocGraph *cfg) {
+bool Instrumenter::postCallInstrumentation(RelocBlock *trace, RelocGraph *cfg) {
    // We want to insert instrumentation that will execute after the call returns
    // but before any other function code does. This can effectively be 
    // modeled as edge instrumentation, as follows:
@@ -218,7 +218,7 @@ bool Instrumenter::postCallInstrumentation(Trace *trace, RelocGraph *cfg) {
    // C -> PC goes to C -> Inst -> PC, with any other edges into PC left
    // unmodified. 
    // The way we do this is by redirecting the call fallthrough edge of
-   // C (DEFENSIVE TODO) to a new Trace. 
+   // C (DEFENSIVE TODO) to a new RelocBlock. 
    instPoint *post = NULL;
    if (trace->func()) {
       post = trace->func()->findPoint(instPoint::PostCall, trace->block(), false);
@@ -232,24 +232,24 @@ bool Instrumenter::postCallInstrumentation(Trace *trace, RelocGraph *cfg) {
    if (FT) postCallAddr = FT->start();
    else relocation_cerr << "Odd: post-call inst with no fallthrough block" << endl;
 
-   Trace *instTrace = Trace::createInst(post, postCallAddr, FT ? FT : trace->block(), trace->func()); 
+   RelocBlock *instRelocBlock = RelocBlock::createInst(post, postCallAddr, FT ? FT : trace->block(), trace->func()); 
 
    // Edge redirection time. The call fallthrough edge from trace needs
-   // to be updated to point to instTarget instead, and instTrace needs
+   // to be updated to point to instTarget instead, and instRelocBlock needs
    // a Fallthrough-typed edge to the previous target.
    // We always create a call fallthrough. Might
    // be sink typed, but we _always_ create a call fallthrough.
 
-   cfg->addTraceBefore(trace, instTrace);
+   cfg->addRelocBlockBefore(trace, instRelocBlock);
 
    Predicates::CallFallthrough pred;
-   if (!cfg->interpose(pred, trace->outs(), instTrace)) return false;
+   if (!cfg->interpose(pred, trace->outs(), instRelocBlock)) return false;
 
    return true;
 }
 
 
-bool Instrumenter::funcEntryInstrumentation(Trace *trace, RelocGraph *cfg) {
+bool Instrumenter::funcEntryInstrumentation(RelocBlock *trace, RelocGraph *cfg) {
    instPoint *entry = NULL;
    if (trace->func() &&
        trace->func()->entryBlock() == trace->block()) {
@@ -265,26 +265,26 @@ bool Instrumenter::funcEntryInstrumentation(Trace *trace, RelocGraph *cfg) {
    // code trace to instrumentation trace
    // Leave intraprocedural edges untouched.
 
-   Trace *instTrace = Trace::createInst(entry,
+   RelocBlock *instRelocBlock = RelocBlock::createInst(entry,
                                         trace->origAddr(),
                                         trace->block(),
                                         trace->func());
-   cfg->addTraceBefore(trace, instTrace);
+   cfg->addRelocBlockBefore(trace, instRelocBlock);
 
-   if (!cfg->makeEdge(new Target<Trace *>(instTrace),
-                      new Target<Trace *>(trace),
+   if (!cfg->makeEdge(new Target<RelocBlock *>(instRelocBlock),
+                      new Target<RelocBlock *>(trace),
                       ParseAPI::FALLTHROUGH)) return false;
 
-   if (!cfg->setSpringboard(trace->block(), instTrace)) return false;
+   if (!cfg->setSpringboard(trace->block(), instRelocBlock)) return false;
    Predicates::Interprocedural pred;
-   if (!cfg->changeTargets(pred, trace->ins(), instTrace)) return false;
+   if (!cfg->changeTargets(pred, trace->ins(), instRelocBlock)) return false;
 
    return true;
 }
 
-bool Instrumenter::edgeInstrumentation(Trace *trace, RelocGraph *cfg) {
+bool Instrumenter::edgeInstrumentation(RelocBlock *trace, RelocGraph *cfg) {
    // Comparitively simple given the previous functions...
-   assert(trace->type() == Trace::Relocated);
+   assert(trace->type() == RelocBlock::Relocated);
    block_instance *block = trace->block();
    assert(block);
    const block_instance::edgelist &targets = block->targets();
@@ -296,19 +296,19 @@ bool Instrumenter::edgeInstrumentation(Trace *trace, RelocGraph *cfg) {
       }
       if (!point || point->empty()) continue;
 
-      Trace *instTrace = Trace::createInst(point, (*iter)->trg()->start(), (*iter)->trg(), trace->func());
-      cfg->addTraceAfter(trace, instTrace);
+      RelocBlock *instRelocBlock = RelocBlock::createInst(point, (*iter)->trg()->start(), (*iter)->trg(), trace->func());
+      cfg->addRelocBlockAfter(trace, instRelocBlock);
 
       Predicates::Edge pred(*iter);
-      if (!cfg->interpose(pred, trace->outs(), instTrace)) return false;
+      if (!cfg->interpose(pred, trace->outs(), instRelocBlock)) return false;
    }
    return true;
 }
 
-Atom::Ptr Instrumenter::makeInstrumentation(instPoint *point) {
+Widget::Ptr Instrumenter::makeInstrumentation(instPoint *point) {
    assert(!point->empty());
 
-   InstAtom::Ptr inst = InstAtom::create(point);
+   InstWidget::Ptr inst = InstWidget::create(point);
 
    return inst;
 }
