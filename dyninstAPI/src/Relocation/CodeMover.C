@@ -76,7 +76,6 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
    for (; begin != end; ++begin) {
       func_instance *func = *begin;
       if (!func->isInstrumentable()) {
-         cerr << "Skipping func " << func->symTabName() << " that's uninstrumentable" << endl;
          continue;
       }
       relocation_cerr << "\tAdding function " << func->symTabName() << endl;

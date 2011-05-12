@@ -400,6 +400,7 @@ void parse_block::getInsns(Insns &insns, Address base) {
    Offset off = firstInsnOffset();
    const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);
    if (ptr == NULL) return;
+
    InstructionDecoder d(ptr, getSize(),obj()->cs()->getArch());
 
    while (off < endOffset()) {

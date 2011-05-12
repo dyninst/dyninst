@@ -123,11 +123,12 @@ bool adhocMovementTransformer::isPCDerefCF(Atom::Ptr ptr,
                                            Address &target) {
    Expression::Ptr cf = ptr->insn()->getControlFlowTarget();
    if (!cf) return false;
-
-   static Expression::Ptr x86PC(new RegisterAST(MachRegister::getPC(Arch_x86)));
-   static Expression::Ptr x86PC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
-   static Expression::Ptr ppcPC(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
-   static Expression::Ptr ppcPC64(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
+   
+   Architecture fixme = ptr->insn()->getArch();
+   if (fixme == Arch_ppc32) fixme = Arch_ppc64;
+   
+   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(ptr->insn()->getArch())));
+   Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
 
    // Okay, see if we're memory
    set<Expression::Ptr> mems;
@@ -136,10 +137,8 @@ bool adhocMovementTransformer::isPCDerefCF(Atom::Ptr ptr,
    for (set<Expression::Ptr>::const_iterator iter = mems.begin();
         iter != mems.end(); ++iter) {
       Expression::Ptr exp = *iter;
-      if (exp->bind(x86PC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
-          exp->bind(x86PC64.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
-          exp->bind(ppcPC.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
-          exp->bind(ppcPC64.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
+      if (exp->bind(thePC.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
+          exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
 	// Bind succeeded, eval to get target address
 	Result res = exp->eval();
 	if (!res.defined) {
@@ -162,16 +161,14 @@ bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
   target = 0;
   if (ptr->insn()->getControlFlowTarget()) return false;
 
-  // TODO FIXME
-  static Expression::Ptr x86PC(new RegisterAST(MachRegister::getPC(Arch_x86)));
-  static Expression::Ptr x86PC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
-  static Expression::Ptr ppcPC(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
-  static Expression::Ptr ppcPC64(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
+  Architecture fixme = ptr->insn()->getArch();
+  if (fixme == Arch_ppc32) fixme = Arch_ppc64;
   
-  if (!ptr->insn()->isRead(x86PC) &&
-      !ptr->insn()->isRead(x86PC64) &&
-      !ptr->insn()->isRead(ppcPC) &&
-      !ptr->insn()->isRead(ppcPC64))
+  Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(ptr->insn()->getArch())));
+  Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
+
+  if (!ptr->insn()->isRead(thePC) &&
+      !ptr->insn()->isRead(thePCFixme))
     return false;
 
   // Okay, see if we're memory
@@ -181,10 +178,8 @@ bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
   for (set<Expression::Ptr>::const_iterator iter = mems.begin();
        iter != mems.end(); ++iter) {
     Expression::Ptr exp = *iter;
-    if (exp->bind(x86PC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
-	exp->bind(x86PC64.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
-	exp->bind(ppcPC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
-	exp->bind(ppcPC64.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
+    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
+	exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
       // Bind succeeded, eval to get target address
       Result res = exp->eval();
       if (!res.defined) {
@@ -208,10 +203,8 @@ bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
     // If we can bind the PC, then we're in the operand
     // we want.
     Expression::Ptr exp = iter->getValue();
-    if (exp->bind(x86PC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
-	exp->bind(x86PC64.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
-	exp->bind(ppcPC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
-	exp->bind(ppcPC64.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
+    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
+	exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
       // Bind succeeded, eval to get target address
       Result res = exp->eval();
       assert(res.defined);
@@ -241,17 +234,15 @@ bool adhocMovementTransformer::isGetPC(Atom::Ptr ptr,
     return false;
   }
    
-  // Bind current PC
-  static Expression::Ptr x86PC(new RegisterAST(MachRegister::getPC(Arch_x86)));
-  static Expression::Ptr x86PC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
-  static Expression::Ptr ppcPC(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
-  static Expression::Ptr ppcPC64(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
+  Architecture fixme = ptr->insn()->getArch();
+   if (fixme == Arch_ppc32) fixme = Arch_ppc64;
+   
+   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(ptr->insn()->getArch())));
+   Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
 
   // Bind the IP, why not...
-  CFT->bind(x86PC.get(), Result(u32, ptr->addr()));
-  CFT->bind(x86PC64.get(), Result(u64, ptr->addr()));
-  CFT->bind(ppcPC.get(), Result(u32, ptr->addr()));
-  CFT->bind(ppcPC64.get(), Result(u64, ptr->addr()));
+  CFT->bind(thePC.get(), Result(u64, ptr->addr()));
+  CFT->bind(thePCFixme.get(), Result(u64, ptr->addr()));
 
   Result res = CFT->eval();
 

@@ -1136,7 +1136,7 @@ bool baseTramp::generateSaves(codeGen &gen,
     // Save LR            
     saveLR(gen, REG_SCRATCH /* register to use */, TRAMP_SPR_OFFSET + STK_LR);
 
-    saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET, false);
+    saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET, true); // FIXME get liveness fixed
     return true;
 }
 
@@ -2790,7 +2790,7 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
         // Use function descriptor address, if available.
         if (f->getPtrAddress()) val_to_write = f->getPtrAddress();
         assert(p->proc());
-        Address toc = p->proc()->getTOCoffsetInfo(val_to_write);
+        Address toc = p->proc()->getTOCoffsetInfo(f);
         buffer[0] = val_to_write;
         buffer[1] = toc;
         buffer[2] = 0x0;
@@ -3290,7 +3290,6 @@ bool EmitterPOWER64Dyn::emitTOCCommon(block_instance *target, bool call, codeGen
   std::vector<func_instance *> calleeFuncs;
   target->getFuncs(std::back_inserter(calleeFuncs));
   Address newTOC = gen.addrSpace()->proc()->getTOCoffsetInfo(calleeFuncs[0]);
-
   if (curTOC == newTOC) {
     // Easy...
     if (call) {
@@ -3350,7 +3349,6 @@ bool EmitterPOWER64Dyn::emitTOCCommon(block_instance *target, bool call, codeGen
 
   // Load TOC from SP + 3W
   restoreRegisterAtOffset(gen, 2, 3*wordsize);
-
   return true;
 }
 

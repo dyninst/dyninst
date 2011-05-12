@@ -63,18 +63,20 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
    // If so, things get... complicated
    if (isPLT(gen)) {
       if (!applyPLT(gen, buf)) {
-         cerr << "Failed to apply patch (PLT req'd)" << endl;
+	relocation_cerr << "PLT special case handling in PPC64" << endl;
          return false;
       }
       return true;
    }
 
-   if (isSpecialCase(gen)) {
+   if (isSpecialCase()) {
+     gen.setFunction(const_cast<func_instance *>(func));
      if (!handleSpecialCase(gen)) {
+       relocation_cerr << "TOC special case handling in PPC64 failed" << endl;
        return false;
      }
+     return true;
    }
-
    // Otherwise this is a classic, and therefore easy.
    int targetLabel = target->label(buf);
 
@@ -87,7 +89,7 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
             relocation_cerr << "\t\t\t Generating CFPatch::Jump from " 
                             << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;
             if (!insnCodeGen::modifyJump(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
-               cerr << "Failed to modify jump" << endl;
+	      relocation_cerr << "modifyJump failed, ret false" << endl;
                return false;
             }
             return true;
@@ -96,21 +98,21 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
             relocation_cerr << "\t\t\t Generating CFPatch::JCC from " 
                             << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;            
             if (!insnCodeGen::modifyJcc(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
-               cerr << "Failed to modify conditional jump" << endl;
+	      relocation_cerr << "modifyJcc failed, ret false" << endl;
                return false;
             }
             return true;            
          }
          case CFPatch::Call: {
             if (!insnCodeGen::modifyCall(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
-               cerr << "Failed to modify call" << endl;
+	      relocation_cerr << "modifyCall failed, ret false" << endl;
                return false;
             }
             return true;
          }
          case CFPatch::Data: {
             if (!insnCodeGen::modifyData(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
-               cerr << "Failed to modify data" << endl;
+	      relocation_cerr << "modifyData failed, ret false" << endl;
                return false;
             }
             return true;
@@ -163,13 +165,11 @@ bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
    
    
    if (target->type() != TargetInt::BlockTarget) {
-      cerr << "Target type is " << target->type() << ", not block target" << endl;
       return false;
    }
    // And can only handle calls right now. That's a TODO...
    if (type != Call &&
        type != Jump) {
-      cerr << "Attempt to make PLT of type " << type << " and can only handle calls or jumps" << endl;
       return false;
    }
 
@@ -179,7 +179,6 @@ bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
    // We can (for now) only jump to functions
    func_instance *callee = tb->entryOfFunc();
    if (!callee) {
-      cerr << "No callee, ret false" << endl;
       return false;
    }
 
@@ -200,9 +199,9 @@ bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
    return true;
 }
 
-bool CFPatch::isSpecialCase(codeGen &gen) {
+bool CFPatch::isSpecialCase() {
   // 64-bit check
-  if (gen.addrSpace()->getAddressWidth() != 8) return false;
+  if (func->proc()->getAddressWidth() != 8) return false;
 
   // See if this is inter-module, according to the target
   // and gen
@@ -210,8 +209,8 @@ bool CFPatch::isSpecialCase(codeGen &gen) {
   if (target->type() != TargetInt::BlockTarget) return false;
 
   Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
-  if (t->t()->obj() == gen.func()->obj()) return false;
-  
+  if (t->t()->obj() == func->obj()) return false;
+
   return true;
 }
 

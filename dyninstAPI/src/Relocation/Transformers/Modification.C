@@ -138,10 +138,12 @@ bool Modification::replaceFunction(Trace *trace, RelocGraph *cfg) {
    
    // Redirect all call in-edges to the replacement function
    Predicates::Interprocedural pred;
-   if (target)
+   if (target) {
       if (!cfg->changeTargets(pred, trace->ins(), target)) return false;
-   else
+   }
+   else {
       if (!cfg->changeTargets(pred, trace->ins(), iter->second->entryBlock())) return false;
+   }
    return true;
 }
 
@@ -179,10 +181,12 @@ bool Modification::wrapFunction(Trace *trace, RelocGraph *cfg) {
    cfg->setSpringboard(trace->block(), stub);
    
    WrapperPredicate pred(trace->func());
-   if (target)
+   if (target) {
       if (!cfg->changeTargets(pred, trace->ins(), target)) return false;
-   else
+   }
+   else {
       if (!cfg->changeTargets(pred, trace->ins(), iter->second->entryBlock())) return false;
+   }
    return true;
 }
 

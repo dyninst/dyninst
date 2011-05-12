@@ -161,13 +161,13 @@ Address process::getTOCoffsetInfo(Address dest)
 }
 
 Address process::getTOCoffsetInfo(func_instance *func) {
-
+  
 #if defined(arch_power) && defined(os_linux)
    // See comment above.
    if (getAddressWidth() == 4)
       return 0;
 #endif
-
+   assert(func);
     mapped_object *mobj = func->obj();
 
     return mobj->parse_img()->getObject()->getTOCoffset() + mobj->dataBase();
