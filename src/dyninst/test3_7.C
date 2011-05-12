@@ -231,10 +231,6 @@ test_results_t test3_7_Mutator::setup(ParameterDict &param) {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
 
-#if defined (sparc_sun_solaris2_4_test)
-    // we use some unsafe type operations in the test cases.
-    bpatch->setTypeChecking(false);
-#endif
     
     return PASSED;
 }
