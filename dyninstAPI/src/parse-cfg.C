@@ -34,9 +34,7 @@
 #include "function.h"
 #include "instPoint.h"
 
-#if defined(cap_instruction_api)
 #include "instructionAPI/h/InstructionDecoder.h"
-#endif //defined(cap_instruction_api)
 
 #include "symtab.h"
 #include "debug.h"

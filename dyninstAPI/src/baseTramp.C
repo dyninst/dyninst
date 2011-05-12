@@ -189,6 +189,7 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
 
 #define PRE_TRAMP_SIZE 4096
 #define POST_TRAMP_SIZE 4096
+
 // recursive into miniTramps
 // If we generated once, we skip most of this as useless.
 // However, we still go into the miniTramps.

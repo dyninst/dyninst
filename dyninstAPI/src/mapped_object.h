@@ -274,6 +274,7 @@ public:
 	bool isDirty() { return dirty_; }
 
     func_instance *findFunction(ParseAPI::Function *img_func);
+
     int_variable *findVariable(image_variable *img_var);
 
     block_instance *findBlock(ParseAPI::Block *);

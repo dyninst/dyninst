@@ -1271,7 +1271,7 @@ void image::analyzeImage() {
 
     obj_->parse();
 
-#if defined(os_solaris) || defined(os_aix)
+#if defined(os_aix)
   {
   image_parRegion *parReg;
   int currentSectionNum = 0;
@@ -1417,7 +1417,7 @@ image::image(fileDescriptor &desc,
       }
    }
    startup_printf("%s[%d]:  opened file %s (or archive)\n", FILE__, __LINE__, file.c_str());
-#elif defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
+#elif defined(os_linux) || defined(os_freebsd)
    string file = desc_.file().c_str();
    if( desc_.member().empty() ) {
        startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());

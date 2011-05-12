@@ -65,14 +65,13 @@ using namespace Dyninst::SymtabAPI;
 
 // Need REG_MT_POS, defined in inst-<arch>...
 
-#if defined(arch_x86) || defined(arch_86_64)
+#if defined(arch_x86) || defined(arch_x86_64)
 #include "inst-x86.h"
 #elif defined(arch_power)
 #include "inst-power.h"
-#elif defined(arch_sparc)
-#include "inst-sparc.h"
+#else
+#error "Unknown architecture, expected x86, x86_64, or power"
 #endif
-
 
 
 /*
@@ -793,25 +792,6 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
 
     BPatch_type *ret_type = const_cast<BPatch_function &>(func).getReturnType();
       ast_wrapper->setType(ret_type);
-	/*** ccw 24 jul 2003 ***/
-	/* 	at this point, if saveworld is turned on, check
-		to see if func is in a shared lib. if it
-		is marked that shared lib as dirtyCalled()
-	*/
-#if defined(cap_save_the_world)
-
-      AddressSpace *as = func.getAddSpace()->getAS();
-      process* proc = dynamic_cast<process *>(as);
-
-      //	process *proc = func.getProc()->llproc;
-	
-	// We can't define isSharedLib as constant everywhere, so strip
-	// the const definition here.
-	BPatch_function &stripFunc = const_cast<BPatch_function &> (func);
-	if( proc && proc->collectSaveWorldData && stripFunc.isSharedLib()){
-            stripFunc.lowlevel_func()->obj()->setDirtyCalled();
-	}
-#endif
 }
 
 /*

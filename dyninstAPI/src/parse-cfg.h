@@ -343,10 +343,6 @@ class parse_func : public ParseAPI::Function
    bool isTrueCallInsn(const instruction insn);
 #endif
 
-#if defined(sparc_sun_solaris2_4)
-   bool is_o7_live(){ return o7_live; }
-#endif
-
 #if defined(arch_power)
    bool savesReturnAddr() const { return ppc_saves_return_addr_; }
 #endif

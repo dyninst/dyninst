@@ -1134,7 +1134,7 @@ bool forkNewProcess_real(std::string file,
          num_envs_entries = envp->size();
          envs[num_envs_entries] = NULL;
       }
-#if (defined(os_linux) || defined(os_solaris))
+#if defined(os_linux)
       // Platforms that use LD_PRELOAD. We exclude x86_64 since we do
       // not yet know which kind of the RT lib to load (we determine
       // whether the mutatee is 32 or 64-bit only after starting it).
@@ -1622,7 +1622,7 @@ bool SignalGenerator::isInstTrap(const EventRecord &ev, const Frame &af)
    return (ev.proc->last_single_step == af.getPC() - 1);
 }
 
-#if defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
+#if defined(os_linux) || defined(os_freebsd)
 
 #include "dyninstAPI/src/binaryEdit.h"
 #include "symtabAPI/h/Archive.h"

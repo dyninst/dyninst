@@ -841,20 +841,6 @@ bool dyn_lwp::realLWP_attach_()
       return false;
    }
 
-#if defined(os_solaris)
-   // Find out if we're the as lwp... see comment in dyn_lwp.h
-
-   pstatus_t procstatus;
-
-   if (!proc_->get_status(&procstatus)) {
-      // Uhh....
-      return true;
-   }
-
-   if ((unsigned)procstatus.pr_aslwpid == get_lwp_id()) 
-      is_as_lwp_ = true;
-#endif
-
    return true;
 }
 
@@ -865,12 +851,6 @@ bool dyn_lwp::representativeLWP_attach_()
    //sleep(3);
    sleep(2);
    //sleep(1);
-#endif
-#if defined (os_solaris)
-   struct timeval slp;
-   slp.tv_sec = 0;
-   slp.tv_usec = 50 /*ms*/ * 1000;
-   select(0, NULL, NULL, NULL, &slp);
 #endif
    /*
       Open the /proc file corresponding to process pid
@@ -1306,28 +1286,7 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 
    //  cerr << "process::writeDataSpace_ pid " << getPid() << " writing "
    //       << amount << " bytes at loc " << inTraced << endl;
-#if defined (cap_save_the_world)
-#if defined (sparc_sun_solaris2_4)
-   if(proc_->collectSaveWorldData &&  ((Address) inTraced) >
-         proc_->getDyn()->getlowestSObaseaddr() ) {
-      mapped_object *sh_obj = NULL;
-      bool result = false;
-      const pdvector<mapped_object *> &objs = proc_->mappedObjects();
-      for (unsigned i = 0; i < objs.size(); i++) {
-         sh_obj = objs[i];
-         result = sh_obj->isinText((Address) inTraced);
-         if( result  ){
-            /*	bperr(" write at %lx in %s amount %x insn: %x \n", 
-               (off_t)inTraced, sh_obj->getName().c_str(), amount,
-             *(unsigned int*) inSelf);
-             */	
-            sh_obj->setDirty();	
-            break;
-         }
-      }
-   }
-#endif
-#endif
+
    off64_t loc;
    // Problem: we may be getting a address with the high bit
    // set. So how to convince the system that it's not negative?

@@ -55,33 +55,6 @@ extern "C" DLLEXPORT TestMutator *test_mem_1_factory() {
   return new test_mem_1_Mutator();
 }
 
-#ifdef arch_sparc_test
-static const unsigned int nloads = 15;
-static BPatch_memoryAccess* loadList[nloads];
-static void init_test_data()
-{
-  int k=-1;
-
-  loadList[++k] = MK_LD(0,17,0,4);
-  loadList[++k] = MK_LD(3,1,-1,1);
-  loadList[++k] = MK_LD(2,2,-1,2);
-  loadList[++k] = MK_LD(0,17,0,8);
-  loadList[++k] = MK_LD(0,17,0,4);
-
-  loadList[++k] = MK_LS(3,17,-1,1); // ldstub
-  loadList[++k] = MK_LD(3,17,-1,1);
-
-  loadList[++k] = MK_LS(0,17,-1,4); // cas
-  loadList[++k] = MK_LS(0,17,-1,8); // casx
-  loadList[++k] = MK_LS(0,17,0,4);  // swap
-
-  loadList[++k] = MK_LD(0,17,0,4);
-  loadList[++k] = MK_LD(0,17,0,4);
-  loadList[++k] = MK_LD(0,17,0,8);
-  loadList[++k] = MK_LD(0,17,0,8);
-  loadList[++k] = MK_LD(0,17,0,16);
-}
-#endif
 
 #ifdef arch_power_test
 static const unsigned int nloads = 41;
@@ -274,20 +247,6 @@ static void init_test_data()
 }
 #endif
 
-#ifdef arch_ia64_test
-static const unsigned int nloads = 6;
-static BPatch_memoryAccess* loadList[nloads];
-static void init_test_data() {
-	loadList[0] = MK_LD( 0, 16, -1, 8 );
-	loadList[1] = MK_LD( 0, 14, -1, 8 );
-	loadList[2] = MK_LD( 0, 15, -1, 8 );
-	
-	loadList[3] = MK_LD( 0, 14, -1, 8 );
-	loadList[4] = MK_LD( 0, 14, -1, 16 );
-	loadList[5] = MK_LD( 0, 14, -1, 16 );
-}
-#endif
-
 #ifdef arch_x86_64_test
 static const unsigned int nloads = 75;
 
@@ -435,7 +394,7 @@ static void init_test_data()
 test_results_t test_mem_1_Mutator::executeTest() {
   int testnum = 1;
   const char* testdesc = "load instrumentation";
-#if !defined(arch_sparc_test) && !defined(arch_power_test) && !defined(arch_x86_test) && !defined(arch_x86_64_test) && !defined(arch_ia64_test)
+#if !defined(arch_power_test) && !defined(arch_x86_test) && !defined(arch_x86_64_test)
   //skiptest(testnum, testdesc);
   // Unsupported platform
   return SKIPPED;

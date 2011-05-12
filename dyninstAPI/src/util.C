@@ -70,10 +70,6 @@ void printDyninstStats()
 
 // TIMING code
 
-#if defined(i386_unknown_solaris2_5) || defined(sparc_sun_solaris2_4)
-#include <sys/time.h>  // for gethrtime()
-#endif
-
 #if !defined(os_windows)
 #include <sys/types.h>
 #include <sys/stat.h>

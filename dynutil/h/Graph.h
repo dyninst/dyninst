@@ -105,7 +105,7 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
     virtual bool find(NodePredicate::Ptr, NodeIterator &begin, NodeIterator &end);
     virtual bool find(NodePredicateFunc, void *user_arg, NodeIterator &begin, NodeIterator &end);
 
-    bool printDOT(const std::string fileName);
+    bool printDOT(const std::string& fileName);
 
     virtual ~Graph() {};
     

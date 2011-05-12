@@ -52,9 +52,7 @@
 
 #include <map>
 
-#if defined(arch_sparc)
-#include "dyninstAPI/src/inst-sparc.h"
-#elif defined(arch_power)
+#if defined(arch_power)
 #include "dyninstAPI/src/inst-power.h"
 #include "dyninstAPI/src/emit-power.h"
 #elif defined(arch_x86) || defined(arch_x86_64)

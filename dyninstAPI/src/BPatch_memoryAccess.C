@@ -38,9 +38,6 @@
 #include "BPatch_Vector.h"
 #include "BPatch_point.h"
 #include "../../common/h/Types.h"
-#if !defined(cap_instruction_api)
-extern void initOpCodeInfo();
-#endif
 
 BPatch_addrSpec_NP::BPatch_addrSpec_NP(long _imm, int _ra, int _rb, int _scale) :
    imm(_imm), 
@@ -138,9 +135,6 @@ void BPatch_memoryAccess::set1st(bool _isLoad, bool _isStore,
 
 BPatch_memoryAccess* BPatch_memoryAccess::init_tables()
 {
-#if !defined(cap_instruction_api)
-   initOpCodeInfo();
-#endif   
     return NULL;
 }
 

@@ -58,7 +58,7 @@
 #include "common/h/List.h"
 #include "common/h/Types.h"
 
-#if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)||defined(os_linux)||defined(os_solaris)||defined(os_freebsd)
+#if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)||defined(os_linux)||defined(os_freebsd)
 #include "symtabAPI/h/Archive.h"
 #endif
 
@@ -481,7 +481,7 @@ class image : public codeRange {
 
    // data from the symbol table 
    SymtabAPI::Symtab *linkedFile;
-#if defined (os_aix) || defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
+#if defined (os_aix) || defined(os_linux) || defined(os_freebsd)
    SymtabAPI::Archive *archive;
 #endif
 

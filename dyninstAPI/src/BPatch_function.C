@@ -56,9 +56,6 @@
 #include "hybridAnalysis.h"
 
 #include "common/h/Types.h"
-#if !defined(cap_instruction_api)
-#include "InstrucIter-Function.h"
-#endif
 
 
 

@@ -939,3 +939,4 @@ COMMON_EXPORT bool isStackFramePrecheck_gcc( const unsigned char *buffer );
 }; // namespace arch_x86
 
 #endif
+

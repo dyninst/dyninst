@@ -128,7 +128,7 @@ class Symbol : public Serializable,
 
    SYMTAB_EXPORT static Symbol *magicEmitElfSymbol();
 
-   SYMTAB_EXPORT Symbol (const std::string name,
+   SYMTAB_EXPORT Symbol (const std::string& name,
                          SymbolType t,
                          SymbolLinkage l,
                          SymbolVisibility v,
@@ -279,7 +279,7 @@ class LookupInterface
       SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret,
             Symbol::SymbolType sType) = 0;
       SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret,
-            const std::string name,
+            const std::string& name,
             Symbol::SymbolType sType,
             bool isMangled = false,
             bool isRegex = false,

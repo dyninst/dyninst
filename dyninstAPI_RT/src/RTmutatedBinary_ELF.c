@@ -45,14 +45,6 @@
 
 
 
-#if defined(sparc_sun_solaris2_4)
-#include <procfs.h> /* ccw 12 mar 2004*/
-#include <sys/types.h>
-#include <sys/stat.h>
-#endif
-
-
-
 #if defined(i386_unknown_linux2_0) \
  || (defined(arch_power) && defined(os_linux)) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -62,30 +54,9 @@
 #include <sys/mman.h>
 #include <dlfcn.h>
 #include <link.h> /* ccw 23 jan 2002 */
-#if defined(sparc_sun_solaris2_4) 
-
-#include <sys/link.h>
-#include <signal.h>
-#endif
 #include <limits.h>
 
-#if defined(sparc_sun_solaris2_4)
-extern void* _DYNAMIC;
-
-#if defined(__arch64__)
-#define __ELF_NATIVE_CLASS 64
-#else
-#define __ELF_NATIVE_CLASS 32
-#endif
-
-/* Borrowed from Linux's link.h:  Allows us to use data types
-   from libelf regardless of word size. */
-#define ElfW(type)      _ElfW (Elf, __ELF_NATIVE_CLASS, type)
-#define _ElfW(e,w,t)    _ElfW_1 (e, w, _##t)
-#define _ElfW_1(e,w,t)  e##w##t
-
-
-#elif defined(i386_unknown_linux2_0) \
+#if defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 extern ElfW(Dyn) _DYNAMIC[];
 
@@ -113,56 +84,10 @@ char *buffer;
 
 struct link_map* map=NULL;
 
-#if defined(sparc_sun_solaris2_4)
-
-prmap_t *procMemMap=NULL;/* ccw 2 apr 2002 */
-int procMemMapSize=0;
-
-struct r_debug _r_debug; /* ccw 2 apr 2002 */
-int r_debug_is_set = 0; 
-extern unsigned int _dyninst_call_to_dlopen;
-extern unsigned int __dyninst_jump_template__;
-extern unsigned int __dyninst_jump_template__done__;
-#endif
-
 char *sharedLibraryInfo = NULL;
 unsigned int originalInsnBkpt;
 unsigned int addressBkpt;
 
-#if defined(sparc_sun_solaris2_4)
-/* 	To help the RT shared lib to reload in the same location for the
-   	mutated binaries we now use dldump to dump the rt lib back to the
-	directory that contains the mutated binary.  The LD_LIBRARY_PATH
-	MUST be set to find this new rt lib ONLY when running the mutated
-	binary.
-*/
-extern char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
-
-int DYNINSTsaveRtSharedLibrary(char *rtSharedLibName, char *newName){
-
-	char *err_str;
-	gLoadLibraryErrorString[0]='\0';
-
-	/*fprintf(stderr," DLDUMP(%s,%s)\n",  rtSharedLibName, newName);*/
-
-	/* dldump returns 0 on success */
-	if ( dldump(rtSharedLibName, newName, RTLD_REL_RELATIVE) ) { 
-		/* An error has occurred */
-		perror( "DYNINSTsaveRtSharedLibrary -- dldump" );
-    
-		if (NULL != (err_str = dlerror())){
-			strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);
-		}else{ 
-			sprintf(gLoadLibraryErrorString,"unknown error with dldump");
-		}
-    
-		/*fprintf(stderr, "%s[%d]: %s\n",__FILE__,__LINE__,gLoadLibraryErrorString);*/
-		return 0;  
-	} else{
-    		return 1;
-	}
-}
-#endif
 /* 	this is not misnamed.  In the future, this function will contain
 	code to patch the instrumentation of a shared library that has 
 	been loaded into a different place during a mutated binary run.
@@ -219,171 +144,7 @@ unsigned long checkSOLoadAddr(char *soName, unsigned long loadAddr){
 	/*fprintf(stderr," checkSOLoadAddr: %s %lx %lx\n", soName, loadAddr, result);*/
 	return result;
 }
-#if defined(sparc_sun_solaris2_4)
-unsigned int register_o7;
 
-unsigned long loadAddr;
-/*	this function is not a signal handler. it was originally but now is 
-	not, it is called below in dyninst_jump_template
-*/ 
-void pseudoSigHandler(int sig){
-
-	map = _r_debug.r_map; /* ccw 22 jul 2003*/
-	if(_r_debug.r_state == 0){
-		do{
-			if(map->l_next){
-				map = map->l_next;
-			}
-			loadAddr = checkSOLoadAddr(map->l_name, map->l_addr);
-			if(loadAddr){
-				fixInstrumentation(map->l_name, map->l_addr, loadAddr);
-			}
-
-		}while(map->l_next);
-
-	}
-
-}
-
-void dyninst_jump_template(){
-/* THE PLAN:
-
-	The Solaris loader/ELF file works as follows:
-	
-	A call to dlopen jumps to the Procedure Linking Table 
-	slot holding the dlopen information.  This slot consists of
-	three instructions:
-	
-	sethi r1, 0xb4
-	ba (to another PLT slot)
-	nop
-
-	The second PLT slot contains three instructions:
-	save
-	call (address of dlopen)
-	nop
-
-	dlopen returns directly to where it was called from, not to
-	either of the PLT slots.  The address from which it was called
-	is located in %o7 when the call to dlopen in the second PLT
-	slot is made. dlopen returns to %o7 +4.
-	
-
-	What our code does:
-
-	The goals is to intercept this call to dlopen by overwritting
-	the first PLT slot to jump to __dyninst_jump_template__ then we
-	can jump to code that will check the addresses of the loaded
-	shared libraries.
-
-	first we must preserver %o7 so we know where to go back to.
-	This is done with the first two instructions in __dyninst_jump_template__
-	These are written as nops BUT are overwritten in the SharedLibraries 
-	branch in checkElfFile.  %o7 is saved in register_o7 declared above.
-	This address is not available until run time so we generate these
-	instructions on the fly.
-
-	Next, we CALL the second PLT slot as normal.  We use the delay
-	slot to run the sethi instruction from the first PLT slot. These
-	instructions are generated at runtime. 
-
-	dlopen will eventually be called and will return to the nop after
-	the sethi.  Now we need to call our function to check the
-	shared library address.  This is pseudoSigHandler.  We must
-	preserve the data returned by dlopen so we do a save to
-	push the register onto the stack before we call our function.
-	We call our function, and then do a restore to retreive the 
-	saved information.
-
-	At __dyninst_jump_template__done__ we want to restore the
-	value in register_o7 to %o7 so when we do a retl we will
-	jump back to where the mutated binary originally called 
-	dlopen.
-	The sethi and ld instructions are generated on the fly just
-	as the first sethi and st pair that saved the value of %o7.
-	The retl used %o7 to jump back to the original place 
-	the mutatee called dlopen. We are done. Whew.
-
-	Note that I know the address of the first PLT slot because
-	the mutator found it and saved it in the mutated binary.
-	The address of the second PLT slot is determined by looking
-	at the instructions in the first PLT slot.
-*/
-	
-
-	asm("nop");
-	asm("__dyninst_jump_template__:");
-
-	asm("nop"); 	/*sethi hi(register_o7), %g1 GENERATED BELOW*/
-	asm("nop");	/*st %o7 GENERATED BELOW*/
-
-	asm("nop");	/*call/jmp plt GENERATED BELOW*/
-	asm("nop");    /*sethi r1, b4 GENERATED BELOW*/
-
-	asm("nop");
-	asm("save %sp, -104, %sp");
-	asm("nop");
-	pseudoSigHandler(0);
-	asm("nop");
-	asm("restore");
-	asm("nop");
-	asm("nop");
-	asm("__dyninst_jump_template__done__:");
-	asm("nop"); 	/*sethi hi(register_o7), %g1 GENERATED BELOW*/
-	asm("nop"); 	/* ld [register_o7], %o7 GENERATED BELOW*/
-	asm("retl");
-
-	asm("nop"); 	/* this will be filled in below */
-	asm("nop");
-
-}
-
-#endif
-
-#if defined (sparc_sun_solaris2_4)
-void findMap(){ /* ccw 12 mar 2004*/
-
-	Dl_info dlip;
-	int me = getpid();
-	char fileName[1024];
-	prmap_t mapEntry;
-	int fd;
-	int index = 0;
-	int offset = 0;
-	struct stat statInfo;
-
-	sprintf(fileName, "/proc/%d/map", me);
-	
-	stat(fileName, &statInfo);
-	if( procMemMap ) {
-		free(procMemMap);
-	}
-	procMemMap = (prmap_t*) malloc(statInfo.st_size);
-
-	fd = open(fileName, O_RDONLY);
-
-	while( pread(fd, (void*)& (procMemMap[index]), sizeof(mapEntry), offset) ){
-		offset += sizeof(prmap_t);
-		index++;
-	}
-	close(fd);
-	procMemMapSize = index;
-
-}
-
-long checkMap(unsigned long addr){
-	int index=0;
-
-	findMap();	
-	while(index < procMemMapSize){
-		if( procMemMap[index].pr_vaddr <= addr && (procMemMap[index].pr_vaddr + (unsigned int)procMemMap[index].pr_size) > addr){
-			return 1;
-		}
-		index++;
-	}
-	return 0;
-}
-#endif
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -566,9 +327,7 @@ int checkMutatedFile(){
 	execStr = (char*) malloc(1024);
 	memset(execStr,'\0',1024);
 
-#if defined(sparc_sun_solaris2_4)
-        sprintf(execStr,"/proc/%d/object/a.out",getpid());
-#elif defined(i386_unknown_linux2_0) \
+#if defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
    || (defined(os_linux) && defined(arch_power))
 	sprintf(execStr,"/proc/%d/exe",getpid());
@@ -641,27 +400,6 @@ int checkMutatedFile(){
 
 			tmpStr ++;
 
-#if defined(sparc_sun_solaris2_4)
-			if( r_debug_is_set == 0 ) { 
-				/* this moved up incase there is no dyninstAPI_### section, map and
-				_r_debug are still set correctly. */
-				/* solaris does not make _r_debug available by
-				default, we have to find it in the _DYNAMIC table */
-
-				__Elf_Dyn *_dyn = (__Elf_Dyn*)& _DYNAMIC;	
-				while(_dyn && _dyn->d_tag != 0 && _dyn->d_tag != 21){
-					_dyn ++;
-				}
-				if(_dyn && _dyn->d_tag != 0){
-					_r_debug = *(struct r_debug*) _dyn->d_un.d_ptr;
-				}
-				map = _r_debug.r_map;
-				r_debug_is_set = 1;
-			}else{
-				map = _r_debug.r_map;
-			}
-
-#endif
 			if( *tmpStr>=0x30 && *tmpStr <= 0x39 ) {
 				/* we dont want to do this unless this is a dyninstAPI_### section
 					specifically, dont do this for dyninstAPI_SharedLibraries*/
@@ -684,9 +422,7 @@ int checkMutatedFile(){
 			char *soNames;
 			int mutatedFlag = 0;
 			int totallen=0;
-#if defined(sparc_sun_solaris2_4)
-			Link_map *lmap=0;
-#elif defined(i386_unknown_linux2_0) \
+#if defined(i386_unknown_linux2_0) \
    || (defined(arch_power) && defined(os_linux)) \
    || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 			struct link_map *lmap=0;
@@ -740,26 +476,6 @@ int checkMutatedFile(){
 			/* use memcpy because of alignment issues on sparc */	
 			memcpy(&ptr,elfData->d_buf,sizeof(unsigned int));
 
-#if defined(sparc_sun_solaris2_4)
-               		if( r_debug_is_set == 0 ) {
-                    		/* this moved up incase there is no dyninstAPI_### section, map and
-                    			_r_debug are still set correctly. */
-                    		/* solaris does not make _r_debug available by
-                    			default, we have to find it in the _DYNAMIC table */
-
-                    		__Elf_Dyn *_dyn = (__Elf_Dyn*)& _DYNAMIC;
-                    		while(_dyn && _dyn->d_tag != 0 && _dyn->d_tag != 21){
-                         		_dyn ++;
-                    		}
-                    		if(_dyn && _dyn->d_tag != 0){
-                         		_r_debug = *(struct r_debug*) _dyn->d_un.d_ptr;
-                    		}
-                    		map = _r_debug.r_map;
-                    		r_debug_is_set = 1;
-               		}else{
-                    		map = _r_debug.r_map;
-               		}
-#endif
 	
 			map = _r_debug.r_map;
 
@@ -800,18 +516,6 @@ int checkMutatedFile(){
 		if(!strcmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_SharedLibraries")){
 			unsigned long diffAddr;
 			unsigned long ld_linuxBaseAddr;
-#if defined(sparc_sun_solaris2_4)
-                        unsigned long baseAddr, size;
-			unsigned int *overWriteInsn;
-			unsigned int *pltEntry, *PLTEntry, *dyninst_jump_templatePtr, pltInsn, tmpAddr;
-			unsigned int BA_MASK=0x30800000;
-			unsigned int BA_IMM=0x003fffff;
-			unsigned int SETHI_IMM=0x003fffff;
-			unsigned int JMP_IMM =0x00001fff;
-			unsigned int offset, callInsn;
-			struct sigaction  mysigact, oldsigact;
-			int result;
-#endif
 			char *ptr;
 			int done = 0;
 
@@ -887,118 +591,7 @@ int checkMutatedFile(){
 				here.  
 			*/
 
-#if defined(sparc_sun_solaris2_4) 
-			/* 
-				For a description of what is going on here read
-				the comment in dyninst_jump_template above.
-
-				This code generated all the instructions refered
-				to in that comment as "GENERATED BELOW".
-
-			*/
-
-			pltEntry = (unsigned int*) shdr->sh_addr;
-			pltInsn = *pltEntry; /* save insn for later */
-			pltEntry += 1;
-
-			/* The PLT entry may look like:
-				sethi
-				ba,a
-				nop
-
-			   or
-			
-				sethi
-				sethi
-				jmp
-
-			*/
-			if( (*pltEntry & (BA_MASK)) == (BA_MASK) ){
-				/* we have the sethi/ba,a/nop type */
-
-				offset = (*pltEntry) & BA_IMM;
-				if(offset & 0x00200000){
-					/* negative so sign extend */
-					offset = 0xffc00000 | offset;
-				}
-				PLTEntry = pltEntry;
-			
-				PLTEntry += (offset*4)/sizeof(PLTEntry); /* move PLTEntry offset*4 bytes!*/
-
-			}else{
-				/* we have the sethi/sethi/jmp type */
-				tmpAddr = ((*pltEntry) & SETHI_IMM)<<10;
-				pltEntry ++;
-				tmpAddr += ((*pltEntry) & JMP_IMM);
-				PLTEntry = (unsigned int *) tmpAddr;
-				pltEntry --;
-			}
-
-			dyninst_jump_templatePtr = (unsigned int*) & __dyninst_jump_template__;
-
-			baseAddr = ((unsigned int) dyninst_jump_templatePtr)  -
-				( ((unsigned int) dyninst_jump_templatePtr)% getpagesize());
-			size =  (unsigned int) dyninst_jump_templatePtr  - baseAddr + 80;
-			result = mprotect((void*)baseAddr , size, 
-                           PROT_READ|PROT_WRITE|PROT_EXEC);
-
-			/* build sethi hi(register_o7), %g1 */
-			*dyninst_jump_templatePtr = 0x03000000;
-			*dyninst_jump_templatePtr |= ( (((unsigned int ) & register_o7)& 0xfffffc00) >> 10); /*0xffffe000 */
-
-			dyninst_jump_templatePtr ++;
-
-			/* build st %o7, &register_o7 */
-			*dyninst_jump_templatePtr = 0xde206000;
-			*dyninst_jump_templatePtr |=  ( ((unsigned int ) & register_o7) & 0x000003ff ); /*0x00001fff*/
-
-			dyninst_jump_templatePtr ++;
-
-			/* build call PLTEntry */
-			*dyninst_jump_templatePtr = 0x40000000;
-			*dyninst_jump_templatePtr |= ( ((unsigned int) (PLTEntry)-  ((unsigned int) dyninst_jump_templatePtr)) >>2);
-			dyninst_jump_templatePtr ++;
-
-			/* copy from plt */
-			*dyninst_jump_templatePtr = pltInsn;
-			dyninst_jump_templatePtr ++;
-
-
-			/* advance past call to pseudoSigHandler */
-			dyninst_jump_templatePtr = (unsigned int*) &__dyninst_jump_template__done__ ;
-	
-			/* build sethi hi(register_o7), %g1 */
-			*dyninst_jump_templatePtr = 0x03000000;
-			*dyninst_jump_templatePtr |= ( (((unsigned int ) & register_o7)& 0xfffffc00) >> 10); /*0xffffe000*/
-
-			dyninst_jump_templatePtr ++;
-
-			/* build ld %o7, register_o7 */
-			*dyninst_jump_templatePtr = 0xde006000;
-			*dyninst_jump_templatePtr |=  ( ((unsigned int ) & register_o7) & 0x000003ff );  /*0x00001fff*/
-
-
-			/* THIS ENABLES THE JUMP */
-			/* edit plt to jump to __dyninst_jump_template__ */
-			baseAddr = ((unsigned int) pltEntry)  -
-				( ((unsigned int) pltEntry)% getpagesize());
-			size =  (unsigned int) pltEntry  - baseAddr + 8;
-			result = mprotect((void*)baseAddr , size,
-                           PROT_READ|PROT_WRITE|PROT_EXEC);
-
-			/* build sethi hi(&__dyninst_jump_template__), %g1 */
-			pltEntry --;
-			*pltEntry = 0x03000000;
-			*pltEntry |= ( (((unsigned int ) &__dyninst_jump_template__) )>> 10);
-			pltEntry ++;
-	
-			/* build jmpl %g1, %r0 */	
-			*pltEntry = 0x81c06000;
-			*pltEntry |=  ( ((unsigned int ) &__dyninst_jump_template__ ) & 0x00003ff );
-
-			pltEntry ++;
-			*pltEntry = 0x01000000;
-#elif defined(i386_unknown_linux2_0) \
+#if defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 			/* install jump to catch call to _dl_debug_state */
 			/* see comment int hack_ld_linux_plt for explainations */
@@ -1050,16 +643,7 @@ int checkMutatedFile(){
 
 
 			/* probe memory to see if we own it */
-#if defined(sparc_sun_solaris2_4)
-
-			/* dladdr does not work here with all patchlevels of solaris 2.8
-			   so we use the /proc file system to read in the /proc/pid/map file
-			   and determine for our selves if the memory belongs to us yet or not*/
-			findMap();
-			checkAddr = checkMap((unsigned long)shdr->sh_addr);
-#else
 			checkAddr = dladdr((void*)shdr->sh_addr, &dlip);
-#endif
 
 
 			updateSize  = shdr->sh_size-((2*numberUpdates)* (sizeof(unsigned int)) -(count* (sizeof(unsigned int))));
@@ -1119,23 +703,12 @@ int checkMutatedFile(){
 			/* this section loads shared libraries into the mutated binary
 				that were loaded by BPatch_thread::loadLibrary */
 			void * handle =NULL;
-#if defined(sparc_sun_solaris2_4)
-                        Dl_info p;
-                        unsigned long loadAddr;
-#endif
 			elfData = Elf_getdata(scn, NULL);
 			tmpPtr = elfData->d_buf;
 
 			while(*tmpPtr) { 
 				handle = dlopen(tmpPtr, RTLD_LAZY);
 				if(handle){
-#if defined(sparc_sun_solaris2_4)
-					dlinfo(handle, RTLD_DI_CONFIGADDR,(void*) &p);
-					loadAddr = checkSOLoadAddr(tmpPtr,(unsigned long)p.dli_fbase);
-					if(loadAddr){
-						fixInstrumentation(tmpPtr,(unsigned long)p.dli_fbase, loadAddr);
-					}
-#endif
 
 				}else{
 
@@ -1157,11 +730,6 @@ int checkMutatedFile(){
 		}
 	}
 
-#if defined(sparc_sun_solaris2_4)
-	if(procMemMap){
-		free(procMemMap);
-	}
-#endif
 
         Elf_end(elf);
         close(fd);
