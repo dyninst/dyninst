@@ -128,7 +128,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="./h;..;../external;../dynutil/h;../symtabAPI/h;../instructionAPI/h"
-PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_instruction_api;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf;cap_liveness"
+				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_instruction_api;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf;cap_liveness"
 				MinimalRebuild="false"
 				RuntimeLibrary="0"
 				WarningLevel="3"
@@ -641,6 +641,18 @@ PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_he
 					<Tool
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\BPatch_memoryAccess.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -1638,27 +1650,6 @@ PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_he
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\MapSymbols.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\miniTramp.C"
 				>
 				<FileConfiguration
@@ -2510,11 +2501,11 @@ PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_he
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Transformers\Include.h"
+				RelativePath=".\src\Relocation\Atoms\Include.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Include.h"
+				RelativePath=".\src\Relocation\Transformers\Include.h"
 				>
 			</File>
 			<File
