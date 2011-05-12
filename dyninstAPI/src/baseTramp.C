@@ -239,6 +239,10 @@ bool baseTramp::generateCode(codeGen &gen,
       }
    }
 
+   if( dyn_debug_disassemble ) {
+       fprintf(stderr, "%s", gen.format().c_str());
+   }
+
    gen.setBT(NULL);
 
    return true;

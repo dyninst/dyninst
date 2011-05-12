@@ -3169,10 +3169,19 @@ bool PCProcess::continueSyncRPCThreads() {
 }
 
 bool PCProcess::registerTrapMapping(Address from, Address to) {
-    if( installedCtrlBrkpts.count(from) != 0 ) {
+    map<Address, Breakpoint::ptr>::iterator breakIter =
+        installedCtrlBrkpts.find(from);
+
+    if( breakIter != installedCtrlBrkpts.end() ) {
         proccontrol_printf("%s[%d]: there already exists a ctrl transfer breakpoint from "
-                "0x%lx\n", FILE__, __LINE__, from);
-        return true;
+                "0x%lx to 0x%lx, replacing with new mapping\n", FILE__, __LINE__, from, breakIter->second->getToAddress());
+
+        if( !pcProc_->rmBreakpoint(from, breakIter->second) ) {
+            proccontrol_printf("%s[%d]: failed to replace ctrl transfer breakpoint from "
+                    "0x%lx to 0x%lx\n", FILE__, __LINE__, from, breakIter->second->getToAddress());
+            return false;
+        }
+        installedCtrlBrkpts.erase(breakIter);
     }
 
     Breakpoint::ptr newBreak = Breakpoint::newTransferBreakpoint(to);
