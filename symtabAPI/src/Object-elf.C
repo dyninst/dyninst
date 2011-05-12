@@ -2066,7 +2066,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
             continue;
 
          Region *sec;
-         if(secNumber >= 1 && secNumber <= regions_.size()) {
+         if(secNumber >= 1 && secNumber < regions_.size()) {
             sec = regions_[secNumber];
          } else {
             sec = NULL;
@@ -2222,7 +2222,7 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
          continue;
 
       Region *sec;
-      if(secNumber >= 1 && secNumber <= regions_.size()) {
+      if(secNumber >= 1 && secNumber < regions_.size()) {
          sec = regions_[secNumber];
       } else{
          sec = NULL;		
