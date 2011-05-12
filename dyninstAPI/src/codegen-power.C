@@ -77,7 +77,6 @@ void insnCodeGen::generateIllegal(codeGen &gen) { // instP.h
 }
 
 void insnCodeGen::generateTrap(codeGen &gen) {
-  cerr << hex << "Generating trap @ " << gen.currAddr() << dec << endl;
     instruction insn(BREAK_POINT_INSN);
     generate(gen,insn);
 }

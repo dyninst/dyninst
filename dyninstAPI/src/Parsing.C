@@ -259,7 +259,7 @@ DynParseCallback::patch_nop_jump(Address addr)
 }
 
 void
-DynParseCallback::interproc_cf(Function*f,Block * /*b*/,Address /*addr*/,interproc_details*)
+DynParseCallback::interproc_cf(Function*f,Block * /*b*/,Address /*addr*/,interproc_details* det)
 {
 #if defined(ppc32_linux) || defined(ppc32_bgp)
     if(det->type == interproc_details::call) {
@@ -268,6 +268,7 @@ DynParseCallback::interproc_cf(Function*f,Block * /*b*/,Address /*addr*/,interpr
     }
 #else
     f = f; // compiler warning
+    det = det;
 #endif
 }
 
