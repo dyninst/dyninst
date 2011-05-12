@@ -88,7 +88,7 @@ class EmitterPOWER : public Emitter {
     virtual bool emitMoveRegToReg(Register, Register, codeGen &) { assert(0); return 0;}
     virtual bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
 
-    virtual void emitMovPCToReg(Register, codeGen& gen);
+    virtual Address emitMovePCToReg(Register, codeGen& gen);
 
     // This one we actually use now.
     virtual Register emitCall(opCode, codeGen &, const pdvector<AstNodePtr> &,

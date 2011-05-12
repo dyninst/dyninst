@@ -1477,9 +1477,11 @@ bool AddressSpace::relocate() {
         }
     } while (repeat);
 
-	addModifiedRegion(iter->first);
+    addModifiedRegion(iter->first);
 
-    if (!relocateInt(iter->second.begin(), iter->second.end(), iter->first->codeAbs())) {
+    Address middle = (iter->first->codeAbs() + (iter->first->imageSize() / 2));
+
+    if (!relocateInt(iter->second.begin(), iter->second.end(), middle)) {
       ret = false;
     }
 
