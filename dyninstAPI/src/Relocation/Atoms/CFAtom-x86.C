@@ -110,6 +110,7 @@ bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
 
       CFPatch *newPatch = new CFPatch(CFPatch::Data, insn, 
                                       new Target<Address>(origTarget_),
+                                      trace->func(),
                                       addr_);
       buffer.addPatch(newPatch, tracker(trace));
    }

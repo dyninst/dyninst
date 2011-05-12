@@ -497,17 +497,6 @@ bool func_instance::getSharingFuncs(std::set<func_instance *> &funcs) {
     return ret;
 }
 
-Address int_function::get_address() const 
-{
-   if (!entryPoints_.size())
-      return getAddress();
-   
-   instPoint *entryPoint = entryPoints_[0];
-   int_basicBlock *block = entryPoint->block();
-   bblInstance *inst = block->instVer(installedVersion_);
-   return inst->firstInsnAddr();
-}
-
 bool func_instance::getOverlappingFuncs(block_instance *block,
                                        std::set<func_instance *> &funcs) 
 {

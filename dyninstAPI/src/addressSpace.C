@@ -857,9 +857,7 @@ func_instance *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
     if (f)
         return f;
 
-    codeRange *range = findOrigByAddr(addr);
-    if (!range->is_mapped_object()) 
-        return NULL;
+    if (!findObject(addr)) return NULL;
 
     using namespace Dyninst::InstructionAPI;
     InstructionDecoder decoder((const unsigned char*)getPtrToInstruction(addr),
