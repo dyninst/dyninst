@@ -34,8 +34,8 @@ SRCS =          ../src/linux.C \
 		../src/BPatch_memoryAccessAdapter.C \
 		../src/RegisterConversion-ppc.C \
 		../src/stackwalk-ppc.C \
-		../src/frameChecker.C
 		../src/Relocation/Atoms/CFAtom-ppc.C \
+		../src/frameChecker.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG
