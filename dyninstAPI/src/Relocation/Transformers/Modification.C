@@ -32,12 +32,12 @@
 #include "Transformer.h"
 #include "Modification.h"
 #include "../patchapi_debug.h"
-#include "../Atoms/Target.h"
-#include "../Atoms/Atom.h"
-#include "../Atoms/CFAtom.h"
-#include "../Atoms/ASTAtom.h"
-#include "../Atoms/InstAtom.h"
-#include "../RelocGraph.h"
+#include "../CFG/RelocTarget.h"
+#include "../Widgets/Widget.h"
+#include "../Widgets/CFWidget.h"
+#include "../Widgets/ASTWidget.h"
+#include "../Widgets/InstWidget.h"
+#include "../CFG/RelocGraph.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/function.h"
 
@@ -52,7 +52,7 @@ Modification::Modification(const CallModMap &callMod,
   funcReps_(funcRepl),
   funcWraps_(funcWraps) {};
 
-bool Modification::process(Trace *cur, RelocGraph *cfg) {
+bool Modification::process(RelocBlock *cur, RelocGraph *cfg) {
   // We define three types of program modification:
   // 1) Function call replacement; change the target of the corresponding
   //    call element
@@ -67,7 +67,7 @@ bool Modification::process(Trace *cur, RelocGraph *cfg) {
    return true;
 }
 
-bool Modification::replaceCall(Trace *trace, RelocGraph *cfg) {
+bool Modification::replaceCall(RelocBlock *trace, RelocGraph *cfg) {
    // See if we have a modification for this point
    CallModMap::const_iterator iter = callMods_.find(trace->block());
    if (iter == callMods_.end()) return true;
@@ -86,7 +86,7 @@ bool Modification::replaceCall(Trace *trace, RelocGraph *cfg) {
    
    // Replace the call at the end of this trace /w/ repl (if non-NULL),
    // or elide completely (if NULL)
-   // We do this via edge twiddling in the Trace
+   // We do this via edge twiddling in the RelocBlock
    
    Predicates::Type pred(ParseAPI::CALL);
 
@@ -95,7 +95,7 @@ bool Modification::replaceCall(Trace *trace, RelocGraph *cfg) {
       return true;
    }
    
-   Trace *target = cfg->find(repl->entryBlock());
+   RelocBlock *target = cfg->find(repl->entryBlock());
    if (target) {
       if (!cfg->changeTargets(pred, trace->outs(), target)) return false;
    }
@@ -106,7 +106,7 @@ bool Modification::replaceCall(Trace *trace, RelocGraph *cfg) {
    return true;
 }
 
-bool Modification::replaceFunction(Trace *trace, RelocGraph *cfg) {
+bool Modification::replaceFunction(RelocBlock *trace, RelocGraph *cfg) {
    // See if we're the entry block
    if (trace->block() != trace->func()->entryBlock()) return true;
 
@@ -118,17 +118,17 @@ bool Modification::replaceFunction(Trace *trace, RelocGraph *cfg) {
                    << " /w/ entry block " 
                    << (iter->second->entryBlock() ? iter->second->entryBlock()->start() : -1) << endl;
    // Stub a jump to the replacement function
-   Trace *stub = makeTrace(iter->second->entryBlock(), 
+   RelocBlock *stub = makeRelocBlock(iter->second->entryBlock(), 
                            iter->second,
                            cfg);
-   Trace *target = cfg->find(iter->second->entryBlock());
+   RelocBlock *target = cfg->find(iter->second->entryBlock());
    if (target) {
-      cfg->makeEdge(new Target<Trace *>(stub),
-                    new Target<Trace *>(target),
+      cfg->makeEdge(new Target<RelocBlock *>(stub),
+                    new Target<RelocBlock *>(target),
                     ParseAPI::DIRECT);
    }
    else {
-      cfg->makeEdge(new Target<Trace *>(stub),
+      cfg->makeEdge(new Target<RelocBlock *>(stub),
                     new Target<block_instance *>(iter->second->entryBlock()),
                     ParseAPI::DIRECT);
    }
@@ -147,7 +147,7 @@ bool Modification::replaceFunction(Trace *trace, RelocGraph *cfg) {
    return true;
 }
 
-bool Modification::wrapFunction(Trace *trace, RelocGraph *cfg) {
+bool Modification::wrapFunction(RelocBlock *trace, RelocGraph *cfg) {
    // See if we're the entry block
    if (trace->block() != trace->func()->entryBlock()) return true;
 
@@ -161,17 +161,17 @@ bool Modification::wrapFunction(Trace *trace, RelocGraph *cfg) {
 
    // This is a special case of replaceFunction; the predicate is "all calls except from the 
    // wrapper are redirected". 
-   Trace *stub = makeTrace(iter->second->entryBlock(), 
+   RelocBlock *stub = makeRelocBlock(iter->second->entryBlock(), 
                            iter->second,
                            cfg);
-   Trace *target = cfg->find(iter->second->entryBlock());
+   RelocBlock *target = cfg->find(iter->second->entryBlock());
    if (target) {
-      cfg->makeEdge(new Target<Trace *>(stub),
-                    new Target<Trace *>(target),
+      cfg->makeEdge(new Target<RelocBlock *>(stub),
+                    new Target<RelocBlock *>(target),
                     ParseAPI::DIRECT);
    }
    else {
-      cfg->makeEdge(new Target<Trace *>(stub),
+      cfg->makeEdge(new Target<RelocBlock *>(stub),
                     new Target<block_instance *>(iter->second->entryBlock()),
                     ParseAPI::DIRECT);
    }
@@ -190,16 +190,16 @@ bool Modification::wrapFunction(Trace *trace, RelocGraph *cfg) {
    return true;
 }
 
-Trace *Modification::makeTrace(block_instance *block, func_instance *func, RelocGraph *cfg) {
-   Trace *t = cfg->find(block);
+RelocBlock *Modification::makeRelocBlock(block_instance *block, func_instance *func, RelocGraph *cfg) {
+   RelocBlock *t = cfg->find(block);
    if (t) return t;
 
-   // Otherwise we need to make a stub Trace that jumps to this function; 
+   // Otherwise we need to make a stub RelocBlock that jumps to this function; 
    // this is annoying, but necessary. 
    
-   t = Trace::createStub(block, func);
+   t = RelocBlock::createStub(block, func);
    // Put it at the end, why not.
-   cfg->addTrace(t);
+   cfg->addRelocBlock(t);
    return t;
 }
 
@@ -209,7 +209,7 @@ Modification::WrapperPredicate::WrapperPredicate(func_instance *f)
 
 
 bool Modification::WrapperPredicate::operator()(RelocEdge *e) {
-   if (e->src->type() != TargetInt::TraceTarget) return false;
-   Trace *t = static_cast<Target<Trace *> *>(e->src)->t();
+   if (e->src->type() != TargetInt::RelocBlockTarget) return false;
+   RelocBlock *t = static_cast<Target<RelocBlock *> *>(e->src)->t();
    return t->func() == f_;
 }

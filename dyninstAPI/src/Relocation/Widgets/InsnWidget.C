@@ -29,12 +29,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "InsnAtom.h"
-#include "Atom.h"
+#include "InsnWidget.h"
+#include "Widget.h"
 #include "instructionAPI/h/Instruction.h"
 #include "../CodeTracker.h"
 #include "../CodeBuffer.h"
-#include "Trace.h"
+#include "../CFG/RelocBlock.h"
 #include <string>
 
 using namespace Dyninst;
@@ -43,24 +43,24 @@ using namespace InstructionAPI;
 
 /////////////////////////
 
-bool InsnAtom::generate(const codeGen &, 
-                        const Trace *t,
+bool InsnWidget::generate(const codeGen &, 
+                        const RelocBlock *t,
                         CodeBuffer &buffer) {
   buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t));
   return true;
 }
 
-TrackerElement *InsnAtom::tracker(const Trace *t) const {
+TrackerElement *InsnWidget::tracker(const RelocBlock *t) const {
    OriginalTracker *e = new OriginalTracker(addr_, t->block(), t->func());
    return e;
 }
 
-InsnAtom::Ptr InsnAtom::create(Instruction::Ptr insn,
+InsnWidget::Ptr InsnWidget::create(Instruction::Ptr insn,
 				 Address addr) {
-  return Ptr(new InsnAtom(insn, addr));
+  return Ptr(new InsnWidget(insn, addr));
 }
 
-string InsnAtom::format() const {
+string InsnWidget::format() const {
   stringstream ret;
   ret << "Insn(" << insn_->format() << ")";
   return ret.str();

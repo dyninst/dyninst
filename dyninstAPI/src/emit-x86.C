@@ -534,8 +534,8 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
     bool useFPRs =  BPatch::bpatch->isForceSaveFPROn() ||
                   ( BPatch::bpatch->isSaveFPROn()      &&
                     gen.rs()->anyLiveFPRsAtEntry()     &&
-                    bt->saveFPRs()               &&
-                    !bt->makesCall() );
+                    bt->saveFPRs() &&
+                    bt->makesCall() );
     bool alignStack = useFPRs || !bt || bt->checkForFuncCalls();
 
     if (alignStack) {

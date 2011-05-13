@@ -65,8 +65,9 @@ TFLAGS		+= -fPIC
 VPATH	     += ../../dyninstAPI/src:../dyninstAPI/h:\
                 ../../common/src:../../paradyn/h
 VPATH += ../src/Relocation
-VPATH += ../src/Relocation/Atoms
+VPATH += ../src/Relocation/CFG
 VPATH += ../src/Relocation/Transformers
+VPATH += ../src/Relocation/Widgets
 
 
 VPATH += ../src/MemoryEmulator
@@ -148,16 +149,17 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/syscallNotification.C \
                 ../src/eventLock.C \
 		../src/Relocation/CodeMover.C \
-                ../src/Relocation/RelocGraph.C \
+                ../src/Relocation/CFG/RelocGraph.C \
+                ../src/Relocation/CFG/RelocBlock.C \
+                ../src/Relocation/CFG/RelocEdge.C \
+                ../src/Relocation/CFG/RelocTarget.C \
 		../src/Relocation/Springboard.C \
-		../src/Relocation/Atoms/ASTAtom.C \
-		../src/Relocation/Atoms/CFAtom.C \
-		../src/Relocation/Atoms/InsnAtom.C \
-		../src/Relocation/Atoms/InstAtom.C \
-		../src/Relocation/Atoms/PCAtom.C \
-                ../src/Relocation/Atoms/RelDataAtom.C \
-                ../src/Relocation/Atoms/Target.C \
-                ../src/Relocation/Atoms/Trace.C \
+		../src/Relocation/Widgets/ASTWidget.C \
+		../src/Relocation/Widgets/CFWidget.C \
+		../src/Relocation/Widgets/InsnWidget.C \
+		../src/Relocation/Widgets/InstWidget.C \
+		../src/Relocation/Widgets/PCWidget.C \
+                ../src/Relocation/Widgets/RelDataWidget.C \
 		../src/Relocation/Transformers/Transformer.C \
 		../src/Relocation/Transformers/Instrumenter.C \
 		../src/Relocation/Transformers/Modification.C \
@@ -181,7 +183,6 @@ PUBLIC_H = BPatch_addressSpace.h \
            BPatch_function.h \
            BPatch.h \
            BPatch_enums.h \
-           BPatch_hybridAnalysis.h \
            BPatch_image.h \
            BPatch_instruction.h \
            BPatch_loopTreeNode.h \

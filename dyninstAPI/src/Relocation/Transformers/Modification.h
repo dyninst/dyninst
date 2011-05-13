@@ -49,15 +49,15 @@ class Modification : public Transformer {
   public:
     // Mimics typedefs in CodeMover.h, but I don't want
     // to include that file.
-    typedef std::list<Trace *> TraceList;
-    //typedef std::map<Address, TraceList> TraceMap;
+    typedef std::list<RelocBlock *> RelocBlockList;
+    //typedef std::map<Address, RelocBlockList> RelocBlockMap;
 
     // Block (IDing a call site) -> func
     typedef AddressSpace::CallModMap CallModMap;
     // func -> func
     typedef AddressSpace::FuncModMap FuncModMap;
 
-    virtual bool process(Trace *cur, RelocGraph *);
+    virtual bool process(RelocBlock *cur, RelocGraph *);
 
     Modification(const CallModMap &callRepl,
 		 const FuncModMap &funcRepl,
@@ -67,11 +67,11 @@ class Modification : public Transformer {
 
   private:
 
-    bool replaceCall(Trace *trace, RelocGraph *);
-    bool replaceFunction(Trace *trace, RelocGraph *);
-    bool wrapFunction(Trace *trace, RelocGraph *);
+    bool replaceCall(RelocBlock *trace, RelocGraph *);
+    bool replaceFunction(RelocBlock *trace, RelocGraph *);
+    bool wrapFunction(RelocBlock *trace, RelocGraph *);
 
-    Trace *makeTrace(block_instance *block, func_instance *func, RelocGraph *cfg);
+    RelocBlock *makeRelocBlock(block_instance *block, func_instance *func, RelocGraph *cfg);
 
     const CallModMap &callMods_;
     const FuncModMap &funcReps_;

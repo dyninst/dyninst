@@ -34,8 +34,8 @@
 #define _R_RELOC_GRAPH_H_
 
 #include "CFG.h"
-#include "Atoms/Trace.h" // RelocEdges
-#include "Atoms/Target.h" // Targets
+#include "RelocBlock.h" // RelocEdges
+#include "RelocTarget.h" // Targets
 #include <vector>
 #include <map>
 
@@ -47,28 +47,28 @@ namespace Dyninst {
 
 namespace Relocation {
 
-class Trace;
+class RelocBlock;
 struct RelocEdge;
 class TargetInt;
-class Atom;
-typedef dyn_detail::boost::shared_ptr<Atom> AtomPtr;
-typedef std::list<AtomPtr> AtomList;
+class Widget;
+typedef dyn_detail::boost::shared_ptr<Widget> WidgetPtr;
+typedef std::list<WidgetPtr> WidgetList;
 
 class RelocGraph {
   public:
-   typedef std::map<block_instance *, Trace *> Map;
+   typedef std::map<block_instance *, RelocBlock *> Map;
    typedef std::vector<RelocEdge *> Edges;
    
    RelocGraph() : head(0), tail(0), size(0) {};
    ~RelocGraph();
-   Trace *begin() { return head; }
-   Trace *end() { return NULL; }
+   RelocBlock *begin() { return head; }
+   RelocBlock *end() { return NULL; }
 
 
    // For initial construction
-   void addTrace(Trace *);
-   void addTraceBefore(Trace *cur, Trace *add);
-   void addTraceAfter(Trace *cur, Trace *add);
+   void addRelocBlock(RelocBlock *);
+   void addRelocBlockBefore(RelocBlock *cur, RelocBlock *add);
+   void addRelocBlockAfter(RelocBlock *cur, RelocBlock *add);
 
    RelocEdge *makeEdge(TargetInt *, TargetInt *, ParseAPI::EdgeTypeEnum e);
 
@@ -76,8 +76,8 @@ class RelocGraph {
    void removeSource(RelocEdge *);
    void removeTarget(RelocEdge *);
 
-   Trace *head;
-   Trace *tail;
+   RelocBlock *head;
+   RelocBlock *tail;
    unsigned size;
 
    // If we keep a master list here and just keep pointers
@@ -89,24 +89,24 @@ class RelocGraph {
    Map springboards;
    Map reloc;
 
-   Trace *find(block_instance *) const;
-   bool setSpringboard(block_instance *from, Trace *to);
-   Trace *findSpringboard(block_instance *from) const;
+   RelocBlock *find(block_instance *) const;
+   bool setSpringboard(block_instance *from, RelocBlock *to);
+   RelocBlock *findSpringboard(block_instance *from) const;
 
-  // Should this go here? Well, it's a transformation on Traces...
-  void link(Trace *s, Trace *t);
-  bool interpose(RelocEdge *e, Trace *n);
+  // Should this go here? Well, it's a transformation on RelocBlocks...
+  void link(RelocBlock *s, RelocBlock *t);
+  bool interpose(RelocEdge *e, RelocBlock *n);
   bool changeTarget(RelocEdge *e, TargetInt *n);
   bool changeSource(RelocEdge *e, TargetInt *n);
 
   template <class Predicate> 
   void applyPredicate(Predicate &p, RelocEdges *e, RelocEdges &results);
-  //bool addTarget(Trace *s, Trace *t, ParseAPI::EdgeTypeEnum type);
+  //bool addTarget(RelocBlock *s, RelocBlock *t, ParseAPI::EdgeTypeEnum type);
   //bool remove(RelocEdge *e);
-  Trace *split(Trace *c, AtomList::iterator where);
+  RelocBlock *split(RelocBlock *c, WidgetList::iterator where);
 
   template <class Predicate> 
-     bool interpose(Predicate &p, RelocEdges *e, Trace *t);
+     bool interpose(Predicate &p, RelocEdges *e, RelocBlock *t);
   template <class Predicate, class Dest> 
      bool changeTargets(Predicate &p, RelocEdges *e, Dest n);
 #if 0
@@ -182,7 +182,7 @@ template <class Predicate>
 }
 
 template <class Predicate> 
-   bool RelocGraph::interpose(Predicate &p, RelocEdges *e, Trace *t) {
+   bool RelocGraph::interpose(Predicate &p, RelocEdges *e, RelocBlock *t) {
    RelocEdges tmp;
    applyPredicate(p, e, tmp);
    for (RelocEdges::iterator iter = tmp.begin();

@@ -29,56 +29,37 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined (_R_E_AST_H_)
-#define _R_E_AST_H_
+#include "../CodeBuffer.h"
+#include "CFG.h"
+#include "RelocTarget.h"
 
-#include "Atom.h"
+using namespace Dyninst;
+using namespace Relocation;
 
-class AstNode;
-typedef dyn_detail::boost::shared_ptr<AstNode> AstNodePtr;
-class instPoint;
+int Target<block_instance *>::label(CodeBuffer *buf) const {
+   return buf->defineLabel(t_->start());
+}
 
-namespace Dyninst {
-namespace Relocation {
-
-class ASTAtom : public Atom {
- public:
-  typedef dyn_detail::boost::shared_ptr<ASTAtom> Ptr;
-
-  static Ptr create(AstNodePtr, instPoint *);
-
-  ASTAtom(AstNodePtr a, instPoint *p) : ast_(a), point_(p) {};
-
-  bool generate(const codeGen &,
-                const Trace *,
-                CodeBuffer &);
-  
-  TrackerElement *tracker() const;
-
-  virtual ~ASTAtom() {};
-
-  virtual std::string format() const;
-
- private:
-
-  AstNodePtr ast_;
-  // We need this for liveness
-  instPoint *point_;
-};
-
-struct AstPatch : public Patch {
-  AstPatch(AstNodePtr a, instPoint *b) : ast(a), point(b) {};
+int Target<Address>::label(CodeBuffer *buf) const {
+   return buf->defineLabel(t_);
+}
    
-   virtual bool apply(codeGen &gen, CodeBuffer *buf);
-   virtual unsigned estimate(codeGen &templ);
-   virtual ~AstPatch();
-   
-   AstNodePtr ast;
-   instPoint *point;
-};
+void Target<RelocBlock *>::addTargetEdge(RelocEdge *e) {
+   t_->outs()->insert(e);
+}
 
+void Target<RelocBlock *>::addSourceEdge(RelocEdge *e) {
+   t_->ins()->insert(e);
+}
 
+void Target<RelocBlock *>::removeTargetEdge(RelocEdge *e) {
+   t_->outs()->erase(e);
+}
 
-};
-};
-#endif
+void Target<RelocBlock *>::removeSourceEdge(RelocEdge *e) {
+   t_->ins()->erase(e);
+}
+
+block_instance *Target<RelocBlock *>::block() { 
+   return t_->block();
+}

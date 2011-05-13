@@ -31,7 +31,7 @@
 
 #include "CodeBuffer.h"
 #include "CodeTracker.h"
-#include "Atoms/Atom.h" //  Currently Patch is defined here; we may want to move it.
+#include "Widgets/Widget.h" //  Currently Patch is defined here; we may want to move it.
 
 #include "patchapi_debug.h"
 #include "dyninstAPI/src/codegen.h"

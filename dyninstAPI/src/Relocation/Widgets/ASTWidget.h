@@ -29,53 +29,56 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "ASTAtom.h"
-#include "dyninstAPI/src/ast.h"
-#include "../patchapi_debug.h"
-#include "dyninstAPI/src/registerSpace.h"
-#include "dyninstAPI/src/instPoint.h"
-#include "../CodeBuffer.h"
-#include "CFG.h"
-#include <string>
-#include "../CodeTracker.h"
+#if !defined (_R_E_AST_H_)
+#define _R_E_AST_H_
 
-using namespace Dyninst;
-using namespace Relocation;
+#include "Widget.h"
 
-ASTAtom::Ptr ASTAtom::create(AstNodePtr a, instPoint *b) {
-  return Ptr(new ASTAtom(a, b));
-}
+class AstNode;
+typedef dyn_detail::boost::shared_ptr<AstNode> AstNodePtr;
+class instPoint;
 
-bool ASTAtom::generate(const codeGen &,
-                       const Trace *,
-                       CodeBuffer &buffer) {
-  AstPatch *patch = new AstPatch(ast_, point_);
-  buffer.addPatch(patch, tracker());
-  return true;
-}
+namespace Dyninst {
+namespace Relocation {
 
-TrackerElement *ASTAtom::tracker() const {
-   OriginalTracker *e = new OriginalTracker(point_->nextExecutedAddr(), point_->block());
-   return e;
-}
+class ASTWidget : public Widget {
+ public:
+  typedef dyn_detail::boost::shared_ptr<ASTWidget> Ptr;
 
-std::string ASTAtom::format() const {
-  return "AST(*)";
-}
+  static Ptr create(AstNodePtr, instPoint *);
 
-// Could be a lot smarter here...
-bool AstPatch::apply(codeGen &gen, CodeBuffer *) {
-  relocation_cerr << "\t\t AstPatch::apply" << endl;
-  registerSpace *localRegSpace = registerSpace::actualRegSpace(point);
-  gen.setRegisterSpace(localRegSpace);
+  ASTWidget(AstNodePtr a, instPoint *p) : ast_(a), point_(p) {};
 
-  return ast->generateCode(gen, true);
-}
+  bool generate(const codeGen &,
+                const RelocBlock *,
+                CodeBuffer &);
+  
+  TrackerElement *tracker() const;
 
-unsigned AstPatch::estimate(codeGen &) {
-   // Will force an extra run of codeGen,
-   // but that's okay
-   return 0;
-}
+  virtual ~ASTWidget() {};
 
-AstPatch::~AstPatch() {}
+  virtual std::string format() const;
+
+ private:
+
+  AstNodePtr ast_;
+  // We need this for liveness
+  instPoint *point_;
+};
+
+struct AstPatch : public Patch {
+  AstPatch(AstNodePtr a, instPoint *b) : ast(a), point(b) {};
+   
+   virtual bool apply(codeGen &gen, CodeBuffer *buf);
+   virtual unsigned estimate(codeGen &templ);
+   virtual ~AstPatch();
+   
+   AstNodePtr ast;
+   instPoint *point;
+};
+
+
+
+};
+};
+#endif

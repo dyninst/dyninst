@@ -32,7 +32,7 @@
 #if !defined (_R_E_CONTROL_FLOW_H_)
 #define _R_E_CONTROL_FLOW_H_
 
-#include "Atom.h"
+#include "Widget.h"
 
 class block_instance;
 class func_instance;
@@ -60,31 +60,31 @@ namespace Relocation {
  class adhocMovementTransformer;
  class Fallthroughs;
  class Modification;
- class Trace;
+ class RelocBlock;
 
-class CFAtom : public Atom {
+class CFWidget : public Widget {
   friend class Transformer;
   friend class LocalizeCF;
   friend class Instrumenter; // For rewiring edge instrumentation
   friend class adhocMovementTransformer; // Also
   friend class PCSensitiveTransformer;
   friend class Modification;
-  friend class Trace;
+  friend class RelocBlock;
  public:
   static const Address Fallthrough;
   static const Address Taken;
 
-  typedef dyn_detail::boost::shared_ptr<CFAtom> Ptr;
+  typedef dyn_detail::boost::shared_ptr<CFWidget> Ptr;
   typedef std::map<Address, TargetInt *> DestinationMap;
 
   static Ptr create(Address addr);
-  static Ptr create(const Atom::Ptr info);
+  static Ptr create(const Widget::Ptr info);
 
   bool generate(const codeGen &templ,
-                const Trace *,
+                const RelocBlock *,
                 CodeBuffer &buffer);
 
-  virtual ~CFAtom();
+  virtual ~CFWidget();
 
   // Owns the provided *dest parameter
   void addDestination(Address index, TargetInt *dest);
@@ -102,7 +102,7 @@ class CFAtom : public Atom {
   unsigned gap() const { return gap_; };
 
  private:
-   CFAtom(Address a)
+   CFWidget(Address a)
       : isCall_(false),
      isConditional_(false),
      isIndirect_(false),
@@ -110,13 +110,13 @@ class CFAtom : public Atom {
      addr_(a), 
      origTarget_(0) {};
 
-   CFAtom(InstructionAPI::Instruction::Ptr insn,
+   CFWidget(InstructionAPI::Instruction::Ptr insn,
           Address addr);
 
-   TrackerElement *tracker(const Trace *) const;
+   TrackerElement *tracker(const RelocBlock *) const;
    TrackerElement *destTracker(TargetInt *dest) const;
-   TrackerElement *addrTracker(Address addr, const Trace *) const;
-   TrackerElement *padTracker(Address addr, unsigned size, const Trace *) const;
+   TrackerElement *addrTracker(Address addr, const RelocBlock *) const;
+   TrackerElement *padTracker(Address addr, unsigned size, const RelocBlock *) const;
    
 
   // These are not necessarily mutually exclusive. See also:
@@ -151,29 +151,29 @@ class CFAtom : public Atom {
   bool generateBranch(CodeBuffer &gens,
 		      TargetInt *to,
 		      InstructionAPI::Instruction::Ptr insn,
-                      const Trace *trace,
+                      const RelocBlock *trace,
 		      bool fallthrough);
 
   bool generateCall(CodeBuffer &gens,
 		    TargetInt *to,
-                    const Trace *trace,
+                    const RelocBlock *trace,
 		    InstructionAPI::Instruction::Ptr insn); 
 
   bool generateConditionalBranch(CodeBuffer &gens,
 				 TargetInt *to,
-                                 const Trace *trace,
+                                 const RelocBlock *trace,
 				 InstructionAPI::Instruction::Ptr insn); 
   // The Register holds the translated destination (if any)
   // TODO replace with the register IDs that Bill's building
   typedef unsigned Register;
   bool generateIndirect(CodeBuffer &gens,
 			Register reg,
-                        const Trace *trace,
+                        const RelocBlock *trace,
 			InstructionAPI::Instruction::Ptr insn);
   bool generateIndirectCall(CodeBuffer &gens,
 			    Register reg,
 			    InstructionAPI::Instruction::Ptr insn,
-                            const Trace *trace,
+                            const RelocBlock *trace,
 			    Address origAddr);
   
   bool generateAddressTranslator(CodeBuffer &buffer,

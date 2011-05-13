@@ -40,7 +40,7 @@ SRCS =          ../src/linux.C \
 		../src/RegisterConversion-x86.C \
 		../src/pcProcess-x86.C \
 		../src/parse-x86.C \
-		../src/Relocation/Atoms/CFAtom-x86.C
+		../src/Relocation/Widgets/CFWidget-x86.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG

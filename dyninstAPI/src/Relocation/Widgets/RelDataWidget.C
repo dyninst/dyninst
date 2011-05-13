@@ -29,11 +29,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "RelDataAtom.h"
+#include "RelDataWidget.h"
 #include "instructionAPI/h/Instruction.h"
 #include "../patchapi_debug.h"
 #include "CFG.h"
-#include "Trace.h"
+#include "../CFG/RelocBlock.h"
 
 #include "../CodeTracker.h"
 #include "../CodeBuffer.h"
@@ -42,20 +42,20 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
-RelDataAtom::Ptr RelDataAtom::create(Instruction::Ptr insn,
+RelDataWidget::Ptr RelDataWidget::create(Instruction::Ptr insn,
 					   Address addr,
 					   Address target) {
   assert(addr);
-  return Ptr(new RelDataAtom(insn, addr, target));
+  return Ptr(new RelDataWidget(insn, addr, target));
 }
 
-TrackerElement *RelDataAtom::tracker(const Trace *t) const {
+TrackerElement *RelDataWidget::tracker(const RelocBlock *t) const {
    EmulatorTracker *e = new EmulatorTracker(addr_, t->block(), t->func());
   return e;
 }
 
-bool RelDataAtom::generate(const codeGen &, 
-                              const Trace *t, 
+bool RelDataWidget::generate(const codeGen &, 
+                              const RelocBlock *t, 
                               CodeBuffer &buffer) {
   // We want to take the original instruction and emulate
   // it at whatever our new address is. 
@@ -75,7 +75,7 @@ bool RelDataAtom::generate(const codeGen &,
   return true;
 }
 
-string RelDataAtom::format() const {
+string RelDataWidget::format() const {
   stringstream ret;
   ret << "PCRel(" << insn_->format() << ")";
   return ret.str();

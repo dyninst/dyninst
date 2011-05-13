@@ -32,14 +32,14 @@
 #include "Transformer.h"
 #include "Movement-adhoc.h"
 #include "../patchapi_debug.h"
-#include "../Atoms/Atom.h"
-#include "../Atoms/RelDataAtom.h"
-#include "../Atoms/CFAtom.h"
-#include "../Atoms/PCAtom.h"
-#include "../Atoms/Trace.h"
+#include "../Widgets/Widget.h"
+#include "../Widgets/RelDataWidget.h"
+#include "../Widgets/CFWidget.h"
+#include "../Widgets/PCWidget.h"
+#include "../CFG/RelocBlock.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "instructionAPI/h/InstructionDecoder.h"
-#include "../RelocGraph.h"
+#include "../CFG/RelocGraph.h"
 
 
 using namespace std;
@@ -48,18 +48,18 @@ using namespace Relocation;
 using namespace InstructionAPI;
 
 
-bool adhocMovementTransformer::process(Trace *cur, RelocGraph *cfg) {
+bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
   // Identify PC-relative data accesses
   // and "get PC" operations and replace them
-  // with dedicated Atoms
+  // with dedicated Widgets
 
-   Trace::AtomList &elements = cur->elements();
+   RelocBlock::WidgetList &elements = cur->elements();
 
   relocation_cerr << "PCRelTrans: processing block " 
 		  << cur << " with "
 		  << elements.size() << " elements." << endl;
 
-  for (Trace::AtomList::iterator iter = elements.begin();
+  for (RelocBlock::WidgetList::iterator iter = elements.begin();
        iter != elements.end(); ++iter) {
     // Can I do in-place replacement? Apparently I can...
     // first insert new (before iter) and then remove iter
@@ -73,7 +73,7 @@ bool adhocMovementTransformer::process(Trace *cur, RelocGraph *cfg) {
     Absloc aloc;
 
     if (isPCDerefCF(*iter, target)) {
-       CFAtom::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFAtom>(*iter);
+       CFWidget::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFWidget>(*iter);
        assert(cf);
        cf->setOrigTarget(target);
     }
@@ -81,9 +81,9 @@ bool adhocMovementTransformer::process(Trace *cur, RelocGraph *cfg) {
       relocation_cerr << "  ... isPCRelData at " 
 		      << std::hex << (*iter)->addr() << std::dec << endl;
       // Two options: a memory reference or a indirect call. The indirect call we 
-      // just want to set target in the CFAtom, as it has the hardware to handle
+      // just want to set target in the CFWidget, as it has the hardware to handle
       // control flow. Generic memory references get their own atoms. How nice. 
-      Atom::Ptr replacement = RelDataAtom::create((*iter)->insn(),
+      Widget::Ptr replacement = RelDataWidget::create((*iter)->insn(),
                                                      (*iter)->addr(),
                                                      target);
       (*iter).swap(replacement);
@@ -91,13 +91,13 @@ bool adhocMovementTransformer::process(Trace *cur, RelocGraph *cfg) {
     }
     else if (isGetPC(*iter, aloc, target)) {
 
-      Atom::Ptr replacement = PCAtom::create((*iter)->insn(),
+      Widget::Ptr replacement = PCWidget::create((*iter)->insn(),
 					       (*iter)->addr(),
 					       aloc,
 					       target);
       // This is kind of complex. We don't want to just pull the getPC
       // because it also might end the basic block. If that happens we
-      // need to pull the fallthough element out of the CFAtom so
+      // need to pull the fallthough element out of the CFWidget so
       // that we don't hork control flow. What a pain.
       if ((*iter) != elements.back()) {
 	// Easy case; no worries.
@@ -119,7 +119,7 @@ bool adhocMovementTransformer::process(Trace *cur, RelocGraph *cfg) {
   return true;
 }
 
-bool adhocMovementTransformer::isPCDerefCF(Atom::Ptr ptr,
+bool adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr,
                                            Address &target) {
    Expression::Ptr cf = ptr->insn()->getControlFlowTarget();
    if (!cf) return false;
@@ -156,7 +156,7 @@ bool adhocMovementTransformer::isPCDerefCF(Atom::Ptr ptr,
 
 
 // We define this as "uses PC and is not control flow"
-bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
+bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
                                            Address &target) {
   target = 0;
   if (ptr->insn()->getControlFlowTarget()) return false;
@@ -219,7 +219,7 @@ bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
   return true;    
 }
 
-bool adhocMovementTransformer::isGetPC(Atom::Ptr ptr,
+bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
 				       Absloc &aloc,
 				       Address &thunk) {
   // TODO:
