@@ -448,6 +448,10 @@ Address PCProcess::getTOCoffsetInfo(func_instance *) {
     return 0;
 }
 
+bool PCProcess::getOPDFunctionAddr(Address &) {
+    return true;
+}
+
 /* START unimplemented functions */
 
 #define FREEBSD_NOT_IMPLEMENTED "This function is not implemented on FreeBSD"
