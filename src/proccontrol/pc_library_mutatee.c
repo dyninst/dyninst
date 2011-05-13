@@ -30,6 +30,7 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 #include "pcontrol_mutatee_tools.h"
 
 
@@ -59,7 +60,19 @@ void closeLib(const char *lib, void *handle)
 }
 
 #else
-#error Implement windows
+#define LIBTESTA "./libtestA.dll"
+#define LIBTESTB "./libtestB.dll"
+
+void* openLib(const char* lib)
+{
+	assert(!"not implemented");
+	return NULL;
+}
+
+void closeLib(const char* lib, void* handle)
+{
+	assert(!"not implemented");
+}
 #endif
 
 static int threadFunc(int myid, void *data)

@@ -30,6 +30,7 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 #include "pcontrol_mutatee_tools.h"
 
 static testlock_t init_lock;
@@ -73,7 +74,15 @@ static void self_signal()
   }
 }
 
+#elif defined(os_windows_test)
+
+static void self_signal()
+{
+	assert(!"not implemented");
+}
+
 #else
+
 
 #include <sys/types.h>
 #include <signal.h>
@@ -114,9 +123,11 @@ int pc_detach_mutatee()
       output->log(STDERR, "Initialization failed\n");
       return -1;
    }
-
+#if !defined(os_windows_test)
    signal(SIGUSR1, signal_handler);
-
+#else
+   assert(!"signals wrong mechanism on windows, convert to message pass");
+#endif
    result = recv_message((unsigned char *) &syncloc_msg, sizeof(syncloc));
    if (result != 0) {
       output->log(STDERR, "Failed to recieve sync message\n");

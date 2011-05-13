@@ -5,6 +5,15 @@
 #define DEFAULT_NUM_THREADS 8
 #define DEFAULT_NUM_PROCS 8
 
+#if defined(os_windows_test)
+#include <winsock2.h>
+#include <windows.h>
+#include <external/stdint-win.h>
+#include <external/inttypes-win.h>
+typedef int pid_t;
+#endif
+
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -53,7 +62,11 @@ typedef struct {
 typedef struct {
    uint64_t code;
    uint64_t pid;
+#if !defined(os_windows_test)
    uint64_t lwp;
+#else
+   HANDLE lwp;
+#endif
    uint64_t tid;
    uint64_t a_stack_addr;
    uint64_t initial_func;

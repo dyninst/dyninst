@@ -28,12 +28,14 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "mutatee_util.h"
+
+#include "../src/mutatee_util.h"
 #include "pcontrol_mutatee_tools.h"
 #include "communication.h"
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <assert.h>
 
 thread_t threads[MAX_POSSIBLE_THREADS];
 int thread_results[MAX_POSSIBLE_THREADS];
@@ -64,9 +66,11 @@ void *ThreadTrampoline(void *d)
 
    testLock(&thread_startup_lock);
    testUnlock(&thread_startup_lock);
-
+#if defined(os_windows_test)
+   func_result = func(thread_id.threadid, data);
+#else
    func_result = func((unsigned long)thread_id, data);
-   
+#endif
    return (void *) (long) func_result;
 }
 
@@ -99,8 +103,13 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
       testLock(&thread_startup_lock);
       for (j = 0; j < num_threads; j++) {
          datagram *data = (datagram *) malloc(sizeof(datagram));
-         data->thread_id = (thread_t)j;
-         data->func = init_func;
+#if defined(os_windows_test)
+		 data->thread_id.threadid = j;
+		data->thread_id.hndl = INVALID_HANDLE;
+#else
+		 data->thread_id = (thread_t)j;
+#endif
+		 data->func = init_func;
          data->data = thread_data;
          threads[j] = spawnNewThread((void *) ThreadTrampoline, (void *) data);
       }
@@ -134,8 +143,14 @@ int handshakeWithServer()
 {
    int result;
    send_pid spid;
+   handshake shake;
    spid.code = SEND_PID_CODE;
+#if !defined(os_windows_test)
    spid.pid = getpid();
+#else
+   assert(!"substitute for getpid here");
+   spid.pid = 0;
+#endif
 
    result = send_message((unsigned char *) &spid, sizeof(send_pid));
    if (result == -1) {
@@ -143,7 +158,6 @@ int handshakeWithServer()
       return -1;
    }
 
-   handshake shake;
    result = recv_message((unsigned char *) &shake, sizeof(handshake));
    if (result != 0) {
       fprintf(stderr, "Error recieving message\n");
@@ -221,6 +235,7 @@ int finiProcControlTest(int expected_ret_code)
    return has_error ? -1 : 0;
 }
 
+#if !defined(os_windows_test)
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -294,4 +309,25 @@ int recv_message(unsigned char *msg, size_t msg_size)
    }
    return 0;
 }
+#else // windows
 
+int initMutatorConnection()
+{
+	assert(!"not implemented");
+	return -1;
+}
+
+int send_message(unsigned char *msg, size_t msg_size)
+{
+	assert(!"not implemented");
+	return -1;
+}
+
+int recv_message(unsigned char *msg, size_t msg_size)
+{
+	assert(!"not implemented");
+	return -1;
+}
+
+
+#endif

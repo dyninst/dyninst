@@ -118,7 +118,7 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    dyn_tids[my_dyn_id] = 1;
 
    //Thread IDs should be unique
-   long mytid = thr->getTid();
+   long mytid = (long)(thr->getTid());
    if (mytid == -1)
    {
       logerror("[%s:%d] - WARNING: Thread %d has a tid of -1\n", 
@@ -293,7 +293,7 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
       if (dyn_tids[i])
       {
          long tid = pthread_ids[i];
-         BPatch_thread *thr = proc->getThread(tid);
+         BPatch_thread *thr = proc->getThread((dynthread_t)(tid));
          if(thr == NULL) {
             logerror("%s[%d]: ERROR - can't find thread with tid %lu\n",
                     __FILE__, __LINE__, (unsigned long)tid);
@@ -323,7 +323,7 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
       if (dyn_tids[i])
       {
          long tid = pthread_ids[i];
-         BPatch_thread *thr = proc->getThread(tid);
+         BPatch_thread *thr = proc->getThread((dynthread_t)(tid));
          if(thr == NULL) {
             logerror("%s[%d]: ERROR - can't find thread with tid %lu\n",
                     __FILE__, __LINE__, (unsigned long)tid);

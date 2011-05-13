@@ -49,7 +49,7 @@ static Process::cb_ret_t eventCounterFunction(Event::const_ptr ev)
 bool ProcControlComponent::registerEventCounter(EventType et)
 {
    pccomp = this;
-   Process::registerEventCallback(et, eventCounterFunction);
+   return Process::registerEventCallback(et, eventCounterFunction);
 }
 
 bool ProcControlComponent::checkThread(const Thread &thread)
@@ -124,6 +124,7 @@ Process::ptr ProcControlComponent::launchMutatee(RunGroup *group, ParameterDict 
       }
    }
    else if (group->useAttach == USEATTACH) {
+#if !defined(os_windows_test)
       Dyninst::PID pid = fork_mutatee();
       if (!pid) {
          //Child
@@ -148,6 +149,10 @@ Process::ptr ProcControlComponent::launchMutatee(RunGroup *group, ParameterDict 
          return Process::ptr();
       }
       process_socks[proc] = sockfd;
+#else
+	   assert(!"attach not implemented on Windows ProcControl revision yet");
+	   return Process::ptr();
+#endif
    }
    else {
       return Process::ptr();
@@ -393,10 +398,14 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
    procs.clear();
 
    for(std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); ++i) {
-       if( close(i->second) == -1 ) {
+#if !defined(os_windows_test)
+	   if( close(i->second) == -1 ) {
            logerror("Could not close connected socket\n");
            error = true;
        }
+#else
+	   assert(!"implement socket close correctly");
+#endif
    }
 
    return error ? FAILED : PASSED;
@@ -421,26 +430,80 @@ ProcControlComponent::~ProcControlComponent()
 {
 }
 
+#if !defined(os_windows_test)
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
+struct socket_types
+{
+	typedef sockaddr_un sockaddr_t;
+	static int socket()
+	{
+		return socket(AF_UNIX, SOCK_STREAM, 0);
+	}
+	static sockaddr_t make_addr()
+	{
+	   sockaddr_t addr;
+	   memset(&addr, 0, sizeof(socket_types::sockaddr_t));
+	   addr.sun_family = AF_UNIX;
+	   snprintf(addr.sun_path, sizeof(addr.sun_path)-1, "/tmp/pct%d", getpid());
+	   return addr;
+	}
+	static int close(SOCKET s)
+	{
+		return ::close(s);
+	}
+	typedef ::socklen_t socklen_t;
+};
+
+#else
+
+#include <process.h>
+#include <winsock2.h>
+#if !defined(MSG_WAITALL)
+#define MSG_WAITALL 8
+#endif
+#define MSG_NOSIGNAL 0 // override unix-ism
+
+struct socket_types
+{
+	typedef sockaddr_in sockaddr_t;
+	static int socket()
+	{
+		return ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	}
+	static sockaddr_t make_addr()
+	{
+	   sockaddr_t addr;
+	   memset(&addr, 0, sizeof(socket_types::sockaddr_t));
+	   addr.sin_family = AF_INET;
+	   addr.sin_port = _getpid();
+	   return addr;
+	}
+	static int close(SOCKET s)
+	{
+		return closesocket(s);
+	}
+	typedef int socklen_t;
+};
+#endif
+
+
+#if 1 // !windows
 bool ProcControlComponent::setupServerSocket()
 {
-   int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	int fd = socket_types::socket();
    if (fd == -1) {
       char error_str[1024];
       snprintf(error_str, 1024, "Unable to create socket: %s\n", strerror(errno));
       logerror(error_str);
       return false;
    }
-   struct sockaddr_un addr;
-   memset(&addr, 0, sizeof(struct sockaddr_un));
-   addr.sun_family = AF_UNIX;
-   snprintf(addr.sun_path, sizeof(addr.sun_path)-1, "/tmp/pct%d", getpid());
+   socket_types::sockaddr_t addr = socket_types::make_addr();
    
-   int result = bind(fd, (struct sockaddr *) &addr, sizeof(struct sockaddr_un));
+   int result = bind(fd, (sockaddr *) &addr, sizeof(socket_types::sockaddr_t));
    if (result != 0){
       char error_str[1024];
       snprintf(error_str, 1024, "Unable to bind socket: %s\n", strerror(errno));
@@ -456,8 +519,7 @@ bool ProcControlComponent::setupServerSocket()
    }
 
    sockfd = fd;   
-   sockname = strdup(addr.sun_path);
-
+   snprintf(sockname, sizeof(sockname)-1, "/tmp/pct%d", getpid());
    return true;
 }
 
@@ -490,8 +552,8 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
 
       if (FD_ISSET(sockfd, &readset))
       {
-         struct sockaddr_un addr;
-         socklen_t addr_size = sizeof(struct sockaddr_un);
+		  socket_types::sockaddr_t addr;
+         socket_types::socklen_t addr_size = sizeof(socket_types::sockaddr_t);
          int newsock = accept(sockfd, (struct sockaddr *) &addr, &addr_size);
          if (newsock == -1) {
             char error_str[1024];
@@ -549,7 +611,7 @@ bool ProcControlComponent::cleanSocket()
    }
    free(sockname);
    sockname = NULL;
-   result = close(sockfd);
+   result = socket_types::close(sockfd);
    if (result == -1) {
       logerror("Could not close socket\n");
       return false;
@@ -608,7 +670,7 @@ bool ProcControlComponent::recv_message(unsigned char *msg, unsigned msg_size, i
       }
    } 
                           
-   result = recv(sfd, msg, msg_size, MSG_WAITALL);
+   result = recv(sfd, (char *)(msg), msg_size, MSG_WAITALL);
    if (result == -1) {
       char error_str[1024];
       snprintf(error_str, 1024, "Unable to recieve message: %s\n", strerror(errno));
@@ -632,7 +694,7 @@ bool ProcControlComponent::recv_broadcast(unsigned char *msg, unsigned msg_size)
 
 bool ProcControlComponent::send_message(unsigned char *msg, unsigned msg_size, int sfd)
 {
-   int result = send(sfd, msg, msg_size, MSG_NOSIGNAL);
+   int result = send(sfd, (char*)(msg), msg_size, MSG_NOSIGNAL);
    if (result == -1) {
       char error_str[1024];
       snprintf(error_str, 1024, "Mutator unable to send message: %s\n", strerror(errno));
@@ -688,6 +750,58 @@ bool ProcControlComponent::block_for_events()
    }
    return true;
 }
+#else
+
+bool ProcControlComponent::send_broadcast(unsigned char*, unsigned int)
+{
+	assert(!"not implemented");
+	return false;
+}
+
+bool ProcControlComponent::cleanSocket()
+{
+	assert(!"not implemented");
+	return false;
+}
+
+bool ProcControlComponent::acceptConnections(int, int*)
+{
+	assert(!"not implemented");
+	return false;
+}
+
+bool ProcControlComponent::setupServerSocket()
+{
+	assert(!"not implemented");
+	return false;
+}
+
+bool ProcControlComponent::block_for_events()
+{
+	assert(!"not implemented");
+	return false;
+}
+
+bool ProcControlComponent::send_message(unsigned char*, unsigned int, Process::ptr)
+{
+	assert(!"not implemented");
+	return false;
+}
+
+bool ProcControlComponent::recv_message(unsigned char*, unsigned int, Process::ptr)
+{
+	assert(!"not implemented");
+	return false;
+}
+
+bool ProcControlComponent::recv_broadcast(unsigned char*, unsigned int)
+{
+	assert(!"not implemented");
+	return false;
+}
+
+
+#endif
 
 bool ProcControlComponent::poll_for_events()
 {

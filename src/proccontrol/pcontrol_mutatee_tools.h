@@ -32,7 +32,7 @@
 #define pcontrol_mutatee_tools
 
 #include "communication.h"
-#include "mutatee_util.h"
+#include "../src/mutatee_util.h"
 
 extern thread_t threads[MAX_POSSIBLE_THREADS];
 extern int thread_results[MAX_POSSIBLE_THREADS];

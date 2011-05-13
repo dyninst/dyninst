@@ -220,7 +220,7 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    // FIXME Make sure this static variable works correctly.  Maybe push it out
    // to a regular global variable..
    static long pthread_ids[NUM_THREADS];
-   long mytid = thr->getTid();
+   long mytid = (long)(thr->getTid());
    if (mytid == -1)
    {
       logerror("[%s:%d] - WARNING: Thread %d has a tid of -1\n", 
