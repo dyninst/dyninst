@@ -277,7 +277,6 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    // <Cost section>
    // <Load state>
 
-
    // Break it down...
    // <Save state>
    //   -- TODO: an AST for saves that knows how many registers
@@ -369,9 +368,6 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
     
    // Run the minitramps
    baseTrampElements.push_back(minis);
-    
-   // Cost code...
-   //
     
    if (trampGuardAddr) {
       // And set the tramp guard flag to 1

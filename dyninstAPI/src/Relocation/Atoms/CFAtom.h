@@ -194,7 +194,8 @@ struct CFPatch : public Patch {
  CFPatch(Type a, 
          InstructionAPI::Instruction::Ptr b, 
          TargetInt *c,
-	 Address d = 0);
+	 const func_instance *d,
+	 Address e = 0);
   
   virtual bool apply(codeGen &gen, CodeBuffer *buf);
   virtual unsigned estimate(codeGen &templ);
@@ -203,12 +204,25 @@ struct CFPatch : public Patch {
   Type type;
   InstructionAPI::Instruction::Ptr orig_insn;
   TargetInt *target;
+  const func_instance *func;
   Address origAddr_;  
   arch_insn *ugly_insn;
+
+
+#if defined(arch_power)
+  // 64-bit PPC/Linux has a TOC register we need
+  // to maintain. That puts it in "special case"
+  // territory...
+  bool isSpecialCase();
+  bool handleSpecialCase(codeGen &gen);
+#endif
 
   private:
   bool isPLT(codeGen &gen);
   bool applyPLT(codeGen &gen, CodeBuffer *buf);
+
+
+
 };
 
 struct PaddingPatch : public Patch {

@@ -36,6 +36,7 @@
 
 #include "Atom.h"
 #include "InsnAtom.h" // Default Atom in each Trace
+#include "InstAtom.h"
 #include "Trace.h"
 #include "Target.h"
 #include "CFAtom.h"
@@ -43,8 +44,10 @@
 #include "../CodeTracker.h"
 #include "../CodeBuffer.h"
 #include "../Transformers/Transformer.h" // transformer class
+#include "../RelocGraph.h"
 
 #include "boost/tuple/tuple.hpp"
+
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -67,12 +70,12 @@ using namespace InstructionAPI;
 
 int Trace::TraceID = 0;
 
-Trace::Ptr Trace::create(block_instance *block, func_instance *func) {
-  if (!block) return Ptr();
+Trace *Trace::createReloc(block_instance *block, func_instance *func) {
+  if (!block) return NULL;
 
   relocation_cerr << "Creating new Trace" << endl;
 
-  Ptr newTrace = Ptr(new Trace(block, func));  
+  Trace *newTrace = new Trace(block, func);
 
   // Get the list of instructions in the block
   block_instance::Insns insns;
@@ -86,8 +89,8 @@ Trace::Ptr Trace::create(block_instance *block, func_instance *func) {
     Atom::Ptr ptr = InsnAtom::create(iter->second, iter->first);
 
     if (!ptr) {
-      // And this will clean up all of the created elements. Nice. 
-       return Ptr();
+       delete newTrace;
+       return NULL;
     }
     
     newTrace->elements_.push_back(ptr);
@@ -101,90 +104,40 @@ Trace::Ptr Trace::create(block_instance *block, func_instance *func) {
   return newTrace;
 }
   
-Trace::Ptr Trace::create(Atom::Ptr p, Address a, block_instance *block, func_instance *f) {
-  if (!p) return Ptr();
-  Ptr newTrace = Ptr(new Trace(a, block, f));
-  newTrace->elements_.push_back(p);
-  newTrace->createCFAtom();
+Trace *Trace::createInst(instPoint *p, Address a, block_instance *block, func_instance *f) {
+  if (!p) return NULL;
+  if (p->empty()) return NULL;
 
+  Trace *newTrace = new Trace(a, block, f);
+  newTrace->elements_.push_back(InstAtom::create(p));
+  newTrace->createCFAtom();
+  
   return newTrace;
 }
 
-bool Trace::linkTraces(std::map<block_instance *, Trace::Ptr> &traces) {
+Trace *Trace::createStub(block_instance *block, func_instance *f) {
+   Trace *newTrace = new Trace(block->start(), block, f);
+   newTrace->createCFAtom();
+   newTrace->type_ = Stub; 
+   return newTrace;
+}
+
+
+
+
+bool Trace::linkTraces(RelocGraph *cfg) {
    // We want to build each Trace into a tangled web. Or at 
    // least build in links to successor Traces. This is pretty much
    // only for our internal code generation requirements;
    // if you want real CFG traversibility use the Block representation.
    
-   getPredecessors(traces);
-   getSuccessors(traces);
+   getPredecessors(cfg);
+   getSuccessors(cfg);
 
    return true;
 }
 
-bool Trace::determineSpringboards(PriorityMap &p) {
-   // We _require_ a springboard if:
-   // 1) We are a function entry block;
-   // 2) We are the target of an indirect branch;
-   // 3) We are the target of an edge not from a trace. 
-
-   if (func_ &&
-       func_->entryBlock() == block_) {
-      p[block_] = Required;
-      return true;
-   }
-   if (inEdges_.find(ParseAPI::INDIRECT) != inEdges_.end()) {
-      p[block_] = Required;
-      return true;
-   }
-   // Slow crawl
-   for (std::map<ParseAPI::EdgeTypeEnum, Targets>::const_iterator iter = inEdges_.begin();
-        iter != inEdges_.end(); ++iter) {
-      for (Targets::const_iterator iter2 = iter->second.begin(); 
-          iter2 != iter->second.end(); ++iter2) {
-         if ((*iter2)->type() != TargetInt::TraceTarget) {
-            p[block_] = Required;
-            return true;
-         }
-      }
-   }
-   return true;
-}
-
-
-void Trace::createCFAtom() {
-   // If the last instruction in the trace is a CF instruction 
-   // (jump, call, etc.) wrap it in a CFAtom pointer and replace.
-   // Otherwise, create a default CFAtom and append it. In either case,
-   // keep a handle to the atom in cfAtom_.
-
-   if (elements_.empty()) {
-      cfAtom_ = CFAtom::create(origAddr_);
-      return;
-   }
-
-   bool hasCF = false;
-
-   InstructionAPI::Instruction::Ptr insn = elements_.back()->insn();
-   if (insn) {
-      if (insn->getCategory() == c_CallInsn ||
-          insn->getCategory() == c_ReturnInsn ||
-          insn->getCategory() == c_BranchInsn) {
-         hasCF = true;
-      }
-   }
-
-   if (hasCF) {
-      cfAtom_ = CFAtom::create(elements_.back());
-      elements_.pop_back();
-   }
-   else {
-      cfAtom_ = CFAtom::create(origAddr_);
-   }
-   elements_.push_back(cfAtom_);
-}
-
-void Trace::getSuccessors(const std::map<block_instance *, Trace::Ptr> &traces) {
+void Trace::getSuccessors(RelocGraph *cfg) {
    // We're constructing a copy of a subgraph of the CFG. Initially we just copy the nodes
    // (aka Traces), but we also need to copy edges. There are three types of edges we care
    // care about:
@@ -194,21 +147,25 @@ void Trace::getSuccessors(const std::map<block_instance *, Trace::Ptr> &traces) 
    //   -- this last is a Defensive mode special.
    const block_instance::edgelist &targets = block_->targets();
    for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
-      processEdge(OutEdge, *iter, traces);
+      processEdge(OutEdge, *iter, cfg);
    }
-
 }
 
-void Trace::getPredecessors(const std::map<block_instance *, Trace::Ptr> &traces) {
+void Trace::getPredecessors(RelocGraph *cfg) {
    const block_instance::edgelist &edges = block_->sources();
    for (block_instance::edgelist::const_iterator iter = edges.begin(); iter != edges.end(); ++iter) {
-      processEdge(InEdge, *iter, traces);
+      processEdge(InEdge, *iter, cfg);
    }
 
 }
 
-void Trace::processEdge(EdgeDirection e, edge_instance *edge, const std::map<block_instance *, Trace::Ptr> &traces) {
-   TargetInt *target = NULL;
+// There's some tricky logic going on here. We want to create the following 
+// edges:
+// 1) All out-edges, as _someone_ has to create them
+// 2) In-edges that aren't from Traces; if it's from a Trace we assume we'll
+//    get it in out-edge construction. 
+
+void Trace::processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *cfg) {
    ParseAPI::EdgeTypeEnum type = edge->type();
    // Maybe we want exception edges too?
    if (type == ParseAPI::RET || 
@@ -231,14 +188,18 @@ void Trace::processEdge(EdgeDirection e, edge_instance *edge, const std::map<blo
             Address addr;
             boost::tie(valid, addr) = getJumpTarget();
             if (valid) {
-               target = new Target<Address>(addr);
+               cfg->makeEdge(new Target<Trace *>(this), 
+                             new Target<Address>(addr), 
+                             type);
             }
             break;
          }
          case ParseAPI::COND_NOT_TAKEN:
          case ParseAPI::FALLTHROUGH:
          case ParseAPI::CALL_FT: {
-            target = new Target<Address>(block_->end());
+            cfg->makeEdge(new Target<Trace *>(this), 
+                          new Target<Address>(block_->end()), 
+                          type);
             break;
          }
          default:
@@ -248,22 +209,93 @@ void Trace::processEdge(EdgeDirection e, edge_instance *edge, const std::map<blo
    else {
       block_instance *block = (e == OutEdge) ? edge->trg() : edge->src();
 
-      std::map<block_instance *, Trace::Ptr>::const_iterator iter = traces.find(block);
-      if (iter != traces.end()) {
-         target = new Target<Trace *>(iter->second.get());
+      Trace *t = cfg->find(block);
+      if (t) {
+         if (e == OutEdge) {
+            cfg->makeEdge(new Target<Trace *>(this), 
+                          new Target<Trace *>(t),
+                          type);
+            return;
+         }
+         else {
+            // Trace -> trace edge, will get created later
+            return;
+         }
       }
       else {
-         target = new Target<block_instance *>(block);
+         if (e == OutEdge) {
+            cfg->makeEdge(new Target<Trace *>(this), 
+                          new Target<block_instance *>(block), 
+                          type);
+         }
+         else {
+            cfg->makeEdge(new Target<block_instance *>(block), 
+                          new Target<Trace *>(this),
+                          type);
+         }
       }
    }
-   if (target) {
-      if (e == OutEdge) {
-         outEdges_[type].push_back(target);
-      }
-      else {
-         inEdges_[type].push_back(target);
+}
+
+
+bool Trace::determineSpringboards(PriorityMap &p) {
+   // We _require_ a springboard if:
+   // 1) We are a function entry block;
+   // 2) We are the target of an indirect branch;
+   // 3) We are the target of an edge not from a trace. 
+
+   if (func_ &&
+       func_->entryBlock() == block_) {
+      p[block_] = Required;
+      return true;
+   }
+   if (inEdges_.contains(ParseAPI::INDIRECT)) {
+      p[block_] = Required;
+      return true;
+   }
+   // Slow crawl
+   for (RelocEdges::const_iterator iter = inEdges_.begin();
+        iter != inEdges_.end(); ++iter) {
+      if ((*iter)->src->type() != TargetInt::TraceTarget) {
+         p[block_] = Required;
+         return true;
       }
    }
+   return true;
+}
+
+
+void Trace::createCFAtom() {
+   // If the last instruction in the trace is a CF instruction 
+   // (jump, call, etc.) wrap it in a CFAtom pointer and replace.
+   // Otherwise, create a default CFAtom and append it. In either case,
+   // keep a handle to the atom in cfAtom_.
+
+   if (elements_.empty()) {
+      cfAtom_ = CFAtom::create(origAddr_);
+      elements_.push_back(cfAtom_); 
+      return;
+   }
+
+   bool hasCF = false;
+
+   InstructionAPI::Instruction::Ptr insn = elements_.back()->insn();
+   if (insn) {
+      if (insn->getCategory() == c_CallInsn ||
+          insn->getCategory() == c_ReturnInsn ||
+          insn->getCategory() == c_BranchInsn) {
+         hasCF = true;
+      }
+   }
+
+   if (hasCF) {
+      cfAtom_ = CFAtom::create(elements_.back());
+      elements_.pop_back();
+   }
+   else {
+      cfAtom_ = CFAtom::create(origAddr_);
+   }
+   elements_.push_back(cfAtom_);
 }
 
 // Some defensive binaries put gaps in after call instructions to try
@@ -382,6 +414,7 @@ void Trace::determineNecessaryBranches(Trace *successor) {
 bool Trace::generate(const codeGen &templ,
                      CodeBuffer &buffer) {
    relocation_cerr << "Generating block " << id() << " orig @ " << hex << origAddr() << dec << endl;
+   relocation_cerr << "\t" << elements_.size() << " elements" << endl;
    
    // Register ourselves with the CodeBuffer and get a label
    label_ = buffer.getLabel();
@@ -404,45 +437,47 @@ std::string Trace::format() const {
     stringstream ret;
   ret << "Trace(" 
       << std::hex << origAddr() << std::dec
-      << "/" << id() 
+      << "/" << id() << "/" << label_ 
       << ") {" << endl;
   for (AtomList::const_iterator iter = elements_.begin();
        iter != elements_.end(); ++iter) {
     ret << "  " << (*iter)->format() << endl;
   }
-  ret << "In edges:" << endl;
-  for (std::map<ParseAPI::EdgeTypeEnum, Targets>::const_iterator ie_iter = inEdges_.begin();
-       ie_iter != inEdges_.end(); ++ie_iter) {
-     ret << "\tEdge class " << ParseAPI::format(ie_iter->first) << ": ";
-     for (Targets::const_iterator iter = ie_iter->second.begin(); 
-          iter != ie_iter->second.end(); ++iter) {
-        ret << (*iter)->format() << ", ";
-     }
-     ret << endl;
+  ret << "In edges: ";
+  for (RelocEdges::const_iterator iter = inEdges_.begin();
+       iter != inEdges_.end(); ++iter) {
+     ret << (*iter)->src->format() << ", ";
   }
-  ret << "Out edges:" << endl;
-  for (std::map<ParseAPI::EdgeTypeEnum, Targets>::const_iterator oe_iter = outEdges_.begin();
-       oe_iter != outEdges_.end(); ++oe_iter) {
-     ret << "\tEdge class " << ParseAPI::format(oe_iter->first) << ": ";
-     for (Targets::const_iterator iter = oe_iter->second.begin(); 
-          iter != oe_iter->second.end(); ++iter) {
-        ret << (*iter)->format() << ", ";
-     }
-     ret << endl;
+  ret << endl;
+  ret << "Out edges:";
+  for (RelocEdges::const_iterator iter = outEdges_.begin();
+       iter != outEdges_.end(); ++iter) {
+     ret << (*iter)->trg->format() << ", ";
   }
+  ret << endl;
 
   ret << "}" << endl;
   return ret.str();
 }
 
+Trace::Label Trace::getLabel() const {
+   if (label_ == -1) {
+      cerr << "Error: trace with zero label!" << endl;
+      cerr << format() << endl;
+      assert(0);
+   }
+   return label_;
+}
+
+#if 0
 // Logic: interpose the new provided target along all edges
 // of the provided type. 
 bool Trace::interposeTarget(ParseAPI::EdgeTypeEnum type,
-                            Trace::Ptr newTrace) {
+                            Trace *newTrace) {
    assert(newTrace);
 
    TargetInt *newTarget = new Target<Trace *>(newTrace.get());
-   
+
    std::map<ParseAPI::EdgeTypeEnum, Targets>::iterator oe_iter = outEdges_.find(type);
    if (oe_iter == outEdges_.end()) return true;
 
@@ -465,7 +500,7 @@ bool Trace::interposeTarget(ParseAPI::EdgeTypeEnum type,
 }
 
 bool Trace::moveSources(ParseAPI::EdgeTypeEnum type,
-                        Trace::Ptr newTrace) {
+                        Trace *newTrace) {
    // Move all the in-edges of a particular type to
    // newTrace. Like interposition, but does not
    // create an edge from newSource to us. 
@@ -490,7 +525,7 @@ bool Trace::moveSources(ParseAPI::EdgeTypeEnum type,
 }
 
 bool Trace::interposeTarget(edge_instance *edge, 
-                     Trace::Ptr newTrace) {
+                     Trace *newTrace) {
    assert(edge->src() == block());
    // Like interposeTarget /w/ a type, but for a
    // specific element...
@@ -534,14 +569,19 @@ Trace::Targets &Trace::getTargets(ParseAPI::EdgeTypeEnum type) {
 }
 
 bool Trace::removeTargets() {
+   cerr << "removeTargets in " << id() << endl;
+#if 0
    for (std::map<ParseAPI::EdgeTypeEnum, Targets>::iterator iter = outEdges_.begin();
         iter != outEdges_.end(); ++iter) {
       for (Targets::iterator iter2 = iter->second.begin(); 
            iter2 != iter->second.end(); ++iter2) {
+         cerr << "Deleting " << (*iter2)->format() << endl;
          delete *iter2;
       }
    }
+#endif
    outEdges_.clear();
+   cerr << "Cleared all edges" << endl;
    return true;
 }
 
@@ -554,6 +594,33 @@ bool Trace::removeTargets(ParseAPI::EdgeTypeEnum type) {
    outEdges_.erase(type);
    return true;
 }
+
+
+bool Trace::replaceTarget(Trace *oldTrace, Trace *newTrace) {
+   cerr << "Replacing target in trace" << endl;
+   cerr << format();
+   for (Edges::iterator iter = outEdges_.begin(); iter != outEdges_.end(); ++iter) {
+      Targets newTargs;
+      for (Targets::iterator t_iter = iter->second.begin(); t_iter != iter->second.end(); ++t_iter) {
+         if ((*t_iter)->type() != TargetInt::TraceTarget) {
+            newTargs.push_back(*t_iter);
+            continue;
+         }
+         Target<Trace *> *t = static_cast<Target<Trace *> *>(*t_iter);
+         if (t->t() != oldTrace.get()) {
+            newTargs.push_back(*t_iter);
+            continue;
+         }
+         delete t;
+         newTargs.push_back(new Target<Trace *>(newTrace.get()));
+      }
+      iter->second = newTargs;
+   }
+   cerr << "Replaced target" << endl;
+   cerr << format(); 
+   return true;
+}
+
 
 void Trace::replaceInEdge(ParseAPI::EdgeTypeEnum type,
                    Trace *oldSource,
@@ -601,16 +668,17 @@ void Trace::replaceOutEdge(ParseAPI::EdgeTypeEnum type,
    return;
 }
 
+
 void Trace::setAsInstrumentationTrace() {
    origTrace_ = false;
 }
 
-Trace::Ptr Trace::split(AtomList::iterator where) {
+Trace *Trace::split(AtomList::iterator where) {
    // Create a new trace and move where and everything
    // after it to the new trace. 
    // Don't use block creation because it pulls in
    // all the Atoms in the block...
-   Trace::Ptr newTrace = Ptr(new Trace(block(), func()));
+   Trace *newTrace = new Trace(block(), func());
 
    TargetInt *newTarget = new Target<Trace *>(newTrace.get());
 
@@ -675,7 +743,9 @@ Trace::Ptr Trace::split(AtomList::iterator where) {
    return newTrace;
 }
 
-bool Trace::finalizeCF(Trace::Ptr next) {
+#endif
+
+bool Trace::finalizeCF() {
    if (!cfAtom_) {
       cerr << "Warning: trace has no CFAtom!" << endl;
       cerr << format() << endl;
@@ -684,42 +754,35 @@ bool Trace::finalizeCF(Trace::Ptr next) {
 
    // We've had people munging our out-edges; now
    // push them to the CFAtom so that it can do its work. 
-   for (std::map<ParseAPI::EdgeTypeEnum, Targets>::iterator oe_iter = outEdges_.begin();
-        oe_iter != outEdges_.end(); ++oe_iter) {
-      // What kinds of edges do we skip again?
-      if (oe_iter->first == ParseAPI::CATCH ||
-          oe_iter->first == ParseAPI::RET ||
-          oe_iter->first == ParseAPI::NOEDGE) continue;
-      for (Targets::iterator iter = oe_iter->second.begin(); 
-           iter != oe_iter->second.end(); ++iter) {
-         Address index;
-         if (oe_iter->first == ParseAPI::FALLTHROUGH ||
-             oe_iter->first == ParseAPI::COND_NOT_TAKEN ||
-             oe_iter->first == ParseAPI::CALL_FT) {
-            index = CFAtom::Fallthrough;
-         }
-         else if (oe_iter->first == ParseAPI::CALL ||
-                  oe_iter->first == ParseAPI::COND_TAKEN ||
-                  oe_iter->first == ParseAPI::DIRECT) {
-            index = CFAtom::Taken;
-         }
-         else {
-            assert(oe_iter->first == ParseAPI::INDIRECT);
-            index = (*iter)->origAddr();
-         }
-
-         cfAtom_->addDestination(index, *iter);
-         (*iter)->setNecessary(isNecessary(*iter, oe_iter->first, next));
+   for (RelocEdges::iterator iter = outEdges_.begin(); iter != outEdges_.end(); ++iter) {
+      if ((*iter)->type == ParseAPI::CATCH ||
+          (*iter)->type == ParseAPI::RET ||
+          (*iter)->type == ParseAPI::NOEDGE) continue;
+      Address index;
+      if ((*iter)->type == ParseAPI::FALLTHROUGH ||
+          (*iter)->type == ParseAPI::COND_NOT_TAKEN ||
+          (*iter)->type == ParseAPI::CALL_FT) {
+         index = CFAtom::Fallthrough;
       }
+      else if ((*iter)->type == ParseAPI::DIRECT ||
+               (*iter)->type == ParseAPI::COND_TAKEN ||
+               (*iter)->type == ParseAPI::CALL) {
+         index = CFAtom::Taken;
+      }
+      else {
+         assert((*iter)->type == ParseAPI::INDIRECT);
+         index = (*iter)->trg->origAddr();
+      }
+      cfAtom_->addDestination(index, (*iter)->trg);
+      (*iter)->trg->setNecessary(isNecessary((*iter)->trg, (*iter)->type));
    }
    
    return true;
 }
 
 bool Trace::isNecessary(TargetInt *target,
-                        ParseAPI::EdgeTypeEnum edgeType,
-                        Trace::Ptr next) {
-   if (!next) return true;
+                        ParseAPI::EdgeTypeEnum edgeType) {
+   if (!next_) return true;
 
    // Code copied from the old Fallthrough transformer
 
@@ -738,7 +801,37 @@ bool Trace::isNecessary(TargetInt *target,
    if (cfAtom_->gap() != 0) return true;
 
    // And finally, case 4: if the next trace isn't our target, keep it
-   if (!target->matches(next.get())) return true;
+   if (!target->matches(next_)) return true;
 
    return false;
 }
+
+RelocEdge *RelocEdges::find(ParseAPI::EdgeTypeEnum e) {
+   // Returns the first one
+   for (iterator iter = begin(); iter != end(); ++iter) {
+      if ((*iter)->type == e) return *iter;
+   }
+   return NULL;
+}
+
+void RelocEdges::erase(RelocEdge *e) {
+   for (iterator iter = begin(); iter != end(); ++iter) {
+      if ((*iter) == e) {
+         edges.erase(iter);
+         return;
+      }
+   }
+}
+
+bool RelocEdges::contains(ParseAPI::EdgeTypeEnum e) {
+   return (find(e) != NULL);
+}
+
+RelocEdge::~RelocEdge() { 
+   if (src) delete src;
+   if (trg) delete trg;
+}
+
+
+     
+   

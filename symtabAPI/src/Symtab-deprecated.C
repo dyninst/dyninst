@@ -72,7 +72,7 @@ bool Symtab::findFuncByEntryOffset(std::vector<Symbol *>& ret, const Offset entr
 }
 
 bool Symtab::findSymbolByType(std::vector<Symbol *> &ret,
-                              const std::string name,
+                              const std::string& name,
                               Symbol::SymbolType sType,
                               bool isMangled,
                               bool isRegex,

@@ -55,19 +55,6 @@
 #endif
 #include "common/h/Vector.h"
 
-#if 0
-#if defined(__XLC__) || defined(__xlC__)
-#pragma implementation("Symbol.h")
-#else
-#pragma implementation "Symbol.h"
-#endif
-#include "symtabAPI/h/Symbol.h"
-// Included above
-template class  pdvector<Symbol>;
-template class  pdvector<Symbol*>;
-
-#endif
-
 #include <string>
 #include "dyninstAPI/src/inst.h"
 
@@ -163,10 +150,6 @@ template class  pdvector<image_variable *>;
 
 #include "symtabAPI/h/Symtab.h"
 template class  pdvector<relocationEntry>;
-
-#include "imageUpdate.h"
-template class pdvector<imageUpdate*>;//ccw 28 oct 2001
-template class pdvector<dataUpdate*> ;//ccw 26 nov 2001
 
 class instMapping;
 template class pdvector<instMapping *>;

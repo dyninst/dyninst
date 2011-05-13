@@ -44,12 +44,8 @@ extern int dyn_debug_ast;
 
 
 
-#if defined(cap_instruction_api)
 #include "Instruction.h"
 using namespace Dyninst::InstructionAPI;
-#else
-#include "parseAPI/src/InstrucIter.h"
-#endif
 
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_collections.h"
@@ -63,9 +59,7 @@ using namespace Dyninst::InstructionAPI;
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/binaryEdit.h"
 
-#if defined(arch_sparc)
-#include "dyninstAPI/src/inst-sparc.h"
-#elif defined(arch_power)
+#if defined(arch_power)
 #include "dyninstAPI/src/inst-power.h"
 #elif defined(arch_x86) || defined (arch_x86_64)
 #include "dyninstAPI/src/inst-x86.h"
@@ -1381,15 +1375,6 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       }
       case trampPreamble: {
          // This ast cannot be shared because it doesn't return a register
-#if defined(i386_unknown_solaris2_5)            \
-   || defined(sparc_sun_solaris2_4)
-         // loperand is a constant AST node with the cost, in cycles.
-         //int cost = noCost ? 0 : (int) loperand->getOValue();
-         Address costAddr = 0; // for now... (won't change if noCost is set)
-         loperand->decUseCount(gen);
-         costAddr = gen.addrSpace()->getObservedCostAddr();
-         retAddr = emitA(op, 0, 0, 0, gen, rc_no_control, noCost);
-#endif
          retReg = REG_NULL;
          break;
       }
@@ -1980,15 +1965,27 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
          retReg = allocateAndKeep(gen, noCost);
       }
       if (retReg == REG_NULL) return false;
-      
+
 #if defined (arch_x86)
-      emitVload(loadRegRelativeOp, 
-                (Address) sizeof(Address), 
-                REGNUM_ESP, 
-                retReg, 
-                gen, noCost);
-#else 
-      assert(0); //TODO: unimplemented
+        emitVload(loadRegRelativeOp, 
+                  (Address) sizeof(Address), 
+                  REGNUM_ESP, 
+                  retReg, 
+                  gen, noCost);
+#elif defined (arch_x86_64) // KEVINTODO: untested
+        emitVload(loadRegRelativeOp, 
+                  (Address) sizeof(Address), 
+                  REGNUM_RSP, 
+                  retReg, 
+                  gen, noCost);
+#elif defined (arch_power) // KEVINTODO: untested
+        emitVload(loadRegRelativeOp, 
+                  (Address) sizeof(Address), 
+                  REG_SP,
+                  retReg, 
+                  gen, noCost);
+#else
+        assert(0);
 #endif
       return true;
    }

@@ -37,6 +37,7 @@
 #include <list>
 #include <map>
 #include <stack>
+#include "parseAPI/h/CFG.h"
 
 class block_instance;
 class baseTramp;
@@ -50,6 +51,9 @@ class Trace;
 class TargetInt;
 class CFAtom;
 class RelocInsn;
+struct RelocEdge;
+struct RelocEdges;
+class RelocGraph;
 
 // One of the things a Transformer 'returns' (modifies, really) is 
 // a list of where we require patches (branches from original code
@@ -68,16 +72,11 @@ class Transformer {
  public:
   typedef dyn_detail::boost::shared_ptr<Atom> AtomPtr;
   typedef std::list<AtomPtr> AtomList;
-  typedef dyn_detail::boost::shared_ptr<Trace> TracePtr;
-  typedef std::list<TracePtr> TraceList;
-  typedef std::map<block_instance *, TracePtr> TraceMap;
+  typedef std::map<block_instance *, Trace *> TraceMap;
 
-  virtual bool preprocess(TraceList &) { return true;}
-  virtual bool postprocess(TraceList &) { return true; }
-
-  virtual bool processTrace(TraceList::iterator &, const TraceMap &) { return true; }
-    
-
+  virtual bool processGraph(RelocGraph *);
+  virtual bool process(Trace *, 
+                       RelocGraph *) = 0;
 
   virtual ~Transformer() {};
 };

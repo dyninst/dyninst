@@ -95,19 +95,18 @@ class PCSensitiveTransformer : public Transformer {
   typedef std::list<Assignment::Ptr> AssignList;
 
  public:
-  virtual bool processTrace(TraceList::iterator &, const TraceMap &);
-     PCSensitiveTransformer(AddressSpace *as, PriorityMap &p) 
+  virtual bool process(Trace *, RelocGraph *);
+
+  PCSensitiveTransformer(AddressSpace *as, PriorityMap &p) 
         : aConverter(false), addrSpace(as), priMap(p),
      Sens_(0), extSens_(0), intSens_(0), thunk_(0), overApprox_(0), adhoc(as) {};
   virtual ~PCSensitiveTransformer() {};
-
-  virtual bool postprocess(TraceList &);
 
   static void invalidateCache(block_instance *);
   static void invalidateCache(const block_instance *);
 
  private:
-  bool analysisRequired(TraceList::iterator &);
+  bool analysisRequired(Trace *);
 
   bool isPCSensitive(InstructionAPI::Instruction::Ptr insn,
 		     Address addr,
@@ -124,11 +123,11 @@ class PCSensitiveTransformer : public Transformer {
   bool insnIsThunkCall(InstructionAPI::Instruction::Ptr insn,
 		       Address addr,
 		       Absloc &destination);
-  void handleThunkCall(TraceList::iterator &b_iter,
+  void handleThunkCall(Trace *b_iter,
 		       AtomList::iterator &iter,
 		       Absloc &destination);
   void recordIntSensitive(Address addr);
-  void emulateInsn(TraceList::iterator &b_iter,
+  void emulateInsn(Trace *b_iter,
 		   AtomList::iterator &iter,
 		   InstructionAPI::Instruction::Ptr insn,
 		   Address addr);

@@ -2175,13 +2175,6 @@ bool mapped_object::isSystemLib(const std::string &objname)
    if (std::string::npos != lowname.find("libdyninstapi_rt"))
       return true;
 
-#if defined(os_solaris)
-   // Solaris 2.8... we don't grab the initial func always,
-   // so fix up this code as well...
-   if (std::string::npos != lowname.find("libthread"))
-      return true;
-#endif
-
 #if defined(os_linux)
    if (std::string::npos != lowname.find("libc.so"))
       return true;

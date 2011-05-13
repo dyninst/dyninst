@@ -116,6 +116,9 @@ class Emitter {
 
     virtual bool emitPLTCall(func_instance *, codeGen &) { assert(0); return false;}
     virtual bool emitPLTJump(func_instance *, codeGen &) { assert(0); return false;}
+
+    virtual bool emitTOCJump(block_instance *, codeGen &) { assert(0); return false; }
+    virtual bool emitTOCCall(block_instance *, codeGen &) { assert(0); return false; }
 };
 
 #endif

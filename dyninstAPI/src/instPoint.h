@@ -61,10 +61,8 @@ namespace Dyninst {
    };
 };
 
-#if defined(cap_instruction_api)
 #include "Instruction.h"
 #include "InstructionDecoder.h"
-#endif
 
 class instPoint {
     friend class func_instance;

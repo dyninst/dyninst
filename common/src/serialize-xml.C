@@ -48,7 +48,7 @@ HINSTANCE hXML;
 #endif
 
 #if defined (cap_have_libxml)
-#if defined (os_linux) || defined (os_aix) || defined(os_solaris)
+#if defined (os_linux) || defined (os_aix)
 //  gcc is complaining about the constness of the library-provided
 //  typecast (BAD_CAST) (which is defined in xmlstring.h), so we make our own
 #define XMLCHAR_CAST (const xmlChar *)

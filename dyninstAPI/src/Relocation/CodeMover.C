@@ -41,11 +41,18 @@
 
 #include "patchapi_debug.h"
 #include "CodeTracker.h"
+#include "RelocGraph.h"
 
 using namespace std;
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace Relocation;
+
+CodeMover::CodeMover(CodeTracker *t) :
+   cfg_(new RelocGraph()),
+   addr_(0),
+   tracker_(t),
+   tracesFinalized_(false) {};
 
 CodeMover::Ptr CodeMover::create(CodeTracker *t) {
    init_debug_patchapi();
@@ -58,13 +65,17 @@ CodeMover::Ptr CodeMover::create(CodeTracker *t) {
    return ret;
 }  
 
+CodeMover::~CodeMover() {
+   delete cfg_;
+   // Do not delete codeTracker
+}
+
 bool CodeMover::addFunctions(FuncSet::const_iterator begin, 
 			     FuncSet::const_iterator end) {
    // A vector of Functions is just an extended vector of basic blocks...
    for (; begin != end; ++begin) {
       func_instance *func = *begin;
       if (!func->isInstrumentable()) {
-         cerr << "Skipping func " << func->symTabName() << " that's uninstrumentable" << endl;
          continue;
       }
       relocation_cerr << "\tAdding function " << func->symTabName() << endl;
@@ -89,26 +100,24 @@ bool CodeMover::addTraces(TraceIter begin, TraceIter end, func_instance *f) {
 }
 
 bool CodeMover::addTrace(block_instance *bbl, func_instance *f) {
-   Trace::Ptr block = Trace::create(bbl, f);
+   Trace * block = Trace::createReloc(bbl, f);
    if (!block)
       return false;
-   blocks_.push_back(block);
-   blockMap_[bbl] = block;
+   cfg_->addTrace(block);
+
    priorityMap_[bbl] = Suggested;
       
    return true;
 }
 
-
 void CodeMover::finalizeTraces() {
    if (tracesFinalized_) return;
 
    tracesFinalized_ = true;
-
-   for (TraceList::iterator i = blocks_.begin(); 
-        i != blocks_.end(); ++i) {
-      (*i)->linkTraces(blockMap_);
-      (*i)->determineSpringboards(priorityMap_);
+   
+   for (Trace *iter = cfg_->begin(); iter != cfg_->end(); iter = iter->next()) {
+      iter->linkTraces(cfg_);
+      iter->determineSpringboards(priorityMap_);
    }
 }
    
@@ -123,34 +132,23 @@ bool CodeMover::transform(Transformer &t) {
 
    bool ret = true; 
 
-   t.preprocess(blocks_);
-   for (TraceList::iterator i = blocks_.begin(); 
-        i != blocks_.end(); ++i) {
-      if (!t.processTrace(i, blockMap_))
-         ret = false;
-   }
-   t.postprocess(blocks_);
+   t.processGraph(cfg_);
 
    return ret;
 }
 
 bool CodeMover::initialize(const codeGen &templ) {
-   buffer_.initialize(templ, blocks_.size());
+   buffer_.initialize(templ, cfg_->size);
 
    // If they never called transform() this can get missed.
    if (!tracesFinalized_)
       finalizeTraces();
-
+   
    // Tell all the blocks to do their generation thang...
-   for (TraceList::iterator i = blocks_.begin(); 
-        i != blocks_.end(); ++i) {
-      TraceList::iterator next = i; ++next;
-      // We hand in the iterator so we can try and eliminate
-      // branches-to-next
-      if (!(*i)->finalizeCF((next == blocks_.end()) ? Trace::Ptr() : *next))
-         return false;
-
-      if (!(*i)->generate(templ, buffer_))
+   for (Trace *iter = cfg_->begin(); iter != cfg_->end(); iter = iter->next()) {
+      if (!iter->finalizeCF()) return false;
+      
+      if (!iter->generate(templ, buffer_))
          return false; // Catastrophic failure
    }
    return true;
@@ -221,19 +219,17 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
 
          // the priority map may include things not in the block
          // map...
-         TraceMap::const_iterator b_iter = blockMap_.find(bbl);
-         if (b_iter != blockMap_.end()) {
-            TracePtr trace = b_iter->second;
-            int labelID = trace->getLabel();
-            Address to = buffer_.getLabelAddr(labelID);
-            
-            sboardMap_.addFromOrigCode(bbl->start(), to, p, bbl);
-            //relocation_cerr << "Added map " << hex
+         Trace * trace = cfg_->findSpringboard(bbl);
+         if (!trace) continue;
+         int labelID = trace->getLabel();
+         Address to = buffer_.getLabelAddr(labelID);
+         
+         sboardMap_.addFromOrigCode(bbl->start(), to, p, bbl);
+         //relocation_cerr << "Added map " << hex
 //                            << bbl->firstInsnAddr() << " -> " 
 //                            << to << ", " << p << dec << endl;
-         }
       }
-
+      
       // And instrumentation that needs updating
       createInstrumentationSpringboards(as);
    }
@@ -246,9 +242,8 @@ string CodeMover::format() const {
   
    ret << "CodeMover() {" << endl;
 
-   for (TraceList::const_iterator iter = blocks_.begin();
-        iter != blocks_.end(); ++iter) {
-      ret << (*iter)->format();
+   for (Trace *iter = cfg_->begin(); iter != cfg_->end(); iter = iter->next()) {
+      ret << iter->format();
    }
    ret << "}" << endl;
    return ret.str();
@@ -291,3 +286,4 @@ void CodeMover::createInstrumentationSpringboards(AddressSpace *as) {
    }
 #endif
 }
+

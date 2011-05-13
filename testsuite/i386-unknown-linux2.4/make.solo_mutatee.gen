@@ -1,8 +1,8 @@
 # Define variables for our compilers, if they aren't already defined
+M_gnu_cc ?= gcc
 ifdef ICC
 M_intel_CC ?= icpc
 endif
-M_gnu_cc ?= gcc
 M_gnu_fc ?= gfortran
 ifdef ICC
 M_intel_cc ?= icc

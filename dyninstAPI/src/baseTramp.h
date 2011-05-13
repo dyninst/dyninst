@@ -78,13 +78,6 @@ class baseTramp {
 
     int numDefinedRegs();
 
-#if 0
-    iterator begin() { return asts_.begin(); }
-    const_iterator begin() const { return asts_.begin(); }
-    iterator end() { return asts_.end(); }
-    const_iterator end() const { return asts_.end(); }
-    bool empty() const { return asts_.empty(); }
-#endif
 
   private:
     instPoint *point_;

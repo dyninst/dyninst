@@ -1,0 +1,222 @@
+/*
+ * Copyright (c) 1996-2009 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
+#include "RelocGraph.h"
+#include "Atoms/Trace.h"
+
+
+using namespace Dyninst;
+using namespace Relocation;
+
+RelocGraph::~RelocGraph() {
+   for (Edges::iterator iter = edges.begin(); iter != edges.end(); ++iter) {
+      delete *iter;
+   }
+
+   Trace *cur = head;
+   while (cur) {
+      Trace *next = cur->next();
+      delete cur;
+      cur = next;
+   }
+}
+
+void RelocGraph::addTrace(Trace *t) {
+   if (t->type() == Trace::Relocated) {
+      springboards[t->block()] = t;
+      reloc[t->block()] = t;
+   }
+
+   if (head == NULL) {
+      assert(tail == NULL);
+      head = t;
+      tail = t;
+   }
+   else {
+      assert(tail != NULL);
+      link(tail, t);
+      tail = t;
+   }
+   size++;
+}
+
+void RelocGraph::addTraceBefore(Trace *cur, Trace *t) {
+   if (t->type() == Trace::Relocated) {
+      springboards[t->block()] = t;
+      reloc[t->block()] = t;
+   }
+   size++;
+   if (cur == head) {
+      head = t;
+   }
+   else {
+      Trace *prev = cur->prev();
+      link(prev, t);
+   }
+   link(t, cur);
+}
+
+void RelocGraph::addTraceAfter(Trace *cur, Trace *t) {
+   if (t->type() == Trace::Relocated) {
+      springboards[t->block()] = t;
+      reloc[t->block()] = t;
+   }
+   size++;
+  if (cur == tail) {
+      tail = t;
+   }
+   else {
+      Trace *next = cur->next();
+      link(t, next);
+   }
+   link(cur, t);
+}
+
+   
+Trace *RelocGraph::find(block_instance *b) const {
+   Map::const_iterator iter = reloc.find(b);
+   if (iter == reloc.end()) return NULL;
+   return iter->second;
+}
+
+Trace *RelocGraph::findSpringboard(block_instance *b) const {
+   Map::const_iterator iter = springboards.find(b);
+   if (iter == springboards.end()) return NULL;
+   return iter->second;
+}
+
+bool RelocGraph::setSpringboard(block_instance *from, Trace *to) {
+   if (springboards.find(from) == springboards.end()) return false;
+   springboards[from] = to;
+   return true;
+}
+
+RelocEdge *RelocGraph::makeEdge(TargetInt *s, 
+                                TargetInt *t,
+                                ParseAPI::EdgeTypeEnum e) {
+   RelocEdge *edge = new RelocEdge(s, t, e);
+   edges.push_back(edge);
+   s->addTargetEdge(edge);
+   t->addSourceEdge(edge);
+
+   return edge;
+}
+
+bool RelocGraph::removeEdge(RelocEdge *e) {
+   // Pull it from the source and target, but
+   // don't worry about our vector; we'll just let it 
+   // dangle for now and delete it later. 
+   removeSource(e);
+   removeTarget(e);
+   return true;
+}
+
+void RelocGraph::removeSource(RelocEdge *e) {
+   e->src->removeTargetEdge(e);
+   e->src = NULL;
+}
+
+void RelocGraph::removeTarget(RelocEdge *e) {
+   e->trg->removeSourceEdge(e);
+   e->trg = NULL;
+}
+
+void RelocGraph::link(Trace *s, Trace *t) {
+   if (s)
+      s->setNext(t);
+   if (t)
+      t->setPrev(s);
+}
+
+bool RelocGraph::interpose(RelocEdge *e, Trace *trace) {
+   // Take s ->(e) t to
+   // s ->(e) n, n ->(FT) t
+
+   TargetInt *s = e->src;
+   TargetInt *t = e->trg;
+   // Targets aren't refcounted...
+   TargetInt *n1 = new Target<Trace *>(trace);
+   TargetInt *n2 = new Target<Trace *>(trace);
+
+   makeEdge(s, n1, e->type);
+   makeEdge(n2, t, ParseAPI::FALLTHROUGH);
+   removeEdge(e);
+   // So we don't try to free 'em...
+   e->src = NULL;
+   e->trg = NULL;
+
+   return true;
+}
+
+bool RelocGraph::changeTarget(RelocEdge *e, TargetInt *n) {
+   removeTarget(e);
+   delete e->trg;
+   e->trg = n;
+   
+   return true;
+}
+
+bool RelocGraph::changeSource(RelocEdge *e, TargetInt *n) {
+   removeSource(e);
+   delete e->src;
+   e->src = n;
+   return true;
+}
+   
+bool Predicates::Interprocedural::operator()(RelocEdge *e) {
+   return (e->type == ParseAPI::CALL ||
+           e->type == ParseAPI::RET);
+}
+
+bool Predicates::Intraprocedural::operator()(RelocEdge *e) {
+   return (e->type != ParseAPI::CALL &&
+           e->type != ParseAPI::RET);
+}
+
+bool Predicates::Fallthrough::operator()(RelocEdge *e) {
+   return (e->type == ParseAPI::FALLTHROUGH);
+}
+
+bool Predicates::CallFallthrough::operator()(RelocEdge *e) {
+   return (e->type == ParseAPI::CALL_FT);
+}
+
+bool Predicates::Edge::operator()(RelocEdge *e) {
+   if (e->type != e_->type()) return false;
+   // Match up source and target blocks
+   if (e->src->block() == e_->src() &&
+       e->trg->block() == e_->trg()) return true;
+   return false;
+}
+
+bool Predicates::Type::operator()(RelocEdge *e) {
+   return e->type == t_;
+}

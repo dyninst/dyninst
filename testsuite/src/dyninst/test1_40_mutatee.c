@@ -95,10 +95,7 @@ int test1_40_mutatee(void) {
    logerror("\t- not implemented for mutatees compiled with xlc \n");
    test_passes(testname);
    return 0; /* Test "passed" */
-#elif !defined(alpha_dec_osf4_0_test) \
-   && !defined(ia64_unknown_linux2_4_test) \
-   && !defined(mips_sgi_irix6_4_test) \
-   && !defined(os_windows_test)
+#elif !defined(os_windows_test)
 
    int failed = FALSE;
 

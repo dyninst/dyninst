@@ -44,3 +44,22 @@ int Target<Address>::label(CodeBuffer *buf) const {
    return buf->defineLabel(t_);
 }
    
+void Target<Trace *>::addTargetEdge(RelocEdge *e) {
+   t_->outs()->insert(e);
+}
+
+void Target<Trace *>::addSourceEdge(RelocEdge *e) {
+   t_->ins()->insert(e);
+}
+
+void Target<Trace *>::removeTargetEdge(RelocEdge *e) {
+   t_->outs()->erase(e);
+}
+
+void Target<Trace *>::removeSourceEdge(RelocEdge *e) {
+   t_->ins()->erase(e);
+}
+
+block_instance *Target<Trace *>::block() { 
+   return t_->block();
+}

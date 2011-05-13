@@ -40,6 +40,8 @@
 #include "debug_parse.h"
 #include "IA_platformDetails.h"
 #include "util.h"
+#include "common/h/Types.h"
+#include "dyntypes.h"
 
 #include <deque>
 #include <map>
@@ -600,9 +602,6 @@ bool IA_IAPI::isLeave() const
 
 bool IA_IAPI::isDelaySlot() const
 {
-#if defined(arch_sparc)
-    assert(!"Implement delay slots on SPARC!");
-#endif
     return false;
 }
 

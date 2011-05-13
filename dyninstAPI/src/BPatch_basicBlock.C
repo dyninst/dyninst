@@ -40,9 +40,6 @@
 #include "BPatch_collections.h"
 #include "BPatch_basicBlock.h"
 #include "function.h"
-#if !defined(cap_instruction_api)
-#include "parseAPI/src/InstrucIter.h"
-#endif
 #include "BPatch_instruction.h"
 #include "BPatch_point.h"
 #include "Instruction.h"
@@ -357,7 +354,6 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
  * ops          The points within the basic block to return. A set of op codes
  *              defined in BPatch_opCode (BPatch_point.h)
  */
-#if defined(cap_instruction_api)
 using namespace Dyninst::InstructionAPI;
 bool isLoad(Instruction::Ptr i)
 {
@@ -428,7 +424,6 @@ struct findInsns : public insnPredicate
     bool findStores;
     bool findPrefetch;
 };
-#endif
         
 BPatch_point* BPatch_basicBlock::findEntryPointInt()
 {
@@ -477,26 +472,16 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<B
     if (!flowGraph->getFunction()->func->isInstrumentable())
         return NULL;
     
-#if defined(cap_instruction_api)
     findInsns filter(ops);
     return findPointByPredicate(filter);
-#else
-    // Use an instruction iterator
-    InstrucIter ii(getStartAddress(),size(),flowGraph->getllAddSpace());
-    BPatch_function *func = flowGraph->getFunction();
-    
-    return BPatch_point::getPoints(ops, ii, func);
-#endif
 }
 
-#if defined(cap_instruction_api)
 BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(bool(*filter)(Instruction::Ptr))
 {
 
     funcPtrPredicate filterPtr(filter);
     return findPointByPredicate(filterPtr);
 }
-#endif
 
 // returns BPatch_point for an instPoint, unless the point isn't in this block
 BPatch_point *BPatch_basicBlock::convertPoint(instPoint *pt)
@@ -542,6 +527,7 @@ BPatch_function * BPatch_basicBlock::getCallTarget()
  * Returns a vector of the instructions contained within this block
  *
  */
+
 bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& insns) {
   using namespace InstructionAPI;
 

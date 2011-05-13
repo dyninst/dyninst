@@ -69,7 +69,7 @@ bool nullFilter(Dyninst::InstructionAPI::Instruction::Ptr)
 test_results_t test1_20_Mutator::executeTest() 
 {
 	BPatch_Vector<BPatch_function *> bpfv;
-	char *fn = "test1_20_call1";
+	const char *fn = "test1_20_call1";
 	if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 			|| NULL == bpfv[0])
 	{
@@ -85,7 +85,7 @@ test_results_t test1_20_Mutator::executeTest()
 	checkCost(call20_1Expr);
 
 	bpfv.clear();
-	char *fn2 = "test1_20_func2";
+	const char *fn2 = "test1_20_func2";
 
 	if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size() ||
 			NULL == bpfv[0])
@@ -142,7 +142,6 @@ test_results_t test1_20_Mutator::executeTest()
                         FILE__, __LINE__, (void *) block->getStartAddress());
 
                 
-#if defined(cap_instruction_api_test)
                 BPatch_Vector<BPatch_point*> * points = block->findPoint(nullFilter);
                 assert(points);
                 for(unsigned int i = 0; i < points->size(); i++)
@@ -153,7 +152,6 @@ test_results_t test1_20_Mutator::executeTest()
                         if(pt->getPointType() == BPatch_arbitrary)
                         {
                             found_one = true;
-
                             if (appAddrSpace->insertSnippet(call20_1Expr, *pt) == NULL)
                             {
                                 logerror("%s[%d]: Unable to insert snippet into function \"func20_2.\"\n",
@@ -174,42 +172,6 @@ test_results_t test1_20_Mutator::executeTest()
                         logerror("%s[%d]:  no instruction for point\n", __FILE__, __LINE__);
                     }
                 }
-#else		
-                BPatch_Vector<BPatch_instruction *> *insns = block->getInstructions();
-                assert(insns);
-
-		for (unsigned int i = 0; i < insns->size(); ++i) 
-		{
-			BPatch_instruction *insn = (*insns)[i];
-			BPatch_point *pt = insn->getInstPoint();
-
-			if (pt) 
-			{
-				if (pt->getPointType() == BPatch_arbitrary) 
-				{
-					found_one = true;
-
-					if (appAddrSpace->insertSnippet(call20_1Expr, *pt) == NULL) 
-					{
-						logerror("%s[%d]: Unable to insert snippet into function \"func20_2.\"\n",
-								__FILE__, __LINE__);
-						return FAILED;
-					}
-
-					dprintf("%s[%d]:  SUCCESS installing inst at address %p/%p\n", 
-							FILE__, __LINE__, insn->getAddress(), pt->getAddress());
-				}
-				else
-					logerror("%s[%d]:  non-arbitrary point (%d) being ignored\n", 
-							FILE__, __LINE__);
-
-			}
-			else 
-			{
-				logerror("%s[%d]:  no instruction for point\n", __FILE__, __LINE__);
-			}
-		}
-#endif
 	}
 
 	appAddrSpace->finalizeInsertionSet(false, NULL);

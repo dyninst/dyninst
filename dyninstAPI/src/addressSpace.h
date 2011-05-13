@@ -118,7 +118,7 @@ class AddressSpace : public InstructionSource {
    // F specifies the replacement callee; if we want to remove the call entirely,
    // also use NULL
    typedef std::map<block_instance *, std::map<func_instance *, func_instance *> > CallModMap;
-   typedef std::map<func_instance *, func_instance *> FuncReplaceMap;
+   typedef std::map<func_instance *, func_instance *> FuncModMap;
     
     // Down-conversion functions
     PCProcess *proc();
@@ -320,6 +320,7 @@ class AddressSpace : public InstructionSource {
     void modifyCall(block_instance *callBlock, func_instance *newCallee, func_instance *context = NULL);
     void revertCall(block_instance *callBlock, func_instance *context = NULL);
     void replaceFunction(func_instance *oldfunc, func_instance *newfunc);
+    bool wrapFunction(func_instance *oldfunc, func_instance *newfunc);
     void revertReplacedFunction(func_instance *oldfunc);
     void removeCall(block_instance *callBlock, func_instance *context = NULL);
 
@@ -517,7 +518,8 @@ class AddressSpace : public InstructionSource {
 
     // Track desired function replacements/removals/call replacements
     CallModMap callModifications_;
-    FuncReplaceMap functionReplacements_;
+    FuncModMap functionReplacements_;
+    FuncModMap functionWraps_;
 
     void addAllocatedRegion(Address start, unsigned size);
     void addModifiedRegion(mapped_object *obj);

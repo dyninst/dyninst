@@ -127,6 +127,8 @@ const bitArray parse_block::getLivenessOut(parse_func * context) {
     // OUT(X) = UNION(IN(Y)) for all successors Y of X
     Block::edgelist & target_edges = targets();
     Block::edgelist::iterator eit = target_edges.begin(&epred);
+
+    liveness_cerr << "getLivenessOut for block [" << hex << start() << "," << end() << "]" << dec << endl;
    
     for( ; eit != target_edges.end(); ++eit) { 
         // covered by Intraproc predicate
@@ -136,11 +138,18 @@ const bitArray parse_block::getLivenessOut(parse_func * context) {
         
         // TODO: multiple entry functions and you?
         out |= ((parse_block*)(*eit)->trg())->getLivenessIn(context);
+	liveness_cerr << "Accumulating from block " << hex << ((parse_block*)(*eit)->trg())->start() << dec << endl;
+	liveness_cerr << out << endl;
     }
     
     liveness_cerr << " Returning liveness for out " << endl;
+#if defined(arch_x86) || defined(arch_x86_64)
     liveness_cerr << "  ?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
     liveness_cerr << "  ?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
+#elif defined(arch_power)
+    liveness_cerr << "  001101000000000000000000000000001010033222222222211111111110000000000" << endl;
+    liveness_cerr << "  001101000000000000000000000000001010010987654321098765432109876543210" << endl;
+#endif
     liveness_cerr << "  " << out << endl;
 
 
@@ -190,6 +199,10 @@ void parse_block::summarizeBlockLivenessInfo(parse_func *context)
       
      liveness_printf("%s[%d] After instruction at address 0x%lx:\n",
                      FILE__, __LINE__, current);
+#if defined(arch_power)
+     liveness_cerr << "        " << "000000000000000000000000000000000000033222222222211111111110000000000" << endl;
+     liveness_cerr << "        " << "000000000000000000000000000000000000010987654321098765432109876543210" << endl;
+#endif
      liveness_cerr << "Read    " << curInsnRW.read << endl;
      liveness_cerr << "Written " << curInsnRW.written << endl;
      liveness_cerr << "Used    " << use << endl;
@@ -198,9 +211,9 @@ void parse_block::summarizeBlockLivenessInfo(parse_func *context)
       current += curInsn->size();
       curInsn = decoder.decode();
    }
-     //liveness_printf("%s[%d] Liveness summary for block:\n", FILE__, __LINE__);
-     //liveness_cerr << in << endl << def << endl << use << endl;
-     //liveness_printf("%s[%d] --------------------\n---------------------\n", FILE__, __LINE__);
+     liveness_printf("%s[%d] Liveness summary for block:\n", FILE__, __LINE__);
+     liveness_cerr << in << endl << def << endl << use << endl;
+     liveness_printf("%s[%d] --------------------\n---------------------\n", FILE__, __LINE__);
 
    stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
    return;
@@ -405,6 +418,10 @@ void instPoint::calcLiveness() {
                       FILE__, __LINE__, addr, *current);
       //liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
       //liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
+#if defined(arch_power)
+      liveness_cerr << "        " << "000000000000000000000000000000000000033222222222211111111110000000000" << endl;
+      liveness_cerr << "        " << "000000000000000000000000000000000000010987654321098765432109876543210" << endl;
+#endif
       liveness_cerr << "Pre:    " << working << endl;
       
       working &= (~rwAtCurrent.written);
@@ -463,6 +480,37 @@ int convertRegID(int in)
     {
         return registerSpace::cr;
     }
+    else if(in >= ppc64::r0 && in <= ppc64::r31) {
+      return in - ppc64::r0 + registerSpace::r0;
+    }
+    else if(in >= ppc64::fpr0 && in <= ppc64::fpr31)
+    {
+        return in - ppc64::fpr0 + registerSpace::fpr0;
+    }
+/*    else if(in >= ppc64::fsr0 && in <= ppc64::fsr31)
+    {
+        return in - ppc64::fsr0 + registerSpace::fsr0;
+    }
+    */    else if(in == ppc64::xer)
+    {
+        return registerSpace::xer;
+    }
+    else if(in == ppc64::lr)
+    {
+        return registerSpace::lr;
+    }
+    else if(in == ppc64::mq)
+    {
+        return registerSpace::mq;
+    }
+    else if(in == ppc64::ctr)
+    {
+        return registerSpace::ctr;
+    }
+    else if(in >= ppc64::cr0 && in <= ppc64::cr7)
+    {
+        return registerSpace::cr;
+    }
     else
     {
         return registerSpace::ignored;
@@ -474,6 +522,7 @@ int convertRegID(int in)
 ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, parse_block* blk, unsigned int width,
                         Address a)
 {
+  liveness_cerr << "calcRWSets for " << curInsn->format() << " @ " << hex << a << dec << endl;
   ReadWriteInfo ret;
   ret.read = registerSpace::getBitArray();
   ret.written = registerSpace::getBitArray();
@@ -482,12 +531,12 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, parse_block* blk, unsigned in
   std::set<RegisterAST::Ptr> cur_read, cur_written;
   curInsn->getReadSet(cur_read);
   curInsn->getWriteSet(cur_written);
-  //  liveness_printf("Read registers: \n");
+    liveness_printf("Read registers: \n");
       
   for (std::set<RegisterAST::Ptr>::const_iterator i = cur_read.begin(); 
        i != cur_read.end(); i++) 
   {
-    //liveness_printf("%s \n", (*i)->format().c_str());
+    liveness_printf("\t%s \n", (*i)->format().c_str());
 #if defined(arch_x86) || defined(arch_x86_64)
         bool unused;
         Register converted = convertRegID(*i, unused);

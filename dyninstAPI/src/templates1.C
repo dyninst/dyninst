@@ -143,10 +143,7 @@ template class  dictionary_hash <Address, Address>;
 template class  pdvector<dictionary_hash <Address, Address>::entry>;
 template class  dictionary_hash_iter <Address, Address>;
 
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) \
- || defined(i386_unknown_solaris2_4) \
- || defined(sparc_sun_solaris2_4)
+#if defined(os_linux) || defined(os_bgp)
 class Elf_X_Shdr;
 template class pdvector<Elf_X_Shdr *>;
 #endif

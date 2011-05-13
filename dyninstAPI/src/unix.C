@@ -488,7 +488,7 @@ bool PCProcess::startDebugger() {
 
 // The following functions are only implemented on some Unices //
 
-#if defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
+#if defined(os_linux) || defined(os_freebsd)
 
 #include "dyninstAPI/src/binaryEdit.h"
 #include "symtabAPI/h/Archive.h"

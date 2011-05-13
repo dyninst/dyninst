@@ -51,7 +51,7 @@ using namespace std;
 static SymtabError serr;
 
 bool Module::findSymbolByType(std::vector<Symbol *> &found, 
-      const std::string name,
+      const std::string& name,
       Symbol::SymbolType sType, 
       bool isMangled,
       bool isRegex, 
@@ -66,7 +66,7 @@ bool Module::findSymbolByType(std::vector<Symbol *> &found,
 }
 
 bool Module::findSymbolByType(std::vector<Symbol *> &found, 
-                              const std::string name,
+                              const std::string& name,
                               Symbol::SymbolType sType, 
                               NameType nameType,
                               bool isRegex,
@@ -621,7 +621,7 @@ Serializable * Module::serialize_impl(SerializerBase *sb, const char *tag) THROW
    return NULL;
 }
 
-bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string name,
+bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string& name,
 				 NameType nameType,
 				 bool isRegex,
 				 bool checkCase) {

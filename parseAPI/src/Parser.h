@@ -39,11 +39,7 @@
 #include "dyntypes.h"
 #include "IBSTree.h"
 
-#if defined(cap_instruction_api)
 #include "IA_IAPI.h"
-#else
-#include "IA_InstrucIter.h"
-#endif
 #include "InstructionAdapter.h"
 
 #include "CodeObject.h"
@@ -54,11 +50,7 @@
 
 using namespace std;
 
-#if defined(cap_instruction_api)
-    typedef Dyninst::InsnAdapter::IA_IAPI InstructionAdapter_t;
-#else
-    typedef Dyninst::InsnAdapter::IA_InstrucIter InstructionAdapter_t;
-#endif
+typedef Dyninst::InsnAdapter::IA_IAPI InstructionAdapter_t;
 
 namespace Dyninst {
 namespace ParseAPI {

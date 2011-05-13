@@ -760,7 +760,10 @@ bool insnCodeGen::modifyJump(Address target,
   // For now, we're not doing calculated (long)
   // branches
   long disp = target - gen.currAddr();
-  if (ABS(disp) > MAX_BRANCH) return false;
+  if (ABS(disp) > MAX_BRANCH) {
+    generateBranchViaTrap(gen, gen.currAddr(), target, IFORM_LK(insn));
+    return true;
+  }
 
   generateBranch(gen,
 		 gen.currAddr(),

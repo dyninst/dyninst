@@ -757,7 +757,6 @@ const char *Elf_X_Data::get_string() const
     return (const char *)data->d_buf;
 }
 
-#if !defined(os_solaris)
 Elf_X_Dyn Elf_X_Data::get_dyn()
 {
     return Elf_X_Dyn(is64, data);
@@ -777,14 +776,6 @@ Elf_X_Verdef *Elf_X_Data::get_verDefSym()
 {
     return new Elf_X_Verdef(is64, data->d_buf);
 }
-#endif
-
-#if defined(arch_mips)
-Elf_X_RegInfo Elf_X_Data::get_regInfo()
-{
-    return Elf_X_RegInfo(is64, data);
-}
-#endif
 
 Elf_X_Rel Elf_X_Data::get_rel()
 {
@@ -813,7 +804,6 @@ bool Elf_X_Data::isValid() const
     return data;
 }
 
-#if !defined(os_solaris)
 // ------------------------------------------------------------------------
 // Class Elf_X_Versym simulates the SHT_GNU_versym structure.
 Elf_X_Versym::Elf_X_Versym()
@@ -1091,63 +1081,7 @@ bool Elf_X_Verneed::isValid() const
 {
     return (verneed32 || verneed64);
 }
-#endif
 
-#if defined(arch_mips)
-// ------------------------------------------------------------------------
-// Class Elf_X_Options simulates the Elf_Options structure.
-Elf_X_Options::Elf_X_Options(Elf_Data *input)
-    : data(input), opt((Elf_Options *)data->d_buf)
-{ }
-
-// Read Interface
-unsigned char Elf_X_Options::kind(int i) const
-{
-    return opt[i].kind;
-}
-
-unsigned char Elf_X_Options::size(int i) const
-{
-    return opt[i].size;
-}
-
-unsigned short Elf_X_Options::section(int i) const
-{
-    return opt[i].section;
-}
-
-unsigned long Elf_X_Options::info(int i) const
-{
-    return opt[i].info;
-}
-
-// Write Interface
-unsigned char Elf_X_Options::kind(int i, unsigned char input)
-{
-    return (opt[i].kind = input);
-}
-
-unsigned char Elf_X_Options::size(int i, unsigned char input)
-{
-    return (opt[i].size = input);
-}
-
-unsigned short Elf_X_Options::section(int i, unsigned short input)
-{
-    return (opt[i].section = input);
-}
-
-unsigned long Elf_X_Options::info(int i, unsigned long input)
-{
-    return (opt[i].info = input);
-}
-
-// Meta-Info Interface
-unsigned long Elf_X_Options::count() const
-{
-    return (data->d_size / sizeof(Elf_Options));
-}
-#endif
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Sym simulates the Elf(32|64)_Sym structure.
@@ -1456,84 +1390,7 @@ bool Elf_X_Rela::isValid() const
     return (rela32 || rela64);
 }
 
-#if defined(arch_mips)
-// ------------------------------------------------------------------------
-// Class Elf_X_RegInfo simulates the Elf(32|64)_RegInfo structure.
 
-Elf_32_RegInfo::Elf_32_RegInfo(Elf_Data *input)
-    : reg((Elf32_RegInfo *)input.d_buf)
-{ }
-
-// Read Interface
-unsigned long Elf_32_RegInfo::ri_gprmask() const
-{
-    return reg->ri_gprmask;
-}
-
-unsigned long Elf_32_RegInfo::ri_cprmask(int i) const
-{
-    return reg->ri_cprmask[i];
-}
-
-unsigned long Elf_32_RegInfo::ri_gp_value() const
-{
-    return reg->ri_gp_value;
-}
-
-// Write Interface
-unsigned long Elf_32_RegInfo::ri_gprmask(unsigned long input)
-{
-    return (reg->ri_gprmask = input);
-}
-
-unsigned long Elf_32_RegInfo::ri_cprmask(int i, unsigned long input)
-{
-    return (reg->ri_cprmask[i] = input);
-}
-
-unsigned long Elf_32_RegInfo::ri_gp_value(unsigned long input)
-{
-    return (reg->ri_gp_value = input);
-}
-
-Elf_64_RegInfo::Elf_64_RegInfo(Elf_Data *input)
-    : reg((Elf64_RegInfo *)input.d_buf)
-{ }
-
-// Read Interface
-unsigned long Elf_64_RegInfo::ri_gprmask() const
-{
-    return reg->ri_gprmask;
-}
-
-unsigned long Elf_64_RegInfo::ri_cprmask(int i) const
-{
-    return reg->ri_cprmask[i];
-}
-
-unsigned long Elf_64_RegInfo::ri_gp_value() const
-{
-    return reg->ri_gp_value;
-}
-
-// Write Interface
-unsigned long Elf_64_RegInfo::ri_gprmask(unsigned long input)
-{
-    return (reg->ri_gprmask = input);
-}
-
-unsigned long Elf_64_RegInfo::ri_cprmask(int i, unsigned long input)
-{
-    return (reg->ri_cprmask[i] = input);
-}
-
-unsigned long Elf_64_RegInfo::ri_gp_value(unsigned long input)
-{
-    return (reg->ri_gp_value = input);
-}
-#endif
-
-#if !defined(os_solaris)
 // ------------------------------------------------------------------------
 // Class Elf_X_Dyn simulates the Elf(32|64)_Dyn structure.
 Elf_X_Dyn::Elf_X_Dyn()
@@ -1601,4 +1458,3 @@ bool Elf_X_Dyn::isValid() const
 {
     return (dyn32 || dyn64);
 }
-#endif

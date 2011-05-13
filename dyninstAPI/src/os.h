@@ -47,14 +47,7 @@
 //  mips_unknown_ce2_11
 //  mips_sgi_irix6_4
 
-#if defined(sparc_sun_sunos4_1_3)
-#include "dyninstAPI/src/sunos.h"
-
-#elif defined(sparc_sun_solaris2_4) \
-   || defined(i386_unknown_solaris2_5)
-#include "dyninstAPI/src/solaris.h"
-
-#elif defined(os_aix) 
+#if defined(os_aix)
 #include "dyninstAPI/src/aix.h"
 
 #elif defined(i386_unknown_nt4_0) 

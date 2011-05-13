@@ -407,14 +407,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     API_EXPORT(Int, (file),
     bool,dumpImage,(const char *file));
 
-    //  BPatch_process::dumpPatchedImage
-    //  
-    //  Write executable image of mutatee, including runtime modifications, to <file>
-
-    API_EXPORT(Int, (file),
-    char *,dumpPatchedImage,(const char* file));
-
-
     //  BPatch_process::getInheritedVariable
     //  
     //  

@@ -87,12 +87,22 @@ CFAtom::CFAtom(InstructionAPI::Instruction::Ptr insn, Address addr)  :
    } else if (insn->allowsFallThrough()) {
       isConditional_ = true;
    }
-   
-   // Can we have a better way of doing this, please?
+
+   // TODO: IAPI is recording all PPC64 instructions as PPC32. However, the
+   // registers they use are still PPC64. This is a pain to fix, and therefore
+   // I'm working around it here and in Movement-adhoc.C by checking _both_
+   // 32- and 64-bit. 
+
+   Architecture fixme = insn_->getArch();
+   if (fixme == Arch_ppc32) fixme = Arch_ppc64;
+
    Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn_->getArch())));
+   Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
+
    Expression::Ptr exp = insn_->getControlFlowTarget();
 
    exp->bind(thePC.get(), Result(u64, addr_));
+   exp->bind(thePCFixme.get(), Result(u64, addr_));
    Result res = exp->eval();
    if (!res.defined) {
       isIndirect_ = true;
@@ -281,16 +291,11 @@ bool CFAtom::generate(const codeGen &templ,
 }
 
 CFAtom::~CFAtom() {
-   // Delete all Targets in our map
-   for (DestinationMap::iterator i = destMap_.begin(); 
-        i != destMap_.end(); ++i) {
-      delete i->second;
-   }
+   // Don't delete the Targets; they're taken care of when we nuke the overall CFG. 
 }
 
 TrackerElement *CFAtom::tracker(const Trace *trace) const {
    assert(addr_ != 1);
-   assert(addr_);
    EmulatorTracker *e = new EmulatorTracker(addr_, trace->block(), trace->func());
    return e;
 }
@@ -363,7 +368,8 @@ bool CFAtom::generateBranch(CodeBuffer &buffer,
    // the next instruction. So if we ever see that (a branch of offset
    // == size) back up the codeGen and shrink us down.
 
-   CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to, addr_);
+   CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to, trace->func(), addr_);
+
    if (fallthrough || trace->block() == NULL) {
       buffer.addPatch(newPatch, destTracker(to));
    }
@@ -384,7 +390,8 @@ bool CFAtom::generateCall(CodeBuffer &buffer,
       return true;
    }
 
-   CFPatch *newPatch = new CFPatch(CFPatch::Call, insn, to, addr_);
+   CFPatch *newPatch = new CFPatch(CFPatch::Call, insn, to, trace->func(), addr_);
+
    buffer.addPatch(newPatch, tracker(trace));
 
    return true;
@@ -396,7 +403,8 @@ bool CFAtom::generateConditionalBranch(CodeBuffer &buffer,
 				       Instruction::Ptr insn) {
    assert(to);
 
-   CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, addr_);
+   CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, trace->func(), addr_);
+
    buffer.addPatch(newPatch, tracker(trace));
 
    return true;
@@ -552,13 +560,13 @@ unsigned CFAtom::size() const
 CFPatch::CFPatch(Type a,
                  InstructionAPI::Instruction::Ptr b,
                  TargetInt *c,
-                 Address d) :
-   type(a), orig_insn(b), target(c), origAddr_(d) {
-   if (b)
-      ugly_insn = new instruction(b->ptr());
-   else
-      ugly_insn = NULL;
-   // New branches don't get an original instruction...
+		 const func_instance *d,
+                 Address e) :
+  type(a), orig_insn(b), target(c), func(d), origAddr_(e) {
+  if (b)
+    ugly_insn = new instruction(b->ptr());
+  else
+    ugly_insn = NULL;
 }
 
 CFPatch::~CFPatch() { 

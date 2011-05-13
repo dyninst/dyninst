@@ -120,8 +120,8 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   bool loadAddr(Address absoluteAddr, Address & loadAddr);
   void block_delete(ParseAPI::Block *b);
 
-#if defined(arch_power) || defined(arch_sparc)
-  void instruction_cb(ParseAPI::Function*, ParseAPI::Block *,Address,insn_details*);
+#if defined(arch_power)
+  void instruction_cb(ParseAPI::Function*,ParseAPI::Block *,Address,insn_details*);
 #endif
  private:
     image * _img;
