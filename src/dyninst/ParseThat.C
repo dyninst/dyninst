@@ -96,8 +96,6 @@ ParseThat::ParseThat() :
 #elif defined (os_linux_test)
 #if defined (arch_x86_test)
 		plat_env = "i386-unknown-linux2.4";
-#elif defined (arch_ia64_test)
-		plat_env = "ia64-unknown-linux2.4";
 #elif defined (arch_x86_64_test)
 		plat_env = "x86_64-unknown-linux2.4";
 #elif defined (arch_power_test)
@@ -109,10 +107,6 @@ ParseThat::ParseThat() :
 #endif
 #elif defined (os_aix_test)
 		plat_env = "rs6000-ibm-aix5.1";
-#elif defined (os_solaris_test)
-		//  annoyingly we don't seem to maintain an arch def that specifies
-		//  solaris version through the build defines
-		plat_env = "sparc-sun-solaris2.9";
 #endif
 	}
 

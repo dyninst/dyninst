@@ -78,25 +78,6 @@ extern unsigned int bcListCC[1000];
 extern void* eaExpCC[1000];
 extern unsigned int bcExpCC[1000];
 
-#ifdef sparc_sun_solaris2_4_test
-extern /* const */ unsigned int loadExp;
-extern /* const */ unsigned int storeExp;
-extern /* const */ unsigned int prefeExp;
-extern /* const */ unsigned int accessExp;
-extern /* const */ unsigned int accessExpCC;
-
-extern unsigned int bcExp[];
-
-extern int eaExpOffset[];
-
-extern void* eaExp[]; /* forward */
-extern int divarw;
-extern float dfvars;
-extern double dfvard;
-extern long double dfvarq;
-
-extern /* _inline */ void init_test_data();
-#endif /* defined(sparc_sun_solaris2_4_test) */
 
 #ifdef rs6000_ibm_aix4_1_test
 extern const unsigned int loadExp;
@@ -226,62 +207,6 @@ void reduce(const struct reduction x);
 void reduceCC(const struct reduction x);
 
 #endif /* defined(x86_64_unknown_linux2_4_test) */
-
-#ifdef ia64_unknown_linux2_4_test
-
-#define loadExp 6
-#define storeExp 3
-#define prefeExp 3
-
-/* Other platforms don't seem to count prefetches as accesses.  I'm not sure why. */
-#define accessExp 12
-#define accessExpCC 12
-
-extern unsigned int bcExp[];
-extern unsigned int bcExpCC[];
-
-/* FIXME: this should be made more complicated and/or assembly
-   to actually test all the loads and stores that I know about
-   and claim that Dyninst will recognize and handle.  This
-   means redefining the stuff above to match up to the new
-   code.
-   
-   FIXME: I don't understand what the "CC" stuff is or does. 
-   
-   FIXME: I don't understand what the "EA" stuff is or does. 
-*/
-extern long loadsnstores( long x, long y, long z );
-
-void init_test_data();
-#endif /* defined(ia64_unknown_linux2_4_test) */
-
-#ifdef mips_sgi_irix6_4_test
-#define loadExp 0
-#define storeExp 0
-#define prefeExp 0
-#define accessExp 1
-#define accessExpCC 1
-
-long loadsnstores(long x, long y, long z);
-
-extern unsigned int bcExp[];
-
-void init_test_data();
-#endif /* defined(mips_sgi_irix6_4_test) */
-
-#ifdef alpha_dec_osf4_0_test
-#define loadExp 0
-#define storeExp 0
-#define prefeExp 0
-#define accessExp 1
-#define accessExpCC 1
-
-long loadsnstores(long x, long y, long z);
-
-extern unsigned int bcExp[];
-
-void init_test_data();
-#endif /* defined(alpha_dec_osf4_0_test) */
 
 #if defined(arch_power_test) && defined(os_linux_test)
 #define loadExp 0
