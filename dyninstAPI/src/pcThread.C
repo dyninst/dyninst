@@ -80,7 +80,7 @@ int PCThread::getIndex() const {
     return index_;
 }
 
-int PCThread::getLWP() const {
+Dyninst::LWP PCThread::getLWP() const {
     if( pcThr_ == Thread::ptr() ) return savedLWP_;
     return pcThr_->getLWP();
 }

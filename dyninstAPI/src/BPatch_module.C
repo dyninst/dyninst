@@ -827,6 +827,8 @@ bool BPatch_module::protectAnalyzedCode()
         }
     }
 #if defined(os_windows)
+	assert(!"Fix this for Windows PC integration");
+#if 0
     // get lwp from which we can call changeMemoryProtections
     process *proc = ((BPatch_process*)addSpace)->lowlevel_process();
     dyn_lwp *stoppedlwp = proc->query_for_stopped_lwp();
@@ -837,6 +839,7 @@ bool BPatch_module::protectAnalyzedCode()
             return false;
         }
     }
+#endif
 #endif
 
     // aggregate adjacent pages into regions and apply protection
@@ -854,8 +857,11 @@ bool BPatch_module::protectAnalyzedCode()
         }
         piter++;
 #if defined(os_windows)
+		assert(!"fix this for windows");
+#if 0
         stoppedlwp->changeMemoryProtections(start, end - start, 
                                             PAGE_EXECUTE_READ);
+#endif
 #endif
     }
     return true;

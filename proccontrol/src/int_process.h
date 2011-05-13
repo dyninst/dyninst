@@ -763,19 +763,26 @@ class emulated_singlestep {
 };
 
 class int_notify {
+#if defined(os_windows)
+	typedef HANDLE pipe_t;
+#else
+	typedef int pipe_t;
+#endif
+
    friend int_notify *notify();
    friend EventNotify *Dyninst::ProcControlAPI::evNotify();
  private:
    static int_notify *the_notify;
    EventNotify *up_notify;
    std::set<EventNotify::notify_cb_t> cbs;
-   int pipe_in;
-   int pipe_out;
+   pipe_t pipe_in;
+   pipe_t pipe_out;
    int pipe_count;
    int events_noted;
    void writeToPipe();
    void readFromPipe();
    bool createPipe();
+   bool pipesValid();
  public:
    int_notify();
    
@@ -784,7 +791,7 @@ class int_notify {
    void registerCB(EventNotify::notify_cb_t cb);
    void removeCB(EventNotify::notify_cb_t cb);
    bool hasEvents();
-   int getPipeIn();
+   pipe_t getPipeIn();
 };
 int_notify *notify();
 
@@ -809,7 +816,7 @@ private:
   Process::thread_mode_t threadMode;
   
   void evhandler_main();
-  static void evhandler_main_wrapper(void *);
+  static unsigned long WINAPI evhandler_main_wrapper(void *);
   void eventqueue_cb();
   
 public:

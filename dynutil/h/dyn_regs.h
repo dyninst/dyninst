@@ -53,7 +53,7 @@ namespace Dyninst
    } Architecture;
 
    COMMON_EXPORT bool isSegmentRegister(int regClass);
-   unsigned getArchAddressWidth(Dyninst::Architecture arch);
+   COMMON_EXPORT unsigned getArchAddressWidth(Dyninst::Architecture arch);
    class COMMON_EXPORT MachRegister {
    private:
       signed int reg;

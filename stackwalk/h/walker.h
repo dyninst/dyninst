@@ -33,7 +33,7 @@
 #define WALKER_H_
 
 #include "basetypes.h"
-#include "Process.h"
+#include "proccontrol/h/Process.h"
 #include <vector>
 #include <list>
 #include <string>
@@ -52,7 +52,7 @@ class Frame;
 class FrameStepper;
 class StepperGroup;
 
-class Walker {
+class SW_EXPORT Walker {
  private:
    //Object creation functions
    Walker(ProcessState *p,

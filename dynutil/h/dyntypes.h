@@ -122,7 +122,7 @@ namespace Dyninst
 #define NULL_PID     INVALID_HANDLE_VALUE
 #define NULL_LWP     INVALID_HANDLE_VALUE
 #define NULL_THR_ID     INVALID_HANDLE_VALUE
-
+#define DYNINST_SINGLETHREADED INVALID_HANDLE_VALUE
 #else
    typedef int PID;
    typedef int PROC_HANDLE;

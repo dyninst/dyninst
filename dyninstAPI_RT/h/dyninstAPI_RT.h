@@ -149,7 +149,9 @@ typedef struct {
 /* Let's define some constants for, well, everything.... */
 /* These should be different to avoid unexpected collisions */
 
+#if !defined(DYNINST_SINGLETHREADED)
 #define DYNINST_SINGLETHREADED -128
+#endif
 #define DYNINST_TRACEPIPE_ERRVAL -1
 #define DYNINST_PRINTF_ERRVAL -2
 

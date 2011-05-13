@@ -42,7 +42,6 @@
 #include <string>
 #include "common/src/Dictionary.C"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/ast.h"
 
 template class dictionary_hash<unsigned int, unsigned int>;
@@ -84,7 +83,6 @@ template class dictionary_hash<const instPoint *, BPatch_point *>;
 
 class image_basicBlock;
 template class dictionary_hash<Address, image_basicBlock *>;
-template class  BPatch_Set<image_basicBlock *>;
 
 class fileDescriptor;
 template class pdvector<fileDescriptor>;
@@ -101,13 +99,6 @@ template class dictionary_hash<std::string, pdvector<int_function *> *>;
 
 class BPatch_typeCollection;
 template class dictionary_hash<std::string, BPatch_typeCollection *>;
-
-#include "dyninstAPI/src/rpcMgr.h"
-template class  dictionary_hash<unsigned, rpcLWP *>;
-template class  pdvector<dictionary_hash <unsigned, rpcLWP *>::entry>;
-template class  pdvector<rpcThr *>;
-template class pdvector<inferiorRPCtoDo *>;
-template class pdvector<inferiorRPCinProgress *>;
 
 #include "common/src/List.C"
 template class List<miniTramp*>;
@@ -131,8 +122,6 @@ template class dictionary_hash<Address, heapItem *>;
 template class dictionary_hash<Address, int_function *>;
 template class dictionary_hash<Address, unsigned>;
 
-#include "dyn_lwp.h"
-template class dictionary_hash<unsigned, dyn_lwp *>;
 
 class BPatch_basicBlock;
 
@@ -165,19 +154,6 @@ template class  pdvector<dictionary_hash<unsigned, dominatorBB *>::entry >;
 template class  BPatch_Vector<dominatorBB *>;
 template class  BPatch_Set<dominatorBB *>;
 
-#include "callbacks.h"
-#include "signalhandler.h"
-#include "mailbox.h"
-template class dictionary_hash< eventType, pdvector< CallbackBase * > >;
-template class pdvector<dictionary_hash < eventType, pdvector <CallbackBase *> >::entry>;
-
-class EventGate;
-
-template class pdvector<CallbackBase *>;
-template class pdvector<eventLock::lock_stack_elem>;
-template class pdvector<EventGate *>;
-template class pdvector<SignalHandler *>;
-
 
 class image_edge;
 template class  pdvector<image_edge*>;
@@ -187,9 +163,6 @@ template class  pdvector<dictionary_hash<int,int>::entry >;
 
 template class  dictionary_hash <unsigned long, std::string>;
 template class  pdvector<dictionary_hash<unsigned long,std::string>::entry >;
-
-template class dictionary_hash<Address, threadmap_t *>;
-template class pdvector<dictionary_hash<Address, threadmap_t *>::entry>;
 
 class relocatedCode;
 template class dictionary_hash<Address, relocatedCode *>;

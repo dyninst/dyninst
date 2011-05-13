@@ -2,11 +2,12 @@
 #define MAILBOX_H_
 
 #include "Event.h"
+#include "util.h"
 
 namespace Dyninst {
 namespace ProcControlAPI {
 
-class Mailbox
+class PC_EXPORT Mailbox
 {
 public:
    Mailbox();
@@ -20,7 +21,7 @@ public:
    virtual bool hasUserEvent() = 0;
 };
 
-extern Mailbox* mbox();
+extern PC_EXPORT Mailbox* mbox();
 
 }
 }

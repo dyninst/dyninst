@@ -94,7 +94,7 @@ class StackAnalysis {
 
  public:
 
-    class Height {
+    class DATAFLOW_EXPORT Height {
     public:
         typedef signed long Height_t;
         

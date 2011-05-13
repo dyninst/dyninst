@@ -6,6 +6,7 @@
 #include "PCErrors.h"
 
 #include "common/h/dthread.h"
+#include "util.h"
 
 #include <set>
 #include <map>
@@ -21,7 +22,7 @@ class ArchEvent;
 class Event;
 class Mailbox;
 
-class Generator
+class PC_EXPORT Generator
 {
  public:
    static Generator *getDefaultGenerator();
@@ -73,7 +74,7 @@ class Generator
    virtual bool processWait(bool block) = 0;
 };
 
-class GeneratorMT : public Generator
+class PC_EXPORT GeneratorMT : public Generator
 {
  private:
    GeneratorMTInternals *sync;

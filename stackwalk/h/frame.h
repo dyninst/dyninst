@@ -42,7 +42,7 @@ namespace Stackwalker {
 class Walker;
 class FrameStepper;
 
-class Frame : public AnnotatableDense {
+class SW_EXPORT Frame : public AnnotatableDense {
   friend class Walker;
 protected:
   Dyninst::MachRegisterVal ra;

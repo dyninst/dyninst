@@ -103,6 +103,31 @@
 #endif
 #endif
 
+#if !defined(PC_EXPORT)
+  #if defined(_MSC_VER)
+    #if defined(PROCCONTROL_EXPORTS)
+      #define PC_EXPORT __declspec(dllexport)
+    #else
+      #define PC_EXPORT __declspec(dllimport)
+    #endif
+  #else
+    #define PC_EXPORT
+#endif
+#endif
+
+#if !defined(SW_EXPORT)
+  #if defined(_MSC_VER)
+    #if defined(STACKWALKER_EXPORTS)
+      #define SW_EXPORT __declspec(dllexport)
+    #else
+      #define SW_EXPORT __declspec(dllimport)
+    #endif
+  #else
+    #define PC_EXPORT
+#endif
+#endif
+
+
 #if !defined(THROW) && !defined(THROW_SPEC)
 #if defined(_MSC_VER)
 #define THROW_SPEC(x)

@@ -28,8 +28,9 @@ LIBTESTSUITE = libtestSuite.dll
 LIBDYNINSTCOMP = libtestdyninst.dll
 LIBSYMTABCOMP = libtestsymtab.dll
 LIBINSTRUCTIONCOMP = libtestinstruction.dll
+LIBPROCCONTROLCOMP = libtestproccontrol.dll
 
-MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib libdyninstAPI.lib libtestsymtab.lib libsymtabAPI.lib libcommon.lib libtestinstruction.lib libinstructionAPI.lib
+MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib libdyninstAPI.lib libtestsymtab.lib libsymtabAPI.lib libcommon.lib libtestinstruction.lib libinstructionAPI.lib libtestproccontrol.lib proccontrol.lib
 
 SRCS_LIBTESTSUITE = ../src/test_lib.C \
                     ../src/test_lib_dllExecution.C \
@@ -85,9 +86,15 @@ SRCS_INSTRUCTIONCOMP = ../src/instruction/instruction_comp.C
 OBJS_INSTRUCTIONCOMP = $(SRCS_INSTRUCTIONCOMP:.C=.obj)
 OBJS_INSTRUCTIONCOMP = $(OBJS_INSTRUCTIONCOMP:../src/instruction/=)
 
+SRCS_PROCCONTROLCOMP = ../src/proccontrol/proccontrol_comp.C
+
+OBJS_PROCCONTROLCOMP = $(SRCS_PROCCONTROLCOMP:.C=.obj)
+OBJS_PROCCONTROLCOMP = $(OBJS_PROCCONTROLCOMP:../src/proccontrol/=)
+
+
 TESTDRIVER_LIBS = libdyninstAPI.lib libtestSuite.lib libtestdyninst.lib libtestsymtab.lib libtestinstruction.lib
 
-all: $(LIBTESTSUITE) $(LIBDYNINSTCOMP) $(LIBSYMTABCOMP) $(LIBINSTRUCTIONCOMP) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll libtestA.dll libtestB.dll
+all: $(LIBTESTSUITE) $(LIBDYNINSTCOMP) $(LIBSYMTABCOMP) $(LIBINSTRUCTIONCOMP) $(LIBPROCCONTROLCOMP) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll libtestA.dll libtestB.dll
 
 
 UNCOMMON_INSTALL=true
@@ -109,7 +116,7 @@ clean:
 # for %X IN ( $(LIBTESTSUITE) test_driver.exe runTests.exe $(TEST_LIBS) $(MUTATEES) libtestA.dll libtestB.dll ) DO $(CP) "%X" $(DEST)
 
 LDFLAGS = /debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib 
-LIBS    = libdyninstAPI.lib libsymtabAPI.lib libinstructionAPI.lib
+LIBS    = libdyninstAPI.lib libsymtabAPI.lib libinstructionAPI.lib proccontrol.lib stackwalk.lib libcommon.lib
 
 $(LIBTESTSUITE): $(OBJS_LIBTESTSUITE) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_LIBTESTSUITE)
@@ -119,6 +126,10 @@ $(LIBDYNINSTCOMP): $(OBJS_DYNINSTCOMP) ../src/test_lib.h
 
 $(LIBSYMTABCOMP): $(OBJS_SYMTABCOMP) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_SYMTABCOMP) $(LIBS) libtestSuite.lib
+
+$(LIBPROCCONTROLCOMP): $(OBJS_PROCCONTROLCOMP) ../src/test_lib.h
+	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_PROCCONTROLCOMP) $(LIBS) libtestSuite.lib ws2_32.lib
+
 
 $(LIBINSTRUCTIONCOMP): $(OBJS_INSTRUCTIONCOMP) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_INSTRUCTIONCOMP) $(LIBS) libtestSuite.lib
@@ -131,6 +142,10 @@ $(OBJS_DYNINSTCOMP): $(SRCS_DYNINSTCOMP)
 
 $(OBJS_SYMTABCOMP): $(SRCS_SYMTABCOMP)
 	$(CXX) $(CXXFLAGS_NORM) -DCOMPLIB_DLL_BUILD -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
+
+$(OBJS_PROCCONTROLCOMP): $(SRCS_PROCCONTROLCOMP)
+	$(CXX) $(CXXFLAGS_NORM) -DCOMPLIB_DLL_BUILD -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
+
 
 $(OBJS_INSTRUCTIONCOMP): $(SRCS_INSTRUCTIONCOMP)
 	$(CXX) $(CXXFLAGS_NORM) -DCOMPLIB_DLL_BUILD -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
@@ -150,7 +165,7 @@ $(OBJS_TEMPLATES): $(SRCS_TEMPLATES)
 test_info_new.gen.obj: test_info_new.gen.C
 	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
 
-test_driver.exe:  test_driver.obj test_lib.obj test_info_new.gen.obj $(LIBTESTSUITE) $(LIBDYNINSTCOMP) $(LIBSYMTABCOMP)
+test_driver.exe:  test_driver.obj test_lib.obj test_info_new.gen.obj $(LIBTESTSUITE) $(LIBDYNINSTCOMP) $(LIBSYMTABCOMP) $(LIBINSTRUCTIONCOMP) $(LIBPROCCONTROLCOMP)
 	$(LINK) $(LDFLAGS) test_driver.obj test_info_new.gen.obj $(TESTDRIVER_LIBS)
 
 test_driver.obj: ../src/test_driver.C

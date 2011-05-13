@@ -18,10 +18,11 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="../i386-unknown-nt4.0/lib"
+			OutputDirectory="../../i386-unknown-nt4.0/lib"
 			IntermediateDirectory="i386-unknown-nt4.0"
 			ConfigurationType="2"
-			CharacterSet="1"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -43,13 +44,13 @@
 				Optimization="0"
 				AdditionalIncludeDirectories="../dynutil/h;.."
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;PROCCONTROL_EXPORTS;arch_x86;os_windows"
-				MinimalRebuild="true"
-				BasicRuntimeChecks="3"
+				MinimalRebuild="false"
+				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				DebugInformationFormat="4"
-				DisableSpecificWarnings="4396"
+				DebugInformationFormat="3"
+				DisableSpecificWarnings="4396;4251"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -62,10 +63,16 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				OutputFile="$(OutDir)/$(ProjectName).dll"
 				LinkIncremental="2"
+				AdditionalLibraryDirectories="&quot;../../i386-unknown-nt4.0/lib&quot;"
 				GenerateDebugInformation="true"
-				SubSystem="2"
-				TargetMachine="1"
+				AssemblyDebug="1"
+				SubSystem="0"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
+				ImportLibrary="$(TargetDir)$(TargetName).lib"
+				TargetMachine="0"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -87,6 +94,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				CommandLine="echo mkdir $(TargetDir)..\..\include&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\include&#x0D;&#x0A;echo copy $(InputDir)h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;copy $(InputDir)h\*.h $(TargetDir)..\..\include"
 			/>
 		</Configuration>
 		<Configuration
@@ -328,6 +336,10 @@
 			</File>
 			<File
 				RelativePath=".\h\Handler.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\int_process.h"
 				>
 			</File>
 			<File

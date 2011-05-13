@@ -41,7 +41,7 @@ extern "C" {
 #include <stdio.h>
 
 #if defined(os_windows_test)
-
+#include <winsock2.h>
 #include <windows.h>
 
 #if !defined(INVALID_HANDLE)

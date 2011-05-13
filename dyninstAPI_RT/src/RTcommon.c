@@ -575,11 +575,14 @@ int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr) {
 }
 
 int DYNINSTuserMessage(void *msg, unsigned int msg_size) {
-    if (DYNINSTstaticMode) return 0;
+    unsigned long msg_size_long = (unsigned long)msg_size;
+    if (DYNINSTstaticMode) 
+	{
+		return 0;
+	}
 
     tc_lock_lock(&DYNINST_trace_lock);
 
-    unsigned long msg_size_long = (unsigned long)msg_size;
 
     /* Set the state so the mutator knows what's up */
     DYNINST_synch_event_id = DSE_userMessage;

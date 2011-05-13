@@ -118,7 +118,7 @@ public:
     void setDesiredProcessState(processState_t ps);
 
     // Memory access
-    bool dumpCore(const std::string coreFile); // platform-specific
+    bool dumpCore(std::string coreFile); // platform-specific
     bool writeDataSpace(void *inTracedProcess,
                         u_int amount, const void *inSelf);
     bool writeDataWord(void *inTracedProcess,

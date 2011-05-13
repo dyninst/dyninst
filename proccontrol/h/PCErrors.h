@@ -33,6 +33,7 @@
 #define PCERRORS_H_
 
 #include <stdio.h>
+#include "util.h"
 
 #define pclean_printf(format, ...) \
   do { \
@@ -80,7 +81,7 @@ const err_t err_nouserthrd     = 0x10015;
 
 err_t getLastError();
 void clearLastError();
-const char *getLastErrorMsg();
+PC_EXPORT const char* getLastErrorMsg();
 void setLastError(err_t err, const char *msg = NULL);
 void setDebugChannel(FILE *f);
 void setDebug(bool enable);

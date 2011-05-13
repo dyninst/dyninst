@@ -53,7 +53,7 @@ Process::cb_ret_t on_library(Event::const_ptr ev)
    }
    proc_info &pi = proclibs[ev->getProcess()];
 
-   std::set<Library::ptr>::iterator i;
+   std::set<Library::ptr>::const_iterator i;
    for (i = evlib->libsAdded().begin(); i != evlib->libsAdded().end(); i++) {
       Library::ptr lib = *i;
       if (lib->getName().find("libtestA") != string::npos) {

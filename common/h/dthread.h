@@ -40,15 +40,24 @@
 #include <pthread.h>
 #endif
 
+#if !defined(WINAPI)
+#define WINAPI
+#endif
+
 class COMMON_EXPORT DThread {
 #if defined(cap_pthreads)
    pthread_t thrd;
+   typedef void (*initial_func_t)(void *);
+   typedef void dthread_ret_t;
+#else
+	HANDLE thrd;
+	typedef LPTHREAD_START_ROUTINE initial_func_t;
+	typedef int dthread_ret_t;
 #endif
    bool live;   
  public:
    DThread();
    ~DThread();
-   typedef void (*initial_func_t)(void *);
 
    static long self();
    bool spawn(initial_func_t func, void *param);
@@ -60,6 +69,8 @@ class COMMON_EXPORT Mutex {
    friend class CondVar;
 #if defined(cap_pthreads)
    pthread_mutex_t mutex;
+#else if defined(os_windows)
+   HANDLE mutex;
 #endif
  public:
    Mutex(bool recursive=false);

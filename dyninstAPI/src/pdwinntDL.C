@@ -29,7 +29,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dynamiclinking.h"
 #include "process.h"
 #include "signalhandler.h"
 #include "dyn_lwp.h"

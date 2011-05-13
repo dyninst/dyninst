@@ -3710,8 +3710,13 @@ void mem_state::rmProc(int_process *p, bool &should_clean)
 
 int_notify *int_notify::the_notify = NULL;
 int_notify::int_notify() :
-   pipe_in(-1),
+#if !defined(os_windows)
+	pipe_in(-1),
    pipe_out(-1),
+#else
+	pipe_in(INVALID_HANDLE_VALUE),
+   pipe_out(INVALID_HANDLE_VALUE),
+#endif
    pipe_count(0),
    events_noted(0)
 {
@@ -3781,9 +3786,9 @@ void int_notify::removeCB(EventNotify::notify_cb_t cb)
    cbs.erase(i);
 }
 
-int int_notify::getPipeIn()
+int_notify::pipe_t int_notify::getPipeIn()
 {
-   if (pipe_in == -1)
+   if (!pipesValid())
       createPipe();
    return pipe_in;
 }
@@ -5531,7 +5536,7 @@ EventNotify::~EventNotify()
 
 int EventNotify::getFD()
 {
-   return llnotify->getPipeIn();
+   return (int)(llnotify->getPipeIn());
 }
 
 void EventNotify::registerCB(notify_cb_t cb)
@@ -5734,10 +5739,11 @@ void MTManager::evhandler_main()
    }
 }
 
-void MTManager::evhandler_main_wrapper(void *)
+unsigned long MTManager::evhandler_main_wrapper(void *)
 {
    setHandlerThread(DThread::self());
    mt()->evhandler_main();
+   return 0;
 }
 
 void MTManager::eventqueue_cb_wrapper()

@@ -43,6 +43,7 @@
 #include "dyninstAPI/src/instPoint.h"
 
 #include "dyninstAPI/src/function.h"
+#include "parseAPI/src/debug_parse.h"
 
 #include "Instruction.h"
 #include "InstructionDecoder.h"
@@ -110,6 +111,7 @@ bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &,int_function *&,
     return false;
 }
 
+using namespace Dyninst::ParseAPI;
 // findCallee: returns false unless callee is already set in instPoint
 // dynamic linking not implemented on this platform
 int_function *instPoint::findCallee() 

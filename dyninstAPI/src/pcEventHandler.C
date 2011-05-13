@@ -102,9 +102,10 @@ unsigned int PCEventMailbox::size() {
 // Start Callback Thread Code
 
 // Callback thread entry point
-void PCEventHandler::main_wrapper(void *h) {
+unsigned long PCEventHandler::main_wrapper(void *h) {
     PCEventHandler *handler = (PCEventHandler *) h;
     handler->main();
+	return 0;
 }
 
 // Set by callbacks - ProcControlAPI guarantees only one thread will
@@ -385,6 +386,16 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
     return ret;
 }
 
+int makePipe(int* fds)
+{
+#if !defined(os_windows)
+	return pipe(fds);
+#else
+	assert(!"not implemented");
+	return 0;
+#endif
+}
+
 bool PCEventHandler::start() {
     if( started_ ) return true;
 
@@ -395,7 +406,7 @@ bool PCEventHandler::start() {
     // Create the pipe to signal exit
     int pipeFDs[2];
     pipeFDs[0] = pipeFDs[1] = -1;
-    if( pipe(pipeFDs) == 0 ) {
+    if( makePipe(pipeFDs) == 0 ) {
         exitNotificationOutput_ = pipeFDs[0];
         exitNotificationInput_ = pipeFDs[1];
     }else{

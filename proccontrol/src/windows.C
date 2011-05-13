@@ -450,18 +450,54 @@ bool ProcessPool::LWPIDsAreUnique()
 
 void int_notify::readFromPipe()
 {
-	assert(!"Not implemented");
+   if (!pipesValid())
+      return;
+
+   char c;
+   BOOL result;
+   DWORD bytes_read;
+   int error;
+   do {
+	   result = ::ReadFile(pipe_in, &c, 1, &bytes_read, NULL);
+      error = errno;
+   } while (result == TRUE);
+
+   assert(result == TRUE && c == 'e');
+   pthrd_printf("Cleared notification pipe %d\n", pipe_in);
+}
+
+bool int_notify::pipesValid()
+{
+	return (pipe_in != INVALID_HANDLE_VALUE) &&
+		(pipe_out != INVALID_HANDLE_VALUE);
 }
 
 void int_notify::writeToPipe()
 {
-	assert(!"Not implemented");
+   if (!pipesValid()) 
+      return;
+
+   char c = 'e';
+   DWORD bytes_written;
+   BOOL result = ::WriteFile(pipe_out, &c, 1, &bytes_written, NULL);
+   if (result == FALSE) {
+      int error = errno;
+      setLastError(err_internal, "Could not write to notification pipe\n");
+      perr_printf("Error writing to notification pipe: %s\n", strerror(error));
+      return;
+   }
+   pthrd_printf("Wrote to notification pipe %d\n", pipe_out);
 }
 
 bool int_notify::createPipe()
 {
-	assert(!"Not implemented");
-	return false;
+	::CreatePipe(&pipe_in, &pipe_out, NULL, 0);
+	if(!pipesValid())
+	{
+		pthrd_printf("Error creating pipes\n");
+		return false;
+	}
+	return true;
 }
 
 bool windows_process::plat_convertToBreakpointAddress(Dyninst::psaddr_t& addr)

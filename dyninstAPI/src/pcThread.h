@@ -44,7 +44,7 @@
  */
 
 class PCProcess;
-typedef long dynthread_t;
+typedef Dyninst::THR_ID dynthread_t;
 class inferiorRPCinProgress; 
 
 class PCThread {
@@ -62,7 +62,7 @@ public:
 
     // Field accessors
     int getIndex() const;
-    int getLWP() const;
+    Dyninst::LWP getLWP() const;
     PCProcess *getProc() const;
     bool isLive() const;
 
@@ -97,7 +97,7 @@ protected:
     // When we run an inferior RPC we cache the stackwalk of the
     // process and return that if anyone asks for a stack walk
     int_stackwalk cached_stackwalk_;
-    int savedLWP_;
+	Dyninst::LWP savedLWP_;
     dynthread_t savedTid_;
     dynthread_t manuallySetTid_; // retrieved from the mutatee
 };

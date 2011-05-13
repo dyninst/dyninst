@@ -34,8 +34,9 @@
 
 #include "test_lib.h"
 #include "TestMutator.h"
-#include "Process.h"
-#include "Event.h"
+#include "proccontrol/h/Process.h"
+#include "proccontrol/h/Event.h"
+
 
 #include <vector>
 
@@ -44,7 +45,7 @@ using namespace ProcControlAPI;
 
 #define NUM_PARALLEL_PROCS 8
 
-class ProcControlComponent : public ComponentTester
+class COMPLIB_DLL_EXPORT ProcControlComponent : public ComponentTester
 {
 private:
    bool setupServerSocket();

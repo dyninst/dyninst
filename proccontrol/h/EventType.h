@@ -1,10 +1,12 @@
 #if !defined(EVENTTYPE_H_)
 #define EVENTTYPE_H_
 
+#include "util.h"
+
 namespace Dyninst {
 namespace ProcControlAPI {
 
-class EventType
+class PC_EXPORT EventType
 {
  public:
    static const int Error               = -1;

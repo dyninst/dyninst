@@ -181,10 +181,11 @@ struct GeneratorMTInternals
    DThread thrd;
 };
 
-static void start_generator(void *g)
+static unsigned long WINAPI start_generator(void *g)
 {
    GeneratorMT *gen = (GeneratorMT *) g;
    gen->start();
+   return 0;
 }
 
 GeneratorMT::GeneratorMT(std::string name_) :

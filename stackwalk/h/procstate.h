@@ -37,7 +37,7 @@
 
 #include "basetypes.h"
 #include "dyn_regs.h"
-#include "Process.h"
+#include "proccontrol/h/Process.h"
 
 #include <vector>
 #include <map>
@@ -121,7 +121,7 @@ class ProcSelf : public ProcessState {
   virtual ~ProcSelf();
 };
 
-class ProcDebug : public ProcessState {
+class SW_EXPORT ProcDebug : public ProcessState {
  protected:
    Dyninst::ProcControlAPI::Process::ptr proc;
    ProcDebug(Dyninst::ProcControlAPI::Process::ptr p);

@@ -34,6 +34,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "util.h"
 
 namespace Dyninst {
 namespace Stackwalker {
@@ -59,14 +60,14 @@ namespace Stackwalker {
   const err_t err_nothrd         = 0x10016;
   const err_t err_proccontrol    = 0x10017;
 
-  err_t getLastError();
-  void clearLastError();
-  const char *getLastErrorMsg();
-  void setLastError(err_t err, const char *msg = NULL);
-  void setDebugChannel(FILE *f);
-  void setDebug(bool enable);
+  SW_EXPORT err_t getLastError();
+  SW_EXPORT void clearLastError();
+  SW_EXPORT const char *getLastErrorMsg();
+  SW_EXPORT void setLastError(err_t err, const char *msg = NULL);
+  SW_EXPORT void setDebugChannel(FILE *f);
+  SW_EXPORT void setDebug(bool enable);
   
-  FILE *getDebugChannel();
+  SW_EXPORT FILE *getDebugChannel();
 
   extern int sw_printf(const char *format, ...);
   extern int dyn_debug_stackwalk;

@@ -42,6 +42,7 @@
 #include "EventType.h"
 #include "dyn_detail/boost/shared_ptr.hpp"
 #include "dyn_detail/boost/weak_ptr.hpp"
+#include "util.h"
 
 class int_process;
 class int_breakpoint;
@@ -71,7 +72,7 @@ class Event;
 class RegisterPool;
 class Breakpoint;
 
-class Breakpoint 
+class PC_EXPORT Breakpoint 
 {
    friend class ::int_breakpoint;
    friend void dyn_detail::boost::checked_delete<Breakpoint>(Breakpoint *);
@@ -96,7 +97,7 @@ class Breakpoint
    Dyninst::Address getToAddress() const;
 };
 
-class Library
+class PC_EXPORT Library
 {
    friend class ::int_library;
  private:
@@ -115,7 +116,7 @@ class Library
    void setData(void *p) const;
 };
 
-class LibraryPool
+class PC_EXPORT LibraryPool
 {
    friend class ::int_process;
    friend class Dyninst::ProcControlAPI::Process;
@@ -124,7 +125,7 @@ class LibraryPool
    LibraryPool();
    ~LibraryPool();
  public:
-  class iterator {
+  class PC_EXPORT iterator {
       friend class Dyninst::ProcControlAPI::LibraryPool;
    private:
       std::set<int_library *>::iterator int_iter;
@@ -138,7 +139,7 @@ class LibraryPool
       LibraryPool::iterator operator++(int);
   };
 
-  class const_iterator {
+  class PC_EXPORT const_iterator {
      friend class Dyninst::ProcControlAPI::LibraryPool;
   private:
      std::set<int_library *>::iterator int_iter;
@@ -166,7 +167,7 @@ class LibraryPool
   Library::const_ptr getExecutable() const;
 };
 
-class IRPC
+class PC_EXPORT IRPC
 {
    friend class ::int_iRPC;
    friend void dyn_detail::boost::checked_delete<IRPC>(IRPC *);
@@ -200,7 +201,7 @@ class IRPC
    void setData(void *p);
 };
 
-class Process
+class PC_EXPORT Process
 {
  private:
    friend class ::int_process;
@@ -334,7 +335,7 @@ class Process
    bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
 };
 
-class Thread
+class PC_EXPORT Thread
 {
  protected:
    friend class ::int_thread;
@@ -392,7 +393,7 @@ class Thread
    void setData(void *p);
 };
 
-class ThreadPool
+class PC_EXPORT ThreadPool
 {
  private:
    friend class ::int_threadPool;
@@ -404,7 +405,7 @@ class ThreadPool
    /**
     * Iterators
     **/
-   class iterator {
+   class PC_EXPORT iterator {
       friend class Dyninst::ProcControlAPI::ThreadPool;
    private:
       int_threadPool *curp;
@@ -423,7 +424,7 @@ class ThreadPool
    iterator end();
    iterator find(Dyninst::LWP lwp);
 
-   class const_iterator {
+   class PC_EXPORT const_iterator {
       friend class Dyninst::ProcControlAPI::ThreadPool;
    private:
       int_threadPool *curp;
@@ -449,7 +450,7 @@ class ThreadPool
    Thread::ptr getInitialThread();
 };
 
-class RegisterPool
+class PC_EXPORT RegisterPool
 { 
    friend class Dyninst::ProcControlAPI::Thread;
  private:
@@ -459,7 +460,7 @@ class RegisterPool
    RegisterPool(const RegisterPool &rp);
    ~RegisterPool();
    
-   class iterator {
+   class PC_EXPORT iterator {
       friend class Dyninst::ProcControlAPI::RegisterPool;
    private:
       typedef std::map<Dyninst::MachRegister, Dyninst::MachRegisterVal>::iterator int_iter; 
@@ -478,7 +479,7 @@ class RegisterPool
    iterator end();
    iterator find(Dyninst::MachRegister r);
 
-   class const_iterator {
+   class PC_EXPORT const_iterator {
       friend class Dyninst::ProcControlAPI::RegisterPool;
    private:
       typedef std::map<Dyninst::MachRegister, Dyninst::MachRegisterVal>::const_iterator int_iter; 
@@ -505,7 +506,7 @@ class RegisterPool
    Thread::ptr getThread();
 };
 
-class EventNotify
+class PC_EXPORT EventNotify
 {
  private:
    friend class ::int_notify;
@@ -519,7 +520,7 @@ class EventNotify
    void registerCB(notify_cb_t cb);
    void removeCB(notify_cb_t cb);
 };
-EventNotify *evNotify();
+PC_EXPORT EventNotify *evNotify();
 
 }
 }

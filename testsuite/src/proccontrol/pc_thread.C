@@ -384,6 +384,9 @@ test_results_t pc_threadMutator::pre_init(ParameterDict &param)
 #elif defined(os_bluegene_test)
    has_lwp = false;
    has_thr = true;
+#elif defined(os_windows_test)
+	has_lwp = false;
+	has_thr = true;
 #else
 #error Unknown platform
 #endif

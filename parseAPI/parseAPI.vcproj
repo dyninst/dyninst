@@ -75,7 +75,7 @@
 				SubSystem="0"
 				RandomizedBaseAddress="1"
 				DataExecutionPrevention="0"
-				ImportLibrary="$(OutDir)/parseAPI.lib"
+				ImportLibrary="$(TargetDir)$(TargetName).lib"
 				TargetMachine="0"
 			/>
 			<Tool

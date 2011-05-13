@@ -38,8 +38,8 @@
 #pragma warning( disable : 4996 )
 
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include <winsock2.h>
+#include <windows.h>
 
 #if !defined(__out_ecount_opt)
 #define __out_ecount_opt(x) //Working around dbhelp.h bugs
