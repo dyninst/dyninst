@@ -167,7 +167,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     // Let's see if we can grab a free GPregister...
     instPoint *point = gen.point();
     if (!point) {
-        fprintf(stderr, " %s[%d] No point generateBranchViaTrap \n", FILE__, __LINE__);
+        // fprintf(stderr, " %s[%d] No point generateBranchViaTrap \n", FILE__, __LINE__);
         return generateBranchViaTrap(gen, from, to, isCall);
     }
 

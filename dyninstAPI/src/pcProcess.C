@@ -3203,6 +3203,9 @@ bool PCProcess::registerTrapMapping(Address from, Address to) {
 
     installedCtrlBrkpts.insert(make_pair(from, newBreak));
 
+    proccontrol_printf("%s[%d]: added ctrl transfer breakpoint from 0x%lx to 0x%lx\n",
+            FILE__, __LINE__, from, to);
+
     return true;
 }
 

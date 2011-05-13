@@ -972,7 +972,11 @@ void trampTrapMappings::addTrapMapping(Address from, Address to,
    }
    needs_updating = true;
 #endif
-   as->registerTrapMapping(from-1, to);
+#if defined(arch_x86) || defined(arch_x86_64)
+   from--;
+#endif
+
+   as->registerTrapMapping(from, to);
 }
 
 bool trampTrapMappings::definesTrapMapping(Address from)

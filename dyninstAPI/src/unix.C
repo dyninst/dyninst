@@ -458,6 +458,16 @@ bool PCProcess::hasPassedMain()
    }
 
    entry_addr += ldso_start_addr;
+
+   if( !getOPDFunctionAddr(entry_addr) ) {
+       startup_printf("[%s:%u] - failed to read entry addr function pointer\n",
+               FILE__, __LINE__);
+       return false;
+   }
+
+   if( entry_addr < ldso_start_addr ) {
+       entry_addr += ldso_start_addr;
+   }
    
    bool result = (entry_addr != current_pc);
    startup_printf("[%s:%u] - hasPassedMain returning %d (%lx %lx)\n",
