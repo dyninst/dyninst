@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -42,6 +42,8 @@
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
 #include "BPatch_point.h"
+#include "BPatch_flowGraph.h"
+#include "BPatch_function.h"
 
 #include "test_lib.h"
 #include "Callbacks.h"

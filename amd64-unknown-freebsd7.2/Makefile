@@ -52,6 +52,10 @@ MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF) -g -I../src
 
 TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic
 
+ifeq ($(GNU_DEMANGLER),)
+TESTDRIVER_LDFLAGS += -L$(LIBIBERTY_LIB) -liberty
+endif
+
 # see discussion in make.module.tmpl for the format of this variable
 MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe
 

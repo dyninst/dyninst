@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -45,6 +45,7 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <assert.h>
 
 #include "runTests-utils.h"
 #include "error.h"
@@ -60,12 +61,6 @@
 // Default name for the resume log file
 #define DEFAULT_RESUMELOG "resumelog"
 // Default name for the crash log file
-
-#define MEMCPU_DEFAULT_LOG "memcpu_tmp.log";
-const char *memcpu_name = NULL;
-const char *memcpu_orig_name = NULL;
-
-bool launch_mutatees = false;
 
 bool staticTests = false;
 bool useLog = false;
@@ -85,46 +80,6 @@ char *scriptname;
 char *outputlog_name;
 int outputlog_pos = -1;
 FILE *outputlog_file = NULL;
-
-void parseMEMCPUFile()
-{
-   if (!memcpu_name || !memcpu_orig_name)
-      return;
-
-   signed long mem_total = 0, utime_total = 0, stime_total = 0;
-   FILE *f = fopen(memcpu_name, "r");
-   if (!f)
-      return;
-
-   for (;;)
-   {
-      signed long mem, utime, stime;
-      int res = fscanf(f, "mem=%ld\tutime=%ld\tstime=%ld\n",
-                       &mem, &utime, &stime);
-      if (res != 3)
-         break;
-      mem_total += mem;
-      utime_total += utime;
-      stime_total += stime;
-   }
-   fclose(f);
-   unlink(memcpu_name);
-
-   if (strcmp(memcpu_orig_name, "-") == 0)
-   {
-      f = stdout;
-   }
-   else {
-      f = fopen(memcpu_orig_name, "w");
-      if (!f)
-         return;
-   }
-   
-   fprintf(f, "mem=%ld\tutime=%ld\tstime=%ld\n",
-           mem_total, utime_total, stime_total);
-   if (f != stdout)
-      fclose(f);
-}
 
 #if !defined(os_linux_test)
 int getline(char **line, size_t *line_size, FILE *f)
@@ -213,24 +168,7 @@ void parseParameters(int argc, char *argv[])
          staticTests = true;
       } else if (strcmp(argv[i], "-dynamic") == 0) {
          staticTests = false;
-      }
-      else if ((strcmp(argv[i], "-memcpu") == 0) ||
-               (strcmp(argv[i], "-cpumem") == 0))
-      {
-         memcpu_name = MEMCPU_DEFAULT_LOG;
-         
-         if ((i+1 < argc) &&
-             (argv[i+1][0] != '-' || argv[i+1][1] == '\0'))
-         {
-            i++;
-            memcpu_orig_name = argv[i];
-         }
-         else
-         {
-            memcpu_orig_name = "-";
-         }
-      }
-      else if (strcmp(argv[i], "-j") == 0) {
+      } else if (strcmp(argv[i], "-j") == 0) {
          if (i+1 != argc)
             parallel_copies = atoi(argv[++i]);
          if (!parallel_copies) {
@@ -347,13 +285,6 @@ int main(int argc, char *argv[])
 
    ParameterDict params;
    std::vector<RunGroup *> groups;
-   if (launch_mutatees) {
-      int result = parseArgs(argc, argv, params);
-      if (result) {
-         exit(result);
-      }
-      getGroupList(groups, params);      
-   }   
    
    char *parallel_copies_cs = NULL;
    {
@@ -380,8 +311,6 @@ int main(int argc, char *argv[])
       
       if (pidFilename)
          test_drivers[i].pidFilename = pidFilename + std::string(".") + unique_s;
-      if (memcpu_name)
-         test_drivers[i].memcpu_name = memcpu_name + std::string(".") + unique_s;
 
       if (parallel_copies > 1)
       {
@@ -418,12 +347,13 @@ int main(int argc, char *argv[])
 
    bool done = false;
    unsigned next_group = 0;
+   bool timeout = false;  // This should be pushed into test_driver.
    for (;;)
    {
       done = true;
-      for (unsigned i=0; i<parallel_copies; i++) {         
-         if (test_drivers[i].last_result == NOTESTS) {
-            //This invocation is done
+      for (unsigned i=0; i<parallel_copies; i++) {
+         if (test_drivers[i].last_result == NOTESTS || timeout) {
+            //This invocation is done or produced an error
             continue;
          }
          done = false;
@@ -432,34 +362,6 @@ int main(int argc, char *argv[])
             continue;
          }
 
-         if (launch_mutatees)
-         {
-            if (test_drivers[i].last_result != DRIVER_CRASHED)
-            {
-               std::string given_mutatee = std::string("");
-               bool found_test = false;
-               unsigned j;
-               for (j=next_group; j<groups.size(); j++)
-               {
-                  if (groups[j]->disabled)
-                     continue;
-                  setMutateeDict(groups[j], params);
-                  test_drivers[i].given_mutatee = launchMutatee(groups[j], params);
-                  test_drivers[i].given_mutator = j;
-                  found_test = true;
-                  break;
-               }
-               if (!found_test) {
-                  return -1;
-               }    
-               next_group = j+1;
-            }
-            else { //Driver crashed
-               int mutator = test_drivers[i].given_mutator;
-               test_drivers[i].given_mutatee = launchMutatee(groups[mutator], params);
-            }
-         }               
-
          test_drivers[i].pid = RunTest(invocation,
                                        test_drivers[i].useLog,
                                        test_drivers[i].staticTests,
@@ -467,7 +369,6 @@ int main(int argc, char *argv[])
                                        test_drivers[i].testLimit,
                                        test_drivers[i].child_argv,
                                        test_drivers[i].pidFilename.c_str(),
-                                       test_drivers[i].memcpu_name.c_str(),
                                        test_drivers[i].hostname,
                                        test_drivers[i].given_mutatee.c_str(), 
                                        test_drivers[i].given_mutator);
@@ -483,12 +384,21 @@ int main(int argc, char *argv[])
       int driver = CollectTestResults(test_drivers, parallel_copies);
       if (driver == -3) {
          // User interrupted the test run; allow them a couple of seconds to do
-         // it again and kill runTests
+         // it again and kill runTests, or restart test_drivers.
          // TODO Make sure this is portable to Windows
-         fprintf(stderr, "Press ctrl-c again with-in 2 seconds to abort runTests.\n");
+         fprintf(stderr, "Press ctrl-c again within 2 seconds to abort runTests.\n");
          sleep(2);
       }
+      if (driver == -2) {
+          // We apparently have no children.  This may not be a possibility
+          // anymore after we added the timeout flag.  I'm not sure what to
+          // do in this case, though.  Both continuing and breaking are
+          // problematic.
+          assert(0 && "No children returned from waitpid.");
+      }
       if (driver == -1) {
+          // Timeout was encountered, and children were reaped.
+          timeout = true;
           for (unsigned idx=0; idx < parallel_copies; idx++) {
              test_drivers[idx].last_result = -1;
           }
@@ -517,8 +427,6 @@ int main(int argc, char *argv[])
             unlink(test_drivers[driver].outputlog.c_str());
          }
       }
-      
-      int ret_result = test_drivers[driver].last_result;
    }
 
    // Remove the PID file, now that we're done with it
@@ -543,7 +451,6 @@ int main(int argc, char *argv[])
 
    clear_resumelog();
 
-   parseMEMCPUFile();
    return 0;
 }
 
