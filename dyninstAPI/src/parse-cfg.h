@@ -99,6 +99,7 @@ class parse_block : public codeRange, public ParseAPI::Block  {
 
     bool unresolvedCF() const { return unresolvedCF_; }
     bool abruptEnd() const { return abruptEnd_; }
+    void setAbruptEnd(bool newVal) { abruptEnd_ = newVal; }
 
     // misc utility
     int id() const { return blockNumber_; }

@@ -341,15 +341,16 @@ public:
     //  Get the underlying ParseAPI Function
     API_EXPORT( Int, (), Dyninst::ParseAPI::Function *, getParseAPIFunc, () );
 
-    API_EXPORT(Int, (start, end),
-
-    bool,getLineNumbers,(unsigned int &start, unsigned int &end));
 
     API_EXPORT(Int, (start, end),
     bool,getAddressRange,(void * &start, void * &end));
 
     API_EXPORT(Int, (start, end),
                bool,getAddressRange,(Dyninst::Address &start, Dyninst::Address &end));
+
+    API_EXPORT(Int, (),
+    unsigned int,getFootprint,());
+
 };
 
 #endif /* _BPatch_function_h_ */

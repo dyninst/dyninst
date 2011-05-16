@@ -61,7 +61,7 @@ enum EdgeTypeEnum {
     _edgetype_end_
 };
 
-std::string format(EdgeTypeEnum e);
+PARSER_EXPORT std::string format(EdgeTypeEnum e);
 
 #define FLIST_BADNEXT ((void*)0x111)
 #define FLIST_BADPREV ((void*)0x222)

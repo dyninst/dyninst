@@ -1023,3 +1023,10 @@ bool BPatch_function::getSharedFuncs(set<BPatch_function*> &sharedFuncs)
    }
    return true;
 }
+
+unsigned int BPatch_function::getFootprintInt()
+{
+    return func->footprint();
+}
+
+

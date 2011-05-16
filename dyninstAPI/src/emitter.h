@@ -94,7 +94,6 @@ class Emitter {
     virtual void emitGetRetVal(Register dest, bool addr_of, codeGen &gen) = 0;
     virtual void emitGetRetAddr(Register dest, codeGen &gen) = 0;
     virtual void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen) = 0;
-    virtual void emitFuncJump(func_instance *f, instPoint::Type ptType, codeGen &gen) = 0;
     virtual void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen) = 0;
     virtual void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen) = 0;
     virtual void emitPushFlags(codeGen &gen) = 0;
@@ -115,8 +114,8 @@ class Emitter {
     Address getInterModuleVarAddr(const image_variable *var, codeGen& gen);
     //bool emitPIC(codeGen& /*gen*/, Address, Address );
 
-    virtual bool emitPLTCall(func_instance *, codeGen &) { assert(0); return false; }
-    virtual bool emitPLTJump(func_instance *, codeGen &) { assert(0); return false; }
+    virtual bool emitPLTCall(func_instance *, codeGen &) { assert(0); return false;}
+    virtual bool emitPLTJump(func_instance *, codeGen &) { assert(0); return false;}
 };
 
 #endif

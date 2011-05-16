@@ -420,9 +420,11 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
    bool ret = false;
    switch (ev.info.dwDebugEventCode) {
      case EXCEPTION_DEBUG_EVENT:
+
         //ev.type = evtException;
         ev.what = ev.info.u.Exception.ExceptionRecord.ExceptionCode;
-        ret = decodeException(ev);
+
+		ret = decodeException(ev);
 		assert(ev.type != evtUndefined);
         break;
      case CREATE_THREAD_DEBUG_EVENT:
@@ -607,7 +609,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
      }
   }
   else {
-	  ev.type = evtCritical;
+	  ev.type = evtProcessStop;
      ret = true;
   }
 
@@ -2659,48 +2661,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     vector<func_instance*> faultFuncs;
     baseTramp *bti = NULL;
     ev.proc->getAddrInfo(ev.address, origAddr, faultFuncs, bti);
-    cerr << "Address " << hex << ev.address << " maps to address " << origAddr << dec << endl;
-
-
-/* begin debugging output */
-	cerr << "Frame info dump" << endl;
 	Frame activeFrame = ev.lwp->getActiveFrame();
-	cerr << "EXCEPTION FRAME: " << hex << activeFrame.getPC() << " / " <<activeFrame.getSP() 
-                 << " (DEBUG:" 
-                 << "EAX: " << activeFrame.eax
-                 << ", ECX: " << activeFrame.ecx
-                 << ", EDX: " << activeFrame.edx
-                 << ", EBX: " << activeFrame.ebx
-                 << ", ESP: " << activeFrame.esp
-                 << ", EBP: " << activeFrame.ebp
-                 << ", ESI: " << activeFrame.esi 
-                 << ", EDI " << activeFrame.edi << ")" << dec << endl;
-
-    // decode the executed instructions
-    using namespace InstructionAPI;
-    cerr << "Disassembling faulting insns" << endl;
-    Address base = ev.address - 64;
-    const int BUF_SIZE=256;
-    unsigned char buf[BUF_SIZE];
-    ev.proc->readDataSpace((void *)base, BUF_SIZE, buf, false);
-    InstructionDecoder deco(buf,BUF_SIZE,ev.proc->getArch());
-    Instruction::Ptr insn = deco.decode();
-    while(insn) {
-        cerr << "\t" << hex << base << ": " << insn->format(base) << endl;
-        base += insn->size();
-        insn = deco.decode();
-    }
-    cerr << "raw bytes: ";
-    for(int idx=0; idx < BUF_SIZE; idx++) {
-        cerr << (unsigned int)buf[idx] << " ";
-    }
-    cerr << endl << dec << "Stack" << endl;
-	for (int i = -10; i < 10; ++i) {
-		Address stackTOPVAL =0;
-	    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
-		cerr << "\t" << hex <<activeFrame.esp + 4*i << ": " << stackTOPVAL << dec << endl;
-	 }
-/* end debugging output */
 
     // 1. gather the list of handlers by walking the SEH datastructure in the TEB
     Address tibPtr = ev.lwp->getThreadInfoBlockAddr();
@@ -2736,26 +2697,13 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     //     register before stomping its effective address computation, 
     //     restore the original register value
 
-    block_instance *faultBBI = NULL;
-    func_instance *faultFunc = faultFuncs[0];
-    switch( faultFuncs.size() ) {
-    case 0: 
+	if (faultFuncs.empty()) {
         fprintf(stderr,"ERROR: Failed to find a valid instruction for fault "
             "at %lx %s[%d] \n", ev.address, FILE__,__LINE__);
          return false;
-    case 1:
-        faultBBI = faultFunc->obj()->findOneBlockByAddr(origAddr);
-        if (!faultBBI && origAddr != ev.address) {
-            fprintf(stderr, "ERROR: executed illegal instructions in post-"
-                    "control-transfer padding? %s[%d]\n",FILE__,__LINE__);
-            return false;
-        }
-        break;
-    default: 
-        faultBBI = ev.proc->findActiveFuncByAddr(ev.address)->obj()->
-                findOneBlockByAddr(origAddr);
-        break;
-    }
+	}
+    func_instance *faultFunc = faultFuncs[0];
+	block_instance *faultBBI = faultFunc->getBlock(origAddr);
     if (ev.proc->isMemoryEmulated() && 
         BPatch_defensiveMode == faultFunc->obj()->hybridMode())
     {
@@ -2805,15 +2753,11 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
 
     // 3. create instPoint at faulting instruction & trigger callback
 
-    instPoint *point = faultFunc->findInstPByAddr(origAddr);
-    if (!point) {
-        point = instPoint::createArbitraryInstPoint
-                    (origAddr, proc, faultFunc);                
-    }
+	instPoint *point = instPoint::preInsn(faultFunc, faultBBI, origAddr);
     if (!point) {
         fprintf(stderr,"Failed to create an instPoint for faulting "
-            "instruction at %lx[%lx] in function at %lx %s[%d]\n",
-            ev.address,origAddr,faultFunc->addr(),FILE__,__LINE__);
+            "instruction at %lx[%lx] %s[%d]\n",
+            ev.address,origAddr,FILE__,__LINE__);
         return false;
     }
 
@@ -2829,7 +2773,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
         func_instance *hfunc = ev.proc->findOneFuncByAddr(*hIter);
         if (hfunc) {
             using namespace ParseAPI;
-            hfunc->setHandlerFaultAddr(origAddr);
+            hfunc->setHandlerFaultAddr(point->insnAddr());
             Address base = hfunc->addr() - hfunc->ifunc()->addr();
             const vector<FuncExtent*> &exts = hfunc->ifunc()->extents();
             for (unsigned eix=0; eix < exts.size(); eix++) {
@@ -2838,7 +2782,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
             }
         } else {
             fprintf(stderr, "WARNING: failed to parse handler at %lx for "
-                    "exception at %lx %s[%d]\n", *hIter, origAddr, 
+                    "exception at %lx %s[%d]\n", *hIter, point->insnAddr(), 
                     FILE__,__LINE__);
         }
     }
@@ -2994,25 +2938,8 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
     } else { 
         writeFunc = ev.proc->findActiveFuncByAddr(ev.address);
     }
-    instPoint *writePoint = writeFunc->findInstPByAddr(origWrite);
-    if (!writePoint) {
-        // it can't be a call or exit point, if it exists it's an 
-        // entryPoint, or abruptEnd point (or an arbitrary point, but
-        // those aren't created lazily
-        if (origWrite == writeFunc->addr()) {
-            //KEVINTODO: update the point cache another way 
-            // writeFunc->funcEntries();
-            writePoint = writeFunc->findInstPByAddr(origWrite);
-        } else {
-            //KEVINTODO: update the point cache another way 
-            // writeFunc->funcAbruptEnds();
-            writePoint = writeFunc->findInstPByAddr(origWrite);
-        }
-    }
-    if (!writePoint) {
-        writePoint = instPoint::createArbitraryInstPoint(
-            origWrite, ev.proc, writeFunc);
-    }
+	instPoint *writePoint = instPoint::preInsn(writeFunc, writeFunc->getBlock(ev.address), ev.address);
+
     assert(writePoint);
 
     // 5. Trigger user-mode callback to respond to the overwrite
@@ -3266,18 +3193,13 @@ bool process::instrumentThreadInitialFunc(func_instance *f) {
 
     pdvector<AstNodePtr> args;
     AstNodePtr call_dummy_create = AstNode::funcCallNode(dummy_create, args);
-    const pdvector<instPoint *> &ips = f->funcEntries();
-    for (unsigned j=0; j<ips.size(); j++)
-    {
-       miniTramp *mt;
-       mt = ips[j]->instrument(call_dummy_create, callPreInsn, orderFirstAtPoint, false, 
-                               false);
-       if (!mt)
-       {
-          fprintf(stderr, "[%s:%d] - Couldn't instrument thread_create\n",
-                  __FILE__, __LINE__);
-       }
-    }
+	instPoint *entry = instPoint::funcEntry(f);
+	miniTramp *mt = entry->push_front(call_dummy_create, true);
+	relocate();
+    if (!mt) {
+      fprintf(stderr, "[%s:%d] - Couldn't instrument thread_create\n",
+              __FILE__, __LINE__);
+	}
     initial_thread_functions.push_back(f);
     return true;
 }

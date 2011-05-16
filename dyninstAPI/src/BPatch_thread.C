@@ -98,7 +98,7 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
 	
 	instPoint *iP = frame.getPoint();
 	if (iP) {
-	  point = proc->findOrCreateBPPoint(NULL, iP);
+           point = proc->findOrCreateBPPoint(NULL, iP, BPatch_locInstruction);
 	}
 	if (point) {
 	  stack.push_back(BPatch_frame(this,

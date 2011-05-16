@@ -134,6 +134,8 @@ class instPoint {
                                block_instance *);
 
 
+    static std::pair<instPoint *, instPoint *> getInstpointPair(instPoint *);
+
     static instPoint *fork(instPoint *parent, AddressSpace *as);
     ~instPoint();
                                

@@ -2231,20 +2231,21 @@ void BPatch_process::printDefensiveStatsInt()
             << hex << funcTablePos << dec << endl;
     }
 
-#if 0
+//#if 0
     int calls = 0; //done
     int dynCalls = 0; //done
     int multiTargetCalls = 0; //done
-    int dynJmps = 0;
-    int nonRetRets = 0;
-    int nonCallCalls = 0; // calls with known targets, that don't return KEVINTODO: currently includes calls that may return, that never executed
-    int sharedBlocks = 0;
-    int overlapBlocks = 0;
-    int overlapFuncs = 0;
-    int interleavedFuncs = 0;
-    int vaObjs = 0;
+    int dynJumps = 0; //done
+    int nonRetRets = 0; // debug
+    int nonCallCalls = 0; // debug // calls with known targets, that don't return
+    int sharedBlocks = 0; // done
+	int sharedFuncs = 0; // done
+    int overlapBlocks = 0; // done
+    int overlapFuncs = 0; // debug
+    int vAllocObjs = 0; // done
+    int dereferences = 0; // done
 
-    const vector<mapped_object*> objs = llproc->mappedObjects();
+    // foreach defensive object
     for (vector<mapped_object*>::const_iterator oit = objs.begin(); 
          oit != objs.end(); 
          oit++) 
@@ -2252,24 +2253,44 @@ void BPatch_process::printDefensiveStatsInt()
         if (BPatch_defensiveMode != (*oit)->hybridMode()) {
             continue;
         }
+        if ((*oit)->isMemoryImg()) {
+            vAllocObjs ++;
+        }
+        
+        // foreach function
         using namespace ParseAPI;
         mapped_object *obj = *oit;
-        vector<func_instance*> funcs = obj->getAllFunctions();
+        vector<func_instance*> funcs;
+		obj->getAllFunctions(funcs);
         for (vector<func_instance*>::iterator fit = funcs.begin(); 
              fit != funcs.end(); 
              fit++) 
         {
+            //foreach block
             func_instance *func = *fit;
-            BlockSet & blocks = func->blocks();
+            const func_instance::BlockSet & blocks = func->blocks();
             bool sharedFunc = false;
-            for (BlockSet::iterator bit = blocks.begin();
+            for (func_instance::BlockSet::const_iterator bit = blocks.begin();
                  bit != blocks.end();
                  bit++) 
             {
                 block_instance *block = *bit;
-                if (block->llb()->getFuncs().size() > 1) {
+                if (block->isShared()) {
                     sharedFunc = true;
                     sharedBlocks++;
+                }
+                set<block_instance*> oBlocks;
+                obj->findBlocksByAddr(block->last(),oBlocks);
+                if (oBlocks.size() > 1) { 
+                    for (set<block_instance*>::iterator bit = oBlocks.begin();
+                         bit != oBlocks.end();
+                         bit++)
+                    {
+                        if (block->start() < (*bit)->start()) {
+                            overlapBlocks += (oBlocks.size() - 1);
+                            break;
+                        }
+                    }
                 }
                 if (block->containsCall()) {
                     calls++;
@@ -2297,6 +2318,7 @@ void BPatch_process::printDefensiveStatsInt()
                     }
                 }
                 else if (block->isFuncExit()) {
+                    // check for return edges that show call-stack tampering
                     Block::edgelist &edges = block->llb()->targets();
                     for (Block::edgelist::iterator eit = edges.begin();
                          eit != edges.end();
@@ -2305,26 +2327,95 @@ void BPatch_process::printDefensiveStatsInt()
                         if (!(*eit)->sinkEdge() && 
                             ParseAPI::RET == (*eit)->type()) 
                         {
-                            vector<block_instance*> callBs;
-
-void HybridAnalysis::getCallBlocks(Address retAddr, 
-                   instPoint *retPoint,
-                   pair<ParseAPI::Block*, Address> & returningCallB, // output
-                   set<ParseAPI::Block*> & callBlocks) // output
-
-                            hybridAnalysis_->getCallBlocks(block,callBs);
+                            set<ParseAPI::Block*> callBs;
+							pair<ParseAPI::Block*, Address> dontcare;
+							hybridAnalysis_->getCallBlocks(
+                                (*eit)->trg()->start() + obj->getBaseAddress(), 
+                                func,
+                                block,
+								dontcare,
+                                callBs);
                             if (callBs.empty()) { 
                                 nonRetRets++;
                             }
                         }
                     }
                 }
+                block_instance::Insns insns;
+                block->getInsns(insns);
+                block_instance::Insns::reverse_iterator iit = insns.rbegin();
+                if (InstructionAPI::c_BranchInsn == iit->second->getCategory() && 
+                    iit->second->readsMemory()) 
+                {
+                    dynJumps++;
+                }
+                if (1 == block->targets().size() &&
+                    ParseAPI::DIRECT == (*block->targets().begin())->type() &&
+                    InstructionAPI::c_CallInsn == iit->second->getCategory())
+                {
+                    nonCallCalls++;
+                }
+                // foreach instruction
+                for (;iit != insns.rend(); iit++) {
+                    if (iit->second->readsMemory() || 
+                        iit->second->writesMemory()) 
+                    {
+                        dereferences++;
+                    }
+                }
             }
-            if (sharedFunc) {
-                sharedFuncs++;
-            }
+			if (sharedFunc) {
+				sharedFuncs++;
+			}
         }
+
+        set<func_instance*> visitedFs;
+        set<Address> oFuncs;
+        set<func_instance*> curFuncs;
+        std::list<block_instance*> allBs;
+        obj->findBlocksByRange(obj->codeBase(), 
+            obj->codeBase() + obj->get_size(), 
+            allBs);
+        list<block_instance*>::iterator bit = allBs.begin();
+        if (bit != allBs.end()) {
+            (*bit)->getFuncs(std::inserter(curFuncs, curFuncs.end()));
+        }
+        for (; bit != allBs.end(); bit++) {
+            visitedFs.insert(curFuncs.begin(), curFuncs.end());
+            set<func_instance*> bFuncs;
+            (*bit)->getFuncs(std::inserter(bFuncs, bFuncs.end()));
+
+            if (bFuncs.size() == 1 && curFuncs.size() == 1) {// the common case
+                if ((*bFuncs.begin()) != (*curFuncs.begin())) {
+                    // switched from one function to another
+                    if (bFuncs.end() != visitedFs.find(*bFuncs.begin())) {
+                        oFuncs.insert((*bFuncs.begin())->addr());
+                    }
+                    curFuncs.clear();
+                    curFuncs.insert(*bFuncs.begin());
+                }
+            }
+            else {
+                set<func_instance*> newFuncs;
+                std::set_difference(bFuncs.begin(), bFuncs.end(), 
+                                    curFuncs.begin(), curFuncs.end(), 
+                                    inserter(newFuncs, newFuncs.end()));
+                for (set<func_instance*>::iterator fit = newFuncs.begin();
+                     fit != newFuncs.end();
+                     fit++)
+                {
+                    // switched from one function to another
+                    if (visitedFs.end() != visitedFs.find(*fit)) {
+                        oFuncs.insert((*fit)->addr());
+                    }
+                }
+                curFuncs.clear();
+                curFuncs.insert(bFuncs.begin(), bFuncs.end());
+            }
+       }
     }
-    HybridAnalysis::AnalysisStats *stats = hybridAnalysis_->getStats();
-#endif
+    overlapFuncs = oFuncs.size();
+
+    const HybridAnalysis::AnalysisStats *stats = hybridAnalysis_->getStats();
+//#endif
 }

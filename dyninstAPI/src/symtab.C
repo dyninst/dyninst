@@ -1424,12 +1424,10 @@ image::image(fileDescriptor &desc,
    fixup_offsets(file, linkedFile);
 
 #else
-   string file = desc_.file();
+	std::string file = desc_.file();
    startup_printf("%s[%d]: opening file %s\n", FILE__, __LINE__, file.c_str());
-   Symtab::def_t symMode = Symtab::NotDefensive;
-   if (BPatch_defensiveMode == mode) {
-       symMode = Symtab::Defensive;
-   }
+   Symtab::def_t symMode = (BPatch_defensiveMode == mode) ? 
+       Symtab::Defensive : Symtab::NotDefensive;
    if(desc.rawPtr()) {
        linkedFile = new Symtab((unsigned char*)desc.rawPtr(), 
                                           desc.length(), 

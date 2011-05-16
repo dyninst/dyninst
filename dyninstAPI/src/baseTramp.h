@@ -76,7 +76,6 @@ class baseTramp {
                              Address baseInMutatee);
 
     bool checkForFuncCalls();
-    cfjRet_t checkForFuncJumps();
 
     ~baseTramp();
 
@@ -128,7 +127,7 @@ class baseTramp {
     bool skippedRedZone;
     
     bool validOptimizationInfo() { return optimizationInfo_; }
-    bool hasFuncJump() { return funcJumpState_ > cfj_none; }
+    bool hasFuncJump();
 
  public:
     // Code generation methods

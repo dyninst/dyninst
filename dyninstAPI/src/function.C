@@ -215,8 +215,6 @@ void func_instance::removeFromAll()
     mal_printf("purging blocks_ of size = %d from func at %lx\n",
                blocks_.size(), addr());
 
-    //KEVINTODO: this function was completely gutted, it used to delete the int_blocks, and call delete on the parse-level function, the object removes the blocks now, does anyone delete the ParseAPI func? 
-
     // remove from mapped_object & mapped_module datastructures
     obj()->removeFunction(this);
     mod()->removeFunction(this);
@@ -377,6 +375,9 @@ block_instance *func_instance::entryBlock() {
       assert(iEntry);
 
       entry_ = obj()->findBlock(iEntry);
+      if (!entry_) {
+         cerr << "Couldn't find entry block for " << name() << endl;
+      }
    }
    return entry_;
 }
@@ -761,4 +762,13 @@ bool func_instance::isInstrumentable() {
    }
    return true;
 
+}
+
+block_instance *func_instance::getBlock(const Address addr) {
+	block_instance *block = obj()->findOneBlockByAddr(addr);
+	// Make sure it's one of ours
+	std::set<func_instance *> funcs;
+	block->getFuncs(std::inserter(funcs, funcs.end()));
+	if (funcs.find(this) != funcs.end()) return block;
+	return NULL;
 }

@@ -200,11 +200,8 @@ static bool replaceHandler(func_instance *origHandler, func_instance *newHandler
     // Add instrumentation to replace the function
    // TODO: this should be a function replacement!
    // And why the hell is it in parse-x86.C?
-   instPoint *entry = instPoint::funcEntry(origHandler);
-   AstNodePtr funcJump = AstNode::funcReplacementNode(const_cast<func_instance *>(newHandler));
-   miniTramp *mini = entry->push_front(funcJump, true);
+   origHandler->proc()->replaceFunction(origHandler, newHandler);
    origHandler->proc()->relocate();
-    
     
     /* create the special relocation for the new list -- search the RT library for
      * the symbol

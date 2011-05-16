@@ -98,7 +98,6 @@ class EmitterPOWER : public Emitter {
     virtual void emitGetRetVal(Register, bool, codeGen &) { assert(0); }
     virtual void emitGetRetAddr(Register, codeGen &) { assert(0); }
     virtual void emitGetParam(Register, Register, instPoint::Type, opCode, bool, codeGen &) { assert(0); }
-    virtual void emitFuncJump(func_instance*, instPoint::Type, codeGen &) { assert(0); }
     virtual void emitASload(int, int, int, long, Register, int, codeGen &) { assert(0); }
     virtual void emitCSload(int, int, int, long, Register, codeGen &) { assert(0); }
     virtual void emitPushFlags(codeGen &) { assert(0); }
@@ -138,6 +137,8 @@ class EmitterPOWERStat : public EmitterPOWER {
 
     virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
     virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
+
+    bool emitPLTCommon(func_instance *dest, codeGen &gen);
 
  protected:
     virtual Register emitCallReplacement(opCode ocode, codeGen &gen,

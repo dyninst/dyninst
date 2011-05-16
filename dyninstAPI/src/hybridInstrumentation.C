@@ -1144,7 +1144,7 @@ bool HybridAnalysis::hasEdge(BPatch_function *func, Address source, Address targ
 
    block_instance *block = func->lowlevel_func()->obj()->findBlockByEntry(source);
    const block_instance::edgelist &targets = block->targets();
-   for (block_instance::edgelist::iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+   for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
       if ((*iter)->trg()->start() == target)
          return true;
    }
@@ -1471,7 +1471,6 @@ bool HybridAnalysis::getCallAndBranchTargets(block_instance *block,
  */
 bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
 {
-   assert(0 && "KEVINTODO");
 
     bool ret = true;
     if (point->isDynamic()) {
@@ -1481,12 +1480,12 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
             return false;
         }
     }
-#if 0
-    switch(point->getPointType()) 
+    switch(point->llpoint()->type()) 
     {
-      case callSite: 
+      case instPoint::PreCall: 
+      case instPoint::PostCall: 
       {
-        Address targ = point->callTarget();
+        Address targ = (Address) point->getCalledFunction()->getBaseAddr();
         if (targ) {
             targets.push_back(targ);
         } else {
@@ -1494,20 +1493,17 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
         }
         break;
       }
-      case abruptEnd:
-        targets.push_back( point->block()->end() );
-        break;
       default: 
-      { // branch or jump. 
+      { // branch or jump or abruptEnd
         // don't miss targets to invalid addresses 
         // (these get linked to the sink block by ParseAPI)
         using namespace ParseAPI;
-        Address baseAddr = point->block()->start() 
-                         - point->block()->llb()->start();
-        Block::edgelist & trgs = point->block()->llb()->targets();
+        Address baseAddr = point->llpoint()->block()->start() 
+                         - point->llpoint()->block()->llb()->start();
+        Block::edgelist & trgs = point->llpoint()->block()->llb()->targets();
         Block::edgelist::iterator iter = trgs.begin();
-        mapped_object *obj = point->func()->obj();
-        Architecture arch = point->proc()->getArch();
+        mapped_object *obj = point->llpoint()->func()->obj();
+        Architecture arch = point->llpoint()->proc()->getArch();
 
         for ( ; iter != trgs.end(); iter++) {
             if ( ! (*iter)->sinkEdge() ) {
@@ -1521,39 +1517,36 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
                     break;
                 case COND_NOT_TAKEN:
                 case FALLTHROUGH:
-                    if (point->proc()->proc() && 
+                    if (point->llpoint()->proc()->proc() && 
                         BPatch_defensiveMode == 
-                        point->proc()->proc()->getHybridMode()) 
+                        point->llpoint()->proc()->proc()->getHybridMode()) 
                     {
                         assert( 0 && "should be an abrupt end point");
                     }
                     break;
                 default:
                 { // this is a cond'l taken or jump target
-#if defined(cap_instruction_api)
-                using namespace InstructionAPI;
-                RegisterAST::Ptr thePC = RegisterAST::Ptr
-                    ( new RegisterAST( MachRegister::getPC( arch ) ) );
+                    using namespace InstructionAPI;
+                    RegisterAST::Ptr thePC = RegisterAST::Ptr
+                        ( new RegisterAST( MachRegister::getPC( arch ) ) );
 
-                void *ptr = obj->getPtrToInstruction(point->addr());
-                assert(ptr);
-                InstructionDecoder dec
-                    (ptr, InstructionDecoder::maxInstructionLength, arch);
-                Instruction::Ptr insn = dec.decode();
-                Expression::Ptr trgExpr = insn->getControlFlowTarget();
-                    // FIXME: templated bind()
-                trgExpr->bind(thePC.get(), 
-                              Result(s64, point->block()->llb()->lastInsnOffset()));
-                Result actualTarget = trgExpr->eval();
-                if(actualTarget.defined)
-                {
-                    Address targ = actualTarget.convert<Address>() + baseAddr;
-                    targets.push_back( targ );
-                }
-                break;
+                    void *ptr = obj->getPtrToInstruction((Address)point->getAddress());
+                    assert(ptr);
+                    InstructionDecoder dec
+                        (ptr, InstructionDecoder::maxInstructionLength, arch);
+                    Instruction::Ptr insn = dec.decode();
+                    Expression::Ptr trgExpr = insn->getControlFlowTarget();
+                    trgExpr->bind(thePC.get(), 
+                        Result(s64, point->llpoint()->block()->llb()->lastInsnOffset()));
+                    Result actualTarget = trgExpr->eval();
+                    if(actualTarget.defined)
+                    {
+                        Address targ = actualTarget.convert<Address>() + baseAddr;
+                        targets.push_back( targ );
+                    }
+                    break;
                 } // end default case
                 } // end edge-type switch
-#endif
             }
         }
         break;
@@ -1561,6 +1554,5 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
     }
 
     return ret;
-#endif
 }
 

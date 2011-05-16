@@ -237,7 +237,8 @@ DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
 
 void
 DynParseCallback::abruptEnd_cf(Address addr,ParseAPI::Block *b,default_details*)
-{
+{ //KEVINTODO: unset abruptEnd flag in parse_block if we hit it during instrumentation
+  static_cast<parse_block*>(b)->setAbruptEnd(true);
 }
 
 void
@@ -249,12 +250,9 @@ DynParseCallback::newfunction_retstatus(Function *func)
 void
 DynParseCallback::block_split(Block *first, Block *second)
 {
-    //KEVINTODO: what happened to the block->instPoint pointers? need to update them _img->fixSplitPoints(first,second);
-    if (unlikely(_img->hybridMode())) {
-       image::BlockSplit sb (static_cast<parse_block *>(first),
-                             static_cast<parse_block *>(second));
-      _img->addSplitBlock(sb);
-    }
+   image::BlockSplit sb (static_cast<parse_block *>(first),
+                         static_cast<parse_block *>(second));
+   _img->addSplitBlock(sb);
 }
 
 void DynParseCallback::block_delete(Block *b) {
@@ -303,6 +301,10 @@ DynParseCallback::updateCodeBytes(Address target)
     return codeBytesUpdateCB( _img->cb_arg0(), 
                               target + _img->desc().loadAddr() );
 }
+
+// KEVINTODO: add callback for deleted blocks and functions that 
+// trigger deletions at the int-layer.  Also make sure that the places
+// from which we were deleting blocks allow this to happen correctly. 
 
 bool 
 DynParseCallback::absAddr(Address absoluteAddr, Address &load, CodeObject *&co) 

@@ -325,23 +325,6 @@ class BPATCH_DLL_EXPORT BPatch_funcCallExpr : public BPatch_snippet {
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
-#define DYNINST_CLASS_NAME BPatch_funcJumpExpr
-
-class BPATCH_DLL_EXPORT BPatch_funcJumpExpr : public BPatch_snippet {
-
-    //  BPatch_funcJumpExpr::BPatch_funcJumpExpr
-    //  Creates a representation of a jump to a function without linkage
- private:
-   API_EXPORT_CTOR(Int, (func, genCall), 
-                   BPatch_funcJumpExpr,(const BPatch_function &func, bool genCall));
- public:
-   API_EXPORT_CTOR(Int, (func),
-   BPatch_funcJumpExpr,(const BPatch_function& func));
-};
-
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
 #define DYNINST_CLASS_NAME BPatch_ifExpr
 
 class BPATCH_DLL_EXPORT BPatch_ifExpr : public BPatch_snippet {

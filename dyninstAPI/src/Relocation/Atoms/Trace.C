@@ -193,7 +193,7 @@ void Trace::getSuccessors(const std::map<block_instance *, Trace::Ptr> &traces) 
    // Edges to a raw address, caused by representing inter-CodeObject edges
    //   -- this last is a Defensive mode special.
    const block_instance::edgelist &targets = block_->targets();
-   for (block_instance::edgelist::iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+   for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
       processEdge(OutEdge, *iter, traces);
    }
 
@@ -201,7 +201,7 @@ void Trace::getSuccessors(const std::map<block_instance *, Trace::Ptr> &traces) 
 
 void Trace::getPredecessors(const std::map<block_instance *, Trace::Ptr> &traces) {
    const block_instance::edgelist &edges = block_->sources();
-   for (block_instance::edgelist::iterator iter = edges.begin(); iter != edges.end(); ++iter) {
+   for (block_instance::edgelist::const_iterator iter = edges.begin(); iter != edges.end(); ++iter) {
       processEdge(InEdge, *iter, traces);
    }
 
@@ -285,7 +285,7 @@ void Trace::processEdge(EdgeDirection e, edge_instance *edge, const std::map<blo
 
 void Trace::preserveBlockGap() {
    const block_instance::edgelist &targets = block_->targets();
-   for (block_instance::edgelist::iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+   for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
       if ((*iter)->type() == ParseAPI::CALL_FT ||
           (*iter)->type() == ParseAPI::FALLTHROUGH ||
           (*iter)->type() == ParseAPI::COND_NOT_TAKEN) {
@@ -602,9 +602,7 @@ void Trace::replaceOutEdge(ParseAPI::EdgeTypeEnum type,
 }
 
 void Trace::setAsInstrumentationTrace() {
-   // This is a bit hacky...
-   origAddr_ = 0;
-   block_ = NULL;
+   origTrace_ = false;
 }
 
 Trace::Ptr Trace::split(AtomList::iterator where) {

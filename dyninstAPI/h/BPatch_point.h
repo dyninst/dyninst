@@ -107,13 +107,20 @@ private:
     AddressSpace *lladdSpace;
     BPatch_function	*func;
     BPatch_basicBlockLoop *loop;
+
+    // We have a disconnect between how BPatch represents a point
+    // (e.g., an instruction) and how the internals represent a point
+    // (e.g., pre-instruction). We handle this here with a secondary
+    // instPoint that is defined to be the "after" equivalent. 
     instPoint	*point;
+    instPoint   *secondaryPoint;
 
     BPatch_procedureLocation pointType;
     BPatch_memoryAccess *memacc;
     // Instruction constructor...
     BPatch_point(BPatch_addressSpace *_addSpace, BPatch_function *_func, 
-                 instPoint *_point, BPatch_procedureLocation _pointType,
+                 instPoint *_point, instPoint *_secondary,
+                 BPatch_procedureLocation _pointType,
                  AddressSpace *as);
 
     // Edge constructor...
@@ -137,7 +144,8 @@ private:
     //  maybe we want BPatchSnippetHandle here
     miniTramp *dynamic_point_monitor_func;
 
-    instPoint * getPoint() {return point;}
+    instPoint *getPoint() {return point;}
+    instPoint *getPoint(BPatch_callWhen when);
 
     // If we're edge inst
     BPatch_edge *edge_;

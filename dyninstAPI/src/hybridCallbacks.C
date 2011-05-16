@@ -490,15 +490,15 @@ static int getPreCallPoints(ParseAPI::Block* blk,
 // that we've found a call block that actually called the function
 // we're returning from 
 void HybridAnalysis::getCallBlocks(Address retAddr, 
-                   instPoint *retPoint,
+                   func_instance *retFunc,
+                   block_instance *retBlock,
                    pair<ParseAPI::Block*, Address> & returningCallB, // output
                    set<ParseAPI::Block*> & callBlocks) // output
 {
    // find blocks at returnAddr -1 
    using namespace ParseAPI;
-   process *llproc = retPoint->func()->proc()->proc();
+   process *llproc = retFunc->proc()->proc();
    mapped_object *callObj = llproc->findObject((Address)retAddr - 1);
-   parse_func * retF = retPoint->func()->ifunc();
    std::set<CodeRegion*> callRegs;
    if (callObj) {
       callObj->parse_img()->codeObject()->cs()->
@@ -533,7 +533,6 @@ void HybridAnalysis::getCallBlocks(Address retAddr,
        returningCallB.first == NULL && bit != callBlocks.end();
        bit++) 
    {
-      func_instance *retFunc = retPoint->func();
       if (BPatch_defensiveMode != retFunc->obj()->hybridMode()) {
           func_instance *origF = llproc->isFunctionReplacement(retFunc);
           if (origF) {
@@ -557,7 +556,7 @@ void HybridAnalysis::getCallBlocks(Address retAddr,
               Function *calledF = calledB->obj()->
                   findFuncByEntry(calledB->region(), calledB->start());
               if (calledF == retFunc->ifunc() || 
-                  calledF->contains(retPoint->block()->llb()))
+                  calledF->contains(retBlock->llb()))
               {
                   returningCallB.first = *bit;
                   returningCallB.second = calledB->start() + 
@@ -577,7 +576,7 @@ void HybridAnalysis::getCallBlocks(Address retAddr,
                           findFuncByEntry(tailCalledB->region(), 
                                           tailCalledB->start());
                       if (retFunc->ifunc() == tCalledF || 
-                          tCalledF->contains(retPoint->block()->llb()))
+                          tCalledF->contains(retBlock->llb()))
                       {
                           // make sure it really is a tail call
                           // (i.e., the src has no CALL_FT)
@@ -733,9 +732,10 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         // past, but only set set returningCallB if we can be sure that 
         // that we've found a call block that actually called the function
         // we're returning from 
-        pair<Block*, Address> returningCallB(NULL,0); 
+        pair<Block*, Address> returningCallB((Block*)NULL,0); 
         set<Block*> callBlocks;
-        getCallBlocks(returnAddr,point->llpoint(), returningCallB, callBlocks);
+        getCallBlocks(returnAddr, point->llpoint()->func(), 
+                      point->llpoint()->block(), returningCallB, callBlocks);
 
         // 3.2.1 parse at returnAddr as the fallthrough of the preceding
         // call block, if there is one 

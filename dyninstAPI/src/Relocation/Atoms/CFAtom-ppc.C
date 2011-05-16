@@ -177,10 +177,12 @@ bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
       return false;
    }
 
-   // We need a registerSpace for this. For now, assume we're at
-   // a call boundary (as that's _really_ the only place we can
-   // be for now) and set it to the optimistic register space.
-   gen.setRegisterSpace(registerSpace::optimisticRegSpace(gen.addrSpace()));
+   // We need a RegisterSpace for this. Amusingly,
+   // we want to use the RegisterSpace corresponding to the
+   // entry of the callee, as it doesn't matter what's live
+   // here. 
+   instPoint *calleeEntry = instPoint::funcEntry(callee);
+   gen.setRegisterSpace(registerSpace::actualRegSpace(calleeEntry));
 
    if (type == Call) 
       gen.codeEmitter()->emitPLTCall(callee, gen);

@@ -126,10 +126,10 @@ public:
     void addReplacedFuncs(std::vector<std::pair<BPatch_function*,BPatch_function*> > &repFs);
 
     void getCallBlocks(Address retAddr, 
-                       instPoint *retPoint,
+                       func_instance *retFunc,
+                       block_instance *retBlock,
                        pair<ParseAPI::Block*, Address> & returningCallB, // output
                        set<ParseAPI::Block*> & callBlocks); // output
-
 
     std::map< BPatch_point* , SynchHandle* > & synchMap_pre();
     std::map< BPatch_point* , SynchHandle* > & synchMap_post();
