@@ -7,19 +7,19 @@
 ######################################################################
 
 
-proccontrol_MUTATORS = pc_launch pc_thread_cont pc_breakpoint pc_library pc_singlestep pc_thread pc_irpc 
+proccontrol_MUTATORS = pc_launch pc_thread_cont pc_breakpoint pc_library pc_singlestep pc_thread pc_irpc pc_detach pc_terminate pc_terminate_stopped 
 
-proccontrol_OBJS_ALL_MUTATORS = pc_launch.o pc_thread_cont.o pc_breakpoint.o pc_library.o pc_singlestep.o pc_thread.o pc_irpc.o 
-
-
-dyninst_MUTATORS = test1_1 test1_2 test1_3 test1_4 test1_5 test1_6 test1_7 test1_8 test1_9 test1_10 test1_11 test1_12 test1_13 test1_14 test1_15 test1_16 test1_17 test1_18 test1_19 test1_20 test1_21 test1_22 snip_ref_shlib_var snip_change_shlib_var test_snip_remove init_fini_callback test1_23 test1_24 test1_25 test1_26 test1_27 test1_28 test1_29 test1_30 test1_31 test1_32 test1_33 test1_34 test1_35 test1_36 test1_37 test1_38 test1_39 test1_40 test1_41 test_pt_ls test2_1 test2_2 test2_3 test2_4 test2_5 test2_6 test2_8 test2_11 test2_12 test2_13 test2_14 test3_1 test3_2 test3_3 test3_4 test3_5 test3_6 test3_7 test4_1 test4_2 test4_3 test4_4 test5_1 test5_2 test5_3 test5_4 test5_5 test5_6 test5_7 test5_8 test5_9 test_fork_5 test_fork_6 test_fork_7 test_fork_8 test_fork_9 test_fork_10 test_fork_11 test_fork_12 test_fork_13 test_stack_1 test_stack_2 test_stack_3 test_stack_4 test_callback_1 test_callback_2 test_thread_1 test_thread_2 test_thread_3 test_thread_5 test_thread_6 test_thread_7 test_thread_8 
-
-dyninst_OBJS_ALL_MUTATORS = test1_1.o test1_2.o test1_3.o test1_4.o test1_5.o test1_6.o test1_7.o test1_8.o test1_9.o test1_10.o test1_11.o test1_12.o test1_13.o test1_14.o test1_15.o test1_16.o test1_17.o test1_18.o test1_19.o test1_20.o test1_21.o test1_22.o snip_ref_shlib_var.o snip_change_shlib_var.o test_snip_remove.o init_fini_callback.o test1_23.o test1_24.o test1_25.o test1_26.o test1_27.o test1_28.o test1_29.o test1_30.o test1_31.o test1_32.o test1_33.o test1_34.o test1_35.o test1_36.o test1_37.o test1_38.o test1_39.o test1_40.o test1_41.o test_pt_ls.o test2_1.o test2_2.o test2_3.o test2_4.o test2_5.o test2_6.o test2_8.o test2_11.o test2_12.o test2_13.o test2_14.o test3_1.o test3_2.o test3_3.o test3_4.o test3_5.o test3_6.o test3_7.o test4_1.o test4_2.o test4_3.o test4_4.o test5_1.o test5_2.o test5_3.o test5_4.o test5_5.o test5_6.o test5_7.o test5_8.o test5_9.o test_fork_5.o test_fork_6.o test_fork_7.o test_fork_8.o test_fork_9.o test_fork_10.o test_fork_11.o test_fork_12.o test_fork_13.o test_stack_1.o test_stack_2.o test_stack_3.o test_stack_4.o test_callback_1.o test_callback_2.o test_thread_1.o test_thread_2.o test_thread_3.o test_thread_5.o test_thread_6.o test_thread_7.o test_thread_8.o 
+proccontrol_OBJS_ALL_MUTATORS = pc_launch.o pc_thread_cont.o pc_breakpoint.o pc_library.o pc_singlestep.o pc_thread.o pc_irpc.o pc_detach.o pc_terminate.o pc_terminate_stopped.o 
 
 
-instruction_MUTATORS = test_instruction_read_write test_instruction_farcall test_instruction_bind_eval test_instruction_profile power_decode power_cft fucompp 
+dyninst_MUTATORS = test1_1 test1_2 test1_3 test1_4 test1_5 test1_6 test1_7 test1_8 test1_9 test1_10 test1_11 test1_12 test1_13 test1_14 test1_15 test1_16 test1_17 test1_18 test1_19 test1_20 test1_21 test1_22 snip_ref_shlib_var snip_change_shlib_var test_snip_remove init_fini_callback test1_23 test1_24 test1_25 test1_26 test1_27 test1_28 test1_29 test1_30 test1_31 test1_32 test1_33 test1_34 test1_35 test1_36 test1_37 test1_38 test1_39 test1_40 test1_41 test_write_param test_pt_ls test2_1 test2_2 test2_3 test2_4 test2_5 test2_6 test2_8 test2_11 test2_12 test2_13 test2_14 test3_1 test3_2 test3_3 test3_4 test3_5 test3_6 test3_7 test4_1 test4_2 test4_3 test4_4 test5_1 test5_2 test5_3 test5_4 test5_5 test5_6 test5_7 test5_8 test5_9 test_mem_1 test_mem_2 test_mem_3 test_mem_4 test_mem_5 test_mem_6 test_mem_7 test_mem_8 test_fork_5 test_fork_6 test_fork_7 test_fork_8 test_fork_9 test_fork_10 test_fork_11 test_fork_12 test_fork_13 test_stack_1 test_stack_2 test_stack_3 test_stack_4 test_callback_1 test_callback_2 test_thread_1 test_thread_2 test_thread_3 test_thread_5 test_thread_6 test_thread_7 test_thread_8 
 
-instruction_OBJS_ALL_MUTATORS = test_instruction_read_write.o test_instruction_farcall.o test_instruction_bind_eval.o test_instruction_profile.o power_decode.o power_cft.o fucompp.o 
+dyninst_OBJS_ALL_MUTATORS = test1_1.o test1_2.o test1_3.o test1_4.o test1_5.o test1_6.o test1_7.o test1_8.o test1_9.o test1_10.o test1_11.o test1_12.o test1_13.o test1_14.o test1_15.o test1_16.o test1_17.o test1_18.o test1_19.o test1_20.o test1_21.o test1_22.o snip_ref_shlib_var.o snip_change_shlib_var.o test_snip_remove.o init_fini_callback.o test1_23.o test1_24.o test1_25.o test1_26.o test1_27.o test1_28.o test1_29.o test1_30.o test1_31.o test1_32.o test1_33.o test1_34.o test1_35.o test1_36.o test1_37.o test1_38.o test1_39.o test1_40.o test1_41.o test_write_param.o test_pt_ls.o test2_1.o test2_2.o test2_3.o test2_4.o test2_5.o test2_6.o test2_8.o test2_11.o test2_12.o test2_13.o test2_14.o test3_1.o test3_2.o test3_3.o test3_4.o test3_5.o test3_6.o test3_7.o test4_1.o test4_2.o test4_3.o test4_4.o test5_1.o test5_2.o test5_3.o test5_4.o test5_5.o test5_6.o test5_7.o test5_8.o test5_9.o test_mem_1.o test_mem_2.o test_mem_3.o test_mem_4.o test_mem_5.o test_mem_6.o test_mem_7.o test_mem_8.o test_fork_5.o test_fork_6.o test_fork_7.o test_fork_8.o test_fork_9.o test_fork_10.o test_fork_11.o test_fork_12.o test_fork_13.o test_stack_1.o test_stack_2.o test_stack_3.o test_stack_4.o test_callback_1.o test_callback_2.o test_thread_1.o test_thread_2.o test_thread_3.o test_thread_5.o test_thread_6.o test_thread_7.o test_thread_8.o 
+
+
+instruction_MUTATORS = test_instruction_read_write test_instruction_farcall test_instruction_bind_eval test_instruction_profile power_decode power_cft fucompp mov_size_details 
+
+instruction_OBJS_ALL_MUTATORS = test_instruction_read_write.o test_instruction_farcall.o test_instruction_bind_eval.o test_instruction_profile.o power_decode.o power_cft.o fucompp.o mov_size_details.o 
 
 
 symtab_MUTATORS = test_lookup_func test_lookup_var test_add_symbols test_line_info test_module test_type_info test_symtab_ser_funcs test_ser_anno test_anno_basic_types 
@@ -42,7 +42,23 @@ ifdef STRIP_SO
 endif
 endif
 
+mov_size_details.so: mov_size_details.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/mov_size_details.dep $(LIBTESTSUITE) $(instruction_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(instruction_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -linstructionAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
 pc_breakpoint.so: pc_breakpoint.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_breakpoint.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+pc_detach.so: pc_detach.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_detach.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
 	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
@@ -75,6 +91,22 @@ endif
 endif
 
 pc_singlestep.so: pc_singlestep.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_singlestep.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+pc_terminate.so: pc_terminate.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_terminate.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+pc_terminate_stopped.so: pc_terminate_stopped.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_terminate_stopped.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
 	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
@@ -866,6 +898,70 @@ ifdef STRIP_SO
 endif
 endif
 
+test_mem_1.so: test_mem_1.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_mem_1.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+test_mem_2.so: test_mem_2.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_mem_2.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+test_mem_3.so: test_mem_3.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_mem_3.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+test_mem_4.so: test_mem_4.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_mem_4.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+test_mem_5.so: test_mem_5.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_mem_5.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+test_mem_6.so: test_mem_6.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_mem_6.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+test_mem_7.so: test_mem_7.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_mem_7.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+test_mem_8.so: test_mem_8.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_mem_8.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
 test_module.so: test_module.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_module.dep $(LIBTESTSUITE) $(symtab_COMPONENT_LIB)
 	$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
 ifndef NO_OPT_FLAG
@@ -996,6 +1092,14 @@ endif
 
 test_type_info.so: test_type_info.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_type_info.dep $(LIBTESTSUITE) $(symtab_COMPONENT_LIB)
 	$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+test_write_param.so: test_write_param.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_write_param.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -34,6 +34,9 @@
 #include <assert.h>
 #include <string.h>
 #include <algorithm>
+#include <iostream>
+#include <iomanip>
+#include <sstream>
 
 #include "common/h/Timer.h"
 #include "common/h/debugOstream.h"
@@ -1152,13 +1155,14 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
     return (ret);
 }
 
-Symtab::Symtab(std::string filename,bool &err) :
+Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    member_offset_(0),
    is_a_out(false), 
    main_call_addr_(0),
    nativeCompiler(false), 
    isLineInfoValid_(false), 
    isTypeInfoValid_(false),
+   isDefensiveBinary_(defensive_bin),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1183,7 +1187,8 @@ Symtab::Symtab(std::string filename,bool &err) :
       return;
    }
 
-   obj_private = new Object(mf, mfForDebugInfo, symtab_log_perror, true);
+   obj_private = new Object(mf, mfForDebugInfo, defensive_bin, 
+                            symtab_log_perror, true);
    if (obj_private->hasError()) {
      err = true;
      return;
@@ -1201,13 +1206,15 @@ Symtab::Symtab(std::string filename,bool &err) :
    defaultNamespacePrefix = "";
 }
 
-Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
+Symtab::Symtab(unsigned char *mem_image, size_t image_size, 
+               const std::string &name, bool defensive_bin, bool &err) :
    member_offset_(0),
    is_a_out(false), 
    main_call_addr_(0),
    nativeCompiler(false),
    isLineInfoValid_(false),
    isTypeInfoValid_(false),
+   isDefensiveBinary_(defensive_bin),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1218,7 +1225,7 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
                  FILE__, __LINE__, mem_image);
 
    //  createMappedFile handles reference counting
-   mf = MappedFile::createMappedFile(mem_image, image_size);
+   mf = MappedFile::createMappedFile(mem_image, image_size, name);
    if (!mf) {
       create_printf("%s[%d]: WARNING: creating symtab for memory image at " 
                     "addr %u, createMappedFile() failed\n", FILE__, __LINE__, 
@@ -1227,7 +1234,8 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
       return;
    }
 
-   obj_private = new Object(mf, mfForDebugInfo, symtab_log_perror, true);
+   obj_private = new Object(mf, mfForDebugInfo, defensive_bin, 
+                            symtab_log_perror, true);
    if (obj_private->hasError()) {
      err = true;
      return;
@@ -1279,7 +1287,7 @@ Symtab::Symtab(std::string, std::string, Offset, bool &, void *)
 }
 #endif
 
-#if defined(os_aix)
+#if defined(os_aix) // is this ever used on AIX? 
 Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
                        Offset offset, bool &err, void *base) :
    member_name_(member_name), 
@@ -1386,6 +1394,8 @@ bool Symtab::extractInfo(Object *linkedFile)
         if ( regions_[index]->isLoadable() ) 
         {
            if (     (regions_[index]->getRegionPermissions() == Region::RP_RX) 
+                 || (isDefensiveBinary_ && 
+                     regions_[index]->getRegionPermissions() == Region::RP_RW)
                  || (regions_[index]->getRegionPermissions() == Region::RP_RWX)) 
            {
               codeRegions_.push_back(regions_[index]);
@@ -1575,6 +1585,7 @@ Symtab::Symtab(const Symtab& obj) :
     imageLen_ = obj.imageLen_;
     dataOffset_ = obj.dataOffset_;
     dataLen_ = obj.dataLen_;
+    isDefensiveBinary_ = obj.isDefensiveBinary_;
 
    isLineInfoValid_ = obj.isLineInfoValid_;
    isTypeInfoValid_ = obj.isTypeInfoValid_;
@@ -1955,8 +1966,8 @@ Symtab *Symtab::importBin(std::string file)
 #endif
 }
 
-
-bool Symtab::openFile(Symtab *&obj, char *mem_image, size_t size)
+bool Symtab::openFile(Symtab *&obj, void *mem_image, size_t size, 
+                      std::string name, def_t def_bin)
 {
    bool err = false;
 #if defined(TIMED_PARSE)
@@ -1964,7 +1975,7 @@ bool Symtab::openFile(Symtab *&obj, char *mem_image, size_t size)
    gettimeofday(&starttime, NULL);
 #endif
 
-   obj = new Symtab(mem_image, size, err);
+   obj = new Symtab((unsigned char *) mem_image, size, name, (def_bin == Defensive), err);
 
 #if defined(TIMED_PARSE)
     struct timeval endtime;
@@ -2028,7 +2039,7 @@ Symtab *Symtab::findOpenSymtab(std::string filename)
 	return NULL;
 }
 
-bool Symtab::openFile(Symtab *&obj, std::string filename)
+bool Symtab::openFile(Symtab *&obj, std::string filename, def_t def_binary)
 {
    bool err = false;
 #if defined(TIMED_PARSE)
@@ -2074,7 +2085,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
 #endif
 #endif
 
-   obj = new Symtab(filename, err);
+   obj = new Symtab(filename, (def_binary == Defensive), err);
 
 #if defined(TIMED_PARSE)
    struct timeval endtime;
@@ -2735,8 +2746,8 @@ SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
     if (symsByMangledName.count(name) == 0) return false;
     // /* DEBUG
     if (symsByMangledName[name].size() != 1)
-        fprintf(stderr, "*** Found %d symbols with name %s.  Expecting 1.\n",
-                symsByMangledName[name].size(), name); // */
+        fprintf(stderr, "*** Found %u symbols with name %s.  Expecting 1.\n",
+                (unsigned) symsByMangledName[name].size(), name); // */
     Symbol *sym = symsByMangledName[name][0];
 
     // Update symbol.
@@ -3686,6 +3697,11 @@ SYMTAB_EXPORT Address Symtab::getLoadAddress()
 #else
    return 0x0;
 #endif
+}
+
+SYMTAB_EXPORT bool Symtab::isDefensiveBinary() const
+{
+    return isDefensiveBinary_;
 }
 
 SYMTAB_EXPORT bool Symtab::canBeShared()

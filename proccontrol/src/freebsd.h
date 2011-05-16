@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -83,7 +83,7 @@ public:
     Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class freebsd_process : public thread_db_process, public sysv_process, public unix_process, public x86_process
+class freebsd_process : public sysv_process, public unix_process, public x86_process, public thread_db_process
 {
 public:
     freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
@@ -92,10 +92,10 @@ public:
     virtual ~freebsd_process();
 
     virtual bool plat_create();
-    virtual bool plat_attach();
+    virtual bool plat_attach(bool allStopped);
     virtual bool plat_forked();
     virtual bool plat_execed();
-    virtual bool plat_detach(bool &needs_sync);
+    virtual bool plat_detach();
     virtual bool plat_terminate(bool &needs_sync);
 
     virtual bool plat_readMem(int_thread *thr, void *local,
@@ -108,12 +108,20 @@ public:
     virtual Dyninst::Architecture getTargetArch();
     virtual bool plat_individualRegAccess();
     virtual bool plat_contProcess();
+    virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
 
     virtual bool post_attach();
     virtual bool post_create();
     virtual int getEventQueue();
     virtual bool initKQueueEvents();
     virtual SymbolReaderFactory *plat_defaultSymReader();
+
+    /* handling forks on FreeBSD */
+    virtual bool forked();
+    virtual bool isForking() const;
+    virtual void setForking(bool b);
+    virtual bool post_forked();
+    virtual freebsd_process *getParent();
 
     /* thread_db_process methods */
     virtual const char *getThreadLibName(const char *symName);
@@ -122,6 +130,8 @@ public:
     
 protected:
     string libThreadName;
+    bool forking;
+    freebsd_process *parent;
 };
 
 class freebsd_thread : public thread_db_thread
@@ -139,6 +149,10 @@ public:
     virtual bool plat_setAllRegisters(int_registerPool &reg);
     virtual bool plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val);
     virtual bool attach();
+    virtual bool plat_suspend();
+    virtual bool plat_resume();
+    virtual bool plat_needsEmulatedSingleStep(vector<Dyninst::Address> &) { return true; }
+    virtual bool plat_needsPCSaveBeforeSingleStep() { return false; }
 
     /* FreeBSD-specific */
     virtual bool plat_setStep();
@@ -201,5 +215,15 @@ public:
     void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 #endif
+
+class FreeBSDPreForkHandler : public Handler
+{
+public:
+    FreeBSDPreForkHandler();
+    ~FreeBSDPreForkHandler();
+    virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
+    virtual int getPriority() const;
+    void getEventTypesHandled(std::vector<EventType> &etypes);
+};
 
 #endif

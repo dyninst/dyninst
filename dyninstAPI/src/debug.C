@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -209,23 +209,17 @@ int bpinfo(const char *format, ...)
 // Internal debugging
 
 int dyn_debug_malware = 0;
-int dyn_debug_signal = 0;
-int dyn_debug_infrpc = 0;
 int dyn_debug_startup = 0;
 int dyn_debug_parsing = 0;
-int dyn_debug_forkexec = 0;
 int dyn_debug_proccontrol = 0;
 int dyn_debug_stackwalk = 0;
-int dyn_debug_dbi = 0;
 int dyn_debug_inst = 0;
 int dyn_debug_reloc = 0;
+int dyn_debug_springboard = 0;
+int dyn_debug_sensitivity = 0;
 int dyn_debug_dyn_unw = 0;
-int dyn_debug_dyn_dbi = 0;
 int dyn_debug_mutex = 0;
-int dyn_debug_mailbox = 0;
-int dyn_debug_async = 0;
 int dyn_debug_dwarf = 0;
-int dyn_debug_thread = 0;
 int dyn_debug_rtlib = 0;
 int dyn_debug_catchup = 0;
 int dyn_debug_bpatch = 0;
@@ -236,28 +230,24 @@ int dyn_debug_liveness = 0;
 int dyn_debug_infmalloc = 0;
 int dyn_debug_crash = 0;
 char *dyn_debug_crash_debugger = NULL;
-int dyn_debug_relocation = 0;
+int dyn_debug_disassemble = 0;
 
 static char *dyn_debug_write_filename = NULL;
 static FILE *dyn_debug_write_file = NULL;
 
 bool init_debug() {
+  static bool init = false;
+  if (init) return true;
+  init = true;
+
   char *p;
   if ( (p=getenv("DYNINST_DEBUG_MALWARE"))) {
     fprintf(stderr, "Enabling DyninstAPI malware debug\n");
     dyn_debug_malware = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_SIGNAL"))) {
-    fprintf(stderr, "Enabling DyninstAPI signal debug\n");
-    dyn_debug_signal = 1;
-  }
-  if ( (p=getenv("DYNINST_DEBUG_INFRPC"))) {
-    fprintf(stderr, "Enabling DyninstAPI inferior RPC debug\n");
-    dyn_debug_infrpc = 1;
-  }
-  if ( (p=getenv("DYNINST_DEBUG_INFERIORRPC"))) {
-    fprintf(stderr, "Enabling DyninstAPI inferior RPC debug\n");
-    dyn_debug_infrpc = 1;
+  if ( (p=getenv("DYNINST_DEBUG_SPRINGBOARD"))) {
+    fprintf(stderr, "Enabling DyninstAPI springboard debug\n");
+    dyn_debug_springboard = 1;
   }
   if ( (p=getenv("DYNINST_DEBUG_STARTUP"))) {
     fprintf(stderr, "Enabling DyninstAPI startup debug\n");
@@ -275,11 +265,16 @@ bool init_debug() {
 	    dyn_debug_parsing = 1;
 	  }
   }
-  if ( (p=getenv("DYNINST_DEBUG_FORKEXEC"))) {
-    fprintf(stderr, "Enabling DyninstAPI forkexec debug\n");
-    dyn_debug_forkexec = 1;
-  }
-  if ( (p=getenv("DYNINST_DEBUG_DYNPC"))) {
+  if (    (p=getenv("DYNINST_DEBUG_DYNPC")) 
+       || (p=getenv("DYNINST_DEBUG_FORKEXEC")) 
+       || (p=getenv("DYNINST_DEBUG_INFRPC"))
+       || (p=getenv("DYNINST_DEBUG_SIGNAL"))
+       || (p=getenv("DYNINST_DEBUG_INFERIORRPC"))
+       || (p=getenv("DYNINST_DEBUG_THREAD"))
+       || (p=getenv("DYNINST_DEBUG_MAILBOX"))
+       || (p=getenv("DYNINST_DEBUG_DBI"))
+     ) 
+  {
     fprintf(stderr, "Enabling DyninstAPI process control debug\n");
     dyn_debug_proccontrol = 1;
   }
@@ -299,34 +294,22 @@ bool init_debug() {
     fprintf(stderr, "Enabling DyninstAPI relocation debug\n");
     dyn_debug_reloc = 1;
   }
+  if ( (p=getenv("DYNINST_DEBUG_SENSITIVITY"))) {
+    fprintf(stderr, "Enabling DyninstAPI sensitivity debug\n");
+    dyn_debug_sensitivity = 1;
+  }
   if ( (p=getenv("DYNINST_DEBUG_DYN_UNW"))) {
     fprintf(stderr, "Enabling DyninstAPI dynamic unwind debug\n");
     dyn_debug_dyn_unw = 1;
-    }
-  if ( (p=getenv("DYNINST_DEBUG_DBI"))) {
-    fprintf(stderr, "Enabling DyninstAPI debugger interface debug\n");
-    dyn_debug_dyn_dbi = 1;
     }
   if ( (p=getenv("DYNINST_DEBUG_MUTEX"))) {
     fprintf(stderr, "Enabling DyninstAPI mutex debug\n");
     dyn_debug_mutex = 1;
     }
-  if ( (p=getenv("DYNINST_DEBUG_MAILBOX"))) {
-    fprintf(stderr, "Enabling DyninstAPI callbacks debug\n");
-    dyn_debug_mailbox= 1;
-    }
   if ( (p=getenv("DYNINST_DEBUG_DWARF"))) {
     fprintf(stderr, "Enabling DyninstAPI dwarf debug\n");
     dyn_debug_dwarf= 1;
     }
-  if ( (p=getenv("DYNINST_DEBUG_ASYNC"))) {
-    fprintf(stderr, "Enabling DyninstAPI async debug\n");
-    dyn_debug_async= 1;
-    }
-  if ( (p=getenv("DYNINST_DEBUG_THREAD"))) {
-      fprintf(stderr, "Enabling DyninstAPI thread debug\n");
-      dyn_debug_thread = 1;
-  }
   if ( (p=getenv("DYNINST_DEBUG_RTLIB"))) {
       fprintf(stderr, "Enabling DyninstAPI RTlib debug\n");
       dyn_debug_rtlib = 1;
@@ -366,11 +349,10 @@ bool init_debug() {
      dyn_debug_crash = 1;
      dyn_debug_crash_debugger = p;
   }
-  if ((p=getenv("DYNINST_DEBUG_RELOCATION"))) {
-    fprintf(stderr, "Enabling DyninstAPI relocation debugging\n");
-    dyn_debug_relocation = 1;
+  if ((p=getenv("DYNINST_DEBUG_DISASS"))) {
+      fprintf(stderr, "Enabling DyninstAPI instrumentation disassembly debugging\n");
+      dyn_debug_disassemble = 1;
   }
-
   debugPrintLock = new eventLock();
 
   return true;
@@ -383,42 +365,6 @@ int mal_printf(const char *format, ...)
 
   debugPrintLock->_Lock(FILE__, __LINE__);
 
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
-
-  debugPrintLock->_Unlock(FILE__, __LINE__);
-
-  return ret;
-}
-
-int signal_printf_int(const char *format, ...)
-{
-  if (!dyn_debug_signal) return 0;
-  if (NULL == format) return -1;
-
-  debugPrintLock->_Lock(FILE__, __LINE__);
-
-  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
-
-  debugPrintLock->_Unlock(FILE__, __LINE__);
-
-  return ret;
-}
-
-int inferiorrpc_printf_int(const char *format, ...)
-{
-  if (!dyn_debug_infrpc) return 0;
-  if (NULL == format) return -1;
-
-  debugPrintLock->_Lock(FILE__, __LINE__);
-
-  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -467,24 +413,6 @@ int parsing_printf_int(const char *format, ...)
   return ret;
 }
 
-int forkexec_printf_int(const char *format, ...)
-{
-  if (!dyn_debug_forkexec) return 0;
-  if (NULL == format) return -1;
-
-  debugPrintLock->_Lock(FILE__, __LINE__);
-
-  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
-
-  debugPrintLock->_Unlock(FILE__, __LINE__);
-
-  return ret;
-}
-
 int proccontrol_printf_int(const char *format, ...)
 {
   if (!dyn_debug_proccontrol) return 0;
@@ -520,8 +448,6 @@ int stackwalk_printf_int(const char *format, ...)
 
   return ret;
 }
-
-
 
 int inst_printf_int(const char *format, ...)
 {
@@ -577,24 +503,6 @@ int dyn_unw_printf_int(const char *format, ...)
   return ret;
 }
 
-int dbi_printf_int(const char *format, ...)
-{
-  if (!dyn_debug_dyn_dbi ) return 0;
-  if (NULL == format) return -1;
-
-  debugPrintLock->_Lock(FILE__, __LINE__);
-  
-  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
-
-  debugPrintLock->_Unlock(FILE__, __LINE__);
-
-  return ret;
-}
-
 int mutex_printf_int(const char *format, ...)
 {
   if (!dyn_debug_mutex ) return 0;
@@ -613,41 +521,6 @@ int mutex_printf_int(const char *format, ...)
   return ret;
 }
 
-int mailbox_printf_int(const char *format, ...)
-{
-  if (!dyn_debug_mailbox ) return 0;
-  if (NULL == format) return -1;
-
-  debugPrintLock->_Lock(FILE__, __LINE__);
-  
-  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
-
-  debugPrintLock->_Unlock(FILE__, __LINE__);
-
-  return ret;
-}
-
-int async_printf_int(const char *format, ...)
-{
-  if (!dyn_debug_async ) return 0;
-  if (NULL == format) return -1;
-
-  debugPrintLock->_Lock(FILE__, __LINE__);
-  
-  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
-
-  debugPrintLock->_Unlock(FILE__, __LINE__);
-
-  return ret;
-}
 
 int dwarf_printf_int(const char *format, ...)
 {
@@ -666,26 +539,6 @@ int dwarf_printf_int(const char *format, ...)
 
   return ret;
 }
-
-
-int thread_printf_int(const char *format, ...)
-{
-  if (!dyn_debug_thread) return 0;
-  if (NULL == format) return -1;
-
-  debugPrintLock->_Lock(FILE__, __LINE__);
-  
-  fprintf(stderr, "[%s]: ", getThreadStr(getExecThreadID()));
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
-
-  debugPrintLock->_Unlock(FILE__, __LINE__);
-
-  return ret;
-}
-
 
 int catchup_printf_int(const char *format, ...)
 {
@@ -762,7 +615,7 @@ int ast_printf_int(const char *format, ...)
 
 int write_printf_int(const char *format, ...)
 {
-  if (!dyn_debug_write) return 0;
+  if (1 || /*KEVINTODO: revert this*/ !dyn_debug_write) return 0;
   if (NULL == format) return -1;
 
   debugPrintLock->_Lock(FILE__, __LINE__);

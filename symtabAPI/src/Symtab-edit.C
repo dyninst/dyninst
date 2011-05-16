@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -290,14 +290,19 @@ Function *Symtab::createFunction(std::string name,
 {
     Region *reg = NULL;
     
-    if (!findRegion(reg, ".text")) {
+    if (!findRegion(reg, ".text") && !isDefensiveBinary()) {
         assert(0 && "could not find text region");
-        fprintf(stderr, "%s[%d]:  could not find data region\n", FILE__, __LINE__);
+        fprintf(stderr, "%s[%d]:  could not find text region\n", FILE__, __LINE__);
         return NULL;
     }
     
     if (!reg) {
-        fprintf(stderr, "%s[%d]:  could not find text region\n", FILE__, __LINE__);
+        reg = findEnclosingRegion(offset);
+    }
+
+    if (!reg) {
+        fprintf(stderr, "%s[%d]:  could not find region for func at %lx\n", 
+                FILE__, __LINE__,offset);
         return NULL;
     }
     

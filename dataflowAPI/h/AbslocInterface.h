@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
 
 #if !defined(Absloc_Interface_H)
@@ -17,6 +47,7 @@ namespace Dyninst {
 
   namespace ParseAPI {
     class Function; 
+    class Block;
   };
 
 class AbsRegionConverter {
@@ -31,11 +62,13 @@ class AbsRegionConverter {
   DATAFLOW_EXPORT void convertAll(InstructionAPI::Expression::Ptr expr,
 				  Address addr,
 				  ParseAPI::Function *func,
+                                  ParseAPI::Block *block,
 				  std::vector<AbsRegion> &regions);
   
   DATAFLOW_EXPORT void convertAll(InstructionAPI::Instruction::Ptr insn,
 				  Address addr,
 				  ParseAPI::Function *func,
+                                  ParseAPI::Block *block,
 				  std::vector<AbsRegion> &used,
 				  std::vector<AbsRegion> &defined);
 
@@ -45,25 +78,30 @@ class AbsRegionConverter {
 
   DATAFLOW_EXPORT AbsRegion convert(InstructionAPI::Expression::Ptr expr,
 				    Address addr,
-				    ParseAPI::Function *func);
+				    ParseAPI::Function *func,
+                                    ParseAPI::Block *block);
 
   // Cons up a stack reference at the current addr
   DATAFLOW_EXPORT AbsRegion stack(Address addr,
 				  ParseAPI::Function *func,
+                                  ParseAPI::Block *block,
 				  bool push);
   
   DATAFLOW_EXPORT AbsRegion frame(Address addr,
 				  ParseAPI::Function *func,
+                                  ParseAPI::Block *block,
 				  bool push);
   
  private:
   // Returns false if the current height is unknown.
   bool getCurrentStackHeight(ParseAPI::Function *func,
+                             ParseAPI::Block *block,
 			     Address addr, 
-			     long &height, int &region);
+			     long &height);
   bool getCurrentFrameHeight(ParseAPI::Function *func,
+                             ParseAPI::Block *block,
 			     Address addr, 
-			     long &height, int &region);
+			     long &height);
   
   bool convertResultToAddr(const InstructionAPI::Result &res, Address &addr);
   bool convertResultToSlot(const InstructionAPI::Result &res, int &slot);
@@ -88,20 +126,23 @@ class AssignmentConverter {
  DATAFLOW_EXPORT AssignmentConverter(bool cache, bool stack = true) : cacheEnabled_(cache), aConverter(false, stack) {};
 
   DATAFLOW_EXPORT void convert(InstructionAPI::Instruction::Ptr insn,
-	       const Address &addr,
-	       ParseAPI::Function *func,
-	       std::vector<Assignment::Ptr> &assignments);
+                               const Address &addr,
+                               ParseAPI::Function *func,
+                               ParseAPI::Block *block,
+                               std::vector<Assignment::Ptr> &assignments);
 
 
  private:
   void handlePushEquivalent(const InstructionAPI::Instruction::Ptr I,
 			    Address addr,
 			    ParseAPI::Function *func,
+                            ParseAPI::Block *block,
 			    std::vector<AbsRegion> &operands,
 			    std::vector<Assignment::Ptr> &assignments);
   void handlePopEquivalent(const InstructionAPI::Instruction::Ptr I,
 			   Address addr,
 			   ParseAPI::Function *func,
+                           ParseAPI::Block *block,
 			   std::vector<AbsRegion> &operands,
 			   std::vector<Assignment::Ptr> &assignments);
 

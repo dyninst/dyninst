@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,7 @@
 #include "dynutil/h/dyn_regs.h"
 #include "dynutil/h/dyntypes.h"
 #include "common/h/SymLite-elf.h"
+#include "common/h/pathName.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Event.h"
@@ -284,6 +285,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             }
             adjusted_addr = adjustTrapAddr(addr, proc->getTargetArch());
 
+            Dyninst::MachRegisterVal pre_ss_pc = lthread->getPreSingleStepPC();
+
             if (rpcMgr()->isRPCTrap(thread, adjusted_addr)) {
                pthrd_printf("Decoded event to rpc completion on %d/%d at %lx\n",
                             proc->getPid(), thread->getLWP(), adjusted_addr);
@@ -292,10 +295,30 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             }
 
             installed_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
-            if (ibp && ibp != thread->isClearingBreakpoint()) {
+
+            installed_breakpoint *clearingbp = thread->isClearingBreakpoint();
+            if(thread->singleStep() && clearingbp) {
+                pthrd_printf("Decoded event to breakpoint restore\n");
+                event = Event::ptr(new EventBreakpointRestore(new int_eventBreakpointRestore(clearingbp)));
+                break;
+            }
+
+            // Need to distinguish case where the thread is single-stepped to a
+            // breakpoint and when a single step hits a breakpoint.
+            //
+            // If no forward progress was made due to a single step, then a
+            // breakpoint was hit
+            if (thread->singleStep() && ( (pre_ss_pc != 0 && pre_ss_pc != addr) || !ibp)) {
+               pthrd_printf("Decoded event to single step on %d/%d\n",
+                       proc->getPid(), thread->getLWP());
+               event = Event::ptr(new EventSingleStep());
+               break;
+            }
+            
+            if (ibp && ibp != clearingbp) {
                pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(), 
                             thread->getLWP(), adjusted_addr);
-               EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(adjusted_addr, ibp));
+               EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(new int_eventBreakpoint(adjusted_addr, ibp, thread)));
                event = event_bp;
                event->setThread(thread->thread());
 
@@ -307,7 +330,6 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                   lib_event->setSyncType(Event::sync_thread);
                   lproc->decodeTdbLibLoad(lib_event);
                   event->addSubservientEvent(lib_event);
-                  
                   break;
                }
                for (;;) {
@@ -331,23 +353,27 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                      continue;
                   }
                }
+
+               /*if (thread->isEmulatingSingleStep() && thread->isEmulatedSingleStep(ibp)) {
+                   pthrd_printf("Breakpoint is emulated single step\n");
+                   installed_breakpoint *ibp = thread->isClearingBreakpoint();
+                   if( ibp ) {
+                       pthrd_printf("Decoded emulated single step to breakpoint cleanup\n");
+                       EventBreakpointClear::ptr bc_event = EventBreakpointClear::ptr(new EventBreakpointClear(ibp));
+                       bc_event->setThread(thread->thread());
+                       bc_event->setProcess(proc->proc());
+                       event->addSubservientEvent(bc_event);
+                   }else{
+                       pthrd_printf("Decoded emulated single step to normal single step\n");
+                       EventSingleStep::ptr ss_event = EventSingleStep::ptr(new EventSingleStep());
+                       ss_event->setThread(thread->thread());
+                       ss_event->setProcess(proc->proc());
+                       event->addSubservientEvent(ss_event);
+                   }
+                 }*/
                break;
             }
-            if (thread->singleStep())
-            {
-               installed_breakpoint *ibp = thread->isClearingBreakpoint();
-               if (ibp) {
-                  pthrd_printf("Decoded event to breakpoint cleanup\n");
-                  event = Event::ptr(new EventBreakpointClear(ibp));
-                  break;
-               } 
-               else {
-                  pthrd_printf("Decoded event to single step on %d/%d\n",
-                               proc->getPid(), thread->getLWP());
-                  event = Event::ptr(new EventSingleStep());
-                  break;
-               }
-            }
+
          }
          default:
             pthrd_printf("Decoded event to signal %d on %d/%d\n",
@@ -364,6 +390,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                while (1) sleep(1);
             }
 #endif
+            assert(stopsig != 5);
             event = Event::ptr(new EventSignal(stopsig));
       }
       if (event && event->getSyncType() == Event::unset)
@@ -428,7 +455,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       assert(thread);
       proc = thread->llproc();
       if (parent->event_ext == PTRACE_EVENT_FORK)
-         event = Event::ptr(new EventFork(child->pid));
+         event = Event::ptr(new EventFork(EventType::Post, child->pid));
       else if (parent->event_ext == PTRACE_EVENT_CLONE)
          event = Event::ptr(new EventNewLWP(child->pid));
       else 
@@ -606,42 +633,61 @@ bool linux_process::plat_create_int()
    return true;
 }
 
-// Defaults to is running
-bool linux_process::plat_getOSRunningState(Dyninst::LWP lwp) const {
-    char proc_stat_name[128];
-    char sstat[256];
-    char *status;
-    int paren_level = 1;
-    
-    snprintf(proc_stat_name, 128, "/proc/%d/stat", lwp);
-    FILE *sfile = fopen(proc_stat_name, "r");
-
-    if (sfile == NULL) return true;
-    if( fread(sstat, 1, 256, sfile) == 0 ) {
-        pthrd_printf("Failed to read /proc/<pid>/stat file for %d\n",
-                pid);
-        return true;
-    }
-    fclose(sfile);
-
-    sstat[255] = '\0';
-    status = sstat;
-
-    while (*status != '\0' && *(status++) != '(') ;
-    while (*status != '\0' && paren_level != 0) {
-        if (*status == '(') paren_level++;
-        if (*status == ')') paren_level--;
-        status++;
+bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates) {
+    vector<Dyninst::LWP> lwps;
+    if( !getThreadLWPs(lwps) ) {
+        pthrd_printf("Failed to determine lwps for process %d\n", getPid());
+        setLastError(err_noproc, "Failed to find /proc files for debuggee");
+        return false;
     }
 
-    while (*status == ' ') status++;
+    for(vector<Dyninst::LWP>::iterator i = lwps.begin();
+            i != lwps.end(); ++i)
+    {
+        char proc_stat_name[128];
+        char sstat[256];
+        char *status;
+        int paren_level = 1;
+        
+        snprintf(proc_stat_name, 128, "/proc/%d/stat", *i);
+        FILE *sfile = fopen(proc_stat_name, "r");
 
-    return (*status != 'T');
+        if (sfile == NULL) {
+            pthrd_printf("Failed to open /proc/%d/stat file\n", *i);
+            setLastError(err_noproc, "Failed to find /proc files for debuggee");
+            return false;
+        }
+        if( fread(sstat, 1, 256, sfile) == 0 ) {
+            pthrd_printf("Failed to read /proc/%d/stat file \n", *i);
+            setLastError(err_noproc, "Failed to find /proc files for debuggee");
+            return false;
+        }
+        fclose(sfile);
+
+        sstat[255] = '\0';
+        status = sstat;
+
+        while (*status != '\0' && *(status++) != '(') ;
+        while (*status != '\0' && paren_level != 0) {
+            if (*status == '(') paren_level++;
+            if (*status == ')') paren_level--;
+            status++;
+        }
+
+        while (*status == ' ') status++;
+
+        runningStates.insert(make_pair(*i, (*status != 'T')));
+    }
+
+    return true;
 }
 
-bool linux_process::plat_attach()
+bool linux_process::plat_attach(bool)
 {
    pthrd_printf("Attaching to pid %d\n", pid);
+
+   bool attachWillTriggerStop = plat_attachWillTriggerStop();
+
    int result = do_ptrace((pt_req) PTRACE_ATTACH, pid, NULL, NULL);
    if (result != 0) {
       int errnum = errno;
@@ -655,19 +701,50 @@ bool linux_process::plat_attach()
       }
       return false;
    }
+
+   if ( !attachWillTriggerStop ) {
+       // Force the SIGSTOP delivered by the attach to be handled
+       pthrd_printf("Attach will not trigger stop, calling PTRACE_CONT to flush out stop\n");
+       int result = do_ptrace((pt_req) PTRACE_CONT, pid, NULL, NULL);
+       if( result != 0 ) {
+           int errnum = errno;
+           pthrd_printf("Unable to continue process %d to flush out attach: %s\n",
+                   pid, strerror(errnum));
+           return false;
+       }
+   }
    
    return true;
 }
 
-static std::string deref_link(const char *path)
-{
-   char *p = realpath(path, NULL);
-   if (p == NULL) {
-      return std::string();
-   }
-   std::string sp = p;
-   free(p);
-   return sp;
+bool linux_process::plat_attachWillTriggerStop() {
+    char procName[64];
+    char cmd[256];
+    pid_t tmpPid;
+    char state;
+    int ttyNumber;
+
+    // Retrieve the state of the process and its controlling tty
+    snprintf(procName, 64, "/proc/%d/stat", pid);
+
+    FILE *sfile = fopen(procName, "r");
+    if ( sfile == NULL ) {
+        perr_printf("Failed to determine whether attach would trigger stop -- assuming it will\n");
+        return true;
+    }
+
+    fscanf(sfile, "%d %255s %c %d %d %d",
+            &tmpPid, cmd, &state,
+            &tmpPid, &tmpPid, &ttyNumber);
+    fclose(sfile);
+
+    // If the process is stopped and it has a controlling tty, an attach
+    // will not trigger a stop
+    if ( state == 'T' && ttyNumber != 0 ) {
+        return false;
+    }
+
+    return true;
 }
 
 bool linux_process::plat_execed()
@@ -678,7 +755,7 @@ bool linux_process::plat_execed()
 
    char proc_exec_name[128];
    snprintf(proc_exec_name, 128, "/proc/%d/exe", getPid());
-   executable = deref_link(proc_exec_name);
+   executable = resolve_file_path(proc_exec_name);
    return true;
 }
 
@@ -917,10 +994,9 @@ bool linux_thread::plat_cont()
    // Don't continue the thread with the pending signal if there is a pending stop.
    // Wait until the user sees the signal event to deliver the signal to the process.
    //
-   // This also applies to iRPCs
    
    int tmpSignal = continueSig_;
-   if( hasPendingStop() || runningRPC() ) {
+   if( hasPendingStop() ) {
        tmpSignal = 0;
    }
 
@@ -942,7 +1018,8 @@ bool linux_thread::plat_cont()
       setLastError(err_internal, "Low-level continue failed\n");
       return false;
    }
-   continueSig_ = 0;
+   if( tmpSignal == continueSig_ ) continueSig_ = 0;
+
    return true;
 }
 
@@ -1060,7 +1137,18 @@ void linux_thread::setOptions()
    }   
 }
 
+bool linux_thread::unsetOptions()
+{
+    long options = 0;
 
+    int result = do_ptrace((pt_req) PTRACE_SETOPTIONS, lwp, NULL,
+            (void *) options);
+    if (result == -1) {
+        pthrd_printf("Failed to set options for %lu: %s\n", tid, strerror(errno));
+        return false;
+    }
+    return true;
+}
 
 bool linux_process::plat_individualRegAccess()
 {
@@ -1107,6 +1195,47 @@ bool linux_process::plat_terminate(bool &needs_sync)
 
    needs_sync = true;
    return true;
+}
+
+bool linux_process::preTerminate() {
+#if defined(bug_force_terminate_failure)
+    // On some Linux versions (currently only identified on our power platform),
+    // a force terminate can fail to actually kill a process due to some OS level
+    // race condition. The result is that some threads in a process are stopped
+    // instead of exited and for some reason, continues will not continue the 
+    // process. This can be detected because some OS level structures (such as pipes)
+    // still exist for the terminated process
+
+    // It appears that this bug largely results from the pre-LWP destroy and pre-Exit
+    // events being delivered to the debugger, so we stop the process and disable these
+    // events for all threads in the process
+
+    if( !threadPool()->allStopped() ) {
+        pthrd_printf("Stopping process %d for pre-terminate handling\n",
+                getPid());
+        if( !threadPool()->userStop() ) {
+            perr_printf("Failed to stop process %d for pre-terminate handling\n",
+                    getPid());
+            return false;
+        }
+    }
+
+
+    for(int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end();
+            ++i)
+    {
+        linux_thread *thr = static_cast<linux_thread *>(*i);
+        pthrd_printf("Disabling syscall tracing events for thread %d/%d\n",
+                getPid(), thr->getLWP());
+        if( !thr->unsetOptions() ) {
+            perr_printf("Failed to unset options for thread %d/%d in pre-terminate handling\n",
+                    getPid(), thr->getLWP());
+            return false;
+        }
+    }
+#endif
+
+    return true;
 }
 
 Dyninst::Address linux_process::plat_mallocExecMemory(Dyninst::Address min, unsigned size) {
@@ -1376,6 +1505,17 @@ static void init_dynreg_to_user()
 #define MAX_USER_SIZE (912+128)
 bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
 {
+#if defined(bug_registers_after_exit)
+   /* On some kernels, attempting to read registers from a thread in a pre-Exit
+    * state causes an oops
+    */
+   if( isExiting() ) {
+       perr_printf("Cannot reliably retrieve registers from an exited thread\n");
+       setLastError(err_exited, "Cannot retrieve registers from an exited thread");
+       return false;
+   }
+#endif
+
    volatile unsigned int sentinel1 = 0xfeedface;
    unsigned char user_area[MAX_USER_SIZE];
    volatile unsigned int sentinel2 = 0xfeedface;
@@ -1419,7 +1559,7 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
       else {
          assert(0);
       }
-      pthrd_printf("Register %s has value %lx, offset %d\n", reg.name(), val, offset);
+      pthrd_printf("Register %s has value %lx, offset %d\n", reg.name().c_str(), val, offset);
       regpool.regs[reg] = val;
    }
    return true;
@@ -1427,6 +1567,17 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
 
 bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
 {
+#if defined(bug_registers_after_exit)
+   /* On some kernels, attempting to read registers from a thread in a pre-Exit
+    * state causes an oops
+    */
+   if( isExiting() ) {
+       perr_printf("Cannot reliably retrieve registers from an exited thread\n");
+       setLastError(err_exited, "Cannot retrieve registers from an exited thread");
+       return false;
+   }
+#endif
+
    if (x86::fsbase == reg || x86::gsbase == reg 
        || x86_64::fsbase == reg || x86_64::gsbase == reg) {
       return getSegmentBase(reg, val);
@@ -1435,7 +1586,7 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    init_dynreg_to_user();
    dynreg_to_user_t::iterator i = dynreg_to_user.find(reg);
    if (i == dynreg_to_user.end() || reg.getArchitecture() != llproc()->getTargetArch()) {
-      perr_printf("Recieved unexpected register %s on thread %d\n", reg.name(), lwp);
+      perr_printf("Recieved unexpected register %s on thread %d\n", reg.name().c_str(), lwp);
       setLastError(err_badparam, "Invalid register");
       return false;
    }
@@ -1452,11 +1603,22 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    }
    val = result;
 
-   pthrd_printf("Register %s has value 0x%lx\n", reg.name(), val);
+   pthrd_printf("Register %s has value 0x%lx\n", reg.name().c_str(), val);
    return true;
 }
 
 bool linux_thread::plat_setAllRegisters(int_registerPool &regpool) {
+#if defined(bug_registers_after_exit)
+   /* On some kernels, attempting to read registers from a thread in a pre-Exit
+    * state causes an oops
+    */
+   if( isExiting() ) {
+       perr_printf("Cannot reliably retrieve registers from an exited thread\n");
+       setLastError(err_exited, "Cannot retrieve registers from an exited thread");
+       return false;
+   }
+#endif
+
    unsigned char user_area[MAX_USER_SIZE];
 
    //Fill in 'user_area' with the contents of regpool.
@@ -1505,7 +1667,7 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
       else {
          assert(0);
       }
-      pthrd_printf("Register %s gets value %lx, offset %d\n", reg.name(), val, offset);
+      pthrd_printf("Register %s gets value %lx, offset %d\n", reg.name().c_str(), val, offset);
    }
 
    if (num_found != regpool.regs.size())
@@ -1522,6 +1684,17 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
 
 bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val)
 {
+#if defined(bug_registers_after_exit)
+   /* On some kernels, attempting to read registers from a thread in a pre-Exit
+    * state causes an oops
+    */
+   if( isExiting() ) {
+       perr_printf("Cannot reliably retrieve registers from an exited thread\n");
+       setLastError(err_exited, "Cannot retrieve registers from an exited thread");
+       return false;
+   }
+#endif
+
    init_dynreg_to_user();
    dynreg_to_user_t::iterator i = dynreg_to_user.find(reg);
    if (reg.getArchitecture() != llproc()->getTargetArch() ||
@@ -1529,7 +1702,7 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    {
       setLastError(err_badparam, "Invalid register passed to setRegister");
       perr_printf("User passed invalid register %s to plat_setRegister, arch is %x\n",
-                  reg.name(), (unsigned int) reg.getArchitecture());
+                  reg.name().c_str(), (unsigned int) reg.getArchitecture());
       return false;
    }
    
@@ -1547,12 +1720,12 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    else {
       assert(0);
    }
-   pthrd_printf("Set register %s (size %u, offset %u) to value %lx\n", reg.name(), size, offset, val);
+   pthrd_printf("Set register %s (size %u, offset %u) to value %lx\n", reg.name().c_str(), size, offset, val);
    if (result != 0) {
       int error = errno;
       setLastError(err_internal, "Could not set register value");
       perr_printf("Unable to set value of register %s in thread %d: %s\n",
-                  reg.name(), lwp, strerror(error));
+                  reg.name().c_str(), lwp, strerror(error));
       return false;
    }
    

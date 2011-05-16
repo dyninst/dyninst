@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -417,9 +417,8 @@ SerFile::SerFile(std::string fname, iomode_t mode, bool verbose) :
 	iomode_(mode), 
 	noisy(verbose) 
 {
-	char file_path[PATH_MAX];
-
-	if (!resolve_file_path(fname.c_str(), file_path)) 
+        std::string file_path = resolve_file_path(fname.c_str());
+        if( file_path.empty() )
 	{
 		char msg[1024];
 		snprintf(msg, 1024, "failed to resolve path for '%s'\n", fname.c_str());
@@ -1781,7 +1780,7 @@ bool ser_operation(SerializerBase *sb, ser_post_op_t &op, const char *tag)
 	{
 		gtranslate(sb, op, serPostOp2Str, tag);
 	}
-	catch (const Dyninst::SerializerError &err_)
+	catch (const Dyninst::SerializerError &)
 	{   
 		if (isEOF(sb))
 		{   

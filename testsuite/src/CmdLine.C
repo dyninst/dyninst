@@ -149,7 +149,6 @@ static bool useHumanLog = true;
 static bool shouldDebugBreak = false;
 static bool called_from_runTests = false;
 static bool printMutateeLogHeader = false;
-static bool measureMEMCPU = false;
 static bool noclean = false;
 static int testLimit = 0;
 static int groupLimit = 0;
@@ -160,9 +159,8 @@ static int max_unique_id = 0;
 static int next_resume_group = -1;
 static int next_resume_test = -1;
 static bool no_header = false;
-
+static bool measureMEMCPU = false;
 static char *humanlog_name = NULL;
-static char *measureFileName = NULL;
 static char *logfilename = NULL;
 static char *dbfilename = NULL;
 
@@ -208,20 +206,16 @@ void setupArgDictionary(ParameterDict &params)
    params["debugbreak"] = new ParamInt((int) shouldDebugBreak);
    params["under_runtests"] = new ParamInt((int) called_from_runTests);
    params["in_runtests"] = new ParamInt((int) in_runTests);
-   params["measure_memcpu"] = new ParamInt((int) measureMEMCPU);
    params["printMutateeLogHeader"] = new ParamInt((int) printMutateeLogHeader);
    params["no_header"] = new ParamInt((int) no_header);
+   params["measureMEMCPU"] = new ParamInt((int) measureMEMCPU);
    
    if (!logfilename)
       logfilename = const_cast<char *>(DEFAULT_LOGNAME);
    if (!humanlog_name)
       humanlog_name = const_cast<char *>("-");
-   if (!measureFileName)
-      measureFileName = const_cast<char *>("-");
-   
 
    params["logfilename"] = new ParamString(logfilename);
-   params["measure_memcpu_name"] = new ParamString(measureFileName);
    params["mutatee_resumelog"] = new ParamString("mutatee_resumelog");
    params["humanlogname"] = new ParamString(humanlog_name);
    params["dboutput"] = new ParamString(dbfilename);
@@ -365,23 +359,6 @@ static int handleArgs(int argc, char *argv[])
       else if ( strcmp(argv[i], "-noclean") == 0 )
       {
          noclean = true;
-      }
-      else if ((strcmp(argv[i], "-cpumem") == 0) || (strcmp(argv[i], "-memcpu") == 0))
-      {
-         measureMEMCPU = true;
-         if (i+1 < argc)
-         {
-            if (argv[i+1][0] != '-')
-            {
-               i++;
-               measureFileName = argv[i];
-            }
-            else if (argv[i+1][1] == '\0')
-            {
-               i++;
-               measureFileName = const_cast<char *>("-");
-            }
-         }
       }
       else if (strncmp(argv[i], "-verbose", 2) == 0)
       {

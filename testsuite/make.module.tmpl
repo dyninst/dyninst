@@ -144,7 +144,7 @@ SRCS_DYNINSTTESTLIB = libtestA.c \
 #                      dyninst/libInstMe.c \
 #                      dyninst/libLoadMe.c \
 
-dyninst_MUTATOR_FLAGS = -L. -ltestdyninst -ldyninstAPI
+dyninst_MUTATOR_FLAGS = -L. -ltestdyninst -ldyninstAPI 
 
 ifdef M_ABI
 DYNINST_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.so))
@@ -421,27 +421,27 @@ TESTLIB_CC ?= $(CC)
 $(DYNINST_TESTLIBS): %.so : %.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
 	@echo Compiling $@
-	$(HIDE_COMP)$(TESTLIB_CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(TESTLIB_CC) $(LDFLAGS) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	$(HIDE_COMP)$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
 else
 	@echo Compiling $@
-	$(HIDE_COMP)$(TESTLIB_CC) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
+	$(HIDE_COMP)$(TESTLIB_CC) $(LDFLAGS) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
 
-$(DYNINST_STATIC_TESTLIBS): %.a : dyninst/%.c $(DEPENDDIR)/%.dep
+$(DYNINST_STATIC_TESTLIBS): %.a : %.c $(DEPENDDIR)/%.dep
 	@echo Compiling $@
-	$(HIDE_COMP)$(TESTLIB_CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(TESTLIB_CC) $(LDFLAGS) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	$(HIDE_COMP)$(AR) rcs $@ $*.o
 
 ifdef M_ABI
 $(DYNINST_TESTLIBS_ABI): %_$(M_ABI).so : %.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
 	@echo Compiling $@
-	$(HIDE_COMP)$(TESTLIB_CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
-	$(HIDE_COMP)$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
+	$(HIDE_COMP)$(TESTLIB_CC) $(LDFLAGS) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(MAKE_SHARED_LIB) $(LDFLAGS) $(TESTLIB_FLAGS) $*.o -o $@
 else
 	@echo Compiling $@
-	$(HIDE_COMP)$(TESTLIB_CC) $(M_ABI_FLAG) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
+	$(HIDE_COMP)$(TESTLIB_CC) $(M_ABI_FLAG) $(LDFLAGS) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
 
 ifdef cap_instruction_api
@@ -450,7 +450,7 @@ endif
 
 $(DYNINST_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : %.c $(DEPENDDIR)/%.dep
 	@echo Compiling $@
-	$(HIDE_COMP)$(TESTLIB_CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(TESTLIB_CC) -c $(CFLAGS) $(LDFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	$(HIDE_COMP)$(AR) rcs $@ $*.o
 endif
 
@@ -618,7 +618,7 @@ test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 
 test_driver: test_driver.o test_driver_templates.o dynlmon.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE) $(LIBTESTLAUNCH)
 	@echo Linking $@
-	$(HIDE_COMP)$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o dynlmon.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_FE_LINK) $(COMP_RPATHS)
+	$(HIDE_COMP)$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o dynlmon.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_FE_LINK) $(COMP_RPATHS); $(TESTDRIVER_EXTRA_LINK_STEP)
 
 testdriver_be: testdriver_be.o $(LIBTESTSUITE) $(LIBTESTLAUNCH)
 	@echo Linking $@

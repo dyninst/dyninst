@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -329,8 +329,7 @@ DyninstDynamicStepperImpl::~DyninstDynamicStepperImpl()
 #undef PIMPL_NAME
 
 //BottomOfStackStepper defined here
-#if defined(os_linux) || defined(os_bg)
-#include "stackwalk/src/linux-swk.h"
+#if defined(os_linux) || defined(os_bg) || defined(os_freebsd)
 #define OVERLOAD_NEWLIBRARY
 #define PIMPL_IMPL_CLASS BottomOfStackStepperImpl
 #endif
@@ -343,7 +342,7 @@ DyninstDynamicStepperImpl::~DyninstDynamicStepperImpl()
 #undef OVERLOAD_NEWLIBRARY
 
 //DebugStepper defined here
-#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
+#if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64))
 #include "stackwalk/src/dbgstepper-impl.h"
 #define PIMPL_IMPL_CLASS DebugStepperImpl
 #endif
@@ -372,8 +371,8 @@ DyninstDynamicStepperImpl::~DyninstDynamicStepperImpl()
 
 //SigHandlerStepper defined here
 #define OVERLOAD_NEWLIBRARY
-#if defined(os_linux)
-#include "stackwalk/src/linux-swk.h"
+#if defined(os_linux) || defined(os_freebsd)
+#include "stackwalk/src/linuxbsd-swk.h"
 #define PIMPL_IMPL_CLASS SigHandlerStepperImpl
 #endif
 #define PIMPL_CLASS SigHandlerStepper

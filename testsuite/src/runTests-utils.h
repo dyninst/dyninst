@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -94,7 +94,6 @@ class test_driver_t {
    std::string given_mutatee;
    vector<char *> child_argv;
    std::string pidFilename;
-   std::string memcpu_name;
    std::string hostname;
    std::string outputlog;
 };
@@ -108,7 +107,7 @@ void cleanupMutatees(char *pidFilename);
 
 test_pid_t RunTest(unsigned int iteration, bool useLog, bool staticTests,
                    std::string logfile, int testLimit, vector<char *> child_argv,
-                   const char *pidFilename, const char *memcpu_name,
+                   const char *pidFilename,
                    std::string hostname, const char *given_mutatee, int given_mutator);
 
 int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies);

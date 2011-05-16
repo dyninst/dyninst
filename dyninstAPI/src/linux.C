@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -94,31 +94,21 @@ bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers)
    return false;
 }
 
-/**
- * Return the state of the process from /proc/pid/stat.
- * File format is:
- *   pid (executablename) state ...
- * where state is a character.  Returns '\0' on error.
- **/
-
-static const Address lowest_addr = 0x0;
 void PCProcess::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
-			       inferiorHeapType /* type */ )
+        inferiorHeapType /* type */ ) 
 {
-  if (near)
-    {
+    if (near) {
 #if !defined(arch_x86_64) && !defined(arch_power)
-      lo = region_lo(near);
-      hi = region_hi(near);  
+        lo = region_lo(near);
+        hi = region_hi(near);
 #else
-      if (getAddressWidth() == 8) {
-	  lo = region_lo_64(near);
-	  hi = region_hi_64(near);
-      }
-      else {
-	  lo = region_lo(near);
-	  hi = region_hi(near);  
-      }
+        if (getAddressWidth() == 8) {
+            lo = region_lo_64(near);
+            hi = region_hi_64(near);
+        } else {
+            lo = region_lo(near);
+            hi = region_hi(near);
+        }
 #endif
     }
 }
@@ -139,179 +129,6 @@ bool PCProcess::dumpCore(string) {
 
 bool PCProcess::skipHeap(const heapDescriptor &) {
     return false;
-}
-
-bool PCProcess::getExecFileDescriptor(string filename,
-        bool, fileDescriptor &desc)
-{
-    desc = fileDescriptor(filename.c_str(),
-            0, // code
-            0, // data
-            false); // a.out
-    return true;
-}
-
-static
-string deref_link(const char *path)
-{
-    char *p = realpath(path, NULL);
-    if (p == NULL) {
-        return string();
-    }
-    string sp = p;
-    free(p);
-    return sp;
-}
-
-/**
- * Strategy:  The program entry point is in /lib/ld-2.x.x at the 
- * _start function.  Get the current PC, parse /lib/ld-2.x.x, and 
- * compare the two points.
- **/
-bool PCProcess::hasPassedMain() 
-{
-   // We only need to parse /lib/ld-2.x.x once for any process,
-   // so just do it once for any process.  We'll cache the result
-   // in lib_to_addr.
-   static dictionary_hash<string, Address> lib_to_addr(::Dyninst::stringhash);
-   Symtab *ld_file = NULL;
-   Address entry_addr, ldso_start_addr;
-
-   //Get current PC
-   Frame active_frame = initialThread_->getActiveFrame();
-   Address current_pc = active_frame.getPC();
-
-   // Get the interpreter name from SymtabAPI
-   const char *path = getAOut()->parse_img()->getObject()->getInterpreterName();
-
-   if (!path) {
-      //Strange... This shouldn't happen on a normal linux system
-      startup_printf("[%s:%u] - Couldn't find /lib/ld-x.x.x in hasPassedMain\n",
-                     FILE__, __LINE__);
-      return false;
-   }
-
-   std::string derefPath = deref_link(path);
-
-   // Search for the dynamic linker in the loaded libraries
-   const LibraryPool &libraries = pcProc_->libraries();
-   bool foundDynLinker = false;
-   for(LibraryPool::const_iterator i = libraries.begin(); i != libraries.end();
-           ++i)
-   {
-       if( (*i)->getName() == derefPath ) {
-           foundDynLinker = true;
-           ldso_start_addr = (*i)->getLoadAddress();
-       }
-   }
-
-   if( !foundDynLinker ) {
-       // This means that libraries haven't been loaded yet which implies
-       // that main hasn't been reached yet
-       return false;
-   }
-
-   if (lib_to_addr.defines(derefPath)) {
-      //We've already parsed this library.  Use those results.
-      Address start_in_ld = lib_to_addr[path];
-      return (start_in_ld != current_pc);
-   }
-
-   //Open /lib/ld-x.x.x and find the entry point
-   if (!Symtab::openFile(ld_file, derefPath)) {
-      startup_printf("[%s:%u] - Unable to open %s in hasPassedMain\n", 
-                     FILE__, __LINE__, path);
-      return true;
-   }
-
-   entry_addr = ld_file->getEntryOffset();
-   if (!entry_addr) {
-      startup_printf("[%s:%u] - No entry addr for %s\n", 
-                     FILE__, __LINE__, path);
-      // assume we haven't reach main at this point
-      return false;
-   }
-
-   entry_addr += ldso_start_addr;
-
-   if( !getOPDFunctionAddr(entry_addr) ) {
-       startup_printf("[%s:%u] - failed to translate ld entry addr to actual entry\n",
-               FILE__, __LINE__);
-       // if we cannot to the translation, main hasn't reached this point
-       return false;
-   }
-
-   if( entry_addr < ldso_start_addr ) {
-       entry_addr += ldso_start_addr;
-   }
-   
-   lib_to_addr[path] = entry_addr;
-   bool result = (entry_addr != current_pc);
-   startup_printf("[%s:%u] - hasPassedMain returning %d (%lx %lx)\n",
-                  FILE__, __LINE__, (int) result, entry_addr, current_pc);
-
-   return result;
-}
-
-Address PCProcess::setAOutLoadAddress(fileDescriptor &desc) {
-   //The load address of the a.out isn't correct.  We can't read a
-   // correct one out of ld-x.x.x.so because it may not be initialized yet,
-   // and it won't be initialized until we reach main.  But we need the load
-   // address to find main.  Darn.
-   //
-   //Instead we'll read the entry out of /proc/pid/maps, and try to make a good
-   // effort to correctly match the fileDescriptor to an entry.  Unfortunately,
-   // symlinks can complicate this, so we'll stat the files and compare inodes
-
-   struct stat aout, maps_entry;
-   map_entries *maps = NULL;
-   unsigned maps_size = 0, i;
-   char proc_path[128];
-   int result;
-
-   //Get the inode for the a.out
-   startup_printf("[%s:%u] - a.out is a shared library, computing load addr\n",
-                  FILE__, __LINE__);
-   memset(&aout, 0, sizeof(aout));
-   proc_path[127] = '\0';
-   snprintf(proc_path, 127, "/proc/%d/exe", getPid());
-   result = stat(proc_path, &aout);
-   if (result == -1) {
-      startup_printf("[%s:%u] - setAOutLoadAddress couldn't stat %s: %s\n",
-                     FILE__, __LINE__, proc_path, strerror(errno));
-      goto done;
-   }
-                    
-   //Get the maps
-   maps = getVMMaps(getPid(), maps_size);
-   if (!maps) {
-      startup_printf("[%s:%u] - setAOutLoadAddress, getVMMaps return NULL\n",
-                     FILE__, __LINE__);
-      goto done;
-   }
-   
-   //Compare the inode of each map entry to the a.out's
-   for (i=0; i<maps_size; i++) {
-      memset(&maps_entry, 0, sizeof(maps_entry));
-      result = stat(maps[i].path, &maps_entry);
-      if (result == -1) {
-         startup_printf("[%s:%u] - setAOutLoadAddress couldn't stat %s: %s\n",
-                        FILE__, __LINE__, maps[i].path, strerror(errno));
-         continue;
-      }
-      if (maps_entry.st_dev == aout.st_dev && maps_entry.st_ino == aout.st_ino)
-      {
-         //We have a match
-         desc.setLoadAddr(maps[i].start);
-         goto done;
-      }
-   }
-        
- done:
-   if (maps)
-      free(maps);
-
-   return desc.loadAddr();
 }
 
 bool PCProcess::usesDataLoadAddress() const {
@@ -345,9 +162,9 @@ Address PCProcess::findFunctionToHijack()
    for(i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
       const char *func_name = DYNINST_LOAD_HIJACK_FUNCTIONS[i];
 
-      pdvector<int_function *> hijacks;
+      pdvector<func_instance *> hijacks;
       if (!findFuncsByAll(func_name, hijacks)) continue;
-      codeBase = hijacks[0]->getAddress();
+      codeBase = hijacks[0]->addr();
 
       if (codeBase)
           break;
@@ -360,7 +177,7 @@ Address PCProcess::findFunctionToHijack()
   return codeBase;
 } /* end findFunctionToHijack() */
 
-static int DLOPEN_MODE = RTLD_NOW | RTLD_GLOBAL;
+static const int DLOPEN_MODE = RTLD_NOW | RTLD_GLOBAL;
 
 // Note: this is an internal libc flag -- it is only used
 // when libc and ld.so don't have symbols
@@ -387,10 +204,11 @@ bool PCProcess::postRTLoadCleanup() {
 }
 
 AstNodePtr PCProcess::createLoadRTAST() {
-    pdvector<int_function *> dlopen_funcs;
+    pdvector<func_instance *> dlopen_funcs;
 
-    // allow user to override default dlopen func names
-    // with env. var
+    int mode = DLOPEN_MODE;
+
+    // allow user to override default dlopen func names with env. var
 
     DL_OPEN_FUNC_USER = getenv("DYNINST_DLOPEN_FUNC");
 
@@ -416,12 +234,12 @@ AstNodePtr PCProcess::createLoadRTAST() {
             // to turn off the stack protection
             useHiddenFunction = false;
             needsStackUnprotect = false;
-            DLOPEN_MODE |= __RTLD_DLOPEN;
+            mode |= __RTLD_DLOPEN;
             if( findFuncsByAll(DL_OPEN_LIBC_FUNC_EXPORTED, dlopen_funcs) ) break;
 
             useHiddenFunction = true;
             needsStackUnprotect = true;
-            pdvector<int_function *> dlopen_int_funcs;
+            pdvector<func_instance *> dlopen_int_funcs;
             // If we can't find the do_dlopen function (because this library is
             // stripped, for example), try searching for the internal _dl_open
             // function and find the do_dlopen function by examining the
@@ -434,7 +252,7 @@ AstNodePtr PCProcess::createLoadRTAST() {
                                    __FILE__,__LINE__,dlopen_int_funcs.size(),
                                    DL_OPEN_FUNC_INTERNAL);
                 }
-                dlopen_int_funcs[0]->getStaticCallers(dlopen_funcs);
+                dlopen_int_funcs[0]->getCallerFuncs(std::back_inserter(dlopen_funcs));
                 if(dlopen_funcs.size() > 1) {
                     startup_printf("%s[%d] warning: found %d do_dlopen candidates\n",
                                    __FILE__,__LINE__,dlopen_funcs.size());
@@ -459,7 +277,7 @@ AstNodePtr PCProcess::createLoadRTAST() {
         logLine("WARNING: More than one dlopen found, using the first\n");
     }
 
-    int_function *dlopen_func = dlopen_funcs[0];
+    func_instance *dlopen_func = dlopen_funcs[0];
 
     pdvector<AstNodePtr> sequence;
     if( needsStackUnprotect ) {
@@ -492,7 +310,7 @@ AstNodePtr PCProcess::createLoadRTAST() {
 
         pdvector<AstNodePtr> args;
         args.push_back(AstNode::operandNode(AstNode::Constant, (void *)rtLibLoadHeap_));
-        args.push_back(AstNode::operandNode(AstNode::Constant, (void *)DLOPEN_MODE));
+        args.push_back(AstNode::operandNode(AstNode::Constant, (void *)mode));
 
         sequence.push_back(AstNode::funcCallNode(dlopen_func, args));
     }else{
@@ -539,10 +357,10 @@ AstNodePtr PCProcess::createLoadRTAST() {
 
         if( getAddressWidth() == 4 ) {
             args32.namePtr = (uint32_t)rtLibLoadHeap_;
-            args32.mode = DLOPEN_MODE;
+            args32.mode = mode;
         }else{
             args64.namePtr = (uint64_t)rtLibLoadHeap_;
-            args64.mode = DLOPEN_MODE;
+            args64.mode = mode;
         }
 
         Address argsAddr = rtLibLoadHeap_ + dyninstRT_name.length()+1;
@@ -558,72 +376,6 @@ AstNodePtr PCProcess::createLoadRTAST() {
     }
 
     return AstNode::sequenceNode(sequence);
-}
-
-/**
- * Searches for function in order, with preference given first
- * to libpthread, then to libc, then to the process.
- **/
-static void findThreadFuncs(PCProcess *p, std::string func,
-                            pdvector<int_function *> &result) {
-    bool found = false;
-    mapped_module *lpthread = p->findModule("libpthread*", true);
-    if (lpthread)
-        found = lpthread->findFuncVectorByPretty(func, result);
-    if (found)
-        return;
-
-    mapped_module *lc = p->findModule("libc.so*", true);
-    if (lc)
-        found = lc->findFuncVectorByPretty(func, result);
-    if (found)
-        return;
-
-    p->findFuncsByPretty(func, result);
-}
-
-bool PCProcess::instrumentMTFuncs() {
-    bool res;
-
-#if !defined(cap_threads)
-    return true;
-#endif
-
-    /**
-     * Have dyn_pthread_self call the actual pthread_self
-     **/
-    //Find dyn_pthread_self
-    pdvector<int_variable *> ptself_syms;
-    res = findVarsByAll("DYNINST_pthread_self", ptself_syms);
-    if (!res) {
-        fprintf(stderr, "[%s:%d] - Couldn't find any dyn_pthread_self, expected 1\n",
-                __FILE__, __LINE__);
-    }
-    assert(ptself_syms.size() == 1);
-    Address dyn_pthread_self = ptself_syms[0]->getAddress();
-    //Find pthread_self
-    pdvector<int_function *> pthread_self_funcs;
-    findThreadFuncs(this, "pthread_self", pthread_self_funcs);
-    if (pthread_self_funcs.size() != 1) {
-        fprintf(stderr, "[%s:%d] - Found %ld pthread_self functions, expected 1\n",
-                __FILE__, __LINE__, (long) pthread_self_funcs.size());
-        for (unsigned j=0; j<pthread_self_funcs.size(); j++) {
-            int_function *ps = pthread_self_funcs[j];
-            fprintf(stderr, "[%s:%u] - %s in module %s at %lx\n", __FILE__, __LINE__,
-                    ps->prettyName().c_str(), ps->mod()->fullName().c_str(),
-                    ps->getAddress());
-        }
-        return false;
-    }
-    //Replace
-    res = writeFunctionPtr(this, dyn_pthread_self, pthread_self_funcs[0]);
-    if (!res) {
-        fprintf(stderr, "[%s:%d] - Couldn't update dyn_pthread_self\n",
-                __FILE__, __LINE__);
-        return false;
-    }
-
-    return true;
 }
 
 PCEventHandler::CallbackBreakpointCase
@@ -756,7 +508,7 @@ bool BinaryEdit::archSpecificMultithreadCapable() {
     if( mobj->isStaticExec() ) {
         int numSymsFound = 0;
         for(int i = 0; i < NUM_PTHREAD_SYMS; ++i) {
-            const pdvector<int_function *> *tmpFuncs = 
+            const pdvector<func_instance *> *tmpFuncs = 
                 mobj->findFuncVectorByPretty(pthreadSyms[i]);
             if( tmpFuncs != NULL && tmpFuncs->size() ) numSymsFound++;
         }

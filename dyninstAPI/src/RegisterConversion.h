@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -29,13 +29,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(REGISTER_CONVERSION_ALL_H)
-#define REGISTER_CONVERSION_ALL_H
+#if !defined(REGISTER_CONVERSION_H)
+#define REGISTER_CONVERSION_H
 
-#if defined(arch_x86) || defined(arch_x86_64)
-#include "RegisterConversion-x86.h"
-#elif defined(arch_power)
-#include "RegisterConversion-power.h"
-#endif
+#include "Register.h"
+#include "common/h/Types.h"
 
-#endif 
+Register convertRegID(Dyninst::InstructionAPI::RegisterAST::Ptr toBeConverted, bool& wasUpcast);
+Register convertRegID(Dyninst::InstructionAPI::RegisterAST* toBeConverted, bool& wasUpcast);
+Register convertRegID(Dyninst::MachRegister reg, bool &wasUpcast);
+Dyninst::MachRegister convertRegID(Register r, Dyninst::Architecture arch);
+
+#endif //!defined(REGISTER_CONVERSION_H)

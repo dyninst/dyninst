@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -94,6 +94,20 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string name,
         }
         if (nameType & prettyName) {
             symsPretty = symsByPrettyName[name];
+#if 0
+            if (name == ("DYNINSTthreadIndex")) {
+                printf("looking for %s\n", name.c_str());
+            }
+            dyn_hash_map <std::string, std::vector<Symbol *> >::iterator 
+                pit = symsByPrettyName.find(name);
+            if (symsByPrettyName.end() != pit) {
+                symsPretty = symsByPrettyName[name];
+            } else {
+                if (name == ("DYNINSTthreadIndex")) {
+                    printf("couldn't find %s\n", name.c_str());
+                }
+            }
+#endif
         }
         if (nameType & typedName) {
             symsTyped = symsByTypedName[name];
@@ -661,14 +675,12 @@ pattern_match( const char *p, const char *s, bool checkCase ) {
     }
 }
 
-
-
-struct SymbolCompareByAddr
+struct Dyninst::SymtabAPI::SymbolCompareByAddr
 {
-   bool operator()(Function *a, Function *b)
+    bool operator()(Function *a, Function *b)
     {
-       return (a->getOffset() < b->getOffset());
-   }
+       return (a->offset_ < b->offset_);
+    }
 };
 
 bool Symtab::getContainingFunction(Offset offset, Function* &func)

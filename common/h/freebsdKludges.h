@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -37,16 +37,18 @@
 #include <errno.h>
 
 #include <vector>
+#include <map>
 
 int sysctl_computeAddrWidth(pid_t pid);
 char *sysctl_getExecPathname(pid_t pid);
 bool sysctl_findProcLWPs(pid_t pid, std::vector<pid_t> &lwps);
 lwpid_t sysctl_getInitialLWP(pid_t pid);
+bool sysctl_getRunningStates(pid_t pid, std::map<Dyninst::LWP, bool> &runningStates);
 
 map_entries *getVMMaps(int pid, unsigned &maps_size);
 
 bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid);
-bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid);
+bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, const void *inSelf, int pid);
 
 #endif
 

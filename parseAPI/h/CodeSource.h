@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -223,6 +223,8 @@ class SymtabCodeSource : public CodeSource {
     PARSER_EXPORT bool nonReturning(Address func_entry);
     PARSER_EXPORT bool nonReturning(std::string func_name);
 
+    PARSER_EXPORT bool resizeRegion(SymtabAPI::Region *, Address newDiskSize);
+
     PARSER_EXPORT Address baseAddress() const;
     PARSER_EXPORT Address loadAddress() const;
     PARSER_EXPORT Address getTOC(Address addr) const;
@@ -249,6 +251,7 @@ class SymtabCodeSource : public CodeSource {
     void init_linkage();
 
     CodeRegion * lookup_region(const Address addr) const;
+    void removeRegion(CodeRegion &); // removes from region tree
 
     void overlapping_warn(const char * file, unsigned line) const;
 };

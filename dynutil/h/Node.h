@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,6 +39,9 @@
 
 #include "dyntypes.h"
 
+#if defined(_MSC_VER)
+#pragma warning(disable:4251)
+#endif
 
 class BPatch_function;
 class BPatch_basicBlock;
@@ -101,8 +104,8 @@ class COMMON_EXPORT Node  {
     EdgeSet ins_;
     EdgeSet outs_;
     
-    void addInEdge(const EdgePtr in) { ins_.insert(in); }
-    void addOutEdge(const EdgePtr out) { outs_.insert(out); }
+    void addInEdge(const EdgePtr in);
+    void addOutEdge(const EdgePtr out);
 
     static const Address INVALID_ADDR;
 };

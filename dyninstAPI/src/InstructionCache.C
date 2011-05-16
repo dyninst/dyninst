@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -32,7 +32,7 @@
 #include "InstructionCache.h"
 using namespace Dyninst;
 
-bool InstructionCache::getLivenessInfo(Address addr, image_func* func, ReadWriteInfo& rw)
+bool InstructionCache::getLivenessInfo(Address addr, parse_func* func, ReadWriteInfo& rw)
 {
   if(func == currentFunction && cache.find(addr) != cache.end())
   {
@@ -42,7 +42,7 @@ bool InstructionCache::getLivenessInfo(Address addr, image_func* func, ReadWrite
   return false;
 }
 
-void InstructionCache::insertInstructionInfo(Address addr, ReadWriteInfo rw, image_func* func)
+void InstructionCache::insertInstructionInfo(Address addr, ReadWriteInfo rw, parse_func* func)
 {
   if(func != currentFunction)
   {

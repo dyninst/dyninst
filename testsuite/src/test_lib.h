@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -184,4 +184,5 @@ class Tempfile {
 #if defined (os_solaris_test) || defined (os_windows_test)
 TESTLIB_DLL_EXPORT int setenv(const char *envname, const char *envval, int);
 #endif
+
 #endif

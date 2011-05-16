@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -173,7 +173,8 @@ class Object : public AObject
     Module* curModule;
 
  public:
-    SYMTAB_EXPORT Object(MappedFile *, MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
+    SYMTAB_EXPORT Object(MappedFile *, MappedFile *, bool defensive, 
+                         void (*)(const char *) = log_msg, bool alloc_syms = true);
     SYMTAB_EXPORT Object(){};
   
     SYMTAB_EXPORT virtual ~Object( void );
@@ -215,7 +216,7 @@ class Object : public AObject
 private:
     SYMTAB_EXPORT void    ParseSymbolInfo( bool );
     SYMTAB_EXPORT void    parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &);
-    SYMTAB_EXPORT void    FindInterestingSections( bool );
+    SYMTAB_EXPORT void    FindInterestingSections( bool, bool );
     Region *          findEnclosingRegion(const Offset where);
 
     Offset baseAddr;     // location of this object in mutatee address space

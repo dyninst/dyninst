@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -50,13 +50,13 @@
 #endif
 
 #include "Instruction.h"
-#include "AST.h"
-#include "util.h"
+#include "dynutil/h/AST.h"
 
 namespace Dyninst {
 
   namespace ParseAPI {
     class Function;
+    class Block;
   };
 
 class Absloc {
@@ -232,7 +232,7 @@ class AbsRegion {
       size_(0) {}
 
 
-	DATAFLOW_EXPORT void setGenerator(AST::Ptr generator) {
+  DATAFLOW_EXPORT void setGenerator(AST::Ptr generator) {
       generator_ = generator;
   }
 
@@ -250,6 +250,8 @@ class AbsRegion {
   DATAFLOW_EXPORT Absloc::Type type() const { return type_; }
   DATAFLOW_EXPORT size_t size() const { return size_; }
   DATAFLOW_EXPORT AST::Ptr generator() const { return generator_; }
+
+  DATAFLOW_EXPORT bool isImprecise() const { return type_ != Absloc::Unknown; }
 
  private:
   // Type is for "we're on the stack but we don't know where".
@@ -292,24 +294,28 @@ class Assignment {
 					  Address addr);
 
   DATAFLOW_EXPORT Assignment(const InstructionAPI::Instruction::Ptr i,
-	     const Address a,
-	     ParseAPI::Function *f,
-	     const std::vector<AbsRegion> &ins,
-	     const AbsRegion &o) : 
+                             const Address a,
+                             ParseAPI::Function *f,
+                             ParseAPI::Block *b,
+                             const std::vector<AbsRegion> &ins,
+                             const AbsRegion &o) : 
     insn_(i),
-    addr_(a),
-      func_(f),
-    inputs_(ins),
-    out_(o) {};
+       addr_(a),
+       func_(f),
+       block_(b),
+       inputs_(ins),
+       out_(o) {};
 
   DATAFLOW_EXPORT Assignment(const InstructionAPI::Instruction::Ptr i,
-	     const Address a,
-	     ParseAPI::Function *f,
-	     const AbsRegion &o) : 
+                             const Address a,
+                             ParseAPI::Function *f,
+                             ParseAPI::Block *b,
+                             const AbsRegion &o) : 
     insn_(i),
-    addr_(a),
-      func_(f),
-    out_(o) {};
+       addr_(a),
+       func_(f),
+       block_(b),
+       out_(o) {};
 
   // Internally used method; add a dependence on 
   // a new abstract region. If this is a new region
@@ -321,11 +327,14 @@ class Assignment {
 
   DATAFLOW_EXPORT ParseAPI::Function *func() const { return func_; }
 
+  DATAFLOW_EXPORT ParseAPI::Block *block() const { return block_; }
+
  private:
   InstructionAPI::Instruction::Ptr insn_;
   Address addr_;
 
   ParseAPI::Function *func_;
+  ParseAPI::Block *block_;
 
   std::vector<AbsRegion> inputs_;
   AbsRegion out_;

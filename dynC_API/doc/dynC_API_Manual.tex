@@ -1,0 +1,572 @@
+\documentclass{article}
+\usepackage[left=1in, right=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage{cancel}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{comment}
+
+\lstset{language=C}
+
+\linespread{1.5}
+
+\begin{document}
+\begin{center} \Huge{DynC API Programmer's Guide} \\
+\huge{Version 1.0 beta}\\
+\vspace{8cm}
+\end{center}
+\pagebreak
+\tableofcontents
+\pagebreak
+
+\section{DynC API}
+\subsection{Motivation}
+Dyninst is a powerful instrumentation tool, but specifying instrumentation code (known as an Abstract Syntax Tree) in the \verb!BPatch_snippet! language can be cumbersome. DynC API answers these concerns, enabling a programmer to easily and quickly build \verb!BPatch_snippets! using a simple C-like language. Other advantages to specifying \verb!BPatch_snippets! using dynC include cleaner, more readable mutator code, automatic variable handling, and runtime-compiled snippets.
+
+As a motivating example, the following implements a function tracer that notifies the user when entering and exiting functions, and keeps track of the number of times each function is called.
+
+\subsubsection{Dyninst API}
+When creating a function tracer using the Dyninst API, the programmer must perform many discrete lookups and create many \verb!BPatch_snippet objects!, which are then combined and inserted into the mutatee.
+
+\vspace{0.5cm}
+
+%\begin{center} 
+%\rule{6.5in}{1pt}
+%\end{center}
+
+\lstset{basicstyle=\small, showstringspaces=false, stringstyle=\ttfamily}
+
+\noindent Look up \verb!printf!:
+\begin{lstlisting}
+  std::vector<BPatch_function *> *printf_func;
+  appImage->findFunction("printf", printf_func);
+  BPatch_function *BPF_printf = printf_func[0];
+\end{lstlisting}
+
+\noindent Create each \verb!printf! pattern:
+\begin{lstlisting}
+  BPatch_constExpr entryPattern("Entering %s, called %d times.\n");
+  BPatch_constExpr exitPattern("Exiting %s.\n");
+\end{lstlisting}
+
+\noindent \textbf{For each function, do the following \{}
+
+Create snippet vectors:
+\begin{lstlisting}
+     std::vector<BPatch_snippet *> entrySnippetVect;
+     std::vector<BPatch_snippet *> exitSnippetVect;
+\end{lstlisting}
+
+Create the \verb!intCounter! global variable:
+\begin{lstlisting}
+     appProc->malloc(appImage->findType("int"), std::string("intCounter"));
+\end{lstlisting}
+
+Get the name of the function:
+\begin{lstlisting}
+     char fName[128];
+     BPatch_constExpr funcName(functions[i]->getName(fName, 128));
+\end{lstlisting}
+
+Build the entry \verb!printf!:
+\begin{lstlisting}
+     std::vector<BPatch_snippet *> entryArgs;
+     entryArgs.push_back(entryPattern);
+     entryArgs.push_back(funcName);
+     entryArgs.push_back(intCounter);
+\end{lstlisting}
+
+Build the exit \verb!printf!:
+\begin{lstlisting}
+     std::vector<BPatch_snippet *> exitArgs;
+     exitArgs.push_back(exitPattern);
+     exitArgs.push_back(funcName);
+\end{lstlisting}
+
+Add \verb!printf! to the snippet:
+\begin{lstlisting}
+     entrySnippetVect.push_back(BPatch_functionCallExpr(*printf_func, entryArgs));
+     exitSnippetVect.push_back(BPatch_functionCallExpr(*printf_func, exitArgs));
+\end{lstlisting}
+
+Increment the counter:
+\begin{lstlisting}
+     BPatch_arithExpr addOne(BPatch_assign, *intCounter, 
+            BPatch_arithExpr(BPatch_plus, *intCounter, BPatch_constExpr(1)));
+\end{lstlisting}
+
+Add increment to the entry snippet:
+\begin{lstlisting}
+     entrySnippetVect.push_back(&addOne);
+\end{lstlisting}
+
+Insert the snippets:
+\begin{lstlisting}
+     appProc->insertSnippet(*entrySnippetVect, functions[i]->findPoint(BPatch_entry));
+     appProc->insertSnippet(*exitSnippetVect, functions[i]->findPoint(BPatch_exit));
+\end{lstlisting}
+
+\noindent \textbf{\}}
+
+\begin{center} 
+%\rule{6.5in}{1pt}
+\end{center}
+
+\begin{comment}
+  // find points
+  std::vector<BPatch_point *> *entryPoints = functions[i]->findPoint(BPatch_entry);
+  std::vector<BPatch_point *> *exitPoints = functions[i]->findPoint(BPatch_exit);
+
+  // insert snippets
+  appProc->insertSnippet(BPatch_sequence(entrySnippetVect), entryPoints);
+  appProc->insertSnippet(BPatch_sequence(exitSnippetVect), exitPoints);
+}
+
+  // run mutatee
+  appProc->continueExecution();
+\end{comment}
+
+\pagebreak
+
+
+\subsubsection{DynC API}
+
+A function tracer is much easier to build in DynC API, especially if reading dynC code from file. Storing dynC code in external files not only cleans up mutator code, but also allows the programmer to modify snippets without recompiling.
+
+\vspace{0.5cm}
+
+%\begin{center} 
+%\rule{6.5in}{1pt}
+%\end{center}
+
+\noindent In this example, the files \verb!myEntryDynC.txt! and \verb!myExitDynC.txt! contain dynC code:
+
+%\lstset{frame=single}
+\begin{lstlisting}
+  // myEntryDynC.txt
+  static int intCounter;
+  printf("Entering %s, called %d times.\n", dyninst`functionName, intCounter);
+\end{lstlisting}
+
+\begin{lstlisting}
+  // myExitDynC.txt
+  printf("Leaving %s.\n", dyninst`functionName);
+\end{lstlisting}
+
+%\lstset{frame=none}
+
+\noindent The code to read, build, and insert the snippets would look something like the following:
+
+\noindent First open files:
+\begin{lstlisting}
+  FILE *entryFile = fopen("myEntryDynC.txt", "r");
+  FILE *exitFile = fopen("myExitDynC.txt", "r");
+\end{lstlisting}
+
+\noindent Next all DynC API with each function's entry and exit points:
+\begin{lstlisting}
+  BPatch_snippet *entrySnippet = 
+       dynC_API::createSnippet(entryString.str().c_str(), entry_point, "entrySnippet");
+  BPatch_snippet *exitSnippet = 
+       dynC_API::createSnippet(exitString.str().c_str(), exit_point, "exitSnippet");
+\end{lstlisting}
+
+\noindent Finally insert the snippets at each function's entry and exit points:
+\begin{lstlisting}
+  appProc->insertSnippet(*entrySnippet, entry_point);
+  appProc->insertSnippet(*exitSnippet, exit_point);
+\end{lstlisting}
+
+\begin{comment}
+\begin{lstlisting}
+/*** Create Snippet ***/
+// build entryString
+std::stringstream entryString;
+entryString << "static int intCounter;" << endl;
+entryString << "printf(\"Entering %s, which has been called %d times.\\n\"";
+entryString << ",dyninst`function_name, intCounter);";
+
+// call to DynC API
+BPatch_snippet *entrySnippet = 
+       dynC_API::createSnippet(entryString.str().c_str(), entryPoint, "entrySnippet");
+
+// build exitString
+std::stringstream exitString;
+exitString << "printf(\"Exiting %s.\\n\", dyninst`function_name);";
+
+// call to DynC API
+BPatch_snippet *exitSnippet = 
+       dynC_API::createSnippet(exitString.str().c_str(), app, "exitSnippet");
+/*** Finish Snippet ***/
+
+// find all entry and exit points
+std::vector<BPatch_point *> * entry_points = (*functions)[0]->findPoint(BPatch_entry);
+std::vector<BPatch_point *> * exit_points = (*functions)[0]->findPoint(BPatch_exit);
+
+for(unsigned int i = 1; i < functions->size(); i++){
+  entry_points->push_back((*(*functions)[i]->findPoint(BPatch_entry))[0]);
+  exit_points->push_back((*(*functions)[i]->findPoint(BPatch_exit))[0]);
+}
+
+// insert Snippets
+appProc->insertSnippet(*entrySnippet, entry_points);
+appProc->insertSnippet(*exitSnippet, exit_points);
+  
+//run mutatee
+appProc->continueExecution();
+
+\end{lstlisting}
+\end{comment}
+
+%\begin{center} 
+%\noindent \rule{6.5in}{1pt}
+%\end{center}
+
+\subsection{Calling DynC API}
+All DynC functions reside in the \verb!dynC_API! namespace. The primary DynC API function is:
+\begin{lstlisting}
+   BPatch_Snippet *createSnippet(<dynC code>, <location>, char * name);
+\end{lstlisting}
+where \verb!<dynC code>! can be either a constant c-style string or a file descriptor and \verb!<location>! can take the form of a \verb!BPatch_point! or a \verb!BPatch_addressSpace!. There is also an optional parameter to name a snippet. A snippet name makes code and error reporting much easier to read. If a snippet name is not specified, the default name \verb!Snippet_[#]! is used.
+\\
+
+\begin{centering}
+
+\begin{table}[!th]
+\begin{tabular}{|l|p{11cm}|}
+\hline
+\verb!<dynC code>! & Description\\
+\hline
+\verb!std::string str! & A C++ string containing dynC code.\\
+\hline
+\verb!const char *s! & A null terminated string containing dynC code\\
+\hline 
+\verb!FILE *f! & A standard C file descriptor. Facilitates reading dynC code from file.\\
+\hline
+
+\end{tabular}
+\caption{DynC API input options: code snippets}
+\end{table}
+
+\begin{table}[!th]
+\begin{tabular}{|l|p{8cm}|}
+\hline
+\verb!<location>! & Description\\
+\hline
+\verb!BPatch_point &point! & Creates a snippet specific to a single point.\\
+\hline
+\verb!BPatch_addressSpace &addSpace! & Creates a more flexible snippet specific to an address space. See section \ref{sec:nopoint}.\\
+\hline
+\end{tabular}
+\caption{DynC API input options: location}
+\end{table}
+
+\end{centering}
+
+The location parameter is the point or address space in which the snippet will be inserted. Inserting a snippet created for one location into another can cause undefined behavior.
+
+\subsection{Creating Snippets Without Point Information}
+\label{sec:nopoint}
+Creating a snippet without point information (i.e.\ calling \verb!createSnippet(...)! with a \verb!BPatch_addressSpace!) results in a far more flexible snippet that may be inserted at any point in the specified address space. There are, however, a few restrictions on the types of operations that may be performed by a flexible snippet. No local variables may be accessed. This includes parameters and return values. Mutatee variables must be accessed through the \verb!inf! domain.
+
+\\
+\section{DynC Language Description}
+The DynC language is a subset of C with a \textbf{domain} specification for selecting the location of a resource.
+\subsection{Domains}
+Domains are special keywords that allow the programmer to precisely indicate which resource to use. 
+DynC domains follow the form of \verb!<domain>`<identifier>!, with a back-tick separating the domain and the identifier. The DynC domains are as follows:
+
+\begin{table}[!th]
+\begin{tabular}{ | l | p{12cm} |}
+\hline
+Domain & Description\\
+\hline
+\verb!inf! & The inferior process (the program being instrumented). Allows access to the variables and methods of the mutatee.\\
+\hline
+\verb!dyninst! & Dyninst utility functions. Allows access to context information as well as the \verb!break()! function. See Appendix \ref{sec:dyninstdomain}.\\
+\hline
+\verb!local! & A mutatee variable local to function in which the snippet is inserted. \\
+\hline
+\verb!global! & A global mutatee variable. \\
+\hline
+\verb!param! & A parameter of the mutatee function in which the snippet is inserted. \\
+\hline
+\textit{default} & The default domain (domain not specified) is the domain of snippet variables. \\
+\hline
+
+\end{tabular}
+\caption{DynC API Domains}
+\end{table}
+
+Note: \verb!inf`<variable>! searches first for local variables named \verb!<variable>!, then for matching globals if no locals are found. 
+
+
+
+
+\noindent Example:
+\begin{lstlisting}
+   inf`printf("n is equal to %d.\n", ++inf`n);
+\end{lstlisting}
+This would print the value of the mutatee variable n, then increment n.
+
+
+
+\subsection{Control Flow}
+
+\subsubsection{Comments}
+Block and line comments work as they do in C or C++.
+
+\noindent Example:
+\begin{lstlisting}
+   /*
+    * This is a comment.
+    */
+   int i; // So is this.
+\end{lstlisting}
+
+\subsubsection{Conditionals}
+Use \verb!if! to conditionally execute code. 
+\noindent Example:
+\begin{lstlisting}
+   if(x == 0){
+      inf`printf("x == 0.\n");
+   }
+\end{lstlisting}
+The \verb!else! command can be used to specify code executed if a condition is not true.
+\noindent Example:
+\begin{lstlisting}
+   if(x == 0){
+      inf`printf("x == 0.\n");
+   }else if(x > 3){
+      inf`printf("x > 3.\n");
+   }else{
+      inf`printf("x < 3 but x != 0.\n");
+   }
+\end{lstlisting}
+
+\subsubsection{First-Only Executed Code}
+\label{sec:firstOnly}
+Code enclosed by a pair of \verb!{% <code> %}! is executed only once by a snippet. This creates an ideal section for declaring variables and displaying a message only once.\\
+\noindent Example Touch:
+\begin{lstlisting}
+   {%
+      inf`printf("Function %s has been touched.\n", dyninst`function_name);
+   %}
+\end{lstlisting}
+
+DynC will only execute the code in a first-only section for snippets \underline{with the same name}. Thus, if a snippet is created by calling \verb!createSnippet(...)! with a unique snippet name, the first-only code will be executed upon reaching the first point encountered in the execution of the mutatee where the snippet was inserted. 
+
+For example, if the previous example was created with the name \verb!fooTouchSnip! and inserted at the entry to function \verb!foo!, the output would be:
+\begin{lstlisting}
+   Function foo has been touched.
+   (mutatee exit)
+\end{lstlisting}
+
+If \verb!createSnippet(...)! was called with Example Touch multiple times and each snippet was given the same name, but was inserted at the entries of the functions \verb!foo!, \verb!bar!, and \verb!run! respectively, the output would be:
+
+\begin{lstlisting}
+   Function foo has been touched.
+   (mutatee exit)
+\end{lstlisting}
+
+Creating the snippets with distinct names (e.g. \verb!createSnippet(...)! is called with Example Touch multiple times and the snippets were named \verb!fooTouchSnip!, \verb!barTouchSnip!, \verb!runTouchSnip!) would produce an output like:
+
+\begin{lstlisting}
+   Function foo has been touched.
+   Function bar has been touched.
+   Function run has been touched.
+   (mutatee exit)
+\end{lstlisting}
+
+\subsection{Variables}
+DynC allows for the creation of \textit{snippet local} variables. These variables are in scope only within the snippet in which they are created.
+
+\noindent For example, to create a non-static snippet-local variable:
+
+\begin{lstlisting}
+   int i;
+   i = 5;
+\end{lstlisting}
+
+\noindent would create an uninitialized variable named \verb!i! of type integer. The value of \verb!i! is then set to 5.
+This is equivalent to:
+
+\begin{lstlisting}
+   int i = 5;
+\end{lstlisting}
+
+\subsubsection{Static Variables}
+
+Every time the snippet is executed, the variable is reinitialized. To create a variable with value that persists across executions of snippets, declare the variable as static. 
+
+\noindent Example: 
+\begin{lstlisting}
+   int i = 10;
+   inf`printf("i is %d.\n", i++);
+\end{lstlisting}
+
+\noindent The output from the above if, for example, inserted at the entrance to a function that is called four times would be:
+
+\begin{lstlisting}
+i is 10.
+i is 10.
+i is 10.
+i is 10.
+\end{lstlisting}
+
+\noindent Adding \verb!static! to the variable declaration would make the value of \verb!i! persist across executions:
+\begin{lstlisting}
+   static int i = 10;
+   inf`printf("i is %d.\n", i++);
+\end{lstlisting}
+\noindent Produces:
+\begin{lstlisting}
+i is 10.
+i is 11.
+i is 12.
+i is 13.
+\end{lstlisting}
+
+\noindent A variable declared in a one-time section will also behave statically.
+
+\begin{lstlisting}
+   {%
+      int i = 10;
+   %}
+\end{lstlisting}
+
+
+\subsubsection{Global Variables}
+To declare a global variable, accessible by all snippets inserted into a mutatee, one must use the DyninstAPI \hspace{1pt} \verb!BPatch_addressSpace::malloc(...)! method (see \underline{Dyninst Programmer's Guide}). This code is located in mutator code (\emph{not} in dynC code).
+
+
+\noindent myMutator.C
+\begin{lstlisting}
+   ...
+   // Creates a global variable of type in named globalIntN
+   myAddressSpace->malloc(myImage->getType("int"), "globalIntN"); 
+   
+   // file1 and file2 are FILE *, entryPoint and exitPoint are BPatch_point 
+   BPatch_snippet *snippet1 = dynC::createSnippet(file1, &entryPoint, "mySnippet1"); 
+   BPatch_snippet *snippet2 = dynC::createSnippet(file2, &exitPoint, "mySnippet2");
+   
+   assert(snippet1);
+   assert(snippet2);
+   
+   myAdressSpace->insertSnippet(snippet1, &entryPoint);
+   myAdressSpace->insertSnippet(snippet2, &exitPoint);
+   
+   // run the mutatee
+   ((BPatch_process *)myAdressSpace)->continueExecution();
+   ...
+\end{lstlisting}
+\noindent file1:
+\begin{lstlisting}
+   {%
+      global`globalIntN = 0; // initialize global variable in first-only section
+   %}
+   inf`printf("Welcome to function %s. Global variable globalIntN = %d.\n", 
+        dyninst`function_name, global`globalIntN++);
+\end{lstlisting}
+
+\noindent file2:
+\begin{lstlisting}
+   inf`printf("Goodbye from function %s. Global variable globalIntN = %d.\n", 
+        dyninst`function_name, global`globalIntN++);
+\end{lstlisting}
+
+\noindent When run, the output from the instrumentation would be:
+\begin{lstlisting}
+   Welcome to function foo. Global variable globalIntN = 0.
+   Goodbye from function foo. Global variable globalIntN = 1.
+   Welcome to function foo. Global variable globalIntN = 2.
+   Goodbye from function foo. Global variable globalIntN = 3.
+   Welcome to function foo. Global variable globalIntN = 4.
+   Goodbye from function foo. Global variable globalIntN = 5.
+\end{lstlisting}
+
+\subsubsection{Data Types}
+DynC supported data types are restricted by those supported by DynInst: \verb!int!, \verb!long!, \verb!char *!, and \verb!void *!. Integer and c-string primitives are also recognized:\\
+
+\noindent Example:
+\begin{lstlisting}
+   int i = 12;
+   char *s = "hello";
+\end{lstlisting}
+
+\subsubsection{Pointers}
+Pointers are dereferenced with the prefix \verb!*<variable>! and the address of variable is specified by \verb!&<variable>!.
+For example, in reference to the previous example, the statement \verb!*s! would evaluate to the character \verb!h!.
+
+\subsubsection{Arrays}
+Arrays in DynC behave much the same way they do in C. 
+
+\noindent Example:
+\begin{lstlisting}
+   int array[3] = {1, 2, 3};
+   char *names[] = {"Mark", "Phil", "Deb", "Tracy"};
+   names[2] = "Gwen" // change Deb to Gwen
+   inf`printf("The seventh element of mutArray is %d.\n", inf`mutArray[6]); //Mutatee array 
+   if(inf`strcmp(*names, "Mark") == 0){} // This will evaluate to true. 
+\end{lstlisting}
+
+\subsection{DynC Limitations}
+The DynC, while quite expressive, is limited to those actions supported by the DynInstAPI. As such, it lacks certain abilities that many programmers have come to expect. These differences will be discussed in an exploration of those C abilities that dynC lacks.
+ 
+\subsubsection{Loops}
+There are no looping structures in DynC.
+
+\subsubsection{Enums, Unions, Structures}
+These features present a unique implementation challenge and are in development. Look to future revisions for full support for enums, unions, and structures.
+
+\subsubsection{Preprocessing}
+DynC does not allow C-style preprocessing macros or importation. Rather than \verb!#define! statements, constant variables are recommended.
+
+\subsubsection{Functions}
+Specifying functions is beyond the scope of the DynC language. The DynInstAPI has methods for dynamically loading code into a mutatee, and these loaded functions can be used in DynC snippets.
+\pagebreak
+
+\appendix
+\section{The Dyninst Domain}
+\label{sec:dyninstdomain}
+The \verb!dyninst! domain has quite a few useful values and functions:
+
+\begin{table}[!th]
+\begin{tabular}{ | l | l | p{4cm} | p{6.5cm} |}
+\hline
+Identifier & Type & Where Valid & Description\\
+\hline
+\verb!function_name! & char * & Within a function & Evaluates to the pretty name of the function where the snippet is executing. Requires that call to \verb!createSnippet(...)! specifies a \verb!BPatch_point!.\\
+\hline
+\verb!module_name! & char * & Anywhere & Evaluates to the name of the current module. Requires call to \verb!createSnippet(...)! to specifies a \verb!BPatch_point!.\\
+\hline
+\verb!bytes_accessed! & int & At a memory operation & Evaluates to the number of bytes accessed by a memory operation.\\  
+\hline
+\verb!effective_address! & void * & At a memory operation & Evaluates the effective address of a memory operation.\\
+\hline
+\verb!original_address! & void * & Anywhere & Evaluates to the original address where the snippet was inserted. \\
+\hline
+\verb!actual_address! & void * & Anywhere & Evaluates to the actual address of the instrumentation. \\
+\hline
+\verb!return_value! & void * & Function exit & Evaluates to the return value of a function.\\ 
+\hline
+\verb!thread_index! & int & Anywhere &  Returns the index of the thread the snippet is executing on.\\
+\hline
+\verb!tid! & int & Anywhere & Returns the thread id of the thread the snippet is executing on.\\
+\hline
+\verb!dynamic_target! & void * & At calls, jumps, returns & Calculates the target of a control flow instruction.\\ 
+\hline
+\verb!break()! & void & Anywhere & Causes the mutatee to break.\\
+\hline
+\verb!stopthread()! & void & Anywhere & Causes the thread on which the snippet is executing to stop.\\
+\hline
+
+\end{tabular}
+\caption{Dyninst Domain Values}
+\end{table}
+
+
+\end{document}
+
+% LocalWords:  DynC API BPatch entrySnippet

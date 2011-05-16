@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -1617,7 +1617,12 @@ void Object::load_object(bool alloc_syms)
     if (alloc_syms) 
       {
 	// find symbol and string data
+#if defined(os_vxworks)
+        // Avoid assigning symbols to DEFAULT_MODULE on VxWorks
+        string module = mf->pathname();
+#else
 	string module = "DEFAULT_MODULE";
+#endif
 	string name   = "DEFAULT_NAME";
 	Elf_X_Data symdata, strdata;
 
@@ -3214,7 +3219,7 @@ stab_entry *Object::get_stab_info() const
   return new stab_entry_64();
 }
 
-Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *), 
+Object::Object(MappedFile *mf_, MappedFile *mfd, bool, void (*err_func)(const char *), 
 	       bool alloc_syms) :
   AObject(mf_, mfd, err_func), 
   hasReldyn_(false),

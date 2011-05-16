@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -99,10 +99,11 @@ class BPATCH_DLL_EXPORT BPatch_memoryAccess : public BPatch_instruction
   BPatch_addrSpec_NP *start;
   BPatch_countSpec_NP *count;
 
- protected:
+ public:
   const BPatch_addrSpec_NP *getStartAddr(int which = 0) const;
   const BPatch_countSpec_NP *getByteCount(int which = 0) const;
 
+ protected:
   // initializes only the first access - general case
   void set1st(bool _isLoad, bool _isStore,
               long _imm_s, int _ra_s, int _rb_s, unsigned int _scale_s,

@@ -152,6 +152,13 @@ ifndef OVERRIDE_INSTALL
 install: install_generic
 endif
 
+# %.C: %.y
+# 	$(YACC) $(YFLAGS) $<
+# 	$(MV) y.tab.c $@
+
+# %.C: %.l
+# 	$(LEX) -t $(LFLAGS) $< > $@
+
 #
 # dependency generation definitions
 #
@@ -195,12 +202,6 @@ endif
 #.depend.% %.C:
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
 
-%.C: %.y
-	$(YACC) $(YFLAGS) $<
-	$(MV) y.tab.c $@
-
-%.C: %.l
-	$(LEX) -t $(LFLAGS) $< > $@
 
 #
 # A few pattern rules for simplicity in handling igen-generated files.

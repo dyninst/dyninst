@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -37,6 +37,9 @@
 // Non-NULL for platforms where we don't need the instMapping
 #define SYSCALL_INSTALLED ((instMapping *)1)
 
+#include <cassert>
+#include <cstdlib>
+
 class instMapping;
 class PCProcess;
 
@@ -50,6 +53,11 @@ class syscallNotification {
     instMapping *preExitInst;
     instMapping *preLwpExitInst;
     PCProcess *proc;
+
+    // platform dependent
+    const char *getForkFuncName();
+    const char *getExecFuncName();
+    const char *getExitFuncName();
     
   public:
     syscallNotification() :

@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 #if !defined(LINUX_H_)
 #define LINUX_H_
 
@@ -10,9 +40,9 @@
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/sysv.h"
 #include "proccontrol/src/unix.h"
-#include "proccontrol/src/int_thread_db.h"
 #include "proccontrol/src/x86_process.h"
 #include "proccontrol/src/ppc_process.h"
+#include "proccontrol/src/int_thread_db.h"
 #include "common/h/dthread.h"
 #include <sys/types.h>
 #include <sys/ptrace.h>
@@ -74,12 +104,13 @@ class linux_process : public sysv_process, public unix_process, public thread_db
 
    virtual bool plat_create();
    virtual bool plat_create_int();
-   virtual bool plat_attach();   
+   virtual bool plat_attach(bool allStopped);
+   virtual bool plat_attachWillTriggerStop();
    virtual bool plat_forked();
    virtual bool plat_execed();
    virtual bool plat_detach(bool &needs_sync);
    virtual bool plat_terminate(bool &needs_sync);
-   virtual bool plat_getOSRunningState(Dyninst::LWP lwp) const;
+   virtual bool preTerminate();
 
    //The following async functions are only used if a linux debugging mode,
    // 'debug_async_simulate' is enabled, which tries to get Linux to simulate having
@@ -100,9 +131,10 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool plat_individualRegAccess();
    virtual bool plat_contProcess() { return true; }
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
-   virtual int_process::ThreadControlMode plat_getThreadControlMode() const;
    virtual bool plat_convertToBreakpointAddress(psaddr_t &);
+   virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
    virtual bool plat_supportLWPEvents();
+   virtual ThreadControlMode plat_getThreadControlMode() const;
   protected:
    int computeAddrWidth(Dyninst::Architecture me);
 };
@@ -155,14 +187,17 @@ class linux_thread : public thread_db_thread
                                       result_response::ptr result);
    virtual bool thrdb_getThreadArea(int val, Dyninst::Address &addr);
    virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
+   virtual bool plat_needsEmulatedSingleStep(vector<Dyninst::Address> &result);
+   virtual bool plat_needsPCSaveBeforeSingleStep();
 
    // Needed by HybridLWPControl, unused on Linux
    virtual bool plat_resume() { return true; }
    virtual bool plat_suspend() { return true; }
 
    void setOptions();
+   bool unsetOptions();
    bool getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
-
+   
    static void fake_async_main(void *);
 };
 

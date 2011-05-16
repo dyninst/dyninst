@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -472,8 +472,9 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg, bool &
          int_eventNewUserThread *iev = new_ev->getInternalEvent();
          
          new_thread_data_t *thrdata = (new_thread_data_t *) malloc(sizeof(new_thread_data_t));
-         thrdata->thr_handle = const_cast<td_thrhandle_t *>(eventMsg->th_p);
+         thrdata->thr_handle = new td_thrhandle_t(*(eventMsg->th_p));
          thrdata->thr_info = info;
+         thrdata->threadHandle_alloced = true;
 
          iev->raw_data = (void *) thrdata;
          iev->lwp = lwp;
@@ -844,6 +845,7 @@ async_ret_t thread_db_process::initThreadDB() {
       }
       
       int_breakpoint *newEventBrkpt = new int_breakpoint(Breakpoint::ptr());
+      newEventBrkpt->setProcessStopper(true);
       if( !addBreakpoint((Dyninst::Address)notifyResult.u.bptaddr,
                          newEventBrkpt))
       {
@@ -1274,14 +1276,15 @@ Handler::handler_ret_t ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
    }
 
    EventNewUserThread::ptr threadEv = ev->getEventNewUserThread();
+   thread_db_process *tdb_proc = dynamic_cast<thread_db_process *>(threadEv->getProcess()->llproc());
+   thread_db_thread *tdb_thread = static_cast<thread_db_thread *>(threadEv->getNewThread()->llthrd());
+
+   pthrd_printf("ThreadDBCreateHandler::handleEvent for %d/%d\n", tdb_proc->getPid(), tdb_thread->getLWP());
    if (threadEv->getInternalEvent()->needs_update) {
-      pthrd_printf("Updating user thread data for %d/%d in thread_db create handler\n",
-                   threadEv->getProcess()->llproc()->getPid(),
-                   threadEv->getNewThread()->llthrd()->getLWP());
-      thread_db_process *tdb_proc = dynamic_cast<thread_db_process *>(ev->getProcess()->llproc());
+       pthrd_printf("Updating user thread data for %d/%d in thread_db create handler\n",
+                    tdb_proc->getPid(), tdb_thread->getLWP());
       assert(tdb_proc);
       new_thread_data_t *thrdata = (new_thread_data_t *) threadEv->getInternalEvent()->raw_data;
-      pthrd_printf("thread_db user create handler for %d/%d\n", tdb_proc->getPid(), threadEv->getLWP());
       
       async_ret_t result = tdb_proc->initThreadWithHandle(thrdata->thr_handle, &thrdata->thr_info);
       if (result == aret_error) {
@@ -1292,6 +1295,7 @@ Handler::handler_ret_t ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
          pthrd_printf("ThreadDBCreateHandler returning async\n");
          return Handler::ret_async;
       }
+      if( thrdata->threadHandle_alloced ) tdb_thread->threadHandle_alloced = true;
    }
    
    return Handler::ret_success;
@@ -1377,6 +1381,7 @@ Handler::handler_ret_t ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
    }
    thread_db_process *proc = dynamic_cast<thread_db_process *>(ev->getProcess()->llproc());
    thread_db_thread *thrd = static_cast<thread_db_thread *>(ev->getThread()->llthrd());
+   pthrd_printf("Running ThreadDBDestroyHandler on %d/%d\n", proc->getPid(), thrd->getLWP());
 
    bool async = false;
    if( ev->getEventType().time() == EventType::Pre) {
@@ -1400,10 +1405,12 @@ Handler::handler_ret_t ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
    } 
    else if( ev->getEventType().time() == EventType::Post) 
    {
-      // TODO this needs to be reworked -- it isn't quite right
       // Need to make sure that the thread actually finishes and is cleaned up
       // by the OS
-      thrd->plat_resume();
+      if( !thrd->plat_resume() ) {
+         perr_printf("Failed to resume LWP %d\n", thrd->getLWP());
+         return Handler::ret_error;
+      }
    }
 
    return Handler::ret_success;
@@ -1463,12 +1470,6 @@ Event::ptr thread_db_process::getEventForThread(thread_db_thread *thrd, EventTyp
    // These specific calls into thread_db can modify the memory of the process
    // and can introduce some race conditions if the platform allows memory reads
    // while some threads are running
-   if (! threadPool()->allStopped() ) {
-      for (;;) {
-         fprintf(stderr, "Found assert\n");
-         sleep(1);
-      }
-   }
    assert( threadPool()->allStopped() );
   
    // We need to save thread_db generated events because we need to use the
@@ -1588,36 +1589,6 @@ bool thread_db_thread::fetchThreadInfo() {
    return true;
 }
 
-bool thread_db_thread::plat_resume() {
-    if( !initThreadHandle() ) return false;
-
-    td_err_e errVal = thread_db_process::p_td_thr_dbresume(threadHandle);
-
-    if( TD_OK != errVal ) {
-        perr_printf("Failed to resume %d/%d: %s(%d)\n",
-                llproc()->getPid(), lwp, tdErr2Str(errVal), errVal);
-        setLastError(err_internal, "Failed to resume LWP");
-        return false;
-    }
-
-    return true;
-}
-
-bool thread_db_thread::plat_suspend() {
-    if( !initThreadHandle() ) return false;
-
-    td_err_e errVal = thread_db_process::p_td_thr_dbsuspend(threadHandle);
-
-    if( TD_OK != errVal ) {
-        perr_printf("Failed to suspend %d/%d: %s(%d)\n",
-                llproc()->getPid(), lwp, tdErr2Str(errVal), errVal);
-        setLastError(err_internal, "Failed to suspend LWP");
-        return false;
-    }
-
-    return true;
-}
-
 void thread_db_thread::markDestroyed() {
     destroyed = true;
 }
@@ -1642,7 +1613,11 @@ bool thread_db_thread::getTID(Dyninst::THR_ID &tid)
    if (!fetchThreadInfo()) {
       return false;
    }
+#if defined(os_freebsd)
+   tid = (Dyninst::THR_ID) tinfo.ti_thread;
+#else
    tid = (Dyninst::THR_ID) tinfo.ti_tid;
+#endif
    return true;
 }
 

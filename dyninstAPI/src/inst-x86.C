@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -91,9 +91,6 @@ extern "C" int cpuidCall();
  * Worst-case scenario for how much room it will take to relocate
  * an instruction -- used for allocating the new area
  */
-unsigned relocatedInstruction::maxSizeRequired() {
-    return insn->spaceToRelocate();
-}
 
 void registerSpace::initialize32() {
     static bool done = false;
@@ -209,6 +206,12 @@ void registerSpace::initialize32() {
     // on the REGNUM_FOO numbering
 #if defined(cap_liveness)
     returnRead_ = getBitArray();
+    // Callee-save registers...
+    returnRead_[REGNUM_EBX] = true;
+    returnRead_[REGNUM_ESI] = true;
+    returnRead_[REGNUM_EDI] = true;
+    // And return value
+    returnRead_[REGNUM_EAX] = true;
     // Return reads no registers
 
     callRead_ = getBitArray();
@@ -219,13 +222,15 @@ void registerSpace::initialize32() {
 
     // PLT entries use ebx
     callRead_[REGNUM_EBX] = true;
-
+    
     // TODO: Fix this for platform-specific calling conventions
 
     // Assume calls write flags
     callWritten_ = callRead_;
     for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) 
         callWritten_[i] = true;
+    // And eax...
+    callWritten_[REGNUM_EAX] = true;
 
 
     // And assume a syscall reads or writes _everything_
@@ -233,9 +238,21 @@ void registerSpace::initialize32() {
     syscallWritten_ = syscallRead_;
 
 #if defined(os_windows)
-    // Make conservative assumptions
+    // VERY conservative, but it's safe wrt the ABI.
+    // Let's set everything and unset flags
     callRead_ = syscallRead_;
+    for (unsigned i = REGNUM_OF; i <= REGNUM_RF; ++i) {
+       callRead_[i] = false;
+    }
     callWritten_ = syscallWritten_;
+
+// IF DEFINED KEVIN FUNKY MODE
+	returnRead_ = callRead_;
+	// Doesn't exist, but should
+	//returnWritten_ = callWritten_;
+// ENDIF DEFINED KEVIN FUNKY MODE
+
+
 #endif
 
     allRegs_ = getBitArray().set();
@@ -259,7 +276,8 @@ void registerSpace::initialize64() {
 
     registerSlot * rax = new registerSlot(REGNUM_RAX,
                                           "rax",
-                                          true, // We use it implicitly _everywhere_
+					  // TODO FIXME but I need it...
+                                          false, // We use it implicitly _everywhere_
                                           registerSlot::deadABI,
                                           registerSlot::GPR);
     registerSlot * rcx = new registerSlot(REGNUM_RCX,
@@ -648,7 +666,10 @@ int cpuidCall() {
     return result;
 }
 #endif
-#if !defined(x86_64_unknown_linux2_4) && !(defined(os_freebsd) && defined(arch_x86_64))
+
+#if !defined(x86_64_unknown_linux2_4)              \
+ && !(defined(os_freebsd) && defined(arch_x86_64)) \
+ && !defined(os_vxworks)
 bool xmmCapable()
 {
   int features = cpuidCall();
@@ -666,13 +687,13 @@ bool xmmCapable()
 }
 #endif
 
-bool baseTramp::generateSaves(codeGen& gen, registerSpace*, baseTrampInstance *inst) {
-   return gen.codeEmitter()->emitBTSaves(this, inst, gen);
+bool baseTramp::generateSaves(codeGen& gen, registerSpace*) {
+   return gen.codeEmitter()->emitBTSaves(this, gen);
 }
 
-bool baseTramp::generateRestores(codeGen &gen, registerSpace*, baseTrampInstance *inst) {
+bool baseTramp::generateRestores(codeGen &gen, registerSpace*) {
 
-   return gen.codeEmitter()->emitBTRestores(this, inst, gen);
+   return gen.codeEmitter()->emitBTRestores(this, gen);
 }
 
 /****************************************************************************/
@@ -741,20 +762,20 @@ int tramp_pre_frame_size_64 = 8 + 16 * 8 + AMD64_RED_ZONE; // stack space alloca
 
 bool can_do_relocation(PCProcess *proc,
                        const pdvector<pdvector<Frame> > &stackWalks,
-                       int_function *instrumented_func)
+                       func_instance *instrumented_func)
 {
    bool can_do_reloc = true;
 
    // for every vectors of frame, ie. thread stack walk, make sure can do
    // relocation
-   Address begAddr = instrumented_func->getAddress();
+   Address begAddr = instrumented_func->addr();
    for (unsigned walk_itr = 0; walk_itr < stackWalks.size(); walk_itr++) {
-     pdvector<int_function *> stack_funcs =
+     pdvector<func_instance *> stack_funcs =
        proc->pcsToFuncs(stackWalks[walk_itr]);
      
      // for every frame in thread stack walk
      for(unsigned i=0; i<stack_funcs.size(); i++) {
-       int_function *stack_func = stack_funcs[i];
+       func_instance *stack_func = stack_funcs[i];
        Address pc = stackWalks[walk_itr][i].getPC();
        
        if( stack_func == instrumented_func ) {
@@ -869,7 +890,8 @@ void emitAddressingMode(unsigned base, unsigned index,
       return;
    }
    
-   assert(index != REGNUM_ESP);
+   // This isn't true for AMD-64...
+   //assert(index != REGNUM_ESP);
    
    if(index == Null_Register) {
       assert(base == REGNUM_ESP); // not necessary, but sane
@@ -977,7 +999,7 @@ void emitOpRMReg(unsigned opcode, RealRegister base, int disp,
 void emitOpExtRegImm(int opcode, int ext, RealRegister dest, int imm,
                      codeGen &gen) 
 {
-   GET_PTR(insn, gen);
+  GET_PTR(insn, gen);
    *insn++ = opcode;
    *insn++ = makeModRMbyte(3, (char) ext, dest.reg());
    *((int *)insn) = imm;
@@ -1075,9 +1097,11 @@ void emitMovPCRMToReg(RealRegister dest, int offset, codeGen &gen, bool deref_re
       return;
    }
 
+
    int used = gen.used();
    RealRegister pc_reg(0);
    if (gen.rs()->pc_rel_offset() == -1) {
+
       //assert(!gen.rs()->pc_rel_use_count);
       if (gen.getPCRelUseCount() == 1) {
          //We know there's only one getPC instruction.  We won't setup
@@ -1348,7 +1372,7 @@ Register emitFuncCall(opCode op,
                       codeGen &gen,
                       pdvector<AstNodePtr> &operands, 
                       bool noCost,
-                      int_function *callee)
+                      func_instance *callee)
 {
     Register reg = gen.codeEmitter()->emitCall(op, gen, operands, noCost, callee);
     return reg;
@@ -1367,7 +1391,7 @@ store and reexamine every call out instead of doing it on the fly like before*/
 // Should be a member of the registerSpace class?
 
 bool EmitterIA32::clobberAllFuncCall( registerSpace *rs,
-                                      int_function *callee)
+                                      func_instance *callee)
 		   
 {
   if (callee == NULL) return false;
@@ -1405,20 +1429,25 @@ void EmitterIA32::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 Register EmitterIA32::emitCall(opCode op, 
                                codeGen &gen,
                                const pdvector<AstNodePtr> &operands, 
-                               bool noCost, int_function *callee) {
+                               bool noCost, func_instance *callee) {
     bool inInstrumentation = true;
+#if 0
     if (gen.obj() &&
         dynamic_cast<replacedInstruction *>(gen.obj())) {
         // We're replacing an instruction - so don't do anything
         // that requires a base tramp.
         inInstrumentation = false;
     }
+#endif
 
+    if (op != callOp) {
+      cerr << "ERROR: emitCall with op == " << op << endl;
+    }
     assert(op == callOp);
     pdvector <Register> srcs;
     int param_size;
     pdvector<Register> saves;
-
+    
     //  Sanity check for NULL address arg
     if (!callee) {
         char msg[256];
@@ -1502,10 +1531,17 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
           if (!get_addr_of)
              return dest;
           break;
+       case getRetAddrOp: 
+          // dest is a register where we can store the return address
+          gen.codeEmitter()->emitGetRetAddr(dest, gen);
+          return dest;
+          break;
        case getParamOp:
+       case getParamAtCallOp:
+       case getParamAtEntryOp:
           // src1 is the number of the argument
           // dest is a register where we can store the value
-          gen.codeEmitter()->emitGetParam(dest, src1, location->getPointType(), 
+          gen.codeEmitter()->emitGetParam(dest, src1, location->type(), op,
                                           get_addr_of, gen);
           if (!get_addr_of)
              return dest;
@@ -1616,11 +1652,11 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
          }
          assert(r);
          offset = r->saveOffset * addr_width;
-         if (!gen.bti() || gen.bti()->hasStackFrame()) {
+         if (!gen.bt() || gen.bt()->createdFrame) {
             reg = plat_bp;
             return stackItemLocation(plat_bp, offset);
          }
-
+         
          offset += gen.rs()->getStackHeight();
          return stackItemLocation(plat_sp, offset);
       }
@@ -1634,7 +1670,7 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
       case stackItem::stacktop:
       {
          offset = gen.rs()->getInstFrameSize();
-         if (!gen.bti() || gen.bti()->hasStackFrame()) {
+         if (!gen.bt() || gen.bt()->createdFrame) {
             return stackItemLocation(plat_bp, offset);
          }
 
@@ -1642,7 +1678,7 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
          return stackItemLocation(plat_sp, offset);
       }
       case stackItem::framebase: {
-         if (!gen.bti() || gen.bti()->hasStackFrame()) {
+         if (!gen.bt() || gen.bt()->createdFrame) {
             return stackItemLocation(plat_bp, 0);
          }
          offset = gen.rs()->getStackHeight();
@@ -1662,14 +1698,19 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
       dest_r = *dest_to_use;
    }
    else {
-      dest = gen.rs()->getScratchRegister(gen);
+      if (gen.inInstrumentation()) {
+         dest = gen.rs()->getScratchRegister(gen);
+      }
+      else {
+         dest = gen.rs()->getScratchRegister(gen, false, true);
+      }
    }
    
    if (reg.reg() == REGNUM_EBP) {
       //Special handling for EBP with and without instr stack frame
       if (dest_r.reg() == -1)
          dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-      if (gen.bti()->hasStackFrame()) {
+      if (gen.bt() && gen.bt()->createdFrame) {
          emitMovRMToReg(dest_r, RealRegister(REGNUM_EBP), 0, gen);
       }
       else {
@@ -1686,9 +1727,8 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
       //Special handling for ESP 
       if (dest_r.reg() == -1)
          dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-
       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-      if (!gen.bti() || gen.bti()->alignedStack())
+      if (!gen.bt() || gen.bt()->alignedStack)
           emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
       else
           emitLEA(loc.reg, RealRegister(Null_Register), 0,
@@ -1702,7 +1742,7 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
    {
       //Register is still in its pristine state from app, leave it.
       if (dest_r.reg() == -1)
-         gen.rs()->noteVirtualInReal(dest, reg);
+	gen.rs()->noteVirtualInReal(dest, reg);
       else if (dest_r.reg() != reg.reg())
          emitMovRegToReg(dest_r, reg, gen);
       return dest;
@@ -1725,7 +1765,7 @@ void restoreGPRtoGPR(RealRegister src, RealRegister dest, codeGen &gen)
 
 // VG(11/07/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
-void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool /* noCost */)
+void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift, codeGen &gen, bool /* noCost */)
 {
     // TODO 16-bit registers, rep hacks
     long imm = as->getImm();
@@ -1733,20 +1773,20 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool 
     int rb  = as->getReg(1);
     int sc  = as->getScale();
 
-    gen.codeEmitter()->emitASload(ra, rb, sc, imm, dest, gen);
+    gen.codeEmitter()->emitASload(ra, rb, sc, imm, dest, stackShift, gen);
 }
 
-void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
+void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, int stackOffset, codeGen &gen)
 {
     bool havera = ra > -1, haverb = rb > -1;
    
    // assuming 32-bit addressing (for now)
    
-   if (ra == REGNUM_ESP && !haverb && sc == 0 && gen.bti()) {
+   if (ra == REGNUM_ESP && !haverb && sc == 0 && gen.bt()) {
       //Optimization, common for push/pop
       RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-      if (!gen.bti() || gen.bti()->alignedStack())
+      if (!gen.bt() || gen.bt()->alignedStack)
           emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
       else
           emitLEA(loc.reg, RealRegister(Null_Register), 0,
@@ -1757,9 +1797,20 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, co
    RealRegister src1_r(-1);
    Register src1 = REG_NULL;
    if (havera) {
-      src1 = restoreGPRtoReg(RealRegister(ra), gen);
-      src1_r = gen.rs()->loadVirtual(src1, gen);
+      if (gen.inInstrumentation()) {
+       src1 = restoreGPRtoReg(RealRegister(ra), gen);
+       src1_r = gen.rs()->loadVirtual(src1, gen);
       gen.rs()->markKeptRegister(src1);
+     }
+     else {
+       // Don't have a base tramp - use only reals
+       src1_r = RealRegister(ra);
+	   // If this is a stack pointer, modify imm to compensate
+	   // for any changes in the stack pointer
+	   if (ra == REGNUM_ESP) {
+		   imm -= stackOffset;
+	   }
+     }
    }
 
    RealRegister src2_r(-1);
@@ -1768,26 +1819,47 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, co
       if (ra == rb) {
          src2_r = src1_r;
       }
+      else if (gen.inInstrumentation()) {
+	src2 = restoreGPRtoReg(RealRegister(rb), gen);
+	src2_r = gen.rs()->loadVirtual(src2, gen);
+	gen.rs()->markKeptRegister(src2);
+      }
       else {
-         src2 = restoreGPRtoReg(RealRegister(rb), gen);
-         src2_r = gen.rs()->loadVirtual(src2, gen);
-         gen.rs()->markKeptRegister(src2);
+		  src2_r = RealRegister(rb);
+	      // If this is a stack pointer, modify imm to compensate
+	      // for any changes in the stack pointer
+	      if (rb == REGNUM_ESP) {
+			  imm -= (stackOffset*sc);
+		  }
       }
    }
    
    if (havera && !haverb && !sc && !imm) {
       //Optimized case, just use the existing src1_r
+      if (gen.inInstrumentation()) {
        gen.rs()->unKeepRegister(src1);
        gen.rs()->freeRegister(src1);
-      gen.rs()->noteVirtualInReal(dest, src1_r);
-      return;
+       gen.rs()->noteVirtualInReal(dest, src1_r);
+       return;
+     }
+     else {
+       // No base tramp, no virtual registers - emit a move?
+       emitMovRegToReg(RealRegister(dest), src1_r, gen);
+       return;
+     }
    }
 
    // Emit the lea to do the math for us:
    // e.g. lea eax, [eax + edx * sc + imm] if both ra and rb had to be
    // restored
-   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-   emitLEA(src1_r, src2_r, sc, (long) imm, dest_r, gen);
+   RealRegister dest_r; 
+   if (gen.inInstrumentation()) {
+     dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   }
+   else {
+     dest_r = RealRegister(dest);
+   }
+   emitLEA(src1_r, src2_r, sc, (long) imm, dest_r, gen);   
 
    if (src1 != REG_NULL) {
        gen.rs()->unKeepRegister(src1);
@@ -1998,7 +2070,8 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
     
     assert ((op!=branchOp) && (op!=ifOp) &&
             (op!=trampPreamble));         // !emitA
-    assert ((op!=getRetValOp) && (op!=getParamOp));             // !emitR
+    assert ((op!=getRetValOp) && (op!=getRetAddrOp) && 
+            (op!=getParamOp));                                  // !emitR
     assert ((op!=loadOp) && (op!=loadConstOp));                 // !emitVload
     assert ((op!=storeOp));                                     // !emitVstore
     assert ((op!=updateCostOp));                                // !emitVupdate
@@ -2173,6 +2246,8 @@ int getInsnCost(opCode op)
       return(1);
    } else if (op == getRetValOp) {
       return (1+1);
+   } else if (op == getRetAddrOp) { 
+      return (1); //kevintodo: is this right?
    } else if (op == getParamOp) {
       return(1+1);
    } else {
@@ -2206,207 +2281,6 @@ int getInsnCost(opCode op)
    return 0;
 }
 
-
-//
-// return cost in cycles of executing at this point.  This is the cost
-//   of the base tramp if it is the first at this point or 0 otherwise.
-//
-// We now have multiple versions of instrumentation... so, how does this work?
-// We look for a local maximum.
-int instPoint::getPointCost()
-{
-  unsigned worstCost = 0;
-  for (unsigned i = 0; i < instances.size(); i++) {
-      if (instances[i]->multi()) {
-          if (instances[i]->multi()->usesTrap()) {
-              // Stop right here
-              // Actually, probably don't want this if the "always
-              // delivered" instrumentation happens
-              return 9000; // Estimated trap cost
-          }
-          else {
-              // Base tramp cost if we're first at point, otherwise
-              // free (someone else paid)
-              // Which makes no sense, since we're talking an entire instPoint.
-              // So if there is a multitramp hooked up we use the base tramp cost.
-              worstCost = 83; // Magic constant from before time
-          }
-      }
-      else {
-          // No multiTramp, so still free (we're not instrumenting here).
-      }
-  }
-  return worstCost;
-}
-
-unsigned baseTramp::getBTCost() {
-    // Check this...
-    return 83;
-}
-
-// Emit code to jump to function CALLEE without linking.  (I.e., when
-// CALLEE returns, it returns to the current caller.)
-void emitFuncJump(opCode op, 
-                  codeGen &gen,
-                  int_function *callee, AddressSpace *,
-                  const instPoint *loc, bool)
-{
-   // This must mimic the generateRestores baseTramp method. 
-    assert(op == funcJumpOp || op == funcCallOp);
-
-    instPointType_t ptType = loc->getPointType();
-    gen.codeEmitter()->emitFuncJump(callee, ptType, (op == funcCallOp), gen);
-}
-
-#define MAX_SINT ((signed int) (0x7fffffff))
-#define MIN_SINT ((signed int) (0x80000000))
-void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/,
-                               bool callOp, codeGen &gen)
-{
-    assert(gen.bti());
-
-    // This function assumes we aligned the stack, and hence the original
-    // stack pointer value is stored at the top of our instrumentation stack.
-    assert(gen.bti()->alignedStack());
-
-    Address addr = f->getAddress();
-    signed int disp = addr - (gen.currAddr()+5);
-    int saved_stack_height = gen.rs()->getStackHeight();
-
-    RealRegister enull = RealRegister(Null_Register);
-    Register origSP = REG_NULL;
-    RealRegister origSP_r;
-    if (callOp || dynamic_cast<BinaryEdit *>(gen.addrSpace())) {
-        // We'll need a dedicated register for these cases.
-        // Allocate it now, before we ask for scratch registers.
-        origSP = gen.rs()->allocateRegister(gen, true);
-        origSP_r = gen.rs()->loadVirtualForWrite(origSP, gen);
-    }
-
-    if (callOp) {
-       //Set up a slot on the stack for the return address
-
-       //Get the current PC.
-       Register dest = gen.rs()->getScratchRegister(gen);
-       RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-       GET_PTR(patch_start, gen);
-       emitMovPCRMToReg(dest_r, 0, gen, false);
-
-       //Add the distance from the current PC to the end of this
-       // baseTramp (which isn't known yet).  We use a ridiculously
-       // large offset (2<<30) to force a 32-bit displacement.
-       emitLEA(dest_r, enull, 0, 2<<30, dest_r, gen);
-
-       // The last 4 bytes of a LEA instruction hold the offset constant.
-       // Mark this as the location to patch.
-       GET_PTR(insn, gen);
-       void *patch_loc = (void *)(insn - sizeof(int));
-
-       //Create a patch to fill in the end of the baseTramp to the above
-       // LEA instruction when it becomes known.
-       generatedCodeObject *nextobj = gen.bti()->nextObj()->nextObj();
-       assert(nextobj);
-       int offset = ((unsigned long) patch_start) -
-                    ((unsigned long) gen.start_ptr());
-       relocPatch newPatch(patch_loc, nextobj, relocPatch::pcrel, &gen, 
-                           offset, sizeof(int));
-       gen.addPatch(newPatch);
-
-       // Store the computed return address into the top stack slot.
-       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-       emitMovRMToReg(origSP_r, loc.reg, loc.offset, gen);
-       emitMovRegToRM(origSP_r, -4, dest_r, gen);
-
-       // Modify the original stored stack pointer so our return address isn't
-       // overwritten.  The BinaryEdit case needs a second stack slot to store
-       // the target address for long jumps.
-       int slotSpace = -4;
-       if (dynamic_cast<BinaryEdit *>(gen.addrSpace()) // Binary edit case &&
-           && (f->proc() != gen.addrSpace() ||         // !Short jump case
-               !gen.startAddr() ||
-               disp >= MAX_SINT || disp <= MIN_SINT)) {
-          slotSpace = -8;
-       }
-       emitLEA(origSP_r, enull, 0, slotSpace, origSP_r, gen);
-       emitMovRegToRM(loc.reg, loc.offset, origSP_r, gen);
-    }
-
-    if (f->proc() == gen.addrSpace() &&
-        gen.startAddr() &&
-       disp < MAX_SINT &&
-       disp > MIN_SINT)
-    {
-       //Same module or dynamic instrumentation and address and within
-       // jump distance.
-
-       // Clear the instrumentation stack.
-       emitBTRestores(gen.bti()->baseT, gen.bti(), gen);
-
-       int disp = addr - (gen.currAddr()+5);
-       emitJump(disp, gen);
-    }
-    else if (dynamic_cast<PCProcess *>(gen.addrSpace())) {
-       //Dynamic instrumentation, emit an absolute jump (push/ret combo)
-
-       // Clear the instrumentation stack.
-       emitBTRestores(gen.bti()->baseT, gen.bti(), gen);
-
-       GET_PTR(insn, gen);
-       *insn++ = 0x68; /* push 32 bit immediate */
-       *((int *)insn) = addr; /* the immediate */
-       insn += 4;
-       *insn++ = 0xc3; /* ret */
-       SET_PTR(insn, gen);
-    }
-    else if (dynamic_cast<BinaryEdit *>(gen.addrSpace())) {
-       //Static instrumentation, calculate and store the target 
-       // value to the top of our instrumentation stack and return to it.
-       assert(gen.bti() && gen.bti()->hasFuncJump());
-
-       //Get address of target into realr
-       Register reg = gen.rs()->getScratchRegister(gen);
-       RealRegister realr = gen.rs()->loadVirtualForWrite(reg, gen);
-       Address dest = getInterModuleFuncAddr(f, gen);
-       emitMovPCRMToReg(realr, dest-gen.currAddr(), gen);
-
-       if (!callOp) {
-           // Update the original %esp at the top of our instrumentation stack
-           // to include space for our func jump slot.
-           stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-           emitMovRMToReg(origSP_r, loc.reg, loc.offset, gen);
-           emitLEA(origSP_r, enull, 0, -4, origSP_r, gen);
-           emitMovRegToRM(loc.reg, loc.offset, origSP_r, gen);
-       }
-
-       // At some point above, the address of the lowest (memory value)
-       // jumpSlot was placed in RealRegister origSP_r.  Store the address
-       // of the target in that memory address.
-       emitMovRegToRM(origSP_r, 0, realr, gen);
-
-       // Clear the instrumentation stack.
-       emitBTRestores(gen.bti()->baseT, gen.bti(), gen);
-
-       //The address should be left on the stack.  Just return now.
-       GET_PTR(insn, gen);
-       *insn++ = 0xc3;
-       SET_PTR(insn, gen);
-    }
-    else {
-       assert(0 && "I don't know how to emit a funcJump for this addrSpace!");
-    }
-    insnCodeGen::generateIllegal(gen);
-
-    if (origSP != REG_NULL) {
-        // We allocated a register to hold the original SP.  Free it.
-        gen.rs()->freeRegister(origSP);
-    }
-
-    // We emitted a BT restore sequence, which messed with our stack
-    // bookkeeping.  Restore it so any code that is generated after this
-    // point has a consistent stack state.
-    gen.rs()->setStackHeight( saved_stack_height );
-}
-
 bool EmitterIA32::emitPush(codeGen &gen, Register reg) {
     RealRegister real_reg = gen.rs()->loadVirtual(reg, gen);
     return ::emitPush(real_reg, gen);
@@ -2425,7 +2299,9 @@ bool emitPush(RealRegister reg, codeGen &gen) {
     *insn++ = static_cast<unsigned char>(0x50 + r); // 0x50 is push EAX, and it increases from there.
 
     SET_PTR(insn, gen);
-    gen.rs()->incStack(4);
+    if (gen.inInstrumentation()) {
+       gen.rs()->incStack(4);
+    }
     return true;
 }
 
@@ -2435,7 +2311,9 @@ bool emitPop(RealRegister reg, codeGen &gen) {
     assert(r < 8);
     *insn++ = static_cast<unsigned char>(0x58 + r);    
     SET_PTR(insn, gen);
-    gen.rs()->incStack(-4);
+    if (gen.inInstrumentation()) {
+       gen.rs()->incStack(-4);
+    }
     return true;
 }
 
@@ -2469,17 +2347,18 @@ void emitStorePreviousStackFrameRegister(Address register_num,
 // First AST node: target of the call
 // Second AST node: source of the call
 // This can handle indirect control transfers as well 
-bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
+bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction::Ptr insn,
+                                          Address addr, 
                                           pdvector<AstNodePtr> &args)
 {
    using namespace Dyninst::InstructionAPI;        
-   Expression::Ptr cft = callSite->insn()->getControlFlowTarget();
+   Expression::Ptr cft = insn->getControlFlowTarget();
    ASTFactory f;
    cft->apply(&f);
    assert(f.m_stack.size() == 1);
    args.push_back(f.m_stack[0]);
    args.push_back(AstNode::operandNode(AstNode::Constant,
-                                       (void *) callSite->addr()));
+                                       (void *) addr));
    inst_printf("%s[%d]:  Inserting dynamic call site instrumentation for %s\n",
                FILE__, __LINE__, cft->format().c_str());
    return true;
@@ -2495,15 +2374,14 @@ int getMaxJumpSize()
 
 // TODO: fix this so we don't screw future instrumentation of this
 // function. It's a cute little hack, but jeez.
-bool int_function::setReturnValue(int val)
+bool func_instance::setReturnValue(int val)
 {
     codeGen gen(16);
 
-    Address addr = getAddress();
     emitMovImmToReg(RealRegister(REGNUM_EAX), val, gen);
     emitSimpleInsn(0xc3, gen); //ret
     
-    return proc()->writeTextSpace((void *) addr, gen.used(), gen.start_ptr());
+    return proc()->writeTextSpace((void *) addr(), gen.used(), gen.start_ptr());
 }
 
 unsigned saveRestoreRegistersInBaseTramp(AddressSpace * /*proc*/, 
@@ -2516,15 +2394,10 @@ unsigned saveRestoreRegistersInBaseTramp(AddressSpace * /*proc*/,
 /**
  * Fills in an indirect function pointer at 'addr' to point to 'f'.
  **/
-bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
+bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
 {
-   Address val_to_write = f->getAddress();
+   Address val_to_write = f->addr();
    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   
-}
-
-int instPoint::liveRegSize()
-{
-  return maxGPR;
 }
 
 bool emitStoreConst(Address addr, int imm, codeGen &gen, bool noCost) {
@@ -2617,9 +2490,9 @@ void registerSpace::movVRegToReal(registerSlot *v_reg, RealRegister r, codeGen &
    emitMovRMToReg(r, loc.reg, loc.offset, gen);
 }
 
-void emitBTRegRestores32(baseTrampInstance *bti, codeGen &gen)
+void emitBTRegRestores32(baseTramp *bt, codeGen &gen)
 {
-   int numRegsUsed = bti ? bti->numDefinedRegs() : -1;
+   int numRegsUsed = bt ? bt->numDefinedRegs() : -1;
    if (numRegsUsed == -1 || 
        numRegsUsed > X86_REGS_SAVE_LIMIT) {
       emitSimpleInsn(POPAD, gen);
@@ -2692,14 +2565,16 @@ void emitJump(unsigned disp32, codeGen &gen)
    SET_PTR(insn, gen);
 }
 
-#if defined(os_linux) || defined(os_freebsd)
+#if defined(os_linux)   \
+ || defined(os_freebsd) \
+ || defined(os_vxworks)
 
 // These functions were factored from linux-x86.C because
-// they are identical on Linux and FreeBSD
+// they are identical on Linux and FreeBSD and vxWorks
 
 int EmitterIA32::emitCallParams(codeGen &gen, 
                               const pdvector<AstNodePtr> &operands,
-                              int_function */*target*/, 
+                              func_instance */*target*/, 
                               pdvector<Register> &/*extra_saves*/, 
                               bool noCost)
 {
@@ -2730,17 +2605,13 @@ int EmitterIA32::emitCallParams(codeGen &gen,
 }
 
 bool EmitterIA32::emitCallCleanup(codeGen &gen,
-                                int_function * /*target*/, 
+                                func_instance * /*target*/, 
                                 int frame_size, 
                                 pdvector<Register> &/*extra_saves*/)
 {
-   if (frame_size) {
-      // Use "lea" instead of "add" to preserve flags
-      emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
-              frame_size, RealRegister(REGNUM_ESP), gen);
-      gen.rs()->incStack(-1 * frame_size);
-   }
+   if (frame_size)
+      emitOpRegImm(0, RealRegister(REGNUM_ESP), frame_size, gen); // add esp, frame_size
+   gen.rs()->incStack(-1 * frame_size);
    return true;
 }
-
 #endif

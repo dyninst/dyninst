@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 #if !defined(EVENT_H_)
 #define EVENT_H_
 
@@ -12,6 +42,7 @@
 
 class installed_breakpoint;
 class HandlerPool;
+class emulated_singlestep;
 
 namespace Dyninst {
 namespace ProcControlAPI {
@@ -46,6 +77,7 @@ class EventBootstrap;
 class EventRPC;
 class EventSingleStep;
 class EventBreakpointClear;
+class EventBreakpointRestore;
 class EventLibrary;
 class EventRPCInternal;
 class EventAsync;
@@ -53,6 +85,7 @@ class EventChangePCStop;
 class EventDetached;
 class EventIntBootstrap;
 class EventNop;
+class EventPrepSingleStep;
 
 class Event : public dyn_detail::boost::enable_shared_from_this<Event>
 {
@@ -90,6 +123,8 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
    virtual bool triggersCB() const;
    virtual bool canFastHandle() const;
    virtual bool procStopper() const;
+   virtual bool userEvent() const;
+   virtual void setUserEvent(bool b);
    Event::weak_ptr subservientTo() const;
    void addSubservientEvent(Event::ptr ev);
 
@@ -153,6 +188,9 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
    dyn_detail::boost::shared_ptr<EventBreakpointClear> getEventBreakpointClear();
    dyn_detail::boost::shared_ptr<const EventBreakpointClear> getEventBreakpointClear() const;
 
+   dyn_detail::boost::shared_ptr<EventBreakpointRestore> getEventBreakpointRestore();
+   dyn_detail::boost::shared_ptr<const EventBreakpointRestore> getEventBreakpointRestore() const;
+
    dyn_detail::boost::shared_ptr<EventLibrary> getEventLibrary();
    dyn_detail::boost::shared_ptr<const EventLibrary> getEventLibrary() const;
 
@@ -170,6 +208,10 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
 
    dyn_detail::boost::shared_ptr<EventNop> getEventNop();
    dyn_detail::boost::shared_ptr<const EventNop> getEventNop() const;
+
+   dyn_detail::boost::shared_ptr<EventPrepSingleStep> getEventPrepSingleStep();
+   dyn_detail::boost::shared_ptr<const EventPrepSingleStep> getEventPrepSingleStep() const;
+
  protected:
    EventType etype;
    Thread::const_ptr thread;
@@ -179,6 +221,7 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
    Event::weak_ptr master_event;
    std::set<Handler *> handled_by;
    bool suppress_cb;
+   bool user_event;
 };
 
 class EventTerminate : public Event
@@ -352,7 +395,7 @@ class EventFork : public Event
   public:
    typedef dyn_detail::boost::shared_ptr<EventFork> ptr;
    typedef dyn_detail::boost::shared_ptr<const EventFork> const_ptr;
-   EventFork(Dyninst::PID pid_);
+   EventFork(EventType::Time time_, Dyninst::PID pid_);
    virtual ~EventFork();
    Dyninst::PID getPID() const;
    Process::const_ptr getChildProcess() const;
@@ -371,7 +414,8 @@ class EventSignal : public Event
    virtual ~EventSignal();
 
    int getSignal() const;
-   void clearSignal() const;
+   void setThreadSignal(int newSignal) const;
+   void clearThreadSignal() const;
 };
 
 class EventBootstrap : public Event
@@ -434,20 +478,18 @@ class EventBreakpoint : public Event
    friend void dyn_detail::boost::checked_delete<EventBreakpoint>(EventBreakpoint *);
    friend void dyn_detail::boost::checked_delete<const EventBreakpoint>(const EventBreakpoint *);
  private:
-   installed_breakpoint *ibp;
    int_eventBreakpoint *int_bp;
-   Dyninst::Address addr;
  public:
    typedef dyn_detail::boost::shared_ptr<EventBreakpoint> ptr;
    typedef dyn_detail::boost::shared_ptr<const EventBreakpoint> const_ptr;
-   installed_breakpoint *installedbp() const;
    int_eventBreakpoint *getInternal() const;
 
-   EventBreakpoint(Dyninst::Address addr, installed_breakpoint *ibp_);
+   EventBreakpoint(int_eventBreakpoint *ibp);
    virtual ~EventBreakpoint();
 
    Dyninst::Address getAddress() const;
    void getBreakpoints(std::vector<Breakpoint::const_ptr> &bps) const;
+   void getBreakpoints(std::vector<Breakpoint::ptr> &bps);
    virtual bool suppressCB() const;
    virtual bool procStopper() const;
 };
@@ -459,16 +501,32 @@ class EventBreakpointClear : public Event
    friend void dyn_detail::boost::checked_delete<EventBreakpointClear>(EventBreakpointClear *);
    friend void dyn_detail::boost::checked_delete<const EventBreakpointClear>(const EventBreakpointClear *);
   private:
-   installed_breakpoint *bp_;
    int_eventBreakpointClear *int_bpc;
   public:
    typedef dyn_detail::boost::shared_ptr<EventBreakpointClear> ptr;
    typedef dyn_detail::boost::shared_ptr<const EventBreakpointClear> const_ptr;
-   EventBreakpointClear(installed_breakpoint *bp);
+   EventBreakpointClear();
    virtual ~EventBreakpointClear();
    
-   installed_breakpoint *bp() const;
    int_eventBreakpointClear *getInternal() const;
+   virtual bool procStopper() const;
+};
+
+class int_eventBreakpointRestore;
+class EventBreakpointRestore : public Event
+{
+   friend void dyn_detail::boost::checked_delete<EventBreakpointRestore>(EventBreakpointRestore *);
+   friend void dyn_detail::boost::checked_delete<const EventBreakpointRestore>(const EventBreakpointRestore *);
+  private:
+   int_eventBreakpointRestore *int_bpr;
+  public:
+   typedef dyn_detail::boost::shared_ptr<EventBreakpointRestore> ptr;
+   typedef dyn_detail::boost::shared_ptr<const EventBreakpointRestore> const_ptr;
+
+   EventBreakpointRestore(int_eventBreakpointRestore *iebpr);
+   virtual ~EventBreakpointRestore();
+
+   int_eventBreakpointRestore *getInternal() const;
 };
 
 class EventLibrary : public Event
@@ -506,7 +564,6 @@ class EventAsync : public Event
 
    EventAsync(int_eventAsync *ievent);
    virtual ~EventAsync();
-
    int_eventAsync *getInternal() const;
 };
 
@@ -520,6 +577,7 @@ class EventChangePCStop : public Event
    EventChangePCStop();
    ~EventChangePCStop();
 };
+
 
 class EventDetached : public Event
 {
@@ -557,6 +615,22 @@ class EventNop : public Event
    typedef dyn_detail::boost::shared_ptr<const EventNop> const_ptr;
    EventNop();
    ~EventNop();
+};
+
+class EventPrepSingleStep : public Event
+{
+   friend void dyn_detail::boost::checked_delete<EventPrepSingleStep>(EventPrepSingleStep *);
+   friend void dyn_detail::boost::checked_delete<const EventPrepSingleStep>(const EventPrepSingleStep *);
+ private:
+   emulated_singlestep *es;
+ public:
+   typedef dyn_detail::boost::shared_ptr<EventPrepSingleStep> ptr;
+   typedef dyn_detail::boost::shared_ptr<const EventPrepSingleStep> const_ptr;
+   EventPrepSingleStep(emulated_singlestep *);
+   ~EventPrepSingleStep();
+
+   virtual bool procStopper() const;
+   emulated_singlestep *getEmulatedSingleStep() const;
 };
 
 }

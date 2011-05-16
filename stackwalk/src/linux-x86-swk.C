@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -37,7 +37,7 @@
 #include "stackwalk/h/frame.h"
 
 #include "stackwalk/src/symtab-swk.h"
-#include "stackwalk/src/linux-swk.h"
+#include "stackwalk/src/linuxbsd-swk.h"
 #include "stackwalk/src/dbgstepper-impl.h"
 #include "stackwalk/src/x86-swk.h"
 
@@ -53,68 +53,6 @@
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
-
-bool Walker::createDefaultSteppers()
-{
-  FrameStepper *stepper;
-  WandererHelper *whelper_x86;
-  LookupFuncStart *frameFuncHelper_x86;
-  bool result = true;
-
-  stepper = new DebugStepper(this);
-  result = addStepper(stepper);
-  if (!result)
-     goto error;
-  sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
-            __FILE__, __LINE__, stepper);
-
-  frameFuncHelper_x86 = LookupFuncStart::getLookupFuncStart(getProcessState());
-  stepper = new FrameFuncStepper(this, frameFuncHelper_x86);
-  result = addStepper(stepper);
-  if (!result)
-     goto error;
-  sw_printf("[%s:%u] - Stepper %p is FrameFuncStepper\n",
-            __FILE__, __LINE__, stepper);
-
-  //Call getLookupFuncStart twice to get reference counts correct.
-  frameFuncHelper_x86 = LookupFuncStart::getLookupFuncStart(getProcessState());
-  whelper_x86 = new WandererHelper(getProcessState());
-  stepper = new StepperWanderer(this, whelper_x86, frameFuncHelper_x86);
-  result = addStepper(stepper);
-  if (!result)
-     goto error;
-  sw_printf("[%s:%u] - Stepper %p is StepperWanderer\n",
-            __FILE__, __LINE__, stepper);
-
-  stepper = new SigHandlerStepper(this);
-  result = addStepper(stepper);
-  if (!result)
-     goto error;
-  sw_printf("[%s:%u] - Stepper %p is SigHandlerStepper\n",
-            __FILE__, __LINE__, stepper);
-
-  stepper = new BottomOfStackStepper(this);
-  result = addStepper(stepper);
-  if (!result)
-     goto error;
-  sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
-            __FILE__, __LINE__, stepper);
-
-  /*
-   *  Disable AnalysisStepper until finished
-  stepper = new AnalysisStepper(this);
-  result = addStepper(stepper);
-  if (!result)
-     goto error;
-  sw_printf("[%s:%u] - Stepper %p is AnalysisStepper\n",
-            __FILE__, __LINE__, stepper);
-   */
-
-  return true;
- error:
-  sw_printf("[%s:%u] - Error adding stepper %p\n", stepper);
-    return false;
-}
 
 static const int fp_offset_32 = 28;
 static const int pc_offset_32 = 60;
@@ -173,20 +111,3 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 
    return gcf_success;
 }
-
-bool DebugStepperImpl::isFrameRegister(MachRegister reg)
-{
-   if (getProcessState()->getAddressWidth() == 4)
-      return (reg == x86::ebp);
-   else 
-      return (reg == x86_64::rbp);
-}
-
-bool DebugStepperImpl::isStackRegister(MachRegister reg)
-{
-   if (getProcessState()->getAddressWidth() == 4)
-      return (reg == x86::esp);
-   else 
-      return (reg == x86_64::rsp);
-}
-

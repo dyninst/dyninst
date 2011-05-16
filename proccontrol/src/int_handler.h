@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/h/Process.h"
@@ -188,22 +218,21 @@ class HandleBreakpoint : public Handler
   virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
-class HandlePostBreakpoint : public Handler
-{
- public:
-  HandlePostBreakpoint();
-  ~HandlePostBreakpoint();
-
-  virtual void getEventTypesHandled(vector<EventType> &etypes);
-  virtual handler_ret_t handleEvent(Event::ptr ev);
-  virtual int getPriority() const;
-};
-
 class HandleBreakpointClear : public Handler
 {
  public:
   HandleBreakpointClear();
   ~HandleBreakpointClear();
+
+  virtual void getEventTypesHandled(vector<EventType> &etypes);
+  virtual handler_ret_t handleEvent(Event::ptr ev);
+};
+
+class HandleBreakpointRestore : public Handler
+{
+ public:
+  HandleBreakpointRestore();
+  ~HandleBreakpointRestore();
 
   virtual void getEventTypesHandled(vector<EventType> &etypes);
   virtual handler_ret_t handleEvent(Event::ptr ev);
@@ -254,6 +283,16 @@ class HandleNop : public Handler
    HandleNop();
    ~HandleNop();
    
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+};
+
+class HandlePrepSingleStep : public Handler
+{
+  public:
+   HandlePrepSingleStep();
+   ~HandlePrepSingleStep();
+
    virtual handler_ret_t handleEvent(Event::ptr ev);
    virtual void getEventTypesHandled(std::vector<EventType> &etypes);
 };

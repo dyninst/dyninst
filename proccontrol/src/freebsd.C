@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -114,8 +114,6 @@ using namespace ProcControlAPI;
  * See the Stop, Bootstrap event handlers and the post_attach
  * function for more detailed comments.
  *
- * TODO submit a problem report to FreeBSD devs for this
- *
  * --- bug_freebsd_change_pc ---
  *
  * Here is the scenario:
@@ -142,9 +140,6 @@ using namespace ProcControlAPI;
  * ChangePCStop, which is only defined on platforms this bug affects.
  *  
  * See the ChangePCHandler as well for more info.
- *
- * TODO submit a problem report (or possibly a feature request) to 
- * FreeBSD devs for this
  *
  * --- bug_freebsd_lost_signal ---
  *
@@ -178,6 +173,12 @@ using namespace ProcControlAPI;
  * the OS could deschedule the ProcControl process and the debuggee could hit a
  * breakpoint or finish an iRPC, resulting in ProcControl's model of the debuggee
  * being inconsistent).
+ *
+ * --- bug_freebsd_attach_stop ---
+ *
+ * When attaching to a stopped process on FreeBSD, the stopped process is resumed on
+ * attach. This isn't the expected behavior. The best we can do is send a signal to
+ * the debuggee after attach to allow us to regain control of the debuggee.
  */
 
 static GeneratorFreeBSD *gen = NULL;
@@ -385,6 +386,17 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                     break;
                 }
 
+                if( lproc->isForking() ) {
+                    event = Event::ptr(new EventFork(EventType::Post, proc->getPid()));
+
+                    // Need to maintain consistent behavior across platforms
+                    freebsd_process *parent = lproc->getParent();
+                    assert(parent);
+                    event->setProcess(parent->proc());
+                    event->setThread(parent->threadPool()->initialThread()->thread());
+                    break;
+                }
+    
                 // Relying on fall through for bootstrap and other SIGSTOPs
             }
             case SIGTRAP: {
@@ -422,52 +434,23 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                 if( ibp && ibp != thread->isClearingBreakpoint() ) {
                     pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(),
                             thread->getLWP(), adjusted_addr);
-                    event = Event::ptr(new EventBreakpoint(adjusted_addr, ibp));
+                    EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(new int_EventBreakpoint(adjusted_addr, ibp, thread->thread())));
+                    event = event_bp;
+                    event->setThread(thread);
 
                     if( adjusted_addr == lproc->getLibBreakpointAddr() ) {
                         pthrd_printf("Breakpoint is library load/unload\n");
-                        Event::ptr lib_event = Event::ptr(new EventLibrary());
+                        EventLibrary::ptr lib_event = EventLibrary::ptr(new EventLibrary());
                         lib_event->setThread(thread->thread());
                         lib_event->setProcess(proc->proc());
+                        lproc->decodeTdbLibLoad(lib_event);
                         event->addSubservientEvent(lib_event);
-                    }else{
-                        // Check for thread events
-                        vector<Event::ptr> threadEvents;
-                        if( lproc->getEventsAtAddr(adjusted_addr, lthread, threadEvents) ) {
-                            vector<Event::ptr>::iterator threadEventIter;
-                            for(threadEventIter = threadEvents.begin(); threadEventIter != threadEvents.end();
-                                    ++threadEventIter)
-                            {
-                                // An event is created for the initial thread, but this thread is already
-                                // created during bootstrap. Ignore any create events for threads that
-                                // are already created.
-                                if( (*threadEventIter)->getEventType().code() == EventType::ThreadCreate ) {
-                                    Dyninst::LWP createdLWP = (*threadEventIter)->getEventNewThread()->getLWP();
-                                    int_thread * newThread = ProcPool()->findThread(createdLWP);
-                                    if( NULL != newThread ) {
-                                        freebsd_thread *newlThread = static_cast<freebsd_thread *>(newThread);
-                                        pthrd_printf("Thread already created for %d/%d\n", proc->getPid(),
-                                                createdLWP);
+                        break;
+                    }
 
-                                        if( !newlThread->plat_resume() ) {
-                                            perr_printf("Failed to resume already created thread %d/%d\n", 
-                                                    proc->getPid(), createdLWP);
-                                            return false;
-                                        }
-
-                                        // Still need to enable events for it -- this can't be done during
-                                        // bootstrap because the thread_db library isn't guaranteed to 
-                                        // be initialized at bootstrap
-                                        newlThread->setEventReporting(true);
-                                        continue;
-                                    }
-                                }
-
-                                (*threadEventIter)->setThread(thread->thread());
-                                (*threadEventIter)->setProcess(proc->proc());
-                                event->addSubservientEvent(*threadEventIter);
-                            }
-                        }
+                    if (lproc->decodeTdbBreakpoint(event_bp)) {
+                        pthrd_printf("Breakpoint was thread event\n");
+                        break;
                     }
                     break;
                 }
@@ -584,6 +567,12 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
             event = Event::ptr(new EventExit(EventType::Post, exitcode));
         }else{
             int termsig = WTERMSIG(status);
+            if( int_thread::exited == thread->getGeneratorState() ) {
+                pthrd_printf("Decoded duplicate terminate event of process %d/%d with signal %d\n",
+                        proc->getPid(), thread->getLWP(), termsig);
+                return true;
+            }
+
             if( proc->wasForcedTerminated() ) {
                 pthrd_printf("Decoded event to force terminate of %d/%d\n",
                         proc->getPid(), thread->getLWP());
@@ -611,8 +600,13 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
         if( event && event->getSyncType() == Event::unset)
             event->setSyncType(Event::sync_process);
 
-        event->setThread(thread->thread());
-        event->setProcess(proc->proc());
+        if( event->getThread() == Thread::ptr() ) {
+            event->setThread(thread->thread());
+        }
+
+        if( event->getProcess() == Process::ptr() ) {
+            event->setProcess(proc->proc());
+        }
         events.push_back(event);
     }
 
@@ -646,7 +640,8 @@ bool tkill(pid_t pid, long lwp, int sig) {
 int_process *int_process::createProcess(Dyninst::PID pid_, std::string exec) {
     std::vector<std::string> args;
     std::map<int, int> f;
-    freebsd_process *newproc = new freebsd_process(pid_, exec, args, f);
+    std::vector<std::string> envp;
+    freebsd_process *newproc = new freebsd_process(pid_, exec, args, envp, f);
     assert(newproc);
 
     return static_cast<int_process *>(newproc);
@@ -690,6 +685,7 @@ int_thread *int_thread::createThreadPlat(int_process *proc, Dyninst::THR_ID thr_
 HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
     static bool initialized = false;
     static FreeBSDStopHandler *lstop = NULL;
+    static FreeBSDPreForkHandler *luserfork = NULL;
 
 #if defined(bug_freebsd_mt_suspend)
     static FreeBSDPostStopHandler *lpoststop = NULL;
@@ -702,6 +698,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
 
     if( !initialized ) {
         lstop = new FreeBSDStopHandler();
+        luserfork = new FreeBSDPreForkHandler();
 
 #if defined(bug_freebsd_mt_suspend)
         lpoststop = new FreeBSDPostStopHandler();
@@ -715,6 +712,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
         initialized = true;
     }
     hpool->addHandler(lstop);
+    hpool->addHandler(luserfork);
 
 #if defined(bug_freebsd_mt_suspend)
     hpool->addHandler(lpoststop);
@@ -736,19 +734,23 @@ bool ProcessPool::LWPIDsAreUnique() {
 freebsd_process::freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
         std::map<int, int> f) :
   int_process(p, e, a, envp, f),
-  thread_db_process(p, e, a, envp, f),
   sysv_process(p, e, a, envp, f),
   unix_process(p, e, a, envp, f),
-  x86_process(p, e, a, envp, f)
+  x86_process(p, e, a, envp, f),
+  thread_db_process(p, e, a, envp, f),
+  forking(false),
+  parent(NULL)
 {
 }
 
 freebsd_process::freebsd_process(Dyninst::PID pid_, int_process *p) :
   int_process(pid_, p),
-  thread_db_process(pid_, p),
   sysv_process(pid_, p),
   unix_process(pid_, p),
-  x86_process(pid_, p)
+  x86_process(pid_, p),
+  thread_db_process(pid_, p),
+  forking(false),
+  parent(dynamic_cast<freebsd_process *>(p))
 {
 }
 
@@ -815,6 +817,12 @@ bool freebsd_process::post_create() {
     return initKQueueEvents();
 }
 
+bool freebsd_process::post_forked() {
+    if( !unix_process::post_forked() ) return false;
+
+    return initKQueueEvents();
+}
+
 bool freebsd_process::plat_create() {
     pid = fork();
     if( -1 == pid ) {
@@ -841,7 +849,17 @@ bool freebsd_process::plat_create() {
     return true;
 }
 
-bool freebsd_process::plat_attach() {
+bool freebsd_process::plat_getOSRunningStates(map<Dyninst::LWP, bool> &runningStates) {
+    if( !sysctl_getRunningStates(pid, runningStates) ) {
+        pthrd_printf("Unable to retrieve process information via sysctl for pid %d\n",
+                pid);
+        setLastError(err_noproc, "Unable to retrieve process information via sysctl\n");
+        return false;
+    }
+    return true;
+}
+
+bool freebsd_process::plat_attach(bool allStopped) {
     pthrd_printf("Attaching to pid %d\n", pid);
     if( 0 != ptrace(PT_ATTACH, pid, (caddr_t)1, 0) ) {
         int errnum = errno;
@@ -855,10 +873,44 @@ bool freebsd_process::plat_attach() {
         }
         return false;
     }
+
+#if defined(bug_freebsd_attach_stop)
+    if(allStopped) {
+        if( !tkill(pid, threadPool()->initialThread()->getLWP(), SIGUSR2) ) {
+            perr_printf("Failed to send signal to process %d after attach\n",
+                    pid);
+            return false;
+        }
+    }
+#endif
+
     return true;
 }
 
 bool freebsd_process::plat_forked() {
+    return true;
+}
+
+bool freebsd_process::forked() {
+    setForking(false);
+
+    ProcPool()->condvar()->lock();
+
+    if( !attachThreads() ) {
+        pthrd_printf("Failed to attach to threads in %d\n", pid);
+        setLastError(err_internal, "Could not attach to process' threads");
+        return false;
+    }
+
+    ProcPool()->condvar()->broadcast();
+    ProcPool()->condvar()->unlock();
+
+    if( !post_forked() ) {
+        pthrd_printf("Post-fork failed on %d\n", pid);
+        setLastError(err_internal, "Error handling forked process");
+        return false;
+    }
+
     return true;
 }
 
@@ -878,9 +930,8 @@ bool freebsd_process::plat_execed() {
     return true;
 }
 
-bool freebsd_process::plat_detach(bool &needs_sync) {
+bool freebsd_process::plat_detach() {
     pthrd_printf("PT_DETACH on %d\n", getPid());
-    needs_sync = false;
     if( 0 != ptrace(PT_DETACH, getPid(), (caddr_t)1, 0) ) {
         perr_printf("Failed to PT_DETACH on %d\n", getPid());
         setLastError(err_internal, "PT_DETACH operation failed\n");
@@ -891,6 +942,16 @@ bool freebsd_process::plat_detach(bool &needs_sync) {
 bool freebsd_process::plat_terminate(bool &needs_sync) {
     pthrd_printf("Terminating process %d\n", getPid());
     if( threadPool()->allStopped() ) {
+        for(int_threadPool::iterator i = threadPool()->begin();
+                i != threadPool()->end(); ++i)
+        {
+            if( !(*i)->plat_resume() ) {
+                perr_printf("Failed to resume thread %d/%d\n", getPid(), (*i)->getLWP());
+                setLastError(err_internal, "Resume failed\n");
+                return false;
+            }
+        }
+
         if( 0 != ptrace(PT_KILL, getPid(), (caddr_t)1, 0) ) {
             perr_printf("Failed to PT_KILL process %d\n", getPid());
             setLastError(err_internal, "PT_KILL operation failed\n");
@@ -1031,6 +1092,18 @@ bool freebsd_process::isSupportedThreadLib(string libName) {
     return false;
 }
 
+bool freebsd_process::isForking() const {
+    return forking;
+}
+
+void freebsd_process::setForking(bool b) {
+    forking = b;
+}
+
+freebsd_process *freebsd_process::getParent() {
+    return parent;
+}
+
 FreeBSDStopHandler::FreeBSDStopHandler() 
     : Handler("FreeBSD Stop Handler")
 {}
@@ -1147,6 +1220,68 @@ void FreeBSDBootstrapHandler::getEventTypesHandled(std::vector<EventType> &etype
     etypes.push_back(EventType(EventType::None, EventType::Bootstrap));
 }
 #endif
+
+FreeBSDPreForkHandler::FreeBSDPreForkHandler() 
+    : Handler("FreeBSD Pre-Fork Handler")
+{}
+
+FreeBSDPreForkHandler::~FreeBSDPreForkHandler()
+{}
+
+Handler::handler_ret_t FreeBSDPreForkHandler::handleEvent(Event::ptr ev) {
+    EventFork::ptr evFork = ev->getEventFork();
+    int_process *parent = evFork->getProcess()->llproc();
+
+    // Need to create and partially bootstrap the new process
+    // -- the rest of the bootstrap needs to occur after the attach
+    int_process *child_proc = int_process::createProcess(evFork->getPID(), parent);
+    assert(child_proc);
+
+    ProcPool()->condvar()->lock();
+
+    int_thread *initial_thread;
+    initial_thread = int_thread::createThread(child_proc, NULL_THR_ID, NULL_LWP, true);
+
+    ProcPool()->addProcess(child_proc);
+
+    ProcPool()->condvar()->broadcast();
+    ProcPool()->condvar()->unlock();
+
+    // Need to attach to the newly created process
+    map<Dyninst::LWP, bool> runningStates;
+    if( !child_proc->plat_getOSRunningStates(runningStates) ) {
+        perr_printf("Failed to determine running state of child process %d\n",
+                evFork->getPID());
+        return Handler::ret_error;
+    }
+
+    bool allStopped = true;
+    for(map<Dyninst::LWP, bool>::iterator i = runningStates.begin();
+            i != runningStates.end(); ++i)
+    {
+        if( i->second ) {
+            allStopped = false;
+            break;
+        }
+    }
+
+    freebsd_process *child_fproc = dynamic_cast<freebsd_process *>(child_proc);
+    child_fproc->setForking(true);
+    if( !child_fproc->plat_attach(allStopped) ) {
+        perr_printf("Failed to attach to child process %d\n", evFork->getPID());
+        return Handler::ret_error;
+    }
+
+    return Handler::ret_success;
+}
+
+int FreeBSDPreForkHandler::getPriority() const {
+    return DefaultPriority;
+}
+
+void FreeBSDPreForkHandler::getEventTypesHandled(std::vector<EventType> &etypes) {
+    etypes.push_back(EventType(EventType::Pre, EventType::Fork));
+}
 
 /*
  * In the bootstrap handler, SIGSTOPs where issued to all threads. This function
@@ -1293,6 +1428,7 @@ bool freebsd_process::plat_contProcess() {
         setLastError(err_internal, "Low-level continue failed");
         return false;
     }
+    continueSig = 0;
 
 #if defined(bug_freebsd_missing_sigstop)
     // XXX this workaround doesn't always work
@@ -1320,6 +1456,34 @@ bool freebsd_thread::plat_stop() {
     return true;
 }
 
+bool freebsd_thread::plat_resume() {
+    if( !llproc()->threadPool()->hadMultipleThreads() ) return true;
+
+    pthrd_printf("Calling PT_RESUME on %d\n", lwp);
+    if( 0 != ptrace(PT_RESUME, lwp, (caddr_t)1, 0) ) {
+        perr_printf("Failed to resume lwp %d: %s\n",
+                lwp, strerror(errno));
+        setLastError(err_internal, "Failed to resume lwp");
+        return false;
+    }
+
+    return true;
+}
+
+bool freebsd_thread::plat_suspend() {
+    if( !llproc()->threadPool()->hadMultipleThreads() ) return true;
+
+    pthrd_printf("Calling PT_SUSPEND on %d\n", lwp);
+    if( 0 != ptrace(PT_SUSPEND, lwp, (caddr_t)1, 0) ) {
+        perr_printf("Failed to suspend lwp %d: %s\n",
+                lwp, strerror(errno));
+        setLastError(err_internal, "Failed to suspend lwp");
+        return false;
+    }
+
+    return true;
+}
+
 bool freebsd_thread::plat_cont() {
     pthrd_printf("Continuing thread %d/%d\n", 
             llproc()->getPid(), lwp);
@@ -1328,15 +1492,13 @@ bool freebsd_thread::plat_cont() {
 
     setSignalStopped(false);
 
-    // Calling resume only makes sense for processes with multiple threads
-    if( llproc()->threadPool()->size() > 1 ) {
-        if( !plat_resume() ) return false;
-    }
+    if( !plat_resume() ) return false;
 
     // Because all signals stop the whole process, only one thread should
     // have a non-zero continue signal
     if( continueSig_ ) {
         llproc()->setContSignal(continueSig_);
+        continueSig_ = 0;
     }
 
     return true;
@@ -1512,7 +1674,7 @@ bool freebsd_thread::plat_getAllRegisters(int_registerPool &regpool) {
         }else{
             assert(!"Unknown address width");
         }
-        pthrd_printf("Register %s has value 0x%lx, offset 0x%x\n", reg.name(), (unsigned long)val, offset);
+        pthrd_printf("Register %s has value 0x%lx, offset 0x%x\n", reg.name().c_str(), (unsigned long)val, offset);
         regpool.regs[reg] = val;
     }
 
@@ -1582,7 +1744,7 @@ bool freebsd_thread::plat_setAllRegisters(int_registerPool &regpool) {
             assert(!"Unknown address width");
         }
 
-        pthrd_printf("Register %s gets value 0x%lx, offset 0x%x\n", reg.name(), (unsigned long)val, offset);
+        pthrd_printf("Register %s gets value 0x%lx, offset 0x%x\n", reg.name().c_str(), (unsigned long)val, offset);
     }
 
     if (num_found != regpool.regs.size()) {
@@ -1722,6 +1884,7 @@ const unsigned int ppc32_mmap_size_hi_position = 0;
 const unsigned int ppc32_mmap_size_lo_position = 0;
 const unsigned int ppc32_mmap_addr_hi_position = 0;
 const unsigned int ppc32_mmap_addr_lo_position = 0;
+const unsigned int ppc32_mmap_start_position = 0;
 const unsigned char ppc32_call_mmap[] = {};
 const unsigned int ppc32_call_mmap_size = 0;
 
@@ -1729,6 +1892,7 @@ const unsigned int ppc32_munmap_size_hi_position = 0;
 const unsigned int ppc32_munmap_size_lo_position = 0;
 const unsigned int ppc32_munmap_addr_hi_position = 0;
 const unsigned int ppc32_munmap_addr_lo_position = 0;
+const unsigned int ppc32_munmap_start_position = 0;
 const unsigned char ppc32_call_munmap[] = {};
 const unsigned int ppc32_call_munmap_size = 0;
 
@@ -1739,11 +1903,12 @@ const unsigned int ppc64_mmap_flags_lo_position = 0;
 const unsigned int ppc64_mmap_size_highest_position = 0;
 const unsigned int ppc64_mmap_size_higher_position = 0;
 const unsigned int ppc64_mmap_size_hi_position = 0;
-const unsigned int ppc64_mmap-size_lo_position = 0;
+const unsigned int ppc64_mmap_size_lo_position = 0;
 const unsigned int ppc64_mmap_addr_highest_position = 0;
 const unsigned int ppc64_mmap_addr_higher_position = 0;
 const unsigned int ppc64_mmap_addr_hi_position = 0;
 const unsigned int ppc64_mmap_addr_lo_position = 0;
+const unsigned int ppc64_mmap_start_position = 0;
 const unsigned char ppc64_call_mmap[] = {};
 const unsigned int ppc64_call_mmap_size = 0;
 
@@ -1755,6 +1920,7 @@ const unsigned int ppc64_munmap_addr_highest_position = 0;
 const unsigned int ppc64_munmap_addr_higher_position = 0;
 const unsigned int ppc64_munmap_addr_hi_position = 0;
 const unsigned int ppc64_munmap_addr_lo_position = 0;
+const unsigned int ppc64_munmap_start_position = 0;
 const unsigned char ppc64_call_munmap[] = {};
 const unsigned int ppc64_call_munmap_size = 0;
 

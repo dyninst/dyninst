@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -82,10 +82,10 @@ public:
     td_thragent_t *getThreadDBAgent();
     ps_err_e getSymbolAddr(const char *objName, const char *symName, 
                            psaddr_t *symbolAddr);
-
     async_ret_t initThreadDB();
-    void freeThreadDBAgent();
-    bool getPostDestroyEvents(std::vector<Event::ptr> &events);
+
+    virtual void freeThreadDBAgent();
+    virtual bool getPostDestroyEvents(std::vector<Event::ptr> &events);
     virtual Event::ptr getEventForThread(thread_db_thread *thrd, EventType::Code code, bool &async);
     static void addThreadDBHandlers(HandlerPool *hpool);
 
@@ -111,6 +111,7 @@ public:
     async_ret_t initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info);
     
     async_ret_t updateTidInfo(std::vector<Event::ptr> &threadEvents);
+
     bool needsTidUpdate();
 
     //The types for thread_db functions we will call
@@ -161,7 +162,6 @@ protected:
     int_thread *trigger_thread;
 
     bool needs_tid_update;
-    
     std::deque<Event::ptr> savedEvents;
 
     std::set<mem_response::ptr> resps;
@@ -193,8 +193,6 @@ public:
     async_ret_t setEventReporting(bool on);
     bool fetchThreadInfo();
 
-    bool plat_resume();
-    bool plat_suspend();
     void markDestroyed();
     bool isDestroyed();
 
@@ -271,6 +269,7 @@ public:
 typedef struct new_thread_data {
   td_thrhandle_t *thr_handle;
   td_thrinfo_t thr_info;
+  bool threadHandle_alloced;
 } new_thread_data_t;
 
 #else

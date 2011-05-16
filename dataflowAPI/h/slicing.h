@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 // A simple forward slice using a search of the control flow graph.
 // Templated on a function that says when to stop slicing.
 
@@ -35,8 +65,10 @@ typedef dyn_detail::boost::shared_ptr<Assignment> AssignmentPtr;
 class Graph;
 typedef dyn_detail::boost::shared_ptr<Graph> GraphPtr;
 
-class InstructionAPI::Instruction;
-typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+ namespace InstructionAPI {
+   class Instruction;
+ }
+ typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
 
 // Used in temp slicer; should probably
 // replace OperationNodes when we fix up
@@ -111,6 +143,7 @@ class Slicer {
     typedef std::pair<ParseAPI::Function *, int> StackDepth_t;
     typedef std::stack<StackDepth_t> CallStack_t;
 
+    DATAFLOW_EXPORT virtual bool allowImprecision() { return false; }
     DATAFLOW_EXPORT virtual bool widenAtPoint(AssignmentPtr) { return false; }
     DATAFLOW_EXPORT virtual bool endAtPoint(AssignmentPtr) { return false; }
     DATAFLOW_EXPORT virtual bool followCall(ParseAPI::Function * /*callee*/,
@@ -118,10 +151,10 @@ class Slicer {
                                            AbsRegion /*argument*/) { 
        return false; 
     }
-    DATAFLOW_EXPORT virtual std::vector<ParseAPI::Function *>
-        followCallBackward(ParseAPI::Block * /*callerBlock*/,
-                CallStack_t & /*cs*/,
-                AbsRegion /* argument */) {
+    DATAFLOW_EXPORT virtual std::vector<ParseAPI::Function *> 
+        followCallBackward(ParseAPI::Block * /*callerB*/,
+            CallStack_t & /*cs*/,
+            AbsRegion /*argument*/) {
             std::vector<ParseAPI::Function *> vec;
             return vec;
         }
@@ -182,7 +215,7 @@ class Slicer {
   // This should be sufficient...
   typedef std::deque<ContextElement> Context;
 
-  bool getStackDepth(ParseAPI::Function *func, Address callAddr, long &height);
+  bool getStackDepth(ParseAPI::Function *func, ParseAPI::Block *block, Address callAddr, long &height);
 
   // Add the newly called function to the given Context.
   void pushContext(Context &context,
@@ -208,7 +241,7 @@ class Slicer {
     InsnVec::reverse_iterator rcurrent;
     InsnVec::reverse_iterator rend;
 
-    Address addr() const { if(fwd) return current->second; else return rcurrent->second;}
+    Address addr() const { if(fwd) return (*current).second; else return (*rcurrent).second;}
 
   Location(ParseAPI::Function *f,
 	   ParseAPI::Block *b) : func(f), block(b), fwd(true){};
@@ -545,6 +578,7 @@ class Slicer {
   void convertInstruction(InstructionPtr,
 			  Address,
 			  ParseAPI::Function *,
+                          ParseAPI::Block *,
 			  std::vector<AssignmentPtr> &);
 
   void fastForward(Location &loc, Address addr);

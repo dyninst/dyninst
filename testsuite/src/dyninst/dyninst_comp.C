@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -41,10 +41,12 @@
 #include "BPatch_process.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
+#include "BPatch_point.h"
 #include "test_lib.h"
 #include "ResumeLog.h"
 #include "dyninst_comp.h"
 #include "MutateeStart.h"
+
 
 #if defined(os_windows_test)
 #define snprintf _snprintf
@@ -103,6 +105,8 @@ DyninstComponent::DyninstComponent() :
 
 test_results_t DyninstComponent::program_setup(ParameterDict &params)
 {
+   if (measure) um_program.start();  // Measure resource usage.
+
    bpatch = new BPatch();
    if (!bpatch)
       return FAILED;
@@ -111,6 +115,8 @@ test_results_t DyninstComponent::program_setup(ParameterDict &params)
    setBPatch(bpatch);
 
    bpatch->registerErrorCallback(errorFunc);
+
+   if (measure) um_program.end();  // Measure resource usage.
 
    ParamInt *debugprint = dynamic_cast<ParamInt *>(params["debugPrint"]);
    if (debugprint) {
@@ -174,6 +180,7 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
 
    if (!group->mutatee || group->state == SELFSTART)
       return PASSED;
+   if (measure) um_group.start(); // Measure resource usage.
    
    switch (group->createmode) {
       case CREATE:
@@ -243,6 +250,8 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
    {
       appProc->continueExecution();
    }
+
+   if (measure) um_group.end(); // Measure resource usage.
    
    bp_appThread.setPtr(appThread);
    params["appThread"] = &bp_appThread;
@@ -399,9 +408,10 @@ DyninstComponent::~DyninstComponent()
 }
 
 // All the constructor does is set the instance fields to NULL
-DyninstMutator::DyninstMutator() {
-  appThread = NULL;
-  appImage = NULL;
+DyninstMutator::DyninstMutator() :
+    appThread(NULL),
+    appImage(NULL)
+{
 }
 
 DyninstMutator::~DyninstMutator() {
@@ -1287,7 +1297,9 @@ int instEffAddr(BPatch_addressSpace* as, const char* fname,
 
 #if defined(i386_unknown_linux2_0_test) \
 	|| defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
-	|| defined(i386_unknown_nt4_0_test)
+	|| defined(i386_unknown_nt4_0_test) \
+        || defined(amd64_unknown_freebsd7_0_test) \
+        || defined(i386_unknown_freebsd7_0_test)
 	BPatch_effectiveAddressExpr eae2(1);
 	const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
 
@@ -1381,7 +1393,9 @@ int instByteCnt(BPatch_addressSpace* as, const char* fname,
 
 #if defined(i386_unknown_linux2_0_test) \
 	|| defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
-	|| defined(i386_unknown_nt4_0_test)
+	|| defined(i386_unknown_nt4_0_test) \
+        || defined(amd64_unknown_freebsd7_0_test) \
+        || defined(i386_unknown_freebsd7_0_test)
 
         BPatch_bytesAccessedExpr bae2(1);
 	const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);

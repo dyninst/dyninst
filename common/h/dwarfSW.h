@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -32,7 +32,6 @@
 #if !defined(DWARF_SW_H_)
 #define DWARF_SW_H_
 
-#include <stdint.h>
 #include "libdwarf.h"
 
 typedef enum {
@@ -333,6 +332,7 @@ void DwarfSW::setupFdeData()
    if (result == DW_DLV_OK) {
       fde_data.push_back(fc);
    }
+   
 
    if (!fde_data.size()) {
       fde_dwarf_status = dwarf_status_error;
