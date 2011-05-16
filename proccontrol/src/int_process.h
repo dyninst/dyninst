@@ -176,7 +176,7 @@ class int_process
    bool wasForcedTerminated() const;
 
    virtual bool plat_individualRegAccess() = 0;
-
+   virtual bool plat_breakpointAdvancesPC() const = 0;
    void addProcStopper(Event::ptr ev);
    Event::ptr getProcStopper();
    void removeProcStopper();
@@ -252,8 +252,8 @@ class int_process
    std::string getExecutable() const;
    static bool isInCallback();
 
-   EventBreakpointClear::ptr getPendingBPClearEvent();
-   EventBreakpointClear::ptr newPendingBPClearEvent();
+   void addPendingBPClearEvent(int_thread *thr);
+   Event::ptr getPendingBPClearEvent();
    void clearPendingBPClearEvent();
 
    static int_process *in_waitHandleProc;
@@ -281,6 +281,7 @@ class int_process
    std::map<Dyninst::Address, unsigned> exec_mem_cache;
    std::queue<Event::ptr> proc_stoppers;
    int continueSig;
+   EventBreakpointClear::ptr event_bp_clear;
 };
 
 /*
@@ -418,6 +419,7 @@ class int_thread
    bool setInternalState(State s);
    void restoreInternalState(bool sync = true);
    void desyncInternalState();
+   bool isDesynced() const;
 
    //Process control
    bool userCont();
@@ -453,7 +455,7 @@ class int_thread
    void markClearingBreakpoint(installed_breakpoint *bp);
    installed_breakpoint *isClearingBreakpoint();
    void markStoppedOnBP(installed_breakpoint *bp);
-   installed_breakpoint *isStoppedOnBP();
+   installed_breakpoint *isStoppedOnBP() const;
 
    virtual bool plat_needsPCSaveBeforeSingleStep() = 0;
    void setPreSingleStepPC(Dyninst::MachRegisterVal pc);
@@ -547,6 +549,13 @@ class int_thread
       
    virtual ~int_thread();
    static const char *stateStr(int_thread::State s);
+
+   void markDecodedProcStopperBP();
+   void markHandledProcStopperBP();
+   void clearProcStopperBPState();
+   bool decodedProcStopperBP() const;
+   bool handledProcStopperBP() const;
+
  protected:
    Dyninst::THR_ID tid;
    Dyninst::LWP lwp;
@@ -574,6 +583,9 @@ class int_thread
    bool postponed_continue;
    bool handler_exiting_state;
    bool generator_exiting_state;
+   bool decoded_proc_stopper_bp;
+   bool handled_proc_stopper_bp;
+   installed_breakpoint *stopped_on_breakpoint;
    installed_breakpoint *clearing_breakpoint;
    bool running_when_attached;
    std::set<emulated_singlestep *> singlesteps;
@@ -688,7 +700,8 @@ class int_breakpoint
 
    bool onetime_bp;
    bool onetime_bp_hit;
-   std::set<Thread::ptr> thread_specific;
+   bool procstopper;
+   std::set<Thread::const_ptr> thread_specific;
  public:
    int_breakpoint(Breakpoint::ptr up);
    int_breakpoint(Dyninst::Address to, Breakpoint::ptr up);
@@ -703,10 +716,14 @@ class int_breakpoint
    void setOneTimeBreakpoint(bool b);
    void markOneTimeHit();
    bool isOneTimeBreakpoint() const;
+   bool isOneTimeBreakpointHit() const;
 
-   void setThreadSpecific(Thread::ptr p);
+   void setThreadSpecific(Thread::const_ptr p);
    bool isThreadSpecific() const;
-   bool isThreadSpecificTo(Thread::ptr p) const;
+   bool isThreadSpecificTo(Thread::const_ptr p) const;
+
+   void setProcessStopper(bool b);
+   bool isProcessStopper() const;
    
    Breakpoint::weak_ptr upBreakpoint() const;
 };
@@ -720,7 +737,6 @@ class installed_breakpoint
    mem_state::ptr memory;
    std::set<int_breakpoint *> bps;
    std::set<Breakpoint::ptr> hl_bps;
-   std::set<int_thread *> clearingThreads;
 
    char buffer[BP_BUFFER_SIZE];
    int buffer_size;
@@ -756,9 +772,6 @@ class installed_breakpoint
 
    bool isInstalled() const;
    Dyninst::Address getAddr() const;
-   void addClearingThread(int_thread *thrd);
-   bool rmClearingThread(int_thread *thrd, bool &uninstalled, result_response::ptr async_resp);
-   unsigned getNumClearingThreads() const;
 
    typedef std::set<int_breakpoint *>::iterator iterator;
    iterator begin();

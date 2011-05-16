@@ -38,12 +38,13 @@ namespace ProcControlAPI {
 class int_eventBreakpoint
 {
   public:
-   int_eventBreakpoint(Address a, installed_breakpoint *i);
+   int_eventBreakpoint(Address a, installed_breakpoint *i, int_thread *thr);
    ~int_eventBreakpoint();
 
    installed_breakpoint *ibp;
    Dyninst::Address addr;
    result_response::ptr pc_regset;
+   int_thread *thrd;
 
    std::set<Breakpoint::ptr> cb_bps;
 };
@@ -56,27 +57,26 @@ class int_eventBreakpointClear
 
    std::set<result_response::ptr> memwrite_bp_suspend;
    bool started_bp_suspends;
-
+   bool cached_bp_sets;
    bool set_singlestep;
 
    std::set<Thread::ptr> clearing_threads;
 
-   void getBPTypes(set<installed_breakpoint *> &bps_to_clear,
-                   set<installed_breakpoint *> &bps_to_restore);
-   set<pair<installed_breakpoint *, int_thread *> > bps_to_clear_cached;
-   set<pair<installed_breakpoint *, int_thread *> > bps_to_restore_cached;
-   bool cached_bp_sets;
-                   
+   void getBPTypes(std::set<pair<installed_breakpoint *, int_thread *> > &bps_to_clear,
+                   std::set<pair<installed_breakpoint *, int_thread *> > &bps_to_restore);
+   std::set<pair<installed_breakpoint *, int_thread *> > bps_to_clear_cached;
+   std::set<pair<installed_breakpoint *, int_thread *> > bps_to_restore_cached;
 };
  
 class int_eventBreakpointRestore
 {
   public:
-   int_eventBreakpointRestore();
+   int_eventBreakpointRestore(installed_breakpoint *breakpoint_);
    ~int_eventBreakpointRestore();
 
    result_response::ptr memwrite_bp_resume;
    result_response::ptr memwrite_bp_remove;
+   installed_breakpoint *bp;
 };
 
 class int_eventRPC {

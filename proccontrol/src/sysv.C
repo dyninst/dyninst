@@ -300,6 +300,7 @@ bool sysv_process::initLibraryMechanism()
 
    if (!lib_trap) {
       lib_trap = new int_breakpoint(Breakpoint::ptr());
+      lib_trap->setProcessStopper(true);
    }
 
    breakpoint_addr = translator->getLibraryTrapAddrSysV();

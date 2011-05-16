@@ -34,6 +34,7 @@
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/response.h"
+#include "proccontrol/src/int_event.h"
 #include "proccontrol/h/Mailbox.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Generator.h"
@@ -548,9 +549,6 @@ bool syncRunState(int_process *p, void *r)
    syncRunStateRet_t *ret = (syncRunStateRet_t *) r;
    assert(ret);
    
-   if (p->hasQueuedProcStoppers() && p->threadPool()->allStopped()) {
-      ret->readyProcStoppers.push_back(p);
-   }
    if (p->forceGeneratorBlock()) {
       pthrd_printf("Process %d is forcing blocking via generator block\n", p->getPid());
       ret->hasRunningThread = true;
@@ -606,10 +604,6 @@ bool syncRunState(int_process *p, void *r)
          ret->hasStopPending = true;
       }
 
-      if (thr->isClearingBreakpoint()) {
-         ret->hasClearingBP = true;
-      }
-
       int_iRPC::ptr pstop_rpc = thr->hasRunningProcStopperRPC();
       if (thr->hasPendingStop() && !thr->isExiting() && thr->getHandlerState() == int_thread::stopped) {
          pthrd_printf("Continuing thread %d/%d to clear out pending stop\n", 
@@ -657,6 +651,12 @@ bool syncRunState(int_process *p, void *r)
                     p->getPid(), thr->getLWP());
          }
       }
+      if (thr->isClearingBreakpoint()) {
+         ret->hasClearingBP = true;
+      }
+   }
+   if (p->hasQueuedProcStoppers() && p->threadPool()->allStopped()) {
+      ret->readyProcStoppers.push_back(p);
    }
    pthrd_printf("Finished syncing runState for %d\n", p->getPid());
    if (dyninst_debug_proccontrol) {
@@ -759,7 +759,7 @@ bool int_process::waitAndHandleEvents(bool block)
        * Check for possible error combinations from syncRunState
        **/
       bool hasAsyncPending = HandlerPool::hasProcAsyncPending();
-      if (!ret.hasRunningThread && !hasAsyncPending && !mbox()->hasUserEvent()) {
+      if (!ret.hasRunningThread && !hasAsyncPending && !ret.hasClearingBP && !mbox()->hasUserEvent()) {
          if (gotEvent) {
             //We've successfully handled an event, but no longer have any running threads
             pthrd_printf("Returning after handling events, no threads running\n");
@@ -1402,6 +1402,44 @@ mem_state::ptr int_process::memory() const
    return mem;
 }
 
+void int_process::addPendingBPClearEvent(int_thread *thr)
+{
+   bool created_event = false;
+   if (!event_bp_clear) {
+      created_event = true;
+      event_bp_clear = EventBreakpointClear::ptr(new EventBreakpointClear());
+      event_bp_clear->setProcess(proc());
+      event_bp_clear->setThread(thr->thread());
+      event_bp_clear->setSyncType(Event::async);
+      event_bp_clear->setSuppressCB(true);
+      threadPool()->desyncInternalState();
+   }
+   int_eventBreakpointClear *int_bpc = event_bp_clear->getInternal();
+   int_bpc->clearing_threads.insert(thr->thread());
+
+   installed_breakpoint *breakpoint = thr->isStoppedOnBP();
+   assert(breakpoint);
+   thr->markStoppedOnBP(NULL);
+   thr->markClearingBreakpoint(breakpoint);
+   pthrd_printf("Marking %s eventBreakpointClear with thread %d/%d\n",
+                created_event ? "new" : "existing",
+                thr->llproc()->getPid(), thr->getLWP());
+
+   if (created_event) {
+      mbox()->enqueue(event_bp_clear);
+   }
+}
+
+void int_process::clearPendingBPClearEvent()
+{
+   event_bp_clear = EventBreakpointClear::ptr();
+}
+
+Event::ptr int_process::getPendingBPClearEvent()
+{
+   return event_bp_clear;
+}
+
 /**
  * The below code involving InternalRPCEvents is to work around an
  * annoyance with Async systems and iRPCs.  When posting an iRPC from
@@ -1809,6 +1847,23 @@ bool int_thread::cont(bool user_cont)
          desyncInternalState();
          postponed_continue = true;
       }
+      return true;
+   }
+
+   if (isStoppedOnBP()) {
+      /**
+       * The thread is stopped on a breakpoint.  Rather than immediately continuing
+       * we'll create a clear event to remove the breakpoint and set the appropriate
+       * state variable.  The thread will actually continue after the breakpoint
+       * is cleared.
+       **/
+      pthrd_printf("Thread %d/%d is stopped on breakpoint, postponing continue\n",
+                   llproc()->getPid(), getLWP());
+      llproc()->addPendingBPClearEvent(this);
+      bool result;
+      if (user_cont)
+         result = setUserState(int_thread::running);
+      setInternalState(int_thread::stopped);
       return true;
    }
 
@@ -2430,6 +2485,11 @@ bool int_thread::setInternalState(int_thread::State s)
    return setAnyState(&internal_state, s);
 }
 
+bool int_thread::isDesynced() const
+{
+   return num_locked_stops != 0;
+}
+
 void int_thread::desyncInternalState()
 {
    pthrd_printf("Thread %d/%d is desyncing int from user state %d\n",
@@ -2512,7 +2572,10 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    postponed_continue(false),
    handler_exiting_state(false),
    generator_exiting_state(false),
-   clearing_breakpoint(false),
+   decoded_proc_stopper_bp(false),
+   handled_proc_stopper_bp(false),
+   stopped_on_breakpoint(NULL),
+   clearing_breakpoint(NULL),
    running_when_attached(true),
    pre_ss_pc(0)
 {
@@ -3078,6 +3141,16 @@ void int_thread::markClearingBreakpoint(installed_breakpoint *bp)
    clearing_breakpoint = bp;
 }
 
+void int_thread::markStoppedOnBP(installed_breakpoint *bp)
+{
+   stopped_on_breakpoint = bp;
+}
+
+installed_breakpoint *int_thread::isStoppedOnBP() const
+{
+   return stopped_on_breakpoint;
+}
+
 void int_thread::setTID(Dyninst::THR_ID tid_)
 {
    tid = tid_;
@@ -3118,6 +3191,32 @@ void int_thread::setPreSingleStepPC(MachRegisterVal pc) {
 
 MachRegisterVal int_thread::getPreSingleStepPC() const {
     return pre_ss_pc;
+}
+
+void int_thread::markDecodedProcStopperBP()
+{
+   decoded_proc_stopper_bp = true;
+}
+
+void int_thread::markHandledProcStopperBP()
+{
+   handled_proc_stopper_bp = true;
+}
+
+void int_thread::clearProcStopperBPState()
+{
+   decoded_proc_stopper_bp = false;
+   handled_proc_stopper_bp = false;
+}
+
+bool int_thread::decodedProcStopperBP() const
+{
+   return decoded_proc_stopper_bp;
+}
+
+bool int_thread::handledProcStopperBP() const
+{
+   return handled_proc_stopper_bp;
 }
 
 int_thread *int_threadPool::findThreadByLWP(Dyninst::LWP lwp)
@@ -3246,7 +3345,8 @@ int_breakpoint::int_breakpoint(Breakpoint::ptr up) :
    isCtrlTransfer_(false),
    data(false),
    onetime_bp(false),
-   onetime_bp_hit(false)
+   onetime_bp_hit(false),
+   procstopper(false)
 {
 }
 
@@ -3256,7 +3356,8 @@ int_breakpoint::int_breakpoint(Dyninst::Address to_, Breakpoint::ptr up) :
    isCtrlTransfer_(true),
    data(false),
    onetime_bp(false),
-   onetime_bp_hit(false)
+   onetime_bp_hit(false),
+   procstopper(false)
 {
 }
 
@@ -3289,7 +3390,7 @@ Breakpoint::weak_ptr int_breakpoint::upBreakpoint() const
    return up_bp;
 }
 
-void int_breakpoint::setThreadSpecific(Thread::ptr p)
+void int_breakpoint::setThreadSpecific(Thread::const_ptr p)
 {
    thread_specific.insert(p);
 }
@@ -3302,7 +3403,7 @@ void int_breakpoint::setOneTimeBreakpoint(bool b)
 void int_breakpoint::markOneTimeHit()
 {
    assert(onetime_bp);
-   ontime_bp_hit = true;
+   onetime_bp_hit = true;
 }
 
 bool int_breakpoint::isOneTimeBreakpoint() const
@@ -3320,9 +3421,19 @@ bool int_breakpoint::isThreadSpecific() const
    return !thread_specific.empty();
 }
 
-bool int_breakpoint::isThreadSpecificTo(Thread::ptr p) const
+bool int_breakpoint::isThreadSpecificTo(Thread::const_ptr p) const
 {
    return thread_specific.find(p) != thread_specific.end();
+}
+
+void int_breakpoint::setProcessStopper(bool b)
+{
+   procstopper = b;
+}
+
+bool int_breakpoint::isProcessStopper() const
+{
+   return procstopper;
 }
 
 installed_breakpoint::installed_breakpoint(mem_state::ptr memory_, Address addr_) :
@@ -3456,55 +3567,21 @@ bool installed_breakpoint::containsIntBreakpoint(int_breakpoint *bp) {
     return (bps.count(bp) > 0);
 }
 
-int_breakpoint *intalled_breakpoint::getCtrlTransferBP(int_thread *thrd)
+int_breakpoint *installed_breakpoint::getCtrlTransferBP(int_thread *thrd)
 {
    for (iterator i = begin(); i != end(); i++) {
       int_breakpoint *bp = *i;
       if (!bp->isCtrlTransfer())
          continue;
-      if (thrd && bp->isThreadSpecific() && !bp->isThreadSpecificTo(thrd))
+      if (thrd && bp->isThreadSpecific() && !bp->isThreadSpecificTo(thrd->thread()))
          continue;
       return bp;
    }
    return NULL;
 }
 
-void installed_breakpoint::addClearingThread(int_thread *thrd) {
-    clearingThreads.insert(thrd);
-}
-
-unsigned installed_breakpoint::getNumClearingThreads() const {
-    return clearingThreads.size();
-}
-
 unsigned installed_breakpoint::getNumIntBreakpoints() const {
     return bps.size();
-}
-
-bool installed_breakpoint::rmClearingThread(int_thread *thrd, bool &uninstalled, 
-        result_response::ptr async_resp)
-{
-    pthrd_printf("Removing clearing thread %d/%d from breakpoint at %lx\n",
-            thrd->llproc()->getPid(), thrd->getLWP(), addr);
-    uninstalled = false;
-    set<int_thread *>::iterator i = clearingThreads.find(thrd);
-    if( i == clearingThreads.end() ) {
-        perr_printf("Error. Failed to locate clearing thread in breakpoint\n");
-        return false;
-    }
-    clearingThreads.erase(i);
-
-    if (bps.empty() && clearingThreads.empty()) {
-        pthrd_printf("No more references left, uninstalling breakpoint\n");
-        uninstalled = true;
-        bool result = uninstall(thrd->llproc(), async_resp);
-        if (!result) {
-            perr_printf("Failed to remove breakpoint at %lx\n", addr);
-            setLastError(err_internal, "Could not remove breakpoint\n");
-            return false;
-        }
-    }
-    return true;
 }
 
 bool installed_breakpoint::addBreakpoint(int_breakpoint *bp)
@@ -3585,7 +3662,7 @@ bool installed_breakpoint::rmBreakpoint(int_process *proc, int_breakpoint *bp, b
       hl_bps.erase(j);
    }
 
-   if (bps.empty() && clearingThreads.empty()) {
+   if (bps.empty()) {
       empty = true;
       bool result = uninstall(proc, async_resp);
       if (!result) {
@@ -3593,7 +3670,8 @@ bool installed_breakpoint::rmBreakpoint(int_process *proc, int_breakpoint *bp, b
          setLastError(err_internal, "Could not remove breakpoint\n");
          return false;
       }
-   }else{
+   }
+   else {
        async_resp->setResponse(true);
    }
    

@@ -627,6 +627,7 @@ bool thread_db_process::initThreadDB() {
         }
 
         int_breakpoint *newEventBrkpt = new int_breakpoint(Breakpoint::ptr());
+        newEventBrkpt->setProcessStopper(true);
         if( !addBreakpoint((Dyninst::Address)notifyResult.u.bptaddr,
                     newEventBrkpt))
         {
@@ -993,12 +994,14 @@ ThreadDBCreateHandler::~ThreadDBCreateHandler()
 
 Handler::handler_ret_t ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
     EventNewUserThread::ptr threadEv = ev->getEventNewUserThread();
+    thread_db_process *tdb_proc = dynamic_cast<thread_db_process *>(threadEv->getProcess()->llproc());
+    thread_db_thread *tdb_thread = static_cast<thread_db_thread *>(threadEv->getNewThread()->llthrd());
+
+    pthrd_printf("ThreadDBCreateHandler::handleEvent for %d/%d\n", tdb_proc->getPid(), tdb_thread->getLWP());
     if (threadEv->getInternalEvent()->needs_update) {
        pthrd_printf("Updating user thread data for %d/%d in thread_db create handler\n",
-                    threadEv->getProcess()->llproc()->getPid(),
-                    threadEv->getNewThread()->llthrd()->getLWP());
+                    tdb_proc->getPid(), tdb_thread->getLWP());
        new_thread_data_t *thrdata = (new_thread_data_t *) threadEv->getInternalEvent()->raw_data;
-       thread_db_process *tdb_proc = dynamic_cast<thread_db_process *>(ev->getProcess()->llproc());
        assert(tdb_proc);
        pthrd_printf("thread_db user create handler for %d/%d\n", tdb_proc->getPid(), threadEv->getLWP());
        
@@ -1081,6 +1084,7 @@ ThreadDBDestroyHandler::~ThreadDBDestroyHandler()
 Handler::handler_ret_t ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
     thread_db_process *proc = dynamic_cast<thread_db_process *>(ev->getProcess()->llproc());
     thread_db_thread *thrd = static_cast<thread_db_thread *>(ev->getThread()->llthrd());
+    pthrd_printf("Running ThreadDBDestroyHandler on %d/%d\n", proc->getPid(), thrd->getLWP());
     if( ev->getEventType().time() == EventType::Pre) {
         if( !thrd->isExitingInGenerator() && thrd->getGeneratorState() != int_thread::exited ) {
             // Just need to clear events, no extra information is needed

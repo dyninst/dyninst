@@ -181,6 +181,7 @@ std::string EventType::name() const
       STR_CASE(SingleStep);
       STR_CASE(Library);
       STR_CASE(BreakpointClear);
+      STR_CASE(BreakpointRestore);
       STR_CASE(RPCInternal);
       STR_CASE(Async);
       STR_CASE(ChangePCStop);
@@ -283,12 +284,13 @@ EventStop::~EventStop()
 }
 
 
-EventBreakpoint::EventBreakpoint(Dyninst::Address addr_, installed_breakpoint *ibp_) :
+EventBreakpoint::EventBreakpoint(int_eventBreakpoint *ibp_) :
    Event(EventType(EventType::None, EventType::Breakpoint)),
-   ibp(ibp_),
-   addr(addr_)
+   int_bp(ibp_)
 {
-   int_bp = new int_eventBreakpoint();
+   if (procStopper()) {
+      int_bp->thrd->markDecodedProcStopperBP();
+   }
 }
 
 EventBreakpoint::~EventBreakpoint()
@@ -302,33 +304,36 @@ EventBreakpoint::~EventBreakpoint()
 
 Dyninst::Address EventBreakpoint::getAddress() const
 {
-  return addr;
+   return int_bp->addr;
 }
 
 void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::const_ptr> &bps) const
 {
-   if (!ibp)
-      return;
    std::set<Breakpoint::ptr>::iterator i;
-   for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); i++) {
+   for (i = int_bp->ibp->hl_bps.begin(); i != int_bp->ibp->hl_bps.end(); i++) {
       bps.push_back(*i);
    }
-}
-
-installed_breakpoint *EventBreakpoint::installedbp() const
-{
-  return ibp;
 }
 
 bool EventBreakpoint::suppressCB() const
 {
    if (Event::suppressCB()) return true;
-   return ibp->hl_bps.empty();
+   return int_bp->ibp->hl_bps.empty();
 }
 
 int_eventBreakpoint *EventBreakpoint::getInternal() const
 {
    return int_bp;
+}
+
+bool EventBreakpoint::procStopper() const
+{
+   installed_breakpoint *bp = int_bp->ibp;
+   for (installed_breakpoint::iterator i = bp->begin(); i != bp->end(); i++) {
+      if ((*i)->isProcessStopper())
+         return true;
+   }
+   return false;
 }
 
 EventSignal::EventSignal(int sig_) :
@@ -570,10 +575,10 @@ bool EventBreakpointClear::procStopper() const
    return true;
 }
 
-EventBreakpointRestore::EventBreakpointRestore() :
-  Event(EventType(EventType::None, EventType::BreakpointRestore))
+EventBreakpointRestore::EventBreakpointRestore(int_eventBreakpointRestore *iebpr) :
+   Event(EventType(EventType::None, EventType::BreakpointRestore)),
+   int_bpr(iebpr)
 {
-   int_bpr = new int_eventBreakpointRestore();
 }
 
 EventBreakpointRestore::~EventBreakpointRestore()
@@ -623,9 +628,10 @@ const std::set<Library::ptr> &EventLibrary::libsRemoved() const
    return rmd_libs;
 }
 
-int_eventBreakpoint::int_eventBreakpoint(Address a, installed_breakpoint *i) :
-   installed_breakpoint(i),
-   addr(a)
+int_eventBreakpoint::int_eventBreakpoint(Address a, installed_breakpoint *i, int_thread *thr) :
+   ibp(i),
+   addr(a),
+   thrd(thr)
 {
 }
 
@@ -634,8 +640,9 @@ int_eventBreakpoint::~int_eventBreakpoint()
 }
 
 int_eventBreakpointClear::int_eventBreakpointClear() :
-   set_singlestep(false),
-   cached_bp_sets(false)
+   started_bp_suspends(false),
+   cached_bp_sets(false),
+   set_singlestep(false)
 {
 }
 
@@ -661,32 +668,33 @@ void int_eventBreakpointClear::getBPTypes(set<pair<installed_breakpoint *, int_t
       }
       int_thread *llthrd = thr->llthrd();
 
-      installed_breakpoint *ibp = llthr->isStoppedOnBP();
+      installed_breakpoint *ibp = llthrd->isClearingBreakpoint();
       pthrd_printf("Checking what to do with breakpoint on Thread %d/%d\n", 
-                   thr->llproc()->getPid(), thr->getLWP());
+                   llthrd->llproc()->getPid(), llthrd->getLWP());
 
       if (!ibp->isInstalled()) {
-         pthrd_printf("Breakpoint not installed, not actually clearing or restoring\n");
+         pthrd_printf("Breakpoint 0x%lx not installed, not clearing nor restoring\n", ibp->getAddr());
          continue;
       }
 
-      pthrd_printf("Going to clear breakpoint\n");
-      bps_to_clear.insert(pair<installed_breakpoint *, int_thread *>(ibp, thr));
+      pthrd_printf("Going to clear breakpoint at 0x%lx\n", ibp->getAddr());
+      bps_to_clear.insert(pair<installed_breakpoint *, int_thread *>(ibp, llthrd));
 
       for (installed_breakpoint::iterator j = ibp->begin(); j != ibp->end(); j++) {
-         if (ibp->isOneTimeBreakpoint() && ibp->isOneTimeBreakpointHit()) {
+         if ((*j)->isOneTimeBreakpoint() && (*j)->isOneTimeBreakpointHit()) {
             pthrd_printf("One time breakpoint has been hit, not going to restore\n");
             continue;
          }
          pthrd_printf("Found breakpoint to restore after clear\n");
-         bps_to_restore.insert(pair<installed_breakpoint *, int_thread *>(ibp, thr));
+         bps_to_restore.insert(pair<installed_breakpoint *, int_thread *>(ibp, llthrd));
          break;
       }
    }
 }
 
 
-int_eventBreakpointRestore::int_eventBreakpointRestore()
+int_eventBreakpointRestore::int_eventBreakpointRestore(installed_breakpoint *breakpoint_) :
+   bp(breakpoint_)
 {
 }
 
@@ -761,7 +769,6 @@ int_eventAsync *EventAsync::getInternal() const
 {
    return internal;
 }
-
 
 EventChangePCStop::EventChangePCStop() :
    Event(EventType(EventType::None, EventType::ChangePCStop))
@@ -839,6 +846,7 @@ DEFN_EVENT_CAST(EventBootstrap, Bootstrap)
 DEFN_EVENT_CAST(EventRPC, RPC)
 DEFN_EVENT_CAST(EventSingleStep, SingleStep)
 DEFN_EVENT_CAST(EventBreakpointClear, BreakpointClear)
+DEFN_EVENT_CAST(EventBreakpointRestore, BreakpointRestore)
 DEFN_EVENT_CAST(EventLibrary, Library)
 DEFN_EVENT_CAST(EventRPCInternal, RPCInternal)
 DEFN_EVENT_CAST(EventAsync, Async)

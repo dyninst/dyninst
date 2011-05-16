@@ -478,6 +478,7 @@ class EventBreakpoint : public Event
    Dyninst::Address getAddress() const;
    void getBreakpoints(std::vector<Breakpoint::const_ptr> &bps) const;
    virtual bool suppressCB() const;
+   virtual bool procStopper() const;
 };
 
 
@@ -509,7 +510,7 @@ class EventBreakpointRestore : public Event
    typedef dyn_detail::boost::shared_ptr<EventBreakpointRestore> ptr;
    typedef dyn_detail::boost::shared_ptr<const EventBreakpointRestore> const_ptr;
 
-   EventBreakpointRestore();
+   EventBreakpointRestore(int_eventBreakpointRestore *iebpr);
    virtual ~EventBreakpointRestore();
 
    int_eventBreakpointRestore *getInternal() const;
@@ -550,7 +551,6 @@ class EventAsync : public Event
 
    EventAsync(int_eventAsync *ievent);
    virtual ~EventAsync();
-
    int_eventAsync *getInternal() const;
 };
 

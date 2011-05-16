@@ -303,8 +303,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 
             installed_breakpoint *clearingbp = thread->isClearingBreakpoint();
             if(thread->singleStep() && clearingbp) {
-                pthrd_printf("Decoded event to breakpoint cleanup\n");
-                event = Event::ptr(new EventBreakpointClear(clearingbp));
+                pthrd_printf("Decoded event to breakpoint restore\n");
+                event = Event::ptr(new EventBreakpointRestore(new int_eventBreakpointRestore(clearingbp)));
                 break;
             }
 
@@ -323,7 +323,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             if (ibp && ibp != clearingbp) {
                pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(), 
                             thread->getLWP(), adjusted_addr);
-               EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(new int_EventBreakpoint(adjusted_addr, ibp)));
+               EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(new int_eventBreakpoint(adjusted_addr, ibp, thread)));
                event = event_bp;
                event->setThread(thread->thread());
 
@@ -341,7 +341,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                   break;
                }
 
-               if (thread->isEmulatingSingleStep() && thread->isEmulatedSingleStep(ibp)) {
+               /*if (thread->isEmulatingSingleStep() && thread->isEmulatedSingleStep(ibp)) {
                    pthrd_printf("Breakpoint is emulated single step\n");
                    installed_breakpoint *ibp = thread->isClearingBreakpoint();
                    if( ibp ) {
@@ -357,7 +357,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                        ss_event->setProcess(proc->proc());
                        event->addSubservientEvent(ss_event);
                    }
-               }
+                 }*/
                break;
             }
 
@@ -377,6 +377,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                while (1) sleep(1);
             }
 #endif
+            assert(stopsig != 5);
             event = Event::ptr(new EventSignal(stopsig));
       }
       if (event && event->getSyncType() == Event::unset)
