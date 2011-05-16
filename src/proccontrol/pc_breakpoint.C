@@ -221,7 +221,6 @@ test_results_t pc_breakpointMutator::executeTest()
    std::map<Thread::const_ptr, unsigned>::iterator l;
    for (l = hit_counts.begin(); l != hit_counts.end(); l++) {
       if (l->second != NUM_BREAKPOINT_SPINS * NUM_BREAKPOINTS) {
-         fprintf(stderr, "l->second = %d, NUM_BREAKPOINT_SPINS = %d\n", l->second, NUM_BREAKPOINT_SPINS);
          logerror("Unexpected number of breakpoints hit on thread\n");
          return FAILED;
       }
