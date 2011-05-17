@@ -779,7 +779,7 @@ test_description('test2_7', '').
 % test2_7 runs on Solaris, Linux, AIX, and Windows
 test_platform('test2_7', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'aix', 'windows']).
+    member(OS, ['linux', 'aix', 'windows', 'freebsd']).
 mutator('test2_7', ['test2_7.C']).
 test_runmode('test2_7', 'dynamic').
 test_start_state('test2_7', 'stopped').
@@ -2201,7 +2201,7 @@ test('test_relocations', 'test_relocations', 'symtab_group_test').
 test_description('test_relocations', 'SymtabAPI relocation table parsing').
 test_platform('test_relocations', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux']).
+    member(OS, ['linux', 'freebsd']).
 groupable_test('test_relocations').
 mutator('test_relocations', ['test_relocations.C']).
 test_runmode('test_relocations', 'createProcess').
