@@ -1,0 +1,184 @@
+/* Public Interface */
+
+#ifndef _PATCHAPI_DYNINST_CFG_H_
+#define _PATCHAPI_DYNINST_CFG_H_
+
+#include "common.h"
+#include "Object.h"
+
+class int_block;
+class int_function;
+
+namespace Dyninst {
+namespace PatchAPI {
+
+class PatchEdge;
+class PatchBlock;
+class PatchFunction;
+class Object;
+
+/* PatchAPI Edge */
+class PatchEdge {
+   friend class PatchBlock;
+   friend class PatchFunction;
+   friend class Object;
+
+  public:
+   static PatchEdge *create(ParseAPI::Edge *, PatchBlock *src, PatchBlock *trg);
+   static void destroy(PatchEdge *);
+   ~PatchEdge();
+
+   // Getters
+   ParseAPI::Edge *edge() const { return edge_; }
+   PatchBlock *src();
+   PatchBlock *trg();
+   ParseAPI::EdgeTypeEnum type() const { return edge_->type(); }
+   bool sinkEdge() const { return edge_->sinkEdge(); }
+   bool interproc() const { return edge_->interproc(); }
+
+  private:
+    PatchEdge(ParseAPI::Edge *internalEdge, PatchBlock *source,
+              PatchBlock *target) : edge_(internalEdge), src_(source),
+                                    trg_(target) {};
+
+   ParseAPI::Edge *edge_;
+   PatchBlock *src_;
+   PatchBlock *trg_;
+};
+
+/* This is somewhat mangled, but allows PatchAPI to access the
+   iteration predicates of ParseAPI without having to go back and
+   template that code. Just wrap a ParseAPI predicate in a
+   EdgePredicateAdapter and *poof* you're using PatchAPI edges
+   instead of ParseAPI edges... */
+class EdgePredicateAdapter
+   : public ParseAPI::iterator_predicate <
+  EdgePredicateAdapter,
+  PatchEdge *,
+  PatchEdge * > {
+  public:
+    EdgePredicateAdapter() : int_(NULL) {};
+    EdgePredicateAdapter(ParseAPI::EdgePredicate *intPred) : int_(intPred) {};
+    virtual ~EdgePredicateAdapter() {};
+     virtual bool pred_impl(PatchEdge *e) const { return int_->pred_impl(e->edge()); };
+
+  private:
+    ParseAPI::EdgePredicate *int_;
+};
+
+/* PatchAPI Block */
+class PatchBlock {
+   friend class PatchEdge;
+   friend class PatchFunction;
+   friend class Object;
+
+  public:
+    typedef std::pair<Address, InstructionAPI::Instruction::Ptr> InsnInstance;
+    typedef std::vector<InsnInstance> InsnInstances;
+    typedef ParseAPI::ContainerWrapper<
+      std::vector<PatchEdge *>,
+      PatchEdge *,
+      PatchEdge *,
+      EdgePredicateAdapter> edgelist;
+
+    static PatchBlock *create(ParseAPI::Block *, PatchFunction *);
+    static void destroy(PatchBlock *);
+    virtual ~PatchBlock();
+
+    static PatchBlock *convert(int_block *);
+
+    // Getters
+    Address start() const { return object()->codeBase() + block_->start(); }
+    Address end() const { return object()->codeBase() + block_->end(); }
+    Address lastInsnAddr() const { return object()->codeBase() + block_->lastInsnAddr(); }
+    Address size() const { return block_->size(); }
+    bool isShared();
+    ObjectPtr object() const;
+    void getInsns(InsnInstances &insns);
+    // Difference between this layer and ParseAPI: per-function blocks.
+    PatchFunction *function() const { return function_; }
+    ParseAPI::Block *block() const { return block_; }
+    const edgelist &sources();
+    const edgelist &targets();
+
+  protected:
+    PatchBlock(ParseAPI::Block *block,
+               PatchFunction *func);
+
+    typedef enum {
+      backwards,
+      forwards } Direction;
+
+    void removeSourceEdge(PatchEdge *e);
+    void removeTargetEdge(PatchEdge *e);
+    void createInterproceduralEdges(ParseAPI::Edge *, Direction dir,
+                                    std::vector<PatchEdge *> &);
+
+    ParseAPI::Block *block_;
+    PatchFunction *function_;
+    std::vector<PatchEdge *> srcs_;
+    std::vector<PatchEdge *> trgs_;
+    edgelist srclist_;
+    edgelist trglist_;
+};
+
+/* PatchAPI Function */
+class PatchFunction {
+   friend class PatchEdge;
+   friend class PatchBlock;
+   friend class Object;
+
+  public:
+   typedef std::vector<PatchBlock *> blocklist;
+   typedef PatchBlock::edgelist edgelist;
+
+   static PatchFunction *create(ParseAPI::Function *, ObjectPtr);
+   static void destroy(PatchFunction *);
+   virtual ~PatchFunction();
+
+   static PatchFunction *convert(int_function *);
+
+   const string &name() { return func_->name(); }
+   Address addr() const { return obj_->codeBase() + func_->addr(); }
+   ParseAPI::Function *func() { return func_; }
+   PatchBlock *entry() { return getBlock(func_->entry()); }
+   ObjectPtr object() { return obj_; }
+
+   const blocklist &blocks();
+   const edgelist &callEdges();
+   const blocklist &returnBlocks();
+
+   bool entries(PointSet& pts);
+   bool exits(PointSet& pts);
+
+   virtual PatchBlock *getBlock(ParseAPI::Block *);
+   PatchEdge *getEdge(ParseAPI::Edge *, PatchBlock *src, PatchBlock *trg);
+
+
+ protected:
+   PatchFunction(ParseAPI::Function *f,
+            ObjectPtr o) : func_(f), obj_(o), callEdgeList_(callEdges_) {};
+   void removeEdge(PatchEdge *e);
+
+   ParseAPI::Function *func_;
+   ObjectPtr obj_;
+
+   std::vector<PatchBlock *> blocks_;
+   std::vector<PatchEdge *> callEdges_;
+   std::vector<PatchBlock *> returnBlocks_;
+
+   edgelist callEdgeList_;
+
+   typedef std::map<ParseAPI::Block *, PatchBlock *> BlockMap;
+   BlockMap blockMap_;
+
+   typedef std::map<ParseAPI::Edge *, PatchEdge *> EdgeMap;
+   EdgeMap edgeMap_;
+
+};
+
+};
+};
+
+
+#endif /* _PATCHAPI_DYNINST_CFG_H_ */
