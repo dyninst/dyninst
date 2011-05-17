@@ -41,9 +41,6 @@
 #include "emitElfStatic.h"
 #include "debug.h"
 
-#if defined(os_solaris)
-#include <sys/link.h>
-#endif
 
 #include "common/h/pathName.h"
 
@@ -285,7 +282,7 @@ bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sy
 
   if (symbol->getSec())
     {
-#if defined(os_solaris) || defined(os_freebsd)
+#if defined(os_freebsd)
       sym->st_shndx = (Elf32_Half) symbol->getSec()->getRegionNumber();
 #else
       sym->st_shndx = (Elf32_Section) symbol->getSec()->getRegionNumber();
@@ -306,7 +303,6 @@ bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sy
     {
       //printf("dynamic symbol: %s\n", symbol->getName().c_str());
 
-#if !defined(os_solaris)
       char msg[2048];
       char *mpos = msg;
       msg[0] = '\0';
@@ -451,7 +447,6 @@ bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sy
 	}
 #ifdef BINEDIT_DEBUG
       printf("%s", msg);
-#endif
 #endif
     }
 
@@ -1143,7 +1138,6 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
   data->d_version = 1;
 }
 
-#if !defined(os_solaris)
 #if !defined(DT_GNU_HASH)
 #define DT_GNU_HASH 0x6ffffef5
 #endif
@@ -1185,7 +1179,6 @@ void emitElf::updateDynamic(unsigned tag, Elf32_Addr val){
     break;
   }
 }
-#endif    
 
 /* This method sets _end and _END_ to the starting position of the heap in the
  * new binary. 
@@ -1335,12 +1328,10 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
            newdata->d_type = ELF_T_REL;
            newdata->d_align = 4;
         }
-#if !defined(os_solaris)
         if (newSecs[i]->getRegionType() == Region::RT_REL)
            updateDynamic(DT_REL, newshdr->sh_addr);
         else if (newSecs[i]->getRegionType() == Region::RT_PLTREL)
            updateDynamic(DT_JMPREL, newshdr->sh_addr);
-#endif
      }
      else if(newSecs[i]->getRegionType() == Region::RT_RELA ||    //Relocation section
              newSecs[i]->getRegionType() == Region::RT_PLTRELA)
@@ -1351,12 +1342,10 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
         updateDynLinkShdr.push_back(newshdr);
         newdata->d_type = ELF_T_RELA;
         newdata->d_align = 4;
-#if !defined(os_solaris)
         if (newSecs[i]->getRegionType() == Region::RT_RELA)
            updateDynamic(DT_RELA, newshdr->sh_addr);
         else if(newSecs[i]->getRegionType() == Region::RT_PLTRELA)
            updateDynamic(DT_JMPREL, newshdr->sh_addr);
-#endif
      }
      else if(newSecs[i]->getRegionType() == Region::RT_STRTAB)    //String table Section
      {
@@ -1375,10 +1364,8 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
         newshdr->sh_flags=  SHF_ALLOC;
         strtabIndex = secNames.size()-1;
         newshdr->sh_addralign = 1;
-#if !defined(os_solaris)
         updateDynamic(DT_STRTAB, newshdr->sh_addr);
         updateDynamic(DT_STRSZ, newSecs[i]->getDiskSize());
-#endif
      }
      else if(newSecs[i]->getRegionType() == Region::RT_SYMTAB)
      {
@@ -1397,15 +1384,11 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
         newshdr->sh_flags = SHF_ALLOC ;
         newshdr->sh_info = 1;
         dynsymIndex = secNames.size()-1;
-#if !defined(os_solaris)
         updateDynamic(DT_SYMTAB, newshdr->sh_addr);
-#endif
      }
      else if(newSecs[i]->getRegionType() == Region::RT_DYNAMIC)
      {
-#if !defined(os_solaris)
         newshdr->sh_entsize = sizeof(Elf32_Dyn);
-#endif            
         newshdr->sh_type = SHT_DYNAMIC;
         if(!libelfso0Flag) {
            newdata64->d_type = ELF_T_DYN;
@@ -1435,11 +1418,8 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
         updateDynLinkShdr.push_back(newshdr);
         newshdr->sh_flags=  SHF_ALLOC;
         newshdr->sh_info = 0;
-#if !defined(os_solaris)
         updateDynamic(DT_HASH, newshdr->sh_addr);
-#endif
      }
-#if !defined(os_solaris)
      else if(newSecs[i]->getRegionType() == Region::RT_SYMVERSIONS)
      {
         newshdr->sh_type = SHT_GNU_versym;
@@ -1492,7 +1472,6 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
         newshdr->sh_info = verdefnum;
         updateDynamic(DT_VERDEF, newshdr->sh_addr);
      }
-#endif
 
      // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
      if(!firstNewLoadSec)
@@ -1835,7 +1814,6 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     dynsymbolNamesLength = olddynStrSize+1;
   }
 
-#if !defined(os_solaris)
   //Initialize the list of new prereq libraries
   set<string> &plibs = obj->getObject()->prereq_libs;
   for (set<string>::iterator i = plibs.begin(); i != plibs.end(); i++) {
@@ -1843,7 +1821,6 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   }
   new_dynamic_entries = obj->getObject()->new_dynamic_entries;
   Object *object = obj->getObject();
-#endif
   // recreate a "dummy symbol"
   Elf32_Sym *sym = new Elf32_Sym();
   symbolStrs.push_back("");
@@ -1981,7 +1958,6 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     for(i=0;i<dynsymbols.size();i++)
       dynsyms[i] = *(dynsymbols[i]);
 
-#if !defined(os_solaris)
     Elf32_Half *symVers;
     char *verneedSecData, *verdefSecData;
     unsigned verneedSecSize = 0, verdefSecSize = 0;
@@ -2024,7 +2000,6 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
 
         createDynamicSection(sec->getPtrToRawData(), sec->getDiskSize(), dynsecData, dynsecSize, dynsymbolNamesLength, dynsymbolStrs);
     }  
-#endif
    
     // build map of dynamic symbol names to symbol table index (for
     // relocations)
@@ -2058,7 +2033,6 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     }
     obj->addRegion(0, dynstr, dynsymbolNamesLength , name, Region::RT_STRTAB, true);
 
-#if !defined(os_solaris)
     //add .gnu.version, .gnu.version_r, and .gnu.version_d sections
     if (secTagRegionMapping.find(DT_VERSYM) != secTagRegionMapping.end()) {
       name = secTagRegionMapping[DT_VERSYM]->getRegionName();
@@ -2079,7 +2053,6 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     if(verdefSecSize) {
       obj->addRegion(0, verdefSecData, verdefSecSize, ".gnu.version_d", Region::RT_SYMVERDEF, true);
     } 
-#endif
 
     //Always create a dyn section, it may get our new relocations.
     //If both exist, then just try to maintain order.
@@ -2101,11 +2074,9 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
        createRelocationSections(obj, object->getPLTRelocs(), false, dynSymNameMapping);
     }
 
-#if !defined(os_solaris)
     //add .dynamic section
     if(dynsecSize)
       obj->addRegion(0, dynsecData, dynsecSize*sizeof(Elf64_Dyn), ".dynamic", Region::RT_DYNAMIC, true);
-#endif
   }else{
       // Static binary case
       vector<Region *> newRegs;
@@ -2234,9 +2205,6 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
       }
    }
 
-#if defined (os_solaris)
-   fprintf(stderr, "%s[%d]:  FIXME:  This does not work on solaris\n", FILE__, __LINE__);
-#else
    dyn_hash_map<int, Region*> secTagRegionMapping = obj->getObject()->getTagRegionMapping();
    int reloc_size, old_reloc_size, dynamic_reloc_size;
    const char *new_name;
@@ -2306,12 +2274,11 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
       name = std::string(new_name);
    obj->addRegion(0, buffer, reloc_size, name, rtype, true);
    updateDynamic(dsize_type, dynamic_reloc_size); 
-#endif
 
 } 
 
-#if !defined(os_solaris)
-void emitElf::createSymbolVersions(Symtab *obj, Elf32_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, vector<string> &dynStrs){
+void emitElf::createSymbolVersions(Symtab *obj, Elf32_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char
+*&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, vector<string> &dynStrs){
 
   //Add all names to the new .dynstr section
   map<string, unsigned>::iterator iter = versionNames.begin();
@@ -2596,7 +2563,6 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
   curpos++;
   dynsecSize = curpos+1;                            //assign size to the correct number of entries
 }
-#endif
 
 void emitElf::log_elferror(void (*err_func)(const char *), const char* msg) {
   const char* err = elf_errmsg(elf_errno());

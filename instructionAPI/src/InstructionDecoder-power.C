@@ -825,7 +825,9 @@ using namespace boost::assign;
             // decode control-flow operands immediately; we're all but guaranteed to need them
             doDelayedDecode(insn_in_progress);
         }
-        insn_in_progress->arch_decoded_from = Arch_ppc32;
+	// FIXME in parsing
+        //insn_in_progress->arch_decoded_from = m_Arch; 
+        insn_in_progress->arch_decoded_from = Arch_ppc32; 
         return;
     }
   };

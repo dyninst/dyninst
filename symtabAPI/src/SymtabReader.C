@@ -46,7 +46,8 @@ SymtabReader::SymtabReader(std::string file_) :
    symtab(NULL),
    ref_count(1),
    mapped_regions(NULL),
-   dwarf_handle(NULL)
+   dwarf_handle(NULL),
+   ownsSymtab(true)
 {
    Symtab::openFile(symtab, file_);
 }
@@ -55,7 +56,8 @@ SymtabReader::SymtabReader(const char *buffer, unsigned long size) :
    symtab(NULL),
    ref_count(1),
    mapped_regions(NULL),
-   dwarf_handle(NULL)
+   dwarf_handle(NULL),
+   ownsSymtab(true)
 {
    stringstream memName;
    memName << "memory_" << (unsigned long)(buffer) << "_" << size;
@@ -63,11 +65,19 @@ SymtabReader::SymtabReader(const char *buffer, unsigned long size) :
                     size, memName.str());
 }
 
+SymtabReader::SymtabReader(Symtab *s) :
+    symtab(s),
+    ref_count(1),
+    mapped_regions(NULL),
+    dwarf_handle(NULL),
+    ownsSymtab(false)
+{}
+
 SymtabReader::~SymtabReader()
 {
    if (mapped_regions)
       delete mapped_regions;
-   if (symtab)
+   if (symtab && ownsSymtab)
       Symtab::closeSymtab(symtab);
    symtab = NULL;
    mapped_regions = NULL;

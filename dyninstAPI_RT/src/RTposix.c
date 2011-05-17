@@ -63,7 +63,7 @@
 #define SOCKLEN_T socklen_t
 #endif
 
-#if !defined(cap_save_the_world) && !(defined(arch_power) && defined(os_linux))
+#if !(defined(arch_power) && defined(os_linux))
 void RTmutatedBinary_init() 
 {
     return;

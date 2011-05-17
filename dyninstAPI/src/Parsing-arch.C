@@ -32,12 +32,8 @@
 
 #include "parseAPI/h/InstructionAdapter.h"
 
-#if defined(arch_sparc)
-// XXX needs raw instruction from iterator
-#include "parseAPI/src/IA_InstrucIter.h"
-#endif
-
 #include "parse-cfg.h"
+
 #include "Parsing.h"
 #include "debug.h"
 
@@ -59,57 +55,3 @@ DynParseCallback::instruction_cb(Function*f,Block *,Address,insn_details*det)
 }
 #endif
 
-#if defined(arch_sparc)
-void
-DynParseCallback::instruction_cb(Function*f,Address,insn_details*det)
-{
-    parse_func * ifunc = static_cast<parse_func*>(f);
-
-    // Check whether "07" is live, AKA we can't call safely.
-    // Could we just always assume this?
-    if (!ifunc->o7_live) {
-       
-#if 0
-	InsnRegister reads[7];
-	InsnRegister writes[7];
-
-	ah.getInstruction().get_register_operands(reads, writes);
-	int i;
-        for(i=0; i<7; i++) {
-	  if (reads[i].is_o7()) {
-	    o7_live = true;
-	    break;
-	  }
-	}
-#endif
-        InsnAdapter::IA_InstrucIter& ah = 
-            *static_cast<InsnAdapter::IA_InstrucIter*>(det->insn);
-        instruction insn = ah.getInstruction();
-        insn.get_register_operands();
-        std::vector<InsnRegister> *read_regs_p  = NULL;
-        extern AnnotationClass<std::vector<InsnRegister> > RegisterReadSetAnno;
-        if (!insn.getAnnotation(read_regs_p, RegisterReadSetAnno))
-        {
-           return;
-        }
-        assert(read_regs_p);
-        std::vector<InsnRegister> &read_regs = *read_regs_p;
-#if 0
-        Annotatable<InsnRegister, register_read_set_a> &read_regs = insn;
-#endif
-        assert(read_regs.size() < 9);
-
-        for (unsigned int i = 0; i < read_regs.size(); ++i) {
-           if (read_regs[i].is_o7()) {
-              ifunc->o7_live = true;
-              break;
-           }
-        }
-
-	if(ifunc->o7_live) {	  
-            parsing_printf("Setting o7 to live at 0x%x, func %s\n",
-                    ah.getAddr(), ifunc->symTabName().c_str());
-        }
-    }
-}
-#endif

@@ -30,12 +30,8 @@
  */
 #include "CodeObject.h"
 #include "CFG.h"
-#if defined(cap_instruction_api)
 #include "IA_IAPI.h"
 using namespace Dyninst::InstructionAPI;
-#else
-#include "IA_InstrucIter.h"
-#endif
 #include "InstructionAdapter.h"
 
 #include "Parser.h"
@@ -72,15 +68,10 @@ Block::consistent(Address addr, Address & prev_insn)
         isrc = _obj->cs();
     else
         isrc = region();
-#if defined(cap_instruction_api)
-    const unsigned char * buf = 
+    const unsigned char * buf =
         (const unsigned char*)(region()->getPtrToInstruction(_start));
     InstructionDecoder dec(buf,size(),isrc->getArch());
     InstructionAdapter_t ah(dec,_start,_obj,region(),isrc, this);
-#else
-    InstrucIter iter(_start,size(),isrc);
-    InstructionAdapter_t ah(iter,_obj,region(),isrc, this);
-#endif
 
     Address cur = ah.getAddr();
     //parsing_printf("consistency check for [%lx,%lx), start: %lx addr: %lx\n",

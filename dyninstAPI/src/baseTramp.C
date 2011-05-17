@@ -239,6 +239,10 @@ bool baseTramp::generateCode(codeGen &gen,
       }
    }
 
+   if( dyn_debug_disassemble ) {
+       fprintf(stderr, "%s", gen.format().c_str());
+   }
+
    gen.setBT(NULL);
 
    return true;
@@ -272,7 +276,6 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    //        <0>
    // <Cost section>
    // <Load state>
-
 
    // Break it down...
    // <Save state>
@@ -365,9 +368,6 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
     
    // Run the minitramps
    baseTrampElements.push_back(minis);
-    
-   // Cost code...
-   //
     
    if (trampGuardAddr) {
       // And set the tramp guard flag to 1

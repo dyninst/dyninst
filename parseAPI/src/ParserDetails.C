@@ -100,7 +100,7 @@ verbose_log(Address currAddr, Edges_t::iterator & curEdge)
 }
 } // anonymous namespace
 
-// XXX this code was introduced but is unused
+
 static void 
 getBlockInsns(Block &blk, std::set<Address> &addrs)
 {

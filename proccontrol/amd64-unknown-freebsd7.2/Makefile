@@ -21,6 +21,7 @@ SRCS = ../src/sysv.C \
        ../../common/src/dthread-unix.C \
        ../../common/src/Elf_X.C
 
+ifdef LIBELF_DIR
 MYLAGS += -I$(LIBELF_DIR)
 endif
 

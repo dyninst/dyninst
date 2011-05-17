@@ -18,7 +18,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="i386-unknown-nt4.0"
+			OutputDirectory="..\..\i386-unknown-nt4.0\lib"
 			IntermediateDirectory="i386-unknown-nt4.0"
 			ConfigurationType="2"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
@@ -42,17 +42,17 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalOptions="/MP"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;C:\Program Files\Microsoft Visual Studio 9.0\DIA SDK\include&quot;;./h;..;../external;../symtabAPI/h;../dynutil/h;../instructionAPI/h;../dataflowAPI/h"
-				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_instruction_api;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;cap_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;DLL_BUILD;snprintf=_snprintf"
+				AdditionalIncludeDirectories="./h;..;../external;../dynutil/h;../symtabAPI/h;../instructionAPI/h;&quot;$(VSInstallDir)DIA SDK\include\&quot;"
+				PreprocessorDefinitions="_CRT_SECURE_NO_WARNINGS;WIN32;os_windows;arch_x86;cap_instruction_api;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;DLL_BUILD;snprintf=_snprintf;cap_liveness"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
 				RuntimeTypeInfo="true"
 				WarningLevel="3"
-				DebugInformationFormat="1"
-				DisableSpecificWarnings="4251"
-				EnablePREfast="false"
+				DebugInformationFormat="3"
+				DisableSpecificWarnings="4251;4503"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -92,14 +92,13 @@
 			/>
 			<Tool
 				Name="VCFxCopTool"
-				EnableFxCop="false"
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0&#x0D;&#x0A;echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;echo copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;echo copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;echo mkdir $(TargetDir)..\..\..\include&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\include&#x0D;&#x0A;echo copy $(InputDir)h\*.h $(TargetDir)..\..\..\include&#x0D;&#x0A;copy $(InputDir)h\*.h $(TargetDir)..\..\..\include&#x0D;&#x0A;&#x0D;&#x0A;"
+				CommandLine="echo mkdir $(TargetDir)..\..\include&#x0D;&#x0A;mkdir $(TargetDir)..\..\include&#x0D;&#x0A;echo copy $(InputDir)h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;copy $(InputDir)h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -129,7 +128,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="./h;..;../external;../dynutil/h;../symtabAPI/h;../instructionAPI/h"
-				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_instruction_api;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf"
+				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_instruction_api;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf;cap_liveness"
 				MinimalRebuild="false"
 				RuntimeLibrary="0"
 				WarningLevel="3"
@@ -188,27 +187,6 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\src\addLibrary.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\addressSpace.C"
 				>
 				<FileConfiguration
@@ -250,7 +228,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\ASTAtom.C"
+				RelativePath=".\src\Relocation\Widgets\ASTWidget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -929,7 +907,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\CFAtom-x86.C"
+				RelativePath=".\src\Relocation\Widgets\CFWidget-x86.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -941,7 +919,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\CFAtom.C"
+				RelativePath=".\src\Relocation\Widgets\CFWidget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1423,12 +1401,13 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\InsnAtom.C"
+				RelativePath=".\src\Relocation\Widgets\InsnWidget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1503,7 +1482,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\InstAtom.C"
+				RelativePath=".\src\Relocation\Widgets\InstWidget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1598,6 +1577,14 @@
 						CompileAs="2"
 					/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\mailbox.C"
@@ -1643,27 +1630,6 @@
 			</File>
 			<File
 				RelativePath=".\src\mapped_object.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\MapSymbols.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1808,6 +1774,7 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -1825,7 +1792,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\PCAtom.C"
+				RelativePath=".\src\Relocation\Widgets\PCWidget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1932,7 +1899,31 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\RelDataAtom.C"
+				RelativePath=".\src\Relocation\Widgets\RelDataWidget.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\CFG\RelocGraph.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\CFG\RelocEdge.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -2122,7 +2113,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Target.C"
+				RelativePath=".\src\Relocation\CFG\RelocTarget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -2154,7 +2145,19 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Trace.C"
+				RelativePath=".\src\Relocation\CFG\RelocBlock.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\Transformer.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -2230,11 +2233,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\ASTAtom.h"
+				RelativePath=".\src\Relocation\Widgets\ASTWidget.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Atom.h"
+				RelativePath=".\src\Relocation\Widgets\Widget.h"
 				>
 			</File>
 			<File
@@ -2318,6 +2321,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\h\BPatch_hybridAnalysis.h"
+				>
+			</File>
+			<File
 				RelativePath=".\h\BPatch_image.h"
 				>
 			</File>
@@ -2390,7 +2397,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\CFAtom.h"
+				RelativePath=".\src\Relocation\Widgets\CFWidget.h"
 				>
 			</File>
 			<File
@@ -2506,7 +2513,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Include.h"
+				RelativePath=".\src\Relocation\Widgets\Include.h"
 				>
 			</File>
 			<File
@@ -2522,7 +2529,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\InsnAtom.h"
+				RelativePath=".\src\Relocation\Widgets\InsnWidget.h"
 				>
 			</File>
 			<File
@@ -2534,7 +2541,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\InstAtom.h"
+				RelativePath=".\src\Relocation\Widgets\InstWidget.h"
 				>
 			</File>
 			<File
@@ -2554,7 +2561,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Instrumentation.h"
+				RelativePath=".\src\Relocation\Widgets\Instrumentation.h"
 				>
 			</File>
 			<File
@@ -2634,7 +2641,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\PCAtom.h"
+				RelativePath=".\src\Relocation\Widgets\PCWidget.h"
 				>
 			</File>
 			<File
@@ -2654,11 +2661,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\RelDataAtom.h"
+				RelativePath=".\src\Relocation\Widgets\RelDataWidget.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\Relocation\Relocation.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\CFG\RelocGraph.h"
 				>
 			</File>
 			<File
@@ -2714,11 +2725,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Target.h"
+				RelativePath=".\src\Relocation\CFG\RelocTarget.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Trace.h"
+				RelativePath=".\src\Relocation\CFG\RelocBlock.h"
 				>
 			</File>
 			<File

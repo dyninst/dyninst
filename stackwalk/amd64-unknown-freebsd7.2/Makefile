@@ -54,3 +54,6 @@ MYFLAGS 	+= -I../../parseAPI/h -I../../symtabAPI/h -I../../symEval/h
 CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 AS		= as
+
+# Now make any necessary architecture specific changes to variables:
+VPATH += ../../common/src

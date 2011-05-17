@@ -29,10 +29,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifdef sparc_sun_solaris2_4
-#include <dlfcn.h>
-#endif
-
 #define BPATCH_FILE
 
 #include <string>
@@ -671,16 +667,6 @@ bool BPatch_process::dumpCoreInt(const char *file, bool terminate)
    return ret;
 }
 
-/* 
- * BPatch_process::dumpPatchedImage
- *
- * No longer supported
- */
-char* BPatch_process::dumpPatchedImageInt(const char*)
-{
-   return NULL;
-}
-
 /*
  * BPatch_process::dumpImage
  *
@@ -1106,12 +1092,8 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
    return !error;
 }
 
-/* 
- *	this function sets a flag in process that 
- *	forces the collection of data for saveworld.
- */
 void BPatch_process::enableDumpPatchedImageInt(){
-    // llproc->collectSaveWorldData=true;
+    // deprecated; saveTheWorld is dead. Do nothing for now; kill later.
 }
 
 void BPatch_process::setExitedViaSignal(int signalnumber) 

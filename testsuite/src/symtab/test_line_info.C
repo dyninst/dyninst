@@ -165,20 +165,6 @@ test_results_t test_line_info_Mutator::executeTest()
 
 	if (createmode == DESERIALIZE)
 		return SKIPPED;
-#if defined (os_solaris_test)
-	//  It appears that the sun compilers do not implement the
-	//  #line directive properly.  This would merit more investigation
-	//  if we had any users who cared about line info on solaris.
-	//
-	//  TODO:  figure out how to add this condition to the spec file
-
-	if ((compiler == std::string("CC")) 
-			|| (compiler == std::string("sun_cc")))
-	{
-		return SKIPPED;
-	}
-
-#endif
 #if defined (os_aix_test)
 	//if (useAttach == DESERIALIZE)
 		return SKIPPED;

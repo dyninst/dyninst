@@ -59,9 +59,7 @@
 extern "C" {
 #if !defined(i386_unknown_nt4_0)
 #if !defined(i386_unknown_linux2_0)
-#if !defined(ia64_unknown_linux2_4)
 	int usleep(useconds_t);
-#endif
 #endif
 #endif
    
@@ -441,7 +439,7 @@ int help(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv)
       printf("     variables in the target program. Local variables and parameters are\n");
       printf("     searched in the <function>.\n");
    }
-#if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) 
+#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) 
    LIMIT_TO("where") {
       printf("where - Print stack trace.\n");
    }
@@ -893,7 +891,7 @@ int killApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
    return TCL_OK;
 }
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+#if defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
 
 bool saveWorldStart =false;
 
@@ -1420,7 +1418,7 @@ void printVarRecursive(BPatch_variableExpr *var, int level)
    }
 }
 
-#if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  
+#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)  
 void printStackFrame(int index, std::vector<BPatch_frame> &callStack, const char *funcName){
    
 	printf("#%d: (0x%p)\t%s (fp: 0x%p)\n", index, (void *)callStack[index].getPC(),funcName , (void *)callStack[index].getFP());
@@ -1526,7 +1524,7 @@ int where(ClientData, Tcl_Interp *, int, TCLCONST char ** /* argv */)
 }
 #endif
 
-#if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)   
+#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)
 
 BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
 {
@@ -1570,43 +1568,7 @@ BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
 			tmpVar = appImage->findVariable(*targetPoint, name);
 			targetPoint = NULL;
 
-// Not sure what this once did, but it's old and we certainly
-// don't allow the external creation of BPatch_variableExpr's
-// anymore.
-
-#if 0
-			if (tmpVar && 
-#ifdef rs6000_ibm_aix4_1
-             (((int)tmpVar->getBaseAddr()) < 0x1000) ) {
-            
-#else
-				( ((CASTOFFSET) (tmpVar->getBaseAddr())) < 0) ) {
-            
-#endif
-				offset = (CASTOFFSET) (tmpVar->getBaseAddr());
-            
-#ifdef sparc_sun_solaris2_4
-				index ++; /* ccw 9 mar 2004 WHY DO I NEED TO DO THIS ?*/
-#endif
-            
-				/* WARNING: the function BPatch_thread::lowlevel_process() is risky, it should go away
-				   But i need to build a variable that points to a specific address, and I can not find
-				   a better way to do it right now
-				 */	
-//          BPatch_type *bptype = const_cast<BPatch_type *>(tmpVar->getType());
-//				var = new BPatch_variableExpr(tmpVar->getName(), appProc->getProcess(),
-//					(void*) ( ((CASTOFFSET) (callStack[index].getFP())) +offset), bptype );	
-
-#ifdef sparc_sun_solaris2_4 
-				index --;  
-#endif
-				whereAmINow = index; /* set local context just in case */
-            
-				return var;
-			}
-#endif  // End Dead Code
-
-                        if (tmpVar) return tmpVar;
+            if (tmpVar) return tmpVar;
 			
 		}
       
@@ -1623,7 +1585,7 @@ int printVar(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
    if (!haveApp()) return TCL_ERROR;
 	bool found = false;
    BPatch_variableExpr *var; 
-#if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  
+#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)  
    
    var = findLocalVariable(argv[1],false);
    
@@ -3092,7 +3054,7 @@ int Tcl_AppInit(Tcl_Interp *interp)
    Tcl_CreateCommand(interp, "listinst", (Tcl_CmdProc*)listInstrument, NULL, NULL);
    Tcl_CreateCommand(interp, "deleteinst", (Tcl_CmdProc*)deleteInstrument, NULL, NULL);
    Tcl_CreateCommand(interp, "debugparse", (Tcl_CmdProc*)debugParse, NULL, NULL);
-#if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  
+#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)
    
    Tcl_CreateCommand(interp, "where", (Tcl_CmdProc*)where, NULL, NULL);
    Tcl_CreateCommand(interp, "up", (Tcl_CmdProc*)whereUp, NULL, NULL);

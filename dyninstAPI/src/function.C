@@ -39,11 +39,9 @@
 #include "mapped_object.h"
 #include "mapped_module.h"
 #include "InstructionDecoder.h"
-#include "parseAPI/src/InstrucIter.h"
 #include "MemoryEmulator/memEmulator.h"
 #include "Relocation/Transformers/Movement-analysis.h"
 
-//std::string func_instance::emptyString("");
 
 #include "Parsing.h"
 
@@ -454,7 +452,6 @@ void func_instance::addPrettyName(const std::string name, bool isPrimary) {
         obj()->addFunctionName(this, name, mapped_object::prettyName);
 }
 
-
 // Dig down to the low-level block of b, find the low-level functions
 // that share it, and map up to int-level functions and add them
 // to the funcs list.
@@ -501,9 +498,6 @@ bool func_instance::getSharingFuncs(std::set<func_instance *> &funcs) {
     return ret;
 }
 
-// Find functions that have overlapping, but disjoint, blocks in 
-// addition to shared blocks. Very slow!
-
 bool func_instance::getOverlappingFuncs(block_instance *block,
                                        std::set<func_instance *> &funcs) 
 {
@@ -519,9 +513,8 @@ bool func_instance::getOverlappingFuncs(block_instance *block,
 		std::vector<ParseAPI::Function *> llFuncs;
 		(*iter)->getFuncs(llFuncs);
 		for (std::vector<ParseAPI::Function *>::iterator iter2 = llFuncs.begin();
-			iter2 != llFuncs.end(); ++iter2) 
-        {
-            funcs.insert(obj()->findFunction(*iter2));
+                     iter2 != llFuncs.end(); ++iter2)  {
+                   funcs.insert(obj()->findFunction(*iter2));
 		}
 	}
 	return (funcs.size() > 1);
@@ -567,7 +560,6 @@ const pdvector< int_parRegion* > &func_instance::parRegions()
     }
   return parallelRegions_;
 }
-
 
 bool func_instance::consistency() const {
    // 1) Check for 1:1 block relationship in

@@ -1134,7 +1134,7 @@ bool baseTramp::generateSaves(codeGen &gen,
     // Save LR            
     saveLR(gen, REG_SCRATCH /* register to use */, TRAMP_SPR_OFFSET + STK_LR);
 
-    saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET, false);
+    saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET, true); // FIXME get liveness fixed
     return true;
 }
 
@@ -2494,166 +2494,6 @@ bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 
 #endif
 
-#if 0
-
-
-    // POWER (for both Linux and AIX) is using the new instruction replacement
-    // based method for replacing a function jump, and therefore we are 
-    // *NOT* in a base tramp when this occurs.
-
-    assert(func);
-    assert(point);
-
-    // Which means we don't need to unwind a baseTramp.
-
-    // We have two function call ABIs. 
-    // 1) AIX (32/64), Linux (64)
-    //   * GPR 2 is the TOC, which is module-specific.
-    //   * The stack frame has two empty words at (SP + 3W) and (SP + 4W)
-    //     where W = 4 or 8
-    //   * We need to reset the TOC post-call, which means we need
-    //     to _return_ to after the call. Thus the link register also
-    //     needs to be saved.
-    //
-    // 2) Linux (32)
-    //   * There is no TOC (r2 is a "system reserved register").
-    //   * Thus we don't need to set or restore the TOC. 
-    //   * Thus all we need to do is branch to the destination function.
-
-    bool is64 = false;
-    if (gen.addrSpace()->getAddressWidth() == 8)
-        is64 = true;
-
-    bool needToSetTOC = false;
-    Address currentTOC = 0;
-    Address replacementTOC = 0;
-    if(proc->proc()) {
-    	currentTOC = proc->proc()->getTOCoffsetInfo(point->func());
-    	replacementTOC = proc->proc()->getTOCoffsetInfo(const_cast<func_instance *>(func));
-
-    	if (currentTOC &&
-            (currentTOC != replacementTOC)) {
-        	needToSetTOC = true;
-    	}
-
-    }
-
-    // If we either don't have a TOC (32-bit Linux, currentTOC == 0)
-    // or the new TOC is the same as the current, just branch.
-
-    if (!needToSetTOC) {
-	if (proc->proc()) {
-        // Easy case, just branch.
-        insnCodeGen::generateInterFunctionBranch(gen,
-                                                 gen.currAddr(),
-                                                 func->addr());
-	} else  { // binary rewriter case 	
-	  instPoint *point = gen.point();
-	  if (!point) {
-	    printf(" Point NOT AVAILABLE. We cannot instrument this point. skipping ...\n");
-	    return;
-	  }
-	  assert(point);
-	  bitArray liveRegs = point->liveRegisters();
-	  if (liveRegs[registerSpace::ctr] == true)
-	    {
-	      printf(" COUNT REGISTER NOT AVAILABLE. We cannot instrument this point. skipping ...\n");
-	      return;
-	    }
-	  
-	  if (gen.func()->obj() == func->obj()) {	
-	    inst_printf("same module name %s \n", gen.func()->obj()->fileName().c_str());
-	    insnCodeGen::loadImmIntoReg(gen, 0, func->addr());
-	    insnCodeGen::generateMoveToCR(gen, 0);
-	    
-	    gen.bt()->generateRestores(gen, gen.rs());
-	    // And branch to CTR
-	    instruction btctr(BCTRraw);
-	    insnCodeGen::generate(gen,btctr);
-	    
-	  } else {
-	    Register scratchPCReg = gen.rs()->getScratchRegister(gen, true);
-	    assert (scratchPCReg != REG_NULL);
-	    insnCodeGen::generateBranch(gen, gen.currAddr(),  gen.currAddr()+4, true); // blrl
-	    insnCodeGen::generateMoveFromLR(gen, scratchPCReg); // mflr
-	    
-	    pdvector<Register> excludeReg;
-	    excludeReg.push_back(scratchPCReg);
-	    Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);	
-	    assert (scratchReg != REG_NULL);
-	    
-	    Address dest = gen.codeEmitter()->getInterModuleFuncAddr(func, gen);
-	    Address varOffset = dest - gen.currAddr()+4;
-	    
-	    inst_printf("diff module names %s %s dest 0x%lx offset 0x%lx\n", gen.func()->obj()->fileName().c_str(), func->obj()->fileName().c_str(), dest, varOffset);
-	    
-	    insnCodeGen::generateImm (gen, CAUop, scratchReg, 0, BOT_HI (varOffset));
-	    insnCodeGen::generateImm (gen, ORILop, scratchReg, scratchReg, BOT_LO (varOffset));
-	    insnCodeGen::generateLoadReg (gen, LXop, scratchReg, scratchReg, scratchPCReg);
-	    //insnCodeGen::generateAddReg (gen, CAXop, scratchReg, scratchReg, scratchPCReg);
-	    insnCodeGen::generateMoveToCR(gen, scratchReg);
-	    
-	    // Make sure we do not "restore" Count Register
-	    gen.bt()->generateRestores(gen, gen.rs());
-	    instruction btctr(BCTRraw);
-	    insnCodeGen::generate(gen,btctr);
-	  }
-	  
-	}
-        return;
-    }
-
-    // Hard case...
-    // 
-    // Sketch of operations:
-    //   Save current TOC at SP + 3W
-    //   Save current LR at SP + 4W
-    //   Set up new branch target in LR
-    //   Set up new TOC
-    //   Call
-    //   Restore TOC
-    //   Restore LR
-
-    // Save TOC
-    saveRegisterAtOffset(gen, 2, 3*gen.addrSpace()->getAddressWidth());
-    
-    // Use TOC to access and save LR
-    insnCodeGen::generateMoveFromLR(gen, 2);
-    saveRegisterAtOffset(gen, 2, 4*gen.addrSpace()->getAddressWidth());
-
-    // Assign new LR for branch. 
-    emitVload(loadConstOp, func->addr(), 2, 2, gen, false);
-    insnCodeGen::generateMoveToLR(gen, 2);
-
-    // Assign new TOC
-    emitVload(loadConstOp, replacementTOC, 2, 2, gen, false);
-
-    // Call
-    instruction brl(BRLraw);
-    insnCodeGen::generate(gen,brl);
-
-    // We're done with the replacement function, so restore TOC, LR, return
-    
-    // Load LR from SP + 4W to TOC
-    restoreRegisterAtOffset(gen, 2, 4*gen.addrSpace()->getAddressWidth());
-    insnCodeGen::generateMoveToLR(gen, 2);
-    
-    // Load TOC from SP + 3W
-    restoreRegisterAtOffset(gen, 2, 3*gen.addrSpace()->getAddressWidth());
-
-    // Make sure we do not "restore" Count Register or the return value r3
-    for (int i = 0; i < gen.rs()->numGPRs(); ++i)
-        if (gen.rs()->GPRs()[i]->name == "r3")
-            gen.rs()->GPRs()[i]->liveState = registerSlot::live;
-    gen.bt()->generateRestores(gen, gen.rs());
-
-    // Return...
-    instruction br(BRraw);
-    insnCodeGen::generate(gen,br);
-    
-    // Should be done.
-    return;
-#endif
 
 
 void emitLoadPreviousStackFrameRegister(Address register_num, 
@@ -2788,7 +2628,7 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
         // Use function descriptor address, if available.
         if (f->getPtrAddress()) val_to_write = f->getPtrAddress();
         assert(p->proc());
-        Address toc = p->proc()->getTOCoffsetInfo(val_to_write);
+        Address toc = p->proc()->getTOCoffsetInfo(f);
         buffer[0] = val_to_write;
         buffer[1] = toc;
         buffer[2] = 0x0;
@@ -2968,6 +2808,9 @@ bool EmitterPOWER::emitLoadRelative(Register dest, Address offset, Register base
         }
       else if (((signed)MIN_IMM32 <= (signed)imm) && ((signed)imm <= (signed)MAX_IMM32))
         {
+	  // We're about to stomp dest to get a number in it... make sure that
+	  // it's not also the base register
+	  assert(dest != base); 
           insnCodeGen::generateImm (gen, CAUop, dest, 0, BOT_HI (offset));
           insnCodeGen::generateImm (gen, ORILop, dest, dest, BOT_LO (offset));
           insnCodeGen::generateLoadReg (gen, LXop, dest, dest, base);
@@ -3112,7 +2955,7 @@ bool EmitterPOWER32Stat::emitPIC(codeGen& gen, Address origAddr, Address relocAd
               //fprintf(stderr, " emitPIC origAddr 0x%lx reloc 0x%lx stack size %d Registers PC %d scratch %d \n", origAddr, relocAddr, stack_size, scratchPCReg, scratchReg);
 
 	} 
-	emitMovPCToReg(scratchPCReg, gen);	
+	emitMovePCToReg(scratchPCReg, gen);	
 	Address varOffset = origAddr - relocAddr;
 	emitCallRelative(scratchReg, varOffset, scratchPCReg, gen);
       	insnCodeGen::generateMoveToLR(gen, scratchReg);
@@ -3154,51 +2997,209 @@ bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, func_instance* callee
   return true;
 }
 
-bool EmitterPOWERStat::emitPLTCommon(func_instance *callee, codeGen &gen) {
+bool EmitterPOWER32Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
+  Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+  if (scratchReg == REG_NULL) return false;
 
-  Register scratchPCReg = gen.rs()->getScratchRegister(gen, true);
-  assert(scratchPCReg);
-  pdvector<Register> excludeReg;
-  excludeReg.push_back(scratchPCReg);
-  Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
-  if (scratchReg) {
+  Register scratchLR = REG_NULL;
+  std::vector<Register> excluded; excluded.push_back(scratchReg);
+  scratchLR = gen.rs()->getScratchRegister(gen, excluded, true);
+  if (scratchLR == REG_NULL) {
+    if (scratchReg == registerSpace::r0) return false;
     // We can use r0 for this, since it's volatile. 
     scratchReg = registerSpace::r0;
   }
+
+  if (!call) {
+    // Save the LR in scratchLR
+    insnCodeGen::generateMoveFromLR(gen, scratchLR);
+  }
+
+  // Generate the PLT call
+
+  Address dest = getInterModuleFuncAddr(callee, gen);  
+  Address pcVal = emitMovePCToReg(scratchReg, gen);
+
+  if (!call) {
+    insnCodeGen::generateMoveToLR(gen, scratchLR);
+  }
+
+  // We can now use scratchLR
+
+  Address varOffset = dest - pcVal;
+  emitLoadRelative(scratchLR, varOffset, scratchReg, gen.addrSpace()->getAddressWidth(), gen);
   
-  Address dest = getInterModuleFuncAddr(callee, gen);
-  
-  inst_printf("emitCallInstruction addr 0x%lx curr adress 0x%lx offset %ld 0x%lx\n",
-	      dest, gen.currAddr(), dest - gen.currAddr()+4, dest - gen.currAddr()+4);
-  // Use scratchReg to set destination of the call...
-  
-  emitMovPCToReg(scratchPCReg, gen);
-  Address varOffset = dest - gen.currAddr()+4;
-  
-  emitLoadRelative(scratchReg, varOffset, scratchPCReg, gen.addrSpace()->getAddressWidth(), gen);
-  
-  insnCodeGen::generateMoveToCR(gen, scratchReg);
+  insnCodeGen::generateMoveToCR(gen, scratchLR);
+
+  if (!call) {
+    instruction br(BCTRraw);
+    insnCodeGen::generate(gen, br);
+  }
+  else {
+    instruction brl(BCTRLraw);
+    insnCodeGen::generate(gen, brl);
+  }
+
   return true;
 }
 
 
 // TODO 32/64-bit? 
-bool EmitterPOWERStat::emitPLTCall(func_instance *callee, codeGen &gen) {
-  emitPLTCommon(callee, gen);
- 
-  instruction brl(BCTRLraw);
-  insnCodeGen::generate(gen,brl);
+bool EmitterPOWER32Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
+  return emitPLTCommon(callee, true, gen);
+}
+
+bool EmitterPOWER32Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
+  return emitPLTCommon(callee, false, gen);
+}
+
+bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
+  // 64-bit is infinitely more complicated due to the need to set/reset
+  // the TOC pointer. This means that we're putting in a stub that gets
+  // returned to...
+
+  // However, we have two slots on the stack we can rely on using. Lucky us. 
+  // 
+  // Brief sketch:
+  //   Save current TOC at SP + 3W
+  //   (if call) Save current LR at SP + 4W
+  //   Set up new branch target in LR
+  //   Set up new TOC in R2
+  //   Call
+  //   if (call) Restore LR
+  //   Restore TOC
+
+  const unsigned TOCreg = 2;
+  const unsigned wordsize = gen.addrSpace()->getAddressWidth();
+
+  assert(0 && "need to determine correct TOC");
+
+  Address replacementTOC = 0;
+
+  assert(wordsize == 8);
+
+  // Save TOC
+  saveRegisterAtOffset(gen, TOCreg, 3*wordsize);
   
+  // Use TOC to access and save LR
+  if (call) {
+    insnCodeGen::generateMoveFromLR(gen, TOCreg);
+    saveRegisterAtOffset(gen, TOCreg, 4*wordsize);
+  }
+
+  // This won't work for the rewriter; that's a WIP according to Ray. 
+
+  // Assign new LR for branch. 
+  assert(0 && "This isn't correct");
+  emitVload(loadConstOp, callee->addr(), 2, 2, gen, false);
+  insnCodeGen::generateMoveToLR(gen, 2);
+
+  // Assign new TOC
+  emitVload(loadConstOp, replacementTOC, 2, 2, gen, false);
+
+  // Call
+  instruction brl(BRLraw);
+  insnCodeGen::generate(gen,brl);
+
+  // We're done with the replacement function, so restore TOC, LR, return
+    
+  // Load LR from SP + 4W to TOC
+  if (call) {
+    restoreRegisterAtOffset(gen, 2, 4*gen.addrSpace()->getAddressWidth());
+    insnCodeGen::generateMoveToLR(gen, 2);
+  }
+
+  // Load TOC from SP + 3W
+  restoreRegisterAtOffset(gen, 2, 3*gen.addrSpace()->getAddressWidth());
+
   return true;
 }
 
-bool EmitterPOWERStat::emitPLTJump(func_instance *callee, codeGen &gen) {
-  emitPLTCommon(callee, gen);
+
+// TODO 32/64-bit? 
+bool EmitterPOWER64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
+  return emitPLTCommon(callee, true, gen);
+}
+
+bool EmitterPOWER64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
+  return emitPLTCommon(callee, false, gen);
+}
+
+bool EmitterPOWER64Dyn::emitTOCCommon(block_instance *target, bool call, codeGen &gen) {
+  Address curTOC = gen.addrSpace()->proc()->getTOCoffsetInfo(gen.func());
+
+  std::vector<func_instance *> calleeFuncs;
+  target->getFuncs(std::back_inserter(calleeFuncs));
+  Address newTOC = gen.addrSpace()->proc()->getTOCoffsetInfo(calleeFuncs[0]);
+  if (curTOC == newTOC) {
+    // Easy...
+    if (call) {
+      insnCodeGen::generateCall(gen, gen.currAddr(), target->start());
+      return true;
+    } else {
+      insnCodeGen::generateBranch(gen, gen.currAddr(), target->start());
+      return true;
+    }
+  }
+
+  // Okay, we do this the hard way. 
+  // This is copied from the 64-bit static code; we should unify. 
+
+  // However, we have two slots on the stack we can rely on using. Lucky us. 
+  // 
+  // Brief sketch:
+  //   Save current TOC at SP + 3W
+  //   (if call) Save current LR at SP + 4W
+  //   Set up new branch target in LR
+  //   Set up new TOC in R2
+  //   Call
+  //   if (call) Restore LR
+  //   Restore TOC
+
+  const unsigned TOCreg = 2;
+  const unsigned wordsize = gen.addrSpace()->getAddressWidth();
+
+  assert(wordsize == 8);
+
+  // Save TOC
+  saveRegisterAtOffset(gen, TOCreg, 3*wordsize);
   
-  instruction br(BCTRraw);
-  insnCodeGen::generate(gen,br);
-  
+  // Use TOC to access and save LR
+  if (call) {
+    insnCodeGen::generateMoveFromLR(gen, TOCreg);
+    saveRegisterAtOffset(gen, TOCreg, 4*wordsize);
+  }
+
+  emitVload(loadConstOp, target->start(), 2, 2, gen, false);
+  insnCodeGen::generateMoveToLR(gen, 2);
+
+  // Assign new TOC
+  emitVload(loadConstOp, newTOC, 2, 2, gen, false);
+
+  // Call
+  instruction brl(BRLraw);
+  insnCodeGen::generate(gen,brl);
+
+  // We're done with the replacement function, so restore TOC, LR, return
+    
+  // Load LR from SP + 4W to TOC
+  if (call) {
+    restoreRegisterAtOffset(gen, 2, 4*wordsize);
+    insnCodeGen::generateMoveToLR(gen, 2);
+  }
+
+  // Load TOC from SP + 3W
+  restoreRegisterAtOffset(gen, 2, 3*wordsize);
   return true;
+}
+
+// TODO 32/64-bit? 
+bool EmitterPOWER64Dyn::emitTOCCall(block_instance *callee, codeGen &gen) {
+  return emitTOCCommon(callee, true, gen);
+}
+
+bool EmitterPOWER64Dyn::emitTOCJump(block_instance *callee, codeGen &gen) {
+  return emitTOCCommon(callee, false, gen);
 }
 
 /*
@@ -3309,7 +3310,7 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
 		addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
    }
 
-   emitMovPCToReg(scratchReg, gen);
+   emitMovePCToReg(scratchReg, gen);
    Address varOffset = addr - gen.currAddr()+4;
    
    if (op ==loadOp) {
@@ -3366,7 +3367,7 @@ void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, 
    		addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
    }
    
-   emitMovPCToReg(scratchReg, gen);
+   emitMovePCToReg(scratchReg, gen);
    Address varOffset = addr - gen.currAddr()+4;
    
    if(!is_local) {
@@ -3430,10 +3431,12 @@ Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
     return relocation_address;
 }
 
-void EmitterPOWER::emitMovPCToReg(Register dest, codeGen &gen)
+Address EmitterPOWER::emitMovePCToReg(Register dest, codeGen &gen)
 {
          insnCodeGen::generateBranch(gen, gen.currAddr(),  gen.currAddr()+4, true); // blrl
+	 Address ret = gen.currAddr();
          insnCodeGen::generateMoveFromLR(gen, dest); // mflr
+	 return ret;
 }
 
 
@@ -3469,7 +3472,6 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
             break;
         }
     }
-
     // have we added this relocation already?
     relocation_address = binEdit->getDependentRelocationAddr(referring);
 
@@ -3481,7 +3483,6 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
 
         // add write new relocation symbol/entry
         binEdit->addDependentRelocation(relocation_address, referring);
-	cerr << "Adding a dependent relocation @" << hex << relocation_address << dec << endl;
     }
     return relocation_address;
 }

@@ -103,7 +103,7 @@ using namespace Stackwalker;
 FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr)
 {
   FrameFuncHelper::alloc_frame_t result;
-  func_instance *func = findOneFuncByAddr(addr);
+  func_instance *func = proc_->findOneFuncByAddr(addr);
 
   result.first = FrameFuncHelper::unknown_t; // frame type
   result.second = FrameFuncHelper::unknown_s; // frame state

@@ -49,30 +49,39 @@ class Modification : public Transformer {
   public:
     // Mimics typedefs in CodeMover.h, but I don't want
     // to include that file.
-    typedef std::list<TracePtr> TraceList;
-    //typedef std::map<Address, TraceList> TraceMap;
+    typedef std::list<RelocBlock *> RelocBlockList;
+    //typedef std::map<Address, RelocBlockList> RelocBlockMap;
 
     // Block (IDing a call site) -> func
     typedef AddressSpace::CallModMap CallModMap;
     // func -> func
-    typedef AddressSpace::FuncReplaceMap FuncReplaceMap;
+    typedef AddressSpace::FuncModMap FuncModMap;
 
-    virtual bool processTrace(TraceList::iterator &, const TraceMap &);
+    virtual bool process(RelocBlock *cur, RelocGraph *);
 
     Modification(const CallModMap &callRepl,
-		 const FuncReplaceMap &funcRepl);
+		 const FuncModMap &funcRepl,
+                 const FuncModMap &funcWrap);
 
     virtual ~Modification() {};
 
   private:
 
-    void replaceCall(TracePtr trace, const TraceMap &);
-    void replaceFunction(TracePtr trace, const TraceMap &);
+    bool replaceCall(RelocBlock *trace, RelocGraph *);
+    bool replaceFunction(RelocBlock *trace, RelocGraph *);
+    bool wrapFunction(RelocBlock *trace, RelocGraph *);
 
-    TargetInt *getTarget(block_instance *block, const TraceMap &);
+    RelocBlock *makeRelocBlock(block_instance *block, func_instance *func, RelocGraph *cfg);
 
     const CallModMap &callMods_;
-    const FuncReplaceMap &funcReps_;
+    const FuncModMap &funcReps_;
+    const FuncModMap &funcWraps_;
+
+    struct WrapperPredicate {
+       WrapperPredicate(func_instance *f);
+       func_instance *f_;
+       bool operator()(RelocEdge *e);
+    };
   };
 };
 };

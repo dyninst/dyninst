@@ -54,6 +54,7 @@
 
 #include "Symtab.h"
 
+#include "symtabAPI/h/SymtabReader.h"
 #include "proccontrol/h/Process.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "stackwalk/h/walker.h"
@@ -63,6 +64,8 @@
 #define RPC_LEAVE_AS_IS 0
 #define RPC_RUN_WHEN_DONE 1
 #define RPC_STOP_WHEN_DONE 2
+
+class DynSymReaderFactory;
 
 class PCProcess : public AddressSpace {
     // Why PCEventHandler is a friend
@@ -322,7 +325,8 @@ protected:
           isInDebugSuicide_(false),
           irpcTramp_(NULL),
           inEventHandling_(false),
-          stackwalker_(NULL)
+          stackwalker_(NULL),
+          symReaderFactory_(NULL)
     {
         irpcTramp_ = baseTramp::createForIRPC(this);
     }
@@ -360,7 +364,8 @@ protected:
           isInDebugSuicide_(false),
           irpcTramp_(NULL),
           inEventHandling_(false),
-          stackwalker_(NULL)
+          stackwalker_(NULL),
+          symReaderFactory_(NULL)
     {
         irpcTramp_ = baseTramp::createForIRPC(this);
     }
@@ -400,7 +405,8 @@ protected:
           mt_cache_result_(parent->mt_cache_result_),
           isInDebugSuicide_(parent->isInDebugSuicide_),
           inEventHandling_(false),
-          stackwalker_(NULL)
+          stackwalker_(NULL),
+          symReaderFactory_(NULL)
     {
         irpcTramp_ = baseTramp::createForIRPC(this);
     }
@@ -572,6 +578,7 @@ protected:
     bool inEventHandling_;
     std::set<PCThread *> syncRPCThreads_;
     Dyninst::Stackwalker::Walker *stackwalker_;
+    DynSymReaderFactory *symReaderFactory_;
     std::map<Address, ProcControlAPI::Breakpoint::ptr> installedCtrlBrkpts;
 };
 
@@ -672,6 +679,17 @@ class DynWandererHelper : public Dyninst::Stackwalker::WandererHelper {
     virtual Dyninst::Stackwalker::WandererHelper::pc_state isPCInFunc(Address func_entry, Address pc);
     virtual bool requireExactMatch();
     virtual ~DynWandererHelper();
+};
+
+class DynSymReaderFactory : public Dyninst::SymtabAPI::SymtabReaderFactory
+{
+  private:
+    AddressSpace *as_;
+  public:
+    DynSymReaderFactory(AddressSpace *as);
+    virtual ~DynSymReaderFactory();
+    virtual SymReader *openSymbolReader(std::string pathname);
+    virtual SymReader *openSymbolReader(const char *buffer, unsigned long size);
 };
 
 #endif

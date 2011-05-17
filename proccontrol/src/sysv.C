@@ -156,6 +156,20 @@ bool PCProcReader::getNewAsyncs(set<response::ptr> &resps)
 bool sysv_process::initLibraryMechanism()
 {
    if (lib_initialized) {
+      if( translator == NULL ) {
+          translator = AddressTranslate::createAddressTranslator(getPid(),
+                                                                 procreader,
+                                                                 plat_defaultSymReader());
+          if (!translator && procreader->isAsync()) {
+              pthrd_printf("Waiting for async read to finish initializing\n");
+              return false;
+          }
+          if (!translator) {
+              perr_printf("Error creating address translator object\n");
+              return false;
+          }
+      }
+
       return true;
    }
    lib_initialized = true;

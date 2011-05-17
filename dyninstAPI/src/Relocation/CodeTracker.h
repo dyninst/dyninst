@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// Keeps a list of relocated Atoms (compessed where possible) for mapping
+// Keeps a list of relocated Widgets (compessed where possible) for mapping
 // addresses and types between original and relocated code. 
 
 #if !defined(_R_CODE_TRACKER_H_)

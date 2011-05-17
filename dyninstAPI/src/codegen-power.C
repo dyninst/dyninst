@@ -77,7 +77,6 @@ void insnCodeGen::generateIllegal(codeGen &gen) { // instP.h
 }
 
 void insnCodeGen::generateTrap(codeGen &gen) {
-  cerr << hex << "Generating trap @ " << gen.currAddr() << dec << endl;
     instruction insn(BREAK_POINT_INSN);
     generate(gen,insn);
 }
@@ -168,7 +167,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     // Let's see if we can grab a free GPregister...
     instPoint *point = gen.point();
     if (!point) {
-        fprintf(stderr, " %s[%d] No point generateBranchViaTrap \n", FILE__, __LINE__);
+        // fprintf(stderr, " %s[%d] No point generateBranchViaTrap \n", FILE__, __LINE__);
         return generateBranchViaTrap(gen, from, to, isCall);
     }
 
@@ -761,7 +760,10 @@ bool insnCodeGen::modifyJump(Address target,
   // For now, we're not doing calculated (long)
   // branches
   long disp = target - gen.currAddr();
-  if (ABS(disp) > MAX_BRANCH) return false;
+  if (ABS(disp) > MAX_BRANCH) {
+    generateBranchViaTrap(gen, gen.currAddr(), target, IFORM_LK(insn));
+    return true;
+  }
 
   generateBranch(gen,
 		 gen.currAddr(),

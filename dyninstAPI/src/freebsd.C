@@ -345,7 +345,7 @@ Address PCProcess::findFunctionToHijack()
 
       pdvector<func_instance *> hijacks;
       if (!findFuncsByAll(func_name, hijacks)) continue;
-      codeBase = hijacks[0]->getAddress();
+      codeBase = hijacks[0]->addr();
 
       if (codeBase)
           break;
@@ -446,6 +446,10 @@ Address PCProcess::getTOCoffsetInfo(Address) {
 Address PCProcess::getTOCoffsetInfo(func_instance *) {
     assert(!"This function is unimplemented");
     return 0;
+}
+
+bool PCProcess::getOPDFunctionAddr(Address &) {
+    return true;
 }
 
 /* START unimplemented functions */

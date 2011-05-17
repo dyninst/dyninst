@@ -34,10 +34,10 @@
 #include "Transformer.h"
 #include "Movement-analysis.h"
 #include "../patchapi_debug.h"
-#include "../Atoms/Atom.h"
+#include "../Widgets/Widget.h"
 #include "dyninstAPI/src/function.h"
-#include "../Atoms/CFAtom.h"
-#include "../Atoms/PCAtom.h"
+#include "../Widgets/CFWidget.h"
+#include "../Widgets/PCWidget.h"
 #include "dataflowAPI/h/stackanalysis.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "symtabAPI/h/Symtab.h" 
@@ -47,7 +47,7 @@
 
 #include "dataflowAPI/h/slicing.h"
 
-#include "../Atoms/Trace.h"
+#include "../Widgets/RelocBlock.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -61,7 +61,7 @@ using namespace DataflowAPI;
 
 PCSensitiveTransformer::AnalysisCache PCSensitiveTransformer::analysisCache_;
 
-bool PCSensitiveTransformer::postprocess(TraceList &) {
+bool PCSensitiveTransformer::postprocess(RelocBlockList &) {
    sensitivity_cerr << dec << "Sensitive count: " << Sens_ << ", failed " << overApprox_ << ", ext " << extSens_ << ", int " << intSens_ << ", thunk " << thunk_ << endl;
   return true;
 }
@@ -69,16 +69,16 @@ bool PCSensitiveTransformer::postprocess(TraceList &) {
 int DEBUG_hi = -1;
 int DEBUG_lo = -1;
 
-bool PCSensitiveTransformer::analysisRequired(TraceList::iterator &b_iter) {
+bool PCSensitiveTransformer::analysisRequired(RelocBlockList::iterator &b_iter) {
    if ( (*b_iter)->func()->obj()->parse_img()->codeObject()->defensiveMode())
       return true;
    return false;
 }
 
-bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter, const TraceMap &) {
+bool PCSensitiveTransformer::processRelocBlock(RelocBlockList::iterator &b_iter, const RelocBlockMap &) {
 #if 0
    if (!analysisRequired(b_iter)) {
-      return adhoc.processTrace(b_iter);
+      return adhoc.processRelocBlock(b_iter);
    }
 #endif
 
@@ -88,12 +88,12 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter, const Tra
   // Can be true if we see an instrumentation block...
   if (!bbl) return true;
   
-  Trace::AtomList &elements = (*b_iter)->elements();
-  for (Trace::AtomList::iterator iter = elements.begin();
+  RelocBlock::WidgetList &elements = (*b_iter)->elements();
+  for (RelocBlock::WidgetList::iterator iter = elements.begin();
        iter != elements.end(); ++iter) {
 
     // Get the instruction contained by this element; might be from
-    // an original instruction (RelocInsn) or the CF wrapper (CFAtom)
+    // an original instruction (RelocInsn) or the CF wrapper (CFWidget)
     Instruction::Ptr insn = (*iter)->insn();
     if (!insn) continue;
     Address addr = (*iter)->addr();
@@ -487,24 +487,24 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
   return false;
 }
 
-void PCSensitiveTransformer::handleThunkCall(TraceList::iterator &b_iter, 
-					     Trace::AtomList::iterator &iter,
+void PCSensitiveTransformer::handleThunkCall(RelocBlockList::iterator &b_iter, 
+					     RelocBlock::WidgetList::iterator &iter,
 					     Absloc &destination) {
 
-  Atom::Ptr replacement = GetPC::create((*iter)->insn(),
+  Widget::Ptr replacement = GetPC::create((*iter)->insn(),
 					   (*iter)->addr(),
 					   destination);
 
   // This is kind of complex. We don't want to just pull the getPC
   // because it also might end the basic block. If that happens we
-  // need to pull the fallthough element out of the CFAtom so
+  // need to pull the fallthough element out of the CFWidget so
   // that we don't hork control flow. What a pain.
   if ((*iter) != (*b_iter)->elements().back()) {
     // Easy case; no worries.
     (*iter).swap(replacement);
   }
   else {
-    CFAtom::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFAtom>(*iter);
+    CFWidget::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFWidget>(*iter);
     // We don't want to be doing this pre-CF-creation...
     assert(cf); 
     
@@ -516,18 +516,18 @@ void PCSensitiveTransformer::handleThunkCall(TraceList::iterator &b_iter,
     // equivalent doesn't _have_ a fallthrough, so we want to use
     // the taken edge instead.
 
-    // Ignore a taken edge, but create a new CFAtom with the
+    // Ignore a taken edge, but create a new CFWidget with the
     // required fallthrough edge
-    CFAtom::DestinationMap::iterator dest = cf->destMap_.find(CFAtom::Fallthrough);
+    CFWidget::DestinationMap::iterator dest = cf->destMap_.find(CFWidget::Fallthrough);
     if (dest == cf->destMap_.end()) {
-      dest = cf->destMap_.find(CFAtom::Taken);
+      dest = cf->destMap_.find(CFWidget::Taken);
     }
     if (dest != cf->destMap_.end()) {
-      CFAtom::Ptr newCF = CFAtom::create((*b_iter)->bbl());
+      CFWidget::Ptr newCF = CFWidget::create((*b_iter)->bbl());
       newCF->updateAddr(cf->addr());
       // Explicitly do _NOT_ reuse old information - this is just a branch
       
-      newCF->destMap_[CFAtom::Fallthrough] = dest->second;
+      newCF->destMap_[CFWidget::Fallthrough] = dest->second;
       
       // And since we delete destMap_ elements, NUKE IT from the original!
       cf->destMap_.erase(dest);
@@ -554,19 +554,19 @@ void PCSensitiveTransformer::recordIntSensitive(Address addr) {
   }
 }
 
-void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
-					 Trace::AtomList::iterator &iter,
+void PCSensitiveTransformer::emulateInsn(RelocBlockList::iterator &b_iter,
+					 RelocBlock::WidgetList::iterator &iter,
 					 InstructionAPI::Instruction::Ptr insn,
 					 Address addr) {
   //cerr << "Emulating @" << std::hex << addr << std::dec  << endl;
   // We emulate calls by replacing them with push/jump combinations. The jump will be handled
-  // by a CFAtom, so we just need a "push" (and then to create everything else).  
+  // by a CFWidget, so we just need a "push" (and then to create everything else).  
 
   assert(insn->getOperation().getID() == e_call);
 
-  // Construct a new Atom that will emulate the original instruction here. 
+  // Construct a new Widget that will emulate the original instruction here. 
   static Absloc stack_loc(0, 0, NULL);
-  Atom::Ptr replacement = GetPC::create(insn, addr, stack_loc);
+  Widget::Ptr replacement = GetPC::create(insn, addr, stack_loc);
 
   // Okay, now wire this in as appropriate.
   if ((*iter) != (*b_iter)->elements().back()) {
@@ -577,7 +577,7 @@ void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
   }
   else {
     //cerr << "... end of block" << endl;
-    CFAtom::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFAtom>(*iter);
+    CFWidget::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFWidget>(*iter);
     // We don't want to be doing this pre-CF-creation...
     assert(cf); 
     
@@ -586,14 +586,14 @@ void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
 
     // Indirect, we put in a push/jump <reg> combination.
 
-    CFAtom::Ptr newCF = CFAtom::create((*b_iter)->bbl());
+    CFWidget::Ptr newCF = CFWidget::create((*b_iter)->bbl());
     newCF->updateInfo(cf);
 
-    CFAtom::DestinationMap::iterator dest = cf->destMap_.find(CFAtom::Taken);
+    CFWidget::DestinationMap::iterator dest = cf->destMap_.find(CFWidget::Taken);
     if (dest != cf->destMap_.end() && !cf->isIndirect_) {
       // Explicitly do _NOT_ reuse old information - this is just a branch
       
-      newCF->destMap_[CFAtom::Taken] = dest->second;
+      newCF->destMap_[CFWidget::Taken] = dest->second;
       
       // And since we delete destMap_ elements, NUKE IT from the original!
       cf->destMap_.erase(dest);
@@ -610,7 +610,7 @@ void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
         cerr << "Error: unknown insn " << insn->format() 
              << std::hex << "@" << addr << dec << endl;
 
-        for (CFAtom::DestinationMap::iterator foo = cf->destMap_.begin();
+        for (CFWidget::DestinationMap::iterator foo = cf->destMap_.begin();
              foo != cf->destMap_.end(); ++foo) {
           //cerr << hex << foo->first << " -> " << foo->second->addr() << dec << endl;
         }

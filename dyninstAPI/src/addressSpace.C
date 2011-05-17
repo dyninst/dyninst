@@ -43,12 +43,8 @@
 // Two-level codeRange structure
 #include "mapped_object.h"
 #include "mapped_module.h"
-#if defined(cap_instruction_api)
 #include "InstructionDecoder.h"
 #include "Instruction.h"
-#else
-#include "parseAPI/src/InstrucIter.h"
-#endif //defined(cap_instruction_api)
 
 #include "dynutil/h/AST.h"
 #include "Relocation/CodeMover.h"
@@ -160,7 +156,7 @@ void AddressSpace::copyAddressSpace(AddressSpace *parent) {
           callModifications_[newB][context] = target;
        }
     }
-    for (FuncReplaceMap::iterator iter = parent->functionReplacements_.begin();
+    for (FuncModMap::iterator iter = parent->functionReplacements_.begin();
          iter != parent->functionReplacements_.end(); ++iter) {
        func_instance *from = findFunction(iter->first->ifunc());
        func_instance *to = findFunction(iter->second->ifunc());
@@ -864,7 +860,8 @@ func_instance *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
     if (f)
         return f;
 
-#if defined(cap_instruction_api)
+    if (!findObject(addr)) return NULL;
+
     using namespace Dyninst::InstructionAPI;
     InstructionDecoder decoder((const unsigned char*)getPtrToInstruction(addr),
             InstructionDecoder::maxInstructionLength,
@@ -890,11 +887,6 @@ func_instance *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
 	break;
       }
     }
-#else
-    InstrucIter ii(addr, this);
-    if (ii.isAJumpInstruction())
-        addr2 = ii.getBranchTargetAddress();
-#endif //defined(cap_instruction_api)
     return findOneFuncByAddr(addr2);
 }
 
@@ -980,7 +972,11 @@ void trampTrapMappings::addTrapMapping(Address from, Address to,
    }
    needs_updating = true;
 #endif
-   as->registerTrapMapping(from-1, to);
+#if defined(arch_x86) || defined(arch_x86_64)
+   from--;
+#endif
+
+   as->registerTrapMapping(from, to);
 }
 
 bool trampTrapMappings::definesTrapMapping(Address from)
@@ -1427,6 +1423,17 @@ void AddressSpace::replaceFunction(func_instance *oldfunc, func_instance *newfun
   addModifiedFunction(oldfunc);
 }
 
+bool AddressSpace::wrapFunction(func_instance *oldfunc, func_instance *newfunc) {
+   if (edit()) {
+      if (oldfunc->obj() != newfunc->obj()) return false;
+   }
+
+   functionWraps_[oldfunc] = newfunc;
+   addModifiedFunction(oldfunc);
+   addModifiedFunction(newfunc);
+   return true;
+}
+
 void AddressSpace::removeCall(block_instance *block, func_instance *context) {
    modifyCall(block, NULL, context);
 }
@@ -1481,9 +1488,11 @@ bool AddressSpace::relocate() {
         }
     } while (repeat);
 
-	addModifiedRegion(iter->first);
+    addModifiedRegion(iter->first);
 
-    if (!relocateInt(iter->second.begin(), iter->second.end(), iter->first->codeAbs())) {
+    Address middle = (iter->first->codeAbs() + (iter->first->imageSize() / 2));
+
+    if (!relocateInt(iter->second.begin(), iter->second.end(), middle)) {
       ret = false;
     }
 
@@ -1528,8 +1537,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   if (dyn_debug_reloc || dyn_debug_write) {
       using namespace InstructionAPI;
       // Print out the buffer we just created
-      cerr << "DUMPING RELOCATION BUFFER " << hex 
-           << cm->blockMap().begin()->first->start() << dec << endl;
+      cerr << "DUMPING RELOCATION BUFFER" << endl;
 
       Address base = baseAddr;
       InstructionDecoder deco
@@ -1636,7 +1644,7 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   // Insert whatever binary modifications are desired
   // Right now needs to go before Instrumenters because we use
   // instrumentation for function replacement.
-   Modification mod(callModifications_, functionReplacements_);
+   Modification mod(callModifications_, functionReplacements_, functionWraps_);
    cm->transform(mod);
 
   // Add instrumentation

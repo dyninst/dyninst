@@ -66,13 +66,8 @@ extern "C" DLLEXPORT  TestMutator *test2_10_factory() {
 // static int mutatorTest(BPatch_thread *thread, BPatch_image * /*appImage */)
 test_results_t test2_10_Mutator::executeTest() {
 #if !defined(rs6000_ibm_aix4_1_test) \
- && !defined(sparc_sun_sunos4_1_3_test) \
- && !defined(sparc_sun_solaris2_4_test) \
  && !defined(i386_unknown_linux2_0_test) \
  && !defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
- && !defined(mips_sgi_irix6_4_test) \
- && !defined(alpha_dec_osf4_0_test) \
- && !defined(ia64_unknown_linux2_4_test) /* Temporary duplication - TLM */ \
  && !defined(ppc32_linux) \
  && !defined(ppc32_bgp) 
   // Looks like it runs on everything but Windows - Greg

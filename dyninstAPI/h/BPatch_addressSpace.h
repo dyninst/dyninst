@@ -274,6 +274,11 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(Int, (oldFunc, newFunc),
     bool,replaceFunction,(BPatch_function &oldFunc, BPatch_function &newFunc));
 
+    // Look, ma, I rock
+
+    API_EXPORT(Int, (oldFunc, newFunc),
+    bool,wrapFunction,(BPatch_function &oldFunc, BPatch_function &newFunc));
+
     //  BPatch_addressSpace::getSourceLines
     //  
     //  Method that retrieves the line number and file name corresponding 

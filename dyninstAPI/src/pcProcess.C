@@ -41,6 +41,7 @@
 #include "baseTramp.h"
 #include "registerSpace.h"
 #include "mapped_object.h"
+#include "symtab.h"
 
 #include "common/h/pathName.h"
 
@@ -274,6 +275,9 @@ PCProcess::~PCProcess() {
     signalHandlerLocations_.clear();
 
     trapMapping.clearTrapMappings();
+
+    if (symReaderFactory_) delete symReaderFactory_;
+    symReaderFactory_ = NULL;
 }
 
 /***************************************************************************
@@ -567,7 +571,12 @@ bool PCProcess::createStackwalker()
   StackwalkSymLookup *symLookup = NULL;
 
   //Set SymbolReaderFactory in Stackwalker
-  Walker::setSymbolReader(Dyninst::SymtabAPI::getSymtabReaderFactory());
+  if (!symReaderFactory_)
+  {
+    symReaderFactory_ = new DynSymReaderFactory(this);
+  }
+
+  Walker::setSymbolReader(symReaderFactory_);
 
   // Create ProcessState
   if (NULL == (procDebug = ProcDebug::newProcDebug(pcProc_)))
@@ -3169,10 +3178,19 @@ bool PCProcess::continueSyncRPCThreads() {
 }
 
 bool PCProcess::registerTrapMapping(Address from, Address to) {
-    if( installedCtrlBrkpts.count(from) != 0 ) {
+    map<Address, Breakpoint::ptr>::iterator breakIter =
+        installedCtrlBrkpts.find(from);
+
+    if( breakIter != installedCtrlBrkpts.end() ) {
         proccontrol_printf("%s[%d]: there already exists a ctrl transfer breakpoint from "
-                "0x%lx\n", FILE__, __LINE__, from);
-        return true;
+                "0x%lx to 0x%lx, replacing with new mapping\n", FILE__, __LINE__, from, breakIter->second->getToAddress());
+
+        if( !pcProc_->rmBreakpoint(from, breakIter->second) ) {
+            proccontrol_printf("%s[%d]: failed to replace ctrl transfer breakpoint from "
+                    "0x%lx to 0x%lx\n", FILE__, __LINE__, from, breakIter->second->getToAddress());
+            return false;
+        }
+        installedCtrlBrkpts.erase(breakIter);
     }
 
     Breakpoint::ptr newBreak = Breakpoint::newTransferBreakpoint(to);
@@ -3184,6 +3202,9 @@ bool PCProcess::registerTrapMapping(Address from, Address to) {
     }
 
     installedCtrlBrkpts.insert(make_pair(from, newBreak));
+
+    proccontrol_printf("%s[%d]: added ctrl transfer breakpoint from 0x%lx to 0x%lx\n",
+            FILE__, __LINE__, from, to);
 
     return true;
 }
@@ -3259,3 +3280,42 @@ DynWandererHelper::DynWandererHelper(PCProcess *p)
 
 DynWandererHelper::~DynWandererHelper()
 {}
+
+DynSymReaderFactory::DynSymReaderFactory(AddressSpace *as) :
+    as_(as)
+{}
+
+DynSymReaderFactory::~DynSymReaderFactory()
+{}
+
+Dyninst::SymReader* DynSymReaderFactory::openSymbolReader(std::string pathname)
+{
+    mapped_object *mo = NULL;
+    image *img = NULL;
+    Dyninst::SymtabAPI::Symtab *st = NULL;
+    Dyninst::SymtabAPI::SymtabReader *sr = NULL;
+
+    // lookup mapped object
+    mo = as_->findObject(pathname);
+    if (mo)
+    {
+      img = mo->parse_img();
+      if (img)
+      {
+        st = img->getObject();
+        if (st)
+        {
+          sr = new Dyninst::SymtabAPI::SymtabReader(pathname);
+          return sr;
+        }
+      }
+    }
+
+    return Dyninst::SymtabAPI::SymtabReaderFactory::openSymbolReader(pathname);
+}
+
+Dyninst::SymReader* DynSymReaderFactory::openSymbolReader(const char *buffer, unsigned long size)
+{
+  return Dyninst::SymtabAPI::SymtabReaderFactory::openSymbolReader(buffer, size);
+}
+

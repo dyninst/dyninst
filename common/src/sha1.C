@@ -124,7 +124,7 @@ void SHA1Final(unsigned char digest[20], SHA1_CTX* context);
 
 /* blk0() and blk() perform the initial expand. */
 /* I got the idea of expanding during the round function from SSLeay */
-#if defined(arch_sparc) || defined(arch_power) //Big Endian
+#if defined(arch_power) //Big Endian
 #define blk0(i) block->l[i]
 #else
 #define blk0(i) (block->l[i] = (rol(block->l[i],24)&0xFF00FF00) \

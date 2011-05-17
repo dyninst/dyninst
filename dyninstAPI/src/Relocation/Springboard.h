@@ -182,8 +182,8 @@ class SpringboardBuilder {
   typedef dyn_detail::boost::shared_ptr<SpringboardBuilder> Ptr;
   typedef std::set<func_instance *> FuncSet;
 
-  template <typename TraceIter> 
-    static Ptr create(TraceIter begin, TraceIter end, AddressSpace *addrSpace); 
+  template <typename RelocBlockIter> 
+    static Ptr create(RelocBlockIter begin, RelocBlockIter end, AddressSpace *addrSpace); 
   static Ptr createFunc(FuncSet::const_iterator begin, FuncSet::const_iterator end, AddressSpace *addrSpace);
 
   bool generate(std::list<codeGen> &springboards,

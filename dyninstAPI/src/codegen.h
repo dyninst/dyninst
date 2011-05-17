@@ -36,11 +36,7 @@
 #include "common/h/arch.h"
 #include "dyninstAPI/src/patch.h"
 
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)
-#include "codegen-sparc.h"
-using namespace NS_sparc;
-#elif defined(arch_power)
+#if defined(arch_power)
 #include "codegen-power.h"
 using namespace NS_power;
 #elif defined(i386_unknown_nt4_0) \
@@ -234,9 +230,6 @@ class codeGen {
     const bitArray &getRegsDefined();
     void markRegDefined(Register r);
     bool isRegDefined(Register r);
-
-    // Prints the disassembly to standard error for debugging purposes
-    void format(Architecture arch);
 
     void setPCRelUseCount(int c) { pc_rel_use_count = c; }
     int getPCRelUseCount() const { return pc_rel_use_count; }
