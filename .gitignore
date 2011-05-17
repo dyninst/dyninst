@@ -27,10 +27,12 @@ V_*
 *.rsp
 *.dep
 *.dep
+*.vcxproj
+*~
 *_none
 BuildLog.htm
 *resumelog*
-._*
+._*resumelog
 dyninst.kdev*
 config.status
 test/*
