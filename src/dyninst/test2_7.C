@@ -64,7 +64,7 @@ static void lcase(char *s) {
 
 // static int mutatorTest(BPatch_thread *thread, BPatch_image *img)
 test_results_t test2_7_Mutator::executeTest() {
-#if !defined(os_solaris_test) && !defined(os_linux_test) && !defined(os_irix) && \
+#if !defined(os_linux_test) && \
     !defined(os_aix_test) && !defined(os_windows_test)
     logerror("Skipping test #7 (load a dynamically linked library from the mutator)\n");
     logerror("    feature not implemented on this platform\n");

@@ -254,7 +254,7 @@ test_results_t test3_6_Mutator::executeTest() {
             logerror("    mutatee process [%d] was not terminated\n", n);
             continue;
         }
-#if !defined(os_aix_test) && !defined(os_solaris_test) && !defined(os_osf_test)
+#if !defined(os_aix_test)
         if(appProc[n]->terminationStatus() != expectedSignal) {
             logerror("**Failed** test3_6 (simultaneous multiple-process management - terminate (fork))\n");
             logerror("    mutatee process [%d] didn't get notice of termination\n", n);
@@ -284,10 +284,6 @@ test_results_t test3_6_Mutator::setup(ParameterDict &param) {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
 
-#if defined (sparc_sun_solaris2_4_test)
-    // we use some unsafe type operations in the test cases.
-    bpatch->setTypeChecking(false);
-#endif
     
     return PASSED;
 }
