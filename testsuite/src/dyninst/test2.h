@@ -58,6 +58,9 @@
 #define TEST_DYNAMIC_LIB_NOPATH  "libtesta.dll"
 #define TEST_DYNAMIC_LIB2        "libtestb.dll"
 #define TEST_DYNAMIC_LIB2_NOPATH "libtestb.dll"
+#elif defined(os_freebsd_test)
+#define TEST_DYNAMIC_LIB        "libutil.so"
+#define TEST_DYNAMIC_LIB2       "libm.so"
 #else
 #define	TEST_DYNAMIC_LIB	"libX11.so.4"
 #define TEST_DYNAMIC_LIB2	"libXt.so.4"
