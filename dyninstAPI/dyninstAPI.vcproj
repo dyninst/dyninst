@@ -907,6 +907,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Widgets\CallbackWidget.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\Relocation\Widgets\CFWidget-x86.C"
 				>
 				<FileConfiguration

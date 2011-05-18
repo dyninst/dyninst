@@ -256,6 +256,14 @@ class func_instance : public patchTarget {
 
    instPoint *findPoint(instPoint::Type type, edge_instance *e, bool create);
 
+   // Function wrapping
+   bool callWrappedFunction(func_instance *target);
+   bool updateRelocationsToSym(Dyninst::SymtabAPI::Symbol *oldsym, 
+                               Dyninst::SymtabAPI::Symbol *newsym);
+   Dyninst::SymtabAPI::Symbol *getWrapperSymbol();
+   Dyninst::SymtabAPI::Symbol *getRelocSymbol();
+   void createWrapperSymbol(Address entry);
+
  private:
 
    ///////////////////// Basic func info
@@ -272,16 +280,15 @@ class func_instance : public patchTarget {
    BlockSet callBlocks_;
    BlockSet exitBlocks_;
    block_instance *entry_;
-    // Defensive mode
-    BlockSet unresolvedCF_;
-    BlockSet abruptEnds_;
-
-    ///////////////////// Function-level instPoints
-    FuncInstpoints points_;
-    std::map<block_instance *, BlockInstpoints> blockPoints_;
-    std::map<edge_instance *, EdgeInstpoints> edgePoints_;
-    
-
+   // Defensive mode
+   BlockSet unresolvedCF_;
+   BlockSet abruptEnds_;
+   
+   ///////////////////// Function-level instPoints
+   FuncInstpoints points_;
+   std::map<block_instance *, BlockInstpoints> blockPoints_;
+   std::map<edge_instance *, EdgeInstpoints> edgePoints_;
+   
    Address handlerFaultAddr_; /* if this is a signal handler, faultAddr_ is 
                                  set to -1, or to the address of the fault 
                                  that last caused the handler to be invoked. */
@@ -296,6 +303,9 @@ class func_instance : public patchTarget {
    callType callingConv;
    int paramSize;
 #endif
+
+   Dyninst::SymtabAPI::Symbol *wrapperSym_;
+
 };
 
 template <class OutputIterator>

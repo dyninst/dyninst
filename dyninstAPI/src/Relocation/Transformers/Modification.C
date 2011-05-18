@@ -40,6 +40,7 @@
 #include "../CFG/RelocGraph.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/function.h"
+#include "../Widgets/CallbackWidget.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -176,8 +177,6 @@ bool Modification::wrapFunction(RelocBlock *trace, RelocGraph *cfg) {
                     ParseAPI::DIRECT);
    }
                  
-
-   // TODO: have a more expressive representation of the wrapped function
    cfg->setSpringboard(trace->block(), stub);
    
    WrapperPredicate pred(trace->func());
@@ -187,17 +186,15 @@ bool Modification::wrapFunction(RelocBlock *trace, RelocGraph *cfg) {
    else {
       if (!cfg->changeTargets(pred, trace->ins(), iter->second->entryBlock())) return false;
    }
+   // We also need to track the "new" entry block so we can build a new symbol for it. 
+   CallbackWidget::Ptr c = CallbackWidget::create(new WrapperPatch(trace->func()));
+   trace->elements().push_front(c);
+
    return true;
 }
 
 RelocBlock *Modification::makeRelocBlock(block_instance *block, func_instance *func, RelocGraph *cfg) {
-   RelocBlock *t = cfg->find(block);
-   if (t) return t;
-
-   // Otherwise we need to make a stub RelocBlock that jumps to this function; 
-   // this is annoying, but necessary. 
-   
-   t = RelocBlock::createStub(block, func);
+   RelocBlock *t = RelocBlock::createStub(block, func);
    // Put it at the end, why not.
    cfg->addRelocBlock(t);
    return t;
@@ -213,3 +210,10 @@ bool Modification::WrapperPredicate::operator()(RelocEdge *e) {
    RelocBlock *t = static_cast<Target<RelocBlock *> *>(e->src)->t();
    return t->func() == f_;
 }
+
+bool Modification::WrapperPatch::apply(codeGen &gen, CodeBuffer *) {
+   // Tell our function to create a wrapper symbol at this address
+   func_->createWrapperSymbol(gen.currAddr());
+   return true;
+}
+

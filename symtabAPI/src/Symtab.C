@@ -3180,7 +3180,6 @@ Serializable * ExceptionBlock::serialize_impl(SerializerBase *sb, const char *ta
 	return NULL;
 }
 
-
 SYMTAB_EXPORT relocationEntry::relocationEntry() :
    target_addr_(0), 
    rel_addr_(0), 
