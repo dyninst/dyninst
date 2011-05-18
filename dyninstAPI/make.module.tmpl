@@ -43,12 +43,13 @@ ifneq ($(findstring cap_mem_emulation,$(CAP_DEF)),)
 		../src/MemoryEmulator/memEmulatorAtom.C 
 endif
 
-LDFLAGS += -lpthread -lsymtabAPI -lcommon -lparseAPI
+LDFLAGS += -lpthread -lsymtabAPI -lcommon -lparseAPI -lpatchAPI -linstructionAPI
 
 LDFLAGS     += -L../../common/$(PLATFORM) 
 LDFLAGS     += -L../../symtabAPI/$(PLATFORM) 
 LDFLAGS     += -L../../instructionAPI/$(PLATFORM)
 LDFLAGS     += -L../../parseAPI/$(PLATFORM)
+LDFLAGS     += -L../../patchAPI/$(PLATFORM)
 
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
@@ -174,7 +175,9 @@ SRCS	     +=	../src/BPatch.C \
 		../src/Relocation/Transformers/Movement-adhoc.C \
 		../src/Relocation/CodeTracker.C \
                 ../src/Relocation/CodeBuffer.C \
-                ../src/Relocation/patchapi_debug.C 
+                ../src/Relocation/patchapi_debug.C \
+                ../src/Relocation/DynObject.C \
+                ../src/Relocation/DynAddrSpace.C \
 
 TO_INC   = ../h
 PUBLIC_H = BPatch_addressSpace.h \
@@ -218,6 +221,7 @@ PUBLIC_H = BPatch_addressSpace.h \
 IFLAGS      += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h 
 IFLAGS      += -I../../symtabAPI/h -I../../instructionAPI/h
 IFLAGS      += -I../../parseAPI/h -I../../dataflowAPI/h
+IFLAGS      += -I../../patchAPI/h
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)

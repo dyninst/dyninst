@@ -45,8 +45,8 @@ namespace PatchAPI {
 class AddrSpace;
 typedef dyn_detail::boost::shared_ptr<AddrSpace> AddrSpacePtr;
 
-class Object;
-typedef dyn_detail::boost::shared_ptr<Object> ObjectPtr;
+class PatchObject;
+typedef dyn_detail::boost::shared_ptr<PatchObject> PatchObjectPtr;
 
 class Point;
 typedef dyn_detail::boost::shared_ptr<Point> PointPtr;

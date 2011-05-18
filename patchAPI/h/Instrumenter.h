@@ -18,17 +18,12 @@ class Instrumenter {
     explicit Instrumenter(AddrSpacePtr as) : as_(as) {}
     virtual ~Instrumenter() {}
 
-    // Iterate all Objects and call their inst_preprocess method to do some
-    // initialization work
-    virtual bool preprocess(InstanceSet* /*insertion_set*/,
-                            InstanceSet* /*deletion_set*/,
-                            FuncRepMap*  /*func_rep*/,
-                            CallRepMap*  /*call_rep*/,
-                            CallRemoval* /*call_remove*/);
-
-    // Iterate all Objects and call their inst_process method to relocate and
-    // generate code
-    virtual bool process();
+    // Iterate all Objects and call their process method to do instrumentation
+    virtual bool process(InstanceSet* /*insertion_set*/,
+                         InstanceSet* /*deletion_set*/,
+                         FuncRepMap*  /*func_rep*/,
+                         CallRepMap*  /*call_rep*/,
+                         CallRemoval* /*call_remove*/);
 
     // Getters
     AddrSpacePtr as() const { return as_; }

@@ -39,6 +39,7 @@
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/h/BPatch_enums.h"
 #include <list>
+#include "dyninstAPI/src/Relocation/DynObject.h"
 
 class block_instance;
 class func_instance;

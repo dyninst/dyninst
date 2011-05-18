@@ -4,7 +4,7 @@
 #define _PATCHAPI_DYNINST_CFG_H_
 
 #include "common.h"
-#include "Object.h"
+#include "PatchObject.h"
 
 class int_block;
 class int_function;
@@ -15,13 +15,13 @@ namespace PatchAPI {
 class PatchEdge;
 class PatchBlock;
 class PatchFunction;
-class Object;
+class PatchObject;
 
 /* PatchAPI Edge */
 class PatchEdge {
    friend class PatchBlock;
    friend class PatchFunction;
-   friend class Object;
+   friend class PatchObject;
 
   public:
    static PatchEdge *create(ParseAPI::Edge *, PatchBlock *src, PatchBlock *trg);
@@ -36,14 +36,14 @@ class PatchEdge {
    bool sinkEdge() const { return edge_->sinkEdge(); }
    bool interproc() const { return edge_->interproc(); }
 
-  private:
+  protected:
     PatchEdge(ParseAPI::Edge *internalEdge, PatchBlock *source,
               PatchBlock *target) : edge_(internalEdge), src_(source),
                                     trg_(target) {};
 
-   ParseAPI::Edge *edge_;
-   PatchBlock *src_;
-   PatchBlock *trg_;
+    ParseAPI::Edge *edge_;
+    PatchBlock *src_;
+    PatchBlock *trg_;
 };
 
 /* This is somewhat mangled, but allows PatchAPI to access the
@@ -70,7 +70,7 @@ class EdgePredicateAdapter
 class PatchBlock {
    friend class PatchEdge;
    friend class PatchFunction;
-   friend class Object;
+   friend class PatchObject;
 
   public:
     typedef std::pair<Address, InstructionAPI::Instruction::Ptr> InsnInstance;
@@ -93,7 +93,7 @@ class PatchBlock {
     Address lastInsnAddr() const { return object()->codeBase() + block_->lastInsnAddr(); }
     Address size() const { return block_->size(); }
     bool isShared();
-    ObjectPtr object() const;
+    PatchObjectPtr object() const;
     void getInsns(InsnInstances &insns);
     // Difference between this layer and ParseAPI: per-function blocks.
     PatchFunction *function() const { return function_; }
@@ -126,13 +126,13 @@ class PatchBlock {
 class PatchFunction {
    friend class PatchEdge;
    friend class PatchBlock;
-   friend class Object;
+   friend class PatchObject;
 
   public:
    typedef std::vector<PatchBlock *> blocklist;
    typedef PatchBlock::edgelist edgelist;
 
-   static PatchFunction *create(ParseAPI::Function *, ObjectPtr);
+   static PatchFunction *create(ParseAPI::Function *, PatchObjectPtr);
    static void destroy(PatchFunction *);
    virtual ~PatchFunction();
 
@@ -142,7 +142,7 @@ class PatchFunction {
    Address addr() const { return obj_->codeBase() + func_->addr(); }
    ParseAPI::Function *func() { return func_; }
    PatchBlock *entry() { return getBlock(func_->entry()); }
-   ObjectPtr object() { return obj_; }
+   PatchObjectPtr object() { return obj_; }
 
    const blocklist &blocks();
    const edgelist &callEdges();
@@ -157,11 +157,11 @@ class PatchFunction {
 
  protected:
    PatchFunction(ParseAPI::Function *f,
-            ObjectPtr o) : func_(f), obj_(o), callEdgeList_(callEdges_) {};
+            PatchObjectPtr o) : func_(f), obj_(o), callEdgeList_(callEdges_) {};
    void removeEdge(PatchEdge *e);
 
    ParseAPI::Function *func_;
-   ObjectPtr obj_;
+   PatchObjectPtr obj_;
 
    std::vector<PatchBlock *> blocks_;
    std::vector<PatchEdge *> callEdges_;

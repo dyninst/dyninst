@@ -100,7 +100,7 @@ const PatchBlock::edgelist &PatchBlock::targets() {
   return trglist_;
 }
 
-ObjectPtr PatchBlock::object() const {
+PatchObjectPtr PatchBlock::object() const {
   assert(function_);
   return function_->object();
 }

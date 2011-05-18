@@ -2,7 +2,7 @@
 
 #include "Point.h"
 #include "PatchMgr.h"
-#include "Object.h"
+#include "PatchObject.h"
 #include "PatchCFG.h"
 
 using Dyninst::PatchAPI::Instance;
@@ -52,7 +52,7 @@ void Point::initCodeStructure(Address /*addr*/) {
   // walk through all code objects
   for (AddrSpace::CoObjMap::iterator ci = mgr_->as()->getCoobjMap().begin();
        ci != mgr_->as()->getCoobjMap().end(); ci++) {
-    ObjectPtr mod = (*ci).second;
+    PatchObjectPtr mod = (*ci).second;
     CodeObject* co = mod->co();
     CodeSource* cs = mod->cs();
     Address relative_addr = addr_ - mod->codeBase();

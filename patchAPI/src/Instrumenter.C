@@ -13,15 +13,15 @@ InstrumenterPtr Instrumenter::create(AddrSpacePtr as) {
   return ret;
 }
 
-bool Instrumenter::preprocess(InstanceSet* insertion_set,
-                              InstanceSet* deletion_set,
-                              FuncRepMap*  func_rep,
-                              CallRepMap*  call_rep,
-                              CallRemoval* call_removal) {
+bool Instrumenter::process(InstanceSet* insertion_set,
+                           InstanceSet* deletion_set,
+                           FuncRepMap*  func_rep,
+                           CallRepMap*  call_rep,
+                           CallRemoval* call_removal) {
   // In each iteration, we only instrument a particular object
   for (AddrSpace::CoObjMap::iterator ci = as_->getCoobjMap().begin();
        ci != as_->getCoobjMap().end(); ci++) {
-    ObjectPtr obj = (*ci).second;
+    PatchObjectPtr obj = (*ci).second;
     InstanceSet i_set;
     InstanceSet d_set;
     FuncRepMap f_rep;
@@ -54,17 +54,7 @@ bool Instrumenter::preprocess(InstanceSet* insertion_set,
     }
 
     // Here we go!
-    obj->instPreprocess(&i_set, &d_set, &f_rep, &c_rep, &c_removal);
-  }
-
-  return true;
-}
-
-bool Instrumenter::process() {
-  for (AddrSpace::CoObjMap::iterator ci = as_->getCoobjMap().begin();
-       ci != as_->getCoobjMap().end(); ci++) {
-    ObjectPtr obj = (*ci).second;
-    obj->instProcess();
+    obj->process(&i_set, &d_set, &f_rep, &c_rep, &c_removal);
   }
   return true;
 }

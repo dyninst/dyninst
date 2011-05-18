@@ -1,7 +1,7 @@
 /* Public Interface */
 
 #include "PatchMgr.h"
-#include "Object.h"
+#include "PatchObject.h"
 #include "PatchCFG.h"
 
 using Dyninst::ParseAPI::CodeSource;
@@ -19,7 +19,6 @@ static void initDebugFlag() {
 PatchMgr::PatchMgr(AddrSpacePtr as)
   : as_(as), batch_mode_(0) {
   instor_ = Instrumenter::create(as);
-  linker_ = Linker::create(as);
 }
 
 PatchMgrPtr PatchMgr::create(AddrSpacePtr as) {
@@ -283,30 +282,16 @@ bool PatchMgr::replaceFunction(PatchFunction* old_func,
 
 bool PatchMgr::patch() {
   patch_cerr << ws4 << "Relocation and Generation Start.\n";
-  patch_cerr << ws6 << "Instrumenter Preprocess.\n";
-  if (!instor_->preprocess(&insertion_set_,
-                           &deletion_set_,
-                           &funcReplacement_,
-                           &callReplacement_,
-                           &callRemoval_)) {
-    std::cerr << "ERROR: instrumenter preprocess failed!\n";
-    return false;
-  }
-  patch_cerr << ws6 << "Linker Preprocess\n";
-  if (!linker_->preprocess()) {
-    std::cerr << "ERROR: linker preprocess failed!\n";
-    return false;
-  }
-  patch_cerr << ws6 << "Instrumenter Process\n";
-  if (!instor_->process()) {
+
+  if (!instor_->process(&insertion_set_,
+                        &deletion_set_,
+                        &funcReplacement_,
+                        &callReplacement_,
+                        &callRemoval_)) {
     std::cerr << "ERROR: instrumenter process failed!\n";
     return false;
   }
-  patch_cerr << ws6 << "Linker Process\n";
-  if (!linker_->process()) {
-    std::cerr << "ERROR: linker process failed!\n";
-    return false;
-  }
+
   patch_cerr << ws2 << "Batch Finish.\n";
   return true;
 }

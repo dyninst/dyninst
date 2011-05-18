@@ -6,7 +6,7 @@
 using namespace Dyninst;
 using namespace PatchAPI;
 
-PatchFunction *PatchFunction::create(ParseAPI::Function *f, ObjectPtr obj) {
+PatchFunction *PatchFunction::create(ParseAPI::Function *f, PatchObjectPtr obj) {
   return obj->getFunction(f);
 }
 

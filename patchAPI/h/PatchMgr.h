@@ -6,7 +6,6 @@
 #include "common.h"
 #include "Point.h"
 #include "Instrumenter.h"
-#include "Linker.h"
 
 namespace Dyninst {
 namespace PatchAPI {
@@ -182,7 +181,6 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     CallRemoval callRemoval_;
 
     InstrumenterPtr instor_;
-    LinkerPtr linker_;
     AddrSpacePtr as_;
 
     typedef int BatchMode;

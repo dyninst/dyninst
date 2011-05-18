@@ -30,18 +30,15 @@ TO_INC   = ../h
 PUBLIC_H = 
 
 SRCS +=	../src/AddrSpace.C \
-        ../src/BufferMgr.C \
         ../src/Instrumenter.C \
-        ../src/Linker.C \
-        ../src/Object.C \
+        ../src/PatchObject.C \
         ../src/PatchBlock.C \
         ../src/PatchEdge.C \
         ../src/PatchFunction.C \
         ../src/PatchMgr.C \
         ../src/Point.C \
         ../src/Snippet.C \
-        ../src/Trace.C \
-        ../src/Tracker.C \
+
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../../parseAPI/h -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h -I../h
 
