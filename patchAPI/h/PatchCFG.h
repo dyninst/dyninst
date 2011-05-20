@@ -6,9 +6,6 @@
 #include "common.h"
 #include "PatchObject.h"
 
-class int_block;
-class int_function;
-
 namespace Dyninst {
 namespace PatchAPI {
 
@@ -85,8 +82,6 @@ class PatchBlock {
     static void destroy(PatchBlock *);
     virtual ~PatchBlock();
 
-    static PatchBlock *convert(int_block *);
-
     // Getters
     Address start() const { return object()->codeBase() + block_->start(); }
     Address end() const { return object()->codeBase() + block_->end(); }
@@ -136,8 +131,6 @@ class PatchFunction {
    static void destroy(PatchFunction *);
    virtual ~PatchFunction();
 
-   static PatchFunction *convert(int_function *);
-
    const string &name() { return func_->name(); }
    Address addr() const { return obj_->codeBase() + func_->addr(); }
    ParseAPI::Function *func() { return func_; }
@@ -145,19 +138,20 @@ class PatchFunction {
    PatchObject* object() { return obj_; }
 
    const blocklist &blocks();
-   const edgelist &callEdges();
+   //   const edgelist &callEdges();
    const blocklist &returnBlocks();
 
-   bool entries(PointSet& pts);
-   bool exits(PointSet& pts);
+   //   bool entries(PointSet& pts);
+   //   bool exits(PointSet& pts);
 
-   virtual PatchBlock *getBlock(ParseAPI::Block *);
+   PatchBlock *getBlock(ParseAPI::Block *);
+   void addBlock(PatchBlock*);
    PatchEdge *getEdge(ParseAPI::Edge *, PatchBlock *src, PatchBlock *trg);
 
-
  protected:
-   PatchFunction(ParseAPI::Function *f,
-            PatchObject* o) : func_(f), obj_(o), callEdgeList_(callEdges_) {};
+   PatchFunction(ParseAPI::Function *f, PatchObject* o);
+   PatchFunction(const PatchFunction* parFunc, PatchObject* child);
+
    void removeEdge(PatchEdge *e);
 
    ParseAPI::Function *func_;
@@ -167,7 +161,7 @@ class PatchFunction {
    std::vector<PatchEdge *> callEdges_;
    std::vector<PatchBlock *> returnBlocks_;
 
-   edgelist callEdgeList_;
+   //edgelist callEdgeList_;
 
    typedef std::map<ParseAPI::Block *, PatchBlock *> BlockMap;
    BlockMap blockMap_;

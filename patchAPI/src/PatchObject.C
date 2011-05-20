@@ -6,17 +6,6 @@
 using namespace Dyninst;
 using namespace PatchAPI;
 
-PatchFunction *PatchObject::getFunc(ParseAPI::Function *f) {
-   FuncMap::iterator iter = funcMap_.find(f);
-   if (iter != funcMap_.end()) return iter->second;
-   if (co_ != f->obj()) {
-     cerr << "ERROR: function " << f->name() << " doesn't exist in this object!\n";
-     exit(0);
-   }
-   PatchFunction *newFunc = new PatchFunction(f, this);
-   funcMap_.insert(std::make_pair(f, newFunc));
-   return newFunc;
-}
 
 PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a)
   : co_(o), cs_(o->cs()), codeBase_(a) {
@@ -37,6 +26,18 @@ void PatchObject::destroy(PatchObject* obj) {
 
 PatchObject::~PatchObject() {
   assert(funcMap_.empty());
+}
+
+PatchFunction *PatchObject::getFunc(ParseAPI::Function *f) {
+   FuncMap::iterator iter = funcMap_.find(f);
+   if (iter != funcMap_.end()) return iter->second;
+   if (co_ != f->obj()) {
+     cerr << "ERROR: function " << f->name() << " doesn't exist in this object!\n";
+     exit(0);
+   }
+   PatchFunction *newFunc = new PatchFunction(f, this);
+   funcMap_.insert(std::make_pair(f, newFunc));
+   return newFunc;
 }
 
 void PatchObject::addFunc(PatchFunction* f) {

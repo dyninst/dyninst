@@ -49,6 +49,7 @@
 
 #include "block.h"
 #include "instPoint.h"
+#include "PatchCFG.h"
 
 class process;
 class mapped_module;
@@ -68,7 +69,7 @@ typedef enum callType {
 } callType;
 
 
-class func_instance : public patchTarget {
+class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunction {
   friend class block_instance;
   friend class edge_instance;
   friend class instPoint;

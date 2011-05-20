@@ -54,6 +54,7 @@ int func_instance_count = 0;
 func_instance::func_instance(parse_func *f,
                              Address baseAddr,
                              mapped_module *mod) :
+  PatchFunction(f, mod->obj()),
    addr_(baseAddr + f->getOffset()),
    ptrAddr_(f->getPtrOffset() ? f->getPtrOffset() + baseAddr : 0),
    ifunc_(f),
@@ -81,6 +82,7 @@ func_instance::func_instance(parse_func *f,
 
 func_instance::func_instance(const func_instance *parFunc,
                              mapped_module *childMod) :
+  PatchFunction(parFunc->ifunc_, childMod->obj()),
    addr_(parFunc->addr_),
    ptrAddr_(parFunc->ptrAddr_),
    ifunc_(parFunc->ifunc_),
@@ -775,6 +777,9 @@ block_instance *func_instance::getBlock(const Address addr) {
 	// Make sure it's one of ours
 	std::set<func_instance *> funcs;
 	block->getFuncs(std::inserter(funcs, funcs.end()));
-	if (funcs.find(this) != funcs.end()) return block;
+	if (funcs.find(this) != funcs.end()) {
+	  //addBlock(block); // Update parent class's bookkeeping stuffs
+	  return block;
+	}
 	return NULL;
 }

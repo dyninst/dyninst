@@ -175,7 +175,3 @@ PatchBlock::~PatchBlock() {
   //   assert(srcs_.empty());
   //   assert(trgs_.empty());
 }
-
-PatchBlock* PatchBlock::convert(int_block* /*ib*/) {
-  return NULL;
-}

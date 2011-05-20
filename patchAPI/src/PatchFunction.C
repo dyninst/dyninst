@@ -10,6 +10,12 @@ PatchFunction *PatchFunction::create(ParseAPI::Function *f, PatchObject* obj) {
   return obj->getFunc(f);
 }
 
+PatchFunction::PatchFunction(ParseAPI::Function *f,
+     PatchObject* o) : func_(f), obj_(o) {} //, callEdgeList_(callEdges_) {};
+
+PatchFunction::PatchFunction(const PatchFunction *parFunc, PatchObject* child)
+  : func_(parFunc->func_), obj_(child) {} //, callEdgeList_(callEdges_) {};
+
 const PatchFunction::blocklist &PatchFunction::blocks() {
   if (!blocks_.empty()) return blocks_;
   // Otherwise we need to create them
@@ -18,22 +24,6 @@ const PatchFunction::blocklist &PatchFunction::blocks() {
     blocks_.push_back(getBlock(*iter));
   }
   return blocks_;
-}
-
-const PatchFunction::edgelist &PatchFunction::callEdges() {
-  if (!callEdges_.empty()) return callEdgeList_;
-  // Build it
-  for (ParseAPI::Function::edgelist::iterator iter = func_->callEdges().begin();
-       iter != func_->callEdges().end(); ++iter) {
-    PatchBlock *callBlock = getBlock((*iter)->src());
-    for (PatchBlock::edgelist::iterator e_iter = callBlock->targets().begin();
-         e_iter != callBlock->targets().end(); ++e_iter) {
-      if ((*e_iter)->type() == ParseAPI::CALL) {
-        callEdges_.push_back(*e_iter);
-      }
-    }
-  }
-  return callEdgeList_;
 }
 
 const PatchFunction::blocklist &PatchFunction::returnBlocks() {
@@ -54,6 +44,10 @@ PatchBlock *PatchFunction::getBlock(ParseAPI::Block *iblock) {
   PatchBlock *newBlock = new PatchBlock(iblock, this);
   blockMap_.insert(std::make_pair(iblock, newBlock));
   return newBlock;
+}
+void PatchFunction::addBlock(PatchBlock* b) {
+  assert(b);
+  blockMap_.insert(std::make_pair(b->block_, b));
 }
 
 PatchEdge *PatchFunction::getEdge(ParseAPI::Edge *iedge,
@@ -98,11 +92,7 @@ PatchFunction::~PatchFunction() {
     assert(edgeMap_.empty());
   */
 }
-
-PatchFunction* PatchFunction::convert(int_function* /*ifun*/) {
-  return NULL;
-}
-
+/*
 bool PatchFunction::entries(PointSet& pts) {
   obj_->addrSpace()->mgr_->findPoints(this, Point::FuncEntry, inserter(pts, pts.begin()));
   assert(pts.size() > 0);
@@ -114,3 +104,4 @@ bool PatchFunction::exits(PointSet& pts) {
   assert(pts.size() > 0);
   return true;
 }
+*/
