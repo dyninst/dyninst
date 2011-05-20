@@ -190,6 +190,6 @@ bool PatchBlock::isShared() {
 }
 PatchBlock::~PatchBlock() {
   // We assume top-down teardown of data
-  //   assert(srcs_.empty());
-  //   assert(trgs_.empty());
+  assert(srcs_.empty());
+  assert(trgs_.empty());
 }

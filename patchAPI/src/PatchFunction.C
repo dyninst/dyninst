@@ -84,13 +84,11 @@ void PatchFunction::destroy(PatchFunction *f) {
 }
 
 PatchFunction::~PatchFunction() {
-  /*
     assert(blocks_.empty());
     assert(callEdges_.empty());
     assert(returnBlocks_.empty());
     assert(blockMap_.empty());
     assert(edgeMap_.empty());
-  */
 }
 /*
 bool PatchFunction::entries(PointSet& pts) {

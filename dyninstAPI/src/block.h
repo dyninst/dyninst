@@ -13,7 +13,7 @@ class parse_func;
 class BPatch_edge;
 class mapped_object;
 
-class edge_instance {
+class edge_instance : public Dyninst::PatchAPI::PatchEdge {
    friend class block_instance;
    friend class func_instance;
    friend class mapped_object;

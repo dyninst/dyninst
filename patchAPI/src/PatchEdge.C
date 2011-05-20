@@ -14,6 +14,17 @@ PatchEdge *PatchEdge::create(ParseAPI::Edge *ie, PatchBlock *src, PatchBlock *tr
   return indexFunc->getEdge(ie, src, trg);
 }
 
+PatchEdge::PatchEdge(ParseAPI::Edge *internalEdge,
+                     PatchBlock *source,
+                     PatchBlock *target)
+  : edge_(internalEdge), src_(source), trg_(target) {
+}
+
+PatchEdge::PatchEdge(const PatchEdge *parent, PatchObject *child)
+  : edge_(parent->edge_) {
+  // TODO(wenbin): get src and trg from child
+}
+
 
 // In an attempt to save memory we don't create the CFG copy ahead of
 // time, but instead do it on demand. This causes some interesting
@@ -52,6 +63,6 @@ void PatchEdge::destroy(PatchEdge *e) {
 }
 
 PatchEdge::~PatchEdge() {
-  assert(src_ == NULL);
-  assert(trg_ == NULL);
+  //  assert(src_ == NULL);
+  //  assert(trg_ == NULL);
 }

@@ -34,9 +34,10 @@ class PatchEdge {
    bool interproc() const { return edge_->interproc(); }
 
   protected:
-    PatchEdge(ParseAPI::Edge *internalEdge, PatchBlock *source,
-              PatchBlock *target) : edge_(internalEdge), src_(source),
-                                    trg_(target) {};
+    PatchEdge(ParseAPI::Edge *internalEdge,
+              PatchBlock *source,
+              PatchBlock *target);
+    PatchEdge(const PatchEdge *parent, PatchObject *child);
 
     ParseAPI::Edge *edge_;
     PatchBlock *src_;

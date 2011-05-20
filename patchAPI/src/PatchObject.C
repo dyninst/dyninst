@@ -19,7 +19,8 @@ void PatchObject::destroy(PatchObject* obj) {
   // We don't want to leak memory, so tear down the
   // entire structure
   for (FuncMap::iterator iter = obj->funcMap_.begin(); iter != obj->funcMap_.end(); ++iter) {
-    delete iter->second;
+    PatchFunction::destroy(iter->second);
+    //delete iter->second;
   }
   obj->funcMap_.clear();
 }
