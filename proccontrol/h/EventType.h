@@ -76,7 +76,7 @@ class EventType
    static const int Detached            = 506;
    static const int IntBootstrap        = 507;
    static const int Nop                 = 508;
-
+   static const int ThreadDB            = 509;
 
    //Users should define their own events at this value or higher.
    static const int MaxProcCtrlEvent    = 1000;

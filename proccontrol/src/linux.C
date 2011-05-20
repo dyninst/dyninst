@@ -328,7 +328,6 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                   lib_event->setThread(thread->thread());
                   lib_event->setProcess(proc->proc());
                   lib_event->setSyncType(Event::sync_thread);
-                  lproc->decodeTdbLibLoad(lib_event);
                   event->addSubservientEvent(lib_event);
                   break;
                }

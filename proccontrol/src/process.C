@@ -320,6 +320,7 @@ bool int_process::forked()
    ProcPool()->condvar()->lock();
 
    pthrd_printf("Setting up forked process %d\n", pid);
+   creation_mode = ct_fork;
    bool result = plat_forked();
    if (!result) {
       pthrd_printf("Could not handle forked debuggee, %d\n", pid);
@@ -461,6 +462,10 @@ int_process::State int_process::getState() const
    return state;
 }
 
+int_process::creationMode_t int_process::getCreationMode() const
+{
+   return creation_mode;
+}
 void int_process::setContSignal(int sig) {
     continueSig = sig;
 }
@@ -1000,6 +1005,7 @@ int_process::int_process(Dyninst::PID p, std::string e,
                          std::map<int,int> f) :
    state(neonatal),
    pid(p),
+   creation_mode(ct_launch),
    executable(e),
    argv(a),
    env(envp),
@@ -1024,6 +1030,7 @@ int_process::int_process(Dyninst::PID p, std::string e,
 int_process::int_process(Dyninst::PID pid_, int_process *p) :
    state(int_process::running),
    pid(pid_),
+   creation_mode(ct_attach),
    executable(p->executable),
    argv(p->argv),
    env(p->env),
@@ -2706,7 +2713,7 @@ int_thread *int_thread::createThread(int_process *proc,
                                      bool initial_thrd)
 {
    int_thread *newthr = createThreadPlat(proc, thr_id, lwp_id, initial_thrd);
-   pthrd_printf("Creating %s thread %d/%d, thr_id = %lu\n", 
+   pthrd_printf("Creating %s thread %d/%d, thr_id = 0x%lx\n", 
                 initial_thrd ? "initial" : "new",
                 proc->getPid(), newthr->getLWP(), thr_id);
    proc->threadPool()->addThread(newthr);

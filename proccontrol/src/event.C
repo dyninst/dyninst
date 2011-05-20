@@ -189,6 +189,7 @@ std::string EventType::name() const
       STR_CASE(IntBootstrap);
       STR_CASE(ForceTerminate);
       STR_CASE(PrepSingleStep);
+      STR_CASE(ThreadDB);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -642,6 +643,125 @@ const std::set<Library::ptr> &EventLibrary::libsRemoved() const
    return rmd_libs;
 }
 
+EventAsync::EventAsync(int_eventAsync *ievent) :
+   Event(EventType(EventType::None, EventType::Async)),
+   internal(ievent)
+{
+}
+
+EventAsync::~EventAsync()
+{
+   if (internal) {
+      delete internal;
+      internal = NULL;
+   }
+}
+
+int_eventAsync *EventAsync::getInternal() const
+{
+   return internal;
+}
+
+EventChangePCStop::EventChangePCStop() :
+   Event(EventType(EventType::None, EventType::ChangePCStop))
+{
+}
+
+EventChangePCStop::~EventChangePCStop()
+{
+}
+
+EventDetached::EventDetached() :
+   Event(EventType(EventType::None, EventType::Detached))
+{
+}
+
+EventDetached::~EventDetached()
+{
+}
+
+EventIntBootstrap::EventIntBootstrap(void *d) :
+   Event(EventType(EventType::None, EventType::IntBootstrap)),
+   data(d)
+{
+}
+
+EventIntBootstrap::~EventIntBootstrap()
+{
+}
+
+void *EventIntBootstrap::getData() const
+{
+   return data;
+}
+
+void EventIntBootstrap::setData(void *d)
+{
+   data = d;
+}
+
+EventNop::EventNop() :
+   Event(EventType(EventType::None, EventType::Nop))
+{
+}
+
+EventNop::~EventNop()
+{
+}
+
+EventPrepSingleStep::EventPrepSingleStep(emulated_singlestep *newSingleStep) :
+    Event(EventType(EventType::None, EventType::PrepSingleStep)), 
+    es(newSingleStep)
+{
+}
+
+EventPrepSingleStep::~EventPrepSingleStep()
+{
+}
+
+bool EventPrepSingleStep::procStopper() const {
+    return true;
+}
+
+emulated_singlestep *EventPrepSingleStep::getEmulatedSingleStep() const {
+    return es;
+}
+
+EventThreadDB::EventThreadDB() :
+   Event(EventType(EventType::None, EventType::ThreadDB))
+{
+   int_etdb = new int_eventThreadDB();
+}
+
+EventThreadDB::~EventThreadDB()
+{
+   delete int_etdb;
+   int_etdb = NULL;
+}
+
+int_eventThreadDB *EventThreadDB::getInternal() const
+{
+   return int_etdb;
+}
+
+bool EventThreadDB::procStopper() const
+{
+   return true;
+}
+
+bool EventThreadDB::triggersCB() const
+{
+   EventType::Time ev_times[] = { EventType::None, EventType::Pre, EventType::Post };
+   int ev_types[] = { EventType::UserThreadCreate, EventType::UserThreadDestroy, 
+                      EventType::LWPCreate, EventType::LWPDestroy };
+   HandleCallbacks *cbhandler = HandleCallbacks::getCB();
+   for (unsigned i = 0; i < 3; i++)
+      for (unsigned j = 0; j < 4; j++)
+         if (cbhandler->hasCBs(EventType(ev_times[i], ev_types[j])))
+            return true;
+   return false;
+}
+
 int_eventBreakpoint::int_eventBreakpoint(Address a, installed_breakpoint *i, int_thread *thr) :
    ibp(i),
    addr(a),
@@ -765,88 +885,13 @@ int_eventNewUserThread::~int_eventNewUserThread()
       free(raw_data);
 }
 
-EventAsync::EventAsync(int_eventAsync *ievent) :
-   Event(EventType(EventType::None, EventType::Async)),
-   internal(ievent)
+int_eventThreadDB::int_eventThreadDB() :
+   completed_new_evs(false)
 {
 }
 
-EventAsync::~EventAsync()
+int_eventThreadDB::~int_eventThreadDB()
 {
-   if (internal) {
-      delete internal;
-      internal = NULL;
-   }
-}
-
-int_eventAsync *EventAsync::getInternal() const
-{
-   return internal;
-}
-
-EventChangePCStop::EventChangePCStop() :
-   Event(EventType(EventType::None, EventType::ChangePCStop))
-{
-}
-
-EventChangePCStop::~EventChangePCStop()
-{
-}
-
-EventDetached::EventDetached() :
-   Event(EventType(EventType::None, EventType::Detached))
-{
-}
-
-EventDetached::~EventDetached()
-{
-}
-
-EventIntBootstrap::EventIntBootstrap(void *d) :
-   Event(EventType(EventType::None, EventType::IntBootstrap)),
-   data(d)
-{
-}
-
-EventIntBootstrap::~EventIntBootstrap()
-{
-}
-
-void *EventIntBootstrap::getData() const
-{
-   return data;
-}
-
-void EventIntBootstrap::setData(void *d)
-{
-   data = d;
-}
-
-EventNop::EventNop() :
-   Event(EventType(EventType::None, EventType::Nop))
-{
-}
-
-EventNop::~EventNop()
-{
-}
-
-EventPrepSingleStep::EventPrepSingleStep(emulated_singlestep *newSingleStep) :
-    Event(EventType(EventType::None, EventType::PrepSingleStep)), 
-    es(newSingleStep)
-{
-}
-
-EventPrepSingleStep::~EventPrepSingleStep()
-{
-}
-
-bool EventPrepSingleStep::procStopper() const {
-    return true;
-}
-
-emulated_singlestep *EventPrepSingleStep::getEmulatedSingleStep() const {
-    return es;
 }
 
 #define DEFN_EVENT_CAST(NAME, TYPE) \
@@ -907,4 +952,4 @@ DEFN_EVENT_CAST(EventDetached, Detached)
 DEFN_EVENT_CAST(EventIntBootstrap, IntBootstrap)
 DEFN_EVENT_CAST(EventNop, Nop);
 DEFN_EVENT_CAST(EventPrepSingleStep, PrepSingleStep)
-
+DEFN_EVENT_CAST(EventThreadDB, ThreadDB)

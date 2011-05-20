@@ -65,6 +65,8 @@ class thread_db_thread;
 class thread_db_process : virtual public int_process
 {
    friend class thread_db_thread;
+   friend class ThreadDBDispatchHandler;
+
    friend ps_err_e ps_pread(struct ps_prochandle *, psaddr_t, void *, size_t);
    friend ps_err_e ps_pwrite(struct ps_prochandle *, psaddr_t, const void *, size_t);
 
@@ -75,7 +77,6 @@ public:
 
     async_ret_t decodeTdbBreakpoint(EventBreakpoint::ptr bp);
     bool decodeTdbLWPExit(EventLWPDestroy::ptr lwp_ev);
-    async_ret_t decodeTdbLibLoad(EventLibrary::ptr lib_ev);
 
     /* helper functions for thread_db interactions */
 
@@ -86,7 +87,7 @@ public:
 
     virtual void freeThreadDBAgent();
     virtual bool getPostDestroyEvents(std::vector<Event::ptr> &events);
-    virtual Event::ptr getEventForThread(thread_db_thread *thrd, EventType::Code code, bool &async);
+    virtual async_ret_t getEventForThread(set<Event::ptr> &new_ev_set);
     static void addThreadDBHandlers(HandlerPool *hpool);
 
     /*
@@ -110,10 +111,6 @@ public:
 
     async_ret_t initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info);
     
-    async_ret_t updateTidInfo(std::vector<Event::ptr> &threadEvents);
-
-    bool needsTidUpdate();
-
     //The types for thread_db functions we will call
     typedef td_err_e (*td_init_t)(void);
     typedef td_err_e (*td_ta_new_t)(struct ps_prochandle *, td_thragent_t **);
@@ -161,12 +158,12 @@ protected:
     struct ps_prochandle *self;
     int_thread *trigger_thread;
 
-    bool needs_tid_update;
     std::deque<Event::ptr> savedEvents;
 
     std::set<mem_response::ptr> resps;
     std::set<result_response::ptr> res_resps;
     bool hasAsyncPending;
+    bool initialThreadEventCreated;
     
 private:
     static bool tdb_loaded;
@@ -185,6 +182,7 @@ struct ps_prochandle {
 class thread_db_thread : public int_thread
 {
     friend class ThreadDBCreateHandler;
+    friend class ThreadDBDispatchHandler;
     friend class thread_db_process;
 public:
     thread_db_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
@@ -226,44 +224,44 @@ protected:
     bool threadHandle_alloced;
 };
 
-class ThreadDBPreCreateHandler : public Handler
+class ThreadDBDispatchHandler : public Handler
 {
-public:
-    ThreadDBPreCreateHandler();
-    virtual ~ThreadDBPreCreateHandler();
-    virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
-    virtual int getPriority() const;
-    void getEventTypesHandled(std::vector<EventType> &etypes);
+  public:
+   ThreadDBDispatchHandler();
+   virtual ~ThreadDBDispatchHandler();
+   virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
+   void getEventTypesHandled(std::vector<EventType> &etypes);
+   virtual int getPriority() const;
 };
 
 class ThreadDBCreateHandler : public Handler
 {
 public:
-    ThreadDBCreateHandler();
-    virtual ~ThreadDBCreateHandler();
-    virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
-    virtual int getPriority() const;
-    void getEventTypesHandled(std::vector<EventType> &etypes);
+   ThreadDBCreateHandler();
+   virtual ~ThreadDBCreateHandler();
+   virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
+   void getEventTypesHandled(std::vector<EventType> &etypes);
+   virtual int getPriority() const;
 };
 
 class ThreadDBLibHandler : public Handler
 {
 public:
-    ThreadDBLibHandler();
-    virtual ~ThreadDBLibHandler();
-    virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
-    virtual int getPriority() const;
-    void getEventTypesHandled(std::vector<EventType> &etypes);
+   ThreadDBLibHandler();
+   virtual ~ThreadDBLibHandler();
+   virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
+   virtual int getPriority() const;
+   void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
 class ThreadDBDestroyHandler : public Handler
 {
 public:
-    ThreadDBDestroyHandler();
-    virtual ~ThreadDBDestroyHandler();
-    virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
-    virtual int getPriority() const;
-    void getEventTypesHandled(std::vector<EventType> &etypes);
+   ThreadDBDestroyHandler();
+   virtual ~ThreadDBDestroyHandler();
+   virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
+   void getEventTypesHandled(std::vector<EventType> &etypes);
+   virtual int getPriority() const;
 };
 
 typedef struct new_thread_data {

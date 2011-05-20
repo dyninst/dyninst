@@ -285,7 +285,7 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
             bool hasCtrlTransfer = false;
             vector<Breakpoint::const_ptr> breakpoints;
             evBreak->getBreakpoints(breakpoints);
-            Breakpoint::ptr ctrlTransferPt;
+            Breakpoint::const_ptr ctrlTransferPt;
             for(vector<Breakpoint::const_ptr>::iterator i = breakpoints.begin();
                     i != breakpoints.end(); ++i)
             {

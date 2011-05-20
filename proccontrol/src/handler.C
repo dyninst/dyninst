@@ -171,6 +171,24 @@ Event::ptr HandlerPool::curEvent() const
    return cur_event;
 }
 
+void HandlerPool::addLateEvent(Event::ptr ev)
+{
+   late_events.insert(ev);
+}
+
+bool HandlerPool::hasLateEvents() const
+{
+   return !late_events.empty();
+}
+
+void HandlerPool::collectLateEvents(Event::ptr parent_ev)
+{
+   for (set<Event::ptr>::iterator i = late_events.begin(); i != late_events.end(); i++) {
+      parent_ev->addSubservientEvent(*i);
+   }
+   late_events.clear();
+}
+
 Event::ptr HandlerPool::getRealParent(Event::ptr ev) const
 {
    Event::ptr master_ev = ev;
@@ -302,9 +320,9 @@ void HandlerPool::addEventToSet(Event::ptr ev, set<Event::ptr> &ev_set) const
 }
 
 
-bool HandlerPool::handleEvent(Event::ptr ev)
+bool HandlerPool::handleEvent(Event::ptr orig_ev)
 {
-   EventType etype = ev->getEventType();
+   EventType etype = orig_ev->getEventType();
    Event::ptr cb_replacement_ev = Event::ptr();
 
    /**
@@ -319,7 +337,7 @@ bool HandlerPool::handleEvent(Event::ptr ev)
     * for all of them.
     **/
    set<Event::ptr> all_events;
-   addEventToSet(ev, all_events);
+   addEventToSet(orig_ev, all_events);
 
    typedef set<pair<Event::ptr, Handler *>, eh_cmp_func > ev_hndler_set_t;
    ev_hndler_set_t events_and_handlers;
@@ -371,7 +389,7 @@ bool HandlerPool::handleEvent(Event::ptr ev)
          cur_event = getRealParent(event);
       }
 
-      pthrd_printf("Handling event '%s' with handler '%s'\n", etype.name().c_str(), 
+      pthrd_printf("Handling event '%s' with handler '%s'\n", etype.name().c_str(),
                    handler->getName().c_str());
       Handler::handler_ret_t result = handler->handleEvent(event);
 
@@ -384,14 +402,26 @@ bool HandlerPool::handleEvent(Event::ptr ev)
       }
       event->handled_by.insert(handler);
       if (result == Handler::ret_error) {
-         pthrd_printf("Error handling event %s with %s\n", etype.name().c_str(), 
+         pthrd_printf("Error handling event %s with %s\n", etype.name().c_str(),
                       handler->getName().c_str());
          had_error = true;
       }
+      
+      if (hasLateEvents()) {
+         /**
+          * A handler can choose to add new events to the current set by
+          * calling HandlerPool::addLateEvent(...).  We'll check for late
+          * events after each handle call, add them as new subservient events,
+          * and then recursively call handleEvents.  The recursive call shouldn't
+          * re-trigger already-run handlers due to the 'handled_by' mechanism.
+          **/
+         pthrd_printf("Handler added late events.  Recursively calling handleEvent\n");
+         collectLateEvents(event);
+         return handleEvent(orig_ev);
+      }
    }
 
-   for (set<Event::ptr>::iterator i = all_events.begin(); i != all_events.end(); i++)
-   {
+   for (set<Event::ptr>::iterator i = all_events.begin(); i != all_events.end(); i++) {
       Event::ptr event = *i;
       clearEventAsync(event); //nop if ev wasn't async
    }
@@ -1612,6 +1642,11 @@ void HandleCallbacks::getEventTypesHandled(std::vector<EventType> & /*etypes*/)
 bool HandleCallbacks::hasCBs(Event::const_ptr ev)
 {
    return cbfuncs.find(ev->getEventType()) != cbfuncs.end();
+}
+
+bool HandleCallbacks::hasCBs(EventType et)
+{
+   return cbfuncs.find(et) != cbfuncs.end();
 }
 
 bool HandleCallbacks::requiresCB(Event::const_ptr ev)

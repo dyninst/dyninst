@@ -111,5 +111,14 @@ class int_eventNewUserThread {
    bool needs_update;
 };
 
+class int_eventThreadDB {
+  public:
+   int_eventThreadDB();
+   ~int_eventThreadDB();
+   
+   std::set<Event::ptr> new_evs;
+   bool completed_new_evs;
+};
+
 }
 }

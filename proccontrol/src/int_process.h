@@ -113,6 +113,14 @@ class int_process
    bool initializeAddressSpace();
 
   public:
+
+   typedef enum {
+      ct_fork,
+      ct_launch,
+      ct_attach
+   } creationMode_t;
+   creationMode_t getCreationMode() const;
+
    void setContSignal(int sig);
    int getContSignal() const;
    bool continueProcess();
@@ -273,6 +281,7 @@ class int_process
  protected:
    State state;
    Dyninst::PID pid;
+   creationMode_t creation_mode;
    std::string executable;
    std::vector<std::string> argv;
    std::vector<std::string> env;

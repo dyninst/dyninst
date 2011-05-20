@@ -69,16 +69,19 @@ class HandlerPool
 
    static bool hasProcAsyncPending();
    void markEventAsyncPending(Event::ptr ev);
-   
+   void addLateEvent(Event::ptr ev);
    Event::ptr curEvent() const;
  private:
    HandlerMap_t handlers;
    void addHandlerInt(EventType etype, Handler *handler);
    void clearEventAsync(Event::ptr ev);
    void addEventToSet(Event::ptr ev, set<Event::ptr> &ev_set) const;
+   void collectLateEvents(Event::ptr parent_ev);
+   bool hasLateEvents() const;
    Event::ptr getRealParent(Event::ptr ev) const;
 
    std::set<Event::ptr> pending_async_events;
+   std::set<Event::ptr> late_events;
    int_process *proc;
    Event::ptr cur_event;
 
@@ -318,6 +321,7 @@ class HandleCallbacks : public Handler
   virtual void getEventTypesHandled(vector<EventType> &etypes);
   virtual handler_ret_t handleEvent(Event::ptr ev);
   bool hasCBs(Event::const_ptr ev);
+  bool hasCBs(EventType et);
   
   bool registerCallback(EventType ev, Process::cb_func_t func);
   bool removeCallback(EventType et, Process::cb_func_t func);
