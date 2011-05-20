@@ -22,7 +22,7 @@ AddrSpacePtr AddrSpace::create(PatchObject* obj) {
 
 bool AddrSpace::loadObject(PatchObject* obj) {
   coobj_map_[obj->co()] = obj;
-  obj->setAs(shared_from_this());
+  obj->setAddrSpace(shared_from_this());
   return true;
 }
 

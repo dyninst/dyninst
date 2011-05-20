@@ -12,10 +12,10 @@ class PatchFunction;
 
 /* PatchObject represents a binary object, which could be either a library or
    executable. It is also an instrumentation  unit. */
-class PatchObject : public dyn_detail::boost::enable_shared_from_this<PatchObject> {
-  public:
-    friend class AddrSpace;
+class PatchObject {
+  friend class AddrSpace;
 
+  public:
     virtual ~PatchObject();
     static void destroy(PatchObject* obj);
 
@@ -24,13 +24,17 @@ class PatchObject : public dyn_detail::boost::enable_shared_from_this<PatchObjec
 
     // Getters and setter
     Address codeBase() { return codeBase_; }
+
     ParseAPI::CodeObject* co() const { return co_; }
     ParseAPI::CodeSource* cs() const { return cs_; }
+
     AddrSpacePtr addrSpace() const { return addr_space_; }
-    void setAs(AddrSpacePtr as) { addr_space_ = as; }
+    void setAddrSpace(AddrSpacePtr as) { addr_space_ = as; }
+
     FuncMap& funcMap() { return funcMap_; }
-    virtual PatchFunction *getFunction(ParseAPI::Function *);
-    virtual void setFunction(PatchFunction* f);
+
+    PatchFunction *getFunction(ParseAPI::Function *);
+    void setFunction(PatchFunction*);
 
     // Called by Instrumenter
     virtual bool instrument(InstanceSet* /*insertion_set*/,
@@ -47,6 +51,7 @@ class PatchObject : public dyn_detail::boost::enable_shared_from_this<PatchObjec
     FuncMap funcMap_;
 
     PatchObject(ParseAPI::CodeObject* o, Address a);
+    PatchObject(const PatchObject* par_obj, Address a);
 };
 
 }

@@ -10,9 +10,9 @@ namespace PatchAPI {
 
 class DynAddrSpace : public AddrSpace {
   public:
-    static DynAddrSpacePtr create(PatchObject* obj, AddressSpace* as);
-    bool loadLibrary(PatchObject*, AddressSpace* as);
-    bool initAs(PatchObject* obj, AddressSpace* as);
+    static DynAddrSpacePtr create(DynObject* obj);
+    bool loadLibrary(DynObject*);
+    bool initAs(DynObject*);
 
     typedef std::map<ParseAPI::CodeObject*, AddressSpace*> CoAsMap;
     CoAsMap& coas_map() { return coas_map_; }

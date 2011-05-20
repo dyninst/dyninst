@@ -13,7 +13,8 @@ namespace PatchAPI {
 class DynObject : public PatchObject {
 
   public:
-    DynObject(ParseAPI::CodeObject* co, Address base);
+    DynObject(ParseAPI::CodeObject* co, AddressSpace* as, Address base);
+    DynObject(const DynObject *par_obj, process *child, Address base);
     ~DynObject();
 
     virtual bool instrument(InstanceSet* insertion_set,
@@ -22,9 +23,8 @@ class DynObject : public PatchObject {
                          CallRepMap*  call_rep,
                          CallRemoval* call_remove);
 
-    // Getters and Setters
+    // Getters
     AddressSpace* as() const { return as_; }
-    void setAs(AddressSpace* as) { as_ = as; }
 
   private:
     AddressSpace* as_;

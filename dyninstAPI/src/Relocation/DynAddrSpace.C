@@ -8,23 +8,19 @@ using Dyninst::PatchAPI::DynAddrSpace;
 using Dyninst::PatchAPI::DynAddrSpacePtr;
 using Dyninst::PatchAPI::DynObject;
 
-bool DynAddrSpace::loadLibrary(PatchObject* obj, AddressSpace* as) {
-  DynObject* dobj = dynamic_cast<DynObject*>(obj);
-  loadObject(dobj);
-  if (dobj) {
-    coas_map_[dobj->co()] = as;
-    dobj->setAs(as);
-    return obj;
+bool DynAddrSpace::loadLibrary(DynObject* obj) {
+  loadObject(obj);
+  if (obj) {
+    coas_map_[obj->co()] = obj->as();
+    return false;
   }
   return true;
 }
 
-bool DynAddrSpace::initAs(PatchObject* obj, AddressSpace* as) {
-  DynObject* dobj = dynamic_cast<DynObject*>(obj);
-  init(dobj);
-  first_as_ = as;
-  coas_map_[dobj->co()] = as;
-  dobj->setAs(as);
+bool DynAddrSpace::initAs(DynObject* obj) {
+  init(obj);
+  first_as_ = obj->as();
+  coas_map_[obj->co()] = obj->as();
   return true;
 }
 
@@ -32,10 +28,10 @@ DynAddrSpace::DynAddrSpace()
   : AddrSpace(), recursive_(false) {
 }
 
-DynAddrSpacePtr DynAddrSpace::create(PatchObject* obj, AddressSpace* as) {
+DynAddrSpacePtr DynAddrSpace::create(DynObject* obj) {
   DynAddrSpacePtr ret = DynAddrSpacePtr(new DynAddrSpace());
   if (!ret) return DynAddrSpacePtr();
-  ret->initAs(obj, as);
+  ret->initAs(obj);
   return ret;
 }
 

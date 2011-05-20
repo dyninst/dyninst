@@ -18,8 +18,12 @@ PatchFunction *PatchObject::getFunction(ParseAPI::Function *f) {
    return newFunc;
 }
 
-PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a) : co_(o), codeBase_(a) {
-  cs_ = co_->cs();
+PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a)
+  : co_(o), cs_(o->cs()), codeBase_(a) {
+}
+
+PatchObject::PatchObject(const PatchObject* parObj, Address a)
+  : co_(parObj->co()), cs_(parObj->cs()), codeBase_(a) {
 }
 
 void PatchObject::destroy(PatchObject* obj) {
@@ -32,7 +36,7 @@ void PatchObject::destroy(PatchObject* obj) {
 }
 
 PatchObject::~PatchObject() {
-  //assert(funcMap_.empty());
+  assert(funcMap_.empty());
 }
 
 void PatchObject::setFunction(PatchFunction* f) {

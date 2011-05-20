@@ -47,13 +47,13 @@ int main(int argc, const char *argv[]) {
   app->getAS(addrSpaces);
 
   CodeObject* co = addrSpaces[0]->getAOut()->parse_img()->codeObject();
-  DynObject* obj = new DynObject(co, 0);
-  DynAddrSpacePtr as = DynAddrSpace::create(obj, addrSpaces[0]);
+  DynObject* obj = new DynObject(co, addrSpaces[0], 0);
+  DynAddrSpacePtr as = DynAddrSpace::create(obj);
   PatchMgrPtr mgr = PatchMgr::create(as);
 
   CodeObject* co_lib = addrSpaces[1]->getAOut()->parse_img()->codeObject();
-  PatchObject* lib_obj = new DynObject(co_lib, 0);
-  as->loadLibrary(lib_obj, addrSpaces[1]);
+  DynObject* lib_obj = new DynObject(co_lib, addrSpaces[1], 0);
+  as->loadLibrary(lib_obj);
 
   // Find Points
   PatchFunction* foo3 = lib_obj->getFunction(foo3_func);
@@ -86,6 +86,8 @@ int main(int argc, const char *argv[]) {
   func_points[0]->push_back(snippet);
   mgr->batchFinish(errorInstances);
 
-  delete obj;
-  delete lib_obj;
+  // PatchObject::destroy(obj);
+  // PatchObject::destroy(lib_obj);
+  //  delete obj;
+  //  delete lib_obj;
 }
