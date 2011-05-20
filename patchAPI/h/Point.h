@@ -77,7 +77,7 @@ class Point : public dyn_detail::boost::enable_shared_from_this<Point> {
     PatchFunction* getCallee();
     const ParseAPI::CodeObject* co() const { return co_; }
     const ParseAPI::CodeSource* cs() const { return cs_; }
-    const PatchObjectPtr obj() const { return obj_; }
+    const PatchObject* obj() const { return obj_; }
     const InstructionAPI::Instruction::Ptr instruction() const { return instruction_; }
 
     // Point type utilities
@@ -110,7 +110,7 @@ class Point : public dyn_detail::boost::enable_shared_from_this<Point> {
     InstructionAPI::Instruction::Ptr instruction_;
     ParseAPI::CodeObject* co_;
     ParseAPI::CodeSource* cs_;
-    PatchObjectPtr obj_;
+    PatchObject* obj_;
     Point::FuncSet inst_funcs_;
     Point::BlockSet inst_blks_;
 };

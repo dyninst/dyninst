@@ -17,7 +17,7 @@ class PatchObject : public dyn_detail::boost::enable_shared_from_this<PatchObjec
     friend class AddrSpace;
 
     virtual ~PatchObject();
-    static void destroy(PatchObjectPtr obj);
+    static void destroy(PatchObject* obj);
 
     typedef std::vector<PatchFunction *> funclist;
     typedef std::map<ParseAPI::Function *, PatchFunction *> FuncMap;
@@ -33,7 +33,7 @@ class PatchObject : public dyn_detail::boost::enable_shared_from_this<PatchObjec
     virtual void setFunction(PatchFunction* f);
 
     // Called by Instrumenter
-    virtual bool process(InstanceSet* /*insertion_set*/,
+    virtual bool instrument(InstanceSet* /*insertion_set*/,
                          InstanceSet* /*deletion_set*/,
                          FuncRepMap*  /*func_rep*/,
                          CallRepMap*  /*call_rep*/,

@@ -18,13 +18,7 @@ DynObject::DynObject(ParseAPI::CodeObject* co, Address base)
 DynObject::~DynObject() {
 }
 
-DynObjectPtr DynObject::create(CodeObject* co, Address base) {
-  DynObjectPtr ret = DynObjectPtr(new DynObject(co, base));
-  if (!ret) return DynObjectPtr();
-  return ret;
-}
-
-bool DynObject::process(InstanceSet* insertion_set,
+bool DynObject::instrument(InstanceSet* insertion_set,
                         InstanceSet* deletion_set,
                         FuncRepMap*  func_rep,
                         CallRepMap*  call_rep,
@@ -42,7 +36,5 @@ bool DynObject::process(InstanceSet* insertion_set,
       call_rep->size() == 0 &&
       call_removal->size() == 0)
     return true;
-
-  
   return true;
 }

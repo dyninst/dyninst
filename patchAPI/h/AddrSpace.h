@@ -15,11 +15,11 @@ class AddrSpace : public dyn_detail::boost::enable_shared_from_this<AddrSpace>{
     friend class PatchFunction;
 
   public:
-    static AddrSpacePtr create(PatchObjectPtr obj);
+    static AddrSpacePtr create(PatchObject* obj);
     virtual ~AddrSpace();
 
     // Write data in mutatee's address space
-    virtual bool write(PatchObjectPtr /* obj */,
+    virtual bool write(PatchObject* /* obj */,
                        Address   /* to */,
                        Address   /*from*/,
                        size_t    /* size */) {
@@ -27,36 +27,36 @@ class AddrSpace : public dyn_detail::boost::enable_shared_from_this<AddrSpace>{
     }
 
     // Memory allocation / reallocation / deallocation in mutatee's address space
-    virtual Address malloc(PatchObjectPtr /* obj */,
+    virtual Address malloc(PatchObject* /* obj */,
                            size_t   /* size  */,
                            Address  /* near */) {
       return false;
     }
-    virtual bool realloc(PatchObjectPtr /* obj */,
+    virtual bool realloc(PatchObject* /* obj */,
                          Address   /* orig */,
                          size_t    /* size */) {
       return false;
     }
-    virtual bool free(PatchObjectPtr /* obj */,
+    virtual bool free(PatchObject* /* obj */,
                       Address   /* orig */) {
       return false;
     }
 
     // Load a binary oject into the address space
-    virtual bool loadObject(PatchObjectPtr obj);
+    virtual bool loadObject(PatchObject* obj);
 
     // Getters
-    typedef std::map<ParseAPI::CodeObject*, PatchObjectPtr> CoObjMap;
+    typedef std::map<ParseAPI::CodeObject*, PatchObject*> CoObjMap;
     CoObjMap& getCoobjMap() { return coobj_map_; }
-    PatchObjectPtr getFirstObject() { return first_object_; }
+    PatchObject* getFirstObject() { return first_object_; }
     PatchMgrPtr mgr() { return mgr_; }
 
   protected:
     CoObjMap coobj_map_;
-    PatchObjectPtr first_object_;
+    PatchObject* first_object_;
     PatchMgrPtr mgr_;
 
-    bool init(PatchObjectPtr);
+    bool init(PatchObject*);
     AddrSpace() {}
     explicit AddrSpace(AddrSpacePtr) {}
 };

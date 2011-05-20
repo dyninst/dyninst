@@ -13,7 +13,7 @@ PatchFunction *PatchObject::getFunction(ParseAPI::Function *f) {
      cerr << "ERROR: function " << f->name() << " doesn't exist in this object!\n";
      exit(0);
    }
-   PatchFunction *newFunc = new PatchFunction(f, shared_from_this());
+   PatchFunction *newFunc = new PatchFunction(f, this);
    funcMap_.insert(std::make_pair(f, newFunc));
    return newFunc;
 }
@@ -22,7 +22,7 @@ PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a) : co_(o), codeBase_
   cs_ = co_->cs();
 }
 
-void PatchObject::destroy(PatchObjectPtr obj) {
+void PatchObject::destroy(PatchObject* obj) {
   // We don't want to leak memory, so tear down the
   // entire structure
   for (FuncMap::iterator iter = obj->funcMap_.begin(); iter != obj->funcMap_.end(); ++iter) {
@@ -32,11 +32,11 @@ void PatchObject::destroy(PatchObjectPtr obj) {
 }
 
 PatchObject::~PatchObject() {
-   assert(funcMap_.empty());
+  //assert(funcMap_.empty());
 }
 
 void PatchObject::setFunction(PatchFunction* f) {
   assert(f);
-  f->obj_ = shared_from_this();
+  f->obj_ = this;
   funcMap_.insert(std::make_pair(f->func(), f));
 }

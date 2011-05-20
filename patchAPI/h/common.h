@@ -46,7 +46,6 @@ class AddrSpace;
 typedef dyn_detail::boost::shared_ptr<AddrSpace> AddrSpacePtr;
 
 class PatchObject;
-typedef dyn_detail::boost::shared_ptr<PatchObject> PatchObjectPtr;
 
 class Point;
 typedef dyn_detail::boost::shared_ptr<Point> PointPtr;

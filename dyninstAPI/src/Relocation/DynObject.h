@@ -13,11 +13,10 @@ namespace PatchAPI {
 class DynObject : public PatchObject {
 
   public:
-    static DynObjectPtr create(ParseAPI::CodeObject* co, Address base);
     DynObject(ParseAPI::CodeObject* co, Address base);
     ~DynObject();
 
-    virtual bool process(InstanceSet* insertion_set,
+    virtual bool instrument(InstanceSet* insertion_set,
                          InstanceSet* deletion_set,
                          FuncRepMap*  func_rep,
                          CallRepMap*  call_rep,

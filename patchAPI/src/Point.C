@@ -52,7 +52,7 @@ void Point::initCodeStructure(Address /*addr*/) {
   // walk through all code objects
   for (AddrSpace::CoObjMap::iterator ci = mgr_->as()->getCoobjMap().begin();
        ci != mgr_->as()->getCoobjMap().end(); ci++) {
-    PatchObjectPtr mod = (*ci).second;
+    PatchObject* mod = (*ci).second;
     CodeObject* co = mod->co();
     CodeSource* cs = mod->cs();
     Address relative_addr = addr_ - mod->codeBase();

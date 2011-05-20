@@ -21,7 +21,7 @@ bool Instrumenter::process(InstanceSet* insertion_set,
   // In each iteration, we only instrument a particular object
   for (AddrSpace::CoObjMap::iterator ci = as_->getCoobjMap().begin();
        ci != as_->getCoobjMap().end(); ci++) {
-    PatchObjectPtr obj = (*ci).second;
+    PatchObject* obj = (*ci).second;
     InstanceSet i_set;
     InstanceSet d_set;
     FuncRepMap f_rep;
@@ -54,7 +54,7 @@ bool Instrumenter::process(InstanceSet* insertion_set,
     }
 
     // Here we go!
-    obj->process(&i_set, &d_set, &f_rep, &c_rep, &c_removal);
+    obj->instrument(&i_set, &d_set, &f_rep, &c_rep, &c_removal);
   }
   return true;
 }

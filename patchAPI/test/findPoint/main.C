@@ -47,19 +47,19 @@ int main(int argc, const char *argv[]) {
   app->getAS(addrSpaces);
 
   CodeObject* co = addrSpaces[0]->getAOut()->parse_img()->codeObject();
-  DynObjectPtr obj = DynObject::create(co, 0);
+  DynObject* obj = new DynObject(co, 0);
   DynAddrSpacePtr as = DynAddrSpace::create(obj, addrSpaces[0]);
   PatchMgrPtr mgr = PatchMgr::create(as);
 
   CodeObject* co_lib = addrSpaces[1]->getAOut()->parse_img()->codeObject();
-  PatchObjectPtr lib_obj = DynObject::create(co_lib, 0);
+  PatchObject* lib_obj = new DynObject(co_lib, 0);
   as->loadLibrary(lib_obj, addrSpaces[1]);
 
   // Find Points
   PatchFunction* foo3 = lib_obj->getFunction(foo3_func);
   vector<PointPtr> func_points;
   mgr->findPoints(foo3, Point::CallBefore, inserter(func_points, func_points.begin()));
-
+  cerr << func_points[0]->getCallee()->name() << "\n";
   // Insert snippets
   BPatch_variableExpr *intCounter = app->malloc(*image->findType("int"));
   BPatch_arithExpr addOne(BPatch_assign, *intCounter,
@@ -85,4 +85,7 @@ int main(int argc, const char *argv[]) {
   mgr->batchStart();
   func_points[0]->push_back(snippet);
   mgr->batchFinish(errorInstances);
+
+  delete obj;
+  delete lib_obj;
 }
