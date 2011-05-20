@@ -521,6 +521,17 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                 pthrd_printf("Decoded event to signal %d on %d/%d\n",
                         stopsig, proc->getPid(), thread->getLWP());
 
+                // If we are re-attaching to a process that we created that has been receiving signals,
+                // we can get one of these signals before the bootstrap stop -- ignore this event for
+                // now
+                if( lproc->getState() == int_process::neonatal_intermediate ) {
+                    pthrd_printf("Received signal %d before attach stop\n", stopsig);
+                    if( !lproc->plat_contProcess() ) {
+                        perr_printf("Failed to continue process to flush out attach stop\n");
+                    }
+                    return true;
+                }
+
                 if( lthread->hasPCBugCondition() && stopsig == PC_BUG_SIGNAL ) {
                     pthrd_printf("Decoded event to change PC stop\n");
                     event = Event::ptr(new EventChangePCStop());
@@ -1204,7 +1215,7 @@ Handler::handler_ret_t FreeBSDBootstrapHandler::handleEvent(Event::ptr ev) {
         freebsd_thread *bsdThread = static_cast<freebsd_thread *>(*i);
 
         if(    bsdThread->getLWP() != lthread->getLWP() 
-            && bsdthread->getState() != int_thread::detached )  
+            && bsdThread->getInternalState() != int_thread::detached )  
         {
             pthrd_printf("Issuing bootstrap stop for %d/%d\n",
                     lproc->getPid(), bsdThread->getLWP());
@@ -1220,7 +1231,7 @@ Handler::handler_ret_t FreeBSDBootstrapHandler::handleEvent(Event::ptr ev) {
 }
 
 int FreeBSDBootstrapHandler::getPriority() const {
-    return PostPlatformPriority;
+    return PrePlatformPriority;
 }
 
 void FreeBSDBootstrapHandler::getEventTypesHandled(std::vector<EventType> &etypes) {
