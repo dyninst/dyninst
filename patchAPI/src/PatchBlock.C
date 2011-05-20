@@ -11,6 +11,30 @@ PatchBlock *PatchBlock::create(ParseAPI::Block *ib, PatchFunction *f) {
   return f->getBlock(ib);
 }
 
+PatchBlock::PatchBlock(ParseAPI::Block *block,
+                       PatchFunction *func)
+   : block_(block),
+     function_(func),
+     srclist_(srcs_),
+     trglist_(trgs_) {};
+
+PatchBlock::PatchBlock(ParseAPI::Block *blk, PatchObject *obj)
+  : block_(blk),  srclist_(srcs_), trglist_(trgs_) {
+  /*
+  std::vector<ParseAPI::Function*> ifuncs;
+  blk->getFuncs(ifuncs);
+  function_ = obj->getFunc(ifuncs[0]);
+  */
+}
+
+PatchBlock::PatchBlock(const PatchBlock *parent, PatchObject *child)
+  : block_(parent->block_), srclist_(srcs_), trglist_(trgs_) {
+  /*  std::vector<ParseAPI::Function*> ifuncs;
+  parent->block_->getFuncs(ifuncs);
+  function_ = child->getFunc(ifuncs[0]);
+  */
+}
+
 void PatchBlock::getInsns(InsnInstances &insns) {
   // Pass through to ParseAPI. They don't have a native interface, so add one.
   Offset off = block_->start();
@@ -56,7 +80,7 @@ void PatchBlock::createInterproceduralEdges(ParseAPI::Edge *iedge,
 }
 
 
-const PatchBlock::edgelist &PatchBlock::sources() {
+PatchBlock::edgelist &PatchBlock::sources() {
   if (srcs_.empty()) {
     for (ParseAPI::Block::edgelist::iterator iter = block_->sources().begin();
          iter != block_->sources().end(); ++iter) {
@@ -78,7 +102,7 @@ const PatchBlock::edgelist &PatchBlock::sources() {
   return srclist_;
 }
 
-const PatchBlock::edgelist &PatchBlock::targets() {
+PatchBlock::edgelist &PatchBlock::targets() {
   if (trgs_.empty()) {
     for (ParseAPI::Block::edgelist::iterator iter = block_->targets().begin();
          iter != block_->targets().end(); ++iter) {
@@ -105,12 +129,6 @@ PatchObject* PatchBlock::object() const {
   return function_->object();
 }
 
-PatchBlock::PatchBlock(ParseAPI::Block *block,
-                       PatchFunction *func)
-   : block_(block),
-     function_(func),
-     srclist_(srcs_),
-     trglist_(trgs_) {};
 
 void PatchBlock::destroy(PatchBlock *b) {
   // As a note, deleting edges that source and target this

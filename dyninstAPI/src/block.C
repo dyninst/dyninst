@@ -44,16 +44,17 @@ using namespace Dyninst::ParseAPI;
 
 block_instance::block_instance(ParseAPI::Block *ib, 
                                mapped_object *obj) 
-   : obj_(obj),
-     block_(static_cast<parse_block *>(ib))
+  : PatchBlock(ib, obj), obj_(obj),  block_(static_cast<parse_block *>(ib))
+  //  : obj_(obj),     block_(static_cast<parse_block *>(ib))
 {
    // We create edges lazily
 };
 
 // Fork constructor
 block_instance::block_instance(const block_instance *parent, mapped_object *childObj) 
-   : obj_(childObj),
-     block_(parent->block_) {
+  : PatchBlock(parent, childObj), obj_(childObj),  block_(parent->block_) 
+  //  : obj_(childObj),     block_(parent->block_) 
+{
    // We also need to copy edges.
    // Thing is, those blocks may not exist yet...
    // So we wait, and do edges after all blocks have

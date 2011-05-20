@@ -22,7 +22,7 @@ class edge_instance {
    ParseAPI::Edge *edge() const { return edge_; }
    block_instance *src() const { return src_; }
    block_instance *trg() const { return trg_; }
-   ParseAPI::EdgeTypeEnum type() const { return edge_->type(); }
+    ParseAPI::EdgeTypeEnum type() const { return edge_->type(); }
    
    bool sinkEdge() const { return edge_->sinkEdge(); }
    bool interproc() const { return edge_->interproc() || 
@@ -62,12 +62,13 @@ class EdgePredicateAdapter
    ParseAPI::EdgePredicate *int_;
 };
 
-class block_instance {
+class block_instance : public Dyninst::PatchAPI::PatchBlock {
+//class block_instance  {
    friend class mapped_object;
 
  public:
-	 typedef std::vector<edge_instance *> edges;
-	 typedef std::vector<edge_instance *> edgelist;
+   typedef std::vector<edge_instance *> edges;
+   typedef std::vector<edge_instance *> edgelist;
 
 
     block_instance(ParseAPI::Block *ib, mapped_object *obj);

@@ -77,6 +77,7 @@ class PatchBlock {
       PatchEdge *,
       PatchEdge *,
       EdgePredicateAdapter> edgelist;
+    //typedef std::vector<PatchEdge *> edgelist;
 
     static PatchBlock *create(ParseAPI::Block *, PatchFunction *);
     static void destroy(PatchBlock *);
@@ -93,12 +94,13 @@ class PatchBlock {
     // Difference between this layer and ParseAPI: per-function blocks.
     PatchFunction *function() const { return function_; }
     ParseAPI::Block *block() const { return block_; }
-    const edgelist &sources();
-    const edgelist &targets();
+    edgelist &sources();
+    edgelist &targets();
 
   protected:
-    PatchBlock(ParseAPI::Block *block,
-               PatchFunction *func);
+    PatchBlock(ParseAPI::Block *block, PatchFunction *func);
+    PatchBlock(const PatchBlock *parblk, PatchObject *child);
+    PatchBlock(ParseAPI::Block *block, PatchObject *obj);
 
     typedef enum {
       backwards,
