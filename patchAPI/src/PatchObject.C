@@ -6,7 +6,7 @@
 using namespace Dyninst;
 using namespace PatchAPI;
 
-PatchFunction *PatchObject::getFunction(ParseAPI::Function *f) {
+PatchFunction *PatchObject::getFunc(ParseAPI::Function *f) {
    FuncMap::iterator iter = funcMap_.find(f);
    if (iter != funcMap_.end()) return iter->second;
    if (co_ != f->obj()) {
@@ -39,8 +39,12 @@ PatchObject::~PatchObject() {
   assert(funcMap_.empty());
 }
 
-void PatchObject::setFunction(PatchFunction* f) {
+void PatchObject::addFunc(PatchFunction* f) {
   assert(f);
   f->obj_ = this;
   funcMap_.insert(std::make_pair(f->func(), f));
+}
+
+void PatchObject::removeFunc(PatchFunction* f) {
+  funcMap_.erase(f->func());
 }

@@ -7,7 +7,7 @@ using namespace Dyninst;
 using namespace PatchAPI;
 
 PatchFunction *PatchFunction::create(ParseAPI::Function *f, PatchObject* obj) {
-  return obj->getFunction(f);
+  return obj->getFunc(f);
 }
 
 const PatchFunction::blocklist &PatchFunction::blocks() {

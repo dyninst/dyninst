@@ -74,6 +74,7 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
       image *img,
       AddressSpace *proc,
       BPatch_hybridMode mode):
+  DynObject(img->codeObject(), proc, fileDesc.code()),
    desc_(fileDesc),
    fullName_(img->getObject()->file()), 
    everyUniqueVariable(imgVarHash),
@@ -271,6 +272,7 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
 
 mapped_object::mapped_object(const mapped_object *s, process *child) :
    codeRange(),
+  DynObject(s, child, s->codeBase_),
    desc_(s->desc_),
    fullName_(s->fullName_),
    fileName_(s->fileName_),
@@ -370,6 +372,7 @@ mapped_object::~mapped_object()
        delete iter->second;
    }
    everyUniqueFunction.clear();
+   DynObject::destroy(this);  // Destroy from the parent class, by wenbin
 
    pdvector<int_variable *> vars = everyUniqueVariable.values();
    for (unsigned k = 0; k < vars.size(); k++) {
@@ -911,6 +914,7 @@ void mapped_object::addFunction(func_instance *func) {
     }  
     everyUniqueFunction[func->ifunc()] = func;
     func->mod()->addFunction(func);
+    //addFunc(newFunc); // Add to PatchObject's bookkeeping structure, by wenbin
 }  
 
 // Enter a function in all the appropriate tables
@@ -2020,6 +2024,7 @@ bool mapped_object::updateCodeBytesIfNeeded(Address entry)
 void mapped_object::removeFunction(func_instance *func) {
     // remove from func_instance vectore
     everyUniqueFunction.erase(func->ifunc());
+    //removeFunc(func) // Remove from parent class, by wenbin
     // remove pretty names
     pdvector<func_instance *> *funcsByName = NULL;
     for (unsigned pretty_iter = 0; 

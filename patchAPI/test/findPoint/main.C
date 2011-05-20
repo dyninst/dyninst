@@ -56,7 +56,7 @@ int main(int argc, const char *argv[]) {
   as->loadLibrary(lib_obj);
 
   // Find Points
-  PatchFunction* foo3 = lib_obj->getFunction(foo3_func);
+  PatchFunction* foo3 = lib_obj->getFunc(foo3_func);
   vector<PointPtr> func_points;
   mgr->findPoints(foo3, Point::CallBefore, inserter(func_points, func_points.begin()));
   cerr << func_points[0]->getCallee()->name() << "\n";
@@ -86,8 +86,8 @@ int main(int argc, const char *argv[]) {
   func_points[0]->push_back(snippet);
   mgr->batchFinish(errorInstances);
 
-  // PatchObject::destroy(obj);
-  // PatchObject::destroy(lib_obj);
-  //  delete obj;
-  //  delete lib_obj;
+  PatchObject::destroy(obj);
+  PatchObject::destroy(lib_obj);
+  delete obj;
+  delete lib_obj;
 }

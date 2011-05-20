@@ -40,7 +40,7 @@ void PatchBlock::createInterproceduralEdges(ParseAPI::Edge *iedge,
   std::vector<ParseAPI::Function *> ifuncs;
   iblk->getFuncs(ifuncs);
   for (unsigned i = 0; i < ifuncs.size(); ++i) {
-    PatchFunction *pfunc = object()->getFunction(ifuncs[i]);
+    PatchFunction *pfunc = object()->getFunc(ifuncs[i]);
     assert(pfunc);
     PatchBlock *pblock = pfunc->getBlock(iblk);
     assert(pblock);

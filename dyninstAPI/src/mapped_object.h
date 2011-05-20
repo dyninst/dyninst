@@ -124,7 +124,7 @@ struct edgeStub {
 // basically, the mapped_object "wins" if it can return useful
 // information without having to allocate memory.
 
-class mapped_object : public codeRange {
+class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     friend class mapped_module; // for findFunction
     friend class func_instance;
     friend class block_instance; // Adds to codeRangesByAddr_

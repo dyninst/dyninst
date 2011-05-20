@@ -33,8 +33,9 @@ class PatchObject {
 
     FuncMap& funcMap() { return funcMap_; }
 
-    PatchFunction *getFunction(ParseAPI::Function *);
-    void setFunction(PatchFunction*);
+    PatchFunction *getFunc(ParseAPI::Function *);
+    void addFunc(PatchFunction*);
+    void removeFunc(PatchFunction*);
 
     // Called by Instrumenter
     virtual bool instrument(InstanceSet* /*insertion_set*/,

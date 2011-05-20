@@ -65,7 +65,7 @@ void Point::initCodeStructure(Address /*addr*/) {
 
       for (std::set<ParseAPI::Function*>::iterator fi = parseapi_funcs.begin();
            fi != parseapi_funcs.end(); fi++) {
-        PatchFunction* func = mod->getFunction(*fi);
+        PatchFunction* func = mod->getFunc(*fi);
         inst_funcs_.insert(func);
         for (std::set<ParseAPI::Block*>::iterator bi = parseapi_blks.begin(); bi != parseapi_blks.end(); bi++) {
           PatchBlock* blk = func->getBlock(*bi);
