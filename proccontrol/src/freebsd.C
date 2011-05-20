@@ -1203,7 +1203,9 @@ Handler::handler_ret_t FreeBSDBootstrapHandler::handleEvent(Event::ptr ev) {
     {
         freebsd_thread *bsdThread = static_cast<freebsd_thread *>(*i);
 
-        if( bsdThread->getLWP() != lthread->getLWP() ) {
+        if(    bsdThread->getLWP() != lthread->getLWP() 
+            && bsdthread->getState() != int_thread::detached )  
+        {
             pthrd_printf("Issuing bootstrap stop for %d/%d\n",
                     lproc->getPid(), bsdThread->getLWP());
             bsdThread->setBootstrapStop(true);
@@ -1295,8 +1297,8 @@ void FreeBSDPreForkHandler::getEventTypesHandled(std::vector<EventType> &etypes)
  * I haven't been able to figure out why this needs to happen, but it solves the 
  * problem at hand.
  */
-bool freebsd_process::post_attach() {
-    if( !thread_db_process::post_attach() ) return false;
+bool freebsd_process::post_attach(bool wasDetached) {
+    if( !thread_db_process::post_attach(wasDetached) ) return false;
 
     if( !initKQueueEvents() ) return false;
 

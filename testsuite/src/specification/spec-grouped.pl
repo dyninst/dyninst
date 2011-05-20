@@ -2525,6 +2525,19 @@ mutatee('pc_detach', ['pc_detach_mutatee.c'], ['pcontrol_mutatee_tools.c', 'muta
 mutatee_requires_libs('pc_detach', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_detach', _, Opt) :- member(Opt, ['none']).
 
+test('pc_temp_detach', 'pc_temp_detach', 'pc_temp_detach').
+test_description('pc_temp_detach', 'Temoprarily detach from processes').
+test_platform('pc_temp_detach', Platform) :- pcPlatforms(Platform).
+mutator('pc_temp_detach', ['pc_temp_detach.C']).
+test_runmode('pc_temp_detach', 'dynamic').
+test_threadmode('pc_temp_detach', 'Threading').
+test_processmode('pc_temp_detach', 'Processes').
+test_start_state('pc_temp_detach', 'stopped').
+tests_module('pc_temp_detach', 'proccontrol').
+mutatee('pc_temp_detach', ['pc_temp_detach_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_temp_detach', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_temp_detach', _, Opt) :- member(Opt, ['none']).
+
 test('pc_terminate', 'pc_terminate', 'pc_terminate').
 test_description('pc_terminate', 'Detach from processes').
 test_platform('pc_terminate', Platform) :- pcPlatforms(Platform).

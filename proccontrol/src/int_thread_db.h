@@ -87,7 +87,7 @@ public:
      * When creating dynamic executables, initialization needs to happen
      * when the thread library is loaded.
      */
-    virtual bool post_attach();
+    virtual bool post_attach(bool wasDetached);
     virtual bool post_create();
 
     // Platform-dependent functionality (derived classes override)

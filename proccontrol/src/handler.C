@@ -761,7 +761,7 @@ Handler::handler_ret_t HandleThreadDestroy::handleEvent(Event::ptr ev)
       return ret_success;
    }
 
-   if (ev->getEventType().code() == EventType::UserThreadCreate &&
+   if (ev->getEventType().code() == EventType::UserThreadDestroy &&
        proc->plat_supportLWPEvents()) 
    {
       //This is a user thread delete, but we still have an upcoming LWP 
