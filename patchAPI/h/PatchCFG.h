@@ -26,18 +26,21 @@ class PatchEdge {
    ~PatchEdge();
 
    // Getters
-   ParseAPI::Edge *edge() const { return edge_; }
-   PatchBlock *src();
-   PatchBlock *trg();
-   ParseAPI::EdgeTypeEnum type() const { return edge_->type(); }
-   bool sinkEdge() const { return edge_->sinkEdge(); }
-   bool interproc() const { return edge_->interproc(); }
+   ParseAPI::Edge *edge() const;
+   PatchBlock *source();
+   PatchBlock *target();
+   ParseAPI::EdgeTypeEnum type() const;
+   bool sinkEdge() const;
+   bool interproc() const;
 
   protected:
     PatchEdge(ParseAPI::Edge *internalEdge,
               PatchBlock *source,
               PatchBlock *target);
-    PatchEdge(const PatchEdge *parent, PatchObject *child);
+
+    PatchEdge(const PatchEdge *parent,
+              PatchBlock *child_src,
+              PatchBlock *child_trg);
 
     ParseAPI::Edge *edge_;
     PatchBlock *src_;
@@ -66,9 +69,9 @@ class EdgePredicateAdapter
 
 /* PatchAPI Block */
 class PatchBlock {
-   friend class PatchEdge;
-   friend class PatchFunction;
-   friend class PatchObject;
+  friend class PatchEdge;
+  friend class PatchFunction;
+  friend class PatchObject;
 
   public:
     typedef std::pair<Address, InstructionAPI::Instruction::Ptr> InsnInstance;
@@ -78,20 +81,21 @@ class PatchBlock {
       PatchEdge *,
       PatchEdge *,
       EdgePredicateAdapter> edgelist;
-    //typedef std::vector<PatchEdge *> edgelist;
 
     static PatchBlock *create(ParseAPI::Block *, PatchFunction *);
     static void destroy(PatchBlock *);
     virtual ~PatchBlock();
 
     // Getters
-    Address start() const { return object()->codeBase() + block_->start(); }
-    Address end() const { return object()->codeBase() + block_->end(); }
-    Address lastInsnAddr() const { return object()->codeBase() + block_->lastInsnAddr(); }
-    Address size() const { return block_->size(); }
+    Address start() const;
+    Address end() const;
+    Address last() const;
+    Address size() const;
+
     bool isShared();
     PatchObject* object() const;
     void getInsns(InsnInstances &insns);
+
     // Difference between this layer and ParseAPI: per-function blocks.
     PatchFunction *function() const { return function_; }
     ParseAPI::Block *block() const { return block_; }

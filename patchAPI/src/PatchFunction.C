@@ -56,8 +56,8 @@ PatchEdge *PatchFunction::getEdge(ParseAPI::Edge *iedge,
   EdgeMap::iterator iter = edgeMap_.find(iedge);
   if (iter != edgeMap_.end()) {
     // Consistency check
-    if (src) assert(iter->second->src() == src);
-    if (trg) assert(iter->second->trg() == trg);
+    if (src) assert(iter->second->source() == src);
+    if (trg) assert(iter->second->target() == trg);
     return iter->second;
   }
 

@@ -143,7 +143,7 @@ bool PatchMgr::findPointsByType(PatchBlock* blk, Point::PointType types,
   Address addr = blk->start();
   getPointsByType(type_pt_map, types, Point::BlockEntry, addr, blk, points);
 
-  addr = blk->lastInsnAddr();
+  addr = blk->last();
   getPointsByType(type_pt_map, types, Point::BlockExit, addr, blk, points);
 
   addr = blk->start();
@@ -185,8 +185,8 @@ bool PatchMgr::findPointsByType(PatchEdge* edge, Point::PointType types,
   switch (edge->type()) {
     case ParseAPI::COND_TAKEN:
     case ParseAPI::DIRECT:
-      if (edge->src() != NULL) {
-        addr = edge->src()->lastInsnAddr();
+      if (edge->source() != NULL) {
+        addr = edge->source()->last();
       }
       break;
     case ParseAPI::COND_NOT_TAKEN:
@@ -194,13 +194,13 @@ bool PatchMgr::findPointsByType(PatchEdge* edge, Point::PointType types,
     case ParseAPI::FALLTHROUGH:
     case ParseAPI::CATCH:
     case ParseAPI::CALL_FT:
-      if (edge->src() != NULL) {
-        addr = edge->src()->lastInsnAddr();
+      if (edge->source() != NULL) {
+        addr = edge->source()->last();
       }
       break;
     case ParseAPI::RET:
-      if (edge->src() != NULL) {
-        addr = edge->src()->lastInsnAddr();
+      if (edge->source() != NULL) {
+        addr = edge->source()->last();
       }
       break;
     case ParseAPI::INDIRECT:
@@ -234,7 +234,7 @@ bool PatchMgr::findPointsByType(PatchFunction* func,
   for (PatchFunction::blocklist::const_iterator bi = retblks.begin();
        bi != retblks.end(); bi++) {
     PatchBlock* blk = *bi;
-    addr = blk->lastInsnAddr();
+    addr = blk->last();
     getPointsByType(type_pt_map, types, Point::FuncExit, addr, func, points);
   }
   addr = func->addr();

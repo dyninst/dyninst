@@ -193,3 +193,19 @@ PatchBlock::~PatchBlock() {
   assert(srcs_.empty());
   assert(trgs_.empty());
 }
+
+Address PatchBlock::start() const {
+  return object()->codeBase() + block_->start();
+}
+
+Address PatchBlock::end() const {
+  return object()->codeBase() + block_->end();
+}
+
+Address PatchBlock::last() const {
+  return object()->codeBase() + block_->lastInsnAddr();
+}
+
+Address PatchBlock::size() const {
+  return block_->size();
+}

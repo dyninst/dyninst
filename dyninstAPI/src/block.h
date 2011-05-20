@@ -13,32 +13,22 @@ class parse_func;
 class BPatch_edge;
 class mapped_object;
 
+#define DYN_CAST_EI(e) dynamic_cast<edge_instance*>(e)
+#define DYN_CAST_BI(b) dynamic_cast<block_instance*>(b)
+
 class edge_instance : public Dyninst::PatchAPI::PatchEdge {
-   friend class block_instance;
-   friend class func_instance;
-   friend class mapped_object;
+  friend class block_instance;
+  friend class func_instance;
+  friend class mapped_object;
 
   public:
-   ParseAPI::Edge *edge() const { return edge_; }
-   block_instance *src() const { return src_; }
-   block_instance *trg() const { return trg_; }
-    ParseAPI::EdgeTypeEnum type() const { return edge_->type(); }
-   
-   bool sinkEdge() const { return edge_->sinkEdge(); }
-   bool interproc() const { return edge_->interproc() || 
-         (edge_->type() == ParseAPI::CALL) || 
-         (edge_->type() == ParseAPI::RET); }
-
-   AddressSpace *proc();
-
+    block_instance *src() const;
+    block_instance *trg() const;
+    AddressSpace *proc();
   private:
-   edge_instance(ParseAPI::Edge *edge, block_instance *src, block_instance *trg);
-   edge_instance(const edge_instance *parent, mapped_object *child);
-   ~edge_instance();
-   
-   ParseAPI::Edge *edge_;
-   block_instance *src_;
-   block_instance *trg_;
+    edge_instance(ParseAPI::Edge *edge, block_instance *src, block_instance *trg);
+    edge_instance(const edge_instance *parent, mapped_object *child);
+    ~edge_instance();
 };
 
 // This is somewhat mangled, but allows Dyninst to access the
@@ -63,23 +53,21 @@ class EdgePredicateAdapter
 };
 
 class block_instance : public Dyninst::PatchAPI::PatchBlock {
-//class block_instance  {
-   friend class mapped_object;
+  friend class mapped_object;
 
- public:
-   typedef std::vector<edge_instance *> edges;
-   typedef std::vector<edge_instance *> edgelist;
-
+  public:
+    typedef std::vector<edge_instance *> edges;
+    typedef std::vector<edge_instance *> edgelist;
 
     block_instance(ParseAPI::Block *ib, mapped_object *obj);
     block_instance(const block_instance *parent, mapped_object *child);
     ~block_instance();
 
     // "Basic" block stuff
-    Address start() const;
-    Address end() const;
-    Address last() const;
-    unsigned size() const;
+        Address start() const;
+        Address end() const;
+        Address last() const;
+        unsigned size() const;
 
     // Up-accessors
     mapped_object *obj() const { return obj_; }

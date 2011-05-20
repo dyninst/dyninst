@@ -20,8 +20,8 @@ PatchEdge::PatchEdge(ParseAPI::Edge *internalEdge,
   : edge_(internalEdge), src_(source), trg_(target) {
 }
 
-PatchEdge::PatchEdge(const PatchEdge *parent, PatchObject *child)
-  : edge_(parent->edge_) {
+PatchEdge::PatchEdge(const PatchEdge *parent, PatchBlock *src, PatchBlock *trg)
+  : edge_(parent->edge_), src_(src), trg_(trg) {
   // TODO(wenbin): get src and trg from child
 }
 
@@ -32,7 +32,7 @@ PatchEdge::PatchEdge(const PatchEdge *parent, PatchObject *child)
 // de-sharing a block. That said, we can create blocks on the fly if
 // there is no ambiguity - that is, if we're in the same function.
 
-PatchBlock *PatchEdge::src() {
+PatchBlock *PatchEdge::source() {
   if (src_) return src_;
   // Interprocedural sources _must_ be pre-created since we don't
   // have enough information to create them here.
@@ -44,7 +44,7 @@ PatchBlock *PatchEdge::src() {
   return src_;
 }
 
-PatchBlock *PatchEdge::trg() {
+PatchBlock *PatchEdge::target() {
   if (trg_) return trg_;
   assert(!interproc());
   assert(src_);
@@ -65,4 +65,22 @@ void PatchEdge::destroy(PatchEdge *e) {
 PatchEdge::~PatchEdge() {
   //  assert(src_ == NULL);
   //  assert(trg_ == NULL);
+}
+
+ParseAPI::Edge *PatchEdge::edge() const {
+  return edge_;
+}
+
+ParseAPI::EdgeTypeEnum PatchEdge::type() const {
+  return edge_->type();
+}
+
+bool PatchEdge::sinkEdge() const {
+  return edge_->sinkEdge();
+}
+
+bool PatchEdge::interproc() const {
+  return edge_->interproc() ||
+         (edge_->type() == ParseAPI::CALL) ||
+         (edge_->type() == ParseAPI::RET);
 }

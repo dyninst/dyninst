@@ -39,7 +39,7 @@ PatchFunction* Point::getCallee() {
   PatchBlock::edgelist::iterator it = b->targets().begin();
   for (; it != b->targets().end(); ++it) {
     if ((*it)->type() == ParseAPI::CALL) {
-      PatchBlock* trg = (*it)->trg();
+      PatchBlock* trg = (*it)->target();
       return trg->function();
     }
   }
