@@ -74,8 +74,9 @@ class PatchBlock {
   friend class PatchObject;
 
   public:
-    typedef std::pair<Address, InstructionAPI::Instruction::Ptr> InsnInstance;
-    typedef std::vector<InsnInstance> InsnInstances;
+    typedef std::map<Address, InstructionAPI::Instruction::Ptr> Insns;
+    //typedef std::pair<Address, InstructionAPI::Instruction::Ptr> InsnInstance;
+    //typedef std::vector<InsnInstance> InsnInstances;
     typedef ParseAPI::ContainerWrapper<
       std::vector<PatchEdge *>,
       PatchEdge *,
@@ -93,12 +94,13 @@ class PatchBlock {
     Address size() const;
 
     bool isShared();
-    PatchObject* object() const;
-    void getInsns(InsnInstances &insns);
+    int containingFuncs() const;
+    void getInsns(Insns &insns) const;
 
     // Difference between this layer and ParseAPI: per-function blocks.
     PatchFunction *function() const { return function_; }
     ParseAPI::Block *block() const { return block_; }
+    PatchObject* object() const { return obj_; }
     edgelist &sources();
     edgelist &targets();
 
@@ -122,6 +124,7 @@ class PatchBlock {
     std::vector<PatchEdge *> trgs_;
     edgelist srclist_;
     edgelist trglist_;
+    PatchObject* obj_;
 };
 
 /* PatchAPI Function */

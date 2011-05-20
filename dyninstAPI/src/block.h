@@ -6,6 +6,7 @@
 #include "parseAPI/h/CFG.h"
 #include "instPoint.h"
 #include "PatchCFG.h"
+#include "mapped_object.h"
 
 class block_instance;
 class func_instance;
@@ -13,8 +14,11 @@ class parse_func;
 class BPatch_edge;
 class mapped_object;
 
+// Shortcuts for type casting
+#define DYN_CAST_MO(o) dynamic_cast<mapped_object*>(o)
 #define DYN_CAST_EI(e) dynamic_cast<edge_instance*>(e)
 #define DYN_CAST_BI(b) dynamic_cast<block_instance*>(b)
+#define DYN_CAST_PB(b) dynamic_cast<parse_block*>(b)
 
 class edge_instance : public Dyninst::PatchAPI::PatchEdge {
   friend class block_instance;
@@ -63,27 +67,16 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     block_instance(const block_instance *parent, mapped_object *child);
     ~block_instance();
 
-    // "Basic" block stuff
-        Address start() const;
-        Address end() const;
-        Address last() const;
-        unsigned size() const;
-
     // Up-accessors
-    mapped_object *obj() const { return obj_; }
+    mapped_object *obj() const { return DYN_CAST_MO(obj_); }
     AddressSpace *addrSpace() const;
     AddressSpace *proc() const { return addrSpace(); }
 
-    int containingFuncs() const { return llb()->containingFuncs(); }
     template<class OutputIterator> 
        void getFuncs(OutputIterator result);
 
-    bool isShared() const { return block_->isShared(); }
-
     void triggerModified();
-
-    parse_block * llb() const { return block_; }
-    
+    parse_block * llb() const { return DYN_CAST_PB(block_); }
     std::string format() const;
 
     const edgelist &sources();
@@ -100,8 +93,7 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     std::string calleeName();
 
     // TODO: this should be a map from addr to insn, really
-    typedef std::map<Address, InstructionAPI::Instruction::Ptr> Insns;
-    void getInsns(Insns &instances) const;
+    //void getInsns(Insns &instances) const;
     InstructionAPI::Instruction::Ptr getInsn(Address a) const;
 
     std::string disassemble() const;
@@ -122,9 +114,6 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
  private:
     void updateCallTarget(func_instance *func);
     func_instance *findFunction(ParseAPI::Function *);
-
-    mapped_object *obj_;
-    parse_block *block_;
 
     edges srcs_;
     edges trgs_;

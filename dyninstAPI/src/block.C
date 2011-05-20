@@ -39,22 +39,20 @@
 #include <set>
 #include <sstream>
 #include "Relocation/Transformers/Movement-analysis.h"
+
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
 block_instance::block_instance(ParseAPI::Block *ib,
                                mapped_object *obj)
-    : PatchBlock(ib, obj), obj_(obj),  block_(static_cast<parse_block *>(ib))
-      //: PatchBlock(ib, obj), obj_(obj)
-{
+      : PatchBlock(ib, obj) {
    // We create edges lazily
 };
 
 // Fork constructor
-block_instance::block_instance(const block_instance *parent, mapped_object *childObj)
-    : PatchBlock(parent, childObj), obj_(childObj),  block_(parent->block_)
-      //  : PatchBlock(parent, childObj), obj_(childObj)
-{
+block_instance::block_instance(const block_instance *parent,
+			       mapped_object *childObj)
+  : PatchBlock(parent, childObj) {
    // We also need to copy edges.
    // Thing is, those blocks may not exist yet...
    // So we wait, and do edges after all blocks have
@@ -62,23 +60,6 @@ block_instance::block_instance(const block_instance *parent, mapped_object *chil
 }
 
 block_instance::~block_instance() {}
-
-Address block_instance::start() const {
-   return block_->start() + obj_->codeBase();
-}
-
-Address block_instance::end() const {
-   return block_->end() + obj_->codeBase();
-}
-
-Address block_instance::last() const {
-   return block_->lastInsnAddr() + obj_->codeBase();
-}
-
-unsigned block_instance::size() const {
-   return block_->size();
-}
-
 
 AddressSpace *block_instance::addrSpace() const {
     return obj()->proc();
@@ -94,10 +75,12 @@ std::string block_instance::format() const {
     return ret.str();
 }
 
+/*
 void block_instance::getInsns(Insns &instances) const {
    instances.clear();
    llb()->getInsns(instances, obj()->codeBase());
 }
+*/
 
 InstructionAPI::Instruction::Ptr block_instance::getInsn(Address a) const {
    Insns insns;
@@ -200,8 +183,8 @@ void block_instance::triggerModified() {
 const block_instance::edgelist &block_instance::sources() {
    if (srcs_.empty()) {
       // Create edges
-      for (ParseAPI::Block::edgelist::iterator iter = block_->sources().begin();
-           iter != block_->sources().end(); ++iter) {
+     for (ParseAPI::Block::edgelist::iterator iter = llb()->sources().begin();
+           iter != llb()->sources().end(); ++iter) {
          // edge_instance takes care of looking up whether we've already
          // created this thing.
          edge_instance *newEdge = obj()->findEdge(*iter, NULL, this);
@@ -213,8 +196,8 @@ const block_instance::edgelist &block_instance::sources() {
 
 const block_instance::edgelist &block_instance::targets() {
    if (trgs_.empty()) {
-      for (ParseAPI::Block::edgelist::iterator iter = block_->targets().begin();
-           iter != block_->targets().end(); ++iter) {
+      for (ParseAPI::Block::edgelist::iterator iter = llb()->targets().begin();
+           iter != llb()->targets().end(); ++iter) {
          edge_instance *newEdge = obj()->findEdge(*iter, this, NULL);
          trgs_.push_back(newEdge);
      }

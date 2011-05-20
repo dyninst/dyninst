@@ -148,8 +148,7 @@ test_results_t DyninstComponent::program_teardown(ParameterDict &params)
 }
 
 test_results_t DyninstComponent::group_setup(RunGroup *group, 
-                                             ParameterDict &params)
-{
+                                             ParameterDict &params) {
 #if defined(m_abi)
    if (isMutateeMABI32(group->mutatee)) {
       if (NULL == libRTname_m_abi) {

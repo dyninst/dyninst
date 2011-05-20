@@ -16,26 +16,37 @@ PatchBlock::PatchBlock(ParseAPI::Block *block,
    : block_(block),
      function_(func),
      srclist_(srcs_),
-     trglist_(trgs_) {};
+     trglist_(trgs_),
+     obj_(func->object()) {
+}
 
 PatchBlock::PatchBlock(ParseAPI::Block *blk, PatchObject *obj)
-  : block_(blk),  srclist_(srcs_), trglist_(trgs_) {
-  /*
-  std::vector<ParseAPI::Function*> ifuncs;
-  blk->getFuncs(ifuncs);
-  function_ = obj->getFunc(ifuncs[0]);
-  */
+  : block_(blk),  srclist_(srcs_), trglist_(trgs_), obj_(obj) {
+
+  ParseAPI::CodeObject::funclist& all = obj->co()->funcs();
+  for (ParseAPI::CodeObject::funclist::iterator fit = all.begin();
+       fit != all.end(); ++fit) {
+    if ((*fit)->contains(blk)) {
+      function_ = obj->getFunc(*fit);
+      break;
+    }
+  }
 }
 
 PatchBlock::PatchBlock(const PatchBlock *parent, PatchObject *child)
-  : block_(parent->block_), srclist_(srcs_), trglist_(trgs_) {
-  /*  std::vector<ParseAPI::Function*> ifuncs;
-  parent->block_->getFuncs(ifuncs);
-  function_ = child->getFunc(ifuncs[0]);
-  */
+  : block_(parent->block_), srclist_(srcs_), trglist_(trgs_), obj_(child) {
+
+  ParseAPI::CodeObject::funclist& all = child->co()->funcs();
+  for (ParseAPI::CodeObject::funclist::iterator fit = all.begin();
+       fit != all.end(); ++fit) {
+    if ((*fit)->contains(block_)) {
+      function_ = child->getFunc(*fit);
+      break;
+    }
+  }
 }
 
-void PatchBlock::getInsns(InsnInstances &insns) {
+void PatchBlock::getInsns(Insns &insns) const {
   // Pass through to ParseAPI. They don't have a native interface, so add one.
   Offset off = block_->start();
   const unsigned char *ptr =
@@ -43,8 +54,9 @@ void PatchBlock::getInsns(InsnInstances &insns) {
   if (ptr == NULL) return;
   InstructionDecoder d(ptr, size(), block_->obj()->cs()->getArch());
   while (off < block_->end()) {
-    insns.push_back(std::make_pair(off, d.decode()));
-    off += insns.back().second->size();
+    Instruction::Ptr insn = d.decode();
+    insns[off + obj_->codeBase()] = insn;
+    off += insn->size();
   }
 }
 
@@ -124,12 +136,6 @@ PatchBlock::edgelist &PatchBlock::targets() {
   return trglist_;
 }
 
-PatchObject* PatchBlock::object() const {
-  assert(function_);
-  return function_->object();
-}
-
-
 void PatchBlock::destroy(PatchBlock *b) {
   // As a note, deleting edges that source and target this
   // block is an exercise in delicacy. Make sure you know
@@ -183,10 +189,7 @@ void PatchBlock::removeTargetEdge(PatchEdge *e) {
 
 
 bool PatchBlock::isShared() {
-  std::vector<ParseAPI::Function*> funcs;
-  block()->getFuncs(funcs);
-  if (funcs.size() > 1) return true;
-  return false;
+  return containingFuncs() > 1;
 }
 PatchBlock::~PatchBlock() {
   // We assume top-down teardown of data
@@ -208,4 +211,8 @@ Address PatchBlock::last() const {
 
 Address PatchBlock::size() const {
   return block_->size();
+}
+
+int PatchBlock::containingFuncs() const {
+  return block_->containingFuncs();
 }
