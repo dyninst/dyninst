@@ -250,12 +250,6 @@ std::string PatchBlock::disassemble() const {
     return ret.str();
 }
 
-void *PatchBlock::getPtrToInstruction(Address addr) const {
-    if (addr < start()) return NULL;
-    if (addr > end()) return NULL;
-    return block_->region()->getPtrToInstruction(addr);
-}
-
 InstructionAPI::Instruction::Ptr PatchBlock::getInsn(Address a) const {
    Insns insns;
    getInsns(insns);

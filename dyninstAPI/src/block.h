@@ -77,6 +77,7 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
 
     void triggerModified();
     parse_block * llb() const { return DYN_CAST_PB(block_); }
+    void *getPtrToInstruction(Address addr) const;
 
     const edgelist &sources();
     const edgelist &targets();

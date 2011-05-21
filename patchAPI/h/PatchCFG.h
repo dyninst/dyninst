@@ -98,7 +98,6 @@ class PatchBlock {
     void getInsns(Insns &insns) const;
     InstructionAPI::Instruction::Ptr getInsn(Address a) const;
     std::string disassemble() const;
-    void *getPtrToInstruction(Address addr) const;
     bool containsCall();
     bool containsDynamicCall();
     std::string format() const;

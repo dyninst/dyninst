@@ -171,3 +171,8 @@ func_instance *block_instance::findFunction(ParseAPI::Function *p) {
    return obj()->findFunction(p);
 }
 
+void *block_instance::getPtrToInstruction(Address addr) const {
+    if (addr < start()) return NULL;
+    if (addr > end()) return NULL;
+    return obj()->getPtrToInstruction(addr);
+}
