@@ -1725,6 +1725,4 @@ bool getVar(BPatch_image *appImage, const char *vname, void *addr, int testno, c
 
 	return true;
 }
-
-
-// End Test12 Library functions
+ // End Test12 Library functions
