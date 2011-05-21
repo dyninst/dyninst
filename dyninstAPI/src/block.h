@@ -77,7 +77,6 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
 
     void triggerModified();
     parse_block * llb() const { return DYN_CAST_PB(block_); }
-    std::string format() const;
 
     const edgelist &sources();
     const edgelist &targets();
@@ -91,17 +90,6 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
 
     func_instance *callee();
     std::string calleeName();
-
-    // TODO: this should be a map from addr to insn, really
-    //void getInsns(Insns &instances) const;
-    InstructionAPI::Instruction::Ptr getInsn(Address a) const;
-
-    std::string disassemble() const;
-
-    void *getPtrToInstruction(Address addr) const;
-
-    bool containsCall();
-    bool containsDynamicCall();
 
     int id() const;
 

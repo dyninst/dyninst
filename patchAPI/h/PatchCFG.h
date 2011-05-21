@@ -96,6 +96,12 @@ class PatchBlock {
     bool isShared();
     int containingFuncs() const;
     void getInsns(Insns &insns) const;
+    InstructionAPI::Instruction::Ptr getInsn(Address a) const;
+    std::string disassemble() const;
+    void *getPtrToInstruction(Address addr) const;
+    bool containsCall();
+    bool containsDynamicCall();
+    std::string format() const;
 
     // Difference between this layer and ParseAPI: per-function blocks.
     PatchFunction *function() const { return function_; }

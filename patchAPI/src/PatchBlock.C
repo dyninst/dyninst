@@ -216,3 +216,58 @@ Address PatchBlock::size() const {
 int PatchBlock::containingFuncs() const {
   return block_->containingFuncs();
 }
+
+bool PatchBlock::containsCall() {
+  ParseAPI::Block::edgelist & out_edges = block_->targets();
+  ParseAPI::Block::edgelist::iterator eit = out_edges.begin();
+  for( ; eit != out_edges.end(); ++eit) {
+    if ( ParseAPI::CALL == (*eit)->type() ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool PatchBlock::containsDynamicCall() {
+  ParseAPI::Block::edgelist & out_edges = block_->targets();
+  ParseAPI::Block::edgelist::iterator eit = out_edges.begin();
+   for( ; eit != out_edges.end(); ++eit) {
+     if ( ParseAPI::CALL == (*eit)->type() && ((*eit)->sinkEdge())) {
+         return true;
+      }
+   }
+   return false;
+}
+
+std::string PatchBlock::disassemble() const {
+    stringstream ret;
+    Insns instances;
+    getInsns(instances);
+    for (Insns::iterator iter = instances.begin();
+         iter != instances.end(); ++iter) {
+       ret << "\t" << hex << iter->first << ": " << iter->second->format() << dec << endl;
+    }
+    return ret.str();
+}
+
+void *PatchBlock::getPtrToInstruction(Address addr) const {
+    if (addr < start()) return NULL;
+    if (addr > end()) return NULL;
+    return block_->region()->getPtrToInstruction(addr);
+}
+
+InstructionAPI::Instruction::Ptr PatchBlock::getInsn(Address a) const {
+   Insns insns;
+   getInsns(insns);
+   return insns[a];
+}
+
+std::string PatchBlock::format() const {
+    stringstream ret;
+    ret << "BB["
+        << hex << start()
+        << ","
+        << end() << dec
+        << "]" << endl;
+    return ret.str();
+}

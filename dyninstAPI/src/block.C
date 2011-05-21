@@ -65,46 +65,6 @@ AddressSpace *block_instance::addrSpace() const {
     return obj()->proc();
 }
 
-std::string block_instance::format() const {
-    stringstream ret;
-    ret << "BB["
-        << hex << start()
-        << ","
-        << end() << dec
-        << "]" << endl;
-    return ret.str();
-}
-
-/*
-void block_instance::getInsns(Insns &instances) const {
-   instances.clear();
-   llb()->getInsns(instances, obj()->codeBase());
-}
-*/
-
-InstructionAPI::Instruction::Ptr block_instance::getInsn(Address a) const {
-   Insns insns;
-   getInsns(insns);
-   return insns[a];
-}
-
-std::string block_instance::disassemble() const {
-    stringstream ret;
-    Insns instances;
-    getInsns(instances);
-    for (Insns::iterator iter = instances.begin();
-         iter != instances.end(); ++iter) {
-       ret << "\t" << hex << iter->first << ": " << iter->second->format() << dec << endl;
-    }
-    return ret.str();
-}
-
-void *block_instance::getPtrToInstruction(Address addr) const {
-    if (addr < start()) return NULL;
-    if (addr > end()) return NULL;
-    return obj()->getPtrToInstruction(addr);
-}
-
 
 edge_instance *block_instance::getFallthrough() {
    for (edgelist::const_iterator iter = targets().begin(); iter != targets().end(); ++iter) {
@@ -144,30 +104,6 @@ block_instance *block_instance::getTargetBlock() {
       return t->trg();
    else
       return NULL;
-}
-
-
-bool block_instance::containsCall()
-{
-    Block::edgelist & out_edges = llb()->targets();
-    Block::edgelist::iterator eit = out_edges.begin();
-    for( ; eit != out_edges.end(); ++eit) {
-        if ( CALL == (*eit)->type() ) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool block_instance::containsDynamicCall() {
-   Block::edgelist & out_edges = llb()->targets();
-   Block::edgelist::iterator eit = out_edges.begin();
-   for( ; eit != out_edges.end(); ++eit) {
-      if ( CALL == (*eit)->type() && ((*eit)->sinkEdge())) {
-         return true;
-      }
-   }
-   return false;
 }
 
 int block_instance::id() const {
