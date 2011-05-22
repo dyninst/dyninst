@@ -44,9 +44,9 @@ PatchFunction *PatchObject::getFunc(ParseAPI::Function *f) {
 void PatchObject::addFunc(PatchFunction* f) {
   assert(f);
   f->obj_ = this;
-  funcMap_.insert(std::make_pair(f->func(), f));
+  funcMap_.insert(std::make_pair(f->function(), f));
 }
 
 void PatchObject::removeFunc(PatchFunction* f) {
-  funcMap_.erase(f->func());
+  funcMap_.erase(f->function());
 }
