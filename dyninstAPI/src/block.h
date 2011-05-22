@@ -20,6 +20,7 @@ class mapped_object;
 #define DYN_CAST_BI(b) dynamic_cast<block_instance*>(b)
 #define DYN_CAST_PB(b) dynamic_cast<parse_block*>(b)
 #define DYN_CAST_PF(f) dynamic_cast<parse_func*>(f)
+#define DYN_CAST_FI(f) dynamic_cast<func_instance*>(f)
 
 class edge_instance : public Dyninst::PatchAPI::PatchEdge {
   friend class block_instance;

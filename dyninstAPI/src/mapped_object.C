@@ -320,9 +320,9 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
    }
 
    // Aaand now functions
-   for (FuncMap::const_iterator iter = s->everyUniqueFunction.begin();
-       iter != s->everyUniqueFunction.end(); ++iter) {
-      func_instance *parFunc = iter->second;
+   for (FuncMap::const_iterator iter = s->funcs_.begin();
+       iter != s->funcs_.end(); ++iter) {
+     func_instance *parFunc = DYN_CAST_FI(iter->second);
       assert(parFunc->mod());
       mapped_module *mod = getOrCreateForkedModule(parFunc->mod());
       func_instance *newFunc = new func_instance(parFunc,
@@ -368,10 +368,10 @@ mapped_object::~mapped_object()
    }
    edges_.clear();
    
-   for (FuncMap::iterator iter = everyUniqueFunction.begin(); iter != everyUniqueFunction.end(); ++iter) {
+   for (FuncMap::iterator iter = funcs_.begin(); iter != funcs_.end(); ++iter) {
        delete iter->second;
    }
-   everyUniqueFunction.clear();
+   funcs_.clear();
    DynObject::destroy(this);  // Destroy from the parent class, by wenbin
 
    pdvector<int_variable *> vars = everyUniqueVariable.values();
@@ -580,10 +580,10 @@ const pdvector<func_instance *> *mapped_object::findFuncVectorByPretty(const std
    // Slow path: check each img_func, add those we don't already have, and return.
    for (unsigned i = 0; i < img_funcs->size(); i++) {
        parse_func *func = (*img_funcs)[i];
-       if (everyUniqueFunction.find(func) == everyUniqueFunction.end()) {
+       if (funcs_.find(func) == funcs_.end()) {
            findFunction(func);
        }
-       assert(everyUniqueFunction[func]);
+       assert(funcs_[func]);
    }
    delete img_funcs;
    return allFunctionsByPrettyName[funcname];
@@ -612,10 +612,10 @@ const pdvector <func_instance *> *mapped_object::findFuncVectorByMangled(const s
     // Slow path: check each img_func, add those we don't already have, and return.
     for (unsigned i = 0; i < img_funcs->size(); i++) {
         parse_func *func = (*img_funcs)[i];
-        if (everyUniqueFunction.find(func) == everyUniqueFunction.end()) {
+        if (funcs_.find(func) == funcs_.end()) {
             findFunction(func);
         }
-        assert(everyUniqueFunction[func]);
+        assert(funcs_[func]);
     }
     delete img_funcs;
     return allFunctionsByMangledName[funcname];
@@ -792,10 +792,10 @@ bool mapped_object::getAllFunctions(pdvector<func_instance *> &funcs) {
     CodeObject::funclist &img_funcs = parse_img()->getAllFunctions();
     CodeObject::funclist::iterator fit = img_funcs.begin();
     for( ; fit != img_funcs.end(); ++fit) {
-        if(everyUniqueFunction.find((parse_func*)*fit) == everyUniqueFunction.end()) {
+        if(funcs_.find((parse_func*)*fit) == funcs_.end()) {
             findFunction((parse_func*)*fit);
         }
-        funcs.push_back(everyUniqueFunction[(parse_func*)*fit]);
+        funcs.push_back(DYN_CAST_FI(funcs_[(parse_func*)*fit]));
     }
     return funcs.size() > start;
 }
@@ -830,8 +830,8 @@ func_instance *mapped_object::findFunction(ParseAPI::Function *papi_func) {
     assert(mod);
     
 
-    if (everyUniqueFunction.find(img_func) != everyUniqueFunction.end()) {
-        return everyUniqueFunction[img_func];
+    if (funcs_.find(img_func) != funcs_.end()) {
+      return DYN_CAST_FI(funcs_[img_func]);
     }
 
     func_instance *func = new func_instance(static_cast<parse_func *>(img_func), 
@@ -912,7 +912,7 @@ void mapped_object::addFunction(func_instance *func) {
         string symtab_name = func->symTabNameVector()[symtab_iter];
         addFunctionName(func, symtab_name.c_str(), mangledName);
     }  
-    everyUniqueFunction[func->ifunc()] = func;
+    funcs_[func->ifunc()] = func;
     func->mod()->addFunction(func);
     //addFunc(newFunc); // Add to PatchObject's bookkeeping structure, by wenbin
 }  
@@ -1289,7 +1289,7 @@ void mapped_object::registerNewFunctions()
     CodeObject::funclist::iterator fit = newFuncs.begin();
     for( ; fit != newFuncs.end(); ++fit) {
         parse_func *curFunc = (parse_func*) *fit;
-        if (everyUniqueFunction.find(curFunc) == everyUniqueFunction.end()) { 
+        if (funcs_.find(curFunc) == funcs_.end()) { 
             //if(curFunc->src() == HINT)
             //    mal_printf("adding function of source type hint\n");
             findFunction(curFunc); // does all the work
@@ -2023,7 +2023,7 @@ bool mapped_object::updateCodeBytesIfNeeded(Address entry)
 
 void mapped_object::removeFunction(func_instance *func) {
     // remove from func_instance vectore
-    everyUniqueFunction.erase(func->ifunc());
+    funcs_.erase(func->ifunc());
     //removeFunc(func) // Remove from parent class, by wenbin
     // remove pretty names
     pdvector<func_instance *> *funcsByName = NULL;

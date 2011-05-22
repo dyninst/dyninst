@@ -31,7 +31,7 @@ class PatchObject {
     AddrSpacePtr addrSpace() const { return addr_space_; }
     void setAddrSpace(AddrSpacePtr as) { addr_space_ = as; }
 
-    FuncMap& funcMap() { return funcMap_; }
+    // FuncMap& funcMap() { return funcMap_; }
 
     PatchFunction *getFunc(ParseAPI::Function *);
     void addFunc(PatchFunction*);
@@ -49,7 +49,7 @@ class PatchObject {
     ParseAPI::CodeSource* cs_;
     Address codeBase_;
     AddrSpacePtr addr_space_;
-    FuncMap funcMap_;
+    FuncMap funcs_;
 
     PatchObject(ParseAPI::CodeObject* o, Address a);
     PatchObject(const PatchObject* par_obj, Address a);
