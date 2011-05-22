@@ -9,6 +9,7 @@ using Dyninst::InstructionAPI::InstructionDecoder;
 using Dyninst::InstructionAPI::Instruction;
 using Dyninst::PatchAPI::PatchMgr;
 using Dyninst::PatchAPI::PatchMgrPtr;
+using Dyninst::PatchAPI::PointFactory;
 
 bool debug_patchapi_flag = false;
 static void initDebugFlag() {
@@ -16,13 +17,13 @@ static void initDebugFlag() {
     debug_patchapi_flag = true;
 }
 
-PatchMgr::PatchMgr(AddrSpacePtr as)
-  : as_(as), batch_mode_(0) {
+PatchMgr::PatchMgr(AddrSpacePtr as, PointFactoryPtr pt)
+  : point_factory_(pt), as_(as), batch_mode_(0) {
   instor_ = Instrumenter::create(as);
 }
 
-PatchMgrPtr PatchMgr::create(AddrSpacePtr as) {
-  PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as));
+PatchMgrPtr PatchMgr::create(AddrSpacePtr as, PointFactoryPtr pf) {
+  PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as, pf));
   if (!ret) return PatchMgrPtr();
   initDebugFlag();
   ret->as_->mgr_ = ret;
@@ -65,11 +66,12 @@ void  PatchMgr::getPointsByType(TypePtMap& type_pt_map, Point::PointType types,
   if (!Point::TestType(types, type)) {
     return;
   }
-  PointSet& pts = type_pt_map[type];
+
   // If there's a specific *type* in *types*:
+  PointSet& pts = type_pt_map[type];
   if (pts.size() == 0) {
     PointPtr point;
-    point = Point::create<Scope>(addr, type, shared_from_this(), scope);
+    point = point_factory_->createPoint(addr, type, shared_from_this(), scope);
     pts.insert(point);
   }
   std::copy(pts.begin(), pts.end(), inserter(points, points.begin()));
@@ -280,6 +282,7 @@ bool PatchMgr::replaceFunction(PatchFunction* old_func,
   return true;
 }
 
+/* Start instrumentation */
 bool PatchMgr::patch() {
   patch_cerr << ws4 << "Relocation and Generation Start.\n";
 

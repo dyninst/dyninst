@@ -276,7 +276,7 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
    desc_(s->desc_),
    fullName_(s->fullName_),
    fileName_(s->fileName_),
-   codeBase_(s->codeBase_),
+   // codeBase_(s->codeBase_),
    dataBase_(s->dataBase_),
    everyUniqueVariable(imgVarHash),
    allFunctionsByMangledName(::Dyninst::stringhash),

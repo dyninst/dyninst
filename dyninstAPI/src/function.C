@@ -1,35 +1,35 @@
 /*
  * Copyright (c) 1996-2011 Barton P. Miller
- * 
+ *
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
  * form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
- 
-// $Id: function.C,v 1.10 2005/03/02 19:44:45 bernat Exp 
+
+// $Id: function.C,v 1.10 2005/03/02 19:44:45 bernat Exp
 
 #include "function.h"
 #include "process.h"
@@ -50,119 +50,109 @@ using namespace Dyninst::Relocation;
 
 int func_instance_count = 0;
 
-// 
 func_instance::func_instance(parse_func *f,
                              Address baseAddr,
                              mapped_module *mod) :
   PatchFunction(f, mod->obj()),
-   addr_(baseAddr + f->getOffset()),
-   ptrAddr_(f->getPtrOffset() ? f->getPtrOffset() + baseAddr : 0),
-   ifunc_(f),
-   mod_(mod),
-   entry_(NULL),
-   handlerFaultAddr_(0),
-   handlerFaultAddrAddr_(0)
-#if defined(os_windows) 
-   , callingConv(unknown_call)
-   , paramSize(0)
+  ptrAddr_(f->getPtrOffset() ? f->getPtrOffset() + baseAddr : 0),
+  mod_(mod),
+  entry_(NULL),
+  handlerFaultAddr_(0),
+  handlerFaultAddrAddr_(0)
+#if defined(os_windows)
+  , callingConv(unknown_call)
+  , paramSize(0)
 #endif
 {
-   assert(f);
+  assert(f);
 #if defined(ROUGH_MEMORY_PROFILE)
-    func_instance_count++;
-    if ((func_instance_count % 1000) == 0)
-        fprintf(stderr, "func_instance_count: %d (%d)\n",
-                func_instance_count, func_instance_count*sizeof(func_instance));
+  func_instance_count++;
+  if ((func_instance_count % 1000) == 0)
+    fprintf(stderr, "func_instance_count: %d (%d)\n",
+            func_instance_count, func_instance_count*sizeof(func_instance));
 #endif
 
-    parsing_printf("%s: creating new proc-specific function at 0x%lx\n",
-                   symTabName().c_str(), addr_);
+  parsing_printf("%s: creating new proc-specific function at 0x%lx\n",
+                 symTabName().c_str(), addr_);
 
 }
 
 func_instance::func_instance(const func_instance *parFunc,
                              mapped_module *childMod) :
-  PatchFunction(parFunc->ifunc_, childMod->obj()),
-   addr_(parFunc->addr_),
-   ptrAddr_(parFunc->ptrAddr_),
-   ifunc_(parFunc->ifunc_),
-   mod_(childMod),
-   entry_(NULL),
-   handlerFaultAddr_(0),
-   handlerFaultAddrAddr_(0)
+  PatchFunction(parFunc->ifunc(), childMod->obj()),
+  ptrAddr_(parFunc->ptrAddr_),
+  mod_(childMod),
+  entry_(NULL),
+  handlerFaultAddr_(0),
+  handlerFaultAddrAddr_(0)
 #if defined(os_windows)
-   , callingConv(parFunc->callingConv)
-   , paramSize(parFunc->paramSize)
+  , callingConv(parFunc->callingConv)
+  , paramSize(parFunc->paramSize)
 #endif
 {
-   assert(ifunc_);
+   assert(ifunc());
    // According to contract /w/ the mapped_object
-   // all blocks have already been constructed. 
+   // all blocks have already been constructed.
    // Do we duplicate the parent or wait? I'm
    // tempted to wait, just because of the common
-   // fork/exec case. 
-   
+   // fork/exec case.
 }
 
-func_instance::~func_instance() { 
-   // We don't delete blocks, since they're shared between functions
-   // We _do_ delete context instPoints, though
-   // Except that should get taken care of normally since the
-   // structures are static. 
-
-    for (unsigned i = 0; i < parallelRegions_.size(); i++)
-      delete parallelRegions_[i];
+func_instance::~func_instance() {
+  // We don't delete blocks, since they're shared between functions
+  // We _do_ delete context instPoints, though
+  // Except that should get taken care of normally since the
+  // structures are static.
+  for (unsigned i = 0; i < parallelRegions_.size(); i++)
+    delete parallelRegions_[i];
 
 }
 
-void func_instance::setHandlerFaultAddr(Address fa) 
-{ 
+void func_instance::setHandlerFaultAddr(Address fa) {
     handlerFaultAddr_ = fa;
 }
 
 // Sets the address in the structure at which the fault instruction's
-// address is stored if "set" is true.  Accesses the fault address and 
-// translates it back to an original address if it corresponds to 
-// relocated code in the Dyninst heap 
-void func_instance::setHandlerFaultAddrAddr(Address faa, bool set) 
-{ 
-    if (set) {
-        // save the faultAddrAddr
-        handlerFaultAddrAddr_ = faa; 
-    }
+// address is stored if "set" is true.  Accesses the fault address and
+// translates it back to an original address if it corresponds to
+// relocated code in the Dyninst heap
+void func_instance::setHandlerFaultAddrAddr(Address faa, bool set) {
+  if (set) {
+    // save the faultAddrAddr
+    handlerFaultAddrAddr_ = faa;
+  }
 
-    // get the faultAddr 
-    assert(proc()->proc());
-    assert(sizeof(Address) == proc()->getAddressWidth());
-    Address faultAddr=0;
-    if (!proc()->readDataSpace
-        ((void*)faa, proc()->getAddressWidth(), (void*)&faultAddr, true)) 
+  // get the faultAddr
+  assert(proc()->proc());
+  assert(sizeof(Address) == proc()->getAddressWidth());
+  Address faultAddr=0;
+  if (!proc()->readDataSpace
+      ((void*)faa, proc()->getAddressWidth(), (void*)&faultAddr, true))
     {
-        assert(0);
+      assert(0);
     }
 
-    // translate the faultAddr back to an original address, and if
-    // that translation was necessary, save it to the faultAddrAddr in the 
-    // CONTEXT struct
-    if (proc()->proc()->isRuntimeHeapAddr(faultAddr)) {
+  // translate the faultAddr back to an original address, and if
+  // that translation was necessary, save it to the faultAddrAddr in the
+  // CONTEXT struct
+  if (proc()->proc()->isRuntimeHeapAddr(faultAddr)) {
 
-        Address origAddr = faultAddr;
-        vector<func_instance *> tmps;
-        baseTramp *bti = NULL;
-        bool success = proc()->getAddrInfo(faultAddr, origAddr, tmps, bti);
-        assert(success);
-        assert( proc()->writeDataSpace((void*)faa, 
-                                       sizeof(Address), 
-                                       (void*)&origAddr) );
-    }
+    Address origAddr = faultAddr;
+    vector<func_instance *> tmps;
+    baseTramp *bti = NULL;
+    bool success = proc()->getAddrInfo(faultAddr, origAddr, tmps, bti);
+    assert(success);
+    assert( proc()->writeDataSpace((void*)faa,
+                                   sizeof(Address),
+                                   (void*)&origAddr) );
+  }
 }
 
 // Set the handler return addr to the most recent instrumented or
 // relocated address, similar to instPoint::instrSideEffect.
-// Also, make sure that we update our mapped view of memory, 
+// Also, make sure that we update our mapped view of memory,
 // we may have overwritten memory that was previously not code
-void func_instance::fixHandlerReturnAddr(Address /*faultAddr*/)
-{
+void func_instance::fixHandlerReturnAddr(Address /*faultAddr*/) {
     if ( !proc()->proc() || ! handlerFaultAddrAddr_ ) {
         assert(0);
         return;
@@ -183,10 +173,10 @@ void func_instance::fixHandlerReturnAddr(Address /*faultAddr*/)
     std::list<Address> relocAddrs;
     proc()->getRelocAddrs(origAddr, func, relocAddrs, true);
     Address newPC = (!relocAddrs.empty() ? relocAddrs.back() : origAddr);
-    
+
     if (newPC != faultAddr) {
-       if(!proc()->writeDataSpace((void*)handlerFaultAddrAddr_, 
-                                  sizeof(Address), 
+       if(!proc()->writeDataSpace((void*)handlerFaultAddrAddr_,
+                                  sizeof(Address),
                                   (void*)&newPC)) {
           assert(0);
        }
@@ -196,10 +186,10 @@ void func_instance::fixHandlerReturnAddr(Address /*faultAddr*/)
 
 // Remove funcs from:
 //   mapped_object & mapped_module datastructures
-//   addressSpace::textRanges codeRangeTree<func_instance*> 
+//   addressSpace::textRanges codeRangeTree<func_instance*>
 //   image-level & SymtabAPI datastructures
 //   BPatch_addressSpace::BPatch_funcMap <func_instance -> BPatch_function>
-void func_instance::removeFromAll() 
+void func_instance::removeFromAll()
 {
     mal_printf("purging blocks_ of size = %d from func at %lx\n",
                blocks_.size(), addr());
@@ -216,24 +206,24 @@ void func_instance::removeFromAll()
 /* Find parse_blocks that are missing from these datastructures and add
  * them.  The block_instance constructor does pretty much all of the work in
  * a chain of side-effects extending all the way into the mapped_object class
- * 
+ *
  * We have to take into account that additional parsing may cause basic block splitting,
- * in which case it is necessary not only to add new int-level blocks, but to update 
- * block_instance and BPatch_basicBlock objects. 
+ * in which case it is necessary not only to add new int-level blocks, but to update
+ * block_instance and BPatch_basicBlock objects.
  */
 void func_instance::addMissingBlocks()
 {
-   assert(0 && "TODO"); 
+   assert(0 && "TODO");
     // A bit of a hack, but be sure that we've re-checked the blocks in the
     // parse_func as well.
-    ifunc_->invalidateCache();
+    ifunc()->invalidateCache();
 
    blocks();
    cerr << "addMissingBlocks for function " << hex << this << dec << endl;
    // Add new blocks
 
    const vector<parse_block*> & nblocks = obj()->parse_img()->getNewBlocks();
-   // add blocks by looking up new blocks, if it promises to be more 
+   // add blocks by looking up new blocks, if it promises to be more
    // efficient than looking through all of the llfunc's blocks
    vector<parse_block*>::const_iterator nit = nblocks.begin();
    for( ; nit != nblocks.end(); ++nit) {
@@ -243,12 +233,12 @@ void func_instance::addMissingBlocks()
    }
 
    if (ifunc()->blocks().size() > blocks_.size()) { //not just the else case!
-       // we may have parsed into an existing function and added its blocks 
+       // we may have parsed into an existing function and added its blocks
        // to ours, or this may just be a more efficient lookup method
        Function::blocklist & iblks = ifunc()->blocks();
-       for (Function::blocklist::iterator bit = iblks.begin(); 
-            bit != iblks.end(); 
-            bit++) 
+       for (Function::blocklist::iterator bit = iblks.begin();
+            bit != iblks.end();
+            bit++)
        {
            if (!findBlock(*bit)) {
                addMissingBlock(static_cast<parse_block*>(*bit));
@@ -263,15 +253,15 @@ void func_instance::getReachableBlocks(const set<block_instance*> &exceptBlocks,
 {
     list<parse_block*> imgSeeds;
     for (list<block_instance*>::const_iterator sit = seedBlocks.begin();
-         sit != seedBlocks.end(); 
-         sit++) 
+         sit != seedBlocks.end();
+         sit++)
     {
         imgSeeds.push_back((*sit)->llb());
     }
     set<parse_block*> imgExcept;
     for (set<block_instance*>::const_iterator eit = exceptBlocks.begin();
-         eit != exceptBlocks.end(); 
-         eit++) 
+         eit != exceptBlocks.end();
+         eit++)
     {
         imgExcept.insert((*eit)->llb());
     }
@@ -281,8 +271,8 @@ void func_instance::getReachableBlocks(const set<block_instance*> &exceptBlocks,
     ifunc()->getReachableBlocks(imgExcept,imgSeeds,imgReach);
 
     for (set<parse_block*>::iterator rit = imgReach.begin();
-         rit != imgReach.end(); 
-         rit++) 
+         rit != imgReach.end();
+         rit++)
     {
         reachBlocks.insert( findBlock(*rit) );
     }
@@ -307,8 +297,8 @@ const func_instance::BlockSet &func_instance::blocks()
     if (blocks_.empty()) {
         // defensiveMode triggers premature block list creation when it
         // checks that the targets of control transfers have not been
-        // tampered with.  
-        Function::blocklist & img_blocks = ifunc_->blocks();
+        // tampered with.
+        Function::blocklist & img_blocks = ifunc()->blocks();
         Function::blocklist::iterator sit = img_blocks.begin();
 
         for( ; sit != img_blocks.end(); ++sit) {
@@ -322,7 +312,7 @@ const func_instance::BlockSet &func_instance::blocks()
 const func_instance::BlockSet &func_instance::callBlocks() {
    // Check the list...
    if (callBlocks_.empty()) {
-      const ParseAPI::Function::edgelist &callEdges = ifunc_->callEdges();
+      const ParseAPI::Function::edgelist &callEdges = ifunc()->callEdges();
       for (ParseAPI::Function::edgelist::iterator iter = callEdges.begin();
            iter != callEdges.end(); ++iter) {
          ParseAPI::Block *src = (*iter)->src();
@@ -337,7 +327,7 @@ const func_instance::BlockSet &func_instance::callBlocks() {
 const func_instance::BlockSet &func_instance::exitBlocks() {
    // Check the list...
    if (exitBlocks_.empty()) {
-      const ParseAPI::Function::blocklist &exitBlocks = ifunc_->returnBlocks();
+      const ParseAPI::Function::blocklist &exitBlocks = ifunc()->returnBlocks();
       for (ParseAPI::Function::blocklist::iterator iter = exitBlocks.begin();
            iter != exitBlocks.end(); ++iter) {
          ParseAPI::Block *iblock = (*iter);
@@ -353,7 +343,7 @@ const func_instance::BlockSet &func_instance::exitBlocks() {
 const func_instance::BlockSet &func_instance::unresolvedCF() {
    if (unresolvedCF_.empty()) {
       // A block has unresolved control flow if it has an indirect
-      // out-edge. 
+      // out-edge.
       blocks();
       for (BlockSet::iterator iter = blocks_.begin(); iter != blocks_.end(); ++iter) {
          if ((*iter)->llb()->unresolvedCF()) {
@@ -367,7 +357,7 @@ const func_instance::BlockSet &func_instance::unresolvedCF() {
 const func_instance::BlockSet &func_instance::abruptEnds() {
    if (abruptEnds_.empty()) {
       // A block has unresolved control flow if it has an indirect
-      // out-edge. 
+      // out-edge.
       blocks();
       for (BlockSet::iterator iter = blocks_.begin(); iter != blocks_.end(); ++iter) {
          if ((*iter)->llb()->abruptEnd()) {
@@ -380,11 +370,11 @@ const func_instance::BlockSet &func_instance::abruptEnds() {
 
 block_instance *func_instance::entryBlock() {
    if (!entry_) {
-      ParseAPI::Block *iEntry = ifunc_->entry();
+      ParseAPI::Block *iEntry = ifunc()->entry();
       if (!iEntry) {
          // Might not be parsed yet...
          blocks();
-         iEntry = ifunc_->entry();
+         iEntry = ifunc()->entry();
       }
       assert(iEntry);
 
@@ -424,16 +414,16 @@ void func_instance::debugPrint() const {
         fprintf(stderr, "    %s\n", typedNameVector()[k].c_str());
     }
     fprintf(stderr, "  Address: 0x%lx\n", addr());
-    fprintf(stderr, "  Internal pointer: %p\n", ifunc_);
-    fprintf(stderr, "  Object: %s (%p), module: %s (%p)\n", 
-            obj()->fileName().c_str(), 
+    fprintf(stderr, "  Internal pointer: %p\n", ifunc());
+    fprintf(stderr, "  Object: %s (%p), module: %s (%p)\n",
+            obj()->fileName().c_str(),
             obj(),
             mod()->fileName().c_str(),
             mod());
-    for (BlockSet::const_iterator 
+    for (BlockSet::const_iterator
              cb = blocks_.begin();
-         cb != blocks_.end(); 
-         cb++) 
+         cb != blocks_.end();
+         cb++)
     {
         block_instance* orig = (*cb);
         fprintf(stderr, "  Block start 0x%lx, end 0x%lx\n", orig->start(),
@@ -487,10 +477,10 @@ bool func_instance::getSharingFuncs(std::set<func_instance *> &funcs) {
 
     // Create the block list.
     blocks();
-    
+
     BlockSet::iterator bIter;
-    for (bIter = blocks_.begin(); 
-         bIter != blocks_.end(); 
+    for (bIter = blocks_.begin();
+         bIter != blocks_.end();
          bIter++) {
        if (getSharingFuncs(*bIter,funcs))
           ret = true;
@@ -500,14 +490,14 @@ bool func_instance::getSharingFuncs(std::set<func_instance *> &funcs) {
 }
 
 bool func_instance::getOverlappingFuncs(block_instance *block,
-                                       std::set<func_instance *> &funcs) 
+                                       std::set<func_instance *> &funcs)
 {
 	ParseAPI::Block *llB = block->llb();
 	std::set<ParseAPI::Block *> overlappingBlocks;
 	for (Address i = llB->start(); i < llB->end(); ++i) {
 		llB->obj()->findBlocks(llB->region(), i, overlappingBlocks);
 	}
-	// We now have all of the overlapping ParseAPI blocks. Get the set of 
+	// We now have all of the overlapping ParseAPI blocks. Get the set of
 	// ParseAPI::Functions containing each and up-map to func_instances
 	for (std::set<ParseAPI::Block *>::iterator iter = overlappingBlocks.begin();
 		iter != overlappingBlocks.end(); ++iter) {
@@ -521,15 +511,15 @@ bool func_instance::getOverlappingFuncs(block_instance *block,
 	return (funcs.size() > 1);
 }
 
-bool func_instance::getOverlappingFuncs(std::set<func_instance *> &funcs) 
+bool func_instance::getOverlappingFuncs(std::set<func_instance *> &funcs)
 {
     bool ret = false;
 
     // Create the block list.
     blocks();
     BlockSet::iterator bIter;
-    for (bIter = blocks_.begin(); 
-         bIter != blocks_.end(); 
+    for (bIter = blocks_.begin();
+         bIter != blocks_.end();
          bIter++) {
        if (getOverlappingFuncs(*bIter,funcs))
           ret = true;
@@ -543,8 +533,8 @@ std::string func_instance::get_name() const
    return symTabName();
 }
 
-Offset func_instance::addrToOffset(const Address a) const { 
-   return a - (addr() - ifunc_->getOffset());
+Offset func_instance::addrToOffset(const Address a) const {
+   return a - (addr() - ifunc()->getOffset());
 }
 
 const pdvector< int_parRegion* > &func_instance::parRegions()
@@ -552,11 +542,11 @@ const pdvector< int_parRegion* > &func_instance::parRegions()
   if (parallelRegions_.size() > 0)
     return parallelRegions_;
 
-  for (unsigned int i = 0; i < ifunc_->parRegions().size(); i++)
+  for (unsigned int i = 0; i < ifunc()->parRegions().size(); i++)
     {
-      image_parRegion * imPR = ifunc_->parRegions()[i];
-      //int_parRegion * iPR = new int_parRegion(imPR, baseAddr, this); 
-      int_parRegion * iPR = new int_parRegion(imPR, addr_, this); 
+      image_parRegion * imPR = ifunc()->parRegions()[i];
+      //int_parRegion * iPR = new int_parRegion(imPR, baseAddr, this);
+      int_parRegion * iPR = new int_parRegion(imPR, addr_, this);
       parallelRegions_.push_back(iPR);
     }
   return parallelRegions_;
@@ -568,7 +558,7 @@ bool func_instance::consistency() const {
    // 2) Check that all instPoints are in the
    //    correct block.
 
-   const ParseAPI::Function::blocklist &img_blocks = ifunc_->blocks();
+   const ParseAPI::Function::blocklist &img_blocks = ifunc()->blocks();
    assert(img_blocks.size() == blocks_.size());
    for (ParseAPI::Function::blocklist::iterator iter = img_blocks.begin();
         iter != img_blocks.end(); ++iter) {
@@ -601,7 +591,7 @@ instPoint *func_instance::findPoint(instPoint::Type type, block_instance *b, boo
       return point;
    }
    std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
-  
+
    switch(type) {
       case instPoint::BlockEntry: {
          if (iter != blockPoints_.end()) {
@@ -647,7 +637,7 @@ instPoint *func_instance::findPoint(instPoint::Type type, block_instance *b, boo
 
 instPoint *func_instance::findPoint(instPoint::Type type,
                                     block_instance *b,
-                                    Address a, InstructionAPI::Instruction::Ptr ptr, 
+                                    Address a, InstructionAPI::Instruction::Ptr ptr,
                                     bool trusted, bool create) {
    std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
 
@@ -689,7 +679,7 @@ instPoint *func_instance::findPoint(instPoint::Type type,
       default:
          return NULL;
    }
-   return NULL;   
+   return NULL;
 }
 
 bool func_instance::findInsnPoints(instPoint::Type type,
@@ -718,37 +708,37 @@ instPoint *func_instance::findPoint(instPoint::Type type,
                                     edge_instance *e,
                                     bool create) {
    if (type != instPoint::Edge) return NULL;
-   
+
    std::map<edge_instance *, EdgeInstpoints>::iterator iter = edgePoints_.find(e);
    if (iter != edgePoints_.end()) {
       if (iter->second.point) return iter->second.point;
    }
    if (!create) return NULL;
    instPoint *point = new instPoint(instPoint::Edge,
-                                    e, 
+                                    e,
                                     this);
    edgePoints_[e].point = point;
    return point;
 }
 
-bool func_instance::isInstrumentable() { 
-   return ifunc_->isInstrumentable();
+bool func_instance::isInstrumentable() {
+   return ifunc()->isInstrumentable();
 
-   if (!ifunc_->isInstrumentable()) return false;
+   if (!ifunc()->isInstrumentable()) return false;
 
    // Hack: avoid things that throw exceptions
    // Make sure we parsed calls
    callBlocks();
-   for (BlockSet::iterator iter = callBlocks_.begin(); iter != callBlocks_.end(); ++iter) {      
+   for (BlockSet::iterator iter = callBlocks_.begin(); iter != callBlocks_.end(); ++iter) {
       if ((*iter)->calleeName().find("cxa_throw") != std::string::npos) {
          cerr << "Func " << symTabName() << " found exception ret false" << endl;
          return false;
       }
       func_instance *callee = (*iter)->callee();
-      
-      cerr << "Func " << symTabName() << " @ " << hex 
+
+      cerr << "Func " << symTabName() << " @ " << hex
            << (*iter)->start() << ", callee " << (*iter)->calleeName() << dec << endl;
-      
+
       if (!callee) {
          cerr << "Warning: null callee" << endl;
          continue;

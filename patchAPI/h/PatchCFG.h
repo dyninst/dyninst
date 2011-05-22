@@ -147,8 +147,8 @@ class PatchFunction {
    virtual ~PatchFunction();
 
    const string &name() { return func_->name(); }
-   Address addr() const { return obj_->codeBase() + func_->addr(); }
-   ParseAPI::Function *func() { return func_; }
+   Address addr() const { return addr_;  }
+   ParseAPI::Function *function() { return func_; }
    PatchBlock *entry() { return getBlock(func_->entry()); }
    PatchObject* object() { return obj_; }
 
@@ -171,6 +171,7 @@ class PatchFunction {
 
    ParseAPI::Function *func_;
    PatchObject* obj_;
+   Address addr_;
 
    std::vector<PatchBlock *> blocks_;
    std::vector<PatchEdge *> callEdges_;

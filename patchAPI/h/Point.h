@@ -12,6 +12,7 @@ namespace PatchAPI {
 // Used in PointType definition
 #define type_val(seq) (0x00000001 << seq)
 
+
 /* A location on the CFG that acts as a container of inserted instances.  Points
    of different types are distinct even the underlying code relocation and
    generation engine happens to put instrumentation from them at the same
@@ -48,8 +49,10 @@ class Point : public dyn_detail::boost::enable_shared_from_this<Point> {
     };
 
     template <class Scope>
-      static PointPtr create(Address addr, Point::PointType type, PatchMgrPtr
-                           mgr, Scope* scope) {
+    static PointPtr create(Address          addr,
+                           Point::PointType type,
+                           PatchMgrPtr      mgr,
+                           Scope*           scope) {
       PointPtr ret = PointPtr(new Point(addr, type, mgr, scope));
       return ret;
     }
@@ -89,7 +92,6 @@ class Point : public dyn_detail::boost::enable_shared_from_this<Point> {
     // Remove a specific type from a set of types
     static void RemoveType(Point::PointType& types, Point::PointType trg);
 
-  protected:
     Point() {}
     Point(Address addr, Point::PointType type, PatchMgrPtr mgr, Address*);
     Point(Address addr, Point::PointType type, PatchMgrPtr mgr, PatchBlock* blk);
@@ -185,6 +187,23 @@ class Instance : public dyn_detail::boost::enable_shared_from_this<Instance> {
     SnippetPtr snippet_;
     SnippetState state_;
     SnippetType type_;
+};
+
+/* Factory class for creating a point that could be either PatchAPI::Point or
+   the subclass of PatchAPI::Point.   */
+class PointFactory {
+  public:
+    PointFactory() {}
+    virtual ~PointFactory() {}
+
+    virtual PointPtr createPoint(Address     addr, Point::PointType type,
+                                 PatchMgrPtr mgr,  Address*         scope);
+    virtual PointPtr createPoint(Address     addr, Point::PointType type,
+                                 PatchMgrPtr mgr,  PatchBlock*      scope);
+    virtual PointPtr createPoint(Address     addr, Point::PointType type,
+                                 PatchMgrPtr mgr,  PatchEdge*       scope);
+    virtual PointPtr createPoint(Address     addr, Point::PointType type,
+                                 PatchMgrPtr mgr,  PatchFunction*   scope);
 };
 
 }

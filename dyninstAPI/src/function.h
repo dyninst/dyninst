@@ -91,14 +91,14 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // this function) we make most methods passthroughs to the original
   // parsed version.
 
-  const string &symTabName() const { return ifunc_->symTabName(); };
-  const string &prettyName() const { return ifunc_->prettyName(); };
-  const string &typedName() const { return ifunc_->typedName(); };
+  const string &symTabName() const { return ifunc()->symTabName(); };
+  const string &prettyName() const { return ifunc()->prettyName(); };
+  const string &typedName() const { return ifunc()->typedName(); };
   const string &name() const { return symTabName(); }
 
-  const vector<string>& symTabNameVector() const { return ifunc_->symTabNameVector(); }
-  const vector<string>& prettyNameVector() const { return ifunc_->prettyNameVector(); }
-  const vector<string>& typedNameVector() const { return ifunc_->typedNameVector(); }
+  const vector<string>& symTabNameVector() const { return ifunc()->symTabNameVector(); }
+  const vector<string>& prettyNameVector() const { return ifunc()->prettyNameVector(); }
+  const vector<string>& typedNameVector() const { return ifunc()->typedNameVector(); }
 
   // Debuggering functions
   void debugPrint() const;
@@ -109,17 +109,14 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   void addPrettyName(const std::string name, bool isPrimary = false);
 
   Address getPtrAddress() const {return ptrAddr_;}
-  Address addr() const { return addr_; }
 
   // Not defined here so we don't have to play header file magic
   // Not const; we can add names via the Dyninst layer
-  parse_func *ifunc() { return ifunc_; }
+  parse_func *ifunc() const { return DYN_CAST_PF(func_); }
   mapped_module *mod() const { return mod_; }
   mapped_object *obj() const;
 
-  //process *proc() const;
   AddressSpace *proc() const;
-
   std::string format() const;
 
   ////////////////////////////////////////////////
@@ -143,8 +140,8 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
   Offset addrToOffset(const Address addr) const;
 
-  bool hasNoStackFrame() const {return ifunc_->hasNoStackFrame();}
-  bool savesFramePointer() const {return ifunc_->savesFramePointer();}
+  bool hasNoStackFrame() const {return ifunc()->hasNoStackFrame();}
+  bool savesFramePointer() const {return ifunc()->savesFramePointer();}
 
   ////////////////////////////////////////////////
   // Legacy/inter-module calls. Arguably should be an
@@ -178,7 +175,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // Relocation
   ////////////////////////////////////////////////
 
-  bool canBeRelocated() const { return ifunc_->canBeRelocated(); }
+  bool canBeRelocated() const { return ifunc()->canBeRelocated(); }
 
 
   ////////////////////////////////////////////////
@@ -213,7 +210,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
   const pdvector< int_parRegion* > &parRegions();
 
-  bool containsSharedBlocks() const { return ifunc_->containsSharedBlocks(); }
+  bool containsSharedBlocks() const { return ifunc()->containsSharedBlocks(); }
   unsigned getNumDynamicCalls();
 
   // Fill the <callers> vector with pointers to the statically-determined
@@ -224,7 +221,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
     void getCallerFuncs(OutputIterator result);
 
 #if defined(arch_power)
-  bool savesReturnAddr() const { return ifunc_->savesReturnAddr(); }
+  bool savesReturnAddr() const { return ifunc()->savesReturnAddr(); }
 #endif
 
 #if defined(os_windows)
@@ -258,10 +255,10 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
  private:
 
   ///////////////////// Basic func info
-  Address addr_; // Absolute address of the start of the function
+  //Address addr_; // Absolute address of the start of the function
   Address ptrAddr_; // Absolute address of the function descriptor, if exists
 
-  parse_func *ifunc_;
+  // parse_func *ifunc_;
   mapped_module *mod_; // This is really a dodge; translate a list of
   // parse_funcs to int_funcs
 
@@ -300,7 +297,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 template <class OutputIterator>
 void func_instance::getCallerBlocks(OutputIterator result)
 {
-  if(!ifunc_ || !ifunc_->entryBlock())
+  if(!ifunc() || !ifunc()->entryBlock())
     return;
 
   const block_instance::edgelist &ins = entryBlock()->sources();

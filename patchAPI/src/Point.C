@@ -10,6 +10,7 @@ using Dyninst::PatchAPI::InstancePtr;
 using Dyninst::PatchAPI::Point;
 using Dyninst::PatchAPI::PointPtr;
 using Dyninst::PatchAPI::PatchFunction;
+using Dyninst::PatchAPI::PointFactory;
 using Dyninst::ParseAPI::CodeObject;
 using Dyninst::ParseAPI::CodeSource;
 using Dyninst::ParseAPI::CodeRegion;
@@ -236,4 +237,40 @@ bool Point::destroy() {
   PointSet& points = type_pt_map[type_];
   points.erase(shared_from_this());
   return true;
+}
+
+PointPtr PointFactory::createPoint(Address addr,
+                                   Point::PointType type,
+                                   PatchMgrPtr mgr,
+                                   Address* scope) {
+  PointPtr ret = PointPtr(new Point(addr, type, mgr, scope));
+  if (!ret) return PointPtr();
+  return ret;
+}
+
+PointPtr PointFactory::createPoint(Address addr,
+                                   Point::PointType type,
+                                   PatchMgrPtr mgr,
+                                   PatchBlock* scope) {
+  PointPtr ret = PointPtr(new Point(addr, type, mgr, scope));
+  if (!ret) return PointPtr();
+  return ret;
+}
+
+PointPtr PointFactory::createPoint(Address addr,
+                                   Point::PointType type,
+                                   PatchMgrPtr mgr,
+                                   PatchEdge* scope) {
+  PointPtr ret = PointPtr(new Point(addr, type, mgr, scope));
+  if (!ret) return PointPtr();
+  return ret;
+}
+
+PointPtr PointFactory::createPoint(Address addr,
+                                   Point::PointType type,
+                                   PatchMgrPtr mgr,
+                                   PatchFunction* scope) {
+  PointPtr ret = PointPtr(new Point(addr, type, mgr, scope));
+  if (!ret) return PointPtr();
+  return ret;
 }

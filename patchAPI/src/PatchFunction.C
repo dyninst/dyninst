@@ -11,10 +11,10 @@ PatchFunction *PatchFunction::create(ParseAPI::Function *f, PatchObject* obj) {
 }
 
 PatchFunction::PatchFunction(ParseAPI::Function *f,
-     PatchObject* o) : func_(f), obj_(o) {} //, callEdgeList_(callEdges_) {};
+     PatchObject* o) : func_(f), obj_(o), addr_(obj_->codeBase() + func_->addr()) {}
 
 PatchFunction::PatchFunction(const PatchFunction *parFunc, PatchObject* child)
-  : func_(parFunc->func_), obj_(child) {} //, callEdgeList_(callEdges_) {};
+  : func_(parFunc->func_), obj_(child), addr_(obj_->codeBase() + func_->addr()) {}
 
 const PatchFunction::blocklist &PatchFunction::blocks() {
   if (!blocks_.empty()) return blocks_;
