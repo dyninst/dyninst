@@ -33,9 +33,9 @@ bool Instance::destroy() {
   return false;
 }
 
-/* If the Point is CallBefore or CallAfter */
+/* If the Point is PreCall or PostCall */
 PatchFunction* Point::getCallee() {
-  if (type() != CallBefore && type() != CallAfter) return NULL;
+  if (type() != PreCall && type() != PostCall) return NULL;
   PatchBlock* b = (*(inst_blks_.begin()));
   PatchBlock::edgelist::iterator it = b->targets().begin();
   for (; it != b->targets().end(); ++it) {
@@ -50,6 +50,7 @@ PatchFunction* Point::getCallee() {
 /* Associate this point with the block(s) and function(s)
    that contain it */
 void Point::initCodeStructure(Address /*addr*/) {
+#if 0
   // walk through all code objects
   for (AddrSpace::CoObjMap::iterator ci = mgr_->as()->getCoobjMap().begin();
        ci != mgr_->as()->getCoobjMap().end(); ci++) {
@@ -87,28 +88,29 @@ void Point::initCodeStructure(Address /*addr*/) {
       break;
     }
   }
+#endif
 }
 
 /* for single instruction */
-Point::Point(Address addr, Point::PointType type, PatchMgrPtr mgr, Address*)
+Point::Point(Address addr, Point::Type type, PatchMgrPtr mgr, Address*)
   :addr_(addr), type_(type), mgr_(mgr), blk_(NULL), edge_(NULL), func_(NULL) {
   initCodeStructure(addr);
 }
 
 /* for a block */
-Point::Point(Address addr, PointType type, PatchMgrPtr mgr, PatchBlock* blk)
+Point::Point(Address addr, Type type, PatchMgrPtr mgr, PatchBlock* blk)
   : addr_(addr), type_(type), mgr_(mgr), blk_(blk), edge_(NULL), func_(NULL) {
   initCodeStructure(addr);
 }
 
 /* for an edge */
-Point::Point(Address addr, PointType type, PatchMgrPtr mgr, PatchEdge* edge)
+Point::Point(Address addr, Type type, PatchMgrPtr mgr, PatchEdge* edge)
   : addr_(addr), type_(type), mgr_(mgr), blk_(NULL), edge_(edge), func_(NULL) {
   initCodeStructure(addr);
 }
 
 /* for a function */
-Point::Point(Address addr, PointType type, PatchMgrPtr mgr,
+Point::Point(Address addr, Type type, PatchMgrPtr mgr,
              PatchFunction* func) : addr_(addr), type_(type), mgr_(mgr),
                                     blk_(NULL), edge_(NULL), func_(func) {
   initCodeStructure(addr);
@@ -135,25 +137,25 @@ InstancePtr Point::push_front(SnippetPtr snippet) {
 }
 
 /* Test whether the type contains a specific type. */
-bool Point::TestType(Point::PointType types, Point::PointType trg) {
+bool Point::TestType(Point::Type types, Point::Type trg) {
   if (types & trg) return true;
   return false;
 }
 
 /* Add a specific type to a set of types */
-void Point::AddType(Point::PointType& types, Point::PointType trg) {
+void Point::AddType(Point::Type& types, Point::Type trg) {
   int trg_int = static_cast<int>(trg);
   int type_int = static_cast<int>(types);
   type_int |= trg_int;
-  types = (Point::PointType)type_int;
+  types = (Point::Type)type_int;
 }
 
 /* Remove a specific type from a set of types */
-void Point::RemoveType(Point::PointType& types, Point::PointType trg) {
+void Point::RemoveType(Point::Type& types, Point::Type trg) {
   int trg_int = static_cast<int>(trg);
   int type_int = static_cast<int>(types);
   type_int &= (~trg_int);
-  types = (Point::PointType)type_int;
+  types = (Point::Type)type_int;
 }
 
 bool Point::remove(InstancePtr instance) {
@@ -190,11 +192,11 @@ bool Point::destroy() {
   clear();
   PatchMgr::TypePtMap type_pt_map;
   switch (type_) {
-    case InsnBefore:
-    case InsnFt:
+    case PreInsn:
+    case PostInsn:
     case InsnTaken:
-    case CallBefore:
-    case CallAfter:
+    case PreCall:
+    case PostCall:
     {
       type_pt_map = mgr_->addr_type_pt_map_[addr_];
       break;
@@ -240,7 +242,7 @@ bool Point::destroy() {
 }
 
 PointPtr PointFactory::createPoint(Address addr,
-                                   Point::PointType type,
+                                   Point::Type type,
                                    PatchMgrPtr mgr,
                                    Address* scope) {
   PointPtr ret = PointPtr(new Point(addr, type, mgr, scope));
@@ -249,7 +251,7 @@ PointPtr PointFactory::createPoint(Address addr,
 }
 
 PointPtr PointFactory::createPoint(Address addr,
-                                   Point::PointType type,
+                                   Point::Type type,
                                    PatchMgrPtr mgr,
                                    PatchBlock* scope) {
   PointPtr ret = PointPtr(new Point(addr, type, mgr, scope));
@@ -258,7 +260,7 @@ PointPtr PointFactory::createPoint(Address addr,
 }
 
 PointPtr PointFactory::createPoint(Address addr,
-                                   Point::PointType type,
+                                   Point::Type type,
                                    PatchMgrPtr mgr,
                                    PatchEdge* scope) {
   PointPtr ret = PointPtr(new Point(addr, type, mgr, scope));
@@ -267,7 +269,7 @@ PointPtr PointFactory::createPoint(Address addr,
 }
 
 PointPtr PointFactory::createPoint(Address addr,
-                                   Point::PointType type,
+                                   Point::Type type,
                                    PatchMgrPtr mgr,
                                    PatchFunction* scope) {
   PointPtr ret = PointPtr(new Point(addr, type, mgr, scope));

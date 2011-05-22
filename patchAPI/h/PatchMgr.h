@@ -42,7 +42,7 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     // return false if no any point found
     template <class Scope, class FilterFunc, class OutputIterator>
     bool findPoints(Scope* scope,
-                    Point::PointType types,
+                    Point::Type types,
                     FilterFunc filter_func,
                     OutputIterator output_iter) {
       patch_cerr << ws2 << "Find points.\n";
@@ -69,7 +69,7 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     // Use default identity filter function
     template <class Scope, class OutputIterator>
     bool findPoints(Scope* scope,
-                    Point::PointType types,
+                    Point::Type types,
                     OutputIterator output_iter) {
       IdentityFilterFunc filter_func;
       return findPoints<Scope, IdentityFilterFunc, OutputIterator>
@@ -101,7 +101,7 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     // This uses the same filter-based interface as findPoints.
     template <class Scope, class FilterFunc>
     bool removeSnippets(Scope* scope,
-                    Point::PointType types,
+                    Point::Type types,
                     FilterFunc filter_func) {
       PointSet points;
       if (!findPoints(scope, types, filter_func,
@@ -116,7 +116,7 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     // Use default identity filter function.
     template <class Scope>
     bool removeSnippets(Scope* scope,
-                    Point::PointType types) {
+                    Point::Type types) {
       IdentityFilterFunc filter_func;
       return removeSnippets<Scope, IdentityFilterFunc>
                 (scope, types, filter_func);
@@ -134,16 +134,16 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
 
 
     //----------------------------------------------------
-    // Mapping order: Scope -> PointType -> Point Set
+    // Mapping order: Scope -> Type -> Point Set
     // This order matches out filter sequence:
-    // Apply Scope filter first, PointType filter second,
+    // Apply Scope filter first, Type filter second,
     // finally filter function.
     //----------------------------------------------------
 
-    // PointType -> Point mapping
+    // Type -> Point mapping
     // In a particular scope, a type may have multiple points,
     // e.g., function exits
-    typedef std::map<Point::PointType, PointSet> TypePtMap;
+    typedef std::map<Point::Type, PointSet> TypePtMap;
     typedef std::map<PatchFunction*, TypePtMap> FuncTypePtMap;
     typedef std::map<PatchBlock*, TypePtMap> BlkTypePtMap;
     typedef std::map<PatchEdge*, TypePtMap> EdgeTypePtMap;
@@ -153,15 +153,15 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     // Return false if no point is found
     template<class Scope>
     friend bool findPointsByScopeType(PatchMgrPtr mgr, Scope* scope,
-                                 Point::PointType types, PointSet& points);
+                                 Point::Type types, PointSet& points);
     template<class Scope>
-    void getPointsByType(TypePtMap& type_pt_map, Point::PointType types,
-                         Point::PointType type, Address addr,
+    void getPointsByType(TypePtMap& type_pt_map, Point::Type types,
+                         Point::Type type, Address addr,
                          Scope* scope, PointSet& points);
-    bool findPointsByType(Address*, Point::PointType, PointSet&);
-    bool findPointsByType(PatchBlock*, Point::PointType, PointSet&);
-    bool findPointsByType(PatchEdge*, Point::PointType, PointSet&);
-    bool findPointsByType(PatchFunction*, Point::PointType, PointSet&);
+    bool findPointsByType(Address*, Point::Type, PointSet&);
+    bool findPointsByType(PatchBlock*, Point::Type, PointSet&);
+    bool findPointsByType(PatchEdge*, Point::Type, PointSet&);
+    bool findPointsByType(PatchFunction*, Point::Type, PointSet&);
 
     // Core instrumentation function!
     bool patch();

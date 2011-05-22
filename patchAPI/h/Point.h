@@ -21,11 +21,11 @@ class Point : public dyn_detail::boost::enable_shared_from_this<Point> {
   friend class PatchMgr;
 
   public:
-    // If you want to extend PointType, please increment the argument passed
+    // If you want to extend Type, please increment the argument passed
     // to type_val.
-    enum PointType {
-      InsnBefore = type_val(0),
-      InsnFt = type_val(1),
+    enum Type {
+      PreInsn = type_val(0),
+      PostInsn = type_val(1),
       InsnTaken = type_val(2),
       BlockEntry = type_val(3),
       BlockExit = type_val(4),
@@ -38,19 +38,21 @@ class Point : public dyn_detail::boost::enable_shared_from_this<Point> {
       LoopEnd = type_val(11),               // TODO(wenbin)
       LoopIterStart = type_val(12),         // TODO(wenbin)
       LoopIterEnd = type_val(13),           // TODO(wenbin)
-      CallBefore = type_val(14),
-      CallAfter = type_val(15),
-      InsnTypes = InsnBefore | InsnFt | InsnTaken,
+      PreCall = type_val(14),
+      PostCall = type_val(15),
+      OtherPoint = type_val(30),
+      None = type_val(31),
+      InsnTypes = PreInsn | PostInsn | InsnTaken,
       BlockTypes = BlockEntry | BlockExit | BlockDuring,
       FuncTypes = FuncEntry | FuncExit | FuncDuring,
       EdgeTypes = EdgeDuring,
       LoopTypes = LoopStart | LoopEnd | LoopIterStart | LoopIterEnd,  // TODO(wenbin)
-      CallTypes = CallBefore | CallAfter
+      CallTypes = PreCall | PostCall
     };
 
     template <class Scope>
     static PointPtr create(Address          addr,
-                           Point::PointType type,
+                           Point::Type type,
                            PatchMgrPtr      mgr,
                            Scope*           scope) {
       PointPtr ret = PointPtr(new Point(addr, type, mgr, scope));
@@ -72,7 +74,7 @@ class Point : public dyn_detail::boost::enable_shared_from_this<Point> {
     // Getters
     size_t size();
     Address address() const { return addr_; }
-    PointType type() const {return type_;}
+    Type type() const {return type_;}
     typedef std::set<PatchFunction*> FuncSet;
     typedef std::set<PatchBlock*> BlockSet;
     const Point::FuncSet& getInstFuncs() const { return inst_funcs_; }
@@ -86,25 +88,25 @@ class Point : public dyn_detail::boost::enable_shared_from_this<Point> {
     // Point type utilities
 
     // Test whether the type contains a specific type.
-    static bool TestType(Point::PointType types, Point::PointType trg);
+    static bool TestType(Point::Type types, Point::Type trg);
     // Add a specific type to a set of types
-    static void AddType(Point::PointType& types, Point::PointType trg);
+    static void AddType(Point::Type& types, Point::Type trg);
     // Remove a specific type from a set of types
-    static void RemoveType(Point::PointType& types, Point::PointType trg);
+    static void RemoveType(Point::Type& types, Point::Type trg);
 
     Point() {}
-    Point(Address addr, Point::PointType type, PatchMgrPtr mgr, Address*);
-    Point(Address addr, Point::PointType type, PatchMgrPtr mgr, PatchBlock* blk);
-    Point(Address addr, Point::PointType type, PatchMgrPtr mgr, PatchEdge* edge);
-    Point(Address addr, Point::PointType type, PatchMgrPtr mgr, PatchFunction* func);
+    Point(Address addr, Point::Type type, PatchMgrPtr mgr, Address*);
+    Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchBlock* blk);
+    Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchEdge* edge);
+    Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchFunction* func);
 
-  private:
+  protected:
     bool destroy();
     void initCodeStructure(Address addr);
 
     InstanceList instanceList_;
     Address addr_;
-    PointType type_;
+    Type type_;
     PatchMgrPtr mgr_;
     PatchBlock* blk_;
     PatchEdge* edge_;
@@ -117,16 +119,16 @@ class Point : public dyn_detail::boost::enable_shared_from_this<Point> {
     Point::BlockSet inst_blks_;
 };
 
-inline Point::PointType operator|(Point::PointType a, Point::PointType b) {
-  Point::PointType types = a;
+inline Point::Type operator|(Point::Type a, Point::Type b) {
+  Point::Type types = a;
   Point::AddType(types, b);
   return types;
 }
 
-// PointType: enum => string
-inline const char* type_str(Point::PointType type) {
-  if (type&Point::InsnBefore) return "InsnBefore ";
-  if (type&Point::InsnFt) return "InsnFt ";
+// Type: enum => string
+inline const char* type_str(Point::Type type) {
+  if (type&Point::PreInsn) return "PreInsn ";
+  if (type&Point::PostInsn) return "PostInsn ";
   if (type&Point::InsnTaken) return "InsnTaken ";
 
   if (type&Point::BlockEntry) return "BlockEntry ";
@@ -144,8 +146,8 @@ inline const char* type_str(Point::PointType type) {
   if (type&Point::LoopIterStart) return "LoopIterStart ";
   if (type&Point::LoopIterEnd) return "LoopIterEnd ";
 
-  if (type&Point::CallBefore) return "CallBefore ";
-  if (type&Point::CallAfter) return "CallAfter ";
+  if (type&Point::PreCall) return "PreCall ";
+  if (type&Point::PostCall) return "PostCall ";
 
   return "Unknown";
 }
@@ -196,13 +198,13 @@ class PointFactory {
     PointFactory() {}
     virtual ~PointFactory() {}
 
-    virtual PointPtr createPoint(Address     addr, Point::PointType type,
+    virtual PointPtr createPoint(Address     addr, Point::Type type,
                                  PatchMgrPtr mgr,  Address*         scope);
-    virtual PointPtr createPoint(Address     addr, Point::PointType type,
+    virtual PointPtr createPoint(Address     addr, Point::Type type,
                                  PatchMgrPtr mgr,  PatchBlock*      scope);
-    virtual PointPtr createPoint(Address     addr, Point::PointType type,
+    virtual PointPtr createPoint(Address     addr, Point::Type type,
                                  PatchMgrPtr mgr,  PatchEdge*       scope);
-    virtual PointPtr createPoint(Address     addr, Point::PointType type,
+    virtual PointPtr createPoint(Address     addr, Point::Type type,
                                  PatchMgrPtr mgr,  PatchFunction*   scope);
 };
 

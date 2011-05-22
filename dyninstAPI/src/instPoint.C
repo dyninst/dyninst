@@ -1,29 +1,29 @@
 /*
  * Copyright (c) 1996-2011 Barton P. Miller
- * 
+ *
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
  * form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -84,53 +84,81 @@ instPoint *instPoint::postCall(func_instance *f, block_instance *b) {
 }
 
 instPoint *instPoint::edge(func_instance *f, edge_instance *e) {
-   return f->findPoint(Edge, e, true);
+   return f->findPoint(EdgeDuring, e, true);
 }
 
-instPoint *instPoint::preInsn(func_instance *f, 
-                              block_instance *b, 
+instPoint *instPoint::preInsn(func_instance *f,
+                              block_instance *b,
                               Address a,
-                              InstructionAPI::Instruction::Ptr ptr, 
+                              InstructionAPI::Instruction::Ptr ptr,
                               bool trusted) {
    return f->findPoint(PreInsn, b, a, ptr, trusted, true);
 }
 
-instPoint *instPoint::postInsn(func_instance *f, 
-                               block_instance *b, 
+instPoint *instPoint::postInsn(func_instance *f,
+                               block_instance *b,
                                Address a,
-                               InstructionAPI::Instruction::Ptr ptr, 
+                               InstructionAPI::Instruction::Ptr ptr,
                                bool trusted) {
    return f->findPoint(PostInsn, b, a, ptr, trusted, true);
 }
 
 
-instPoint::instPoint(Type t, func_instance *f) :
-   type_(t),
+instPoint::instPoint(Address       addr,
+                     Type          t,
+                     PatchMgrPtr   mgr,
+                     func_instance *f) :
+  Point(addr, t, mgr, f),
    func_(f),
    block_(NULL),
    edge_(NULL),
-   addr_(0),
    baseTramp_(NULL) {};
 
-instPoint::instPoint(Type t, block_instance *b, func_instance *f) :
-   type_(t), func_(f), block_(b), edge_(NULL), addr_(0), baseTramp_(NULL) {};
+instPoint::instPoint(Address        addr,
+                     Type           t,
+                     PatchMgrPtr    mgr,
+                     block_instance *b,
+                     func_instance  *f) :
+  Point(addr, t, mgr, b),
+   func_(f),
+   block_(b),
+   edge_(NULL),
+   baseTramp_(NULL) {};
 
-instPoint::instPoint(Type t, edge_instance *e, func_instance *f) :
-   type_(t), func_(f), block_(NULL), edge_(e), addr_(0), baseTramp_(NULL) {};
+instPoint::instPoint(Address       addr,
+                     Type          t,
+                     PatchMgrPtr   mgr,
+                     edge_instance *e,
+                     func_instance *f) :
+  Point(addr, t, mgr, e),
+   func_(f),
+   block_(NULL),
+   edge_(e),
+   baseTramp_(NULL) {};
 
-instPoint::instPoint(Type t, block_instance *b, Instruction::Ptr insn, Address a, func_instance *f) :
-   type_(t), func_(f), block_(b), edge_(NULL), insn_(insn), addr_(a), baseTramp_(NULL) {};
+instPoint::instPoint(Address          addr,
+                     Type             t,
+                     PatchMgrPtr      mgr,
+                     block_instance   *b,
+                     Instruction::Ptr insn,
+                     func_instance    *f) :
+  Point(addr, t, mgr, &addr),
+   func_(f),
+   block_(b),
+   edge_(NULL),
+   insn_(insn),
+   baseTramp_(NULL) {};
 
 
 // If there is a logical "pair" (e.g., before/after) of instPoints return them.
-// The return result is a pair of <before, after> 
+// The return result is a pair of <before, after>
 std::pair<instPoint *, instPoint *> instPoint::getInstpointPair(instPoint *i) {
    switch(i->type()) {
       case None:
          assert(0);
          return std::pair<instPoint *, instPoint *>(NULL, NULL);
       case PreInsn:
-         return std::pair<instPoint *, instPoint *>(i, 
+         return std::pair<instPoint *, instPoint *>(i,
                                                     postInsn(i->func(),
                                                              i->block(),
                                                              i->insnAddr(),
@@ -184,7 +212,7 @@ instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
       case BlockExit:
          point = blockExit(f, b);
          break;
-      case Edge:
+      case EdgeDuring:
          point = edge(f, e);
          break;
       case PreInsn:
@@ -200,10 +228,22 @@ instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
          point = postCall(f, b);
          break;
       case OtherPoint:
+   case InsnTaken:
+   case BlockDuring:
+   case FuncDuring:
+   case LoopStart:
+   case LoopEnd:
+   case LoopIterStart:
+   case LoopIterEnd:
+   case InsnTypes:
+   case BlockTypes:
+   case FuncTypes:
+   case LoopTypes:
+   case CallTypes:
          assert(0);
          break;
    }
-   assert(point->empty() || 
+   assert(point->empty() ||
           point->size() == parent->size());
    if (point->empty()) {
       for (const_iterator iter = parent->begin(); iter != parent->end(); ++iter) {
@@ -218,7 +258,7 @@ instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
 
 
 instPoint::~instPoint() {
-   // Delete miniTramps? 
+   // Delete miniTramps?
    // Uninstrument?
    for (iterator iter = begin(); iter != end(); ++iter)
       delete *iter;
@@ -235,11 +275,11 @@ instPoint::const_iterator instPoint::end() const { return tramps_.end(); }
 bool instPoint::empty() const { return tramps_.empty(); }
 unsigned instPoint::size() const { return tramps_.size(); }
 
-AddressSpace *instPoint::proc() const { 
+AddressSpace *instPoint::proc() const {
    return func()->proc();
 }
 
-func_instance *instPoint::func() const { 
+func_instance *instPoint::func() const {
    if (func_) return func_;
    return NULL;
 }
@@ -310,12 +350,12 @@ baseTramp *instPoint::tramp() {
    if (!baseTramp_) {
       baseTramp_ = baseTramp::create(this);
    }
-   
+
    return baseTramp_;
 }
 
-// Returns the current block (if there is one) 
-// or the next block we're going to execute (if not). 
+// Returns the current block (if there is one)
+// or the next block we're going to execute (if not).
 // In some cases we may not know; function exit points
 // and the like. In this case we return the current block
 // as a "well, this is what we've got..."
@@ -323,7 +363,7 @@ block_instance *instPoint::nextExecutedBlock() const {
    switch (type_) {
       case FuncEntry:
          return func_->entryBlock();
-      case Edge:
+      case EdgeDuring:
          return edge_->trg();
       case PreInsn:
       case PostInsn:
@@ -342,7 +382,7 @@ block_instance *instPoint::nextExecutedBlock() const {
       default:
          return NULL;
    }
-}   
+}
 
 Address instPoint::nextExecutedAddr() const {
    // As the above, but our best guess at an address
@@ -351,10 +391,10 @@ Address instPoint::nextExecutedAddr() const {
          return func_->addr();
       case FuncExit:
          // Not correct, but as close as we can get
-         return block_->last(); 
+         return block_->last();
       case BlockEntry:
          return block_->start();
-      case Edge:
+      case EdgeDuring:
          return edge_->trg()->start();
       case PreInsn:
          return addr_;
@@ -420,7 +460,7 @@ std::string instPoint::format() const {
       case BlockExit:
          ret << "BExit";
          break;
-      case Edge:
+      case EdgeDuring:
          ret << "E";
          break;
       case PreInsn:

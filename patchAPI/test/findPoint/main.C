@@ -58,7 +58,7 @@ int main(int argc, const char *argv[]) {
   // Find Points
   PatchFunction* foo3 = lib_obj->getFunc(foo3_func);
   vector<PointPtr> func_points;
-  mgr->findPoints(foo3, Point::CallBefore, inserter(func_points, func_points.begin()));
+  mgr->findPoints(foo3, Point::PreCall, inserter(func_points, func_points.begin()));
   cerr << func_points[0]->getCallee()->name() << "\n";
   // Insert snippets
   BPatch_variableExpr *intCounter = app->malloc(*image->findType("int"));

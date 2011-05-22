@@ -326,7 +326,7 @@ void instPoint::calcLiveness() {
       case BlockEntry:
          liveRegs_ = block()->llb()->getLivenessIn(func()->ifunc());
          return;
-      case Edge:
+      case EdgeDuring:
          liveRegs_ = edge()->trg()->llb()->getLivenessIn(func()->ifunc());
          return;
       case FuncExit:

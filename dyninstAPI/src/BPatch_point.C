@@ -485,7 +485,7 @@ bool BPatch_point::isDynamicInt()
       case instPoint::PostCall:
          return point->block()->containsDynamicCall();
          break;
-      case instPoint::Edge: 
+      case instPoint::EdgeDuring: 
          return point->edge()->sinkEdge();
          break;
       default:

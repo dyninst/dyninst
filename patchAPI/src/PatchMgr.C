@@ -59,8 +59,8 @@ bool PatchMgr::removeSnippet(InstancePtr instance) {
 /* If there's NOT any point in type_pt_map, create one
    otherwise, simply fill those to *points* */
 template <class Scope>
-void  PatchMgr::getPointsByType(TypePtMap& type_pt_map, Point::PointType types,
-                                Point::PointType type, Address addr,
+void  PatchMgr::getPointsByType(TypePtMap& type_pt_map, Point::Type types,
+                                Point::Type type, Address addr,
                                 Scope* scope, PointSet& points) {
   // If there's NOT a specific *type* in *types*, done.
   if (!Point::TestType(types, type)) {
@@ -80,7 +80,7 @@ void  PatchMgr::getPointsByType(TypePtMap& type_pt_map, Point::PointType types,
 /* Address-level points:
    - Valid Types: INSN_BEFORE, INSN_FT, INSN_TAKEN, CALL_BEFORE, CALL_AFTER
    return false if no point is found */
-bool PatchMgr::findPointsByType(Address* addr, Point::PointType types,
+bool PatchMgr::findPointsByType(Address* addr, Point::Type types,
                                 PointSet& points) {
   // Make sure this set contains only points that we find in this method
   points.clear();
@@ -114,14 +114,14 @@ bool PatchMgr::findPointsByType(Address* addr, Point::PointType types,
     points.clear();
     return false;
   }
-  getPointsByType(type_pt_map, types, Point::InsnBefore, *addr, addr, points);
-  getPointsByType(type_pt_map, types, Point::InsnFt, *addr, addr, points);
+  getPointsByType(type_pt_map, types, Point::PreInsn, *addr, addr, points);
+  getPointsByType(type_pt_map, types, Point::PostInsn, *addr, addr, points);
   if (insn->getCategory() == InstructionAPI::c_BranchInsn) {
     getPointsByType(type_pt_map, types, Point::InsnTaken, *addr, addr, points);
   }
   if (insn->getCategory() == InstructionAPI::c_CallInsn) {
-    getPointsByType(type_pt_map, types, Point::CallBefore, *addr, addr, points);
-    getPointsByType(type_pt_map, types, Point::CallAfter, *addr, addr, points);
+    getPointsByType(type_pt_map, types, Point::PreCall, *addr, addr, points);
+    getPointsByType(type_pt_map, types, Point::PostCall, *addr, addr, points);
   }
   if (points.size() == 0) return false;
   return true;
@@ -134,7 +134,7 @@ bool PatchMgr::findPointsByType(Address* addr, Point::PointType types,
    - call findPointsByType(Address ...)
 
    return false if no point is found */
-bool PatchMgr::findPointsByType(PatchBlock* blk, Point::PointType types,
+bool PatchMgr::findPointsByType(PatchBlock* blk, Point::Type types,
                                 PointSet& points) {
   // Make sure this set contains only points that we find in this method
   points.clear();
@@ -172,7 +172,7 @@ bool PatchMgr::findPointsByType(PatchBlock* blk, Point::PointType types,
 /* Edge-level points:
    - Valid Types: EDGE_DURING
   return false if no point is found */
-bool PatchMgr::findPointsByType(PatchEdge* edge, Point::PointType types,
+bool PatchMgr::findPointsByType(PatchEdge* edge, Point::Type types,
                                 PointSet& points) {
   // Make sure this set contains only points that we find in this method
   points.clear();
@@ -221,7 +221,7 @@ bool PatchMgr::findPointsByType(PatchEdge* edge, Point::PointType types,
    Edge-level points (edges inside this func)
    return false if no point is found */
 bool PatchMgr::findPointsByType(PatchFunction* func,
-                       Point::PointType types, PointSet& points) {
+                       Point::Type types, PointSet& points) {
   // Make sure this set contains only points that we find in this method
   points.clear();
   TypePtMap& type_pt_map = func_type_pt_map_[func];

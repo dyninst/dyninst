@@ -577,7 +577,7 @@ instPoint *func_instance::findPoint(instPoint::Type type, bool create) {
    assert(type == instPoint::FuncEntry);
    if (points_.entry) return points_.entry;
    if (!create) return NULL;
-   points_.entry = new instPoint(instPoint::FuncEntry, this);
+   points_.entry = new instPoint(0, instPoint::FuncEntry, PatchMgrPtr(), this);
    return points_.entry;
 }
 
@@ -586,7 +586,7 @@ instPoint *func_instance::findPoint(instPoint::Type type, block_instance *b, boo
       std::map<block_instance *, instPoint *>::iterator iter = points_.exits.find(b);
       if (iter != points_.exits.end()) return iter->second;
       if (!create) return NULL;
-      instPoint *point = new instPoint(instPoint::FuncExit, b, this);
+      instPoint *point = new instPoint(0, instPoint::FuncExit, PatchMgrPtr(), b, this);
       points_.exits[b] = point;
       return point;
    }
@@ -598,7 +598,7 @@ instPoint *func_instance::findPoint(instPoint::Type type, block_instance *b, boo
             if (iter->second.entry) return iter->second.entry;
          }
          if (!create) return NULL;
-         instPoint *point = new instPoint(instPoint::BlockEntry, b, this);
+         instPoint *point = new instPoint(0, instPoint::BlockEntry, PatchMgrPtr(), b, this);
          blockPoints_[b].entry = point;
          return point;
       }
@@ -607,7 +607,7 @@ instPoint *func_instance::findPoint(instPoint::Type type, block_instance *b, boo
             if (iter->second.exit) return iter->second.exit;
          }
          if (!create) return NULL;
-         instPoint *point = new instPoint(instPoint::BlockExit, b, this);
+         instPoint *point = new instPoint(0, instPoint::BlockExit, PatchMgrPtr(), b, this);
          blockPoints_[b].exit = point;
          return point;
       }
@@ -616,7 +616,7 @@ instPoint *func_instance::findPoint(instPoint::Type type, block_instance *b, boo
             if (iter->second.preCall) return iter->second.preCall;
          }
          if (!create) return NULL;
-         instPoint *point = new instPoint(instPoint::PreCall, b, this);
+         instPoint *point = new instPoint(0, instPoint::PreCall, PatchMgrPtr(), b, this);
          blockPoints_[b].preCall = point;
          return point;
       }
@@ -625,7 +625,7 @@ instPoint *func_instance::findPoint(instPoint::Type type, block_instance *b, boo
             if (iter->second.postCall) return iter->second.postCall;
          }
          if (!create) return NULL;
-         instPoint *point = new instPoint(instPoint::PostCall, b, this);
+         instPoint *point = new instPoint(0, instPoint::PostCall, PatchMgrPtr(), b, this);
          blockPoints_[b].postCall = point;
          return point;
       }
@@ -654,8 +654,8 @@ instPoint *func_instance::findPoint(instPoint::Type type,
             ptr = b->getInsn(a);
             if (!ptr) return NULL;
          }
-         instPoint *point = new instPoint(instPoint::PreInsn,
-                                          b, ptr, a, this);
+         instPoint *point = new instPoint(a, instPoint::PreInsn, PatchMgrPtr(),
+                                          b, ptr, this);
          blockPoints_[b].preInsn[a] = point;
          return point;
       }
@@ -671,8 +671,8 @@ instPoint *func_instance::findPoint(instPoint::Type type,
             ptr = b->getInsn(a);
             if (!ptr) return NULL;
          }
-         instPoint *point = new instPoint(instPoint::PostInsn,
-                                          b, ptr, a, this);
+         instPoint *point = new instPoint(a, instPoint::PostInsn, PatchMgrPtr(),
+                                          b, ptr, this);
          blockPoints_[b].postInsn[a] = point;
          return point;
       }
@@ -707,14 +707,14 @@ bool func_instance::findInsnPoints(instPoint::Type type,
 instPoint *func_instance::findPoint(instPoint::Type type,
                                     edge_instance *e,
                                     bool create) {
-   if (type != instPoint::Edge) return NULL;
+   if (type != instPoint::EdgeDuring) return NULL;
 
    std::map<edge_instance *, EdgeInstpoints>::iterator iter = edgePoints_.find(e);
    if (iter != edgePoints_.end()) {
       if (iter->second.point) return iter->second.point;
    }
    if (!create) return NULL;
-   instPoint *point = new instPoint(instPoint::Edge,
+   instPoint *point = new instPoint(0, instPoint::EdgeDuring, PatchMgrPtr(), 
                                     e,
                                     this);
    edgePoints_[e].point = point;

@@ -50,6 +50,7 @@
 #include "block.h"
 #include "instPoint.h"
 #include "PatchCFG.h"
+#include "Point.h"
 
 class process;
 class mapped_module;
@@ -68,6 +69,7 @@ typedef enum callType {
   thiscall_call
 } callType;
 
+using Dyninst::PatchAPI::Point;
 
 class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunction {
   friend class block_instance;
@@ -240,17 +242,17 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // So we can assert(consistency());
   bool consistency() const;
 
-  instPoint *findPoint(instPoint::Type type, bool create);
-  instPoint *findPoint(instPoint::Type type, block_instance *b, bool create);
-  instPoint *findPoint(instPoint::Type type, block_instance *b,
+  instPoint *findPoint(Point::Type type, bool create);
+  instPoint *findPoint(Point::Type type, block_instance *b, bool create);
+  instPoint *findPoint(Point::Type type, block_instance *b,
                        Address a, InstructionAPI::Instruction::Ptr ptr,
                        bool trusted, bool create);
   // And the "mass" version of the above
-  bool findInsnPoints(instPoint::Type type, block_instance *b,
+  bool findInsnPoints(Point::Type type, block_instance *b,
                       InsnInstpoints::const_iterator &begin,
                       InsnInstpoints::const_iterator &end);
 
-  instPoint *findPoint(instPoint::Type type, edge_instance *e, bool create);
+  instPoint *findPoint(Point::Type type, edge_instance *e, bool create);
 
  private:
 
