@@ -45,10 +45,13 @@ namespace PatchAPI {
 class AddrSpace;
 typedef dyn_detail::boost::shared_ptr<AddrSpace> AddrSpacePtr;
 
+class CFGMaker;
+typedef dyn_detail::boost::shared_ptr<CFGMaker> CFGMakerPtr;
+
 class PatchObject;
 
-class PointFactory;
-typedef dyn_detail::boost::shared_ptr<PointFactory> PointFactoryPtr;
+class PointMaker;
+typedef dyn_detail::boost::shared_ptr<PointMaker> PointMakerPtr;
 
 class Point;
 typedef dyn_detail::boost::shared_ptr<Point> PointPtr;

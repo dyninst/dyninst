@@ -10,7 +10,7 @@ using Dyninst::PatchAPI::InstancePtr;
 using Dyninst::PatchAPI::Point;
 using Dyninst::PatchAPI::PointPtr;
 using Dyninst::PatchAPI::PatchFunction;
-using Dyninst::PatchAPI::PointFactory;
+using Dyninst::PatchAPI::PointMaker;
 using Dyninst::ParseAPI::CodeObject;
 using Dyninst::ParseAPI::CodeSource;
 using Dyninst::ParseAPI::CodeRegion;
@@ -232,6 +232,8 @@ bool Point::destroy() {
     case BlockTypes:
     case CallTypes:
     case FuncTypes:
+    case OtherPoint:
+    case None:
     {
       return false;
     }
@@ -239,40 +241,4 @@ bool Point::destroy() {
   PointSet& points = type_pt_map[type_];
   points.erase(shared_from_this());
   return true;
-}
-
-PointPtr PointFactory::createPoint(Address addr,
-                                   Point::Type type,
-                                   PatchMgrPtr mgr,
-                                   Address* scope) {
-  PointPtr ret = PointPtr(new Point(addr, type, mgr, scope));
-  if (!ret) return PointPtr();
-  return ret;
-}
-
-PointPtr PointFactory::createPoint(Address addr,
-                                   Point::Type type,
-                                   PatchMgrPtr mgr,
-                                   PatchBlock* scope) {
-  PointPtr ret = PointPtr(new Point(addr, type, mgr, scope));
-  if (!ret) return PointPtr();
-  return ret;
-}
-
-PointPtr PointFactory::createPoint(Address addr,
-                                   Point::Type type,
-                                   PatchMgrPtr mgr,
-                                   PatchEdge* scope) {
-  PointPtr ret = PointPtr(new Point(addr, type, mgr, scope));
-  if (!ret) return PointPtr();
-  return ret;
-}
-
-PointPtr PointFactory::createPoint(Address addr,
-                                   Point::Type type,
-                                   PatchMgrPtr mgr,
-                                   PatchFunction* scope) {
-  PointPtr ret = PointPtr(new Point(addr, type, mgr, scope));
-  if (!ret) return PointPtr();
-  return ret;
 }

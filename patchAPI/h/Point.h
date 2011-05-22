@@ -193,10 +193,10 @@ class Instance : public dyn_detail::boost::enable_shared_from_this<Instance> {
 
 /* Factory class for creating a point that could be either PatchAPI::Point or
    the subclass of PatchAPI::Point.   */
-class PointFactory {
+class PointMaker {
   public:
-    PointFactory() {}
-    virtual ~PointFactory() {}
+    PointMaker() {}
+    virtual ~PointMaker() {}
 
     virtual PointPtr createPoint(Address     addr, Point::Type type,
                                  PatchMgrPtr mgr,  Address*         scope);

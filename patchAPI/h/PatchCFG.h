@@ -163,10 +163,10 @@ class PatchFunction {
    void addBlock(PatchBlock*);
    PatchEdge *getEdge(ParseAPI::Edge *, PatchBlock *src, PatchBlock *trg);
 
- protected:
    PatchFunction(ParseAPI::Function *f, PatchObject* o);
    PatchFunction(const PatchFunction* parFunc, PatchObject* child);
 
+ protected:
    void removeEdge(PatchEdge *e);
 
    ParseAPI::Function *func_;
@@ -185,6 +185,15 @@ class PatchFunction {
    typedef std::map<ParseAPI::Edge *, PatchEdge *> EdgeMap;
    EdgeMap edgeMap_;
 
+};
+
+class CFGMaker {
+  public:
+    CFGMaker() {}
+    virtual ~CFGMaker() {}
+
+    virtual PatchFunction* makeFunction(ParseAPI::Function*, PatchObject*);
+    virtual PatchFunction* copyFunction(PatchFunction*, PatchObject*);
 };
 
 };

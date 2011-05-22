@@ -36,8 +36,10 @@ PatchFunction *PatchObject::getFunc(ParseAPI::Function *f) {
      cerr << "ERROR: function " << f->name() << " doesn't exist in this object!\n";
      exit(0);
    }
-   PatchFunction *newFunc = new PatchFunction(f, this);
-   funcMap_.insert(std::make_pair(f, newFunc));
+
+   CFGMaker cfg_maker_;
+   PatchFunction* newFunc = cfg_maker_.makeFunction(f, this);
+   addFunc(newFunc);
    return newFunc;
 }
 

@@ -24,5 +24,3 @@ test.exe: main.C $(DYNINST_ROOT)/$(PLATFORM)/lib/libdyninstAPI.so
 
 clean:
 	rm -f test.exe
-	cd mutatee; make clean
-	rm -f new

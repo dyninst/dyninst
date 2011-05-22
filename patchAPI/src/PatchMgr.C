@@ -9,7 +9,7 @@ using Dyninst::InstructionAPI::InstructionDecoder;
 using Dyninst::InstructionAPI::Instruction;
 using Dyninst::PatchAPI::PatchMgr;
 using Dyninst::PatchAPI::PatchMgrPtr;
-using Dyninst::PatchAPI::PointFactory;
+using Dyninst::PatchAPI::PointMaker;
 
 bool debug_patchapi_flag = false;
 static void initDebugFlag() {
@@ -17,12 +17,12 @@ static void initDebugFlag() {
     debug_patchapi_flag = true;
 }
 
-PatchMgr::PatchMgr(AddrSpacePtr as, PointFactoryPtr pt)
-  : point_factory_(pt), as_(as), batch_mode_(0) {
+PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt)
+  : point_maker_(pt), as_(as), batch_mode_(0) {
   instor_ = Instrumenter::create(as);
 }
 
-PatchMgrPtr PatchMgr::create(AddrSpacePtr as, PointFactoryPtr pf) {
+PatchMgrPtr PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf) {
   PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as, pf));
   if (!ret) return PatchMgrPtr();
   initDebugFlag();
@@ -71,7 +71,7 @@ void  PatchMgr::getPointsByType(TypePtMap& type_pt_map, Point::Type types,
   PointSet& pts = type_pt_map[type];
   if (pts.size() == 0) {
     PointPtr point;
-    point = point_factory_->createPoint(addr, type, shared_from_this(), scope);
+    point = point_maker_->createPoint(addr, type, shared_from_this(), scope);
     pts.insert(point);
   }
   std::copy(pts.begin(), pts.end(), inserter(points, points.begin()));

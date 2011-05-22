@@ -16,10 +16,11 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
   friend class Point;
 
   public:
-    PatchMgr(AddrSpacePtr as, PointFactoryPtr pf);
+    PatchMgr(AddrSpacePtr as, PointMakerPtr pf);
     virtual ~PatchMgr() {}
     static PatchMgrPtr create(AddrSpacePtr as,
-               PointFactoryPtr pf = PointFactoryPtr(new PointFactory));
+			      PointMakerPtr pf = PointMakerPtr(new PointMaker));
+			      //, CFGMakerPtr cm = ...);
 
     // Default implementation for filter function,
     // used in findPoins and removeSnippets
@@ -166,7 +167,7 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     // Core instrumentation function!
     bool patch();
 
-    PointFactoryPtr point_factory_;
+    PointMakerPtr point_maker_;
 
     BlkTypePtMap blk_type_pt_map_;
     EdgeTypePtMap edge_type_pt_map_;
