@@ -60,8 +60,10 @@ async_ret_t aret_async;
 
 typedef enum {
    token_none = 0,
-   token_clear,
-   token_decode
+   token_getmsg,
+   token_seteventreporting,
+   token_setevent,
+   token_init
 } token_t;
 
 /**
@@ -86,6 +88,9 @@ typedef enum {
  * semantics if we're restarting operations (we expect a write 'B'
  * will follow the second write 'A'), but this is inappropriate
  * for general purpose use.
+ * 
+ * Update - The memcache can now store registers.  Just what
+ * every memcache needs.
  **/
 class memCache;
 class memEntry {
@@ -135,7 +140,9 @@ class memCache {
    bool word_cache_valid;
    bool pending_async;
    bool have_writes;
+   bool sync_handle;
    int operation_num;
+   std::map<int_thread *, allreg_response::ptr> regs;
 
    async_ret_t doOperation(memEntry *me, int_thread *op_thread);
    async_ret_t getExistingOperation(mcache_t::iterator i, memEntry *orig);   
@@ -146,29 +153,30 @@ class memCache {
    ~memCache();
 
    async_ret_t readMemory(void *dest, Dyninst::Address src, unsigned long size, 
-                        std::set<mem_response::ptr> &resps, int_thread *thrd = NULL); 
+                          std::set<mem_response::ptr> &resps, int_thread *thrd = NULL); 
    async_ret_t writeMemory(Dyninst::Address dest, void *src, unsigned long size, 
-                         std::set<result_response::ptr> &resps, int_thread *thrd = NULL); 
-   
+                           std::set<result_response::ptr> &resps, int_thread *thrd = NULL); 
+   async_ret_t getRegisters(int_thread *thr, int_registerPool &pool);
+
    void startMemTrace(int &record);
    void clear();
    bool hasPendingAsync();
    void getPendingAsyncs(std::set<response::ptr> &resps);   
-
+   void setSyncHandling(bool b);
    void markToken(token_t tk);
    void condense();
 
   private:
    async_ret_t readMemoryAsync(void *dest, Dyninst::Address src, unsigned long size, 
-                             std::set<mem_response::ptr> &resps,
-                             int_thread *reading_thread);
+                               std::set<mem_response::ptr> &resps,
+                               int_thread *reading_thread);
    async_ret_t readMemorySync(void *dest, Dyninst::Address src, unsigned long size,
-                            int_thread *reading_thread);
+                              int_thread *reading_thread);
    async_ret_t writeMemoryAsync(Dyninst::Address dest, void *src, unsigned long size, 
-                             std::set<result_response::ptr> &resps, 
-                             int_thread *writing_thrd = NULL);
+                                std::set<result_response::ptr> &resps, 
+                                int_thread *writing_thrd = NULL);
    async_ret_t writeMemorySync(Dyninst::Address dest, void *src, unsigned long size, 
-                            int_thread *writing_thrd = NULL);
+                               int_thread *writing_thrd = NULL);
 };
 
 #endif

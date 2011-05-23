@@ -50,6 +50,7 @@ memEntry::memEntry() :
 memEntry::memEntry(Dyninst::Address remote, void *local, unsigned long size_, bool is_read_, memCache *cache) :
    addr(remote),
    buffer((char *) local),
+   had_error(false),
    size(size_),
    operation_num(cache->operation_num),
    clean_buffer(false),
@@ -112,8 +113,7 @@ bool memEntry::isToken() const
 bool memEntry::operator==(const memEntry &b) const
 {
    if (is_read != b.is_read || is_write != b.is_write || 
-       token_type != b.token_type || addr != b.addr || size != b.size || 
-       operation_num != b.operation_num)
+       token_type != b.token_type || addr != b.addr || size != b.size)
    {
       return false;
    }
@@ -141,6 +141,7 @@ memCache::memCache(int_process *p) :
    word_cache_valid(false),
    pending_async(false),
    have_writes(false),
+   sync_handle(false),
    operation_num(0)
 {
    static bool registeredMemCacheClear = false;
@@ -172,6 +173,18 @@ void memCache::getPendingAsyncs(set<response::ptr> &resps)
          continue;
       resps.insert(resp);
    }
+   for (map<int_thread *, allreg_response::ptr>::iterator j = regs.begin(); j != regs.end(); j++) {
+      response::ptr resp = j->second;
+      if (resp->isReady() || resp->hasError())
+         continue;
+      resps.insert(resp);
+   }
+      
+}
+
+void memCache::setSyncHandling(bool b)
+{
+   sync_handle = b;
 }
 
 void memCache::markToken(token_t tk)
@@ -250,6 +263,7 @@ async_ret_t memCache::doOperation(memEntry *me, int_thread *op_thread)
       assert(!me->getBuffer());
       me->buffer = buffer;
       me->resp = mem_response::createMemResponse(buffer, size);
+      if (sync_handle) me->resp->markSyncHandled();
       result = proc->readMem(me->getAddress(), me->resp, op_thread);
       resp = me->resp;
    }
@@ -260,6 +274,7 @@ async_ret_t memCache::doOperation(memEntry *me, int_thread *op_thread)
       me->buffer = buffer;
       me->operation_num = ++operation_num;
       me->res_resp = result_response::createResultResponse();
+      if (sync_handle) me->res_resp->markSyncHandled();
       result = proc->writeMem(buffer, me->getAddress(), size,
                               me->res_resp, op_thread);
       resp = me->res_resp;
@@ -453,15 +468,24 @@ async_ret_t memCache::writeMemoryAsync(Dyninst::Address dest, void *src, unsigne
                                        int_thread *writing_thread)
 {
    memEntry me(dest, (char *) src, size, false, this);
-
    pending_async = false;
    async_ret_t result = lookupAsync(&me, writing_thread);
+   have_writes = true;
    if (result == aret_async) {
       mcache_t::iterator i = mem_cache.end();
       i--;
       assert((*i)->res_resp);
       resps.insert((*i)->res_resp);
       pending_async = true;
+      
+      bool found_token = false;
+      for (i = mem_cache.begin(); i != mem_cache.end(); i++) {
+         if ((*i)->token_type != token_none) {
+            found_token = true;
+            break;
+         }
+      }
+      assert(found_token);
    }
    return result;
 }
@@ -505,14 +529,48 @@ async_ret_t memCache::writeMemory(Dyninst::Address dest, void *src, unsigned lon
       return writeMemorySync(dest, src, size, thrd);
 }
 
+async_ret_t memCache::getRegisters(int_thread *thr, int_registerPool &pool)
+{
+   allreg_response::ptr resp;
+   bool result = true;
+   map<int_thread *, allreg_response::ptr>::iterator i = regs.find(thr);
+   if (i == regs.end()) {
+      int_registerPool *new_pool = new int_registerPool();
+      resp = allreg_response::createAllRegResponse(new_pool);
+      if (sync_handle) resp->markSyncHandled();
+      result = thr->getAllRegisters(resp);
+   }
+   else {
+      resp = i->second;
+   }
+
+   if (!result || resp->hasError()) {
+      pending_async = false;
+      return aret_error;
+   }
+   else if (!resp->isReady()) {
+      pending_async = true;
+      return aret_async;
+   }
+   pool = *resp->getRegPool();
+   pending_async = false;
+   return aret_success;
+
+}
+
 void memCache::clear()
 {
    pthrd_printf("Clearing memCache\n");
    
+   for (map<int_thread *, allreg_response::ptr>::iterator i = regs.begin(); i != regs.end(); i++) {
+      delete i->second->getRegPool();
+   }
    for (mcache_t::iterator j = mem_cache.begin(); j != mem_cache.end(); j++) {
       delete *j;
    }
    mem_cache.clear();
+   regs.clear();
+
    last_operation = mem_cache.end();
    word_cache_valid = false;
    pending_async = false;

@@ -162,9 +162,11 @@ protected:
 
     std::set<mem_response::ptr> resps;
     std::set<result_response::ptr> res_resps;
+    EventThreadDB::ptr dispatch_event;
+
     bool hasAsyncPending;
     bool initialThreadEventCreated;
-    
+    bool setEventSet;
 private:
     static bool tdb_loaded;
     static bool tdb_loaded_result;
@@ -222,6 +224,7 @@ protected:
     bool tinfo_initialized;
     bool thread_initialized;
     bool threadHandle_alloced;
+    bool enabled_event_reporting;
 };
 
 class ThreadDBDispatchHandler : public Handler

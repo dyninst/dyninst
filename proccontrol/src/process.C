@@ -2772,7 +2772,6 @@ Thread::ptr int_thread::thread()
 
 bool int_thread::getAllRegisters(allreg_response::ptr response)
 {
-   bool result = false;
    response->setThread(this);
 
    pthrd_printf("Reading registers for thread %d\n", getLWP());
@@ -2782,31 +2781,34 @@ bool int_thread::getAllRegisters(allreg_response::ptr response)
       response->getRegPool()->thread = this;
       response->markReady();
       pthrd_printf("Returning cached register set\n");
-      result = true;
-      goto done;
+      regpool_lock.unlock();
+      return true;
    }
 
    if (!llproc()->plat_needsAsyncIO())
    {
       pthrd_printf("plat_getAllRegisters on %d/%d\n", llproc()->getPid(), getLWP());
-      result = plat_getAllRegisters(cached_regpool);
+      bool result = plat_getAllRegisters(cached_regpool);
       if (!result) {
          pthrd_printf("plat_getAllRegisters returned error on %d\n", getLWP());
          response->markError();
-         goto done;
+         regpool_lock.unlock();
+         return false;
       }
       cached_regpool.full = true;
       *(response->getRegPool()) = cached_regpool;
       response->getRegPool()->thread = this;
       response->markReady();
+      regpool_lock.unlock();
       pthrd_printf("Successfully retrieved all registers for %d\n", getLWP());
    }
    else
    {
       pthrd_printf("Async plat_getAllRegisters on %d/%d\n", llproc()->getPid(), 
                    getLWP());
+      regpool_lock.unlock();
       getResponses().lock();
-      result = plat_getAllRegistersAsync(response);
+      bool result = plat_getAllRegistersAsync(response);
       if (result) {
          getResponses().addResponse(response, llproc());
       }
@@ -2814,30 +2816,25 @@ bool int_thread::getAllRegisters(allreg_response::ptr response)
       getResponses().noteResponse();
       if (!result) {
          pthrd_printf("plat_getAllRegistersAsync returned error on %d\n", getLWP());
-         goto done;
+         return false;
       }
    }
 
-   result = true;
-  done:
-   regpool_lock.unlock();
-   return result;
+   return true;
 }
 
 bool int_thread::setAllRegisters(int_registerPool &pool, result_response::ptr response)
 {
    assert(getHandlerState() == int_thread::stopped);
    assert(getGeneratorState() == int_thread::stopped);
-   regpool_lock.lock();
 
-   bool ret_result = false;
    if (!llproc()->plat_needsAsyncIO()) {
       pthrd_printf("Setting registers for thread %d\n", getLWP());
       bool result = plat_setAllRegisters(pool);
       response->setResponse(result);
       if (!result) {
          pthrd_printf("plat_setAllRegisters returned error on %d\n", getLWP());
-         goto done;
+         return false;
       }
 
       pthrd_printf("Successfully set all registers for %d\n", getLWP());
@@ -2853,17 +2850,16 @@ bool int_thread::setAllRegisters(int_registerPool &pool, result_response::ptr re
       getResponses().noteResponse();
       if (!result) {
          pthrd_printf("Error async setting registers on %d\n", getLWP());
-         goto done;
+         return false;
       }
    }
 
+   regpool_lock.lock();
    cached_regpool = pool;
    cached_regpool.full = true;
-
-   ret_result = true;
-  done:
    regpool_lock.unlock();
-   return ret_result;
+
+   return true;
 }
 
 bool int_thread::getRegister(Dyninst::MachRegister reg, reg_response::ptr response)
