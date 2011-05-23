@@ -318,11 +318,9 @@ private:
 
     typedef std::map<const ParseAPI::Block *, block_instance *> BlockMap;
     BlockMap blocks_;
-    
+
     typedef std::map<const ParseAPI::Edge *, edge_instance *> EdgeMap;
     EdgeMap edges_;
-
-    //typedef std::map<const ParseAPI::Function *, func_instance *> FuncMap;
     FuncMap funcs_;
 
     dictionary_hash<const image_variable *, int_variable *> everyUniqueVariable;

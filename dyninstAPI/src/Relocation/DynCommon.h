@@ -17,6 +17,7 @@ namespace PatchAPI {
 
   class DynObject;
   typedef dyn_detail::boost::shared_ptr<DynObject> DynObjectPtr;
+
 }
 }
 

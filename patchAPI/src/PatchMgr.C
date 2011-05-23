@@ -17,13 +17,13 @@ static void initDebugFlag() {
     debug_patchapi_flag = true;
 }
 
-PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt)
-  : point_maker_(pt), as_(as), batch_mode_(0) {
+PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt, CFGMakerPtr cm)
+  : point_maker_(pt), cfg_maker_(cm), as_(as), batch_mode_(0) {
   instor_ = Instrumenter::create(as);
 }
 
-PatchMgrPtr PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf) {
-  PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as, pf));
+PatchMgrPtr PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf, CFGMakerPtr cm) {
+  PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as, pf, cm));
   if (!ret) return PatchMgrPtr();
   initDebugFlag();
   ret->as_->mgr_ = ret;
@@ -70,9 +70,10 @@ void  PatchMgr::getPointsByType(TypePtMap& type_pt_map, Point::Type types,
   // If there's a specific *type* in *types*:
   PointSet& pts = type_pt_map[type];
   if (pts.size() == 0) {
-    PointPtr point;
+    Point* point;
     point = point_maker_->createPoint(addr, type, shared_from_this(), scope);
     pts.insert(point);
+    del_pt_set_.insert(point);
   }
   std::copy(pts.begin(), pts.end(), inserter(points, points.begin()));
 }
@@ -266,12 +267,12 @@ bool PatchMgr::findPointsByType(PatchFunction* func,
   return true;
 }
 
-bool PatchMgr::removeFuncCall(PointPtr point) {
+bool PatchMgr::removeFuncCall(Point* point) {
   callRemoval_.insert(point);
   return true;
 }
 
-bool PatchMgr::replaceFuncCall(PointPtr point, PatchFunction* func) {
+bool PatchMgr::replaceFuncCall(Point* point, PatchFunction* func) {
   callReplacement_[point] = func;
   return true;
 }
@@ -297,4 +298,10 @@ bool PatchMgr::patch() {
 
   patch_cerr << ws2 << "Batch Finish.\n";
   return true;
+}
+
+PatchMgr::~PatchMgr() {
+  for (PointSet::iterator pi = del_pt_set_.begin(); pi != del_pt_set_.end(); pi++) {
+    delete *pi;
+  }
 }

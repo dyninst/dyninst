@@ -56,15 +56,9 @@ PatchBlock *PatchEdge::target() {
 
 // Upcalls suck, but someone has to let the function
 // know to remove us from the edge map.
-void PatchEdge::destroy(PatchEdge *e) {
-  PatchFunction *indexFunc = (e->src_ ? e->src_->function() : e->trg_->function());
-  indexFunc->removeEdge(e);
-  delete e;
-}
-
 PatchEdge::~PatchEdge() {
-  //  assert(src_ == NULL);
-  //  assert(trg_ == NULL);
+  PatchFunction *indexFunc = (src_ ? src_->function() : trg_->function());
+  indexFunc->removeEdge(this);
 }
 
 ParseAPI::Edge *PatchEdge::edge() const {

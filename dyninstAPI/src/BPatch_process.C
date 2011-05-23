@@ -65,8 +65,18 @@
 #include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
 
+#include "PatchMgr.h"
+#include "Relocation/DynAddrSpace.h"
+#include "Relocation/DynPointMaker.h"
+#include "Relocation/DynCFGMaker.h"
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
+using PatchAPI::DynObjectPtr;
+using PatchAPI::DynObject;
+using PatchAPI::DynAddrSpace;
+using PatchAPI::PatchMgr;
+using PatchAPI::PointMakerPtr;
 
 int BPatch_process::getAddressWidthInt(){
 	return llproc->getAddressWidth();
@@ -222,6 +232,26 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
 
    startup_cerr << "BPatch_process::BPatch_process, completed." << endl;
    isAttemptingAStop = false;
+
+   /* PatchAPI stuffs -- by wenbin
+    */
+   ParseAPI::CodeObject* co = llproc->getAOut()->parse_img()->codeObject();
+   DynObject* obj = DynObject::create(co, llproc, llproc->getAOut()->codeBase());
+   addr_space_ = DynAddrSpace::create(obj);
+   mgr_ = PatchMgr::create(addr_space_,
+                           DynPointMakerPtr(new DynPointMaker),
+                           DynCFGMakerPtr(new DynCFGMaker));
+
+   // load in shared libraries
+   const pdvector<mapped_object*>& mobjs = llproc->mappedObjects();
+   for (pdvector<mapped_object*>::const_iterator i = mobjs.begin();
+        i != mobjs.end(); i++) {
+     if (*i != llproc->getAOut()) {
+       ParseAPI::CodeObject* co_lib = (*i)->parse_img()->codeObject();
+       DynObject* obj_lib = DynObject::create(co_lib, llproc, (*i)->codeBase());
+       addr_space_->loadLibrary(obj_lib);
+     }
+   }
 }
 
 #if defined(os_linux)
@@ -399,7 +429,14 @@ BPatch_process::BPatch_process(process *nProc)
  */
 void BPatch_process::BPatch_process_dtor()
 {
-    
+  /* PatchAPI stuffs */
+  
+  for (PatchAPI::AddrSpace::CoObjMap::iterator ci = addr_space_->getCoobjMap().begin();
+       ci != addr_space_->getCoobjMap().end(); ci++) {
+    delete ci->second;
+  }
+  /* End of PatchAPI stuffs */
+
    if (!detached &&
        !getAsync()->detachFromProcess(llproc)) 
    {

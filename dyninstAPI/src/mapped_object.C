@@ -358,6 +358,11 @@ mapped_object::~mapped_object()
       delete everyModule[i];
    everyModule.clear();    
 
+   // Remember to clean up allocated buffers! -- wenbin
+   // delete mapped_object is enough, because all related functions and blocks and edges 
+   // will be destroyed too.
+   // Defer to do it right when synchronize BlockMap/FucMap/EdgeMap w/ PatchAPI layer
+   /*
    for (BlockMap::iterator iter = blocks_.begin(); iter != blocks_.end(); ++iter) {
       delete iter->second;
    }
@@ -367,13 +372,12 @@ mapped_object::~mapped_object()
       delete iter->second;
    }
    edges_.clear();
-   
+
    for (FuncMap::iterator iter = funcs_.begin(); iter != funcs_.end(); ++iter) {
        delete iter->second;
    }
    funcs_.clear();
-   DynObject::destroy(this);  // Destroy from the parent class, by wenbin
-
+*/
    pdvector<int_variable *> vars = everyUniqueVariable.values();
    for (unsigned k = 0; k < vars.size(); k++) {
       delete vars[k];

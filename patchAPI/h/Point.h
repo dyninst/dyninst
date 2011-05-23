@@ -17,7 +17,7 @@ namespace PatchAPI {
    of different types are distinct even the underlying code relocation and
    generation engine happens to put instrumentation from them at the same
    place */
-class Point : public dyn_detail::boost::enable_shared_from_this<Point> {
+class Point {
   friend class PatchMgr;
 
   public:
@@ -51,14 +51,14 @@ class Point : public dyn_detail::boost::enable_shared_from_this<Point> {
     };
 
     template <class Scope>
-    static PointPtr create(Address          addr,
-                           Point::Type type,
-                           PatchMgrPtr      mgr,
-                           Scope*           scope) {
-      PointPtr ret = PointPtr(new Point(addr, type, mgr, scope));
+    static Point* create(Address addr,
+                         Point::Type type,
+                         PatchMgrPtr mgr,
+                         Scope* scope) {
+      Point* ret = new Point(addr, type, mgr, scope);
       return ret;
     }
-    virtual ~Point() {}
+    virtual ~Point();
 
     // Point as a snippet container
     typedef std::list<InstancePtr>::iterator instance_iter;
@@ -167,16 +167,16 @@ enum SnippetState {
    particular point */
 class Instance : public dyn_detail::boost::enable_shared_from_this<Instance> {
   public:
-    Instance(PointPtr point, SnippetPtr snippet)
+    Instance(Point* point, SnippetPtr snippet)
               : point_(point), snippet_(snippet) { }
     virtual ~Instance() {}
-    static InstancePtr create(PointPtr, SnippetPtr,
+    static InstancePtr create(Point*, SnippetPtr,
                     SnippetType type = SYSTEM, SnippetState state = PENDING);
 
     // Getters and Setters
     SnippetState state() const { return state_;}
     SnippetType type() const {return type_;}
-    PointPtr point() const {return point_;}
+    Point* point() const {return point_;}
     SnippetPtr snippet() const {return snippet_;}
     void set_state(SnippetState state) { state_ = state; }
 
@@ -185,7 +185,7 @@ class Instance : public dyn_detail::boost::enable_shared_from_this<Instance> {
     bool destroy();
 
   protected:
-    PointPtr point_;
+    Point* point_;
     SnippetPtr snippet_;
     SnippetState state_;
     SnippetType type_;
@@ -198,14 +198,14 @@ class PointMaker {
     PointMaker() {}
     virtual ~PointMaker() {}
 
-    virtual PointPtr createPoint(Address     addr, Point::Type type,
-                                 PatchMgrPtr mgr,  Address*         scope);
-    virtual PointPtr createPoint(Address     addr, Point::Type type,
-                                 PatchMgrPtr mgr,  PatchBlock*      scope);
-    virtual PointPtr createPoint(Address     addr, Point::Type type,
-                                 PatchMgrPtr mgr,  PatchEdge*       scope);
-    virtual PointPtr createPoint(Address     addr, Point::Type type,
-                                 PatchMgrPtr mgr,  PatchFunction*   scope);
+    virtual Point* createPoint(Address     addr, Point::Type type,
+                               PatchMgrPtr mgr,  Address*         scope);
+    virtual Point* createPoint(Address     addr, Point::Type type,
+                               PatchMgrPtr mgr,  PatchBlock*      scope);
+    virtual Point* createPoint(Address     addr, Point::Type type,
+                               PatchMgrPtr mgr,  PatchEdge*       scope);
+    virtual Point* createPoint(Address     addr, Point::Type type,
+                               PatchMgrPtr mgr,  PatchFunction*   scope);
 };
 
 }

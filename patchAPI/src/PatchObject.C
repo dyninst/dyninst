@@ -15,18 +15,11 @@ PatchObject::PatchObject(const PatchObject* parObj, Address a)
   : co_(parObj->co()), cs_(parObj->cs()), codeBase_(a) {
 }
 
-void PatchObject::destroy(PatchObject* obj) {
-  // We don't want to leak memory, so tear down the
-  // entire structure
-  for (FuncMap::iterator iter = obj->funcs_.begin(); iter != obj->funcs_.end(); ++iter) {
-    PatchFunction::destroy(iter->second);
-    //delete iter->second;
-  }
-  obj->funcs_.clear();
-}
-
 PatchObject::~PatchObject() {
-  assert(funcs_.empty());
+  for (FuncMap::iterator iter = funcs_.begin(); iter != funcs_.end(); ++iter) {
+    delete iter->second;
+  }
+  funcs_.clear();
 }
 
 PatchFunction *PatchObject::getFunc(ParseAPI::Function *f) {

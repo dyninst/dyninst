@@ -54,8 +54,7 @@ class PointMaker;
 typedef dyn_detail::boost::shared_ptr<PointMaker> PointMakerPtr;
 
 class Point;
-typedef dyn_detail::boost::shared_ptr<Point> PointPtr;
-typedef std::set<PointPtr> PointSet;
+typedef std::set<Point*> PointSet;
 typedef PointSet::iterator PointIter;
 
 class Instance;
@@ -84,7 +83,7 @@ class Modificator;
 class SnippetGenerator;
 
 typedef std::map<PatchFunction*, PatchFunction*> FuncRepMap;
-typedef std::map<PointPtr, PatchFunction*> CallRepMap;
+typedef std::map<Point*, PatchFunction*> CallRepMap;
 typedef PointSet CallRemoval;
 
 typedef std::set<ParseAPI::CodeObject*> CodeObjectSet;

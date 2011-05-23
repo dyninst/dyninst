@@ -8,7 +8,6 @@
 using Dyninst::PatchAPI::Instance;
 using Dyninst::PatchAPI::InstancePtr;
 using Dyninst::PatchAPI::Point;
-using Dyninst::PatchAPI::PointPtr;
 using Dyninst::PatchAPI::PatchFunction;
 using Dyninst::PatchAPI::PointMaker;
 using Dyninst::ParseAPI::CodeObject;
@@ -16,7 +15,7 @@ using Dyninst::ParseAPI::CodeSource;
 using Dyninst::ParseAPI::CodeRegion;
 using Dyninst::InstructionAPI::InstructionDecoder;
 
-InstancePtr Instance::create(PointPtr point, SnippetPtr snippet,
+InstancePtr Instance::create(Point* point, SnippetPtr snippet,
     SnippetType type, SnippetState state) {
   InstancePtr ret = InstancePtr(new Instance(point, snippet));
   if (!ret) return InstancePtr();
@@ -50,7 +49,7 @@ PatchFunction* Point::getCallee() {
 /* Associate this point with the block(s) and function(s)
    that contain it */
 void Point::initCodeStructure(Address /*addr*/) {
-#if 0
+ #if 0
   // walk through all code objects
   for (AddrSpace::CoObjMap::iterator ci = mgr_->as()->getCoobjMap().begin();
        ci != mgr_->as()->getCoobjMap().end(); ci++) {
@@ -88,7 +87,7 @@ void Point::initCodeStructure(Address /*addr*/) {
       break;
     }
   }
-#endif
+ #endif
 }
 
 /* for single instruction */
@@ -118,7 +117,7 @@ Point::Point(Address addr, Type type, PatchMgrPtr mgr,
 
 /* old_instance, old_instance, <---new_instance */
 InstancePtr Point::push_back(SnippetPtr snippet) {
-  InstancePtr instance = Instance::create(shared_from_this(), snippet);
+  InstancePtr instance = Instance::create(this, snippet);
   if (!instance) return instance;
   instanceList_.push_back(instance);
   mgr_->insertion_set_.insert(instance);
@@ -128,7 +127,7 @@ InstancePtr Point::push_back(SnippetPtr snippet) {
 
 /* new_instance--->, old_instance, old_instance */
 InstancePtr Point::push_front(SnippetPtr snippet) {
-  InstancePtr instance = Instance::create(shared_from_this(), snippet);
+  InstancePtr instance = Instance::create(this, snippet);
   if (!instance) return instance;
   instanceList_.push_front(instance);
   mgr_->insertion_set_.insert(instance);
@@ -239,6 +238,11 @@ bool Point::destroy() {
     }
   }
   PointSet& points = type_pt_map[type_];
-  points.erase(shared_from_this());
+  points.erase(this);
   return true;
+}
+
+Point::~Point() {
+  // Clear all instances associated with this point
+  clear();
 }

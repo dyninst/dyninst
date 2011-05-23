@@ -22,7 +22,6 @@ class PatchEdge {
 
   public:
    static PatchEdge *create(ParseAPI::Edge *, PatchBlock *src, PatchBlock *trg);
-   static void destroy(PatchEdge *);
    ~PatchEdge();
 
    // Getters
@@ -84,7 +83,6 @@ class PatchBlock {
       EdgePredicateAdapter> edgelist;
 
     static PatchBlock *create(ParseAPI::Block *, PatchFunction *);
-    static void destroy(PatchBlock *);
     virtual ~PatchBlock();
 
     // Getters
@@ -143,7 +141,6 @@ class PatchFunction {
    typedef PatchBlock::edgelist edgelist;
 
    static PatchFunction *create(ParseAPI::Function *, PatchObject*);
-   static void destroy(PatchFunction *);
    virtual ~PatchFunction();
 
    const string &name() { return func_->name(); }

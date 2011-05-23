@@ -136,31 +136,6 @@ PatchBlock::edgelist &PatchBlock::targets() {
   return trglist_;
 }
 
-void PatchBlock::destroy(PatchBlock *b) {
-  // As a note, deleting edges that source and target this
-  // block is an exercise in delicacy. Make sure you know
-  // what you're doing. For this, we ensure that we always
-  // remove source edges first, and that we can't accidentally
-  // invalidate an iterator.
-  for (std::vector<PatchEdge *>::iterator iter = b->srcs_.begin();
-       iter != b->srcs_.end(); ++iter) {
-    if ((*iter)->src_) {
-      (*iter)->src_->removeTargetEdge(*iter);
-    }
-    PatchEdge::destroy(*iter);
-  }
-  b->srcs_.clear();
-  for (std::vector<PatchEdge *>::iterator iter = b->trgs_.begin();
-       iter != b->trgs_.end(); ++iter) {
-    if ((*iter)->trg_) {
-      (*iter)->trg_->removeSourceEdge(*iter);
-    }
-    PatchEdge::destroy(*iter);
-  }
-  b->trgs_.clear();
-  delete b;
-}
-
 void PatchBlock::removeSourceEdge(PatchEdge *e) {
   // This is called as part of teardown
   // of another Block to remove its edges from our
@@ -192,9 +167,27 @@ bool PatchBlock::isShared() {
   return containingFuncs() > 1;
 }
 PatchBlock::~PatchBlock() {
-  // We assume top-down teardown of data
-  assert(srcs_.empty());
-  assert(trgs_.empty());
+  // As a note, deleting edges that source and target this
+  // block is an exercise in delicacy. Make sure you know
+  // what you're doing. For this, we ensure that we always
+  // remove source edges first, and that we can't accidentally
+  // invalidate an iterator.
+  for (std::vector<PatchEdge *>::iterator iter = srcs_.begin();
+       iter != srcs_.end(); ++iter) {
+    if ((*iter)->src_) {
+      (*iter)->src_->removeTargetEdge(*iter);
+    }
+    delete *iter;
+  }
+  srcs_.clear();
+  for (std::vector<PatchEdge *>::iterator iter = trgs_.begin();
+       iter != trgs_.end(); ++iter) {
+    if ((*iter)->trg_) {
+      (*iter)->trg_->removeSourceEdge(*iter);
+    }
+    delete *iter;
+  }
+  trgs_.clear();
 }
 
 Address PatchBlock::start() const {

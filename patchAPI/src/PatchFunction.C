@@ -70,36 +70,14 @@ void PatchFunction::removeEdge(PatchEdge *e) {
   edgeMap_.erase(e->edge());
 }
 
-void PatchFunction::destroy(PatchFunction *f) {
-  for (blocklist::iterator iter = f->blocks_.begin(); iter != f->blocks_.end();
-       ++iter) {
-    PatchBlock::destroy(*iter);
-  }
-  f->blocks_.clear();
-  f->callEdges_.clear();
-  f->returnBlocks_.clear();
-  f->blockMap_.clear();
-  f->edgeMap_.clear();
-  delete f;
-}
 
 PatchFunction::~PatchFunction() {
-    assert(blocks_.empty());
-    assert(callEdges_.empty());
-    assert(returnBlocks_.empty());
-    assert(blockMap_.empty());
-    assert(edgeMap_.empty());
+  for (blocklist::iterator iter = blocks_.begin(); iter != blocks_.end(); ++iter) {
+    delete *iter;
+  }
+  blocks_.clear();
+  callEdges_.clear();
+  returnBlocks_.clear();
+  blockMap_.clear();
+  edgeMap_.clear();
 }
-/*
-bool PatchFunction::entries(PointSet& pts) {
-  obj_->addrSpace()->mgr_->findPoints(this, Point::FuncEntry, inserter(pts, pts.begin()));
-  assert(pts.size() > 0);
-  return true;
-}
-
-bool PatchFunction::exits(PointSet& pts) {
-  obj_->addrSpace()->mgr_->findPoints(this, Point::FuncExit, inserter(pts, pts.begin()));
-  assert(pts.size() > 0);
-  return true;
-}
-*/

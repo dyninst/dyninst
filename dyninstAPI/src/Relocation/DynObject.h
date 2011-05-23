@@ -13,6 +13,9 @@ namespace PatchAPI {
 class DynObject : public PatchObject {
 
   public:
+    static DynObject* create(ParseAPI::CodeObject* co, AddressSpace* as, Address base) {
+      return (new DynObject(co, as, base));
+    }
     DynObject(ParseAPI::CodeObject* co, AddressSpace* as, Address base);
     DynObject(const DynObject *par_obj, process *child, Address base);
     ~DynObject();

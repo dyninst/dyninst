@@ -6,6 +6,7 @@
 #include "common.h"
 #include "Point.h"
 #include "Instrumenter.h"
+#include "PatchCFG.h"
 
 namespace Dyninst {
 namespace PatchAPI {
@@ -16,17 +17,17 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
   friend class Point;
 
   public:
-    PatchMgr(AddrSpacePtr as, PointMakerPtr pf);
-    virtual ~PatchMgr() {}
+    PatchMgr(AddrSpacePtr as, PointMakerPtr pf, CFGMakerPtr cm);
+    virtual ~PatchMgr();
     static PatchMgrPtr create(AddrSpacePtr as,
-			      PointMakerPtr pf = PointMakerPtr(new PointMaker));
-			      //, CFGMakerPtr cm = ...);
+                              PointMakerPtr pf = PointMakerPtr(new PointMaker),
+                              CFGMakerPtr cm = CFGMakerPtr(new CFGMaker));
 
     // Default implementation for filter function,
     // used in findPoins and removeSnippets
     class IdentityFilterFunc {
       public:
-        bool operator()(PointPtr) { return true;}
+        bool operator()(Point*) { return true;}
     };
 
     // Query Points:
@@ -124,8 +125,8 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     }
 
     // Code modification interfaces
-    bool removeFuncCall(PointPtr point);
-    bool replaceFuncCall(PointPtr point, PatchFunction* func);
+    bool removeFuncCall(Point* point);
+    bool replaceFuncCall(Point* point, PatchFunction* func);
     bool replaceFunction(PatchFunction* old_func,
                          PatchFunction* new_func);
 
@@ -168,11 +169,13 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     bool patch();
 
     PointMakerPtr point_maker_;
+    CFGMakerPtr cfg_maker_;
 
     BlkTypePtMap blk_type_pt_map_;
     EdgeTypePtMap edge_type_pt_map_;
     FuncTypePtMap func_type_pt_map_;
     AddrTypePtMap addr_type_pt_map_;
+    PointSet del_pt_set_;
 
     // The lifetime of it is the runtime of mutator
     InstanceSet current_instances_;

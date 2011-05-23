@@ -16,8 +16,10 @@ class PatchObject {
   friend class AddrSpace;
 
   public:
+    static PatchObject* create(ParseAPI::CodeObject* co, Address base) {
+      return (new PatchObject(co, base));
+    }
     virtual ~PatchObject();
-    static void destroy(PatchObject* obj);
 
     typedef std::vector<PatchFunction *> funclist;
     typedef std::map<ParseAPI::Function *, PatchFunction *> FuncMap;
@@ -42,7 +44,7 @@ class PatchObject {
                          InstanceSet* /*deletion_set*/,
                          FuncRepMap*  /*func_rep*/,
                          CallRepMap*  /*call_rep*/,
-                         CallRemoval* /*call_remove*/) = 0;
+                         CallRemoval* /*call_remove*/)  { return false;}
 
   protected:
     ParseAPI::CodeObject* co_;

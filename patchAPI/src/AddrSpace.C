@@ -29,6 +29,6 @@ bool AddrSpace::loadObject(PatchObject* obj) {
 AddrSpace::~AddrSpace() {
   for (CoObjMap::iterator i = coobj_map_.begin(); i != coobj_map_.end(); i++) {
     PatchObject* obj = (*i).second;
-    PatchObject::destroy(obj);
+    delete obj;
   }
 }

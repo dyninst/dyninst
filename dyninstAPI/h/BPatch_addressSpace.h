@@ -45,6 +45,16 @@
 #include <stdio.h>
 #include <signal.h>
 
+// PatchAPI stuffs
+namespace Dyninst {
+namespace PatchAPI { 
+  class PatchMgr;
+  class DynAddrSpace;
+  typedef dyn_detail::boost::shared_ptr<PatchMgr> PatchMgrPtr;
+  typedef dyn_detail::boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
+}
+}
+
 class BPatch_statement;
 class BPatch_snippet;
 class BPatch_point;
@@ -170,7 +180,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
 
  protected:
   virtual void getAS(std::vector<AddressSpace *> &as) = 0;
-  
+
  public:
 
   BPatch_addressSpace();
@@ -392,6 +402,11 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     // statically-linked executable, false otherwise
     API_EXPORT(Int, (),
             bool, isStaticExecutable,());
+
+  // PatchAPI stuffs -- by wenbin
+  protected:
+    Dyninst::PatchAPI::PatchMgrPtr mgr_;
+    Dyninst::PatchAPI::DynAddrSpacePtr addr_space_;
 };
 
 #endif 
