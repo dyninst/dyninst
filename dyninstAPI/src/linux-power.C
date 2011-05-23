@@ -560,27 +560,33 @@ Frame Frame::getCallerFrame()
       // function frame if there is one as well.
       instPoint *point = bti->point();
       assert(point); // Will only be null if we're in an inferior RPC, which can't be.
+
       // If we're inside the function (callSite or arbitrary; bad assumption about
       // arbitrary but we don't know exactly where the frame was constructed) and the
       // function has a frame, tear it down as well.
-      if (point->type() == instPoint::FuncEntry ||
-	  point->type() == instPoint::FuncExit) {
-          uint32_t u32;
-          if (!getProc()->readDataSpace((caddr_t) (Address)
-                                        thisStackFrame.elf32.oldFp,
-                                        sizeof(u32), (caddr_t) &u32, false))
-            return Frame();
-          newFP = u32;
-      }
-      else {
+      bool inFunction = ((point->type() != instPoint::FuncEntry) &&
+			 (point->type() != instPoint::FuncExit));
+      bool noFuncFrame = (point->func() ? point->func()->hasNoStackFrame() : false);
+
+      if (inFunction && !noFuncFrame) {
         if (getProc()->getAddressWidth() == sizeof(uint64_t)) {
           if (!getProc()->readDataSpace((caddr_t) (Address)
                                         thisStackFrame.elf64.oldFp,
                                         sizeof(newFP),
-                                        (caddr_t) &newFP, false))
+                                        (caddr_t) &newFP, false)) {
             return Frame();
+	  }
         }
-      }
+        else {
+          uint32_t u32;
+          if (!getProc()->readDataSpace((caddr_t) (Address)
+                                        thisStackFrame.elf32.oldFp,
+                                        sizeof(u32), (caddr_t) &u32, false)) {
+            return Frame();
+	  }
+          newFP = u32;
+        }
+      }                                                                                                                                   
       // Otherwise must be at a reloc insn
   }
   else if (isLeaf) {
