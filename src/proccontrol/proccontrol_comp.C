@@ -339,7 +339,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
          while (eventsRecieved[EventType(EventType::None, EventType::UserThreadCreate)].size() < num_procs*num_threads) {
             bool result = Process::handleEvents(true);
             if (!result) {
-               logerror("Failed to handle events during thread create\n");
+               logerror("Failed to handle events during user thread create\n");
                error = true;
             }
          }
