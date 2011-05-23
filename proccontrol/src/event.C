@@ -824,6 +824,8 @@ void int_eventBreakpointClear::getBPTypes(set<pair<installed_breakpoint *, int_t
          break;
       }
    }
+   bps_to_clear_cached = bps_to_clear;
+   bps_to_restore_cached = bps_to_restore;
 }
 
 

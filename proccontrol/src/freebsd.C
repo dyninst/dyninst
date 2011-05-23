@@ -724,6 +724,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
 #endif
 
     thread_db_process::addThreadDBHandlers(hpool);
+    sysv_process::addSysVHandlers(hpool);
     return hpool;
 }
 

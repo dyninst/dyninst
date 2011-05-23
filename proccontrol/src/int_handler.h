@@ -221,6 +221,17 @@ class HandleBreakpoint : public Handler
   virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
+class HandleBreakpointContinue : public Handler
+{
+  public:
+  HandleBreakpointContinue();
+  ~HandleBreakpointContinue();
+
+  virtual void getEventTypesHandled(vector<EventType> &etypes);
+  virtual handler_ret_t handleEvent(Event::ptr ev);
+  virtual int getPriority() const;
+};
+
 class HandleBreakpointClear : public Handler
 {
  public:

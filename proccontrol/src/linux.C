@@ -1520,15 +1520,15 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
    volatile unsigned int sentinel2 = 0xfeedface;
    memset(user_area, 0, MAX_USER_SIZE);
 
-   //If a sentinel assert fails, then someone forgot to increase MAX_USER_SIZE
-   // for a new platform.
-   assert(sentinel1 == 0xfeedface);
    int result = do_ptrace((pt_req) PTRACE_GETREGS, lwp, NULL, user_area);
    if (result != 0) {
       perr_printf("Error reading registers from %d\n", lwp);
       setLastError(err_internal, "Could not read user area from thread");
       return false;
    }
+   //If a sentinel assert fails, then someone forgot to increase MAX_USER_SIZE
+   // for a new platform.
+   assert(sentinel1 == 0xfeedface);
    assert(sentinel2 == 0xfeedface);
 
    init_dynreg_to_user();
@@ -2025,6 +2025,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
    }
    hpool->addHandler(lbootstrap);
    thread_db_process::addThreadDBHandlers(hpool);
+   sysv_process::addSysVHandlers(hpool);
    return hpool;
 }
 

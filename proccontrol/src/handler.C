@@ -1104,49 +1104,6 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
    }
 
    /**
-    * ProcStopper breakpoints auto-stop the entire process as they're 
-    * received.  We need to continue the thread now that we've handled
-    * the breakpoint.  Unfortunately, they can come in batches (see linux).  
-    * If we continue this thread, then another already decoded procstoper
-    * may run the handler with a running thread.
-    *
-    * We'll track how many procstopper BPs we've got in flight, then 
-    * only continue every thread after handling the last breakpoint.
-    *
-    * Note that procstopper BPs are for internal use only.  If a user
-    * is ever able to set-up procstopper breakpoints then this 
-    * auto-continue stuff would be all wrong.
-    **/
-   if (ebp->procStopper()) {
-      assert(thrd->decodedProcStopperBP());
-      thrd->markHandledProcStopperBP();
-      bool skip_continues = false;
-      int_threadPool::iterator i;
-      for (i = proc->threadPool()->begin(); i != proc->threadPool()->end(); i++) {
-         pthrd_printf("Checking for group proc stops on %d/%d: decoded - %s, handled - %s\n",
-                      proc->getPid(), (*i)->getLWP(), 
-                      (*i)->decodedProcStopperBP() ? "true" : "false",
-                      (*i)->handledProcStopperBP() ? "true" : "false");
-         if ((*i)->decodedProcStopperBP() && !(*i)->handledProcStopperBP()) {
-            skip_continues = true;
-            break;
-         }
-      }
-      if (!skip_continues) {
-         pthrd_printf("Finished handling last procstopper BP, setting relevant threads to run\n");
-         for (i = proc->threadPool()->begin(); i != proc->threadPool()->end(); i++) {
-            if (!(*i)->decodedProcStopperBP())
-               continue;
-            assert((*i)->handledProcStopperBP());
-            pthrd_printf("Setting procstopped BP thread %d/%d to internal running\n",
-                         proc->getPid(), (*i)->getLWP());
-            (*i)->setInternalState(int_thread::running);
-            (*i)->clearProcStopperBPState();
-         }
-      }
-   }
-
-   /**
     * Restore original single step modes if this breakpoint corresponds to
     * an emulated single step
    emulated_singlestep *es;
@@ -1160,6 +1117,83 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
    **/
 
    return ret_success;
+}
+
+HandleBreakpointContinue::HandleBreakpointContinue() :
+   Handler("Breakpoint Continue")
+{
+}
+
+HandleBreakpointContinue::~HandleBreakpointContinue()
+{
+}
+
+void HandleBreakpointContinue::getEventTypesHandled(vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::None, EventType::Breakpoint));
+}
+
+int HandleBreakpointContinue::getPriority() const
+{
+   return PostCallbackPriority;
+}
+
+Handler::handler_ret_t HandleBreakpointContinue::handleEvent(Event::ptr ev)
+{
+   /**
+    * ProcStopper breakpoints auto-stop the entire process as they're 
+    * received.  We need to continue the thread now that we've handled
+    * the breakpoint.  Unfortunately, they can come in batches (see linux).  
+    * If we continue this thread, then another already decoded procstoper
+    * may run the handler with a running thread.
+    *
+    * We'll track how many procstopper BPs we've got in flight, then 
+    * only continue every thread after handling the last breakpoint.
+    *
+    * Note that procstopper BPs are for internal use only.  If a user
+    * is ever able to set-up procstopper breakpoints then this 
+    * auto-continue stuff would be all wrong.
+    *
+    * This is in a seperate handler from Breakpoint to make it run after
+    * any subservient events associated with Breakpoint.  Library or SysV
+    * events want to operate on a stopped process, so we've postponed this
+    * continue until after those events are done.
+    **/
+   EventBreakpoint *ebp = static_cast<EventBreakpoint *>(ev.get());
+   if (!ebp->procStopper()) {
+      return Handler::ret_success;
+   }
+   int_process *proc = ev->getProcess()->llproc();
+   int_thread *thrd = ev->getThread()->llthrd();
+   pthrd_printf("Handling proc stopper continue for BP\n");
+
+   assert(thrd->decodedProcStopperBP());
+   thrd->markHandledProcStopperBP();
+   bool skip_continues = false;
+   int_threadPool::iterator i;
+   for (i = proc->threadPool()->begin(); i != proc->threadPool()->end(); i++) {
+      pthrd_printf("Checking for group proc stops on %d/%d: decoded - %s, handled - %s\n",
+                   proc->getPid(), (*i)->getLWP(), 
+                   (*i)->decodedProcStopperBP() ? "true" : "false",
+                   (*i)->handledProcStopperBP() ? "true" : "false");
+      if ((*i)->decodedProcStopperBP() && !(*i)->handledProcStopperBP()) {
+         skip_continues = true;
+         break;
+      }
+   }
+   if (!skip_continues) {
+      pthrd_printf("Finished handling last procstopper BP, setting relevant threads to run\n");
+      for (i = proc->threadPool()->begin(); i != proc->threadPool()->end(); i++) {
+         if (!(*i)->decodedProcStopperBP())
+            continue;
+         assert((*i)->handledProcStopperBP());
+         pthrd_printf("Setting procstopped BP thread %d/%d to internal running\n",
+                      proc->getPid(), (*i)->getLWP());
+         (*i)->setInternalState(int_thread::running);
+         (*i)->clearProcStopperBPState();
+      }
+   }
+   return Handler::ret_success;
 }
 
 HandleBreakpointClear::HandleBreakpointClear() :
@@ -2045,6 +2079,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static HandleSingleStep *hsinglestep = NULL;
    static HandleCrash *hcrash = NULL;
    static HandleBreakpoint *hbpoint = NULL;
+   static HandleBreakpointContinue *hbpcontinue = NULL;
    static HandleBreakpointClear *hbpclear = NULL;
    static HandleBreakpointRestore *hbprestore = NULL;
    static HandleLibrary *hlibrary = NULL;
@@ -2067,6 +2102,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hsinglestep = new HandleSingleStep();
       hcrash = new HandleCrash();
       hbpoint = new HandleBreakpoint();
+      hbpcontinue = new HandleBreakpointContinue();
       hbpclear = new HandleBreakpointClear();
       hbprestore = new HandleBreakpointRestore();
       hrpc = new iRPCHandler();
@@ -2091,6 +2127,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hsinglestep);
    hpool->addHandler(hcrash);
    hpool->addHandler(hbpoint);
+   hpool->addHandler(hbpcontinue);
    hpool->addHandler(hbpclear);
    hpool->addHandler(hbprestore);
    hpool->addHandler(hrpc);

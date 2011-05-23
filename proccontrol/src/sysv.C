@@ -30,16 +30,18 @@
  */
 #include "dynutil/h/SymReader.h"
 #include "dynutil/h/dyntypes.h"
-#include "sysv.h"
-#include "irpc.h"
 
+#include "common/h/Types.h"
 #if defined(os_linux)
 #include "common/h/linuxKludges.h"
 #elif defined(os_freebsd)
 #include "common/h/freebsdKludges.h"
 #endif
 
+#include "proccontrol/src/sysv.h"
 #include "proccontrol/src/response.h"
+#include "proccontrol/h/Handler.h"
+#include "proccontrol/src/int_handler.h"
 
 #include <algorithm>
 #include <cstring>
@@ -114,7 +116,7 @@ bool PCProcReader::ReadMem(Address addr, void *buffer, unsigned size)
 {
    memCache *cache = proc->getMemCache();
 
-   if (!proc->translator || proc->plat_needsAsyncIO()) {
+   if (!proc->translator) {
       //Can happen if we read during initialization.  We'll fail to read,
       // and the addrtranslate layer will handle things properly.
       return false;
@@ -320,3 +322,11 @@ int_library *sysv_process::plat_getExecutable()
 {
    return aout;
 }
+
+bool sysv_process::addSysVHandlers(HandlerPool *) {
+   //Matt: I deleted the SysV handler that was here, but
+   // am leaving the hook in place if new ones ever come
+   // along.
+   return true;
+}
+

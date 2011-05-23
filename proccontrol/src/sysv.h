@@ -78,6 +78,7 @@ class sysv_process : virtual public int_process
    Dyninst::Address getLibBreakpointAddr() const;
 
    bool isLibraryTrap(Dyninst::Address trap_addr);
+   static bool addSysVHandlers(HandlerPool *hpool);
  protected:
    virtual bool plat_execed();
    virtual bool plat_isStaticBinary();
