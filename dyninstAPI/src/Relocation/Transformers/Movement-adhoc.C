@@ -227,6 +227,8 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
   // Check for call to thunk.
   // TODO: need a return register parameter.
 
+   if (ptr->insn()->getCategory() != InstructionAPI::c_CallInsn) return false;
+
   // Okay: checking for call + size
   Expression::Ptr CFT = ptr->insn()->getControlFlowTarget();
   if (!CFT) {
