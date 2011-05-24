@@ -17,11 +17,10 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
   friend class Point;
 
   public:
-    PatchMgr(AddrSpacePtr as, PointMakerPtr pf, CFGMakerPtr cm);
+    PatchMgr(AddrSpacePtr as, PointMakerPtr pf);
     virtual ~PatchMgr();
     static PatchMgrPtr create(AddrSpacePtr as,
-                              PointMakerPtr pf = PointMakerPtr(new PointMaker),
-                              CFGMakerPtr cm = CFGMakerPtr(new CFGMaker));
+                              PointMakerPtr pf = PointMakerPtr(new PointMaker));
 
     // Default implementation for filter function,
     // used in findPoins and removeSnippets
@@ -133,7 +132,7 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     // Getters
     AddrSpacePtr as() const { return as_; }
     InstanceSet& getCurInstances() { return current_instances_; }
-
+    PointMakerPtr pointMaker() const { return point_maker_; }
 
     //----------------------------------------------------
     // Mapping order: Scope -> Type -> Point Set
@@ -169,7 +168,6 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     bool patch();
 
     PointMakerPtr point_maker_;
-    CFGMakerPtr cfg_maker_;
 
     BlkTypePtMap blk_type_pt_map_;
     EdgeTypePtMap edge_type_pt_map_;

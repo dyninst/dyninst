@@ -7,12 +7,12 @@ using namespace Dyninst;
 using namespace PatchAPI;
 
 
-PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a)
-  : co_(o), cs_(o->cs()), codeBase_(a) {
+PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm)
+  : co_(o), cs_(o->cs()), codeBase_(a), cfg_maker_(cm) {
 }
 
 PatchObject::PatchObject(const PatchObject* parObj, Address a)
-  : co_(parObj->co()), cs_(parObj->cs()), codeBase_(a) {
+  : co_(parObj->co()), cs_(parObj->cs()), codeBase_(a), cfg_maker_(parObj->cfg_maker_) {
 }
 
 PatchObject::~PatchObject() {
@@ -23,24 +23,19 @@ PatchObject::~PatchObject() {
 }
 
 PatchFunction *PatchObject::getFunc(ParseAPI::Function *f) {
-   FuncMap::iterator iter = funcs_.find(f);
-   if (iter != funcs_.end()) return iter->second;
-   if (co_ != f->obj()) {
-     cerr << "ERROR: function " << f->name() << " doesn't exist in this object!\n";
-     exit(0);
-   }
-
-   //cerr << "creating " << f->name() << "\n";
-   CFGMaker cfg_maker_;
-   PatchFunction* newFunc = cfg_maker_.makeFunction(f, this);
-   addFunc(newFunc);
-   return newFunc;
+  if (co_ != f->obj()) {
+    cerr << "ERROR: function " << f->name() << " doesn't exist in this object!\n";
+    exit(0);
+  }
+  if (funcs_.find(f) != funcs_.end()) return funcs_[f];
+  PatchFunction* newFunc = cfg_maker_->makeFunction(f, this);
+  addFunc(newFunc);
+  return newFunc;
 }
 
 void PatchObject::addFunc(PatchFunction* f) {
   assert(f);
-  f->obj_ = this;
-  funcs_.insert(std::make_pair(f->function(), f));
+  funcs_[f->function()] = f;
 }
 
 void PatchObject::removeFunc(PatchFunction* f) {

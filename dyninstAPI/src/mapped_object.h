@@ -296,7 +296,6 @@ public:
     //
     //     PRIVATE DATA MEMBERS
     //				
-private:
     fileDescriptor desc_; // full file descriptor
 
     string  fullName_;	// full file name of the shared object
@@ -321,7 +320,7 @@ private:
 
     typedef std::map<const ParseAPI::Edge *, edge_instance *> EdgeMap;
     EdgeMap edges_;
-    FuncMap funcs_;
+    //FuncMap funcs_;
 
     dictionary_hash<const image_variable *, int_variable *> everyUniqueVariable;
 
@@ -334,7 +333,7 @@ private:
     codeRangeTree codeRangesByAddr_;
 
     // And those call...
-    void addFunction(func_instance *func);
+ public: void addFunction(func_instance *func);
     void addVariable(int_variable *var);
 
     // Add a name after-the-fact
@@ -378,6 +377,10 @@ private:
     bool memoryImg_;
 
     std::map<block_instance *, std::string> calleeNames_;
+
+    // PatchAPI stuffs
+    //  public:
+    //    virtual Dyninst::PatchAPI::PatchFunction* getFunc(ParseAPI::Function*);
 };
 
 // Aggravation: a mapped object might very well occupy multiple "ranges". 

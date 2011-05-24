@@ -4,6 +4,7 @@
 #define PATCHAPI_H_DYNINST_OBJECT_H_
 
 #include "common.h"
+#include "CFGMaker.h"
 
 namespace Dyninst {
 namespace PatchAPI {
@@ -16,8 +17,9 @@ class PatchObject {
   friend class AddrSpace;
 
   public:
-    static PatchObject* create(ParseAPI::CodeObject* co, Address base) {
-      return (new PatchObject(co, base));
+    static PatchObject* create(ParseAPI::CodeObject* co, Address base,
+                               CFGMakerPtr cm = CFGMakerPtr(new CFGMaker)) {
+      return (new PatchObject(co, base, cm));
     }
     virtual ~PatchObject();
 
@@ -52,8 +54,9 @@ class PatchObject {
     Address codeBase_;
     AddrSpacePtr addr_space_;
     FuncMap funcs_;
+    CFGMakerPtr cfg_maker_;
 
-    PatchObject(ParseAPI::CodeObject* o, Address a);
+    PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm);
     PatchObject(const PatchObject* par_obj, Address a);
 };
 

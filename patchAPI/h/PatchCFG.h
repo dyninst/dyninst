@@ -184,15 +184,6 @@ class PatchFunction {
 
 };
 
-class CFGMaker {
-  public:
-    CFGMaker() {}
-    virtual ~CFGMaker() {}
-
-    virtual PatchFunction* makeFunction(ParseAPI::Function*, PatchObject*);
-    virtual PatchFunction* copyFunction(PatchFunction*, PatchObject*);
-};
-
 };
 };
 

@@ -13,7 +13,9 @@ namespace PatchAPI {
 class DynObject : public PatchObject {
 
   public:
-    static DynObject* create(ParseAPI::CodeObject* co, AddressSpace* as, Address base) {
+    static DynObject* create(ParseAPI::CodeObject* co,
+                             AddressSpace* as,
+                             Address base) {
       return (new DynObject(co, as, base));
     }
     DynObject(ParseAPI::CodeObject* co, AddressSpace* as, Address base);
@@ -32,6 +34,16 @@ class DynObject : public PatchObject {
   private:
     AddressSpace* as_;
 };
+
+class DynCFGMaker : public Dyninst::PatchAPI::CFGMaker {
+  public:
+    DynCFGMaker() {}
+    virtual ~DynCFGMaker() {}
+
+    virtual PatchFunction* makeFunction(ParseAPI::Function*, PatchObject*);
+    virtual PatchFunction* copyFunction(PatchFunction*, PatchObject*);
+};
+typedef dyn_detail::boost::shared_ptr<DynCFGMaker> DynCFGMakerPtr;
 
 }
 }

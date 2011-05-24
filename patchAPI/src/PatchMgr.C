@@ -17,13 +17,13 @@ static void initDebugFlag() {
     debug_patchapi_flag = true;
 }
 
-PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt, CFGMakerPtr cm)
-  : point_maker_(pt), cfg_maker_(cm), as_(as), batch_mode_(0) {
+PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt)
+  : point_maker_(pt), as_(as), batch_mode_(0) {
   instor_ = Instrumenter::create(as);
 }
 
-PatchMgrPtr PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf, CFGMakerPtr cm) {
-  PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as, pf, cm));
+PatchMgrPtr PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf) {
+  PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as, pf));
   if (!ret) return PatchMgrPtr();
   initDebugFlag();
   ret->as_->mgr_ = ret;
