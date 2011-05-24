@@ -11,6 +11,8 @@ using Dyninst::ParseAPI::Function;
 using Dyninst::PatchAPI::PatchFunction;
 using Dyninst::ParseAPI::Block;
 using Dyninst::PatchAPI::PatchBlock;
+using Dyninst::ParseAPI::Edge;
+using Dyninst::PatchAPI::PatchEdge;
 
 PatchFunction* DynCFGMaker::makeFunction(Function* f,
                                          PatchObject* obj) {
@@ -49,24 +51,22 @@ PatchBlock* DynCFGMaker::makeBlock(ParseAPI::Block* b, PatchObject* obj) {
 
 PatchBlock* DynCFGMaker::copyBlock(PatchBlock* b, PatchObject* o) {
   block_instance *newBlock = new block_instance(SCAST_BI(b), SCAST_MO(o));
-  o->addBlock(newBlock);
+  // o->addBlock(newBlock);
   return  newBlock;
 }
 
-// extern unsigned imgVarHash(const image_variable * const &func);
+PatchEdge* DynCFGMaker::makeEdge(ParseAPI::Edge* e,
+                                 PatchBlock* s,
+                                 PatchBlock* t,
+                                 PatchObject* o) {
+  mapped_object* mo = SCAST_MO(o);
+  edge_instance *inst = new edge_instance(e,
+                         s ? SCAST_BI(s) : mo->findBlock(e->src()),
+                         t ? SCAST_BI(t) : mo->findBlock(e->trg()));
+  return inst;
+}
 
-void DynCFGMaker::initCopiedObject(const PatchObject* parObj, PatchObject* obj) {
-  /*
-  mapped_object* mpar_obj = SCAST_MO(const_cast<PatchObject*>(parObj));
-  mapped_object* mobj = SCAST_MO(obj);
-  mobj->image_ = mpar_obj->image_;
-  mobj->everyUniqueVariable = imgVarHash; 
-  // Copy mapped_module
-  for (unsigned k = 0; k < mpar_obj->everyModule.size(); k++) {
-    mapped_module *parMod = mpar_obj->everyModule[k];
-    mapped_module *mod = mapped_module::createMappedModule(mobj, parMod->pmod());
-    assert(mod);
-    mobj->everyModule.push_back(mod);
-  }
-  */
+PatchEdge* DynCFGMaker::copyEdge(PatchEdge* e, PatchObject* o) {
+  edge_instance *new_edge = new edge_instance(SCAST_EI(e), SCAST_MO(o));
+  return new_edge;
 }

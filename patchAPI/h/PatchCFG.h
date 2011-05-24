@@ -32,7 +32,6 @@ class PatchEdge {
    bool sinkEdge() const;
    bool interproc() const;
 
-  protected:
     PatchEdge(ParseAPI::Edge *internalEdge,
               PatchBlock *source,
               PatchBlock *target);
@@ -40,6 +39,7 @@ class PatchEdge {
     PatchEdge(const PatchEdge *parent,
               PatchBlock *child_src,
               PatchBlock *child_trg);
+ protected:
 
     ParseAPI::Edge *edge_;
     PatchBlock *src_;

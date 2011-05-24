@@ -49,6 +49,7 @@ class edge_instance;
 #define CHECK_ALL_CALL_POINTS  // we depend on this for Paradyn
 
 using namespace Dyninst;
+using Dyninst::PatchAPI::DynCFGMaker;
 
 class mapped_module;
 
@@ -129,7 +130,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     friend class func_instance;
     friend class block_instance; // Adds to codeRangesByAddr_
     friend class edge_instance;
-
+    friend class DynCFGMaker;
  private:
     mapped_object();
     mapped_object(fileDescriptor fileDesc,
@@ -313,23 +314,17 @@ public:
 
     void set_short_name();
 
-    public: pdvector<mapped_module *> everyModule;
-
-    typedef std::map<const ParseAPI::Edge *, edge_instance *> EdgeMap;
-    EdgeMap edges_;
-
- public: dictionary_hash<const image_variable *, int_variable *> everyUniqueVariable;
-
+    pdvector<mapped_module *> everyModule;
+    dictionary_hash<const image_variable *, int_variable *> everyUniqueVariable;
     dictionary_hash< std::string, pdvector<func_instance *> * > allFunctionsByMangledName;
     dictionary_hash< std::string, pdvector<func_instance *> * > allFunctionsByPrettyName;
-
     dictionary_hash< std::string, pdvector<int_variable *> * > allVarsByMangledName;
     dictionary_hash< std::string, pdvector<int_variable *> * > allVarsByPrettyName;
 
     codeRangeTree codeRangesByAddr_;
 
     // And those call...
- public: void addFunction(func_instance *func);
+    void addFunction(func_instance *func);
     void addVariable(int_variable *var);
 
     // Add a name after-the-fact
@@ -342,7 +337,7 @@ public:
     bool dirty_; // marks the shared object as dirty
     bool dirtyCalled_;//see comment for setDirtyCalled
 
- public: image  *image_; // pointer to image if processed is true
+    image  *image_; // pointer to image if processed is true
     bool dlopenUsed; //mark this shared object as opened by dlopen
     AddressSpace *proc_; // Parent process
 

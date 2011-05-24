@@ -33,6 +33,14 @@ PatchBlock* CFGMaker::copyBlock(PatchBlock* b, PatchObject* obj) {
   return (new PatchBlock(b, obj));
 }
 
-void CFGMaker::initCopiedObject(PatchObject*, PatchObject*) {
-  // Do nothing.
+PatchEdge* CFGMaker::makeEdge(ParseAPI::Edge* e, PatchBlock* s, PatchBlock* t, PatchObject* o) {
+  return (new PatchEdge(e,
+                        s ? s : o->getBlock(e->src()),
+                        t ? t : o->getBlock(e->trg())));
+}
+
+PatchEdge* CFGMaker::copyEdge(PatchEdge* e, PatchObject* o) {
+  return (new PatchEdge(e,
+                        o->getBlock(e->source()->block()),
+                        o->getBlock(e->target()->block())));
 }

@@ -297,27 +297,7 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
       everyModule.push_back(mod);
    }
 
-
-   // And now edges
-   for (EdgeMap::const_iterator iter = s->edges_.begin();
-        iter != s->edges_.end(); ++iter) {
-      edge_instance *newEdge = new edge_instance(iter->second,
-                                                 this);
-      edges_.insert(std::make_pair(iter->first, newEdge));
-   }
-
-   // Duplicate all copied blocks
-
-   for (BlockMap::const_iterator iter = s->blocks_.begin();
-        iter != s->blocks_.end(); ++iter) {
-     cfg_maker_->copyBlock(iter->second, this);
-   }
-
-   // Aaand now functions
-   for (FuncMap::const_iterator iter = s->funcs_.begin();
-       iter != s->funcs_.end(); ++iter) {
-     cfg_maker_->copyFunction(iter->second, this);
-   }
+   copyCFG(const_cast<mapped_object*>(s));
 
    const pdvector<int_variable *> parVars = s->everyUniqueVariable.values();
    for (unsigned j = 0; j < parVars.size(); j++) {
@@ -2208,14 +2188,8 @@ void mapped_object::setCalleeName(block_instance *b, std::string s) {
 edge_instance *mapped_object::findEdge(ParseAPI::Edge *e,
                                        block_instance *src,
                                        block_instance *trg) {
-   EdgeMap::const_iterator iter = edges_.find(e);
-   if (iter != edges_.end()) return iter->second;
-
-   edge_instance *inst = new edge_instance(e,
-                                           src ? src : findBlock(e->src()),
-                                           trg ? trg : findBlock(e->trg()));
-   edges_[e] = inst;
-   return inst;
+  edge_instance *inst = SCAST_EI(getEdge(e, src, trg));
+  return inst;
 }
 
 block_instance *mapped_object::findBlock(ParseAPI::Block *b) {
@@ -2246,6 +2220,3 @@ func_instance *mapped_object::findFuncByEntry(const block_instance *blk) {
   if (!f) return NULL;
   return findFunction(f);
 }
-
-
-
