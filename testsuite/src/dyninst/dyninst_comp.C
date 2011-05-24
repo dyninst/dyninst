@@ -166,7 +166,6 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
    appBinEdit = NULL;
    char *mutatee_resumelog = params["mutatee_resumelog"]->getString();
    clear_mutateelog(mutatee_resumelog);
-
    /*   if (group->customExecution)
    {
       return PASSED;

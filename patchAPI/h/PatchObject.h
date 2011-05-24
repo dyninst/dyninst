@@ -24,7 +24,8 @@ class PatchObject {
     virtual ~PatchObject();
 
     typedef std::vector<PatchFunction *> funclist;
-    typedef std::map<ParseAPI::Function *, PatchFunction *> FuncMap;
+    typedef std::map<const ParseAPI::Function*, PatchFunction*> FuncMap;
+    typedef std::map<const ParseAPI::Block*, PatchBlock*> BlockMap;
 
     // Getters and setter
     Address codeBase() { return codeBase_; }
@@ -35,11 +36,13 @@ class PatchObject {
     AddrSpacePtr addrSpace() const { return addr_space_; }
     void setAddrSpace(AddrSpacePtr as) { addr_space_ = as; }
 
-    // FuncMap& funcMap() { return funcMap_; }
-
     PatchFunction *getFunc(ParseAPI::Function *);
     void addFunc(PatchFunction*);
     void removeFunc(PatchFunction*);
+
+    PatchBlock *getBlock(ParseAPI::Block*);
+    void addBlock(PatchBlock*);
+    void removeBlock(PatchBlock*);
 
     // Called by Instrumenter
     virtual bool instrument(InstanceSet* /*insertion_set*/,
@@ -54,6 +57,7 @@ class PatchObject {
     Address codeBase_;
     AddrSpacePtr addr_space_;
     FuncMap funcs_;
+    BlockMap blocks_;
     CFGMakerPtr cfg_maker_;
 
     PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm);

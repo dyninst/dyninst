@@ -42,6 +42,9 @@ class DynCFGMaker : public Dyninst::PatchAPI::CFGMaker {
 
     virtual PatchFunction* makeFunction(ParseAPI::Function*, PatchObject*);
     virtual PatchFunction* copyFunction(PatchFunction*, PatchObject*);
+
+    virtual PatchBlock* makeBlock(ParseAPI::Block*, PatchObject*);
+    virtual PatchBlock* makeBlock(PatchBlock*, PatchObject*);
 };
 typedef dyn_detail::boost::shared_ptr<DynCFGMaker> DynCFGMakerPtr;
 

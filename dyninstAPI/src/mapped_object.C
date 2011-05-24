@@ -76,30 +76,32 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
       image *img,
       AddressSpace *proc,
       BPatch_hybridMode mode):
+#if defined(os_windows)
+  DynObject(img->codeObject(), proc, fileDesc.loadAddr()),
+#else
   DynObject(img->codeObject(), proc, fileDesc.code()),
-   desc_(fileDesc),
-   fullName_(img->getObject()->file()),
-   everyUniqueVariable(imgVarHash),
-   allFunctionsByMangledName(::Dyninst::stringhash),
-   allFunctionsByPrettyName(::Dyninst::stringhash),
-   allVarsByMangledName(::Dyninst::stringhash),
-   allVarsByPrettyName(::Dyninst::stringhash),
-   dirty_(false),
-   dirtyCalled_(false),
-   image_(img),
-   dlopenUsed(false),
-   proc_(proc),
-   analyzed_(false),
-   analysisMode_(mode),
-   pagesUpdated_(true),
-   memEnd_(-1),
-   memoryImg_(false)
+#endif
+  desc_(fileDesc),
+  fullName_(img->getObject()->file()),
+  everyUniqueVariable(imgVarHash),
+  allFunctionsByMangledName(::Dyninst::stringhash),
+  allFunctionsByPrettyName(::Dyninst::stringhash),
+  allVarsByMangledName(::Dyninst::stringhash),
+  allVarsByPrettyName(::Dyninst::stringhash),
+  dirty_(false),
+  dirtyCalled_(false),
+  image_(img),
+  dlopenUsed(false),
+  proc_(proc),
+  analyzed_(false),
+  analysisMode_(mode),
+  pagesUpdated_(true),
+  memEnd_(-1),
+  memoryImg_(false)
 {
    // Set occupied range (needs to be ranges)
-   codeBase_ = fileDesc.code();
    dataBase_ = fileDesc.data();
 #if defined(os_windows)
-   codeBase_ = fileDesc.loadAddr();
    dataBase_ = fileDesc.loadAddr();
 #endif
 #if defined(os_aix)
@@ -175,23 +177,17 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
 }
 
 mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
-      AddressSpace *p,
-      BPatch_hybridMode analysisMode,
-      bool parseGaps)
-{
-
-
+                                                 AddressSpace *p,
+                                                 BPatch_hybridMode analysisMode,
+                                                 bool parseGaps) {
    if (!p) return NULL;
-
    if ( BPatch_defensiveMode == analysisMode ||
         ( desc.isSharedObject() &&
-          BPatch_defensiveMode == p->getAOut()->hybridMode() ) )
-   {
+          BPatch_defensiveMode == p->getAOut()->hybridMode() ) )   {
        // parsing in the gaps in defensive mode is a bad idea because
        // we mark all binary regions as possible code-containing areas
        parseGaps = false;
    }
-
    startup_printf("%s[%d]:  about to parseImage\n", FILE__, __LINE__);
    startup_printf("%s[%d]: name %s, codeBase 0x%lx, dataBase 0x%lx\n",
                   FILE__, __LINE__, desc.file().c_str(), desc.code(), desc.data());
@@ -203,7 +199,6 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
    if (img->isDyninstRTLib()) {
        parseGaps = false;
    }
-
 #if defined(os_linux) && defined(arch_x86_64)
    //Our x86_64 is actually reporting negative load addresses.  Go fig.
    // On Linux/x86_64 with 32-bit mutatees this causes problems because we
@@ -214,8 +209,7 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
    // and then correct.
    if (desc.dynamic() &&
        p->getAddressWidth() == 4 &&
-       img->getObject()->getElfDynamicOffset() + desc.code() != desc.dynamic())
-   {
+       img->getObject()->getElfDynamicOffset() + desc.code() != desc.dynamic()) {
       Address new_load_addr;
       new_load_addr = desc.dynamic() - img->getObject()->getElfDynamicOffset();
       startup_printf("[%s:%u] - Incorrect binary load address %lx, changing "
@@ -269,30 +263,30 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
    }
    startup_printf("%s[%d]:  leaving createMappedObject(%s)\n", FILE__, __LINE__, desc.file().c_str());
 
-   return obj;
+  return obj;
 }
 
 mapped_object::mapped_object(const mapped_object *s, process *child) :
-   codeRange(),
+  codeRange(),
   DynObject(s, child, s->codeBase_),
-   desc_(s->desc_),
-   fullName_(s->fullName_),
-   fileName_(s->fileName_),
-   dataBase_(s->dataBase_),
-   everyUniqueVariable(imgVarHash),
-   allFunctionsByMangledName(::Dyninst::stringhash),
-   allFunctionsByPrettyName(::Dyninst::stringhash),
-   allVarsByMangledName(::Dyninst::stringhash),
-   allVarsByPrettyName(::Dyninst::stringhash),
-   dirty_(s->dirty_),
-   dirtyCalled_(s->dirtyCalled_),
-   image_(s->image_),
-   dlopenUsed(s->dlopenUsed),
-   proc_(child),
-   analyzed_(s->analyzed_),
-   analysisMode_(s->analysisMode_),
-   pagesUpdated_(true),
-   memoryImg_(s->memoryImg_)
+  desc_(s->desc_),
+  fullName_(s->fullName_),
+  fileName_(s->fileName_),
+  dataBase_(s->dataBase_),
+  everyUniqueVariable(imgVarHash),
+  allFunctionsByMangledName(::Dyninst::stringhash),
+  allFunctionsByPrettyName(::Dyninst::stringhash),
+  allVarsByMangledName(::Dyninst::stringhash),
+  allVarsByPrettyName(::Dyninst::stringhash),
+  dirty_(s->dirty_),
+  dirtyCalled_(s->dirtyCalled_),
+  image_(s->image_),
+  dlopenUsed(s->dlopenUsed),
+  proc_(child),
+  analyzed_(s->analyzed_),
+  analysisMode_(s->analysisMode_),
+  pagesUpdated_(true),
+  memoryImg_(s->memoryImg_)
 {
    // Let's do modules
    for (unsigned k = 0; k < s->everyModule.size(); k++) {
@@ -1091,21 +1085,21 @@ void mapped_object::getInferiorHeaps(vector<pair<string, Address> > &foundHeaps)
 }
 
 
-void *mapped_object::getPtrToInstruction(Address addr) const
-{
-   if (addr < codeAbs()) {
-      assert(0);
-       return NULL;
-   }
-   if (addr >= (codeAbs() + imageSize())) {
-      assert(0);
-       return NULL;
-   }
+void *mapped_object::getPtrToInstruction(Address addr) const {
+  // cerr << std::hex << addr << ", codeAbs: " << codeAbs() << "\n" << std::dec ;
+  if (addr < codeAbs()) {
+    assert(0);
+    return NULL;
+  }
+  if (addr >= (codeAbs() + imageSize())) {
+    assert(0);
+    return NULL;
+  }
 
-   // Only subtract off the codeBase, not the codeBase plus
-   // codeOffset -- the image class includes the codeOffset.
-   Address offset = addr - codeBase();
-   return image_->codeObject()->cs()->getPtrToInstruction(offset);
+  // Only subtract off the codeBase, not the codeBase plus
+  // codeOffset -- the image class includes the codeOffset.
+  Address offset = addr - codeBase();
+  return image_->codeObject()->cs()->getPtrToInstruction(offset);
 }
 
 void *mapped_object::getPtrToData(Address addr) const

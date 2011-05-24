@@ -41,3 +41,12 @@ void PatchObject::addFunc(PatchFunction* f) {
 void PatchObject::removeFunc(PatchFunction* f) {
   funcs_.erase(f->function());
 }
+
+PatchBlock *PatchObject::getBlock(ParseAPI::Block*) {
+}
+
+void PatchObject::addBlock(PatchBlock*) {
+}
+
+void PatchObject::removeBlock(PatchBlock*) {
+}

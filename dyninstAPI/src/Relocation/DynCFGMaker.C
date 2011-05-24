@@ -1,3 +1,4 @@
+
 #include "DynObject.h"
 #include "mapped_module.h"
 #include "mapped_object.h"
@@ -8,6 +9,8 @@ using Dyninst::PatchAPI::DynCFGMaker;
 using Dyninst::PatchAPI::PatchObject;
 using Dyninst::ParseAPI::Function;
 using Dyninst::PatchAPI::PatchFunction;
+using Dyninst::ParseAPI::Block;
+using Dyninst::PatchAPI::PatchBlock;
 
 PatchFunction* DynCFGMaker::makeFunction(Function* f,
                                          PatchObject* obj) {
@@ -18,8 +21,10 @@ PatchFunction* DynCFGMaker::makeFunction(Function* f,
   assert(img_func->getSymtabFunction());
   mapped_module* mod = mo->findModule(img_func->pdmod());
   if (!mod) {
-    fprintf(stderr, "%s[%d]: ERROR: cannot find module %p\n", FILE__, __LINE__, img_func->pdmod());
-    fprintf(stderr, "%s[%d]:  ERROR:  Cannot find module %s\n", FILE__, __LINE__, img_func->pdmod()->fileName().c_str());
+    fprintf(stderr, "%s[%d]: ERROR: cannot find module %p\n", FILE__, __LINE__,
+            img_func->pdmod());
+    fprintf(stderr, "%s[%d]:  ERROR:  Cannot find module %s\n", FILE__, __LINE__,
+            img_func->pdmod()->fileName().c_str());
   }
   func_instance* fi = new func_instance(img_func, code_base, mod);
   mo->addFunction(fi);
@@ -36,3 +41,8 @@ PatchFunction* DynCFGMaker::copyFunction(PatchFunction* f, PatchObject* o) {
   return newFunc;
 }
 
+PatchBlock* DynCFGMaker::makeBlock(ParseAPI::Block*, PatchObject*) {
+}
+
+PatchBlock* DynCFGMaker::makeBlock(PatchBlock*, PatchObject*) {
+}
