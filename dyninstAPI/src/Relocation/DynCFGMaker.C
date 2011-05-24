@@ -12,8 +12,8 @@ using Dyninst::PatchAPI::PatchFunction;
 PatchFunction* DynCFGMaker::makeFunction(Function* f,
                                          PatchObject* obj) {
   Address code_base = obj->codeBase();
-  mapped_object* mo = DYN_CAST_MO(obj);
-  parse_func* img_func = DYN_CAST_PF(f);
+  mapped_object* mo = static_cast<mapped_object*>(obj);
+  parse_func* img_func = static_cast<parse_func*>(f);
   if (!img_func) return NULL;
   assert(img_func->getSymtabFunction());
   mapped_module* mod = mo->findModule(img_func->pdmod());
@@ -26,6 +26,13 @@ PatchFunction* DynCFGMaker::makeFunction(Function* f,
   return fi;
 }
 
-PatchFunction* DynCFGMaker::copyFunction(PatchFunction*, PatchObject*) {
+PatchFunction* DynCFGMaker::copyFunction(PatchFunction* f, PatchObject* o) {
+  func_instance *parFunc = static_cast<func_instance*>(f);
+  mapped_object *mo = static_cast<mapped_object*>(o); 
+  assert(parFunc->mod());
+  mapped_module *mod = mo->getOrCreateForkedModule(parFunc->mod());
+  func_instance *newFunc = new func_instance(parFunc, mod);
+  mo->addFunction(newFunc);
+  return newFunc;
 }
 

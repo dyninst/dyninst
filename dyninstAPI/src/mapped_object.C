@@ -323,12 +323,7 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
    // Aaand now functions
    for (FuncMap::const_iterator iter = s->funcs_.begin();
        iter != s->funcs_.end(); ++iter) {
-     func_instance *parFunc = DYN_CAST_FI(iter->second);
-      assert(parFunc->mod());
-      mapped_module *mod = getOrCreateForkedModule(parFunc->mod());
-      func_instance *newFunc = new func_instance(parFunc,
-                                                 mod);
-      addFunction(newFunc);
+     cfg_maker_->copyFunction(iter->second, this);
    }
 
    const pdvector<int_variable *> parVars = s->everyUniqueVariable.values();
@@ -800,7 +795,7 @@ bool mapped_object::getAllFunctions(pdvector<func_instance *> &funcs) {
         if(funcs_.find((parse_func*)*fit) == funcs_.end()) {
             findFunction((parse_func*)*fit);
         }
-        funcs.push_back(DYN_CAST_FI(funcs_[(parse_func*)*fit]));
+        funcs.push_back(static_cast<func_instance*>(funcs_[*fit]));
     }
     return funcs.size() > start;
 }
@@ -821,7 +816,7 @@ bool mapped_object::getAllVariables(pdvector<int_variable *> &vars) {
 
 // Enter a function in all the appropriate tables
 func_instance *mapped_object::findFunction(ParseAPI::Function *papi_func) {
-  return DYN_CAST_FI(getFunc(papi_func));
+  return static_cast<func_instance*>(getFunc(papi_func));
 }
 
 void mapped_object::addFunctionName(func_instance *func,
@@ -2277,8 +2272,10 @@ void mapped_object::splitBlock(ParseAPI::Block *first, ParseAPI::Block *second) 
 }
 
 func_instance *mapped_object::findFuncByEntry(const block_instance *blk) {
-   parse_block *llb = static_cast<parse_block *>(blk->llb());
-   return findFunction(llb->getEntryFunc());
+  parse_block *llb = static_cast<parse_block *>(blk->llb());
+  parse_func* f = llb->getEntryFunc();
+  if (!f) return NULL;
+  return findFunction(f);
 }
 
 

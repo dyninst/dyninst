@@ -1758,6 +1758,7 @@ bool process::hideDebugger()
 // FURTHER HACK: made a block_instance method so we can share blocks
 
 func_instance *block_instance::callee() {
+
    // See if we've already done this
    edge_instance *tEdge = getTarget();
    if (!tEdge) {
@@ -1767,7 +1768,7 @@ func_instance *block_instance::callee() {
    if (!tEdge->sinkEdge()) {
       return obj()->findFuncByEntry(tEdge->trg());
    }
-   
+
    // Do this the hard way - an inter-module jump
    // get the target address of this function
    Address target_addr; bool success;
