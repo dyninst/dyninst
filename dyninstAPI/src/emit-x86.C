@@ -2613,27 +2613,7 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
         assert(!"Invalid function call (function info is missing)");
     }
 
-    // find the Symbol corresponding to the func_instance
-    std::vector<SymtabAPI::Symbol *> syms;
-    func->ifunc()->func()->getSymbols(syms);
-
-    if (syms.size() == 0) {
-        char msg[256];
-        sprintf(msg, "%s[%d]:  internal error:  cannot find symbol %s"
-                , __FILE__, __LINE__, func->symTabName().c_str());
-        showErrorCallback(80, msg);
-        assert(0);
-    }
-
-    // try to find a dynamic symbol
-    // (take first static symbol if none are found)
-    SymtabAPI::Symbol *referring = syms[0];
-    for (unsigned k=0; k<syms.size(); k++) {
-        if (syms[k]->isInDynSymtab()) {
-            referring = syms[k];
-            break;
-        }
-    }
+    SymtabAPI::Symbol *referring = func->getRelocSymbol();
 
     // have we added this relocation already?
     relocation_address = binEdit->getDependentRelocationAddr(referring);

@@ -33,6 +33,7 @@
 #define _R_T_MODIFICATION_H_
 
 #include "Transformer.h"
+#include "../Widgets/Widget.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include <list>
 #include <set>
@@ -82,7 +83,18 @@ class Modification : public Transformer {
        func_instance *f_;
        bool operator()(RelocEdge *e);
     };
+
+    struct WrapperPatch : public Patch {
+      WrapperPatch(func_instance *func) : func_(func) {};
+       virtual bool apply(codeGen &gen, CodeBuffer *buf);
+       virtual unsigned estimate(codeGen &) { return 0; }
+       virtual ~WrapperPatch() {};
+
+       func_instance *func_;
+    };
+    
   };
+   
 };
 };
 

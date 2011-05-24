@@ -63,6 +63,7 @@ func_instance::func_instance(parse_func *f,
   , callingConv(unknown_call)
   , paramSize(0)
 #endif
+   , wrapperSym_(NULL)
 {
   assert(f);
 #if defined(ROUGH_MEMORY_PROFILE)
@@ -89,6 +90,7 @@ func_instance::func_instance(const func_instance *parFunc,
   , callingConv(parFunc->callingConv)
   , paramSize(parFunc->paramSize)
 #endif
+   , wrapperSym_(NULL)
 {
    assert(ifunc());
    // According to contract /w/ the mapped_object
@@ -219,7 +221,6 @@ void func_instance::addMissingBlocks()
     ifunc()->invalidateCache();
 
    blocks();
-   cerr << "addMissingBlocks for function " << hex << this << dec << endl;
    // Add new blocks
 
    const vector<parse_block*> & nblocks = obj()->parse_img()->getNewBlocks();
@@ -773,3 +774,100 @@ block_instance *func_instance::getBlock(const Address addr) {
 	}
 	return NULL;
 }
+
+using namespace SymtabAPI;
+
+bool func_instance::callWrappedFunction(func_instance *target) {
+   // Not implemented for dynamic mode
+   if (proc()->proc()) return false;
+   // And not implemented for same-module
+   if (obj() == target->obj()) return false;
+   // Get the old symbol
+   Symbol *oldsym = target->getRelocSymbol();
+
+   // Get the new symbol
+   Symbol *wrapperSym = target->getWrapperSymbol();
+   if (!wrapperSym) {
+      return false;
+   }
+   
+   // Now we split. If this is a static binary, we want to point all the relocations
+   // in this function at the new symbol. If it's a dynamic binary, we can just relocate
+   // the daylights out of it. 
+   if (obj()->isStaticExec() || target->obj()->isStaticExec() ) {
+      if (!updateRelocationsToSym(oldsym, wrapperSym)) return false;
+   }
+   else {
+      // Not implemented yet
+      return false;
+   }
+
+   return true;
+}
+
+bool func_instance::updateRelocationsToSym(Symbol *oldsym, Symbol *newsym) {
+   for (BlockSet::const_iterator iter = blocks().begin(); 
+        iter != blocks().end(); ++iter) {
+      obj()->parse_img()->getObject()->updateRelocations((*iter)->start(), (*iter)->last(), oldsym, newsym);
+   }
+   return true;
+}
+
+Symbol *func_instance::getWrapperSymbol() {
+   // Is created during relocation, which should have 
+   // already happened.
+   return wrapperSym_;
+}
+
+Symbol *func_instance::getRelocSymbol() {
+   // there should be only one...
+   // HIGHLANDER!
+   
+   // find the Symbol corresponding to the func_instance
+   std::vector<Symbol *> syms;
+   ifunc()->func()->getSymbols(syms);
+   
+   if (syms.size() == 0) {
+      char msg[256];
+      sprintf(msg, "%s[%d]:  internal error:  cannot find symbol %s"
+              , __FILE__, __LINE__, name().c_str());
+      showErrorCallback(80, msg);
+      assert(0);
+   }
+   
+   // try to find a dynamic symbol
+   // (take first static symbol if none are found)
+   Symbol *referring = syms[0];
+   for (unsigned k=0; k<syms.size(); k++) {
+      if (syms[k]->isInDynSymtab()) {
+         referring = syms[k];
+         break;
+      }
+   }
+   return referring;
+}
+
+void func_instance::createWrapperSymbol(Address entry) {
+   if (wrapperSym_) {
+      // Just update the address
+      wrapperSym_->setOffset(entry);
+      return;
+   }
+   // Otherwise we need to create a new symbol
+   std::string wrapperName = name();
+   wrapperName += "_dyninst_wrapper";
+
+   wrapperSym_ = new Symbol(wrapperName,
+                            Symbol::ST_FUNCTION,
+                            Symbol::SL_GLOBAL,
+                            Symbol::SV_DEFAULT,
+                            entry,
+                            NULL, // This is module - I probably want this?
+                            NULL, // Region - again, find it?
+                            0, // size - zero okay?
+                            false, // Definitely not dynamic ("Static binaries don't have dynamic symbols - Dan")
+                            false); // Definitely not absolute
+   obj()->parse_img()->getObject()->addSymbol(wrapperSym_);
+
+}
+

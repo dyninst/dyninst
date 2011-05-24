@@ -1413,13 +1413,21 @@ void AddressSpace::replaceFunction(func_instance *oldfunc, func_instance *newfun
 }
 
 bool AddressSpace::wrapFunction(func_instance *oldfunc, func_instance *newfunc) {
-   if (edit()) {
-      if (oldfunc->obj() != newfunc->obj()) return false;
+   if (oldfunc->proc() != this) {
+      return oldfunc->proc()->wrapFunction(oldfunc, newfunc);
    }
+   assert(oldfunc->proc() == this);
 
    functionWraps_[oldfunc] = newfunc;
    addModifiedFunction(oldfunc);
-   addModifiedFunction(newfunc);
+
+   if (edit() && oldfunc->obj() != newfunc->obj()) {
+      if (!relocate()) return false;
+      if (!newfunc->callWrappedFunction(oldfunc)) return false;
+   }
+   else {
+      addModifiedFunction(newfunc);
+   }
    return true;
 }
 

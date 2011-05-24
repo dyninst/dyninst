@@ -294,6 +294,9 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   callType callingConv;
   int paramSize;
 #endif
+
+   Dyninst::SymtabAPI::Symbol *wrapperSym_;
+
 };
 
 template <class OutputIterator>
