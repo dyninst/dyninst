@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 #include "proccontrol_comp.h"
 #include "communication.h"
 
@@ -13,7 +43,7 @@ extern "C" DLLEXPORT TestMutator* pc_library_factory()
   return new pc_libraryMutator();
 }
 
-struct proc_info {
+struct proc_info_lib {
    int loaded_libtesta;
    int loaded_libtestb;
    int unloaded_libtesta;
@@ -21,7 +51,7 @@ struct proc_info {
    int order;
    bool found_exec;
    bool found_libc;
-   proc_info() :
+   proc_info_lib() :
       loaded_libtesta(-1),
       loaded_libtestb(-1),
       unloaded_libtesta(-1),
@@ -33,7 +63,7 @@ struct proc_info {
    }
 };
 
-static std::map<Process::const_ptr, proc_info> proclibs;
+static std::map<Process::const_ptr, proc_info_lib> proclibs;
 static bool got_breakpoint;
 static bool myerror;
 
@@ -51,7 +81,7 @@ Process::cb_ret_t on_library(Event::const_ptr ev)
       myerror = true;
       return Process::cbDefault;
    }
-   proc_info &pi = proclibs[ev->getProcess()];
+   proc_info_lib &pi = proclibs[ev->getProcess()];
 
    std::set<Library::ptr>::iterator i;
    for (i = evlib->libsAdded().begin(); i != evlib->libsAdded().end(); i++) {
@@ -117,7 +147,7 @@ test_results_t pc_libraryMutator::executeTest()
 
       Process::ptr proc = *i;
       Process::const_ptr cproc = proc;
-      proc_info &pi = proclibs[cproc];
+      proc_info_lib &pi = proclibs[cproc];
       
       for (LibraryPool::iterator j = proc->libraries().begin();
            j != proc->libraries().end(); j++)
@@ -173,10 +203,10 @@ test_results_t pc_libraryMutator::executeTest()
       logerror("Didn't get library events from enough processes\n");
       myerror = true;
    }
-   for (std::map<Process::const_ptr, proc_info>::iterator j = proclibs.begin();
+   for (std::map<Process::const_ptr, proc_info_lib>::iterator j = proclibs.begin();
         j != proclibs.end(); j++)
    {
-      const proc_info &pi = j->second;
+      const proc_info_lib &pi = j->second;
       if (pi.loaded_libtesta == -1) {
          logerror("Didn't load libtestA\n");
          myerror = true;

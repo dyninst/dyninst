@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -55,8 +55,21 @@ test_results_t test_lookup_func_Mutator::executeTest()
 {
 	if (createmode == DESERIALIZE)
 		return SKIPPED;
+    std::vector<Symbol*> funcSyms;
+    bool result = symtab->getAllSymbolsByType(funcSyms, Symbol::ST_FUNCTION);
+    if(result == false)
+    {
+        logerror("getAllSymbolsByType returned false\n");
+        return FAILED;
+    }
+    if(funcSyms.empty())
+    {
+        logerror("getAllSymbolsByType returned empty vector of function symbols\n");
+        return FAILED;
+    }
+    logerror("getAllSymbolsByType found %d functions\n", funcSyms.size());
    std::vector<Function *> funcs;
-   bool result = symtab->findFunctionsByName(funcs, std::string("lookup_func"));
+   result = symtab->findFunctionsByName(funcs, std::string("lookup_func"));
 
    if (!result || !funcs.size() )
    {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -79,9 +79,6 @@
                                                                -1, true))
 
 // naxses
-#ifdef sparc_sun_solaris2_4_test
-const unsigned int naxses = 26;
-#endif
 
 #ifdef rs6000_ibm_aix4_1_test
 const unsigned int naxses = 73;
@@ -90,16 +87,14 @@ const unsigned int naxses = 73;
 #if defined(arch_x86_test)
 #if defined(os_windows_test)
 const unsigned int naxses = 95;
+#elif defined(os_freebsd_test)
+const unsigned int naxses = 107;
 #else
 const unsigned int naxses = 91;
 #endif
 #endif
 
-#ifdef ia64_unknown_linux2_4_test
-const unsigned int naxses = 12;
-#endif
-
-#ifdef x86_64_unknown_linux2_4_test
+#if defined(x86_64_unknown_linux2_4_test) || defined(amd64_unknown_freebsd7_0_test)
 const unsigned int naxses = 100;
 #endif
 

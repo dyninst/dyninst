@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -57,14 +57,7 @@ int test1_39_passed = -1;
 
 /* Test #39 (refex function search) */
 int test1_39_mutatee() {
-#if defined(sparc_sun_solaris2_4_test) \
- || defined(alpha_dec_osf4_0_test) \
- || defined(i386_unknown_solaris2_5_test) \
- || defined(i386_unknown_linux2_0_test) \
- || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4_test) \
- || defined(mips_sgi_irix6_4_test) \
- || defined(rs6000_ibm_aix4_1_test) \
+#if defined(rs6000_ibm_aix4_1_test) \
  || defined(os_linux_test) /* Use OS #define instead of platform - Greg */ \
  || defined(os_freebsd_test)
 

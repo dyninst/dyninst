@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -90,18 +90,12 @@ test_results_t test2_4_Mutator::setup(ParameterDict &param) {
    bool useAttach = ((create_mode_t) param["createmode"]->getInt()) == USEATTACH;
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
   
-#if defined(sparc_sun_sunos4_1_3_test)
-    logerror("Skipping test #4 (attach to a protected pid)\n");
-    logerror("    attach is not supported on this platform\n");
-    return SKIPPED;
-#else
     if ( !useAttach )
     {
       logerror("Skipping test #4 (attach to a protected pid)\n");
       logerror("    test doesn't make sense without useAttach\n");
       return SKIPPED;
     }
-#endif
 
   return PASSED;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -122,7 +122,7 @@ class test_type_info_Mutator : public SymtabMutator {
 	   if (!got_type_subrange)
 	   {
 		   //  solaris CC does not appear to produce these
-#if !defined(os_solaris_test) && !defined(os_aix_test) && !defined(os_windows_test)
+#if !defined(os_aix_test) && !defined(os_windows_test)
 		   logerror( "%s[%d]:  subrange was missed\n", FILE__, __LINE__);
 		   return false;
 #endif
@@ -581,17 +581,6 @@ bool test_type_info_Mutator::verify_type_union(typeUnion *t,
 		std::vector<std::pair<std::string, std::string> > *efields)
 {
 	got_type_union = true;
-//#if defined (os_solaris_test) || defined (os_aix_test)
-#if 0
-	static bool did_warning = false;
-	if (!did_warning)
-	{
-		logerror( "%s[%d]: WARNING:  union verification skipped on this platform\n", 
-				FILE__, __LINE__);
-		did_warning = true;
-	}
-	return true;
-#else
 	std::string &tn = t->getName();
 
 	//std::cerr << "verify_union for " << tn << std::endl;
@@ -603,7 +592,6 @@ bool test_type_info_Mutator::verify_type_union(typeUnion *t,
 	}
 
 	return true;
-#endif
 }
 
 bool test_type_info_Mutator::verify_type_scalar(typeScalar *t)
@@ -1059,13 +1047,6 @@ test_results_t test_type_info_Mutator::executeTest()
 #if defined (os_aix_test) 
 	if (createmode == DESERIALIZE)
 		return SKIPPED;
-#endif
-#if defined (os_solaris_test)
-	if (createmode == DESERIALIZE)
-	//	if (compiler == std::string("CC") || compiler == std::string("sun_cc"))
-	//	{
-			return SKIPPED;
-	//	}
 #endif
 
 	SymtabAPI::Module *mod = NULL;

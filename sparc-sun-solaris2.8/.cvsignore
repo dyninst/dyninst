@@ -1,4 +1,0 @@
-depends test_driver runTests V_*.c test? test?? tests.done test*.mutatee* *.d
-_dyninstsaved*
-test_driver_static
-resumelog

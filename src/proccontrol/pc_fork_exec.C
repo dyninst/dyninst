@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 #include "proccontrol_comp.h"
 #include "communication.h"
 
@@ -13,17 +43,17 @@ extern "C" DLLEXPORT TestMutator* pc_fork_exec_factory()
   return new pc_fork_execMutator();
 }
 
-struct proc_info {
+struct proc_info_forkexec {
    bool is_exited;
    std::string executable;
 
-   proc_info() :
+   proc_info_forkexec() :
       is_exited(false)
    {
    }
 };
 
-static std::map<Process::const_ptr, proc_info> pinfo;
+static std::map<Process::const_ptr, proc_info_forkexec> pinfo;
 static bool myerror;
 #define EXIT_CODE 4
 
@@ -46,7 +76,7 @@ Process::cb_ret_t on_exec(Event::const_ptr ev)
 {
    EventExec::const_ptr eexec = ev->getEventExec();
    Process::const_ptr proc = ev->getProcess();
-   proc_info &pi = pinfo[proc];
+   proc_info_forkexec &pi = pinfo[proc];
 
    pi.executable = eexec->getExecPath();
 
@@ -74,7 +104,7 @@ Process::cb_ret_t on_fork(Event::const_ptr ev)
       return Process::cbDefault;
    }
 
-   proc_info &pi = pinfo[child_proc];
+   proc_info_forkexec &pi = pinfo[child_proc];
 
    if (child_proc->libraries().size() != parent_proc->libraries().size())
    {
@@ -97,12 +127,12 @@ Process::cb_ret_t on_exit(Event::const_ptr ev)
       myerror = true;
    }
    
-   map<Process::const_ptr, proc_info>::iterator i = pinfo.find(ev->getProcess());
+   map<Process::const_ptr, proc_info_forkexec>::iterator i = pinfo.find(ev->getProcess());
    if (i == pinfo.end()) {
       return Process::cbDefault;
    }
 
-   proc_info &pi = i->second;
+   proc_info_forkexec &pi = i->second;
    pi.is_exited = true;
    if (ee->getExitCode() != EXIT_CODE) {
       logerror("Process exited with unexpected code\n");
@@ -149,10 +179,10 @@ test_results_t pc_fork_execMutator::executeTest()
       myerror = true;
    }
 
-   map<Process::const_ptr, proc_info>::iterator i = pinfo.begin();
+   map<Process::const_ptr, proc_info_forkexec>::iterator i = pinfo.begin();
    for (; i != pinfo.end(); i++) {
       Process::const_ptr proc = i->first;
-      proc_info &pi = i->second;
+      proc_info_forkexec &pi = i->second;
 
       if (!pi.is_exited) {
          logerror("Process did not deliver exit callback\n");

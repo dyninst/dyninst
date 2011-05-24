@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,7 @@ ParseThat::ParseThat() :
 	trans(T_None),
 	suppress_ipc(false),
 	nofork(false),
+	measureUsage(false),
 	verbosity(7),
 	timeout_secs(300),
 	do_trace(true),
@@ -95,8 +96,6 @@ ParseThat::ParseThat() :
 #elif defined (os_linux_test)
 #if defined (arch_x86_test)
 		plat_env = "i386-unknown-linux2.4";
-#elif defined (arch_ia64_test)
-		plat_env = "ia64-unknown-linux2.4";
 #elif defined (arch_x86_64_test)
 		plat_env = "x86_64-unknown-linux2.4";
 #elif defined (arch_power_test)
@@ -108,10 +107,6 @@ ParseThat::ParseThat() :
 #endif
 #elif defined (os_aix_test)
 		plat_env = "rs6000-ibm-aix5.1";
-#elif defined (os_solaris_test)
-		//  annoyingly we don't seem to maintain an arch def that specifies
-		//  solaris version through the build defines
-		plat_env = "sparc-sun-solaris2.9";
 #endif
 	}
 
@@ -212,6 +207,9 @@ bool ParseThat::setup_args(std::vector<std::string> &pt_args)
 	if (nofork) 
 		pt_args.push_back(std::string("-S"));
 
+	if (measureUsage)
+		pt_args.push_back(std::string("--memcpu"));
+
 	if (print_summary_) 
 		pt_args.push_back(std::string("--summary"));
 
@@ -311,7 +309,6 @@ test_results_t ParseThat::sys_execute(std::string cmd, std::vector<std::string> 
 
 	logerror("%s[%d]:  about to issue command: \n\t\t'%s'\n", 
 			FILE__, __LINE__, cmdbuf);
-
 	int res = system(cmdbuf);
 
 	if (WIFEXITED(res))
@@ -360,22 +357,6 @@ test_results_t ParseThat::operator()(std::string exec_path, std::vector<std::str
 		logerror("%s[%d]:  failed to setup parseThat args\n", FILE__, __LINE__);
 		return FAILED;
 	}
-
-	//  Use provided mutatee args to setup arglist for rewritten binary too...
-	std::string newbinary_args = 
-		std::string("--args=") 
-		+ utos(mutatee_args.size()) 
-		+ std::string(":");
-
-	unsigned nargs = mutatee_args.size();
-	for (unsigned int i = 0; i < nargs; ++i)
-	{
-		newbinary_args += mutatee_args[i];
-		if (i < (nargs - 1) )
-			newbinary_args += std::string(",");
-	}
-
-	pt_args.push_back(newbinary_args);
 
 	//  maybe want to check existence of mutatee executable here?
 

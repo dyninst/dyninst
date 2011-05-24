@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 #include "ParameterDict.h"
 #include "proccontrol_comp.h"
 #include "communication.h"
@@ -141,7 +171,6 @@ Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &
 
       int signal_fd = params.find("signal_fd_in") != params.end() ? params["signal_fd_in"]->getInt() : -1;
       if (signal_fd > 0) {
-         logerror("signal_fd is %d\n", signal_fd);
          bool result = waitForSignalFD(signal_fd);
          if (!result) {
             logerror("Timeout waiting for signalFD\n");
@@ -310,7 +339,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
          while (eventsRecieved[EventType(EventType::None, EventType::UserThreadCreate)].size() < num_procs*num_threads) {
             bool result = Process::handleEvents(true);
             if (!result) {
-               logerror("Failed to handle events during thread create\n");
+               logerror("Failed to handle events during user thread create\n");
                error = true;
             }
          }
@@ -407,7 +436,7 @@ test_results_t ProcControlComponent::group_setup(RunGroup *group, ParameterDict 
    return PASSED;
 }
 
-Process::cb_ret_t on_exit(Event::const_ptr ev)
+Process::cb_ret_t pc_on_exit(Event::const_ptr ev)
 {
    return Process::cbDefault;
 }
@@ -422,7 +451,7 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
    if (curgroup_self_cleaning)
       return PASSED;
 
-   Process::registerEventCallback(EventType(EventType::Exit), on_exit);
+   Process::registerEventCallback(EventType(EventType::Exit), pc_on_exit);
    do {
       hasRunningProcs = false;
       for (vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
@@ -1038,31 +1067,3 @@ bool ProcControlComponent::poll_for_events()
    return bresult;
 }
 
-Process::cb_ret_t on_breakpoint(Event::const_ptr ev) {
-   Dyninst::ProcControlAPI::RegisterPool regs;
-    if( !ev->getThread()->getAllRegisters(regs) ) {
-        fprintf(stderr, "Failed to get registers on breakpoint\n");
-    }else{
-        fprintf(stderr, "Registers at breakpoint 0x%lx:\n", ev->getEventBreakpoint()->getAddress());
-        for(Dyninst::ProcControlAPI::RegisterPool::iterator i = regs.begin(); i != regs.end(); i++) {
-            fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name(), (*i).second);
-        }
-    }
-
-    return Process::cbThreadContinue;
-}
-
-// To be called while debugging
-void insertBreakpoint(Process::ptr proc, Address addr) {
-    Breakpoint::ptr brkPt = Breakpoint::newBreakpoint();
-
-    Process::registerEventCallback(EventType::Breakpoint, on_breakpoint);
-
-    if( !proc->addBreakpoint(addr, brkPt) ) {
-        fprintf(stderr, "Failed to add breakpoint to process %d at addr 0x%lx\n",
-                proc->getPid(), addr);
-    }else{
-        fprintf(stderr, "Added breakpoint to process %d at addr 0x%lx\n",
-                proc->getPid(), addr);
-    }
-}
