@@ -99,8 +99,7 @@ DyninstComponent::DyninstComponent() :
 {
 }
 
-test_results_t DyninstComponent::program_setup(ParameterDict &params)
-{
+test_results_t DyninstComponent::program_setup(ParameterDict &params) {
    if (measure) um_program.start();  // Measure resource usage.
 
    bpatch = new BPatch();
@@ -118,7 +117,7 @@ test_results_t DyninstComponent::program_setup(ParameterDict &params)
    if (debugprint) {
       setDebugPrint(debugprint->getInt());
    }
-   
+ 
    if ( getenv("DYNINSTAPI_RT_LIB") )
    {
       char *temp = getenv("DYNINSTAPI_RT_LIB");
