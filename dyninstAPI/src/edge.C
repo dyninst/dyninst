@@ -26,9 +26,9 @@ AddressSpace *edge_instance::proc() {
 }
 
 block_instance *edge_instance::src() const {
-  return DYN_CAST_BI(src_);
+  return SCAST_BI(src_);
 }
 
 block_instance *edge_instance::trg() const {
-  return DYN_CAST_BI(trg_);
+  return SCAST_BI(trg_);
 }

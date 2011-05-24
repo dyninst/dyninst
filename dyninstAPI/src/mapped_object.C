@@ -795,7 +795,7 @@ bool mapped_object::getAllFunctions(pdvector<func_instance *> &funcs) {
         if(funcs_.find((parse_func*)*fit) == funcs_.end()) {
             findFunction((parse_func*)*fit);
         }
-        funcs.push_back(static_cast<func_instance*>(funcs_[*fit]));
+        funcs.push_back(SCAST_FI(funcs_[*fit]));
     }
     return funcs.size() > start;
 }
@@ -816,7 +816,7 @@ bool mapped_object::getAllVariables(pdvector<int_variable *> &vars) {
 
 // Enter a function in all the appropriate tables
 func_instance *mapped_object::findFunction(ParseAPI::Function *papi_func) {
-  return static_cast<func_instance*>(getFunc(papi_func));
+  return SCAST_FI(getFunc(papi_func));
 }
 
 void mapped_object::addFunctionName(func_instance *func,
@@ -1225,7 +1225,7 @@ bool mapped_object::findBlocksByRange(Address startAddr,
       pB->getFuncs(funcs);
       for (std::vector<ParseAPI::Function *>::iterator f_iter = funcs.begin();
            f_iter != funcs.end(); ++f_iter) {
-         parse_func *ifunc = static_cast<parse_func *>(*f_iter);
+         parse_func *ifunc = SCAST_PF(*f_iter);
          func_instance *func = findFunction(ifunc);
          assert(func);
 
@@ -2272,7 +2272,7 @@ void mapped_object::splitBlock(ParseAPI::Block *first, ParseAPI::Block *second) 
 }
 
 func_instance *mapped_object::findFuncByEntry(const block_instance *blk) {
-  parse_block *llb = static_cast<parse_block *>(blk->llb());
+  parse_block *llb = SCAST_PB(blk->llb());
   parse_func* f = llb->getEntryFunc();
   if (!f) return NULL;
   return findFunction(f);

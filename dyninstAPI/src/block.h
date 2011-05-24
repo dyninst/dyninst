@@ -15,12 +15,12 @@ class BPatch_edge;
 class mapped_object;
 
 // Shortcuts for type casting
-#define DYN_CAST_MO(o) dynamic_cast<mapped_object*>(o)
-#define DYN_CAST_EI(e) dynamic_cast<edge_instance*>(e)
-#define DYN_CAST_BI(b) dynamic_cast<block_instance*>(b)
-#define DYN_CAST_PB(b) dynamic_cast<parse_block*>(b)
-#define DYN_CAST_PF(f) dynamic_cast<parse_func*>(f)
-#define DYN_CAST_FI(f) dynamic_cast<func_instance*>(f)
+#define SCAST_MO(o) static_cast<mapped_object*>(o)
+#define SCAST_EI(e) static_cast<edge_instance*>(e)
+#define SCAST_BI(b) static_cast<block_instance*>(b)
+#define SCAST_PB(b) static_cast<parse_block*>(b)
+#define SCAST_PF(f) static_cast<parse_func*>(f)
+#define SCAST_FI(f) static_cast<func_instance*>(f)
 
 class edge_instance : public Dyninst::PatchAPI::PatchEdge {
   friend class block_instance;
@@ -70,7 +70,7 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     ~block_instance();
 
     // Up-accessors
-    mapped_object *obj() const { return DYN_CAST_MO(obj_); }
+    mapped_object *obj() const { return SCAST_MO(obj_); }
     AddressSpace *addrSpace() const;
     AddressSpace *proc() const { return addrSpace(); }
 
@@ -78,7 +78,7 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
        void getFuncs(OutputIterator result);
 
     void triggerModified();
-    parse_block * llb() const { return DYN_CAST_PB(block_); }
+    parse_block * llb() const { return SCAST_PB(block_); }
     void *getPtrToInstruction(Address addr) const;
 
     const edgelist &sources();

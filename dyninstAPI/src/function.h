@@ -114,7 +114,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
   // Not defined here so we don't have to play header file magic
   // Not const; we can add names via the Dyninst layer
-  parse_func *ifunc() const { return DYN_CAST_PF(func_); }
+  parse_func *ifunc() const { return SCAST_PF(func_); }
   mapped_module *mod() const { return mod_; }
   mapped_object *obj() const;
 

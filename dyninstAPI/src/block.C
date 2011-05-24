@@ -156,14 +156,14 @@ void block_instance::updateCallTarget(func_instance *func) {
 
 
 func_instance *block_instance::entryOfFunc() const {
-   parse_block *b = static_cast<parse_block *>(llb());
+   parse_block *b = SCAST_PB(llb());
    parse_func *e = b->getEntryFunc();
    if (!e) return NULL;
    return obj()->findFunction(e);
 }
 
 bool block_instance::isFuncExit() const {
-   parse_block *b = static_cast<parse_block *>(llb());
+   parse_block *b = SCAST_PB(llb());
    return b->isExitBlock();
 }
 

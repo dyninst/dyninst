@@ -241,7 +241,7 @@ void func_instance::addMissingBlocks()
             bit++)
        {
            if (!findBlock(*bit)) {
-               addMissingBlock(static_cast<parse_block*>(*bit));
+               addMissingBlock(SCAST_PB(*bit));
            }
        }
    }
@@ -455,7 +455,7 @@ bool func_instance::getSharingFuncs(block_instance *b,
     b->llb()->getFuncs(lfuncs);
     vector<Function *>::iterator fit = lfuncs.begin();
     for( ; fit != lfuncs.end(); ++fit) {
-        parse_func *ll_func = static_cast<parse_func*>(*fit);
+      parse_func *ll_func = SCAST_PF(*fit);
         func_instance *hl_func = obj()->findFunction(ll_func);
         assert(hl_func);
 
@@ -562,7 +562,7 @@ bool func_instance::consistency() const {
    assert(img_blocks.size() == blocks_.size());
    for (ParseAPI::Function::blocklist::iterator iter = img_blocks.begin();
         iter != img_blocks.end(); ++iter) {
-      parse_block *img_block = static_cast<parse_block *>(*iter);
+      parse_block *img_block = SCAST_PB(*iter);
       block_instance *b_inst = obj()->findBlock(img_block);
       assert(blocks_.find(b_inst) != blocks_.end());
    }
