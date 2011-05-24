@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -63,7 +63,7 @@
 #define SOCKLEN_T socklen_t
 #endif
 
-#if !defined(cap_save_the_world) && !(defined(arch_power) && defined(os_linux))
+#if !(defined(arch_power) && defined(os_linux))
 void RTmutatedBinary_init() 
 {
     return;

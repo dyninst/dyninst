@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -431,7 +431,7 @@ ostream& operator<<(ostream&s, relTimeStamp z) {
 }
 
 // timeLength / timeLength = double
-double operator/(const timeLength a, const timeLength b) {
+double operator/(const timeLength& a, const timeLength& b) {
   assert(a.isInitialized() && b.isInitialized());
   return static_cast<double>(a.get_ns()) / static_cast<double>(b.get_ns());
 }
@@ -572,54 +572,54 @@ const timeLength operator-(const timeLength &t) {
 }
 
 // timeStamp - timeStamp = timeLength  ;  the length of time between time stamps
-const timeLength operator-(const timeStamp a, const timeStamp b) {
+const timeLength operator-(const timeStamp& a, const timeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   return timeLength(a.get_ns() - b.get_ns());
 }
 
 // timeStamp +/- timeLength = timeStamp
-const timeStamp operator+(const timeStamp a, const timeLength b) {
+const timeStamp operator+(const timeStamp& a, const timeLength& b) {
   assert(a.isInitialized() && b.isInitialized());
   return timeStamp(a.get_ns() + b.get_ns());
 }
-const timeStamp operator-(const timeStamp a, const timeLength b) {
+const timeStamp operator-(const timeStamp& a, const timeLength& b) {
   assert(a.isInitialized() && b.isInitialized());
   return timeStamp(a.get_ns() - b.get_ns());
 }
 
 // timeLength + timeStamp = timeStamp
-const timeStamp operator+(const timeLength a, const timeStamp b) {
+const timeStamp operator+(const timeLength& a, const timeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   return timeStamp(a.get_ns() + b.get_ns());
 }
 // timeLength - timeStamp doesn't make sense, ie. 3 days - Mar 9 = ?
 
 // timeLength +/- timeLength = timeLength
-const timeLength operator+(const timeLength a, const timeLength b) {  
+const timeLength operator+(const timeLength& a, const timeLength& b) {  
   assert(a.isInitialized() && b.isInitialized());
   return timeLength(a.get_ns() + b.get_ns());
 }
-const timeLength operator-(const timeLength a, const timeLength b) {
+const timeLength operator-(const timeLength& a, const timeLength& b) {
   assert(a.isInitialized() && b.isInitialized());
   return timeLength(a.get_ns() - b.get_ns());
 }
 
 // timeLength */ double = timeLength
-const timeLength operator*(const timeLength a, const double b) {
+const timeLength operator*(const timeLength& a, const double b) {
   assert(a.isInitialized());
   return timeLength(static_cast<int64_t>(static_cast<double>(a.get_ns()) * b));
 }
-const timeLength operator/(const timeLength a, const double b) {
+const timeLength operator/(const timeLength& a, const double b) {
   assert(a.isInitialized());
   return timeLength(static_cast<int64_t>(static_cast<double>(a.get_ns()) / b));
 }
 
 // double */ timeLength = timeLength
-const timeLength operator*(const double a, const timeLength b) {
+const timeLength operator*(const double a, const timeLength& b) {
   assert(b.isInitialized());
   return timeLength(static_cast<int64_t>(a * static_cast<double>(b.get_ns())));
 }
-const timeLength operator/(const double a, const timeLength b) {
+const timeLength operator/(const double a, const timeLength& b) {
   assert(b.isInitialized());
   return timeLength(static_cast<int64_t>(a / static_cast<double>(b.get_ns())));
 }
@@ -629,83 +629,83 @@ const timeLength operator/(const double a, const timeLength b) {
 // eg. Time(1,timeUnit::day) * Time(2,timeUnit::day) will overflow
 
 // timeStamp @ timeStamp = bool
-bool operator==(const timeStamp a, const timeStamp b) {
+bool operator==(const timeStamp& a, const timeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() == b.get_ns());
 }
-bool operator!=(const timeStamp a, const timeStamp b) {
+bool operator!=(const timeStamp& a, const timeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() != b.get_ns());
 }
-bool operator>(const timeStamp a, const timeStamp b) {
+bool operator>(const timeStamp& a, const timeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() > b.get_ns());
 }
-bool operator>=(const timeStamp a, const timeStamp b) {
+bool operator>=(const timeStamp& a, const timeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() >= b.get_ns());
 }
-bool operator<(const timeStamp a, const timeStamp b) {
+bool operator<(const timeStamp& a, const timeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() < b.get_ns());
 }
-bool operator<=(const timeStamp a, const timeStamp b) {
+bool operator<=(const timeStamp& a, const timeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() <= b.get_ns());
 }
 
-timeStamp earlier(const timeStamp a, const timeStamp b) {
+timeStamp earlier(const timeStamp& a, const timeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   if(a <= b)  return a;
   else        return b;
 }
 
-timeStamp later(const timeStamp a, const timeStamp b) {
+timeStamp later(const timeStamp& a, const timeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   if(a >= b)  return a;
   else        return b;
 }
 
 // timeLength @ timeLength = bool
-bool operator==(const timeLength a, const timeLength b) {
+bool operator==(const timeLength& a, const timeLength& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() == b.get_ns());
 }
-bool operator!=(const timeLength a, const timeLength b) {
+bool operator!=(const timeLength& a, const timeLength& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() != b.get_ns());
 }
-bool operator>(const timeLength a, const timeLength b) {
+bool operator>(const timeLength& a, const timeLength& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() > b.get_ns());
 }
-bool operator>=(const timeLength a, const timeLength b) {
+bool operator>=(const timeLength& a, const timeLength& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() >= b.get_ns());
 }
-bool operator<(const timeLength a, const timeLength b) {
+bool operator<(const timeLength& a, const timeLength& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() < b.get_ns());
 }
-bool operator<=(const timeLength a, const timeLength b) {
+bool operator<=(const timeLength& a, const timeLength& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() <= b.get_ns());
 }
 
 
-timeLength minimum(const timeLength a, const timeLength b) {  
+timeLength minimum(const timeLength& a, const timeLength& b) {  
   assert(a.isInitialized() && b.isInitialized());
   if(a<=b)  return a;
   else      return b;
 }
 
-timeLength maximum(const timeLength a, const timeLength b) {  
+timeLength maximum(const timeLength& a, const timeLength& b) {  
   assert(a.isInitialized() && b.isInitialized());
   if(a>=b)  return a;
   else      return b;
 }
 
-const timeLength abs(const timeLength a) {  
+const timeLength abs(const timeLength& a) {  
   assert(a.isInitialized());
   return maximum(a,-a);
 }
@@ -729,23 +729,23 @@ const relTimeStamp operator-=(relTimeStamp &ts, timeLength tl) {
 }
 
 // relTimeStamp - relTimeStamp = timeLength  ;  the length of time between time stamps
-const timeLength operator-(const relTimeStamp a, const relTimeStamp b) {
+const timeLength operator-(const relTimeStamp& a, const relTimeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   return timeLength(a.get_ns() - b.get_ns());
 }
 
 // relTimeStamp +/- relTimeLength = relTimeStamp
-const relTimeStamp operator+(const relTimeStamp a, const timeLength b) {
+const relTimeStamp operator+(const relTimeStamp& a, const timeLength& b) {
   assert(a.isInitialized() && b.isInitialized());
   return relTimeStamp(a.get_ns() + b.get_ns());
 }
-const relTimeStamp operator-(const relTimeStamp a, const timeLength b) {
+const relTimeStamp operator-(const relTimeStamp& a, const timeLength& b) {
   assert(a.isInitialized() && b.isInitialized());
   return relTimeStamp(a.get_ns() - b.get_ns());
 }
 
 // timeLength + relTimeStamp = relTimeStamp
-const relTimeStamp operator+(const timeLength a, const relTimeStamp b) {
+const relTimeStamp operator+(const timeLength& a, const relTimeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   return relTimeStamp(a.get_ns() + b.get_ns());
 }
@@ -757,38 +757,38 @@ const relTimeStamp operator+(const timeLength a, const relTimeStamp b) {
 // eg. Time(1,timeUnit::day) * Time(2,timeUnit::day) will overflow
 
 // relTimeStamp @ relTimeStamp = bool
-bool operator==(const relTimeStamp a, const relTimeStamp b) {
+bool operator==(const relTimeStamp& a, const relTimeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() == b.get_ns());
 }
-bool operator!=(const relTimeStamp a, const relTimeStamp b) {
+bool operator!=(const relTimeStamp& a, const relTimeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() != b.get_ns());
 }
-bool operator>(const relTimeStamp a, const relTimeStamp b) {
+bool operator>(const relTimeStamp& a, const relTimeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() > b.get_ns());
 }
-bool operator>=(const relTimeStamp a, const relTimeStamp b) {
+bool operator>=(const relTimeStamp& a, const relTimeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() >= b.get_ns());
 }
-bool operator<(const relTimeStamp a, const relTimeStamp b) {
+bool operator<(const relTimeStamp& a, const relTimeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() < b.get_ns());
 }
-bool operator<=(const relTimeStamp a, const relTimeStamp b) {
+bool operator<=(const relTimeStamp& a, const relTimeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() <= b.get_ns());
 }
 
-relTimeStamp earlier(const relTimeStamp a, const relTimeStamp b) {
+relTimeStamp earlier(const relTimeStamp& a, const relTimeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   if(a <= b)  return a;
   else        return b;
 }
 
-relTimeStamp later(const relTimeStamp a, const relTimeStamp b) {
+relTimeStamp later(const relTimeStamp& a, const relTimeStamp& b) {
   assert(a.isInitialized() && b.isInitialized());
   if(a >= b)  return a;
   else        return b;

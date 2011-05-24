@@ -1,9 +1,40 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 #include "proccontrol_comp.h"
 #include "communication.h"
 #include "Process.h"
 #include "Event.h"
 
 #include <stdio.h>
+
 #include <set>
 
 using namespace std;
@@ -191,7 +222,6 @@ test_results_t pc_breakpointMutator::executeTest()
    std::map<Thread::const_ptr, unsigned>::iterator l;
    for (l = hit_counts.begin(); l != hit_counts.end(); l++) {
       if (l->second != NUM_BREAKPOINT_SPINS * NUM_BREAKPOINTS) {
-         fprintf(stderr, "l->second = %d, NUM_BREAKPOINT_SPINS = %d\n", l->second, NUM_BREAKPOINT_SPINS);
          logerror("Unexpected number of breakpoints hit on thread\n");
          return FAILED;
       }

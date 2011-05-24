@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -69,10 +69,6 @@ void printDyninstStats()
 }
 
 // TIMING code
-
-#if defined(i386_unknown_solaris2_5) || defined(sparc_sun_solaris2_4)
-#include <sys/time.h>  // for gethrtime()
-#endif
 
 #if !defined(os_windows)
 #include <sys/types.h>

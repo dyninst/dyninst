@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -194,6 +194,7 @@ bool wtxSuspendTask(WTX_TGT_ID_T ctxID)
     return true;
 }
 
+#if defined(arch_power)
 bool relocationTarget(const Address addr, Address *target)
 {
     if (wtxReloc.count(addr) && target) {
@@ -216,6 +217,20 @@ bool relocationTarget(const Address addr, Address *target)
     }
     return false;
 }
+
+#elif defined(arch_x86)
+bool relocationTarget(const Address addr, Address *target)
+{
+    if (wtxReloc.count(addr) && target) {
+        wtxFindSymbol(wtxReloc[addr].name().c_str(),
+                      (WTX_SYMBOL_TYPE)0x0,
+                      0x0,
+                      *target);
+        return true;
+    }
+    return false;
+}
+#endif
 
 WTX_MODULE_INFO *wtxLoadObject(const std::string &objname)
 {

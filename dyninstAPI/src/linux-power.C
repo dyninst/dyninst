@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -40,6 +40,10 @@
 #include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/mapped_object.h"
+#include "dyninstAPI/src/inst-power.h"
+#include "dyninstAPI/src/baseTramp.h"
+#include "dyninstAPI/src/miniTramp.h"
+#include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/function.h"
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
@@ -47,6 +51,7 @@
 const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
 const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
 const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
+const char DL_OPEN_LIBC_FUNC_EXPORTED[] = "__libc_dlopen_mode";
 
 Address PCProcess::getLibcStartMainParam(PCThread *) {
     assert(!"This function is unimplemented");
@@ -56,19 +61,14 @@ Address PCProcess::getLibcStartMainParam(PCThread *) {
 Address PCProcess::getTOCoffsetInfo(Address dest) {
     if ( getAddressWidth() == 4 ) return 0;
 
+    // We have an address, and want to find the module the addr is
+    // contained in. Given the probabilities, we (probably) want
+    // the module dyninst_rt is contained in.
+    // I think this is the right func to use
+
     // Find out which object we're in (by addr).
-    codeRange *range = NULL;
-    textRanges_.find(dest, range);
-    if (!range)  // Try data?
-        dataRanges_.find(dest, range);
-    if (!range)
-        return 0;
-    mapped_object *mobj = range->is_mapped_object();
-    if (!mobj) {
-        mappedObjData *tmp = dynamic_cast<mappedObjData *>(range);
-        if (tmp)
-            mobj = tmp->obj;
-    }
+    mapped_object *mobj = findObject(dest);
+
     // Very odd case if this is not defined.
     assert(mobj);
     Address TOCOffset = mobj->parse_img()->getObject()->getTOCoffset();
@@ -78,14 +78,13 @@ Address PCProcess::getTOCoffsetInfo(Address dest) {
     return TOCOffset + mobj->dataBase();
 }
 
-Address PCProcess::getTOCoffsetInfo(int_function *func) {
+Address PCProcess::getTOCoffsetInfo(func_instance *func) {
     if ( getAddressWidth() == 4 ) return 0;
 
     mapped_object *mobj = func->obj();
 
     return mobj->parse_img()->getObject()->getTOCoffset() + mobj->dataBase();
 }
-
 
 bool PCProcess::getOPDFunctionAddr(Address &addr) {
     bool result = true;
@@ -97,7 +96,7 @@ bool PCProcess::getOPDFunctionAddr(Address &addr) {
             result = false;
         }else{
             addr = resultAddr;
-        }
+       }
     }
     return result;
 }
@@ -129,7 +128,6 @@ bool Frame::setPC(Address newpc) {
          return false;
       sw_frame_.setRA(newpc32);
    }
-   range_ = NULL;
 
    return true;
 }

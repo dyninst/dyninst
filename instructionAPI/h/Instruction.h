@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -242,7 +242,7 @@ namespace Dyninst
       /// \c format is principally a helper function; %Instructions are meant to be written to
       /// output streams via \c operator<<.  \c format is included in the public interface for
       /// diagnostic purposes.
-      INSTRUCTION_EXPORT std::string format() const;
+      INSTRUCTION_EXPORT std::string format(Address addr = 0) const;
       
       /// Returns true if this %Instruction object is valid.  Invalid instructions indicate that
       /// an %InstructionDecoder has reached the end of its assigned range, and that decoding should terminate.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -36,7 +36,7 @@
 #include "stackwalk/h/steppergroup.h"
 #include "stackwalk/h/walker.h"
 #include "stackwalk/src/dbgstepper-impl.h"
-#include "stackwalk/src/linux-swk.h"
+#include "stackwalk/src/linuxbsd-swk.h"
 #include "dynutil/h/dyntypes.h"
 #include "common/h/Types.h"
 

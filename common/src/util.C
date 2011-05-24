@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -201,7 +201,7 @@ const char *platform_string()
 #elif defined (os_windows)
 	return "x86_64-unknown-nt4.0";
 #endif
-#elif defined (arch_power)
+#else defined (arch_power)
 #if defined (os_aix)
 	return "rs6000-ibm-aix5.1";
 #elif defined (os_linux)
@@ -211,12 +211,7 @@ const char *platform_string()
 	return "ppc32_linux";
 #endif
 #endif
-#elif defined (arch_sparc)
-#if defined (os_solaris)
-	return "sparc-sun-solaris2.9";
 #endif
-#endif
-
 	return "bad_platform";
 }
 } // namespace Dyninst

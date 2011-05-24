@@ -31,12 +31,14 @@ SRCS =          ../src/linux.C \
                 ../src/codegen-x86.C \
                 ../src/unix.C \
 	        ../src/stackwalk-x86.C \
-		../src/image-x86.C \
+		../src/parse-x86.C \
 		../src/syscall-linux.C \
 		../src/frameChecker.C \
 		../src/RegisterConversion-x86.C \
 		../src/BPatch_memoryAccessAdapter.C \
-		../src/IAPI_to_AST.C 
+		../src/IAPI_to_AST.C  \
+		../src/pcProcess-x86.C \
+		../src/Relocation/Widgets/CFWidget-x86.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG

@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 #include "proccontrol_comp.h"
 #include "communication.h"
 
@@ -17,9 +47,9 @@ extern "C" DLLEXPORT TestMutator* pc_singlestep_factory()
 #define STOP_FUNC 3
 #define NUM_FUNCS 5
 
-struct proc_info {
+struct proc_info_ss {
    Address func[NUM_FUNCS];
-   proc_info()
+   proc_info_ss()
    {
       for (unsigned i=0; i<NUM_FUNCS; i++) {
          func[i] = 0x0;
@@ -43,8 +73,8 @@ struct thread_info {
    }
 };
 
-std::map<Thread::const_ptr, thread_info> tinfo;
-std::map<Process::const_ptr, proc_info> pinfo;
+static std::map<Thread::const_ptr, thread_info> tinfo;
+static std::map<Process::const_ptr, proc_info_ss> pinfo;
 Breakpoint::ptr bp;
 
 static bool myerror;
@@ -81,7 +111,7 @@ Process::cb_ret_t on_singlestep(Event::const_ptr ev)
       myerror = true;
    }
 
-   proc_info &pi = pinfo[ev->getProcess()];
+   proc_info_ss &pi = pinfo[ev->getProcess()];
    thread_info &ti = tinfo[ev->getThread()];
 
    ti.steps++;
@@ -125,7 +155,7 @@ test_results_t pc_singlestepMutator::executeTest()
          myerror = true;
       }
 
-      proc_info &pi = pinfo[proc];
+      proc_info_ss &pi = pinfo[proc];
       Address funcs[NUM_FUNCS];
       for (unsigned j=0; j < NUM_FUNCS; j++)
       {
@@ -208,6 +238,7 @@ test_results_t pc_singlestepMutator::executeTest()
    std::set<Thread::ptr>::iterator i;
    for (i = singlestep_threads.begin(); i != singlestep_threads.end(); i++)
    {
+      logerror("Results for thread %d/%d\n", (*i)->getProcess()->getPid(), (*i)->getLWP());
       thread_info &ti = tinfo[*i];
       if (ti.steps == 0) {
          logerror("Thread did not recieve any single step events\n");
@@ -223,7 +254,7 @@ test_results_t pc_singlestepMutator::executeTest()
             continue;
          }
          if (ti.hit_funcs[j] == -1) {
-            logerror("Function entry was not singlestepped over\n");
+            logerror("Function %d entry was not singlestepped over\n", j);
             myerror = true;
          }
          if (j == BP_FUNC) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -37,6 +37,7 @@
 
 #include <assert.h>
 #include <map>
+#include <string>
 
 namespace Dyninst
 {
@@ -51,23 +52,27 @@ namespace Dyninst
       Arch_ppc64  = 0x28000000
    } Architecture;
 
+   COMMON_EXPORT bool isSegmentRegister(int regClass);
    unsigned getArchAddressWidth(Dyninst::Architecture arch);
    class COMMON_EXPORT MachRegister {
    private:
       signed int reg;
-      static std::map<signed int, const char *> *names;
+	  typedef std::map<signed int, std::string> NameMap;
+      static NameMap *names;
+	  void init_names();
    public:
 
 	  MachRegister();
       explicit MachRegister(signed int r);
       explicit MachRegister(signed int r, const char *n);
+	  explicit MachRegister(signed int r, std::string n);
 
       MachRegister getBaseRegister() const;
       Architecture getArchitecture() const;
       bool isValid() const;
-      MachRegisterVal getSubRegValue(const MachRegister subreg, MachRegisterVal &orig) const;
+      MachRegisterVal getSubRegValue(const MachRegister& subreg, MachRegisterVal &orig) const;
 
-      const char *name() const;
+      std::string name() const;
       unsigned int size() const;
       bool operator<(const MachRegister &a) const;
       bool operator==(const MachRegister &a) const;
@@ -109,11 +114,11 @@ namespace Dyninst
    //const.
 #define DEF_REGISTER(name, value, Arch) \
   const signed int i##name = (value); \
-  COMMON_EXPORT MachRegister name(i##name, Arch "::" #name);
+  COMMON_EXPORT MachRegister name(i##name, Arch "::" #name)
 #else
 #define DEF_REGISTER(name, value, Arch) \
   const signed int i##name = (value); \
-  COMMON_EXPORT extern MachRegister name;
+  COMMON_EXPORT extern MachRegister name
 
 #endif
 
@@ -165,15 +170,21 @@ namespace Dyninst
       const signed int FLAGS = 0x0;
       
       const signed int CF = 0x0;
+      const signed int FLAG1 = 0x1;
       const signed int PF = 0x2;
+      const signed int FLAG3 = 0x3;
       const signed int AF = 0x4;
+      const signed int FLAG5 = 0x5;
       const signed int ZF = 0x6;
       const signed int SF = 0x7;
       const signed int TF = 0x8;
       const signed int IF = 0x9;
       const signed int DF = 0xa;
       const signed int OF = 0xb;
+      const signed int FLAGC = 0xc;
+      const signed int FLAGD = 0xd;
       const signed int NT = 0xe;
+      const signed int FLAGF = 0xf;
       const signed int RF = 0x10;
 
       DEF_REGISTER(eax,   BASEA   | FULL  | GPR  | Arch_x86, "x86");
@@ -203,22 +214,28 @@ namespace Dyninst
       DEF_REGISTER(eip,   0x10    | FULL         | Arch_x86, "x86");
       DEF_REGISTER(flags, FLAGS   | FULL  | FLAG | Arch_x86, "x86");
       DEF_REGISTER(cf,    CF      | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(flag1, FLAG1   | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(pf,    PF      | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(flag3, FLAG3   | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(af,    AF      | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(flag5, FLAG5   | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(zf,    ZF      | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(sf,    SF      | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(tf,    TF      | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(if_,   IF      | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(df,    DF      | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(of,    OF      | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(flagc, FLAGC   | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(flagd, FLAGD   | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(nt_,   NT      | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(flagf, FLAGF   | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(rf,    RF      | BIT   | FLAG | Arch_x86, "x86");
-      DEF_REGISTER(ds,    0x0     | FULL  | SEG  | Arch_x86, "x86");
-      DEF_REGISTER(es,    0x1     | FULL  | SEG  | Arch_x86, "x86");
-      DEF_REGISTER(fs,    0x2     | FULL  | SEG  | Arch_x86, "x86");
-      DEF_REGISTER(gs,    0x3     | FULL  | SEG  | Arch_x86, "x86");
-      DEF_REGISTER(cs,    0x4     | FULL  | SEG  | Arch_x86, "x86");
-      DEF_REGISTER(ss,    0x5     | FULL  | SEG  | Arch_x86, "x86");
+      DEF_REGISTER(ds,    0x0     | W_REG | SEG  | Arch_x86, "x86");
+      DEF_REGISTER(es,    0x1     | W_REG | SEG  | Arch_x86, "x86");
+      DEF_REGISTER(fs,    0x2     | W_REG | SEG  | Arch_x86, "x86");
+      DEF_REGISTER(gs,    0x3     | W_REG | SEG  | Arch_x86, "x86");
+      DEF_REGISTER(cs,    0x4     | W_REG | SEG  | Arch_x86, "x86");
+      DEF_REGISTER(ss,    0x5     | W_REG | SEG  | Arch_x86, "x86");
       DEF_REGISTER(oeax,  0x0     | FULL  | MISC | Arch_x86, "x86");
       DEF_REGISTER(fsbase, 0x1    | FULL  | MISC | Arch_x86, "x86");
       DEF_REGISTER(gsbase, 0x2    | FULL  | MISC | Arch_x86, "x86");

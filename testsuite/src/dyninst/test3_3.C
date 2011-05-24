@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,6 +39,7 @@
 
 #include "BPatch.h"
 #include "BPatch_Vector.h"
+#include "BPatch_point.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
 
@@ -261,10 +262,6 @@ test_results_t test3_3_Mutator::setup(ParameterDict &param) {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
     
-#if defined (sparc_sun_solaris2_4_test)
-    // we use some unsafe type operations in the test cases.
-    bpatch->setTypeChecking(false);
-#endif
     
     return PASSED;
 }

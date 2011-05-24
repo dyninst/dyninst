@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -84,31 +84,31 @@ public:
     void emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen);
     void emitStoreShared(Register source, const image_variable *var, bool is_local,int size, codeGen &gen);
 
-    bool clobberAllFuncCall(registerSpace *rs,int_function *callee);
+    bool clobberAllFuncCall(registerSpace *rs,func_instance *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     // We can overload this for the stat/dyn case
     virtual Register emitCall(opCode op, codeGen &gen,
                               const pdvector<AstNodePtr> &operands,
-                              bool noCost, int_function *callee);
+                              bool noCost, func_instance *callee);
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
     int emitCallParams(codeGen &gen, 
                        const pdvector<AstNodePtr> &operands,
-                       int_function *target, 
+                       func_instance *target, 
                        pdvector<Register> &extra_saves,
                        bool noCost);
-    bool emitCallCleanup(codeGen &gen, int_function *target, 
+    bool emitCallCleanup(codeGen &gen, func_instance *target, 
                          int frame_size, pdvector<Register> &extra_saves);
     void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
-    void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, bool addr_of, codeGen &gen);
-    void emitFuncJump(int_function *f, instPointType_t ptType, bool callOp, codeGen &gen);
-    void emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
+    void emitGetRetAddr(Register dest, codeGen &gen);
+    void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen);
+    void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen);
     void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
     void emitPushFlags(codeGen &gen);
     void emitRestoreFlags(codeGen &gen, unsigned offset);
     void emitRestoreFlagsFromStackSlot(codeGen &gen);
     void emitStackAlign(int offset, codeGen &gen);
-    bool emitBTSaves(baseTramp* bt, baseTrampInstance *, codeGen &gen);
-    bool emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen &gen);
+    bool emitBTSaves(baseTramp* bt, codeGen &gen);
+    bool emitBTRestores(baseTramp* bt, codeGen &gen);
     void emitLoadEffectiveAddress(Register base, Register index, unsigned int scale, int disp,
 				  Register dest, codeGen &gen);
     void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
@@ -124,7 +124,7 @@ public:
 
 
  protected:
-    virtual bool emitCallInstruction(codeGen &gen, int_function *target, Register ret) = 0;
+    virtual bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret) = 0;
 
 };
 
@@ -133,7 +133,7 @@ class EmitterIA32Dyn : public EmitterIA32 {
     ~EmitterIA32Dyn() {};
     
  protected:
-    bool emitCallInstruction(codeGen &gen, int_function *target, Register ret);
+    bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
 
@@ -141,9 +141,12 @@ class EmitterIA32Stat : public EmitterIA32 {
  public:
 
     ~EmitterIA32Stat() {};
+
+    virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
+    virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
     
  protected:
-    bool emitCallInstruction(codeGen &gen, int_function *target, Register ret);
+    bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
 
@@ -161,6 +164,8 @@ void emitPopReg64(Register dest, codeGen &gen);
 void emitMovImmToRM64(Register base, int disp, int imm, codeGen &gen);
 void emitAddMem64(Address addr, int imm, codeGen &gen);
 void emitAddRM64(Address addr, int imm, codeGen &gen);
+void emitOpRegImm64(unsigned opcode, unsigned opcode_ext, Register rm_reg, int imm,
+		    bool is_64, codeGen &gen);
 
 #if defined(arch_x86_64)
 class EmitterAMD64 : public Emitter {
@@ -198,24 +203,24 @@ public:
 
     void emitStoreShared(Register source, const image_variable *var, bool is_local,int size, codeGen &gen);
 
-    bool clobberAllFuncCall(registerSpace *rs, int_function *callee);
+    bool clobberAllFuncCall(registerSpace *rs, func_instance *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     // See comment on 32-bit emitCall
     virtual Register emitCall(opCode op, codeGen &gen,
                               const pdvector<AstNodePtr> &operands,
-                              bool noCost, int_function *callee);
+                              bool noCost, func_instance *callee);
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
     void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
-    void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, bool addr_of, codeGen &gen);
-    void emitFuncJump(int_function *f, instPointType_t ptType, bool callOp, codeGen &gen);
-    void emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
+    void emitGetRetAddr(Register dest, codeGen &gen);
+    void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen);
+    void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen);
     void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
     void emitPushFlags(codeGen &gen);
     void emitRestoreFlags(codeGen &gen, unsigned offset);
     void emitRestoreFlagsFromStackSlot(codeGen &gen);
     void emitStackAlign(int offset, codeGen &gen);
-    bool emitBTSaves(baseTramp* bt, baseTrampInstance *, codeGen &gen);
-    bool emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen &gen);
+    bool emitBTSaves(baseTramp* bt, codeGen &gen);
+    bool emitBTRestores(baseTramp* bt, codeGen &gen);
     void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
     void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
     /* The DWARF register numbering does not correspond to the architecture's
@@ -232,7 +237,7 @@ public:
     bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
 
  protected:
-    virtual bool emitCallInstruction(codeGen &gen, int_function *target, Register ret) = 0;
+    virtual bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret) = 0;
 
 };
 
@@ -240,7 +245,7 @@ class EmitterAMD64Dyn : public EmitterAMD64 {
  public:
     ~EmitterAMD64Dyn() {}
 
-    bool emitCallInstruction(codeGen &gen, int_function *target, Register ret);
+    bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
 
@@ -248,7 +253,10 @@ class EmitterAMD64Stat : public EmitterAMD64 {
  public:
     ~EmitterAMD64Stat() {};
     
-    bool emitCallInstruction(codeGen &gen, int_function *target, Register ret);
+    virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
+    virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
+
+    bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
 
@@ -257,7 +265,7 @@ extern EmitterAMD64Stat emitterAMD64Stat;
 
 /* useful functions for inter-library function/variable references
  * (used in the binary rewriter) */
-Address getInterModuleFuncAddr(int_function *func, codeGen& gen);
+Address getInterModuleFuncAddr(func_instance *func, codeGen& gen);
 Address getInterModuleVarAddr(const image_variable *var, codeGen& gen);
 
 #endif

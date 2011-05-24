@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -55,10 +55,6 @@ int test2_5_spinning = 1;
 
 /* This test does nothing but mark that it succeeded */
 int test2_5_mutatee() {
-  /* fprintf(stderr, "Running test2_5_mutatee()\n"); */
-  while (test2_5_spinning) {
-    /* Do nothing */
-  }
   test_passes("test2_5");
   return 0; /* No error */
 }

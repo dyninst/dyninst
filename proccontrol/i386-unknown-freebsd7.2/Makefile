@@ -18,8 +18,8 @@ LDFLAGS     += $(LIBDIR) -lcommon
 SRCS = ../src/sysv.C \
        ../src/unix.C \
        ../src/freebsd.C \
-       ../src/x86_process.C \
-       ../../common/src/dthread-unix.C
+       ../../common/src/dthread-unix.C \
+       ../../common/src/Elf_X.C
 
 ifdef LIBELF_DIR
 MYLAGS += -I$(LIBELF_DIR)

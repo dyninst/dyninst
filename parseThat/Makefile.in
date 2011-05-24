@@ -9,7 +9,7 @@ LDFLAGS      = @LDFLAGS@
 DWARFFLAGS      = @DWARFFLAGS@
 ELFFLAGS      = @ELFFLAGS@
 LIBS         = @LIBS@
-
+DEMANGLER_LINK = @LIBERTYFLAGS@
 prefix       = @prefix@
 PLATFORM    ?= @build@
 DYNINST_VER  = @DYNINST_VER@
@@ -45,12 +45,10 @@ endif
 OBJS         = $(SRCS:%.C=%.o)
 
 CXXFLAGS    += -Wall
-LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -lparseAPI
+LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -lparseAPI -lpcontrol -lstackwalk
 
-# FreeBSD doesn't need to be linked with libiberty
-ifeq (, $(findstring freebsd, $(PLATFORM)))
-LIBS += -liberty -lpcontrol -lstackwalk
-endif
+# The echo will remove the quotes
+LIBS += $(shell echo $(DEMANGLER_LINK))
 
 ifneq (, $(findstring solaris, $(PLATFORM)))
 LIBS        += -ldwarf  -lelf
@@ -59,7 +57,13 @@ LDFLAGS += $(ELFFLAGS)
 endif
 
 ifneq (, $(findstring linux, $(PLATFORM)))
-LIBS        += -lpcontrol -ldwarf -lelf
+LIBS        += -ldwarf -lelf
+LDFLAGS += $(DWARFFLAGS)
+LDFLAGS += $(ELFFLAGS)
+endif
+
+ifneq (, $(findstring vxworks, $(PLATFORM)))
+LIBS        += -ldwarf -lelf
 LDFLAGS += $(DWARFFLAGS)
 LDFLAGS += $(ELFFLAGS)
 endif
@@ -88,7 +92,7 @@ ifneq (, $(findstring x86_64, $(PLATFORM)))
 LIBS        += -linstructionAPI
 endif
 
-ifneq (, $(findstring ppc32_linux, $(PLATFORM)))
+ifneq (, $(findstring ppc32, $(PLATFORM)))
 LIBS        += -linstructionAPI
 endif
 

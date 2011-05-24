@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -51,28 +51,4 @@ extern int checkMutatedFile();
  * data structures for SaveTheWorld. Ensure
  * it is called _before_ DYNINSTinit
  */ 
-#if defined (cap_save_the_world)
-void RTmutatedBinary_init()
-{
-
-/* this buffer is allocated to clear
-   the first page on the heap. This is necessary
-   because loading the heap tramps uses mmap, which
-   is going to eat the heap if the heap begins on 
-   the same page the heap tramps end on (almost certain)
-*/
-    /* Call-once protection */
-    static int init = 0;
-    
-    if (!init) {
-        buffer = (char*) malloc(getpagesize());
-        isMutatedExec =checkMutatedFile();
-        /* Can't free this buffer, because we need the same memory footprint
-           for when we load in shared libraries */
-        /*        free(buffer); */
-        init++;
-    }
-    
-}
-#endif
 

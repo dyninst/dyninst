@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -48,27 +48,17 @@ class PCProcReader : public ProcessReader
 private:
    sysv_process *proc;
    
-   long word_cache;
-   Dyninst::Address word_cache_addr;
-   bool word_cache_valid;
-
-   bool postAsyncRead(Dyninst::Address addr);
-   bool ReadMemAsync(Address addr, void *buffer, unsigned size);
-   bool handleAsyncCompletion();
-   void clearBuffers();
-
-   unsigned long async_read_align;
-   std::map<Dyninst::Address, char *> async_read_buffers;
-   mem_response::ptr memresult;
-   Dyninst::Address pending_addr;
+   std::set<mem_response::ptr> memresults;
 public:
-   PCProcReader(sysv_process *proc_, unsigned long read_size = 0);
+   PCProcReader(sysv_process *proc_);
    virtual ~PCProcReader();
    virtual bool start();
-   virtual bool isAsync();
    virtual bool ReadMem(Address addr, void *buffer, unsigned size);
    virtual bool GetReg(MachRegister reg, MachRegisterVal &val);
    virtual bool done();
+
+   bool hasPendingAsync();
+   bool getNewAsyncs(std::set<response::ptr> &resps);
 };
 
 class sysv_process : virtual public int_process
@@ -81,12 +71,14 @@ class sysv_process : virtual public int_process
    virtual ~sysv_process();
    virtual bool refresh_libraries(std::set<int_library *> &added_libs,
                                   std::set<int_library *> &rmd_libs,
+                                  bool &waiting_for_async,
                                   std::set<response::ptr> &async_responses);
    virtual bool initLibraryMechanism();
 
    Dyninst::Address getLibBreakpointAddr() const;
 
    bool isLibraryTrap(Dyninst::Address trap_addr);
+   static bool addSysVHandlers(HandlerPool *hpool);
  protected:
    virtual bool plat_execed();
    virtual bool plat_isStaticBinary();

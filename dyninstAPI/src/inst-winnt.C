@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -43,9 +43,12 @@
 #include "dyninstAPI/src/instPoint.h"
 
 #include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/mapped_object.h"
 
 #include "Instruction.h"
 #include "InstructionDecoder.h"
+#include <boost/tuple/tuple.hpp>
+
 using namespace Dyninst::InstructionAPI;
 
 #ifndef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
@@ -106,180 +109,140 @@ void initPrimitiveCost()
 
 // hasBeenBound: returns false
 // dynamic linking not implemented on this platform
-bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &,int_function *&, Address ) {
+bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &,func_instance *&, Address ) {
     return false;
+}
+
+bool thunkILT(edge_instance *edge, AddressSpace *proc, func_instance *&ret) {
+	assert(!edge->sinkEdge());
+	// We have a direct call but don't yet know the callee.
+	// This may be because we didn't see a symbol for a
+	// thunk in the ILT.
+	// (I.e., the call is 'call @ILT+<smallconstant>'
+    // and at @ILT+<smallconstant> there is a 'jmp <realfuncaddr>'
+    // instruction.
+    //
+    // We consider the callee to be the real function that
+    // is eventually called.
+	// In CFG terms, this is:
+	// We're calling a function that satisfies the following:
+	//  1) 1 block long
+	//  2) 1 instruction long
+	//  3) Has a direct (?) edge to another function entry point.
+
+    // get the target address of the call
+
+    func_instance *cFunc = proc->findFuncByEntry(edge->trg());
+	if (cFunc == NULL) return false;
+
+	// 1)
+	if (cFunc->blocks().size() > 1) return false;
+
+	// 2)
+	block_instance *cBlock = cFunc->entryBlock();
+	block_instance::Insns cInsns;
+	cBlock->getInsns(cInsns);
+	if (cInsns.size() > 1) return false;
+
+	// 3) 
+	edge_instance *cEdge = cBlock->getTarget();
+	if (!cEdge) return false;
+	if (cEdge->sinkEdge()) return false;
+
+	block_instance *block = cEdge->trg();
+	if (!block) return false;
+	func_instance *func = proc->findFuncByEntry(block);
+	if (!func) return false;
+
+	ret = func;
+	return true;
 }
 
 // findCallee: returns false unless callee is already set in instPoint
 // dynamic linking not implemented on this platform
-int_function *instPoint::findCallee() 
+func_instance *block_instance::callee() 
 {
-   // Already been bound
-   if (callee_) {
-      return callee_;
-   }  
-   if (ipType_ != callSite) {
-       return NULL;
-   }
-  
-   if (!isDynamic()) {
-      // We have a direct call but don't yet know the callee.
-      // This may be because we didn't see a symbol for a
-      // thunk in the ILT.
-      // (I.e., the call is 'call @ILT+<smallconstant>'
-      // and at @ILT+<smallconstant> there is a 'jmp <realfuncaddr>'
-      // instruction.
-      //
-      // We consider the callee to be the real function that
-      // is eventually called.
-      
-      // get the target address of the call
-        Expression::Ptr cft = insn()->getControlFlowTarget();
-		static Expression* theIP = new RegisterAST(x86::eip);
-        cft->bind(theIP, Result(s32, addr()));
-        Result r = cft->eval();
-		assert(r.defined);
-		Address callTarget = r.convert<Address>();
-		parsing_printf(" **** instPoint::findCallee() callTarget = 0x%lx, insn = %s\n", callTarget, insn()->format().c_str());
+	/* Unlike Linux, we do some interpretation here. Windows uses a common idiom of the following.
+	 * Source:
+	 *   void foo() { bar(); }
+	 *   void bar() { ... }
+	 * Which turns into
+	 * foo:
+	 *   call stub
+	 * bar:
+	 *   ...
+	 * stub:
+	 *   jmp bar
+	 *
+	 * Since we're interpreting callees, we want to track this down
+	 * and represent the callee as bar, not stub.
+	 */
 
-      // find code range that contains the target address
-      // TODO: optimize by checking callsite image first?
-      codeRange* cr = proc()->findOrigByAddr(callTarget);
-	  if (cr == NULL) {
-         return NULL;
-	  }
+	edge_instance *tEdge = getTarget();
+	if (!tEdge) return NULL;
 
-      int_function* func = cr->is_function();
-	  mapped_object *obj = cr->is_mapped_object();
-      if (func == NULL && obj == NULL)
-         return NULL;
-      
-	  /*
-       * Handle the idiom discussed above, of calls to an entry in the ILT
-	   * that then branch direct to the real function. If the instruction
-	   * at `callTarget' is a branch to the start of a known function, 
-	   * return that function as `callee_'; otherwise if there is a 
-	   * function at `callTarget', return it as `callee_'.
-	   */
-      // get a "local" pointer to the call target instruction
-        static const unsigned max_insn_size = 16; // covers AMD64
-      const unsigned char *insnLocalAddr =
-        (unsigned char *)(proc()->getPtrToInstruction(callTarget));
-	  InstructionDecoder d(insnLocalAddr, max_insn_size, proc()->getArch());
-      Instruction::Ptr insn = d.decode();
-      if(insn && (insn->getCategory() == c_BranchInsn))
-      {
-          Expression::Ptr cft = insn->getControlFlowTarget();
+    // Otherwise use the target function...
+	if (!tEdge->sinkEdge()) {
+	    func_instance *ret;
+		// If we're calling a 1-instruction function that branches to a known entry point,
+		// elide that...
+		if (thunkILT(tEdge, proc(), ret)) {
+			return ret;
+		}
+		return obj()->findFuncByEntry(tEdge->trg());
+    }
+
+	  // An call that uses an indirect call instruction could be one
+	  // of three things:
+	  //
+	  // 1. A call to a function within the same executable or DLL.  In 
+	  //    this case, it could be a call through a function pointer in
+	  //    memory or a register, or some other type of call.
+	  //   
+	  // 2. A call to a function in an implicitly-loaded DLL.  These are
+	  //    indirect calls through an entry in the object's Import Address 
+	  //    Table (IAT). An IAT entry is set to the address of the target 
+	  //    when the DLL is loaded at process creation.
+	  //
+	  // 3. A call to a function in a delay-loaded DLL.  Like calls to 
+	  //    implicitly-loaded DLLs, these are calls through an entry in the 
+	  //    IAT.  However, for delay-loaded DLLs the IAT entry initially 
+	  //    holds the address of a short code sequence that loads the DLL,
+	  //    looks up the target function, patches the IAT entry with the 
+	  //    address of the target function, and finally executes the target 
+	  //    function.  After the first call, the IAT entry has been patched
+	  //    and subsequent calls look the same as calls into an
+	  //    implicitly-loaded DLL.
+	  //
+	  // Figure out what type of indirect call instruction this is
+	  //
+	   InstructionAPI::Instruction::Ptr insn = getInsn(last());
+	  if(insn && (insn->getCategory() == c_CallInsn))
+	  {
+		  Expression::Ptr cft = insn->getControlFlowTarget();
 		  static Expression* theIP = new RegisterAST(x86::eip);
-          cft->bind(theIP, Result(u64, callTarget));
-          Result r = cft->eval();
-          if(r.defined)
-          {
-              Address targAddr = r.convert<Address>();
-				parsing_printf(" **** instPoint::findCallee() targAddr = 0x%lx\n", targAddr);
-              int_function *target = proc()->findFuncByAddr(targAddr);
-              if(target)
-              {
-                  callee_ = target;
-                  return target;
-              }
-          }
-		  else
+		  cft->bind(theIP, Result(u64, last()));
+		  Result r = cft->eval();
+		  if(r.defined)
 		  {
-			  parsing_printf("WARNING: couldn't evaluate IAT jump at 0x%lx: %s\n", callTarget, insn->format().c_str());
+			  Address funcPtrAddress = r.convert<Address>();
+			  assert( funcPtrAddress != ADDR_NULL );
+	              
+				// obtain the target address from memory if it is available
+			  Address targetAddr = ADDR_NULL;
+			  proc()->readDataSpace( (const void*)funcPtrAddress, sizeof(Address),
+			  &targetAddr, true );
+			  if( targetAddr != ADDR_NULL )
+			  {
+	        
+			// see whether we already know anything about the target
+			// this may be the case with implicitly-loaded and delay-loaded
+			// DLLs, and it is possible with other types of indirect calls
+			func_instance *target = proc()->findFuncByEntry( targetAddr );
+			updateCallTarget(target);
+			return target;
+			  }
 		  }
-      }
-	  if(NULL == callee_ && NULL != func) {
-		  callee_ = func;
-		  return callee_;
 	  }
-   }
-   else
-   {
-      // An call that uses an indirect call instruction could be one
-      // of three things:
-      //
-      // 1. A call to a function within the same executable or DLL.  In 
-      //    this case, it could be a call through a function pointer in
-      //    memory or a register, or some other type of call.
-      //   
-      // 2. A call to a function in an implicitly-loaded DLL.  These are
-      //    indirect calls through an entry in the object's Import Address 
-      //    Table (IAT). An IAT entry is set to the address of the target 
-      //    when the DLL is loaded at process creation.
-      //
-      // 3. A call to a function in a delay-loaded DLL.  Like calls to 
-      //    implicitly-loaded DLLs, these are calls through an entry in the 
-      //    IAT.  However, for delay-loaded DLLs the IAT entry initially 
-      //    holds the address of a short code sequence that loads the DLL,
-      //    looks up the target function, patches the IAT entry with the 
-      //    address of the target function, and finally executes the target 
-      //    function.  After the first call, the IAT entry has been patched
-      //    and subsequent calls look the same as calls into an
-      //    implicitly-loaded DLL.
-      //
-      // Figure out what type of indirect call instruction this is
-      //
-      if(insn() && (insn()->getCategory() == c_CallInsn))
-      {
-          Expression::Ptr cft = insn()->getControlFlowTarget();
-		  static Expression* theIP = new RegisterAST(x86::eip);
-          cft->bind(theIP, Result(u64, addr()));
-          Result r = cft->eval();
-          if(r.defined)
-          {
-              Address funcPtrAddress = r.convert<Address>();
-              assert( funcPtrAddress != ADDR_NULL );
-                  
-                // obtain the target address from memory if it is available
-              Address targetAddr = ADDR_NULL;
-              proc()->readDataSpace( (const void*)funcPtrAddress, sizeof(Address),
-              &targetAddr, true );
-              if( targetAddr != ADDR_NULL )
-              {
-            
-            // see whether we already know anything about the target
-            // this may be the case with implicitly-loaded and delay-loaded
-            // DLLs, and it is possible with other types of indirect calls
-                  int_function *target = proc()->findFuncByAddr( targetAddr );
-                          
-            // we need to handle the delay-loaded function case specially,
-            // since we want the actual target function, not the temporary
-            // code sequence that handles delay loading
-                  if( (target != NULL) &&
-                       (!strncmp( target->prettyName().c_str(), "_imp_load_", 10 )) )
-                  {
-               // The target is named like a linker-generated
-               // code sequence for a call into a delay-loaded DLL.
-                      //
-               // Try to look up the function based on its name
-               // without the 
-                                  
-#if READY
-               // check if the target is in the same module as the function
-               // containing the instPoint
-               // check whether the function pointer is in the IAT
-               if((funcPtrAddress >= something.iatBase) &&
-                  (funcPtrAddress <= (something.iatBase+something.iatLength)))
-{
-                  // it is a call through the IAT, to a function in our
-                  // own module, so it is a call into a delay-loaded DLL
-                  // ??? how to handle this case
-}
-#else
-               // until we can detect the actual callee for delay-loaded
-               // DLLs, make sure that we don't report the linker-
-               // generated code sequence as the target
-               target = NULL;
-#endif // READY
-                  }
-                  else {
-                      callee_ = target;
-                      return target;
-                  }
-              }
-		  }
-      }
-   }
-   return NULL;
+  return NULL;
 }

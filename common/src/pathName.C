@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -306,20 +306,26 @@ std::string extract_pathname_tail(const std::string &path)
 }
 
 #if !defined (os_windows)
-char *resolve_file_path(const char *fname, char *resolved_path)
+static
+char *resolve_file_path_local(const char *fname, char *resolved_path)
 {
-   // (1)  use realpath() to resolve any . or ..'s, or symbolic links
+   // (1) realpath doesn't always return errors when the last element
+   // of fname doesn't exist -- make sure it exists first to allow
+   // consistent results of this function across platforms
+   struct stat stat_buf;
+   if( -1 == stat(fname, &stat_buf) ) {
+       return NULL;
+   }
+
+   // (2)  use realpath() to resolve any . or ..'s, or symbolic links
    if (NULL == realpath(fname, resolved_path)) {
-      fprintf(stderr, "%s[%d]:  realpath(%s): %s\n", FILE__, __LINE__, fname, strerror(errno));
       return NULL;
    }
-   //fprintf(stderr, "%s[%d]:  resolved file path: %s\n", FILE__, __LINE__, resolved_path);
 
-   // (2) if no slashes, try CWD
+   // (3) if no slashes, try CWD
    if (!strpbrk(resolved_path, "/\\")) {
       char cwd[PATH_MAX];
       if (NULL == getcwd(cwd, PATH_MAX)) {
-         fprintf(stderr, "%s[%d]:  getcwd: %s\n", FILE__, __LINE__, strerror(errno));
          return NULL;
       }
       char resolved_path_bak[PATH_MAX];
@@ -327,7 +333,7 @@ char *resolve_file_path(const char *fname, char *resolved_path)
       sprintf(resolved_path, "%s/%s", cwd, resolved_path_bak);
    }
 
-   // (3) if it has a tilde, expand tilde pathname
+   // (4) if it has a tilde, expand tilde pathname
    if (!strpbrk(resolved_path, "~")) {
       std::string td_pathname = std::string(resolved_path);
       std::string no_td_pathname = expand_tilde_pathname(td_pathname);
@@ -336,13 +342,21 @@ char *resolve_file_path(const char *fname, char *resolved_path)
 
    return resolved_path;
 }
+
+std::string resolve_file_path(const char *fname) {
+    char path_buf[PATH_MAX];
+    char *result = resolve_file_path_local(fname, path_buf);
+    if ( result == NULL ) {
+        return std::string();
+    }
+    std::string ret = result;
+    return ret;
+}
+
 #else
-char *resolve_file_path(const char *fname, char *resolved_path) 
-{
-   //  hrm.
-   //... windows has no realpath()?
-   fprintf(stderr, "%s[%d]:  IMPLEMENT ME: %s\n", FILE__, __LINE__, fname);
-   return "bogus_path";
+std::string resolve_file_path(const char *fname) {
+    assert(!"UNIMPLEMENTED ON WINDOWS");
+    return std::string("");
 }
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -80,7 +80,7 @@ struct proc_info_t {
    }
 };
 
-std::map<Process::ptr, proc_info_t> pinfo;
+static std::map<Process::ptr, proc_info_t> pinfo;
 
 #define NUM_IRPCS 4
 
@@ -93,8 +93,8 @@ struct thread_info_t {
    }
 };
 
-std::map<Thread::const_ptr, thread_info_t> tinfo;
-std::map<IRPC::const_ptr, rpc_data_t *> rpc_to_data;
+static std::map<Thread::const_ptr, thread_info_t> tinfo;
+static std::map<IRPC::const_ptr, rpc_data_t *> rpc_to_data;
 
 static void createBuffer(Process::ptr proc,
                          unsigned char* &buffer, unsigned &buffer_size,

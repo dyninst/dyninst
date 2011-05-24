@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -31,6 +31,7 @@
 
 #include "common/h/addrtranslate.h"
 #include "common/h/headers.h"
+#include "common/h/pathName.h"
 
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Archive.h"
@@ -83,16 +84,6 @@ static int open_map_fd(PID pid)
    snprintf(file, 64, "/proc/%d/map", pid);
    int fd = P_open(file, O_RDONLY, pid);
    return fd;
-}
-
-static char *deref_link(char *path)
-{
-   static char buffer[PATH_MAX], *p;
-   buffer[PATH_MAX-1] = '\0';
-   p = realpath(path, buffer);
-   if (p)
-      return p;
-   return path;
 }
 
 bool AddressTranslateAIX::refresh()
@@ -170,21 +161,14 @@ bool AddressTranslateAIX::refresh()
       
       string filename;
       string object_name;
-      /*      
-              if (is_aout) {
-                char buf[128];
-                sprintf(buf, "/proc/%d/object/a.out", pid);
-                filename = deref_link(buf);
-              }
-      */
       if (mapEntry.pr_pathoff) {
          char buf[512];
          pread(map_fd, buf, 256, mapEntry.pr_pathoff);
-         filename = deref_link(buf);
+         filename = resolve_file_path(buf);
          object_name = buf + strlen(buf) + 1;
       }
       else {
-         filename = deref_link(mapEntry.pr_mapname);
+         filename = resolve_file_path(mapEntry.pr_mapname);
       }
               
       is_aout = false;

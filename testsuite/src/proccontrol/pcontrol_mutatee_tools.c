@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -114,7 +114,6 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
          break;
       }
    }
-   
    if (is_mt) {
       initLock(&thread_startup_lock);
       testLock(&thread_startup_lock);
@@ -171,6 +170,7 @@ int handshakeWithServer()
       fprintf(stderr, "Error recieving message\n");
       return -1;
    }
+
    if (shake.code != HANDSHAKE_CODE) {
       fprintf(stderr, "Recieved unexpected message\n");
       return -1;
@@ -182,8 +182,9 @@ int handshakeWithServer()
 void pingSignalFD(int sfd)
 {
    char c = 'X';
-   if (sfd == 0 || sfd == -1)
+   if (sfd == 0 || sfd == -1) {
       return;
+   }
    write(sfd, &c, sizeof(char));
 }
 

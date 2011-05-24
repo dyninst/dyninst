@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -54,6 +54,8 @@
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "symtab.h"
+#include "MemoryEmulator/memEmulator.h"
+#include <boost/tuple/tuple.hpp>
 
 #include "dyninstAPI/src/ast.h"
 
@@ -165,7 +167,7 @@ bool SignalHandler::handleThreadCreate(EventRecord &ev, bool &continueHint)
    Address initial_func = 0, stack_top = 0;
    BPatch_process *bproc = (BPatch_process *) ev.proc->up_ptr();
    HANDLE lwpid = ev.info.u.CreateThread.hThread;
-   int_function *func = NULL;
+   func_instance *func = NULL;
    int tid = ev.info.dwThreadId;
    
    //Create the lwp early on Windows
@@ -199,7 +201,7 @@ bool SignalHandler::handleThreadCreate(EventRecord &ev, bool &continueHint)
            vector<Address> faddrs;
            faddrs.push_back(initial_func);
            obj->parseNewFunctions(faddrs);
-           func = proc->findFuncByAddr(initial_func);
+           func = proc->findOneFuncByAddr(initial_func);
         }
      }
    }
@@ -415,12 +417,17 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events) {
 
 bool SignalGenerator::decodeEvent(EventRecord &ev)
 {
+
+
    bool ret = false;
    switch (ev.info.dwDebugEventCode) {
      case EXCEPTION_DEBUG_EVENT:
+
         //ev.type = evtException;
         ev.what = ev.info.u.Exception.ExceptionRecord.ExceptionCode;
-        ret = decodeException(ev);
+
+		ret = decodeException(ev);
+		assert(ev.type != evtUndefined);
         break;
      case CREATE_THREAD_DEBUG_EVENT:
         ev.type = evtThreadCreate;
@@ -485,32 +492,119 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
          }
       }
    }
-
+   assert(ev.type != evtUndefined);
   return ret;
 }
+
+static void decodeHandlerCallback(EventRecord &ev)
+{
+    ev.address = (eventAddress_t) 
+       ev.info.u.Exception.ExceptionRecord.ExceptionAddress;
+
+    // see if a signalhandler callback is registered
+    pdvector<CallbackBase *> callbacks;
+    SignalHandlerCallback *sigHandlerCB = NULL;
+    if (getCBManager()->dispenseCallbacksMatching(evtSignalHandlerCB, callbacks)
+       && ev.address != ((SignalHandlerCallback*)callbacks[0])->getLastSigAddr()
+       && ((SignalHandlerCallback*)callbacks[0])->handlesSignal(ev.what)) 
+    {
+       ev.type = evtSignalHandlerCB;
+    }
+    else {// no handler is registered, return to signal to program 
+
+       if ( EXCEPTION_ILLEGAL_INSTRUCTION == ev.what || 
+            EXCEPTION_ACCESS_VIOLATION    == ev.what    ) 
+       {
+           Frame af = ev.lwp->getActiveFrame();
+           signal_printf
+               ("DECODE CRITICAL -- ILLEGAL INSN OR ACCESS VIOLATION\n");
+           ev.type = evtCritical;
+       }
+       else {
+           ev.type = evtSignalled;
+       }
+    }
+}
+
+extern std::set<Address> suicideAddrs;
 
 bool SignalGenerator::decodeBreakpoint(EventRecord &ev) 
 {
   char buf[128];
   bool ret = false;
   process *proc = ev.proc;
-
   if (decodeIfDueToProcessStartup(ev)) {
-     ret = true;
+	  ret = true;
   }
   else if (proc->getRpcMgr()->decodeEventIfDueToIRPC(ev)) {
      signal_printf("%s[%d]:  BREAKPOINT due to RPC\n", FILE__, __LINE__);
-     ret = true;
+	 ret = true;
   }
   else if (proc->trapMapping.definesTrapMapping(ev.address)) {
      ev.type = evtInstPointTrap;
-     ret = true;
+     Frame activeFrame = ev.lwp->getActiveFrame();
+#if 0
+	 cerr << "SPRINGBOARD FRAME: " << hex << activeFrame.getPC() << " / " <<activeFrame.getSP() 
+                 << " (DEBUG:" 
+                 << "EAX: " << activeFrame.eax
+                 << ", ECX: " << activeFrame.ecx
+                 << ", EDX: " << activeFrame.edx
+                 << ", EBX: " << activeFrame.ebx
+                 << ", ESP: " << activeFrame.esp
+                 << ", EBP: " << activeFrame.ebp
+                 << ", ESI: " << activeFrame.esi 
+                 << ", EDI " << activeFrame.edi
+				 << ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
+	 for (unsigned i = 0; i < 10; ++i) {
+			Address stackTOPVAL =0;
+		    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
+			cerr << "\tSTACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
+	 }
+#endif
+	 ret = true;
   }
   else if (decodeRTSignal(ev)) {
-      ret = true;
+	  ret = true;
+  }
+  else if (BPatch_defensiveMode == ev.proc->getHybridMode()) {
+     Frame activeFrame = ev.lwp->getActiveFrame();
+     if (!ev.proc->inEmulatedCode(activeFrame.getPC() - 1)) {
+        requested_wait_until_active = true;//i.e., return exception to mutatee
+        decodeHandlerCallback(ev);
+     }
+     else {
+	    requested_wait_until_active = false;
+        ret = true;
+		ev.type = evtIgnore;
+		static bool debug1 = true;
+		if (debug1)
+		{
+			cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
+				<< " (DEBUG:" 
+				<< "EAX: " << activeFrame.eax
+				<< ", ECX: " << activeFrame.ecx
+				<< ", EDX: " << activeFrame.edx
+				<< ", EBX: " << activeFrame.ebx
+				<< ", ESP: " << activeFrame.esp
+				<< ", EBP: " << activeFrame.ebp
+				<< ", ESI: " << activeFrame.esi 
+				<< ", EDI: " << activeFrame.edi
+				<< ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
+			Address stackTOPVAL[200];
+            ev.proc->readDataSpace((void *) activeFrame.esp, sizeof(ev.proc->getAddressWidth())*200, stackTOPVAL, false);
+            for (int i = 0; i < 200; ++i) 
+            {
+                Address remapped = 0;
+                vector<func_instance *> funcs;
+                baseTramp *bti;
+				ev.proc->getAddrInfo(stackTOPVAL[i], remapped, funcs, bti);
+				cerr  << hex << activeFrame.esp + 4*i << ": "  << stackTOPVAL[i] << ", orig @ " << remapped << " in " << funcs.size() << "functions" << dec << endl;
+			}
+		}
+	 }
   }
   else {
-     ev.type = evtProcessStop;
+	  ev.type = evtProcessStop;
      ret = true;
   }
 
@@ -533,83 +627,101 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
     switch(ev.info.u.Exception.ExceptionRecord.ExceptionInformation[0]) {
     case 0: // bad read
         if (dyn_debug_malware) {
-            codeRange *range = ev.proc->findOrigByAddr(ev.address);
-            bblInstance *bbi = range->is_basicBlockInstance();
-            if (bbi) {
-                mal_printf("bad read in pdwinnt.C %lx[%lx]=>%lx [%d]\n",
-                           ev.address,bbi->equivAddr(0,ev.address),
-                           violationAddr,__LINE__);
-            } else if (range->is_multitramp()) {
-                Address bbiAddr = 
-                    range->is_multitramp()->instToUninstAddr(ev.address);
-                bbi = ev.proc->findOrigByAddr(bbiAddr)->is_basicBlockInstance();
-                if (bbi) {
-                    mal_printf("bad read in pdwinnt.C (realAddrInMulti=%lx,"
-                               "blockAddr=%lx,origAddr=%lx)=>%lx [%d]\n",
-                               ev.address,bbiAddr, bbi->equivAddr(0,bbiAddr),
-                               violationAddr,__LINE__);
-                }
-            } 
-            if (!bbi) {
-                mal_printf("bad read in pdwinnt.C, not in multi or block "
-                           "%lx=>%lx [%d]\n",
-                           ev.address,violationAddr,__LINE__);
+            Address origAddr = ev.address;
+            vector<func_instance *> funcs;
+            baseTramp *bti = NULL;
+            ev.proc->getAddrInfo(ev.address, origAddr, funcs, bti);
+            mal_printf("bad read in pdwinnt.C %lx[%lx]=>%lx [%d]\n",
+                       ev.address, origAddr, violationAddr,__LINE__);
+            // detach so we can see what's going on 
+            //ev.proc->detachProcess(true);
+            pdvector<pdvector<Frame> >  stacks;
+            if (!ev.proc->walkStacks(stacks)) {
+                mal_printf("%s[%d]:  walkStacks failed\n", FILE__, __LINE__);
+                return false;
             }
+            for (unsigned i = 0; i < stacks.size(); ++i) {
+                pdvector<Frame> &stack = stacks[i];
+                for (unsigned int j = 0; j < stack.size(); ++j) {
+                    Address origPC = 0;
+                    vector<func_instance*> dontcare1;
+                    baseTramp *dontcare2 = NULL;
+                    ev.proc->getAddrInfo(stack[j].getPC(), origPC, dontcare1, dontcare2);
+                    mal_printf("frame %d: %lx[%lx]\n", j, stack[j].getPC(), origPC);
+                }
+            }
+            dyn_saved_regs regs;
+            ev.lwp->getRegisters(&regs,false);
+            printf("REGISTER STATE:\neax=%lx \necx=%lx \nedx=%lx \nebx=%lx \nesp=%lx \nebp=%lx \nesi=%lx "
+                   "\nedi=%lx\n",regs.cont.Eax, regs.cont.Ecx, regs.cont.Edx, 
+                   regs.cont.Ebx, regs.cont.Esp, regs.cont.Ebp, 
+                   regs.cont.Esi, regs.cont.Edi);
         }
         break;
 
-    case 1: // bad write
+    case 1: {// bad write 
+        Address origAddr = ev.address;
+        vector<func_instance *> writefuncs;
+        baseTramp *bti = NULL;
+        bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
         if (dyn_debug_malware) {
-            int_function *func = ev.proc->findFuncByAddr(ev.address);
-            if (func) {//overwrite instruction is in function body
-                codeRange *range = ev.proc->findOrigByAddr(ev.address);
-                bblInstance *writeInsnBBI = range->is_basicBlockInstance();
-                Address faultAddr = ev.address;
-                if (!writeInsnBBI && range->is_multitramp()) {
-                    faultAddr = 
-                        range->is_multitramp()->instToUninstAddr(ev.address);
-                    writeInsnBBI = ev.proc->findOrigByAddr(faultAddr)->
-                        is_basicBlockInstance();
-                }
-                if (writeInsnBBI) {
-                    fprintf(stderr,"---%s[%d] overwrite insn at %lx[%lx] in "
-                            "function\"%s\" [%lx] orig[%lx], writing to "
-                            "%lx \n",FILE__,__LINE__,ev.address, 
-                            writeInsnBBI->equivAddr(0,faultAddr),
-                            func->get_name().c_str(), func->get_address(), 
-                            func->ifunc()->addr() 
-                            + func->ifunc()->img()->desc().loadAddr(), 
-                            violationAddr);
-                }
-                else { // KEVINTODO: this case should never happen
-                    fprintf(stderr,"---%s[%d] overwrite insn at %lx in function"
-                            "\"%s\" [%lx] orig[%lx], writing to %lx \n",
-                            __FILE__,__LINE__,ev.address, 
-                            func->get_name().c_str(), func->get_address(), 
-                            func->ifunc()->addr()
-                            + func->ifunc()->img()->desc().loadAddr(), 
-                            violationAddr);
-                }
-            } else { // overwrite from outside a function block 
-                     // (probably generated code in multitramp)
-                codeRange *range = ev.proc->findOrigByAddr(ev.address);
-                if (range) {
-                    fprintf(stderr,"---%s[%d] overwrite insn at %lx in range "
-                            "[%lx %lx], writing to %lx \n",
-                            FILE__,__LINE__, ev.address, range->get_address(),
-                            range->get_address()+range->get_size(), 
-                            violationAddr);
-                } else {
-                    fprintf(stderr,"---%s[%d] overwrite insn at %lx, not "
-                            "contained in any range, writing to %lx \n",
-                            __FILE__,__LINE__, ev.address, violationAddr);
-                }
+            Address origAddr = ev.address;
+			Address shadowAddr = 0;
+			bool valid = false;
+			boost::tie(valid, shadowAddr) = ev.proc->getMemEm()->translateBackwards(violationAddr);
+
+			cerr << "Overwrite insn @ " << hex << origAddr << endl;
+            vector<func_instance *> writefuncs;
+            baseTramp *bti = NULL;
+            bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
+            if (success) {
+                fprintf(stderr,"---%s[%d] overwrite insn at %lx[%lx] in "
+                        "function\"%s\" [%lx], writing to %lx (%lx) \n",
+                        FILE__,__LINE__, ev.address, origAddr,
+						writefuncs.empty() ? "<NO FUNC>" : writefuncs[0]->get_name().c_str(), 
+						writefuncs.empty() ? 0 : writefuncs[0]->get_address(), 
+                        violationAddr, shadowAddr);
+            } else { 
+                fprintf(stderr,"---%s[%d] overwrite insn at %lx, not "
+                        "contained in any range, writing to %lx \n",
+                        __FILE__,__LINE__, ev.address, violationAddr);
             }
+            dyn_saved_regs regs;
+            ev.lwp->getRegisters(&regs,false);
+            printf("REGISTER STATE:\neax=%lx \necx=%lx \nedx=%lx \nebx=%lx \nesp=%lx \nebp=%lx \nesi=%lx "
+                   "\nedi=%lx\n",regs.cont.Eax, regs.cont.Ecx, regs.cont.Edx, 
+                   regs.cont.Ebx, regs.cont.Esp, regs.cont.Ebp, 
+                   regs.cont.Esi, regs.cont.Edi);
         }
 
+        // ignore memory access violations originating in kernel32.dll 
+        // (if not originating from an instrumented instruction)
+        mapped_object *obj = ev.proc->findObject(origAddr);
+        assert(obj);
+        if ( BPatch_defensiveMode != obj->hybridMode() ) 
+        {
+            wait_until_active = false;
+            ret = true;
+            ev.type = evtIgnore;
+            ev.lwp->changeMemoryProtections(
+                violationAddr - (violationAddr % ev.proc->getMemoryPageSize()), 
+                ev.proc->getMemoryPageSize(), 
+                PAGE_EXECUTE_READWRITE, 
+                false);
+            break;
+        }
         // it's a write to a page containing write-protected code if region
         // permissions don't match the current permissions of the written page
         obj = ev.proc->findObject(violationAddr);
+        if (!obj && ev.proc->isMemoryEmulated()) {
+            bool valid=false;
+            Address orig=0;
+            boost::tie(valid,orig) = ev.proc->getMemEm()->translateBackwards(violationAddr);
+            if (valid) {
+                violationAddr = orig;
+                obj = ev.proc->findObject(violationAddr);
+            }
+        }
         if (obj) {
             using namespace SymtabAPI;
             Region *reg = obj->parse_img()->getObject()->
@@ -618,7 +730,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             if (reg && (reg->getRegionPermissions() == Region::RP_RW ||
                         reg->getRegionPermissions() == Region::RP_RWX  ) &&
                 getCBManager()->dispenseCallbacksMatching
-                    (evtCodeOverwrite, callbacks))
+                    (evtCodeOverwrite, callbacks)) //checks for CBs, doesn't call them
                 {
                     ev.info2 = reg;
                     ev.type = evtCodeOverwrite;
@@ -628,20 +740,51 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             callbacks.clear();
         }
         else {
-            fprintf(stderr,"%s[%d] WARNING, possible bug, overwrite insn at "
-                    "%lx overwrote at %lx\n",
+            fprintf(stderr,"%s[%d] WARNING, possible bug, write insn at "
+                    "%lx wrote to %lx\n",
                     __FILE__,__LINE__,ev.address, violationAddr);
             // detach so we can see what's going on 
             //ev.proc->detachProcess(true);
         }
-
+        break;
+    }
     case 8: // no execute permissions
         fprintf(stderr, "ERROR: executing code that lacks executable "
                 "permissions in pdwinnt.C at %lx, evt.addr=%lx [%d]\n",
                 ev.address, violationAddr,__LINE__);
-
-    default:
+        ev.proc->detachProcess(true);
         assert(0);
+        break;
+    default:
+        if (dyn_debug_malware) {
+            Address origAddr = ev.address;
+            vector<func_instance *> funcs;
+            baseTramp *bti = NULL;
+            ev.proc->getAddrInfo(ev.address, origAddr, funcs, bti);
+            mal_printf("weird exception in pdwinnt.C illegal instruction or "
+                       "access violation w/ code (%lx) %lx[%lx]=>%lx [%d]\n",
+                       ev.info.u.Exception.ExceptionRecord.ExceptionInformation[0],
+                       ev.address, origAddr, violationAddr,__LINE__);
+        }
+        ev.proc->detachProcess(true);
+        assert(0);
+    }
+    if (evtCodeOverwrite != ev.type && ev.proc->isMemoryEmulated()) {
+        // see if we were executing in defensive code whose memory access 
+        // would have been emulated
+        Address origAddr = ev.address;
+        vector<func_instance *> writefuncs;
+        baseTramp *bti = NULL;
+        bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
+        mapped_object *faultObj = NULL;
+        if (success) {
+            faultObj = ev.proc->findObject(origAddr);
+        }
+        if (!faultObj || BPatch_defensiveMode == faultObj->hybridMode()) {
+            // KEVINTODO: we're emulating the instruction, pop saved regs off of the stack and into the appropriate registers, 
+            // KEVINTODO: signalHandlerEntry will have to fix up the saved context information on the stack 
+            assert(1 || "stack imbalance and bad reg values resulting from incomplete memory emulation of instruction that caused a fault");
+        }
     }
     return ret;
 }
@@ -655,6 +798,8 @@ bool SignalGenerator::decodeException(EventRecord &ev)
         ret = decodeBreakpoint(ev);
         break;
      case EXCEPTION_ILLEGAL_INSTRUCTION:
+        signal_printf("ILLEGAL INSTRUCTION\n");
+        mal_printf("ILLEGAL INSTRUCTION\n");
      case EXCEPTION_ACCESS_VIOLATION:
      {
          requested_wait_until_active = true;
@@ -678,37 +823,9 @@ bool SignalGenerator::decodeException(EventRecord &ev)
    // trigger callback if we haven't resolved the signal and a 
    // signalHandlerCallback is registered
    if (!ret) {
-
-       ev.address = (eventAddress_t) 
-           ev.info.u.Exception.ExceptionRecord.ExceptionAddress;
        requested_wait_until_active = true;//i.e., return exception to mutatee
-
-       // see if a signalhandler callback is registered
-       pdvector<CallbackBase *> callbacks;
-       SignalHandlerCallback *sigHandlerCB = NULL;
-       if (getCBManager()->dispenseCallbacksMatching(evtSignalHandlerCB, callbacks)
-           && ev.address != ((SignalHandlerCallback*)callbacks[0])->getLastSigAddr()
-           && ((SignalHandlerCallback*)callbacks[0])->handlesSignal(ev.what)) 
-       {
-           ev.type = evtSignalHandlerCB;
-           ret = true;
-       }
-       else {// no handler is registered, return to signal to program 
-
-           if ( EXCEPTION_ILLEGAL_INSTRUCTION == ev.what || 
-                EXCEPTION_ACCESS_VIOLATION    == ev.what    ) 
-           {
-               Frame af = ev.lwp->getActiveFrame();
-               signal_printf
-                   ("DECODE CRITICAL -- ILLEGAL INSN OR ACCESS VIOLATION\n");
-               ev.type = evtCritical;
-           }
-           else {
-               ev.type = evtSignalled;
-           }
-
-           ret = true;
-       }
+       decodeHandlerCallback(ev);
+       ret = true;
    }
 
    return ret;
@@ -823,15 +940,13 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
         // from the page, remove them and try again
 
         int oldRights = changeMemoryProtections((Address)inTraced, amount, 
-                                                PAGE_EXECUTE_READWRITE);
+                                                PAGE_EXECUTE_READWRITE,true);
         if (oldRights == PAGE_EXECUTE_READ || oldRights == PAGE_READONLY) {
             res = WriteProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
                                      (LPVOID)inSelf, (DWORD)amount, &nbytes);
-        } else {
-            assert(0 && "failure in writeDataSpace");
         }
         if (oldRights != -1) { // set the rights back to what they were
-            changeMemoryProtections((Address)inTraced, amount, oldRights);
+            changeMemoryProtections((Address)inTraced, amount, oldRights,true);
         }
     }
 
@@ -840,22 +955,138 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 
 
 bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf) {
+    if ((Address)inTraced <= 0xc30000 && ((Address)inTraced + amount) >= 0xc30000) {
+        cerr << "readDataSpace [" << hex << (Address) inTraced << "," << (Address) inTraced + amount << "]" << dec << endl;
+    }
     DWORD nbytes;
     handleT procHandle = getProcessHandle();
     bool res = ReadProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
 				 (LPVOID)inSelf, (DWORD)amount, &nbytes);
+	if (!res && (GetLastError() == 299)) // Partial read success...
+	{
+		// Loop and copy piecewise
+		Address start = (Address) inTraced;
+		Address cur = start;
+		Address end = start + amount;
+		Address bufStart = (Address) inSelf;
+		Address bufCur = bufStart;
+		Address bufEnd = bufStart + amount;
+
+		cerr << "Starting piecewise copy [" << hex << start << "," << end << dec << "]" << endl;
+
+		MEMORY_BASIC_INFORMATION meminfo;
+		memset(&meminfo, 0, sizeof(MEMORY_BASIC_INFORMATION));
+		do {
+			VirtualQueryEx(procHandle,
+				(LPCVOID) cur, 
+				&meminfo,
+				sizeof(MEMORY_BASIC_INFORMATION));
+			cerr << "\t VirtualQuery returns base " << hex
+				<< (Address) meminfo.AllocationBase << " and pages range [" 
+				<< (Address) meminfo.BaseAddress << "," << ((Address)meminfo.BaseAddress) + meminfo.RegionSize 
+				<< dec << "]" << endl;
+			unsigned remaining = end - cur;
+			assert(remaining == (bufEnd - bufCur));
+			unsigned toCopy = (remaining < meminfo.RegionSize) ? remaining : meminfo.RegionSize;
+			if (meminfo.State == MEM_COMMIT) {
+				cerr << "\t Copying range [" << hex << cur << "," << cur + toCopy << "]" << dec << endl;
+				bool res = ReadProcessMemory(procHandle, (LPVOID) cur, (LPVOID) bufCur, (DWORD) toCopy, &nbytes);
+				assert(res);
+			}
+			else {
+				cerr << "\t Zeroing range [" << hex << cur << "," << cur + toCopy << dec << "]" << endl;
+				memset((void *)bufCur, 0, toCopy);
+			}
+			cur += toCopy;
+			bufCur += toCopy;
+		} while (bufCur < bufEnd);
+		return true;
+	}
     return res && (nbytes == amount);
 }
 
-int dyn_lwp::changeMemoryProtections(Address addr, Offset size, unsigned rights)
+bool process::setMemoryAccessRights
+(Address start, Address size, int rights)
 {
-    int oldRights=0;
-    if (VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(addr), 
-                         (SIZE_T)size, (DWORD)rights, (PDWORD)&oldRights)) {
-        return oldRights;
-    } else {
-        return -1;
+    mal_printf("setMemoryAccessRights to %x [%lx %lx]\n", rights, start, start+size);
+    // get lwp from which we can call changeMemoryProtections
+    dyn_lwp *stoppedlwp = query_for_stopped_lwp();
+    if ( ! stoppedlwp ) {
+        assert(0); //KEVINTODO: I don't think this code is right, it doesn't resume the stopped lwp
+        bool wasRunning = true;
+        stoppedlwp = stop_an_lwp(&wasRunning);
+        if ( ! stoppedlwp ) {
+        return false;
+        }
     }
+    if (PAGE_EXECUTE_READWRITE == rights || PAGE_READWRITE == rights) {
+        mapped_object *obj = findObject(start);
+        int page_size = getMemoryPageSize();
+        for (Address cur = start; cur < (start + size); cur += page_size) {
+            obj->removeProtectedPage(start -(start % page_size));
+        }
+    }
+    stoppedlwp->changeMemoryProtections(start, size, rights, true);
+    return true;
+}
+
+bool process::getMemoryAccessRights(Address start, Address size, int rights)
+{
+   assert(0 && "Unimplemented!");
+   return false;
+}
+
+int dyn_lwp::changeMemoryProtections
+(Address addr, Offset size, unsigned rights, bool setShadow)
+{
+    unsigned oldRights=0;
+    unsigned pageSize = proc()->getMemoryPageSize();
+
+	Address pageBase = addr - (addr % pageSize);
+	size += (addr % pageSize);
+
+	// Temporary: set on a page-by-page basis to work around problems
+	// with memory deallocation
+	for (Address idx = pageBase; idx < pageBase + size; idx += pageSize) {
+        //mal_printf("setting rights to %lx for [%lx %lx)\n", 
+          //         rights, idx , idx + pageSize);
+		if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(idx), 
+			(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&oldRights)) 
+		{
+			fprintf(stderr, "ERROR: failed to set access rights for page %lx, error code %d "
+				"%s[%d]\n", addr, GetLastError(), FILE__, __LINE__);
+			MEMORY_BASIC_INFORMATION meminfo;
+			SIZE_T size = VirtualQueryEx(getProcessHandle(), (LPCVOID) (addr), &meminfo, sizeof(MEMORY_BASIC_INFORMATION));
+			fprintf(stderr, "ERROR DUMP: baseAddr 0x%lx, AllocationBase 0x%lx, AllocationProtect 0x%lx, RegionSize 0x%lx, State 0x%lx, Protect 0x%lx, Type 0x%lx\n",
+				meminfo.BaseAddress, meminfo.AllocationBase, meminfo.AllocationProtect, meminfo.RegionSize, meminfo.State, meminfo.Protect, meminfo.Type);
+		}
+		else if (proc()->isMemoryEmulated() && setShadow) {
+			Address shadowAddr = 0;
+			unsigned shadowRights=0;
+			bool valid = false;
+			boost::tie(valid, shadowAddr) = proc()->getMemEm()->translate(idx);
+			if (!valid) {
+				fprintf(stderr, "WARNING: set access rights on page %lx that has "
+					"no shadow %s[%d]\n",addr,FILE__,__LINE__);
+			}
+			else 
+			{
+				if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(shadowAddr), 
+					(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&shadowRights)) 
+				{
+					fprintf(stderr, "ERROR: set access rights found shadow page %lx "
+						"for page %lx but failed to set its rights %s[%d]\n",
+						shadowAddr, addr, FILE__, __LINE__);
+				}
+
+				if (shadowRights != oldRights) {
+					//mal_printf("WARNING: shadow page[%lx] rights %x did not match orig-page"
+					//           "[%lx] rights %x\n",shadowAddr,shadowRights, addr, oldRights);
+				}
+			}
+		}
+	}
+	return oldRights;
 }
 
 
@@ -870,25 +1101,24 @@ bool process::waitUntilStopped() {
 // sets PC for stack frames other than the active stack frame
 bool Frame::setPC(Address newpc) {
 
-  if (!pcAddr_) {
-      // if pcAddr isn't set it's because the stackwalk isn't getting the 
-      // frames right
-      fprintf(stderr,"WARNING: unable to change stack frame PC from %lx to %lx "
-              "because we don't know where the PC is on the stack %s[%d]\n",
-              pc_,newpc,FILE__,__LINE__);
-      return false;
-  }
+	if (!pcAddr_) {
+		// if pcAddr isn't set it's because the stackwalk isn't getting the 
+		// frames right
+		fprintf(stderr,"WARNING: unable to change stack frame PC from %lx to %lx "
+			"because we don't know where the PC is on the stack %s[%d]\n",
+			pc_,newpc,FILE__,__LINE__);
+		return false;
+	}
 
-  if (getProc()->writeDataSpace( (void*)pcAddr_, 
-                                 getProc()->getAddressWidth(), 
-                                 &newpc) ) 
-  {
-      this->pc_ = newpc;
-      this->range_ = NULL;
-      return true;
-  }
+	if (getProc()->writeDataSpace( (void*)pcAddr_, 
+		getProc()->getAddressWidth(), 
+		&newpc) ) 
+	{
+		this->pc_ = newpc;
+		return true;
+	}
 
-  return false;
+	return false;
 }
 
 bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {
@@ -915,6 +1145,15 @@ void dyn_lwp::dumpRegisters()
 
 bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 {    
+  if (dyn_debug_malware) {
+      std::set<func_instance *> funcs;
+      proc()->findFuncsByAddr(addr, funcs, true);
+      cerr << "CHANGEPC to addr " << hex << addr;
+      cerr << " to func " << (funcs.empty() ? "<UNKNOWN>" :
+                              ((funcs.size() == 1) ? (*(funcs.begin()))->symTabName() : "<MULTIPLE>"));
+      cerr << dec << endl;
+      cerr << "Currently at: " << getActiveFrame();
+  }
   w32CONTEXT cont;//ccw 27 july 2000
   if (!regs) {
       cont.ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001
@@ -1641,7 +1880,7 @@ void dyn_lwp::representativeLWP_detach_()
 bool process::insertTrapAtEntryPointOfMain() {
   mapped_object *aout = getAOut();
   SymtabAPI::Symtab *aout_obj = aout->parse_img()->getObject();
-  pdvector<int_function *> funcs;
+  pdvector<func_instance *> funcs;
   Address min_addr = 0xffffffff;
   Address max_addr = 0x0;
   bool result;
@@ -1651,8 +1890,8 @@ bool process::insertTrapAtEntryPointOfMain() {
       __FILE__, __LINE__);
   
   if (main_function) {
-	  //Address addr = main_function->getAddress() - aout_obj->getBaseAddress()+ aout->getFileDesc().loadAddr();
-     Address addr = main_function->getAddress();
+	  //Address addr = main_function->addr() - aout_obj->getBaseAddress()+ aout->getFileDesc().loadAddr();
+     Address addr = main_function->addr();
      startup_printf("[%s:%u] - insertTrapAtEntryPointOfMain found main at %x\n",
                     __FILE__, __LINE__, addr);
      result = readDataSpace((void *) addr, sizeof(trapInsn), &oldbyte, false);
@@ -2008,7 +2247,7 @@ void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
    * 'this' parameter is passed in ECX, others are passed in the stack
    * Cleanup Callee cleans up the stack before returning
  **/
-callType int_function::getCallingConvention() {
+callType func_instance::getCallingConvention() {
     const char *name = symTabName().c_str();
     const int buffer_size = 1024;
     char buffer[buffer_size];
@@ -2091,7 +2330,7 @@ static void emitNeededCallRestores(codeGen &gen, pdvector<Register> &saves);
 
 int EmitterIA32::emitCallParams(codeGen &gen, 
                               const pdvector<AstNodePtr> &operands,
-                              int_function *target, 
+                              func_instance *target, 
                               pdvector<Register> &extra_saves, 
                               bool noCost)
 {
@@ -2199,16 +2438,14 @@ int EmitterIA32::emitCallParams(codeGen &gen,
     return estimatedFrameSize;
 }
 
-bool EmitterIA32::emitCallCleanup(codeGen &gen, int_function *target, 
+bool EmitterIA32::emitCallCleanup(codeGen &gen, func_instance *target, 
                      int frame_size, pdvector<Register> &extra_saves)
 {
     callType call_conv = target->getCallingConvention();
     if ((call_conv == unknown_call || call_conv == cdecl_call) && frame_size)
     {
         //Caller clean-up
-	// This effectively adds frame_size to %esp, without affecting %eflags
-	emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
-		frame_size, RealRegister(REGNUM_ESP), gen);
+        emitOpRegImm(0, RealRegister(REGNUM_ESP), frame_size, gen); // add esp, frame_size        
     }
     gen.rs()->incStack(-1 * frame_size);
 
@@ -2336,11 +2573,13 @@ bool SignalHandler::forwardSigToProcess(EventRecord &ev, bool &continueHint)
 
 /* 1. Gather the list of Structured Exception Handlers by walking the linked
  * list whose head is in the TIB.  
- * 2. Create an instPoint at the faulting instruction, If the exception-raising
+ * 2. If the fault occurred at an emulated memory instruction, we saved a
+ *    register before stomping its effective address computation
+ * 3. Create an instPoint at the faulting instruction, If the exception-raising
  *    instruction is in a relocated block or multiTramp, save it as an active 
  *    tramp, we can't get rid of it until the handler returns
- * 3. Invoke the registered callback
- * 4. mark parsed handlers as such, store fault addr info in the handlers
+ * 4. Invoke the registered callback
+ * 5. mark parsed handlers as such, store fault addr info in the handlers
  */
 bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
 {
@@ -2351,6 +2590,14 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     }
     mal_printf("Handling exception, excCode=0x%X raised by %lx %s[%d]\n",
             ev.what, ev.address, FILE__, __LINE__);
+
+    Address origAddr = ev.address;
+    vector<func_instance*> faultFuncs;
+    baseTramp *bti = NULL;
+    ev.proc->getAddrInfo(ev.address, origAddr, faultFuncs, bti);
+	Frame activeFrame = ev.lwp->getActiveFrame();
+
+    // 1. gather the list of handlers by walking the SEH datastructure in the TEB
     Address tibPtr = ev.lwp->getThreadInfoBlockAddr();
     struct EXCEPTION_REGISTRATION handler;
     EXCEPTION_REGISTRATION *prevEvtReg=NULL;
@@ -2369,8 +2616,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
             return false;
         }
         prevEvtReg = handler.prev;
-        if (!proc->findOrigByAddr((Address)prevEvtReg) &&
-            !proc->findModByAddr((Address)prevEvtReg)) {
+        if (!proc->findOneFuncByAddr((Address)prevEvtReg)) {
             mal_printf("EUREKA! Found handler at 0x%x while handling "
                    "exceptionCode=0x%X for exception at %lx %s[%d]\n",
                    handler.handler, ev.what, ev.address, FILE__,__LINE__);
@@ -2381,69 +2627,95 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
         return true;
     }
 
-    // 2. create instPoint at faulting instruction & trigger callback
-    codeRange *violRange = proc->findOrigByAddr(ev.address);
-    bblInstance *violBBI = NULL;
-    Address inbbiAddr = ev.address;
-    if (violRange) {
-        violBBI = violRange->is_basicBlockInstance();
-        if (!violBBI) {
-            multiTramp *violMulti = violRange->is_multitramp();
-            if (violMulti) {
-                inbbiAddr = violMulti->instToUninstAddr(ev.address);
-                violBBI = proc->findOrigByAddr( inbbiAddr )->
-                    is_basicBlockInstance();
+    // 2.  If the fault occurred at an emulated memory instruction, we saved a
+    //     register before stomping its effective address computation, 
+    //     restore the original register value
+
+	if (faultFuncs.empty()) {
+        fprintf(stderr,"ERROR: Failed to find a valid instruction for fault "
+            "at %lx %s[%d] \n", ev.address, FILE__,__LINE__);
+         return false;
+	}
+	block_instance *faultBBI = faultFuncs[0]->getBlock(origAddr);
+    if (ev.proc->isMemoryEmulated() && 
+        BPatch_defensiveMode == faultFuncs[0]->obj()->hybridMode())
+    {
+        if (faultFuncs[0]->obj()->isEmulInsn(origAddr)) {
+            void * val =0;
+            assert( sizeof(void*) == ev.proc->getAddressWidth() );
+            ev.proc->readDataSpace((void*)(activeFrame.getSP() + MemoryEmulator::STACK_SHIFT_VAL), 
+                                   ev.proc->getAddressWidth(), 
+                                   &val, false);
+
+            CONTEXT context;
+            context.ContextFlags = CONTEXT_FULL;
+            if (!GetThreadContext(ev.lwp->get_fd(), (LPCONTEXT) & context)) {
+                malware_cerr << "ERROR: Failed call to GetThreadContext(" << hex << ev.lwp->get_fd() 
+                    << ") getLastError: " << endl;
+                printSysError(GetLastError());
             }
+            Register reg = faultFuncs[0]->obj()->getEmulInsnReg(origAddr);
+            switch(reg) {
+                case REGNUM_ECX:
+                    context.Ecx = (DWORD) val;
+                    break;
+                case REGNUM_EDX:
+                    context.Edx = (DWORD) val;
+                    break;
+                case REGNUM_EAX:
+                    context.Eax = (DWORD) val;
+                    break;
+                case REGNUM_EBX:
+                    context.Ebx = (DWORD) val;
+                    break;
+                case REGNUM_ESI:
+                    context.Esi = (DWORD) val;
+                    break;
+                case REGNUM_EDI:
+                    context.Edi = (DWORD) val;
+                    break;
+                case REGNUM_EBP:
+                    context.Ebp = (DWORD) val;
+                    break;
+                default:
+                    assert(0);
+            }
+            SetThreadContext(ev.lwp->get_fd(), (LPCONTEXT) & context);
         }
-        // account for block splitting, and the possibility of invalidated 
-        // function relocations (getFallthroughBBI can return a block in a 
-        // different relocation)
-        Address prevStart = 0;
-        while (violBBI && 
-               violBBI->endAddr() <= inbbiAddr && 
-               prevStart < violBBI->firstInsnAddr()) //check for reloc version switch
-        {
-            prevStart = violBBI->firstInsnAddr();
-            violBBI = violBBI->getFallthroughBBL();
-        }
-    }
-    if (!violBBI) {
-        fprintf(stderr,"ERROR: Failed to find a valid codeRange for faulting "
-            "instruction at %lx %s[%d] \n",
-            ev.address, FILE__,__LINE__);
-        return false;
     }
 
-    Address origAddr = violBBI->equivAddr(0,inbbiAddr);
-    instPoint *point = violBBI->func()->findInstPByAddr(origAddr);
-    if (!point) {
-        point = instPoint::createArbitraryInstPoint
-                    (origAddr, proc, violBBI->func());                
-    }
+    // 3. create instPoint at faulting instruction & trigger callback
+
+	instPoint *point = instPoint::preInsn(faultFuncs[0], faultBBI, origAddr);
     if (!point) {
         fprintf(stderr,"Failed to create an instPoint for faulting "
-            "instruction at %lx[%lx] in function at %lx %s[%d]\n",
-            ev.address,origAddr,violBBI->func()->getAddress(),FILE__,__LINE__);
+            "instruction at %lx[%lx] %s[%d]\n",
+            ev.address,origAddr,FILE__,__LINE__);
         return false;
     }
 
-    //3. cause callbacks registered for this event to be triggered, if any.
+    //4. cause callbacks registered for this event to be triggered, if any.
     ((BPatch_process*)proc->up_ptr())->triggerSignalHandlerCB
-            (point, violBBI->func(), ev.what, &handlers);
+            (point, faultFuncs[0], ev.what, &handlers);
 
-    //4. mark parsed handlers as such, store fault addr info in the handlers
+    //5. mark parsed handlers as such, store fault addr info in the handlers
     for (vector<Address>::iterator hIter=handlers.begin(); 
          hIter != handlers.end(); 
          hIter++) 
     {
-        int_function *hfunc = ev.proc->findFuncByAddr(*hIter);
+        func_instance *hfunc = ev.proc->findOneFuncByAddr(*hIter);
         if (hfunc) {
-            hfunc->setHandlerFaultAddr(point->addr());
-            //add the handlers to process::signalHandlerLocations
-            //ev.proc->addSignalHandler(*hIter,hfunc->ifunc()->get_size());
+            using namespace ParseAPI;
+            hfunc->setHandlerFaultAddr(point->insnAddr());
+            Address base = hfunc->addr() - hfunc->ifunc()->addr();
+            const vector<FuncExtent*> &exts = hfunc->ifunc()->extents();
+            for (unsigned eix=0; eix < exts.size(); eix++) {
+                ev.proc->addSignalHandler(base + exts[eix]->start(),
+                                          exts[eix]->end()-exts[eix]->start());
+            }
         } else {
             fprintf(stderr, "WARNING: failed to parse handler at %lx for "
-                    "exception at %lx %s[%d]\n", *hIter, point->addr(), 
+                    "exception at %lx %s[%d]\n", *hIter, point->insnAddr(), 
                     FILE__,__LINE__);
         }
     }
@@ -2458,104 +2730,94 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
  * 2. Flush the runtime cache if we overwrote any code, else return
  * 3. Find the instruction that caused the violation and determine 
  *    its address in unrelocated code
- * 4. Trigger user-mode callback to respond to the overwrite
+ * 4. Create an instPoint for the write
+ * 5. Trigger user-mode callback to respond to the overwrite
  */
 bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
 {
     //1. Get violation address
-    Address violationAddr = 
+    Address writtenAddr = 
         ev.info.u.Exception.ExceptionRecord.ExceptionInformation[1];
     SymtabAPI::Region *reg = (SymtabAPI::Region*) ev.info2;
+	mal_printf("handleCodeOverwrite: 0x%lx\n", writtenAddr);
+
+    if (ev.proc->isMemoryEmulated()) {
+        Address shadowAddr = writtenAddr;
+        int shadowRights=0;
+        bool valid = false;
+        boost::tie(valid, shadowAddr) = ev.proc->getMemEm()->translateBackwards(writtenAddr);
+		if (!valid) {
+			cerr << "WARNING: writing to original memory directly, should only happen in uninstrumented code!" << endl;
+		}
+		else {
+			assert(valid && shadowAddr != writtenAddr);
+			writtenAddr = shadowAddr;
+		}
+	}
 
     // 2. Flush the runtime cache if we overwrote any code
     // Produce warning message if we've overwritten weird types of code: 
-    codeRange *range = ev.proc->findOrigByAddr(violationAddr);
-    if (range && ! range->is_mapped_object()) { // we overwrote code
+    Address origWritten = writtenAddr;
+    vector<func_instance *> writtenFuncs;
+    baseTramp *bti = NULL;
+    bool success = ev.proc->getAddrInfo(writtenAddr, 
+                                        origWritten, 
+                                        writtenFuncs, 
+                                        bti);
+    if (writtenFuncs.size() == 0) {
+        mapped_object *writtenObj = ev.proc->findObject(writtenAddr);
+        assert(writtenObj);
+        mal_printf("%s[%d] Insn at %lx wrote to %lx on a page containing "
+                "code, but no code was overwritten\n",
+                FILE__,__LINE__,ev.address,writtenAddr);
+    }
+    else {
+        // flush all addresses matching the mapped object and the
+        // runtime library heaps
+        ev.proc->flushAddressCache_RT(writtenFuncs[0]->obj());
 
-        mapped_object *mobj = NULL;
-        // see if the the range is the block we currently inhabit
-        bblInstance *block = NULL;
-        if (range->is_basicBlockInstance()) {
-            block = (bblInstance*) range;
-            mobj = block->func()->obj();
-        } else if (range->is_function()) {
-            block = ((int_function*)range)->findBlockInstanceByAddr(violationAddr);
-            mobj = block->func()->obj();
-        } else {
-            assert(0);
+        if (writtenFuncs.size() > 1) {
+            fprintf(stderr, "WARNING: overwrote shared code, we may not "
+                    "handle this correctly %lx->%lx[%lx] %s[%d]\n",
+                    ev.address, writtenAddr, origWritten, FILE__,__LINE__);
+            //assert(0 && "overwrote shared code"); //KEVINTODO: test this case
         }
-        if (block && block->firstInsnAddr() <= ev.address
-            && block->lastInsnAddr() >= ev.address) {
-            //KEVINTODO: caught overwrite of code in the basic block
-            //that is currently executing, haven't implemented this
-            //case yet.
-            //
-            // Strategy will be to single step the instruction, no
-            // other approach can deal with the possibility that the
-            // same or very next instruction will be overwritten
-            assert(0);
-        }
-         // flush all addresses matching the mapped object and the
-         // runtime library heaps
-         ev.proc->flushAddressCache_RT(mobj);
-
-    } 
-    else if (range) { // range is a mapped_object
-        // We overwrote inside a mapped object's range, on a page that
-        // contains code, but didn't overwrite any code
-        mal_printf("%s[%d] Insn at %lx wrote to %lx on a page containing code,"
-                " but no code was overwritten\n",
-                FILE__,__LINE__,ev.address,violationAddr);
     }
 
     // 3. Find the instruction that caused the violation and determine 
     //    its address in unrelocated code
-    Address origAddress = 0;
-    codeRange *causeRange = ev.proc->findOrigByAddr(ev.address);
-    multiTramp *multi = causeRange->is_multitramp();
-    mapped_object *mobj = causeRange->is_mapped_object();
-
-    if ( mobj ) {// means we haven't parsed the object yet
-        mobj->analyze(); 
-        causeRange = ev.proc->findOrigByAddr(ev.address);
-    }
-    bblInstance *causeBBI = causeRange->is_basicBlockInstance();
-
-    if (causeBBI) {
-        origAddress = causeBBI->equivAddr(0,ev.address);
-    } else {
-        miniTrampInstance *mini = causeRange->is_minitramp();
-        if (multi) {
-            // it could be in relocated or replaced code, instrumentation, 
-            // or (multi|base)tramp code, but something's wrong if it's not 
-            // in relocated code
-            baseTrampInstance *base = 
-                multi->getBaseTrampInstanceByAddr(ev.address);
-            assert ( ! base ); // make sure we're not in the basetramp
-            origAddress = multi->instToUninstAddr(ev.address);
-            causeBBI = 
-                ev.proc->findOrigByAddr(origAddress)->is_basicBlockInstance();
-            assert(causeBBI);
-            origAddress = causeBBI->equivAddr(0,origAddress);
-
-        } else {
-            // this is an error case, meaning that we're executing 
-            // uninstrumented code. It has been a sign that:
-            //  - we invalidated relocated code that we were executing in
-            //  - we removed code-discovery instrumentation, because of an 
-            //    overwrite in a block that ends with an indirect ctrl 
-            //    transfer that should be instrumented, and are executing
-            // sometimes arises as a race condition
-            fprintf(stderr, "ERROR: found no code to match instruction at %lx,"
-                    " which writes to %lx on page containing analyzed code\n",
-                    ev.address, violationAddr);
-            assert(0 && "couldn't find the overwrite instruction"); 
-        }
+    Address origWrite = ev.address;
+    vector<func_instance *> writeFuncs;
+    success = ev.proc->getAddrInfo(ev.address, origWrite, writeFuncs, bti);
+    if (!success) {
+        // this is an error case, meaning that we're executing 
+        // uninstrumented code. It has been a sign that:
+        //  - we invalidated relocated code that we were executing in
+        //  - we removed code-discovery instrumentation, because of an 
+        //    overwrite in a block that ends with an indirect ctrl 
+        //    transfer that should be instrumented, and are executing
+        // sometimes arises as a race condition
+        fprintf(stderr, "ERROR: found no code to match instruction at %lx,"
+                " which writes to %lx on page containing analyzed code\n",
+                ev.address, writtenAddr);
+        assert(0 && "couldn't find the overwrite instruction"); 
     }
 
-    // 4. Trigger user-mode callback to respond to the overwrite
-    assert (((BPatch_process*)ev.proc->up_ptr())->triggerCodeOverwriteCB
-            (origAddress, violationAddr));
+    // 4. Create an instPoint for the write
+    func_instance *writeFunc;
+    if (writeFuncs.size() == 1) {
+        writeFunc = writeFuncs[0];
+    } else { 
+        writeFunc = ev.proc->findActiveFuncByAddr(ev.address);
+    }
+	instPoint *writePoint = instPoint::preInsn(writeFunc, writeFunc->getBlock(ev.address), ev.address);
+
+    assert(writePoint);
+
+    // 5. Trigger user-mode callback to respond to the overwrite
+    success = (((BPatch_process*)ev.proc->up_ptr())->
+        triggerCodeOverwriteCB(writePoint, writtenAddr));
+    assert(success);
 
     return true;
 }
@@ -2619,8 +2881,10 @@ bool process::hideDebugger()
     return true;
 }
 
+
 mapped_object *process::createObjectNoFile(Address addr)
 {
+	cerr << "createObjectNoFile " << hex << addr << dec << endl;
     Address closestObjEnd = 0;
     for (unsigned i=0; i<mapped_objects.size(); i++)
     {
@@ -2629,7 +2893,7 @@ mapped_object *process::createObjectNoFile(Address addr)
                    + mapped_objects[i]->imageSize())
         {
             fprintf(stderr,"createObjectNoFile called for addr %lx, "
-                    "matching existing mapped_object %s %s[%d]\n",
+                    "matching existing mapped_object %s %s[%d]\n", addr,
                     mapped_objects[i]->fullName().c_str(), FILE__,__LINE__);
             return mapped_objects[i];
         }
@@ -2655,49 +2919,74 @@ mapped_object *process::createObjectNoFile(Address addr)
     if (proc()->proc() && readDataSpace((void*)addr, proc()->getAddressWidth(),
                                         &testRead, false)) 
     {
-        // create a module for the region enclosing this address
+		// create a module for the region enclosing this address
         MEMORY_BASIC_INFORMATION meminfo;
         memset(&meminfo,0, sizeof(MEMORY_BASIC_INFORMATION) );
         SIZE_T size = VirtualQueryEx(proc()->processHandle_,
                                      (LPCVOID)addr, &meminfo, 
                                      sizeof(MEMORY_BASIC_INFORMATION));
         assert(meminfo.State == MEM_COMMIT);
+		cerr << "VirtualQuery reports baseAddr " << hex << meminfo.BaseAddress << ", allocBase " << meminfo.AllocationBase << ", size " << meminfo.RegionSize << ", state " << meminfo.State << dec << endl;
+
+        Address objStart = (Address) meminfo.AllocationBase;
+        Address probeAddr = (Address) meminfo.BaseAddress +  (Address) meminfo.RegionSize;
+        Address objEnd = probeAddr;
+        MEMORY_BASIC_INFORMATION probe;
+        memset(&probe, 0, sizeof(MEMORY_BASIC_INFORMATION));
+        do {
+            objEnd = probeAddr;
+            SIZE_T size2 = VirtualQueryEx(proc()->processHandle_,
+                                          (LPCVOID) ((Address)meminfo.BaseAddress + meminfo.RegionSize),
+                                          &probe,
+                                          sizeof(MEMORY_BASIC_INFORMATION));
+			cerr << "VirtualQuery reports baseAddr " << hex << probe.BaseAddress << ", allocBase " << probe.AllocationBase << ", size " << probe.RegionSize << ", state " << probe.State << dec << endl;
+
+			probeAddr = (Address) probe.BaseAddress + (Address) probe.RegionSize;
+        } while ((probe.AllocationBase == meminfo.AllocationBase) && // we're in the same allocation unit...
+			(objEnd != probeAddr)); // we're making forward progress
+
+
         // The size of the region returned by VirtualQueryEx is from BaseAddress
         // to the end, NOT from meminfo.AllocationBase, which is what we want.
         // BaseAddress is the start address of the page of the address parameter
         // that is sent to VirtualQueryEx as a parameter
-        Address regionSize = (Address)meminfo.BaseAddress 
-            - (Address)meminfo.AllocationBase
-            + (Address)meminfo.RegionSize;
+        Address regionSize = objEnd - objStart;
         mal_printf("[%lx %lx] is valid region containing %lx and corresponding "
                "to no object, closest is object ending at %lx %s[%d]\n", 
-               meminfo.AllocationBase, 
-               ((Address)meminfo.AllocationBase) + regionSize,
+               objStart, 
+               objEnd,
                addr, closestObjEnd, FILE__,__LINE__);
         // read region into this process
         unsigned char* rawRegion = (unsigned char*) 
-            ::LocalAlloc(LMEM_FIXED, meminfo.RegionSize);
-        assert( proc()->readDataSpace(meminfo.AllocationBase,
-                                    regionSize, rawRegion, true) );
-        // set up file descriptor
+            ::LocalAlloc(LMEM_FIXED, regionSize);
+		if (!proc()->readDataSpace((void *)objStart,
+								   regionSize,
+								   rawRegion, true))
+		{
+			cerr << "Error: failed to read memory region [" << hex << objStart << "," << objStart + regionSize << "]" << dec << endl;
+			printSysError(GetLastError());
+			assert(0);
+		}
+		// set up file descriptor
         char regname[64];
         snprintf(regname,63,"mmap_buffer_%lx_%lx",
-                 ((Address)meminfo.AllocationBase),
-                 ((Address)meminfo.AllocationBase) + regionSize);
-
+                    objStart, objEnd);
         fileDescriptor desc(string(regname), 
                             0, 
                             (HANDLE)0, 
                             (HANDLE)0, 
                             true, 
-                            (Address)meminfo.AllocationBase,
-                            (Address)meminfo.RegionSize,
+                            (Address)objStart,
+                            (Address)regionSize,
                             rawRegion);
         mapped_object *obj = mapped_object::createMappedObject
             (desc,this,proc()->getHybridMode(),false);
         if (obj != NULL) {
+            obj->setMemoryImg();
             mapped_objects.push_back(obj);
-            addOrigRange(obj);
+
+            obj->parse_img()->getOrCreateModule(
+                obj->parse_img()->getObject()->getDefaultModule());
             return obj;
         }
     }
@@ -2743,18 +3032,18 @@ bool OS::executableExists(const std::string &file) {
    return (stat_result != -1);
 }
 
-int_function *dyn_thread::map_initial_func(int_function *ifunc) {
+func_instance *dyn_thread::map_initial_func(func_instance *ifunc) {
     if (!ifunc || strcmp(ifunc->prettyName().c_str(), "mainCRTStartup"))
         return ifunc;
 
     //mainCRTStartup is not a real initial function.  Use main, if it exists.
-    const pdvector<int_function *> *mains = proc->getAOut()->findFuncVectorByPretty("main");
+    const pdvector<func_instance *> *mains = proc->getAOut()->findFuncVectorByPretty("main");
     if (!mains || !mains->size())
         return ifunc;
     return (*mains)[0];
 }
 
-bool process::instrumentThreadInitialFunc(int_function *f) {
+bool process::instrumentThreadInitialFunc(func_instance *f) {
     if (!f)
         return false;
 
@@ -2763,26 +3052,21 @@ bool process::instrumentThreadInitialFunc(int_function *f) {
             return true;
     }
     }
-    int_function *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
+    func_instance *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
     if (!dummy_create)
     {
-      return false;
+		return false;
     } 
 
     pdvector<AstNodePtr> args;
     AstNodePtr call_dummy_create = AstNode::funcCallNode(dummy_create, args);
-    const pdvector<instPoint *> &ips = f->funcEntries();
-    for (unsigned j=0; j<ips.size(); j++)
-    {
-       miniTramp *mt;
-       mt = ips[j]->instrument(call_dummy_create, callPreInsn, orderFirstAtPoint, false, 
-                               false);
-       if (!mt)
-       {
-          fprintf(stderr, "[%s:%d] - Couldn't instrument thread_create\n",
-                  __FILE__, __LINE__);
-       }
-    }
+	instPoint *entry = instPoint::funcEntry(f);
+	miniTramp *mt = entry->push_front(call_dummy_create, false);
+	relocate();
+    if (!mt) {
+      fprintf(stderr, "[%s:%d] - Couldn't instrument thread_create\n",
+              __FILE__, __LINE__);
+	}
     initial_thread_functions.push_back(f);
     return true;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -30,9 +30,24 @@
  */
 
 #include "response.h"
+#include <set>
 
 namespace Dyninst {
 namespace ProcControlAPI {
+
+class int_eventBreakpoint
+{
+  public:
+   int_eventBreakpoint(Address a, installed_breakpoint *i, int_thread *thr);
+   ~int_eventBreakpoint();
+
+   installed_breakpoint *ibp;
+   Dyninst::Address addr;
+   result_response::ptr pc_regset;
+   int_thread *thrd;
+
+   std::set<Breakpoint::ptr> cb_bps;
+};
 
 class int_eventBreakpointClear
 {
@@ -40,19 +55,28 @@ class int_eventBreakpointClear
    int_eventBreakpointClear();
    ~int_eventBreakpointClear();
 
-   result_response::ptr memwrite_bp_resume;
-   bool cleared_singlestep;
-};
+   std::set<result_response::ptr> memwrite_bp_suspend;
+   bool started_bp_suspends;
+   bool cached_bp_sets;
+   bool set_singlestep;
 
-class int_eventBreakpoint
+   std::set<Thread::ptr> clearing_threads;
+
+   void getBPTypes(std::set<pair<installed_breakpoint *, int_thread *> > &bps_to_clear,
+                   std::set<pair<installed_breakpoint *, int_thread *> > &bps_to_restore);
+   std::set<pair<installed_breakpoint *, int_thread *> > bps_to_clear_cached;
+   std::set<pair<installed_breakpoint *, int_thread *> > bps_to_restore_cached;
+};
+ 
+class int_eventBreakpointRestore
 {
   public:
-   int_eventBreakpoint();
-   ~int_eventBreakpoint();
+   int_eventBreakpointRestore(installed_breakpoint *breakpoint_);
+   ~int_eventBreakpointRestore();
 
-   result_response::ptr memwrite_bp_suspend;
-   result_response::ptr pc_regset;
-   bool set_singlestep;
+   result_response::ptr memwrite_bp_resume;
+   result_response::ptr memwrite_bp_remove;
+   installed_breakpoint *bp;
 };
 
 class int_eventRPC {
@@ -85,6 +109,15 @@ class int_eventNewUserThread {
    Dyninst::LWP lwp;
    void *raw_data;
    bool needs_update;
+};
+
+class int_eventThreadDB {
+  public:
+   int_eventThreadDB();
+   ~int_eventThreadDB();
+   
+   std::set<Event::ptr> new_evs;
+   bool completed_new_evs;
 };
 
 }

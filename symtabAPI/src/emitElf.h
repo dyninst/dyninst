@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -82,12 +82,10 @@ class emitElf{
 
     std::vector<Region *>nonLoadableSecs;
     std::vector<Region *> newSecs;
-#if !defined(os_solaris)
     std::map<unsigned, std::vector<Elf32_Dyn *> > dynamicSecData;
     std::vector<std::string> DT_NEEDEDEntries;
     std::vector<std::pair<long, long> > new_dynamic_entries;
     std::vector<std::string> unversionedNeededEntries;
-#endif
 
     // Symbol version table data
     std::map<std::string, std::map<std::string, unsigned> >verneedEntries;    //verneed entries
@@ -149,12 +147,11 @@ class emitElf{
     bool TLSExists;
     Elf32_Shdr *newTLSData;
 
-#if !defined(os_solaris)
     void updateDynamic(unsigned tag, Elf32_Addr val);
-    void createSymbolVersions(Symtab *obj, Elf32_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
+    void createSymbolVersions(Symtab *obj, Elf32_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char
+*&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
     void createHashSection(Symtab *obj, Elf32_Word *&hashsecData, unsigned &hashsecSize, std::vector<Symbol *>&dynSymbols);
     void createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dynsecData, unsigned &dynsecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
-#endif 
 
     void log_elferror(void (*err_func)(const char *), const char* msg);
     bool hasPHdrSectionBug();

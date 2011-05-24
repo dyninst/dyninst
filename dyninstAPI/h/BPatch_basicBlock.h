@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -32,7 +32,6 @@
 #ifndef _BPatch_basicBlock_h_
 #define _BPatch_basicBlock_h_
 
-#include "BPatch_point.h"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
@@ -40,11 +39,17 @@
 #include "BPatch_instruction.h"
 #include "BPatch_eventLock.h"
 #include "Instruction.h"
+#include "BPatch_enums.h"
 //#include "BPatch_edge.h"
 
 class image;
-class int_function;
-class int_basicBlock;
+class func_instance;
+class instPoint;
+class block_instance;
+class BPatch_point;
+class BPatch_edge;
+class BPatch_function;
+class BPatch_flowGraph;
 
 /* Currently all this bitarray stuff is just for power, 
    but could be extended as we do liveness stuff for other platforms */
@@ -76,13 +81,13 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 	friend class TarjanDominator;
 	friend class dominatorCFG;
 	friend class InstrucIter;
-	friend class int_function;
+	friend class func_instance;
         friend class BPatch_instruction;
 	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlock&);
 
  private:
    /** the internal basic block structure **/
-   int_basicBlock *iblock;
+   block_instance *iblock;
 
    /** the flow graph that contains this basic block */
    BPatch_flowGraph *flowGraph;
@@ -109,10 +114,15 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    /** the outgoing edges */
    BPatch_Set<BPatch_edge*> outgoingEdges;
 
+   BPatch_flowGraph *fg() const { return flowGraph; }
+   block_instance *block() const { return iblock; }
+   BPatch_function *func() const;
+   func_instance *ifunc() const;
+
  protected:
 
    /** constructor of class */
-   BPatch_basicBlock(int_basicBlock *ib, BPatch_flowGraph *fg);
+   BPatch_basicBlock(block_instance *ib, BPatch_flowGraph *fg);
 
 
    
@@ -123,11 +133,16 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    
    // Internal functions. Don't use these unless you know what you're
    // doing.
-   int_basicBlock *lowlevel_block()  { return iblock; }
-   void setlowlevel_block(int_basicBlock *b)  { iblock = b; }
+   block_instance *lowlevel_block()  { return iblock; }
+
+   void setlowlevel_block(block_instance *b)  { iblock = b; }
    void  getAllPoints(std::vector<BPatch_point*>& allPoints);
+   BPatch_point *convertPoint(instPoint *pt);
    BPatch_function *getCallTarget();
    // end internal functions
+
+   API_EXPORT(Int, (),
+	      BPatch_flowGraph *, getFlowGraph, () CONST_EXPORT);
 
 	/** BPatch_basicBlock::getSources   */
 	/** method that returns the predecessors of the basic block */
@@ -273,9 +288,6 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
               BPatch_Vector<BPatch_point*> *,findPoint,(bool(*filter)(Dyninst::InstructionAPI::Instruction::Ptr)));
    /** BPatch_basicBlock::getInstructions   */
 	/** return the instructions that belong to the block */
-
-   API_EXPORT(Int, (),
-             BPatch_Vector<BPatch_instruction *> *,getInstructions,());
 
    API_EXPORT(Int, (insns),
 	      bool, getInstructions, (std::vector<Dyninst::InstructionAPI::Instruction::Ptr>& insns));

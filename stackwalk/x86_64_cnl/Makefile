@@ -18,11 +18,12 @@ TARGET = libstackwalk.a
 LDFLAGS     += $(LIBDIR) -lcommon
 
 SRCS = 	../src/linux-swk.C \
-	../src/linux-x86-swk.C \
+	../src/linuxbsd-x86-swk.C \
 	../src/x86-swk.C \
 	../src/symtab-swk.C \
-	../src/dbginfo-stepper.C
-
+	../src/dbginfo-stepper.C \
+	../src/linuxbsd-swk.C \
+	../../common/src/Elf_X.C
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -40,3 +41,4 @@ LIBS	+=
 CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 AS		= as
+VPATH += ../../common/src

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -190,7 +190,7 @@ class Object : public AObject {
     Object (const Object &);
     Object&   operator= (const Object &);
     Object(){}	
-    Object(MappedFile *, MappedFile *, void (*)(const char *) = log_msg, Offset off = 0, bool alloc_syms = true);
+    Object(MappedFile *, MappedFile *, bool, void (*)(const char *) = log_msg, Offset off = 0, bool alloc_syms = true);
     Object(MappedFile *, MappedFile *, dyn_hash_map<std::string, LineInformation> &, std::vector<Region *> &, 
           void (*)(const char *) = log_msg, Offset off = 0);
     Object(MappedFile *, MappedFile *, std::string &member_name, Offset offset,	

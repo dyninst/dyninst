@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,11 +39,9 @@
 #define LINUX_PD_HDR
 class PCProcess;
 
-#include <sys/param.h>
-#include <pthread.h>
-
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
+#include "common/h/linuxKludges.h"
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Archive.h"
 

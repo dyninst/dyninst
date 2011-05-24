@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -103,7 +103,17 @@ gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
         WandererHelper::pc_state pcs = whelper->isPCInFunc(target, in.getRA());
         switch (pcs)
         {
+          case WandererHelper::outside_func:
+            // TODO re-enable this heuristic for Dyninst when the Analysis Stepper is working
+            if (whelper->requireExactMatch()) {  
+            sw_printf("[%s:%u] - Wanderer discarded word 0x%lx at 0x%lx\n",
+                      __FILE__, __LINE__, word, current_stack);
+            // not a candidate
+            break;
+            }
           case WandererHelper::unknown_s:
+            sw_printf("[%s:%u] - Wanderer added word 0x%lx at 0x%lx as candidate return "
+                      " address\n", __FILE__, __LINE__, word, current_stack);
             candidate.push_back(std::pair<Address, Address>(word, current_stack));
             break;
 
@@ -114,12 +124,10 @@ gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
             found_ra = word;
             found_exact_match = true;
             break;
-
-          case WandererHelper::outside_func:
-            // not a candidate
-            break;
         }
       }
+
+      if (found_exact_match) break;
       current_stack += addr_width;
       num_words_tried++;
    } while (num_words_tried < MAX_WANDERER_DEPTH);

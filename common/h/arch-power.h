@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -694,7 +694,7 @@ typedef unsigned codeBufIndex_t;
 #define DinDSmask	0x0000fffc		// bits 16-29
 
 #define getRT(x) (((x) & RTmask) >> 21)
-//#define getRA(x) (((x) & RAmask) >> 16)
+#define getRAByMask(x) (((x) & RAmask) >> 16)
 #define getRB(x) (((x) & RBmask) >> 11)
 #define getDinD(x) ((x) & DinDmask)
 #define getDinDS(x) ((x) & DinDSmask)
@@ -775,6 +775,10 @@ class instruction {
     instruction(unsigned int raw) {
         // Don't flip bits here.  Input is already in host byte order.
         insn_.raw = raw;
+    }
+    // Pointer creation method
+    instruction(const void *ptr) {
+      insn_ = *((instructUnion *)ptr);
     }
 
     instruction(const instruction &insn) :        insn_(insn.insn_) {};

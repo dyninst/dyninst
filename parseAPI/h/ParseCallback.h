@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -61,8 +61,6 @@ class ParseCallback {
     size_t isize;
     bool isbranch;
   };
-  virtual void unresolved_cf(Function *,Address,default_details*) { }
-  virtual void abruptEnd_cf(Address,default_details*) { }
 
   /*
    * Notify for interprocedural control transfers
@@ -72,7 +70,9 @@ class ParseCallback {
         ret,
         call,
         branch_interproc, // tail calls, branches to plts
-        syscall
+        syscall,
+        unres_call,
+        unres_branch
     } type_t;
     unsigned char * ibuf;
     size_t isize;
@@ -83,9 +83,14 @@ class ParseCallback {
             bool absolute_address;
             bool dynamic_call;
         } call;
+        struct {
+            Address target;
+            bool absolute_address;
+            bool dynamic;
+        } unres;
     } data;
   };
-  virtual void interproc_cf(Function*,Address,interproc_details*) { }
+  virtual void interproc_cf(Function*,Block *,Address,interproc_details*) { }
 
   /*
    * Allow examination of every instruction processed during parsing.
@@ -93,7 +98,7 @@ class ParseCallback {
   struct insn_details {
     InsnAdapter::InstructionAdapter * insn;
   };
-  virtual void instruction_cb(Function*,Address,insn_details*) { }
+  virtual void instruction_cb(Function*,Block *,Address,insn_details*) { }
 
   /* 
    * Notify about inconsistent parse data (overlapping blocks).
@@ -114,7 +119,13 @@ class ParseCallback {
    */
   virtual void newfunction_retstatus(Function*) { }
   virtual void block_split(Block *, Block *) { }
-  virtual void patch_jump_neg1(Address) { }
+  virtual void patch_nop_jump(Address) { }
+  virtual bool updateCodeBytes(Address) { return false; }
+  virtual void abruptEnd_cf(Address, Block *,default_details*) { }
+  virtual bool loadAddr(Address, Address &) { return false; }
+  virtual void block_delete(Block *) {};
+  virtual bool hasWeirdInsns(const Function*) const { return false; };
+  virtual void foundWeirdInsns(Function*) {};
 };
 
 }

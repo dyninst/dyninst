@@ -20,13 +20,15 @@ include ../make.module.tmpl
 LDFLAGS     += $(LIBDIR) -lcommon -ldl
 
 SRCS += 	../src/linux-swk.C \
-			../src/linux-x86-swk.C \
+			../src/linuxbsd-x86-swk.C \
 			../src/x86-swk.C \
 			../src/symtab-swk.C \
 			../src/dbginfo-stepper.C \
 			../src/x86-wanderer.C \
-	                ../src/analysis_stepper.C
-
+	                ../src/analysis_stepper.C \
+			../src/linuxbsd-swk.C \
+			../src/linux-x86-swk.C \
+			../../common/src/Elf_X.C
 
 ifdef LIBELF_INC
 MYFLAGS += -I$(LIBELF_INC)
@@ -53,5 +55,9 @@ AS		= as
 
 include ../../make.library.tmpl
 
+# Now make any necessary architecture specific changes to variables:
+VPATH += ../../common/src
+
 libstackwalk.a: $(OBJS)
 	ar rv libstackwalk.a $^
+

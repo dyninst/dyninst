@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -107,7 +107,6 @@ dynHandle *mutatorInit(void)
 
     if (config.use_attach) {
 	sendMsg(config.outfd, ID_INIT_ATTACH_PROCESS, INFO);
-	printf("Attach Process\n");
 	dh->addSpace = dh->bpatch->processAttach(config.target, config.attach_pid);
 	dh->proc = dynamic_cast<BPatch_process *>(dh->addSpace);
 	if (!dh->proc) {
@@ -122,7 +121,6 @@ dynHandle *mutatorInit(void)
 
     } else if (config.use_process){
 	sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO);
-	printf("Process Create\n");
 	dh->addSpace = dh->bpatch->processCreate(config.target, (const char **)config.argv);
 	dh->proc = dynamic_cast<BPatch_process *>(dh->addSpace);
 	if (!dh->proc) {
@@ -135,7 +133,6 @@ dynHandle *mutatorInit(void)
 		    dh->proc->getPid());
 	}
     } else {
-      printf("Created BPatch_binaryEdit\n");
       //dh->addSpace = new BPatch_binaryEdit(config.target);
       dh->addSpace = dh->bpatch->openBinary(config.target, config.include_libs);
       if (!dh->addSpace) {
@@ -146,12 +143,6 @@ dynHandle *mutatorInit(void)
 	config.dynlib = dh;
       }
       }
-
-    if (config.use_save_world) {
-	sendMsg(config.outfd, ID_INIT_SAVE_WORLD, INFO);
-	dh->proc->enableDumpPatchedImage();
-	sendMsg(config.outfd, ID_INIT_SAVE_WORLD, INFO, ID_PASS);
-    }
 
     sendMsg(config.outfd, ID_INIT_GET_IMAGE, INFO);
     //dh->image = dh->proc->getImage();

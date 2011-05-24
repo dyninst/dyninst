@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -40,6 +40,8 @@
       fprintf(pctrl_err_out, format, ## __VA_ARGS__); \
   } while (0)
 
+#if defined(PROCCTRL_PRINT_TIMINGS)
+
 #define pthrd_printf(format, ...) \
   do { \
     if (dyninst_debug_proccontrol) { \
@@ -52,6 +54,23 @@
     if (dyninst_debug_proccontrol) \
        fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - Error: " format, __FILE__, __LINE__, thrdName(), gettod(), ## __VA_ARGS__); \
   } while (0)
+
+#else
+
+#define pthrd_printf(format, ...) \
+  do { \
+    if (dyninst_debug_proccontrol) { \
+       fprintf(pctrl_err_out, "[%s:%u-%s] - " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+    } \
+  } while (0)
+
+#define perr_printf(format, ...) \
+  do { \
+    if (dyninst_debug_proccontrol) \
+       fprintf(pctrl_err_out, "[%s:%u-%s] - Error: " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+  } while (0)
+
+#endif
 
 extern bool dyninst_debug_proccontrol;
 extern const char *thrdName();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -34,7 +34,7 @@
 #include "stackwalk/h/basetypes.h"
 #include "stackwalk/h/procstate.h"
 #include "stackwalk/h/framestepper.h"
-#include "stackwalk/src/linux-swk.h"
+#include "stackwalk/src/linuxbsd-swk.h"
 #include "dynutil/h/dyn_regs.h"
 #include <sys/user.h>
 #include <sys/ptrace.h>

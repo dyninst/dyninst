@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -58,18 +58,20 @@ extern "C" {
 }
 
 DatabaseOutputDriver::DatabaseOutputDriver(void * data)
-  : attributes(NULL), submittedResults(false), wroteLogHeader(false), result(UNKNOWN)
+  : attributes(NULL),
+    submittedResults(false),
+    wroteLogHeader(false),
+    currTest(NULL),
+    result(UNKNOWN)
 {
-	sqlLogFilename = *((std::string *)data);
+    sqlLogFilename = *((std::string *)data);
 
-	FILE * fp = fopen(sqlLogFilename.c_str(), "r");
-	if (fp != NULL) {
-		// log file already exists, so don't rewrite header
-		wroteLogHeader = true;
-		fclose(fp);
-	}
-    bytes = 0;
-    elapsed = 0.0;
+    FILE * fp = fopen(sqlLogFilename.c_str(), "r");
+    if (fp != NULL) {
+        // log file already exists, so don't rewrite header
+        wroteLogHeader = true;
+        fclose(fp);
+    }
 }
 
 DatabaseOutputDriver::~DatabaseOutputDriver() {
@@ -80,9 +82,11 @@ DatabaseOutputDriver::~DatabaseOutputDriver() {
 }
 
 void
-DatabaseOutputDriver::startNewTest(std::map<std::string,
-				            std::string> &attrs, TestInfo *test, RunGroup *group)
+DatabaseOutputDriver::startNewTest(std::map<std::string, std::string> &attrs,
+                                   TestInfo *test, RunGroup *group)
 {
+  currTest = test;
+
   // This needs to set up a log file to store output from all streams
   if (attributes != NULL) {
     delete attributes;
@@ -104,8 +108,6 @@ DatabaseOutputDriver::startNewTest(std::map<std::string,
   submittedResults = false;
   // Don't know what the test's result is
   result = UNKNOWN;
-  //bytes = 0;
-  //elapsed = 0.0;
 }
 
 void DatabaseOutputDriver::redirectStream(TestOutputStream stream, const char * filename) {
@@ -119,14 +121,6 @@ void DatabaseOutputDriver::logResult(test_results_t res, int stage) {
   // finalizeOutput for that?
   result = res;
 }
-
-void DatabaseOutputDriver::logMemory(unsigned long bytesUsed) {
-    bytes = bytesUsed;
-}
-void DatabaseOutputDriver::logTime(double elapsedTime) {
-    elapsed = elapsedTime;
-}
-
 
 void DatabaseOutputDriver::logCrash(std::string crashedTest) {
   // New idea: we've already called startNewTest for this test, so
@@ -273,65 +267,64 @@ void DatabaseOutputDriver::writeSQLLog() {
    assert(out);
 
    // 1. Write a test label to the file
-	time_t rawtime;
-	struct tm * timeinfo;
+   time_t rawtime;
+   struct tm * timeinfo;
 
-	time(&rawtime);
-	timeinfo = localtime(&rawtime);
+   time(&rawtime);
+   timeinfo = localtime(&rawtime);
 
    fprintf(out, "BEGIN TEST\n");
-	fprintf(out, "%4d-%02d-%02d %02d:%02d:%02d\n", timeinfo->tm_year + 1900,
+   fprintf(out, "%4d-%02d-%02d %02d:%02d:%02d\n", timeinfo->tm_year + 1900,
            timeinfo->tm_mon + 1, timeinfo->tm_mday, timeinfo->tm_hour,
            timeinfo->tm_min, timeinfo->tm_sec);
 
    fprintf(out, "{");
-	std::map<std::string, std::string>::iterator iter;
-	for (iter = attributes->begin(); iter != attributes->end(); iter++) {
-      fprintf(out, "%s: %s", iter->first.c_str(), iter->second.c_str());
-		std::map<std::string, std::string>::iterator testiter = iter;
-		if (++testiter != attributes->end()) {
-			fprintf(out, ", ");
-		}
-	}
-	fprintf(out, "}\n");
+   std::map<std::string, std::string>::iterator iter;
+   for (iter = attributes->begin(); iter != attributes->end(); iter++) {
+       fprintf(out, "%s: %s", iter->first.c_str(), iter->second.c_str());
+       std::map<std::string, std::string>::iterator testiter = iter;
+       if (++testiter != attributes->end()) {
+           fprintf(out, ", ");
+       }
+   }
+   fprintf(out, "}\n");
 
    std::string buf;
-	FILE *fh = fopen(dblogFilename.c_str(), "rb");
-	if (!fh) {
-		fprintf(stderr, "[%s:%u] - Error opening file: %s\n", 
-              __FILE__, __LINE__, dblogFilename.c_str());
-	}
-   else {
-      fseek(fh, 0, SEEK_END);
-      long size = ftell(fh);
-      fseek(fh, 0, SEEK_SET);
-      char *buffer = new char[size + 1];
-      fread(buffer, sizeof(char), size, fh);
-      fclose(fh);
-      buffer[size] = '\0';
+   FILE *fh = fopen(dblogFilename.c_str(), "rb");
+   if (!fh) {
+       fprintf(stderr, "[%s:%u] - Error opening file: %s\n", 
+               __FILE__, __LINE__, dblogFilename.c_str());
+   } else {
+       fseek(fh, 0, SEEK_END);
+       long size = ftell(fh);
+       fseek(fh, 0, SEEK_SET);
+       char *buffer = new char[size + 1];
+       fread(buffer, sizeof(char), size, fh);
+       fclose(fh);
+       buffer[size] = '\0';
 
-      //remove trailing whitespace from buffer
-      buf = std::string(buffer);
-      size_t found = buf.find_last_not_of(" \t\f\v\n\r");
-      if (found != std::string::npos)
-         buf.erase(found + 1);
-      else
-         buf.clear();
+       //remove trailing whitespace from buffer
+       buf = std::string(buffer);
+       size_t found = buf.find_last_not_of(" \t\f\v\n\r");
+       if (found != std::string::npos)
+           buf.erase(found + 1);
+       else
+           buf.clear();
 
-      fprintf(out, buf.c_str());
-      delete [] buffer;
+       fprintf(out, buf.c_str());
+       delete [] buffer;
    }
    if (buf.rfind("RESULT:") == std::string::npos) {
        fprintf(out, "\nRESULT: %d", result);
-       if(elapsed != 0.0) {
-           fprintf(out, "\nCPU: %f", elapsed);
-       }
-       if(bytes != 0) {
-           fprintf(out, "\nMEMORY: %d", bytes);
+       if (currTest && currTest->usage.has_data()) {
+           fprintf(out, "\nCPU: %ld.%06ld\nMEMORY: %ld",
+                   currTest->usage.cpuUsage().tv_sec,
+                   currTest->usage.cpuUsage().tv_usec,
+                   currTest->usage.memUsage());
        }
    }
    fprintf(out, "\n\n");
-   
+
    fflush(out);
    fclose(out);
 

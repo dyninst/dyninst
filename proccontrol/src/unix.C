@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -134,24 +134,9 @@ bool unix_process::post_forked()
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 
-   std::set<int_library*> added, rmd;
-   for (;;) {
-      std::set<response::ptr> async_responses;
-      bool result = refresh_libraries(added, rmd, async_responses);
-      if (!result && !async_responses.empty()) {
-         result = waitForAsyncEvent(async_responses);
-         if (!result) {
-            pthrd_printf("Failure waiting for async completion\n");
-            return false;
-         }
-         continue;
-      }
-      if (!result) {
-         pthrd_printf("Failure refreshing libraries for %d\n", getPid());
-         return false;
-      }
-      return true;
-   }
+   //TODO: Remove this and make have the translate layers' fork
+   // constructors do the work.
+   return initializeAddressSpace();
 }
 
 unsigned unix_process::getTargetPageSize() {

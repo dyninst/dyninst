@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -42,7 +42,7 @@
 ostream&
 operator<<( ostream& s, int64_t val )
 {
-    char buffer[32];
+    char buffer[32] = "";
 
     _i64toa( val, buffer, 10 );
     s << buffer << std::ends;
@@ -53,7 +53,7 @@ operator<<( ostream& s, int64_t val )
 ostream&
 operator<<( ostream& s, uint64_t val )
 {
-    char buffer[32];
+    char buffer[32] = "";
 
     _i64toa( val, buffer, 10 );
     s << buffer << std::ends;

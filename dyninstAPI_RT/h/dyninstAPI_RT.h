@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -177,6 +177,64 @@ struct trap_mapping_header {
    uint64_t high_entry;
    trapMapping_t traps[]; //Don't change this to a pointer, despite any compiler warnings
 };
+
+#define MAX_MEMORY_MAPPER_ELEMENTS 1024
+
+typedef struct {
+    long start;
+    long size;
+} MemoryMapperCopyElement;
+
+typedef struct {
+   unsigned long lo;
+   unsigned long hi;
+   long shift;
+   MemoryMapperCopyElement *copyList;
+} MemoryMapperElement;
+
+struct MemoryMapper {
+   int guard1;
+   int guard2;
+   int size;
+   int padding;
+   MemoryMapperElement elements[MAX_MEMORY_MAPPER_ELEMENTS];
+};
+
+/* 32/64 bit versions for the mutator */
+
+typedef struct {
+   uint32_t lo;
+   uint32_t hi;
+   uint32_t shift;
+   void *copyList;
+} MemoryMapperElement32;
+
+typedef struct {
+   uint64_t lo;
+   uint64_t hi;
+   uint64_t shift;
+   void *copyList;
+} MemoryMapperElement64;
+
+struct MemoryMapper32 {
+   int guard1;
+   int guard2;
+   int size;
+   int padding;
+   MemoryMapperElement32 elements[MAX_MEMORY_MAPPER_ELEMENTS];
+};
+
+struct MemoryMapper64 {
+   int guard1;
+   int guard2;
+   int size;
+   int padding;
+   MemoryMapperElement64 elements[MAX_MEMORY_MAPPER_ELEMENTS];
+};
+
+extern struct MemoryMapper RTmemoryMapper;
+
+extern int RTuntranslatedEntryCounter;
 
 #include "dyninstRTExport.h"
 #endif /* _DYNINSTAPI_RT_H */

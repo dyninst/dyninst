@@ -6,17 +6,18 @@
 # $Id: make.module.tmpl,v 1.4 2008/09/15 17:38:17 jaw Exp $
 #
 
-SUITE_NAME	= Dyninst
+SUITE_NAME	= DynC
 RELEASE_MAJOR = 7
 RELEASE_MINOR = 0
-#BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
-
 DYNCNAME = dynC
 
-CFLAGS		     += $(USEFULWARNINGS) -I$(TO_CORE)/../include
-CXXFLAGS	     += $(USEFULWARNINGS) -I$(TO_CORE)/../include
+CFLAGS		     += $(USEFULWARNINGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/dynutil/h
+CXXFLAGS	     += $(USEFULWARNINGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/dynutil/h
 
+LDFLAGS += -L$(TO_CORE)/dyninstAPI/$(PLATFORM) -L$(TO_CORE)/common/$(PLATFORM)
+LDFLAGS += -L$(TO_CORE)/symtabAPI/$(PLATFORM) -L$(TO_CORE)/instructionAPI/$(PLATFORM) -L$(LIBRARY_DEST)
 LDFLAGS += -lcommon -lsymtabAPI -ldyninstAPI
+LDFLAGS += -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
 
 LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
@@ -31,16 +32,16 @@ endif #sparc
 endif #USES_NATIVE
 
 ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
-    LDFLAGS += -linstructionAPI
+    LDFLAGS += -linstructionAPI -L../../instructionAPI/$(PLATFORM)
 endif
 
 TO_INC   = ../h
 
 PUBLIC_H = \
-    ../h/dynC.h\
-    ../h/snippetGen.h
+    dynC.h\
+    snippetGen.h
 
-SRCS += ../src/dynC.C ../src/snippetGen.C
+SRCS += ../src/dynC.C ../src/snippetGen.C ../src/lex.$(DYNCNAME).C ../src/$(DYNCNAME).tab.C
 
 
 ifndef USES_NATIVE_CC
@@ -61,18 +62,21 @@ ifeq (0,0)
 YACCFLAGS += -v
 endif
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h -I../../dyninstAPI/src 
-
-#EXTRA_LIBS += lex.$(DYNCNAME).C
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h -I../../dyninstAPI/src -I. 
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS) 
 
-lex.$(DYNCNAME).C: ../src/C.l $(DYNCNAME).tab.h
+# We use a separate target for regenerating Lex and Yacc source files because of 
+# inconsistent Lex and Yacc availability across platforms.
+regenerate:
 	$(LEX) $(LEXFLAGS) ../src/C.l
-	mv lex.$(DYNCNAME).c lex.$(DYNCNAME).C
-
-$(DYNCNAME).tab.h: $(DYNCNAME).tab.C
-$(DYNCNAME).tab.C: ../src/C.y
+	mv lex.$(DYNCNAME).c ../src/lex.$(DYNCNAME).C
 	$(YACC) $(YACCFLAGS) ../src/C.y
-	mv $(DYNCNAME).tab.c $(DYNCNAME).tab.C
+	mv $(DYNCNAME).tab.c ../src/$(DYNCNAME).tab.C
+	mv $(DYNCNAME).tab.h ../h/
+
+
+
+
+

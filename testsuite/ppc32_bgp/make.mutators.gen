@@ -7,9 +7,9 @@
 ######################################################################
 
 
-proccontrol_MUTATORS = pc_launch pc_thread_cont pc_breakpoint pc_library pc_singlestep pc_thread pc_irpc 
+proccontrol_MUTATORS = pc_launch pc_thread_cont pc_breakpoint pc_library pc_singlestep pc_thread pc_irpc pc_detach pc_terminate pc_terminate_stopped 
 
-proccontrol_OBJS_ALL_MUTATORS = pc_launch.o pc_thread_cont.o pc_breakpoint.o pc_library.o pc_singlestep.o pc_thread.o pc_irpc.o 
+proccontrol_OBJS_ALL_MUTATORS = pc_launch.o pc_thread_cont.o pc_breakpoint.o pc_library.o pc_singlestep.o pc_thread.o pc_irpc.o pc_detach.o pc_terminate.o pc_terminate_stopped.o 
 
 
 instruction_MUTATORS = power_decode power_cft 
@@ -22,6 +22,14 @@ symtab_MUTATORS = test_lookup_func test_lookup_var test_line_info test_module te
 symtab_OBJS_ALL_MUTATORS = test_lookup_func.o test_lookup_var.o test_line_info.o test_module.o test_type_info.o test_symtab_ser_funcs.o test_ser_anno.o test_anno_basic_types.o 
 
 pc_breakpoint.so: pc_breakpoint.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_breakpoint.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+pc_detach.so: pc_detach.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_detach.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
 	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
@@ -54,6 +62,22 @@ endif
 endif
 
 pc_singlestep.so: pc_singlestep.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_singlestep.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+pc_terminate.so: pc_terminate.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_terminate.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+pc_terminate_stopped.so: pc_terminate_stopped.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/pc_terminate_stopped.dep $(LIBTESTSUITE) $(proccontrol_COMPONENT_LIB)
 	$(CXX) -o $@ -shared $(filter %.o,$^) $(proccontrol_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpcontrol -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO

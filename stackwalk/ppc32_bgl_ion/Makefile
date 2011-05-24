@@ -17,10 +17,11 @@ include ../../make.config
 LDFLAGS     += $(LIBDIR) -lcommon -ldl
 CXXFLAGS    += -I/bgsys/drivers/ppcfloor/arch/include
 
-SRCS =         ../src/bluegene-swk.C \
-               ../src/bluegenel-swk.C \
-               ../src/ppc-swk.C \
-               ../src/symtab-swk.C
+SRCS = ../src/bluegene-swk.C \
+       ../../common/src/Elf_X.C \
+       ../src/bluegenel-swk.C \
+       ../src/ppc-swk.C \
+       ../src/symtab-swk.C
 
 STATIC_COMPS = true
 
@@ -51,3 +52,6 @@ include ../make.module.tmpl
 # common targets like "clean", "install", etc.
 
 include ../../make.library.tmpl
+
+# Now make any necessary architecture specific changes to variables:
+VPATH += ../../common/src

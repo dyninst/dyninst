@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -60,12 +60,12 @@ extern "C" DLLEXPORT TestMutator *test_mem_4_factory() {
 test_results_t test_mem_4_Mutator::executeTest() {
   int testnum = 4;
   const char* testdesc = "access instrumentation";
-#if !defined(sparc_sun_solaris2_4_test) \
- && !defined(rs6000_ibm_aix4_1_test) \
+#if !defined(rs6000_ibm_aix4_1_test) \
  && !defined(i386_unknown_linux2_0_test) \
  && !defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
  && !defined(i386_unknown_nt4_0_test) \
- && !defined(ia64_unknown_linux2_4_test)
+ && !defined(amd64_unknown_freebsd7_0_test) \
+ && !defined(i386_unknown_freebsd7_0_test)
   //skiptest(testnum, testdesc);
   return SKIPPED;
 #else
@@ -104,7 +104,9 @@ test_results_t test_mem_4_Mutator::executeTest() {
   }
 #if defined(i386_unknown_linux2_0_test) \
  || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
- || defined(i386_unknown_nt4_0_test)
+ || defined(i386_unknown_nt4_0_test) \
+ || defined(amd64_unknown_freebsd7_0_test) \
+ || defined(i386_unknown_freebsd7_0_test)
   const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res1, 2);
   if (instCall(appAddrSpace, "Access", res2) < 0) {
       failtest(testnum, testdesc, "Unable to instrument all accesses.\n");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -110,7 +110,7 @@ Address PCProcess::getTOCoffsetInfo(Address) {
     return 0;
 }
 
-Address PCProcess::getTOCoffsetInfo(int_function *) {
+Address PCProcess::getTOCoffsetInfo(func_instance *) {
     assert(!"This function is unimplemented");
     return 0;
 }
@@ -142,7 +142,7 @@ AstNodePtr PCProcess::createUnprotectStackAST() {
 
     // mprotect READ/WRITE __stack_prot
     pdvector<int_variable *> vars;
-    pdvector<int_function *> funcs;
+    pdvector<func_instance *> funcs;
 
     Address var_addr;
     int size;
@@ -174,7 +174,7 @@ AstNodePtr PCProcess::createUnprotectStackAST() {
     }
 
     // mprotect: int mprotect(const void *addr, size_t len, int prot);
-    int_function *mprot = funcs[0];
+    func_instance *mprot = funcs[0];
     
     pdvector<AstNodePtr> args;
     args.push_back(AstNode::operandNode(AstNode::Constant, (void *)page_start));
@@ -210,7 +210,7 @@ bool PCProcess::instrumentLibcStartMain()
     addASharedObject(libc);
 
     // find __libc_startmain
-    const pdvector<int_function*> *funcs;
+    const pdvector<func_instance*> *funcs;
     funcs = libc->findFuncVectorByPretty("__libc_start_main");
     if(funcs->size() == 0 || (*funcs)[0] == NULL) {
         logLine( "Couldn't find __libc_start_main\n");
@@ -223,7 +223,7 @@ bool PCProcess::instrumentLibcStartMain()
         logLine( "__libc_start_main is not instrumentable\n");
         return false;
     }
-    Address addr = (*funcs)[0]->getAddress();
+    Address addr = (*funcs)[0]->addr();
     startup_printf("%s[%d]: Instrumenting libc.so:__libc_start_main() at 0x%x\n", 
                    FILE__, __LINE__, (int)addr);
 
@@ -250,96 +250,6 @@ bool PCProcess::instrumentLibcStartMain()
    return true;
 }// end instrumentLibcStartMain
 #endif
-
-bool Frame::setPC(Address newpc) {
-
-   Address pcAddr = getPClocation();
-   if (!pcAddr)
-   {
-       //fprintf(stderr, "[%s:%u] - Frame::setPC aborted", __FILE__, __LINE__);
-      return false;
-   }
-
-   //fprintf(stderr, "[%s:%u] - Frame::setPC setting %x to %x",
-   //__FILE__, __LINE__, pcAddr_, newpc);
-   if (!getProc()->writeDataSpace((void*)pcAddr, sizeof(Address), &newpc))
-      return false;
-   sw_frame_.setRA(newpc);
-   range_ = NULL;
-
-   return true;
-}
-
-void print_read_error_info(const relocationEntry entry, 
-      int_function *&target_pdf, Address base_addr) {
-
-    sprintf(errorLine, "  entry      : target_addr 0x%x\n",
-	    (unsigned)entry.target_addr());
-    logLine(errorLine);
-    sprintf(errorLine, "               rel_addr 0x%x\n", (unsigned)entry.rel_addr());
-    logLine(errorLine);
-    sprintf(errorLine, "               name %s\n", (entry.name()).c_str());
-    logLine(errorLine);
-
-    if (target_pdf) {
-      sprintf(errorLine, "  target_pdf : symTabName %s\n",
-	      (target_pdf->symTabName()).c_str());
-      logLine(errorLine);    
-      sprintf(errorLine , "              prettyName %s\n",
-	      (target_pdf->symTabName()).c_str());
-      logLine(errorLine);
-      /*
-      // Size bad. <smack>
-      sprintf(errorLine , "              size %i\n",
-      target_pdf->getSize());
-      logLine(errorLine);
-      */
-      sprintf(errorLine , "              addr 0x%x\n",
-	      (unsigned)target_pdf->getAddress());
-      logLine(errorLine);
-    }
-    sprintf(errorLine, "  base_addr  0x%x\n", (unsigned)base_addr);
-    logLine(errorLine);
-}
-
-// hasBeenBound: returns true if the runtime linker has bound the
-// function symbol corresponding to the relocation entry in at the address
-// specified by entry and base_addr.  If it has been bound, then the callee 
-// function is returned in "target_pdf", else it returns false.
-bool PCProcess::hasBeenBound(const relocationEntry &entry, 
-			   int_function *&target_pdf, Address base_addr) {
-
-    if (isTerminated()) return false;
-
-    // if the relocationEntry has not been bound yet, then the value
-    // at rel_addr is the address of the instruction immediately following
-    // the first instruction in the PLT entry (which is at the target_addr) 
-    // The PLT entries are never modified, instead they use an indirrect 
-    // jump to an address stored in the _GLOBAL_OFFSET_TABLE_.  When the 
-    // function symbol is bound by the runtime linker, it changes the address
-    // in the _GLOBAL_OFFSET_TABLE_ corresponding to the PLT entry
-
-    Address got_entry = entry.rel_addr() + base_addr;
-    Address bound_addr = 0;
-    if(!readDataSpace((const void*)got_entry, sizeof(Address), 
-			&bound_addr, true)){
-        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x, pid=%d\n (readDataSpace returns 0)",(unsigned)got_entry,getPid());
-	logLine(errorLine);
-	print_read_error_info(entry, target_pdf, base_addr);
-        return false;
-    }
-
-    if( !( bound_addr == (entry.target_addr()+6+base_addr)) ) {
-        // the callee function has been bound by the runtime linker
-	// find the function and return it
-        target_pdf = findFuncByAddr(bound_addr);
-	if(!target_pdf){
-            return false;
-	}
-        return true;	
-    }
-    return false;
-}
 
 bool AddressSpace::getDyninstRTLibName() {
    startup_printf("dyninstRT_name: %s\n", dyninstRT_name.c_str());

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -255,10 +255,10 @@ class timeStamp : public timeParent {
 
   friend COMMON_EXPORT const timeStamp operator+=(timeStamp &ts, timeLength tl);
   friend COMMON_EXPORT const timeStamp operator-=(timeStamp &ts, timeLength tl);
-  friend COMMON_EXPORT const timeLength operator-(const timeStamp a, const timeStamp b);
-  friend COMMON_EXPORT const timeStamp operator+(const timeStamp a, const timeLength b);
-  friend COMMON_EXPORT const timeStamp operator-(const timeStamp a, const timeLength b);
-  friend COMMON_EXPORT const timeStamp operator+(const timeLength a, const timeStamp b);
+  friend COMMON_EXPORT const timeLength operator-(const timeStamp& a, const timeStamp& b);
+  friend COMMON_EXPORT const timeStamp operator+(const timeStamp& a, const timeLength& b);
+  friend COMMON_EXPORT const timeStamp operator-(const timeStamp& a, const timeLength& b);
+  friend COMMON_EXPORT const timeStamp operator+(const timeLength& a, const timeStamp& b);
   // non-member ==, !=, >, <, >=, <=  operators also defined for timeStamp
 
  private:
@@ -295,10 +295,10 @@ class relTimeStamp : public timeParent {
 
   friend COMMON_EXPORT const relTimeStamp operator+=(relTimeStamp &ts, timeLength tl);
   friend COMMON_EXPORT const relTimeStamp operator-=(relTimeStamp &ts, timeLength tl);
-  friend COMMON_EXPORT const timeLength operator-(const relTimeStamp a,const relTimeStamp b);
-  friend COMMON_EXPORT const relTimeStamp operator+(const relTimeStamp a, const timeLength b);
-  friend COMMON_EXPORT const relTimeStamp operator-(const relTimeStamp a, const timeLength b);
-  friend COMMON_EXPORT const relTimeStamp operator+(const timeLength a, const relTimeStamp b);
+  friend COMMON_EXPORT const timeLength operator-(const relTimeStamp& a,const relTimeStamp& b);
+  friend COMMON_EXPORT const relTimeStamp operator+(const relTimeStamp& a, const timeLength& b);
+  friend COMMON_EXPORT const relTimeStamp operator-(const relTimeStamp& a, const timeLength& b);
+  friend COMMON_EXPORT const relTimeStamp operator+(const timeLength& a, const relTimeStamp& b);
   // non-member ==, !=, >, <, >=, <=  operators also defined for relTimeStamp
 
  private:
@@ -366,18 +366,18 @@ class timeLength : public timeParent {
   friend COMMON_EXPORT const timeLength operator*=(timeLength &t, double d);
   friend COMMON_EXPORT const timeLength operator/=(timeLength &t, double d);
   friend COMMON_EXPORT const timeLength operator-(const timeLength &t);
-  friend COMMON_EXPORT const timeLength operator-(const timeStamp a, const timeStamp b);
-  friend COMMON_EXPORT const timeLength operator-(const relTimeStamp a,const relTimeStamp b);
-  friend COMMON_EXPORT const timeStamp operator+(const timeStamp a, const timeLength b);
-  friend COMMON_EXPORT const timeStamp operator-(const timeStamp a, const timeLength b);
-  friend COMMON_EXPORT const timeStamp operator+(const timeLength a, const timeStamp b);
-  friend COMMON_EXPORT const timeLength operator+(const timeLength a, const timeLength b);
-  friend COMMON_EXPORT const timeLength operator-(const timeLength a, const timeLength b);
-  friend COMMON_EXPORT const timeLength operator*(const timeLength a, const double b);
-  friend COMMON_EXPORT const timeLength operator/(const timeLength a, const double b);
-  friend COMMON_EXPORT const timeLength operator*(const double a, const timeLength b);
-  friend COMMON_EXPORT const timeLength operator/(const double a, const timeLength b);
-  friend COMMON_EXPORT double operator/(const timeLength a, const timeLength b);
+  friend COMMON_EXPORT const timeLength operator-(const timeStamp& a, const timeStamp& b);
+  friend COMMON_EXPORT const timeLength operator-(const relTimeStamp& a,const relTimeStamp& b);
+  friend COMMON_EXPORT const timeStamp operator+(const timeStamp& a, const timeLength& b);
+  friend COMMON_EXPORT const timeStamp operator-(const timeStamp& a, const timeLength& b);
+  friend COMMON_EXPORT const timeStamp operator+(const timeLength& a, const timeStamp& b);
+  friend COMMON_EXPORT const timeLength operator+(const timeLength& a, const timeLength& b);
+  friend COMMON_EXPORT const timeLength operator-(const timeLength& a, const timeLength& b);
+  friend COMMON_EXPORT const timeLength operator*(const timeLength& a, double b);
+  friend COMMON_EXPORT const timeLength operator/(const timeLength& a, double b);
+  friend COMMON_EXPORT const timeLength operator*(double a, const timeLength& b);
+  friend COMMON_EXPORT const timeLength operator/(double a, const timeLength& b);
+  friend COMMON_EXPORT double operator/(const timeLength& a, const timeLength& b);
   // non-member ==, !=, >, <, >=, <=  operators also defined for timeLength
 
  private:
@@ -404,69 +404,69 @@ COMMON_EXPORT const timeLength operator/=(timeLength &t, double d);
 COMMON_EXPORT const timeLength operator-(const timeLength &t);
 
 // timeStamp - timeStamp = timeLength  ;  the length of time between time stamps
-COMMON_EXPORT const timeLength operator-(const timeStamp a, const timeStamp b);
+COMMON_EXPORT const timeLength operator-(const timeStamp& a, const timeStamp& b);
 
 // timeStamp +/- timeLength = timeStamp
-COMMON_EXPORT const timeStamp operator+(const timeStamp a, const timeLength b);
-COMMON_EXPORT const timeStamp operator-(const timeStamp a, const timeLength b);
+COMMON_EXPORT const timeStamp operator+(const timeStamp& a, const timeLength& b);
+COMMON_EXPORT const timeStamp operator-(const timeStamp& a, const timeLength& b);
 
 // timeLength + timeStamp = timeStamp
-COMMON_EXPORT const timeStamp operator+(const timeLength a, const timeStamp b);
+COMMON_EXPORT const timeStamp operator+(const timeLength& a, const timeStamp& b);
 // timeLength - timeStamp doesn't make sense, ie. 3 days - Mar 9 = ?
 
 // timeLength +/- timeLength = timeLength
-COMMON_EXPORT const timeLength operator+(const timeLength a, const timeLength b);
-COMMON_EXPORT const timeLength operator-(const timeLength a, const timeLength b);
+COMMON_EXPORT const timeLength operator+(const timeLength& a, const timeLength& b);
+COMMON_EXPORT const timeLength operator-(const timeLength& a, const timeLength& b);
 
 // timeLength */ double = timeLength
-COMMON_EXPORT const timeLength operator*(const timeLength a, const double b);
-COMMON_EXPORT const timeLength operator/(const timeLength a, const double b);
+COMMON_EXPORT const timeLength operator*(const timeLength& a, double b);
+COMMON_EXPORT const timeLength operator/(const timeLength& a, double b);
 
 // double */ timeLength = timeLength
-COMMON_EXPORT const timeLength operator*(const double a, const timeLength b);
-COMMON_EXPORT const timeLength operator/(const double a, const timeLength b);
+COMMON_EXPORT const timeLength operator*(double a, const timeLength& b);
+COMMON_EXPORT const timeLength operator/(double a, const timeLength& b);
 
 // Be careful if writing * operators because Time is based at nanosecond
 // level, which can overflow when multiplying times that seem small
 // eg. Time(1,timeUnit::day) * Time(2,timeUnit::day) will overflow
 
 // timeStamp @ timeStamp = bool
-COMMON_EXPORT bool operator==(const timeStamp a, const timeStamp b);
-COMMON_EXPORT bool operator!=(const timeStamp a, const timeStamp b);
-COMMON_EXPORT bool operator>(const timeStamp a, const timeStamp b);
-COMMON_EXPORT bool operator>=(const timeStamp a, const timeStamp b);
-COMMON_EXPORT bool operator<(const timeStamp a, const timeStamp b);
-COMMON_EXPORT bool operator<=(const timeStamp a, const timeStamp b);
+COMMON_EXPORT bool operator==(const timeStamp& a, const timeStamp& b);
+COMMON_EXPORT bool operator!=(const timeStamp& a, const timeStamp& b);
+COMMON_EXPORT bool operator>(const timeStamp& a, const timeStamp& b);
+COMMON_EXPORT bool operator>=(const timeStamp& a, const timeStamp& b);
+COMMON_EXPORT bool operator<(const timeStamp& a, const timeStamp& b);
+COMMON_EXPORT bool operator<=(const timeStamp& a, const timeStamp& b);
 
-COMMON_EXPORT timeStamp earlier(const timeStamp a, const timeStamp b);
-COMMON_EXPORT timeStamp later(const timeStamp a, const timeStamp b);
+COMMON_EXPORT timeStamp earlier(const timeStamp& a, const timeStamp& b);
+COMMON_EXPORT timeStamp later(const timeStamp& a, const timeStamp& b);
 // timeLength @ timeLength = bool
-COMMON_EXPORT bool operator==(const timeLength a, const timeLength b);
-COMMON_EXPORT bool operator!=(const timeLength a, const timeLength b);
-COMMON_EXPORT bool operator>(const timeLength a, const timeLength b);
-COMMON_EXPORT bool operator>=(const timeLength a, const timeLength b);
-COMMON_EXPORT bool operator<(const timeLength a, const timeLength b);
-COMMON_EXPORT bool operator<=(const timeLength a, const timeLength b);
+COMMON_EXPORT bool operator==(const timeLength& a, const timeLength& b);
+COMMON_EXPORT bool operator!=(const timeLength& a, const timeLength& b);
+COMMON_EXPORT bool operator>(const timeLength& a, const timeLength& b);
+COMMON_EXPORT bool operator>=(const timeLength& a, const timeLength& b);
+COMMON_EXPORT bool operator<(const timeLength& a, const timeLength& b);
+COMMON_EXPORT bool operator<=(const timeLength& a, const timeLength& b);
 
 
-COMMON_EXPORT timeLength minimum(const timeLength a, const timeLength b);
+COMMON_EXPORT timeLength minimum(const timeLength& a, const timeLength& b);
 
-COMMON_EXPORT timeLength maximum(const timeLength a, const timeLength b);
-COMMON_EXPORT const timeLength abs(const timeLength a);
+COMMON_EXPORT timeLength maximum(const timeLength& a, const timeLength& b);
+COMMON_EXPORT const timeLength abs(const timeLength& a);
 
 // relTimeStamp +=/-= timeLength
 COMMON_EXPORT const relTimeStamp operator+=(relTimeStamp &ts, timeLength tl);
 COMMON_EXPORT const relTimeStamp operator-=(relTimeStamp &ts, timeLength tl);
 
 // relTimeStamp - relTimeStamp = timeLength  ;  the length of time between time stamps
-COMMON_EXPORT const timeLength operator-(const relTimeStamp a, const relTimeStamp b);
+COMMON_EXPORT const timeLength operator-(const relTimeStamp& a, const relTimeStamp& b);
 
 // relTimeStamp +/- relTimeLength = relTimeStamp
-COMMON_EXPORT const relTimeStamp operator+(const relTimeStamp a, const timeLength b);
-COMMON_EXPORT const relTimeStamp operator-(const relTimeStamp a, const timeLength b);
+COMMON_EXPORT const relTimeStamp operator+(const relTimeStamp& a, const timeLength& b);
+COMMON_EXPORT const relTimeStamp operator-(const relTimeStamp& a, const timeLength& b);
 
 // timeLength + relTimeStamp = relTimeStamp
-COMMON_EXPORT const relTimeStamp operator+(const timeLength a, const relTimeStamp b);
+COMMON_EXPORT const relTimeStamp operator+(const timeLength& a, const relTimeStamp& b);
 // timeLength - timeStamp doesn't make sense, ie. 3 days - Mar 9 = ?
 
 
@@ -475,16 +475,16 @@ COMMON_EXPORT const relTimeStamp operator+(const timeLength a, const relTimeStam
 // eg. Time(1,timeUnit::day) * Time(2,timeUnit::day) will overflow
 
 // relTimeStamp @ relTimeStamp = bool
-COMMON_EXPORT bool operator==(const relTimeStamp a, const relTimeStamp b);
-COMMON_EXPORT bool operator!=(const relTimeStamp a, const relTimeStamp b);
-COMMON_EXPORT bool operator>(const relTimeStamp a, const relTimeStamp b);
-COMMON_EXPORT bool operator>=(const relTimeStamp a, const relTimeStamp b);
-COMMON_EXPORT bool operator<(const relTimeStamp a, const relTimeStamp b);
-COMMON_EXPORT bool operator<=(const relTimeStamp a, const relTimeStamp b);
+COMMON_EXPORT bool operator==(const relTimeStamp& a, const relTimeStamp& b);
+COMMON_EXPORT bool operator!=(const relTimeStamp& a, const relTimeStamp& b);
+COMMON_EXPORT bool operator>(const relTimeStamp& a, const relTimeStamp& b);
+COMMON_EXPORT bool operator>=(const relTimeStamp& a, const relTimeStamp& b);
+COMMON_EXPORT bool operator<(const relTimeStamp& a, const relTimeStamp& b);
+COMMON_EXPORT bool operator<=(const relTimeStamp& a, const relTimeStamp& b);
 
-COMMON_EXPORT relTimeStamp earlier(const relTimeStamp a, const relTimeStamp b);
+COMMON_EXPORT relTimeStamp earlier(const relTimeStamp& a, const relTimeStamp& b);
 
-COMMON_EXPORT relTimeStamp later(const relTimeStamp a, const relTimeStamp b);
+COMMON_EXPORT relTimeStamp later(const relTimeStamp& a, const relTimeStamp& b);
 
 
 

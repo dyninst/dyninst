@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -62,7 +62,8 @@ Event::Event(EventType etype_, Thread::ptr thread_) :
    proc(thread ? thread->getProcess() : Process::ptr()),
    stype(unset),
    master_event(Event::ptr()),
-   suppress_cb(false)
+   suppress_cb(false),
+   user_event(false)
 {
 }
 
@@ -84,6 +85,14 @@ void Event::setThread(Thread::const_ptr t) {
 
 void Event::setProcess(Process::const_ptr p) {
    proc = p;
+}
+
+void Event::setUserEvent(bool b) {
+    user_event = b;
+}
+
+bool Event::userEvent() const {
+    return user_event;
 }
 
 bool Event::canFastHandle() const
@@ -172,12 +181,15 @@ std::string EventType::name() const
       STR_CASE(SingleStep);
       STR_CASE(Library);
       STR_CASE(BreakpointClear);
+      STR_CASE(BreakpointRestore);
       STR_CASE(RPCInternal);
       STR_CASE(Async);
       STR_CASE(ChangePCStop);
       STR_CASE(Detached);
       STR_CASE(IntBootstrap);
       STR_CASE(ForceTerminate);
+      STR_CASE(PrepSingleStep);
+      STR_CASE(ThreadDB);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -275,12 +287,13 @@ EventStop::~EventStop()
 }
 
 
-EventBreakpoint::EventBreakpoint(Dyninst::Address addr_, installed_breakpoint *ibp_) :
+EventBreakpoint::EventBreakpoint(int_eventBreakpoint *ibp_) :
    Event(EventType(EventType::None, EventType::Breakpoint)),
-   ibp(ibp_),
-   addr(addr_)
+   int_bp(ibp_)
 {
-   int_bp = new int_eventBreakpoint();
+   if (procStopper()) {
+      int_bp->thrd->markDecodedProcStopperBP();
+   }
 }
 
 EventBreakpoint::~EventBreakpoint()
@@ -294,49 +307,48 @@ EventBreakpoint::~EventBreakpoint()
 
 Dyninst::Address EventBreakpoint::getAddress() const
 {
-  return addr;
-}
-
-bool EventBreakpoint::procStopper() const
-{
-   //This logic needs to exactly match a similar conditional test in
-   // HandleBreakpointClear::handleEvent
-
-   //Some platforms (BlueGene) already stop the whole process
-   //for a breakpoint, so we don't need to be an explicit
-   //procStopper.
-   if (getSyncType() == Event::sync_process)
-      return false;
-
-   //If the list of breakpoints is a sole control transfer bp, then
-   // we don't have to stop the whole process.
-   return ibp->hasNonCtrlTransfer();
+   return int_bp->addr;
 }
 
 void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::const_ptr> &bps) const
 {
-   if (!ibp)
+   if (!int_bp)
       return;
    std::set<Breakpoint::ptr>::iterator i;
-   for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); i++) {
+   for (i = int_bp->ibp->hl_bps.begin(); i != int_bp->ibp->hl_bps.end(); i++) {
       bps.push_back(*i);
    }
 }
 
-installed_breakpoint *EventBreakpoint::installedbp() const
+void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::ptr> &bps)
 {
-  return ibp;
+   if (!int_bp)
+      return;
+   std::set<Breakpoint::ptr>::iterator i;
+   for (i = int_bp->ibp->hl_bps.begin(); i != int_bp->ibp->hl_bps.end(); i++) {
+      bps.push_back(*i);
+   }
 }
 
 bool EventBreakpoint::suppressCB() const
 {
    if (Event::suppressCB()) return true;
-   return ibp->hl_bps.empty();
+   return int_bp->ibp->hl_bps.empty();
 }
 
 int_eventBreakpoint *EventBreakpoint::getInternal() const
 {
    return int_bp;
+}
+
+bool EventBreakpoint::procStopper() const
+{
+   installed_breakpoint *bp = int_bp->ibp;
+   for (installed_breakpoint::iterator i = bp->begin(); i != bp->end(); i++) {
+      if ((*i)->isProcessStopper())
+         return true;
+   }
+   return false;
 }
 
 EventSignal::EventSignal(int sig_) :
@@ -354,10 +366,16 @@ int EventSignal::getSignal() const
    return sig;
 }
 
-void EventSignal::clearSignal() const
+void EventSignal::clearThreadSignal() const
 {
     int_thread *thr = getThread()->llthrd();
     thr->setContSignal(0);
+}
+
+void EventSignal::setThreadSignal(int newSignal) const 
+{
+    int_thread *thr = getThread()->llthrd();
+    thr->setContSignal(newSignal);
 }
 
 EventBootstrap::EventBootstrap() :
@@ -464,8 +482,8 @@ EventLWPDestroy::~EventLWPDestroy()
 {
 }
 
-EventFork::EventFork(Dyninst::PID pid_) :
-   Event(EventType(EventType::Post, EventType::Fork)),
+EventFork::EventFork(EventType::Time time_, Dyninst::PID pid_) :
+   Event(EventType(time_, EventType::Fork)),
    pid(pid_)
 {
 }
@@ -549,9 +567,8 @@ EventSingleStep::~EventSingleStep()
 {
 }
 
-EventBreakpointClear::EventBreakpointClear(installed_breakpoint *bp) :
-  Event(EventType(EventType::None, EventType::BreakpointClear)),
-  bp_(bp)
+EventBreakpointClear::EventBreakpointClear() :
+  Event(EventType(EventType::None, EventType::BreakpointClear))
 {
    int_bpc = new int_eventBreakpointClear();
 }
@@ -563,15 +580,34 @@ EventBreakpointClear::~EventBreakpointClear()
    int_bpc = NULL;
 }
 
-installed_breakpoint *EventBreakpointClear::bp() const
-{
-  return bp_;
-}
-
 int_eventBreakpointClear *EventBreakpointClear::getInternal() const
 {
    return int_bpc;
 }
+
+bool EventBreakpointClear::procStopper() const
+{
+   return true;
+}
+
+EventBreakpointRestore::EventBreakpointRestore(int_eventBreakpointRestore *iebpr) :
+   Event(EventType(EventType::None, EventType::BreakpointRestore)),
+   int_bpr(iebpr)
+{
+}
+
+EventBreakpointRestore::~EventBreakpointRestore()
+{
+   assert(int_bpr);
+   delete int_bpr;
+   int_bpr = NULL;
+}
+
+int_eventBreakpointRestore *EventBreakpointRestore::getInternal() const
+{
+   return int_bpr;
+}
+
 
 EventLibrary::EventLibrary(const std::set<Library::ptr> &added_libs_,
                            const std::set<Library::ptr> &rmd_libs_) :
@@ -607,8 +643,140 @@ const std::set<Library::ptr> &EventLibrary::libsRemoved() const
    return rmd_libs;
 }
 
+EventAsync::EventAsync(int_eventAsync *ievent) :
+   Event(EventType(EventType::None, EventType::Async)),
+   internal(ievent)
+{
+}
+
+EventAsync::~EventAsync()
+{
+   if (internal) {
+      delete internal;
+      internal = NULL;
+   }
+}
+
+int_eventAsync *EventAsync::getInternal() const
+{
+   return internal;
+}
+
+EventChangePCStop::EventChangePCStop() :
+   Event(EventType(EventType::None, EventType::ChangePCStop))
+{
+}
+
+EventChangePCStop::~EventChangePCStop()
+{
+}
+
+EventDetached::EventDetached() :
+   Event(EventType(EventType::None, EventType::Detached))
+{
+}
+
+EventDetached::~EventDetached()
+{
+}
+
+EventIntBootstrap::EventIntBootstrap(void *d) :
+   Event(EventType(EventType::None, EventType::IntBootstrap)),
+   data(d)
+{
+}
+
+EventIntBootstrap::~EventIntBootstrap()
+{
+}
+
+void *EventIntBootstrap::getData() const
+{
+   return data;
+}
+
+void EventIntBootstrap::setData(void *d)
+{
+   data = d;
+}
+
+EventNop::EventNop() :
+   Event(EventType(EventType::None, EventType::Nop))
+{
+}
+
+EventNop::~EventNop()
+{
+}
+
+EventPrepSingleStep::EventPrepSingleStep(emulated_singlestep *newSingleStep) :
+    Event(EventType(EventType::None, EventType::PrepSingleStep)), 
+    es(newSingleStep)
+{
+}
+
+EventPrepSingleStep::~EventPrepSingleStep()
+{
+}
+
+bool EventPrepSingleStep::procStopper() const {
+    return true;
+}
+
+emulated_singlestep *EventPrepSingleStep::getEmulatedSingleStep() const {
+    return es;
+}
+
+EventThreadDB::EventThreadDB() :
+   Event(EventType(EventType::None, EventType::ThreadDB))
+{
+   int_etdb = new int_eventThreadDB();
+}
+
+EventThreadDB::~EventThreadDB()
+{
+   delete int_etdb;
+   int_etdb = NULL;
+}
+
+int_eventThreadDB *EventThreadDB::getInternal() const
+{
+   return int_etdb;
+}
+
+bool EventThreadDB::procStopper() const
+{
+   return true;
+}
+
+bool EventThreadDB::triggersCB() const
+{
+   EventType::Time ev_times[] = { EventType::None, EventType::Pre, EventType::Post };
+   int ev_types[] = { EventType::UserThreadCreate, EventType::UserThreadDestroy, 
+                      EventType::LWPCreate, EventType::LWPDestroy };
+   HandleCallbacks *cbhandler = HandleCallbacks::getCB();
+   for (unsigned i = 0; i < 3; i++)
+      for (unsigned j = 0; j < 4; j++)
+         if (cbhandler->hasCBs(EventType(ev_times[i], ev_types[j])))
+            return true;
+   return false;
+}
+
+int_eventBreakpoint::int_eventBreakpoint(Address a, installed_breakpoint *i, int_thread *thr) :
+   ibp(i),
+   addr(a),
+   thrd(thr)
+{
+}
+
+int_eventBreakpoint::~int_eventBreakpoint()
+{
+}
+
 int_eventBreakpointClear::int_eventBreakpointClear() :
-   cleared_singlestep(false)
+   started_bp_suspends(false),
+   cached_bp_sets(false),
+   set_singlestep(false)
 {
 }
 
@@ -616,12 +784,57 @@ int_eventBreakpointClear::~int_eventBreakpointClear()
 {
 }
 
-int_eventBreakpoint::int_eventBreakpoint() :
-   set_singlestep(false)
+void int_eventBreakpointClear::getBPTypes(set<pair<installed_breakpoint *, int_thread *> > &bps_to_clear,
+                                          set<pair<installed_breakpoint *, int_thread *> > &bps_to_restore)
+{
+   if (cached_bp_sets) {
+      bps_to_clear = bps_to_clear_cached;
+      bps_to_restore = bps_to_restore_cached;
+      return;
+   }
+   cached_bp_sets = true;
+
+   for (set<Thread::ptr>::iterator i = clearing_threads.begin(); i != clearing_threads.end(); i++) {
+      Thread::ptr thr = *i;
+      if (!thr || !thr->llthrd()) {
+         pthrd_printf("Thread exited or detached before breakpoint clear\n");
+         continue;
+      }
+      int_thread *llthrd = thr->llthrd();
+
+      installed_breakpoint *ibp = llthrd->isClearingBreakpoint();
+      pthrd_printf("Checking what to do with breakpoint on Thread %d/%d\n", 
+                   llthrd->llproc()->getPid(), llthrd->getLWP());
+
+      if (!ibp->isInstalled()) {
+         pthrd_printf("Breakpoint 0x%lx not installed, not clearing nor restoring\n", ibp->getAddr());
+         continue;
+      }
+
+      pthrd_printf("Going to clear breakpoint at 0x%lx\n", ibp->getAddr());
+      bps_to_clear.insert(pair<installed_breakpoint *, int_thread *>(ibp, llthrd));
+
+      for (installed_breakpoint::iterator j = ibp->begin(); j != ibp->end(); j++) {
+         if ((*j)->isOneTimeBreakpoint() && (*j)->isOneTimeBreakpointHit()) {
+            pthrd_printf("One time breakpoint has been hit, not going to restore\n");
+            continue;
+         }
+         pthrd_printf("Found breakpoint to restore after clear\n");
+         bps_to_restore.insert(pair<installed_breakpoint *, int_thread *>(ibp, llthrd));
+         break;
+      }
+   }
+   bps_to_clear_cached = bps_to_clear;
+   bps_to_restore_cached = bps_to_restore;
+}
+
+
+int_eventBreakpointRestore::int_eventBreakpointRestore(installed_breakpoint *breakpoint_) :
+   bp(breakpoint_)
 {
 }
 
-int_eventBreakpoint::~int_eventBreakpoint()
+int_eventBreakpointRestore::~int_eventBreakpointRestore()
 {
 }
 
@@ -674,70 +887,12 @@ int_eventNewUserThread::~int_eventNewUserThread()
       free(raw_data);
 }
 
-EventAsync::EventAsync(int_eventAsync *ievent) :
-   Event(EventType(EventType::None, EventType::Async)),
-   internal(ievent)
+int_eventThreadDB::int_eventThreadDB() :
+   completed_new_evs(false)
 {
 }
 
-EventAsync::~EventAsync()
-{
-   if (internal) {
-      delete internal;
-      internal = NULL;
-   }
-}
-
-int_eventAsync *EventAsync::getInternal() const
-{
-   return internal;
-}
-
-
-EventChangePCStop::EventChangePCStop() :
-   Event(EventType(EventType::None, EventType::ChangePCStop))
-{
-}
-
-EventChangePCStop::~EventChangePCStop()
-{
-}
-
-EventDetached::EventDetached() :
-   Event(EventType(EventType::None, EventType::Detached))
-{
-}
-
-EventDetached::~EventDetached()
-{
-}
-
-EventIntBootstrap::EventIntBootstrap(void *d) :
-   Event(EventType(EventType::None, EventType::IntBootstrap)),
-   data(d)
-{
-}
-
-EventIntBootstrap::~EventIntBootstrap()
-{
-}
-
-void *EventIntBootstrap::getData() const
-{
-   return data;
-}
-
-void EventIntBootstrap::setData(void *d)
-{
-   data = d;
-}
-
-EventNop::EventNop() :
-   Event(EventType(EventType::None, EventType::Nop))
-{
-}
-
-EventNop::~EventNop()
+int_eventThreadDB::~int_eventThreadDB()
 {
 }
 
@@ -790,6 +945,7 @@ DEFN_EVENT_CAST(EventBootstrap, Bootstrap)
 DEFN_EVENT_CAST(EventRPC, RPC)
 DEFN_EVENT_CAST(EventSingleStep, SingleStep)
 DEFN_EVENT_CAST(EventBreakpointClear, BreakpointClear)
+DEFN_EVENT_CAST(EventBreakpointRestore, BreakpointRestore)
 DEFN_EVENT_CAST(EventLibrary, Library)
 DEFN_EVENT_CAST(EventRPCInternal, RPCInternal)
 DEFN_EVENT_CAST(EventAsync, Async)
@@ -797,3 +953,5 @@ DEFN_EVENT_CAST(EventChangePCStop, ChangePCStop)
 DEFN_EVENT_CAST(EventDetached, Detached)
 DEFN_EVENT_CAST(EventIntBootstrap, IntBootstrap)
 DEFN_EVENT_CAST(EventNop, Nop);
+DEFN_EVENT_CAST(EventPrepSingleStep, PrepSingleStep)
+DEFN_EVENT_CAST(EventThreadDB, ThreadDB)

@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 #include "RoseInsnFactory.h"
 //#include "../rose/x86InstructionSemantics.h"
 //#include "../rose/powerpcInstructionSemantics.h"
@@ -96,6 +126,7 @@ void RoseInsnX86Factory::setSizes(SgAsmInstruction *insn) {
 
 bool RoseInsnX86Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsmOperandList *) {
   // Does nothing?
+
   return false;
 }
 
@@ -103,13 +134,13 @@ void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr 
 					 std::vector<InstructionAPI::Operand> &operands) {
   switch (insn->getOperation().getID()) {
   case e_lea: {
-                  // ROSE expects there to be a "memory reference" statement wrapping the 
-                  // address calculation. It then unwraps it.
-                  Dereference::Ptr tmp = Dereference::Ptr(new Dereference(operands[1].getValue(), u32));
-                  operands[1] = Operand(tmp, operands[1].isRead(), operands[1].isWritten());
-                  operands.resize(2);
-                  break;
-              }
+    // ROSE expects there to be a "memory reference" statement wrapping the
+    // address calculation. It then unwraps it. 
+    Dereference::Ptr tmp = Dereference::Ptr(new Dereference(operands[1].getValue(), u32));
+    operands[1] = Operand(tmp, operands[1].isRead(), operands[1].isWritten());
+    operands.resize(2);
+    break;  
+  }
   case e_push:
   case e_pop:
     operands.resize(1);
@@ -151,8 +182,22 @@ void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr 
     operands.clear();
     break;
   case e_popad:
+  case e_pushfd:
     operands.clear();
     break;
+  case e_lodsd:
+  case e_lodsb:
+  case e_lodsw:
+      operands.clear();
+      break;
+  case e_pushad:
+      operands.clear();
+      break;
+  case e_loop:
+  case e_loope:
+  case e_loopn:
+      operands.resize(1);
+      break;
   default:
     break;
   }

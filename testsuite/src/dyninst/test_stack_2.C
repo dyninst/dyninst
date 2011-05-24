@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -63,9 +63,8 @@ extern "C" DLLEXPORT TestMutator *test_stack_2_factory() {
 test_results_t test_stack_2_Mutator::executeTest() {
 #if defined(i386_unknown_linux2_0_test) \
  || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
- || defined(sparc_sun_solaris2_4_test) \
- || defined(ia64_unknown_linux2_4_test)
-
+ || defined(amd64_unknown_freebsd7_0_test) \
+ || defined(i386_unknown_freebsd7_0_test)
     appProc->continueExecution();
 
     static const frameInfo_t correct_frame_info[] = {

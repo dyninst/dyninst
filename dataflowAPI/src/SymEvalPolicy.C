@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 #include "SymEvalPolicy.h"
 
 #include "dyn_regs.h"
@@ -176,29 +206,42 @@ Absloc SymEvalPolicy::convert(X86SegmentRegister r)
 
 Absloc SymEvalPolicy::convert(X86Flag f)
 {
-  switch (f) {
-    case x86_flag_cf:
-      return Absloc(x86::cf);
-    case x86_flag_pf:
-      return Absloc(x86::pf);
-    case x86_flag_af:
-      return Absloc(x86::af);
-    case x86_flag_zf:
-      return Absloc(x86::zf);
-    case x86_flag_sf:
-      return Absloc(x86::sf);
-    case x86_flag_tf:
-      return Absloc(x86::tf);
-    case x86_flag_if:
-      return Absloc(x86::if_);
-    case x86_flag_df:
-      return Absloc(x86::df);
-    case x86_flag_of:
-      return Absloc(x86::of);
-    case x86_flag_nt:
-    default:
-      assert(0);
-      return Absloc();
+   switch (f) {
+      case x86_flag_cf:
+         return Absloc(x86::cf);
+      case x86_flag_1:
+         return Absloc(x86::flag1);
+      case x86_flag_pf:
+         return Absloc(x86::pf);
+      case x86_flag_3:
+         return Absloc(x86::flag3);
+      case x86_flag_af:
+         return Absloc(x86::af);
+      case x86_flag_5:
+         return Absloc(x86::flag5);
+      case x86_flag_zf:
+         return Absloc(x86::zf);
+      case x86_flag_sf:
+         return Absloc(x86::sf);
+      case x86_flag_tf:
+         return Absloc(x86::tf);
+      case x86_flag_if:
+         return Absloc(x86::if_);
+      case x86_flag_df:
+         return Absloc(x86::df);
+      case x86_flag_of:
+         return Absloc(x86::of);
+      case x86_flag_iopl0:
+         return Absloc(x86::flagc);
+      case x86_flag_iopl1:
+         return Absloc(x86::flagd);
+      case x86_flag_nt:
+         return Absloc(x86::nt_);
+      case x86_flag_15:
+         return Absloc(x86::flagf);
+      default:
+         assert(0);
+         return Absloc();
   }
 }
 

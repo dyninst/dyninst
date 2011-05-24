@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -37,6 +37,7 @@
 #include "proccontrol/h/Event.h"
 
 #include "proccontrol/src/response.h"
+#include "proccontrol/src/memcache.h"
 
 #include "dynutil/h/dyn_regs.h"
 #include "dynutil/h/SymReader.h"
@@ -66,6 +67,7 @@ typedef std::list<int_iRPC_ptr> rpc_list_t;
 class installed_breakpoint;
 class int_library;
 class int_process;
+class emulated_singlestep;
 
 class mem_state
 {
@@ -103,7 +105,7 @@ class int_process
    virtual bool post_create();
 
    bool attach();
-   virtual bool plat_attach() = 0;
+   virtual bool plat_attach(bool allStopped) = 0;
    bool attachThreads();
    virtual bool post_attach();
 
@@ -111,12 +113,20 @@ class int_process
    bool initializeAddressSpace();
 
   public:
+
+   typedef enum {
+      ct_fork,
+      ct_launch,
+      ct_attach
+   } creationMode_t;
+   creationMode_t getCreationMode() const;
+
    void setContSignal(int sig);
    int getContSignal() const;
    bool continueProcess();
    virtual bool plat_contProcess();
 
-   bool forked();
+   virtual bool forked();
   protected:
    virtual bool plat_forked() = 0;
    virtual bool post_forked();
@@ -131,7 +141,6 @@ class int_process
    virtual bool needIndividualThreadAttach() = 0;
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
 
-   static bool multi_attach(std::vector<int_process *> &pids);
    bool waitfor_startup();
 
    void setPid(Dyninst::PID pid);
@@ -155,6 +164,7 @@ class int_process
    mem_state::ptr memory() const;
 
    bool detach(bool &should_clean);
+   virtual bool preTerminate();
    bool terminate(bool &needs_sync);
    void updateSyncState(Event::ptr ev, bool gen);
    virtual Dyninst::Architecture getTargetArch() = 0;
@@ -179,7 +189,6 @@ class int_process
    bool wasForcedTerminated() const;
 
    virtual bool plat_individualRegAccess() = 0;
-
    void addProcStopper(Event::ptr ev);
    Event::ptr getProcStopper();
    void removeProcStopper();
@@ -224,9 +233,9 @@ class int_process
                                   mem_response::ptr result);
    virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
                                    size_t size, result_response::ptr result);
+   memCache *getMemCache();
 
-   // true = running
-   virtual bool plat_getOSRunningState(Dyninst::LWP lwp) const = 0;
+   virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates) = 0;
 
    typedef enum {
        NoLWPControl = 0,
@@ -247,6 +256,7 @@ class int_process
    size_t numLibs() const;
    virtual bool refresh_libraries(std::set<int_library *> &added_libs,
                                   std::set<int_library *> &rmd_libs,
+                                  bool &waiting_for_async,
                                   std::set<response::ptr> &async_responses) = 0;
 
    virtual bool initLibraryMechanism() = 0;
@@ -263,10 +273,15 @@ class int_process
    static bool isInCallback();
    bool useHybridLWPControl(bool check_mt = true) const;
 
+   void addPendingBPClearEvent(int_thread *thr);
+   Event::ptr getPendingBPClearEvent();
+   void clearPendingBPClearEvent();
+
    static int_process *in_waitHandleProc;
  protected:
    State state;
    Dyninst::PID pid;
+   creationMode_t creation_mode;
    std::string executable;
    std::vector<std::string> argv;
    std::vector<std::string> env;
@@ -288,6 +303,8 @@ class int_process
    std::map<Dyninst::Address, unsigned> exec_mem_cache;
    std::queue<Event::ptr> proc_stoppers;
    int continueSig;
+   memCache mem_cache;
+   EventBreakpointClear::ptr event_bp_clear;
 };
 
 /*
@@ -418,6 +435,7 @@ class int_thread
    bool setInternalState(State s);
    void restoreInternalState(bool sync = true);
    void desyncInternalState();
+   bool isDesynced() const;
 
    //Process control
    bool userCont();
@@ -449,9 +467,22 @@ class int_thread
    void setSingleStepMode(bool s);
    bool singleStepUserMode() const;
    void setSingleStepUserMode(bool s);
-   bool singleStep() const;   
+   bool singleStep() const;
    void markClearingBreakpoint(installed_breakpoint *bp);
    installed_breakpoint *isClearingBreakpoint();
+   void markStoppedOnBP(installed_breakpoint *bp);
+   installed_breakpoint *isStoppedOnBP() const;
+
+   virtual bool plat_needsPCSaveBeforeSingleStep() = 0;
+   void setPreSingleStepPC(Dyninst::MachRegisterVal pc);
+   Dyninst::MachRegisterVal getPreSingleStepPC() const;
+
+   // Emulating single steps with breakpoints
+   emulated_singlestep *isEmulatedSingleStep(installed_breakpoint *bp);
+   void addEmulatedSingleStep(emulated_singlestep *es);
+   void rmEmulatedSingleStep(emulated_singlestep *es);
+   bool isEmulatingSingleStep();
+   virtual bool plat_needsEmulatedSingleStep(std::vector<Dyninst::Address> &result) = 0;
 
    //RPC Management
    void addPostedRPC(int_iRPC_ptr rpc_);
@@ -524,6 +555,10 @@ class int_thread
    Thread::ptr thread();
    bool useHybridLWPControl(bool check_mt = true) const;
 
+   typedef void(*continue_cb_t)(int_thread *thrd);
+   static void addContinueCB(continue_cb_t cb);
+   void triggerContinueCBs();
+
    //User level thread info
    void setTID(Dyninst::THR_ID tid_);
    virtual bool haveUserThreadInfo();
@@ -535,6 +570,13 @@ class int_thread
       
    virtual ~int_thread();
    static const char *stateStr(int_thread::State s);
+
+   void markDecodedProcStopperBP();
+   void markHandledProcStopperBP();
+   void clearProcStopperBPState();
+   bool decodedProcStopperBP() const;
+   bool handledProcStopperBP() const;
+
  protected:
    Dyninst::THR_ID tid;
    Dyninst::LWP lwp;
@@ -562,8 +604,13 @@ class int_thread
    bool postponed_continue;
    bool handler_exiting_state;
    bool generator_exiting_state;
+   bool decoded_proc_stopper_bp;
+   bool handled_proc_stopper_bp;
+   installed_breakpoint *stopped_on_breakpoint;
    installed_breakpoint *clearing_breakpoint;
    bool running_when_attached;
+   std::set<emulated_singlestep *> singlesteps;
+   MachRegisterVal pre_ss_pc;
 
    bool setAnyState(int_thread::State *from, int_thread::State to);
 
@@ -578,6 +625,8 @@ class int_thread
    bool cont(bool user_cont);
    stopcont_ret_t stop(bool user_stop);
    stopcont_ret_t cont(bool user_cont, bool has_proc_lock);
+
+   static std::set<continue_cb_t> continue_cbs;
 };
 
 class int_threadPool {
@@ -591,6 +640,7 @@ class int_threadPool {
    int_thread *initial_thread;
    int_process *proc_;
    ThreadPool *up_pool;
+   bool had_multiple_threads;
  public:
    int_threadPool(int_process *p);
    ~int_threadPool();
@@ -601,6 +651,7 @@ class int_threadPool {
    void restoreInternalState(bool sync);
    void desyncInternalState();
    void clear();
+   bool hadMultipleThreads() const;
 
    typedef std::vector<int_thread *>::iterator iterator;
    iterator begin() { return threads.begin(); }
@@ -673,6 +724,11 @@ class int_breakpoint
    Dyninst::Address to;
    bool isCtrlTransfer_;
    void *data;
+
+   bool onetime_bp;
+   bool onetime_bp_hit;
+   bool procstopper;
+   std::set<Thread::const_ptr> thread_specific;
  public:
    int_breakpoint(Breakpoint::ptr up);
    int_breakpoint(Dyninst::Address to, Breakpoint::ptr up);
@@ -683,6 +739,19 @@ class int_breakpoint
    Dyninst::Address getAddress(int_process *p) const;
    void *getData() const;
    void setData(void *v);
+   
+   void setOneTimeBreakpoint(bool b);
+   void markOneTimeHit();
+   bool isOneTimeBreakpoint() const;
+   bool isOneTimeBreakpointHit() const;
+
+   void setThreadSpecific(Thread::const_ptr p);
+   bool isThreadSpecific() const;
+   bool isThreadSpecificTo(Thread::const_ptr p) const;
+
+   void setProcessStopper(bool b);
+   bool isProcessStopper() const;
+   
    Breakpoint::weak_ptr upBreakpoint() const;
 };
 
@@ -720,7 +789,9 @@ class installed_breakpoint
    bool prepBreakpoint(int_process *proc, mem_response::ptr mem_resp);
    bool insertBreakpoint(int_process *proc, result_response::ptr res_resp);
    bool addBreakpoint(int_breakpoint *bp);
-
+   bool containsIntBreakpoint(int_breakpoint *bp);
+   int_breakpoint *getCtrlTransferBP(int_thread *thread);
+   
    bool rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empty, result_response::ptr async_resp);
    bool uninstall(int_process *proc, result_response::ptr async_resp);
    bool suspend(int_process *proc, result_response::ptr result_resp);
@@ -729,8 +800,33 @@ class installed_breakpoint
    bool isInstalled() const;
    Dyninst::Address getAddr() const;
 
-   bool hasCtrlTransfer();
-   bool hasNonCtrlTransfer();
+   typedef std::set<int_breakpoint *>::iterator iterator;
+   iterator begin();
+   iterator end();
+
+   unsigned getNumIntBreakpoints() const;
+};
+
+class emulated_singlestep {
+    // Breakpoints that are added and removed in a group to emulate
+    // a single step with breakpoints
+    private:
+        bool saved_user_single_step;
+        bool saved_single_step;
+        typedef std::pair<Address, int_breakpoint *> addr_bp_pair;
+        std::list<addr_bp_pair> bps;
+
+    public:
+        emulated_singlestep(bool saved_user_single_step_, bool saved_single_step_);
+        ~emulated_singlestep();
+
+        bool containsBreakpoint(installed_breakpoint *bp) const;
+        bool rmFromProcess(int_process *p, result_response::ptr async_resp);
+        bool addToProcess(int_process *p);
+        void add(Address addr, int_breakpoint *bp);
+        bool savedSingleStepUserMode() const;
+        bool savedSingleStepMode() const;
+        unsigned breakpointCount() const;
 };
 
 class int_notify {
@@ -803,7 +899,7 @@ public:
 
 inline MTManager *mt() { 
    return MTManager::mt_; 
-};
+}
 
 class MTLock
 {
