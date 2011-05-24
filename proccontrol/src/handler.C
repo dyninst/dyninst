@@ -1157,7 +1157,7 @@ int HandlePostBreakpoint::getPriority() const
 }
 
 HandleLibrary::HandleLibrary() :
-   Handler("SysV Library Handler")
+   Handler("Library Handler")
 {
 }
 
