@@ -170,7 +170,7 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
    {
       return PASSED;
       }*/
-
+ 
    if (group->mutatee && group->state != SELFSTART)
    {
       if (measure) um_group.start(); // Measure resource usage.

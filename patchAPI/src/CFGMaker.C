@@ -16,5 +16,23 @@ PatchFunction* CFGMaker::makeFunction(ParseAPI::Function* f, PatchObject* obj) {
 }
 
 PatchFunction* CFGMaker::copyFunction(PatchFunction* f, PatchObject* obj) {
-  return NULL;
+  return (new PatchFunction(f, obj));
+}
+
+PatchBlock* CFGMaker::makeBlock(ParseAPI::Block* b, PatchObject* obj) {
+  PatchBlock* ret = new PatchBlock(b, obj);
+  if (!ret) {
+    cerr << "ERROR: Cannot create PatchBlock for 0x" << std::hex
+         << b->start() << "\n" << std::dec;
+    exit(0);
+  }
+  return ret;
+}
+
+PatchBlock* CFGMaker::copyBlock(PatchBlock* b, PatchObject* obj) {
+  return (new PatchBlock(b, obj));
+}
+
+void CFGMaker::initCopiedObject(PatchObject*, PatchObject*) {
+  // Do nothing.
 }

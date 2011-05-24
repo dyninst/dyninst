@@ -41,8 +41,32 @@ PatchFunction* DynCFGMaker::copyFunction(PatchFunction* f, PatchObject* o) {
   return newFunc;
 }
 
-PatchBlock* DynCFGMaker::makeBlock(ParseAPI::Block*, PatchObject*) {
+PatchBlock* DynCFGMaker::makeBlock(ParseAPI::Block* b, PatchObject* obj) {
+  block_instance *inst = new block_instance(b, SCAST_MO(obj));
+  obj->addBlock(inst);
+  return inst;
 }
 
-PatchBlock* DynCFGMaker::makeBlock(PatchBlock*, PatchObject*) {
+PatchBlock* DynCFGMaker::copyBlock(PatchBlock* b, PatchObject* o) {
+  block_instance *newBlock = new block_instance(SCAST_BI(b), SCAST_MO(o));
+  o->addBlock(newBlock);
+  return  newBlock;
+}
+
+// extern unsigned imgVarHash(const image_variable * const &func);
+
+void DynCFGMaker::initCopiedObject(const PatchObject* parObj, PatchObject* obj) {
+  /*
+  mapped_object* mpar_obj = SCAST_MO(const_cast<PatchObject*>(parObj));
+  mapped_object* mobj = SCAST_MO(obj);
+  mobj->image_ = mpar_obj->image_;
+  mobj->everyUniqueVariable = imgVarHash; 
+  // Copy mapped_module
+  for (unsigned k = 0; k < mpar_obj->everyModule.size(); k++) {
+    mapped_module *parMod = mpar_obj->everyModule[k];
+    mapped_module *mod = mapped_module::createMappedModule(mobj, parMod->pmod());
+    assert(mod);
+    mobj->everyModule.push_back(mod);
+  }
+  */
 }

@@ -46,13 +46,11 @@ int main(int argc, const char *argv[]) {
   vector<AddressSpace*> addrSpaces;
   app->getAS(addrSpaces);
 
-  CodeObject* co = addrSpaces[0]->getAOut()->parse_img()->codeObject();
-  DynObject* obj = DynObject::create(co, addrSpaces[0], 0);
+  mapped_object* obj = addrSpaces[0]->getAOut();
   DynAddrSpacePtr as = DynAddrSpace::create(obj);
   PatchMgrPtr mgr = PatchMgr::create(as);
 
-  CodeObject* co_lib = addrSpaces[1]->getAOut()->parse_img()->codeObject();
-  DynObject* lib_obj = DynObject::create(co_lib, addrSpaces[1], 0);
+  mapped_object* lib_obj = addrSpaces[1]->getAOut();
   as->loadLibrary(lib_obj);
 
   // Find Points
@@ -85,4 +83,5 @@ int main(int argc, const char *argv[]) {
   mgr->batchStart();
   func_points[0]->push_back(snippet);
   mgr->batchFinish(errorInstances);
+
 }

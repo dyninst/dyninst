@@ -107,11 +107,11 @@ class PatchBlock {
     edgelist &sources();
     edgelist &targets();
 
-  protected:
     PatchBlock(ParseAPI::Block *block, PatchFunction *func);
     PatchBlock(const PatchBlock *parblk, PatchObject *child);
     PatchBlock(ParseAPI::Block *block, PatchObject *obj);
 
+  protected:
     typedef enum {
       backwards,
       forwards } Direction;

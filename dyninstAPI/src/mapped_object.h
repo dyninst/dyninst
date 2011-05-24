@@ -313,15 +313,12 @@ public:
 
     void set_short_name();
 
-    pdvector<mapped_module *> everyModule;
-
-    typedef std::map<const ParseAPI::Block *, block_instance *> BlockMap;
-    BlockMap blocks_;
+    public: pdvector<mapped_module *> everyModule;
 
     typedef std::map<const ParseAPI::Edge *, edge_instance *> EdgeMap;
     EdgeMap edges_;
 
-    dictionary_hash<const image_variable *, int_variable *> everyUniqueVariable;
+ public: dictionary_hash<const image_variable *, int_variable *> everyUniqueVariable;
 
     dictionary_hash< std::string, pdvector<func_instance *> * > allFunctionsByMangledName;
     dictionary_hash< std::string, pdvector<func_instance *> * > allFunctionsByPrettyName;
@@ -345,7 +342,7 @@ public:
     bool dirty_; // marks the shared object as dirty
     bool dirtyCalled_;//see comment for setDirtyCalled
 
-    image  *image_; // pointer to image if processed is true
+ public: image  *image_; // pointer to image if processed is true
     bool dlopenUsed; //mark this shared object as opened by dlopen
     AddressSpace *proc_; // Parent process
 

@@ -297,14 +297,6 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
       everyModule.push_back(mod);
    }
 
-   // Duplicate all copied blocks
-   for (BlockMap::const_iterator iter = s->blocks_.begin();
-        iter != s->blocks_.end(); ++iter) {
-      block_instance *newBlock = new block_instance(iter->second,
-                                                    this);
-
-      blocks_.insert(std::make_pair(iter->first, newBlock));
-   }
 
    // And now edges
    for (EdgeMap::const_iterator iter = s->edges_.begin();
@@ -312,6 +304,13 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
       edge_instance *newEdge = new edge_instance(iter->second,
                                                  this);
       edges_.insert(std::make_pair(iter->first, newEdge));
+   }
+
+   // Duplicate all copied blocks
+
+   for (BlockMap::const_iterator iter = s->blocks_.begin();
+        iter != s->blocks_.end(); ++iter) {
+     cfg_maker_->copyBlock(iter->second, this);
    }
 
    // Aaand now functions
@@ -348,26 +347,6 @@ mapped_object::~mapped_object()
       delete everyModule[i];
    everyModule.clear();
 
-   // Remember to clean up allocated buffers! -- wenbin
-   // delete mapped_object is enough, because all related functions and blocks and edges
-   // will be destroyed too.
-   // Defer to do it right when synchronize BlockMap/FucMap/EdgeMap w/ PatchAPI layer
-   /*
-   for (BlockMap::iterator iter = blocks_.begin(); iter != blocks_.end(); ++iter) {
-      delete iter->second;
-   }
-   blocks_.clear();
-
-   for (EdgeMap::iterator iter = edges_.begin(); iter != edges_.end(); ++iter) {
-      delete iter->second;
-   }
-   edges_.clear();
-
-   for (FuncMap::iterator iter = funcs_.begin(); iter != funcs_.end(); ++iter) {
-       delete iter->second;
-   }
-   funcs_.clear();
-*/
    pdvector<int_variable *> vars = everyUniqueVariable.values();
    for (unsigned k = 0; k < vars.size(); k++) {
       delete vars[k];
@@ -1188,7 +1167,7 @@ bool mapped_object::splitIntLayer()
          bIter != splits.end(); bIter++)
     {
       // foreach function corresponding to the block
-       parse_block *splitImgB = bIter->first;
+      // parse_block *splitImgB = bIter->first;
        splitBlock(bIter->first, bIter->second);
     }
 
@@ -1359,7 +1338,7 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
  * 4. fix up mapping of split blocks with points
  * 5. Add image points, as instPoints
 */
-bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs )
+bool mapped_object::parseNewEdges(const std::vector<edgeStub> &/*stubs*/ )
 {
    assert(0 && "TODO");
    return false;
@@ -2240,11 +2219,7 @@ edge_instance *mapped_object::findEdge(ParseAPI::Edge *e,
 }
 
 block_instance *mapped_object::findBlock(ParseAPI::Block *b) {
-   BlockMap::const_iterator iter = blocks_.find(b);
-   if (iter != blocks_.end()) return iter->second;
-   block_instance *inst = new block_instance(b, this);
-   blocks_[b] = inst;
-   return inst;
+  return SCAST_BI(getBlock(b));
 }
 
 block_instance *mapped_object::findOneBlockByAddr(const Address addr) {
@@ -2261,7 +2236,7 @@ block_instance *mapped_object::findOneBlockByAddr(const Address addr) {
    return NULL;
 }
 
-void mapped_object::splitBlock(ParseAPI::Block *first, ParseAPI::Block *second) {
+void mapped_object::splitBlock(ParseAPI::Block */*first*/, ParseAPI::Block */*second*/) {
    assert(0 && "TODO");
 }
 

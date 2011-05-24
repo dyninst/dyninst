@@ -29,17 +29,17 @@ class PatchObject {
 
     // Getters and setter
     Address codeBase() { return codeBase_; }
-
     ParseAPI::CodeObject* co() const { return co_; }
     ParseAPI::CodeSource* cs() const { return cs_; }
-
     AddrSpacePtr addrSpace() const { return addr_space_; }
     void setAddrSpace(AddrSpacePtr as) { addr_space_ = as; }
 
+    // Function
     PatchFunction *getFunc(ParseAPI::Function *);
     void addFunc(PatchFunction*);
     void removeFunc(PatchFunction*);
 
+    // Block
     PatchBlock *getBlock(ParseAPI::Block*);
     void addBlock(PatchBlock*);
     void removeBlock(PatchBlock*);
