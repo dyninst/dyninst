@@ -17,8 +17,6 @@ LDFLAGS     += $(LIBDIR) -lcommon
 
 SRCS =  ../src/bluegene.C \
         ../src/notify_pipe.C \
-        ../src/sysv.C \
-        ../src/ppc_process.C \
         ../../common/src/dthread-unix.C
 
 ifdef LIBELF_INC

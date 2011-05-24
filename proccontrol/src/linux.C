@@ -1869,6 +1869,69 @@ bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
    return true;
 }
 
+//Copied from /usr/include/asm/ldt.h, as it was not available on all machines
+struct linux_x86_user_desc {
+   unsigned int  entry_number;   
+   unsigned long base_addr;
+   unsigned int  limit;
+   unsigned int  seg_32bit:1;
+   unsigned int  contents:2;
+   unsigned int  read_exec_only:1;
+   unsigned int  limit_in_pages:1;
+   unsigned int  seg_not_present:1;
+   unsigned int  useable:1;
+};
+
+bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
+{
+   switch (llproc()->getTargetArch())
+   {
+      case Arch_x86_64:
+         // TODO
+         // use ptrace_arch_prctl     
+         pthrd_printf("Segment bases on x86_64 not implemented\n");
+         return false;
+      case Arch_x86: {
+         MachRegister segmentSelectorReg;
+         MachRegisterVal segmentSelectorVal;
+         unsigned long entryNumber;
+         struct linux_x86_user_desc entryDesc;
+
+         switch (reg.val())
+         {
+            case x86::ifsbase: segmentSelectorReg = x86::fs; break;
+            case x86::igsbase: segmentSelectorReg = x86::gs; break;
+            default: {
+               pthrd_printf("Failed to get unrecognized segment base\n");
+               return false;
+            }
+         }
+
+         if (!plat_getRegister(segmentSelectorReg, segmentSelectorVal))
+         {
+           pthrd_printf("Failed to get segment base with selector %s\n", segmentSelectorReg.name().c_str());
+           return false;
+         }
+         entryNumber = segmentSelectorVal / 8;
+
+         pthrd_printf("Get segment base doing PTRACE with entry %lu\n", entryNumber);
+         long result = do_ptrace((pt_req) PTRACE_GET_THREAD_AREA, 
+                                 lwp, (void *) entryNumber, (void *) &entryDesc);
+         if (result == -1 && errno != 0) {
+            pthrd_printf("PTRACE to get segment base failed: %s\n", strerror(errno));
+            return false;
+         }
+
+         val = entryDesc.base_addr;
+         pthrd_printf("Got segment base: 0x%lx\n", val);
+         return true;
+      }
+      default:
+         assert(!"This is not implemented on this architecture");
+         return false;
+   }
+}
+
 ArchEventLinux::ArchEventLinux(bool inter_) : 
    status(0),
    pid(NULL_PID),

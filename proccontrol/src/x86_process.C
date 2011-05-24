@@ -60,3 +60,4 @@ bool x86_process::plat_breakpointAdvancesPC() const
 {
    return true;
 }
+

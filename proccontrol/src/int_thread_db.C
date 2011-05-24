@@ -773,17 +773,18 @@ async_ret_t thread_db_process::initThreadDB() {
             continue;
       }
       
-      if( !plat_convertToBreakpointAddress(notifyResult.u.bptaddr) ) {
+      Address addr = (Address) notifyResult.u.bptaddr;
+      if( !plat_convertToBreakpointAddress(addr, triggerThread()) ) {
          perr_printf("Failed to determine breakpoint address\n");
          setLastError(err_internal, "Failed to install new thread_db event breakpoint");
          thread_db_proc_initialized = true;
          return aret_error;
       }
+      notifyResult.u.bptaddr = (void *) addr;
       
       int_breakpoint *newEventBrkpt = new int_breakpoint(Breakpoint::ptr());
       newEventBrkpt->setProcessStopper(true);
-      if( !addBreakpoint((Dyninst::Address)notifyResult.u.bptaddr,
-                         newEventBrkpt))
+      if( !addBreakpoint(addr, newEventBrkpt))
       {
          perr_printf("Failed to install new event breakpoint\n");
          setLastError(err_internal, "Failed to install new thread_db event breakpoint");
@@ -793,8 +794,7 @@ async_ret_t thread_db_process::initThreadDB() {
       }
       
       pair<map<Dyninst::Address, pair<int_breakpoint *, EventType> >::iterator, bool> insertIter;
-      insertIter = addr2Event.insert(make_pair((Dyninst::Address)notifyResult.u.bptaddr,
-                                               make_pair(newEventBrkpt, newEvent)));
+      insertIter = addr2Event.insert(make_pair(addr, make_pair(newEventBrkpt, newEvent)));
       
       assert( insertIter.second && "event breakpoint address not unique" );
    }
@@ -803,7 +803,7 @@ async_ret_t thread_db_process::initThreadDB() {
    return aret_success;
 }
 
-bool thread_db_process::plat_convertToBreakpointAddress(psaddr_t &) {
+bool thread_db_process::plat_convertToBreakpointAddress(Address &, int_thread *) {
     // Default behavior is no translation
     return true;
 }
@@ -1616,7 +1616,7 @@ void thread_db_process::addThreadDBHandlers(HandlerPool *)
 {
 }
 
-bool thread_db_process::plat_convertToBreakpointAddress(psaddr_t &) {
+bool thread_db_process::plat_convertToBreakpointAddress(Address &, int_thread *) {
     return true;
 }
 

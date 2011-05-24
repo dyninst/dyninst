@@ -13,8 +13,11 @@ TARGET = libpcontrol.so
 
 LDFLAGS     += $(LIBDIR) -lcommon
 
-SRCS = 	../src/linux.C \
-         ../src/sysv.C
+SRCS =  ../src/linux.C \
+        ../src/unix.C \
+		  ../src/notify_pipe.C \
+        ../../common/src/dthread-unix.C \
+        ../../common/src/Elf_X.C
 
 ifdef LIBELF_INC
 MYFLAGS += -I$(LIBELF_INC)

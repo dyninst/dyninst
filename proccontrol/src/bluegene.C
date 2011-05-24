@@ -722,7 +722,7 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
             if (ibp) {
                pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(), 
                             thread->getLWP(), pc_addr);
-               EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(pc_addr, ibp));
+               EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(new int_eventBreakpoint(pc_addr, ibp, thread)));
                new_event = event_bp;
                new_event->setThread(thread->thread());
 
@@ -752,7 +752,7 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
             installed_breakpoint *ibp = thread->isClearingBreakpoint();
             if (ibp) {
                pthrd_printf("Decoded event to breakpoint cleanup\n");
-               new_event = Event::ptr(new EventBreakpointClear(ibp));
+               new_event = Event::ptr(new EventBreakpointRestore(new int_eventBreakpointRestore(ibp)));
             }
             else {
                new_event = Event::ptr(new EventSingleStep());
@@ -983,7 +983,7 @@ bool bg_process::plat_create_int()
    return false;
 }
 
-bool bg_process::plat_attach()
+bool bg_process::plat_attach(bool)
 {
    BG_Debugger_Msg msg(ATTACH, getPid(), 0, 0, 0);
    msg.header.dataLength = sizeof(msg.dataArea.ATTACH);
@@ -1238,7 +1238,7 @@ unsigned bg_process::plat_getRecommendedReadSize()
    return 2048;
 }
 
-bool bg_process::plat_getOSRunningState(Dyninst::LWP) const 
+bool bg_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &)
 {
    return true;
 }
@@ -1431,7 +1431,7 @@ bool bg_thread::plat_getRegisterAsync(Dyninst::MachRegister reg,
    msg.dataArea.GET_REG.registerNumber = DynToBGGPRReg(reg);
    msg.header.dataLength = sizeof(msg.dataArea.GET_REG);
 
-   pthrd_printf("Sending GET_REG of %s to %d/%d\n", reg.name(), llproc()->getPid(), getLWP());
+   pthrd_printf("Sending GET_REG of %s to %d/%d\n", reg.name().c_str(), llproc()->getPid(), getLWP());
 
    bool result = BGSend(msg);
    if (!result) {
@@ -1451,7 +1451,7 @@ bool bg_thread::plat_setRegisterAsync(Dyninst::MachRegister reg,
    msg.dataArea.SET_REG.value = (BG_GPR_t) val;
    msg.header.dataLength = sizeof(msg.dataArea.SET_REG);
 
-   pthrd_printf("Sending SET_REG of %s to %d/%d\n", reg.name(), llproc()->getPid(), getLWP());
+   pthrd_printf("Sending SET_REG of %s to %d/%d\n", reg.name().c_str(), llproc()->getPid(), getLWP());
 
    bool result = BGSend(msg);
    if (!result) {

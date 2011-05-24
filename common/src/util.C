@@ -201,7 +201,7 @@ const char *platform_string()
 #elif defined (os_windows)
 	return "x86_64-unknown-nt4.0";
 #endif
-#else defined (arch_power)
+#elif defined (arch_power)
 #if defined (os_aix)
 	return "rs6000-ibm-aix5.1";
 #elif defined (os_linux)

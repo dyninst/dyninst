@@ -252,6 +252,9 @@ class int_process
    virtual bool plat_supportFork();
    virtual bool plat_supportExec();
 
+   virtual bool plat_needsPCSaveBeforeSingleStep();
+   virtual bool plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &result);
+
    int_library *getLibraryByName(std::string s) const;
    size_t numLibs() const;
    virtual bool refresh_libraries(std::set<int_library *> &added_libs,
@@ -473,7 +476,6 @@ class int_thread
    void markStoppedOnBP(installed_breakpoint *bp);
    installed_breakpoint *isStoppedOnBP() const;
 
-   virtual bool plat_needsPCSaveBeforeSingleStep() = 0;
    void setPreSingleStepPC(Dyninst::MachRegisterVal pc);
    Dyninst::MachRegisterVal getPreSingleStepPC() const;
 
@@ -482,7 +484,6 @@ class int_thread
    void addEmulatedSingleStep(emulated_singlestep *es);
    void rmEmulatedSingleStep(emulated_singlestep *es);
    bool isEmulatingSingleStep();
-   virtual bool plat_needsEmulatedSingleStep(std::vector<Dyninst::Address> &result) = 0;
 
    //RPC Management
    void addPostedRPC(int_iRPC_ptr rpc_);

@@ -1680,6 +1680,15 @@ bool int_process::plat_supportExec()
    return false;
 }
 
+bool int_process::plat_needsEmulatedSingleStep(int_thread *, std::vector<Address> &) {
+    return true;
+}
+
+bool int_process::plat_needsPCSaveBeforeSingleStep() 
+{
+   return false;
+}
+
 int_process::~int_process()
 {
    pthrd_printf("Deleting int_process at %p\n", this);
@@ -2056,7 +2065,7 @@ int_thread::stopcont_ret_t int_thread::cont(bool user_cont, bool have_proc_lock)
    }
 
    if( singleStep() && !isExiting()) {
-       if( plat_needsPCSaveBeforeSingleStep() ) {
+      if( llproc()->plat_needsPCSaveBeforeSingleStep() ) {
             reg_response::ptr pcResponse = reg_response::createRegResponse();
             bool result = getRegister(MachRegister::getPC(llproc()->getTargetArch()), pcResponse);
             if( !result ) {
@@ -2083,7 +2092,7 @@ int_thread::stopcont_ret_t int_thread::cont(bool user_cont, bool have_proc_lock)
        }
 
        vector<Address> breakAddrs;
-       bool result = plat_needsEmulatedSingleStep(breakAddrs);
+       bool result = llproc()->plat_needsEmulatedSingleStep(this, breakAddrs);
        if( !result ) {
            perr_printf("Error. failed to determine if emulated single step was needed\n");
            setLastError(err_internal, "Single step failed\n");

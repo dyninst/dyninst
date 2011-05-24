@@ -29,7 +29,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-
 #if !defined(ppc_process_h_)
 #define ppc_process_h_
 
@@ -46,6 +45,10 @@ class ppc_process : virtual public int_process
   virtual unsigned plat_breakpointSize();
   virtual void plat_breakpointBytes(char *buffer);
   virtual bool plat_breakpointAdvancesPC() const;
+
+  virtual bool plat_needsEmulatedSingleStep(int_thread *thr, vector<Address> &addrResult);
+  virtual bool plat_convertToBreakpointAddress(Address &addr, int_thread *thr);
+  virtual bool plat_needsPCSaveBeforeSingleStep();
 };
 
 #endif

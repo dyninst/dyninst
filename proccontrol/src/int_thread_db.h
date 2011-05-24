@@ -145,7 +145,7 @@ public:
 protected:
     Event::ptr decodeThreadEvent(td_event_msg_t *eventMsg, bool &async);
     async_ret_t handleThreadAttach(td_thrhandle_t *thr);
-    virtual bool plat_convertToBreakpointAddress(psaddr_t &addr);
+    virtual bool plat_convertToBreakpointAddress(Address &addr, int_thread *thr);
 
     static volatile bool thread_db_initialized;
     bool thread_db_proc_initialized;

@@ -131,7 +131,6 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool plat_individualRegAccess();
    virtual bool plat_contProcess() { return true; }
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
-   virtual bool plat_convertToBreakpointAddress(psaddr_t &);
    virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
    virtual bool plat_supportLWPEvents();
    virtual ThreadControlMode plat_getThreadControlMode() const;
@@ -187,7 +186,6 @@ class linux_thread : public thread_db_thread
                                       result_response::ptr result);
    virtual bool thrdb_getThreadArea(int val, Dyninst::Address &addr);
    virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
-   virtual bool plat_needsEmulatedSingleStep(vector<Dyninst::Address> &result);
    virtual bool plat_needsPCSaveBeforeSingleStep();
 
    // Needed by HybridLWPControl, unused on Linux

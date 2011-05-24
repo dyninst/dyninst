@@ -90,7 +90,7 @@ class bg_process : public sysv_process, public thread_db_process, public ppc_pro
 
    virtual bool plat_create();
    virtual bool plat_create_int();
-   virtual bool plat_attach();   
+   virtual bool plat_attach(bool all_stopped);
    virtual bool plat_forked();
    virtual bool post_forked();
    virtual bool plat_detach(bool &needs_sync);
@@ -105,7 +105,7 @@ class bg_process : public sysv_process, public thread_db_process, public ppc_pro
                              Dyninst::Address remote, size_t size);
    virtual bool plat_writeMem(int_thread *thr, const void *local, 
                               Dyninst::Address remote, size_t size);
-   virtual bool plat_getOSRunningState(Dyninst::LWP lwp) const;
+   virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
    virtual bool needIndividualThreadAttach();
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
    virtual Dyninst::Architecture getTargetArch();
