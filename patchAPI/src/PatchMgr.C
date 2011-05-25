@@ -20,6 +20,7 @@ static void initDebugFlag() {
 PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt)
   : point_maker_(pt), as_(as), batch_mode_(0) {
   instor_ = Instrumenter::create(as);
+  // point_maker_->setMgr(shared_from_this());
 }
 
 PatchMgrPtr PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf) {
@@ -27,6 +28,7 @@ PatchMgrPtr PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf) {
   if (!ret) return PatchMgrPtr();
   initDebugFlag();
   ret->as_->mgr_ = ret;
+  ret->pointMaker()->setMgr(ret);
   patch_cerr << "PatchAPI starts.\n";
   patch_cerr << ws2 << "Glue Instrumenter and Linker ot PatchMgr.\n";
   return ret;
@@ -71,7 +73,7 @@ void  PatchMgr::getPointsByType(TypePtMap& type_pt_map, Point::Type types,
   PointSet& pts = type_pt_map[type];
   if (pts.size() == 0) {
     Point* point;
-    point = point_maker_->createPoint(addr, type, shared_from_this(), scope);
+    point = point_maker_->createPoint(addr, type, scope);
     pts.insert(point);
     del_pt_set_.insert(point);
   }

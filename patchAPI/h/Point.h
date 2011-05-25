@@ -195,17 +195,22 @@ class Instance : public dyn_detail::boost::enable_shared_from_this<Instance> {
    the subclass of PatchAPI::Point.   */
 class PointMaker {
   public:
+    PointMaker(PatchMgrPtr mgr) : mgr_(mgr) {}
     PointMaker() {}
     virtual ~PointMaker() {}
 
-    virtual Point* createPoint(Address     addr, Point::Type type,
-                               PatchMgrPtr mgr,  Address*         scope);
-    virtual Point* createPoint(Address     addr, Point::Type type,
-                               PatchMgrPtr mgr,  PatchBlock*      scope);
-    virtual Point* createPoint(Address     addr, Point::Type type,
-                               PatchMgrPtr mgr,  PatchEdge*       scope);
-    virtual Point* createPoint(Address     addr, Point::Type type,
-                               PatchMgrPtr mgr,  PatchFunction*   scope);
+    virtual Point* createPoint(Address addr, Point::Type type,
+                               Address* scope);
+    virtual Point* createPoint(Address addr, Point::Type type,
+                               PatchBlock* scope);
+    virtual Point* createPoint(Address addr, Point::Type type,
+                               PatchEdge* scope);
+    virtual Point* createPoint(Address addr, Point::Type type,
+                               PatchFunction* scope);
+
+    void setMgr(PatchMgrPtr mgr) { mgr_ = mgr; }
+  protected:
+    PatchMgrPtr mgr_;
 };
 
 }

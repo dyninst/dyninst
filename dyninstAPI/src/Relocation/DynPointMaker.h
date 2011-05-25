@@ -17,14 +17,14 @@ class DynPointMaker : public Dyninst::PatchAPI::PointMaker {
     DynPointMaker() {}
     virtual ~DynPointMaker() {}
 
-    virtual Point* createPoint(Address     addr, Point::Type type,
-                               PatchMgrPtr mgr,  Address*         scope);
-    virtual Point* createPoint(Address     addr, Point::Type type,
-                               PatchMgrPtr mgr,  PatchBlock*      scope);
-    virtual Point* createPoint(Address     addr, Point::Type type,
-                               PatchMgrPtr mgr,  PatchEdge*       scope);
-    virtual Point* createPoint(Address     addr, Point::Type type,
-                               PatchMgrPtr mgr,  PatchFunction*   scope);
+    virtual Point* createPoint(Address addr, Point::Type type,
+                               Address* scope);
+    virtual Point* createPoint(Address addr, Point::Type type,
+                               PatchBlock* scope);
+    virtual Point* createPoint(Address addr, Point::Type type,
+                               PatchEdge* scope);
+    virtual Point* createPoint(Address addr, Point::Type type,
+                               PatchFunction* scope);
 };
 typedef dyn_detail::boost::shared_ptr<DynPointMaker> DynPointMakerPtr;
 

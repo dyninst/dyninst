@@ -9,32 +9,28 @@ using Dyninst::PatchAPI::PointMaker;
 
 Point* PointMaker::createPoint(Address addr,
                                Point::Type type,
-                               PatchMgrPtr mgr,
                                Address* scope) {
-  Point* ret = new Point(addr, type, mgr, scope);
+  Point* ret = new Point(addr, type, mgr_, scope);
   return ret;
 }
 
 Point* PointMaker::createPoint(Address addr,
                                Point::Type type,
-                               PatchMgrPtr mgr,
                                PatchBlock* scope) {
-  Point* ret = new Point(addr, type, mgr, scope);
+  Point* ret = new Point(addr, type, mgr_, scope);
   return ret;
 }
 
 Point* PointMaker::createPoint(Address addr,
                                Point::Type type,
-                               PatchMgrPtr mgr,
                                PatchEdge* scope) {
-  Point* ret = new Point(addr, type, mgr, scope);
+  Point* ret = new Point(addr, type, mgr_, scope);
   return ret;
 }
 
 Point* PointMaker::createPoint(Address addr,
                                Point::Type type,
-                               PatchMgrPtr mgr,
                                PatchFunction* scope) {
-  Point* ret = new Point(addr, type, mgr, scope);
+  Point* ret = new Point(addr, type, mgr_, scope);
   return ret;
 }

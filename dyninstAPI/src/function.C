@@ -554,6 +554,7 @@ instPoint *func_instance::findPoint(instPoint::Type type, bool create) {
    assert(type == instPoint::FuncEntry);
    if (points_.entry) return points_.entry;
    if (!create) return NULL;
+   // points_.entry = new instPoint(0, instPoint::FuncEntry, PatchMgrPtr(), this);
    points_.entry = new instPoint(0, instPoint::FuncEntry, PatchMgrPtr(), this);
    return points_.entry;
 }

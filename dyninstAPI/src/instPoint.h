@@ -49,6 +49,7 @@
 #include "arch-forward-decl.h" // instruction
 
 #include "Point.h"
+#include "Relocation/DynPointMaker.h"
 
 class block_instance;
 class func_instance;
@@ -72,7 +73,7 @@ class instPoint : public Dyninst::PatchAPI::Point {
   friend class func_instance;
   friend class block_instance;
   friend class edge_instance;
-
+  friend class DynPointMaker;
   public:
     typedef std::list<miniTramp *> Minitramps;
     typedef Minitramps::iterator iterator;
