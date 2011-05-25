@@ -11,17 +11,8 @@ PatchBlock *PatchBlock::create(ParseAPI::Block *ib, PatchFunction *f) {
   return f->object()->getBlock(ib);
 }
 
-PatchBlock::PatchBlock(ParseAPI::Block *block,
-                       PatchFunction *func)
-   : block_(block),
-     function_(func),
-     srclist_(srcs_),
-     trglist_(trgs_),
-     obj_(func->object()) {
-}
-
 PatchBlock::PatchBlock(ParseAPI::Block *blk, PatchObject *obj)
-  : block_(blk),  srclist_(srcs_), trglist_(trgs_), obj_(obj) {
+  : block_(blk),   obj_(obj) {
 
   ParseAPI::CodeObject::funclist& all = obj->co()->funcs();
   for (ParseAPI::CodeObject::funclist::iterator fit = all.begin();
@@ -34,8 +25,7 @@ PatchBlock::PatchBlock(ParseAPI::Block *blk, PatchObject *obj)
 }
 
 PatchBlock::PatchBlock(const PatchBlock *parent, PatchObject *child)
-  : block_(parent->block_), srclist_(srcs_), trglist_(trgs_), obj_(child) {
-
+  : block_(parent->block_), obj_(child) {
   ParseAPI::CodeObject::funclist& all = child->co()->funcs();
   for (ParseAPI::CodeObject::funclist::iterator fit = all.begin();
        fit != all.end(); ++fit) {
@@ -76,7 +66,6 @@ void PatchBlock::createInterproceduralEdges(ParseAPI::Edge *iedge,
   std::vector<ParseAPI::Function *> ifuncs;
   iblk->getFuncs(ifuncs);
   for (unsigned i = 0; i < ifuncs.size(); ++i) {
-    PatchFunction *pfunc = object()->getFunc(ifuncs[i]);
     PatchBlock *pblock = object()->getBlock(iblk);
     assert(pblock);
     PatchEdge *newEdge = NULL;
@@ -110,7 +99,7 @@ PatchBlock::edgelist &PatchBlock::sources() {
       }
     }
   }
-  return srclist_;
+  return srcs_;
 }
 
 PatchBlock::edgelist &PatchBlock::targets() {
@@ -132,7 +121,7 @@ PatchBlock::edgelist &PatchBlock::targets() {
       }
     }
   }
-  return trglist_;
+  return trgs_;
 }
 
 void PatchBlock::removeSourceEdge(PatchEdge *e) {

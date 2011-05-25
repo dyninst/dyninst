@@ -74,15 +74,11 @@ class PatchBlock {
 
   public:
     typedef std::map<Address, InstructionAPI::Instruction::Ptr> Insns;
-    //typedef std::pair<Address, InstructionAPI::Instruction::Ptr> InsnInstance;
-    //typedef std::vector<InsnInstance> InsnInstances;
-    typedef ParseAPI::ContainerWrapper<
-      std::vector<PatchEdge *>,
-      PatchEdge *,
-      PatchEdge *,
-      EdgePredicateAdapter> edgelist;
+    typedef std::vector<PatchEdge*> edgelist;
 
     static PatchBlock *create(ParseAPI::Block *, PatchFunction *);
+    PatchBlock(const PatchBlock *parblk, PatchObject *child);
+    PatchBlock(ParseAPI::Block *block, PatchObject *obj);
     virtual ~PatchBlock();
 
     // Getters
@@ -107,9 +103,6 @@ class PatchBlock {
     edgelist &sources();
     edgelist &targets();
 
-    PatchBlock(ParseAPI::Block *block, PatchFunction *func);
-    PatchBlock(const PatchBlock *parblk, PatchObject *child);
-    PatchBlock(ParseAPI::Block *block, PatchObject *obj);
 
   protected:
     typedef enum {
