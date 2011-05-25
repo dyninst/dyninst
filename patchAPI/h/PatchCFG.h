@@ -22,6 +22,13 @@ class PatchEdge {
 
   public:
    static PatchEdge *create(ParseAPI::Edge *, PatchBlock *src, PatchBlock *trg);
+   PatchEdge(ParseAPI::Edge *internalEdge,
+             PatchBlock *source,
+             PatchBlock *target);
+
+   PatchEdge(const PatchEdge *parent,
+             PatchBlock *child_src,
+             PatchBlock *child_trg);
    ~PatchEdge();
 
    // Getters
@@ -32,15 +39,7 @@ class PatchEdge {
    bool sinkEdge() const;
    bool interproc() const;
 
-    PatchEdge(ParseAPI::Edge *internalEdge,
-              PatchBlock *source,
-              PatchBlock *target);
-
-    PatchEdge(const PatchEdge *parent,
-              PatchBlock *child_src,
-              PatchBlock *child_trg);
  protected:
-
     ParseAPI::Edge *edge_;
     PatchBlock *src_;
     PatchBlock *trg_;

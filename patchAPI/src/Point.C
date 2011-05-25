@@ -49,7 +49,7 @@ PatchFunction* Point::getCallee() {
 /* Associate this point with the block(s) and function(s)
    that contain it */
 void Point::initCodeStructure(Address /*addr*/) {
-#if 0
+#if 0 
   // walk through all code objects
   for (AddrSpace::CoObjMap::iterator ci = mgr_->as()->getCoobjMap().begin();
        ci != mgr_->as()->getCoobjMap().end(); ci++) {
@@ -73,7 +73,7 @@ void Point::initCodeStructure(Address /*addr*/) {
            bi != parseapi_blks.end(); bi++) {
         PatchBlock* blk = mod->getBlock(*bi);
         inst_blks_.insert(blk);
-      } // Function
+      } // Block
     } // Region
     if (inst_blks_.size() > 0) {
       co_ = co;
