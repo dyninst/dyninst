@@ -32,7 +32,12 @@ PatchObject::~PatchObject() {
   for (FuncMap::iterator iter = funcs_.begin(); iter != funcs_.end(); ++iter) {
     delete iter->second;
   }
-  funcs_.clear();
+  for (BlockMap::iterator iter = blocks_.begin(); iter != blocks_.end(); ++iter) {
+    delete iter->second;
+  }
+  for (EdgeMap::iterator iter = edges_.begin(); iter != edges_.end(); ++iter) {
+    delete iter->second;
+  }
 }
 
 PatchFunction *PatchObject::getFunc(ParseAPI::Function *f) {

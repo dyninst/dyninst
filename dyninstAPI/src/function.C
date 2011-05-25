@@ -281,7 +281,7 @@ void func_instance::getReachableBlocks(const set<block_instance*> &exceptBlocks,
 #endif
 
 void print_func_vector_by_pretty_name(std::string prefix,
-				      pdvector<func_instance *>*funcs) {
+                                      pdvector<func_instance *>*funcs) {
     unsigned int i;
     func_instance *func;
     for(i=0;i<funcs->size();i++) {
@@ -293,52 +293,36 @@ void print_func_vector_by_pretty_name(std::string prefix,
 mapped_object *func_instance::obj() const { return mod()->obj(); }
 AddressSpace *func_instance::proc() const { return obj()->proc(); }
 
-const func_instance::BlockSet &func_instance::blocks()
-{
-    if (blocks_.empty()) {
-        // defensiveMode triggers premature block list creation when it
-        // checks that the targets of control transfers have not been
-        // tampered with.
-        Function::blocklist & img_blocks = ifunc()->blocks();
-        Function::blocklist::iterator sit = img_blocks.begin();
-
-        for( ; sit != img_blocks.end(); ++sit) {
-            parse_block *b = (parse_block*)(*sit);
-            blocks_.insert(obj()->findBlock(b));
-        }
+const func_instance::BlockSet &func_instance::blocks() {
+  if (blocks_.empty()) {
+    for (PatchFunction::blocklist::const_iterator i = getAllBlocks().begin();
+         i != getAllBlocks().end(); i++) {
+      blocks_.insert(SCAST_BI(*i));
     }
-    return blocks_;
+  }
+  return blocks_;
 }
 
 const func_instance::BlockSet &func_instance::callBlocks() {
-   // Check the list...
-   if (callBlocks_.empty()) {
-      const ParseAPI::Function::edgelist &callEdges = ifunc()->callEdges();
-      for (ParseAPI::Function::edgelist::iterator iter = callEdges.begin();
-           iter != callEdges.end(); ++iter) {
-         ParseAPI::Block *src = (*iter)->src();
-         block_instance *block = obj()->findBlock(src);
-         assert(block);
-         callBlocks_.insert(block);
-      }
-   }
-   return callBlocks_;
+  // Check the list...
+  if (callBlocks_.empty()) {
+    for (PatchFunction::blocklist::const_iterator i = getCallBlocks().begin();
+         i != getCallBlocks().end(); i++) {
+      callBlocks_.insert(SCAST_BI(*i));
+    }
+  }
+  return callBlocks_;
 }
 
 const func_instance::BlockSet &func_instance::exitBlocks() {
-   // Check the list...
-   if (exitBlocks_.empty()) {
-      const ParseAPI::Function::blocklist &exitBlocks = ifunc()->returnBlocks();
-      for (ParseAPI::Function::blocklist::iterator iter = exitBlocks.begin();
-           iter != exitBlocks.end(); ++iter) {
-         ParseAPI::Block *iblock = (*iter);
-         block_instance *block = obj()->findBlock(iblock);
-         assert(block);
-         exitBlocks_.insert(block);
-      }
-   }
-
-   return exitBlocks_;
+  // Check the list...
+  if (exitBlocks_.empty()) {
+    for (PatchFunction::blocklist::const_iterator i = getExitBlocks().begin();
+         i != getExitBlocks().end(); i++) {
+      exitBlocks_.insert(SCAST_BI(*i));
+    }
+  }
+  return exitBlocks_;
 }
 
 const func_instance::BlockSet &func_instance::unresolvedCF() {
@@ -370,21 +354,13 @@ const func_instance::BlockSet &func_instance::abruptEnds() {
 }
 
 block_instance *func_instance::entryBlock() {
-   if (!entry_) {
-      ParseAPI::Block *iEntry = ifunc()->entry();
-      if (!iEntry) {
-         // Might not be parsed yet...
-         blocks();
-         iEntry = ifunc()->entry();
-      }
-      assert(iEntry);
-
-      entry_ = obj()->findBlock(iEntry);
-      if (!entry_) {
-         cerr << "Couldn't find entry block for " << name() << endl;
-      }
-   }
-   return entry_;
+  if (!entry_) {
+    entry_ = SCAST_BI(getEntryBlock());
+    if (!entry_) {
+      cerr << "ERROR: Couldn't find entry block for " << name() << endl;
+    }
+  }
+  return entry_;
 }
 
 unsigned func_instance::getNumDynamicCalls()
@@ -493,23 +469,23 @@ bool func_instance::getSharingFuncs(std::set<func_instance *> &funcs) {
 bool func_instance::getOverlappingFuncs(block_instance *block,
                                        std::set<func_instance *> &funcs)
 {
-	ParseAPI::Block *llB = block->llb();
-	std::set<ParseAPI::Block *> overlappingBlocks;
-	for (Address i = llB->start(); i < llB->end(); ++i) {
-		llB->obj()->findBlocks(llB->region(), i, overlappingBlocks);
-	}
-	// We now have all of the overlapping ParseAPI blocks. Get the set of
-	// ParseAPI::Functions containing each and up-map to func_instances
-	for (std::set<ParseAPI::Block *>::iterator iter = overlappingBlocks.begin();
-		iter != overlappingBlocks.end(); ++iter) {
-		std::vector<ParseAPI::Function *> llFuncs;
-		(*iter)->getFuncs(llFuncs);
-		for (std::vector<ParseAPI::Function *>::iterator iter2 = llFuncs.begin();
+        ParseAPI::Block *llB = block->llb();
+        std::set<ParseAPI::Block *> overlappingBlocks;
+        for (Address i = llB->start(); i < llB->end(); ++i) {
+                llB->obj()->findBlocks(llB->region(), i, overlappingBlocks);
+        }
+        // We now have all of the overlapping ParseAPI blocks. Get the set of
+        // ParseAPI::Functions containing each and up-map to func_instances
+        for (std::set<ParseAPI::Block *>::iterator iter = overlappingBlocks.begin();
+                iter != overlappingBlocks.end(); ++iter) {
+                std::vector<ParseAPI::Function *> llFuncs;
+                (*iter)->getFuncs(llFuncs);
+                for (std::vector<ParseAPI::Function *>::iterator iter2 = llFuncs.begin();
                      iter2 != llFuncs.end(); ++iter2)  {
                    funcs.insert(obj()->findFunction(*iter2));
-		}
-	}
-	return (funcs.size() > 1);
+                }
+        }
+        return (funcs.size() > 1);
 }
 
 bool func_instance::getOverlappingFuncs(std::set<func_instance *> &funcs)
@@ -715,7 +691,7 @@ instPoint *func_instance::findPoint(instPoint::Type type,
       if (iter->second.point) return iter->second.point;
    }
    if (!create) return NULL;
-   instPoint *point = new instPoint(0, instPoint::EdgeDuring, PatchMgrPtr(), 
+   instPoint *point = new instPoint(0, instPoint::EdgeDuring, PatchMgrPtr(),
                                     e,
                                     this);
    edgePoints_[e].point = point;
@@ -764,15 +740,15 @@ bool func_instance::isInstrumentable() {
 }
 
 block_instance *func_instance::getBlock(const Address addr) {
-	block_instance *block = obj()->findOneBlockByAddr(addr);
-	// Make sure it's one of ours
-	std::set<func_instance *> funcs;
-	block->getFuncs(std::inserter(funcs, funcs.end()));
-	if (funcs.find(this) != funcs.end()) {
-	  //addBlock(block); // Update parent class's bookkeeping stuffs
-	  return block;
-	}
-	return NULL;
+        block_instance *block = obj()->findOneBlockByAddr(addr);
+        // Make sure it's one of ours
+        std::set<func_instance *> funcs;
+        block->getFuncs(std::inserter(funcs, funcs.end()));
+        if (funcs.find(this) != funcs.end()) {
+          //addBlock(block); // Update parent class's bookkeeping stuffs
+          return block;
+        }
+        return NULL;
 }
 
 using namespace SymtabAPI;
@@ -790,10 +766,10 @@ bool func_instance::callWrappedFunction(func_instance *target) {
    if (!wrapperSym) {
       return false;
    }
-   
+
    // Now we split. If this is a static binary, we want to point all the relocations
    // in this function at the new symbol. If it's a dynamic binary, we can just relocate
-   // the daylights out of it. 
+   // the daylights out of it.
    if (obj()->isStaticExec() || target->obj()->isStaticExec() ) {
       if (!updateRelocationsToSym(oldsym, wrapperSym)) return false;
    }
@@ -806,7 +782,7 @@ bool func_instance::callWrappedFunction(func_instance *target) {
 }
 
 bool func_instance::updateRelocationsToSym(Symbol *oldsym, Symbol *newsym) {
-   for (BlockSet::const_iterator iter = blocks().begin(); 
+   for (BlockSet::const_iterator iter = blocks().begin();
         iter != blocks().end(); ++iter) {
       obj()->parse_img()->getObject()->updateRelocations((*iter)->start(), (*iter)->last(), oldsym, newsym);
    }
@@ -814,7 +790,7 @@ bool func_instance::updateRelocationsToSym(Symbol *oldsym, Symbol *newsym) {
 }
 
 Symbol *func_instance::getWrapperSymbol() {
-   // Is created during relocation, which should have 
+   // Is created during relocation, which should have
    // already happened.
    return wrapperSym_;
 }
@@ -822,11 +798,11 @@ Symbol *func_instance::getWrapperSymbol() {
 Symbol *func_instance::getRelocSymbol() {
    // there should be only one...
    // HIGHLANDER!
-   
+
    // find the Symbol corresponding to the func_instance
    std::vector<Symbol *> syms;
    ifunc()->func()->getSymbols(syms);
-   
+
    if (syms.size() == 0) {
       char msg[256];
       sprintf(msg, "%s[%d]:  internal error:  cannot find symbol %s"
@@ -834,7 +810,7 @@ Symbol *func_instance::getRelocSymbol() {
       showErrorCallback(80, msg);
       assert(0);
    }
-   
+
    // try to find a dynamic symbol
    // (take first static symbol if none are found)
    Symbol *referring = syms[0];

@@ -136,52 +136,32 @@ class PatchFunction {
    friend class PatchBlock;
    friend class PatchObject;
 
-  public:
-   typedef std::vector<PatchBlock *> blocklist;
-   typedef PatchBlock::edgelist edgelist;
+   public:
+     typedef std::vector<PatchBlock *> blocklist;
 
-   static PatchFunction *create(ParseAPI::Function *, PatchObject*);
-   virtual ~PatchFunction();
+     static PatchFunction *create(ParseAPI::Function *, PatchObject*);
+     PatchFunction(ParseAPI::Function *f, PatchObject* o);
+     PatchFunction(const PatchFunction* parFunc, PatchObject* child);
+     virtual ~PatchFunction();
 
-   const string &name() { return func_->name(); }
-   Address addr() const { return addr_;  }
-   ParseAPI::Function *function() { return func_; }
-   PatchBlock *entry() { return getBlock(func_->entry()); }
-   PatchObject* object() { return obj_; }
+     const string &name() { return func_->name(); }
+     Address addr() const { return addr_;  }
+     ParseAPI::Function *function() { return func_; }
+     PatchObject* object() { return obj_; }
 
-   const blocklist &blocks();
-   //   const edgelist &callEdges();
-   const blocklist &returnBlocks();
+     const blocklist &getAllBlocks();
+     PatchBlock *getEntryBlock();
+     const blocklist &getExitBlocks();
+     const blocklist &getCallBlocks();
 
-   //   bool entries(PointSet& pts);
-   //   bool exits(PointSet& pts);
+   protected:
+     ParseAPI::Function *func_;
+     PatchObject* obj_;
+     Address addr_;
 
-   PatchBlock *getBlock(ParseAPI::Block *);
-   void addBlock(PatchBlock*);
-   PatchEdge *getEdge(ParseAPI::Edge *, PatchBlock *src, PatchBlock *trg);
-
-   PatchFunction(ParseAPI::Function *f, PatchObject* o);
-   PatchFunction(const PatchFunction* parFunc, PatchObject* child);
-
- protected:
-   void removeEdge(PatchEdge *e);
-
-   ParseAPI::Function *func_;
-   PatchObject* obj_;
-   Address addr_;
-
-   std::vector<PatchBlock *> blocks_;
-   std::vector<PatchEdge *> callEdges_;
-   std::vector<PatchBlock *> returnBlocks_;
-
-   //edgelist callEdgeList_;
-
-   typedef std::map<ParseAPI::Block *, PatchBlock *> BlockMap;
-   BlockMap blockMap_;
-
-   typedef std::map<ParseAPI::Edge *, PatchEdge *> EdgeMap;
-   EdgeMap edgeMap_;
-
+     blocklist all_blocks_;
+     blocklist exit_blocks_;
+     blocklist call_blocks_;
 };
 
 };

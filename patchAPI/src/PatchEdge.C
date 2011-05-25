@@ -11,7 +11,7 @@ PatchEdge *PatchEdge::create(ParseAPI::Edge *ie, PatchBlock *src, PatchBlock *tr
   // Always go to the source function first. If we're an intraprocedural
   // edge we may only have the target block so use that as a backup.
   PatchFunction *indexFunc = (src ? src->function() : trg->function());
-  return indexFunc->getEdge(ie, src, trg);
+  return indexFunc->object()->getEdge(ie, src, trg);
 }
 
 PatchEdge::PatchEdge(ParseAPI::Edge *internalEdge,
@@ -40,7 +40,7 @@ PatchBlock *PatchEdge::source() {
   assert(trg_);
   ParseAPI::Block *isrc = edge_->src();
   if (!isrc) return NULL;
-  src_ = trg_->function()->getBlock(isrc);
+  src_ = trg_->object()->getBlock(isrc);
   return src_;
 }
 
@@ -50,15 +50,11 @@ PatchBlock *PatchEdge::target() {
   assert(src_);
   ParseAPI::Block *itrg = edge_->trg();
   if (!itrg) return NULL;
-  trg_ = src_->function()->getBlock(itrg);
+  trg_ = src_->object()->getBlock(itrg);
   return trg_;
 }
 
-// Upcalls suck, but someone has to let the function
-// know to remove us from the edge map.
 PatchEdge::~PatchEdge() {
-  PatchFunction *indexFunc = (src_ ? src_->function() : trg_->function());
-  indexFunc->removeEdge(this);
 }
 
 ParseAPI::Edge *PatchEdge::edge() const {

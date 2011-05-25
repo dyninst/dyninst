@@ -16,68 +16,55 @@ PatchFunction::PatchFunction(ParseAPI::Function *f,
 PatchFunction::PatchFunction(const PatchFunction *parFunc, PatchObject* child)
   : func_(parFunc->func_), obj_(child), addr_(obj_->codeBase() + func_->addr()) {}
 
-const PatchFunction::blocklist &PatchFunction::blocks() {
-  if (!blocks_.empty()) return blocks_;
+const PatchFunction::blocklist &PatchFunction::getAllBlocks() {
+  if (!all_blocks_.empty()) return all_blocks_;
   // Otherwise we need to create them
   for (ParseAPI::Function::blocklist::iterator iter = func_->blocks().begin();
        iter != func_->blocks().end(); ++iter) {
-    blocks_.push_back(getBlock(*iter));
+    all_blocks_.push_back(object()->getBlock(*iter));
   }
-  return blocks_;
+  return all_blocks_;
 }
 
-const PatchFunction::blocklist &PatchFunction::returnBlocks() {
-  if (!returnBlocks_.empty()) return returnBlocks_;
+PatchBlock *PatchFunction::getEntryBlock() {
+  assert(object());
+  assert(func_);
+
+  ParseAPI::Block* ientry = func_->entry();
+  if (!ientry) {
+    // In case we haven't parsed yet ...
+    getAllBlocks();
+    ientry = func_->entry();
+  }
+  assert(ientry);
+  return object()->getBlock(ientry);
+}
+
+const PatchFunction::blocklist &PatchFunction::getExitBlocks() {
+  if (!exit_blocks_.empty()) return exit_blocks_;
 
   for (ParseAPI::Function::blocklist::iterator iter = func_->returnBlocks().begin();
        iter != func_->returnBlocks().end(); ++iter) {
-    PatchBlock* pblk = getBlock(*iter);
-    returnBlocks_.push_back(pblk);
+    PatchBlock* pblk = object()->getBlock(*iter);
+    exit_blocks_.push_back(pblk);
   }
-  return returnBlocks_;
+  return exit_blocks_;
 }
 
-PatchBlock *PatchFunction::getBlock(ParseAPI::Block *iblock) {
-  BlockMap::iterator iter = blockMap_.find(iblock);
-  if (iter != blockMap_.end()) return iter->second;
-
-  PatchBlock *newBlock = new PatchBlock(iblock, this);
-  blockMap_.insert(std::make_pair(iblock, newBlock));
-  return newBlock;
-}
-void PatchFunction::addBlock(PatchBlock* b) {
-  assert(b);
-  blockMap_.insert(std::make_pair(b->block_, b));
-}
-
-PatchEdge *PatchFunction::getEdge(ParseAPI::Edge *iedge,
-                                  PatchBlock *src,
-                                  PatchBlock *trg) {
-  EdgeMap::iterator iter = edgeMap_.find(iedge);
-  if (iter != edgeMap_.end()) {
-    // Consistency check
-    if (src) assert(iter->second->source() == src);
-    if (trg) assert(iter->second->target() == trg);
-    return iter->second;
+const PatchFunction::blocklist &PatchFunction::getCallBlocks() {
+  // Check the list...
+  if (call_blocks_.empty()) {
+    const ParseAPI::Function::edgelist &callEdges = func_->callEdges();
+    for (ParseAPI::Function::edgelist::iterator iter = callEdges.begin();
+         iter != callEdges.end(); ++iter) {
+      ParseAPI::Block *src = (*iter)->src();
+      PatchBlock *block = object()->getBlock(src);
+      assert(block);
+      call_blocks_.push_back(block);
+    }
   }
-
-  PatchEdge *newEdge = new PatchEdge(iedge, src, trg);
-  edgeMap_.insert(std::make_pair(iedge, newEdge));
-  return newEdge;
+  return call_blocks_;
 }
-
-void PatchFunction::removeEdge(PatchEdge *e) {
-  edgeMap_.erase(e->edge());
-}
-
 
 PatchFunction::~PatchFunction() {
-  for (blocklist::iterator iter = blocks_.begin(); iter != blocks_.end(); ++iter) {
-    delete *iter;
-  }
-  blocks_.clear();
-  callEdges_.clear();
-  returnBlocks_.clear();
-  blockMap_.clear();
-  edgeMap_.clear();
 }

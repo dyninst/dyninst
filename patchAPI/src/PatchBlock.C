@@ -8,7 +8,7 @@ using namespace PatchAPI;
 using namespace InstructionAPI;
 
 PatchBlock *PatchBlock::create(ParseAPI::Block *ib, PatchFunction *f) {
-  return f->getBlock(ib);
+  return f->object()->getBlock(ib);
 }
 
 PatchBlock::PatchBlock(ParseAPI::Block *block,
@@ -77,8 +77,7 @@ void PatchBlock::createInterproceduralEdges(ParseAPI::Edge *iedge,
   iblk->getFuncs(ifuncs);
   for (unsigned i = 0; i < ifuncs.size(); ++i) {
     PatchFunction *pfunc = object()->getFunc(ifuncs[i]);
-    assert(pfunc);
-    PatchBlock *pblock = pfunc->getBlock(iblk);
+    PatchBlock *pblock = object()->getBlock(iblk);
     assert(pblock);
     PatchEdge *newEdge = NULL;
     if (dir == forwards)
@@ -166,28 +165,8 @@ void PatchBlock::removeTargetEdge(PatchEdge *e) {
 bool PatchBlock::isShared() {
   return containingFuncs() > 1;
 }
+
 PatchBlock::~PatchBlock() {
-  // As a note, deleting edges that source and target this
-  // block is an exercise in delicacy. Make sure you know
-  // what you're doing. For this, we ensure that we always
-  // remove source edges first, and that we can't accidentally
-  // invalidate an iterator.
-  for (std::vector<PatchEdge *>::iterator iter = srcs_.begin();
-       iter != srcs_.end(); ++iter) {
-    if ((*iter)->src_) {
-      (*iter)->src_->removeTargetEdge(*iter);
-    }
-    delete *iter;
-  }
-  srcs_.clear();
-  for (std::vector<PatchEdge *>::iterator iter = trgs_.begin();
-       iter != trgs_.end(); ++iter) {
-    if ((*iter)->trg_) {
-      (*iter)->trg_->removeSourceEdge(*iter);
-    }
-    delete *iter;
-  }
-  trgs_.clear();
 }
 
 Address PatchBlock::start() const {

@@ -233,7 +233,7 @@ bool PatchMgr::findPointsByType(PatchFunction* func,
   getPointsByType(type_pt_map, types, Point::FuncEntry, addr, func, points);
 
   // XXX: simplify for now, may have more than one exit
-  const  PatchFunction::blocklist& retblks = func->returnBlocks();
+  const  PatchFunction::blocklist& retblks = func->getExitBlocks();
   for (PatchFunction::blocklist::const_iterator bi = retblks.begin();
        bi != retblks.end(); bi++) {
     PatchBlock* blk = *bi;
@@ -244,9 +244,9 @@ bool PatchMgr::findPointsByType(PatchFunction* func,
   getPointsByType(type_pt_map, types, Point::FuncDuring, addr, func, points);
 
   // Find block specific points
-  const PatchFunction::blocklist& blks = func->blocks();
+  const PatchFunction::blocklist& blks = func->getAllBlocks();
   PatchFunction::blocklist::const_iterator bit = blks.begin();
-  for (; bit != func->blocks().end(); ++bit) {
+  for (; bit != func->getAllBlocks().end(); ++bit) {
     PatchBlock* blk = *bit;
     PointSet blk_points;
     findPointsByType(blk, types, blk_points);
