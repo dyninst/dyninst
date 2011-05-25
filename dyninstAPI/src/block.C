@@ -117,28 +117,21 @@ void block_instance::triggerModified() {
 }
 
 const block_instance::edgelist &block_instance::sources() {
-   if (srcs_.empty()) {
-      // Create edges
-     for (ParseAPI::Block::edgelist::iterator iter = llb()->sources().begin();
-           iter != llb()->sources().end(); ++iter) {
-         // edge_instance takes care of looking up whether we've already
-         // created this thing.
-         edge_instance *newEdge = obj()->findEdge(*iter, NULL, this);
-         srcs_.push_back(newEdge);
-      }
-   }
-   return srcs_;
+  if (srcs_.empty()) {
+    PatchBlock::edgelist& s = getSources();
+    for (PatchBlock::edgelist::iterator i = s.begin(); i != s.end(); i++)
+      srcs_.push_back(SCAST_EI(*i));
+  };
+  return srcs_;
 }
 
 const block_instance::edgelist &block_instance::targets() {
-   if (trgs_.empty()) {
-      for (ParseAPI::Block::edgelist::iterator iter = llb()->targets().begin();
-           iter != llb()->targets().end(); ++iter) {
-         edge_instance *newEdge = obj()->findEdge(*iter, this, NULL);
-         trgs_.push_back(newEdge);
-     }
-   }
-   return trgs_;
+  if (trgs_.empty()) {
+    PatchBlock::edgelist& s = getTargets();
+    for (PatchBlock::edgelist::iterator i = s.begin(); i != s.end(); i++)
+      trgs_.push_back(SCAST_EI(*i));
+  };
+  return trgs_;
 }
 
 std::string block_instance::calleeName() {

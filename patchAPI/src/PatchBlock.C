@@ -59,8 +59,7 @@ void PatchBlock::createInterproceduralEdges(ParseAPI::Edge *iedge,
   ParseAPI::Block *iblk = (dir == backwards) ? iedge->src() : iedge->trg();
   if (!iblk) {
     assert(dir == forwards); // Can't have sink in-edges
-
-    edges.push_back(PatchEdge::create(iedge, this, NULL));
+    edges.push_back(object()->getEdge(iedge, this, NULL));
     return;
   }
   std::vector<ParseAPI::Function *> ifuncs;
@@ -70,9 +69,9 @@ void PatchBlock::createInterproceduralEdges(ParseAPI::Edge *iedge,
     assert(pblock);
     PatchEdge *newEdge = NULL;
     if (dir == forwards)
-      newEdge = PatchEdge::create(iedge, this, pblock);
+      newEdge = object()->getEdge(iedge, this, pblock);
     else
-      newEdge = PatchEdge::create(iedge, pblock, this);
+      newEdge = object()->getEdge(iedge, pblock, this);
 
     edges.push_back(newEdge);
   }
@@ -80,58 +79,36 @@ void PatchBlock::createInterproceduralEdges(ParseAPI::Edge *iedge,
 }
 
 
-PatchBlock::edgelist &PatchBlock::sources() {
-  if (srcs_.empty()) {
-    for (ParseAPI::Block::edgelist::iterator iter = block_->sources().begin();
-         iter != block_->sources().end(); ++iter) {
-      // We need to copy interprocedural edges to ensure that we de-overlap
-      // code in functions. We do this here.
-      // XXX
-      //if ((*iter)->interproc()) {
-      if ((*iter)->type() == ParseAPI::CALL) {
-        createInterproceduralEdges(*iter, backwards, srcs_);
+PatchBlock::edgelist &PatchBlock::getSources() {
+  if (srclist_.empty()) {
+     for (ParseAPI::Block::edgelist::iterator iter = block_->sources().begin();
+           iter != block_->sources().end(); ++iter) {
+         PatchEdge *newEdge = obj_->getEdge(*iter, NULL, this);
+         srclist_.push_back(newEdge);
       }
-      else {
-        // Can lazily create the source block since it's in
-        // our function.
-        PatchEdge *newEdge = PatchEdge::create(*iter, NULL, this);
-        srcs_.push_back(newEdge);
-      }
-    }
   }
-  return srcs_;
+  return srclist_;
 }
 
-PatchBlock::edgelist &PatchBlock::targets() {
-  if (trgs_.empty()) {
+PatchBlock::edgelist &PatchBlock::getTargets() {
+  if (trglist_.empty()) {
     for (ParseAPI::Block::edgelist::iterator iter = block_->targets().begin();
          iter != block_->targets().end(); ++iter) {
-      // We need to copy interprocedural edges to ensure that we de-overlap
-      // code in functions. We do this here.
-      // XXX: this doesn't work!
-      //         if ((*iter)->interproc()) {
-      if ((*iter)->type() == ParseAPI::CALL) {
-        createInterproceduralEdges(*iter, forwards, trgs_);
-      }
-      else {
-        // Can lazily create the source block since it's in
-        // our function.
-        PatchEdge *newEdge = PatchEdge::create(*iter, this, NULL);
-        trgs_.push_back(newEdge);
-      }
+      PatchEdge *newEdge = obj_->getEdge(*iter, this, NULL);
+      trglist_.push_back(newEdge);
     }
   }
-  return trgs_;
+  return trglist_;
 }
 
 void PatchBlock::removeSourceEdge(PatchEdge *e) {
   // This is called as part of teardown
   // of another Block to remove its edges from our
   // vectors.
-  for (std::vector<PatchEdge *>::iterator iter = srcs_.begin();
-       iter != srcs_.end(); ++iter) {
+  for (std::vector<PatchEdge *>::iterator iter = srclist_.begin();
+       iter != srclist_.end(); ++iter) {
     if ((*iter) == e) {
-      srcs_.erase(iter);
+      srclist_.erase(iter);
       return;
     }
   }
@@ -141,10 +118,10 @@ void PatchBlock::removeTargetEdge(PatchEdge *e) {
   // This is called as part of teardown
   // of another Block to remove its edges from our
   // vectors.
-  for (std::vector<PatchEdge *>::iterator iter = trgs_.begin();
-       iter != trgs_.end(); ++iter) {
+  for (std::vector<PatchEdge *>::iterator iter = trglist_.begin();
+       iter != trglist_.end(); ++iter) {
     if ((*iter) == e) {
-      trgs_.erase(iter);
+      trglist_.erase(iter);
       return;
     }
   }

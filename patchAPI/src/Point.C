@@ -36,8 +36,8 @@ bool Instance::destroy() {
 PatchFunction* Point::getCallee() {
   if (type() != PreCall && type() != PostCall) return NULL;
   PatchBlock* b = (*(inst_blks_.begin()));
-  PatchBlock::edgelist::iterator it = b->targets().begin();
-  for (; it != b->targets().end(); ++it) {
+  PatchBlock::edgelist::iterator it = b->getTargets().begin();
+  for (; it != b->getTargets().end(); ++it) {
     if ((*it)->type() == ParseAPI::CALL) {
       PatchBlock* trg = (*it)->target();
       return trg->function();

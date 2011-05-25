@@ -100,8 +100,8 @@ class PatchBlock {
     PatchFunction *function() const { return function_; }
     ParseAPI::Block *block() const { return block_; }
     PatchObject* object() const { return obj_; }
-    edgelist &sources();
-    edgelist &targets();
+    edgelist &getSources();
+    edgelist &getTargets();
 
 
   protected:
@@ -116,8 +116,6 @@ class PatchBlock {
 
     ParseAPI::Block *block_;
     PatchFunction *function_;
-    std::vector<PatchEdge *> srcs_;
-    std::vector<PatchEdge *> trgs_;
     edgelist srclist_;
     edgelist trglist_;
     PatchObject* obj_;

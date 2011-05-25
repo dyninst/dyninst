@@ -254,8 +254,8 @@ bool PatchMgr::findPointsByType(PatchFunction* func,
               inserter(points, points.begin()));
 
     // Find edge specific points
-    PatchBlock::edgelist::iterator eit = blk->sources().begin();
-    for (; eit != blk->sources().end(); ++eit) {
+    PatchBlock::edgelist::iterator eit = blk->getSources().begin();
+    for (; eit != blk->getSources().end(); ++eit) {
       PatchEdge* edge = *eit;
       PointSet edge_points;
       findPointsByType(edge, types, edge_points);
