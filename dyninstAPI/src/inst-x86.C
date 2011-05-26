@@ -246,9 +246,16 @@ void registerSpace::initialize32() {
     // VERY conservative, but it's safe wrt the ABI.
     // Let's set everything and unset flags
     callRead_ = syscallRead_;
-    for (unsigned i = REGNUM_OF; i <= REGNUM_RF; ++i) {
-       callRead_[i] = false;
-    }
+    // We have to assume that flags are live across calls because 
+    // Windows PE binaries built in debug mode call _RT_CheckEsp at 
+    // function exits to ensure that the call-stack was cleared.
+    // The problem is that this function call violates the ABI, 
+    // it compares esp to ebp just before calling in and conditions
+    // the check on the zero flag.
+    // Thus, we have to assume that the REGNUM_EFLAGS are live
+    //for (unsigned i = REGNUM_OF; i <= REGNUM_RF; ++i) {
+    //   callRead_[i] = false;
+    //}
     callWritten_ = syscallWritten_;
 #endif
 

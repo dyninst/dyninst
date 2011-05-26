@@ -89,19 +89,21 @@ public:
     class AnalysisStats {
       public: 
         AnalysisStats() {
-            exceptions = 0;
+            exceptions = 0; 
             winApiCallbacks = 0;
-            owCount = 0;
-            owBytes = 0;
-            owExecFunc = 0;
-            owFalseAlarm = 0;
+            unpackCount = 0;
+            owCount = 0; 
+            owBytes = 0; 
+            owExecFunc = 0; 
+            owFalseAlarm = 0; 
         }
-        int exceptions;
+        int exceptions;     //done
         int winApiCallbacks;
-        int owCount;
-        int owBytes;
+        int unpackCount;    //done
+        int owCount;        //done
+        int owBytes;        //done
         int owExecFunc;
-        int owFalseAlarm;
+        int owFalseAlarm;   //done
     };
 
 
@@ -114,7 +116,7 @@ public:
     // returns false if conversion has no effect or is not possible
     bool setMode(BPatch_hybridMode mode);
 
-    const HybridAnalysis::AnalysisStats * getStats() { return stats_; }
+    const HybridAnalysis::AnalysisStats * getStats();
 
     HybridAnalysisOW * hybridOW() { return hybridow_; };
     BPatch_process *proc() { return proc_; };

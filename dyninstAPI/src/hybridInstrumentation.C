@@ -1556,3 +1556,15 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
     return ret;
 }
 
+const HybridAnalysis::AnalysisStats * HybridAnalysis::getStats()
+{ 
+    process *llproc = proc_->lowlevel_process();
+    const vector<mapped_object*> objs = llproc->mappedObjects();
+    for (vector<mapped_object*>::const_iterator oit = objs.begin(); 
+         oit != objs.end(); 
+         oit++) 
+    {
+        stats_->unpackCount += (*oit)->codeByteUpdates();
+    }
+    return stats_; 
+}

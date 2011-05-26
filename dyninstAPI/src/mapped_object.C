@@ -89,6 +89,7 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
    analyzed_(false),
    analysisMode_(mode),
    pagesUpdated_(true),
+   codeByteUpdates_(0),
    memEnd_(-1),
    memoryImg_(false)
 { 
@@ -289,6 +290,7 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
    analyzed_(s->analyzed_),
    analysisMode_(s->analysisMode_),
    pagesUpdated_(true),
+   codeByteUpdates_(0),
    memoryImg_(s->memoryImg_)
 {
    // Let's do modules
@@ -2000,6 +2002,8 @@ bool mapped_object::updateCodeBytesIfNeeded(Address entry)
     else {
         updateCodeBytes(reg);
     }
+
+    codeByteUpdates_++;
     pagesUpdated_ = true;
     return true;
 }

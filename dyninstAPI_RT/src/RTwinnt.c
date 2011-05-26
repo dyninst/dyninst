@@ -98,6 +98,7 @@ void DYNINSTos_init(int calledByFork, int calledByAttach)
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
    static int DllMainCalledOnce = 0;
+   fprintf(stderr,"RTLIB: In DllMain staticmode=%d %s[%d]\n", DYNINSTstaticMode, __FILE__,__LINE__);
 
    if(DllMainCalledOnce)
       return 1;
@@ -312,7 +313,6 @@ static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
    PIMAGE_NT_HEADERS peHdr = NULL;
    PIMAGE_SECTION_HEADER curSecn = NULL;
    int sidx=0;
-   fprintf(stderr, "getStaticTrapMap(%lx) is in file[%s]\n", addr, fileName);
 
    //check that the address is backed by a file
    actualNameLen = GetMappedFileName(GetCurrentProcess(), 
@@ -325,48 +325,66 @@ static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
    }
    fileName[ERROR_STRING_LENGTH-1] = '\0';
 
+   fprintf(stderr, "RTLIB: getStaticTrapMap(%lx) is in file[%s]\n", addr, fileName);
+
    // get the binary's load address, size
-   if (!VirtualQuery((LPCVOID)&addr, &memInfo, sizeof(memInfo)) 
+   if (!VirtualQuery((LPCVOID)addr, &memInfo, sizeof(memInfo)) 
        || MEM_COMMIT != memInfo.State) 
    {
+      fprintf(stderr, "ERROR IN RTLIB: getStaticTrapMap %s[%d]\n", __FILE__,__LINE__);
       goto done; // shouldn't be possible given previous query, but hey
    }
 
+   //fprintf(stderr, "RTLIB: getStaticTrapMap addr = %lx meminfo.BaseAddress = %lx meminfo.AllocationBase = %lx, memInfo.RegionSize = %lx, %s[%d]\n",
+   //        addr, memInfo.BaseAddress, memInfo.AllocationBase, memInfo.RegionSize, __FILE__,__LINE__);
+
    // get the PE header, assuming there is one
-   peHdr = ImageNtHeader( memInfo.BaseAddress );
+   peHdr = ImageNtHeader( memInfo.AllocationBase );
    if (!peHdr) {
+      fprintf(stderr, "ERROR IN RTLIB: getStaticTrapMap %s[%d]\n", __FILE__,__LINE__);
       goto done; // no pe header
    }
 
    // see if the last section has been tagged with "DYNINST_REWRITE"
    numSections = peHdr->FileHeader.NumberOfSections;
-   curSecn = (PIMAGE_SECTION_HEADER)(((unsigned char*)peHdr) + 
-               sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER) +
-               peHdr->FileHeader.SizeOfOptionalHeader);
-   curSecn += numSections-1;
-   if ((sizeof(void*) + 16) < curSecn->SizeOfRawData) {
+   curSecn = (PIMAGE_SECTION_HEADER)
+            (((unsigned char*)peHdr) 
+            + sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER) 
+            + peHdr->FileHeader.SizeOfOptionalHeader
+            + sizeof(IMAGE_SECTION_HEADER)*(numSections-1));
+
+   //fprintf(stderr, "RTLIB: PE section header address = %lx\n", curSecn);
+
+   if ((sizeof(void*) + 16) > curSecn->SizeOfRawData) {
+      fprintf(stderr, "ERROR IN RTLIB: getStaticTrapMap %s[%d]\n", __FILE__,__LINE__);
       goto done; // last section is uninitialized, doesn't have trap table
    }
    if (0 != strncmp("DYNINST_REWRITE", 
                     (char*)(curSecn->PointerToRawData + curSecn->SizeOfRawData - 16),
                     15)) 
    {
+      fprintf(stderr, "ERROR IN RTLIB: getStaticTrapMap %s[%d]\n", __FILE__,__LINE__);
       goto done; // doesn't have DYNINST_REWRITE label
    }
+   fprintf(stderr, "RTLIB %s[%d]\n", __FILE__,__LINE__);
 
    // get trap-table header
    header = (struct trap_mapping_header*) (curSecn->PointerToRawData 
       + curSecn->SizeOfRawData 
       - sizeof(void*) 
       - 16);
+   fprintf(stderr, "RTLIB %s[%d]\n", __FILE__,__LINE__);
 
 done: 
    if (header) {
-      fprintf(stderr, "found trap map header at %lx: [%lx %lx]\n", 
+   fprintf(stderr, "RTLIB %s[%d]\n", __FILE__,__LINE__);
+       fprintf(stderr, "RTLIB: found trap map header at %lx: [%lx %lx]\n", 
               (unsigned long) header, header->low_entry, header->high_entry);
    } else {
+   fprintf(stderr, "RTLIB %s[%d]\n", __FILE__,__LINE__);
       fprintf(stderr, "ERROR: didn't find trap table\n");
    }
+   fprintf(stderr, "RTLIB %s[%d]\n", __FILE__,__LINE__);
    return header;
 }
 
@@ -386,6 +404,7 @@ LONG dyn_trapHandler(PEXCEPTION_POINTERS e)
    assert(DYNINSTstaticMode && "detach on the fly not implemented on Windows");
 
    if (EXCEPTION_BREAKPOINT != e->ExceptionRecord->ExceptionCode) {
+      fprintf(stderr,"RTLIB: exiting early, not breakpoint %s[%d]\n", __FILE__,__LINE__);
       return EXCEPTION_CONTINUE_SEARCH;
    }
 

@@ -132,6 +132,12 @@ class fileDescriptor {
         shared_(isShared),
         pid_(0),
         loadAddr_(0)
+#if defined (os_windows)
+        ,procHandle_(0)
+        ,fileHandle_(0)
+        ,length_(0)
+        ,rawPtr_(0)
+#endif
         {}
 
      ~fileDescriptor() {}

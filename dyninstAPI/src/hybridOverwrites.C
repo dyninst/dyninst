@@ -1177,6 +1177,17 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 
     if (changedCode) {
 
+        // overwrite stats
+        hybrid_->stats_->owCount++;
+        unsigned long owBytes = 0;
+        for (vector<pair<Address,int> >::iterator bit = deadBlocks.begin();
+             bit != deadBlocks.end();
+             bit++)
+        {
+            owBytes += bit->second;
+        }
+        hybrid_->stats_->owBytes = owBytes;
+
         // build up list of modified modules 
         std::set<BPatch_module*> mods;
         for (std::map<Address, unsigned char *>::iterator pIter 
@@ -1237,6 +1248,9 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
         hybrid_->proc()->getImage()->clearNewCodeRegions();
 
     } // if the code changed 
+    else {
+        hybrid_->stats_->owFalseAlarm++;
+    }
 
     if (idToLoop.end() != idToLoop.find(loopID)) {
         deleteLoop(loop,false);

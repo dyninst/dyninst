@@ -469,6 +469,12 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 
       Symtab *symObj = mobj->parse_img()->getObject();
 
+      // link to the runtime library if tramp guards are currently enabled
+      if ( !symObj->isStaticBinary() && !BPatch::bpatch->isTrampRecursive() ) {
+          assert(!runtime_lib.empty());
+          symObj->addLibraryPrereq((*runtime_lib.begin())->fileName());
+      }
+
       if( symObj->isStaticBinary() && isDirty() ) {
           if( !doStaticBinarySpecialCases() ) {
               return false;
@@ -988,8 +994,8 @@ bool BinaryEdit::replaceTrapHandler() {
                 }
             } // for each func in the rewritten binary
         } // for each sigaction-equivalent function to replace
-        return true;
     }
+    return true;
 }
 
 bool BinaryEdit::needsPIC()

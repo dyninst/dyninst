@@ -2244,6 +2244,7 @@ void BPatch_process::printDefensiveStatsInt()
     int overlapFuncs = 0; // debug
     int vAllocObjs = 0; // done
     int dereferences = 0; // done
+    int peHeaderCode = 0;
 
     // foreach defensive object
     for (vector<mapped_object*>::const_iterator oit = objs.begin(); 
@@ -2253,10 +2254,13 @@ void BPatch_process::printDefensiveStatsInt()
         if (BPatch_defensiveMode != (*oit)->hybridMode()) {
             continue;
         }
+        SymtabAPI::Region *header = NULL;
         if ((*oit)->isMemoryImg()) {
-            vAllocObjs ++;
+            vAllocObjs++;
+        } else {
+            header = (*oit)->parse_img()->getObject()->findEnclosingRegion(0);
         }
-        
+
         // foreach function
         using namespace ParseAPI;
         mapped_object *obj = *oit;
@@ -2275,10 +2279,18 @@ void BPatch_process::printDefensiveStatsInt()
                  bit++) 
             {
                 block_instance *block = *bit;
+
                 if (block->isShared()) {
                     sharedFunc = true;
                     sharedBlocks++;
                 }
+
+                // is block in PE header? 
+                if (block->llb()->start() < (header->getMemOffset() + header->getMemSize())) {
+                    peHeaderCode += block->size();
+                }
+
+                // find overlapping blocks
                 set<block_instance*> oBlocks;
                 obj->findBlocksByAddr(block->last(),oBlocks);
                 if (oBlocks.size() > 1) { 
@@ -2292,6 +2304,7 @@ void BPatch_process::printDefensiveStatsInt()
                         }
                     }
                 }
+
                 if (block->containsCall()) {
                     calls++;
                     if (block->containsDynamicCall()) {
@@ -2317,7 +2330,9 @@ void BPatch_process::printDefensiveStatsInt()
                         multiTargetCalls++;
                     }
                 }
+
                 else if (block->isFuncExit()) {
+                    using namespace ParseAPI;
                     // check for return edges that show call-stack tampering
                     Block::edgelist &edges = block->llb()->targets();
                     for (Block::edgelist::iterator eit = edges.begin();
@@ -2327,8 +2342,8 @@ void BPatch_process::printDefensiveStatsInt()
                         if (!(*eit)->sinkEdge() && 
                             ParseAPI::RET == (*eit)->type()) 
                         {
-                            set<ParseAPI::Block*> callBs;
-							pair<ParseAPI::Block*, Address> dontcare;
+                            set<Block*> callBs;
+							pair<Block*, Address> dontcare;
 							hybridAnalysis_->getCallBlocks(
                                 (*eit)->trg()->start() + obj->getBaseAddress(), 
                                 func,
@@ -2341,21 +2356,26 @@ void BPatch_process::printDefensiveStatsInt()
                         }
                     }
                 }
+
+                // instruction-level stats from here on down
                 block_instance::Insns insns;
                 block->getInsns(insns);
                 block_instance::Insns::reverse_iterator iit = insns.rbegin();
+                // indirect jumps
                 if (InstructionAPI::c_BranchInsn == iit->second->getCategory() && 
                     iit->second->readsMemory()) 
                 {
                     dynJumps++;
                 }
+                // non-returning calls that we identified as such at parse-time
+                // and therefore labeled as jumps instead of calls
                 if (1 == block->targets().size() &&
                     ParseAPI::DIRECT == (*block->targets().begin())->type() &&
                     InstructionAPI::c_CallInsn == iit->second->getCategory())
                 {
                     nonCallCalls++;
                 }
-                // foreach instruction
+                // memory accesses
                 for (;iit != insns.rend(); iit++) {
                     if (iit->second->readsMemory() || 
                         iit->second->writesMemory()) 
@@ -2369,6 +2389,8 @@ void BPatch_process::printDefensiveStatsInt()
 			}
         }
 
+        // Interleaving of function blocks, 
+        // traverses mapped_object blocks in address-order
         set<func_instance*> visitedFs;
         set<Address> oFuncs;
         set<func_instance*> curFuncs;
@@ -2412,9 +2434,9 @@ void BPatch_process::printDefensiveStatsInt()
                 curFuncs.clear();
                 curFuncs.insert(bFuncs.begin(), bFuncs.end());
             }
-       }
+        overlapFuncs += oFuncs.size();
+        }
     }
-    overlapFuncs = oFuncs.size();
 
     const HybridAnalysis::AnalysisStats *stats = hybridAnalysis_->getStats();
 //#endif

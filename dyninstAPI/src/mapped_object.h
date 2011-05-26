@@ -241,6 +241,7 @@ class mapped_object : public codeRange {
     bool isEmulInsn(Address insnAddr);
     Register getEmulInsnReg(Address insnAddr);
     void setEmulInsnVal(Address insnAddr, void * val);
+    int codeByteUpdates() { return codeByteUpdates_; }
 private:
     // helper functions
     void updateCodeBytes(SymtabAPI::Region *reg);
@@ -363,6 +364,7 @@ private:
     map<Address,WriteableStatus> protPages_;
     std::set<SymtabAPI::Region*> expansionCheckedRegions_;
     bool pagesUpdated_;
+    int codeByteUpdates_;
     typedef std::map<Address, std::pair<Register,void*> > EmulInsnMap;
     EmulInsnMap emulInsns_;
 
