@@ -528,13 +528,12 @@ class AddressSpace : public InstructionSource {
     bool emulatePC_;
 
   // PatchAPI stuffs
-    /*
   public:
     Dyninst::PatchAPI::PatchMgrPtr mgr() const { return mgr_; }
     void setMgr(Dyninst::PatchAPI::PatchMgrPtr m) { mgr_ = m; }
   protected:
     Dyninst::PatchAPI::PatchMgrPtr mgr_;
-    */
+    void initPatchAPI();
 };
 
 

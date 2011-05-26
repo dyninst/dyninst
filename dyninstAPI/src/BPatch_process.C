@@ -197,8 +197,10 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
            "Dyninst was unable to create the specified process");
       return;
    }
+
    startup_cerr << "Registering function callback..." << endl;
    llproc->registerFunctionCallback(createBPFuncCB);
+
 
    startup_cerr << "Registering instPoint callback..." << endl;
    llproc->registerInstPointCallback(createBPPointCB);
@@ -232,21 +234,6 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
 
    startup_cerr << "BPatch_process::BPatch_process, completed." << endl;
    isAttemptingAStop = false;
-
-   /* PatchAPI stuffs -- by wenbin
-    */
-   addr_space_ = DynAddrSpace::create(llproc->getAOut());
-   mgr_ = PatchMgr::create(addr_space_,
-                           DynPointMakerPtr(new DynPointMaker));
-
-   // load in shared libraries
-   const pdvector<mapped_object*>& mobjs = llproc->mappedObjects();
-   for (pdvector<mapped_object*>::const_iterator i = mobjs.begin();
-        i != mobjs.end(); i++) {
-     if (*i != llproc->getAOut()) {
-       addr_space_->loadLibrary(*i);
-     }
-   }
 }
 
 #if defined(os_linux)

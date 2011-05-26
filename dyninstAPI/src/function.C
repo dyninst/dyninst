@@ -551,20 +551,25 @@ Address func_instance::get_address() const { assert(0); return 0; }
 unsigned func_instance::get_size() const { assert(0); return 0; }
 
 instPoint *func_instance::findPoint(instPoint::Type type, bool create) {
+  //cerr << "findPoint\n";
+   assert(proc()->mgr());
    assert(type == instPoint::FuncEntry);
    if (points_.entry) return points_.entry;
    if (!create) return NULL;
    // points_.entry = new instPoint(0, instPoint::FuncEntry, PatchMgrPtr(), this);
-   points_.entry = new instPoint(0, instPoint::FuncEntry, PatchMgrPtr(), this);
+   points_.entry = new instPoint(0, instPoint::FuncEntry, proc()->mgr(), this);
    return points_.entry;
 }
 
 instPoint *func_instance::findPoint(instPoint::Type type, block_instance *b, bool create) {
+  //cerr << "findPoint\n";
+   assert(proc()->mgr());
+
    if (type == instPoint::FuncExit) {
       std::map<block_instance *, instPoint *>::iterator iter = points_.exits.find(b);
       if (iter != points_.exits.end()) return iter->second;
       if (!create) return NULL;
-      instPoint *point = new instPoint(0, instPoint::FuncExit, PatchMgrPtr(), b, this);
+      instPoint *point = new instPoint(0, instPoint::FuncExit, proc()->mgr(), b, this);
       points_.exits[b] = point;
       return point;
    }
@@ -576,7 +581,7 @@ instPoint *func_instance::findPoint(instPoint::Type type, block_instance *b, boo
             if (iter->second.entry) return iter->second.entry;
          }
          if (!create) return NULL;
-         instPoint *point = new instPoint(0, instPoint::BlockEntry, PatchMgrPtr(), b, this);
+         instPoint *point = new instPoint(0, instPoint::BlockEntry, proc()->mgr(), b, this);
          blockPoints_[b].entry = point;
          return point;
       }
@@ -585,7 +590,7 @@ instPoint *func_instance::findPoint(instPoint::Type type, block_instance *b, boo
             if (iter->second.exit) return iter->second.exit;
          }
          if (!create) return NULL;
-         instPoint *point = new instPoint(0, instPoint::BlockExit, PatchMgrPtr(), b, this);
+         instPoint *point = new instPoint(0, instPoint::BlockExit, proc()->mgr(), b, this);
          blockPoints_[b].exit = point;
          return point;
       }
@@ -594,7 +599,7 @@ instPoint *func_instance::findPoint(instPoint::Type type, block_instance *b, boo
             if (iter->second.preCall) return iter->second.preCall;
          }
          if (!create) return NULL;
-         instPoint *point = new instPoint(0, instPoint::PreCall, PatchMgrPtr(), b, this);
+         instPoint *point = new instPoint(0, instPoint::PreCall, proc()->mgr(), b, this);
          blockPoints_[b].preCall = point;
          return point;
       }
@@ -603,7 +608,7 @@ instPoint *func_instance::findPoint(instPoint::Type type, block_instance *b, boo
             if (iter->second.postCall) return iter->second.postCall;
          }
          if (!create) return NULL;
-         instPoint *point = new instPoint(0, instPoint::PostCall, PatchMgrPtr(), b, this);
+         instPoint *point = new instPoint(0, instPoint::PostCall, proc()->mgr(), b, this);
          blockPoints_[b].postCall = point;
          return point;
       }
@@ -617,6 +622,9 @@ instPoint *func_instance::findPoint(instPoint::Type type,
                                     block_instance *b,
                                     Address a, InstructionAPI::Instruction::Ptr ptr,
                                     bool trusted, bool create) {
+  // cerr << "findPoint\n";
+  assert(proc()->mgr());
+
    std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
 
    switch (type) {
@@ -632,7 +640,7 @@ instPoint *func_instance::findPoint(instPoint::Type type,
             ptr = b->getInsn(a);
             if (!ptr) return NULL;
          }
-         instPoint *point = new instPoint(a, instPoint::PreInsn, PatchMgrPtr(),
+         instPoint *point = new instPoint(a, instPoint::PreInsn, proc()->mgr(),
                                           b, ptr, this);
          blockPoints_[b].preInsn[a] = point;
          return point;
@@ -649,7 +657,7 @@ instPoint *func_instance::findPoint(instPoint::Type type,
             ptr = b->getInsn(a);
             if (!ptr) return NULL;
          }
-         instPoint *point = new instPoint(a, instPoint::PostInsn, PatchMgrPtr(),
+         instPoint *point = new instPoint(a, instPoint::PostInsn, proc()->mgr(),
                                           b, ptr, this);
          blockPoints_[b].postInsn[a] = point;
          return point;
@@ -685,6 +693,9 @@ bool func_instance::findInsnPoints(instPoint::Type type,
 instPoint *func_instance::findPoint(instPoint::Type type,
                                     edge_instance *e,
                                     bool create) {
+  //cerr << "findPoint\n";
+   assert(proc()->mgr());
+
    if (type != instPoint::EdgeDuring) return NULL;
 
    std::map<edge_instance *, EdgeInstpoints>::iterator iter = edgePoints_.find(e);
@@ -692,7 +703,7 @@ instPoint *func_instance::findPoint(instPoint::Type type,
       if (iter->second.point) return iter->second.point;
    }
    if (!create) return NULL;
-   instPoint *point = new instPoint(0, instPoint::EdgeDuring, PatchMgrPtr(),
+   instPoint *point = new instPoint(0, instPoint::EdgeDuring, proc()->mgr(),
                                     e,
                                     this);
    edgePoints_[e].point = point;

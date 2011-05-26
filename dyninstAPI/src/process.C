@@ -93,7 +93,19 @@
 #include "common/h/Timer.h"
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+
+#include "PatchMgr.h"
+#include "Relocation/DynAddrSpace.h"
+#include "Relocation/DynPointMaker.h"
+#include "Relocation/DynObject.h"
+
 using namespace Dyninst;
+using PatchAPI::DynObjectPtr;
+using PatchAPI::DynObject;
+using PatchAPI::DynAddrSpace;
+using PatchAPI::DynAddrSpacePtr;
+using PatchAPI::PatchMgr;
+using PatchAPI::PointMakerPtr;
 
 #define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
 
@@ -447,7 +459,6 @@ void process::addInferiorHeap(mapped_object *obj)
 void process::initInferiorHeap()
 {
     initializeHeap();
-
     // first initialization: add static heaps to pool
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
         addInferiorHeap(mapped_objects[i]);
@@ -1448,13 +1459,12 @@ bool process::setupGeneral()
         return true;
     // We should be paused; be sure.
     pause();
-    
+
     // In the ST case, threads[0] (the only one) is effectively
     // a pass-through for process operations. In MT, it's the
     // main thread of the process and is handled correctly
 
     startup_printf("Creating initial thread...\n");
-
     createInitialThread();
 
     // Probably not going to find anything (as we haven't loaded the
@@ -1604,7 +1614,6 @@ process *ll_createProcess(const std::string File, pdvector<std::string> *argv,
 
     // NT
     //    int thrHandle_temp;
-
     process *theProc = SignalGeneratorCommon::newProcess(File, dir,
                                                          argv, envp,
                                                          stdin_fd, stdout_fd, 
@@ -1664,6 +1673,7 @@ process *ll_createProcess(const std::string File, pdvector<std::string> *argv,
 
    assert(theProc->reachedBootstrapState(bootstrapped_bs));
    startup_printf("%s[%d]:  process state: %s\n\n\n\n", FILE__, __LINE__, theProc->getBootstrapStateAsString().c_str());
+
    return theProc;    
 }
 
@@ -1776,6 +1786,7 @@ bool process::loadDyninstLib() {
       continueProc();
    }
 #endif
+
    while (!reachedBootstrapState(libcLoaded_bs)) {
       startup_printf("%s[%d]: Waiting for process to load libc or reach "
                      "initialized state...\n", FILE__, __LINE__);
@@ -1826,6 +1837,7 @@ bool process::loadDyninstLib() {
            << "different version of libelf than it was built with." << endl;
       return false;
    }
+
    startup_printf("Initialized dynamic linking tracer\n");
 
    if (!getDyninstRTLibName()) {
@@ -1865,6 +1877,8 @@ bool process::loadDyninstLib() {
       startup_printf("Failed to get initial shared objects\n");
       return false;
    }
+
+   initPatchAPI();
 
    startup_printf("Processed initial shared objects:\n");
 

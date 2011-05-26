@@ -55,10 +55,21 @@
 #include "parseAPI/h/CodeObject.h"
 #include <boost/tuple/tuple.hpp>
 
+#include "PatchMgr.h"
+#include "Relocation/DynAddrSpace.h"
+#include "Relocation/DynPointMaker.h"
+#include "Relocation/DynObject.h"
+
 // Implementations of non-virtual functions in the address space
 // class.
 
 using namespace Dyninst;
+using PatchAPI::DynObjectPtr;
+using PatchAPI::DynObject;
+using PatchAPI::DynAddrSpace;
+using PatchAPI::DynAddrSpacePtr;
+using PatchAPI::PatchMgr;
+using PatchAPI::PointMakerPtr;
 
 AddressSpace::AddressSpace () :
     trapMapping(this),
@@ -113,9 +124,11 @@ void AddressSpace::copyAddressSpace(process *parent) {
         // This clones funcs, which then clone instPoints, which then 
         // clone baseTramps, which then clones miniTramps.
     }
+
+    initPatchAPI();
+
     // Clone the tramp guard base
     trampGuardBase_ = new int_variable(parent->trampGuardBase_, getAOut()->getDefaultModule());
-    
 
     /////////////////////////
     // Inferior heap
@@ -1991,3 +2004,19 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBBIs,
 #endif
     return stubs;
 }
+
+/* PatchAPI Stuffs */
+void AddressSpace::initPatchAPI() {
+   DynAddrSpacePtr addr_space = DynAddrSpace::create(getAOut());
+   mgr_ = PatchMgr::create(addr_space,
+                           DynPointMakerPtr(new DynPointMaker));
+   // load in shared libraries
+   const pdvector<mapped_object*>& mobjs = mappedObjects();
+   for (pdvector<mapped_object*>::const_iterator i = mobjs.begin();
+        i != mobjs.end(); i++) {
+     if (*i != getAOut()) {
+       addr_space->loadLibrary(*i);
+     }
+   }
+}
+

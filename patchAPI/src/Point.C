@@ -49,7 +49,8 @@ PatchFunction* Point::getCallee() {
 /* Associate this point with the block(s) and function(s)
    that contain it */
 void Point::initCodeStructure(Address /*addr*/) {
-#if 0 
+  assert(mgr_);
+  //#if 0 
   // walk through all code objects
   for (AddrSpace::CoObjMap::iterator ci = mgr_->as()->getCoobjMap().begin();
        ci != mgr_->as()->getCoobjMap().end(); ci++) {
@@ -87,7 +88,7 @@ void Point::initCodeStructure(Address /*addr*/) {
       break;
     }
   }
-#endif
+  //#endif
 }
 
 /* for single instruction */
