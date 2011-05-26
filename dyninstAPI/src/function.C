@@ -551,7 +551,8 @@ Address func_instance::get_address() const { assert(0); return 0; }
 unsigned func_instance::get_size() const { assert(0); return 0; }
 
 instPoint *func_instance::findPoint(instPoint::Type type, bool create) {
-   assert(proc()->mgr());
+  //cerr << "findPoint\n";
+   assert(obj()->as()->mgr());
    assert(type == instPoint::FuncEntry);
    if (points_.entry) return points_.entry;
    if (!create) return NULL;
@@ -626,7 +627,7 @@ instPoint *func_instance::findPoint(instPoint::Type type,
                                     block_instance *b,
                                     Address a, InstructionAPI::Instruction::Ptr ptr,
                                     bool trusted, bool create) {
-  // cerr << "findPoint\n";
+  //cerr << "findPoint\n";
   assert(proc()->mgr());
 
    std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
@@ -697,7 +698,7 @@ bool func_instance::findInsnPoints(instPoint::Type type,
 instPoint *func_instance::findPoint(instPoint::Type type,
                                     edge_instance *e,
                                     bool create) {
-  //cerr << "findPoint\n";
+  //  cerr << "findPoint\n";
    assert(proc()->mgr());
 
    if (type != instPoint::EdgeDuring) return NULL;
