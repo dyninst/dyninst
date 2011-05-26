@@ -552,7 +552,7 @@ unsigned func_instance::get_size() const { assert(0); return 0; }
 
 instPoint *func_instance::findPoint(instPoint::Type type, bool create) {
   //cerr << "findPoint\n";
-   assert(obj()->as()->mgr());
+   assert(proc()->mgr());
    assert(type == instPoint::FuncEntry);
    if (points_.entry) return points_.entry;
    if (!create) return NULL;
