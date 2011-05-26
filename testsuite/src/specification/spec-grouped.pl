@@ -2546,6 +2546,7 @@ mutatee_abi(64).
 platform_format(_, 'dynamicMutatee').
 platform_format(P, 'staticMutatee') :- platform('i386', 'linux', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'linux', _, P).
+platform_format(P, 'staticMutatee') :- platform('power32', 'linux', _, P).
 platform_format(P, 'staticMutatee') :- platform('i386', 'freebsd', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'freebsd', _, P).
 

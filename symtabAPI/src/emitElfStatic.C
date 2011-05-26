@@ -656,7 +656,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
             lmap.originalDtorRegion = *reg_it;
         }
     }
-
+#if defined(arch_x86) || defined(arch_x86_64)
     // Allocate the new TLS region, if necessary
     if( lmap.tlsRegions.size() > 0 ) {
         lmap.tlsRegionOffset = currentOffset;
@@ -733,7 +733,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         // The size of the original TLS image is no longer needed
         lmap.tlsSize = 0;
     }
-
+#endif
     // Allocate space for a new constructor region, if necessary
     if( lmap.newCtorRegions.size() > 0 ) {
         lmap.ctorRegionOffset = currentOffset;
@@ -910,7 +910,7 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
         target->addRegion(globalOffset + lmap.codeRegionOffset,
                 reinterpret_cast<void *>(&newTargetData[lmap.codeRegionOffset]),
                 static_cast<unsigned int>(lmap.codeSize),
-                CODE_NAME, Region::RT_TEXT, true, lmap.codeRegionAlign);
+                CODE_NAME, Region::RT_TEXTDATA, true, lmap.codeRegionAlign);
     }
 
     if( lmap.dataSize > 0 ) {
@@ -919,6 +919,7 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
                 static_cast<unsigned int>(lmap.dataSize),
                 DATA_NAME, Region::RT_DATA, true, lmap.dataRegionAlign);
     }
+#if defined(arch_x86) || defined(arch_x86_64)
 
     if( lmap.gotSize > 0 ) {
         buildGOT(lmap);
@@ -935,7 +936,7 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
                 static_cast<unsigned int>(lmap.tlsSize),
                 TLS_DATA_NAME, Region::RT_DATA, true, lmap.tlsRegionAlign, true);
     }
-
+#endif
     if( lmap.newCtorRegions.size() > 0 ) {
         if( !createNewCtorRegion(lmap) ) {
             return false;
