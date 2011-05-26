@@ -5,6 +5,7 @@
 
 Point* DynPointMaker::createPoint(Address addr, Point::Type type,
                                   Address* scope) {
+  // instPoint* ret = new instPoint(addr, type, mgr_, SCAST_FI(scope));
   return NULL;
 }
 

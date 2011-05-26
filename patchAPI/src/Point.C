@@ -93,26 +93,26 @@ void Point::initCodeStructure(Address /*addr*/) {
 
 /* for single instruction */
 Point::Point(Address addr, Point::Type type, PatchMgrPtr mgr, Address*)
-  :addr_(addr), type_(type), mgr_(mgr), blk_(NULL), edge_(NULL), func_(NULL) {
+  :addr_(addr), type_(type), mgr_(mgr), the_block_(NULL), the_edge_(NULL), the_func_(NULL) {
   initCodeStructure(addr);
 }
 
 /* for a block */
 Point::Point(Address addr, Type type, PatchMgrPtr mgr, PatchBlock* blk)
-  : addr_(addr), type_(type), mgr_(mgr), blk_(blk), edge_(NULL), func_(NULL) {
+  : addr_(addr), type_(type), mgr_(mgr), the_block_(blk), the_edge_(NULL), the_func_(NULL) {
   initCodeStructure(addr);
 }
 
 /* for an edge */
 Point::Point(Address addr, Type type, PatchMgrPtr mgr, PatchEdge* edge)
-  : addr_(addr), type_(type), mgr_(mgr), blk_(NULL), edge_(edge), func_(NULL) {
+  : addr_(addr), type_(type), mgr_(mgr), the_block_(NULL), the_edge_(edge), the_func_(NULL) {
   initCodeStructure(addr);
 }
 
 /* for a function */
 Point::Point(Address addr, Type type, PatchMgrPtr mgr,
              PatchFunction* func) : addr_(addr), type_(type), mgr_(mgr),
-                                    blk_(NULL), edge_(NULL), func_(func) {
+                                    the_block_(NULL), the_edge_(NULL), the_func_(func) {
   initCodeStructure(addr);
 }
 
@@ -205,19 +205,19 @@ bool Point::destroy() {
     case BlockExit:
     case BlockDuring:
     {
-      type_pt_map = mgr_->blk_type_pt_map_[blk_];
+      type_pt_map = mgr_->blk_type_pt_map_[the_block_];
       break;
     }
     case FuncEntry:
     case FuncExit:
     case FuncDuring:
     {
-      type_pt_map = mgr_->func_type_pt_map_[func_];
+      type_pt_map = mgr_->func_type_pt_map_[the_func_];
       break;
     }
     case EdgeDuring:
     {
-      type_pt_map = mgr_->edge_type_pt_map_[edge_];
+      type_pt_map = mgr_->edge_type_pt_map_[the_edge_];
       break;
     }
     case LoopStart:

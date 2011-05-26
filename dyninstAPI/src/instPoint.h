@@ -50,6 +50,7 @@
 
 #include "Point.h"
 #include "Relocation/DynPointMaker.h"
+#include "Relocation/DynCommon.h"
 
 class block_instance;
 class func_instance;
@@ -140,7 +141,7 @@ class instPoint : public Dyninst::PatchAPI::Point {
     func_instance *func() const;
     // These are optional
     block_instance *block() const { return block_; }
-    edge_instance *edge() const { return edge_; }
+    edge_instance *edge()  { return edge_; }
 
     // I'm commenting this out so that we don't reinvent the wheel.
     // instPoints have two types of addresses. The first is "instrument

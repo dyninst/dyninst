@@ -58,6 +58,11 @@ class Point {
       Point* ret = new Point(addr, type, mgr, scope);
       return ret;
     }
+    Point() {}
+    Point(Address addr, Point::Type type, PatchMgrPtr mgr, Address*);
+    Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchBlock* blk);
+    Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchEdge* edge);
+    Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchFunction* func);
     virtual ~Point();
 
     // Point as a snippet container
@@ -84,6 +89,9 @@ class Point {
     const ParseAPI::CodeSource* cs() const { return cs_; }
     const PatchObject* obj() const { return obj_; }
     const InstructionAPI::Instruction::Ptr instruction() const { return instruction_; }
+    PatchFunction* getFunction() const { return the_func_; }
+    PatchBlock* getBlock() const { return the_block_; }
+    PatchEdge* getEdge() const { return the_edge_; }
 
     // Point type utilities
 
@@ -94,11 +102,6 @@ class Point {
     // Remove a specific type from a set of types
     static void RemoveType(Point::Type& types, Point::Type trg);
 
-    Point() {}
-    Point(Address addr, Point::Type type, PatchMgrPtr mgr, Address*);
-    Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchBlock* blk);
-    Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchEdge* edge);
-    Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchFunction* func);
 
   protected:
     bool destroy();
@@ -108,9 +111,9 @@ class Point {
     Address addr_;
     Type type_;
     PatchMgrPtr mgr_;
-    PatchBlock* blk_;
-    PatchEdge* edge_;
-    PatchFunction* func_;
+    PatchBlock* the_block_;
+    PatchEdge* the_edge_;
+    PatchFunction* the_func_;
     InstructionAPI::Instruction::Ptr instruction_;
     ParseAPI::CodeObject* co_;
     ParseAPI::CodeSource* cs_;

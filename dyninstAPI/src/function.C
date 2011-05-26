@@ -551,13 +551,17 @@ Address func_instance::get_address() const { assert(0); return 0; }
 unsigned func_instance::get_size() const { assert(0); return 0; }
 
 instPoint *func_instance::findPoint(instPoint::Type type, bool create) {
-  //cerr << "findPoint\n";
    assert(proc()->mgr());
    assert(type == instPoint::FuncEntry);
    if (points_.entry) return points_.entry;
    if (!create) return NULL;
-   // points_.entry = new instPoint(0, instPoint::FuncEntry, PatchMgrPtr(), this);
-   points_.entry = new instPoint(0, instPoint::FuncEntry, proc()->mgr(), this);
+   // points_.entry = new instPoint(0, instPoint::FuncEntry, proc()->mgr(), this);
+
+   std::vector<Point*> pts;
+   proc()->mgr()->findPoints(this, type, back_inserter(pts));
+   assert(pts.size() == 1);
+   points_.entry = static_cast<instPoint*>(pts[0]);
+
    return points_.entry;
 }
 

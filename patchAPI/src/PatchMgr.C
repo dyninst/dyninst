@@ -93,9 +93,11 @@ bool PatchMgr::findPointsByType(Address* addr, Point::Type types,
   //  INSN_BEFORE, INSN_FT, INSN_TAKEN, CALL_BEFORE, CALL_AFTER
   CodeSource* cs = NULL;
   Address relative_addr = 0;
+  Address codeBase = 0;
   for (AddrSpace::CoObjMap::iterator ci = as_->getCoobjMap().begin();
        ci != as_->getCoobjMap().end(); ci++) {
-    relative_addr = *addr - (*ci).second->codeBase();
+    codeBase = (*ci).second->codeBase();
+    relative_addr = *addr - codeBase;
     if ((*ci).second->cs()->isValidAddress(relative_addr)) {
       cs = (*ci).second->cs();
       break;
@@ -104,7 +106,7 @@ bool PatchMgr::findPointsByType(Address* addr, Point::Type types,
     }
   }
   if (cs == NULL) {
-    fprintf(stderr, "ERROR: 0x%lx is not a valid relative address\n", (size_t)relative_addr);
+    fprintf(stderr, "ERROR: 0x%lx is not a valid relative address (absolute addr: 0x%lx, codeBase: 0x%lx\n", (size_t)relative_addr, (size_t)*addr, (size_t)codeBase);
     exit(-1);
   }
   InstructionDecoder d(cs->getPtrToInstruction(relative_addr),

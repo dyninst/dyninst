@@ -1280,6 +1280,14 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
       BPatch_reportError(BPatchSerious, 124, dlerror_str);
       return false;
    }
+
+   /* PatchAPI stuffs */
+   // cerr << libname << "\n";
+   mapped_object* plib = llproc->findObject(libname);
+   assert(plib);
+   DYN_CAST(DynAddrSpace, llproc->mgr()->as())->loadLibrary(plib);
+   /* End of PatchAPi stuffs */
+
    return true;
 }
 
