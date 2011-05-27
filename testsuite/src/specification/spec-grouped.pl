@@ -2547,6 +2547,7 @@ platform_format(_, 'dynamicMutatee').
 platform_format(P, 'staticMutatee') :- platform('i386', 'linux', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'linux', _, P).
 platform_format(P, 'staticMutatee') :- platform('power32', 'linux', _, P).
+platform_format(P, 'staticMutatee') :- platform('power32', 'bluegene', _, P).
 platform_format(P, 'staticMutatee') :- platform('i386', 'freebsd', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'freebsd', _, P).
 
@@ -2555,6 +2556,8 @@ compiler_format(_, 'dynamicMutatee').
 % For the time being, static mutatees only built for GNU compilers
 compiler_format('g++', 'staticMutatee').
 compiler_format('gcc', 'staticMutatee').
+compiler_format('bgxlc++', 'staticMutatee').
+compiler_format('bgxlc', 'staticMutatee').
 compiler_format('gfortran', 'staticMutatee').
 
 % format_runmode (Platform, RunMode, Format)
@@ -2903,15 +2906,20 @@ compiler_static_link('g++', P, '-static') :- platform(_,'linux', _, P).
 compiler_static_link('gcc', P, '-static') :- platform(_,'linux', _, P).
 compiler_static_link('g++', P, '-static') :- platform(_,'freebsd', _,P).
 compiler_static_link('gcc', P, '-static') :- platform(_,'freebsd', _,P).
-compiler_dynamic_link(_, _, '').
+compiler_static_link('bgxlc++', P, '') :- platform(_,'bluegene', _, P).
+compiler_static_link('bgxlc', P, '') :- platform(_,'bluegene', _, P).
+compiler_dynamic_link(_, _, '') :- platform(_, OS, _, P),
+	OS \= 'bluegene'.
+compiler_dynamic_link('bgxlc++', P, '-qnostaticlink') :- platform(_,'bluegene', _, P).
+compiler_dynamic_link('bgxlc', P, '-qnostaticlink') :- platform(_,'bluegene', _, P).
 
 % Specify the standard flags for each compiler
 comp_std_flags_str('gcc', '$(CFLAGS)').
 comp_std_flags_str('g++', '$(CXXFLAGS)').
 comp_std_flags_str('xlc', '$(CFLAGS_NATIVE)').
 comp_std_flags_str('pgcc', '$(CFLAGS_NATIVE)').
-comp_std_flags_str('bgxlc', '-qnostaticlink').
-comp_std_flags_str('bgxlc++', '-qnostaticlink').
+comp_std_flags_str('bgxlc', '').
+comp_std_flags_str('bgxlc++', '').
 % FIXME Make sure that these flags for cxx are correct, or tear out cxx (Alpha)
 comp_std_flags_str('xlC', '$(CXXFLAGS_NATIVE)').
 comp_std_flags_str('pgCC', '$(CXXFLAGS_NATIVE)').
