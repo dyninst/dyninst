@@ -108,6 +108,7 @@ test_results_t test5_3_Mutator::executeTest() {
   
   bpfv.clear();
   char *fn2 = "overload_op_test::call_cpp";
+
   if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     logerror("**Failed** test #3 (overloaded operation)\n");
