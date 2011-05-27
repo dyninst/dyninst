@@ -161,7 +161,7 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
 bool Instrumenter::preCallInstrumentation(RelocBlock *trace) {
    instPoint *call = NULL;
    if (trace->func()) {
-      call = trace->func()->findPoint(instPoint::PreCall, trace->block(), false);
+     call = trace->func()->preCallPoint(trace->block(), false);
    }
    if (!call || call->empty()) return true;
 
@@ -179,7 +179,6 @@ bool Instrumenter::preCallInstrumentation(RelocBlock *trace) {
 
 bool Instrumenter::funcExitInstrumentation(RelocBlock *trace) {
    // TODO: do this right :)
-   // instPoint *exit = trace->func()->findPoint(instPoint::FuncExit, trace->block(), false);
    instPoint *exit = trace->func()->funcExitPoint(trace->block(), false);
    if (!exit || exit->empty()) return true;
 
@@ -199,7 +198,7 @@ bool Instrumenter::funcExitInstrumentation(RelocBlock *trace) {
 bool Instrumenter::blockEntryInstrumentation(RelocBlock *trace) {
    instPoint *entry = NULL;
    if (trace->func()) {
-      entry = trace->func()->findPoint(instPoint::BlockEntry, trace->block(), false);
+     entry = trace->func()->blockEntryPoint(trace->block(), false);
    }
 
    if (!entry || entry->empty()) return true;
@@ -224,7 +223,7 @@ bool Instrumenter::postCallInstrumentation(RelocBlock *trace, RelocGraph *cfg) {
    // C (DEFENSIVE TODO) to a new RelocBlock. 
    instPoint *post = NULL;
    if (trace->func()) {
-      post = trace->func()->findPoint(instPoint::PostCall, trace->block(), false);
+     post = trace->func()->postCallPoint(trace->block(), false);
    }
 
    if (!post || post->empty()) return true;
@@ -256,8 +255,7 @@ bool Instrumenter::funcEntryInstrumentation(RelocBlock *trace, RelocGraph *cfg) 
    instPoint *entry = NULL;
    if (trace->func() &&
        trace->func()->entryBlock() == trace->block()) {
-     // entry = trace->func()->findPoint(instPoint::FuncEntry, false);
-      entry = trace->func()->funcEntryPoint(false);
+     entry = trace->func()->funcEntryPoint(false);
    }
    if (!entry || entry->empty()) return true;
 

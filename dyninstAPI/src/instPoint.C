@@ -64,25 +64,23 @@ instPoint *instPoint::funcEntry(func_instance *f) {
 }
 
 instPoint *instPoint::funcExit(func_instance *f, block_instance *b) {
-  //cerr << "instpoint::funcExit called\n";
-  //return f->findPoint(FuncExit, b, true);
   return f->funcExitPoint(b, true);
 }
 
 instPoint *instPoint::blockEntry(func_instance *f, block_instance *b) {
-   return f->findPoint(BlockEntry, b, true);
+  return f->blockEntryPoint(b, true);
 }
 
 instPoint *instPoint::blockExit(func_instance *f, block_instance *b) {
-   return f->findPoint(BlockExit, b, true);
+  return f->blockExitPoint(b, true);
 }
 
 instPoint *instPoint::preCall(func_instance *f, block_instance *b) {
-   return f->findPoint(PreCall, b, true);
+  return f->preCallPoint(b, true);
 }
 
 instPoint *instPoint::postCall(func_instance *f, block_instance *b) {
-   return f->findPoint(PostCall, b, true);
+  return f->postCallPoint(b, true);
 }
 
 instPoint *instPoint::edge(func_instance *f, edge_instance *e) {
@@ -111,10 +109,7 @@ instPoint::instPoint(Address       addr,
                      PatchMgrPtr   mgr,
                      func_instance *f) :
   Point(addr, t, mgr, f),
-  //func_(f),
-  //   block_(NULL),
-  //   edge_(NULL),
-   baseTramp_(NULL) {
+  baseTramp_(NULL) {
   func_ = SCAST_FI(the_func_);
   block_ = SCAST_BI(the_block_);
   edge_ = SCAST_EI(the_edge_);
@@ -125,25 +120,11 @@ instPoint::instPoint(Address       addr,
                      PatchMgrPtr   mgr,
                      block_instance *b) :
   Point(addr, t, mgr, b),
-  //func_(f),
-  //  block_(b),
-  //   edge_(NULL),
-   baseTramp_(NULL) {
+  baseTramp_(NULL) {
   func_ = SCAST_FI(the_func_);
   block_ = SCAST_BI(the_block_);
   edge_ = SCAST_EI(the_edge_);
 };
-
-instPoint::instPoint(Address        addr,
-                     Type           t,
-                     PatchMgrPtr    mgr,
-                     block_instance *b,
-                     func_instance  *f) :
-  Point(addr, t, mgr, b),
-   func_(f),
-   block_(b),
-   edge_(NULL),
-   baseTramp_(NULL) {};
 
 instPoint::instPoint(Address       addr,
                      Type          t,

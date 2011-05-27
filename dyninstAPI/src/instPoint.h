@@ -118,11 +118,6 @@ class instPoint : public Dyninst::PatchAPI::Point {
               block_instance*);
     // to be cleared
     instPoint(Address,
-              Type t,
-              PatchMgrPtr,
-              block_instance*,
-              func_instance*);
-    instPoint(Address,
               Type,
               PatchMgrPtr,
               edge_instance*,

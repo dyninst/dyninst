@@ -450,33 +450,15 @@ void BPatch_function::getCallerPoints(std::vector<BPatch_point*>& callerPoints)
    }
 }
 
-void BPatch_function::getCallPoints(BPatch_Vector<BPatch_point *> &callPoints)
-{
-  patch_cerr << "getCallPoints\n";
-  /*
-  std::vector<Point*> pts;
-  func->proc()->mgr()->findPoints(func, Point::PreCall, back_inserter(pts));
+void BPatch_function::getCallPoints(BPatch_Vector<BPatch_point *> &callPoints) {
   const func_instance::BlockSet &blocks = func->callBlocks();
-  patch_cerr << blocks.size() << " call blks," << "after findPoints: " << pts.size() << "\n";
-  for (std::vector<Point*>::iterator i = pts.begin(); i != pts.end(); i++) {
-    instPoint *point = static_cast<instPoint*>(*i);
-    const Point::BlockSet& inst_blks = point->getInstBlocks();
-    assert(inst_blks.size() == 1);
-    block_instance* b = SCAST_BI(*inst_blks.begin());
-    func->blockPoints_[b].preCall = point;
+  for (func_instance::BlockSet::const_iterator iter = blocks.begin();
+       iter != blocks.end(); ++iter) {
+    instPoint *point = instPoint::preCall(func, *iter);
     BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, point,
                                                            BPatch_locSubroutine);
     callPoints.push_back(curPoint);
   }
-  */
-   const func_instance::BlockSet &blocks = func->callBlocks();
-   for (func_instance::BlockSet::const_iterator iter = blocks.begin();
-        iter != blocks.end(); ++iter) {
-      instPoint *point = instPoint::preCall(func, *iter);
-      BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, point,
-                                                             BPatch_locSubroutine);
-      callPoints.push_back(curPoint);
-   }
 }
 
 void BPatch_function::getEntryPoints(BPatch_Vector<BPatch_point *> &entryPoints/*output*/) {
@@ -484,7 +466,6 @@ void BPatch_function::getEntryPoints(BPatch_Vector<BPatch_point *> &entryPoints/
                                                           instPoint::funcEntry(func),
                                                           BPatch_locEntry);
    entryPoints.push_back(curPoint);
-
 }
 
 void BPatch_function::getExitPoints(BPatch_Vector<BPatch_point *> &exitPoints) {

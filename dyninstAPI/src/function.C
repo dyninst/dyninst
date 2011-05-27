@@ -550,72 +550,6 @@ bool func_instance::consistency() const {
 Address func_instance::get_address() const { assert(0); return 0; }
 unsigned func_instance::get_size() const { assert(0); return 0; }
 
-instPoint *func_instance::findPoint(instPoint::Type type, block_instance *b, bool create) {
-  /*
-  if (type == instPoint::FuncExit) {
-    cerr << " we are here?!\n";
-    std::map<block_instance *, instPoint *>::iterator iter = points_.exits.find(b);
-    if (iter != points_.exits.end()) return iter->second;
-    if (!create) return NULL;
-    instPoint *point = new instPoint(0, instPoint::FuncExit, proc()->mgr(), b, this);
-    points_.exits[b] = point;
-  cerr << points_.exits.size() << " pts found in funcExitPoints @ " << func_->name() << "\n";
- return point;
-  }
-  */
-   std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
-
-   switch(type) {
-      case instPoint::BlockEntry: {
-     patch_cerr << "instPoint::findPoint, block entry\n";
-         if (iter != blockPoints_.end()) {
-            if (iter->second.entry) return iter->second.entry;
-         }
-         if (!create) return NULL;
-         instPoint *point = new instPoint(0, instPoint::BlockEntry, proc()->mgr(), b, this);
-         blockPoints_[b].entry = point;
-         return point;
-      }
-      case instPoint::BlockExit: {
-     patch_cerr << "instPoint::findPoint, block exit\n";
-         if (iter != blockPoints_.end()) {
-            if (iter->second.exit) return iter->second.exit;
-         }
-         if (!create) return NULL;
-         instPoint *point = new instPoint(0, instPoint::BlockExit, proc()->mgr(), b, this);
-         blockPoints_[b].exit = point;
-         return point;
-      }
-      case instPoint::PreCall: {
-     patch_cerr << "instPoint::findPoint, precall enter\n";
-         if (iter != blockPoints_.end()) {
-            if (iter->second.preCall) return iter->second.preCall;
-         }
-         if (!create) return NULL;
-
-         patch_cerr << "instPoint::findPoint, precall create\n";
-         instPoint *point = new instPoint(0, instPoint::PreCall, proc()->mgr(), b, this);
-         blockPoints_[b].preCall = point;
-         return point;
-
-      }
-      case instPoint::PostCall: {
-     patch_cerr << "instPoint::findPoint, postcall\n";
-         if (iter != blockPoints_.end()) {
-            if (iter->second.postCall) return iter->second.postCall;
-         }
-         if (!create) return NULL;
-         instPoint *point = new instPoint(0, instPoint::PostCall, proc()->mgr(), b, this);
-         blockPoints_[b].postCall = point;
-         return point;
-      }
-      default:
-         return NULL;
-   }
-
-   return NULL;
-}
-
 instPoint *func_instance::findPoint(instPoint::Type type,
                                     block_instance *b,
                                     Address a, InstructionAPI::Instruction::Ptr ptr,
@@ -865,10 +799,11 @@ void func_instance::createWrapperSymbol(Address entry) {
 /* PatchAPI stuffs */
 
 instPoint *func_instance::funcEntryPoint(bool create) {
-  // cerr << "=funcEntryPoint\n";
    assert(proc()->mgr());
+   // Lookup the cached points
    if (points_.entry) return points_.entry;
    if (!create) return NULL;
+   // Cache miss, resort to PatchAPI's findPoint
    std::vector<Point*> pts;
    proc()->mgr()->findPoints(this, Point::FuncEntry, back_inserter(pts));
    assert(pts.size() == 1);
@@ -877,13 +812,12 @@ instPoint *func_instance::funcEntryPoint(bool create) {
 }
 
 instPoint *func_instance::funcExitPoint(block_instance* b, bool create) {
-  //cerr << "=funcExitPoint\n";
   assert(proc()->mgr());
+  // Lookup the cached points
   std::map<block_instance *, instPoint *>::iterator iter = points_.exits.find(b);
   if (iter != points_.exits.end()) return iter->second;
   if (!create) return NULL;
-
-  // cerr << "==Call funcExitPoints\n";
+  // Cache miss, resort to PatchAPI's findPoint
   Points pts;
   funcExitPoints(&pts);
   assert(pts.size() > 0);
@@ -893,23 +827,110 @@ instPoint *func_instance::funcExitPoint(block_instance* b, bool create) {
 }
 
 void func_instance::funcExitPoints(Points* pts) {
-  //cerr << "funcExitPoints ";
   assert(proc()->mgr());
+  // Lookup the cached points
   if (points_.exits.size() > 0) {
-    //cerr << " found!\n";
     for (std::map<block_instance*, instPoint*>::iterator pi = points_.exits.begin();
          pi != points_.exits.end(); pi++) {
       pts->push_back(pi->second);
     }
     return;
   }
-
+  // Cache miss, resort to PatchAPI's findPoint
   std::vector<Point*> points;
   proc()->mgr()->findPoints(this, Point::FuncExit, back_inserter(points));
-  //cerr << points.size() << " pts found in funcExitPoints @ " << func_->name() << "\n";
   for (std::vector<Point*>::iterator pi = points.begin(); pi != points.end(); pi++) {
     instPoint* p = static_cast<instPoint*>(*pi);
     pts->push_back(p);
     points_.exits[p->block()] = p;
   }
+}
+
+instPoint *func_instance::preCallPoint(block_instance* b, bool create) {
+  std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
+  if (iter != blockPoints_.end()) {
+    if (iter->second.preCall) return iter->second.preCall;
+  }
+  if (!create) return NULL;
+  Points pts;
+  callPoints(&pts);
+  iter = blockPoints_.find(b);
+  if (iter != blockPoints_.end()) {
+    if (iter->second.preCall) return iter->second.preCall;
+  }
+  return NULL;
+}
+
+instPoint *func_instance::postCallPoint(block_instance* b, bool create) {
+  std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
+  if (iter != blockPoints_.end()) {
+    if (iter->second.postCall) return iter->second.postCall;
+  }
+  if (!create) return NULL;
+  Points pts;
+  callPoints(&pts);
+  iter = blockPoints_.find(b);
+  if (iter != blockPoints_.end()) {
+    if (iter->second.postCall) return iter->second.postCall;
+  }
+  return NULL;
+}
+
+void func_instance::callPoints(Points* pts) {
+  assert(proc()->mgr());
+  // Lookup the cached points
+  if (blockPoints_.size() > 0) {
+    bool done = true;
+    for (std::map<block_instance*, BlockInstpoints>::iterator pi = blockPoints_.begin();
+         pi != blockPoints_.end(); pi++) {
+      if (!pi->second.preCall) {
+        done = false;
+        break;
+      }
+      pts->push_back(pi->second.preCall);
+      pts->push_back(pi->second.postCall);
+    }
+    if (done) return;
+  }
+  // Cache miss, resort to PatchAPI's findPoint
+  std::vector<Point*> points;
+  proc()->mgr()->findPoints(this, Point::PreCall|Point::PostCall, back_inserter(points));
+  for (std::vector<Point*>::iterator pi = points.begin(); pi != points.end(); pi++) {
+    instPoint* p = static_cast<instPoint*>(*pi);
+    pts->push_back(p);
+    if (p->type() == Point::PreCall) blockPoints_[p->block()].preCall = p;
+    else blockPoints_[p->block()].postCall = p;
+  }
+}
+
+instPoint *func_instance::blockEntryPoint(block_instance* b, bool create) {
+  assert(proc()->mgr());
+  // Lookup the cached points
+  std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
+  if (iter != blockPoints_.end()) {
+    if (iter->second.entry) return iter->second.entry;
+  }
+  if (!create) return NULL;
+  // Cache miss, resort to PatchAPI's findPoint
+  std::vector<Point*> pts;
+  proc()->mgr()->findPoints(b, Point::BlockEntry, back_inserter(pts));
+  assert(pts.size() == 1);
+  blockPoints_[b].entry = static_cast<instPoint*>(pts[0]);
+  return blockPoints_[b].entry;
+}
+
+instPoint *func_instance::blockExitPoint(block_instance* b, bool create) {
+  assert(proc()->mgr());
+  // Lookup the cached points
+  std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
+  if (iter != blockPoints_.end()) {
+    if (iter->second.exit) return iter->second.exit;
+  }
+  if (!create) return NULL;
+  // Cache miss, resort to PatchAPI's findPoint
+  std::vector<Point*> pts;
+  proc()->mgr()->findPoints(b, Point::BlockExit, back_inserter(pts));
+  assert(pts.size() == 1);
+  blockPoints_[b].exit = static_cast<instPoint*>(pts[0]);
+  return blockPoints_[b].exit;
 }
