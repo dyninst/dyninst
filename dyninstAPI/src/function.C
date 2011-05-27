@@ -550,60 +550,19 @@ bool func_instance::consistency() const {
 Address func_instance::get_address() const { assert(0); return 0; }
 unsigned func_instance::get_size() const { assert(0); return 0; }
 
-instPoint *func_instance::findPoint(instPoint::Type type, bool create) {
-   patch_cerr << "instPoint::findPoint, entry\n";
-   assert(proc()->mgr());
-   assert(type == instPoint::FuncEntry);
-   if (points_.entry) return points_.entry;
-   if (!create) return NULL;
-   std::vector<Point*> pts;
-   proc()->mgr()->findPoints(this, type, back_inserter(pts));
-   assert(pts.size() == 1);
-   points_.entry = static_cast<instPoint*>(pts[0]);
-   return points_.entry;
-}
-
-template <class T>
-class BlockFilterFunc {
-  public:
-    bool operator()(Point* p, T b) {
-      const Point::BlockSet& inst_blks = p->getInstBlocks();
-      cerr << "=======" << inst_blks.size() << " points found in dyninst side\n";
-      for (Point::BlockSet::iterator i = inst_blks.begin(); i != inst_blks.end(); i++)
-        cerr << std::hex << (*i)->start() << ", " << b->start() << "\n";
-      assert(inst_blks.size() > 0);
-      if (std::find(inst_blks.begin(), inst_blks.end(), b) != inst_blks.end()) {
-        return true;
-      }
-      return false;
-    }
-};
-
 instPoint *func_instance::findPoint(instPoint::Type type, block_instance *b, bool create) {
-  //cerr << "findPoint\n";
-
-   assert(proc()->mgr());
-   BlockFilterFunc<block_instance*> blk_filter_func;
-
-   if (type == instPoint::FuncExit) {
-     patch_cerr << "instPoint::findPoint, enxit\n";
-      std::map<block_instance *, instPoint *>::iterator iter = points_.exits.find(b);
-      if (iter != points_.exits.end()) return iter->second;
-      if (!create) return NULL;
-
-      instPoint *point = new instPoint(0, instPoint::FuncExit, proc()->mgr(), b, this);
-      points_.exits[b] = point;
-      return point;
-
-      /*
-      std::vector<Point*> pts;
-      proc()->mgr()->findPoints(this, type, blk_filter_func, b, back_inserter(pts));
-      assert(pts.size() == 1);
-      points_.exits[b] = static_cast<instPoint*>(pts[0]);
-      return points_.exits[b];
-      */
-   }
-
+  /*
+  if (type == instPoint::FuncExit) {
+    cerr << " we are here?!\n";
+    std::map<block_instance *, instPoint *>::iterator iter = points_.exits.find(b);
+    if (iter != points_.exits.end()) return iter->second;
+    if (!create) return NULL;
+    instPoint *point = new instPoint(0, instPoint::FuncExit, proc()->mgr(), b, this);
+    points_.exits[b] = point;
+  cerr << points_.exits.size() << " pts found in funcExitPoints @ " << func_->name() << "\n";
+ return point;
+  }
+  */
    std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
 
    switch(type) {
@@ -903,3 +862,54 @@ void func_instance::createWrapperSymbol(Address entry) {
 
 }
 
+/* PatchAPI stuffs */
+
+instPoint *func_instance::funcEntryPoint(bool create) {
+  // cerr << "=funcEntryPoint\n";
+   assert(proc()->mgr());
+   if (points_.entry) return points_.entry;
+   if (!create) return NULL;
+   std::vector<Point*> pts;
+   proc()->mgr()->findPoints(this, Point::FuncEntry, back_inserter(pts));
+   assert(pts.size() == 1);
+   points_.entry = static_cast<instPoint*>(pts[0]);
+   return points_.entry;
+}
+
+instPoint *func_instance::funcExitPoint(block_instance* b, bool create) {
+  //cerr << "=funcExitPoint\n";
+  assert(proc()->mgr());
+  std::map<block_instance *, instPoint *>::iterator iter = points_.exits.find(b);
+  if (iter != points_.exits.end()) return iter->second;
+  if (!create) return NULL;
+
+  // cerr << "==Call funcExitPoints\n";
+  Points pts;
+  funcExitPoints(&pts);
+  assert(pts.size() > 0);
+  iter = points_.exits.find(b);
+  if (iter != points_.exits.end()) return iter->second;
+  assert(0);
+}
+
+void func_instance::funcExitPoints(Points* pts) {
+  //cerr << "funcExitPoints ";
+  assert(proc()->mgr());
+  if (points_.exits.size() > 0) {
+    //cerr << " found!\n";
+    for (std::map<block_instance*, instPoint*>::iterator pi = points_.exits.begin();
+         pi != points_.exits.end(); pi++) {
+      pts->push_back(pi->second);
+    }
+    return;
+  }
+
+  std::vector<Point*> points;
+  proc()->mgr()->findPoints(this, Point::FuncExit, back_inserter(points));
+  //cerr << points.size() << " pts found in funcExitPoints @ " << func_->name() << "\n";
+  for (std::vector<Point*>::iterator pi = points.begin(); pi != points.end(); pi++) {
+    instPoint* p = static_cast<instPoint*>(*pi);
+    pts->push_back(p);
+    points_.exits[p->block()] = p;
+  }
+}

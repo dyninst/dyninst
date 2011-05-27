@@ -243,8 +243,15 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // So we can assert(consistency());
   bool consistency() const;
 
+  // Wrappers for patchapi findPoints
+  instPoint *funcEntryPoint(bool create);
+  instPoint *funcExitPoint(block_instance* blk, bool create);
+
+  typedef std::vector<instPoint*> Points;
+  void funcExitPoints(Points*);
+
   // Get a single point
-  instPoint *findPoint(Point::Type type, bool create);
+  // instPoint *findPoint(Point::Type type, bool create);
   instPoint *findPoint(Point::Type type, block_instance *b, bool create);
   instPoint *findPoint(Point::Type type, block_instance *b,
                        Address a, InstructionAPI::Instruction::Ptr ptr,

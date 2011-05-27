@@ -60,11 +60,13 @@ using namespace Dyninst::InstructionAPI;
 #endif
 
 instPoint *instPoint::funcEntry(func_instance *f) {
-   return f->findPoint(FuncEntry, true);
+  return f->funcEntryPoint(true);
 }
 
 instPoint *instPoint::funcExit(func_instance *f, block_instance *b) {
-   return f->findPoint(FuncExit, b, true);
+  //cerr << "instpoint::funcExit called\n";
+  //return f->findPoint(FuncExit, b, true);
+  return f->funcExitPoint(b, true);
 }
 
 instPoint *instPoint::blockEntry(func_instance *f, block_instance *b) {

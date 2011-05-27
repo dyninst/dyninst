@@ -3,5 +3,7 @@
 
 void foo3() {
   printf("i'm foo3\n");
-  rand();
+  if (rand() < 100) return;
+  else return;
+  return;
 }

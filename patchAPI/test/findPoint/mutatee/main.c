@@ -10,6 +10,7 @@ void foo2() {
 
 int main(int argc, const char *argv[])
 {
+  if (argc > 2) return 0;
   foo1();
   foo2();
 	return 0;

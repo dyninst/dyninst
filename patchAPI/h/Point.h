@@ -105,7 +105,7 @@ class Point {
 
   protected:
     bool destroy();
-    void initCodeStructure(Address addr);
+    void initCodeStructure();
 
     InstanceList instanceList_;
     Address addr_;

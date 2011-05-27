@@ -138,60 +138,6 @@ PatchMgr::findPointsByType(Address* addr, Point::Type types,
   return true;
 }
 
-#if 0
-/* Address-level points:
-   - Valid Types: INSN_BEFORE, INSN_FT, INSN_TAKEN, CALL_BEFORE, CALL_AFTER
-   return false if no point is found */
-bool
-PatchMgr::findPointsByType(Address* addr, Point::Type types,
-                           PointSet& points) {
-  // Make sure this set contains only points that we find in this method
-  points.clear();
-  TypePtMap& type_pt_map = addr_type_pt_map_[*addr];
-
-  // Find instruction specific points, including:
-  //  INSN_BEFORE, INSN_FT, INSN_TAKEN, CALL_BEFORE, CALL_AFTER
-  CodeSource* cs = NULL;
-  Address relative_addr = 0;
-  Address codeBase = 0;
-  for (AddrSpace::CoObjMap::iterator ci = as_->getCoobjMap().begin();
-       ci != as_->getCoobjMap().end(); ci++) {
-    codeBase = (*ci).second->codeBase();
-    relative_addr = *addr - codeBase;
-    if ((*ci).second->cs()->isValidAddress(relative_addr)) {
-      cs = (*ci).second->cs();
-      break;
-    } else {
-      continue;
-    }
-  }
-  if (cs == NULL) {
-    fprintf(stderr, "ERROR: 0x%lx is not a valid relative address (absolute addr: 0x%lx, codeBase: 0x%lx\n", (size_t)relative_addr, (size_t)*addr, (size_t)codeBase);
-    exit(-1);
-  }
-  InstructionDecoder d(cs->getPtrToInstruction(relative_addr),
-                       cs->length(),
-                       cs->getArch());
-  Instruction::Ptr insn = d.decode();
-  if (insn == 0) {
-    patch_cerr << "ERROR: instruction at relative addr 0x" << std::hex << relative_addr
-               << " is not a valid instruction.\n";
-    points.clear();
-    return false;
-  }
-  getPointsByType(type_pt_map, types, Point::PreInsn, *addr, addr, points);
-  getPointsByType(type_pt_map, types, Point::PostInsn, *addr, addr, points);
-  if (insn->getCategory() == InstructionAPI::c_BranchInsn) {
-    getPointsByType(type_pt_map, types, Point::InsnTaken, *addr, addr, points);
-  }
-  if (insn->getCategory() == InstructionAPI::c_CallInsn) {
-    getPointsByType(type_pt_map, types, Point::PreCall, *addr, addr, points);
-    getPointsByType(type_pt_map, types, Point::PostCall, *addr, addr, points);
-  }
-  if (points.size() == 0) return false;
-  return true;
-}
-#endif
 /* Block-level points:
    - Valid Types: BLOCK_ENTRY, BLOCK_EXIT, BLOCK_DURING
 
@@ -332,18 +278,6 @@ PatchMgr::findPointsByType(PatchFunction* func,
   addr = func->addr();
   getPointsByType(type_pt_map, types, Point::FuncDuring, addr, func, points);
 
-  /*
-  // Find call points, including:
-  // PreCall, PostCall
-  const PatchFunction::blocklist& call_blks = func->getCallBlocks();
-  PatchFunction::blocklist::const_iterator call_bit = call_blks.begin();
-  for (; call_bit != call_blks.end(); ++call_bit) {
-    PatchBlock* blk = *call_bit;
-    Address a = blk->last();
-    getPointsByType(type_pt_map, types, Point::PreCall, a, func, points);
-    getPointsByType(type_pt_map, types, Point::PostCall, a, func, points);
-  }
-  */
 
   // Find block specific points, including:
   // BLOCK_ENTRY, BLOCK_EXIT, BLOCK_DURING

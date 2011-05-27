@@ -479,25 +479,7 @@ void BPatch_function::getCallPoints(BPatch_Vector<BPatch_point *> &callPoints)
    }
 }
 
-void BPatch_function::getEntryPoints(BPatch_Vector<BPatch_point *> &entryPoints/*output*/)
-{
-  patch_cerr << "getEntryPoints\n";
-  /*
-  instPoint* entry_pt = NULL;
-  if (!func->points_.entry){
-    std::vector<Point*> pts;
-    func->proc()->mgr()->findPoints(func, Point::FuncEntry, back_inserter(pts));
-    assert(pts.size() == 1);
-    func->points_.entry = static_cast<instPoint*>(pts[0]);
-    assert(func->points_.entry);
-  }
-  entry_pt = func->points_.entry;
-  BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this,
-                                                         entry_pt,
-                                                         BPatch_locEntry);
-  entryPoints.push_back(curPoint);
-  */
-
+void BPatch_function::getEntryPoints(BPatch_Vector<BPatch_point *> &entryPoints/*output*/) {
    BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this,
                                                           instPoint::funcEntry(func),
                                                           BPatch_locEntry);
@@ -505,38 +487,14 @@ void BPatch_function::getEntryPoints(BPatch_Vector<BPatch_point *> &entryPoints/
 
 }
 
-void BPatch_function::getExitPoints(BPatch_Vector<BPatch_point *> &exitPoints)
-{
-  patch_cerr << "getExitPoints\n";
-  /*
-  if (func->points_.exits.size() <= 0) {
-    std::vector<Point*> pts;
-    func->proc()->mgr()->findPoints(func, Point::FuncExit, back_inserter(pts));
-    for (std::vector<Point*>::iterator i = pts.begin(); i != pts.end(); i++) {
-      instPoint *point = static_cast<instPoint*>(*i);
-      const Point::BlockSet& inst_blks = point->getInstBlocks();
-      assert(inst_blks.size() > 0);
-      block_instance* b = SCAST_BI(*inst_blks.begin());
-      func->points_.exits[b] = point;
-    }
-  }
-  for (std::map<block_instance*, instPoint*>::iterator i = func->points_.exits.begin();
-       i != func->points_.exits.end(); i++) {
-    BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, i->second, BPatch_locExit);
+void BPatch_function::getExitPoints(BPatch_Vector<BPatch_point *> &exitPoints) {
+  func_instance::Points pts;
+  func->funcExitPoints(&pts);
+  for (func_instance::Points::iterator i = pts.begin(); i != pts.end(); i++) {
+    instPoint *point = *i;
+    BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, point, BPatch_locExit);
     exitPoints.push_back(curPoint);
   }
-  */
-
-   const func_instance::BlockSet &blocks = func->exitBlocks();
-
-   for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
-      // We just want to know if this code is executed, so use a "start of block" point.
-      instPoint *point = instPoint::funcExit(func, *iter);
-      cerr << std::hex << point->address() << "\n";
-      BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, point, BPatch_locExit);
-      exitPoints.push_back(curPoint);
-   }
-
 }
 
 

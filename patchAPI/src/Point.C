@@ -48,9 +48,8 @@ PatchFunction* Point::getCallee() {
 
 /* Associate this point with the block(s) and function(s)
    that contain it */
-void Point::initCodeStructure(Address /*addr*/) {
+void Point::initCodeStructure() {
   assert(mgr_);
-  //#if 0 
   // walk through all code objects
   for (AddrSpace::CoObjMap::iterator ci = mgr_->as()->getCoobjMap().begin();
        ci != mgr_->as()->getCoobjMap().end(); ci++) {
@@ -88,34 +87,33 @@ void Point::initCodeStructure(Address /*addr*/) {
       break;
     }
   }
-  the_block_ = *inst_blks_.begin();
-  the_func_ = *inst_funcs_.begin();
-  //#endif
+  if (!the_block_) the_block_ = *inst_blks_.begin();
+  if (!the_func_) the_func_ = *inst_funcs_.begin();
 }
 
 /* for single instruction */
 Point::Point(Address addr, Point::Type type, PatchMgrPtr mgr, Address*)
   :addr_(addr), type_(type), mgr_(mgr), the_block_(NULL), the_edge_(NULL), the_func_(NULL) {
-  initCodeStructure(addr);
+  initCodeStructure();
 }
 
 /* for a block */
 Point::Point(Address addr, Type type, PatchMgrPtr mgr, PatchBlock* blk)
   : addr_(addr), type_(type), mgr_(mgr), the_block_(blk), the_edge_(NULL), the_func_(NULL) {
-  initCodeStructure(addr);
+  initCodeStructure();
 }
 
 /* for an edge */
 Point::Point(Address addr, Type type, PatchMgrPtr mgr, PatchEdge* edge)
   : addr_(addr), type_(type), mgr_(mgr), the_block_(NULL), the_edge_(edge), the_func_(NULL) {
-  initCodeStructure(addr);
+  initCodeStructure();
 }
 
 /* for a function */
 Point::Point(Address addr, Type type, PatchMgrPtr mgr,
              PatchFunction* func) : addr_(addr), type_(type), mgr_(mgr),
                                     the_block_(NULL), the_edge_(NULL), the_func_(func) {
-  initCodeStructure(addr);
+  initCodeStructure();
 }
 
 /* old_instance, old_instance, <---new_instance */

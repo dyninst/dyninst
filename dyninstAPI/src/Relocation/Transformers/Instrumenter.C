@@ -179,7 +179,8 @@ bool Instrumenter::preCallInstrumentation(RelocBlock *trace) {
 
 bool Instrumenter::funcExitInstrumentation(RelocBlock *trace) {
    // TODO: do this right :)
-   instPoint *exit = trace->func()->findPoint(instPoint::FuncExit, trace->block(), false);
+   // instPoint *exit = trace->func()->findPoint(instPoint::FuncExit, trace->block(), false);
+   instPoint *exit = trace->func()->funcExitPoint(trace->block(), false);
    if (!exit || exit->empty()) return true;
 
    RelocBlock::WidgetList &elements = trace->elements();
@@ -255,7 +256,8 @@ bool Instrumenter::funcEntryInstrumentation(RelocBlock *trace, RelocGraph *cfg) 
    instPoint *entry = NULL;
    if (trace->func() &&
        trace->func()->entryBlock() == trace->block()) {
-      entry = trace->func()->findPoint(instPoint::FuncEntry, false);
+     // entry = trace->func()->findPoint(instPoint::FuncEntry, false);
+      entry = trace->func()->funcEntryPoint(false);
    }
    if (!entry || entry->empty()) return true;
 
