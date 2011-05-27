@@ -51,14 +51,9 @@ void test1_37_inc3();
  * keyword static so they don't interfere with other mutatees in the group.
  */
 
-/* Global variables used internally by the mutatee.  These should be declared
- * with the keyword static so they don't interfere with other mutatees in the
- * group.
- */
-
-static volatile int globalVariable37_1 = 0;
-static volatile int globalVariable37_2 = 0;
-static volatile int globalVariable37_3 = 0;
+int globalVariable37_1 = 0;
+int globalVariable37_2 = 0;
+int globalVariable37_3 = 0;
 
 /* Function definitions follow */
 
