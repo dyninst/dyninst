@@ -505,6 +505,7 @@ BPatch_point *BPatch_basicBlock::convertPoint(instPoint *pt)
 //
 void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
 {
+  cerr << "BPatch_basicBlock::getAllPoints\n";
    instPoint *entry = instPoint::blockEntry(ifunc(), iblock);
    instPoint *preCall = instPoint::preCall(ifunc(), iblock);
    // Exit 'point'?

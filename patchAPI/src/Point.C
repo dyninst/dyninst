@@ -88,6 +88,8 @@ void Point::initCodeStructure(Address /*addr*/) {
       break;
     }
   }
+  the_block_ = *inst_blks_.begin();
+  the_func_ = *inst_funcs_.begin();
   //#endif
 }
 

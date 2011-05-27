@@ -12,7 +12,9 @@ using Dyninst::PatchAPI::PatchMgrPtr;
 using Dyninst::PatchAPI::PointMaker;
 
 bool debug_patchapi_flag = false;
-static void initDebugFlag() {
+
+static void
+initDebugFlag() {
   if (getenv("PATCHAPI_DEBUG"))
     debug_patchapi_flag = true;
 }
@@ -20,10 +22,10 @@ static void initDebugFlag() {
 PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt)
   : point_maker_(pt), as_(as), batch_mode_(0) {
   instor_ = Instrumenter::create(as);
-  // point_maker_->setMgr(shared_from_this());
 }
 
-PatchMgrPtr PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf) {
+PatchMgrPtr
+PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf) {
   PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as, pf));
   if (!ret) return PatchMgrPtr();
   initDebugFlag();
@@ -34,7 +36,8 @@ PatchMgrPtr PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf) {
   return ret;
 }
 
-bool PatchMgr::batchStart() {
+bool
+PatchMgr::batchStart() {
   patch_cerr << ws2 << "Batch Start.\n";
   if (batch_mode_ != 0) {
     return false;
@@ -53,15 +56,16 @@ bool PatchMgr::batchStart() {
 }
 
 /* Return false if no point is found */
-bool PatchMgr::removeSnippet(InstancePtr instance) {
+bool
+PatchMgr::removeSnippet(InstancePtr instance) {
   if (instance == InstancePtr()) return false;
   return instance->destroy();
 }
 
 /* If there's NOT any point in type_pt_map, create one
    otherwise, simply fill those to *points* */
-template <class Scope>
-void  PatchMgr::getPointsByType(TypePtMap& type_pt_map, Point::Type types,
+template <class Scope> void
+PatchMgr::getPointsByType(TypePtMap& type_pt_map, Point::Type types,
                                 Point::Type type, Address addr,
                                 Scope* scope, PointSet& points) {
   // If there's NOT a specific *type* in *types*, done.
@@ -71,7 +75,14 @@ void  PatchMgr::getPointsByType(TypePtMap& type_pt_map, Point::Type types,
 
   // If there's a specific *type* in *types*:
   PointSet& pts = type_pt_map[type];
-  if (pts.size() == 0) {
+  bool should_create = true;
+  for (PointSet::iterator i = pts.begin(); i != pts.end(); i++) {
+    if ((*i)->address() == addr) {
+      should_create = false;
+      break;
+    }
+  }
+  if (should_create) {
     Point* point;
     point = point_maker_->createPoint(addr, type, scope);
     pts.insert(point);
@@ -81,10 +92,59 @@ void  PatchMgr::getPointsByType(TypePtMap& type_pt_map, Point::Type types,
 }
 
 /* Address-level points:
+   - Valid Types: INSN_BEFORE, INSN_FT, INSN_TAKEN
+   return false if no point is found */
+bool
+PatchMgr::findPointsByType(Address* addr, Point::Type types,
+                           PointSet& points) {
+  // Make sure this set contains only points that we find in this method
+  points.clear();
+  TypePtMap& type_pt_map = addr_type_pt_map_[*addr];
+
+  CodeSource* cs = NULL;
+  Address relative_addr = 0;
+  Address codeBase = 0;
+  for (AddrSpace::CoObjMap::iterator ci = as_->getCoobjMap().begin();
+       ci != as_->getCoobjMap().end(); ci++) {
+    codeBase = (*ci).second->codeBase();
+    relative_addr = *addr - codeBase;
+    if ((*ci).second->cs()->isValidAddress(relative_addr)) {
+      cs = (*ci).second->cs();
+      break;
+    } else {
+      continue;
+    }
+  }
+  if (cs == NULL) {
+    fprintf(stderr, "ERROR: 0x%lx is not a valid relative address (absolute addr: 0x%lx, codeBase: 0x%lx\n", (size_t)relative_addr, (size_t)*addr, (size_t)codeBase);
+    exit(-1);
+  }
+  InstructionDecoder d(cs->getPtrToInstruction(relative_addr),
+                       cs->length(),
+                       cs->getArch());
+  Instruction::Ptr insn = d.decode();
+  if (insn == 0) {
+    patch_cerr << "ERROR: instruction at relative addr 0x" << std::hex << relative_addr
+               << " is not a valid instruction.\n";
+    points.clear();
+    return false;
+  }
+  getPointsByType(type_pt_map, types, Point::PreInsn, *addr, addr, points);
+  getPointsByType(type_pt_map, types, Point::PostInsn, *addr, addr, points);
+  if (insn->getCategory() == InstructionAPI::c_BranchInsn) {
+    getPointsByType(type_pt_map, types, Point::InsnTaken, *addr, addr, points);
+  }
+  if (points.size() == 0) return false;
+  return true;
+}
+
+#if 0
+/* Address-level points:
    - Valid Types: INSN_BEFORE, INSN_FT, INSN_TAKEN, CALL_BEFORE, CALL_AFTER
    return false if no point is found */
-bool PatchMgr::findPointsByType(Address* addr, Point::Type types,
-                                PointSet& points) {
+bool
+PatchMgr::findPointsByType(Address* addr, Point::Type types,
+                           PointSet& points) {
   // Make sure this set contains only points that we find in this method
   points.clear();
   TypePtMap& type_pt_map = addr_type_pt_map_[*addr];
@@ -131,7 +191,7 @@ bool PatchMgr::findPointsByType(Address* addr, Point::Type types,
   if (points.size() == 0) return false;
   return true;
 }
-
+#endif
 /* Block-level points:
    - Valid Types: BLOCK_ENTRY, BLOCK_EXIT, BLOCK_DURING
 
@@ -139,8 +199,9 @@ bool PatchMgr::findPointsByType(Address* addr, Point::Type types,
    - call findPointsByType(Address ...)
 
    return false if no point is found */
-bool PatchMgr::findPointsByType(PatchBlock* blk, Point::Type types,
-                                PointSet& points) {
+bool
+PatchMgr::findPointsByType(PatchBlock* blk, Point::Type types,
+                           PointSet& points) {
   // Make sure this set contains only points that we find in this method
   points.clear();
   TypePtMap& type_pt_map = blk_type_pt_map_[blk];
@@ -170,6 +231,29 @@ bool PatchMgr::findPointsByType(PatchBlock* blk, Point::Type types,
               inserter(points, points.begin()));
     off += d.decode()->size();
   }
+
+  // Find call points
+  PatchBlock::edgelist::iterator teit = blk->getTargets().begin();
+  for (; teit != blk->getTargets().end(); ++teit) {
+    PatchEdge* edge = *teit;
+    PointSet edge_points;
+    if (edge->type() == ParseAPI::CALL) {
+      Address a = blk->last();
+      getPointsByType(type_pt_map, types, Point::PreCall, a, blk, points);
+      getPointsByType(type_pt_map, types, Point::PostCall, a, blk, points);
+    }
+  }
+
+  // Find edge specific points
+  PatchBlock::edgelist::iterator eit = blk->getSources().begin();
+  for (; eit != blk->getSources().end(); ++eit) {
+    PatchEdge* edge = *eit;
+    PointSet edge_points;
+    findPointsByType(edge, types, edge_points);
+    std::copy(edge_points.begin(), edge_points.end(),
+              inserter(points, points.begin()));
+  }
+
   if (points.size() == 0) return false;
   return true;
 }
@@ -177,8 +261,9 @@ bool PatchMgr::findPointsByType(PatchBlock* blk, Point::Type types,
 /* Edge-level points:
    - Valid Types: EDGE_DURING
   return false if no point is found */
-bool PatchMgr::findPointsByType(PatchEdge* edge, Point::Type types,
-                                PointSet& points) {
+bool
+PatchMgr::findPointsByType(PatchEdge* edge, Point::Type types,
+                           PointSet& points) {
   // Make sure this set contains only points that we find in this method
   points.clear();
   TypePtMap& type_pt_map = edge_type_pt_map_[edge];
@@ -225,8 +310,9 @@ bool PatchMgr::findPointsByType(PatchEdge* edge, Point::Type types,
    Block-level points (blocks inside this func)
    Edge-level points (edges inside this func)
    return false if no point is found */
-bool PatchMgr::findPointsByType(PatchFunction* func,
-                       Point::Type types, PointSet& points) {
+bool
+PatchMgr::findPointsByType(PatchFunction* func,
+                           Point::Type types, PointSet& points) {
   // Make sure this set contains only points that we find in this method
   points.clear();
   TypePtMap& type_pt_map = func_type_pt_map_[func];
@@ -236,7 +322,6 @@ bool PatchMgr::findPointsByType(PatchFunction* func,
   Address addr = func->addr();
   getPointsByType(type_pt_map, types, Point::FuncEntry, addr, func, points);
 
-  // XXX: simplify for now, may have more than one exit
   const  PatchFunction::blocklist& retblks = func->getExitBlocks();
   for (PatchFunction::blocklist::const_iterator bi = retblks.begin();
        bi != retblks.end(); bi++) {
@@ -247,7 +332,21 @@ bool PatchMgr::findPointsByType(PatchFunction* func,
   addr = func->addr();
   getPointsByType(type_pt_map, types, Point::FuncDuring, addr, func, points);
 
-  // Find block specific points
+  /*
+  // Find call points, including:
+  // PreCall, PostCall
+  const PatchFunction::blocklist& call_blks = func->getCallBlocks();
+  PatchFunction::blocklist::const_iterator call_bit = call_blks.begin();
+  for (; call_bit != call_blks.end(); ++call_bit) {
+    PatchBlock* blk = *call_bit;
+    Address a = blk->last();
+    getPointsByType(type_pt_map, types, Point::PreCall, a, func, points);
+    getPointsByType(type_pt_map, types, Point::PostCall, a, func, points);
+  }
+  */
+
+  // Find block specific points, including:
+  // BLOCK_ENTRY, BLOCK_EXIT, BLOCK_DURING
   const PatchFunction::blocklist& blks = func->getAllBlocks();
   PatchFunction::blocklist::const_iterator bit = blks.begin();
   for (; bit != func->getAllBlocks().end(); ++bit) {
@@ -256,39 +355,34 @@ bool PatchMgr::findPointsByType(PatchFunction* func,
     findPointsByType(blk, types, blk_points);
     std::copy(blk_points.begin(), blk_points.end(),
               inserter(points, points.begin()));
-
-    // Find edge specific points
-    PatchBlock::edgelist::iterator eit = blk->getSources().begin();
-    for (; eit != blk->getSources().end(); ++eit) {
-      PatchEdge* edge = *eit;
-      PointSet edge_points;
-      findPointsByType(edge, types, edge_points);
-      std::copy(edge_points.begin(), edge_points.end(),
-      inserter(points, points.begin()));
-    }
   }
   if (points.size() == 0) return false;
   return true;
 }
 
-bool PatchMgr::removeFuncCall(Point* point) {
+bool
+PatchMgr::removeFuncCall(Point* point) {
   callRemoval_.insert(point);
   return true;
 }
 
-bool PatchMgr::replaceFuncCall(Point* point, PatchFunction* func) {
+bool
+PatchMgr::replaceFuncCall(Point* point,
+                          PatchFunction* func) {
   callReplacement_[point] = func;
   return true;
 }
 
-bool PatchMgr::replaceFunction(PatchFunction* old_func,
-                               PatchFunction* new_func) {
+bool
+PatchMgr::replaceFunction(PatchFunction* old_func,
+                          PatchFunction* new_func) {
   funcReplacement_[old_func] = new_func;
   return true;
 }
 
 /* Start instrumentation */
-bool PatchMgr::patch() {
+bool
+PatchMgr::patch() {
   patch_cerr << ws4 << "Relocation and Generation Start.\n";
 
   if (!instor_->process(&insertion_set_,

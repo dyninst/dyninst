@@ -97,6 +97,7 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
    bool instPre = false;
    bool instPost = false;
 
+
    if (trace->func()) {
       instPre = trace->func()->findInsnPoints(instPoint::PreInsn, trace->block(),
                                               pre, preEnd);
@@ -106,7 +107,8 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
    else {
       assert(0 && "Unimplemented!");
    }
-   
+
+
    RelocBlock::WidgetList::iterator elem = trace->elements().begin();
 
    while ((instPre && (pre != preEnd)) ||

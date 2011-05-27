@@ -55,9 +55,13 @@ int main(int argc, const char *argv[]) {
 
   // Find Points
   PatchFunction* foo3 = lib_obj->getFunc(foo3_func);
-  vector<Point*> func_points;
-  mgr->findPoints(foo3, Point::PreCall, inserter(func_points, func_points.begin()));
-  cerr << func_points[0]->getCallee()->name() << "\n";
+  const vector<PatchBlock*>& blks = foo3->getCallBlocks();
+  for (int i = 0; i < blks.size(); i++) {
+    vector<Point*> func_points;
+    mgr->findPoints(blks[i], Point::PreCall, inserter(func_points, func_points.begin()));
+    cerr << func_points.size() << " points found\n";
+  }
+  /*
   // Insert snippets
   BPatch_variableExpr *intCounter = app->malloc(*image->findType("int"));
   BPatch_arithExpr addOne(BPatch_assign, *intCounter,
@@ -83,5 +87,5 @@ int main(int argc, const char *argv[]) {
   mgr->batchStart();
   func_points[0]->push_back(snippet);
   mgr->batchFinish(errorInstances);
-
+  */
 }

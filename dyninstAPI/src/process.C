@@ -4644,6 +4644,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                 break;
             case FUNC_CALL:
                 {
+		  cerr << "BPatch::interrequest\n";
                    for (func_instance::BlockSet::const_iterator iter = func->callBlocks().begin();
                         iter != func->callBlocks().end(); ++iter) {
                       miniTramp *mt = instPoint::preCall(func, *iter)->insert(req->order, ast, req->useTrampGuard);

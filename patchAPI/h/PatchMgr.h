@@ -24,9 +24,10 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
 
     // Default implementation for filter function,
     // used in findPoins and removeSnippets
+    template <class T>
     class IdentityFilterFunc {
       public:
-        bool operator()(Point*) { return true;}
+        bool operator()(Point*, T) { return true;}
     };
 
     // Query Points:
@@ -41,10 +42,11 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     //                the set of condidate points
     //
     // return false if no any point found
-    template <class Scope, class FilterFunc, class OutputIterator>
+    template <class Scope, class FilterFunc, class FilterArgument, class OutputIterator>
     bool findPoints(Scope* scope,
                     Point::Type types,
                     FilterFunc filter_func,
+                    FilterArgument filter_arg,
                     OutputIterator output_iter) {
       patch_cerr << ws2 << "Find points.\n";
 
@@ -56,7 +58,7 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
       int pt_count = 0;
       for (PointIter p = candidate_points.begin();
            p != candidate_points.end(); p++) {
-        if (filter_func(*p)) {
+        if (filter_func(*p, filter_arg)) {
           *output_iter = *p;
           output_iter++;
           ++pt_count;
@@ -72,9 +74,10 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     bool findPoints(Scope* scope,
                     Point::Type types,
                     OutputIterator output_iter) {
-      IdentityFilterFunc filter_func;
-      return findPoints<Scope, IdentityFilterFunc, OutputIterator>
-                    (scope, types, filter_func, output_iter);
+      IdentityFilterFunc<char*> filter_func;
+      char* dummy = NULL;
+      return findPoints<Scope, IdentityFilterFunc<char*>, char*, OutputIterator>
+             (scope, types, filter_func, dummy, output_iter);
     }
 
     // Explicit batch mode for snippet insertion and removal.
@@ -100,13 +103,14 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
 
     // Delete ALL snippets at certain points.
     // This uses the same filter-based interface as findPoints.
-    template <class Scope, class FilterFunc>
+    template <class Scope, class FilterFunc, class FilterArgument>
     bool removeSnippets(Scope* scope,
                     Point::Type types,
-                    FilterFunc filter_func) {
+                    FilterFunc filter_func,
+                    FilterArgument filter_arg) {
       PointSet points;
-      if (!findPoints(scope, types, filter_func,
-          inserter(points, points.begin()))) return false;
+      if (!findPoints(scope, types, filter_func, filter_arg,
+          back_inserter(points) ) ) return false;
 
        for (PointIter p = points.begin(); p != points.end(); p++) {
          (*p)->clear();
@@ -118,8 +122,8 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     template <class Scope>
     bool removeSnippets(Scope* scope,
                     Point::Type types) {
-      IdentityFilterFunc filter_func;
-      return removeSnippets<Scope, IdentityFilterFunc>
+      IdentityFilterFunc<char*> filter_func;
+      return removeSnippets<Scope, IdentityFilterFunc, char*>
                 (scope, types, filter_func);
     }
 

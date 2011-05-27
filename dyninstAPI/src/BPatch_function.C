@@ -57,6 +57,11 @@
 
 #include "common/h/Types.h"
 
+#include "Point.h"
+#include "PatchMgr.h"
+
+using Dyninst::PatchAPI::PatchMgrPtr;
+using Dyninst::PatchAPI::Point;
 
 
 
@@ -417,14 +422,14 @@ void BPatch_function::getUnresolvedControlTransfers
 void BPatch_function::getAbruptEndPoints
 (BPatch_Vector<BPatch_point *> &abruptEnds/*output*/)
 {
-   
+  cerr << "getAbruptEndPoints\n";
+
    const func_instance::BlockSet &blocks = func->abruptEnds();
    for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
       // We just want to know if this code is executed, so use a "start of block" point.
       instPoint *point = instPoint::blockEntry(func, *iter);
       BPatch_point *curPoint = addSpace->findOrCreateBPPoint
          (this, point, BPatch_locInstruction);
-      
       abruptEnds.push_back(curPoint);
    }
 }
@@ -432,7 +437,8 @@ void BPatch_function::getAbruptEndPoints
 // This one is interesting - get call points for everywhere that _calls_ us. 
 // That we know about. 
 void BPatch_function::getCallerPoints(std::vector<BPatch_point*>& callerPoints)
-{   
+{
+  // TODO (wenbin) add PreCaller point and PostCaller point types
    std::vector<block_instance *> callerBlocks;
    func->getCallerBlocks(std::back_inserter(callerBlocks));
    for (std::vector<block_instance *>::iterator iter = callerBlocks.begin(); 
@@ -440,46 +446,97 @@ void BPatch_function::getCallerPoints(std::vector<BPatch_point*>& callerPoints)
       instPoint *point = instPoint::preCall(func, *iter);
       BPatch_point *curPoint = addSpace->findOrCreateBPPoint
          (this, point, BPatch_locSubroutine);
-      
       callerPoints.push_back(curPoint);
    }
 }
 
 void BPatch_function::getCallPoints(BPatch_Vector<BPatch_point *> &callPoints)
 {
+  patch_cerr << "getCallPoints\n";
+  /*
+  std::vector<Point*> pts;
+  func->proc()->mgr()->findPoints(func, Point::PreCall, back_inserter(pts));
+  const func_instance::BlockSet &blocks = func->callBlocks();
+  patch_cerr << blocks.size() << " call blks," << "after findPoints: " << pts.size() << "\n";
+  for (std::vector<Point*>::iterator i = pts.begin(); i != pts.end(); i++) {
+    instPoint *point = static_cast<instPoint*>(*i);
+    const Point::BlockSet& inst_blks = point->getInstBlocks();
+    assert(inst_blks.size() == 1);
+    block_instance* b = SCAST_BI(*inst_blks.begin());
+    func->blockPoints_[b].preCall = point;
+    BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, point,
+                                                           BPatch_locSubroutine);
+    callPoints.push_back(curPoint);
+  }
+  */
    const func_instance::BlockSet &blocks = func->callBlocks();
-   for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
-      // We just want to know if this code is executed, so use a "start of block" point.
+   for (func_instance::BlockSet::const_iterator iter = blocks.begin();
+        iter != blocks.end(); ++iter) {
       instPoint *point = instPoint::preCall(func, *iter);
-      BPatch_point *curPoint = addSpace->findOrCreateBPPoint
-         (this, point, BPatch_locSubroutine);
-      
+      BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, point,
+                                                             BPatch_locSubroutine);
       callPoints.push_back(curPoint);
    }
 }
 
 void BPatch_function::getEntryPoints(BPatch_Vector<BPatch_point *> &entryPoints/*output*/)
 {
-   BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, 
+  patch_cerr << "getEntryPoints\n";
+  /*
+  instPoint* entry_pt = NULL;
+  if (!func->points_.entry){
+    std::vector<Point*> pts;
+    func->proc()->mgr()->findPoints(func, Point::FuncEntry, back_inserter(pts));
+    assert(pts.size() == 1);
+    func->points_.entry = static_cast<instPoint*>(pts[0]);
+    assert(func->points_.entry);
+  }
+  entry_pt = func->points_.entry;
+  BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this,
+                                                         entry_pt,
+                                                         BPatch_locEntry);
+  entryPoints.push_back(curPoint);
+  */
+
+   BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this,
                                                           instPoint::funcEntry(func),
                                                           BPatch_locEntry);
    entryPoints.push_back(curPoint);
-}
 
+}
 
 void BPatch_function::getExitPoints(BPatch_Vector<BPatch_point *> &exitPoints)
 {
-   
+  patch_cerr << "getExitPoints\n";
+  /*
+  if (func->points_.exits.size() <= 0) {
+    std::vector<Point*> pts;
+    func->proc()->mgr()->findPoints(func, Point::FuncExit, back_inserter(pts));
+    for (std::vector<Point*>::iterator i = pts.begin(); i != pts.end(); i++) {
+      instPoint *point = static_cast<instPoint*>(*i);
+      const Point::BlockSet& inst_blks = point->getInstBlocks();
+      assert(inst_blks.size() > 0);
+      block_instance* b = SCAST_BI(*inst_blks.begin());
+      func->points_.exits[b] = point;
+    }
+  }
+  for (std::map<block_instance*, instPoint*>::iterator i = func->points_.exits.begin();
+       i != func->points_.exits.end(); i++) {
+    BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, i->second, BPatch_locExit);
+    exitPoints.push_back(curPoint);
+  }
+  */
+
    const func_instance::BlockSet &blocks = func->exitBlocks();
 
    for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
       // We just want to know if this code is executed, so use a "start of block" point.
       instPoint *point = instPoint::funcExit(func, *iter);
-      BPatch_point *curPoint = addSpace->findOrCreateBPPoint
-         (this, point, BPatch_locExit);
-      
+      cerr << std::hex << point->address() << "\n";
+      BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, point, BPatch_locExit);
       exitPoints.push_back(curPoint);
    }
+
 }
 
 
@@ -585,6 +642,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
           delete result;
           return NULL;
     }
+
     return result;
 }
 

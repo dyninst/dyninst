@@ -109,10 +109,28 @@ instPoint::instPoint(Address       addr,
                      PatchMgrPtr   mgr,
                      func_instance *f) :
   Point(addr, t, mgr, f),
-   func_(f),
-   block_(NULL),
-   edge_(NULL),
-   baseTramp_(NULL) {};
+  //func_(f),
+  //   block_(NULL),
+  //   edge_(NULL),
+   baseTramp_(NULL) {
+  func_ = SCAST_FI(the_func_);
+  block_ = SCAST_BI(the_block_);
+  edge_ = SCAST_EI(the_edge_);
+};
+
+instPoint::instPoint(Address       addr,
+                     Type          t,
+                     PatchMgrPtr   mgr,
+                     block_instance *b) :
+  Point(addr, t, mgr, b),
+  //func_(f),
+  //  block_(b),
+  //   edge_(NULL),
+   baseTramp_(NULL) {
+  func_ = SCAST_FI(the_func_);
+  block_ = SCAST_BI(the_block_);
+  edge_ = SCAST_EI(the_edge_);
+};
 
 instPoint::instPoint(Address        addr,
                      Type           t,
@@ -153,6 +171,7 @@ instPoint::instPoint(Address          addr,
 // If there is a logical "pair" (e.g., before/after) of instPoints return them.
 // The return result is a pair of <before, after>
 std::pair<instPoint *, instPoint *> instPoint::getInstpointPair(instPoint *i) {
+  patch_cerr << "getInstpointPair\n";
    switch(i->type()) {
       case None:
          assert(0);
@@ -187,6 +206,7 @@ std::pair<instPoint *, instPoint *> instPoint::getInstpointPair(instPoint *i) {
 }
 
 instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
+  patch_cerr << "fork\n";
    // Return the equivalent instPoint within the child process
    func_instance *f = parent->func_ ? child->findFunction(parent->func_->ifunc()) : NULL;
    block_instance *b = parent->block_ ? child->findBlock(parent->block_->llb()) : NULL;

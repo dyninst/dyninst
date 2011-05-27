@@ -75,6 +75,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   friend class block_instance;
   friend class edge_instance;
   friend class instPoint;
+  friend class BPatch_function;
   public:
     // Almost everythcing gets filled in later.
     func_instance(parse_func *f,
@@ -242,17 +243,19 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // So we can assert(consistency());
   bool consistency() const;
 
+  // Get a single point
   instPoint *findPoint(Point::Type type, bool create);
   instPoint *findPoint(Point::Type type, block_instance *b, bool create);
   instPoint *findPoint(Point::Type type, block_instance *b,
                        Address a, InstructionAPI::Instruction::Ptr ptr,
                        bool trusted, bool create);
+  instPoint *findPoint(Point::Type type, edge_instance *e, bool create);
+
   // And the "mass" version of the above
   bool findInsnPoints(Point::Type type, block_instance *b,
                       InsnInstpoints::const_iterator &begin,
                       InsnInstpoints::const_iterator &end);
 
-  instPoint *findPoint(Point::Type type, edge_instance *e, bool create);
   // Function wrapping
   bool callWrappedFunction(func_instance *target);
   bool updateRelocationsToSym(Dyninst::SymtabAPI::Symbol *oldsym, 

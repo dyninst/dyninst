@@ -1516,6 +1516,7 @@ bool AddressSpace::relocate() {
 
 // iter is some sort of functions
 bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address nearTo) {
+
   if (begin == end) {
     return true;
   }
@@ -1526,7 +1527,6 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   relocatedCode_.push_back(new CodeTracker());
   CodeMover::Ptr cm = CodeMover::create(relocatedCode_.back());
   if (!cm->addFunctions(begin, end)) return false;
-
 
   SpringboardBuilder::Ptr spb = SpringboardBuilder::createFunc(begin, end, this);
 

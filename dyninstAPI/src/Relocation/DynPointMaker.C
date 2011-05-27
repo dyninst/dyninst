@@ -11,7 +11,8 @@ Point* DynPointMaker::createPoint(Address addr, Point::Type type,
 
 Point* DynPointMaker::createPoint(Address addr, Point::Type type,
                                   PatchBlock* scope) {
-  return NULL;
+  instPoint* ret = new instPoint(addr, type, mgr_, SCAST_BI(scope));
+  return ret;
 }
 
 Point* DynPointMaker::createPoint(Address addr, Point::Type type,
