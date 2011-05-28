@@ -67,8 +67,8 @@ class Point {
 
     // Point as a snippet container
     typedef std::list<InstancePtr>::iterator instance_iter;
-    //    instance_iter begin() { return instanceList_.begin();}
-    //    instance_iter end() { return instanceList_.end();}
+    instance_iter begin() { return instanceList_.begin();}
+    instance_iter end() { return instanceList_.end();}
     InstancePtr push_back(SnippetPtr);
     InstancePtr push_front(SnippetPtr);
     bool remove(InstancePtr);
@@ -88,7 +88,8 @@ class Point {
     const ParseAPI::CodeObject* co() const { return co_; }
     const ParseAPI::CodeSource* cs() const { return cs_; }
     const PatchObject* obj() const { return obj_; }
-    const InstructionAPI::Instruction::Ptr instruction() const { return instruction_; }
+    //const InstructionAPI::Instruction::Ptr instruction() const { return instruction_; }
+    const InstructionAPI::Instruction::Ptr insn() const { return insn_; }
     PatchFunction* getFunction() const { return the_func_; }
     PatchBlock* getBlock() const { return the_block_; }
     PatchEdge* getEdge() const { return the_edge_; }
@@ -114,7 +115,7 @@ class Point {
     PatchBlock* the_block_;
     PatchEdge* the_edge_;
     PatchFunction* the_func_;
-    InstructionAPI::Instruction::Ptr instruction_;
+    InstructionAPI::Instruction::Ptr insn_;
     ParseAPI::CodeObject* co_;
     ParseAPI::CodeSource* cs_;
     PatchObject* obj_;

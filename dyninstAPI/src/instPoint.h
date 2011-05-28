@@ -116,19 +116,16 @@ class instPoint : public Dyninst::PatchAPI::Point {
               Type,
               PatchMgrPtr,
               block_instance*);
+    instPoint(Address,
+              Type,
+              PatchMgrPtr,
+              Address*);
     // to be cleared
     instPoint(Address,
               Type,
               PatchMgrPtr,
               edge_instance*,
               func_instance*);
-    instPoint(Address,
-              Type,
-              PatchMgrPtr,
-              block_instance*,
-              InstructionAPI::Instruction::Ptr,
-              func_instance*);
-
   public:
 
     iterator begin();
@@ -150,7 +147,7 @@ class instPoint : public Dyninst::PatchAPI::Point {
 
     //Address addr() const;
     Address insnAddr() const { return addr_; }
-    InstructionAPI::Instruction::Ptr insn() { return insn_; }
+    //InstructionAPI::Instruction::Ptr insn() { return insn_; }
 
     // This is for address tracking... if we're between
     // blocks (e.g., post-call, function exit, or edge
@@ -179,7 +176,7 @@ class instPoint : public Dyninst::PatchAPI::Point {
     func_instance *func_;
     block_instance *block_;
     edge_instance *edge_;
-    InstructionAPI::Instruction::Ptr insn_;
+    //InstructionAPI::Instruction::Ptr insn_;
     Minitramps tramps_;
 
     bitArray liveRegs_;

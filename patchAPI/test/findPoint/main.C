@@ -58,15 +58,16 @@ int main(int argc, const char *argv[]) {
   const vector<PatchBlock*>& blks = foo3->getCallBlocks();
   for (int i = 0; i < blks.size(); i++) {
     vector<Point*> func_points;
-    mgr->findPoints(blks[i], Point::PreCall, inserter(func_points, func_points.begin()));
-    cerr << func_points.size() << " points found\n";
+    mgr->findPoints(blks[i], Point::PreInsn|Point::PostInsn, inserter(func_points, func_points.begin()));
+    cerr << std::hex << blks[i]->start() << "--" << func_points.size() << " points found\n";
   }
+  /*
   vector<Point*> pts;
   mgr->findPoints(foo3, Point::FuncExit, inserter(pts, pts.begin()));
   cerr << pts.size() << " exit points found\n";
   const vector<PatchBlock*>& blks2 = foo3->getExitBlocks();
   cerr << blks2.size() << " exit blocks\n";
- /*
+
   // Insert snippets
   BPatch_variableExpr *intCounter = app->malloc(*image->findType("int"));
   BPatch_arithExpr addOne(BPatch_assign, *intCounter,

@@ -550,58 +550,6 @@ bool func_instance::consistency() const {
 Address func_instance::get_address() const { assert(0); return 0; }
 unsigned func_instance::get_size() const { assert(0); return 0; }
 
-instPoint *func_instance::findPoint(instPoint::Type type,
-                                    block_instance *b,
-                                    Address a, InstructionAPI::Instruction::Ptr ptr,
-                                    bool trusted, bool create) {
-  //cerr << "findPoint\n";
-  assert(proc()->mgr());
-
-   std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
-
-   switch (type) {
-      case instPoint::PreInsn: {
-     patch_cerr << "instPoint::findPoint, preinsn\n";
-         if (iter != blockPoints_.end()) {
-            std::map<Address, instPoint *>::iterator iter2 = iter->second.preInsn.find(a);
-            if (iter2 != iter->second.preInsn.end()) {
-               return iter2->second;
-            }
-         }
-         if (!create) return NULL;
-         if (!trusted || !ptr) {
-            ptr = b->getInsn(a);
-            if (!ptr) return NULL;
-         }
-         instPoint *point = new instPoint(a, instPoint::PreInsn, proc()->mgr(),
-                                          b, ptr, this);
-         blockPoints_[b].preInsn[a] = point;
-         return point;
-      }
-      case instPoint::PostInsn: {
-     patch_cerr << "instPoint::findPoint, postinsn\n";
-         if (iter != blockPoints_.end()) {
-            std::map<Address, instPoint *>::iterator iter2 = iter->second.postInsn.find(a);
-            if (iter2 != iter->second.postInsn.end()) {
-               return iter2->second;
-            }
-         }
-         if (!create) return NULL;
-         if (!trusted || !ptr) {
-            ptr = b->getInsn(a);
-            if (!ptr) return NULL;
-         }
-         instPoint *point = new instPoint(a, instPoint::PostInsn, proc()->mgr(),
-                                          b, ptr, this);
-         blockPoints_[b].postInsn[a] = point;
-         return point;
-      }
-      default:
-         return NULL;
-   }
-   return NULL;
-}
-
 bool func_instance::findInsnPoints(instPoint::Type type,
                                    block_instance *b,
                                    InsnInstpoints::const_iterator &begin,
@@ -627,9 +575,6 @@ bool func_instance::findInsnPoints(instPoint::Type type,
 instPoint *func_instance::findPoint(instPoint::Type type,
                                     edge_instance *e,
                                     bool create) {
-
-
-  //  cerr << "findPoint\n";
    patch_cerr << "instPoint::findPoint, edge\n";
    assert(proc()->mgr());
 
@@ -933,4 +878,91 @@ instPoint *func_instance::blockExitPoint(block_instance* b, bool create) {
   assert(pts.size() == 1);
   blockPoints_[b].exit = static_cast<instPoint*>(pts[0]);
   return blockPoints_[b].exit;
+}
+
+instPoint *func_instance::preInsnPoint(block_instance* b, Address a,
+                                       InstructionAPI::Instruction::Ptr ptr,
+                                       bool trusted, bool create) {
+  std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
+  if (iter != blockPoints_.end()) {
+    std::map<Address, instPoint *>::iterator iter2 = iter->second.preInsn.find(a);
+    if (iter2 != iter->second.preInsn.end()) {
+      return iter2->second;
+    }
+  }
+  if (!create) return NULL;
+  if (!trusted || !ptr) {
+    ptr = b->getInsn(a);
+    if (!ptr) return NULL;
+  }
+  Points pts;
+  blockInsnPoints(b, &pts);
+  assert(pts.size() > 0);
+  iter = blockPoints_.find(b);
+  if (iter != blockPoints_.end()) {
+    std::map<Address, instPoint *>::iterator iter2 = iter->second.preInsn.find(a);
+    if (iter2 != iter->second.preInsn.end()) {
+      return iter2->second;
+    }
+  }
+  assert(0);
+}
+
+instPoint *func_instance::postInsnPoint(block_instance* b, Address a,
+                                        InstructionAPI::Instruction::Ptr ptr,
+                                        bool trusted, bool create) {
+
+  std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
+  if (iter != blockPoints_.end()) {
+    std::map<Address, instPoint *>::iterator iter2 = iter->second.postInsn.find(a);
+    if (iter2 != iter->second.postInsn.end()) {
+      return iter2->second;
+    }
+  }
+  if (!create) return NULL;
+  if (!trusted || !ptr) {
+    ptr = b->getInsn(a);
+    if (!ptr) return NULL;
+  }
+  Points pts;
+  blockInsnPoints(b, &pts);
+  assert(pts.size() > 0);
+  iter = blockPoints_.find(b);
+  if (iter != blockPoints_.end()) {
+    std::map<Address, instPoint *>::iterator iter2 = iter->second.postInsn.find(a);
+    if (iter2 != iter->second.postInsn.end()) {
+      return iter2->second;
+    }
+  }
+  assert(0);
+}
+
+void func_instance::blockInsnPoints(block_instance* b, Points* pts) {
+  assert(proc()->mgr());
+  // Lookup the cache
+  std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
+  if (iter != blockPoints_.end()) {
+    if (iter->second.preInsn.size() > 0 && iter->second.postInsn.size() > 0) {
+      for (std::map<Address, instPoint*>::iterator iter2 = iter->second.preInsn.begin();
+           iter2 != iter->second.preInsn.end(); iter2++) {
+        pts->push_back(iter2->second);
+      }
+      for (std::map<Address, instPoint*>::iterator iter2 = iter->second.postInsn.begin();
+           iter2 != iter->second.postInsn.end(); iter2++) {
+        pts->push_back(iter2->second);
+      }
+      return;
+    }
+  }
+  // Cache miss!
+  std::vector<Point*> points;
+  proc()->mgr()->findPoints(b, Point::PreInsn|Point::PostInsn, back_inserter(points));
+  assert(points.size() > 0);
+  for (std::vector<Point*>::iterator i = points.begin(); i != points.end(); i++) {
+    instPoint* pt = static_cast<instPoint*>(*i);
+    Address a = pt->address();
+    pts->push_back(pt);
+    if (pt->type() == Point::PreInsn) blockPoints_[b].preInsn[a] = pt;
+    else blockPoints_[b].postInsn[a] = pt;
+  }
 }

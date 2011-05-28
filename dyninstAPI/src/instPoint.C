@@ -92,7 +92,7 @@ instPoint *instPoint::preInsn(func_instance *f,
                               Address a,
                               InstructionAPI::Instruction::Ptr ptr,
                               bool trusted) {
-   return f->findPoint(PreInsn, b, a, ptr, trusted, true);
+  return f->preInsnPoint(b, a, ptr, trusted, true);
 }
 
 instPoint *instPoint::postInsn(func_instance *f,
@@ -100,7 +100,7 @@ instPoint *instPoint::postInsn(func_instance *f,
                                Address a,
                                InstructionAPI::Instruction::Ptr ptr,
                                bool trusted) {
-   return f->findPoint(PostInsn, b, a, ptr, trusted, true);
+  return f->postInsnPoint(b, a, ptr, trusted, true);
 }
 
 
@@ -129,6 +129,17 @@ instPoint::instPoint(Address       addr,
 instPoint::instPoint(Address       addr,
                      Type          t,
                      PatchMgrPtr   mgr,
+                     Address*      scope) :
+  Point(addr, t, mgr, scope),
+  baseTramp_(NULL) {
+  func_ = SCAST_FI(the_func_);
+  block_ = SCAST_BI(the_block_);
+  edge_ = SCAST_EI(the_edge_);
+};
+
+instPoint::instPoint(Address       addr,
+                     Type          t,
+                     PatchMgrPtr   mgr,
                      edge_instance *e,
                      func_instance *f) :
   Point(addr, t, mgr, e),
@@ -136,20 +147,6 @@ instPoint::instPoint(Address       addr,
    block_(NULL),
    edge_(e),
    baseTramp_(NULL) {};
-
-instPoint::instPoint(Address          addr,
-                     Type             t,
-                     PatchMgrPtr      mgr,
-                     block_instance   *b,
-                     Instruction::Ptr insn,
-                     func_instance    *f) :
-  Point(addr, t, mgr, &addr),
-   func_(f),
-   block_(b),
-   edge_(NULL),
-   insn_(insn),
-   baseTramp_(NULL) {};
-
 
 // If there is a logical "pair" (e.g., before/after) of instPoints return them.
 // The return result is a pair of <before, after>
@@ -189,7 +186,6 @@ std::pair<instPoint *, instPoint *> instPoint::getInstpointPair(instPoint *i) {
 }
 
 instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
-  patch_cerr << "fork\n";
    // Return the equivalent instPoint within the child process
    func_instance *f = parent->func_ ? child->findFunction(parent->func_->ifunc()) : NULL;
    block_instance *b = parent->block_ ? child->findBlock(parent->block_->llb()) : NULL;

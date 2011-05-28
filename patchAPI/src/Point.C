@@ -83,7 +83,7 @@ void Point::initCodeStructure() {
                           cs_->length(),
                           cs_->getArch());
       // Get the instruction that contain this point
-      instruction_ = d.decode();
+      insn_ = d.decode();
       break;
     }
   }
