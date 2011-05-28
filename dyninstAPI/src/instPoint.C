@@ -84,7 +84,8 @@ instPoint *instPoint::postCall(func_instance *f, block_instance *b) {
 }
 
 instPoint *instPoint::edge(func_instance *f, edge_instance *e) {
-   return f->findPoint(EdgeDuring, e, true);
+  //   return f->findPoint(EdgeDuring, e, true);
+  return f->edgePoint(e, true);
 }
 
 instPoint *instPoint::preInsn(func_instance *f,
@@ -140,13 +141,14 @@ instPoint::instPoint(Address       addr,
 instPoint::instPoint(Address       addr,
                      Type          t,
                      PatchMgrPtr   mgr,
-                     edge_instance *e,
-                     func_instance *f) :
+                     edge_instance *e) :
   Point(addr, t, mgr, e),
-   func_(f),
-   block_(NULL),
-   edge_(e),
-   baseTramp_(NULL) {};
+  baseTramp_(NULL) {
+  func_ = SCAST_FI(the_func_);
+  block_ = SCAST_BI(the_block_);
+  edge_ = SCAST_EI(the_edge_);
+};
+
 
 // If there is a logical "pair" (e.g., before/after) of instPoints return them.
 // The return result is a pair of <before, after>

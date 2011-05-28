@@ -572,26 +572,6 @@ bool func_instance::findInsnPoints(instPoint::Type type,
    return false;
 }
 
-instPoint *func_instance::findPoint(instPoint::Type type,
-                                    edge_instance *e,
-                                    bool create) {
-   patch_cerr << "instPoint::findPoint, edge\n";
-   assert(proc()->mgr());
-
-   if (type != instPoint::EdgeDuring) return NULL;
-
-   std::map<edge_instance *, EdgeInstpoints>::iterator iter = edgePoints_.find(e);
-   if (iter != edgePoints_.end()) {
-      if (iter->second.point) return iter->second.point;
-   }
-   if (!create) return NULL;
-   instPoint *point = new instPoint(0, instPoint::EdgeDuring, proc()->mgr(),
-                                    e,
-                                    this);
-   edgePoints_[e].point = point;
-   return point;
-}
-
 bool func_instance::isInstrumentable() {
    return ifunc()->isInstrumentable();
 
@@ -964,5 +944,38 @@ void func_instance::blockInsnPoints(block_instance* b, Points* pts) {
     pts->push_back(pt);
     if (pt->type() == Point::PreInsn) blockPoints_[b].preInsn[a] = pt;
     else blockPoints_[b].postInsn[a] = pt;
+  }
+}
+
+instPoint* func_instance::edgePoint(edge_instance* e, bool create) {
+  std::map<edge_instance *, EdgeInstpoints>::iterator iter = edgePoints_.find(e);
+  if (iter != edgePoints_.end()) {
+    if (iter->second.point) return iter->second.point;
+  }
+  if (!create) return NULL;
+  Points pts;
+  edgePoints(&pts);
+  iter = edgePoints_.find(e);
+  if (iter != edgePoints_.end()) {
+    if (iter->second.point) return iter->second.point;
+  }
+}
+
+void func_instance::edgePoints(Points* pts) {
+  assert(proc()->mgr());
+  if (edgePoints_.size() > 0) {
+    for (std::map<edge_instance*, EdgeInstpoints>::iterator iter = edgePoints_.begin();
+         iter != edgePoints_.end(); iter++) {
+      pts->push_back(iter->second.point);
+    }
+    return;
+  }
+  std::vector<Point*> points;
+  proc()->mgr()->findPoints(this, Point::EdgeDuring, back_inserter(points));
+  for (std::vector<Point*>::iterator i = points.begin(); i != points.end(); i++) {
+    instPoint* pt = static_cast<instPoint*>(*i);
+    edge_instance* e = static_cast<edge_instance*>(pt->edge());
+    pts->push_back(pt);
+    edgePoints_[e].point = pt;
   }
 }

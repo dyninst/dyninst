@@ -256,15 +256,14 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   instPoint *postInsnPoint(block_instance* b, Address a,
                            InstructionAPI::Instruction::Ptr ptr,
                            bool trusted, bool create);
+  instPoint *edgePoint(edge_instance* eg, bool create);
 
   // Wrappers for patchapi findPoints to find all instPoints w/ certain type
   typedef std::vector<instPoint*> Points;
   void funcExitPoints(Points*);
   void callPoints(Points*);
   void blockInsnPoints(block_instance*, Points*);
-
-  // Get a single point
-  instPoint *findPoint(Point::Type type, edge_instance *e, bool create);
+  void edgePoints(Points*);
 
   // And the "mass" version of the above
   bool findInsnPoints(Point::Type type, block_instance *b,

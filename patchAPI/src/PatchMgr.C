@@ -178,7 +178,7 @@ PatchMgr::findPointsByType(PatchBlock* blk, Point::Type types,
     off += d.decode()->size();
   }
 
-  // Find call points
+  // Find call points and edge points for target edges
   PatchBlock::edgelist::iterator teit = blk->getTargets().begin();
   for (; teit != blk->getTargets().end(); ++teit) {
     PatchEdge* edge = *teit;
@@ -188,9 +188,12 @@ PatchMgr::findPointsByType(PatchBlock* blk, Point::Type types,
       getPointsByType(type_pt_map, types, Point::PreCall, a, blk, points);
       getPointsByType(type_pt_map, types, Point::PostCall, a, blk, points);
     }
+    findPointsByType(edge, types, edge_points);
+    std::copy(edge_points.begin(), edge_points.end(),
+              inserter(points, points.begin()));
   }
 
-  // Find edge specific points
+  // Find edge points for source edges
   PatchBlock::edgelist::iterator eit = blk->getSources().begin();
   for (; eit != blk->getSources().end(); ++eit) {
     PatchEdge* edge = *eit;

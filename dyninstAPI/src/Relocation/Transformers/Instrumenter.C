@@ -294,7 +294,8 @@ bool Instrumenter::edgeInstrumentation(RelocBlock *trace, RelocGraph *cfg) {
         iter != targets.end(); ++iter) {
       instPoint *point = NULL;
       if (trace->func()) {
-         point = trace->func()->findPoint(instPoint::EdgeDuring, *iter, false);
+        // point = trace->func()->findPoint(instPoint::EdgeDuring, *iter, false);
+        point = trace->func()->edgePoint(*iter, false);
       }
       if (!point || point->empty()) continue;
 

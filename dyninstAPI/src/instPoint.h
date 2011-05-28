@@ -120,12 +120,11 @@ class instPoint : public Dyninst::PatchAPI::Point {
               Type,
               PatchMgrPtr,
               Address*);
-    // to be cleared
-    instPoint(Address,
-              Type,
-              PatchMgrPtr,
-              edge_instance*,
-              func_instance*);
+    instPoint(Address       addr,
+              Type          t,
+              PatchMgrPtr   mgr,
+              edge_instance *e);
+
   public:
 
     iterator begin();
