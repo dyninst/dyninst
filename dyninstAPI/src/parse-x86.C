@@ -201,7 +201,11 @@ static bool replaceHandler(func_instance *origHandler, func_instance *newHandler
    // TODO: this should be a function replacement!
    // And why the hell is it in parse-x86.C?
    origHandler->proc()->replaceFunction(origHandler, newHandler);
-   origHandler->proc()->relocate();
+   //origHandler->proc()->relocate();
+    /* PatchAPI stuffs */
+    AddressSpace::patch(origHandler->proc());
+    /* End of PatchAPI stuffs */
+
     
     /* create the special relocation for the new list -- search the RT library for
      * the symbol

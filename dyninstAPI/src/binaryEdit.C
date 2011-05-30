@@ -986,7 +986,10 @@ bool BinaryEdit::replaceTrapHandler() {
     }
     if (!replaced) return true;
 
-    return relocate();
+    /* PatchAPI stuffs */
+    return AddressSpace::patch(this);
+    /* End of PatchAPI stuffs */
+    // return relocate();
 }
 
 bool BinaryEdit::needsPIC()

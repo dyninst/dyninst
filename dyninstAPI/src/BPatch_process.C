@@ -898,7 +898,6 @@ void BPatch_process::beginInsertionSetInt()
  * we go thru the trouble to modify the process state to make everything work
  * then the function really should work.
  */
-
 bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
 {
   // Can't insert code when mutations are not active.
@@ -912,7 +911,11 @@ bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
     stopExecutionInt();
   }
 
-  bool ret = llproc->relocate();
+  /* PatchAPI stuffs */
+  bool ret = AddressSpace::patch(llproc);
+  /* End of PatchAPI stuffs */
+
+  // bool ret = llproc->relocate();
 
   llproc->trapMapping.flush();
 

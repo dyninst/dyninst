@@ -532,6 +532,7 @@ class AddressSpace : public InstructionSource {
     Dyninst::PatchAPI::PatchMgrPtr mgr() const { return mgr_; }
     void setMgr(Dyninst::PatchAPI::PatchMgrPtr m) { mgr_ = m; }
     void initPatchAPI();
+    static bool patch(AddressSpace*);
   protected:
     Dyninst::PatchAPI::PatchMgrPtr mgr_;
 };

@@ -4664,7 +4664,12 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
         } // matchingFuncs        
         
     } // requests
-    relocate();
+    // relocate();
+
+    /* PatchAPI stuffs */
+    AddressSpace::patch(this);
+    /* End of PatchAPI stuffs */
+
     return;
 }
 

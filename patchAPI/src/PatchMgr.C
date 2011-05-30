@@ -19,14 +19,19 @@ initDebugFlag() {
     debug_patchapi_flag = true;
 }
 
-PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt)
+PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt, InstrumenterPtr inst)
   : point_maker_(pt), as_(as), batch_mode_(0) {
-  instor_ = Instrumenter::create(as);
+  if (inst == InstrumenterPtr()) {
+    instor_ = Instrumenter::create(as);
+  } else {
+    inst->setAs(as);
+    instor_ = inst;
+  }
 }
 
 PatchMgrPtr
-PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf) {
-  PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as, pf));
+PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf, InstrumenterPtr inst) {
+  PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as, pf, inst));
   if (!ret) return PatchMgrPtr();
   initDebugFlag();
   ret->as_->mgr_ = ret;

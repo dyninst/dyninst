@@ -117,7 +117,7 @@ Point::Point(Address addr, Type type, PatchMgrPtr mgr,
 }
 
 /* old_instance, old_instance, <---new_instance */
-InstancePtr Point::push_back(SnippetPtr snippet) {
+InstancePtr Point::pushBack(SnippetPtr snippet) {
   InstancePtr instance = Instance::create(this, snippet);
   if (!instance) return instance;
   instanceList_.push_back(instance);
@@ -127,7 +127,7 @@ InstancePtr Point::push_back(SnippetPtr snippet) {
 }
 
 /* new_instance--->, old_instance, old_instance */
-InstancePtr Point::push_front(SnippetPtr snippet) {
+InstancePtr Point::pushFront(SnippetPtr snippet) {
   InstancePtr instance = Instance::create(this, snippet);
   if (!instance) return instance;
   instanceList_.push_front(instance);

@@ -230,9 +230,16 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
     std::vector<AddressSpace *> as;
     getAS(as);
     bool ret = true;
+    /*
     for (unsigned i = 0; i < as.size(); ++i) {
       if (!as[i]->relocate()) ret = false;
     }
+*/
+    /* PatchAPI stuffs */
+    if (as.size() > 0) {
+      ret = AddressSpace::patch(as[0]);
+    }
+    /* end of PatchAPI stuffs */
 
    // Now that we've instrumented we can see if we need to replace the
    // trap handler.

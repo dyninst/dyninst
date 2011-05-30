@@ -1780,7 +1780,10 @@ bool process::initMT()
    }
 
    // Actually cause instrumentation to go in
-   relocate();
+   //relocate();
+    /* PatchAPI stuffs */
+   AddressSpace::patch(this);
+   /* End of PatchAPI stuffs */
 
    return true;
 }

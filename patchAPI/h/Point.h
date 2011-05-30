@@ -69,8 +69,8 @@ class Point {
     typedef std::list<InstancePtr>::iterator instance_iter;
     instance_iter begin() { return instanceList_.begin();}
     instance_iter end() { return instanceList_.end();}
-    InstancePtr push_back(SnippetPtr);
-    InstancePtr push_front(SnippetPtr);
+    InstancePtr pushBack(SnippetPtr);
+    InstancePtr pushFront(SnippetPtr);
     bool remove(InstancePtr);
 
     // Remove all snippets in this point

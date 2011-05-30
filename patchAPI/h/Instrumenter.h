@@ -25,11 +25,12 @@ class Instrumenter {
                          CallRepMap*  /*call_rep*/,
                          CallRemoval* /*call_remove*/);
 
-    // Getters
+    // Getters and setters
     AddrSpacePtr as() const { return as_; }
-
+    void setAs(AddrSpacePtr as) { as_ = as; }
   protected:
     AddrSpacePtr as_;
+    Instrumenter() {}
 };
 }
 }

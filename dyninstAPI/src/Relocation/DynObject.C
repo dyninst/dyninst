@@ -42,5 +42,6 @@ bool DynObject::instrument(InstanceSet* insertion_set,
       call_rep->size() == 0 &&
       call_removal->size() == 0)
     return true;
+
   return true;
 }

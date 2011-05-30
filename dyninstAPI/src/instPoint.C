@@ -59,6 +59,9 @@ using namespace Dyninst::InstructionAPI;
 #include "dyninstAPI/src/emit-x86.h"
 #endif
 
+using Dyninst::PatchAPI::SnippetPtr;
+using Dyninst::PatchAPI::Snippet;
+
 instPoint *instPoint::funcEntry(func_instance *f) {
   return f->funcEntryPoint(true);
 }

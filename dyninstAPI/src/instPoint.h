@@ -49,6 +49,7 @@
 #include "arch-forward-decl.h" // instruction
 
 #include "Point.h"
+#include "Snippet.h"
 #include "Relocation/DynPointMaker.h"
 #include "Relocation/DynCommon.h"
 

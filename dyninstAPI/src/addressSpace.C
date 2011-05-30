@@ -59,6 +59,7 @@
 #include "Relocation/DynAddrSpace.h"
 #include "Relocation/DynPointMaker.h"
 #include "Relocation/DynObject.h"
+#include "Relocation/DynInstrumenter.h"
 
 // Implementations of non-virtual functions in the address space
 // class.
@@ -70,6 +71,8 @@ using PatchAPI::DynAddrSpace;
 using PatchAPI::DynAddrSpacePtr;
 using PatchAPI::PatchMgr;
 using PatchAPI::PointMakerPtr;
+using PatchAPI::DynInstrumenterPtr;
+using PatchAPI::DynInstrumenter;
 
 AddressSpace::AddressSpace () :
     trapMapping(this),
@@ -1435,7 +1438,9 @@ bool AddressSpace::wrapFunction(func_instance *oldfunc, func_instance *newfunc) 
    addModifiedFunction(oldfunc);
 
    if (edit() && oldfunc->obj() != newfunc->obj()) {
-      if (!relocate()) return false;
+     // if (!relocate()) return false;
+     if (!AddressSpace::patch(this)) return false;
+
       if (!newfunc->callWrappedFunction(oldfunc)) return false;
    }
    else {
@@ -2009,7 +2014,8 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBBIs,
 void AddressSpace::initPatchAPI() {
    DynAddrSpacePtr addr_space = DynAddrSpace::create(getAOut());
    mgr_ = PatchMgr::create(addr_space,
-                           DynPointMakerPtr(new DynPointMaker));
+                           DynPointMakerPtr(new DynPointMaker),
+                           DynInstrumenterPtr(new DynInstrumenter));
    // load in shared libraries
    const pdvector<mapped_object*>& mobjs = mappedObjects();
    for (pdvector<mapped_object*>::const_iterator i = mobjs.begin();
@@ -2020,3 +2026,8 @@ void AddressSpace::initPatchAPI() {
    }
 }
 
+bool AddressSpace::patch(AddressSpace* as) {
+  std::vector<Dyninst::PatchAPI::InstancePtr> errorInstances;
+  as->mgr()->batchStart();
+  return as->mgr()->batchFinish(&errorInstances);
+}
