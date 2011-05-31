@@ -463,6 +463,7 @@ class AddressSpace : public InstructionSource {
     MemoryEmulator *getMemEm();
     void invalidateMemory(Address base, Address size);
 
+    bool delayRelocation() const { return delayRelocation_; }
  protected:
 
     // inferior malloc support functions
@@ -525,6 +526,7 @@ class AddressSpace : public InstructionSource {
     bool emulateMem_;
     bool emulatePC_;
 
+    bool delayRelocation_;
 };
 
 

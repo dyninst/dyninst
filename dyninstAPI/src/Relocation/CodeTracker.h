@@ -247,6 +247,8 @@ class CodeTracker {
 
   void debug();
 
+  const TrackerList &trackers() { return trackers_; }
+
  private:
 
   // We make this block specific to handle shared
