@@ -1566,8 +1566,13 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     vector<relocationEntry >fbt;
     linkedFile->get_func_binding_table(fbt);
-    for(unsigned i=0; i<fbt.size();i++)
-        relocation_table_.push_back(fbt[i]);
+    printf("printing relocs for %s\n", file().c_str());
+    for(unsigned i=0; i<fbt.size();i++) {
+        relocation_table_[fbt[i].target_addr()] = new relocationEntry(fbt[i]);
+        printf("reloc[%d] = {ra=%lx ta=%lx add=%lx name=%s}\n",
+               i, fbt[i].rel_addr(), fbt[i].target_addr(), 
+               fbt[i].addend(), fbt[i].name().c_str());
+    }
     return true;
 }
 
@@ -1618,12 +1623,12 @@ Symtab::Symtab(const Symtab& obj) :
             FILE__, __LINE__, m->fileName().c_str());
    }
 
-   for (i=0; i<relocation_table_.size();i++) 
+   for (dyn_hash_map<Offset, relocationEntry*>::const_iterator rit = obj.relocation_table_.begin();
+        rit != obj.relocation_table_.end();
+        rit++) 
    {
-      relocation_table_.push_back(relocationEntry(obj.relocation_table_[i]));
-      //undefDynSyms[obj.relocation_table_[i].name()] = relocation_table_[i].getDynSym();
-      undefDynSyms[obj.relocation_table_[i].name()].push_back(relocation_table_[i].getDynSym());
-
+      relocation_table_[rit->first] = new relocationEntry(*rit->second);
+      undefDynSyms[rit->second->name()].push_back(rit->second->getDynSym());
    }
 
    for (i=0;i<excpBlocks.size();i++)
@@ -1731,28 +1736,54 @@ bool Symtab::isData(const Offset where)  const
 
 SYMTAB_EXPORT bool Symtab::getFuncBindingTable(std::vector<relocationEntry> &fbt) const
 {
-   fbt = relocation_table_;
-   return true;
+    for (dyn_hash_map<Offset, relocationEntry*>::const_iterator rit = relocation_table_.begin();
+         rit != relocation_table_.end();
+         rit++) 
+    {
+        fbt.push_back(*rit->second);
+    }
+    return true;
 }
 
 SYMTAB_EXPORT bool Symtab::updateFuncBindingTable(Offset stub_addr, Offset plt_addr)
 {
-    int stub_idx = -1, plt_idx = -1;
+    dyn_hash_map<Offset, relocationEntry*>::iterator 
+        stub_idx = relocation_table_.end(), 
+        plt_idx = relocation_table_.end();
 
-    for (unsigned i = 0; i < relocation_table_.size(); ++i) {
-        if (stub_addr == relocation_table_[i].target_addr())
-            stub_idx = i;
-        if (plt_addr  == relocation_table_[i].target_addr())
-            plt_idx = i;
-        if (stub_idx >= 0 && plt_idx >= 0)
+    for (dyn_hash_map<Offset, relocationEntry*>::iterator rit = relocation_table_.begin();
+         rit != relocation_table_.end();
+         rit++) 
+    {
+        if (stub_addr == rit->second->target_addr())
+            stub_idx = rit;
+        if (plt_addr  == rit->second->target_addr())
+            plt_idx = rit;
+        if (stub_idx != relocation_table_.end() && 
+            plt_idx != relocation_table_.end())
             break;
     }
-    if (stub_idx >= 0 && plt_idx >= 0) {
-        relocation_table_[stub_idx] = relocation_table_[plt_idx];
-        relocation_table_[stub_idx].setTargetAddr(stub_addr);
+    if (stub_idx != relocation_table_.end() && 
+        plt_idx != relocation_table_.end())
+    {
+        stub_idx->second = plt_idx->second;
+        stub_idx->second->setTargetAddr(stub_addr);
         return true;
     }
     return false;
+}
+
+SYMTAB_EXPORT 
+const relocationEntry *
+Symtab::findRelocation(Offset reloc_addr) const
+{
+    dyn_hash_map<Offset, relocationEntry*>::const_iterator rit = 
+        relocation_table_.find(reloc_addr);
+    if (rit == relocation_table_.end()) {
+        return NULL;
+    } else {
+        return rit->second;
+    }
 }
 
 SYMTAB_EXPORT std::vector<std::string> &Symtab::getDependencies(){
@@ -2703,12 +2734,15 @@ SYMTAB_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset, 
         for (unsigned i=0; i < relocs.size(); i++) {
             Offset value = relocs[i].rel_addr();
             relocs[i].setRelAddr(memOffset + value);
+            if (relocation_table_.end() != relocation_table_.find(relocs[i].target_addr())) {
+                delete relocation_table_.find(relocs[i].target_addr())->second;
+            }
+            relocation_table_[relocs[i].target_addr()] = new relocationEntry(relocs[i]);
             /* DEBUG
             fprintf(stderr, "Fixing reloc from 0x%x to 0x%x\n",
                     value, memOffset + value); // */
         }
     }
-    relocation_table_ = relocs;
 
     vector<relocationEntry> &relref = sec->getRelocations();
     for (unsigned i=0; i < relref.size(); i++) {

@@ -445,6 +445,24 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                 callEdge = false;
                 ftEdge = false;
             }
+
+#if 0 //TODO: get relocation parsing to extract the right information for 
+      // calls whose return addresses get patched at runtime by relocations
+
+            //don't trust the call target if there is a relocation entry for it
+            if (callEdge && ((dynamic_cast<SymtabCodeSource*>(_obj->cs()) && 
+                              static_cast<SymtabCodeSource*>(_obj->cs())->
+                              getSymtabObject()->findRelocation(current+1))
+                             /*|| target == (current+1) 
+                                Needed for unlinked .ko kernel object files 
+                                until we get relocations parsed correctly for
+                                such files. */
+                                ))
+            {
+               callEdge = false;
+            }
+#endif
+
         }
 
         if ( unlikely(_obj->defensiveMode()) )
