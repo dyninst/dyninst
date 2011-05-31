@@ -49,12 +49,6 @@ class PatchObject {
     PATCHAPI_EXPORT void addEdge(PatchEdge*);
     PATCHAPI_EXPORT void removeEdge(PatchEdge*);
 
-    // Called by Instrumenter
-    PATCHAPI_EXPORT virtual bool instrument(InstanceSet* /*insertion_set*/,
-                         InstanceSet* /*deletion_set*/,
-                         FuncRepMap*  /*func_rep*/,
-                         CallRepMap*  /*call_rep*/,
-                         CallRemoval* /*call_remove*/)  { return false;}
 
   protected:
     ParseAPI::CodeObject* co_;

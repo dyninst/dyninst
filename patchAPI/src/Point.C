@@ -126,8 +126,7 @@ Point::pushBack(SnippetPtr snippet) {
   InstancePtr instance = Instance::create(this, snippet);
   if (!instance) return instance;
   instanceList_.push_back(instance);
-  mgr_->insertion_set_.insert(instance);
-  mgr_->current_instances_.insert(instance);
+  instance->set_state(INSERTED);
   return instance;
 }
 
@@ -137,8 +136,7 @@ Point::pushFront(SnippetPtr snippet) {
   InstancePtr instance = Instance::create(this, snippet);
   if (!instance) return instance;
   instanceList_.push_front(instance);
-  mgr_->insertion_set_.insert(instance);
-  mgr_->current_instances_.insert(instance);
+  instance->set_state(INSERTED);
   return instance;
 }
 
@@ -174,11 +172,6 @@ Point::remove(InstancePtr instance) {
                                  instanceList_.end(), instance);
   if (it != instanceList_.end()) {
     instanceList_.erase(it);
-    mgr_->insertion_set_.erase(instance);
-    mgr_->current_instances_.erase(instance);
-    if (instance->state() == INSERTED) {
-      mgr_->deletion_set_.insert(instance);
-    }
     instance->set_state(PENDING);
     return true;
   }

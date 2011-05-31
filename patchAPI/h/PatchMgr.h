@@ -129,12 +129,6 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
                 (scope, types, filter_func);
     }
 
-    // Code modification interfaces
-    PATCHAPI_EXPORT bool removeFuncCall(Point* point);
-    PATCHAPI_EXPORT bool replaceFuncCall(Point* point, PatchFunction* func);
-    PATCHAPI_EXPORT bool replaceFunction(PatchFunction* old_func,
-                                         PatchFunction* new_func);
-
     // Getters
     PATCHAPI_EXPORT AddrSpacePtr as() const { return as_; }
     PATCHAPI_EXPORT InstanceSet& getCurInstances() { return current_instances_; }
@@ -185,12 +179,13 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     InstanceSet current_instances_;
 
     // The lifetime of them is one batch
+    /*
     InstanceSet insertion_set_;
     InstanceSet deletion_set_;
     FuncRepMap funcReplacement_;
     CallRepMap callReplacement_;
     CallRemoval callRemoval_;
-
+    */
     InstrumenterPtr instor_;
     AddrSpacePtr as_;
 

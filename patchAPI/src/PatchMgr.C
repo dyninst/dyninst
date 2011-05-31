@@ -47,15 +47,7 @@ PatchMgr::batchStart() {
   if (batch_mode_ != 0) {
     return false;
   }
-  for (InstanceSet::iterator ii = insertion_set_.begin();
-       ii != insertion_set_.end(); ii++) {
-    (*ii)->set_state(INSERTED);
-  }
-  funcReplacement_.clear();
-  callReplacement_.clear();
-  callRemoval_.clear();
-  insertion_set_.clear();
-  deletion_set_.clear();
+
   batch_mode_++;
   return true;
 }
@@ -301,36 +293,12 @@ PatchMgr::findPointsByType(PatchFunction* func,
   return true;
 }
 
-bool
-PatchMgr::removeFuncCall(Point* point) {
-  callRemoval_.insert(point);
-  return true;
-}
-
-bool
-PatchMgr::replaceFuncCall(Point* point,
-                          PatchFunction* func) {
-  callReplacement_[point] = func;
-  return true;
-}
-
-bool
-PatchMgr::replaceFunction(PatchFunction* old_func,
-                          PatchFunction* new_func) {
-  funcReplacement_[old_func] = new_func;
-  return true;
-}
-
 /* Start instrumentation */
 bool
 PatchMgr::patch() {
   patch_cerr << ws4 << "Relocation and Generation Start.\n";
 
-  if (!instor_->process(&insertion_set_,
-                        &deletion_set_,
-                        &funcReplacement_,
-                        &callReplacement_,
-                        &callRemoval_)) {
+  if (!instor_->process()) {
     std::cerr << "ERROR: instrumenter process failed!\n";
     return false;
   }

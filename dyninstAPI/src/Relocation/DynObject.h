@@ -22,12 +22,6 @@ class DynObject : public PatchObject {
     DynObject(const DynObject *par_obj, process *child, Address base);
     ~DynObject();
 
-    virtual bool instrument(InstanceSet* insertion_set,
-                         InstanceSet* deletion_set,
-                         FuncRepMap*  func_rep,
-                         CallRepMap*  call_rep,
-                         CallRemoval* call_remove);
-
     // Getters
     AddressSpace* as() const { return as_; }
 

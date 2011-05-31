@@ -19,11 +19,7 @@ class Instrumenter {
     PATCHAPI_EXPORT virtual ~Instrumenter() {}
 
     // Iterate all Objects and call their process method to do instrumentation
-    PATCHAPI_EXPORT virtual bool process(InstanceSet* /*insertion_set*/,
-                                         InstanceSet* /*deletion_set*/,
-                                         FuncRepMap*  /*func_rep*/,
-                                         CallRepMap*  /*call_rep*/,
-                                         CallRemoval* /*call_remove*/);
+    PATCHAPI_EXPORT virtual bool process();
 
     // Getters and setters
     PATCHAPI_EXPORT AddrSpacePtr as() const { return as_; }

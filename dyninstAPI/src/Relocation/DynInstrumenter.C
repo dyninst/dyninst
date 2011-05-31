@@ -2,11 +2,7 @@
 
 using Dyninst::PatchAPI::DynInstrumenter;
 
-bool DynInstrumenter::process(InstanceSet* /*insertion_set*/,
-                     InstanceSet* /*deletion_set*/,
-                     FuncRepMap*  /*func_rep*/,
-                     CallRepMap*  /*call_rep*/,
-                     CallRemoval* /*call_removal*/) {
+bool DynInstrumenter::process() {
   DynAddrSpacePtr das = DYN_CAST(DynAddrSpace, as_);
   std::set<AddressSpace*> seen;
   bool ret = true;
