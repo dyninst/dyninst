@@ -104,7 +104,7 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallback & pcb) :
     sort(copy.begin(),copy.end(),less_cr());
 
     // allocate a sink block -- region is arbitrary
-    _sink = _cfgfact.mksink(&_obj,copy[0]);
+    _sink = _cfgfact._mksink(&_obj,copy[0]);
 
     bool overlap = false;
     CodeRegion * prev = copy[0], *cur = NULL;
@@ -632,7 +632,7 @@ Parser::init_frame(ParseFrame & frame)
             return;
         }
         if (split) {
-            _pcb.block_split(split,b);
+            _pcb.splitBlock(split,b);
         }
     }
 
@@ -870,7 +870,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     // unlink tempsink fallthrough edge
                     Edge * remove = work->edge();
                     remove->src()->removeTarget(remove);
-                    factory().free_edge(remove);
+                    factory().destroy_edge(remove);
                     continue;
                 }
 
@@ -1291,7 +1291,7 @@ Parser::block_at(
             ret = split_block(owner,exist,addr,prev_insn);
         }
     } else {
-        ret = factory().mkblock(owner,cr,addr);
+        ret = factory()._mkblock(owner,cr,addr);
         record_block(ret);
     }
 
@@ -1365,7 +1365,7 @@ Parser::split_block(
     // enable for extra-safe testing, but callers are responsbible
     // assert(b->consistent(addr);
 
-    ret = factory().mkblock(owner,cr,addr);
+    ret = factory()._mkblock(owner,cr,addr);
 
     // move out edges
     vector<Edge *> & trgs = b->_targets;
@@ -1405,7 +1405,7 @@ Parser::split_block(
         }
     }
     // KEVINTODO: study performance impact of this callback
-    _pcb.block_split(b,ret); // fix point->block pointer, if any
+    _pcb.splitBlock(b,ret);
 
     return ret;
  }
@@ -1527,7 +1527,7 @@ Edge*
 Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
 {
     assert(et != NOEDGE);
-    Edge * e = factory().mkedge(src,dst,et);
+    Edge * e = factory()._mkedge(src,dst,et);
     e->_type._sink = sink;
     src->_targets.push_back(e);
     dst->_sources.push_back(e);
@@ -1551,7 +1551,7 @@ Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
 Edge*
 Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 {
-    Edge * e = factory().mkedge(src,_sink,et);
+    Edge * e = factory()._mkedge(src,_sink,et);
     e->_type._sink = true;
     src->_targets.push_back(e);
     return e;
@@ -1611,14 +1611,16 @@ Parser::remove_func(Function *func)
     _parse_data->remove_func(func);
 }
 
+#if 0
 void
 Parser::remove_block(Dyninst::ParseAPI::Block *block)
 {
     if (block->containingFuncs() == 1) {
-        _pcb.block_delete(block);
+        _pcb.delete_block(block);
     }
     _parse_data->remove_block(block);
 }
+#endif
 
 void Parser::move_func(Function *func, Address new_entry, CodeRegion *new_reg)
 {

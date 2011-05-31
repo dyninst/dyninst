@@ -104,11 +104,6 @@ DynCFGFactory::DynCFGFactory(image * im) :
 
 }
 
-DynCFGFactory::~DynCFGFactory()
-{
-    free_all();
-}
-
 Function *
 DynCFGFactory::mkfunc(
     Address addr, 
@@ -135,25 +130,9 @@ DynCFGFactory::mkfunc(
     assert(stf);
 
     ret = new parse_func(stf,pdmod,_img,obj,reg,isrc,src);
-    funcs_.add(*ret);
 
     if(obj->cs()->linkage().find(ret->addr()) != obj->cs()->linkage().end())
         ret->isPLTFunction_ = true;
-
-    // make an entry instpoint
-    size_t insn_size = 0;
-    unsigned char * insn_buf = (unsigned char *)isrc->getPtrToInstruction(addr);
-#if defined(cap_instruction_api)
-    InstructionDecoder dec(insn_buf,InstructionDecoder::maxInstructionLength,
-        isrc->getArch());
-    Instruction::Ptr insn = dec.decode();
-    if(insn)
-        insn_size = insn->size();
-#else
-   InstrucIter ah(addr,isrc);
-   instruction insn = ah.getInstruction();
-   insn_size = insn.size();
-#endif
 
 #if defined(os_vxworks)
    // Relocatable objects (kernel modules) are instrumentable on VxWorks.
@@ -194,8 +173,6 @@ DynCFGFactory::mkblock(Function * f, CodeRegion *r, Address addr) {
     record_block_alloc(false);
 
     ret = new parse_block((parse_func*)f,r,addr);
-    //fprintf(stderr,"mkbloc(%lx, %lx) produced %p\n",f->addr(),addr,ret);
-    blocks_.add(*ret);
 
     //fprintf(stderr,"mkbloc(%lx, %lx) returning %p\n",f->addr(),addr,ret);
 
@@ -212,7 +189,6 @@ DynCFGFactory::mksink(CodeObject *obj, CodeRegion *r) {
     record_block_alloc(true);
 
     ret = new parse_block(obj,r,numeric_limits<Address>::max());
-    blocks_.add(*ret);
     return ret;
 }
 
@@ -225,12 +201,6 @@ DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
     ret = new image_edge((parse_block*)src,
                          (parse_block*)trg,
                          type);
-    //if (trg->start() == 0x9000) {
-    //    printf("adding edge to 0x%lx\n",src->start());
-    //}
-    //fprintf(stderr,"mkedge between Block %p and %p, img_bb: %p and %p\n",
-        //src,trg,(parse_block*)src,(parse_block*)trg);
-    edges_.add(*ret);
 
     return ret;
 }
@@ -248,16 +218,39 @@ DynParseCallback::newfunction_retstatus(Function *func)
 }
 
 void
-DynParseCallback::block_split(Block *first, Block *second)
+DynParseCallback::split_block_cb(Block *first, Block *second)
 {
-   image::BlockSplit sb (static_cast<parse_block *>(first),
-                         static_cast<parse_block *>(second));
-   _img->addSplitBlock(sb);
+   assert(0 && "Unimplemented!");
 }
 
-void DynParseCallback::block_delete(Block *b) {
-
+void DynParseCallback::destroy_cb(Block *b) {
+   _img->destroy(b);
 }
+
+void DynParseCallback::destroy_cb(Edge *e) {
+   _img->destroy(e);
+}
+
+void DynParseCallback::destroy_cb(Function *f) {
+   _img->destroy(f);
+}
+
+void DynParseCallback::remove_edge_cb(ParseAPI::Block *, ParseAPI::Edge *, edge_type_t) {
+   assert(0 && "Unimplemented!");
+}
+
+void DynParseCallback::add_edge_cb(ParseAPI::Block *, ParseAPI::Edge *, edge_type_t) {
+   assert(0 && "Unimplemented!");
+}
+
+void DynParseCallback::remove_block_cb(ParseAPI::Function *, ParseAPI::Block *) {
+   assert(0 && "Unimplemented!");
+}
+
+void DynParseCallback::add_block_cb(ParseAPI::Function *, ParseAPI::Block *) {
+   assert(0 && "Unimplemented!");
+}
+
 
 void
 DynParseCallback::patch_nop_jump(Address addr)

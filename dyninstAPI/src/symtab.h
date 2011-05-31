@@ -269,11 +269,10 @@ class image : public codeRange {
    static void removeImage(image *img);
 
    // "I need another handle!"
-   image *clone() { refCount++; return this; }
-
-   // And alternates
-   static void removeImage(const string file);
-   static void removeImage(fileDescriptor &desc);
+   image *clone() {
+      refCount++; 
+      return this; 
+   }
 
    image(fileDescriptor &desc, bool &err, 
          BPatch_hybridMode mode,
@@ -285,6 +284,9 @@ class image : public codeRange {
 
    // creates the module if it does not exist
    pdmodule *getOrCreateModule (SymtabAPI::Module *mod);
+
+   void addOwner(mapped_object *owner);
+   void removeOwner(mapped_object *owner);
 
  protected:
    ~image();
@@ -379,10 +381,10 @@ class image : public codeRange {
    BPatch_hybridMode hybridMode() const { return mode_; }
    // element removal
 
-   typedef std::pair<parse_block *,parse_block *> BlockSplit;
-   void addSplitBlock(BlockSplit &blk);
-   const std::vector<BlockSplit> & getSplitBlocks() const;
-   void deleteFunc(parse_func *func);
+   void addSplitBlock(parse_block *first,
+                      parse_block *second);
+   typedef std::set<std::pair<parse_block *, parse_block *> > SplitBlocks;
+   const SplitBlocks & getSplitBlocks() const;
    bool hasSplitBlocks() const { return !splitBlocks_.empty(); }
    void clearSplitBlocks();
    bool hasNewBlocks() const { return 0 < newBlocks_.size(); }
@@ -416,7 +418,12 @@ class image : public codeRange {
    bool updatePltFunc(parse_func *caller_func, Address stub_targ);
 #endif
 
-   
+   // Object deletion (defensive mode)
+   void destroy(ParseAPI::Block *);
+   void destroy(ParseAPI::Edge *);
+   void destroy(ParseAPI::Function *);
+
+
  private:
    void findModByAddr (const SymtabAPI::Symbol *lookUp, vector<SymtabAPI::Symbol *> &mods,
                        string &modName, Address &modAddr, 
@@ -446,18 +453,6 @@ class image : public codeRange {
    //
    //  **** GAP PARSING SUPPORT  ****
    bool parseGaps() { return parseGaps_; }
-#if 0
-#if defined(cap_stripped_binaries)
-   bool compute_gap(
-        Address,
-        set<parse_func *, parse_func::compare>::const_iterator &,
-        Address &, Address &);
-   
-   bool gap_heuristics(Address addr); 
-   bool gap_heuristic_GCC(Address addr);
-   bool gap_heuristic_MSVS(Address addr);
-#endif
-#endif
 
    //
    //  ****  PRIVATE DATA MEMBERS  ****
@@ -541,6 +536,9 @@ class image : public codeRange {
    bool parseGaps_;
    BPatch_hybridMode mode_;
    Dyninst::Architecture arch;
+
+   std::list<mapped_object *> owning_objects_;
+
 };
 
 class pdmodule {

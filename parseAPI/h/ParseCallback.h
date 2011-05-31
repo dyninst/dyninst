@@ -118,14 +118,87 @@ class ParseCallback {
    *   keep code generation from doing bad things
    */
   virtual void newfunction_retstatus(Function*) { }
-  virtual void block_split(Block *, Block *) { }
   virtual void patch_nop_jump(Address) { }
   virtual bool updateCodeBytes(Address) { return false; }
   virtual void abruptEnd_cf(Address, Block *,default_details*) { }
+
   virtual bool absAddr(Address, Address &, CodeObject*&) { return false; }
-  virtual void block_delete(Block *) {};
+  virtual bool loadAddr(Address, Address &) { return false; }
   virtual bool hasWeirdInsns(const Function*) const { return false; };
   virtual void foundWeirdInsns(Function*) {};
+
+
+  /*
+   * CFG change notifications, now with 50% more batch support!
+   * These are intended for use by ParseAPI, not for user overrides.
+   * User overrides are marked with a _cb suffix.
+   */
+
+  void batch_begin();
+  // We need a CFGFactory object so that we can delete things; if we've
+  // done a batch then we may have hung on to some objects that were
+  // destroyed, and those can only be deleted with a CFGFactory object. 
+  // Oy. 
+  void batch_end(CFGFactory *fact);
+
+  void destroy(Block *, CFGFactory *fact);
+  void destroy(Edge *, CFGFactory *fact);
+  void destroy(Function *, CFGFactory *fact);
+
+  typedef enum {source, target } edge_type_t;
+  
+  void removeEdge(Block *, Edge *, edge_type_t);
+  void addEdge(Block *, Edge *, edge_type_t);
+  
+  void removeBlock(Function *, Block *);
+  void addBlock(Function *, Block *);
+  
+  void splitBlock(Block *, Block *);
+
+  protected:
+  // User override time
+  // (orig, new split block)
+  virtual void split_block_cb(Block *, Block *) {};
+
+  virtual void destroy_cb(Block *) {};
+  virtual void destroy_cb(Edge *) {};
+  virtual void destroy_cb(Function *) {};
+
+  virtual void remove_edge_cb(Block *, Edge *, edge_type_t) {};
+  virtual void add_edge_cb(Block *, Edge *, edge_type_t) {};
+  
+  virtual void remove_block_cb(Function *, Block *) {};
+  virtual void add_block_cb(Function *, Block *) {};
+
+  private:
+  bool inBatch_;
+
+  typedef enum { removed, added } mod_t;
+
+  struct BlockMod {
+     Block *block;
+     Edge *edge;
+     edge_type_t type;
+     mod_t action;
+  BlockMod(Block *b, Edge *e, edge_type_t t, mod_t m) : block(b), edge(e), type(t), action(m) {};
+  };     
+
+  struct FuncMod {
+     Function *func;
+     Block *block;
+     mod_t action;
+  FuncMod(Function *f, Block *b, mod_t m) : func(f), block(b), action(m) {};
+  };     
+
+  typedef std::pair<Block *, Block *> BlockSplit;
+
+  std::vector<Edge *> destroyedEdges_;
+  std::vector<Block *> destroyedBlocks_;
+  std::vector<Function *> destroyedFunctions_;
+  std::vector<BlockMod> blockMods_;
+  std::vector<FuncMod> funcMods_;
+  std::vector<BlockSplit> blockSplits_;
+
 };
 
 }

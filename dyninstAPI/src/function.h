@@ -257,6 +257,18 @@ class func_instance : public patchTarget {
 
    instPoint *findPoint(instPoint::Type type, edge_instance *e, bool create);
 
+   // Function wrapping
+   bool callWrappedFunction(func_instance *target);
+   bool updateRelocationsToSym(Dyninst::SymtabAPI::Symbol *oldsym, 
+                               Dyninst::SymtabAPI::Symbol *newsym);
+   Dyninst::SymtabAPI::Symbol *getWrapperSymbol();
+   Dyninst::SymtabAPI::Symbol *getRelocSymbol();
+   void createWrapperSymbol(Address entry);
+
+   static void destroy(func_instance *f);
+
+   void destroyBlock(block_instance *block);
+
  private:
 
    ///////////////////// Basic func info

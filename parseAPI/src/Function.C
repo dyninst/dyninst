@@ -317,6 +317,7 @@ void Function::setEntryBlock(Block *new_entry)
     _entry = new_entry;
 }
 
+#if 0
 void 
 Function::deleteBlocks(vector<Block*> dead_blocks)
 {
@@ -450,6 +451,7 @@ Function::deleteBlocks(vector<Block*> dead_blocks)
         //obj()->parser->finalize(this);
     }
 }
+#endif
 
 class ST_Predicates : public Slicer::Predicates {};
 
@@ -578,3 +580,6 @@ Function::tampersStack(bool recalculate)
     return _tamper;
 }
 
+void Function::destroy(Function *f) {
+   f->obj()->destroy(f);
+}

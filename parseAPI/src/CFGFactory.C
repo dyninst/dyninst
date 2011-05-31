@@ -79,76 +79,121 @@ Edge::Edge(Block *source, Block *target, EdgeTypeEnum type)
 
 CFGFactory::~CFGFactory()
 {
-    free_all();
+   destroy_all();
 }
 
+// ParseAPI call...
+Function *
+CFGFactory::_mkfunc(Address addr, FuncSource src, string name, 
+    CodeObject * obj, CodeRegion * reg, Dyninst::InstructionSource * isrc)
+{
+   Function * ret = mkfunc(addr,src,name,obj,reg,isrc);
+   funcs_.add(*ret);
+   ret->_src =  src;
+   return ret;
+}
+
+// And user-overriden create
 Function *
 CFGFactory::mkfunc(Address addr, FuncSource src, string name, 
     CodeObject * obj, CodeRegion * reg, Dyninst::InstructionSource * isrc)
 {
     Function * ret = new Function(addr,name,obj,reg,isrc);
-    funcs_.add(*ret);
-    ret->_src =  src;
     return ret;
 }
 
-void
-CFGFactory::free_func(Function *f) {
-    f->remove();
-    delete f;
+Block *
+CFGFactory::_mkblock(Function *  f , CodeRegion *r, Address addr) {
+
+   Block * ret = mkblock(f, r, addr);;
+   blocks_.add(*ret);
+   return ret;
 }
 
 Block *
 CFGFactory::mkblock(Function *  f , CodeRegion *r, Address addr) {
 
     Block * ret = new Block(f->obj(),r,addr);
-    blocks_.add(*ret);
     return ret;
 }
+
+
+Block *
+CFGFactory::_mksink(CodeObject * obj, CodeRegion *r) {
+   Block * ret = mksink(obj,r);
+   blocks_.add(*ret);
+   return ret;
+}
+
 Block *
 CFGFactory::mksink(CodeObject * obj, CodeRegion *r) {
     Block * ret = new Block(obj,r,numeric_limits<Address>::max());
-    blocks_.add(*ret);
     return ret;
 }
-void
-CFGFactory::free_block(Block *b) {
-    b->remove();
-    delete b;
+
+Edge *
+CFGFactory::_mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
+    Edge * ret = mkedge(src,trg,type);
+    edges_.add(*ret);
+    return ret;
 }
 
 Edge *
 CFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
     Edge * ret = new Edge(src,trg,type);
-    edges_.add(*ret);
     return ret;
 }
 
-
-void
-CFGFactory::free_edge(Edge *e) {
-    e->remove();
-
-    delete e;
+void CFGFactory::destroy_func(Function *f) {
+   f->remove();
+   free_func(f);
 }
 
 void
-CFGFactory::free_all() {
+CFGFactory::free_func(Function *f) {
+    delete f;
+}
+
+void
+CFGFactory::destroy_block(Block *b) {
+    b->remove();
+    free_block(b);
+}
+
+void
+CFGFactory::free_block(Block *b) {
+    delete b;
+}
+
+void
+CFGFactory::destroy_edge(Edge *e) {
+   e->remove();
+   free_edge(e);
+}
+
+void
+CFGFactory::free_edge(Edge *e) {
+   delete e;
+}
+
+void
+CFGFactory::destroy_all() {
     // XXX carefully calling free_* routines; could be faster and just
     // call delete
+
     fact_list<Edge>::iterator eit = edges_.begin();
     while(eit != edges_.end()) {
         fact_list<Edge>::iterator cur = eit++;
-        free_edge(&*cur);
+        destroy_edge(&*cur);
     }
     fact_list<Block>::iterator bit = blocks_.begin();
     while(bit != blocks_.end()) {
         fact_list<Block>::iterator cur = bit++;
-        free_block(&*cur);
+        destroy_block(&*cur);
     }
     fact_list<Function>::iterator fit = funcs_.begin();
     while(fit != funcs_.end()) {
         fact_list<Function>::iterator cur = fit++;
-        free_func(&*cur);
+        destroy_func(&*cur);
     }
 }

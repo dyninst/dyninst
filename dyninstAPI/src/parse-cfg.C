@@ -592,10 +592,6 @@ ParseAPI::FuncReturnStatus parse_func::init_retstatus() const
     return init_retstatus_;
 }
 
-void parse_func::destroyBlocks(std::vector<ParseAPI::Block *> &blocks) {
-   deleteBlocks(blocks);
-}
-
 void parse_func::setHasWeirdInsns(bool wi)
 {
    hasWeirdInsns_ = wi;

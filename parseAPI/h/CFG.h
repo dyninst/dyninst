@@ -174,6 +174,7 @@ class Edge : public allocatable {
     /* removes from blocks & finalized source functions if of type CALL */
     PARSER_EXPORT void uninstall();
 
+    static void destroy(Edge *);
 
  friend class CFGFactory;
  friend class Parser;
@@ -321,6 +322,8 @@ class Block : public Dyninst::interval<Address>,
         }
     };
 
+    static void destroy(Block *b);
+
  private:
     void addSource(Edge * e);
     void addTarget(Edge * e);
@@ -441,6 +444,7 @@ class Function : public allocatable, public AnnotatableSparse {
         CodeRegion * region, InstructionSource * isource);
 
     PARSER_EXPORT virtual ~Function();
+
     PARSER_EXPORT virtual const string & name();
 
     PARSER_EXPORT Address addr() const { return _start; }
@@ -466,7 +470,10 @@ class Function : public allocatable, public AnnotatableSparse {
     /* Parse updates and obfuscation */
     PARSER_EXPORT void setEntryBlock(Block *new_entry);
     PARSER_EXPORT void set_retstatus(FuncReturnStatus rs) { _rs = rs; }
-    PARSER_EXPORT void deleteBlocks( vector<Block*> dead_blocks );
+
+    // Dangerous and should not be used
+    //PARSER_EXPORT void deleteBlocks( vector<Block*> dead_blocks );
+
     PARSER_EXPORT StackTamper tampersStack(bool recalculate=false);
 
     struct less
@@ -483,6 +490,8 @@ class Function : public allocatable, public AnnotatableSparse {
     /* This should not remain here - this is an experimental fix for
        defensive mode CFG inconsistency */
     void invalidateCache() { _cache_valid = false; }
+
+    static void destroy(Function *f);
 
  private:
     std::vector<Block *> const& blocks_int();

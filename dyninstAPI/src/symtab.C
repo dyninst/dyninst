@@ -77,6 +77,9 @@
 #include "dyninstAPI/src/vxworks.h"
 #endif
 
+// For callbacks
+#include "dyninstAPI/src/mapped_object.h" 
+
 AnnotationClass<image_variable> ImageVariableUpPtrAnno("ImageVariableUpPtrAnno");
 AnnotationClass<parse_func> ImageFuncUpPtrAnno("ImageFuncUpPtrAnno");
 pdvector<image*> allImages;
@@ -1157,29 +1160,6 @@ void image::removeImage(image *img)
   */
 }
 
-void image::removeImage(const string file)
-{
-  image *img = NULL;
-  for (unsigned i = 0; i < allImages.size(); i++) {
-    if (allImages[i]->file() == file)
-      img = allImages[i];
-  }
-  // removeImage plays with the allImages vector... so do this
-  // outside the for loop.
-  if (img) image::removeImage(img);
-}
-
-void image::removeImage(fileDescriptor &desc)
-{
-  image *img = NULL;
-  for (unsigned i = 0; i < allImages.size(); i++) {
-    // Never bothered to implement a != operator
-    if (allImages[i]->desc() == desc)
-      img = allImages[i];
-  }
-  if (img) image::removeImage(img);
-}
-
 int image::destroy() {
     refCount--;
     if (refCount == 0) {
@@ -1192,20 +1172,6 @@ int image::destroy() {
     if (refCount < 0)
         assert(0 && "NEGATIVE REFERENCE COUNT FOR IMAGE!");
     return refCount; 
-}
-
-void image::deleteFunc(parse_func *func)
-{
-    // remove the function from symtabAPI
-    SymtabAPI::Function *sym_func =NULL;
-    getObject()->findFuncByEntryOffset(sym_func, func->getOffset());
-    if (sym_func) 
-        getObject()->deleteFunction(sym_func);
-
-    // tell the parseAPI to remove the func from its datastructures
-    // and delete the function
-    codeObject()->deleteFunc(func);
-
 }
 
 void image::analyzeIfNeeded() {
@@ -2159,4 +2125,36 @@ void image::clearNewBlocks()
 void image::setImageLength(Address newlen)
 {
     imageLen_ = newlen; 
+}
+
+void image::addOwner(mapped_object *owner) {
+   owning_objects_.push_back(owner);
+}
+
+void image::removeOwner(mapped_object *owner) {
+   std::list<mapped_object *>::iterator iter = std::find(owning_objects_.begin(),
+                                                         owning_objects_.end(),
+                                                         owner);
+   owning_objects_.erase(iter);
+}
+
+void image::destroy(ParseAPI::Block *b) {
+   for (std::list<mapped_object *>::iterator iter = owning_objects_.begin();
+        iter != owning_objects_.end(); ++iter) {
+      (*iter)->destroy(b);
+   }
+}
+
+void image::destroy(ParseAPI::Edge *e) {
+   for (std::list<mapped_object *>::iterator iter = owning_objects_.begin();
+        iter != owning_objects_.end(); ++iter) {
+      (*iter)->destroy(e);
+   }
+}
+
+void image::destroy(ParseAPI::Function *f) {
+   for (std::list<mapped_object *>::iterator iter = owning_objects_.begin();
+        iter != owning_objects_.end(); ++iter) {
+      (*iter)->destroy(f);
+   }
 }
