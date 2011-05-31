@@ -112,11 +112,30 @@ class fact_list {
 
 /** Objects created by a CFGFactory must descend from `allocatable' **/
 
-class CFGFactory {
+class CFGFactory {   
  public:
     PARSER_EXPORT CFGFactory() {};
     PARSER_EXPORT virtual ~CFGFactory();
+    
+    /*
+     * These methods are called by ParseAPI, and perform bookkeeping
+     * around the user-overridden creation/destruction methods.
+     */
+    PARSER_EXPORT Function *_mkfunc(Address addr, FuncSource src,
+                                    std::string name, CodeObject *obj,
+                                    CodeRegion *region, InstructionSource *isrc);
+    PARSER_EXPORT Block *_mkblock(Function *f, CodeRegion *r, Address addr);
+    PARSER_EXPORT Edge *_mkedge(Block *src, Block *trg, EdgeTypeEnum type);
+    
+    PARSER_EXPORT Block *_mksink(CodeObject *obj, CodeRegion *r);
 
+    PARSER_EXPORT void destroy_func(Function *f);
+    PARSER_EXPORT void destroy_block(Block *b);
+    PARSER_EXPORT void destroy_edge(Edge *e);
+
+    PARSER_EXPORT void destroy_all();
+
+ protected:
     PARSER_EXPORT virtual Function * mkfunc(Address addr, FuncSource src, 
             std::string name, CodeObject * obj, CodeRegion * region, 
             Dyninst::InstructionSource * isrc);
@@ -124,7 +143,6 @@ class CFGFactory {
             Address addr);
     PARSER_EXPORT virtual Edge * mkedge(Block * src, Block * trg, 
             EdgeTypeEnum type);
-
     /*
      * A `sink' block is the target of all unresolvable control
      * flow in a parsing unit. Implementors may return a unique
@@ -136,9 +154,6 @@ class CFGFactory {
     PARSER_EXPORT virtual void free_block(Block * b);
     PARSER_EXPORT virtual void free_edge(Edge * e);
 
-    PARSER_EXPORT virtual void free_all();
-
- protected:
     fact_list<Edge> edges_;
     fact_list<Block> blocks_;
     fact_list<Function> funcs_;

@@ -60,15 +60,9 @@ block_instance::block_instance(const block_instance *parent, mapped_object *chil
    // been created
 }
 
-// deletes all incoming and outgoing edges
+// Edges are deleted at the mapped_object layer
 block_instance::~block_instance() 
 {
-    //for (edges::iterator eit = srcs_.begin(); eit != srcs_.end(); eit++) {
-    //    delete (*eit);
-    //}
-    for (edges::iterator eit = trgs_.begin(); eit != trgs_.end(); eit++) {
-        delete (*eit);
-    }
 }
 
 Address block_instance::start() const {
@@ -257,3 +251,18 @@ func_instance *block_instance::findFunction(ParseAPI::Function *p) {
    return obj()->findFunction(p);
 }
 
+void block_instance::destroy(block_instance *b) {
+   // Put things here that should go away when we destroy a block. 
+   // Iterate through functions...
+
+   std::vector<ParseAPI::Function *> pFuncs;
+   b->llb()->getFuncs(pFuncs);
+   for (unsigned i = 0; i < pFuncs.size(); ++i) {
+      func_instance *func = b->findFunction(pFuncs[i]);
+      func->destroyBlock(b);
+   }
+   
+   delete b;
+}
+
+   

@@ -230,7 +230,7 @@ class mapped_object : public codeRange {
     void removeEmptyPages();
     void removeFunction(func_instance *func);
     bool splitIntLayer();
-    void splitBlock(ParseAPI::Block *first, ParseAPI::Block *second);
+    void splitBlock(const ParseAPI::Block *first, const ParseAPI::Block *second);
     bool findBlocksByRange(Address startAddr,
                           Address endAddr,
                           std::list<block_instance*> &pageBlocks);
@@ -290,6 +290,10 @@ public:
     // efficiency
     std::string getCalleeName(block_instance *);
     void setCalleeName(block_instance *, std::string name);
+
+    void destroy(ParseAPI::Function *f);
+    void destroy(ParseAPI::Block *b);
+    void destroy(ParseAPI::Edge *e);
 
   private:
     //

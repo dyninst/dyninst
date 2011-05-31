@@ -620,7 +620,7 @@ bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
             }
             else if (CALL == (*eit)->type()) {// includes tail calls
                 (*eit)->uninstall();
-                fact->free_edge(*eit);
+                ParseAPI::Edge::destroy(*eit);
             }
         }
         assert(foundSinkEdge);
