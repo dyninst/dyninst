@@ -92,6 +92,7 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
    memEnd_(-1),
    memoryImg_(false)
 { 
+   image_->addOwner(this);
    // Set occupied range (needs to be ranges)
    codeBase_ = fileDesc.code();
    dataBase_ = fileDesc.data();
@@ -192,7 +193,7 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
    startup_printf("%s[%d]:  about to parseImage\n", FILE__, __LINE__);
    startup_printf("%s[%d]: name %s, codeBase 0x%lx, dataBase 0x%lx\n",
                   FILE__, __LINE__, desc.file().c_str(), desc.code(), desc.data());
-   image *img = image::parseImage( desc, analysisMode, parseGaps );
+   image *img = image::parseImage( desc, analysisMode, parseGaps);
    if (!img)  {
       startup_printf("%s[%d]:  failed to parseImage\n", FILE__, __LINE__);
       return NULL;
@@ -291,6 +292,8 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
    pagesUpdated_(true),
    memoryImg_(s->memoryImg_)
 {
+   image_->addOwner(this);
+
    // Let's do modules
    for (unsigned k = 0; k < s->everyModule.size(); k++) {
       // Doesn't copy things like line info. Ah, well.
@@ -403,6 +406,7 @@ mapped_object::~mapped_object()
 
    // codeRangesByAddr_ is static
     // Remainder are static
+   image_->removeOwner(this);
    image::removeImage(image_);
 }
 
@@ -2303,5 +2307,27 @@ func_instance *mapped_object::findFuncByEntry(const block_instance *blk) {
    return findFunction(llb->getEntryFunc());
 }
 
+void mapped_object::destroy(ParseAPI::Block *b) {
+   BlockMap::iterator iter = blocks_.find(b);
+   if (iter != blocks_.end()) {
+      block_instance::destroy(iter->second);
+      blocks_.erase(iter);
+      calleeNames_.erase(iter->second);
+   }
+}
 
-   
+void mapped_object::destroy(ParseAPI::Edge *e) {
+   EdgeMap::iterator iter = edges_.find(e);
+   if (iter != edges_.end()) {
+      edge_instance::destroy(iter->second);
+      edges_.erase(iter);
+   }
+}
+
+void mapped_object::destroy(ParseAPI::Function *f) {
+   FuncMap::iterator iter = everyUniqueFunction.find(f);
+   if (iter != everyUniqueFunction.end()) {
+      func_instance::destroy(iter->second);
+      everyUniqueFunction.erase(iter);
+   }
+}

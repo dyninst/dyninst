@@ -157,6 +157,10 @@ void Block::removeFunc(Function *)
     _func_cnt --;
 }
 
+void Block::destroy(Block *b) {
+   b->obj()->destroy(b);
+}
+
 void Edge::install()
 {
     src()->addTarget(this);
@@ -190,6 +194,10 @@ void Edge::uninstall()
     // remove from source and target blocks
     _source->removeTarget(this);
     _target->removeSource(this);
+}
+
+void Edge::destroy(Edge *e) {
+   e->src()->obj()->destroy(e);
 }
 
 std::string format(EdgeTypeEnum e) {

@@ -876,3 +876,11 @@ void func_instance::createWrapperSymbol(Address entry) {
 
 }
 
+void func_instance::destroyBlock(block_instance *block) {
+   // Put things here that go away from the perspective of this function
+}
+
+void func_instance::destroy(func_instance *f) {
+   // Put things here that go away when we destroy this function
+   delete f;
+}

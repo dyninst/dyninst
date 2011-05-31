@@ -250,3 +250,18 @@ func_instance *block_instance::findFunction(ParseAPI::Function *p) {
    return obj()->findFunction(p);
 }
 
+void block_instance::destroy(block_instance *b) {
+   // Put things here that should go away when we destroy a block. 
+   // Iterate through functions...
+
+   std::vector<ParseAPI::Function *> pFuncs;
+   b->llb()->getFuncs(pFuncs);
+   for (unsigned i = 0; i < pFuncs.size(); ++i) {
+      func_instance *func = b->findFunction(pFuncs[i]);
+      func->destroyBlock(b);
+   }
+   
+   delete b;
+}
+
+   

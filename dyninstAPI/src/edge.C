@@ -29,3 +29,7 @@ edge_instance::~edge_instance() {
 AddressSpace *edge_instance::proc() {
    return src()->proc();
 }
+
+void edge_instance::destroy(edge_instance *e) {
+   delete e;
+}

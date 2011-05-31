@@ -30,6 +30,8 @@ class edge_instance {
 
    AddressSpace *proc();
 
+   static void destroy(edge_instance *);
+
   private:
    edge_instance(ParseAPI::Edge *edge, block_instance *src, block_instance *trg);
    edge_instance(const edge_instance *parent, mapped_object *child);
@@ -128,6 +130,8 @@ class block_instance {
     // lookups, and thus should be avoided. 
     func_instance *entryOfFunc() const;
     bool isFuncExit() const;
+
+    static void destroy(block_instance *b);
 
  private:
     void updateCallTarget(func_instance *func);

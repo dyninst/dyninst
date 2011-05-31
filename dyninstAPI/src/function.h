@@ -264,6 +264,10 @@ class func_instance : public patchTarget {
    Dyninst::SymtabAPI::Symbol *getRelocSymbol();
    void createWrapperSymbol(Address entry);
 
+   static void destroy(func_instance *f);
+
+   void destroyBlock(block_instance *block);
+
  private:
 
    ///////////////////// Basic func info
