@@ -82,7 +82,8 @@ AddressSpace::AddressSpace () :
     costAddr_(0),
     memEmulator_(NULL),
     emulateMem_(false),
-    emulatePC_(false)
+    emulatePC_(false),
+    delayRelocation_(false)
 {
    if ( getenv("DYNINST_EMULATE_MEMORY") ) {
        printf("emulating memory\n");
@@ -1471,6 +1472,8 @@ using namespace Dyninst;
 using namespace Relocation;
 
 bool AddressSpace::relocate() {
+   if (delayRelocation()) return true;
+
   relocation_cerr << "ADDRSPACE::Relocate called!" << endl;
   bool ret = true;
   for (std::map<mapped_object *, FuncSet>::iterator iter = modifiedFunctions_.begin();

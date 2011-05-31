@@ -112,7 +112,15 @@ class CodeObject {
     PARSER_EXPORT CodeSource * cs() const { return _cs; }
     PARSER_EXPORT CFGFactory * fact() const { return _fact; }
     PARSER_EXPORT bool defensiveMode() { return defensive; }
-    PARSER_EXPORT void deleteFunc(Function *);
+
+    // This is for callbacks; it is often much more efficient to 
+    // batch callbacks and deliver them all at once than one at a time. 
+    // Particularly if we're deleting code, it's better to get
+    // "The following blocks were deleted" than "block 1 was deleted;
+    // block 2 lost an edge; block 2 was deleted..."
+
+    PARSER_EXPORT void startCallbackBatch();
+    PARSER_EXPORT void finishCallbackBatch();
 
     /*
      * Calling finalize() forces completion of all on-demand
@@ -120,11 +128,16 @@ class CodeObject {
      */
     PARSER_EXPORT void finalize();
 
+    /*
+     * Deletion support
+     */
+    PARSER_EXPORT void destroy(Edge *);
+    PARSER_EXPORT void destroy(Block *);
+    PARSER_EXPORT void destroy(Function *);
+
  private:
     void process_hints();
     void add_edge(Block *src, Block *trg, EdgeTypeEnum et);
-    // allows Function to (re-)finalize
-    friend void Function::deleteBlocks(vector<Block*>);
     // allows Functions to link up return edges after-the-fact
     friend void Function::delayed_link_return(CodeObject *,Block*);
     // allows Functions to finalize (need Parser access)
@@ -143,8 +156,9 @@ class CodeObject {
     bool owns_pcb;
     bool defensive;
     funclist flist;
-
 };
+
+
 
 }//namespace ParseAPI
 }//namespace Dyninst

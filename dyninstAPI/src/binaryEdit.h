@@ -182,6 +182,7 @@ class BinaryEdit : public AddressSpace {
    bool isMultiThreadCapable();
    std::map<std::string, BinaryEdit*> openResolvedLibraryName(std::string filename);
 
+   bool writing() { return writing_; }
  private:
     Address highWaterMark_;
     Address lowWaterMark_;
@@ -220,6 +221,7 @@ class BinaryEdit : public AddressSpace {
     std::vector<BinaryEdit *> rtlib;
     std::vector<BinaryEdit *> siblings;
     bool multithread_capable_;
+    bool writing_;
 };
 
 class depRelocation {

@@ -90,10 +90,10 @@ CodeObject::process_hints()
     for(hit = hints.begin();hit!=hints.end();++hit) {
         CodeRegion * cr = (*hit)._reg;
         if(!cs()->regionsOverlap())
-            f = parser->factory().mkfunc(
-                (*hit)._addr,HINT,(*hit)._name,this,cr,cs());
+            f = parser->factory()._mkfunc(
+               (*hit)._addr,HINT,(*hit)._name,this,cr,cs());
         else
-            f = parser->factory().mkfunc(
+            f = parser->factory()._mkfunc(
                 (*hit)._addr,HINT,(*hit)._name,this,cr,cr);
         if(f) {
             parsing_printf("[%s] adding hint %lx\n",FILE__,f->addr());
@@ -188,16 +188,6 @@ CodeObject::finalize() {
     parser->finalize();
 }
 
-void 
-CodeObject::deleteFunc(Function *func)
-{
-    mal_printf("deleting func at %lx, ptr=%p\n", func->addr(), func);
-    assert(func->_cache_valid);
-    parser->remove_func(func);
-    func->deleteBlocks(func->_blocks);
-    fact()->free_func(func);
-}
-
 // Call this function on the CodeObject corresponding to the targets,
 // not the sources, if the edges are inter-module ones
 // 
@@ -272,3 +262,27 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
     return true;
 }
 
+void CodeObject::startCallbackBatch() {
+   _pcb->batch_begin();
+}
+
+void CodeObject::finishCallbackBatch() {
+   _pcb->batch_end(_fact);
+}
+
+void CodeObject::destroy(Edge *e) {
+   // The callback deletes the object so that we can
+   // be sure to allow users to access its data before
+   // its freed.
+   // We hand in a CFGFactory so that we have customized
+   // deletion methods.
+   _pcb->destroy(e, _fact);
+}
+
+void CodeObject::destroy(Block *b) {
+   _pcb->destroy(b, _fact);
+}
+
+void CodeObject::destroy(Function *f) {
+   _pcb->destroy(f, _fact);
+}
