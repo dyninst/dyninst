@@ -2105,9 +2105,9 @@ void image::addSplitBlock(BlockSplit &split) {
 }
 
 
-const vector<image::BlockSplit> & image::getSplitBlocks() const
+const image::SplitBlocks& image::getSplitBlocks() const
 {
-    return splitBlocks_;
+   return splitBlocks_;
 }
 void image::clearSplitBlocks()
 {

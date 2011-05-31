@@ -49,7 +49,7 @@ class Function;
 
 class ParseCallback {
  public:
-  ParseCallback() { }
+  ParseCallback() : inBatch_(false) { }
   virtual ~ParseCallback() { }
 
   /*

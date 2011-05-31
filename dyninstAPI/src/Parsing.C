@@ -220,7 +220,7 @@ DynParseCallback::newfunction_retstatus(Function *func)
 void
 DynParseCallback::split_block_cb(Block *first, Block *second)
 {
-   assert(0 && "Unimplemented!");
+   // KEVINTODO
 }
 
 void DynParseCallback::destroy_cb(Block *b) {
@@ -319,6 +319,11 @@ DynParseCallback::absAddr(Address absoluteAddr, Address &load, CodeObject *&co)
         }
     }
     return false; 
+}
+
+bool DynParseCallback::loadAddr(Address, Address &) {
+   assert(0 && "Unnecessary?");
+   return true;
 }
 
 bool

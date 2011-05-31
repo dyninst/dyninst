@@ -309,6 +309,8 @@ class func_instance : public patchTarget {
    callType callingConv;
    int paramSize;
 #endif
+
+   SymtabAPI::Symbol *wrapperSym_;
 };
 
 template <class OutputIterator>

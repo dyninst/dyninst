@@ -293,6 +293,8 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT bool addExternalSymbolReference(Symbol *externalSym, Region *localRegion, relocationEntry localRel);
    SYMTAB_EXPORT bool addTrapHeader_win(Address ptr);
 
+   SYMTAB_EXPORT bool updateRelocations(Address start, Address end, Symbol *oldsym, Symbol *newsym);
+
    /***** Data Member Access *****/
    SYMTAB_EXPORT std::string file() const;
    SYMTAB_EXPORT std::string name() const;

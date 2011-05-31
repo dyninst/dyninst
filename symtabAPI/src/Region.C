@@ -385,3 +385,26 @@ Region::RegionType Region::getRegionType() const
     return rType_;
 }
 
+bool Region::updateRelocations(Address start,
+                               Address end,
+                               Symbol *oldsym,
+                               Symbol *newsym) {
+   
+   for (unsigned i = 0; i < rels_.size(); ++i) {
+      // If the relocation entry matches, update the symbol. We
+      // have an address range and an old symbol...
+      relocationEntry &e = rels_[i];
+      if (e.getDynSym()->getMangledName() != oldsym->getMangledName()) {
+         continue;
+      }
+      if (e.rel_addr() < start) {
+         continue;
+      }
+      if (e.rel_addr() > end) {
+         continue;
+      }
+      e.addDynSym(newsym);
+   }
+   return true;
+}
+

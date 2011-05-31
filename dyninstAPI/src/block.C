@@ -60,15 +60,9 @@ block_instance::block_instance(const block_instance *parent, mapped_object *chil
    // been created
 }
 
-// deletes all incoming and outgoing edges
+// Edges are deleted at the mapped_object layer
 block_instance::~block_instance() 
 {
-    //for (edges::iterator eit = srcs_.begin(); eit != srcs_.end(); eit++) {
-    //    delete (*eit);
-    //}
-    for (edges::iterator eit = trgs_.begin(); eit != trgs_.end(); eit++) {
-        delete (*eit);
-    }
 }
 
 Address block_instance::start() const {

@@ -1221,12 +1221,12 @@ bool mapped_object::splitIntLayer()
 {
     set<func_instance*> splitFuncs;
     using namespace InstructionAPI;
-    const vector<image::BlockSplit> &splits = parse_img()->getSplitBlocks();
-    for (vector<image::BlockSplit>::const_iterator bIter = splits.begin(); 
+    const image::SplitBlocks &splits = parse_img()->getSplitBlocks();
+    for (image::SplitBlocks::const_iterator bIter = splits.begin(); 
          bIter != splits.end(); bIter++) 
     {
       // foreach function corresponding to the block
-       parse_block *splitImgB = bIter->first;
+       const ParseAPI::Block *splitImgB = bIter->first;
        splitBlock(bIter->first, bIter->second);
     }
 
@@ -2305,7 +2305,7 @@ block_instance *mapped_object::findOneBlockByAddr(const Address addr) {
    return NULL;
 }
 
-void mapped_object::splitBlock(ParseAPI::Block *first, ParseAPI::Block *second) {
+void mapped_object::splitBlock(const ParseAPI::Block *first, const ParseAPI::Block *second) {
     assert(0 && "KEVINTODO: needs to update the block-based maps in the the function class too");
 }
 

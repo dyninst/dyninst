@@ -103,7 +103,7 @@ class DynCFGFactory : public ParseAPI::CFGFactory {
 class image;
 class DynParseCallback : public ParseAPI::ParseCallback {
  public:
-  DynParseCallback(image * img) : _img(img) { }
+  DynParseCallback(image * img) : ParseAPI::ParseCallback(), _img(img) { }
   ~DynParseCallback() { }
 
   // defensive and exploratory mode callbacks
