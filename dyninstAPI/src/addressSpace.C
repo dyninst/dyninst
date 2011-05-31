@@ -1438,7 +1438,7 @@ bool AddressSpace::wrapFunction(func_instance *oldfunc, func_instance *newfunc) 
    addModifiedFunction(oldfunc);
 
    if (edit() && oldfunc->obj() != newfunc->obj()) {
-     // if (!relocate()) return false;
+
      if (!AddressSpace::patch(this)) return false;
 
       if (!newfunc->callWrappedFunction(oldfunc)) return false;

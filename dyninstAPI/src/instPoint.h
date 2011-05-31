@@ -67,6 +67,7 @@ namespace Dyninst {
 };
 
 using Dyninst::PatchAPI::PatchMgrPtr;
+using Dyninst::PatchAPI::SnippetRep;
 
 #include "Instruction.h"
 #include "InstructionDecoder.h"
@@ -77,10 +78,6 @@ class instPoint : public Dyninst::PatchAPI::Point {
   friend class edge_instance;
   friend class DynPointMaker;
   public:
-    typedef std::list<miniTramp *> Minitramps;
-    typedef Minitramps::iterator iterator;
-    typedef Minitramps::const_iterator const_iterator;
-
     // The compleat list of instPoint creation methods
     static instPoint *funcEntry(func_instance *);
     static instPoint *funcExit(func_instance *, block_instance *exitPoint);
@@ -127,16 +124,10 @@ class instPoint : public Dyninst::PatchAPI::Point {
               edge_instance *e);
 
   public:
-
-    iterator begin();
-    iterator end();
-    const_iterator begin() const;
-    const_iterator end() const;
     baseTramp *tramp();
 
     AddressSpace *proc() const;
     func_instance *func() const;
-    // These are optional
     block_instance *block() const { return block_; }
     edge_instance *edge()  { return edge_; }
 
@@ -147,7 +138,6 @@ class instPoint : public Dyninst::PatchAPI::Point {
 
     //Address addr() const;
     Address insnAddr() const { return addr_; }
-    //InstructionAPI::Instruction::Ptr insn() { return insn_; }
 
     // This is for address tracking... if we're between
     // blocks (e.g., post-call, function exit, or edge
@@ -159,12 +149,8 @@ class instPoint : public Dyninst::PatchAPI::Point {
 
     miniTramp *push_front(AstNodePtr ast, bool recursive);
     miniTramp *push_back(AstNodePtr ast, bool recursive);
-    miniTramp *insert(iterator, AstNodePtr, bool recursive);
     miniTramp *insert(callOrder order, AstNodePtr, bool recursive);
-    void erase(iterator);
     void erase(miniTramp *);
-    bool empty() const;
-    unsigned size() const;
 
     bitArray liveRegisters();
 
@@ -176,8 +162,10 @@ class instPoint : public Dyninst::PatchAPI::Point {
     func_instance *func_;
     block_instance *block_;
     edge_instance *edge_;
-    //InstructionAPI::Instruction::Ptr insn_;
-    Minitramps tramps_;
+
+    // Minitramps tramps_;
+    typedef std::set<SnippetRep<miniTramp*>*> SnipSet;
+    SnipSet snip_set_;
 
     bitArray liveRegs_;
     void calcLiveness();
@@ -188,6 +176,7 @@ class instPoint : public Dyninst::PatchAPI::Point {
 
     baseTramp *baseTramp_;
 };
+#define GET_MINI(i) (((SnippetRep<miniTramp*>*)(i)->snippet()->rep())->rep())
 
 typedef std::map<Address, instPoint *> InsnInstpoints;
 
@@ -211,7 +200,7 @@ EdgeInstpoints() : point(NULL) {};
 struct FuncInstpoints {
    instPoint *entry;
    std::map<block_instance *, instPoint *> exits;
-FuncInstpoints() : entry(NULL) {};
+  FuncInstpoints() : entry(NULL) {};
    ~FuncInstpoints();
 };
 

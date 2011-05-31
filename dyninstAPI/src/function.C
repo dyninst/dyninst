@@ -738,6 +738,7 @@ instPoint *func_instance::funcEntryPoint(bool create) {
 
 instPoint *func_instance::funcExitPoint(block_instance* b, bool create) {
   assert(proc()->mgr());
+
   // Lookup the cached points
   std::map<block_instance *, instPoint *>::iterator iter = points_.exits.find(b);
   if (iter != points_.exits.end()) return iter->second;

@@ -18,6 +18,7 @@
 #define SCAST_PF(f) static_cast<parse_func*>(f)
 #define SCAST_FI(f) static_cast<func_instance*>(f)
 
+
 namespace Dyninst {
 namespace PatchAPI {
   class DynAddrSpace;

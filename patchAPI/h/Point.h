@@ -81,6 +81,7 @@ class Point {
     PATCHAPI_EXPORT size_t size();
     PATCHAPI_EXPORT Address address() const { return addr_; }
     PATCHAPI_EXPORT Type type() const {return type_;}
+    PATCHAPI_EXPORT bool empty() const { return instanceList_.empty();}
 
     typedef std::set<PatchFunction*> FuncSet;
     typedef std::set<PatchBlock*> BlockSet;

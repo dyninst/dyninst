@@ -250,8 +250,9 @@ instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
    assert(point->empty() ||
           point->size() == parent->size());
    if (point->empty()) {
-      for (const_iterator iter = parent->begin(); iter != parent->end(); ++iter) {
-         point->push_back((*iter)->ast(), (*iter)->recursive());
+      for (instance_iter iter = parent->begin(); iter != parent->end(); ++iter) {
+        miniTramp* mini = GET_MINI(*iter);
+        point->push_back(mini->ast(), mini->recursive());
       }
    }
 
@@ -262,22 +263,18 @@ instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
 
 
 instPoint::~instPoint() {
-   // Delete miniTramps?
-   // Uninstrument?
-   for (iterator iter = begin(); iter != end(); ++iter)
-      delete *iter;
-   tramps_.clear();
-   if (baseTramp_) delete baseTramp_;
 
+  // Delete miniTramps?
+  // Uninstrument?
+  //for (iterator iter = begin(); iter != end(); ++iter)
+  //  delete *iter;
+
+  for (SnipSet::iterator i = snip_set_.begin(); i != snip_set_.end(); i++)
+    delete *i;
+  snip_set_.clear();
+  if (baseTramp_) delete baseTramp_;
 };
 
-
-instPoint::iterator instPoint::begin() { return tramps_.begin(); }
-instPoint::iterator instPoint::end() { return tramps_.end(); }
-instPoint::const_iterator instPoint::begin() const { return tramps_.begin(); }
-instPoint::const_iterator instPoint::end() const { return tramps_.end(); }
-bool instPoint::empty() const { return tramps_.empty(); }
-unsigned instPoint::size() const { return tramps_.size(); }
 
 AddressSpace *instPoint::proc() const {
    return func()->proc();
@@ -290,7 +287,11 @@ func_instance *instPoint::func() const {
 
 miniTramp *instPoint::push_front(AstNodePtr ast, bool recursive) {
    miniTramp *newTramp = new miniTramp(ast, this, recursive);
-   tramps_.push_front(newTramp);
+   SnippetRep<miniTramp*>* rep = new SnippetRep<miniTramp*>(newTramp);
+   snip_set_.insert(rep);
+   SnippetPtr snip = Snippet::create(rep);
+   pushFront(snip);
+
    markModified();
 
    return newTramp;
@@ -298,17 +299,10 @@ miniTramp *instPoint::push_front(AstNodePtr ast, bool recursive) {
 
 miniTramp *instPoint::push_back(AstNodePtr ast, bool recursive) {
    miniTramp *newTramp = new miniTramp(ast, this, recursive);
-   tramps_.push_back(newTramp);
-
-   markModified();
-
-   return newTramp;
-}
-
-miniTramp *instPoint::insert(iterator loc, AstNodePtr ast, bool recursive) {
-   miniTramp *newTramp = new miniTramp(ast, this, recursive);
-   tramps_.insert(loc, newTramp);
-
+   SnippetRep<miniTramp*>* rep = new SnippetRep<miniTramp*>(newTramp);
+   snip_set_.insert(rep);
+   SnippetPtr snip = Snippet::create(rep);
+   Dyninst::PatchAPI::InstancePtr i = pushBack(snip);
    markModified();
 
    return newTramp;
@@ -319,20 +313,15 @@ miniTramp *instPoint::insert(callOrder order, AstNodePtr ast, bool recursive) {
    else return push_back(ast, recursive);
 }
 
-void instPoint::erase(iterator loc) {
-
-   markModified();
-
-   tramps_.erase(loc);
-}
-
 void instPoint::erase(miniTramp *m) {
-   for (iterator iter = begin(); iter != end(); ++iter) {
-      if ((*iter) == m) {
+   for (instance_iter iter = begin(); iter != end(); ++iter) {
+     miniTramp* mini = GET_MINI(*iter);
+     if (mini == m) {
          markModified();
-         tramps_.erase(iter);
+         delete m;
+         remove(*iter);
          return;
-      }
+     }
    }
 }
 
@@ -441,11 +430,12 @@ BlockInstpoints::~BlockInstpoints() {
 }
 
 FuncInstpoints::~FuncInstpoints() {
-   if (entry) delete entry;
-   for (std::map<block_instance *, instPoint *>::iterator iter = exits.begin();
+  if (entry) delete entry;
+  for (std::map<block_instance *, instPoint *>::iterator iter = exits.begin();
         iter != exits.end(); ++iter) {
       if (iter->second) delete iter->second;
-   }
+  }
+
 }
 
 std::string instPoint::format() const {
