@@ -9,14 +9,15 @@
 namespace Dyninst {
 namespace PatchAPI {
 
-// A sequence of code. See also: SnippetRep.h
+/* A sequence of code. See also: SnippetRep.h */
+
 class Snippet {
  public:
     explicit Snippet(void* snippet_rep) : snippet_rep_(snippet_rep) {}
-    virtual ~Snippet() {}
-    static SnippetPtr create(void* snippet_rep);
+    PATCHAPI_EXPORT virtual ~Snippet() {}
+    PATCHAPI_EXPORT static SnippetPtr create(void* snippet_rep);
 
-    void* rep() const { return snippet_rep_; }
+    PATCHAPI_EXPORT void* rep() const { return snippet_rep_; }
 
   private:
     void* snippet_rep_;

@@ -109,12 +109,12 @@ PatchMgr::findPointsByType(Address* addr, Point::Type types,
   CodeSource* cs = NULL;
   Address relative_addr = 0;
   Address codeBase = 0;
-  for (AddrSpace::CoObjMap::iterator ci = as_->getCoobjMap().begin();
-       ci != as_->getCoobjMap().end(); ci++) {
-    codeBase = (*ci).second->codeBase();
+  for (AddrSpace::ObjSet::iterator ci = as_->objSet().begin();
+       ci != as_->objSet().end(); ci++) {
+    codeBase = (*ci)->codeBase();
     relative_addr = *addr - codeBase;
-    if ((*ci).second->cs()->isValidAddress(relative_addr)) {
-      cs = (*ci).second->cs();
+    if ((*ci)->cs()->isValidAddress(relative_addr)) {
+      cs = (*ci)->cs();
       break;
     } else {
       continue;
@@ -225,7 +225,6 @@ PatchMgr::findPointsByType(PatchEdge* edge, Point::Type types,
   // Find edge specific points, including:
   //  EDGE_DURING
 
-  // XXX: Semantic of edge should be clarified.
   // TODO(wenbin): handle indirect case
   Address addr = 0;
   switch (edge->type()) {

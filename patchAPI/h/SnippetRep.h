@@ -16,12 +16,14 @@ namespace PatchAPI {
    Usage:
    SnippetRep<AstNodePtr>* rep = new SnippetRep<AstNodePtr>(ast);
    SnippetPtr snip = Snippet::create(rep); */
+
 template <class T>
 class SnippetRep {
   public:
     explicit SnippetRep(T rep) : rep_(rep) {}
     ~SnippetRep() {}
-    T rep() { return rep_; }
+
+    PATCHAPI_EXPORT T rep() { return rep_; }
 
   protected:
     T rep_;

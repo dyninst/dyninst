@@ -7,21 +7,26 @@ using Dyninst::PatchAPI::InstrumenterPtr;
 using Dyninst::PatchAPI::Instrumenter;
 using Dyninst::PatchAPI::InstanceSet;
 
-InstrumenterPtr Instrumenter::create(AddrSpacePtr as) {
+/* Default implementation of Instrumenter */
+
+InstrumenterPtr
+Instrumenter::create(AddrSpacePtr as) {
   InstrumenterPtr ret = InstrumenterPtr(new Instrumenter(as));
   if (!ret) return InstrumenterPtr();
   return ret;
 }
 
-bool Instrumenter::process(InstanceSet* insertion_set,
-                           InstanceSet* deletion_set,
-                           FuncRepMap*  func_rep,
-                           CallRepMap*  call_rep,
-                           CallRemoval* call_removal) {
+bool
+Instrumenter::process(InstanceSet* insertion_set,
+                      InstanceSet* deletion_set,
+                      FuncRepMap*  func_rep,
+                      CallRepMap*  call_rep,
+                      CallRemoval* call_removal) {
   // In each iteration, we only instrument a particular object
-  for (AddrSpace::CoObjMap::iterator ci = as_->getCoobjMap().begin();
-       ci != as_->getCoobjMap().end(); ci++) {
-    PatchObject* obj = (*ci).second;
+  for (AddrSpace::ObjSet::iterator ci = as_->objSet().begin();
+       ci != as_->objSet().end(); ci++) {
+
+    PatchObject* obj = *ci;
     InstanceSet i_set;
     InstanceSet d_set;
     FuncRepMap f_rep;

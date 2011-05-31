@@ -91,6 +91,18 @@
 #endif
 #endif
 
+#if !defined(PATCHAPI_EXPORT)
+  #if defined(_MSC_VER)
+    #if defined(PATCHAPI_LIB)
+      #define PATCHAPI_EXPORT __declspec(dllexport)
+    #else
+      #define PATCHAPI_EXPORT __declspec(dllimport)
+    #endif
+  #else
+    #define PATCHAPI_EXPORT
+#endif
+#endif
+
 #if !defined(DATAFLOW_EXPORT)
   #if defined(_MSC_VER)
     #if defined(DATAFLOW_LIB)

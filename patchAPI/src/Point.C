@@ -15,7 +15,8 @@ using Dyninst::ParseAPI::CodeSource;
 using Dyninst::ParseAPI::CodeRegion;
 using Dyninst::InstructionAPI::InstructionDecoder;
 
-InstancePtr Instance::create(Point* point, SnippetPtr snippet,
+InstancePtr
+Instance::create(Point* point, SnippetPtr snippet,
     SnippetType type, SnippetState state) {
   InstancePtr ret = InstancePtr(new Instance(point, snippet));
   if (!ret) return InstancePtr();
@@ -24,7 +25,8 @@ InstancePtr Instance::create(Point* point, SnippetPtr snippet,
   return ret;
 }
 
-bool Instance::destroy() {
+bool
+Instance::destroy() {
   if (point_) {
     bool ret = point_->remove(shared_from_this());
     return ret;
@@ -33,7 +35,8 @@ bool Instance::destroy() {
 }
 
 /* If the Point is PreCall or PostCall */
-PatchFunction* Point::getCallee() {
+PatchFunction*
+Point::getCallee() {
   if (type() != PreCall && type() != PostCall) return NULL;
   PatchBlock* b = (*(inst_blks_.begin()));
   PatchBlock::edgelist::iterator it = b->getTargets().begin();
@@ -48,15 +51,16 @@ PatchFunction* Point::getCallee() {
 
 /* Associate this point with the block(s) and function(s)
    that contain it */
-void Point::initCodeStructure() {
+void
+Point::initCodeStructure() {
   assert(mgr_);
   // walk through all code objects
-  for (AddrSpace::CoObjMap::iterator ci = mgr_->as()->getCoobjMap().begin();
-       ci != mgr_->as()->getCoobjMap().end(); ci++) {
-    PatchObject* mod = (*ci).second;
-    CodeObject* co = mod->co();
-    CodeSource* cs = mod->cs();
-    Address relative_addr = addr_ - mod->codeBase();
+  for (AddrSpace::ObjSet::iterator ci = mgr_->as()->objSet().begin();
+       ci != mgr_->as()->objSet().end(); ci++) {
+    PatchObject* obj = *ci;
+    CodeObject* co = obj->co();
+    CodeSource* cs = obj->cs();
+    Address relative_addr = addr_ - obj->codeBase();
     vector<CodeRegion*> regions = cs->regions();
     for (vector<CodeRegion*>::iterator ri = regions.begin(); ri != regions.end(); ri++) {
       std::set<ParseAPI::Function*> parseapi_funcs;
@@ -66,19 +70,19 @@ void Point::initCodeStructure() {
 
       for (std::set<ParseAPI::Function*>::iterator fi = parseapi_funcs.begin();
            fi != parseapi_funcs.end(); fi++) {
-        PatchFunction* func = mod->getFunc(*fi);
+        PatchFunction* func = obj->getFunc(*fi);
         inst_funcs_.insert(func);
       } // Function
       for (std::set<ParseAPI::Block*>::iterator bi = parseapi_blks.begin();
            bi != parseapi_blks.end(); bi++) {
-        PatchBlock* blk = mod->getBlock(*bi);
+        PatchBlock* blk = obj->getBlock(*bi);
         inst_blks_.insert(blk);
       } // Block
     } // Region
     if (inst_blks_.size() > 0) {
       co_ = co;
       cs_ = cs;
-      obj_ = mod;
+      obj_ = obj;
       InstructionDecoder d(cs_->getPtrToInstruction(relative_addr),
                           cs_->length(),
                           cs_->getArch());
@@ -117,7 +121,8 @@ Point::Point(Address addr, Type type, PatchMgrPtr mgr,
 }
 
 /* old_instance, old_instance, <---new_instance */
-InstancePtr Point::pushBack(SnippetPtr snippet) {
+InstancePtr
+Point::pushBack(SnippetPtr snippet) {
   InstancePtr instance = Instance::create(this, snippet);
   if (!instance) return instance;
   instanceList_.push_back(instance);
@@ -127,7 +132,8 @@ InstancePtr Point::pushBack(SnippetPtr snippet) {
 }
 
 /* new_instance--->, old_instance, old_instance */
-InstancePtr Point::pushFront(SnippetPtr snippet) {
+InstancePtr
+Point::pushFront(SnippetPtr snippet) {
   InstancePtr instance = Instance::create(this, snippet);
   if (!instance) return instance;
   instanceList_.push_front(instance);
@@ -137,13 +143,15 @@ InstancePtr Point::pushFront(SnippetPtr snippet) {
 }
 
 /* Test whether the type contains a specific type. */
-bool Point::TestType(Point::Type types, Point::Type trg) {
+bool
+Point::TestType(Point::Type types, Point::Type trg) {
   if (types & trg) return true;
   return false;
 }
 
 /* Add a specific type to a set of types */
-void Point::AddType(Point::Type& types, Point::Type trg) {
+void
+Point::AddType(Point::Type& types, Point::Type trg) {
   int trg_int = static_cast<int>(trg);
   int type_int = static_cast<int>(types);
   type_int |= trg_int;
@@ -151,14 +159,16 @@ void Point::AddType(Point::Type& types, Point::Type trg) {
 }
 
 /* Remove a specific type from a set of types */
-void Point::RemoveType(Point::Type& types, Point::Type trg) {
+void
+Point::RemoveType(Point::Type& types, Point::Type trg) {
   int trg_int = static_cast<int>(trg);
   int type_int = static_cast<int>(types);
   type_int &= (~trg_int);
   types = (Point::Type)type_int;
 }
 
-bool Point::remove(InstancePtr instance) {
+bool
+Point::remove(InstancePtr instance) {
   if (instance == InstancePtr()) return false;
   InstanceList::iterator it = std::find(instanceList_.begin(),
                                  instanceList_.end(), instance);
@@ -175,11 +185,13 @@ bool Point::remove(InstancePtr instance) {
   return false;
 }
 
-size_t Point::size() {
+size_t
+Point::size() {
   return instanceList_.size();
 }
 
-void Point::clear() {
+void
+Point::clear() {
   while (size() > 0) {
     InstancePtr i = instanceList_.back();
     i->destroy();
@@ -188,7 +200,8 @@ void Point::clear() {
 
 /* 1, Clear all snippet instances
    2, Detach from PatchMgr object */
-bool Point::destroy() {
+bool
+Point::destroy() {
   clear();
   PatchMgr::TypePtMap type_pt_map;
   switch (type_) {

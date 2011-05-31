@@ -6,7 +6,8 @@
 using namespace Dyninst;
 using namespace PatchAPI;
 
-PatchFunction *PatchFunction::create(ParseAPI::Function *f, PatchObject* obj) {
+PatchFunction*
+PatchFunction::create(ParseAPI::Function *f, PatchObject* obj) {
   return obj->getFunc(f);
 }
 
@@ -16,7 +17,8 @@ PatchFunction::PatchFunction(ParseAPI::Function *f,
 PatchFunction::PatchFunction(const PatchFunction *parFunc, PatchObject* child)
   : func_(parFunc->func_), obj_(child), addr_(obj_->codeBase() + func_->addr()) {}
 
-const PatchFunction::blocklist &PatchFunction::getAllBlocks() {
+const PatchFunction::blocklist&
+PatchFunction::getAllBlocks() {
   if (!all_blocks_.empty()) return all_blocks_;
   // Otherwise we need to create them
   for (ParseAPI::Function::blocklist::iterator iter = func_->blocks().begin();
@@ -26,7 +28,8 @@ const PatchFunction::blocklist &PatchFunction::getAllBlocks() {
   return all_blocks_;
 }
 
-PatchBlock *PatchFunction::getEntryBlock() {
+PatchBlock*
+PatchFunction::getEntryBlock() {
   assert(object());
   assert(func_);
 
@@ -40,7 +43,8 @@ PatchBlock *PatchFunction::getEntryBlock() {
   return object()->getBlock(ientry);
 }
 
-const PatchFunction::blocklist &PatchFunction::getExitBlocks() {
+const PatchFunction::blocklist&
+PatchFunction::getExitBlocks() {
   if (!exit_blocks_.empty()) return exit_blocks_;
 
   for (ParseAPI::Function::blocklist::iterator iter = func_->returnBlocks().begin();
@@ -51,7 +55,8 @@ const PatchFunction::blocklist &PatchFunction::getExitBlocks() {
   return exit_blocks_;
 }
 
-const PatchFunction::blocklist &PatchFunction::getCallBlocks() {
+const PatchFunction::blocklist&
+PatchFunction::getCallBlocks() {
   // Check the list...
   if (call_blocks_.empty()) {
     const ParseAPI::Function::edgelist &callEdges = func_->callEdges();

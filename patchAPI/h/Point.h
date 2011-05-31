@@ -17,6 +17,7 @@ namespace PatchAPI {
    of different types are distinct even the underlying code relocation and
    generation engine happens to put instrumentation from them at the same
    place */
+
 class Point {
   friend class PatchMgr;
 
@@ -51,10 +52,10 @@ class Point {
     };
 
     template <class Scope>
-    static Point* create(Address addr,
-                         Point::Type type,
-                         PatchMgrPtr mgr,
-                         Scope* scope) {
+    PATCHAPI_EXPORT static Point* create(Address addr,
+                                         Point::Type type,
+                                         PatchMgrPtr mgr,
+                                         Scope* scope) {
       Point* ret = new Point(addr, type, mgr, scope);
       return ret;
     }
@@ -63,45 +64,47 @@ class Point {
     Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchBlock* blk);
     Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchEdge* edge);
     Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchFunction* func);
-    virtual ~Point();
+    PATCHAPI_EXPORT virtual ~Point();
 
     // Point as a snippet container
     typedef std::list<InstancePtr>::iterator instance_iter;
-    instance_iter begin() { return instanceList_.begin();}
-    instance_iter end() { return instanceList_.end();}
-    InstancePtr pushBack(SnippetPtr);
-    InstancePtr pushFront(SnippetPtr);
-    bool remove(InstancePtr);
+    PATCHAPI_EXPORT instance_iter begin() { return instanceList_.begin();}
+    PATCHAPI_EXPORT instance_iter end() { return instanceList_.end();}
+    PATCHAPI_EXPORT InstancePtr pushBack(SnippetPtr);
+    PATCHAPI_EXPORT InstancePtr pushFront(SnippetPtr);
+    PATCHAPI_EXPORT bool remove(InstancePtr);
 
     // Remove all snippets in this point
-    void clear();
+    PATCHAPI_EXPORT void clear();
 
     // Getters
-    size_t size();
-    Address address() const { return addr_; }
-    Type type() const {return type_;}
+    PATCHAPI_EXPORT size_t size();
+    PATCHAPI_EXPORT Address address() const { return addr_; }
+    PATCHAPI_EXPORT Type type() const {return type_;}
+
     typedef std::set<PatchFunction*> FuncSet;
     typedef std::set<PatchBlock*> BlockSet;
-    const Point::FuncSet& getInstFuncs() const { return inst_funcs_; }
-    const Point::BlockSet& getInstBlocks() const { return inst_blks_; }
-    PatchFunction* getCallee();
-    const ParseAPI::CodeObject* co() const { return co_; }
-    const ParseAPI::CodeSource* cs() const { return cs_; }
-    const PatchObject* obj() const { return obj_; }
-    //const InstructionAPI::Instruction::Ptr instruction() const { return instruction_; }
-    const InstructionAPI::Instruction::Ptr insn() const { return insn_; }
-    PatchFunction* getFunction() const { return the_func_; }
-    PatchBlock* getBlock() const { return the_block_; }
-    PatchEdge* getEdge() const { return the_edge_; }
+    PATCHAPI_EXPORT const Point::FuncSet& getInstFuncs() const { return inst_funcs_; }
+    PATCHAPI_EXPORT const Point::BlockSet& getInstBlocks() const { return inst_blks_; }
+    PATCHAPI_EXPORT PatchFunction* getCallee();
+
+    PATCHAPI_EXPORT const ParseAPI::CodeObject* co() const { return co_; }
+    PATCHAPI_EXPORT const ParseAPI::CodeSource* cs() const { return cs_; }
+    PATCHAPI_EXPORT const PatchObject* obj() const { return obj_; }
+    PATCHAPI_EXPORT const InstructionAPI::Instruction::Ptr insn() const { return insn_; }
+
+    PATCHAPI_EXPORT PatchFunction* getFunction() const { return the_func_; }
+    PATCHAPI_EXPORT PatchBlock* getBlock() const { return the_block_; }
+    PATCHAPI_EXPORT PatchEdge* getEdge() const { return the_edge_; }
 
     // Point type utilities
 
     // Test whether the type contains a specific type.
-    static bool TestType(Point::Type types, Point::Type trg);
+    PATCHAPI_EXPORT static bool TestType(Point::Type types, Point::Type trg);
     // Add a specific type to a set of types
-    static void AddType(Point::Type& types, Point::Type trg);
+    PATCHAPI_EXPORT static void AddType(Point::Type& types, Point::Type trg);
     // Remove a specific type from a set of types
-    static void RemoveType(Point::Type& types, Point::Type trg);
+    PATCHAPI_EXPORT static void RemoveType(Point::Type& types, Point::Type trg);
 
 
   protected:

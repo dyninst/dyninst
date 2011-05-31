@@ -17,10 +17,10 @@ class PatchObject {
   friend class AddrSpace;
 
   public:
-    static PatchObject* create(ParseAPI::CodeObject* co, Address base,
-                               CFGMakerPtr cm = CFGMakerPtr(new CFGMaker));
-    static PatchObject* clone(PatchObject* par_obj, Address base);
-    virtual ~PatchObject();
+    PATCHAPI_EXPORT static PatchObject* create(ParseAPI::CodeObject* co, Address base,
+                                               CFGMakerPtr cm = CFGMakerPtr(new CFGMaker));
+    PATCHAPI_EXPORT static PatchObject* clone(PatchObject* par_obj, Address base);
+    PATCHAPI_EXPORT virtual ~PatchObject();
 
     typedef std::vector<PatchFunction *> funclist;
     typedef std::map<const ParseAPI::Function*, PatchFunction*> FuncMap;
@@ -28,29 +28,29 @@ class PatchObject {
     typedef std::map<const ParseAPI::Edge*, PatchEdge*> EdgeMap;
 
     // Getters and setter
-    Address codeBase() { return codeBase_; }
-    ParseAPI::CodeObject* co() const { return co_; }
-    ParseAPI::CodeSource* cs() const { return cs_; }
-    AddrSpacePtr addrSpace() const { return addr_space_; }
-    void setAddrSpace(AddrSpacePtr as) { addr_space_ = as; }
+    PATCHAPI_EXPORT Address codeBase() { return codeBase_; }
+    PATCHAPI_EXPORT ParseAPI::CodeObject* co() const { return co_; }
+    PATCHAPI_EXPORT ParseAPI::CodeSource* cs() const { return cs_; }
+    PATCHAPI_EXPORT AddrSpacePtr addrSpace() const { return addr_space_; }
+    PATCHAPI_EXPORT void setAddrSpace(AddrSpacePtr as) { addr_space_ = as; }
 
     // Function
-    PatchFunction *getFunc(ParseAPI::Function *);
-    void addFunc(PatchFunction*);
-    void removeFunc(PatchFunction*);
+    PATCHAPI_EXPORT PatchFunction *getFunc(ParseAPI::Function *);
+    PATCHAPI_EXPORT void addFunc(PatchFunction*);
+    PATCHAPI_EXPORT void removeFunc(PatchFunction*);
 
     // Block
-    PatchBlock *getBlock(ParseAPI::Block*);
-    void addBlock(PatchBlock*);
-    void removeBlock(PatchBlock*);
+    PATCHAPI_EXPORT PatchBlock *getBlock(ParseAPI::Block*);
+    PATCHAPI_EXPORT void addBlock(PatchBlock*);
+    PATCHAPI_EXPORT void removeBlock(PatchBlock*);
 
     // Edge
-    PatchEdge *getEdge(ParseAPI::Edge*, PatchBlock*, PatchBlock*);
-    void addEdge(PatchEdge*);
-    void removeEdge(PatchEdge*);
+    PATCHAPI_EXPORT PatchEdge *getEdge(ParseAPI::Edge*, PatchBlock*, PatchBlock*);
+    PATCHAPI_EXPORT void addEdge(PatchEdge*);
+    PATCHAPI_EXPORT void removeEdge(PatchEdge*);
 
     // Called by Instrumenter
-    virtual bool instrument(InstanceSet* /*insertion_set*/,
+    PATCHAPI_EXPORT virtual bool instrument(InstanceSet* /*insertion_set*/,
                          InstanceSet* /*deletion_set*/,
                          FuncRepMap*  /*func_rep*/,
                          CallRepMap*  /*call_rep*/,

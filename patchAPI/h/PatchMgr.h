@@ -13,13 +13,14 @@ namespace PatchAPI {
 
 /* Interfaces for point query, snippet insertion and removal in batch
    mode */
+
 class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
   friend class Point;
 
   public:
     PatchMgr(AddrSpacePtr as, PointMakerPtr pf, InstrumenterPtr inst);
-    virtual ~PatchMgr();
-    static PatchMgrPtr create(AddrSpacePtr as,
+    PATCHAPI_EXPORT virtual ~PatchMgr();
+    PATCHAPI_EXPORT static PatchMgrPtr create(AddrSpacePtr as,
                               PointMakerPtr pf = PointMakerPtr(new PointMaker),
                               InstrumenterPtr inst = InstrumenterPtr());
 
@@ -44,11 +45,11 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     //
     // return false if no any point found
     template <class Scope, class FilterFunc, class FilterArgument, class OutputIterator>
-    bool findPoints(Scope* scope,
-                    Point::Type types,
-                    FilterFunc filter_func,
-                    FilterArgument filter_arg,
-                    OutputIterator output_iter) {
+    PATCHAPI_EXPORT bool findPoints(Scope* scope,
+                                    Point::Type types,
+                                    FilterFunc filter_func,
+                                    FilterArgument filter_arg,
+                                    OutputIterator output_iter) {
       patch_cerr << ws2 << "Find points.\n";
 
       PointSet candidate_points;
@@ -72,9 +73,9 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
 
     // Use default identity filter function
     template <class Scope, class OutputIterator>
-    bool findPoints(Scope* scope,
-                    Point::Type types,
-                    OutputIterator output_iter) {
+    PATCHAPI_EXPORT bool findPoints(Scope* scope,
+                                    Point::Type types,
+                                    OutputIterator output_iter) {
       IdentityFilterFunc<char*> filter_func;
       char* dummy = NULL;
       return findPoints<Scope, IdentityFilterFunc<char*>, char*, OutputIterator>
@@ -86,13 +87,13 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
 
     // Return false on failure:
     //   Nested batchStart/batchFinish
-    bool batchStart();
+    PATCHAPI_EXPORT bool batchStart();
 
     // Return false on failure:
     //   1) Broken batchStart/batchFinish pair
     //   2) Some insertion/removal fails
     template <class OutputIterator>
-    bool batchFinish(OutputIterator /*output_iter_for_failed_instances*/) {
+    PATCHAPI_EXPORT bool batchFinish(OutputIterator /*output_iter_for_failed_instances*/) {
       if (batch_mode_ != 1) return false;
       batch_mode_--;
       return patch();
@@ -100,15 +101,15 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
 
     // Snippet instance removal
     // Return false if no point if found
-    bool removeSnippet(InstancePtr);
+    PATCHAPI_EXPORT bool removeSnippet(InstancePtr);
 
     // Delete ALL snippets at certain points.
     // This uses the same filter-based interface as findPoints.
     template <class Scope, class FilterFunc, class FilterArgument>
-    bool removeSnippets(Scope* scope,
-                    Point::Type types,
-                    FilterFunc filter_func,
-                    FilterArgument filter_arg) {
+    PATCHAPI_EXPORT bool removeSnippets(Scope* scope,
+                                        Point::Type types,
+                                        FilterFunc filter_func,
+                                        FilterArgument filter_arg) {
       PointSet points;
       if (!findPoints(scope, types, filter_func, filter_arg,
           back_inserter(points) ) ) return false;
@@ -121,23 +122,23 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
 
     // Use default identity filter function.
     template <class Scope>
-    bool removeSnippets(Scope* scope,
-                    Point::Type types) {
+    PATCHAPI_EXPORT bool removeSnippets(Scope* scope,
+                                        Point::Type types) {
       IdentityFilterFunc<char*> filter_func;
       return removeSnippets<Scope, IdentityFilterFunc, char*>
                 (scope, types, filter_func);
     }
 
     // Code modification interfaces
-    bool removeFuncCall(Point* point);
-    bool replaceFuncCall(Point* point, PatchFunction* func);
-    bool replaceFunction(PatchFunction* old_func,
-                         PatchFunction* new_func);
+    PATCHAPI_EXPORT bool removeFuncCall(Point* point);
+    PATCHAPI_EXPORT bool replaceFuncCall(Point* point, PatchFunction* func);
+    PATCHAPI_EXPORT bool replaceFunction(PatchFunction* old_func,
+                                         PatchFunction* new_func);
 
     // Getters
-    AddrSpacePtr as() const { return as_; }
-    InstanceSet& getCurInstances() { return current_instances_; }
-    PointMakerPtr pointMaker() const { return point_maker_; }
+    PATCHAPI_EXPORT AddrSpacePtr as() const { return as_; }
+    PATCHAPI_EXPORT InstanceSet& getCurInstances() { return current_instances_; }
+    PATCHAPI_EXPORT PointMakerPtr pointMaker() const { return point_maker_; }
 
     //----------------------------------------------------
     // Mapping order: Scope -> Type -> Point Set
