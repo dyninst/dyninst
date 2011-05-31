@@ -27,6 +27,7 @@ class edge_instance : public Dyninst::PatchAPI::PatchEdge {
     edge_instance(ParseAPI::Edge *edge, block_instance *src, block_instance *trg);
     edge_instance(const edge_instance *parent, mapped_object *child);
     ~edge_instance();
+   static void destroy(edge_instance *);
 };
 
 // This is somewhat mangled, but allows Dyninst to access the
@@ -93,6 +94,7 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     // lookups, and thus should be avoided. 
     func_instance *entryOfFunc() const;
     bool isFuncExit() const;
+    static void destroy(block_instance *b);
 
  private:
     void updateCallTarget(func_instance *func);
