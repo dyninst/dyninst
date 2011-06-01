@@ -82,9 +82,7 @@ class Relocator;
 class Modificator;
 class SnippetGenerator;
 
-typedef std::map<PatchFunction*, PatchFunction*> FuncRepMap;
-typedef std::map<Point*, PatchFunction*> CallRepMap;
-typedef PointSet CallRemoval;
+typedef std::map<PatchFunction*, PatchFunction*> FuncModMap;
 
 typedef std::set<ParseAPI::CodeObject*> CodeObjectSet;
 typedef std::set<ParseAPI::CodeSource*> CodeSourceSet;

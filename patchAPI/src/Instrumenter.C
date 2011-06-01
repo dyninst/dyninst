@@ -20,3 +20,15 @@ bool
 Instrumenter::process() {
   return true;
 }
+
+bool
+Instrumenter::replaceFunction(PatchFunction* oldfunc, PatchFunction *newfunc) {
+  functionReplacements_[oldfunc] = newfunc;
+  return true;
+}
+
+bool
+Instrumenter::revertReplacedFunction(PatchFunction* oldfunc) {
+  functionReplacements_.erase(oldfunc);
+  return true;
+}
