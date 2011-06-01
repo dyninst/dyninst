@@ -188,3 +188,8 @@ PatchBlock::format() const {
       << "]" << endl;
   return ret.str();
 }
+
+PatchFunction*
+PatchBlock::getFunction(ParseAPI::Function* f) {
+  return function()->object()->getFunc(f);
+}

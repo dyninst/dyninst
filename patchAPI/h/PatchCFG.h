@@ -12,7 +12,7 @@ namespace PatchAPI {
 class PatchEdge;
 class PatchBlock;
 class PatchFunction;
-class PatchObject;
+//class PatchObject;
 
 class PatchEdge {
    friend class PatchBlock;
@@ -65,6 +65,7 @@ class PatchBlock {
     PATCHAPI_EXPORT Address last() const;
     PATCHAPI_EXPORT Address size() const;
 
+    PATCHAPI_EXPORT PatchFunction* getFunction(ParseAPI::Function*);
     PATCHAPI_EXPORT bool isShared();
     PATCHAPI_EXPORT int containingFuncs() const;
     PATCHAPI_EXPORT void getInsns(Insns &insns) const;
@@ -81,6 +82,9 @@ class PatchBlock {
     PATCHAPI_EXPORT edgelist &getSources();
     PATCHAPI_EXPORT edgelist &getTargets();
 
+    template <class OutputIterator>
+    PATCHAPI_EXPORT void getFunctions(OutputIterator result);
+
   protected:
     typedef enum {
       backwards,
@@ -95,6 +99,7 @@ class PatchBlock {
     edgelist trglist_;
     PatchObject* obj_;
 };
+
 
 /* PatchAPI Function */
 class PatchFunction {
@@ -129,6 +134,18 @@ class PatchFunction {
      blocklist exit_blocks_;
      blocklist call_blocks_;
 };
+
+template <class OutputIterator>
+void PatchBlock::getFunctions(OutputIterator result) {
+  std::vector<ParseAPI::Function *> pFuncs;
+  block()->getFuncs(pFuncs);
+  for (unsigned i = 0; i < pFuncs.size(); ++i) {
+    //PatchFunction *func = function()->object()->getFunction(pFuncs[i]);
+    PatchFunction *func = getFunction(pFuncs[i]);
+    *result = func;
+    ++result;
+  }
+}
 
 };
 };
