@@ -105,7 +105,8 @@ public:
 
    AddressTranslateSysV(int pid, ProcessReader *reader_, 
                         SymbolReaderFactory *reader_fact,
-                        std::string exe_name);
+                        std::string exe_name,
+                        Address interp_base);
    AddressTranslateSysV();
 
 private:

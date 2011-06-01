@@ -168,7 +168,19 @@ class HandleThreadDestroy : public Handler
    ~HandleThreadDestroy();
       
    virtual void getEventTypesHandled(vector<EventType> &etypes);
-   virtual handler_ret_t handleEvent(Event::ptr ev);   
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual int getPriority() const;
+};
+
+class HandleThreadCleanup : public Handler
+{
+  public:
+   HandleThreadCleanup();
+   ~HandleThreadCleanup();
+
+   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual int getPriority() const;
 };
 
 class HandleThreadStop : public Handler

@@ -114,10 +114,12 @@ class AddressTranslate {
                                          ProcessReader *reader_ = NULL,
                                          SymbolReaderFactory *symfactory_ = NULL,
                                          PROC_HANDLE phand = INVALID_HANDLE_VALUE,
-                                         std::string exename = std::string(""));
+                                         std::string exename = std::string(""),
+                                         Address interp_base = (Address) -1);
    COMMON_EXPORT static AddressTranslate *createAddressTranslator(ProcessReader *reader_ = NULL,
                                          SymbolReaderFactory *symfactory_ = NULL,
-                                         std::string exename = std::string(""));
+                                         std::string exename = std::string(""),
+                                         Address interp_base = (Address) -1);
    
    COMMON_EXPORT virtual bool refresh() = 0;
    COMMON_EXPORT virtual ~AddressTranslate();

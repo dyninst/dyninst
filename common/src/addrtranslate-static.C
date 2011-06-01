@@ -49,13 +49,13 @@ public:
 
 using namespace Dyninst;
 
-AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessReader *, SymbolReaderFactory *, PROC_HANDLE phand, std::string exename)
+AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessReader *, SymbolReaderFactory *, PROC_HANDLE phand, std::string exename, Address)
 {
 	AddressTranslateStatic *new_translate = new AddressTranslateStatic(pid_, phand, exename);
 	return new_translate;
 }
 
-AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *, SymbolReaderFactory *, std::string exename)
+AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *, SymbolReaderFactory *, std::string exename, Address)
 {
 	return createAddressTranslator(0, NULL, exename);
 }

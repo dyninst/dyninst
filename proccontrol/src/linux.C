@@ -1930,7 +1930,7 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
          assert(!"This is not implemented on this architecture");
          return false;
    }
-}
+ }
 
 ArchEventLinux::ArchEventLinux(bool inter_) : 
    status(0),

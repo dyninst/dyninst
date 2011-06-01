@@ -90,7 +90,16 @@ static void dumpMessage(BG_Debugger_Msg *msg)
    char *c = buffer;
    buffer[4095] = '\0';
    while (*c == '\n') c++;
-   pthrd_printf("%s", c);
+   int length = strlen(c);
+   if (length > 256) {
+      c[251] = '.';
+      c[252] = '.';
+      c[253] = '.';
+      c[254] = '\n';
+      c[255] = '\0';
+   }
+   
+   pthrd_printf("seq_id: %d, %s", msg->header.sequence, c);
 }
 
 ArchEventBlueGene::ArchEventBlueGene(BG_Debugger_Msg *m) :
@@ -622,7 +631,7 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
       //
       //These events will be known as held arch events.
       pthrd_printf("non-ACK Event on stopped thread %d/%d.  Holding until continue\n",
-                   thread->getLWP(), proc->getPid());
+                   proc->getPid(), thread->getLWP());
       proc->addHeldArchEvent(archbg);
       return true;
    }
@@ -734,6 +743,12 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
                   lib_event->setSyncType(Event::sync_process);
                   new_event->addSubservientEvent(lib_event);
                }
+               async_ret_t aresult = proc->decodeTdbBreakpoint(event_bp);
+               assert(aresult != aret_async);
+               if (aresult == aret_success) {
+                  pthrd_printf("Decoded breakpoint as part of thread_db.\n");
+               }
+               //aresult == aret_error here just means the BP wasn't part of thread_db.
             }
             if (!new_event) {
                pthrd_printf("WARNING: Got a SIGTRAP at a non-breakpoint address %lx.  Very unusal " 
@@ -757,6 +772,16 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
             else {
                new_event = Event::ptr(new EventSingleStep());
             }
+         }
+         else if (signo == DEBUG_REG_SIG) {
+            Address pc_addr;
+            bool result = getPC(pc_addr, thread, archbg);
+            if (!result) {
+               pthrd_printf("PC register not yet available, postponing decode\n");
+               return Event::ptr();
+            }
+            pthrd_printf("Got DEBUG_REG_SIG at 0x%lx\n", pc_addr);
+            new_event = Event::ptr(new EventNop());
          }
          else if (proc->getState() == int_process::neonatal_intermediate) {
             if (signo != SIGSTOP) {
@@ -836,7 +861,11 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
          }
          break;
       case GET_AUX_VECTORS_ACK:
-         pthrd_printf("Dropping GET_AUX_VECTORS_ACK\n");
+         pthrd_printf("Decoded GET_AUX_VECTORS_ACK\n");
+         assert(proc->bootstrap_state == bg_process::bg_auxv_pending);
+         new_event = EventIntBootstrap::ptr(new EventIntBootstrap((void *) archE));
+         new_event->setSyncType(Event::async);
+         archE = NULL;
          break;
       case SET_THREAD_OPS_ACK:
       case GET_REGS_AND_FLOATS_ACK:
@@ -1262,6 +1291,14 @@ void bg_process::readyHeldArchEvent()
    gen->addHeldArchEvent(ae);
 }
 
+bool bg_process::plat_getInterpreterBase(Address &base)
+{
+   map<uint32_t, uint32_t>::iterator i = auxv_info.find(AT_BASE);
+   if (i == auxv_info.end())
+      return false;
+   base = static_cast<Address>(i->second);
+   return true;
+}
 
 bool ProcessPool::LWPIDsAreUnique()
 {
@@ -1299,6 +1336,11 @@ bg_thread::~bg_thread()
 bool bg_thread::plat_cont()
 {
    bg_process *bgproc = dynamic_cast<bg_process *>(llproc());
+   int_threadPool *tp = bgproc->threadPool();
+
+   Dyninst::LWP lwp_to_cont = getLWP();
+   int sig_to_cont = 0;
+
    if (bgproc->hasHeldArchEvent()) 
    {
       pthrd_printf("Not really continuing thread %d/%d.  Held Arch event will be thrown instead\n",
@@ -1318,15 +1360,11 @@ bool bg_thread::plat_cont()
       }
       return true;
    }
-   int_threadPool *tp = llproc()->threadPool();
    if (tp->initialThread() != this) {
       pthrd_printf("Not continuing non-initial thread\n");
       return true;
    }
    
-   Dyninst::LWP lwp_to_cont = getLWP();
-   int sig_to_cont = 0;
-
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
       bg_thread *thr = static_cast<bg_thread *>(*i);
       if (thr->continueSig_) {
@@ -1343,7 +1381,7 @@ bool bg_thread::plat_cont()
    pthrd_printf("Sending CONTINUE with signal %d to %d/%d\n", 
                 sig_to_cont, llproc()->getPid(), lwp_to_cont);
    BG_Debugger_Msg msg(CONTINUE, llproc()->getPid(), lwp_to_cont, continueSig_, 0);
-   msg.dataArea.CONTINUE.signal = continueSig_;
+   msg.dataArea.CONTINUE.signal = sig_to_cont;
    msg.header.dataLength = sizeof(msg.dataArea.CONTINUE);
    
    bool result = BGSend(msg);
@@ -1493,6 +1531,24 @@ void bg_thread::setDecoderPendingStop(bool b)
    decoderPendingStop_ = b;
 }
 
+bool bg_thread::plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *r)
+{
+   bool is_32 = Dyninst::getArchAddressWidth(llproc()->getTargetArch()) == 4;
+   for (int_registerPool::const_iterator i = pool.regs.begin(); i != pool.regs.end(); i++) {
+      Dyninst::MachRegister reg = i->first;
+      BG_GPR_Num_t offset = DynToBGGPRReg(reg);
+      assert(offset != (BG_GPR_Num_t) -1);
+      if (is_32) {
+         ((uint32_t *) r)[offset] = i->second;
+      }
+      else {
+         ((uint64_t *) r)[offset] = i->second;
+      }
+   }
+   return true;
+}
+
+
 HandleBGAttached::HandleBGAttached() : 
    Handler("BGAttach")
 {
@@ -1524,6 +1580,8 @@ int HandleBGAttached::getPriority() const
  *  1. ATTACH_ACK triggers a KILL with SIGSTOP
  *  2. SIGNAL_ENCOUNTERED triggers either:
  *    protocol < 2: ready state
+ *    protocol >= 2: GET_AUXV_VECTORS
+ *  3. GET_AUXV_VECTORS_ACK triggers:
  *    protocol == 2 || protocol == 3: THREAD_ALIVE to each thread
  *    protocol >= 4: GET_PROCESS_DATA
  *  3. All ACKs from stage 2 triggers ready state
@@ -1561,7 +1619,58 @@ Handler::handler_ret_t HandleBGAttached::handleEvent(Event::ptr ev)
       pthrd_printf("Recieved SIGSTOP during process initialization\n");
       proc->bootstrap_state = bg_process::bg_stopped;
    }
-   if (proc->bootstrap_state == bg_process::bg_stopped) {
+   
+   uint32_t next_offset = 0;
+   if (proc->bootstrap_state == bg_process::bg_auxv_pending) {
+      EventIntBootstrap::ptr evib = ev->getEventIntBootstrap();
+      ArchEventBlueGene *ae = (ArchEventBlueGene *) evib->getData();
+      assert(ae);
+      BG_Debugger_Msg::DataArea &da = ae->getMsg()->dataArea;
+      bool end = da.GET_AUX_VECTORS_ACK.endOfVecData;
+      uint32_t *data = da.GET_AUX_VECTORS_ACK.auxVecData;
+      uint32_t data_offset = da.GET_AUX_VECTORS_ACK.auxVecBufferOffset;
+      uint32_t data_length = da.GET_AUX_VECTORS_ACK.auxVecBufferLength;
+      uint32_t num_entries = data_length / sizeof(uint32_t);
+      pthrd_printf("Handling GET_AUX_VECTORS_ACK with %d entries, end = %s\n", 
+                   num_entries, end ? "true" : "false");
+                   
+      for (unsigned i=0; i<num_entries; i += 2) {
+         pthrd_printf("Auxv info: 0x%x = 0x%x\n", data[i], data[i+1]);
+         proc->auxv_info[data[i]] = data[i+1];
+      }
+      delete ae;
+      if (end) {
+         pthrd_printf("Received last entry in AUXV\n");
+         proc->bootstrap_state = bg_process::bg_auxv_done;
+      }
+      else {
+         pthrd_printf("Have more AUXV to complete\n");
+         proc->bootstrap_state = bg_process::bg_auxv_pending;
+         next_offset = data_offset + data_length;
+         return Handler::ret_success;
+      }
+   }
+   if (proc->bootstrap_state == bg_process::bg_stopped && protocol < 2) {
+      proc->bootstrap_state = bg_process::bg_auxv_done;
+   }
+   else if (proc->bootstrap_state == bg_process::bg_stopped || 
+            proc->bootstrap_state == bg_process::bg_auxv_pending) 
+   {
+      BG_Debugger_Msg msg(GET_AUX_VECTORS, proc->getPid(), 0, 0, 0);
+      msg.header.dataLength = sizeof(msg.dataArea.GET_AUX_VECTORS);
+      msg.dataArea.GET_AUX_VECTORS.auxVecBufferOffset = next_offset;
+      msg.dataArea.GET_AUX_VECTORS.auxVecBufferLength = BG_Debugger_AUX_VECS_BUFFER;
+      pthrd_printf("Sending GET_AUX_VECTORS msg to %d for range %d->%d\n",
+                   proc->getPid(), next_offset, next_offset + BG_Debugger_AUX_VECS_BUFFER);
+      bool result = BGSend(msg);
+      if (!result) {
+         perr_printf("Error sending GET_AUX_VECTORS message\n");
+         return Handler::ret_error;
+      }
+      proc->bootstrap_state = bg_process::bg_auxv_pending;
+   }
+
+   if (proc->bootstrap_state == bg_process::bg_auxv_done) {
       pthrd_printf("Handling thread query during attach\n");
       
       if (protocol < 2) {

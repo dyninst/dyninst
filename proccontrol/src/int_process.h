@@ -551,6 +551,8 @@ class int_thread
    bool isExitingInGenerator() const;
    void setExitingInGenerator(bool b);
 
+   static void cleanFromHandler(int_thread *thr);
+
    //Misc
    virtual bool attach() = 0;
    Thread::ptr thread();
@@ -757,7 +759,10 @@ class int_breakpoint
 };
 
 //At least as large as any arch's trap instruction
-#define BP_BUFFER_SIZE 4
+#define BP_BUFFER_SIZE 8
+//Long breakpoints can be used to artifically increase the size of the BP write,
+// which fools the BG breakpoint interception code that looks for 4 byte writes.
+#define BP_LONG_SIZE 4
 class installed_breakpoint
 {
    friend class Dyninst::ProcControlAPI::EventBreakpoint;
@@ -770,6 +775,7 @@ class installed_breakpoint
    int buffer_size;
    bool prepped;
    bool installed;
+   bool long_breakpoint;
    int suspend_count;
    Dyninst::Address addr;
 

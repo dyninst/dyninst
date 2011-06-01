@@ -2774,6 +2774,22 @@ void int_thread::setExitingInGenerator(bool b)
     generator_exiting_state = b;
 }
 
+void int_thread::cleanFromHandler(int_thread *thrd)
+{
+   ProcPool()->condvar()->lock();
+   
+   thrd->setHandlerState(int_thread::exited);
+   thrd->setInternalState(int_thread::exited);
+   thrd->setUserState(int_thread::exited);
+   
+   ProcPool()->rmThread(thrd);
+   thrd->llproc()->threadPool()->rmThread(thrd);
+   delete thrd;
+   
+   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->unlock();
+}
+
 Thread::ptr int_thread::thread()
 {
    return up_thread;
@@ -3600,6 +3616,7 @@ installed_breakpoint::installed_breakpoint(mem_state::ptr memory_, Address addr_
    buffer_size(0),
    prepped(false),
    installed(false),
+   long_breakpoint(false),
    suspend_count(0),
    addr(addr_)
 {
@@ -3613,6 +3630,7 @@ installed_breakpoint::installed_breakpoint(mem_state::ptr memory_,
    buffer_size(ip->buffer_size),
    prepped(ip->prepped),
    installed(ip->installed),
+   long_breakpoint(ip->long_breakpoint),
    suspend_count(ip->suspend_count),
    addr(ip->addr)
 {
@@ -3633,6 +3651,12 @@ bool installed_breakpoint::writeBreakpoint(int_process *proc, result_response::p
    assert(buffer_size != 0);
    char bp_insn[BP_BUFFER_SIZE];
    proc->plat_breakpointBytes(bp_insn);
+   if (long_breakpoint) {
+      unsigned bp_size = proc->plat_breakpointSize();
+      for (unsigned i=bp_size; i<bp_size+BP_LONG_SIZE; i++) {
+         bp_insn[i] = buffer[i];
+      }
+   }
    return proc->writeMem(bp_insn, addr, buffer_size, write_response);
 }
 
@@ -3643,6 +3667,9 @@ bool installed_breakpoint::saveBreakpointData(int_process *proc, mem_response::p
    }
 
    buffer_size = proc->plat_breakpointSize();
+   if (long_breakpoint) {
+      buffer_size += BP_LONG_SIZE;
+   }
    pthrd_printf("Saving original data for breakpoint insertion at %lx +%u\n", addr, (unsigned) buffer_size);
    assert(buffer_size <= BP_BUFFER_SIZE);   
 

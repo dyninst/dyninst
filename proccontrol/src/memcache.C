@@ -537,6 +537,7 @@ async_ret_t memCache::getRegisters(int_thread *thr, int_registerPool &pool)
    if (i == regs.end()) {
       int_registerPool *new_pool = new int_registerPool();
       resp = allreg_response::createAllRegResponse(new_pool);
+      regs[thr] = resp;
       if (sync_handle) resp->markSyncHandled();
       result = thr->getAllRegisters(resp);
    }
@@ -555,7 +556,6 @@ async_ret_t memCache::getRegisters(int_thread *thr, int_registerPool &pool)
    pool = *resp->getRegPool();
    pending_async = false;
    return aret_success;
-
 }
 
 void memCache::clear()

@@ -27,17 +27,6 @@ SRCS =		../../common/src/linuxKludges.C \
 		../../common/src/addrtranslate-auxv.C \
 		../../common/src/addrtranslate-linux.C
 
-#MYFLAGS	+= -DNO_MDL_PRINT
-#MYFLAGS	+= -DLD_DEBUG
-#MYFLAGS	+= -DATTACH_DETACH_DEBUG
-#MYFLAGS	+= -DPTRACEDEBUG
-#MYFLAGS	+= -DPTRACEDEBUG_EXCESSIVE
-#MYFLAGS	+= -DPTRACEDEBUG_ALWAYS
-#MYFLAGS	+= -DINST_TRAP_DEBUG
-#MYFLAGS	+= -DSIGNAL_DEBUG
-#MYFLAGS	+= -DASTDEBUG
-#MYFLAGS	+= -DINFERIOR_RPC_DEBUG
-
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
 TFLAGS          += $(MYFLAGS)
