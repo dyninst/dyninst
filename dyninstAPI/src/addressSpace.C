@@ -159,6 +159,7 @@ void AddressSpace::copyAddressSpace(process *parent) {
     
     // Let's assume we're not forking _in the middle of instrumentation_
     // (good Lord), and so leave modifiedFunctions_ alone.
+    /*
     for (CallModMap::iterator iter = parent->callModifications_.begin(); 
          iter != parent->callModifications_.end(); ++iter) {
        // Need to forward map the lot
@@ -170,19 +171,30 @@ void AddressSpace::copyAddressSpace(process *parent) {
           callModifications_[newB][context] = target;
        }
     }
+    */
 
     assert(parent->mgr());
+    PatchAPI::CallModMap& cmm = parent->mgr()->instrumenter()->callModMap();
+    for (PatchAPI::CallModMap::iterator iter = cmm.begin(); iter != cmm.end(); ++iter) {
+       // Need to forward map the lot
+      block_instance *newB = findBlock(SCAST_BI(iter->first)->llb());
+      for (std::map<PatchFunction*, PatchFunction*>::iterator iter2 = iter->second.begin();
+            iter2 != iter->second.end(); ++iter2) {
+        func_instance *context = (SCAST_FI(iter2->first) == NULL) ? NULL : findFunction(SCAST_FI(iter2->first)->ifunc());
+        func_instance *target = (SCAST_FI(iter2->second) == NULL) ? NULL : findFunction(SCAST_FI(iter2->second)->ifunc());
+        cmm[newB][context] = target;
+       }
+    }
+
     PatchAPI::FuncModMap& frm = parent->mgr()->instrumenter()->funcRepMap();
-    for (PatchAPI::FuncModMap::iterator iter = frm.begin();
-         iter != frm.end(); ++iter) {
+    for (PatchAPI::FuncModMap::iterator iter = frm.begin(); iter != frm.end(); ++iter) {
       func_instance *from = findFunction(SCAST_FI(iter->first)->ifunc());
       func_instance *to = findFunction(SCAST_FI(iter->second)->ifunc());
       frm[from] = to;
     }
 
     PatchAPI::FuncModMap& fwm = parent->mgr()->instrumenter()->funcWrapMap();
-    for (PatchAPI::FuncModMap::iterator iter = fwm.begin();
-         iter != fwm.end(); ++iter) {
+    for (PatchAPI::FuncModMap::iterator iter = fwm.begin(); iter != fwm.end(); ++iter) {
       func_instance *from = findFunction(SCAST_FI(iter->first)->ifunc());
       func_instance *to = findFunction(SCAST_FI(iter->second)->ifunc());
       fwm[from] = to;
@@ -224,7 +236,6 @@ void AddressSpace::deleteAddressSpace() {
     forwardDefensiveMap_.clear();
     reverseDefensiveMap_.clear();
     instrumentationInstances_.clear();
-    callModifications_.clear();
 
     if (memEmulator_) delete memEmulator_;
     memEmulator_ = NULL;
@@ -1430,9 +1441,10 @@ bool AddressSpace::sameRegion(Address addr1, Address addr2)
 
 void AddressSpace::modifyCall(block_instance *block, func_instance *newFunc, func_instance *context) {
   // Just register it for later code generation
-   callModifications_[block][context] = newFunc;
-   if (context) addModifiedFunction(context);
-   else addModifiedBlock(block);
+  //callModifications_[block][context] = newFunc;
+  mgr()->instrumenter()->modifyCall(block, newFunc, context);
+  if (context) addModifiedFunction(context);
+  else addModifiedBlock(block);
 }
 
 void AddressSpace::replaceFunction(func_instance *oldfunc, func_instance *newfunc) {
@@ -1462,15 +1474,19 @@ bool AddressSpace::wrapFunction(func_instance *oldfunc, func_instance *newfunc) 
 }
 
 void AddressSpace::removeCall(block_instance *block, func_instance *context) {
-   modifyCall(block, NULL, context);
+  //modifyCall(block, NULL, context);
+  mgr()->instrumenter()->removeCall(block, context);
 }
 
 void AddressSpace::revertCall(block_instance *block, func_instance *context) {
+  /*
    if (callModifications_.find(block) != callModifications_.end()) {
       callModifications_[block].erase(context);
    }
-   if (context) addModifiedFunction(context);
-   else addModifiedBlock(block);
+  */
+  mgr()->instrumenter()->revertModifiedCall(block, context);
+  if (context) addModifiedFunction(context);
+  else addModifiedBlock(block);
 }
 
 void AddressSpace::revertReplacedFunction(func_instance *oldfunc) {
@@ -1670,7 +1686,7 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   // Insert whatever binary modifications are desired
   // Right now needs to go before Instrumenters because we use
   // instrumentation for function replacement.
-   Modification mod(callModifications_,
+   Modification mod(mgr()->instrumenter()->callModMap(),
                     mgr()->instrumenter()->funcRepMap(),
                     mgr()->instrumenter()->funcWrapMap());
    cm->transform(mod);
@@ -2043,6 +2059,7 @@ void AddressSpace::initPatchAPI() {
    }
 
    assert(mgr());
+   mgr()->instrumenter()->callModMap().clear();
    mgr()->instrumenter()->funcRepMap().clear();
    mgr()->instrumenter()->funcWrapMap().clear();
 }

@@ -84,6 +84,15 @@ class SnippetGenerator;
 
 typedef std::map<PatchFunction*, PatchFunction*> FuncModMap;
 
+// This is a little complex, so let me explain my logic
+// Map from B -> F_c -> F
+// B identifies a call site
+// F_c identifies an (optional) function context for the replacement
+//   ... if F_c is not specified, we use NULL
+// F specifies the replacement callee; if we want to remove the call entirely,
+// also use NULL
+typedef std::map<PatchBlock*, std::map<PatchFunction*, PatchFunction*> > CallModMap;
+
 typedef std::set<ParseAPI::CodeObject*> CodeObjectSet;
 typedef std::set<ParseAPI::CodeSource*> CodeSourceSet;
 }

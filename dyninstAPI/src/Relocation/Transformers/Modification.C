@@ -73,10 +73,10 @@ bool Modification::replaceCall(RelocBlock *trace, RelocGraph *cfg) {
    // See if we have a modification for this point
    CallModMap::const_iterator iter = callMods_.find(trace->block());
    if (iter == callMods_.end()) return true;
-   std::map<func_instance *, func_instance *>::const_iterator iter2 = iter->second.find(trace->func());
+   std::map<PatchFunction*, PatchFunction*>::const_iterator iter2 = iter->second.find(trace->func());
    if (iter2 == iter->second.end()) return true;
 
-   func_instance *repl = iter2->second;
+   func_instance *repl = SCAST_FI(iter2->second);
 
    relocation_cerr << "Replacing call in trace "
                    << trace->id() << " with call to "

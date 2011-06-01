@@ -119,7 +119,7 @@ class AddressSpace : public InstructionSource {
    //   ... if F_c is not specified, we use NULL
    // F specifies the replacement callee; if we want to remove the call entirely,
    // also use NULL
-   typedef std::map<block_instance *, std::map<func_instance *, func_instance *> > CallModMap;
+   //typedef std::map<block_instance *, std::map<func_instance *, func_instance *> > CallModMap;
    //typedef std::map<func_instance *, func_instance *> FuncModMap;
     
     // Down-conversion functions
@@ -516,7 +516,7 @@ class AddressSpace : public InstructionSource {
     std::map<baseTramp *, std::set<Address> > instrumentationInstances_;
 
     // Track desired function replacements/removals/call replacements
-    CallModMap callModifications_;
+    // CallModMap callModifications_;
     // FuncModMap functionReplacements_;
     // FuncModMap functionWraps_;
 

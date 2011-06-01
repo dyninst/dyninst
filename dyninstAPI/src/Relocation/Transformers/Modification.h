@@ -55,7 +55,7 @@ class Modification : public Transformer {
     //typedef std::map<Address, RelocBlockList> RelocBlockMap;
 
     // Block (IDing a call site) -> func
-    typedef AddressSpace::CallModMap CallModMap;
+    typedef Dyninst::PatchAPI::CallModMap CallModMap;
     // func -> func
     typedef Dyninst::PatchAPI::FuncModMap FuncModMap;
 

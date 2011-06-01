@@ -44,3 +44,23 @@ Instrumenter::revertWrappedFunction(PatchFunction* oldfunc) {
   functionWraps_.erase(oldfunc);
   return true;
 }
+
+bool
+Instrumenter::modifyCall(PatchBlock *callBlock, PatchFunction *newCallee, PatchFunction *context) {
+  callModifications_[callBlock][context] = newCallee;
+  return true;
+}
+
+bool
+Instrumenter::revertModifiedCall(PatchBlock *callBlock, PatchFunction *context) {
+  if (callModifications_.find(callBlock) != callModifications_.end()) {
+    callModifications_[callBlock].erase(context);
+  }
+  return true;
+}
+
+bool
+Instrumenter::removeCall(PatchBlock *callBlock, PatchFunction *context) {
+  modifyCall(callBlock, NULL, context);
+  return true;
+}
