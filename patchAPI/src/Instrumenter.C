@@ -32,3 +32,15 @@ Instrumenter::revertReplacedFunction(PatchFunction* oldfunc) {
   functionReplacements_.erase(oldfunc);
   return true;
 }
+
+bool
+Instrumenter::wrapFunction(PatchFunction* oldfunc, PatchFunction *newfunc) {
+  functionWraps_[oldfunc] = newfunc;
+  return true;
+}
+
+bool
+Instrumenter::revertWrappedFunction(PatchFunction* oldfunc) {
+  functionWraps_.erase(oldfunc);
+  return true;
+}

@@ -38,6 +38,7 @@
 #include <list>
 #include <set>
 #include <map>
+#include "Relocation/DynInstrumenter.h"
 
 class block_instance;
 class instPoint;
@@ -56,12 +57,12 @@ class Modification : public Transformer {
     // Block (IDing a call site) -> func
     typedef AddressSpace::CallModMap CallModMap;
     // func -> func
-    typedef AddressSpace::FuncModMap FuncModMap;
+    typedef Dyninst::PatchAPI::FuncModMap FuncModMap;
 
     virtual bool process(RelocBlock *cur, RelocGraph *);
 
     Modification(const CallModMap &callRepl,
-		 const FuncModMap &funcRepl,
+                 const FuncModMap &funcRepl,
                  const FuncModMap &funcWrap);
 
     virtual ~Modification() {};

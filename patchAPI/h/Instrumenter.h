@@ -27,6 +27,13 @@ class Instrumenter {
     PATCHAPI_EXPORT virtual bool replaceFunction(PatchFunction* oldfunc,
                                                  PatchFunction* newfunc);
     PATCHAPI_EXPORT virtual bool revertReplacedFunction(PatchFunction* oldfunc);
+    PATCHAPI_EXPORT virtual FuncModMap& funcRepMap() { return functionReplacements_; }
+
+    // Function Wrapping
+    PATCHAPI_EXPORT virtual bool wrapFunction(PatchFunction* oldfunc,
+                                              PatchFunction* newfunc);
+    PATCHAPI_EXPORT virtual bool revertWrappedFunction(PatchFunction* oldfunc);
+    PATCHAPI_EXPORT virtual FuncModMap& funcWrapMap() { return functionWraps_; }
 
     // Getters and setters
     PATCHAPI_EXPORT AddrSpacePtr as() const { return as_; }
@@ -34,6 +41,7 @@ class Instrumenter {
   protected:
     AddrSpacePtr as_;
     FuncModMap functionReplacements_;
+    FuncModMap functionWraps_;
 
     explicit Instrumenter(AddrSpacePtr as) : as_(as) {}
     Instrumenter() {}

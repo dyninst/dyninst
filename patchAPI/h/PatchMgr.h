@@ -133,7 +133,7 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     PATCHAPI_EXPORT AddrSpacePtr as() const { return as_; }
     PATCHAPI_EXPORT InstanceSet& getCurInstances() { return current_instances_; }
     PATCHAPI_EXPORT PointMakerPtr pointMaker() const { return point_maker_; }
-
+    PATCHAPI_EXPORT InstrumenterPtr instrumenter() const { return instor_; } 
     //----------------------------------------------------
     // Mapping order: Scope -> Type -> Point Set
     // This order matches out filter sequence:

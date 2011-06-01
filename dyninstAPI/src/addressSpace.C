@@ -109,7 +109,7 @@ BinaryEdit *AddressSpace::edit() {
 // Fork constructor - and so we can assume a parent "process"
 // rather than "address space"
 void AddressSpace::copyAddressSpace(process *parent) {
-    deleteAddressSpace();
+   deleteAddressSpace();
 
     // This is only defined for process->process copy
     // until someone can give a good reason for copying
@@ -170,11 +170,22 @@ void AddressSpace::copyAddressSpace(process *parent) {
           callModifications_[newB][context] = target;
        }
     }
-    for (FuncModMap::iterator iter = parent->functionReplacements_.begin();
-         iter != parent->functionReplacements_.end(); ++iter) {
-       func_instance *from = findFunction(iter->first->ifunc());
-       func_instance *to = findFunction(iter->second->ifunc());
-       functionReplacements_[from] = to;
+
+    assert(parent->mgr());
+    PatchAPI::FuncModMap& frm = parent->mgr()->instrumenter()->funcRepMap();
+    for (PatchAPI::FuncModMap::iterator iter = frm.begin();
+         iter != frm.end(); ++iter) {
+      func_instance *from = findFunction(SCAST_FI(iter->first)->ifunc());
+      func_instance *to = findFunction(SCAST_FI(iter->second)->ifunc());
+      frm[from] = to;
+    }
+
+    PatchAPI::FuncModMap& fwm = parent->mgr()->instrumenter()->funcWrapMap();
+    for (PatchAPI::FuncModMap::iterator iter = fwm.begin();
+         iter != fwm.end(); ++iter) {
+      func_instance *from = findFunction(SCAST_FI(iter->first)->ifunc());
+      func_instance *to = findFunction(SCAST_FI(iter->second)->ifunc());
+      fwm[from] = to;
     }
 
     if (memEmulator_) assert(0 && "FIXME!");
@@ -214,7 +225,7 @@ void AddressSpace::deleteAddressSpace() {
     reverseDefensiveMap_.clear();
     instrumentationInstances_.clear();
     callModifications_.clear();
-    functionReplacements_.clear();
+
     if (memEmulator_) delete memEmulator_;
     memEmulator_ = NULL;
 }
@@ -1425,7 +1436,8 @@ void AddressSpace::modifyCall(block_instance *block, func_instance *newFunc, fun
 }
 
 void AddressSpace::replaceFunction(func_instance *oldfunc, func_instance *newfunc) {
-  functionReplacements_[oldfunc] = newfunc;
+  //functionReplacements_[oldfunc] = newfunc;
+  mgr()->instrumenter()->replaceFunction(oldfunc, newfunc);
   addModifiedFunction(oldfunc);
 }
 
@@ -1435,14 +1447,13 @@ bool AddressSpace::wrapFunction(func_instance *oldfunc, func_instance *newfunc) 
    }
    assert(oldfunc->proc() == this);
 
-   functionWraps_[oldfunc] = newfunc;
+   // functionWraps_[oldfunc] = newfunc;
+   mgr()->instrumenter()->wrapFunction(oldfunc, newfunc);
    addModifiedFunction(oldfunc);
 
    if (edit() && oldfunc->obj() != newfunc->obj()) {
-
      if (!AddressSpace::patch(this)) return false;
-
-      if (!newfunc->callWrappedFunction(oldfunc)) return false;
+     if (!newfunc->callWrappedFunction(oldfunc)) return false;
    }
    else {
       addModifiedFunction(newfunc);
@@ -1463,8 +1474,9 @@ void AddressSpace::revertCall(block_instance *block, func_instance *context) {
 }
 
 void AddressSpace::revertReplacedFunction(func_instance *oldfunc) {
-   functionReplacements_.erase(oldfunc);
-   addModifiedFunction(oldfunc);
+  //functionReplacements_.erase(oldfunc);
+  mgr()->instrumenter()->revertReplacedFunction(oldfunc);
+  addModifiedFunction(oldfunc);
 }
 
 
@@ -1658,7 +1670,9 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   // Insert whatever binary modifications are desired
   // Right now needs to go before Instrumenters because we use
   // instrumentation for function replacement.
-   Modification mod(callModifications_, functionReplacements_, functionWraps_);
+   Modification mod(callModifications_,
+                    mgr()->instrumenter()->funcRepMap(),
+                    mgr()->instrumenter()->funcWrapMap());
    cm->transform(mod);
 
   // Add instrumentation
@@ -2027,6 +2041,10 @@ void AddressSpace::initPatchAPI() {
        addr_space->loadLibrary(*i);
      }
    }
+
+   assert(mgr());
+   mgr()->instrumenter()->funcRepMap().clear();
+   mgr()->instrumenter()->funcWrapMap().clear();
 }
 
 bool AddressSpace::patch(AddressSpace* as) {
