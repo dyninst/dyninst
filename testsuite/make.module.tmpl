@@ -597,7 +597,7 @@ runTests-utils.o: ../src/runTests-utils.C $(DEPENDDIR)/runTests-utils.dep
 
 runTests: runTests.o runTests-utils.o test_driver_templates.o  $(LIBTESTLAUNCH)
 	@echo Linking $@
-	$(HIDE_COMP)$(CXX) $(CXXFLAGS) -o $@ runTests.o runTests-utils.o test_driver_templates.o -L. -ltestlaunch 
+	$(HIDE_COMP)$(CXX) $(CXXFLAGS) -o $@ runTests.o runTests-utils.o test_driver_templates.o -L.
 runTests_static: runTests_static.o runTests-utils.o test_driver_templates.o 
 	@echo Linking $@
 	$(HIDE_COMP)$(CXX) $(CXXFLAGS) -o runTests runTests_static.o runTests-utils.o test_driver_templates.o 

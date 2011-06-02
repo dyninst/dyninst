@@ -43,7 +43,6 @@
 #include <sys/stat.h>
 
 #include "runTests-utils.h"
-#include "error.h"
 
 extern string pdscrdir;
 
@@ -96,8 +95,7 @@ static void sigint_action(int sig, siginfo_t *siginfo, void *context) {
 void generateTestArgs(char **exec_args[], bool resume, bool useLog,
                       bool staticTests, string &logfile, int testLimit,
                       vector<char *> &child_argv, const char *pidFilename,
-                      std::string hostname, 
-                      const char *given_mutatee, int given_mutator);
+                      std::string hostname);
 
 int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
 {
@@ -175,7 +173,7 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
          int child_ret = 0;
          if (WIFSIGNALED(child_status)) {
             fprintf(stderr, "*** Child terminated abnormally via signal %d.\n", WTERMSIG(child_status));
-            child_ret = DRIVER_CRASHED;
+            child_ret = -2;
          } else {
             child_ret = (signed char) WEXITSTATUS(child_status);
          }
@@ -202,16 +200,14 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
 
 test_pid_t RunTest(unsigned int iteration, bool useLog, bool staticTests,
                    string logfile, int testLimit, vector<char *> child_argv,
-                   const char *pidFilename, std::string hostname,
-                   const char *given_mutatee, int given_mutator)
+                   const char *pidFilename, std::string hostname)
 {
    int retval = -1;
 
    char **exec_args = NULL;
 
    generateTestArgs(&exec_args, iteration > 0, useLog, staticTests, logfile,
-                    testLimit, child_argv, pidFilename, hostname,
-                    given_mutatee, given_mutator);
+                    testLimit, child_argv, pidFilename, hostname);
 
    if (hostname.length())
       sleep(1);
@@ -236,8 +232,7 @@ string ReplaceAllWith(const string &in, const string &replace, const string &wit
 void generateTestArgs(char **exec_args[], bool resume, bool useLog,
                       bool staticTests, string &logfile, int testLimit,
                       vector<char *> &child_argv, const char *pidFilename,
-                      std::string hostname,
-                      const char *given_mutatee, int given_mutator)
+                      std::string hostname)
 {
   vector<const char *> args;
 
@@ -255,21 +250,10 @@ void generateTestArgs(char **exec_args[], bool resume, bool useLog,
 
   args.push_back("-under-runtests");
   args.push_back("-enable-resume");
-  if (given_mutator != -1) {
-     assert(strlen(given_mutatee));
-     args.push_back("-given_mutator");
-     char *mutator_str = new char[12];
-     snprintf(mutator_str, 12, "%d", given_mutator);
-     args.push_back(mutator_str);
-     args.push_back("-given_mutatee");
-     args.push_back(given_mutatee);
-  }
-  else {
-     args.push_back("-group-limit");
-     char *limit_str = new char[12];
-     snprintf(limit_str, 12, "%d", testLimit);
-     args.push_back(limit_str);
-  }
+  args.push_back("-group-limit");
+  char *limit_str = new char[12];
+  snprintf(limit_str, 12, "%d", testLimit);
+  args.push_back(limit_str);
   if (pidFilename != NULL && strlen(pidFilename)) {
     args.push_back("-pidfile");
     args.push_back(pidFilename);

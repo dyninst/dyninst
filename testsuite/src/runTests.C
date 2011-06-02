@@ -50,9 +50,6 @@
 #include "runTests-utils.h"
 #include "error.h"
 #include "help.h"
-#include "MutateeStart.h"
-
-
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <cstring>
@@ -61,6 +58,7 @@
 // Default name for the resume log file
 #define DEFAULT_RESUMELOG "resumelog"
 // Default name for the crash log file
+#define DEFAULT_CRASHLOG "crashlog"
 
 bool staticTests = false;
 bool useLog = false;
@@ -247,18 +245,6 @@ static void clear_resumelog()
    unlink(mresumename.c_str());
 }
 
-#include "CmdLine.h"
-
-FILE *getOutputLog()
-{
-   return stdout;
-}
-
-FILE *getErrorLog()
-{
-   return stderr;
-}
-
 int main(int argc, char *argv[])
 {
    parseParameters(argc, argv);
@@ -282,9 +268,6 @@ int main(int argc, char *argv[])
       parallel_copies = 1;
    
    clear_resumelog();
-
-   ParameterDict params;
-   std::vector<RunGroup *> groups;
    
    char *parallel_copies_cs = NULL;
    {
@@ -308,7 +291,6 @@ int main(int argc, char *argv[])
       test_drivers[i].logfile = logfile + std::string(".") + unique_s;
       test_drivers[i].testLimit = testLimit;
       test_drivers[i].child_argv = child_argv;
-      
       if (pidFilename)
          test_drivers[i].pidFilename = pidFilename + std::string(".") + unique_s;
 
@@ -346,7 +328,6 @@ int main(int argc, char *argv[])
    }
 
    bool done = false;
-   unsigned next_group = 0;
    bool timeout = false;  // This should be pushed into test_driver.
    for (;;)
    {
@@ -369,9 +350,7 @@ int main(int argc, char *argv[])
                                        test_drivers[i].testLimit,
                                        test_drivers[i].child_argv,
                                        test_drivers[i].pidFilename.c_str(),
-                                       test_drivers[i].hostname,
-                                       test_drivers[i].given_mutatee.c_str(), 
-                                       test_drivers[i].given_mutator);
+                                       test_drivers[i].hostname);
          invocation++;
          if (test_drivers[i].pid < 0) {
             fprintf(stderr, "Could not execute test_driver\n");
