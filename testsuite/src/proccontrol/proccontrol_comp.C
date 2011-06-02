@@ -48,7 +48,7 @@
 #include <map>
 
 #if defined(os_bg_test)
-#define USE_MEM_COMM true
+#define USE_MEM_COMM false
 #else
 #define USE_MEM_COMM false
 #endif
@@ -106,6 +106,23 @@ bool ProcControlComponent::registerEventCounter(EventType et)
 bool ProcControlComponent::checkThread(const Thread &thread)
 {
    return true;
+}
+
+Process::cb_ret_t setSocketOnLibLoad(Event::const_ptr ev)
+{
+   EventLibrary::const_ptr lib_ev = ev->getEventLibrary();
+   bool have_libc = false;
+   for (set<Library::ptr>::const_iterator i = lib_ev->libsAdded().begin(); i != lib_ev->libsAdded().end(); i++) {
+      Library::ptr lib = *i;
+      if (lib->getName().find("libc-") != string::npos || lib->getName().find("libc.") != string::npos) {
+         have_libc = true;
+         break;
+      }
+   }
+   if (have_libc) {
+      ProcControlComponent::initializeConnectionInfo(ev->getProcess());
+   }
+   return Process::cbDefault;
 }
 
 bool ProcControlComponent::waitForSignalFD(int signal_fd)
@@ -218,13 +235,65 @@ void resetSignalFD(ParameterDict &param)
    }
 }
 
+static char socket_buffer[4096];
+static RunGroup *cur_group = NULL;
+static SymbolReaderFactory *factory = NULL;
+
+bool ProcControlComponent::initializeConnectionInfo(Process::const_ptr proc)
+{
+   static map<string, Offset> cached_ms_addrs;
+
+   SymReader *reader = NULL;
+   Dyninst::Offset sym_offset = 0;
+   Dyninst::Offset exec_addr = 0;
+   std::string exec_name;
+
+   Library::const_ptr lib = proc->libraries().getExecutable();
+   if (lib == Library::const_ptr()) {
+      exec_name = cur_group->mutatee;
+      exec_addr = 0;
+   }
+   else {
+      exec_name = lib->getName();
+      exec_addr = lib->getLoadAddress();
+   }
+   
+   map<string, Offset>::iterator i = cached_ms_addrs.find(exec_name);
+   if (i != cached_ms_addrs.end()) {
+      sym_offset = i->second;
+   }
+   else {
+      reader = factory->openSymbolReader(exec_name);
+      if (!reader) {
+         logerror("Could not open executable\n");
+         return false;
+      }
+      Symbol_t sym = reader->getSymbolByName(string("MutatorSocket"));
+      if (!reader->isValidSymbol(sym))
+      {
+         logerror("Could not find MutatorSocket symbol in executable\n");
+         return false;
+      }
+      sym_offset = reader->getSymbolOffset(sym);
+      cached_ms_addrs[exec_name] = sym_offset;
+   }
+
+   Dyninst::Address addr = exec_addr + sym_offset;
+   bool result = proc->writeMemory(addr, socket_buffer, strlen(socket_buffer)+1);
+   if (!result) {
+      logerror("Could not write connection information\n");
+      return false;
+   }
+   return true;
+}
+
 bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 {
    bool error = false;
 
    num_processes = 0;
    if (group->procmode == MultiProcess)
-      num_processes = DEFAULT_NUM_PROCS;
+      num_processes = getNumProcs(param);
    else
       num_processes = 1;
    bool result = setupServerSocket(param);
@@ -235,7 +304,6 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 #if !defined(os_bg_test) && !defined(os_windows_test)
    setupSignalFD(param);
 #endif
-   SymbolReaderFactory *factory = NULL;
    for (unsigned i=0; i<num_processes; i++) {
       Process::ptr proc = startMutatee(group, param);
       if (proc == NULL) {
@@ -252,48 +320,20 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
        **/
       assert(num_processes);
       assert(factory);
-      SymReader *reader = NULL;
-      Dyninst::Offset sym_offset = 0;
-      char socket_buffer[4096];
       memset(socket_buffer, 0, 4096);
       if (param.find("socket_type") != param.end() && param.find("socket_name") != param.end()) {
          snprintf(socket_buffer, 4095, "%s %s", param["socket_type"]->getString(), 
                   param["socket_name"]->getString());
       }
-      int socket_buffer_len = strlen(socket_buffer);
-      string exec_name;
-      Dyninst::Offset exec_addr = 0;
-      for (vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) 
-      {
-         Process::ptr proc = *j;
-         Library::ptr lib = proc->libraries().getExecutable();
-         if (!reader) {
-            if (lib == Library::ptr()) {
-               exec_name = group->mutatee;
-               exec_addr = 0;
-            }
-            else {
-               exec_name = lib->getName();
-               exec_addr = lib->getLoadAddress();
-            }
-            reader = factory->openSymbolReader(exec_name);
-            if (!reader) {
-               logerror("Could not open executable\n");
-               error = true;
-               continue;
-            }
-            Symbol_t sym = reader->getSymbolByName(string("MutatorSocket"));
-            if (!reader->isValidSymbol(sym))
-            {
-               logerror("Could not find MutatorSocket symbol in executable\n");
-               error = true;
-               continue;
-            }
-            sym_offset = reader->getSymbolOffset(sym);
-         }
-         Dyninst::Address addr = exec_addr + sym_offset;
-         proc->writeMemory(addr, socket_buffer, socket_buffer_len+1);            
+      cur_group = group;
+      for (vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
+         bool result = initializeConnectionInfo(*j);
+         if (!result) 
+            error = true;
       }
+#if defined(os_bg_test)
+      Process::registerEventCallback(EventType::Library, setSocketOnLibLoad);
+#endif
    }
 
    EventType thread_create(EventType::None, EventType::ThreadCreate);
@@ -308,13 +348,16 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
          continue;
       }
    }   
-   num_threads = group->threadmode == MultiThreaded ? DEFAULT_NUM_THREADS : 0;
+   num_threads = group->threadmode == MultiThreaded ? getNumThreads(param) : 0;
 
    result = acceptConnections(num_procs, NULL);
    if (!result) {
       logerror("Failed to accept connections from new mutatees\n");
       error = true;
    }
+#if defined(os_bg_test)
+   Process::removeEventCallback(EventType::Library, setSocketOnLibLoad);
+#endif
    
    if (group->createmode == CREATE) {
       Process::ptr a_proc = *procs.begin();
@@ -330,6 +373,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
             if (!result) {
                logerror("Failed to handle events during thread create\n");
                error = true;
+               break;
             }
          }
       }
@@ -341,6 +385,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
             if (!result) {
                logerror("Failed to handle events during user thread create\n");
                error = true;
+               break;
             }
          }
       }
@@ -574,7 +619,6 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
          socks.push_back(-1);
    }
 
-   
    while (!use_mem_communication && socks.size() < num) {
       fd_set readset; FD_ZERO(&readset);
       fd_set writeset; FD_ZERO(&writeset);
@@ -639,7 +683,6 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
       int pid;
 #if defined(os_bg_test)
       //BG pids don't always seem to be consistent.
-      assert(use_mem_communication);
       pid = procs[i]->getPid();
 #else
       pid = msg.pid;

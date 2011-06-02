@@ -99,6 +99,8 @@ TESTLIB_DLL_EXPORT void flushErrorLog();
 // TODO Implement this function for Windows   
 TESTLIB_DLL_EXPORT int setupMutatorsForRunGroup (RunGroup *group);
 
+TESTLIB_DLL_EXPORT int getNumProcs(const ParameterDict &dict);
+TESTLIB_DLL_EXPORT int getNumThreads(const ParameterDict &dict);
 
 // Mutatee PID registration, for cleaning up hung mutatees
 // TODO Check if these make any sense on Windows.  I suspect I'll need to
