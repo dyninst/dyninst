@@ -793,7 +793,7 @@ test_description('test2_7', '').
 % test2_7 runs on Solaris, Linux, AIX, and Windows
 test_platform('test2_7', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'aix', 'windows']).
+    member(OS, ['linux', 'aix', 'windows', 'freebsd']).
 mutator('test2_7', ['test2_7.C']).
 test_runmode('test2_7', 'dynamic').
 test_start_state('test2_7', 'stopped').
@@ -2221,7 +2221,7 @@ test('test_relocations', 'test_relocations', 'symtab_group_test').
 test_description('test_relocations', 'SymtabAPI relocation table parsing').
 test_platform('test_relocations', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux']).
+    member(OS, ['linux', 'freebsd']).
 groupable_test('test_relocations').
 mutator('test_relocations', ['test_relocations.C']).
 test_runmode('test_relocations', 'disk').
@@ -2545,6 +2545,19 @@ tests_module('pc_detach', 'proccontrol').
 mutatee('pc_detach', ['pc_detach_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_detach', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_detach', _, Opt) :- member(Opt, ['none']).
+
+test('pc_temp_detach', 'pc_temp_detach', 'pc_temp_detach').
+test_description('pc_temp_detach', 'Temoprarily detach from processes').
+test_platform('pc_temp_detach', Platform) :- pcPlatforms(Platform).
+mutator('pc_temp_detach', ['pc_temp_detach.C']).
+test_runmode('pc_temp_detach', 'dynamic').
+test_threadmode('pc_temp_detach', 'Threading').
+test_processmode('pc_temp_detach', 'Processes').
+test_start_state('pc_temp_detach', 'stopped').
+tests_module('pc_temp_detach', 'proccontrol').
+mutatee('pc_temp_detach', ['pc_temp_detach_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_temp_detach', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_temp_detach', _, Opt) :- member(Opt, ['none']).
 
 test('pc_terminate', 'pc_terminate', 'pc_terminate').
 test_description('pc_terminate', 'Detach from processes').
