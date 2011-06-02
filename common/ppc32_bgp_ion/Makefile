@@ -16,6 +16,10 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 
+ifdef LIBELF_INC
+MYFLAGS += -I$(LIBELF_INC)
+endif
+
 CXXFLAGS        += $(MYFLAGS)
 CXXFLAGS    += -I/bgsys/drivers/ppcfloor/arch/include
 
@@ -25,11 +29,11 @@ TFLAGS          += $(MYFLAGS)
 SRCS = ../../common/src/timing-linux.C \
        ../../common/src/parseauxv.C \
        ../../common/src/bluegeneKludges.C \
-       ../../common/src/BG_AuxvReader.C \
 		 ../../common/src/addrtranslate-sysv.C \
 		 ../../common/src/addrtranslate-auxv.C \
 		 ../../common/src/addrtranslate-bluegenep.C \
-       ../../common/src/auxvtypes.C
+       ../../common/src/auxvtypes.C \
+		 ../../common/src/Elf_X.C
 
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS                += -g

@@ -110,7 +110,7 @@ public:
     virtual bool plat_contProcess();
     virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
 
-    virtual bool post_attach();
+    virtual bool post_attach(bool wasDetached);
     virtual bool post_create();
     virtual int getEventQueue();
     virtual bool initKQueueEvents();

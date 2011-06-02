@@ -32,6 +32,7 @@
 #include "MutateeStart.h"
 #include "ParameterDict.h"
 #include "test_info_new.h"
+#include "test_lib.h"
 #include <assert.h>
 
 using namespace std;
@@ -356,8 +357,12 @@ bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_
    test_threadstate_t ts = (test_threadstate_t) params["threadMode"]->getInt();
    if (ts == SingleThreaded)
       args.push_back("-st");
-   else if (ts == MultiThreaded) 
+   else if (ts == MultiThreaded) {
       args.push_back("-mt");
+      char s[64];
+      snprintf(s, 64, "%d", getNumThreads(params));
+      args.push_back(s);
+   }
 
    int signal_fd = params.find("signal_fd_out") != params.end() ? params["signal_fd_out"]->getInt() : -1;
    if (signal_fd != -1) {

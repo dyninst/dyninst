@@ -83,6 +83,9 @@ class sysv_process : virtual public int_process
    virtual bool plat_execed();
    virtual bool plat_isStaticBinary();
    virtual int_library *plat_getExecutable();
+   virtual bool plat_getInterpreterBase(Address &addr);
+
+   AddressTranslate *constructTranslator(Dyninst::PID pid);
 
    static int_breakpoint *lib_trap;
 

@@ -289,20 +289,21 @@ void HandlerPool::clearEventAsync(Event::ptr ev)
       clearProcAsyncPending(this);
    }
 
+   int_process *proc = ev->getProcess()->llproc();
+   int_thread *thr = ev->getThread() ? ev->getThread()->llthrd() : NULL;
    pthrd_printf("Async event %s on %d/%d is complete, restoring\n",
-                ev->name().c_str(), ev->getProcess()->llproc()->getPid(), 
-                ev->getThread()->llthrd()->getLWP());   
+                ev->name().c_str(), proc->getPid(), thr ? thr->getLWP() : -1);
    switch (ev->getSyncType()) {
       case Event::unset:
       case Event::async:
          break;
       case Event::sync_thread: {
-         int_thread *thr = ev->getThread()->llthrd();
+         assert(thr);
          thr->restoreInternalState(false);
          break;
       }
       case Event::sync_process: {
-         int_threadPool *tp = ev->getProcess()->llproc()->threadPool();
+         int_threadPool *tp = proc->threadPool();
          tp->restoreInternalState(false);
          break;
       }
@@ -344,7 +345,6 @@ bool HandlerPool::handleEvent(Event::ptr orig_ev)
    for (set<Event::ptr>::iterator i = all_events.begin(); i != all_events.end(); i++)
    {
       Event::ptr ev = *i;
-      pthrd_printf("Examining event list.  Have event %s\n", ev->name().c_str());
       EventType etype = ev->getEventType();
       HandlerMap_t::iterator j = handlers.find(etype);
       if (j == handlers.end()) {
@@ -355,11 +355,9 @@ bool HandlerPool::handleEvent(Event::ptr orig_ev)
       for (HandlerSet_t::iterator k = hset->begin(); k != hset->end(); k++)
       {
          Handler *hnd = *k;
-         pthrd_printf("Examining event/handler Have event %s on %s\n", 
-                      ev->name().c_str(), 
-                      hnd->getName().c_str());
-         if (ev->handled_by.find(hnd) != ev->handled_by.end()) {
-            pthrd_printf("Event %s has already been handled by %s\n",
+         bool already_handled = (ev->handled_by.find(hnd) != ev->handled_by.end());
+         if (already_handled) {
+            pthrd_printf("Have event %s on %s (already handled)\n", 
                          ev->name().c_str(), hnd->getName().c_str());
             continue;
          }
@@ -376,6 +374,13 @@ bool HandlerPool::handleEvent(Event::ptr orig_ev)
    bool had_error = true;
 
    ev_hndler_set_t::iterator i;
+
+   if (dyninst_debug_proccontrol) {
+      for (i = events_and_handlers.begin(); i != events_and_handlers.end(); i++) {
+         pthrd_printf("Have event %s on %s\n", i->first->name().c_str(), i->second->getName().c_str());
+      }
+   }
+
    for (i = events_and_handlers.begin(); i != events_and_handlers.end(); i++)
    {
       handled_something = true;
@@ -722,8 +727,8 @@ void HandleThreadCreate::getEventTypesHandled(std::vector<EventType> &etypes)
 Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
 {
    int_process *proc = ev->getProcess()->llproc();
-   int_thread *thrd = ev->getThread()->llthrd();
-   EventNewThread *threadev = static_cast<EventNewThread *>(ev.get());
+   int_thread *thrd = ev->getThread() ? ev->getThread()->llthrd() : NULL;
+   EventNewThread::ptr threadev = ev->getEventNewThread();
 
    pthrd_printf("Handle thread create for %d/%d with new thread %d\n",
                 proc->getPid(), thrd ? thrd->getLWP() : -1, threadev->getLWP());
@@ -743,6 +748,15 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    newthr->setGeneratorState(int_thread::stopped);
    newthr->setHandlerState(int_thread::stopped);
 
+   if (!thrd) {
+      //This happens on BG/P with user thread events.
+      pthrd_printf("Setting new event to have occured on new thread\n");
+      ev->setThread(newthr->thread());
+      thrd = newthr;
+   }
+
+   int_thread *inherit_from = (thrd == newthr) ? proc->threadPool()->initialThread() : thrd;
+
    if (proc->hasQueuedProcStoppers() || ev->getEventType().code() == EventType::UserThreadCreate ) 
    {
        // The following ordering of problems causes problems: 
@@ -760,9 +774,9 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    }else{
        //New threads start stopped, but inherit the user state of the creating
        // thread (which should be 'running').
-       newthr->setInternalState(thrd->getUserState());
+       newthr->setInternalState(inherit_from->getUserState());
    }
-   newthr->setUserState(thrd->getUserState());
+   newthr->setUserState(inherit_from->getUserState());
    
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
@@ -786,27 +800,17 @@ void HandleThreadDestroy::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::Any, EventType::LWPDestroy));
 }
 
+int HandleThreadDestroy::getPriority() const
+{
+   return Handler::PostPlatformPriority + 2; //After thread_db destroy handler
+}
+
 Handler::handler_ret_t HandleThreadDestroy::handleEvent(Event::ptr ev)
 {
    int_thread *thrd = ev->getThread()->llthrd();
    int_process *proc = ev->getProcess()->llproc();
-   if (ev->getEventType().time() == EventType::Pre) {
-      pthrd_printf("Handling pre-thread destroy for %d\n", thrd->getLWP());
-      return ret_success;
-   }
-
-   if (ev->getEventType().code() == EventType::UserThreadCreate &&
-       proc->plat_supportLWPEvents()) 
-   {
-      //This is a user thread delete, but we still have an upcoming LWP 
-      // delete.  Don't actually do anything yet.
-      pthrd_printf("Handling user thread... postponing clean of %d/%d until LWP delete\n", 
-                   proc->getPid(), thrd->getLWP());
-      return ret_success;
-   }
 
    pthrd_printf("Handling post-thread destroy for %d\n", thrd->getLWP());
-   ProcPool()->condvar()->lock();
 
    if (proc->wasForcedTerminated()) {
       //Linux sometimes throws an extraneous thread terminate after
@@ -815,16 +819,54 @@ Handler::handler_ret_t HandleThreadDestroy::handleEvent(Event::ptr ev)
       ev->setSuppressCB(true);
    }
 
-   thrd->setHandlerState(int_thread::exited);
-   thrd->setInternalState(int_thread::exited);
-   thrd->setUserState(int_thread::exited);
-   ProcPool()->rmThread(thrd);
-   proc->threadPool()->rmThread(thrd);
+   if (ev->getEventType().code() == EventType::LWPDestroy && ev->getEventType().time() != EventType::Pre) {
+      pthrd_printf("Deleting thread object from HandleThreadDestroy\n");
+      int_thread::cleanFromHandler(thrd);
+   }
+   else {
+      pthrd_printf("Skipping delete of thread object from HandleThreadDestroy\n");
+   }
 
-   delete thrd;
+   return ret_success;
+}
 
-   ProcPool()->condvar()->signal();
-   ProcPool()->condvar()->unlock();
+HandleThreadCleanup::HandleThreadCleanup() :
+   Handler("Thread Cleanup")
+{
+}
+
+HandleThreadCleanup::~HandleThreadCleanup()
+{
+}
+
+void HandleThreadCleanup::getEventTypesHandled(vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::Any, EventType::UserThreadDestroy));
+}
+
+int HandleThreadCleanup::getPriority() const
+{
+   return Handler::PostCallbackPriority + 1;
+}
+
+
+Handler::handler_ret_t HandleThreadCleanup::handleEvent(Event::ptr ev)
+{
+
+#warning remove this
+   return ret_success;
+
+
+   int_process *proc = ev->getProcess()->llproc();
+   if (proc->plat_supportLWPEvents()) {
+      //The LWP handler will clean the thread latter.
+      pthrd_printf("Nothing to do in HandleThreadCleanup\n");
+      return ret_success;
+   }
+   int_thread *thrd = ev->getThread()->llthrd();
+   pthrd_printf("Cleaning thread %d/%d from HandleThreadCleanup handler.\n", 
+                proc->getPid(), thrd->getLWP());
+   int_thread::cleanFromHandler(thrd);
    return ret_success;
 }
 
@@ -1184,13 +1226,18 @@ Handler::handler_ret_t HandleBreakpointContinue::handleEvent(Event::ptr ev)
    if (!skip_continues) {
       pthrd_printf("Finished handling last procstopper BP, setting relevant threads to run\n");
       for (i = proc->threadPool()->begin(); i != proc->threadPool()->end(); i++) {
-         if (!(*i)->decodedProcStopperBP())
-            continue;
-         assert((*i)->handledProcStopperBP());
-         pthrd_printf("Setting procstopped BP thread %d/%d to internal running\n",
-                      proc->getPid(), (*i)->getLWP());
-         (*i)->setInternalState(int_thread::running);
-         (*i)->clearProcStopperBPState();
+         if (!(*i)->decodedProcStopperBP()) {
+            pthrd_printf("Setting procstopped BP thread %d/%d to internal running\n",
+                         proc->getPid(), (*i)->getLWP());
+            (*i)->setInternalState(int_thread::stopped);
+         }
+         else {
+            assert((*i)->handledProcStopperBP());
+            pthrd_printf("Setting procstopped BP thread %d/%d to internal running\n",
+                         proc->getPid(), (*i)->getLWP());
+            (*i)->setInternalState(int_thread::running);
+            (*i)->clearProcStopperBPState();
+         }
       }
    }
    return Handler::ret_success;
@@ -1580,8 +1627,13 @@ Handler::handler_ret_t HandleDetached::handleEvent(Event::ptr ev)
 
    ProcPool()->condvar()->lock();
 
-   proc->setState(int_process::exited);
-   ProcPool()->rmProcess(proc);
+   if (proc->isDoingTemporaryDetach()) {
+      proc->setState(int_process::detached);
+   }
+   else {
+      proc->setState(int_process::exited);
+      ProcPool()->rmProcess(proc);
+   }
 
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
@@ -2075,6 +2127,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static HandlePreExit *hpreexit = NULL;
    static HandleThreadCreate *hthreadcreate = NULL;
    static HandleThreadDestroy *hthreaddestroy = NULL;
+   static HandleThreadCleanup *hthreadcleanup = NULL;
    static HandleThreadStop *hthreadstop = NULL;
    static HandleSingleStep *hsinglestep = NULL;
    static HandleCrash *hcrash = NULL;
@@ -2098,6 +2151,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hpreexit = new HandlePreExit();
       hthreadcreate = new HandleThreadCreate();
       hthreaddestroy = new HandleThreadDestroy();
+      hthreadcleanup = new HandleThreadCleanup();
       hthreadstop = new HandleThreadStop();
       hsinglestep = new HandleSingleStep();
       hcrash = new HandleCrash();
@@ -2123,6 +2177,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hpreexit);
    hpool->addHandler(hthreadcreate);
    hpool->addHandler(hthreaddestroy);
+   hpool->addHandler(hthreadcleanup);
    hpool->addHandler(hthreadstop);
    hpool->addHandler(hsinglestep);
    hpool->addHandler(hcrash);

@@ -36,6 +36,11 @@
 #include <assert.h>
 #include <errno.h>
 
+#include <sys/select.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 thread_t threads[MAX_POSSIBLE_THREADS];
 int thread_results[MAX_POSSIBLE_THREADS];
 int num_threads;
@@ -49,7 +54,7 @@ typedef struct {
 } datagram;
 
 #if defined(os_bg_test)
-#define USE_MEM_COMM 1
+#define USE_MEM_COMM 0
 #else
 #define USE_MEM_COMM 0
 #endif
@@ -108,9 +113,7 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
       if ((strcmp(gargv[i], "-mt") == 0) && init_func) {
          is_mt = 1;
          num_threads = atoi(gargv[i+1]);
-         if (!num_threads) {
-            num_threads = DEFAULT_NUM_THREADS;
-         }
+         assert(num_threads > 1);
          break;
       }
    }
@@ -163,14 +166,12 @@ int handshakeWithServer()
       fprintf(stderr, "Could not send PID\n");
       return -1;
    }
-
    handshake shake;
    result = recv_message((unsigned char *) &shake, sizeof(handshake));
    if (result != 0) {
       fprintf(stderr, "Error recieving message\n");
       return -1;
    }
-
    if (shake.code != HANDSHAKE_CODE) {
       fprintf(stderr, "Recieved unexpected message\n");
       return -1;
@@ -256,6 +257,7 @@ int finiProcControlTest(int expected_ret_code)
 #include <sys/un.h>
 
 static volatile char MutatorSocket[4096];
+
 static char *socket_type = NULL;
 static char *socket_name = NULL;
 
@@ -263,9 +265,11 @@ void getSocketInfo()
 {
    int count = 0;
 
+
    if (needs_pc_comm)
       return;
    
+   count = 0;
    while (MutatorSocket[0] == '\0') {
       usleep(10000); //.01 seconds
       count++;
@@ -382,6 +386,22 @@ int recv_message(unsigned char *msg, size_t msg_size)
 
    int result = -1;
    while( result != (int) msg_size && result != 0 ) {
+       fd_set read_set;
+       FD_ZERO(&read_set);
+       FD_SET(sockfd, &read_set);
+       struct timeval s_timeout;
+       s_timeout.tv_sec = 0;
+       s_timeout.tv_usec = 100000; //.1 sec
+       int sresult = select(sockfd+1, &read_set, NULL, NULL, &s_timeout);
+       if (sresult == -1 && errno != EINTR) {
+          perror("Mutatee unable to receive message during select\n");
+          return -1;
+       }
+       if (sresult <= 0) {
+          continue;
+       }
+       
+       
        result = recv(sockfd, msg, msg_size, MSG_WAITALL);
 
        if (result == -1 && errno != EINTR ) {

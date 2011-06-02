@@ -446,7 +446,7 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg, bool &
       return Event::ptr();
    }
    Dyninst::LWP lwp = (Dyninst::LWP) info.ti_lid;
-   int_thread *thr = threadPool()->findThreadByLWP(lwp);
+   int_thread *thr = threadPool()->findThreadByLWP(lwp); //thr may be NULL if OS doesn't support LWP events (BG/P) 
    switch(eventMsg->event) {
       case TD_CREATE:
       {
@@ -461,7 +461,7 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg, bool &
 #endif
          EventNewUserThread::ptr new_ev = EventNewUserThread::ptr(new EventNewUserThread());
          new_ev->setProcess(proc());
-         new_ev->setThread(thr->thread());
+         new_ev->setThread(thr ? thr->thread() : Thread::ptr());
          new_ev->setSyncType(Event::sync_process);
          int_eventNewUserThread *iev = new_ev->getInternalEvent();
 
@@ -548,8 +548,10 @@ thread_db_process::~thread_db_process()
     delete self;
 }
 
-async_ret_t thread_db_process::initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info)
+async_ret_t thread_db_process::initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info, LWP lwp)
 {
+   pthrd_printf("initThreadWithHandle on %d/%d\n", getPid(), lwp);
+
    td_thrinfo_t tinfo;
    if (!info) {
       async_ret_t result = ll_fetchThreadInfo(thr, &tinfo);
@@ -564,9 +566,15 @@ async_ret_t thread_db_process::initThreadWithHandle(td_thrhandle_t *thr, td_thri
       info = &tinfo;
    }
 
-   Dyninst::LWP lwp = (Dyninst::LWP) info->ti_lid;
+   if (lwp == NULL_LWP) {
+      lwp = (Dyninst::LWP) info->ti_lid;
+      pthrd_printf("initThreadWithHandle found thread %d/%d\n", getPid(), lwp);
+   }
+   if (lwp == getPid()) {
+      lwp = threadPool()->initialThread()->getLWP();
+   }
    thread_db_thread *tdb_thread = static_cast<thread_db_thread *>(threadPool()->findThreadByLWP(lwp));
-   if (!tdb_thread) { 
+   if (!tdb_thread) {
       perr_printf("Error.  Thread_db reports thread %d/%d, but couldn't find existing LWP\n",
                   getPid(), lwp);
       return aret_error;
@@ -583,11 +591,11 @@ async_ret_t thread_db_process::initThreadWithHandle(td_thrhandle_t *thr, td_thri
    getMemCache()->markToken(token_seteventreporting);
    async_ret_t result = tdb_thread->setEventReporting(true);
    if (result == aret_error) {
-      pthrd_printf("Error in setEventReporting for %d/%d\n", tdb_thread->getLWP(), getPid());
+      pthrd_printf("Error in setEventReporting for %d/%d\n", getPid(), tdb_thread->getLWP());
       return aret_error;
    }
    if (result == aret_async) {
-      pthrd_printf("Async return in setEventReporting for %d/%d\n", tdb_thread->getLWP(), getPid());
+      pthrd_printf("Async return in setEventReporting for %d/%d\n", getPid(), tdb_thread->getLWP());
       return aret_async;
    }
    getMemCache()->condense();
@@ -596,14 +604,14 @@ async_ret_t thread_db_process::initThreadWithHandle(td_thrhandle_t *thr, td_thri
 }
 
 
-async_ret_t thread_db_process::handleThreadAttach(td_thrhandle_t *thr)
+async_ret_t thread_db_process::handleThreadAttach(td_thrhandle_t *thr, Dyninst::LWP lwp)
 {
 #if defined(os_freebsd)
    td_err_e errVal = p_td_thr_dbsuspend(handle);
    if( TD_OK != errVal ) return aret_error;
 #endif
 
-   return initThreadWithHandle(thr, NULL);
+   return initThreadWithHandle(thr, NULL, lwp);
 }
 
 async_ret_t thread_db_process::initThreadDB() {
@@ -668,19 +676,19 @@ async_ret_t thread_db_process::initThreadDB() {
    }
 
    bool hasAsync = false;
-   set<td_thrhandle_t *> all_handles;
+   set<pair<td_thrhandle_t *, LWP> > all_handles;
    for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); i++) {
       thread_db_thread *tdb_thread = static_cast<thread_db_thread *>(*i);
       
       if (tdb_thread->threadHandle_alloced) {
-         all_handles.insert(tdb_thread->threadHandle);
+         all_handles.insert(pair<td_thrhandle_t *, LWP>(tdb_thread->threadHandle, tdb_thread->getLWP()));
          continue;
       }
       
       if (!tdb_thread->threadHandle)
          tdb_thread->threadHandle = new td_thrhandle_t;
       
-      pthrd_printf("lwp2thr on %d/%d\n", tdb_thread->getLWP(), getPid());
+      pthrd_printf("lwp2thr on %d/%d\n", getPid(), tdb_thread->getLWP());
       errVal = p_td_ta_map_lwp2thr(getThreadDBAgent(), tdb_thread->getLWP(), tdb_thread->threadHandle);
       if (errVal != TD_OK) {
          if (getMemCache()->hasPendingAsync()) {
@@ -693,19 +701,21 @@ async_ret_t thread_db_process::initThreadDB() {
          setLastError(err_internal, "Failed to get thread_db thread handle");
          delete tdb_thread->threadHandle;
          tdb_thread->threadHandle = NULL;
+         continue;
       }
+      pthrd_printf("Successful lwp2thr on %d/%d, th_unique = %p\n", getPid(), tdb_thread->getLWP(), tdb_thread->threadHandle->th_unique);
       tdb_thread->threadHandle_alloced = true;
-      all_handles.insert(tdb_thread->threadHandle);
+      all_handles.insert(pair<td_thrhandle_t *, LWP>(tdb_thread->threadHandle, tdb_thread->getLWP()));
    }
    if (hasAsync) {
       pthrd_printf("Postponing lwp2thr for async\n");
       return aret_async;
    }
 
-   pthrd_printf("handleThreadAttach for threads\n");
-   for (set<td_thrhandle_t *>::iterator i = all_handles.begin(); i != all_handles.end(); i++)
+   pthrd_printf("handleThreadAttach for %d threads\n", all_handles.size());
+   for (set<pair<td_thrhandle_t *, LWP> >::iterator i = all_handles.begin(); i != all_handles.end(); i++)
    {
-      async_ret_t result = handleThreadAttach(*i);
+      async_ret_t result = handleThreadAttach(i->first, i->second);
       if (result == aret_error) {
          perr_printf("Error handling thread_db attach\n");
          return aret_error;
@@ -791,11 +801,11 @@ async_ret_t thread_db_process::initThreadDB() {
          delete newEventBrkpt;
          thread_db_proc_initialized = true;
          return aret_error;
-      }
+         }
       
       pair<map<Dyninst::Address, pair<int_breakpoint *, EventType> >::iterator, bool> insertIter;
       insertIter = addr2Event.insert(make_pair(addr, make_pair(newEventBrkpt, newEvent)));
-      
+
       assert( insertIter.second && "event breakpoint address not unique" );
    }
    
@@ -846,7 +856,7 @@ bool thread_db_process::decodeTdbLWPExit(EventLWPDestroy::ptr lwp_ev)
    pthrd_printf("Decoded LWP exit without thread exit on %d/%d.  Faking thread exit event\n",
                 db_thread->llproc()->getPid(), db_thread->getLWP());
    
-   EventUserThreadDestroy::ptr new_ev = EventUserThreadDestroy::ptr(new EventUserThreadDestroy(EventType::Pre));
+   EventUserThreadDestroy::ptr new_ev = EventUserThreadDestroy::ptr(new EventUserThreadDestroy(EventType::Post));
    new_ev->setProcess(db_thread->llproc()->proc());
    new_ev->setThread(db_thread->thread());
    lwp_ev->addSubservientEvent(new_ev);
@@ -993,8 +1003,8 @@ bool thread_db_process::post_create() {
     return true;
 }
 
-bool thread_db_process::post_attach() {
-    if( !int_process::post_attach() ) return false;
+bool thread_db_process::post_attach(bool wasDetached) {
+    if( !int_process::post_attach(wasDetached) ) return false;
     
     async_ret_t result;
     getMemCache()->setSyncHandling(true);
@@ -1009,6 +1019,46 @@ bool thread_db_process::post_attach() {
     getMemCache()->setSyncHandling(false);
     return result == aret_success ? true : false;
 }
+
+#warning TODO fix in post attach rewrite
+#if 0
+bool thread_db_process::post_attach(bool wasDetached) {
+    if( !int_process::post_attach(wasDetached) ) return false;
+
+    if( !wasDetached ) {
+        return initThreadDB();
+    }else{
+        // Need to initialize all new threads
+        bool success = true;
+        td_err_e errVal;
+        for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); i++) {
+           thread_db_thread *tdb_thread = static_cast<thread_db_thread *>(*i);
+           if( tdb_thread->thread_initialized ) continue;
+
+           tdb_thread->threadHandle = new td_thrhandle_t;
+
+           errVal = td_ta_map_lwp2thr(getThreadDBAgent(), tdb_thread->getLWP(), tdb_thread->threadHandle);
+           if (errVal != TD_OK) {
+              perr_printf("Failed to map LWP %d to thread_db thread: %s(%d)\n",
+                          tdb_thread->getLWP(), tdErr2Str(errVal), errVal);
+              setLastError(err_internal, "Failed to get thread_db thread handle");
+              delete tdb_thread->threadHandle;
+              tdb_thread->threadHandle = NULL;
+              success = false;
+              continue;
+           }
+           tdb_thread->threadHandle_alloced = true;
+
+           if( !handleThreadAttach(tdb_thread->threadHandle) ) {
+               perr_printf("Error handling thread_db attach\n");
+               success = false;
+           }
+        }
+
+        return success;
+    }
+}
+#endif
 
 bool thread_db_process::getPostDestroyEvents(vector<Event::ptr> &events) { 
    unsigned oldSize = events.size();
@@ -1070,7 +1120,6 @@ bool thread_db_process::plat_supportThreadEvents()
 bool thread_db_thread::plat_convertToSystemRegs(const int_registerPool &,
                                                 unsigned char *)
 {
-    perr_printf("Attempt to use unsupported plat_convertToSystemRegs\n");
     return true;
 }
 
@@ -1308,7 +1357,7 @@ Handler::handler_ret_t ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
       assert(tdb_proc);
       new_thread_data_t *thrdata = (new_thread_data_t *) threadEv->getInternalEvent()->raw_data;
       
-      async_ret_t result = tdb_proc->initThreadWithHandle(thrdata->thr_handle, &thrdata->thr_info);
+      async_ret_t result = tdb_proc->initThreadWithHandle(thrdata->thr_handle, &thrdata->thr_info, NULL_LWP);
       if (result == aret_error) {
          pthrd_printf("ThreadDBCreateHandler returning error\n");
          return Handler::ret_error;
@@ -1355,9 +1404,11 @@ Handler::handler_ret_t ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
    if (ev->getEventType().time() == EventType::Post) {
       // Need to make sure that the thread actually finishes and is cleaned up
       // by the OS
-      if( !thrd->plat_resume() ) {
-         perr_printf("Failed to resume LWP %d\n", thrd->getLWP());
-         return Handler::ret_error;
+      if( thrd->getInternalState() != int_thread::detached ) {
+         if( !thrd->plat_resume() ) {
+            perr_printf("Failed to resume LWP %d\n", thrd->getLWP());
+            return Handler::ret_error;
+         }
       }
    }
 

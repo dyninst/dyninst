@@ -181,7 +181,6 @@ int main(int argc, char *argv[])
       sleep(1);
    }
    */
-
 /*
    system("/bin/cp /lib/libm.so.6 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
    system("/bin/cp /lib/libgcc_s.so.1 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");

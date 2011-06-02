@@ -56,6 +56,7 @@ int test3_6_mutatee() {
   dprintf("Mutatee spinning.\n");
   while (1) {
     /* Do nothing */
+    sleep(1);
   }
   return 0;
 }

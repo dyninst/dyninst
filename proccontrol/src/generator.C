@@ -64,6 +64,7 @@ int_cleanup::~int_cleanup() {
 }
 
 Generator::Generator(std::string name_) :
+   state(none),
    name(name_)
 {
    if (!cb_lock) cb_lock = new Mutex();
@@ -123,9 +124,10 @@ bool Generator::getAndQueueEventInt(bool block)
       goto done;
    }
    if (!result) {
+      pthrd_printf("getAndQueueEventInt returning due to processWait call\n");
       goto done;
    }
-   
+
    setState(system_blocked);
    arch_event = getEvent(block);
    if (isExitingState()) {
@@ -287,8 +289,10 @@ void GeneratorMT::start()
    sync->init_cond.signal();
    sync->init_cond.unlock();
 
-   if (result)
+   if (result) {
+      pthrd_printf("Starting main loop of generator thread\n");
       main();
+   }
    pthrd_printf("Generator thread exiting\n");
 }
 

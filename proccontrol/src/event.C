@@ -189,6 +189,7 @@ std::string EventType::name() const
       STR_CASE(IntBootstrap);
       STR_CASE(ForceTerminate);
       STR_CASE(PrepSingleStep);
+      STR_CASE(Nop);
       STR_CASE(ThreadDB);
       default: return prefix + std::string("Unknown");
    }

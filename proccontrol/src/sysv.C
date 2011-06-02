@@ -75,9 +75,7 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
       procreader = new PCProcReader(this);
    translator = NULL;
    if (sp->translator)
-      translator = AddressTranslate::createAddressTranslator(pid_,
-                                                             procreader,
-                                                             plat_defaultSymReader());
+      translator = constructTranslator(pid_);
 }
 
 sysv_process::~sysv_process()
@@ -89,6 +87,22 @@ sysv_process::~sysv_process()
    if (procreader) {
       delete procreader;
       procreader = NULL;
+   }
+}
+
+AddressTranslate *sysv_process::constructTranslator(Dyninst::PID pid_)
+{
+   Address base;   
+   bool result = plat_getInterpreterBase(base);
+   if (result) {
+      return AddressTranslate::createAddressTranslator(pid_, procreader,
+                                                       plat_defaultSymReader(),
+                                                       INVALID_HANDLE_VALUE,
+                                                       std::string(""), base);
+   }
+   else {
+      return AddressTranslate::createAddressTranslator(pid_, procreader,
+                                                       plat_defaultSymReader());
    }
 }
 
@@ -159,17 +173,15 @@ bool sysv_process::initLibraryMechanism()
 {
    if (lib_initialized) {
       if( translator == NULL ) {
-          translator = AddressTranslate::createAddressTranslator(getPid(),
-                                                                 procreader,
-                                                                 plat_defaultSymReader());
-          if (!translator && procreader->isAsync()) {
-              pthrd_printf("Waiting for async read to finish initializing\n");
-              return false;
-          }
-          if (!translator) {
-              perr_printf("Error creating address translator object\n");
-              return false;
-          }
+         translator = constructTranslator(getPid());
+         if (!translator && procreader->isAsync()) {
+            pthrd_printf("Waiting for async read to finish initializing\n");
+            return false;
+         }
+         if (!translator) {
+            perr_printf("Error creating address translator object\n");
+            return false;
+         }
       }
 
       return true;
@@ -183,9 +195,8 @@ bool sysv_process::initLibraryMechanism()
    assert(procreader);
 
    assert(!translator);
-   translator = AddressTranslate::createAddressTranslator(getPid(), 
-                                                          procreader,
-                                                          plat_defaultSymReader());
+
+   translator = constructTranslator(getPid());
    if (!translator && procreader->isAsync()) {
       pthrd_printf("Waiting for async read to finish initializing\n");
       return false;
@@ -330,3 +341,7 @@ bool sysv_process::addSysVHandlers(HandlerPool *) {
    return true;
 }
 
+bool sysv_process::plat_getInterpreterBase(Address &)
+{
+   return false;
+}

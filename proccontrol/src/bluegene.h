@@ -42,14 +42,9 @@
 #include "proccontrol/src/int_thread_db.h"
 
 #define SINGLE_STEP_SIG 32064
+#define DEBUG_REG_SIG 32066
 
-#if defined(os_bgl)
-#include "external/bluegene/bgl-debugger-interface.h"
-#elif defined (os_bgp)
 #include "external/bluegene/bgp-debugger-interface.h"
-#else
-#error "ERROR: No suitable debug interface for this BG ION."
-#endif
 
 #define BG_INITIAL_THREAD_ID 5
 
@@ -65,6 +60,8 @@ class bg_process : public sysv_process, public thread_db_process, public ppc_pro
       bg_init,
       bg_stop_pending,
       bg_stopped,
+      bg_auxv_pending,
+      bg_auxv_done,
       bg_thread_pending,
       bg_ready,
       bg_bootstrapped,
@@ -76,6 +73,7 @@ class bg_process : public sysv_process, public thread_db_process, public ppc_pro
    signed int pending_thread_alives;
    std::set<int> initial_lwps;
    std::queue<ArchEventBlueGene *> held_arch_events;
+   std::map<uint32_t, uint32_t> auxv_info;
 
   public:
    static int protocol_version;
@@ -119,6 +117,7 @@ class bg_process : public sysv_process, public thread_db_process, public ppc_pro
                                              void* &buffer, unsigned long &buffer_size, 
                                              unsigned long &start_offset);
    virtual bool plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp);
+   virtual bool plat_getInterpreterBase(Address &base);
 
    int_process::ThreadControlMode plat_getThreadControlMode() const;
    virtual SymbolReaderFactory *plat_defaultSymReader();
@@ -150,6 +149,7 @@ class bg_thread : public thread_db_thread
                                       result_response::ptr result);   
    bool plat_getAllRegistersAsync(allreg_response::ptr result);
    bool plat_setAllRegistersAsync(int_registerPool &pool, result_response::ptr result);
+   virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
    virtual bool attach();   
 
    virtual bool plat_suspend();
@@ -253,6 +253,11 @@ class HandleBGAttached : public Handler
    virtual void getEventTypesHandled(vector<EventType> &etypes);
    virtual handler_ret_t handleEvent(Event::ptr ev);
    virtual int getPriority() const;
+};
+
+struct auxv_element {
+  uint32_t type;
+  uint32_t value;
 };
 
 struct thrd_alive_ack_t {

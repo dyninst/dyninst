@@ -105,9 +105,10 @@ class int_process
    virtual bool post_create();
 
    bool attach();
+   bool reattach();
    virtual bool plat_attach(bool allStopped) = 0;
    bool attachThreads();
-   virtual bool post_attach();
+   virtual bool post_attach(bool wasDetached);
 
 
    bool initializeAddressSpace();
@@ -150,6 +151,7 @@ class int_process
    typedef enum {
       neonatal = 0,
       neonatal_intermediate,
+      detached,
       running,
       exited,
       errorstate
@@ -163,7 +165,9 @@ class int_process
    Process::ptr proc() const;
    mem_state::ptr memory() const;
 
-   bool detach(bool &should_clean);
+   void setDoingTemporaryDetach(bool b);
+   bool isDoingTemporaryDetach() const;
+   bool detach(bool &should_clean, bool temporary);
    virtual bool preTerminate();
    bool terminate(bool &needs_sync);
    void updateSyncState(Event::ptr ev, bool gen);
@@ -298,8 +302,9 @@ class int_process
    int crashSignal;
    bool hasExitCode;
    bool forceGenerator;
-   std::stack<int_thread *> allowInternalRPCEvents;
    bool forcedTermination;
+   bool doingTemporaryDetach;
+   std::stack<int_thread *> allowInternalRPCEvents;
    int exitCode;
    static bool in_callback;
    mem_state::ptr mem;
@@ -424,6 +429,7 @@ class int_thread
       running,
       stopped,
       exited,
+      detached,
       errorstate
    } State;
 
@@ -550,6 +556,8 @@ class int_thread
    void setExiting(bool b);
    bool isExitingInGenerator() const;
    void setExitingInGenerator(bool b);
+
+   static void cleanFromHandler(int_thread *thr);
 
    //Misc
    virtual bool attach() = 0;
@@ -757,7 +765,10 @@ class int_breakpoint
 };
 
 //At least as large as any arch's trap instruction
-#define BP_BUFFER_SIZE 4
+#define BP_BUFFER_SIZE 8
+//Long breakpoints can be used to artifically increase the size of the BP write,
+// which fools the BG breakpoint interception code that looks for 4 byte writes.
+#define BP_LONG_SIZE 4
 class installed_breakpoint
 {
    friend class Dyninst::ProcControlAPI::EventBreakpoint;
@@ -770,6 +781,7 @@ class installed_breakpoint
    int buffer_size;
    bool prepped;
    bool installed;
+   bool long_breakpoint;
    int suspend_count;
    Dyninst::Address addr;
 

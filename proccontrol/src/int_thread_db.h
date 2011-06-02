@@ -98,7 +98,7 @@ public:
      * When creating dynamic executables, initialization needs to happen
      * when the thread library is loaded.
      */
-    virtual bool post_attach();
+    virtual bool post_attach(bool wasDetached);
     virtual bool post_create();
 
     virtual bool plat_supportThreadEvents();
@@ -109,7 +109,7 @@ public:
     virtual bool isSupportedThreadLib(string libName);
     int_thread *triggerThread() const;
 
-    async_ret_t initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info);
+    async_ret_t initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info, Dyninst::LWP lwp);
     
     //The types for thread_db functions we will call
     typedef td_err_e (*td_init_t)(void);
@@ -144,7 +144,7 @@ public:
 
 protected:
     Event::ptr decodeThreadEvent(td_event_msg_t *eventMsg, bool &async);
-    async_ret_t handleThreadAttach(td_thrhandle_t *thr);
+    async_ret_t handleThreadAttach(td_thrhandle_t *thr, Dyninst::LWP lwp);
     virtual bool plat_convertToBreakpointAddress(Address &addr, int_thread *thr);
 
     static volatile bool thread_db_initialized;

@@ -969,6 +969,7 @@ bool linux_thread::plat_cont()
       case running:
       case exited:
       case errorstate:
+      case detached:
          perr_printf("Continue attempted on thread in invalid state %s\n", 
                      int_thread::stateStr(handler_state));
          return false;
@@ -1797,7 +1798,7 @@ bool linux_thread::attach()
                    "be auto-attached.\n", llproc()->getPid(), lwp);
       return true;
    }
-   assert(getInternalState() == neonatal);
+   assert(getInternalState() == neonatal || getInternalState() == neonatal_intermediate);
 
    pthrd_printf("Calling PTRACE_ATTACH on thread %d/%d\n", 
                 llproc()->getPid(), lwp);
@@ -1929,7 +1930,7 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
          assert(!"This is not implemented on this architecture");
          return false;
    }
-}
+ }
 
 ArchEventLinux::ArchEventLinux(bool inter_) : 
    status(0),
