@@ -133,13 +133,13 @@ typedef enum {
 
 typedef enum {
    PNone = 0,
-   SingleProcess,
+   SingleProcess = 1,
    MultiProcess
 } test_procstate_t;
 
 typedef enum {
    TNone = 0,
-   SingleThreaded,
+   SingleThreaded = 1,
    MultiThreaded
 } test_threadstate_t;
 

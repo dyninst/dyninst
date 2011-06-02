@@ -59,6 +59,8 @@ void freeLocalData(struct local_data *ld) {
     free(ld);
 }
 
+extern int num_threads;
+
 //Basic test for create/attach and exit.
 int pc_thread_cont_mutatee()
 {
@@ -67,12 +69,6 @@ int pc_thread_cont_mutatee()
    int i;
    struct local_data *localData = NULL;
 
-   for (i = 0; i < gargc; i++) {
-      if (strcmp(gargv[i], "-mt") == 0) {
-         num_threads = DEFAULT_NUM_THREADS;
-         break;
-      }
-   }
    if( num_threads > 0 ) {
        // Each thread needs its own mutex and access to the barrier
        localData = (struct local_data *)malloc(sizeof(struct local_data));

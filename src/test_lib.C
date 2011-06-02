@@ -582,3 +582,43 @@ int setenv(const char *envname, const char *envval, int)
 
 }
 #endif
+
+int getNumProcs(const ParameterDict &dict)
+{
+   ParameterDict::const_iterator i = dict.find("mp");
+   assert(i != dict.end());
+   if (i->second->getInt() <= 1) {
+      return 1;
+   }
+   char *e = getenv("DYNINST_MPTEST_WIDTH");
+   if (e) {
+      int result = atoi(e);
+      if (result)
+         return result;
+   }
+#if defined(os_bg_test)
+   return 16;
+#else
+   return 8;
+#endif
+}
+
+int getNumThreads(const ParameterDict &dict)
+{
+   ParameterDict::const_iterator i = dict.find("mt");
+   assert(i != dict.end());
+   if (i->second->getInt() <= 1) {
+      return 1;
+   }
+   char *e = getenv("DYNINST_MTTEST_WIDTH");
+   if (e) {
+      int result = atoi(e);
+      if (result)
+         return result;
+   }
+#if defined(os_bg_test)
+   return 3;
+#else
+   return 8;
+#endif
+}

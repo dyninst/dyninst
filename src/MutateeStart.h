@@ -63,13 +63,17 @@ int getMutateePid(RunGroup *group);
    ParamInt selfstart_prm((int) group->selfStart); \
    ParamInt threadmode_prm((int) group->threadmode); \
    ParamInt procmode_prm((int) group->procmode); \
+   ParamInt threadmd_prm((int) group->threadmode); \
+   ParamInt procmd_prm((int) group->procmode); \
    paramd["pathname"] = &mutatee_prm; \
    paramd["startState"] = &startstate_prm; \
    paramd["createmode"] = &createmode_prm; \
    paramd["customExecution"] = &customexecution_prm; \
    paramd["selfStart"] = &selfstart_prm; \
    paramd["threadMode"] = &threadmode_prm; \
-   paramd["processMode"] = &procmode_prm
+   paramd["processMode"] = &procmode_prm; \
+   paramd["mt"] = &threadmd_prm; \
+   paramd["mp"] = &procmd_prm;
 
 
 #endif

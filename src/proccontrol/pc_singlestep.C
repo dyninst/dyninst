@@ -222,7 +222,7 @@ test_results_t pc_singlestepMutator::executeTest()
       }
    }
 
-   syncloc loc[DEFAULT_NUM_PROCS];
+   syncloc loc[NUM_PARALLEL_PROCS];
    bool result = comp->recv_broadcast((unsigned char *) loc, sizeof(syncloc));
    if (!result) {
       logerror("Failed to recieve sync broadcast\n");

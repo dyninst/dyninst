@@ -52,13 +52,14 @@ extern "C" DLLEXPORT TestMutator* pc_breakpoint_factory()
 #define NUM_BREAKPOINTS 4
 #define NUM_BREAKPOINT_SPINS 16
 
-Dyninst::Address bp_addrs[DEFAULT_NUM_PROCS][NUM_BREAKPOINTS];
-Breakpoint::ptr bps[DEFAULT_NUM_PROCS][NUM_BREAKPOINTS];
-std::pair<unsigned, unsigned> indexes[DEFAULT_NUM_PROCS*NUM_BREAKPOINTS];
+Dyninst::Address bp_addrs[NUM_PARALLEL_PROCS][NUM_BREAKPOINTS];
+Breakpoint::ptr bps[NUM_PARALLEL_PROCS][NUM_BREAKPOINTS];
+std::pair<unsigned, unsigned> indexes[NUM_PARALLEL_PROCS*NUM_BREAKPOINTS];
 unsigned cur_index;
 std::map<Thread::const_ptr, unsigned> hit_counts;
 unsigned num_breakpoints_hit;
 bool haserror = false;
+unsigned my_num_processes;
 
 Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
 {
@@ -86,7 +87,7 @@ Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
       haserror = true;
       return Process::cbProcContinue;
    }
-   if (index->first >= DEFAULT_NUM_PROCS) {
+   if (index->first >= my_num_processes) {
       logerror("Invalid proc index\n");
       haserror = true;
       return Process::cbProcContinue;
@@ -129,7 +130,9 @@ test_results_t pc_breakpointMutator::executeTest()
    hit_counts.clear();
    memset(indexes, 0, sizeof(indexes));
    memset(bp_addrs, 0, sizeof(bp_addrs));
-   for (unsigned i=0; i<DEFAULT_NUM_PROCS; i++) {
+   my_num_processes = comp->num_processes;
+
+   for (unsigned i=0; i<my_num_processes; i++) {
       for (unsigned j=0; j<NUM_BREAKPOINTS; j++) {
          bps[i][j] = Breakpoint::ptr();
       }

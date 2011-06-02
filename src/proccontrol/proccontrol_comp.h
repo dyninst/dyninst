@@ -46,7 +46,9 @@ class commInfo;
 
 #define RECV_TIMEOUT 30
 
-#define NUM_PARALLEL_PROCS 8
+//NUM_PARALLEL_PROCS is actually a maximum number across all platforms
+#define NUM_PARALLEL_PROCS 256
+
 class ProcControlComponent : public ComponentTester
 {
 private:
@@ -102,6 +104,8 @@ public:
    virtual std::string getLastErrorMsg();
 
    bool waitForSignalFD(int signal_fd);
+
+   static bool initializeConnectionInfo(Process::const_ptr proc);
 };
 
 // Base class for the mutator part of a test

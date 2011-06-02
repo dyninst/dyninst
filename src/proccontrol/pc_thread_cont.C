@@ -129,7 +129,7 @@ test_results_t pc_thread_contMutator::executeTest()
        }
 
        // Wait for all threads to reach the barrier
-       handshake stop_barrier[DEFAULT_NUM_PROCS];
+       handshake stop_barrier[NUM_PARALLEL_PROCS];
        if( !comp->recv_broadcast((unsigned char *)stop_barrier, sizeof(handshake)) ) {
            logerror("Failed to receive sync broadcast\n");
            error = true;

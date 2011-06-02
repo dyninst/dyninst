@@ -34,11 +34,9 @@
 #define MAX_POSSIBLE_THREADS 512
 
 #if defined(os_bg_test)
-#define DEFAULT_NUM_PROCS 8
 #define DEFAULT_NUM_THREADS 3
 #else
 #define DEFAULT_NUM_THREADS 8
-#define DEFAULT_NUM_PROCS 8
 #endif
 
 #if defined(__cplusplus)
