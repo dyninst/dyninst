@@ -33,7 +33,7 @@ symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none: symtab
 # Mutatees compiled with bg_g++ for proccontrol
 ######################################################################
 
-proccontrol_SOLO_MUTATEES_gnu_xx = pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_thread_cont.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_thread_cont.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none 
+proccontrol_SOLO_MUTATEES_gnu_xx = pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_temp_detach.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_temp_detach.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_thread_cont.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_thread_cont.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none 
 
 # Now a list of rules for compiling the mutatees with bg_g++
 
@@ -60,6 +60,10 @@ pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none: pc_library_mu
 pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none: pc_singlestep_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
 pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none: pc_singlestep_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
+	$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
+pc_temp_detach.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none: pc_temp_detach_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
+	$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
+pc_temp_detach.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none: pc_temp_detach_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
 pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none: pc_terminate_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
@@ -341,6 +345,8 @@ pc_irpc_mutatee_solo_powerpc-bgp-linux-g++_32_none_high.o: ../src/solo_mutatee_b
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_powerpc-bgp-linux-g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_powerpc-bgp-linux-g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_powerpc-bgp-linux-g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_powerpc-bgp-linux-g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -361,6 +367,8 @@ pc_irpc_mutatee_solo_powerpc-bgp-linux-g++_32_pic_high.o: ../src/solo_mutatee_bo
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_powerpc-bgp-linux-g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_powerpc-bgp-linux-g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_powerpc-bgp-linux-g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_powerpc-bgp-linux-g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -381,6 +389,8 @@ pc_irpc_mutatee_solo_powerpc-bgp-linux-g++_32_none_max.o: ../src/solo_mutatee_bo
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_powerpc-bgp-linux-g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_powerpc-bgp-linux-g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_powerpc-bgp-linux-g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_powerpc-bgp-linux-g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -401,6 +411,8 @@ pc_irpc_mutatee_solo_powerpc-bgp-linux-g++_32_pic_max.o: ../src/solo_mutatee_boi
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_powerpc-bgp-linux-g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_powerpc-bgp-linux-g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_powerpc-bgp-linux-g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_powerpc-bgp-linux-g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -421,6 +433,8 @@ pc_irpc_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o: ../src/solo_mutatee_b
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -441,6 +455,8 @@ pc_irpc_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o: ../src/solo_mutatee_bo
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -461,6 +477,8 @@ pc_irpc_mutatee_solo_powerpc-bgp-linux-g++_32_none_low.o: ../src/solo_mutatee_bo
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_powerpc-bgp-linux-g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_powerpc-bgp-linux-g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_powerpc-bgp-linux-g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_powerpc-bgp-linux-g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -481,6 +499,8 @@ pc_irpc_mutatee_solo_powerpc-bgp-linux-g++_32_pic_low.o: ../src/solo_mutatee_boi
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_powerpc-bgp-linux-g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_powerpc-bgp-linux-g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_powerpc-bgp-linux-g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_powerpc-bgp-linux-g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -588,7 +608,7 @@ symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none: symtab
 # Mutatees compiled with bg_gcc for proccontrol
 ######################################################################
 
-proccontrol_SOLO_MUTATEES_gnu_cc = pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_thread_cont.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_thread_cont.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none 
+proccontrol_SOLO_MUTATEES_gnu_cc = pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_temp_detach.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_temp_detach.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_thread_cont.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_thread_cont.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none 
 
 # Now a list of rules for compiling the mutatees with bg_gcc
 
@@ -615,6 +635,10 @@ pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none: pc_library_mu
 pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none: pc_singlestep_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
 pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none: pc_singlestep_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
+pc_temp_detach.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none: pc_temp_detach_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
+pc_temp_detach.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none: pc_temp_detach_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
 pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none: pc_terminate_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
@@ -864,6 +888,8 @@ pc_irpc_mutatee_solo_powerpc-bgp-linux-gcc_32_none_high.o: ../src/solo_mutatee_b
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_powerpc-bgp-linux-gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_powerpc-bgp-linux-gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_powerpc-bgp-linux-gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_powerpc-bgp-linux-gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -884,6 +910,8 @@ pc_irpc_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_high.o: ../src/solo_mutatee_bo
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -904,6 +932,8 @@ pc_irpc_mutatee_solo_powerpc-bgp-linux-gcc_32_none_max.o: ../src/solo_mutatee_bo
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_powerpc-bgp-linux-gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_powerpc-bgp-linux-gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_powerpc-bgp-linux-gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_powerpc-bgp-linux-gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -924,6 +954,8 @@ pc_irpc_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_max.o: ../src/solo_mutatee_boi
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -944,6 +976,8 @@ pc_irpc_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o: ../src/solo_mutatee_b
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -964,6 +998,8 @@ pc_irpc_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o: ../src/solo_mutatee_bo
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -984,6 +1020,8 @@ pc_irpc_mutatee_solo_powerpc-bgp-linux-gcc_32_none_low.o: ../src/solo_mutatee_bo
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_powerpc-bgp-linux-gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_powerpc-bgp-linux-gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_powerpc-bgp-linux-gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_powerpc-bgp-linux-gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -1004,6 +1042,8 @@ pc_irpc_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_low.o: ../src/solo_mutatee_boi
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -1139,6 +1179,8 @@ pc_irpc_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../
 	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -1159,6 +1201,8 @@ pc_irpc_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../s
 	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -1278,6 +1322,8 @@ pc_irpc_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c .
 	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c
@@ -1298,6 +1344,8 @@ pc_irpc_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ..
 	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
 pc_breakpoint_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
 	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_temp_detach_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_temp_detach_mutatee.c
+	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_temp_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_temp_detach_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
 pc_thread_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_mutatee.c

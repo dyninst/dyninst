@@ -1627,8 +1627,13 @@ Handler::handler_ret_t HandleDetached::handleEvent(Event::ptr ev)
 
    ProcPool()->condvar()->lock();
 
-   proc->setState(int_process::exited);
-   ProcPool()->rmProcess(proc);
+   if (proc->isDoingTemporaryDetach()) {
+      proc->setState(int_process::detached);
+   }
+   else {
+      proc->setState(int_process::exited);
+      ProcPool()->rmProcess(proc);
+   }
 
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();

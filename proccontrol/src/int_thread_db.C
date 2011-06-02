@@ -1003,8 +1003,8 @@ bool thread_db_process::post_create() {
     return true;
 }
 
-bool thread_db_process::post_attach() {
-    if( !int_process::post_attach() ) return false;
+bool thread_db_process::post_attach(bool wasDetached) {
+    if( !int_process::post_attach(wasDetached) ) return false;
     
     async_ret_t result;
     getMemCache()->setSyncHandling(true);
@@ -1019,6 +1019,46 @@ bool thread_db_process::post_attach() {
     getMemCache()->setSyncHandling(false);
     return result == aret_success ? true : false;
 }
+
+#warning TODO fix in post attach rewrite
+#if 0
+bool thread_db_process::post_attach(bool wasDetached) {
+    if( !int_process::post_attach(wasDetached) ) return false;
+
+    if( !wasDetached ) {
+        return initThreadDB();
+    }else{
+        // Need to initialize all new threads
+        bool success = true;
+        td_err_e errVal;
+        for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); i++) {
+           thread_db_thread *tdb_thread = static_cast<thread_db_thread *>(*i);
+           if( tdb_thread->thread_initialized ) continue;
+
+           tdb_thread->threadHandle = new td_thrhandle_t;
+
+           errVal = td_ta_map_lwp2thr(getThreadDBAgent(), tdb_thread->getLWP(), tdb_thread->threadHandle);
+           if (errVal != TD_OK) {
+              perr_printf("Failed to map LWP %d to thread_db thread: %s(%d)\n",
+                          tdb_thread->getLWP(), tdErr2Str(errVal), errVal);
+              setLastError(err_internal, "Failed to get thread_db thread handle");
+              delete tdb_thread->threadHandle;
+              tdb_thread->threadHandle = NULL;
+              success = false;
+              continue;
+           }
+           tdb_thread->threadHandle_alloced = true;
+
+           if( !handleThreadAttach(tdb_thread->threadHandle) ) {
+               perr_printf("Error handling thread_db attach\n");
+               success = false;
+           }
+        }
+
+        return success;
+    }
+}
+#endif
 
 bool thread_db_process::getPostDestroyEvents(vector<Event::ptr> &events) { 
    unsigned oldSize = events.size();
@@ -1364,9 +1404,11 @@ Handler::handler_ret_t ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
    if (ev->getEventType().time() == EventType::Post) {
       // Need to make sure that the thread actually finishes and is cleaned up
       // by the OS
-      if( !thrd->plat_resume() ) {
-         perr_printf("Failed to resume LWP %d\n", thrd->getLWP());
-         return Handler::ret_error;
+      if( thrd->getInternalState() != int_thread::detached ) {
+         if( !thrd->plat_resume() ) {
+            perr_printf("Failed to resume LWP %d\n", thrd->getLWP());
+            return Handler::ret_error;
+         }
       }
    }
 

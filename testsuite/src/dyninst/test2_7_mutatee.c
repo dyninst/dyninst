@@ -54,7 +54,7 @@ int test2_7_passed = 0;
 /* Function definitions follow */
 
 int test2_7_mutatee() {
-#if defined(os_linux_test) || defined(os_aix_test) || defined(os_windows_test)
+#if defined(os_linux_test) || defined(os_aix_test) || defined(os_windows_test) || defined(os_freebsd_test)
   if (test2_7_passed) {
     test_passes("test2_7");
     return 0; /* No error */

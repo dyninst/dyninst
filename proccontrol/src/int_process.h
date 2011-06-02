@@ -105,9 +105,10 @@ class int_process
    virtual bool post_create();
 
    bool attach();
+   bool reattach();
    virtual bool plat_attach(bool allStopped) = 0;
    bool attachThreads();
-   virtual bool post_attach();
+   virtual bool post_attach(bool wasDetached);
 
 
    bool initializeAddressSpace();
@@ -150,6 +151,7 @@ class int_process
    typedef enum {
       neonatal = 0,
       neonatal_intermediate,
+      detached,
       running,
       exited,
       errorstate
@@ -163,7 +165,9 @@ class int_process
    Process::ptr proc() const;
    mem_state::ptr memory() const;
 
-   bool detach(bool &should_clean);
+   void setDoingTemporaryDetach(bool b);
+   bool isDoingTemporaryDetach() const;
+   bool detach(bool &should_clean, bool temporary);
    virtual bool preTerminate();
    bool terminate(bool &needs_sync);
    void updateSyncState(Event::ptr ev, bool gen);
@@ -298,8 +302,9 @@ class int_process
    int crashSignal;
    bool hasExitCode;
    bool forceGenerator;
-   std::stack<int_thread *> allowInternalRPCEvents;
    bool forcedTermination;
+   bool doingTemporaryDetach;
+   std::stack<int_thread *> allowInternalRPCEvents;
    int exitCode;
    static bool in_callback;
    mem_state::ptr mem;
@@ -424,6 +429,7 @@ class int_thread
       running,
       stopped,
       exited,
+      detached,
       errorstate
    } State;
 
