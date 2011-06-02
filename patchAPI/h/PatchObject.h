@@ -49,11 +49,6 @@ class PatchObject {
     PATCHAPI_EXPORT void addEdge(PatchEdge*);
     PATCHAPI_EXPORT void removeEdge(PatchEdge*);
 
-    PATCHAPI_EXPORT virtual bool isValidAddress(const Address) const { return false; }
-    PATCHAPI_EXPORT virtual Address length() const { return 0; }
-    PATCHAPI_EXPORT virtual Architecture getArch() const { }
-    PATCHAPI_EXPORT virtual void* getPtrToInstruction(const Address) const {  return NULL; }
-
   protected:
     ParseAPI::CodeObject* co_;
     ParseAPI::CodeSource* cs_;

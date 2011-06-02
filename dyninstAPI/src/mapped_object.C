@@ -2250,14 +2250,3 @@ void mapped_object::destroy(ParseAPI::Function *f) {
    }
 }
 
-bool mapped_object::isValidAddress(const Address a) const {
-  return proc()->isValidAddress(a);
-}
-
-Architecture mapped_object::getArch() const {
-  return proc()->getArch();
-}
-
-Address mapped_object::length() const {
-  return proc()->length();
-}
