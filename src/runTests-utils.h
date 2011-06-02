@@ -78,8 +78,7 @@ class test_driver_t {
          unique(0),
          useLog(false),
          staticTests(false),
-         testLimit(0),
-         given_mutator(-1)
+         testLimit(0)
          {
          }
 
@@ -90,8 +89,6 @@ class test_driver_t {
    bool staticTests;
    string logfile;
    int testLimit;
-   int given_mutator;
-   std::string given_mutatee;
    vector<char *> child_argv;
    std::string pidFilename;
    std::string hostname;
@@ -107,8 +104,7 @@ void cleanupMutatees(char *pidFilename);
 
 test_pid_t RunTest(unsigned int iteration, bool useLog, bool staticTests,
                    std::string logfile, int testLimit, vector<char *> child_argv,
-                   const char *pidFilename,
-                   std::string hostname, const char *given_mutatee, int given_mutator);
+                   const char *pidFilename, std::string hostname);
 
 int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies);
 
