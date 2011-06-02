@@ -1049,7 +1049,7 @@ void mapped_object::getInferiorHeaps(vector<pair<string, Address> > &foundHeaps)
 
 
 void *mapped_object::getPtrToInstruction(Address addr) const {
-  // cerr << std::hex << addr << ", codeAbs: " << codeAbs() << "\n" << std::dec ;
+  //cerr << std::hex << addr << ", codeAbs: " << codeAbs() << "\n" << std::dec ;
   if (addr < codeAbs()) {
     assert(0);
     return NULL;
@@ -2248,4 +2248,16 @@ void mapped_object::destroy(ParseAPI::Function *f) {
      func_instance::destroy(SCAST_FI(iter->second));
      funcs_.erase(iter);
    }
+}
+
+bool mapped_object::isValidAddress(const Address a) const {
+  return proc()->isValidAddress(a);
+}
+
+Architecture mapped_object::getArch() const {
+  return proc()->getArch();
+}
+
+Address mapped_object::length() const {
+  return proc()->length();
 }

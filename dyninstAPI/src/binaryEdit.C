@@ -395,6 +395,9 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
     std::map<std::string, BinaryEdit *> retMap;
 
     BinaryEdit *temp = BinaryEdit::openFile(filename);
+
+    temp->setMgr(mgr());
+
     if( temp && temp->getAddressWidth() == getAddressWidth() ) {
         retMap.insert(std::make_pair(filename, temp));
         return retMap;

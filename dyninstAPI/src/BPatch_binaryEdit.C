@@ -98,6 +98,7 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
   startup_printf("[%s:%u] - Opening original file %s\n",
                  FILE__, __LINE__, path);
   origBinEdit = BinaryEdit::openFile(std::string(path));
+
   if (!origBinEdit){
      startup_printf("[%s:%u] - Creation error opening %s\n",
                     FILE__, __LINE__, path);
@@ -109,6 +110,16 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
   if(openDependencies) {
     origBinEdit->getAllDependencies(llBinEdits);
   }
+  std::map<std::string, BinaryEdit*>::iterator i, j;
+
+  /* PatchAPI stuffs */
+  origBinEdit->initPatchAPI();
+  DynAddrSpacePtr addrSpace = DYN_CAST(DynAddrSpace, origBinEdit->mgr()->as());
+  for(i = llBinEdits.begin(); i != llBinEdits.end(); i++) {
+     addrSpace->loadLibrary((*i).second->getAOut());
+     (*i).second->setMgr(origBinEdit->mgr());
+  }
+  /* End of PatchAPI stuffs */
 
   origBinEdit->getDyninstRTLibName();
   std::string rt_name = origBinEdit->dyninstRT_name;
@@ -144,19 +155,10 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
       }
   }
 
-  std::map<std::string, BinaryEdit*>::iterator i, j;
   for(i = llBinEdits.begin(); i != llBinEdits.end(); i++) {
      (*i).second->setupRTLibrary(rtLib);
   }
 
-  /* PatchAPI stuffs */
-  origBinEdit->initPatchAPI();
-  DynAddrSpacePtr addrSpace = DYN_CAST(DynAddrSpace, origBinEdit->mgr()->as());
-  for(i = llBinEdits.begin(); i != llBinEdits.end(); i++) {
-     addrSpace->loadLibrary((*i).second->getAOut());
-     (*i).second->setMgr(origBinEdit->mgr());
-  }
-  /* End of PatchAPI stuffs */
 
   int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
   assert(masterTrampGuard);

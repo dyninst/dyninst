@@ -1649,6 +1649,10 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
         if ( !origSymtab->isStaticBinary() ) {
             for(pathIter = paths.begin(); pathIter != paths.end(); ++pathIter) {
                 BinaryEdit *temp = BinaryEdit::openFile(*pathIter);
+                /* PatchAPI stuffs */
+                temp->setMgr(mgr());
+                /* End of PatchAPI stuffs */
+
                 if (temp && temp->getAddressWidth() == getAddressWidth()) {
                     retMap.insert(std::make_pair(*pathIter, temp));
                     return retMap;
@@ -1679,6 +1683,10 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                              ++member_it) 
                         {
                             BinaryEdit *temp = BinaryEdit::openFile(*pathIter, (*member_it)->memberName());
+
+                /* PatchAPI stuffs */
+                temp->setMgr(mgr());
+                /* End of PatchAPI stuffs */
                             if (temp && temp->getAddressWidth() == getAddressWidth()) {
                                 std::string mapName = *pathIter + string(":") +
                                     (*member_it)->memberName();
@@ -1698,6 +1706,11 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                     }
                 } else if (Symtab::openFile(singleObject, *pathIter)) {
                     BinaryEdit *temp = BinaryEdit::openFile(*pathIter);
+
+                /* PatchAPI stuffs */
+                temp->setMgr(mgr());
+                /* End of PatchAPI stuffs */
+
                     if (temp && temp->getAddressWidth() == getAddressWidth()) {
                         if( singleObject->getObjectType() == obj_SharedLib ||
                             singleObject->getObjectType() == obj_Executable ) 

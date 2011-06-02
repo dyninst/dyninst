@@ -210,6 +210,9 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     // codeRange method
     void *getPtrToInstruction(Address addr) const;
     void *getPtrToData(Address addr) const;
+    bool isValidAddress(const Address) const;
+    Architecture getArch() const;
+    Address length() const;
 
     // Try to avoid using these if you can, since they'll trigger
     // parsing and allocation.
