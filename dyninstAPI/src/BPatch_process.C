@@ -1285,10 +1285,8 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
    }
 
    /* PatchAPI stuffs */
-   // cerr << libname << "\n";
    mapped_object* plib = llproc->findObject(libname);
-   assert(plib);
-   DYN_CAST(DynAddrSpace, llproc->mgr()->as())->loadLibrary(plib);
+   if (plib) DYN_CAST(DynAddrSpace, llproc->mgr()->as())->loadLibrary(plib);
    /* End of PatchAPi stuffs */
 
    return true;
