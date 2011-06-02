@@ -389,7 +389,6 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                while (1) sleep(1);
             }
 #endif
-            assert(stopsig != 5);
             event = Event::ptr(new EventSignal(stopsig));
       }
       if (event && event->getSyncType() == Event::unset)

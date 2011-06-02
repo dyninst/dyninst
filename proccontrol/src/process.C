@@ -1948,7 +1948,7 @@ bool int_thread::cont(bool user_cont)
       return true;
    }
 
-   if (isStoppedOnBP()) {
+   if (isStoppedOnBP() && !hasPendingStop()) {
       /**
        * The thread is stopped on a breakpoint.  Rather than immediately continuing
        * we'll create a clear event to remove the breakpoint and set the appropriate
